@@ -4,10 +4,8 @@ status: implemented_pending_validation
 plan_sources:
   - docs/plans/optimize/zircon_runtime/02/2026-08-30-editor544-export-report-row-reuse.md
 implementation_files:
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/panel_projection.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/panel_report_body_tests.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/panel_projection.rs
 tests:
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/panel_report_body_tests.rs
 ---
 
 # Editor966 Editor544 export-report row reuse

@@ -1,22 +1,19 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/app.rs
-  - zircon_editor/src/ui/retained_host/app/workspace_docking.rs
-  - zircon_editor/src/ui/retained_host/app/workspace_docking/drag_drop.rs
-  - zircon_editor/src/ui/retained_host/app/workspace_docking/drag_drop/route.rs
-  - zircon_editor/src/ui/retained_host/app/workspace_docking/drawer_resize.rs
-  - zircon_editor/src/ui/retained_host/app/workspace_docking/drawer_resize/capture.rs
-  - zircon_editor/src/ui/retained_host/app/workspace_docking/drawer_resize/movement.rs
-  - zircon_editor/src/ui/retained_host/app/callback_wiring.rs
-  - zircon_editor/src/ui/retained_host/tab_drag.rs
+  - zircon_editor/src/ui/retained/app/workspace_docking.rs
+  - zircon_editor/src/ui/retained/app/workspace_docking/drag_drop.rs
+  - zircon_editor/src/ui/retained/app/workspace_docking/drag_drop/route.rs
+  - zircon_editor/src/ui/retained/app/workspace_docking/drawer_resize.rs
+  - zircon_editor/src/ui/retained/app/workspace_docking/drawer_resize/capture.rs
+  - zircon_editor/src/ui/retained/app/workspace_docking/drawer_resize/movement.rs
+  - zircon_editor/src/ui/retained/app/callback_wiring.rs
 implementation_files:
-  - zircon_editor/src/ui/retained_host/app.rs
-  - zircon_editor/src/ui/retained_host/app/workspace_docking.rs
-  - zircon_editor/src/ui/retained_host/app/workspace_docking/drag_drop.rs
-  - zircon_editor/src/ui/retained_host/app/workspace_docking/drag_drop/route.rs
-  - zircon_editor/src/ui/retained_host/app/workspace_docking/drawer_resize.rs
-  - zircon_editor/src/ui/retained_host/app/workspace_docking/drawer_resize/capture.rs
-  - zircon_editor/src/ui/retained_host/app/workspace_docking/drawer_resize/movement.rs
+  - zircon_editor/src/ui/retained/app/workspace_docking.rs
+  - zircon_editor/src/ui/retained/app/workspace_docking/drag_drop.rs
+  - zircon_editor/src/ui/retained/app/workspace_docking/drag_drop/route.rs
+  - zircon_editor/src/ui/retained/app/workspace_docking/drawer_resize.rs
+  - zircon_editor/src/ui/retained/app/workspace_docking/drawer_resize/capture.rs
+  - zircon_editor/src/ui/retained/app/workspace_docking/drawer_resize/movement.rs
 plan_sources:
   - docs/plans/zircon_editor/editor_ui/08-workbench-shell-on-runtime-ui.md
   - user: 2026-06-18 editor UI architecture implementation, feature first and tests deferred

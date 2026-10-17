@@ -3,7 +3,6 @@ related_code:
   - zircon_editor/src/core/hub_link
   - zircon_editor/src/ui/host/editor_manager_project_session.rs
   - zircon_editor/src/ui/host/startup
-  - zircon_editor/src/ui/retained_host/app.rs
 reference_code:
   - dev/UnrealEngine/Engine/Source/Runtime/Projects/Public/ProjectEditorRecords.h
   - dev/UnrealEngine/Engine/Source/Runtime/Projects/Private/ProjectEditorRecords.cpp

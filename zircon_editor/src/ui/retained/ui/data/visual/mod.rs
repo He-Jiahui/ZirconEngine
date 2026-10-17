@@ -57,12 +57,14 @@ pub(crate) fn export_product_workbench_case_snapshots_with_context(
     output_path: &Path,
     core: &CoreHandle,
     build_set: &ZrRuntimeBuildSetId,
+    project_root: &std::path::Path,
 ) -> Result<(), String> {
     product_presentation::export_product_workbench_case_snapshots_with_context(
         repo_root,
         output_path,
         core,
         build_set,
+        project_root,
     )
 }
 
@@ -89,16 +91,17 @@ pub(crate) fn capture_catalog_with_context(
     repo_root: &Path,
     core: &CoreHandle,
     build_set: &ZrRuntimeBuildSetId,
+    project_root: &std::path::Path,
 ) -> Result<CaptureSummary, String> {
     let repo = repo_root
         .canonicalize()
         .map_err(|error| error.to_string())?;
-    capture_catalog_at(&repo, Some((core, build_set)))
+    capture_catalog_at(&repo, Some((core, build_set, project_root)))
 }
 
 fn capture_catalog_at(
     repo: &Path,
-    context: Option<(&CoreHandle, &ZrRuntimeBuildSetId)>,
+    context: Option<(&CoreHandle, &ZrRuntimeBuildSetId, &Path)>,
 ) -> Result<CaptureSummary, String> {
     let output = repo.join("docs/layout");
     let catalog: Catalog = serde_json::from_value(read_json(&output.join("catalog.json"))?)
@@ -148,15 +151,20 @@ fn capture_catalog_at(
             if let Some(host) = &case.review_host {
                 record["reviewHostSha256"] = json!(host.sha256);
             }
-            if let Some((_, build_set)) = context {
+            if let Some((_, build_set, _)) = context {
                 record["runtimeBuildSetId"] = json!(build_set);
             }
             let result = (|| {
                 entry.verify(&repo, &output)?;
                 case.validate(&entry.source_path)?;
                 let captured = match context {
-                    Some((core, build_set)) => capture::render_with_context(
-                        repo, &entry, raw_case, &case, &directory, core, build_set,
+                    Some((core, build_set, project_root)) => capture::render_with_context(
+                        repo,
+                        &entry,
+                        raw_case,
+                        &case,
+                        &directory,
+                        (core, build_set, project_root),
                     )?,
                     None => capture::render(repo, &entry, raw_case, &case, &directory)?,
                 };
@@ -203,7 +211,7 @@ fn capture_catalog_at(
         &json!({
             "schema": "dev.zircon.zui.native-evidence", "version": 1,
             "rendererSha256": renderer_sha,
-            "runtimeBuildSetId": context.map(|(_, build_set)| build_set),
+            "runtimeBuildSetId": context.map(|(_, build_set, _)| build_set),
             "evidence": evidence,
         }),
     )?;

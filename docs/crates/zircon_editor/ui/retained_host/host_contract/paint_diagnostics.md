@@ -1,20 +1,14 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/host_contract/paint_diagnostics.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_diagnostics/marker.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_diagnostics/top_bar.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_diagnostics/union.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_diagnostics/visibility.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_diagnostics_tests.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/root_frames.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/skeleton.rs
+  - zircon_editor/src/ui/retained/contract/paint_diagnostics/marker.rs
+  - zircon_editor/src/ui/retained/contract/paint_diagnostics/top_bar.rs
+  - zircon_editor/src/ui/retained/contract/paint_diagnostics/union.rs
+  - zircon_editor/src/ui/retained/contract/paint_diagnostics/visibility.rs
 implementation_files:
-  - zircon_editor/src/ui/retained_host/host_contract/paint_diagnostics.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_diagnostics/marker.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_diagnostics/top_bar.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_diagnostics/union.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_diagnostics/visibility.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_diagnostics_tests.rs
+  - zircon_editor/src/ui/retained/contract/paint_diagnostics/marker.rs
+  - zircon_editor/src/ui/retained/contract/paint_diagnostics/top_bar.rs
+  - zircon_editor/src/ui/retained/contract/paint_diagnostics/union.rs
+  - zircon_editor/src/ui/retained/contract/paint_diagnostics/visibility.rs
 plan_sources:
   - docs/plans/zircon_editor/editor_ui/08-workbench-shell-on-runtime-ui.md
   - user: 2026-06-20 editor UI architecture implementation, feature first and tests deferred

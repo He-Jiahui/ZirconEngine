@@ -1,11 +1,7 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/primitives.rs
-  - zircon_editor/src/ui/retained_host/ui/apply_presentation.rs
-  - zircon_editor/src/ui/retained_host/ui/apply_presentation
-  - zircon_editor/src/ui/retained_host/ui/template_node_conversion.rs
-  - zircon_editor/src/ui/retained_host/ui/workbench_window_projection.rs
-  - zircon_editor/src/ui/retained_host/ui/workbench_window_projection
+  - zircon_editor/src/ui/retained/ui/apply_presentation.rs
+  - zircon_editor/src/ui/retained/ui/apply_presentation
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_editor/editor_ui/05/failure-2026-07-17-template-projection-deep-copy-and-cache-generation.md

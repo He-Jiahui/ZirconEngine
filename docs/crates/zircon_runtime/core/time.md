@@ -60,9 +60,8 @@ tests:
   - zircon_runtime/src/core/runtime/diagnostics/store.rs::tests::static_diagnostic_series_reuses_path_and_metadata_allocations
   - zircon_runtime/src/tests/time.rs
   - zircon_runtime/src/tests/prelude.rs
-  - zircon_runtime/src/dynamic_api/tests.rs
+  - zircon_runtime/src/dynamic_api/tests/mod.rs
   - zircon_runtime_interface/src/tests/contracts.rs
-  - zircon_app/src/entry/runtime_library/tests.rs
   - zircon_app/src/entry/tests/mod.rs
   - cargo test -p zircon_runtime --lib tests::time:: --locked
 doc_type: module-detail

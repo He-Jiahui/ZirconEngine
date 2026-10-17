@@ -17,7 +17,6 @@ related_code:
   - zircon_runtime/src/core/framework/project/runtime_profile_id.rs
   - zircon_runtime/src/core/framework/project/project_plugin_manifest
   - zircon_runtime/src/plugin/runtime_profile
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog
   - zircon_runtime/src/plugin/extension_registry
   - zircon_runtime/src/dynamic_api/session/linked_plugins.rs
   - zircon_app/src/entry/builtin_modules.rs
@@ -27,10 +26,6 @@ related_code:
   - zircon_app/src/plugins/groups/resolution.rs
 tests:
   - zircon_runtime/src/builtin/runtime_modules/tests
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/derived_projection/tests.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/registration/update/tests.rs
-  - zircon_runtime/src/plugin/extension_registry/runtime_extension_registry/tests.rs
-  - zircon_runtime/src/plugin/extension_registry/typed_extension_point/tests.rs
 plan_sources:
   - docs/plans/optimize/zircon_runtime/42-builtin-runtime-module-catalog-profile-target-feature-selection-extension-registration-capability-load-report-product-integration-review.md
   - docs/plans/optimize/zircon_runtime/42/2026-08-24-effective-manifest-registration-filter.md

@@ -26,9 +26,14 @@ pub fn export_zui_visual_evidence_with_context(
     repo_root: &std::path::Path,
     core: &CoreHandle,
     build_set: &ZrRuntimeBuildSetId,
+    project_root: &std::path::Path,
 ) -> Result<ZuiVisualEvidenceSummary, String> {
-    let summary =
-        super::super::ui::capture_zui_visual_evidence_with_context(repo_root, core, build_set)?;
+    let summary = super::super::ui::capture_zui_visual_evidence_with_context(
+        repo_root,
+        core,
+        build_set,
+        project_root,
+    )?;
     Ok(ZuiVisualEvidenceSummary {
         captured: summary.captured,
         failed: summary.failed,
@@ -43,11 +48,13 @@ pub fn export_zui_workbench_product_snapshots_with_context(
     output_path: &std::path::Path,
     core: &CoreHandle,
     build_set: &ZrRuntimeBuildSetId,
+    project_root: &std::path::Path,
 ) -> Result<(), String> {
     super::super::ui::export_zui_workbench_product_snapshots_with_context(
         repo_root,
         output_path,
         core,
         build_set,
+        project_root,
     )
 }

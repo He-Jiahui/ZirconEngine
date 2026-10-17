@@ -1,7 +1,6 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector
-  - zircon_editor/src/ui/retained_host/host_contract/paint_theme/palette_projection.rs
+  - zircon_editor/src/ui/retained/contract/paint_theme/palette_projection.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_editor/editor_ui/08-workbench-shell-on-runtime-ui.md

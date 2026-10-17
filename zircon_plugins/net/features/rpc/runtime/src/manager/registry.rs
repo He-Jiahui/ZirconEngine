@@ -9,9 +9,7 @@ use super::{NetRpcRuntimeManager, RpcHandler};
 
 impl NetRpcRuntimeManager {
     pub fn register_rpc(&self, descriptor: RpcDescriptor) -> Result<(), NetError> {
-        self.state
-            .lock()
-            .expect("net RPC state mutex poisoned")
+        self.lock_state()?
             .rpc_descriptors
             .insert(descriptor.id.clone(), descriptor);
         Ok(())
@@ -21,12 +19,11 @@ impl NetRpcRuntimeManager {
         &self,
         schema: impl Into<String>,
         validator: impl Fn(&[u8]) -> bool + Send + Sync + 'static,
-    ) {
-        self.state
-            .lock()
-            .expect("net RPC state mutex poisoned")
+    ) -> Result<(), NetError> {
+        self.lock_state()?
             .schema_validators
             .insert(schema.into(), Arc::new(validator));
+        Ok(())
     }
 
     /// 同时登记描述符与同步 handler；handler 会在状态锁外执行，可访问 manager，但无法被超时强制中断。
@@ -36,7 +33,7 @@ impl NetRpcRuntimeManager {
         handler: impl Fn(&RpcInvocationDescriptor) -> Result<Vec<u8>, String> + Send + Sync + 'static,
     ) -> Result<(), NetError> {
         let rpc_id = descriptor.id.clone();
-        let mut state = self.state.lock().expect("net RPC state mutex poisoned");
+        let mut state = self.lock_state()?;
         let handler: RpcHandler = Arc::new(handler);
         state.rpc_descriptors.insert(rpc_id.clone(), descriptor);
         state.rpc_handlers.insert(rpc_id, handler);
@@ -44,9 +41,8 @@ impl NetRpcRuntimeManager {
     }
 
     pub fn rpc_descriptor(&self, id: &str) -> Option<RpcDescriptor> {
-        self.state
-            .lock()
-            .expect("net RPC state mutex poisoned")
+        self.lock_state()
+            .ok()?
             .rpc_descriptors
             .get(id)
             .cloned()

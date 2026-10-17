@@ -10,7 +10,6 @@ related_code:
   - zircon_editor/src/ui/host/editor_event_execution/animation_event.rs
   - zircon_editor/src/ui/host/editor_manager_animation_editor.rs
   - zircon_editor/src/ui/layouts/views/animation_editor.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload_builders
   - zircon_editor/src/ui/timeline
   - zircon_editor/src/ui/timeline_strip
   - zircon_editor/src/ui/curve
@@ -19,7 +18,6 @@ related_code:
   - zircon_editor/src/ui/weight_heatmap
   - zircon_editor/assets/ui/editor/host/animation_graph_body.zui
   - zircon_editor/assets/ui/editor/host/animation_sequence_body.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/animation
   - zircon_runtime/src/core/framework/animation
   - zircon_runtime/src/animation
   - zircon_runtime/src/asset/importer/ingest/gltf_animation_subassets.rs

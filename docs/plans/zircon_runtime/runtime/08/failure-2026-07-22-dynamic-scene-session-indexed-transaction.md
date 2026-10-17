@@ -9,12 +9,12 @@ origin_child_dir: docs/plans/performance/01
 fixing_child_dir: docs/plans/zircon_runtime/runtime/08
 plan_link_mode: child_record_only
 related_code:
-  - zircon_runtime/src/scene/dynamic_scene/session/slot_store
-  - zircon_runtime/src/scene/dynamic_scene/session/query
-  - zircon_runtime/src/scene/dynamic_scene/session/merge
-  - zircon_runtime/src/scene/dynamic_scene/session/retention
-  - zircon_runtime/src/scene/dynamic_scene/session/selected_capture
-  - zircon_runtime/src/scene/dynamic_scene/session/selected_mutation
+  - zircon_runtime/src/scene/dynamic/session/slot_store
+  - zircon_runtime/src/scene/dynamic/session/query
+  - zircon_runtime/src/scene/dynamic/session/merge
+  - zircon_runtime/src/scene/dynamic/session/retention
+  - zircon_runtime/src/scene/dynamic/session/selected_capture
+  - zircon_runtime/src/scene/dynamic/session/selected_mutation
 tests:
   - cargo test -p zircon_runtime --lib dynamic_scene_session --locked --jobs 1 -- --nocapture --test-threads=1
   - 100k slot merge, selection, preview and prune counters

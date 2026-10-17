@@ -1,15 +1,5 @@
 ---
 related_code:
-  - dev/bevy/docs/cargo_features.md
-  - dev/bevy/crates/bevy_internal/src/default_plugins.rs
-  - dev/bevy/crates/bevy_image/src/lib.rs
-  - dev/bevy/crates/bevy_mesh/src/lib.rs
-  - dev/bevy/crates/bevy_camera/src/components.rs
-  - dev/bevy/crates/bevy_shader/src/lib.rs
-  - dev/bevy/crates/bevy_shader/src/shader.rs
-  - dev/bevy/crates/bevy_shader/src/shader_cache.rs
-  - dev/bevy/crates/bevy_material/src/lib.rs
-  - dev/bevy/crates/bevy_light/src/lib.rs
   - zircon_runtime/src/core/framework/render/profile.rs
   - zircon_runtime/src/core/framework/render/mod.rs
   - zircon_runtime/src/text/model/mod.rs
@@ -18,7 +8,6 @@ related_code:
   - zircon_runtime/src/text/model/font/mod.rs
   - zircon_runtime/src/core/framework/render/camera.rs
   - zircon_runtime/src/core/framework/render/core_pipeline/render_queue.rs
-  - zircon_runtime/src/core/framework/render/post_process/effect_stack_settings.rs
   - zircon_runtime/src/core/framework/render/relevance.rs
   - zircon_runtime/src/core/framework/render/image/mod.rs
   - zircon_runtime/src/core/framework/render/mesh/mod.rs
@@ -27,9 +16,8 @@ related_code:
   - zircon_runtime/src/core/framework/render/light/mod.rs
   - zircon_runtime/src/core/framework/render/light/readiness.rs
   - zircon_runtime/src/core/framework/render/scene_extract.rs
-  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/core_framework.rs
+  - zircon_runtime/src/tests/contracts/runtime_15_m2/core_framework.rs
   - zircon_runtime/src/asset/tests/assets/render_product.rs
-  - zircon_runtime/src/core/framework/tests.rs
 implementation_files:
   - zircon_runtime/src/core/framework/render/profile.rs
   - zircon_runtime/src/core/framework/render/mod.rs
@@ -39,7 +27,6 @@ implementation_files:
   - zircon_runtime/src/text/model/font/mod.rs
   - zircon_runtime/src/core/framework/render/camera.rs
   - zircon_runtime/src/core/framework/render/core_pipeline/render_queue.rs
-  - zircon_runtime/src/core/framework/render/post_process/effect_stack_settings.rs
   - zircon_runtime/src/core/framework/render/relevance.rs
   - zircon_runtime/src/core/framework/render/image/mod.rs
   - zircon_runtime/src/core/framework/render/mesh/mod.rs
@@ -59,7 +46,6 @@ tests:
   - zircon_runtime/src/asset/tests/assets/render_product.rs::render_product_assets_material_dependencies_validation_and_readiness_are_structured
   - zircon_runtime/src/asset/tests/assets/render_product.rs::render_product_assets_material_readiness_reports_unresolved_dependencies_and_fallbacks
   - zircon_runtime/src/asset/tests/assets/render_product.rs::render_product_assets_material_rejects_invalid_alpha_mask_cutoff
-  - zircon_runtime/src/core/framework/tests.rs::render_profile_default_bundle_enables_basic_products_without_advanced_paths
   - cargo test -p zircon_runtime --locked render_product_assets
   - cargo test -p zircon_runtime render_profile --locked
   - cargo check -p zircon_runtime --lib --locked

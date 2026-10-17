@@ -9,13 +9,9 @@ origin_child_dir: docs/plans/zircon_editor/editor/08
 fixing_child_dir: docs/plans/zircon_plugins/01
 plan_link_mode: child_record_only
 related_code:
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/keys.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/hot_reload.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/lifecycle.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests/hot_reload_state.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests/hot_reload_publication.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests/runtime_behavior.rs
+  - zircon_runtime/src/plugin/loader/live/tests/hot_reload_state.rs
+  - zircon_runtime/src/plugin/loader/live/tests/hot_reload_publication.rs
+  - zircon_runtime/src/plugin/loader/live/tests/runtime_behavior.rs
 tests:
   - bulk_reload_reopens_the_old_generation_when_loaded_lock_reacquisition_fails
   - unload_reopens_the_retained_generation_when_loaded_lock_reacquisition_fails

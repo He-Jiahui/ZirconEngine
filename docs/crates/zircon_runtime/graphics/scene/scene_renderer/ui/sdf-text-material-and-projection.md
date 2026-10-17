@@ -1,19 +1,19 @@
 ---
 related_code:
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render/text_effects.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render/text_projection.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/material.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/vertices.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/decorations.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/shaders/zr_text_sdf.wgsl
+  - zircon_runtime/src/graphics/scene/renderer/ui/render.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/render/text_effects.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/render/text_projection.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/sdf_render.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/sdf_render/material.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/sdf_render/vertices.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/sdf_render/decorations.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/shaders/zr_text_sdf.wgsl
 implementation_files:
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render/text_projection.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/material.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/vertices.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/decorations.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/shaders/zr_text_sdf.wgsl
+  - zircon_runtime/src/graphics/scene/renderer/ui/render/text_projection.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/sdf_render/material.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/sdf_render/vertices.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/sdf_render/decorations.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/shaders/zr_text_sdf.wgsl
 plan_sources:
   - docs/plans/zircon_runtime/text/05-sdf-msdf-pipeline.md
   - docs/plans/engine-code-structure-convention.md
@@ -21,10 +21,9 @@ plan_sources:
   - docs/superpowers/specs/2026-07-13-runtime-text-sdf-effects-decoration-design.md
   - docs/superpowers/plans/2026-07-13-runtime-text-sdf-effects-decoration.md
 tests:
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/material.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/decoration_geometry.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/sdf_render/tests/material.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/tests/decoration_geometry.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/product_framebuffer
-  - docs/tests/runtime/text/runtime_text_sdf_effects_transformed_product_framebuffer_20260713.png
 status: complete
 doc_type: module-detail
 ---

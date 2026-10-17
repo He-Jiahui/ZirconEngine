@@ -1,14 +1,29 @@
-//! 在实际 HTTP 请求前判断 TLS 要求、loopback 例外和 pin 配置的 host 准入，不执行证书校验。
-//! 当前 HTTPS 无 pin 时使用客户端默认 TLS 验证；pin 模式关闭默认无效证书拒绝，并在发送后检查应用层摘要。明文 HTTP 分支没有该摘要检查。
+//! Validate TLS admission before HTTP I/O. HTTPS verifies chain, hostname and
+//! configured certificate pins during the TLS handshake.
 
 use zircon_runtime::core::framework::net::{NetError, NetHttpRequestDescriptor};
 
 /// HTTP 后端发请求前的策略准入；根 manager 的本地路由分支不会经过此函数。
 /// 此处只检查 pin 配置覆盖目标 host，不证明证书链有效或摘要匹配。
-/// HTTPS pin 摘要由当前客户端在发送后检查，明文分支没有该检查；调用者必须分别考虑这些信任边界。
+/// The client enforces certificate verification during the TLS handshake.
 pub(super) fn validate_http_security_policy(
     request: &NetHttpRequestDescriptor,
 ) -> Result<(), NetError> {
+    let url = reqwest::Url::parse(&request.url).map_err(|_| NetError::SecurityPolicyViolation {
+        reason: "HTTP request requires a valid HTTP URL".to_string(),
+    })?;
+    if !matches!(url.scheme(), "http" | "https") {
+        return Err(NetError::SecurityPolicyViolation {
+            reason: "HTTP request requires a valid HTTP URL".to_string(),
+        });
+    }
+    if (request.security.certificate_pinning || request.security.has_certificate_roots())
+        && url.scheme() != "https"
+    {
+        return Err(NetError::SecurityPolicyViolation {
+            reason: "HTTP certificate roots and pinning require HTTPS".to_string(),
+        });
+    }
     if request.security.certificate_pinning {
         let host =
             http_url_host(&request.url).ok_or_else(|| NetError::SecurityPolicyViolation {
@@ -22,7 +37,7 @@ pub(super) fn validate_http_security_policy(
     }
 
     if request.security.tls_required
-        && !request.url.starts_with("https://")
+        && url.scheme() != "https"
         && !(request.security.allow_insecure_loopback && http_url_is_loopback(&request.url))
     {
         return Err(NetError::SecurityPolicyViolation {
@@ -39,33 +54,11 @@ fn http_url_is_loopback(url: &str) -> bool {
 }
 
 fn http_url_host(url: &str) -> Option<String> {
-    let authority = url
-        .strip_prefix("http://")
-        .or_else(|| url.strip_prefix("https://"))
-        .map(|rest| rest.split(['/', '?', '#']).next().unwrap_or_default())?;
-    let authority = authority
-        .rsplit_once('@')
-        .map_or(authority, |(_, host)| host);
-    let host = if let Some(bracketed) = authority.strip_prefix('[') {
-        let (host, suffix) = bracketed.split_once(']')?;
-        if !suffix.is_empty() {
-            let port = suffix.strip_prefix(':')?;
-            if port.is_empty() || !port.chars().all(|character| character.is_ascii_digit()) {
-                return None;
-            }
-        }
-        host
-    } else {
-        if let Some((host, port)) = authority.rsplit_once(':') {
-            if port.is_empty() || !port.chars().all(|character| character.is_ascii_digit()) {
-                return None;
-            }
-            host
-        } else {
-            authority
-        }
-    };
-    (!host.is_empty()).then(|| host.to_string())
+    let url = reqwest::Url::parse(url).ok()?;
+    if !matches!(url.scheme(), "http" | "https") {
+        return None;
+    }
+    Some(url.host_str()?.trim_matches(['[', ']']).to_ascii_lowercase())
 }
 
 #[cfg(test)]

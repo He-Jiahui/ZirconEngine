@@ -7,7 +7,7 @@ related_code:
   - zircon_editor/src/core/settings/defaults.rs
   - zircon_editor/src/core/settings/io.rs
 tests:
-  - zircon_editor/src/core/settings/tests.rs
+  - zircon_editor/src/core/settings/tests/mod.rs
 ---
 
 # Appearance Preferences Unified Version Shell Hard Cut

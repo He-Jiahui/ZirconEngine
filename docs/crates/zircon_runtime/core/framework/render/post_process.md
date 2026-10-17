@@ -1,53 +1,6 @@
 ---
 related_code:
-  - dev/Graphics/Packages/com.unity.render-pipelines.core/Runtime/Volume/Volume.cs
-  - dev/Graphics/Packages/com.unity.render-pipelines.core/Runtime/Volume/VolumeManager.cs
-  - dev/Graphics/Packages/com.unity.render-pipelines.core/Runtime/Volume/VolumeProfile.cs
-  - dev/Graphics/Packages/com.unity.render-pipelines.core/Runtime/Volume/VolumeStack.cs
-  - dev/Graphics/com.unity.postprocessing/PostProcessing/Editor/Tools/CubeLutAssetImporter.cs
-  - dev/Graphics/com.unity.postprocessing/PostProcessing/Editor/Tools/CubeLutAssetFactory.cs
-  - dev/Graphics/com.unity.postprocessing/PostProcessing/Shaders/Builtins/Lut3DBaker.compute
-  - dev/Graphics/com.unity.postprocessing/PostProcessing/Runtime/Effects/MotionBlur.cs
-  - dev/Graphics/com.unity.postprocessing/PostProcessing/Shaders/Builtins/MotionBlur.shader
-  - dev/Graphics/com.unity.postprocessing/PostProcessing/Runtime/Effects/ScreenSpaceReflections.cs
-  - dev/Graphics/com.unity.postprocessing/PostProcessing/Shaders/Builtins/ScreenSpaceReflections.hlsl
-  - dev/bevy/crates/bevy_post_process/src/lib.rs
-  - dev/bevy/crates/bevy_post_process/src/auto_exposure/settings.rs
-  - dev/bevy/crates/bevy_post_process/src/auto_exposure/buffers.rs
-  - dev/bevy/crates/bevy_post_process/src/bloom/mod.rs
-  - dev/bevy/crates/bevy_post_process/src/effect_stack/mod.rs
-  - dev/bevy/crates/bevy_post_process/src/motion_blur/mod.rs
-  - dev/bevy/crates/bevy_post_process/src/motion_blur/motion_blur.wgsl
-  - dev/bevy/crates/bevy_post_process/src/dof/mod.rs
-  - dev/bevy/crates/bevy_post_process/src/msaa_writeback.rs
-  - dev/bevy/crates/bevy_core_pipeline/src/prepass/background_motion_vectors.rs
-  - dev/bevy/crates/bevy_core_pipeline/src/prepass/background_motion_vectors.wgsl
-  - dev/bevy/crates/bevy_core_pipeline/src/tonemapping/lut_bindings.wgsl
-  - dev/bevy/examples/3d/post_processing.rs
-  - zircon_runtime/src/core/framework/render/post_process/mod.rs
-  - zircon_runtime/src/core/framework/render/post_process/effect.rs
-  - zircon_runtime/src/core/framework/render/post_process/exposure_settings.rs
-  - zircon_runtime/src/core/framework/render/post_process/effect_stack_settings.rs
-  - zircon_runtime/src/core/framework/render/post_process/effect_stack_settings/blur_settings.rs
-  - zircon_runtime/src/core/framework/render/post_process/effect_stack_settings/color_transform_settings.rs
-  - zircon_runtime/src/core/framework/render/post_process/effect_stack_settings/depth_of_field_settings.rs
-  - zircon_runtime/src/core/framework/render/post_process/effect_stack_settings/motion_blur_settings.rs
-  - zircon_runtime/src/core/framework/render/post_process/effect_stack_settings/report.rs
-  - zircon_runtime/src/core/framework/render/post_process/effect_stack_settings/resource_status.rs
-  - zircon_runtime/src/core/framework/render/post_process/effect_stack_settings/screen_space_reflection_settings.rs
-  - zircon_runtime/src/core/framework/render/post_process/effect_stack_settings/style_settings.rs
   - zircon_runtime/src/core/framework/render/mod.rs
-  - zircon_runtime/src/core/framework/render/post_process/resolved_stack.rs
-  - zircon_runtime/src/core/framework/render/post_process/ambient_occlusion_settings.rs
-  - zircon_runtime/src/core/framework/render/post_process/volume_profile.rs
-  - zircon_runtime/src/core/framework/render/post_process/volume_component.rs
-  - zircon_runtime/src/core/framework/render/post_process/volume_registry.rs
-  - zircon_runtime/src/core/framework/render/post_process/volume_extract.rs
-  - zircon_runtime/src/core/framework/render/post_process/volume_evaluator.rs
-  - zircon_runtime/src/core/framework/render/post_process/stack.rs
-  - zircon_runtime/src/core/framework/render/post_process/pass_node.rs
-  - zircon_runtime/src/core/framework/render/post_process/pass_graph.rs
-  - zircon_runtime/src/core/framework/render/post_process/validation.rs
   - zircon_runtime/src/scene/components/scene/post_process.rs
   - zircon_runtime/src/scene/world/render.rs
   - zircon_runtime/src/scene/world/typed_api/fixed_components.rs
@@ -56,150 +9,75 @@ related_code:
   - zircon_runtime/src/core/framework/render/backend_types.rs
   - zircon_runtime/src/runtime_diagnostics/collect.rs
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/history.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/frame_submission_context.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/build_runtime_frame.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/submit.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/submit_runtime_frame.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/present_frame_extract.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/motion_vector_camera.rs
-  - zircon_runtime/src/graphics/types/viewport_render_frame_with_previous_motion_vector_camera.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render_with_pipeline/render_frame_with_pipeline.rs
+  - zircon_runtime/src/graphics/runtime/extract/submit/build_runtime_frame.rs
+  - zircon_runtime/src/graphics/runtime/framework/extract/submit/submit.rs
+  - zircon_runtime/src/graphics/runtime/extract/submit/submit_runtime_frame.rs
+  - zircon_runtime/src/graphics/runtime/extract/submit/present_frame_extract.rs
+  - zircon_runtime/src/graphics/runtime/framework/extract/update_stats/base_stats.rs
+  - zircon_runtime/src/graphics/runtime/viewport_record/motion_vector_camera.rs
   - zircon_runtime/src/graphics/scene/resources/fallback/create_fallback_texture.rs
   - zircon_runtime/src/graphics/scene/resources/gpu_texture/gpu_texture_resource.rs
-  - zircon_runtime/src/graphics/scene/resources/gpu_texture/gpu_texture_resource_from_asset.rs
   - zircon_runtime/src/asset/assets/texture/cube_lut.rs
   - zircon_runtime/src/asset/importer/ingest/import_cube_lut.rs
   - zircon_runtime/src/graphics/scene/resources/post_process_lut_texture/mod.rs
   - zircon_runtime/src/graphics/tests/render_product_post_process.rs
   - zircon_runtime/src/graphics/tests/render_product_post_process/motion_blur.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_product_post_process_motion_blur_tests.rs
   - zircon_runtime/src/graphics/tests/render_framework_bridge.rs
   - zircon_runtime/src/graphics/tests/render_framework_bridge/stats.rs
   - zircon_runtime/src/graphics/tests/render_framework_bridge/history.rs
   - zircon_runtime/src/graphics/tests/render_framework_bridge/pipeline_profiles.rs
   - zircon_runtime/src/graphics/tests/render_framework_bridge/neural_compute.rs
   - zircon_runtime/src/graphics/tests/render_framework_bridge/advanced_providers.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_framework_bridge_tests.rs
-  - zircon_runtime/src/graphics/scene/resources/post_process_lut_texture/post_process_lut_texture_resource.rs
-  - zircon_runtime/src/graphics/scene/resources/prepared/prepared_post_process_lut_texture.rs
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_accessors.rs
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_post_process_lut_texture.rs
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_scene_resources.rs
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/params/post_process_params.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/params/exposure_params.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/constants/texture_formats.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/constants/exposure.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/params/depth_of_field_prepare_params.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/temporal/velocity/velocity_camera_params.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/execute/build_post_process_params/build.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/execute/create_bind_group/create.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/execute/create_bind_group/bind_group_entries.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/execute/run/execute.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_exposure/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_exposure/execute_exposure.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_hzb_build/execute_hzb_build.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_screen_space_reflection_reflection_pyramid/execute_screen_space_reflection_reflection_pyramid.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_screen_space_reflection_reflection_pyramid_coarse/execute_screen_space_reflection_reflection_pyramid_coarse.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_screen_space_reflection_resolve/execute_screen_space_reflection_resolve.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_screen_space_reflection_specular_occlusion/execute_screen_space_reflection_specular_occlusion.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/depth_sampling_mode.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/shader_sources.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_depth_of_field_prepare/execute_depth_of_field_prepare.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/temporal/velocity/execute_velocity_camera.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_motion_vector_tile_max/execute_motion_vector_tile_max.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_motion_vector_neighbor_max/execute_motion_vector_neighbor_max.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/bind_group_layouts/depth_of_field_prepare.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/bind_group_layouts/velocity_camera.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/bind_group_layouts/motion_vector_tile_max.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/bind_group_layouts/motion_vector_neighbor_max.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/bind_group_layouts/exposure_histogram.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/bind_group_layouts/exposure_resolve.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/bind_group_layouts/post_process.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/construct/construct.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_buffer_bundle/exposure_params_buffer.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_buffer_bundle/default_exposure_buffer.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_buffer_bundle/default_exposure_histogram_buffer.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_buffer_bundle/depth_of_field_prepare_params_buffer.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_buffer_bundle/velocity_camera_params_buffer.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/build.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_fallback_texture_views/create.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_fallback_texture_views/effect_lut_texture_view.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/depth_of_field_prepare_pipeline.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/velocity_camera_pipeline.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/motion_vector_tile_max_pipeline.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/motion_vector_neighbor_max_pipeline.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/exposure_histogram_pipeline.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/exposure_resolve_pipeline.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/hzb_pipeline.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/screen_space_reflection_reflection_pyramid_pipeline.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/screen_space_reflection_reflection_pyramid_coarse_pipeline.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/screen_space_reflection_resolve_pipeline.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/screen_space_reflection_specular_occlusion_pipeline.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/post_process_pipeline.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/fallback_texture_views/fallback_texture_views.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/scene_post_process_resources/full_scene_post_process_resources.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/scene_post_process_resources/profiled_scene_post_process_resources.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/scene_post_process_resources/scene_output_transfer_resources.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/depth_of_field_prepare.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/temporal/velocity/shaders/velocity_camera.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/motion_vector_tile_max.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/motion_vector_neighbor_max.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/exposure_histogram.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/exposure_resolve.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/post_process.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/post_process_screen_space_reflection.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_construct/new_with_icon_source.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_construct/construct/construct.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/pass_graph/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/pass_graph/execute.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_record.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/builtin_postprocess_executors.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/post_process.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/post_process/screen_space_reflection.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/post_process/screen_space_reflection/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry.rs
-  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/screen_space_ambient_occlusion.rs
-  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/clustered_lighting.rs
-  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/bloom.rs
-  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/post_process.rs
-  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/temporal.rs
-  - zircon_runtime/src/graphics/backend/render_backend/offscreen_target.rs
-  - zircon_runtime/src/graphics/backend/render_backend/offscreen_target_construct/construct.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/execute_graph_stage.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/history/copy_history_textures.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/history/scene_frame_history_textures/construct.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/history/scene_frame_history_textures/scene_frame_history_textures.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/anti_alias/fxaa.rs
+  - zircon_runtime/src/graphics/scene/renderer/post/params/post_process_params.rs
+  - zircon_runtime/src/graphics/scene/renderer/post/params/exposure_params.rs
+  - zircon_runtime/src/graphics/scene/renderer/post/constants/texture_formats.rs
+  - zircon_runtime/src/graphics/scene/renderer/post/constants/exposure.rs
+  - zircon_runtime/src/graphics/scene/post/params/depth_of_field_prepare_params.rs
+  - zircon_runtime/src/graphics/scene/temporal/velocity/velocity_camera_params.rs
+  - zircon_runtime/src/graphics/scene/post/build_post_process_params/build.rs
+  - zircon_runtime/src/graphics/scene/post/execute/create_bind_group/create.rs
+  - zircon_runtime/src/graphics/scene/post/create_bind_group/bind_group_entries.rs
+  - zircon_runtime/src/graphics/scene/renderer/post/resources/execute/run/execute.rs
+  - zircon_runtime/src/graphics/scene/renderer/post/execute_exposure/mod.rs
+  - zircon_runtime/src/graphics/scene/post/execute_exposure/execute_exposure.rs
+  - zircon_runtime/src/graphics/scene/post/execute_hzb_build/execute_hzb_build.rs
+  - zircon_runtime/src/graphics/scene/renderer/post/resources/depth_sampling_mode.rs
+  - zircon_runtime/src/graphics/scene/renderer/post/resources/shader_sources.rs
+  - zircon_runtime/src/graphics/scene/temporal/velocity/execute_velocity_camera.rs
+  - zircon_runtime/src/graphics/post/bind_group_layouts/depth_of_field_prepare.rs
+  - zircon_runtime/src/graphics/scene/post/bind_group_layouts/velocity_camera.rs
+  - zircon_runtime/src/graphics/post/bind_group_layouts/motion_vector_tile_max.rs
+  - zircon_runtime/src/graphics/bind_group_layouts/motion_vector_neighbor_max.rs
+  - zircon_runtime/src/graphics/scene/post/bind_group_layouts/exposure_histogram.rs
+  - zircon_runtime/src/graphics/scene/post/bind_group_layouts/exposure_resolve.rs
+  - zircon_runtime/src/graphics/post/create_buffer_bundle/exposure_params_buffer.rs
+  - zircon_runtime/src/graphics/post/create_buffer_bundle/default_exposure_buffer.rs
+  - zircon_runtime/src/graphics/scene/renderer/post/create_pipeline_bundle/build.rs
+  - zircon_runtime/src/graphics/scene/post/create_fallback_texture_views/create.rs
+  - zircon_runtime/src/graphics/create_pipeline_bundle/velocity_camera_pipeline.rs
+  - zircon_runtime/src/graphics/create_pipeline_bundle/exposure_resolve_pipeline.rs
+  - zircon_runtime/src/graphics/scene/post/create_pipeline_bundle/hzb_pipeline.rs
+  - zircon_runtime/src/graphics/post/create_pipeline_bundle/post_process_pipeline.rs
+  - zircon_runtime/src/graphics/fallback_texture_views/fallback_texture_views.rs
+  - zircon_runtime/src/graphics/scene/post/shaders/depth_of_field_prepare.wgsl
+  - zircon_runtime/src/graphics/scene/temporal/velocity/shaders/velocity_camera.wgsl
+  - zircon_runtime/src/graphics/scene/post/shaders/motion_vector_tile_max.wgsl
+  - zircon_runtime/src/graphics/scene/post/shaders/motion_vector_neighbor_max.wgsl
+  - zircon_runtime/src/graphics/scene/renderer/post/shaders/exposure_histogram.wgsl
+  - zircon_runtime/src/graphics/scene/renderer/post/shaders/exposure_resolve.wgsl
+  - zircon_runtime/src/graphics/scene_renderer_construct/new_with_icon_source.rs
+  - zircon_runtime/src/graphics/scene/renderer/post/pass_graph/mod.rs
+  - zircon_runtime/src/graphics/scene/renderer/post/pass_graph/execute.rs
+  - zircon_runtime/src/graphics/builtin/feature_descriptors/clustered_lighting.rs
+  - zircon_runtime/src/graphics/feature/builtin/feature_descriptors/bloom.rs
+  - zircon_runtime/src/graphics/feature/builtin/feature_descriptors/temporal.rs
+  - zircon_runtime/src/graphics/backend/offscreen_target_construct/construct.rs
+  - zircon_runtime/src/graphics/scene/renderer/core/render/render/render.rs
+  - zircon_runtime/src/graphics/scene/core/render/render/execute_graph_stage.rs
+  - zircon_runtime/src/graphics/scene/core/render/history/copy_history_textures.rs
+  - zircon_runtime/src/graphics/scene/renderer/anti_alias/fxaa.rs
 implementation_files:
-  - zircon_runtime/src/core/framework/render/post_process/mod.rs
-  - zircon_runtime/src/core/framework/render/post_process/effect.rs
-  - zircon_runtime/src/core/framework/render/post_process/exposure_settings.rs
-  - zircon_runtime/src/core/framework/render/post_process/effect_stack_settings.rs
-  - zircon_runtime/src/core/framework/render/post_process/effect_stack_settings/blur_settings.rs
-  - zircon_runtime/src/core/framework/render/post_process/effect_stack_settings/color_transform_settings.rs
-  - zircon_runtime/src/core/framework/render/post_process/effect_stack_settings/depth_of_field_settings.rs
-  - zircon_runtime/src/core/framework/render/post_process/effect_stack_settings/motion_blur_settings.rs
-  - zircon_runtime/src/core/framework/render/post_process/effect_stack_settings/report.rs
-  - zircon_runtime/src/core/framework/render/post_process/effect_stack_settings/resource_status.rs
-  - zircon_runtime/src/core/framework/render/post_process/effect_stack_settings/screen_space_reflection_settings.rs
-  - zircon_runtime/src/core/framework/render/post_process/effect_stack_settings/style_settings.rs
-  - zircon_runtime/src/core/framework/render/post_process/resolved_stack.rs
-  - zircon_runtime/src/core/framework/render/post_process/volume_profile.rs
-  - zircon_runtime/src/core/framework/render/post_process/volume_component.rs
-  - zircon_runtime/src/core/framework/render/post_process/volume_registry.rs
-  - zircon_runtime/src/core/framework/render/post_process/volume_extract.rs
-  - zircon_runtime/src/core/framework/render/post_process/volume_evaluator.rs
-  - zircon_runtime/src/core/framework/render/post_process/stack.rs
-  - zircon_runtime/src/core/framework/render/post_process/pass_node.rs
-  - zircon_runtime/src/core/framework/render/post_process/pass_graph.rs
-  - zircon_runtime/src/core/framework/render/post_process/validation.rs
   - zircon_runtime/src/scene/components/scene/post_process.rs
   - zircon_runtime/src/scene/world/render.rs
   - zircon_runtime/src/scene/world/typed_api/fixed_components.rs
@@ -207,117 +85,66 @@ implementation_files:
   - zircon_runtime/src/core/framework/render/frame_extract.rs
   - zircon_runtime/src/core/framework/render/backend_types.rs
   - zircon_runtime/src/runtime_diagnostics/collect.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/frame_submission_context.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/build_runtime_frame.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/submit.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/submit_runtime_frame.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/present_frame_extract.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/motion_vector_camera.rs
-  - zircon_runtime/src/graphics/types/viewport_render_frame_with_previous_motion_vector_camera.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render_with_pipeline/render_frame_with_pipeline.rs
+  - zircon_runtime/src/graphics/runtime/extract/submit/build_runtime_frame.rs
+  - zircon_runtime/src/graphics/runtime/framework/extract/submit/submit.rs
+  - zircon_runtime/src/graphics/runtime/extract/submit/submit_runtime_frame.rs
+  - zircon_runtime/src/graphics/runtime/extract/submit/present_frame_extract.rs
+  - zircon_runtime/src/graphics/runtime/framework/extract/update_stats/base_stats.rs
+  - zircon_runtime/src/graphics/runtime/viewport_record/motion_vector_camera.rs
   - zircon_runtime/src/graphics/scene/resources/fallback/create_fallback_texture.rs
   - zircon_runtime/src/graphics/scene/resources/gpu_texture/gpu_texture_resource.rs
-  - zircon_runtime/src/graphics/scene/resources/gpu_texture/gpu_texture_resource_from_asset.rs
   - zircon_runtime/src/asset/assets/texture/cube_lut.rs
   - zircon_runtime/src/asset/importer/ingest/import_cube_lut.rs
   - zircon_runtime/src/graphics/scene/resources/post_process_lut_texture/mod.rs
-  - zircon_runtime/src/graphics/scene/resources/post_process_lut_texture/post_process_lut_texture_resource.rs
-  - zircon_runtime/src/graphics/scene/resources/prepared/prepared_post_process_lut_texture.rs
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_accessors.rs
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_post_process_lut_texture.rs
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_scene_resources.rs
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/params/post_process_params.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/params/exposure_params.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/constants/texture_formats.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/constants/exposure.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/params/depth_of_field_prepare_params.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/temporal/velocity/velocity_camera_params.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/execute/build_post_process_params/build.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/execute/create_bind_group/create.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/execute/create_bind_group/bind_group_entries.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/execute/run/execute.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_exposure/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_exposure/execute_exposure.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_hzb_build/execute_hzb_build.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_screen_space_reflection_reflection_pyramid/execute_screen_space_reflection_reflection_pyramid.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_screen_space_reflection_reflection_pyramid_coarse/execute_screen_space_reflection_reflection_pyramid_coarse.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_screen_space_reflection_resolve/execute_screen_space_reflection_resolve.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_screen_space_reflection_specular_occlusion/execute_screen_space_reflection_specular_occlusion.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/depth_sampling_mode.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/shader_sources.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_depth_of_field_prepare/execute_depth_of_field_prepare.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/temporal/velocity/execute_velocity_camera.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_motion_vector_tile_max/execute_motion_vector_tile_max.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_motion_vector_neighbor_max/execute_motion_vector_neighbor_max.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/bind_group_layouts/depth_of_field_prepare.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/bind_group_layouts/velocity_camera.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/bind_group_layouts/motion_vector_tile_max.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/bind_group_layouts/motion_vector_neighbor_max.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/bind_group_layouts/exposure_histogram.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/bind_group_layouts/exposure_resolve.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/bind_group_layouts/post_process.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/construct/construct.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_buffer_bundle/exposure_params_buffer.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_buffer_bundle/default_exposure_buffer.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_buffer_bundle/default_exposure_histogram_buffer.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_buffer_bundle/depth_of_field_prepare_params_buffer.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_buffer_bundle/velocity_camera_params_buffer.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/build.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_fallback_texture_views/create.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_fallback_texture_views/effect_lut_texture_view.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/depth_of_field_prepare_pipeline.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/velocity_camera_pipeline.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/motion_vector_tile_max_pipeline.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/motion_vector_neighbor_max_pipeline.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/exposure_histogram_pipeline.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/exposure_resolve_pipeline.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/hzb_pipeline.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/screen_space_reflection_reflection_pyramid_pipeline.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/screen_space_reflection_reflection_pyramid_coarse_pipeline.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/screen_space_reflection_resolve_pipeline.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/screen_space_reflection_specular_occlusion_pipeline.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/post_process_pipeline.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/fallback_texture_views/fallback_texture_views.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/scene_post_process_resources/full_scene_post_process_resources.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/scene_post_process_resources/profiled_scene_post_process_resources.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/scene_post_process_resources/scene_output_transfer_resources.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/depth_of_field_prepare.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/temporal/velocity/shaders/velocity_camera.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/motion_vector_tile_max.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/motion_vector_neighbor_max.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/exposure_histogram.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/exposure_resolve.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/post_process.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/post_process_screen_space_reflection.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_construct/new_with_icon_source.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_construct/construct/construct.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/pass_graph/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/pass_graph/execute.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_record.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/builtin_postprocess_executors.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/post_process.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/post_process/screen_space_reflection.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/post_process/screen_space_reflection/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry.rs
-  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/screen_space_ambient_occlusion.rs
-  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/clustered_lighting.rs
-  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/bloom.rs
-  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/post_process.rs
-  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/temporal.rs
-  - zircon_runtime/src/graphics/backend/render_backend/offscreen_target.rs
-  - zircon_runtime/src/graphics/backend/render_backend/offscreen_target_construct/construct.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/execute_graph_stage.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/history/copy_history_textures.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/history/scene_frame_history_textures/construct.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/history/scene_frame_history_textures/scene_frame_history_textures.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/anti_alias/fxaa.rs
+  - zircon_runtime/src/graphics/scene/renderer/post/params/post_process_params.rs
+  - zircon_runtime/src/graphics/scene/renderer/post/params/exposure_params.rs
+  - zircon_runtime/src/graphics/scene/renderer/post/constants/texture_formats.rs
+  - zircon_runtime/src/graphics/scene/renderer/post/constants/exposure.rs
+  - zircon_runtime/src/graphics/scene/post/params/depth_of_field_prepare_params.rs
+  - zircon_runtime/src/graphics/scene/temporal/velocity/velocity_camera_params.rs
+  - zircon_runtime/src/graphics/scene/post/build_post_process_params/build.rs
+  - zircon_runtime/src/graphics/scene/post/execute/create_bind_group/create.rs
+  - zircon_runtime/src/graphics/scene/post/create_bind_group/bind_group_entries.rs
+  - zircon_runtime/src/graphics/scene/renderer/post/resources/execute/run/execute.rs
+  - zircon_runtime/src/graphics/scene/renderer/post/execute_exposure/mod.rs
+  - zircon_runtime/src/graphics/scene/post/execute_exposure/execute_exposure.rs
+  - zircon_runtime/src/graphics/scene/post/execute_hzb_build/execute_hzb_build.rs
+  - zircon_runtime/src/graphics/scene/renderer/post/resources/depth_sampling_mode.rs
+  - zircon_runtime/src/graphics/scene/renderer/post/resources/shader_sources.rs
+  - zircon_runtime/src/graphics/scene/temporal/velocity/execute_velocity_camera.rs
+  - zircon_runtime/src/graphics/post/bind_group_layouts/depth_of_field_prepare.rs
+  - zircon_runtime/src/graphics/scene/post/bind_group_layouts/velocity_camera.rs
+  - zircon_runtime/src/graphics/post/bind_group_layouts/motion_vector_tile_max.rs
+  - zircon_runtime/src/graphics/bind_group_layouts/motion_vector_neighbor_max.rs
+  - zircon_runtime/src/graphics/scene/post/bind_group_layouts/exposure_histogram.rs
+  - zircon_runtime/src/graphics/scene/post/bind_group_layouts/exposure_resolve.rs
+  - zircon_runtime/src/graphics/post/create_buffer_bundle/exposure_params_buffer.rs
+  - zircon_runtime/src/graphics/post/create_buffer_bundle/default_exposure_buffer.rs
+  - zircon_runtime/src/graphics/scene/renderer/post/create_pipeline_bundle/build.rs
+  - zircon_runtime/src/graphics/scene/post/create_fallback_texture_views/create.rs
+  - zircon_runtime/src/graphics/create_pipeline_bundle/velocity_camera_pipeline.rs
+  - zircon_runtime/src/graphics/create_pipeline_bundle/exposure_resolve_pipeline.rs
+  - zircon_runtime/src/graphics/scene/post/create_pipeline_bundle/hzb_pipeline.rs
+  - zircon_runtime/src/graphics/post/create_pipeline_bundle/post_process_pipeline.rs
+  - zircon_runtime/src/graphics/fallback_texture_views/fallback_texture_views.rs
+  - zircon_runtime/src/graphics/scene/post/shaders/depth_of_field_prepare.wgsl
+  - zircon_runtime/src/graphics/scene/temporal/velocity/shaders/velocity_camera.wgsl
+  - zircon_runtime/src/graphics/scene/post/shaders/motion_vector_tile_max.wgsl
+  - zircon_runtime/src/graphics/scene/post/shaders/motion_vector_neighbor_max.wgsl
+  - zircon_runtime/src/graphics/scene/renderer/post/shaders/exposure_histogram.wgsl
+  - zircon_runtime/src/graphics/scene/renderer/post/shaders/exposure_resolve.wgsl
+  - zircon_runtime/src/graphics/scene_renderer_construct/new_with_icon_source.rs
+  - zircon_runtime/src/graphics/scene/renderer/post/pass_graph/mod.rs
+  - zircon_runtime/src/graphics/scene/renderer/post/pass_graph/execute.rs
+  - zircon_runtime/src/graphics/builtin/feature_descriptors/clustered_lighting.rs
+  - zircon_runtime/src/graphics/feature/builtin/feature_descriptors/bloom.rs
+  - zircon_runtime/src/graphics/feature/builtin/feature_descriptors/temporal.rs
+  - zircon_runtime/src/graphics/backend/offscreen_target_construct/construct.rs
+  - zircon_runtime/src/graphics/scene/renderer/core/render/render/render.rs
+  - zircon_runtime/src/graphics/scene/core/render/render/execute_graph_stage.rs
+  - zircon_runtime/src/graphics/scene/core/render/history/copy_history_textures.rs
+  - zircon_runtime/src/graphics/scene/renderer/anti_alias/fxaa.rs
 plan_sources:
   - user: 2026-05-16 continue Render M4B postprocess pass graph productization
   - user: 2026-05-18 continue Render M8A anti-alias product surface
@@ -330,55 +157,12 @@ plan_sources:
   - user: 2026-07-10 close DX12 RenderDoc shader loop/gradient portability failures in the PBR HDRI viewer
   - docs/plans/zircon_runtime/render/07-postprocess-color-pipeline.md
 tests:
-  - zircon_runtime/src/core/framework/tests.rs
-  - zircon_runtime/src/core/framework/tests.rs::render_product_post_process_effect_stack_runs_before_final_composite_when_authored
-  - zircon_runtime/src/core/framework/tests.rs::render_product_post_process_extended_effect_stack_settings_enable_product_node
-  - zircon_runtime/src/core/framework/render/post_process/effect_stack_settings.rs::tests
-  - zircon_runtime/src/core/framework/render/post_process/effect_stack_settings/blur_settings.rs::tests
-  - zircon_runtime/src/core/framework/render/post_process/effect_stack_settings/color_transform_settings.rs::tests
-  - zircon_runtime/src/core/framework/render/post_process/effect_stack_settings/depth_of_field_settings.rs::tests
-  - zircon_runtime/src/core/framework/render/post_process/effect_stack_settings/motion_blur_settings.rs::tests
-  - zircon_runtime/src/core/framework/render/post_process/effect_stack_settings/report.rs::tests
-  - zircon_runtime/src/core/framework/render/post_process/effect_stack_settings/screen_space_reflection_settings.rs::tests
-  - zircon_runtime/src/core/framework/render/post_process/effect_stack_settings/style_settings.rs::tests
-  - zircon_runtime/src/core/framework/render/post_process/exposure_settings.rs::tests
-  - zircon_runtime/src/core/framework/render/post_process/stack.rs::tests::manual_exposure_declares_resolve_without_histogram
-  - zircon_runtime/src/core/framework/render/post_process/stack.rs::tests::histogram_exposure_declares_histogram_before_resolve
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/bind_group_layouts/post_process.rs::tests::post_process_layout_binds_resolved_exposure_storage_buffer
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/post_process_pipeline.rs::tests::post_process_shader_multiplies_color_grading_by_resolved_exposure
+  - zircon_runtime/src/graphics/post/create_pipeline_bundle/post_process_pipeline.rs::tests::post_process_shader_multiplies_color_grading_by_resolved_exposure
   - zircon_runtime/src/core/framework/render/backend_types.rs::tests::history_copy_report_counts_copied_slots_from_slot_flags
-  - zircon_runtime/src/core/framework/render/post_process/volume_component.rs::tests
-  - zircon_runtime/src/core/framework/render/post_process/volume_evaluator.rs::tests
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry.rs
   - zircon_runtime/src/graphics/tests/render_framework_bridge.rs
-  - tests/acceptance/render-product-m4b-post-process.md
   - cargo test -p zircon_runtime --locked render_product_post_process
   - cargo test -p zircon_runtime --locked render_product_anti_alias
   - cargo test -p zircon_runtime --locked render_graph
-  - zircon_runtime/src/core/framework/tests.rs::render_product_post_process_stack_splits_history_previous_and_output_slots
-  - zircon_runtime/src/core/framework/render/post_process/effect_stack_settings/report.rs::tests::effect_stack_report_records_active_approximated_and_missing_resources
-  - zircon_runtime/src/core/framework/render/post_process/effect_stack_settings/blur_settings.rs::tests::blur_settings_use_explicit_enable_predicate_and_clamp_upload_radius
-  - zircon_runtime/src/core/framework/render/post_process/effect_stack_settings/color_transform_settings.rs::tests::tonemap_settings_encode_renderer_upload_values
-  - zircon_runtime/src/core/framework/render/post_process/effect_stack_settings/color_transform_settings.rs::tests::color_lookup_intensity_requests_lut_even_without_texture_handle
-  - zircon_runtime/src/core/framework/render/post_process/effect_stack_settings/color_transform_settings.rs::tests::color_lookup_settings_clamp_renderer_upload_intensity
-  - zircon_runtime/src/core/framework/render/post_process/effect_stack_settings/report.rs::tests::effect_stack_report_treats_authored_lut_as_renderer_bound_resource
-  - zircon_runtime/src/core/framework/render/post_process/effect_stack_settings/color_transform_settings.rs::tests::color_lookup_texture_layout_accepts_current_2d_strip_contract
-  - zircon_runtime/src/core/framework/render/post_process/effect_stack_settings/color_transform_settings.rs::tests::color_lookup_texture_3d_layout_is_recognized_but_not_2d_bindable
-  - zircon_runtime/src/core/framework/render/post_process/effect_stack_settings/report.rs::tests::effect_stack_report_records_invalid_lut_layout_size
-  - zircon_runtime/src/core/framework/render/post_process/effect_stack_settings/report.rs::tests::effect_stack_report_treats_bound_ssr_normal_as_available_but_keeps_temporal_history_gap
-  - zircon_runtime/src/core/framework/render/post_process/effect_stack_settings/report.rs::tests::effect_stack_report_records_ssr_temporal_velocity_stage_gaps
-  - zircon_runtime/src/core/framework/render/post_process/effect_stack_settings/report.rs::tests::effect_stack_report_clears_ssr_temporal_labels_when_history_and_velocity_chain_are_ready
-  - zircon_runtime/src/core/framework/render/post_process/stack.rs::tests::screen_space_reflection_declares_specular_occlusion_and_resolve_inputs
-  - zircon_runtime/src/core/framework/render/post_process/stack.rs::tests::screen_space_reflection_resolve_temporal_declares_history_and_motion_vector_inputs
-  - zircon_runtime/src/core/framework/render/post_process/stack.rs::tests::screen_space_reflection_resolve_produces_history_for_final_composite
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/post_process.rs::tests::reconstructed_motion_vectors_are_requested_for_temporal_effects
-  - zircon_runtime/src/core/framework/render/post_process/stack.rs::tests::effect_stack_depth_of_field_declares_depth_and_intermediate_outputs
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_scene_resources.rs::tests::effect_stack_lut_texture_id_uses_enabled_lookup_handle
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_scene_resources.rs::tests::effect_stack_lut_texture_id_ignores_disabled_lookup_handle
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_scene_resources.rs::tests::effect_stack_lut_texture_request_tracks_enabled_lut_without_handle
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_scene_resources.rs::tests::effect_stack_lut_texture_status_accepts_2d_strip_for_current_binding
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_scene_resources.rs::tests::effect_stack_lut_texture_status_accepts_3d_lut_for_texture_3d_binding
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_scene_resources.rs::tests::effect_stack_lut_texture_status_rejects_non_2d_binding_shapes
   - zircon_runtime/src/asset/assets/texture/cube_lut.rs::tests::cube_lut_parser_clamps_channels_and_builds_3d_texture
   - zircon_runtime/src/asset/assets/texture/cube_lut.rs::tests::cube_lut_parser_ignores_common_metadata_rows
   - zircon_runtime/src/asset/assets/texture/cube_lut.rs::tests::cube_lut_parser_rejects_1d_shaper_sections
@@ -387,65 +171,45 @@ tests:
   - zircon_runtime/src/asset/tests/assets/texture_importer.rs::importer_rejects_cube_lut_with_wrong_sample_count
   - zircon_runtime/src/graphics/tests/render_framework_bridge/stats.rs::render_framework_stats_report_effect_stack_product_node_when_authored
   - zircon_runtime/src/graphics/tests/render_framework_bridge/stats.rs::render_framework_stats_report_volume_effect_stack_product_node_when_authored
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/execute/build_post_process_params/build.rs::tests::effect_stack_settings_are_encoded_into_post_process_params
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/execute/build_post_process_params/build.rs::tests::orthographic_camera_depth_params_disable_perspective_linearization
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/execute/build_post_process_params/build.rs::tests::camera_view_basis_is_encoded_for_post_process_normals
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_fallback_texture_views/effect_lut_texture_view.rs::tests::generated_effect_lut_is_s_curve_with_stable_texture_stride
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_fallback_texture_views/effect_lut_texture_view.rs::tests::generated_effect_lut_3d_is_identity_cube
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/shader_sources.rs::tests::post_process_shader_source_assembles_screen_space_reflection_module
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/post_process_pipeline.rs::tests::post_process_shader_parses_after_lut_binding_expansion
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/post_process_pipeline.rs::tests::post_process_shader_samples_bound_effect_lut_texture
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/post_process_pipeline.rs::tests::post_process_shader_samples_bound_effect_lut_texture_3d
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/post_process_pipeline.rs::tests::post_process_shader_samples_bound_scene_depth_texture
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/post_process_pipeline.rs::tests::post_process_shader_refines_projected_ssr_hits
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/post_process_pipeline.rs::tests::post_process_shader_reprojects_ssr_history_with_motion_vectors
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/hzb_pipeline.rs::tests::post_process_shader_exposes_split_ssr_depth_pyramid_entry_point
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/hzb_pipeline.rs::tests::post_process_shader_exposes_split_ssr_depth_pyramid_coarse_entry_point
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/screen_space_reflection_reflection_pyramid_pipeline.rs::tests::post_process_shader_exposes_split_ssr_reflection_pyramid_entry_point
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/screen_space_reflection_reflection_pyramid_coarse_pipeline.rs::tests::post_process_shader_exposes_split_ssr_reflection_pyramid_coarse_entry_point
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/screen_space_reflection_resolve_pipeline.rs::tests::post_process_shader_exposes_split_ssr_resolve_entry_point
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/screen_space_reflection_specular_occlusion_pipeline.rs::tests::post_process_shader_exposes_split_ssr_specular_occlusion_entry_point
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry/tests.rs::screen_space_reflection_resolve_executor_requires_post_process_context_instead_of_nooping
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry/tests.rs::screen_space_reflection_reflection_pyramid_executor_requires_post_process_context_instead_of_nooping
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/post_process_pipeline.rs::tests::post_process_shader_attenuates_ssr_with_ambient_occlusion
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/post_process_pipeline.rs::tests::post_process_shader_samples_bound_scene_normal_texture_for_ssr
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/post_process_pipeline.rs::tests::post_process_shader_samples_bound_scene_material_texture_for_ssr_roughness
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/post_process_pipeline.rs::tests::post_process_shader_samples_full_mip_ssr_pyramids_with_coarse_fallbacks
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/post_process_pipeline.rs::tests::post_process_shader_samples_bound_depth_of_field_coc_texture
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/post_process_pipeline.rs::tests::post_process_shader_samples_bound_depth_of_field_bokeh_texture
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/post_process_pipeline.rs::tests::post_process_shader_samples_bound_scene_motion_vector_for_motion_blur
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/post_process_pipeline.rs::tests::post_process_viewport_depth_fallback_shader_parses_for_gl_backends
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/depth_sampling_mode.rs::tests::viewport_depth_fallback_shader_removes_raw_depth_texture_sampling
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/depth_sampling_mode.rs::tests::raw_depth_shader_uses_derivative_free_integer_loads
-  - docs/tests/runtime/shader/zircon_shader_pbr_viewer_dx12_direct_after_depth_load_20260710.log
-  - docs/tests/runtime/shader/zircon_shader_pbr_viewer_renderdoc_dx12_20260710_capture.rdc
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/params/depth_of_field_prepare_params.rs::tests::depth_of_field_prepare_params_sanitize_camera_and_lens_values
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/params/depth_of_field_prepare_params.rs::tests::depth_of_field_prepare_requires_aperture_and_radius
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/depth_sampling_mode.rs::tests::viewport_depth_fallback_rewrites_depth_of_field_prepare_shader
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/depth_of_field_prepare_pipeline.rs::tests::depth_of_field_prepare_shader_parses_and_encodes_coc_outputs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/depth_of_field_prepare_pipeline.rs::tests::depth_of_field_prepare_fallback_shader_parses_without_depth_texture_sampling
-  - zircon_runtime/src/graphics/scene/scene_renderer/temporal/velocity/velocity_camera_params.rs::tests::camera_motion_vector_params_enable_with_compatible_previous_camera
-  - zircon_runtime/src/graphics/scene/scene_renderer/temporal/velocity/velocity_camera_params.rs::tests::camera_motion_vector_params_disable_on_projection_or_feature_mismatch
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/depth_sampling_mode.rs::tests::viewport_depth_fallback_rewrites_motion_vector_camera_shader
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/velocity_camera_pipeline.rs::tests::motion_vector_camera_shader_parses_and_reconstructs_previous_uv
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/velocity_camera_pipeline.rs::tests::motion_vector_camera_fallback_shader_parses_without_depth_texture_sampling
-  - zircon_runtime/src/core/framework/render/post_process/effect_stack_settings/motion_blur_settings.rs::tests::motion_blur_settings_require_shutter_and_samples_and_clamp_upload_values
-  - zircon_runtime/src/core/framework/render/post_process/effect_stack_settings/report.rs::tests::effect_stack_report_treats_bound_motion_vector_as_available_but_keeps_prepass_gap
-  - zircon_runtime/src/core/framework/render/post_process/stack.rs::tests::effect_stack_motion_blur_declares_depth_and_motion_vector_inputs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs::tests::effect_stack_resource_status_detects_graph_bound_ssr_normal
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs::tests::effect_stack_resource_status_detects_graph_bound_ssr_temporal_history_without_prepass
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs::tests::effect_stack_resource_status_detects_graph_bound_motion_vector_neighbor_max_without_prepass
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs::tests::effect_stack_resource_status_detects_executed_motion_vector_prepass_chain
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry/tests.rs::builtin_registry_covers_product_postprocess_executor_ids
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry/tests.rs::motion_vector_clear_executor_requires_graph_target_instead_of_nooping
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry/tests.rs::motion_vector_camera_executor_requires_post_process_context_instead_of_nooping
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry/tests.rs::depth_of_field_prepare_executor_requires_post_process_context_instead_of_nooping
+  - zircon_runtime/src/graphics/scene/post/build_post_process_params/build.rs::tests::effect_stack_settings_are_encoded_into_post_process_params
+  - zircon_runtime/src/graphics/scene/post/build_post_process_params/build.rs::tests::orthographic_camera_depth_params_disable_perspective_linearization
+  - zircon_runtime/src/graphics/scene/post/build_post_process_params/build.rs::tests::camera_view_basis_is_encoded_for_post_process_normals
+  - zircon_runtime/src/graphics/scene/renderer/post/resources/shader_sources.rs::tests::post_process_shader_source_assembles_screen_space_reflection_module
+  - zircon_runtime/src/graphics/post/create_pipeline_bundle/post_process_pipeline.rs::tests::post_process_shader_parses_after_lut_binding_expansion
+  - zircon_runtime/src/graphics/post/create_pipeline_bundle/post_process_pipeline.rs::tests::post_process_shader_samples_bound_effect_lut_texture
+  - zircon_runtime/src/graphics/post/create_pipeline_bundle/post_process_pipeline.rs::tests::post_process_shader_samples_bound_effect_lut_texture_3d
+  - zircon_runtime/src/graphics/post/create_pipeline_bundle/post_process_pipeline.rs::tests::post_process_shader_samples_bound_scene_depth_texture
+  - zircon_runtime/src/graphics/post/create_pipeline_bundle/post_process_pipeline.rs::tests::post_process_shader_refines_projected_ssr_hits
+  - zircon_runtime/src/graphics/post/create_pipeline_bundle/post_process_pipeline.rs::tests::post_process_shader_reprojects_ssr_history_with_motion_vectors
+  - zircon_runtime/src/graphics/scene/post/create_pipeline_bundle/hzb_pipeline.rs::tests::post_process_shader_exposes_split_ssr_depth_pyramid_entry_point
+  - zircon_runtime/src/graphics/scene/post/create_pipeline_bundle/hzb_pipeline.rs::tests::post_process_shader_exposes_split_ssr_depth_pyramid_coarse_entry_point
+  - zircon_runtime/src/graphics/post/create_pipeline_bundle/post_process_pipeline.rs::tests::post_process_shader_attenuates_ssr_with_ambient_occlusion
+  - zircon_runtime/src/graphics/post/create_pipeline_bundle/post_process_pipeline.rs::tests::post_process_shader_samples_bound_scene_normal_texture_for_ssr
+  - zircon_runtime/src/graphics/post/create_pipeline_bundle/post_process_pipeline.rs::tests::post_process_shader_samples_bound_scene_material_texture_for_ssr_roughness
+  - zircon_runtime/src/graphics/post/create_pipeline_bundle/post_process_pipeline.rs::tests::post_process_shader_samples_full_mip_ssr_pyramids_with_coarse_fallbacks
+  - zircon_runtime/src/graphics/post/create_pipeline_bundle/post_process_pipeline.rs::tests::post_process_shader_samples_bound_depth_of_field_coc_texture
+  - zircon_runtime/src/graphics/post/create_pipeline_bundle/post_process_pipeline.rs::tests::post_process_shader_samples_bound_depth_of_field_bokeh_texture
+  - zircon_runtime/src/graphics/post/create_pipeline_bundle/post_process_pipeline.rs::tests::post_process_shader_samples_bound_scene_motion_vector_for_motion_blur
+  - zircon_runtime/src/graphics/post/create_pipeline_bundle/post_process_pipeline.rs::tests::post_process_viewport_depth_fallback_shader_parses_for_gl_backends
+  - zircon_runtime/src/graphics/scene/renderer/post/resources/depth_sampling_mode.rs::tests::viewport_depth_fallback_shader_removes_raw_depth_texture_sampling
+  - zircon_runtime/src/graphics/scene/renderer/post/resources/depth_sampling_mode.rs::tests::raw_depth_shader_uses_derivative_free_integer_loads
+  - zircon_runtime/src/graphics/scene/post/params/depth_of_field_prepare_params.rs::tests::depth_of_field_prepare_params_sanitize_camera_and_lens_values
+  - zircon_runtime/src/graphics/scene/post/params/depth_of_field_prepare_params.rs::tests::depth_of_field_prepare_requires_aperture_and_radius
+  - zircon_runtime/src/graphics/scene/renderer/post/resources/depth_sampling_mode.rs::tests::viewport_depth_fallback_rewrites_depth_of_field_prepare_shader
+  - zircon_runtime/src/graphics/scene/temporal/velocity/velocity_camera_params.rs::tests::camera_motion_vector_params_enable_with_compatible_previous_camera
+  - zircon_runtime/src/graphics/scene/temporal/velocity/velocity_camera_params.rs::tests::camera_motion_vector_params_disable_on_projection_or_feature_mismatch
+  - zircon_runtime/src/graphics/scene/renderer/post/resources/depth_sampling_mode.rs::tests::viewport_depth_fallback_rewrites_motion_vector_camera_shader
+  - zircon_runtime/src/graphics/create_pipeline_bundle/velocity_camera_pipeline.rs::tests::motion_vector_camera_shader_parses_and_reconstructs_previous_uv
+  - zircon_runtime/src/graphics/create_pipeline_bundle/velocity_camera_pipeline.rs::tests::motion_vector_camera_fallback_shader_parses_without_depth_texture_sampling
+  - zircon_runtime/src/graphics/runtime/framework/extract/update_stats/base_stats.rs::tests::effect_stack_resource_status_detects_graph_bound_ssr_normal
+  - zircon_runtime/src/graphics/runtime/framework/extract/update_stats/base_stats.rs::tests::effect_stack_resource_status_detects_graph_bound_ssr_temporal_history_without_prepass
+  - zircon_runtime/src/graphics/runtime/framework/extract/update_stats/base_stats.rs::tests::effect_stack_resource_status_detects_graph_bound_motion_vector_neighbor_max_without_prepass
+  - zircon_runtime/src/graphics/runtime/framework/extract/update_stats/base_stats.rs::tests::effect_stack_resource_status_detects_executed_motion_vector_prepass_chain
   - zircon_runtime/src/graphics/tests/pipeline_compile/default_pipelines.rs::default_forward_plus_pipeline_compiles_expected_stage_order_and_passes
   - zircon_runtime/src/graphics/tests/pipeline_compile/default_pipelines.rs::default_deferred_pipeline_compiles_expected_stage_order_and_passes
   - zircon_runtime/src/graphics/tests/pipeline_compile/feature_descriptors.rs::feature_pass_descriptors_drive_executor_ids_and_resource_graph
   - zircon_runtime/src/graphics/tests/pipeline_compile.rs::history_resolve_compiles_only_with_explicit_feature_opt_in
   - zircon_runtime/src/graphics/pipeline/declarations/ambient_occlusion.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/ssao_input_qualification.rs
   - zircon_runtime/src/tests/runtime_diagnostics/mod.rs::runtime_diagnostics_combines_core_render_contract_and_missing_externalized_plugins
   - cargo test -q -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-wgpu-exposure-0615 exposure_ -- --nocapture
   - cargo test -q -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-wgpu-exposure-0615 runtime_diagnostics -- --nocapture

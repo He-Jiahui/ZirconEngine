@@ -11,7 +11,6 @@ implementation_files:
   - zircon_runtime/src/asset/assets/ui/resource_references.rs
 tests:
   - zircon_runtime/src/asset/tests/assets/ui.rs
-  - tools/tests/test_runtime_ui_resource_reference_visitor_performance_contract.py
 ---
 
 # Runtime795 · UI resource-reference streaming visitor

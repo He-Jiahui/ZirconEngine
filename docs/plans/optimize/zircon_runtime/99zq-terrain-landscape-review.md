@@ -21,8 +21,6 @@ related_code:
   - zircon_plugins/navigation/runtime/src/manager/bake/geometry.rs
   - zircon_plugins/first_party_runtime_catalog
   - zircon_plugins/first_party_editor_catalog
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/world
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench
   - examples/vampire
   - examples/woc
 plan_sources:

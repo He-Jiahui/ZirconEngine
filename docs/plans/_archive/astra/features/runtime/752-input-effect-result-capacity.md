@@ -6,10 +6,7 @@ plan_sources:
   - docs/plans/optimize/zircon_runtime/77/2026-09-14-effect-result-capacity.md
 related_code:
   - zircon_runtime/src/ui/surface/input/effect.rs
-  - zircon_runtime/src/ui/surface/input/effect/capacity_tests.rs
 tests:
-  - zircon_runtime/src/ui/surface/input/effect/capacity_tests.rs
-  - tools/tests/test_runtime_ui_effect_result_capacity_performance_contract.py
 ---
 
 # Runtime77 Input Effect Result Capacity

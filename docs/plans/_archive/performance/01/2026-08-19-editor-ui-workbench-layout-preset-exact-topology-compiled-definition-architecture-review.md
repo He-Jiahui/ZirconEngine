@@ -5,11 +5,10 @@ related_code:
   - zircon_editor/src/ui/workbench/preset
   - zircon_editor/src/ui/host/layout_persistence.rs
   - zircon_editor/src/ui/host/layout_commands.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/shell_presentation.rs
 tests:
   - zircon_editor/src/tests/workbench/layout/layout_preset_persistence.rs
   - zircon_editor/src/tests/workbench/layout/page_layout_templates.rs
-  - zircon_editor/src/tests/workbench/layout/editor_layout_contracts/layout_commands.rs
+  - zircon_editor/src/tests/layout/editor_layout_contracts/layout_commands.rs
   - zircon_editor/src/tests/host/builtin_window_descriptors.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md

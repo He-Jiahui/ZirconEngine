@@ -1,7 +1,6 @@
 ---
 related_code:
   - docs/plans/zircon_runtime/runtime/15/2026-07-10-priority-plan-doc-current-owner-inventory.md
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention.rs
   - Cargo.toml
   - zircon_app/src/lib.rs
   - zircon_app/src/entry/mod.rs
@@ -39,7 +38,6 @@ related_code:
   - zircon_runtime/src/scene/world/project_io/script.rs
   - zircon_runtime/src/scene/world/project_io/transform.rs
   - docs/crates/zircon_runtime/scene/world/project_io.md
-  - zircon_runtime/src/scene/dynamic_scene
   - zircon_runtime/src/asset/assets/scene/mod.rs
   - docs/crates/zircon_runtime/scene/inspection.md
   - zircon_runtime/src/dynamic_api/exports.rs
@@ -102,12 +100,7 @@ related_code:
   - zircon_runtime_interface/src/ui/v2/mod.rs
   - zircon_runtime_interface/src/ui/template/asset/component_contract/api_version.rs
   - zircon_runtime_interface/src/tests/ui_v2_contracts.rs
-  - zircon_runtime/src/tests/runtime_absorption/dynamic_api_session/v2_contract.rs
-  - zircon_runtime/src/tests/runtime_absorption/mod.rs
-  - zircon_runtime/src/tests/runtime_absorption/core_spine_root_generated.rs
-  - zircon_runtime/src/tests/runtime_absorption/root_entries.rs
-  - zircon_runtime/src/tests/runtime_absorption/builtin_modules.rs
-  - zircon_runtime/src/tests/runtime_absorption/compatibility_shells.rs
+  - zircon_runtime/src/tests/contracts/dynamic_api_session/v2_contract.rs
   - zircon_runtime/src/scene/tests/world_basics.rs
   - zircon_runtime/src/scene/tests/component_structure.rs
   - zircon_runtime/src/scene/tests/component_structure/runtime_08_owner_tree.rs
@@ -123,7 +116,6 @@ related_code:
   - zircon_plugins/physics/runtime/src/lib.rs
   - zircon_plugins/sound/runtime/src/lib.rs
   - zircon_plugins/texture/runtime/src/lib.rs
-  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/SKILL.md
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/references/interface-family.md
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/references/structural-audit.md
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py
@@ -166,7 +158,6 @@ related_code:
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/job_system_source_inventory.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/job_system_anchor_inventory.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/job_system_markdown.py
-  - zircon_runtime/src/tests/runtime_absorption/job_system.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/legacy_standalone_references.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/legacy_standalone_references_markdown.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/large_file_ownership.py
@@ -264,7 +255,7 @@ implementation_files:
   - zircon_runtime_interface/src/tests/ui_v2_contracts.rs
   - zircon_runtime/src/ui/v2/mod.rs
   - zircon_runtime/src/ui/template/asset/component_contract/validation.rs
-  - zircon_runtime/src/tests/runtime_absorption/dynamic_api_session/v2_contract.rs
+  - zircon_runtime/src/tests/contracts/dynamic_api_session/v2_contract.rs
   - zircon_runtime/src/scene/ecs/query/query_state/mod.rs
   - zircon_runtime/src/scene/ecs/query/query_state/cached_direct.rs
   - zircon_runtime/src/scene/ecs/query/query_state/many_item_array.rs
@@ -312,7 +303,6 @@ implementation_files:
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/job_system_boundary.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/job_system_source_inventory.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/job_system_anchor_inventory.py
-  - zircon_runtime/src/tests/runtime_absorption/job_system.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/legacy_standalone_references.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/legacy_standalone_references_markdown.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/large_file_ownership.py

@@ -12,11 +12,9 @@ related_code:
   - zircon_runtime/src/core/framework/window/resolution.rs
   - zircon_runtime/src/ui/surface/input/window_pump.rs
   - zircon_editor/src/ui/workbench/autolayout/resolution_context.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/bridge.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/componentized_window.rs
-  - zircon_editor/src/ui/retained_host/ui/workbench_window_projection/mount.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_theme.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_theme/metrics.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/workbench/bridge.rs
+  - zircon_editor/src/ui/retained/dispatch/workbench/componentized_window.rs
+  - zircon_editor/src/ui/retained/contract/paint_theme/metrics.rs
 design_references:
   - dev/UnrealEngine/Engine/Source/Runtime/Slate/Public/Widgets/Layout/Anchors.h
   - dev/UnrealEngine/Engine/Source/Runtime/UMG/Public/Components/CanvasPanelSlot.h

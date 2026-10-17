@@ -53,9 +53,10 @@ pub(crate) fn capture_zui_visual_evidence_with_context(
     repo_root: &std::path::Path,
     core: &zircon_runtime::core::CoreHandle,
     build_set: &zircon_runtime_interface::runtime_build_set::ZrRuntimeBuildSetId,
+    project_root: &std::path::Path,
 ) -> Result<pane_data_conversion::zui_visual_acceptance::CaptureSummary, String> {
     pane_data_conversion::zui_visual_acceptance::capture_catalog_with_context(
-        repo_root, core, build_set,
+        repo_root, core, build_set, project_root,
     )
 }
 
@@ -74,12 +75,14 @@ pub(crate) fn export_zui_workbench_product_snapshots_with_context(
     output_path: &std::path::Path,
     core: &zircon_runtime::core::CoreHandle,
     build_set: &zircon_runtime_interface::runtime_build_set::ZrRuntimeBuildSetId,
+    project_root: &std::path::Path,
 ) -> Result<(), String> {
     pane_data_conversion::zui_visual_acceptance::export_product_workbench_case_snapshots_with_context(
         repo_root,
         output_path,
         core,
         build_set,
+        project_root,
     )
 }
 

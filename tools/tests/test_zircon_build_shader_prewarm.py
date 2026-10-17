@@ -222,7 +222,10 @@ class ZirconBuildShaderPrewarmTests(unittest.TestCase):
     def test_prewarm_shaders_validates_staged_acceptance_after_success(
         self, managed_cargo_environment
     ):
+        output = tempfile.TemporaryDirectory()
+        self.addCleanup(output.cleanup)
         config = _FakePrewarmConfig()
+        config.engine_root = Path(output.name) / "ZirconEngine"
         config.validate_wgpu_shaders = True
         config.shader_quality_tiers = ("medium", "high")
         config.shader_geometry_sources = ("static", "skinned")
@@ -821,6 +824,14 @@ class ZirconBuildShaderPrewarmTests(unittest.TestCase):
                 },
                 json.loads(written_path.read_text(encoding="utf-8")),
             )
+
+    def test_generated_registry_rejects_cwd_relative_output_before_writing(self):
+        config = _FakePrewarmConfig()
+        config.shader_geometry_source_ids = ("custom:gpu-driven=4",)
+        with patch.object(Path, "mkdir") as mkdir:
+            with self.assertRaisesRegex(ValueError, "CWD-relative"):
+                write_generated_shader_permutation_registry(config)
+        mkdir.assert_not_called()
 
 if __name__ == "__main__":
     unittest.main()

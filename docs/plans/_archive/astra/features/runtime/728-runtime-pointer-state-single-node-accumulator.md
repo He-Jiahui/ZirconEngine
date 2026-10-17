@@ -1,6 +1,6 @@
 ---
 related_code:
-  - zircon_runtime/src/ui/surface/surface/pointer_component_events/state_invalidation.rs
+  - zircon_runtime/src/ui/surface/pointer_component_events/state_invalidation.rs
   - zircon_runtime/src/ui/surface/surface/pointer_component_events.rs
 doc_type: milestone-detail
 status: implemented_pending_validation
@@ -15,9 +15,9 @@ related_records:
   - docs/plans/astra/features/runtime/680-20260911-runtime-ui-optimization-batch-completion.md
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
-  - zircon_runtime/src/ui/surface/surface/pointer_component_events/state_invalidation.rs
+  - zircon_runtime/src/ui/surface/pointer_component_events/state_invalidation.rs
 tests:
-  - zircon_runtime/src/ui/surface/surface/pointer_component_events/state_invalidation.rs
+  - zircon_runtime/src/ui/surface/pointer_component_events/state_invalidation.rs
   - tools/tests/test_runtime_ui_pointer_component_state_owner_structure.py
 ---
 

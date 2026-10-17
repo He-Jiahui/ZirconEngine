@@ -11,7 +11,6 @@ related_code:
   - zircon_runtime/src/dynamic_api/session/state.rs
   - zircon_runtime/src/asset/pipeline/worker_pool
   - zircon_runtime/src/operation/maintenance.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/wgpu_render_framework_construction/construct.rs
   - zircon_plugins/navigation/runtime/src/lib.rs
   - zircon_plugins/navigation/runtime/src/manager.rs
   - zircon_runtime/src/platform/module.rs

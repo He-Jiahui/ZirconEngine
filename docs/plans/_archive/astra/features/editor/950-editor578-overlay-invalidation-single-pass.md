@@ -7,9 +7,9 @@ related_records:
   - docs/plans/astra/features/runtime/893-runtime578-pmrem-invalid-length-preflight.md
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
-  - zircon_editor/src/ui/retained_host/host_contract/diagnostics/refresh/overlay_text.rs
+  - zircon_editor/src/ui/retained/contract/diagnostics/refresh/overlay_text.rs
 tests:
-  - zircon_editor/src/ui/retained_host/host_contract/diagnostics/refresh/overlay_text.rs
+  - zircon_editor/src/ui/retained/contract/diagnostics/refresh/overlay_text.rs
 ---
 
 # Editor950 Editor578 Overlay Invalidation Single Pass

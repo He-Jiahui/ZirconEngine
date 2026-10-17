@@ -12,7 +12,6 @@ plan_link_mode: child_record_only
 related_code:
   - tools/tests/test_editor17_recovery_test_ownership_contract.py
   - zircon_editor/src/core/recovery/mod.rs
-  - zircon_editor/src/core/recovery/tests.rs
   - zircon_editor/src/core/recovery/tests/autosave_adapter/mod.rs
   - zircon_editor/src/core/recovery/tests/autosave_adapter/admission.rs
   - zircon_editor/src/core/recovery/tests/autosave_adapter/completion.rs

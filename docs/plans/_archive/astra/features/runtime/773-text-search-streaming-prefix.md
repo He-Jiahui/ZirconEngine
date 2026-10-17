@@ -10,10 +10,7 @@ related_records:
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
   - zircon_runtime/src/ui/component/state_reducer/text_search.rs
-  - zircon_runtime/src/ui/component/state_reducer/text_search/streaming_prefix_tests.rs
 tests:
-  - zircon_runtime/src/ui/component/state_reducer/text_search/streaming_prefix_tests.rs
-  - tools/tests/test_runtime_text_search_streaming_performance_contract.py
 ---
 
 # Runtime773 · Text-search streaming Unicode prefix

@@ -12,27 +12,19 @@ related_code:
   - zircon_runtime/src/core/framework/render/frame_extract/geometry.rs
   - zircon_runtime/src/core/framework/render/scene_extract.rs
   - zircon_runtime/src/graphics/feature/builtin_render_feature/advanced_slots.rs
-  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/advanced_slot.rs
+  - zircon_runtime/src/graphics/feature/builtin/feature_descriptors/advanced_slot.rs
   - zircon_runtime/src/graphics/visibility
   - zircon_runtime/src/graphics/scene/gpu_scene
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/gpu_scene_sync.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/build/gpu_scene_sync.rs
   - zircon_runtime/src/graphics/shader/template
   - zircon_runtime/src/graphics/shader/wgsl
   - zircon_plugins/terrain/runtime
-  - examples/vampire/assets/models/grass_billboard_static_batch.model.toml
-  - examples/vampire/assets/models/jungle_broadleaf.model.toml
-  - examples/vampire/assets/models/jungle_fern_cluster.model.toml
   - examples/vampire/assets/materials/forest_grass_billboard.zmaterial
 tests:
   - zircon_runtime/src/asset/tests/assets/mesh.rs
   - zircon_runtime/src/asset/tests/assets/model.rs
-  - zircon_runtime/src/core/framework/render/frame_extract/tests.rs
-  - zircon_runtime/src/graphics/scene/gpu_scene/gpu_scene/tests.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/extend_pending_draws_for_mesh_instance/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/processors/tests.rs
-  - zircon_runtime/src/graphics/shader/template/tests.rs
   - zircon_runtime/src/graphics/tests/visibility.rs
-  - zircon_plugins/terrain/runtime/src/tests.rs
   - zircon_runtime/src/asset/tests/project/example_vampire
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md

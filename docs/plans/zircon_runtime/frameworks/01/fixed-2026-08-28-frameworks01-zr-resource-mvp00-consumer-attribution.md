@@ -14,7 +14,7 @@ related_code:
   - zircon_editor/src/tests/editor_message/refresh.rs
   - zircon_editor/src/tests/workbench/project/document_roundtrip.rs
   - zircon_runtime/src/bin/zircon_shader_prewarm/manifest/module_dependencies.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/wgpu_render_framework/wgpu_render_framework.rs
+  - zircon_runtime/src/graphics/wgpu_render_framework/wgpu_render_framework.rs
   - zircon_runtime/src/scene/world/project_io/document.rs
   - zircon_runtime/src/scene/world/project_io/scene_asset.rs
   - zircon_runtime/tests/runtime_shader_pbr_realtime_ibl_export.rs

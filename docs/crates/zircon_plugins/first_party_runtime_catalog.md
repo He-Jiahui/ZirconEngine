@@ -17,10 +17,8 @@ related_code:
   - zircon_plugins/asset_importers/model/runtime/src/plugin.rs
   - zircon_plugins/asset_importers/texture/runtime/src/lib.rs
   - zircon_plugins/native_dynamic_fixture/native/src/lib.rs
-  - zircon_runtime/src/plugin/runtime_plugin/descriptor/package_manifest.rs
+  - zircon_runtime/src/plugin/runtime/descriptor/package_manifest.rs
   - tools/audits/audit_plugin_structure.py
-  - tools/plugin_structure_audits/manifest_schema.py
-  - tools/plugin_structure_audits/skeleton.py
   - zircon_plugins/plugin_sdk_examples/editor/src/lib.rs
   - zircon_plugins/plugin_sdk_examples/editor/src/plugin.rs
   - zircon_plugins/plugin_sdk_examples/editor/src/capability.rs
@@ -30,8 +28,6 @@ implementation_files:
   - zircon_plugins/first_party_runtime_catalog/src/lib.rs
   - zircon_plugins/first_party_runtime_catalog/src/tests/provider_snapshot.rs
   - tools/audits/audit_plugin_structure.py
-  - tools/plugin_structure_audits/manifest_schema.py
-  - tools/plugin_structure_audits/skeleton.py
   - zircon_app/Cargo.toml
   - zircon_app/src/entry/first_party_runtime_plugins.rs
   - zircon_app/src/entry/tests/source_assertions.rs

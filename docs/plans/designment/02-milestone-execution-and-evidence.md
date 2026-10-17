@@ -2,11 +2,8 @@
 related_code:
   - zircon_runtime_interface/src/ui/v2/asset.rs
   - zircon_runtime/src/asset/assets/ui/document_loader.rs
-  - dev/penpot/plugins/libs/plugin-types/index.d.ts
-  - dev/penpot/plugins/apps/table-plugin/src/plugin.ts
   - zircon_runtime_interface/src/ui/mod.rs
   - zircon_runtime_interface/src/ui/component/descriptor/slot_schema.rs
-  - zircon_runtime_interface/src/ui/surface/render/batch/tests.rs
   - zircon_editor/src/core/gateway/mod.rs
   - zircon_editor/src/scene/selection/mod.rs
   - zircon_editor/src/ui/workbench/mod.rs
@@ -23,23 +20,11 @@ related_code:
   - tools/analysis/profiling/shared/profile-capture-manifest.ps1
   - tools/analysis/profiling/ui/ui-profile-scenarios.ps1
 implementation_files:
-  - dev/penpot/plugins/apps/zircon-zui-plugin/src/bridge/zui-document.ts
-  - dev/penpot/plugins/apps/zircon-zui-plugin/src/bridge/penpot-projection-model.ts
-  - dev/penpot/plugins/apps/zircon-zui-plugin/src/bridge/penpot-projection.ts
-  - dev/penpot/plugins/apps/zircon-zui-plugin/src/bridge/penpot-reconcile.ts
-  - dev/penpot/plugins/apps/zircon-zui-plugin/src/bridge/penpot-asset.ts
-  - dev/penpot/plugins/apps/zircon-zui-plugin/src/cli.ts
-  - dev/penpot/plugins/apps/zircon-zui-plugin/src/plugin.ts
-  - dev/penpot/plugins/apps/zircon-zui-plugin/src/app/app.component.ts
   - zircon_editor/src/ui/workbench/mod.rs
   - zircon_editor/assets/ui/editor/layout/shell_regions.toml
   - zircon_hub/src/tauri_app/view_model.rs
   - zircon_hub/web/src/App.tsx
 tests:
-  - dev/penpot/plugins/apps/zircon-zui-plugin/src/bridge/zui-document.spec.ts
-  - dev/penpot/plugins/apps/zircon-zui-plugin/src/bridge/penpot-projection.spec.ts
-  - dev/penpot/plugins/apps/zircon-zui-plugin/src/bridge/penpot-asset.spec.ts
-  - dev/penpot/plugins/apps/zircon-zui-plugin/src/bridge/roundtrip-fixture.zui
   - zircon_runtime/tests/zui_penpot_bridge_contract.rs
   - zircon_runtime/tests/fixtures/ui/penpot_roundtrip.zui
   - zircon_editor/tests/integration_contracts.rs

@@ -7,7 +7,7 @@ related_code:
   - zircon_runtime/src/text/atlas/page_residency.rs
   - zircon_runtime/src/text/atlas/shelf_allocator.rs
   - zircon_runtime/src/text/atlas/upload.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/binding.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/atlas_texture_upload/binding.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_runtime/text/04-glyph-atlas-and-rasterization.md

@@ -14,9 +14,8 @@ related_code:
   - zircon_runtime/src/dynamic_api/session/extract_stats.rs
   - zircon_editor/src/ui/workbench/state/editor_state_render.rs
   - zircon_editor/src/scene/viewport/render_packet.rs
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_build_render_snapshot.rs
   - zircon_runtime/src/core/framework/render/frame_extract.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/camera_loop.rs
+  - zircon_runtime/src/graphics/runtime/framework/extract/submit/camera_loop.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_runtime/runtime/07-runtime-performance-hotpath.md

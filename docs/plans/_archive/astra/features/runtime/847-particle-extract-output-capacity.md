@@ -8,9 +8,7 @@ related_records:
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
   - zircon_runtime/src/scene/world/render_particles.rs
-  - zircon_runtime/src/scene/world/render_particles/capacity_tests.rs
 tests:
-  - tools/tests/test_runtime_particle_extract_output_capacity_performance_contract.py
 ---
 
 # Runtime847 · particle extract output capacity

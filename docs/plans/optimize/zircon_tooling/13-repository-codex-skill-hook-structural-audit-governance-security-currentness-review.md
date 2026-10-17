@@ -12,16 +12,11 @@ related_code:
   - .codex/skills/zircon-dev/agents/openai.yaml
   - .codex/skills/zircon-dev/scripts/validate-matrix.ps1
   - .codex/skills/zircon-dev/scripts/validate-matrix.Tests.ps1
-  - .codex/skills/zircon-dev/workflow/SKILL.md
   - .codex/skills/zircon-dev/workflow/testing/mod-rs-map.md
   - .codex/skills/zircon-engineering/SKILL.md
-  - .codex/skills/zircon-project-skills/SKILL.md
   - .codex/skills/zircon-project-skills/development-conventions.md
   - .codex/skills/zircon-project-skills/milestone-first-workflow-policy.md
-  - .codex/skills/zircon-project-skills/cross-session-coordination/SKILL.md
-  - .codex/skills/zircon-project-skills/zr-module-boundary-discipline/SKILL.md
   - .codex/skills/zircon-project-skills/zr-module-boundary-discipline/references/binding-rs-anti-pattern.md
-  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/SKILL.md
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_editor_structure.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/editor_structure_audits/module_convention_boundary.py
@@ -36,7 +31,6 @@ related_code:
   - tools/setup/install-codex-session-hook.ps1
   - .github/workflows/ci.yml
 tests:
-  - tools/session_coordinator/tests/test_cargo_guard.py
   - tools/tests/codex-session-hook.Tests.ps1
   - tools/tests/test_editorui10_test_file_budget_contract.py
   - tools/tests/test_hard_cutover_migration_smells.py

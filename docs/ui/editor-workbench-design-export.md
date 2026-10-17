@@ -1,30 +1,7 @@
 ---
 related_code:
-  - tools/editor-workbench-preview/design.html
-  - tools/editor-workbench-preview/design.css
-  - tools/editor-workbench-preview/design.js
-  - tools/editor-workbench-preview/preview-sheet.js
-  - tools/editor-workbench-preview/design-manifest.mjs
-  - tools/editor-workbench-preview/export-options.mjs
-  - tools/editor-workbench-preview/export-designs.mjs
-  - tools/editor-workbench-preview/export-evidence.mjs
-  - tools/editor-workbench-preview/verify-designs.mjs
-  - tools/editor-workbench-preview/verify-reference-negative-guard.mjs
-  - tools/editor-workbench-preview/package.json
-  - tools/editor-workbench-preview/server.mjs
   - zircon_editor/assets/ui/editor/reference/workbench.png
 implementation_files:
-  - tools/editor-workbench-preview/design.html
-  - tools/editor-workbench-preview/design.css
-  - tools/editor-workbench-preview/design.js
-  - tools/editor-workbench-preview/preview-sheet.js
-  - tools/editor-workbench-preview/design-manifest.mjs
-  - tools/editor-workbench-preview/export-options.mjs
-  - tools/editor-workbench-preview/export-designs.mjs
-  - tools/editor-workbench-preview/export-evidence.mjs
-  - tools/editor-workbench-preview/verify-designs.mjs
-  - tools/editor-workbench-preview/verify-reference-negative-guard.mjs
-  - tools/editor-workbench-preview/package.json
 plan_sources:
   - user: 2026-05-29 implement Editor Workbench PNG Design Plan
 tests:

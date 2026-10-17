@@ -12,7 +12,6 @@ related_code:
   - zircon_runtime_host/src/foreign_output/owned_buffer.rs
   - zircon_runtime_host/src/foreign_output/policy.rs
   - zircon_runtime_host/src/foreign_output/state.rs
-  - zircon_runtime_host/src/foreign_output/tests.rs
   - zircon_runtime_interface/src/buffer.rs
   - zircon_runtime_interface/src/handles.rs
   - zircon_runtime_interface/src/status.rs

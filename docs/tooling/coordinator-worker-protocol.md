@@ -1,30 +1,11 @@
 ---
 related_code:
-  - tools/zircon-session.ps1
   - tools/jenkins/install-coordinator-worker.ps1
 implementation_files:
-  - tools/zircon-session.ps1
   - tools/jenkins/install-coordinator-worker.ps1
 plan_sources:
   - user: 2026-09-29 improve Coordinator storage policy, Failure claim handling, validation scheduling and single-port remote workers
 tests:
-  - tools/session_coordinator/tests/test_remote_transport.py
-  - tools/session_coordinator/tests/test_artifact_relay.py
-  - tools/session_coordinator/tests/test_coordinator_remote_e2e.py
-  - tools/session_coordinator/tests/test_upgrade_composition_lifecycle.py
-  - tools/session_coordinator/tests/test_upgrade_server_routes.py
-  - tools/session_coordinator/tests/test_worker_credentials.py
-  - tools/session_coordinator/tests/test_worker_protocol.py
-  - tools/session_coordinator/tests/test_provider_registry.py
-  - tools/session_coordinator/tests/test_optimization_cli.py
-  - tools/session_coordinator/tests/test_optimization_actions.py
-  - tools/session_coordinator/tests/test_tls_operator_client.py
-  - tools/session_coordinator/tests/test_worker_client.py
-  - tools/session_coordinator/tests/test_worker_execution.py
-  - tools/session_coordinator/tests/test_worker_cache.py
-  - tools/session_coordinator/tests/test_remote_paths.py
-  - tools/session_coordinator/tests/test_remote_objects.py
-  - tools/session_coordinator/tests/test_durable_tasks.py
 doc_type: workflow-detail
 ---
 

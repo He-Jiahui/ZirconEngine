@@ -14,7 +14,6 @@ related_code:
   - zircon_runtime_interface/src/ui/surface/render/resolved_style.rs
   - zircon_runtime_interface/src/ui/surface/render/text_shape.rs
   - zircon_runtime_interface/src/ui/surface/render/cache.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector
 design_references:
   - docs/ui/editor-workbench-designs/STYLE-NOTES.md
   - docs/ui/ai-workbench-style/ai-workbench-web-framework.png

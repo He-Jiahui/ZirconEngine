@@ -6,7 +6,6 @@ date: 2026-09-01
 status: local_candidate
 implementation_files:
 tests:
-  - tools/tests/test_tooling06_milestone_plan_output_single_read_performance_contract.py
 ---
 
 # Tooling06 milestone plan output single read

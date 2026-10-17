@@ -10,9 +10,7 @@ related_records:
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
   - zircon_editor/src/ui/asset_editor/binding/payload_suggestions.rs
-  - zircon_editor/src/ui/asset_editor/binding/payload_suggestions/borrowed_root_tests.rs
 tests:
-  - tools/tests/test_editor_payload_suggestions_capacity_performance_contract.py
 ---
 
 # Editor836 · payload suggestions capacity

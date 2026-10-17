@@ -11,7 +11,6 @@ related_code:
   - zircon_editor/src/ui/workbench/debug_reflector/schedule_sections.rs
 tests:
   - zircon_editor/src/ui/workbench/debug_reflector/schedule_sections.rs
-  - tools/tests/test_editor_pipeline_counter_summary_performance_contract.py
 ---
 
 # Editor825 Pipeline-Counter Summary Single Buffer

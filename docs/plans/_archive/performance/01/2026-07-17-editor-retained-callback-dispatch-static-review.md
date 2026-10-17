@@ -1,9 +1,6 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/callback_dispatch
-  - zircon_editor/src/ui/template_runtime/builtin/template_bindings.rs
-  - zircon_editor/src/ui/template_runtime/runtime/build_session.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch
+  - zircon_editor/src/ui/runtime/runtime/build_session.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_editor/editor_ui/01/failure-2026-07-17-retained-control-index-and-virtual-row-sync.md

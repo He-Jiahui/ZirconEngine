@@ -3,6 +3,8 @@ from __future__ import annotations
 from pathlib import Path, PurePosixPath
 from typing import Any, Iterable
 
+from tools.export.plugin_package_identity import optional_feature_directory
+
 try:
     import tomllib
 except ModuleNotFoundError:  # pragma: no cover - Python < 3.11 fallback.
@@ -222,12 +224,7 @@ def optional_feature_root(
     package_id: str | None,
     feature_id: str,
 ) -> PurePosixPath:
-    feature_suffix = (
-        feature_id.removeprefix(f"{package_id}.")
-        if package_id is not None and feature_id.startswith(f"{package_id}.")
-        else feature_id
-    )
-    return package_root / "features" / PurePosixPath(feature_suffix.replace(".", "/"))
+    return package_root / "features" / optional_feature_directory(package_id, feature_id)
 
 
 def workspace_member_is_relative_to(member_text: str, root: PurePosixPath) -> bool:

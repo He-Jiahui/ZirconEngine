@@ -18,10 +18,6 @@ related_code:
   - zircon_app/src/entry/runtime_library/runtime_session
   - zircon_editor/src/core/gateway/session
 tests:
-  - zircon_runtime_host/src/foreign_output/tests.rs
-  - zircon_app/src/entry/runtime_library/runtime_session/foreign_output/tests.rs
-  - zircon_app/src/entry/runtime_library/runtime_session/foreign_output/performance_tests.rs
-  - zircon_editor/src/core/gateway/session/tests.rs
   - zircon_editor/tests/runtime_foreign_output_policy.rs
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md

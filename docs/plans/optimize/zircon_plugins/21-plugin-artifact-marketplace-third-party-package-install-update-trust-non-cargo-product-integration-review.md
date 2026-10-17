@@ -8,22 +8,14 @@ baseline_epoch: 335
 related_code:
   - zircon_runtime/src/plugin/package_manifest
   - zircon_runtime/src/core/framework/project/project_plugin_manifest
-  - zircon_runtime/src/plugin/native_plugin_loader
   - zircon_runtime/src/script/vm/plugin
   - zircon_runtime/src/plugin/export_build_plan
-  - zircon_editor/src/ui/host/editor_manager_plugins_export
-  - zircon_editor/src/ui/retained_host/app/module_plugin_actions
-  - zircon_editor/src/ui/retained_host/app/module_plugin_projection
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench
-  - zircon_editor/src/ui/template_runtime/builtin/workbench_extension_module_template_bindings
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/production
+  - zircon_editor/src/ui/retained/app/module_plugin_projection
   - zircon_app/src/entry/entry_runner/editor.rs
   - zircon_hub/src/tauri_app/view_model/coming_soon.rs
   - zircon_hub/web/src/data/hubData.ts
   - zircon_plugins
 tests:
-  - zircon_runtime/src/tests/plugin_extensions/native_plugin_loader.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/discover/tests.rs
   - zircon_runtime/src/plugin/native_plugin_loader/discovery_refresh/tests
   - zircon_runtime/src/script/vm/plugin/vm_plugin_package_discovery/payload_cache.rs
   - zircon_editor/src/ui/host/editor_manager_plugins_export

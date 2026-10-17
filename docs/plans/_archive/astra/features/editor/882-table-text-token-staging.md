@@ -7,10 +7,8 @@ related_records:
   - docs/plans/astra/features/editor/664-20260911-editor-ui-optimization-batch-completion.md
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_table_rows/cells/text.rs
+  - zircon_editor/src/ui/retained/contract/paint/table_rows/cells/text.rs
 tests:
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_table_rows/cells/text/token_staging_tests.rs
-  - tools/tests/test_editor882_table_text_token_staging_performance_contract.py
 ---
 
 # Editor882 Table Text Token Staging

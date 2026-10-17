@@ -5,26 +5,19 @@ related_code:
   - zircon_editor/src/ui/workbench/snapshot/data/editor_state_snapshot_build.rs
   - zircon_editor/src/ui/host/play_inspector_projection.rs
   - zircon_editor/src/ui/host/editor_host_event_controller/play_inspector.rs
-  - zircon_editor/src/ui/workbench/project/asset_workspace_state/inspector_resource_labels.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/inspector_component_source.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/data_sync.rs
+  - zircon_editor/src/ui/project/asset_workspace_state/inspector_resource_labels.rs
+  - zircon_editor/src/ui/retained/dispatch/workbench/inspector_component_source.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/workbench/data_sync.rs
   - zircon_editor/src/ui/binding_dispatch/inspector/apply.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/zui_visual_acceptance/product_presentation.rs
-  - dev/penpot/plugins/apps/zircon-zui-plugin/tools/zui-layout-workbench-projection.ts
 implementation_files:
   - zircon_editor/src/ui/workbench/snapshot/data/inspector_snapshot/native_fields.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/inspector_component_source.rs
-  - zircon_editor/src/ui/workbench/project/asset_workspace_state/inspector_resource_labels.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/zui_visual_acceptance/product_presentation/inspector_components.rs
-  - dev/penpot/plugins/apps/zircon-zui-plugin/tools/zui-layout-inspector-properties.ts
+  - zircon_editor/src/ui/retained/dispatch/workbench/inspector_component_source.rs
+  - zircon_editor/src/ui/project/asset_workspace_state/inspector_resource_labels.rs
+  - zircon_editor/src/ui/ui/data/visual/product_presentation/inspector_components.rs
 plan_sources:
   - user: 2026-10-03 genuine selected Camera, Light, Mesh and dynamic component Inspector coverage
 tests:
-  - zircon_editor/src/ui/workbench/snapshot/data/inspector_snapshot/native_fields/tests.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/actual_inspector_components.rs
   - zircon_editor/src/ui/host/play_inspector_projection.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/zui_visual_acceptance/product_presentation/inspector_components/tests.rs
-  - dev/penpot/plugins/apps/zircon-zui-plugin/src/zui-layout-inspector-components.spec.ts
 doc_type: module-detail
 ---
 

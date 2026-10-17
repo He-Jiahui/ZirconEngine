@@ -6,7 +6,6 @@ plan_sources:
 implementation_files:
   - zircon_runtime/src/asset/pack/delta.rs
 tests:
-  - zircon_runtime/src/asset/pack/delta/validated_read_tests.rs
 ---
 
 # 997: Runtime04 delta reader validated read reuse

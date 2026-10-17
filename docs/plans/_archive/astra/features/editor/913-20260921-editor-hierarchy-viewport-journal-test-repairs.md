@@ -8,7 +8,7 @@ related_records:
   - docs/plans/astra/features/editor/664-20260911-editor-ui-optimization-batch-completion.md
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/native_panes/hierarchy/viewport.rs
+  - zircon_editor/src/ui/retained/contract/workbench/hierarchy/viewport.rs
   - zircon_editor/src/tests/editing/transaction_engine/journal_scene_replay.rs
 ---
 

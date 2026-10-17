@@ -14,13 +14,12 @@ related_code:
   - zircon_editor/src/ui/workbench/state/editor_state_viewport.rs
   - zircon_editor/src/core/play/simulate_camera.rs
   - zircon_editor/src/ui/host/editor_host_event_controller/simulate_camera.rs
-  - zircon_editor/src/ui/retained_host/app/simulate_camera_sync.rs
+  - zircon_editor/src/ui/retained/app/simulate_camera_sync.rs
   - zircon_editor/src/core/editing/command.rs
   - zircon_editor/src/tests/editing/state/camera_authority.rs
   - zircon_editor/src/tests/editing/viewport.rs
   - zircon_editor/src/tests/editing/state/viewport.rs
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/animation/workbench_extension_sequencer_workspace.zui
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation/specs/gameplay_animation.rs
+  - zircon_editor/src/ui/retained/dispatch/workbench/specs/gameplay_animation.rs
 plan_sources:
   - docs/plans/optimize/zircon_editor/30-camera-asset-component-rig-controller-director-blend-shake-cinematic-cut-preview-authoring-review.md
   - docs/plans/optimize/zircon_editor/104-editor-camera-rig-director-blend-shake-cinematic-cut-current-source-review.md

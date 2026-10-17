@@ -3,7 +3,6 @@ related_code:
   - zircon_runtime/src/text/sdf/offline
   - zircon_runtime/src/text/font_sdf_build_tool
   - zircon_runtime/src/bin/zircon_font_sdf_bake
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/font_asset.rs
   - zircon_runtime/src/text/sdf/font_bake/offline_source.rs
   - tools/build/zircon_build_font_sdf.py
 implementation_files:

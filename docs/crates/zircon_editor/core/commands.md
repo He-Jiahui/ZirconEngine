@@ -78,7 +78,6 @@ tests:
   - zircon_editor/src/tests/commands/when.rs
   - zircon_editor/src/tests/commands/descriptor_when.rs
   - zircon_editor/src/tests/commands/operation_factory.rs
-  - zircon_editor/src/tests/host/retained_menu_pointer/dispatcher.rs
   - zircon_editor/src/tests/gateway/handle.rs
   - zircon_editor/src/tests/editor_event/runtime/registry.rs
   - zircon_editor/src/tests/editor_event/runtime/extensions_registration.rs

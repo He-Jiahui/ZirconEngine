@@ -2,7 +2,7 @@
 related_code:
   - Cargo.toml
   - .github/workflows/profile-feature-contract.yml
-  - tools/validation/check-runtime-profile-features.ps1
+  - tools/analysis/validation/check-runtime-profile-features.ps1
   - zircon_runtime_interface/src/profiling.rs
   - zircon_runtime/src/core/runtime/diagnostics/profiling/macros.rs
   - zircon_runtime/src/core/runtime/diagnostics/profiling/counter_hotspot.rs
@@ -25,13 +25,10 @@ related_code:
   - zircon_runtime/src/asset/pipeline/worker_pool.rs
   - zircon_runtime/src/asset/pipeline/worker_pool/diagnostics.rs
   - zircon_runtime/src/core/framework/script/hot_path_metrics.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/benchmark_harness.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/mod.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/atlas_renderer/mod.rs
   - zircon_runtime/src/text/font/fallback_cache.rs
   - zircon_plugins/animation/runtime/src/evaluation/pose_pool.rs
   - zircon_plugins/animation/runtime/src/evaluation/pipeline/tick.rs
-  - zircon_plugins/animation/runtime/tests/animation_pose_buffer_allocation_contract.rs
   - zircon_plugins/sound/runtime/src/tests/kira_graph_sync.rs
   - zircon_plugins/navigation/runtime/src/agent.rs
   - zircon_plugins/navigation/runtime/src/manager/tick.rs
@@ -42,12 +39,8 @@ tests:
   - zircon_runtime/src/scene/tests/ecs_performance_acceptance.rs
   - zircon_runtime/src/scene/tests/ecs_change_detection.rs
   - zircon_runtime/src/dynamic_api/session/tests/frame_diagnostics.rs
-  - zircon_runtime/src/tests/runtime_absorption/performance_hotspots.rs
-  - zircon_runtime/src/tests/runtime_absorption/performance_hotspots/hotspot_inventory.rs
-  - zircon_runtime/src/tests/runtime_absorption/performance_hotspots/hotspot_inventory/ecs_extract_counters.rs
-  - zircon_runtime/src/tests/runtime_absorption/performance_hotspots/owner_budget.rs
-  - zircon_runtime/src/tests/runtime_absorption/performance_hotspots/owner_budget/mirror_docs/performance_guard.rs
-  - tests/acceptance/runtime-performance-filters-current-result.md
+  - zircon_runtime/src/tests/contracts/hotspot_inventory/ecs_extract_counters.rs
+  - zircon_runtime/src/tests/contracts/performance/mirror_docs/performance_guard.rs
 plan_sources:
   - docs/plans/zircon_runtime/runtime/07-runtime-performance-hotpath.md
   - docs/plans/zircon_runtime/runtime/07/2026-07-09-runtime-performance-hotpath-output-records.md

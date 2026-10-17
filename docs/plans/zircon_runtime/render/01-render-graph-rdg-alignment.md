@@ -5,27 +5,13 @@ related_code:
   - zircon_runtime/src/render_graph/graph.rs
   - zircon_runtime/src/render_graph/types.rs
   - zircon_runtime/src/graphics/pipeline/compiled_graph_cache.rs
-  - zircon_runtime/src/graphics/pipeline/compiled_graph_cache/tests.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/compiled_graph_cache_tests.rs
   - zircon_runtime/src/graphics/pipeline/declarations/compiled_render_pipeline.rs
   - zircon_runtime/src/graphics/pipeline/declarations/renderer_feature_asset.rs
-  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/dispatch/descriptor_for.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry/tests/registry_contracts.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry/tests/postprocess_context_guards.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry/tests/renderer_context_guards.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_record.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_record/compute_workload.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_record/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/materialization.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/materialization/tests.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_pass_executor_registry_tests.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests/core_contracts.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests/postprocess_routes.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests/external_compute_guards.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_pipeline_asset_compile_tests.rs
+  - zircon_runtime/src/graphics/feature/builtin/dispatch/descriptor_for.rs
+  - zircon_runtime/src/graphics/scene/renderer/registry/tests/registry_contracts.rs
+  - zircon_runtime/src/graphics/scene/registry/tests/postprocess_context_guards.rs
+  - zircon_runtime/src/graphics/scene/registry/tests/renderer_context_guards.rs
+  - zircon_runtime/src/graphics/render_graph_execution_record/compute_workload.rs
   - zircon_runtime/src/graphics/tests/pipeline_compile.rs
   - zircon_runtime/src/graphics/tests/pipeline_compile/default_pipelines.rs
   - zircon_runtime/src/graphics/tests/pipeline_compile/dynamic_resolution.rs
@@ -35,20 +21,7 @@ related_code:
   - zircon_runtime/src/graphics/tests/pipeline_compile/feature_descriptors.rs
   - zircon_runtime/src/graphics/tests/pipeline_compile/validation_core.rs
   - zircon_runtime/src/graphics/tests/pipeline_compile/validation_descriptors.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_pipeline_compile_monolith_tests.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/submit.rs
-  - zircon_runtime/src/graphics/backend/render_backend/graphics_debugger_capture.rs
-  - dev/UnrealEngine/Engine/Source/Runtime/RenderCore/Public/RenderGraphBuilder.h
-  - dev/UnrealEngine/Engine/Source/Runtime/RenderCore/Public/RenderGraphPass.h
-  - dev/UnrealEngine/Engine/Source/Runtime/RenderCore/Public/RenderGraphResources.h
-  - dev/UnrealEngine/Engine/Source/Runtime/RenderCore/Public/RenderGraphUtils.h
-  - dev/bevy/crates/bevy_render/src/texture/texture_cache.rs
-  - dev/bevy/crates/bevy_render/src/texture/texture_attachment.rs
-  - dev/bevy/crates/bevy_render/src/render_resource/pipeline_cache.rs
-  - dev/bevy/crates/bevy_render/src/renderer/mod.rs
-  - dev/bevy/crates/bevy_render/src/renderer/render_context.rs
-  - dev/Fyrox/fyrox-impl/src/renderer/cache/mod.rs
-  - dev/godot/servers/rendering/rendering_device_graph.h
+  - zircon_runtime/src/graphics/runtime/framework/extract/submit/submit.rs
 plan_sources:
   - .codex/plans/Zircon SRP_RHI Rendering Architecture Roadmap.md
   - .codex/plans/Runtime 渲染风险清单与 RenderDoc 调试支持计划.md

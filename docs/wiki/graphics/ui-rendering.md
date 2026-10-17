@@ -6,7 +6,6 @@ related_code:
   - zircon_runtime/crates/zr_rhi/src/ui_surface.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface.rs
 implementation_files:
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui
   - zircon_runtime/crates/zr_rhi_wgpu/src
   - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface.rs
 plan_sources:

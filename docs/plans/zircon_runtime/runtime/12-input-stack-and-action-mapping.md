@@ -9,11 +9,10 @@ related_code:
   - zircon_runtime/src/input/tests/input_manager/host_requests.rs
   - zircon_runtime/src/input/module
   - zircon_runtime/src/core/framework/input
-  - zircon_runtime/src/tests/runtime_absorption/input_stack.rs
-  - zircon_runtime/src/tests/runtime_absorption/input_stack/contracts.rs
-  - zircon_runtime/src/tests/runtime_absorption/input_stack/action_mapping.rs
-  - zircon_runtime/src/tests/runtime_absorption/input_stack/gamepad_bridge.rs
-  - zircon_runtime/src/tests/runtime_absorption/input_stack/inventory/mirror_docs.rs
+  - zircon_runtime/src/tests/contracts/input_stack/contracts.rs
+  - zircon_runtime/src/tests/contracts/input_stack/action_mapping.rs
+  - zircon_runtime/src/tests/contracts/input_stack/gamepad_bridge.rs
+  - zircon_runtime/src/tests/contracts/input_stack/inventory/mirror_docs.rs
   - tools/tests/test_runtime_input_stack_audit.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/input_stack_boundary.py
@@ -28,8 +27,6 @@ related_code:
   - zircon_runtime/src/ui/surface/interaction_gate.rs
   - zircon_runtime/src/ui/dispatch
   - zircon_app/Cargo.toml
-  - dev/bevy/crates/bevy_input/src
-  - dev/godot/core/input
 plan_sources:
   - docs/plans/zircon_runtime/runtime/index.md
   - docs/plans/zircon_runtime/runtime/09-ui-subsystem-architecture.md

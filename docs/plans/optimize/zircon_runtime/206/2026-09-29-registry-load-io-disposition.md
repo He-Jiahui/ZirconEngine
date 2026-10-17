@@ -9,7 +9,6 @@ validation_status: static_checks_complete_managed_tests_pending
 performance_status: measurement_pending
 related_code:
   - zircon_runtime/src/asset/registry/persistence.rs
-  - zircon_runtime/src/asset/registry/persistence/load_disposition_tests.rs
 tests:
   - unreadable_registry_does_not_rebuild_from_project_sources
   - missing_registry_still_rebuilds_from_project_sources

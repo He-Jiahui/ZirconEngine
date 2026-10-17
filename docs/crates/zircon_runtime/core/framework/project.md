@@ -4,9 +4,8 @@ related_code:
   - zircon_runtime/src/core/framework/project/export_profile.rs
   - zircon_runtime/src/core/framework/project/runtime_profile_id.rs
   - zircon_runtime/src/core/framework/project/project_plugin_manifest/mod.rs
-  - zircon_runtime/src/core/framework/project/project_plugin_manifest/project_plugin_manifest.rs
-  - zircon_runtime/src/core/framework/project/project_plugin_manifest/project_plugin_selection.rs
-  - zircon_runtime/src/core/framework/project/project_plugin_manifest/project_plugin_feature_selection.rs
+  - zircon_runtime/src/core/project_plugin_manifest/project_plugin_manifest.rs
+  - zircon_runtime/src/core/project_plugin_manifest/project_plugin_selection.rs
   - zircon_runtime/src/asset/project/manifest/project_manifest.rs
   - zircon_runtime/src/plugin/runtime_profile/descriptor.rs
 implementation_files:
@@ -14,18 +13,14 @@ implementation_files:
   - zircon_runtime/src/core/framework/project/export_profile.rs
   - zircon_runtime/src/core/framework/project/runtime_profile_id.rs
   - zircon_runtime/src/core/framework/project/project_plugin_manifest/mod.rs
-  - zircon_runtime/src/core/framework/project/project_plugin_manifest/project_plugin_manifest.rs
-  - zircon_runtime/src/core/framework/project/project_plugin_manifest/project_plugin_selection.rs
-  - zircon_runtime/src/core/framework/project/project_plugin_manifest/project_plugin_feature_selection.rs
-  - zircon_runtime/src/core/framework/project/project_plugin_manifest/project_plugin_selection_access.rs
-  - zircon_runtime/src/core/framework/project/project_plugin_manifest/project_plugin_selection_builder.rs
-  - zircon_runtime/src/core/framework/project/project_plugin_manifest/project_plugin_state.rs
+  - zircon_runtime/src/core/project_plugin_manifest/project_plugin_manifest.rs
+  - zircon_runtime/src/core/project_plugin_manifest/project_plugin_selection.rs
+  - zircon_runtime/src/core/project/project_plugin_manifest/project_plugin_state.rs
 plan_sources:
   - docs/plans/zircon_runtime/frameworks/05-subsystem-decoupling-contracts.md
 tests:
   - tools/tests/test_frameworks_05_layer_direction.py
   - zircon_runtime/src/asset/tests/project/manifest.rs
-  - zircon_runtime/src/tests/plugin_extensions/project_plugin_manifest.rs
   - zircon_runtime/tests/export_build_plan_contract.rs
 ---
 

@@ -7,9 +7,9 @@ related_records:
   - docs/plans/astra/features/runtime/907-runtime553-bindless-material-single-slot-lookup.md
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/assign_execution_owned_indirect_args.rs
+  - zircon_runtime/src/graphics/core/render/assign_execution_owned_indirect_args.rs
 tests:
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/assign_execution_owned_indirect_args.rs
+  - zircon_runtime/src/graphics/core/render/assign_execution_owned_indirect_args.rs
 ---
 
 # Runtime906 Runtime552 Indirect-Args Single Traversal

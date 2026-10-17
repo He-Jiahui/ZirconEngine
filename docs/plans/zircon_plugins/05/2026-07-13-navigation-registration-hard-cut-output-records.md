@@ -17,7 +17,6 @@ plan_sources:
   - docs/plans/engine-code-review-findings-2026-06.md
 tests:
   - tools/tests/test_plugin_structure_audit_registration.py
-  - zircon_plugins/navigation/editor/src/tests.rs
 doc_type: milestone-detail
 ---
 

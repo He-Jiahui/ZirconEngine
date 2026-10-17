@@ -32,15 +32,13 @@ related_code:
   - zircon_runtime/src/scene/world/render_visibility.rs
   - zircon_runtime/src/core/framework/render/sprite
   - zircon_runtime/src/core/framework/render/frame_extract.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/sprite
   - zircon_runtime/src/graphics/feature/builtin_render_feature
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/core_rows/content.rs
+  - zircon_runtime/src/plugin/runtime/builtin_catalog/core_rows/content.rs
   - zircon_runtime_interface/src/resource/marker.rs
   - zircon_editor/src/core/asset/type_registry
-  - zircon_editor/src/ui/host/editor_asset_manager/manager/sprite_atlas
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/sprite_atlas
-  - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/stream/image_resources.rs
-  - zircon_editor/src/ui/retained_host/app/assets/refresh.rs
+  - zircon_editor/src/ui/host/assets/manager/sprite_atlas
+  - zircon_editor/src/ui/retained/contract/stream/image_resources.rs
+  - zircon_editor/src/ui/retained/app/assets/refresh.rs
   - zircon_plugins/tilemap_2d
   - zircon_plugins/first_party_runtime_catalog
   - zircon_plugins/first_party_editor_catalog

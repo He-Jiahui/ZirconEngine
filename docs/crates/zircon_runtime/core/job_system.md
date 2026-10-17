@@ -4,10 +4,8 @@ related_code:
   - zircon_runtime/src/core/framework/render/environment/source_cubemap.rs
   - zircon_runtime/src/core/framework/render/environment/source_cubemap/mipmap.rs
   - zircon_runtime/src/core/runtime/tasks/job_handle.rs
-  - zircon_runtime/src/core/runtime/tasks/job_handle/tests.rs
   - zircon_runtime/src/core/runtime/tasks/job_scheduler.rs
   - zircon_runtime/src/core/runtime/tasks/job_scheduler/pending.rs
-  - zircon_runtime/src/core/runtime/tasks/job_scheduler/tests.rs
   - zircon_runtime/src/core/runtime/tasks/task_cancellation_policy.rs
   - zircon_runtime/src/core/runtime/tasks/task_descriptor.rs
   - zircon_runtime/src/core/runtime/tasks/task_id.rs
@@ -18,7 +16,6 @@ related_code:
   - zircon_runtime/src/core/runtime/tasks/diagnostic_observation
   - zircon_runtime/src/core/runtime/tasks/diagnostics.rs
   - zircon_runtime/src/core/runtime/tasks/diagnostics/snapshot.rs
-  - zircon_runtime/src/core/runtime/tasks/diagnostics/tests.rs
   - zircon_runtime/src/core/runtime/tasks/task_graph/mod.rs
   - zircon_runtime/src/core/runtime/tasks/task_graph/admission.rs
   - zircon_runtime/src/core/runtime/tasks/task_graph/lease.rs
@@ -27,7 +24,6 @@ related_code:
   - zircon_runtime/src/core/runtime/tasks/task_graph/engine_task_graph.rs
   - zircon_runtime/src/core/runtime/tasks/task_graph/scope.rs
   - zircon_runtime/src/core/runtime/tasks/task_graph/task_handle.rs
-  - zircon_runtime/src/core/runtime/tasks/task_graph/scope/tests.rs
   - zircon_runtime/src/core/runtime/tasks/task_graph/shutdown.rs
   - zircon_runtime/src/core/runtime/tasks/task_graph/worker_inventory.rs
   - zircon_runtime/src/core/runtime/tasks/report.rs
@@ -41,23 +37,18 @@ related_code:
   - zircon_runtime/src/core/runtime/tasks/pools.rs
   - zircon_runtime/src/core/runtime/tasks/thread_assignment.rs
   - zircon_runtime/src/core/runtime/tasks/timer.rs
-  - zircon_runtime/src/core/runtime/tasks/timer/tests.rs
   - zircon_runtime/src/scene/ecs/schedule_parallel_executor.rs
   - zircon_runtime/src/scene/module/default_level_manager.rs
   - zircon_runtime/src/scene/module/level_manager_project_io.rs
   - zircon_runtime/src/scene/world/project_io/document.rs
   - zircon_runtime/src/graphics/visibility/culling/parallel_frustum.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/wgpu_render_framework_construction/construct.rs
   - zircon_plugins/navigation/runtime/src/lib.rs
   - zircon_plugins/navigation/runtime/src/manager.rs
-  - zircon_plugins/navigation/runtime/src/test_support.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/access.rs
   - zircon_runtime/src/asset/module.rs
   - zircon_runtime/src/asset/pipeline/worker_pool.rs
   - zircon_runtime/src/platform/module.rs
   - zircon_runtime/src/platform/service_types/driver.rs
   - zircon_runtime/src/platform/preferences/persistence/adapter.rs
-  - zircon_runtime/src/platform/test_support.rs
   - zircon_app/src/entry/engine_entry.rs
   - zircon_runtime/src/platform/preferences/persistence/adapter.rs
   - zircon_runtime/src/platform/tests/preferences.rs
@@ -67,13 +58,9 @@ related_code:
   - zircon_editor/src/ui/host/editor_manager.rs
   - zircon_editor/src/core/logging/runtime_task_diagnostics
   - zircon_editor/src/ui/host/editor_manager_runtime_diagnostics.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/tick.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/project_asset_manager.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/construction.rs
-  - zircon_runtime/src/tests/runtime_absorption/job_system.rs
-  - zircon_runtime/src/tests/runtime_absorption/job_system/inventory.rs
-  - zircon_runtime/src/tests/runtime_absorption/job_system/mirror_docs.rs
-  - zircon_runtime/src/tests/runtime_absorption/rayon_boundary.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle/tick.rs
+  - zircon_runtime/src/tests/contracts/job_system/inventory.rs
+  - zircon_runtime/src/tests/contracts/job_system/mirror_docs.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/job_system_boundary.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/job_system_source_inventory.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/job_system_anchor_inventory.py
@@ -83,14 +70,11 @@ implementation_files:
   - zircon_runtime/src/core/framework/render/environment/source_cubemap.rs
   - zircon_runtime/src/core/framework/render/environment/source_cubemap/mipmap.rs
   - zircon_runtime/src/core/runtime/tasks/job_handle.rs
-  - zircon_runtime/src/core/runtime/tasks/job_handle/tests.rs
   - zircon_runtime/src/core/runtime/tasks/job_scheduler.rs
   - zircon_runtime/src/core/runtime/tasks/job_scheduler/pending.rs
-  - zircon_runtime/src/core/runtime/tasks/job_scheduler/tests.rs
   - zircon_runtime/src/core/runtime/tasks/diagnostic_observation
   - zircon_runtime/src/core/runtime/tasks/diagnostics.rs
   - zircon_runtime/src/core/runtime/tasks/diagnostics/snapshot.rs
-  - zircon_runtime/src/core/runtime/tasks/diagnostics/tests.rs
   - zircon_runtime/src/core/runtime/tasks/task_graph/mod.rs
   - zircon_runtime/src/core/runtime/tasks/task_graph/admission.rs
   - zircon_runtime/src/core/runtime/tasks/task_graph/lease.rs
@@ -98,7 +82,6 @@ implementation_files:
   - zircon_runtime/src/core/runtime/tasks/task_graph/scope_model.rs
   - zircon_runtime/src/core/runtime/tasks/task_graph/engine_task_graph.rs
   - zircon_runtime/src/core/runtime/tasks/task_graph/scope.rs
-  - zircon_runtime/src/core/runtime/tasks/task_graph/scope/tests.rs
   - zircon_runtime/src/core/runtime/tasks/task_graph/shutdown.rs
   - zircon_runtime/src/core/runtime/tasks/task_graph/worker_inventory.rs
   - zircon_runtime/src/core/runtime/tasks/report.rs
@@ -112,17 +95,10 @@ implementation_files:
   - zircon_runtime/src/scene/module/default_level_manager.rs
   - zircon_runtime/src/scene/module/level_manager_project_io.rs
   - zircon_runtime/src/scene/world/project_io/document.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/wgpu_render_framework_construction/construct.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/access.rs
-  - zircon_runtime/src/tests/runtime_absorption/job_system.rs
-  - zircon_runtime/src/tests/runtime_absorption/job_system/inventory.rs
-  - zircon_runtime/src/tests/runtime_absorption/job_system/mirror_docs.rs
-  - zircon_runtime/src/tests/runtime_absorption/rayon_boundary.rs
+  - zircon_runtime/src/tests/contracts/job_system/inventory.rs
+  - zircon_runtime/src/tests/contracts/job_system/mirror_docs.rs
   - zircon_runtime/src/asset/module.rs
   - zircon_runtime/src/asset/pipeline/worker_pool.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/project_asset_manager.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/construction.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/debug.rs
   - zircon_runtime/src/asset/tests/pipeline/worker_pool.rs
   - zircon_editor/src/core/context/builder.rs
   - zircon_editor/src/core/settings/persistence.rs
@@ -130,7 +106,7 @@ implementation_files:
   - zircon_editor/src/ui/host/editor_manager.rs
   - zircon_editor/src/core/logging/runtime_task_diagnostics
   - zircon_editor/src/ui/host/editor_manager_runtime_diagnostics.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/tick.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle/tick.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/job_system_boundary.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/job_system_source_inventory.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/job_system_anchor_inventory.py
@@ -155,7 +131,6 @@ plan_sources:
   - dev/godot/core/object/worker_thread_pool.cpp
   - dev/Fyrox/fyrox-impl/src/engine/mod.rs
 tests:
-  - zircon_runtime/src/core/framework/render/environment/source_cubemap/tests.rs
   - zircon_runtime/src/tests/tasks.rs
   - zircon_runtime/src/core/runtime/tasks/job_handle.rs::tests::job_terminal_observer_runs_once_when_dependency_continuation_unwinds
   - zircon_runtime/src/tests/tasks.rs::task_diagnostics_track_ready_queue_active_and_queue_wait
@@ -163,14 +138,10 @@ tests:
   - zircon_runtime/src/tests/tasks.rs::task_diagnostics_reports_conserved_lifecycle_snapshots_during_transitions
   - zircon_runtime/src/tests/tasks.rs::worker_side_wait_is_reported_as_explicit_wait
   - zircon_runtime/src/tests/tasks.rs::task_diagnostics_distinguish_panics_from_dependency_cancellation
-  - zircon_runtime/src/core/runtime/tasks/job_scheduler/tests.rs::detached_spawn_counts_panicked_tasks_as_completed
-  - zircon_runtime/src/core/runtime/tasks/diagnostics/tests.rs::terminal_observation_source_does_not_enable_full_lifecycle_sampling
-  - zircon_runtime/src/core/runtime/tasks/diagnostic_observation/tests.rs
   - zircon_runtime/src/core/runtime/tasks/task_graph/engine_task_graph.rs::tests::shutdown_joins_owned_workers_even_when_pool_handles_are_retained
   - zircon_runtime/src/core/runtime/tasks/task_graph/engine_task_graph.rs::tests::shutdown_timeout_keeps_unjoined_workers_visible_and_retryable
   - zircon_runtime/src/core/runtime/tasks/task_graph/engine_task_graph.rs::tests::shutdown_from_owned_worker_returns_incomplete_without_self_joining
   - zircon_runtime/src/scene/module/level_manager_project_io.rs::tests::standalone_level_manager_rejects_artifact_io_without_an_implicit_process_owner
-  - zircon_editor/src/core/logging/runtime_task_diagnostics/tests.rs
   - zircon_runtime/src/asset/tests/pipeline/worker_pool.rs
   - zircon_editor/src/tests/host/manager/runtime_lifecycle.rs::repeated_editor_runtime_fixtures_release_every_runtime_root
   - cargo test -p zircon_runtime --lib tasks --locked -- --nocapture
@@ -179,7 +150,6 @@ tests:
   - runtime_11_job_system_cargo_gate_stays_visible_until_job_system_filters_pass
   - runtime_11_job_system_mirror_docs_match_structure_audit_counts
   - tools/tests/test_runtime_job_system_audit.py
-  - tests/acceptance/runtime-job-system-audit-owner-sync.md
   - 2026-07 historical job_system_boundary audit: expected_module_count = 10, direct_rayon_paths = 2, schedule_parallel_executor_direct_rayon = [], diagnostic_anchor_count = 11, behavior_test_anchor_count = 27, missing_behavior_test_anchors = [], oversized_modules = [], mirror_docs_guard_present = true, risks = []
   - runtime_11_m2_1_graphics_frustum_rayon_cutover_static_passed_cargo_pending static checks passed 2026-06-16
 doc_type: module-detail

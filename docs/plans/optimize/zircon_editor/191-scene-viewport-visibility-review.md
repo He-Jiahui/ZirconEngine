@@ -8,8 +8,7 @@ related_code:
   - zircon_editor/src/scene/viewport
   - zircon_editor/src/ui/binding/viewport
   - zircon_editor/src/ui/workbench/state/editor_state_render.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_projection.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/panes/hierarchy.rs
+  - zircon_editor/src/ui/retained/contract/data/panes/hierarchy.rs
   - zircon_runtime/src/core/framework/render/camera/extract_request.rs
   - zircon_runtime/src/core/framework/render/visible_spatial_query.rs
   - zircon_runtime/src/scene/components/scene/activation.rs
@@ -19,8 +18,6 @@ related_code:
   - zircon_runtime/src/scene/world/render_post_process.rs
   - zircon_runtime/src/scene/world/render_visibility.rs
 tests:
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_selection.rs
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_reset_from_scene.rs
   - zircon_editor/src/scene/viewport/interaction_extract
   - zircon_editor/src/scene/viewport/pointer
   - zircon_editor/src/tests/editing/state/viewport.rs

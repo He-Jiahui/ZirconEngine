@@ -1,39 +1,26 @@
 ---
 related_code:
-  - zircon_editor/assets/ui/editor/windows/workbench_window.zui
-  - zircon_editor/assets/ui/editor/components/workbench/shell/workbench_top_toolbar.zui
-  - zircon_editor/assets/ui/editor/components/workbench/shell/workbench_skeleton.zui
   - zircon_editor/assets/icons/zircon_editor_shell/toolbar
   - zircon_editor/assets/icons/zircon_editor_shell/controls/check.svg
   - zircon_editor/assets/icons/zircon_editor_shell/status/disabled.svg
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/toolbar_layout.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/layout_menu.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/module_overflow_menu.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/run_mode_menu.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/window_menu_state.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_icon_assets.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_icon_button_glyphs.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_buttons/content/glyph.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/visual_assets/candidates/aliases.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/workbench/control.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/componentized_window.rs
-  - zircon_editor/src/ui/template_runtime/builtin/workbench_module_template_bindings.rs
-  - zircon_editor/src/ui/retained_host/workbench_preview_actions.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_toolbar_breakpoints/mod.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/workbench/toolbar_layout.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/workbench/layout_menu.rs
+  - zircon_editor/src/ui/retained/dispatch/workbench/module_overflow_menu.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/workbench/run_mode_menu.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/workbench/window_menu_state.rs
+  - zircon_editor/src/ui/retained/contract/paint/buttons/content/glyph.rs
+  - zircon_editor/src/ui/retained/contract/paint/visual_assets/candidates/aliases.rs
+  - zircon_editor/src/ui/retained/dispatch/workbench/control.rs
+  - zircon_editor/src/ui/retained/dispatch/workbench/componentized_window.rs
 implementation_files:
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/toolbar_layout.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/layout_menu.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/module_overflow_menu.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/run_mode_menu.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/window_menu_state.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/workbench/control.rs
-  - zircon_editor/assets/ui/editor/windows/workbench_window.zui
-  - zircon_editor/assets/ui/editor/components/workbench/shell/workbench_top_toolbar.zui
-  - zircon_editor/assets/ui/editor/components/workbench/shell/workbench_skeleton.zui
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_icon_assets.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_icon_button_glyphs.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_buttons/content/glyph.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/visual_assets/candidates/aliases.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/workbench/toolbar_layout.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/workbench/layout_menu.rs
+  - zircon_editor/src/ui/retained/dispatch/workbench/module_overflow_menu.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/workbench/run_mode_menu.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/workbench/window_menu_state.rs
+  - zircon_editor/src/ui/retained/dispatch/workbench/control.rs
+  - zircon_editor/src/ui/retained/contract/paint/buttons/content/glyph.rs
+  - zircon_editor/src/ui/retained/contract/paint/visual_assets/candidates/aliases.rs
 plan_sources:
   - docs/plans/zircon_editor/editor_layout/15-component-standardization-from-primitives.md
 tests:

@@ -8,9 +8,7 @@ related_records:
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
   - zircon_runtime/src/ui/v2/style.rs
-  - zircon_runtime/src/ui/v2/style/selector_path_tests.rs
 tests:
-  - tools/tests/test_runtime_selector_path_single_buffer_performance_contract.py
 ---
 
 # Runtime854 · runtime selector path single-buffer

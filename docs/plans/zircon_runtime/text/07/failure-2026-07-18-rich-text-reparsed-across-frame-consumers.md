@@ -15,7 +15,7 @@ related_code:
   - zircon_runtime/src/ui/text/layout_engine.rs
   - zircon_runtime/src/ui/text/measure_cache.rs
   - zircon_runtime/src/graphics/scene/resources/ui_texture.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render/rich_text.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/render/rich_text.rs
 ---
 
 # Rich text跨阶段重复解析与多份文本所有权

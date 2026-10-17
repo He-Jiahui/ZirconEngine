@@ -18,7 +18,7 @@ related_code:
   - zircon_editor/src/core/jobs/system/state.rs
   - zircon_editor/src/core/jobs/tests/admission_scaling_contract.rs
   - zircon_editor/src/core/jobs/tests/background_storm_contract.rs
-  - zircon_editor/src/ui/retained_host/app/welcome_session/project_probe.rs
+  - zircon_editor/src/ui/retained/app/welcome_session/project_probe.rs
 tests:
   - EditorJobSystem typed admission accepted/merged/backpressured contract
   - 1/1000/1000000 request entry/bytes/oldest-age/RSS admission storm

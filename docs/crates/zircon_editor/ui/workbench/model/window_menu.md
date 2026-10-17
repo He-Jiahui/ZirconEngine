@@ -3,8 +3,6 @@ related_code:
   - zircon_editor/src/core/editor_operation.rs
   - zircon_editor/src/core/commands/menu.rs
   - zircon_editor/src/core/commands/menu_model.rs
-  - zircon_editor/src/ui/host/builtin_views/activity_windows/component_showcase_view_descriptor.rs
-  - zircon_editor/src/ui/host/builtin_views/activity_windows/functional_window_view_descriptors.rs
   - zircon_editor/src/tests/editor_event/runtime/mod.rs
   - zircon_editor/src/tests/host/builtin_window_descriptors.rs
   - zircon_editor/src/tests/workbench/view_model/shell_projection.rs
@@ -12,7 +10,6 @@ implementation_files:
   - zircon_editor/src/core/editor_operation.rs
   - zircon_editor/src/core/commands/menu.rs
   - zircon_editor/src/core/commands/menu_model.rs
-  - zircon_editor/src/ui/host/builtin_views/activity_windows/component_showcase_view_descriptor.rs
 plan_sources:
   - user: 2026-05-11 Implement Material + Fyrox + JetBrains + Unreal editor UI plan
   - .codex/plans/Zircon Editor UI Material  Fyrox  JetBrains  Unreal.md

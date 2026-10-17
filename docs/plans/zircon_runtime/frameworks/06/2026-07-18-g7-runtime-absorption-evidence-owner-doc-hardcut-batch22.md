@@ -1,6 +1,5 @@
 ---
 related_code:
-  - zircon_runtime/src/tests/runtime_absorption/current_source_fixture.rs
   - docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md
   - tools/audits/check_conventions.py
 implementation_files:

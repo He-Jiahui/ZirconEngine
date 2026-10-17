@@ -1,12 +1,9 @@
 ---
 related_code:
   - zircon_runtime/src/core/resource/mod.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/loading
   - zircon_runtime/src/core/framework/asset.rs
 implementation_files:
   - zircon_runtime/src/core/resource/mod.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager
 plan_sources:
   - user: 2026-09-09 ResourceRegistry、句柄、加载状态与 readiness 详解
 tests:

@@ -10,10 +10,7 @@ related_records:
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
   - zircon_runtime/src/ui/component/state_reducer/text_search.rs
-  - zircon_runtime/src/ui/component/state_reducer/text_search/streaming_contains_tests.rs
 tests:
-  - zircon_runtime/src/ui/component/state_reducer/text_search/streaming_contains_tests.rs
-  - tools/tests/test_runtime_text_search_contains_streaming_performance_contract.py
   - tools/tests/test_runtime_ui_ascii_search_performance_contract.py
 ---
 

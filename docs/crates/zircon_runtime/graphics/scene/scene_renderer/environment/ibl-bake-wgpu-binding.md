@@ -1,19 +1,17 @@
 ---
 related_code:
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_wgpu_binding.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_wgpu_dispatch.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_wgpu_pipeline_cache.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_wgpu_command_plan.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_shader_plan.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_graph_plan.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_compute_executor.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/mod.rs
+  - zircon_runtime/src/graphics/scene/renderer/environment/ibl_bake_wgpu_binding.rs
+  - zircon_runtime/src/graphics/scene/renderer/environment/ibl_bake_wgpu_dispatch.rs
+  - zircon_runtime/src/graphics/scene/environment/ibl_bake_wgpu_pipeline_cache.rs
+  - zircon_runtime/src/graphics/scene/environment/ibl_bake_wgpu_command_plan.rs
+  - zircon_runtime/src/graphics/scene/renderer/environment/ibl_bake_shader_plan.rs
+  - zircon_runtime/src/graphics/scene/renderer/environment/ibl_bake_graph_plan.rs
+  - zircon_runtime/src/graphics/scene/environment/ibl_bake_compute_executor.rs
 implementation_files:
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_wgpu_binding.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_wgpu_dispatch.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_wgpu_pipeline_cache.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_wgpu_command_plan.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/mod.rs
+  - zircon_runtime/src/graphics/scene/renderer/environment/ibl_bake_wgpu_binding.rs
+  - zircon_runtime/src/graphics/scene/renderer/environment/ibl_bake_wgpu_dispatch.rs
+  - zircon_runtime/src/graphics/scene/environment/ibl_bake_wgpu_pipeline_cache.rs
+  - zircon_runtime/src/graphics/scene/environment/ibl_bake_wgpu_command_plan.rs
 plan_sources:
   - user: 2026-07-06 implement WGPU-to-render-pipeline design from docs/plans/zircon_runtime/render
   - docs/plans/zircon_runtime/render/11-environment-lighting.md

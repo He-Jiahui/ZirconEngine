@@ -14,7 +14,6 @@ tests:
   - tools/tests/test_editor03_saved_top_save_token_contract.py
   - tools/tests/test_editor09_dirty_registry_contract.py
   - zircon_editor/src/tests/editing/transaction_engine/dirty_batch.rs
-  - zircon_editor/src/core/asset/dirty/tests.rs
 ---
 
 # Editor03 M1 History Dirty Batch Generation

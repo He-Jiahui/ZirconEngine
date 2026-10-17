@@ -13,7 +13,6 @@ related_code:
   - zircon_runtime/src/ui/tree/hit_test.rs
   - zircon_runtime/src/ui/tree/hit_test/geometry_patch.rs
   - zircon_runtime/src/ui/surface/frame_hit_test.rs
-  - zircon_runtime/src/ui/surface/frame_hit_test/tests.rs
 tests:
   - cargo +1.94.1 check -p zircon_runtime --features profiling --locked
   - cargo +1.94.1 test -p zircon_runtime --features profiling --locked --lib dense_batches_match_expected_membership_for_1k_and_10k_entries -- --test-threads=1

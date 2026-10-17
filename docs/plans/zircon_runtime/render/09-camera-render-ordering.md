@@ -12,68 +12,44 @@ related_code:
   - zircon_runtime/src/scene/world/render.rs
   - zircon_runtime/src/scene/world/render_post_process.rs
   - zircon_runtime/src/scene/world/render_particles.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/lighting/light_buffer.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/shadow/plan.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/shadow/view_projection.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/transparent/mixed_submission.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/overlay/passes/base_scene_pass.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/scene_passes/render_scene_passes.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/sprite/build_sprite_vertices.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/sprite/sprite_renderer.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/particle/build_particle_vertices/build_particle_vertices.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/particle/build_particle_velocity_vertices/build_particle_velocity_vertices.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/replay.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/default_forward_plus.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/default_deferred.rs
+  - zircon_runtime/src/graphics/scene/renderer/lighting/light_buffer.rs
+  - zircon_runtime/src/graphics/scene/renderer/shadow/plan.rs
+  - zircon_runtime/src/graphics/scene/renderer/shadow/view_projection.rs
+  - zircon_runtime/src/graphics/scene/renderer/transparent/mixed_submission.rs
+  - zircon_runtime/src/graphics/scene/renderer/overlay/passes/base_scene_pass.rs
+  - zircon_runtime/src/graphics/scene/core/scene_passes/render_scene_passes.rs
+  - zircon_runtime/src/graphics/scene/renderer/sprite/build_sprite_vertices.rs
+  - zircon_runtime/src/graphics/scene/renderer/sprite/sprite_renderer.rs
+  - zircon_runtime/src/graphics/build_particle_vertices/build_particle_vertices.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/mesh_pass/replay.rs
   - zircon_runtime/src/graphics/pipeline/compiled_graph_cache.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/compile_pipeline.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/target_resolution.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/camera_history_key.rs
+  - zircon_runtime/src/graphics/runtime/viewport_record/camera_history_key.rs
   - zircon_runtime/src/graphics/types/viewport_render_frame.rs
   - zircon_runtime/src/graphics/types/viewport_render_output_target.rs
   - zircon_runtime/src/graphics/types/viewport_render_region.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/create_viewport/mod.rs
+  - zircon_runtime/src/graphics/runtime/framework/create_viewport/mod.rs
   - zircon_runtime/src/graphics/tests/m4_behavior_layers.rs
   - zircon_runtime/src/graphics/tests/m4_behavior_layers/particles.rs
   - zircon_runtime/src/graphics/tests/m4_behavior_layers/postprocess.rs
   - zircon_runtime/src/graphics/tests/m4_behavior_layers/queue_override.rs
   - zircon_runtime/src/graphics/tests/m4_behavior_layers/transparent3d.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/m4_behavior_postprocess_tests.rs
   - zircon_runtime/src/graphics/tests/render_product_sprite.rs
   - zircon_runtime/src/graphics/tests/render_product_submit.rs
   - zircon_runtime/src/graphics/tests/render_product_submit/profiles.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_product_submit_profiles_tests.rs
   - zircon_runtime/src/scene/tests/world_basics.rs
   - zircon_runtime/src/scene/tests/render_post_process_extract.rs
   - zircon_runtime/src/graphics/tests/render_product_camera_targets.rs
   - zircon_runtime/src/graphics/tests/render_product_camera_targets/assertions.rs
   - zircon_runtime/src/graphics/tests/render_product_camera_targets/camera.rs
   - zircon_runtime/src/graphics/tests/render_product_camera_targets/custom_target.rs
-  - zircon_runtime/src/graphics/tests/render_product_camera_targets/custom_target/composite.rs
-  - zircon_runtime/src/graphics/tests/render_product_camera_targets/custom_target/material_sampling.rs
-  - zircon_runtime/src/graphics/tests/render_product_camera_targets/custom_target/ordering.rs
-  - zircon_runtime/src/graphics/tests/render_product_camera_targets/custom_target/viewport.rs
+  - zircon_runtime/src/graphics/tests/custom_target/composite.rs
+  - zircon_runtime/src/graphics/tests/custom_target/material_sampling.rs
+  - zircon_runtime/src/graphics/tests/custom_target/ordering.rs
+  - zircon_runtime/src/graphics/tests/custom_target/viewport.rs
   - zircon_runtime/src/graphics/tests/render_product_camera_targets/fixture.rs
   - zircon_runtime/src/graphics/tests/render_product_camera_targets/mesh.rs
-  - zircon_runtime/src/graphics/tests/render_product_camera_targets/primary_surface.rs
-  - zircon_runtime/src/graphics/tests/render_product_camera_targets/texture_target.rs
   - zircon_runtime/src/graphics/tests/pipeline_overlay_order.rs
   - zircon_runtime/src/graphics/tests/plugin_render_feature_fixtures.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_frame_extract_geometry.rs
-  - dev/Graphics/Packages/com.unity.render-pipelines.universal/Runtime/UniversalRenderPipeline.cs
-  - dev/Graphics/Packages/com.unity.render-pipelines.universal/Runtime/UniversalAdditionalCameraData.cs
-  - dev/Graphics/Packages/com.unity.render-pipelines.universal/Runtime/ScriptableRenderer.cs
-  - dev/Graphics/Packages/com.unity.render-pipelines.universal/Runtime/UniversalRenderPipelineCore.cs
-  - dev/bevy/crates/bevy_camera/src/camera.rs
-  - dev/bevy/crates/bevy_camera/src/clear_color.rs
-  - dev/bevy/crates/bevy_camera/src/visibility/render_layers.rs
-  - dev/bevy/crates/bevy_render/src/camera.rs
-  - dev/bevy/crates/bevy_render/src/render_phase/mod.rs
-  - dev/bevy/crates/bevy_render/src/render_phase/rangefinder.rs
-  - dev/bevy/crates/bevy_core_pipeline/src/core_3d/mod.rs
-  - dev/bevy/crates/bevy_core_pipeline/src/core_2d/mod.rs
 plan_sources:
   - .codex/plans/ZirconEngine Bevy-Level Rendering Completion Plan.md
   - .codex/plans/Runtime 吸收层与 Editor_Scene 边界收束计划.md

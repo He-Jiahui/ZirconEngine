@@ -1,9 +1,8 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream
-  - zircon_editor/src/ui/retained_host/host_contract/paint_primitives/image.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_primitives/image
-  - zircon_editor/src/ui/retained_host/host_contract/presenter/gpu/present.rs
+  - zircon_editor/src/ui/retained/contract/paint_primitives/image.rs
+  - zircon_editor/src/ui/retained/contract/paint_primitives/image
+  - zircon_editor/src/ui/retained/contract/presenter/gpu/present.rs
   - zircon_runtime/crates/zr_rhi/src/ui_surface.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md

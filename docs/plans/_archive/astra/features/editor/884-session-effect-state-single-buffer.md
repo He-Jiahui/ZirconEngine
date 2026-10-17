@@ -9,8 +9,6 @@ related_records:
 implementation_files:
   - zircon_editor/src/core/recovery/project_recovery_assessment.rs
 tests:
-  - zircon_editor/src/core/recovery/project_recovery_assessment/session_effect_state_tests.rs
-  - tools/tests/test_editor884_session_effect_state_single_buffer_performance_contract.py
 ---
 
 # Editor884 Session Effect State Single Buffer

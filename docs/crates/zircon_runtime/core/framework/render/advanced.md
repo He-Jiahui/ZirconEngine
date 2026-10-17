@@ -1,8 +1,5 @@
 ---
 related_code:
-  - dev/bevy/Cargo.toml
-  - dev/bevy/docs/cargo_features.md
-  - dev/bevy/crates/bevy_internal/src/default_plugins.rs
   - zircon_runtime/src/core/framework/render/advanced/mod.rs
   - zircon_runtime/src/core/framework/render/advanced/feature.rs
   - zircon_runtime/src/core/framework/render/advanced/provider_report.rs
@@ -13,31 +10,19 @@ related_code:
   - zircon_runtime/src/core/framework/render/backend_types/command.rs
   - zircon_runtime/src/core/framework/render/backend_types/quality.rs
   - zircon_runtime/src/core/framework/render/virtual_geometry_execution_draw.rs
-  - zircon_runtime/src/core/framework/render/virtual_geometry_debug_snapshot_streams.rs
-  - zircon_runtime/src/core/framework/render/virtual_geometry_debug_snapshot_streams/types.rs
+  - zircon_runtime/src/core/render/virtual_geometry_debug_snapshot_streams.rs
+  - zircon_runtime/src/core/render/virtual_geometry_debug_snapshot_streams/types.rs
   - zircon_runtime/src/graphics/feature/render_feature_capability_requirement.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/capability_summary/capability_summary.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/capability_validation/mod.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/compile_options_for_profile/compile_options_for_profile.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/compile_options_for_profile/apply_flagship_profile_features.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/resolve_viewport_record_state.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/viewport_record_state.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/frame_submission_context.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/frame_submission_context/tests.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/prepared_runtime_submission.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/prepare_runtime_submission/prepare.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/viewport_generation_guard.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/submit.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/submit_runtime_frame.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/present_frame_extract.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/collect_runtime_feedback.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/virtual_geometry_stats.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_draw/virtual_geometry_execution_projection.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/wgpu_render_framework_construction/construct.rs
+  - zircon_runtime/src/graphics/runtime/capability_summary/capability_summary.rs
+  - zircon_runtime/src/graphics/runtime/framework/capability_validation/mod.rs
+  - zircon_runtime/src/graphics/extract/prepare_runtime_submission/prepare.rs
+  - zircon_runtime/src/graphics/runtime/framework/extract/submit/submit.rs
+  - zircon_runtime/src/graphics/runtime/extract/submit/submit_runtime_frame.rs
+  - zircon_runtime/src/graphics/runtime/extract/submit/present_frame_extract.rs
+  - zircon_runtime/src/graphics/runtime/extract/submit/collect_runtime_feedback.rs
+  - zircon_runtime/src/graphics/extract/update_stats/virtual_geometry_stats.rs
+  - zircon_runtime/src/graphics/runtime/framework/extract/update_stats/base_stats.rs
   - zircon_runtime/src/graphics/runtime_provider/registration.rs
-  - zircon_runtime/src/graphics/virtual_geometry_runtime_provider/provider_registration.rs
   - zircon_runtime/src/graphics/hybrid_gi_runtime_provider/provider_registration.rs
   - zircon_runtime/src/graphics/types/graphics_error.rs
   - zircon_runtime/src/graphics/tests/plugin_render_feature_fixtures.rs
@@ -47,10 +32,7 @@ related_code:
   - zircon_runtime/src/graphics/tests/render_framework_bridge/pipeline_profiles.rs
   - zircon_runtime/src/graphics/tests/render_framework_bridge/neural_compute.rs
   - zircon_runtime/src/graphics/tests/render_framework_bridge/advanced_providers.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_framework_bridge_tests.rs
   - zircon_runtime/src/graphics/tests/render_product_advanced.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog.rs
-  - zircon_runtime/src/tests/plugin_extensions/manifest_contributions.rs
   - zircon_app/Cargo.toml
   - zircon_app/src/entry/first_party_runtime_plugins.rs
   - zircon_app/src/entry/tests/profile_bootstrap.rs
@@ -68,31 +50,19 @@ implementation_files:
   - zircon_runtime/src/core/framework/render/backend_types/command.rs
   - zircon_runtime/src/core/framework/render/backend_types/quality.rs
   - zircon_runtime/src/core/framework/render/virtual_geometry_execution_draw.rs
-  - zircon_runtime/src/core/framework/render/virtual_geometry_debug_snapshot_streams.rs
-  - zircon_runtime/src/core/framework/render/virtual_geometry_debug_snapshot_streams/types.rs
+  - zircon_runtime/src/core/render/virtual_geometry_debug_snapshot_streams.rs
+  - zircon_runtime/src/core/render/virtual_geometry_debug_snapshot_streams/types.rs
   - zircon_runtime/src/graphics/feature/render_feature_capability_requirement.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/capability_summary/capability_summary.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/capability_validation/mod.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/compile_options_for_profile/compile_options_for_profile.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/compile_options_for_profile/apply_flagship_profile_features.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/resolve_viewport_record_state.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/viewport_record_state.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/frame_submission_context.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/frame_submission_context/tests.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/prepared_runtime_submission.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/prepare_runtime_submission/prepare.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/viewport_generation_guard.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/submit.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/submit_runtime_frame.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/present_frame_extract.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/collect_runtime_feedback.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/virtual_geometry_stats.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_draw/virtual_geometry_execution_projection.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/wgpu_render_framework_construction/construct.rs
+  - zircon_runtime/src/graphics/runtime/capability_summary/capability_summary.rs
+  - zircon_runtime/src/graphics/runtime/framework/capability_validation/mod.rs
+  - zircon_runtime/src/graphics/extract/prepare_runtime_submission/prepare.rs
+  - zircon_runtime/src/graphics/runtime/framework/extract/submit/submit.rs
+  - zircon_runtime/src/graphics/runtime/extract/submit/submit_runtime_frame.rs
+  - zircon_runtime/src/graphics/runtime/extract/submit/present_frame_extract.rs
+  - zircon_runtime/src/graphics/runtime/extract/submit/collect_runtime_feedback.rs
+  - zircon_runtime/src/graphics/extract/update_stats/virtual_geometry_stats.rs
+  - zircon_runtime/src/graphics/runtime/framework/extract/update_stats/base_stats.rs
   - zircon_runtime/src/graphics/runtime_provider/registration.rs
-  - zircon_runtime/src/graphics/virtual_geometry_runtime_provider/provider_registration.rs
   - zircon_runtime/src/graphics/hybrid_gi_runtime_provider/provider_registration.rs
   - zircon_runtime/src/graphics/types/graphics_error.rs
   - zircon_runtime/src/graphics/tests/plugin_render_feature_fixtures.rs
@@ -102,10 +72,7 @@ implementation_files:
   - zircon_runtime/src/graphics/tests/render_framework_bridge/pipeline_profiles.rs
   - zircon_runtime/src/graphics/tests/render_framework_bridge/neural_compute.rs
   - zircon_runtime/src/graphics/tests/render_framework_bridge/advanced_providers.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_framework_bridge_tests.rs
   - zircon_runtime/src/graphics/tests/render_product_advanced.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog.rs
-  - zircon_runtime/src/tests/plugin_extensions/manifest_contributions.rs
   - zircon_app/Cargo.toml
   - zircon_app/src/entry/first_party_runtime_plugins.rs
   - zircon_app/src/entry/tests/profile_bootstrap.rs
@@ -120,13 +87,11 @@ plan_sources:
   - docs/superpowers/plans/2026-05-08-render-m4-plus-product-pipeline.md
 tests:
   - zircon_runtime/src/core/framework/render/advanced/runtime_plan.rs::default_render_plan_does_not_request_advanced_providers
-  - zircon_runtime/src/graphics/runtime/render_framework/compile_options_for_profile/compile_options_for_profile.rs::compile_options_do_not_enable_advanced_capabilities_without_providers
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/resolve_viewport_record_state.rs::runtime_profile_bundle_for_quality_profile_defaults_without_advanced_flags
   - zircon_runtime/src/core/framework/render/advanced/runtime_plan.rs
   - cargo check -p zircon_runtime --lib --locked --jobs 1 --color never
   - cargo test -p zircon_runtime --lib advanced --locked --jobs 1 --message-format short --color never
   - cargo test -p zircon_runtime --lib capability_validation --locked --jobs 1 --message-format short --color never
-  - zircon_runtime/src/graphics/runtime/render_framework/capability_validation/mod.rs::compiled_pipeline_capability_validation_reports_neural_compute_requirement
+  - zircon_runtime/src/graphics/runtime/framework/capability_validation/mod.rs::compiled_pipeline_capability_validation_reports_neural_compute_requirement
   - cargo test -p zircon_runtime --lib compiled_pipeline_capability_validation_reports_neural_compute_requirement --locked --jobs 1 --target-dir E:\cargo-targets\zircon-render-main-chain --message-format short --color never
   - cargo test -p zircon_runtime --lib capability_class_report --locked --jobs 1 --message-format short --color never
   - cargo test -p zircon_runtime --lib backend_caps_report_queue_classes_and_rt_support_independently --locked --jobs 1 --message-format short --color never

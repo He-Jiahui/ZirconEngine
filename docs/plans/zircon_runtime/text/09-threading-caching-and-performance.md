@@ -5,29 +5,23 @@ related_code:
   - zircon_runtime/src/text/cache/layout_cache.rs
   - zircon_runtime/src/text/cache/measure_cache.rs
   - zircon_runtime/src/text/cache/shaped_cache.rs
-  - zircon_runtime/src/text/cache/tests.rs
   - zircon_runtime/src/text/font/shared.rs
   - zircon_runtime/src/text/font/runtime_asset.rs
-  - zircon_runtime/src/text/font/shared/tests.rs
   - zircon_runtime/src/text/font/database/equivalence.rs
   - zircon_runtime/src/text/sdf/font_bake/tests/cache_generation.rs
   - zircon_runtime/src/text/parallel/mod.rs
   - zircon_runtime/src/text/parallel/shape_pool.rs
   - zircon_runtime/src/text/parallel/raster_pool.rs
-  - zircon_runtime/src/text/parallel/tests.rs
   - zircon_runtime/src/text/hard_line.rs
   - zircon_runtime/src/text/shaping/work_budget.rs
-  - zircon_runtime/src/text/shaping/tests.rs
   - zircon_runtime/src/ui/text/measure_cache.rs
   - zircon_runtime/src/ui/surface/render/extract.rs
-  - zircon_runtime/src/ui/surface/render/text_prewarm/tests.rs
   - zircon_runtime/src/ui/tests/text_pipeline
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/renderer.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/tests.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/sdf_atlas.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/atlas_renderer/renderer.rs
   - zircon_runtime/src/asset/pipeline/worker_pool.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/font_assets.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/text.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/text/font_assets.rs
   - zircon_runtime/src/text/native_bitmap_atlas.rs
   - zircon_runtime/src/text/native_bitmap_atlas/source_cache.rs
   - zircon_runtime/src/text/native_bitmap_atlas/tests/source_cache.rs
@@ -39,7 +33,6 @@ related_code:
   - zircon_runtime/src/text/atlas/raster_key/mod.rs
   - zircon_runtime/src/text/atlas/render_submission/report.rs
   - zircon_runtime/src/text/atlas/slot_cache.rs
-  - zircon_runtime/src/text/atlas/slot_cache/tests.rs
   - zircon_runtime/src/ui/surface/render/font_dependencies.rs
   - zircon_runtime/src/dynamic_api/session/runtime_ui.rs
   - zircon_runtime/src/dynamic_api/session/runtime_ui/font_admission.rs
@@ -47,7 +40,6 @@ related_code:
   - zircon_runtime/src/text/document/index.rs
   - zircon_runtime/src/text/document/index_profile.rs
   - zircon_runtime/src/text/document/storage.rs
-  - zircon_runtime/src/text/document/tests.rs
   - tools/tests/test_runtime_text_document_incremental_index_contract.py
 design_references:
   - dev/UnrealEngine/Engine/Source/Runtime/Slate/Public/Framework/Text/ShapedTextCache.h

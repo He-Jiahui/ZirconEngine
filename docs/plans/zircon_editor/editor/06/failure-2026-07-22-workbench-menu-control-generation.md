@@ -10,16 +10,14 @@ fixing_child_dir: docs/plans/zircon_editor/editor/06
 plan_link_mode: child_record_only
 related_code:
   - zircon_editor/src/core/asset/type_registry/registry.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/asset_creation_menu.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/popup_state.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/control_state.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/window_menu_state.rs
+  - zircon_editor/src/ui/retained/dispatch/workbench/asset_creation_menu.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/workbench/popup_state.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/workbench/control_state.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/workbench/window_menu_state.rs
   - zircon_editor/src/ui/workbench/reference/template_surface.rs
-  - zircon_editor/src/ui/template_runtime/runtime/projection.rs
-  - zircon_editor/src/ui/template_runtime/runtime/runtime_host.rs
-  - zircon_editor/src/ui/template_runtime/retained_adapter.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/toolbar_layout/priority.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_window_menus/asset_creation.rs
+  - zircon_editor/src/ui/runtime/runtime/projection.rs
+  - zircon_editor/src/ui/runtime/runtime/runtime_host.rs
+  - zircon_editor/src/ui/retained/dispatch/workbench/toolbar_layout/priority.rs
 tests:
   - tools.tests.test_editor06_workbench_toolbar_priority_contract
   - template/control/resize/action scale matrix

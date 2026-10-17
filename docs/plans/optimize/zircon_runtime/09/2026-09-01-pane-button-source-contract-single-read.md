@@ -8,7 +8,6 @@ implementation_files:
   - tools/analysis/performance/ui/ui_pane_button_fallback_damage_pressure.py
 tests:
   - tools/tests/test_ui_pane_button_fallback_damage_pressure.py
-  - tools/tests/test_ui_pane_button_source_contract_single_read_performance_contract.py
 ---
 
 # Runtime09 pane button source contract single read

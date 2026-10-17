@@ -2,7 +2,6 @@
 related_code:
   - zircon_editor/src/core
   - zircon_editor/src/ui/host/startup
-  - zircon_editor/src/ui/host/editor_manager_plugins_export
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_editor/editor/01-editor-kernel-and-runtime-interaction.md

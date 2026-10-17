@@ -3,14 +3,14 @@ related_code:
   - zircon_runtime_interface/src/ui/dispatch/pointer/component_event.rs
   - zircon_runtime/src/ui/template/asset/document/validation.rs
   - zircon_runtime/src/ui/surface/surface/pointer_component_events.rs
-  - zircon_editor/src/ui/template_runtime/runtime/projection.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/common/dispatch.rs
+  - zircon_editor/src/ui/runtime/runtime/projection.rs
+  - zircon_editor/src/ui/retained/dispatch/common/dispatch.rs
 implementation_files:
   - zircon_runtime_interface/src/ui/dispatch/pointer/component_event.rs
   - zircon_runtime/src/ui/template/asset/document/validation.rs
   - zircon_runtime/src/ui/surface/surface/pointer_component_events.rs
-  - zircon_editor/src/ui/template_runtime/runtime/projection.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/common/dispatch.rs
+  - zircon_editor/src/ui/runtime/runtime/projection.rs
+  - zircon_editor/src/ui/retained/dispatch/common/dispatch.rs
 ---
 
 # Template Action Invocation Contract

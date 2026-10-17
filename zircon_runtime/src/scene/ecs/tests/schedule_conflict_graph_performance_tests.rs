@@ -33,7 +33,7 @@ fn shared_schedule_batch_systems_avoid_frame_heap_allocations() {
     let optimized_p50 = percentile_ns(&mut optimized_samples, 50);
     let optimized_p95 = percentile_ns(&mut optimized_samples, 95);
     println!(
-        "PERF_RESULT runtime60_shared_schedule_batch_systems legacy_p50_ns={legacy_p50} legacy_p95_ns={legacy_p95} optimized_p50_ns={optimized_p50} optimized_p95_ns={optimized_p95} systems_per_batch={PERF_SYSTEM_COUNT} iterations_per_sample={PERF_ITERATIONS_PER_SAMPLE} samples={PERF_SAMPLE_PAIRS} legacy_heap_allocations_per_batch=65 optimized_heap_allocations_per_batch=0"
+        "PERF_RESULT runtime60_shared_schedule_batch_systems legacy_p50_ns={legacy_p50} legacy_p95_ns={legacy_p95} optimized_p50_ns={optimized_p50} optimized_p95_ns={optimized_p95} systems_per_batch={PERF_SYSTEM_COUNT} iterations_per_sample={PERF_ITERATIONS_PER_SAMPLE} samples={PERF_SAMPLE_PAIRS} legacy_heap_allocations_per_batch_expected=65 optimized_heap_allocations_per_batch_expected=0"
     );
 
     assert!(

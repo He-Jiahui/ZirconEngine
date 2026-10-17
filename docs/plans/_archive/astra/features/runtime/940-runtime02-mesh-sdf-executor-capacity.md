@@ -10,9 +10,7 @@ related_records:
 implementation_files:
   - zircon_runtime/src/asset/mesh_sdf_cook/acceleration.rs
   - zircon_runtime/src/asset/mesh_sdf_cook/cook.rs
-  - zircon_runtime/src/asset/mesh_sdf_cook/tests.rs
 tests:
-  - zircon_runtime/src/asset/mesh_sdf_cook/tests.rs
 ---
 
 # Runtime940 Runtime02 Mesh SDF Executor and BVH Capacity

@@ -8,10 +8,8 @@ related_code:
   - zircon_editor/src/core/jobs/system/pending.rs
   - zircon_editor/src/ui/workbench/model/menu/extension_menu.rs
   - zircon_editor/src/core/jobs/system/pending/tests/fairness.rs
-  - zircon_editor/src/ui/workbench/model/menu/optimization_batch_iz_editor639_tests.rs
 tests:
   - zircon_editor/src/core/jobs/system/pending/tests/fairness.rs
-  - zircon_editor/src/ui/workbench/model/menu/optimization_batch_iz_editor639_tests.rs
 ---
 
 # Ready-Job And Menu Index Capacity

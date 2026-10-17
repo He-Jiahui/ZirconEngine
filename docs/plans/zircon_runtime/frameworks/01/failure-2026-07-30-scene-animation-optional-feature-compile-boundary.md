@@ -17,7 +17,6 @@ related_code:
   - zircon_runtime/src/scene/level_system/frame_state.rs
   - zircon_runtime/src/scene/ecs/events/store.rs
   - zircon_runtime/src/scene/world/events.rs
-  - zircon_plugins/animation/runtime/src/evaluation/pipeline/animation_evaluation_pipeline.rs
   - zircon_plugins/animation/runtime/src/evaluation/clip_evaluator/diagnostics.rs
   - zircon_plugins/animation/runtime/src/evaluation/pipeline/events.rs
   - zircon_plugins/animation/runtime/src/evaluation/pipeline/parameter_apply.rs
@@ -26,7 +25,6 @@ related_code:
   - zircon_plugins/animation/runtime/src/evaluation/pipeline/sequences.rs
   - zircon_plugins/animation/runtime/src/evaluation/pipeline/tick.rs
   - zircon_plugins/animation/runtime/src/manager.rs
-  - zircon_plugins/animation/runtime/src/tests.rs
   - zircon_plugins/animation/runtime/tests/animation_ik_contract.rs
   - zircon_runtime/src/animation/manager/mod.rs
   - zircon_runtime/src/core/framework/animation/manager.rs

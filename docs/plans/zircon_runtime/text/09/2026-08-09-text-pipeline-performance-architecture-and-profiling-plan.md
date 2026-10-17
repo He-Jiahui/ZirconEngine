@@ -12,9 +12,8 @@ related_code:
   - zircon_runtime/src/ui/text/measure_cache/retained_document.rs
   - zircon_runtime/src/ui/surface/render/extract.rs
   - zircon_runtime/src/ui/surface/render/text_prewarm.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/prepare_report.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/frame_profiler.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/text.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/text/prepare_report.rs
 design_references:
   - dev/UnrealEngine/Engine/Source/Runtime/Slate/Public/Framework/Text/ShapedTextCache.h
   - dev/UnrealEngine/Engine/Source/Runtime/Slate/Private/Framework/Text/ShapedTextCache.cpp

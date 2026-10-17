@@ -8,9 +8,7 @@ related_records:
   - docs/plans/astra/features/editor/937-editor09-job-record-hash-index.md
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
-  - zircon_editor/src/ui/retained_host/app/build_export_wizard_session/session_state.rs
 tests:
-  - zircon_editor/src/ui/retained_host/app/build_export_wizard_session/session_state/hash_index_tests.rs
 ---
 
 # Editor938 Editor09 Export Wizard Session Hash Index

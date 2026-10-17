@@ -2,19 +2,11 @@
 related_code:
   - zircon_editor/src/ui/component_registry/mod.rs
   - zircon_editor/src/ui/component_registry/registry.rs
-  - zircon_editor/src/ui/component_registry/tests.rs
-  - zircon_editor/src/ui/template_runtime/retained_adapter.rs
-  - zircon_editor/src/ui/retained_host/ui/component_contract_metadata.rs
-  - zircon_editor/src/ui/retained_host/ui/workbench_window_projection.rs
-  - zircon_editor/src/ui/retained_host/host_contract/template_component_family/roles.rs
+  - zircon_editor/src/ui/retained/ui/component_contract_metadata.rs
 implementation_files:
   - zircon_editor/src/ui/component_registry/mod.rs
   - zircon_editor/src/ui/component_registry/registry.rs
-  - zircon_editor/src/ui/component_registry/tests.rs
-  - zircon_editor/src/ui/template_runtime/retained_adapter.rs
-  - zircon_editor/src/ui/retained_host/ui/component_contract_metadata.rs
-  - zircon_editor/src/ui/retained_host/ui/workbench_window_projection.rs
-  - zircon_editor/src/ui/retained_host/host_contract/template_component_family/roles.rs
+  - zircon_editor/src/ui/retained/ui/component_contract_metadata.rs
 plan_sources:
   - docs/plans/zircon_editor/editor_layout/15-component-standardization-from-primitives.md
   - docs/plans/zircon_editor/editor_layout/17-text-rendering-and-typography.md

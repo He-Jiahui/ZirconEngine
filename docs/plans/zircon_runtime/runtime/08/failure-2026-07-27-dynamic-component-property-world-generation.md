@@ -13,7 +13,6 @@ related_code:
   - zircon_runtime/src/scene/world/property_access/write.rs
   - zircon_runtime/src/scene/reflect/dynamic_component.rs
   - zircon_runtime/src/scene/tests/ecs_reflect/dynamic_components.rs
-  - zircon_runtime/src/scene/world/generation/tests.rs
   - zircon_plugins/navigation/runtime/src/manager/state.rs
 tests:
   - cargo test -p zircon_runtime --lib dynamic_component_reflection --locked --jobs 1 -- --nocapture --test-threads=1

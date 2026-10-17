@@ -11,8 +11,6 @@ plan_sources:
   - docs/plans/optimize/zircon_runtime/03/2026-09-27-streaming-profile-json-export.md
   - docs/plans/optimize/zircon_runtime/03/2026-09-27-profile-export-same-session-single-flight.md
 tests:
-  - zircon_runtime/src/core/runtime/diagnostics/profiling/export/streaming_tests.rs
-  - zircon_runtime/src/core/runtime/diagnostics/profiling/export/session_owner_tests.rs
 doc_type: milestone-detail
 ---
 

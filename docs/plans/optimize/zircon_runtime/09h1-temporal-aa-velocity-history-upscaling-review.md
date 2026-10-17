@@ -3,19 +3,10 @@ related_code:
   - zircon_runtime/src/core/framework/render/anti_alias
   - zircon_runtime/src/core/framework/render/camera.rs
   - zircon_runtime/src/core/framework/render/temporal_jitter.rs
-  - zircon_runtime/src/core/framework/render/post_process
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/resource_descriptors.rs
   - zircon_runtime/src/graphics/runtime/history
-  - zircon_runtime/src/graphics/runtime/render_framework/capability_summary
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution
-  - zircon_runtime/src/graphics/scene/scene_renderer/history
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/processors/velocity.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/processors/taa_reactive_mask.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/particle
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process
-  - zircon_runtime/src/graphics/scene/scene_renderer/primitives/scene_uniform/from_frame.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/temporal
+  - zircon_runtime/src/graphics/scene/renderer/mesh/mesh_pass/processors/velocity.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/processors/taa_reactive_mask.rs
+  - zircon_runtime/src/graphics/scene/renderer/scene_uniform/from_frame.rs
   - zircon_runtime/src/graphics/shader/template/taa_reactive_mask.rs
   - zircon_runtime/src/graphics/shader/wgsl/zr_template_taa_reactive_mask.wgsl
   - zircon_runtime/src/graphics/tests/render_product_anti_alias.rs

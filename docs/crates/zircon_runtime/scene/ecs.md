@@ -174,7 +174,7 @@ related_code:
   - zircon_runtime/src/scene/reflect/dynamic_component.rs
   - zircon_runtime/src/scene/reflect/builtin_reflection/hierarchy.rs
   - zircon_runtime/src/core/framework/scene/mobility.rs
-  - zircon_runtime/src/scene/dynamic_scene/scene/spawn/mod.rs
+  - zircon_runtime/src/scene/dynamic/scene/spawn/mod.rs
   - zircon_runtime/src/script/vm/gameplay_host/combat.rs
   - zircon_runtime/src/script/vm/gameplay_host/lifecycle.rs
   - zircon_runtime/src/script/vm/gameplay_host/transform.rs
@@ -210,14 +210,12 @@ related_code:
   - zircon_runtime/src/scene/tests/ecs_systems/run_window_filters.rs
   - zircon_runtime/src/scene/tests/ecs_systems/many_single_queries.rs
   - zircon_runtime/src/scene/tests/ecs_systems/removal_local.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/scene_ecs_systems.rs
   - zircon_runtime/src/scene/tests/ecs_query.rs
   - zircon_runtime/src/scene/tests/ecs_query/read_items.rs
   - zircon_runtime/src/scene/tests/ecs_query/mutation_access.rs
   - zircon_runtime/src/scene/tests/ecs_query/fixed_ticks.rs
   - zircon_runtime/src/scene/tests/ecs_query/iter_many.rs
   - zircon_runtime/src/scene/tests/ecs_query/cached_queries.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/scene_ecs_query.rs
   - zircon_runtime/src/scene/tests/ecs_query_structure.rs
   - zircon_runtime/src/scene/tests/ecs_query_structure/query_state_layout.rs
   - zircon_runtime/src/scene/tests/ecs_query_structure/mutable_iterators.rs
@@ -225,7 +223,6 @@ related_code:
   - zircon_runtime/src/scene/tests/ecs_query_structure/cache_rebuild.rs
   - zircon_runtime/src/scene/tests/ecs_query_structure/archetype_access.rs
   - zircon_runtime/src/scene/tests/ecs_query_structure/combinations.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/scene_ecs_query_structure.rs
   - zircon_runtime/src/scene/tests/render_extract.rs
   - zircon_runtime/src/scene/tests/ecs_scheduled_native_systems.rs
 implementation_files:
@@ -387,7 +384,7 @@ implementation_files:
   - zircon_runtime/src/scene/world/world.rs
   - zircon_runtime/src/scene/reflect/builtin_reflection/hierarchy.rs
   - zircon_runtime/src/core/framework/scene/mobility.rs
-  - zircon_runtime/src/scene/dynamic_scene/scene/spawn/mod.rs
+  - zircon_runtime/src/scene/dynamic/scene/spawn/mod.rs
   - zircon_runtime/src/script/vm/gameplay_host/combat.rs
   - zircon_runtime/src/script/vm/gameplay_host/lifecycle.rs
   - zircon_runtime/src/script/vm/gameplay_host/transform.rs
@@ -411,13 +408,11 @@ implementation_files:
   - zircon_runtime/src/scene/tests/ecs_systems/run_window_filters.rs
   - zircon_runtime/src/scene/tests/ecs_systems/many_single_queries.rs
   - zircon_runtime/src/scene/tests/ecs_systems/removal_local.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/scene_ecs_systems.rs
   - zircon_runtime/src/scene/tests/ecs_query/read_items.rs
   - zircon_runtime/src/scene/tests/ecs_query/mutation_access.rs
   - zircon_runtime/src/scene/tests/ecs_query/fixed_ticks.rs
   - zircon_runtime/src/scene/tests/ecs_query/iter_many.rs
   - zircon_runtime/src/scene/tests/ecs_query/cached_queries.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/scene_ecs_query.rs
   - zircon_runtime/src/scene/tests/ecs_query_structure.rs
   - zircon_runtime/src/scene/tests/ecs_query_structure/query_state_layout.rs
   - zircon_runtime/src/scene/tests/ecs_query_structure/mutable_iterators.rs
@@ -425,7 +420,6 @@ implementation_files:
   - zircon_runtime/src/scene/tests/ecs_query_structure/cache_rebuild.rs
   - zircon_runtime/src/scene/tests/ecs_query_structure/archetype_access.rs
   - zircon_runtime/src/scene/tests/ecs_query_structure/combinations.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/scene_ecs_query_structure.rs
 plan_sources:
   - user: 2026-05-08 ECS to render chain milestone execution
   - .codex/plans/ZirconEngine ECS 到渲染链路完善里程碑计划.md
@@ -505,7 +499,6 @@ tests:
   - zircon_runtime/src/scene/tests/ecs_query_state_structure.rs
   - zircon_runtime/src/scene/tests/ecs_performance_acceptance.rs
   - zircon_runtime/src/scene/tests/ecs_change_detection.rs
-  - zircon_runtime/src/tests/runtime_absorption/performance_hotspots.rs
   - zircon_runtime/src/scene/tests/ecs_schedule.rs
   - zircon_runtime/src/scene/tests/ecs_schedule/conflict_graph.rs
   - zircon_runtime/src/scene/tests/ecs_schedule/conflict_graph/access_conflicts.rs
@@ -516,11 +509,9 @@ tests:
   - zircon_runtime/src/scene/tests/ecs_schedule/schedule_plan.rs
   - zircon_runtime/src/scene/tests/ecs_schedule/render_extract.rs
   - zircon_runtime/src/scene/tests/ecs_schedule/world_driver.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/scene_ecs_schedule.rs
   - zircon_runtime/src/scene/tests/ecs_scheduled_native_systems.rs
   - zircon_runtime/src/scene/tests/ecs_schedule_parallel_executor_structure.rs
   - zircon_runtime/src/scene/ecs/schedule_parallel_executor.rs::tests::schedule_parallel_executor_batch_result_slot_recovers_poisoned_lock
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy.rs::runtime_15_scene_ecs_parallel_executor_lock_poison_recovery_guard_covers_batch_result_slots
   - zircon_runtime/src/scene/tests/derived_state.rs
   - zircon_runtime/src/scene/tests/derived_state/spawn_paths.rs
   - zircon_runtime/src/scene/tests/derived_state/hierarchy_rebuild.rs
@@ -528,7 +519,6 @@ tests:
   - zircon_runtime/src/scene/tests/derived_state/runtime_freshness.rs
   - zircon_runtime/src/scene/tests/derived_state/hierarchy_behavior.rs
   - zircon_runtime/src/scene/tests/derived_state/work_counters.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/scene_derived_state.rs
   - zircon_runtime/src/scene/tests/ecs_systems.rs
   - zircon_runtime/src/scene/tests/ecs_systems/commands.rs
   - zircon_runtime/src/scene/tests/ecs_systems/state_params.rs
@@ -536,21 +526,18 @@ tests:
   - zircon_runtime/src/scene/tests/ecs_systems/run_window_filters.rs
   - zircon_runtime/src/scene/tests/ecs_systems/many_single_queries.rs
   - zircon_runtime/src/scene/tests/ecs_systems/removal_local.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/scene_ecs_systems.rs
   - zircon_runtime/src/scene/tests/ecs_query.rs
   - zircon_runtime/src/scene/tests/ecs_query/read_items.rs
   - zircon_runtime/src/scene/tests/ecs_query/mutation_access.rs
   - zircon_runtime/src/scene/tests/ecs_query/fixed_ticks.rs
   - zircon_runtime/src/scene/tests/ecs_query/iter_many.rs
   - zircon_runtime/src/scene/tests/ecs_query/cached_queries.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/scene_ecs_query.rs
   - zircon_runtime/src/scene/tests/ecs_query_structure/query_state_layout.rs
   - zircon_runtime/src/scene/tests/ecs_query_structure/mutable_iterators.rs
   - zircon_runtime/src/scene/tests/ecs_query_structure/cached_iterators.rs
   - zircon_runtime/src/scene/tests/ecs_query_structure/cache_rebuild.rs
   - zircon_runtime/src/scene/tests/ecs_query_structure/archetype_access.rs
   - zircon_runtime/src/scene/tests/ecs_query_structure/combinations.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/scene_ecs_query_structure.rs
   - zircon_runtime/src/scene/tests/ecs_typed_api.rs
   - zircon_runtime/src/scene/tests/ecs_reflect/foundation.rs
   - zircon_runtime/src/scene/tests/ecs_reflect/foundation/address_routing.rs
@@ -565,7 +552,6 @@ tests:
   - zircon_runtime/src/scene/tests/ecs_reflect/resources.rs
   - zircon_runtime/src/scene/tests/ecs_reflect/structure.rs
   - zircon_runtime/src/scene/tests/property_paths.rs
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings.rs
   - zircon_runtime/src/scene/tests/component_structure.rs
   - zircon_runtime/src/scene/tests/component_structure/component_registry.rs
   - zircon_runtime/src/scene/tests/component_structure/component_storage_dispatch.rs
@@ -574,8 +560,6 @@ tests:
   - zircon_runtime/src/scene/tests/component_structure/project_serialization.rs
   - zircon_runtime/src/scene/tests/component_structure/runtime_08_owner_tree.rs
   - zircon_runtime/src/scene/tests/component_structure/runtime_world_domains.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/scene_component_structure.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/scene_ecs_reflect_foundation.rs
   - zircon_runtime/src/scene/tests/render_extract.rs::render_frame_extract_filters_lights_by_camera_layers
   - zircon_runtime/src/scene/tests/render_extract.rs::explicit_camera_request_layers_override_scene_camera_layers_for_direct_frame_extract
   - .opencode/workflows/20260531_215744_101_完善ECS到渲染工作流，你可以参照dev 下面graphics的unity的SRP工作流以及unrealEngine虚幻源码渲染能力、bevy fyrox等对w/m01-ecs-schedule-foundation/validation-evidence.md

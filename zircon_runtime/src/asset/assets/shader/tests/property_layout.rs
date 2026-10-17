@@ -219,7 +219,7 @@ fn borrowed_shader_token_performance_release_property() {
     let improvement_percent =
         legacy_p95.saturating_sub(optimized_p95).saturating_mul(100) / legacy_p95.max(1);
     println!(
-        "PERF_RESULT plugins07_material_option_token_dispatch sample_pairs={SAMPLE_PAIRS} legacy_ns={} optimized_ns={} legacy_p95_ns={legacy_p95} optimized_p95_ns={optimized_p95} improvement_percent={improvement_percent} threshold_percent=25 legacy_allocations_per_sample={} optimized_allocations_per_sample=0 order=alternating_legacy_first_even legacy_first_pairs=11 optimized_first_pairs=10",
+        "PERF_RESULT plugins07_material_option_token_dispatch sample_pairs={SAMPLE_PAIRS} legacy_ns={} optimized_ns={} legacy_p95_ns={legacy_p95} optimized_p95_ns={optimized_p95} improvement_percent={improvement_percent} threshold_percent=25 legacy_allocations_per_sample={} optimized_allocations_per_sample_expected=0 order=alternating_legacy_first_even legacy_first_pairs=11 optimized_first_pairs=10",
         csv(&legacy_samples),
         csv(&optimized_samples),
         LOOKUPS_PER_SAMPLE * 4,

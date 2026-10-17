@@ -1,20 +1,12 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/host_contract/data/world_space_submission.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/world_space_submission/builder.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/world_space_submission/builder/node.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/world_space_submission/builder/pane.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/world_space_submission/builder/scene.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/world_space_submission/model.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/world_space_submission/tests.rs
+  - zircon_editor/src/ui/retained/contract/data/world/builder/node.rs
+  - zircon_editor/src/ui/retained/contract/data/world/builder/pane.rs
+  - zircon_editor/src/ui/retained/contract/data/world/builder/scene.rs
 implementation_files:
-  - zircon_editor/src/ui/retained_host/host_contract/data/world_space_submission.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/world_space_submission/builder.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/world_space_submission/builder/node.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/world_space_submission/builder/pane.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/world_space_submission/builder/scene.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/world_space_submission/model.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/world_space_submission/tests.rs
+  - zircon_editor/src/ui/retained/contract/data/world/builder/node.rs
+  - zircon_editor/src/ui/retained/contract/data/world/builder/pane.rs
+  - zircon_editor/src/ui/retained/contract/data/world/builder/scene.rs
 plan_sources:
   - docs/plans/zircon_editor/editor_ui/08-workbench-shell-on-runtime-ui.md
   - user: 2026-06-21 editor UI architecture implementation, feature first and tests deferred

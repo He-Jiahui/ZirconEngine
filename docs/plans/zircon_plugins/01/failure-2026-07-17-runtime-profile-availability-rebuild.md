@@ -16,7 +16,6 @@ related_code:
   - zircon_runtime/src/plugin/package_manifest/builtin_catalog.rs
   - zircon_runtime/src/builtin/runtime_modules/availability.rs
   - zircon_runtime/src/builtin/runtime_modules/tests/availability.rs
-  - zircon_runtime/src/tests/plugin_extensions/profile_availability_projection.rs
 tests:
   - runtime_profile_module_assembly_builds_one_availability_projection
   - availability_projection_membership_steps_scale_linearly

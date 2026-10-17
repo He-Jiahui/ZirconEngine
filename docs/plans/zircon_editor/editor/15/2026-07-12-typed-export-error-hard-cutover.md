@@ -4,10 +4,10 @@ related_code:
   - zircon_editor/src/core/jobs/error.rs
   - zircon_editor/src/ui/host/export_process_support/error.rs
   - zircon_editor/src/ui/host/native_dynamic_export_preparation/error.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/error.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/execution.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/controller/job.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_actions/error.rs
+  - zircon_editor/src/ui/host/exports/export_build/error.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/execution.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/controller/job.rs
+  - zircon_editor/src/ui/retained/app/build_export_actions/error.rs
 plan_sources:
   - docs/plans/zircon_editor/editor/15-build-export-and-publishing.md
   - docs/plans/zircon_editor/editor/14-threading-and-job-scheduling.md

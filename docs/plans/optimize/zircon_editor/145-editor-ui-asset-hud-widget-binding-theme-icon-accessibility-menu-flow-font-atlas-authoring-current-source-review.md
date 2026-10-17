@@ -30,10 +30,9 @@ related_editor_owners:
 related_code:
   - zircon_editor/src/ui/asset_editor
   - zircon_editor/src/ui/host/asset_editor_sessions
-  - zircon_editor/src/ui/retained_host/app/ui_asset_editor
+  - zircon_editor/src/ui/retained/app/ui_asset_editor
   - zircon_editor/assets/ui/editor/ui_asset_editor.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/core/ui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/ui
+  - zircon_editor/assets/ui/editor/workbench/modules/core/ui
   - zircon_plugins/ui_asset_authoring
   - zircon_plugins/ui_document_importer
   - zircon_runtime_interface/src/ui/v2

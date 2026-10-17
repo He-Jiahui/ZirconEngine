@@ -6,18 +6,16 @@ related_code:
   - zircon_runtime/src/text/atlas/page_residency.rs
   - zircon_runtime/src/text/atlas/dirty.rs
   - zircon_runtime/src/text/atlas/upload.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/sdf_atlas.rs
   - zircon_runtime/src/text/sdf/font_bake.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_upload.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/atlas_resources.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/sdf_upload.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/sdf_render/atlas_resources.rs
 plan_sources:
   - docs/plans/zircon_runtime/text/04-glyph-atlas-and-rasterization.md
   - docs/plans/zircon_runtime/text/05-sdf-msdf-pipeline.md
   - docs/superpowers/plans/2026-07-13-runtime-msdf-mtsdf-dynamic-pipeline.md
 tests:
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas/tests
-  - zircon_runtime/src/text/sdf/font_bake/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_upload/tests.rs
 doc_type: module-detail
 ---
 

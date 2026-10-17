@@ -17,22 +17,20 @@ related_code:
   - zircon_editor/src/core/asset/import_flow
   - zircon_editor/src/core/asset/type_registry
   - zircon_editor/src/core/editing/paths.rs
-  - zircon_editor/src/ui/host/editor_asset_manager/manager/preview_refresh
-  - zircon_editor/src/ui/retained_host/app/assets/workspace.rs
-  - zircon_editor/src/ui/retained_host/app/callback_wiring/pane_surface/assets/mesh_import.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/asset/mesh_import_path.rs
+  - zircon_editor/src/ui/host/assets/manager/preview_refresh
+  - zircon_editor/src/ui/retained/app/assets/workspace.rs
+  - zircon_editor/src/ui/retained/app/pane_surface/assets/mesh_import.rs
+  - zircon_editor/src/ui/retained/dispatch/asset/mesh_import_path.rs
   - zircon_editor/assets/ui/editor/asset_browser.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/animation/workbench_extension_retarget_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/simulation/workbench_extension_collision_proxy_workspace.zui
   - zircon_runtime/src/asset/assets/model
   - zircon_runtime/src/asset/assets/mesh
   - zircon_runtime/src/asset/importer/ingest
   - zircon_runtime/src/asset/project/manager/scan_and_import/source_plan.rs
   - zircon_runtime/src/asset/project/manager/durable_transaction.rs
-  - zircon_runtime/src/asset/pipeline/manager/service_contracts/asset_manager_contract.rs
+  - zircon_runtime/src/asset/manager/service_contracts/asset_manager_contract.rs
   - zircon_runtime/src/core/framework/animation/asset/skeleton.rs
   - zircon_runtime/src/animation/manager/pose.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/skinning.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/build/skinning.rs
   - zircon_runtime/src/scene/world/render.rs
   - zircon_plugins/animation/runtime/src/evaluation/skeleton_target_table.rs
   - zircon_plugins/gltf_importer/runtime

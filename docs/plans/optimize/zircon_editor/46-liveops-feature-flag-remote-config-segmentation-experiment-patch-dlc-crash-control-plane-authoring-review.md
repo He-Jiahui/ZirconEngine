@@ -1,11 +1,5 @@
 ---
 related_code:
-  - tools/editor-workbench-preview/design-manifest.mjs
-  - tools/editor-workbench-preview/design.js
-  - tools/editor-workbench-preview/design.html
-  - tools/editor-workbench-preview/design.css
-  - tools/editor-workbench-preview/export-designs.mjs
-  - tools/editor-workbench-preview/verify-designs.mjs
   - docs/ui/index.md
   - zircon_editor/src/core/settings/authority.rs
   - zircon_editor/src/core/settings/registry.rs
@@ -14,8 +8,6 @@ related_code:
   - zircon_runtime/src/plugin/runtime_profile/feature_presets.rs
   - zircon_runtime/src/plugin/package_manifest/plugin_feature_bundle_manifest.rs
   - zircon_runtime/src/core/framework/net/download.rs
-  - zircon_runtime/src/graphics/pipeline/declarations/compiled_render_pipeline/runtime_feature_flags.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/scene_runtime_feature_flags/scene_runtime_feature_flags.rs
   - tools/export/platform_bundle.py
   - tools/mvp/MvpStagingRelease.psm1
 plan_sources:

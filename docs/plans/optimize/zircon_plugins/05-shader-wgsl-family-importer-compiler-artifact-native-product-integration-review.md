@@ -7,9 +7,7 @@ related_code:
   - zircon_plugins/first_party_runtime_catalog/src/lib.rs
   - zircon_plugins/first_party_runtime_catalog/src/tests/generated_manifest.rs
   - zircon_app/src/entry/first_party_runtime_plugins.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/asset_rows/pipeline.rs
-  - zircon_runtime/src/plugin/runtime_plugin/package_validation/asset_importers
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/registration_replay.rs
+  - zircon_runtime/src/plugin/runtime/builtin_catalog/asset_rows/pipeline.rs
   - zircon_runtime/src/asset/importer/contract.rs
   - zircon_runtime/src/asset/importer/registry.rs
   - zircon_runtime/src/asset/importer/ingest/asset_importer.rs

@@ -6,9 +6,9 @@ plan_sources:
   - docs/plans/optimize/zircon_editor/01/2026-08-30-viewport-toolbar-pointer-surface-reuse.md
   - docs/plans/astra/performance/01-bounded-hotpaths.md
 related_code:
-  - zircon_editor/src/ui/retained_host/viewport_toolbar_pointer/sync.rs
+  - zircon_editor/src/ui/retained/viewport_toolbar_pointer/sync.rs
 tests:
-  - zircon_editor/src/tests/host/retained_viewport_toolbar_pointer/surface_contract.rs
+  - zircon_editor/src/tests/retained_viewport_toolbar_pointer/surface_contract.rs
 ---
 
 # Viewport Toolbar Stable-Topology Cache Pruning

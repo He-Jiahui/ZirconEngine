@@ -86,7 +86,7 @@ fn cached_overlay_cluster_lookup_performance_contract() {
     let optimized_p95 = nearest_rank(&optimized_samples, 95).as_nanos();
 
     println!(
-        "PERF_RESULT plugins17_cached_overlay_cluster_lookup clusters={BENCHMARK_CLUSTER_COUNT} lookups={BENCHMARK_LOOKUP_COUNT} samples={BENCHMARK_SAMPLE_COUNT} sample_pairs={BENCHMARK_SAMPLE_COUNT} sample_order=alternating percentile_method=nearest_rank legacy_entity_vec_allocations_per_sample={BENCHMARK_LOOKUP_COUNT} optimized_entity_vec_allocations_per_sample=1 legacy_entity_sorts_per_sample={BENCHMARK_LOOKUP_COUNT} optimized_entity_sorts_per_sample=1 legacy_instance_scans_per_sample={BENCHMARK_LOOKUP_COUNT} optimized_instance_scans_per_sample=1 legacy_p50_ns={legacy_p50} legacy_p95_ns={legacy_p95} optimized_p50_ns={optimized_p50} optimized_p95_ns={optimized_p95} legacy_ns={legacy_p50} optimized_ns={optimized_p50}"
+        "PERF_RESULT plugins17_cached_overlay_cluster_lookup clusters={BENCHMARK_CLUSTER_COUNT} lookups={BENCHMARK_LOOKUP_COUNT} samples={BENCHMARK_SAMPLE_COUNT} sample_pairs={BENCHMARK_SAMPLE_COUNT} sample_order=alternating percentile_method=nearest_rank legacy_entity_vec_allocations_per_sample={BENCHMARK_LOOKUP_COUNT} optimized_entity_vec_allocations_per_sample_expected=1 legacy_entity_sorts_per_sample={BENCHMARK_LOOKUP_COUNT} optimized_entity_sorts_per_sample=1 legacy_instance_scans_per_sample={BENCHMARK_LOOKUP_COUNT} optimized_instance_scans_per_sample=1 legacy_p50_ns={legacy_p50} legacy_p95_ns={legacy_p95} optimized_p50_ns={optimized_p50} optimized_p95_ns={optimized_p95} legacy_ns={legacy_p50} optimized_ns={optimized_p50}"
     );
     assert!(
         optimized_p95 < legacy_p95,

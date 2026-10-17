@@ -1,39 +1,32 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/host_contract/globals.rs
-  - zircon_editor/src/ui/retained_host/host_contract/globals/callback_methods.rs
-  - zircon_editor/src/ui/retained_host/host_contract/globals/callbacks.rs
-  - zircon_editor/src/ui/retained_host/host_contract/globals/callbacks/host.rs
-  - zircon_editor/src/ui/retained_host/host_contract/globals/callbacks/pane.rs
-  - zircon_editor/src/ui/retained_host/host_contract/globals/callbacks/types.rs
-  - zircon_editor/src/ui/retained_host/host_contract/globals/pane_context.rs
-  - zircon_editor/src/ui/retained_host/host_contract/globals/pane_context/callbacks.rs
-  - zircon_editor/src/ui/retained_host/host_contract/globals/pane_context/setters.rs
-  - zircon_editor/src/ui/retained_host/host_contract/globals/pane_context/setters/interaction.rs
-  - zircon_editor/src/ui/retained_host/host_contract/globals/pane_context/setters/viewport.rs
-  - zircon_editor/src/ui/retained_host/host_contract/globals/pane_context/setters/welcome.rs
-  - zircon_editor/src/ui/retained_host/host_contract/globals/state.rs
-  - zircon_editor/src/ui/retained_host/host_contract/globals/ui_context.rs
-  - zircon_editor/src/ui/retained_host/host_contract/window.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_keyboard.rs
-  - zircon_editor/src/ui/retained_host/host_contract/redraw.rs
-  - zircon_editor/src/ui/retained_host/host_contract/diagnostics.rs
+  - zircon_editor/src/ui/retained/contract/globals/callback_methods.rs
+  - zircon_editor/src/ui/retained/contract/globals/callbacks.rs
+  - zircon_editor/src/ui/retained/contract/globals/callbacks/host.rs
+  - zircon_editor/src/ui/retained/contract/globals/callbacks/pane.rs
+  - zircon_editor/src/ui/retained/contract/globals/callbacks/types.rs
+  - zircon_editor/src/ui/retained/contract/globals/pane_context.rs
+  - zircon_editor/src/ui/retained/contract/globals/pane_context/callbacks.rs
+  - zircon_editor/src/ui/retained/contract/globals/pane_context/setters.rs
+  - zircon_editor/src/ui/retained/contract/globals/setters/interaction.rs
+  - zircon_editor/src/ui/retained/contract/globals/pane_context/setters/viewport.rs
+  - zircon_editor/src/ui/retained/contract/globals/pane_context/setters/welcome.rs
+  - zircon_editor/src/ui/retained/contract/globals/state.rs
+  - zircon_editor/src/ui/retained/contract/globals/ui_context.rs
 implementation_files:
-  - zircon_editor/src/ui/retained_host/host_contract/globals.rs
-  - zircon_editor/src/ui/retained_host/host_contract/globals/callback_methods.rs
-  - zircon_editor/src/ui/retained_host/host_contract/globals/callbacks.rs
-  - zircon_editor/src/ui/retained_host/host_contract/globals/callbacks/host.rs
-  - zircon_editor/src/ui/retained_host/host_contract/globals/callbacks/pane.rs
-  - zircon_editor/src/ui/retained_host/host_contract/globals/callbacks/types.rs
-  - zircon_editor/src/ui/retained_host/host_contract/globals/pane_context.rs
-  - zircon_editor/src/ui/retained_host/host_contract/globals/pane_context/callbacks.rs
-  - zircon_editor/src/ui/retained_host/host_contract/globals/pane_context/setters.rs
-  - zircon_editor/src/ui/retained_host/host_contract/globals/pane_context/setters/interaction.rs
-  - zircon_editor/src/ui/retained_host/host_contract/globals/pane_context/setters/viewport.rs
-  - zircon_editor/src/ui/retained_host/host_contract/globals/pane_context/setters/welcome.rs
-  - zircon_editor/src/ui/retained_host/host_contract/globals/state.rs
-  - zircon_editor/src/ui/retained_host/host_contract/globals/ui_context.rs
+  - zircon_editor/src/ui/retained/contract/globals/callback_methods.rs
+  - zircon_editor/src/ui/retained/contract/globals/callbacks.rs
+  - zircon_editor/src/ui/retained/contract/globals/callbacks/host.rs
+  - zircon_editor/src/ui/retained/contract/globals/callbacks/pane.rs
+  - zircon_editor/src/ui/retained/contract/globals/callbacks/types.rs
+  - zircon_editor/src/ui/retained/contract/globals/pane_context.rs
+  - zircon_editor/src/ui/retained/contract/globals/pane_context/callbacks.rs
+  - zircon_editor/src/ui/retained/contract/globals/pane_context/setters.rs
+  - zircon_editor/src/ui/retained/contract/globals/setters/interaction.rs
+  - zircon_editor/src/ui/retained/contract/globals/pane_context/setters/viewport.rs
+  - zircon_editor/src/ui/retained/contract/globals/pane_context/setters/welcome.rs
+  - zircon_editor/src/ui/retained/contract/globals/state.rs
+  - zircon_editor/src/ui/retained/contract/globals/ui_context.rs
 plan_sources:
   - docs/plans/zircon_editor/editor_ui/08-workbench-shell-on-runtime-ui.md
   - user: 2026-06-18 editor UI architecture implementation, feature first and tests deferred

@@ -7,7 +7,6 @@ related_code:
   - zircon_editor/src/core/sync/mod.rs
   - zircon_editor/src/core/sync/watch_map.rs
 tests:
-  - zircon_editor/src/core/sync/watch_map/tests.rs
   - zircon_editor/tests/editor_world_sync_watch_map.rs
   - tools/tests/test_editor02_world_sync_watch_map_contract.py
 ---

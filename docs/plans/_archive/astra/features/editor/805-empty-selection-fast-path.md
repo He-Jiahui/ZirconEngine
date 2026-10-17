@@ -10,7 +10,6 @@ related_records:
 implementation_files:
   - zircon_editor/src/ui/workbench/state/editor_state_selection.rs
 tests:
-  - tools/tests/test_editor_empty_selection_fastpath_performance_contract.py
 ---
 
 # Editor805 · empty-selection command fast path

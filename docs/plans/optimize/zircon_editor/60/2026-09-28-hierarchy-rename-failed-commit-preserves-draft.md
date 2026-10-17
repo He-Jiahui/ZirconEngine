@@ -6,9 +6,9 @@ implementation_status: implemented_pending_validation
 validation_status: scoped_static_checks_passed_managed_validation_pending
 performance_status: product_gate_pending
 related_code:
-  - zircon_editor/src/ui/retained_host/app/hierarchy_rename.rs
-  - zircon_editor/src/ui/retained_host/app/tests/hierarchy_rename.rs
-  - zircon_editor/src/ui/retained_host/app/tests/mod.rs
+  - zircon_editor/src/ui/retained/app/hierarchy_rename.rs
+  - zircon_editor/src/ui/retained/app/tests/hierarchy_rename.rs
+  - zircon_editor/src/ui/retained/app/tests/mod.rs
 plan_sources:
   - docs/plans/optimize/zircon_editor/60-editor-scene-hierarchy-outliner-tree-projection-expansion-selection-rename-reparent-drag-drop-visibility-lock-multi-world.md
 frozen_predecessor_manifest: .codex/state/session-coordinator/async-validation-batches/2026-09-28-astra-editor-wave-source-manifest.json

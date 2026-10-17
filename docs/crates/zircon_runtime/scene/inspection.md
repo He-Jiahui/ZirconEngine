@@ -10,7 +10,6 @@ related_code:
   - zircon_runtime/src/scene/inspection/artifact/overrides.rs
   - zircon_runtime/src/scene/inspection/hierarchy.rs
   - zircon_runtime/src/scene/inspection/snapshot.rs
-  - zircon_runtime/src/scene/inspection/tests.rs
   - zircon_runtime/src/scene/inspection/tests/sparse_artifact.rs
   - zircon_runtime/src/scene/world/generation.rs
   - zircon_runtime/src/scene/world/records.rs
@@ -25,10 +24,7 @@ related_code:
   - zircon_runtime/src/scene/world/project_io/script.rs
   - zircon_runtime/src/scene/world/project_io/transform.rs
   - docs/crates/zircon_runtime/scene/world/project_io.md
-  - zircon_runtime/src/scene/dynamic_scene/document/mod.rs
-  - zircon_runtime/src/scene/dynamic_scene/entity/mod.rs
-  - zircon_runtime/src/scene/dynamic_scene/scene/mod.rs
-  - zircon_runtime/src/scene/dynamic_scene/value/mod.rs
+  - zircon_runtime/src/scene/dynamic/value/mod.rs
   - zircon_runtime/src/asset/assets/scene/mod.rs
   - zircon_runtime/src/scene/reflect/world_reflection.rs
   - zircon_runtime/src/scene/reflect/type_registry.rs
@@ -54,7 +50,6 @@ related_code:
   - zircon_runtime/src/scene/tests/world_basics/render_extract.rs
   - zircon_runtime/src/scene/tests/world_basics/sprites.rs
   - zircon_editor/src/scene/viewport/edit_mode_projection/build.rs
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_handle_interaction.rs
   - zircon_editor/src/ui/workbench/snapshot/data/editor_state_snapshot_build.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/scene_project_serialization_boundary.py
@@ -69,10 +64,8 @@ implementation_files:
   - zircon_runtime/src/scene/inspection/artifact/overrides.rs
   - zircon_runtime/src/scene/inspection/hierarchy.rs
   - zircon_runtime/src/scene/inspection/snapshot.rs
-  - zircon_runtime/src/scene/inspection/tests.rs
   - zircon_runtime/src/scene/inspection/tests/sparse_artifact.rs
   - zircon_runtime/src/scene/world/generation.rs
-  - zircon_runtime/src/scene/world/generation/tests.rs
   - zircon_runtime/src/scene/world/records.rs
   - zircon_runtime/src/scene/world/typed_api.rs
   - zircon_runtime/src/scene/level_system.rs
@@ -90,7 +83,6 @@ implementation_files:
   - zircon_runtime/src/scene/tests/inspection.rs
   - zircon_runtime/src/scene/tests/world_basics.rs
   - zircon_editor/src/scene/viewport/edit_mode_projection/build.rs
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_handle_interaction.rs
   - zircon_editor/src/ui/workbench/snapshot/data/editor_state_snapshot_build.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/scene_project_serialization_boundary.py
 plan_sources:
@@ -107,9 +99,7 @@ plan_sources:
   - dev/bevy/crates/bevy_ecs/src/world/reflect.rs
   - dev/UnrealEngine/Engine/Source/Editor/AdvancedPreviewScene/Public/SAdvancedPreviewDetailsTab.h
 tests:
-  - zircon_runtime/src/scene/inspection/tests.rs
   - zircon_runtime/src/scene/inspection/tests/sparse_artifact.rs
-  - zircon_runtime/src/scene/world/generation/tests.rs
   - zircon_runtime/src/scene/tests/authoring_boundary.rs
   - zircon_runtime/src/scene/tests/asset_scene.rs
   - zircon_runtime/src/scene/tests/asset_scene/hierarchy_sources.rs::scene_assets_keep_script_only_entities_as_empty_nodes

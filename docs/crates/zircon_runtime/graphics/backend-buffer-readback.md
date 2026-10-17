@@ -1,20 +1,12 @@
 ---
 related_code:
-  - zircon_runtime/src/graphics/backend/render_backend/read_buffer_bytes.rs
-  - zircon_runtime/src/graphics/backend/render_backend/mod.rs
   - zircon_runtime/src/graphics/backend/mod.rs
 implementation_files:
-  - zircon_runtime/src/graphics/backend/render_backend/read_buffer_bytes.rs
-  - zircon_runtime/src/graphics/backend/render_backend/mod.rs
   - zircon_runtime/src/graphics/backend/mod.rs
 plan_sources:
   - docs/plans/zircon_runtime/render/11-environment-lighting.md
   - docs/plans/zircon_runtime/shader/06-environment-ibl-and-pbr-correctness.md
 tests:
-  - zircon_runtime/src/graphics/backend/render_backend/read_buffer_bytes.rs
-  - docs/tests/runtime/render/plan11_ibl_wgpu_buffer_readback_helper_cargo_20260706.out.log
-  - docs/tests/runtime/render/plan11_ibl_wgpu_buffer_readback_helper_cargo_20260706.err.log
-  - docs/tests/runtime/render/plan11_ibl_wgpu_buffer_readback_helper_cargo_20260706.exit.txt
 doc_type: module-detail
 ---
 

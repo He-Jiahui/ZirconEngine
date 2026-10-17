@@ -6,16 +6,14 @@ status: source_updated_static_green_cargo_pending
 related_code:
   - zircon_editor/src/core/asset/index.rs
   - zircon_editor/src/core/asset/import_flow
-  - zircon_editor/src/ui/host/editor_asset_manager
-  - zircon_editor/src/ui/retained_host/app/assets/workspace.rs
+  - zircon_editor/src/ui/retained/app/assets/workspace.rs
   - zircon_runtime/src/asset/project/manager/registry_access.rs
   - zircon_runtime/src/asset/project/manager/scan_and_import/targeted.rs
   - zircon_runtime/src/asset/project/manager/scan_and_import/full_generation.rs
   - zircon_runtime/src/asset/project/manager/durable_transaction.rs
   - zircon_runtime/src/asset/importer/environment_ibl.rs
   - zircon_runtime/src/asset/artifact/ibl_source_cubemap_staging.rs
-  - zircon_runtime/src/asset/pipeline/manager/service_contracts/asset_manager_contract.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/resource_publication.rs
+  - zircon_runtime/src/asset/manager/service_contracts/asset_manager_contract.rs
   - zircon_runtime/src/asset/importer/ingest/import_gltf.rs
 reference_sources:
   - dev/UnrealEngine/Engine/Source/Runtime/CoreUObject/Public/AssetRegistry/AssetData.h

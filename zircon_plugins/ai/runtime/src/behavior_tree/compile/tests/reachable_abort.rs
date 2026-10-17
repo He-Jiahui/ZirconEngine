@@ -63,7 +63,7 @@ fn early_exit_reachable_abort_probe_release_benchmark_evidence() {
     let optimized_ns = benchmark_samples_csv(&optimized_samples);
 
     println!(
-        "PERF_RESULT plugins15_early_exit_reachable_abort_probe nodes={BENCHMARK_NODE_COUNT} subtree_targets={} samples={BENCHMARK_SAMPLE_COUNT} sample_pairs={BENCHMARK_SAMPLE_COUNT} sample_order=alternating percentile_method=nearest_rank legacy_pending_target_pushes_per_sample={} optimized_pending_target_pushes_per_sample=0 legacy_reachable_vec_allocations_per_sample=1 optimized_reachable_vec_allocations_per_sample=0 legacy_p50_ns={legacy_p50} legacy_p95_ns={legacy_p95} optimized_p50_ns={optimized_p50} optimized_p95_ns={optimized_p95} legacy_ns={legacy_ns} optimized_ns={optimized_ns}",
+        "PERF_RESULT plugins15_early_exit_reachable_abort_probe nodes={BENCHMARK_NODE_COUNT} subtree_targets={} samples={BENCHMARK_SAMPLE_COUNT} sample_pairs={BENCHMARK_SAMPLE_COUNT} sample_order=alternating percentile_method=nearest_rank legacy_pending_target_pushes_per_sample={} optimized_pending_target_pushes_per_sample=0 legacy_reachable_vec_allocations_per_sample_expected=1 optimized_reachable_vec_allocations_per_sample_expected=0 legacy_p50_ns={legacy_p50} legacy_p95_ns={legacy_p95} optimized_p50_ns={optimized_p50} optimized_p95_ns={optimized_p95} legacy_ns={legacy_ns} optimized_ns={optimized_ns}",
         BENCHMARK_NODE_COUNT - 1,
         BENCHMARK_NODE_COUNT - 1,
     );

@@ -19,12 +19,10 @@ related_code:
   - zircon_runtime/src/core/framework/time
   - zircon_runtime/src/core/framework/render/camera_stack.rs
   - zircon_runtime/src/core/framework/render/capture.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/capture_frame
   - zircon_plugins/animation/runtime
   - zircon_plugins/timeline_sequence
   - zircon_plugins/sound/runtime/src/timeline
   - zircon_plugins/net/features/replication/runtime/src
-  - zircon_runtime/src/scene/dynamic_scene
   - zircon_runtime/src/operation
 reference_engines:
   - dev/UnrealEngine/Engine/Source/Runtime/MovieScene/Public/MovieScene.h

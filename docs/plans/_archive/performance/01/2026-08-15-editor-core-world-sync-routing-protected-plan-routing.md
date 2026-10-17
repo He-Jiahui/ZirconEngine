@@ -2,8 +2,8 @@
 related_code:
   - zircon_editor/src/core/sync
   - zircon_editor/src/ui/host/editor_world_sync.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/tick.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/scene_hierarchy_refresh.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle/tick.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle/scene_hierarchy_refresh.rs
   - zircon_editor/src/ui/host/scene_inspection_publication.rs
   - zircon_runtime/src/scene/inspection/subscription.rs
   - zircon_runtime/src/dynamic_api/session/ffi.rs

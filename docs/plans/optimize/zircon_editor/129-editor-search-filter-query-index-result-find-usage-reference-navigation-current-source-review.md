@@ -2,48 +2,35 @@
 related_code:
   - zircon_editor/assets/ui/editor/asset_browser.zui
   - zircon_editor/assets/ui/editor/hierarchy.zui
-  - zircon_editor/assets/ui/editor/components/workbench/shell/workbench_scene_tree_panel.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/core/gameplay/workbench_effect_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/core/gameplay/workbench_tags_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/animation/workbench_extension_blend_space_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/ui/workbench_extension_icon_library_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/generated/workbench_generated_bottom_panel.zui
   - zircon_editor/src/ui/workbench/project/asset_workspace_state.rs
   - zircon_editor/src/ui/workbench/snapshot/asset
   - zircon_editor/src/ui/host/editor_event_execution/asset_event.rs
-  - zircon_editor/src/ui/host/editor_asset_manager/catalog.rs
-  - zircon_editor/src/ui/host/editor_asset_manager/generation.rs
-  - zircon_editor/src/ui/host/editor_asset_manager/records.rs
-  - zircon_editor/src/ui/host/editor_asset_manager/manager/catalog_generation/details.rs
+  - zircon_editor/src/ui/host/assets/manager/catalog_generation/details.rs
   - zircon_runtime/src/asset/registry/asset_registry_index.rs
   - zircon_runtime/src/asset/registry/query.rs
   - zircon_runtime/src/asset/registry/incremental.rs
   - zircon_runtime/src/asset/registry/persistence.rs
   - zircon_editor/src/ui/host/asset_editor_sessions/dependency_index
   - zircon_editor/src/ui/layouts/views/asset_reference_rows.rs
-  - zircon_editor/src/ui/retained_host/app/hierarchy_filter.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/scene_hierarchy_refresh.rs
-  - zircon_editor/src/ui/retained_host/app/pane_surface_actions/edit.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/hierarchy_projection.rs
-  - zircon_editor/src/ui/retained_host/asset_pointer/reference
-  - zircon_editor/src/ui/retained_host/callback_dispatch/shared_pointer/asset_reference.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/blend_space_search.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/module_navigation.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/module_command_feedback.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/generated_bottom_panel_navigation.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/generated_bottom_panel_feedback.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/reference_menu_actions.rs
+  - zircon_editor/src/ui/retained/app/hierarchy_filter.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle/scene_hierarchy_refresh.rs
+  - zircon_editor/src/ui/retained/app/pane_surface_actions/edit.rs
+  - zircon_editor/src/ui/retained/asset_pointer/reference
+  - zircon_editor/src/ui/retained/dispatch/shared_pointer/asset_reference.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/workbench/blend_space_search.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/workbench/module_navigation.rs
+  - zircon_editor/src/ui/retained/dispatch/workbench/module_command_feedback.rs
+  - zircon_editor/src/ui/dispatch/workbench/generated_bottom_panel_navigation.rs
+  - zircon_editor/src/ui/dispatch/workbench/generated_bottom_panel_feedback.rs
+  - zircon_editor/src/ui/retained/dispatch/workbench/reference_menu_actions.rs
 tests:
   - zircon_editor/src/tests/editing/asset_workspace.rs
   - zircon_editor/src/tests/host/retained_asset_pointer.rs
   - zircon_editor/src/tests/host/retained_callback_dispatch
   - zircon_editor/src/tests/host/retained_hierarchy_template_body.rs
-  - zircon_editor/src/tests/host/retained_menu_pointer/asset_browser_controls_visual_screenshot.rs
   - zircon_editor/src/tests/ui/asset_browser/bootstrap_assets.rs
   - zircon_editor/src/tests/ui/hierarchy/bootstrap_assets.rs
   - zircon_editor/src/tests/ui/boundary/zui_asset_governance/workbench_primitives/
-  - zircon_editor/src/ui/host/asset_editor_sessions/dependency_index/tests.rs
   - zircon_editor/src/ui/layouts/views/asset_browser/tests/reference_lists.rs
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md

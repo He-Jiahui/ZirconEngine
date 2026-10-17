@@ -36,10 +36,8 @@ related_code:
   - zircon_runtime/src/asset/importer/ingest/gltf_labeled_subassets.rs
   - zircon_runtime/src/animation/sequence.rs
   - zircon_plugins/gltf_importer/runtime/src/subassets.rs
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_mesh.rs
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_scene_resources.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/extend_pending_draws_for_mesh_instance.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/loading/load_asset.rs
+  - zircon_runtime/src/graphics/mesh/build/extend_pending_draws_for_mesh_instance.rs
+  - zircon_runtime/src/asset/pipeline/manager/assets/loading/load_asset.rs
   - zircon_runtime/src/asset/tests/project/asset_flow_sample.rs
   - zircon_runtime/src/asset/tests/assets/scene.rs
   - zircon_runtime/src/scene/tests/asset_scene.rs
@@ -49,7 +47,6 @@ related_code:
   - examples/vampire/assets/terrain/jungle_clearing.terrain.toml.zmeta
   - examples/vampire/assets/navigation/main.navmesh.toml
   - zircon_runtime/src/asset/tests/assets/scene/management.rs
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_accessors.rs
 implementation_files:
   - zircon_runtime/src/asset/assets/scene/mod.rs
   - zircon_runtime/src/asset/assets/scene/animation.rs
@@ -85,10 +82,7 @@ implementation_files:
   - zircon_runtime/src/asset/importer/ingest/gltf_labeled_subassets.rs
   - zircon_runtime/src/animation/sequence.rs
   - zircon_plugins/gltf_importer/runtime/src/subassets.rs
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_mesh.rs
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_scene_resources.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/extend_pending_draws_for_mesh_instance.rs
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_accessors.rs
+  - zircon_runtime/src/graphics/mesh/build/extend_pending_draws_for_mesh_instance.rs
   - zircon_runtime/src/asset/tests/assets/scene.rs
   - zircon_runtime/src/scene/tests/asset_scene.rs
   - zircon_runtime/src/scene/tests/render_post_process_extract.rs
@@ -114,7 +108,6 @@ tests:
   - zircon_runtime/src/asset/tests/assets/scene/management.rs::scene_asset_overview_handles_empty_scenes
   - zircon_runtime/src/asset/tests/assets/scene/management.rs::scene_asset_management_record_set_sorts_and_summarizes_records
   - zircon_runtime/src/asset/tests/assets/scene/management.rs::scene_asset_management_record_set_sorts_and_summarizes_records (entity record-set assertions)
-  - zircon_runtime/src/tests/runtime_absorption/performance_hotspots.rs::runtime_07_scene_asset_folder_split_keeps_public_surface_and_single_owner
   - zircon_runtime/src/scene/tests/asset_scene.rs::scene_assets_instantiate_world_with_asset_bound_meshes
   - zircon_runtime/src/scene/tests/asset_scene.rs::render_extract_keeps_asset_bound_meshes_without_editor_selection_overlay
   - zircon_runtime/src/scene/tests/asset_scene.rs::scene_assets_roundtrip_primitive_mesh_material_bindings
@@ -124,13 +117,9 @@ tests:
   - zircon_runtime/src/scene/tests/world_basics.rs::mesh_renderer_sort_fields_feed_geometry_phase_queue
   - zircon_runtime/src/scene/tests/property_paths.rs::world_resolves_entity_paths_and_mutates_component_properties
   - zircon_runtime/src/scene/tests/inspection.rs::world_inspection_builds_hierarchy_and_reflected_fields
-  - zircon_runtime/src/animation/sequence/tests.rs::sequence_applies_mesh_renderer_morph_weight_track
   - zircon_runtime/src/asset/tests/assets/gltf_importer.rs::importer_emits_gltf_multi_primitive_material_labels
   - zircon_runtime/src/asset/tests/assets/gltf_importer.rs::importer_emits_bevy_style_gltf_labeled_subassets
   - zircon_runtime/src/asset/tests/assets/gltf_importer.rs::importer_emits_gltf_multi_scene_labels
-  - zircon_plugins/gltf_importer/runtime/src/tests.rs::importer_emits_multi_primitive_material_labels
-  - zircon_plugins/gltf_importer/runtime/src/tests.rs::importer_decodes_triangle_gltf_into_model_asset
-  - zircon_plugins/gltf_importer/runtime/src/tests.rs::importer_emits_multi_scene_labels
   - zircon_runtime/src/asset/tests/project/asset_flow_sample.rs::project_manager_imports_minimal_gltf_material_shader_mesh_sample
   - cargo test -p zircon_runtime --lib scene_asset_management_record_set_sorts_and_summarizes_records --locked --jobs 1 --target-dir D:\cargo-targets\zircon-mesh-index-format-0530 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-31 entity record-set slice: passed, 1 passed; existing zircon_runtime lib-test warnings only)
   - cargo test -p zircon_runtime --lib scene_asset_overview --locked --jobs 1 --target-dir D:\cargo-targets\zircon-mesh-index-format-0530 --message-format short --color never -- --test-threads=1 --nocapture

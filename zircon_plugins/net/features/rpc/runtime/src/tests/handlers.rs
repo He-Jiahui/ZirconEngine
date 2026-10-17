@@ -19,7 +19,8 @@ fn rpc_feature_manager_validates_schema_then_invokes_handler() {
     let session = complete_joined_session(&rpc, "schema-player");
     rpc.register_schema_validator("schema://chat/echo.v1", |payload| {
         payload.starts_with(b"ok:")
-    });
+    })
+    .unwrap();
     rpc.register_rpc_handler(
         RpcDescriptor::command("chat.echo")
             .with_payload_schema("schema://chat/echo.v1")
@@ -80,7 +81,8 @@ fn rpc_feature_manager_reports_schema_handler_and_missing_handler_failures() {
             .with_payload_schema("schema://chat/missing.v1"),
     )
     .unwrap();
-    rpc.register_schema_validator("schema://chat/fail.v1", |_| true);
+    rpc.register_schema_validator("schema://chat/fail.v1", |_| true)
+        .unwrap();
     rpc.register_rpc_handler(
         RpcDescriptor::command("chat.handler_fails").with_payload_schema("schema://chat/fail.v1"),
         |_| Err("handler exploded".to_string()),
@@ -250,7 +252,8 @@ fn schema_validator_can_reenter_manager_without_deadlocking() {
             .register_rpc(RpcDescriptor::command("chat.other"))
             .unwrap();
         true
-    });
+    })
+    .unwrap();
 
     let report = rpc.dispatch_rpc(
         RpcInvocationDescriptor::new("chat.reentrant", RpcDirection::ClientToServer, Vec::new())
@@ -280,7 +283,8 @@ fn schema_validator_policy_replacement_invalidates_admission_snapshot() {
             .register_rpc(RpcDescriptor::command("chat.replace"))
             .unwrap();
         true
-    });
+    })
+    .unwrap();
 
     let report = rpc.invoke_rpc(
         RpcInvocationDescriptor::new("chat.replace", RpcDirection::ClientToServer, Vec::new())
@@ -308,7 +312,8 @@ fn schema_validator_session_change_is_rechecked_before_handler_admission() {
     rpc.register_schema_validator("schema://chat/close.v1", move |_| {
         callback_manager.close_session(session).unwrap();
         true
-    });
+    })
+    .unwrap();
 
     let report = rpc.dispatch_rpc(
         RpcInvocationDescriptor::new(
@@ -348,7 +353,8 @@ fn handler_replacement_during_validation_invalidates_execution_snapshot() {
         validator_entered.wait();
         validator_release.wait();
         true
-    });
+    })
+    .unwrap();
 
     let worker_manager = rpc.clone();
     let worker = thread::spawn(move || {

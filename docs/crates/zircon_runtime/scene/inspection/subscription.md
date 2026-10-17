@@ -6,7 +6,6 @@ related_code:
 plan_sources:
   - docs/plans/zircon_editor/editor/02-data-sync-and-messaging.md
 tests:
-  - zircon_runtime/src/scene/inspection/subscription/tests.rs
   - zircon_runtime/tests/runtime_world_sync_subscription_table.rs
   - tools/tests/test_editor02_world_sync_subscription_table_contract.py
 doc_type: module-detail

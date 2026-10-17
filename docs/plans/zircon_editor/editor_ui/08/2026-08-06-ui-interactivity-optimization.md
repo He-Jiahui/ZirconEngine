@@ -1,14 +1,10 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle.rs
-  - zircon_editor/src/ui/retained_host/app/invalidation.rs
-  - zircon_editor/src/ui/retained_host/app/workbench_snapshot_access.rs
-  - zircon_editor/src/ui/retained_host/host_contract/globals/state.rs
-  - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test
-  - zircon_editor/src/ui/retained_host/host_contract/paint_recording/record.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_pipeline
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/scene_layers
-  - zircon_editor/src/ui/retained_host/host_contract/window/event_loop.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle.rs
+  - zircon_editor/src/ui/retained/app/invalidation.rs
+  - zircon_editor/src/ui/retained/contract/globals/state.rs
+  - zircon_editor/src/ui/retained/contract/paint_recording/record.rs
+  - zircon_editor/src/ui/retained/contract/window/event_loop.rs
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_editor/editor_ui/08/failure-2026-07-17-editor-event-full-reflection-rebuild.md
 ---

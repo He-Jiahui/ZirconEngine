@@ -12,7 +12,6 @@ implementation_files:
   - zircon_runtime/src/ui/surface/node_pool.rs
 tests:
   - zircon_runtime/src/ui/surface/node_pool.rs
-  - tools/tests/test_runtime_ui_node_pool_lookup_ownership_performance_contract.py
 ---
 
 # Runtime node-pool owned key lookup reuse

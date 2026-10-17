@@ -18,7 +18,7 @@ related_code:
   - zircon_editor/src/ui/asset_editor/session/resolver_state.rs
   - zircon_editor/src/ui/asset_editor/session/runtime_report_state.rs
   - zircon_editor/src/ui/asset_editor/session/preview_compile.rs
-  - zircon_editor/src/ui/retained_host/app/ui_asset_editor/actions/mode_preview/locale.rs
+  - zircon_editor/src/ui/retained/app/ui_asset_editor/actions/mode_preview/locale.rs
   - zircon_runtime_interface/src/ui/template/asset/localization
   - zircon_runtime/src/ui/template/asset/localization
   - zircon_runtime/src/ui/template/asset/compiler/component_props.rs
@@ -28,13 +28,10 @@ related_code:
   - zircon_runtime/src/text/font/composite_resolve.rs
   - zircon_runtime/src/asset/assets/font.rs
   - zircon_runtime_interface/src/resource/marker.rs
-  - tools/editor-workbench-preview/design.js
 tests:
   - zircon_runtime_interface/src/tests/contracts.rs
   - zircon_runtime_interface/src/tests/ui_contract_spine.rs
   - zircon_runtime/src/text/language.rs
-  - zircon_editor/src/core/i18n/tests.rs
-  - zircon_runtime/src/ui/template/asset/localization/collect/performance_tests.rs
   - zircon_editor/src/ui/asset_editor/session/runtime_report_state.rs
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md

@@ -35,13 +35,12 @@ plan_sources:
   - docs/plans/engine-code-structure-convention.md
   - docs/plans/engine-code-review-findings-2026-06.md
 tests:
-  - zircon_runtime/src/asset/migration/run/meta_authority_tests.rs
   - zircon_runtime/src/asset/tests/migration/mod.rs
   - zircon_runtime/src/asset/tests/migration/project_commandlet/command_flow.rs
   - zircon_runtime/src/asset/tests/migration/project_commandlet/crash_windows.rs
-  - zircon_runtime/src/asset/tests/migration/project_commandlet/document_migration.rs
+  - zircon_runtime/src/asset/tests/project_commandlet/document_migration.rs
   - zircon_runtime/src/asset/tests/migration/project_commandlet/source_boundary.rs
-  - zircon_runtime/src/asset/tests/migration/project_commandlet/transaction_recovery.rs
+  - zircon_runtime/src/asset/tests/project_commandlet/transaction_recovery.rs
 doc_type: module-detail
 ---
 

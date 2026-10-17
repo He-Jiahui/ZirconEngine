@@ -338,42 +338,9 @@ fn generate_retained_std_model_v1() -> Result<(), String> {
     ] {
         println!("cargo:rerun-if-env-changed={key}");
     }
-    let requested_output =
-        PathBuf::from(env::var_os("OUT_DIR").ok_or("Cargo did not provide OUT_DIR")?);
-    let output = fs::canonicalize(&requested_output)
-        .map_err(|e| format!("could not resolve retained-model OUT_DIR: {e}"))?;
-    let normalize = |path: &std::path::Path| -> Result<String, String> {
-        let value = path
-            .to_str()
-            .ok_or("output path is not valid Unicode")?
-            .replace('/', "\\");
-        Ok(value
-            .strip_prefix(r"\\?\")
-            .unwrap_or(&value)
-            .trim_end_matches('\\')
-            .to_ascii_lowercase())
-    };
-    let output_key = normalize(&output)?;
-    if output_key != normalize(&requested_output)? {
-        return Err("retained-model OUT_DIR must be a physical path without aliases".into());
-    }
-    let mut approved = false;
-    for designated in ["D:/cargo-targets", "E:/cargo-targets", "F:/cargo-targets"] {
-        let requested_root = PathBuf::from(designated);
-        let root = match fs::canonicalize(&requested_root) {
-            Ok(root) => root,
-            Err(error) if error.kind() == std::io::ErrorKind::NotFound => continue,
-            Err(error) => return Err(format!("could not resolve physical output root: {error}")),
-        };
-        let root_key = normalize(&root)?;
-        if root_key != normalize(&requested_root)? {
-            return Err(format!("approved output root is redirected: {designated}"));
-        }
-        approved |= output_key.starts_with(&format!("{root_key}\\"));
-    }
-    if !approved {
-        return Err("retained-model output must be below physical D:/cargo-targets, E:/cargo-targets or F:/cargo-targets".into());
-    }
+    // Output storage is a managed-wrapper/CI policy. Consumers on other hosts
+    // still need the availability fallback and generated interface metadata.
+    let output = PathBuf::from(env::var_os("OUT_DIR").ok_or("Cargo did not provide OUT_DIR")?);
     let rustc = env::var_os("RUSTC").ok_or("Cargo did not provide RUSTC")?;
     let target = env::var("TARGET").map_err(|e| e.to_string())?;
     let observed = (|| -> Result<(String, Vec<(String, String)>), String> {

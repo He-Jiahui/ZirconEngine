@@ -8,32 +8,22 @@ related_code:
   - zircon_runtime/src/scene/world/project_io/document.rs
   - zircon_runtime/src/scene/world/project_io/references.rs
   - zircon_runtime/src/scene/world/project_io/scene_asset.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/deletion.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/resource_publication.rs
   - zircon_editor/src/core/asset/refactor/delete.rs
   - zircon_editor/src/core/asset/refactor/deletion.rs
   - zircon_editor/src/core/extension/toolkit/document_toolkit.rs
   - zircon_editor/src/core/extension/toolkit/registry.rs
   - zircon_editor/src/core/extension/toolkit/save/error.rs
-  - zircon_editor/src/ui/host/editor_asset_manager/api.rs
-  - zircon_editor/src/ui/host/editor_asset_manager/manager/default_editor_asset_manager/project_deletion.rs
   - zircon_editor/src/ui/host/editor_manager_project.rs
   - zircon_editor/src/ui/host/editor_save_batch.rs
   - zircon_editor/src/ui/host/editor_ui_host.rs
   - zircon_editor/src/ui/host/project_access.rs
-  - zircon_editor/src/ui/retained_host/app/assets/deletion.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/asset_deletion_blocker.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/asset_deletion_blocker.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_asset_deletion_blocker.rs
+  - zircon_editor/src/ui/retained/app/assets/deletion.rs
+  - zircon_editor/src/ui/retained/contract/data/asset_deletion_blocker.rs
 tests:
-  - zircon_runtime/src/asset/mutation/tests.rs
   - zircon_runtime/src/asset/tests/pipeline/manager/deletion.rs
   - zircon_runtime/src/asset/project/reference_diagnostics.rs
   - zircon_runtime/src/scene/world/project_io/scene_asset.rs
-  - zircon_runtime/crates/zr_resource/src/io/transaction/engine/tests.rs
   - zircon_editor/src/core/extension/toolkit/tests/saving.rs
-  - zircon_editor/src/core/asset/refactor/tests.rs
-  - zircon_editor/src/ui/retained_host/host_contract/asset_deletion_blocker_tests.rs
 plan_sources:
   - docs/plans/zircon_editor/editor/10-project-and-asset-reference-management.md
   - docs/plans/engine-code-structure-convention.md

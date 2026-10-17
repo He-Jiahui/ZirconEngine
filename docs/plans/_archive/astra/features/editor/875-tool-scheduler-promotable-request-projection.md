@@ -10,8 +10,6 @@ related_records:
 implementation_files:
   - zircon_editor/src/core/tools/scheduler.rs
 tests:
-  - zircon_editor/src/core/tools/optimization_batch_editor875_tool_scheduler_promotable_request_projection_tests.rs
-  - tools/tests/test_editor875_tool_scheduler_promotable_request_projection_performance_contract.py
 ---
 
 # Editor875 Tool Scheduler Promotable Request Projection

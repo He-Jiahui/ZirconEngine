@@ -12,10 +12,6 @@ related_code:
   - zircon_runtime/src/core/framework/physics/manager.rs
   - zircon_runtime/src/core/framework/animation/manager.rs
   - zircon_editor/src/ui/host/editor_manager_runtime_diagnostics.rs
-  - zircon_editor/src/ui/host/builtin_views/activity_views/runtime_diagnostics_view_descriptor.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload_builders/runtime_diagnostics.rs
-  - zircon_editor/src/ui/template_runtime/runtime/pane_payload_projection.rs
   - zircon_editor/assets/ui/editor/host/runtime_diagnostics_body.zui
 implementation_files:
   - zircon_runtime/src/core/runtime/diagnostics/mod.rs
@@ -26,10 +22,6 @@ implementation_files:
   - zircon_runtime/src/core/runtime/diagnostics/physics.rs
   - zircon_runtime/src/core/runtime/diagnostics/animation.rs
   - zircon_editor/src/ui/host/editor_manager_runtime_diagnostics.rs
-  - zircon_editor/src/ui/host/builtin_views/activity_views/runtime_diagnostics_view_descriptor.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload_builders/runtime_diagnostics.rs
-  - zircon_editor/src/ui/template_runtime/runtime/pane_payload_projection.rs
   - zircon_editor/assets/ui/editor/host/runtime_diagnostics_body.zui
 plan_sources:
   - user: 2026-04-25 开始执行 runtime diagnostics contract and editor diagnostics pane cut
@@ -37,9 +29,7 @@ plan_sources:
 tests:
   - zircon_runtime/src/tests/runtime_diagnostics/mod.rs
   - zircon_editor/src/tests/host/pane_template_descriptor.rs
-  - zircon_editor/src/tests/host/pane_presentation.rs
-  - zircon_editor/src/tests/host/template_runtime/pane_body_documents.rs
-  - zircon_editor/src/tests/host/template_runtime/pane_payload_projection.rs
+  - zircon_editor/src/tests/host/pane_presentation/mod.rs
   - cargo test -p zircon_runtime --locked --target-dir target/codex-runtime-diagnostics runtime_diagnostics --lib
   - cargo test -p zircon_editor --locked --target-dir target/codex-editor-diagnostics pane_template_descriptor --lib
   - cargo test -p zircon_editor --locked --target-dir target/codex-editor-diagnostics pane_presentation --lib

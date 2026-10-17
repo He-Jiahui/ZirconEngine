@@ -8,11 +8,7 @@ related_records:
   - docs/plans/astra/features/editor/664-20260911-editor-ui-optimization-batch-completion.md
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 related_code:
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_chips/identity.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_chips/identity/cached_control_id_tests.rs
 tests:
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_chips/identity/cached_control_id_tests.rs
-  - tools/tests/test_editor_cached_control_id_performance_contract.py
 ---
 
 # Editor823 Cached Control-ID Test Wiring

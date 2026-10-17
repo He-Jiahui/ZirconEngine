@@ -43,25 +43,11 @@ plan_sources:
   - dev/Fyrox/fyrox-impl/src/script/mod.rs
   - dev/Piccolo/engine/source/runtime/core/meta/reflection/reflection.h
 tests:
-  - zircon_runtime/src/tests/runtime_absorption/script_host_ledger.rs::host_function_registry_matches_documented_ledger
-  - zircon_runtime/src/tests/runtime_absorption/script_host_ledger.rs::host_capability_representatives_are_declared_on_registered_modules
-  - zircon_runtime/src/tests/runtime_absorption/script_host_ledger.rs::host_function_without_required_capability_is_rejected_with_explicit_error
-  - zircon_runtime/src/tests/runtime_absorption/script_host_ledger.rs::host_function_registry_ledger_guard_rejects_missing_entry
-  - zircon_runtime/src/tests/runtime_absorption/script_host_ledger.rs::script_ecs_access_path_stays_on_gameplay_facade_not_native_ecs_abi
-  - zircon_runtime/src/tests/runtime_absorption/script_binding.rs::runtime_13_script_binding_mirror_docs_match_structure_audit_counts
-  - zircon_runtime/src/tests/runtime_absorption/script_binding.rs::runtime_13_gameplay_host_owner_split_keeps_domain_files
-  - zircon_runtime/src/script/vm/gameplay_host/tests.rs::script_held_entity_handle_reports_invalid_after_despawn
-  - zircon_runtime/src/script/vm/tests.rs::script_call_table_pre_resolves_host_export_callbacks
-  - zircon_runtime/src/script/vm/tests.rs::zr_vm_real_backend_uses_script_call_table_for_host_callbacks
-  - zircon_runtime/src/tests/plugin_extensions/extension_registry_bridge_performance_baseline.rs::bridge_performance_baseline_script_call_table_calls_dense_id_without_name_lookup
-  - zircon_runtime/src/tests/plugin_extensions/extension_registry_bridge_performance_baseline.rs::bridge_performance_baseline_real_zr_vm_callbacks_capture_call_sites
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention.rs::runtime_15_script_host_value_descriptors_do_not_suppress_dead_code
   - python .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py --json (Historical Runtime13 source snapshot, 2026-06-14 script_binding_boundary targeted evidence: expected_source_file_count = 19, expected_test_file_count = 3, fixed_host_module_count = 6, fixed_host_function_count = 52, type_descriptor_count = 2, builtin_callback_count = 11, gameplay_callback_count = 39, macro_host_function_count = 2, host_capability_count = 11, guard_anchor_count = 9, native_ecs_abi_references = [], oversized_test_files = [], mirror_docs_guard_present = true, risks = [])
   - python direct script_binding_boundary_audit (Historical Runtime13 source snapshot, 2026-06-21 Markdown renderer split: script_binding_boundary.py = 352, script_binding_markdown.py = 106, expected_source_file_count = 19, expected_test_file_count = 3, fixed_host_module_count = 6, fixed_host_function_count = 52, type_descriptor_count = 2, builtin_callback_count = 11, gameplay_callback_count = 39, macro_host_function_count = 2, host_capability_count = 11, guard_anchor_count = 9, native_ecs_abi_references = [], oversized_test_files = [], mirror_docs_guard_present = true, risks = [])
   - cargo test -p zircon_runtime --lib --locked script::vm -- --nocapture (2026-06-14: 48/48 passed)
   - "pending: cargo test -p zircon_runtime --lib script --locked -- --nocapture"
   - tools/tests/test_runtime_script_binding_audit.py
-  - tests/acceptance/runtime-script-binding-audit-owner-sync.md
 doc_type: module-detail
 ---
 

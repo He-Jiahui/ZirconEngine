@@ -7,7 +7,6 @@ related_code:
   - zircon_runtime/src/scene/inspection/mod.rs
   - zircon_runtime/src/scene/inspection/subscription.rs
 tests:
-  - zircon_runtime/src/scene/inspection/subscription/tests.rs
   - zircon_runtime/tests/runtime_world_sync_subscription_table.rs
   - tools/tests/test_editor02_world_sync_subscription_table_contract.py
 ---

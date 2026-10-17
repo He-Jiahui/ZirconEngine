@@ -1,6 +1,7 @@
 /target/
 /target-codex-runtime-check/
 /zircon_plugins/target/
+/stage/
 **/*.rs.bk
 .idea/
 .vscode/
@@ -68,8 +69,10 @@ dkms.conf
 /.vs
 /CMakeSettings.json
 /.notes
-/.codex/*
-!/.codex/config.toml
+/.codex/state/
+/.codex/outbox/
+/.codex/sessions/
+/.codex/config.toml.windows-host
 /.codex_tmp
 
 # Obsolete source-tree database placeholder; runtime state lives under .codex/state.
@@ -126,29 +129,29 @@ __pycache__/
 
 # logs
 *.log
+# Historical screenshot receipts are versioned evidence.
+!examples/vampire/screenshots/*.log
 *.exit
-*.txt
+*.stdout.txt
+*.stderr.txt
 
-# Documentation toolchain is intentionally versioned despite the broad text-file rule.
-!requirements-docs.txt
 
 # Local MkDocs output and temporary validation environment.
 /site/
 /.wiki-venv/
 
-examples/*
-!examples/vampire/
-examples/vampire/*
-!examples/vampire/README.md
 
 worktrees/
 
 # Penpot/ZUI layout capture scratch: per-run copied asset trees and source
 # mirrors are regenerable inputs, not review evidence.
-docs/layout
-!docs/layout/**/*.zui
+/docs/layout/.captures/
 docs/ui-and-layout/**/*.png
 
-tools/tests
 # Layout migration keeps regenerable captures and copied inputs under this owner.
 /docs/_data/layout/
+
+# Generated audits belong in task artifacts, with historical receipts retained.
+/docs/plans/source-comments/**/*.json
+/docs/plans/source-comments/**/*.jsonl
+/docs/**/*-post-validation.json

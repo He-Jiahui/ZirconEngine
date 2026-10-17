@@ -1,13 +1,5 @@
 ---
 related_code:
-  - zircon_runtime/src/graphics/runtime/render_framework/capability_summary
-  - zircon_runtime/src/graphics/runtime/render_framework/capture_frame
-  - zircon_runtime/src/graphics/runtime/render_framework/compiled_feature_names
-  - zircon_runtime/src/graphics/runtime/render_framework/create_viewport
-  - zircon_runtime/src/graphics/runtime/render_framework/destroy_viewport
-  - zircon_runtime/src/graphics/runtime/render_framework/query_stats
-  - zircon_runtime/src/graphics/runtime/render_framework/query_virtual_geometry_debug_snapshot
-  - zircon_runtime/src/graphics/runtime/render_framework/viewport_surface
 tests:
   - current render-framework lifecycle and query slice 23 of 23 Rust files reviewed, 356 lines
   - create, destroy, surface, capture, stats and debug-snapshot lock scopes traced

@@ -9,12 +9,10 @@ implementation_files:
   - zircon_editor/src/ui/workbench/startup/editor_state_project.rs
   - zircon_editor/src/ui/workbench/startup/mod.rs
   - zircon_editor/src/ui/host/editor_scene_document_submission.rs
-  - zircon_editor/src/ui/retained_host/app/assets/workspace.rs
-  - zircon_editor/src/ui/retained_host/app/assets/workspace/active_scene_reload_conflict.rs
+  - zircon_editor/src/ui/retained/app/assets/workspace.rs
+  - zircon_editor/src/ui/app/assets/workspace/active_scene_reload_conflict.rs
 tests:
   - zircon_editor/src/tests/editing/transaction_engine/exclusive_transition.rs
-  - zircon_editor/src/ui/workbench/startup/editor_state_project/reload_tests.rs
-  - zircon_editor/src/ui/retained_host/app/assets/workspace/reload_tests.rs
 ---
 
 # Editor57 discard generation fence completion list

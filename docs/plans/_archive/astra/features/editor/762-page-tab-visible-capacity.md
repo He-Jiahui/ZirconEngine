@@ -10,11 +10,7 @@ related_records:
   - docs/plans/astra/features/editor/664-20260911-editor-ui-optimization-batch-completion.md
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection/tests/mod.rs
 tests:
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection/tests/capacity.rs
-  - tools/tests/test_editor_page_tab_capacity_performance_contract.py
 ---
 
 # Editor762 · Page-tab visible-prefix bounded capacity

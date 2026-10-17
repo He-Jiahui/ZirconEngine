@@ -2,9 +2,6 @@
 related_code:
   - zircon_runtime/src/core/framework/scene/mod.rs
   - zircon_runtime/src/core/framework/scene/component_type_descriptor/mod.rs
-  - zircon_runtime/src/core/framework/scene/component_type_descriptor/component_property_descriptor.rs
-  - zircon_runtime/src/core/framework/scene/component_type_descriptor/component_type_descriptor.rs
-  - zircon_runtime/src/core/framework/scene/component_type_descriptor/constructors.rs
   - zircon_runtime/src/core/framework/scene/entity_path.rs
   - zircon_runtime/src/core/framework/scene/level_summary.rs
   - zircon_runtime/src/core/framework/scene/mobility.rs
@@ -25,9 +22,6 @@ implementation_files:
   - zircon_runtime/src/core/framework/scene/mod.rs
   - zircon_runtime/src/core/framework/scene/module_identity.rs
   - zircon_runtime/src/core/framework/scene/component_type_descriptor/mod.rs
-  - zircon_runtime/src/core/framework/scene/component_type_descriptor/component_property_descriptor.rs
-  - zircon_runtime/src/core/framework/scene/component_type_descriptor/component_type_descriptor.rs
-  - zircon_runtime/src/core/framework/scene/component_type_descriptor/constructors.rs
   - zircon_runtime/src/core/framework/scene/resource.rs
   - zircon_runtime/src/core/framework/scene/system_stage.rs
   - zircon_runtime/src/core/framework/animation/event.rs

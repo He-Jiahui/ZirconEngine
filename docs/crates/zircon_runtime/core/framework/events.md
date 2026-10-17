@@ -12,7 +12,6 @@ plan_sources:
   - docs/plans/zircon_runtime/runtime/02-core-spine-and-root-surface.md
   - .codex/plans/Runtime 吸收层与 Editor_Scene 边界收束计划.md
 tests:
-  - zircon_runtime/src/tests/runtime_absorption/root_entries.rs
   - zircon_runtime/src/core/runtime/tests/events
 doc_type: module-detail
 ---

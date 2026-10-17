@@ -1,48 +1,24 @@
 ---
 related_code:
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/scene_renderer_core.rs
   - zircon_runtime/src/graphics/runtime_prepare_collector.rs
   - zircon_runtime/src/graphics/runtime_prepare_collector/gpu_readback.rs
   - zircon_runtime/src/graphics/types/graphics_error.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/execute_compiled_scene_graph_stages.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/execute_graph_stage.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/frame_command_encoder_set.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/parallel_encoder_set.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/materialization.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/transient_materialization.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/transient_resource_pool.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_device_epoch.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources/binding.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources/lifecycle.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/native.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/compute_pipeline_cache.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_record/ambient_occlusion.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/submit_runtime_frame.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/capture_frame/capture_frame.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/frame_profiler.rs
-  - zircon_runtime/src/graphics/backend/render_backend/renderdoc_capture_file_path.rs
+  - zircon_runtime/src/graphics/scene/renderer/core/render/render/render.rs
+  - zircon_runtime/src/graphics/core/render/execute_compiled_scene_graph_stages.rs
+  - zircon_runtime/src/graphics/scene/core/render/render/execute_graph_stage.rs
+  - zircon_runtime/src/graphics/scene/renderer/execution/context/gpu/native.rs
+  - zircon_runtime/src/graphics/render_graph_execution_record/ambient_occlusion.rs
+  - zircon_runtime/src/graphics/runtime/extract/submit/submit_runtime_frame.rs
+  - zircon_runtime/src/graphics/runtime/framework/capture_frame/capture_frame.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/gpu_pass_timer.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/gpu_readback_queue/mod.rs
 implementation_files:
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/scene_renderer_core.rs
   - zircon_runtime/src/graphics/runtime_prepare_collector.rs
   - zircon_runtime/src/graphics/runtime_prepare_collector/gpu_readback.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/execute_graph_stage.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/transient_materialization.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_device_epoch.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources/binding.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources/lifecycle.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/native.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/compute_pipeline_cache.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_record/ambient_occlusion.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/frame_profiler.rs
-  - zircon_runtime/src/graphics/backend/render_backend/renderdoc_capture_file_path.rs
+  - zircon_runtime/src/graphics/scene/renderer/core/render/render/render.rs
+  - zircon_runtime/src/graphics/scene/core/render/render/execute_graph_stage.rs
+  - zircon_runtime/src/graphics/scene/renderer/execution/context/gpu/native.rs
+  - zircon_runtime/src/graphics/render_graph_execution_record/ambient_occlusion.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/gpu_pass_timer.rs
 plan_sources:
   - user: 2026-08-09 investigate renderer architecture and profile before optimization
@@ -52,11 +28,10 @@ plan_sources:
   - docs/plans/engine-code-structure-convention.md
   - docs/plans/engine-code-review-findings-2026-06.md
 tests:
-  - zircon_runtime/src/graphics/runtime/render_framework/frame_profiler.rs::tests::render_perf_gpu_timer_latency_within_three_frames
   - zircon_runtime/src/graphics/tests/render_perf_baseline.rs::render_perf_parallel_recording_product_path_preserves_topology_and_pixels
   - zircon_runtime/crates/zr_rhi_wgpu/src/gpu_pass_timer.rs::tests::render_perf_gpu_timer_capability_gate
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/execute_graph_stage.rs::tests::render_perf_parallel_recording_is_wired_to_product_stage_and_single_submit_owner
-  - zircon_runtime/src/graphics/runtime/render_framework/capture_frame/capture_frame.rs::tests::async_viewport_poll_never_finishes_submission_or_waits_for_the_device
+  - zircon_runtime/src/graphics/scene/core/render/render/execute_graph_stage.rs::tests::render_perf_parallel_recording_is_wired_to_product_stage_and_single_submit_owner
+  - zircon_runtime/src/graphics/runtime/framework/capture_frame/capture_frame.rs::tests::async_viewport_poll_never_finishes_submission_or_waits_for_the_device
 doc_type: workflow-detail
 ---
 

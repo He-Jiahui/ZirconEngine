@@ -11,7 +11,6 @@ related_records:
 implementation_files:
   - zircon_editor/src/core/commands/defaults.rs
 tests:
-  - tools/tests/test_editor_default_command_registry_direct_append_performance_contract.py
 ---
 
 # Editor811 · default command registry direct append

@@ -3,17 +3,11 @@ related_code:
   - zircon_editor/src/ui/asset_editor
   - zircon_editor/src/ui/host/asset_editor_sessions
   - zircon_editor/src/ui/host/editor_manager_asset_editor
-  - zircon_editor/src/ui/retained_host/app/ui_asset_editor.rs
-  - zircon_editor/src/ui/retained_host/app/ui_asset_editor
-  - zircon_editor/src/ui/retained_host/app/ui_asset_editor_detail_events
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_ui_asset_conversion
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/ui_asset_detail_fields
+  - zircon_editor/src/ui/retained/app/ui_asset_editor.rs
+  - zircon_editor/src/ui/retained/app/ui_asset_editor
   - zircon_editor/src/core/asset/type_registry/builtin.rs
   - zircon_editor/assets/ui/editor/ui_asset_editor.zui
   - zircon_editor/assets/ui/editor/windows/ui_layout_editor_window.zui
-  - zircon_editor/assets/ui/editor/components/workbench/composites/chrome/workbench_ui_asset_action_bar.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/core/ui/workbench_hud_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/ui
   - zircon_plugins/ui_asset_authoring
   - zircon_plugins/ui_document_importer
   - zircon_plugins/first_party_editor_catalog

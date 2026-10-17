@@ -6,15 +6,7 @@ review_date: 2026-08-23
 baseline_head: 9b5564b749e618475e258dd75bd3d9b34e9388a9
 baseline_epoch: 358
 related_code:
-  - zircon_editor/assets/ui/editor/components/workbench/modules/core/gameplay/workbench_ability_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/animation/workbench_extension_pose_library_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/index/workbench_extension_module_workspaces.zui
-  - zircon_editor/src/ui/template_runtime/builtin/workbench_extension_module_template_bindings/gameplay_animation.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation/specs/gameplay_animation.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback.rs
-  - zircon_editor/src/ui/retained_host/workbench_preview_actions.rs
-  - zircon_editor/src/ui/retained_host/workbench_preview_actions/extensions.rs
+  - zircon_editor/src/ui/retained/dispatch/workbench/specs/gameplay_animation.rs
   - zircon_runtime/src/core/framework/animation/asset/clip.rs
   - zircon_runtime/src/core/framework/animation/asset/graph.rs
   - zircon_runtime/src/core/framework/animation/manager.rs
@@ -23,8 +15,6 @@ related_code:
   - zircon_plugins/animation/runtime/src/evaluation/pipeline/requests.rs
   - zircon_plugins/animation/runtime/src/evaluation/pipeline/pose_apply.rs
 tests:
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation.rs
-  - zircon_editor/src/ui/retained_host/workbench_preview_actions.rs
 plan_sources:
   - docs/plans/mvp/index.md
   - docs/plans/optimize/00-engine-wide-review.md

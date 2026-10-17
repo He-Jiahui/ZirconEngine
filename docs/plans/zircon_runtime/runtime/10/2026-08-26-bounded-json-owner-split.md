@@ -5,14 +5,12 @@ related_code:
   - zircon_runtime/src/dynamic_api/bounded_json/deadline.rs
   - zircon_runtime/src/dynamic_api/bounded_json/preflight.rs
   - zircon_runtime/src/dynamic_api/bounded_json/writer.rs
-  - zircon_runtime/src/dynamic_api/bounded_json/tests.rs
 implementation_files:
   - zircon_runtime/src/dynamic_api/bounded_json.rs
   - zircon_runtime/src/dynamic_api/bounded_json/error.rs
   - zircon_runtime/src/dynamic_api/bounded_json/deadline.rs
   - zircon_runtime/src/dynamic_api/bounded_json/preflight.rs
   - zircon_runtime/src/dynamic_api/bounded_json/writer.rs
-  - zircon_runtime/src/dynamic_api/bounded_json/tests.rs
 plan_sources:
   - docs/plans/engine-code-structure-convention.md
   - docs/plans/engine-code-review-findings-2026-06.md
@@ -21,12 +19,6 @@ plan_sources:
   - docs/plans/optimize/zircon_runtime_interface/09-runtime-host-foreign-output-safe-owner-admission-budget-fuse-observability-current-source-review.md
   - docs/plans/performance/01/2026-08-23-runtime-dynamic-api-root-viewport-json-current-architecture-review.md
 tests:
-  - zircon_runtime/src/dynamic_api/bounded_json/tests.rs::decode_reports_nesting_as_a_payload_limit
-  - zircon_runtime/src/dynamic_api/bounded_json/tests.rs::encode_reports_nesting_as_a_payload_limit
-  - zircon_runtime/src/dynamic_api/bounded_json/tests.rs::validate_reports_limits_without_materializing_encoded_bytes
-  - zircon_runtime/src/dynamic_api/bounded_json/tests.rs::nesting_tracker_ignores_delimiters_inside_split_escaped_strings
-  - zircon_runtime/src/dynamic_api/bounded_json/tests.rs::decode_applies_the_item_limit_to_business_items_not_json_nodes
-  - zircon_runtime/src/dynamic_api/bounded_json/tests.rs::bounded_json_facade_keeps_policy_stages_in_child_owners
   - rustfmt --edition 2021 --check
   - git diff --check
 doc_type: milestone-detail

@@ -1,32 +1,22 @@
 ---
 related_code:
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/bridge_lifecycle_state.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/bridge_lifecycle.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog.rs
   - zircon_runtime/src/plugin/bridge/table.rs
   - zircon_runtime/src/plugin/extension_registry/access.rs
   - zircon_runtime/src/core/runtime/handle/activation.rs
   - zircon_runtime/src/core/runtime/handle/runtime_extensions.rs
   - zircon_runtime/src/core/runtime/error.rs
-  - zircon_runtime/src/plugin/runtime_plugin/mod.rs
   - zircon_runtime/src/plugin/mod.rs
-  - zircon_runtime/src/tests/plugin_extensions/runtime_plugin_bridge_dependencies.rs
   - zircon_runtime/src/core/runtime/tests/plugin.rs
 implementation_files:
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/bridge_lifecycle_state.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/bridge_lifecycle.rs
   - zircon_runtime/src/plugin/bridge/table.rs
   - zircon_runtime/src/plugin/extension_registry/access.rs
   - zircon_runtime/src/core/runtime/handle/activation.rs
   - zircon_runtime/src/core/runtime/handle/runtime_extensions.rs
   - zircon_runtime/src/core/runtime/error.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog.rs
-  - zircon_runtime/src/plugin/runtime_plugin/mod.rs
   - zircon_runtime/src/plugin/mod.rs
 plan_sources:
   - docs/plans/zircon_plugins/11-plugin-call-bridge.md
 tests:
-  - zircon_runtime/src/tests/plugin_extensions/runtime_plugin_bridge_dependencies.rs
   - zircon_runtime/src/core/runtime/tests/plugin.rs
 ---
 

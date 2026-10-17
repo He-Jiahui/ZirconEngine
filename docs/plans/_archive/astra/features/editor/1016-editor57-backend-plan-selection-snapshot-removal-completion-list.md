@@ -1,12 +1,10 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/app/assets/refresh.rs
-  - zircon_editor/src/ui/retained_host/app/backend_refresh.rs
-  - zircon_editor/src/ui/retained_host/app/backend_refresh/optimization_tests.rs
+  - zircon_editor/src/ui/retained/app/assets/refresh.rs
+  - zircon_editor/src/ui/retained/app/backend_refresh.rs
 plan_sources:
   - docs/plans/optimize/zircon_editor/57/2026-09-27-backend-plan-selection-snapshot-removal.md
 tests:
-  - zircon_editor/src/ui/retained_host/app/backend_refresh/optimization_tests.rs
   - zircon_editor/src/tests/host/retained_asset_refresh
 doc_type: milestone-detail
 status: implemented_pending_validation

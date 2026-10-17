@@ -12,8 +12,6 @@ related_records:
 implementation_files:
   - zircon_editor/src/ui/asset_editor/value_path.rs
 tests:
-  - zircon_editor/src/ui/asset_editor/value_path/capacity_tests.rs
-  - tools/tests/test_editor_value_path_capacity_performance_contract.py
 ---
 
 # Editor763 · Value-path first-segment capacity

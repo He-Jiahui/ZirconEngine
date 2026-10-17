@@ -8,10 +8,8 @@ related_records:
   - docs/plans/astra/features/runtime/972-runtime09d-to-09h1-completion-list.md
 implementation_files:
   - zircon_runtime/src/asset/artifact/ibl_bake_artifact_runtime_dispatch.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_runtime_writeback.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_runtime_writeback/tests.rs
+  - zircon_runtime/src/graphics/scene/environment/ibl_bake_runtime_writeback.rs
 tests:
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_runtime_writeback/tests.rs
 ---
 
 # Runtime969 · borrowed IBL artifact dispatch

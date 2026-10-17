@@ -10,7 +10,6 @@ plan_sources:
   - ../01-single-host-jenkins-coordination.md
 tests:
   - tools/jenkins/tests/test_abandoned_startup.py
-  - .jenkins/state/migration-baseline/patch-support-regression-1791198493052996000.json
 created: 2026-10-05
 ---
 

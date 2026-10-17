@@ -19,7 +19,6 @@ reference_sources:
   - dev/UnrealEngine/Engine/Source/Runtime/Core/Public/Misc/ITransaction.h
 tests:
   - zircon_editor/src/core/commands/key_chord.rs::tests
-  - zircon_editor/src/core/commands/keymap/tests.rs::command_chord_lookup_uses_sorted_binding_search
   - zircon_editor/src/core/editing/command.rs::performance_source_guards
   - zircon_editor/src/core/editing/engine/history.rs::performance_source_guards
   - zircon_editor/src/core/editing/engine/transaction.rs::performance_source_guards

@@ -7,7 +7,6 @@ related_code:
   - zircon_editor/src/core/asset/mod.rs
   - zircon_editor/src/core/asset/index.rs
 tests:
-  - zircon_editor/src/core/asset/index/tests.rs
   - zircon_editor/tests/editor_asset_index_projection.rs
   - tools/tests/test_editor09_runtime_asset_index_projection_contract.py
 ---

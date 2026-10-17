@@ -6,16 +6,9 @@ review_date: 2026-08-23
 baseline_head: 68edcd71042de817a74d4ad70efc07cfe2c72bfa
 baseline_epoch: 359
 related_code:
-  - zircon_editor/assets/ui/editor/components/workbench/composites/animation/workbench_blend_space_details.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/animation/workbench_extension_blend_space_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/composites/animation/workbench_sample_weights.zui
-  - zircon_editor/assets/ui/editor/components/workbench/composites/feedback/workbench_validation_log.zui
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/blend_space_search.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/blend_space_transport.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation/specs/gameplay_animation.rs
-  - zircon_editor/src/ui/template_runtime/builtin/workbench_extension_module_template_bindings/gameplay_animation.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/workbench/blend_space_search.rs
+  - zircon_editor/src/ui/retained/dispatch/workbench/blend_space_transport.rs
+  - zircon_editor/src/ui/retained/dispatch/workbench/specs/gameplay_animation.rs
   - zircon_runtime_interface/src/resource/marker.rs
   - zircon_runtime/src/core/framework/animation/asset/state_kind.rs
   - zircon_plugins/animation/editor/src/plugin.rs
@@ -28,12 +21,10 @@ related_code:
   - zircon_plugins/animation/runtime/src/state_machine/compiled/evaluate.rs
   - zircon_plugins/animation/runtime/src/evaluation/pipeline/state_graph_sample.rs
 tests:
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/blend_space_search.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/workbench/blend_space_search.rs
   - zircon_editor/src/tests/host/retained_menu_pointer/visual_screenshot/blend_space_workspace
   - zircon_plugins/animation/runtime/tests/animation_blend_space_contract.rs
-  - zircon_plugins/animation/runtime/tests/animation_compiled_state_machine_contract.rs
   - zircon_plugins/animation/runtime/tests/animation_state_kind_asset_contract.rs
-  - zircon_plugins/animation/runtime/tests/runtime_physics_animation_tick_contract/blend_space_state.rs
 plan_sources:
   - docs/plans/mvp/index.md
   - docs/plans/optimize/00-engine-wide-review.md

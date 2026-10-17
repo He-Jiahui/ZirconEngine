@@ -19,10 +19,8 @@ related_code:
   - zircon_runtime/src/scene/world/transaction.rs
   - zircon_runtime/src/scene/world/project_io
   - zircon_runtime/src/scene/serializer/mod.rs
-  - zircon_runtime/src/scene/dynamic_scene/document/mod.rs
-  - zircon_runtime/src/scene/dynamic_scene/scene/mod.rs
-  - zircon_runtime/src/scene/dynamic_scene/scene/capture.rs
-  - zircon_runtime/src/scene/dynamic_scene/scene/spawn/transaction.rs
+  - zircon_runtime/src/scene/dynamic/scene/capture.rs
+  - zircon_runtime/src/scene/dynamic/scene/spawn/transaction.rs
   - zircon_runtime/src/asset/assets/scene
   - zircon_runtime/src/asset/assets/project_document/codec.rs
   - zircon_runtime/src/asset/assets/project_document/scene.rs
@@ -41,10 +39,8 @@ related_code:
   - zircon_editor/src/ui/workbench/state/editor_state_play_mode.rs
 tests:
   - zircon_runtime/src/scene/tests/world_basics/world_state.rs
-  - zircon_runtime/src/scene/dynamic_scene/scene/spawn/transaction/tests.rs
   - zircon_runtime/src/asset/tests/assets/scene/management.rs
   - zircon_runtime/src/asset/tests/project/example_vampire/manifest_scene_imports.rs
-  - zircon_editor/src/core/play/snapshot/tests.rs
   - examples/vampire/assets/scenes/main.scene.toml
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md

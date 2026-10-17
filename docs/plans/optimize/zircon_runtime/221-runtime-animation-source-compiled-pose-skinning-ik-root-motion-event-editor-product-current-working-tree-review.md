@@ -15,7 +15,7 @@ related_code:
   - zircon_runtime/src/core/framework/animation
   - zircon_runtime/src/animation
   - zircon_runtime/src/asset/importer/ingest/gltf_animation_subassets.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/skinning.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/build/skinning.rs
   - zircon_runtime/src/graphics/scene/gpu_scene/skinned_palette_arena.rs
   - zircon_plugins/animation/runtime
   - zircon_plugins/animation/editor

@@ -13,6 +13,6 @@ node('zircon-windows-agent') {
         writeFile(file: 'integration-result.json', text: response, encoding: 'UTF-8')
         archiveArtifacts(artifacts: 'integration-result.json', fingerprint: false)
         currentBuild.description = 'Scheduled branch integration; inspect exact per-task results'
-        if (status != 0) error('Some branch integrations remain pending; task commits are retained')
+        if (status != 0) error('Some branch integrations failed or need reconciliation; task commits are retained')
     }
 }

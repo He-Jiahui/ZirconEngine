@@ -14,7 +14,6 @@ plan_sources:
   - docs/plans/engine-code-review-findings-2026-06.md
 tests:
   - tools/tests/test_frameworks_03_contract_feature_boundary.py
-  - zircon_runtime/src/core/framework/sound/tests.rs
   - zircon_runtime/src/asset/tests/assets/sound.rs
   - cargo check -p zircon_runtime --lib --no-default-features --features sound-contracts --locked --offline --jobs 1
   - cargo check -p zircon_runtime --lib --no-default-features --features target-server --locked --offline --jobs 1

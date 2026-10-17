@@ -109,20 +109,6 @@ related_code:
   - zircon_plugins/sound/runtime/src/output/lifecycle/storage.rs
   - zircon_plugins/sound/runtime/src/output/status.rs
   - zircon_plugins/sound/runtime/src/engine/mod.rs
-  - zircon_plugins/sound/runtime/src/engine/dsp/mod.rs
-  - zircon_plugins/sound/runtime/src/engine/dsp/dynamics.rs
-  - zircon_plugins/sound/runtime/src/engine/dsp/gain.rs
-  - zircon_plugins/sound/runtime/src/engine/dsp/meter.rs
-  - zircon_plugins/sound/runtime/src/engine/dsp/modulation.rs
-  - zircon_plugins/sound/runtime/src/engine/dsp/reverb.rs
-  - zircon_plugins/sound/runtime/src/engine/dsp/shaper.rs
-  - zircon_plugins/sound/runtime/src/engine/dsp/stereo.rs
-  - zircon_plugins/sound/runtime/src/engine/filter/mod.rs
-  - zircon_plugins/sound/runtime/src/engine/filter/apply.rs
-  - zircon_plugins/sound/runtime/src/engine/filter/coefficients.rs
-  - zircon_plugins/sound/runtime/src/engine/filter/constants.rs
-  - zircon_plugins/sound/runtime/src/engine/filter/shelf.rs
-  - zircon_plugins/sound/runtime/src/engine/filter/state.rs
   - zircon_plugins/sound/runtime/src/engine/hrtf/mod.rs
   - zircon_plugins/sound/runtime/src/engine/hrtf/apply.rs
   - zircon_plugins/sound/runtime/src/engine/hrtf/output_bed.rs
@@ -142,11 +128,11 @@ related_code:
   - zircon_plugins/sound/runtime/src/engine/source_environment/hrtf/loaded.rs
   - zircon_plugins/sound/runtime/src/engine/source_environment/hrtf/preview.rs
   - zircon_plugins/sound/runtime/src/engine/source_environment/hrtf/preview/apply.rs
-  - zircon_plugins/sound/runtime/src/engine/source_environment/hrtf/preview/profile.rs
+  - zircon_plugins/sound/runtime/src/engine/hrtf/preview/profile.rs
   - zircon_plugins/sound/runtime/src/engine/source_environment/hrtf/tail.rs
   - zircon_plugins/sound/runtime/src/engine/source_environment/listener.rs
   - zircon_plugins/sound/runtime/src/engine/source_environment/spatial/mod.rs
-  - zircon_plugins/sound/runtime/src/engine/source_environment/spatial/attenuation.rs
+  - zircon_plugins/sound/runtime/src/engine/spatial/attenuation.rs
   - zircon_plugins/sound/runtime/src/engine/source_environment/spatial/cone.rs
   - zircon_plugins/sound/runtime/src/engine/source_environment/spatial/doppler.rs
   - zircon_plugins/sound/runtime/src/engine/source_environment/spatial/pan.rs
@@ -182,9 +168,6 @@ related_code:
   - zircon_plugins/sound/runtime/src/service_types/manager_state.rs
   - zircon_plugins/sound/runtime/src/service_types/manager_trait.rs
   - zircon_plugins/sound/runtime/src/service_types/dynamic_event_executors/mod.rs
-  - zircon_plugins/sound/runtime/src/service_types/dynamic_event_executors/execution.rs
-  - zircon_plugins/sound/runtime/src/service_types/dynamic_event_executors/registration.rs
-  - zircon_plugins/sound/runtime/src/service_types/dynamic_event_executors/unregistration.rs
   - zircon_plugins/sound/runtime/src/service_types/dynamic_events/mod.rs
   - zircon_plugins/sound/runtime/src/service_types/dynamic_events/catalog.rs
   - zircon_plugins/sound/runtime/src/service_types/dynamic_events/dispatch.rs
@@ -225,7 +208,6 @@ related_code:
   - zircon_plugins/sound/editor/audio_listener.drawer.zui
   - zircon_plugins/sound/editor/audio_volume.drawer.zui
   - zircon_plugins/sound/runtime/src/tests/automation_curve.rs
-  - zircon_plugins/sound/runtime/src/tests.rs
   - zircon_plugins/sound/runtime/src/tests/graph_config.rs
   - zircon_plugins/sound/runtime/src/tests/manifest.rs
   - zircon_plugins/sound/runtime/src/tests/output_device.rs
@@ -337,20 +319,6 @@ implementation_files:
   - zircon_plugins/sound/runtime/src/output/lifecycle/status.rs
   - zircon_plugins/sound/runtime/src/output/lifecycle/storage.rs
   - zircon_plugins/sound/runtime/src/output/status.rs
-  - zircon_plugins/sound/runtime/src/engine/dsp/mod.rs
-  - zircon_plugins/sound/runtime/src/engine/dsp/dynamics.rs
-  - zircon_plugins/sound/runtime/src/engine/dsp/gain.rs
-  - zircon_plugins/sound/runtime/src/engine/dsp/meter.rs
-  - zircon_plugins/sound/runtime/src/engine/dsp/modulation.rs
-  - zircon_plugins/sound/runtime/src/engine/dsp/reverb.rs
-  - zircon_plugins/sound/runtime/src/engine/dsp/shaper.rs
-  - zircon_plugins/sound/runtime/src/engine/dsp/stereo.rs
-  - zircon_plugins/sound/runtime/src/engine/filter/mod.rs
-  - zircon_plugins/sound/runtime/src/engine/filter/apply.rs
-  - zircon_plugins/sound/runtime/src/engine/filter/coefficients.rs
-  - zircon_plugins/sound/runtime/src/engine/filter/constants.rs
-  - zircon_plugins/sound/runtime/src/engine/filter/shelf.rs
-  - zircon_plugins/sound/runtime/src/engine/filter/state.rs
   - zircon_plugins/sound/runtime/src/engine/hrtf/mod.rs
   - zircon_plugins/sound/runtime/src/engine/hrtf/apply.rs
   - zircon_plugins/sound/runtime/src/engine/hrtf/output_bed.rs
@@ -370,11 +338,11 @@ implementation_files:
   - zircon_plugins/sound/runtime/src/engine/source_environment/hrtf/loaded.rs
   - zircon_plugins/sound/runtime/src/engine/source_environment/hrtf/preview.rs
   - zircon_plugins/sound/runtime/src/engine/source_environment/hrtf/preview/apply.rs
-  - zircon_plugins/sound/runtime/src/engine/source_environment/hrtf/preview/profile.rs
+  - zircon_plugins/sound/runtime/src/engine/hrtf/preview/profile.rs
   - zircon_plugins/sound/runtime/src/engine/source_environment/hrtf/tail.rs
   - zircon_plugins/sound/runtime/src/engine/source_environment/listener.rs
   - zircon_plugins/sound/runtime/src/engine/source_environment/spatial/mod.rs
-  - zircon_plugins/sound/runtime/src/engine/source_environment/spatial/attenuation.rs
+  - zircon_plugins/sound/runtime/src/engine/spatial/attenuation.rs
   - zircon_plugins/sound/runtime/src/engine/source_environment/spatial/cone.rs
   - zircon_plugins/sound/runtime/src/engine/source_environment/spatial/doppler.rs
   - zircon_plugins/sound/runtime/src/engine/source_environment/spatial/pan.rs
@@ -409,9 +377,6 @@ implementation_files:
   - zircon_plugins/sound/runtime/src/service_types/manager_state.rs
   - zircon_plugins/sound/runtime/src/service_types/manager_trait.rs
   - zircon_plugins/sound/runtime/src/service_types/dynamic_event_executors/mod.rs
-  - zircon_plugins/sound/runtime/src/service_types/dynamic_event_executors/execution.rs
-  - zircon_plugins/sound/runtime/src/service_types/dynamic_event_executors/registration.rs
-  - zircon_plugins/sound/runtime/src/service_types/dynamic_event_executors/unregistration.rs
   - zircon_plugins/sound/runtime/src/service_types/dynamic_events/mod.rs
   - zircon_plugins/sound/runtime/src/service_types/dynamic_events/catalog.rs
   - zircon_plugins/sound/runtime/src/service_types/dynamic_events/dispatch.rs
@@ -452,7 +417,6 @@ implementation_files:
   - zircon_plugins/sound/editor/audio_listener.drawer.zui
   - zircon_plugins/sound/editor/audio_volume.drawer.zui
   - zircon_plugins/sound/runtime/src/tests/automation_curve.rs
-  - zircon_plugins/sound/runtime/src/tests.rs
   - zircon_runtime_interface/src/tests/contracts.rs
   - zircon_plugins/sound/runtime/src/tests/graph_config.rs
   - zircon_plugins/sound/runtime/src/tests/output_device.rs
@@ -695,7 +659,6 @@ tests:
   - cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --offline --jobs 1 --target-dir F:\cargo-targets\zircon-runtime-core-min-sound --message-format short --color never (timed out after 10 minutes without Rust diagnostics under concurrent workspace Cargo/Rust load; no matching target-dir cargo/rustc process remained afterward)
   - cargo metadata --manifest-path zircon_plugins\sound\runtime\Cargo.toml --locked --offline --no-deps --format-version 1 (passed after per-source spatial scale slice)
   - cargo metadata --manifest-path zircon_runtime\Cargo.toml --locked --offline --no-deps --format-version 1 (passed after per-source spatial scale slice)
-  - zircon_plugins/sound/runtime/src/tests.rs
   - zircon_plugins/sound/editor/src/lib.rs
 doc_type: module-detail
 ---

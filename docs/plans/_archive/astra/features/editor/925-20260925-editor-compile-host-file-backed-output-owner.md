@@ -6,7 +6,6 @@ implementation_files:
   - zircon_editor/src/core/export/stages/compile_host.rs
 tests:
   - zircon_editor/src/core/export/stages/compile_host.rs
-  - zircon_editor/src/core/export/stages/compile_host/zero_copy_tail_finalization_tests.rs
 doc_type: feature-completion
 status: implemented_pending_validation
 plan_sources:

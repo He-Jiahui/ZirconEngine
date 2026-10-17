@@ -4,10 +4,7 @@ related_code:
   - zircon_editor/src/core/editor_extension.rs
   - zircon_editor/src/core/settings/page.rs
   - zircon_editor/src/ui/host/editor_manager.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export
-  - zircon_editor/src/ui/retained_host/app/module_plugin_actions
-  - zircon_editor/src/ui/retained_host/app/module_plugin_projection
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/module_plugins.rs
+  - zircon_editor/src/ui/retained/app/module_plugin_projection
   - zircon_editor/assets/ui/editor/host/module_plugins_body.zui
   - zircon_runtime_interface/src/editor_contribution.rs
   - zircon_plugins/plugin_sdk/src/editor_contribution.rs

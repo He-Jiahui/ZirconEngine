@@ -9,8 +9,7 @@ origin_child_dir: docs/plans/zircon_editor/editor/14
 fixing_child_dir: docs/plans/zircon_editor/editor/12
 plan_link_mode: child_record_only
 related_code:
-  - zircon_editor/src/ui/retained_host/app/module_plugin_actions/live_host/development_watch.rs
-  - zircon_editor/src/ui/retained_host/app/module_plugin_actions/live_host.rs
+  - zircon_editor/src/ui/retained/app/plugins/live_host/development_watch.rs
   - zircon_editor/src/core/jobs/tests/thread_ownership_contract.rs
 tests:
   - cargo test -p zircon_editor --lib development_watch --locked --jobs 1 -- --test-threads=1

@@ -16,10 +16,6 @@ related_code:
   - zircon_editor/src/scene/modes/scene_mode_stack.rs
   - zircon_editor/src/scene/viewport/interaction/viewport_feedback.rs
   - zircon_editor/src/scene/viewport/settings.rs
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_accessors.rs
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_handle_input.rs
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_handle_interaction.rs
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_pointer_route.rs
 related_failures:
   - docs/plans/zircon_plugins/10/failure-2026-08-01-terrain-tilemap-scene-mode-factories-missing.md
 tests:

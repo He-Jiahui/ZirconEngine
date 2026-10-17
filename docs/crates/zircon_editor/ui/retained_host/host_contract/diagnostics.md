@@ -1,28 +1,21 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/host_contract/diagnostics.rs
-  - zircon_editor/src/ui/retained_host/host_contract/diagnostics/invalidation.rs
-  - zircon_editor/src/ui/retained_host/host_contract/diagnostics/overlay.rs
-  - zircon_editor/src/ui/retained_host/host_contract/diagnostics/refresh.rs
-  - zircon_editor/src/ui/retained_host/host_contract/diagnostics/refresh/model.rs
-  - zircon_editor/src/ui/retained_host/host_contract/diagnostics/refresh/model/counters.rs
-  - zircon_editor/src/ui/retained_host/host_contract/diagnostics/refresh/overlay_text.rs
-  - zircon_editor/src/ui/retained_host/host_contract/diagnostics/refresh/timing.rs
-  - zircon_editor/src/ui/retained_host/host_contract/diagnostics_tests.rs
-  - zircon_editor/src/ui/retained_host/host_contract/mod.rs
-  - zircon_editor/src/ui/retained_host/host_contract/window/diagnostics.rs
-  - zircon_editor/src/ui/retained_host/host_contract/presenter/gpu.rs
-  - zircon_editor/src/ui/retained_host/host_contract/presenter/softbuffer.rs
+  - zircon_editor/src/ui/retained/contract/diagnostics/invalidation.rs
+  - zircon_editor/src/ui/retained/contract/diagnostics/refresh.rs
+  - zircon_editor/src/ui/retained/contract/diagnostics/refresh/model.rs
+  - zircon_editor/src/ui/retained/contract/diagnostics/refresh/model/counters.rs
+  - zircon_editor/src/ui/retained/contract/diagnostics/refresh/overlay_text.rs
+  - zircon_editor/src/ui/retained/contract/diagnostics/refresh/timing.rs
+  - zircon_editor/src/ui/retained/contract/window/diagnostics.rs
+  - zircon_editor/src/ui/retained/contract/presenter/gpu.rs
+  - zircon_editor/src/ui/retained/contract/presenter/softbuffer.rs
 implementation_files:
-  - zircon_editor/src/ui/retained_host/host_contract/diagnostics.rs
-  - zircon_editor/src/ui/retained_host/host_contract/diagnostics/invalidation.rs
-  - zircon_editor/src/ui/retained_host/host_contract/diagnostics/overlay.rs
-  - zircon_editor/src/ui/retained_host/host_contract/diagnostics/refresh.rs
-  - zircon_editor/src/ui/retained_host/host_contract/diagnostics/refresh/model.rs
-  - zircon_editor/src/ui/retained_host/host_contract/diagnostics/refresh/model/counters.rs
-  - zircon_editor/src/ui/retained_host/host_contract/diagnostics/refresh/overlay_text.rs
-  - zircon_editor/src/ui/retained_host/host_contract/diagnostics/refresh/timing.rs
-  - zircon_editor/src/ui/retained_host/host_contract/diagnostics_tests.rs
+  - zircon_editor/src/ui/retained/contract/diagnostics/invalidation.rs
+  - zircon_editor/src/ui/retained/contract/diagnostics/refresh.rs
+  - zircon_editor/src/ui/retained/contract/diagnostics/refresh/model.rs
+  - zircon_editor/src/ui/retained/contract/diagnostics/refresh/model/counters.rs
+  - zircon_editor/src/ui/retained/contract/diagnostics/refresh/overlay_text.rs
+  - zircon_editor/src/ui/retained/contract/diagnostics/refresh/timing.rs
 plan_sources:
   - docs/plans/zircon_editor/editor_ui/08-workbench-shell-on-runtime-ui.md
   - user: 2026-06-20 editor UI architecture implementation, feature first and tests deferred

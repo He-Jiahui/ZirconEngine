@@ -15,7 +15,6 @@ related_code:
   - zircon_editor/src/ui/host/editor_manager_asset_workspace.rs
   - zircon_editor/src/ui/host/editor_ui_host.rs
   - zircon_editor/src/ui/host/project_access.rs
-  - zircon_editor/src/ui/host/editor_asset_manager/mod.rs
   - zircon_editor/src/ui/host/editor_session_state.rs
   - zircon_editor/src/ui/host/editor_event_execution/asset_event.rs
   - zircon_editor/src/ui/host/layout_commands.rs
@@ -51,10 +50,9 @@ related_code:
   - zircon_editor/src/ui/template/mod.rs
   - zircon_editor/src/ui/template/registry.rs
   - zircon_editor/src/ui/template/service.rs
-  - zircon_editor/src/ui/template_runtime/runtime/build_session.rs
-  - zircon_editor/src/ui/template_runtime/runtime/pane_payload_projection.rs
-  - zircon_editor/src/ui/template_runtime/runtime/projection.rs
-  - zircon_editor/src/ui/template_runtime/runtime/runtime_host.rs
+  - zircon_editor/src/ui/runtime/runtime/build_session.rs
+  - zircon_editor/src/ui/runtime/runtime/projection.rs
+  - zircon_editor/src/ui/runtime/runtime/runtime_host.rs
   - zircon_runtime_interface/src/ui/template/asset/binding/diagnostic.rs
   - zircon_runtime_interface/src/ui/template/asset/binding/target.rs
   - zircon_runtime_interface/src/ui/tree/mod.rs
@@ -63,7 +61,6 @@ related_code:
   - zircon_runtime/src/ui/surface/surface.rs
   - zircon_runtime/src/ui/layout/pass/incremental.rs
   - zircon_editor/src/ui/asset_editor/presentation.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/scene_projection.rs
   - zircon_editor/src/ui/asset_editor/preview/preview_mock.rs
   - zircon_editor/src/ui/asset_editor/preview/preview_mock/entries.rs
   - zircon_editor/src/ui/asset_editor/session/mod.rs
@@ -108,30 +105,17 @@ related_code:
   - zircon_editor/src/ui/layouts/views/inspector.rs
   - zircon_editor/src/ui/layouts/views/project_overview.rs
   - zircon_editor/src/ui/layouts/views/welcome.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/host_data.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_projection.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/scene_projection.rs
-  - zircon_editor/src/ui/retained_host/ui/apply_presentation.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/mod.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_ui_asset_conversion/mod.rs
-  - zircon_editor/src/ui/retained_host/ui/template_node_conversion.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/ui_asset.rs
-  - zircon_editor/src/ui/retained_host/app/ui_asset_editor.rs
-  - zircon_editor/src/ui/template_runtime/component_adapter/asset_editor.rs
-  - zircon_editor/src/ui/template_runtime/component_adapter/registry.rs
-  - zircon_editor/assets/ui/editor/host/workbench_shell.zui
-  - zircon_editor/assets/ui/editor/workbench_menu_chrome.zui
-  - zircon_editor/assets/ui/editor/workbench_page_chrome.zui
+  - zircon_editor/src/ui/retained/ui/apply_presentation.rs
+  - zircon_editor/src/ui/retained/ui/data/pane_ui_asset_conversion/mod.rs
+  - zircon_editor/src/ui/retained/contract/data/ui_asset.rs
+  - zircon_editor/src/ui/retained/app/ui_asset_editor.rs
+  - zircon_editor/src/ui/runtime/component_adapter/registry.rs
   - zircon_editor/assets/ui/editor/host/pane_surface_controls.zui
   - zircon_editor/assets/ui/editor/host/scene_viewport_toolbar.zui
   - zircon_editor/assets/ui/editor/host/asset_surface_controls.zui
   - zircon_editor/assets/ui/editor/host/inspector_surface_controls.zui
   - zircon_editor/assets/ui/editor/host/floating_window_source.zui
-  - zircon_editor/assets/ui/editor/components/workbench/shell/activity_drawer_window.zui
-  - zircon_editor/src/ui/retained_host/host_contract/mod.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer.rs
-  - zircon_editor/src/ui/retained_host/host_contract/window.rs
-  - zircon_editor/src/ui/retained_host/host_contract/globals.rs
+  - zircon_editor/assets/ui/editor/workbench/shell/activity_drawer_window.zui
   - zircon_editor/src/tests/editor_event/runtime/mod.rs
   - zircon_editor/src/tests/host/manager/mod.rs
   - zircon_editor/src/tests/host/manager/ui_asset_workspace_watcher.rs
@@ -158,7 +142,6 @@ related_code:
   - zircon_editor/src/tests/ui/ui_asset_editor/runtime_reports.rs
   - zircon_editor/src/tests/ui/ui_asset_editor/resource_dependency_view.rs
   - zircon_editor/src/tests/editing/ui_asset/runtime_report_productization.rs
-  - zircon_editor/src/tests/host/template_runtime/dual_host_parity.rs
   - zircon_editor/src/tests/editing/ui_asset/emergency_shell.rs
   - zircon_editor/tests/integration_contracts/workbench_retained_shell.rs
 implementation_files:
@@ -175,7 +158,6 @@ implementation_files:
   - zircon_editor/src/ui/host/editor_manager_asset_workspace.rs
   - zircon_editor/src/ui/host/editor_ui_host.rs
   - zircon_editor/src/ui/host/project_access.rs
-  - zircon_editor/src/ui/host/editor_asset_manager/mod.rs
   - zircon_editor/src/ui/host/editor_session_state.rs
   - zircon_editor/src/ui/host/editor_event_execution/asset_event.rs
   - zircon_editor/src/ui/host/layout_commands.rs
@@ -212,10 +194,9 @@ implementation_files:
   - zircon_editor/src/ui/template/mod.rs
   - zircon_editor/src/ui/template/registry.rs
   - zircon_editor/src/ui/template/service.rs
-  - zircon_editor/src/ui/template_runtime/runtime/build_session.rs
-  - zircon_editor/src/ui/template_runtime/runtime/pane_payload_projection.rs
-  - zircon_editor/src/ui/template_runtime/runtime/projection.rs
-  - zircon_editor/src/ui/template_runtime/runtime/runtime_host.rs
+  - zircon_editor/src/ui/runtime/runtime/build_session.rs
+  - zircon_editor/src/ui/runtime/runtime/projection.rs
+  - zircon_editor/src/ui/runtime/runtime/runtime_host.rs
   - zircon_runtime_interface/src/ui/template/asset/binding/diagnostic.rs
   - zircon_runtime_interface/src/ui/template/asset/binding/target.rs
   - zircon_runtime_interface/src/ui/tree/mod.rs
@@ -224,7 +205,6 @@ implementation_files:
   - zircon_runtime/src/ui/surface/surface.rs
   - zircon_runtime/src/ui/layout/pass/incremental.rs
   - zircon_editor/src/ui/asset_editor/presentation.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/scene_projection.rs
   - zircon_editor/src/ui/asset_editor/preview/preview_mock.rs
   - zircon_editor/src/ui/asset_editor/preview/preview_mock/entries.rs
   - zircon_editor/src/ui/asset_editor/session/mod.rs
@@ -268,30 +248,17 @@ implementation_files:
   - zircon_editor/src/ui/layouts/views/inspector.rs
   - zircon_editor/src/ui/layouts/views/project_overview.rs
   - zircon_editor/src/ui/layouts/views/welcome.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/host_data.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_projection.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/scene_projection.rs
-  - zircon_editor/src/ui/retained_host/ui/apply_presentation.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/mod.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_ui_asset_conversion/mod.rs
-  - zircon_editor/src/ui/retained_host/ui/template_node_conversion.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/ui_asset.rs
-  - zircon_editor/src/ui/retained_host/app/ui_asset_editor.rs
-  - zircon_editor/src/ui/template_runtime/component_adapter/asset_editor.rs
-  - zircon_editor/src/ui/template_runtime/component_adapter/registry.rs
-  - zircon_editor/assets/ui/editor/host/workbench_shell.zui
-  - zircon_editor/assets/ui/editor/workbench_menu_chrome.zui
-  - zircon_editor/assets/ui/editor/workbench_page_chrome.zui
+  - zircon_editor/src/ui/retained/ui/apply_presentation.rs
+  - zircon_editor/src/ui/retained/ui/data/pane_ui_asset_conversion/mod.rs
+  - zircon_editor/src/ui/retained/contract/data/ui_asset.rs
+  - zircon_editor/src/ui/retained/app/ui_asset_editor.rs
+  - zircon_editor/src/ui/runtime/component_adapter/registry.rs
   - zircon_editor/assets/ui/editor/host/pane_surface_controls.zui
   - zircon_editor/assets/ui/editor/host/scene_viewport_toolbar.zui
   - zircon_editor/assets/ui/editor/host/asset_surface_controls.zui
   - zircon_editor/assets/ui/editor/host/inspector_surface_controls.zui
   - zircon_editor/assets/ui/editor/host/floating_window_source.zui
-  - zircon_editor/assets/ui/editor/components/workbench/shell/activity_drawer_window.zui
-  - zircon_editor/src/ui/retained_host/host_contract/mod.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer.rs
-  - zircon_editor/src/ui/retained_host/host_contract/window.rs
-  - zircon_editor/src/ui/retained_host/host_contract/globals.rs
+  - zircon_editor/assets/ui/editor/workbench/shell/activity_drawer_window.zui
   - zircon_editor/src/ui/asset_editor/style/theme_authoring.rs
   - zircon_editor/src/ui/asset_editor/style/theme_authoring/action_projection.rs
   - zircon_editor/src/ui/asset_editor/style/theme_authoring/merge.rs
@@ -317,10 +284,10 @@ plan_sources:
 tests:
   - zircon_editor/src/tests/editing/ui_asset/structure_split.rs
   - zircon_editor/src/tests/editing/ui_asset/source_projection.rs
-  - zircon_editor/src/tests/editing/ui_asset/reference_and_promotion.rs
-  - zircon_editor/src/tests/editing/ui_asset_theme_authoring.rs
-  - zircon_editor/src/tests/editing/ui_asset_replay.rs
-  - zircon_editor/src/tests/editing/ui_asset_preview_binding_authoring.rs
+  - zircon_editor/src/tests/editing/ui_asset/reference_and_promotion/mod.rs
+  - zircon_editor/src/tests/editing/ui_asset_theme_authoring/mod.rs
+  - zircon_editor/src/tests/editing/ui_asset_replay/mod.rs
+  - zircon_editor/src/tests/editing/ui_asset_preview_binding_authoring/mod.rs
   - zircon_editor/src/tests/editing/ui_asset/emergency_shell.rs
   - zircon_editor/src/tests/editing/ui_asset/preview.rs
   - cargo test -p zircon_editor --lib ui_asset_preview_host_resizes_retained_surface_without_rebuilding_tree_state --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-incremental-layout-render --message-format short --color never (2026-05-08 attempted; blocked before test execution by unrelated editor host/runtime compile drift)
@@ -338,7 +305,6 @@ tests:
   - zircon_editor/src/tests/host/asset_manager_boundary/mod.rs
   - zircon_editor/src/tests/ui/boundary/asset_editor_structure.rs
   - zircon_editor/src/tests/ui/boundary/host_cutover.rs
-  - zircon_editor/src/tests/ui/boundary/workbench_projection_cutover.rs
   - zircon_editor/src/tests/ui/assets_activity/bootstrap_assets
   - zircon_editor/src/tests/ui/asset_browser/bootstrap_assets.rs
   - zircon_editor/src/tests/ui/animation_editor/bootstrap_assets.rs
@@ -366,8 +332,7 @@ tests:
   - zircon_editor/src/tests/ui/ui_asset_editor/runtime_reports.rs
   - zircon_editor/src/tests/ui/ui_asset_editor/resource_dependency_view.rs
   - zircon_editor/src/tests/editing/ui_asset/runtime_report_productization.rs
-  - zircon_editor/src/tests/host/template_runtime/dual_host_parity.rs
-  - zircon_editor/src/tests/ui/component_adapter.rs
+  - zircon_editor/src/tests/ui/component_adapter/mod.rs
   - zircon_editor/tests/integration_contracts/workbench_retained_shell.rs
   - cargo test -p zircon_editor --lib editor_asset_boundary_lives_in_editor_crate --locked
   - cargo test -p zircon_editor --lib editor_manager_becomes_thin_facade_over_editor_ui_host --locked

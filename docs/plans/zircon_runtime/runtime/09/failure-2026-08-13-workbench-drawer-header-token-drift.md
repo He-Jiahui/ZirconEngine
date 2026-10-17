@@ -9,11 +9,9 @@ origin_child_dir: docs/plans/zircon_editor/editor_ui/12
 fixing_child_dir: docs/plans/zircon_runtime/runtime/09
 plan_link_mode: child_record_only
 related_code:
-  - zircon_editor/assets/ui/editor/windows/workbench_window.zui
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/drawer_layout.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/workbench/drawer_layout.rs
   - zircon_editor/src/ui/workbench/autolayout/workbench_chrome_metrics.rs
-  - zircon_editor/src/ui/workbench/autolayout/region/tool_region/collapsed_constraints.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_projection/shell_layout.rs
+  - zircon_editor/src/ui/workbench/region/tool_region/collapsed_constraints.rs
 tests:
   - cargo test -p zircon_editor --locked --lib collapsed_bottom_drawer_input_uses_the_callers_panel_header_metric
   - cargo test -p zircon_editor --locked --lib narrow_width_collapses_a_visible_bottom_drawer_to_its_tab_strip

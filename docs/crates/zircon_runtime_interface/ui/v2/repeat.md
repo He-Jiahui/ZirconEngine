@@ -8,9 +8,7 @@ related_code:
   - zircon_runtime/src/ui/v2/component_instancer.rs
   - zircon_runtime/src/ui/v2/surface_tree/node.rs
   - zircon_runtime/src/ui/tests/v2_asset.rs
-  - zircon_editor/assets/ui/editor/components/workbench\shell\workbench_scene_tree_panel.zui
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/virtual_rows.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/scene_tree_rows.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/workbench/scene_tree_rows.rs
 implementation_files:
   - zircon_runtime_interface/src/ui/v2/repeat.rs
   - zircon_runtime_interface/src/ui/v2/asset.rs
@@ -19,15 +17,12 @@ implementation_files:
   - zircon_runtime/src/ui/v2/compiler.rs
   - zircon_runtime/src/ui/v2/component_instancer.rs
   - zircon_runtime/src/ui/v2/surface_tree/node.rs
-  - zircon_editor/assets/ui/editor/components/workbench\shell\workbench_scene_tree_panel.zui
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/virtual_rows.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/scene_tree_rows.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/workbench/scene_tree_rows.rs
 plan_sources:
   - user: 2026-06-01 Continue approximating the zirconEngine editor from base rendering, input response, Taffy layout, and declared component composition
   - docs/ui/workbench.png
 tests:
   - zircon_runtime/src/ui/tests/v2_asset.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_projection.rs
   - cargo check -p zircon_runtime_interface --lib --locked --jobs 1 --message-format short --color never with CARGO_TARGET_DIR=D:\cargo-targets\zircon-editor-workbench-repeat-decl-1603 and RUSTFLAGS=-Awarnings (2026-06-01 after repeat declaration type: passed)
   - cargo check -p zircon_runtime_interface --lib --locked --jobs 1 --message-format short --color never with CARGO_TARGET_DIR=D:\cargo-targets\zircon-editor-workbench-repeat-validation-1755 and RUSTFLAGS=-Awarnings (2026-06-01 after repeat validation/metadata constants: passed)
   - cargo check -p zircon_runtime --lib --locked --jobs 1 --message-format short --color never with CARGO_TARGET_DIR=D:\cargo-targets\zircon-editor-workbench-repeat-validation-1755 and RUSTFLAGS=-Awarnings (2026-06-01 after repeat validation/metadata constants: passed)

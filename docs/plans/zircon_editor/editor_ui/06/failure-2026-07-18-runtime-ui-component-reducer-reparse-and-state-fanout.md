@@ -15,8 +15,6 @@ related_code:
   - zircon_runtime/src/ui/component/state_reducer/keyboard/menu.rs
   - zircon_runtime/src/ui/component/state_reducer/keyboard/menu/submenu.rs
   - zircon_runtime/src/ui/component/state_reducer/windowing.rs
-  - dev/slint/internal/core/model.rs
-  - dev/slint/internal/core/model/adapters.rs
 tests:
   - 10k command and recursive-menu input scale test
   - stable-generation arrow navigation zero-parse test

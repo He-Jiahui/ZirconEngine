@@ -478,7 +478,7 @@ fn benchmark_project_manifest_name_zero_allocation_comparison() {
             "zero-allocation project manifest name comparison must improve P95 by at least 50%: legacy={legacy_p95_ns}ns optimized={optimized_p95_ns}ns"
         );
     println!(
-            "PERF_RESULT task=plugins07_zero_allocation_project_manifest_name sample_pairs={SAMPLE_PAIRS} order=alternating_legacy_first_even legacy_first_pairs=11 optimized_first_pairs=10 percentile_method=nearest_rank checks_per_sample={MANIFEST_NAME_CHECKS_PER_SAMPLE} legacy_allocations_per_check=2 optimized_allocations_per_check=0 threshold_percent=50 legacy_p95_ns={legacy_p95_ns} optimized_p95_ns={optimized_p95_ns} improvement_percent={improvement_percent} legacy_raw_ns={} optimized_raw_ns={}",
+            "PERF_RESULT task=plugins07_zero_allocation_project_manifest_name sample_pairs={SAMPLE_PAIRS} order=alternating_legacy_first_even legacy_first_pairs=11 optimized_first_pairs=10 percentile_method=nearest_rank checks_per_sample={MANIFEST_NAME_CHECKS_PER_SAMPLE} legacy_allocations_per_check_expected=2 optimized_allocations_per_check_expected=0 threshold_percent=50 legacy_p95_ns={legacy_p95_ns} optimized_p95_ns={optimized_p95_ns} improvement_percent={improvement_percent} legacy_raw_ns={} optimized_raw_ns={}",
             raw_samples(&legacy_raw),
             raw_samples(&optimized_raw)
         );

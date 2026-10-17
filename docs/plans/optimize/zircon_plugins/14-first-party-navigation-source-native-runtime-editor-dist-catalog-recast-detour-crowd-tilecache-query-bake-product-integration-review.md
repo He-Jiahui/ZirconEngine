@@ -34,17 +34,12 @@ related_code:
   - zircon_runtime/src/navigation
   - zircon_runtime/src/core/framework/navigation
   - zircon_runtime/src/dynamic_api/session/construction.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog
   - examples/vampire/assets/navigation/main.navmesh.toml
 tests:
   - zircon_plugins/navigation/runtime/src/tests
-  - zircon_plugins/navigation/runtime/src/manager/traversal/tests.rs
   - zircon_plugins/navigation/native/src/tests
   - zircon_plugins/navigation/native/tests
   - zircon_plugins/navigation/editor/src/tests
-  - zircon_plugins/navigation/editor/src/tests.rs
-  - zircon_runtime/src/navigation/runtime/tests.rs
-  - zircon_runtime/src/core/framework/navigation/tests.rs
   - zircon_plugins/navigation/dist/src/lib.rs
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md

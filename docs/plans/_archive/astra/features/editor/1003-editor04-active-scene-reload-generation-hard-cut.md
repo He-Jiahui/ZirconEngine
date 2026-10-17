@@ -8,13 +8,10 @@ related_records:
   - docs/plans/astra/features/runtime/940-runtime02-mesh-sdf-executor-capacity.md
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
-  - zircon_editor/src/ui/retained_host/app/assets/workspace.rs
-  - zircon_editor/src/ui/retained_host/app/assets/workspace/active_scene_reload_conflict.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/runtime.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/runtime/tests.rs
+  - zircon_editor/src/ui/retained/app/assets/workspace.rs
+  - zircon_editor/src/ui/app/assets/workspace/active_scene_reload_conflict.rs
 tests:
-  - zircon_editor/src/ui/retained_host/app/assets/workspace.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/runtime/tests.rs
+  - zircon_editor/src/ui/retained/app/assets/workspace.rs
 ---
 
 # Editor1003 · active-scene reload generation hard cut

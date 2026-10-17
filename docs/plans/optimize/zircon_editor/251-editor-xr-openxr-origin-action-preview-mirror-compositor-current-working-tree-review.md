@@ -15,7 +15,7 @@ related_code:
   - zircon_editor/src/core/play/simulate_camera.rs
   - zircon_editor/src/core/play/preview_frame.rs
   - zircon_editor/src/ui/host/editor_host_event_controller/simulate_camera.rs
-  - zircon_editor/src/ui/retained_host/app/simulate_camera_sync.rs
+  - zircon_editor/src/ui/retained/app/simulate_camera_sync.rs
   - zircon_editor/src/ui/binding/viewport/command.rs
   - zircon_editor/src/tests/editing/viewport.rs
   - zircon_editor/src/tests/editing/state/viewport.rs

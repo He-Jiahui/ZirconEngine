@@ -5,7 +5,6 @@ plan_sources:
   - docs/plans/optimize/zircon_runtime/level_system/2026-09-28-runtime857-production-drain-api-regression.md
 related_code:
   - zircon_runtime/src/scene/level_system/animation_runtime.rs
-  - zircon_runtime/src/scene/level_system/animation_runtime/drain_output_capacity_tests.rs
 tests:
   - runtime857_production_drain_reserves_capacity_and_preserves_sample_order
   - runtime857_production_empty_drain_keeps_zero_capacity

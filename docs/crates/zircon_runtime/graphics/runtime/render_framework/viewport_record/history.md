@@ -1,46 +1,42 @@
 ---
 related_code:
-  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/camera_history_key.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/history.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/motion_vector_camera.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/particle_previous_sprites.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/runtime_states.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/product_reports.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/viewport_record.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/camera_history_key.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/resolve_viewport_record_state.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/prepare_runtime_submission/prepare.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/record_submission/record.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/record_submission/record_present.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/resolve_history_handle.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/record_camera_history.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/update_particle_previous_state.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/update_temporal_camera_history.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/record_submission/record_history.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/destroy_viewport/destroy_viewport.rs
+  - zircon_runtime/src/graphics/runtime/viewport_record/camera_history_key.rs
+  - zircon_runtime/src/graphics/runtime/framework/viewport_record/history.rs
+  - zircon_runtime/src/graphics/runtime/viewport_record/motion_vector_camera.rs
+  - zircon_runtime/src/graphics/runtime/viewport_record/particle_previous_sprites.rs
+  - zircon_runtime/src/graphics/runtime/framework/viewport_record/runtime_states.rs
+  - zircon_runtime/src/graphics/runtime/framework/viewport_record/product_reports.rs
+  - zircon_runtime/src/graphics/runtime/framework/viewport_record/viewport_record.rs
+  - zircon_runtime/src/graphics/extract/prepare_runtime_submission/prepare.rs
+  - zircon_runtime/src/graphics/runtime/extract/record_submission/record.rs
+  - zircon_runtime/src/graphics/runtime/extract/record_submission/record_present.rs
+  - zircon_runtime/src/graphics/runtime/extract/submit/resolve_history_handle.rs
+  - zircon_runtime/src/graphics/runtime/extract/submit/record_camera_history.rs
+  - zircon_runtime/src/graphics/extract/submit/update_particle_previous_state.rs
+  - zircon_runtime/src/graphics/extract/submit/update_temporal_camera_history.rs
+  - zircon_runtime/src/graphics/runtime/extract/record_submission/record_history.rs
+  - zircon_runtime/src/graphics/runtime/destroy_viewport/destroy_viewport.rs
   - zircon_runtime/src/graphics/runtime/history/viewport_frame_history.rs
   - zircon_runtime/src/graphics/runtime/history/construct.rs
   - zircon_runtime/src/graphics/runtime/history/update.rs
   - zircon_runtime/src/graphics/runtime/history/access.rs
 implementation_files:
-  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/camera_history_key.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/history.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/motion_vector_camera.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/particle_previous_sprites.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/runtime_states.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/product_reports.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/viewport_record.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/camera_history_key.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/resolve_viewport_record_state.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/prepare_runtime_submission/prepare.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/record_submission/record.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/record_submission/record_present.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/resolve_history_handle.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/record_camera_history.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/update_particle_previous_state.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/update_temporal_camera_history.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/record_submission/record_history.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/destroy_viewport/destroy_viewport.rs
+  - zircon_runtime/src/graphics/runtime/viewport_record/camera_history_key.rs
+  - zircon_runtime/src/graphics/runtime/framework/viewport_record/history.rs
+  - zircon_runtime/src/graphics/runtime/viewport_record/motion_vector_camera.rs
+  - zircon_runtime/src/graphics/runtime/viewport_record/particle_previous_sprites.rs
+  - zircon_runtime/src/graphics/runtime/framework/viewport_record/runtime_states.rs
+  - zircon_runtime/src/graphics/runtime/framework/viewport_record/product_reports.rs
+  - zircon_runtime/src/graphics/runtime/framework/viewport_record/viewport_record.rs
+  - zircon_runtime/src/graphics/extract/prepare_runtime_submission/prepare.rs
+  - zircon_runtime/src/graphics/runtime/extract/record_submission/record.rs
+  - zircon_runtime/src/graphics/runtime/extract/record_submission/record_present.rs
+  - zircon_runtime/src/graphics/runtime/extract/submit/resolve_history_handle.rs
+  - zircon_runtime/src/graphics/runtime/extract/submit/record_camera_history.rs
+  - zircon_runtime/src/graphics/extract/submit/update_particle_previous_state.rs
+  - zircon_runtime/src/graphics/extract/submit/update_temporal_camera_history.rs
+  - zircon_runtime/src/graphics/runtime/extract/record_submission/record_history.rs
+  - zircon_runtime/src/graphics/runtime/destroy_viewport/destroy_viewport.rs
   - zircon_runtime/src/graphics/runtime/history/viewport_frame_history.rs
   - zircon_runtime/src/graphics/runtime/history/construct.rs
   - zircon_runtime/src/graphics/runtime/history/update.rs
@@ -49,17 +45,17 @@ plan_sources:
   - docs/plans/zircon_runtime/render/09-camera-render-ordering.md
   - .codex/plans/Runtime 渲染风险清单与 RenderDoc 调试支持计划.md
 tests:
-  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/camera_history_key.rs::tests::camera_history_key_distinguishes_same_entity_viewport_regions
-  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/camera_history_key.rs::tests::camera_history_key_distinguishes_base_and_overlay_slots
-  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/camera_history_key.rs::tests::camera_history_key_distinguishes_culling_layers_without_legacy_loss
-  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/camera_history_key.rs::tests::camera_history_key_distinguishes_volume_layers_without_legacy_loss
-  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/history.rs::tests::viewport_record_keeps_histories_per_camera_key
-  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/motion_vector_camera.rs::tests::viewport_record_keeps_motion_vector_camera_per_camera_key
-  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/particle_previous_sprites.rs::tests::viewport_record_keeps_particle_previous_sprites_per_camera_key
-  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/runtime_states.rs::tests::viewport_record_keeps_hybrid_gi_runtime_per_camera_key
-  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/runtime_states.rs::tests::viewport_record_keeps_virtual_geometry_runtime_per_camera_key
-  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/product_reports.rs::tests::viewport_record_keeps_product_reports_per_camera_key
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/update_temporal_camera_history.rs::tests::successful_non_terminal_submit_records_camera_without_advancing_viewport_index
+  - zircon_runtime/src/graphics/runtime/viewport_record/camera_history_key.rs::tests::camera_history_key_distinguishes_same_entity_viewport_regions
+  - zircon_runtime/src/graphics/runtime/viewport_record/camera_history_key.rs::tests::camera_history_key_distinguishes_base_and_overlay_slots
+  - zircon_runtime/src/graphics/runtime/viewport_record/camera_history_key.rs::tests::camera_history_key_distinguishes_culling_layers_without_legacy_loss
+  - zircon_runtime/src/graphics/runtime/viewport_record/camera_history_key.rs::tests::camera_history_key_distinguishes_volume_layers_without_legacy_loss
+  - zircon_runtime/src/graphics/runtime/framework/viewport_record/history.rs::tests::viewport_record_keeps_histories_per_camera_key
+  - zircon_runtime/src/graphics/runtime/viewport_record/motion_vector_camera.rs::tests::viewport_record_keeps_motion_vector_camera_per_camera_key
+  - zircon_runtime/src/graphics/runtime/viewport_record/particle_previous_sprites.rs::tests::viewport_record_keeps_particle_previous_sprites_per_camera_key
+  - zircon_runtime/src/graphics/runtime/framework/viewport_record/runtime_states.rs::tests::viewport_record_keeps_hybrid_gi_runtime_per_camera_key
+  - zircon_runtime/src/graphics/runtime/framework/viewport_record/runtime_states.rs::tests::viewport_record_keeps_virtual_geometry_runtime_per_camera_key
+  - zircon_runtime/src/graphics/runtime/framework/viewport_record/product_reports.rs::tests::viewport_record_keeps_product_reports_per_camera_key
+  - zircon_runtime/src/graphics/extract/submit/update_temporal_camera_history.rs::tests::successful_non_terminal_submit_records_camera_without_advancing_viewport_index
   - cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-camera-history-owner-0619 --message-format short --color never
   - cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-camera-prev-state-0620 --message-format short --color never
   - cargo test -p zircon_runtime --lib viewport_record_keeps_product_reports_per_camera_key --no-default-features --features core-min --locked --jobs 4 --target-dir target\codex-runtime-camera-products-0620 -- --test-threads=1 --nocapture

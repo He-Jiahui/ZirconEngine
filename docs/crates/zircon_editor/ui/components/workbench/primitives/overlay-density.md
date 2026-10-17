@@ -1,13 +1,6 @@
 ---
 related_code:
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/feedback/workbench_context_menu.zui
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/feedback/workbench_dropdown_popup.zui
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/feedback/workbench_popup_menu.zui
-  - zircon_editor/src/tests/ui/boundary/zui_asset_governance/workbench_overlay_density.rs
 implementation_files:
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/feedback/workbench_context_menu.zui
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/feedback/workbench_dropdown_popup.zui
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/feedback/workbench_popup_menu.zui
 plan_sources:
   - docs/plans/zircon_editor/editor_layout/15-component-standardization-from-primitives.md
   - docs/plans/zircon_editor/editor_layout/15d-composite-density-and-alignment.md

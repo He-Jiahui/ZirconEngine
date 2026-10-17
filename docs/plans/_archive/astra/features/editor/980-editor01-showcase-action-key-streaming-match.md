@@ -6,10 +6,8 @@ plan_sources:
 related_records:
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
-  - zircon_editor/src/ui/retained_host/app/showcase_event_inputs.rs
-  - zircon_editor/src/ui/retained_host/app/showcase_event_inputs/action_key_match_tests.rs
+  - zircon_editor/src/ui/retained/app/showcase_event_inputs.rs
 tests:
-  - zircon_editor/src/ui/retained_host/app/showcase_event_inputs/action_key_match_tests.rs
 ---
 
 # Editor980 · allocation-free showcase action-key matching

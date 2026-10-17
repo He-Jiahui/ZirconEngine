@@ -8,7 +8,6 @@ performance_status: product_gate_pending
 related_code:
   - zircon_editor/src/core/asset/mod.rs
   - zircon_editor/src/core/asset/activation.rs
-  - zircon_editor/src/core/asset/activation/tests.rs
 ---
 
 # Editor57 asset activation intent and receipt contract

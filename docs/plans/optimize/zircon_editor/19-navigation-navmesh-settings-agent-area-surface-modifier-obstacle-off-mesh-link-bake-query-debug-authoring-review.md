@@ -16,11 +16,7 @@ related_code:
   - zircon_editor/src/core/asset/type_registry/builtin.rs
   - zircon_editor/src/core/editor_extension.rs
   - zircon_editor/src/ui/host/editor_event_execution/asset_event.rs
-  - zircon_editor/src/ui/template_runtime/builtin/workbench_extension_module_template_bindings/gameplay_state.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation/specs/gameplay_state.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback/gameplay_state.rs
-  - zircon_editor/assets/ui/editor/components/workbench/modules/core/assets/workbench_assets_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/simulation/workbench_extension_navmesh_ai_workspace.zui
+  - zircon_editor/src/ui/retained/dispatch/workbench/specs/gameplay_state.rs
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md
   - docs/plans/optimize/zircon_runtime/04-core-resource-asset-serialization-review.md

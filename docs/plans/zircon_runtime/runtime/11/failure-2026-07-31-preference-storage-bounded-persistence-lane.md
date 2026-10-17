@@ -22,7 +22,6 @@ related_code:
   - zircon_app/src/entry/platform_preferences.rs
   - zircon_runtime/tests/runtime11_preference_backend_authority.rs
   - examples/woc/native/apps/woc_client/src/preferences/storage.rs
-  - examples/woc/native/apps/woc_client/tests/preference_storage_support.rs
 tests:
   - 'python -B -c "from pathlib import Path; source = Path(''zircon_runtime/src/platform/service_types/manager.rs'').read_text(encoding=''utf-8''); assert ''preference_storage_backend().read('' not in source and ''preference_storage_backend().write('' not in source and ''preference_storage_backend().remove('' not in source and ''preference_storage_backend().flush('' not in source"'
   - python -B -m unittest tools.tests.test_runtime11_preference_persistence_lane_contract -v

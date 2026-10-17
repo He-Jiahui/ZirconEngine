@@ -2,7 +2,6 @@
 related_code:
   - zircon_runtime/src/runtime_diagnostics
   - zircon_runtime/src/core/framework/render/framework.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/query_virtual_geometry_debug_snapshot
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_runtime/runtime/07-runtime-performance-hotpath.md

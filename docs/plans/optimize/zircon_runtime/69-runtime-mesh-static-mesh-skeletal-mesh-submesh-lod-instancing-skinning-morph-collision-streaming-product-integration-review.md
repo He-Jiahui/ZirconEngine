@@ -27,11 +27,9 @@ related_code:
   - zircon_runtime/src/graphics/scene/resources/prepared/prepared_mesh.rs
   - zircon_runtime/src/graphics/scene/resources/prepared/prepared_mesh_sdf.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh
   - zircon_runtime/src/graphics/visibility/culling
   - zircon_plugins/physics/runtime/src/backend/jolt/mesh_shape.rs
   - zircon_plugins/animation/runtime/src/gpu_skinning
-  - zircon_editor/src/ui/host/editor_asset_manager/manager
 tests:
   - zircon_runtime/src/asset/tests/assets/mesh
   - zircon_runtime/src/asset/tests/assets/model.rs
@@ -42,9 +40,9 @@ tests:
   - zircon_runtime/src/scene/tests/world_basics/render_extract.rs
   - zircon_runtime/src/graphics/tests/render_product_mesh_cache.rs
   - zircon_runtime/src/graphics/tests/render_product_mesh_cache
-  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product/mesh_queue.rs
-  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product/gpu_scene.rs
-  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product/tests/mesh_gpu_scene.rs
+  - zircon_runtime/src/core/runtime/diagnostics/product/mesh_queue.rs
+  - zircon_runtime/src/core/runtime/diagnostics/product/gpu_scene.rs
+  - zircon_runtime/src/core/runtime/diagnostics/product/tests/mesh_gpu_scene.rs
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md
   - docs/plans/optimize/01-cross-report-owner-schema-abi-p0-consolidation-review.md

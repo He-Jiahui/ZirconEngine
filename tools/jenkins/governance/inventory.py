@@ -34,7 +34,7 @@ def authentication_path(path: Path) -> bool:
 
 
 def _git_command(root: Path, *args: str) -> list[str]:
-    return ["git", "-c", "protocol.allow=never", "-c", "core.fsmonitor=false", "-c", "diff.external=",
+    return ["git", "-c", "core.fsmonitor=false", "-c", "core.hooksPath=" + os.devnull, "-c", "protocol.allow=never", "-c", "core.fsmonitor=false", "-c", "diff.external=",
             "-c", "core.longpaths=true", "-C", str(root), *args]
 
 

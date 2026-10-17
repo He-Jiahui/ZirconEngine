@@ -48,12 +48,9 @@ related_code:
   - zircon_runtime/src/asset/importer/error.rs
   - zircon_runtime/src/asset/pipeline/manager/asset_manager/asset_manager.rs
   - zircon_runtime/src/asset/pipeline/manager/asset_manager/handle.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/construction.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/management.rs
 
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/mod.rs
 
-  - zircon_runtime/src/asset/pipeline/manager/service_contracts/asset_manager_contract.rs
+  - zircon_runtime/src/asset/manager/service_contracts/asset_manager_contract.rs
 
   - zircon_runtime/src/asset/project/manager/artifact_access.rs
 
@@ -65,7 +62,6 @@ related_code:
   - zircon_runtime_interface/src/resource/resource_record.rs
 
   - zircon_runtime_interface/src/resource/resource_event.rs
-  - zircon_runtime/src/tests/runtime_absorption/asset_pipeline.rs
   - tools/tests/test_runtime_asset_pipeline_audit.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/asset_pipeline_boundary.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/asset_pipeline_markdown.py
@@ -118,12 +114,9 @@ implementation_files:
   - zircon_runtime/src/asset/importer/error.rs
   - zircon_runtime/src/asset/pipeline/manager/asset_manager/asset_manager.rs
   - zircon_runtime/src/asset/pipeline/manager/asset_manager/handle.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/construction.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/management.rs
 
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/mod.rs
 
-  - zircon_runtime/src/asset/pipeline/manager/service_contracts/asset_manager_contract.rs
+  - zircon_runtime/src/asset/manager/service_contracts/asset_manager_contract.rs
 
   - zircon_runtime/src/asset/project/manager/artifact_access.rs
 
@@ -132,7 +125,6 @@ implementation_files:
   - zircon_runtime_interface/src/resource/resource_record.rs
 
   - zircon_runtime_interface/src/resource/resource_event.rs
-  - zircon_runtime/src/tests/runtime_absorption/asset_pipeline.rs
   - tools/tests/test_runtime_asset_pipeline_audit.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/asset_pipeline_boundary.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/asset_pipeline_markdown.py
@@ -177,8 +169,6 @@ tests:
   - CARGO_TARGET_DIR=D:\cargo-targets\zircon-asset-package-m2 cargo test -p zircon_runtime --lib --locked asset::tests::project::package_assets --jobs 1 --message-format short --color never -- --test-threads=1 (2026-05-20 package roots M2: passed, 3 passed)
 
   - zircon_runtime/src/asset/tests/project/zmeta.rs
-  - zircon_runtime/src/core/resource/tests.rs
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings.rs
   - zircon_runtime_interface/src/tests/resource_contracts.rs
   - cargo check -p zircon_runtime --lib --locked --offline --jobs 1 --target-dir E:\cargo-targets\zircon-asset-parity-runtime-lib-0520 --message-format short --color never (2026-05-20 asset parity implementation: passed; existing warnings only)
 
@@ -192,7 +182,6 @@ tests:
 
   - zircon_runtime/src/asset/tests/facade.rs::load_states_for_missing_wrong_kind_and_non_resident_roots_do_not_restore_payloads
 
-  - zircon_runtime/src/core/resource/tests.rs::register_ready_preserves_current_diagnostics_and_replaces_stale_diagnostics
 
   - zircon_runtime/src/asset/facade/event.rs::tests::typed_asset_events_roundtrip_for_tooling_snapshots
 
@@ -208,11 +197,8 @@ tests:
 
   - zircon_runtime/src/asset/tests/facade/failure_reason.rs::failed_asset_exposes_failure_reason_through_facade
 
-  - zircon_runtime/src/core/resource/tests.rs::resource_state_rejects_error_to_ready_without_reloading
 
-  - zircon_runtime/src/core/resource/tests.rs::resource_state_recovers_from_error_only_through_reloading
 
-  - zircon_runtime/src/core/resource/tests.rs::resource_state_rejects_reload_failure_without_reload_boundary
 
   - zircon_runtime/src/asset/facade/load_state.rs::tests::asset_load_state_projection_matches_resource_record_matrix
 

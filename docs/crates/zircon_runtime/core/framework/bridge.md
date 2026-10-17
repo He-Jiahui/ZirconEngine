@@ -18,8 +18,6 @@ plan_sources:
   - docs/plans/zircon_runtime/frameworks/01/fixed-2026-07-13-core-contract-reverse-dependencies.md
 tests:
   - tools/tests/test_frameworks_05_layer_direction.py
-  - zircon_runtime/src/tests/plugin_extensions/extension_registry_bridge.rs
-  - zircon_runtime/src/tests/plugin_extensions/extension_registry_bridge_performance_baseline.rs
 ---
 
 # Neutral Bridge Contracts

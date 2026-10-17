@@ -7,7 +7,6 @@ plan_sources:
 implementation_files:
   - zircon_runtime/src/ui/layout/pass/axis.rs
 tests:
-  - zircon_runtime/src/ui/layout/pass/axis/tests.rs
 ---
 
 # Runtime76 linear child visibility completion list

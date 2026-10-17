@@ -10,10 +10,7 @@ related_records:
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
   - zircon_runtime/src/ui/v2/style.rs
-  - zircon_runtime/src/ui/v2/style/rule_capacity_tests.rs
 tests:
-  - zircon_runtime/src/ui/v2/style/rule_capacity_tests.rs
-  - tools/tests/test_runtime_v2_style_rule_capacity_performance_contract.py
 ---
 
 # Runtime785 · V2 style rule capacity

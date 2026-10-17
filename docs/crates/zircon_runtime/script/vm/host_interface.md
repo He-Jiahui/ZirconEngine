@@ -30,7 +30,6 @@ plan_sources:
 tests:
   - zircon_runtime/src/script/vm/capability_set.rs
   - zircon_runtime/src/script/vm/tests/host_interfaces.rs
-  - zircon_runtime/src/script/vm/runtime/hot_reload_coordinator/tests.rs
   - zircon_plugins/zr_vm_language/runtime/src/tests/host_interface.rs
   - zircon_plugins/zr_vm_language/runtime/src/tests/registration.rs
   - zircon_plugins/zr_vm_language/runtime/src/tests/real_backend.rs

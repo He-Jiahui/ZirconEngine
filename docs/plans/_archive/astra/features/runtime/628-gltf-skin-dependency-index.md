@@ -5,9 +5,7 @@ plan_sources:
   - docs/plans/optimize/zircon_runtime/628/2026-09-01-preallocated-gltf-skin-dependency-index.md
 related_code:
   - zircon_runtime/src/asset/importer/ingest/gltf_animation_subassets.rs
-  - zircon_runtime/src/asset/importer/ingest/gltf_animation_subassets/optimization_batch_ir_runtime628_tests.rs
 tests:
-  - zircon_runtime/src/asset/importer/ingest/gltf_animation_subassets/optimization_batch_ir_runtime628_tests.rs
 ---
 
 # glTF Skin Dependency Index Capacity

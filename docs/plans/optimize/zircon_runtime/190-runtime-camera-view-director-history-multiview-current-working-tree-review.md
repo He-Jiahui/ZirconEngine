@@ -16,11 +16,7 @@ related_code:
   - zircon_runtime/src/core/framework/render/frame_extract
   - zircon_runtime/src/dynamic_api/camera_controller.rs
   - zircon_runtime/src/dynamic_api/session
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract
-  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record
-  - zircon_runtime/src/graphics/scene/scene_renderer/temporal/velocity
   - zircon_plugins/ai/runtime/src/plugin/registration.rs
-  - zircon_plugins/rendering/features/reflection_probes/runtime/src/capture/face_view.rs
   - zircon_runtime/tests/runtime_camera_core_pipeline_contract.rs
 plan_sources:
   - docs/plans/optimize/zircon_runtime/37-camera-endpoint-director-rig-controller-blend-shake-cinematic-cut-history-multiview-network-save-scalability-product-integration-review.md

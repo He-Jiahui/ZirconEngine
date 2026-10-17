@@ -221,7 +221,7 @@ plan_sources:
 tests:
   - runtime_09_m1_2_accessibility_open_state_fallback_renamed_static_passed_cargo_pending
   - zircon_runtime::tests::runtime_absorption::ui_architecture::runtime_09_accessibility_open_state_fallback_rename_reduces_ui_a11y_debt
-  - zircon_runtime/src/dynamic_api/tests.rs
+  - zircon_runtime/src/dynamic_api/tests/mod.rs
   - zircon_runtime/src/ui/tests/accessibility.rs
   - zircon_runtime/src/ui/tests/accessibility_disabled_gate.rs
 

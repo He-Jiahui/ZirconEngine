@@ -1,13 +1,12 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/app/native_windows/store.rs
+  - zircon_editor/src/ui/retained/app/native_windows/store.rs
 implementation_files:
-  - zircon_editor/src/ui/retained_host/app/native_windows/store.rs
+  - zircon_editor/src/ui/retained/app/native_windows/store.rs
 plan_sources:
   - user: 2026-09-21 optimize Runtime and Editor hot paths and record completion
 tests:
-  - zircon_editor/src/ui/retained_host/app/native_windows/store.rs
-  - tools/tests/test_editor874_native_window_stale_identity_capacity_performance_contract.py
+  - zircon_editor/src/ui/retained/app/native_windows/store.rs
 doc_type: milestone-detail
 title: Editor874 native-window stale-ID capacity
 category: zircon_editor

@@ -11,8 +11,6 @@ implementation_files:
   - zircon_runtime/src/ui/surface/input/editable_text/mutation.rs
   - zircon_runtime/src/ui/surface/input/editable_text/property_transaction.rs
 tests:
-  - zircon_runtime/src/text/document/store/committed_source_tests.rs
-  - zircon_runtime/src/ui/dispatch/input_manager/text_document_session/session/committed_source_tests.rs
   - zircon_runtime/tests/runtime82_inactive_composition_regression.rs
 ---
 

@@ -47,7 +47,6 @@ tests:
   - zircon_editor/src/tests/editor_event/runtime/
   - zircon_editor/src/tests/editor_event/animation_runtime/
   - zircon_editor/src/tests/ui/boundary/editor_event_cutover.rs
-  - tests/acceptance/editor-architecture-plan-01-m1.md
 doc_type: module-detail
 ---
 

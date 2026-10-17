@@ -59,26 +59,15 @@ related_code:
   - zircon_editor/src/ui/binding_dispatch/mod.rs
   - zircon_editor/src/ui/workbench/reflection/transient_ui_state.rs
   - zircon_editor/src/ui/workbench/event/core_event_conversion.rs
-  - zircon_editor/src/ui/retained_host/app.rs
-  - zircon_editor/src/ui/retained_host/app/viewport.rs
-  - zircon_editor/src/ui/retained_host/app/tests/mod.rs
-  - zircon_editor/src/ui/retained_host/document_tab_pointer/build_host_document_tab_pointer_layout.rs
-  - zircon_editor/src/ui/retained_host/ui/workbench_window_projection.rs
-  - zircon_editor/src/ui/retained_host/viewport/tests/controller_polls_latest_captured_frame_from_render_framework.rs
-  - zircon_editor/src/ui/retained_host/app/pane_surface_actions.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/mod.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/workbench/menu_action.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/viewport/bridge.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/viewport/pointer_dispatch.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/pane/surface_control.rs
-  - zircon_editor/src/ui/retained_host/drawer_resize.rs
-  - zircon_editor/src/ui/retained_host/event_bridge.rs
-  - zircon_editor/src/ui/retained_host/shell_pointer.rs
-  - zircon_editor/src/ui/retained_host/tab_drag.rs
-  - zircon_editor/src/ui/retained_host/viewport_toolbar_pointer/mod.rs
-  - zircon_editor/src/ui/retained_host/ui.rs
-  - zircon_editor/src/ui/template_runtime/runtime/build_session.rs
-  - zircon_editor/src/ui/template_runtime/runtime/runtime_host.rs
+  - zircon_editor/src/ui/retained/app/viewport.rs
+  - zircon_editor/src/ui/retained/app/tests/mod.rs
+  - zircon_editor/src/ui/retained/app/pane_surface_actions.rs
+  - zircon_editor/src/ui/retained/dispatch/viewport/bridge.rs
+  - zircon_editor/src/ui/retained/dispatch/viewport/pointer_dispatch.rs
+  - zircon_editor/src/ui/retained/dispatch/pane/surface_control.rs
+  - zircon_editor/src/ui/retained/viewport_toolbar_pointer/mod.rs
+  - zircon_editor/src/ui/runtime/runtime/build_session.rs
+  - zircon_editor/src/ui/runtime/runtime/runtime_host.rs
   - zircon_runtime/src/ui/v2/file_cache.rs
   - zircon_editor/src/lib.rs
   - zircon_editor/src/ui/host/mod.rs
@@ -103,11 +92,8 @@ related_code:
   - zircon_editor/src/ui/asset_editor/command.rs
   - zircon_editor/src/ui/asset_editor/undo_stack.rs
   - zircon_editor/src/ui/host/asset_editor_sessions/mod.rs
-  - zircon_editor/src/ui/retained_host/app/ui_asset_editor.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/mod.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/mod.rs
-  - zircon_editor/src/ui/retained_host/ui/apply_presentation.rs
-  - zircon_editor/src/ui/template_runtime/showcase_demo_state.rs
+  - zircon_editor/src/ui/retained/app/ui_asset_editor.rs
+  - zircon_editor/src/ui/retained/ui/apply_presentation.rs
   - zircon_editor/src/tests/editing/ui_asset/
   - zircon_editor/src/tests/host/retained_window/callback_source_window.rs
   - zircon_editor/src/ui/workbench/event/mod.rs
@@ -125,19 +111,13 @@ related_code:
   - zircon_editor/src/ui/workbench/project/mod.rs
   - zircon_editor/src/ui/workbench/reflection/mod.rs
   - zircon_editor/src/ui/workbench/reflection/widget_reflector.rs
-  - zircon_editor/assets/ui/editor/host/workbench_shell.zui
-  - zircon_editor/src/ui/retained_host/host_contract/mod.rs
-  - zircon_editor/src/ui/template_runtime/retained_adapter.rs
   - zircon_editor/assets/ui/editor/assets_activity.zui
   - zircon_editor/assets/ui/editor/asset_browser.zui
   - zircon_editor/assets/ui/editor/component_showcase.zui
   - zircon_editor/assets/ui/editor/host/pane_surface_controls.zui
   - zircon_editor/assets/ui/editor/host/startup_welcome_controls.zui
   - zircon_editor/assets/ui/editor/host/asset_surface_controls.zui
-  - zircon_editor/assets/ui/editor/workbench_menu_chrome.zui
-  - zircon_editor/assets/ui/editor/workbench_page_chrome.zui
-  - zircon_editor/src/ui/retained_host/host_contract/data/template_nodes.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/panes.rs
+  - zircon_editor/src/ui/retained/contract/data/panes.rs
 implementation_files:
   - zircon_runtime_interface/src/ui/binding/model/mod.rs
   - zircon_runtime/src/ui/event_ui/manager/mod.rs
@@ -184,18 +164,12 @@ implementation_files:
   - zircon_editor/src/ui/binding_dispatch/mod.rs
   - zircon_editor/src/ui/workbench/reflection/transient_ui_state.rs
   - zircon_editor/src/ui/workbench/event/core_event_conversion.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/mod.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/workbench/menu_action.rs
-  - zircon_editor/src/ui/retained_host/app/viewport.rs
-  - zircon_editor/src/ui/retained_host/app/pane_surface_actions.rs
-  - zircon_editor/src/ui/retained_host/event_bridge.rs
-  - zircon_editor/src/ui/template_runtime/runtime/build_session.rs
-  - zircon_editor/src/ui/template_runtime/runtime/runtime_host.rs
+  - zircon_editor/src/ui/retained/app/viewport.rs
+  - zircon_editor/src/ui/retained/app/pane_surface_actions.rs
+  - zircon_editor/src/ui/runtime/runtime/build_session.rs
+  - zircon_editor/src/ui/runtime/runtime/runtime_host.rs
   - zircon_runtime/src/ui/v2/file_cache.rs
-  - zircon_editor/src/ui/retained_host/drawer_resize.rs
-  - zircon_editor/src/ui/retained_host/shell_pointer.rs
-  - zircon_editor/src/ui/retained_host/tab_drag.rs
-  - zircon_editor/src/ui/retained_host/viewport_toolbar_pointer/mod.rs
+  - zircon_editor/src/ui/retained/viewport_toolbar_pointer/mod.rs
   - zircon_editor/src/lib.rs
   - zircon_editor/src/ui/host/mod.rs
   - zircon_editor/src/core/editor_event/service/listener_control.rs
@@ -218,11 +192,8 @@ implementation_files:
   - zircon_editor/src/ui/asset_editor/command.rs
   - zircon_editor/src/ui/asset_editor/undo_stack.rs
   - zircon_editor/src/ui/host/asset_editor_sessions/mod.rs
-  - zircon_editor/src/ui/retained_host/app/ui_asset_editor.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/mod.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/mod.rs
-  - zircon_editor/src/ui/retained_host/ui/apply_presentation.rs
-  - zircon_editor/src/ui/template_runtime/showcase_demo_state.rs
+  - zircon_editor/src/ui/retained/app/ui_asset_editor.rs
+  - zircon_editor/src/ui/retained/ui/apply_presentation.rs
   - zircon_editor/src/ui/workbench/event/mod.rs
   - zircon_editor/src/ui/workbench/event/editor_operation_binding.rs
   - zircon_editor/src/ui/workbench/event/dispatch_editor_host_binding.rs
@@ -239,19 +210,13 @@ implementation_files:
   - zircon_editor/src/ui/workbench/reflection/mod.rs
   - zircon_editor/src/ui/workbench/reflection/model_build.rs
   - zircon_editor/src/ui/workbench/reflection/widget_reflector.rs
-  - zircon_editor/assets/ui/editor/host/workbench_shell.zui
-  - zircon_editor/src/ui/retained_host/host_contract/mod.rs
-  - zircon_editor/src/ui/template_runtime/retained_adapter.rs
   - zircon_editor/assets/ui/editor/assets_activity.zui
   - zircon_editor/assets/ui/editor/asset_browser.zui
   - zircon_editor/assets/ui/editor/component_showcase.zui
   - zircon_editor/assets/ui/editor/host/pane_surface_controls.zui
   - zircon_editor/assets/ui/editor/host/startup_welcome_controls.zui
   - zircon_editor/assets/ui/editor/host/asset_surface_controls.zui
-  - zircon_editor/assets/ui/editor/workbench_menu_chrome.zui
-  - zircon_editor/assets/ui/editor/workbench_page_chrome.zui
-  - zircon_editor/src/ui/retained_host/host_contract/data/template_nodes.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/panes.rs
+  - zircon_editor/src/ui/retained/contract/data/panes.rs
 plan_sources:
   - user: 2026-04-13 收束 JetBrains Hybrid Shell 的 UI 事件、反射和宿主契约
   - user: 2026-04-14 UI事件系统不应该直接和slint耦合，而是独立一套调度和绑定系统

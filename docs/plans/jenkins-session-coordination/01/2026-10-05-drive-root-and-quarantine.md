@@ -6,7 +6,6 @@ related_code:
   - tools/jenkins/deployment/quarantine.py
   - tools/jenkins/deployment/manager.py
 tests:
-  - .jenkins/state/migration-baseline/patch-support-regression-1791207120105098800.json
 doc_type: implementation-record
 ---
 

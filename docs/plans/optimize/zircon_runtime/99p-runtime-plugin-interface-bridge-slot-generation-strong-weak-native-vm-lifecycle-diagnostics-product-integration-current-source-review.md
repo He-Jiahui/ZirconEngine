@@ -10,38 +10,24 @@ related_code:
   - zircon_runtime/src/plugin/bridge.rs
   - zircon_runtime/src/plugin/bridge
   - zircon_runtime/src/plugin/extension_registry/register/bridge_registration.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/bridge_dependencies.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/bridge_lifecycle.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/bridge_lifecycle_state.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/host_api_adapter/bridge_scope
-  - zircon_runtime/src/plugin/native_plugin_loader/loaded_native_plugin.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_host_handle.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/bridge_lifecycle.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/bridge_methods.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/lifecycle.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/loading.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/registration_replay.rs
+  - zircon_runtime/src/plugin/loader/host_api_adapter/bridge_scope
   - zircon_runtime/src/script/vm/host/bridge_host_module.rs
   - zircon_runtime/src/script/vm/host/builtin_host_modules.rs
   - zircon_runtime/src/script/vm/runtime/vm_plugin_manager.rs
   - zircon_app/src/entry/builtin_modules.rs
   - zircon_app/src/entry/engine_entry.rs
   - zircon_editor/src/core/play/plugin_activation/native.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/startup/with_viewport/runtime_backend.rs
+  - zircon_editor/src/ui/retained/app/startup/with_viewport/runtime_backend.rs
   - zircon_editor/src/ui/workbench/snapshot/data/bridge_diagnostics_snapshot.rs
   - zircon_plugins/ai/runtime/src/plugin/registration.rs
   - zircon_plugins/ai/runtime/src/perception/scan.rs
   - zircon_plugins/physics/runtime/src/plugin.rs
   - zircon_plugins/zr_vm_language/runtime/src/plugin.rs
 tests:
-  - zircon_runtime/src/tests/plugin_extensions/extension_registry_bridge.rs
   - zircon_runtime/src/tests/plugin_extensions/extension_registry_bridge
-  - zircon_runtime/src/tests/plugin_extensions/extension_registry_bridge_performance_baseline.rs
-  - zircon_runtime/src/tests/plugin_extensions/runtime_plugin_bridge_dependencies.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/host_api_adapter/bridge_scope/tests.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests/bridge_bindings.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests/hot_reload_publication.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests/registration_replay.rs
+  - zircon_runtime/src/plugin/loader/live/tests/bridge_bindings.rs
+  - zircon_runtime/src/plugin/loader/live/tests/hot_reload_publication.rs
+  - zircon_runtime/src/plugin/loader/live/tests/registration_replay.rs
   - zircon_runtime/src/script/vm/tests/bridge_host.rs
   - zircon_app/src/entry/tests/profile_bootstrap.rs
   - zircon_editor/src/tests/editor_event/runtime/stack_play.rs

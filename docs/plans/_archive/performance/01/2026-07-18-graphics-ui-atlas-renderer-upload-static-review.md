@@ -1,7 +1,7 @@
 ---
 related_code:
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload
+  - zircon_runtime/src/graphics/scene/renderer/ui/atlas_renderer
+  - zircon_runtime/src/graphics/scene/renderer/ui/atlas_texture_upload
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_runtime/text/04-glyph-atlas-and-rasterization.md

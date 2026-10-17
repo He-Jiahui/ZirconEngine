@@ -9,8 +9,6 @@ related_records:
 implementation_files:
   - zircon_editor/src/ui/host/play_pending_decision/resolve.rs
 tests:
-  - zircon_editor/src/ui/host/play_pending_decision/resolve/failure_single_buffer_tests.rs
-  - tools/tests/test_editor887_play_pending_failure_single_buffer_performance_contract.py
 ---
 
 # Editor887 Play Pending Failure Single Buffer

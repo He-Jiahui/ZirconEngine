@@ -1,125 +1,23 @@
 ---
 related_code:
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/index/workbench_extension_module_workspaces.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/world/workbench_extension_terrain_editor_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/world/workbench_extension_foliage_editor_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/world/workbench_extension_level_streaming_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/world/workbench_extension_level_variant_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/world/workbench_extension_prefab_editor_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/world/workbench_extension_scatter_editor_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/world/workbench_extension_volume_editor_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/world/workbench_extension_weather_editor_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/gameplay/workbench_extension_spawn_rules_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/gameplay/workbench_extension_world_state_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/simulation/workbench_extension_collision_proxy_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/simulation/workbench_extension_physics_collision_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/simulation/workbench_extension_navmesh_ai_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/multiplayer/workbench_extension_lobby_editor_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/multiplayer/workbench_extension_matchmaking_editor_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/rendering/workbench_extension_shader_editor_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/rendering/workbench_extension_lighting_bake_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/rendering/workbench_extension_post_process_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/animation/workbench_extension_sequencer_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/animation/workbench_extension_montage_editor_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/animation/workbench_extension_blend_space_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/animation/workbench_extension_pose_library_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/animation/workbench_extension_retarget_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/animation/workbench_extension_control_rig_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/animation/workbench_extension_motion_matching_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/animation/workbench_extension_animation_compression_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/data/workbench_extension_data_table_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/production/workbench_extension_source_control_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/production/workbench_extension_build_export_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/production/workbench_extension_automation_report_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/production/workbench_extension_project_overview_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/production/workbench_extension_plugin_manager_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/data/workbench_extension_save_data_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/rendering/workbench_extension_particle_library_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/ui/workbench_extension_ui_asset_editor_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/ui/workbench_extension_ui_binding_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/ui/workbench_extension_font_atlas_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/diagnostics/workbench_extension_console_diagnostics_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/diagnostics/workbench_extension_runtime_diagnostics_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/diagnostics/workbench_extension_performance_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/diagnostics/workbench_extension_telemetry_dashboard_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/ui/workbench_extension_icon_library_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/ui/workbench_extension_accessibility_audit_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/ui/workbench_extension_menu_flow_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/core/rendering/workbench_render_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/core/gameplay/workbench_ability_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/core/assets/workbench_assets_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/core/rendering/workbench_vfx_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/core/ui/workbench_hud_workspace.zui
-  - zircon_editor/src/ui/template_runtime/builtin/workbench_extension_module_template_bindings.rs
-  - zircon_editor/src/ui/template_runtime/builtin/workbench_extension_module_template_bindings/types.rs
-  - zircon_editor/src/ui/template_runtime/builtin/workbench_extension_module_template_bindings/install.rs
-  - zircon_editor/src/ui/template_runtime/builtin/workbench_extension_module_template_bindings/gameplay_animation.rs
-  - zircon_editor/src/ui/template_runtime/builtin/workbench_extension_module_template_bindings/gameplay_state.rs
-  - zircon_editor/src/ui/template_runtime/builtin/workbench_extension_module_template_bindings/online_sessions.rs
-  - zircon_editor/src/ui/template_runtime/builtin/workbench_extension_module_template_bindings/runtime_state.rs
-  - zircon_editor/src/ui/template_runtime/builtin/workbench_extension_module_template_bindings/render_asset_vfx.rs
-  - zircon_editor/src/ui/template_runtime/builtin/workbench_extension_module_template_bindings/ui_diagnostics.rs
-  - zircon_editor/src/ui/template_runtime/builtin/workbench_extension_module_template_bindings/ui_diagnostics/observability.rs
-  - zircon_editor/src/ui/template_runtime/builtin/workbench_extension_module_template_bindings/world_building.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation/specs.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation/specs/types.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation/specs/gameplay_animation.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation/specs/gameplay_state.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation/specs/online_sessions.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation/specs/runtime_state.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation/specs/render_asset_vfx.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation/specs/data_production.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation/specs/ui_diagnostics.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation/specs/ui_diagnostics/observability.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation/specs/world_building.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback/data_production.rs
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_sample_grid.zui
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_weight_heatmap.zui
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_preview_viewport.zui
-  - zircon_editor/assets/ui/editor/workbench/preview/animation_mannequin_viewport.svg
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_timeline_strip.zui
-  - zircon_editor/assets/ui/editor/components/workbench/composites/animation/workbench_transport_controls.zui
-  - zircon_editor/assets/ui/editor/components/workbench/composites/animation/workbench_blend_space_details.zui
-  - zircon_editor/assets/ui/editor/components/workbench/composites/inputs/workbench_property_editor_row.zui
-  - zircon_editor/assets/ui/editor/components/workbench/composites/animation/workbench_sample_weights.zui
-  - zircon_editor/assets/ui/editor/components/workbench/composites/feedback/workbench_validation_log.zui
-  - zircon_editor/src/ui/retained_host/host_contract/data/template_nodes/timeline_strip.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/timeline_strip.rs
-  - zircon_editor/src/ui/retained_host/ui/workbench_window_projection.rs
-  - zircon_editor/src/ui/retained_host/ui/workbench_window_projection/tests.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/workbench/specs/types.rs
+  - zircon_editor/src/ui/retained/dispatch/workbench/specs/gameplay_animation.rs
+  - zircon_editor/src/ui/retained/dispatch/workbench/specs/gameplay_state.rs
+  - zircon_editor/src/ui/retained/dispatch/workbench/specs/online_sessions.rs
+  - zircon_editor/src/ui/retained/dispatch/workbench/specs/runtime_state.rs
+  - zircon_editor/src/ui/retained/dispatch/workbench/specs/render_asset_vfx.rs
+  - zircon_editor/src/ui/retained/dispatch/workbench/specs/data_production.rs
+  - zircon_editor/src/ui/retained/dispatch/workbench/specs/ui_diagnostics.rs
+  - zircon_editor/src/ui/retained/dispatch/specs/ui_diagnostics/observability.rs
+  - zircon_editor/src/ui/retained/dispatch/workbench/specs/world_building.rs
+  - zircon_editor/assets/ui/editor/preview/animation_mannequin_viewport.svg
   - zircon_runtime/src/ui/template/asset/compiler/component_instance_expander.rs
   - zircon_runtime/src/ui/v2/component_instancer.rs
   - zircon_runtime/src/ui/tests/asset/document_compiler.rs
   - zircon_runtime/src/ui/tests/v2_asset/composite_components.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_timeline_strip.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_timeline_strip/geometry.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_timeline_strip/metrics.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_timeline_strip/palette.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_timeline_strip/surface.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_timeline_strip/text.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_timeline_strip/keys.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/template_nodes/sample_grid.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/template_nodes/weight_heatmap.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/sample_grid.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_sample_grid.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_weight_heatmap.rs
-  - zircon_editor/src/ui/retained_host/ui/workbench_window_projection.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback/gameplay_state.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/blend_space_transport.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback/simulation_physics.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback/online_sessions.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback/runtime_state.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback/ui_diagnostics.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback/ui_diagnostics/observability.rs
-  - zircon_editor/src/ui/retained_host/workbench_preview_actions.rs
-  - zircon_editor/src/ui/retained_host/workbench_preview_actions/extensions.rs
-  - zircon_editor/src/tests/host/retained_menu_pointer/visual_screenshot/blend_space_workspace/transport_actions.rs
+  - zircon_editor/src/ui/retained/dispatch/workbench/blend_space_transport.rs
+  - zircon_editor/src/tests/host/menus/blend_space_workspace/transport_actions.rs
 implementation_files:
-  - zircon_editor/assets/ui/editor/components/workbench/composites/animation/workbench_blend_space_details.zui
-  - zircon_editor/assets/ui/editor/components/workbench/composites/animation/workbench_transport_controls.zui
-  - zircon_editor/assets/ui/editor/components/workbench/composites/inputs/workbench_property_editor_row.zui
   - zircon_runtime/src/ui/template/asset/compiler/component_instance_expander.rs
   - zircon_runtime/src/ui/v2/component_instancer.rs
   - zircon_editor/assets/icons/zircon_editor_shell/animation/playback-record.svg
@@ -128,95 +26,19 @@ implementation_files:
   - zircon_editor/assets/icons/zircon_editor_shell/animation/playback-previous.svg
   - zircon_editor/assets/icons/zircon_editor_shell/animation/playback-next.svg
   - zircon_editor/assets/icons/zircon_editor_shell/animation/playback-loop.svg
-  - zircon_editor/assets/ui/editor/components/workbench/composites/animation/workbench_sample_weights.zui
-  - zircon_editor/assets/ui/editor/components/workbench/composites/feedback/workbench_validation_log.zui
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_preview_viewport.zui
-  - zircon_editor/assets/ui/editor/workbench/preview/animation_mannequin_viewport.svg
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_timeline_strip.zui
-  - zircon_editor/src/ui/retained_host/host_contract/data/template_nodes/timeline_strip.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/timeline_strip.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_timeline_strip.rs
-  - zircon_editor/src/ui/retained_host/ui/workbench_window_projection.rs
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/index/workbench_extension_module_workspaces.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/core/assets/workbench_assets_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/world/workbench_extension_terrain_editor_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/world/workbench_extension_foliage_editor_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/world/workbench_extension_level_streaming_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/world/workbench_extension_level_variant_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/world/workbench_extension_prefab_editor_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/world/workbench_extension_scatter_editor_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/world/workbench_extension_volume_editor_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/world/workbench_extension_weather_editor_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/gameplay/workbench_extension_spawn_rules_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/gameplay/workbench_extension_world_state_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/simulation/workbench_extension_collision_proxy_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/simulation/workbench_extension_physics_collision_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/simulation/workbench_extension_navmesh_ai_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/multiplayer/workbench_extension_matchmaking_editor_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/rendering/workbench_extension_lighting_bake_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/rendering/workbench_extension_post_process_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/animation/workbench_extension_sequencer_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/animation/workbench_extension_montage_editor_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/animation/workbench_extension_blend_space_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/animation/workbench_extension_pose_library_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/animation/workbench_extension_retarget_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/animation/workbench_extension_control_rig_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/animation/workbench_extension_motion_matching_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/animation/workbench_extension_animation_compression_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/production/workbench_extension_automation_report_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/production/workbench_extension_project_overview_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/production/workbench_extension_plugin_manager_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/data/workbench_extension_save_data_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/rendering/workbench_extension_particle_library_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/ui/workbench_extension_ui_asset_editor_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/ui/workbench_extension_ui_binding_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/ui/workbench_extension_font_atlas_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/diagnostics/workbench_extension_console_diagnostics_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/diagnostics/workbench_extension_runtime_diagnostics_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/diagnostics/workbench_extension_performance_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/diagnostics/workbench_extension_telemetry_dashboard_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/ui/workbench_extension_icon_library_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/ui/workbench_extension_accessibility_audit_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/ui/workbench_extension_menu_flow_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/core/rendering/workbench_vfx_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/core/gameplay/workbench_ability_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/core/ui/workbench_hud_workspace.zui
-  - zircon_editor/src/ui/template_runtime/builtin/workbench_extension_module_template_bindings.rs
-  - zircon_editor/src/ui/template_runtime/builtin/workbench_extension_module_template_bindings/types.rs
-  - zircon_editor/src/ui/template_runtime/builtin/workbench_extension_module_template_bindings/install.rs
-  - zircon_editor/src/ui/template_runtime/builtin/workbench_extension_module_template_bindings/gameplay_animation.rs
-  - zircon_editor/src/ui/template_runtime/builtin/workbench_extension_module_template_bindings/gameplay_state.rs
-  - zircon_editor/src/ui/template_runtime/builtin/workbench_extension_module_template_bindings/online_sessions.rs
-  - zircon_editor/src/ui/template_runtime/builtin/workbench_extension_module_template_bindings/runtime_state.rs
-  - zircon_editor/src/ui/template_runtime/builtin/workbench_extension_module_template_bindings/simulation_physics.rs
-  - zircon_editor/src/ui/template_runtime/builtin/workbench_extension_module_template_bindings/render_asset_vfx.rs
-  - zircon_editor/src/ui/template_runtime/builtin/workbench_extension_module_template_bindings/ui_diagnostics.rs
-  - zircon_editor/src/ui/template_runtime/builtin/workbench_extension_module_template_bindings/ui_diagnostics/observability.rs
-  - zircon_editor/src/ui/template_runtime/builtin/workbench_extension_module_template_bindings/world_building.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation/specs.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation/specs/types.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation/specs/gameplay_animation.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation/specs/gameplay_state.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation/specs/simulation_physics.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation/specs/online_sessions.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation/specs/runtime_state.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation/specs/render_asset_vfx.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation/specs/data_production.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation/specs/ui_diagnostics.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation/specs/ui_diagnostics/observability.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation/specs/world_building.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/blend_space_transport.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback/data_production.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback/gameplay_state.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback/simulation_physics.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback/online_sessions.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback/runtime_state.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback/ui_diagnostics.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback/ui_diagnostics/observability.rs
-  - zircon_editor/src/ui/retained_host/workbench_preview_actions.rs
-  - zircon_editor/src/ui/retained_host/workbench_preview_actions/extensions.rs
+  - zircon_editor/assets/ui/editor/preview/animation_mannequin_viewport.svg
+  - zircon_editor/src/ui/retained/dispatch/templates/workbench/specs/types.rs
+  - zircon_editor/src/ui/retained/dispatch/workbench/specs/gameplay_animation.rs
+  - zircon_editor/src/ui/retained/dispatch/workbench/specs/gameplay_state.rs
+  - zircon_editor/src/ui/retained/dispatch/workbench/specs/simulation_physics.rs
+  - zircon_editor/src/ui/retained/dispatch/workbench/specs/online_sessions.rs
+  - zircon_editor/src/ui/retained/dispatch/workbench/specs/runtime_state.rs
+  - zircon_editor/src/ui/retained/dispatch/workbench/specs/render_asset_vfx.rs
+  - zircon_editor/src/ui/retained/dispatch/workbench/specs/data_production.rs
+  - zircon_editor/src/ui/retained/dispatch/workbench/specs/ui_diagnostics.rs
+  - zircon_editor/src/ui/retained/dispatch/specs/ui_diagnostics/observability.rs
+  - zircon_editor/src/ui/retained/dispatch/workbench/specs/world_building.rs
+  - zircon_editor/src/ui/retained/dispatch/workbench/blend_space_transport.rs
 plan_sources:
   - user: 2026-07-13 continue Layout 15 atomic Unreal visual convergence from the Blend Space reference
   - docs/plans/zircon_editor/editor_layout/15-component-standardization-from-primitives.md
@@ -227,14 +49,12 @@ plan_sources:
   - docs/ui/ai-workbench-style/component-prototype/web-native-handoff-matrix.md
 tests:
   - zircon_editor/src/tests/ui/boundary/zui_asset_governance/workbench_composites.rs
-  - zircon_editor/src/tests/host/retained_menu_pointer/visual_screenshot/blend_space_workspace/composite_contracts.rs
-  - zircon_editor/src/tests/host/retained_menu_pointer/visual_screenshot/blend_space_workspace/transport_actions.rs
-  - zircon_editor/src/tests/host/retained_menu_pointer/visual_screenshot/blend_space_workspace/property_editor_rows.rs
-  - zircon_editor/src/ui/retained_host/ui/workbench_window_projection/tests.rs
+  - zircon_editor/src/tests/host/menus/blend_space_workspace/composite_contracts.rs
+  - zircon_editor/src/tests/host/menus/blend_space_workspace/transport_actions.rs
+  - zircon_editor/src/tests/host/menus/blend_space_workspace/property_editor_rows.rs
   - zircon_runtime/src/ui/tests/asset/document_compiler.rs
   - zircon_runtime/src/ui/tests/v2_asset/composite_components.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/tests/timeline_strip.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_timeline_strip_tests/paint.rs
+  - zircon_editor/src/ui/retained/ui/data/projection/tests/timeline_strip.rs
   - rustfmt --edition 2021 --check zircon_editor/src/ui/template_runtime/builtin/workbench_extension_module_template_bindings/simulation_physics.rs zircon_editor/src/ui/template_runtime/builtin/workbench_extension_module_template_bindings/gameplay_state.rs zircon_editor/src/ui/template_runtime/builtin/workbench_extension_module_template_bindings/render_asset_vfx.rs zircon_editor/src/ui/retained_host/workbench_preview_actions/extensions.rs zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation/specs.rs zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation/specs/simulation_physics.rs zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation/specs/gameplay_state.rs zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation/specs/data_production.rs zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback/simulation_physics.rs zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback/gameplay_state.rs zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback/data_production.rs
   - node --check docs/ui/ai-workbench-style/component-prototype/verify-native-extension-module-contract.mjs
   - node --check docs/ui/ai-workbench-style/component-prototype/verify-web-native-handoff.mjs

@@ -8,10 +8,10 @@ plan_sources:
   - docs/plans/optimize/zircon_editor/265/2026-09-29-prefix-category-selection.md
   - docs/plans/optimize/zircon_editor/265/2026-09-29-selected-category-before-projection.md
 implementation_files:
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/settings_window/mod.rs
+  - zircon_editor/src/ui/retained/ui/data/projection/settings_window/mod.rs
 tests:
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/settings_window/mod.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/settings_window/tests/selected_category_refresh_profile.rs
+  - zircon_editor/src/ui/retained/ui/data/projection/settings_window/mod.rs
+  - zircon_editor/src/ui/retained/ui/data/tests/selected_category_refresh_profile.rs
 ---
 
 # Editor1066 / Editor265 selected-category projection completion list

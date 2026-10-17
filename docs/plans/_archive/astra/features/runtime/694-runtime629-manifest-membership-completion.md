@@ -6,7 +6,6 @@ plan_sources:
 related_code:
   - zircon_runtime/src/asset/project/manifest/validation.rs
 tests:
-  - zircon_runtime/src/asset/project/manifest/validation/optimization_batch_ir_runtime629_tests.rs
 ---
 
 # Runtime629 Manifest Membership Completion

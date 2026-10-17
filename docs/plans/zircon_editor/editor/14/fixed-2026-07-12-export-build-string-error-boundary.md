@@ -8,10 +8,10 @@ fixing_plan: docs/plans/zircon_editor/editor/15-build-export-and-publishing.md
 origin_child_dir: docs/plans/zircon_editor/editor/14
 fixing_child_dir: docs/plans/zircon_editor/editor/15
 related_code:
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/manager.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/cargo_build.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/execution.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_actions/job_queue/worker.rs
+  - zircon_editor/src/ui/host/exports/export_build/manager.rs
+  - zircon_editor/src/ui/host/exports/export_build/cargo_build.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/execution.rs
+  - zircon_editor/src/ui/retained/app/build_export_actions/job_queue/worker.rs
 tests:
   - static E1 audit of Result<_, String>, error.to_string(), and format! error boundaries under editor_manager_plugins_export/export_build
 resolved_at: 2026-07-12

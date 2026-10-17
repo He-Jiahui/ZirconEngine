@@ -15,40 +15,28 @@ related_code:
   - zircon_editor/src/scene/modes/scene_mode_registry.rs
   - zircon_editor/src/scene/viewport/controller/constants.rs
   - zircon_editor/src/scene/viewport/controller/viewport_drag_session.rs
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_handle_input.rs
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_interaction_cancel.rs
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_reset_from_scene.rs
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_selection.rs
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_overlay_providers.rs
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_pointer_route.rs
   - zircon_editor/src/scene/viewport/controller/scene_viewport_state.rs
   - zircon_editor/src/scene/viewport/interaction/viewport_input.rs
   - zircon_editor/src/scene/viewport/interaction/viewport_feedback.rs
   - zircon_editor/src/scene/viewport/projection.rs
-  - zircon_editor/src/scene/viewport/pointer/overlay_router/selectable_owners_in_rect.rs
-  - zircon_editor/src/scene/viewport/pointer/overlay_router/viewport_overlay_pointer_router_visible_spatial_query.rs
-  - zircon_editor/src/scene/viewport/pointer/overlay_router/viewport_overlay_pointer_router_sync.rs
-  - zircon_editor/src/scene/viewport/pointer/overlay_router/viewport_overlay_pointer_router.rs
-  - zircon_editor/src/scene/viewport/pointer/precision/renderer_visible_spatial_pick_source.rs
+  - zircon_editor/src/scene/pointer/overlay_router/selectable_owners_in_rect.rs
+  - zircon_editor/src/scene/precision/renderer_visible_spatial_pick_source.rs
   - zircon_editor/src/scene/viewport/pointer/precision/shared_resolution_state.rs
   - zircon_editor/src/scene/viewport/pointer/candidates/renderable_candidates.rs
   - zircon_editor/src/scene/viewport/pointer/viewport_renderable_pick_candidate.rs
   - zircon_runtime/src/core/framework/render/overlay.rs
   - zircon_editor/src/ui/workbench/state/editor_state_viewport.rs
   - zircon_editor/src/ui/host/editor_event_execution/viewport_event.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/viewport/pointer_dispatch.rs
-  - zircon_editor/src/ui/retained_host/app/viewport/pointer_event.rs
+  - zircon_editor/src/ui/retained/dispatch/viewport/pointer_dispatch.rs
+  - zircon_editor/src/ui/retained/app/viewport/pointer_event.rs
   - zircon_runtime/src/core/framework/render/visible_spatial_query.rs
   - zircon_runtime/src/graphics/visibility/spatial_query.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/visible_spatial_query.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/query_visible_spatial_snapshot/query_visible_spatial_snapshot.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/viewport_record.rs
+  - zircon_runtime/src/graphics/runtime/viewport_record/visible_spatial_query.rs
+  - zircon_runtime/src/graphics/runtime/framework/viewport_record/viewport_record.rs
 tests:
-  - zircon_editor/src/scene/selection/tests.rs
-  - zircon_editor/src/scene/modes/tests.rs
   - zircon_editor/src/tests/editing/state/viewport.rs
   - zircon_editor/src/tests/editing/state/selection.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/viewport/pointer_bridge.rs
+  - zircon_editor/src/tests/host/callbacks/viewport/pointer_bridge.rs
   - zircon_editor/src/tests/editing/viewport.rs
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md

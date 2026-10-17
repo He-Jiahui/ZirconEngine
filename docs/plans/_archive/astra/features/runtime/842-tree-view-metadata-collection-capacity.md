@@ -11,8 +11,6 @@ related_records:
 implementation_files:
   - zircon_runtime/src/ui/surface/surface/default_interactions/tree_view_support.rs
 tests:
-  - zircon_runtime/src/ui/surface/surface/default_interactions/tree_view_support/capacity_tests.rs
-  - tools/tests/test_runtime_tree_view_metadata_capacity_performance_contract.py
 ---
 
 # Runtime842 · TreeView metadata collection capacity

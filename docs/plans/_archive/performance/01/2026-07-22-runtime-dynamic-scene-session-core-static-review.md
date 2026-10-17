@@ -1,6 +1,5 @@
 ---
 related_code:
-  - zircon_runtime/src/scene/dynamic_scene/session
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_runtime/runtime/04-asset-pipeline-alignment.md

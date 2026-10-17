@@ -10,16 +10,10 @@ fixing_child_dir: docs/plans/zircon_runtime/render/07
 plan_link_mode: child_record_only
 related_code:
   - zircon_runtime/src/core/framework/render/frame_extract/post_process.rs
-  - zircon_runtime/src/core/framework/render/post_process/color_space.rs
-  - zircon_runtime/src/core/framework/render/post_process/effect_stack_settings.rs
-  - zircon_runtime/src/core/framework/render/post_process/effect_stack_settings/color_transform_settings.rs
-  - zircon_runtime/src/core/framework/render/post_process/effect_stack_settings/style_settings.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/resource_descriptors.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/constants/texture_formats.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/post_process_pipeline.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_output_transfer/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/output_transfer.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/post_process.wgsl
+  - zircon_runtime/src/graphics/scene/renderer/post/constants/texture_formats.rs
+  - zircon_runtime/src/graphics/post/create_pipeline_bundle/post_process_pipeline.rs
+  - zircon_runtime/src/graphics/scene/renderer/post/execute_output_transfer/mod.rs
+  - zircon_runtime/src/graphics/scene/renderer/post/shaders/output_transfer.wgsl
 tests:
   - Invoke-Pester -Script tools/tests/zircon_profile_shader_pbr_viewer.Tests.ps1 -PassThru
   - managed cargo test -p zircon_runtime --lib render_product_post_process --locked --jobs 1

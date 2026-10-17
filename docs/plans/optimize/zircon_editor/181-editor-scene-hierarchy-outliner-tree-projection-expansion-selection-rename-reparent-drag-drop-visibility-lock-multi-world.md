@@ -20,25 +20,19 @@ related_code:
   - zircon_editor/src/ui/host/editor_event_execution/hierarchy_event.rs
   - zircon_editor/src/ui/workbench/snapshot/data/scene_entry
   - zircon_editor/src/ui/workbench/state/editor_state_apply_intent.rs
-  - zircon_editor/src/ui/retained_host/app/hierarchy_pointer
-  - zircon_editor/src/ui/retained_host/app/hierarchy_filter.rs
-  - zircon_editor/src/ui/retained_host/app/hierarchy_rename.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/scene_hierarchy_refresh.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/hierarchy
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/native_panes/hierarchy
+  - zircon_editor/src/ui/retained/app/hierarchy_pointer
+  - zircon_editor/src/ui/retained/app/hierarchy_filter.rs
+  - zircon_editor/src/ui/retained/app/hierarchy_rename.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle/scene_hierarchy_refresh.rs
+  - zircon_editor/src/ui/retained/contract/workbench/native_panes/hierarchy
 tests:
-  - zircon_runtime/src/scene/inspection/tests.rs
-  - zircon_editor/src/tests/editing/node_ops.rs
+  - zircon_editor/src/tests/editing/node_ops/mod.rs
   - zircon_editor/src/tests/editing/history.rs
   - zircon_editor/src/tests/editing/state/selection.rs
   - zircon_editor/src/tests/editor_message/refresh.rs
   - zircon_editor/src/tests/host/retained_asset_refresh/scene_reload.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/hierarchy.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_projection/interaction.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_projection/scene_fragment.rs
   - zircon_editor/src/tests/host/retained_list_pointer/bridge_dispatch.rs
-  - zircon_editor/src/ui/retained_host/app/tests/drag_sources/scene_and_object.rs
+  - zircon_editor/src/ui/retained/app/tests/drag_sources/scene_and_object.rs
 plan_sources:
   - docs/plans/optimize/zircon_editor/60-editor-scene-hierarchy-outliner-tree-projection-expansion-selection-rename-reparent-drag-drop-visibility-lock-multi-world.md
   - docs/plans/optimize/zircon_editor/162-editor-level-variant-data-layer-level-instance-world-outliner-current-source-review.md

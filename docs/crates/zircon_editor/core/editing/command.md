@@ -15,9 +15,6 @@ related_code:
   - zircon_runtime_interface/src/reflect/object_address.rs
   - zircon_runtime_interface/src/reflect/read_write.rs
   - zircon_runtime_interface/src/reflect/reflected_value.rs
-  - dev/bevy/crates/bevy_ecs/src/reflect/component.rs
-  - dev/bevy/crates/bevy_ecs/src/world/reflect.rs
-  - dev/bevy/crates/bevy_reflect/src/type_registry.rs
 implementation_files:
   - zircon_editor/src/core/editing/command.rs
   - zircon_editor/src/ui/workbench/state/editor_state_field_updates.rs

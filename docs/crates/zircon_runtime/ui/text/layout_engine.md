@@ -17,7 +17,6 @@ related_code:
   - zircon_runtime/src/text/layout/line_break/smart.rs
   - zircon_runtime/src/ui/text/hit_test.rs
   - zircon_runtime/src/ui/surface/input/text_pointer.rs
-  - zircon_runtime/src/ui/text/layout_engine/tests.rs
   - zircon_runtime/src/ui/text/layout_engine/tests/alignment.rs
   - zircon_runtime/src/ui/text/layout_engine/tests/bidi.rs
   - zircon_runtime/src/ui/text/layout_engine/tests/glue.rs
@@ -37,13 +36,13 @@ related_code:
   - zircon_runtime/src/ui/text/rich_text.rs
   - zircon_runtime/src/ui/text/resolved_layout.rs
   - zircon_runtime/src/ui/tests/text_pipeline/measure_cache.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render/tests/parity.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/render/tests/parity.rs
   - zircon_runtime/src/ui/tests/text_hit_testing.rs
   - zircon_runtime/src/ui/tests/text_layout
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/mod.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/render.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/text.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/sdf_render.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/sdf_render/tests/mod.rs
   - zircon_runtime_interface/src/ui/surface/render/command.rs
   - zircon_runtime_interface/src/ui/surface/render/resolved_style.rs
   - zircon_runtime_interface/src/ui/surface/render/text_geometry/mod.rs
@@ -53,8 +52,6 @@ related_code:
   - zircon_runtime_interface/src/ui/surface/mod.rs
   - zircon_runtime_interface/src/tests/render_contracts.rs
   - zircon_runtime/src/ui/tests/widget_text_input_pointer.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_commands.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text.rs
 implementation_files:
   - zircon_runtime/src/ui/text/layout_engine.rs
   - zircon_runtime/src/ui/text/layout_engine/candidate_line.rs
@@ -77,11 +74,11 @@ implementation_files:
   - zircon_runtime/src/ui/text/rich_text.rs
   - zircon_runtime/src/ui/text/resolved_layout.rs
   - zircon_runtime/src/ui/tests/text_pipeline/measure_cache.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render/tests/parity.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/mod.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/render/tests/parity.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/render.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/text.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/sdf_render.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/sdf_render/tests/mod.rs
   - zircon_runtime_interface/src/ui/surface/render/command.rs
   - zircon_runtime_interface/src/ui/surface/render/resolved_style.rs
   - zircon_runtime_interface/src/ui/surface/render/text_geometry/mod.rs
@@ -89,8 +86,6 @@ implementation_files:
   - zircon_runtime_interface/src/ui/surface/render/text_layout.rs
   - zircon_runtime_interface/src/ui/surface/render/typography.rs
   - zircon_runtime_interface/src/ui/surface/mod.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_commands.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text.rs
 plan_sources:
   - .codex/plans/Zircon UI 与 Unreal Slate 差异审计及后续里程碑.md
   - docs/plans/zircon_runtime/text/03-line-breaking-measure-and-layout.md

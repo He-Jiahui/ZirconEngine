@@ -1,23 +1,18 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/host_contract/redraw.rs
-  - zircon_editor/src/ui/retained_host/host_contract/redraw/request.rs
-  - zircon_editor/src/ui/retained_host/host_contract/redraw/request/constructors.rs
-  - zircon_editor/src/ui/retained_host/host_contract/redraw/request/merge.rs
-  - zircon_editor/src/ui/retained_host/host_contract/redraw/request/query.rs
-  - zircon_editor/src/ui/retained_host/host_contract/redraw/dispatch_result.rs
-  - zircon_editor/src/ui/retained_host/host_contract/redraw_tests.rs
-  - zircon_editor/src/ui/retained_host/host_contract/window/redraw.rs
-  - zircon_editor/src/ui/retained_host/host_contract/window/event_loop/redraw.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/redraw_result.rs
+  - zircon_editor/src/ui/retained/contract/redraw/request.rs
+  - zircon_editor/src/ui/retained/contract/redraw/request/constructors.rs
+  - zircon_editor/src/ui/retained/contract/redraw/request/merge.rs
+  - zircon_editor/src/ui/retained/contract/redraw/request/query.rs
+  - zircon_editor/src/ui/retained/contract/redraw/dispatch_result.rs
+  - zircon_editor/src/ui/retained/contract/window/redraw.rs
+  - zircon_editor/src/ui/retained/contract/window/event_loop/redraw.rs
 implementation_files:
-  - zircon_editor/src/ui/retained_host/host_contract/redraw.rs
-  - zircon_editor/src/ui/retained_host/host_contract/redraw/request.rs
-  - zircon_editor/src/ui/retained_host/host_contract/redraw/request/constructors.rs
-  - zircon_editor/src/ui/retained_host/host_contract/redraw/request/merge.rs
-  - zircon_editor/src/ui/retained_host/host_contract/redraw/request/query.rs
-  - zircon_editor/src/ui/retained_host/host_contract/redraw/dispatch_result.rs
-  - zircon_editor/src/ui/retained_host/host_contract/redraw_tests.rs
+  - zircon_editor/src/ui/retained/contract/redraw/request.rs
+  - zircon_editor/src/ui/retained/contract/redraw/request/constructors.rs
+  - zircon_editor/src/ui/retained/contract/redraw/request/merge.rs
+  - zircon_editor/src/ui/retained/contract/redraw/request/query.rs
+  - zircon_editor/src/ui/retained/contract/redraw/dispatch_result.rs
 plan_sources:
   - docs/plans/zircon_editor/editor_ui/08-workbench-shell-on-runtime-ui.md
   - user: 2026-06-20 editor UI architecture implementation, feature first and tests deferred

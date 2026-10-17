@@ -5,9 +5,7 @@ plan_sources:
   - docs/plans/optimize/zircon_editor/634/2026-09-01-preallocated-default-view-instances.md
 related_code:
   - zircon_editor/src/ui/workbench/preset/default_registry.rs
-  - zircon_editor/src/ui/workbench/preset/default_registry/optimization_batch_ix_editor634_tests.rs
 tests:
-  - zircon_editor/src/ui/workbench/preset/default_registry/optimization_batch_ix_editor634_tests.rs
 ---
 
 # Default View Instance Capacity

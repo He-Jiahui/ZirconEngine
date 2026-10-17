@@ -4,7 +4,6 @@ date: 2026-08-22
 owner_plan: docs/plans/zircon_runtime/runtime/02-core-spine-and-root-surface.md
 related_code:
   - zircon_runtime/src/core/runtime/descriptors/module_order.rs
-  - zircon_runtime/src/core/runtime/descriptors/module_order_tests.rs
   - zircon_runtime/src/core/runtime/tests/registration/behavior/module_order.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md#perf-mvp-325

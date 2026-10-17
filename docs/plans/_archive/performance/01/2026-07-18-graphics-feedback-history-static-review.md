@@ -1,13 +1,13 @@
 ---
 related_code:
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/collect_runtime_feedback.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/record_camera_history.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/release_previous_history.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/resolve_history_handle.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/update_particle_previous_state.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/update_temporal_camera_history.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/mod.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/particle_previous_sprites.rs
+  - zircon_runtime/src/graphics/runtime/extract/submit/collect_runtime_feedback.rs
+  - zircon_runtime/src/graphics/runtime/extract/submit/record_camera_history.rs
+  - zircon_runtime/src/graphics/runtime/extract/submit/release_previous_history.rs
+  - zircon_runtime/src/graphics/runtime/extract/submit/resolve_history_handle.rs
+  - zircon_runtime/src/graphics/extract/submit/update_particle_previous_state.rs
+  - zircon_runtime/src/graphics/extract/submit/update_temporal_camera_history.rs
+  - zircon_runtime/src/graphics/runtime/framework/extract/submit/mod.rs
+  - zircon_runtime/src/graphics/runtime/viewport_record/particle_previous_sprites.rs
 tests:
   - current feedback/history state slice 7 of 7 Rust files reviewed, 758 lines
   - all 9 tests in the slice read; history reuse and particle capacity regressions added

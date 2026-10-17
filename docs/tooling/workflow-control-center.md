@@ -2,61 +2,17 @@
 related_code:
   - .codex/hooks/zircon_session_sync.py
   - .codex/hooks.json
-  - tools/install-codex-session-hook.ps1
-  - tools/zircon-session.ps1
 implementation_files:
   - .codex/hooks/zircon_session_sync.py
   - .codex/hooks.json
-  - tools/install-codex-session-hook.ps1
-  - tools/zircon-session.ps1
 plan_sources:
   - docs/superpowers/specs/2026-07-13-codex-session-hook-sync-design.md
   - docs/plans/zircon_tooling/session_coordinator/02-codex-session-hook-sync.md
   - docs/superpowers/specs/2026-07-11-workflow-control-center-and-tray-design.md
   - docs/plans/zircon_tooling/session_coordinator/01-workflow-control-center-and-tray.md
 tests:
-  - tools/session_coordinator/tests/test_codex_worker.py
-  - tools/session_coordinator/tests/test_codex_hook.py
-  - tools/session_coordinator/tests/test_codex_spool.py
   - tools/tests/codex-session-hook.Tests.ps1
-  - tools/session_coordinator/tests/test_codex_discovery.py
-  - tools/session_coordinator/tests/test_codex_store.py
-  - tools/session_coordinator/tests/test_database.py
-  - tools/session_coordinator/tests/test_supervision_schema.py
-  - tools/session_coordinator/tests/test_control_auth.py
-  - tools/session_coordinator/tests/test_control_events.py
-  - tools/session_coordinator/tests/test_control_http.py
-  - tools/session_coordinator/tests/test_control_history.py
-  - tools/session_coordinator/tests/test_control_lazy_projections.py
-  - tools/session_coordinator/tests/test_control_security.py
-  - tools/session_coordinator/tests/test_control_snapshot.py
-  - tools/session_coordinator/tests/test_failures.py
-  - tools/session_coordinator/tests/test_control_assets.py
-  - tools/session_coordinator/tests/test_artifact_downloads.py
-  - tools/session_coordinator/tests/test_action_catalog.py
-  - tools/session_coordinator/tests/test_action_auth.py
-  - tools/session_coordinator/tests/test_action_fingerprint.py
-  - tools/session_coordinator/tests/test_action_execution.py
-  - tools/session_coordinator/tests/test_action_concurrency.py
-  - tools/session_coordinator/tests/test_supervision_actions.py
-  - tools/session_coordinator/tests/test_supervision_service.py
-  - tools/session_coordinator/tests/test_server.py
-  - tools/session_coordinator/tests/test_control_load.py
-  - tools/session_coordinator/tests/test_control_recovery.py
-  - tools/session_coordinator/tests/test_control_security_matrix.py
-  - tools/session_coordinator/tests/test_soak.py
-  - tools/tests/workflow-control-center-smoke.Tests.ps1
-  - tools/tests/workflow-control-center-soak.ps1
   - tools/tests/zircon-session-launcher-logging.Tests.ps1
-  - tools/session_coordinator/web/src/__tests__/components.test.tsx
-  - tools/session_coordinator/web/src/__tests__/contracts.test.ts
-  - tools/session_coordinator/web/src/__tests__/events.test.ts
-  - tools/session_coordinator/web/src/__tests__/failureGraph.test.ts
-  - tools/session_coordinator/web/src/__tests__/historyContracts.test.ts
-  - tools/session_coordinator/web/src/__tests__/graphLayout.test.ts
-  - tools/session_coordinator/web/src/__tests__/navigation.test.ts
-  - tools/session_coordinator/web/src/__tests__/reducer.test.ts
-  - tools/session_coordinator/web/src/__tests__/actions.test.tsx
 doc_type: operator-guide
 ---
 

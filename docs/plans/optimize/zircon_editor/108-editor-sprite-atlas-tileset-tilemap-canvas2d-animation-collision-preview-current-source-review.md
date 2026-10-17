@@ -20,12 +20,10 @@ related_code:
   - zircon_runtime/src/scene/world/render_visibility.rs
   - zircon_runtime/src/core/framework/render/sprite
   - zircon_runtime/src/core/framework/render/frame_extract.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/sprite
   - zircon_runtime/src/graphics/feature/builtin_render_feature
   - zircon_runtime_interface/src/resource/marker.rs
   - zircon_editor/src/core/asset/type_registry
-  - zircon_editor/src/ui/host/editor_asset_manager/manager/sprite_atlas
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/sprite_atlas
+  - zircon_editor/src/ui/host/assets/manager/sprite_atlas
   - zircon_editor/src/ui/workbench/event/node_kind_from_id.rs
   - zircon_plugins/tilemap_2d
   - zircon_plugins/first_party_runtime_catalog
@@ -35,9 +33,7 @@ tests:
   - zircon_runtime/src/scene/tests/world_basics/sprites.rs
   - zircon_runtime/src/graphics/tests/render_product_sprite.rs
   - zircon_runtime/src/asset/assets/sprite_atlas/validation.rs
-  - zircon_editor/src/ui/host/editor_asset_manager/manager/sprite_atlas/packer.rs
-  - zircon_plugins/tilemap_2d/runtime/src/tests.rs
-  - zircon_plugins/tilemap_2d/editor/src/tests.rs
+  - zircon_editor/src/ui/host/assets/manager/sprite_atlas/packer.rs
   - zircon_runtime_interface/src/tests/contracts.rs
   - zircon_runtime/src/scene/world/project_io/scene_asset.rs
 plan_sources:

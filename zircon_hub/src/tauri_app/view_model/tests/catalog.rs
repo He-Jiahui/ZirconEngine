@@ -108,7 +108,7 @@ fn hub03_catalog_classifiers_release_benchmark_evidence() {
     let optimized_p50 = percentile(&optimized_ns, 50);
     let optimized_p95 = percentile(&optimized_ns, 95);
     println!(
-        "PERF_RESULT hub03_catalog_classifiers legacy_p50_ns={legacy_p50} legacy_p95_ns={legacy_p95} optimized_p50_ns={optimized_p50} optimized_p95_ns={optimized_p95} classifier_calls_per_sample=10000 iterations_per_sample={PERF_ITERATIONS_PER_SAMPLE} samples={PERF_SAMPLE_PAIRS} legacy_heap_allocations_per_call=1 optimized_heap_allocations_per_call=0 legacy_raw_ns={} optimized_raw_ns={}",
+        "PERF_RESULT hub03_catalog_classifiers legacy_p50_ns={legacy_p50} legacy_p95_ns={legacy_p95} optimized_p50_ns={optimized_p50} optimized_p95_ns={optimized_p95} classifier_calls_per_sample=10000 iterations_per_sample={PERF_ITERATIONS_PER_SAMPLE} samples={PERF_SAMPLE_PAIRS} legacy_heap_allocations_per_call_expected=1 optimized_heap_allocations_per_call_expected=0 legacy_raw_ns={} optimized_raw_ns={}",
         raw(&legacy_ns),
         raw(&optimized_ns),
     );

@@ -14,18 +14,16 @@ related_code:
   - zircon_runtime/src/script/vm/plugin/management_policy/memory.rs
   - zircon_runtime/src/script/vm/plugin/management_policy/policy.rs
   - zircon_runtime/src/core/framework/script.rs
-  - zircon_runtime/src/tests/runtime_absorption/script_host_ledger.rs
-  - zircon_runtime/src/tests/runtime_absorption/script_binding.rs
-  - zircon_runtime/src/tests/runtime_absorption/script_binding/gameplay_host.rs
-  - zircon_runtime/src/tests/runtime_absorption/script_binding/mirror_docs.rs
-  - zircon_runtime/src/tests/runtime_absorption/script_host_ledger/ledger.rs
-  - zircon_runtime/src/tests/runtime_absorption/script_host_ledger/capability.rs
-  - zircon_runtime/src/tests/runtime_absorption/script_host_ledger/ecs_facade.rs
-  - zircon_runtime/src/tests/runtime_absorption/script_binding/mirror_docs.rs
+  - zircon_runtime/src/tests/contracts/script_binding/gameplay_host.rs
+  - zircon_runtime/src/tests/contracts/script_binding/mirror_docs.rs
+  - zircon_runtime/src/tests/contracts/script_host_ledger/ledger.rs
+  - zircon_runtime/src/tests/contracts/script_host_ledger/capability.rs
+  - zircon_runtime/src/tests/contracts/script_host_ledger/ecs_facade.rs
+  - zircon_runtime/src/tests/contracts/script_binding/mirror_docs.rs
   - tools/tests/test_runtime_script_binding_audit.py
-  - zircon_runtime/src/tests/runtime_absorption/script_binding/inventory.rs
-  - zircon_runtime/src/tests/runtime_absorption/script_binding/support.rs
-  - zircon_runtime/src/tests/runtime_absorption/script_binding/split_layout.rs
+  - zircon_runtime/src/tests/contracts/script_binding/inventory.rs
+  - zircon_runtime/src/tests/contracts/script_binding/support.rs
+  - zircon_runtime/src/tests/contracts/script_binding/split_layout.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/script_binding_boundary.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/script_binding_markdown.py

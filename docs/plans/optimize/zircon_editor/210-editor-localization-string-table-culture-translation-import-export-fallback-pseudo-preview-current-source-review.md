@@ -29,8 +29,8 @@ related_code:
   - zircon_runtime/src/asset/project/manifest/project_manifest.rs
   - zircon_runtime/src/text/language.rs
   - zircon_runtime/src/core/framework/text/layout_error.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas/text_keys.rs
-  - zircon_runtime/src/graphics/tests/render_profiling/text_baseline/localized_text_dirty.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/sdf_atlas/text_keys.rs
+  - zircon_runtime/src/graphics/tests/text_baseline/localized_text_dirty.rs
   - zircon_editor/src/core/i18n
   - zircon_editor/assets/i18n
   - zircon_editor/src/core/context/builder.rs
@@ -43,7 +43,7 @@ related_code:
   - zircon_editor/src/ui/asset_editor/session/preview_compile.rs
   - zircon_editor/src/ui/asset_editor/session/resolver_state.rs
   - zircon_editor/src/ui/asset_editor/session/runtime_report_state.rs
-  - zircon_editor/src/ui/retained_host/app/settings_window_actions.rs
+  - zircon_editor/src/ui/retained/app/settings_window_actions.rs
   - zircon_app/src/entry/product_host_config/entry_config.rs
   - zircon_app/src/entry/runtime_entry_app/config/app_config.rs
 failure_records:

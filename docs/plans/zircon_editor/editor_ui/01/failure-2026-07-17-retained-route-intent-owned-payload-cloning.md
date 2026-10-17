@@ -9,20 +9,18 @@ origin_child_dir: docs/plans/performance/01
 fixing_child_dir: docs/plans/zircon_editor/editor_ui/01
 plan_link_mode: child_record_only
 related_code:
-  - zircon_editor/src/ui/retained_host/route_intent/mod.rs
-  - zircon_editor/src/ui/retained_host/route_intent/map.rs
-  - zircon_editor/src/ui/retained_host/activity_rail_pointer/host_activity_rail_pointer_route.rs
-  - zircon_editor/src/ui/retained_host/document_tab_pointer/host_document_tab_pointer_route.rs
-  - zircon_editor/src/ui/retained_host/drawer_header_pointer/host_drawer_header_pointer_route.rs
-  - zircon_editor/src/ui/retained_host/menu_pointer/host_menu_pointer_route_intent.rs
-  - zircon_editor/src/ui/retained_host/hierarchy_pointer/hierarchy_pointer_route.rs
-  - zircon_editor/src/ui/retained_host/host_page_pointer/host_page_pointer_route.rs
-  - zircon_editor/src/ui/retained_host/viewport_toolbar_pointer/viewport_toolbar_pointer_route.rs
-  - zircon_editor/src/ui/retained_host/welcome_recent_pointer/welcome_recent_pointer_route.rs
-  - zircon_editor/src/ui/retained_host/shell_pointer/bridge.rs
-  - zircon_editor/src/ui/retained_host/app/workspace_docking/drag_drop.rs
-  - zircon_editor/src/ui/retained_host/menu_pointer/host_menu_pointer_bridge_dispatch_event.rs
-  - zircon_editor/src/ui/retained_host/viewport_toolbar_pointer/dispatch_event.rs
+  - zircon_editor/src/ui/retained/route_intent/mod.rs
+  - zircon_editor/src/ui/retained/route_intent/map.rs
+  - zircon_editor/src/ui/activity_rail_pointer/host_activity_rail_pointer_route.rs
+  - zircon_editor/src/ui/document_tab_pointer/host_document_tab_pointer_route.rs
+  - zircon_editor/src/ui/drawer_header_pointer/host_drawer_header_pointer_route.rs
+  - zircon_editor/src/ui/retained/menu_pointer/host_menu_pointer_route_intent.rs
+  - zircon_editor/src/ui/retained/hierarchy_pointer/hierarchy_pointer_route.rs
+  - zircon_editor/src/ui/retained/host_page_pointer/host_page_pointer_route.rs
+  - zircon_editor/src/ui/retained/shell_pointer/bridge.rs
+  - zircon_editor/src/ui/retained/app/workspace_docking/drag_drop.rs
+  - zircon_editor/src/ui/menu_pointer/host_menu_pointer_bridge_dispatch_event.rs
+  - zircon_editor/src/ui/retained/viewport_toolbar_pointer/dispatch_event.rs
 reference_sources:
   - dev/bevy/crates/bevy_ui/src/layout/ui_surface.rs
   - dev/bevy/crates/bevy_ui/src/layout/debug.rs

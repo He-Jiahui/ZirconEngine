@@ -21,11 +21,7 @@ related_editor_owners:
   - docs/plans/optimize/zircon_editor/56-editor-search-filter-query-index-result-find-usage-reference-navigation-product-integration-review.md
   - docs/plans/optimize/zircon_editor/63-editor-authoring-transaction-command-history-undo-redo-merge-group-savepoint-dirty-document-scope-object-generation-async-operation.md
 related_code:
-  - zircon_editor/assets/ui/editor/components/workbench/modules/core/gameplay
-  - zircon_editor/assets/ui/editor/components/workbench/modules/generated/workbench_generated_bottom_panel.zui
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench
-  - zircon_editor/src/ui/template_runtime/builtin/workbench_module_template_bindings.rs
-  - zircon_editor/src/ui/template_runtime/builtin/workbench_generated_bottom_template_bindings.rs
+  - zircon_editor/assets/ui/editor/modules/core/gameplay
   - zircon_editor/src/core/asset
   - zircon_editor/src/core/document
   - zircon_editor/src/core/editing

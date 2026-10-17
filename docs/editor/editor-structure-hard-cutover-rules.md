@@ -8,10 +8,9 @@ related_code:
   - zircon_editor/src/scene/mod.rs
   - zircon_editor/src/ui/mod.rs
   - zircon_editor/src/ui/template/registry.rs
-  - zircon_editor/src/ui/template_runtime/runtime/runtime_host.rs
+  - zircon_editor/src/ui/runtime/runtime/runtime_host.rs
   - zircon_editor/src/ui/host/mod.rs
   - zircon_editor/src/ui/host/module.rs
-  - zircon_editor/src/ui/retained_host/mod.rs
   - zircon_editor/src/ui/asset_editor/mod.rs
   - zircon_editor/src/ui/workbench/mod.rs
   - zircon_editor/src/ui/workbench/project/mod.rs
@@ -27,8 +26,6 @@ related_code:
   - zircon_editor/src/ui/binding_dispatch/viewport/apply.rs
   - zircon_editor/src/ui/binding_dispatch/inspector/subject_path.rs
   - zircon_editor/src/ui/binding_dispatch/draft/apply.rs
-  - zircon_editor/src/tests/host/template_runtime/mod.rs
-  - zircon_editor/src/tests/host/template_runtime/structure_split.rs
   - zircon_editor/src/tests/ui/template/mod.rs
   - zircon_editor/src/tests/ui/template/catalog_registry.rs
   - zircon_editor/src/tests/ui/template/binding_resolution.rs
@@ -39,7 +36,6 @@ related_code:
   - zircon_editor/src/tests/ui/boundary/asset_editor_structure.rs
   - zircon_editor/src/tests/ui/boundary/template_assets
   - zircon_editor/src/tests/ui/boundary/workbench_state_cutover.rs
-  - zircon_editor/assets/ui/editor/host/workbench_shell.zui
 implementation_files:
   - Cargo.toml
   - zircon_editor/build.rs
@@ -47,7 +43,7 @@ implementation_files:
   - zircon_editor/src/ui/workbench/state/editor_state_render.rs
   - zircon_editor/src/ui/mod.rs
   - zircon_editor/src/ui/template/registry.rs
-  - zircon_editor/src/ui/template_runtime/runtime/runtime_host.rs
+  - zircon_editor/src/ui/runtime/runtime/runtime_host.rs
   - zircon_editor/src/ui/host/mod.rs
   - zircon_editor/src/ui/host/module.rs
   - zircon_editor/src/ui/asset_editor/mod.rs
@@ -65,8 +61,6 @@ implementation_files:
   - zircon_editor/src/ui/binding_dispatch/viewport/apply.rs
   - zircon_editor/src/ui/binding_dispatch/inspector/subject_path.rs
   - zircon_editor/src/ui/binding_dispatch/draft/apply.rs
-  - zircon_editor/src/tests/host/template_runtime/mod.rs
-  - zircon_editor/src/tests/host/template_runtime/structure_split.rs
   - zircon_editor/src/tests/ui/template/mod.rs
   - zircon_editor/src/tests/ui/template/catalog_registry.rs
   - zircon_editor/src/tests/ui/template/binding_resolution.rs
@@ -77,7 +71,6 @@ implementation_files:
   - zircon_editor/src/tests/ui/boundary/asset_editor_structure.rs
   - zircon_editor/src/tests/ui/boundary/template_assets
   - zircon_editor/src/tests/ui/boundary/workbench_state_cutover.rs
-  - zircon_editor/assets/ui/editor/host/workbench_shell.zui
 plan_sources:
   - user: 2026-04-20 implement the workspace hard cutover and standardize the result
   - user: 2026-04-20 PLEASE IMPLEMENT THIS PLAN
@@ -92,7 +85,6 @@ tests:
   - zircon_editor/src/tests/ui/boundary/asset_editor_structure.rs
   - zircon_editor/src/tests/ui/boundary/template_assets
   - zircon_editor/src/tests/ui/boundary/workbench_state_cutover.rs
-  - zircon_editor/src/tests/host/template_runtime/structure_split.rs
   - zircon_editor/src/tests/ui/template/catalog_registry.rs
   - zircon_editor/src/tests/ui/template/binding_resolution.rs
   - zircon_editor/src/tests/ui/template/repository_assets.rs
@@ -101,7 +93,6 @@ tests:
   - cargo test -p zircon_editor boundary
   - cargo test -p zircon_editor template
   - .codex/skills/zircon-dev/scripts/validate-matrix.ps1 -Package zircon_editor -SkipTest -VerboseOutput
-  - zircon_editor/tests/native_window_hosts.rs
 doc_type: module-detail
 ---
 

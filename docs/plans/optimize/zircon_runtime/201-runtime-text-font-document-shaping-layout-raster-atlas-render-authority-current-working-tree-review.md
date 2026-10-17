@@ -23,7 +23,6 @@ related_code:
   - zircon_runtime/src/ui/surface/render
   - zircon_runtime/src/ui/surface/input/editable_text
   - zircon_runtime/src/ui/dispatch/input_manager/text_document_session
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui
   - zircon_runtime/src/asset/assets/font.rs
   - zircon_runtime/src/asset/assets/font_source
   - zircon_runtime/src/asset/importer/ingest/import_font_asset

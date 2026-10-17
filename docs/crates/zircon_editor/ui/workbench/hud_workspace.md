@@ -1,17 +1,9 @@
 ---
 related_code:
-  - zircon_editor/assets/ui/editor/components/workbench/modules/core/ui/workbench_hud_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/core/index/workbench_additional_module_workspaces.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/diagnostics/workbench_extension_performance_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/diagnostics/workbench_extension_telemetry_dashboard_workspace.zui
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/module_navigation.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation/specs/ui_diagnostics.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/workbench/module_navigation.rs
+  - zircon_editor/src/ui/retained/dispatch/workbench/specs/ui_diagnostics.rs
 implementation_files:
-  - zircon_editor/assets/ui/editor/components/workbench/modules/core/ui/workbench_hud_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/core/index/workbench_additional_module_workspaces.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/diagnostics/workbench_extension_performance_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/diagnostics/workbench_extension_telemetry_dashboard_workspace.zui
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation/specs/ui_diagnostics.rs
+  - zircon_editor/src/ui/retained/dispatch/workbench/specs/ui_diagnostics.rs
 plan_sources:
   - user: 2026-06-03 componentized editor UI prototype and native retained/Taffy replication request
   - docs/ui/ai-workbench-style/component-prototype/README.md

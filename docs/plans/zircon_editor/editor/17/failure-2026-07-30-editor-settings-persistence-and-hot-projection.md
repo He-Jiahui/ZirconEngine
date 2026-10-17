@@ -12,8 +12,6 @@ plan_link_mode: child_record_only
 related_code:
   - zircon_editor/src/core/settings
   - zircon_editor/src/ui/host/editor_manager.rs
-  - zircon_editor/src/ui/retained_host/app.rs
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_accessors.rs
   - zircon_editor/src/ui/workbench/snapshot/data/editor_state_snapshot_build.rs
 tests:
   - cargo test -p zircon_editor --lib core::settings --locked --jobs 1 -- --test-threads=1

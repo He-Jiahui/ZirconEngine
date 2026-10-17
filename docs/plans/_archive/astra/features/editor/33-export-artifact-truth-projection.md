@@ -7,11 +7,9 @@ plan_sources:
   - docs/plans/optimize/zircon_editor/269-editor-build-export-preset-pipeline-cook-pack-platform-bundle-publishing-resume-determinism-current-working-tree-review.md
   - docs/plans/astra/performance/01-bounded-hotpaths.md
 related_code:
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/panel_projection.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/panel_projection/astra_artifact_truth_tests.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/panel_projection.rs
 tests:
   - tools/tests/test_editor_build_export_projection_performance_contract.py
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/panel_projection/astra_artifact_truth_tests.rs
 ---
 
 # Export Artifact Truth Projection

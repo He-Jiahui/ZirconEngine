@@ -10,9 +10,9 @@ fixing_child_dir: docs/plans/zircon_runtime/render/04
 plan_link_mode: child_record_only
 related_code:
   - zircon_runtime/src/graphics/pipeline/compile_options/default.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/hzb/hzb_occlusion_culler.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/indirect_draw_execution.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/submit_compiled_scene_frame.rs
+  - zircon_runtime/src/graphics/scene/renderer/hzb/hzb_occlusion_culler.rs
+  - zircon_runtime/src/graphics/scene/mesh/mesh_pass/indirect_draw_execution.rs
+  - zircon_runtime/src/graphics/scene/core/render/submit_compiled_scene_frame.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/gpu_readback_queue/queue.rs
 tests:
   - default pipeline steady frame has no blocking HZB readback

@@ -4,7 +4,6 @@ related_code:
   - zircon_runtime/assets/ui
   - zircon_editor/assets/ui/editor/component_showcase.zui
   - zircon_editor/assets/ui/editor/material_component_lab.zui
-  - zircon_editor/assets/ui/editor/material_components/data_display
   - zircon_editor/assets/ui/editor/material_components/feedback
   - zircon_editor/assets/ui/editor/material_components/inputs
   - zircon_editor/assets/ui/editor/material_components/layout
@@ -12,8 +11,7 @@ related_code:
   - zircon_editor/assets/ui/editor/material_components/navigation
   - zircon_editor/assets/ui/editor/material_components/surfaces
   - zircon_editor/assets/ui/editor/material_components/utils_lab
-  - zircon_editor/assets/ui/editor/components/workbench/shell/activity_drawer_window.zui
-  - zircon_editor/src/ui/template_runtime/builtin/template_documents.rs
+  - zircon_editor/assets/ui/editor/workbench/shell/activity_drawer_window.zui
   - zircon_editor/src/tests/ui/boundary/template_assets
   - zircon_editor/src/tests/ui/boundary/zui_asset_governance/
   - zircon_editor/src/tests/ui/boundary/zui_asset_governance/class.rs
@@ -33,7 +31,6 @@ related_code:
   - zircon_editor/src/tests/ui/boundary/zui_asset_governance/style.rs
   - zircon_editor/src/tests/ui/boundary/zui_asset_governance/support.rs
   - zircon_editor/src/tests/ui/boundary/zui_asset_governance/workbench_shell.rs
-  - zircon_editor/src/tests/ui/boundary/zui_asset_governance/workbench_primitives/
   - zircon_plugins/ui_document_importer/runtime/src/lib.rs
   - zircon_plugins/ui_document_importer/runtime/src/lib.rs
   - zircon_runtime/src/asset/tests/assets/ui.rs
@@ -58,7 +55,6 @@ implementation_files:
   - zircon_editor/src/tests/ui/boundary/zui_asset_governance/style.rs
   - zircon_editor/src/tests/ui/boundary/zui_asset_governance/support.rs
   - zircon_editor/src/tests/ui/boundary/zui_asset_governance/workbench_shell.rs
-  - zircon_editor/src/tests/ui/boundary/zui_asset_governance/workbench_primitives/
   - zircon_plugins/ui_document_importer/runtime/src/lib.rs
   - zircon_plugins/ui_document_importer/runtime/src/lib.rs
 plan_sources:

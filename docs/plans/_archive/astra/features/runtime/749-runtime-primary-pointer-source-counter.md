@@ -9,10 +9,8 @@ related_records:
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 related_code:
   - zircon_runtime/src/ui/dispatch/input_manager/pointer_table.rs
-  - zircon_runtime/src/ui/dispatch/input_manager/pointer_table/index_tests.rs
   - zircon_runtime/src/ui/dispatch/input_manager/manager.rs
 tests:
-  - tools/tests/test_runtime_ui_primary_pointer_source_counter_performance_contract.py
   - zircon_runtime/src/ui/dispatch/input_manager/pointer_table.rs (lifecycle regression)
 ---
 

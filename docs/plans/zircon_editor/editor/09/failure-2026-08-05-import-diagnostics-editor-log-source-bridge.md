@@ -14,7 +14,6 @@ related_code:
   - zircon_editor/src/core/asset/import_flow/diagnostics.rs
   - zircon_editor/src/core/asset/import_flow/submit.rs
   - zircon_editor/src/core/asset/import_flow/tests/diagnostics.rs
-  - zircon_editor/src/ui/host/editor_asset_manager
   - zircon_runtime/src/asset/pipeline/worker_pool.rs
   - zircon_editor/src/core/logging
   - tools/tests/test_editor09_import_diagnostics_submission_contract.py

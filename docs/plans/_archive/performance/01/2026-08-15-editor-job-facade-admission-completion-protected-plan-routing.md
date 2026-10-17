@@ -2,7 +2,7 @@
 related_code:
   - zircon_editor/src/core/jobs
   - zircon_editor/src/core/notifications
-  - zircon_editor/src/ui/retained_host/app/job_progress.rs
+  - zircon_editor/src/ui/retained/app/job_progress.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/performance/02-unreal-aligned-engine-system-hard-cutover.md

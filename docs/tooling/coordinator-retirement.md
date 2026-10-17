@@ -1,6 +1,5 @@
 ---
 related_code:
-  - .codex/coordinator-retirement.json
   - .codex/hooks.json
   - .codex/hooks/zircon_session_sync.py
   - .codex/hooks/pre_tool_use_cargo_guard.py
@@ -86,6 +85,14 @@ doc_type: workflow-detail
 ```
 
 命令范围和执行节奏遵循 `docs/plans/milestone-validation-policy.md`。原生 Cargo 锁继续生效；入口返回实际 Cargo 退出码。Dry run 不创建目录、不执行编译，也不形成验收证据。Jenkins 请求通过独立入口封存和接受，不能把本地结果升级为 Jenkins 接受回执。
+
+The optional `.codex/hooks/pre_tool_use_cargo_guard.py` hook is advisory. It
+recognizes a subset of direct Cargo commands in `Bash` payloads and intentionally
+fails open on malformed input. Cargo aliases, global options, `miri`, `nextest`,
+direct `rustc`, indirect execution and other command tools can bypass its text
+matcher. Hook success is not output-policy validation. Use
+`tools/dev/local-cargo.ps1` for independently guarded local commands within the
+current authorization, or the authorized Jenkins lane.
 
 ## 恢复方法
 

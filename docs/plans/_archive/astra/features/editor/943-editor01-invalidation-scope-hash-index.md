@@ -7,9 +7,8 @@ related_records:
   - docs/plans/astra/features/editor/942-editor01-pane-option-hash-membership.md
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
-  - zircon_editor/src/ui/retained_host/app/invalidation/root/transaction.rs
+  - zircon_editor/src/ui/retained/app/invalidation/root/transaction.rs
 tests:
-  - zircon_editor/src/ui/retained_host/app/invalidation/root/transaction/hash_index_tests.rs
 ---
 
 # Editor943 Editor01 Invalidation-Scope Hash Index

@@ -8,8 +8,6 @@ related_records:
 implementation_files:
   - zircon_runtime/src/asset/migration/sidecar.rs
 tests:
-  - zircon_runtime/src/asset/migration/sidecar/direct_uri_tests.rs
-  - tools/tests/test_runtime879_sidecar_uri_direct_performance_contract.py
 ---
 
 # Runtime879 Sidecar URI Direct

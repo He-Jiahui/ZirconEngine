@@ -17,31 +17,21 @@ related_code:
   - zircon_editor/src/ui/host/editor_event_execution/menu_action.rs
   - zircon_editor/src/ui/host/editor_event_runtime_access/status.rs
   - zircon_editor/src/ui/layouts/views/console.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload_builders/console.rs
   - zircon_editor/src/ui/workbench/activity_log_console_projection.rs
   - zircon_editor/src/ui/workbench/state/console_history.rs
   - zircon_editor/src/ui/workbench/state/console_history
   - zircon_editor/src/ui/workbench/state/editor_state_field_updates.rs
   - zircon_editor/src/ui/workbench/snapshot/data/console_output_snapshot.rs
-  - zircon_editor/src/ui/workbench/snapshot/data/console_output_snapshot
-  - zircon_editor/src/ui/retained_host/console_output.rs
-  - zircon_editor/src/ui/retained_host/console_output
-  - zircon_editor/src/ui/retained_host/app/activity_log_jump.rs
-  - zircon_editor/src/ui/retained_host/app/assets/workspace.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/tick.rs
-  - zircon_editor/src/ui/retained_host/app/detail_scroll_pointer/console.rs
-  - zircon_editor/src/ui/retained_host/app/callback_wiring/pane_surface/console.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/console_projection.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/console_projection
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/docks/pane/template_nodes/console_output.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/docks/pane/template_nodes/console_output
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/routing/panes/pane/entry/console.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation/specs/ui_diagnostics/observability.rs
-  - zircon_editor/src/ui/template_runtime/builtin/workbench_extension_module_template_bindings/ui_diagnostics/observability.rs
+  - zircon_editor/src/ui/snapshot/data/console_output_snapshot
+  - zircon_editor/src/ui/retained/app/activity_log_jump.rs
+  - zircon_editor/src/ui/retained/app/assets/workspace.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle/tick.rs
+  - zircon_editor/src/ui/retained/app/detail_scroll_pointer/console.rs
+  - zircon_editor/src/ui/retained/app/callback_wiring/pane_surface/console.rs
+  - zircon_editor/src/ui/contract/pointer/routing/panes/pane/entry/console.rs
+  - zircon_editor/src/ui/retained/dispatch/specs/ui_diagnostics/observability.rs
   - zircon_editor/assets/ui/editor/console.zui
   - zircon_editor/assets/ui/editor/host/console_body.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/diagnostics/workbench_extension_console_diagnostics_workspace.zui
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md
   - docs/plans/optimize/zircon_editor/06-plugin-manager-discovery-enablement-live-reload-settings-diagnostics-review.md

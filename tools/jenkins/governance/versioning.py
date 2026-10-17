@@ -59,7 +59,7 @@ def write_git(root: Path, args: list[str], *, data: bytes | None = None, index: 
                    "GIT_COMMITTER_NAME": "Jenkins governance", "GIT_COMMITTER_EMAIL": "jenkins-governance@localhost"}
     if index:
         environment["GIT_INDEX_FILE"] = str(physical(index, exists=False))
-    result = subprocess.run(["git", "-c", "core.hooksPath=NUL" if os.name == "nt" else "core.hooksPath=/dev/null",
+    result = subprocess.run(["git", "-c", "core.fsmonitor=false", "-c", "core.hooksPath=" + os.devnull, "-c", "core.hooksPath=NUL" if os.name == "nt" else "core.hooksPath=/dev/null",
                              "-c", "core.fsmonitor=false", "-c", "core.longpaths=true", "-C", str(physical(root)), *args],
                             input=data, env=environment, capture_output=True, timeout=180)
     if result.returncode:
@@ -180,7 +180,7 @@ def prepare_integration(authority, payload: dict) -> dict:
     head = text_git(root, "rev-parse", primary)
     if head != payload["expectedPrimaryHead"]:
         raise ValueError("primary_head_changed")
-    included = subprocess.run(["git", "-C", str(root), "merge-base", "--is-ancestor", sealed["commit"], head], capture_output=True)
+    included = subprocess.run(["git", "-c", "core.fsmonitor=false", "-c", "core.hooksPath=" + os.devnull, "-C", str(root), "merge-base", "--is-ancestor", sealed["commit"], head], capture_output=True)
     if included.returncode == 0:
         value = {"status": "already-integrated", "repositoryId": payload["repositoryId"],
                  "sealedOperationId": payload["sealedOperationId"], "primaryHead": head, "commit": head}
@@ -258,7 +258,7 @@ def _merge_objects(authority, registration, ours, theirs, operation):
                     raise ValueError("merge_blob_exceeds_bounded_memory_budget")
                 output.write_bytes(data)
                 temporary.append(file_fact(output))
-            merged = subprocess.run(["git", "merge-file", "-p", *map(str, paths)], capture_output=True, timeout=180,
+            merged = subprocess.run(["git", "-c", "core.fsmonitor=false", "-c", "core.hooksPath=" + os.devnull, "merge-file", "-p", *map(str, paths)], capture_output=True, timeout=180,
                                     env={**os.environ, "GIT_TERMINAL_PROMPT": "0"})
             if merged.returncode:
                 conflicts.append({"path": name, "reason": "content_conflict_or_binary_merge_unsupported",
@@ -422,7 +422,7 @@ def _publish_checked_out(authority, root, integration, payload):
         # Foreign index entries remain byte-for-byte semantically identical in the private replacement.
         foreign_before = [raw for raw in entries.split(b"\0") if raw and raw.split(b"\t", 1)[1].decode("utf-8", "surrogateescape") not in owned]
         env = {**os.environ, "GIT_INDEX_FILE": str(lock), "GIT_OPTIONAL_LOCKS": "0"}
-        after = subprocess.run(["git", "-C", str(root), "ls-files", "--stage", "-z"], env=env, capture_output=True, check=True).stdout
+        after = subprocess.run(["git", "-c", "core.fsmonitor=false", "-c", "core.hooksPath=" + os.devnull, "-C", str(root), "ls-files", "--stage", "-z"], env=env, capture_output=True, check=True).stdout
         foreign_after = [raw for raw in after.split(b"\0") if raw and raw.split(b"\t", 1)[1].decode("utf-8", "surrogateescape") not in owned]
         if foreign_before != foreign_after or file_fact(index) != before_index:
             raise ValueError("foreign_index_changed_during_integration")
@@ -572,7 +572,7 @@ def apply_patch(authority, payload, report):
         name = relative_source(item["path"])
         if not any(overlaps(name, scope) and (name == scope or name.startswith(scope + "/")) for scope in claim["paths"]):
             raise ValueError("patch_path_not_claimed")
-        old = subprocess.run(["git", "-C", str(root), "show", head + ":" + name], capture_output=True)
+        old = subprocess.run(["git", "-c", "core.fsmonitor=false", "-c", "core.hooksPath=" + os.devnull, "-C", str(root), "show", head + ":" + name], capture_output=True)
         old_hash = hashlib.sha256(old.stdout).hexdigest() if old.returncode == 0 else None
         if old_hash != item["beforeSha256"]:
             raise ValueError("patch_preimage_hash_changed")

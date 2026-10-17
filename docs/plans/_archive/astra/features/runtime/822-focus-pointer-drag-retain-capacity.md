@@ -8,7 +8,6 @@ related_code:
   - zircon_runtime/src/ui/surface/focus.rs
 tests:
   - zircon_runtime/src/ui/surface/focus.rs
-  - tools/tests/test_runtime_focus_pointer_drag_retain_performance_contract.py
 ---
 
 # Runtime822 Focus Pointer-Drag Owner Retention

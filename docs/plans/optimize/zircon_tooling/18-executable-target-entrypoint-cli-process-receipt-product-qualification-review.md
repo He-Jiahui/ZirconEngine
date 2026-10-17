@@ -21,8 +21,7 @@ related_code:
   - zircon_hub/src/build/command.rs
   - zircon_hub/src/build/runner.rs
   - zircon_hub/src/process/editor_launch.rs
-  - tools/cargo-zircon/Cargo.toml
-  - tools/cargo-zircon/src/main.rs
+  - tools/cargo/src/main.rs
   - tools/mvp/MvpProductInputManifest.psm1
   - examples/woc/native/Cargo.toml
   - examples/woc/native/apps/woc_bot/Cargo.toml
@@ -38,8 +37,8 @@ related_code:
   - zircon_plugins/neural/editor/Cargo.toml
   - zircon_plugins/neural/editor/src/bin/zr_onnx_convert.rs
 tests:
-  - tools/cargo-zircon/tests/manifest_sync.rs
-  - tools/cargo-zircon/tests/plugin_commands.rs
+  - tools/cargo/tests/manifest_sync.rs
+  - tools/cargo/tests/plugin_commands.rs
   - tools/tests/test_zircon_export_cli_owner_boundaries.py
   - tools/tests/test_zircon_export_validate_schema_test_owner_boundaries.py
   - tools/tests/test_zircon_build_shader_prewarm_command_contract.py

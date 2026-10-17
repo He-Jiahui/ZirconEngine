@@ -8,9 +8,7 @@ baseline_epoch: 368
 supersedes:
   - docs/plans/optimize/zircon_runtime/53-runtime-dynamic-scene-asset-reload-event-generation-reconciliation-stage-apply-instance-replacement-product-integration-review.md
 related_code:
-  - zircon_runtime/src/scene/dynamic_scene/asset_reload
-  - zircon_runtime/src/scene/dynamic_scene/spawn_task
-  - zircon_runtime/src/scene/dynamic_scene/scene/spawn
+  - zircon_runtime/src/scene/dynamic/scene/spawn
   - zircon_runtime/src/dynamic_api/session/construction.rs
   - zircon_runtime/src/dynamic_api/session/project.rs
   - zircon_runtime/src/dynamic_api/session/state.rs
@@ -25,11 +23,7 @@ tests:
   - zircon_runtime/src/scene/tests/dynamic_scene_asset_reload.rs
   - zircon_runtime/src/scene/tests/dynamic_scene_asset_reload/byte_budgets.rs
   - zircon_runtime/src/scene/tests/dynamic_scene/scene_patch_document.rs
-  - zircon_runtime/src/scene/dynamic_scene/scene/spawn/transaction/tests.rs
-  - zircon_runtime/src/scene/dynamic_scene/scene/spawn/transaction/tests/resources.rs
-  - zircon_runtime/src/scene/inspection/subscription/tests.rs
-  - zircon_editor/src/core/sync/pump/tests.rs
-  - zircon_runtime/src/tests/runtime_absorption/dynamic_scene/asset_reload_selection_status.rs
+  - zircon_runtime/src/scene/dynamic/scene/spawn/transaction/tests/resources.rs
 plan_sources:
   - docs/plans/mvp/index.md
   - docs/plans/optimize/zircon_runtime/53-runtime-dynamic-scene-asset-reload-event-generation-reconciliation-stage-apply-instance-replacement-product-integration-review.md

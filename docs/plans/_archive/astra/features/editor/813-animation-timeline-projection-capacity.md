@@ -10,7 +10,6 @@ related_records:
 implementation_files:
   - zircon_editor/src/ui/animation_editor/session/timeline_foundation.rs
 tests:
-  - tools/tests/test_editor_animation_timeline_projection_capacity_performance_contract.py
 ---
 
 # Editor813 · animation timeline projection capacity

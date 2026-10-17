@@ -11,7 +11,6 @@ plan_link_mode: child_record_only
 related_code:
   - zircon_runtime/crates/zr_rhi_wgpu/src/production/device/diagnostics.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/production/diagnostics/readback/layout.rs
-  - zircon_runtime/crates/zr_rhi_wgpu/src/production/diagnostics/readback/tests.rs
 tests:
   - ./.codex/skills/zircon-dev/scripts/validate-matrix.ps1 -Package zr_rhi_wgpu -CheckOnly
   - ./.codex/skills/zircon-dev/scripts/validate-matrix.ps1 -Package zr_rhi_wgpu -SkipBuild -LibTests -TestFilter texture_layout_ -VerboseOutput

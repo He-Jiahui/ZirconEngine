@@ -10,11 +10,9 @@ implementation_files:
   - zircon_editor/src/ui/host/workspace_state.rs
   - zircon_editor/src/ui/host/editor_manager_workspace.rs
   - zircon_editor/src/ui/host/editor_event_runtime_access/workbench_projection.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/pane_payloads.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/pane_payloads/editor_panes.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle/pane_payloads.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle/pane_payloads/editor_panes.rs
 tests:
-  - zircon_editor/src/ui/host/workspace_state_identity_projection_tests.rs
-  - tools/tests/test_editor873_editor_pane_identity_projection_performance_contract.py
 ---
 
 # Editor873 - editor-pane identity projection

@@ -2,7 +2,6 @@
 related_code:
   - tools/dev/local-cargo.ps1
   - tools/dev/local_cargo.py
-  - tools/jenkins_coordinator.py
   - tools/dev/zircon-session.ps1
   - .codex/skills/zircon-dev/scripts/validate-matrix.ps1
   - zircon_runtime/src/asset/migration

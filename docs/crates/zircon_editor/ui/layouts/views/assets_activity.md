@@ -7,13 +7,12 @@ related_code:
   - zircon_editor/src/ui/layouts/views/assets_activity/responsive_layout.rs
   - zircon_editor/src/ui/workbench/asset_content_layout/mod.rs
   - zircon_editor/src/ui/workbench/asset_content_layout/controls.rs
-  - zircon_editor/src/ui/retained_host/asset_pointer/content/layout.rs
-  - zircon_editor/src/ui/retained_host/asset_pointer/content/bridge.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/docks/pane/template_nodes/asset_content/projector.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/native_panes/scrollbar/asset.rs
+  - zircon_editor/src/ui/retained/asset_pointer/content/layout.rs
+  - zircon_editor/src/ui/retained/asset_pointer/content/bridge.rs
+  - zircon_editor/src/ui/contract/docks/pane/nodes/asset_content/projector.rs
+  - zircon_editor/src/ui/retained/contract/workbench/native_panes/scrollbar/asset.rs
   - zircon_editor/src/tests/ui/assets_activity/bootstrap_assets
-  - zircon_editor/src/tests/host/retained_menu_pointer/visual_screenshot.rs
-  - zircon_editor/src/tests/host/retained_menu_pointer/visual_screenshot/assets_drawer.rs
+  - zircon_editor/src/tests/host/menus/visual_screenshot/assets_drawer.rs
 implementation_files:
   - zircon_editor/src/ui/layouts/views/assets_activity.rs
   - zircon_editor/src/ui/layouts/views/assets_activity/content_nodes.rs
@@ -21,8 +20,8 @@ implementation_files:
   - zircon_editor/src/ui/layouts/views/assets_activity/responsive_layout.rs
   - zircon_editor/src/ui/workbench/asset_content_layout/mod.rs
   - zircon_editor/src/ui/workbench/asset_content_layout/controls.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/docks/pane/template_nodes/asset_content/projector.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/native_panes/scrollbar/asset.rs
+  - zircon_editor/src/ui/contract/docks/pane/nodes/asset_content/projector.rs
+  - zircon_editor/src/ui/retained/contract/workbench/native_panes/scrollbar/asset.rs
 design_references:
   - dev/UnrealEngine/Engine/Source/Editor/ContentBrowser/Private/SAssetView.cpp
   - dev/UnrealEngine/Engine/Source/Editor/ContentBrowser/Public/SAssetView.h

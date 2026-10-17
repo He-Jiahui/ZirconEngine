@@ -8,7 +8,7 @@ fixing_plan: docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conv
 origin_child_dir: docs/plans/zircon_editor/editor/02
 fixing_child_dir: docs/plans/zircon_runtime/runtime/15
 related_code:
-  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/core_scene/core_runtime_state.rs
+  - zircon_runtime/src/tests/contracts/core_scene/core_runtime_state.rs
   - zircon_runtime/src/core/runtime/state/core_runtime_state.rs
   - zircon_runtime/src/core/runtime/handle/core_handle.rs
 tests:

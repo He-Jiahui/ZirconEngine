@@ -3,17 +3,15 @@ related_code:
   - zircon_editor/src/ui/host/workspace_state.rs
   - zircon_editor/src/ui/host/editor_manager_workspace.rs
   - zircon_editor/src/ui/host/editor_event_runtime_access/workbench_projection.rs
-  - zircon_editor/src/ui/retained_host/app/native_window_close/floating_window.rs
+  - zircon_editor/src/ui/retained/app/native_window_close/floating_window.rs
 implementation_files:
   - zircon_editor/src/ui/host/workspace_state.rs
   - zircon_editor/src/ui/host/editor_manager_workspace.rs
   - zircon_editor/src/ui/host/editor_event_runtime_access/workbench_projection.rs
-  - zircon_editor/src/ui/retained_host/app/native_window_close/floating_window.rs
+  - zircon_editor/src/ui/retained/app/native_window_close/floating_window.rs
 plan_sources:
   - user: 2026-09-21 optimize Runtime and Editor hot paths and record completion
 tests:
-  - zircon_editor/src/ui/host/workspace_state_direct_query_batch_tests.rs
-  - tools/tests/test_editor863_866_workspace_direct_query_performance_contract.py
 doc_type: milestone-detail
 title: Editor865 floating-window existence direct query
 category: zircon_editor

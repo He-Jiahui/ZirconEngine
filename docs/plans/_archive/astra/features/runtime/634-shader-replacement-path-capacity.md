@@ -4,10 +4,8 @@ status: implemented_pending_validation
 plan_sources:
   - docs/plans/optimize/zircon_runtime/634/2026-09-01-preallocated-shader-replacement-paths.md
 related_code:
-  - zircon_runtime/src/asset/project/manager/scan_and_import/shader_import_dependencies.rs
-  - zircon_runtime/src/asset/project/manager/scan_and_import/shader_import_dependencies/optimization_batch_ix_runtime634_tests.rs
+  - zircon_runtime/src/asset/manager/scan_and_import/shader_import_dependencies.rs
 tests:
-  - zircon_runtime/src/asset/project/manager/scan_and_import/shader_import_dependencies/optimization_batch_ix_runtime634_tests.rs
 ---
 
 # Shader Replacement Path Capacity

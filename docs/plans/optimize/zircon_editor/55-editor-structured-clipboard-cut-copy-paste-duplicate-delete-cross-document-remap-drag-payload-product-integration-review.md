@@ -1,32 +1,25 @@
 ---
 related_code:
   - zircon_editor/assets/ui/editor/keymap/default.keymap.toml
-  - zircon_editor/assets/ui/editor/components/showcase/showcase_collections_section.zui
-  - zircon_editor/assets/ui/editor/components/showcase/showcase_selection_section.zui
   - zircon_editor/src/core/commands/defaults.rs
   - zircon_editor/src/core/editing
   - zircon_editor/src/ui/workbench/state/editor_state_apply_intent.rs
   - zircon_editor/src/ui/workbench/state/editor_state_selection.rs
-  - zircon_editor/src/ui/retained_host/app.rs
-  - zircon_editor/src/ui/retained_host/app/hierarchy_pointer/drag_source.rs
-  - zircon_editor/src/ui/retained_host/app/hierarchy_pointer/events/drag.rs
-  - zircon_editor/src/ui/retained_host/menu_pointer/menu_items_for_layout.rs
+  - zircon_editor/src/ui/retained/app/hierarchy_pointer/drag_source.rs
+  - zircon_editor/src/ui/retained/app/hierarchy_pointer/events/drag.rs
+  - zircon_editor/src/ui/retained/menu_pointer/menu_items_for_layout.rs
   - zircon_runtime/src/scene/components/scene/node.rs
   - zircon_runtime/src/scene/world/hierarchy.rs
   - zircon_runtime/src/scene/world/records.rs
   - zircon_runtime/src/scene/world/transaction/detached_entity_batch.rs
-  - zircon_runtime/src/scene/dynamic_scene/scene
-  - zircon_runtime/src/scene/dynamic_scene/entity
-  - zircon_runtime/src/scene/dynamic_scene/remap.rs
-  - zircon_runtime/src/scene/dynamic_scene/value/remap.rs
+  - zircon_runtime/src/scene/dynamic/value/remap.rs
   - zircon_runtime/src/ui/surface/input/keyboard_clipboard.rs
   - zircon_runtime/src/ui/surface/input/text_keyboard/clipboard.rs
   - zircon_runtime_interface/src/ui/component/drag.rs
   - zircon_runtime_interface/src/ui/dispatch/input/effect.rs
 tests:
-  - zircon_editor/src/tests/editing/node_ops.rs
-  - zircon_editor/src/ui/retained_host/app/tests/drag_sources/scene_and_object.rs
-  - zircon_runtime/src/scene/dynamic_scene/scene/spawn/transaction/tests.rs
+  - zircon_editor/src/tests/editing/node_ops/mod.rs
+  - zircon_editor/src/ui/retained/app/tests/drag_sources/scene_and_object.rs
   - zircon_runtime/src/ui/tests/widget_text_input_keyboard_clipboard.rs
   - zircon_runtime/src/ui/tests/widget_text_input_keyboard/clipboard_newline.rs
 plan_sources:

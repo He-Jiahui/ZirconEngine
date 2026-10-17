@@ -14,21 +14,14 @@ related_code:
   - zircon_editor/src/ui/host/animation_editor_sessions
   - zircon_editor/src/ui/host/editor_event_dispatch.rs
   - zircon_editor/src/ui/host/editor_event_execution
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload_builders
-  - zircon_editor/src/ui/retained_host/host_contract
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion
   - zircon_editor/assets/ui/editor/host/animation_sequence_body.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/animation/workbench_extension_blend_space_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/animation/workbench_extension_sequencer_workspace.zui
   - zircon_runtime/src/animation
   - zircon_runtime/src/plugin
 tests:
-  - zircon_editor/src/ui/animation_editor/session/tests.rs
-  - zircon_editor/src/ui/timeline_strip/tests.rs
   - zircon_editor/src/tests/editor_event/animation_runtime/sequence.rs
   - zircon_editor/src/tests/host/animation_editor.rs
   - zircon_editor/src/tests/host/retained_animation_template_body.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/tests/timeline_strip.rs
+  - zircon_editor/src/ui/retained/ui/data/projection/tests/timeline_strip.rs
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md
   - docs/plans/optimize/01-cross-report-owner-schema-abi-p0-consolidation-review.md

@@ -12,8 +12,7 @@ related_code:
   - zircon_runtime/src/ui/component/state_reducer/command_palette.rs
   - zircon_runtime/src/ui/surface/input/keyboard_action.rs
   - zircon_runtime/src/ui/surface/surface/default_interactions/keyboard.rs
-  - zircon_editor/src/ui/retained_host/app/command_palette_actions.rs
-  - zircon_editor/assets/ui/editor/windows/workbench_window.zui
+  - zircon_editor/src/ui/retained/app/command_palette_actions.rs
 tests:
   - cargo test -p zircon_runtime --lib --locked command_palette
   - cargo test -p zircon_editor --lib --locked command_palette

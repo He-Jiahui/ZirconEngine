@@ -8,9 +8,7 @@ related_records:
   - docs/plans/astra/features/runtime/964-runtime09c-material-index-completion-list.md
 implementation_files:
   - zircon_runtime/src/graphics/material/shading_models/registry.rs
-  - zircon_runtime/src/graphics/material/shading_models/registry/hash_token_tests.rs
 tests:
-  - zircon_runtime/src/graphics/material/shading_models/registry/hash_token_tests.rs
 ---
 
 # Runtime962 · shading-model token hash index

@@ -4,13 +4,8 @@ related_code:
   - zircon_runtime/src/ui/surface/input/navigation.rs
   - zircon_runtime/src/ui/surface/input/pointer.rs
   - zircon_runtime/src/ui/surface/input/pointer_reply.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/collect_inputs.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/probe_quantization.rs
+  - zircon_plugins/hybrid_gi/runtime/src/gi/execute_prepare/probe_quantization.rs
   - zircon_runtime/src/core/framework/render/frame_extract.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/resolve_enabled_features.rs
-  - zircon_runtime/src/graphics/scene/render_product_streamer_tests/material_runtime.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/runtime_features/runtime_features_from_pipeline.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_record.rs
   - zircon_runtime/src/core/framework/animation/asset/mod.rs
   - zircon_runtime/src/core/framework/animation/asset/binary.rs
   - zircon_runtime/src/core/framework/animation/asset/clip.rs
@@ -23,13 +18,11 @@ related_code:
   - zircon_editor/src/ui/asset_editor/session/command_entry.rs
   - zircon_editor/src/ui/asset_editor/session/lifecycle.rs
   - zircon_editor/src/ui/asset_editor/session/ui_asset_editor_session.rs
-  - zircon_editor/src/ui/template_runtime/runtime/build_session.rs
+  - zircon_editor/src/ui/runtime/runtime/build_session.rs
   - zircon_runtime/src/ui/template/asset/schema/migrator.rs
   - zircon_runtime/src/ui/template/asset/schema/flat_nodes.rs
   - zircon_runtime/src/ui/template/asset/compiler/style_apply.rs
   - zircon_editor/src/ui/layouts/views/view_projection.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_table_rows.rs
   - zircon_runtime/src/ui/layout/pass/taffy_arrange.rs
   - zircon_runtime_interface/src/ui/pipeline/stage.rs
   - zircon_runtime_interface/src/tests/pipeline_contracts.rs
@@ -38,14 +31,13 @@ related_code:
   - zircon_hub/src/tauri_app/runtime_state/build_actions.rs
   - zircon_plugins/net/features/http/runtime/src/backend/client.rs
   - zircon_plugins/net/features/http/runtime/src/backend/http1_client_policy.rs
-  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/net.rs
-  - zircon_runtime/src/scene/dynamic_scene/document/mod.rs
-  - zircon_runtime/src/scene/dynamic_scene/document/read.rs
+  - zircon_runtime/src/tests/contracts/naming_boundary/runtime_15_m2/net.rs
+  - zircon_runtime/src/scene/dynamic/document/read.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/hard_cutover_migration_smells.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/hard_cutover_migration_smells_markdown.py
 implementation_files:
-  - zircon_editor/src/ui/template_runtime/runtime/build_session.rs
+  - zircon_editor/src/ui/runtime/runtime/build_session.rs
   - zircon_editor/src/ui/asset_editor/session/ui_asset_editor_session.rs
   - zircon_editor/src/ui/asset_editor/session/lifecycle.rs
   - zircon_editor/src/ui/asset_editor/session/command_entry.rs
@@ -71,7 +63,7 @@ implementation_files:
   - docs/architecture/index.md
   - docs/architecture/runtime-reference-engine-evidence.md
   - zircon_plugins/net/features/http/runtime/src/backend/http1_client_policy.rs
-  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/net.rs
+  - zircon_runtime/src/tests/contracts/naming_boundary/runtime_15_m2/net.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/hard_cutover_migration_smells.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/hard_cutover_migration_smells_markdown.py
@@ -86,7 +78,7 @@ tests:
   - python .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py --json
   - python .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py
   - hard_cutover_migration_smells gate status, explicit count fields, classification count, migration debt, allowed bridge count, and unclassified reference checks
-  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/net.rs::runtime_15_net_http_hyper_http1_client_policy_is_isolated
+  - zircon_runtime/src/tests/contracts/naming_boundary/runtime_15_m2/net.rs::runtime_15_net_http_hyper_http1_client_policy_is_isolated
   - rustfmt --edition 2021 --check zircon_plugins/net/features/http/runtime/src/backend.rs zircon_plugins/net/features/http/runtime/src/backend/client.rs zircon_plugins/net/features/http/runtime/src/backend/http1_client_policy.rs zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/net.rs
   - rustfmt --edition 2021 --check zircon_runtime\src\ui\template\asset\schema\mod.rs zircon_runtime\src\ui\template\asset\schema\migrator.rs zircon_runtime\src\ui\template\asset\schema\flat_nodes.rs zircon_runtime\src\ui\template\asset\compiler\style_apply.rs zircon_runtime\src\ui\tests\asset_schema_migration.rs zircon_runtime\src\ui\tests\asset.rs zircon_runtime\src\ui\tests\asset_contract_spine.rs
   - rustfmt --edition 2021 --check zircon_runtime\src\ui\layout\pass\taffy_arrange.rs

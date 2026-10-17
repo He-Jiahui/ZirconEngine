@@ -1,120 +1,42 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_table_rows/cells/metrics.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_table_rows/cells/allocation.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_table_rows/cells/geometry.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_table_rows/cells/text.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_table_rows/cells/commands.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_table_rows/surface.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_list_rows
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_tree_rows
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_property_rows
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_row_metrics.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_shell_panels
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_shell_panels/frame.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_shell_panels/identity.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_shell_panels/surface.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_chrome/fill.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_chrome/palette.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_chrome/selection.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_chrome/separators.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_chrome/tests.rs
+  - zircon_editor/src/ui/retained/contract/paint/table_rows/cells/metrics.rs
+  - zircon_editor/src/ui/retained/contract/paint/table_rows/cells/allocation.rs
+  - zircon_editor/src/ui/retained/contract/paint/table_rows/cells/geometry.rs
+  - zircon_editor/src/ui/retained/contract/paint/table_rows/cells/text.rs
+  - zircon_editor/src/ui/retained/contract/paint/table_rows/cells/commands.rs
   - zircon_runtime/src/core/framework/render/mod.rs
   - zircon_runtime/src/asset/assets/mod.rs
   - zircon_editor/src/tests/ui/material_editor/projection.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_fields
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_fields/metrics.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_fields/search.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_fields/surface.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_fields/text.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_field_stepper.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_field_stepper/command.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_field_stepper/metrics.rs
   - zircon_editor/assets/icons/zircon_editor_shell/controls/search.svg
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_text_field/model.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_text_field/palette.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_text_field/selection.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_text_field/text.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_text_field/tests.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/exports/form_controls.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_button.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_button/tab_like.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_segmented_control_geometry.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_segmented_control_geometry/metrics.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_segmented_control_geometry/segmented/item.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_segmented_controls_tests/geometry.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_buttons/content/entry.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_buttons/content/metrics.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_fields_tests/style.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_fields_tests/paint.rs
+  - zircon_editor/src/ui/retained/contract/paint/selector/exports/form_controls.rs
+  - zircon_editor/src/ui/retained/contract/paint/segmented/item.rs
+  - zircon_editor/src/ui/retained/contract/paint/buttons/content/entry.rs
+  - zircon_editor/src/ui/retained/contract/paint/buttons/content/metrics.rs
   - zircon_editor/assets/ui/theme/editor_workbench_strict.zui
-  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_projection/
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_asset_placeholder_visuals.rs
   - zircon_editor/assets/icons/zircon_editor_shell/activity/image.svg
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_button_glyphs/shapes.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_buttons_tests/paint.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_chips.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_chips/metrics.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_chips/style.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_chips/geometry.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_chips/surface.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_chips/text.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_chips_tests/paint.rs
   - zircon_editor/assets/icons/zircon_editor_shell/controls/add.svg
   - zircon_editor/assets/icons/zircon_editor_shell/controls/delete.svg
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_status_controls
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_status_controls/chips.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_status_controls/chips/text.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_status_control_geometry.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_status_control_geometry/metrics.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_status_control_geometry/icons.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_status_glyphs.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_status_glyphs/geometry.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_status_controls_tests/icons.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_selection_controls/checkbox/tick.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_selection_control_geometry/metrics.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_selection_controls_tests/marks.rs
+  - zircon_editor/src/ui/retained/contract/paint/selection_controls/checkbox/tick.rs
   - zircon_editor/assets/icons/zircon_editor_shell/controls/check.svg
-  - zircon_editor/src/ui/retained_host/host_contract/menu_popup_metrics.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/menus/geometry/row.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/native_panes/scrollbar.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/native_panes/scrollbar/asset.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/native_panes/scrollbar/geometry.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/native_panes/scrollbar/paint.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/native_panes/scrollbar/style.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/native_panes/scrollbar/tests.rs
-  - zircon_editor/src/tests/host/retained_menu_pointer/scrollbar_visual_screenshot.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_row_adornments.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_row_adornments/geometry.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_rows.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_rows/metrics.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_rows/surface/row.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_rows/text.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_rows/text/label.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_rows/text/shortcut.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_rows_tests/paint.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_rows_tests/style.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_material_feedback.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_material_feedback/metrics.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_material_feedback/palette.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_material_feedback/state/colors.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_material_feedback/progress/linear.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_material_feedback_tests/paint.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_dialogs.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_dialogs/metrics.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_dialogs/style/palette.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_dialogs/tests.rs
+  - zircon_editor/src/ui/retained/contract/workbench/menus/geometry/row.rs
+  - zircon_editor/src/ui/retained/contract/workbench/native_panes/scrollbar.rs
+  - zircon_editor/src/ui/retained/contract/workbench/native_panes/scrollbar/asset.rs
+  - zircon_editor/src/ui/retained/contract/workbench/scrollbar/geometry.rs
+  - zircon_editor/src/ui/retained/contract/workbench/native_panes/scrollbar/paint.rs
+  - zircon_editor/src/ui/retained/contract/workbench/native_panes/scrollbar/style.rs
+  - zircon_editor/src/ui/retained/contract/paint/popup_rows/surface/row.rs
+  - zircon_editor/src/ui/retained/contract/paint/popup_rows/text/shortcut.rs
+  - zircon_editor/src/ui/retained/contract/paint/feedback/state/colors.rs
+  - zircon_editor/src/ui/retained/contract/paint/feedback/progress/linear.rs
   - zircon_editor/src/tests/host/retained_window/native_material_painter_dialog.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/menus/geometry/popup.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/menus/geometry/submenu.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/menus/popup.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/menus/rows.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/menu_geometry/frames/row.rs
+  - zircon_editor/src/ui/retained/contract/workbench/menus/geometry/popup.rs
+  - zircon_editor/src/ui/retained/contract/workbench/menus/geometry/submenu.rs
+  - zircon_editor/src/ui/retained/contract/workbench/menus/popup.rs
+  - zircon_editor/src/ui/retained/contract/workbench/menus/rows.rs
+  - zircon_editor/src/ui/retained/contract/pointer/menu_geometry/frames/row.rs
   - zircon_editor/src/tests/host/retained_window/native_workbench_window_menus.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_labels/input_kind.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_labels/focus.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_labels/values.rs
+  - zircon_editor/src/ui/retained/contract/paint_text/draw/layout.rs
   - zircon_editor/src/ui/layouts/views/asset_browser/labels.rs
   - zircon_editor/src/ui/layouts/views/asset_browser/summary_nodes.rs
   - zircon_editor/src/ui/layouts/views/asset_browser/summary_layout.rs

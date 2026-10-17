@@ -4,7 +4,6 @@ related_code:
   - zircon_runtime/src/scene/components/scene/mod.rs
   - zircon_runtime/src/scene/tests/component_structure/runtime_world_domains.rs
   - zircon_runtime/src/scene/tests/ecs_reflect/structure.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/scene_component_structure.rs
 implementation_files:
   - zircon_runtime/src/scene/components/scene/activation.rs
   - zircon_runtime/src/scene/components/scene/animation.rs

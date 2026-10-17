@@ -16,22 +16,17 @@ related_code:
   - zircon_runtime/src/ui/text/rich_text.rs
   - zircon_runtime/src/ui/text/layout_engine/rich_table
   - zircon_runtime/src/ui/surface/input/rich_link.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render/rich_text.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/render/rich_text.rs
   - zircon_runtime/src/graphics/scene/resources/ui_texture.rs
   - zircon_runtime_interface/src/ui/surface/render/text_layout.rs
   - zircon_runtime_interface/src/ui/surface/render/typography.rs
 tests:
-  - zircon_runtime/src/text/rich/tests.rs
   - zircon_runtime/src/text/rich/tests
-  - zircon_runtime/src/text/layout/rich/tests.rs
-  - zircon_runtime/src/text/layout/rich_advance_index/tests.rs
-  - zircon_runtime/src/text/layout/rich_vertical/tests.rs
-  - zircon_runtime/src/ui/text/rich_text/tests.rs
   - zircon_runtime/src/ui/text/layout_engine/tests/rich_blocks.rs
-  - zircon_runtime/src/ui/text/layout_engine/tests/rich_inline.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/render/tests/rich_inline.rs
   - zircon_runtime/src/ui/text/layout_engine/tests/rich_table
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render/tests/rich_inline.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render/tests/rich_table.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/render/tests/rich_inline.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/render/tests/rich_table.rs
   - zircon_runtime/tests/runtime_text_rich_blocks.rs
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md

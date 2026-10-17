@@ -6,13 +6,13 @@ related_code:
   - zircon_runtime/src/asset/project/manager/durable_transaction.rs
   - zircon_runtime/src/scene/world/transaction.rs
   - zircon_runtime/src/scene/world/typed_api/bundle_transaction.rs
-  - zircon_runtime/src/scene/world/typed_api/bundle_transaction/deferred_bundle_commit.rs
-  - zircon_runtime/src/scene/world/typed_api/bundle_transaction/deferred_bundle_removals.rs
-  - zircon_runtime/src/scene/world/typed_api/bundle_transaction/deferred_bundle_staging.rs
-  - zircon_runtime/src/scene/dynamic_scene/scene/spawn/transaction.rs
-  - zircon_runtime/src/scene/dynamic_scene/scene/spawn/preflight_mutation.rs
-  - zircon_runtime/src/scene/dynamic_scene/scene/spawn/commit.rs
-  - zircon_runtime/src/scene/dynamic_scene/session/io/atomic.rs
+  - zircon_runtime/src/scene/world/bundle_transaction/deferred_bundle_commit.rs
+  - zircon_runtime/src/scene/world/bundle_transaction/deferred_bundle_removals.rs
+  - zircon_runtime/src/scene/world/bundle_transaction/deferred_bundle_staging.rs
+  - zircon_runtime/src/scene/dynamic/scene/spawn/transaction.rs
+  - zircon_runtime/src/scene/dynamic/scene/spawn/preflight_mutation.rs
+  - zircon_runtime/src/scene/dynamic/scene/spawn/commit.rs
+  - zircon_runtime/src/scene/dynamic/session/io/atomic.rs
   - zircon_runtime/src/scene/ecs/commands/command_queue.rs
   - zircon_runtime/src/scene/world/commands.rs
   - zircon_runtime/src/core/runtime/handle/activation.rs
@@ -20,26 +20,22 @@ related_code:
   - zircon_runtime/src/core/runtime/handle/activation/module_lifecycle.rs
   - zircon_runtime/src/core/runtime/handle/activation/service_lifecycle.rs
   - zircon_runtime/src/core/runtime/handle/runtime_extensions.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/hot_reload.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/lifecycle.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/loading.rs
   - zircon_runtime/src/script/vm/runtime/hot_reload_coordinator.rs
   - zircon_runtime/src/ui/template/asset/hot_reload_executor.rs
   - zircon_runtime/src/ui/template/asset/hot_reload_plan.rs
   - zircon_runtime/src/core/framework/net/http.rs
   - zircon_runtime/src/core/framework/net/rpc.rs
   - zircon_runtime/src/graphics/pipeline/declarations/compiled_render_pipeline.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/camera_loop.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/submit.rs
+  - zircon_runtime/src/graphics/runtime/framework/extract/submit/camera_loop.rs
+  - zircon_runtime/src/graphics/runtime/framework/extract/submit/submit.rs
   - zircon_editor/src/core/editing/engine/transaction/lifecycle.rs
   - zircon_editor/src/core/editing/engine/transaction/operation_group.rs
   - zircon_editor/src/core/editing/engine/history.rs
   - zircon_editor/src/core/project/scene_document.rs
   - zircon_editor/src/core/document/scene_route.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/enablement/capabilities.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/enablement/project.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/enablement/native.rs
+  - zircon_editor/src/ui/host/exports/enablement/capabilities.rs
+  - zircon_editor/src/ui/host/exports/enablement/project.rs
+  - zircon_editor/src/ui/host/exports/enablement/native.rs
   - zircon_plugins/physics/runtime/src/skeletal/profile.rs
   - zircon_plugins/sound/runtime/src/service_types/mixer_graph/configuration.rs
   - zircon_plugins/net/features/rpc/runtime/src/manager/dispatch.rs
@@ -47,18 +43,13 @@ related_code:
   - zircon_hub/src/process/editor_focus/publish.rs
   - zircon_app/src/entry/runtime_entry_app/frame_capture.rs
 tests:
-  - zircon_runtime/src/core/resource/io/transaction/engine/tests.rs
-  - zircon_runtime/src/core/resource/io/transaction/recovery/tests.rs
   - zircon_runtime/src/asset/tests/migration/project_commandlet/crash_windows.rs
-  - zircon_runtime/src/asset/tests/migration/project_commandlet/transaction_recovery.rs
+  - zircon_runtime/src/asset/tests/project_commandlet/transaction_recovery.rs
   - zircon_runtime/src/scene/tests/ecs_typed_api/bundle_transactions.rs
-  - zircon_runtime/src/script/vm/runtime/hot_reload_coordinator/tests/unload_atomicity.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests/hot_reload_failures.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests/hot_reload_publication.rs
+  - zircon_runtime/src/script/vm/runtime/tests/unload_atomicity.rs
+  - zircon_runtime/src/plugin/loader/live/tests/hot_reload_failures.rs
+  - zircon_runtime/src/plugin/loader/live/tests/hot_reload_publication.rs
   - zircon_editor/src/tests/editing/transaction_engine/operation_group.rs
-  - zircon_editor/src/core/document/scene_route_tests.rs
-  - tools/session_coordinator/tests/test_command_protocol.py
-  - tools/session_coordinator/tests/test_git_finalize.py
 plan_sources:
   - docs/plans/optimize/01-cross-report-owner-schema-abi-p0-consolidation-review.md
   - docs/plans/optimize/coverage.md

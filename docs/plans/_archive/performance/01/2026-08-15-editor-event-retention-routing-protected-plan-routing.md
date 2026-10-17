@@ -2,7 +2,6 @@
 related_code:
   - zircon_editor/src/core/editor_event
   - zircon_editor/src/ui/host/editor_event_dispatch.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/viewport
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/performance/review.md

@@ -4,10 +4,7 @@ status: implemented_pending_validation
 plan_sources:
   - docs/plans/optimize/zircon_editor/640/2026-09-01-preallocated-viewport-screen-lines.md
 related_code:
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_handle_screen_lines.rs
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_handle_interaction.rs
 tests:
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_handle_interaction.rs
 ---
 
 # Viewport Screen-Line Capacity

@@ -7,10 +7,7 @@ workflow_node: HGI-M5-RC
 slice: RC-S1-demand-marking
 session: render18-hgi-m5-rc-s1-demand-marking-r3-20260718
 related_code:
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/scene_representation/radiance_cache_state.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/scene_representation/representation.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_scene_representation.rs
-  - zircon_plugins/hybrid_gi/runtime/src/test_support/render_feature_fixtures.rs
+  - zircon_plugins/hybrid_gi/runtime/src/gi/scene_representation/representation.rs
 tests:
   - hybrid_gi_scene_representation_seeds_radiance_cache_from_surface_cache_then_voxel_fallback
   - hybrid_gi_radiance_cache_marks_unique_probe_lattice_demands

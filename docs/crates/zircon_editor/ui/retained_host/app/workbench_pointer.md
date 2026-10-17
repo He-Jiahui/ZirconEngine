@@ -1,27 +1,17 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/app.rs
-  - zircon_editor/src/ui/retained_host/app/workbench_pointer.rs
-  - zircon_editor/src/ui/retained_host/app/workbench_pointer/document_tabs.rs
-  - zircon_editor/src/ui/retained_host/app/workbench_pointer/floating_window.rs
-  - zircon_editor/src/ui/retained_host/app/workbench_pointer/shell_chrome.rs
-  - zircon_editor/src/ui/retained_host/app/workbench_pointer/shell_chrome/activity.rs
-  - zircon_editor/src/ui/retained_host/app/workbench_pointer/shell_chrome/drawer_header.rs
-  - zircon_editor/src/ui/retained_host/app/workbench_pointer/shell_chrome/host_page.rs
-  - zircon_editor/src/ui/retained_host/app/callback_wiring.rs
-  - zircon_editor/src/ui/retained_host/activity_rail_pointer/mod.rs
-  - zircon_editor/src/ui/retained_host/document_tab_pointer/mod.rs
-  - zircon_editor/src/ui/retained_host/drawer_header_pointer/mod.rs
-  - zircon_editor/src/ui/retained_host/host_page_pointer/mod.rs
-  - zircon_editor/src/ui/retained_host/shell_pointer.rs
+  - zircon_editor/src/ui/retained/app/pointer/shell_chrome/activity.rs
+  - zircon_editor/src/ui/retained/app/pointer/shell_chrome/drawer_header.rs
+  - zircon_editor/src/ui/retained/app/pointer/shell_chrome/host_page.rs
+  - zircon_editor/src/ui/retained/app/callback_wiring.rs
+  - zircon_editor/src/ui/retained/activity_rail_pointer/mod.rs
+  - zircon_editor/src/ui/retained/document_tab_pointer/mod.rs
+  - zircon_editor/src/ui/retained/drawer_header_pointer/mod.rs
+  - zircon_editor/src/ui/retained/host_page_pointer/mod.rs
 implementation_files:
-  - zircon_editor/src/ui/retained_host/app/workbench_pointer.rs
-  - zircon_editor/src/ui/retained_host/app/workbench_pointer/document_tabs.rs
-  - zircon_editor/src/ui/retained_host/app/workbench_pointer/floating_window.rs
-  - zircon_editor/src/ui/retained_host/app/workbench_pointer/shell_chrome.rs
-  - zircon_editor/src/ui/retained_host/app/workbench_pointer/shell_chrome/activity.rs
-  - zircon_editor/src/ui/retained_host/app/workbench_pointer/shell_chrome/drawer_header.rs
-  - zircon_editor/src/ui/retained_host/app/workbench_pointer/shell_chrome/host_page.rs
+  - zircon_editor/src/ui/retained/app/pointer/shell_chrome/activity.rs
+  - zircon_editor/src/ui/retained/app/pointer/shell_chrome/drawer_header.rs
+  - zircon_editor/src/ui/retained/app/pointer/shell_chrome/host_page.rs
 plan_sources:
   - docs/plans/zircon_editor/editor_ui/08-workbench-shell-on-runtime-ui.md
   - user: 2026-06-18 editor UI architecture implementation, feature first and tests deferred

@@ -2,17 +2,15 @@
 related_code:
   - zircon_editor/src/core/asset/type_registry/builtin.rs
   - zircon_editor/src/core/editing/paths.rs
-  - zircon_editor/src/ui/host/editor_asset_manager/manager/preview_refresh/generate_preview_artifact.rs
-  - zircon_editor/src/ui/retained_host/app/assets/workspace.rs
+  - zircon_editor/src/ui/host/assets/preview_refresh/generate_preview_artifact.rs
+  - zircon_editor/src/ui/retained/app/assets/workspace.rs
   - zircon_editor/assets/ui/editor/asset_browser.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/animation/workbench_extension_retarget_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/simulation/workbench_extension_collision_proxy_workspace.zui
   - zircon_runtime/src/asset/assets/model
   - zircon_runtime/src/asset/assets/mesh
   - zircon_runtime/src/asset/importer/ingest/import_gltf.rs
   - zircon_runtime/src/asset/importer/ingest/gltf_labeled_subassets.rs
   - zircon_runtime/src/core/framework/animation/asset/skeleton.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/skinning.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/build/skinning.rs
   - zircon_runtime/src/scene/components/scene/mesh_renderer.rs
   - zircon_plugins/gltf_importer/runtime
   - zircon_plugins/asset_importers/model/runtime

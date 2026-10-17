@@ -9,7 +9,6 @@ related_records:
 implementation_files:
   - zircon_runtime/src/navigation/runtime/baked_mesh.rs
 tests:
-  - tools/tests/test_runtime862_navigation_vertex_projection_capacity_performance_contract.py
   - tools/tests/test_runtime08d_borrowed_polygon_indices_performance_contract.py
 ---
 

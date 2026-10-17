@@ -1,7 +1,6 @@
 ---
 related_code:
   - zircon_plugins/animation_graph/editor/src/plugin.rs
-  - zircon_plugins/animation_graph/editor/src/tests.rs
   - zircon_plugins/timeline_sequence/editor/src/plugin.rs
 implementation_files:
   - zircon_plugins/animation_graph/editor/src/plugin.rs
@@ -9,8 +8,6 @@ plan_sources:
   - user: 2026-07-11 按 docs/plans/zircon_plugins 完整实现插件架构
   - docs/plans/zircon_plugins/04-animation.md
 tests:
-  - zircon_plugins/animation_graph/editor/src/tests.rs
-  - zircon_plugins/timeline_sequence/editor/src/tests.rs
 doc_type: module-detail
 ---
 

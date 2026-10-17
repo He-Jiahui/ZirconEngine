@@ -6,9 +6,8 @@ implementation_status: implemented_pending_validation
 validation_status: scoped_static_checks_passed_managed_validation_pending
 performance_status: product_gate_pending
 related_code:
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/scene_hierarchy_fragment.rs
+  - zircon_editor/src/ui/retained/dispatch/workbench/scene_hierarchy_fragment.rs
 tests:
-  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_projection/scene_node_identity.rs
 plan_sources:
   - docs/plans/optimize/zircon_editor/60-editor-scene-hierarchy-outliner-tree-projection-expansion-selection-rename-reparent-drag-drop-visibility-lock-multi-world.md
 ---

@@ -14,10 +14,7 @@ related_code:
   - zircon_editor/src/core/editor_extension.rs
   - zircon_editor/src/scene/viewport/edit_mode_projection/build.rs
   - zircon_editor/src/ui/host/editor_operation_dispatch.rs
-  - zircon_editor/src/ui/template_runtime/builtin/workbench_extension_module_template_bindings/simulation_physics.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation/specs/simulation_physics.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback/simulation_physics.rs
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/simulation
+  - zircon_editor/src/ui/retained/dispatch/workbench/specs/simulation_physics.rs
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md
   - docs/plans/optimize/zircon_runtime/04-core-resource-asset-serialization-review.md

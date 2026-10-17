@@ -18,7 +18,6 @@ related_code:
   - zircon_runtime/src/ui/layout/pass/arrange.rs
   - zircon_runtime/src/ui/layout/pass/taffy_arrange.rs
   - zircon_runtime/src/ui/layout/taffy_bridge/compute.rs
-  - dev/bevy/crates/bevy_ui/src/layout/ui_surface.rs
 tests:
   - 10k-child slot lookup visit-count test
   - persistent Taffy stable-frame tree-operation test

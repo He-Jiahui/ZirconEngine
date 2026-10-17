@@ -4,8 +4,6 @@ owner_plan: docs/plans/zircon_editor/editor/15-build-export-and-publishing.md
 recorded_at: 2026-07-12
 related_code:
   - zircon_editor/src/core/export
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/build_export
 tests:
   - cargo test -p zircon_editor --lib --locked --offline
   - zircon_editor test binary partition filters

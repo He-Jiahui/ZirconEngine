@@ -13,13 +13,12 @@ related_code:
   - zircon_runtime/src/dynamic_api/session/diagnostics.rs
   - zircon_runtime/src/dynamic_api/session/event_mirror.rs
   - zircon_runtime/src/scene/event_mirror
-  - zircon_runtime/src/plugin/native_plugin_loader/host_api_adapter
   - zircon_runtime_host/src/foreign_output
   - zircon_editor/src/core/gateway/session/profile.rs
   - zircon_editor/src/core/gateway/session/plugin_events.rs
   - zircon_editor/src/core/runtime_event_consumer
   - zircon_editor/src/core/script_build/diagnostics_sink.rs
-  - zircon_editor/src/ui/retained_host/app/profiling
+  - zircon_editor/src/ui/retained/app/profiling
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md
   - docs/plans/optimize/zircon_runtime_interface/01-runtime-dll-abi-ffi-version-handle-foreign-ownership-review.md

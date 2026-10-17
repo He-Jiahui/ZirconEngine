@@ -1,8 +1,7 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/app/asset_content_pointer/context_menu.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/context_menu.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/context_menu.rs
+  - zircon_editor/src/ui/retained/app/asset_content_pointer/context_menu.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/workbench/context_menu.rs
   - docs/plans/optimize/zircon_editor/57/2026-09-28-editor57-asset-browser-context-menu-open.md
 plan_sources:
   - docs/plans/astra/features/editor/1035-editor57-asset-browser-double-click-activation-completion-list.md

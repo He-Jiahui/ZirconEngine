@@ -1,16 +1,9 @@
 ---
 related_code:
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/feedback/workbench_status_item.zui
-  - zircon_editor/assets/ui/editor/components/workbench/shell/workbench_status_bar.zui
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_status_control_geometry/metrics.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_status_control_geometry/signals/icon.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_status_control_geometry/signals/text.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_status_controls_tests/signals.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/status_bar.rs
+  - zircon_editor/src/ui/retained/contract/paint/signals/icon.rs
+  - zircon_editor/src/ui/retained/contract/paint/signals/text.rs
   - zircon_editor/src/tests/ui/boundary/zui_asset_governance/workbench_shell.rs
 implementation_files:
-  - zircon_editor/assets/ui/editor/components/workbench/shell/workbench_status_bar.zui
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_status_control_geometry/metrics.rs
 plan_sources:
   - user: 2026-07-14 continue component-first Unreal-style visual refinement with Runtime Text and screenshot evidence
   - docs/plans/zircon_editor/editor_layout/15-component-standardization-from-primitives.md

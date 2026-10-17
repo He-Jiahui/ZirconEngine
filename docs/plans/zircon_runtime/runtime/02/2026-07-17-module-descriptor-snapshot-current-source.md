@@ -1,12 +1,10 @@
 ---
 related_code:
   - zircon_app/src/plugins/builder.rs
-  - zircon_app/src/plugins/tests.rs
   - zircon_app/src/entry/engine_entry.rs
   - zircon_app/src/entry/entry_runner/bootstrap.rs
 implementation_files:
   - zircon_app/src/plugins/builder.rs
-  - zircon_app/src/plugins/tests.rs
   - zircon_app/src/entry/engine_entry.rs
   - docs/crates/zircon_app/plugins.md
 plan_sources:

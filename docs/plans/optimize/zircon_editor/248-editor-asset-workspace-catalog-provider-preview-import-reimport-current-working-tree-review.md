@@ -9,9 +9,7 @@ related_code:
   - zircon_editor/src/core/project
   - zircon_editor/src/core/document
   - zircon_editor/src/core/jobs
-  - zircon_editor/src/ui/host/editor_asset_manager
   - zircon_editor/src/ui/workbench/project/asset_workspace_state.rs
-  - zircon_editor/src/ui/retained_host/app/assets
   - zircon_editor/src/tests/editing/ui_asset
   - zircon_runtime/src/asset/pipeline/manager
   - zircon_runtime/src/asset/project
@@ -19,7 +17,6 @@ tests:
   - zircon_editor/src/tests/editing/asset_workspace.rs
   - zircon_editor/src/tests/editing/ui_asset
   - zircon_editor/src/tests/editor_asset_type_registry
-  - zircon_editor/src/ui/host/editor_asset_manager/manager/catalog_generation/tests.rs
 plan_sources:
   - docs/plans/optimize/zircon_editor/226-editor-asset-workspace-content-browser-current-source-review.md
   - docs/plans/optimize/zircon_editor/247-editor-scene-world-authoring-play-hierarchy-document-current-working-tree-review.md

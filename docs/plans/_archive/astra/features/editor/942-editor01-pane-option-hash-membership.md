@@ -7,9 +7,7 @@ related_records:
   - docs/plans/astra/features/editor/941-editor01-avatar-mask-hash-index.md
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_option_projection.rs
 tests:
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_option_projection.rs
 ---
 
 # Editor942 Editor01 Pane-Option Hash Membership

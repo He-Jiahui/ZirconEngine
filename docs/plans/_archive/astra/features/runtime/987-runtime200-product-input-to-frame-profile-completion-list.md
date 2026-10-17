@@ -7,7 +7,7 @@ plan_sources:
 implementation_files:
   - zircon_runtime/src/dynamic_api/session/tests/foundation_render.rs
 tests:
-  - zircon_runtime/src/dynamic_api/session/tests/foundation_render/ui_input_frame_profile.rs
+  - zircon_runtime/src/dynamic_api/tests/foundation_render/ui_input_frame_profile.rs
 ---
 
 # Runtime200 product input to frame profile completion list

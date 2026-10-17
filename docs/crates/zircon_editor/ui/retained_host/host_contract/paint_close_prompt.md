@@ -1,17 +1,14 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/host_contract/paint_close_prompt.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_close_prompt/button.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_close_prompt/colors.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_close_prompt/draw.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_close_prompt/layout.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/scene_layers.rs
+  - zircon_editor/src/ui/retained/contract/paint_close_prompt/button.rs
+  - zircon_editor/src/ui/retained/contract/paint_close_prompt/colors.rs
+  - zircon_editor/src/ui/retained/contract/paint_close_prompt/draw.rs
+  - zircon_editor/src/ui/retained/contract/paint_close_prompt/layout.rs
 implementation_files:
-  - zircon_editor/src/ui/retained_host/host_contract/paint_close_prompt.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_close_prompt/button.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_close_prompt/colors.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_close_prompt/draw.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_close_prompt/layout.rs
+  - zircon_editor/src/ui/retained/contract/paint_close_prompt/button.rs
+  - zircon_editor/src/ui/retained/contract/paint_close_prompt/colors.rs
+  - zircon_editor/src/ui/retained/contract/paint_close_prompt/draw.rs
+  - zircon_editor/src/ui/retained/contract/paint_close_prompt/layout.rs
 plan_sources:
   - docs/plans/zircon_editor/editor_ui/08-workbench-shell-on-runtime-ui.md
   - user: 2026-06-20 editor UI architecture implementation, feature first and tests deferred

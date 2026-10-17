@@ -9,8 +9,6 @@ origin_child_dir: docs/plans/performance/01
 fixing_child_dir: docs/plans/zircon_runtime/runtime/04
 plan_link_mode: child_record_only
 related_code:
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/open_project.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/runtime.rs
 tests:
   - cargo test -p zircon_runtime --lib asset::tests::pipeline --locked --jobs 1 -- --nocapture --test-threads=1
   - cold, warm, one-percent change, large artifact, concurrent query and rollback matrices

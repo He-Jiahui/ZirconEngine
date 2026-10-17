@@ -11,7 +11,6 @@ related_code:
   - zircon_runtime/src/asset/assets/font.rs
   - zircon_runtime/src/asset/assets/scene
   - zircon_runtime/src/asset/importer/ingest/import_font_asset
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/loading
   - zircon_runtime/src/core/framework/render/frame_extract.rs
   - zircon_runtime/src/dynamic_api/session/hud.rs
   - zircon_runtime/src/dynamic_api/session/extract.rs
@@ -25,18 +24,13 @@ related_code:
   - zircon_runtime/src/scene/world/render.rs
   - zircon_runtime/src/scene/world/typed_api/fixed_components.rs
   - zircon_runtime/src/text
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui
   - zircon_editor/src/core/commands/defaults.rs
   - zircon_editor/src/ui/host/scene_inspection_publication.rs
   - zircon_editor/src/ui/workbench/event/node_kind_id.rs
   - zircon_editor/src/ui/workbench/event/node_kind_from_id.rs
 tests:
   - zircon_runtime/src/asset/tests/assets/font.rs
-  - zircon_runtime/src/text/glyph_artifact/tests.rs
   - zircon_runtime/src/text/font/database/tests
-  - zircon_runtime/src/text/layout/line_break/tests.rs
-  - zircon_runtime/src/text/shaping/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/tests.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests
   - zircon_runtime/src/scene/tests
 plan_sources:

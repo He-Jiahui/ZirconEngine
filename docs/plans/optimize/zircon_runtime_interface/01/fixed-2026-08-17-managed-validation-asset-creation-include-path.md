@@ -9,7 +9,6 @@ origin_child_dir: docs/plans/optimize/zircon_runtime_interface/01
 fixing_child_dir: docs/plans/zircon_editor/editor_ui/12
 plan_link_mode: child_record_only
 related_code:
-  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_window_menus/asset_creation.rs
   - zircon_editor/src/ui/host/editor_extension_registration.rs
 tests:
   - cargo test -p zircon_editor --locked --test runtime_foreign_output_policy

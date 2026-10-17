@@ -22,9 +22,6 @@ implementation_files:
 plan_sources:
   - docs/plans/zircon_runtime/runtime/14-runtime-module-family-closeout.md
 tests:
-  - zircon_runtime/src/engine_module/tests.rs
-  - zircon_runtime/src/engine_module/tests.rs::engine_module_declared_layer_does_not_own_runtime_lifecycle
-  - zircon_runtime/src/tests/runtime_absorption/root_entries.rs
   - "target-client current-source lib-test binary: engine_module 7/7"
 doc_type: module-detail
 ---

@@ -8,9 +8,7 @@ related_records:
   - docs/plans/astra/features/runtime/902-runtime567-hermite-basis-reuse.md
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
-  - zircon_runtime/src/text/atlas/raster_key/tests.rs
 tests:
-  - zircon_runtime/src/text/atlas/raster_key/tests.rs
 ---
 
 # Runtime901 Runtime566 Text Subpixel Fraction Fast Path

@@ -7,10 +7,8 @@ plan_sources:
 related_records:
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
-  - zircon_runtime/src/script/vm/backend/backend_registry/qualified_lookup_tests.rs
   - zircon_runtime/src/dynamic_api/session/tests/vampire_runtime_support.rs
 tests:
-  - zircon_runtime/src/script/vm/backend/backend_registry/qualified_lookup_tests.rs
   - zircon_runtime/src/dynamic_api/session/tests/vampire_gameplay.rs
 ---
 

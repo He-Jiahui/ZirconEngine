@@ -27,7 +27,6 @@ related_code:
   - zircon_app/src/entry
   - zircon_plugins/first_party_runtime_catalog
   - zircon_plugins/first_party_editor_catalog
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog
   - zircon_runtime/src/plugin/package_manifest/builtin_catalog.rs
 reference_engines:
   - dev/UnrealEngine/Engine/Source/Runtime/Engine/Classes/Engine/NetDriver.h

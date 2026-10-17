@@ -9,10 +9,7 @@ origin_child_dir: docs/plans/zircon_runtime/text/01
 fixing_child_dir: docs/plans/zircon_runtime/runtime/06
 plan_link_mode: child_record_only
 related_code:
-  - zircon_runtime/src/plugin/native_plugin_loader/discover/authority.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_load_report.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/discover/tests.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_load_report/tests.rs
+  - zircon_runtime/src/plugin/loader/discover/authority.rs
 tests:
   - cargo +1.94.1 test -p zircon_runtime --lib native_plugin_load_report --locked --jobs 1 -- --test-threads=1
   - cargo +1.94.1 test -p zircon_runtime --lib native_plugin_loader::discover --locked --jobs 1 -- --test-threads=1

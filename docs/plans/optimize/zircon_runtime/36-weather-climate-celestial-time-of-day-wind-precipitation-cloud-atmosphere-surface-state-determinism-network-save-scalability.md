@@ -8,31 +8,20 @@ related_code:
   - zircon_runtime/src/core/framework/render/environment
   - zircon_runtime/src/core/framework/render/frame_extract.rs
   - zircon_runtime/src/core/framework/render/advanced_lighting/volumetric.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment
   - zircon_plugins/particles/runtime/src
   - zircon_plugins/terrain/runtime/src/plugin.rs
   - zircon_plugins/sound/runtime/src/components.rs
   - zircon_plugins/first_party_runtime_catalog/src/lib.rs
   - zircon_plugins/first_party_editor_catalog/src/catalog.rs
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/world/workbench_extension_weather_editor_workspace.zui
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation/specs/world_building/volume_and_weather.rs
-  - zircon_editor/src/ui/template_runtime/builtin/workbench_extension_module_template_bindings/world_building.rs
+  - zircon_editor/src/ui/dispatch/specs/world_building/volume_and_weather.rs
   - zircon_plugins/plugin_sdk/src/registration.rs
   - zircon_plugins/plugin_sdk_examples/editor/src/extensions.rs
   - examples/woc/native/apps/woc_client/src/preferences/settings
   - examples/woc/contracts/m4_abilities.json
 tests:
-  - zircon_runtime/src/core/framework/render/environment/source_cubemap/tests.rs
-  - zircon_runtime/src/core/framework/render/environment/source_cubemap_upload/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/realtime_ibl_graph_plan/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/realtime_ibl_runtime/tests.rs
   - zircon_plugins/particles/runtime/src/tests
   - zircon_runtime/src/asset/importer/native.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/candidate_from_manifest.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/discover_load_manifest.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/discovery_refresh/work.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/host_api_adapter/bridge_scope/tests.rs
+  - zircon_runtime/src/plugin/loader/discovery_refresh/work.rs
   - zircon_runtime/src/scene/ecs/component/registry.rs
   - zircon_runtime/src/scene/world/component_type_registry.rs
   - zircon_runtime/src/scene/tests/ecs_schedule/resources_events.rs

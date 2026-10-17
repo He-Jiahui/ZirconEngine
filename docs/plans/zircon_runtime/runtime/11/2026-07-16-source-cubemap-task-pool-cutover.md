@@ -5,7 +5,6 @@ related_code:
   - zircon_runtime/src/core/runtime/tasks/parallel_for.rs
   - zircon_runtime/src/core/framework/render/environment/source_cubemap.rs
   - zircon_runtime/src/core/framework/render/environment/source_cubemap/mipmap.rs
-  - zircon_runtime/src/core/framework/render/environment/source_cubemap/tests.rs
   - tools/tests/test_runtime_job_system_audit.py
 implementation_files:
   - zircon_runtime/src/core/framework/tasks/parallel_slice_executor.rs
@@ -13,7 +12,6 @@ implementation_files:
   - zircon_runtime/src/core/runtime/tasks/parallel_for.rs
   - zircon_runtime/src/core/framework/render/environment/source_cubemap.rs
   - zircon_runtime/src/core/framework/render/environment/source_cubemap/mipmap.rs
-  - zircon_runtime/src/core/framework/render/environment/source_cubemap/tests.rs
   - tools/tests/test_runtime_job_system_audit.py
 plan_sources:
   - docs/plans/engine-code-structure-convention.md

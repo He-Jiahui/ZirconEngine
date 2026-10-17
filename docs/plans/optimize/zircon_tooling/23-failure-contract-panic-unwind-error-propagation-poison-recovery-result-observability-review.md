@@ -19,7 +19,7 @@ related_code:
   - zircon_editor/src/core/settings/snapshot.rs
   - zircon_editor/src/ui/asset_editor/tree/tree_editing.rs
   - zircon_editor/src/ui/host/editor_manager.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/execution.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/execution.rs
   - zircon_editor/src/ui/host/export_process_support/child_guard.rs
   - zircon_plugins/ai/runtime/src/manager/execution_gate.rs
   - zircon_plugins/animation/runtime/src/evaluation/pipeline/direct_clip_worker.rs
@@ -30,10 +30,9 @@ related_code:
   - zircon_plugins/neural/runtime/src/cpu/interpreter.rs
   - zircon_plugins/neural/runtime/src/model/format.rs
   - zircon_plugins/plugin_sdk/src/native.rs
-  - zircon_plugins/texture_importer/runtime/src/container/ktx/ktx2/supercompression.rs
+  - zircon_plugins/texture_importer/runtime/src/container/ktx2/supercompression.rs
   - zircon_runtime/build.rs
   - zircon_runtime/src/asset/assets/texture/upload_support/ktx.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/runtime.rs
   - zircon_runtime/src/asset/runtime_asset_path.rs
   - zircon_runtime/src/core/runtime/config_store.rs
   - zircon_runtime/src/core/runtime/handle/activation.rs
@@ -46,11 +45,9 @@ related_code:
   - zircon_runtime/src/foundation/runtime/config_manager/worker.rs
   - zircon_runtime/src/graphics/pipeline/async_compile.rs
   - zircon_runtime/src/graphics/scene/resources/fallback/create_fallback_texture.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_wgpu_command_plan.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/hzb/hzb_occlusion_culler.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/scene_post_process_resources/profiled_scene_post_process_resources.rs
+  - zircon_runtime/src/graphics/scene/environment/ibl_bake_wgpu_command_plan.rs
+  - zircon_runtime/src/graphics/scene/renderer/hzb/hzb_occlusion_culler.rs
   - zircon_runtime/src/operation/service.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/ffi_panic_guard.rs
   - zircon_runtime/src/plugin/runtime_profile/availability_projection/generation.rs
   - zircon_runtime/src/scene/ecs/commands/queued_command.rs
   - zircon_runtime/src/scene/ecs/schedule_runner.rs
@@ -61,8 +58,8 @@ related_code:
   - zircon_runtime/src/text/sdf/generation_scheduler.rs
 tests:
   - zircon_runtime/src/tests/tasks.rs
-  - zircon_runtime/src/tests/runtime_absorption/dynamic_api_session/ffi_panic_boundary.rs
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/p0_robustness/native_host_callbacks.rs
+  - zircon_runtime/src/tests/contracts/dynamic_api_session/ffi_panic_boundary.rs
+  - zircon_runtime/src/tests/contracts/review/p0_robustness/native_host_callbacks.rs
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md
   - docs/plans/optimize/01-cross-report-owner-schema-abi-p0-consolidation-review.md

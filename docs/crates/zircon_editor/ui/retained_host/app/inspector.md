@@ -1,25 +1,24 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/app.rs
-  - zircon_editor/src/ui/retained_host/app/inspector.rs
-  - zircon_editor/src/ui/retained_host/app/inspector/drag_source.rs
-  - zircon_editor/src/ui/retained_host/app/inspector/surface_controls.rs
-  - zircon_editor/src/ui/retained_host/app/inspector/surface_controls/apply_arguments.rs
-  - zircon_editor/src/ui/retained_host/app/inspector/surface_controls/click.rs
-  - zircon_editor/src/ui/retained_host/app/inspector/surface_controls/dispatch.rs
-  - zircon_editor/src/ui/retained_host/app/inspector/surface_controls/field_ids.rs
-  - zircon_editor/src/ui/retained_host/app/inspector/surface_controls/value_change.rs
-  - zircon_editor/src/ui/retained_host/app/pane_surface_actions.rs
-  - zircon_editor/src/ui/retained_host/app/detail_scroll_pointer.rs
+  - zircon_editor/src/ui/retained/app/inspector.rs
+  - zircon_editor/src/ui/retained/app/inspector/drag_source.rs
+  - zircon_editor/src/ui/retained/app/inspector/surface_controls.rs
+  - zircon_editor/src/ui/retained/app/inspector/surface_controls/apply_arguments.rs
+  - zircon_editor/src/ui/retained/app/inspector/surface_controls/click.rs
+  - zircon_editor/src/ui/retained/app/inspector/surface_controls/dispatch.rs
+  - zircon_editor/src/ui/retained/app/inspector/surface_controls/field_ids.rs
+  - zircon_editor/src/ui/retained/app/inspector/surface_controls/value_change.rs
+  - zircon_editor/src/ui/retained/app/pane_surface_actions.rs
+  - zircon_editor/src/ui/retained/app/detail_scroll_pointer.rs
 implementation_files:
-  - zircon_editor/src/ui/retained_host/app/inspector.rs
-  - zircon_editor/src/ui/retained_host/app/inspector/drag_source.rs
-  - zircon_editor/src/ui/retained_host/app/inspector/surface_controls.rs
-  - zircon_editor/src/ui/retained_host/app/inspector/surface_controls/apply_arguments.rs
-  - zircon_editor/src/ui/retained_host/app/inspector/surface_controls/click.rs
-  - zircon_editor/src/ui/retained_host/app/inspector/surface_controls/dispatch.rs
-  - zircon_editor/src/ui/retained_host/app/inspector/surface_controls/field_ids.rs
-  - zircon_editor/src/ui/retained_host/app/inspector/surface_controls/value_change.rs
+  - zircon_editor/src/ui/retained/app/inspector.rs
+  - zircon_editor/src/ui/retained/app/inspector/drag_source.rs
+  - zircon_editor/src/ui/retained/app/inspector/surface_controls.rs
+  - zircon_editor/src/ui/retained/app/inspector/surface_controls/apply_arguments.rs
+  - zircon_editor/src/ui/retained/app/inspector/surface_controls/click.rs
+  - zircon_editor/src/ui/retained/app/inspector/surface_controls/dispatch.rs
+  - zircon_editor/src/ui/retained/app/inspector/surface_controls/field_ids.rs
+  - zircon_editor/src/ui/retained/app/inspector/surface_controls/value_change.rs
 plan_sources:
   - docs/plans/zircon_editor/editor_ui/08-workbench-shell-on-runtime-ui.md
   - user: 2026-06-18 editor UI architecture implementation, feature first and tests deferred

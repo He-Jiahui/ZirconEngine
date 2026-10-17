@@ -15,7 +15,6 @@ implementation_files:
   - zircon_runtime/src/ui/surface/surface/rebuild/authored_geometry.rs
 tests:
   - zircon_runtime_interface/src/ui/tree/node/ui_tree.rs
-  - zircon_runtime/src/ui/surface/invalidation/domain_bitset_tests.rs
   - tools/tests/test_runtime_incremental_layout_snapshot_performance_contract.py
   - tools/tests/test_runtime_ui_surface_incremental_rebuild_owner_structure.py
 implementation_status: implementation_complete

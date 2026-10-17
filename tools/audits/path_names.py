@@ -4,8 +4,13 @@ from __future__ import annotations
 import argparse
 from collections import Counter
 import json
+import os
 from pathlib import Path, PurePosixPath
-import subprocess
+
+if __package__:
+    from .review_debt import baseline_sources
+else:
+    from review_debt import baseline_sources
 
 TOTAL_LIMIT = 128
 PREFIX_RESERVE = 48
@@ -40,18 +45,28 @@ def owned_path(value: str) -> bool:
 
 
 def files(root: Path = ROOT) -> list[str]:
-    roots = [name for name in ENGINE_ROOTS if (root / name).is_dir()]
-    result = subprocess.run(
-        ["rg", "--files", "--hidden", "--no-ignore", "-g", "!**/vendor/**",
-         "-g", "!**/node_modules/**", "-g", "!**/.git/**", "-g", "!**/.cache/**",
-         "-g", "!**/.zircon-cache/**", "-g", "!**/.zircon/cache/**", *roots], cwd=root,
-        capture_output=True, check=True,
-    )
-    return sorted({
-        line.decode("utf-8").replace("\\", "/")
-        for line in result.stdout.splitlines()
-        if owned_path(line.decode("utf-8").replace("\\", "/"))
-    })
+    def fail(error: OSError) -> None:
+        raise error
+
+    paths = []
+    for name in ENGINE_ROOTS:
+        if not (root / name).is_dir():
+            continue
+        for directory, children, filenames in os.walk(root / name, onerror=fail):
+            relative = Path(directory).relative_to(root)
+            # Prune output/vendor trees without depending on host tools or Git ignores.
+            children[:] = [
+                child for child in children
+                if child not in EXCLUDED_PARTS
+                and not (relative.name == ".zircon" and child == "cache")
+                and not (child == "target" and not
+                         {"src", "tests", "assets", "fixtures"}.intersection(relative.parts))
+            ]
+            paths.extend(
+                (relative / filename).as_posix() for filename in filenames
+                if owned_path((relative / filename).as_posix())
+            )
+    return sorted(paths)
 
 
 def audit(paths: list[str], checkout: str = "") -> dict:
@@ -83,6 +98,12 @@ def main() -> int:
     parser.add_argument("--summary", action="store_true")
     args = parser.parse_args()
     report = audit(files(args.repo_root), str(args.repo_root))
+    baseline, _ = baseline_sources(args.repo_root, [])
+    violations = report["violations"]
+    # Existing path debt does not excuse a new name, even at the same length.
+    report["violations"] = [v for v in violations if v["path"] not in baseline]
+    report["baseline_violation_count"] = len(violations) - len(report["violations"])
+    report["passed"] = not report["violations"]
     if args.summary:
         report["violations_by_root"] = dict(Counter(v["path"].split("/")[0] for v in report["violations"]))
         report.pop("violations")

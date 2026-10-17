@@ -1,11 +1,10 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/app/invalidation.rs
-  - zircon_editor/src/ui/retained_host/app/invalidation
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/invalidation_bridge
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/recompute/invalidation
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/tick.rs
-  - zircon_editor/src/ui/retained_host/host_contract/window/diagnostics.rs
+  - zircon_editor/src/ui/retained/app/invalidation.rs
+  - zircon_editor/src/ui/retained/app/invalidation
+  - zircon_editor/src/ui/retained/app/recompute/invalidation
+  - zircon_editor/src/ui/retained/app/host_lifecycle/tick.rs
+  - zircon_editor/src/ui/retained/contract/window/diagnostics.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_editor/editor_ui/08-workbench-shell-on-runtime-ui.md

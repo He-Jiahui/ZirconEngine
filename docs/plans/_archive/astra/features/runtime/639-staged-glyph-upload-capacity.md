@@ -5,9 +5,7 @@ plan_sources:
   - docs/plans/optimize/zircon_runtime/639/2026-09-01-preallocated-staged-glyph-upload-successes.md
 related_code:
   - zircon_runtime/src/text/atlas/bitmap_run/staged_upload.rs
-  - zircon_runtime/src/text/atlas/bitmap_run/tests.rs
 tests:
-  - zircon_runtime/src/text/atlas/bitmap_run/tests.rs
 ---
 
 # Staged Glyph Upload Capacity

@@ -8,8 +8,6 @@ related_code:
 implementation_files:
   - zircon_runtime/src/graphics/scene/renderer/lighting
   - zircon_runtime/src/graphics/scene/renderer/shadow
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment
-  - zircon_runtime/src/graphics/runtime/render_framework/environment_capture_scheduler
 plan_sources:
   - user: 2026-09-09 构建 ZirconEngine 详细 Wiki 文档集合
   - docs/rendering/environment-lightmap-probe-consumption.md

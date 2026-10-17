@@ -1,12 +1,12 @@
 ---
 related_code:
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/realtime_ibl_runtime.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/realtime_ibl_time_slice.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/realtime_ibl_graph_plan.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/realtime_ibl_gpu_resources.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/realtime_ibl_capture_wgpu.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/realtime_ibl_gpu_timestamps.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/realtime_ibl_wgpu_recorder.rs
+  - zircon_runtime/src/graphics/scene/renderer/environment/realtime_ibl_runtime.rs
+  - zircon_runtime/src/graphics/scene/environment/realtime_ibl_time_slice.rs
+  - zircon_runtime/src/graphics/scene/environment/realtime_ibl_graph_plan.rs
+  - zircon_runtime/src/graphics/scene/environment/realtime_ibl_gpu_resources.rs
+  - zircon_runtime/src/graphics/scene/environment/realtime_ibl_capture_wgpu.rs
+  - zircon_runtime/src/graphics/scene/environment/realtime_ibl_gpu_timestamps.rs
+  - zircon_runtime/src/graphics/scene/environment/realtime_ibl_wgpu_recorder.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_runtime/render/01-render-graph-rdg-alignment.md

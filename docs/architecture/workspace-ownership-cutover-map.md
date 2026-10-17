@@ -10,7 +10,6 @@ related_code:
   - zircon_runtime/src/ui/mod.rs
   - zircon_runtime/src/ui/tests/runtime_ui_support/runtime_ui_fixture.rs
   - zircon_runtime/src/tests/mod.rs
-  - zircon_runtime/src/tests/runtime_absorption/mod.rs
   - zircon_runtime/src/tests/graphics_surface/mod.rs
   - zircon_runtime/src/tests/scene_boundary/mod.rs
   - zircon_runtime/src/tests/ui_boundary/mod.rs
@@ -20,7 +19,6 @@ related_code:
   - zircon_editor/src/scene/mod.rs
   - zircon_editor/src/ui/mod.rs
   - zircon_editor/src/ui/host/mod.rs
-  - zircon_editor/src/ui/retained_host/mod.rs
   - zircon_editor/src/ui/asset_editor/mod.rs
   - zircon_editor/src/ui/workbench/mod.rs
 implementation_files:
@@ -33,7 +31,6 @@ implementation_files:
   - zircon_runtime/src/ui/mod.rs
   - zircon_runtime/src/ui/tests/runtime_ui_support/runtime_ui_fixture.rs
   - zircon_runtime/src/tests/mod.rs
-  - zircon_runtime/src/tests/runtime_absorption/mod.rs
   - zircon_runtime/src/tests/graphics_surface/mod.rs
   - zircon_runtime/src/tests/scene_boundary/mod.rs
   - zircon_runtime/src/tests/ui_boundary/mod.rs
@@ -41,7 +38,6 @@ implementation_files:
   - zircon_editor/src/lib.rs
   - zircon_editor/src/ui/mod.rs
   - zircon_editor/src/ui/host/mod.rs
-  - zircon_editor/src/ui/retained_host/mod.rs
   - zircon_editor/src/ui/asset_editor/mod.rs
 plan_sources:
   - user: 2026-04-20 implement the workspace hard cutover and standardize the result
@@ -51,9 +47,6 @@ plan_sources:
 tests:
   - zircon_app/src/entry/tests/mod.rs
   - zircon_runtime/src/tests/mod.rs
-  - zircon_runtime/src/tests/runtime_absorption/mod.rs
-  - zircon_runtime/src/tests/runtime_absorption/builtin_modules.rs
-  - zircon_runtime/src/tests/runtime_absorption/root_entries.rs
   - zircon_runtime/src/tests/graphics_surface/mod.rs
   - zircon_runtime/src/tests/scene_boundary/mod.rs
   - zircon_runtime/src/tests/ui_boundary/mod.rs

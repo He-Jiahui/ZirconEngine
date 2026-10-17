@@ -8,9 +8,8 @@ related_records:
   - docs/plans/astra/features/runtime/680-20260911-runtime-ui-optimization-batch-completion.md
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/build_runtime_frame.rs
+  - zircon_runtime/src/graphics/runtime/extract/submit/build_runtime_frame.rs
 tests:
-  - tools/tests/test_runtime_virtual_geometry_overlay_capacity_performance_contract.py
 ---
 
 # Runtime835 · virtual geometry overlay capacity

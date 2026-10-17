@@ -26,7 +26,6 @@ related_code:
   - tools/mvp/MvpStagingRelease.psm1
   - tools/mvp/Stage-MvpProducts.ps1
   - tools/setup/install-codex-session-hook.ps1
-  - tools/setup/install-session-coordinator-task.ps1
   - tools/setup/install-session-tray-startup.ps1
   - tools/export/native_signing.py
   - tools/export/plugin_build_signature.py

@@ -12,8 +12,6 @@ related_code:
   - zircon_editor/src/core/project
   - zircon_editor/src/ui/host/editor_manager_project_session.rs
   - zircon_editor/src/ui/host/startup
-  - zircon_editor/src/ui/retained_host/app.rs
-  - zircon_editor/src/ui/retained_host/run_config.rs
   - zircon_hub/src/process/editor_focus
   - zircon_hub/src/process/editor_handshake
   - zircon_hub/src/process/editor_launch.rs
@@ -22,10 +20,7 @@ related_code:
   - zircon_app/src/entry/cli/launch_args.rs
   - zircon_runtime/src/asset/project/manifest
 tests:
-  - zircon_runtime_interface/src/hub_protocol/tests.rs
-  - zircon_runtime_interface/src/project/session_lock/tests.rs
   - zircon_runtime_interface/src/project/tests/manifest_summary.rs
-  - zircon_hub/src/process/editor_handshake/tests.rs
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md
   - docs/plans/optimize/01-cross-report-owner-schema-abi-p0-consolidation-review.md

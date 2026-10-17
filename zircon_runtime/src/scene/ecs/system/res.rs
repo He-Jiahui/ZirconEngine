@@ -90,7 +90,8 @@ impl<'world, T> ResMut<'world, T> {
     }
 }
 
-impl<T> SystemParam for ResParam<T>
+// SAFETY: Registers the shared resource access returned by get_param.
+unsafe impl<T> SystemParam for ResParam<T>
 where
     T: Resource,
 {
@@ -129,7 +130,8 @@ where
     }
 }
 
-impl<T> SystemParam for ResMutParam<T>
+// SAFETY: Registers exclusive resource access before returning the mutable item.
+unsafe impl<T> SystemParam for ResMutParam<T>
 where
     T: Resource,
 {
@@ -169,7 +171,8 @@ where
     }
 }
 
-impl<T> SystemParam for Option<ResParam<T>>
+// SAFETY: Registers shared resource access even when the optional resource is absent.
+unsafe impl<T> SystemParam for Option<ResParam<T>>
 where
     T: Resource,
 {
@@ -201,7 +204,8 @@ where
     }
 }
 
-impl<T> SystemParam for Option<ResMutParam<T>>
+// SAFETY: Registers exclusive resource access even when the optional resource is absent.
+unsafe impl<T> SystemParam for Option<ResMutParam<T>>
 where
     T: Resource,
 {

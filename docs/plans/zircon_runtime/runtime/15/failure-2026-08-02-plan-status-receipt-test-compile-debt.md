@@ -8,8 +8,6 @@ fixing_plan: docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conv
 origin_child_dir: docs/plans/performance/01
 fixing_child_dir: docs/plans/zircon_runtime/runtime/15
 related_code:
-  - zircon_runtime/src/tests/runtime_absorption/mod.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention
   - tools/tests/test_runtime_receipt_hard_cut.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py
   - docs/architecture/runtime-architecture-review-m0.md

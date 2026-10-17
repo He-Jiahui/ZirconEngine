@@ -3,66 +3,42 @@ related_code:
   - zircon_app/Cargo.toml
   - zircon_app/src/entry/product_host_config/
   - zircon_app/src/entry/first_party_runtime_plugins.rs
-  - zircon_editor/src/ui/retained_host/viewport/editor_viewport_render_defaults.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/runtime_diagnostics.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload_builders/runtime_diagnostics.rs
+  - zircon_editor/src/ui/retained/viewport/editor_viewport_render_defaults.rs
   - zircon_runtime/runtime-feature-presets.toml
   - zircon_runtime/src/core/framework/render/profile.rs
   - zircon_runtime/src/core/framework/render/scene_extract.rs
   - zircon_runtime/src/core/framework/render/backend_types.rs
   - zircon_runtime/src/core/framework/render/prepared_runtime_sidebands.rs
   - zircon_runtime/src/core/framework/render/environment/lightmap.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/resolve_enabled_features.rs
   - zircon_runtime/src/graphics/hybrid_gi_runtime_provider/runtime_stats.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submission_record_update.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/hybrid_gi_stats.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/compile_options_for_profile/apply_flagship_profile_features.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/compile_options_for_profile/compile_options_for_profile.rs
+  - zircon_runtime/src/graphics/runtime/extract/update_stats/hybrid_gi_stats.rs
   - zircon_plugins/hybrid_gi/plugin.toml
   - zircon_plugins/hybrid_gi/runtime/Cargo.toml
   - zircon_plugins/hybrid_gi/runtime/src/lib.rs
   - zircon_plugins/hybrid_gi/runtime/src/provider.rs
-  - zircon_plugins/hybrid_gi/runtime/src/provider/tests.rs
-  - zircon_plugins/hybrid_gi/runtime/src/render_pass_executors.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/root_output_sources/runtime_prepare_collector.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/scene_representation/participation.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/scene_representation/source_ledger.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/scene_representation/voxel_scene_state.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_scene_prepare_material_fixtures.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_scene_prepare_material_fixtures/project_documents.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/types/hybrid_gi_prepare/voxel_cell.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/gpu_scene_sync.rs
+  - zircon_plugins/hybrid_gi/runtime/src/gi/scene_representation/participation.rs
+  - zircon_plugins/hybrid_gi/runtime/src/gi/scene_representation/source_ledger.rs
+  - zircon_plugins/hybrid_gi/runtime/src/gi/types/hybrid_gi_prepare/voxel_cell.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/build/gpu_scene_sync.rs
 implementation_files:
   - zircon_app/Cargo.toml
   - zircon_app/src/entry/product_host_config/
   - zircon_app/src/entry/first_party_runtime_plugins.rs
-  - zircon_editor/src/ui/retained_host/viewport/editor_viewport_render_defaults.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/runtime_diagnostics.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload_builders/runtime_diagnostics.rs
+  - zircon_editor/src/ui/retained/viewport/editor_viewport_render_defaults.rs
   - zircon_runtime/runtime-feature-presets.toml
   - zircon_runtime/src/core/framework/render/scene_extract.rs
   - zircon_runtime/src/core/framework/render/backend_types.rs
   - zircon_runtime/src/core/framework/render/prepared_runtime_sidebands.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/post_process.wgsl
   - zircon_runtime/src/graphics/hybrid_gi_runtime_provider/runtime_stats.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submission_record_update.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/hybrid_gi_stats.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/compile_options_for_profile/apply_flagship_profile_features.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/compile_options_for_profile/compile_options_for_profile.rs
+  - zircon_runtime/src/graphics/runtime/extract/update_stats/hybrid_gi_stats.rs
   - zircon_runtime/src/core/framework/render/environment/lightmap.rs
   - zircon_plugins/hybrid_gi/runtime/Cargo.toml
   - zircon_plugins/hybrid_gi/runtime/src/lib.rs
   - zircon_plugins/hybrid_gi/runtime/src/provider.rs
-  - zircon_plugins/hybrid_gi/runtime/src/provider/tests.rs
-  - zircon_plugins/hybrid_gi/runtime/src/render_pass_executors.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/root_output_sources/runtime_prepare_collector.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/scene_representation/participation.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/scene_representation/source_ledger.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/scene_representation/voxel_scene_state.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_scene_prepare_material_fixtures.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_scene_prepare_material_fixtures/project_documents.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/types/hybrid_gi_prepare/voxel_cell.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/gpu_scene_sync.rs
+  - zircon_plugins/hybrid_gi/runtime/src/gi/scene_representation/participation.rs
+  - zircon_plugins/hybrid_gi/runtime/src/gi/scene_representation/source_ledger.rs
+  - zircon_plugins/hybrid_gi/runtime/src/gi/types/hybrid_gi_prepare/voxel_cell.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/build/gpu_scene_sync.rs
 plan_sources:
   - .codex/plans/Hybrid GI Lumen-Style V1 三阶段计划.md
   - .codex/plans/Hybrid GI 计算机图形学合集工程映射.md
@@ -76,26 +52,8 @@ tests:
   - zircon_runtime/tests/hybrid_gi_m4_source_ledger_wgpu.rs
   - zircon_plugins/hybrid_gi/runtime/tests/hybrid_gi_m4_invalidation_profiles.rs
   - zircon_plugins/hybrid_gi/runtime/tests/hybrid_gi_m4_profile_matrix_wgpu.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_scene_prepare_material_fixtures.rs
   - zircon_runtime/src/graphics/tests/render_framework_bridge/advanced_providers.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload_builders/runtime_diagnostics.rs
   - zircon_app/src/entry/tests/profile_bootstrap.rs
-  - zircon_plugins/hybrid_gi/runtime/src/tests.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_render_framework_stats.rs
-  - docs/tests/runtime/render/plan18_hybrid_gi_scene_representation_only_forward_deferred_wgpu_20260710.png
-  - docs/tests/runtime/render/plan18_hybrid_gi_m4_source_ledger_wgpu_20260713.png
-  - docs/tests/runtime/render/plan18_hybrid_gi_m4_profile_forward_deferred_wgpu_20260713.png
-  - docs/tests/runtime/render/plan18_hybrid_gi_m4_mobility_roundtrip_wgpu_20260713.png
-  - docs/tests/runtime/render/plan18_hybrid_gi_m4_moving_emissive_wgpu_20260713.png
-  - docs/tests/runtime/render/plan18_hybrid_gi_m4_profile_forward_deferred_renderdoc_20260713_capture.rdc
-  - docs/tests/runtime/render/plan18_hybrid_gi_m4_profile_forward_deferred_renderdoc_20260713_capture_8.rdc
-  - docs/tests/runtime/render/plan18_hybrid_gi_m4_renderdoc_ui_20260713.png
-  - docs/tests/runtime/render/plan18_hybrid_gi_m4_renderdoc_hybrid_passes_20260713.png
-  - docs/tests/runtime/render/plan18_hybrid_gi_m4_renderdoc_handoff_passes_20260713.png
-  - docs/tests/runtime/render/plan18_hybrid_gi_m4_renderdoc_api_validation_20260713.png
-  - docs/tests/runtime/render/plan18_hybrid_gi_editor_runtime_diagnostics_20260714.md
-  - docs/tests/runtime/render/plan18_hybrid_gi_editor_runtime_diagnostics_actual_20260714.png
-  - docs/tests/runtime/render/plan18_hybrid_gi_editor_runtime_diagnostics_fallback_20260714.png
 doc_type: workflow-detail
 ---
 

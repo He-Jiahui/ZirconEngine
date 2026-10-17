@@ -9,10 +9,7 @@ related_records:
   - docs/plans/astra/features/runtime/680-20260911-runtime-ui-optimization-batch-completion.md
 implementation_files:
   - zircon_runtime_interface/src/ui/surface/render/text_geometry/mod.rs
-  - zircon_runtime_interface/src/ui/surface/render/text_geometry/decoration_performance_tests.rs
 tests:
-  - zircon_runtime_interface/src/ui/surface/render/text_geometry/decoration_performance_tests.rs
-  - tools/tests/test_runtime_interface03_text_decoration_line_range_performance_contract.py
   - tools/tests/test_runtime_ui_text_decoration_source_map_pressure.py
 ---
 

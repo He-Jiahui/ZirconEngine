@@ -8,9 +8,7 @@ related_records:
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
   - zircon_runtime/src/ui/v2/file_cache.rs
-  - zircon_runtime/src/ui/v2/file_source_capacity_tests.rs
 tests:
-  - tools/tests/test_runtime_v2_file_source_capacity_performance_contract.py
 ---
 
 # Runtime855 · V2 file source capacity

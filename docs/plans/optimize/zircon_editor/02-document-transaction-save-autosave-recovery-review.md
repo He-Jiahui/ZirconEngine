@@ -11,9 +11,9 @@ related_code:
   - zircon_editor/src/ui/host/asset_editor_sessions/save.rs
   - zircon_editor/src/ui/host/animation_editor_sessions/save.rs
   - zircon_editor/src/ui/asset_editor/undo_stack.rs
-  - zircon_editor/src/ui/retained_host/app/native_window_close.rs
-  - zircon_editor/src/ui/retained_host/app/native_window_close/prompt_actions/actions.rs
-  - zircon_editor/src/ui/retained_host/app/welcome_session/actions/project.rs
+  - zircon_editor/src/ui/retained/app/native_window_close.rs
+  - zircon_editor/src/ui/retained/app/native_window_close/prompt_actions/actions.rs
+  - zircon_editor/src/ui/retained/app/welcome_session/actions/project.rs
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md
   - docs/plans/zircon_editor/editor/03-command-transaction-and-undo.md

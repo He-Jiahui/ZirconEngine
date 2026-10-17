@@ -1,8 +1,8 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/app/asset_content_pointer/events/click.rs
-  - zircon_editor/src/ui/retained_host/app/asset_surface_pointer_state.rs
-  - zircon_editor/src/ui/retained_host/app/tests/drag_sources/asset_browser.rs
+  - zircon_editor/src/ui/retained/app/asset_content_pointer/events/click.rs
+  - zircon_editor/src/ui/retained/app/asset_surface_pointer_state.rs
+  - zircon_editor/src/ui/retained/app/tests/drag_sources/asset_browser.rs
   - zircon_editor/assets/i18n/en.toml
   - zircon_editor/assets/i18n/zh-CN.toml
   - docs/plans/optimize/zircon_editor/57/2026-09-28-editor57-asset-browser-double-click-activation.md

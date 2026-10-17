@@ -12,8 +12,6 @@ related_code:
   - zircon_runtime/src/ui/surface/render/extract.rs
   - zircon_runtime/src/ui/surface/render/cache.rs
   - zircon_runtime/src/ui/surface/surface/rebuild.rs
-  - dev/slint/internal/core/item_rendering.rs
-  - dev/slint/internal/core/partial_renderer.rs
 tests:
   - stable generation zero-command-build test
   - multi-command node cache identity and damage test

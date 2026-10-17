@@ -1,14 +1,13 @@
 ---
 related_code:
   - zircon_runtime/src/core/framework/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/text.rs
   - zircon_runtime/src/asset/assets/ui.rs
   - zircon_runtime/src/core/manager/mod.rs
   - zircon_runtime/src/core/resource/mod.rs
   - zircon_runtime/src/graphics/extract/mod.rs
   - zircon_runtime/src/scene/mod.rs
   - zircon_runtime/src/platform/preferences/atomic_file.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/close_project.rs
 plan_sources:
   - docs/plans/zircon_runtime/frameworks/index.md
   - docs/plans/zircon_runtime/runtime/09-ui-subsystem-architecture.md

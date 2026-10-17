@@ -28,11 +28,7 @@ related_code:
   - zircon_plugins/rendering/plugin.toml
   - zircon_plugins/first_party_editor_catalog
   - zircon_app/src/entry/first_party_editor_plugins.rs
-  - zircon_editor/assets/ui/editor/components/workbench/modules/core/rendering
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/rendering
-  - zircon_editor/assets/ui/editor/components/workbench/modules/generated/workbench_generated_bottom_panel.zui
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench
-  - zircon_editor/src/ui/template_runtime/builtin
+  - zircon_editor/assets/ui/editor/modules/core/rendering
   - zircon_runtime/src/graphics/runtime
 reference_engines:
   - dev/UnrealEngine/Engine/Plugins/Developer/RenderDocPlugin

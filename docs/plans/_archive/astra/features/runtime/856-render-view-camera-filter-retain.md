@@ -8,9 +8,7 @@ related_records:
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
   - zircon_runtime/src/scene/world/render.rs
-  - zircon_runtime/src/scene/world/render/view_camera_filter_tests.rs
 tests:
-  - tools/tests/test_runtime_render_view_camera_filter_retain_performance_contract.py
 ---
 
 # Runtime856 - render-view camera filter retain

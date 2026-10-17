@@ -1,6 +1,5 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host
   - zircon_runtime/src/ui
   - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface
 detail_report:

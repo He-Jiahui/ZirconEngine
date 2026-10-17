@@ -11,7 +11,6 @@ implementation_files:
   - zircon_runtime/src/ui/template/asset/compiler/ui_document_compiler.rs
   - zircon_runtime/src/ui/tests/component_catalog/catalog_inventory.rs
   - zircon_editor/src/ui/component_registry/registry.rs
-  - zircon_editor/src/ui/component_registry/tests.rs
 tests:
   - RUNTIME75_SHARED_COMPONENT_REGISTRY_BENCH_V1
 ---

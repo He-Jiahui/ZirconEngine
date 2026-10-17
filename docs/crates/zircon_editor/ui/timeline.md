@@ -15,13 +15,11 @@ implementation_files:
   - zircon_editor/src/ui/timeline/track_list.rs
   - zircon_editor/src/ui/timeline/keyframe_lane.rs
   - zircon_editor/src/ui/timeline/section_lane.rs
-  - zircon_editor/src/ui/timeline/tests.rs
 plan_sources:
   - docs/plans/zircon_editor/editor/07-domain-editors-and-graph-foundation.md
   - docs/plans/engine-code-structure-convention.md
   - docs/plans/engine-code-review-findings-2026-06.md
 tests:
-  - zircon_editor/src/ui/timeline/tests.rs
   - cargo test -p zircon_editor --lib ui::timeline::tests --locked --jobs 1
 doc_type: module-detail
 ---

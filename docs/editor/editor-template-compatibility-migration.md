@@ -1,50 +1,30 @@
 ---
 related_code:
-  - zircon_editor/src/ui/template_runtime/mod.rs
-  - zircon_editor/src/ui/template_runtime/runtime/runtime_host.rs
-  - zircon_editor/src/ui/template_runtime/retained_adapter.rs
-  - zircon_editor/src/ui/template_runtime/harness.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/mod.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/bridge.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/floating_window_source/bridge.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/viewport_toolbar/bridge.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/asset_surface/bridge.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/inspector_surface/bridge.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/pane_surface/bridge.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/welcome_surface/bridge.rs
-  - zircon_editor/src/ui/retained_host/ui/apply_presentation.rs
-  - zircon_editor/src/ui/retained_host/ui/template_node_conversion.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/mod.rs
-  - zircon_editor/assets/ui/editor/host/workbench_shell.zui
+  - zircon_editor/src/ui/runtime/runtime/runtime_host.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/workbench/bridge.rs
+  - zircon_editor/src/ui/retained/dispatch/floating_window_source/bridge.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/viewport_toolbar/bridge.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/asset_surface/bridge.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/inspector_surface/bridge.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/pane_surface/bridge.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/welcome_surface/bridge.rs
+  - zircon_editor/src/ui/retained/ui/apply_presentation.rs
   - zircon_editor/assets/ui/editor/host/floating_window_source.zui
 implementation_files:
-  - zircon_editor/src/ui/template_runtime/runtime/runtime_host.rs
-  - zircon_editor/src/ui/template_runtime/retained_adapter.rs
-  - zircon_editor/src/ui/template_runtime/harness.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/mod.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/bridge.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/floating_window_source/bridge.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/viewport_toolbar/bridge.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/asset_surface/bridge.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/inspector_surface/bridge.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/pane_surface/bridge.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/welcome_surface/bridge.rs
-  - zircon_editor/src/ui/retained_host/ui/apply_presentation.rs
-  - zircon_editor/src/ui/retained_host/ui/template_node_conversion.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/mod.rs
+  - zircon_editor/src/ui/runtime/runtime/runtime_host.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/workbench/bridge.rs
+  - zircon_editor/src/ui/retained/dispatch/floating_window_source/bridge.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/viewport_toolbar/bridge.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/asset_surface/bridge.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/inspector_surface/bridge.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/pane_surface/bridge.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/welcome_surface/bridge.rs
+  - zircon_editor/src/ui/retained/ui/apply_presentation.rs
 plan_sources:
   - .codex/plans/Zircon Editor Runtime UI Rust-Owned Retained Host 重构计划.md
   - .codex/plans/Zircon 运行时编辑器共享 UI 布局与事件系统架构计划.md
   - .codex/plans/编辑器 .slint 去真源 Runtime UI 可用 Cutover 路线图.md
 tests:
-  - zircon_editor/src/tests/host/template_runtime/host_window_document.rs
-  - zircon_editor/src/tests/host/template_runtime/host_model.rs
-  - zircon_editor/src/tests/host/template_runtime/shared_surface.rs
-  - zircon_editor/src/tests/host/template_runtime/dual_host_parity.rs
-  - zircon_editor/src/tests/host/template_runtime/viewport_toolbar.rs
-  - zircon_editor/src/tests/host/template_runtime/asset_surface.rs
-  - zircon_editor/src/tests/host/template_runtime/inspector_surface.rs
-  - zircon_editor/src/tests/host/template_runtime/pane_surface_controls.rs
   - zircon_editor/src/tests/ui/boundary/template_assets
   - cargo check -p zircon_editor --lib --locked --message-format=short
 doc_type: module-detail

@@ -9,28 +9,26 @@ related_code:
   - zircon_runtime/src/scene/components/scene/node.rs
   - zircon_runtime/src/scene/world/bootstrap.rs
   - zircon_runtime/src/scene/world/transaction/detached_entity_batch.rs
-  - zircon_runtime/src/scene/dynamic_scene/scene/spawn
+  - zircon_runtime/src/scene/dynamic/scene/spawn
   - zircon_editor/src/core/editing/command.rs
   - zircon_editor/src/ui/workbench/state/editor_state_apply_intent.rs
   - zircon_editor/src/ui/workbench/state/editor_state_selection.rs
   - zircon_editor/src/core/commands/defaults.rs
   - zircon_editor/src/core/extension/store
   - zircon_editor/src/ui/workbench/event
-  - zircon_editor/src/ui/retained_host/app/asset_drag_payload
-  - zircon_editor/src/ui/retained_host/app/assets/workspace.rs
-  - zircon_editor/src/ui/retained_host/app/viewport
+  - zircon_editor/src/ui/retained/app/asset_drag_payload
+  - zircon_editor/src/ui/retained/app/assets/workspace.rs
+  - zircon_editor/src/ui/retained/app/viewport
   - zircon_editor/assets/ui/editor/asset_browser.zui
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/feedback/workbench_drag_overlay.zui
 tests:
   - zircon_runtime/src/scene/tests/asset_scene/mesh_bindings.rs
-  - zircon_runtime/src/scene/dynamic_scene/scene/spawn/transaction/tests.rs
   - zircon_editor/src/tests/editing/history.rs
   - zircon_editor/src/tests/editing/import.rs
-  - zircon_editor/src/tests/editing/node_ops.rs
+  - zircon_editor/src/tests/editing/node_ops/mod.rs
   - zircon_editor/src/tests/editing/transaction_engine/journal_scene_commands.rs
-  - zircon_editor/src/ui/retained_host/app/tests/drag_sources/asset_browser.rs
-  - zircon_editor/src/ui/retained_host/app/tests/drag_sources/asset_metadata_and_fields.rs
-  - zircon_editor/src/ui/retained_host/app/tests/drag_sources/scene_and_object.rs
+  - zircon_editor/src/ui/retained/app/tests/drag_sources/asset_browser.rs
+  - zircon_editor/src/ui/app/tests/drag_sources/asset_metadata_and_fields.rs
+  - zircon_editor/src/ui/retained/app/tests/drag_sources/scene_and_object.rs
 plan_sources:
   - docs/plans/optimize/zircon_editor/65-editor-scene-object-creation-placement-palette-factory-asset-drag-drop-template-favorites-preview-transform-transaction-plugin.md
   - docs/plans/optimize/zircon_editor/176-editor-structured-clipboard-cut-copy-paste-duplicate-delete-cross-document-remap-drag-payload-current-source-review.md

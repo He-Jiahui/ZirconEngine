@@ -167,6 +167,7 @@ impl EditorApplicationComposition {
     pub(super) fn run_product_workbench_capture(
         self,
         repo_root: &Path,
+        project_root: &Path,
         snapshots_output_path: Option<&Path>,
         capture_zui_visual_evidence: bool,
     ) -> Result<ProductWorkbenchCaptureResult, Box<dyn Error>> {
@@ -191,6 +192,7 @@ impl EditorApplicationComposition {
                         output_path,
                         &core,
                         &project_runtime_build_set,
+                        project_root,
                     )
                     .map_err(io::Error::other)?;
                 }
@@ -200,6 +202,7 @@ impl EditorApplicationComposition {
                             repo_root,
                             &core,
                             &project_runtime_build_set,
+                            project_root,
                         )
                         .map_err(io::Error::other)?,
                     )

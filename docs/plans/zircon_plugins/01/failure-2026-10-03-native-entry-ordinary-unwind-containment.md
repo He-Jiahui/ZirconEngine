@@ -14,7 +14,6 @@ related_code:
   - zircon_plugins/plugin_sdk/Cargo.toml
   - zircon_plugins/plugin_sdk/src/dist.rs
   - zircon_plugins/native_dynamic_fixture/native/src/lib.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_abi.rs
 tests:
   - .\tools\dev\local-cargo.ps1 +1.94.1 test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_sdk --locked --no-default-features --features native --test native_entry_guard -- --nocapture --test-threads=1
   - Windows real native fixture DLL runtime/editor entry-panic rejection followed by normal entry, callback and teardown; bind SDK, fixture, host and artifact hashes.

@@ -9,12 +9,12 @@ origin_child_dir: docs/plans/zircon_editor/editor/15
 fixing_child_dir: docs/plans/zircon_editor/editor_layout/15
 plan_link_mode: child_record_only
 related_code:
-  - zircon_editor/src/ui/retained_host/host_contract/native_keyboard/target.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_keyboard/target/model.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_keyboard/target/page_overflow.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_keyboard/target/selection.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_keyboard/dispatch.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_keyboard/dispatch/actions.rs
+  - zircon_editor/src/ui/retained/contract/native_keyboard/target.rs
+  - zircon_editor/src/ui/retained/contract/native_keyboard/target/model.rs
+  - zircon_editor/src/ui/retained/contract/native_keyboard/target/page_overflow.rs
+  - zircon_editor/src/ui/retained/contract/native_keyboard/target/selection.rs
+  - zircon_editor/src/ui/retained/contract/native_keyboard/dispatch.rs
+  - zircon_editor/src/ui/retained/contract/native_keyboard/dispatch/actions.rs
 tests:
   - cargo +1.94.1 test -p zircon_editor --lib --locked --no-run --message-format short --color never
   - cargo +1.94.1 test -p zircon_editor --lib --locked host_page_overflow_keyboard -- --test-threads=1

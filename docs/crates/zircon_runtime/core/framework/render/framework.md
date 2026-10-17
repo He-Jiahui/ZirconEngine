@@ -3,8 +3,8 @@ related_code:
   - zircon_runtime/src/core/framework/render/framework.rs
   - zircon_runtime/src/core/framework/render/mod.rs
   - zircon_runtime/src/core/manager/resolver.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/render_framework_trait_binding/wgpu_framework.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/register_pipeline_asset/mod.rs
+  - zircon_runtime/src/graphics/render_framework_trait_binding/wgpu_framework.rs
+  - zircon_runtime/src/graphics/runtime/framework/register_pipeline_asset/mod.rs
 implementation_files:
   - zircon_runtime/src/core/framework/render/framework.rs
 plan_sources:

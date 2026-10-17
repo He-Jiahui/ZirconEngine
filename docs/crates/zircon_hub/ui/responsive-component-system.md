@@ -220,9 +220,7 @@ related_code:
 
   - .codex/skills/zircon-project-skills/capture-hub-window-screenshot/scripts/compare-hub-tauri-references.ps1
 
-  - dev/material-rust-template/README.md
 
-  - dev/material-rust-template/material-1.0/material.slint
 
 implementation_files:
 

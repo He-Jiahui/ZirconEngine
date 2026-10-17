@@ -1,16 +1,12 @@
 ---
 related_code:
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build/budget_degrade.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build/effective_view_state.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build/ui_submission_stats.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build/tests.rs
+  - zircon_runtime/src/graphics/runtime/framework/extract/build/budget_degrade.rs
+  - zircon_runtime/src/graphics/runtime/extract/build/effective_view_state.rs
+  - zircon_runtime/src/graphics/runtime/extract/build/ui_submission_stats.rs
 implementation_files:
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build/budget_degrade.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build/effective_view_state.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build/ui_submission_stats.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build/tests.rs
+  - zircon_runtime/src/graphics/runtime/framework/extract/build/budget_degrade.rs
+  - zircon_runtime/src/graphics/runtime/extract/build/effective_view_state.rs
+  - zircon_runtime/src/graphics/runtime/extract/build/ui_submission_stats.rs
 plan_sources:
   - docs/plans/engine-code-structure-convention.md
   - docs/plans/engine-code-review-findings-2026-06.md

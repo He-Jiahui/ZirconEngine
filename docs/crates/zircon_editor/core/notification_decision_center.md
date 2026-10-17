@@ -9,9 +9,7 @@ implementation_files:
 plan_sources:
   - docs/plans/zircon_editor/editor/17-editor-services-and-recovery.md
 tests:
-  - zircon_editor/src/core/notifications/decision/tests.rs
-  - zircon_editor/src/core/notifications/presentation_tests.rs
-  - zircon_editor/src/ui/host/play_pending_decision/tests.rs
+  - zircon_editor/src/ui/host/play_pending_decision/tests/mod.rs
   - tools/tests/test_editor17_decision_notification_center_contract.py
 doc_type: module-detail
 ---

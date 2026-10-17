@@ -6,12 +6,7 @@ plan_sources:
 related_records:
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
-  - zircon_runtime/src/graphics/visibility/context/from_extract_with_history/batching_result.rs
-  - zircon_runtime/src/graphics/visibility/context/from_extract_with_history/collect_batching_result.rs
 tests:
-  - zircon_runtime/src/graphics/visibility/context/from_extract_with_history/batching_result.rs
-  - zircon_runtime/src/graphics/visibility/context/from_extract_with_history/collect_batching_result.rs
-  - zircon_runtime/src/graphics/visibility/context/from_extract_with_history/collect_batching_result/optimization_batch_io_runtime625_tests.rs
 ---
 
 # Runtime950 · frame-batching entity-set fast path

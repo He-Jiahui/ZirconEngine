@@ -35,11 +35,8 @@ related_code:
   - zircon_editor/src/scene/viewport/pointer/viewport_pointer_route.rs
   - zircon_editor/src/scene/viewport/pointer/constants.rs
   - zircon_editor/src/scene/viewport/pointer/overlay_router/build_dispatcher.rs
-  - zircon_editor/src/scene/viewport/pointer/overlay_router/viewport_overlay_pointer_router_event.rs
-  - zircon_editor/src/scene/viewport/pointer/overlay_router/viewport_overlay_pointer_router_debug.rs
   - zircon_editor/src/scene/viewport/pointer/precision/shared_resolution_state.rs
-  - zircon_editor/src/scene/viewport/pointer/precision/renderer_visible_spatial_pick_source.rs
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_pointer_route.rs
+  - zircon_editor/src/scene/precision/renderer_visible_spatial_pick_source.rs
   - zircon_runtime/src/core/framework/render/backend_types/handles.rs
   - zircon_runtime/src/core/framework/render/camera.rs
   - zircon_runtime_interface/src/ui/dispatch/input/event.rs

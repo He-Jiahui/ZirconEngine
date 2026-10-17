@@ -34,8 +34,7 @@ related_code:
   - zircon_runtime/src/dynamic_api/session/composition_receipt.rs
   - zircon_runtime/src/dynamic_api/session/linked_plugins.rs
   - zircon_runtime/src/dynamic_api/session/state.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/project/selection.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/project.rs
+  - zircon_runtime/src/plugin/runtime/catalog/project/selection.rs
   - zircon_runtime/src/plugin/runtime_profile/availability.rs
   - zircon_runtime/src/builtin/runtime_modules/tests/mod.rs
   - zircon_runtime/src/builtin/runtime_modules/tests/availability.rs
@@ -80,7 +79,7 @@ implementation_files:
   - zircon_runtime/src/dynamic_api/session/composition_receipt.rs
   - zircon_runtime/src/dynamic_api/session/linked_plugins.rs
   - zircon_runtime/src/dynamic_api/session/state.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/project/selection.rs
+  - zircon_runtime/src/plugin/runtime/catalog/project/selection.rs
   - zircon_runtime/src/plugin/runtime_profile/availability.rs
 plan_sources:
   - docs/plans/zircon_runtime/frameworks/03-optional-features-and-profile-matrix.md
@@ -92,13 +91,11 @@ tests:
   - tools/tests/test_frameworks_03_server_feature_boundary.py
   - zircon_runtime/tests/frameworks_03_server_profile.rs
   - zircon_app/src/entry/tests/runtime_entry_source_guards/entry_tree.rs
-  - zircon_runtime/src/tests/runtime_absorption/builtin_modules.rs
-  - zircon_runtime/src/tests/runtime_absorption/root_entries.rs
   - zircon_runtime/src/builtin/runtime_modules/tests/manifest.rs
   - zircon_runtime/src/builtin/runtime_modules/tests/availability.rs
   - zircon_runtime/src/builtin/runtime_modules/tests/registration/behavior.rs
   - zircon_runtime/src/builtin/runtime_modules/tests/registration/structure.rs
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/plugin_importer_dx/d6_runtime_plugin_id.rs::review_d6_runtime_plugin_id_accepts_external_string_keys
+  - zircon_runtime/src/tests/review/plugin_importer_dx/d6_runtime_plugin_id.rs::review_d6_runtime_plugin_id_accepts_external_string_keys
   - rustfmt --edition 2021 zircon_runtime/src/builtin/runtime_modules.rs zircon_runtime/src/builtin/runtime_modules/*.rs zircon_runtime/src/builtin/runtime_modules/tests/*.rs
   - rustfmt --edition 2021 --check zircon_runtime/src/builtin/runtime_modules/assembly.rs zircon_runtime/src/builtin/runtime_modules/assembly/extension_inputs.rs zircon_runtime/src/builtin/runtime_modules/assembly/feature_reports.rs zircon_runtime/src/builtin/runtime_modules/assembly/profile_modules.rs zircon_runtime/src/builtin/runtime_modules/assembly/registration_inputs.rs zircon_runtime/src/builtin/runtime_modules/assembly/registration_reports.rs zircon_runtime/src/builtin/runtime_modules/assembly/target_modules.rs zircon_runtime/src/builtin/runtime_modules/tests/registration/mod.rs zircon_runtime/src/builtin/runtime_modules/tests/registration/behavior.rs zircon_runtime/src/builtin/runtime_modules/tests/registration/structure.rs
   - rustfmt --edition 2021 --check zircon_runtime/src/builtin/runtime_modules/plugin_modules.rs zircon_runtime/src/builtin/runtime_modules/plugin_modules/loader.rs zircon_runtime/src/plugin/runtime_profile/availability.rs

@@ -6,11 +6,7 @@ plan_sources:
   - docs/plans/optimize/zircon_runtime/177/2026-09-19-dispatch-host-request-capacity.md
 related_code:
   - zircon_runtime/src/ui/dispatch/input_manager/outcome.rs
-  - zircon_runtime/src/ui/dispatch/input_manager/outcome/single_pass_metadata_tests.rs
-  - zircon_runtime/src/ui/dispatch/input_manager/outcome/host_request_capacity_tests.rs
 tests:
-  - zircon_runtime/src/ui/dispatch/input_manager/outcome/host_request_capacity_tests.rs
-  - tools/tests/test_runtime_dispatch_host_request_capacity_performance_contract.py
 ---
 
 # Runtime820 Dispatch Host-Request Capacity

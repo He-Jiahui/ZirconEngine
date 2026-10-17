@@ -1,34 +1,25 @@
 ---
 related_code:
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/lightmap_binding.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/construct.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/forward_shadow_receiver.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_construct/construct/construct.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_write_scene_uniform/write_scene_uniform.rs
+  - zircon_runtime/src/graphics/scene/renderer/environment/lightmap_binding.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/mesh_pipeline_cache/construct.rs
+  - zircon_runtime/src/graphics/mesh/mesh_pipeline_cache/forward_shadow_receiver.rs
   - zircon_runtime/src/asset/assets/texture/lightmap_asset.rs
-  - zircon_runtime/src/graphics/scene/resources/gpu_texture/gpu_texture_resource_from_asset.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_pipeline/tests.rs
   - zircon_runtime/src/graphics/scene/gpu_scene/layout.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/gpu_scene_sync.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/build/gpu_scene_sync.rs
   - zircon_runtime/src/graphics/shader/wgsl/zr_lightmap.wgsl
 implementation_files:
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/lightmap_binding.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/construct.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/forward_shadow_receiver.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_construct/construct/construct.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_write_scene_uniform/write_scene_uniform.rs
+  - zircon_runtime/src/graphics/scene/renderer/environment/lightmap_binding.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/mesh_pipeline_cache/construct.rs
+  - zircon_runtime/src/graphics/mesh/mesh_pipeline_cache/forward_shadow_receiver.rs
   - zircon_runtime/src/asset/assets/texture/lightmap_asset.rs
-  - zircon_runtime/src/graphics/scene/resources/gpu_texture/gpu_texture_resource_from_asset.rs
   - zircon_runtime/src/graphics/scene/gpu_scene/layout.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/gpu_scene_sync.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/build/gpu_scene_sync.rs
   - zircon_runtime/src/graphics/shader/wgsl/zr_lightmap.wgsl
 plan_sources:
   - docs/plans/zircon_runtime/render/11-environment-lighting.md
   - docs/plans/zircon_runtime/runtime/05-scene-editor-boundary-closeout.md
   - docs/plans/zircon_runtime/render/11/failure-2026-07-13-lightmap-forward-bind-group-integration-compile.md
 tests:
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/lightmap_binding/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_pipeline/tests.rs
   - cargo test -p zircon_runtime --lib --locked --no-run
 doc_type: module-detail
 ---

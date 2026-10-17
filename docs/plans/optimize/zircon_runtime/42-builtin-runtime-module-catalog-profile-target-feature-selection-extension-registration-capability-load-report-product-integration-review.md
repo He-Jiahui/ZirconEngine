@@ -7,7 +7,6 @@ related_code:
   - zircon_runtime/src/core/framework/project/runtime_profile_id.rs
   - zircon_runtime/src/core/framework/project/project_plugin_manifest
   - zircon_runtime/src/plugin/runtime_profile
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog
   - zircon_runtime/src/plugin/extension_registry
   - zircon_runtime/src/dynamic_api/session/linked_plugins.rs
   - zircon_app/src/entry/builtin_modules.rs
@@ -17,7 +16,6 @@ related_code:
   - zircon_app/src/plugins/groups/resolution.rs
 tests:
   - zircon_runtime/src/builtin/runtime_modules/tests
-  - zircon_runtime/src/builtin/runtime_modules/assembly/registration_inputs/tests.rs
   - zircon_runtime/src/builtin/runtime_modules/ids/plugin_id.rs
 plan_sources:
   - docs/plans/optimize/01-cross-report-owner-schema-abi-p0-consolidation-review.md

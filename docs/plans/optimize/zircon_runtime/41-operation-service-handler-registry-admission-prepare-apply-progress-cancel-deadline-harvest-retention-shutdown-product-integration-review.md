@@ -16,7 +16,6 @@ related_code:
   - zircon_plugins/navigation/editor/src/operation_command
   - zircon_plugins/navigation/runtime/src/manager.rs
 tests:
-  - zircon_runtime/src/operation/tests.rs
   - zircon_runtime/src/operation/tests/source_guards.rs
   - zircon_runtime/src/operation/service/completion.rs
   - zircon_plugins/navigation/editor/src/tests/operation_command.rs

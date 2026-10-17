@@ -1,9 +1,5 @@
 ---
 related_code:
-  - dev/bevy/crates/bevy_text/src/text_edit.rs
-  - dev/bevy/crates/bevy_text/src/editing.rs
-  - dev/material-ui/packages/mui-system/src/createTheme/createTheme.js
-  - dev/material-ui/packages/mui-system/src/createTheme/shape.ts
   - tools/audits/check_conventions.py
 implementation_files:
 plan_sources:

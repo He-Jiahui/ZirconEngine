@@ -2,14 +2,12 @@
 related_code:
   - zircon_plugins/zr_vm_language/runtime/src/lib.rs
   - zircon_plugins/zr_vm_language/runtime/src/plugin.rs
-  - zircon_plugins/zr_vm_language/runtime/src/real_backend/tests.rs
   - zircon_plugins/zr_vm_language/runtime/src/tests/registration.rs
   - zircon_runtime/src/script/vm/gc_bridge/mod.rs
   - zircon_runtime/src/script/vm/gc_bridge/host_handle.rs
   - zircon_runtime/src/script/vm/gc_bridge/vm_object_ref.rs
   - zircon_runtime/src/script/vm/gc_bridge/budget.rs
   - zircon_runtime/src/script/vm/runtime/hot_reload_coordinator.rs
-  - zircon_runtime/src/script/vm/runtime/hot_reload_coordinator/tests.rs
   - zircon_runtime/src/script/vm/runtime/hot_reload_coordinator/tests/gc.rs
   - zircon_runtime/src/script/vm/runtime/vm_plugin_manager.rs
 implementation_files:
@@ -32,9 +30,7 @@ tests:
   - zircon_runtime/src/script/vm/gc_bridge/vm_object_ref.rs
   - zircon_runtime/src/script/vm/gc_bridge/budget.rs
   - zircon_runtime/src/script/vm/host/host_registry.rs
-  - zircon_runtime/src/script/vm/runtime/hot_reload_coordinator/tests.rs
   - zircon_runtime/src/script/vm/runtime/hot_reload_coordinator/tests/gc.rs
-  - zircon_plugins/zr_vm_language/runtime/src/real_backend/tests.rs
   - zircon_plugins/zr_vm_language/runtime/src/tests/registration.rs
 doc_type: module-detail
 ---

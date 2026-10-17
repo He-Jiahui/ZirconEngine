@@ -1,9 +1,6 @@
 ---
 related_code:
-  - tools/source_comment_audit.py
-  - tools/session_coordinator/baselines.py
 implementation_files:
-  - tools/source_comment_audit.py
 plan_sources:
   - "user: 2026-09-26 全仓源码调用关系审查与中文注释"
   - docs/plans/zircon_tooling/source_comment_audit/01-repository-source-comment-audit.md

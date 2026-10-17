@@ -2,7 +2,6 @@
 related_code:
   - zircon_editor/src/tests/workbench
   - zircon_editor/src/ui/workbench
-  - zircon_editor/src/ui/template_runtime
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_editor/editor/06-ui-extension-framework.md

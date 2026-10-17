@@ -9,8 +9,7 @@ origin_child_dir: docs/plans/zircon_editor/editor/09
 fixing_child_dir: docs/plans/zircon_plugins/01
 related_code:
   - zircon_runtime/src/plugin/extension_registry/apply_to_world.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/extension_report/runtime.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/project_extension_report.rs
+  - zircon_runtime/src/plugin/runtime/catalog/extension_report/runtime.rs
   - tools/tests/test_plugin_extension_registry_finalize_coverage.py
 tests:
   - python -m unittest tools.tests.test_plugin_extension_registry_finalize_coverage

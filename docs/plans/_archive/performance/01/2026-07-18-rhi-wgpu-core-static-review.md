@@ -2,10 +2,7 @@
 related_code:
   - zircon_runtime/crates/zr_rhi_wgpu/src/bind_group_validation.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/capabilities.rs
-  - zircon_runtime/crates/zr_rhi_wgpu/src/command_validation.rs
-  - zircon_runtime/crates/zr_rhi_wgpu/src/command_validation/render_state.rs
-  - zircon_runtime/crates/zr_rhi_wgpu/src/device.rs
-  - zircon_runtime/crates/zr_rhi_wgpu/src/device/command_list.rs
+  - zircon_runtime/crates/zr_rhi/src/device.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/lib.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/pipeline_validation.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/render_pass_validation.rs

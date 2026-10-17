@@ -11,9 +11,9 @@ related_records:
   - docs/plans/astra/features/editor/718-hierarchy-filter-lazy-match-flags.md
   - docs/plans/astra/features/editor/719-hierarchy-filter-test-contract-repair.md
 related_code:
-  - zircon_editor/src/ui/retained_host/app/hierarchy_filter.rs
+  - zircon_editor/src/ui/retained/app/hierarchy_filter.rs
 tests:
-  - zircon_editor/src/ui/retained_host/app/hierarchy_filter.rs
+  - zircon_editor/src/ui/retained/app/hierarchy_filter.rs
 ---
 
 # Editor Hierarchy Filter Borrowed Query and Output Capacity

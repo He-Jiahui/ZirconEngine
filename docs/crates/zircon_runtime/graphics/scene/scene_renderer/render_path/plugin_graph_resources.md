@@ -2,69 +2,49 @@
 related_code:
   - zircon_runtime/src/graphics/runtime_prepare_collector.rs
   - zircon_runtime/src/graphics/runtime_prepare_device_epoch.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/advanced_plugin_resources/scene_renderer_advanced_plugin_resources.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/advanced_plugin_resources/runtime_prepare.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/advanced_plugin_readbacks/scene_renderer_advanced_plugin_readbacks.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/bind_plugin_graph_resources.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/particle.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/materialization_validation.rs
+  - zircon_runtime/src/graphics/scene/core/render/bind_plugin_graph_resources.rs
+  - zircon_runtime/src/graphics/scene/renderer/core/render/render/render.rs
+  - zircon_runtime/src/graphics/scene/renderer/execution/context/gpu/particle.rs
   - zircon_runtime/src/scene/world/render_particles.rs
   - zircon_runtime/src/scene/tests/render_extract.rs
   - zircon_plugins/particles/runtime/src/render/feature.rs
   - zircon_plugins/particles/runtime/src/render/gpu/backend.rs
   - zircon_plugins/particles/runtime/src/render/gpu/runtime_owner.rs
   - zircon_plugins/particles/runtime/src/render/runtime_prepare.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/root_output_sources/runtime_prepare_collector.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/root_output_sources/runtime_prepare_collector/device_epoch_tests.rs
   - zircon_plugins/virtual_geometry/runtime/src/lib.rs
-  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/root_output_sources/virtual_geometry_plugin_renderer_outputs.rs
 implementation_files:
   - zircon_runtime/src/graphics/runtime_prepare_collector.rs
   - zircon_runtime/src/graphics/runtime_prepare_device_epoch.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/advanced_plugin_resources/scene_renderer_advanced_plugin_resources.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/advanced_plugin_resources/runtime_prepare.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/advanced_plugin_readbacks/scene_renderer_advanced_plugin_readbacks.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/bind_plugin_graph_resources.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/particle.rs
+  - zircon_runtime/src/graphics/scene/core/render/bind_plugin_graph_resources.rs
+  - zircon_runtime/src/graphics/scene/renderer/core/render/render/render.rs
+  - zircon_runtime/src/graphics/scene/renderer/execution/context/gpu/particle.rs
   - zircon_runtime/src/scene/world/render_particles.rs
   - zircon_runtime/src/scene/tests/render_extract.rs
   - zircon_plugins/particles/runtime/src/render/gpu/backend.rs
   - zircon_plugins/particles/runtime/src/render/gpu/runtime_owner.rs
   - zircon_plugins/particles/runtime/src/render/executors.rs
   - zircon_plugins/particles/runtime/src/render/runtime_prepare.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/root_output_sources/runtime_prepare_collector.rs
-  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/root_output_sources/virtual_geometry_plugin_renderer_outputs.rs
 plan_sources:
   - docs/plans/zircon_runtime/render/index.md
   - docs/plans/zircon_runtime/render/01-render-graph-rdg-alignment.md
   - user: 2026-06-17 implement WGPU-to-render pipeline design from docs/plans/zircon_runtime/render, feature-first with tests deferred
 tests:
   - zircon_runtime/src/graphics/runtime_prepare_collector.rs::tests::collector_context_registers_external_buffer_bindings
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/advanced_plugin_resources/runtime_prepare.rs::tests::runtime_prepare_collectors_can_register_external_buffer_bindings
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/advanced_plugin_readbacks/scene_renderer_advanced_plugin_readbacks.rs::tests::advanced_plugin_readbacks_hold_runtime_prepare_external_buffer_bindings
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/bind_plugin_graph_resources.rs::tests::plugin_external_fallback_buffers_satisfy_materialization_report
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/bind_plugin_graph_resources.rs::tests::plugin_external_binder_skips_unknown_and_untyped_externals
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/bind_plugin_graph_resources.rs::tests::plugin_external_binder_prefers_runtime_prepare_buffers_over_fallback
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/bind_plugin_graph_resources.rs::tests::plugin_external_binder_accepts_registered_non_fallback_plugin_names
+  - zircon_runtime/src/graphics/scene/core/render/bind_plugin_graph_resources.rs::tests::plugin_external_fallback_buffers_satisfy_materialization_report
+  - zircon_runtime/src/graphics/scene/core/render/bind_plugin_graph_resources.rs::tests::plugin_external_binder_skips_unknown_and_untyped_externals
+  - zircon_runtime/src/graphics/scene/core/render/bind_plugin_graph_resources.rs::tests::plugin_external_binder_prefers_runtime_prepare_buffers_over_fallback
+  - zircon_runtime/src/graphics/scene/core/render/bind_plugin_graph_resources.rs::tests::plugin_external_binder_accepts_registered_non_fallback_plugin_names
   - zircon_plugins/particles/runtime/src/render/runtime_prepare.rs::tests::particle_runtime_prepare_neutral_frame_sizes_cover_readback_payload
   - zircon_plugins/particles/runtime/src/render/runtime_prepare.rs::tests::particle_runtime_prepare_neutral_frame_uses_minimum_nonzero_buffers
   - zircon_plugins/particles/runtime/src/render/runtime_prepare.rs::tests::particle_runtime_prepare_registration_id_is_stable
   - zircon_plugins/particles/runtime/src/render/runtime_prepare.rs::tests::device_epoch_is_activated_before_particle_early_returns_and_old_readbacks
   - zircon_plugins/particles/runtime/src/render/gpu/runtime_owner.rs::tests::device_epoch_change_releases_persistent_particle_gpu_state
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/root_output_sources/runtime_prepare_collector/device_epoch_tests.rs::hybrid_gi_device_epoch_change_is_explicit_and_preserves_frame_ordering
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/root_output_sources/runtime_prepare_collector/device_epoch_tests.rs::hybrid_gi_activates_device_epoch_before_feature_early_returns
   - zircon_plugins/particles/runtime/src/tests/manager_resolution.rs::particles_runtime_plugin_module_and_runtime_prepare_share_manager
   - zircon_plugins/particles/runtime/src/tests/gpu.rs::particle_gpu_runtime_owner_executes_backend_and_exposes_active_buffers
   - zircon_plugins/particles/runtime/src/tests/gpu.rs::particle_gpu_runtime_owner_records_transparent_draw_from_executed_backend
   - zircon_plugins/particles/runtime/src/tests/gpu.rs::particle_gpu_runtime_owner_skips_transparent_draw_without_executed_backend
   - zircon_plugins/particles/runtime/src/tests/gpu.rs::render_particle_cpu_gpu_parity_small_scene_matches_counts_and_indirect_args
   - zircon_plugins/particles/runtime/src/tests/registration.rs::particles_plugin_registration_contributes_runtime_module_render_feature_and_component
-  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/root_output_sources/virtual_geometry_plugin_renderer_outputs.rs::tests::virtual_geometry_feedback_binding_names_stay_stable
   - cargo check -p zircon_plugin_particles_runtime --locked --jobs 1 --target-dir D:\cargo-targets\zircon-particles-runtime-prepare-0618 --message-format short --color never
   - cargo check -p zircon_plugin_particles_runtime --locked --jobs 1 --target-dir D:\cargo-targets\zircon-particles-gpu-owner-0618 --message-format short --color never
   - cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-rg-plugin-real-buffer-handoff-0618 --message-format short --color never

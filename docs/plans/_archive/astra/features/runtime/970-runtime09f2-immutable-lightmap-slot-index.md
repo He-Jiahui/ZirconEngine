@@ -8,9 +8,7 @@ related_records:
   - docs/plans/astra/features/runtime/972-runtime09d-to-09h1-completion-list.md
 implementation_files:
   - zircon_runtime/src/core/framework/render/environment/lightmap.rs
-  - zircon_runtime/src/core/framework/render/environment/lightmap/tests.rs
 tests:
-  - zircon_runtime/src/core/framework/render/environment/lightmap/tests.rs
 ---
 
 # Runtime970 · immutable lightmap slot index

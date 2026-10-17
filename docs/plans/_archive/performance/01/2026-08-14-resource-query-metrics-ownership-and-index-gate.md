@@ -1,9 +1,8 @@
 ---
 related_code:
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/management.rs
   - zircon_editor/src/ui/workbench/project/asset_workspace_state.rs
   - zircon_runtime/src/asset/project/catalog_input_generation.rs
-  - zircon_editor/src/ui/host/editor_asset_manager/manager/project_sync/sync_from_project.rs
+  - zircon_editor/src/ui/host/assets/manager/project_sync/sync_from_project.rs
   - zircon_runtime/src/core/runtime/diagnostics/profiling
   - tools/mvp/Write-RenderExtractBaselineReport.ps1
 primary_reference:

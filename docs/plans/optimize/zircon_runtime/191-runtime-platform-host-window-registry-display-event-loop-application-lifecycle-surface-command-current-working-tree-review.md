@@ -17,12 +17,9 @@ related_code:
   - zircon_runtime_interface/src/runtime_api/host/host_requests.rs
   - zircon_runtime/src/dynamic_api/surface.rs
   - zircon_runtime/src/dynamic_api/session
-  - zircon_runtime/src/graphics/backend/render_backend/viewport_surface.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/viewport_surface
   - zircon_runtime/crates/zr_rhi_wgpu/src/production/device/surface_lifecycle.rs
   - zircon_app/src/reference_cpu_presenter.rs
 tests:
-  - zircon_runtime/src/core/framework/window/tests.rs
   - zircon_runtime/src/platform/tests
   - zircon_runtime/src/dynamic_api/tests/session_lifecycle.rs
   - zircon_runtime/src/dynamic_api/tests/viewport.rs

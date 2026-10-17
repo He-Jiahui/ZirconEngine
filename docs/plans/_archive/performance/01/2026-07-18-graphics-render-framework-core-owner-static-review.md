@@ -1,9 +1,5 @@
 ---
 related_code:
-  - zircon_runtime/src/graphics/runtime/render_framework/graphics_debugger_capture
-  - zircon_runtime/src/graphics/runtime/render_framework/render_framework_state
-  - zircon_runtime/src/graphics/runtime/render_framework/render_framework_trait_binding
-  - zircon_runtime/src/graphics/runtime/render_framework/wgpu_render_framework
 tests:
   - current render-framework core-owner slice 12 of 12 Rust files reviewed, 624 lines
   - all 1 inline test read; capture state/lock/trait call graph traced

@@ -1,6 +1,5 @@
 ---
 related_code:
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats
 tests:
   - current update_stats slice 12 of 12 Rust files reviewed, 2165 lines
   - all 27 tests read; 5 coverage/aggregation/storage/index regressions added

@@ -11,9 +11,9 @@ related_records:
   - docs/plans/astra/features/runtime/720-ecs-projection-node-capacity.md
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 related_code:
-  - zircon_editor/src/ui/retained_host/app/hierarchy_filter.rs
+  - zircon_editor/src/ui/retained/app/hierarchy_filter.rs
 tests:
-  - zircon_editor/src/ui/retained_host/app/hierarchy_filter.rs
+  - zircon_editor/src/ui/retained/app/hierarchy_filter.rs
 ---
 
 # Editor Hierarchy Filter Lazy Match Flags

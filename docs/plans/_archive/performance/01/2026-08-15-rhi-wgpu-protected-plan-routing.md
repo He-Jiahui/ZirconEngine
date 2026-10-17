@@ -2,8 +2,6 @@
 related_code:
   - zircon_runtime/crates/zr_rhi/src
   - zircon_runtime/crates/zr_rhi_wgpu/src
-  - zircon_runtime/src/graphics/backend/render_backend
-  - zircon_runtime/src/graphics/runtime/render_framework
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/performance/02-unreal-aligned-engine-system-hard-cutover.md

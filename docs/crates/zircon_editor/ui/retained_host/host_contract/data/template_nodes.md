@@ -1,101 +1,34 @@
 ---
 related_code:
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/host_data.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/template_nodes.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/template_nodes/actions.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/template_nodes/collection.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/template_nodes/context_menu.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/template_nodes/frame.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/template_nodes/menu.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/template_nodes/node.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/template_nodes/options.rs
-  - zircon_editor/src/ui/retained_host/host_contract/workbench_context_menu.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_state_layer.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_nodes.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_rows.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_notification_center.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_drag_overlay.rs
-  - zircon_editor/src/ui/retained_host/host_contract/template_popup_layout.rs
-  - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_keyboard.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_popup_dismiss.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer.rs
-  - zircon_editor/src/ui/retained_host/host_contract/template_activation_semantics.rs
-  - zircon_editor/src/ui/retained_host/app/workbench_context_menu.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/context_menu.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_wizard_session.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/session.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/view_model.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/panel_projection.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/panel_output_tests.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/session_control_tests.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/mod.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/build_export_wizard_panel.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/popup_frame/mod.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/notification_center/mod.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/notification_center/attributes.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/notification_center/entries.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/notification_center/entry.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/notification_center/options.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/notification_center/parse.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/notification_center/tests.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/drag_overlay/mod.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_option_projection.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_menu_projection.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/tests/actions.rs
-  - zircon_editor/src/ui/retained_host/ui/template_node_conversion.rs
-  - zircon_editor/src/ui/retained_host/ui/workbench_window_projection.rs
-  - zircon_editor/src/ui/retained_host/ui/reference_overlay_apply_tests.rs
-  - zircon_editor/src/ui/retained_host/ui/structure_component_tests.rs
-  - zircon_editor/src/ui/template_runtime/runtime/projection.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/workbench/context_menu.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/session.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/view_model.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/panel_projection.rs
+  - zircon_editor/src/ui/retained/ui/data/projection/popup_frame/mod.rs
+  - zircon_editor/src/ui/retained/ui/data/projection/notification_center/mod.rs
+  - zircon_editor/src/ui/retained/ui/data/notification_center/attributes.rs
+  - zircon_editor/src/ui/retained/ui/data/projection/notification_center/entries.rs
+  - zircon_editor/src/ui/retained/ui/data/projection/notification_center/entry.rs
+  - zircon_editor/src/ui/retained/ui/data/projection/notification_center/options.rs
+  - zircon_editor/src/ui/retained/ui/data/projection/notification_center/parse.rs
+  - zircon_editor/src/ui/retained/ui/data/projection/drag_overlay/mod.rs
+  - zircon_editor/src/ui/runtime/runtime/projection.rs
   - zircon_editor/assets/ui/editor/component_showcase.zui
   - zircon_editor/assets/ui/theme/editor_material.zui
 implementation_files:
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/host_data.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/template_nodes.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/template_nodes/actions.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/template_nodes/collection.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/template_nodes/context_menu.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/template_nodes/frame.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/template_nodes/menu.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/template_nodes/node.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/template_nodes/options.rs
-  - zircon_editor/src/ui/retained_host/host_contract/workbench_context_menu.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_state_layer.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_nodes.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_rows.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_notification_center.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_drag_overlay.rs
-  - zircon_editor/src/ui/retained_host/host_contract/template_popup_layout.rs
-  - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_keyboard.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_popup_dismiss.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer.rs
-  - zircon_editor/src/ui/retained_host/host_contract/template_activation_semantics.rs
-  - zircon_editor/src/ui/retained_host/app/workbench_context_menu.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/context_menu.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_wizard_session.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/session.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/view_model.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/panel_projection.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/panel_output_tests.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/session_control_tests.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/mod.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/build_export_wizard_panel.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/popup_frame/mod.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/notification_center/mod.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/notification_center/attributes.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/notification_center/entries.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/notification_center/entry.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/notification_center/options.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/notification_center/parse.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/notification_center/tests.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/drag_overlay/mod.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_option_projection.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_menu_projection.rs
-  - zircon_editor/src/ui/retained_host/ui/template_node_conversion.rs
-  - zircon_editor/src/ui/retained_host/ui/workbench_window_projection.rs
-  - zircon_editor/src/ui/template_runtime/runtime/projection.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/workbench/context_menu.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/session.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/view_model.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/panel_projection.rs
+  - zircon_editor/src/ui/retained/ui/data/projection/popup_frame/mod.rs
+  - zircon_editor/src/ui/retained/ui/data/projection/notification_center/mod.rs
+  - zircon_editor/src/ui/retained/ui/data/notification_center/attributes.rs
+  - zircon_editor/src/ui/retained/ui/data/projection/notification_center/entries.rs
+  - zircon_editor/src/ui/retained/ui/data/projection/notification_center/entry.rs
+  - zircon_editor/src/ui/retained/ui/data/projection/notification_center/options.rs
+  - zircon_editor/src/ui/retained/ui/data/projection/notification_center/parse.rs
+  - zircon_editor/src/ui/retained/ui/data/projection/drag_overlay/mod.rs
+  - zircon_editor/src/ui/runtime/runtime/projection.rs
   - zircon_editor/assets/ui/editor/component_showcase.zui
   - zircon_editor/assets/ui/theme/editor_material.zui
 plan_sources:
@@ -104,8 +37,6 @@ plan_sources:
   - .codex/plans/Zircon Editor Demo 首屏与 .zui 组件陈列计划.md
   - docs/superpowers/plans/2026-05-20-slint-material-retained-editor-migration.md
 tests:
-  - zircon_editor/src/ui/retained_host/ui/tests/component_showcase.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/tests/actions.rs
   - build_export_wizard_panel_nodes_project_retained_export_wizard_panel
   - build_export_wizard_surface_action_maps_panel_buttons_to_session_actions
   - desktop_export_wizard_sessions_project_view_model_after_generate_plan
@@ -113,9 +44,7 @@ tests:
   - export_wizard_panel_session_cancel_disables_cancel_before_terminal_poll
   - export_wizard_panel_template_state_projects_stage_stdout_and_stderr
   - export_wizard_panel_route_prefers_action_over_binding
-  - zircon_editor/src/ui/retained_host/ui/structure_component_tests.rs
-  - zircon_editor/src/tests/host/retained_window/native_workbench_reference.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/context_menu.rs
+  - zircon_editor/src/tests/host/retained_window/native_workbench_reference/mod.rs
   - zircon_editor/src/tests/ui/boundary/slint_material_retained_editor_migration.rs
   - zircon_editor/src/tests/host/retained_window/native_material_painter.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_state_layer.rs inline unit tests
@@ -127,8 +56,7 @@ tests:
   - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/native_keyboard.rs zircon_editor/src/ui/retained_host/host_contract/template_popup_layout.rs (2026-06-15: passed after M5.S1 native popup keyboard row-geometry contract alignment)
   - rustfmt --edition 2021 touched DragOverlay Workbench/native Rust files (2026-06-15: passed after M3.S4 DragOverlay Workbench/native parity baseline)
   - cargo test -p zircon_editor --lib apply_presentation_carries_componentized_workbench_window_nodes_separately --locked -- --nocapture --test-threads=1
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/drag_overlay_tests.rs
-  - zircon_editor/src/tests/host/retained_window/native_material_painter_drag_overlay.rs
+  - zircon_editor/src/tests/retained_window/native_material_painter_drag_overlay.rs
   - cargo test -p zircon_editor --lib component_showcase_template_nodes_preserve_scroll_clip_frames --locked --target-dir target/codex-shared-b --message-format short (2026-05-15: passed, 1 passed)
   - cargo test -p zircon_editor --lib component_showcase --locked --target-dir target/codex-shared-b --message-format short -- --test-threads=1 (2026-05-15: passed, 24 passed)
   - cargo test -p zircon_editor --lib template_nodes --locked --target-dir target/codex-shared-b --message-format short (2026-05-15: passed, 7 passed)

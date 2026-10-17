@@ -7,7 +7,6 @@ plan_sources:
 implementation_files:
   - zircon_runtime/src/ui/dispatch/input_manager/text_document_session/session.rs
 tests:
-  - zircon_runtime/src/ui/dispatch/input_manager/text_document_session/session/tests.rs
 ---
 
 # Runtime82 finish edit single key completion list

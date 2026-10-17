@@ -1,17 +1,16 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes
 implementation_files:
-  - docs/plans/performance/01/2026-07-17-editor-template-fields-static-review.md
-  - docs/plans/performance/01/2026-07-17-editor-template-icon-buttons-static-review.md
-  - docs/plans/performance/01/2026-07-17-editor-template-inspector-rows-static-review.md
-  - docs/plans/performance/01/2026-07-17-editor-template-list-rows-static-review.md
-  - docs/plans/performance/01/2026-07-17-editor-template-node-label-text-static-review.md
-  - docs/plans/performance/01/2026-07-17-editor-template-popup-rows-static-review.md
-  - docs/plans/performance/01/2026-07-17-editor-template-property-rows-static-review.md
-  - docs/plans/performance/01/2026-07-17-editor-template-section-titles-static-review.md
-  - docs/plans/performance/01/2026-07-17-editor-template-segmented-controls-static-review.md
-  - docs/plans/performance/01/2026-07-17-editor-template-selection-controls-static-review.md
+  - docs/plans/_archive/performance/01/2026-07-17-editor-template-fields-static-review.md
+  - docs/plans/_archive/performance/01/2026-07-17-editor-template-icon-buttons-static-review.md
+  - docs/plans/_archive/performance/01/2026-07-17-editor-template-inspector-rows-static-review.md
+  - docs/plans/_archive/performance/01/2026-07-17-editor-template-list-rows-static-review.md
+  - docs/plans/_archive/performance/01/2026-07-17-editor-template-node-label-text-static-review.md
+  - docs/plans/_archive/performance/01/2026-07-17-editor-template-popup-rows-static-review.md
+  - docs/plans/_archive/performance/01/2026-07-17-editor-template-property-rows-static-review.md
+  - docs/plans/_archive/performance/01/2026-07-17-editor-template-section-titles-static-review.md
+  - docs/plans/_archive/performance/01/2026-07-17-editor-template-segmented-controls-static-review.md
+  - docs/plans/_archive/performance/01/2026-07-17-editor-template-selection-controls-static-review.md
 plan_sources:
   - docs/plans/zircon_runtime/frameworks/06-development-conventions-and-guardrails.md
   - docs/plans/engine-code-structure-convention.md

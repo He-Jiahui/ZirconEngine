@@ -23,15 +23,11 @@ related_code:
   - zircon_runtime/src/asset/importer/ingest/gltf_meshopt.rs
   - zircon_runtime/src/asset/importer/ingest/import_obj.rs
   - zircon_runtime/src/asset/importer/ingest/import_texture.rs
-  - zircon_runtime/src/asset/importer/ingest/import_sound.rs
   - zircon_runtime/src/asset/importer/ingest/import_data_asset.rs
   - zircon_runtime/src/asset/importer/ingest/model_mesh_subassets.rs
   - zircon_runtime/src/asset/importer/ingest/primitive_from_indexed_mesh.rs
   - zircon_runtime/src/asset/importer/ingest/import_from_source.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/construction.rs
 tests:
-  - zircon_plugins/gltf_importer/runtime/src/tests.rs
-  - zircon_plugins/gltf_importer/runtime/src/test_fixtures.rs
   - zircon_plugins/asset_importers/model/runtime/src/tests
   - zircon_plugins/texture_importer/runtime/src/tests
   - zircon_plugins/texture_importer/runtime/src/container/tests

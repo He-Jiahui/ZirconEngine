@@ -4,16 +4,11 @@ related_code:
   - zircon_runtime/src/asset/mod.rs
   - zircon_runtime/src/asset/project/meta.rs
   - zircon_runtime/src/tests/scene_boundary/mod.rs
-  - zircon_editor/src/ui/host/editor_asset_manager/mod.rs
-  - zircon_editor/src/ui/host/editor_asset_manager/catalog.rs
-  - zircon_editor/src/ui/host/editor_asset_manager/preview.rs
-  - zircon_editor/src/ui/host/editor_asset_manager/manager/project_sync/sync_from_project.rs
-  - zircon_editor/src/ui/host/editor_asset_manager/manager/default_editor_asset_manager/asset_details.rs
+  - zircon_editor/src/ui/host/assets/manager/project_sync/sync_from_project.rs
   - zircon_editor/src/tests/host/asset_manager_boundary/mod.rs
   - zircon_editor/src/lib.rs
   - zircon_editor/src/ui/host/mod.rs
   - zircon_editor/src/ui/host/mod.rs
-  - zircon_editor/src/ui/retained_host/app.rs
   - zircon_editor/src/scene/viewport/mod.rs
   - zircon_editor/src/scene/viewport/settings.rs
   - zircon_editor/src/scene/viewport/render_packet.rs
@@ -24,9 +19,6 @@ related_code:
   - zircon_editor/src/scene/viewport/handles/scale_handle_tool_behavior.rs
   - zircon_editor/src/tests/editing/viewport.rs
   - zircon_editor/src/tests/host/render_framework_boundary/mod.rs
-  - zircon_editor/assets/ui/editor/host/workbench_shell.zui
-  - zircon_editor/src/ui/retained_host/host_contract/window.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/mod.rs
   - zircon_runtime/src/core/framework/render/camera.rs
   - zircon_runtime/src/core/framework/render/mod.rs
   - zircon_runtime/src/core/framework/render/overlay.rs
@@ -36,11 +28,9 @@ related_code:
   - zircon_runtime/src/graphics/types/mod.rs
   - zircon_runtime/src/graphics/types/viewport_render_frame.rs
   - zircon_runtime/src/graphics/scene/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/overlay/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/overlay/icon_source/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/overlay/icon_source/viewport_icon_source.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_construct/new_with_icon_source.rs
+  - zircon_runtime/src/graphics/scene/renderer/overlay/icon_source/mod.rs
+  - zircon_runtime/src/graphics/scene/overlay/icon_source/viewport_icon_source.rs
+  - zircon_runtime/src/graphics/scene_renderer_construct/new_with_icon_source.rs
   - zircon_plugins/animation/runtime/src/manager.rs
   - zircon_runtime/src/animation/sequence.rs
   - zircon_plugins/animation/runtime/src/runtime_system.rs
@@ -50,31 +40,23 @@ related_code:
   - zircon_runtime/src/scene/world/property_access/path_resolution.rs
   - zircon_runtime/src/animation/sequence/compiled.rs
   - zircon_runtime/src/animation/sequence/target.rs
-  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/pending_completion/ordered_evictable_pages_for_target.rs
   - zircon_runtime/src/scene/world/render.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render_with_pipeline/render_frame_with_pipeline.rs
   - zircon_runtime/src/foundation/runtime/config_path.rs
   - zircon_runtime/src/foundation/runtime/config_manager.rs
-  - zircon_runtime/src/foundation/tests.rs
   - zircon_editor/src/tests/support.rs
   - zircon_editor/src/tests/editor_event/support.rs
   - zircon_editor/src/tests/host/manager/mod.rs
   - zircon_editor/src/tests/host/retained_drawer_resize/mod.rs
   - zircon_editor/src/tests/host/ui_asset_editor_theme_tooling/mod.rs
-  - zircon_editor/src/ui/retained_host/app/tests/mod.rs
+  - zircon_editor/src/ui/retained/app/tests/mod.rs
 implementation_files:
   - Cargo.toml
   - zircon_runtime/src/asset/mod.rs
   - zircon_runtime/src/asset/project/meta.rs
-  - zircon_editor/src/ui/host/editor_asset_manager/mod.rs
-  - zircon_editor/src/ui/host/editor_asset_manager/catalog.rs
-  - zircon_editor/src/ui/host/editor_asset_manager/preview.rs
-  - zircon_editor/src/ui/host/editor_asset_manager/manager/project_sync/sync_from_project.rs
-  - zircon_editor/src/ui/host/editor_asset_manager/manager/default_editor_asset_manager/asset_details.rs
+  - zircon_editor/src/ui/host/assets/manager/project_sync/sync_from_project.rs
   - zircon_editor/src/lib.rs
   - zircon_editor/src/ui/host/mod.rs
   - zircon_editor/src/ui/host/mod.rs
-  - zircon_editor/src/ui/retained_host/app.rs
   - zircon_editor/src/scene/viewport/mod.rs
   - zircon_editor/src/scene/viewport/settings.rs
   - zircon_editor/src/scene/viewport/render_packet.rs
@@ -83,9 +65,6 @@ implementation_files:
   - zircon_editor/src/scene/viewport/handles/move_handle_tool_behavior.rs
   - zircon_editor/src/scene/viewport/handles/rotate_handle_tool_behavior.rs
   - zircon_editor/src/scene/viewport/handles/scale_handle_tool_behavior.rs
-  - zircon_editor/assets/ui/editor/host/workbench_shell.zui
-  - zircon_editor/src/ui/retained_host/host_contract/window.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/mod.rs
   - zircon_runtime/src/core/framework/render/camera.rs
   - zircon_runtime/src/core/framework/render/mod.rs
   - zircon_runtime/src/core/framework/render/overlay.rs
@@ -95,11 +74,9 @@ implementation_files:
   - zircon_runtime/src/graphics/types/mod.rs
   - zircon_runtime/src/graphics/types/viewport_render_frame.rs
   - zircon_runtime/src/graphics/scene/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/overlay/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/overlay/icon_source/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/overlay/icon_source/viewport_icon_source.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_construct/new_with_icon_source.rs
+  - zircon_runtime/src/graphics/scene/renderer/overlay/icon_source/mod.rs
+  - zircon_runtime/src/graphics/scene/overlay/icon_source/viewport_icon_source.rs
+  - zircon_runtime/src/graphics/scene_renderer_construct/new_with_icon_source.rs
   - zircon_plugins/animation/runtime/src/manager.rs
   - zircon_runtime/src/animation/sequence.rs
   - zircon_plugins/animation/runtime/src/runtime_system.rs
@@ -109,13 +86,11 @@ implementation_files:
   - zircon_runtime/src/scene/world/property_access/path_resolution.rs
   - zircon_runtime/src/animation/sequence/compiled.rs
   - zircon_runtime/src/animation/sequence/target.rs
-  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/pending_completion/ordered_evictable_pages_for_target.rs
   - zircon_runtime/src/scene/world/render.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render_with_pipeline/render_frame_with_pipeline.rs
   - zircon_runtime/src/foundation/runtime/config_path.rs
   - zircon_runtime/src/foundation/runtime/config_manager.rs
   - zircon_editor/src/tests/support.rs
-  - zircon_editor/src/ui/retained_host/app/tests/mod.rs
+  - zircon_editor/src/ui/retained/app/tests/mod.rs
 plan_sources:
   - user: 2026-07-13 书面设计通过，批准 Runtime02 注册服务 CoreWeak 拆分设计并开始实施
   - docs/plans/zircon_runtime/runtime/02-core-spine-and-root-surface.md
@@ -131,9 +106,7 @@ tests:
   - zircon_editor/src/tests/host/manager/runtime_lifecycle.rs::failed_project_open_does_not_make_the_editor_manager_retain_the_runtime_root
   - zircon_editor/src/tests/host/manager/runtime_lifecycle.rs::project_open_panic_unwind_drops_temporary_editor_manager_owners
   - zircon_editor/src/tests/host/manager/runtime_lifecycle.rs::repeated_editor_runtime_fixtures_release_every_runtime_root
-  - zircon_runtime/src/tests/runtime_absorption/service_registry_ownership.rs::registry_owned_services_store_only_weak_runtime_back_references
   - zircon_runtime/src/scene/tests/property_paths.rs
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings.rs
   - cargo check -p zircon_runtime --lib --offline --message-format short --target-dir target/codex-editor-software-renderer-check
   - cargo check -p zircon_editor --lib --offline --message-format short --target-dir target/codex-editor-software-renderer-check
   - cargo check -p zircon_editor --tests --offline --message-format short --target-dir target/ta

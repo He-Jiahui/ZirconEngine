@@ -7,7 +7,6 @@ plan_sources:
 implementation_files:
   - zircon_runtime/src/ui/surface/input/editable_text/property_transaction.rs
 tests:
-  - zircon_runtime/src/ui/surface/input/editable_text/property_transaction/tests.rs
 ---
 
 # Runtime82 editable text property prepare completion list

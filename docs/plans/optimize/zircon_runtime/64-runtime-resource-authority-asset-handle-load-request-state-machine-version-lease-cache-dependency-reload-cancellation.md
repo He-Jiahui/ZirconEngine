@@ -11,21 +11,15 @@ related_code:
   - zircon_runtime/src/core/resource
   - zircon_runtime/src/asset/facade
   - zircon_runtime/src/asset/pipeline/manager/asset_manager
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager
   - zircon_runtime/src/asset/pipeline/manager/resource_sync
   - zircon_runtime/src/asset/project/manager/artifact_access.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract
   - zircon_runtime/src/graphics/scene/resources/resource_streamer
-  - zircon_editor/src/ui/host/editor_asset_manager
-  - zircon_editor/src/ui/retained_host/app/assets/refresh.rs
+  - zircon_editor/src/ui/retained/app/assets/refresh.rs
   - zircon_app/src/bin/zircon_shader_pbr_viewer/scene.rs
 tests:
   - zircon_runtime/src/core/resource/manager/tests
-  - zircon_runtime/src/core/resource/tests.rs
   - zircon_runtime/src/asset/tests/facade
   - zircon_runtime/src/asset/tests/pipeline/manager
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/runtime/tests.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/close_project.rs
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md
   - docs/plans/optimize/01-cross-report-owner-schema-abi-p0-consolidation-review.md

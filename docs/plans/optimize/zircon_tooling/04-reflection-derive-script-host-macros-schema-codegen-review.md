@@ -11,15 +11,12 @@ related_code:
   - zircon_runtime_interface/src/reflect
   - zircon_runtime/src/core/framework/script
   - zircon_runtime/src/scene/reflect
-  - zircon_runtime/src/scene/dynamic_scene/scene/spawn
+  - zircon_runtime/src/scene/dynamic/scene/spawn
   - zircon_runtime/src/scene/components/scene
   - zircon_runtime/src/core/framework/scene/mobility.rs
   - zircon_runtime/src/script/vm/host/builtin_host_modules.rs
   - zircon_runtime/src/script/vm/plugin/state_migration.rs
 tests:
-  - zircon_reflect_derive/src/tests.rs
-  - zircon_runtime/reflection_macros/src/tests.rs
-  - zircon_runtime/src/scene/reflect/derived/tests.rs
   - zircon_runtime/src/script/vm/tests/reflection_docs.rs
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md

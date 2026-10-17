@@ -10,6 +10,9 @@ use super::{
     NativePluginArtifactAdmissionError, NativePluginArtifactDependency, NativePluginArtifactDigest,
 };
 
+#[path = "native_artifact_staging/ownership.rs"]
+mod ownership;
+
 #[cfg(all(test, windows))]
 #[path = "native_artifact_staging/tests/cases.rs"]
 pub(super) mod tests;
@@ -24,6 +27,8 @@ pub(super) struct NativePluginArtifactStaging {
     main_path: PathBuf,
     loaded_dependencies: Vec<libloading::Library>,
     directory_guard: Option<File>,
+    // Dropped after the DLL/directory guards, retaining ownership until unload.
+    directory_owner: Option<ownership::StagingDirectory>,
     #[cfg(windows)]
     admitted_dependencies: Vec<NativePluginArtifactDependency>,
     #[cfg(windows)]
@@ -50,14 +55,16 @@ impl NativePluginArtifactStaging {
                 return Err(invalid("native dependency closure has duplicate DLL names"));
             }
         }
-        let root = std::env::temp_dir().join(format!("zircon-native-{}", uuid::Uuid::new_v4()));
-        std::fs::create_dir(&root).map_err(|error| invalid(error.to_string()))?;
+        let directory_owner = ownership::StagingDirectory::create(&std::env::temp_dir())
+            .map_err(|error| invalid(error.to_string()))?;
+        let root = directory_owner.path().to_path_buf();
         let mut staged = Self {
             main_path: root.join(main_name),
             root,
             guards: Vec::with_capacity(dependencies.len() + 1),
             loaded_dependencies: Vec::new(),
             directory_guard: None,
+            directory_owner: Some(directory_owner),
             #[cfg(windows)]
             admitted_dependencies: dependencies.to_vec(),
             #[cfg(windows)]
@@ -323,7 +330,7 @@ impl Drop for NativePluginArtifactStaging {
         self.guards.clear();
         self.loaded_dependencies.clear();
         self.directory_guard.take();
-        let _ = std::fs::remove_dir_all(&self.root);
+        self.directory_owner.take();
     }
 }
 

@@ -12,9 +12,7 @@ related_code:
   - zircon_runtime/src/core/framework/render/advanced_lighting/oit.rs
   - zircon_runtime/src/core/framework/render/mod.rs
   - zircon_runtime/src/graphics/feature/render_feature_descriptor/construct.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/resource_descriptors.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/oit_buffers/mod.rs
+  - zircon_runtime/src/graphics/scene/renderer/advanced_lighting/oit_buffers/mod.rs
 tests:
   - cargo test -p zircon_editor --lib --locked tests::host::manager::minimal_host_contract::optional_features::editor_manager_plugin_status_lists_owner_optional_feature_dependencies --jobs 1 -- --exact --test-threads=1
 resolved_at: 2026-07-12

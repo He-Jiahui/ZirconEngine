@@ -10,9 +10,7 @@ fixing_child_dir: docs/plans/zircon_runtime/runtime/15
 plan_link_mode: child_record_only
 related_code:
   - docs/plans/zircon_runtime/runtime/15/2026-07-17-registration-filter-plan-anchor-current-owner.md
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/provider_boilerplate/registration.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/core_runtime_registration.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/support.rs
+  - zircon_runtime/src/tests/structure/provider_boilerplate/registration.rs
   - docs/crates/zircon_runtime/structure/module-convention.md
   - docs/crates/zircon_runtime/core/runtime/lifecycle.md
   - docs/crates/zircon_runtime/graphics/runtime_provider/registration.md

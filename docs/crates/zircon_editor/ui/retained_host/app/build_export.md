@@ -1,63 +1,56 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/app.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_actions.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_actions/action_ids.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_actions/error.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_actions/execution_summary.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_actions/execution_summary/constructors.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_actions/execution_summary/status.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_actions/execution_summary/target.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_actions/host_actions.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_actions/host_actions/jobs.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_actions/host_actions/jobs/cancellation.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_actions/host_actions/jobs/enqueue.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_actions/host_actions/jobs/polling.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_actions/host_actions/output.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_actions/job_queue.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_actions/job_queue/cancellation.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_actions/job_queue/enqueue.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_actions/job_queue/queries.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_actions/job_queue/snapshot.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_actions/job_queue/snapshot/progress.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_actions/job_queue/snapshot/status.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_actions/job_queue/snapshot/target.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_actions/job_queue/start.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_actions/job_queue/state.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_actions/job_queue/updates.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_actions/job_queue/worker.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_actions/output_folder.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_actions/output_folder/picker.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_actions/output_folder/picker/commands.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_actions/output_folder/picker/selection.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_actions/output_folder/reveal.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_actions/output_folder/tests.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_actions/profiles.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_projection.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_projection/targets.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_projection/targets/diagnostics.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_projection/targets/project.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_projection/targets/rows.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_projection/targets/rows/constructors.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_projection/targets/rows/overlays.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_wizard_session.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_wizard_session/host_actions.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_wizard_session/options.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_wizard_session/session_state.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_wizard_session/session_state/actions.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_wizard_session/session_state/lookup.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_wizard_session/session_state/polling.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_wizard_session/surface_actions.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/execution.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/controller.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/controller/completion.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/controller/job.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/controller/poll.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/run.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/session.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/cargo_build.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/error.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/manager.rs
+  - zircon_editor/src/ui/retained/app/build_export_actions.rs
+  - zircon_editor/src/ui/retained/app/build_export_actions/action_ids.rs
+  - zircon_editor/src/ui/retained/app/build_export_actions/error.rs
+  - zircon_editor/src/ui/retained/app/build_export_actions/execution_summary.rs
+  - zircon_editor/src/ui/retained/app/execution_summary/constructors.rs
+  - zircon_editor/src/ui/retained/app/execution_summary/status.rs
+  - zircon_editor/src/ui/retained/app/execution_summary/target.rs
+  - zircon_editor/src/ui/retained/app/build_export_actions/host_actions.rs
+  - zircon_editor/src/ui/retained/app/build_export_actions/host_actions/jobs.rs
+  - zircon_editor/src/ui/retained/app/host_actions/jobs/cancellation.rs
+  - zircon_editor/src/ui/retained/app/host_actions/jobs/enqueue.rs
+  - zircon_editor/src/ui/retained/app/host_actions/jobs/polling.rs
+  - zircon_editor/src/ui/retained/app/build_export_actions/host_actions/output.rs
+  - zircon_editor/src/ui/retained/app/build_export_actions/job_queue.rs
+  - zircon_editor/src/ui/retained/app/build_export_actions/job_queue/cancellation.rs
+  - zircon_editor/src/ui/retained/app/build_export_actions/job_queue/enqueue.rs
+  - zircon_editor/src/ui/retained/app/build_export_actions/job_queue/queries.rs
+  - zircon_editor/src/ui/retained/app/build_export_actions/job_queue/snapshot.rs
+  - zircon_editor/src/ui/retained/app/job_queue/snapshot/progress.rs
+  - zircon_editor/src/ui/retained/app/job_queue/snapshot/status.rs
+  - zircon_editor/src/ui/retained/app/job_queue/snapshot/target.rs
+  - zircon_editor/src/ui/retained/app/build_export_actions/job_queue/start.rs
+  - zircon_editor/src/ui/retained/app/build_export_actions/job_queue/state.rs
+  - zircon_editor/src/ui/retained/app/build_export_actions/job_queue/updates.rs
+  - zircon_editor/src/ui/retained/app/build_export_actions/job_queue/worker.rs
+  - zircon_editor/src/ui/retained/app/build_export_actions/output_folder.rs
+  - zircon_editor/src/ui/retained/app/build_export_actions/output_folder/picker.rs
+  - zircon_editor/src/ui/retained/app/output_folder/picker/commands.rs
+  - zircon_editor/src/ui/retained/app/output_folder/picker/selection.rs
+  - zircon_editor/src/ui/retained/app/build_export_actions/output_folder/reveal.rs
+  - zircon_editor/src/ui/retained/app/build_export_actions/profiles.rs
+  - zircon_editor/src/ui/retained/app/build_export_projection.rs
+  - zircon_editor/src/ui/retained/app/build_export_projection/targets.rs
+  - zircon_editor/src/ui/retained/app/build_export_projection/targets/diagnostics.rs
+  - zircon_editor/src/ui/retained/app/build_export_projection/targets/project.rs
+  - zircon_editor/src/ui/retained/app/build_export_projection/targets/rows.rs
+  - zircon_editor/src/ui/retained/app/targets/rows/constructors.rs
+  - zircon_editor/src/ui/retained/app/targets/rows/overlays.rs
+  - zircon_editor/src/ui/retained/app/wizard/session_state/actions.rs
+  - zircon_editor/src/ui/retained/app/wizard/session_state/lookup.rs
+  - zircon_editor/src/ui/retained/app/wizard/session_state/polling.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/execution.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/controller.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/controller/completion.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/controller/job.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/controller/poll.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/run.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/session.rs
+  - zircon_editor/src/ui/host/exports/export_build/cargo_build.rs
+  - zircon_editor/src/ui/host/exports/export_build/error.rs
+  - zircon_editor/src/ui/host/exports/export_build/manager.rs
   - zircon_editor/src/ui/host/export_cargo_process.rs
   - zircon_editor/src/ui/host/export_process_support/output_capture.rs
   - zircon_editor/src/ui/host/export_process_support/error.rs
@@ -66,78 +59,70 @@ related_code:
   - zircon_editor/src/ui/host/native_dynamic_export_preparation/cargo_build.rs
   - zircon_editor/src/ui/host/native_dynamic_export_preparation/staging.rs
   - zircon_editor/src/ui/host/native_dynamic_export_preparation/error.rs
-  - zircon_editor/src/ui/host/native_dynamic_export_preparation/native_dynamic_preparation.rs
   - zircon_editor/src/ui/host/native_dynamic_export_preparation/prepare.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/mod.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/support.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/pipeline_plan.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/pipeline_execution.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/job.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/panel_session.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/view_model.rs
-  - zircon_editor/src/ui/template_runtime/runtime/runtime_host.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/startup/state/construction/assembly.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/tick.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/tests/mod.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/tests/support.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/tests/pipeline_plan.rs
+  - zircon_editor/src/ui/host/exports/wizard/tests/pipeline_execution.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/tests/job.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/tests/panel_session.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/tests/view_model.rs
+  - zircon_editor/src/ui/runtime/runtime/runtime_host.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle.rs
+  - zircon_editor/src/ui/retained/app/startup/state/construction/assembly.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle/tick.rs
 implementation_files:
-  - zircon_editor/src/ui/retained_host/app.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_actions.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_actions/action_ids.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_actions/error.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_actions/execution_summary.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_actions/execution_summary/constructors.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_actions/execution_summary/status.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_actions/execution_summary/target.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_actions/host_actions.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_actions/host_actions/jobs.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_actions/host_actions/jobs/cancellation.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_actions/host_actions/jobs/enqueue.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_actions/host_actions/jobs/polling.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_actions/host_actions/output.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_actions/job_queue.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_actions/job_queue/cancellation.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_actions/job_queue/enqueue.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_actions/job_queue/queries.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_actions/job_queue/snapshot.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_actions/job_queue/snapshot/progress.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_actions/job_queue/snapshot/status.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_actions/job_queue/snapshot/target.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_actions/job_queue/start.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_actions/job_queue/state.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_actions/job_queue/updates.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_actions/job_queue/worker.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_actions/output_folder.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_actions/output_folder/picker.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_actions/output_folder/picker/commands.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_actions/output_folder/picker/selection.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_actions/output_folder/reveal.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_actions/output_folder/tests.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_actions/profiles.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_projection.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_projection/targets.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_projection/targets/diagnostics.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_projection/targets/project.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_projection/targets/rows.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_projection/targets/rows/constructors.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_projection/targets/rows/overlays.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_wizard_session.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_wizard_session/host_actions.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_wizard_session/options.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_wizard_session/session_state.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_wizard_session/session_state/actions.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_wizard_session/session_state/lookup.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_wizard_session/session_state/polling.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_wizard_session/surface_actions.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/execution.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/controller.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/controller/completion.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/controller/job.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/controller/poll.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/run.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/session.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/cargo_build.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/error.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/manager.rs
+  - zircon_editor/src/ui/retained/app/build_export_actions.rs
+  - zircon_editor/src/ui/retained/app/build_export_actions/action_ids.rs
+  - zircon_editor/src/ui/retained/app/build_export_actions/error.rs
+  - zircon_editor/src/ui/retained/app/build_export_actions/execution_summary.rs
+  - zircon_editor/src/ui/retained/app/execution_summary/constructors.rs
+  - zircon_editor/src/ui/retained/app/execution_summary/status.rs
+  - zircon_editor/src/ui/retained/app/execution_summary/target.rs
+  - zircon_editor/src/ui/retained/app/build_export_actions/host_actions.rs
+  - zircon_editor/src/ui/retained/app/build_export_actions/host_actions/jobs.rs
+  - zircon_editor/src/ui/retained/app/host_actions/jobs/cancellation.rs
+  - zircon_editor/src/ui/retained/app/host_actions/jobs/enqueue.rs
+  - zircon_editor/src/ui/retained/app/host_actions/jobs/polling.rs
+  - zircon_editor/src/ui/retained/app/build_export_actions/host_actions/output.rs
+  - zircon_editor/src/ui/retained/app/build_export_actions/job_queue.rs
+  - zircon_editor/src/ui/retained/app/build_export_actions/job_queue/cancellation.rs
+  - zircon_editor/src/ui/retained/app/build_export_actions/job_queue/enqueue.rs
+  - zircon_editor/src/ui/retained/app/build_export_actions/job_queue/queries.rs
+  - zircon_editor/src/ui/retained/app/build_export_actions/job_queue/snapshot.rs
+  - zircon_editor/src/ui/retained/app/job_queue/snapshot/progress.rs
+  - zircon_editor/src/ui/retained/app/job_queue/snapshot/status.rs
+  - zircon_editor/src/ui/retained/app/job_queue/snapshot/target.rs
+  - zircon_editor/src/ui/retained/app/build_export_actions/job_queue/start.rs
+  - zircon_editor/src/ui/retained/app/build_export_actions/job_queue/state.rs
+  - zircon_editor/src/ui/retained/app/build_export_actions/job_queue/updates.rs
+  - zircon_editor/src/ui/retained/app/build_export_actions/job_queue/worker.rs
+  - zircon_editor/src/ui/retained/app/build_export_actions/output_folder.rs
+  - zircon_editor/src/ui/retained/app/build_export_actions/output_folder/picker.rs
+  - zircon_editor/src/ui/retained/app/output_folder/picker/commands.rs
+  - zircon_editor/src/ui/retained/app/output_folder/picker/selection.rs
+  - zircon_editor/src/ui/retained/app/build_export_actions/output_folder/reveal.rs
+  - zircon_editor/src/ui/retained/app/build_export_actions/profiles.rs
+  - zircon_editor/src/ui/retained/app/build_export_projection.rs
+  - zircon_editor/src/ui/retained/app/build_export_projection/targets.rs
+  - zircon_editor/src/ui/retained/app/build_export_projection/targets/diagnostics.rs
+  - zircon_editor/src/ui/retained/app/build_export_projection/targets/project.rs
+  - zircon_editor/src/ui/retained/app/build_export_projection/targets/rows.rs
+  - zircon_editor/src/ui/retained/app/targets/rows/constructors.rs
+  - zircon_editor/src/ui/retained/app/targets/rows/overlays.rs
+  - zircon_editor/src/ui/retained/app/wizard/session_state/actions.rs
+  - zircon_editor/src/ui/retained/app/wizard/session_state/lookup.rs
+  - zircon_editor/src/ui/retained/app/wizard/session_state/polling.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/execution.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/controller.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/controller/completion.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/controller/job.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/controller/poll.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/run.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/session.rs
+  - zircon_editor/src/ui/host/exports/export_build/cargo_build.rs
+  - zircon_editor/src/ui/host/exports/export_build/error.rs
+  - zircon_editor/src/ui/host/exports/export_build/manager.rs
   - zircon_editor/src/ui/host/export_cargo_process.rs
   - zircon_editor/src/ui/host/export_process_support/output_capture.rs
   - zircon_editor/src/ui/host/export_process_support/error.rs
@@ -146,18 +131,17 @@ implementation_files:
   - zircon_editor/src/ui/host/native_dynamic_export_preparation/cargo_build.rs
   - zircon_editor/src/ui/host/native_dynamic_export_preparation/staging.rs
   - zircon_editor/src/ui/host/native_dynamic_export_preparation/error.rs
-  - zircon_editor/src/ui/host/native_dynamic_export_preparation/native_dynamic_preparation.rs
   - zircon_editor/src/ui/host/native_dynamic_export_preparation/prepare.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/mod.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/support.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/pipeline_plan.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/pipeline_execution.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/job.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/panel_session.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/view_model.rs
-  - zircon_editor/src/ui/template_runtime/runtime/runtime_host.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/startup/state/construction/assembly.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/tick.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/tests/mod.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/tests/support.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/tests/pipeline_plan.rs
+  - zircon_editor/src/ui/host/exports/wizard/tests/pipeline_execution.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/tests/job.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/tests/panel_session.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/tests/view_model.rs
+  - zircon_editor/src/ui/runtime/runtime/runtime_host.rs
+  - zircon_editor/src/ui/retained/app/startup/state/construction/assembly.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle/tick.rs
 plan_sources:
   - docs/plans/zircon_editor/editor_ui/08-workbench-shell-on-runtime-ui.md
   - docs/plans/zircon_plugins/09-export-publishing.md
@@ -178,7 +162,6 @@ tests:
   - app build-export job-queue subowner ownership scan
   - app build-export job-queue state/enqueue/query ownership scan
   - zircon_editor/src/core/jobs/tests/thread_ownership_contract.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_actions/tests.rs
   - zircon_editor/src/ui/host/export_cargo_process.rs
   - zircon_editor/src/ui/host/export_process_support/output_capture.rs
   - app build-export action/profile ownership scan

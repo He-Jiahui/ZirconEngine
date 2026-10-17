@@ -2,24 +2,21 @@
 related_code:
   - zircon_runtime/assets/fonts/default.font.toml
   - zircon_runtime/assets/fonts/ZirconDefaultComposite-subset.ttc
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/access.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/construct.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/font_assets.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/construct.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/text.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/text/font_assets.rs
   - zircon_runtime/src/text/font/composite_resolve.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_scene/render_scene.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/surface.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/render.rs
+  - zircon_runtime/src/graphics/scene/renderer/execution/context/gpu/surface.rs
 implementation_files:
   - zircon_runtime/assets/fonts/default.font.toml
   - zircon_runtime/assets/fonts/ZirconDefaultComposite-subset.ttc
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/construct.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/font_assets.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/construct.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/text.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/text/font_assets.rs
   - zircon_runtime/src/text/font/composite_resolve.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_scene/render_scene.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/surface.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/render.rs
+  - zircon_runtime/src/graphics/scene/renderer/execution/context/gpu/surface.rs
 plan_sources:
   - docs/plans/engine-code-structure-convention.md
   - docs/plans/engine-code-review-findings-2026-06.md
@@ -30,7 +27,6 @@ plan_sources:
 tests:
   - tools/tests/test_frameworks_05_manager_access_lifetime.py
   - tools/tests/test_text_01_composite_activation.py
-  - zircon_runtime/src/text/font/database/tests.rs::text_font_runtime_default_composite_selects_checked_in_zh_hans_face
   - zircon_runtime/tests/runtime_text_multilingual_product_framebuffer.rs
   - python -m unittest tools.tests.test_frameworks_05_manager_access_lifetime tools.tests.test_frameworks_05_layer_direction -v (24/24 passed)
   - managed Windows default-feature cargo build -p zircon_runtime --locked (job c2db4e7bfe0647678e6334648b6df811; passed)

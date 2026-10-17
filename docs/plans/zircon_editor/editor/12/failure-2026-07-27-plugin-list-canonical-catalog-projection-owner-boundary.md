@@ -13,7 +13,6 @@ related_code:
   - zircon_editor/src/core/plugin/catalog_snapshot.rs
   - zircon_editor/src/core/plugin/projection.rs
   - zircon_editor/src/core/commandlet/runner.rs
-  - zircon_editor/src/core/commandlet/tests.rs
 tests:
   - Editor12 generation-owned plugin catalog projection identity/build-count regression
   - Editor08 plugin-list repeated commandlet projection regression

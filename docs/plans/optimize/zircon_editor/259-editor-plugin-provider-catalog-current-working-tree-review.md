@@ -15,7 +15,6 @@ related_plugin_owner:
 related_code:
   - zircon_plugins/first_party_editor_catalog/Cargo.toml
   - zircon_plugins/first_party_editor_catalog/src/catalog.rs
-  - zircon_plugins/first_party_editor_catalog/src/tests.rs
   - zircon_app/src/entry/first_party_editor_plugins.rs
   - zircon_app/src/entry/entry_runner/editor.rs
   - zircon_app/src/entry/product_host_config

@@ -1,14 +1,10 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/host_contract/native_popup_dismiss.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_popup_dismiss/dispatch.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_popup_dismiss/target.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch.rs
-  - zircon_editor/src/ui/retained_host/host_contract/template_popup_layout.rs
+  - zircon_editor/src/ui/retained/contract/native_popup_dismiss/dispatch.rs
+  - zircon_editor/src/ui/retained/contract/native_popup_dismiss/target.rs
 implementation_files:
-  - zircon_editor/src/ui/retained_host/host_contract/native_popup_dismiss.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_popup_dismiss/dispatch.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_popup_dismiss/target.rs
+  - zircon_editor/src/ui/retained/contract/native_popup_dismiss/dispatch.rs
+  - zircon_editor/src/ui/retained/contract/native_popup_dismiss/target.rs
 plan_sources:
   - docs/plans/zircon_editor/editor_ui/08-workbench-shell-on-runtime-ui.md
   - user: 2026-06-20 editor UI architecture implementation, feature first and tests deferred

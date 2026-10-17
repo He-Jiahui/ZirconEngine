@@ -1,10 +1,5 @@
 ---
 related_code:
-  - dev/bevy/crates/bevy_internal/src/default_plugins.rs
-  - dev/bevy/crates/bevy_render/src/lib.rs
-  - dev/bevy/crates/bevy_image/src/image.rs
-  - dev/bevy/crates/bevy_mesh/src/lib.rs
-  - dev/bevy/crates/bevy_core_pipeline/src/lib.rs
   - zircon_runtime/src/core/framework/render/profile.rs
   - zircon_runtime/src/core/framework/render/camera.rs
   - zircon_runtime/src/core/framework/render/image/mod.rs
@@ -13,7 +8,6 @@ related_code:
   - zircon_runtime/src/core/framework/render/light/mod.rs
   - zircon_runtime/src/core/framework/render/material/mod.rs
   - zircon_runtime/src/core/framework/render/sprite/mod.rs
-  - zircon_runtime/src/core/framework/render/post_process/mod.rs
   - zircon_runtime/src/core/framework/render/anti_alias/mod.rs
   - zircon_runtime/src/core/framework/render/advanced/mod.rs
   - zircon_runtime/src/core/framework/render/advanced/feature.rs
@@ -24,12 +18,9 @@ related_code:
   - zircon_runtime/src/core/framework/render/backend_types.rs
   - zircon_runtime/src/core/framework/render/backend_types/capability.rs
   - zircon_runtime/src/core/framework/render/backend_types/quality.rs
-  - zircon_runtime/src/core/framework/tests.rs
   - zircon_app/src/entry/product_host_config/
   - zircon_app/src/entry/engine_entry.rs
   - zircon_app/src/entry/tests/profile_bootstrap.rs
-  - dev/bevy/Cargo.toml
-  - dev/bevy/docs/cargo_features.md
 implementation_files:
   - zircon_runtime/src/core/framework/render/profile.rs
   - zircon_runtime/src/core/framework/render/camera.rs
@@ -39,7 +30,6 @@ implementation_files:
   - zircon_runtime/src/core/framework/render/light/mod.rs
   - zircon_runtime/src/core/framework/render/material/mod.rs
   - zircon_runtime/src/core/framework/render/sprite/mod.rs
-  - zircon_runtime/src/core/framework/render/post_process/mod.rs
   - zircon_runtime/src/core/framework/render/anti_alias/mod.rs
   - zircon_runtime/src/core/framework/render/advanced/mod.rs
   - zircon_runtime/src/core/framework/render/advanced/feature.rs
@@ -49,7 +39,6 @@ implementation_files:
   - zircon_runtime/src/core/framework/render/mod.rs
   - zircon_runtime/src/core/framework/render/backend_types/capability.rs
   - zircon_runtime/src/core/framework/render/backend_types/quality.rs
-  - zircon_runtime/src/core/framework/tests.rs
   - zircon_app/src/entry/product_host_config/
   - zircon_app/src/entry/engine_entry.rs
   - zircon_app/src/entry/tests/profile_bootstrap.rs
@@ -64,7 +53,6 @@ plan_sources:
   - dev/bevy/Cargo.toml
   - dev/bevy/docs/cargo_features.md
 tests:
-  - zircon_runtime/src/core/framework/tests.rs
   - zircon_app/src/entry/tests/profile_bootstrap.rs
   - cargo test -p zircon_runtime render_profile --locked
   - cargo check -p zircon_app --locked --all-targets

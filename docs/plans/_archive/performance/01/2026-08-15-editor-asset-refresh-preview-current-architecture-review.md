@@ -1,9 +1,7 @@
 ---
 related_code:
   - zircon_editor/src/ui/host/asset_editor_sessions/refresh
-  - zircon_editor/src/ui/host/editor_asset_manager
   - zircon_editor/src/ui/asset_editor/preview
-  - zircon_editor/src/ui/retained_host/app/assets
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/performance/02-unreal-aligned-engine-system-hard-cutover.md

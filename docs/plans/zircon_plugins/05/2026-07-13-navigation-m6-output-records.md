@@ -27,7 +27,6 @@ plan_sources:
   - docs/plans/engine-code-review-findings-2026-06.md
   - user: 2026-07-12 严格按 zircon_plugins 架构计划完成插件功能
 tests:
-  - zircon_plugins/navigation/editor/src/tests.rs
 doc_type: milestone-detail
 ---
 

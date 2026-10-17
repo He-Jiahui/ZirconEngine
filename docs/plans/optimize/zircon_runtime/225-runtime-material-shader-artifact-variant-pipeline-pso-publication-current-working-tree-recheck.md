@@ -15,7 +15,6 @@ related_code:
   - zircon_runtime/src/graphics/pipeline
   - zircon_runtime/src/graphics/shader
   - zircon_runtime/src/graphics/scene/resources
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh
   - zircon_runtime/src/dynamic_api/shader_prewarm.rs
   - zircon_runtime/src/bin/zircon_shader_prewarm
 plan_sources:

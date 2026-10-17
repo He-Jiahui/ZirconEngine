@@ -3,16 +3,11 @@ related_code:
   - zircon_plugins/hybrid_gi/plugin.toml
   - zircon_plugins/hybrid_gi/runtime/src/lib.rs
   - zircon_plugins/hybrid_gi/runtime/src/provider.rs
-  - zircon_plugins/hybrid_gi/runtime/src/render_pass_executors
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi
   - zircon_plugins/hybrid_gi/editor
   - zircon_plugins/hybrid_gi/dist
   - zircon_runtime/src/core/framework/render/scene_extract.rs
-  - zircon_runtime/src/graphics/visibility/context/from_extract_with_history/construct.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/hybrid_gi_stats.rs
-  - zircon_editor/src/ui/retained_host/viewport/editor_viewport_render_defaults.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload_builders/runtime_diagnostics.rs
+  - zircon_runtime/src/graphics/runtime/extract/update_stats/hybrid_gi_stats.rs
+  - zircon_editor/src/ui/retained/viewport/editor_viewport_render_defaults.rs
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md
   - docs/plans/optimize/zircon_runtime/09a-rhi-render-graph-gpu-lifetime-review.md

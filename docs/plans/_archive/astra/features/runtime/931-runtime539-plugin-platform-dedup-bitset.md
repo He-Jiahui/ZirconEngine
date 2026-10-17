@@ -4,9 +4,9 @@ status: implemented_pending_validation
 plan_sources:
   - docs/plans/optimize/zircon_runtime/02/2026-08-30-runtime539-plugin-platform-packaging-dedup-bitsets.md
 implementation_files:
-  - zircon_runtime/src/plugin/runtime_plugin/package_validation/layout/supported_platforms/state.rs
+  - zircon_runtime/src/plugin/runtime/validation/layout/supported_platforms/state.rs
 tests:
-  - zircon_runtime/src/plugin/runtime_plugin/package_validation/layout/supported_platforms/state.rs
+  - zircon_runtime/src/plugin/runtime/validation/layout/supported_platforms/state.rs
 ---
 
 # Runtime931 Runtime539 plugin-platform packaging dedup bitset

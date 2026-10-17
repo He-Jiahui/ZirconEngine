@@ -12,8 +12,8 @@ related_code:
   - zircon_runtime/src/ui/dispatch/input_manager/routing.rs
   - zircon_runtime/src/text/font/shared.rs
   - zircon_runtime/assets/fonts/editor-ui.font.toml
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/shaders/screen_space_ui.wgsl
+  - zircon_runtime/src/graphics/scene/renderer/ui/render.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/shaders/screen_space_ui.wgsl
   - zircon_runtime/src/ui/icon_atlas/svg.rs
   - zircon_runtime/src/ui/icon_atlas/atlas.rs
   - zircon_runtime_interface/src/ui/surface/render/brush.rs
@@ -32,9 +32,6 @@ related_code:
   - zircon_runtime/tests/zui_penpot_bridge_contract.rs
   - zircon_runtime/tests/zui_native_visual_acceptance/preview.rs
   - zircon_runtime/tests/fixtures/ui/penpot_roundtrip.zui
-  - dev/penpot/plugins/apps/zircon-zui-plugin/src/bridge/zui-prefab-system.ts
-  - dev/penpot/plugins/apps/zircon-zui-plugin/src/bridge/penpot-projection.ts
-  - dev/penpot/plugins/apps/zircon-zui-plugin/tools/zui-layout-semantic-parity.ts
 reference_sources:
   - dev/UnrealEngine/Engine/Source/Runtime/Slate/Private/Framework/Application/SlateApplication.cpp
   - dev/UnrealEngine/Engine/Source/Runtime/SlateCore/Public/FastUpdate/SlateInvalidationRoot.h

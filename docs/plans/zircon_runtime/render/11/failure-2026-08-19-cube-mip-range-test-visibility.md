@@ -9,10 +9,9 @@ origin_child_dir: docs/plans/zircon_runtime/text/03
 fixing_child_dir: docs/plans/zircon_runtime/render/11
 plan_link_mode: child_record_only
 related_code:
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/realtime_ibl_graph_plan/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/realtime_ibl_time_slice.rs
+  - zircon_runtime/src/graphics/scene/environment/realtime_ibl_time_slice.rs
   - zircon_runtime/tests/runtime_environment_wgpu_cubemap_sampling_contract.rs
-  - zircon_runtime/src/core/framework/render/environment/skybox/procedural_sky/resolved_sun.rs
+  - zircon_runtime/src/core/framework/render/skybox/procedural_sky/resolved_sun.rs
 tests:
   - .\\.codex\\skills\\zircon-dev\\scripts\\validate-matrix.ps1 -Package zircon_runtime -LibTests -TestFilter text_oversized_run_keeps_one_logical_shaped_line -VerboseOutput
 ---

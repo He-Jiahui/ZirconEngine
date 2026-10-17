@@ -1,32 +1,30 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/app.rs
-  - zircon_editor/src/ui/retained_host/app/hierarchy_pointer.rs
-  - zircon_editor/src/ui/retained_host/app/hierarchy_pointer/events.rs
-  - zircon_editor/src/ui/retained_host/app/hierarchy_pointer/events/click.rs
-  - zircon_editor/src/ui/retained_host/app/hierarchy_pointer/events/drag.rs
-  - zircon_editor/src/ui/retained_host/app/hierarchy_pointer/events/motion.rs
-  - zircon_editor/src/ui/retained_host/app/hierarchy_pointer/events/scroll.rs
-  - zircon_editor/src/ui/retained_host/app/hierarchy_pointer/target.rs
-  - zircon_editor/src/ui/retained_host/app/hierarchy_pointer/drag_source.rs
-  - zircon_editor/src/ui/retained_host/app/hierarchy_pointer/identity.rs
-  - zircon_editor/src/ui/retained_host/app/hierarchy_pointer/input_owner.rs
-  - zircon_editor/src/ui/retained_host/host_contract/window/hierarchy_pointer_route.rs
-  - zircon_editor/src/ui/retained_host/app/pointer_layout.rs
-  - zircon_editor/src/ui/retained_host/hierarchy_pointer/mod.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/mod.rs
+  - zircon_editor/src/ui/retained/app/hierarchy_pointer.rs
+  - zircon_editor/src/ui/retained/app/hierarchy_pointer/events.rs
+  - zircon_editor/src/ui/retained/app/hierarchy_pointer/events/click.rs
+  - zircon_editor/src/ui/retained/app/hierarchy_pointer/events/drag.rs
+  - zircon_editor/src/ui/retained/app/hierarchy_pointer/events/motion.rs
+  - zircon_editor/src/ui/retained/app/hierarchy_pointer/events/scroll.rs
+  - zircon_editor/src/ui/retained/app/hierarchy_pointer/target.rs
+  - zircon_editor/src/ui/retained/app/hierarchy_pointer/drag_source.rs
+  - zircon_editor/src/ui/retained/app/hierarchy_pointer/identity.rs
+  - zircon_editor/src/ui/retained/app/hierarchy_pointer/input_owner.rs
+  - zircon_editor/src/ui/retained/contract/window/hierarchy_pointer_route.rs
+  - zircon_editor/src/ui/retained/app/pointer_layout.rs
+  - zircon_editor/src/ui/retained/hierarchy_pointer/mod.rs
 implementation_files:
-  - zircon_editor/src/ui/retained_host/app/hierarchy_pointer.rs
-  - zircon_editor/src/ui/retained_host/app/hierarchy_pointer/events.rs
-  - zircon_editor/src/ui/retained_host/app/hierarchy_pointer/events/click.rs
-  - zircon_editor/src/ui/retained_host/app/hierarchy_pointer/events/drag.rs
-  - zircon_editor/src/ui/retained_host/app/hierarchy_pointer/events/motion.rs
-  - zircon_editor/src/ui/retained_host/app/hierarchy_pointer/events/scroll.rs
-  - zircon_editor/src/ui/retained_host/app/hierarchy_pointer/target.rs
-  - zircon_editor/src/ui/retained_host/app/hierarchy_pointer/drag_source.rs
-  - zircon_editor/src/ui/retained_host/app/hierarchy_pointer/identity.rs
-  - zircon_editor/src/ui/retained_host/app/hierarchy_pointer/input_owner.rs
-  - zircon_editor/src/ui/retained_host/host_contract/window/hierarchy_pointer_route.rs
+  - zircon_editor/src/ui/retained/app/hierarchy_pointer.rs
+  - zircon_editor/src/ui/retained/app/hierarchy_pointer/events.rs
+  - zircon_editor/src/ui/retained/app/hierarchy_pointer/events/click.rs
+  - zircon_editor/src/ui/retained/app/hierarchy_pointer/events/drag.rs
+  - zircon_editor/src/ui/retained/app/hierarchy_pointer/events/motion.rs
+  - zircon_editor/src/ui/retained/app/hierarchy_pointer/events/scroll.rs
+  - zircon_editor/src/ui/retained/app/hierarchy_pointer/target.rs
+  - zircon_editor/src/ui/retained/app/hierarchy_pointer/drag_source.rs
+  - zircon_editor/src/ui/retained/app/hierarchy_pointer/identity.rs
+  - zircon_editor/src/ui/retained/app/hierarchy_pointer/input_owner.rs
+  - zircon_editor/src/ui/retained/contract/window/hierarchy_pointer_route.rs
 plan_sources:
   - docs/plans/zircon_editor/editor_ui/08-workbench-shell-on-runtime-ui.md
   - user: 2026-06-18 editor UI architecture implementation, feature first and tests deferred

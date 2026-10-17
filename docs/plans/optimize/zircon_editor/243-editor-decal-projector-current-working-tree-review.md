@@ -16,8 +16,6 @@ related_code:
   - zircon_editor/src/core/editing
   - zircon_editor/src/scene
   - zircon_editor/src/scene/viewport
-  - zircon_editor/assets/ui/editor/components/workbench/modules/core/rendering/workbench_material_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/world/workbench_extension_foliage_editor_workspace.zui
 reference_engines:
   - dev/UnrealEngine/Engine/Source/Runtime/Engine/Classes/Components/DecalComponent.h
   - dev/UnrealEngine/Engine/Source/Editor/ComponentVisualizers/Private/SplineComponentVisualizer.cpp

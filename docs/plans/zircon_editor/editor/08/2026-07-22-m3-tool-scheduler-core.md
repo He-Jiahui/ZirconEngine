@@ -7,7 +7,6 @@ related_code:
   - zircon_editor/src/core/tools/mod.rs
   - zircon_editor/src/core/tools/scheduler.rs
 tests:
-  - zircon_editor/src/core/tools/tests.rs
   - tools/tests/test_editor08_tool_scheduler_contract.py
 ---
 

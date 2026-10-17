@@ -19,14 +19,13 @@ plan_sources:
   - docs/plans/optimize/zircon_runtime/652/2026-09-01-preallocated-disconnected-subscriber-ids.md
   - docs/plans/optimize/zircon_runtime/653/2026-09-01-single-machine-entry-lookup.md
 related_code:
-  - zircon_runtime/src/core/framework/render/post_process/pass_graph.rs
   - zircon_runtime/src/plugin/export_build_plan/export_profile_validation.rs
   - zircon_runtime/src/asset/project/meta.rs
-  - zircon_runtime/src/asset/project/manager/scan_and_import/dependency_resolution.rs
+  - zircon_runtime/src/asset/manager/scan_and_import/dependency_resolution.rs
   - zircon_runtime/src/core/framework/render/profile.rs
   - zircon_runtime/src/asset/project/manager/scan_and_import/sources.rs
   - zircon_runtime/src/core/framework/window/surface_lease/registry.rs
-  - zircon_runtime/src/asset/pipeline/manager/resource_sync/reconcile_project_resources.rs
+  - zircon_runtime/src/asset/manager/resource_sync/reconcile_project_resources.rs
   - zircon_runtime/src/asset/mutation/relocation_preflight.rs
   - zircon_runtime/src/asset/registry/rebuild.rs
   - zircon_runtime/src/core/runtime/tasks/bounded_keyed_io/lane/coalescing.rs
@@ -36,22 +35,6 @@ related_code:
   - zircon_runtime/src/core/runtime/events/publish.rs
   - zircon_runtime/src/core/runtime/state_machine/registry.rs
 tests:
-  - zircon_runtime/src/core/framework/render/post_process/pass_graph/optimization_batch_iu_runtime631_tests.rs
-  - zircon_runtime/src/plugin/export_build_plan/export_profile_validation/optimization_batch_iv_runtime633_tests.rs
-  - zircon_runtime/src/asset/project/meta/optimization_batch_iw_runtime633_tests.rs
-  - zircon_runtime/src/asset/project/manager/scan_and_import/dependency_resolution/optimization_batch_jd_runtime643_tests.rs
-  - zircon_runtime/src/core/framework/render/profile/capacity_tests.rs
-  - zircon_runtime/src/asset/project/manager/scan_and_import/sources/optimization_batch_je_runtime644_tests.rs
-  - zircon_runtime/src/core/framework/window/surface_lease/tests.rs
-  - zircon_runtime/src/asset/pipeline/manager/resource_sync/reconcile_project_resources/optimization_batch_jf_runtime645_tests.rs
-  - zircon_runtime/src/asset/mutation/relocation_preflight/optimization_batch_jg_runtime646_tests.rs
-  - zircon_runtime/src/asset/registry/rebuild/optimization_batch_jh_runtime647_tests.rs
-  - zircon_runtime/src/core/runtime/tasks/bounded_keyed_io/lane/coalescing/optimization_batch_ji_runtime648_tests.rs
-  - zircon_runtime/src/asset/registry/incremental/optimization_batch_jj_runtime649_tests.rs
-  - zircon_runtime/src/asset/project/manager/scan_and_import/full_generation/optimization_batch_jk_runtime650_tests.rs
-  - zircon_runtime/src/asset/project/manager/scan_and_import/projected_inventory/optimization_batch_jl_runtime651_tests.rs
-  - zircon_runtime/src/core/runtime/events/publish/optimization_batch_jm_runtime652_tests.rs
-  - zircon_runtime/src/core/runtime/state_machine/registry/optimization_batch_jn_runtime653_tests.rs
 ---
 
 # Runtime Recent Optimization Completion

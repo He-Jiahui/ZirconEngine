@@ -10,7 +10,6 @@ fixing_child_dir: docs/plans/zircon_runtime/runtime/04
 plan_link_mode: child_record_only
 related_code:
   - zircon_runtime/src/asset/migration/document.rs
-  - zircon_runtime/src/asset/migration/document/metrics_tests.rs
   - zircon_runtime/src/asset/migration/run.rs
   - zircon_runtime/src/asset/migration/report.rs
   - zircon_runtime/src/asset/tests/migration/project_commandlet/scale_acceptance.rs

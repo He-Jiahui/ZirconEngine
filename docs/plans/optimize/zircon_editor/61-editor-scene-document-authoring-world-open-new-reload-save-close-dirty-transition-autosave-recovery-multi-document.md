@@ -13,24 +13,20 @@ related_code:
   - zircon_editor/src/ui/host/project_access.rs
   - zircon_editor/src/ui/workbench
   - zircon_editor/src/ui/host
-  - zircon_editor/src/ui/retained_host/app/scene_picker_actions.rs
-  - zircon_editor/src/ui/retained_host/app/scene_picker_session.rs
-  - zircon_editor/src/ui/retained_host/app/assets/workspace.rs
-  - zircon_editor/src/ui/retained_host/app/autosave.rs
-  - zircon_editor/src/ui/retained_host/app/native_window_close.rs
-  - zircon_editor/src/ui/retained_host/app/startup.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch
+  - zircon_editor/src/ui/retained/app/scene_picker_actions.rs
+  - zircon_editor/src/ui/retained/app/scene_picker_session.rs
+  - zircon_editor/src/ui/retained/app/assets/workspace.rs
+  - zircon_editor/src/ui/retained/app/autosave.rs
+  - zircon_editor/src/ui/retained/app/native_window_close.rs
+  - zircon_editor/src/ui/retained/app/startup.rs
   - zircon_runtime/src/scene/world/project_io
   - zircon_runtime/src/scene/world/project_io.rs
 tests:
-  - zircon_editor/src/core/document/lifecycle/tests.rs
-  - zircon_editor/src/core/document/scene_route_tests.rs
   - zircon_editor/src/core/project/tests/scene_document.rs
   - zircon_editor/src/ui/host/editor_manager_project.rs
-  - zircon_editor/src/ui/retained_host/app/scene_picker_session_tests.rs
   - zircon_editor/src/tests/editor_event/runtime/integration/project.rs
   - zircon_editor/src/tests/host/retained_asset_refresh/scene_reload.rs
-  - zircon_editor/src/ui/retained_host/app/native_window_close.rs
+  - zircon_editor/src/ui/retained/app/native_window_close.rs
   - zircon_app/tests/editor_mvp_authoring.rs
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md

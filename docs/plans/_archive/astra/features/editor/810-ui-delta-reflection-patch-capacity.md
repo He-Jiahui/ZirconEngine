@@ -11,7 +11,6 @@ related_records:
 implementation_files:
   - zircon_editor/src/core/editor_message/editor_ui_delta.rs
 tests:
-  - tools/tests/test_editor_ui_delta_reflection_patch_capacity_performance_contract.py
 ---
 
 # Editor810 · UI delta reflection-patch projection capacity

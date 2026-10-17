@@ -1,13 +1,13 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/callback_dispatch/workbench/pointer.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/pointer_feedback.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/componentized_window.rs
+  - zircon_editor/src/ui/retained/dispatch/workbench/pointer.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/workbench/pointer_feedback.rs
+  - zircon_editor/src/ui/retained/dispatch/workbench/componentized_window.rs
   - zircon_runtime/src/ui/surface/surface.rs
   - zircon_runtime/src/ui/surface/focus.rs
 implementation_files:
-  - zircon_editor/src/ui/retained_host/callback_dispatch/workbench/pointer.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/pointer_feedback.rs
+  - zircon_editor/src/ui/retained/dispatch/workbench/pointer.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/workbench/pointer_feedback.rs
 plan_sources:
   - docs/plans/zircon_editor/editor_ui/08-workbench-shell-on-runtime-ui.md
 tests:

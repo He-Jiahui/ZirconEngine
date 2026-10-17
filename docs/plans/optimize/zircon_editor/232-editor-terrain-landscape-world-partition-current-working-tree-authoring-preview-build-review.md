@@ -11,21 +11,14 @@ related_runtime_owner:
 related_code:
   - zircon_plugins/terrain/editor/src/plugin.rs
   - zircon_plugins/terrain/editor/src/authoring.rs
-  - zircon_plugins/terrain/editor/src/tests.rs
   - zircon_plugins/terrain/runtime/src/plugin.rs
   - zircon_plugins/terrain/runtime/src/capability.rs
   - zircon_plugins/terrain/editor
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/world/workbench_extension_terrain_editor_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/index/workbench_extension_module_workspaces.zui
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation/specs/world_building/terrain_and_foliage.rs
-  - zircon_editor/src/ui/retained_host/workbench_preview_actions/extensions.rs
+  - zircon_editor/src/ui/dispatch/specs/world_building/terrain_and_foliage.rs
   - zircon_runtime/src/asset/assets/authoring.rs
   - zircon_runtime/src/asset/assets/scene/entity.rs
   - zircon_runtime/src/scene/world/project_io/scene_asset.rs
 tests:
-  - zircon_plugins/terrain/editor/src/tests.rs
-  - zircon_plugins/terrain/runtime/src/tests.rs
   - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_module_navigation/
   - zircon_editor/src/tests/workbench/reference_surface.rs
 plan_sources:

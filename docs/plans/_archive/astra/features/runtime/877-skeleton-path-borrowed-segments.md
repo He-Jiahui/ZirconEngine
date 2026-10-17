@@ -8,8 +8,6 @@ related_records:
 implementation_files:
   - zircon_runtime/src/animation/manager/pose.rs
 tests:
-  - zircon_runtime/src/animation/manager/pose/borrowed_path_tests.rs
-  - tools/tests/test_runtime877_skeleton_path_borrowed_segments_performance_contract.py
 ---
 
 # Runtime877 Skeleton Path Borrowed Segments

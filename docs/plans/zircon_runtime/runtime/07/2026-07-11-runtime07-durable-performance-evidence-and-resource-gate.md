@@ -4,19 +4,13 @@ related_code:
   - docs/crates/zircon_runtime/performance/hotspot_inventory.md
   - zircon_runtime/src/graphics/tests/render_profiling.rs
   - zircon_runtime/src/dynamic_api/session/tests/frame_diagnostics.rs
-  - zircon_runtime/src/tests/runtime_absorption/performance_hotspots.rs
-  - zircon_runtime/src/tests/runtime_absorption/performance_hotspots
 implementation_files:
   - docs/plans/zircon_runtime/runtime/07-runtime-performance-hotpath.md
   - docs/crates/zircon_runtime/performance/hotspot_inventory.md
-  - zircon_runtime/src/tests/runtime_absorption/performance_hotspots.rs
-  - zircon_runtime/src/tests/runtime_absorption/performance_hotspots
 plan_sources:
   - docs/plans/zircon_runtime/runtime/index.md
   - docs/plans/zircon_runtime/render/index.md
 tests:
-  - tests/acceptance/runtime-07-performance-hotpath-current-gates.md
-  - zircon_runtime/src/tests/runtime_absorption/performance_hotspots.rs
 doc_type: milestone-detail
 status: in_progress_durable_evidence_guard_28_passed_profiling_trace_accepted_fps_current_source_compile_blocked
 ---

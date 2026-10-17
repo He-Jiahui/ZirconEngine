@@ -5,7 +5,6 @@ runtime: Runtime62
 gate: RSH-G24
 related_code:
   - zircon_runtime/src/scene/world/derived_state.rs
-  - zircon_runtime/src/scene/world/derived_state_scale_profile.rs
 tests:
   - runtime62_derived_propagation_scale_profile
 ---

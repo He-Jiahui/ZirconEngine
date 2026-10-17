@@ -18,10 +18,6 @@ related_code:
   - zircon_runtime/src/ui/accessibility
   - zircon_editor/src/ui/component_registry
   - zircon_editor/src/ui/asset_editor/palette
-  - zircon_editor/src/ui/template_runtime/retained_adapter.rs
-  - zircon_editor/src/ui/template_runtime/component_adapter
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mui_x_primitives
   - zircon_editor/assets/ui
   - examples/woc/assets/ui
 tests:

@@ -8,9 +8,7 @@ related_records:
   - docs/plans/astra/features/runtime/964-runtime09c-material-index-completion-list.md
 implementation_files:
   - zircon_runtime/src/core/framework/render/shader/material_property_layout.rs
-  - zircon_runtime/src/core/framework/render/shader/material_property_layout/option_lookup_tests.rs
 tests:
-  - zircon_runtime/src/core/framework/render/shader/material_property_layout/option_lookup_tests.rs
 ---
 
 # Runtime963 · material option value hash index

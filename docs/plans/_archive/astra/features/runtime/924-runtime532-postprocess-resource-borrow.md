@@ -4,9 +4,9 @@ status: implemented_pending_validation
 plan_sources:
   - docs/plans/optimize/zircon_runtime/02/2026-08-30-runtime532-postprocess-resource-borrow.md
 implementation_files:
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/builtin_postprocess_executors/graph_resources.rs
+  - zircon_runtime/src/graphics/builtin_postprocess_executors/graph_resources.rs
 tests:
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/builtin_postprocess_executors/graph_resources.rs
+  - zircon_runtime/src/graphics/builtin_postprocess_executors/graph_resources.rs
 ---
 
 # Runtime924 Runtime532 post-process resource borrowing

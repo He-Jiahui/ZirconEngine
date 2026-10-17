@@ -7,7 +7,38 @@ pub(crate) mod worldless_private {
     pub trait Sealed {}
 }
 
-pub trait SystemParam {
+/// A system parameter whose declared access is trusted by the scheduler.
+///
+/// # Safety
+///
+/// `init_state` must register every World access that `get_param` and its returned
+/// item can perform, including optional accesses and deferred-command lanes.
+/// Incompatible accesses must be rejected during initialization. Composition must
+/// preserve those checks and the access union, including serialized `ParamSet`
+/// members. Unknown access must register conservative World access.
+///
+/// Items must respect Rust aliasing rules, stay within the declared access, and
+/// retain no borrow beyond `'world`. State must remain bound to its initialized
+/// World until retirement; retirement must release World-owned registrations.
+/// Safe execution and parallel scheduling rely on these implementation promises.
+///
+/// An implementation must explicitly accept this contract:
+///
+/// ```compile_fail,E0200
+/// use zircon_runtime::scene::World;
+/// use zircon_runtime::scene::ecs::{
+///     ChangeTickWindow, SystemParam, SystemParamAccess, SystemParamError,
+/// };
+/// struct CustomParam;
+/// impl SystemParam for CustomParam {
+///     type State = ();
+///     type Item<'world> = ();
+///     fn init_state(_: &mut World, _: &mut SystemParamAccess)
+///         -> Result<(), SystemParamError> { Ok(()) }
+///     unsafe fn get_param<'world>(_: *mut World, _: &'world mut (), _: ChangeTickWindow) {}
+/// }
+/// ```
+pub unsafe trait SystemParam {
     type State;
     type Item<'world>;
 
@@ -16,6 +47,13 @@ pub trait SystemParam {
         access: &mut SystemParamAccess,
     ) -> Result<Self::State, SystemParamError>;
 
+    /// Fetches an item using the access admitted during initialization.
+    ///
+    /// # Safety
+    /// The caller must supply the original live World and initialized, active
+    /// state. The registered access must be granted for `'world`, with no
+    /// conflicting access until the item is dropped. State cannot be reused or
+    /// retired during that interval.
     unsafe fn get_param<'world>(
         world: *mut World,
         state: &'world mut Self::State,
@@ -50,7 +88,8 @@ macro_rules! tuple_system_param_index {
     };
 }
 
-impl SystemParam for () {
+// SAFETY: Unit never accesses World or retains a borrow.
+unsafe impl SystemParam for () {
     type State = ();
     type Item<'world> = ();
 
@@ -118,7 +157,8 @@ macro_rules! init_tuple_system_param {
 
 macro_rules! tuple_system_param {
     ($(($name:ident, $state:ident)),*) => {
-        impl<$($name),*> SystemParam for ($($name,)*)
+        // SAFETY: Each member registers into the same conflict-checked access set; items borrow disjoint states.
+        unsafe impl<$($name),*> SystemParam for ($($name,)*)
         where
             $($name: SystemParam,)*
         {

@@ -11,8 +11,8 @@ plan_link_mode: child_record_only
 related_code:
   - zircon_runtime_interface/src/serialization/write.rs
   - zircon_runtime_interface/src/serialization/text/canonical_writer.rs
-  - zircon_runtime/src/scene/dynamic_scene/session/construction/serialization.rs
-  - zircon_runtime/src/scene/dynamic_scene/session/io/load_save/save.rs
+  - zircon_runtime/src/scene/dynamic/session/construction/serialization.rs
+  - zircon_runtime/src/scene/dynamic/session/io/load_save/save.rs
 tests:
   - canonical text streaming writer byte-equivalence and bounded-buffer contracts
   - cargo test -p zircon_runtime_interface --locked --jobs 1 -- --test-threads=1

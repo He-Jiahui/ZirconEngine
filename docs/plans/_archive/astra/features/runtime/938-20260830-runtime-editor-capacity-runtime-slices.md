@@ -23,20 +23,17 @@ related_code:
   - zircon_runtime/src/graphics/tests/renderer_data_compile_report.rs
   - zircon_runtime/crates/zr_rhi/src/ui_surface/compact_styles.rs
   - zircon_runtime/src/text/font/database/system_fonts.rs
-  - zircon_runtime/src/core/framework/render/post_process/color_lut_readback.rs
   - zircon_runtime/src/ui/surface/surface/default_interactions/radio.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_resolution/ordered_ready_set.rs
+  - zircon_runtime/src/plugin/catalog/feature_resolution/ordered_ready_set.rs
   - zircon_runtime/src/plugin/export_build_plan/materialize/generated.rs
   - zircon_runtime/src/ui/component/catalog/registry.rs
   - zircon_runtime/src/ui/surface/surface/interaction_state.rs
   - zircon_runtime/src/ui/component/state_reducer/toast.rs
   - zircon_runtime/src/ui/accessibility/action/target.rs
   - zircon_runtime/src/builtin/runtime_modules/assembly/feature_reports.rs
-  - zircon_runtime/src/graphics/visibility/context/from_extract_with_history/collect_gpu_instancing_candidates.rs
   - zircon_runtime/src/core/framework/render/advanced/runtime_plan.rs
   - zircon_runtime/src/plugin/runtime_profile/descriptor.rs
   - zircon_runtime/src/builtin/runtime_modules/assembly/target_modules.rs
-  - zircon_runtime/src/core/framework/render/post_process/effect_stack_settings/report.rs
 ---
 
 # Runtime938 Runtime/Editor capacity batches 504–520 — Runtime slice

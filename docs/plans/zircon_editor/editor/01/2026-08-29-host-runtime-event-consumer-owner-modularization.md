@@ -6,7 +6,7 @@ managed_validation_status: blocked-before-editor-by-runtime-host
 source_baseline_sha256: C5F16868C79043B9D52862A81AB6949E0918944F4813D2F59B5C485FB6741E49
 related_code:
   - zircon_editor/src/ui/host/editor_host_event_controller.rs
-  - zircon_editor/src/ui/host/editor_host_event_controller/runtime_event_consumers.rs
+  - zircon_editor/src/ui/editor_host_event_controller/runtime_event_consumers.rs
   - zircon_runtime_host/src/foreign_output/item_count.rs
 ---
 

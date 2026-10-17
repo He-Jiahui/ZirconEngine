@@ -1,11 +1,5 @@
 ---
 related_code:
-  - dev/bevy/crates/bevy_solari/src/lib.rs
-  - dev/bevy/crates/bevy_solari/src/scene/mod.rs
-  - dev/bevy/crates/bevy_solari/src/scene/extract.rs
-  - dev/bevy/crates/bevy_solari/src/realtime/mod.rs
-  - dev/bevy/crates/bevy_solari/src/realtime/node.rs
-  - dev/bevy/crates/bevy_solari/src/pathtracer/mod.rs
   - zircon_runtime/src/core/framework/render/solari/mod.rs
   - zircon_runtime/src/core/framework/render/solari/capability.rs
   - zircon_runtime/src/core/framework/render/solari/settings.rs
@@ -14,11 +8,8 @@ related_code:
   - zircon_runtime/src/core/framework/render/profile.rs
   - zircon_runtime/src/graphics/solari_runtime_provider/mod.rs
   - zircon_runtime/src/graphics/runtime_provider/registration.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/capability_validation/mod.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/resolve_viewport_record_state.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/frame_submission_context.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog.rs
+  - zircon_runtime/src/graphics/runtime/framework/capability_validation/mod.rs
+  - zircon_runtime/src/graphics/runtime/framework/extract/update_stats/base_stats.rs
   - zircon_runtime/src/plugin/runtime_profile.rs
   - zircon_app/src/entry/first_party_runtime_plugins.rs
   - zircon_plugins/solari/runtime/src/lib.rs

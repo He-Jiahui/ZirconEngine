@@ -1,10 +1,8 @@
 ---
 related_code:
   - zircon_editor/src/lib.rs
-  - zircon_editor/src/ui/retained_host/app.rs
   - zircon_editor/src/ui/host/module.rs
   - zircon_editor/src/ui/host/resource_access.rs
-  - zircon_editor/src/ui/retained_host/ui.rs
   - zircon_editor/src/core/editing/command.rs
   - zircon_editor/src/core/editing/engine/history.rs
   - zircon_editor/src/core/editor_operation.rs
@@ -20,16 +18,12 @@ related_code:
   - zircon_runtime_interface/src/resource/mod.rs
   - zircon_runtime_interface/src/resource/resource_handle.rs
   - zircon_runtime_interface/src/resource/locator.rs
-  - zircon_editor/assets/ui/editor/host/workbench_shell.zui
-  - zircon_editor/src/ui/retained_host/host_contract/window.rs
   - zircon_runtime/src/scene/mod.rs
   - zircon_runtime/src/scene/world/mod.rs
   - zircon_runtime/src/tests/extensions/tech_stack_dependency_guard.rs
 implementation_files:
-  - zircon_editor/src/ui/retained_host/app.rs
   - zircon_editor/src/ui/host/module.rs
   - zircon_editor/src/ui/host/resource_access.rs
-  - zircon_editor/src/ui/retained_host/ui.rs
   - zircon_editor/src/core/editing/command.rs
   - zircon_editor/src/core/editing/engine/history.rs
   - zircon_editor/src/core/editor_operation.rs
@@ -42,8 +36,6 @@ implementation_files:
   - zircon_runtime_interface/src/resource/resource_handle.rs
   - zircon_runtime_interface/src/resource/locator.rs
   - zircon_editor/src/ui/workbench/view/mod.rs
-  - zircon_editor/assets/ui/editor/host/workbench_shell.zui
-  - zircon_editor/src/ui/retained_host/host_contract/window.rs
   - zircon_runtime/src/scene/world/mod.rs
   - zircon_runtime/src/tests/extensions/tech_stack_dependency_guard.rs
 plan_sources:

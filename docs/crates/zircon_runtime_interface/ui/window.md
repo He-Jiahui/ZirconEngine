@@ -17,14 +17,6 @@ related_code:
   - zircon_runtime_interface/src/tests/window_input_contracts.rs
   - zircon_runtime_interface/src/tests/window_runtime_event_adapter_contracts.rs
   - zircon_runtime_interface/src/tests/window_transient_contracts.rs
-  - dev/UnrealEngine/Engine/Source/Runtime/Slate/Private/Framework/Application/SlateApplication.cpp
-  - dev/UnrealEngine/Engine/Source/Runtime/ApplicationCore/Public/GenericPlatform/GenericApplicationMessageHandler.h
-  - dev/UnrealEngine/Engine/Source/Runtime/ApplicationCore/Public/GenericPlatform/ITextInputMethodSystem.h
-  - dev/bevy/crates/bevy_window/src/event.rs
-  - dev/bevy/crates/bevy_winit/src/state.rs
-  - dev/Fyrox/editor/src/lib.rs
-  - dev/Fyrox/fyrox-impl/src/utils/mod.rs
-  - dev/godot/servers/display/display_server.cpp
 implementation_files:
   - zircon_runtime_interface/src/ui/window/mod.rs
   - zircon_runtime_interface/src/ui/window/input.rs

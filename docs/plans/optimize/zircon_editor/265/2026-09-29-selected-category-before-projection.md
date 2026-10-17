@@ -1,9 +1,8 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/settings_window/mod.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/settings_window/tests/selected_category_refresh_profile.rs
+  - zircon_editor/src/ui/retained/ui/data/projection/settings_window/mod.rs
+  - zircon_editor/src/ui/retained/ui/data/tests/selected_category_refresh_profile.rs
   - zircon_editor/src/core/settings/catalog/settings_catalog.rs
-  - zircon_editor/src/core/settings/catalog/settings_catalog/optimization_batch_hy_editor608_tests.rs
 plan_source: docs/plans/optimize/zircon_editor/265-editor-settings-preferences-project-settings-scope-schema-overlay-persistence-migration-restart-plugin-window-current-working-tree-review.md
 related_candidate: docs/plans/optimize/zircon_editor/265/2026-09-29-prefix-category-selection.md
 status: applied_candidate_managed_validation_pending

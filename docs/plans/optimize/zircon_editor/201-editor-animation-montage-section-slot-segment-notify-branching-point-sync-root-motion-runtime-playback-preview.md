@@ -5,17 +5,8 @@ report_id: Editor201
 review_date: 2026-08-28
 baseline_head: 6350cb00b5a060f628c904f84703b3843ac404fa
 related_code:
-  - zircon_editor/assets/ui/editor/components/workbench/modules/core/gameplay/workbench_ability_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/animation/workbench_extension_montage_editor_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/index/workbench_extension_module_workspaces.zui
-  - zircon_editor/src/ui/template_runtime/builtin/workbench_extension_module_template_bindings/gameplay_animation.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation/specs.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation/specs/gameplay_animation.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/reference_menu_actions.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback.rs
-  - zircon_editor/src/ui/retained_host/workbench_preview_actions.rs
-  - zircon_editor/src/ui/retained_host/workbench_preview_actions/extensions.rs
+  - zircon_editor/src/ui/retained/dispatch/workbench/specs/gameplay_animation.rs
+  - zircon_editor/src/ui/retained/dispatch/workbench/reference_menu_actions.rs
   - zircon_runtime/src/core/framework/animation/asset/clip.rs
   - zircon_runtime/src/core/framework/animation/asset/sequence.rs
   - zircon_runtime/src/core/framework/animation/asset/state_machine.rs
@@ -27,13 +18,11 @@ related_code:
   - zircon_editor/src/core/editing/animation_document/compilation.rs
   - zircon_editor/src/core/jobs/job.rs
   - zircon_editor/src/core/jobs/system/submission.rs
-  - zircon_plugins/animation/runtime/src/evaluation/compiled_animation_clip/compile.rs
   - zircon_plugins/animation/runtime/src/evaluation/pipeline/events.rs
   - zircon_plugins/animation/runtime/src/evaluation/pipeline/requests.rs
   - zircon_plugins/animation/runtime/src/evaluation/pipeline/tick.rs
   - zircon_plugins/animation/runtime/src/state_machine/compiled/evaluate.rs
 tests:
-  - zircon_plugins/animation/runtime/tests/runtime_physics_animation_tick_contract/state_machine_interruption.rs
   - zircon_plugins/animation/runtime/src/state_machine/compiled/evaluate.rs
   - zircon_plugins/animation/runtime/src/evaluation/pipeline/tick.rs
 plan_sources:

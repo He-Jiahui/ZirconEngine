@@ -17,7 +17,7 @@ implementation_files:
 tests:
   - zircon_runtime/crates/zr_resource/src/manager/resource_manager.rs
   - zircon_runtime/crates/zr_resource/src/manager/tests/readiness_pair_profile.rs
-  - zircon_runtime/crates/zr_resource/src/manager/tests/readiness_pair_profile/batch_profile.rs
+  - zircon_runtime/crates/zr_resource/tests/readiness_pair_profile/batch_profile.rs
 ---
 
 # Runtime1067 / Runtime51 two-ID readiness refresh completion list

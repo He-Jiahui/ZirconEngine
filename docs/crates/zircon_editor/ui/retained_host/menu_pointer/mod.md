@@ -1,33 +1,26 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/menu_popup_contract.rs
-  - zircon_editor/src/ui/retained_host/menu_pointer/mod.rs
-  - zircon_editor/src/ui/retained_host/menu_pointer/constants.rs
-  - zircon_editor/src/ui/retained_host/menu_pointer/build_host_menu_pointer_layout.rs
-  - zircon_editor/src/ui/retained_host/menu_pointer/host_menu_pointer_layout.rs
-  - zircon_editor/src/ui/retained_host/menu_pointer/host_menu_pointer_bridge.rs
-  - zircon_editor/src/ui/retained_host/menu_pointer/host_menu_pointer_bridge_clamp_popup_scroll_offset.rs
-  - zircon_editor/src/ui/retained_host/menu_pointer/host_menu_pointer_bridge_handle_click.rs
-  - zircon_editor/src/ui/retained_host/menu_pointer/host_menu_pointer_bridge_handle_move.rs
-  - zircon_editor/src/ui/retained_host/menu_pointer/host_menu_pointer_bridge_handle_scroll.rs
-  - zircon_editor/src/ui/retained_host/menu_pointer/host_menu_pointer_bridge_rebuild_surface.rs
-  - zircon_editor/src/ui/retained_host/menu_pointer/host_menu_pointer_bridge_sync.rs
-  - zircon_editor/src/ui/retained_host/menu_pointer/host_menu_pointer_route.rs
-  - zircon_editor/src/ui/retained_host/menu_pointer/host_menu_pointer_state.rs
-  - zircon_editor/src/ui/retained_host/menu_pointer/host_menu_pointer_route_intent.rs
-  - zircon_editor/src/ui/retained_host/menu_pointer/menu_item_spec.rs
-  - zircon_editor/src/ui/retained_host/menu_pointer/menu_item_tree.rs
-  - zircon_editor/src/ui/retained_host/menu_pointer/menu_items_for_layout.rs
-  - zircon_editor/src/ui/retained_host/menu_pointer/node_ids.rs
-  - zircon_editor/src/ui/retained_host/menu_pointer/popup_layout.rs
+  - zircon_editor/src/ui/retained/menu_pointer/mod.rs
+  - zircon_editor/src/ui/retained/menu_pointer/constants.rs
+  - zircon_editor/src/ui/retained/menu_pointer/build_host_menu_pointer_layout.rs
+  - zircon_editor/src/ui/retained/menu_pointer/host_menu_pointer_layout.rs
+  - zircon_editor/src/ui/retained/menu_pointer/host_menu_pointer_bridge.rs
+  - zircon_editor/src/ui/menu_pointer/host_menu_pointer_bridge_handle_click.rs
+  - zircon_editor/src/ui/menu_pointer/host_menu_pointer_bridge_handle_move.rs
+  - zircon_editor/src/ui/menu_pointer/host_menu_pointer_bridge_handle_scroll.rs
+  - zircon_editor/src/ui/menu_pointer/host_menu_pointer_bridge_rebuild_surface.rs
+  - zircon_editor/src/ui/retained/menu_pointer/host_menu_pointer_bridge_sync.rs
+  - zircon_editor/src/ui/retained/menu_pointer/host_menu_pointer_route.rs
+  - zircon_editor/src/ui/retained/menu_pointer/host_menu_pointer_state.rs
+  - zircon_editor/src/ui/retained/menu_pointer/host_menu_pointer_route_intent.rs
+  - zircon_editor/src/ui/retained/menu_pointer/menu_item_spec.rs
+  - zircon_editor/src/ui/retained/menu_pointer/menu_item_tree.rs
+  - zircon_editor/src/ui/retained/menu_pointer/menu_items_for_layout.rs
+  - zircon_editor/src/ui/retained/menu_pointer/node_ids.rs
+  - zircon_editor/src/ui/retained/menu_pointer/popup_layout.rs
   - zircon_editor/src/core/commands/menu_model.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/host_data.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/scene_projection.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/host_components.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/host_interaction.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer.rs
+  - zircon_editor/src/ui/retained/contract/data/host_components.rs
+  - zircon_editor/src/ui/retained/contract/data/host_interaction.rs
   - zircon_editor/src/ui/workbench/window_registry/menu_overflow_mode.rs
   - zircon_editor/src/ui/workbench/window_registry/window_instance.rs
   - zircon_editor/src/ui/workbench/layout/activity_window_layout.rs
@@ -35,34 +28,25 @@ related_code:
   - zircon_editor/src/ui/workbench/menu_bar/metrics.rs
   - zircon_editor/src/ui/workbench/snapshot/data/editor_chrome_snapshot.rs
   - zircon_editor/src/ui/workbench/snapshot/data/editor_chrome_snapshot_build.rs
-  - zircon_editor/src/ui/retained_host/app/pointer_layout.rs
-  - zircon_editor/assets/ui/editor/workbench_menu_chrome.zui
+  - zircon_editor/src/ui/retained/app/pointer_layout.rs
   - zircon_editor/assets/ui/editor/workbench_menu_popup.zui
 implementation_files:
-  - zircon_editor/src/ui/retained_host/menu_popup_contract.rs
-  - zircon_editor/src/ui/retained_host/menu_pointer/constants.rs
-  - zircon_editor/src/ui/retained_host/menu_pointer/build_host_menu_pointer_layout.rs
-  - zircon_editor/src/ui/retained_host/menu_pointer/host_menu_pointer_layout.rs
-  - zircon_editor/src/ui/retained_host/menu_pointer/host_menu_pointer_bridge_clamp_popup_scroll_offset.rs
-  - zircon_editor/src/ui/retained_host/menu_pointer/host_menu_pointer_bridge_handle_scroll.rs
-  - zircon_editor/src/ui/retained_host/menu_pointer/host_menu_pointer_bridge_rebuild_surface.rs
-  - zircon_editor/src/ui/retained_host/menu_pointer/host_menu_pointer_route.rs
-  - zircon_editor/src/ui/retained_host/menu_pointer/host_menu_pointer_state.rs
-  - zircon_editor/src/ui/retained_host/menu_pointer/host_menu_pointer_route_intent.rs
-  - zircon_editor/src/ui/retained_host/menu_pointer/menu_item_tree.rs
-  - zircon_editor/src/ui/retained_host/menu_pointer/popup_layout.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/host_data.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/scene_projection.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/host_components.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/host_interaction.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer.rs
+  - zircon_editor/src/ui/retained/menu_pointer/constants.rs
+  - zircon_editor/src/ui/retained/menu_pointer/build_host_menu_pointer_layout.rs
+  - zircon_editor/src/ui/retained/menu_pointer/host_menu_pointer_layout.rs
+  - zircon_editor/src/ui/menu_pointer/host_menu_pointer_bridge_handle_scroll.rs
+  - zircon_editor/src/ui/menu_pointer/host_menu_pointer_bridge_rebuild_surface.rs
+  - zircon_editor/src/ui/retained/menu_pointer/host_menu_pointer_route.rs
+  - zircon_editor/src/ui/retained/menu_pointer/host_menu_pointer_state.rs
+  - zircon_editor/src/ui/retained/menu_pointer/host_menu_pointer_route_intent.rs
+  - zircon_editor/src/ui/retained/menu_pointer/menu_item_tree.rs
+  - zircon_editor/src/ui/retained/menu_pointer/popup_layout.rs
+  - zircon_editor/src/ui/retained/contract/data/host_components.rs
+  - zircon_editor/src/ui/retained/contract/data/host_interaction.rs
   - zircon_editor/src/ui/workbench/layout/activity_window_layout.rs
   - zircon_editor/src/ui/workbench/menu_bar/metrics.rs
   - zircon_editor/src/ui/workbench/snapshot/data/editor_chrome_snapshot.rs
   - zircon_editor/src/ui/workbench/snapshot/data/editor_chrome_snapshot_build.rs
-  - zircon_editor/assets/ui/editor/workbench_menu_chrome.zui
   - zircon_editor/assets/ui/editor/workbench_menu_popup.zui
 plan_sources:
   - docs/plans/zircon_editor/editor_layout/15-component-standardization-from-primitives.md
@@ -77,10 +61,6 @@ tests:
   - cargo check -p zircon_editor --lib --no-default-features --locked --jobs 1 (2026-07-10: passed)
   - focused responsive-menu Cargo groups (2026-07-10: 15/15 passed)
   - capture_m3_gui_acceptance_visual_artifacts (2026-07-10: 1/1 passed)
-  - zircon_editor/src/tests/host/retained_menu_pointer/layout.rs
-  - zircon_editor/src/tests/host/retained_menu_pointer/dispatcher.rs
-  - zircon_editor/src/tests/host/retained_menu_pointer/pointer_bridge.rs
-  - zircon_editor/src/tests/host/retained_menu_pointer/support.rs
   - cargo test -p zircon_editor --lib shared_menu_pointer_bridge_skips_rebuild_for_unchanged_layout_and_state -- --nocapture (2026-05-11: passed)
   - cargo test -p zircon_editor --lib shared_menu_pointer_bridge_clamps_popup_hit_frames_to_tiny_shell --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never -- --nocapture
   - cargo test -p zircon_editor --lib shared_menu_pointer_bridge_routes_multi_column_popup_items_after_right_edge_clamp --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never -- --nocapture
@@ -98,7 +78,6 @@ tests:
   - cargo test -p zircon_editor --lib menu_chrome_nodes_project_extension_slots_beyond_authored_stencil --locked --jobs 1 --target-dir D:\cargo-targets\zircon-m4-menu-overflow-dynamic --message-format short --color never -- --nocapture
   - rustfmt --edition 2021 --check zircon_editor/src/ui/workbench/menu_bar/mod.rs zircon_editor/src/ui/workbench/menu_bar/metrics.rs zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection/menu_chrome.rs zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection/tests.rs zircon_editor/src/ui/retained_host/menu_pointer/build_host_menu_pointer_layout.rs zircon_editor/src/tests/host/retained_menu_pointer/layout.rs zircon_editor/src/tests/host/retained_menu_pointer/support.rs
   - static scan: menu touched paths contain no `chars().count()`, `TITLE_WIDTH_PER_CHAR`, `WIDTH_PER_CHAR`, or `* 7.0` text-width heuristics
-  - docs/tests/runtime/text/runtime_text_editor_menu_bar_runtime_measure_preview_20260704.png
   - cargo test -p zircon_editor retained_menu_pointer -- --nocapture (2026-05-11: passed, 22 passed, 4 ignored)
 doc_type: module-detail
 ---

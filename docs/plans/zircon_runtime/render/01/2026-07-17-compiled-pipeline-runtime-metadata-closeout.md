@@ -8,10 +8,6 @@ slice: compiled-pipeline-frame-derived-metadata-hard-cut
 source_manifest_fingerprint: 786c6aed151cbea8063c76ded9ede7eb0b7c297467a828fe12179d46c24c5d34
 related_code:
   - zircon_runtime/src/graphics/pipeline/declarations/compiled_render_pipeline.rs
-  - zircon_runtime/src/graphics/pipeline/declarations/compiled_render_pipeline/runtime_metadata.rs
-  - zircon_runtime/src/graphics/pipeline/declarations/compiled_render_pipeline/runtime_feature_flags.rs
-  - zircon_runtime/src/graphics/pipeline/declarations/compiled_render_pipeline/resource_write_index.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry.rs
 tests:
   - render01_compiled_pipeline_runtime_metadata_builds_resource_write_index_once_for_scaled_graphs
   - render01_compiled_pipeline_runtime_metadata_freezes_descriptor_capability_flags

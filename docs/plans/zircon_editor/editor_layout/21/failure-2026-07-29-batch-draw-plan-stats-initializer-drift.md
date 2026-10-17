@@ -11,7 +11,7 @@ fixing_child_dir: docs/plans/zircon_editor/editor_layout/21
 plan_link_mode: child_record_only
 related_code:
   - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/batching.rs
-  - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/batching/tests/scale_and_cache.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/batching/tests/scale_and_cache.rs
 tests:
   - cargo +1.94.1 test -p zr_rhi_wgpu --lib --locked -- ui_surface --test-threads=1
   - cargo +1.94.1 test -p zircon_editor --lib --locked -- core::gateway:: --test-threads=1

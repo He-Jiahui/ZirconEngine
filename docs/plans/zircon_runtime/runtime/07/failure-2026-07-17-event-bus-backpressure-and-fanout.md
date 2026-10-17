@@ -19,10 +19,8 @@ related_code:
   - zircon_runtime/src/core/runtime/events/topic.rs
   - zircon_runtime/src/core/runtime/tests/events/benchmark_evidence.rs
   - zircon_runtime/src/core/runtime/handle/events.rs
-  - zircon_runtime/src/core/runtime/events/publish/single_disconnect_inline_tests.rs
   - zircon_runtime/src/core/runtime/tests/events/structure/event_bus/publish.rs
   - zircon_runtime/src/core/runtime/tests/events/structure/event_bus/subscribe.rs
-  - zircon_runtime/src/foundation/tests.rs
 tests:
   - cargo +1.94.1 test -p zircon_runtime --lib event_bus_runtime07_ --locked --jobs 1 -- --ignored --nocapture --test-threads=1 (run twice; pending)
   - cargo +1.94.1 test -p zircon_runtime --lib core::runtime::tests::events:: --locked --jobs 1 -- --nocapture --test-threads=1 (pending)

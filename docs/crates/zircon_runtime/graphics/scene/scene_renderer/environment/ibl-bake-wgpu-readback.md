@@ -1,17 +1,12 @@
 ---
 related_code:
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_wgpu_readback.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_runtime_writeback.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_graph_plan.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources/mod.rs
-  - zircon_runtime/src/graphics/backend/render_backend/read_ibl_bake_artifact_sections.rs
-  - zircon_runtime/src/graphics/backend/render_backend/read_texture_rgba16float_region.rs
+  - zircon_runtime/src/graphics/scene/renderer/environment/ibl_bake_wgpu_readback.rs
+  - zircon_runtime/src/graphics/scene/environment/ibl_bake_runtime_writeback.rs
+  - zircon_runtime/src/graphics/scene/renderer/environment/ibl_bake_graph_plan.rs
   - zircon_runtime/src/asset/artifact/ibl_bake_artifact_runtime_writeback.rs
 implementation_files:
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_wgpu_readback.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_runtime_writeback.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/mod.rs
+  - zircon_runtime/src/graphics/scene/renderer/environment/ibl_bake_wgpu_readback.rs
+  - zircon_runtime/src/graphics/scene/environment/ibl_bake_runtime_writeback.rs
 plan_sources:
   - user: 2026-07-06 continue real HDRI cubemap/PMREM correction and Shader 06 execution
   - docs/plans/zircon_runtime/shader/06-environment-ibl-and-pbr-correctness.md

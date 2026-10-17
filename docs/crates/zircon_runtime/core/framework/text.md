@@ -37,7 +37,6 @@ plan_sources:
   - docs/plans/zircon_runtime/frameworks/01-runtime-crate-decomposition.md
   - docs/plans/zircon_runtime/render/14-2d-stack.md
 tests:
-  - zircon_runtime/src/core/framework/text/tests.rs
   - tools/tests/test_frameworks_05_text_boundary.py
 doc_type: module-detail
 ---

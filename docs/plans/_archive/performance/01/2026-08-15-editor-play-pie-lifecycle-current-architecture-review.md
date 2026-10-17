@@ -4,7 +4,7 @@ related_code:
   - zircon_editor/src/ui/host/editor_event_execution
   - zircon_editor/src/ui/host/editor_host_event_controller.rs
   - zircon_editor/src/ui/host/editor_host_startup.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle
+  - zircon_editor/src/ui/retained/app/host_lifecycle
   - zircon_runtime/src/scene/world/world.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md

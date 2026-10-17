@@ -28,10 +28,7 @@ plan_sources:
 tests:
   - zircon_runtime/src/scene/tests/mod.rs
   - zircon_runtime/src/dynamic_api/tests/session_profiles.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/open_project.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy.rs
   - tools/tests/test_frameworks_03_contract_feature_boundary.py
-  - tests/acceptance/frameworks-03-physics-contract-feature-boundary.md
 doc_type: module-detail
 ---
 

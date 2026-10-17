@@ -4,7 +4,7 @@ related_code:
   - zircon_editor/src/tests/workbench/layout/page_layout_templates.rs
   - zircon_editor/src/ui/host/module.rs
   - zircon_editor/assets/ui/editor/layout/page_templates.toml
-  - zircon_editor/assets/ui/editor/components/workbench/modules
+  - zircon_editor/assets/ui/editor/workbench/modules
 design_references:
   - docs/ui/editor-workbench-designs/scene-drawer-layout-spec.png
   - docs/ui/editor-workbench-designs/material-drawer-layout-spec.png

@@ -6,7 +6,6 @@ related_code:
   - zircon_runtime/src/operation/handler.rs
   - zircon_runtime/src/operation/service.rs
   - zircon_runtime/src/operation/task.rs
-  - zircon_runtime/src/operation/tests.rs
   - zircon_runtime_interface/src/runtime_api/session/operation.rs
   - zircon_runtime/src/dynamic_api/session/operation.rs
   - zircon_runtime/src/navigation/operation/
@@ -27,7 +26,6 @@ plan_sources:
   - docs/plans/engine-code-structure-convention.md
   - docs/plans/engine-code-review-findings-2026-06.md
 tests:
-  - zircon_runtime/src/operation/tests.rs
   - zircon_runtime/src/dynamic_api/tests/operation.rs
   - zircon_runtime_interface/src/tests/runtime_operation.rs
   - zircon_plugins/navigation/runtime/src/tests/operation.rs

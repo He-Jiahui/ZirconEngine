@@ -9,19 +9,18 @@ origin_child_dir: docs/plans/performance/01
 fixing_child_dir: docs/plans/zircon_editor/editor_ui/08
 plan_link_mode: child_record_only
 related_code:
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/recompute.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/recompute/viewport_surfaces.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/recompute_viewport.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/native_window_presenters.rs
-  - zircon_editor/src/ui/retained_host/app/viewport_toolbar_projection/surface_frames.rs
-  - zircon_editor/src/ui/retained_host/app/viewport_toolbar_projection/surface_frames/docked.rs
-  - zircon_editor/src/ui/retained_host/app/viewport_toolbar_projection/surface_frames/floating.rs
-  - zircon_editor/src/ui/retained_host/app/viewport_toolbar_projection/surface_frames/pane_frame.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/viewport_toolbar/bridge.rs
-  - zircon_editor/src/ui/retained_host/host_contract/window/presentation/snapshot.rs
-  - zircon_editor/src/ui/retained_host/viewport_toolbar_pointer/handle_click.rs
-  - zircon_editor/src/ui/retained_host/viewport_toolbar_pointer/sync_surface_frame.rs
-  - zircon_editor/src/ui/retained_host/viewport_toolbar_pointer/rebuild_surface.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle/recompute.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle/recompute/viewport_surfaces.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle/recompute_viewport.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle/native_window_presenters.rs
+  - zircon_editor/src/ui/retained/app/surface_frames/docked.rs
+  - zircon_editor/src/ui/retained/app/surface_frames/floating.rs
+  - zircon_editor/src/ui/retained/app/surface_frames/pane_frame.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/viewport_toolbar/bridge.rs
+  - zircon_editor/src/ui/retained/contract/window/presentation/snapshot.rs
+  - zircon_editor/src/ui/retained/viewport_toolbar_pointer/handle_click.rs
+  - zircon_editor/src/ui/retained/viewport_toolbar_pointer/sync_surface_frame.rs
+  - zircon_editor/src/ui/retained/viewport_toolbar_pointer/rebuild_surface.rs
 tests:
   - unchanged slow-recompute toolbar build-count test
   - multi-pane toolbar cache hit/miss test

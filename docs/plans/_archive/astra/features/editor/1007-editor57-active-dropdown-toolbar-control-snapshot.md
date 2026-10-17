@@ -1,13 +1,10 @@
 ---
 related_code:
   - zircon_editor/src/ui/layouts/views/asset_browser/toolbar_layout.rs
-  - zircon_editor/src/ui/layouts/views/asset_browser/toolbar_layout/control_snapshot.rs
-  - zircon_editor/src/ui/layouts/views/asset_browser/toolbar_layout/control_snapshot_tests.rs
+  - zircon_editor/src/ui/layouts/views/toolbar_layout/control_snapshot.rs
 plan_sources:
   - docs/plans/optimize/zircon_editor/57/2026-09-26-active-dropdown-toolbar-control-snapshot.md
 tests:
-  - zircon_editor/src/ui/layouts/views/asset_browser/toolbar_layout/control_snapshot_tests.rs
-  - zircon_editor/src/ui/layouts/views/asset_browser/toolbar_responsiveness_tests.rs
 doc_type: milestone-detail
 status: implemented_pending_validation
 ---

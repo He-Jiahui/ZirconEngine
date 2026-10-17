@@ -9,9 +9,9 @@ fixing_plan: docs/plans/zircon_runtime/render/18-advanced-lighting-features.md
 origin_child_dir: docs/plans/zircon_editor/editor_layout/15
 fixing_child_dir: docs/plans/zircon_runtime/render/18
 related_code:
-  - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/froxel/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/froxel/light_scatter.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/froxel/executors/light_scatter.rs
+  - zircon_runtime/src/graphics/scene/renderer/advanced_lighting/froxel/mod.rs
+  - zircon_runtime/src/graphics/scene/renderer/froxel/light_scatter.rs
+  - zircon_runtime/src/graphics/scene/renderer/froxel/executors/light_scatter.rs
 tests:
   - .codex/skills/zircon-dev/scripts/validate-matrix.ps1 -Package zircon_editor -SkipBuild -VerboseOutput
   - cargo test -p zircon_runtime --lib --locked volumetric_ambient_radiance -- --exact

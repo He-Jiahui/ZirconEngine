@@ -8,11 +8,8 @@ related_code:
   - zircon_runtime/src/ui/v2/mod.rs
   - zircon_runtime/src/asset/mod.rs
   - zircon_runtime_interface/src/ui/mod.rs
-  - zircon_editor/src/ui/retained_host/app.rs
   - zircon_editor/src/ui/workbench/mod.rs
   - zircon_editor/src/ui/host/module.rs
-  - dev/UnrealEngine/Engine/Source/Runtime/SlateCore/Public/Widgets/SWidget.h
-  - dev/UnrealEngine/Engine/Source/Runtime/Slate/Public/Framework/Application/SlateApplication.h
 design_references:
   - docs/ui/ai-workbench-style/ai-workbench-web-framework.png
   - docs/ui/ai-workbench-style/component-prototype/index.html

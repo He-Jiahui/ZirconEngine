@@ -12,7 +12,6 @@ reference_sources:
   - dev/bevy/crates/bevy_dev_tools/src/diagnostics_overlay.rs
 tests:
   - zircon_runtime/src/ui/tests/pipeline_report.rs
-  - zircon_editor/src/ui/workbench/debug_reflector/schedule_sections_tests.rs
   - current-source Windows UI pipeline tests pending
 doc_type: implementation-evidence
 status: static_complete_dynamic_pending

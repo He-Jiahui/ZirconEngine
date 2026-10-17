@@ -12,20 +12,12 @@ related_code:
   - zircon_editor/src/scene/modes/scene_mode_ctx.rs
   - zircon_editor/src/scene/modes/scene_mode_stack.rs
   - zircon_editor/src/scene/modes/scene_mode_input_effect.rs
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_accessors.rs
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_selection.rs
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_handle_input.rs
   - zircon_editor/src/scene/viewport/controller/viewport_drag_session.rs
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_highlight_set.rs
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_frame_selection.rs
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_build_edit_mode_projection.rs
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_reset_from_scene.rs
   - zircon_editor/src/scene/viewport/controller/scene_viewport_state.rs
   - zircon_editor/src/scene/viewport/controller/scene_viewport_state_construction.rs
   - zircon_editor/src/scene/viewport/interaction/viewport_feedback.rs
   - zircon_editor/src/scene/viewport/interaction/viewport_input.rs
   - zircon_editor/src/scene/viewport/edit_mode_projection/build.rs
-  - zircon_editor/src/scene/viewport/edit_mode_projection/scene_edit_mode_projection.rs
   - zircon_editor/src/core/editing/selection.rs
   - zircon_editor/src/core/editing/context.rs
   - zircon_editor/src/core/editing/command.rs
@@ -34,7 +26,7 @@ related_code:
   - zircon_editor/src/core/play/mod.rs
   - zircon_editor/src/core/editor_message/ids/selection_domain.rs
   - zircon_editor/src/core/editor_message/message/focus.rs
-  - zircon_editor/src/core/editor_message/message/scene_inspection/selection_delta.rs
+  - zircon_editor/src/core/message/scene_inspection/selection_delta.rs
   - zircon_editor/src/core/editor_message/message/scene_inspection/message.rs
   - zircon_editor/src/core/editor_message/retention.rs
   - zircon_editor/src/core/editor_message/inbox.rs
@@ -57,23 +49,19 @@ related_code:
   - zircon_editor/src/ui/workbench/snapshot/data/editor_state_snapshot_build.rs
   - zircon_editor/src/ui/workbench/snapshot/data/scene_entry/entries.rs
   - zircon_editor/src/ui/workbench/snapshot/data/scene_entry/projection_cache.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/hierarchy/selection.rs
-  - zircon_editor/src/ui/retained_host/app/hierarchy_pointer/events/click.rs
-  - zircon_editor/src/ui/retained_host/app/hierarchy_pointer/drag_source.rs
+  - zircon_editor/src/ui/retained/dispatch/hierarchy/selection.rs
+  - zircon_editor/src/ui/retained/app/hierarchy_pointer/events/click.rs
+  - zircon_editor/src/ui/retained/app/hierarchy_pointer/drag_source.rs
   - zircon_runtime_interface/src/ui/binding/model/binding_value.rs
 tests:
-  - zircon_editor/src/scene/selection/tests.rs
-  - zircon_editor/src/scene/modes/tests.rs
   - zircon_editor/src/scene/modes/tests/isolation.rs
   - zircon_editor/src/tests/editing/state/selection.rs
   - zircon_editor/src/tests/editing/state/viewport.rs
   - zircon_editor/src/tests/editing/state/play_mode.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/hierarchy.rs
-  - zircon_editor/src/ui/retained_host/app/tests/retained_host_automation.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_projection/scene_fragment.rs
+  - zircon_editor/src/ui/retained/app/tests/retained_host_automation.rs
   - zircon_editor/src/tests/editor_message/bus/backpressure/behavior.rs
   - zircon_editor/src/tests/editor_message/bus/backpressure/performance.rs
-  - zircon_editor/src/tests/editing/node_ops.rs
+  - zircon_editor/src/tests/editing/node_ops/mod.rs
   - zircon_editor/src/tests/editing/viewport.rs
   - zircon_editor/src/tests/ui/binding/asset_selection.rs
   - zircon_editor/src/tests/editor_event/runtime/when_evaluation.rs

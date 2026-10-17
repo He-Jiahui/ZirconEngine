@@ -9,10 +9,8 @@ related_records:
   - docs/plans/astra/features/editor/664-20260911-editor-ui-optimization-batch-completion.md
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
-  - zircon_editor/src/ui/retained_host/app/scene_picker_session.rs
+  - zircon_editor/src/ui/retained/app/scene_picker_session.rs
 tests:
-  - zircon_editor/src/ui/retained_host/app/scene_picker_session/single_pass_tests.rs
-  - tools/tests/test_editor_scene_picker_single_pass_window_performance_contract.py
 ---
 
 # Editor787 · Scene Picker 单次扫描窗口

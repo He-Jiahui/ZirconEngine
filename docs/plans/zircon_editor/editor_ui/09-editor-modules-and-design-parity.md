@@ -14,8 +14,7 @@ related_code:
   - zircon_editor/src/ui/asset_editor/command.rs
   - zircon_editor/src/ui/asset_editor/session/command_entry.rs
   - zircon_editor/src/ui/asset_editor/replay_workspace.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/mod.rs
-  - zircon_editor/assets/ui/editor/components/workbench/modules/core
+  - zircon_editor/assets/ui/editor/workbench/modules/core
   - zircon_runtime_interface/src/ui/event_ui/reflection.rs
   - zircon_runtime/src/ui/surface/property_mutation.rs
   - zircon_runtime/src/ui/surface/reflection_snapshot.rs

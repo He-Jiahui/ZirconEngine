@@ -1,6 +1,6 @@
 ---
 related_code:
-  - zircon_runtime/src/graphics/scene/scene_renderer/primitives/scene_uniform/from_frame.rs
+  - zircon_runtime/src/graphics/scene/renderer/scene_uniform/from_frame.rs
   - zircon_runtime/src/graphics/types/viewport_render_frame.rs
   - zircon_runtime/src/graphics/types/viewport_render_frame_from_extract.rs
   - zircon_runtime/src/graphics/types/viewport_render_frame_from_snapshot.rs
@@ -9,18 +9,16 @@ related_code:
   - zircon_runtime/tests/runtime_shader_pbr_hdri_export.rs
   - zircon_runtime/tests/runtime_shader_pbr_hdri_export/frame_assertions.rs
 implementation_files:
-  - zircon_runtime/src/graphics/scene/scene_renderer/primitives/scene_uniform/from_frame.rs
+  - zircon_runtime/src/graphics/scene/renderer/scene_uniform/from_frame.rs
   - zircon_runtime/src/graphics/types/viewport_render_region.rs
 plan_sources:
   - user: 2026-07-07 mirror HDRI grazing asymmetry and right-side over-grazing correction
   - docs/plans/zircon_runtime/shader/06-environment-ibl-and-pbr-correctness.md
   - docs/plans/zircon_runtime/render/11-environment-lighting.md
 tests:
-  - zircon_runtime/src/graphics/scene/scene_renderer/primitives/scene_uniform/from_frame.rs
+  - zircon_runtime/src/graphics/scene/renderer/scene_uniform/from_frame.rs
   - zircon_runtime/tests/runtime_shader_pbr_hdri_export.rs
   - zircon_runtime/tests/runtime_shader_pbr_hdri_export/frame_assertions.rs
-  - docs/tests/runtime/shader/runtime_shader_pbr_real_hdri_lakes_mirror_sphere_perspective_reflection_20260707.png
-  - docs/tests/runtime/shader/runtime_shader_pbr_real_hdri_lakes_mirror_sphere_orthographic_reflection_20260707.png
 doc_type: module-detail
 ---
 

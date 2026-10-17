@@ -1,22 +1,13 @@
 ---
 related_code:
-  - zircon_runtime/src/plugin/native_plugin_loader/plugin_load_error.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_abi.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/load_discovered.rs
 implementation_files:
-  - zircon_runtime/src/plugin/native_plugin_loader/plugin_load_error.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/mod.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_abi.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/load_discovered.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/abi_declarations.rs
   - zircon_runtime/src/plugin/native.rs
   - zircon_plugins/plugin_sdk/src/native.rs
   - zircon_plugins/plugin_sdk/src/dist.rs
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/native_plugin_loader/abi_surfaces/plugin_descriptor/descriptor_abi.rs
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/native_plugin_loader/abi_surfaces/plugin_descriptor/entry_abi.rs
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/native_plugin_loader/abi_surfaces/plugin_descriptor/string_helpers.rs
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/native_plugin_loader/abi_surfaces/behavior_bridge.rs
-  - zircon_runtime/src/tests/plugin_extensions/native_plugin_loader/real_fixture.rs
+  - zircon_runtime/src/tests/errors/loader/plugin_descriptor/descriptor_abi.rs
+  - zircon_runtime/src/tests/review/errors/loader/plugin_descriptor/entry_abi.rs
+  - zircon_runtime/src/tests/errors/loader/plugin_descriptor/string_helpers.rs
+  - zircon_runtime/src/tests/review/errors/loader/abi_surfaces/behavior_bridge.rs
   - zircon_plugins/native_dynamic_fixture/native/Cargo.toml
   - zircon_plugins/native_dynamic_fixture/native/src/lib.rs
   - docs/architecture/native-plugin-boundary.md

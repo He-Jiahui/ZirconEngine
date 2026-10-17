@@ -7,13 +7,9 @@ related_code:
   - zircon_editor/src/core/settings/defaults.rs
   - zircon_editor/src/core/settings/io.rs
   - zircon_editor/src/core/settings/tests/mod.rs
-  - zircon_editor/src/ui/retained_host/app.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_theme.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_theme/typography.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text/font.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text_tests.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_buttons/content/metrics.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_buttons_tests/paint.rs
+  - zircon_editor/src/ui/retained/contract/paint_theme/typography.rs
+  - zircon_editor/src/ui/retained/contract/paint_text/font.rs
+  - zircon_editor/src/ui/retained/contract/paint/buttons/content/metrics.rs
   - zircon_editor/Cargo.toml
 implementation_files:
   - zircon_runtime_interface/src/ui/design_tokens.rs
@@ -22,10 +18,9 @@ implementation_files:
   - zircon_editor/src/core/settings/defaults.rs
   - zircon_editor/src/core/settings/io.rs
   - zircon_editor/src/core/settings/tests/mod.rs
-  - zircon_editor/src/ui/retained_host/app.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_theme/typography.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text/font.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_buttons/content/metrics.rs
+  - zircon_editor/src/ui/retained/contract/paint_theme/typography.rs
+  - zircon_editor/src/ui/retained/contract/paint_text/font.rs
+  - zircon_editor/src/ui/retained/contract/paint/buttons/content/metrics.rs
 plan_sources:
   - docs/plans/zircon_editor/editor_layout/15-component-standardization-from-primitives.md
   - docs/plans/zircon_editor/editor_layout/17-text-rendering-and-typography.md

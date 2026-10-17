@@ -12,8 +12,6 @@ related_code:
   - zircon_runtime/src/graphics/shader/builtin_global_shader_contracts.rs
   - zircon_runtime/src/graphics/shader/fullscreen_pass_parameters.rs
   - zircon_runtime/src/graphics/feature/render_feature_pass_descriptor/construct.rs
-  - zircon_runtime/tests/fixtures/shader_invocation/compute_binding_probe
-  - zircon_runtime/tests/fixtures/shader_invocation/fullscreen_binding_probe
 reference_code:
   - dev/UnrealEngine/Engine/Source/Runtime/RenderCore/Public/ShaderParameterMetadata.h
   - dev/UnrealEngine/Engine/Source/Runtime/RenderCore/Public/Shader.h

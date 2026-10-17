@@ -29,7 +29,7 @@ related_code:
 tests:
   - zircon_runtime/src/asset/tests/project/example_vampire.rs
   - zircon_runtime/src/asset/tests/project/example_vampire/manifest_scene_imports.rs
-  - zircon_runtime/src/asset/tests/project/example_vampire/third_person_render_extract.rs
+  - zircon_runtime/src/asset/tests/example_vampire/third_person_render_extract.rs
   - zircon_runtime/src/dynamic_api/session/tests/vampire_gameplay.rs
   - zircon_runtime/src/dynamic_api/session/tests/vampire_hud.rs
   - zircon_runtime/src/dynamic_api/session/tests/vampire_menu.rs

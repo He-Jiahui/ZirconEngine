@@ -16,14 +16,10 @@ related_code:
   - zircon_editor/src/core/editor_extension
   - zircon_editor/src/core/plugin
   - zircon_editor/src/scene/modes
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_overlay_providers.rs
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_scene_modes.rs
   - zircon_editor/src/ui/host/editor_extension_registration.rs
   - zircon_editor/src/ui/host/editor_event_runtime_access/extension_access.rs
   - zircon_editor/src/ui/host/editor_event_runtime_reflection.rs
   - zircon_editor/src/ui/host/editor_ui_host.rs
-  - zircon_editor/src/ui/retained_host/app.rs
-  - zircon_editor/src/ui/retained_host/run_config.rs
   - zircon_editor/src/ui/workbench/shell_state.rs
   - zircon_editor/src/ui/settings
   - zircon_app/src/entry/entry_runner/editor.rs
@@ -31,15 +27,12 @@ related_code:
   - zircon_app/src/entry/first_party_editor_plugins.rs
   - zircon_runtime_interface/src/editor_contribution.rs
 tests:
-  - zircon_editor/src/core/extension/store/tests.rs
   - zircon_editor/src/core/extension/toolkit/tests
   - zircon_editor/src/core/plugin/manager/tests
-  - zircon_editor/src/scene/modes/tests.rs
   - zircon_editor/src/scene/modes/tests
   - zircon_editor/src/tests/editor_plugin_sdk.rs
   - zircon_editor/src/tests/editor_event/runtime/extensions_registration
   - zircon_editor/src/tests/host/manager/document_toolkit_lifecycle.rs
-  - zircon_editor/src/ui/settings/tests.rs
 plan_sources:
   - docs/crates/zircon_editor/core/plugin.md
   - docs/plans/performance/01/2026-07-30-editor-core-editor-extension-current-review.md

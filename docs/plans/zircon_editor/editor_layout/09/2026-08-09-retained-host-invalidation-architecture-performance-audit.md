@@ -8,12 +8,11 @@ related_plans:
   - docs/plans/zircon_editor/editor_layout/21-gpu-submission-and-draw-pipeline.md
   - docs/plans/zircon_runtime/runtime/09/2026-08-09-ui-architecture-performance-reassessment.md
 related_code:
-  - zircon_editor/src/ui/retained_host/app/invalidation/root.rs
-  - zircon_editor/src/ui/retained_host/app/invalidation/root/reasons.rs
-  - zircon_editor/src/ui/retained_host/app/invalidation/root/requests.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/recompute.rs
-  - zircon_editor/src/ui/retained_host/ui/apply_presentation.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/projection_cache.rs
+  - zircon_editor/src/ui/retained/app/invalidation/root.rs
+  - zircon_editor/src/ui/retained/app/invalidation/root/reasons.rs
+  - zircon_editor/src/ui/retained/app/invalidation/root/requests.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle/recompute.rs
+  - zircon_editor/src/ui/retained/ui/apply_presentation.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/batching.rs
 ---
 

@@ -2,10 +2,7 @@
 related_code:
   - zircon_runtime/crates/zr_rhi/src
   - zircon_runtime/crates/zr_rhi_wgpu/src
-  - zircon_runtime/src/graphics/backend/render_backend
-  - zircon_runtime/src/graphics/runtime/render_framework
   - zircon_runtime/src/graphics/scene/resources/resource_streamer
-  - zircon_runtime/src/graphics/scene/scene_renderer/core
   - zircon_runtime/src/dynamic_api/session
   - zircon_app/src/entry/entry_runner/editor.rs
 plan_sources:

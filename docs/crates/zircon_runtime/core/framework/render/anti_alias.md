@@ -1,11 +1,5 @@
 ---
 related_code:
-  - dev/bevy/crates/bevy_anti_alias/src/lib.rs
-  - dev/bevy/crates/bevy_anti_alias/src/fxaa/mod.rs
-  - dev/bevy/crates/bevy_anti_alias/src/smaa/mod.rs
-  - dev/bevy/crates/bevy_anti_alias/src/taa/mod.rs
-  - dev/bevy/crates/bevy_anti_alias/src/contrast_adaptive_sharpening/mod.rs
-  - dev/bevy/examples/3d/anti_aliasing.rs
   - zircon_runtime/src/core/framework/render/anti_alias/mod.rs
   - zircon_runtime/src/core/framework/render/anti_alias/mode.rs
   - zircon_runtime/src/core/framework/render/anti_alias/settings.rs
@@ -15,34 +9,20 @@ related_code:
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/anti_alias.rs
   - zircon_runtime/src/core/framework/render/frame_extract.rs
   - zircon_runtime/src/core/framework/render/profile.rs
-  - zircon_runtime/src/core/framework/render/post_process/effect.rs
-  - zircon_runtime/src/core/framework/render/post_process/stack.rs
   - zircon_runtime/src/graphics/feature/render_feature_capability_requirement.rs
-  - zircon_runtime/src/graphics/feature/builtin_render_feature/builtin_render_feature.rs
-  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/anti_alias.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/default_forward_plus.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/default_deferred.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/resolve_viewport_record_state.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/viewport_record_state.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/frame_submission_context.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/frame_submission_context/tests.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/submit_runtime_frame.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/anti_alias/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/anti_alias/fxaa.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/runtime_features/runtime_features_from_pipeline.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/params/post_process_params.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/execute/build_post_process_params/build.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/post_process_pipeline.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/temporal/taa/taa_resolve_params.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/temporal/taa/temporal_history_store.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/post_process.wgsl
+  - zircon_runtime/src/graphics/builtin_render_feature/builtin_render_feature.rs
+  - zircon_runtime/src/graphics/feature/builtin/feature_descriptors/anti_alias.rs
+  - zircon_runtime/src/graphics/runtime/extract/submit/submit_runtime_frame.rs
+  - zircon_runtime/src/graphics/runtime/framework/extract/update_stats/base_stats.rs
+  - zircon_runtime/src/graphics/scene/renderer/anti_alias/fxaa.rs
+  - zircon_runtime/src/graphics/scene/renderer/post/params/post_process_params.rs
+  - zircon_runtime/src/graphics/scene/post/build_post_process_params/build.rs
+  - zircon_runtime/src/graphics/post/create_pipeline_bundle/post_process_pipeline.rs
+  - zircon_runtime/src/graphics/scene/renderer/temporal/taa/taa_resolve_params.rs
+  - zircon_runtime/src/graphics/scene/temporal/taa/temporal_history_store.rs
   - zircon_runtime/src/graphics/tests/render_product_anti_alias.rs
   - zircon_runtime/src/graphics/tests/render_product_anti_alias/particle.rs
   - zircon_runtime/src/graphics/tests/render_product_anti_alias/reactive_mask.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_product_anti_alias_focused_tests.rs
 implementation_files:
   - zircon_runtime/src/core/framework/render/anti_alias/mod.rs
   - zircon_runtime/src/core/framework/render/anti_alias/mode.rs
@@ -53,30 +33,17 @@ implementation_files:
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/anti_alias.rs
   - zircon_runtime/src/core/framework/render/frame_extract.rs
   - zircon_runtime/src/core/framework/render/profile.rs
-  - zircon_runtime/src/core/framework/render/post_process/effect.rs
-  - zircon_runtime/src/core/framework/render/post_process/stack.rs
   - zircon_runtime/src/graphics/feature/render_feature_capability_requirement.rs
-  - zircon_runtime/src/graphics/feature/builtin_render_feature/builtin_render_feature.rs
-  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/anti_alias.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/default_forward_plus.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/default_deferred.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/resolve_viewport_record_state.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/viewport_record_state.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/frame_submission_context.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/frame_submission_context/tests.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/submit_runtime_frame.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/anti_alias/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/anti_alias/fxaa.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/runtime_features/runtime_features_from_pipeline.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/params/post_process_params.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/execute/build_post_process_params/build.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/post_process_pipeline.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/temporal/taa/taa_resolve_params.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/temporal/taa/temporal_history_store.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/post_process.wgsl
+  - zircon_runtime/src/graphics/builtin_render_feature/builtin_render_feature.rs
+  - zircon_runtime/src/graphics/feature/builtin/feature_descriptors/anti_alias.rs
+  - zircon_runtime/src/graphics/runtime/extract/submit/submit_runtime_frame.rs
+  - zircon_runtime/src/graphics/runtime/framework/extract/update_stats/base_stats.rs
+  - zircon_runtime/src/graphics/scene/renderer/anti_alias/fxaa.rs
+  - zircon_runtime/src/graphics/scene/renderer/post/params/post_process_params.rs
+  - zircon_runtime/src/graphics/scene/post/build_post_process_params/build.rs
+  - zircon_runtime/src/graphics/post/create_pipeline_bundle/post_process_pipeline.rs
+  - zircon_runtime/src/graphics/scene/renderer/temporal/taa/taa_resolve_params.rs
+  - zircon_runtime/src/graphics/scene/temporal/taa/temporal_history_store.rs
 plan_sources:
   - user: 2026-05-18 continue Render M8A anti-alias product surface
   - user: 2026-05-20 continue Bevy-level render anti-alias evidence mapping
@@ -88,18 +55,16 @@ tests:
   - zircon_runtime/src/graphics/tests/render_product_anti_alias/particle.rs::render_product_particle_previous_state_suppresses_velocity_gap_stats
   - zircon_runtime/src/graphics/tests/render_product_anti_alias/reactive_mask.rs::render_product_taa_authored_reactive_mask_records_material_writer_path
   - zircon_runtime/src/graphics/tests/render_product_anti_alias/reactive_mask.rs::render_product_taa_transparent_reactive_mask_records_alpha_writer_path
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_product_anti_alias_focused_tests.rs::runtime_15_render_product_anti_alias_focused_tests_are_child_owners
   - zircon_runtime/src/core/framework/render/profile.rs
   - zircon_runtime/src/core/framework/render/anti_alias/settings.rs::tests::taa_quality_survives_exact_and_fallback_resolution
   - zircon_runtime/src/core/framework/render/anti_alias/settings.rs::tests::taa_resolution_reports_camera_msaa_sample_count_normalization
   - zircon_runtime/src/core/framework/render/anti_alias/settings.rs::tests::unsupported_terminal_aa_reports_slot_normalization
-  - zircon_runtime/src/core/framework/render/frame_extract/tests.rs::render_view_select_camera_descriptor_preserves_explicit_anti_alias
   - zircon_runtime/src/core/framework/render/backend_types.rs::tests::render_quality_profile_preserves_taa_quality_preset
-  - zircon_runtime/src/graphics/scene/scene_renderer/temporal/taa/taa_resolve_params.rs::tests::taa_resolve_params_map_quality_presets_to_blend_and_rejection
-  - zircon_runtime/src/graphics/scene/scene_renderer/temporal/taa/taa_resolve_params.rs::tests::taa_resolve_params_disable_history_weight_when_history_is_invalid
-  - zircon_runtime/src/graphics/scene/scene_renderer/temporal/taa/temporal_history_store.rs::tests::temporal_history_state_starts_invalid_and_flips_read_write_slots
-  - zircon_runtime/src/graphics/scene/scene_renderer/temporal/taa/temporal_history_store.rs::tests::temporal_history_state_invalidation_keeps_slots_but_drops_validity
-  - zircon_runtime/src/graphics/runtime/render_framework/capability_summary/capability_summary.rs::tests::capability_summary_reports_taa_when_offscreen_postprocess_is_available
+  - zircon_runtime/src/graphics/scene/renderer/temporal/taa/taa_resolve_params.rs::tests::taa_resolve_params_map_quality_presets_to_blend_and_rejection
+  - zircon_runtime/src/graphics/scene/renderer/temporal/taa/taa_resolve_params.rs::tests::taa_resolve_params_disable_history_weight_when_history_is_invalid
+  - zircon_runtime/src/graphics/scene/temporal/taa/temporal_history_store.rs::tests::temporal_history_state_starts_invalid_and_flips_read_write_slots
+  - zircon_runtime/src/graphics/scene/temporal/taa/temporal_history_store.rs::tests::temporal_history_state_invalidation_keeps_slots_but_drops_validity
+  - zircon_runtime/src/graphics/runtime/capability_summary/capability_summary.rs::tests::capability_summary_reports_taa_when_offscreen_postprocess_is_available
   - zircon_runtime/src/graphics/tests/render_product_anti_alias.rs::render_product_taa_uses_temporal_resolve_seed_frame_when_requested
   - cargo check -p zircon_runtime --lib --locked --jobs 1 --color never
   - cargo test -p zircon_runtime --locked render_product_anti_alias --jobs 1 --message-format short --color never

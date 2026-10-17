@@ -2,7 +2,6 @@
 related_code:
   - zircon_runtime/src/dynamic_api/session/project.rs
   - zircon_runtime/src/asset/pipeline/manager/asset_manager/handle.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/handle.rs
   - zircon_runtime/src/core/manager/resolver.rs
   - zircon_runtime/src/core/manager/service.rs
   - docs/crates/zircon_runtime/dynamic_api/session.md

@@ -19,10 +19,6 @@ related_code:
   - zircon_hub/tsconfig.json
   - zircon_hub/web/src/types/hub.ts
   - zircon_hub/web/src/data/hubData.ts
-  - tools/editor-workbench-preview/package.json
-  - tools/editor-workbench-preview/design.js
-  - tools/editor-workbench-preview/design.css
-  - tools/editor-workbench-preview/verify-designs.mjs
   - tools/analysis/profiling/ui/ui-profile-capture.ps1
   - tools/mvp/Invoke-MvpAcceptance.ps1
   - tools/mvp/Stage-MvpProducts.ps1
@@ -34,17 +30,10 @@ related_code:
   - zircon_plugins/navigation/native/native/detour_query.cpp
   - zircon_plugins/navigation/native/native/detour_tile_cache.cpp
   - zircon_plugins/navigation/native/native/recast_bake.cpp
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/post_process.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/post_process_screen_space_reflection.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/shaders/fallback_mesh.wgsl
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/shaders/trace_schedule_handoff.wgsl
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/shaders/update_completion.wgsl
+  - zircon_runtime/src/graphics/scene/renderer/mesh/shaders/fallback_mesh.wgsl
+  - zircon_plugins/hybrid_gi/runtime/src/gi/shaders/trace_schedule_handoff.wgsl
+  - zircon_plugins/hybrid_gi/runtime/src/gi/renderer/shaders/update_completion.wgsl
 tests:
-  - tools/session_coordinator/tests/test_server.py
-  - tools/session_coordinator/tests/test_cargo_runner.py
-  - tools/session_coordinator/tests/test_git_finalize.py
-  - tools/session_coordinator/web/src/__tests__/contracts.test.ts
-  - tools/session_coordinator/web/src/__tests__/components.test.tsx
 plan_sources:
   - docs/plans/optimize/zircon_app/03-woc-product-role-host-zrvm-transaction-state-client-server-integration-review.md
   - docs/plans/optimize/zircon_hub/02-web-shell-catalog-settings-team-cloud-accessibility-performance-review.md

@@ -220,7 +220,7 @@ fn benchmark_single_allocation_shader_relative_path_normalization() {
             "single-allocation relative path normalization must improve P95 by at least 15%: legacy={legacy_p95_ns}ns optimized={optimized_p95_ns}ns"
         );
     println!(
-            "PERF_RESULT task=plugins07_single_allocation_shader_relative_path sample_pairs={SAMPLE_PAIRS} order=alternating_legacy_first_even legacy_first_pairs=11 optimized_first_pairs=10 percentile_method=nearest_rank path_components=64 paths_per_sample={PATHS_PER_SAMPLE} legacy_allocations_per_path=2 optimized_allocations_per_path=1 legacy_component_vec_allocations_per_sample={PATHS_PER_SAMPLE} optimized_component_vec_allocations_per_sample=0 threshold_percent=15 legacy_p95_ns={legacy_p95_ns} optimized_p95_ns={optimized_p95_ns} improvement_percent={improvement_percent} legacy_raw_ns={} optimized_raw_ns={}",
+            "PERF_RESULT task=plugins07_single_allocation_shader_relative_path sample_pairs={SAMPLE_PAIRS} order=alternating_legacy_first_even legacy_first_pairs=11 optimized_first_pairs=10 percentile_method=nearest_rank path_components=64 paths_per_sample={PATHS_PER_SAMPLE} legacy_allocations_per_path_expected=2 optimized_allocations_per_path_expected=1 legacy_component_vec_allocations_per_sample={PATHS_PER_SAMPLE} optimized_component_vec_allocations_per_sample_expected=0 threshold_percent=15 legacy_p95_ns={legacy_p95_ns} optimized_p95_ns={optimized_p95_ns} improvement_percent={improvement_percent} legacy_raw_ns={} optimized_raw_ns={}",
             raw_samples(&legacy_raw),
             raw_samples(&optimized_raw)
         );

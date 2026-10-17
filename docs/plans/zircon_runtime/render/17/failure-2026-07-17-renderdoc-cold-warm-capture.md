@@ -9,7 +9,7 @@ origin_child_dir: docs/plans/performance/01
 fixing_child_dir: docs/plans/zircon_runtime/render/17
 plan_link_mode: child_record_only
 related_code:
-  - docs/plans/performance/01/renderdoc_capture_audit.py
+  - docs/plans/_archive/performance/01/renderdoc_capture_audit.py
   - tools/tests/test_renderdoc_capture_audit.py
 tests:
   - python -B -m unittest tools.tests.test_renderdoc_capture_audit -v

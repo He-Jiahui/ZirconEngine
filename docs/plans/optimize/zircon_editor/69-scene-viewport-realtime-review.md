@@ -13,9 +13,8 @@ related_code:
   - zircon_editor/src/ui/workbench/state/editor_state_viewport.rs
   - zircon_editor/src/ui/workbench/state/editor_state_render.rs
   - zircon_editor/src/ui/host/editor_host_event_controller.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle
-  - zircon_editor/src/ui/retained_host/app/viewport_image_redraw.rs
-  - zircon_editor/src/ui/retained_host/host_contract/window
+  - zircon_editor/src/ui/retained/app/host_lifecycle
+  - zircon_editor/src/ui/retained/app/viewport_image_redraw.rs
   - zircon_editor/assets/ui/editor/host/scene_viewport_toolbar.zui
   - zircon_runtime/src/core/framework/time
   - zircon_runtime/src/core/runtime/time.rs
@@ -27,12 +26,11 @@ tests:
   - zircon_editor/src/tests/editing/viewport.rs
   - zircon_editor/src/tests/gateway/session/frame_demand.rs
   - zircon_editor/src/tests/host/binding_dispatch/viewport.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/viewport/toolbar_dispatch.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/viewport/typed_command.rs
+  - zircon_editor/src/tests/host/callbacks/viewport/toolbar_dispatch.rs
+  - zircon_editor/src/tests/host/callbacks/viewport/typed_command.rs
   - zircon_editor/src/tests/host/retained_viewport_toolbar_pointer/dispatch.rs
-  - zircon_editor/src/tests/host/retained_viewport_toolbar_pointer/surface_contract.rs
+  - zircon_editor/src/tests/retained_viewport_toolbar_pointer/surface_contract.rs
   - zircon_editor/src/tests/host/retained_window/native_viewport_image.rs
-  - zircon_editor/src/tests/host/template_runtime/scene_viewport_toolbar_runtime_projection.rs
   - zircon_editor/src/tests/ui/binding/viewport.rs
   - zircon_editor/src/tests/workbench/chrome_snapshot/viewport_settings.rs
   - zircon_runtime/src/dynamic_api/session/tests/frame_demand.rs

@@ -11,17 +11,12 @@ related_code:
   - zircon_runtime/src/core/runtime/tasks/pool.rs
   - zircon_runtime/src/core/runtime/tasks/pools.rs
   - zircon_runtime/src/core/runtime/tasks/timer.rs
-  - zircon_runtime/src/asset/pipeline/manager/service_contracts/asset_manager_contract.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/project_asset_manager.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/construction.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/debug.rs
+  - zircon_runtime/src/asset/manager/service_contracts/asset_manager_contract.rs
   - zircon_runtime/src/asset/tests/pipeline/worker_pool.rs
   - zircon_runtime/src/asset/tests/load/texture.rs
   - zircon_runtime/src/asset/tests/load/mesh.rs
   - zircon_runtime/src/asset/tests/formats/obj.rs
   - zircon_runtime/src/asset/pipeline/types.rs
-  - zircon_runtime/src/tests/runtime_absorption/asset_pipeline.rs
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/asset_loaders.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/asset_pipeline_boundary.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/asset_pipeline_markdown.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/asset_pipeline_source_inventory.py
@@ -37,16 +32,11 @@ implementation_files:
   - zircon_runtime/src/core/runtime/tasks/pool.rs
   - zircon_runtime/src/core/runtime/tasks/pools.rs
   - zircon_runtime/src/core/runtime/tasks/timer.rs
-  - zircon_runtime/src/asset/pipeline/manager/service_contracts/asset_manager_contract.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/project_asset_manager.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/construction.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/debug.rs
+  - zircon_runtime/src/asset/manager/service_contracts/asset_manager_contract.rs
   - zircon_runtime/src/asset/tests/pipeline/worker_pool.rs
   - zircon_runtime/src/asset/tests/load/texture.rs
   - zircon_runtime/src/asset/tests/load/mesh.rs
   - zircon_runtime/src/asset/tests/formats/obj.rs
-  - zircon_runtime/src/tests/runtime_absorption/asset_pipeline.rs
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/asset_loaders.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/asset_pipeline_boundary.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/asset_pipeline_markdown.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/asset_pipeline_source_inventory.py
@@ -71,7 +61,6 @@ tests:
   - zircon_runtime/src/asset/tests/pipeline/worker_pool.rs::worker_pool_diagnostics_record_queue_age_clone_and_cancel_wall
   - zircon_runtime/src/asset/tests/pipeline/worker_pool.rs::worker_pool_frame_sampler_records_per_job_completion_deltas
   - zircon_runtime/src/asset/tests/pipeline/worker_pool.rs::completion_deadline_replaces_the_pending_request_deadline
-  - zircon_runtime/src/asset/pipeline/worker_pool/tests.rs::payload_size_matrix_keeps_one_owner_and_rejects_oversize_retention
   - zircon_runtime/src/asset/pipeline/worker_pool/tests.rs::payload_256_mib_matrix_rejects_oversize_retention [ignored pressure matrix]
   - zircon_runtime/src/asset/pipeline/worker_pool/tests.rs::runtime11_pressure_matrix_records_shared_completion_backpressure [ignored pressure matrix]
   - zircon_runtime/src/asset/tests/pipeline/worker_pool.rs::dropping_worker_pool_cancels_pending_jobs_without_synchronous_wait
@@ -81,12 +70,9 @@ tests:
   - zircon_runtime/src/tests/tasks.rs::explicit_task_pool_options_create_an_isolated_task_owner
   - zircon_runtime/src/asset/pipeline/worker_pool.rs::tests::asset_worker_pool_accessors_recover_poisoned_locks
   - zircon_runtime/src/asset/tests/load/texture.rs::missing_image_file_reports_typed_texture_load_error
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/asset_loaders.rs::review_f5_texture_loader_uses_typed_error
   - zircon_runtime/src/asset/tests/load/mesh.rs::unsupported_mesh_file_reports_typed_mesh_load_error
   - zircon_runtime/src/asset/tests/formats/obj.rs::obj_decode_reports_typed_read_error_source
   - zircon_runtime/src/asset/tests/formats/obj.rs::obj_decode_reports_typed_scalar_parse_error_source
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/asset_loaders.rs::review_f5_mesh_loader_and_obj_decoder_use_typed_errors
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy.rs::runtime_15_asset_worker_pool_lock_poison_recovery_guard_covers_asset_worker_pool
   - cargo test -p zircon_runtime --lib worker_pool --locked -- --test-threads=1 --nocapture (milestone testing stage)
   - cargo test -p zircon_runtime --lib tasks --locked -- --test-threads=1 --nocapture (milestone testing stage)
 doc_type: module-detail

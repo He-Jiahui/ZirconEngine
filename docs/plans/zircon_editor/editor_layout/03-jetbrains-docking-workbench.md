@@ -1,10 +1,8 @@
 ---
 related_code:
   - zircon_editor/src/ui/workbench/mod.rs
-  - zircon_editor/src/ui/retained_host/app.rs
   - zircon_editor/src/ui/host/module.rs
-  - zircon_editor/assets/ui/editor/components/workbench/shell
-  - zircon_editor/assets/ui/editor/components/workbench/shell/workbench_main_band.zui
+  - zircon_editor/assets/ui/editor/workbench/shell
 design_references:
   - docs/ui/editor-workbench-designs/main-tabs-layout-spec.png
   - docs/ui/editor-workbench-designs/tool-drawers-layout-spec.png

@@ -9,15 +9,10 @@ related_code:
   - zircon_editor/src/core/notifications
   - zircon_editor/src/ui/activity
   - zircon_editor/src/ui/workbench/snapshot/data/console_output_snapshot.rs
-  - zircon_editor/src/ui/retained_host/console_output.rs
-  - zircon_editor/src/ui/retained_host/console_output
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/console_projection.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/docks/pane/template_nodes/console_output.rs
-  - zircon_editor/src/ui/retained_host/app/callback_wiring/pane_surface/console.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/routing/panes/pane/entry/console.rs
+  - zircon_editor/src/ui/retained/app/callback_wiring/pane_surface/console.rs
+  - zircon_editor/src/ui/contract/pointer/routing/panes/pane/entry/console.rs
   - zircon_editor/assets/ui/editor/console.zui
   - zircon_editor/assets/ui/editor/host/console_body.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/diagnostics/workbench_extension_console_diagnostics_workspace.zui
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md
   - docs/plans/optimize/zircon_editor/06-plugin-manager-discovery-enablement-live-reload-settings-diagnostics-review.md

@@ -5,9 +5,7 @@ plan_sources:
   - docs/plans/optimize/zircon_runtime/11a-runtime-ui-architecture-tree-layout-input-accessibility-review.md
 related_code:
   - zircon_runtime/src/ui/surface/navigation_index.rs
-  - zircon_runtime/src/ui/surface/navigation_index/tests.rs
 tests:
-  - zircon_runtime/src/ui/surface/navigation_index/tests.rs
 ---
 
 # Runtime Navigation Rebuild Candidate Stream

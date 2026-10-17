@@ -1,11 +1,6 @@
 ---
 related_code:
   - zircon_runtime/src/graphics/scene/mod.rs
-  - zircon_runtime/src/graphics/scene/render_product_material_property_tests.rs
-  - zircon_runtime/src/graphics/scene/render_product_material_property_tests
-  - zircon_runtime/src/graphics/scene/render_product_streamer_tests.rs
-  - zircon_runtime/src/graphics/scene/render_product_streamer_tests
-  - zircon_runtime/src/graphics/scene/render_product_zshader_import_tests.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md

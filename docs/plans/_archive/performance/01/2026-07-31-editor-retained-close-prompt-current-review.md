@@ -1,9 +1,9 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/app/close_prompt.rs
-  - zircon_editor/src/ui/retained_host/app/close_prompt
-  - zircon_editor/src/ui/retained_host/app/native_window_close.rs
-  - zircon_editor/src/ui/retained_host/app/native_window_close
+  - zircon_editor/src/ui/retained/app/close_prompt.rs
+  - zircon_editor/src/ui/retained/app/close_prompt
+  - zircon_editor/src/ui/retained/app/native_window_close.rs
+  - zircon_editor/src/ui/retained/app/native_window_close
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_editor/editor_ui/08-workbench-shell-on-runtime-ui.md

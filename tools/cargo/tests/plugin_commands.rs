@@ -653,6 +653,75 @@ fn check_accepts_scaffolded_package_and_detects_workspace_member_drift() {
 }
 
 #[test]
+fn check_rejects_commented_string_and_backup_manifest_includes() {
+    let repo = create_repository_fixture();
+    scaffold_plugin(&NewPluginOptions {
+        repo_root: &repo,
+        id: "demo_probe",
+        kind: PluginKind::System,
+        native: false,
+    })
+    .unwrap();
+    let catalog_path = repo.join("zircon_plugins/first_party_runtime_catalog/src/lib.rs");
+    let original = fs::read_to_string(&catalog_path).unwrap();
+    let real_include = "include_str!(\"../../demo_probe/plugin.toml\")";
+    for replacement in [
+        "/* include_str!(\"../../demo_probe/plugin.toml\") */ \"\"",
+        "r#\"include_str!(\"../../demo_probe/plugin.toml\")\"#",
+        "include_str!(\"../../demo_probe/plugin.toml.bak\")",
+    ] {
+        fs::write(&catalog_path, original.replace(real_include, replacement)).unwrap();
+        let report = check_plugin_workspace(&repo).unwrap();
+        assert!(
+            report.diagnostics.iter().any(|diagnostic| {
+                diagnostic.code == "plugin.catalog.manifest.missing"
+            }),
+            "fake manifest include passed: {replacement}"
+        );
+    }
+    fs::write(
+        &catalog_path,
+        original.replace(real_include, "include_str! ( r#\"../../demo_probe/plugin.toml\"# )"),
+    )
+    .unwrap();
+    assert!(check_plugin_workspace(&repo).unwrap().diagnostics.is_empty());
+    fs::remove_dir_all(repo).unwrap();
+}
+
+#[test]
+fn check_follows_linked_manifest_modules_and_ignores_orphans() {
+    let repo = create_repository_fixture();
+    scaffold_plugin(&NewPluginOptions {
+        repo_root: &repo,
+        id: "demo_probe",
+        kind: PluginKind::System,
+        native: false,
+    })
+    .unwrap();
+    let catalog_path = repo.join("zircon_plugins/first_party_runtime_catalog/src/lib.rs");
+    let original = fs::read_to_string(&catalog_path).unwrap();
+    let table_start = original.find("#[cfg(test)]\nconst STATIC_PLUGIN_MANIFESTS").unwrap();
+    write(
+        &catalog_path.with_file_name("tests/manifests.rs"),
+        &original[table_start..].replace("../../demo_probe", "../../../demo_probe"),
+    );
+    let registrations = &original[..table_start];
+    fs::write(
+        &catalog_path,
+        format!("{registrations}\n#[cfg(test)]\n#[path = \"tests/manifests.rs\"]\nmod manifests;\n"),
+    )
+    .unwrap();
+    assert!(check_plugin_workspace(&repo).unwrap().diagnostics.is_empty());
+    fs::write(&catalog_path, registrations).unwrap();
+    assert!(check_plugin_workspace(&repo)
+        .unwrap()
+        .diagnostics
+        .iter()
+        .any(|diagnostic| diagnostic.code == "plugin.catalog.manifest.missing"));
+    fs::remove_dir_all(repo).unwrap();
+}
+
+#[test]
 fn check_detects_catalog_registration_and_app_feature_drift() {
     let repo = create_repository_fixture();
     scaffold_plugin(&NewPluginOptions {

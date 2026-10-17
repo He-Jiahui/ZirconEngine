@@ -61,7 +61,7 @@ def _git(root: Path, *arguments: str, allow_missing: bool = False) -> bytes:
     environment.update(GIT_CONFIG_NOSYSTEM="1", GIT_CONFIG_GLOBAL=os.devnull,
                        GIT_OPTIONAL_LOCKS="0", GIT_NO_LAZY_FETCH="1", GIT_TERMINAL_PROMPT="0")
     try:
-        result = subprocess.run(["git", "--no-pager", "--no-replace-objects", "-C", str(root),
+        result = subprocess.run(["git", "-c", "core.fsmonitor=false", "-c", "core.hooksPath=" + os.devnull, "--no-pager", "--no-replace-objects", "-C", str(root),
                                  *arguments], env=environment, capture_output=True, timeout=15)
     except (OSError, subprocess.TimeoutExpired) as error:
         raise JenkinsError("baseline_git_unavailable", "Cannot read the immutable Git baseline") from error

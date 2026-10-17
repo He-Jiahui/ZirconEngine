@@ -6,9 +6,9 @@ plan_sources:
 related_records:
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
-  - zircon_runtime/src/graphics/visibility/planning/build_virtual_geometry_plan/frontier/unique_pages.rs
+  - zircon_runtime/src/graphics/visibility/planning/frontier/unique_pages.rs
 tests:
-  - zircon_runtime/src/graphics/visibility/planning/build_virtual_geometry_plan/frontier/unique_pages.rs
+  - zircon_runtime/src/graphics/visibility/planning/frontier/unique_pages.rs
 ---
 
 # Runtime953 · virtual-geometry page-priority hash aggregation

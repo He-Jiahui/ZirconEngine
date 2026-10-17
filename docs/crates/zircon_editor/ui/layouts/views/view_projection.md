@@ -2,8 +2,6 @@
 related_code:
   - zircon_editor/src/ui/layouts/views/view_projection.rs
   - zircon_editor/src/ui/layouts/views/view_projection/visual_assets.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/visual_assets
-  - zircon_editor/src/ui/layouts/views/view_projection/tests.rs
   - zircon_editor/src/ui/asset_editor/node_projection.rs
   - zircon_editor/src/tests/ui/asset_browser/bootstrap_assets.rs
   - zircon_editor/src/ui/layouts/views/project_overview.rs
@@ -34,8 +32,6 @@ related_code:
 implementation_files:
   - zircon_editor/src/ui/layouts/views/view_projection.rs
   - zircon_editor/src/ui/layouts/views/view_projection/visual_assets.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/visual_assets
-  - zircon_editor/src/ui/layouts/views/view_projection/tests.rs
   - zircon_editor/src/ui/asset_editor/node_projection.rs
   - zircon_editor/src/tests/ui/asset_browser/bootstrap_assets.rs
   - zircon_editor/src/ui/layouts/views/project_overview.rs

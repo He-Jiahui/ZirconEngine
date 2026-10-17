@@ -11,8 +11,6 @@ origin_workflow_node: M3
 priority: 100
 plan_link_mode: child_record_only
 related_code:
-  - zircon_runtime/src/tests/runtime_absorption
-  - zircon_runtime/src/tests/runtime_absorption/dynamic_scene/sources.rs
   - docs/plans/_archive/zircon_runtime/runtime/05/2026-07-09-scene-editor-boundary-closeout-output-records.md
   - docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md
   - docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md

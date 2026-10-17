@@ -10,7 +10,6 @@ performance_status: release_measurement_pending
 related_code:
   - zircon_runtime/src/asset/registry/asset_registry_index.rs
 tests:
-  - zircon_runtime/src/asset/registry/asset_registry_index/incremental_referencer_pruning_tests.rs
 ---
 
 # Runtime206 incremental referencer bucket pruning

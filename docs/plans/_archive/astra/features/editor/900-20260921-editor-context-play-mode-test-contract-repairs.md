@@ -8,7 +8,6 @@ related_records:
   - docs/plans/astra/features/editor/664-20260911-editor-ui-optimization-batch-completion.md
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
-  - zircon_editor/src/core/context/builder/tests.rs
   - zircon_editor/src/tests/editing/state/play_mode.rs
 ---
 

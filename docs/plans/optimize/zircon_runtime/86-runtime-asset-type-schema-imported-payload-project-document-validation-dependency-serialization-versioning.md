@@ -12,7 +12,6 @@ related_code:
   - zircon_runtime/src/asset/importer/ingest
   - zircon_runtime/src/asset/registry/dependency_extractors
   - zircon_runtime/src/asset/project
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/loading
   - zircon_runtime_interface/src/project
   - zircon_runtime_interface/src/resource
   - zircon_runtime_interface/src/ui/template

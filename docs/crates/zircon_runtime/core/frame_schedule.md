@@ -27,13 +27,12 @@ related_code:
   - zircon_runtime/src/scene/ecs/schedule_parallel_executor.rs
   - zircon_runtime/src/scene/ecs/scene_system_descriptor.rs
   - zircon_runtime/src/scene/ecs/scene_system_registry.rs
-  - zircon_runtime/src/plugin/extension_registry/register/runtime_scene_system_registration.rs
   - zircon_plugins/plugin_sdk/src/registration.rs
   - docs/crates/zircon_plugins/plugin-sdk.md
   - zircon_runtime/src/scene/tests/ecs_schedule/fixed_update.rs
   - zircon_runtime/src/scene/tests/ecs_schedule/schedule_plan.rs
   - zircon_runtime/src/scene/tests/ecs_schedule/world_driver.rs
-  - zircon_runtime/src/tests/runtime_absorption/schedule_frame_loop/mirror_docs.rs
+  - zircon_runtime/src/tests/contracts/schedule_frame_loop/mirror_docs.rs
   - tools/tests/test_runtime_schedule_frame_loop_audit.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/schedule_frame_loop_boundary.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/schedule_frame_loop_source_inventory.py
@@ -67,7 +66,6 @@ implementation_files:
   - zircon_runtime/src/scene/ecs/system/native/scene_system_metadata.rs
   - zircon_runtime/src/scene/ecs/system/native/scheduled_scene_step.rs
   - zircon_runtime/src/scene/mod.rs
-  - zircon_runtime/src/plugin/extension_registry/register/runtime_scene_system_registration.rs
   - zircon_plugins/plugin_sdk/src/registration.rs
   - zircon_runtime/src/scene/tests/ecs_schedule.rs
   - zircon_runtime/src/scene/tests/ecs_schedule/world_driver.rs
@@ -89,7 +87,6 @@ tests:
   - headless_early_wake_does_not_pump_or_move_fixed_deadline
   - redraw_delivery_does_not_schedule_another_reactive_frame
   - python -m unittest tools.tests.test_runtime_schedule_frame_loop_audit
-  - tests/acceptance/runtime-schedule-frame-loop-audit-owner-sync.md
   - rustfmt --edition 2021 --check zircon_runtime/src/core/framework/time/fixed_step_plan.rs zircon_runtime/src/tests/time.rs zircon_runtime/src/dynamic_api/session.rs zircon_runtime/src/scene/level_system.rs zircon_runtime/src/scene/module/world_driver.rs zircon_runtime/src/scene/tests/ecs_schedule.rs zircon_runtime/src/tests/plugin_extensions/extension_registry_scene_hooks.rs zircon_runtime/src/dynamic_api/tests/session_lifecycle.rs
   - source scans for retired raw-delta level tick and world-driver second advance paths
   - schedule_frame_loop_boundary targeted audit: source files 22/22, guard/test files 11/11, SystemStage 9/9, fixed_loop 3/3, tick_time calls 1/1, Runtime 03 guard anchors 14/14, behavior_test_anchor_count = 14, missing_behavior_test_anchors = [], doc_anchors = 10/10, mirror-doc aggregate guard present, frame schedule module-doc anchors 3/3, risks = []

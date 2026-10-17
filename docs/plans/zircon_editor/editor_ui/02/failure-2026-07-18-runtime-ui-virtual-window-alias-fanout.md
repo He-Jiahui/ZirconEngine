@@ -9,10 +9,9 @@ origin_child_dir: docs/plans/performance/01
 fixing_child_dir: docs/plans/zircon_editor/editor_ui/02
 plan_link_mode: child_record_only
 related_code:
-  - zircon_runtime/src/ui/surface/surface/default_interactions/table/virtualization.rs
-  - zircon_runtime/src/ui/surface/surface/default_interactions/tree_view_virtualization.rs
+  - zircon_runtime/src/ui/surface/surface/table/virtualization.rs
+  - zircon_runtime/src/ui/surface/default_interactions/tree_view_virtualization.rs
   - zircon_runtime/src/ui/layout/scroll.rs
-  - dev/slint/internal/core/model.rs
 tests:
   - 100k-row one-step virtual scroll transaction counter
   - unchanged virtual-window zero-layout-invalidation test

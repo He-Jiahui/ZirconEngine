@@ -13,7 +13,6 @@ related_code:
   - zircon_runtime/src/scene/world/project_io
   - zircon_runtime/src/core/framework/render
   - zircon_runtime/src/graphics/feature
-  - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting
   - zircon_plugins/rendering/features/oit/runtime/src
   - zircon_plugins/rendering/features/planar_reflections/runtime/src
   - zircon_runtime/src/core/framework/physics
@@ -25,12 +24,10 @@ related_code:
   - zircon_plugins/particles/runtime/src
   - zircon_plugins/first_party_runtime_catalog
   - zircon_app/src
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/simulation/workbench_extension_navmesh_ai_workspace.zui
   - examples/woc/scripts/woc_game/src/world
 tests:
-  - zircon_runtime/src/tests/plugin_extensions/extension_registry_bridge.rs
-  - zircon_runtime/src/tests/plugin_extensions/extension_registry_bridge/diagnostics.rs
-  - zircon_runtime/src/tests/plugin_extensions/extension_registry_bridge/lifecycle.rs
+  - zircon_runtime/src/tests/plugins/extension_registry_bridge/diagnostics.rs
+  - zircon_runtime/src/tests/plugins/extension_registry_bridge/lifecycle.rs
   - zircon_runtime/src/asset/tests/assets/gltf_importer/woc_required_extensions.rs
 plan_sources:
   - docs/plans/optimize/zircon_runtime/30-water-ocean-lake-river-surface-wave-fft-shallow-water-rendering-underwater-buoyancy-query-scalability-product-integration-review.md

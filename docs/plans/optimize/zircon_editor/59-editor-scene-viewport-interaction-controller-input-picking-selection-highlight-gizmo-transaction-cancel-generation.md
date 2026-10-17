@@ -12,10 +12,9 @@ related_code:
   - zircon_editor/src/ui/workbench/state/editor_state.rs
   - zircon_editor/src/ui/workbench/state/editor_state_viewport.rs
   - zircon_editor/src/ui/workbench/state/editor_state_render.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/viewport
-  - zircon_editor/src/ui/retained_host/app/native_keyboard_actions.rs
-  - zircon_editor/src/ui/retained_host/app/callback_wiring/host_shell/runtime.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/render_submission.rs
+  - zircon_editor/src/ui/retained/app/native_keyboard_actions.rs
+  - zircon_editor/src/ui/retained/app/callback_wiring/host_shell/runtime.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle/render_submission.rs
   - zircon_editor/src/core/gateway
   - zircon_runtime/src/core/framework/render/viewport_highlight_store.rs
   - zircon_runtime/src/core/framework/render/visible_spatial_query.rs
@@ -24,7 +23,7 @@ related_code:
   - zircon_runtime/src/scene/level_system.rs
 tests:
   - zircon_editor/src/tests/editing/state/viewport.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/viewport/pointer_bridge.rs
+  - zircon_editor/src/tests/host/callbacks/viewport/pointer_bridge.rs
   - zircon_editor/src/tests/host/retained_window/platform_input_translation.rs
   - zircon_editor/src/tests/gateway/in_process.rs
   - zircon_runtime/src/dynamic_api/session/tests/highlight_set.rs

@@ -9,11 +9,7 @@ origin_child_dir: docs/plans/zircon_editor/editor/01
 fixing_child_dir: docs/plans/zircon_editor/editor/09
 plan_link_mode: child_record_only
 related_code:
-  - zircon_editor/src/ui/host/editor_asset_manager/api.rs
-  - zircon_editor/src/ui/host/editor_asset_manager/manager/default_editor_asset_manager/mod.rs
-  - zircon_editor/src/ui/host/editor_asset_manager/manager/default_editor_asset_manager/editor_asset_state.rs
-  - zircon_editor/src/ui/host/editor_asset_manager/manager/project_sync/sync_from_project.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/runtime.rs
+  - zircon_editor/src/ui/host/assets/manager/project_sync/sync_from_project.rs
   - zircon_editor/src/ui/host/project_access.rs
   - zircon_editor/src/ui/host/asset_editor_sessions/watcher/host.rs
   - tools/tests/test_editor09_project_close_deactivation_contract.py

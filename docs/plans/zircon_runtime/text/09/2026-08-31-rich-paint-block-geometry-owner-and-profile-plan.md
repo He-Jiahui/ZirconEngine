@@ -5,18 +5,13 @@ created_at: 2026-08-31
 owner_plan: docs/plans/zircon_runtime/text/09-threading-caching-and-performance.md
 related_code:
   - zircon_runtime_interface/src/ui/surface/render/text_shape.rs
-  - zircon_runtime_interface/src/ui/surface/render/text_shape/projection_profile.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render/rich_text.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render/resolved_layout.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render/resolved_layout/rich_artifact_routes.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render/tests/rich_inline.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render/tests/rich_inline_profile.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render/tests/rich_artifact_routes.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render/tests/rich_projection_admission.rs
-  - zircon_runtime_interface/src/ui/surface/render/text_shape/resolved_layout_tests.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/render/rich_text.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/render/resolved_layout.rs
+  - zircon_runtime/src/graphics/scene/ui/resolved_layout/rich_artifact_routes.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/render/tests/rich_inline.rs
+  - zircon_runtime/src/graphics/scene/ui/render/tests/rich_inline_profile.rs
+  - zircon_runtime/src/graphics/scene/ui/render/tests/rich_artifact_routes.rs
   - zircon_runtime/tests/runtime_text_multilingual_product_framebuffer.rs
-  - zircon_runtime/tests/runtime_text_multilingual_product_framebuffer/product_renderer.rs
-  - zircon_runtime/tests/runtime_text_multilingual_product_framebuffer/proof_path.rs
   - tools/tests/test_runtime_text_paint_run_projection_profile_contract.py
   - tools/tests/test_runtime_text_product_framebuffer_proof_contract.py
   - tools/tests/test_runtime_text_rich_inline_geometry_profile_contract.py

@@ -13,8 +13,7 @@ related_code:
   - docs/plans/zircon_runtime/runtime/index.md
   - docs/plans/engine-code-review-findings-2026-06.md
   - docs/plans/engine-code-structure-convention.md
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/texture_descriptor_settings.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/runtime_dead_code/script_host.rs
+  - zircon_runtime/src/tests/contracts/structure/runtime_dead_code/script_host.rs
 tests:
   - cargo test -p zircon_runtime --lib --locked --jobs 1 --color never tests::runtime_absorption::structure_convention::production_file_budget::texture_descriptor_settings::runtime_15_texture_descriptor_settings_parser_is_child_owner -- --exact --test-threads=1
   - cargo test -p zircon_runtime --lib --locked --jobs 1 --color never tests::runtime_absorption::structure_convention::runtime_dead_code::script_host::runtime_15_script_host_value_descriptors_do_not_suppress_dead_code -- --exact --test-threads=1

@@ -29,17 +29,7 @@ related_code:
   - zircon_runtime/src/scene/ecs/messages/id.rs
   - zircon_runtime/src/scene/ecs/messages/queue.rs
   - zircon_runtime/src/scene/ecs/messages/store.rs
-  - zircon_runtime/src/scene/dynamic_scene/scene/mod.rs
   - zircon_runtime/src/scene/reflect/world_reflection.rs
-  - dev/bevy/crates/bevy_ecs/src/world/mod.rs
-  - dev/bevy/crates/bevy_ecs/src/system/query.rs
-  - dev/bevy/crates/bevy_ecs/src/system/commands/mod.rs
-  - dev/bevy/crates/bevy_ecs/src/query/filter.rs
-  - dev/bevy/crates/bevy_ecs/src/observer/mod.rs
-  - dev/bevy/crates/bevy_reflect/src/type_registry.rs
-  - dev/bevy/crates/bevy_ecs/src/reflect/component.rs
-  - dev/bevy/crates/bevy_scene/src/scene.rs
-  - dev/bevy/crates/bevy_transform/src/systems.rs
 implementation_files:
   - zircon_runtime/src/scene/world/typed_api.rs
   - zircon_runtime/src/scene/world/typed_api/fixed_components.rs
@@ -69,7 +59,6 @@ implementation_files:
   - zircon_runtime/src/scene/ecs/messages/id.rs
   - zircon_runtime/src/scene/ecs/messages/queue.rs
   - zircon_runtime/src/scene/ecs/messages/store.rs
-  - zircon_runtime/src/scene/dynamic_scene/scene/mod.rs
   - zircon_runtime/src/scene/reflect/world_reflection.rs
 plan_sources:
   - user: 2026-05-08 Bevy-grade ECS / Reflect / Scene / Transform roadmap implementation

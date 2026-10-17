@@ -9,17 +9,12 @@ related_code:
   - zircon_editor/src/ui/binding/viewport/command.rs
   - zircon_editor/src/scene/viewport/settings.rs
   - zircon_editor/src/scene/viewport/controller/scene_viewport_state.rs
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_selection.rs
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_reset_from_scene.rs
   - zircon_editor/src/scene/viewport/interaction_extract/key.rs
   - zircon_editor/src/scene/viewport/render_packet.rs
   - zircon_editor/src/scene/viewport/pointer/candidates/renderable_candidates.rs
-  - zircon_editor/src/scene/viewport/pointer/overlay_router/viewport_overlay_pointer_router_sync.rs
-  - zircon_editor/src/scene/viewport/pointer/overlay_router/viewport_overlay_pointer_router_visible_spatial_query.rs
-  - zircon_editor/src/scene/viewport/pointer/precision/renderer_visible_spatial_pick_source.rs
+  - zircon_editor/src/scene/precision/renderer_visible_spatial_pick_source.rs
   - zircon_editor/src/ui/workbench/state/editor_state_render.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_projection.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/panes/hierarchy.rs
+  - zircon_editor/src/ui/retained/contract/data/panes/hierarchy.rs
   - zircon_runtime/src/core/framework/render/camera.rs
   - zircon_runtime/src/core/framework/render/visible_spatial_query.rs
   - zircon_runtime/src/scene/components/scene/activation.rs
@@ -31,17 +26,14 @@ related_code:
   - zircon_runtime/src/scene/world/render_post_process.rs
   - zircon_runtime/src/scene/world/render_visibility.rs
   - zircon_runtime/src/scene/world/records.rs
-  - zircon_runtime/src/scene/dynamic_scene/scene/capture.rs
+  - zircon_runtime/src/scene/dynamic/scene/capture.rs
 tests:
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_selection.rs
-  - zircon_editor/src/scene/viewport/interaction_extract/tests.rs
-  - zircon_editor/src/scene/viewport/pointer/tests.rs
   - zircon_editor/src/tests/editing/state/viewport.rs
   - zircon_editor/src/tests/editing/viewport.rs
   - zircon_editor/src/tests/host/binding_dispatch/viewport.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/viewport/typed_command.rs
+  - zircon_editor/src/tests/host/callbacks/viewport/typed_command.rs
   - zircon_editor/src/tests/host/retained_viewport_toolbar_pointer/dispatch.rs
-  - zircon_editor/src/tests/host/retained_viewport_toolbar_pointer/surface_contract.rs
+  - zircon_editor/src/tests/retained_viewport_toolbar_pointer/surface_contract.rs
   - zircon_editor/src/tests/host/retained_hierarchy_template_body.rs
   - zircon_editor/src/tests/ui/binding/viewport.rs
   - zircon_editor/src/tests/workbench/chrome_snapshot/viewport_settings.rs

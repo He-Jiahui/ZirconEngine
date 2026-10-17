@@ -9,7 +9,6 @@ origin_child_dir: docs/plans/optimize/zircon_runtime/02
 fixing_child_dir: docs/plans/optimize/zircon_editor/51
 plan_link_mode: child_record_only
 related_code:
-  - zircon_editor/src/core/recovery/tests.rs
   - zircon_editor/src/core/recovery/autosave/policy.rs
 tests:
   - validation ticket 61aca11bde774a6ab8631f955b10b0f3

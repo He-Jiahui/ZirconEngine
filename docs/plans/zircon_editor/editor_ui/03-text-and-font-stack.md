@@ -13,7 +13,7 @@ related_code:
   - zircon_runtime/src/ui/surface/input/text_keyboard/clipboard.rs
   - zircon_runtime/src/ui/component/state_reducer/text_input.rs
   - zircon_runtime/src/ui/component/catalog/material_foundation/shared.rs
-  - zircon_runtime/src/ui/tests/component_catalog/component_state/text_input_validation.rs
+  - zircon_runtime/src/ui/tests/component_state/text_input_validation.rs
   - zircon_runtime_interface/src/ui/surface/render/mod.rs
   - zircon_runtime_interface/src/ui/dispatch/input/effect.rs
   - zircon_runtime/src/asset/assets/font.rs

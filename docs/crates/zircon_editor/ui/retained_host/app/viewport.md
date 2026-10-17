@@ -1,46 +1,36 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/app.rs
-  - zircon_editor/src/ui/retained_host/app/viewport.rs
-  - zircon_editor/src/ui/retained_host/app/viewport/pointer_event.rs
-  - zircon_editor/src/ui/retained_host/app/viewport/pointer_mapping.rs
-  - zircon_editor/src/ui/retained_host/app/viewport/pointer_event/world_space.rs
-  - zircon_editor/src/ui/retained_host/app/viewport/toolbar_pointer.rs
-  - zircon_editor/src/ui/retained_host/app/viewport/toolbar_pointer/click.rs
-  - zircon_editor/src/ui/retained_host/app/viewport/toolbar_pointer/size.rs
-  - zircon_editor/src/ui/retained_host/app/viewport_toolbar_projection.rs
-  - zircon_editor/src/ui/retained_host/app/viewport_toolbar_projection/hit_controls.rs
-  - zircon_editor/src/ui/retained_host/app/viewport_toolbar_projection/surface_frames.rs
-  - zircon_editor/src/ui/retained_host/app/viewport_toolbar_projection/surface_frames/docked.rs
-  - zircon_editor/src/ui/retained_host/app/viewport_toolbar_projection/surface_frames/floating.rs
-  - zircon_editor/src/ui/retained_host/app/viewport_toolbar_projection/surface_frames/pane_frame.rs
-  - zircon_editor/src/ui/retained_host/app/callback_wiring/pane_surface/viewport.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/mod.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/viewport/pointer_dispatch.rs
-  - zircon_editor/src/ui/retained_host/app/native_keyboard_actions.rs
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_handle_input.rs
-  - zircon_editor/src/ui/retained_host/viewport_toolbar_pointer/mod.rs
+  - zircon_editor/src/ui/retained/app/viewport.rs
+  - zircon_editor/src/ui/retained/app/viewport/pointer_event.rs
+  - zircon_editor/src/ui/retained/app/viewport/pointer_mapping.rs
+  - zircon_editor/src/ui/retained/app/viewport/pointer_event/world_space.rs
+  - zircon_editor/src/ui/retained/app/viewport/toolbar_pointer.rs
+  - zircon_editor/src/ui/retained/app/viewport/toolbar_pointer/click.rs
+  - zircon_editor/src/ui/retained/app/viewport/toolbar_pointer/size.rs
+  - zircon_editor/src/ui/retained/app/surface_frames/docked.rs
+  - zircon_editor/src/ui/retained/app/surface_frames/floating.rs
+  - zircon_editor/src/ui/retained/app/surface_frames/pane_frame.rs
+  - zircon_editor/src/ui/retained/app/callback_wiring/pane_surface/viewport.rs
+  - zircon_editor/src/ui/retained/dispatch/viewport/pointer_dispatch.rs
+  - zircon_editor/src/ui/retained/app/native_keyboard_actions.rs
+  - zircon_editor/src/ui/retained/viewport_toolbar_pointer/mod.rs
 implementation_files:
-  - zircon_editor/src/ui/retained_host/app/viewport.rs
-  - zircon_editor/src/ui/retained_host/app/viewport/pointer_event.rs
-  - zircon_editor/src/ui/retained_host/app/viewport/pointer_mapping.rs
-  - zircon_editor/src/ui/retained_host/app/viewport/pointer_event/world_space.rs
-  - zircon_editor/src/ui/retained_host/app/viewport/toolbar_pointer.rs
-  - zircon_editor/src/ui/retained_host/app/viewport/toolbar_pointer/click.rs
-  - zircon_editor/src/ui/retained_host/app/viewport/toolbar_pointer/size.rs
-  - zircon_editor/src/ui/retained_host/app/viewport_toolbar_projection.rs
-  - zircon_editor/src/ui/retained_host/app/viewport_toolbar_projection/hit_controls.rs
-  - zircon_editor/src/ui/retained_host/app/viewport_toolbar_projection/surface_frames.rs
-  - zircon_editor/src/ui/retained_host/app/viewport_toolbar_projection/surface_frames/docked.rs
-  - zircon_editor/src/ui/retained_host/app/viewport_toolbar_projection/surface_frames/floating.rs
-  - zircon_editor/src/ui/retained_host/app/viewport_toolbar_projection/surface_frames/pane_frame.rs
+  - zircon_editor/src/ui/retained/app/viewport.rs
+  - zircon_editor/src/ui/retained/app/viewport/pointer_event.rs
+  - zircon_editor/src/ui/retained/app/viewport/pointer_mapping.rs
+  - zircon_editor/src/ui/retained/app/viewport/pointer_event/world_space.rs
+  - zircon_editor/src/ui/retained/app/viewport/toolbar_pointer.rs
+  - zircon_editor/src/ui/retained/app/viewport/toolbar_pointer/click.rs
+  - zircon_editor/src/ui/retained/app/viewport/toolbar_pointer/size.rs
+  - zircon_editor/src/ui/retained/app/surface_frames/docked.rs
+  - zircon_editor/src/ui/retained/app/surface_frames/floating.rs
+  - zircon_editor/src/ui/retained/app/surface_frames/pane_frame.rs
 plan_sources:
   - docs/plans/zircon_editor/editor_ui/08-workbench-shell-on-runtime-ui.md
   - user: 2026-06-18 editor UI architecture implementation, feature first and tests deferred
 tests:
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_handle_input/pointer_button_ownership_tests.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/viewport/pointer_bridge/button_ownership.rs
-  - zircon_editor/src/ui/retained_host/app/tests/native_viewport_cancel.rs
+  - zircon_editor/src/tests/host/viewport/pointer_bridge/button_ownership.rs
+  - zircon_editor/src/ui/retained/app/tests/native_viewport_cancel.rs
   - cargo fmt -p zircon_editor
   - cargo fmt -p zircon_editor --check
   - app viewport pointer/toolbar ownership scan

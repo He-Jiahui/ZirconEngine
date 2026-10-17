@@ -7,7 +7,6 @@ plan_sources:
 related_code:
   - zircon_editor/src/core/asset/index.rs
 tests:
-  - tools/tests/test_runtime_editor_registry_iterator_projection_performance_contract.py
 ---
 
 # Editor Registry Row Iterator Projection

@@ -26,22 +26,18 @@ related_code:
   - zircon_runtime/crates/zr_resource
   - zircon_runtime/src/core/resource
   - zircon_runtime/src/asset/facade
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager
   - zircon_runtime/src/asset/pipeline/manager/resource_sync
   - zircon_runtime/src/asset/project/manager/artifact_access.rs
-  - zircon_runtime/src/graphics/scene/resources/render_asset_residency
   - zircon_runtime/src/graphics/scene/resources/resource_streamer
   - zircon_runtime/src/graphics/scene/resources/gpu_mesh
   - zircon_runtime/src/graphics/scene/resources/gpu_model
   - zircon_runtime/src/graphics/scene/resources/gpu_texture
   - zircon_runtime/src/graphics/scene/resources/prepared
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract
 tests:
   - zircon_runtime/crates/zr_resource/src/manager/tests
   - zircon_runtime/crates/zr_resource/src/manager/readiness_projection/tests
   - zircon_runtime/crates/zr_resource/src/io
   - zircon_runtime/src/asset/tests/facade
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/runtime/tests.rs
   - zircon_runtime/src/graphics/scene/resources/render_asset_residency/tests
   - zircon_runtime/src/graphics/scene/resources/resource_streamer
 reference_engines:

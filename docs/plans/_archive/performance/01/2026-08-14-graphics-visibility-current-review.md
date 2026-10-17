@@ -1,16 +1,14 @@
 ---
 related_code:
   - zircon_runtime/src/graphics/visibility
-  - zircon_runtime/src/graphics/visibility/context/from_extract_with_history/collect_batching_result.rs
-  - zircon_runtime/src/graphics/visibility/context/from_extract_with_history/construct.rs
   - zircon_runtime/src/graphics/visibility/culling/parallel_frustum.rs
   - zircon_runtime/src/graphics/visibility/planning/build_bvh_update_plan.rs
   - zircon_runtime/src/graphics/visibility/spatial_query.rs
   - zircon_runtime/src/graphics/visibility/static_index/mod.rs
   - zircon_runtime/src/graphics/visibility/view_context/build_views.rs
   - zircon_runtime/src/graphics/visibility/view_context/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/build.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/shadow/plan.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/build_mesh_draws/build/build.rs
+  - zircon_runtime/src/graphics/scene/renderer/shadow/plan.rs
   - zircon_runtime/src/core/framework/render/camera.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md

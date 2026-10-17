@@ -15,8 +15,8 @@ related_code:
   - zircon_editor/src/core/runtime_event_consumer
   - zircon_editor/src/ui/host/editor_extension_registration.rs
   - zircon_editor/src/ui/host/editor_operation_dispatch.rs
-  - zircon_editor/assets/ui/editor/components/workbench/modules/core/ai
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/module_command_feedback.rs
+  - zircon_editor/assets/ui/editor/workbench/modules/core/ai
+  - zircon_editor/src/ui/retained/dispatch/workbench/module_command_feedback.rs
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md
   - docs/plans/optimize/zircon_runtime/08f-ai-behavior-tree-blackboard-perception-runtime-review.md

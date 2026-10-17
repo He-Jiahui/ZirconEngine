@@ -7,10 +7,9 @@ related_records:
   - docs/plans/astra/features/editor/664-20260911-editor-ui-optimization-batch-completion.md
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
-  - zircon_editor/src/ui/retained_host/app/native_windows/store.rs
+  - zircon_editor/src/ui/retained/app/native_windows/store.rs
 tests:
-  - zircon_editor/src/ui/retained_host/app/native_windows/store.rs
-  - tools/tests/test_editor874_native_window_stale_identity_capacity_performance_contract.py
+  - zircon_editor/src/ui/retained/app/native_windows/store.rs
 ---
 
 # Editor874 - native-window stale-ID capacity

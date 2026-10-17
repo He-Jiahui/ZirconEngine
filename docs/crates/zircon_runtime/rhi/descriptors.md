@@ -17,20 +17,10 @@ related_code:
   - zircon_runtime/crates/zr_rhi/src/submission.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/capabilities.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/bind_group_validation.rs
-  - zircon_runtime/crates/zr_rhi_wgpu/src/command_validation.rs
-  - zircon_runtime/crates/zr_rhi_wgpu/src/command_validation/render_state.rs
-  - zircon_runtime/crates/zr_rhi_wgpu/src/device.rs
-  - zircon_runtime/crates/zr_rhi_wgpu/src/device/construction.rs
-  - zircon_runtime/crates/zr_rhi_wgpu/src/device/contract_caps.rs
-  - zircon_runtime/crates/zr_rhi_wgpu/src/device/resources.rs
-  - zircon_runtime/crates/zr_rhi_wgpu/src/device/state.rs
-  - zircon_runtime/crates/zr_rhi_wgpu/src/device/surfaces.rs
-  - zircon_runtime/crates/zr_rhi_wgpu/src/device/uploads.rs
-  - zircon_runtime/crates/zr_rhi_wgpu/src/device/views.rs
+  - zircon_runtime/crates/zr_rhi/src/device.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/production/device.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/production/device/capabilities.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/production/diagnostics
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/rhi_wgpu_lock_poison.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/pipeline_validation.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/render_pass_validation.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/resource_validation.rs
@@ -55,20 +45,10 @@ implementation_files:
   - zircon_runtime/crates/zr_rhi/src/submission.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/capabilities.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/bind_group_validation.rs
-  - zircon_runtime/crates/zr_rhi_wgpu/src/command_validation.rs
-  - zircon_runtime/crates/zr_rhi_wgpu/src/command_validation/render_state.rs
-  - zircon_runtime/crates/zr_rhi_wgpu/src/device.rs
-  - zircon_runtime/crates/zr_rhi_wgpu/src/device/construction.rs
-  - zircon_runtime/crates/zr_rhi_wgpu/src/device/contract_caps.rs
-  - zircon_runtime/crates/zr_rhi_wgpu/src/device/resources.rs
-  - zircon_runtime/crates/zr_rhi_wgpu/src/device/state.rs
-  - zircon_runtime/crates/zr_rhi_wgpu/src/device/surfaces.rs
-  - zircon_runtime/crates/zr_rhi_wgpu/src/device/uploads.rs
-  - zircon_runtime/crates/zr_rhi_wgpu/src/device/views.rs
+  - zircon_runtime/crates/zr_rhi/src/device.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/production/device.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/production/device/capabilities.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/production/diagnostics
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/rhi_wgpu_lock_poison.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/pipeline_validation.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/render_pass_validation.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/resource_validation.rs
@@ -89,7 +69,6 @@ implementation_files:
   - zircon_runtime/crates/zr_rhi_wgpu/src/tests/device_contract/texture_views.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/tests/pipeline.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/tests/texture_copy.rs
-  - zircon_runtime/crates/zr_rhi_wgpu/src/production/tests.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/production/tests/capabilities.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/production/tests/device_ownership.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/production/tests/texture_views.rs
@@ -112,8 +91,6 @@ tests:
   - zircon_runtime/crates/zr_rhi_wgpu/src/tests/debug_markers.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/tests/debug_status.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/tests/resource_lifecycle.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/rhi_device_handles.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/rhi_wgpu_lock_poison.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/tests/render_pass_command_list.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/tests/render_pass_clear_values.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/tests/render_pass_resolve.rs
@@ -122,7 +99,6 @@ tests:
   - zircon_runtime/crates/zr_rhi_wgpu/src/tests/device_contract.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/tests/pipeline.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/tests/texture_copy.rs
-  - zircon_runtime/crates/zr_rhi_wgpu/src/production/tests.rs
   - cargo +1.94.1 test -p zr_rhi --lib --locked --jobs 1 -- --test-threads=1
   - cargo +1.94.1 test -p zr_rhi_wgpu --lib --locked --jobs 1 -- --test-threads=1
   - cargo +1.94.1 test -p zircon_runtime --lib runtime_15_rhi_device_handles_are_child_owner --locked --jobs 1 -- --test-threads=1

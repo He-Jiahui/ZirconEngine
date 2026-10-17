@@ -104,7 +104,7 @@ impl NetRpcRuntimeManager {
         session: NetSessionId,
         message: NetControlMessage,
     ) -> Result<NetSessionControlReport, NetError> {
-        let mut state = self.state.lock().expect("net RPC state mutex poisoned");
+        let mut state = self.lock_state()?;
         let current = state
             .sessions
             .get(&session)

@@ -38,6 +38,7 @@ class SharedScheduleBatchSystemsPerformanceContractTests(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.graph = CONFLICT_GRAPH.read_text(encoding="utf-8")
         cls.executor = EXECUTOR.read_text(encoding="utf-8")
+        cls.evidence = (CONFLICT_GRAPH.parent / "tests/schedule_conflict_graph_performance_tests.rs").read_text(encoding="utf-8")
 
     def test_compiled_batch_freezes_shared_system_storage(self) -> None:
         self.assertIn("systems: Arc<ScheduleParallelBatchSystems>", self.graph)
@@ -53,10 +54,10 @@ class SharedScheduleBatchSystemsPerformanceContractTests(unittest.TestCase):
     def test_release_evidence_tracks_heap_allocations(self) -> None:
         self.assertIn(
             "PERF_RESULT runtime60_shared_schedule_batch_systems",
-            self.graph,
+            self.evidence,
         )
-        self.assertIn("legacy_heap_allocations_per_batch=65", self.graph)
-        self.assertIn("optimized_heap_allocations_per_batch=0", self.graph)
+        self.assertIn("legacy_heap_allocations_per_batch_expected=65", self.evidence)
+        self.assertIn("optimized_heap_allocations_per_batch_expected=0", self.evidence)
 
 
 if __name__ == "__main__":

@@ -24,13 +24,12 @@ related_code:
   - zircon_runtime/src/ui/surface/surface.rs
   - zircon_runtime/src/ui/surface/property_mutation/metadata_dirty.rs
   - zircon_runtime/src/ui/surface/render/resolve.rs
-  - zircon_runtime/src/ui/component/catalog/material_foundation/layout_transitions.rs
+  - zircon_runtime/src/ui/catalog/material_foundation/layout_transitions.rs
   - zircon_runtime/src/ui/component/catalog/material_foundation/shared.rs
   - zircon_runtime/src/dynamic_api/session/runtime_ui.rs
-  - zircon_editor/src/ui/template_runtime/runtime/runtime_host.rs
+  - zircon_editor/src/ui/runtime/runtime/runtime_host.rs
   - zircon_editor/src/ui/asset_editor/node_projection.rs
   - zircon_editor/src/ui/layouts/views/view_projection
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/transition_metadata
   - examples/woc/assets/ui
   - zircon_editor/assets/ui
 tests:
@@ -38,7 +37,7 @@ tests:
   - zircon_runtime/src/ui/tests/asset_hot_reload_executor.rs
   - zircon_runtime/src/ui/tests/asset_prototype_store.rs
   - zircon_runtime/src/ui/tests/component_catalog/material_foundation/layout.rs
-  - zircon_runtime/src/ui/tests/component_catalog/material_foundation/mui_x_runtime.rs
+  - zircon_runtime/src/ui/tests/material_foundation/mui_x_runtime.rs
   - zircon_runtime/src/ui/tests/v2_asset/composite_components.rs
   - zircon_runtime/src/ui/tests/v2_asset/demo_and_builder.rs
   - zircon_runtime/src/ui/tests/v2_asset/file_cache.rs

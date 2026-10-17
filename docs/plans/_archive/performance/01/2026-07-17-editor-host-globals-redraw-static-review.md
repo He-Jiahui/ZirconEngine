@@ -1,14 +1,6 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/host_contract/globals.rs
-  - zircon_editor/src/ui/retained_host/host_contract/globals
-  - zircon_editor/src/ui/retained_host/host_contract/diagnostics.rs
-  - zircon_editor/src/ui/retained_host/host_contract/diagnostics
-  - zircon_editor/src/ui/retained_host/host_contract/diagnostics_tests.rs
-  - zircon_editor/src/ui/retained_host/host_contract/redraw.rs
-  - zircon_editor/src/ui/retained_host/host_contract/redraw
-  - zircon_editor/src/ui/retained_host/host_contract/redraw_tests.rs
-  - zircon_editor/src/ui/retained_host/ui/apply_presentation.rs
+  - zircon_editor/src/ui/retained/ui/apply_presentation.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_editor/editor_ui/08-workbench-shell-on-runtime-ui.md

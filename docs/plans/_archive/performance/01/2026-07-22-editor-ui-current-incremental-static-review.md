@@ -1,9 +1,8 @@
 ---
 related_code:
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard
-  - zircon_editor/src/ui/retained_host/app/build_export_projection
-  - zircon_editor/src/ui/retained_host/app/welcome_session
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench
+  - zircon_editor/src/ui/host/exports/export_build/wizard
+  - zircon_editor/src/ui/retained/app/build_export_projection
+  - zircon_editor/src/ui/retained/app/welcome_session
   - zircon_editor/src/ui/sample_grid
   - zircon_editor/src/ui/workbench/asset_content_layout
   - zircon_editor/src/ui/workbench/project

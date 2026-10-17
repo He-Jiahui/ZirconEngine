@@ -6,9 +6,7 @@ plan: docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions
 plan_sources:
   - docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md
 implementation_files:
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/provider_boilerplate/registration.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/core_runtime_registration.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/support.rs
+  - zircon_runtime/src/tests/structure/provider_boilerplate/registration.rs
 tests:
   - runtime_15_provider_registration_uses_shared_owner
   - runtime_15_core_runtime_registration_structure_tests_are_folder_backed

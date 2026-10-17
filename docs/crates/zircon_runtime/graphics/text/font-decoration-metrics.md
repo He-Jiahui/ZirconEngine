@@ -2,22 +2,21 @@
 related_code:
   - zircon_runtime/src/asset/assets/font.rs
   - zircon_runtime/src/text/font/decoration_metrics.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render/text_decorations.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render/rich_text.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/render/text_decorations.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/render/rich_text.rs
   - zircon_runtime/src/text/sdf/font_bake.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/decorations.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/sdf_render/decorations.rs
 implementation_files:
   - zircon_runtime/src/text/font/decoration_metrics.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render/text_decorations.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/decorations.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/render/text_decorations.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/sdf_render/decorations.rs
 plan_sources:
   - docs/plans/zircon_runtime/text/05-sdf-msdf-pipeline.md
   - docs/superpowers/specs/2026-07-13-runtime-text-sdf-effects-decoration-design.md
   - docs/superpowers/plans/2026-07-13-runtime-text-sdf-effects-decoration.md
 tests:
-  - zircon_runtime/src/text/font/decoration_metrics/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render/tests/text_style_decorations.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/decoration_geometry.rs
+  - zircon_runtime/src/graphics/scene/ui/render/tests/text_style_decorations.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/tests/decoration_geometry.rs
 doc_type: module-detail
 ---
 

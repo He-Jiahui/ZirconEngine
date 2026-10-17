@@ -106,105 +106,20 @@ class CheckConventionsTests(unittest.TestCase):
                 self.assertTrue(_managed_cargo_environment_active())
 
     def test_ci_invokes_single_convention_entrypoint_without_duplicate_command_plan(self) -> None:
-        repo_root = Path(__file__).resolve().parents[2]
-        workflow = (repo_root / ".github" / "workflows" / "ci.yml").read_text(
-            encoding="utf-8"
-        )
-        rust_job = self._workflow_job(workflow, "rust")
-        rust_steps = self._workflow_steps(rust_job)
-        workflow_steps = self._workflow_steps(workflow)
-
-        test_command = (
-            "python -B -m unittest tools.tests.test_check_conventions "
-            "tools.tests.test_frameworks_06_ci_toolchain_contract -v"
-        )
-        runner_command = (
-            "python tools/audits/check_conventions.py --json --only docs --only guards "
-            "--only exemptions --only layering --only structure"
-        )
-        workflow_runs = [
-            self._normalized_yaml_commands(run)
-            for step in workflow_steps
-            if (run := self._workflow_step_run(step)) is not None
-        ]
-        rust_runs = [
-            self._normalized_yaml_commands(run)
-            for step in rust_steps
-            if (run := self._workflow_step_run(step)) is not None
-        ]
-        normalized_workflow_runs = "\n".join(workflow_runs)
-
-        self.assertEqual(normalized_workflow_runs.count(test_command), 1)
-        self.assertEqual(normalized_workflow_runs.count(runner_command), 1)
-        self.assertEqual("\n".join(rust_runs).count(test_command), 1)
-        self.assertEqual("\n".join(rust_runs).count(runner_command), 1)
-
-        blocking_steps = [
-            next(
-                step
-                for step in rust_steps
-                if (
-                    (run := self._workflow_step_run(step)) is not None
-                    and command in self._normalized_yaml_commands(run)
-                )
-            )
-            for command in (test_command, runner_command)
-        ]
-        for step in blocking_steps:
-            self.assertNotRegex(step, r"(?m)^\s*if\s*:")
-            self.assertNotRegex(step, r"(?m)^\s*continue-on-error\s*:")
-        test_step_index, runner_step_index = (
-            rust_steps.index(step) for step in blocking_steps
-        )
-        build_step_index = next(
-            index
-            for index, step in enumerate(rust_steps)
-            if (
-                (run := self._workflow_step_run(step)) is not None
-                and "invoke-cargo-msvc.ps1 cargo build --workspace" in self._normalized_yaml_commands(run)
-                and "build --workspace" in self._normalized_yaml_commands(run)
-            )
-        )
-        self.assertLess(test_step_index, runner_step_index)
-        self.assertLess(runner_step_index, build_step_index)
-
-        self.assertNotIn("tools/audits/check_conventions.py --dry-run", normalized_workflow_runs)
-        runner_step = next(
-            step
-            for step in rust_steps
-            if (run := self._workflow_step_run(step)) is not None
-            and runner_command in self._normalized_yaml_commands(run)
-        )
-        self.assertEqual(
-            self._copied_owned_cargo_commands(
-                self._normalized_yaml_commands(self._workflow_step_run(runner_step) or "")
-            ),
-            [],
-        )
-        expected_gates = {
-            "Check Rust formatting": "cargo +1.94.1 fmt --all -- --check",
-            "Run Clippy with warnings denied": (
-                "cargo clippy --workspace --all-targets --locked -- -D warnings"
-            ),
-            "Check plugin workspace formatting": (
-                "cargo +1.94.1 fmt --manifest-path zircon_plugins/Cargo.toml --all -- --check"
-            ),
-            "Run plugin workspace Clippy with warnings denied": (
-                "cargo clippy --manifest-path zircon_plugins/Cargo.toml --workspace "
-                "--all-targets --locked -- -D warnings"
-            ),
-        }
-        for gate_name, expected_command in expected_gates.items():
-            gate = next(step for step in rust_steps if f"name: {gate_name}" in step)
-            run = self._workflow_step_run(gate)
-            self.assertIsNotNone(run, gate_name)
-            self.assertIn(expected_command, self._normalized_yaml_commands(run or ""))
-            self.assertNotRegex(gate, r"(?m)^\s*if\s*:")
-            self.assertNotRegex(gate, r"(?m)^\s*continue-on-error\s*:")
-        self.assertNotIn(
-            "python -m unittest tools.tests.test_frameworks_05_layer_direction -v",
-            normalized_workflow_runs,
-        )
+        root = Path(__file__).resolve().parents[2]
+        workflow = (root / ".github/workflows/ci.yml").read_text(encoding="utf-8")
+        contracts = self._workflow_job(workflow, "source-contracts")
+        rust = self._workflow_job(workflow, "rust")
+        self.assertIn("test_check_conventions", contracts)
+        self.assertIn("check_conventions.py --json", contracts)
+        self.assertNotIn("check_conventions.py", rust)
+        self.assertNotIn("needs: source-contracts", rust)
+        self.assertIn("structure_convention --locked", rust)
+        for manifest in ("Cargo.toml", "zircon_plugins/Cargo.toml"):
+            self.assertIn(f"$manifest = '{manifest}'", rust)
+        self.assertEqual(rust.count("foreach ($name in $names) { $fmtArguments += @('--package', $name) }"), 2)
+        self.assertEqual(rust.count("$fmtArguments += @('--', '--check')"), 2)
+        self.assertNotRegex(contracts, r"(?m)^\s*continue-on-error:")
 
     def test_duplicate_cargo_guard_recognizes_optional_toolchain_prefix(self) -> None:
         unpinned_commands = "\n".join(

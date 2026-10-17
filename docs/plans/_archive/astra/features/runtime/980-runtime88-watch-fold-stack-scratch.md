@@ -6,7 +6,6 @@ plan_sources:
 implementation_files:
   - zircon_runtime/src/asset/watch/watch_loop.rs
 tests:
-  - zircon_runtime/src/asset/watch/watch_loop/optimization_tests.rs
 ---
 
 # Runtime88 watch fold stack scratch completion list

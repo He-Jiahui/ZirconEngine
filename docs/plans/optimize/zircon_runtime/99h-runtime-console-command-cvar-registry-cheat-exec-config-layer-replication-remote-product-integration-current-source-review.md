@@ -30,17 +30,13 @@ related_code:
   - zircon_editor/src/ui/host/editor_operation_dispatch.rs
   - zircon_editor/src/ui/host/editor_event_control_requests.rs
   - zircon_editor/src/ui/layouts/views/console.rs
-  - zircon_editor/src/ui/retained_host/console_output.rs
   - zircon_editor/assets/ui/editor/console.zui
   - zircon_editor/assets/ui/editor/host/console_body.zui
 tests:
   - zircon_runtime/src/core/runtime/config_store.rs
-  - zircon_runtime/src/foundation/runtime/config_manager_tests.rs
   - zircon_runtime/src/platform/preferences
-  - zircon_runtime/src/operation/tests.rs
   - zircon_runtime/src/operation/tests
   - zircon_editor/src/core/commands/registry.rs
-  - zircon_editor/src/core/commandlet/tests.rs
   - zircon_editor/src/tests/editor_event/runtime
   - zircon_editor/src/tests/host/retained_console_template_body.rs
   - zircon_editor/src/tests/ui/boundary/zui_asset_governance/interaction_policy.rs

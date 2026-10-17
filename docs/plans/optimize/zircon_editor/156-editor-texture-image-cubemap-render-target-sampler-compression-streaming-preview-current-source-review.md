@@ -27,10 +27,8 @@ related_code:
   - zircon_runtime/src/core/framework/render/camera.rs
   - zircon_runtime/src/graphics/scene/resources/gpu_texture
   - zircon_runtime/src/graphics/scene/resources/output_target_texture
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_texture.rs
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_mip_streaming.rs
   - zircon_editor/src/core/asset/type_registry
-  - zircon_editor/src/ui/host/editor_asset_manager/manager/preview_refresh
+  - zircon_editor/src/ui/host/assets/manager/preview_refresh
   - zircon_plugins/texture
   - zircon_plugins/texture_importer
   - zircon_plugins/asset_importers/texture
@@ -38,17 +36,11 @@ related_code:
   - zircon_plugins/first_party_editor_catalog
   - zircon_app/Cargo.toml
 tests:
-  - zircon_runtime/src/asset/assets/texture/descriptor/tests.rs
-  - zircon_runtime/src/asset/assets/texture/upload_support/tests.rs
   - zircon_runtime/src/asset/importer/environment_ibl/source_staging
   - zircon_runtime/src/asset/artifact/render_manifest
   - zircon_runtime/src/core/framework/render/image/metadata_validation.rs
-  - zircon_runtime/src/graphics/scene/resources/gpu_texture/gpu_texture_resource_from_asset/tests.rs
-  - zircon_runtime/src/graphics/scene/resources/output_target_texture/output_target_writeback_converter.rs
   - zircon_plugins/texture_importer/runtime/src/tests
   - zircon_plugins/texture_importer/runtime/src/container/tests
-  - zircon_plugins/texture/editor/src/tests.rs
-  - zircon_plugins/first_party_editor_catalog/src/tests.rs
   - zircon_plugins/first_party_runtime_catalog/src/tests
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md

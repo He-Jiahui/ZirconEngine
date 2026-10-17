@@ -16,21 +16,17 @@ related_code:
   - zircon_runtime/src/core/framework/render/frame_extract.rs
   - zircon_runtime/src/core/framework/render/viewport_product.rs
   - zircon_runtime/src/core/framework/input
-  - zircon_runtime/src/graphics/backend/render_backend/render_backend_new_offscreen.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/camera_loop.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/camera_history_key.rs
+  - zircon_runtime/src/graphics/runtime/framework/extract/submit/camera_loop.rs
+  - zircon_runtime/src/graphics/runtime/viewport_record/camera_history_key.rs
   - zircon_runtime/crates/zr_rhi/src/device.rs
-  - zircon_runtime/crates/zr_rhi_wgpu/src/device.rs
+  - zircon_runtime/crates/zr_rhi/src/device.rs
   - zircon_app/src/entry/runtime_entry_app/frame_loop.rs
   - zircon_app/src/entry/runtime_entry_app/event_loop_policy/frame_cadence.rs
   - zircon_editor/src
   - zircon_plugins
 tests:
   - zircon_runtime/src/builtin/runtime_modules/tests
-  - zircon_runtime/src/core/framework/render/backend_types/tests.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/camera_loop/tests.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/camera_loop/tests/frame.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/camera_history_key.rs
+  - zircon_runtime/src/graphics/runtime/viewport_record/camera_history_key.rs
   - zircon_runtime/src/scene/tests/component_structure/runtime_world_domains.rs
   - zircon_app/src/entry/tests
   - zircon_editor/src/tests

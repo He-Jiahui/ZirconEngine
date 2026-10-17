@@ -10,13 +10,11 @@ related_records:
   - docs/plans/astra/features/editor/731-hierarchy-index-rebuild-reuse.md
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
-  - zircon_editor/src/ui/retained_host/menu_pointer/menu_item_tree.rs
-  - zircon_editor/src/ui/retained_host/menu_pointer/host_menu_pointer_bridge_handle_move.rs
-  - zircon_editor/src/ui/retained_host/menu_pointer/host_menu_pointer_bridge_handle_scroll.rs
-  - zircon_editor/src/ui/retained_host/menu_pointer/host_menu_pointer_bridge_handle_click.rs
+  - zircon_editor/src/ui/retained/menu_pointer/menu_item_tree.rs
+  - zircon_editor/src/ui/menu_pointer/host_menu_pointer_bridge_handle_move.rs
+  - zircon_editor/src/ui/menu_pointer/host_menu_pointer_bridge_handle_scroll.rs
+  - zircon_editor/src/ui/menu_pointer/host_menu_pointer_bridge_handle_click.rs
 tests:
-  - zircon_editor/src/ui/retained_host/menu_pointer/menu_item_tree/capacity_tests.rs
-  - tools/tests/test_editor_menu_parent_path_reuse_performance_contract.py
 ---
 
 # Editor menu pointer parent-path capacity reuse

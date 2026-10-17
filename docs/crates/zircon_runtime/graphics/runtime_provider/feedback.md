@@ -3,19 +3,15 @@ related_code:
   - zircon_runtime/src/graphics/runtime_provider/mod.rs
   - zircon_runtime/src/graphics/runtime_provider/feedback.rs
   - zircon_runtime/src/graphics/hybrid_gi_runtime_provider/runtime_feedback.rs
-  - zircon_runtime/src/graphics/virtual_geometry_runtime_provider/runtime_feedback.rs
 implementation_files:
   - zircon_runtime/src/graphics/runtime_provider/mod.rs
   - zircon_runtime/src/graphics/runtime_provider/feedback.rs
   - zircon_runtime/src/graphics/hybrid_gi_runtime_provider/runtime_feedback.rs
-  - zircon_runtime/src/graphics/virtual_geometry_runtime_provider/runtime_feedback.rs
 plan_sources:
   - docs/plans/engine-code-structure-convention.md
   - docs/plans/engine-code-review-findings-2026-06.md
   - docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md
 tests:
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention.rs::runtime_15_provider_feedback_uses_shared_payload_owner
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data.rs
   - cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked
 doc_type: module-detail
 ---

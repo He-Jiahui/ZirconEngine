@@ -14,15 +14,12 @@ related_code:
   - zircon_runtime/src/plugin/export_build_plan/materialize/copy.rs
   - zircon_runtime/src/plugin/export_build_plan/materialize/paths.rs
   - zircon_runtime/src/tests/extensions/tech_stack_dependency_guard.rs
-  - zircon_runtime/src/tests/runtime_absorption/tech_stack.rs
-  - zircon_runtime/src/tests/runtime_absorption/tech_stack/mirror_docs.rs
+  - zircon_runtime/src/tests/contracts/tech_stack/mirror_docs.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/tech_stack_boundary.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/tech_stack_source_inventory.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/tech_stack_anchor_inventory.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/tech_stack_markdown.py
   - tools/tests/test_runtime_tech_stack_boundary.py
-  - zircon_runtime/src/tests/plugin_extensions/export_build_plan_native_dynamic.rs
-  - zircon_runtime/src/tests/plugin_extensions/export_build_plan_feature_provider.rs
 implementation_files:
   - Cargo.toml
   - zircon_runtime/Cargo.toml
@@ -36,8 +33,7 @@ implementation_files:
   - zircon_runtime/src/plugin/export_build_plan/materialize/copy.rs
   - zircon_runtime/src/plugin/export_build_plan/materialize/paths.rs
   - zircon_runtime/src/tests/extensions/tech_stack_dependency_guard.rs
-  - zircon_runtime/src/tests/runtime_absorption/tech_stack.rs
-  - zircon_runtime/src/tests/runtime_absorption/tech_stack/mirror_docs.rs
+  - zircon_runtime/src/tests/contracts/tech_stack/mirror_docs.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/tech_stack_boundary.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/tech_stack_source_inventory.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/tech_stack_anchor_inventory.py
@@ -51,12 +47,8 @@ plan_sources:
   - dev/Fyrox/fyrox-impl/Cargo.toml
 tests:
   - zircon_runtime/src/tests/extensions/tech_stack_dependency_guard.rs
-  - zircon_runtime/src/tests/runtime_absorption/tech_stack/mirror_docs.rs::runtime_01_tech_stack_mirror_docs_match_structure_audit_counts
+  - zircon_runtime/src/tests/contracts/tech_stack/mirror_docs.rs::runtime_01_tech_stack_mirror_docs_match_structure_audit_counts
   - tools/tests/test_runtime_tech_stack_boundary.py
-  - zircon_runtime/src/tests/plugin_extensions/export_build_plan_native_dynamic.rs::native_dynamic_zip_archive_materialization_writes_generated_files_and_runtime_payloads
-  - zircon_runtime/src/tests/plugin_extensions/export_build_plan_native_dynamic.rs::native_dynamic_zip_archive_preview_reports_archive_without_writes
-  - zircon_runtime/src/tests/plugin_extensions/export_build_plan_feature_provider.rs::source_template_catalog_completion_links_active_external_optional_feature_runtime_crates
-  - zircon_runtime/src/tests/plugin_extensions/export_build_plan_feature_provider.rs::source_template_reports_missing_native_dynamic_feature_provider_as_fatal_when_required
   - cargo test -p zircon_runtime --lib tech_stack --locked -- --nocapture
 doc_type: module-detail
 ---
@@ -73,11 +65,11 @@ Runtime 01 is reopened for the 2026-07-31 Kira Sound owner guard hard cut. `runt
 
 Historical validation snapshot (2026-07-11): `tech_stack`, `extensions`, `text_shaper`, `export_build_plan`, and the Physics plugin workspace gate were closed on that source snapshot. The result remains in the numbered archive, but current status is `in_progress` until the implemented Kira owner Rust guard and mirror pass current-source managed gates, second review remains clean, and fixed return closes.
 
-The same-day manifest-audit refresh treats `glyphon` and `fontsdf` as optional graphics/text dependencies and recognizes only the hard-cut backend feature names `backend-zr-vm` and `backend-jolt`. The retired feature spellings have no compatibility aliases. The direct Runtime 01 audit reads `zircon_plugins/zr_vm_language/runtime/Cargo.toml` as the concrete ZrVM backend owner, verifies every `zr_vm_rust_binding*` path dependency is optional and gated by the plugin feature, and verifies `zircon_runtime/Cargo.toml` has no ZrVM feature or binding dependency. It reports no missing version anchors, no dependency-boundary violations, two visible Jolt slots, and `risks = []`.
+The same-day manifest-audit refresh treats `glyphon` and `fontsdf` as optional graphics/text dependencies and recognizes only the hard-cut backend feature names `backend-zr-vm` and `backend-jolt`. The retired feature spellings have no compatibility aliases. The direct Runtime 01 audit reads `zircon_plugins/zr_vm_language/runtime/Cargo.toml` as the concrete ZrVM backend owner, verifies every `zr_vm_rust_binding*` git dependency is optional and gated by the plugin feature, and verifies `zircon_runtime/Cargo.toml` has no ZrVM feature or binding dependency. It reports no missing version anchors, no dependency-boundary violations, two visible Jolt slots, and `risks = []`.
 
 The dependency guard's manifest reader is bounded to the root manifest and current `zircon_*` product trees, skips generated/cache/documentation/tool trees and symbolic-link directories, and caches the resulting manifest contents once per test process. Any product subtree or manifest read error is reported as `manifest_scan_errors` and fails the audit closed. The Sound Kira pin must be the sole Kira declaration and must live in package `[dependencies]` or `target.*.dependencies`; dev/build/workspace tables remain visible for leak detection but cannot prove the runtime owner. This keeps the repository-wide direct-dependency policy intact while preventing WSL cross-volume scans from being repeated by every guard case. The Windows graphics baseline additionally keeps the complete WGPU 29.0.3 patch family together: `wgpu`, `wgpu-core`, `wgpu-core-deps-windows-linux-android`, `wgpu-hal`, `wgpu-naga-bridge`, and `wgpu-types` all resolve to `29.0.3`, while `gpu-allocator 0.28.0` resolves `windows 0.62.2`. `wgpu_windows_dependency_family_stays_on_one_compatible_patch_line` rejects a partial patch upgrade that would create distinct DX12 COM type identities.
 
-`tech_stack_source_inventory.py` mirrors the Runtime 01 manifest/dependency/version/count inventory, `tech_stack_anchor_inventory.py` mirrors the doc, guard, behavior, decision, and Cargo-gate anchors, `tech_stack_boundary.py` owns audit reads/dependency scanning/risk aggregation, and `tech_stack_markdown.py` owns the Markdown renderer. The five core product manifests remain the fixed count inventory; the ZrVM plugin manifest is audited separately as a concrete backend owner and does not inflate that count. The mirror guard now resolves its real folder-backed owner at `runtime_absorption/tech_stack/mirror_docs.rs`, rather than the route-only `tech_stack.rs` parent. Current evidence reports `expected_manifest_count = 5`, `expected_non_dependency_count = 4`, `kira_dependency_owners = [zircon_plugins/sound/runtime/Cargo.toml]`, `kira_owner_dependency_declaration_count = 1`, `kira_owner_dependency_versions = [0.12.2]`, `kira_owner_version_pinned = true`, `kira_owner_violations = []`, `manifest_scan_errors = []`, `zip_dependency_count = 1`, `expected_zip_dependency_count = 1`, `zip_dependency_violations = []`, `tech_stack_guard_count = 12`, `behavior_test_anchor_count = 6`, `missing_behavior_test_anchors = []`, `editor_only_candidate_count = 3`, `jolt_feature_slot_count = 2`, `declared_removed_dependencies = []`, `rapier_or_avian_dependencies = []`, `mirror_docs_guard_present = true`, `zr_vm_plugin_manifest_present = true`, `runtime_zr_vm_owner_absent = true`, and `risks = []`. The six behavior anchors cover two text-stack checks plus Jolt feature-off unavailability/no-fallback and feature-on ready/native-step behavior. `runtime_01_tech_stack_mirror_docs_match_structure_audit_counts` keeps this tech-stack authority doc, Runtime 01, the runtime index, the M0 review, and runtime-interface convergence aligned with those structure-audit counts. Direct `tech_stack_boundary_audit` verifies one runtime profile hook, one dependency-backed Physics feature, the optional plugin-owned `joltc-sys`, concrete Jolt backend owners, and no runtime solver dependency. It also accepts one or more plugin-owned `zr_vm_rust_binding*` dependencies only when every dependency remains under `../../../../zr_vm/`, optional, and referenced by `backend-zr-vm`; no compatibility path or Runtime forwarding owner is allowed. The completed executable gates remain recorded separately from this structure evidence.
+`tech_stack_source_inventory.py` mirrors the Runtime 01 manifest/dependency/version/count inventory, `tech_stack_anchor_inventory.py` mirrors the doc, guard, behavior, decision, and Cargo-gate anchors, `tech_stack_boundary.py` owns audit reads/dependency scanning/risk aggregation, and `tech_stack_markdown.py` owns the Markdown renderer. The five core product manifests remain the fixed count inventory; the ZrVM plugin manifest is audited separately as a concrete backend owner and does not inflate that count. The mirror guard now resolves its real folder-backed owner at `runtime_absorption/tech_stack/mirror_docs.rs`, rather than the route-only `tech_stack.rs` parent. Current evidence reports `expected_manifest_count = 5`, `expected_non_dependency_count = 4`, `kira_dependency_owners = [zircon_plugins/sound/runtime/Cargo.toml]`, `kira_owner_dependency_declaration_count = 1`, `kira_owner_dependency_versions = [0.12.2]`, `kira_owner_version_pinned = true`, `kira_owner_violations = []`, `manifest_scan_errors = []`, `zip_dependency_count = 1`, `expected_zip_dependency_count = 1`, `zip_dependency_violations = []`, `tech_stack_guard_count = 12`, `behavior_test_anchor_count = 6`, `missing_behavior_test_anchors = []`, `editor_only_candidate_count = 3`, `jolt_feature_slot_count = 2`, `declared_removed_dependencies = []`, `rapier_or_avian_dependencies = []`, `mirror_docs_guard_present = true`, `zr_vm_plugin_manifest_present = true`, `runtime_zr_vm_owner_absent = true`, and `risks = []`. The six behavior anchors cover two text-stack checks plus Jolt feature-off unavailability/no-fallback and feature-on ready/native-step behavior. `runtime_01_tech_stack_mirror_docs_match_structure_audit_counts` keeps this tech-stack authority doc, Runtime 01, the runtime index, the M0 review, and runtime-interface convergence aligned with those structure-audit counts. Direct `tech_stack_boundary_audit` verifies one runtime profile hook, one dependency-backed Physics feature, the optional plugin-owned `joltc-sys`, concrete Jolt backend owners, and no runtime solver dependency. It also accepts one or more plugin-owned `zr_vm_rust_binding*` dependencies only when every dependency uses the same immutable git revision, remains optional, and referenced by `backend-zr-vm`; no compatibility path or Runtime forwarding owner is allowed. The completed executable gates remain recorded separately from this structure evidence.
 
 ## Dependency Matrix
 
@@ -101,7 +93,7 @@ The dependency guard's manifest reader is bounded to the root manifest and curre
 | `zip` | `9.0.0-pre2` with `default-features = false`, `deflate-flate2` only | `zircon_runtime::plugin::export_build_plan::materialize::archive` export archive materializer | none | Only the runtime ZIP archive materializer may declare this dependency. Any feature expansion, additional archive format, or non-runtime owner must update this document and `tech_stack_boundary`. |
 | `accesskit` | `0.22.0` optional | runtime accessibility | `accessibility-accesskit` | Upgrade with accessibility DTO compatibility checks. |
 | gamepad input | app/runtime input stack | app/runtime input | `input-gamepad`, `gamepad-gilrs` | Browser gamepad remains a separate target path. |
-| `zr_vm_rust_binding` / `zr_vm_rust_binding_sys` | external path dependency at `../../zr_vm/...` | `zircon_plugins/zr_vm_language/runtime` concrete backend | plugin feature `backend-zr-vm` | Current decision is to keep the external checkout. `zircon_runtime` remains binding-free and owns only neutral VM contracts. Any move to submodule/vendor/published crate must pair with the empty-argument marshalling fix in the binding version. |
+| `zr_vm_rust_binding` / `zr_vm_rust_binding_sys` | pinned git dependency on `He-Jiahui/zr_vm` | `zircon_plugins/zr_vm_language/runtime` concrete backend | plugin feature `backend-zr-vm` | Current decision is to use one immutable git revision. `zircon_runtime` remains binding-free and owns only neutral VM contracts. Any move to submodule/vendor/published crate must pair with the empty-argument marshalling fix in the binding version. |
 
 ## Corrected Non-Dependencies
 
@@ -125,18 +117,19 @@ Upgrade gates:
 2. `notify`: wait for `9.0` final, then rerun asset watcher and UI hot-reload watch invalidation coverage before changing the workspace dependency.
 3. Any silent manifest bump without this document and `tech_stack_dependency_guard.rs` changing together is invalid.
 
-## External ZrVM Path Dependency
+## Pinned ZrVM Dependency
 
-The current decision is option A from the runtime 01 plan: keep `../../zr_vm` as an external checkout and gate it behind the ZrVM language plugin's `backend-zr-vm` feature. The plugin crate is the single concrete backend owner; `zircon_runtime` does not declare the feature or either binding dependency. This keeps default engine/runtime builds independent from a local ZrVM checkout while preserving the real backend for explicit plugin validation.
+The plugin and WoC native workspace use the immutable git revision
+`3c1352ecb6ddfab02752d46682cc376558d5f481` from `https://github.com/He-Jiahui/zr_vm.git` for both binding
+crates. Cargo fetches this exact source into the managed Cargo cache; plugin CI
+runs `cargo fetch --manifest-path zircon_plugins/Cargo.toml --locked` explicitly.
+No sibling checkout is required for dependency resolution. The plugin remains
+feature gated by `backend-zr-vm`; `zircon_runtime` keeps neutral VM contracts.
 
-The path dependency is not only a clone-layout issue. The plugin real-backend contract depends on a paired binding version that represents empty export argument lists as a valid non-null pointer with length `0`. Moving the dependency to a submodule, vendored crate, or published crate must include that binding fix as a version gate.
-
-Required local layout for the real backend:
-
-```text
-E:/Git/ZirconEngine
-E:/Git/zr_vm
-```
+The binding version must represent empty export argument lists with a valid
+non-null pointer with length `0`. That version-pairing contract remains required
+when updating the pinned source. Native libraries/tooling for feature-enabled
+ZrVM execution remain a separate runtime prerequisite.
 
 ## Export Archive Decision
 

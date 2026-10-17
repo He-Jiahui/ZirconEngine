@@ -12,11 +12,7 @@ related_records:
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
   - zircon_runtime/src/ui/component/state_reducer/keyboard/menu.rs
-  - zircon_runtime/src/ui/component/state_reducer/keyboard/menu/child_values_iterator_tests.rs
-  - tools/tests/test_runtime_menu_search_streaming_performance_contract.py
 tests:
-  - zircon_runtime/src/ui/component/state_reducer/keyboard/menu/child_values_iterator_tests.rs
-  - tools/tests/test_runtime_menu_child_values_iterator_performance_contract.py
 ---
 
 # Runtime781 · Menu child-values iterator

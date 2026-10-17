@@ -2,13 +2,11 @@
 related_code:
   - zircon_runtime/src/core/framework/render/environment/environment_brdf_lut.rs
   - zircon_runtime/src/graphics/shader/wgsl/zr_environment.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/environment_brdf_lut.rs
   - zircon_runtime/tests/runtime_environment_brdf_lut_contract.rs
   - zircon_runtime/tests/runtime_shader_pbr_hdri_export.rs
 implementation_files:
   - zircon_runtime/src/core/framework/render/environment/environment_brdf_lut.rs
   - zircon_runtime/src/graphics/shader/wgsl/zr_environment.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/environment_brdf_lut.rs
 plan_sources:
   - user: 2026-07-07 mirror sphere grazing should look physically realistic and not over-emphasize the right side
   - docs/plans/zircon_runtime/shader/06-environment-ibl-and-pbr-correctness.md
@@ -16,10 +14,6 @@ plan_sources:
 tests:
   - zircon_runtime/tests/runtime_environment_brdf_lut_contract.rs
   - zircon_runtime/tests/runtime_shader_pbr_hdri_export.rs
-  - docs/tests/runtime/shader/runtime_shader_pbr_real_hdri_lakes_mirror_sphere_orthographic_reflection_20260707.png
-  - docs/tests/runtime/shader/runtime_shader_pbr_real_hdri_lakes_mirror_sphere_perspective_reflection_20260707.png
-  - docs/tests/runtime/shader/runtime_shader_pbr_real_hdri_lakes_ortho_cpu_ref_compare_20260707.png
-  - docs/tests/runtime/shader/runtime_shader_pbr_real_hdri_lakes_persp_cpu_ref_compare_20260707.png
 doc_type: module-detail
 ---
 

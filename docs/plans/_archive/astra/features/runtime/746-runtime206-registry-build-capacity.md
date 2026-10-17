@@ -10,9 +10,7 @@ related_records:
   - docs/plans/astra/features/runtime/745-runtime206-referencer-binary-sort.md
 related_code:
   - zircon_runtime/src/asset/registry/asset_registry_index.rs
-  - zircon_runtime/src/asset/registry/asset_registry_index/build_tests.rs
 tests:
-  - tools/tests/test_runtime206_registry_build_capacity_performance_contract.py
 ---
 
 # Runtime206 Registry Build Capacity And Streamed Dependency Bootstrap

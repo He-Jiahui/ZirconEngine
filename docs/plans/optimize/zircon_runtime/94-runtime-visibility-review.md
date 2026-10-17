@@ -8,24 +8,12 @@ baseline_epoch: 336
 related_code:
   - zircon_runtime/src/core/framework/render/scene_extract.rs
   - zircon_runtime/src/graphics/visibility
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract
   - zircon_runtime/src/graphics/scene/gpu_scene
   - zircon_runtime/src/graphics/scene/resources/resource_streamer
-  - zircon_runtime/src/graphics/scene/scene_renderer/hzb
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_draw
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process
-  - zircon_runtime/src/graphics/scene/scene_renderer/shadow/shadow_map_renderer.rs
+  - zircon_runtime/src/graphics/scene/renderer/shadow/shadow_map_renderer.rs
 tests:
   - zircon_runtime/src/graphics/tests/visibility.rs
   - zircon_runtime/src/graphics/tests/visibility
-  - zircon_runtime/src/graphics/visibility/context/from_extract_with_history/construct/tests.rs
-  - zircon_runtime/src/graphics/scene/gpu_scene/gpu_scene/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/hzb/hzb_occlusion_culler/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/indirect_draw_plan/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/indirect_draw_workspace/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_hzb_build/tests.rs
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md
   - docs/plans/optimize/01-cross-report-owner-schema-abi-p0-consolidation-review.md

@@ -3,7 +3,6 @@ related_code:
   - zircon_editor/src/core/hub_link
   - zircon_editor/src/ui/host/editor_manager_project_session.rs
   - zircon_editor/src/ui/host/startup/recent_projects.rs
-  - zircon_editor/src/ui/retained_host/app.rs
 base_reports:
   - docs/plans/performance/01/2026-08-16-editor-hub-link-current-architecture-review.md
 owner_plans:

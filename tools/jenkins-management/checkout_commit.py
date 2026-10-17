@@ -121,6 +121,11 @@ def selected_paths(repo, paths, policy, grants):
                 or name.casefold() in seen):
             raise ValueError("Commit requires unique literal repository-relative file paths")
         target = physical(repo / name)
+        if target.exists() and (
+            name.startswith("docs/plans/source-comments/") and target.suffix in {".json", ".jsonl"}
+            or name.startswith("docs/") and name.endswith("-post-validation.json")
+        ):
+            raise ValueError("Generated audit evidence belongs in the retained artifact store, not a source commit")
         if target.exists() and not target.is_file():
             raise ValueError("Select individual files, not directories")
         if not target.is_relative_to(repo):
@@ -201,7 +206,7 @@ def git(repo, *args, check=True):
         if not trace_path.is_relative_to(physical(Path("E:/cargo-targets/zircon-local/reports/jenkins-commit-audit-20261017"))):
             raise ValueError("Git trace output escaped its task report root")
         environment["GIT_TRACE2_EVENT"] = trace_path.as_posix()
-    command = [str(executable), "-c", "core.quotepath=false", *args]
+    command = [str(executable), "-c", "core.fsmonitor=false", "-c", "core.hooksPath=" + os.devnull, "-c", "core.quotepath=false", *args]
     if os.name == "nt" and os.environ.get("ZR_COMMIT_NATIVE") == "1":
         result = run_native_command(command, repo, environment)
     else:

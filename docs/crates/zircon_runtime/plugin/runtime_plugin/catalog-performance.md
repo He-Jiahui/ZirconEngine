@@ -1,21 +1,12 @@
 ---
 related_code:
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog
 implementation_files:
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/derived_projection.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/registration/update.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/registration/update/candidate_rows.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/project.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_resolution.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/runtime_extensions.rs
+  - zircon_runtime/src/plugin/runtime/catalog/registration/update.rs
+  - zircon_runtime/src/plugin/runtime/catalog/registration/update/candidate_rows.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_plugins/01-plugin-architecture-core.md
 tests:
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/registration/update/tests.rs
-  - zircon_runtime/src/tests/plugin_extensions/runtime_plugin_catalog_features.rs
-  - zircon_runtime/src/tests/plugin_extensions/runtime_plugin_catalog_features/feature_dependency_reports.rs
 doc_type: module-detail
 ---
 

@@ -22,13 +22,11 @@ related_code:
   - zircon_runtime/src/ui/platform_input/mod.rs
   - zircon_runtime/src/ui/platform_input/keyboard_map.rs
   - zircon_runtime/src/ui/platform_input/winit_translation.rs
-  - zircon_editor/src/ui/retained_host/host_contract/window/event_loop/platform_input.rs
-  - zircon_editor/src/ui/retained_host/host_contract/window/event_loop/events.rs
+  - zircon_editor/src/ui/retained/contract/window/event_loop/platform_input.rs
+  - zircon_editor/src/ui/retained/contract/window/event_loop/events.rs
   - zircon_editor/src/tests/host/retained_window/platform_input_translation.rs
   - docs/crates/zircon_editor/ui/retained_host/host_contract/platform_input.md
-  - zircon_editor/src/ui/retained_host/shell_pointer/bridge.rs
-  - dev/UnrealEngine/Engine/Source/Runtime/Slate/Public/Framework/Application/SlateApplication.h
-  - dev/UnrealEngine/Engine/Source/Runtime/SlateCore/Public/Input/Reply.h
+  - zircon_editor/src/ui/retained/shell_pointer/bridge.rs
 plan_sources:
   - .codex/plans/ZirconEngine 宿主编辑器 UI 基础能力计划.md
   - .codex/plans/Shared Slate-Style UI Layout, Render, And Hit Framework.md

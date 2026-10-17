@@ -16,11 +16,9 @@ related_code:
   - zircon_runtime/src/ui/text/mod.rs
   - zircon_runtime/src/ui/text/layout_engine.rs
   - zircon_runtime/src/ui/text/rich_text.rs
-  - zircon_runtime/src/ui/text/rich_text/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render/resolved_layout.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render/text_advances.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render/tests.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/render.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/render/resolved_layout.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/render/text_advances.rs
 tests:
   - cargo test -p zircon_runtime --lib --locked visual_glyph_artifact_
   - cargo test -p zircon_runtime --lib --locked render_prepare_rebuilds_missing_or_stale_plain_glyph_artifacts

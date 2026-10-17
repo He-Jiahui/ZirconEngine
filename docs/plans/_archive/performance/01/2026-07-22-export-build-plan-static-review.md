@@ -1,8 +1,7 @@
 ---
 related_code:
   - zircon_runtime/src/plugin/export_build_plan
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_dependencies.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/registration/constructors.rs
+  - zircon_runtime/src/plugin/runtime/catalog/registration/constructors.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_plugins/09-export-publishing.md

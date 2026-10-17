@@ -3,7 +3,7 @@ use std::time::Duration;
 use http_body_util::{BodyExt, Full, LengthLimitError, Limited};
 use hyper::body::Bytes;
 use hyper::HeaderMap;
-use zircon_plugin_net_runtime::certificate_pin_matches;
+use zircon_plugin_net_runtime::rustls_client_config_for_websocket;
 use zircon_runtime::core::framework::net::{
     NetError, NetHttpRequestDescriptor, NetHttpResponseDescriptor,
 };
@@ -96,15 +96,24 @@ async fn send_http_request_once_reqwest(
 ) -> Result<NetHttpResponseDescriptor, NetError> {
     let mut builder = reqwest::Client::builder()
         .timeout(Duration::from_millis(request.timeout_ms))
-        .use_rustls_tls()
-        .tls_info(request.security.certificate_pinning);
-    if request.security.certificate_pinning {
-        builder = builder.danger_accept_invalid_certs(true);
+        .use_rustls_tls();
+    if request.security.certificate_pinning || request.security.has_certificate_roots() {
+        let url =
+            reqwest::Url::parse(&request.url).map_err(|error| NetError::Io(error.to_string()))?;
+        let host = url
+            .host_str()
+            .ok_or_else(|| NetError::SecurityPolicyViolation {
+                reason: "HTTP TLS policy requires a valid request host".to_string(),
+            })?;
+        // Reuse the chain, hostname and pin verifier from the WebSocket path.
+        // It rejects the peer before any HTTP headers or body are transmitted.
+        let config =
+            rustls_client_config_for_websocket(&request.security, host.trim_matches(['[', ']']))?;
+        builder = builder.use_preconfigured_tls(config);
     }
-    for root in &request.security.certificate_roots {
-        let certificate = reqwest::Certificate::from_der(&root.der)
-            .map_err(|error| NetError::Io(error.to_string()))?;
-        builder = builder.add_root_certificate(certificate);
+    if request.security.certificate_pinning {
+        // The configured pins authorize this host only, including on redirects.
+        builder = builder.redirect(reqwest::redirect::Policy::none());
     }
     let client = builder
         .build()
@@ -120,7 +129,6 @@ async fn send_http_request_once_reqwest(
         .send()
         .await
         .map_err(|error| NetError::Io(error.to_string()))?;
-    validate_pinned_peer_certificate(request, &response)?;
     let status_code = response.status().as_u16();
     let headers = headers_to_descriptor(response.headers());
     let declared_length = response.content_length();
@@ -161,37 +169,6 @@ fn response_body_limit_error() -> NetError {
     ))
 }
 
-fn validate_pinned_peer_certificate(
-    request: &NetHttpRequestDescriptor,
-    response: &reqwest::Response,
-) -> Result<(), NetError> {
-    if !request.security.certificate_pinning {
-        return Ok(());
-    }
-    let host = http_url_host(&request.url).ok_or_else(|| NetError::SecurityPolicyViolation {
-        reason: "HTTP certificate pinning requires a valid request host".to_string(),
-    })?;
-    let tls_info = response
-        .extensions()
-        .get::<reqwest::tls::TlsInfo>()
-        .ok_or_else(|| NetError::SecurityPolicyViolation {
-            reason: format!("HTTP certificate pinning could not inspect peer certificate: {host}"),
-        })?;
-    let certificate =
-        tls_info
-            .peer_certificate()
-            .ok_or_else(|| NetError::SecurityPolicyViolation {
-                reason: format!("HTTP certificate pinning found no peer certificate: {host}"),
-            })?;
-    if certificate_pin_matches(&request.security, &host, certificate) {
-        Ok(())
-    } else {
-        Err(NetError::SecurityPolicyViolation {
-            reason: format!("HTTP certificate pin mismatch for host: {host}"),
-        })
-    }
-}
-
 fn headers_to_descriptor(headers: &HeaderMap) -> Vec<(String, String)> {
     headers
         .iter()
@@ -206,21 +183,4 @@ fn headers_to_descriptor(headers: &HeaderMap) -> Vec<(String, String)> {
 
 fn response_is_retryable(status_code: u16) -> bool {
     matches!(status_code, 408 | 425 | 429 | 500 | 502 | 503 | 504)
-}
-
-fn http_url_host(url: &str) -> Option<String> {
-    let authority = url
-        .strip_prefix("http://")
-        .or_else(|| url.strip_prefix("https://"))
-        .map(|rest| rest.split('/').next().unwrap_or_default())?;
-    Some(
-        authority
-            .rsplit_once('@')
-            .map(|(_, host)| host)
-            .unwrap_or(authority)
-            .split(':')
-            .next()
-            .unwrap_or_default()
-            .to_string(),
-    )
 }

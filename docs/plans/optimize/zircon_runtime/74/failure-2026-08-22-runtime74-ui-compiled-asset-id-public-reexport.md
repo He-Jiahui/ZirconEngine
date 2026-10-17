@@ -20,8 +20,8 @@ related_code:
   - zircon_runtime/src/ui/template/mod.rs
   - zircon_runtime/src/ui/v2/component_instancer.rs
   - zircon_editor/src/ui/asset_editor/binding/binding_inspector.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/component_property_rows.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/scene_tree_rows.rs
+  - zircon_editor/src/ui/retained/dispatch/workbench/component_property_rows.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/workbench/scene_tree_rows.rs
   - zircon_editor/src/ui/workbench/reference/builder/nodes.rs
 ---
 

@@ -9,11 +9,7 @@ canonical_owner: Editor40
 refreshes:
   - docs/plans/optimize/zircon_editor/40-procedural-content-generation-rule-graph-biome-world-generation-authoring-review.md
 related_code:
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/world/workbench_extension_scatter_editor_workspace.zui
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation/specs/world_building/prefab_and_scatter.rs
-  - zircon_editor/src/ui/retained_host/workbench_preview_actions.rs
-  - zircon_editor/src/ui/template_runtime/builtin/workbench_extension_module_template_bindings/world_building.rs
+  - zircon_editor/src/ui/dispatch/specs/world_building/prefab_and_scatter.rs
   - zircon_plugins/terrain
   - zircon_runtime_interface/src/resource/marker.rs
   - zircon_runtime/src/asset/assets/authoring.rs
@@ -33,11 +29,8 @@ related_code:
   - examples/woc/scripts/woc_game/src/world/decoration_candidate.zr
   - examples/woc/scripts/woc_game/src/world/collision_grid.zr
 tests:
-  - zircon_plugins/terrain/runtime/src/tests.rs
-  - zircon_plugins/terrain/editor/src/tests.rs
   - zircon_runtime/src/asset/assets/authoring.rs
   - zircon_runtime/src/asset/assets/scene/extensions.rs
-  - zircon_editor/src/ui/retained_host/workbench_preview_actions.rs
   - examples/woc/contracts/m3_terrain_content.json
   - examples/woc/scripts/woc_game/src/world/terrain_noise.zr
   - examples/woc/scripts/woc_game/src/world/decoration_candidate.zr

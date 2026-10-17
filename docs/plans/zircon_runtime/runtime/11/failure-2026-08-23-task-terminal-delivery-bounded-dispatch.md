@@ -10,7 +10,6 @@ fixing_child_dir: docs/plans/zircon_runtime/runtime/11
 plan_link_mode: child_record_only
 related_code:
   - zircon_runtime/src/core/runtime/tasks/job_handle.rs
-  - zircon_runtime/src/core/runtime/tasks/job_handle/tests.rs
   - zircon_runtime/src/core/runtime/tasks/job_scheduler.rs
   - zircon_runtime/src/core/runtime/tasks/timer.rs
   - zircon_runtime/src/core/runtime/tasks/callback_dispatcher.rs

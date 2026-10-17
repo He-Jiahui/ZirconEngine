@@ -18,43 +18,14 @@ related_code:
   - zircon_runtime/src/builtin/runtime_modules/manifest.rs
   - zircon_runtime/src/builtin/runtime_modules/plugin_modules.rs
   - docs/crates/zircon_runtime/builtin/runtime_modules.md
-  - zircon_runtime/src/tests/runtime_absorption/mod.rs
-  - zircon_runtime/src/tests/runtime_absorption/asset_surface.rs
-  - zircon_runtime/src/tests/runtime_absorption/asset_pipeline.rs
-  - zircon_runtime/src/tests/runtime_absorption/asset_worker_policy.rs
-  - zircon_runtime/src/tests/runtime_absorption/root_entries.rs
-  - zircon_runtime/src/tests/runtime_absorption/root_surface.rs
-  - zircon_runtime/src/tests/runtime_absorption/schedule_frame_loop.rs
-  - zircon_runtime/src/tests/runtime_absorption/builtin_modules.rs
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings.rs
-  - zircon_runtime/src/tests/runtime_absorption/compatibility_shells.rs
-  - zircon_runtime/src/tests/runtime_absorption/core_spine_root_generated.rs
-  - zircon_runtime/src/tests/runtime_absorption/dynamic_api_session.rs
-  - zircon_runtime/src/tests/runtime_absorption/dynamic_scene.rs
-  - zircon_runtime/src/tests/runtime_absorption/dynamic_api_session/shared.rs
-  - zircon_runtime/src/tests/runtime_absorption/dynamic_api_session/headless_profiles.rs
-  - zircon_runtime/src/tests/runtime_absorption/dynamic_api_session/event_split.rs
-  - zircon_runtime/src/tests/runtime_absorption/dynamic_api_session/test_owner_split.rs
-  - zircon_runtime/src/tests/runtime_absorption/dynamic_api_session/ffi_panic_boundary.rs
-  - zircon_runtime/src/tests/runtime_absorption/dynamic_api_session/ui_contract.rs
-  - zircon_runtime/src/tests/runtime_absorption/dynamic_api_session/v2_contract.rs
-  - zircon_runtime/src/tests/runtime_absorption/dynamic_api_session/mirror_docs.rs
-  - zircon_runtime/src/tests/runtime_absorption/ecs_kernel_data.rs
-  - zircon_runtime/src/tests/runtime_absorption/generated_code_guard.rs
-  - zircon_runtime/src/tests/runtime_absorption/input_stack.rs
-  - zircon_runtime/src/tests/runtime_absorption/job_system.rs
-  - zircon_runtime/src/tests/runtime_absorption/plugin_surface_lifecycle.rs
-  - zircon_runtime/src/tests/runtime_absorption/performance_hotspots.rs
-  - zircon_runtime/src/tests/runtime_absorption/rayon_boundary.rs
-  - zircon_runtime/src/tests/runtime_absorption/resource_foundation.rs
-  - zircon_runtime/src/tests/runtime_absorption/script_absorption.rs
-  - zircon_runtime/src/tests/runtime_absorption/script_binding.rs
-  - zircon_runtime/src/tests/runtime_absorption/script_host_ledger.rs
-  - zircon_runtime/src/tests/runtime_absorption/service_registry_lifecycle.rs
-  - zircon_runtime/src/tests/runtime_absorption/service_registry_ownership.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention.rs
-  - zircon_runtime/src/tests/runtime_absorption/tech_stack.rs
-  - zircon_runtime/src/tests/runtime_absorption/ui_architecture.rs
+  - zircon_runtime/src/tests/contracts/dynamic_api_session/shared.rs
+  - zircon_runtime/src/tests/contracts/dynamic_api_session/headless_profiles.rs
+  - zircon_runtime/src/tests/contracts/dynamic_api_session/event_split.rs
+  - zircon_runtime/src/tests/contracts/dynamic_api_session/test_owner_split.rs
+  - zircon_runtime/src/tests/contracts/dynamic_api_session/ffi_panic_boundary.rs
+  - zircon_runtime/src/tests/contracts/dynamic_api_session/ui_contract.rs
+  - zircon_runtime/src/tests/contracts/dynamic_api_session/v2_contract.rs
+  - zircon_runtime/src/tests/contracts/dynamic_api_session/mirror_docs.rs
   - zircon_runtime/src/scene/ecs/schedule_runner.rs
   - docs/crates/zircon_runtime/performance/hotspot_inventory.md
   - docs/crates/zircon_runtime/ui/architecture.md
@@ -88,10 +59,7 @@ related_code:
   - zircon_runtime/src/scene/world/project_io/script.rs
   - zircon_runtime/src/scene/world/project_io/transform.rs
   - docs/crates/zircon_runtime/scene/world/project_io.md
-  - zircon_runtime/src/scene/dynamic_scene/document/mod.rs
-  - zircon_runtime/src/scene/dynamic_scene/entity/mod.rs
-  - zircon_runtime/src/scene/dynamic_scene/scene/mod.rs
-  - zircon_runtime/src/scene/dynamic_scene/value/mod.rs
+  - zircon_runtime/src/scene/dynamic/value/mod.rs
   - zircon_runtime/src/asset/assets/scene/mod.rs
   - zircon_runtime/src/dynamic_api/exports.rs
   - zircon_runtime/src/scene/tests/component_structure.rs
@@ -140,8 +108,7 @@ related_code:
   - docs/architecture/large-file-ownership-m1.md
   - zircon_runtime/src/plugin/mod.rs
   - zircon_runtime/src/core/framework/render/virtual_geometry_debug_snapshot.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/__init__.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/asset_pipeline_boundary.py
@@ -220,7 +187,6 @@ related_code:
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/tech_stack_source_inventory.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/tech_stack_anchor_inventory.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/tech_stack_markdown.py
-  - zircon_runtime/src/tests/runtime_absorption/naming_boundary.rs
 implementation_files:
   - docs/architecture/runtime-architecture-review-m0.md
   - docs/architecture/runtime-reference-engine-evidence.md
@@ -343,39 +309,14 @@ implementation_files:
   - zircon_runtime/src/scene/ecs/query/query_state/system_param.rs
   - zircon_runtime/src/scene/tests/ecs_query_structure.rs
   - docs/crates/zircon_runtime/scene/ecs/query_state.md
-  - zircon_runtime/src/tests/runtime_absorption/naming_boundary.rs
-  - zircon_runtime/src/tests/runtime_absorption/mod.rs
-  - zircon_runtime/src/tests/runtime_absorption/asset_surface.rs
-  - zircon_runtime/src/tests/runtime_absorption/asset_worker_policy.rs
-  - zircon_runtime/src/tests/runtime_absorption/builtin_modules.rs
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings.rs
-  - zircon_runtime/src/tests/runtime_absorption/compatibility_shells.rs
-  - zircon_runtime/src/tests/runtime_absorption/core_spine_root_generated.rs
-  - zircon_runtime/src/tests/runtime_absorption/dynamic_api_session.rs
-  - zircon_runtime/src/tests/runtime_absorption/dynamic_api_session/shared.rs
-  - zircon_runtime/src/tests/runtime_absorption/dynamic_api_session/headless_profiles.rs
-  - zircon_runtime/src/tests/runtime_absorption/dynamic_api_session/event_split.rs
-  - zircon_runtime/src/tests/runtime_absorption/dynamic_api_session/test_owner_split.rs
-  - zircon_runtime/src/tests/runtime_absorption/dynamic_api_session/ffi_panic_boundary.rs
-  - zircon_runtime/src/tests/runtime_absorption/dynamic_api_session/ui_contract.rs
-  - zircon_runtime/src/tests/runtime_absorption/dynamic_api_session/v2_contract.rs
-  - zircon_runtime/src/tests/runtime_absorption/dynamic_api_session/mirror_docs.rs
-  - zircon_runtime/src/tests/runtime_absorption/ecs_kernel_data.rs
-  - zircon_runtime/src/tests/runtime_absorption/generated_code_guard.rs
-  - zircon_runtime/src/tests/runtime_absorption/input_stack.rs
-  - zircon_runtime/src/tests/runtime_absorption/job_system.rs
-  - zircon_runtime/src/tests/runtime_absorption/plugin_surface_lifecycle.rs
-  - zircon_runtime/src/tests/runtime_absorption/performance_hotspots.rs
-  - zircon_runtime/src/tests/runtime_absorption/rayon_boundary.rs
-  - zircon_runtime/src/tests/runtime_absorption/resource_foundation.rs
-  - zircon_runtime/src/tests/runtime_absorption/root_entries.rs
-  - zircon_runtime/src/tests/runtime_absorption/schedule_frame_loop.rs
-  - zircon_runtime/src/tests/runtime_absorption/script_absorption.rs
-  - zircon_runtime/src/tests/runtime_absorption/script_binding.rs
-  - zircon_runtime/src/tests/runtime_absorption/script_host_ledger.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention.rs
-  - zircon_runtime/src/tests/runtime_absorption/ui_architecture.rs
-  - zircon_runtime/src/tests/runtime_absorption/root_surface.rs
+  - zircon_runtime/src/tests/contracts/dynamic_api_session/shared.rs
+  - zircon_runtime/src/tests/contracts/dynamic_api_session/headless_profiles.rs
+  - zircon_runtime/src/tests/contracts/dynamic_api_session/event_split.rs
+  - zircon_runtime/src/tests/contracts/dynamic_api_session/test_owner_split.rs
+  - zircon_runtime/src/tests/contracts/dynamic_api_session/ffi_panic_boundary.rs
+  - zircon_runtime/src/tests/contracts/dynamic_api_session/ui_contract.rs
+  - zircon_runtime/src/tests/contracts/dynamic_api_session/v2_contract.rs
+  - zircon_runtime/src/tests/contracts/dynamic_api_session/mirror_docs.rs
   - zircon_runtime/src/scene/ecs/schedule_runner.rs
   - docs/crates/zircon_runtime/performance/hotspot_inventory.md
   - docs/crates/zircon_runtime/ui/architecture.md
@@ -389,8 +330,6 @@ plan_sources:
   - .codex/plans/Runtime 吸收层与 Editor_Scene 边界收束计划.md
   - .codex/plans/全系统重构方案.md
 tests:
-  - zircon_runtime/src/tests/runtime_absorption/service_registry_lifecycle.rs
-  - zircon_runtime/src/tests/runtime_absorption/service_registry_ownership.rs::registry_owned_services_store_only_weak_runtime_back_references
   - zircon_editor/src/tests/host/manager/runtime_lifecycle.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py --json
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py

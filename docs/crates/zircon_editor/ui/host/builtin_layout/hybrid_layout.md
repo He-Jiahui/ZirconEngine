@@ -14,7 +14,7 @@ plan_sources:
   - user: 2026-05-11 Implement Material + Fyrox + JetBrains + Unreal editor UI plan
   - .codex/plans/Zircon Editor UI Material  Fyrox  JetBrains  Unreal.md
 tests:
-  - zircon_editor/src/tests/host/manager/bootstrap_and_startup.rs
+  - zircon_editor/src/tests/host/manager/bootstrap_and_startup/mod.rs
   - zircon_editor/src/ui/workbench/preset/default_layout.rs
   - cargo check -p zircon_editor --lib --locked --target-dir target/codex-editor-ui-shell (2026-05-11: passed)
   - cargo test -p zircon_editor --lib default_layout --locked --target-dir target/codex-editor-ui-shell (2026-05-11: passed, 5 passed)

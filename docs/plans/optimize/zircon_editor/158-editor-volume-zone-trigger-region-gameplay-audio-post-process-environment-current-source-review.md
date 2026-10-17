@@ -14,7 +14,6 @@ supersedes_currentness_of:
   - docs/plans/optimize/zircon_editor/37-volume-zone-trigger-region-gameplay-audio-post-process-environment-authoring-review.md
   - docs/plans/optimize/zircon_editor/111-editor-volume-zone-trigger-region-gameplay-audio-post-process-environment-current-source-review.md
 related_code:
-  - zircon_runtime/src/core/framework/render/post_process
   - zircon_runtime/src/asset/assets/scene/post_process.rs
   - zircon_runtime/src/scene/components/scene/post_process.rs
   - zircon_runtime/src/scene/world/render_post_process.rs
@@ -30,20 +29,14 @@ related_code:
   - zircon_runtime/src/core/framework/navigation/modifier.rs
   - zircon_plugins/navigation/runtime/src/manager/bake
   - zircon_plugins/navigation/editor
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/world/workbench_extension_volume_editor_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/rendering/workbench_extension_post_process_workspace.zui
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback.rs
   - zircon_plugins/first_party_editor_catalog/src/catalog.rs
   - zircon_plugins/first_party_runtime_catalog/src/lib.rs
   - zircon_app/Cargo.toml
 tests:
-  - zircon_runtime/src/core/framework/render/post_process/volume_component/tests.rs
   - zircon_runtime/src/asset/tests/assets/scene/post_process.rs
   - zircon_runtime/src/scene/tests/render_post_process_extract.rs
-  - zircon_runtime/src/core/framework/physics/tests.rs
   - zircon_plugins/physics/runtime/src/backend/builtin/trigger
   - zircon_plugins/sound/runtime/src/engine/source_environment/volume/filter.rs
-  - zircon_plugins/sound/editor/src/tests.rs
   - zircon_plugins/navigation/runtime/src/manager/bake/task_pool.rs
   - zircon_plugins/navigation/editor/src/tests/bake_panel_retained.rs
   - zircon_plugins/navigation/editor/src/tests/operation_command.rs

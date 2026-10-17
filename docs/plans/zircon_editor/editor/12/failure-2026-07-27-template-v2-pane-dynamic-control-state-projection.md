@@ -9,12 +9,9 @@ origin_child_dir: docs/plans/zircon_plugins/05
 fixing_child_dir: docs/plans/zircon_editor/editor/12
 plan_link_mode: child_record_only
 related_code:
-  - zircon_editor/src/ui/template_runtime/runtime/pane_payload_projection.rs
-  - zircon_editor/src/ui/template_runtime/runtime/runtime_host.rs
-  - zircon_editor/src/ui/template_runtime/runtime/template_action_registry.rs
-  - zircon_editor/src/ui/template_runtime/runtime/projection.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/template_runtime_projection.rs
-  - zircon_editor/src/ui/retained_host/app/pane_surface_actions/click.rs
+  - zircon_editor/src/ui/runtime/runtime/runtime_host.rs
+  - zircon_editor/src/ui/runtime/runtime/projection.rs
+  - zircon_editor/src/ui/retained/app/pane_surface_actions/click.rs
 tests:
   - cargo test -p zircon_editor --lib template_runtime --locked
   - cargo test -p zircon_editor --lib retained_host --locked

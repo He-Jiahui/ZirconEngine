@@ -8,8 +8,6 @@ related_records:
 implementation_files:
   - zircon_runtime/src/core/framework/render/shader/material_property_layout.rs
 tests:
-  - zircon_runtime/src/core/framework/render/shader/material_property_layout/enum_description_tests.rs
-  - tools/tests/test_runtime876_material_enum_expected_direct_performance_contract.py
 ---
 
 # Runtime876 Material Enum Expected Direct

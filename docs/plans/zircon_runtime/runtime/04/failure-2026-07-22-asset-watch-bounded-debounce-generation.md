@@ -10,8 +10,6 @@ fixing_child_dir: docs/plans/zircon_runtime/runtime/04
 plan_link_mode: child_record_only
 related_code:
   - zircon_runtime/src/asset/watch
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/runtime.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/project_asset_manager.rs
 tests:
   - cargo test -p zircon_runtime --lib asset::tests::watcher --locked --jobs 1 -- --nocapture --test-threads=1
   - unique URI, continuous storm, slow callback, overflow reconciliation, rename and shutdown matrices

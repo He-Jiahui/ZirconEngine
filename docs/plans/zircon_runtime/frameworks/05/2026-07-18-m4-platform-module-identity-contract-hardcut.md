@@ -5,14 +5,14 @@ related_code:
   - zircon_runtime/src/platform/module.rs
   - zircon_runtime/src/platform/mod.rs
   - zircon_runtime/src/input/module/descriptor.rs
-  - zircon_runtime/src/graphics/runtime_builtin_graphics/host/module_host/module_registration/module_descriptor.rs
+  - zircon_runtime/src/graphics/host/module_registration/module_descriptor.rs
 implementation_files:
   - zircon_runtime/src/core/framework/platform/module_identity.rs
   - zircon_runtime/src/core/framework/platform/mod.rs
   - zircon_runtime/src/platform/module.rs
   - zircon_runtime/src/platform/mod.rs
   - zircon_runtime/src/input/module/descriptor.rs
-  - zircon_runtime/src/graphics/runtime_builtin_graphics/host/module_host/module_registration/module_descriptor.rs
+  - zircon_runtime/src/graphics/host/module_registration/module_descriptor.rs
 plan_sources:
   - docs/plans/zircon_runtime/frameworks/05-subsystem-decoupling-contracts.md
   - docs/plans/zircon_runtime/frameworks/01-runtime-crate-decomposition.md

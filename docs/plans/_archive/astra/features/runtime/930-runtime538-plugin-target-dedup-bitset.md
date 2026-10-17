@@ -4,10 +4,10 @@ status: implemented_pending_validation
 plan_sources:
   - docs/plans/optimize/zircon_runtime/02/2026-08-30-runtime538-plugin-target-dedup-bitsets.md
 implementation_files:
-  - zircon_runtime/src/plugin/runtime_plugin/package_validation/layout/supported_targets/state.rs
-  - zircon_runtime/src/plugin/runtime_plugin/module_validation/target_modes/rows/state.rs
+  - zircon_runtime/src/plugin/runtime/validation/layout/supported_targets/state.rs
+  - zircon_runtime/src/plugin/runtime/module_validation/target_modes/rows/state.rs
 tests:
-  - zircon_runtime/src/plugin/runtime_plugin/package_validation/layout/supported_targets/state.rs
+  - zircon_runtime/src/plugin/runtime/validation/layout/supported_targets/state.rs
 ---
 
 # Runtime930 Runtime538 plugin target dedup bitsets

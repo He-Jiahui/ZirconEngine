@@ -1,19 +1,7 @@
 ---
 related_code:
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/build_virtual_geometry_debug_snapshot.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/build_virtual_geometry_debug_snapshot/page.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/build_virtual_geometry_debug_snapshot/node_cull.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/build_virtual_geometry_debug_snapshot/execution.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/build_virtual_geometry_debug_snapshot/support.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/build_runtime_frame.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/frame_submission_context.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_build_virtual_geometry_debug_snapshot.rs
+  - zircon_runtime/src/graphics/runtime/extract/submit/build_runtime_frame.rs
 implementation_files:
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/build_virtual_geometry_debug_snapshot.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/build_virtual_geometry_debug_snapshot/page.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/build_virtual_geometry_debug_snapshot/node_cull.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/build_virtual_geometry_debug_snapshot/execution.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/build_virtual_geometry_debug_snapshot/support.rs
 plan_sources:
   - docs/plans/zircon_runtime/render/02-mesh-draw-command-pipeline.md
   - docs/plans/zircon_runtime/render/index.md
@@ -21,7 +9,6 @@ plan_sources:
   - docs/plans/engine-code-review-findings-2026-06.md
   - user: 2026-06-24 implement WGPU-to-render pipeline design from render plans with structure/review priorities
 tests:
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_build_virtual_geometry_debug_snapshot.rs
   - docs/plans/zircon_runtime/render/02-mesh-draw-command-pipeline.md
   - docs/plans/zircon_runtime/render/index.md
 doc_type: module-detail

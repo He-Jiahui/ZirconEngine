@@ -11,10 +11,7 @@ related_records:
 implementation_files:
   - zircon_runtime/src/ui/component/state_reducer/keyboard.rs
   - zircon_runtime/src/ui/component/state_reducer/keyboard/menu.rs
-  - zircon_runtime/src/ui/component/state_reducer/keyboard/menu/typeahead_option_id_tests.rs
 tests:
-  - zircon_runtime/src/ui/component/state_reducer/keyboard/menu/typeahead_option_id_tests.rs
-  - tools/tests/test_runtime_menu_typeahead_option_id_borrow_performance_contract.py
 ---
 
 # Runtime765 · Menu typeahead option-ID borrow

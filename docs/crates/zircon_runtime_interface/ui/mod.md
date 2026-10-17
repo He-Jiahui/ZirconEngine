@@ -104,7 +104,7 @@ related_code:
   - zircon_runtime_interface/src/ui/template/asset/action_policy/host_policy.rs
   - zircon_runtime_interface/src/ui/template/asset/action_policy/mod.rs
   - zircon_runtime_interface/src/ui/template/asset/action_policy/report.rs
-  - zircon_runtime_interface/src/ui/template/asset/action_policy/side_effect_class.rs
+  - zircon_runtime_interface/src/ui/asset/action_policy/side_effect_class.rs
   - zircon_runtime_interface/src/ui/template/asset/binding/diagnostic.rs
   - zircon_runtime_interface/src/ui/template/asset/binding/expression.rs
   - zircon_runtime_interface/src/ui/template/asset/binding/mod.rs
@@ -117,7 +117,7 @@ related_code:
   - zircon_runtime_interface/src/ui/template/asset/compiler/package/header.rs
   - zircon_runtime_interface/src/ui/template/asset/compiler/package/manifest.rs
   - zircon_runtime_interface/src/ui/template/asset/compiler/package/mod.rs
-  - zircon_runtime_interface/src/ui/template/asset/compiler/package/package_manifest.rs
+  - zircon_runtime_interface/src/ui/asset/compiler/package/package_manifest.rs
   - zircon_runtime_interface/src/ui/template/asset/compiler/package/profile.rs
   - zircon_runtime_interface/src/ui/template/asset/compiler/package/report.rs
   - zircon_runtime/src/ui/template/asset/compiler/package/artifact.rs
@@ -125,15 +125,15 @@ related_code:
   - zircon_runtime/src/ui/template/asset/compiler/package/validate.rs
   - zircon_editor/src/ui/template/service.rs
   - zircon_runtime_interface/src/ui/template/asset/component_contract/api_version.rs
-  - zircon_runtime_interface/src/ui/template/asset/component_contract/binding_contract.rs
+  - zircon_runtime_interface/src/ui/asset/component_contract/binding_contract.rs
   - zircon_runtime_interface/src/ui/template/asset/component_contract/diagnostic.rs
-  - zircon_runtime_interface/src/ui/template/asset/component_contract/focus_contract.rs
+  - zircon_runtime_interface/src/ui/asset/component_contract/focus_contract.rs
   - zircon_runtime_interface/src/ui/template/asset/component_contract/mod.rs
-  - zircon_runtime_interface/src/ui/template/asset/component_contract/public_contract.rs
+  - zircon_runtime_interface/src/ui/asset/component_contract/public_contract.rs
   - zircon_runtime_interface/src/ui/template/asset/component_contract/public_part.rs
-  - zircon_runtime_interface/src/ui/template/asset/component_contract/root_class_policy.rs
+  - zircon_runtime_interface/src/ui/asset/component_contract/root_class_policy.rs
   - zircon_runtime_interface/src/tests/ui_v2_contracts.rs
-  - zircon_runtime/src/tests/runtime_absorption/dynamic_api_session/v2_contract.rs
+  - zircon_runtime/src/tests/contracts/dynamic_api_session/v2_contract.rs
   - zircon_runtime_interface/src/ui/template/asset/document.rs
   - zircon_runtime_interface/src/ui/template/asset/invalidation/change.rs
   - zircon_runtime_interface/src/ui/template/asset/invalidation/diagnostic.rs
@@ -143,7 +143,7 @@ related_code:
   - zircon_runtime_interface/src/ui/template/asset/invalidation/report.rs
   - zircon_runtime_interface/src/ui/template/asset/invalidation/stage.rs
   - zircon_runtime_interface/src/ui/template/asset/localization/diagnostic.rs
-  - zircon_runtime_interface/src/ui/template/asset/localization/localized_text_ref.rs
+  - zircon_runtime_interface/src/ui/asset/localization/localized_text_ref.rs
   - zircon_runtime_interface/src/ui/template/asset/localization/mod.rs
   - zircon_runtime_interface/src/ui/template/asset/localization/report.rs
   - zircon_runtime_interface/src/ui/template/asset/localization/text_direction.rs
@@ -160,7 +160,7 @@ related_code:
   - zircon_runtime_interface/src/ui/template/asset/schema/report.rs
   - zircon_runtime/src/ui/template/asset/schema/migrator.rs
   - zircon_runtime/src/ui/tests/asset_schema_migration.rs
-  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/ui.rs
+  - zircon_runtime/src/tests/contracts/naming_boundary/runtime_15_m2/ui.rs
   - zircon_runtime_interface/src/ui/template/asset/style.rs
   - zircon_runtime_interface/src/ui/template/document.rs
   - zircon_runtime_interface/src/ui/tree/mod.rs
@@ -284,7 +284,7 @@ implementation_files:
   - zircon_runtime_interface/src/ui/template/asset/action_policy/host_policy.rs
   - zircon_runtime_interface/src/ui/template/asset/action_policy/mod.rs
   - zircon_runtime_interface/src/ui/template/asset/action_policy/report.rs
-  - zircon_runtime_interface/src/ui/template/asset/action_policy/side_effect_class.rs
+  - zircon_runtime_interface/src/ui/asset/action_policy/side_effect_class.rs
   - zircon_runtime_interface/src/ui/template/asset/binding/diagnostic.rs
   - zircon_runtime_interface/src/ui/template/asset/binding/expression.rs
   - zircon_runtime_interface/src/ui/template/asset/binding/mod.rs
@@ -297,7 +297,7 @@ implementation_files:
   - zircon_runtime_interface/src/ui/template/asset/compiler/package/header.rs
   - zircon_runtime_interface/src/ui/template/asset/compiler/package/manifest.rs
   - zircon_runtime_interface/src/ui/template/asset/compiler/package/mod.rs
-  - zircon_runtime_interface/src/ui/template/asset/compiler/package/package_manifest.rs
+  - zircon_runtime_interface/src/ui/asset/compiler/package/package_manifest.rs
   - zircon_runtime_interface/src/ui/template/asset/compiler/package/profile.rs
   - zircon_runtime_interface/src/ui/template/asset/compiler/package/report.rs
   - zircon_runtime/src/ui/template/asset/compiler/package/artifact.rs
@@ -305,15 +305,15 @@ implementation_files:
   - zircon_runtime/src/ui/template/asset/compiler/package/validate.rs
   - zircon_editor/src/ui/template/service.rs
   - zircon_runtime_interface/src/ui/template/asset/component_contract/api_version.rs
-  - zircon_runtime_interface/src/ui/template/asset/component_contract/binding_contract.rs
+  - zircon_runtime_interface/src/ui/asset/component_contract/binding_contract.rs
   - zircon_runtime_interface/src/ui/template/asset/component_contract/diagnostic.rs
-  - zircon_runtime_interface/src/ui/template/asset/component_contract/focus_contract.rs
+  - zircon_runtime_interface/src/ui/asset/component_contract/focus_contract.rs
   - zircon_runtime_interface/src/ui/template/asset/component_contract/mod.rs
-  - zircon_runtime_interface/src/ui/template/asset/component_contract/public_contract.rs
+  - zircon_runtime_interface/src/ui/asset/component_contract/public_contract.rs
   - zircon_runtime_interface/src/ui/template/asset/component_contract/public_part.rs
-  - zircon_runtime_interface/src/ui/template/asset/component_contract/root_class_policy.rs
+  - zircon_runtime_interface/src/ui/asset/component_contract/root_class_policy.rs
   - zircon_runtime_interface/src/tests/ui_v2_contracts.rs
-  - zircon_runtime/src/tests/runtime_absorption/dynamic_api_session/v2_contract.rs
+  - zircon_runtime/src/tests/contracts/dynamic_api_session/v2_contract.rs
   - zircon_runtime_interface/src/ui/template/asset/document.rs
   - zircon_runtime_interface/src/ui/template/asset/invalidation/change.rs
   - zircon_runtime_interface/src/ui/template/asset/invalidation/diagnostic.rs
@@ -323,7 +323,7 @@ implementation_files:
   - zircon_runtime_interface/src/ui/template/asset/invalidation/report.rs
   - zircon_runtime_interface/src/ui/template/asset/invalidation/stage.rs
   - zircon_runtime_interface/src/ui/template/asset/localization/diagnostic.rs
-  - zircon_runtime_interface/src/ui/template/asset/localization/localized_text_ref.rs
+  - zircon_runtime_interface/src/ui/asset/localization/localized_text_ref.rs
   - zircon_runtime_interface/src/ui/template/asset/localization/mod.rs
   - zircon_runtime_interface/src/ui/template/asset/localization/report.rs
   - zircon_runtime_interface/src/ui/template/asset/localization/text_direction.rs

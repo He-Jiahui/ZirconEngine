@@ -1,8 +1,8 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/app/hierarchy_rename.rs
-  - zircon_editor/src/ui/retained_host/app/tests/hierarchy_rename.rs
-  - zircon_editor/src/ui/retained_host/app/tests/mod.rs
+  - zircon_editor/src/ui/retained/app/hierarchy_rename.rs
+  - zircon_editor/src/ui/retained/app/tests/hierarchy_rename.rs
+  - zircon_editor/src/ui/retained/app/tests/mod.rs
 plan_sources:
   - docs/plans/optimize/zircon_editor/60/2026-09-28-hierarchy-rename-failed-commit-preserves-draft.md
 status: implemented_pending_validation

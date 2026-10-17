@@ -19,8 +19,6 @@ related_code:
   - zircon_runtime/src/graphics/feature/builtin_render_feature
   - zircon_runtime/src/graphics/scene/gpu_scene
   - zircon_runtime/src/graphics/scene/resources/gpu_mesh
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh
-  - zircon_runtime/src/graphics/scene/scene_renderer/temporal/velocity
   - zircon_plugins/first_party_runtime_catalog
   - zircon_app/src/entry
   - zircon_editor/src/core/asset/type_registry
@@ -28,11 +26,8 @@ related_code:
 tests:
   - zircon_editor/src/tests/editor_asset_type_registry/builtins.rs
   - zircon_runtime/src/asset/tests/assets/mesh/morph_targets.rs
-  - zircon_runtime/src/core/framework/physics/tests.rs
   - zircon_runtime/src/graphics/tests/render_product_mesh_cache.rs
-  - zircon_runtime/src/graphics/tests/render_product_mesh_cache/morph.rs
   - zircon_plugins/physics/runtime/src/backend/tests/jolt_contract.rs
-  - zircon_plugins/physics/runtime/src/skeletal/tests.rs
 plan_sources:
   - docs/plans/optimize/zircon_runtime/31-cloth-fabric-soft-body-garment-simulation-collision-deformation-rendering-wind-lod-scalability-product-integration-review.md
   - docs/plans/optimize/zircon_runtime/99b-runtime-temporal-aa-velocity-history-dynamic-resolution-upscaling-reconstruction-product-integration-current-source-review.md

@@ -4,7 +4,7 @@ related_code:
   - zircon_editor/src/ui/workbench/snapshot/data/editor_state_snapshot_build.rs
   - zircon_editor/src/ui/host/editor_event_execution/menu_action.rs
   - zircon_editor/src/ui/host/editor_event_runtime_access/snapshot.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/render_submission.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle/render_submission.rs
   - zircon_editor/src/scene/viewport/controller
   - zircon_editor/src/core/gateway
   - zircon_runtime/src/core/framework/render/highlight_set.rs

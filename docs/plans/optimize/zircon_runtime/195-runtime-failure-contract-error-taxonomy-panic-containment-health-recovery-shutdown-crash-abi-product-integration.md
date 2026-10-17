@@ -28,7 +28,6 @@ related_code:
   - zircon_runtime/src/scene/ecs/commands/command_queue.rs
   - zircon_runtime/src/scene/ecs/schedule_runner.rs
   - zircon_runtime/src/plugin/extension_registry/register/system_registration.rs
-  - zircon_runtime/src/plugin/native_plugin_loader
   - zircon_runtime/src/script/vm/runtime/hot_reload_coordinator.rs
   - zircon_runtime/src/dynamic_api/exports.rs
   - zircon_runtime/src/dynamic_api/session

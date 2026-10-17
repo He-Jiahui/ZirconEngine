@@ -11,11 +11,8 @@ plan_link_mode: child_record_only
 related_code:
   - zircon_plugins/sound/plugin.toml
   - zircon_plugins/sound/runtime/src/runtime_plugin/feature_manifest.rs
-  - zircon_plugins/sound/features/timeline_animation_track/runtime/src/plugin.rs
-  - zircon_plugins/sound/features/ray_traced_convolution_reverb/runtime/src/plugin.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/sound_features/rows.rs
+  - zircon_runtime/src/plugin/runtime/builtin_catalog/sound_features/rows.rs
   - zircon_runtime/src/plugin/export_build_plan/linked_feature_source.rs
-  - zircon_runtime/src/tests/plugin_extensions/export_build_plan_feature_provider.rs
 tests:
   - ./.codex/skills/zircon-dev/scripts/validate-matrix.ps1 -Package zircon_runtime -SkipBuild -LibTests -TestFilter linked_feature_export_without_source_root_or_independent_manifest_fails_closed
 ---

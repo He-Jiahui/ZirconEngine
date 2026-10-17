@@ -12,7 +12,6 @@ related_code:
   - zircon_runtime/tests/support/mod.rs
   - zircon_runtime/tests/virtual_geometry_support_descriptor_contract.rs
   - zircon_plugins/virtual_geometry/runtime/src/lib.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile.rs
   - zircon_runtime/src/graphics/tests/plugin_render_feature_fixtures.rs
   - zircon_runtime/src/graphics/tests/plugin_feature_compile.rs
 tests:

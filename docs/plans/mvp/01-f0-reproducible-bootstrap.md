@@ -6,7 +6,6 @@ related_code:
   - zircon_app/src/entry/entry_runner/editor.rs
   - zircon_app/src/entry/entry_runner/runtime.rs
   - zircon_app/src/entry/runtime_entry_app
-  - zircon_editor/src/ui/retained_host
   - zircon_runtime/src/dynamic_api/session
 related_tests:
   - zircon_app/src/entry/entry_runner/editor/tests/gui_startup.rs

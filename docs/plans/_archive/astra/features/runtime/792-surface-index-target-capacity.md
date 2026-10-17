@@ -11,7 +11,6 @@ implementation_files:
   - zircon_runtime/src/ui/template/asset/surface_index.rs
 tests:
   - zircon_runtime/src/ui/tests/asset_surface_index/target_capacity.rs
-  - tools/tests/test_runtime_surface_index_target_capacity_performance_contract.py
 ---
 
 # Runtime792 · Surface-index target projection capacity

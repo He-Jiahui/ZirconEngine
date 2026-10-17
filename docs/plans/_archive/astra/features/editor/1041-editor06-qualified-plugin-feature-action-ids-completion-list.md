@@ -1,9 +1,7 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/app/module_plugin_actions/action_ids/parser.rs
-  - zircon_editor/src/ui/retained_host/app/module_plugin_actions/action_ids/tests.rs
-  - zircon_editor/src/ui/retained_host/app/module_plugin_projection/rows/features/action.rs
-  - zircon_editor/src/ui/retained_host/app/module_plugin_projection/rows/tests.rs
+  - zircon_editor/src/ui/retained/app/plugins/action_ids/parser.rs
+  - zircon_editor/src/ui/retained/app/rows/features/action.rs
   - docs/crates/zircon_editor/ui/retained_host/app/module_plugin_actions.md
 plan_sources:
   - docs/plans/optimize/zircon_editor/06/2026-09-28-qualified-plugin-feature-action-ids.md

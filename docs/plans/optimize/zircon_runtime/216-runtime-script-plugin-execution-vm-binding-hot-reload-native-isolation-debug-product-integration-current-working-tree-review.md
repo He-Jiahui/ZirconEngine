@@ -26,7 +26,6 @@ related_code:
   - zircon_runtime/src/core/framework/script.rs
   - zircon_runtime/src/core/framework/script
   - zircon_runtime/src/script
-  - zircon_runtime/src/plugin/native_plugin_loader
   - zircon_plugins/plugin_sdk/src/native.rs
   - zircon_plugins/zr_vm_language
   - zircon_runtime/src/dynamic_api/session

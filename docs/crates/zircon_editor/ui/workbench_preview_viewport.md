@@ -1,12 +1,9 @@
 ---
 related_code:
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_preview_viewport.zui
-  - zircon_editor/assets/ui/editor/workbench/preview/animation_mannequin_viewport.svg
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/animation/workbench_extension_blend_space_workspace.zui
-  - zircon_editor/src/tests/host/retained_menu_pointer/visual_screenshot/blend_space_workspace/preview_viewport.rs
+  - zircon_editor/assets/ui/editor/preview/animation_mannequin_viewport.svg
+  - zircon_editor/src/tests/host/menus/blend_space_workspace/preview_viewport.rs
 implementation_files:
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_preview_viewport.zui
-  - zircon_editor/assets/ui/editor/workbench/preview/animation_mannequin_viewport.svg
+  - zircon_editor/assets/ui/editor/preview/animation_mannequin_viewport.svg
 plan_sources:
   - user: 2026-07-13 standardize primitives first and improve preview fidelity against Unreal references
   - docs/plans/zircon_editor/editor_layout/15-component-standardization-from-primitives.md

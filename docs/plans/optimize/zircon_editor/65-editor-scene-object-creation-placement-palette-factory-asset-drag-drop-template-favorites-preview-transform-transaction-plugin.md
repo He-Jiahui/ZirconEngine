@@ -13,20 +13,19 @@ related_code:
   - zircon_editor/src/core/extension/store/batch.rs
   - zircon_editor/src/ui/workbench/event
   - zircon_editor/src/ui/workbench/state
-  - zircon_editor/src/ui/retained_host/app/asset_drag_payload
-  - zircon_editor/src/ui/retained_host/app/assets/workspace.rs
-  - zircon_editor/src/ui/retained_host/app/viewport
-  - zircon_editor/src/ui/retained_host/menu_pointer
+  - zircon_editor/src/ui/retained/app/asset_drag_payload
+  - zircon_editor/src/ui/retained/app/assets/workspace.rs
+  - zircon_editor/src/ui/retained/app/viewport
   - zircon_editor/assets/ui/editor/asset_browser.zui
 tests:
   - zircon_editor/src/tests/editing/history.rs
   - zircon_editor/src/tests/editing/import.rs
-  - zircon_editor/src/tests/editing/node_ops.rs
+  - zircon_editor/src/tests/editing/node_ops/mod.rs
   - zircon_editor/src/tests/editing/transaction_engine/journal_scene_commands.rs
   - zircon_editor/src/tests/editor_event/runtime/registry.rs
-  - zircon_editor/src/ui/retained_host/app/tests/drag_sources/asset_browser.rs
-  - zircon_editor/src/ui/retained_host/app/tests/drag_sources/asset_metadata_and_fields.rs
-  - zircon_editor/src/ui/retained_host/app/tests/drag_sources/scene_and_object.rs
+  - zircon_editor/src/ui/retained/app/tests/drag_sources/asset_browser.rs
+  - zircon_editor/src/ui/app/tests/drag_sources/asset_metadata_and_fields.rs
+  - zircon_editor/src/ui/retained/app/tests/drag_sources/scene_and_object.rs
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md
   - docs/plans/optimize/01-cross-report-owner-schema-abi-p0-consolidation-review.md

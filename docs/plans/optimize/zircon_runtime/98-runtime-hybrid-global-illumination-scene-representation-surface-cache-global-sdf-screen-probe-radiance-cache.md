@@ -9,10 +9,7 @@ related_code:
   - zircon_plugins/hybrid_gi/plugin.toml
   - zircon_plugins/hybrid_gi/runtime/src/lib.rs
   - zircon_plugins/hybrid_gi/runtime/src/provider.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/scene_representation/representation.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/scene_representation
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer
-  - zircon_plugins/hybrid_gi/runtime/src/render_pass_executors
+  - zircon_plugins/hybrid_gi/runtime/src/gi/scene_representation/representation.rs
   - zircon_plugins/hybrid_gi/editor/src
   - zircon_plugins/hybrid_gi/dist/src/lib.rs
   - zircon_runtime/src/core/framework/render/scene_extract.rs
@@ -20,17 +17,9 @@ related_code:
   - zircon_runtime/src/core/framework/render/plugin_renderer_outputs.rs
   - zircon_runtime/src/scene/world/render.rs
   - zircon_runtime/src/graphics/hybrid_gi_runtime_provider
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract
-  - zircon_runtime/src/graphics/visibility/context/from_extract_with_history/construct.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process
-  - zircon_editor/src/ui/retained_host/viewport/editor_viewport_render_defaults.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload_builders/runtime_diagnostics.rs
+  - zircon_editor/src/ui/retained/viewport/editor_viewport_render_defaults.rs
 tests:
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/dispatch_probe_trace_tiles/tests.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/dispatch_radiance_cache/tests.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/global_sdf/tests.rs
-  - zircon_plugins/hybrid_gi/runtime/src/render_pass_executors/resolve_trace_handoff/tests.rs
   - zircon_plugins/hybrid_gi/runtime/tests/hybrid_gi_m4_invalidation_profiles.rs
   - zircon_plugins/hybrid_gi/runtime/tests/hybrid_gi_m4_profile_matrix_wgpu.rs
   - zircon_runtime/src/graphics/tests/render_framework_bridge.rs

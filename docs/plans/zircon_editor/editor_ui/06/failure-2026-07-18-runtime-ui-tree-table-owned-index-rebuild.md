@@ -13,8 +13,6 @@ related_code:
   - zircon_runtime/src/ui/component/state_reducer/tree_view/editing.rs
   - zircon_runtime/src/ui/component/state_reducer/table.rs
   - zircon_runtime/src/ui/component/state_reducer/keyboard.rs
-  - dev/UnrealEngine/Engine/Source/Runtime/Slate/Public/Widgets/Views/IItemsSource.h
-  - dev/UnrealEngine/Engine/Source/Runtime/Slate/Public/Widgets/Views/STreeView.h
 tests:
   - 100k-node tree navigation and edit lookup scale test
   - 100k-row typed sort main-thread budget test

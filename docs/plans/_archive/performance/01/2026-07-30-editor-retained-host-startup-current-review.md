@@ -1,12 +1,11 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/startup.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/startup
-  - zircon_editor/src/ui/retained_host/app/assets/workspace.rs
-  - zircon_editor/src/ui/retained_host/app/assets/refresh/events/startup.rs
-  - zircon_editor/src/ui/retained_host/app/assets/refresh/snapshots.rs
-  - zircon_editor/src/ui/host/editor_asset_manager/change_stream.rs
-  - zircon_runtime/src/asset/pipeline/manager/service_contracts/resource_manager_contract.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle/startup.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle/startup
+  - zircon_editor/src/ui/retained/app/assets/workspace.rs
+  - zircon_editor/src/ui/retained/app/assets/refresh/events/startup.rs
+  - zircon_editor/src/ui/retained/app/assets/refresh/snapshots.rs
+  - zircon_runtime/src/asset/manager/service_contracts/resource_manager_contract.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_editor/editor/09-editor-asset-management.md

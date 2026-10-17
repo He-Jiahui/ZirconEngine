@@ -4,8 +4,6 @@ related_code:
 plan_sources:
   - docs/plans/optimize/zircon_runtime/158/2026-09-27-timer-ready-bucket-buffer-reuse.md
 tests:
-  - zircon_runtime/src/core/runtime/tasks/timer/ready_bucket_reuse_tests.rs
-  - zircon_runtime/src/core/runtime/tasks/timer/astra_interval_tests.rs
 doc_type: milestone-detail
 status: implemented_pending_validation
 ---

@@ -85,7 +85,6 @@ related_code:
   - zircon_runtime/src/core/framework/window/video_mode_selection.rs
   - zircon_app/src/entry/runtime_library/loaded_runtime.rs
   - zircon_app/src/entry/runtime_library/runtime_session.rs
-  - zircon_app/src/entry/runtime_library/tests.rs
   - zircon_app/src/entry/tests/mod.rs
   - zircon_app/src/entry/tests/runtime_entry_device_guards/mod.rs
   - zircon_app/src/entry/tests/runtime_entry_device_guards/dispatch.rs
@@ -119,7 +118,7 @@ related_code:
   - zircon_app/src/entry/tests/source_assertions.rs
   - zircon_runtime_interface/src/runtime_api/mod.rs
   - zircon_runtime/src/dynamic_api/surface.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/present_frame_extract.rs
+  - zircon_runtime/src/graphics/runtime/extract/submit/present_frame_extract.rs
 implementation_files:
   - zircon_app/src/entry/entry_runner/runtime.rs
   - zircon_app/src/entry/entry_runner/runtime_session_args.rs
@@ -266,7 +265,6 @@ tests:
   - zircon_app/src/entry/runtime_entry_app/pointer_input/wheel.rs
   - zircon_app/src/entry/runtime_entry_app/surface_present/mod.rs
   - zircon_app/src/entry/runtime_entry_app/surface_present/binding.rs
-  - zircon_app/src/entry/runtime_entry_app/surface_present/fallback.rs
   - zircon_app/src/entry/runtime_entry_app/surface_present/lifecycle.rs
   - zircon_app/src/entry/runtime_entry_app/surface_present/redraw.rs
   - zircon_app/src/entry/runtime_entry_app/surface_present/resize.rs
@@ -284,7 +282,6 @@ tests:
   - zircon_app/src/entry/runtime_entry_app/config/app_config.rs
   - zircon_app/src/entry/entry_runner/runtime.rs
   - zircon_app/src/entry/entry_runner/runtime_session_args.rs
-  - zircon_app/src/entry/runtime_library/tests.rs
   - zircon_app/src/entry/tests/mod.rs
   - zircon_app/src/entry/tests/runtime_entry_device_guards/mod.rs
   - zircon_app/src/entry/tests/runtime_entry_device_guards/dispatch.rs

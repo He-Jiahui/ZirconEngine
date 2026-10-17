@@ -5,9 +5,8 @@ plan_sources:
   - docs/plans/optimize/zircon_editor/01-retained-ui-architecture-performance-review.md
   - docs/plans/optimize/zircon_editor/01/2026-08-29-ui-hotspot-ownership-review.md
 related_code:
-  - zircon_editor/src/ui/retained_host/app.rs
-  - zircon_editor/src/ui/retained_host/app/asset_surface_pointer_state.rs
-  - zircon_editor/src/ui/retained_host/app/workspace_docking.rs
+  - zircon_editor/src/ui/retained/app/asset_surface_pointer_state.rs
+  - zircon_editor/src/ui/retained/app/workspace_docking.rs
 tests:
   - tools/tests/test_editor17_settings_value_batch_contract.py
 ---

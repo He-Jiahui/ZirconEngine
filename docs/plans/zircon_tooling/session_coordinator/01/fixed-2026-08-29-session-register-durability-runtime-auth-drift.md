@@ -11,8 +11,6 @@ plan_link_mode: child_record_only
 failure_scope: local
 related_code:
 tests:
-  - tools/session_coordinator/tests/test_command_protocol.py
-  - tools/session_coordinator/tests/test_session_register_durability.py
 resolved_at: 2026-08-29
 ---
 

@@ -13,7 +13,7 @@ related_code:
   - zircon_app/src/entry/tests/builtin_engine_entry.rs
   - zircon_app/src/entry/builtin_modules.rs
   - zircon_editor/src/ui/host
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/native_registration/manager.rs
+  - zircon_editor/src/ui/host/exports/native_registration/manager.rs
 tests:
   - editor startup single project-open counter
   - first-party registration single-build counter

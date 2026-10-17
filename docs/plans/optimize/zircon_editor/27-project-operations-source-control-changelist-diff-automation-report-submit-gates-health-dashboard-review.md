@@ -1,18 +1,14 @@
 ---
 related_code:
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/production
   - zircon_editor/assets/ui/editor/project_overview.zui
-  - zircon_editor/src/ui/retained_host/workbench_preview_actions/extensions.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/module_field_edit.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback/data_production.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation/specs/data_production.rs
-  - zircon_editor/src/ui/template_runtime/builtin/workbench_extension_module_template_bindings/render_asset_vfx.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/workbench/module_field_edit.rs
+  - zircon_editor/src/ui/retained/dispatch/workbench/specs/data_production.rs
   - zircon_editor/src/ui/layouts/views/project_overview.rs
   - zircon_editor/src/ui/workbench/project/asset_workspace_state.rs
   - zircon_editor/src/ui/workbench/snapshot/data/project_overview_snapshot.rs
   - zircon_editor/src/core/commandlet
-  - zircon_editor/src/ui/retained_host/app/automation.rs
-  - zircon_editor/src/ui/retained_host/app/tests/retained_host_automation.rs
+  - zircon_editor/src/ui/retained/app/automation.rs
+  - zircon_editor/src/ui/retained/app/tests/retained_host_automation.rs
   - zircon_app/src/entry/entry_runner/editor/project_automation.rs
   - zircon_runtime/src/asset/project/manifest/project_manifest.rs
 plan_sources:

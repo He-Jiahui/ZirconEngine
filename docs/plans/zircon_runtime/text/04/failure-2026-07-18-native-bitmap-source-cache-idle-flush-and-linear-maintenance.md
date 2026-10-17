@@ -21,8 +21,8 @@ related_code:
   - zircon_runtime/src/text/atlas/slot_cache.rs
   - zircon_runtime/src/text/atlas/bitmap_run/types.rs
   - zircon_runtime/src/text/render_state.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/prepare_report.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/text.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/text/prepare_report.rs
 ---
 
 # Native bitmap source cache空帧清空与线性维护

@@ -25,10 +25,9 @@ related_code:
   - zircon_editor/src/ui/host/startup/create_or_open.rs
   - zircon_editor/src/ui/host/startup/recent_projects.rs
   - zircon_editor/src/ui/host/project_access.rs
-  - zircon_editor/src/ui/workbench/startup/editor_startup_session_document_welcome_pane_snapshot.rs
-  - zircon_editor/src/ui/retained_host/app/welcome_session/project_probe.rs
-  - zircon_editor/src/ui/retained_host/app/assets/workspace.rs
-  - zircon_editor/src/ui/retained_host/app/assets/workspace/active_scene_reload_conflict.rs
+  - zircon_editor/src/ui/retained/app/welcome_session/project_probe.rs
+  - zircon_editor/src/ui/retained/app/assets/workspace.rs
+  - zircon_editor/src/ui/app/assets/workspace/active_scene_reload_conflict.rs
   - zircon_runtime_interface/src/project/template_pack/mod.rs
   - zircon_runtime_interface/src/project/template_pack/render.rs
   - templates/projects/renderable-empty/zircon-project.toml
@@ -56,7 +55,7 @@ implementation_files:
   - zircon_editor/src/ui/host/startup/create_or_open.rs
   - zircon_editor/src/ui/host/startup/recent_projects.rs
   - zircon_editor/src/ui/host/project_access.rs
-  - zircon_editor/src/ui/retained_host/app/welcome_session/project_probe.rs
+  - zircon_editor/src/ui/retained/app/welcome_session/project_probe.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - user: 2026-07-11 Plan10 M1 slice 1.2 ProjectAuthority hard cut
@@ -67,8 +66,6 @@ tests:
   - zircon_editor/src/ui/host/startup/create_or_open.rs::tests::opened_project_is_not_reopened_just_to_update_recents
   - zircon_editor/src/core/project/tests/template_creation.rs
   - zircon_editor/src/core/project/tests/scene_document.rs
-  - zircon_editor/src/core/document/scene_route_tests.rs
-  - zircon_editor/src/core/document/scene_reload_tests.rs
   - zircon_editor/src/core/project/tests/boundary.rs
   - zircon_editor/src/core/project/tests/mod.rs
   - zircon_editor/src/tests/workbench/project/renderable_template.rs

@@ -1,12 +1,10 @@
 ---
 related_code:
-  - zircon_editor/assets/ui/editor/host/workbench_shell.zui
   - zircon_editor/assets/ui/editor/host/scene_viewport_toolbar.zui
   - zircon_editor/assets/ui/editor/host/asset_surface_controls.zui
   - zircon_editor/assets/ui/editor/host/pane_surface_controls.zui
   - zircon_editor/assets/ui/editor/host/startup_welcome_controls.zui
   - zircon_editor/assets/ui/editor/workbench_activity_rail.zui
-  - zircon_editor/assets/ui/editor/workbench_dock_header.zui
   - zircon_editor/assets/ui/editor/host/console_body.zui
   - zircon_editor/assets/ui/editor/host/hierarchy_body.zui
   - zircon_editor/assets/ui/editor/host/animation_graph_body.zui
@@ -16,16 +14,13 @@ related_code:
   - zircon_editor/assets/ui/editor/host/build_export_desktop_body.zui
   - zircon_editor/assets/ui/editor/host/module_plugins_body.zui
   - zircon_editor/assets/icons/editor_pages
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/visual_assets.rs
   - zircon_app/src/entry/builtin_modules.rs
   - zircon_runtime/src/lib.rs
 implementation_files:
-  - zircon_editor/assets/ui/editor/host/workbench_shell.zui
   - zircon_editor/assets/ui/editor/host/scene_viewport_toolbar.zui
   - zircon_editor/assets/ui/editor/host/asset_surface_controls.zui
   - zircon_editor/assets/ui/editor/host/startup_welcome_controls.zui
   - zircon_editor/assets/ui/editor/workbench_activity_rail.zui
-  - zircon_editor/assets/ui/editor/workbench_dock_header.zui
   - zircon_editor/assets/ui/editor/host/console_body.zui
   - zircon_editor/assets/ui/editor/host/hierarchy_body.zui
   - zircon_editor/assets/ui/editor/host/animation_graph_body.zui
@@ -36,7 +31,6 @@ implementation_files:
   - zircon_editor/assets/ui/editor/host/module_plugins_body.zui
   - docs/crates/zircon_editor/assets/editor-page-function-icon-template-map.md
   - docs/crates/zircon_editor/assets/editor-page-function-svg-resources.md
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/visual_assets.rs
   - zircon_app/src/entry/builtin_modules.rs
   - zircon_runtime/src/lib.rs
 plan_sources:

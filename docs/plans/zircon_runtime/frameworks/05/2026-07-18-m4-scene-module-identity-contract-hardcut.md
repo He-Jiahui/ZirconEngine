@@ -4,7 +4,7 @@ related_code:
   - zircon_runtime/src/core/framework/scene/mod.rs
   - zircon_runtime/src/scene/module/mod.rs
   - zircon_runtime/src/scene/mod.rs
-  - zircon_runtime/src/graphics/runtime_builtin_graphics/host/module_host/module_registration/module_descriptor.rs
+  - zircon_runtime/src/graphics/host/module_registration/module_descriptor.rs
   - zircon_editor/src/ui/host/module.rs
   - zircon_plugins/plugin_sdk/src/test.rs
   - zircon_plugins/zr_vm_language/runtime/src/tests/registration.rs
@@ -14,7 +14,7 @@ implementation_files:
   - zircon_runtime/src/core/framework/scene/mod.rs
   - zircon_runtime/src/scene/module/mod.rs
   - zircon_runtime/src/scene/mod.rs
-  - zircon_runtime/src/graphics/runtime_builtin_graphics/host/module_host/module_registration/module_descriptor.rs
+  - zircon_runtime/src/graphics/host/module_registration/module_descriptor.rs
   - zircon_editor/src/ui/host/module.rs
   - zircon_plugins/plugin_sdk/src/test.rs
   - zircon_plugins/zr_vm_language/runtime/src/tests/registration.rs

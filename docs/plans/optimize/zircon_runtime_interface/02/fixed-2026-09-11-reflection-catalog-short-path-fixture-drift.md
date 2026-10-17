@@ -10,7 +10,6 @@ origin_child_dir: docs/plans/optimize/zircon_runtime_interface/02
 fixing_child_dir: docs/plans/optimize/zircon_runtime_interface/02
 plan_link_mode: child_record_only
 related_code:
-  - zircon_runtime_interface/src/reflect/schema_catalog/tests.rs
 tests:
   - cargo test -p zircon_runtime_interface --lib --no-default-features --locked reflect::schema_catalog::tests::
   - cargo test -p zircon_runtime_interface --lib --no-default-features --locked tests::reflect

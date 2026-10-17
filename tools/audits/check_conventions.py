@@ -459,26 +459,30 @@ def audit_rust_exemptions(repo_root: Path) -> dict[str, object]:
 
 
 def _front_matter_path_fields(document: Path) -> dict[str, list[str]] | None:
-    with document.open("r", encoding="utf-8-sig") as stream:
-        first_line = next(stream, None)
-        if first_line is None or first_line.strip() != "---":
-            return None
+    return _parse_front_matter(document.read_text(encoding="utf-8-sig").splitlines())
 
-        fields = {field: [] for field in FRONT_MATTER_LIST_FIELDS}
-        active_field: str | None = None
-        for line in stream:
-            if line.strip() == "---":
-                return fields
-            if line and not line[0].isspace():
-                key, separator, _ = line.partition(":")
-                active_field = key if separator and key in fields else None
-                continue
-            stripped = line.strip()
-            if active_field is None or not stripped.startswith("- "):
-                continue
-            value = stripped[2:].strip().strip("'\"").strip("`")
-            if value:
-                fields[active_field].append(value)
+
+def _parse_front_matter(lines: Iterable[str]) -> dict[str, list[str]] | None:
+    stream = iter(lines)
+    first_line = next(stream, None)
+    if first_line is None or first_line.strip() != "---":
+        return None
+
+    fields = {field: [] for field in FRONT_MATTER_LIST_FIELDS}
+    active_field: str | None = None
+    for line in stream:
+        if line.strip() == "---":
+            return fields
+        if line and not line[0].isspace():
+            key, separator, _ = line.partition(":")
+            active_field = key if separator and key in fields else None
+            continue
+        stripped = line.strip()
+        if active_field is None or not stripped.startswith("- "):
+            continue
+        value = stripped[2:].strip().strip("'\"").strip("`")
+        if value:
+            fields[active_field].append(value)
     return None
 
 
@@ -620,8 +624,9 @@ def run_conventions(
         }
         if not dry_run:
             try:
+                argv = (sys.executable, *command.argv[1:]) if command.argv[0] == "python" else command.argv
                 completed = subprocess.run(
-                    command.argv,
+                    argv,
                     cwd=repo_root,
                     check=False,
                     capture_output=capture_output,

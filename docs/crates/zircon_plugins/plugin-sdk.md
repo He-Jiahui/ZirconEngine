@@ -4,11 +4,9 @@ related_code:
   - zircon_plugins/plugin_sdk/src/lib.rs
   - zircon_plugins/plugin_sdk/src/test.rs
   - zircon_plugins/animation/runtime/tests/physics_tick.rs
-  - zircon_plugins/animation/runtime/tests/runtime_physics_animation_tick_contract/runtime_helpers.rs
-  - zircon_plugins/animation/runtime/tests/runtime_physics_animation_tick_contract/target_resolution.rs
   - zircon_runtime/src/core/framework/physics/query_interface.rs
   - zircon_plugins/physics/runtime/src/plugin.rs
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/plugin_importer_dx/d10_bridge_call.rs
+  - zircon_runtime/src/tests/contracts/review/plugin_importer_dx/d10_bridge_call.rs
   - zircon_plugins/plugin_sdk/src/editor.rs
   - zircon_plugins/plugin_sdk/src/dist.rs
   - zircon_plugins/plugin_sdk/src/native.rs
@@ -21,7 +19,6 @@ related_code:
   - zircon_plugins/plugin_sdk/src/manifest/importer_runtime.rs
   - zircon_plugins/plugin_sdk/src/manifest/package_builder.rs
   - zircon_plugins/plugin_sdk/src/manifest/plugin_module_builder.rs
-  - zircon_plugins/plugin_sdk/src/manifest/tests.rs
   - zircon_plugins/plugin_sdk/src/runtime.rs
   - zircon_plugins/Cargo.toml
   - zircon_plugins/Cargo.lock
@@ -56,13 +53,10 @@ related_code:
   - zircon_plugins/zr_vm_language/runtime/src/lib.rs
   - zircon_plugins/plugin_sdk_examples/editor/Cargo.toml
   - zircon_plugins/plugin_sdk_examples/editor/src/plugin.rs
-  - zircon_plugins/plugin_sdk_examples/editor/src/tests.rs
   - zircon_plugins/animation/editor/Cargo.toml
   - zircon_plugins/animation/editor/src/plugin.rs
-  - zircon_plugins/animation/editor/src/tests.rs
   - zircon_plugins/physics/editor/Cargo.toml
   - zircon_plugins/physics/editor/src/plugin.rs
-  - zircon_plugins/physics/editor/src/tests.rs
   - zircon_plugins/net/editor/Cargo.toml
   - zircon_plugins/net/editor/src/plugin.rs
   - zircon_plugins/net/editor/src/tests/authoring_extensions.rs
@@ -73,20 +67,13 @@ related_code:
   - zircon_plugins/runtime_diagnostics/dist/Cargo.toml
   - zircon_plugins/runtime_diagnostics/dist/src/lib.rs
   - zircon_plugins/runtime_diagnostics/editor/src/plugin.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/abi_declarations.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/behavior_calls.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/behavior_validation/report.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/behavior_validation/schema.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/loaded_native_plugin.rs
+  - zircon_runtime/src/plugin/loader/behavior_validation/report.rs
+  - zircon_runtime/src/plugin/loader/behavior_validation/schema.rs
   - zircon_runtime_interface/src/plugin_api.rs
   - zircon_runtime_interface/src/buffer.rs
   - zircon_runtime_interface/src/status.rs
   - zircon_plugins/Cargo.toml
-  - tools/plugin_structure_audits/manifest_schema.py
-  - tools/plugin_structure_audits/manifest_schema_modules.py
   - tools/tests/test_plugin_structure_audit_manifest_schema.py
-  - tools/plugin_structure_audits/skeleton.py
-  - tools/plugin_structure_audits/registration.py
   - tools/audits/audit_plugin_structure.py
   - tools/tests/test_plugin_structure_audit_registration.py
 implementation_files:
@@ -104,7 +91,6 @@ implementation_files:
   - zircon_plugins/plugin_sdk/src/manifest/importer_runtime.rs
   - zircon_plugins/plugin_sdk/src/manifest/package_builder.rs
   - zircon_plugins/plugin_sdk/src/manifest/plugin_module_builder.rs
-  - zircon_plugins/plugin_sdk/src/manifest/tests.rs
   - zircon_plugins/plugin_sdk/src/runtime.rs
   - zircon_plugins/Cargo.toml
   - zircon_plugins/Cargo.lock
@@ -139,13 +125,10 @@ implementation_files:
   - zircon_plugins/zr_vm_language/runtime/src/lib.rs
   - zircon_plugins/plugin_sdk_examples/editor/Cargo.toml
   - zircon_plugins/plugin_sdk_examples/editor/src/plugin.rs
-  - zircon_plugins/plugin_sdk_examples/editor/src/tests.rs
   - zircon_plugins/animation/editor/Cargo.toml
   - zircon_plugins/animation/editor/src/plugin.rs
-  - zircon_plugins/animation/editor/src/tests.rs
   - zircon_plugins/physics/editor/Cargo.toml
   - zircon_plugins/physics/editor/src/plugin.rs
-  - zircon_plugins/physics/editor/src/tests.rs
   - zircon_plugins/net/editor/Cargo.toml
   - zircon_plugins/net/editor/src/plugin.rs
   - zircon_plugins/net/editor/src/tests/authoring_extensions.rs
@@ -156,11 +139,7 @@ implementation_files:
   - zircon_plugins/runtime_diagnostics/dist/src/lib.rs
   - zircon_plugins/runtime_diagnostics/editor/src/plugin.rs
   - zircon_plugins/Cargo.toml
-  - tools/plugin_structure_audits/manifest_schema.py
-  - tools/plugin_structure_audits/manifest_schema_modules.py
   - tools/tests/test_plugin_structure_audit_manifest_schema.py
-  - tools/plugin_structure_audits/skeleton.py
-  - tools/plugin_structure_audits/registration.py
   - tools/audits/audit_plugin_structure.py
 plan_sources:
   - docs/plans/zircon_plugins/12-plugin-dx-and-structure-framework.md

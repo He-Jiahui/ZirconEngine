@@ -13,17 +13,13 @@ related_editor_owner:
 related_code:
   - zircon_runtime/src/scene/world_time
   - zircon_runtime/src/scene/world
-  - zircon_runtime/src/scene/dynamic_scene
   - zircon_runtime/src/core/framework/render/environment
   - zircon_runtime/src/core/framework/render/frame_extract.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment
   - zircon_plugins/rendering/features/volumetric_fog
   - zircon_plugins/particles
   - zircon_plugins/terrain
   - zircon_plugins/sound
   - zircon_plugins/net
-  - zircon_runtime/src/plugin/runtime_plugin
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/world/workbench_extension_weather_editor_workspace.zui
 reference_engines:
   - dev/UnrealEngine/Engine/Source/Runtime/Engine/Classes/Components/SkyAtmosphereComponent.h
   - dev/UnrealEngine/Engine/Source/Runtime/Engine/Classes/Components/VolumetricCloudComponent.h

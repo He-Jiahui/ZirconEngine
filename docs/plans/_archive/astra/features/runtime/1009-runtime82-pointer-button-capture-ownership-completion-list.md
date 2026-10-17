@@ -9,7 +9,7 @@ implementation_files:
 plan_sources:
   - docs/plans/optimize/zircon_runtime/82/2026-09-27-pointer-button-capture-ownership.md
 tests:
-  - zircon_runtime/src/ui/tests/runtime_input_reply_routes/pointer_capture_routes/ownership_lifecycle.rs
+  - zircon_runtime/src/ui/tests/input/pointer_capture_routes/ownership_lifecycle.rs
 doc_type: milestone-detail
 ---
 

@@ -88,7 +88,7 @@ fn timeline_capacity_release_gate() {
     let unused_path_clone_bytes = unused_path_clone_count * BENCHMARK_UNUSED_PATH_BYTES;
 
     println!(
-        "PERF_RESULT task=plugins11_bounded_timeline_capacity sequences={BENCHMARK_SEQUENCE_COUNT} tracks_per_sequence={BENCHMARK_TRACKS_PER_SEQUENCE} sample_pairs={BENCHMARK_SAMPLE_PAIRS} order=alternating_legacy_first_even legacy_first_pairs=11 optimized_first_pairs=10 percentile_method=nearest_rank legacy_unused_path_clone_allocations={unused_path_clone_count} optimized_unused_path_clone_allocations=0 legacy_unused_path_clone_bytes={unused_path_clone_bytes} optimized_unused_path_clone_bytes=0 threshold_percent=15 legacy_p50_ns={legacy_p50} legacy_p95_ns={legacy_p95} optimized_p50_ns={optimized_p50} optimized_p95_ns={optimized_p95} legacy_raw_ns={legacy_ns} optimized_raw_ns={optimized_ns}"
+        "PERF_RESULT task=plugins11_bounded_timeline_capacity sequences={BENCHMARK_SEQUENCE_COUNT} tracks_per_sequence={BENCHMARK_TRACKS_PER_SEQUENCE} sample_pairs={BENCHMARK_SAMPLE_PAIRS} order=alternating_legacy_first_even legacy_first_pairs=11 optimized_first_pairs=10 percentile_method=nearest_rank legacy_unused_path_clone_allocations={unused_path_clone_count} optimized_unused_path_clone_allocations_expected=0 legacy_unused_path_clone_bytes={unused_path_clone_bytes} optimized_unused_path_clone_bytes=0 threshold_percent=15 legacy_p50_ns={legacy_p50} legacy_p95_ns={legacy_p95} optimized_p50_ns={optimized_p50} optimized_p95_ns={optimized_p95} legacy_raw_ns={legacy_ns} optimized_raw_ns={optimized_ns}"
     );
     assert!(
         optimized_p95.saturating_mul(100) <= legacy_p95.saturating_mul(85),

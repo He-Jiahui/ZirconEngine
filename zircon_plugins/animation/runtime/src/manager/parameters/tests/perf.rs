@@ -59,7 +59,7 @@ fn borrowed_parameter_update_release_benchmark_evidence() {
         legacy_p95.saturating_sub(optimized_p95).saturating_mul(100) / legacy_p95.max(1);
 
     println!(
-        "PERF_RESULT task=runtime170_borrowed_parameter_update key_bytes={KEY_BYTES} updates_per_sample={UPDATES_PER_SAMPLE} sample_pairs={SAMPLE_PAIRS} order=alternating_legacy_first_even legacy_key_allocations_per_sample={UPDATES_PER_SAMPLE} optimized_key_allocations_per_sample=0 legacy_p95_ns={legacy_p95} optimized_p95_ns={optimized_p95} improvement_percent={improvement_percent} threshold_percent={REQUIRED_IMPROVEMENT_PERCENT} legacy_raw_ns={} optimized_raw_ns={}",
+        "PERF_RESULT task=runtime170_borrowed_parameter_update key_bytes={KEY_BYTES} updates_per_sample={UPDATES_PER_SAMPLE} sample_pairs={SAMPLE_PAIRS} order=alternating_legacy_first_even legacy_key_allocations_per_sample={UPDATES_PER_SAMPLE} optimized_key_allocations_per_sample_expected=0 legacy_p95_ns={legacy_p95} optimized_p95_ns={optimized_p95} improvement_percent={improvement_percent} threshold_percent={REQUIRED_IMPROVEMENT_PERCENT} legacy_raw_ns={} optimized_raw_ns={}",
         samples_csv(&legacy_samples),
         samples_csv(&optimized_samples),
     );

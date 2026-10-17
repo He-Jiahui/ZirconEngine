@@ -7,11 +7,9 @@ related_records:
   - docs/plans/astra/features/editor/664-20260911-editor-ui-optimization-batch-completion.md
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
-  - zircon_editor/src/ui/retained_host/app/viewport/toolbar_pointer/chrome_projection.rs
+  - zircon_editor/src/ui/retained/app/viewport/toolbar_pointer/chrome_projection.rs
   - zircon_editor/src/ui/workbench/model/status_bar_model.rs
 tests:
-  - zircon_editor/src/ui/workbench/model/status_bar_viewport_chrome_text_tests.rs
-  - tools/tests/test_editor862_viewport_chrome_direct_settings_performance_contract.py
 ---
 
 # Editor862 - viewport chrome direct settings projection

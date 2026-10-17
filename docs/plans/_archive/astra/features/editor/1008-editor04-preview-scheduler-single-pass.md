@@ -1,11 +1,9 @@
 ---
 related_code:
-  - zircon_editor/src/ui/host/editor_asset_manager/manager/project_sync/sync_from_project.rs
-  - zircon_editor/src/ui/host/editor_asset_manager/manager/project_sync/sync_from_project/preview_scheduler_tests.rs
+  - zircon_editor/src/ui/host/assets/manager/project_sync/sync_from_project.rs
 plan_sources:
   - docs/plans/optimize/zircon_editor/04/2026-09-27-preview-scheduler-single-pass.md
 tests:
-  - zircon_editor/src/ui/host/editor_asset_manager/manager/project_sync/sync_from_project/preview_scheduler_tests.rs
 doc_type: milestone-detail
 status: implemented_pending_validation
 ---

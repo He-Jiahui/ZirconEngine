@@ -11,21 +11,15 @@ related_code:
   - zircon_runtime/src/scene/world/dynamic_components.rs
   - zircon_runtime/src/scene/reflect
   - zircon_runtime/src/plugin/extension_registry
-  - zircon_runtime/src/scene/dynamic_scene
   - zircon_editor/src/core/editing
   - zircon_editor/src/ui/workbench/snapshot/data
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload_builders/inspector.rs
-  - zircon_editor/assets/ui/editor/components/workbench/shell/workbench_inspector_panel.zui
   - zircon_plugins
 tests:
   - zircon_editor/src/tests/editing/editor_projection.rs
-  - zircon_editor/src/tests/editing/reflected_command.rs
+  - zircon_editor/src/tests/editing/reflected_command/mod.rs
   - zircon_editor/src/tests/host/binding_dispatch/inspector.rs
-  - zircon_editor/src/tests/editor_event/runtime/extensions_registration/plugin_contributions.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_projection/surface_contract/chrome_routes.rs
-  - zircon_runtime/src/tests/plugin_extensions/dynamic_components.rs
-  - zircon_runtime/src/tests/plugin_extensions/extension_registry_components.rs
+  - zircon_editor/src/tests/runtime/extensions_registration/plugin_contributions.rs
+  - zircon_editor/src/tests/host/templates/surface_contract/chrome_routes.rs
   - zircon_runtime/src/scene/tests/ecs_reflect/dynamic_components.rs
   - zircon_runtime/src/scene/tests/dynamic_scene/scene_patch_document.rs
 plan_sources:

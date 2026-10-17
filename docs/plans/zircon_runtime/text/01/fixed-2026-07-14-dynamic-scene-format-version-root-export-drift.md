@@ -9,8 +9,7 @@ origin_child_dir: docs/plans/zircon_runtime/text/01
 fixing_child_dir: docs/plans/zircon_editor/editor/11
 related_code:
   - zircon_runtime/src/scene/mod.rs
-  - zircon_runtime/src/scene/dynamic_scene/mod.rs
-  - zircon_runtime/src/scene/dynamic_scene/document/schema.rs
+  - zircon_runtime/src/scene/dynamic/document/schema.rs
 plan_sources:
   - docs/plans/zircon_runtime/text/01-font-resource-faces-and-database.md
   - docs/plans/zircon_editor/editor/11-serialization-and-versioning.md

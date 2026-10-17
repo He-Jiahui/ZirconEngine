@@ -5,7 +5,6 @@ related_code:
   - zircon_editor/src/ui/material_editor
   - zircon_editor/src/ui/asset_editor
   - zircon_editor/src/ui/layouts/views/animation_editor.rs
-  - zircon_editor/src/ui/template_runtime
   - zircon_plugins/animation
 reference_sources:
   - dev/Fyrox/editor/src/plugins/animation/mod.rs

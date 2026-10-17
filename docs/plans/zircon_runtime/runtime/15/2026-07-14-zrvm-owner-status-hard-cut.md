@@ -1,8 +1,8 @@
 ---
 related_code:
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy/support.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy/core_runtime/scene_eventbus.rs
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/p0_robustness/lock_poison.rs
+  - zircon_runtime/src/tests/contracts/structure/lock_poison_policy/support.rs
+  - zircon_runtime/src/tests/contracts/structure/core_runtime/scene_eventbus.rs
+  - zircon_runtime/src/tests/contracts/review/p0_robustness/lock_poison.rs
   - docs/crates/zircon_runtime/script/vm/zr_vm_project_backend.md
   - docs/crates/zircon_runtime/structure/module-convention.md
 plan_sources:

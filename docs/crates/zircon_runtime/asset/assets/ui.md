@@ -16,12 +16,12 @@ related_code:
   - zircon_runtime/src/asset/importer/ingest/asset_importer.rs
   - zircon_runtime/src/ui/v2/loader.rs
   - zircon_runtime/src/asset/artifact/cache_payload.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/loading/load_asset.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/loading/acquire_asset.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/loading/load_imported_asset.rs
-  - zircon_runtime/src/asset/pipeline/manager/resource_sync/register_project_resource.rs
+  - zircon_runtime/src/asset/pipeline/manager/assets/loading/load_asset.rs
+  - zircon_runtime/src/asset/pipeline/manager/assets/loading/acquire_asset.rs
+  - zircon_runtime/src/asset/pipeline/manager/assets/loading/load_imported_asset.rs
+  - zircon_runtime/src/asset/manager/resource_sync/register_project_resource.rs
   - zircon_runtime/src/asset/pipeline/manager/resource_sync/store_runtime_payload.rs
-  - zircon_runtime/src/asset/pipeline/manager/builtins/resource_manager_with_builtins.rs
+  - zircon_runtime/src/asset/manager/builtins/resource_manager_with_builtins.rs
   - zircon_runtime/src/asset/tests/assets/ui.rs
   - zircon_runtime/src/asset/tests/assets/ui/references.rs
   - zircon_runtime/src/asset/tests/assets/ui/wrappers.rs
@@ -30,8 +30,7 @@ related_code:
   - zircon_runtime/src/asset/tests/assets/importer/typed_toml_ui.rs
   - zircon_runtime/src/ui/tests/v2_asset/asset_loading.rs
   - zircon_runtime/src/ui/tests/v2_asset/file_cache.rs
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/ui_asset_documents.rs
-  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/asset_schema.rs
+  - zircon_runtime/src/tests/contracts/naming_boundary/runtime_15_m2/asset_schema.rs
 implementation_files:
   - zircon_runtime/src/asset/assets/ui.rs
   - zircon_runtime/src/asset/assets/ui/document_loader.rs
@@ -48,12 +47,12 @@ implementation_files:
   - zircon_runtime/src/asset/importer/ingest/asset_importer.rs
   - zircon_runtime/src/ui/v2/loader.rs
   - zircon_runtime/src/asset/artifact/cache_payload.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/loading/load_asset.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/loading/acquire_asset.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/loading/load_imported_asset.rs
-  - zircon_runtime/src/asset/pipeline/manager/resource_sync/register_project_resource.rs
+  - zircon_runtime/src/asset/pipeline/manager/assets/loading/load_asset.rs
+  - zircon_runtime/src/asset/pipeline/manager/assets/loading/acquire_asset.rs
+  - zircon_runtime/src/asset/pipeline/manager/assets/loading/load_imported_asset.rs
+  - zircon_runtime/src/asset/manager/resource_sync/register_project_resource.rs
   - zircon_runtime/src/asset/pipeline/manager/resource_sync/store_runtime_payload.rs
-  - zircon_runtime/src/asset/pipeline/manager/builtins/resource_manager_with_builtins.rs
+  - zircon_runtime/src/asset/manager/builtins/resource_manager_with_builtins.rs
   - zircon_runtime/src/asset/tests/assets/ui.rs
   - zircon_runtime/src/asset/tests/assets/ui/references.rs
   - zircon_runtime/src/asset/tests/assets/ui/wrappers.rs
@@ -62,7 +61,6 @@ implementation_files:
   - zircon_runtime/src/asset/tests/assets/importer/typed_toml_ui.rs
   - zircon_runtime/src/ui/tests/v2_asset/asset_loading.rs
   - zircon_runtime/src/ui/tests/v2_asset/file_cache.rs
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/ui_asset_documents.rs
 plan_sources:
   - user: 2026-06-12 implement editor UI architecture from docs/plans/zircon_editor/editor_ui
   - docs/plans/zircon_editor/editor_ui/05-ui-asset-management.md

@@ -8,7 +8,6 @@ related_code:
 implementation_files:
   - zircon_runtime/src/core/framework/render/framework.rs
   - zircon_runtime/src/core/framework/render/frame_extract/frame.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core
 plan_sources:
   - user: 2026-09-09 引擎用户场景配方：提交并呈现一个可渲染场景
   - docs/wiki/graphics/scene-renderer.md

@@ -2,7 +2,7 @@
 related_code:
   - zircon_runtime/src/text/native_bitmap_atlas
   - zircon_runtime/src/text/native_bitmap_atlas.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/text.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_runtime/text/04-glyph-atlas-and-rasterization.md

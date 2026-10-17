@@ -11,8 +11,6 @@ related_records:
 implementation_files:
   - zircon_runtime/src/ui/surface/input/route_steps.rs
 tests:
-  - zircon_runtime/src/ui/surface/input/route_steps_tests.rs
-  - tools/tests/test_runtime_ui_route_terminal_scan_performance_contract.py
 ---
 
 # Runtime750 · Route terminal state bit

@@ -8,7 +8,7 @@ fixing_plan: docs/plans/zircon_runtime/text/05-sdf-msdf-pipeline.md
 origin_child_dir: docs/plans/zircon_editor/editor_layout/15
 fixing_child_dir: docs/plans/zircon_runtime/text/05
 related_code:
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/render.rs
   - zircon_runtime_interface/src/ui/surface/render/resolved_style.rs
 tests:
   - cargo test -p zircon_runtime --test ui_component_slot_layout_contract --no-default-features --features ui --locked --jobs 1 --no-run

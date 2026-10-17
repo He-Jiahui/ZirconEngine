@@ -11,7 +11,6 @@ plan_link_mode: child_record_only
 related_code:
   - zircon_runtime/src/scene/inspection/mod.rs
   - zircon_runtime/src/scene/inspection/subscription.rs
-  - zircon_runtime/src/scene/inspection/subscription/tests.rs
   - zircon_runtime/tests/runtime_world_sync_subscription_table.rs
 tests:
   - cargo test -p zircon_runtime --test runtime_world_sync_subscription_table --locked --jobs 1 -- --nocapture --test-threads=1

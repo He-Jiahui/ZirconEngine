@@ -8,27 +8,21 @@ related_code:
   - zircon_editor/src/core/editor_message/shared.rs
   - zircon_editor/src/core/plugin/lifecycle_message_bridge.rs
   - zircon_editor/src/core/settings/authority.rs
-  - zircon_editor/src/ui/host/editor_asset_manager/change_stream.rs
   - zircon_editor/src/ui/host/editor_host_event_controller.rs
-  - zircon_editor/src/ui/retained_host/app.rs
-  - zircon_editor/src/ui/retained_host/app/callback_wiring.rs
+  - zircon_editor/src/ui/retained/app/callback_wiring.rs
   - zircon_plugins/net/features/rpc/runtime/src/manager/registry.rs
   - zircon_plugins/net/features/rpc/runtime/src/manager/state.rs
   - zircon_plugins/net/runtime/src/service_types/http_routes.rs
   - zircon_plugins/net/runtime/src/service_types/listeners.rs
   - zircon_plugins/net/runtime/src/worker/net_worker.rs
   - zircon_plugins/sound/runtime/src/dynamic_event_abi/callback.rs
-  - zircon_plugins/sound/runtime/src/service_types/dynamic_event_executors/registration.rs
-  - zircon_plugins/sound/runtime/src/service_types/dynamic_event_executors/unregistration.rs
   - zircon_runtime/src/core/runtime/descriptors/service_factory.rs
   - zircon_runtime/src/core/runtime/events/subscriber.rs
   - zircon_runtime/src/core/runtime/events/topic.rs
   - zircon_runtime/src/core/runtime/handle/states.rs
   - zircon_runtime/src/plugin/bridge/weak.rs
   - zircon_runtime/src/plugin/extension_registry/runtime_extension_registry.rs
-  - zircon_runtime/src/plugin/extension_registry/runtime_extension_registry/owner_revocation.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/loaded_native_plugin.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_host_handle.rs
+  - zircon_runtime/src/plugin/runtime_extension_registry/owner_revocation.rs
   - zircon_runtime/src/scene/ecs/events/store.rs
   - zircon_runtime/src/scene/ecs/observer/store.rs
   - zircon_runtime/src/scene/event_mirror/subscription.rs
@@ -43,8 +37,6 @@ related_code:
   - zircon_runtime/src/ui/event_ui/manager/ui_event_manager.rs
 tests:
   - zircon_editor/src/tests/editor_message/refresh.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/behavior_validation/tests.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests.rs
 plan_sources:
   - docs/plans/optimize/01-cross-report-owner-schema-abi-p0-consolidation-review.md
   - docs/plans/optimize/coverage.md

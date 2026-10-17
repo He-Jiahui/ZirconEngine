@@ -3,9 +3,7 @@ title: Compiled scene static performance review
 date: 2026-07-17
 status: static-reviewed-code-fixed-dynamic-pending
 related_code:
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/runtime_features
-  - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/irradiance_volume
+  - zircon_runtime/src/graphics/scene/renderer/core/render/render/render.rs
 plan: docs/plans/performance/01-mvp-performance-audit-and-optimization.md
 ---
 

@@ -8,15 +8,9 @@ baseline_epoch: 336
 related_code:
   - zircon_runtime/src/core/framework/render/anti_alias
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/anti_alias.rs
-  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/anti_alias.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/resource_descriptors.rs
+  - zircon_runtime/src/graphics/feature/builtin/feature_descriptors/anti_alias.rs
   - zircon_runtime/src/graphics/runtime/history
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract
   - zircon_runtime/src/graphics/scene/resources/pipeline
-  - zircon_runtime/src/graphics/scene/scene_renderer/anti_alias
-  - zircon_runtime/src/graphics/scene/scene_renderer/temporal
-  - zircon_runtime/src/graphics/scene/scene_renderer/temporal/velocity
-  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record
   - zircon_runtime/src/scene/world/render.rs
 tests:
   - zircon_runtime/src/graphics/tests/render_debugger_and_history.rs
@@ -27,8 +21,6 @@ tests:
   - zircon_runtime/src/graphics/tests/render_product_particle_velocity.rs
   - zircon_runtime/src/graphics/tests/render_product_post_process/motion_blur.rs
   - zircon_runtime/src/graphics/tests/render_product_post_process_full_chain.rs
-  - zircon_runtime/src/graphics/tests/render_product_post_process_full_chain/fixture.rs
-  - zircon_runtime/src/graphics/tests/render_product_post_process_full_chain/visual_export.rs
   - zircon_runtime/src/graphics/tests/render_product_post_process_terminal.rs
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md

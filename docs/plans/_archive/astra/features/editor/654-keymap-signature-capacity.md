@@ -5,9 +5,7 @@ plan_sources:
   - docs/plans/optimize/zircon_editor/654/2026-09-01-preallocated-keymap-signature-buckets.md
 related_code:
   - zircon_editor/src/core/commands/keymap.rs
-  - zircon_editor/src/core/commands/keymap/optimization_batch_jo_editor654_tests.rs
 tests:
-  - zircon_editor/src/core/commands/keymap/optimization_batch_jo_editor654_tests.rs
 ---
 
 # Keymap Signature Index Capacity

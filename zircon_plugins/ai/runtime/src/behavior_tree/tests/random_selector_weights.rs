@@ -90,7 +90,7 @@ fn compiled_random_selector_weight_table_release_benchmark_evidence() {
             .sum::<f32>()
     );
     println!(
-        "PERF_RESULT RUNTIME799_RANDOM_SELECTOR_WEIGHT_TABLE_BENCH_V1 children={CHILD_COUNT} selections={SELECTIONS} runtime_weight_allocations_per_selection=0 parameter_scans_per_selection=0 compiled_weight_entries={}",
+        "PERF_RESULT RUNTIME799_RANDOM_SELECTOR_WEIGHT_TABLE_BENCH_V1 children={CHILD_COUNT} selections={SELECTIONS} runtime_weight_allocations_per_selection_expected=0 parameter_scans_per_selection=0 compiled_weight_entries={}",
         table.weights().len()
     );
 }

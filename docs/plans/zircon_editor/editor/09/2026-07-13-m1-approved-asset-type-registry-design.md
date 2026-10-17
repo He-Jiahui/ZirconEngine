@@ -7,7 +7,6 @@ related_code:
   - zircon_editor/src/core/asset/type_registry
   - zircon_editor/src/core/editor_extension.rs
   - zircon_editor/src/core/editor_authoring_extension.rs
-  - zircon_editor/src/ui/host/editor_asset_manager
   - zircon_editor/src/ui/layouts/views/asset_browser
   - zircon_plugins/editor_support/src/lib.rs
 reference_sources:

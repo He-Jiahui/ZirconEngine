@@ -5,9 +5,7 @@ plan_sources:
   - docs/plans/optimize/zircon_runtime/642/2026-09-01-hashed-shader-resource-deduplication.md
 related_code:
   - zircon_runtime/src/asset/project/shader_resource_records.rs
-  - zircon_runtime/src/asset/project/shader_resource_records/optimization_batch_jc_runtime642_tests.rs
 tests:
-  - zircon_runtime/src/asset/project/shader_resource_records/optimization_batch_jc_runtime642_tests.rs
 ---
 
 # Hashed Shader Resource Deduplication

@@ -3,9 +3,8 @@ related_code:
   - zircon_runtime/src/core/framework/render/camera/camera_snapshot.rs
   - zircon_runtime/src/graphics/runtime/history/validation_key.rs
   - zircon_runtime/src/graphics/runtime/history/is_compatible.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build/effective_view_state.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/temporal/velocity/velocity_camera_params.rs
+  - zircon_runtime/src/graphics/runtime/extract/build/effective_view_state.rs
+  - zircon_runtime/src/graphics/scene/temporal/velocity/velocity_camera_params.rs
 reference_code:
   - dev/UnrealEngine/Engine/Source/Runtime/Renderer/Private/PostProcess/TemporalAA.cpp
   - dev/LumenInUE5.5.4WithComputeShader/Res/Shader/ScreenProbeGather/TemporalReprojection.hlsl

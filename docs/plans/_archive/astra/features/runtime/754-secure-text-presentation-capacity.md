@@ -11,10 +11,7 @@ related_records:
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
   - zircon_runtime/src/ui/text/presentation.rs
-  - zircon_runtime/src/ui/text/presentation_capacity_tests.rs
 tests:
-  - zircon_runtime/src/ui/text/presentation_capacity_tests.rs
-  - tools/tests/test_runtime_secure_text_presentation_capacity_performance_contract.py
 ---
 
 # Runtime754 · Secure-text presentation bounded capacity

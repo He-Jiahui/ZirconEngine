@@ -1,10 +1,8 @@
 ---
 related_code:
   - zircon_runtime/src/ui/surface/frame_hit_test.rs
-  - zircon_runtime/src/ui/surface/frame_hit_test/tests.rs
 implementation_files:
   - zircon_runtime/src/ui/surface/frame_hit_test.rs
-  - zircon_runtime/src/ui/surface/frame_hit_test/tests.rs
 plan_sources:
   - docs/plans/engine-code-structure-convention.md
   - docs/plans/engine-code-review-findings-2026-06.md

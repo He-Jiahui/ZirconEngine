@@ -42,7 +42,6 @@ tests:
   - zircon_runtime/src/scene/tests/ecs_identity_storage.rs
   - zircon_runtime/src/scene/tests/ecs_events_messages.rs
   - zircon_runtime/src/scene/tests/world_basics
-  - zircon_runtime/src/scene/world/generation/tests.rs
   - zircon_runtime/src/render_graph/tests
   - zircon_runtime/src/tests/runtime_absorption
 plan_sources:

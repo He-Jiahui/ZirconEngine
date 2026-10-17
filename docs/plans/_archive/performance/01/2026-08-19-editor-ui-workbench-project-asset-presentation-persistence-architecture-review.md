@@ -5,10 +5,9 @@ related_code:
   - zircon_editor/src/ui/host/layout_persistence.rs
   - zircon_editor/src/ui/host/project_access.rs
   - zircon_editor/src/ui/host/editor_event_runtime_access/snapshot.rs
-  - zircon_editor/src/ui/retained_host/app/assets
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/pane_payloads.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/recompute.rs
-  - zircon_runtime/src/asset/pipeline/manager/service_contracts/asset_manager_contract.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle/pane_payloads.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle/recompute.rs
+  - zircon_runtime/src/asset/manager/service_contracts/asset_manager_contract.rs
 tests:
   - zircon_editor/src/tests/editing/asset_workspace.rs
   - zircon_editor/src/tests/workbench/project

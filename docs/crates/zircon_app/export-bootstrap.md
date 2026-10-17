@@ -11,9 +11,6 @@ related_code:
   - zircon_runtime/src/plugin/export_build_plan/main_template.rs
   - zircon_runtime/src/plugin/export_build_plan/platform_host_files.rs
   - zircon_runtime/src/plugin/export_build_plan/plugin_selection_template.rs
-  - zircon_runtime/src/tests/plugin_extensions/export_build_plan.rs
-  - zircon_runtime/src/tests/plugin_extensions/export_build_plan_feature_provider.rs
-  - zircon_runtime/src/tests/plugin_extensions/export_build_plan_platform.rs
 implementation_files:
   - docs/crates/zircon_app/export-bootstrap.md
   - zircon_app/src/entry/export_bootstrap.rs

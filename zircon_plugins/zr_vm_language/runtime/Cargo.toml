@@ -14,8 +14,8 @@ zircon_plugin_sdk = { workspace = true, features = ["runtime"] }
 zircon_runtime = { workspace = true, features = ["net-contracts", "script"] }
 zircon_runtime_interface.workspace = true
 serde_json = "1.0.149"
-zr_vm_rust_binding = { path = "../../../../zr_vm/zr_vm_rust_binding/rust/zr_vm_rust_binding", optional = true }
-zr_vm_rust_binding_sys = { path = "../../../../zr_vm/zr_vm_rust_binding/rust/zr_vm_rust_binding_sys", optional = true }
+zr_vm_rust_binding = { git = "https://github.com/He-Jiahui/zr_vm.git", rev = "3c1352ecb6ddfab02752d46682cc376558d5f481", optional = true }
+zr_vm_rust_binding_sys = { git = "https://github.com/He-Jiahui/zr_vm.git", rev = "3c1352ecb6ddfab02752d46682cc376558d5f481", optional = true }
 
 [dev-dependencies]
 zircon_runtime = { workspace = true, features = ["net-contracts", "script", "test-support"] }

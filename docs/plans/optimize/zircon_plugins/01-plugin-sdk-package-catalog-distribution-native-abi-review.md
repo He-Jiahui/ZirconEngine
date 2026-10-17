@@ -7,8 +7,6 @@ related_code:
   - zircon_plugins/native_dynamic_fixture
   - zircon_plugins/editor_contribution_fixture
   - zircon_plugins
-  - zircon_runtime/src/plugin/native_plugin_loader
-  - zircon_editor/src/ui/host/editor_manager_plugins_export
   - zircon_editor/src/ui/host/editor_manager_project.rs
   - zircon_app/src/entry/entry_runner/editor.rs
   - tools/cargo/src/plugin

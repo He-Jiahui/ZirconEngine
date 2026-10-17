@@ -7,7 +7,7 @@ related_code:
   - zircon_editor/src/ui/host/editor_manager_layout.rs
   - zircon_editor/src/ui/host/editor_ui_host.rs
   - zircon_editor/src/ui/host/editor_extension_registration.rs
-  - zircon_editor/src/ui/retained_host/app/native_window_close.rs
+  - zircon_editor/src/ui/retained/app/native_window_close.rs
 reference_code:
   - dev/UnrealEngine/Engine/Source/Runtime/CoreUObject/Public/UObject/Package.h
   - dev/UnrealEngine/Engine/Source/Editor/UnrealEd/Private/PackageAutoSaver.cpp

@@ -6,19 +6,10 @@ related_code:
   - zircon_editor/src/core/logging
   - zircon_editor/src/ui/activity
   - zircon_editor/src/ui/host/play_pending_decision
-  - zircon_editor/src/ui/retained_host/app/workbench_notifications.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/dispatch_effects.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/dispatch_effects/side_effects.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/notifications.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/workbench/control.rs
-  - zircon_editor/src/ui/retained_host/event_bridge.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_alerts
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_notification_center
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/notification_center
-  - zircon_editor/src/ui/retained_host/ui/workbench_window_projection/notification_cache.rs
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/feedback/workbench_notification_center.zui
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/feedback/workbench_toast.zui
-  - zircon_editor/assets/ui/editor/windows/workbench_window.zui
+  - zircon_editor/src/ui/retained/app/host_lifecycle/dispatch_effects.rs
+  - zircon_editor/src/ui/retained/app/dispatch_effects/side_effects.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/workbench/notifications.rs
+  - zircon_editor/src/ui/retained/dispatch/workbench/control.rs
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md
   - docs/plans/optimize/zircon_editor/01-retained-ui-architecture-performance-review.md

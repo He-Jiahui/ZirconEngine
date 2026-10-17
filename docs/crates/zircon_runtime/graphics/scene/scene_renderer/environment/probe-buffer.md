@@ -1,23 +1,23 @@
 ---
 related_code:
   - zircon_runtime/src/core/framework/render/environment/reflection_probe.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/probe_buffer/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/probe_buffer/gpu_layout.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/probe_buffer/resources.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/probe_buffer/slot_allocator.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/probe_buffer/upload.rs
+  - zircon_runtime/src/graphics/scene/renderer/environment/probe_buffer/mod.rs
+  - zircon_runtime/src/graphics/scene/renderer/probe_buffer/gpu_layout.rs
+  - zircon_runtime/src/graphics/scene/renderer/environment/probe_buffer/resources.rs
+  - zircon_runtime/src/graphics/scene/renderer/probe_buffer/slot_allocator.rs
+  - zircon_runtime/src/graphics/scene/renderer/environment/probe_buffer/upload.rs
   - zircon_runtime/src/graphics/shader/wgsl/zr_environment.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/shaders/fallback_mesh.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/shaders/deferred_lighting.wgsl
+  - zircon_runtime/src/graphics/scene/renderer/mesh/shaders/fallback_mesh.wgsl
+  - zircon_runtime/src/graphics/scene/deferred/shaders/deferred_lighting.wgsl
   - zircon_runtime/src/core/framework/render/camera.rs
   - zircon_runtime/tests/runtime_camera_core_pipeline_contract.rs
   - zircon_runtime/tests/runtime_environment_reflection_probe_product_contract.rs
 implementation_files:
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/probe_buffer/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/probe_buffer/gpu_layout.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/probe_buffer/resources.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/probe_buffer/slot_allocator.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/probe_buffer/upload.rs
+  - zircon_runtime/src/graphics/scene/renderer/environment/probe_buffer/mod.rs
+  - zircon_runtime/src/graphics/scene/renderer/probe_buffer/gpu_layout.rs
+  - zircon_runtime/src/graphics/scene/renderer/environment/probe_buffer/resources.rs
+  - zircon_runtime/src/graphics/scene/renderer/probe_buffer/slot_allocator.rs
+  - zircon_runtime/src/graphics/scene/renderer/environment/probe_buffer/upload.rs
   - zircon_runtime/src/graphics/shader/wgsl/zr_environment.wgsl
 plan_sources:
   - user: 2026-07-10 完善真实 HDRI PBR 反射、方向、掠射与多视角验证
@@ -28,12 +28,10 @@ plan_sources:
   - dev/cmft/src/cmft/cubemapfilter.cpp
   - dev/cmftStudio/src/shaders/fs_mesh.shdr
 tests:
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/probe_buffer/tests/gpu_layout.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/probe_buffer/tests/reference_parity.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/probe_buffer/tests/resources.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/probe_buffer/tests/slot_allocator.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/probe_buffer/tests/upload.rs
-  - zircon_runtime/src/graphics/tests/project_render/project_scenes/reflection_probe_product.rs
+  - zircon_runtime/src/graphics/scene/renderer/environment/tests/gpu_layout.rs
+  - zircon_runtime/src/graphics/scene/renderer/environment/tests/reference_parity.rs
+  - zircon_runtime/src/graphics/scene/renderer/environment/tests/slot_allocator.rs
+  - zircon_runtime/src/graphics/tests/project_scenes/reflection_probe_product.rs
   - zircon_runtime/tests/runtime_camera_core_pipeline_contract.rs
   - zircon_runtime/tests/runtime_environment_reflection_probe_product_contract.rs
 doc_type: module-detail

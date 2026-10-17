@@ -1,8 +1,7 @@
 ---
 related_code:
   - zircon_runtime/src/core/framework/render/shader
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_pass_processor.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache
+  - zircon_runtime/src/graphics/scene/renderer/mesh/mesh_pass/mesh_pass_processor.rs
   - zircon_runtime/src/graphics/shader/variant_cache
   - zircon_runtime/src/graphics/shader/template/module_registry.rs
   - zircon_runtime/src/bin/zircon_shader_prewarm/manifest.rs

@@ -1,11 +1,10 @@
 ---
 related_code:
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/construct.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/screen_space_ui_renderer.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_advances.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text_pixel_snap.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/atlas_texture_upload.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/construct.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/screen_space_ui_renderer.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/sdf_advances.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/text_pixel_snap.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_runtime/text/05-sdf-msdf-pipeline.md

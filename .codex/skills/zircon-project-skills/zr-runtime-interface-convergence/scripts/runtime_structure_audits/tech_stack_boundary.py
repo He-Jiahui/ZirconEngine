@@ -27,7 +27,8 @@ from .tech_stack_source_inventory import (
     REQUIRED_VERSION_ANCHORS,
     ZR_VM_BACKEND_FEATURE,
     ZR_VM_BINDING_DEPENDENCY_PREFIX,
-    ZR_VM_EXTERNAL_PATH_PREFIX,
+    ZR_VM_GIT_URL,
+    ZR_VM_GIT_REV,
     ZR_VM_PLUGIN_MANIFEST,
     ZIP_DEPENDENCY_LINE,
 )
@@ -289,9 +290,6 @@ def tech_stack_boundary_audit(root: Path) -> dict[str, object]:
     editor_manifest = root / "zircon_editor/Cargo.toml"
     physics_manifest = root / "zircon_plugins/physics/runtime/Cargo.toml"
     zr_vm_plugin_manifest = root / ZR_VM_PLUGIN_MANIFEST
-    zr_vm_external_root = (zr_vm_plugin_manifest.parent / ZR_VM_EXTERNAL_PATH_PREFIX).resolve(
-        strict=False
-    )
     physics_backend_files = (
         root / "zircon_plugins/physics/runtime/src/backend/mod.rs",
         root / "zircon_plugins/physics/runtime/src/backend/selection.rs",
@@ -489,8 +487,9 @@ def tech_stack_boundary_audit(root: Path) -> dict[str, object]:
     )
     zr_vm_plugin_binding_dependencies_external = bool(zr_vm_plugin_dependencies) and all(
         isinstance(spec, dict)
-        and isinstance(spec.get("path"), str)
-        and _path_is_within(zr_vm_plugin_manifest.parent / spec["path"], zr_vm_external_root)
+        and spec.get("git") == ZR_VM_GIT_URL
+        and spec.get("rev") == ZR_VM_GIT_REV
+        and "path" not in spec
         for _, spec in zr_vm_plugin_dependencies
     )
     zr_vm_plugin_backend_feature_gates_bindings = bool(zr_vm_plugin_dependencies) and all(
@@ -540,7 +539,7 @@ def tech_stack_boundary_audit(root: Path) -> dict[str, object]:
     elif not zr_vm_plugin_binding_dependencies_optional:
         dependency_boundary_violations.append("ZrVM plugin binding dependencies are not optional")
     if zr_vm_plugin_dependencies and not zr_vm_plugin_binding_dependencies_external:
-        dependency_boundary_violations.append("ZrVM plugin binding path dependencies drifted")
+        dependency_boundary_violations.append("ZrVM plugin binding git revision drifted")
     if zr_vm_plugin_dependencies and not zr_vm_plugin_backend_feature_gates_bindings:
         dependency_boundary_violations.append(
             "ZrVM plugin backend feature does not gate every binding dependency"

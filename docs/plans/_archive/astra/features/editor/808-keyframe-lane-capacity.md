@@ -11,7 +11,6 @@ related_records:
 implementation_files:
   - zircon_editor/src/ui/timeline/keyframe_lane.rs
 tests:
-  - tools/tests/test_editor_keyframe_lane_capacity_performance_contract.py
 ---
 
 # Editor808 · keyframe lane filtered-window capacity

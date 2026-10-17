@@ -11,8 +11,6 @@ related_records:
 implementation_files:
   - zircon_editor/src/core/play/pending_edits/queue.rs
 tests:
-  - zircon_editor/src/core/play/pending_edits/tests.rs
-  - tools/tests/test_editor07_pending_edit_page_single_scan_performance_contract.py
 ---
 
 # Editor07 Pending Edit Page Single-Scan Projection

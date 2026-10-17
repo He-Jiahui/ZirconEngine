@@ -6,9 +6,7 @@ plan_sources:
   - docs/plans/optimize/zircon_runtime/81-runtime-text-shaping-unicode-bidi-script-run-cluster-line-break-wrap-layout-product-integration-current-source-review.md
 related_code:
   - zircon_runtime/src/text/layout/kinsoku.rs
-  - zircon_runtime/src/text/layout/kinsoku/match_dispatch_tests.rs
 tests:
-  - zircon_runtime/src/text/layout/kinsoku/match_dispatch_tests.rs
 ---
 
 # Runtime81 Kinsoku Fixed-Set Dispatch

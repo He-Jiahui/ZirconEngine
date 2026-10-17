@@ -9,10 +9,9 @@ origin_child_dir: docs/plans/performance/01
 fixing_child_dir: docs/plans/zircon_runtime/render/17
 plan_link_mode: child_record_only
 related_code:
-  - zircon_runtime/src/graphics/runtime/render_framework/query_virtual_geometry_debug_snapshot/query_virtual_geometry_debug_snapshot.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/reload_pipeline/reload_pipeline.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/set_pipeline_asset/set_pipeline_asset.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/set_quality_profile/set_quality_profile.rs
+  - zircon_runtime/src/graphics/runtime/framework/reload_pipeline/reload_pipeline.rs
+  - zircon_runtime/src/graphics/runtime/set_pipeline_asset/set_pipeline_asset.rs
+  - zircon_runtime/src/graphics/runtime/set_quality_profile/set_quality_profile.rs
 tests:
   - cargo test -p zircon_runtime --lib runtime_15_vm_plugin_manager_selected_backend_lock_poison_recovery_guard_covers_manager_selector --locked
 ---

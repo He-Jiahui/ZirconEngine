@@ -8,7 +8,6 @@ related_code:
   - zircon_runtime/src/script/vm/gameplay_host/navigation.rs
   - zircon_runtime/src/script/vm/gameplay_host/transform.rs
   - zircon_runtime/src/script/vm/gameplay_host/script_bindings.rs
-  - zircon_runtime/src/script/vm/gameplay_host/tests.rs
   - zircon_runtime/src/script/vm/gameplay_host/tests/spawn_transform.rs
   - zircon_runtime/src/script/vm/gameplay_host/tests/component_state.rs
   - zircon_runtime/src/script/vm/gameplay_host/tests/combat_lifecycle.rs
@@ -25,7 +24,6 @@ implementation_files:
   - zircon_runtime/src/script/vm/gameplay_host/navigation.rs
   - zircon_runtime/src/script/vm/gameplay_host/transform.rs
   - zircon_runtime/src/script/vm/gameplay_host/script_bindings.rs
-  - zircon_runtime/src/script/vm/gameplay_host/tests.rs
   - zircon_runtime/src/script/vm/gameplay_host/tests/spawn_transform.rs
   - zircon_runtime/src/script/vm/gameplay_host/tests/component_state.rs
   - zircon_runtime/src/script/vm/gameplay_host/tests/combat_lifecycle.rs

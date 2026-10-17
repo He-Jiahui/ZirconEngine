@@ -1,9 +1,7 @@
 ---
 related_code:
   - zircon_runtime/src/graphics/pipeline/compiled_graph_cache.rs
-  - zircon_runtime/src/graphics/pipeline/compiled_graph_cache/tests.rs
-  - zircon_runtime/src/graphics/pipeline/declarations/render_pipeline_compile_options.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/compile_pipeline.rs
+  - zircon_runtime/src/graphics/declarations/render_pipeline_compile_options.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_runtime/render/01-render-graph-rdg-alignment.md

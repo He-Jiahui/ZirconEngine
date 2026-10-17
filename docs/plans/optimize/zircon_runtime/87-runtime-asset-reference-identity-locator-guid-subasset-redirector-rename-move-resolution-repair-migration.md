@@ -18,12 +18,10 @@ related_code:
   - zircon_runtime_interface/src/project
   - zircon_runtime_interface/src/resource
   - zircon_editor/src/core/asset
-  - zircon_editor/src/ui/host/editor_asset_manager
 tests:
   - zircon_runtime/src/asset/tests
   - zircon_runtime/src/asset/reference_resolver.rs
   - zircon_runtime_interface/src/project/tests
-  - zircon_editor/src/core/asset/dirty/save_batch/tests.rs
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md
   - docs/plans/optimize/01-cross-report-owner-schema-abi-p0-consolidation-review.md

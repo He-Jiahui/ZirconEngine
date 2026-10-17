@@ -44,7 +44,7 @@ impl NetRpcRuntimeManager {
             return Err(NetError::Io("unsupported RPC channel flags".to_string()));
         }
 
-        let mut state = self.state.lock().expect("net RPC state mutex poisoned");
+        let mut state = self.lock_state()?;
         let sequence = state.channel_sequences.entry(channel_id).or_insert(0);
         let message = RpcChannelMessage::new(channel_id, flags, *sequence, payload);
         *sequence += 1;
@@ -61,7 +61,9 @@ impl NetRpcRuntimeManager {
         channel_id: u8,
         max_messages: usize,
     ) -> Vec<RpcChannelMessage> {
-        let mut state = self.state.lock().expect("net RPC state mutex poisoned");
+        let Ok(mut state) = self.lock_state() else {
+            return Vec::new();
+        };
         let Some(queue) = state.channel_queues.get_mut(&channel_id) else {
             return Vec::new();
         };

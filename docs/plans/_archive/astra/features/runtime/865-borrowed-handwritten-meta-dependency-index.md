@@ -8,10 +8,8 @@ related_records:
   - docs/plans/astra/features/runtime/866-resolved-dependency-output-capacity.md
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
-  - zircon_runtime/src/asset/project/manager/scan_and_import/dependency_resolution.rs
+  - zircon_runtime/src/asset/manager/scan_and_import/dependency_resolution.rs
 tests:
-  - zircon_runtime/src/asset/project/manager/scan_and_import/dependency_resolution/optimization_batch_jd_runtime643_tests.rs
-  - tools/tests/test_runtime865_handwritten_meta_dependency_borrowed_index_performance_contract.py
 ---
 
 # Runtime865 Borrowed Handwritten Metadata Dependency Index

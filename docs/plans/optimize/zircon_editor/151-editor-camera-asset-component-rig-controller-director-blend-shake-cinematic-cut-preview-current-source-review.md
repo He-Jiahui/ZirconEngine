@@ -28,15 +28,12 @@ related_code:
   - zircon_runtime/src/dynamic_api/camera_controller.rs
   - zircon_runtime/src/dynamic_api/session/construction.rs
   - zircon_runtime/src/dynamic_api/session/events.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record
-  - zircon_runtime/src/graphics/scene/scene_renderer/temporal/velocity
   - zircon_runtime/src/script/vm/gameplay_host/transform.rs
   - zircon_plugins/ai/runtime/src/plugin/registration.rs
   - zircon_editor/src/scene/viewport/controller
   - zircon_editor/src/scene/viewport/render_packet.rs
   - zircon_editor/src/core/asset/type_registry
   - zircon_editor/src/ui/asset_editor/preview
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/animation/workbench_extension_sequencer_workspace.zui
   - zircon_plugins/timeline_sequence/editor/src
   - zircon_runtime_interface/src/resource/marker.rs
 plan_sources:

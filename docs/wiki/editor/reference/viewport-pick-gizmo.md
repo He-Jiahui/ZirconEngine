@@ -5,7 +5,6 @@ related_code:
   - zircon_editor/src/scene/viewport/settings.rs
   - zircon_editor/src/core/gateway/viewport_pick_route.rs
   - zircon_editor/src/core/gateway/session/viewport_pick.rs
-  - zircon_editor/src/ui/retained_host/viewport
 implementation_files:
   - zircon_editor/src/scene
   - zircon_editor/src/core/gateway/viewport_pick_route.rs

@@ -20,7 +20,6 @@ related_code:
   - zircon_runtime/src/ui/accessibility/action
   - zircon_runtime/src/dynamic_api/session/runtime_ui.rs
   - zircon_runtime/src/dynamic_api/session/events.rs
-  - zircon_editor/src/ui/retained_host
   - zircon_editor/src/ui/workbench
   - examples/woc/native/apps/woc_client/src/input/touch.rs
 tests:

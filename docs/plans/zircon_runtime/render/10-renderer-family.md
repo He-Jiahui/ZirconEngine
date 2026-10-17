@@ -3,23 +3,10 @@ related_code:
   - zircon_runtime/src/core/framework/render/scene_extract.rs
   - zircon_runtime/src/core/framework/render/mesh/descriptor.rs
   - zircon_runtime/src/core/framework/render/sprite/sprite.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/create_mesh_draw.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/sprite/sprite_renderer.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs
-  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/mesh.rs
-  - dev/UnrealEngine/Engine/Source/Runtime/Engine/Private/PrimitiveSceneProxy.cpp
-  - dev/Graphics/Packages/com.unity.render-pipelines.universal/Runtime/Passes/DrawObjectsPass.cs
-  - dev/Graphics/Packages/com.unity.render-pipelines.universal/Runtime/Passes/RenderObjectsPass.cs
-  - dev/Graphics/Packages/com.unity.render-pipelines.universal/Runtime/ScriptableRendererFeature.cs
-  - dev/bevy/crates/bevy_sprite/src/sprite.rs
-  - dev/bevy/crates/bevy_render/src/batching/mod.rs
-  - dev/bevy/crates/bevy_render/src/batching/gpu_preprocessing.rs
-  - dev/bevy/crates/bevy_camera/src/visibility/range.rs
-  - dev/bevy/crates/bevy_render/src/view/visibility/range.rs
-  - dev/bevy/crates/bevy_pbr/src/render/mesh.rs
-  - dev/bevy/crates/bevy_sprite_render/src/render/mod.rs
-  - dev/Fyrox/fyrox-impl/src/scene/base.rs
-  - dev/Fyrox/fyrox-impl/src/renderer/bundle.rs
+  - zircon_runtime/src/graphics/scene/mesh/build_mesh_draws/create_mesh_draw.rs
+  - zircon_runtime/src/graphics/scene/renderer/sprite/sprite_renderer.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/render.rs
+  - zircon_runtime/src/graphics/feature/builtin/feature_descriptors/mesh.rs
 plan_sources:
   - .codex/plans/ZirconEngine Bevy-Level Rendering Completion Plan.md
   - .codex/plans/ZirconEngine ECS 到渲染链路完善里程碑计划.md

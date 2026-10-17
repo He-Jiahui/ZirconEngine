@@ -1,11 +1,9 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/app/assets
-  - zircon_editor/src/ui/retained_host/app/backend_refresh.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/tick.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/dispatch_effects/side_effects.rs
-  - zircon_runtime/src/asset/pipeline/manager/service_contracts/asset_manager_contract.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/management.rs
+  - zircon_editor/src/ui/retained/app/backend_refresh.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle/tick.rs
+  - zircon_editor/src/ui/retained/app/dispatch_effects/side_effects.rs
+  - zircon_runtime/src/asset/manager/service_contracts/asset_manager_contract.rs
   - zircon_runtime/src/core/runtime/diagnostics/profiling/scope.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md

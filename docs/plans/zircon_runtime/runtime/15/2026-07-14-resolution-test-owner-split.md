@@ -2,7 +2,7 @@
 related_code:
   - zircon_runtime/src/core/runtime/tests/resolution/behavior.rs
   - zircon_runtime/src/core/runtime/tests/resolution/behavior/dependency_cycles.rs
-  - zircon_runtime/src/core/runtime/tests/resolution/behavior/exact_dependency_resolution.rs
+  - zircon_runtime/src/core/runtime/tests/behavior/exact_dependency_resolution.rs
   - zircon_runtime/src/core/runtime/tests/resolution/behavior/factory_panics.rs
   - zircon_runtime/src/core/runtime/tests/resolution/structure.rs
   - docs/architecture/core-runtime-service-registry.md

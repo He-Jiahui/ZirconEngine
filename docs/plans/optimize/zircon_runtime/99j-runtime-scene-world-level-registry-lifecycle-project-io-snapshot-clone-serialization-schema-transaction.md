@@ -17,8 +17,6 @@ related_code:
   - zircon_runtime/src/scene/world/schedule.rs
   - zircon_runtime/src/scene/world/performance_diagnostics.rs
   - zircon_runtime/src/scene/world/project_io
-  - zircon_runtime/src/scene/dynamic_scene/document
-  - zircon_runtime/src/scene/dynamic_scene/scene
   - zircon_runtime/src/asset/assets/scene
   - zircon_runtime/src/asset/assets/project_document
   - zircon_runtime/src/core/framework/scene
@@ -32,10 +30,8 @@ related_code:
 tests:
   - zircon_runtime/src/scene/tests/world_basics/world_state.rs
   - zircon_runtime/src/scene/tests/derived_state/hierarchy_behavior.rs
-  - zircon_runtime/src/scene/dynamic_scene/scene/spawn/transaction/tests.rs
   - zircon_runtime/src/asset/tests/assets/scene/management.rs
   - zircon_runtime/src/asset/tests/project/example_vampire/manifest_scene_imports.rs
-  - zircon_editor/src/core/play/snapshot/tests.rs
   - zircon_editor/src/core/project/tests/scene_document.rs
   - examples/vampire/assets/scenes/main.scene.toml
 plan_sources:

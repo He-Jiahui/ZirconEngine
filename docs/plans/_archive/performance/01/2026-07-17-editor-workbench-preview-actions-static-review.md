@@ -1,7 +1,5 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/workbench_preview_actions.rs
-  - zircon_editor/src/ui/retained_host/workbench_preview_actions
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
 reference_sources:

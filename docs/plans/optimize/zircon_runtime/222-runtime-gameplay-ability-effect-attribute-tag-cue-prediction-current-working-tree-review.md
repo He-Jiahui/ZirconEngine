@@ -8,13 +8,11 @@ related_code:
   - zircon_runtime/src/script/vm/gameplay_host
   - zircon_runtime/src/script/vm/runtime_context.rs
   - zircon_runtime/src/script/vm/capability_set.rs
-  - zircon_runtime/src/scene/dynamic_scene
   - zircon_runtime/src/core/framework/time
   - zircon_runtime/src/core/framework/net
   - zircon_plugins/net/features/replication/runtime/src
   - zircon_runtime/src/asset
-  - zircon_editor/assets/ui/editor/components/workbench/modules/core/gameplay
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench
+  - zircon_editor/assets/ui/editor/modules/core/gameplay
   - examples/woc/scripts/woc_game/src/combat
 plan_sources:
   - docs/plans/optimize/zircon_runtime/99zz-gameplay-ability-review.md

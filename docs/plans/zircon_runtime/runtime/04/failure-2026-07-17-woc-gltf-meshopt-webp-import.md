@@ -16,7 +16,6 @@ related_code:
   - zircon_runtime/src/asset/importer/ingest/import_gltf.rs
   - zircon_runtime/src/asset/importer/ingest/gltf_animation_subassets.rs
   - zircon_runtime/src/asset/importer/ingest/gltf_labeled_subassets/material.rs
-  - dev/world-of-claudecraft/public/models
 tests:
   - cargo test -p zircon_runtime woc_meshopt_required_glb_imports --locked
   - cargo test -p zircon_runtime woc_required_gltf_extensions_preserve_render_assets --locked

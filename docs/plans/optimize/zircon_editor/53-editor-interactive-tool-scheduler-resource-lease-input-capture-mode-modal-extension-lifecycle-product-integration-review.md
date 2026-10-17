@@ -9,14 +9,9 @@ related_code:
   - zircon_editor/src/core/editor_message/topics.rs
   - zircon_editor/src/scene/modes/scene_mode_activation.rs
   - zircon_editor/src/scene/modes/scene_mode_stack.rs
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_accessors.rs
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_apply_command.rs
   - zircon_editor/src/ui/host/editor_scene_mode_lifecycle.rs
 tests:
-  - zircon_editor/src/core/tools/tests.rs
   - zircon_editor/src/core/context/editor_context.rs
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_handle_input.rs
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_scene_modes.rs
   - zircon_editor/src/ui/host/editor_event_execution/viewport_event.rs
   - zircon_editor/src/ui/workbench/state/editor_state_viewport.rs
 plan_sources:

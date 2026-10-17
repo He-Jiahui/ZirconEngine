@@ -2,10 +2,12 @@
 //! 诊断调用会先消费 worker ingress 并写入主事件队列，scene First 阶段先诊断后发布事件；读取快照并非无副作用。
 
 use std::collections::VecDeque;
+use std::sync::Arc;
 
 use zircon_runtime::core::framework::net::{NetDiagnostics, NetEvent};
 
 use crate::poison_recovery::lock_recover;
+use crate::websocket::ManagedWebSocketConnection;
 
 use super::DefaultNetManager;
 
@@ -25,8 +27,24 @@ impl DefaultNetManager {
 
     pub(in crate::service_types) fn drain_events_impl(&self, max_events: usize) -> Vec<NetEvent> {
         self.state.poll_worker_ingress(max_events);
-        let mut events = lock_recover(&self.state.events);
-        drain_bounded_events(&mut events, max_events)
+        let drained = {
+            let mut events = lock_recover(&self.state.events);
+            drain_bounded_events(&mut events, max_events)
+        };
+        if !drained.is_empty() {
+            let readers = lock_recover(&self.state.websocket_connections)
+                .values()
+                .filter_map(|entry| match entry {
+                    ManagedWebSocketConnection::Network(connection) => Some(Arc::clone(connection)),
+                    ManagedWebSocketConnection::Loopback(_) => None,
+                })
+                .collect::<Vec<_>>();
+            // Backend callbacks may reenter the manager. Release both locks first.
+            for reader in readers {
+                reader.notify_event_capacity();
+            }
+        }
+        drained
     }
 
     pub(in crate::service_types) fn diagnostics_impl(&self) -> NetDiagnostics {

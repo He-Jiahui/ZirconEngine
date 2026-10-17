@@ -8,10 +8,8 @@ related_records:
   - docs/plans/astra/features/runtime/680-20260911-runtime-ui-optimization-batch-completion.md
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
-  - zircon_runtime/src/asset/project/manager/scan_and_import/shader_import_dependencies.rs
+  - zircon_runtime/src/asset/manager/scan_and_import/shader_import_dependencies.rs
 tests:
-  - zircon_runtime/src/asset/project/manager/scan_and_import/shader_import_dependencies/optimization_batch_runtime867_shader_dependency_direct_append_tests.rs
-  - tools/tests/test_runtime867_shader_dependency_direct_append_performance_contract.py
 ---
 
 # Runtime867 Shader Dependency Direct Append

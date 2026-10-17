@@ -23,14 +23,11 @@ related_code:
   - zircon_plugins/ai/runtime/src/plugin/registration.rs
   - zircon_plugins/first_party_runtime_catalog/src/lib.rs
   - zircon_plugins/first_party_editor_catalog/src/catalog.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/camera_loop.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record
-  - zircon_runtime/src/graphics/scene/scene_renderer/temporal/velocity
+  - zircon_runtime/src/graphics/runtime/framework/extract/submit/camera_loop.rs
   - zircon_app/src/bin/zircon_shader_pbr_viewer/camera.rs
   - zircon_app/src/bin/zircon_shader_pbr_viewer/scene.rs
   - zircon_editor/src/scene/viewport/controller
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/animation/workbench_extension_sequencer_workspace.zui
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation/specs/gameplay_animation.rs
+  - zircon_editor/src/ui/retained/dispatch/workbench/specs/gameplay_animation.rs
 tests:
   - zircon_runtime/src/asset/tests/assets/scene/camera.rs
   - zircon_runtime/src/scene/tests/render_extract/camera_order.rs

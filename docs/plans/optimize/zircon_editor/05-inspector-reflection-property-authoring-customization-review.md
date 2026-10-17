@@ -8,8 +8,7 @@ related_code:
   - zircon_editor/src/ui/binding_dispatch/inspector
   - zircon_editor/src/ui/workbench/state/editor_state_selection.rs
   - zircon_editor/src/ui/workbench/snapshot/data/editor_state_snapshot_build.rs
-  - zircon_editor/src/ui/retained_host/app/inspector
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/inspector_fields.rs
+  - zircon_editor/src/ui/retained/app/inspector
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md
   - docs/plans/zircon_editor/editor/03-command-transaction-and-undo.md

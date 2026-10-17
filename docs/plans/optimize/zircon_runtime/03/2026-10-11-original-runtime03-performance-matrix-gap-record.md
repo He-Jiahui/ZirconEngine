@@ -7,7 +7,6 @@ related_code:
   - zircon_runtime/src/core/runtime/diagnostics/tests/devtools.rs
   - zircon_runtime/src/runtime_diagnostics/collect.rs
   - zircon_runtime/src/runtime_diagnostics/tests/collect_performance_tests.rs
-  - zircon_runtime/src/foundation/runtime/config_manager/state/tests/percentile_stack_tests.rs
   - zircon_runtime_interface/src/profiling.rs
   - zircon_runtime/src/core/runtime/diagnostics/profiling/recorder.rs
 plan_sources:

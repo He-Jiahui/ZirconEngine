@@ -19,21 +19,8 @@ related_code:
   - zircon_editor/src/ui/layouts/views/asset_browser/utility_tabs.rs
   - zircon_editor/src/ui/asset_editor/node_projection.rs
   - zircon_editor/src/ui/layouts/views/view_projection.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_command_conversion/style/text.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_button/selection.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_button/tests.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_buttons/surface.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_buttons_tests/paint.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_buttons_tests/style.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_asset_placeholder_visuals.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_asset_placeholder_visuals/preview_image.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_images/identity.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_style/colors/surface/variants.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_style/surface_roles.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_style/colors/border.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_style_tests/surface.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/visual_assets/candidates/aliases.rs
-  - zircon_editor/src/tests/host/retained_menu_pointer/visual_screenshot.rs
+  - zircon_editor/src/ui/retained/contract/paint/style/colors/surface/variants.rs
+  - zircon_editor/src/ui/retained/contract/paint/visual_assets/candidates/aliases.rs
   - zircon_editor/src/tests/ui/asset_browser/bootstrap_assets.rs
   - tools/tests/test_zui_static_suffix_convergence.py
 implementation_files:
@@ -56,22 +43,8 @@ implementation_files:
   - zircon_editor/src/ui/layouts/views/asset_browser/utility_tabs.rs
   - zircon_editor/src/ui/asset_editor/node_projection.rs
   - zircon_editor/src/ui/layouts/views/view_projection.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_command_conversion/style/text.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_button/selection.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_button/tests.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_buttons/surface.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_buttons_tests/paint.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_buttons_tests/style.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_asset_placeholder_visuals.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_asset_placeholder_visuals/preview_image.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_images/identity.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_style/colors/surface/variants.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_style/surface_roles.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_style/colors/border.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_style_tests/surface.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/visual_assets/candidates/aliases.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/visual_assets_tests/runtime.rs
-  - zircon_editor/src/tests/host/retained_menu_pointer/visual_screenshot.rs
+  - zircon_editor/src/ui/retained/contract/paint/style/colors/surface/variants.rs
+  - zircon_editor/src/ui/retained/contract/paint/visual_assets/candidates/aliases.rs
   - zircon_editor/src/tests/ui/asset_browser/bootstrap_assets.rs
   - tools/tests/test_zui_static_suffix_convergence.py
 plan_sources:

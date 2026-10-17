@@ -13,8 +13,6 @@ related_code:
   - zircon_editor/src/core/settings/defaults.rs
   - zircon_editor/src/ui/binding/viewport
   - zircon_editor/src/ui/binding_dispatch/viewport
-  - zircon_editor/src/ui/retained_host/callback_dispatch/viewport
-  - zircon_editor/src/ui/retained_host/viewport_toolbar_pointer
   - zircon_editor/src/ui/workbench/state/editor_state_viewport.rs
   - zircon_editor/src/ui/workbench/state/editor_state_play_mode.rs
   - zircon_editor/src/ui/layouts/views/viewport_chrome.rs
@@ -25,20 +23,17 @@ related_code:
   - zircon_runtime/src/core/framework/render/scene_extract.rs
   - zircon_runtime/src/core/framework/render/frame_profile.rs
   - zircon_runtime/src/core/framework/render/backend_types
-  - zircon_runtime/src/graphics/scene/scene_renderer/overlay
-  - zircon_runtime/src/graphics/scene/scene_renderer/primitives/wireframe
-  - zircon_runtime/src/graphics/scene/scene_renderer/primitives/scene_uniform
-  - zircon_runtime/src/graphics/scene/scene_renderer/lighting
-  - zircon_runtime/src/graphics/scene/scene_renderer/shadow/plan.rs
+  - zircon_runtime/src/graphics/scene/renderer/primitives/wireframe
+  - zircon_runtime/src/graphics/scene/renderer/primitives/scene_uniform
+  - zircon_runtime/src/graphics/scene/renderer/shadow/plan.rs
 tests:
   - zircon_editor/src/tests/editing/viewport.rs
   - zircon_editor/src/tests/editing/state/viewport.rs
   - zircon_editor/src/tests/editing/state/play_mode.rs
   - zircon_editor/src/tests/host/binding_dispatch/viewport.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/viewport/toolbar_dispatch.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/viewport/typed_command.rs
+  - zircon_editor/src/tests/host/callbacks/viewport/toolbar_dispatch.rs
+  - zircon_editor/src/tests/host/callbacks/viewport/typed_command.rs
   - zircon_editor/src/tests/host/retained_viewport_toolbar_pointer/dispatch.rs
-  - zircon_editor/src/tests/host/template_runtime/scene_viewport_toolbar_runtime_projection.rs
   - zircon_editor/src/tests/workbench/chrome_snapshot/viewport_settings.rs
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md

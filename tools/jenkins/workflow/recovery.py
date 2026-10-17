@@ -1,6 +1,8 @@
 """Durable failure compensation over source and native process authorities."""
 from __future__ import annotations
 
+import os
+
 import hashlib
 from pathlib import Path
 import subprocess
@@ -60,7 +62,7 @@ def _before_bytes(operation, root, flow, relative, checksum):
     base = (flow.get("sourceManifest") or {}).get("baseHead")
     if not base:
         raise JenkinsError("before_object_missing", "legacy patch has no trustworthy original bytes")
-    result = subprocess.run(["git", "-C", str(root), "show", f"{base}:{relative}"], capture_output=True)
+    result = subprocess.run(["git", "-c", "core.fsmonitor=false", "-c", "core.hooksPath=" + os.devnull, "-C", str(root), "show", f"{base}:{relative}"], capture_output=True)
     if result.returncode or hashlib.sha256(result.stdout).hexdigest() != checksum:
         raise JenkinsError("before_object_missing", "Git base differs from original uncommitted bytes")
     return result.stdout
@@ -216,7 +218,7 @@ def recover_flow(state, repo_root, key, *, error=None):
                     raise JenkinsError("shared_source_accepted", "an accepted consumer still owns the shared source")
             base = (flow.get("sourceManifest") or {}).get("baseHead")
             if base:
-                head = subprocess.run(["git", "-C", flow["repoRoot"], "rev-parse", "HEAD"], capture_output=True, text=True)
+                head = subprocess.run(["git", "-c", "core.fsmonitor=false", "-c", "core.hooksPath=" + os.devnull, "-C", flow["repoRoot"], "rev-parse", "HEAD"], capture_output=True, text=True)
                 if head.returncode or head.stdout.strip() != base:
                     raise JenkinsError("foreign_head_change", "Git HEAD changed before failure compensation")
             results = []

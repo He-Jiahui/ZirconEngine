@@ -6,7 +6,6 @@ related_code:
   - zircon_runtime/src/ui/tree/hit_test.rs
   - zircon_runtime/src/ui/dispatch/input_manager/timers.rs
   - zircon_runtime/src/ui/surface/input
-  - zircon_editor/src/ui/retained_host/host_contract
   - zircon_runtime/src/ui/platform_input/winit_translation.rs
 plan_sources:
   - docs/plans/zircon_editor/editor_ui/01-slate-input-dispatch-core.md

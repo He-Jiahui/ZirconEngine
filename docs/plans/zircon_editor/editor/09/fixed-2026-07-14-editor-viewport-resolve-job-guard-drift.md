@@ -8,7 +8,6 @@ fixing_plan: docs/plans/zircon_runtime/render/01-render-graph-rdg-alignment.md
 origin_child_dir: docs/plans/zircon_editor/editor/09
 fixing_child_dir: docs/plans/zircon_runtime/render/01
 related_code:
-  - zircon_editor/src/ui/retained_host/viewport/
   - zircon_editor/src/tests/host/render_framework_boundary/mod.rs
 tests:
   - cargo test -p zircon_editor --lib --locked tests::host::render_framework_boundary::editor_viewport_sources_route_through_render_framework_without_wgpu_preview_bindings -- --exact --test-threads=1

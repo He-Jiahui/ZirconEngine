@@ -7,9 +7,7 @@ related_records:
   - docs/plans/astra/features/runtime/895-runtime576-mesh-sdf-seed-preflight.md
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_drag_overlay/text.rs
 tests:
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_drag_overlay/text.rs
 ---
 
 # Editor952 Editor576 Drag-Overlay Deferred Label

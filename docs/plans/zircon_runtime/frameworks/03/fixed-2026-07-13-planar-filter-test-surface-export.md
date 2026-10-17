@@ -9,8 +9,7 @@ origin_child_dir: docs/plans/zircon_runtime/frameworks/03
 fixing_child_dir: docs/plans/zircon_runtime/render/18
 related_code:
   - zircon_runtime/src/graphics/tests/render_product_planar_reflection.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/planar_filter/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/mod.rs
+  - zircon_runtime/src/graphics/scene/renderer/planar_filter/mod.rs
 tests:
   - cargo test -p zircon_runtime --lib --locked --offline --jobs 1 --no-run
 resolved_at: 2026-07-13

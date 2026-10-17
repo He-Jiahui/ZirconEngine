@@ -20,9 +20,7 @@ related_code:
   - zircon_runtime/src/ui/surface/render/command_palette.rs
   - zircon_runtime/src/ui/surface/render/drag_overlay.rs
   - zircon_runtime/src/ui/surface/render/notification_center.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_drag_overlay.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/drag_overlay/mod.rs
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/feedback/workbench_drag_overlay.zui
+  - zircon_editor/src/ui/retained/ui/data/projection/drag_overlay/mod.rs
   - zircon_runtime/src/ui/surface/render/feedback.rs
   - zircon_runtime/src/ui/surface/render/feedback/state.rs
   - zircon_runtime/src/ui/surface/render/popup_menu.rs
@@ -57,7 +55,6 @@ related_code:
   - zircon_runtime/src/ui/tests/render_painter_state.rs
   - zircon_runtime/src/ui/tests/runtime_drag_drop_component_state.rs
   - zircon_runtime/src/ui/tests/runtime_loading_component_state.rs
-  - zircon_runtime/src/core/framework/tests.rs
   - zircon_runtime_interface/src/ui/style.rs
   - zircon_runtime_interface/src/ui/tree/node/template_node_metadata.rs
   - zircon_runtime_interface/src/ui/surface/render/resolved_style.rs
@@ -82,9 +79,7 @@ implementation_files:
   - zircon_runtime/src/ui/surface/render/command_palette.rs
   - zircon_runtime/src/ui/surface/render/drag_overlay.rs
   - zircon_runtime/src/ui/surface/render/notification_center.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_drag_overlay.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/drag_overlay/mod.rs
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/feedback/workbench_drag_overlay.zui
+  - zircon_editor/src/ui/retained/ui/data/projection/drag_overlay/mod.rs
   - zircon_runtime/src/ui/surface/render/feedback.rs
   - zircon_runtime/src/ui/surface/render/feedback/state.rs
   - zircon_runtime/src/ui/surface/render/popup_menu.rs
@@ -110,8 +105,7 @@ implementation_files:
   - zircon_runtime/src/ui/tests/render_command_palette.rs
   - zircon_runtime/src/ui/tests/render_drag_overlay.rs
   - zircon_runtime/src/ui/tests/render_notification_center.rs
-  - zircon_editor/src/tests/host/retained_window/native_material_painter_drag_overlay.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/drag_overlay_tests.rs
+  - zircon_editor/src/tests/retained_window/native_material_painter_drag_overlay.rs
   - zircon_runtime/src/ui/tests/render_selection_controls.rs
   - zircon_runtime/src/ui/tests/render_segmented_controls.rs
   - zircon_runtime/src/ui/tests/render_sliders.rs
@@ -120,7 +114,6 @@ implementation_files:
   - zircon_runtime/src/ui/tests/render_painter_state.rs
   - zircon_runtime/src/ui/tests/runtime_drag_drop_component_state.rs
   - zircon_runtime/src/ui/tests/runtime_loading_component_state.rs
-  - zircon_runtime/src/core/framework/tests.rs
 plan_sources:
   - user: 2026-06-01 workbench design recreation and engine implementation
   - user: 2026-06-03 native editor workbench window comparison screenshot request

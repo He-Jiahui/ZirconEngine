@@ -55,7 +55,6 @@ tests:
   - zircon_runtime_interface/src/project/tests/manifest_summary.rs
   - zircon_runtime_interface/src/project/tests/rel_path.rs
   - zircon_runtime_interface/src/project/tests/template_pack.rs
-  - zircon_runtime_interface/src/project/session_lock/tests.rs
   - zircon_runtime_interface/src/project/tests/retired_asset_ref_migration.rs
   - zircon_runtime_interface/src/serialization/tests/migration_contract.rs
   - tests/fixtures/serialization/project-manifest/v1/zircon-project.toml

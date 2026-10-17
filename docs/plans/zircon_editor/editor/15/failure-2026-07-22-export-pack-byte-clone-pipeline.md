@@ -12,7 +12,6 @@ related_code:
   - zircon_runtime/src/bin/zircon_export_pack/manifest.rs
   - zircon_runtime/src/bin/zircon_export_pack/run.rs
   - zircon_runtime/src/asset/pack/writer.rs
-  - zircon_runtime/src/asset/pack/writer/optimization_tests.rs
   - zircon_editor/src/core/export
 tests:
   - python -B -m unittest tools.tests.test_editor15_export_pack_borrowed_writer_contract -v

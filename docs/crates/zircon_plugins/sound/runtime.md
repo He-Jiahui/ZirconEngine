@@ -19,8 +19,7 @@ related_code:
   - zircon_plugins/sound/runtime/src/kira_bridge/manager/playback.rs
   - zircon_plugins/sound/runtime/src/kira_bridge/playback_data.rs
   - zircon_plugins/sound/runtime/src/poison_recovery.rs
-  - zircon_plugins/sound/runtime/src/engine/filter/mod.rs
-  - zircon_plugins/sound/runtime/src/engine/filter/tests.rs
+  - zircon_plugins/sound/runtime/src/engine/filter/tests/mod.rs
   - zircon_plugins/sound/runtime/src/engine/state/graph.rs
   - zircon_plugins/sound/runtime/src/engine/state/playback.rs
   - zircon_plugins/sound/runtime/src/engine/state/source.rs
@@ -54,7 +53,6 @@ implementation_files:
   - zircon_plugins/sound/runtime/src/kira_bridge/manager/playback.rs
   - zircon_plugins/sound/runtime/src/kira_bridge/playback_data.rs
   - zircon_plugins/sound/runtime/src/poison_recovery.rs
-  - zircon_plugins/sound/runtime/src/engine/filter/mod.rs
   - zircon_plugins/sound/runtime/src/mixer_configuration/configure.rs
   - zircon_plugins/sound/runtime/src/mixer_configuration/sources.rs
   - zircon_plugins/sound/runtime/src/service_types/mixer_graph/configuration.rs
@@ -89,10 +87,10 @@ tests:
   - zircon_plugins/sound/runtime/src/tests/kira_bridge/source/runtime.rs
   - zircon_plugins/sound/runtime/src/tests/kira_graph_sync.rs
   - zircon_plugins/sound/runtime/src/tests/playback/range.rs
-  - zircon_plugins/sound/runtime/src/engine/dsp/tests.rs
-  - zircon_plugins/sound/runtime/src/engine/filter/tests.rs
+  - zircon_plugins/sound/runtime/src/engine/dsp/tests/mod.rs
+  - zircon_plugins/sound/runtime/src/engine/filter/tests/mod.rs
   - zircon_plugins/sound/runtime/src/tests/runtime_core/settings.rs
-  - zircon_plugins/sound/runtime/src/tests/automation_binding/validation/active_runtime.rs
+  - zircon_plugins/sound/runtime/src/tests/validation/active_runtime.rs
 doc_type: module-detail
 ---
 

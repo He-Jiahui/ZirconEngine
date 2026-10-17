@@ -7,9 +7,7 @@ plan_sources:
 related_code:
   - zircon_runtime/src/dynamic_api/session/runtime_ui.rs
   - zircon_runtime/src/dynamic_api/session/runtime_ui/input_routing.rs
-  - zircon_runtime/src/dynamic_api/session/runtime_ui/tests.rs
 tests:
-  - tools/tests/test_runtime_dynamic_pointer_state_hash_performance_contract.py
 ---
 
 # Runtime Dynamic Pointer State Hash Lookup

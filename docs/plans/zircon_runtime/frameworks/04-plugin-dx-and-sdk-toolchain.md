@@ -6,7 +6,6 @@ related_code:
   - zircon_plugins/gltf_importer/plugin.toml
   - zircon_plugins/gltf_importer/runtime/src/plugin.rs
   - zircon_plugins/gltf_importer/dist/src/lib.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/mod.rs
   - zircon_runtime/src/plugin/extension_registry/runtime_extension_registry.rs
   - zircon_app/src/entry/export_bootstrap.rs
   - zircon_app/src/entry/first_party_runtime_plugins.rs

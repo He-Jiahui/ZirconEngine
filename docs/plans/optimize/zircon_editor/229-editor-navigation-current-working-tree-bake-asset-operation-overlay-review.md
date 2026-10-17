@@ -18,7 +18,7 @@ related_code:
   - zircon_plugins/navigation/runtime
   - zircon_plugins/navigation/native
   - zircon_editor/src/ui/host/asset_editor_sessions/editing/navigation.rs
-  - zircon_editor/src/ui/host/asset_editor_sessions/editing/navigation
+  - zircon_editor/src/ui/host/editing/navigation
   - zircon_editor/src/core/editor_extension
   - zircon_editor/src/core/editing
   - zircon_editor/src/core/jobs

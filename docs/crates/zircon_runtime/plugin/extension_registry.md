@@ -2,7 +2,6 @@
 related_code:
   - zircon_runtime/src/plugin/extension_registry/mod.rs
   - zircon_runtime/src/plugin/extension_registry/runtime_extension_registry.rs
-  - zircon_runtime/src/plugin/extension_registry/runtime_extension_registry/tests.rs
   - zircon_runtime/src/plugin/extension_registry/typed_extension_point.rs
   - zircon_runtime/src/plugin/extension_registry/ownership.rs
   - zircon_runtime/src/plugin/extension_registry/owner.rs
@@ -11,7 +10,6 @@ related_code:
   - zircon_runtime/src/plugin/extension_registry/register/system_registration.rs
   - zircon_runtime/src/plugin/extension_registry/register/resource_registration.rs
   - zircon_runtime/src/plugin/extension_registry/register/event_registration.rs
-  - zircon_runtime/src/plugin/extension_registry/register/runtime_scene_system_registration.rs
   - zircon_runtime/src/plugin/extension_registry/register/bridge_registration.rs
   - zircon_runtime/src/plugin/extension_registry/validation.rs
   - zircon_runtime/src/plugin/extension_registry/validation/token.rs
@@ -34,27 +32,15 @@ related_code:
   - zircon_runtime/src/scene/module/level_manager_lifecycle.rs
   - zircon_runtime/tests/runtime_plugin_world_extensions_contract.rs
   - zircon_runtime/src/core/runtime/handle/runtime_extensions.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/contributions/extension.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/extension_report/runtime.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/project_extension_report.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/project_extension_report/runtime_merge.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/access.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/diagnostics.rs
-  - zircon_runtime/src/plugin/runtime_plugin/capability_view.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/registration/constructors.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/registration/order.rs
-  - zircon_runtime/src/plugin/runtime_plugin/descriptor.rs
-  - zircon_runtime/src/plugin/runtime_plugin/descriptor/package_manifest/runtime_module.rs
-  - zircon_runtime/src/plugin/runtime_plugin/package_validation/modules/row/systems.rs
-  - zircon_runtime/src/plugin/runtime_plugin/registration_report/validation/system_anchors.rs
-  - zircon_runtime/src/plugin/runtime_plugin/registration_report/plugin.rs
-  - zircon_runtime/src/plugin/runtime_plugin/feature_registration_report/feature.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin/plugin.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin/feature.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/hot_reload.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/lifecycle.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/host_api_adapter.rs
+  - zircon_runtime/src/plugin/runtime/catalog/contributions/extension.rs
+  - zircon_runtime/src/plugin/runtime/catalog/extension_report/runtime.rs
+  - zircon_runtime/src/plugin/catalog/project_extension_report/runtime_merge.rs
+  - zircon_runtime/src/plugin/runtime/catalog/registration/constructors.rs
+  - zircon_runtime/src/plugin/runtime/catalog/registration/order.rs
+  - zircon_runtime/src/plugin/runtime/descriptor/package_manifest/runtime_module.rs
+  - zircon_runtime/src/plugin/runtime/validation/modules/row/systems.rs
+  - zircon_runtime/src/plugin/runtime/validation/system_anchors.rs
+  - zircon_runtime/src/plugin/runtime/registration_report/plugin.rs
   - zircon_editor/src/core/plugin/descriptor.rs
   - zircon_editor/src/core/plugin/catalog_gen.rs
   - zircon_editor/build.rs
@@ -69,11 +55,9 @@ related_code:
   - zircon_runtime/src/scene/world/events.rs
   - zircon_runtime/src/scene/world/schedule.rs
   - zircon_plugins/first_party_runtime_catalog/src/tests/provider_snapshot.rs
-  - tools/plugin_structure_audits/registration.py
   - tools/audits/audit_plugin_structure.py
 implementation_files:
   - zircon_runtime/src/plugin/extension_registry/runtime_extension_registry.rs
-  - zircon_runtime/src/plugin/extension_registry/runtime_extension_registry/tests.rs
   - zircon_runtime/src/plugin/extension_registry/typed_extension_point.rs
   - zircon_runtime/src/plugin/extension_registry/ownership.rs
   - zircon_runtime/src/plugin/extension_registry/owner.rs
@@ -81,7 +65,6 @@ implementation_files:
   - zircon_runtime/src/plugin/extension_registry/register/system_registration.rs
   - zircon_runtime/src/plugin/extension_registry/register/resource_registration.rs
   - zircon_runtime/src/plugin/extension_registry/register/event_registration.rs
-  - zircon_runtime/src/plugin/extension_registry/register/runtime_scene_system_registration.rs
   - zircon_runtime/src/plugin/extension_registry/register/bridge_registration.rs
   - zircon_runtime/src/plugin/extension_registry/validation.rs
   - zircon_runtime/src/plugin/extension_registry/validation/token.rs
@@ -101,28 +84,15 @@ implementation_files:
   - zircon_runtime/src/plugin/bridge/weak.rs
   - zircon_runtime/src/scene/module/world_driver.rs
   - zircon_runtime/src/scene/module/level_manager_lifecycle.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/contributions/extension.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/extension_report/runtime.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/project_extension_report.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/access.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/diagnostics.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/project_extension_report/runtime_merge.rs
-  - zircon_runtime/src/plugin/runtime_plugin/capability_view.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/registration/constructors.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/registration/order.rs
-  - zircon_runtime/src/plugin/runtime_plugin/descriptor.rs
-  - zircon_runtime/src/plugin/runtime_plugin/descriptor/package_manifest/runtime_module.rs
-  - zircon_runtime/src/plugin/runtime_plugin/package_validation/modules/row/systems.rs
-  - zircon_runtime/src/plugin/runtime_plugin/registration_report/validation/system_anchors.rs
-  - zircon_runtime/src/plugin/runtime_plugin/registration_report/plugin.rs
-  - zircon_runtime/src/plugin/runtime_plugin/feature_registration_report/feature.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin/plugin.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin/feature.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/hot_reload.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/lifecycle.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/host_api_adapter.rs
+  - zircon_runtime/src/plugin/runtime/catalog/contributions/extension.rs
+  - zircon_runtime/src/plugin/runtime/catalog/extension_report/runtime.rs
+  - zircon_runtime/src/plugin/catalog/project_extension_report/runtime_merge.rs
+  - zircon_runtime/src/plugin/runtime/catalog/registration/constructors.rs
+  - zircon_runtime/src/plugin/runtime/catalog/registration/order.rs
+  - zircon_runtime/src/plugin/runtime/descriptor/package_manifest/runtime_module.rs
+  - zircon_runtime/src/plugin/runtime/validation/modules/row/systems.rs
+  - zircon_runtime/src/plugin/runtime/validation/system_anchors.rs
+  - zircon_runtime/src/plugin/runtime/registration_report/plugin.rs
   - zircon_editor/src/core/plugin/descriptor.rs
   - zircon_editor/src/core/plugin/catalog_gen.rs
   - zircon_editor/build.rs
@@ -133,7 +103,6 @@ implementation_files:
   - zircon_runtime/src/scene/ecs/schedule_stage_plan.rs
   - zircon_runtime/src/scene/ecs/system/native/runtime_scene_system.rs
   - zircon_plugins/first_party_runtime_catalog/src/tests/provider_snapshot.rs
-  - tools/plugin_structure_audits/registration.py
   - tools/audits/audit_plugin_structure.py
 plan_sources:
   - docs/plans/zircon_runtime/frameworks/03-optional-features-and-profile-matrix.md
@@ -155,30 +124,12 @@ plan_sources:
 tests:
   - tools/tests/test_frameworks_03_server_feature_boundary.py
   - tools/tests/test_plugin_extension_registry_finalize_coverage.py
-  - zircon_runtime/src/plugin/extension_registry/typed_extension_point/tests.rs
-  - zircon_runtime/src/plugin/extension_registry/runtime_extension_registry/tests.rs
-  - zircon_runtime/src/plugin/extension_registry/runtime_extension_registry/tests.rs::namespace_validation_does_not_collect_split_segments
   - zircon_runtime/tests/runtime_plugin_world_extensions_contract.rs
-  - zircon_plugins/animation/runtime/tests/runtime_physics_animation_tick_contract/state_machine_interruption.rs::pose_targets_visible_to_physics_step
-  - zircon_runtime/src/tests/plugin_extensions/extension_registry_typed_points.rs
-  - zircon_runtime/src/tests/plugin_extensions/extension_registry_bridge.rs
-  - zircon_runtime/src/tests/plugin_extensions/extension_registry_event_catalogs.rs
-  - zircon_runtime/src/tests/plugin_extensions/extension_registry_components.rs
-  - zircon_runtime/src/tests/plugin_extensions/extension_registry_scene_hooks.rs
-  - zircon_runtime/src/tests/plugin_extensions/runtime_plugin_lifecycle.rs
-  - zircon_runtime/src/tests/plugin_extensions/runtime_plugin_lifecycle.rs::registration_report_catalog_orders_runtime_extensions_by_module_descriptor
-  - zircon_runtime/src/tests/plugin_extensions/runtime_plugin_lifecycle.rs::registration_report_catalog_rejects_invalid_module_order_before_extension_merge
-  - zircon_runtime/src/tests/plugin_extensions/runtime_plugin_lifecycle.rs::project_registration_report_catalog_orders_enabled_runtime_extensions
-  - zircon_runtime/src/tests/plugin_extensions/runtime_plugin_lifecycle.rs::project_registration_report_catalog_rejects_invalid_enabled_module_order
-  - zircon_runtime/src/tests/plugin_extensions/runtime_plugin_descriptor.rs
   - zircon_plugins/first_party_runtime_catalog/src/tests/provider_snapshot.rs
   - tools/tests/test_plugin_structure_audit_registration.py
-  - zircon_runtime/src/tests/plugin_extensions/extension_registry_systems.rs
-  - zircon_runtime/src/tests/plugin_extensions/extension_registry_metadata.rs
-  - zircon_runtime/src/tests/plugin_extensions/static_manifest_contracts/modules/system_anchors.rs
+  - zircon_runtime/src/tests/plugins/manifests/modules/system_anchors.rs
   - zircon_editor/src/tests/editor_plugin_catalog_consistency.rs::editor_plugin_catalog_reports_missing_capabilities_as_structured_diagnostics
   - zircon_runtime/src/scene/tests/ecs_schedule.rs
-  - zircon_runtime/src/tests/plugin_extensions/package_manifest_declarations.rs
   - zircon_editor/src/tests/editor_plugin_catalog_consistency.rs::builtin_editor_catalog_entries_are_derived_from_plugin_manifests
   - zircon_editor/src/tests/editor_plugin_catalog_consistency.rs::editor_module_plugin_manifests_are_present_in_builtin_catalog
   - rustfmt zircon_runtime/src/plugin/extension_registry/typed_extension_point.rs zircon_runtime/src/plugin/extension_registry/ownership.rs zircon_runtime/src/plugin/extension_registry/mod.rs zircon_runtime/src/plugin/extension_registry/runtime_extension_registry.rs zircon_runtime/src/plugin/extension_registry/register.rs zircon_runtime/src/plugin/extension_registry/register/metadata.rs zircon_runtime/src/plugin/extension_registry/register/runtime_core.rs zircon_runtime/src/plugin/extension_registry/register/scene_hook.rs zircon_runtime/src/plugin/extension_registry/register/system_registration.rs zircon_runtime/src/plugin/extension_registry/register/resource_registration.rs zircon_runtime/src/plugin/extension_registry/register/event_registration.rs zircon_runtime/src/plugin/mod.rs zircon_runtime/src/tests/plugin_extensions/extension_registry_systems.rs zircon_runtime/src/tests/plugin_extensions/extension_registry_metadata.rs

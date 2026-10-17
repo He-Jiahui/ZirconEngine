@@ -13,7 +13,6 @@ related_code:
 tests:
   - tools/tests/test_editor03_saved_top_save_token_contract.py
   - zircon_editor/src/tests/editing/transaction_engine/history.rs
-  - zircon_editor/src/core/asset/dirty/tests.rs
   - zircon_editor/src/tests/editing/transaction_engine/operation_group.rs
 ---
 

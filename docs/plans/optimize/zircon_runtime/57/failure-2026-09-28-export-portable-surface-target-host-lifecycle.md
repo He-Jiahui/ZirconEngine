@@ -12,7 +12,6 @@ related_code:
   - zircon_runtime_interface/src/runtime_api/session/viewport.rs
   - zircon_app/src/entry/runtime_entry_app/window_surface/native_target.rs
   - zircon_runtime/src/dynamic_api/surface.rs
-  - zircon_runtime/src/graphics/backend/render_backend/viewport_surface.rs
 tests:
   - cargo +1.94.1 test -p zircon_runtime_interface --lib --locked runtime_native_surface_target_constructors_preserve_handles -- --test-threads=1
   - cargo +1.94.1 test -p zircon_app --lib --locked explicit_native_surface_failure_branches_remain_fail_closed_before_fallback -- --test-threads=1

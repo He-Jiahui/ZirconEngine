@@ -1,13 +1,10 @@
 ---
 related_code:
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_button.zui
-  - zircon_editor/assets/ui/editor/components/workbench/shell/workbench_top_toolbar.zui
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_buttons/content/glyph.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_buttons/content/metrics.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_buttons_tests/toolbar_commands.rs
+  - zircon_editor/src/ui/retained/contract/paint/buttons/content/glyph.rs
+  - zircon_editor/src/ui/retained/contract/paint/buttons/content/metrics.rs
 implementation_files:
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_buttons/content/glyph.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_buttons/content/metrics.rs
+  - zircon_editor/src/ui/retained/contract/paint/buttons/content/glyph.rs
+  - zircon_editor/src/ui/retained/contract/paint/buttons/content/metrics.rs
 plan_sources:
   - user: 2026-07-14 repair Editor Layout from the M1 failure handoff and improve shared primitives before larger composition
   - docs/plans/zircon_editor/editor_layout/15-component-standardization-from-primitives.md

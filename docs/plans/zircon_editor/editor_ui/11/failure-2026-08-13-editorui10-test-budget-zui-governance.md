@@ -11,7 +11,6 @@ origin_child_dir: docs/plans/zircon_editor/editor_ui/10
 fixing_child_dir: docs/plans/zircon_editor/editor_ui/11
 related_code:
   - zircon_editor/src/tests/ui/boundary/zui_asset_governance
-  - zircon_editor/src/tests/ui/boundary/zui_asset_governance/workbench_primitives
 tests:
   - python -B .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_editor_structure.py --json --repo-root E:\\Git\\ZirconEngine
   - cargo test -p zircon_editor --lib ui --locked

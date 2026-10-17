@@ -5,13 +5,8 @@ related_code:
   - zircon_runtime/src/core/framework/render/mod.rs
   - zircon_runtime/src/core/framework/render/advanced_lighting/mod.rs
   - zircon_runtime/src/core/framework/render/advanced_lighting/extract.rs
-  - zircon_runtime/src/core/framework/render/advanced_lighting/extract/tests.rs
   - zircon_runtime/src/core/framework/render/advanced_lighting/volumetric.rs
-  - zircon_runtime/src/core/framework/render/advanced_lighting/volumetric/tests.rs
-  - zircon_runtime/src/core/framework/render/post_process/resolved_stack.rs
-  - zircon_runtime/src/core/framework/render/post_process/volume_component.rs
-  - zircon_runtime/src/core/framework/render/post_process/volume_component/params.rs
-  - zircon_runtime/src/core/framework/render/post_process/volume_registry.rs
+  - zircon_runtime/src/core/framework/render/post/volume_component/params.rs
   - zircon_runtime/src/core/framework/render/shader/variant_key.rs
   - zircon_runtime/src/scene/components/scene/lighting.rs
   - zircon_runtime/src/scene/world/project_io.rs
@@ -21,74 +16,58 @@ related_code:
   - zircon_runtime/src/scene/tests/render_post_process_extract.rs
   - zircon_runtime/src/scene/tests/render_post_process_extract/volumetric_fog.rs
   - zircon_runtime/src/graphics/scene/resources/pipeline/pipeline_key.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/froxel/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/froxel/media_inject.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/froxel/media_inject/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/froxel/media_inject/shaders/media_inject.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/froxel/light_scatter.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/froxel/light_scatter/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/froxel/light_scatter/shaders/types.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/froxel/light_scatter/shaders/main.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/froxel/integrate.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/froxel/integrate/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/froxel/integrate/tests/temporal_product.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/froxel/integrate/shaders/integrate.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/froxel/apply_binding.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/froxel/resolved_settings.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/froxel/temporal_reprojection.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/froxel/view_reconstruction.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/froxel/executors/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/froxel/executors/media_inject.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/froxel/executors/light_scatter.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/froxel/executors/integrate.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/history/scene_frame_history_textures/volumetric_history.rs
+  - zircon_runtime/src/graphics/scene/renderer/advanced_lighting/froxel/mod.rs
+  - zircon_runtime/src/graphics/scene/renderer/froxel/media_inject.rs
+  - zircon_runtime/src/graphics/scene/renderer/froxel/shaders/media_inject.wgsl
+  - zircon_runtime/src/graphics/scene/renderer/froxel/light_scatter.rs
+  - zircon_runtime/src/graphics/scene/renderer/froxel/shaders/types.wgsl
+  - zircon_runtime/src/graphics/scene/renderer/froxel/shaders/main.wgsl
+  - zircon_runtime/src/graphics/scene/renderer/advanced_lighting/froxel/integrate.rs
+  - zircon_runtime/src/graphics/scene/renderer/froxel/tests/temporal_product.rs
+  - zircon_runtime/src/graphics/scene/renderer/froxel/shaders/integrate.wgsl
+  - zircon_runtime/src/graphics/scene/renderer/froxel/apply_binding.rs
+  - zircon_runtime/src/graphics/scene/renderer/froxel/resolved_settings.rs
+  - zircon_runtime/src/graphics/scene/renderer/froxel/temporal_reprojection.rs
+  - zircon_runtime/src/graphics/scene/renderer/froxel/view_reconstruction.rs
+  - zircon_runtime/src/graphics/scene/renderer/froxel/executors/mod.rs
+  - zircon_runtime/src/graphics/scene/renderer/froxel/executors/media_inject.rs
+  - zircon_runtime/src/graphics/scene/renderer/froxel/executors/light_scatter.rs
+  - zircon_runtime/src/graphics/scene/renderer/froxel/executors/integrate.rs
   - zircon_runtime/src/graphics/shader/wgsl/zr_volumetric.wgsl
   - zircon_runtime/src/graphics/shader/template/assemble.rs
   - zircon_runtime/src/graphics/shader/template/pass_specialization.rs
-  - zircon_runtime/src/graphics/shader/template/tests.rs
   - zircon_runtime/src/graphics/shader/includes/zr_pbr_extras.wgsl
   - zircon_runtime/src/graphics/shader/wgsl/zr_shading_standard_pbr.wgsl
-  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/mesh.rs
-  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/deferred_geometry.rs
-  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/deferred_lighting.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/execute_compiled_scene_graph_stages.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/scene_passes/render_scene_passes.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/preview_sky_executor.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/surface.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/overlay/viewport_overlay_renderer/construct/create_sky_pipeline.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/shaders/skybox_procedural.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/deferred_scene_resources/execute_lighting.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_bind_group_layout/create.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/shaders/deferred_lighting.wgsl
-  - zircon_runtime/src/core/framework/render/post_process/graph_resource_names.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/lighting/shaders/zr_light_grid.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/shadow/shaders/zr_shadow.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/shadow/shadow_map_renderer.rs
+  - zircon_runtime/src/graphics/feature/builtin/feature_descriptors/mesh.rs
+  - zircon_runtime/src/graphics/builtin/feature_descriptors/deferred_geometry.rs
+  - zircon_runtime/src/graphics/builtin/feature_descriptors/deferred_lighting.rs
+  - zircon_runtime/src/graphics/core/render/execute_compiled_scene_graph_stages.rs
+  - zircon_runtime/src/graphics/scene/core/scene_passes/render_scene_passes.rs
+  - zircon_runtime/src/graphics/scene/renderer/execution/context/gpu/surface.rs
+  - zircon_runtime/src/graphics/scene/overlay/construct/create_sky_pipeline.rs
+  - zircon_runtime/src/graphics/scene/renderer/shaders/skybox_procedural.wgsl
+  - zircon_runtime/src/graphics/scene/deferred/lighting_bind_group_layout/create.rs
+  - zircon_runtime/src/graphics/scene/deferred/shaders/deferred_lighting.wgsl
+  - zircon_runtime/src/graphics/scene/renderer/lighting/shaders/zr_light_grid.wgsl
+  - zircon_runtime/src/graphics/scene/renderer/shadow/shaders/zr_shadow.wgsl
+  - zircon_runtime/src/graphics/scene/renderer/shadow/shadow_map_renderer.rs
   - zircon_plugins/rendering/features/volumetric_fog/runtime/src/lib.rs
-  - zircon_plugins/rendering/features/volumetric_fog/runtime/src/tests.rs
-  - zircon_plugins/rendering/features/volumetric_fog/runtime/src/wgpu_product_tests.rs
-  - zircon_plugins/rendering/features/volumetric_fog/runtime/src/wgpu_product_tests/renderdoc_capture.rs
 implementation_files:
   - zircon_runtime/src/asset/assets/scene/lighting.rs
   - zircon_runtime/src/asset/assets/scene/post_process.rs
   - zircon_runtime/src/core/framework/render/advanced_lighting/extract.rs
   - zircon_runtime/src/core/framework/render/advanced_lighting/volumetric.rs
-  - zircon_runtime/src/core/framework/render/post_process/resolved_stack.rs
-  - zircon_runtime/src/core/framework/render/post_process/volume_component.rs
-  - zircon_runtime/src/core/framework/render/post_process/volume_component/params.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/froxel/media_inject.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/froxel/media_inject/shaders/media_inject.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/froxel/light_scatter.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/froxel/light_scatter/shaders/types.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/froxel/light_scatter/shaders/main.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/froxel/integrate.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/froxel/integrate/shaders/integrate.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/froxel/temporal_reprojection.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/froxel/executors/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/froxel/executors/light_scatter.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/history/scene_frame_history_textures/volumetric_history.rs
+  - zircon_runtime/src/core/framework/render/post/volume_component/params.rs
+  - zircon_runtime/src/graphics/scene/renderer/froxel/media_inject.rs
+  - zircon_runtime/src/graphics/scene/renderer/froxel/shaders/media_inject.wgsl
+  - zircon_runtime/src/graphics/scene/renderer/froxel/light_scatter.rs
+  - zircon_runtime/src/graphics/scene/renderer/froxel/shaders/types.wgsl
+  - zircon_runtime/src/graphics/scene/renderer/froxel/shaders/main.wgsl
+  - zircon_runtime/src/graphics/scene/renderer/advanced_lighting/froxel/integrate.rs
+  - zircon_runtime/src/graphics/scene/renderer/froxel/shaders/integrate.wgsl
+  - zircon_runtime/src/graphics/scene/renderer/froxel/temporal_reprojection.rs
+  - zircon_runtime/src/graphics/scene/renderer/froxel/executors/mod.rs
+  - zircon_runtime/src/graphics/scene/renderer/froxel/executors/light_scatter.rs
   - zircon_runtime/src/graphics/shader/wgsl/zr_volumetric.wgsl
   - zircon_runtime/src/graphics/shader/template/assemble.rs
   - zircon_runtime/src/graphics/shader/template/pass_specialization.rs
@@ -99,21 +78,17 @@ implementation_files:
   - zircon_runtime/src/scene/world/project_io/post_process.rs
   - zircon_runtime/src/scene/world/render/lights.rs
   - zircon_runtime/src/scene/world/render_post_process.rs
-  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/mesh.rs
-  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/deferred_geometry.rs
-  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/deferred_lighting.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/scene_passes/render_scene_passes.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/preview_sky_executor.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/surface.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/overlay/viewport_overlay_renderer/construct/create_sky_pipeline.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/shaders/skybox_procedural.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/deferred_scene_resources/execute_lighting.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_bind_group_layout/create.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/shaders/deferred_lighting.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/shadow/shadow_map_renderer.rs
+  - zircon_runtime/src/graphics/feature/builtin/feature_descriptors/mesh.rs
+  - zircon_runtime/src/graphics/builtin/feature_descriptors/deferred_geometry.rs
+  - zircon_runtime/src/graphics/builtin/feature_descriptors/deferred_lighting.rs
+  - zircon_runtime/src/graphics/scene/core/scene_passes/render_scene_passes.rs
+  - zircon_runtime/src/graphics/scene/renderer/execution/context/gpu/surface.rs
+  - zircon_runtime/src/graphics/scene/overlay/construct/create_sky_pipeline.rs
+  - zircon_runtime/src/graphics/scene/renderer/shaders/skybox_procedural.wgsl
+  - zircon_runtime/src/graphics/scene/deferred/lighting_bind_group_layout/create.rs
+  - zircon_runtime/src/graphics/scene/deferred/shaders/deferred_lighting.wgsl
+  - zircon_runtime/src/graphics/scene/renderer/shadow/shadow_map_renderer.rs
   - zircon_plugins/rendering/features/volumetric_fog/runtime/src/lib.rs
-  - zircon_plugins/rendering/features/volumetric_fog/runtime/src/wgpu_product_tests.rs
-  - zircon_plugins/rendering/features/volumetric_fog/runtime/src/wgpu_product_tests/renderdoc_capture.rs
 plan_sources:
   - user: 2026-07-11 continue the WGPU-to-render-pipeline implementation and update completion status
   - docs/plans/zircon_runtime/render/18-advanced-lighting-features.md
@@ -123,31 +98,14 @@ plan_sources:
   - dev/UnrealEngine/Engine/Shaders/Private/VolumetricFog.usf
   - dev/bevy/crates/bevy_light/src/volumetric.rs
 tests:
-  - zircon_runtime/src/core/framework/render/advanced_lighting/volumetric/tests.rs
-  - zircon_runtime/src/core/framework/render/advanced_lighting/extract/tests.rs
   - zircon_runtime/src/scene/tests/render_post_process_extract.rs
   - zircon_runtime/src/scene/tests/render_post_process_extract/volumetric_fog.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/froxel/media_inject/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/froxel/light_scatter/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/froxel/integrate/tests.rs
   - zircon_runtime/tests/runtime_volumetric_shading_contract.rs
   - zircon_runtime/tests/runtime_volumetric_temporal_wgpu_contract.rs
   - zircon_runtime/src/graphics/tests/pipeline_compile/default_pipelines.rs
   - zircon_runtime/src/graphics/tests/pipeline_compile/feature_descriptors.rs
   - zircon_runtime/src/graphics/tests/pipeline_compile/plugin_features.rs
   - zircon_runtime/src/graphics/tests/pipeline_compile/temporal_and_ops.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_pipeline/tests.rs
-  - zircon_runtime/src/graphics/shader/template/tests.rs
-  - zircon_plugins/rendering/features/volumetric_fog/runtime/src/tests.rs
-  - zircon_plugins/rendering/features/volumetric_fog/runtime/src/wgpu_product_tests.rs
-  - docs/tests/runtime/render/plan18_volumetric_media_inject_wgpu_20260711.png
-  - docs/tests/runtime/render/plan18_volumetric_media_inject_wgpu_20260711.txt
-  - docs/tests/runtime/render/plan18_volumetric_light_scatter_integrate_shadow_wgpu_20260711.png
-  - docs/tests/runtime/render/plan18_volumetric_light_scatter_integrate_shadow_wgpu_20260711.txt
-  - docs/tests/runtime/render/plan18_volumetric_temporal_reprojection_wgpu_20260711.png
-  - docs/tests/runtime/render/plan18_volumetric_temporal_reprojection_wgpu_20260711.txt
-  - docs/tests/runtime/render/plan18_volumetric_compiled_scene_window_light_shaft_perf_wgpu_20260711.png
-  - docs/tests/runtime/render/plan18_volumetric_compiled_scene_window_light_shaft_perf_wgpu_20260711.txt
 doc_type: module-detail
 ---
 

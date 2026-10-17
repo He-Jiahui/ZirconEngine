@@ -9,21 +9,15 @@ origin_child_dir: docs/plans/performance/01
 fixing_child_dir: docs/plans/zircon_editor/editor/09
 plan_link_mode: child_record_only
 related_code:
-  - zircon_editor/src/ui/host/editor_asset_manager/generation.rs
-  - zircon_editor/src/ui/host/editor_asset_manager/change_stream.rs
-  - zircon_editor/src/ui/host/editor_asset_manager/preview.rs
-  - zircon_editor/src/ui/host/editor_asset_manager/manager/catalog_generation
-  - zircon_editor/src/ui/host/editor_asset_manager/manager/project_sync/sync_from_project.rs
-  - zircon_editor/src/ui/host/editor_asset_manager/manager/default_editor_asset_manager/catalog_snapshot.rs
-  - zircon_editor/src/ui/host/editor_asset_manager/manager/default_editor_asset_manager/broadcast.rs
-  - zircon_editor/src/ui/host/editor_asset_manager/manager/default_editor_asset_manager/subscribe_editor_asset_changes.rs
-  - zircon_editor/src/ui/host/editor_asset_manager/manager/preview_refresh/request_preview_refresh.rs
+  - zircon_editor/src/ui/host/assets/manager/catalog_generation
+  - zircon_editor/src/ui/host/assets/manager/project_sync/sync_from_project.rs
+  - zircon_editor/src/ui/host/assets/preview_refresh/request_preview_refresh.rs
   - zircon_editor/src/ui/workbench/project/asset_workspace_state.rs
-  - zircon_editor/src/ui/retained_host/app/assets/refresh/events/runtime.rs
-  - zircon_editor/src/ui/retained_host/app/assets/refresh.rs
-  - zircon_editor/src/ui/retained_host/app/assets/refresh/snapshots.rs
-  - zircon_editor/src/ui/retained_host/app/backend_refresh.rs
-  - zircon_editor/src/ui/retained_host/app/pointer_layout/asset_surfaces
+  - zircon_editor/src/ui/retained/app/assets/refresh/events/runtime.rs
+  - zircon_editor/src/ui/retained/app/assets/refresh.rs
+  - zircon_editor/src/ui/retained/app/assets/refresh/snapshots.rs
+  - zircon_editor/src/ui/retained/app/backend_refresh.rs
+  - zircon_editor/src/ui/retained/app/pointer_layout/asset_surfaces
 reference_sources:
   - dev/godot/editor/editor_file_system.cpp
   - dev/bevy/crates/bevy_ecs/src/message/messages.rs

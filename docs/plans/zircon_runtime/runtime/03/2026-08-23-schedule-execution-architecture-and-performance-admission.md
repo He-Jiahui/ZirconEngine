@@ -18,8 +18,7 @@ references:
 tests:
   - zircon_runtime/src/scene/tests/ecs_schedule/parallel_executor.rs
   - zircon_runtime/src/scene/ecs/schedule_runner/tests/
-  - zircon_runtime/src/tests/runtime_absorption/schedule_frame_loop/split_layout.rs
-  - dev/bevy/crates/bevy_ecs/src/schedule/executor/multi_threaded.rs
+  - zircon_runtime/src/tests/contracts/schedule_frame_loop/split_layout.rs
 ---
 
 # Runtime03 Schedule Execution Architecture And Performance Admission

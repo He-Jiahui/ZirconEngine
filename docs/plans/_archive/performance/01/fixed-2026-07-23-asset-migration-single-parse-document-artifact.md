@@ -20,7 +20,7 @@ related_code:
   - zircon_runtime/src/asset/assets/project_document/model.rs
   - zircon_runtime/src/asset/assets/project_document/scene.rs
   - zircon_runtime/src/asset/migration/document.rs
-  - zircon_runtime/src/asset/tests/migration/project_commandlet/document_migration.rs
+  - zircon_runtime/src/asset/tests/project_commandlet/document_migration.rs
 tests:
   - cargo +1.94.1 test -p zircon_runtime --lib asset::tests::migration::project_commandlet::document_migration::retired_project_reference_without_subasset_omits_toml_null_and_is_idempotent --locked --jobs 1 -- --nocapture --test-threads=1
 ---

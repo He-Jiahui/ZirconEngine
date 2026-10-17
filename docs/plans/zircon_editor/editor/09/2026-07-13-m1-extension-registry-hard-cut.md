@@ -14,7 +14,6 @@ related_code:
 tests:
   - zircon_editor/src/tests/editor_asset_type_registry/extension_registry.rs
   - zircon_editor/src/tests/editor_asset_type_registry/materialization.rs
-  - zircon_editor/src/tests/editor_asset_type_registry/typed_authoring_descriptors.rs
 ---
 
 # Editor09 M1.2 扩展注册表硬切产出

@@ -11,7 +11,6 @@ implementation_files:
   - zircon_runtime/src/ui/surface/surface.rs
   - zircon_runtime/src/ui/surface/surface/event_routing.rs
 tests:
-  - tools/tests/test_runtime_pointer_hover_membership_scratch_performance_contract.py
   - zircon_runtime/src/ui/surface/surface/event_routing.rs (hot_path_tests)
 ---
 

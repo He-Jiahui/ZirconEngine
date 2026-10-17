@@ -1,6 +1,5 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/shell_pointer
   - zircon_editor/src/tests/host/retained_drawer_resize
   - zircon_editor/src/tests/host/retained_tab_drag
 plan_sources:

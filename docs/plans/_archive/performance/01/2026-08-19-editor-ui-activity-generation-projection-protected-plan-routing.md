@@ -4,7 +4,6 @@ related_code:
   - zircon_editor/src/ui/control/service.rs
   - zircon_editor/src/ui/host/editor_activity_log.rs
   - zircon_editor/src/ui/host/editor_event_runtime_reflection.rs
-  - zircon_editor/src/ui/retained_host/app/workbench_notifications.rs
   - zircon_editor/src/ui/workbench/reflection/activity_descriptors.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md

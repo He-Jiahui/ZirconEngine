@@ -4,7 +4,6 @@ related_code:
   - zircon_runtime/src/core/framework/render/mesh
   - zircon_runtime/src/core/framework/render/sprite
   - zircon_runtime/src/core/framework/render/light
-  - zircon_runtime/src/graphics/scene/scene_renderer/sprite
   - zircon_runtime/src/scene/world/render/lights.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md

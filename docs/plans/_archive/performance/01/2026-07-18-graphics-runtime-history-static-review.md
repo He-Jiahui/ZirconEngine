@@ -2,8 +2,7 @@
 related_code:
   - zircon_runtime/src/graphics/runtime/mod.rs
   - zircon_runtime/src/graphics/runtime/history
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/frame_submission_context.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/record_submission/record_history.rs
+  - zircon_runtime/src/graphics/runtime/extract/record_submission/record_history.rs
 tests:
   - current graphics runtime history slice 8 of 8 Rust files reviewed, 294 lines
   - all 1 ownership regression read; wide validation-key sharing regression added

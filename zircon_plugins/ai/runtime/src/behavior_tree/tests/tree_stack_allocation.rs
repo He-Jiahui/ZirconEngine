@@ -101,7 +101,7 @@ fn reusable_behavior_tree_stack_release_benchmark_evidence() {
     let legacy_string_allocations = BENCHMARK_TREE_DEPTH * BENCHMARK_ITERATIONS;
 
     println!(
-        "PERF_RESULT plugins15_reusable_behavior_tree_stack depth={BENCHMARK_TREE_DEPTH} iterations_per_sample={BENCHMARK_ITERATIONS} samples={BENCHMARK_SAMPLE_COUNT} sample_pairs={BENCHMARK_SAMPLE_COUNT} sample_order=alternating percentile_method=nearest_rank legacy_string_allocations_per_sample={legacy_string_allocations} optimized_string_allocations_per_sample=0 legacy_stack_vec_rebuilds_per_sample={BENCHMARK_ITERATIONS} optimized_stack_vec_rebuilds_per_sample=0 legacy_p50_ns={legacy_p50} legacy_p95_ns={legacy_p95} optimized_p50_ns={optimized_p50} optimized_p95_ns={optimized_p95} legacy_ns={legacy_ns} optimized_ns={optimized_ns}"
+        "PERF_RESULT plugins15_reusable_behavior_tree_stack depth={BENCHMARK_TREE_DEPTH} iterations_per_sample={BENCHMARK_ITERATIONS} samples={BENCHMARK_SAMPLE_COUNT} sample_pairs={BENCHMARK_SAMPLE_COUNT} sample_order=alternating percentile_method=nearest_rank legacy_string_allocations_per_sample={legacy_string_allocations} optimized_string_allocations_per_sample_expected=0 legacy_stack_vec_rebuilds_per_sample={BENCHMARK_ITERATIONS} optimized_stack_vec_rebuilds_per_sample=0 legacy_p50_ns={legacy_p50} legacy_p95_ns={legacy_p95} optimized_p50_ns={optimized_p50} optimized_p95_ns={optimized_p95} legacy_ns={legacy_ns} optimized_ns={optimized_ns}"
     );
     assert!(
         optimized_p95 * 5 <= legacy_p95,

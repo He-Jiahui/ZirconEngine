@@ -4,14 +4,10 @@ related_code:
   - zircon_editor/src/ui/workbench/mod.rs
   - zircon_editor/tests/integration_contracts.rs
   - zircon_editor/tests/integration_contracts/floating_window_design_parity.rs
-  - zircon_editor/src/ui/retained_host/app.rs
-  - zircon_editor/src/tests/host/retained_menu_pointer/visual_screenshot.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/scene_layers/overlay/componentized.rs
+  - zircon_editor/src/ui/retained/contract/workbench/overlay/componentized.rs
   - zircon_editor/src/ui/layouts/windows
   - zircon_runtime_interface/src/ui/surface/mod.rs
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/feedback
-  - zircon_editor/assets/ui/editor/components/workbench/floating/workbench_command_palette.zui
-  - zircon_editor/assets/ui/editor/components/workbench/floating/workbench_preferences.zui
+  - zircon_editor/assets/ui/editor/workbench/primitives/feedback
 design_references:
   - docs/ui/editor-workbench-designs/command-palette-window-spec.png
   - docs/ui/editor-workbench-designs/preferences-window-workbench.png

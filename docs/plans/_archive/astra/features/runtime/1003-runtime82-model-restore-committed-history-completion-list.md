@@ -5,9 +5,8 @@ plan_sources:
   - docs/plans/optimize/zircon_runtime/82/2026-09-27-model-restore-committed-history.md
   - docs/plans/optimize/zircon_runtime/82-runtime-text-editing-document-selection-caret-hit-test-ime-composition-clipboard-secure-text-product-integration-current-source-review.md
 implementation_files:
-  - zircon_runtime/src/ui/dispatch/input_manager/bound_text_model_updates/transaction.rs
+  - zircon_runtime/src/ui/dispatch/bound_text_model_updates/transaction.rs
 tests:
-  - zircon_runtime/src/ui/dispatch/input_manager/bound_text_model_updates/tests.rs
 ---
 
 # Runtime82 model restore committed history completion list

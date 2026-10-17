@@ -11,12 +11,11 @@ related_code:
   - zircon_editor/src/ui/host/editor_ui_host.rs
   - zircon_editor/src/ui/host/editor_host_event_controller/runtime_shutdown.rs
   - zircon_editor/src/ui/host/asset_editor_sessions/refresh/pipeline/service.rs
-  - zircon_editor/src/ui/host/editor_asset_manager/manager/preview_refresh
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle
-  - zircon_editor/src/ui/retained_host/app/build_export_actions/job_queue
-  - zircon_editor/src/ui/retained_host/app/welcome_session/project_probe.rs
-  - zircon_editor/src/ui/retained_host/host_contract/profiling_artifacts/export.rs
+  - zircon_editor/src/ui/host/assets/manager/preview_refresh
+  - zircon_editor/src/ui/retained/app/host_lifecycle
+  - zircon_editor/src/ui/retained/app/build_export_actions/job_queue
+  - zircon_editor/src/ui/retained/app/welcome_session/project_probe.rs
+  - zircon_editor/src/ui/retained/contract/profiling_artifacts/export.rs
   - zircon_runtime/src/core/runtime/tasks
   - zircon_runtime/src/core/runtime/runtime.rs
   - zircon_runtime/src/dynamic_api/session/construction.rs
@@ -24,8 +23,8 @@ related_code:
   - zircon_runtime/src/dynamic_api/session/registry/session_store.rs
   - zircon_runtime/src/dynamic_api/session/registry/session_slot.rs
   - zircon_runtime/src/dynamic_api/session/registry/frame_activity.rs
-  - zircon_runtime/src/scene/dynamic_scene/spawn_task/loader.rs
-  - zircon_runtime/src/scene/dynamic_scene/asset_reload/queue.rs
+  - zircon_runtime/src/scene/dynamic/spawn_task/loader.rs
+  - zircon_runtime/src/scene/dynamic/asset_reload/queue.rs
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md
   - docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md

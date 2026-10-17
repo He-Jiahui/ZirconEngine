@@ -20,23 +20,19 @@ related_code:
   - zircon_runtime/src/asset/module.rs
   - zircon_runtime/src/input/module/descriptor.rs
   - zircon_runtime/src/scene/module
-  - zircon_runtime/src/graphics/runtime_builtin_graphics/host/module_host/module_registration/module_descriptor.rs
+  - zircon_runtime/src/graphics/host/module_registration/module_descriptor.rs
   - zircon_runtime/src/dynamic_api/runtime_loop.rs
   - zircon_runtime/src/dynamic_api/session/state.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/access.rs
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_accessors.rs
-  - zircon_editor/src/ui/retained_host/app/asset_runtime_access.rs
-  - zircon_editor/src/ui/retained_host/viewport/render_framework_access.rs
-  - zircon_editor/src/ui/retained_host/viewport/viewport_state.rs
+  - zircon_editor/src/ui/retained/app/asset_runtime_access.rs
+  - zircon_editor/src/ui/retained/viewport/render_framework_access.rs
+  - zircon_editor/src/ui/retained/viewport/viewport_state.rs
   - zircon_editor/src/ui/host/module.rs
   - zircon_plugins/ai/runtime/src/module.rs
   - zircon_plugins/net/runtime/src/module.rs
   - zircon_plugins/physics/runtime/src/module.rs
   - zircon_plugins/sound/runtime/src/module.rs
 tests:
-  - zircon_runtime/src/core/manager/tests.rs
   - zircon_runtime/src/core/runtime/tests/resolution/behavior.rs
-  - zircon_runtime/src/foundation/tests.rs
   - zircon_runtime/src/tests/extensions/manager_handles.rs
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md

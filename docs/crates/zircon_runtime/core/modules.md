@@ -25,7 +25,6 @@ plan_sources:
   - dev/bevy/crates/bevy_internal/src/default_plugins.rs
   - dev/bevy/crates/bevy_diagnostic/src/log_diagnostics_plugin.rs
 tests:
-  - zircon_app/src/plugins/tests.rs
   - zircon_runtime/src/tests/prelude.rs
 doc_type: module-detail
 ---

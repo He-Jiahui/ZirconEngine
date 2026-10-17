@@ -5,7 +5,6 @@ related_code:
   - zircon_runtime/src/asset/mod.rs
   - zircon_runtime/src/asset/importer/ingest/import_authoring_asset.rs
   - zircon_runtime/src/asset/tests/assets/authoring.rs
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/asset_records.rs
 implementation_files:
   - zircon_runtime/src/asset/assets/authoring.rs
   - zircon_runtime/src/asset/assets/mod.rs
@@ -13,7 +12,6 @@ implementation_files:
   - zircon_runtime/src/asset/importer/ingest/import_authoring_asset.rs
 tests:
   - zircon_runtime/src/asset/tests/assets/authoring.rs
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/asset_records.rs
 plan_sources:
   - docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md
   - docs/plans/engine-code-review-findings-2026-06.md

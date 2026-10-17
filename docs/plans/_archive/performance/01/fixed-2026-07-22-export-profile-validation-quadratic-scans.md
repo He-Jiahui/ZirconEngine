@@ -9,10 +9,8 @@ origin_child_dir: docs/plans/performance/01
 fixing_child_dir: docs/plans/zircon_plugins/09
 plan_link_mode: child_record_only
 related_code:
-  - zircon_runtime/src/plugin/export_build_plan/from_project_manifest/feature_selection.rs
-  - zircon_runtime/src/plugin/export_build_plan/from_project_manifest/profile_projection.rs
-  - zircon_runtime/src/plugin/export_build_plan/project_manifest_validation/duplicates.rs
-  - zircon_runtime/src/plugin/export_build_plan/project_manifest_validation/identity.rs
+  - zircon_runtime/src/plugin/from_project_manifest/feature_selection.rs
+  - zircon_runtime/src/plugin/from_project_manifest/profile_projection.rs
 tests:
   - 1/100/1000 plugin and feature export validation scaling benchmark
   - export diagnostics order and byte-equivalence test

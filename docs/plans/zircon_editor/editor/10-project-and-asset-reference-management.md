@@ -10,7 +10,6 @@ related_code:
   - zircon_runtime/src/asset/project/manager/registry_access.rs
   - zircon_runtime/src/asset/project/manager/scan_and_import/sources.rs
   - zircon_runtime/src/asset/project/package_asset_registry.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/runtime.rs
   - zircon_editor/src/ui/host/project_access.rs
   - zircon_editor/src/ui/host/editor_error.rs
   - zircon_editor/src/core/project
@@ -45,7 +44,6 @@ implementation_files:
   - zircon_runtime/src/asset/project/manager/open.rs
   - zircon_runtime/src/asset/project/manager/source_path_for_uri.rs
   - zircon_runtime/src/asset/project/manager/source_uri_for_path.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/runtime.rs
   - zircon_editor/src/ui/host/project_access.rs
   - zircon_editor/src/ui/host/editor_error.rs
   - zircon_editor/src/core/project/filesystem.rs
@@ -59,10 +57,8 @@ tests:
   - zircon_runtime/src/asset/tests/project/manifest.rs
   - zircon_runtime/src/asset/tests/project/package_assets.rs
   - zircon_runtime/src/asset/tests/pipeline/manager/watcher.rs
-  - zircon_editor/src/ui/retained_host/app/helpers/animation_assets/tests.rs
   - zircon_editor/src/ui/host/editor_error.rs
   - zircon_editor/src/core/project/tests/template_creation.rs
-  - zircon_editor/src/core/project/tests/recent_projects.rs
   - zircon_editor/src/core/project/tests/boundary.rs
   - zircon_hub/src/projects/validation.rs
   - tests/fixtures/serialization/project-manifest

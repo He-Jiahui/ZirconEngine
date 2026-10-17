@@ -8,27 +8,20 @@ baseline_epoch: 335
 related_code:
   - zircon_runtime/src/ui/surface/render
   - zircon_runtime/src/ui/icon_atlas
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui
   - zircon_runtime_interface/src/ui/surface/render
   - zircon_runtime_interface/src/ui/layout/geometry.rs
   - zircon_runtime/crates/zr_rhi/src/ui_surface.rs
   - zircon_runtime/crates/zr_rhi/src/ui_surface
   - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface
-  - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream
-  - zircon_editor/src/ui/retained_host/host_contract/presenter/gpu.rs
-  - zircon_editor/src/ui/retained_host/host_contract/presenter/gpu
+  - zircon_editor/src/ui/retained/contract/presenter/gpu.rs
+  - zircon_editor/src/ui/retained/contract/presenter/gpu
 tests:
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/tests.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/tests
   - zircon_runtime/src/ui/tests/icon_atlas.rs
-  - zircon_runtime_interface/src/ui/surface/render/batch/tests.rs
-  - zircon_runtime/crates/zr_rhi/src/ui_surface/tests.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/tests
   - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/tests
-  - zircon_editor/src/ui/retained_host/host_contract/presenter/gpu/tests.rs
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md
   - docs/plans/optimize/01-cross-report-owner-schema-abi-p0-consolidation-review.md

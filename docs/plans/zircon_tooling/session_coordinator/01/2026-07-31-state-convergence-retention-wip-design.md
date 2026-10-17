@@ -5,23 +5,6 @@ plan_sources:
   - user: 2026-07-31 收敛会话状态、数据库 manifest、Plan WIP 与共享 main 集成
   - docs/plans/zircon_tooling/session_coordinator/01-workflow-control-center-and-tray.md
 tests:
-  - tools/session_coordinator/tests/test_sessions.py
-  - tools/session_coordinator/tests/test_governance.py
-  - tools/session_coordinator/tests/test_cargo_jobs.py
-  - tools/session_coordinator/tests/test_failures.py
-  - tools/session_coordinator/tests/test_failure_closeout.py
-  - tools/session_coordinator/tests/test_validation_tickets.py
-  - tools/session_coordinator/tests/test_integration_candidates.py
-  - tools/session_coordinator/tests/test_manifest_retention.py
-  - tools/session_coordinator/tests/test_plan_wip.py
-  - tools/session_coordinator/tests/test_ownership_transfers.py
-  - tools/session_coordinator/tests/test_deferred_action_client.py
-  - tools/session_coordinator/tests/test_offline_command_spool.py
-  - tools/session_coordinator/tests/test_workflow_commit.py
-  - tools/session_coordinator/tests/test_git_finalize_tracked_ignored.py
-  - tools/session_coordinator/tests/test_baselines.py
-  - tools/session_coordinator/tests/test_workspace_copy.py
-  - tools/session_coordinator/tests/test_server.py
 doc_type: milestone-detail
 ---
 

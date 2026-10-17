@@ -1,22 +1,22 @@
 ---
 related_code:
-  - tools/cargo-zircon/src/main.rs
-  - tools/cargo-zircon/src/plugin/scaffold/mod.rs
-  - tools/cargo-zircon/src/plugin/manifest_sync.rs
-  - tools/cargo-zircon/src/plugin/check.rs
-  - tools/cargo-zircon/src/plugin/validate.rs
+  - tools/cargo/src/main.rs
+  - tools/cargo/src/plugin/scaffold/mod.rs
+  - tools/cargo/src/plugin/manifest_sync.rs
+  - tools/cargo/src/plugin/check.rs
+  - tools/cargo/src/plugin/validate.rs
   - zircon_plugins/first_party_runtime_catalog/src/lib.rs
   - zircon_plugins/first_party_editor_catalog/src/catalog.rs
   - zircon_app/Cargo.toml
 implementation_files:
-  - tools/cargo-zircon/src/plugin
+  - tools/cargo/src/plugin
   - zircon_plugins/first_party_runtime_catalog/src/lib.rs
   - zircon_plugins/first_party_editor_catalog/src/catalog.rs
 plan_sources:
   - docs/plans/zircon_runtime/frameworks/04-plugin-dx-and-sdk-toolchain.md
 tests:
-  - tools/cargo-zircon/tests/manifest_sync.rs
-  - tools/cargo-zircon/tests/plugin_commands.rs
+  - tools/cargo/tests/manifest_sync.rs
+  - tools/cargo/tests/plugin_commands.rs
   - .github/workflows/ci.yml
 doc_type: workflow-detail
 ---

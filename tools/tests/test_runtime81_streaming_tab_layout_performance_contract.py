@@ -80,7 +80,7 @@ class StreamingTabLayoutPerformanceContract(unittest.TestCase):
         self.assertNotIn("Vec::", body)
 
     def test_release_width_gate_keeps_allocation_and_latency_evidence_executable(self) -> None:
-        source = SOURCE_PATH.read_text(encoding="utf-8")
+        source = (SOURCE_PATH.parent / "tests/tab.rs").read_text(encoding="utf-8")
 
         self.assertIn("optimization_batch_20260827bl_streaming_tab_layout_p95", source)
         self.assertIn("RUNTIME81_STREAMING_TAB_LAYOUT_BENCH_V1", source)

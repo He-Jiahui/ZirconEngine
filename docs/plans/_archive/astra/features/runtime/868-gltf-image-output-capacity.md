@@ -10,9 +10,6 @@ related_records:
 implementation_files:
   - zircon_runtime/src/asset/importer/ingest/gltf_decode/images.rs
 tests:
-  - zircon_runtime/src/asset/importer/ingest/gltf_decode/images/optimization_batch_runtime868_gltf_image_output_capacity_tests.rs
-  - tools/tests/test_runtime868_gltf_image_output_capacity_performance_contract.py
-  - tools/tests/test_runtime_gltf_snapshot_contract.py
 ---
 
 # Runtime868 glTF Image Output Capacity

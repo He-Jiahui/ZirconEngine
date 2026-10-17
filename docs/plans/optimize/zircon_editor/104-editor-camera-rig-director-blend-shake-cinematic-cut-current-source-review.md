@@ -23,7 +23,7 @@ related_code:
   - zircon_runtime/src/script/vm/gameplay_host/transform.rs
   - zircon_plugins/ai/runtime/src/plugin/registration.rs
   - zircon_editor/src/scene/viewport/controller
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation/specs/gameplay_animation.rs
+  - zircon_editor/src/ui/retained/dispatch/workbench/specs/gameplay_animation.rs
   - zircon_runtime_interface/src/resource/marker.rs
 tests:
   - zircon_editor/src/tests/editing/viewport.rs

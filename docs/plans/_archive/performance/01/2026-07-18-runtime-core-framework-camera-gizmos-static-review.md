@@ -4,7 +4,6 @@ related_code:
   - zircon_runtime/src/core/framework/gizmos
   - zircon_runtime/src/dynamic_api/camera_controller.rs
   - zircon_runtime/src/scene/world/query.rs
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_navigation.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_runtime/runtime/07-runtime-performance-hotpath.md

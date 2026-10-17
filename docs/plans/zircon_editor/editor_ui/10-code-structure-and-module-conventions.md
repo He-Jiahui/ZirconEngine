@@ -3,19 +3,10 @@ related_code:
   - zircon_editor/src/ui/activity/mod.rs
   - zircon_editor/src/ui/control/service.rs
   - zircon_editor/src/ui/asset_editor/mod.rs
-  - zircon_editor/src/ui/retained_host/activity_rail_pointer/mod.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/mod.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection/menu_chrome.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/host_data.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_presentation.rs
-  - zircon_editor/assets/ui/editor/components/workbench/shell/workbench_viewport_panel.zui
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/data_sync.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_tree_row/selection.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_tree_row/surface.rs
+  - zircon_editor/src/ui/retained/activity_rail_pointer/mod.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/workbench/data_sync.rs
   - zircon_runtime/src/ui/surface/render/collection_rows/tree.rs
-  - zircon_editor/src/ui/template_runtime/showcase_demo_state.rs
-  - zircon_editor/src/ui/template_runtime/showcase_demo_state/events.rs
+  - zircon_editor/src/ui/runtime/showcase_demo_state/events.rs
   - zircon_editor/src/ui/host/editor_manager_asset_editor.rs
   - zircon_editor/src/ui/host/editor_manager_asset_editor/binding.rs
   - zircon_editor/src/ui/host/editor_manager_asset_editor/designer.rs
@@ -36,47 +27,40 @@ related_code:
   - zircon_editor/src/ui/asset_editor/session/lifecycle/v2_projection.rs
   - zircon_editor/src/ui/asset_editor/binding/binding_inspector.rs
   - zircon_editor/src/ui/asset_editor/binding/binding_inspector/payload_editing.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/execution.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/run.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/session.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/mod.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/support.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/pipeline_plan.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/pipeline_execution.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/job.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/panel_session.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/view_model.rs
-  - zircon_editor/src/ui/template_runtime/runtime/runtime_host.rs
-  - zircon_editor/src/ui/retained_host/app/tests/mod.rs
-  - zircon_editor/src/ui/retained_host/app/tests/support.rs
-  - zircon_editor/src/ui/retained_host/app/tests/command_palette.rs
-  - zircon_editor/src/ui/retained_host/app/tests/child_window_focus.rs
-  - zircon_editor/src/ui/retained_host/app/tests/menu_pointer.rs
-  - zircon_editor/src/ui/retained_host/app/tests/projection_geometry.rs
-  - zircon_editor/src/ui/retained_host/app/tests/viewport_template_bridge.rs
-  - zircon_editor/src/ui/retained_host/app/tests/root_pointer_fallbacks.rs
-  - zircon_editor/src/ui/retained_host/app/tests/child_window_tabs.rs
-  - zircon_editor/src/ui/retained_host/ui/tests/mod.rs
-  - zircon_editor/src/ui/retained_host/ui/tests/support.rs
-  - zircon_editor/src/ui/retained_host/ui/tests/host_scene_projection/assertions.rs
-  - zircon_editor/src/ui/retained_host/ui/tests/apply_presentation_shell.rs
-  - zircon_editor/src/ui/retained_host/ui/tests/workbench_layout_frames.rs
-  - zircon_editor/src/ui/retained_host/ui/tests/welcome_presentation.rs
-  - zircon_editor/src/ui/retained_host/ui/tests/scene_document_pane.rs
-  - zircon_editor/src/ui/retained_host/ui/tests/floating_windows.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_projection/
-  - zircon_editor/src/tests/host/template_runtime/mod.rs
-  - zircon_editor/src/tests/host/template_runtime/scene_viewport_toolbar_runtime_projection.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/execution.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/run.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/session.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/tests/mod.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/tests/support.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/tests/pipeline_plan.rs
+  - zircon_editor/src/ui/host/exports/wizard/tests/pipeline_execution.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/tests/job.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/tests/panel_session.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/tests/view_model.rs
+  - zircon_editor/src/ui/runtime/runtime/runtime_host.rs
+  - zircon_editor/src/ui/retained/app/tests/mod.rs
+  - zircon_editor/src/ui/retained/app/tests/support.rs
+  - zircon_editor/src/ui/retained/app/tests/command_palette.rs
+  - zircon_editor/src/ui/retained/app/tests/child_window_focus.rs
+  - zircon_editor/src/ui/retained/app/tests/menu_pointer.rs
+  - zircon_editor/src/ui/retained/app/tests/projection_geometry.rs
+  - zircon_editor/src/ui/retained/app/tests/viewport_template_bridge.rs
+  - zircon_editor/src/ui/retained/app/tests/root_pointer_fallbacks.rs
+  - zircon_editor/src/ui/retained/app/tests/child_window_tabs.rs
+  - zircon_editor/src/ui/retained/ui/tests/mod.rs
+  - zircon_editor/src/ui/retained/ui/tests/support.rs
+  - zircon_editor/src/ui/retained/ui/tests/host_scene_projection/assertions.rs
+  - zircon_editor/src/ui/retained/ui/tests/apply_presentation_shell.rs
+  - zircon_editor/src/ui/retained/ui/tests/welcome_presentation.rs
+  - zircon_editor/src/ui/retained/ui/tests/scene_document_pane.rs
+  - zircon_editor/src/ui/retained/ui/tests/floating_windows.rs
   - zircon_editor/src/core/editor_event/service/state.rs
   - zircon_editor/src/ui/host/module.rs
   - zircon_editor/src/ui/asset_editor/style/theme_authoring.rs
   - zircon_editor/src/ui/asset_editor/style/theme_authoring/action_projection.rs
   - zircon_editor/src/ui/asset_editor/style/theme_authoring/merge.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection/activity_rail.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection/dock_header.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection/status_bar.rs
-  - zircon_editor/src/ui/retained_host/ui/apply_presentation/pane_conversion.rs
-  - zircon_editor/src/ui/retained_host/ui/apply_presentation/scene_conversion.rs
+  - zircon_editor/src/ui/retained/ui/apply_presentation/pane_conversion.rs
+  - zircon_editor/src/ui/retained/ui/apply_presentation/scene_conversion.rs
 plan_sources:
   - docs/plans/engine-code-structure-convention.md
   - docs/architecture/large-file-ownership-m1.md

@@ -8,13 +8,12 @@ related_code:
   - zircon_editor/src/core/export/stages/executor.rs
   - zircon_editor/src/core/export/stages/compile_host.rs
   - zircon_editor/src/ui/host/native_dynamic_export_preparation/staging.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/execution/output_capture.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_projection/cache.rs
+  - zircon_editor/src/ui/host/exports/wizard/execution/output_capture.rs
+  - zircon_editor/src/ui/retained/app/build_export_projection/cache.rs
 tests:
   - tools/tests/test_editor15_export_generation_inventory_contract.py
   - zircon_editor/src/core/export/inventory.rs
   - zircon_editor/src/ui/host/native_dynamic_export_preparation/staging.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/streaming_output_tests.rs
 ---
 
 # Export Generation Inventory

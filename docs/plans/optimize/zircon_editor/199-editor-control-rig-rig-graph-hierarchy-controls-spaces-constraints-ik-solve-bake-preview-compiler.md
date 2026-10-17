@@ -5,18 +5,12 @@ report_id: Editor199
 review_date: 2026-08-28
 baseline_head: a721407083c5652619eb4b8743ae063fbb11fccf
 related_code:
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/animation/workbench_extension_control_rig_workspace.zui
-  - zircon_editor/src/ui/template_runtime/builtin/workbench_extension_module_template_bindings/gameplay_animation.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation/specs/gameplay_animation.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback.rs
-  - zircon_editor/src/ui/retained_host/workbench_preview_actions.rs
+  - zircon_editor/src/ui/retained/dispatch/workbench/specs/gameplay_animation.rs
   - zircon_runtime/src/core/framework/animation/runtime_status.rs
   - zircon_plugins/animation/runtime/src/ik
   - zircon_plugins/animation/runtime/src/evaluation/pipeline/tick.rs
 tests:
   - zircon_plugins/animation/runtime/tests/animation_ik_contract.rs
-  - zircon_runtime/src/core/framework/animation/tests.rs
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md
   - docs/plans/optimize/01-cross-report-owner-schema-abi-p0-consolidation-review.md

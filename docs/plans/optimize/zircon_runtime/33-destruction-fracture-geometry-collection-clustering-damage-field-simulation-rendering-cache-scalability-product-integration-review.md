@@ -9,7 +9,6 @@ related_code:
   - zircon_runtime/src/core/framework/render/frame_extract
   - zircon_runtime/src/graphics/feature/builtin_render_feature
   - zircon_runtime/src/graphics/scene/resources/gpu_mesh
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh
   - zircon_runtime/src/graphics/visibility
   - zircon_plugins/physics/runtime/src/backend
   - zircon_plugins/physics/runtime/src/constraint
@@ -17,20 +16,13 @@ related_code:
   - zircon_plugins/physics/runtime/src/skeletal
   - examples/woc/scripts/woc_game/src/instances/delve_dynamic_collision_rules.zr
 tests:
-  - zircon_runtime/src/core/framework/physics/tests.rs
-  - zircon_runtime/src/core/framework/render/frame_extract/tests.rs
   - zircon_runtime/src/asset/tests/assets/mesh.rs
   - zircon_runtime/src/asset/tests/assets/mesh
   - zircon_runtime/src/asset/tests/assets/scene/physics_animation.rs
   - zircon_runtime/src/scene/tests/physics_animation_components.rs
-  - zircon_plugins/physics/runtime/src/backend/tests.rs
   - zircon_plugins/physics/runtime/src/backend/tests
-  - zircon_plugins/physics/runtime/src/manager/tests.rs
-  - zircon_plugins/physics/runtime/src/skeletal/tests.rs
-  - zircon_plugins/physics/runtime/src/tests.rs
   - zircon_plugins/physics/runtime/tests/physics_manager_runtime_contract.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/extend_pending_draws_for_mesh_instance/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/processors/tests.rs
   - zircon_runtime/src/graphics/tests/visibility.rs
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md

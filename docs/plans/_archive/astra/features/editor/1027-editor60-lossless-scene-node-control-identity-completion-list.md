@@ -1,7 +1,6 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/scene_hierarchy_fragment.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_projection/scene_node_identity.rs
+  - zircon_editor/src/ui/retained/dispatch/workbench/scene_hierarchy_fragment.rs
 plan_sources:
   - docs/plans/optimize/zircon_editor/60/2026-09-27-lossless-scene-node-control-identity.md
 status: implemented_pending_validation

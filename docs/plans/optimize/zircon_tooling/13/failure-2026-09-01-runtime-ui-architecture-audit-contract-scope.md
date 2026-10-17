@@ -12,7 +12,7 @@ plan_link_mode: child_record_only
 related_code:
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/ui_architecture_boundary.py
   - tools/tests/test_runtime_ui_architecture_boundary.py
-  - zircon_runtime/src/tests/runtime_absorption/ui_architecture/mirror_docs.rs
+  - zircon_runtime/src/tests/contracts/ui_architecture/mirror_docs.rs
   - docs/crates/zircon_runtime/ui/architecture.md
   - docs/plans/zircon_runtime/runtime/09-ui-subsystem-architecture.md
   - docs/plans/zircon_runtime/runtime/index.md

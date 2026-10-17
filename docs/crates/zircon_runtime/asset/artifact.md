@@ -12,7 +12,6 @@ related_code:
   - zircon_runtime/src/asset/artifact/cache_payload/scene.rs
   - zircon_runtime/src/asset/artifact/cache_payload/toml_value.rs
   - zircon_runtime/src/asset/artifact/cache_payload/ui.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/asset_cache_payload.rs
   - zircon_runtime/src/asset/tests/assets/artifact_store.rs
   - zircon_runtime/src/asset/tests/assets/artifact_store/scene_components.rs
   - zircon_runtime/src/asset/tests/assets/artifact_store/scene_script.rs
@@ -20,8 +19,6 @@ related_code:
   - zircon_runtime/tests/runtime_environment_ibl_bake_artifact_contract.rs
   - zircon_runtime/tests/runtime_environment_ibl_bake_asset_derived_contract.rs
   - examples/vampire/assets/shaders/default_pbr.zmeta
-  - examples/vampire/.zircon/cache/assets/shaders/ae3ee5f2-ac09-3b2c-d00c-0fd96cccca44.zasset
-  - zircon_runtime/src/tests/runtime_absorption/asset_pipeline.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/asset_pipeline_boundary.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/asset_pipeline_markdown.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/asset_pipeline_source_inventory.py
@@ -38,10 +35,7 @@ implementation_files:
   - zircon_runtime/src/asset/artifact/cache_payload/scene.rs
   - zircon_runtime/src/asset/artifact/cache_payload/toml_value.rs
   - zircon_runtime/src/asset/artifact/cache_payload/ui.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/asset_cache_payload.rs
   - examples/vampire/assets/shaders/default_pbr.zmeta
-  - examples/vampire/.zircon/cache/assets/shaders/ae3ee5f2-ac09-3b2c-d00c-0fd96cccca44.zasset
-  - zircon_runtime/src/tests/runtime_absorption/asset_pipeline.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/asset_pipeline_boundary.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/asset_pipeline_markdown.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/asset_pipeline_source_inventory.py
@@ -59,7 +53,6 @@ tests:
   - zircon_runtime/src/asset/tests/assets/artifact_store/scene_script.rs::artifact_store_roundtrips_scene_assets_with_script_binding_json_values
   - zircon_runtime/src/asset/tests/assets/artifact_store.rs::artifact_store_roundtrips_shader_assets_with_cache_safe_toml_metadata
   - zircon_runtime/src/asset/tests/project/zmeta.rs::project_manager_imports_compound_zshader_package_with_subassets
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/asset_cache_payload.rs::runtime_15_asset_artifact_cache_ui_documents_are_child_owner
   - zircon_runtime/tests/runtime_environment_ibl_bake_artifact_contract.rs::runtime_environment_ibl_bake_artifact_runtime_cache_store_reads_current_blob_as_candidate
   - zircon_runtime/tests/runtime_environment_ibl_bake_artifact_contract.rs::runtime_environment_ibl_bake_artifact_runtime_cache_store_reports_missing_and_rejected_blobs
   - zircon_runtime/tests/runtime_environment_ibl_bake_asset_derived_contract.rs

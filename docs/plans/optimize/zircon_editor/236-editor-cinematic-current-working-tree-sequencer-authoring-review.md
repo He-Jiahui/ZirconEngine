@@ -10,10 +10,7 @@ supersedes_currentness_of:
 related_runtime_owner:
   - docs/plans/optimize/zircon_runtime/176-runtime-cinematic-current-working-tree-sequencer-evaluation-take-render-review.md
 related_code:
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/animation/workbench_extension_sequencer_workspace.zui
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation/specs/gameplay_animation.rs
-  - zircon_editor/src/ui/retained_host/workbench_preview_actions/extensions.rs
+  - zircon_editor/src/ui/retained/dispatch/workbench/specs/gameplay_animation.rs
   - zircon_editor/src/ui/animation_editor
   - zircon_editor/src/core/editing/animation_document
   - zircon_editor/src/ui/timeline

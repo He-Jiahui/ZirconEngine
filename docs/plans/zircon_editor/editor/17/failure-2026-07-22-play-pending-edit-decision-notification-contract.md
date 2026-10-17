@@ -17,7 +17,7 @@ related_code:
   - zircon_editor/src/core/notifications/decision
   - zircon_editor/src/core/notifications/presentation.rs
   - zircon_editor/src/ui/host/play_pending_decision
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/notifications.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/workbench/notifications.rs
 tests:
   - pending-edit Decision notification publish and receipt roundtrip
   - apply/discard callback routing and repeated receipt idempotence

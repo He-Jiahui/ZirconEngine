@@ -14,14 +14,12 @@ related_code:
   - zircon_editor/src/core/jobs/tests/thread_ownership_contract/scanner.rs
   - zircon_editor/src/core/export/stages/compile_host.rs
   - zircon_editor/src/core/play/process_backend/output.rs
-  - zircon_editor/src/ui/retained_host/host_contract/profiling_artifacts/export.rs
-  - zircon_editor/src/ui/retained_host/host_contract/profiling_artifacts/environment.rs
-  - zircon_editor/src/ui/retained_host/host_contract/profiling_artifacts/environment/tests.rs
-  - zircon_editor/src/ui/retained_host/host_contract/window.rs
-  - zircon_editor/src/ui/retained_host/host_contract/window/lifecycle.rs
-  - zircon_editor/src/ui/retained_host/host_contract/window/event_loop/redraw/present.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/startup/with_viewport.rs
-  - zircon_editor/src/ui/retained_host/app/module_plugin_actions/live_host/development_watch.rs
+  - zircon_editor/src/ui/retained/contract/profiling_artifacts/export.rs
+  - zircon_editor/src/ui/retained/contract/profiling_artifacts/environment.rs
+  - zircon_editor/src/ui/retained/contract/window/lifecycle.rs
+  - zircon_editor/src/ui/retained/contract/window/event_loop/redraw/present.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle/startup/with_viewport.rs
+  - zircon_editor/src/ui/retained/app/plugins/live_host/development_watch.rs
   - docs/plans/zircon_runtime/runtime/11/failure-2026-08-10-blocking-io-process-output-budget.md
   - docs/plans/zircon_editor/editor/12/failure-2026-08-12-native-plugin-development-watcher-job-ownership.md
 tests:

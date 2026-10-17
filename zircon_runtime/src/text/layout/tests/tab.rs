@@ -69,7 +69,7 @@ fn optimization_batch_20260827bl_streaming_tab_layout_p95() {
         RELEASE_GRAPHEME_COUNT * (std::mem::size_of::<&str>() + std::mem::size_of::<f32>());
 
     println!(
-        "PERF_RESULT RUNTIME81_STREAMING_TAB_LAYOUT_BENCH_V1 graphemes={RELEASE_GRAPHEME_COUNT} tab_every=16 warmups={RELEASE_WARMUP_COUNT} samples={RELEASE_SAMPLE_COUNT} legacy_width_allocations=2 optimized_width_allocations=0 legacy_width_allocated_bytes={legacy_allocated_bytes} optimized_width_allocated_bytes=0 legacy_p50_ns={legacy_p50} optimized_p50_ns={optimized_p50} legacy_p95_ns={legacy_p95} optimized_p95_ns={optimized_p95}"
+        "PERF_RESULT RUNTIME81_STREAMING_TAB_LAYOUT_BENCH_V1 graphemes={RELEASE_GRAPHEME_COUNT} tab_every=16 warmups={RELEASE_WARMUP_COUNT} samples={RELEASE_SAMPLE_COUNT} legacy_width_allocations_expected=2 optimized_width_allocations_expected=0 legacy_width_estimated_bytes={legacy_allocated_bytes} optimized_width_estimated_bytes=0 legacy_p50_ns={legacy_p50} optimized_p50_ns={optimized_p50} legacy_p95_ns={legacy_p95} optimized_p95_ns={optimized_p95}"
     );
     // 纳秒非零和两个延迟阈值由实际运行判断，静态审读不提供这些值。
     assert!(

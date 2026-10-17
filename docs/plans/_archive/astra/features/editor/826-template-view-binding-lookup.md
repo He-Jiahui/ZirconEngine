@@ -8,9 +8,6 @@ related_code:
   - zircon_editor/src/core/editor_extension.rs
   - zircon_editor/src/core/extension/store/batch.rs
 tests:
-  - zircon_editor/src/core/editor_extension/optimization_batch_editor826_template_binding_tests.rs
-  - zircon_editor/src/core/extension/store/batch/optimization_batch_editor826_template_binding_tests.rs
-  - tools/tests/test_editor_template_view_binding_lookup_performance_contract.py
 ---
 
 # Editor826 Template-to-View Direct Lookup

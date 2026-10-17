@@ -1,13 +1,12 @@
 ---
 related_code:
   - zircon_runtime/src/graphics/scene/resources
-  - zircon_runtime/src/graphics/runtime/render_framework/budget/memory_budget.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/submit_runtime_frame.rs
+  - zircon_runtime/src/graphics/runtime/framework/budget/memory_budget.rs
+  - zircon_runtime/src/graphics/runtime/extract/submit/submit_runtime_frame.rs
   - zircon_runtime/src/asset/artifact
   - zircon_runtime/src/asset/assets/mesh
   - zircon_runtime/src/asset/assets/model
   - zircon_runtime/src/asset/assets/texture
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/loading
   - zircon_plugins/asset_importers/model
   - zircon_plugins/asset_importers/texture
   - zircon_plugins/gltf_importer

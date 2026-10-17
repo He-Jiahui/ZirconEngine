@@ -15,7 +15,6 @@ related_code:
   - zircon_runtime/src/core/framework/audio
   - zircon_runtime/src/core/framework/sound
   - zircon_runtime/src/asset/assets/sound.rs
-  - zircon_runtime/src/asset/importer/ingest/import_sound.rs
   - zircon_plugins/sound/runtime
   - zircon_plugins/sound/dist
   - zircon_plugins/sound/features

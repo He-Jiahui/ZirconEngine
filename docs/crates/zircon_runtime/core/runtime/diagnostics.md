@@ -7,7 +7,6 @@ related_code:
   - zircon_runtime/src/core/runtime/diagnostics/physics_backend.rs
   - zircon_runtime/src/runtime_diagnostics/physics_collection_enabled.rs
   - zircon_runtime/src/runtime_diagnostics/physics_collection_disabled.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload_builders/runtime_diagnostics.rs
 implementation_files:
   - zircon_runtime/src/core/runtime/diagnostics/physics_backend.rs
   - zircon_runtime/src/runtime_diagnostics/collect.rs
@@ -21,7 +20,6 @@ plan_sources:
 tests:
   - zircon_runtime/src/runtime_diagnostics/physics_collection_enabled.rs
   - tools/tests/test_frameworks_03_contract_feature_boundary.py
-  - tests/acceptance/frameworks-03-physics-contract-feature-boundary.md
   - zircon_runtime/src/tests/runtime_diagnostics/mod.rs
 doc_type: module-detail
 ---

@@ -12,11 +12,10 @@ related_code:
   - zircon_editor/src/core/recovery/autosave_shutdown.rs
   - zircon_editor/src/core/export/stages/compile_host.rs
   - zircon_editor/src/core/play/process_backend/output.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/tick.rs
-  - zircon_editor/src/ui/retained_host/app/job_progress.rs
-  - zircon_editor/src/ui/retained_host/app/welcome_session/project_probe
-  - zircon_editor/src/ui/retained_host/app/module_plugin_actions/live_host/development_watch.rs
-  - zircon_editor/src/ui/retained_host/host_contract/window.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle/tick.rs
+  - zircon_editor/src/ui/retained/app/job_progress.rs
+  - zircon_editor/src/ui/retained/app/welcome_session/project_probe
+  - zircon_editor/src/ui/retained/app/plugins/live_host/development_watch.rs
   - zircon_runtime/src/core/runtime/tasks
   - zircon_runtime/src/core/runtime/runtime.rs
 plan_sources:

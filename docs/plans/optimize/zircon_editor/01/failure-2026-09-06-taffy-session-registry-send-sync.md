@@ -13,7 +13,6 @@ related_code:
   - zircon_runtime/src/ui/layout/taffy_bridge/compute.rs
   - zircon_runtime/src/ui/layout/pass/slot.rs
   - zircon_runtime/src/dynamic_api/session/registry/session_store.rs
-  - zircon_runtime/src/dynamic_api/session/registry/tests.rs
   - zircon_runtime/src/ui/tests/taffy_layout_diagnostics.rs
 tests:
   - managed target-client Runtime check with dev-dynamic linking and --lib

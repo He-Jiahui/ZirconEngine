@@ -8,7 +8,6 @@ validation_status: managed_validation_pending
 performance_status: ignored_release_profile_added_unrun
 related_code:
   - zircon_runtime/src/scene/level_system/animation_runtime.rs
-  - zircon_runtime/src/scene/level_system/animation_runtime/drain_output_capacity_tests.rs
 tests:
   - runtime857_production_drain_reserves_capacity_and_preserves_sample_order
   - runtime857_production_empty_drain_keeps_zero_capacity

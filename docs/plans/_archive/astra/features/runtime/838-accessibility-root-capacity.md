@@ -9,9 +9,7 @@ related_records:
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
   - zircon_runtime/src/ui/accessibility/extract.rs
-  - zircon_runtime/src/ui/accessibility/extract/root_capacity_tests.rs
 tests:
-  - tools/tests/test_runtime_accessibility_root_capacity_performance_contract.py
 ---
 
 # Runtime838 · accessibility root projection capacity

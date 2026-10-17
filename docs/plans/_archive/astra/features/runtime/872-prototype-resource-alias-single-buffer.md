@@ -9,8 +9,6 @@ related_records:
 implementation_files:
   - zircon_runtime/src/ui/template/asset/prototype_file_cache.rs
 tests:
-  - zircon_runtime/src/ui/template/asset/prototype_file_cache/resource_alias_single_buffer_tests.rs
-  - tools/tests/test_runtime872_prototype_resource_alias_single_buffer_performance_contract.py
 ---
 
 # Runtime872 Prototype Resource Alias Single Buffer

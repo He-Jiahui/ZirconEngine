@@ -12,8 +12,8 @@ related_code:
   - zircon_plugins/sound/runtime/src/automation/target/apply.rs
   - zircon_plugins/sound/runtime/src/automation/values.rs
   - zircon_plugins/sound/runtime/src/tests/automation_binding/validation.rs
-  - zircon_plugins/sound/runtime/src/tests/automation_binding/validation/non_finite_values.rs
-  - zircon_plugins/sound/runtime/src/tests/automation_binding/validation/unsupported_parameter/track_delay.rs
+  - zircon_plugins/sound/runtime/src/tests/validation/non_finite_values.rs
+  - zircon_plugins/sound/runtime/src/tests/unsupported_parameter/track_delay.rs
 tests:
   - cargo +1.94.1 test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_sound_runtime --lib --locked --jobs 1 tests::automation_binding::validation::non_finite_values:: -- --nocapture --test-threads=1
 resolved_at: 2026-07-18

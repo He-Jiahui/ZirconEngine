@@ -10,7 +10,6 @@ implementation_files:
   - zircon_editor/src/ui/host/editor_manager_project_session.rs
 tests:
   - zircon_editor/src/ui/host/editor_manager_project_activation_effects.rs
-  - zircon_editor/src/core/recovery/tests.rs
 ---
 
 # Editor1044 / Editor268 session ledger before Ready completion list

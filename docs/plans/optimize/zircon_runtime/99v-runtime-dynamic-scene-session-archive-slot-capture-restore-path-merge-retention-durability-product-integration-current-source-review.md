@@ -8,9 +8,6 @@ baseline_epoch: 368
 supersedes:
   - docs/plans/optimize/zircon_runtime/52-runtime-dynamic-scene-session-archive-slot-capture-restore-path-merge-retention-durability-product-integration-review.md
 related_code:
-  - zircon_runtime/src/scene/dynamic_scene/session
-  - zircon_runtime/src/scene/dynamic_scene/scene
-  - zircon_runtime/src/scene/dynamic_scene/document
   - zircon_runtime/src/scene/level_system
   - zircon_runtime/src/core/runtime/tasks/bounded_keyed_io
   - zircon_runtime/src/dynamic_api
@@ -23,9 +20,6 @@ tests:
   - zircon_runtime/src/scene/tests/dynamic_scene/archive_manifest.rs
   - zircon_runtime/src/scene/tests/dynamic_scene/archive_mutation.rs
   - zircon_runtime/src/scene/tests/dynamic_scene/level_apply.rs
-  - zircon_runtime/src/tests/runtime_absorption/dynamic_scene/session_capture_persistence.rs
-  - zircon_runtime/src/tests/runtime_absorption/dynamic_scene/session_load_query_path.rs
-  - zircon_runtime/src/tests/runtime_absorption/dynamic_scene/session_retention_mutation_merge.rs
   - zircon_runtime/tests/plan11_scene_serialization_contract.rs
 plan_sources:
   - docs/plans/mvp/index.md

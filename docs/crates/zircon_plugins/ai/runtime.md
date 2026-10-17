@@ -76,13 +76,12 @@ related_code:
   - zircon_runtime/src/core/framework/ai/behavior_tree.rs
   - zircon_runtime/src/core/framework/ai/error.rs
   - zircon_runtime/src/plugin/extension_registry/runtime_extension_registry.rs
-  - zircon_runtime/src/plugin/extension_registry/runtime_extension_registry/owner_revocation.rs
+  - zircon_runtime/src/plugin/runtime_extension_registry/owner_revocation.rs
   - zircon_runtime/src/plugin/extension_registry/typed_extension_point.rs
   - zircon_runtime/src/core/framework/ai/manager.rs
   - zircon_runtime/src/core/manager/resolver.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/augmentation/capabilities.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/core_classification/runtime/systems.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/core_rows/runtime/systems.rs
+  - zircon_runtime/src/plugin/runtime/builtin_catalog/augmentation/capabilities.rs
+  - zircon_runtime/src/plugin/runtime/builtin_catalog/core_rows/runtime/systems.rs
 implementation_files:
   - zircon_plugins/ai/plugin.toml
   - zircon_plugins/ai/runtime/src/lib.rs
@@ -124,8 +123,7 @@ implementation_files:
   - zircon_plugins/ai/runtime/src/tick_lod.rs
   - zircon_runtime/src/core/framework/script/behavior_bridge.rs
   - zircon_runtime/src/script/vm/behavior_bridge.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/augmentation/capabilities.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/core_classification/runtime/systems.rs
+  - zircon_runtime/src/plugin/runtime/builtin_catalog/augmentation/capabilities.rs
 tests:
   - zircon_plugins/ai/runtime/src/tests/mod.rs
   - zircon_plugins/ai/runtime/src/tests/manager_validation.rs
@@ -146,7 +144,6 @@ tests:
   - zircon_plugins/ai/runtime/src/tests/scenarios/patrol_detect_chase.rs
   - zircon_plugins/ai/runtime/src/tests/scenarios/patrol_detect_chase/fixtures.rs
   - zircon_plugins/ai/runtime/src/tests/scenarios/patrol_detect_chase/fixtures.rs
-  - zircon_runtime/src/tests/plugin_extensions/manifest_contributions.rs
   - cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_ai_runtime --locked --jobs 1 --message-format short --color never
   - cargo test -p zircon_runtime --lib runtime_experimental_plugin_toml_matches_catalog_partial_metadata --locked --jobs 1 --message-format short --color never
 plan_sources:

@@ -9,8 +9,8 @@ origin_child_dir: docs/plans/zircon_editor/editor_layout/19
 fixing_child_dir: docs/plans/performance/01
 plan_link_mode: child_record_only
 related_code:
-  - zircon_editor/src/ui/retained_host/host_contract/window/text_input/edit.rs
-  - zircon_editor/src/ui/retained_host/host_contract/window/text_input/edit/dispatch.rs
+  - zircon_editor/src/ui/retained/contract/window/text_input/edit.rs
+  - zircon_editor/src/ui/retained/contract/window/text_input/edit/dispatch.rs
 tests:
   - cargo test -p zircon_editor --lib gateway:: --locked --jobs 1 -- --test-threads=1
   - cargo test -p zircon_editor --lib text_input --locked --jobs 1 -- --test-threads=1

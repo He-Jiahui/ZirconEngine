@@ -91,7 +91,7 @@ def _sealed_blob_oids(manifest: dict, sealed: dict, *, object_root: str | os.Pat
         data = source.read_bytes()
         if hashlib.sha256(data).hexdigest() != object_digest:
             raise JenkinsError("sealed_object_invalid", "Sealed object checksum does not match manifest", details={"path": path})
-        completed = subprocess.run(["git", "hash-object", "-w", "--stdin"], cwd=sealed["repositoryRoot"],
+        completed = subprocess.run(["git", "-c", "core.fsmonitor=false", "-c", "core.hooksPath=" + os.devnull, "hash-object", "-w", "--stdin"], cwd=sealed["repositoryRoot"],
                                    input=data, capture_output=True, check=True)
         result[path] = completed.stdout.decode("ascii").strip()
     return result

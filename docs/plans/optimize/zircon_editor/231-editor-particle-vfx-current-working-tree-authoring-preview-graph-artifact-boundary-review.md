@@ -2,7 +2,6 @@
 related_code:
   - zircon_plugins/particles/editor/src/authoring.rs
   - zircon_plugins/particles/editor/src/plugin.rs
-  - zircon_plugins/particles/editor/src/tests.rs
   - zircon_plugins/particles/editor/authoring.zui
   - zircon_plugins/particles/editor/particle_system.drawer.zui
   - zircon_plugins/particles/editor/preview.zui
@@ -10,12 +9,8 @@ related_code:
   - zircon_plugins/particles/runtime/src/service.rs
   - zircon_plugins/rendering/features/vfx_graph/editor/src/plugin.rs
   - zircon_plugins/rendering/features/vfx_graph/runtime/src/lib.rs
-  - zircon_editor/assets/ui/editor/components/workbench/modules/core/rendering/workbench_vfx_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/rendering/workbench_extension_particle_library_workspace.zui
-  - zircon_editor/src/ui/retained_host/workbench_preview_actions.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/module_command_feedback.rs
+  - zircon_editor/src/ui/retained/dispatch/workbench/module_command_feedback.rs
 tests:
-  - zircon_plugins/particles/editor/src/tests.rs
   - zircon_editor/src/tests/host/manager/minimal_host_contract/optional_features.rs
   - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_module_navigation/
 plan_sources:

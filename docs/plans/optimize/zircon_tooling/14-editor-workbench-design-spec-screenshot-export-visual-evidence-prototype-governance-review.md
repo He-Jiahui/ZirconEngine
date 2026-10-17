@@ -1,21 +1,5 @@
 ---
 related_code:
-  - tools/editor-workbench-preview/app.js
-  - tools/editor-workbench-preview/design-manifest.mjs
-  - tools/editor-workbench-preview/design.css
-  - tools/editor-workbench-preview/design.html
-  - tools/editor-workbench-preview/design.js
-  - tools/editor-workbench-preview/export-designs.mjs
-  - tools/editor-workbench-preview/export-evidence.mjs
-  - tools/editor-workbench-preview/export-options.mjs
-  - tools/editor-workbench-preview/index.html
-  - tools/editor-workbench-preview/package-lock.json
-  - tools/editor-workbench-preview/package.json
-  - tools/editor-workbench-preview/preview-sheet.js
-  - tools/editor-workbench-preview/server.mjs
-  - tools/editor-workbench-preview/styles.css
-  - tools/editor-workbench-preview/verify-designs.mjs
-  - tools/editor-workbench-preview/verify-reference-negative-guard.mjs
   - docs/ui/editor-workbench-design-export.md
   - zircon_editor/assets/ui/editor/reference/workbench.png
   - zircon_editor/fixtures/workbench/default-layout.json
@@ -25,8 +9,7 @@ related_code:
   - zircon_editor/src/ui/workbench/fixture/constants.rs
   - .github/workflows/ci.yml
 tests:
-  - zircon_editor/src/tests/ui/boundary/template_assets.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/layout_routes.rs
+  - zircon_editor/src/tests/ui/boundary/template_assets/mod.rs
   - zircon_editor/tests/integration_contracts/workbench_retained_shell.rs
   - zircon_editor/tests/integration_contracts/workbench_window_template.rs
 plan_sources:

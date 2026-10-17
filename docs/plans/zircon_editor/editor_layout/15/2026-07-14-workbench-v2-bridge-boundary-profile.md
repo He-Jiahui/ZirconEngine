@@ -6,9 +6,7 @@ slice: workbench-v2-bridge-boundary-profile
 status: accepted
 date: 2026-07-14
 related_code:
-  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/mod.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_bridge_startup_profile.rs
-  - zircon_editor/src/ui/template_runtime/runtime/runtime_host.rs
+  - zircon_editor/src/ui/runtime/runtime/runtime_host.rs
   - zircon_editor/src/ui/workbench/reference/template_surface.rs
   - zircon_runtime/src/ui/v2/surface_builder.rs
   - zircon_runtime/src/ui/layout/pass/layout_tree.rs
@@ -16,22 +14,9 @@ related_code:
   - zircon_runtime/src/ui/text/measure_cache.rs
   - zircon_runtime/src/text/font/coverage.rs
   - zircon_runtime/src/text/font/database.rs
-  - zircon_runtime/src/text/font/database/tests.rs
   - zircon_runtime/src/text/shaping/fallback_spans.rs
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/chrome/workbench_chip.zui
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_chips/identity.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_chips/style.rs
-  - zircon_editor/src/tests/host/retained_menu_pointer/chip_visual_screenshot.rs
-  - zircon_editor/src/tests/host/retained_menu_pointer/icon_button_visual_screenshot.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_icon_button/selection/background.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_icon_button/selection/border.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_icon_button/tests.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_text_field/palette.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_text_field/surface.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_text_field/tests.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_fields_tests/style.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_fields_tests/paint.rs
-  - zircon_editor/src/tests/host/retained_menu_pointer/field_visual_screenshot.rs
+  - zircon_editor/src/ui/retained/contract/paint/selector/selection/background.rs
+  - zircon_editor/src/ui/retained/contract/paint/selector/selection/border.rs
   - zircon_runtime/src/text/shaping/cosmic/font_system_cache.rs
   - zircon_runtime_interface/src/ui/tree/node/ui_tree.rs
 tests:

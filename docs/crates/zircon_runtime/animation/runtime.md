@@ -11,7 +11,6 @@ related_code:
   - zircon_runtime/src/core/framework/animation/error.rs
   - zircon_runtime/src/core/framework/animation/clip_event_sampling.rs
   - zircon_runtime/src/core/framework/animation/manager.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy.rs
   - zircon_runtime/src/scene/level_system.rs
   - zircon_plugins/animation/runtime/src/runtime_system.rs
   - zircon_plugins/animation/runtime/src/evaluation/pipeline/tick.rs
@@ -29,7 +28,6 @@ implementation_files:
   - zircon_runtime/src/core/framework/animation/error.rs
   - zircon_runtime/src/core/framework/animation/clip_event_sampling.rs
   - zircon_runtime/src/core/framework/animation/manager.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy.rs
   - zircon_runtime/src/scene/level_system.rs
   - zircon_plugins/animation/runtime/src/runtime_system.rs
   - zircon_plugins/animation/runtime/src/evaluation/pipeline/tick.rs
@@ -52,14 +50,9 @@ plan_sources:
   - dev/godot/scene/animation
 tests:
   - tools/tests/test_frameworks_01_scene_animation_boundary.py::Frameworks01SceneAnimationBoundaryTests::test_scene_does_not_depend_on_optional_animation_implementation
-  - zircon_runtime/src/tests/runtime_absorption/service_registry_ownership.rs::registry_owned_services_store_only_weak_runtime_back_references
   - zircon_runtime/src/animation/manager/mod.rs::animation_manager_playback_settings_recover_poisoned_lock
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy.rs::runtime_15_animation_manager_lock_poison_recovery_guard_covers_playback_settings
-  - zircon_runtime/src/animation/sequence/tests.rs
   - zircon_runtime/src/animation/sequence/channel_sample.rs
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/animation_resource.rs::review_f5_animation_manager_uses_animation_error
   - zircon_plugins/animation/runtime/src/evaluation/pipeline/tick.rs
-  - zircon_runtime/src/tests/runtime_absorption/root_entries.rs::runtime_animation_backlog_boundary_requires_doc_update
   - "pending: cargo test -p zircon_runtime --lib animation --locked"
 doc_type: module-detail
 ---

@@ -20,12 +20,6 @@ related_editor_reports:
 related_code:
   - zircon_runtime/src/render_graph
   - zircon_runtime/src/graphics/pipeline/declarations/compiled_render_pipeline.rs
-  - zircon_runtime/src/graphics/pipeline/declarations/compiled_render_pipeline
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render_with_pipeline
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer
-  - zircon_runtime/src/graphics/backend/render_backend/render_backend_submission.rs
   - zircon_runtime/crates/zr_rhi/src/submission.rs
   - zircon_runtime/crates/zr_rhi/src/submission_packet.rs
   - zircon_runtime/crates/zr_rhi/src/device/render_device.rs
@@ -35,10 +29,7 @@ related_code:
   - zircon_runtime/crates/zr_rhi_wgpu/src/production/command_submission.rs
 tests:
   - zircon_runtime/src/render_graph/tests
-  - zircon_runtime/src/graphics/pipeline/declarations/compiled_render_pipeline/tests.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/execute_graph_stage_tests.rs
   - zircon_runtime/crates/zr_rhi/src/tests/submission.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/production/tests/submission_packet.rs
 plan_sources:

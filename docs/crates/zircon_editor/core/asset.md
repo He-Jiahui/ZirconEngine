@@ -5,7 +5,6 @@ related_code:
   - zircon_editor/src/core/editor_extension.rs
   - zircon_editor/src/core/editor_authoring_extension.rs
   - zircon_editor/src/core/plugin/extension_materialization.rs
-  - zircon_editor/src/ui/host/editor_asset_manager/
   - zircon_editor/src/ui/layouts/views/asset_browser/
 implementation_files:
   - zircon_editor/src/core/asset/mod.rs
@@ -35,9 +34,8 @@ implementation_files:
   - zircon_editor/src/ui/layouts/views/asset_browser.rs
   - zircon_editor/src/ui/layouts/views/assets_activity.rs
   - zircon_editor/src/ui/workbench/asset_content_layout/paint_metadata.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/template_node_projection.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/docks/pane/template_nodes/asset_content/projector.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/native_panes/scrollbar/asset.rs
+  - zircon_editor/src/ui/contract/docks/pane/nodes/asset_content/projector.rs
+  - zircon_editor/src/ui/retained/contract/workbench/native_panes/scrollbar/asset.rs
   - zircon_editor/src/ui/layouts/views/assets_activity/
   - zircon_plugins/ui_asset_authoring/editor/src/plugin.rs
 plan_sources:
@@ -65,12 +63,9 @@ tests:
   - zircon_editor/src/tests/editor_asset_type_registry/source_authority.rs
   - zircon_editor/src/tests/editor_asset_type_registry/toolkit_route.rs
   - zircon_editor/src/tests/commands/descriptor_when.rs
-  - zircon_editor/src/tests/editor_asset_type_registry/typed_authoring_descriptors.rs
-  - zircon_editor/src/tests/editor_event/runtime/integration.rs
+  - zircon_editor/src/tests/editor_event/runtime/integration/mod.rs
   - zircon_plugins/ui_asset_authoring/editor/src/plugin.rs
   - tools/tests/test_editor09_asset_content_generation_projection.py
-  - zircon_editor/src/ui/workbench/asset_content_layout/tests.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/docks/pane/template_nodes/asset_content/tests.rs
 doc_type: module-detail
 ---
 

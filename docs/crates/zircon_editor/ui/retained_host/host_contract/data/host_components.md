@@ -1,20 +1,20 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/host_contract/data/host_components.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/host_components/common.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/host_components/docks.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/host_components/floating.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/host_components/menus.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/host_components/metrics.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/host_components/window.rs
+  - zircon_editor/src/ui/retained/contract/data/host_components.rs
+  - zircon_editor/src/ui/retained/contract/data/host_components/common.rs
+  - zircon_editor/src/ui/retained/contract/data/host_components/docks.rs
+  - zircon_editor/src/ui/retained/contract/data/host_components/floating.rs
+  - zircon_editor/src/ui/retained/contract/data/host_components/menus.rs
+  - zircon_editor/src/ui/retained/contract/data/host_components/metrics.rs
+  - zircon_editor/src/ui/retained/contract/data/host_components/window.rs
 implementation_files:
-  - zircon_editor/src/ui/retained_host/host_contract/data/host_components.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/host_components/common.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/host_components/docks.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/host_components/floating.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/host_components/menus.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/host_components/metrics.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/host_components/window.rs
+  - zircon_editor/src/ui/retained/contract/data/host_components.rs
+  - zircon_editor/src/ui/retained/contract/data/host_components/common.rs
+  - zircon_editor/src/ui/retained/contract/data/host_components/docks.rs
+  - zircon_editor/src/ui/retained/contract/data/host_components/floating.rs
+  - zircon_editor/src/ui/retained/contract/data/host_components/menus.rs
+  - zircon_editor/src/ui/retained/contract/data/host_components/metrics.rs
+  - zircon_editor/src/ui/retained/contract/data/host_components/window.rs
 plan_sources:
   - docs/plans/zircon_editor/editor_ui/08-workbench-shell-on-runtime-ui.md
   - user: 2026-06-21 editor UI architecture implementation, feature first and tests deferred

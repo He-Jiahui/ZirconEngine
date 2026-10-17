@@ -3,7 +3,7 @@ related_code:
   - zircon_editor/src/core/play/controller.rs
   - zircon_editor/src/core/play/process_backend
   - zircon_editor/src/core/play/snapshot
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/startup/with_viewport/runtime_backend.rs
+  - zircon_editor/src/ui/retained/app/startup/with_viewport/runtime_backend.rs
   - zircon_runtime/src/dynamic_api/session.rs
   - zircon_runtime/src/dynamic_api/session/profile.rs
   - zircon_runtime_interface/src/runtime_api/abi/api_table.rs

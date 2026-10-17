@@ -9,8 +9,6 @@ related_records:
 implementation_files:
   - zircon_runtime/src/ui/template/asset/compiler/binding_param_resolver.rs
 tests:
-  - zircon_runtime/src/ui/template/asset/compiler/binding_param_resolver/single_buffer_tests.rs
-  - tools/tests/test_runtime871_binding_literal_single_buffer_performance_contract.py
 ---
 
 # Runtime871 Binding Literal Single Buffer

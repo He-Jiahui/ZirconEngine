@@ -439,7 +439,7 @@ def _git_base_tree(root: Path, base_head: str | None) -> dict[str, tuple[str, st
     if not base_head:
         return {}
     try:
-        completed = subprocess.run(["git", "-C", str(root), "ls-tree", "-r", "--full-tree", base_head],
+        completed = subprocess.run(["git", "-c", "core.fsmonitor=false", "-c", "core.hooksPath=" + os.devnull, "-C", str(root), "ls-tree", "-r", "--full-tree", base_head],
                                    capture_output=True, text=True, check=True)
     except (OSError, subprocess.CalledProcessError) as exc:
         raise JenkinsError("git_base_unavailable", "cannot read the declared base tree") from exc
@@ -459,7 +459,7 @@ def _git_base_tree(root: Path, base_head: str | None) -> dict[str, tuple[str, st
 
 def _git_blob(root: Path, base_head: str, path: str) -> bytes:
     try:
-        completed = subprocess.run(["git", "-C", str(root), "show", f"{base_head}:{path}"],
+        completed = subprocess.run(["git", "-c", "core.fsmonitor=false", "-c", "core.hooksPath=" + os.devnull, "-C", str(root), "show", f"{base_head}:{path}"],
                                    capture_output=True, check=True)
     except (OSError, subprocess.CalledProcessError) as exc:
         raise JenkinsError("git_base_unavailable", "cannot read a blob from the declared base tree",

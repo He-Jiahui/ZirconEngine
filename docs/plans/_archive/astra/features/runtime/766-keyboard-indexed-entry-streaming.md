@@ -10,10 +10,7 @@ related_records:
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
   - zircon_runtime/src/ui/component/state_reducer/keyboard.rs
-  - zircon_runtime/src/ui/component/state_reducer/keyboard/indexed_entry_streaming_tests.rs
 tests:
-  - zircon_runtime/src/ui/component/state_reducer/keyboard/indexed_entry_streaming_tests.rs
-  - tools/tests/test_runtime_keyboard_indexed_entry_streaming_performance_contract.py
 ---
 
 # Runtime766 · Keyboard indexed-entry streaming

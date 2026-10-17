@@ -3,11 +3,7 @@ title: Editor viewport render static performance review
 date: 2026-07-17
 status: static-reviewed-dynamic-pending
 related_code:
-  - zircon_editor/src/ui/retained_host/viewport
-  - zircon_runtime/src/graphics/runtime/render_framework
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render_with_pipeline
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_target/finish_viewport_frame.rs
-  - zircon_runtime/src/graphics/backend/render_backend/read_texture_rgba.rs
+  - zircon_runtime/src/graphics/core/scene_renderer_target/finish_viewport_frame.rs
 plan: docs/plans/performance/01-mvp-performance-audit-and-optimization.md
 ---
 

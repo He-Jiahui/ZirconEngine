@@ -7,7 +7,6 @@ related_records:
   - docs/plans/astra/features/editor/664-20260911-editor-ui-optimization-batch-completion.md
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
-  - zircon_editor/src/ui/template_runtime/showcase_demo_state/hash_state_tests.rs
 ---
 
 # Editor902 Showcase Hash State Test Contract Repair

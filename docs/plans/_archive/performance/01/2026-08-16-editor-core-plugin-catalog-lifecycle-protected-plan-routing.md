@@ -3,8 +3,7 @@ related_code:
   - zircon_editor/src/core/plugin
   - zircon_editor/src/ui/host/editor_manager.rs
   - zircon_editor/src/ui/host/editor_manager_project.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/native_registration
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/tick.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle/tick.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/performance/review.md

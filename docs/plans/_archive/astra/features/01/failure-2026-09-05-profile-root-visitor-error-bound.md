@@ -10,7 +10,6 @@ fixing_child_dir: docs/plans/astra/features/01
 plan_link_mode: child_record_only
 related_code:
   - zircon_runtime_host/src/foreign_output/decode.rs
-  - zircon_runtime_host/src/foreign_output/tests.rs
 tests:
   - cargo test --locked --release --no-default-features -p zircon_runtime -p zircon_editor --lib astra_m -- --include-ignored --nocapture --test-threads=1
 ---

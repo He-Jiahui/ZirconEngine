@@ -11,8 +11,6 @@ implementation_files:
   - zircon_runtime/src/core/framework/animation/compiler/sequence/model.rs
   - zircon_plugins/animation/runtime/src/evaluation/pipeline/sequences.rs
 tests:
-  - zircon_runtime/src/animation/sequence/tests.rs
-  - tools/tests/test_runtime170_compiled_sequence_sampling_performance_contract.py
 ---
 
 # Runtime170 · compiled sequence channel sampling evidence refresh

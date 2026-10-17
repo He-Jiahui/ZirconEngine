@@ -9,61 +9,38 @@ fixing_plan: docs/plans/zircon_runtime/frameworks/01-runtime-crate-decomposition
 origin_child_dir: docs/plans/optimize/zircon_app/08
 fixing_child_dir: docs/plans/zircon_runtime/frameworks/01
 related_code:
-  - zircon_runtime/src/graphics/backend/render_backend/read_texture_rgba16float_3d.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/camera_loop/tests/frame.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/update_particle_previous_state.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_pipeline/tests.rs
+  - zircon_runtime/src/graphics/extract/submit/update_particle_previous_state.rs
   - zircon_runtime/src/graphics/shader/builtin_global_shader_contracts.rs
   - zircon_runtime/src/graphics/shader/template/tests/material_template_assembly.rs
-  - zircon_runtime/src/graphics/tests/render_product_post_process_full_chain/visual_export.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests.rs
   - zircon_runtime/src/graphics/tests/render_perf_baseline.rs
   - zircon_runtime/src/graphics/tests/render_product_anti_alias.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/hzb/hzb_occlusion_culler/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/indirect_draw_execution.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/native.rs
+  - zircon_runtime/src/graphics/scene/mesh/mesh_pass/indirect_draw_execution.rs
+  - zircon_runtime/src/graphics/scene/renderer/execution/context/gpu/native.rs
   - zircon_runtime/src/ui/surface/surface/default_interactions/table/selection.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/runtime_states.rs
+  - zircon_runtime/src/graphics/runtime/framework/viewport_record/runtime_states.rs
   - zircon_runtime/src/graphics/scene/gpu_scene/prev_transform.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_device_epoch_cache.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render/render_frame.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render_with_pipeline/render_frame_with_pipeline/frame_submission_owner.rs
-  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/mod.rs
+  - zircon_runtime/src/graphics/scene/core/scene_renderer_render/render_frame.rs
+  - zircon_runtime/src/graphics/feature/builtin/feature_descriptors/mod.rs
   - zircon_runtime/src/graphics/types/viewport_render_frame.rs
   - zircon_runtime/crates/zr_resource/src/readiness_generation.rs
-  - zircon_runtime/src/graphics/scene/resources/render_asset_residency/manager.rs
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_shader_source.rs
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_material.rs
   - zircon_runtime/src/graphics/runtime/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/environment_capture_scene_batch.rs
   - zircon_runtime/src/graphics/feature/render_feature_pass_descriptor/construct.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer
   - zircon_runtime/src/graphics/shader/global_pipeline_layout.rs
   - zircon_runtime/src/graphics/shader/invocation/mod.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/resource_descriptors/schema_allocation.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_wgpu_command_plan.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/history/scene_frame_history_textures/construct.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/history/scene_frame_history_textures/hzb_history.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/history/scene_frame_history_textures/scene_frame_history_textures.rs
-  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/screen_space_ambient_occlusion.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command_list/builder/parallel_admission.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command_list/builder/parallel_preparation.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command_list/builder/profiling_contract_tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render/resolved_layout/rich_artifact_routes.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render/text_batches.rs
+  - zircon_runtime/src/graphics/pipeline/resource_descriptors/schema_allocation.rs
+  - zircon_runtime/src/graphics/scene/environment/ibl_bake_wgpu_command_plan.rs
+  - zircon_runtime/src/graphics/scene/mesh/commands/builder/parallel_admission.rs
+  - zircon_runtime/src/graphics/scene/mesh/commands/builder/parallel_preparation.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/render.rs
+  - zircon_runtime/src/graphics/scene/ui/resolved_layout/rich_artifact_routes.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/render/text_batches.rs
   - zircon_runtime/src/graphics/backend/mod.rs
   - zircon_runtime/src/graphics/scene/mod.rs
   - zircon_runtime/src/graphics/scene/resources/mod.rs
-  - zircon_runtime/src/graphics/scene/resources/gpu_mesh/gpu_mesh_resource_from_asset.rs
-  - zircon_runtime/src/graphics/scene/resources/render_asset_residency/semantic_executor/owner.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/bind_frame_graph_resources.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/prepare_compiled_scene_mesh_submission.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/resource_resolver.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/params/upscale_params.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/ssao_input_qualification.rs
+  - zircon_runtime/src/graphics/scene/resources/residency/semantic_executor/owner.rs
+  - zircon_runtime/src/graphics/scene/core/render/bind_frame_graph_resources.rs
+  - zircon_runtime/src/graphics/render/prepare_compiled_scene_mesh_submission.rs
+  - zircon_runtime/src/graphics/scene/renderer/post/params/upscale_params.rs
   - zircon_runtime/src/text/mod.rs
   - zircon_runtime/src/ui/surface/frame_hit_test.rs
   - zircon_runtime/src/render_graph/graph/resource_state_plan.rs
@@ -71,32 +48,24 @@ related_code:
   - zircon_runtime/src/dynamic_api/session/operation.rs
   - zircon_runtime/src/dynamic_api/session/runtime_ui/input_publication.rs
   - zircon_runtime/src/dynamic_api/session/runtime_ui/input_routing.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/resource_descriptors.rs
   - zircon_runtime/src/graphics/scene/render_scene/component_projector/projector.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/bind_compiled_scene_graph_resources.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/generic_compute_executor/buffer_binding.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources/external_access_bindings.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources/persistent_texture_access_bindings.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_blur/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_depth_of_field/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_motion_blur/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_scene_composite/mod.rs
+  - zircon_runtime/src/graphics/core/render/bind_compiled_scene_graph_resources.rs
+  - zircon_runtime/src/graphics/scene/generic_compute_executor/buffer_binding.rs
+  - zircon_runtime/src/graphics/scene/renderer/post/resources/execute_blur/mod.rs
+  - zircon_runtime/src/graphics/scene/renderer/post/execute_depth_of_field/mod.rs
+  - zircon_runtime/src/graphics/scene/renderer/post/execute_motion_blur/mod.rs
+  - zircon_runtime/src/graphics/scene/renderer/post/execute_scene_composite/mod.rs
   - zircon_runtime/src/ui/layout/pass/responsive_mui/candidates.rs
   - zircon_runtime/src/ui/text/layout_engine/rich_layout.rs
   - zircon_runtime/src/ui/v2/component_instancer.rs
   - zircon_runtime/src/ui/surface/virtual_list_prototype_pool.rs
   - zircon_runtime/src/ui/surface/surface/compiled_binding_event_index.rs
-  - zircon_runtime/src/graphics/scene/resources/gpu_texture/gpu_texture_resource_from_asset/shape_projection.rs
   - zircon_runtime/src/graphics/runtime_prepare_collector.rs
   - zircon_runtime/src/graphics/scene/resources/ui_texture/prepare_receipt.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/execute_graph_stage.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_shader_plan.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_wgpu_command_plan/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/compute_pipeline_cache/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/execute_compiled_scene_graph_stages_tests.rs
-  - zircon_runtime/src/graphics/backend/render_backend/product_diagnostic_delivery_router.rs
+  - zircon_runtime/src/graphics/scene/core/render/render/execute_graph_stage.rs
+  - zircon_runtime/src/graphics/scene/renderer/environment/ibl_bake_shader_plan.rs
   - zircon_runtime/src/graphics/scene/gpu_scene/prev_morph_weights.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_target/required_offscreen_target.rs
+  - zircon_runtime/src/graphics/scene_renderer_target/required_offscreen_target.rs
 tests:
   - managed Editor target-editor-host check with dev-dynamic linking
   - python -m unittest tools.tests.test_frameworks_01_shader_invocation_owner_boundary -v

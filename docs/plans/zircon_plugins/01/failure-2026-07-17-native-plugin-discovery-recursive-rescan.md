@@ -9,13 +9,8 @@ origin_child_dir: docs/plans/performance/01
 fixing_child_dir: docs/plans/zircon_plugins/01
 plan_link_mode: child_record_only
 related_code:
-  - zircon_runtime/src/plugin/native_plugin_loader/collect_manifests.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/discover.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/discover/authority.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/discover_load_manifest.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/load_discovered.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/loading.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/native_registration/manager.rs
+  - zircon_runtime/src/plugin/loader/discover/authority.rs
+  - zircon_editor/src/ui/host/exports/native_registration/manager.rs
 tests:
   - unchanged plugin discovery generation-cache test
   - manifest add/change/remove invalidation test

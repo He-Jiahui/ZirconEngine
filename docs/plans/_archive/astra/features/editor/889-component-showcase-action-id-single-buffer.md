@@ -7,10 +7,8 @@ related_records:
   - docs/plans/astra/features/editor/664-20260911-editor-ui-optimization-batch-completion.md
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
-  - zircon_editor/src/ui/retained_host/app/pane_surface_actions/component_showcase/bindings.rs
+  - zircon_editor/src/ui/retained/app/component_showcase/bindings.rs
 tests:
-  - zircon_editor/src/ui/retained_host/app/pane_surface_actions/component_showcase/bindings/action_id_single_buffer_tests.rs
-  - tools/tests/test_editor889_component_showcase_action_id_single_buffer_performance_contract.py
 ---
 
 # Editor889 Component Showcase Action ID Single Buffer

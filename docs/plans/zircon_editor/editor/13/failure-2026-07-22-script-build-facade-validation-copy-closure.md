@@ -12,7 +12,6 @@ related_code:
   - zircon_editor/src/core/mod.rs
   - zircon_editor/src/core/script_build/mod.rs
   - zircon_editor/src/core/script_build/orchestrator.rs
-  - zircon_editor/src/core/script_build/tests.rs
 tests:
   - cargo test -p zircon_editor --test editor_world_sync_watch_map --locked --jobs 1 -- --nocapture --test-threads=1
 ---

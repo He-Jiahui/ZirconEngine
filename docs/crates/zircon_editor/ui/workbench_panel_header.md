@@ -1,16 +1,11 @@
 ---
 related_code:
   - zircon_runtime_interface/src/ui/design_tokens/chrome.rs
-  - zircon_editor/assets/ui/editor/components/workbench/composites/chrome/workbench_panel_header.zui
-  - zircon_editor/assets/ui/editor/components/workbench/composites/animation/workbench_sample_weights.zui
-  - zircon_editor/assets/ui/editor/components/workbench/composites/feedback/workbench_validation_log.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/animation/workbench_extension_blend_space_workspace.zui
   - zircon_editor/src/tests/ui/boundary/zui_asset_governance/workbench_composites.rs
-  - zircon_editor/src/tests/host/retained_menu_pointer/visual_screenshot/blend_space_workspace/composite_contracts.rs
+  - zircon_editor/src/tests/host/menus/blend_space_workspace/composite_contracts.rs
 implementation_files:
   - zircon_runtime_interface/src/ui/design_tokens/chrome.rs
   - zircon_editor/assets/ui/editor/theme/editor_tokens.zui
-  - zircon_editor/assets/ui/editor/components/workbench/composites/chrome/workbench_panel_header.zui
 plan_sources:
   - docs/plans/zircon_editor/editor_layout/15-component-standardization-from-primitives.md
   - docs/plans/zircon_editor/editor_layout/15d-composite-density-and-alignment.md

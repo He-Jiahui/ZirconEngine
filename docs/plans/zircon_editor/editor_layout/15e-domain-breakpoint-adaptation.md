@@ -8,13 +8,11 @@ related_code:
   - zircon_editor/src/ui/workbench/autolayout/geometry/compute.rs
   - zircon_editor/src/ui/workbench/autolayout/geometry/window_minimums.rs
   - zircon_editor/src/ui/workbench/autolayout/workbench_shell_geometry.rs
-  - zircon_editor/src/ui/workbench/autolayout/region/tool_region/collapsed_constraints.rs
+  - zircon_editor/src/ui/workbench/region/tool_region/collapsed_constraints.rs
   - zircon_editor/src/ui/workbench/autolayout/region/tool_region/build.rs
-  - zircon_editor/src/ui/workbench/autolayout/region_binding/workbench_constraint_token_name.rs
   - zircon_editor/src/ui/workbench/autolayout/region_state.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/drawer_layout.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection/dock_header/side.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_drawer_breakpoints.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/workbench/drawer_layout.rs
+  - zircon_editor/src/ui/layouts/windows/window/projection/dock_header/side.rs
 design_references:
   - dev/UnrealEngine/Engine/Source/Runtime/Slate/Public/Framework/Docking/STabDrawer.h
   - dev/UnrealEngine/Engine/Source/Runtime/Slate/Private/Framework/Docking/STabDrawer.cpp

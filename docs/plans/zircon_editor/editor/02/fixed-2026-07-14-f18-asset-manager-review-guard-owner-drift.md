@@ -8,7 +8,7 @@ fixing_plan: docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conv
 origin_child_dir: docs/plans/zircon_editor/editor/02
 fixing_child_dir: docs/plans/zircon_runtime/runtime/15
 related_code:
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/late_api_cleanup/f18_asset_manager_resolution.rs
+  - zircon_runtime/src/tests/review/late_api_cleanup/f18_asset_manager_resolution.rs
   - zircon_runtime/src/asset/pipeline/manager/asset_manager/mod.rs
   - zircon_runtime/src/asset/pipeline/manager/asset_manager/handle.rs
   - zircon_runtime/src/dynamic_api/session/project.rs

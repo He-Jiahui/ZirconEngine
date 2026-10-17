@@ -10,7 +10,6 @@ origin_child_dir: docs/plans/zircon_editor/editor_ui/12
 fixing_child_dir: docs/plans/optimize/zircon_runtime/90
 plan_link_mode: child_record_only
 related_code:
-  - zircon_runtime/crates/zr_rhi_wgpu/src/gpu_readback_queue/tests.rs
 resolved_at: 2026-09-05
 ---
 

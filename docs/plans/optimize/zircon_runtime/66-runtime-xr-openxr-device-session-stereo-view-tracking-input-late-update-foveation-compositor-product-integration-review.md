@@ -14,20 +14,14 @@ related_code:
   - zircon_runtime/src/core/framework/input
   - zircon_runtime/src/core/framework/platform
   - zircon_runtime/src/core/runtime/modules
-  - zircon_runtime/src/graphics/runtime/render_framework
-  - zircon_runtime/src/graphics/backend/render_backend
   - zircon_runtime/crates/zr_rhi
   - zircon_runtime/crates/zr_rhi_wgpu
   - zircon_app/src/entry/runtime_entry_app
-  - zircon_editor/src/ui/retained_host/viewport
 tests:
-  - zircon_runtime/src/core/framework/render/backend_types/tests.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/camera_loop/tests.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/camera_loop/tests/frame.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/tests/native_submission.rs
   - zircon_runtime/tests/hybrid_gi_m4_source_ledger_wgpu.rs
   - zircon_runtime/tests/m1_runtime_editor_boundary_contract.rs
-  - zircon_editor/src/ui/retained_host/viewport/tests/fake_render_framework.rs
+  - zircon_editor/src/ui/retained/viewport/tests/fake_render_framework.rs
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md
   - docs/plans/optimize/01-cross-report-owner-schema-abi-p0-consolidation-review.md

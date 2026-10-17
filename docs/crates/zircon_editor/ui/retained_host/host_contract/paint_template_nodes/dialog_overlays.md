@@ -1,23 +1,15 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_dialogs.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_nodes.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/mod.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/surface_defaults/mod.rs
+  - zircon_editor/src/ui/retained/ui/data/projection/surface_defaults/mod.rs
   - zircon_runtime/src/ui/surface/render/dialog.rs
   - zircon_editor/src/tests/host/retained_window/native_material_painter_dialog.rs
 implementation_files:
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_dialogs.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_nodes.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/mod.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/surface_defaults/mod.rs
+  - zircon_editor/src/ui/retained/ui/data/projection/surface_defaults/mod.rs
 plan_sources:
   - docs/plans/zircon_editor/editor_ui/06-component-library-mui.md
   - docs/plans/zircon_editor/editor_ui/index.md
 tests:
   - zircon_editor/src/tests/host/retained_window/native_material_painter_dialog.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/tests/actions.rs
-  - zircon_editor/src/ui/retained_host/ui/tests/component_showcase.rs
   - rustfmt --edition 2021 touched Dialog native painter/projection Rust files
   - git diff --check -- touched Dialog native painter/projection/doc files
 doc_type: module-detail

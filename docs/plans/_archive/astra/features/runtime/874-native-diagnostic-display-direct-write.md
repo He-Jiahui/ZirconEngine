@@ -7,10 +7,7 @@ related_records:
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
   - docs/plans/astra/features/editor/664-20260911-editor-ui-optimization-batch-completion.md
 implementation_files:
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/diagnostics.rs
 tests:
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/diagnostics/display_direct_write_tests.rs
-  - tools/tests/test_runtime874_native_diagnostic_display_direct_write_performance_contract.py
 ---
 
 # Runtime874 Native Diagnostic Display Direct Write

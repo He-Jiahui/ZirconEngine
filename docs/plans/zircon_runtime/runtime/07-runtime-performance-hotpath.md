@@ -24,10 +24,8 @@ related_code:
   - zircon_runtime/src/dynamic_api/session/extract_cache.rs
   - zircon_runtime/src/dynamic_api/session/tests/frame_diagnostics.rs
   - zircon_runtime/src/asset/pipeline/worker_pool.rs
-  - zircon_runtime/src/graphics/scene/render_product_material_property_tests.rs
-  - zircon_runtime/src/tests/runtime_absorption/performance_hotspots.rs
   - zircon_runtime/src/scene/tests/mod.rs
-  - zircon_runtime/src/core/runtime/tests/events/structure/event_bus/root_contract.rs
+  - zircon_runtime/src/core/runtime/tests/events/event_bus/root_contract.rs
   - zircon_runtime/src/core/runtime/tests/events/structure/event_bus/publish.rs
   - zircon_runtime/src/script/vm/gameplay_host.rs
   - zircon_runtime/src/script/vm/gameplay_host/combat.rs
@@ -38,18 +36,13 @@ related_code:
   - zircon_runtime/src/script/vm/gameplay_host/script_bindings.rs
   - zircon_runtime/src/script/vm/gameplay_host/transform.rs
   - zircon_runtime/src/script/vm/gameplay_host/values.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/frame_submission_context.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/viewport_generation_guard.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/prepare_runtime_submission/prepare.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/submit.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/present_frame_extract.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/build_runtime_frame.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/submit_runtime_frame.rs
+  - zircon_runtime/src/graphics/extract/prepare_runtime_submission/prepare.rs
+  - zircon_runtime/src/graphics/runtime/framework/extract/submit/submit.rs
+  - zircon_runtime/src/graphics/runtime/extract/submit/present_frame_extract.rs
+  - zircon_runtime/src/graphics/runtime/extract/submit/build_runtime_frame.rs
+  - zircon_runtime/src/graphics/runtime/extract/submit/submit_runtime_frame.rs
   - zircon_runtime/src/graphics/shader/variant_cache/prewarm.rs
   - zircon_runtime/src/graphics/shader/variant_cache/prewarm/worker.rs
-  - zircon_runtime/src/graphics/shader/variant_cache/prewarm/tests.rs
-  - zircon_runtime/src/graphics/shader/variant_cache/prewarm/tests/combined_validation_tests.rs
   - tools/tests/test_runtime_shader_prewarm_test_structure.py
   - docs/crates/zircon_runtime/performance/hotspot_inventory.md
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/ecs_query_state_boundary.py

@@ -4,10 +4,7 @@ status: implemented_pending_validation
 plan_sources:
   - docs/plans/optimize/zircon_editor/658/2026-09-02-reused-template-action-pane-key.md
 related_code:
-  - zircon_editor/src/ui/template_runtime/runtime/template_action_registry.rs
-  - zircon_editor/src/ui/template_runtime/runtime/template_action_registry/optimization_batch_js_editor658_tests.rs
 tests:
-  - zircon_editor/src/ui/template_runtime/runtime/template_action_registry/optimization_batch_js_editor658_tests.rs
 ---
 
 # Template Action Pane-Key Reuse

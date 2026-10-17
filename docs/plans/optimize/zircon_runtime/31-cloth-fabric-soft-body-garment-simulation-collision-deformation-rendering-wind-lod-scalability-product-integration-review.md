@@ -12,17 +12,12 @@ related_code:
   - zircon_runtime/src/graphics/feature/builtin_render_feature
   - zircon_runtime/src/graphics/scene/gpu_scene
   - zircon_runtime/src/graphics/scene/resources/gpu_mesh
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh
-  - zircon_runtime/src/graphics/scene/scene_renderer/temporal/velocity
   - zircon_runtime/src/graphics/shader/wgsl
   - zircon_plugins/physics/runtime/src
 tests:
   - zircon_runtime/src/asset/tests/assets/mesh/morph_targets.rs
-  - zircon_runtime/src/core/framework/physics/tests.rs
   - zircon_runtime/src/graphics/tests/render_product_mesh_cache.rs
-  - zircon_runtime/src/graphics/tests/render_product_mesh_cache/morph.rs
   - zircon_plugins/physics/runtime/src/backend/tests/jolt_contract.rs
-  - zircon_plugins/physics/runtime/src/skeletal/tests.rs
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md
   - docs/plans/optimize/01-cross-report-owner-schema-abi-p0-consolidation-review.md

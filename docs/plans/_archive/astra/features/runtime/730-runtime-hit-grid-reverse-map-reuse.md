@@ -15,7 +15,6 @@ implementation_files:
   - zircon_runtime/src/ui/tree/hit_test/geometry_patch.rs
 tests:
   - zircon_runtime/src/ui/tree/hit_test/geometry_patch.rs
-  - tools/tests/test_runtime_ui_hit_grid_reverse_map_reuse_contract.py
 ---
 
 # Runtime hit-grid reverse-map capacity reuse

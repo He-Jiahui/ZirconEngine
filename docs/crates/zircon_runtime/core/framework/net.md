@@ -17,7 +17,6 @@ related_code:
   - zircon_runtime/src/core/framework/net/sync.rs
   - zircon_runtime/src/core/framework/net/transport.rs
   - zircon_runtime/src/core/framework/net/websocket.rs
-  - zircon_runtime/src/core/framework/net/tests.rs
   - zircon_plugins/net/runtime/src/service_types.rs
   - zircon_plugins/net/runtime/src/runtime_state.rs
   - zircon_runtime/Cargo.toml
@@ -40,7 +39,6 @@ implementation_files:
   - zircon_runtime/src/core/framework/net/sync.rs
   - zircon_runtime/src/core/framework/net/transport.rs
   - zircon_runtime/src/core/framework/net/websocket.rs
-  - zircon_runtime/src/core/framework/net/tests.rs
   - zircon_runtime/src/core/framework/mod.rs
   - zircon_runtime/src/core/manager/mod.rs
   - zircon_runtime/src/core/manager/resolver.rs
@@ -53,7 +51,6 @@ plan_sources:
   - docs/plans/zircon_runtime/frameworks/03-optional-features-and-profile-matrix.md
   - docs/plans/zircon_runtime/frameworks/05-subsystem-decoupling-contracts.md
 tests:
-  - zircon_runtime/src/core/framework/net/tests.rs
   - endpoint_transport_and_security_policy_are_neutral_contracts
   - http_and_websocket_descriptors_keep_protocol_state_data_only
   - rpc_session_and_handshake_descriptors_are_runtime_mode_agnostic

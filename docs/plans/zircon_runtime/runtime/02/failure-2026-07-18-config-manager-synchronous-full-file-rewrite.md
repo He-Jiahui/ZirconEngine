@@ -18,7 +18,6 @@ related_code:
   - zircon_runtime/src/foundation/runtime/config_manager/writer.rs
   - zircon_runtime/src/core/resource/io/mod.rs
   - zircon_runtime/crates/zr_resource/src/io/atomic_file
-  - zircon_runtime/src/foundation/runtime/config_manager_tests.rs
   - zircon_runtime/src/core/runtime/config_store.rs
 tests:
   - ./.codex/skills/zircon-dev/scripts/validate-matrix.ps1 -Package zr_resource -SkipBuild -LibTests -TestFilter atomic_file -TestThreads 1 -VerboseOutput

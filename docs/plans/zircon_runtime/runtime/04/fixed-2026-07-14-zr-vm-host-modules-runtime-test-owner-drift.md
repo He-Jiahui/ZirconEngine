@@ -8,9 +8,8 @@ fixing_plan: docs/plans/zircon_plugins/08-zr-vm.md
 origin_child_dir: docs/plans/zircon_runtime/runtime/04
 fixing_child_dir: docs/plans/zircon_plugins/08
 related_code:
-  - zircon_runtime/src/tests/plugin_extensions/extension_registry_bridge_performance_baseline.rs
   - zircon_runtime/src/script/vm/tests/host_exports.rs
-  - zircon_runtime/src/tests/runtime_absorption/script_binding/inventory.rs
+  - zircon_runtime/src/tests/contracts/script_binding/inventory.rs
   - zircon_plugins/zr_vm_language/runtime/src/real_backend/host_modules.rs
 tests:
   - cargo test -p zircon_runtime --lib scene:: --no-default-features --features core-min --locked

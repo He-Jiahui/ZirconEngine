@@ -9,7 +9,6 @@ origin_child_dir: docs/plans/optimize/zircon_app/01
 fixing_child_dir: docs/plans/zircon_editor/editor/16
 plan_link_mode: child_record_only
 related_code:
-  - zircon_editor/src/ui/retained_host/run_config.rs
   - zircon_app/src/entry/entry_runner/editor.rs
 tests:
   - ./.codex/skills/zircon-dev/scripts/validate-matrix.ps1 -Package zircon_app -NoDefaultFeatures -Features target-editor-host -Bin zircon_editor -SkipTest

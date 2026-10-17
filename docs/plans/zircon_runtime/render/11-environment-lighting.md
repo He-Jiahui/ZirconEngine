@@ -3,43 +3,25 @@ related_code:
   - zircon_runtime/src/core/framework/render/environment/source_cubemap.rs
   - zircon_runtime/src/core/framework/render/environment/source_cubemap/pmrem.rs
   - zircon_runtime/src/core/framework/render/environment/ibl_bake_artifact.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_compute_executor.rs
+  - zircon_runtime/src/graphics/scene/environment/ibl_bake_compute_executor.rs
   - zircon_runtime/tests/runtime_shader_pbr_hdri_export.rs
   - zircon_runtime/tests/runtime_shader_pbr_hdri_export/frame_assertions.rs
   - zircon_runtime/tests/runtime_shader_pbr_hdri_export/scene_fixtures.rs
   - zircon_runtime/src/core/framework/render/material/standard_material.rs
-  - zircon_runtime/src/graphics/scene/resources/gpu_material_uniform/gpu_material_uniform_resource.rs
   - zircon_runtime/src/graphics/shader/template/material_surface.rs
   - zircon_runtime/src/graphics/shader/wgsl/zr_gbuffer_encode_standard_pbr.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/shaders/deferred_lighting.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/shaders/fallback_mesh.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/post_process_screen_space_reflection.wgsl
+  - zircon_runtime/src/graphics/scene/deferred/shaders/deferred_lighting.wgsl
+  - zircon_runtime/src/graphics/scene/renderer/mesh/shaders/fallback_mesh.wgsl
   - zircon_runtime/src/core/framework/render/light/snapshots.rs
   - zircon_runtime/src/core/framework/render/environment/cubemap_projection.rs
   - zircon_runtime/tests/runtime_environment_cubemap_projection_contract.rs
   - zircon_runtime/src/core/framework/render/image/dimension.rs
   - zircon_runtime/src/asset/assets/texture/descriptor.rs
   - zircon_runtime/src/asset/assets/texture/upload_support.rs
-  - zircon_runtime/src/graphics/scene/resources/gpu_texture/gpu_texture_resource_from_asset.rs
   - zircon_runtime/tests/runtime_texture_cube_resource_contract.rs
-  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/mesh.rs
+  - zircon_runtime/src/graphics/feature/builtin/feature_descriptors/mesh.rs
   - zircon_runtime/src/graphics/scene/resources/gpu_texture/mod.rs
   - zircon_plugins/rendering/plugin.toml
-  - dev/UnrealEngine/Engine/Source/Runtime/Renderer/Private/ReflectionEnvironment.cpp
-  - dev/UnrealEngine/Engine/Source/Runtime/Renderer/Private/ReflectionEnvironmentCapture.cpp
-  - dev/UnrealEngine/Engine/Source/Runtime/Renderer/Private/ReflectionEnvironmentDiffuseIrradiance.cpp
-  - dev/UnrealEngine/Engine/Source/Developer/TextureCompressor/Private/TextureCompressorModule.cpp
-  - dev/Graphics/Packages/com.unity.render-pipelines.universal/Runtime/Passes/DrawSkyboxPass.cs
-  - dev/Graphics/Packages/com.unity.render-pipelines.core/Runtime/Lighting/ProbeVolume/ProbeReferenceVolume.cs
-  - dev/bevy/crates/bevy_core_pipeline/src/skybox/mod.rs
-  - dev/bevy/crates/bevy_light/src/probe.rs
-  - dev/bevy/crates/bevy_pbr/src/light_probe/mod.rs
-  - dev/bevy/crates/bevy_pbr/src/light_probe/environment_map.rs
-  - dev/bevy/crates/bevy_pbr/src/light_probe/generate.rs
-  - dev/bevy/crates/bevy_pbr/src/light_probe/irradiance_volume.rs
-  - dev/bevy/crates/bevy_pbr/src/lightmap/mod.rs
-  - dev/bevy/crates/bevy_pbr/src/fog.rs
-  - dev/Fyrox/fyrox-impl/src/scene/probe.rs
 plan_sources:
   - .codex/plans/Rendering 插件选项补齐计划.md
   - .codex/plans/Hybrid GI Lumen-Style V1 三阶段计划.md

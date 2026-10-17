@@ -10,7 +10,6 @@ related_records:
 implementation_files:
   - zircon_runtime/src/core/runtime/tasks/task_graph/scope.rs
 tests:
-  - zircon_runtime/src/core/runtime/tasks/task_graph/scope/tests.rs
 ---
 
 # Runtime885 Runtime02 Task-Graph Dependency Fence Capacity

@@ -2,11 +2,7 @@
 related_code:
   - zircon_plugins/plugin_sdk/src/dist.rs
   - zircon_plugins/plugin_sdk/src/native.rs
-  - zircon_plugins/plugin_sdk/src/native/tests.rs
   - zircon_plugins/plugin_sdk/src/test.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_abi.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/host_callbacks.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/load_discovered.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/performance/02-unreal-aligned-engine-system-hard-cutover.md

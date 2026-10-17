@@ -6,7 +6,7 @@ related_code:
   - zircon_runtime/src/asset/artifact/ibl_bake_artifact_runtime_dispatch.rs
   - zircon_runtime/src/core/framework/render/environment/ibl_bake_artifact.rs
   - zircon_runtime/src/core/framework/render/environment/ibl_bake_artifact_blob.rs
-  - zircon_runtime/src/core/framework/render/environment/ibl_bake_artifact_resolution.rs
+  - zircon_runtime/src/core/render/environment/ibl_bake_artifact_resolution.rs
   - zircon_runtime/src/core/framework/render/environment/source_cubemap_artifact.rs
   - zircon_runtime/tests/runtime_environment_ibl_bake_asset_derived_contract.rs
   - zircon_runtime/tests/runtime_texture_zcube_staged_ibl_bundle_contract.rs

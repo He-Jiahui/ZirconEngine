@@ -3,9 +3,9 @@ related_code:
   - zircon_editor/src/core/process.rs
   - zircon_editor/src/ui/host/export_cargo_process.rs
   - zircon_editor/src/ui/host/export_process_support
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/execution.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/execution
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/output_tail.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/execution.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/execution
+  - zircon_editor/src/ui/host/exports/export_build/wizard/output_tail.rs
 base_reports:
   - docs/plans/performance/01/2026-08-15-editor-process-supervision-output-current-review.md
   - docs/plans/performance/01/2026-08-15-editor-process-supervision-output-protected-plan-routing.md
