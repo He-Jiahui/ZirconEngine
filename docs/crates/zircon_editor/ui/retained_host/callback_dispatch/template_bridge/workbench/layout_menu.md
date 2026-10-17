@@ -1,12 +1,10 @@
 ---
 related_code:
-  - zircon_editor/assets/ui/editor/windows/workbench_window.zui
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/layout_menu.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/workbench/control.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/workbench/layout_menu.rs
+  - zircon_editor/src/ui/retained/dispatch/workbench/control.rs
   - zircon_editor/src/ui/host/editor_event_execution/menu_action.rs
   - zircon_editor/src/ui/host/layout_commands.rs
 tests:
-  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_window_menus.rs
 doc_type: module-detail
 status: implemented-awaiting-managed-validation
 ---

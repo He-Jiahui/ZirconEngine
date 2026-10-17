@@ -8,10 +8,7 @@ related_records:
   - docs/plans/astra/features/runtime/03-accessibility-indexed-focus.md
 implementation_files:
   - zircon_runtime/src/ui/accessibility/diagnostics.rs
-  - zircon_runtime/src/ui/accessibility/diagnostics/index_dedup_tests.rs
 tests:
-  - zircon_runtime/src/ui/accessibility/diagnostics/index_dedup_tests.rs
-  - tools/tests/test_runtime_accessibility_diagnostic_index_capacity_performance_contract.py
 ---
 
 # Runtime819 · accessibility diagnostic node-index deduplication

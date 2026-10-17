@@ -1,8 +1,8 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/viewport_toolbar_pointer/rebuild_surface.rs
-  - zircon_editor/src/ui/retained_host/viewport_toolbar_pointer/handle_click.rs
-  - zircon_editor/src/ui/retained_host/viewport_toolbar_pointer/sync_surface_frame.rs
+  - zircon_editor/src/ui/retained/viewport_toolbar_pointer/rebuild_surface.rs
+  - zircon_editor/src/ui/retained/viewport_toolbar_pointer/handle_click.rs
+  - zircon_editor/src/ui/retained/viewport_toolbar_pointer/sync_surface_frame.rs
   - zircon_runtime_interface/src/ui/tree/node/ui_tree.rs
   - tools/analysis/performance/editor/editor_viewport_toolbar_pointer_surface_reuse_pressure.py
   - tools/tests/test_editor_viewport_toolbar_pointer_surface_reuse.py

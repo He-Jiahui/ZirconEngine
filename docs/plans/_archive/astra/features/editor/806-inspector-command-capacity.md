@@ -11,7 +11,6 @@ related_records:
 implementation_files:
   - zircon_editor/src/ui/workbench/state/editor_state_selection.rs
 tests:
-  - tools/tests/test_editor_inspector_command_capacity_performance_contract.py
 ---
 
 # Editor806 · Inspector command-buffer capacity

@@ -2,15 +2,14 @@
 related_code:
   - zircon_editor/assets/ui/editor/welcome.zui
   - zircon_editor/src/ui/layouts/views/welcome.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/docks/pane/content.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/welcome/main_column.rs
+  - zircon_editor/src/ui/retained/contract/workbench/docks/pane/content.rs
+  - zircon_editor/src/ui/retained/contract/workbench/welcome/main_column.rs
   - zircon_editor/src/tests/ui/welcome/bootstrap_assets.rs
-  - zircon_editor/src/tests/host/retained_menu_pointer/welcome_visual_screenshot.rs
 implementation_files:
   - zircon_editor/assets/ui/editor/welcome.zui
   - zircon_editor/src/ui/layouts/views/welcome.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/docks/pane/content.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/welcome/main_column.rs
+  - zircon_editor/src/ui/retained/contract/workbench/docks/pane/content.rs
+  - zircon_editor/src/ui/retained/contract/workbench/welcome/main_column.rs
 plan_sources:
   - docs/plans/zircon_editor/editor_layout/15-component-standardization-from-primitives.md
   - docs/plans/zircon_editor/editor_layout/15d-composite-density-and-alignment.md
@@ -22,8 +21,6 @@ plan_sources:
   - dev/UnrealEngine/Engine/Source/Runtime/SlateCore/Private/Styling/StarshipCoreStyle.cpp
 tests:
   - zircon_editor/src/tests/ui/welcome/bootstrap_assets.rs
-  - zircon_editor/src/tests/host/retained_menu_pointer/welcome_visual_screenshot.rs
-  - docs/tests/editor/editor-window-m3-welcome-mvp-actions-640x520.png
 ---
 
 # Welcome view

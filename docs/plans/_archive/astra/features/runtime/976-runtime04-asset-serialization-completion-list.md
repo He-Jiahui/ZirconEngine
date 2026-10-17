@@ -25,15 +25,6 @@ implementation_files:
   - zircon_runtime/src/asset/project/manifest/save.rs
   - zircon_runtime/src/asset/migration/sidecar.rs
 tests:
-  - zircon_runtime/src/asset/migration/scan/optimization_tests.rs
-  - zircon_runtime/src/asset/pack/dedup/optimization_tests.rs
-  - zircon_runtime/src/asset/pack/delta/optimization_tests.rs
-  - zircon_runtime/src/asset/registry/targeted/optimization_tests.rs
-  - zircon_runtime/src/asset/project/manifest/save/borrowed_serialization_tests.rs
-  - zircon_runtime/src/asset/project/manifest/validation/astra_root_tests.rs
-  - zircon_runtime/src/asset/project/manifest/validation/optimization_batch_ir_runtime629_tests.rs
-  - zircon_runtime/src/asset/migration/sidecar/direct_uri_tests.rs
-  - tools/tests/test_runtime879_sidecar_uri_direct_performance_contract.py
 ---
 
 # Runtime04 · asset and serialization completion list

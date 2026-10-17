@@ -23,10 +23,6 @@ related_editor_owners:
   - docs/plans/optimize/zircon_editor/151-editor-camera-asset-component-rig-controller-director-blend-shake-cinematic-cut-preview-current-source-review.md
   - docs/plans/optimize/zircon_editor/157-editor-video-media-source-player-track-clock-media-texture-playback-capture-recording-current-source-review.md
 related_code:
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/animation/workbench_extension_sequencer_workspace.zui
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback.rs
-  - zircon_editor/src/ui/retained_host/workbench_preview_actions/extensions.rs
-  - zircon_editor/src/ui/template_runtime/builtin/workbench_extension_module_template_bindings/gameplay_animation.rs
   - zircon_editor/src/core/editing/animation_document
   - zircon_editor/src/ui/animation_editor
   - zircon_editor/src/ui/timeline
@@ -39,8 +35,6 @@ related_code:
   - zircon_plugins/timeline_sequence
   - zircon_runtime/src/core/framework/render/capture.rs
   - zircon_runtime/src/core/framework/render/camera_stack.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/capture_frame
-  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record
   - zircon_runtime/crates/zr_rhi/src/diagnostic_readback.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/gpu_readback_queue
   - zircon_app/src/entry/runtime_entry_app/frame_capture.rs

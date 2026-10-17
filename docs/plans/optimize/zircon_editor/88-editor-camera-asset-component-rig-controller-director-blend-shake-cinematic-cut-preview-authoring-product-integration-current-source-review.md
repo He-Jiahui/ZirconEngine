@@ -31,7 +31,6 @@ related_code:
   - zircon_editor/src/scene/viewport/controller
   - zircon_editor/src/scene/viewport/render_packet.rs
   - zircon_editor/src/ui/asset_editor/preview
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/animation/workbench_extension_sequencer_workspace.zui
   - zircon_plugins/timeline_sequence/editor/src
 reference_engines:
   - dev/UnrealEngine/Engine/Source/Runtime/Engine/Classes/Camera/CameraComponent.h

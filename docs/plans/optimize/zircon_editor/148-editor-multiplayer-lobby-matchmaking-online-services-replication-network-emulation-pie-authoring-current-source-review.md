@@ -13,13 +13,8 @@ supersedes_currentness_of:
   - docs/plans/optimize/zircon_editor/26-multiplayer-lobby-matchmaking-online-services-replication-network-emulation-pie-authoring-review.md
   - docs/plans/optimize/zircon_editor/100-editor-multiplayer-lobby-matchmaking-online-services-replication-network-emulation-pie-authoring-current-source-review.md
 related_code:
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/multiplayer
-  - zircon_editor/assets/ui/editor/components/workbench/modules/core/assets/workbench_assets_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/index/workbench_extension_module_workspaces.zui
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback/online_sessions.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation/specs/online_sessions.rs
-  - zircon_editor/src/ui/template_runtime/builtin/workbench_extension_module_template_bindings/online_sessions.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/module_field_edit.rs
+  - zircon_editor/src/ui/retained/dispatch/workbench/specs/online_sessions.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/workbench/module_field_edit.rs
   - zircon_editor/src/core/play
   - zircon_editor/src/ui/host/editor_host_event_controller.rs
   - zircon_editor/src/ui/host/editor_event_execution/menu_action.rs

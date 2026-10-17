@@ -11,14 +11,11 @@ related_code:
   - zircon_runtime/src/plugin/export_build_plan/from_project_manifest.rs
   - zircon_runtime/src/plugin/export_build_plan/from_project_manifest/profile.rs
   - zircon_runtime/src/plugin/export_build_plan/export_profile_validation.rs
-  - zircon_runtime/src/plugin/export_build_plan/from_project_manifest/profile_projection.rs
-  - zircon_runtime/src/plugin/export_build_plan/project_manifest_validation/tokens.rs
-  - zircon_runtime/src/plugin/export_build_plan/project_manifest_validation/identity.rs
+  - zircon_runtime/src/plugin/from_project_manifest/profile_projection.rs
   - zircon_runtime/src/plugin/export_build_plan/export_validate_report.rs
   - zircon_runtime/src/plugin/export_build_plan/library_embed_compile_plan.rs
   - zircon_runtime/src/plugin/export_build_plan/source_template_build_plan.rs
   - zircon_runtime/src/plugin/export_build_plan/native_dynamic_package_plan.rs
-  - zircon_runtime/src/plugin/export_build_plan/native_plugin_load_manifest_template.rs
   - zircon_runtime/src/plugin/export_build_plan/materialize/mod.rs
   - zircon_runtime/src/plugin/export_build_plan/materialize/archive.rs
   - zircon_runtime/src/plugin/export_build_plan/materialize/generated.rs
@@ -28,23 +25,17 @@ related_code:
   - zircon_runtime/src/plugin/export_build_plan/materialize/copy.rs
   - zircon_runtime/src/plugin/export_build_plan/materialize/report.rs
   - zircon_runtime/src/plugin/export_build_plan/plugin_selection_template.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_load_manifest.rs
   - zircon_runtime/src/bin/zircon_export_validate/main.rs
   - zircon_runtime/src/bin/zircon_export_validate/args.rs
   - zircon_runtime/src/bin/zircon_export_validate/error.rs
   - zircon_runtime/src/bin/zircon_export_validate/run.rs
-  - zircon_runtime/src/tests/plugin_extensions/export_build_plan.rs
-  - zircon_runtime/src/tests/plugin_extensions/export_build_plan/catalog_projection.rs
-  - zircon_runtime/src/tests/plugin_extensions/export_build_plan/profile_feature_matrix.rs
-  - zircon_runtime/src/tests/plugin_extensions/export_build_plan_platform.rs
-  - zircon_runtime/src/tests/plugin_extensions/export_build_plan_platform/browser_hosts.rs
-  - zircon_runtime/src/tests/plugin_extensions/export_build_plan_platform/release_adapters.rs
-  - zircon_runtime/src/tests/plugin_extensions/export_build_plan_native_dynamic.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/export_build_plan.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/export_build_plan_platform.rs
+  - zircon_runtime/src/tests/plugins/export_build_plan/catalog_projection.rs
+  - zircon_runtime/src/tests/plugins/export_build_plan/profile_feature_matrix.rs
+  - zircon_runtime/src/tests/plugins/export_build_plan_platform/browser_hosts.rs
+  - zircon_runtime/src/tests/plugins/export_build_plan_platform/release_adapters.rs
   - zircon_runtime/src/asset/tests/project/manifest.rs
   - zircon_app/src/entry/tests/export_bootstrap.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_actions/profiles.rs
+  - zircon_editor/src/ui/retained/app/build_export_actions/profiles.rs
 implementation_files:
   - zircon_runtime_interface/src/export/mod.rs
   - zircon_runtime_interface/src/export/artifact.rs
@@ -56,14 +47,11 @@ implementation_files:
   - zircon_runtime/src/plugin/export_build_plan/from_project_manifest.rs
   - zircon_runtime/src/plugin/export_build_plan/from_project_manifest/profile.rs
   - zircon_runtime/src/plugin/export_build_plan/export_profile_validation.rs
-  - zircon_runtime/src/plugin/export_build_plan/from_project_manifest/profile_projection.rs
-  - zircon_runtime/src/plugin/export_build_plan/project_manifest_validation/tokens.rs
-  - zircon_runtime/src/plugin/export_build_plan/project_manifest_validation/identity.rs
+  - zircon_runtime/src/plugin/from_project_manifest/profile_projection.rs
   - zircon_runtime/src/plugin/export_build_plan/export_validate_report.rs
   - zircon_runtime/src/plugin/export_build_plan/library_embed_compile_plan.rs
   - zircon_runtime/src/plugin/export_build_plan/source_template_build_plan.rs
   - zircon_runtime/src/plugin/export_build_plan/native_dynamic_package_plan.rs
-  - zircon_runtime/src/plugin/export_build_plan/native_plugin_load_manifest_template.rs
   - zircon_runtime/src/plugin/export_build_plan/materialize/mod.rs
   - zircon_runtime/src/plugin/export_build_plan/materialize/archive.rs
   - zircon_runtime/src/plugin/export_build_plan/materialize/generated.rs
@@ -73,23 +61,17 @@ implementation_files:
   - zircon_runtime/src/plugin/export_build_plan/materialize/copy.rs
   - zircon_runtime/src/plugin/export_build_plan/materialize/report.rs
   - zircon_runtime/src/plugin/export_build_plan/plugin_selection_template.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_load_manifest.rs
   - zircon_runtime/src/bin/zircon_export_validate/main.rs
   - zircon_runtime/src/bin/zircon_export_validate/args.rs
   - zircon_runtime/src/bin/zircon_export_validate/error.rs
   - zircon_runtime/src/bin/zircon_export_validate/run.rs
-  - zircon_runtime/src/tests/plugin_extensions/export_build_plan.rs
-  - zircon_runtime/src/tests/plugin_extensions/export_build_plan/catalog_projection.rs
-  - zircon_runtime/src/tests/plugin_extensions/export_build_plan/profile_feature_matrix.rs
-  - zircon_runtime/src/tests/plugin_extensions/export_build_plan_platform.rs
-  - zircon_runtime/src/tests/plugin_extensions/export_build_plan_platform/browser_hosts.rs
-  - zircon_runtime/src/tests/plugin_extensions/export_build_plan_platform/release_adapters.rs
-  - zircon_runtime/src/tests/plugin_extensions/export_build_plan_native_dynamic.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/export_build_plan.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/export_build_plan_platform.rs
+  - zircon_runtime/src/tests/plugins/export_build_plan/catalog_projection.rs
+  - zircon_runtime/src/tests/plugins/export_build_plan/profile_feature_matrix.rs
+  - zircon_runtime/src/tests/plugins/export_build_plan_platform/browser_hosts.rs
+  - zircon_runtime/src/tests/plugins/export_build_plan_platform/release_adapters.rs
   - zircon_runtime/src/asset/tests/project/manifest.rs
   - zircon_app/src/entry/tests/export_bootstrap.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_actions/profiles.rs
+  - zircon_editor/src/ui/retained/app/build_export_actions/profiles.rs
 plan_sources:
   - docs/plans/engine-code-structure-convention.md
   - docs/plans/engine-code-review-findings-2026-06.md
@@ -98,8 +80,6 @@ plan_sources:
   - docs/plans/zircon_plugins/09-export-publishing.md
   - docs/plans/zircon_plugins/index.md
 tests:
-  - zircon_runtime_interface/src/export/tests.rs
-  - zircon_editor/src/core/export/tests.rs
   - export_profile_map_table_parses_planned_profile_asset_fields
   - export_profile_deserialization_preserves_missing_runtime_profile_id_for_validation
   - export_profile_runtime_profile_selection_has_no_name_or_target_fallback

@@ -11,8 +11,6 @@ related_records:
 implementation_files:
   - zircon_runtime/src/ui/template/asset/compiler/cache/compile_cache.rs
 tests:
-  - zircon_runtime/src/ui/template/asset/compiler/cache/compile_cache/eviction_capacity_tests.rs
-  - tools/tests/test_runtime_compile_cache_eviction_key_capacity_performance_contract.py
 ---
 
 # Runtime797 · compile-cache eviction-key capacity

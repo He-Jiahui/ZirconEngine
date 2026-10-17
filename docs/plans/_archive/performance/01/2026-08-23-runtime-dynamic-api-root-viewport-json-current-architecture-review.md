@@ -1,8 +1,6 @@
 ---
 related_code:
   - zircon_runtime/src/core/framework/render/framework.rs
-  - zircon_runtime/src/graphics/runtime/render_framework
-  - zircon_runtime/src/graphics/backend/render_backend/viewport_surface.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_runtime/runtime/07-runtime-performance-hotpath.md

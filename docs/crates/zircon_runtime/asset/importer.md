@@ -22,7 +22,6 @@ related_code:
   - zircon_runtime/src/asset/importer/ingest/import_texture.rs
   - zircon_runtime/src/asset/importer/ingest/import_shader.rs
   - zircon_runtime/src/asset/importer/ingest/import_mesh.rs
-  - zircon_runtime/src/asset/importer/ingest/import_sound.rs
   - zircon_runtime/src/asset/importer/ingest/import_gltf.rs
   - zircon_runtime/src/asset/importer/ingest/gltf_decode.rs
   - zircon_runtime/src/asset/importer/ingest/import_model.rs
@@ -51,22 +50,17 @@ related_code:
   - zircon_runtime/src/asset/tests/migration/project_commandlet/crash_windows.rs
   - zircon_runtime/src/asset/module.rs
   - zircon_runtime/src/builtin/runtime_modules.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/project_asset_manager.rs
   - zircon_runtime/src/asset/pipeline/manager/asset_manager/asset_manager.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/construction.rs
-  - zircon_runtime/src/asset/pipeline/manager/service_contracts/asset_manager_contract.rs
+  - zircon_runtime/src/asset/manager/service_contracts/asset_manager_contract.rs
   - zircon_runtime/src/asset/artifact/store.rs
   - zircon_runtime/src/asset/artifact/cache_payload.rs
   - zircon_runtime/src/asset/project/manager/importer_access.rs
   - zircon_runtime/src/asset/project/manager/scan_and_import.rs
   - zircon_runtime/src/asset/artifact/ibl_source_cubemap_staging.rs
   - zircon_runtime/src/asset/project/manager/scan_and_import/sources.rs
-  - zircon_runtime/src/asset/project/manager/scan_and_import/dependency_resolution.rs
+  - zircon_runtime/src/asset/manager/scan_and_import/dependency_resolution.rs
   - zircon_runtime/src/asset/project/manager/scan_and_import/metadata.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/runtime.rs
   - zircon_runtime/src/asset/project/meta.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/asset_gltf_labeled_subassets.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/asset_project_scan_import.rs
   - zircon_runtime/src/asset/assets/data.rs
   - zircon_runtime/src/asset/assets/texture/mod.rs
   - zircon_runtime/src/asset/assets/texture/cube_lut.rs
@@ -85,13 +79,10 @@ related_code:
   - zircon_runtime/src/plugin/extension_registry/runtime_extension_registry.rs
   - zircon_runtime/src/plugin/extension_registry/apply_to_asset_manager.rs
   - zircon_runtime/src/plugin/package_manifest/plugin_package_manifest.rs
-  - zircon_runtime/src/tests/plugin_extensions/native_plugin_loader.rs
-  - zircon_runtime/src/tests/plugin_extensions/native_plugin_loader/real_fixture.rs
-  - zircon_runtime/src/tests/plugin_extensions/asset_importer_install.rs
   - tools/tests/test_frameworks_05_asset_ui_boundary.py
   - zircon_runtime/src/graphics/tests/project_render.rs
   - zircon_runtime/src/graphics/tests/m4_behavior_layers.rs
-  - zircon_editor/src/ui/host/editor_asset_manager/manager/project_sync/sync_from_project.rs
+  - zircon_editor/src/ui/host/assets/manager/project_sync/sync_from_project.rs
   - zircon_plugins/asset_importers/model/runtime/Cargo.toml
   - zircon_plugins/asset_importers/model/runtime/src/lib.rs
   - zircon_plugins/asset_importers/model/runtime/src/plugin.rs
@@ -110,8 +101,6 @@ related_code:
   - zircon_plugins/gltf_importer/runtime/src/lib.rs
   - zircon_plugins/gltf_importer/runtime/src/plugin.rs
   - zircon_plugins/gltf_importer/runtime/src/subassets.rs
-  - zircon_plugins/gltf_importer/runtime/src/tests.rs
-  - zircon_plugins/gltf_importer/runtime/src/test_fixtures.rs
   - zircon_plugins/gltf_importer/dist/Cargo.toml
   - zircon_plugins/gltf_importer/dist/src/lib.rs
   - zircon_plugins/asset_importers/data/runtime/Cargo.toml
@@ -174,7 +163,6 @@ implementation_files:
   - zircon_runtime/src/asset/assets/texture/external_source_cubemap/decode.rs
   - zircon_runtime/src/asset/importer/ingest/import_texture.rs
   - zircon_runtime/src/asset/importer/ingest/import_mesh.rs
-  - zircon_runtime/src/asset/importer/ingest/import_sound.rs
   - zircon_runtime/src/asset/importer/ingest/import_gltf.rs
   - zircon_runtime/src/asset/importer/ingest/gltf_decode.rs
   - zircon_runtime/src/asset/importer/ingest/gltf_labeled_subassets.rs
@@ -197,28 +185,22 @@ implementation_files:
   - zircon_runtime/src/core/framework/render/image/mod.rs
   - zircon_runtime/src/asset/module.rs
   - zircon_runtime/src/builtin/runtime_modules.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/project_asset_manager.rs
   - zircon_runtime/src/asset/pipeline/manager/asset_manager/asset_manager.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/construction.rs
-  - zircon_runtime/src/asset/pipeline/manager/service_contracts/asset_manager_contract.rs
+  - zircon_runtime/src/asset/manager/service_contracts/asset_manager_contract.rs
   - zircon_runtime/src/asset/artifact/store.rs
   - zircon_runtime/src/asset/artifact/cache_payload.rs
   - zircon_runtime/src/asset/project/manager/importer_access.rs
   - zircon_runtime/src/asset/project/manager/scan_and_import.rs
   - zircon_runtime/src/asset/artifact/ibl_source_cubemap_staging.rs
   - zircon_runtime/src/asset/project/manager/scan_and_import/sources.rs
-  - zircon_runtime/src/asset/project/manager/scan_and_import/dependency_resolution.rs
+  - zircon_runtime/src/asset/manager/scan_and_import/dependency_resolution.rs
   - zircon_runtime/src/asset/project/manager/scan_and_import/metadata.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/runtime.rs
   - zircon_runtime/src/asset/project/meta.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/asset_gltf_labeled_subassets.rs
   - zircon_runtime/src/plugin/extension_registry/apply_to_asset_manager.rs
   - zircon_runtime/src/plugin/extension_registry/register.rs
   - zircon_runtime/src/plugin/mod.rs
   - zircon_runtime/src/plugin/export_build_plan/from_project_manifest.rs
-  - zircon_runtime/src/plugin/runtime_plugin/registration_report.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog.rs
-  - zircon_editor/src/ui/host/editor_asset_manager/manager/project_sync/sync_from_project.rs
+  - zircon_editor/src/ui/host/assets/manager/project_sync/sync_from_project.rs
   - zircon_plugins/asset_importers/model/runtime/Cargo.toml
   - zircon_plugins/asset_importers/model/runtime/src/lib.rs
   - zircon_plugins/asset_importers/model/runtime/src/cad.rs
@@ -317,7 +299,6 @@ tests:
   - CARGO_TARGET_DIR=F:\cargo-targets\zircon-asset-package-m2 cargo test --manifest-path zircon_plugins/Cargo.toml --locked --jobs 1 --message-format short --color never package -- --test-threads=1 (2026-05-20 package roots M2: passed after moving off full D: target dir)
   - zircon_runtime/src/asset/tests/assets/importer.rs
   - zircon_runtime/src/asset/tests/assets/sound.rs::sound_asset_wav_parse_reports_typed_error_variants
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/asset_records.rs::review_f5_sound_asset_uses_typed_error
   - zircon_runtime/src/asset/tests/assets/ui.rs::importer_decodes_ui_theme_assets_from_theme_toml
   - zircon_runtime/src/asset/tests/assets/ui.rs::project_manager_scans_ui_theme_assets_and_restores_theme_payloads
   - cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-ui-theme-asset-0612-coremin-check --message-format short --color never (2026-06-12 UiThemeAsset slice: passed with existing warnings)
@@ -359,8 +340,6 @@ tests:
   - zircon_runtime/src/asset/importer/native.rs::native_import_response_preserves_schema_migration_report
   - zircon_runtime/src/asset/importer/native.rs::native_import_command_errors_preserve_status_diagnostics_without_payload
   - zircon_runtime/src/asset/importer/native.rs::native_import_command_requires_payload_only_after_ok_status
-  - zircon_runtime/src/tests/plugin_extensions/native_plugin_loader/real_fixture.rs::native_loader_fixture_can_import_data_asset_through_native_importer_handler
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/native_plugin_loader.rs::runtime_15_native_plugin_loader_real_fixture_tests_are_folder_backed
   - zircon_runtime/src/asset/tests/pipeline/manager.rs::asset_manager_service_reports_importer_capabilities_before_and_after_project_open
   - rustfmt --edition 2021 --check zircon_runtime/src/asset/importer/native.rs zircon_runtime/src/tests/plugin_extensions/native_plugin_loader.rs zircon_plugins/native_dynamic_fixture/native/src/lib.rs (2026-05-26 NativeDynamic migration report DTO: passed after applying standard formatting)
   - git diff --check -- zircon_runtime/src/asset/importer/native.rs zircon_runtime/src/tests/plugin_extensions/native_plugin_loader.rs zircon_plugins/native_dynamic_fixture/native/src/lib.rs docs/crates/zircon_runtime/asset/importer.md .codex/sessions/20260526-1820-asset-system-continuation.md (2026-05-26 NativeDynamic migration report DTO: passed with LF-to-CRLF warnings only)
@@ -384,11 +363,6 @@ tests:
   - cargo test -p zircon_runtime --lib importer_emits_bevy_style_gltf_labeled_subassets --locked --jobs 1 --message-format short --color never -- --test-threads=1 (2026-05-20 runtime glTF labels retry: passed, 1 passed, after replacing the invalid fixture PNG data URI with a valid CRC 1x1 RGBA PNG)
   - cargo test -p zircon_runtime --lib importer_emits_bevy_style_gltf_labeled_subassets --locked --jobs 1 --message-format short --color never -- --test-threads=1 (2026-05-20 runtime glTF animation/skin labels: passed, 1 passed, early placeholder-label phase later superseded by the 2026-06-05 Skin JSON coverage)
   - cargo test -p zircon_runtime --lib importer_emits_bevy_style_gltf_labeled_subassets --locked --jobs 1 --target-dir E:\Git\ZirconEngine\zircon_plugins\target --message-format short --color never -- --test-threads=1 (2026-05-20 runtime glTF labels final: passed, 1 passed, 1720 filtered out, after warming the runtime test harness and restoring the top-level WGSL capture facade export)
-  - zircon_plugins/gltf_importer/runtime/src/tests.rs::importer_decodes_triangle_gltf_into_model_asset
-  - zircon_plugins/gltf_importer/runtime/src/tests.rs::importer_emits_multi_primitive_material_labels
-  - zircon_plugins/gltf_importer/runtime/src/tests.rs::importer_rejects_unsupported_gltf_primitive_mode
-  - zircon_plugins/gltf_importer/runtime/src/tests.rs::importer_decodes_external_texture_image
-  - zircon_plugins/gltf_importer/runtime/src/tests.rs::importer_reports_missing_external_buffer
   - cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_gltf_importer_runtime --lib importer_decodes_triangle_gltf_into_model_asset --locked --jobs 1 --message-format short --color never -- --test-threads=1 (2026-05-20 glTF plugin labels retry: passed, 1 passed, after the same fixture PNG replacement)
   - cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_gltf_importer_runtime --lib --locked --jobs 1 --message-format short --color never -- --test-threads=1 (2026-05-20 glTF plugin animation/skin labels: passed, 3 passed, early placeholder-label phase later superseded by the 2026-06-05 Skin JSON coverage)
   - cargo test -p zircon_runtime --lib importer_rejects_unsupported_gltf_primitive_mode --locked --jobs 1 --target-dir D:\cargo-targets\zircon-mesh-index-format-0530 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-31 glTF primitive mode guard: failed before implementation because `LINES` imported as `TriangleList`; passed after adding the mode guard; existing zircon_runtime lib-test warnings only)
@@ -402,7 +376,6 @@ tests:
   - cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_gltf_importer_runtime --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-model-mesh-ref-0531 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-31 split glTF multi-scene/external texture/missing buffer regression: passed, 8 passed plus 0 doc tests; existing zircon_runtime warnings only)
   - cargo test -p zircon_runtime --lib asset::tests::assets::gltf_importer --locked --jobs 1 --target-dir D:\cargo-targets\zircon-gltf-skin-json-0605 --message-format short --color never -- --test-threads=1 --nocapture (2026-06-05 runtime glTF Skin JSON labels: passed, 8 passed, 2774 filtered; existing zircon_runtime lib-test warnings only)
   - cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_gltf_importer_runtime --lib --locked --jobs 1 --target-dir D:\cargo-targets\zircon-gltf-skin-json-0605 --message-format short --color never -- --test-threads=1 --nocapture (2026-06-05 split glTF Skin JSON labels: passed, 8 passed; existing zircon_runtime warnings only)
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/asset_gltf_labeled_subassets.rs::runtime_15_gltf_labeled_material_subassets_are_child_owner
   - cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_asset_importer_model_runtime --lib importer --locked --jobs 1 --message-format short --color never -- --test-threads=1 (2026-05-20 model plugin subasset labels: passed, 5 passed, covering STL/PLY/DXF root dependencies and Mesh0/Primitive0 MeshAsset payloads)
   - cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_obj_importer_runtime --lib obj_importer_decodes_model_asset --locked --jobs 1 --message-format short --color never -- --test-threads=1 (2026-05-20 OBJ plugin subasset label: passed, 1 passed, covering root dependency and Mesh0/Primitive0 MeshAsset payload)
   - cargo test -p zircon_runtime --lib importer_emits_obj_multi_mesh_subassets --locked --jobs 1 --target-dir D:\cargo-targets\zircon-mesh-index-format-0530 --message-format short --color never -- --test-threads=1 --nocapture (2026-05-31 OBJ multi-mesh labels: passed, 1 passed; existing zircon_runtime lib-test warnings only)
@@ -444,7 +417,6 @@ tests:
   - zircon_runtime/src/asset/assets/texture/descriptor.rs::dimension_3d_keeps_depth_and_single_array_layer
   - zircon_runtime/src/asset/assets/texture/descriptor.rs::import_extent_override_replaces_existing_2d_container_layers
   - zircon_runtime/src/asset/assets/texture/descriptor.rs::bevy_alias_diagnostics_report_actual_setting_keys
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/texture_descriptor_settings.rs::runtime_15_texture_descriptor_settings_parser_is_child_owner
   - zircon_runtime/src/asset/importer/image_decode.rs::default_format_reports_missing_extension
   - zircon_runtime/src/asset/importer/image_decode.rs::explicit_source_format_reports_unsupported_token
   - zircon_runtime/src/asset/tests/assets/texture_importer.rs::importer_texture_fixture_decodes_common_extension_format_matrix
@@ -601,9 +573,6 @@ tests:
   - 2026-05-03: cargo fmt --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_ui_document_importer_runtime (passed)
   - 2026-05-03: cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_ui_document_importer_runtime --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-asset-importer-ui-binary-backend --message-format short --color never (passed, 8 tests)
   - zircon_runtime/src/asset/tests/project/manager.rs
-  - zircon_runtime/src/tests/plugin_extensions/asset_importer_install.rs
-  - zircon_runtime/src/tests/plugin_extensions/extension_registry.rs
-  - zircon_runtime/src/tests/plugin_extensions/manifest_contributions.rs
   - zircon_runtime/src/asset/tests/project/manager.rs::project_manager_restores_ready_artifacts_from_meta_after_restart
   - 2026-05-08 cross-lane compile unblock: cargo test -p zircon_runtime --lib scene::tests::ecs_schedule::render_extract_prepare_flushes_parent_reorder_and_active_changes --locked --message-format short (passed, 1 test, after asset importer M3 hard-cutover fixes)
 doc_type: module-detail

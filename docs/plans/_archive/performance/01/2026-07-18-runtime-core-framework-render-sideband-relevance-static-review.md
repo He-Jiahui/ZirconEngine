@@ -6,7 +6,6 @@ related_code:
   - zircon_runtime/src/core/framework/render/relevance.rs
   - zircon_runtime/src/core/framework/render/renderer_common.rs
   - zircon_runtime/src/core/framework/render/shadow.rs
-  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/root_output_sources/virtual_geometry_plugin_renderer_outputs.rs
   - zircon_plugins/particles/runtime/src/render/runtime_prepare.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md

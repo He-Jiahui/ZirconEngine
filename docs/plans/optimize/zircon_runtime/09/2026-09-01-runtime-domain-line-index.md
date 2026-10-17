@@ -2,7 +2,6 @@
 status: local_candidate
 implementation_files:
   - tools/audits/runtime_domain_dependency_audit.py
-  - tools/tests/test_runtime_domain_dependency_line_index_performance_contract.py
   - tools/tests/test_runtime_domain_dependency_audit.py
 ---
 

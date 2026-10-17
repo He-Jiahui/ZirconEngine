@@ -9,7 +9,6 @@ related_code:
   - zircon_runtime/src/ui/layout/taffy_bridge/compute.rs
   - zircon_runtime_interface/src/ui/surface/render/command.rs
   - zircon_runtime/src/ui/surface/input
-  - zircon_editor/src/ui/retained_host/app.rs
   - zircon_editor/src/ui/workbench/mod.rs
   - zircon_editor/src/ui/layouts/views
   - zircon_editor/src/ui/layouts
@@ -100,24 +99,15 @@ plan_sources:
   - docs/plans/zircon_hub/index.md
   - docs/plans/designment/02-milestone-execution-and-evidence.md
 implementation_files:
-  - dev/penpot/plugins/apps/zircon-zui-plugin/src/bridge/zui-document.ts
-  - dev/penpot/plugins/apps/zircon-zui-plugin/src/bridge/penpot-projection.ts
-  - dev/penpot/plugins/apps/zircon-zui-plugin/src/bridge/penpot-reconcile.ts
-  - dev/penpot/plugins/apps/zircon-zui-plugin/src/plugin.ts
   - zircon_runtime_interface/src/ui/component/descriptor/slot_schema.rs
   - zircon_runtime_interface/src/ui/surface/render/command.rs
-  - zircon_editor/src/ui/retained_host/app.rs
   - zircon_editor/src/ui/workbench/mod.rs
   - zircon_editor/assets/ui/editor/layout/shell_regions.toml
   - zircon_hub/src/tauri_app/view_model.rs
   - zircon_hub/web/src/App.tsx
   - zircon_hub/web/src/theme/muiTheme.ts
 tests:
-  - dev/penpot/plugins/apps/zircon-zui-plugin/src/bridge/zui-document.spec.ts
-  - dev/penpot/plugins/apps/zircon-zui-plugin/src/bridge/penpot-projection.spec.ts
-  - dev/penpot/plugins/apps/zircon-zui-plugin/src/bridge/penpot-asset.spec.ts
   - zircon_runtime/tests/zui_penpot_bridge_contract.rs
-  - zircon_runtime_interface/src/ui/surface/render/batch/tests.rs
   - zircon_editor/tests/integration_contracts.rs
   - zircon_editor/src/ui/layouts/views/asset_browser/tests/mod.rs
   - zircon_hub/tests/tauri_react_shell_contract.rs

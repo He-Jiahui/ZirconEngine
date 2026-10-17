@@ -18,7 +18,6 @@ related_code:
   - zircon_runtime_interface/src/resource
 tests:
   - zircon_runtime/src/asset/tests
-  - zircon_runtime/crates/zr_resource/src/tests.rs
   - zircon_runtime/crates/zr_resource/src/manager/tests
 plan_sources:
   - docs/plans/optimize/zircon_runtime/85-runtime-asset-import-source-discovery-importer-recipe-subasset-derived-data-artifact-cook-package-incremental-build-worker-determinism.md

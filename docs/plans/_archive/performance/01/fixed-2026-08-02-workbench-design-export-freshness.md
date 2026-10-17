@@ -8,13 +8,6 @@ fixing_plan: docs/plans/zircon_editor/editor_layout/06-floating-windows-and-desi
 origin_child_dir: docs/plans/performance/01
 fixing_child_dir: docs/plans/zircon_editor/editor_layout/06
 related_code:
-  - tools/editor-workbench-preview/design.js
-  - tools/editor-workbench-preview/design-manifest.mjs
-  - tools/editor-workbench-preview/verify-designs.mjs
-  - tools/editor-workbench-preview/export-designs.mjs
-  - tools/editor-workbench-preview/export-evidence.mjs
-  - tools/editor-workbench-preview/package.json
-  - tools/editor-workbench-preview/package-lock.json
   - docs/ui/editor-workbench-design-export.md
 tests:
   - npm --prefix tools/editor-workbench-preview run design:verify

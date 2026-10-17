@@ -3,50 +3,31 @@ related_code:
   - zircon_runtime/src/core/framework/render/sprite/sprite.rs
   - zircon_runtime/src/core/framework/render/sprite/atlas.rs
   - zircon_runtime/src/core/framework/render/sprite/extract.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/sprite/sprite_renderer.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/sprite/build_sprite_vertices.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/sprite/build_sprite_vertices/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/sprite/prepared_batches.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/resource_upload.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render/record.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/image.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/instance_buffer.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/renderer.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas/tests/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas/tests/plan.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas/tests/allocation.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas/tests/cache_report.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas/tests/owner.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/material.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/vertex_buffer.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/vertices.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/draw_plan.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/shader_contract.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/layout_placement.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/prepare_report.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_ui_screen_space_render.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_sprite_build_vertices_tests.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_ui_sdf_atlas_tests.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_ui_sdf_render.rs
+  - zircon_runtime/src/graphics/scene/renderer/sprite/sprite_renderer.rs
+  - zircon_runtime/src/graphics/scene/renderer/sprite/build_sprite_vertices.rs
+  - zircon_runtime/src/graphics/scene/renderer/sprite/prepared_batches.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/render.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/resource_upload.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/render/record.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/image.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/atlas_renderer/instance_buffer.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/atlas_renderer/renderer.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/sdf_atlas.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/sdf_atlas/tests/mod.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/sdf_atlas/tests/plan.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/sdf_atlas/tests/allocation.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/sdf_atlas/tests/cache_report.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/sdf_atlas/tests/owner.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/sdf_render.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/sdf_render/material.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/sdf_render/vertex_buffer.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/sdf_render/vertices.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/sdf_render/tests/mod.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/sdf_render/tests/draw_plan.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/tests/shader_contract.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/tests/layout_placement.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/sdf_render/tests/prepare_report.rs
   - zircon_runtime/src/core/framework/render/core_pipeline/phase_sort.rs
-  - dev/Graphics/Packages/com.unity.render-pipelines.universal/Runtime/2D/Renderer2DData.cs
-  - dev/Graphics/Packages/com.unity.render-pipelines.universal/Runtime/2D/Rendergraph/Renderer2DRendergraph.cs
-  - dev/Graphics/Packages/com.unity.render-pipelines.universal/Runtime/2D/Rendergraph/DrawRenderer2DPass.cs
-  - dev/Graphics/Packages/com.unity.render-pipelines.universal/Runtime/2D/Lights/Light2D.cs
-  - dev/godot/scene/2d/tile_map_layer.cpp
-  - dev/godot/scene/2d/tile_map_layer.h
-  - dev/UnrealEngine/Engine/Source/Runtime/SlateCore/Private/Fonts/FontCache.cpp
-  - dev/UnrealEngine/Engine/Source/Runtime/SlateCore/Private/Fonts/FontCacheHarfBuzz.cpp
-  - dev/bevy/crates/bevy_text/src/pipeline.rs
-  - dev/bevy/crates/bevy_text/src/font_atlas.rs
-  - dev/bevy/crates/bevy_sprite/src/texture_slice/slicer.rs
-  - dev/bevy/crates/bevy_sprite_render/src/texture_slice/computed_slices.rs
-  - dev/bevy/crates/bevy_sprite_render/src/tilemap_chunk/mod.rs
 plan_sources:
   - .codex/plans/UI SDF 字体真实 Bake 收束计划.md
   - .codex/plans/ZirconEngine Bevy-Level Rendering Completion Plan.md

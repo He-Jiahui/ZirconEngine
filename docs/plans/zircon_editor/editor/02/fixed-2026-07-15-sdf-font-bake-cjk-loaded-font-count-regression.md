@@ -10,7 +10,6 @@ origin_child_dir: docs/plans/zircon_editor/editor/02
 fixing_child_dir: docs/plans/zircon_runtime/text/05
 related_code:
   - zircon_runtime/src/text/sdf/font_bake.rs
-  - zircon_runtime/src/text/sdf/font_bake/tests.rs
   - zircon_runtime/src/text/font/shared.rs
 tests:
   - cargo test -p zircon_runtime --lib graphics::scene::scene_renderer::ui::sdf_font_bake::tests::sdf_font_bake_rasterizes_materialized_system_cjk_face --locked -- --exact --nocapture

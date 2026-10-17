@@ -1,13 +1,5 @@
 ---
 related_code:
-  - dev/bevy/crates/bevy_sprite/src/lib.rs
-  - dev/bevy/crates/bevy_sprite/src/sprite.rs
-  - dev/bevy/crates/bevy_sprite/src/texture_slice/mod.rs
-  - dev/bevy/crates/bevy_sprite/src/texture_slice/slicer.rs
-  - dev/bevy/crates/bevy_sprite_render/src/texture_slice/computed_slices.rs
-  - dev/bevy/crates/bevy_sprite_render/src/lib.rs
-  - dev/bevy/crates/bevy_sprite_render/src/render/mod.rs
-  - dev/bevy/crates/bevy_sprite_render/src/sprite_mesh/sprite_material.rs
   - zircon_runtime/src/core/framework/render/sprite/mod.rs
   - zircon_runtime/src/core/framework/render/sprite/image_mode.rs
   - zircon_runtime/src/core/framework/render/mod.rs
@@ -25,32 +17,18 @@ related_code:
   - zircon_runtime/src/scene/components/render2d/sprite.rs
   - zircon_runtime/src/scene/components/render2d/mesh2d.rs
   - zircon_runtime/src/scene/world/render.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/default_core2d.rs
-  - zircon_runtime/src/graphics/feature/builtin_render_feature/builtin_render_feature.rs
-  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/sprite.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/attachment_ops.rs
+  - zircon_runtime/src/graphics/builtin_render_feature/builtin_render_feature.rs
+  - zircon_runtime/src/graphics/feature/builtin/feature_descriptors/sprite.rs
   - zircon_runtime/src/core/framework/render/backend_types.rs
   - zircon_runtime/src/runtime_diagnostics/collect.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/execute_graph_stage.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/compiled_scene_outputs.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer/scene_renderer.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_runtime_outputs/reset_last_runtime_outputs.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_runtime_outputs/store_last_runtime_outputs.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render_with_pipeline/render_frame_with_pipeline.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/scene_passes/render_scene_passes.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/builtin_scene_executors.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/sprite/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/sprite/build_sprite_vertices.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/sprite/build_sprite_vertices/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/sprite/prepared_batches.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/sprite/sprite_renderer.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/sprite/sprite_vertex.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry.rs
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_scene_resources.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs
+  - zircon_runtime/src/graphics/scene/core/render/render/execute_graph_stage.rs
+  - zircon_runtime/src/graphics/scene/renderer/core/render/render/render.rs
+  - zircon_runtime/src/graphics/scene/core/scene_passes/render_scene_passes.rs
+  - zircon_runtime/src/graphics/scene/renderer/sprite/build_sprite_vertices.rs
+  - zircon_runtime/src/graphics/scene/renderer/sprite/prepared_batches.rs
+  - zircon_runtime/src/graphics/scene/renderer/sprite/sprite_renderer.rs
+  - zircon_runtime/src/graphics/scene/renderer/sprite/sprite_vertex.rs
+  - zircon_runtime/src/graphics/runtime/framework/extract/update_stats/base_stats.rs
   - zircon_runtime/src/graphics/types/viewport_render_frame.rs
 implementation_files:
   - zircon_runtime/src/core/framework/render/sprite/mod.rs
@@ -69,31 +47,17 @@ implementation_files:
   - zircon_runtime/src/scene/components/render2d/sprite.rs
   - zircon_runtime/src/scene/components/render2d/mesh2d.rs
   - zircon_runtime/src/scene/world/render.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/default_core2d.rs
-  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/sprite.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/attachment_ops.rs
+  - zircon_runtime/src/graphics/feature/builtin/feature_descriptors/sprite.rs
   - zircon_runtime/src/core/framework/render/backend_types.rs
   - zircon_runtime/src/runtime_diagnostics/collect.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/execute_graph_stage.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/compiled_scene_outputs.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer/scene_renderer.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_runtime_outputs/reset_last_runtime_outputs.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_runtime_outputs/store_last_runtime_outputs.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render_with_pipeline/render_frame_with_pipeline.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/scene_passes/render_scene_passes.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/builtin_scene_executors.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/sprite/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/sprite/build_sprite_vertices.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/sprite/build_sprite_vertices/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/sprite/prepared_batches.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/sprite/sprite_renderer.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/sprite/sprite_vertex.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry.rs
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_scene_resources.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs
+  - zircon_runtime/src/graphics/scene/core/render/render/execute_graph_stage.rs
+  - zircon_runtime/src/graphics/scene/renderer/core/render/render/render.rs
+  - zircon_runtime/src/graphics/scene/core/scene_passes/render_scene_passes.rs
+  - zircon_runtime/src/graphics/scene/renderer/sprite/build_sprite_vertices.rs
+  - zircon_runtime/src/graphics/scene/renderer/sprite/prepared_batches.rs
+  - zircon_runtime/src/graphics/scene/renderer/sprite/sprite_renderer.rs
+  - zircon_runtime/src/graphics/scene/renderer/sprite/sprite_vertex.rs
+  - zircon_runtime/src/graphics/runtime/framework/extract/update_stats/base_stats.rs
   - zircon_runtime/src/graphics/types/viewport_render_frame.rs
 plan_sources:
   - docs/plans/zircon_runtime/render/09-camera-render-ordering.md
@@ -106,24 +70,14 @@ tests:
   - zircon_runtime/src/graphics/tests/render_product_sprite.rs
   - zircon_runtime/src/scene/tests/world_basics.rs
   - zircon_runtime/src/graphics/tests/pipeline_compile.rs
-  - tests/acceptance/render-product-m6a-sprite-default-2d.md
   - cargo test -p zircon_runtime --locked render_product_sprite
   - cargo test -p zircon_runtime --locked render_product_pipeline
   - cargo test -p zircon_runtime --locked default_core2d_pipeline_compiles_expected_stage_order_and_passes
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry.rs::sprite_executor_requires_renderer_context_instead_of_nooping
-  - zircon_runtime/src/graphics/scene/scene_renderer/sprite/sprite_renderer.rs::sprite_subpasses_apply_graph_attachment_ops_only_to_outer_draws
-  - zircon_runtime/src/graphics/scene/scene_renderer/sprite/prepared_batches.rs::sprite_batching_preserves_order_and_only_merges_adjacent_matching_textures
-  - zircon_runtime/src/graphics/scene/scene_renderer/sprite/prepared_batches.rs::sprite_batching_skips_empty_vertex_items
-  - zircon_runtime/src/graphics/scene/scene_renderer/sprite/prepared_batches.rs::sprite_queue_stats_count_stage_batches_sprites_and_vertices
-  - zircon_runtime/src/graphics/scene/scene_renderer/sprite/prepared_batches.rs::sprite_queue_stats_report_generated_image_slices_separately_from_sprites
-  - zircon_runtime/src/graphics/scene/scene_renderer/sprite/build_sprite_vertices/tests.rs::sprite_image_slices_fit_center_preserves_full_uv_and_letterboxes
-  - zircon_runtime/src/graphics/scene/scene_renderer/sprite/build_sprite_vertices/tests.rs::sprite_image_slices_fit_start_aligns_to_left_top
-  - zircon_runtime/src/graphics/scene/scene_renderer/sprite/build_sprite_vertices/tests.rs::sprite_image_slices_fill_center_crops_source_rect
-  - zircon_runtime/src/graphics/scene/scene_renderer/sprite/build_sprite_vertices/tests.rs::sprite_image_slices_fill_end_aligns_source_crop_to_right_or_bottom
-  - zircon_runtime/src/graphics/scene/scene_renderer/sprite/build_sprite_vertices/tests.rs::sprite_image_vertices_scale_fill_remains_single_quad
-  - zircon_runtime/src/graphics/scene/scene_renderer/sprite/build_sprite_vertices/tests.rs::build_sprite_vertices_filters_sprites_by_selected_camera_layers
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_sprite_build_vertices_tests.rs::runtime_15_sprite_build_vertices_tests_are_child_owner_split
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/compiled_scene_outputs.rs::compiled_scene_outputs_carry_prepared_sprite_queue_stats
+  - zircon_runtime/src/graphics/scene/renderer/sprite/sprite_renderer.rs::sprite_subpasses_apply_graph_attachment_ops_only_to_outer_draws
+  - zircon_runtime/src/graphics/scene/renderer/sprite/prepared_batches.rs::sprite_batching_preserves_order_and_only_merges_adjacent_matching_textures
+  - zircon_runtime/src/graphics/scene/renderer/sprite/prepared_batches.rs::sprite_batching_skips_empty_vertex_items
+  - zircon_runtime/src/graphics/scene/renderer/sprite/prepared_batches.rs::sprite_queue_stats_count_stage_batches_sprites_and_vertices
+  - zircon_runtime/src/graphics/scene/renderer/sprite/prepared_batches.rs::sprite_queue_stats_report_generated_image_slices_separately_from_sprites
   - cargo check -p zircon_runtime --lib --locked
 doc_type: module-detail
 ---

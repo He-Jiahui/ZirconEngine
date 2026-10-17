@@ -6,7 +6,6 @@ related_code:
   - zircon_runtime/src/text/cache/layout_cache.rs
   - zircon_runtime/src/text/cache/measure_cache.rs
   - zircon_runtime/src/text/cache/shaped_cache.rs
-  - zircon_runtime/src/text/cache/tests.rs
   - zircon_runtime/src/text/model/shaped_run.rs
   - zircon_runtime/src/text/shaping/mod.rs
   - zircon_runtime/src/text/parallel/shape_pool.rs
@@ -32,7 +31,6 @@ implementation_files:
   - zircon_runtime/src/text/cache/layout_cache.rs
   - zircon_runtime/src/text/cache/measure_cache.rs
   - zircon_runtime/src/text/cache/shaped_cache.rs
-  - zircon_runtime/src/text/cache/tests.rs
   - zircon_runtime/src/text/shaping/mod.rs
   - zircon_runtime/src/text/parallel/shape_pool.rs
   - zircon_runtime/src/text/layout/measure.rs
@@ -57,7 +55,6 @@ plan_sources:
   - docs/plans/engine-code-structure-convention.md
   - docs/plans/engine-code-review-findings-2026-06.md
 tests:
-  - zircon_runtime/src/text/cache/tests.rs
   - zircon_runtime/src/ui/tests/text_pipeline
   - rustfmt --edition 2021 --check zircon_runtime/src/text/mod.rs zircon_runtime/src/text/cache/mod.rs zircon_runtime/src/text/cache/frame_dedup.rs zircon_runtime/src/text/cache/layout_cache.rs zircon_runtime/src/text/cache/measure_cache.rs zircon_runtime/src/text/cache/shaped_cache.rs zircon_runtime/src/text/cache/tests.rs zircon_runtime/src/ui/text/measure_cache.rs zircon_runtime/src/ui/surface/render/extract.rs zircon_runtime/src/ui/tests/text_pipeline
   - git diff --check -- zircon_runtime/src/text/mod.rs zircon_runtime/src/text/cache/mod.rs zircon_runtime/src/text/cache/frame_dedup.rs zircon_runtime/src/text/cache/layout_cache.rs zircon_runtime/src/text/cache/measure_cache.rs zircon_runtime/src/text/cache/shaped_cache.rs zircon_runtime/src/text/cache/tests.rs zircon_runtime/src/ui/text/measure_cache.rs zircon_runtime/src/ui/surface/render/extract.rs zircon_runtime/src/ui/tests/text_pipeline

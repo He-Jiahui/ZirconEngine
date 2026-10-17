@@ -1,12 +1,5 @@
 ---
 related_code:
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/frame_submission_context.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/frame_submission_context/tests.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/mod.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/prepared_runtime_submission.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/runtime_feedback_batch.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submission_record_update.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/viewport_generation_guard.rs
 tests:
   - current submit root-contract slice 7 of 7 Rust files reviewed, 1374 lines
   - all 11 tests read; mutable generation-guard lookup regression added

@@ -3,11 +3,10 @@ related_code:
   - zircon_runtime/tests/runtime_shader_pbr_realtime_ibl_export.rs
 implementation_files:
   - zircon_runtime/tests/runtime_shader_pbr_hdri_export/scene_fixtures.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_shader_plan.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_graph_plan.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_compute_executor.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_wgpu_dispatch/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/shaders/ibl_irradiance_sh.wgsl
+  - zircon_runtime/src/graphics/scene/renderer/environment/ibl_bake_shader_plan.rs
+  - zircon_runtime/src/graphics/scene/renderer/environment/ibl_bake_graph_plan.rs
+  - zircon_runtime/src/graphics/scene/environment/ibl_bake_compute_executor.rs
+  - zircon_runtime/src/graphics/scene/renderer/shaders/ibl_irradiance_sh.wgsl
 plan_sources:
   - docs/plans/zircon_runtime/shader/06-environment-ibl-and-pbr-correctness.md
 tests:

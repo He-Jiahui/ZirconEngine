@@ -19,10 +19,7 @@ related_code:
   - zircon_runtime/src/ui/surface/surface/default_interactions.rs
   - zircon_runtime/src/ui/surface/surface/default_interactions
   - zircon_runtime/src/ui/surface/surface/rebuild.rs
-  - zircon_editor/src/ui/template_runtime/component_adapter
-  - zircon_editor/src/ui/template_runtime/runtime
   - zircon_editor/src/ui/host/editor_event_runtime_access/component_dispatch.rs
-  - zircon_editor/src/ui/retained_host/app/ui_asset_editor_detail_events/component_adapter.rs
   - zircon_editor/assets/ui
   - examples/woc/assets/ui
 tests:
@@ -41,7 +38,7 @@ tests:
   - zircon_runtime/src/ui/tests/runtime_input_reply_routes.rs
   - zircon_runtime/src/ui/tests/template/interaction_bindings.rs
   - zircon_runtime/src/ui/tests/template_pipeline.rs
-  - zircon_editor/src/tests/ui/component_adapter.rs
+  - zircon_editor/src/tests/ui/component_adapter/mod.rs
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md
   - docs/plans/optimize/01-cross-report-owner-schema-abi-p0-consolidation-review.md

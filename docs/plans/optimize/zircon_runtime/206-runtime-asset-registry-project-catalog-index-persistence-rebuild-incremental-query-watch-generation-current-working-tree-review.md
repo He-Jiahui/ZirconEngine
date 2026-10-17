@@ -10,7 +10,6 @@ related_code:
   - zircon_runtime/src/asset/project/generation_observation.rs
   - zircon_runtime/src/asset/project/manager
   - zircon_runtime/src/asset/watch
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager
   - zircon_runtime/crates/zr_resource/src
 plan_sources:
   - docs/plans/optimize/zircon_runtime/99w-runtime-asset-registry-index-persistence-rebuild-incremental-query-product-integration-current-source-review.md

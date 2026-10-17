@@ -14,14 +14,11 @@ class ReviewDebtTests(unittest.TestCase):
         self.assertIn("zircon_runtime/src", paths)
         self.assertNotIn("absent.rs", sources)
 
-    def test_new_missing_reference_is_not_hidden_by_existing_debt(self):
+    def test_reintroduced_and_new_doc_errors_are_rejected(self):
         root = Path(__file__).resolve().parents[2]
         old = {"document": "docs/test.md", "field": "related_code", "path": "old.rs", "reason": "missing path"}
         new = {**old, "path": "new.rs"}
-        with patch("tools.audits.check_conventions.audit_document_paths", return_value={"violations": [old, new], "violation_count": 2}), patch(
-            "tools.audits.check_conventions.baseline_sources", return_value=(set(), {"docs/test.md": "---\nrelated_code:\n  - old.rs\n---\n"})
-        ):
+        with patch("tools.audits.check_conventions.audit_document_paths", return_value={"violations": [old, new], "violation_count": 2}):
             report = run_conventions(root, ["docs"], dry_run=False)
         self.assertFalse(report["passed"])
-        self.assertEqual(report["docs"]["baseline_violation_count"], 1)
-        self.assertEqual(report["docs"]["violations"], [new])
+        self.assertEqual(report["docs"]["violations"], [old, new])

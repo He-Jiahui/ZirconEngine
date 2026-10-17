@@ -6,15 +6,15 @@ implementation_status: implemented
 validation_status: batched_validation_pending
 performance_status: product_gate_pending
 related_code:
-  - zircon_editor/src/ui/retained_host/app/hierarchy_pointer/identity.rs
-  - zircon_editor/src/ui/retained_host/app/hierarchy_pointer/events/drag.rs
-  - zircon_editor/src/ui/retained_host/app/reference_drop_payload.rs
-  - zircon_editor/src/ui/retained_host/app/pane_surface_actions/component_showcase/inputs.rs
-  - zircon_editor/src/ui/retained_host/app/pane_surface_actions/component_showcase/activation.rs
+  - zircon_editor/src/ui/retained/app/hierarchy_pointer/identity.rs
+  - zircon_editor/src/ui/retained/app/hierarchy_pointer/events/drag.rs
+  - zircon_editor/src/ui/retained/app/reference_drop_payload.rs
+  - zircon_editor/src/ui/retained/app/component_showcase/inputs.rs
+  - zircon_editor/src/ui/retained/app/component_showcase/activation.rs
 plan_sources:
   - docs/plans/optimize/zircon_editor/60/2026-09-27-hierarchy-reparent-drag-threshold.md
 tests:
-  - zircon_editor/src/ui/retained_host/app/tests/drag_sources/hierarchy_identity.rs
+  - zircon_editor/src/ui/retained/app/tests/drag_sources/hierarchy_identity.rs
 ---
 
 # Editor60 hierarchy drag document identity

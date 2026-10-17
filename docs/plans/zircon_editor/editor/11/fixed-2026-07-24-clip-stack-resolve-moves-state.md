@@ -10,7 +10,6 @@ fixing_child_dir: docs/plans/zircon_editor/editor_layout/21
 plan_link_mode: child_record_only
 related_code:
   - zircon_runtime_interface/src/ui/surface/render/batch/clip.rs
-  - zircon_runtime_interface/src/ui/surface/render/batch/tests.rs
 tests:
   - cargo test -p zircon_runtime_interface --lib clip_stack_intersects_nested_axis_aligned_scissors --locked --jobs 1 -- --test-threads=1
 resolved_at: 2026-07-24

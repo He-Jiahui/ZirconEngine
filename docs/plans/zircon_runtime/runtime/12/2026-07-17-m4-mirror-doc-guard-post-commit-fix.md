@@ -3,16 +3,16 @@ related_code:
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/input_stack_source_inventory.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/input_stack_anchor_inventory.py
   - tools/tests/test_runtime_input_stack_audit.py
-  - zircon_runtime/src/tests/runtime_absorption/input_stack/inventory/mirror_docs.rs
-  - zircon_runtime/src/tests/runtime_absorption/input_stack/action_mapping.rs
+  - zircon_runtime/src/tests/contracts/input_stack/inventory/mirror_docs.rs
+  - zircon_runtime/src/tests/contracts/input_stack/action_mapping.rs
   - docs/crates/zircon_runtime/input/input_state.md
   - docs/plans/zircon_runtime/runtime/12/2026-07-17-m5-input-event-bounds-current-source-closeout.md
 implementation_files:
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/input_stack_source_inventory.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/input_stack_anchor_inventory.py
   - tools/tests/test_runtime_input_stack_audit.py
-  - zircon_runtime/src/tests/runtime_absorption/input_stack/inventory/mirror_docs.rs
-  - zircon_runtime/src/tests/runtime_absorption/input_stack/action_mapping.rs
+  - zircon_runtime/src/tests/contracts/input_stack/inventory/mirror_docs.rs
+  - zircon_runtime/src/tests/contracts/input_stack/action_mapping.rs
   - docs/crates/zircon_runtime/input/input_state.md
   - docs/plans/zircon_runtime/runtime/12/2026-07-17-m5-input-event-bounds-current-source-closeout.md
 plan_sources:

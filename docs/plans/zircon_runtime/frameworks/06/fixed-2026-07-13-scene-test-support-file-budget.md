@@ -11,7 +11,6 @@ related_code:
   - zircon_runtime/src/scene/tests/support.rs
   - zircon_runtime/src/scene/tests/support/project_fixture.rs
   - zircon_runtime/src/scene/tests
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/global_budget.rs
 tests:
   - D:/cargo-targets/zircon-engine/pool/cd364bddb8fbbb51cd141739f3d1894f703664304232c1f3d4452d3669ef2ea7/debug/deps/zircon_runtime-3cf8ac3fa0d196f8.exe tests::runtime_absorption::structure_convention::test_file_budget::global_budget::runtime_15_no_oversized_test_files --nocapture --test-threads=1
 resolved_at: 2026-07-13

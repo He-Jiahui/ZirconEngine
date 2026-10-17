@@ -1,21 +1,6 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/host_contract/workbench_context_menu.rs
-  - zircon_editor/src/ui/retained_host/host_contract/workbench_context_menu/classifier.rs
-  - zircon_editor/src/ui/retained_host/host_contract/workbench_context_menu/path.rs
-  - zircon_editor/src/ui/retained_host/host_contract/workbench_context_menu/provider.rs
-  - zircon_editor/src/ui/retained_host/host_contract/workbench_context_menu/request.rs
-  - zircon_editor/src/ui/retained_host/host_contract/workbench_context_menu_tests.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch.rs
-  - zircon_editor/src/ui/retained_host/app/workbench_context_menu.rs
-  - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node.rs
 implementation_files:
-  - zircon_editor/src/ui/retained_host/host_contract/workbench_context_menu.rs
-  - zircon_editor/src/ui/retained_host/host_contract/workbench_context_menu/classifier.rs
-  - zircon_editor/src/ui/retained_host/host_contract/workbench_context_menu/path.rs
-  - zircon_editor/src/ui/retained_host/host_contract/workbench_context_menu/provider.rs
-  - zircon_editor/src/ui/retained_host/host_contract/workbench_context_menu/request.rs
-  - zircon_editor/src/ui/retained_host/host_contract/workbench_context_menu_tests.rs
 plan_sources:
   - docs/plans/zircon_editor/editor_ui/08-workbench-shell-on-runtime-ui.md
   - user: 2026-06-20 editor UI architecture implementation, feature first and tests deferred

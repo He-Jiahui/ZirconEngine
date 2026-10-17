@@ -12,8 +12,6 @@ implementation_files:
   - zircon_runtime/src/ui/component/state_reducer/state_model.rs
   - zircon_runtime/src/ui/component/state_reducer/state_model/tree_index.rs
 tests:
-  - zircon_runtime/src/ui/component/state_reducer/state_model/selected_output_capacity_tests.rs
-  - tools/tests/test_runtime_tree_selection_output_capacity_performance_contract.py
 ---
 
 # Runtime788 · Tree selection output capacity

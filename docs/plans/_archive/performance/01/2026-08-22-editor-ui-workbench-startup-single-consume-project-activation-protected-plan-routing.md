@@ -1,7 +1,7 @@
 ---
 related_code:
   - zircon_editor/src/ui/workbench/startup
-  - zircon_editor/src/ui/retained_host/app/startup.rs
+  - zircon_editor/src/ui/retained/app/startup.rs
   - zircon_editor/src/ui/host/startup
   - zircon_editor/src/ui/host/editor_manager_project_session.rs
   - zircon_editor/src/core/hub_link/recent_writeback.rs

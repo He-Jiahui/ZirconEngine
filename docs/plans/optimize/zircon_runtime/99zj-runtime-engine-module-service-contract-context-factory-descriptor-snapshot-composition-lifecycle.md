@@ -28,12 +28,10 @@ related_code:
   - zircon_editor/src/ui/host/module.rs
   - zircon_plugins
 tests:
-  - zircon_runtime/src/engine_module/tests.rs
   - zircon_runtime/src/builtin/runtime_modules/tests
   - zircon_runtime/src/core/runtime/tests/registration
   - zircon_runtime/src/core/runtime/tests/resolution
   - zircon_runtime/src/core/runtime/tests/activation
-  - zircon_app/src/plugins/tests.rs
   - zircon_app/src/entry/tests
 plan_sources:
   - docs/plans/optimize/zircon_runtime/01-core-runtime-lifecycle-registry-review.md

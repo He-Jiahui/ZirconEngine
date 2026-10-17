@@ -16,10 +16,10 @@ related_code:
   - zircon_runtime/src/core/runtime/handle/activation/unload_mutation.rs
   - zircon_runtime/src/core/runtime/handle/resolution.rs
   - zircon_runtime/src/core/runtime/tests/activation/behavior/activation.rs
-  - zircon_runtime/src/core/runtime/tests/activation/behavior/activation/contention.rs
+  - zircon_runtime/src/core/runtime/tests/behavior/activation/contention.rs
   - zircon_runtime/src/core/runtime/tests/resolution/behavior.rs
   - zircon_runtime/src/core/runtime/tests/resolution/behavior/dependency_cycles.rs
-  - zircon_runtime/src/core/runtime/tests/resolution/behavior/exact_dependency_resolution.rs
+  - zircon_runtime/src/core/runtime/tests/behavior/exact_dependency_resolution.rs
   - zircon_runtime/src/core/runtime/tests/resolution/behavior/factory_panics.rs
   - zircon_runtime/src/core/runtime/handle/events.rs
   - zircon_runtime/src/core/runtime/state/core_runtime_state.rs
@@ -59,13 +59,10 @@ plan_sources:
   - docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md
 tests:
   - tools/tests/test_frameworks_02_core_error_single_source.py
-  - zircon_runtime/src/core/runtime/tests.rs
   - zircon_runtime/src/core/runtime/tests/events
   - zircon_runtime/src/core/runtime/tests/activation
   - zircon_runtime/src/core/runtime/tests/registration
   - zircon_runtime/src/core/runtime/tests/resolution
-  - zircon_runtime/src/tests/runtime_absorption/service_registry_lifecycle.rs
-  - zircon_runtime/src/tests/runtime_absorption/service_registry_ownership.rs
   - zircon_editor/src/tests/host/manager/runtime_lifecycle.rs
 doc_type: module-detail
 status: current

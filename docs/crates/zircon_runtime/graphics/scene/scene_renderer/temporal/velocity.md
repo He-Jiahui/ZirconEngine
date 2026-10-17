@@ -7,66 +7,52 @@ related_code:
   - zircon_runtime/src/graphics/scene/gpu_scene/prev_morph_weights.rs
   - zircon_runtime/src/graphics/scene/gpu_scene/prev_skinned_palette.rs
   - zircon_runtime/src/graphics/scene/gpu_scene/prev_skinned_source.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/temporal/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/temporal/velocity/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/temporal/velocity/velocity_camera_params.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/temporal/velocity/execute_velocity_camera.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/temporal/velocity/execute_velocity_object.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/temporal/velocity/shaders/velocity_camera.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/create_velocity_mesh_pipeline.rs
+  - zircon_runtime/src/graphics/scene/renderer/temporal/mod.rs
+  - zircon_runtime/src/graphics/scene/renderer/temporal/velocity/mod.rs
+  - zircon_runtime/src/graphics/scene/temporal/velocity/velocity_camera_params.rs
+  - zircon_runtime/src/graphics/scene/temporal/velocity/execute_velocity_camera.rs
+  - zircon_runtime/src/graphics/scene/temporal/velocity/execute_velocity_object.rs
+  - zircon_runtime/src/graphics/scene/temporal/velocity/shaders/velocity_camera.wgsl
+  - zircon_runtime/src/graphics/mesh/mesh_pipeline/create_velocity_mesh_pipeline.rs
   - zircon_runtime/src/graphics/scene/resources/gpu_mesh/gpu_mesh_vertex_layout.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_draw/mesh_pass_batch.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/skinning/joint_palette_storage.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_pass_processor.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/replay.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_velocity_pipeline.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/temporal_frame_index.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/resolve_viewport_record_state.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/viewport_record_state.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/build_runtime_frame.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/submit_runtime_frame.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/update_temporal_camera_history.rs
-  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/temporal.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/builtin_postprocess_executors.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_record.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render_with_pipeline/render_frame_with_pipeline.rs
-  - zircon_runtime/src/graphics/backend/render_backend/read_texture_rgba.rs
-  - zircon_runtime/src/core/framework/render/post_process/stack.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/build.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/previous_skinned_palette.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/extend_pending_draws_for_mesh_instance.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_mesh_draw.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/prepared_queue.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/mesh_draw/mesh_pass_batch.rs
+  - zircon_runtime/src/graphics/scene/mesh/skinning/joint_palette_storage.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/mesh_pass/mesh_draw_command.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/mesh_pass/mesh_pass_processor.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/mesh_pass/replay.rs
+  - zircon_runtime/src/graphics/mesh/mesh_pipeline_cache/ensure_velocity_pipeline.rs
+  - zircon_runtime/src/graphics/runtime/viewport_record/temporal_frame_index.rs
+  - zircon_runtime/src/graphics/runtime/extract/submit/build_runtime_frame.rs
+  - zircon_runtime/src/graphics/runtime/extract/submit/submit_runtime_frame.rs
+  - zircon_runtime/src/graphics/extract/submit/update_temporal_camera_history.rs
+  - zircon_runtime/src/graphics/feature/builtin/feature_descriptors/temporal.rs
+  - zircon_runtime/src/graphics/scene/renderer/core/render/render/render.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/build_mesh_draws/build/build.rs
+  - zircon_runtime/src/graphics/scene/mesh/build/previous_skinned_palette.rs
+  - zircon_runtime/src/graphics/mesh/build/extend_pending_draws_for_mesh_instance.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/build/pending_mesh_draw.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/prepared_queue.rs
   - zircon_runtime/src/core/framework/render/backend_types.rs
   - zircon_runtime/src/core/framework/render/frame_extract.rs
   - zircon_runtime/src/core/framework/render/scene_extract.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/primitives/scene_uniform/from_frame.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/primitives/scene_uniform/scene_uniform.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_write_scene_uniform/write_scene_uniform.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/shaders/fallback_mesh.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/shaders/deferred_lighting.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/hzb/shaders/hzb_occlusion_cull.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/camera_matrices/view_projection.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/encode_reflection_probes/encode.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/execute/build_post_process_params/build.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/post_process_screen_space_reflection.wgsl
+  - zircon_runtime/src/graphics/scene/renderer/scene_uniform/from_frame.rs
+  - zircon_runtime/src/graphics/scene/renderer/scene_uniform/scene_uniform.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/shaders/fallback_mesh.wgsl
+  - zircon_runtime/src/graphics/scene/deferred/shaders/deferred_lighting.wgsl
+  - zircon_runtime/src/graphics/scene/renderer/hzb/shaders/hzb_occlusion_cull.wgsl
+  - zircon_runtime/src/graphics/scene/post/camera_matrices/view_projection.rs
+  - zircon_runtime/src/graphics/scene/post/encode_reflection_probes/encode.rs
+  - zircon_runtime/src/graphics/scene/post/build_post_process_params/build.rs
   - zircon_runtime/src/asset/pipeline/manager/builtins/builtin_pbr_wgsl.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/frame_submission_context.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs
+  - zircon_runtime/src/graphics/runtime/framework/extract/update_stats/base_stats.rs
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product.rs
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/particle.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/particle/build_particle_vertices/build_particle_vertices.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/particle/build_particle_velocity_vertices/build_particle_velocity_vertices.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/particle/particle_renderer/record.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/particle/particle_renderer/record_velocity.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/particle/shaders/particle_velocity.wgsl
-  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/particle_previous_sprites.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/update_particle_previous_state.rs
+  - zircon_runtime/src/graphics/build_particle_vertices/build_particle_vertices.rs
+  - zircon_runtime/src/graphics/scene/renderer/particle/particle_renderer/record.rs
+  - zircon_runtime/src/graphics/scene/particle/particle_renderer/record_velocity.rs
+  - zircon_runtime/src/graphics/scene/particle/shaders/particle_velocity.wgsl
+  - zircon_runtime/src/graphics/runtime/viewport_record/particle_previous_sprites.rs
+  - zircon_runtime/src/graphics/extract/submit/update_particle_previous_state.rs
 implementation_files:
   - zircon_runtime/src/core/framework/render/mod.rs
   - zircon_runtime/src/core/framework/render/camera.rs
@@ -75,65 +61,51 @@ implementation_files:
   - zircon_runtime/src/graphics/scene/gpu_scene/prev_morph_weights.rs
   - zircon_runtime/src/graphics/scene/gpu_scene/prev_skinned_palette.rs
   - zircon_runtime/src/graphics/scene/gpu_scene/prev_skinned_source.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/temporal/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/temporal/velocity/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/temporal/velocity/velocity_camera_params.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/temporal/velocity/execute_velocity_camera.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/temporal/velocity/execute_velocity_object.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/temporal/velocity/shaders/velocity_camera.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/create_velocity_mesh_pipeline.rs
+  - zircon_runtime/src/graphics/scene/renderer/temporal/mod.rs
+  - zircon_runtime/src/graphics/scene/renderer/temporal/velocity/mod.rs
+  - zircon_runtime/src/graphics/scene/temporal/velocity/velocity_camera_params.rs
+  - zircon_runtime/src/graphics/scene/temporal/velocity/execute_velocity_camera.rs
+  - zircon_runtime/src/graphics/scene/temporal/velocity/execute_velocity_object.rs
+  - zircon_runtime/src/graphics/scene/temporal/velocity/shaders/velocity_camera.wgsl
+  - zircon_runtime/src/graphics/mesh/mesh_pipeline/create_velocity_mesh_pipeline.rs
   - zircon_runtime/src/graphics/scene/resources/gpu_mesh/gpu_mesh_vertex_layout.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_draw/mesh_pass_batch.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_pass_processor.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/replay.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_velocity_pipeline.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/temporal_frame_index.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/resolve_viewport_record_state.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/viewport_record_state.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/build_runtime_frame.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/submit_runtime_frame.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/update_temporal_camera_history.rs
-  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/temporal.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry.rs
-  - zircon_runtime/src/core/framework/render/post_process/stack.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/previous_skinned_palette.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_mesh_draw.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/extend_pending_draws_for_mesh_instance.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/prepared_queue.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/mesh_draw/mesh_pass_batch.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/mesh_pass/mesh_draw_command.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/mesh_pass/mesh_pass_processor.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/mesh_pass/replay.rs
+  - zircon_runtime/src/graphics/mesh/mesh_pipeline_cache/ensure_velocity_pipeline.rs
+  - zircon_runtime/src/graphics/runtime/viewport_record/temporal_frame_index.rs
+  - zircon_runtime/src/graphics/runtime/extract/submit/build_runtime_frame.rs
+  - zircon_runtime/src/graphics/runtime/extract/submit/submit_runtime_frame.rs
+  - zircon_runtime/src/graphics/extract/submit/update_temporal_camera_history.rs
+  - zircon_runtime/src/graphics/feature/builtin/feature_descriptors/temporal.rs
+  - zircon_runtime/src/graphics/scene/mesh/build/previous_skinned_palette.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/build/pending_mesh_draw.rs
+  - zircon_runtime/src/graphics/mesh/build/extend_pending_draws_for_mesh_instance.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/prepared_queue.rs
   - zircon_runtime/src/core/framework/render/backend_types.rs
   - zircon_runtime/src/core/framework/render/frame_extract.rs
   - zircon_runtime/src/core/framework/render/scene_extract.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/frame_submission_context.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs
+  - zircon_runtime/src/graphics/runtime/framework/extract/update_stats/base_stats.rs
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product.rs
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/particle.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/primitives/scene_uniform/from_frame.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/primitives/scene_uniform/scene_uniform.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_write_scene_uniform/write_scene_uniform.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/shaders/fallback_mesh.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/shaders/deferred_lighting.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/hzb/shaders/hzb_occlusion_cull.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/camera_matrices/view_projection.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/encode_reflection_probes/encode.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/execute/build_post_process_params/build.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/post_process_screen_space_reflection.wgsl
+  - zircon_runtime/src/graphics/scene/renderer/scene_uniform/from_frame.rs
+  - zircon_runtime/src/graphics/scene/renderer/scene_uniform/scene_uniform.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/shaders/fallback_mesh.wgsl
+  - zircon_runtime/src/graphics/scene/deferred/shaders/deferred_lighting.wgsl
+  - zircon_runtime/src/graphics/scene/renderer/hzb/shaders/hzb_occlusion_cull.wgsl
+  - zircon_runtime/src/graphics/scene/post/camera_matrices/view_projection.rs
+  - zircon_runtime/src/graphics/scene/post/encode_reflection_probes/encode.rs
+  - zircon_runtime/src/graphics/scene/post/build_post_process_params/build.rs
   - zircon_runtime/src/asset/pipeline/manager/builtins/builtin_pbr_wgsl.rs
   - zircon_runtime/src/tests/runtime_diagnostics/mod.rs
   - zircon_runtime/src/tests/runtime_diagnostics/motion_vector.rs
   - zircon_runtime/src/tests/runtime_diagnostics/support.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/particle/build_particle_velocity_vertices/build_particle_velocity_vertices.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/particle/particle_renderer/record_velocity.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/particle/shaders/particle_velocity.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_record.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render_with_pipeline/render_frame_with_pipeline.rs
-  - zircon_runtime/src/graphics/backend/render_backend/read_texture_rgba.rs
+  - zircon_runtime/src/graphics/scene/particle/particle_renderer/record_velocity.rs
+  - zircon_runtime/src/graphics/scene/particle/shaders/particle_velocity.wgsl
+  - zircon_runtime/src/graphics/scene/renderer/core/render/render/render.rs
   - zircon_runtime/src/graphics/tests/render_product_particle_velocity.rs
-  - zircon_runtime/src/graphics/tests/render_product_mesh_cache/morph.rs
-  - zircon_runtime/src/graphics/tests/render_product_mesh_cache/morph/skinned_velocity.rs
+  - zircon_runtime/src/graphics/tests/meshes/morph/skinned_velocity.rs
 plan_sources:
   - docs/plans/zircon_runtime/render/index.md
   - docs/plans/zircon_runtime/render/06-temporal-pipeline.md
@@ -163,22 +135,20 @@ tests:
   - cargo test -p zircon_runtime --lib particle_velocity_gap_counts_sprites_only_when_reconstructed_velocity_is_requested --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-temporal-skinned-prev-palette-0614 --message-format short --color never -- --test-threads=1 --nocapture (timed out after 304s without test output; leftover cargo/rustc processes terminated)
   - zircon_runtime/src/core/framework/render/frame_extract.rs::tests::particle_extract_counts_previous_state_by_entity
   - zircon_runtime/src/core/framework/render/frame_extract.rs::tests::particle_extract_consumes_duplicate_entity_previous_state_once_per_row
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs::tests::particle_velocity_gap_excludes_sprites_with_previous_state
+  - zircon_runtime/src/graphics/runtime/framework/extract/update_stats/base_stats.rs::tests::particle_velocity_gap_excludes_sprites_with_previous_state
   - zircon_runtime/src/graphics/tests/render_product_anti_alias.rs::render_product_particle_previous_state_suppresses_velocity_gap_stats
   - rustfmt --edition 2021 --check on TP-M2-S1a jitter contract and scene uniform files
   - source scan for TemporalJitterSample, TemporalJitterSequence, ViewProjectionMatrixPair, temporal_jitter, and SceneUniform::from_frame
   - cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-temporal-skinned-prev-palette-0614 --message-format short --color never (blocked by unrelated UI tree-view helper compile errors)
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/frame_submission_context.rs::tests::render_taa_jitter_zero_when_taa_inactive
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/update_temporal_camera_history.rs::tests::successful_submit_records_camera_history_for_next_frame
-  - zircon_runtime/src/graphics/scene/scene_renderer/primitives/scene_uniform/from_frame.rs::tests::scene_uniform_exposes_jittered_and_unjittered_current_matrices
-  - zircon_runtime/src/graphics/scene/scene_renderer/primitives/scene_uniform/from_frame.rs::tests::scene_uniform_inverse_view_projection_is_unjittered
-  - zircon_runtime/src/graphics/scene/scene_renderer/temporal/velocity/velocity_camera_params.rs::tests::render_velocity_camera_params_use_unjittered_camera_matrices
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/execute/build_post_process_params/build.rs::tests::post_process_projection_params_ignore_temporal_jitter
+  - zircon_runtime/src/graphics/extract/submit/update_temporal_camera_history.rs::tests::successful_submit_records_camera_history_for_next_frame
+  - zircon_runtime/src/graphics/scene/renderer/scene_uniform/from_frame.rs::tests::scene_uniform_exposes_jittered_and_unjittered_current_matrices
+  - zircon_runtime/src/graphics/scene/renderer/scene_uniform/from_frame.rs::tests::scene_uniform_inverse_view_projection_is_unjittered
+  - zircon_runtime/src/graphics/scene/temporal/velocity/velocity_camera_params.rs::tests::render_velocity_camera_params_use_unjittered_camera_matrices
+  - zircon_runtime/src/graphics/scene/post/build_post_process_params/build.rs::tests::post_process_projection_params_ignore_temporal_jitter
   - cargo fmt --package zircon_runtime
   - cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-temporal-s1b-0614 --message-format short --color never
   - cargo fmt --package zircon_runtime -- --check
   - cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-temporal-s2-0614 --message-format short --color never
-  - zircon_runtime/src/core/framework/render/post_process/stack.rs::tests::taa_resolve_declares_history_velocity_and_final_composite_input
   - zircon_runtime/src/graphics/tests/pipeline_compile/temporal_and_ops.rs::taa_resolve_compiles_temporal_history_pass_when_taa_stack_is_effective
   - cargo test -p zircon_runtime particle_velocity_vertices --lib --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-temporal-s4d-0614 --message-format short --color never
   - cargo test -p zircon_runtime render_product_particle_velocity --lib --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-temporal-s4d-0614 --message-format short --color never

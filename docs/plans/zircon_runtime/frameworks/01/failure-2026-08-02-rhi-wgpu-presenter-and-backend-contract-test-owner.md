@@ -13,9 +13,7 @@ related_code:
   - zircon_runtime/src/rhi.rs
   - zircon_runtime/crates/zr_rhi
   - zircon_runtime/crates/zr_rhi_wgpu
-  - zircon_editor/src/ui/retained_host/host_contract/presenter/factory.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/rhi_command_list.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/rhi_device_contract.rs
+  - zircon_editor/src/ui/retained/contract/presenter/factory.rs
 tests:
   - python tools/audits/runtime_domain_dependency_audit.py --pretty
   - cargo tree -p zr_rhi --edges normal,build,dev

@@ -9,13 +9,10 @@ origin_child_dir: docs/plans/zircon_runtime/shader/06
 fixing_child_dir: docs/plans/zircon_runtime/render/07
 plan_link_mode: child_record_only
 related_code:
-  - zircon_runtime/src/graphics/scene/scene_renderer/primitives/scene_uniform/scene_uniform.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/ssao_spatial_denoise.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/ssao_bilateral_upsample.wgsl
-  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/screen_space_ambient_occlusion.rs
+  - zircon_runtime/src/graphics/scene/renderer/scene_uniform/scene_uniform.rs
+  - zircon_runtime/src/graphics/scene/post/shaders/ssao_spatial_denoise.wgsl
+  - zircon_runtime/src/graphics/scene/post/shaders/ssao_bilateral_upsample.wgsl
   - zircon_runtime/tests/runtime_ssao_scene_uniform_contract.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests/core_contracts/ao_input_qualification.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_record/ambient_occlusion_tests.rs
 tests:
   - managed Naga validation for ssao_spatial_denoise.wgsl and ssao_bilateral_upsample.wgsl
   - managed graphics integration target runtime_ssao_scene_uniform_contract

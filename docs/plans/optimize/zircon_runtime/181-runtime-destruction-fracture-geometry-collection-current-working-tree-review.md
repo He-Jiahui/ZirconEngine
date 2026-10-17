@@ -22,7 +22,6 @@ related_code:
   - zircon_runtime/src/graphics/scene/resources/gpu_mesh
   - zircon_runtime/src/graphics/visibility
   - zircon_runtime/src/core/framework/render
-  - zircon_runtime/src/graphics/scene/scene_renderer
   - zircon_plugins/first_party_runtime_catalog
 reference_engines:
   - dev/UnrealEngine/Engine/Source/Runtime/Experimental/GeometryCollectionEngine/Public/GeometryCollection/GeometryCollectionObject.h

@@ -5,10 +5,9 @@ plan_sources:
   - docs/plans/optimize/zircon_editor/04-asset-index-import-reimport-catalog-thumbnail-reference-workflow-review.md
   - docs/plans/optimize/zircon_editor/04/2026-09-13-catalog-projection-input-capacity.md
 related_code:
-  - zircon_editor/src/ui/host/editor_asset_manager/manager/project_sync/sync_from_project.rs
-  - zircon_editor/src/ui/host/editor_asset_manager/manager/project_sync/record_projection.rs
+  - zircon_editor/src/ui/host/assets/manager/project_sync/sync_from_project.rs
+  - zircon_editor/src/ui/host/assets/manager/project_sync/record_projection.rs
 tests:
-  - tools/tests/test_editor_catalog_projection_input_capacity_performance_contract.py
 ---
 
 # Editor Catalog Projection Input Capacity

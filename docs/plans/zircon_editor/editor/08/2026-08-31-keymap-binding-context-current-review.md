@@ -5,7 +5,6 @@ parent_plan: docs/plans/zircon_editor/editor/08-tool-orchestration-and-commands.
 session_id: root-editor08-keymap-playmode-exact-successor-20260831
 related_code:
   - zircon_editor/src/core/commands/keymap.rs
-  - zircon_editor/src/core/commands/keymap/tests.rs
   - zircon_editor/src/core/commands/when.rs
   - zircon_editor/src/ui/host/editor_manager.rs
 reference_code:

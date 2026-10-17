@@ -23,7 +23,6 @@ related_code:
   - zircon_runtime/src/text/shaping/itemize.rs
   - zircon_runtime/src/text/shaping/horizontal/backend.rs
   - zircon_runtime/src/text/shaping/horizontal/direct.rs
-  - zircon_runtime/src/text/shaping/horizontal/tests.rs
   - zircon_runtime/src/text/shaping/vertical.rs
   - zircon_runtime/src/text/shaping/vertical/backend.rs
   - zircon_runtime/src/text/shaping/vertical/direct.rs
@@ -32,8 +31,7 @@ related_code:
   - zircon_runtime/src/text/shaping/script_segment.rs
   - zircon_runtime/src/text/shaping/fallback_spans.rs
   - zircon_runtime/src/text/font/backend.rs
-  - zircon_runtime/src/text/shaping/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/text.rs
   - zircon_runtime_interface/src/ui/surface/render/mod.rs
   - zircon_runtime_interface/src/ui/surface/render/command.rs
   - zircon_runtime_interface/src/ui/surface/render/text_layout.rs

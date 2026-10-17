@@ -15,8 +15,6 @@ related_code:
   - zircon_runtime/src/graphics/shader
   - zircon_runtime/src/graphics/pipeline
   - zircon_runtime/src/graphics/scene/resources/pipeline
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache
   - zircon_runtime/src/bin/zircon_shader_prewarm
   - zircon_runtime/src/dynamic_api/shader_prewarm.rs
   - zircon_plugins/material_editor
@@ -31,7 +29,6 @@ tests:
   - zircon_runtime/src/graphics/pipeline
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache
   - zircon_runtime/src/bin/zircon_shader_prewarm
-  - zircon_plugins/material_editor/editor/src/tests.rs
   - zircon_plugins/rendering/features/shader_graph/runtime/src/lib.rs
   - zircon_plugins/shader_wgsl_importer/runtime/src/lib.rs
 plan_sources:

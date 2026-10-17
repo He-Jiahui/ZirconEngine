@@ -20,23 +20,16 @@ plan_sources:
   - docs/plans/optimize/zircon_runtime/02/2026-08-30-runtime-editor-capacity-batch-519.md
   - docs/plans/optimize/zircon_runtime/02/2026-08-30-runtime-editor-capacity-batch-520.md
 related_code:
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mui_x_primitives/data_grid/rows.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/badge/commands/sequencing.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_material_feedback/progress/linear.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_table_rows/cells/commands.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_section_titles/commands.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/divider/commands.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_list_rows/surface.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_table_rows/surface.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_tree_rows/surface.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_timeline_strip/surface.rs
+  - zircon_editor/src/ui/retained/contract/paint/mui_x_primitives/data_grid/rows.rs
+  - zircon_editor/src/ui/retained/contract/paint/badge/commands/sequencing.rs
+  - zircon_editor/src/ui/retained/contract/paint/feedback/progress/linear.rs
+  - zircon_editor/src/ui/retained/contract/paint/table_rows/cells/commands.rs
+  - zircon_editor/src/ui/retained/contract/paint/primitives/divider/commands.rs
   - zircon_editor/src/ui/workbench/reflection/activity_actions/resolve.rs
   - zircon_editor/src/ui/workbench/view/view_registry_descriptor_access.rs
   - zircon_editor/src/ui/layouts/views/view_projection/retained_binding.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/notification_center/options.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/showcase_actions/action_buttons.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_command_palette/commands.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_notification_center/panel.rs
+  - zircon_editor/src/ui/retained/ui/data/projection/notification_center/options.rs
+  - zircon_editor/src/ui/retained/ui/data/showcase_actions/action_buttons.rs
 ---
 
 # Editor972 Runtime/Editor capacity batches 504–520 — Editor slice

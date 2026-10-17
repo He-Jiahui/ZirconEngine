@@ -7,7 +7,7 @@ related_code:
   - zircon_runtime/src/graphics/scene/render_scene
   - zircon_runtime/src/graphics/scene/gpu_scene
   - zircon_runtime/src/core/framework/render/frame_extract/scene_changes
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/gpu_scene_sync.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/build/gpu_scene_sync.rs
 reference_code:
   - dev/UnrealEngine/Engine/Source/Runtime/Renderer/Private/GPUScene.cpp
   - dev/UnrealEngine/Engine/Source/Runtime/Renderer/Private/ScenePrivate.h

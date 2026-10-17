@@ -38,7 +38,6 @@ tests:
   - zircon_runtime/src/scene/tests/render_extract/direct_sections.rs
   - zircon_runtime/src/scene/tests/render_extract/lighting_postprocess.rs
   - zircon_runtime/src/scene/tests/world_basics/render_extract.rs
-  - zircon_runtime/src/scene/world/compiled_binding/tests.rs
   - zircon_editor/src/tests/editing/editor_projection.rs
   - zircon_editor/src/tests/editing/viewport.rs
   - zircon_runtime/src/graphics/tests/project_render/project_scenes/pbr_matrix.rs

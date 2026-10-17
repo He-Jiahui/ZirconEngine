@@ -18,9 +18,7 @@ related_code:
   - zircon_editor/src/ui/workbench/layout/workbench_layout.rs
   - zircon_editor/src/ui/workbench/autolayout/geometry/compute.rs
   - zircon_editor/src/ui/workbench/layout_preset.rs
-  - zircon_editor/src/ui/retained_host/drawer_resize.rs
-  - zircon_editor/src/ui/retained_host/app/workspace_docking/drawer_resize/movement.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/drag_resize
+  - zircon_editor/src/ui/retained/app/workspace_docking/drawer_resize/movement.rs
 reference_sources:
   - dev/slint/internal/core/model/repeater.rs
 tests:

@@ -11,7 +11,6 @@ fixing_child_dir: docs/plans/zircon_editor/editor/08
 plan_link_mode: child_record_only
 related_code:
   - zircon_editor/src/core/commands/keymap.rs
-  - zircon_editor/src/core/commands/keymap/tests.rs
   - zircon_editor/src/core/settings/defaults.rs
   - zircon_editor/src/core/settings/io.rs
   - zircon_editor/src/core/settings/keymap_overrides.rs

@@ -24,16 +24,12 @@ related_code:
   - zircon_editor/src/ui/workbench/state/editor_state_field_updates.rs
   - zircon_editor/src/ui/workbench/state/editor_state_selection.rs
 tests:
-  - zircon_runtime/src/scene/reflect/derived/tests.rs
-  - zircon_runtime/src/scene/world/compiled_binding/tests.rs
-  - zircon_runtime/src/scene/inspection/tests.rs
   - zircon_runtime/src/scene/inspection/tests/sparse_artifact.rs
-  - zircon_runtime/src/scene/inspection/subscription/tests.rs
   - zircon_runtime/src/scene/tests/ecs_reflect
   - zircon_runtime/src/scene/tests/property_paths
   - zircon_runtime/src/scene/tests/inspection.rs
   - zircon_runtime/src/scene/tests/ecs_dynamic_components_structure.rs
-  - zircon_editor/src/tests/editing/reflected_command.rs
+  - zircon_editor/src/tests/editing/reflected_command/mod.rs
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md
   - docs/plans/optimize/01-cross-report-owner-schema-abi-p0-consolidation-review.md

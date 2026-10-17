@@ -4,9 +4,7 @@ status: implemented_pending_validation
 plan_sources:
   - docs/plans/optimize/zircon_runtime/02/2026-08-30-editor542-preview-completion-entry.md
 implementation_files:
-  - zircon_editor/src/ui/host/editor_asset_manager/preview.rs
 tests:
-  - zircon_editor/src/ui/host/editor_asset_manager/preview.rs
 ---
 
 # Editor964 Editor542 preview completion entry probe

@@ -5,13 +5,11 @@ related_code:
   - zircon_runtime/src/ui/surface/surface/rebuild/incremental.rs
   - zircon_runtime/src/ui/surface/surface/property_transaction.rs
   - zircon_runtime/src/ui/surface/surface/pointer_component_events.rs
-  - zircon_runtime/src/ui/surface/surface/pointer_component_events/state_invalidation.rs
-  - zircon_runtime/src/ui/surface/surface/pointer_component_events/template_action.rs
+  - zircon_runtime/src/ui/surface/pointer_component_events/state_invalidation.rs
   - zircon_runtime/src/ui/layout/pass/incremental.rs
   - zircon_runtime/src/ui/text/measure_cache.rs
   - zircon_runtime_interface/src/ui/pipeline
   - zircon_runtime_interface/src/ui/surface
-  - zircon_editor/src/ui/retained_host
   - zircon_editor/src/ui/layouts/views/view_projection.rs
 related_failures:
   - failure-2026-07-17-ui-render-command-transient-extraction.md

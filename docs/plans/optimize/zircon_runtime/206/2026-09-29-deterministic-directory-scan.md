@@ -9,7 +9,6 @@ validation_status: static_checks_complete_managed_tests_pending
 performance_status: measurement_pending
 related_code:
   - zircon_runtime/src/asset/registry/rebuild.rs
-  - zircon_runtime/src/asset/registry/rebuild/deterministic_scan_tests.rs
 tests:
   - metadata_scan_collects_siblings_in_lexical_depth_first_order
 plan_sources:

@@ -10,7 +10,6 @@ related_records:
 implementation_files:
   - zircon_runtime/src/dynamic_api/session/runtime_ui/action_requests.rs
 tests:
-  - tools/tests/test_runtime_ui_action_revoke_capacity_performance_contract.py
 ---
 
 # Runtime807 · action revocation scratch capacity

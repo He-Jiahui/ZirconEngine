@@ -10,19 +10,14 @@ related_code:
   - zircon_editor/src/scene/viewport/render_packet.rs
   - zircon_runtime/src/graphics/scene/mod.rs
   - zircon_runtime/src/graphics/scene/resources/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/overlay/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/overlay/viewport_overlay_renderer/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/overlay/viewport_overlay_renderer/record/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/overlay/viewport_overlay_renderer/record/scene_content/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/overlay/viewport_overlay_renderer/record/overlays/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/overlay/passes/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/overlay/passes/scene_gizmo_pass/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/overlay/icons/viewport_icon_atlas/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/overlay/shaders/icon.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/primitives/mod.rs
+  - zircon_runtime/src/graphics/scene/renderer/overlay/overlay/record/mod.rs
+  - zircon_runtime/src/graphics/scene/overlay/overlay/record/scene_content/mod.rs
+  - zircon_runtime/src/graphics/scene/overlay/overlay/record/overlays/mod.rs
+  - zircon_runtime/src/graphics/scene/renderer/overlay/passes/mod.rs
+  - zircon_runtime/src/graphics/scene/overlay/passes/scene_gizmo_pass/mod.rs
+  - zircon_runtime/src/graphics/scene/overlay/icons/viewport_icon_atlas/mod.rs
+  - zircon_runtime/src/graphics/scene/renderer/overlay/shaders/icon.wgsl
+  - zircon_runtime/src/graphics/scene/renderer/primitives/mod.rs
   - zircon_runtime/src/graphics/tests/project_render.rs
   - zircon_runtime/src/graphics/tests/scene_overlay.rs
   - zircon_runtime/src/scene/tests
@@ -37,11 +32,7 @@ related_code:
   - zircon_editor/src/scene/viewport/controller/mod.rs
   - zircon_editor/src/scene/viewport/handles/mod.rs
   - zircon_editor/src/scene/viewport/pointer/mod.rs
-  - zircon_editor/src/scene/viewport/pointer/overlay_router/viewport_overlay_pointer_router_sync.rs
   - zircon_editor/src/scene/viewport/projection.rs
-  - zircon_editor/src/ui/retained_host/app.rs
-  - zircon_editor/src/ui/retained_host/ui.rs
-  - zircon_editor/src/ui/retained_host/viewport/mod.rs
   - zircon_editor/src/ui/binding_dispatch/mod.rs
   - zircon_editor/src/core/editor_event/types.rs
   - zircon_editor/src/core/editor_event/mod.rs
@@ -50,7 +41,6 @@ related_code:
   - zircon_editor/src/ui/workbench/snapshot/mod.rs
   - zircon_editor/assets/viewport_gizmos/camera.pbm
   - zircon_editor/assets/viewport_gizmos/directional_light.pbm
-  - zircon_editor/assets/ui/editor/host/workbench_shell.zui
   - zircon_editor/assets/ui/editor/host/scene_viewport_toolbar.zui
   - zircon_editor/src/tests/editing/viewport.rs
 implementation_files:
@@ -64,19 +54,14 @@ implementation_files:
   - zircon_editor/src/scene/viewport/render_packet.rs
   - zircon_runtime/src/graphics/scene/mod.rs
   - zircon_runtime/src/graphics/scene/resources/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/overlay/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/overlay/viewport_overlay_renderer/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/overlay/viewport_overlay_renderer/record/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/overlay/viewport_overlay_renderer/record/scene_content/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/overlay/viewport_overlay_renderer/record/overlays/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/overlay/passes/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/overlay/passes/scene_gizmo_pass/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/overlay/icons/viewport_icon_atlas/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/overlay/shaders/icon.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/primitives/mod.rs
+  - zircon_runtime/src/graphics/scene/renderer/overlay/overlay/record/mod.rs
+  - zircon_runtime/src/graphics/scene/overlay/overlay/record/scene_content/mod.rs
+  - zircon_runtime/src/graphics/scene/overlay/overlay/record/overlays/mod.rs
+  - zircon_runtime/src/graphics/scene/renderer/overlay/passes/mod.rs
+  - zircon_runtime/src/graphics/scene/overlay/passes/scene_gizmo_pass/mod.rs
+  - zircon_runtime/src/graphics/scene/overlay/icons/viewport_icon_atlas/mod.rs
+  - zircon_runtime/src/graphics/scene/renderer/overlay/shaders/icon.wgsl
+  - zircon_runtime/src/graphics/scene/renderer/primitives/mod.rs
   - zircon_runtime/src/graphics/tests/scene_overlay.rs
   - zircon_runtime/src/scene/tests
   - zircon_runtime/src/scene/tests
@@ -88,11 +73,7 @@ implementation_files:
   - zircon_editor/src/scene/viewport/controller/mod.rs
   - zircon_editor/src/scene/viewport/handles/mod.rs
   - zircon_editor/src/scene/viewport/pointer/mod.rs
-  - zircon_editor/src/scene/viewport/pointer/overlay_router/viewport_overlay_pointer_router_sync.rs
   - zircon_editor/src/scene/viewport/projection.rs
-  - zircon_editor/src/ui/retained_host/app.rs
-  - zircon_editor/src/ui/retained_host/ui.rs
-  - zircon_editor/src/ui/retained_host/viewport/mod.rs
   - zircon_editor/src/ui/binding_dispatch/mod.rs
   - zircon_editor/src/core/editor_event/types.rs
   - zircon_editor/src/core/editor_event/mod.rs
@@ -101,7 +82,6 @@ implementation_files:
   - zircon_editor/src/ui/workbench/snapshot/mod.rs
   - zircon_editor/assets/viewport_gizmos/camera.pbm
   - zircon_editor/assets/viewport_gizmos/directional_light.pbm
-  - zircon_editor/assets/ui/editor/host/workbench_shell.zui
   - zircon_editor/assets/ui/editor/host/scene_viewport_toolbar.zui
 plan_sources:
   - user: 2026-04-15 Scene Viewport Gizmos/Handle/Overlay 规范化方案
@@ -113,13 +93,12 @@ tests:
   - zircon_runtime/src/graphics/tests/project_render.rs
   - zircon_runtime/src/graphics/tests/scene_overlay.rs
   - zircon_editor/src/tests/ui/binding/viewport.rs
-  - zircon_editor/src/tests/host/binding_dispatch.rs
+  - zircon_editor/src/tests/host/binding_dispatch/mod.rs
   - zircon_editor/src/tests/host/retained_window/generic_host_boundary.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/viewport/pointer_bridge.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/viewport/typed_command.rs
+  - zircon_editor/src/tests/host/callbacks/viewport/pointer_bridge.rs
+  - zircon_editor/src/tests/host/callbacks/viewport/typed_command.rs
   - zircon_editor/src/tests/editing/state.rs
   - zircon_editor/src/tests/editing/viewport.rs
-  - zircon_editor/src/ui/retained_host/ui.rs
   - cargo test -p zircon_scene --test viewport_packet -- --nocapture
   - cargo test -p zircon_graphics project_render -- --nocapture
   - cargo test -p zircon_graphics --lib -- --nocapture

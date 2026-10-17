@@ -1,8 +1,8 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/app/native_window_close.rs
-  - zircon_editor/src/ui/retained_host/app/native_window_close
-  - zircon_editor/src/ui/retained_host/app/close_prompt/model.rs
+  - zircon_editor/src/ui/retained/app/native_window_close.rs
+  - zircon_editor/src/ui/retained/app/native_window_close
+  - zircon_editor/src/ui/retained/app/close_prompt/model.rs
   - zircon_editor/src/ui/host/layout_commands.rs
   - zircon_editor/src/ui/host/editor_event_dispatch.rs
   - zircon_editor/src/ui/host/scene_inspection_publication.rs

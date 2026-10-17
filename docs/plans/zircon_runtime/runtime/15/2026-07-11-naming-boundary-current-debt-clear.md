@@ -2,14 +2,14 @@
 related_code:
   - zircon_runtime/src/ui/surface/render/text_prewarm.rs
   - zircon_runtime/src/ui/text/geometry.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_advances.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/sdf_advances.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/runtime_naming_boundary.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/module_convention_gate.py
   - docs/crates/zircon_runtime/structure/module-convention.md
 implementation_files:
   - zircon_runtime/src/ui/surface/render/text_prewarm.rs
   - zircon_runtime/src/ui/text/geometry.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_advances.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/sdf_advances.rs
 plan_sources:
   - docs/plans/engine-code-structure-convention.md
   - docs/plans/engine-code-review-findings-2026-06.md
@@ -17,7 +17,6 @@ plan_sources:
 tests:
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/runtime_naming_boundary.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/module_convention_gate.py
-  - tests/acceptance/runtime-architecture-current-progress.md
 doc_type: milestone-detail
 status: runtime_15_naming_boundary_current_debt_clear_static_audit_passed_cargo_deferred
 ---

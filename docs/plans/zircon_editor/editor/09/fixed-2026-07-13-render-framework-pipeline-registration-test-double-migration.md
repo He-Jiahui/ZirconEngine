@@ -9,8 +9,7 @@ origin_child_dir: docs/plans/zircon_editor/editor/09
 fixing_child_dir: docs/plans/zircon_runtime/render/01
 related_code:
   - zircon_runtime/src/core/framework/render/framework.rs
-  - zircon_editor/src/ui/retained_host/viewport/test_render_framework.rs
-  - zircon_editor/src/ui/retained_host/viewport/tests/fake_render_framework.rs
+  - zircon_editor/src/ui/retained/viewport/tests/fake_render_framework.rs
 tests:
   - cargo test -p zircon_editor --lib --no-run --locked --jobs 1
 resolved_at: 2026-07-13

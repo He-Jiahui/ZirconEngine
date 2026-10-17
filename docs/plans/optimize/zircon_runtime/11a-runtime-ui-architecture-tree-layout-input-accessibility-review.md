@@ -5,8 +5,7 @@ related_code:
   - zircon_runtime/src/ui/surface/surface/rebuild/incremental.rs
   - zircon_runtime/src/ui/surface/surface/property_transaction.rs
   - zircon_runtime/src/ui/surface/surface/pointer_component_events.rs
-  - zircon_runtime/src/ui/surface/surface/pointer_component_events/state_invalidation.rs
-  - zircon_runtime/src/ui/surface/surface/pointer_component_events/template_action.rs
+  - zircon_runtime/src/ui/surface/pointer_component_events/state_invalidation.rs
   - zircon_runtime/src/ui/template/asset/surface_index.rs
   - zircon_runtime/src/ui/template/asset/surface_index/node_resource_registration.rs
   - zircon_runtime_interface/src/ui

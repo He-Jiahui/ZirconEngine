@@ -10,7 +10,7 @@ origin_child_dir: docs/plans/zircon_runtime/frameworks/01
 fixing_child_dir: docs/plans/zircon_runtime/runtime/11
 plan_link_mode: child_record_only
 related_code:
-  - zircon_runtime/src/scene/dynamic_scene/session/io/atomic.rs
+  - zircon_runtime/src/scene/dynamic/session/io/atomic.rs
 tests:
   - .\tools\dev\zircon-session.ps1 ownership matrix --prefix zircon_runtime/src/scene/dynamic_scene/session/io/atomic.rs -Json
 ---

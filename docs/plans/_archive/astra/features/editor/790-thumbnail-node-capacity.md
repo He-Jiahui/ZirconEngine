@@ -10,8 +10,6 @@ related_records:
 implementation_files:
   - zircon_editor/src/ui/layouts/views/asset_browser/thumbnail_nodes.rs
 tests:
-  - zircon_editor/src/ui/layouts/views/asset_browser/thumbnail_nodes/capacity_tests.rs
-  - tools/tests/test_editor_thumbnail_node_capacity_performance_contract.py
 ---
 
 # Editor790 · Asset Browser thumbnail-node capacity

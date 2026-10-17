@@ -13,8 +13,7 @@ related_code:
   - zircon_runtime/src/core/framework/render/mod.rs
   - zircon_runtime/src/core/framework/render/backend_types.rs
   - zircon_runtime/src/core/framework/render/backend_types/graph_reports.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/execute_graph_stage.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_record.rs
+  - zircon_runtime/src/graphics/scene/core/render/render/execute_graph_stage.rs
 tests:
   - cargo test -p zircon_editor --lib gateway:: --locked --jobs 1 --color never -- --test-threads=1
 ---

@@ -9,11 +9,7 @@ origin_child_dir: docs/plans/zircon_editor/editor/01
 fixing_child_dir: docs/plans/zircon_runtime/frameworks/05
 plan_link_mode: child_record_only
 related_code:
-  - zircon_runtime/src/asset/pipeline/manager/service_contracts/asset_manager_contract.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/open_project.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/close_project.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/runtime.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager
+  - zircon_runtime/src/asset/manager/service_contracts/asset_manager_contract.rs
 tests:
   - cargo test -p zircon_runtime --lib --locked project_asset_manager
   - cargo test -p zircon_editor --lib --locked document

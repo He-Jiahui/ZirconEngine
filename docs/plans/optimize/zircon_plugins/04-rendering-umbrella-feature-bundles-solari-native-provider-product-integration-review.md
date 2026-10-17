@@ -7,12 +7,8 @@ related_code:
   - zircon_app/src/entry/first_party_runtime_plugins.rs
   - zircon_app/src/entry/entry_runner/editor/composition.rs
   - zircon_app/src/entry/export_bootstrap.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/rendering_features/rows.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_definition_collection.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_resolution.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/project_extension_report/feature_merge.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/registration_manifest.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/registration_replay.rs
+  - zircon_runtime/src/plugin/runtime/builtin_catalog/rendering_features/rows.rs
+  - zircon_runtime/src/plugin/catalog/project_extension_report/feature_merge.rs
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md
   - docs/plans/optimize/01-cross-report-owner-schema-abi-p0-consolidation-review.md

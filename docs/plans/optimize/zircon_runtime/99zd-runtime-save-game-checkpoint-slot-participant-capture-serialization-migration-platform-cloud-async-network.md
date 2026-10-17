@@ -8,20 +8,15 @@ baseline_epoch: 383
 supersedes_currentness_of:
   - docs/plans/optimize/zircon_runtime/40-save-game-checkpoint-slot-participant-capture-serialization-migration-platform-cloud-async-network-scalability-product-integration-review.md
 related_code:
-  - zircon_runtime/src/scene/dynamic_scene/session
-  - zircon_runtime/src/scene/dynamic_scene/scene
-  - zircon_runtime/src/scene/dynamic_scene/document
   - zircon_runtime/src/core/resource/io
   - zircon_runtime/src/core/runtime/tasks/bounded_keyed_io
   - zircon_runtime/src/core/framework/platform/preferences
   - zircon_runtime/src/platform/preferences
   - zircon_runtime_interface/src/serialization
-  - zircon_runtime/src/plugin/native_plugin_loader
   - zircon_runtime/src/script/vm
   - zircon_plugins/zr_vm_language/runtime/src/real_backend/instance.rs
   - examples/woc
   - examples/vampire/scripts/vampire_game/main.zr
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback/runtime_state.rs
 tests:
   - zircon_runtime/src/scene/tests/dynamic_scene
   - zircon_runtime/src/platform/tests/preferences.rs

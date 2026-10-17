@@ -9,7 +9,6 @@ related_records:
 implementation_files:
   - zircon_runtime/src/core/runtime/tasks/diagnostic_observation/journal.rs
 tests:
-  - zircon_runtime/src/core/runtime/tasks/diagnostic_observation/tests.rs
 ---
 
 # Runtime884 Runtime02 Task Diagnostic Page Capacity

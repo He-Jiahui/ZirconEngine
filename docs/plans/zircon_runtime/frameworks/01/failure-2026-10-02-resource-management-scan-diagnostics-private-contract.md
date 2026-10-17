@@ -12,7 +12,6 @@ related_code:
   - zircon_runtime/crates/zr_resource/src/management_generation.rs
   - zircon_runtime/crates/zr_resource/src/lib.rs
   - zircon_runtime/src/core/resource/mod.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/management.rs
   - zircon_runtime/crates/zr_resource/src/management_generation/tests/projection.rs
   - zircon_runtime/crates/zr_resource/tests/management_scan_diagnostics.rs
   - docs/crates/zircon_runtime/core/resource.md

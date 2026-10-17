@@ -1,35 +1,6 @@
 ---
 related_code:
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_button.zui
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_icon_button.zui
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_field.zui
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_dropdown.zui
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_number_field.zui
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_search_input.zui
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_tab.zui
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_tab_strip.zui
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_segmented_control.zui
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_list_row.zui
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_tree_row.zui
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_table_row.zui
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_property_row.zui
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_component_property_row.zui
-  - zircon_editor/src/tests/ui/boundary/zui_asset_governance/workbench_atomic_density.rs
 implementation_files:
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_button.zui
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_icon_button.zui
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_field.zui
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_dropdown.zui
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_number_field.zui
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_search_input.zui
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_tab.zui
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_tab_strip.zui
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_segmented_control.zui
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_list_row.zui
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_tree_row.zui
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_table_row.zui
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_property_row.zui
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_component_property_row.zui
 plan_sources:
   - docs/plans/zircon_editor/editor_layout/15-component-standardization-from-primitives.md
   - docs/plans/zircon_editor/editor_layout/15b-host-control-metrics-single-source.md

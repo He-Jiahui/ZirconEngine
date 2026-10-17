@@ -11,11 +11,10 @@ plan_link_mode: child_record_only
 related_code:
   - zircon_editor/src/core/plugin/manager.rs
   - zircon_editor/src/core/plugin/manager/lifecycle_replacement.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/mod.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/status/native.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/enablement/native.rs
-  - zircon_editor/src/ui/retained_host/app/module_plugin_projection/pane_data.rs
-  - zircon_editor/src/ui/retained_host/app/module_plugin_projection/pane_data/report.rs
+  - zircon_editor/src/ui/host/exports/status/native.rs
+  - zircon_editor/src/ui/host/exports/enablement/native.rs
+  - zircon_editor/src/ui/retained/app/module_plugin_projection/pane_data.rs
+  - zircon_editor/src/ui/retained/app/module_plugin_projection/pane_data/report.rs
 tests:
   - editor plugin catalog generation build-count regression
   - plugin-manager recompute package/capability clone-count regression

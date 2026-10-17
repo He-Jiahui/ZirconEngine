@@ -14,19 +14,13 @@ related_code:
   - zircon_plugins/first_party_editor_catalog/src/catalog.rs
   - zircon_editor/build.rs
   - zircon_editor/src/core/plugin
-  - zircon_editor/src/ui/host/editor_manager_plugins_export
   - zircon_runtime/src/plugin/package_manifest
-  - zircon_runtime/src/plugin/native_plugin_loader
   - zircon_app/src/entry/first_party_editor_plugins.rs
 tests:
-  - zircon_plugins/plugin_sdk_examples/editor/src/tests.rs
   - zircon_plugins/plugin_sdk_examples/dist/src/lib.rs
   - zircon_plugins/native_dynamic_fixture/native/src/lib.rs
   - zircon_editor/src/tests/editor_plugin_catalog_consistency.rs
   - zircon_editor/src/tests/editor_plugin_sdk.rs
-  - zircon_runtime/src/tests/plugin_extensions/native_plugin_loader.rs
-  - zircon_runtime/src/tests/plugin_extensions/native_plugin_loader/real_fixture.rs
-  - zircon_runtime/src/tests/plugin_extensions/plugin_workspace_shape.rs
   - tools/tests/test_editor12_editor_contribution_fixture_contract.py
   - .github/workflows/ci.yml
 plan_sources:

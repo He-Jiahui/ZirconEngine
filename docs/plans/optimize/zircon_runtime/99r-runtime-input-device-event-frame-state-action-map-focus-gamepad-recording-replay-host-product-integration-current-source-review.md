@@ -31,7 +31,6 @@ related_code:
 tests:
   - zircon_runtime/src/input/tests
   - zircon_runtime/src/dynamic_api/tests/input_events.rs
-  - zircon_runtime/src/script/vm/gameplay_host/tests.rs
   - zircon_app/src/entry/tests/runtime_entry_input_guards
 plan_sources:
   - docs/plans/optimize/zircon_runtime/56-input-device-event-frame-state-action-map-focus-gamepad-recording-replay-host-product-integration-review.md

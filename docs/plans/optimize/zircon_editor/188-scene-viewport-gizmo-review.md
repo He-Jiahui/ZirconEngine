@@ -9,38 +9,28 @@ related_code:
   - zircon_editor/src/core/editing/command.rs
   - zircon_editor/src/core/editing/command/batch_transform.rs
   - zircon_editor/src/scene/viewport/handles
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_handle_interaction.rs
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_handle_input.rs
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_interaction_cancel.rs
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_reset_from_scene.rs
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_accessors.rs
   - zircon_editor/src/scene/viewport/interaction/viewport_feedback.rs
   - zircon_editor/src/scene/viewport/settings.rs
   - zircon_editor/src/scene/viewport/projection.rs
   - zircon_editor/src/scene/viewport/render_packet.rs
   - zircon_editor/src/core/settings
   - zircon_editor/src/ui/binding/viewport
-  - zircon_editor/src/ui/retained_host/callback_dispatch/viewport
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/componentized_window.rs
-  - zircon_editor/src/ui/template_runtime/builtin/workbench_window_template_bindings.rs
+  - zircon_editor/src/ui/retained/dispatch/workbench/componentized_window.rs
   - zircon_editor/src/ui/workbench/model/status_bar_model.rs
   - zircon_editor/assets/ui/editor/host/scene_viewport_toolbar.zui
-  - zircon_editor/assets/ui/editor/components/workbench/shell/workbench_viewport_panel.zui
   - zircon_runtime/src/core/framework/render/overlay.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/overlay/passes/grid_pass.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/primitives/grid
+  - zircon_runtime/src/graphics/scene/renderer/overlay/passes/grid_pass.rs
+  - zircon_runtime/src/graphics/scene/renderer/primitives/grid
 tests:
   - zircon_editor/src/core/settings/tests/persistence.rs
   - zircon_editor/src/tests/editing/state/viewport.rs
   - zircon_editor/src/tests/editing/viewport.rs
   - zircon_editor/src/tests/editing/transaction_engine/journal_scene_commands.rs
   - zircon_editor/src/tests/host/binding_dispatch/viewport.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/viewport/toolbar_dispatch.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/viewport/typed_command.rs
-  - zircon_editor/src/tests/host/template_runtime/scene_viewport_toolbar_runtime_projection.rs
+  - zircon_editor/src/tests/host/callbacks/viewport/toolbar_dispatch.rs
+  - zircon_editor/src/tests/host/callbacks/viewport/typed_command.rs
   - zircon_editor/src/tests/ui/binding/viewport.rs
   - zircon_editor/src/tests/workbench/chrome_snapshot/viewport_settings.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/status_bar.rs
 plan_sources:
   - docs/plans/optimize/zircon_editor/67-editor-scene-viewport-transform-manipulation-gizmo-pivot-coordinate-space-grid-snapping-workplane-numeric-surface-vertex-alignment-preference-transaction-product-integration-current-source-review.md
   - docs/plans/optimize/zircon_editor/03-scene-prefab-selection-mode-gizmo-picking-review.md

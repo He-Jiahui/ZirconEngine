@@ -7,10 +7,9 @@ related_records:
   - docs/plans/astra/features/editor/30-recent-optimization-batch-completion.md
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_material_feedback/circular_progress/cache.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_material_feedback/circular_progress/entry.rs
+  - zircon_editor/src/ui/retained/contract/paint/feedback/circular_progress/cache.rs
+  - zircon_editor/src/ui/retained/contract/paint/feedback/circular_progress/entry.rs
 tests:
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_material_feedback/circular_progress/cache/hash_arc_tests.rs
 ---
 
 # Editor974 Editor01 circular-progress HashMap + Arc cache

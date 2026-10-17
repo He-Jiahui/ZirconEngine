@@ -11,7 +11,6 @@ implementation_files:
   - zircon_editor/src/ui/layouts/views/asset_reference_rows.rs
 tests:
   - zircon_editor/src/ui/layouts/views/asset_reference_rows.rs
-  - tools/tests/test_editor_asset_reference_rows_capacity_performance_contract.py
 ---
 
 # Editor reference-row node capacity reservation

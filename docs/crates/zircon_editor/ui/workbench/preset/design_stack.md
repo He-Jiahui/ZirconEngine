@@ -3,8 +3,6 @@ related_code:
   - zircon_editor/src/ui/host/builtin_layout/builtin_shell_view_instances.rs
   - zircon_editor/src/ui/host/builtin_layout/hybrid_layout.rs
   - zircon_editor/src/ui/host/builtin_layout/mod.rs
-  - zircon_editor/src/ui/host/builtin_views/activity_views/functional_panel_view_descriptors.rs
-  - zircon_editor/src/ui/host/builtin_views/activity_windows/functional_window_view_descriptors.rs
   - zircon_editor/src/ui/host/builtin_views/builtin_view_descriptors.rs
   - zircon_editor/src/ui/workbench/preset/mod.rs
   - zircon_editor/src/ui/workbench/preset/default_layout.rs
@@ -20,8 +18,6 @@ implementation_files:
   - zircon_editor/src/ui/host/builtin_layout/builtin_shell_view_instances.rs
   - zircon_editor/src/ui/host/builtin_layout/hybrid_layout.rs
   - zircon_editor/src/ui/host/builtin_layout/mod.rs
-  - zircon_editor/src/ui/host/builtin_views/activity_views/functional_panel_view_descriptors.rs
-  - zircon_editor/src/ui/host/builtin_views/activity_windows/functional_window_view_descriptors.rs
   - zircon_editor/src/ui/host/builtin_views/builtin_view_descriptors.rs
   - zircon_editor/src/ui/workbench/preset/mod.rs
   - zircon_editor/src/ui/workbench/preset/default_layout.rs
@@ -34,7 +30,7 @@ plan_sources:
   - user: 2026-05-11 Implement Material + Fyrox + JetBrains + Unreal editor UI plan
   - .codex/plans/Zircon Editor UI Material  Fyrox  JetBrains  Unreal.md
 tests:
-  - zircon_editor/src/tests/host/manager/bootstrap_and_startup.rs
+  - zircon_editor/src/tests/host/manager/bootstrap_and_startup/mod.rs
   - zircon_editor/src/tests/host/builtin_window_descriptors.rs
   - zircon_editor/src/ui/workbench/preset/default_layout.rs
   - zircon_editor/src/ui/workbench/preset/default_registry.rs

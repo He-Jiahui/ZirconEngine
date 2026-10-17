@@ -2,20 +2,8 @@
 related_code:
   - zircon_runtime_interface/src/ui/design_tokens.rs
   - zircon_editor/assets/ui/editor/theme/editor_tokens.zui
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/chrome/workbench_chip.zui
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_caption.zui
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_label.zui
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/feedback/workbench_status_item.zui
-  - zircon_editor/assets/ui/editor/components/workbench/shell/workbench_component_drawer.zui
 implementation_files:
   - zircon_runtime_interface/src/ui/design_tokens.rs
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/chrome/workbench_chip.zui
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_caption.zui
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_label.zui
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/feedback/workbench_status_item.zui
-  - zircon_editor/assets/ui/editor/components/workbench/shell/workbench_component_drawer.zui
 plan_sources:
   - docs/plans/zircon_editor/editor_layout/15-component-standardization-from-primitives.md
   - docs/plans/zircon_editor/editor_layout/17-text-rendering-and-typography.md

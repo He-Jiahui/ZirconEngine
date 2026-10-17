@@ -8,9 +8,7 @@ related_records:
   - docs/plans/astra/features/editor/664-20260911-editor-ui-optimization-batch-completion.md
 implementation_files:
   - zircon_editor/src/scene/viewport/render_packet.rs
-  - zircon_editor/src/scene/viewport/render_packet/reused_overlay_storage_tests.rs
 tests:
-  - tools/tests/test_editor641_scene_gizmo_capacity_performance_contract.py
 ---
 
 # Editor641 · scene-gizmo capacity evidence refresh

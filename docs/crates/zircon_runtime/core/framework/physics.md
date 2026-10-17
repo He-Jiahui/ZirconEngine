@@ -30,17 +30,14 @@ related_code:
   - zircon_runtime/src/core/framework/scene/physics/joint_drive.rs
   - zircon_runtime/src/core/framework/scene/physics/material_metadata.rs
   - zircon_runtime/src/core/framework/scene/physics/skeleton_joint_binding.rs
-  - zircon_runtime/src/core/framework/physics/tests.rs
   - zircon_runtime/src/core/framework/physics/trigger_event.rs
   - zircon_runtime/src/core/framework/physics/trigger_event_kind.rs
   - zircon_runtime/src/core/framework/physics/world_step_plan.rs
   - zircon_runtime/src/core/framework/physics/world_sync_state.rs
   - zircon_runtime/src/asset/assets/scene/mod.rs
   - zircon_runtime/src/scene/components/scene/physics.rs
-  - zircon_runtime/src/scene/dynamic_scene/scene/mod.rs
   - zircon_runtime/src/scene/world/project_io.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/augmentation/capabilities.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/core_classification/runtime/services.rs
+  - zircon_runtime/src/plugin/runtime/builtin_catalog/augmentation/capabilities.rs
   - zircon_plugins/physics/runtime/src/manager.rs
   - zircon_plugins/physics/runtime/src/manager/service.rs
   - zircon_plugins/physics/runtime/src/runtime_system.rs
@@ -65,13 +62,10 @@ implementation_files:
   - zircon_runtime/src/core/framework/scene/physics/skeleton_joint_binding.rs
   - zircon_runtime/src/core/framework/physics/trigger_event.rs
   - zircon_runtime/src/core/framework/physics/trigger_event_kind.rs
-  - zircon_runtime/src/core/framework/physics/tests.rs
   - zircon_runtime/src/asset/assets/scene/mod.rs
   - zircon_runtime/src/scene/components/scene/physics.rs
-  - zircon_runtime/src/scene/dynamic_scene/scene/mod.rs
   - zircon_runtime/src/scene/world/project_io.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/augmentation/capabilities.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/core_classification/runtime/services.rs
+  - zircon_runtime/src/plugin/runtime/builtin_catalog/augmentation/capabilities.rs
   - zircon_plugins/physics/plugin.toml
   - zircon_plugins/physics/runtime/src/lib.rs
   - zircon_plugins/physics/runtime/src/manager.rs
@@ -90,10 +84,8 @@ plan_sources:
   - .codex/plans/ZirconEngine 周边设施与插件能力完善计划.md
   - .codex/plans/ZirconEngine 独立插件补齐计划.md
 tests:
-  - zircon_runtime/src/core/framework/physics/tests.rs
   - physics_settings_store_errors_are_domain_owned_and_stable
   - tools/tests/test_frameworks_01_physics_settings_error_boundary.py
-  - zircon_plugins/animation/runtime/tests/runtime_physics_animation_tick_contract/state_machine_interruption.rs::pose_targets_visible_to_physics_step
   - zircon_runtime/tests/runtime_plugin_world_extensions_contract.rs
   - backend_status_step_plan_and_physics_query_roundtrip_as_framework_dtos
   - shape_overlap_uses_shared_query_filter_for_layers_sensors_groups_and_exclusions

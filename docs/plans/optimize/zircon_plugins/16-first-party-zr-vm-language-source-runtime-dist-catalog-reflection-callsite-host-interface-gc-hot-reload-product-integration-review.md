@@ -24,15 +24,14 @@ related_code:
   - zircon_app/Cargo.toml
   - zircon_app/src/entry/first_party_runtime_plugins.rs
   - zircon_app/src/entry/tests/profile_bootstrap.rs
-  - zircon_app/src/entry/runtime_library/tests.rs
   - zircon_runtime/src/script/vm
   - zircon_runtime/src/dynamic_api/session/script_systems.rs
   - zircon_runtime/src/dynamic_api/session/tests/frame_diagnostics.rs
   - zircon_runtime/src/dynamic_api/session/tests/vampire_gameplay.rs
   - zircon_runtime/src/dynamic_api/session/tests/vampire_hud.rs
   - zircon_runtime/src/dynamic_api/session/tests/vampire_menu.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/language
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/augmentation/capabilities.rs
+  - zircon_runtime/src/plugin/runtime/builtin_catalog/language
+  - zircon_runtime/src/plugin/runtime/builtin_catalog/augmentation/capabilities.rs
   - zircon_runtime/src/builtin/runtime_modules/ids/plugin_id.rs
   - zircon_runtime/src/platform/tests/app_feature_manifest.rs
   - docs/crates/zircon_runtime/script/vm
@@ -44,9 +43,6 @@ related_code:
   - examples/vampire/scripts/vampire_game/bin/main.zro
 tests:
   - zircon_plugins/zr_vm_language/runtime/src/tests
-  - zircon_plugins/zr_vm_language/runtime/src/real_backend/tests.rs
-  - zircon_plugins/zr_vm_language/runtime/src/call_site/tests.rs
-  - zircon_plugins/zr_vm_language/runtime/src/reflection_host/tests.rs
   - zircon_plugins/first_party_runtime_catalog/src/tests
   - zircon_runtime/src/script/vm/tests
   - zircon_runtime/src/script/vm/runtime/hot_reload_coordinator/tests

@@ -11,7 +11,6 @@ related_code:
   - zircon_editor/src/core/play/pending_edits
   - zircon_editor/src/core/editing/operation
   - zircon_editor/src/core/gateway/handle.rs
-  - zircon_editor/src/core/play/tests.rs
   - zircon_editor/src/core/play/tests/terminal_backend_retirement.rs
   - zircon_editor/src/ui/host/editor_host_event_controller.rs
   - zircon_editor/src/ui/host/editor_host_event_controller/play_viewport_pick.rs

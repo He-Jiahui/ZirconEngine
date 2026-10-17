@@ -16,10 +16,9 @@ related_code:
   - zircon_runtime/src/ui/surface/surface/default_interactions/tree_view.rs
   - zircon_runtime/src/ui/surface/surface/default_interactions/tree_view_reparent.rs
   - zircon_runtime/src/ui/surface/surface/default_interactions/tree_view_support.rs
-  - zircon_runtime/src/ui/surface/surface/default_interactions/tree_view_virtualization.rs
+  - zircon_runtime/src/ui/surface/default_interactions/tree_view_virtualization.rs
   - zircon_runtime/src/ui/surface/component_state.rs
   - zircon_runtime/src/ui/surface/property_mutation.rs
-  - zircon_runtime/src/tests/runtime_absorption/ui_architecture.rs
 implementation_files:
   - zircon_runtime_interface/src/ui/widget.rs
   - zircon_runtime_interface/src/ui/template/document.rs
@@ -31,7 +30,6 @@ implementation_files:
   - zircon_runtime/src/ui/surface/surface/default_interactions/table/mutation.rs
   - zircon_runtime/src/ui/surface/surface/default_interactions/timers.rs
   - docs/crates/zircon_runtime/ui/surface/default_interactions.md
-  - zircon_runtime/src/tests/runtime_absorption/ui_architecture.rs
 plan_sources:
   - docs/plans/zircon_runtime/runtime/09-ui-subsystem-architecture.md
   - docs/plans/zircon_runtime/runtime/index.md
@@ -40,7 +38,6 @@ tests:
   - zircon_runtime::ui::tests::asset_binding::default_interaction_schema
   - zircon_runtime::ui::tests::v2_asset::v2_compiler_projects_descriptor_component_role
   - tools/tests/test_runtime_ui_table_module_structure.py
-  - tests/acceptance/runtime-ui-table-mutation-owner-split.md
   - zircon_runtime::tests::runtime_absorption::ui_architecture::runtime_09_surface_default_interaction_fallback_rename_reduces_ui_surface_debt
   - ui_architecture_boundary targeted audit
   - rustfmt check for zircon_runtime/src/ui/surface/surface/default_interactions.rs

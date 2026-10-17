@@ -11,10 +11,8 @@ plan_link_mode: child_record_only
 related_code:
   - zircon_runtime/src/asset/project/manager/load_or_create_meta.rs
   - zircon_runtime/src/asset/project/manager/scan_and_import/targeted.rs
-  - zircon_runtime/src/asset/tests/project/manager/targeted_import/meta_preconditions.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/project_asset_manager.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/runtime.rs
-  - zircon_runtime/src/asset/pipeline/manager/service_contracts/asset_manager_contract.rs
+  - zircon_runtime/src/asset/tests/manager/targeted_import/meta_preconditions.rs
+  - zircon_runtime/src/asset/manager/service_contracts/asset_manager_contract.rs
   - zircon_runtime/src/scene/module/level_manager_contract.rs
   - zircon_runtime/src/scene/module/level_manager_project_io.rs
 tests:

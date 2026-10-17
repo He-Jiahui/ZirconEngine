@@ -13,20 +13,20 @@ related_code:
   - zircon_runtime/src/text/font_sdf_build_tool
   - zircon_runtime/src/bin/zircon_font_sdf_bake
   - zircon_runtime/src/text/atlas/page.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/sdf_atlas.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/text.rs
   - zircon_runtime/src/text/sdf/font_bake.rs
   - zircon_runtime/src/text/sdf/font_bake/distance_field.rs
   - zircon_runtime/src/text/sdf/font_bake/offline_source.rs
   - zircon_runtime/src/text/render_state.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_upload.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/atlas_resources.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/vertices.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/decorations.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/material.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render/text_projection.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/shaders/zr_text_sdf.wgsl
+  - zircon_runtime/src/graphics/scene/renderer/ui/sdf_upload.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/sdf_render.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/sdf_render/atlas_resources.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/sdf_render/vertices.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/sdf_render/decorations.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/sdf_render/material.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/render/text_projection.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/shaders/zr_text_sdf.wgsl
 implementation_files:
   - zircon_runtime/src/text/sdf/mod.rs
   - zircon_runtime/src/text/sdf/mode.rs
@@ -39,8 +39,8 @@ implementation_files:
   - zircon_runtime/src/text/sdf/offline/artifact.rs
   - zircon_runtime/src/text/sdf/offline/codec.rs
   - zircon_runtime/src/text/font/decoration_metrics.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/material.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render/text_projection.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/sdf_render/material.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/render/text_projection.rs
 plan_sources:
   - user: 2026-07-13 complete the Runtime Text architecture and verify real rendered pixels
   - docs/plans/zircon_runtime/text/05-sdf-msdf-pipeline.md
@@ -50,18 +50,15 @@ plan_sources:
   - docs/superpowers/plans/2026-07-13-runtime-text-sdf-effects-decoration.md
   - docs/plans/zircon_runtime/frameworks/05-subsystem-decoupling-contracts.md
 tests:
-  - zircon_runtime/src/text/sdf/tests.rs
   - zircon_runtime/src/text/sdf/tests/decode.rs
   - zircon_runtime/src/text/sdf/tests/fdsm_gen.rs
   - zircon_runtime/src/text/sdf/tests/offline.rs
-  - zircon_runtime/src/text/sdf/font_bake/tests.rs
   - zircon_runtime/src/text/sdf/font_bake/tests/offline.rs
   - zircon_runtime/tests/runtime_text_sdf_offline_artifact.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_upload/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas/tests/cache_report.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/shader_contract.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/decoration_geometry.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/material.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/sdf_atlas/tests/cache_report.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/tests/shader_contract.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/tests/decoration_geometry.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/sdf_render/tests/material.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/product_framebuffer
   - zircon_runtime/tests/runtime_text_multilingual_product_framebuffer.rs
 doc_type: module-detail

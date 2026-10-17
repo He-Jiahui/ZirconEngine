@@ -2,8 +2,6 @@
 related_code:
   - zircon_editor/src/scene/viewport/interaction_extract
   - zircon_editor/src/scene/viewport/render_packet.rs
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_build_render_snapshot.rs
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_pointer_route.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_editor/editor/05-scene-editing-hierarchy-and-gizmos.md

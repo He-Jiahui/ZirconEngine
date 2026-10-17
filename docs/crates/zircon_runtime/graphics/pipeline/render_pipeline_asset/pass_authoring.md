@@ -1,18 +1,8 @@
 ---
 related_code:
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/pass_authoring.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/graph_resources.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/resource_descriptors.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/descriptor_filtering.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/default_forward_plus.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/default_deferred.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests.rs
   - zircon_runtime/src/graphics/pipeline/declarations/compiled_render_pipeline.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/execute_graph_stage.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/sprite_stage_selection.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests/postprocess_routes.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests/postprocess_routes/plugin_inputs.rs
+  - zircon_runtime/src/graphics/scene/core/render/render/execute_graph_stage.rs
+  - zircon_runtime/src/graphics/scene/core/render/render/sprite_stage_selection.rs
   - zircon_runtime/src/graphics/tests/pipeline_compile.rs
   - zircon_runtime/src/graphics/tests/pipeline_compile/default_pipelines.rs
   - zircon_runtime/src/graphics/tests/pipeline_compile/dynamic_resolution.rs
@@ -22,33 +12,19 @@ related_code:
   - zircon_runtime/src/graphics/tests/pipeline_compile/feature_descriptors.rs
   - zircon_runtime/src/graphics/tests/pipeline_compile/validation_core.rs
   - zircon_runtime/src/graphics/tests/pipeline_compile/validation_descriptors.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_pipeline_compile_monolith_tests.rs
   - zircon_runtime/src/graphics/tests/pipeline_overlay_order.rs
   - zircon_runtime/src/render_graph/builder.rs
   - zircon_runtime/src/render_graph/types.rs
 implementation_files:
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/pass_authoring.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/graph_resources.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/resource_descriptors.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/descriptor_filtering.rs
   - zircon_runtime/src/graphics/pipeline/declarations/compiled_render_pipeline.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/execute_graph_stage.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/sprite_stage_selection.rs
+  - zircon_runtime/src/graphics/scene/core/render/render/execute_graph_stage.rs
+  - zircon_runtime/src/graphics/scene/core/render/render/sprite_stage_selection.rs
 plan_sources:
   - docs/plans/zircon_runtime/render/index.md
   - docs/plans/zircon_runtime/render/01-render-graph-rdg-alignment.md
   - docs/plans/zircon_runtime/render/08-material-shader-permutation.md
   - user: 2026-06-17 continue Plan 01 compile.rs modularization
 tests:
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests.rs::compile_preserves_renderer_stage_for_each_graph_pass
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests.rs::runtime89_compiled_pass_stages_retain_their_graph_pass_identity
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests.rs::runtime89_generated_ibl_pass_name_collisions_fail_during_pipeline_compile
-  - zircon_runtime/src/graphics/pipeline/declarations/compiled_render_pipeline/tests.rs::runtime89_compiled_pass_identity_lookup_beats_name_scan_p95
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests.rs::compile_preserves_compute_workload_from_feature_descriptor
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests.rs::compile_keeps_split_postprocess_passes_before_exposure_when_they_do_not_sample_exposure
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests/postprocess_routes.rs::compile_orders_bloom_extract_after_motion_blur_before_exposure
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests.rs::compile_routes_output_transfer_through_smaa_terminal_input
   - cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-rg-pass-authoring-0617 --message-format short --color never
   - cargo test -p zircon_runtime --lib compile_keeps_split_postprocess_passes_before_exposure_when_they_do_not_sample_exposure --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-rg-required-external-0618
   - zircon_runtime/src/graphics/tests/pipeline_compile/default_pipelines.rs::default_forward_plus_pipeline_compiles_expected_stage_order_and_passes
@@ -59,7 +35,6 @@ tests:
   - D:\cargo-targets\zircon-runtime-dynamic-scene-asset-0619\debug\deps\zircon_runtime-d071a300da0585cb.exe graphics::pipeline::render_pipeline_asset::compile_tests::compile_routes_output_transfer_through_fxaa_terminal_input --exact --test-threads=1 --nocapture
   - cargo test -p zircon_runtime --lib pipeline_overlay_order --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-texture-linear-product-0620 --message-format short --color never -- --test-threads=1 --nocapture
   - cargo test -p zircon_runtime --lib rendering_plugin_default_features_restore_legacy --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-texture-linear-product-0620 --message-format short --color never -- --test-threads=1 --nocapture
-  - docs/tests/runtime/render/plan08_current_bloom_order_binary_after_all_fixes_20260704.out.log
 doc_type: module-detail
 ---
 

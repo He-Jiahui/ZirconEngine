@@ -5,15 +5,10 @@ related_code:
   - zircon_runtime/src/core/mod.rs
   - zircon_runtime/src/core/framework/platform/mod.rs
   - zircon_runtime/src/core/framework/platform/runtime_target_mode.rs
-  - zircon_runtime/src/tests/runtime_absorption/root_surface.rs
-  - zircon_runtime/src/tests/runtime_absorption/core_spine_root_generated.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/runtime_root_surface.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/runtime_root_surface_markdown.py
 implementation_files:
   - zircon_runtime/src/prelude.rs
-  - zircon_runtime/src/tests/runtime_absorption/root_surface.rs
-  - zircon_runtime/src/tests/runtime_absorption/core_spine_root_generated.rs
-  - zircon_runtime/src/tests/runtime_absorption/mod.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/runtime_root_surface.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/runtime_root_surface_markdown.py
 plan_sources:

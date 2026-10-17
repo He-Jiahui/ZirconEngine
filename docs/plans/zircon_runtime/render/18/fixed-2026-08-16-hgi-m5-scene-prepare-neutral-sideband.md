@@ -13,20 +13,14 @@ plan_link_mode: child_record_only
 related_code:
   - zircon_runtime/src/core/framework/render/prepared_runtime_sidebands.rs
   - zircon_plugins/hybrid_gi/runtime/src/provider.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/root_output_sources/runtime_prepare_collector.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/collect_inputs.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/global_sdf/tests.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_render_framework_stats/product_wgpu.rs
   - zircon_runtime/src/graphics/runtime_prepare_mesh_geometry_seed.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/dispatch_probe_trace_tiles/tests/global_sdf.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_render_framework_stats.rs
+  - zircon_plugins/hybrid_gi/runtime/src/gi/renderer/gpu/execute/tests/global_sdf.rs
 tests:
   - ./.codex/skills/zircon-dev/scripts/validate-matrix.ps1 -Package zircon_plugin_hybrid_gi_runtime -LibTests
   - ./.codex/skills/zircon-dev/scripts/validate-matrix.ps1 -Package zircon_plugin_hybrid_gi_runtime -LibTests -TestFilter export_global_sdf_build_wgpu_png -IgnoredTests
   - ./.codex/skills/zircon-dev/scripts/validate-matrix.ps1 -Package zircon_plugin_hybrid_gi_runtime -LibTests -TestFilter export_hybrid_gi_m5_global_sdf_trace_wgpu_png -IgnoredTests
   - ./.codex/skills/zircon-dev/scripts/validate-matrix.ps1 -Package zircon_plugin_hybrid_gi_runtime -LibTests -TestFilter export_hybrid_gi_voxel_miss_fallback_wgpu_png -IgnoredTests
   - ZR_HGI_M5_RENDERDOC_CAPTURE=1 WGPU_BACKEND=dx12 RenderDoc capture of export_hybrid_gi_voxel_miss_fallback_wgpu_png
-  - D:/Tools/renderdoc/renderdoccmd.exe replay --loops 1 docs/tests/runtime/render/plan18_hybrid_gi_m5_scene_prepare_renderdoc_20260816_capture_capture.rdc
 ---
 
 # Render18 M5: scene-prepare neutral sideband dynamic acceptance fixed

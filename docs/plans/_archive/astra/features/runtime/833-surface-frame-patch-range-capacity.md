@@ -10,7 +10,6 @@ related_records:
 implementation_files:
   - zircon_runtime/src/ui/surface/surface/frame_publication.rs
 tests:
-  - tools/tests/test_runtime_surface_frame_patch_range_capacity_performance_contract.py
 ---
 
 # Runtime833 · surface frame patch-range capacity

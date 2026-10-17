@@ -18,7 +18,6 @@ related_code:
   - zircon_runtime/src/core/framework/sound/output.rs
   - zircon_runtime/src/core/framework/sound/playback.rs
   - zircon_runtime/src/core/framework/sound/status.rs
-  - zircon_runtime/src/core/framework/sound/tests.rs
   - tools/tests/test_frameworks_03_audio_contract_owner_boundary.py
   - docs/crates/zircon_runtime/core/framework/audio.md
 tests:

@@ -11,7 +11,7 @@ related_code:
   - zircon_editor/src/core/editor_message/message/delivery.rs
 tests:
   - tools/tests/test_editor02_message_backpressure_contract.py
-  - zircon_editor/src/tests/editor_message/bus/backpressure.rs
+  - zircon_editor/src/tests/editor_message/bus/backpressure/mod.rs
 failure:
   - docs/plans/zircon_editor/editor/02/failure-2026-07-17-message-inbox-backpressure-and-fanout.md
 ---

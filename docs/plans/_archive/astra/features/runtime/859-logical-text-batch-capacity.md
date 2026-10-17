@@ -7,10 +7,8 @@ related_records:
   - docs/plans/astra/features/runtime/680-20260911-runtime-ui-optimization-batch-completion.md
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render/resolved_layout.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render/resolved_layout/logical_batch_capacity_tests.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/render/resolved_layout.rs
 tests:
-  - tools/tests/test_runtime_logical_text_batch_capacity_performance_contract.py
 ---
 
 # Runtime859 - logical text batch capacity

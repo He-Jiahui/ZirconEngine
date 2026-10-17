@@ -9,8 +9,8 @@ fixing_plan: docs/plans/zircon_runtime/shader/06-environment-ibl-and-pbr-correct
 origin_child_dir: docs/plans/zircon_editor/editor_layout/15
 fixing_child_dir: docs/plans/zircon_runtime/shader/06
 related_code:
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/realtime_ibl_graph_plan.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/realtime_ibl_wgpu_recorder.rs
+  - zircon_runtime/src/graphics/scene/environment/realtime_ibl_graph_plan.rs
+  - zircon_runtime/src/graphics/scene/environment/realtime_ibl_wgpu_recorder.rs
 tests:
   - cargo test -p zircon_editor --lib --locked --offline --jobs 1 --target-dir D:/cargo-targets/zircon-editor-blend-space-20260712 blend_space_workspace --no-run
 ---

@@ -11,7 +11,6 @@ related_records:
 implementation_files:
   - zircon_editor/src/ui/animation_editor/session/curve_foundation.rs
 tests:
-  - tools/tests/test_editor_animation_curve_projection_capacity_performance_contract.py
 ---
 
 # Editor814 · animation curve projection capacity

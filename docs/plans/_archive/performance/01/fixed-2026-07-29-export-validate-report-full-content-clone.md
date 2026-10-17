@@ -15,27 +15,19 @@ related_code:
   - Cargo.toml
   - docs/plans/zircon_plugins/09-export-publishing.md
   - docs/crates/zircon_runtime/plugin/export_build_plan.md
-  - tools/zircon_export/cli.py
-  - tools/zircon_export/pipeline_report_source_template_validate_schema.py
-  - tools/zircon_export/pipeline_report_validate_stage_schema.py
-  - tools/zircon_export/source_template.py
-  - tools/zircon_export/source_template_contents_artifact.py
-  - tools/zircon_export/source_template_generated_project.py
-  - tools/zircon_export/tests/export_test_support.py
-  - tools/zircon_export/tests/fixtures/source_template_contents_artifact_v1.json
-  - tools/zircon_export/tests/test_compile_host_source_template.py
-  - tools/zircon_export/tests/test_pipeline_report_source_template.py
-  - tools/zircon_export/tests/test_pipeline_report_source_template_schema.py
-  - tools/zircon_export/tests/test_source_template_contents_artifact.py
-  - tools/zircon_export/tests/test_source_template_generated_files_gate.py
-  - tools/zircon_export/tests/test_source_template_stage_validate_gates.py
-  - tools/zircon_export/validate_stage.py
+  - tools/export/tests/export_test_support.py
+  - tools/export/tests/fixtures/source_template_contents_artifact_v1.json
+  - tools/export/tests/test_compile_host_source_template.py
+  - tools/export/tests/test_pipeline_report_source_template.py
+  - tools/export/tests/test_pipeline_report_source_template_schema.py
+  - tools/export/tests/test_source_template_contents_artifact.py
+  - tools/export/tests/test_source_template_generated_files_gate.py
+  - tools/export/tests/test_source_template_stage_validate_gates.py
   - zircon_runtime/Cargo.toml
   - zircon_runtime/src/bin/zircon_export_validate/args.rs
   - zircon_runtime/src/bin/zircon_export_validate/error.rs
   - zircon_runtime/src/bin/zircon_export_validate/run.rs
   - zircon_runtime/src/plugin/export_build_plan/export_validate_report.rs
-  - zircon_runtime/src/tests/plugin_extensions/export_build_plan.rs
   - zircon_runtime/tests/plugins09_export_validate_report.rs
 tests:
   - cargo +1.94.1 test -p zircon_runtime --test plugins09_export_validate_report --bin zircon_export_validate --locked --jobs 1 --color never -- --nocapture --test-threads=1

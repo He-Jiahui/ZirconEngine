@@ -9,9 +9,9 @@ related_records:
   - docs/plans/astra/features/editor/664-20260911-editor-ui-optimization-batch-completion.md
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
-  - zircon_editor/src/ui/retained_host/viewport_toolbar_pointer/sync_surface_frame.rs
+  - zircon_editor/src/ui/retained/viewport_toolbar_pointer/sync_surface_frame.rs
 tests:
-  - zircon_editor/src/ui/retained_host/viewport_toolbar_pointer/sync_surface_frame.rs
+  - zircon_editor/src/ui/retained/viewport_toolbar_pointer/sync_surface_frame.rs
   - tools/tests/test_editor_retained_viewport_toolbar_pointer_generation_performance_contract.py
 ---
 

@@ -1,160 +1,97 @@
 ---
 related_code:
-  - zircon_runtime/src/core/framework/render/post_process/effect.rs
-  - zircon_runtime/src/core/framework/render/post_process/stack.rs
   - zircon_runtime/src/core/framework/render/anti_alias/settings.rs
   - zircon_runtime/src/core/framework/render/anti_alias/taa_quality.rs
   - zircon_runtime/src/core/framework/render/backend_types.rs
   - zircon_runtime/src/core/framework/render/frame_extract.rs
   - zircon_runtime/src/graphics/resource_limits.rs
-  - zircon_runtime/src/graphics/backend/render_backend/request_device.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/resolve_viewport_record_state.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/viewport_record_state.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs
+  - zircon_runtime/src/graphics/runtime/framework/extract/update_stats/base_stats.rs
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product.rs
-  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/temporal.rs
-  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/post_process.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/builtin_postprocess_executors.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/post_process.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_mesh_draw.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/extend_pending_draws_for_mesh_instance.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/create_mesh_draw.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_draw/mesh_draw.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_draw/mesh_pass_batch.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_pass_processor.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/processors/taa_reactive_mask.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command_list.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/create_taa_reactive_mask_mesh_pipeline.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_taa_reactive_mask_pipeline.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/fallback_mesh_shader_source.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/shaders/fallback_mesh.wgsl
+  - zircon_runtime/src/graphics/feature/builtin/feature_descriptors/temporal.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/build/pending_mesh_draw.rs
+  - zircon_runtime/src/graphics/mesh/build/extend_pending_draws_for_mesh_instance.rs
+  - zircon_runtime/src/graphics/scene/mesh/build_mesh_draws/create_mesh_draw.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/mesh_draw/mesh_draw.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/mesh_draw/mesh_pass_batch.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/mesh_pass/mesh_pass_processor.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/processors/taa_reactive_mask.rs
+  - zircon_runtime/src/graphics/mesh/mesh_pipeline/fallback_mesh_shader_source.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/shaders/fallback_mesh.wgsl
   - zircon_runtime/src/core/framework/render/material/standard_material.rs
   - zircon_runtime/src/asset/assets/material/material_control.rs
   - zircon_runtime/src/asset/assets/material/material_asset.rs
   - zircon_runtime/src/graphics/scene/resources/runtime/material_runtime.rs
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_material.rs
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_accessors.rs
-  - zircon_runtime/src/graphics/scene/resources/gpu_material_uniform/gpu_material_uniform_resource.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/history/scene_frame_history_textures/scene_frame_history_textures.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/history/scene_frame_history_textures/construct.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/history/copy_history_textures.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/lighting/light_grid_builder.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/lighting/shaders/zr_light_grid.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/depth_sampling_mode.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/bind_group_layouts/post_process.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/bind_group_layouts/taa_resolve.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_buffer_bundle/taa_resolve_params_buffer.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/taa_resolve_pipeline.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/scene_post_process_resources/full_scene_post_process_resources.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/scene_post_process_resources/profiled_scene_post_process_resources.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/temporal/velocity/execute_velocity_object.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/temporal/taa/execute_taa_resolve.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/temporal/taa/taa_resolve_params.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/temporal/taa/temporal_history_store.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/temporal/taa/shaders/taa_resolve.wgsl
+  - zircon_runtime/src/graphics/scene/core/render/history/copy_history_textures.rs
+  - zircon_runtime/src/graphics/scene/renderer/core/render/render/render.rs
+  - zircon_runtime/src/graphics/scene/renderer/lighting/light_grid_builder.rs
+  - zircon_runtime/src/graphics/scene/renderer/lighting/shaders/zr_light_grid.wgsl
+  - zircon_runtime/src/graphics/scene/renderer/post/resources/depth_sampling_mode.rs
+  - zircon_runtime/src/graphics/scene/post/bind_group_layouts/taa_resolve.rs
+  - zircon_runtime/src/graphics/create_buffer_bundle/taa_resolve_params_buffer.rs
+  - zircon_runtime/src/graphics/post/create_pipeline_bundle/taa_resolve_pipeline.rs
+  - zircon_runtime/src/graphics/scene/temporal/velocity/execute_velocity_object.rs
+  - zircon_runtime/src/graphics/scene/renderer/temporal/taa/execute_taa_resolve.rs
+  - zircon_runtime/src/graphics/scene/renderer/temporal/taa/taa_resolve_params.rs
+  - zircon_runtime/src/graphics/scene/temporal/taa/temporal_history_store.rs
+  - zircon_runtime/src/graphics/scene/renderer/temporal/taa/shaders/taa_resolve.wgsl
   - zircon_runtime/src/graphics/tests/render_product_anti_alias.rs
   - zircon_runtime/src/graphics/tests/pipeline_compile.rs
   - zircon_editor/src/tests/editing/state.rs
 implementation_files:
-  - zircon_runtime/src/core/framework/render/post_process/effect.rs
-  - zircon_runtime/src/core/framework/render/post_process/stack.rs
   - zircon_runtime/src/core/framework/render/anti_alias/settings.rs
   - zircon_runtime/src/core/framework/render/anti_alias/taa_quality.rs
   - zircon_runtime/src/core/framework/render/backend_types.rs
   - zircon_runtime/src/graphics/resource_limits.rs
-  - zircon_runtime/src/graphics/backend/render_backend/request_device.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/resolve_viewport_record_state.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/viewport_record_state.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs
+  - zircon_runtime/src/graphics/runtime/framework/extract/update_stats/base_stats.rs
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product.rs
-  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/temporal.rs
-  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/post_process.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/builtin_postprocess_executors.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/post_process.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_mesh_draw.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/extend_pending_draws_for_mesh_instance.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/create_mesh_draw.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_draw/mesh_draw.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_draw/mesh_pass_batch.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_pass_processor.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/processors/taa_reactive_mask.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command_list.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/create_taa_reactive_mask_mesh_pipeline.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_taa_reactive_mask_pipeline.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/fallback_mesh_shader_source.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/shaders/fallback_mesh.wgsl
+  - zircon_runtime/src/graphics/feature/builtin/feature_descriptors/temporal.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/build/pending_mesh_draw.rs
+  - zircon_runtime/src/graphics/mesh/build/extend_pending_draws_for_mesh_instance.rs
+  - zircon_runtime/src/graphics/scene/mesh/build_mesh_draws/create_mesh_draw.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/mesh_draw/mesh_draw.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/mesh_draw/mesh_pass_batch.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/mesh_pass/mesh_pass_processor.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/processors/taa_reactive_mask.rs
+  - zircon_runtime/src/graphics/mesh/mesh_pipeline/fallback_mesh_shader_source.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/shaders/fallback_mesh.wgsl
   - zircon_runtime/src/core/framework/render/material/standard_material.rs
   - zircon_runtime/src/asset/assets/material/material_control.rs
   - zircon_runtime/src/asset/assets/material/material_asset.rs
   - zircon_runtime/src/graphics/scene/resources/runtime/material_runtime.rs
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_material.rs
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_accessors.rs
-  - zircon_runtime/src/graphics/scene/resources/gpu_material_uniform/gpu_material_uniform_resource.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/history/scene_frame_history_textures/scene_frame_history_textures.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/history/scene_frame_history_textures/construct.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/history/copy_history_textures.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/lighting/light_grid_builder.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/depth_sampling_mode.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/bind_group_layouts/post_process.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/bind_group_layouts/taa_resolve.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_buffer_bundle/taa_resolve_params_buffer.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/taa_resolve_pipeline.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/scene_post_process_resources/full_scene_post_process_resources.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/scene_post_process_resources/profiled_scene_post_process_resources.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/temporal/taa/execute_taa_resolve.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/temporal/taa/taa_resolve_params.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/temporal/taa/temporal_history_store.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/temporal/taa/shaders/taa_resolve.wgsl
+  - zircon_runtime/src/graphics/scene/core/render/history/copy_history_textures.rs
+  - zircon_runtime/src/graphics/scene/renderer/core/render/render/render.rs
+  - zircon_runtime/src/graphics/scene/renderer/lighting/light_grid_builder.rs
+  - zircon_runtime/src/graphics/scene/renderer/post/resources/depth_sampling_mode.rs
+  - zircon_runtime/src/graphics/scene/post/bind_group_layouts/taa_resolve.rs
+  - zircon_runtime/src/graphics/create_buffer_bundle/taa_resolve_params_buffer.rs
+  - zircon_runtime/src/graphics/post/create_pipeline_bundle/taa_resolve_pipeline.rs
+  - zircon_runtime/src/graphics/scene/renderer/temporal/taa/execute_taa_resolve.rs
+  - zircon_runtime/src/graphics/scene/renderer/temporal/taa/taa_resolve_params.rs
+  - zircon_runtime/src/graphics/scene/temporal/taa/temporal_history_store.rs
+  - zircon_runtime/src/graphics/scene/renderer/temporal/taa/shaders/taa_resolve.wgsl
   - zircon_runtime/src/graphics/tests/render_product_anti_alias.rs
 plan_sources:
   - docs/plans/zircon_runtime/render/06-temporal-pipeline.md
   - user: 2026-06-14 implement WGPU render pipeline architecture code and update plan progress
 tests:
-  - zircon_runtime/src/core/framework/render/post_process/stack.rs::tests::taa_resolve_declares_history_velocity_and_final_composite_input
-  - zircon_runtime/src/core/framework/render/post_process/stack/tests/temporal_history.rs::unavailable_history_disables_taa_and_restores_scene_color_input
-  - zircon_runtime/src/core/framework/render/post_process/stack/tests/temporal_history.rs::unavailable_history_keeps_scene_velocity_for_motion_blur
+  - zircon_runtime/src/core/framework/render/post/stack/tests/temporal_history.rs::unavailable_history_disables_taa_and_restores_scene_color_input
+  - zircon_runtime/src/core/framework/render/post/stack/tests/temporal_history.rs::unavailable_history_keeps_scene_velocity_for_motion_blur
   - zircon_runtime/src/graphics/tests/pipeline_compile/temporal_and_ops.rs::taa_resolve_compiles_temporal_history_pass_when_taa_stack_is_effective
   - zircon_runtime/src/graphics/tests/pipeline_compile/temporal_and_ops.rs::taa_resolve_pass_and_resources_are_absent_when_taa_is_disabled
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry/tests.rs::taa_resolve_executor_requires_graph_resources_instead_of_nooping
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry/tests.rs::taa_reactive_mask_clear_executor_requires_graph_resources_instead_of_nooping
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry/tests.rs::taa_reactive_mask_mesh_executor_requires_graph_resources_instead_of_nooping
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/processors/mod.rs::tests::taa_reactive_mask_processor_draws_visible_main_view_batches_by_mask_semantics
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command_list.rs::tests::mesh_pass_command_buffers_build_expected_phase_counts_from_batches
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command_list.rs::tests::mesh_pass_command_buffers_report_indirect_batch_stats_when_gpu_driven_supported
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command_list.rs::tests::mesh_pass_command_buffers_assign_cache_variants_by_pipeline_kind
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command_list.rs::tests::mesh_pass_command_buffers_reuse_static_cached_commands_on_second_frame
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/fallback_mesh_shader_source.rs::tests::fallback_mesh_shader_exposes_taa_reactive_mask_entry
+  - zircon_runtime/src/graphics/scene/renderer/mesh/mesh_pass/processors/mod.rs::tests::taa_reactive_mask_processor_draws_visible_main_view_batches_by_mask_semantics
+  - zircon_runtime/src/graphics/mesh/mesh_pipeline/fallback_mesh_shader_source.rs::tests::fallback_mesh_shader_exposes_taa_reactive_mask_entry
   - zircon_runtime/src/asset/tests/assets/material.rs::material_owned_taa_reactive_mask_strength_drives_standard_descriptor_without_shader_override
   - zircon_runtime/src/asset/tests/assets/material.rs::material_owned_taa_reactive_mask_strength_reports_invalid_override
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry/tests.rs::optional_postprocess_executors_skip_resource_work_when_effects_are_disabled
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/taa_resolve_pipeline.rs::tests::taa_resolve_shader_parses_and_declares_history_outputs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/taa_resolve_pipeline.rs::tests::taa_resolve_fallback_shader_parses_without_depth_texture_sampling
+  - zircon_runtime/src/graphics/post/create_pipeline_bundle/taa_resolve_pipeline.rs::tests::taa_resolve_shader_parses_and_declares_history_outputs
+  - zircon_runtime/src/graphics/post/create_pipeline_bundle/taa_resolve_pipeline.rs::tests::taa_resolve_fallback_shader_parses_without_depth_texture_sampling
   - zircon_runtime/src/core/framework/render/anti_alias/settings.rs::tests::taa_quality_survives_exact_and_fallback_resolution
   - zircon_runtime/src/core/framework/render/backend_types.rs::tests::render_quality_profile_preserves_taa_quality_preset
-  - zircon_runtime/src/graphics/scene/scene_renderer/temporal/taa/taa_resolve_params.rs::tests::taa_resolve_params_map_quality_presets_to_blend_and_rejection
-  - zircon_runtime/src/graphics/scene/scene_renderer/temporal/taa/taa_resolve_params.rs::tests::taa_resolve_params_disable_history_weight_when_history_is_invalid
-  - zircon_runtime/src/graphics/scene/scene_renderer/temporal/taa/temporal_history_store.rs::tests::temporal_history_state_starts_invalid_and_flips_read_write_slots
-  - zircon_runtime/src/graphics/scene/scene_renderer/temporal/taa/temporal_history_store.rs::tests::temporal_history_state_invalidation_keeps_slots_but_drops_validity
-  - zircon_runtime/src/graphics/runtime/render_framework/capability_summary/capability_summary.rs::tests::capability_summary_reports_taa_when_offscreen_postprocess_is_available
-  - zircon_runtime/src/graphics/backend/render_backend/request_device.rs::tests::offscreen_device_limits_cover_renderer_layout_requirements
-  - zircon_runtime/src/graphics/backend/render_backend/request_device.rs::tests::offscreen_device_limits_keep_hzb_optional_when_adapter_limit_is_lower
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/bind_group_layouts/post_process.rs::tests::post_process_layout_sampled_texture_count_matches_device_request_limit
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/materialization/tests.rs::non_storage_texture_formats_do_not_request_storage_binding
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/materialization/tests.rs::storage_texture_formats_request_storage_binding
-  - zircon_runtime/src/graphics/scene/scene_renderer/lighting/light_grid_builder.rs::tests::light_grid_params_cpu_layout_matches_wgsl_uniform_size
+  - zircon_runtime/src/graphics/scene/renderer/temporal/taa/taa_resolve_params.rs::tests::taa_resolve_params_map_quality_presets_to_blend_and_rejection
+  - zircon_runtime/src/graphics/scene/renderer/temporal/taa/taa_resolve_params.rs::tests::taa_resolve_params_disable_history_weight_when_history_is_invalid
+  - zircon_runtime/src/graphics/scene/temporal/taa/temporal_history_store.rs::tests::temporal_history_state_starts_invalid_and_flips_read_write_slots
+  - zircon_runtime/src/graphics/scene/temporal/taa/temporal_history_store.rs::tests::temporal_history_state_invalidation_keeps_slots_but_drops_validity
+  - zircon_runtime/src/graphics/runtime/capability_summary/capability_summary.rs::tests::capability_summary_reports_taa_when_offscreen_postprocess_is_available
+  - zircon_runtime/src/graphics/scene/renderer/lighting/light_grid_builder.rs::tests::light_grid_params_cpu_layout_matches_wgsl_uniform_size
   - zircon_runtime/src/graphics/tests/render_product_anti_alias.rs::render_product_taa_uses_temporal_resolve_seed_frame_when_requested
   - zircon_runtime/src/graphics/tests/render_product_anti_alias.rs::render_product_taa_static_empty_scene_history_stays_stable_after_seed_frame
   - zircon_runtime/src/graphics/tests/render_product_anti_alias.rs::render_product_taa_dynamic_occlusion_change_converges_after_history_seed

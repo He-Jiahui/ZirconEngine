@@ -24,8 +24,6 @@ related_code:
   - zircon_runtime/src/ui/mod.rs
   - zircon_runtime/src/plugin/export_build_plan/mod.rs
   - zircon_runtime/src/plugin/export_build_plan/native_dynamic_package_plan.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/mod.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_load_manifest.rs
   - zircon_plugins/editor_build_export_desktop/editor/src/export_wizard.rs
   - zircon_runtime/src/tests/extensions/tech_stack_dependency_guard.rs
   - zircon_editor/src/lib.rs
@@ -55,8 +53,6 @@ implementation_files:
   - zircon_runtime/src/ui/mod.rs
   - zircon_runtime/src/plugin/export_build_plan/mod.rs
   - zircon_runtime/src/plugin/export_build_plan/native_dynamic_package_plan.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/mod.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_load_manifest.rs
   - zircon_plugins/editor_build_export_desktop/editor/src/export_wizard.rs
   - zircon_runtime/src/tests/extensions/tech_stack_dependency_guard.rs
   - zircon_editor/src/lib.rs

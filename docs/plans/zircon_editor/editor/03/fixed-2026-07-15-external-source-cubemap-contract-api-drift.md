@@ -9,7 +9,6 @@ fixing_plan: docs/plans/zircon_runtime/shader/06-environment-ibl-and-pbr-correct
 origin_child_dir: docs/plans/zircon_editor/editor/03
 fixing_child_dir: docs/plans/zircon_runtime/shader/06
 related_code:
-  - zircon_runtime/tests/runtime_environment_external_cubemap_import_staging_contract.rs
   - zircon_runtime/src/core/framework/render/environment/source_cubemap.rs
 tests:
   - .\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -SkipBuild

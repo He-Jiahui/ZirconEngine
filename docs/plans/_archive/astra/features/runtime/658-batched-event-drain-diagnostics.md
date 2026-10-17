@@ -5,9 +5,7 @@ plan_sources:
   - docs/plans/optimize/zircon_runtime/658/2026-09-02-batched-event-drain-diagnostics.md
 related_code:
   - zircon_runtime/src/core/runtime/events/diagnostics.rs
-  - zircon_runtime/src/core/runtime/events/diagnostics/optimization_batch_js_runtime658_tests.rs
 tests:
-  - zircon_runtime/src/core/runtime/events/diagnostics/optimization_batch_js_runtime658_tests.rs
 ---
 
 # Batched Event Drain Diagnostics

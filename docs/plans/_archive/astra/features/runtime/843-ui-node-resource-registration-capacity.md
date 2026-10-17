@@ -11,8 +11,6 @@ related_records:
 implementation_files:
   - zircon_runtime/src/ui/template/asset/surface_index/node_resource_registration.rs
 tests:
-  - zircon_runtime/src/ui/template/asset/surface_index/capacity_tests.rs
-  - tools/tests/test_runtime_ui_node_resource_registration_capacity_performance_contract.py
 ---
 
 # Runtime843 · UI node resource registration output capacity

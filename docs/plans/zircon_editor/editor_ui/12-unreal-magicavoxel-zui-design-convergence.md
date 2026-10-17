@@ -12,31 +12,20 @@ related_code:
   - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/batching.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/geometry.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/shaders/ui_material.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render/geometry.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/shaders/screen_space_ui.wgsl
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_settings_window/commands.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_section_titles/commands.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_section_titles/geometry.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/render.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/render/geometry.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/shaders/screen_space_ui.wgsl
   - tools/analysis/profiling/ui/ui-profile-workbench-pointer-evidence.ps1
   - tools/tests/ui-profile-capture-output-contract.Tests.ps1
   - zircon_editor/assets/ui/editor/theme/editor_tokens.zui
   - zircon_editor/assets/ui/theme/editor_workbench_strict.zui
   - zircon_editor/assets/ui/theme/editor_workbench_spatial.zui
-  - zircon_editor/assets/ui/editor/host/workbench_shell.zui
-  - zircon_editor/assets/ui/editor/windows/workbench_window.zui
-  - zircon_editor/assets/ui/editor/components/workbench/shell/workbench_top_toolbar.zui
-  - zircon_editor/assets/ui/editor/components/workbench/shell/workbench_main_band.zui
   - zircon_editor/src/core/commands/mod.rs
   - zircon_editor/src/ui/workbench/autolayout/layout_tier.rs
   - zircon_editor/src/ui/workbench/layout_preset.rs
-  - zircon_editor/src/ui/retained_host/popup_anchor_metrics.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_primitives/shapes/borders/rounded.rs
-  - zircon_editor/src/ui/template_runtime/builtin/workbench_window_template_bindings.rs
-  - zircon_editor/src/ui/template_runtime/builtin/template_bindings.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/layout_menu.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/window_menu_state.rs
+  - zircon_editor/src/ui/retained/contract/shapes/borders/rounded.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/workbench/layout_menu.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/workbench/window_menu_state.rs
 plan_sources:
   - user: 2026-08-11 参考 UnrealEngine 与 MagicaVoxel 收敛 .zui 设计思想、样式、触发和布局逻辑
   - docs/plans/zircon_editor/editor_ui/04-style-theme-and-painter-selector.md
@@ -48,17 +37,15 @@ tests:
   - zircon_runtime/src/ui/tests/focus_navigation/modal_popup.rs
   - zircon_runtime/src/ui/tests/render_popup_menu.rs
   - zircon_runtime/src/ui/tests/render_popup_options.rs
-  - zircon_editor/src/tests/ui/boundary/template_assets.rs
-  - zircon_editor/src/tests/workbench/layout/editor_design_token_contracts/chrome_theme.rs
+  - zircon_editor/src/tests/ui/boundary/template_assets/mod.rs
+  - zircon_editor/src/tests/layout/editor_design_token_contracts/chrome_theme.rs
   - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_toolbar_breakpoints
-  - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/geometry/tests.rs
-  - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/batching/tests/scale_and_cache.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/batching/tests/scale_and_cache.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/tests/native_submission.rs
   - tools/tests/test_editor_ui_device_pixel_aa_contract.py
   - tools/tests/test_editor_zui_product_interaction_event_contract.py
   - tools/tests/capture-editor-ui-visual.Tests.ps1
   - tools/tests/ui-profile-capture-output-contract.Tests.ps1
-  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_window_menus/main_menu_bindings.rs
 doc_type: plan
 ---
 

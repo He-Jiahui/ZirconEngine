@@ -3,10 +3,8 @@ doc_type: module-detail
 related_code:
   - zircon_runtime/src/scene/world/transaction/detached_entity_batch.rs
   - zircon_runtime/src/scene/world/transaction/detached_entity_batch/prepared.rs
-  - zircon_runtime/src/scene/world/transaction/detached_entity_batch/preparation_owner.rs
-  - zircon_runtime/src/scene/world/transaction/detached_entity_batch/root_normalization.rs
-  - zircon_runtime/src/scene/world/transaction/detached_entity_batch/restore_parent_validation.rs
-  - zircon_runtime/src/scene/world/transaction/detached_entity_batch/tests.rs
+  - zircon_runtime/src/scene/world/detached_entity_batch/preparation_owner.rs
+  - zircon_runtime/src/scene/world/detached_entity_batch/root_normalization.rs
   - zircon_runtime/src/scene/world/world.rs
   - zircon_runtime/src/scene/world/bootstrap.rs
   - zircon_runtime/src/scene/world/derived_state.rs
@@ -19,8 +17,6 @@ plan_sources:
   - docs/plans/zircon_runtime/runtime/08/failure-2026-08-23-editor-delete-subtree-all-cameras-invariant.md
   - docs/plans/optimize/zircon_runtime/62/2026-09-27-detached-restore-union-cycle-rejection.md
 tests:
-  - zircon_runtime/src/scene/world/transaction/detached_entity_batch/restore_cycle_tests.rs
-  - zircon_runtime/src/scene/world/transaction/detached_entity_batch/restore_cycle_profile.rs
   - cargo test -p zircon_runtime --lib detached_entity_batch --locked --jobs 1 -- --nocapture --test-threads=1
   - cargo test -p zircon_editor --lib deleting --locked --jobs 1 -- --nocapture --test-threads=1
   - cargo test -p zircon_runtime --lib prepared_camera_subtree_managed_scale_fixture --locked --jobs 1 -- --ignored --nocapture --test-threads=1

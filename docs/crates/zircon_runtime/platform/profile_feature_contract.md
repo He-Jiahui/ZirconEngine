@@ -4,7 +4,6 @@ related_code:
   - docs/crates/zircon_runtime/platform/export_platform_contract.md
   - .codex/skills/zircon-dev/scripts/validate-matrix.ps1
   - .codex/skills/zircon-dev/scripts/validate-matrix.Tests.ps1
-  - .codex/skills/zircon-dev/validation/SKILL.md
   - .codex/skills/zircon-dev/validation/manual-commands.md
   - zircon_app/Cargo.toml
   - zircon_app/build.rs
@@ -18,7 +17,6 @@ implementation_files:
   - .github/workflows/profile-feature-contract.yml
   - .codex/skills/zircon-dev/scripts/validate-matrix.ps1
   - .codex/skills/zircon-dev/scripts/validate-matrix.Tests.ps1
-  - .codex/skills/zircon-dev/validation/SKILL.md
   - .codex/skills/zircon-dev/validation/manual-commands.md
   - zircon_app/build.rs
   - zircon_runtime/src/plugin/export_build_plan/default_profile.rs

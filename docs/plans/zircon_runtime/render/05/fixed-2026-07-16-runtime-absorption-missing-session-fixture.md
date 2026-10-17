@@ -9,8 +9,6 @@ origin_child_dir: docs/plans/zircon_runtime/render/05
 fixing_child_dir: docs/plans/zircon_runtime/runtime/01
 plan_link_mode: child_record_only
 related_code:
-  - zircon_runtime/src/tests/runtime_absorption
-  - zircon_runtime/src/tests/runtime_absorption/current_source_fixture.rs
   - docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md
 tests:
   - managed cargo test -p zircon_runtime render_shadow_atlas_compare_function_matches_forward_depth_contract --locked

@@ -12,18 +12,13 @@ related_code:
   - zircon_runtime/src/asset/project/paths.rs
   - zircon_runtime/src/asset/project/manager/open.rs
   - zircon_runtime/src/asset/project/manager/scan_and_import/sources.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/project_asset_manager.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/construction.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/open_project.rs
   - zircon_runtime/src/asset/pipeline/manager/asset_manager/asset_manager.rs
-  - zircon_runtime/src/asset/pipeline/manager/service_contracts/asset_manager_contract.rs
+  - zircon_runtime/src/asset/manager/service_contracts/asset_manager_contract.rs
   - zircon_runtime/src/dynamic_api/session/project.rs
   - zircon_runtime/src/dynamic_api/session/construction.rs
   - zircon_runtime/src/scene/module/mod.rs
   - zircon_runtime/src/asset/project/manager/source_path_for_uri.rs
   - zircon_runtime/src/asset/project/manager/source_uri_for_path.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/runtime.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/font_asset.rs
 implementation_files:
   - zircon_runtime/src/asset/project/manifest/project_manifest.rs
   - zircon_runtime/src/asset/project/manifest/load.rs
@@ -35,12 +30,8 @@ implementation_files:
   - zircon_runtime/src/asset/project/package_asset_registry.rs
   - zircon_runtime/src/asset/project/manager/open.rs
   - zircon_runtime/src/asset/project/manager/scan_and_import/sources.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/project_asset_manager.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/construction.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/runtime.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/open_project.rs
   - zircon_runtime/src/asset/pipeline/manager/asset_manager/asset_manager.rs
-  - zircon_runtime/src/asset/pipeline/manager/service_contracts/asset_manager_contract.rs
+  - zircon_runtime/src/asset/manager/service_contracts/asset_manager_contract.rs
   - zircon_runtime/src/dynamic_api/session/project.rs
   - zircon_runtime/src/dynamic_api/session/construction.rs
   - zircon_runtime/src/scene/module/mod.rs
@@ -52,7 +43,6 @@ tests:
   - zircon_runtime/src/asset/tests/project/manifest.rs
   - zircon_runtime/src/asset/tests/project/package_assets.rs
   - zircon_runtime/src/asset/tests/pipeline/manager/watcher.rs
-  - zircon_editor/src/ui/retained_host/app/helpers/animation_assets/tests.rs
   - zircon_editor/src/ui/host/editor_error.rs
   - tests/fixtures/serialization/project-manifest/v1/zircon-project.toml
   - tests/fixtures/serialization/project-manifest/v2/zircon-project.toml

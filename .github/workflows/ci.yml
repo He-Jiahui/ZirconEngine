@@ -43,7 +43,7 @@ jobs:
         run: python tools/audits/validate_cargo_test_reachability.py --json
 
       - name: Test Rust test separation guard
-        run: python -B -m unittest tools.tests.test_separate_rust_tests tools.tests.test_review_debt tools.tests.test_gitignore_contract -v
+        run: python -B -m unittest tools.tests.test_separate_rust_tests tools.tests.test_review_debt tools.tests.test_gitignore_contract tools.tests.test_repair_doc_paths -v
 
       - name: Guard Rust test directories
         run: python -B tools/audits/separate_rust_tests.py --check

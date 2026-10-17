@@ -33,10 +33,7 @@ related_code:
   - zircon_editor/src/ui/host/asset_editor_sessions/editing/palette.rs
   - zircon_editor/src/ui/host/asset_editor_sessions/editing/source.rs
   - zircon_editor/src/ui/host/asset_editor_sessions/editing/style.rs
-  - zircon_editor/src/ui/host/editor_asset_manager/manager/default_editor_asset_manager/mod.rs
-  - zircon_editor/src/ui/host/editor_asset_manager/manager/default_editor_asset_manager/broadcast.rs
-  - zircon_editor/src/ui/host/editor_asset_manager/manager/default_editor_asset_manager/subscribe_editor_asset_changes.rs
-  - zircon_editor/src/ui/retained_host/shell_pointer/effects.rs
+  - zircon_editor/src/ui/retained/shell_pointer/effects.rs
 implementation_files:
   - zircon_editor/src/ui/host/editor_ui_host.rs
   - zircon_editor/src/ui/host/layout_commands.rs
@@ -71,10 +68,7 @@ implementation_files:
   - zircon_editor/src/ui/host/asset_editor_sessions/editing/palette.rs
   - zircon_editor/src/ui/host/asset_editor_sessions/editing/source.rs
   - zircon_editor/src/ui/host/asset_editor_sessions/editing/style.rs
-  - zircon_editor/src/ui/host/editor_asset_manager/manager/default_editor_asset_manager/mod.rs
-  - zircon_editor/src/ui/host/editor_asset_manager/manager/default_editor_asset_manager/broadcast.rs
-  - zircon_editor/src/ui/host/editor_asset_manager/manager/default_editor_asset_manager/subscribe_editor_asset_changes.rs
-  - zircon_editor/src/ui/retained_host/shell_pointer/effects.rs
+  - zircon_editor/src/ui/retained/shell_pointer/effects.rs
 plan_sources:
   - user: 2026-05-03 修复其他 editor 生产路径 lock().unwrap() 热点
 tests:

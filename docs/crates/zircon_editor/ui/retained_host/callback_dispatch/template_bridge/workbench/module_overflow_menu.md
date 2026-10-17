@@ -1,16 +1,13 @@
 ---
 related_code:
-  - zircon_editor/assets/ui/editor/windows/workbench_window.zui
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/module_overflow_menu.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/window_menu_state.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/toolbar_layout.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/workbench/control.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_toolbar_breakpoints/mod.rs
+  - zircon_editor/src/ui/retained/dispatch/workbench/module_overflow_menu.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/workbench/window_menu_state.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/workbench/toolbar_layout.rs
+  - zircon_editor/src/ui/retained/dispatch/workbench/control.rs
 implementation_files:
-  - zircon_editor/assets/ui/editor/windows/workbench_window.zui
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/module_overflow_menu.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/window_menu_state.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/workbench/control.rs
+  - zircon_editor/src/ui/retained/dispatch/workbench/module_overflow_menu.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/workbench/window_menu_state.rs
+  - zircon_editor/src/ui/retained/dispatch/workbench/control.rs
 plan_sources:
   - user: 2026-06-25 Optimize Zircon editor UI from primitive components upward before composing drawers and windows
   - docs/plans/zircon_editor/editor_layout/15-component-standardization-from-primitives.md
@@ -20,7 +17,6 @@ tests:
   - cargo test -p zircon_editor --lib compact_workbench_module_more_opens_overflow_menu_and_selects_hidden_module --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-components-0625 --color never
   - cargo test -p zircon_editor --lib workbench_toolbar --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-components-0625 --color never
   - cargo test -p zircon_editor --lib capture_workbench_module_overflow_visual_artifact --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-components-0625 --color never -- --ignored --nocapture
-  - docs/tests/editor/editor-window-m3-workbench-module-overflow-900x620.png
 doc_type: module-detail
 status: implemented-focused-passed
 ---

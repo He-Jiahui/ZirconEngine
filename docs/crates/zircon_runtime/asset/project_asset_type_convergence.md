@@ -18,12 +18,12 @@ related_code:
   - zircon_runtime/src/asset/registry/query.rs
   - zircon_runtime/src/asset/project/manager/scan_and_import.rs
   - zircon_runtime/src/asset/assets/scene/mod.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/loading/load_asset.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/loading/load_imported_asset.rs
-  - zircon_runtime/src/asset/pipeline/manager/resource_sync/register_project_resource.rs
+  - zircon_runtime/src/asset/pipeline/manager/assets/loading/load_asset.rs
+  - zircon_runtime/src/asset/pipeline/manager/assets/loading/load_imported_asset.rs
+  - zircon_runtime/src/asset/manager/resource_sync/register_project_resource.rs
   - zircon_runtime/src/asset/pipeline/manager/resource_sync/store_runtime_payload.rs
   - zircon_runtime_interface/src/resource/marker.rs
-  - zircon_editor/src/ui/host/editor_asset_manager/manager/preview_refresh/generate_preview_artifact.rs
+  - zircon_editor/src/ui/host/assets/preview_refresh/generate_preview_artifact.rs
   - zircon_editor/src/core/asset/type_registry/builtin.rs
   - zircon_editor/src/core/asset/type_registry/thumbnail_provider.rs
   - zircon_editor/src/ui/host/resource_access.rs
@@ -43,13 +43,13 @@ implementation_files:
   - zircon_runtime/src/asset/project/manager/artifact_access.rs
   - zircon_runtime/src/asset/registry/query.rs
   - zircon_runtime/src/asset/project/manager/scan_and_import.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/loading/load_asset.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/loading/load_imported_asset.rs
-  - zircon_runtime/src/asset/pipeline/manager/resource_sync/register_project_resource.rs
+  - zircon_runtime/src/asset/pipeline/manager/assets/loading/load_asset.rs
+  - zircon_runtime/src/asset/pipeline/manager/assets/loading/load_imported_asset.rs
+  - zircon_runtime/src/asset/manager/resource_sync/register_project_resource.rs
   - zircon_runtime/src/asset/pipeline/manager/resource_sync/store_runtime_payload.rs
   - zircon_runtime/src/asset/assets/mesh/mod.rs
   - zircon_runtime_interface/src/resource/marker.rs
-  - zircon_editor/src/ui/host/editor_asset_manager/manager/preview_refresh/generate_preview_artifact.rs
+  - zircon_editor/src/ui/host/assets/preview_refresh/generate_preview_artifact.rs
   - zircon_editor/src/core/asset/type_registry/builtin.rs
   - zircon_editor/src/core/asset/type_registry/thumbnail_provider.rs
   - zircon_editor/src/ui/host/resource_access.rs
@@ -68,7 +68,6 @@ tests:
   - zircon_runtime/src/asset/tests/assets/mesh.rs
   - zircon_runtime/src/asset/tests/project/manager.rs
   - zircon_runtime/src/asset/tests/project/zmeta.rs
-  - zircon_runtime/src/core/resource/tests.rs
   - cargo check -p zircon_plugin_sound_runtime -p zircon_plugin_sound_editor --locked --message-format short
   - cargo test -p zircon_plugin_sound_runtime -p zircon_plugin_sound_editor --locked --message-format short
 doc_type: module-detail

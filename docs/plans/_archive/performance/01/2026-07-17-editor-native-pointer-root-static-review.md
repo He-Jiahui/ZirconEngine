@@ -1,8 +1,5 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/constants.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/state.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
 tests:

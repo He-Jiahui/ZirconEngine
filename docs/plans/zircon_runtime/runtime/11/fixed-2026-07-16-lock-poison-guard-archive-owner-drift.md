@@ -10,7 +10,7 @@ fixing_child_dir: docs/plans/zircon_runtime/runtime/15
 plan_link_mode: child_record_only
 priority: 100
 related_code:
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy/asset_render_input/asset_pipeline.rs
+  - zircon_runtime/src/tests/structure/asset_render_input/asset_pipeline.rs
   - docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md
   - docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md
   - docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md

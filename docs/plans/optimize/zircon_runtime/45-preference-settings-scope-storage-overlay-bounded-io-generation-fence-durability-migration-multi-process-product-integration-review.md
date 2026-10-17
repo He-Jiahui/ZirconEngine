@@ -17,9 +17,7 @@ related_code:
   - examples/woc/native/apps/woc_client/src/shell/offline_session.rs
   - examples/woc/native/apps/woc_client/src/windows/inventory.rs
 tests:
-  - zircon_runtime/src/core/runtime/tasks/bounded_keyed_io/tests.rs
   - zircon_runtime/src/core/runtime/tasks/bounded_keyed_io/tests
-  - zircon_runtime/src/platform/preferences/persistence/tests.rs
   - zircon_runtime/src/platform/preferences/persistence/tests
   - zircon_runtime/src/platform/tests/preferences.rs
   - zircon_editor/src/core/settings/tests

@@ -8,7 +8,7 @@ related_code:
   - zircon_runtime/src/scene/world/property_access/value_conversion/values.rs
   - zircon_runtime/src/scene/tests/property_paths/write_validation.rs
   - zircon_runtime/src/scene/tests/component_structure/runtime_world_domains.rs
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/scene_world/property_access.rs
+  - zircon_runtime/src/tests/contracts/review/errors/scene_world/property_access.rs
 implementation_files:
   - zircon_runtime/src/scene/world/property_access/value_conversion.rs
   - zircon_runtime/src/scene/world/property_access/value_conversion/compiled.rs
@@ -18,7 +18,7 @@ implementation_files:
   - zircon_runtime/src/scene/world/property_access/value_conversion/values.rs
   - zircon_runtime/src/scene/tests/property_paths/write_validation.rs
   - zircon_runtime/src/scene/tests/component_structure/runtime_world_domains.rs
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/scene_world/property_access.rs
+  - zircon_runtime/src/tests/contracts/review/errors/scene_world/property_access.rs
 plan_sources:
   - docs/plans/engine-code-structure-convention.md
   - docs/plans/engine-code-review-findings-2026-06.md
@@ -33,7 +33,7 @@ tests:
   - zircon_runtime/src/scene/tests/property_paths/write_validation.rs::world_property_write_normalizer_pushes_identifier_characters_directly
   - zircon_runtime/src/scene/tests/property_paths/write_validation.rs::world_property_value_conversion_errors_use_direct_result_branches
   - zircon_runtime/src/scene/tests/property_paths/write_validation.rs::world_property_value_conversion_facade_keeps_policy_owners_separate
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/scene_world/property_access.rs::review_f5_scene_property_access_uses_scene_error
+  - zircon_runtime/src/tests/contracts/review/errors/scene_world/property_access.rs::review_f5_scene_property_access_uses_scene_error
   - rustfmt --edition 2021 --check
   - git diff --check
 doc_type: milestone-detail

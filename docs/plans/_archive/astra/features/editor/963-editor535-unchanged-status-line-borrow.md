@@ -5,7 +5,7 @@ plan_sources:
   - docs/plans/optimize/zircon_runtime/02/2026-08-30-editor535-unchanged-status-line-borrow.md
 implementation_files:
   - zircon_editor/src/ui/host/editor_event_runtime_access/status.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/dispatch_effects/status.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle/dispatch_effects/status.rs
 tests:
   - zircon_editor/src/ui/host/editor_event_runtime_access/status.rs
 ---

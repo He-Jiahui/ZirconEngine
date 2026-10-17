@@ -13,8 +13,8 @@ related_code:
   - zircon_editor/src/ui/workbench/shell_state.rs
   - zircon_editor/src/core/commands
   - zircon_editor/src/core/extension/store/model/contribution_store.rs
-  - zircon_editor/src/ui/retained_host/app/module_plugin_actions/host_actions/live_actions.rs
-  - zircon_editor/src/tests/editor_event/runtime/extensions_registration/ticketed_command_revoke.rs
+  - zircon_editor/src/ui/retained/app/plugins/host_actions/live_actions.rs
+  - zircon_editor/src/tests/extensions_registration/ticketed_command_revoke.rs
 tests:
   - cargo test -p zircon_editor --lib --locked
   - Editor12 PostWorkbench enable-disable lifecycle matrix

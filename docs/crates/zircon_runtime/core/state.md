@@ -41,8 +41,6 @@ tests:
   - tools/tests/test_frameworks_01_state_kernel_owner_boundary.py
   - zircon_runtime/src/tests/state.rs
   - zircon_runtime/src/core/runtime/handle/states.rs::tests::core_handle_state_accessors_recover_poisoned_state_registry_lock
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy.rs::runtime_15_core_handle_states_lock_poison_recovery_guard_covers_state_registry
-  - zircon_runtime/src/tests/runtime_absorption/naming_boundary.rs::runtime_15_core_runtime_state_module_uses_owner_name
   - zircon_runtime/src/tests/prelude.rs
   - zircon_app/src/tests/prelude.rs
   - .github/workflows/ci.yml

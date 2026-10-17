@@ -6,9 +6,9 @@ plan_sources:
   - docs/plans/optimize/zircon_editor/01/2026-08-30-editor-pointer-surface-delta-receipts.md
   - docs/plans/optimize/zircon_runtime/09a-rhi-render-graph-gpu-lifetime-review.md
 related_code:
-  - zircon_editor/src/ui/retained_host/menu_pointer/host_menu_pointer_bridge_rebuild_surface.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render/paint_projection.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_theme/metrics.rs
+  - zircon_editor/src/ui/menu_pointer/host_menu_pointer_bridge_rebuild_surface.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/render/paint_projection.rs
+  - zircon_editor/src/ui/retained/contract/paint_theme/metrics.rs
 tests:
   - tools/tests/test_editor_menu_interaction_projection_pressure.py
   - tools/tests/test_editor_runtime_render_command_transient_extraction_contract.py

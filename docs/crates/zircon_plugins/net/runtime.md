@@ -168,7 +168,6 @@ related_code:
   - zircon_runtime/src/core/framework/net/manager.rs
   - zircon_runtime/src/core/framework/net/rpc.rs
   - zircon_runtime/src/core/framework/net/sync.rs
-  - zircon_runtime/src/core/framework/net/tests.rs
   - zircon_runtime/src/core/framework/net/transport.rs
 implementation_files:
   - zircon_plugins/net/plugin.toml
@@ -176,7 +175,6 @@ implementation_files:
   - zircon_runtime/src/core/framework/net/http.rs
   - zircon_runtime/src/core/framework/net/rpc.rs
   - zircon_runtime/src/core/framework/net/sync.rs
-  - zircon_runtime/src/core/framework/net/tests.rs
   - zircon_plugins/net/runtime/Cargo.toml
   - zircon_plugins/net/runtime/src/lib.rs
   - zircon_plugins/net/runtime/src/config.rs
@@ -383,7 +381,6 @@ tests:
   - corrupt_chunk_refetched
   - reliable_datagram_and_download_contracts_record_recovery_state
   - rpc_feature_manager_closes_sessions_from_transport_events
-  - zircon_runtime/src/core/framework/net/tests.rs
   - rustfmt --edition 2021 --check over touched Net event/runtime/test files (passed 2026-06-07)
   - cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_net_runtime --tests --locked --jobs 1 --target-dir E:\cargo-targets\zircon-net-lifecycle-events-0607 --message-format short --color never (passed 2026-06-07)
   - cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_net_runtime default_net_manager_sends_udp_packet_to_bound_socket --locked --jobs 1 --target-dir E:\cargo-targets\zircon-net-lifecycle-events-0607 --message-format short --color never -- --test-threads=1 --nocapture (passed 2026-06-07)

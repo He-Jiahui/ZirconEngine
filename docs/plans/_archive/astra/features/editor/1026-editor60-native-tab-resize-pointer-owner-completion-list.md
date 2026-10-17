@@ -1,18 +1,14 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/entry/sequence/entry.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/move_dispatch/entry.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/host_interaction/drag.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/host_interaction/resize.rs
-  - zircon_editor/src/tests/host/retained_window/native_host_contract/native_capture_pointer_owner.rs
-  - zircon_editor/src/ui/retained_host/host_contract/window/event_loop/events/focus.rs
-  - zircon_editor/src/ui/retained_host/host_contract/window/event_loop/events.rs
-  - zircon_editor/src/ui/retained_host/host_contract/window/test_support.rs
-  - zircon_editor/src/ui/retained_host/app/workspace_docking/drawer_resize/movement.rs
-  - zircon_editor/src/ui/retained_host/app/callback_wiring/host_shell/drag_resize.rs
-  - zircon_editor/src/ui/retained_host/app/tests/close_prompt.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/recompute.rs
-  - zircon_editor/src/ui/retained_host/host_contract/window/lifecycle.rs
+  - zircon_editor/src/ui/retained/contract/data/host_interaction/drag.rs
+  - zircon_editor/src/ui/retained/contract/data/host_interaction/resize.rs
+  - zircon_editor/src/ui/retained/contract/window/event_loop/events/focus.rs
+  - zircon_editor/src/ui/retained/contract/window/event_loop/events.rs
+  - zircon_editor/src/ui/retained/app/workspace_docking/drawer_resize/movement.rs
+  - zircon_editor/src/ui/retained/app/callback_wiring/host_shell/drag_resize.rs
+  - zircon_editor/src/ui/retained/app/tests/close_prompt.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle/recompute.rs
+  - zircon_editor/src/ui/retained/contract/window/lifecycle.rs
 plan_sources:
   - docs/plans/optimize/zircon_editor/60/2026-09-27-native-tab-resize-pointer-owner.md
 status: implemented_pending_validation

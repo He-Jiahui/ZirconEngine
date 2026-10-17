@@ -1,6 +1,6 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/app/tests/drag_sources/asset_browser.rs
+  - zircon_editor/src/ui/retained/app/tests/drag_sources/asset_browser.rs
   - docs/plans/optimize/zircon_editor/57/2026-09-28-editor57-asset-browser-context-menu-host-target-regression.md
 plan_sources:
   - docs/plans/astra/features/editor/1037-editor57-asset-browser-context-menu-open-completion-list.md

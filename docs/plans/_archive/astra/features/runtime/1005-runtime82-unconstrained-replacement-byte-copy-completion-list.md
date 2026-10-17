@@ -4,7 +4,6 @@ related_code:
 plan_sources:
   - docs/plans/optimize/zircon_runtime/82/2026-09-27-unconstrained-replacement-byte-copy.md
 tests:
-  - zircon_runtime/src/ui/surface/input/text_constraints/optimization_tests.rs
 doc_type: milestone-detail
 status: implemented_pending_validation
 ---

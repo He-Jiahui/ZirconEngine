@@ -5,8 +5,6 @@ related_code:
   - zircon_editor/src/core/sync/watch_map.rs
   - zircon_runtime_interface/src/world_sync
 tests:
-  - zircon_editor/src/core/sync/pump/tests.rs
-  - zircon_editor/src/core/sync/watch_map/tests.rs
   - zircon_editor/tests/editor_world_sync_watch_map.rs
   - tools/tests/test_editor02_world_sync_watch_map_contract.py
 plan_sources:

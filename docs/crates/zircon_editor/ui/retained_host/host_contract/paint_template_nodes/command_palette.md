@@ -1,33 +1,24 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_command_palette.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_nodes.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_popup_row.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/command_palette/mod.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/command_palette/attributes.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/command_palette/entries.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/command_palette/entry.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/command_palette/ids.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/command_palette/options.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/command_palette/parse.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/command_palette/tests.rs
-  - zircon_editor/src/tests/host/retained_window/native_material_painter_command_palette.rs
+  - zircon_editor/src/ui/retained/ui/data/projection/command_palette/mod.rs
+  - zircon_editor/src/ui/retained/ui/data/projection/command_palette/attributes.rs
+  - zircon_editor/src/ui/retained/ui/data/projection/command_palette/entries.rs
+  - zircon_editor/src/ui/retained/ui/data/projection/command_palette/entry.rs
+  - zircon_editor/src/ui/retained/ui/data/projection/command_palette/ids.rs
+  - zircon_editor/src/ui/retained/ui/data/projection/command_palette/options.rs
+  - zircon_editor/src/ui/retained/ui/data/projection/command_palette/parse.rs
   - zircon_runtime/src/ui/surface/render/command_palette.rs
 implementation_files:
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_command_palette.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_nodes.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/command_palette/mod.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/command_palette/options.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/command_palette/entries.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/command_palette/ids.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/command_palette/parse.rs
+  - zircon_editor/src/ui/retained/ui/data/projection/command_palette/mod.rs
+  - zircon_editor/src/ui/retained/ui/data/projection/command_palette/options.rs
+  - zircon_editor/src/ui/retained/ui/data/projection/command_palette/entries.rs
+  - zircon_editor/src/ui/retained/ui/data/projection/command_palette/ids.rs
+  - zircon_editor/src/ui/retained/ui/data/projection/command_palette/parse.rs
 plan_sources:
   - docs/plans/zircon_editor/editor_ui/06-component-library-mui.md
   - docs/plans/zircon_editor/editor_ui/index.md
 tests:
-  - zircon_editor/src/tests/host/retained_window/native_material_painter_command_palette.rs
   - zircon_runtime/src/ui/tests/render_command_palette.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/tests/actions.rs
   - rustfmt --edition 2021 touched CommandPalette render/native painter Rust files
   - git diff --check -- touched CommandPalette render/native painter/doc files
 doc_type: module-detail

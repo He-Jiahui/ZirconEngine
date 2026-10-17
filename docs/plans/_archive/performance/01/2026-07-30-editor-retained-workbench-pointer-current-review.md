@@ -1,10 +1,7 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/app/workbench_pointer.rs
-  - zircon_editor/src/ui/retained_host/app/workbench_pointer
-  - zircon_editor/src/ui/retained_host/app/helpers/callback_surface/source_window/focus.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/shared_pointer
-  - zircon_editor/src/ui/retained_host/callback_dispatch/layout/floating_window
+  - zircon_editor/src/ui/retained/app/helpers/source_window/focus.rs
+  - zircon_editor/src/ui/retained/dispatch/layout/floating_window
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_editor/editor_ui/01-slate-input-dispatch-core.md

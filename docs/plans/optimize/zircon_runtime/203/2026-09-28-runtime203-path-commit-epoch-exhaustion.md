@@ -9,7 +9,6 @@ validation_status: static_checks_complete_managed_tests_pending
 performance_status: not_applicable
 related_code:
   - zircon_runtime/src/foundation/runtime/config_manager/commit_fence/registry.rs
-  - zircon_runtime/src/foundation/runtime/config_manager/commit_fence/tests.rs
 tests:
   - path_commit_epoch_exhaustion_never_reauthorizes_a_stale_fence
 plan_sources:

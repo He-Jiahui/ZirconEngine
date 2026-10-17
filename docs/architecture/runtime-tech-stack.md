@@ -14,15 +14,12 @@ related_code:
   - zircon_runtime/src/plugin/export_build_plan/materialize/copy.rs
   - zircon_runtime/src/plugin/export_build_plan/materialize/paths.rs
   - zircon_runtime/src/tests/extensions/tech_stack_dependency_guard.rs
-  - zircon_runtime/src/tests/runtime_absorption/tech_stack.rs
-  - zircon_runtime/src/tests/runtime_absorption/tech_stack/mirror_docs.rs
+  - zircon_runtime/src/tests/contracts/tech_stack/mirror_docs.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/tech_stack_boundary.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/tech_stack_source_inventory.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/tech_stack_anchor_inventory.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/tech_stack_markdown.py
   - tools/tests/test_runtime_tech_stack_boundary.py
-  - zircon_runtime/src/tests/plugin_extensions/export_build_plan_native_dynamic.rs
-  - zircon_runtime/src/tests/plugin_extensions/export_build_plan_feature_provider.rs
 implementation_files:
   - Cargo.toml
   - zircon_runtime/Cargo.toml
@@ -36,8 +33,7 @@ implementation_files:
   - zircon_runtime/src/plugin/export_build_plan/materialize/copy.rs
   - zircon_runtime/src/plugin/export_build_plan/materialize/paths.rs
   - zircon_runtime/src/tests/extensions/tech_stack_dependency_guard.rs
-  - zircon_runtime/src/tests/runtime_absorption/tech_stack.rs
-  - zircon_runtime/src/tests/runtime_absorption/tech_stack/mirror_docs.rs
+  - zircon_runtime/src/tests/contracts/tech_stack/mirror_docs.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/tech_stack_boundary.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/tech_stack_source_inventory.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/tech_stack_anchor_inventory.py
@@ -51,12 +47,8 @@ plan_sources:
   - dev/Fyrox/fyrox-impl/Cargo.toml
 tests:
   - zircon_runtime/src/tests/extensions/tech_stack_dependency_guard.rs
-  - zircon_runtime/src/tests/runtime_absorption/tech_stack/mirror_docs.rs::runtime_01_tech_stack_mirror_docs_match_structure_audit_counts
+  - zircon_runtime/src/tests/contracts/tech_stack/mirror_docs.rs::runtime_01_tech_stack_mirror_docs_match_structure_audit_counts
   - tools/tests/test_runtime_tech_stack_boundary.py
-  - zircon_runtime/src/tests/plugin_extensions/export_build_plan_native_dynamic.rs::native_dynamic_zip_archive_materialization_writes_generated_files_and_runtime_payloads
-  - zircon_runtime/src/tests/plugin_extensions/export_build_plan_native_dynamic.rs::native_dynamic_zip_archive_preview_reports_archive_without_writes
-  - zircon_runtime/src/tests/plugin_extensions/export_build_plan_feature_provider.rs::source_template_catalog_completion_links_active_external_optional_feature_runtime_crates
-  - zircon_runtime/src/tests/plugin_extensions/export_build_plan_feature_provider.rs::source_template_reports_missing_native_dynamic_feature_provider_as_fatal_when_required
   - cargo test -p zircon_runtime --lib tech_stack --locked -- --nocapture
 doc_type: module-detail
 ---

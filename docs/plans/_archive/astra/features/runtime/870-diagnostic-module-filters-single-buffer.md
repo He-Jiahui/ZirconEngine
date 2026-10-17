@@ -9,8 +9,6 @@ related_records:
 implementation_files:
   - zircon_runtime/src/diagnostic_log/settings.rs
 tests:
-  - zircon_runtime/src/diagnostic_log/settings/module_filters_single_buffer_tests.rs
-  - tools/tests/test_runtime870_diagnostic_module_filters_single_buffer_performance_contract.py
 ---
 
 # Runtime870 Diagnostic Module Filters Single Buffer

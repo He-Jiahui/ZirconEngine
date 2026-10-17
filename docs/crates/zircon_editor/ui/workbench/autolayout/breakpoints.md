@@ -8,22 +8,16 @@ related_code:
   - zircon_editor/src/ui/workbench/autolayout/geometry/side_width_allocation.rs
   - zircon_editor/src/ui/workbench/autolayout/geometry/window_minimums.rs
   - zircon_editor/src/ui/workbench/autolayout/region/tool_region/build.rs
-  - zircon_editor/src/ui/workbench/autolayout/region/tool_region/collapsed_constraints.rs
+  - zircon_editor/src/ui/workbench/region/tool_region/collapsed_constraints.rs
   - zircon_editor/src/ui/workbench/page_tabs/metrics.rs
-  - zircon_editor/src/ui/retained_host/ui/template_layout_context.rs
-  - zircon_editor/src/ui/retained_host/app.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/shell_metrics.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/recompute/shell/builder.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/recompute/shell/template_bridges.rs
-  - zircon_editor/src/ui/retained_host/host_contract/globals/state.rs
-  - zircon_editor/src/ui/retained_host/host_contract/window/handle.rs
-  - zircon_editor/src/ui/retained_host/host_contract/window/event_loop/lifecycle.rs
-  - zircon_editor/src/ui/retained_host/host_contract/window/tests/
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/drawer_layout.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection/dock_header.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection/dock_header/side.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_drawer_breakpoints.rs
-  - zircon_editor/src/tests/host/retained_menu_pointer/visual_screenshot/layout_assertions.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle/shell_metrics.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle/recompute/shell/builder.rs
+  - zircon_editor/src/ui/retained/contract/globals/state.rs
+  - zircon_editor/src/ui/retained/contract/window/handle.rs
+  - zircon_editor/src/ui/retained/contract/window/event_loop/lifecycle.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/workbench/drawer_layout.rs
+  - zircon_editor/src/ui/layouts/windows/window/projection/dock_header/side.rs
+  - zircon_editor/src/tests/host/menus/visual_screenshot/layout_assertions.rs
 design_references:
   - dev/UnrealEngine/Engine/Source/Runtime/Slate/Public/Framework/Docking/STabDrawer.h
   - dev/UnrealEngine/Engine/Source/Runtime/Slate/Private/Framework/Docking/STabDrawer.cpp

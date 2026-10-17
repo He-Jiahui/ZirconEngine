@@ -1,15 +1,11 @@
 ---
 related_code:
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/diagnostics
   - zircon_editor/assets/ui/editor/host/runtime_diagnostics_body.zui
   - zircon_editor/assets/ui/editor/host/performance_timeline_body.zui
   - zircon_editor/src/core/gateway/session/profile.rs
   - zircon_editor/src/ui/host/editor_manager_runtime_diagnostics.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload_builders
-  - zircon_editor/src/ui/retained_host/app/profiling
-  - zircon_editor/src/ui/retained_host/app/runtime_diagnostics_visibility.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion
+  - zircon_editor/src/ui/retained/app/profiling
+  - zircon_editor/src/ui/retained/app/runtime_diagnostics_visibility.rs
   - zircon_runtime_interface/src/profiling.rs
   - zircon_runtime/src/core/runtime/diagnostics
   - zircon_runtime/src/core/runtime/handle/diagnostics.rs

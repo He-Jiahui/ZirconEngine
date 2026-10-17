@@ -1,30 +1,29 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/app.rs
-  - zircon_editor/src/ui/retained_host/app/asset_reference_pointer.rs
-  - zircon_editor/src/ui/retained_host/app/asset_reference_pointer/events.rs
-  - zircon_editor/src/ui/retained_host/app/asset_reference_pointer/events/click.rs
-  - zircon_editor/src/ui/retained_host/app/asset_reference_pointer/events/click/dispatch.rs
-  - zircon_editor/src/ui/retained_host/app/asset_reference_pointer/events/motion.rs
-  - zircon_editor/src/ui/retained_host/app/asset_reference_pointer/press.rs
-  - zircon_editor/src/ui/retained_host/app/asset_reference_pointer/target.rs
+  - zircon_editor/src/ui/retained/app/asset_reference_pointer.rs
+  - zircon_editor/src/ui/retained/app/asset_reference_pointer/events.rs
+  - zircon_editor/src/ui/retained/app/asset_reference_pointer/events/click.rs
+  - zircon_editor/src/ui/retained/app/events/click/dispatch.rs
+  - zircon_editor/src/ui/retained/app/asset_reference_pointer/events/motion.rs
+  - zircon_editor/src/ui/retained/app/asset_reference_pointer/press.rs
+  - zircon_editor/src/ui/retained/app/asset_reference_pointer/target.rs
   - zircon_editor/src/ui/retained/app/asset_reference_pointer/target/dispatch.rs
   - zircon_editor/src/ui/retained/app/asset_reference_pointer/target/prepare.rs
   - zircon_editor/src/ui/retained/app/asset_reference_pointer/target/state.rs
-  - zircon_editor/src/ui/retained_host/app/asset_surface_pointer_state.rs
-  - zircon_editor/src/ui/retained_host/app/pointer_layout/asset_surfaces.rs
-  - zircon_editor/src/ui/retained_host/asset_pointer/reference/bridge.rs
-  - zircon_editor/src/ui/retained_host/asset_pointer/reference/dispatch.rs
-  - zircon_editor/src/ui/retained_host/asset_pointer/reference/layout.rs
-  - zircon_editor/src/ui/retained_host/asset_pointer/reference/route.rs
+  - zircon_editor/src/ui/retained/app/asset_surface_pointer_state.rs
+  - zircon_editor/src/ui/retained/app/pointer_layout/asset_surfaces.rs
+  - zircon_editor/src/ui/retained/asset_pointer/reference/bridge.rs
+  - zircon_editor/src/ui/retained/asset_pointer/reference/dispatch.rs
+  - zircon_editor/src/ui/retained/asset_pointer/reference/layout.rs
+  - zircon_editor/src/ui/retained/asset_pointer/reference/route.rs
 implementation_files:
-  - zircon_editor/src/ui/retained_host/app/asset_reference_pointer.rs
-  - zircon_editor/src/ui/retained_host/app/asset_reference_pointer/events.rs
-  - zircon_editor/src/ui/retained_host/app/asset_reference_pointer/events/click.rs
-  - zircon_editor/src/ui/retained_host/app/asset_reference_pointer/events/click/dispatch.rs
-  - zircon_editor/src/ui/retained_host/app/asset_reference_pointer/events/motion.rs
-  - zircon_editor/src/ui/retained_host/app/asset_reference_pointer/press.rs
-  - zircon_editor/src/ui/retained_host/app/asset_reference_pointer/target.rs
+  - zircon_editor/src/ui/retained/app/asset_reference_pointer.rs
+  - zircon_editor/src/ui/retained/app/asset_reference_pointer/events.rs
+  - zircon_editor/src/ui/retained/app/asset_reference_pointer/events/click.rs
+  - zircon_editor/src/ui/retained/app/events/click/dispatch.rs
+  - zircon_editor/src/ui/retained/app/asset_reference_pointer/events/motion.rs
+  - zircon_editor/src/ui/retained/app/asset_reference_pointer/press.rs
+  - zircon_editor/src/ui/retained/app/asset_reference_pointer/target.rs
   - zircon_editor/src/ui/retained/app/asset_reference_pointer/target/dispatch.rs
   - zircon_editor/src/ui/retained/app/asset_reference_pointer/target/prepare.rs
   - zircon_editor/src/ui/retained/app/asset_reference_pointer/target/state.rs

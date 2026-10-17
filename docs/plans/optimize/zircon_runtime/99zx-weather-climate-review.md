@@ -8,23 +8,18 @@ source_recheck_required: true
 historical_refresh_of: Runtime36
 related_code:
   - zircon_runtime/src/builtin/runtime_modules
-  - zircon_runtime/src/plugin/runtime_plugin
   - zircon_runtime/src/core/runtime/time.rs
   - zircon_runtime/src/scene/world_time
   - zircon_runtime/src/scene/world
-  - zircon_runtime/src/scene/dynamic_scene
   - zircon_runtime/src/core/framework/scene/component_type_descriptor
   - zircon_runtime/src/asset/assets/scene
   - zircon_runtime/src/core/framework/render/environment
   - zircon_runtime/src/core/framework/render/frame_extract.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment
   - zircon_plugins/rendering/features/volumetric_fog
   - zircon_plugins/particles
   - zircon_plugins/terrain
   - zircon_plugins/sound
   - zircon_plugins/net
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/world/workbench_extension_weather_editor_workspace.zui
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback.rs
 plan_sources:
   - docs/plans/optimize/zircon_runtime/36-weather-climate-celestial-time-of-day-wind-precipitation-cloud-atmosphere-surface-state-determinism-network-save-scalability.md
   - docs/plans/optimize/zircon_editor/38-weather-climate-time-of-day-wind-precipitation-cloud-atmosphere-environment-authoring-review.md

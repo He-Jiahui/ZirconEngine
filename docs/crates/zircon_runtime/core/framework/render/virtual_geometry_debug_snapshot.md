@@ -1,41 +1,15 @@
 ---
 related_code:
   - zircon_runtime/src/core/framework/render/virtual_geometry_debug_snapshot.rs
-  - zircon_runtime/src/core/framework/render/virtual_geometry_debug_snapshot/bvh_visualization.rs
-  - zircon_runtime/src/core/framework/render/virtual_geometry_debug_snapshot/cpu_reference.rs
-  - zircon_runtime/src/core/framework/render/virtual_geometry_debug_snapshot/cull_input.rs
-  - zircon_runtime/src/core/framework/render/virtual_geometry_debug_snapshot/encoding.rs
-  - zircon_runtime/src/core/framework/render/virtual_geometry_debug_snapshot/execution.rs
-  - zircon_runtime/src/core/framework/render/virtual_geometry_debug_snapshot/node_and_cluster_cull.rs
-  - zircon_runtime/src/core/framework/render/virtual_geometry_debug_snapshot/page_payload.rs
-  - zircon_runtime/src/core/framework/render/virtual_geometry_debug_snapshot/snapshot.rs
-  - zircon_runtime/src/core/framework/render/virtual_geometry_debug_snapshot/sources.rs
-  - zircon_runtime/src/core/framework/render/virtual_geometry_debug_snapshot/tests.rs
   - zircon_runtime/src/graphics/virtual_geometry_runtime_provider/extract_output.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/frame_submission_context.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/build_virtual_geometry_debug_snapshot.rs
-  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/nanite/page_payload.rs
-  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/nanite/automatic_extract.rs
+  - zircon_plugins/virtual_geometry/runtime/src/geometry/nanite/page_payload.rs
+  - zircon_plugins/virtual_geometry/runtime/src/geometry/nanite/automatic_extract.rs
   - zircon_plugins/virtual_geometry/runtime/src/provider.rs
-  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_imported_extract.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/virtual_geometry_asset_payload_decode.rs
 implementation_files:
   - zircon_runtime/src/core/framework/render/virtual_geometry_debug_snapshot.rs
-  - zircon_runtime/src/core/framework/render/virtual_geometry_debug_snapshot/bvh_visualization.rs
-  - zircon_runtime/src/core/framework/render/virtual_geometry_debug_snapshot/cpu_reference.rs
-  - zircon_runtime/src/core/framework/render/virtual_geometry_debug_snapshot/cull_input.rs
-  - zircon_runtime/src/core/framework/render/virtual_geometry_debug_snapshot/execution.rs
-  - zircon_runtime/src/core/framework/render/virtual_geometry_debug_snapshot/node_and_cluster_cull.rs
-  - zircon_runtime/src/core/framework/render/virtual_geometry_debug_snapshot/page_payload.rs
-  - zircon_runtime/src/core/framework/render/virtual_geometry_debug_snapshot/snapshot.rs
-  - zircon_runtime/src/core/framework/render/virtual_geometry_debug_snapshot/sources.rs
   - zircon_runtime/src/graphics/virtual_geometry_runtime_provider/extract_output.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/frame_submission_context.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/build_virtual_geometry_debug_snapshot.rs
-  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/nanite/page_payload.rs
-  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/nanite/automatic_extract.rs
+  - zircon_plugins/virtual_geometry/runtime/src/geometry/nanite/page_payload.rs
+  - zircon_plugins/virtual_geometry/runtime/src/geometry/nanite/automatic_extract.rs
   - zircon_plugins/virtual_geometry/runtime/src/provider.rs
 plan_sources:
   - docs/plans/zircon_runtime/render/08-material-shader-permutation.md
@@ -47,8 +21,6 @@ tests:
   - rustfmt --edition 2021 --check on virtual_geometry_debug_snapshot payload DTO/re-export, production VG debug snapshot builder, GPUScene virtual-geometry ABI, mesh build resident upload owner, and runtime_15_virtual_geometry_cluster_payload_upload_is_wired (2026-06-29 VirtualGeometry cluster payload upload: passed)
   - cargo check -q -p zircon_runtime --lib --target-dir target\codex-plan08-product-material-pass-cache-0629 --locked --jobs 1 (2026-06-29 VirtualGeometry cluster payload upload: timed out after about 304s; no check result, not counted as passed)
   - E:\cargo-targets\zircon-plan08-three-shading-model-parity-0701\debug\deps\zircon_runtime-fe15dbfd02d9864e.exe graphics::scene::scene_renderer::mesh::build_mesh_draws::build::virtual_geometry_resident_upload::tests::virtual_geometry_cluster_words_follow_resident_page_payloads --exact --test-threads=1 --nocapture (2026-07-02 VirtualGeometry cluster payload upload direct-binary WGPU backfill: passed 1/1, 5881 filtered)
-  - zircon_runtime/src/core/framework/render/virtual_geometry_debug_snapshot/tests.rs
-  - zircon_runtime/src/tests/runtime_absorption/performance_hotspots/owner_budget.rs
 doc_type: module-detail
 ---
 

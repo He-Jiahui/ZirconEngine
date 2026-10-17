@@ -1,24 +1,16 @@
 ---
 related_code:
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/environment_ibl_compile_options.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build.rs
-  - zircon_runtime/src/graphics/pipeline/declarations/render_pipeline_compile_options.rs
+  - zircon_runtime/src/graphics/declarations/render_pipeline_compile_options.rs
   - zircon_runtime/src/graphics/pipeline/declarations/compiled_render_pipeline.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/pass_authoring.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_construct/new_with_icon_source.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/submit_compiled_scene_frame.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/construction.rs
+  - zircon_runtime/src/graphics/scene_renderer_construct/new_with_icon_source.rs
+  - zircon_runtime/src/graphics/scene/core/render/submit_compiled_scene_frame.rs
+  - zircon_runtime/src/graphics/scene/renderer/core/render/render/render.rs
   - zircon_runtime/src/asset/project/paths.rs
   - zircon_runtime/src/core/framework/render/environment/ibl_bake_artifact.rs
   - zircon_runtime/src/graphics/tests/project_render/project_scenes.rs
 implementation_files:
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/environment_ibl_compile_options.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/pass_authoring.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_construct/new_with_icon_source.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/submit_compiled_scene_frame.rs
+  - zircon_runtime/src/graphics/scene_renderer_construct/new_with_icon_source.rs
+  - zircon_runtime/src/graphics/scene/core/render/submit_compiled_scene_frame.rs
   - zircon_runtime/src/graphics/tests/project_render/project_scenes.rs
 plan_sources:
   - docs/plans/zircon_runtime/render/11-environment-lighting.md
@@ -29,13 +21,8 @@ tests:
   - rustfmt --edition 2021 --check (touched Rust files)
   - cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ibl-runtime-scheduler-0706 --message-format short --color never (exit 0)
   - cargo test -p zircon_runtime --lib environment_ibl --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ibl-runtime-scheduler-0706 --message-format short --color never (not counted; timed out after 600s during test-harness build/link)
-  - docs/tests/runtime/render/plan11_ibl_runtime_scheduler_validation_20260706.png
   - cargo test -p zircon_runtime --lib export_runtime_render_ibl_cache_second_launch_dispatch_zero_png --no-default-features --features core-min --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ibl-product-cache-0707 --message-format short --color never -- --ignored --nocapture --test-threads=1 (exit 0)
-  - docs/tests/runtime/render/plan11_ibl_product_second_launch_dispatch_zero_20260707.png
-  - docs/tests/runtime/render/plan11_ibl_product_second_launch_dispatch_zero_20260707.txt
   - direct lib-test binary run: export_runtime_render_ibl_cache_second_launch_dispatch_zero_png --ignored --nocapture --test-threads=1 (exit 0)
-  - docs/tests/runtime/render/plan11_ibl_product_wgpu_capture_second_launch_dispatch_zero_20260707.png
-  - docs/tests/runtime/render/plan11_ibl_product_wgpu_capture_second_launch_dispatch_zero_20260707.txt
 doc_type: module-detail
 ---
 

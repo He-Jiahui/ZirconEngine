@@ -9,11 +9,8 @@ canonical_owner: Editor46
 refreshes:
   - docs/plans/optimize/zircon_editor/46-liveops-feature-flag-remote-config-segmentation-experiment-patch-dlc-crash-control-plane-authoring-review.md
 related_code:
-  - tools/editor-workbench-preview/design-manifest.mjs
-  - tools/editor-workbench-preview/design.js
   - docs/ui/index.md
   - zircon_editor/src/ui/workbench/page_layout_template.rs
-  - zircon_editor/src/ui/template_runtime/builtin/workbench_extension_module_template_bindings.rs
   - zircon_editor/src/core/settings
   - zircon_editor/src/core/jobs
   - zircon_editor/src/core/notifications
@@ -23,10 +20,7 @@ related_code:
   - zircon_runtime/src/plugin/package_manifest/plugin_feature_bundle_manifest.rs
   - zircon_runtime/src/core/framework/net/download.rs
   - zircon_runtime/src/asset/pack
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/bridge_lifecycle.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/bridge_lifecycle_state.rs
   - zircon_runtime/src/plugin/extension_registry/runtime_extension_registry.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host
   - zircon_plugins/net/features/content_download
 tests:
   - zircon_runtime/src/asset/tests/pack.rs

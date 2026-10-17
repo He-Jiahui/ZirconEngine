@@ -1,19 +1,18 @@
 ---
 related_code:
   - zircon_runtime/src/asset/importer/ingest/import_shader_package.rs
-  - zircon_runtime/src/asset/importer/ingest/import_shader_package/generated_material_anchor_hint.rs
+  - zircon_runtime/src/asset/import_shader_package/generated_material_anchor_hint.rs
   - zircon_runtime/src/core/framework/render/shader/module_import.rs
   - zircon_runtime/src/graphics/shader/template/assemble.rs
 implementation_files:
   - zircon_runtime/src/asset/importer/ingest/import_shader_package.rs
-  - zircon_runtime/src/asset/importer/ingest/import_shader_package/generated_material_anchor_hint.rs
+  - zircon_runtime/src/asset/import_shader_package/generated_material_anchor_hint.rs
 plan_sources:
   - user: 2026-07-14 continue the shader architecture plan and close verified gaps
   - docs/plans/zircon_runtime/shader/05-ide-and-authoring-dx.md
 tests:
   - zircon_runtime/src/asset/importer/ingest/import_shader_package.rs
   - zircon_runtime/src/graphics/shader/template/tests/surface_modules.rs
-  - zircon_runtime/src/graphics/shader/ide_env_generation/tests.rs
 doc_type: module-detail
 ---
 

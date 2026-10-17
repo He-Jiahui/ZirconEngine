@@ -1,12 +1,6 @@
 ---
 related_code:
-  - zircon_editor/assets/ui/editor/components/workbench/modules/core/gameplay
-  - zircon_editor/assets/ui/editor/components/workbench/modules/generated/workbench_generated_bottom_panel.zui
-  - zircon_editor/assets/ui/editor/components/workbench/shell/workbench_top_toolbar.zui
-  - zircon_editor/src/ui/retained_host/workbench_preview_actions.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench
-  - zircon_editor/src/ui/template_runtime/builtin/workbench_module_template_bindings.rs
-  - zircon_editor/src/ui/template_runtime/builtin/workbench_generated_bottom_template_bindings.rs
+  - zircon_editor/assets/ui/editor/modules/core/gameplay
   - zircon_editor/src/core/asset
   - zircon_editor/src/core/document
   - zircon_editor/src/core/editing

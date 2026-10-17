@@ -9,8 +9,6 @@ related_records:
 implementation_files:
   - zircon_runtime/src/builtin/runtime_modules/composition/outcome.rs
 tests:
-  - zircon_runtime/src/builtin/runtime_modules/composition/outcome/required_missing_summary_tests.rs
-  - tools/tests/test_runtime869_required_missing_summary_single_buffer_performance_contract.py
 ---
 
 # Runtime869 Required Missing Summary Single Buffer

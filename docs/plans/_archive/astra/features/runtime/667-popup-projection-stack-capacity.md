@@ -6,9 +6,7 @@ plan_sources:
   - docs/plans/optimize/zircon_editor/01-retained-ui-architecture-performance-review.md
 related_code:
   - zircon_runtime/src/ui/surface/frame_hit_test.rs
-  - zircon_runtime/src/ui/surface/frame_hit_test/tests.rs
 tests:
-  - zircon_runtime/src/ui/surface/frame_hit_test/tests.rs
 ---
 
 # Popup Projection Stack Capacity

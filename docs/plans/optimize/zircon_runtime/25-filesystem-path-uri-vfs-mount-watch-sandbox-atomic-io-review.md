@@ -9,9 +9,7 @@ related_code:
   - zircon_runtime/src/asset/pipeline/manager/driver/asset_io_driver.rs
   - zircon_runtime/src/asset/pipeline/manager/asset_manager
   - zircon_runtime/src/asset/pipeline/manager/service_contracts
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/loading/ensure_resident.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/runtime.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/watch_dispatch.rs
+  - zircon_runtime/src/asset/pipeline/manager/assets/loading/ensure_resident.rs
   - zircon_runtime/src/asset/watch
   - zircon_runtime/src/asset/watch/map_notify_event.rs
   - zircon_runtime/src/asset/watch/watch_loop.rs
@@ -28,16 +26,14 @@ related_code:
   - zircon_runtime/src/asset/artifact/store.rs
   - zircon_runtime/src/asset/reference_resolver.rs
   - zircon_runtime/src/asset/migration
-  - zircon_runtime/src/plugin/native_plugin_loader
-  - zircon_runtime/src/plugin/runtime_plugin
   - zircon_runtime/src/text/font/database.rs
   - zircon_runtime/src/graphics/scene/resources/ui_texture.rs
   - zircon_runtime/src/ui/template/asset/resource_ref/resolver.rs
   - zircon_app/src/bin/zircon_shader_pbr_viewer/scene.rs
   - zircon_editor/src/core/project
   - zircon_editor/src/core/settings/io.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/visual_assets/loading/cache.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/visual_assets/svg/cache.rs
+  - zircon_editor/src/ui/retained/contract/paint/visual_assets/loading/cache.rs
+  - zircon_editor/src/ui/retained/contract/paint/visual_assets/svg/cache.rs
   - zircon_hub/src/projects/metadata.rs
   - zircon_hub/src/projects/install_receipt.rs
   - zircon_hub/src/engines/source_engine_paths.rs
@@ -47,8 +43,6 @@ tests:
   - zircon_runtime/src/asset/tests/watcher.rs
   - zircon_runtime/src/asset/tests/project
   - zircon_runtime/src/core/resource/io/atomic_file/tests
-  - zircon_runtime/src/core/resource/io/transaction/engine/tests.rs
-  - zircon_runtime/src/core/resource/io/transaction/recovery/tests.rs
   - zircon_app/src/entry/entry_runner/editor/tests
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md

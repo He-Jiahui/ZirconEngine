@@ -3,12 +3,11 @@ related_code:
   - Cargo.toml
   - Cargo.lock
   - zircon_editor/Cargo.toml
-  - zircon_editor/src/ui/host/editor_asset_manager/manager/mod.rs
-  - zircon_editor/src/ui/host/editor_asset_manager/manager/sprite_atlas/mod.rs
-  - zircon_editor/src/ui/host/editor_asset_manager/manager/sprite_atlas/config.rs
-  - zircon_editor/src/ui/host/editor_asset_manager/manager/sprite_atlas/diagnostics.rs
-  - zircon_editor/src/ui/host/editor_asset_manager/manager/sprite_atlas/packer.rs
-  - zircon_editor/src/ui/host/editor_asset_manager/manager/sprite_atlas/artifact.rs
+  - zircon_editor/src/ui/host/assets/manager/sprite_atlas/mod.rs
+  - zircon_editor/src/ui/host/assets/manager/sprite_atlas/config.rs
+  - zircon_editor/src/ui/host/assets/manager/sprite_atlas/diagnostics.rs
+  - zircon_editor/src/ui/host/assets/manager/sprite_atlas/packer.rs
+  - zircon_editor/src/ui/host/assets/manager/sprite_atlas/artifact.rs
   - zircon_runtime/src/asset/assets/sprite_atlas/mod.rs
   - zircon_runtime/src/asset/assets/sprite_atlas/layout.rs
   - zircon_runtime/src/asset/assets/sprite_atlas/validation.rs
@@ -16,17 +15,16 @@ implementation_files:
   - Cargo.toml
   - Cargo.lock
   - zircon_editor/Cargo.toml
-  - zircon_editor/src/ui/host/editor_asset_manager/manager/mod.rs
-  - zircon_editor/src/ui/host/editor_asset_manager/manager/sprite_atlas/mod.rs
-  - zircon_editor/src/ui/host/editor_asset_manager/manager/sprite_atlas/config.rs
-  - zircon_editor/src/ui/host/editor_asset_manager/manager/sprite_atlas/diagnostics.rs
-  - zircon_editor/src/ui/host/editor_asset_manager/manager/sprite_atlas/packer.rs
-  - zircon_editor/src/ui/host/editor_asset_manager/manager/sprite_atlas/artifact.rs
+  - zircon_editor/src/ui/host/assets/manager/sprite_atlas/mod.rs
+  - zircon_editor/src/ui/host/assets/manager/sprite_atlas/config.rs
+  - zircon_editor/src/ui/host/assets/manager/sprite_atlas/diagnostics.rs
+  - zircon_editor/src/ui/host/assets/manager/sprite_atlas/packer.rs
+  - zircon_editor/src/ui/host/assets/manager/sprite_atlas/artifact.rs
 plan_sources:
   - docs/superpowers/plans/2026-05-18-editor-sprite-atlas-ui-batching.md
 tests:
-  - zircon_editor/src/ui/host/editor_asset_manager/manager/sprite_atlas/packer.rs
-  - zircon_editor/src/ui/host/editor_asset_manager/manager/sprite_atlas/artifact.rs
+  - zircon_editor/src/ui/host/assets/manager/sprite_atlas/packer.rs
+  - zircon_editor/src/ui/host/assets/manager/sprite_atlas/artifact.rs
   - 'rustfmt --edition 2021 --check zircon_editor/src/ui/host/editor_asset_manager/manager/mod.rs zircon_editor/src/ui/host/editor_asset_manager/manager/sprite_atlas/mod.rs zircon_editor/src/ui/host/editor_asset_manager/manager/sprite_atlas/config.rs zircon_editor/src/ui/host/editor_asset_manager/manager/sprite_atlas/diagnostics.rs zircon_editor/src/ui/host/editor_asset_manager/manager/sprite_atlas/packer.rs zircon_editor/src/ui/host/editor_asset_manager/manager/sprite_atlas/artifact.rs'
   - '$env:CARGO_TARGET_DIR = ''D:\cargo-targets\zircon-shared\sprite-atlas-ui''; cargo check -p zircon_editor --lib --locked --message-format short --color never'
   - '$env:CARGO_TARGET_DIR = ''D:\cargo-targets\zircon-shared\sprite-atlas-ui''; cargo test -p zircon_editor --lib sprite_atlas --locked --jobs 1 --message-format short --color never'

@@ -1,17 +1,11 @@
 ---
 related_code:
   - zircon_runtime/src/graphics/pipeline/compiled_graph_cache.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/compile_pipeline.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/target_resolution.rs
   - zircon_runtime/src/graphics/types/viewport_render_output_target.rs
   - zircon_runtime/src/core/framework/render/camera_stack.rs
   - zircon_runtime/src/core/framework/render/frame_extract.rs
 implementation_files:
   - zircon_runtime/src/graphics/pipeline/compiled_graph_cache.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/compile_pipeline.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/target_resolution.rs
   - zircon_runtime/src/graphics/types/viewport_render_output_target.rs
 plan_sources:
   - docs/plans/zircon_runtime/render/09-camera-render-ordering.md

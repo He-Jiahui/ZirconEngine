@@ -10,13 +10,11 @@ related_code:
   - zircon_plugins/zr_vm_language/runtime/src/real_backend/package.rs
   - zircon_plugins/zr_vm_language/runtime/src/real_backend/host_modules.rs
   - zircon_plugins/zr_vm_language/runtime/src/real_backend/instance.rs
-  - zircon_plugins/zr_vm_language/runtime/src/real_backend/instance/state_encoding.rs
   - zircon_plugins/zr_vm_language/runtime/src/tests/registration.rs
   - zircon_runtime/src/script/vm/backend/mod.rs
   - zircon_runtime/src/script/vm/host/host_export_registry.rs
   - zircon_runtime/src/script/vm/host/vm_plugin_host_context.rs
   - zircon_runtime/src/script/vm/runtime/vm_plugin_manager.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog.rs
 implementation_files:
   - zircon_plugins/zr_vm_language/runtime/Cargo.toml
   - zircon_plugins/zr_vm_language/runtime/src/lib.rs
@@ -28,7 +26,6 @@ implementation_files:
   - zircon_plugins/zr_vm_language/runtime/src/real_backend/package.rs
   - zircon_plugins/zr_vm_language/runtime/src/real_backend/host_modules.rs
   - zircon_plugins/zr_vm_language/runtime/src/real_backend/instance.rs
-  - zircon_plugins/zr_vm_language/runtime/src/real_backend/instance/state_encoding.rs
   - zircon_runtime/src/script/vm/backend/mod.rs
   - zircon_runtime/src/script/vm/host/host_export_registry.rs
   - zircon_runtime/src/script/vm/host/vm_plugin_host_context.rs
@@ -42,8 +39,6 @@ tests:
   - zircon_plugins/zr_vm_language/runtime/src/tests/registration.rs
   - zircon_plugins/zr_vm_language/runtime/src/tests/state_encoding.rs
   - zircon_plugins/zr_vm_language/runtime/src/tests/woc_lifecycle.rs
-  - zircon_plugins/zr_vm_language/runtime/src/real_backend/tests.rs
-  - zircon_plugins/zr_vm_language/runtime/src/call_site/tests.rs
   - zircon_runtime/src/tests/extensions/tech_stack_dependency_guard.rs
   - cargo test -p zircon_plugin_zr_vm_language_runtime --locked
 doc_type: module-detail

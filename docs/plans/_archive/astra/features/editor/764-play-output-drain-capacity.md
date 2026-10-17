@@ -12,8 +12,6 @@ related_records:
 implementation_files:
   - zircon_editor/src/core/play/process_backend/output.rs
 tests:
-  - zircon_editor/src/core/play/process_backend/output/drain_all_capacity_tests.rs
-  - tools/tests/test_editor_play_output_drain_capacity_performance_contract.py
 ---
 
 # Editor764 · Play output drain-all capacity

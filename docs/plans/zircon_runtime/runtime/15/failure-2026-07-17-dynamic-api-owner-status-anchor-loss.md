@@ -10,11 +10,6 @@ fixing_child_dir: docs/plans/zircon_runtime/runtime/15
 plan_link_mode: child_record_only
 related_code:
   - docs/plans/zircon_runtime/runtime/15/2026-07-19-dynamic-api-filter-plan-anchor-current-owner.md
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy/runtime_services/dynamic_scene.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/dynamic_api_session_profile.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/dynamic_api_session_registry.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/dynamic_api_shader_prewarm_tests.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/naming_boundary_asset_dynamic_dynamic_api_vampire.rs
 tests:
   - cargo test -p zircon_runtime --lib runtime_15_dynamic_api_session_lock_poison_recovery_guard_covers_session_registry --locked --jobs 1 -- --test-threads=1
   - cargo test -p zircon_runtime --lib runtime_15_dynamic_api_session_profile_is_child_owner --locked --jobs 1 -- --test-threads=1

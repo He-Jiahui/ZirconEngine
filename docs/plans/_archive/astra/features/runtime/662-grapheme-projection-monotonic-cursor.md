@@ -10,7 +10,6 @@ related_code:
   - zircon_runtime/src/text/layout/measure/grapheme_projection.rs
 tests:
   - zircon_runtime/src/text/layout/measure/grapheme_projection.rs
-  - tools/tests/test_runtime_text_grapheme_projection_cursor_contract.py
 ---
 
 # Runtime Text Grapheme Projection Monotonic Cursor

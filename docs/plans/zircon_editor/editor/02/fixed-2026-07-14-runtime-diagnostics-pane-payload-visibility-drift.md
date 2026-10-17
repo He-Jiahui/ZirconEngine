@@ -8,9 +8,6 @@ fixing_plan: docs/plans/zircon_editor/editor_ui/09-editor-modules-and-design-par
 origin_child_dir: docs/plans/zircon_editor/editor/02
 fixing_child_dir: docs/plans/zircon_editor/editor_ui/09
 related_code:
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/runtime_diagnostics.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/mod.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload.rs
 tests:
   - cargo test -p zircon_editor --lib --locked
 resolved_at: 2026-07-14

@@ -25,7 +25,6 @@ related_code:
   - zircon_plugins/navigation/editor/src/operation_command
   - zircon_plugins/navigation/runtime/src/manager.rs
 tests:
-  - zircon_runtime/src/operation/tests.rs
   - zircon_runtime/src/operation/tests/inflight_retention.rs
   - zircon_runtime/src/operation/tests/phase_indexes.rs
   - zircon_runtime/src/operation/tests/source_guards.rs

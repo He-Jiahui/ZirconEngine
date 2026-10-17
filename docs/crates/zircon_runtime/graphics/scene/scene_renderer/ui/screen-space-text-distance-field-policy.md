@@ -1,14 +1,12 @@
 ---
 related_code:
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render/text_distance_field.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render/tests/distance_field_effects.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/render.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/render/text_distance_field.rs
+  - zircon_runtime/src/graphics/scene/ui/render/tests/distance_field_effects.rs
 implementation_files:
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render/text_distance_field.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render/tests/distance_field_effects.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/render.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/render/text_distance_field.rs
+  - zircon_runtime/src/graphics/scene/ui/render/tests/distance_field_effects.rs
 plan_sources:
   - docs/plans/zircon_runtime/runtime/02-core-spine-and-root-surface.md
   - docs/plans/engine-code-structure-convention.md

@@ -22,14 +22,11 @@ related_editor_owners:
   - docs/plans/optimize/zircon_editor/09-background-jobs-admission-scheduling-cancellation-progress-shutdown-product-integration-review.md
   - docs/plans/optimize/zircon_editor/11-logging-diagnostic-journal-output-console-status-routing-retention-export-review.md
 related_code:
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/data
   - zircon_editor/src/core/asset/type_registry
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench
   - zircon_runtime/src/asset/assets/data.rs
   - zircon_runtime/src/asset/importer/ingest/import_data_asset.rs
   - zircon_runtime/src/asset/artifact
   - zircon_plugins/asset_importers/data
-  - zircon_runtime/src/scene/dynamic_scene/session
   - zircon_runtime/src/platform/preferences
   - zircon_runtime_interface/src/serialization
 reference_engines:

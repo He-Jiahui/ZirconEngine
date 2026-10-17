@@ -2,25 +2,17 @@
 related_code:
   - zircon_editor/src/scene/viewport/mod.rs
   - zircon_editor/src/scene/viewport/controller/mod.rs
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_build_edit_mode_projection.rs
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_build_render_snapshot.rs
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_handle_interaction.rs
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_pointer_route.rs
   - zircon_editor/src/scene/viewport/edit_mode_projection/mod.rs
   - zircon_editor/src/scene/viewport/edit_mode_projection/build.rs
-  - zircon_editor/src/scene/viewport/edit_mode_projection/scene_edit_mode_projection.rs
   - zircon_editor/src/scene/viewport/edit_mode_projection/scene_inspector_field.rs
-  - zircon_editor/src/scene/viewport/edit_mode_projection/scene_inspector_field_value.rs
   - zircon_editor/src/scene/viewport/edit_mode_projection/scene_viewport_stats.rs
-  - zircon_editor/src/scene/viewport/edit_mode_projection/scene_viewport_toolbar_state.rs
   - zircon_editor/src/core/editing/command.rs
   - zircon_editor/src/core/editor_operation.rs
   - zircon_editor/src/ui/workbench/state/editor_state_field_updates.rs
   - zircon_editor/src/ui/workbench/state/editor_state_selection.rs
   - zircon_editor/src/core/commands/menu.rs
   - zircon_editor/src/core/commands/menu_model.rs
-  - zircon_editor/src/ui/retained_host/menu_pointer/menu_items_for_layout.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection.rs
+  - zircon_editor/src/ui/retained/menu_pointer/menu_items_for_layout.rs
   - zircon_editor/src/ui/workbench/snapshot/data/editor_state_snapshot_build.rs
   - zircon_editor/src/tests/editing/editor_projection.rs
   - zircon_editor/src/tests/editing/reflected_command/mod.rs
@@ -41,25 +33,17 @@ related_code:
   - zircon_runtime/src/scene/components/scene/animation.rs
   - zircon_runtime/src/core/framework/scene/mobility.rs
 implementation_files:
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_build_edit_mode_projection.rs
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_build_render_snapshot.rs
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_handle_interaction.rs
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_pointer_route.rs
   - zircon_editor/src/scene/viewport/edit_mode_projection/mod.rs
   - zircon_editor/src/scene/viewport/edit_mode_projection/build.rs
-  - zircon_editor/src/scene/viewport/edit_mode_projection/scene_edit_mode_projection.rs
   - zircon_editor/src/scene/viewport/edit_mode_projection/scene_inspector_field.rs
-  - zircon_editor/src/scene/viewport/edit_mode_projection/scene_inspector_field_value.rs
   - zircon_editor/src/scene/viewport/edit_mode_projection/scene_viewport_stats.rs
-  - zircon_editor/src/scene/viewport/edit_mode_projection/scene_viewport_toolbar_state.rs
   - zircon_editor/src/core/editing/command.rs
   - zircon_editor/src/core/editor_operation.rs
   - zircon_editor/src/ui/workbench/state/editor_state_field_updates.rs
   - zircon_editor/src/ui/workbench/state/editor_state_selection.rs
   - zircon_editor/src/core/commands/menu.rs
   - zircon_editor/src/core/commands/menu_model.rs
-  - zircon_editor/src/ui/retained_host/menu_pointer/menu_items_for_layout.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection.rs
+  - zircon_editor/src/ui/retained/menu_pointer/menu_items_for_layout.rs
   - zircon_editor/src/ui/workbench/snapshot/data/editor_state_snapshot_build.rs
   - zircon_editor/src/tests/editing/editor_projection.rs
   - zircon_editor/src/tests/editing/reflected_command/mod.rs
@@ -74,11 +58,8 @@ tests:
   - zircon_editor/src/tests/editing/editor_projection.rs
   - zircon_editor/src/tests/editing/reflected_command/mod.rs
   - zircon_editor/src/tests/workbench/view_model/shell_projection.rs
-  - zircon_editor/src/tests/editor_event/runtime.rs
+  - zircon_editor/src/tests/editor_event/runtime/mod.rs
   - zircon_runtime/src/scene/tests/ecs_reflect/editor_remote.rs
-  - zircon_runtime/src/scene/tests/editor_projection.rs
-  - tests/acceptance/ecs-to-render-chain.md
-  - tests/acceptance/reflection-type-registry.md
   - cargo test -p zircon_editor --lib viewport_edit_mode_projection --locked
   - cargo test -p zircon_editor --lib viewport_edit_mode_projection_consumes_runtime_reflection_inspector_fields --locked --jobs 1 --message-format short
   - cargo test -p zircon_editor --lib reflected_editor_command --locked --jobs 1 --message-format short

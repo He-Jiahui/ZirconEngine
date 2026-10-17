@@ -9,7 +9,6 @@ related_code:
   - zircon_runtime/src/ui/template/asset/hot_reload_plan.rs
   - zircon_runtime/src/plugin/extension_registry/validation/component.rs
   - zircon_editor/src/core/editor_extension.rs
-  - zircon_editor/src/ui/template_runtime/builtin/template_documents.rs
   - tools/tests/test_zui_docs_suffix_convergence.py
 governance:
   - docs/editor/zui-asset-governance.md

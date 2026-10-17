@@ -13,8 +13,6 @@ implementation_files:
   - zircon_runtime/src/ui/surface/input/route_policy.rs
   - zircon_runtime/src/ui/surface/input/editable_text.rs
 tests:
-  - zircon_runtime/src/ui/surface/input/route_policy_tests.rs::runtime77_editable_text_route_context_borrow_preserves_annotations
-  - zircon_runtime/src/ui/surface/input/route_policy_tests.rs::runtime77_borrowed_route_projection_preserves_pointer_notes_and_trace
 candidate_id: runtime77-ruii-p1-044-editable-text-route-context-borrow-v3
 apply_status: applied_source_candidate
 ---

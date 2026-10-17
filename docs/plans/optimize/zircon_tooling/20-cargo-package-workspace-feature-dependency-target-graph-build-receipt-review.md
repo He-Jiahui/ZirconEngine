@@ -28,7 +28,7 @@ related_code:
   - .github/workflows/ci.yml
   - .github/workflows/profile-feature-contract.yml
   - .github/workflows/mvp-editor-windows.yml
-  - tools/validation/runtime-profile-feature-presets.py
+  - tools/analysis/validation/runtime-profile-feature-presets.py
 tests:
   - tools/tests/test_frameworks_03_profile_feature_presets.py
   - tools/tests/test_frameworks_03_server_feature_boundary.py

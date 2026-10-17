@@ -1,9 +1,6 @@
 ---
 related_code:
   - zircon_runtime/src/asset/watch
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/runtime.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/watch_dispatch.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/watch_diagnostics.rs
 base_reports:
   - docs/plans/performance/01/2026-08-15-runtime-asset-project-registry-pipeline-current-architecture-review.md
   - docs/plans/optimize/zircon_runtime/88-runtime-asset-watch-change-ingress-coalescing-rename-overflow-targeted-reimport-generation-reload.md

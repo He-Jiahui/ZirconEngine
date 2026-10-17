@@ -23,10 +23,7 @@ related_code:
   - zircon_runtime/src/graphics/scene/gpu_scene
   - zircon_runtime/src/graphics/scene/resources/gpu_mesh
   - zircon_runtime/src/graphics/scene/resources/resource_streamer
-  - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/oit_buffers
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh
-  - zircon_runtime/src/graphics/scene/scene_renderer/shadow
-  - zircon_runtime/src/graphics/scene/scene_renderer/temporal/velocity
+  - zircon_runtime/src/graphics/scene/renderer/advanced_lighting/oit_buffers
   - zircon_runtime/src/graphics/visibility
   - zircon_plugins/asset_importers/model/runtime/src
   - zircon_plugins/gltf_importer/runtime/src
@@ -37,13 +34,10 @@ related_code:
 tests:
   - zircon_runtime/src/asset/tests/assets/mesh/morph_targets.rs
   - zircon_runtime/src/asset/tests/assets/gltf_importer
-  - zircon_runtime/src/core/framework/render/frame_extract/tests.rs
   - zircon_runtime/src/graphics/tests/m4_behavior_layers/transparent3d.rs
   - zircon_runtime/src/graphics/tests/render_product_mesh_cache/morph
-  - zircon_runtime/src/graphics/tests/render_product_mesh_cache/shading_model_parity.rs
   - zircon_runtime/src/graphics/tests/render_product_shadow_captures/directional.rs
   - zircon_plugins/asset_importers/model/runtime/src/tests
-  - zircon_plugins/gltf_importer/runtime/src/tests.rs
   - zircon_editor/src/tests/editor_asset_type_registry/builtins.rs
 plan_sources:
   - docs/plans/optimize/zircon_runtime/32-hair-groom-fur-strand-source-binding-simulation-rendering-lighting-shadow-lod-streaming-scalability-product-integration-review.md

@@ -2,7 +2,6 @@
 status: local_candidate
 implementation_files:
   - tools/build/zircon_build_shader_prewarm_cache_artifacts.py
-  - tools/tests/test_shader_prewarm_cache_metadata_single_probe_performance_contract.py
 ---
 
 # Shader prewarm cache metadata single probe

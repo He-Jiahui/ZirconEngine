@@ -11,8 +11,6 @@ plan_link_mode: child_record_only
 related_code:
   - zircon_runtime/src/graphics/tests/pipeline_compile.rs
   - zircon_runtime/src/graphics/tests/pipeline_compile/plugin_features.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/descriptor_filtering.rs
-  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/post_process.rs
 tests:
   - cargo +1.94.1 test -p zircon_runtime --lib rendering_plugin_product_defaults_exclude_unqualified_forward_plus_ssao --locked --jobs 1 -- --nocapture --test-threads=1
   - cargo +1.94.1 test -p zircon_runtime --lib rendering_plugin_product_defaults_keep_deferred_ssao_disabled --locked --jobs 1 -- --nocapture --test-threads=1

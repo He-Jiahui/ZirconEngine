@@ -11,9 +11,7 @@ related_records:
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
   - zircon_editor/src/ui/workbench/state/console_history.rs
-  - zircon_editor/src/ui/workbench/state/console_history/tests.rs
 tests:
-  - tools/tests/test_editor_console_history_capacity_performance_contract.py
 ---
 
 # Editor807 · console history collector capacity

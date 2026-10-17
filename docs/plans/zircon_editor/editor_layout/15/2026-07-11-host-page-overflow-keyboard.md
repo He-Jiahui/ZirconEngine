@@ -1,8 +1,8 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/host_contract/native_keyboard/target/page_overflow.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_keyboard/target/model.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_keyboard/dispatch/actions.rs
+  - zircon_editor/src/ui/retained/contract/native_keyboard/target/page_overflow.rs
+  - zircon_editor/src/ui/retained/contract/native_keyboard/target/model.rs
+  - zircon_editor/src/ui/retained/contract/native_keyboard/dispatch/actions.rs
   - zircon_editor/src/tests/host/retained_window/host_page_overflow_keyboard.rs
   - docs/crates/zircon_editor/ui/retained_host/host_contract/host_page_overflow_menu.md
 plan_sources:
@@ -17,7 +17,6 @@ tests:
   - direct editor test binary popup-menu keyboard exact
   - direct editor test binary popup boundary-key mapping exact
   - direct editor test binary capture_host_page_overflow_keyboard_visual_artifact --exact --ignored --nocapture
-  - docs/tests/editor/editor-window-m3-host-page-overflow-keyboard-640x420.png
 status: implemented-focused-passed-screenshot-passed
 ---
 

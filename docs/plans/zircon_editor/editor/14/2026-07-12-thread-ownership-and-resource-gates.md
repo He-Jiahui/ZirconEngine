@@ -4,7 +4,7 @@ related_code:
   - zircon_editor/src/core/context/builder.rs
   - zircon_editor/src/ui/host/editor_manager.rs
   - zircon_editor/src/ui/host/export_cargo_process.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/panel_session.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/tests/panel_session.rs
 plan_sources:
   - docs/plans/zircon_editor/editor/14-threading-and-job-scheduling.md
 tests:

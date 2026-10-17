@@ -12,10 +12,8 @@ related_code:
   - zircon_editor/src/scene/modes/scene_mode_registration.rs
   - zircon_editor/src/scene/modes/scene_mode_registry.rs
   - zircon_editor/src/scene/modes/scene_mode_stack.rs
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_overlay_providers.rs
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_scene_modes.rs
   - zircon_editor/src/ui/host/editor_extension_registration.rs
-  - zircon_editor/src/tests/editor_event/runtime/extensions_registration/ticketed_command_revoke.rs
+  - zircon_editor/src/tests/extensions_registration/ticketed_command_revoke.rs
 reviewed_code:
   - zircon_editor/src/core/runtime_event_consumer/host/lifecycle.rs
   - zircon_editor/src/ui/host/editor_extension_registration.rs

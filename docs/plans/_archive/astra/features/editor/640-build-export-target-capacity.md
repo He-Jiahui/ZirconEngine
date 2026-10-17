@@ -4,10 +4,8 @@ status: implemented_pending_validation
 plan_sources:
   - docs/plans/optimize/zircon_editor/640/2026-09-01-preallocated-build-export-target-indexes.md
 related_code:
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/build_export/target_rows/mod.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/build_export/target_rows/optimization_batch_ja_editor640_tests.rs
+  - zircon_editor/src/ui/retained/ui/data/build_export/target_rows/mod.rs
 tests:
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/build_export/target_rows/optimization_batch_ja_editor640_tests.rs
 ---
 
 # Build Export Target Index Capacity

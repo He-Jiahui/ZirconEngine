@@ -6,11 +6,6 @@ plan: docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions
 plan_sources:
   - docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md
 implementation_files:
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy/runtime_services/dynamic_scene.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/dynamic_api_session_profile.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/dynamic_api_session_registry.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/dynamic_api_shader_prewarm_tests.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/naming_boundary_asset_dynamic_dynamic_api_vampire.rs
 tests:
   - runtime_15_dynamic_api_session_lock_poison_recovery_guard_covers_session_registry
   - runtime_15_dynamic_api_session_profile_is_child_owner

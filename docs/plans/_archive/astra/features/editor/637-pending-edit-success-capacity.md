@@ -5,9 +5,7 @@ plan_sources:
   - docs/plans/optimize/zircon_editor/637/2026-09-01-preallocated-pending-edit-successes.md
 related_code:
   - zircon_editor/src/core/play/pending_edits/queue.rs
-  - zircon_editor/src/core/play/pending_edits/tests.rs
 tests:
-  - zircon_editor/src/core/play/pending_edits/tests.rs
 ---
 
 # Pending Edit Success Capacity

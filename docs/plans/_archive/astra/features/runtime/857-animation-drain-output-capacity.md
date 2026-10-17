@@ -8,9 +8,7 @@ related_records:
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
   - zircon_runtime/src/scene/level_system/animation_runtime.rs
-  - zircon_runtime/src/scene/level_system/animation_runtime/drain_output_capacity_tests.rs
 tests:
-  - tools/tests/test_runtime_animation_drain_output_capacity_performance_contract.py
 ---
 
 # Runtime857 - animation drain output capacity

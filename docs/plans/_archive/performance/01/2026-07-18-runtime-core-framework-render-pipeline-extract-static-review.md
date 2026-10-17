@@ -4,7 +4,6 @@ related_code:
   - zircon_runtime/src/core/framework/render/frame_extract
   - zircon_runtime/src/core/framework/render/frame_extract.rs
   - zircon_runtime/src/scene/world/render.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_runtime/render/03-gpu-scene-gpu-driven.md

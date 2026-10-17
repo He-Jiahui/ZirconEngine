@@ -4,8 +4,7 @@ related_code:
   - zircon_app/src/entry/first_party_runtime_plugins.rs
   - zircon_app/src/entry/engine_entry.rs
   - zircon_app/src/entry/entry_runner/editor.rs
-  - zircon_runtime/src/plugin/runtime_plugin/registration_report/plugin.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/registration
+  - zircon_runtime/src/plugin/runtime/registration_report/plugin.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/performance/02-unreal-aligned-engine-system-hard-cutover.md

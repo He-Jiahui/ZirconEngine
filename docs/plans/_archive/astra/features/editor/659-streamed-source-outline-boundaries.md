@@ -5,9 +5,7 @@ plan_sources:
   - docs/plans/optimize/zircon_editor/659/2026-09-02-streamed-source-outline-boundaries.md
 related_code:
   - zircon_editor/src/ui/asset_editor/source/source_sync.rs
-  - zircon_editor/src/ui/asset_editor/source/source_sync/optimization_batch_jt_editor659_tests.rs
 tests:
-  - zircon_editor/src/ui/asset_editor/source/source_sync/optimization_batch_jt_editor659_tests.rs
 ---
 
 # Streamed Source Outline Boundaries

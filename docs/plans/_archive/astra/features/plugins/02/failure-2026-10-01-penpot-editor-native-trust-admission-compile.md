@@ -11,7 +11,6 @@ plan_link_mode: child_record_only
 related_code:
   - zircon_runtime/src/plugin/package_service/admission/policy_index.rs
   - zircon_runtime/src/plugin/package_service/admission/project_resolution.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/loading.rs
   - zircon_runtime/src/plugin/package_service/mod.rs
 tests:
   - tools/build-editor.ps1 -OutputDirectory D:/cargo-targets/penpot-editor-20260930-01a0f04d-6fc0351c

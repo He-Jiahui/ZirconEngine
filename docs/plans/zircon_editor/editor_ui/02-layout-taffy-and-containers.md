@@ -19,8 +19,6 @@ related_code:
   - zircon_editor/src/ui/workbench/autolayout/mod.rs
   - zircon_editor/src/ui/workbench/autolayout/workbench_shell_geometry.rs
   - zircon_editor/src/ui/workbench/autolayout/axis_constraint_override.rs
-  - dev/UnrealEngine/Engine/Source/Runtime/SlateCore/Public/Layout/Geometry.h
-  - dev/UnrealEngine/Engine/Source/Runtime/SlateCore/Public/Layout/ArrangedChildren.h
 plan_sources:
   - .codex/plans/UI Layout 架构评审与 Taffy 收敛计划.md
   - .codex/plans/布局系统.md

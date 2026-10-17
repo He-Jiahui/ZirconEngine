@@ -13,14 +13,12 @@ related_code:
   - zircon_runtime/src/asset/project/manager
   - zircon_runtime/src/asset/project/catalog_input_generation.rs
   - zircon_runtime/src/asset/project/generation_observation.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager
   - zircon_runtime/src/asset/pipeline/manager/resource_sync
   - zircon_runtime/src/asset/pipeline/manager/asset_manager/asset_manager.rs
-  - zircon_runtime/src/asset/pipeline/manager/service_contracts/asset_manager_contract.rs
+  - zircon_runtime/src/asset/manager/service_contracts/asset_manager_contract.rs
   - zircon_runtime/src/dynamic_api/session/runtime_ui.rs
   - zircon_runtime/src/scene/world/project_io/references.rs
   - zircon_editor/src/core/asset
-  - zircon_editor/src/ui/host/editor_asset_manager
   - zircon_app/src/entry/runtime_entry_app/host_requests/routing.rs
 tests:
   - zircon_runtime/src/asset/tests/registry_index

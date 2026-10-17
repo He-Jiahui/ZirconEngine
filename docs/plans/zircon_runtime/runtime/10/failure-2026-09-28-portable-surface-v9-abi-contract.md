@@ -19,12 +19,10 @@ related_code:
   - zircon_editor/src/core/gateway/session/gateway.rs
   - zircon_editor/src/core/gateway/session/contract.rs
   - zircon_editor/src/core/gateway/session/viewport.rs
-  - zircon_editor/src/core/gateway/session/tests.rs
   - zircon_editor/src/core/gateway/handle.rs
   - tools/build/zircon_build_abi.py
   - tools/build/zircon_build_runtime_manifest.py
   - tools/build/zircon_build_staging_manifest.py
-  - tools/tests/test_zircon_build_abi.py
   - tools/tests/test_zircon_build_runtime_manifest.py
   - tools/tests/test_zircon_build_staging_manifest.py
 tests:

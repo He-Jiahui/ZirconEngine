@@ -29,7 +29,7 @@ plan_sources:
 related_code:
   - zircon_editor/src/core/sync/watch_map.rs
   - zircon_editor/src/core/commands/palette.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/diagnostics.rs
+  - zircon_editor/src/ui/host/exports/export_build/diagnostics.rs
   - zircon_editor/src/ui/template/catalog.rs
   - zircon_editor/src/core/runtime_event_consumer/host.rs
   - zircon_editor/src/core/commands/when.rs
@@ -51,30 +51,8 @@ related_code:
   - zircon_editor/src/ui/asset_editor/style/theme_cascade_inspection.rs
   - zircon_editor/src/ui/asset_editor/session/command_entry.rs
 tests:
-  - zircon_editor/src/core/sync/watch_map/optimization_batch_ir_editor628_tests.rs
-  - zircon_editor/src/core/commands/palette/optimization_batch_ir_editor629_tests.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/diagnostics/optimization_batch_is_editor629_tests.rs
-  - zircon_editor/src/ui/template/catalog/optimization_batch_it_editor630_tests.rs
-  - zircon_editor/src/core/runtime_event_consumer/host/optimization_batch_iu_editor631_tests.rs
-  - zircon_editor/src/core/commands/when/optimization_batch_is_editor631_tests.rs
-  - zircon_editor/src/ui/asset_editor/binding/binding_inspector/payload_editing/optimization_batch_iv_editor632_tests.rs
-  - zircon_editor/src/ui/asset_editor/session/style_inspection/optimization_batch_jb_editor641_tests.rs
-  - zircon_editor/src/scene/viewport/render_packet/reused_overlay_storage_tests.rs
-  - zircon_editor/src/ui/asset_editor/style/style_rule_declarations/optimization_batch_jc_editor642_tests.rs
-  - zircon_editor/src/ui/asset_editor/style/theme_compare/optimization_batch_jd_editor643_tests.rs
   - zircon_editor/src/core/tools/tests/snapshot.rs
-  - zircon_editor/src/ui/asset_editor/style/theme_authoring/optimization_batch_je_editor644_tests.rs
   - zircon_editor/src/scene/viewport/pointer/overlay_router/rebuild_surface.rs
-  - zircon_editor/src/ui/asset_editor/style/theme_authoring/action_projection/optimization_batch_jf_editor645_tests.rs
-  - zircon_editor/src/ui/asset_editor/palette/catalog/optimization_batch_jg_editor646_tests.rs
-  - zircon_editor/src/ui/asset_editor/style/theme_summary/optimization_batch_jh_editor647_tests.rs
-  - zircon_editor/src/ui/asset_editor/session/runtime_report_state/optimization_batch_ji_editor648_tests.rs
-  - zircon_editor/src/ui/asset_editor/session/theme_state/optimization_batch_jj_editor649_tests.rs
-  - zircon_editor/src/ui/asset_editor/binding/binding_inspector/optimization_batch_jk_editor650_tests.rs
-  - zircon_editor/src/ui/asset_editor/style/matched_rule_inspection/optimization_batch_jl_editor651_tests.rs
-  - zircon_editor/src/ui/asset_editor/style/theme_cascade_inspection/optimization_batch_jm_editor652_tests.rs
-  - zircon_editor/src/ui/asset_editor/session/command_entry/optimization_batch_jn_editor653_tests.rs
-  - tools/tests/test_editor_theme_cascade_output_capacity_performance_contract.py
 ---
 
 # Editor Recent Optimization Completion

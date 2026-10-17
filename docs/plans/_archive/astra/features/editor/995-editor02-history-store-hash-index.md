@@ -8,9 +8,7 @@ related_records:
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
   - zircon_editor/src/core/editing/engine/transaction/engine_state.rs
-  - zircon_editor/src/core/editing/engine/transaction/engine_state/hash_index_tests.rs
 tests:
-  - zircon_editor/src/core/editing/engine/transaction/engine_state/hash_index_tests.rs
 ---
 
 # Editor995 · history-store hash index

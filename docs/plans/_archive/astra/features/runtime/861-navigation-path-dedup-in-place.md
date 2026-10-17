@@ -9,7 +9,6 @@ related_records:
 implementation_files:
   - zircon_runtime/src/navigation/runtime/baked_mesh.rs
 tests:
-  - tools/tests/test_runtime861_navigation_path_dedup_in_place_performance_contract.py
 ---
 
 # Runtime861 Navigation Fallback Path Deduplication In Place

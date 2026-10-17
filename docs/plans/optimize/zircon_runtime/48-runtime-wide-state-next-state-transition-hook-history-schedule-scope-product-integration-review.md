@@ -8,7 +8,7 @@ related_code:
   - zircon_runtime/src/tests/state.rs
   - zircon_runtime/src/tests/state/hook_index.rs
   - zircon_runtime/src/tests/prelude.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy/core_runtime/handle_accessors.rs
+  - zircon_runtime/src/tests/contracts/structure/core_runtime/handle_accessors.rs
   - zircon_app/src/tests/prelude.rs
   - docs/crates/zircon_runtime/core/state.md
 plan_sources:

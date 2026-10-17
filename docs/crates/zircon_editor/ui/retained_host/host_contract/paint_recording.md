@@ -1,15 +1,11 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/host_contract/paint_recording.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_recording/damage.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_recording/record.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_frame.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench.rs
-  - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/extraction.rs
+  - zircon_editor/src/ui/retained/contract/paint_recording/damage.rs
+  - zircon_editor/src/ui/retained/contract/paint_recording/record.rs
+  - zircon_editor/src/ui/retained/contract/chrome_command_stream/extraction.rs
 implementation_files:
-  - zircon_editor/src/ui/retained_host/host_contract/paint_recording.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_recording/damage.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_recording/record.rs
+  - zircon_editor/src/ui/retained/contract/paint_recording/damage.rs
+  - zircon_editor/src/ui/retained/contract/paint_recording/record.rs
 plan_sources:
   - docs/plans/zircon_editor/editor_ui/08-workbench-shell-on-runtime-ui.md
   - user: 2026-06-18 editor UI architecture implementation, feature first and tests deferred

@@ -8,39 +8,26 @@ related_code:
   - zircon_plugins/rendering/plugin.toml
   - zircon_runtime/src/core/framework/scene/component_type_descriptor
   - zircon_runtime/src/scene/world/component_type_registry.rs
-  - zircon_runtime/src/scene/dynamic_scene/scene
-  - zircon_runtime/src/scene/dynamic_scene/scene_asset
   - zircon_runtime/src/asset/assets/scene/entity.rs
   - zircon_runtime/src/core/framework/render/frame_extract.rs
   - zircon_runtime/src/core/framework/render/frame_extract
   - zircon_runtime/src/core/framework/render/scene_extract.rs
   - zircon_runtime/src/graphics/feature/builtin_render_feature/advanced_slots.rs
-  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/advanced_slot.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/plugin_render_features.rs
+  - zircon_runtime/src/graphics/feature/builtin/feature_descriptors/advanced_slot.rs
   - zircon_runtime/src/graphics/material/mod.rs
   - zircon_runtime/src/asset/assets/material
   - zircon_runtime/src/graphics/shader/shader_assets.rs
   - zircon_runtime/src/graphics/shader/template
-  - zircon_runtime/src/graphics/scene/scene_renderer/deferred
   - zircon_runtime/src/graphics/visibility/declarations
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registration.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/material/bindless_material_eligibility.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/material/bindless_material_payload_registry.rs
+  - zircon_runtime/src/graphics/scene/material/bindless_material_eligibility.rs
+  - zircon_runtime/src/graphics/scene/material/bindless_material_payload_registry.rs
 tests:
   - zircon_plugins/rendering/features/decals/runtime/src/lib.rs
-  - zircon_runtime/src/core/framework/render/frame_extract/tests.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests
-  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_pipeline/tests.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_pipeline/tests
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/tests.rs
-  - zircon_runtime/src/graphics/shader/template/tests.rs
   - zircon_runtime/src/graphics/shader/template/tests
   - zircon_runtime/src/graphics/tests/plugin_feature_compile.rs
   - zircon_runtime/src/graphics/tests/renderer_data_asset.rs
-  - zircon_runtime/src/scene/dynamic_scene/scene/spawn/transaction/tests.rs
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md
   - docs/plans/optimize/01-cross-report-owner-schema-abi-p0-consolidation-review.md

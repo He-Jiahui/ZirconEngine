@@ -5,7 +5,6 @@ related_code:
   - zircon_editor/src/core/project
   - zircon_editor/src/core/recovery/autosave
   - zircon_editor/src/core/recovery/session_guard
-  - zircon_editor/src/core/recovery/activation_ledger
   - zircon_editor/src/core/editing/engine/journal/durable
   - zircon_editor/src/core/editing/engine
   - zircon_editor/src/ui/workbench/project/editor_workspace_persistence.rs

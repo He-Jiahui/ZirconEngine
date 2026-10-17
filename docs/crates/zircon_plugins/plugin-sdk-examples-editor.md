@@ -7,10 +7,8 @@ related_code:
   - zircon_plugins/plugin_sdk_examples/editor/src/capability.rs
   - zircon_plugins/plugin_sdk_examples/editor/src/extensions.rs
   - zircon_plugins/plugin_sdk_examples/editor/src/extension_ids.rs
-  - zircon_plugins/plugin_sdk_examples/editor/src/tests.rs
   - zircon_plugins/plugin_sdk/src/manifest/package_builder.rs
   - zircon_plugins/plugin_sdk/src/editor.rs
-  - tools/plugin_structure_audits/skeleton.py
 implementation_files:
   - zircon_plugins/plugin_sdk_examples/editor/Cargo.toml
   - zircon_plugins/plugin_sdk_examples/editor/src/lib.rs
@@ -18,7 +16,6 @@ implementation_files:
   - zircon_plugins/plugin_sdk_examples/editor/src/capability.rs
   - zircon_plugins/plugin_sdk_examples/editor/src/extensions.rs
   - zircon_plugins/plugin_sdk_examples/editor/src/extension_ids.rs
-  - zircon_plugins/plugin_sdk_examples/editor/src/tests.rs
 plan_sources:
   - docs/plans/zircon_plugins/12-plugin-dx-and-structure-framework.md
   - docs/plans/engine-code-structure-convention.md

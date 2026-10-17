@@ -10,9 +10,6 @@ fixing_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 plan_link_mode: child_record_only
 related_code:
 tests:
-  - tools/session_coordinator/tests/test_supervision_actions.py::SupervisionActionTests::test_rollover_preserves_admission_and_unstarted_work_for_successor
-  - tools/session_coordinator/tests/test_supervision_actions.py::SupervisionActionTests::test_rollover_rejects_a_live_managed_cargo_tree_without_draining
-  - tools/session_coordinator/tests/test_action_catalog.py::ActionCatalogTests::test_lifecycle_parameters_are_service_scoped_and_bounded
 resolved_at: 2026-07-17
 ---
 

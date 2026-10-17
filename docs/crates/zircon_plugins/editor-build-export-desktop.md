@@ -11,61 +11,42 @@ related_code:
   - zircon_plugins/editor_build_export_desktop/editor/src/export_wizard.rs
   - zircon_plugins/editor_build_export_desktop/templates/desktop_export_profile.toml
   - zircon_plugins/Cargo.toml
-  - tools/zircon_export/cli.py
-  - tools/zircon_export/pipeline_stages.py
-  - tools/zircon_export/tests/test_pipeline_resume_flow.py
+  - tools/export/tests/test_pipeline_resume_flow.py
   - zircon_runtime/src/plugin/export_build_plan/export_validate_report.rs
   - zircon_runtime/src/plugin/export_build_plan/library_embed_compile_plan.rs
   - zircon_editor/src/core/editor_extension.rs
   - zircon_editor/src/core/plugin/descriptor.rs
   - zircon_editor/src/tests/editor_authoring_extension_descriptors.rs
   - zircon_editor/src/ui/host/mod.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/mod.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/manager.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/mod.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/mod.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/options.rs
+  - zircon_editor/src/ui/host/exports/export_build/manager.rs
+  - zircon_editor/src/ui/host/exports/export_build/mod.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/mod.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/options.rs
   - zircon_runtime_interface/src/export/stage.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/command.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/plan.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/progress.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/execution.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/job.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/run.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/controller.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/view_model.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/panel_projection.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/panel_output_tests.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/panel_report_body_tests.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/streaming_output_tests.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/cancellation_tests.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/pipeline_handoff_tests.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/pipeline_launch_tests.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/pipeline_report_tests.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/panel_host_projection.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/panel_host_projection_tests.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/session.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/session_control_tests.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/mod.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/support.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/pipeline_plan.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/pipeline_execution.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/job.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/panel_session.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/view_model.rs
-  - zircon_editor/src/ui/template_runtime/runtime/runtime_host.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/host_data.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_actions.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_actions/tests.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_wizard_session.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_wizard_session/tests.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle.rs
-  - zircon_editor/src/ui/retained_host/app/pane_surface_actions.rs
-  - zircon_editor/src/ui/retained_host/host_contract/template_activation_semantics.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/build_export/mod.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/build_export/target_rows/mod.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/build_export/tests.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/build_export_wizard_panel.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/command.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/plan.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/progress.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/execution.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/job.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/run.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/controller.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/view_model.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/panel_projection.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/panel_host_projection.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/session.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/tests/mod.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/tests/support.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/tests/pipeline_plan.rs
+  - zircon_editor/src/ui/host/exports/wizard/tests/pipeline_execution.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/tests/job.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/tests/panel_session.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/tests/view_model.rs
+  - zircon_editor/src/ui/runtime/runtime/runtime_host.rs
+  - zircon_editor/src/ui/retained/app/build_export_actions.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle.rs
+  - zircon_editor/src/ui/retained/app/pane_surface_actions.rs
+  - zircon_editor/src/ui/retained/ui/data/build_export/mod.rs
+  - zircon_editor/src/ui/retained/ui/data/build_export/target_rows/mod.rs
 implementation_files:
   - zircon_plugins/editor_build_export_desktop/plugin.toml
   - zircon_plugins/editor_build_export_desktop/editor/Cargo.toml
@@ -78,60 +59,41 @@ implementation_files:
   - zircon_plugins/editor_build_export_desktop/editor/src/export_wizard.rs
   - zircon_plugins/editor_build_export_desktop/templates/desktop_export_profile.toml
   - zircon_plugins/Cargo.toml
-  - tools/zircon_export/cli.py
-  - tools/zircon_export/pipeline_stages.py
-  - tools/zircon_export/tests/test_pipeline_resume_flow.py
+  - tools/export/tests/test_pipeline_resume_flow.py
   - zircon_runtime/src/plugin/export_build_plan/export_validate_report.rs
   - zircon_runtime/src/plugin/export_build_plan/library_embed_compile_plan.rs
   - zircon_editor/src/core/editor_extension.rs
   - zircon_editor/src/core/plugin/descriptor.rs
   - zircon_editor/src/tests/editor_authoring_extension_descriptors.rs
   - zircon_editor/src/ui/host/mod.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/mod.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/mod.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/mod.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/options.rs
+  - zircon_editor/src/ui/host/exports/export_build/mod.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/mod.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/options.rs
   - zircon_runtime_interface/src/export/stage.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/command.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/plan.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/progress.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/execution.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/job.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/run.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/controller.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/view_model.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/panel_projection.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/panel_output_tests.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/panel_report_body_tests.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/streaming_output_tests.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/cancellation_tests.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/pipeline_handoff_tests.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/pipeline_launch_tests.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/pipeline_report_tests.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/panel_host_projection.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/panel_host_projection_tests.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/session.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/session_control_tests.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/mod.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/support.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/pipeline_plan.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/pipeline_execution.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/job.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/panel_session.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/view_model.rs
-  - zircon_editor/src/ui/template_runtime/runtime/runtime_host.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/host_data.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_actions.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_actions/tests.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_wizard_session.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_wizard_session/tests.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle.rs
-  - zircon_editor/src/ui/retained_host/app/pane_surface_actions.rs
-  - zircon_editor/src/ui/retained_host/host_contract/template_activation_semantics.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/build_export/mod.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/build_export/target_rows/mod.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/build_export/tests.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/build_export_wizard_panel.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/command.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/plan.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/progress.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/execution.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/job.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/run.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/controller.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/view_model.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/panel_projection.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/panel_host_projection.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/session.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/tests/mod.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/tests/support.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/tests/pipeline_plan.rs
+  - zircon_editor/src/ui/host/exports/wizard/tests/pipeline_execution.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/tests/job.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/tests/panel_session.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/tests/view_model.rs
+  - zircon_editor/src/ui/runtime/runtime/runtime_host.rs
+  - zircon_editor/src/ui/retained/app/build_export_actions.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle.rs
+  - zircon_editor/src/ui/retained/app/pane_surface_actions.rs
+  - zircon_editor/src/ui/retained/ui/data/build_export/mod.rs
+  - zircon_editor/src/ui/retained/ui/data/build_export/target_rows/mod.rs
 plan_sources:
   - user: 2026-05-02 continue independent plugin gap implementation
   - .codex/plans/ZirconEngine 独立插件补齐计划.md
@@ -139,14 +101,14 @@ plan_sources:
   - docs/plans/zircon_plugins/10-editor-integration.md
 tests:
   - zircon_plugins/editor_build_export_desktop/editor/src/lib.rs
-  - tools/zircon_export/tests/test_pipeline_resume_flow.py
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/mod.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/support.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/pipeline_plan.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/pipeline_execution.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/job.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/panel_session.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/view_model.rs
+  - tools/export/tests/test_pipeline_resume_flow.py
+  - zircon_editor/src/ui/host/exports/export_build/wizard/tests/mod.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/tests/support.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/tests/pipeline_plan.rs
+  - zircon_editor/src/ui/host/exports/wizard/tests/pipeline_execution.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/tests/job.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/tests/panel_session.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/tests/view_model.rs
   - export_wizard_descriptor_covers_build_layout_stages_and_reports
   - report view summary_entry_keys covered by export_wizard_descriptor_covers_build_layout_stages_and_reports
   - report view template_control_ids covered by export_wizard_descriptor_covers_build_layout_stages_and_reports

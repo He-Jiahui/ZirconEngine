@@ -8,19 +8,15 @@ baseline_epoch: 339
 refreshes_report: Runtime65
 related_code:
   - zircon_runtime/src/core/framework/render
-  - zircon_runtime/src/graphics/runtime/render_framework
   - zircon_runtime/src/graphics/tests
   - zircon_plugins/hybrid_gi/runtime/src
   - zircon_plugins/virtual_geometry/runtime/src
-  - zircon_editor/src/ui/retained_host/viewport
   - zircon_editor/src/tests/editing/state/viewport.rs
   - zircon_editor/src/tests/host/render_framework_boundary/mod.rs
   - zircon_app/src
 tests:
-  - zircon_runtime/src/core/framework/render/backend_types/tests.rs
-  - zircon_runtime/src/core/framework/render/view_family.rs
+  - zircon_runtime/src/core/framework/render/view_family/mod.rs
   - zircon_runtime/src/core/framework/render/frame_profile.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/frame_profiler.rs
   - zircon_runtime/src/graphics/tests
   - zircon_editor/src/tests/editing/state/viewport.rs
   - zircon_editor/src/tests/host/render_framework_boundary/mod.rs

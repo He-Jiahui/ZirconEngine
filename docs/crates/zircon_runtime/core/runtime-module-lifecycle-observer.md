@@ -7,7 +7,6 @@ related_code:
   - zircon_runtime/src/core/runtime/handle/activation/batch.rs
   - zircon_runtime/src/core/runtime/handle/runtime_extensions.rs
   - zircon_runtime/src/core/runtime/state/core_runtime_state.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/bridge_lifecycle_state.rs
   - zircon_app/src/entry/engine_entry.rs
 implementation_files:
   - zircon_runtime/src/core/runtime/error.rs
@@ -17,7 +16,6 @@ implementation_files:
   - zircon_runtime/src/core/runtime/handle/activation/batch.rs
   - zircon_runtime/src/core/runtime/handle/runtime_extensions.rs
   - zircon_runtime/src/core/runtime/state/core_runtime_state.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/bridge_lifecycle_state.rs
   - zircon_app/src/entry/engine_entry.rs
 plan_sources:
   - docs/plans/zircon_runtime/frameworks/05-subsystem-decoupling-contracts.md

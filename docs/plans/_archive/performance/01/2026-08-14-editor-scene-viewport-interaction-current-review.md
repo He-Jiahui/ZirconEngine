@@ -1,19 +1,15 @@
 ---
 related_code:
   - zircon_editor/src/scene
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_build_render_snapshot.rs
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_pointer_route.rs
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_overlay_providers.rs
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_scene_modes.rs
   - zircon_editor/src/scene/viewport/interaction_extract
   - zircon_editor/src/scene/viewport/pointer
   - zircon_editor/src/ui/host/editor_scene_mode_lifecycle.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/tick.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/render_submission.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle/tick.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle/render_submission.rs
   - zircon_runtime/src/core/framework/render/visible_spatial_query.rs
   - zircon_runtime/src/graphics/visibility/spatial_query.rs
   - zircon_runtime/src/graphics/visibility/static_index/mod.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/visible_spatial_query.rs
+  - zircon_runtime/src/graphics/runtime/viewport_record/visible_spatial_query.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_editor/editor/05-scene-editing-hierarchy-and-gizmos.md

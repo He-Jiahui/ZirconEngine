@@ -3,7 +3,7 @@ related_code:
   - zircon_editor/src/ui/workbench/model
   - zircon_editor/src/core/commands/menu.rs
   - zircon_editor/src/ui/host/editor_event_runtime_reflection.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/recompute/shell/builder.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle/recompute/shell/builder.rs
 tests:
   - zircon_editor/src/tests/workbench/view_model
   - zircon_editor/src/tests/workbench/reflection/model_projection.rs

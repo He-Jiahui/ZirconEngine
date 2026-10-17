@@ -5,13 +5,11 @@ plan_sources:
   - docs/plans/optimize/zircon_editor/59/2026-09-27-viewport-pointer-button-ownership.md
   - docs/plans/optimize/zircon_editor/59-editor-scene-viewport-interaction-controller-input-picking-selection-highlight-gizmo-transaction-cancel-generation.md
 implementation_files:
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_handle_input.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/viewport/pointer_dispatch.rs
-  - zircon_editor/src/ui/retained_host/app/native_keyboard_actions.rs
+  - zircon_editor/src/ui/retained/dispatch/viewport/pointer_dispatch.rs
+  - zircon_editor/src/ui/retained/app/native_keyboard_actions.rs
 tests:
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_handle_input/pointer_button_ownership_tests.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/viewport/pointer_bridge/button_ownership.rs
-  - zircon_editor/src/ui/retained_host/app/tests/native_viewport_cancel.rs
+  - zircon_editor/src/tests/host/viewport/pointer_bridge/button_ownership.rs
+  - zircon_editor/src/ui/retained/app/tests/native_viewport_cancel.rs
 ---
 
 # Editor59 viewport pointer button ownership completion list

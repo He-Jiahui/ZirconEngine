@@ -9,34 +9,25 @@ related_code:
   - zircon_editor/src/core/editor_message/message/tool.rs
   - zircon_editor/src/scene/modes
   - zircon_editor/src/scene/viewport/controller/scene_viewport_controller.rs
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_scene_modes.rs
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_accessors.rs
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_handle_input.rs
   - zircon_editor/src/ui/host/editor_extension_registration.rs
   - zircon_editor/src/ui/host/editor_scene_mode_lifecycle.rs
   - zircon_editor/src/ui/workbench/startup/editor_state_construction.rs
   - zircon_editor/src/ui/workbench/state/editor_state.rs
-  - zircon_editor/src/ui/retained_host/app.rs
-  - zircon_editor/src/ui/retained_host/app/runtime_shutdown.rs
-  - zircon_editor/src/ui/retained_host/app/project_close.rs
-  - zircon_editor/src/ui/retained_host/app/scene_picker_actions.rs
-  - zircon_editor/src/ui/retained_host/app/scene_picker_session.rs
-  - zircon_editor/src/ui/retained_host/app/command_palette_actions.rs
-  - zircon_editor/src/ui/retained_host/app/settings_window_actions.rs
-  - zircon_editor/src/ui/retained_host/viewport/world_space_ui.rs
-  - zircon_editor/src/ui/retained_host/app/workspace_docking/drawer_resize
-  - zircon_editor/src/ui/retained_host/callback_dispatch/viewport/pointer_dispatch.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/session.rs
+  - zircon_editor/src/ui/retained/app/runtime_shutdown.rs
+  - zircon_editor/src/ui/retained/app/project_close.rs
+  - zircon_editor/src/ui/retained/app/scene_picker_actions.rs
+  - zircon_editor/src/ui/retained/app/scene_picker_session.rs
+  - zircon_editor/src/ui/retained/app/command_palette_actions.rs
+  - zircon_editor/src/ui/retained/app/settings_window_actions.rs
+  - zircon_editor/src/ui/retained/viewport/world_space_ui.rs
+  - zircon_editor/src/ui/retained/app/workspace_docking/drawer_resize
+  - zircon_editor/src/ui/retained/dispatch/viewport/pointer_dispatch.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/session.rs
 tests:
-  - zircon_editor/src/core/tools/tests.rs
   - zircon_editor/src/core/tools/tests/fairness.rs
   - zircon_editor/src/core/tools/tests/snapshot.rs
-  - zircon_editor/src/core/tools/input_capture/tests.rs
-  - zircon_editor/src/core/context/tool_scheduler/tests.rs
-  - zircon_editor/src/scene/modes/tests.rs
   - zircon_editor/src/scene/modes/tests/isolation.rs
   - zircon_editor/src/scene/modes/tests/lifecycle.rs
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_scene_modes.rs
   - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests
   - zircon_editor/src/ui/retained_host/app/tests
 plan_sources:

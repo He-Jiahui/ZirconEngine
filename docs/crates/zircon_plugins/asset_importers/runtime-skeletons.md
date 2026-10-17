@@ -3,8 +3,7 @@ related_code:
   - zircon_runtime/src/asset/mod.rs
   - zircon_runtime/src/asset/module.rs
   - zircon_runtime/src/builtin/runtime_modules.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/construction.rs
-  - zircon_runtime/src/asset/pipeline/manager/service_contracts/asset_manager_contract.rs
+  - zircon_runtime/src/asset/manager/service_contracts/asset_manager_contract.rs
   - zircon_runtime/src/asset/project/manager/importer_access.rs
   - zircon_runtime/src/plugin/extension_registry/apply_to_asset_manager.rs
   - zircon_plugins/Cargo.toml
@@ -81,15 +80,13 @@ related_code:
   - zircon_plugins/asset_importers/data/plugin.toml
   - zircon_plugins/asset_importers/data/dist/Cargo.toml
   - zircon_plugins/asset_importers/data/dist/src/lib.rs
-  - tools/plugin_structure_audits/registration.py
   - zircon_runtime/src/builtin/runtime_modules/ids/plugin_id.rs
   - zircon_runtime/src/builtin/runtime_modules/plugin_modules/loader.rs
 implementation_files:
   - zircon_runtime/src/asset/mod.rs
   - zircon_runtime/src/asset/module.rs
   - zircon_runtime/src/builtin/runtime_modules.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/construction.rs
-  - zircon_runtime/src/asset/pipeline/manager/service_contracts/asset_manager_contract.rs
+  - zircon_runtime/src/asset/manager/service_contracts/asset_manager_contract.rs
   - zircon_runtime/src/asset/project/manager/importer_access.rs
   - zircon_runtime/src/plugin/extension_registry/apply_to_asset_manager.rs
   - zircon_plugins/gltf_importer/plugin.toml
@@ -160,7 +157,6 @@ implementation_files:
   - zircon_plugins/asset_importers/data/plugin.toml
   - zircon_plugins/asset_importers/data/dist/Cargo.toml
   - zircon_plugins/asset_importers/data/dist/src/lib.rs
-  - tools/plugin_structure_audits/registration.py
   - zircon_runtime/src/builtin/runtime_modules/ids/plugin_id.rs
   - zircon_runtime/src/builtin/runtime_modules/plugin_modules/loader.rs
 plan_sources:

@@ -1,16 +1,15 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/host_contract
 implementation_files:
-  - docs/plans/performance/01/2026-07-17-editor-template-shell-panels-static-review.md
-  - docs/plans/performance/01/2026-07-17-editor-template-sliders-static-review.md
-  - docs/plans/performance/01/2026-07-17-editor-template-status-controls-static-review.md
-  - docs/plans/performance/01/2026-07-17-editor-template-style-static-review.md
-  - docs/plans/performance/01/2026-07-17-editor-template-surface-hit-static-review.md
-  - docs/plans/performance/01/2026-07-17-editor-template-surface-icon-static-review.md
-  - docs/plans/performance/01/2026-07-17-editor-template-table-rows-static-review.md
-  - docs/plans/performance/01/2026-07-17-editor-template-tooltips-static-review.md
-  - docs/plans/performance/01/2026-07-17-editor-template-tree-rows-static-review.md
+  - docs/plans/_archive/performance/01/2026-07-17-editor-template-shell-panels-static-review.md
+  - docs/plans/_archive/performance/01/2026-07-17-editor-template-sliders-static-review.md
+  - docs/plans/_archive/performance/01/2026-07-17-editor-template-status-controls-static-review.md
+  - docs/plans/_archive/performance/01/2026-07-17-editor-template-style-static-review.md
+  - docs/plans/_archive/performance/01/2026-07-17-editor-template-surface-hit-static-review.md
+  - docs/plans/_archive/performance/01/2026-07-17-editor-template-surface-icon-static-review.md
+  - docs/plans/_archive/performance/01/2026-07-17-editor-template-table-rows-static-review.md
+  - docs/plans/_archive/performance/01/2026-07-17-editor-template-tooltips-static-review.md
+  - docs/plans/_archive/performance/01/2026-07-17-editor-template-tree-rows-static-review.md
 plan_sources:
   - docs/plans/zircon_runtime/frameworks/06-development-conventions-and-guardrails.md
   - docs/plans/engine-code-structure-convention.md

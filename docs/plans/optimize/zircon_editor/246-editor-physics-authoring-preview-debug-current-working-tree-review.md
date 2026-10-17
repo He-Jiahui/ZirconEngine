@@ -30,8 +30,6 @@ related_code:
   - zircon_editor/src/core/editing
   - zircon_editor/src/core/jobs
   - zircon_editor/src/scene/viewport
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/simulation/workbench_extension_physics_collision_workspace.zui
 reference_engines:
   - dev/UnrealEngine/Engine/Source/Editor/PhysicsAssetEditor
   - dev/UnrealEngine/Engine/Source/Editor/StaticMeshEditor/Private/StaticMeshAutomationTests.cpp

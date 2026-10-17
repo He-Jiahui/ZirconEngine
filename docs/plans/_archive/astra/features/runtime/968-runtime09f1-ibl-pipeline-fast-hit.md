@@ -7,10 +7,8 @@ related_records:
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
   - docs/plans/astra/features/runtime/972-runtime09d-to-09h1-completion-list.md
 implementation_files:
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_wgpu_pipeline_cache.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_wgpu_pipeline_cache/fast_hit_tests.rs
+  - zircon_runtime/src/graphics/scene/environment/ibl_bake_wgpu_pipeline_cache.rs
 tests:
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_wgpu_pipeline_cache/fast_hit_tests.rs
 ---
 
 # Runtime968 · IBL bake pipeline fast hit

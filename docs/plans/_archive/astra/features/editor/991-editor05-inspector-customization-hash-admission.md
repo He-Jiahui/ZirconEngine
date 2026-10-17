@@ -9,9 +9,7 @@ related_records:
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
   - zircon_editor/src/core/extension/inspector.rs
-  - zircon_editor/src/core/extension/inspector/hash_customization_tests.rs
 tests:
-  - zircon_editor/src/core/extension/inspector/hash_customization_tests.rs
 ---
 
 # Editor991 · inspector customization hash admission

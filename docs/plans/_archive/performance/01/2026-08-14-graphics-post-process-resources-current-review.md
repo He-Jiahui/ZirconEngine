@@ -1,8 +1,5 @@
 ---
 related_code:
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources
-  - zircon_runtime/src/graphics/scene/scene_renderer/temporal/taa/taa_resolve_bind_group_cache.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/generic_compute_executor.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_runtime/render/01-render-graph-rdg-alignment.md

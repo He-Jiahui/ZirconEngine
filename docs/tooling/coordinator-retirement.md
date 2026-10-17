@@ -1,6 +1,5 @@
 ---
 related_code:
-  - .codex/coordinator-retirement.json
   - .codex/hooks.json
   - .codex/hooks/zircon_session_sync.py
   - .codex/hooks/pre_tool_use_cargo_guard.py

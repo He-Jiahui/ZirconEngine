@@ -1,10 +1,5 @@
 ---
 related_code:
-  - zircon_runtime/src/graphics/runtime/render_framework/budget
-  - zircon_runtime/src/graphics/runtime/render_framework/capability_summary
-  - zircon_runtime/src/graphics/runtime/render_framework/frame_profiler.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/frame_profiler
-  - zircon_runtime/src/graphics/runtime/render_framework/query_stats
   - zircon_runtime/src/asset/assets
 related_plans:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md

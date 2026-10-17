@@ -31,12 +31,9 @@ related_code:
   - zircon_plugins/first_party_runtime_catalog
   - zircon_app/Cargo.toml
   - zircon_app/src/bin/zircon_shader_pbr_viewer
-  - zircon_editor/assets/ui/editor/components/workbench/modules/core/rendering
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/rendering
-  - zircon_editor/assets/ui/editor/components/workbench/modules/generated
+  - zircon_editor/assets/ui/editor/modules/core/rendering
+  - zircon_editor/assets/ui/editor/modules/generated
   - zircon_editor/src/scene/viewport
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench
-  - zircon_editor/src/ui/template_runtime/builtin
 reference_engines:
   - dev/UnrealEngine/Engine/Plugins/Developer/RenderDocPlugin
   - dev/UnrealEngine/Engine/Plugins/Experimental/GPULightmass

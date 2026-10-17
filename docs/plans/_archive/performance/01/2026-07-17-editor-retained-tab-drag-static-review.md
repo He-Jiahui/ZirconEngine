@@ -1,6 +1,5 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/tab_drag
   - zircon_editor/src/tests/host/retained_tab_drag
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md

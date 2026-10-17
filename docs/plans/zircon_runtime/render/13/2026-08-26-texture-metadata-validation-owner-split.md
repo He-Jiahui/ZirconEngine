@@ -2,11 +2,9 @@
 related_code:
   - zircon_runtime/src/core/framework/render/image/metadata_validation.rs
   - zircon_runtime/src/core/framework/render/image/metadata_validation/format.rs
-  - zircon_runtime/src/core/framework/render/image/metadata_validation/tests.rs
 implementation_files:
   - zircon_runtime/src/core/framework/render/image/metadata_validation.rs
   - zircon_runtime/src/core/framework/render/image/metadata_validation/format.rs
-  - zircon_runtime/src/core/framework/render/image/metadata_validation/tests.rs
 plan_sources:
   - docs/plans/engine-code-structure-convention.md
   - docs/plans/engine-code-review-findings-2026-06.md
@@ -14,7 +12,6 @@ plan_sources:
   - docs/plans/optimize/zircon_runtime/92-runtime-texture-image-cubemap-array-volume-format-sampler-mip-compression-upload-streaming-residency-budget-eviction-virtual-texture.md
   - docs/plans/optimize/zircon_editor/109-editor-texture-image-cubemap-render-target-sampler-compression-streaming-preview-current-source-review.md
 tests:
-  - zircon_runtime/src/core/framework/render/image/metadata_validation/tests.rs
   - rustfmt --edition 2021
   - static function, production-string, and test-name migration comparison
   - git diff --check

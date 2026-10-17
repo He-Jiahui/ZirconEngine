@@ -22,7 +22,6 @@ plan_sources:
 tests:
   - zircon_runtime/src/ui/tests/text_hit_testing.rs
   - zircon_runtime/src/ui/tests/widget_text_input_pointer.rs
-  - zircon_runtime_interface/src/ui/surface/render/text_geometry/source_map_tests.rs
   - zircon_runtime/src/ui/text/geometry/tests/mixed_bidi.rs
   - rustfmt --edition 2021 --check zircon_runtime/src/ui/text/hit_test.rs zircon_runtime/src/ui/text/layout_engine.rs zircon_runtime/src/ui/text/mod.rs zircon_runtime/src/ui/tests/text_hit_testing.rs zircon_runtime/src/ui/tests/mod.rs
   - git diff --check -- zircon_runtime/src/ui/text/hit_test.rs zircon_runtime/src/ui/text/layout_engine.rs zircon_runtime/src/ui/text/mod.rs zircon_runtime/src/ui/tests/text_hit_testing.rs zircon_runtime/src/ui/tests/mod.rs

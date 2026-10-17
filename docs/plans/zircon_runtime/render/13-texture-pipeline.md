@@ -6,24 +6,10 @@ related_code:
   - zircon_runtime/src/asset/artifact/ibl_source_cubemap_staging.rs
   - zircon_runtime/tests/runtime_environment_ibl_source_import_staging_contract.rs
   - zircon_runtime/src/graphics/scene/resources/gpu_texture/mod.rs
-  - zircon_runtime/src/graphics/scene/resources/gpu_texture/gpu_texture_resource_from_asset.rs
-  - zircon_runtime/src/graphics/scene/resources/gpu_texture/gpu_texture_resource_from_asset/tests.rs
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer.rs
+  - zircon_runtime/src/graphics/scene/resource_streamer/resource_streamer.rs
   - zircon_runtime/src/core/framework/render/material/texture_slot_summary.rs
   - zircon_runtime/src/core/framework/render/image/mod.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_gpu_texture_from_asset_tests.rs
   - zircon_plugins/rendering/plugin.toml
-  - dev/UnrealEngine/Engine/Source/Runtime/Renderer/Private/VT/VirtualTextureSystem.cpp
-  - dev/UnrealEngine/Engine/Source/Runtime/Renderer/Private/VT/VirtualTextureFeedback.cpp
-  - dev/UnrealEngine/Engine/Source/Runtime/Renderer/Private/VT/VirtualTexturePhysicalSpace.cpp
-  - dev/Graphics/Packages/com.unity.render-pipelines.universal/Runtime/MipGen/MipGenerator.cs
-  - dev/Graphics/Packages/com.unity.render-pipelines.core/Runtime/Textures/RTHandleSystem.cs
-  - dev/bevy/crates/bevy_image/src/image.rs
-  - dev/bevy/crates/bevy_image/src/ktx2.rs
-  - dev/bevy/crates/bevy_image/src/basis.rs
-  - dev/bevy/crates/bevy_core_pipeline/src/mip_generation/mod.rs
-  - dev/bevy/crates/bevy_core_pipeline/src/mip_generation/downsample.wgsl
-  - dev/Fyrox/fyrox-texture/src/lib.rs
 plan_sources:
   - .codex/plans/ZirconEngine 资产、Texture、模型、ZShaderZMaterialZMesh 缺口补齐计划.md
   - .codex/plans/Asset Importer 插件化补齐计划.md

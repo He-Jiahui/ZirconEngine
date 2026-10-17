@@ -1,11 +1,7 @@
 ---
 related_code:
-  - zircon_editor/assets/ui/editor/components/workbench/modules/core/rendering/workbench_material_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/core/index/workbench_module_workspace.zui
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/module_navigation.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/workbench/module_navigation.rs
 implementation_files:
-  - zircon_editor/assets/ui/editor/components/workbench/modules/core/rendering/workbench_material_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/core/index/workbench_module_workspace.zui
 plan_sources:
   - user: 2026-06-03 componentized editor UI prototype and native retained/Taffy replication request
   - docs/ui/ai-workbench-style/component-prototype/README.md

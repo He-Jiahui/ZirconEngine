@@ -1,33 +1,28 @@
 ---
 related_code:
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/bind_frame_graph_resources.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/bind_plugin_graph_resources.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/execute_graph_stage.rs
-  - zircon_runtime/src/graphics/backend/render_backend/offscreen_target.rs
+  - zircon_runtime/src/graphics/scene/core/render/bind_frame_graph_resources.rs
+  - zircon_runtime/src/graphics/scene/renderer/core/render/render/render.rs
+  - zircon_runtime/src/graphics/scene/core/render/bind_plugin_graph_resources.rs
+  - zircon_runtime/src/graphics/scene/core/render/render/execute_graph_stage.rs
   - zircon_runtime/src/graphics/types/viewport_render_region.rs
   - zircon_runtime/src/graphics/types/viewport_camera_stack_attachment_policy.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/scene_clear/scene_region_clear_resources.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/shadow/atlas/resources.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources/mod.rs
+  - zircon_runtime/src/graphics/scene/renderer/shadow/atlas/resources.rs
   - zircon_runtime/src/render_graph/graph.rs
 implementation_files:
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/bind_frame_graph_resources.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/execute_graph_stage.rs
+  - zircon_runtime/src/graphics/scene/core/render/bind_frame_graph_resources.rs
+  - zircon_runtime/src/graphics/scene/renderer/core/render/render/render.rs
+  - zircon_runtime/src/graphics/scene/core/render/render/execute_graph_stage.rs
   - zircon_runtime/src/graphics/types/viewport_render_region.rs
   - zircon_runtime/src/graphics/types/viewport_camera_stack_attachment_policy.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/scene_clear/scene_region_clear_resources.rs
 plan_sources:
   - docs/plans/zircon_runtime/render/index.md
   - docs/plans/zircon_runtime/render/01-render-graph-rdg-alignment.md
   - user: 2026-06-17 implement WGPU-to-render pipeline design from docs/plans/zircon_runtime/render, feature-first with tests deferred
 tests:
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/bind_frame_graph_resources.rs::tests::frame_binder_imports_only_live_compiled_frame_resources
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/bind_frame_graph_resources.rs::tests::frame_binder_reuses_fixed_scene_color_and_depth_targets
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/bind_frame_graph_resources.rs::tests::frame_binder_rebinds_live_final_aliases_to_imported_texture_target
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/bind_frame_graph_resources.rs::tests::frame_binder_leaves_advanced_transients_for_materialization
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests.rs::compile_declares_uber_light_list_as_external_when_clustered_lighting_is_disabled
+  - zircon_runtime/src/graphics/scene/core/render/bind_frame_graph_resources.rs::tests::frame_binder_imports_only_live_compiled_frame_resources
+  - zircon_runtime/src/graphics/scene/core/render/bind_frame_graph_resources.rs::tests::frame_binder_reuses_fixed_scene_color_and_depth_targets
+  - zircon_runtime/src/graphics/scene/core/render/bind_frame_graph_resources.rs::tests::frame_binder_rebinds_live_final_aliases_to_imported_texture_target
+  - zircon_runtime/src/graphics/scene/core/render/bind_frame_graph_resources.rs::tests::frame_binder_leaves_advanced_transients_for_materialization
   - cargo test -p zircon_runtime --lib frame_binder_reuses_fixed_scene_color_and_depth_targets --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-camera-record-owner-0618 --message-format short --color never -- --nocapture
 doc_type: module-detail
 ---

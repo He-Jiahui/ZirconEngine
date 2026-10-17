@@ -13,7 +13,6 @@ related_code:
   - zircon_runtime/src/text/font/database/face_matching.rs
   - zircon_runtime/src/text/font/database/fallback_queries.rs
   - zircon_runtime/src/text/font/database/system_fonts.rs
-  - zircon_runtime/src/text/font/database/tests.rs
   - zircon_runtime/src/text/font/database/tests/asset_lifecycle.rs
   - zircon_runtime/src/text/font/database/tests/composite.rs
   - zircon_runtime/src/text/font/database/tests/fallback.rs
@@ -23,10 +22,8 @@ related_code:
   - zircon_runtime/src/text/font/database/tests/variations.rs
   - zircon_runtime/src/text/font/face_metadata.rs
   - zircon_runtime/src/text/font/fallback_cache.rs
-  - zircon_runtime/src/text/font/fallback_cache/tests.rs
   - zircon_runtime/src/text/font/instance.rs
   - zircon_runtime/src/text/font/shared.rs
-  - zircon_runtime/src/text/font/shared/tests.rs
   - zircon_runtime/src/text/font/vertical_metrics.rs
   - zircon_runtime/src/text/language.rs
   - zircon_runtime/src/text/mod.rs
@@ -36,16 +33,14 @@ related_code:
   - zircon_runtime/src/text/sdf/font_bake.rs
   - zircon_runtime/src/text/sdf/font_bake/tests/offline.rs
   - zircon_runtime/src/text/parallel/raster_pool.rs
-  - zircon_runtime/src/text/parallel/tests.rs
   - zircon_runtime/src/text/native_bitmap_atlas.rs
   - zircon_runtime/src/text/native_bitmap_atlas/source_cache.rs
   - zircon_runtime/src/text/native_bitmap_atlas/tests/source_cache.rs
   - zircon_runtime/src/text/atlas/bitmap_run/tests/dirty_upload.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/font_assets.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/font_id_report.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/resolved_batches.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/tests.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/text.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/text/font_assets.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/text/font_id_report.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/text/resolved_batches.rs
 plan_sources:
   - docs/plans/zircon_runtime/text/01-font-resource-faces-and-database.md
   - docs/plans/zircon_runtime/text/04-glyph-atlas-and-rasterization.md

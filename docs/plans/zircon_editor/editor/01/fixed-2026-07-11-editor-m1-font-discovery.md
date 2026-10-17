@@ -9,14 +9,13 @@ origin_child_dir: docs/plans/zircon_editor/editor/01
 fixing_child_dir: docs/plans/zircon_runtime/text/01
 resolved_at: 2026-07-11
 related_code:
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/prepare_report.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/text.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/text/prepare_report.rs
   - zircon_runtime/src/text/font/database.rs
   - zircon_runtime/src/core/framework/render/backend_types.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs
+  - zircon_runtime/src/graphics/runtime/framework/extract/update_stats/base_stats.rs
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product/ui.rs
-  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product/tests/ui.rs
+  - zircon_runtime/src/core/runtime/diagnostics/product/tests/ui.rs
   - zircon_editor/src/tests/editing/state.rs
 plan_sources:
   - docs/plans/zircon_runtime/text/01-font-resource-faces-and-database.md

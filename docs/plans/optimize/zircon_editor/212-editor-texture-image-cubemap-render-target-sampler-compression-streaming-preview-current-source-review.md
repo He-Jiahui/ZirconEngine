@@ -32,11 +32,9 @@ related_code:
   - zircon_runtime/src/core/framework/render
   - zircon_runtime/src/graphics/scene/resources/gpu_texture
   - zircon_runtime/src/graphics/scene/resources/resource_streamer
-  - zircon_runtime/src/graphics/runtime/render_framework/render_framework_state/environment_ibl_hydration_cache.rs
   - zircon_runtime/crates/zr_rhi/src/upload.rs
   - zircon_editor/src/core/asset/type_registry
-  - zircon_editor/src/ui/host/editor_asset_manager/preview.rs
-  - zircon_editor/src/ui/host/editor_asset_manager/manager/preview_refresh
+  - zircon_editor/src/ui/host/assets/manager/preview_refresh
   - zircon_plugins/texture
   - zircon_plugins/texture_importer
   - zircon_plugins/asset_importers/texture

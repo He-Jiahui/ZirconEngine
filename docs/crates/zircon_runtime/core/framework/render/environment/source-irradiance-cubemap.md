@@ -1,18 +1,14 @@
 ---
 related_code:
-  - zircon_runtime/src/core/framework/render/environment/source_irradiance_cubemap.rs
+  - zircon_runtime/src/core/render/environment/source_irradiance_cubemap.rs
   - zircon_runtime/src/core/framework/render/environment/source_cubemap.rs
   - zircon_runtime/src/core/framework/render/environment/cubemap_projection.rs
   - zircon_runtime/src/core/framework/render/environment/mod.rs
   - zircon_runtime/src/core/framework/render/mod.rs
   - zircon_runtime/tests/runtime_environment_source_irradiance_cubemap_contract.rs
   - zircon_runtime/tests/runtime_environment_source_cubemap_contract.rs
-  - dev/cmft/src/cmft/cubemapfilter.cpp
-  - dev/cmftStudio/src/shaders/fs_mesh.shdr
-  - dev/UnrealEngine/Engine/Source/Runtime/Renderer/Private/ReflectionEnvironmentDiffuseIrradiance.cpp
-  - dev/UnrealEngine/Engine/Shaders/Private/ReflectionEnvironmentShaders.usf
 implementation_files:
-  - zircon_runtime/src/core/framework/render/environment/source_irradiance_cubemap.rs
+  - zircon_runtime/src/core/render/environment/source_irradiance_cubemap.rs
   - zircon_runtime/src/core/framework/render/environment/mod.rs
   - zircon_runtime/src/core/framework/render/mod.rs
 plan_sources:

@@ -10,10 +10,7 @@ related_code:
   - zircon_editor/src/ui/host/editor_subsystems.rs
   - zircon_editor/src/ui/host/builtin_views/builtin_view_descriptors.rs
   - zircon_editor/src/ui/host/builtin_layout/builtin_shell_view_instances.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/native_registration
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard
-  - zircon_editor/src/ui/retained_host/app/build_export_wizard_session
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_abi.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md
   - docs/plans/optimize/01-cross-report-owner-schema-abi-p0-consolidation-review.md

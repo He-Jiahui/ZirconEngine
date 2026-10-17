@@ -28,11 +28,8 @@ related_code:
   - zircon_runtime/src/text/layout/rich/metrics.rs
   - zircon_runtime/src/text/layout/rich_advance_index.rs
   - zircon_runtime/src/text/layout/rich_source.rs
-  - zircon_runtime/src/text/layout/rich_advance_index/tests.rs
   - zircon_runtime/src/text/layout/rich_vertical.rs
-  - zircon_runtime/src/text/layout/rich_vertical/tests.rs
   - zircon_runtime/src/text/layout_geometry.rs
-  - zircon_runtime/src/ui/text/layout_engine/wrapping/tests.rs
   - zircon_runtime/src/ui/text/layout_engine/rich_layout.rs
   - zircon_runtime/src/ui/text/layout_engine/rich_layout_vertical.rs
   - zircon_runtime/src/ui/text/layout_engine/geometry_admission.rs
@@ -41,53 +38,43 @@ related_code:
   - zircon_runtime/src/ui/text/layout_engine/tests/soft_hyphen.rs
   - zircon_runtime/src/text/layout/line_break/mod.rs
   - zircon_runtime/src/text/layout/line_break/boundary_correction.rs
-  - zircon_runtime/src/text/layout/line_break/boundary_correction/tests.rs
-  - zircon_runtime/src/text/layout/line_break/tests.rs
   - zircon_runtime/src/text/layout/line_break/glue.rs
   - zircon_runtime/src/text/layout/line_break/glyph_fallback.rs
   - zircon_runtime/src/text/layout/line_break/smart.rs
   - zircon_runtime/src/text/layout/line_break/soft_hyphen.rs
   - zircon_runtime/src/text/layout/line_break/wrap_space.rs
   - zircon_runtime/src/text/layout/kinsoku.rs
-  - zircon_runtime/src/text/layout/kinsoku/tests.rs
   - zircon_runtime/src/text/layout/align.rs
   - zircon_runtime/src/text/layout/overflow.rs
   - zircon_runtime/src/text/layout/tab.rs
   - zircon_runtime/src/text/layout/measure.rs
-  - zircon_runtime/src/text/layout/measure/tests.rs
   - zircon_runtime/src/text/glyph_artifact.rs
   - zircon_runtime/src/text/glyph_artifact/projection.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text_pixel_snap.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_advances.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/shaped_advances.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/vertices.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/text.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/text_pixel_snap.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/sdf_advances.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/sdf_render/shaped_advances.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/sdf_render/vertices.rs
   - zircon_runtime/src/text/sdf/font_bake.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout/metrics.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout/tests.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/placement.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs/tests.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs/row.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs/row/tests.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text/font.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text/font/tests.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_command_conversion/style/text.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/divider/geometry/label_bounds/horizontal.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/divider/horizontal.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/chip/geometry/label.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/chip/geometry/metrics.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/alert/geometry/message.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/alert/geometry/metrics.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/avatar/geometry/text.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/avatar/geometry/metrics.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/badge/geometry/root_text.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/badge/geometry/overlay.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/badge/geometry/metrics.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_dialogs/actions/labels.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/sdf_render.rs
+  - zircon_editor/src/ui/retained/contract/paint_text/draw/layout.rs
+  - zircon_editor/src/ui/retained/contract/paint_text/draw/layout/metrics.rs
+  - zircon_editor/src/ui/retained/contract/paint_text/draw/placement.rs
+  - zircon_editor/src/ui/retained/contract/paint_text/draw/glyphs.rs
+  - zircon_editor/src/ui/retained/contract/paint_text/draw/glyphs/row.rs
+  - zircon_editor/src/ui/retained/contract/paint_text/font.rs
+  - zircon_editor/src/ui/contract/paint/divider/geometry/label_bounds/horizontal.rs
+  - zircon_editor/src/ui/retained/contract/paint/primitives/divider/horizontal.rs
+  - zircon_editor/src/ui/retained/contract/paint/primitives/chip/geometry/label.rs
+  - zircon_editor/src/ui/retained/contract/paint/primitives/chip/geometry/metrics.rs
+  - zircon_editor/src/ui/retained/contract/paint/alert/geometry/message.rs
+  - zircon_editor/src/ui/retained/contract/paint/alert/geometry/metrics.rs
+  - zircon_editor/src/ui/retained/contract/paint/primitives/avatar/geometry/text.rs
+  - zircon_editor/src/ui/retained/contract/paint/avatar/geometry/metrics.rs
+  - zircon_editor/src/ui/retained/contract/paint/badge/geometry/root_text.rs
+  - zircon_editor/src/ui/retained/contract/paint/badge/geometry/overlay.rs
+  - zircon_editor/src/ui/retained/contract/paint/badge/geometry/metrics.rs
+  - zircon_editor/src/ui/retained/contract/paint/dialogs/actions/labels.rs
   - zircon_runtime/src/ui/surface/render/dialog.rs
   - zircon_runtime/src/ui/surface/render/resolve.rs
   - zircon_runtime/src/ui/surface/render/text_measure.rs

@@ -1,12 +1,10 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/app/assets/refresh/snapshots.rs
-  - zircon_editor/src/ui/retained_host/app/asset_content_pointer/events/motion.rs
-  - zircon_editor/src/ui/retained_host/app/assets/refresh/snapshots/preview_demand_tests.rs
+  - zircon_editor/src/ui/retained/app/assets/refresh/snapshots.rs
+  - zircon_editor/src/ui/retained/app/asset_content_pointer/events/motion.rs
 plan_sources:
   - docs/plans/optimize/zircon_editor/57/2026-09-27-viewport-preview-demand.md
 tests:
-  - zircon_editor/src/ui/retained_host/app/assets/refresh/snapshots/preview_demand_tests.rs
 doc_type: milestone-detail
 status: implemented_pending_validation
 ---

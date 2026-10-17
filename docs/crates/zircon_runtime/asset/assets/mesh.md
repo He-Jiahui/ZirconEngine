@@ -16,15 +16,9 @@ related_code:
   - zircon_runtime/src/asset/assets/mesh/zmesh_document.rs
   - zircon_runtime/src/asset/assets/imported.rs
   - zircon_runtime/src/asset/facade/impls.rs
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_accessors.rs
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_mesh.rs
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_model.rs
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_scene_resources.rs
   - zircon_runtime/src/graphics/scene/resources/prepared/prepared_mesh.rs
-  - zircon_runtime/src/graphics/scene/resources/gpu_mesh/gpu_mesh_resource_from_asset.rs
-  - zircon_runtime/src/graphics/scene/resources/gpu_model/gpu_model_resource_from_asset.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/extend_pending_draws_for_mesh_instance.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/skinning.rs
+  - zircon_runtime/src/graphics/mesh/build/extend_pending_draws_for_mesh_instance.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/build/skinning.rs
   - zircon_runtime/src/scene/components/scene/mesh_renderer.rs
   - zircon_runtime/src/scene/world/property_access/entries.rs
   - zircon_runtime/src/scene/world/property_access/write.rs
@@ -41,10 +35,8 @@ related_code:
   - zircon_plugins/gltf_importer/runtime/Cargo.toml
   - zircon_plugins/gltf_importer/runtime/src/lib.rs
   - zircon_plugins/gltf_importer/runtime/src/subassets.rs
-  - zircon_plugins/gltf_importer/runtime/src/tests.rs
   - zircon_plugins/asset_importers/model/runtime/src/lib.rs
   - zircon_runtime/src/graphics/shader/wgsl/zr_geometry_virtual_geometry.wgsl
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/virtual_geometry_meshlet_vertex_ordinal.rs
 implementation_files:
   - zircon_runtime_interface/src/resource/marker.rs
   - zircon_runtime_interface/src/resource/mod.rs
@@ -62,15 +54,9 @@ implementation_files:
   - zircon_runtime/src/asset/assets/mesh/zmesh_document.rs
   - zircon_runtime/src/asset/assets/mod.rs
   - zircon_runtime/src/asset/mod.rs
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_accessors.rs
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_mesh.rs
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_model.rs
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_scene_resources.rs
   - zircon_runtime/src/graphics/scene/resources/prepared/prepared_mesh.rs
-  - zircon_runtime/src/graphics/scene/resources/gpu_mesh/gpu_mesh_resource_from_asset.rs
-  - zircon_runtime/src/graphics/scene/resources/gpu_model/gpu_model_resource_from_asset.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/extend_pending_draws_for_mesh_instance.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/skinning.rs
+  - zircon_runtime/src/graphics/mesh/build/extend_pending_draws_for_mesh_instance.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/build/skinning.rs
   - zircon_runtime/src/scene/components/scene/mesh_renderer.rs
   - zircon_runtime/src/scene/world/property_access/entries.rs
   - zircon_runtime/src/scene/world/property_access/write.rs
@@ -84,7 +70,6 @@ implementation_files:
   - zircon_plugins/gltf_importer/runtime/Cargo.toml
   - zircon_plugins/gltf_importer/runtime/src/lib.rs
   - zircon_plugins/gltf_importer/runtime/src/subassets.rs
-  - zircon_plugins/gltf_importer/runtime/src/tests.rs
   - zircon_plugins/asset_importers/model/runtime/src/lib.rs
 plan_sources:
   - user: 2026-05-20 implement ZirconEngine 资产、Texture、模型、ZShader/ZMaterial/ZMesh 缺口补齐计划

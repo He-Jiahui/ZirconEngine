@@ -5,29 +5,28 @@ related_code:
   - zircon_editor/src/core/plugin/manager/project_selection.rs
   - zircon_editor/src/core/plugin/catalog_snapshot.rs
   - zircon_editor/src/core/plugin/catalog_store.rs
-  - zircon_editor/src/ui/retained_host/app/module_plugin_actions/live_host/development_watch.rs
-  - zircon_editor/src/ui/retained_host/app/module_plugin_actions/live_host/native_backend.rs
+  - zircon_editor/src/ui/retained/app/plugins/live_host/development_watch.rs
+  - zircon_editor/src/ui/retained/app/plugins/live_host/native_backend.rs
   - zircon_editor/src/core/plugin/phases.rs
   - zircon_editor/src/core/plugin/sdk/lifecycle.rs
 implementation_files:
   - zircon_editor/src/core/plugin/manager.rs
   - zircon_editor/src/core/plugin/manager/project_registration.rs
   - zircon_editor/src/ui/host/editor_manager_project.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/status/native.rs
+  - zircon_editor/src/ui/host/exports/status/native.rs
   - zircon_editor/src/core/plugin/manager/project_selection.rs
   - zircon_editor/src/core/plugin/manager/state.rs
   - zircon_editor/src/core/plugin/manager/lifecycle_replacement.rs
   - zircon_editor/src/core/plugin/catalog_snapshot.rs
   - zircon_editor/src/core/plugin/catalog_store.rs
-  - zircon_editor/src/ui/retained_host/app/module_plugin_actions/live_host/development_watch.rs
-  - zircon_editor/src/ui/retained_host/app/module_plugin_actions/live_host/native_backend.rs
+  - zircon_editor/src/ui/retained/app/plugins/live_host/development_watch.rs
+  - zircon_editor/src/ui/retained/app/plugins/live_host/native_backend.rs
 plan_sources:
   - docs/plans/zircon_editor/editor/12-plugin-management.md
   - docs/plans/zircon_editor/editor/12/failure-2026-07-17-editor-plugin-catalog-rebuild-and-deep-copy.md
 tests:
   - tools/tests/test_editor12_plugin_manager_contract.py
   - tools/tests/test_editor12_plugin_catalog_store_contract.py
-  - zircon_editor/src/core/plugin/manager/tests.rs
 doc_type: module-detail
 ---
 

@@ -1,14 +1,8 @@
 ---
 related_code:
-  - zircon_runtime/src/core/framework/render/post_process/volume_component.rs
-  - zircon_runtime/src/core/framework/render/post_process/volume_component
-  - zircon_runtime/src/core/framework/render/post_process/volume_evaluator.rs
-  - zircon_runtime/src/core/framework/render/post_process/volume_extract.rs
-  - zircon_runtime/src/core/framework/render/post_process/volume_profile.rs
-  - zircon_runtime/src/core/framework/render/post_process/volume_registry.rs
   - zircon_runtime/src/core/framework/render/frame_extract.rs
   - zircon_runtime/src/scene/world/render_post_process.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/camera_loop.rs
+  - zircon_runtime/src/graphics/runtime/framework/extract/submit/camera_loop.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_runtime/render/07-postprocess-color-pipeline.md

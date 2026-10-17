@@ -1,9 +1,9 @@
 ---
 related_code:
   - zircon_editor/src/ui/workbench/startup
-  - zircon_editor/src/ui/retained_host/app/startup.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/startup
-  - zircon_editor/src/ui/retained_host/app/welcome_session
+  - zircon_editor/src/ui/retained/app/startup.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle/startup
+  - zircon_editor/src/ui/retained/app/welcome_session
   - zircon_editor/src/ui/host/startup
   - zircon_editor/src/ui/host/editor_host_startup.rs
   - zircon_editor/src/ui/host/editor_manager_project_session.rs
@@ -12,7 +12,7 @@ related_code:
 tests:
   - zircon_editor/src/tests/host/manager/bootstrap_and_startup/session_startup.rs
   - zircon_editor/src/tests/host/manager/project_generation_projection.rs
-  - zircon_editor/src/ui/retained_host/app/welcome_session/project_probe.rs
+  - zircon_editor/src/ui/retained/app/welcome_session/project_probe.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/performance/02-unreal-aligned-engine-system-hard-cutover.md

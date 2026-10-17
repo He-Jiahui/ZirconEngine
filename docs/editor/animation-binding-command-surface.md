@@ -25,15 +25,9 @@ related_code:
   - zircon_editor/src/ui/host/animation_editor_sessions/lifecycle.rs
   - zircon_editor/src/ui/host/animation_editor_sessions/sync.rs
   - zircon_editor/src/ui/host/animation_editor_sessions/editing.rs
-  - zircon_editor/src/ui/host/builtin_views/activity_windows/animation_sequence_view_descriptor.rs
-  - zircon_editor/src/ui/host/builtin_views/activity_windows/animation_graph_view_descriptor.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle.rs
-  - zircon_editor/src/ui/retained_host/ui/apply_presentation.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_projection.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/shell_presentation.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/floating_windows.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/panes.rs
-  - zircon_editor/src/ui/retained_host/host_contract/window.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle.rs
+  - zircon_editor/src/ui/retained/ui/apply_presentation.rs
+  - zircon_editor/src/ui/retained/contract/data/panes.rs
   - zircon_editor/src/tests/ui/binding/mod.rs
   - zircon_editor/src/tests/ui/binding/animation.rs
   - zircon_editor/src/tests/editor_event/runtime/mod.rs
@@ -67,15 +61,9 @@ implementation_files:
   - zircon_editor/src/ui/host/animation_editor_sessions/lifecycle.rs
   - zircon_editor/src/ui/host/animation_editor_sessions/sync.rs
   - zircon_editor/src/ui/host/animation_editor_sessions/editing.rs
-  - zircon_editor/src/ui/host/builtin_views/activity_windows/animation_sequence_view_descriptor.rs
-  - zircon_editor/src/ui/host/builtin_views/activity_windows/animation_graph_view_descriptor.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle.rs
-  - zircon_editor/src/ui/retained_host/ui/apply_presentation.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_projection.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/shell_presentation.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/floating_windows.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/panes.rs
-  - zircon_editor/src/ui/retained_host/host_contract/window.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle.rs
+  - zircon_editor/src/ui/retained/ui/apply_presentation.rs
+  - zircon_editor/src/ui/retained/contract/data/panes.rs
 plan_sources:
   - user: 2026-04-20 继续正在runtime/editor/framework实现完整的物理和动画系统
   - user: 2026-04-20 PLEASE IMPLEMENT THIS PLAN
@@ -83,10 +71,9 @@ plan_sources:
   - .codex/plans/Physics + Full Animation Support 新计划.md
 tests:
   - zircon_editor/src/tests/ui/binding/animation.rs
-  - zircon_editor/src/tests/host/binding_dispatch.rs
+  - zircon_editor/src/tests/host/binding_dispatch/mod.rs
   - zircon_editor/src/tests/editor_event/runtime/mod.rs
   - zircon_editor/src/tests/editor_event/animation_runtime/mod.rs
-  - zircon_editor/src/ui/animation_editor/session/tests.rs
   - zircon_editor/src/tests/host/animation_editor.rs
   - zircon_editor/src/tests/host/manager/mod.rs
   - zircon_editor/tests/integration_contracts/workbench_animation_editor_shell.rs

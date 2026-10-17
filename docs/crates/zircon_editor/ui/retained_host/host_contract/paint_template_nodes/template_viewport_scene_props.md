@@ -1,11 +1,5 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_viewport_scene_props.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_viewport_scene_props/cargo.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_viewport_scene_props/primitives.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_viewport_scene_props/property.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_viewport_scene_props/rails.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_viewport_scene.rs
 source_plan:
   - docs/plans/zircon_editor/editor_ui/08-workbench-shell-on-runtime-ui.md
 validation:

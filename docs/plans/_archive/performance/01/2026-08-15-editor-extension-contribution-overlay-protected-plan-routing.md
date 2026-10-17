@@ -3,8 +3,7 @@ related_code:
   - zircon_editor/src/core/editor_extension.rs
   - zircon_editor/src/core/editor_extension
   - zircon_editor/src/ui/host/editor_extension_registration.rs
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_overlay_providers.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/pane_payloads.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle/pane_payloads.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/performance/review.md

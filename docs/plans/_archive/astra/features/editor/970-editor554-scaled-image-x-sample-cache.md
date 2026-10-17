@@ -4,9 +4,9 @@ status: implemented_pending_validation
 plan_sources:
   - docs/plans/optimize/zircon_runtime/02/2026-08-30-editor554-scaled-image-x-sample-cache.md
 implementation_files:
-  - zircon_editor/src/ui/retained_host/host_contract/paint_primitives/image/raster/scaled.rs
+  - zircon_editor/src/ui/retained/contract/paint_primitives/image/raster/scaled.rs
 tests:
-  - zircon_editor/src/ui/retained_host/host_contract/paint_primitives/image/raster/scaled.rs
+  - zircon_editor/src/ui/retained/contract/paint_primitives/image/raster/scaled.rs
 ---
 
 # Editor970 Editor554 scaled-image X sample cache

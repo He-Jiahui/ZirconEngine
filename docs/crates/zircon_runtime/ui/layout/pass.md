@@ -78,26 +78,19 @@ related_code:
 
   - zircon_runtime_interface/src/ui/surface/mod.rs
 
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload.rs
 
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload_builders/runtime_diagnostics.rs
 
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/runtime_diagnostics.rs
 
-  - zircon_editor/src/ui/template_runtime/runtime/pane_payload_projection.rs
 
   - zircon_editor/src/ui/workbench/debug_reflector/mod.rs
 
   - zircon_editor/src/ui/workbench/debug_reflector/model.rs
 
-  - zircon_editor/src/ui/workbench/debug_reflector/tests.rs
 
 
   - zircon_editor/src/tests/host/retained_window/ui_debug_reflector.rs
 
-  - zircon_editor/src/tests/host/template_runtime/pane_payload_projection.rs
 
-  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/layout_routes.rs
 
   - zircon_runtime/src/ui/tests/layout_slots.rs
 
@@ -199,26 +192,19 @@ implementation_files:
 
   - zircon_runtime_interface/src/ui/surface/mod.rs
 
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload.rs
 
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload_builders/runtime_diagnostics.rs
 
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/runtime_diagnostics.rs
 
-  - zircon_editor/src/ui/template_runtime/runtime/pane_payload_projection.rs
 
   - zircon_editor/src/ui/workbench/debug_reflector/mod.rs
 
   - zircon_editor/src/ui/workbench/debug_reflector/model.rs
 
-  - zircon_editor/src/ui/workbench/debug_reflector/tests.rs
 
 
   - zircon_editor/src/tests/host/retained_window/ui_debug_reflector.rs
 
-  - zircon_editor/src/tests/host/template_runtime/pane_payload_projection.rs
 
-  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/layout_routes.rs
 
   - zircon_runtime/src/ui/tests/layout_slots.rs
 

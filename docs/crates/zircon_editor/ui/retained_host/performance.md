@@ -2,163 +2,83 @@
 related_code:
   - zircon_editor/Cargo.toml
   - zircon_editor/src/ui/retained/app
-  - zircon_editor/src/ui/retained_host/scroll_surface_host.rs
   - zircon_editor/src/tests/host/render_framework_boundary/mod.rs
   - zircon_editor/src/tests/ui/boundary/template_assets/invalidation.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/recompute/presentation.rs
-  - zircon_editor/src/ui/retained_host/app/assets.rs
-  - zircon_editor/src/ui/retained_host/app/asset_content_pointer.rs
-  - zircon_editor/src/ui/retained_host/app/asset_reference_pointer.rs
-  - zircon_editor/src/ui/retained_host/app/asset_tree_pointer.rs
-  - zircon_editor/src/ui/retained_host/app/component_showcase_runtime.rs
-  - zircon_editor/src/ui/retained_host/app/pane_payload_visibility.rs
-  - zircon_editor/src/ui/retained_host/app/welcome_recent_pointer.rs
-  - zircon_editor/src/ui/retained_host/app/pointer_layout.rs
-  - zircon_editor/src/ui/retained_host/app/detail_scroll_pointer.rs
-  - zircon_editor/src/ui/retained_host/app/helpers.rs
-  - zircon_editor/src/ui/retained_host/app/workspace_docking.rs
-  - zircon_editor/src/ui/retained_host/welcome_recent_pointer/welcome_recent_pointer_bridge_sync.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle/recompute/presentation.rs
+  - zircon_editor/src/ui/retained/app/assets.rs
+  - zircon_editor/src/ui/retained/app/asset_content_pointer.rs
+  - zircon_editor/src/ui/retained/app/asset_reference_pointer.rs
+  - zircon_editor/src/ui/retained/app/asset_tree_pointer.rs
+  - zircon_editor/src/ui/retained/app/component_showcase_runtime.rs
+  - zircon_editor/src/ui/retained/app/pane_payload_visibility.rs
+  - zircon_editor/src/ui/retained/app/welcome_recent_pointer.rs
+  - zircon_editor/src/ui/retained/app/pointer_layout.rs
+  - zircon_editor/src/ui/retained/app/detail_scroll_pointer.rs
+  - zircon_editor/src/ui/retained/app/helpers.rs
+  - zircon_editor/src/ui/retained/app/workspace_docking.rs
   - zircon_editor/src/ui/host/startup/resolve_session.rs
-  - zircon_editor/src/ui/retained_host/host_contract/presenter/mod.rs
-  - zircon_editor/src/ui/retained_host/host_contract/presenter/backend.rs
-  - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/mod.rs
-  - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/tests.rs
-  - zircon_editor/src/ui/retained_host/host_contract/presenter/error.rs
-  - zircon_editor/src/ui/retained_host/host_contract/presenter/factory.rs
-  - zircon_editor/src/ui/retained_host/host_contract/presenter/gpu.rs
-  - zircon_editor/src/ui/retained_host/host_contract/presenter/host_chrome_presenter.rs
-  - zircon_editor/src/ui/retained_host/host_contract/presenter/softbuffer.rs
-  - zircon_editor/src/ui/retained_host/host_contract/presenter/softbuffer/diagnostics.rs
-  - zircon_editor/src/ui/retained_host/host_contract/presenter/softbuffer/surface_io.rs
-  - zircon_editor/src/ui/retained_host/host_contract/profiling_artifacts.rs
-  - zircon_editor/src/ui/retained_host/host_contract/profiling_artifacts/geometry.rs
-  - zircon_editor/src/ui/retained_host/host_contract/profiling_artifacts/tests.rs
-  - zircon_editor/src/ui/retained_host/host_contract/profiling_hit_routes.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/asset_surface/bridge.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/mod.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/welcome_surface/bridge.rs
-  - zircon_editor/src/ui/retained_host/ui/apply_presentation.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/mod.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/host_interaction.rs
-  - zircon_editor/src/ui/retained_host/host_contract/window.rs
-  - zircon_editor/src/ui/retained_host/host_contract/window/event_loop.rs
-  - zircon_editor/src/ui/retained_host/host_contract/window/tests/
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/close_prompt_damage.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/chrome_damage.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/drag_resize.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/menu_geometry.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/pane_button_damage.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/redraw_result.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/resize_damage.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/routing.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/tab_drag_damage.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/template_hover_damage.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/viewport_toolbar_damage.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/viewport_image.rs
-  - zircon_editor/src/ui/retained_host/host_contract/redraw.rs
-  - zircon_editor/src/ui/retained_host/host_contract/mod.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_frame.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_primitives.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/sprite_atlas.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_nodes.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/visual_assets.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/skeleton.rs
+  - zircon_editor/src/ui/retained/contract/presenter/mod.rs
+  - zircon_editor/src/ui/retained/contract/presenter/backend.rs
+  - zircon_editor/src/ui/retained/contract/chrome_command_stream/mod.rs
+  - zircon_editor/src/ui/retained/contract/presenter/error.rs
+  - zircon_editor/src/ui/retained/contract/presenter/factory.rs
+  - zircon_editor/src/ui/retained/contract/presenter/gpu.rs
+  - zircon_editor/src/ui/retained/contract/presenter/host_chrome_presenter.rs
+  - zircon_editor/src/ui/retained/contract/presenter/softbuffer.rs
+  - zircon_editor/src/ui/retained/contract/presenter/softbuffer/diagnostics.rs
+  - zircon_editor/src/ui/retained/contract/presenter/softbuffer/surface_io.rs
+  - zircon_editor/src/ui/retained/contract/profiling_artifacts/geometry.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/asset_surface/bridge.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/welcome_surface/bridge.rs
+  - zircon_editor/src/ui/retained/ui/apply_presentation.rs
+  - zircon_editor/src/ui/retained/contract/data/host_interaction.rs
+  - zircon_editor/src/ui/retained/contract/window/event_loop.rs
+  - zircon_editor/src/ui/retained/contract/data/viewport_image.rs
   - zircon_runtime/src/core/runtime/diagnostics/profiling/ui_hotspot.rs
   - zircon_runtime/src/core/runtime/diagnostics/profiling/export.rs
   - zircon_runtime_interface/src/profiling.rs
-  - zircon_editor/src/ui/retained_host/ui_perf.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/scene_projection.rs
-  - zircon_editor/src/ui/template_runtime/host_nodes.rs
-  - zircon_editor/src/ui/template_runtime/runtime/projection.rs
-  - zircon_editor/src/ui/template_runtime/retained_adapter.rs
-  - zircon_editor/assets/ui/editor/components/workbench/shell/workbench_viewport_panel.zui
-  - zircon_editor/assets/ui/editor/components/workbench/shell/workbench_component_drawer.zui
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_tab_strip.zui
+  - zircon_editor/src/ui/runtime/runtime/projection.rs
   - zircon_editor/assets/icons/editor_pages
   - docs/crates/zircon_editor/assets/editor-page-function-icon-template-map.md
-  - tools/profiling/ui/ui-profile-capture.ps1
+  - tools/analysis/profiling/ui/ui-profile-capture.ps1
 implementation_files:
   - zircon_editor/src/ui/retained/app
-  - zircon_editor/src/ui/retained_host/scroll_surface_host.rs
   - zircon_editor/src/tests/ui/boundary/template_assets/invalidation.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/recompute/presentation.rs
-  - zircon_editor/src/ui/retained_host/app/assets.rs
-  - zircon_editor/src/ui/retained_host/app/asset_content_pointer.rs
-  - zircon_editor/src/ui/retained_host/app/asset_reference_pointer.rs
-  - zircon_editor/src/ui/retained_host/app/asset_tree_pointer.rs
-  - zircon_editor/src/ui/retained_host/app/component_showcase_runtime.rs
-  - zircon_editor/src/ui/retained_host/app/pane_payload_visibility.rs
-  - zircon_editor/src/ui/retained_host/app/welcome_recent_pointer.rs
-  - zircon_editor/src/ui/retained_host/app/pointer_layout.rs
-  - zircon_editor/src/ui/retained_host/app/detail_scroll_pointer.rs
-  - zircon_editor/src/ui/retained_host/app/helpers.rs
-  - zircon_editor/src/ui/retained_host/app/workspace_docking.rs
-  - zircon_editor/src/ui/retained_host/welcome_recent_pointer/welcome_recent_pointer_bridge_sync.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle/recompute/presentation.rs
+  - zircon_editor/src/ui/retained/app/assets.rs
+  - zircon_editor/src/ui/retained/app/asset_content_pointer.rs
+  - zircon_editor/src/ui/retained/app/asset_reference_pointer.rs
+  - zircon_editor/src/ui/retained/app/asset_tree_pointer.rs
+  - zircon_editor/src/ui/retained/app/component_showcase_runtime.rs
+  - zircon_editor/src/ui/retained/app/pane_payload_visibility.rs
+  - zircon_editor/src/ui/retained/app/welcome_recent_pointer.rs
+  - zircon_editor/src/ui/retained/app/pointer_layout.rs
+  - zircon_editor/src/ui/retained/app/detail_scroll_pointer.rs
+  - zircon_editor/src/ui/retained/app/helpers.rs
+  - zircon_editor/src/ui/retained/app/workspace_docking.rs
   - zircon_editor/src/ui/host/startup/resolve_session.rs
-  - zircon_editor/src/ui/retained_host/host_contract/presenter/mod.rs
-  - zircon_editor/src/ui/retained_host/host_contract/presenter/backend.rs
-  - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/mod.rs
-  - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/tests.rs
-  - zircon_editor/src/ui/retained_host/host_contract/presenter/error.rs
-  - zircon_editor/src/ui/retained_host/host_contract/presenter/factory.rs
-  - zircon_editor/src/ui/retained_host/host_contract/presenter/gpu.rs
-  - zircon_editor/src/ui/retained_host/host_contract/presenter/host_chrome_presenter.rs
-  - zircon_editor/src/ui/retained_host/host_contract/presenter/softbuffer.rs
-  - zircon_editor/src/ui/retained_host/host_contract/presenter/softbuffer/diagnostics.rs
-  - zircon_editor/src/ui/retained_host/host_contract/presenter/softbuffer/surface_io.rs
-  - zircon_editor/src/ui/retained_host/host_contract/profiling_artifacts.rs
-  - zircon_editor/src/ui/retained_host/host_contract/profiling_artifacts/geometry.rs
-  - zircon_editor/src/ui/retained_host/host_contract/profiling_artifacts/tests.rs
-  - zircon_editor/src/ui/retained_host/host_contract/profiling_hit_routes.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/asset_surface/bridge.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/mod.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/welcome_surface/bridge.rs
-  - zircon_editor/src/ui/retained_host/ui/apply_presentation.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/mod.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/host_interaction.rs
-  - zircon_editor/src/ui/retained_host/host_contract/window.rs
-  - zircon_editor/src/ui/retained_host/host_contract/window/event_loop.rs
-  - zircon_editor/src/ui/retained_host/host_contract/window/tests/
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/close_prompt_damage.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/chrome_damage.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/drag_resize.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/menu_geometry.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/pane_button_damage.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/redraw_result.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/resize_damage.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/routing.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/tab_drag_damage.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/template_hover_damage.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/viewport_toolbar_damage.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/viewport_image.rs
-  - zircon_editor/src/ui/retained_host/host_contract/redraw.rs
-  - zircon_editor/src/ui/retained_host/host_contract/mod.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_frame.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_primitives.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/sprite_atlas.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_nodes.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/visual_assets.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/skeleton.rs
+  - zircon_editor/src/ui/retained/contract/presenter/mod.rs
+  - zircon_editor/src/ui/retained/contract/presenter/backend.rs
+  - zircon_editor/src/ui/retained/contract/chrome_command_stream/mod.rs
+  - zircon_editor/src/ui/retained/contract/presenter/error.rs
+  - zircon_editor/src/ui/retained/contract/presenter/factory.rs
+  - zircon_editor/src/ui/retained/contract/presenter/gpu.rs
+  - zircon_editor/src/ui/retained/contract/presenter/host_chrome_presenter.rs
+  - zircon_editor/src/ui/retained/contract/presenter/softbuffer.rs
+  - zircon_editor/src/ui/retained/contract/presenter/softbuffer/diagnostics.rs
+  - zircon_editor/src/ui/retained/contract/presenter/softbuffer/surface_io.rs
+  - zircon_editor/src/ui/retained/contract/profiling_artifacts/geometry.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/asset_surface/bridge.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/welcome_surface/bridge.rs
+  - zircon_editor/src/ui/retained/ui/apply_presentation.rs
+  - zircon_editor/src/ui/retained/contract/data/host_interaction.rs
+  - zircon_editor/src/ui/retained/contract/window/event_loop.rs
+  - zircon_editor/src/ui/retained/contract/data/viewport_image.rs
   - zircon_runtime/src/core/runtime/diagnostics/profiling/ui_hotspot.rs
   - zircon_runtime/src/core/runtime/diagnostics/profiling/export.rs
   - zircon_runtime_interface/src/profiling.rs
-  - zircon_editor/src/ui/retained_host/ui_perf.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/scene_projection.rs
-  - zircon_editor/src/ui/template_runtime/host_nodes.rs
-  - zircon_editor/src/ui/template_runtime/runtime/projection.rs
-  - zircon_editor/src/ui/template_runtime/retained_adapter.rs
-  - zircon_editor/assets/ui/editor/components/workbench/shell/workbench_viewport_panel.zui
-  - zircon_editor/assets/ui/editor/components/workbench/shell/workbench_component_drawer.zui
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_tab_strip.zui
-  - tools/profiling/ui/ui-profile-capture.ps1
+  - zircon_editor/src/ui/runtime/runtime/projection.rs
+  - tools/analysis/profiling/ui/ui-profile-capture.ps1
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/performance/01/2026-07-17-editor-retained-host-app-static-review.md
@@ -178,33 +98,20 @@ tests:
   - zircon_editor retained-host performance_tests (2026-07-17 current-source Windows coordinator run pending)
   - zircon_editor/src/core/jobs/progress.rs::tests::primary_snapshot_clones_only_the_smallest_visible_job
   - zircon_editor/src/tests/host/render_framework_boundary/mod.rs
-  - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/mod.rs
-  - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/atlas_tests.rs
-  - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/tests.rs
-  - zircon_editor/src/ui/retained_host/host_contract/presenter/gpu.rs
-  - zircon_runtime/src/rhi/ui_surface.rs
-  - zircon_runtime/src/rhi_wgpu/ui_surface.rs
-  - zircon_runtime/src/rhi_wgpu/ui_surface/batching.rs
-  - zircon_runtime/src/rhi_wgpu/ui_surface/geometry.rs
-  - zircon_runtime/src/rhi_wgpu/ui_surface/pipeline.rs
-  - zircon_runtime/src/rhi_wgpu/ui_surface/text.rs
+  - zircon_editor/src/ui/retained/contract/chrome_command_stream/mod.rs
+  - zircon_editor/src/ui/retained/contract/presenter/gpu.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/batching.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/geometry.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/pipeline.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/text.rs
   - zircon_runtime/src/core/runtime/diagnostics/profiling/ui_hotspot.rs
   - zircon_runtime/src/core/runtime/diagnostics/profiling/export.rs
   - zircon_runtime_interface/src/profiling.rs
-  - zircon_editor/src/ui/retained_host/ui_perf.rs
-  - zircon_editor/src/ui/retained_host/host_contract/presenter/host_chrome_presenter.rs
-  - zircon_editor/src/ui/retained_host/host_contract/profiling_artifacts.rs
-  - zircon_editor/src/ui/retained_host/host_contract/profiling_artifacts/geometry.rs
-  - zircon_editor/src/ui/retained_host/host_contract/profiling_artifacts/tests.rs
-  - zircon_editor/src/ui/retained_host/host_contract/profiling_hit_routes.rs
+  - zircon_editor/src/ui/retained/contract/presenter/host_chrome_presenter.rs
+  - zircon_editor/src/ui/retained/contract/profiling_artifacts/geometry.rs
   - cargo fmt -p zircon_editor; cargo fmt -p zircon_editor --check; profiling artifact ownership scan; cargo check -p zircon_editor --lib --locked --jobs 1 --message-format short --color never (2026-06-18 after profiling artifact test responsibility split: passed with existing warning noise only; geometry regressions live in `profiling_artifacts/tests.rs`, `profiling_artifacts.rs` is 824 lines, and `profiling_artifacts/tests.rs` is 211 lines)
   - cargo fmt -p zircon_editor; cargo fmt -p zircon_editor --check; profiling artifact geometry ownership scan; cargo check -p zircon_editor --lib --locked --jobs 1 --message-format short --color never (2026-06-18 after profiling artifact geometry responsibility split: passed with existing warning noise only; geometry extraction lives in `profiling_artifacts/geometry.rs`, `profiling_artifacts.rs` is 212 lines, and `profiling_artifacts/geometry.rs` is 651 lines)
-  - zircon_editor/src/ui/retained_host/welcome_recent_pointer/welcome_recent_pointer_bridge_sync.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/viewport_image.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_primitives.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/sprite_atlas.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_nodes.rs
-  - zircon_editor/src/ui/retained_host/host_contract/redraw.rs
+  - zircon_editor/src/ui/retained/contract/data/viewport_image.rs
   - cargo test -p zircon_editor --lib host_chrome_presenter --locked
   - cargo test -p zircon_editor --lib render_framework_boundary --locked
   - cargo test -p zircon_editor --lib sync_pane_size_preserves_recent_project_paths --locked

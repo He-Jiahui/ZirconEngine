@@ -3,16 +3,12 @@ related_code:
   - zircon_runtime_interface/src/ui/design_tokens.rs
   - zircon_editor/src/ui/workbench/menu_bar/mod.rs
   - zircon_editor/src/ui/workbench/menu_bar/metrics.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection/menu_chrome.rs
-  - zircon_editor/src/ui/retained_host/menu_pointer/build_host_menu_pointer_layout.rs
-  - zircon_editor/src/tests/host/retained_menu_pointer/layout.rs
-  - zircon_editor/src/tests/host/retained_menu_pointer/support.rs
+  - zircon_editor/src/ui/retained/menu_pointer/build_host_menu_pointer_layout.rs
 implementation_files:
   - zircon_runtime_interface/src/ui/design_tokens.rs
   - zircon_editor/src/ui/workbench/menu_bar/mod.rs
   - zircon_editor/src/ui/workbench/menu_bar/metrics.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection/menu_chrome.rs
-  - zircon_editor/src/ui/retained_host/menu_pointer/build_host_menu_pointer_layout.rs
+  - zircon_editor/src/ui/retained/menu_pointer/build_host_menu_pointer_layout.rs
 plan_sources:
   - docs/plans/zircon_editor/editor_layout/15-component-standardization-from-primitives.md
   - docs/plans/zircon_editor/editor_layout/17-text-rendering-and-typography.md
@@ -23,8 +19,6 @@ plan_sources:
 tests:
   - rustfmt --edition 2021 --check zircon_editor/src/ui/workbench/menu_bar/mod.rs zircon_editor/src/ui/workbench/menu_bar/metrics.rs zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection/menu_chrome.rs zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection/tests.rs zircon_editor/src/ui/retained_host/menu_pointer/build_host_menu_pointer_layout.rs zircon_editor/src/tests/host/retained_menu_pointer/layout.rs zircon_editor/src/tests/host/retained_menu_pointer/support.rs
   - static scan: menu touched paths contain no `chars().count()`, `TITLE_WIDTH_PER_CHAR`, `WIDTH_PER_CHAR`, or `* 7.0` text-width heuristics
-  - docs/tests/runtime/text/runtime_text_editor_menu_bar_runtime_measure_preview_20260704.png
-  - docs/tests/runtime/text/runtime_text_editor_menu_bar_runtime_measure_validation_20260704.log
   - cargo test -p zircon_editor --lib runtime_font_width --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-text-menu-0704 --message-format short --color never -- --nocapture --test-threads=1 (2026-07-04: timed out after 15m without returned Rust diagnostics; matching validation processes stopped)
 doc_type: module-detail
 status: implemented-focused-and-visual-passed

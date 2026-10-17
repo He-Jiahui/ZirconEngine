@@ -23,14 +23,8 @@ related_code:
   - zircon_runtime/src/dynamic_api/bounded_json.rs
   - zircon_runtime/src/dynamic_api/session/ffi.rs
   - zircon_runtime/src/dynamic_api/session/operation.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/abi_declarations.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/behavior_calls.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/ffi_panic_guard.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/load_discovered.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/loaded_native_plugin.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_abi.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/host_api_adapter/abi_decode/read.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/host_api_adapter/ecs_registration/mod.rs
+  - zircon_runtime/src/plugin/loader/host_api_adapter/abi_decode/read.rs
+  - zircon_runtime/src/plugin/loader/host_api_adapter/ecs_registration/mod.rs
   - zircon_runtime/src/scene/ecs/archetype/table/column.rs
   - zircon_runtime/src/scene/ecs/component/table_column.rs
   - zircon_runtime/src/scene/ecs/commands/inline_command_arena.rs

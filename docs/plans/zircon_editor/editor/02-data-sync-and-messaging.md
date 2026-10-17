@@ -6,7 +6,6 @@ related_code:
   - zircon_runtime/src/scene/inspection/hierarchy.rs
   - zircon_runtime/src/scene/level_system.rs
   - zircon_runtime/src/scene/world/world.rs
-  - zircon_runtime/src/scene/dynamic_scene/scene/mod.rs
   - zircon_runtime/src/dynamic_api/session/events.rs
   - zircon_runtime_interface/src/buffer.rs
 reference_sources:

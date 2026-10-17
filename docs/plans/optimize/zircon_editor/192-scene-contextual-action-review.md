@@ -5,18 +5,9 @@ report_id: Editor192
 review_date: 2026-08-28
 baseline_head: 681588f7a1cbfaae3147e8b93e1be6705d810f21
 related_code:
-  - zircon_editor/src/ui/retained_host/host_contract/data/template_nodes/context_menu.rs
-  - zircon_editor/src/ui/retained_host/host_contract/workbench_context_menu/classifier.rs
-  - zircon_editor/src/ui/retained_host/host_contract/workbench_context_menu/path.rs
-  - zircon_editor/src/ui/retained_host/host_contract/workbench_context_menu/provider.rs
-  - zircon_editor/src/ui/retained_host/host_contract/workbench_context_menu/request.rs
-  - zircon_editor/src/ui/retained_host/app/workbench_context_menu.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/popup_primitives.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/context_menu.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/popup_state.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_menu_projection.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/workbench/secondary.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/scene_hierarchy_projection.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/workbench/context_menu.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/workbench/popup_state.rs
+  - zircon_editor/src/ui/retained/contract/pointer/buttons/workbench/secondary.rs
   - zircon_editor/src/core/commands/defaults.rs
   - zircon_editor/src/core/commands/descriptor.rs
   - zircon_editor/src/core/commands/when.rs
@@ -24,20 +15,16 @@ related_code:
   - zircon_editor/src/core/extension/store/model/snapshot.rs
   - zircon_editor/src/ui/host/command_eval_projection.rs
   - zircon_editor/src/scene/viewport/interaction/viewport_input.rs
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_handle_input.rs
-  - zircon_editor/src/scene/viewport/pointer/precision/renderer_visible_spatial_pick_source.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/viewport/pointer_dispatch.rs
+  - zircon_editor/src/scene/precision/renderer_visible_spatial_pick_source.rs
+  - zircon_editor/src/ui/retained/dispatch/viewport/pointer_dispatch.rs
   - zircon_editor/src/ui/workbench/state/editor_state_keep_play_changes.rs
   - zircon_editor/src/ui/host/editor_event_execution/menu_action.rs
 tests:
-  - zircon_editor/src/ui/retained_host/host_contract/workbench_context_menu_tests.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/context_menu.rs
-  - zircon_editor/src/tests/host/retained_window/native_workbench_reference/dropdown_pointer.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/viewport/pointer_bridge.rs
+  - zircon_editor/src/tests/host/native_workbench_reference/dropdown_pointer.rs
+  - zircon_editor/src/tests/host/callbacks/viewport/pointer_bridge.rs
   - zircon_editor/src/tests/editing/state/viewport.rs
   - zircon_editor/src/tests/commands/descriptor_when.rs
   - zircon_editor/src/tests/commands/when.rs
-  - zircon_editor/src/core/extension/store/tests.rs
   - zircon_editor/src/tests/editing/state/play_mode.rs
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md

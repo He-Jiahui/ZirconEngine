@@ -13,14 +13,10 @@ related_records:
   - docs/plans/astra/features/runtime/680-20260911-runtime-ui-optimization-batch-completion.md
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
-  - zircon_runtime/src/ui/template/asset/component_contract/validation/hash_index_tests.rs
   - zircon_runtime/src/ui/tests/asset_dependency_index.rs
   - zircon_runtime/src/ui/template/asset/hot_reload_plan.rs
-  - zircon_runtime/src/ui/template/asset/prototype_store/hash_index_tests.rs
-  - zircon_runtime/src/ui/v2/cache/hash_lookup_tests.rs
   - zircon_runtime/src/ui/template/asset/watch_invalidation.rs
 tests:
-  - tools/tests/test_runtime74_benchmark_evidence_contract.py
 ---
 
 # Runtime803 · Runtime74 benchmark evidence hardening

@@ -14,9 +14,7 @@ related_records:
 related_code:
   - zircon_runtime/src/asset/registry/asset_registry_index.rs
   - zircon_runtime/src/asset/registry/query.rs
-  - zircon_runtime/src/asset/registry/asset_registry_index/secondary_query_tests.rs
 tests:
-  - tools/tests/test_runtime206_secondary_query_index_performance_contract.py
 ---
 
 # Runtime206 Secondary Query Postings

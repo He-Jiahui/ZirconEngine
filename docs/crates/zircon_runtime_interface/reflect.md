@@ -67,7 +67,6 @@ plan_sources:
 tests:
   - zircon_runtime_interface/src/tests/reflect_contracts.rs
   - zircon_runtime_interface/src/tests/reflect_value_budget_contracts.rs
-  - tests/acceptance/reflection-type-registry.md
   - cargo check -p zircon_runtime_interface --locked --message-format short
   - cargo test -p zircon_runtime_interface reflect_contracts --locked --message-format short
 doc_type: module-detail

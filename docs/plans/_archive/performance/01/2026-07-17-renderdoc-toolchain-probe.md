@@ -1,10 +1,10 @@
 ---
 related_code:
-  - docs/plans/performance/01/renderdoc_capture_audit.py
+  - docs/plans/_archive/performance/01/renderdoc_capture_audit.py
   - zircon_runtime/src/graphics
   - zircon_runtime/src/render_graph
 implementation_files:
-  - docs/plans/performance/01/renderdoc_capture_audit.py
+  - docs/plans/_archive/performance/01/renderdoc_capture_audit.py
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_runtime/render/17-performance-and-profiling.md

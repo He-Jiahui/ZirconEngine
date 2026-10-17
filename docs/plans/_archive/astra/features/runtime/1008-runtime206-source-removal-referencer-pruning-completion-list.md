@@ -6,7 +6,6 @@ plan_sources:
 implementation_files:
   - zircon_runtime/src/asset/registry/asset_registry_index.rs
 tests:
-  - zircon_runtime/src/asset/registry/asset_registry_index/source_removal_pruning_tests.rs
 ---
 
 # Runtime206 source removal referencer pruning completion list

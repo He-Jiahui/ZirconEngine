@@ -4,9 +4,9 @@ status: implemented_pending_validation
 plan_sources:
   - docs/plans/optimize/zircon_runtime/02/2026-08-30-runtime531-hybrid-gi-sideband-binary-lookup.md
 implementation_files:
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/encode_hybrid_gi_probes/encode.rs
+  - zircon_runtime/src/graphics/scene/post/encode_hybrid_gi_probes/encode.rs
 tests:
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/encode_hybrid_gi_probes/encode.rs
+  - zircon_runtime/src/graphics/scene/post/encode_hybrid_gi_probes/encode.rs
 ---
 
 # Runtime923 Runtime531 hybrid-GI sideband lookup

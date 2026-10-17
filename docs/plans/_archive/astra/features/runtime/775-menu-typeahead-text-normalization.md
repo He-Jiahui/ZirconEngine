@@ -10,10 +10,7 @@ related_records:
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
   - zircon_runtime/src/ui/component/state_reducer/keyboard/menu.rs
-  - zircon_runtime/src/ui/component/state_reducer/keyboard/menu/typeahead_text_normalization_tests.rs
 tests:
-  - zircon_runtime/src/ui/component/state_reducer/keyboard/menu/typeahead_text_normalization_tests.rs
-  - tools/tests/test_runtime_menu_typeahead_text_normalization_performance_contract.py
 ---
 
 # Runtime775 · Menu typeahead text normalization

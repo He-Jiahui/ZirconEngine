@@ -16,21 +16,10 @@ supersedes_currentness_of:
   - docs/plans/optimize/zircon_editor/102-editor-spawn-rules-encounter-population-world-state-scenario-quest-authority-current-source-review.md
   - docs/plans/optimize/zircon_editor/149-editor-spawn-rules-encounter-population-world-state-scenario-quest-authority-current-source-review.md
 related_code:
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/gameplay/workbench_extension_spawn_rules_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/gameplay/workbench_extension_world_state_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/index/workbench_extension_module_workspaces.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/core/assets/workbench_assets_workspace.zui
-  - zircon_editor/src/ui/template_runtime/builtin/workbench_extension_module_template_bindings/gameplay_state.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation/specs/gameplay_state.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback/gameplay_state.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/module_field_edit.rs
-  - zircon_editor/src/ui/retained_host/workbench_preview_actions/extensions.rs
-  - zircon_runtime/src/scene/dynamic_scene/remap.rs
-  - zircon_runtime/src/scene/dynamic_scene/scene/spawn
-  - zircon_runtime/src/scene/dynamic_scene/spawn_task
-  - zircon_runtime/src/scene/dynamic_scene/asset_reload
-  - zircon_runtime/src/scene/dynamic_scene/scene_asset/prepared_spawn.rs
-  - zircon_runtime/src/scene/dynamic_scene/scene_asset/dynamic_scene.rs
+  - zircon_editor/src/ui/retained/dispatch/workbench/specs/gameplay_state.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/workbench/module_field_edit.rs
+  - zircon_runtime/src/scene/dynamic/scene/spawn
+  - zircon_runtime/src/scene/dynamic/scene_asset/prepared_spawn.rs
   - zircon_runtime/src/script/vm/gameplay_host.rs
   - zircon_runtime/src/script/vm/gameplay_host
   - zircon_runtime/src/core/runtime/state_machine

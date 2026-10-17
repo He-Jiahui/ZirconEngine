@@ -4,7 +4,6 @@ import argparse
 from collections import Counter
 import json
 import os
-import posixpath
 import re
 import stat
 import subprocess
@@ -12,11 +11,6 @@ import sys
 from dataclasses import asdict, dataclass
 from pathlib import Path, PurePosixPath, PureWindowsPath
 from typing import Iterable
-
-if __package__:
-    from .review_debt import baseline_sources
-else:
-    from review_debt import baseline_sources
 
 if __package__:
     from .convention_exemptions import (
@@ -605,35 +599,6 @@ def run_conventions(
     }
     if "docs" in selected_set:
         docs_report = audit_document_paths(repo_root)
-        if repo_root.resolve() == Path(__file__).resolve().parents[2]:
-            violations = docs_report["violations"]
-            files, sources = baseline_sources(repo_root, [v["document"] for v in violations])
-            debt = Counter()
-            for document, source in sources.items():
-                fields = _parse_front_matter(source.splitlines()) or {}
-                for field, entries in fields.items():
-                    paths = [p for entry in entries for p in _test_reference_paths(entry)] if field == "tests" else entries
-                    for path in paths:
-                        normalized = path.replace("\\", "/")
-                        if PureWindowsPath(path).drive or normalized.startswith("/"):
-                            reason = "absolute path"
-                        elif posixpath.normpath(normalized).startswith("../"):
-                            reason = "repository escape"
-                        elif posixpath.normpath(normalized) not in files:
-                            reason = "missing path"
-                        else:
-                            continue
-                        debt[(document, field, path, reason)] += 1
-            new = []
-            for violation in violations:
-                key = tuple(violation[k] for k in ("document", "field", "path", "reason"))
-                if debt[key]:
-                    debt[key] -= 1
-                else:
-                    new.append(violation)
-            docs_report["baseline_violation_count"] = len(violations) - len(new)
-            docs_report["violations"] = new
-            docs_report["violation_count"] = len(new)
         report["docs"] = docs_report
         if docs_report["violation_count"]:
             report["passed"] = False

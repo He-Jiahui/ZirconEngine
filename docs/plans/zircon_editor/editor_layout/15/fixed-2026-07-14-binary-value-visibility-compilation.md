@@ -12,7 +12,7 @@ related_code:
   - zircon_runtime_interface/src/serialization/binary/value/mod.rs
   - zircon_runtime_interface/src/serialization/binary/value/binary_value.rs
   - zircon_runtime_interface/src/serialization/binary/value/error.rs
-  - zircon_editor/src/tests/host/retained_menu_pointer/visual_screenshot/blend_space_workspace/preview_viewport.rs
+  - zircon_editor/src/tests/host/menus/blend_space_workspace/preview_viewport.rs
 tests:
   - .\\.codex\\skills\\zircon-dev\\scripts\\validate-matrix.ps1 -Package zircon_editor -SkipBuild -VerboseOutput
   - focused Blend Space Preview contract and ignored screenshot capture after Editor11 repair

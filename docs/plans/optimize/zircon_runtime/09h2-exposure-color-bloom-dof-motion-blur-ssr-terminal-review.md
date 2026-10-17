@@ -1,6 +1,5 @@
 ---
 related_code:
-  - zircon_runtime/src/core/framework/render/post_process
   - zircon_runtime/src/core/framework/render/camera_stack.rs
   - zircon_runtime/src/core/framework/render/frame_extract.rs
   - zircon_runtime/src/asset/assets/scene/post_process.rs
@@ -8,17 +7,10 @@ related_code:
   - zircon_runtime/src/scene/world/project_io/post_process.rs
   - zircon_runtime/src/scene/world/render_post_process.rs
   - zircon_runtime/src/scene/world/render.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/descriptor_filtering.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/resource_descriptors.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/camera_loop.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/constants.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_scene/render_scene.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/builtin_postprocess_executors.rs
+  - zircon_runtime/src/graphics/runtime/framework/extract/submit/camera_loop.rs
+  - zircon_runtime/src/graphics/scene/renderer/core/constants.rs
   - zircon_runtime/src/graphics/tests/render_product_post_process.rs
   - zircon_runtime/src/graphics/tests/render_product_post_process_full_chain.rs
-  - zircon_runtime/src/graphics/tests/render_product_post_process_full_chain/visual_export.rs
   - zircon_runtime/src/graphics/tests/render_product_post_process_volume.rs
   - zircon_runtime/src/scene/tests/render_post_process_extract.rs
 plan_sources:

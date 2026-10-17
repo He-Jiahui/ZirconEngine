@@ -6,7 +6,6 @@ plan_sources:
 implementation_files:
   - zircon_runtime/src/asset/pack/writer.rs
 tests:
-  - zircon_runtime/src/asset/pack/writer/optimization_tests.rs
   - zircon_runtime/src/asset/tests/pack/basic.rs
 ---
 

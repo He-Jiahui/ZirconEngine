@@ -1,32 +1,22 @@
 ---
 related_code:
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_wgpu_command_plan.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_wgpu_command_plan/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_wgpu_binding.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_wgpu_dispatch.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_wgpu_pipeline_cache.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_shader_plan.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_graph_plan.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_compute_executor.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/materialization.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/materialization/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/shaders/ibl_prefilter.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/shaders/ibl_irradiance_sh.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/shaders/ibl_irradiance_cube.wgsl
+  - zircon_runtime/src/graphics/scene/environment/ibl_bake_wgpu_command_plan.rs
+  - zircon_runtime/src/graphics/scene/renderer/environment/ibl_bake_wgpu_binding.rs
+  - zircon_runtime/src/graphics/scene/renderer/environment/ibl_bake_wgpu_dispatch.rs
+  - zircon_runtime/src/graphics/scene/environment/ibl_bake_wgpu_pipeline_cache.rs
+  - zircon_runtime/src/graphics/scene/renderer/environment/ibl_bake_shader_plan.rs
+  - zircon_runtime/src/graphics/scene/renderer/environment/ibl_bake_graph_plan.rs
+  - zircon_runtime/src/graphics/scene/environment/ibl_bake_compute_executor.rs
+  - zircon_runtime/src/graphics/scene/renderer/shaders/ibl_prefilter.wgsl
+  - zircon_runtime/src/graphics/scene/renderer/shaders/ibl_irradiance_sh.wgsl
+  - zircon_runtime/src/graphics/scene/renderer/shaders/ibl_irradiance_cube.wgsl
   - zircon_runtime/src/core/framework/render/environment/ibl_bake_artifact.rs
-  - zircon_runtime/src/core/framework/render/environment/ibl_bake_artifact_readback.rs
+  - zircon_runtime/src/core/render/environment/ibl_bake_artifact_readback.rs
 implementation_files:
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_wgpu_command_plan.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_wgpu_command_plan/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_wgpu_binding.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_wgpu_dispatch.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_wgpu_pipeline_cache.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/materialization.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/materialization/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/mod.rs
+  - zircon_runtime/src/graphics/scene/environment/ibl_bake_wgpu_command_plan.rs
+  - zircon_runtime/src/graphics/scene/renderer/environment/ibl_bake_wgpu_binding.rs
+  - zircon_runtime/src/graphics/scene/renderer/environment/ibl_bake_wgpu_dispatch.rs
+  - zircon_runtime/src/graphics/scene/environment/ibl_bake_wgpu_pipeline_cache.rs
 plan_sources:
   - user: 2026-07-06 implement WGPU-to-render-pipeline design from docs/plans/zircon_runtime/render
   - docs/plans/zircon_runtime/render/11-environment-lighting.md

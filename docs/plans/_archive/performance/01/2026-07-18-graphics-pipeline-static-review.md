@@ -1,8 +1,7 @@
 ---
 related_code:
   - zircon_runtime/src/graphics/pipeline
-  - zircon_runtime/src/graphics/runtime/render_framework/reload_pipeline/reload_pipeline.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/resolve_viewport_record_state.rs
+  - zircon_runtime/src/graphics/runtime/framework/reload_pipeline/reload_pipeline.rs
 tests:
   - graphics pipeline current source 46 of 46 Rust files statically reviewed
   - current slice 44 files and 6727 lines; all 41 current slice tests read

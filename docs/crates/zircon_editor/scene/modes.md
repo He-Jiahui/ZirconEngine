@@ -11,8 +11,6 @@ plan_sources:
   - docs/plans/zircon_editor/editor/05/failure-2026-07-12-command-eval-scene-mode-selection-projection.md
   - docs/plans/zircon_editor/editor/07/failure-2026-07-16-viewport-selection-model-consumer-hard-cut.md
 tests:
-  - zircon_editor/src/scene/selection/tests.rs
-  - zircon_editor/src/scene/modes/tests.rs
   - zircon_editor/src/scene/modes/tests/lifecycle.rs
   - zircon_editor/src/tests/editing/interactive_transform.rs
   - zircon_editor/src/tests/editing/state.rs

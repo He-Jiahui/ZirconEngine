@@ -12,8 +12,6 @@ related_records:
 implementation_files:
   - zircon_editor/src/scene/viewport/pointer/runtime_picking_adapter.rs
 tests:
-  - zircon_editor/src/scene/viewport/pointer/runtime_picking_adapter/hit_capacity_tests.rs
-  - tools/tests/test_editor_runtime_picking_hit_capacity_performance_contract.py
 ---
 
 # Editor765 · Runtime pointer hit capacity

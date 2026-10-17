@@ -1,22 +1,19 @@
 ---
 related_code:
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/bind_history_graph_resources.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/history/scene_frame_history_textures/scene_frame_history_textures.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/materialization_validation.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/bind_plugin_graph_resources.rs
+  - zircon_runtime/src/graphics/scene/core/render/bind_history_graph_resources.rs
+  - zircon_runtime/src/graphics/scene/renderer/core/render/render/render.rs
+  - zircon_runtime/src/graphics/scene/core/render/bind_plugin_graph_resources.rs
   - zircon_runtime/src/render_graph/types.rs
 implementation_files:
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/bind_history_graph_resources.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
+  - zircon_runtime/src/graphics/scene/core/render/bind_history_graph_resources.rs
+  - zircon_runtime/src/graphics/scene/renderer/core/render/render/render.rs
 plan_sources:
   - docs/plans/zircon_runtime/render/index.md
   - docs/plans/zircon_runtime/render/01-render-graph-rdg-alignment.md
   - user: 2026-06-17 implement WGPU-to-render pipeline design from docs/plans/zircon_runtime/render, feature-first with tests deferred
 tests:
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/bind_history_graph_resources.rs::tests::history_binder_imports_enabled_live_history_externals
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/bind_history_graph_resources.rs::tests::history_binder_skips_enabled_resources_absent_from_live_graph
+  - zircon_runtime/src/graphics/scene/core/render/bind_history_graph_resources.rs::tests::history_binder_imports_enabled_live_history_externals
+  - zircon_runtime/src/graphics/scene/core/render/bind_history_graph_resources.rs::tests::history_binder_skips_enabled_resources_absent_from_live_graph
 doc_type: module-detail
 ---
 

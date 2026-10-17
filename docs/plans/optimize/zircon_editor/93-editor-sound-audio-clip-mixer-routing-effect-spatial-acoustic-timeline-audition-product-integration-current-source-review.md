@@ -18,8 +18,6 @@ related_editor_owners:
   - docs/plans/optimize/zircon_editor/14-animation-sequence-graph-state-machine-timeline-curve-preview-compiler-authoring-review.md
 related_code:
   - zircon_plugins/sound/editor
-  - zircon_plugins/sound/features/timeline_animation_track/editor
-  - zircon_plugins/sound/features/ray_traced_convolution_reverb/editor
   - zircon_plugins/first_party_editor_catalog
   - zircon_editor/src/core/asset/type_registry
   - zircon_editor/src/core/document

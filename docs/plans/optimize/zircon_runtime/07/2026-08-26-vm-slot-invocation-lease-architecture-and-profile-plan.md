@@ -2,7 +2,6 @@
 related_code:
   - zircon_runtime/src/script/vm/runtime/hot_reload_coordinator.rs
   - zircon_runtime/src/script/vm/runtime/hot_reload_coordinator/gc.rs
-  - zircon_runtime/src/script/vm/runtime/hot_reload_coordinator/tests.rs
   - zircon_runtime/src/script/vm/runtime/hot_reload_coordinator/tests/dispatch.rs
   - tools/tests/test_plugins08_vm_active_interface_snapshot.py
 plan_sources:
@@ -18,7 +17,6 @@ reference_sources:
 tests:
   - zircon_runtime/src/script/vm/runtime/hot_reload_coordinator/tests/dispatch.rs::panicked_export_restores_the_active_instance
   - python -B -m unittest tools.tests.test_plugins08_vm_active_interface_snapshot -v
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/script_vm_tests.rs::runtime_15_script_vm_hot_reload_coordinator_tests_are_folder_backed
   - cargo +1.94.1 test -p zircon_runtime --lib hot_reload_coordinator --locked --jobs 1 -- --nocapture --test-threads=1
 doc_type: implementation-plan
 status: source_implemented_static_passed_managed_validation_pending

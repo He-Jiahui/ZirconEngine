@@ -1,7 +1,6 @@
 ---
 related_code:
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/materialization_validation.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
+  - zircon_runtime/src/graphics/scene/renderer/core/render/render/render.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_runtime/render/01-render-graph-rdg-alignment.md

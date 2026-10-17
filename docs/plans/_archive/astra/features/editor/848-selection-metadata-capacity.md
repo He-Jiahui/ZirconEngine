@@ -9,9 +9,7 @@ related_records:
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
   - zircon_editor/src/ui/layouts/views/asset_browser/selection_text.rs
-  - zircon_editor/src/ui/layouts/views/asset_browser/selection_text/capacity_tests.rs
 tests:
-  - tools/tests/test_editor_selection_metadata_capacity_performance_contract.py
 ---
 
 # Editor848 - asset selection metadata capacity

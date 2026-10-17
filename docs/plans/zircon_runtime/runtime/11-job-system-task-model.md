@@ -21,9 +21,7 @@ related_code:
   - zircon_runtime/src/core/runtime/tasks/report.rs
   - zircon_runtime/src/core/runtime/tasks/retained_byte_budget.rs
   - zircon_runtime/src/core/runtime/tasks/timer.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/discover.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/discover/authority.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/discovery_refresh
+  - zircon_runtime/src/plugin/loader/discover/authority.rs
   - zircon_runtime/src/plugin/native/discovery.rs
   - zircon_editor/src/core/logging/runtime_task_diagnostics
   - zircon_editor/src/ui/host/editor_manager_runtime_diagnostics.rs
@@ -32,50 +30,34 @@ related_code:
   - zircon_runtime/src/scene/module/level_manager_project_io.rs
   - zircon_runtime/src/scene/world/project_io/document.rs
   - zircon_runtime/src/graphics/visibility/culling/parallel_frustum.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/wgpu_render_framework_construction/construct.rs
   - zircon_plugins/navigation/runtime/src/lib.rs
   - zircon_plugins/navigation/runtime/src/manager.rs
-  - zircon_plugins/navigation/runtime/src/test_support.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/access.rs
   - zircon_runtime/src/asset/pipeline/worker_pool.rs
   - zircon_runtime/src/platform/module.rs
   - zircon_runtime/src/platform/service_types/driver.rs
-  - zircon_runtime/src/platform/test_support.rs
   - zircon_runtime/src/platform/preferences/persistence/adapter.rs
   - zircon_runtime/src/platform/tests/preferences.rs
   - zircon_runtime/src/text/font_sdf_build_tool/bake.rs
   - zircon_runtime/src/bin/zircon_font_sdf_bake/main.rs
   - zircon_runtime/tests/runtime_text_sdf_offline_artifact.rs
   - zircon_app/src/entry/engine_entry.rs
-  - zircon_runtime/src/scene/dynamic_scene/session/io/reader
+  - zircon_runtime/src/scene/dynamic/session/io/reader
   - zircon_editor/src/core/context/builder.rs
   - zircon_editor/src/core/settings/persistence.rs
   - zircon_editor/src/core/jobs/tests/thread_ownership_contract.rs
   - zircon_editor/src/ui/host/editor_manager.rs
-  - zircon_runtime/src/tests/runtime_absorption/job_system.rs
-  - zircon_runtime/src/tests/runtime_absorption/job_system/inventory.rs
-  - zircon_runtime/src/tests/runtime_absorption/job_system/mirror_docs.rs
-  - zircon_runtime/src/tests/runtime_absorption/job_system/source_helpers.rs
-  - zircon_runtime/src/tests/runtime_absorption/job_system/split_layout.rs
-  - zircon_runtime/src/tests/runtime_absorption/asset_worker_policy.rs
-  - zircon_runtime/src/tests/runtime_absorption/asset_worker_policy/worker_pool.rs
-  - zircon_runtime/src/tests/runtime_absorption/asset_worker_policy/split_layout.rs
+  - zircon_runtime/src/tests/contracts/job_system/inventory.rs
+  - zircon_runtime/src/tests/contracts/job_system/mirror_docs.rs
+  - zircon_runtime/src/tests/contracts/job_system/source_helpers.rs
+  - zircon_runtime/src/tests/contracts/job_system/split_layout.rs
+  - zircon_runtime/src/tests/contracts/asset_worker_policy/worker_pool.rs
+  - zircon_runtime/src/tests/contracts/asset_worker_policy/split_layout.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/job_system_boundary.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/job_system_source_inventory.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/job_system_anchor_inventory.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/job_system_markdown.py
   - tools/tests/test_runtime_job_system_audit.py
   - tools/tests/test_runtime_11_native_plugin_discovery_contract.py
-  - dev/UnrealEngine/Engine/Source/Runtime/Core/Public/Tasks/Task.h
-  - dev/UnrealEngine/Engine/Source/Runtime/Core/Public/Tasks/Pipe.h
-  - dev/UnrealEngine/Engine/Source/Runtime/Core/Public/Tasks/TaskConcurrencyLimiter.h
-  - dev/UnrealEngine/Engine/Source/Runtime/Core/Public/Async/Async.h
-  - dev/UnrealEngine/Engine/Source/Runtime/Core/Public/Async/LocalWorkQueue.h
-  - dev/UnrealEngine/Engine/Source/Runtime/Core/Public/Async/TaskGraphInterfaces.h
-  - dev/UnrealEngine/Engine/Source/Runtime/Core/Public/Async/AsyncWork.h
-  - dev/UnrealEngine/Engine/Source/Runtime/NavigationSystem/Private/NavMesh/RecastNavMeshGenerator.cpp
-  - dev/bevy/crates/bevy_tasks/src
-  - dev/Fyrox/fyrox-impl/src/engine/mod.rs
 plan_sources:
   - docs/plans/zircon_runtime/runtime/index.md
   - docs/plans/optimize/zircon_runtime/11/2026-08-27-native-plugin-discovery-authority-research.md

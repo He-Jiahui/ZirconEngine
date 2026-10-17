@@ -5,7 +5,6 @@ plan_sources:
   - docs/plans/optimize/zircon_runtime/02/2026-08-30-editor543-reconcile-carried-entry.md
 implementation_files:
   - zircon_editor/src/ui/host/asset_editor_sessions/refresh/reconcile.rs
-  - zircon_editor/src/ui/host/asset_editor_sessions/watcher/tests.rs
 tests:
   - zircon_editor/src/ui/host/asset_editor_sessions/refresh/reconcile.rs
 ---

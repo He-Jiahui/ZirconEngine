@@ -5,42 +5,24 @@ related_code:
   - zircon_editor/src/ui/workbench/snapshot/data/editor_chrome_snapshot.rs
   - zircon_editor/src/ui/workbench/model/status_bar_model.rs
   - zircon_editor/src/ui/host/editor_event_runtime_access/status.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/recompute/shell/template_bridges.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_actions.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection/status_bar.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/status_bar.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/data_sync.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench.rs
-  - zircon_editor/src/ui/retained_host/ui/workbench_window_projection.rs
-  - zircon_editor/assets/ui/editor/components/workbench/shell/workbench_status_bar.zui
-  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/status_bar.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle.rs
+  - zircon_editor/src/ui/retained/app/build_export_actions.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/workbench/status_bar.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/workbench/data_sync.rs
   - zircon_editor/src/tests/workbench/view_model/shell_projection.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_actions/tests.rs
   - docs/plans/zircon_editor/editor_ui/08-workbench-shell-on-runtime-ui.md
 implementation_files:
   - zircon_editor/src/ui/workbench/snapshot/data/status_task_progress_snapshot.rs
   - zircon_editor/src/ui/workbench/model/status_bar_model.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/status_bar.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_actions.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/recompute/shell/template_bridges.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection/status_bar.rs
-  - zircon_editor/assets/ui/editor/components/workbench/shell/workbench_status_bar.zui
+  - zircon_editor/src/ui/retained/dispatch/templates/workbench/status_bar.rs
+  - zircon_editor/src/ui/retained/app/build_export_actions.rs
 plan_sources:
   - docs/plans/zircon_editor/editor_ui/08-workbench-shell-on-runtime-ui.md
   - docs/plans/zircon_editor/editor_layout/15-component-standardization-from-primitives.md
   - docs/plans/zircon_editor/editor_layout/16-relative-layout-and-resolution-adaptation.md
   - dev/UnrealEngine/Engine/Source/Editor/CurveEditor/Private/Tree/SCurveEditorTreeFilterStatusBar.cpp
 tests:
-  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/status_bar.rs
   - zircon_editor/src/tests/workbench/view_model/shell_projection.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_actions/tests.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection/tests.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/recompute/shell/template_bridges.rs
   - cargo test -p zircon_editor --lib status_bar --locked -- --nocapture
   - cargo test -p zircon_editor --lib componentized_workbench_status_bar_skips_legacy_skeleton_fill --locked -- --nocapture
   - cargo test -p zircon_editor --lib componentized_workbench_status_bar_adapts_primary_runtime_text_without_shrinking_fixed_controls --locked -- --exact --test-threads=1

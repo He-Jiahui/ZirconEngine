@@ -1,6 +1,5 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/viewport
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_runtime/render/16/failure-2026-07-17-editor-viewport-synchronous-readback.md

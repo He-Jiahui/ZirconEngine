@@ -11,10 +11,9 @@ related_code:
   - zircon_runtime/src/core/framework/gizmos
   - zircon_runtime/src/core/framework/render/overlay.rs
   - zircon_runtime/src/core/framework/navigation/gizmo.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/build_runtime_frame.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/overlay
-  - zircon_runtime/src/graphics/scene/scene_renderer/primitives/buffers
-  - zircon_runtime/src/graphics/scene/scene_renderer/primitives/scene_gizmo
+  - zircon_runtime/src/graphics/runtime/extract/submit/build_runtime_frame.rs
+  - zircon_runtime/src/graphics/scene/renderer/primitives/buffers
+  - zircon_runtime/src/graphics/scene/renderer/primitives/scene_gizmo
   - zircon_runtime/src/dynamic_api/session/extract_stats.rs
   - zircon_editor/src/core/editor_extension/viewport_overlay_provider.rs
   - zircon_editor/src/scene/modes/viewport_overlay_builder.rs
@@ -25,10 +24,8 @@ tests:
   - zircon_runtime/src/tests/gizmos/mod.rs
   - zircon_runtime/src/graphics/tests/render_product_ui.rs
   - zircon_runtime/src/graphics/tests/project_render/project_scenes.rs
-  - zircon_editor/src/tests/editor_event/runtime/extensions_registration/overlay_lifecycle.rs
-  - zircon_plugins/navigation/editor/src/tests.rs
+  - zircon_editor/src/tests/runtime/extensions_registration/overlay_lifecycle.rs
   - zircon_plugins/navigation/editor/src/tests/viewport_overlay_provider.rs
-  - zircon_plugins/ai/editor/src/tests.rs
 plan_sources:
   - docs/plans/mvp/index.md
   - docs/plans/optimize/zircon_runtime/49-runtime-debug-gizmo-command-buffer-retained-extract-filter-budget-render-product-integration-review.md

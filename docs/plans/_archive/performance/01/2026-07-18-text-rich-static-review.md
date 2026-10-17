@@ -4,7 +4,7 @@ related_code:
   - zircon_runtime/src/ui/text/rich_text.rs
   - zircon_runtime/src/ui/text/layout_engine.rs
   - zircon_runtime/src/graphics/scene/resources/ui_texture.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render/rich_text.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/render/rich_text.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_runtime/text/07-rich-text-html-bbcode.md

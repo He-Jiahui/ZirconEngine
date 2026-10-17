@@ -10,7 +10,6 @@ related_code:
 tests:
   - zircon_runtime/src/text/layout/tab.rs
   - tools/tests/test_runtime81_streaming_tab_layout_performance_contract.py
-  - tools/tests/test_runtime_text_grapheme_projection_cursor_contract.py
 ---
 
 # Runtime81 Streaming Tab Layout

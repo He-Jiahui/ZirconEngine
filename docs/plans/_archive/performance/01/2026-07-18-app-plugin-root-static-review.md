@@ -10,8 +10,6 @@ plan_sources:
 reference_sources:
   - dev/bevy/crates/bevy_app/src/plugin_group.rs
 tests:
-  - zircon_app/src/plugins/tests.rs
-  - zircon_app/src/runtime_presenter.rs
   - current-source Windows zircon_app plugin/root tests pending
 doc_type: implementation-evidence
 status: static_complete_dynamic_pending

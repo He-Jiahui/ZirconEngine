@@ -20,7 +20,7 @@ related_code:
   - zircon_runtime/src/text/layout_session.rs
   - zircon_runtime/src/text/render_state.rs
   - zircon_runtime/src/ui/text/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/text.rs
 implementation_files:
   - zircon_runtime/src/text/mod.rs
   - zircon_runtime/src/text/model/mod.rs
@@ -49,10 +49,7 @@ plan_sources:
   - docs/plans/zircon_runtime/render/14-2d-stack.md
 tests:
   - tools/tests/test_frameworks_05_text_boundary.py
-  - zircon_runtime/src/text/cache/tests.rs
-  - zircon_runtime/src/text/shaping/tests.rs
   - zircon_runtime/src/text/layout/measure.rs
-  - zircon_runtime/src/text/raster/swash/tests.rs
   - zircon_runtime/tests/runtime_text_multilingual_product_framebuffer.rs
   - zircon_runtime/tests/runtime_ui_text_render_contract.rs
 doc_type: module-detail

@@ -4,7 +4,7 @@ doc_type: implementation-record
 status: source_complete_isolated_tests_passed_managed_validation_pending
 owner: Runtime Render 05 / 09E P0-3
 related_code:
-  - zircon_runtime/src/graphics/scene/scene_renderer/lighting/light_grid_builder.rs
+  - zircon_runtime/src/graphics/scene/renderer/lighting/light_grid_builder.rs
   - zircon_runtime/src/core/framework/render/view_matrix_pair.rs
 references:
   - dev/UnrealEngine/Engine/Source/Runtime/Renderer/Private/LightGridInjection.cpp

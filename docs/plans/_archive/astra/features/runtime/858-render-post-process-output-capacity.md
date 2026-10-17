@@ -8,9 +8,7 @@ related_records:
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
   - zircon_runtime/src/scene/world/render_post_process.rs
-  - zircon_runtime/src/scene/world/render_post_process/output_capacity_tests.rs
 tests:
-  - tools/tests/test_runtime_render_post_process_output_capacity_performance_contract.py
 ---
 
 # Runtime858 - render post-process output capacity

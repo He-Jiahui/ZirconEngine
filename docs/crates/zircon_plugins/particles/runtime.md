@@ -36,7 +36,6 @@ related_code:
   - zircon_plugins/particles/runtime/src/tests/validation.rs
   - zircon_plugins/particles/editor/src/lib.rs
   - zircon_plugins/particles/editor/src/authoring.rs
-  - zircon_plugins/particles/editor/src/tests.rs
   - zircon_plugins/particles/editor/authoring.zui
   - zircon_plugins/particles/editor/preview.zui
   - zircon_plugins/particles/editor/particle_system.drawer.zui
@@ -46,33 +45,23 @@ related_code:
   - zircon_runtime/src/core/framework/render/frame_extract.rs
   - zircon_runtime/src/core/framework/render/scene_extract.rs
   - zircon_runtime/src/graphics/pipeline/declarations/compiled_render_pipeline.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/particle.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/execute_graph_stage.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/scene_passes/render_scene_passes.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer/advanced_plugin_outputs/output_access.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer/advanced_plugin_outputs/output_storage.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/advanced_plugin_readbacks/collect_into_outputs.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_runtime_outputs/take_last_particle_gpu_readback_outputs.rs
+  - zircon_runtime/src/graphics/scene/renderer/execution/context/gpu/particle.rs
+  - zircon_runtime/src/graphics/scene/core/render/render/execute_graph_stage.rs
+  - zircon_runtime/src/graphics/scene/renderer/core/render/render/render.rs
+  - zircon_runtime/src/graphics/scene/core/scene_passes/render_scene_passes.rs
+  - zircon_runtime/src/graphics/scene/core/advanced_plugin_outputs/output_access.rs
+  - zircon_runtime/src/graphics/scene/core/advanced_plugin_outputs/output_storage.rs
   - zircon_runtime/src/graphics/particle_runtime_provider/mod.rs
   - zircon_runtime/src/graphics/particle_runtime_provider/gpu_feedback.rs
   - zircon_runtime/src/graphics/particle_runtime_provider/runtime_feedback.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/runtime_feedback_batch.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/collect_runtime_feedback.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/record_submission/record.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submission_record_update.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/particle_stats.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/particle/build_particle_vertices/build_particle_vertices.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/particle/particle_renderer/construct.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/particle/particle_renderer/record.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/particle/shaders/particle.wgsl
+  - zircon_runtime/src/graphics/runtime/extract/submit/collect_runtime_feedback.rs
+  - zircon_runtime/src/graphics/runtime/extract/record_submission/record.rs
+  - zircon_runtime/src/graphics/runtime/extract/update_stats/particle_stats.rs
+  - zircon_runtime/src/graphics/build_particle_vertices/build_particle_vertices.rs
+  - zircon_runtime/src/graphics/scene/particle/particle_renderer/construct.rs
+  - zircon_runtime/src/graphics/scene/renderer/particle/particle_renderer/record.rs
+  - zircon_runtime/src/graphics/scene/renderer/particle/shaders/particle.wgsl
   - zircon_runtime/src/graphics/tests/m4_behavior_layers.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog.rs
-  - zircon_runtime/src/tests/plugin_extensions/manifest_contributions.rs
 implementation_files:
   - zircon_plugins/particles/plugin.toml
   - zircon_plugins/particles/runtime/src/lib.rs
@@ -102,31 +91,22 @@ implementation_files:
   - zircon_runtime/src/core/framework/render/frame_extract.rs
   - zircon_runtime/src/core/framework/render/scene_extract.rs
   - zircon_runtime/src/graphics/pipeline/declarations/compiled_render_pipeline.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/particle.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/execute_graph_stage.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/scene_passes/render_scene_passes.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer/advanced_plugin_outputs/output_access.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer/advanced_plugin_outputs/output_storage.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/advanced_plugin_readbacks/collect_into_outputs.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_runtime_outputs/take_last_particle_gpu_readback_outputs.rs
+  - zircon_runtime/src/graphics/scene/renderer/execution/context/gpu/particle.rs
+  - zircon_runtime/src/graphics/scene/core/render/render/execute_graph_stage.rs
+  - zircon_runtime/src/graphics/scene/renderer/core/render/render/render.rs
+  - zircon_runtime/src/graphics/scene/core/scene_passes/render_scene_passes.rs
+  - zircon_runtime/src/graphics/scene/core/advanced_plugin_outputs/output_access.rs
+  - zircon_runtime/src/graphics/scene/core/advanced_plugin_outputs/output_storage.rs
   - zircon_runtime/src/graphics/particle_runtime_provider/mod.rs
   - zircon_runtime/src/graphics/particle_runtime_provider/gpu_feedback.rs
   - zircon_runtime/src/graphics/particle_runtime_provider/runtime_feedback.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/runtime_feedback_batch.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/collect_runtime_feedback.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/record_submission/record.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submission_record_update.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/particle_stats.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/particle/build_particle_vertices/build_particle_vertices.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/particle/particle_renderer/construct.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/particle/particle_renderer/record.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/particle/shaders/particle.wgsl
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog.rs
+  - zircon_runtime/src/graphics/runtime/extract/submit/collect_runtime_feedback.rs
+  - zircon_runtime/src/graphics/runtime/extract/record_submission/record.rs
+  - zircon_runtime/src/graphics/runtime/extract/update_stats/particle_stats.rs
+  - zircon_runtime/src/graphics/build_particle_vertices/build_particle_vertices.rs
+  - zircon_runtime/src/graphics/scene/particle/particle_renderer/construct.rs
+  - zircon_runtime/src/graphics/scene/renderer/particle/particle_renderer/record.rs
+  - zircon_runtime/src/graphics/scene/renderer/particle/shaders/particle.wgsl
 plan_sources:
   - user: 2026-05-02 ZirconEngine Particles 插件完善计划
   - .codex/plans/ZirconEngine Particles 插件完善计划.md
@@ -145,19 +125,10 @@ tests:
   - zircon_plugins/particles/runtime/src/tests/support.rs
   - zircon_plugins/particles/runtime/src/tests/validation.rs
   - zircon_plugins/particles/runtime/src/render/runtime_prepare.rs
-  - zircon_plugins/particles/editor/src/tests.rs
-  - zircon_runtime/src/tests/plugin_extensions/manifest_contributions.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_record.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry.rs
   - zircon_runtime/src/graphics/tests/m4_behavior_layers.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/prepared_runtime_submission.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/collect_runtime_feedback.rs
+  - zircon_runtime/src/graphics/runtime/extract/submit/collect_runtime_feedback.rs
   - zircon_runtime/src/core/framework/render/plugin_renderer_outputs.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer/advanced_plugin_outputs/output_storage.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/advanced_plugin_readbacks/collect_into_outputs.rs
+  - zircon_runtime/src/graphics/scene/core/advanced_plugin_outputs/output_storage.rs
   - cargo test -p zircon_runtime --lib runtime_15_particle_gpu_readback_output_accessor_cleanup --no-default-features --features core-min --locked
   - cargo test -p zircon_runtime --lib runtime_15_advanced_plugin_output_test_accessor_cleanup --no-default-features --features core-min --locked
   - 2026-06-01: cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_particles_runtime --locked --jobs 1 --message-format short --color never (passed 21 tests after package option strictness fix)
@@ -168,7 +139,6 @@ tests:
   - 2026-06-18: cargo test -p zircon_plugin_particles_runtime render_particle_cpu_gpu_parity_small_scene_matches_counts_and_indirect_args --locked --jobs 1 --target-dir D:\cargo-targets\zircon-particles-gpu-owner-0618 --message-format short --color never -- --nocapture (passed 1 focused CPU/GPU count parity test after map-aligned readback and spawned-counter fixes)
   - 2026-06-18: cargo test -p zircon_runtime --lib render_frame_extract_collects_dynamic_particle_gpu_frames_by_camera_layers --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-scene-particle-gpu-frame-0618 --message-format short --color never -- --nocapture (passed 1 focused scene neutral GPU-frame auto-collection test)
   - zircon_runtime/src/graphics/tests/m4_behavior_layers.rs
-  - tests/acceptance/particles-gpu-readback-mailbox.md
 validation:
   - 2026-05-04: cargo check -p zircon_runtime --tests --locked --offline --jobs 1 --target-dir target\codex-shared-a --message-format short --color never (passed with existing warnings)
   - 2026-05-04: cargo test -p zircon_runtime --lib graph_execution --locked --offline --jobs 1 --target-dir target\codex-shared-a --message-format short --color never (passed 16/16 filtered tests with existing warnings)

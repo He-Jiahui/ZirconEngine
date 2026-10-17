@@ -12,7 +12,6 @@ related_code:
   - zircon_runtime/src/plugin/bridge/import.rs
   - zircon_runtime/src/plugin/bridge/weak.rs
   - zircon_runtime/src/plugin/bridge/table.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/bridge_lifecycle.rs
 tests:
   - single and 16-thread stable bridge-call benchmark
   - concurrent reload/disable generation race test

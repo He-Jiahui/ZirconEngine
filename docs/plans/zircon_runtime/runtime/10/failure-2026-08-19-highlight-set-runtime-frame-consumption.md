@@ -10,10 +10,9 @@ fixing_child_dir: docs/plans/zircon_runtime/runtime/10
 plan_link_mode: child_record_only
 related_code:
   - zircon_editor/src/ui/workbench/state/editor_state_render.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/render_submission.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle/render_submission.rs
   - zircon_runtime/src/scene/level_system.rs
   - zircon_runtime/src/core/framework/render/viewport_highlight_store.rs
-  - tools/tests/runtime10_highlight_store_standalone.py
   - zircon_runtime/src/dynamic_api/session/tests/highlight_set.rs
   - zircon_runtime/src/dynamic_api/session/extract.rs
   - zircon_runtime/src/dynamic_api/session/extract_cache.rs

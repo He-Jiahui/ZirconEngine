@@ -11,7 +11,6 @@ fixing_child_dir: docs/plans/optimize/zircon_runtime_interface/03
 plan_link_mode: child_record_only
 related_code:
   - zircon_runtime_interface/src/ui/surface/render/text_effects.rs
-  - zircon_runtime_interface/src/ui/surface/render/text_effects/performance_tests.rs
 tests:
   - cargo test -p zircon_runtime_interface --no-default-features --locked --lib ui::surface::render::text_effects::
   - cargo test -p zircon_runtime_interface --no-default-features --locked --release --lib runtime_interface03_batch55_61_prefiltered_text_effects_release_benchmark -- --ignored

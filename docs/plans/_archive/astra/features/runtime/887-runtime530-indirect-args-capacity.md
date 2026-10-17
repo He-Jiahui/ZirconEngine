@@ -8,9 +8,9 @@ related_records:
   - docs/plans/astra/features/editor/940-editor09-release-all-reservations-capacity.md
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/indirect_draw_batcher.rs
+  - zircon_runtime/src/graphics/scene/mesh/mesh_pass/indirect_draw_batcher.rs
 tests:
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/indirect_draw_batcher.rs
+  - zircon_runtime/src/graphics/scene/mesh/mesh_pass/indirect_draw_batcher.rs
 ---
 
 # Runtime887 Runtime530 Indirect-Args Capacity

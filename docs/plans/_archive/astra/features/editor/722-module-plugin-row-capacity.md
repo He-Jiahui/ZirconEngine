@@ -10,9 +10,8 @@ related_records:
   - docs/plans/astra/features/editor/713-viewport-toolbar-cache-remap-ownership.md
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
-  - zircon_editor/src/ui/retained_host/app/module_plugin_projection/pane_data/view_rows.rs
+  - zircon_editor/src/ui/retained/app/pane_data/view_rows.rs
 tests:
-  - zircon_editor/src/ui/retained_host/app/module_plugin_projection/pane_data/view_rows/target_mode_join_tests.rs
 ---
 
 # Editor module-plugin row projection capacity

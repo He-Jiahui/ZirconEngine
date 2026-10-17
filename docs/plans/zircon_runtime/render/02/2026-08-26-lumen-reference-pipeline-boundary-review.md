@@ -5,9 +5,7 @@ doc_type: reference-architecture-review
 status: design-review-complete
 coordination_owner: docs/plans/zircon_runtime/render/02
 related_code:
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command_list/builder.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_pass_processor.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/mod.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/mesh_pass/mesh_pass_processor.rs
 reference_code:
   - dev/LumenInUE5.5.4WithComputeShader/App.cpp
   - dev/LumenInUE5.5.4WithComputeShader/RenderPass.cpp

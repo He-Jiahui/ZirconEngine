@@ -2,12 +2,9 @@
 doc_type: milestone-detail
 related_code:
   - zircon_runtime/src/scene/world/transaction/detached_entity_batch.rs
-  - zircon_runtime/src/scene/world/transaction/detached_entity_batch/restore_parent_validation.rs
 plan_sources:
   - docs/plans/optimize/zircon_runtime/62/2026-09-27-detached-restore-union-cycle-rejection.md
 tests:
-  - zircon_runtime/src/scene/world/transaction/detached_entity_batch/restore_cycle_tests.rs
-  - zircon_runtime/src/scene/world/transaction/detached_entity_batch/restore_cycle_profile.rs
 ---
 
 # Runtime1014: detached restore union-cycle rejection

@@ -7,8 +7,6 @@ related_code:
   - zircon_runtime/src/core/framework/net/http.rs
   - zircon_runtime/src/core/framework/net/transport.rs
   - zircon_runtime/src/plugin/export_build_plan/platform_host_files/mobile.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/candidate_from_manifest.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/load_discovered.rs
   - zircon_runtime/src/script/vm/host/host_export_registry.rs
   - zircon_runtime/src/script/vm/host/script_call_table.rs
   - zircon_runtime/src/script/vm/host/vm_plugin_host_context.rs

@@ -7,10 +7,9 @@ related_records:
   - docs/plans/astra/features/editor/30-recent-optimization-batch-completion.md
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mui_x_primitives/charts/raster_commands/cache.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mui_x_primitives/charts/raster_commands/commands.rs
+  - zircon_editor/src/ui/retained/contract/paint/charts/raster_commands/cache.rs
+  - zircon_editor/src/ui/retained/contract/paint/charts/raster_commands/commands.rs
 tests:
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mui_x_primitives/charts/raster_commands/cache/arc_pixels_tests.rs
 ---
 
 # Editor973 Editor01 chart raster Arc cache

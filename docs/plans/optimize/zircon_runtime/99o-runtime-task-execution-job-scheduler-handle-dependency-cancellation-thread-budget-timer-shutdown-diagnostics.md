@@ -17,19 +17,18 @@ related_code:
   - zircon_runtime/src/operation/service.rs
   - zircon_runtime/src/asset
   - zircon_runtime/src/graphics/pipeline/async_compile.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/pipelined/queue.rs
+  - zircon_runtime/src/graphics/runtime/framework/pipelined/queue.rs
   - zircon_runtime/src/platform/preferences
   - zircon_runtime/src/scene
   - zircon_runtime/src/script/vm
   - zircon_runtime/src/text
   - zircon_editor/src/core/jobs
   - zircon_editor/src/core/play/process_backend/output.rs
-  - zircon_editor/src/ui/retained_host/app/module_plugin_actions/live_host/development_watch.rs
+  - zircon_editor/src/ui/retained/app/plugins/live_host/development_watch.rs
   - zircon_app/src/bin/zircon_shader_pbr_viewer/background_load.rs
   - zircon_plugins/navigation/runtime/src/manager.rs
 tests:
   - zircon_runtime/src/tests/tasks.rs
-  - zircon_runtime/src/core/runtime/tasks/bounded_keyed_io/tests.rs
   - zircon_runtime/src/core/runtime/tasks/bounded_keyed_io/tests
   - zircon_runtime/src/tests/runtime_absorption/job_system
   - zircon_editor/src/core/jobs/tests

@@ -9,8 +9,6 @@ related_records:
   - docs/plans/astra/features/editor/664-20260911-editor-ui-optimization-batch-completion.md
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
-  - zircon_editor/src/ui/asset_editor/style/theme_summary/lightweight_selection_tests.rs
-  - zircon_editor/src/ui/asset_editor/session/style_inspection/selected_rule_tests.rs
   - zircon_editor/src/ui/asset_editor/session/style_rule_identity.rs
 ---
 

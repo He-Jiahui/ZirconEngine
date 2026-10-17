@@ -20,8 +20,6 @@ related_code:
   - zircon_runtime/src/core/manager/mod.rs
   - zircon_runtime/src/core/manager/resolver.rs
   - zircon_runtime/src/core/manager/service_names.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog.rs
-  - zircon_runtime/src/tests/plugin_extensions/manifest_contributions.rs
   - zircon_plugins/net/plugin.toml
   - zircon_plugins/Cargo.toml
   - zircon_plugins/net/runtime/Cargo.toml
@@ -80,7 +78,6 @@ implementation_files:
   - zircon_runtime/src/core/framework/net/sync.rs
   - zircon_runtime/src/core/framework/net/transport.rs
   - zircon_runtime/src/core/framework/net/websocket.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog.rs
   - zircon_plugins/net/plugin.toml
   - zircon_plugins/Cargo.toml
   - zircon_plugins/net/runtime/Cargo.toml
@@ -130,14 +127,13 @@ plan_sources:
   - .codex/plans/Runtime 吸收层与 Editor_Scene 边界收束计划.md
   - .codex/plans/全系统重构方案.md
 tests:
-  - zircon_runtime/src/tests/plugin_extensions/manifest_contributions.rs
-  - zircon_plugins/net/runtime/src/tests.rs
-  - zircon_plugins/net/features/http/runtime/src/tests.rs
-  - zircon_plugins/net/features/rpc/runtime/src/tests.rs
-  - zircon_plugins/net/features/replication/runtime/src/tests.rs
-  - zircon_plugins/net/features/reliable_udp/runtime/src/tests.rs
-  - zircon_plugins/net/features/websocket/runtime/src/tests.rs
-  - zircon_plugins/net/features/content_download/runtime/src/tests.rs
+  - zircon_plugins/net/runtime/src/tests/mod.rs
+  - zircon_plugins/net/features/http/runtime/src/tests/mod.rs
+  - zircon_plugins/net/features/rpc/runtime/src/tests/mod.rs
+  - zircon_plugins/net/features/replication/runtime/src/tests/mod.rs
+  - zircon_plugins/net/features/reliable_udp/runtime/src/tests/mod.rs
+  - zircon_plugins/net/features/websocket/runtime/src/tests/mod.rs
+  - zircon_plugins/net/features/content_download/runtime/src/tests/mod.rs
   - 2026-06-01: cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_net_runtime --locked --jobs 1 --message-format short --color never (passed 12 tests after net.runtime_mode enum values were declared)
   - passed: cargo metadata --manifest-path zircon_plugins/Cargo.toml --locked --no-deps --format-version 1
   - passed: CARGO_TARGET_DIR=target/codex-net-check cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_net_runtime --offline

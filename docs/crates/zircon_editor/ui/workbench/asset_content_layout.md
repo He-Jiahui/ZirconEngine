@@ -7,48 +7,46 @@ related_code:
   - zircon_editor/src/ui/workbench/asset_content_layout/thumbnail_grid.rs
   - zircon_editor/src/ui/workbench/asset_content_layout/text.rs
   - zircon_editor/src/core/asset/type_registry/builtin.rs
-  - zircon_editor/src/ui/workbench/asset_content_layout/tests.rs
-  - zircon_editor/src/ui/retained_host/asset_pointer/content/layout.rs
-  - zircon_editor/src/ui/retained_host/asset_pointer/content/bridge.rs
+  - zircon_editor/src/ui/retained/asset_pointer/content/layout.rs
+  - zircon_editor/src/ui/retained/asset_pointer/content/bridge.rs
   - zircon_editor/src/ui/layouts/views/assets_activity/content_layout.rs
   - zircon_editor/src/ui/layouts/views/asset_browser.rs
   - zircon_editor/src/ui/layouts/views/asset_browser/compact_table_layout.rs
   - zircon_editor/src/ui/layouts/views/asset_browser/table_nodes.rs
   - zircon_editor/src/ui/layouts/views/asset_browser/thumbnail_layout.rs
   - zircon_editor/src/ui/layouts/views/asset_browser/thumbnail_nodes.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/docks/pane/template_nodes/asset_content/projector.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_table_rows/cells/commands.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/native_panes/scrollbar/asset.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/routing/panes/pane/entry/asset_content.rs
-  - zircon_editor/src/tests/host/retained_menu_pointer/visual_screenshot/assets_drawer.rs
-  - zircon_editor/src/tests/host/retained_menu_pointer/visual_screenshot/asset_browser_content.rs
+  - zircon_editor/src/ui/contract/docks/pane/nodes/asset_content/projector.rs
+  - zircon_editor/src/ui/retained/contract/paint/table_rows/cells/commands.rs
+  - zircon_editor/src/ui/retained/contract/workbench/native_panes/scrollbar/asset.rs
+  - zircon_editor/src/ui/contract/pointer/routing/panes/pane/entry/asset_content.rs
+  - zircon_editor/src/tests/host/menus/visual_screenshot/assets_drawer.rs
+  - zircon_editor/src/tests/host/menus/visual_screenshot/asset_browser_content.rs
 implementation_files:
   - zircon_editor/src/ui/workbench/asset_content_layout/controls.rs
   - zircon_editor/src/ui/workbench/asset_content_layout/profile.rs
   - zircon_editor/src/ui/workbench/asset_content_layout/metrics.rs
   - zircon_editor/src/ui/workbench/asset_content_layout/thumbnail_grid.rs
   - zircon_editor/src/ui/workbench/asset_content_layout/text.rs
-  - zircon_editor/src/ui/retained_host/asset_pointer/content/layout.rs
-  - zircon_editor/src/ui/retained_host/asset_pointer/content/bridge.rs
+  - zircon_editor/src/ui/retained/asset_pointer/content/layout.rs
+  - zircon_editor/src/ui/retained/asset_pointer/content/bridge.rs
   - zircon_editor/src/ui/layouts/views/assets_activity/content_layout.rs
   - zircon_editor/src/ui/layouts/views/asset_browser.rs
   - zircon_editor/src/ui/layouts/views/asset_browser/compact_table_layout.rs
   - zircon_editor/src/ui/layouts/views/asset_browser/table_nodes.rs
   - zircon_editor/src/ui/layouts/views/asset_browser/thumbnail_layout.rs
   - zircon_editor/src/ui/layouts/views/asset_browser/thumbnail_nodes.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/docks/pane/template_nodes/asset_content/projector.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_table_rows/cells/commands.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/native_panes/scrollbar/asset.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/routing/panes/pane/entry/asset_content.rs
-  - zircon_editor/src/tests/host/retained_menu_pointer/visual_screenshot/assets_drawer.rs
-  - zircon_editor/src/tests/host/retained_menu_pointer/visual_screenshot/asset_browser_content.rs
+  - zircon_editor/src/ui/contract/docks/pane/nodes/asset_content/projector.rs
+  - zircon_editor/src/ui/retained/contract/paint/table_rows/cells/commands.rs
+  - zircon_editor/src/ui/retained/contract/workbench/native_panes/scrollbar/asset.rs
+  - zircon_editor/src/ui/contract/pointer/routing/panes/pane/entry/asset_content.rs
+  - zircon_editor/src/tests/host/menus/visual_screenshot/assets_drawer.rs
+  - zircon_editor/src/tests/host/menus/visual_screenshot/asset_browser_content.rs
 plan_sources:
   - docs/plans/zircon_editor/editor_layout/15-component-standardization-from-primitives.md
   - docs/plans/zircon_editor/editor_layout/16-relative-layout-and-resolution-adaptation.md
   - docs/plans/engine-code-structure-convention.md
   - docs/plans/engine-code-review-findings-2026-06.md
 tests:
-  - zircon_editor/src/ui/workbench/asset_content_layout/tests.rs
   - zircon_editor/src/tests/host/retained_asset_pointer.rs
   - cargo test -p zircon_editor --lib asset_content_layout -- --nocapture
   - cargo test -p zircon_editor --lib shared_asset_content_pointer -- --nocapture
@@ -62,8 +60,6 @@ tests:
   - direct zircon_editor test binary filter shared_asset_content_pointer_bridge_hits_thumbnail_grid_columns_and_scrolls_rows --exact --nocapture
   - direct zircon_editor test binary filter browser_thumbnail_projector_scrolls_card_children_and_keeps_grid_fixed --exact --nocapture
   - direct zircon_editor test binary filter assets_drawer_content_scroll_repaints_inside_content_without_touching_utility --exact --nocapture
-  - docs/tests/editor/editor-window-m3-asset-browser-list-scrolled-hover-900x620.png
-  - docs/tests/editor/editor-window-m3-asset-browser-thumbnail-scrolled-hover-900x620.png
 doc_type: module-detail
 status: in_progress
 ---

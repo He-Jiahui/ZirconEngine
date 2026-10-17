@@ -12,15 +12,14 @@ related_code:
   - zircon_runtime/src/ui/surface/input/effect/text_services.rs
   - zircon_runtime/src/ui/surface/input/validation.rs
   - zircon_runtime/src/ui/surface/input/state/drag_drop.rs
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/ui_input.rs
-  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/ui.rs
+  - zircon_runtime/src/tests/contracts/naming_boundary/runtime_15_m2/ui.rs
   - zircon_runtime_interface/src/ui/window/input.rs
   - zircon_runtime_interface/src/ui/window/runtime_event_adapter.rs
   - zircon_runtime_interface/src/ui/window/pump.rs
   - zircon_runtime_interface/src/ui/dispatch/input/event.rs
   - zircon_runtime_interface/src/ui/dispatch/input/metadata.rs
-  - zircon_editor/src/ui/retained_host/host_contract/window/event_loop/platform_input.rs
-  - zircon_editor/src/ui/retained_host/host_contract/window/event_loop/events.rs
+  - zircon_editor/src/ui/retained/contract/window/event_loop/platform_input.rs
+  - zircon_editor/src/ui/retained/contract/window/event_loop/events.rs
   - zircon_editor/src/tests/host/retained_window/platform_input_translation.rs
   - docs/crates/zircon_editor/ui/retained_host/host_contract/platform_input.md
 implementation_files:

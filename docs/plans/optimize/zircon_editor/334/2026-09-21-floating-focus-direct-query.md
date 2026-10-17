@@ -3,19 +3,17 @@ related_code:
   - zircon_editor/src/ui/host/workspace_state.rs
   - zircon_editor/src/ui/host/editor_manager_workspace.rs
   - zircon_editor/src/ui/host/editor_event_runtime_access/workbench_projection.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/layout/floating_window/dispatch.rs
+  - zircon_editor/src/ui/retained/dispatch/layout/floating_window/dispatch.rs
 implementation_files:
   - zircon_editor/src/ui/host/workspace_state.rs
   - zircon_editor/src/ui/host/editor_manager_workspace.rs
   - zircon_editor/src/ui/host/editor_event_runtime_access/workbench_projection.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/layout/floating_window/mod.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/layout/floating_window/dispatch.rs
+  - zircon_editor/src/ui/retained/dispatch/layout/floating_window/mod.rs
+  - zircon_editor/src/ui/retained/dispatch/layout/floating_window/dispatch.rs
 plan_sources:
   - user: 2026-09-21 optimize Runtime and Editor hot paths and record completion
   - docs/plans/optimize/zircon_editor/334/2026-08-30-floating-focus-single-scan.md
 tests:
-  - zircon_editor/src/ui/host/workspace_state_floating_focus_query_tests.rs
-  - tools/tests/test_editor860_floating_focus_direct_query_performance_contract.py
   - tools/tests/test_editor_retained_workbench_contribution_projection_contract.py
 doc_type: milestone-detail
 title: Editor860 floating-window focus direct query

@@ -4,40 +4,30 @@ related_code:
   - zircon_runtime/src/graphics/types/viewport_render_frame.rs
   - zircon_runtime/src/graphics/types/viewport_render_frame_from_extract.rs
   - zircon_runtime/src/graphics/types/viewport_render_frame_from_snapshot.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/scene_clear/scene_region_clear_resources.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/overlay/passes/base_scene_pass.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/deferred_scene_resources/record_gbuffer_geometry.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/deferred_scene_resources/execute_lighting.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/sprite/sprite_renderer.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/particle/particle_renderer/record.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/particle/particle_renderer/record_velocity.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/overlay/passes/line_pass.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/render_region.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_output_transfer/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_fxaa/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_smaa/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/post_process/terminal.rs
+  - zircon_runtime/src/graphics/scene/renderer/overlay/passes/base_scene_pass.rs
+  - zircon_runtime/src/graphics/scene/renderer/sprite/sprite_renderer.rs
+  - zircon_runtime/src/graphics/scene/renderer/particle/particle_renderer/record.rs
+  - zircon_runtime/src/graphics/scene/particle/particle_renderer/record_velocity.rs
+  - zircon_runtime/src/graphics/scene/renderer/overlay/passes/line_pass.rs
+  - zircon_runtime/src/graphics/scene/renderer/post/resources/render_region.rs
+  - zircon_runtime/src/graphics/scene/renderer/post/execute_output_transfer/mod.rs
+  - zircon_runtime/src/graphics/scene/renderer/post/resources/execute_fxaa/mod.rs
+  - zircon_runtime/src/graphics/scene/renderer/post/resources/execute_smaa/mod.rs
   - zircon_plugins/particles/runtime/src/render/gpu/transparent.rs
 implementation_files:
   - zircon_runtime/src/graphics/types/viewport_render_region.rs
   - zircon_runtime/src/graphics/types/viewport_render_frame.rs
   - zircon_runtime/src/graphics/types/viewport_render_frame_from_extract.rs
   - zircon_runtime/src/graphics/types/viewport_render_frame_from_snapshot.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/scene_clear/scene_region_clear_resources.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/overlay/passes/base_scene_pass.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/deferred_scene_resources/record_gbuffer_geometry.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/deferred_scene_resources/execute_lighting.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/sprite/sprite_renderer.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/particle/particle_renderer/record.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/particle/particle_renderer/record_velocity.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/overlay/passes/line_pass.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/render_region.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_output_transfer/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_fxaa/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_smaa/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/post_process/terminal.rs
+  - zircon_runtime/src/graphics/scene/renderer/overlay/passes/base_scene_pass.rs
+  - zircon_runtime/src/graphics/scene/renderer/sprite/sprite_renderer.rs
+  - zircon_runtime/src/graphics/scene/renderer/particle/particle_renderer/record.rs
+  - zircon_runtime/src/graphics/scene/particle/particle_renderer/record_velocity.rs
+  - zircon_runtime/src/graphics/scene/renderer/overlay/passes/line_pass.rs
+  - zircon_runtime/src/graphics/scene/renderer/post/resources/render_region.rs
+  - zircon_runtime/src/graphics/scene/renderer/post/execute_output_transfer/mod.rs
+  - zircon_runtime/src/graphics/scene/renderer/post/resources/execute_fxaa/mod.rs
+  - zircon_runtime/src/graphics/scene/renderer/post/resources/execute_smaa/mod.rs
   - zircon_plugins/particles/runtime/src/render/gpu/transparent.rs
 plan_sources:
   - docs/plans/zircon_runtime/render/09-camera-render-ordering.md
@@ -47,7 +37,6 @@ tests:
   - zircon_runtime/src/graphics/types/viewport_render_region.rs::tests::viewport_region_clamps_fully_outside_rect_to_last_in_bounds_pixel
   - zircon_runtime/src/graphics/types/viewport_render_region.rs::tests::viewport_region_reports_local_rect_for_graph_owned_targets
   - zircon_runtime/src/graphics/tests/surface_targets.rs::graphics_primary_surface_split_screen_base_cameras_clear_only_their_viewport_regions
-  - zircon_runtime/src/graphics/scene/scene_renderer/scene_clear/scene_region_clear_resources.rs::tests::scene_region_clear_resources_build_for_offscreen_backend
   - cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-camera-viewport-region-0619 --message-format short --color never
   - cargo test -p zircon_runtime --lib viewport_render_region --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-camera-viewport-region-0619 --message-format short --color never -- --nocapture
   - cargo check -p zircon_plugin_particles_runtime --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-camera-viewport-region-0619-particles --message-format short --color never

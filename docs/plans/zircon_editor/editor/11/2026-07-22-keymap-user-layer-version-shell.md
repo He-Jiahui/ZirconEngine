@@ -5,13 +5,11 @@ slice: keymap-user-layer-version-shell
 status: static_complete_dynamic_pending
 related_code:
   - zircon_editor/src/core/commands/keymap.rs
-  - zircon_editor/src/core/commands/keymap/tests.rs
   - zircon_editor/src/core/settings/defaults.rs
   - zircon_editor/src/core/settings/io.rs
   - zircon_editor/src/core/settings/keymap_overrides.rs
 tests:
-  - zircon_editor/src/core/commands/keymap/tests.rs
-  - zircon_editor/src/core/settings/tests.rs
+  - zircon_editor/src/core/settings/tests/mod.rs
 ---
 
 # Keymap User Layer Version Shell

@@ -24,9 +24,7 @@ related_code:
   - examples/woc/native/apps/woc_client/src/windows/inventory.rs
   - examples/woc/native/apps/woc_client/src/windows/routes.rs
 tests:
-  - zircon_runtime/src/core/runtime/tasks/bounded_keyed_io/tests.rs
   - zircon_runtime/src/core/runtime/tasks/bounded_keyed_io/tests
-  - zircon_runtime/src/platform/preferences/persistence/tests.rs
   - zircon_runtime/src/platform/preferences/persistence/tests
   - zircon_runtime/src/platform/tests/preferences.rs
   - zircon_runtime/tests/runtime11_preference_backend_authority.rs

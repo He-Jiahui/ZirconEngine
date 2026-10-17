@@ -14,7 +14,6 @@ related_code:
   - zircon_runtime_interface/src/resource/untyped_handle.rs
   - zircon_runtime/src/ui/tests/asset_resource_resolver.rs
   - zircon_runtime/src/ui/tests/asset_hot_reload_executor.rs
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/ui_template_resource.rs
   - zircon_runtime/src/ui/tests/mod.rs
 implementation_files:
   - zircon_runtime/src/ui/template/asset/resource_ref/resolver.rs
@@ -25,7 +24,6 @@ implementation_files:
   - zircon_runtime/src/ui/template/mod.rs
   - zircon_runtime/src/ui/tests/asset_resource_resolver.rs
   - zircon_runtime/src/ui/tests/asset_hot_reload_executor.rs
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/ui_template_resource.rs
   - zircon_runtime/src/ui/tests/mod.rs
 plan_sources:
   - user: 2026-06-12 implement editor UI architecture plan code

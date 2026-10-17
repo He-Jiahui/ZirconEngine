@@ -1,17 +1,13 @@
 ---
 related_code:
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/tests.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/text.rs
   - zircon_runtime/src/text/native_bitmap_atlas.rs
   - zircon_runtime/src/text/native_bitmap_atlas/retry_frame.rs
-  - zircon_runtime/src/text/native_bitmap_atlas/tests.rs
   - zircon_runtime/src/text/native_bitmap_atlas/tests/retry_frame.rs
 implementation_files:
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/tests.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/text.rs
   - zircon_runtime/src/text/native_bitmap_atlas.rs
   - zircon_runtime/src/text/native_bitmap_atlas/retry_frame.rs
-  - zircon_runtime/src/text/native_bitmap_atlas/tests.rs
   - zircon_runtime/src/text/native_bitmap_atlas/tests/retry_frame.rs
 plan_sources:
   - docs/plans/zircon_runtime/text/index.md

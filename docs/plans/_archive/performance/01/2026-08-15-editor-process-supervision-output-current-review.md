@@ -4,9 +4,9 @@ related_code:
   - zircon_editor/src/core/play/process_backend
   - zircon_editor/src/ui/host/export_process_support
   - zircon_editor/src/ui/host/export_cargo_process.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/execution.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/execution
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/output_tail.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/execution.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/execution
+  - zircon_editor/src/ui/host/exports/export_build/wizard/output_tail.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/performance/02-unreal-aligned-engine-system-hard-cutover.md

@@ -4,15 +4,12 @@ related_code:
   - zircon_editor/src/ui/workbench/page_tabs/mod.rs
   - zircon_editor/src/ui/workbench/page_tabs/metrics.rs
   - zircon_editor/src/ui/workbench/autolayout/layout_tier.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection.rs
-  - zircon_editor/src/ui/retained_host/host_page_pointer/host_page_pointer_item.rs
-  - zircon_editor/src/ui/retained_host/host_page_pointer/build_host_page_pointer_layout.rs
-  - zircon_editor/src/ui/retained_host/host_contract/host_page_overflow_menu.rs
+  - zircon_editor/src/ui/retained/host_page_pointer/host_page_pointer_item.rs
+  - zircon_editor/src/ui/host_page_pointer/build_host_page_pointer_layout.rs
 implementation_files:
   - zircon_runtime_interface/src/ui/design_tokens.rs
   - zircon_editor/src/ui/workbench/page_tabs/metrics.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection.rs
-  - zircon_editor/src/ui/retained_host/host_page_pointer/host_page_pointer_item.rs
+  - zircon_editor/src/ui/retained/host_page_pointer/host_page_pointer_item.rs
 plan_sources:
   - docs/plans/zircon_editor/editor_layout/15-component-standardization-from-primitives.md
   - docs/plans/zircon_editor/editor_layout/15a-page-tab-strip-overflow.md

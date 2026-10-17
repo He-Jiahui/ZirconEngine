@@ -4,7 +4,6 @@ status: candidate_static_review_complete_managed_validation_pending
 plan_sources:
   - docs/plans/optimize/zircon_runtime/62/2026-09-28-runtime62-clean-active-hierarchy-read-profile.md
 related_code:
-  - zircon_runtime/src/scene/world/derived_state_clean_world_matrix_profile.rs
   - zircon_runtime/tests/runtime_scene_projected_read_performance.rs
 tests:
   - runtime62_clean_active_in_hierarchy_profile

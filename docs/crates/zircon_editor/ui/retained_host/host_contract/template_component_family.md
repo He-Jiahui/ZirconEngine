@@ -1,25 +1,6 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/host_contract/template_component_family.rs
-  - zircon_editor/src/ui/retained_host/host_contract/template_component_family/classify.rs
-  - zircon_editor/src/ui/retained_host/host_contract/template_component_family/family.rs
-  - zircon_editor/src/ui/retained_host/host_contract/template_component_family/layout.rs
-  - zircon_editor/src/ui/retained_host/host_contract/template_component_family/roles.rs
-  - zircon_editor/src/ui/retained_host/host_contract/template_component_family/visual_language.rs
-  - zircon_editor/src/ui/retained_host/host_contract/template_component_family/workbench.rs
-  - zircon_editor/src/ui/retained_host/host_contract/template_component_family_tests.rs
-  - zircon_editor/src/ui/retained_host/host_contract/template_activation_semantics.rs
-  - zircon_editor/src/ui/retained_host/host_contract/template_input_semantics.rs
-  - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node.rs
 implementation_files:
-  - zircon_editor/src/ui/retained_host/host_contract/template_component_family.rs
-  - zircon_editor/src/ui/retained_host/host_contract/template_component_family/classify.rs
-  - zircon_editor/src/ui/retained_host/host_contract/template_component_family/family.rs
-  - zircon_editor/src/ui/retained_host/host_contract/template_component_family/layout.rs
-  - zircon_editor/src/ui/retained_host/host_contract/template_component_family/roles.rs
-  - zircon_editor/src/ui/retained_host/host_contract/template_component_family/visual_language.rs
-  - zircon_editor/src/ui/retained_host/host_contract/template_component_family/workbench.rs
-  - zircon_editor/src/ui/retained_host/host_contract/template_component_family_tests.rs
 plan_sources:
   - docs/plans/zircon_editor/editor_ui/08-workbench-shell-on-runtime-ui.md
   - user: 2026-06-20 editor UI architecture implementation, feature first and tests deferred

@@ -3,7 +3,6 @@ related_code:
   - zircon_editor/src/ui/workbench/project
   - zircon_editor/src/ui/host/project_access.rs
   - zircon_editor/src/core/editing
-  - zircon_runtime/src/scene/dynamic_scene
   - zircon_runtime/src/asset/project
   - zircon_runtime_interface/src/serialization
 related_tests:

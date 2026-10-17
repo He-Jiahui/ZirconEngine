@@ -3,11 +3,9 @@ related_code:
   - zircon_editor/src/ui/material_editor
   - zircon_editor/src/core/asset/type_registry/builtin.rs
   - zircon_editor/src/ui/host/editor_operation_dispatch.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/module_command_feedback.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/reference_menu_actions.rs
-  - zircon_editor/assets/ui/editor/components/workbench/modules/core/rendering
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/rendering
+  - zircon_editor/src/ui/retained/dispatch/workbench/module_command_feedback.rs
+  - zircon_editor/src/ui/retained/dispatch/workbench/reference_menu_actions.rs
+  - zircon_editor/assets/ui/editor/modules/core/rendering
   - zircon_runtime/src/asset/assets/authoring.rs
   - zircon_runtime/src/asset/assets/material/material_asset.rs
   - zircon_runtime/src/asset/assets/shader/shader_asset.rs

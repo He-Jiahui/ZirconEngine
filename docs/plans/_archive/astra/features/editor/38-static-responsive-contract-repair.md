@@ -6,8 +6,6 @@ plan_sources:
   - docs/plans/optimize/zircon_editor/145-editor-ui-asset-hud-widget-binding-theme-icon-accessibility-menu-flow-font-atlas-authoring-current-source-review.md
 related_code:
   - zircon_editor/assets/ui/editor/asset_browser.zui
-  - zircon_editor/assets/ui/editor/components/workbench/shell/workbench_inspector_panel.zui
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_settings_window/visible_rows.rs
 tests:
   - tools/tests/test_editor_settings_window_product_wiring_contract.py
   - tools/tests/test_editor_zui_base_radius_hierarchy_contract.py

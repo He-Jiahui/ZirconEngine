@@ -4,31 +4,20 @@ related_code:
   - zircon_runtime/src/core/framework/render/frame_extract.rs
   - zircon_runtime/src/core/framework/render/scene_extract.rs
   - zircon_runtime/src/scene/world/render_particles.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/particle/build_particle_vertices/build_particle_vertices.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/particle/build_particle_velocity_vertices/build_particle_velocity_vertices.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/particle/particle_renderer/record.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/particle/particle_renderer/record_velocity.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/particle/particle_vertex/particle_vertex.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/particle/particle_velocity_vertex/particle_velocity_vertex.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/particle/shaders/particle.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/particle/shaders/particle_velocity.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/builtin_postprocess_executors.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_record.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/particle.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render_with_pipeline/render_frame_with_pipeline.rs
-  - zircon_runtime/src/graphics/backend/render_backend/read_texture_rgba.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/particle_previous_sprites.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/frame_submission_context.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/build_runtime_frame.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/submit_runtime_frame.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/update_particle_previous_state.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs
+  - zircon_runtime/src/graphics/build_particle_vertices/build_particle_vertices.rs
+  - zircon_runtime/src/graphics/scene/renderer/particle/particle_renderer/record.rs
+  - zircon_runtime/src/graphics/scene/particle/particle_renderer/record_velocity.rs
+  - zircon_runtime/src/graphics/scene/particle/particle_vertex/particle_vertex.rs
+  - zircon_runtime/src/graphics/particle_velocity_vertex/particle_velocity_vertex.rs
+  - zircon_runtime/src/graphics/scene/renderer/particle/shaders/particle.wgsl
+  - zircon_runtime/src/graphics/scene/particle/shaders/particle_velocity.wgsl
+  - zircon_runtime/src/graphics/scene/renderer/execution/context/gpu/particle.rs
+  - zircon_runtime/src/graphics/scene/renderer/core/render/render/render.rs
+  - zircon_runtime/src/graphics/runtime/viewport_record/particle_previous_sprites.rs
+  - zircon_runtime/src/graphics/runtime/extract/submit/build_runtime_frame.rs
+  - zircon_runtime/src/graphics/runtime/extract/submit/submit_runtime_frame.rs
+  - zircon_runtime/src/graphics/extract/submit/update_particle_previous_state.rs
+  - zircon_runtime/src/graphics/runtime/framework/extract/update_stats/base_stats.rs
   - zircon_runtime/src/core/framework/render/backend_types.rs
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/particle.rs
   - zircon_runtime/src/graphics/tests/plugin_render_feature_fixtures.rs
@@ -38,28 +27,18 @@ implementation_files:
   - zircon_runtime/src/core/framework/render/scene_extract.rs
   - zircon_runtime/src/core/framework/render/frame_extract.rs
   - zircon_runtime/src/scene/world/render_particles.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/particle/build_particle_vertices/build_particle_vertices.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/particle/build_particle_velocity_vertices/build_particle_velocity_vertices.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/particle/particle_renderer/construct.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/particle/particle_renderer/record_velocity.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/particle/particle_velocity_vertex/particle_velocity_vertex.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/particle/shaders/particle_velocity.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_record.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/particle.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/builtin_postprocess_executors.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render_with_pipeline/render_frame_with_pipeline.rs
-  - zircon_runtime/src/graphics/backend/render_backend/read_texture_rgba.rs
+  - zircon_runtime/src/graphics/build_particle_vertices/build_particle_vertices.rs
+  - zircon_runtime/src/graphics/scene/particle/particle_renderer/construct.rs
+  - zircon_runtime/src/graphics/scene/particle/particle_renderer/record_velocity.rs
+  - zircon_runtime/src/graphics/particle_velocity_vertex/particle_velocity_vertex.rs
+  - zircon_runtime/src/graphics/scene/particle/shaders/particle_velocity.wgsl
+  - zircon_runtime/src/graphics/scene/renderer/execution/context/gpu/particle.rs
+  - zircon_runtime/src/graphics/scene/renderer/core/render/render/render.rs
   - zircon_runtime/src/graphics/tests/plugin_render_feature_fixtures.rs
   - zircon_runtime/src/graphics/tests/render_product_particle_velocity.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/particle_previous_sprites.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/update_particle_previous_state.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/frame_submission_context.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs
+  - zircon_runtime/src/graphics/runtime/viewport_record/particle_previous_sprites.rs
+  - zircon_runtime/src/graphics/extract/submit/update_particle_previous_state.rs
+  - zircon_runtime/src/graphics/runtime/framework/extract/update_stats/base_stats.rs
   - zircon_runtime/src/core/framework/render/backend_types.rs
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/particle.rs
   - zircon_runtime/src/tests/runtime_diagnostics/mod.rs
@@ -75,7 +54,7 @@ tests:
   - cargo test -p zircon_runtime --lib particle_velocity_gap_counts_sprites_only_when_reconstructed_velocity_is_requested --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-temporal-skinned-prev-palette-0614 --message-format short --color never -- --test-threads=1 --nocapture (timed out after 304s without test output; leftover cargo/rustc processes terminated)
   - zircon_runtime/src/core/framework/render/frame_extract.rs::tests::particle_extract_counts_previous_state_by_entity
   - zircon_runtime/src/core/framework/render/frame_extract.rs::tests::particle_extract_consumes_duplicate_entity_previous_state_once_per_row
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs::tests::particle_velocity_gap_excludes_sprites_with_previous_state
+  - zircon_runtime/src/graphics/runtime/framework/extract/update_stats/base_stats.rs::tests::particle_velocity_gap_excludes_sprites_with_previous_state
   - zircon_runtime/src/graphics/tests/render_product_anti_alias.rs::render_product_particle_previous_state_suppresses_velocity_gap_stats
   - cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-temporal-s4d-0614 --message-format short --color never
   - cargo test -p zircon_runtime particle_velocity_vertices --lib --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-temporal-s4d-0614 --message-format short --color never
@@ -110,9 +89,7 @@ tests:
   - cargo test -p zircon_runtime scene::world::render_particles::tests::world_hud_bar --lib --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-temporal-s4d-0614 --message-format short --color never (TP-M1/S22 world-HUD producer key migration; passed 2 filtered tests)
   - cargo test -p zircon_runtime render_product_particle_velocity --lib --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-temporal-s4d-0614 --message-format short --color never (TP-M1/S22 key=0 hard-reject product route; passed 9 filtered product tests)
   - cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-temporal-s4d-0614 --message-format short --color never (TP-M1/S22 production check; passed with 70 existing warnings)
-  - zircon_runtime/src/graphics/scene/scene_renderer/particle/build_particle_vertices/build_particle_vertices.rs::tests::particle_vertices_filter_sprites_by_selected_camera_layers
-  - zircon_runtime/src/graphics/scene/scene_renderer/particle/build_particle_velocity_vertices/build_particle_velocity_vertices.rs::tests::particle_velocity_vertices_filter_current_sprites_by_selected_camera_layers
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests.rs::compile_skips_core_particle_pass_when_particle_sprites_miss_selected_camera_layers
+  - zircon_runtime/src/graphics/build_particle_vertices/build_particle_vertices.rs::tests::particle_vertices_filter_sprites_by_selected_camera_layers
   - cargo test -p zircon_runtime --lib particle_vertices_filter_sprites_by_selected_camera_layers --no-default-features --features core-min --locked --jobs 1 --target-dir target\codex-plan09-particle-typed-layer-0623 --message-format short --color never -- --test-threads=1 --nocapture (blocked before compilation by current Cargo.lock drift)
 doc_type: module-detail
 ---

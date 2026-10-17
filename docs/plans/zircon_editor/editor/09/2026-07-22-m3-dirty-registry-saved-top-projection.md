@@ -10,12 +10,11 @@ related_code:
   - zircon_editor/src/core/asset/dirty/external_effect_id.rs
   - zircon_editor/src/core/asset/dirty/registry.rs
   - zircon_editor/src/ui/host/editor_save_batch.rs
-  - zircon_editor/src/ui/retained_host/app/document_save.rs
+  - zircon_editor/src/ui/retained/app/document_save.rs
 tests:
   - zircon_editor/tests/editor_asset_facade.rs
-  - zircon_editor/src/core/asset/dirty/tests.rs
   - tools/tests/test_editor09_dirty_registry_contract.py
-  - zircon_editor/src/ui/retained_host/app/tests/document_save.rs
+  - zircon_editor/src/ui/retained/app/tests/document_save.rs
 ---
 
 # Editor09 M3.1 DirtyRegistry Saved-Top Projection

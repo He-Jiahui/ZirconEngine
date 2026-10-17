@@ -7,7 +7,6 @@ plan_sources:
 implementation_files:
   - zircon_runtime/src/ui/surface/property_mutation/metadata_batch.rs
 tests:
-  - zircon_runtime/src/ui/surface/property_mutation/metadata_batch/optimization_tests.rs
 ---
 
 # Runtime82 metadata batch borrowed unchanged String completion list

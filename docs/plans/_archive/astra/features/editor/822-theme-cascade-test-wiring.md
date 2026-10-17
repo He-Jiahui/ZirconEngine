@@ -6,10 +6,7 @@ plan_sources:
   - docs/plans/optimize/zircon_editor/652/2026-09-19-theme-cascade-test-wiring-repair.md
 related_code:
   - zircon_editor/src/ui/asset_editor/style/theme_cascade_inspection.rs
-  - zircon_editor/src/ui/asset_editor/style/theme_cascade_inspection/optimization_batch_jm_editor652_tests.rs
 tests:
-  - zircon_editor/src/ui/asset_editor/style/theme_cascade_inspection/optimization_batch_jm_editor652_tests.rs
-  - tools/tests/test_editor_theme_cascade_output_capacity_performance_contract.py
 related_records:
   - docs/plans/astra/features/editor/30-recent-optimization-batch-completion.md
   - docs/plans/astra/features/editor/664-20260911-editor-ui-optimization-batch-completion.md

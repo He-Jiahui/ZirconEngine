@@ -6,9 +6,7 @@ summary_slug: ffi-panic-boundary-current-source-inventory
 fixing_plan: docs/plans/zircon_runtime/runtime/10-dynamic-api-and-interface-convergence.md
 plan_link_mode: child_record_only
 related_code:
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/ffi_panic_boundary.rs
   - zircon_runtime/src/dynamic_api/exports.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/ffi_panic_guard.rs
   - zircon_runtime/src/plugin/export_build_plan/platform_host_files.rs
 ---
 

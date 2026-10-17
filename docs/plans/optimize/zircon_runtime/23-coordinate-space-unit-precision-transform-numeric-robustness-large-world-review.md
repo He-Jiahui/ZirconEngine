@@ -27,8 +27,7 @@ related_code:
   - zircon_runtime/src/asset/formats/obj
   - zircon_runtime/src/asset/importer
   - zircon_runtime/src/graphics/scene/gpu_scene
-  - zircon_runtime/src/graphics/scene/scene_renderer/primitives/scene_uniform
-  - zircon_runtime/src/graphics/scene/scene_renderer/temporal/velocity
+  - zircon_runtime/src/graphics/scene/renderer/primitives/scene_uniform
   - zircon_runtime/src/graphics/visibility
   - zircon_runtime/src/graphics/shader
   - zircon_plugins/physics/runtime/src/backend/builtin/step.rs
@@ -43,8 +42,7 @@ related_code:
 tests:
   - zircon_runtime/src/scene/tests/world_basics
   - zircon_runtime/src/scene/tests/property_paths
-  - zircon_runtime/src/graphics/scene/gpu_scene/gpu_scene/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/primitives/scene_uniform/from_frame.rs
+  - zircon_runtime/src/graphics/scene/renderer/scene_uniform/from_frame.rs
   - zircon_runtime/src/tests/runtime_absorption
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md

@@ -16,9 +16,7 @@ plan_sources:
   - dev/bevy/crates/bevy_tasks/src/usages.rs
   - docs/plans/zircon_runtime/runtime/11/failure-2026-07-13-editor-full-harness-runtime-thread-budget.md
 tests:
-  - zircon_runtime/src/core/framework/tests.rs
   - zircon_runtime/src/tests/tasks.rs
-  - zircon_runtime/src/core/framework/render/environment/source_cubemap/tests.rs
   - tools/tests/test_runtime_job_system_audit.py
   - cargo test -p zircon_runtime --lib task_framework --locked
   - cargo check -p zircon_runtime --lib --locked

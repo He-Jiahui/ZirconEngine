@@ -1,9 +1,6 @@
 ---
 related_code:
-  - zircon_runtime/src/core/framework/render/post_process/stack.rs
-  - zircon_runtime/src/core/framework/render/post_process/stack
   - zircon_runtime/src/core/framework/render/frame_extract.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_runtime/render/01-render-graph-rdg-alignment.md

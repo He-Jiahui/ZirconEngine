@@ -14,9 +14,9 @@ related_code:
   - zircon_editor/src/core/gateway/capabilities.rs
   - zircon_editor/src/core/gateway/session
   - zircon_editor/src/ui/host/editor_host_event_controller.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/tick.rs
-  - zircon_editor/src/ui/retained_host/host_contract/window/redraw.rs
-  - zircon_editor/src/ui/retained_host/host_contract/window/event_loop/lifecycle.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle/tick.rs
+  - zircon_editor/src/ui/retained/contract/window/redraw.rs
+  - zircon_editor/src/ui/retained/contract/window/event_loop/lifecycle.rs
   - zircon_editor/src/tests/gateway
 tests:
   - ./.codex/skills/zircon-dev/scripts/validate-matrix.ps1 -Package zircon_editor -SkipBuild -LibTests -TestFilter gateway_stable_path_has_no_shared_read_lock -TestThreads 1 -VerboseOutput

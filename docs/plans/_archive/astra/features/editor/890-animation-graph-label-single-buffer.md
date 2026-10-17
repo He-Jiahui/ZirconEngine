@@ -9,8 +9,6 @@ related_records:
 implementation_files:
   - zircon_editor/src/ui/animation_editor/session/graph.rs
 tests:
-  - zircon_editor/src/ui/animation_editor/session/graph/single_buffer_tests.rs
-  - tools/tests/test_editor890_animation_graph_label_single_buffer_performance_contract.py
 ---
 
 # Editor890 Animation Graph Label Single Buffer

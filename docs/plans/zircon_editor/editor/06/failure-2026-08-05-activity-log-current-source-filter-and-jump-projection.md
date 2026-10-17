@@ -13,8 +13,6 @@ related_code:
   - zircon_editor/src/core/logging
   - zircon_editor/src/ui/activity/view.rs
   - zircon_editor/src/ui/host/editor_event_runtime_reflection.rs
-  - zircon_editor/src/ui/retained_host/console_output.rs
-  - zircon_editor/src/ui/retained_host/app.rs
 tests:
   - filtered current log snapshot replaces stale retained rows
   - source and severity filter projection uses the canonical LogFilter

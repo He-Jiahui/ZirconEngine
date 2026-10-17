@@ -19,7 +19,6 @@ related_code:
   - zircon_runtime/src/graphics/scene/resources/gpu_model
   - zircon_runtime/src/graphics/scene/resources/prepared
   - zircon_runtime/src/graphics/scene/resources/resource_streamer
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh
   - zircon_plugins/gltf_importer/runtime/src
   - zircon_plugins/obj_importer/runtime/src
   - zircon_plugins/physics/runtime/src/backend

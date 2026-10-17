@@ -8,10 +8,8 @@ related_records:
   - docs/plans/astra/features/editor/664-20260911-editor-ui-optimization-batch-completion.md
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
-  - zircon_editor/src/ui/template_runtime/runtime/build_session.rs
+  - zircon_editor/src/ui/runtime/runtime/build_session.rs
 tests:
-  - zircon_editor/src/ui/template_runtime/runtime/build_session/editor798_document_id_capacity_tests.rs
-  - tools/tests/test_editor_builtin_template_document_id_capacity_performance_contract.py
 ---
 
 # Editor798 · builtin-template document-ID capacity

@@ -14,7 +14,6 @@ reference_sources:
   - dev/godot/core/object/object.cpp
   - dev/godot/core/object/class_db.cpp
 tests:
-  - zircon_runtime/src/scene/reflect/derived/tests.rs
   - zircon_runtime/src/scene/reflect/vm_type_backing.rs
   - zircon_runtime/src/scene/tests/ecs_reflect
   - current-source Windows zircon_runtime reflection tests pending

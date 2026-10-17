@@ -1,17 +1,6 @@
 ---
 related_code:
-  - zircon_runtime/src/plugin/native_plugin_loader/discover.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/discover/authority.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/collect_manifests.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/discover_load_manifest.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/candidate_from_manifest.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/load_discovered.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_load_report.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_load_report
-  - zircon_runtime/src/plugin/native_plugin_loader/loaded_native_plugin.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/behavior_calls.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host
+  - zircon_runtime/src/plugin/loader/discover/authority.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_plugins/01-plugin-architecture-core.md
@@ -24,12 +13,9 @@ reference_sources:
   - dev/godot/core/extension/gdextension_interface.cpp
   - dev/bevy/crates/bevy_app/src/app.rs
 tests:
-  - zircon_runtime/src/plugin/native_plugin_loader/discover/tests.rs::discovery_report_duplicate_index_borrows_snapshot_identity_and_reserves_output
-  - zircon_runtime/src/tests/plugin_extensions/native_plugin_loader.rs::native_loader_validates_owned_load_manifest_candidates_without_clone_or_shift_remove
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests/runtime_behavior.rs::native_live_host_runtime_snapshot_restore_borrows_state_payload_after_unlock
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests/hot_reload_state.rs::native_hot_reload_moves_the_saved_state_blob_into_restore_and_rollback
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests/hot_update_application.rs::native_load_report_bridge_lifecycle_borrows_loaded_plugin_ids
-  - zircon_runtime/src/plugin/native_plugin_loader/host_callbacks.rs::tests::native_host_capability_probe_streams_delimited_tokens_without_owned_list_projection
+  - zircon_runtime/src/plugin/loader/live/tests/runtime_behavior.rs::native_live_host_runtime_snapshot_restore_borrows_state_payload_after_unlock
+  - zircon_runtime/src/plugin/loader/live/tests/hot_reload_state.rs::native_hot_reload_moves_the_saved_state_blob_into_restore_and_rollback
+  - zircon_runtime/src/plugin/loader/live/tests/hot_update_application.rs::native_load_report_bridge_lifecycle_borrows_loaded_plugin_ids
   - current-source Windows Cargo and F0/F2/F4 product traces pending
 doc_type: implementation-evidence
 status: static_complete_dynamic_pending

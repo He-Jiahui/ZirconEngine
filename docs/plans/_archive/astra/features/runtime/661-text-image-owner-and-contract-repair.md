@@ -7,15 +7,14 @@ plan_sources:
   - docs/plans/optimize/zircon_runtime/81-runtime-text-shaping-unicode-bidi-script-run-cluster-line-break-wrap-layout-product-integration-current-source-review.md
   - docs/plans/optimize/zircon_runtime/11c/2026-09-09-image-bind-group-idle-retention.md
 related_code:
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/image.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/image/geometry.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/image.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/image/geometry.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/render.rs
   - zircon_runtime/src/ui/text/layout_engine/paragraph_layout.rs
   - zircon_runtime/src/text/layout/measure.rs
   - zircon_runtime/src/graphics/scene/resources/ui_texture.rs
 tests:
   - tools/tests/test_runtime10_plan_current_contract.py
-  - tools/tests/runtime_text_infrastructure_compile_contract/rich_parser_admission.py
   - tools/tests/test_runtime_text_inline_resource_prepare_receipt_contract.py
   - tools/tests/test_runtime_text_render_batch_owner_contract.py
   - tools/tests/test_runtime_text_rich_source_contract.py

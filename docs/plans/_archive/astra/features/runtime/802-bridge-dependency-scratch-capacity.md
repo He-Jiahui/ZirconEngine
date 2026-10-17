@@ -8,10 +8,7 @@ related_records:
   - docs/plans/astra/features/runtime/680-20260911-runtime-ui-optimization-batch-completion.md
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/bridge_dependencies.rs
 tests:
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/bridge_dependencies.rs
-  - tools/tests/test_runtime58_bridge_dependency_scratch_performance_contract.py
 ---
 
 # Runtime802 · bridge dependency traversal scratch capacity

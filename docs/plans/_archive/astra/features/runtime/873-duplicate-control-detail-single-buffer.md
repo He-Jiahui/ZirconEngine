@@ -9,8 +9,6 @@ related_records:
 implementation_files:
   - zircon_runtime/src/ui/template/asset/compiler/control_scope.rs
 tests:
-  - zircon_runtime/src/ui/template/asset/compiler/control_scope/duplicate_detail_single_buffer_tests.rs
-  - tools/tests/test_runtime873_duplicate_control_detail_single_buffer_performance_contract.py
 ---
 
 # Runtime873 Duplicate Control Detail Single Buffer

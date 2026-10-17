@@ -9,7 +9,6 @@ origin_child_dir: docs/plans/zircon_runtime/runtime/10
 fixing_child_dir: docs/plans/optimize/zircon_app/08
 plan_link_mode: child_record_only
 related_code:
-  - zircon_app/src/entry/runtime_library/tests.rs
   - zircon_app/src/entry/runtime_library/library_path.rs
 tests:
   - cargo test -p zircon_app --no-default-features --features diagnostic-log --locked --lib entry::runtime_library::tests::runtime_library_default_path_uses_the_physical_product_directory_identity

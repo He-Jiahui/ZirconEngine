@@ -6,8 +6,6 @@ plan_source: docs/plans/zircon_tooling/session_coordinator/01-workflow-control-c
 related_code:
   - .codex/skills/zircon-project-skills/handle-plan-failure-handoffs/scripts/validate_plan_failure_handoffs.py
 tests:
-  - tools/session_coordinator/tests/test_codex_evidence_projection.py
-  - tools/session_coordinator/tests/test_failures.py
   - .codex/skills/zircon-project-skills/handle-plan-failure-handoffs/scripts/test_validate_plan_failure_handoffs.py
 ---
 

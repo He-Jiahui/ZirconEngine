@@ -1,7 +1,6 @@
 ---
 related_code:
   - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/geometry.rs
-  - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/geometry/tests.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/pipeline.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/render_pass.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/retained_cache.rs
@@ -15,8 +14,6 @@ reference_sources:
   - dev/bevy/crates/bevy_ui_render/src/render_pass.rs
   - dev/slint/internal/renderers/skia/lib.rs
 tests:
-  - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/tests.rs
-  - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/geometry/tests.rs
   - current-source Windows ui_surface tests pending
 doc_type: implementation-evidence
 status: static_complete_dynamic_pending

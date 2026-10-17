@@ -2,16 +2,13 @@
 related_code:
   - zircon_runtime/src/asset/importer/native.rs
   - zircon_runtime/src/asset/importer/mod.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/loaded_native_plugin.rs
   - zircon_runtime/src/plugin/extension_registry/register.rs
 implementation_files:
   - zircon_runtime/src/asset/importer/native.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/loaded_native_plugin.rs
 plan_sources:
   - docs/plans/zircon_runtime/frameworks/05-subsystem-decoupling-contracts.md
 tests:
   - zircon_runtime/src/asset/importer/native.rs
-  - zircon_runtime/src/tests/plugin_extensions/native_plugin_loader/real_fixture.rs
   - tools/tests/test_frameworks_05_layer_direction.py
 ---
 

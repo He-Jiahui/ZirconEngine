@@ -1,14 +1,13 @@
 ---
 related_code:
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_runtime_writeback.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_wgpu_readback.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_graph_plan.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_wgpu_dispatch.rs
+  - zircon_runtime/src/graphics/scene/environment/ibl_bake_runtime_writeback.rs
+  - zircon_runtime/src/graphics/scene/renderer/environment/ibl_bake_wgpu_readback.rs
+  - zircon_runtime/src/graphics/scene/renderer/environment/ibl_bake_graph_plan.rs
+  - zircon_runtime/src/graphics/scene/renderer/environment/ibl_bake_wgpu_dispatch.rs
   - zircon_runtime/src/asset/artifact/ibl_bake_artifact_runtime_dispatch.rs
   - zircon_runtime/src/asset/artifact/ibl_bake_artifact_runtime_writeback.rs
 implementation_files:
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_runtime_writeback.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/mod.rs
+  - zircon_runtime/src/graphics/scene/environment/ibl_bake_runtime_writeback.rs
 plan_sources:
   - docs/plans/zircon_runtime/shader/06-environment-ibl-and-pbr-correctness.md
   - docs/plans/zircon_runtime/render/11-environment-lighting.md

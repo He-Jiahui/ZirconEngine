@@ -9,15 +9,11 @@ origin_child_dir: docs/plans/zircon_editor/editor/01
 fixing_child_dir: docs/plans/zircon_editor/editor_ui/03
 plan_link_mode: child_record_only
 related_code:
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text_tests.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text/font.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text/font/tests.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/placement.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout/tests.rs
+  - zircon_editor/src/ui/retained/contract/paint_text/font.rs
+  - zircon_editor/src/ui/retained/contract/paint_text/draw/placement.rs
   - zircon_runtime/src/text/model/shaped_run.rs
   - zircon_runtime/src/text/model/mod.rs
   - zircon_runtime/src/text/layout/rich.rs
-  - zircon_runtime/src/text/layout/rich/tests.rs
   - zircon_runtime/src/text/layout/rich/materialize.rs
   - zircon_runtime/src/text/layout/mod.rs
   - zircon_runtime/src/text/rich/bbcode_table.rs

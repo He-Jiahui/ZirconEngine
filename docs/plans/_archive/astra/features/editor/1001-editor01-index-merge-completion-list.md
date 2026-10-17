@@ -13,18 +13,9 @@ related_records:
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
   - zircon_editor/src/ui/layouts/views/assets_activity/content_layout.rs
-  - zircon_editor/src/ui/layouts/views/assets_activity/content_layout/indexed_lookup_tests.rs
   - zircon_editor/src/ui/reflection/builder.rs
-  - zircon_editor/src/ui/reflection/builder/dense_node_tests.rs
-  - zircon_editor/src/ui/template_runtime/model.rs
-  - zircon_editor/src/ui/template_runtime/model/optimization_tests.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/sprite_atlas/cache.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/sprite_atlas/cache/hash_index_tests.rs
+  - zircon_editor/src/ui/retained/contract/paint/sprite_atlas/cache.rs
 tests:
-  - zircon_editor/src/ui/layouts/views/assets_activity/content_layout/indexed_lookup_tests.rs
-  - zircon_editor/src/ui/reflection/builder/dense_node_tests.rs
-  - zircon_editor/src/ui/template_runtime/model/optimization_tests.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/sprite_atlas/cache/hash_index_tests.rs
 ---
 
 # Editor01 · index/dense/merge completion list

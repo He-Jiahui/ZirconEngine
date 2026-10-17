@@ -17,7 +17,7 @@ related_code:
   - zircon_runtime/src/tests/state.rs
   - zircon_runtime/src/tests/state/hook_index.rs
   - zircon_runtime/src/tests/prelude.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy/core_runtime/handle_accessors.rs
+  - zircon_runtime/src/tests/contracts/structure/core_runtime/handle_accessors.rs
   - zircon_app/src/tests/prelude.rs
   - docs/crates/zircon_runtime/core/state.md
 tests:
@@ -25,7 +25,7 @@ tests:
   - zircon_runtime/src/tests/state.rs
   - zircon_runtime/src/tests/state/hook_index.rs
   - zircon_runtime/src/tests/prelude.rs::runtime_prelude_exports_state_contracts
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy/core_runtime/handle_accessors.rs::runtime_15_core_handle_states_lock_poison_recovery_guard_covers_state_registry
+  - zircon_runtime/src/tests/contracts/structure/core_runtime/handle_accessors.rs::runtime_15_core_handle_states_lock_poison_recovery_guard_covers_state_registry
   - zircon_app/src/tests/prelude.rs::app_prelude_includes_runtime_prelude_foundations
 plan_sources:
   - docs/plans/optimize/zircon_runtime/48-runtime-wide-state-next-state-transition-hook-history-schedule-scope-product-integration-review.md

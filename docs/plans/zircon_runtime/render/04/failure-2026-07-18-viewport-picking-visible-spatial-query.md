@@ -11,17 +11,15 @@ plan_link_mode: child_record_only
 related_code:
   - zircon_runtime/src/graphics/visibility/declarations/visibility_context.rs
   - zircon_runtime/src/graphics/visibility/static_index/mod.rs
-  - zircon_runtime/src/graphics/visibility/context/from_extract_with_history/construct.rs
   - zircon_runtime/src/graphics/visibility/spatial_query.rs
   - zircon_runtime/src/core/framework/render/scene_extract.rs
   - zircon_runtime/src/core/framework/render/frame_extract.rs
   - zircon_runtime/src/core/framework/render/visible_spatial_query.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/visible_spatial_query.rs
+  - zircon_runtime/src/graphics/runtime/viewport_record/visible_spatial_query.rs
   - zircon_editor/src/scene/viewport/interaction_extract/cache.rs
   - zircon_editor/src/scene/viewport/pointer/candidates/renderable_candidates.rs
-  - zircon_editor/src/scene/viewport/pointer/precision/renderer_visible_spatial_pick_source.rs
-  - zircon_editor/src/scene/viewport/pointer/overlay_router/viewport_overlay_pointer_router_visible_spatial_query.rs
-  - zircon_editor/src/ui/retained_host/viewport/submit_extract.rs
+  - zircon_editor/src/scene/precision/renderer_visible_spatial_pick_source.rs
+  - zircon_editor/src/ui/retained/viewport/submit_extract.rs
 ---
 
 # Viewport picking visible spatial query

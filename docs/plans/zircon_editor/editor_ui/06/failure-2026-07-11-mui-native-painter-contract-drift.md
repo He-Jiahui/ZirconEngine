@@ -9,32 +9,12 @@ origin_child_dir: docs/plans/zircon_editor/editor/01
 fixing_child_dir: docs/plans/zircon_editor/editor_ui/06
 plan_link_mode: child_record_only
 related_code:
-  - zircon_editor/src/tests/host/retained_window/native_material_painter_mui_primitives
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes
-  - zircon_editor/src/ui/retained_host/ui
   - zircon_runtime_interface/src/ui/design_tokens.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_theme/palette_projection.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_pipeline.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_pipeline/draw.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_pipeline/test_support.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_nodes.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_nodes/commands.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_nodes/geometry.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_nodes/fallback.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mui_x_primitives.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/component_showcase_projection.rs
-  - zircon_editor/src/ui/retained_host/ui/tests/component_showcase/mod.rs
-  - zircon_editor/src/ui/retained_host/ui/tests/component_showcase/contracts.rs
-  - zircon_editor/src/ui/retained_host/ui/tests/component_showcase/runtime_projection.rs
-  - zircon_editor/src/ui/retained_host/ui/tests/component_showcase/state_projection.rs
-  - zircon_editor/src/tests/host/retained_window/native_material_painter_mui_primitives/mod.rs
-  - zircon_editor/src/tests/host/retained_window/native_material_painter_mui_primitives/support.rs
-  - zircon_editor/src/tests/host/retained_window/native_material_painter_mui_primitives/avatar_badge_chip.rs
-  - zircon_editor/src/tests/host/retained_window/native_material_painter_mui_primitives/field_and_icon.rs
-  - zircon_editor/src/tests/host/retained_window/native_material_painter_mui_primitives/mui_x_chart_and_chat.rs
-  - zircon_editor/src/tests/host/retained_window/native_material_painter_mui_primitives/mui_x_foundation.rs
-  - zircon_editor/src/tests/host/retained_window/native_material_painter_mui_primitives/progress_and_overlay.rs
+  - zircon_editor/src/ui/retained/contract/paint_theme/palette_projection.rs
+  - zircon_editor/src/ui/retained/ui/tests/component_showcase/mod.rs
+  - zircon_editor/src/ui/retained/ui/tests/component_showcase/contracts.rs
+  - zircon_editor/src/ui/retained/ui/tests/component_showcase/runtime_projection.rs
+  - zircon_editor/src/ui/retained/ui/tests/component_showcase/state_projection.rs
 plan_sources:
   - docs/plans/zircon_editor/editor_ui/06-component-library-mui.md
   - docs/plans/zircon_editor/editor/01-editor-kernel-and-runtime-interaction.md

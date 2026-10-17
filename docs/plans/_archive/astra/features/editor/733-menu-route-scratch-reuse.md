@@ -10,12 +10,11 @@ related_records:
   - docs/plans/astra/features/editor/732-menu-parent-path-reuse.md
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
-  - zircon_editor/src/ui/retained_host/menu_pointer/host_menu_pointer_bridge.rs
-  - zircon_editor/src/ui/retained_host/menu_pointer/host_menu_pointer_bridge_new.rs
-  - zircon_editor/src/ui/retained_host/menu_pointer/host_menu_pointer_bridge_project_route.rs
+  - zircon_editor/src/ui/retained/menu_pointer/host_menu_pointer_bridge.rs
+  - zircon_editor/src/ui/retained/menu_pointer/host_menu_pointer_bridge_new.rs
+  - zircon_editor/src/ui/menu_pointer/host_menu_pointer_bridge_project_route.rs
 tests:
-  - zircon_editor/src/ui/retained_host/menu_pointer/host_menu_pointer_bridge_project_route.rs
-  - tools/tests/test_editor_menu_route_scratch_reuse_performance_contract.py
+  - zircon_editor/src/ui/menu_pointer/host_menu_pointer_bridge_project_route.rs
 ---
 
 # Editor menu popup-route scratch reuse

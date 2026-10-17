@@ -10,10 +10,7 @@ fixing_child_dir: docs/plans/zircon_runtime/runtime/04
 plan_link_mode: child_record_only
 related_code:
   - zircon_runtime/src/asset/management/record_sets.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/management.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/management_generation.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/runtime.rs
-  - zircon_runtime/src/asset/pipeline/manager/service_contracts/resource_manager_contract.rs
+  - zircon_runtime/src/asset/manager/service_contracts/resource_manager_contract.rs
   - zircon_runtime/src/asset/assets/scene/asset.rs
   - zircon_runtime/src/asset/assets/scene/management.rs
 tests:

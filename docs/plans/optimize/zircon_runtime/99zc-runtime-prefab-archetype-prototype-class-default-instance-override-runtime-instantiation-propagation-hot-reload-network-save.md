@@ -20,15 +20,8 @@ related_code:
   - zircon_runtime/src/asset/importer/ingest/asset_importer.rs
   - zircon_runtime/src/asset/importer/ingest/import_authoring_asset.rs
   - zircon_runtime/src/asset/facade/impls.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager
   - zircon_runtime/src/builtin/runtime_modules/assembly
   - zircon_runtime/src/scene/world/project_io/scene_asset.rs
-  - zircon_runtime/src/scene/dynamic_scene/remap.rs
-  - zircon_runtime/src/scene/dynamic_scene/entity
-  - zircon_runtime/src/scene/dynamic_scene/scene
-  - zircon_runtime/src/scene/dynamic_scene/scene_asset
-  - zircon_runtime/src/scene/dynamic_scene/spawn_task
-  - zircon_runtime/src/scene/dynamic_scene/asset_reload
   - zircon_plugins/prefab_tools
   - examples/vampire/zircon-project.toml
   - examples/vampire/assets/scenes/main.scene.toml
@@ -38,8 +31,6 @@ related_code:
   - examples/woc/native/plugins/woc_runtime/src/transaction.rs
   - examples/woc/scripts/woc_game/src/main.zr
 tests:
-  - zircon_plugins/prefab_tools/editor/src/tests.rs
-  - zircon_plugins/prefab_tools/runtime/src/tests.rs
   - zircon_runtime/src/asset/tests
   - zircon_runtime/src/scene/tests/asset_scene
   - zircon_runtime/src/scene/tests/dynamic_scene

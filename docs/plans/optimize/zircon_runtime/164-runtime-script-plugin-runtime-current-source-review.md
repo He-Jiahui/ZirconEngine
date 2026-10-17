@@ -18,7 +18,6 @@ related_reports:
   - docs/plans/optimize/zircon_plugins/16-first-party-zr-vm-language-source-runtime-dist-catalog-reflection-callsite-host-interface-gc-hot-reload-product-integration-review.md
   - docs/plans/optimize/zircon_plugins/21-plugin-artifact-marketplace-third-party-package-install-update-trust-non-cargo-product-integration-review.md
 related_code:
-  - zircon_runtime/src/plugin/runtime_plugin
   - zircon_runtime/src/plugin/native
   - zircon_runtime/src/plugin/bridge
   - zircon_runtime/src/script
@@ -33,7 +32,6 @@ tests:
   - zircon_runtime/src/plugin
   - zircon_runtime/src/dynamic_api/session/tests
   - zircon_plugins/zr_vm_language/runtime/src/tests
-  - zircon_plugins/plugin_sdk/src/native/tests.rs
 reference_engines:
   - dev/bevy/crates/bevy_app/src/plugin.rs
   - dev/bevy/crates/bevy_app/src/plugin_group.rs

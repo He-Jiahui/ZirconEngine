@@ -6,8 +6,6 @@ related_code:
   - zircon_plugins/animation/runtime/src/evaluation/animation_clip_compile_error.rs
   - zircon_plugins/animation/runtime/src/evaluation/skeleton_target_table.rs
   - zircon_plugins/animation/runtime/src/evaluation/compiled_animation_clip/mod.rs
-  - zircon_plugins/animation/runtime/src/evaluation/compiled_animation_clip/compiled_animation_clip.rs
-  - zircon_plugins/animation/runtime/src/evaluation/compiled_animation_clip/compile.rs
   - zircon_plugins/animation/runtime/src/evaluation/compiled_clip_track.rs
   - zircon_plugins/animation/runtime/src/evaluation/target_slot.rs
   - zircon_plugins/animation/runtime/src/evaluation/target_table.rs
@@ -18,8 +16,6 @@ related_code:
   - zircon_plugins/animation/runtime/src/evaluation/pose_buffer/blend.rs
   - zircon_plugins/animation/runtime/src/evaluation/pose_pool.rs
   - zircon_plugins/animation/runtime/src/evaluation/clip_evaluator/mod.rs
-  - zircon_plugins/animation/runtime/src/evaluation/clip_evaluator/animation_clip_evaluator.rs
-  - zircon_plugins/animation/runtime/src/evaluation/clip_evaluator/channel_validation.rs
   - zircon_plugins/animation/runtime/src/runtime_system.rs
   - zircon_plugins/animation/runtime/src/evaluation/pipeline/clip_sample.rs
   - zircon_plugins/animation/runtime/src/evaluation/pipeline/graph_evaluate.rs
@@ -29,8 +25,6 @@ implementation_files:
   - zircon_plugins/animation/runtime/src/evaluation/animation_clip_compile_error.rs
   - zircon_plugins/animation/runtime/src/evaluation/skeleton_target_table.rs
   - zircon_plugins/animation/runtime/src/evaluation/compiled_animation_clip/mod.rs
-  - zircon_plugins/animation/runtime/src/evaluation/compiled_animation_clip/compiled_animation_clip.rs
-  - zircon_plugins/animation/runtime/src/evaluation/compiled_animation_clip/compile.rs
   - zircon_plugins/animation/runtime/src/evaluation/compiled_clip_track.rs
   - zircon_plugins/animation/runtime/src/evaluation/target_slot.rs
   - zircon_plugins/animation/runtime/src/evaluation/target_table.rs
@@ -40,8 +34,6 @@ implementation_files:
   - zircon_plugins/animation/runtime/src/evaluation/pose_buffer/storage.rs
   - zircon_plugins/animation/runtime/src/evaluation/pose_buffer/blend.rs
   - zircon_plugins/animation/runtime/src/evaluation/pose_pool.rs
-  - zircon_plugins/animation/runtime/src/evaluation/clip_evaluator/animation_clip_evaluator.rs
-  - zircon_plugins/animation/runtime/src/evaluation/clip_evaluator/channel_validation.rs
   - zircon_plugins/animation/runtime/src/evaluation/pipeline/clip_sample.rs
   - zircon_plugins/animation/runtime/src/evaluation/pipeline/graph_evaluate.rs
 plan_sources:
@@ -54,7 +46,6 @@ tests:
   - zircon_plugins/animation/runtime/tests/animation_compiled_evaluator_contract.rs
   - zircon_plugins/animation/runtime/tests/physics_tick.rs
   - zircon_runtime/tests/resource_snapshot_contract.rs
-  - zircon_plugins/animation/runtime/tests/animation_pose_buffer_allocation_contract.rs
 validation:
   - 2026-07-10: historical focused M1-T1 DTO suite passed 4/4 after a focused Windows type check passed.
   - 2026-07-10: review-corrected target ownership and weighted-pose implementation passed WSL cargo check for all animation runtime test targets in 13m08s.

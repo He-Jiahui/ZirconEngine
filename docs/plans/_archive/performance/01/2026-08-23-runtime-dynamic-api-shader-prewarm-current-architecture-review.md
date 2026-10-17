@@ -4,7 +4,6 @@ related_code:
   - zircon_runtime/src/core/framework/render/shader/variant_prewarm/budget.rs
   - zircon_runtime/src/graphics/shader/variant_cache/prewarm.rs
   - zircon_runtime/src/graphics/shader/variant_cache/prewarm/worker.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/prewarm_pipeline_validation.rs
   - zircon_runtime/src/bin/zircon_shader_prewarm
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md

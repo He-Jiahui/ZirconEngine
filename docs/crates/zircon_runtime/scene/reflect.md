@@ -41,8 +41,6 @@ related_code:
   - zircon_runtime/src/scene/world/hierarchy.rs
   - zircon_runtime/src/scene/world/derived_state.rs
   - zircon_runtime/src/scene/world/error.rs
-  - zircon_runtime/src/core/framework/scene/component_type_descriptor/component_property_descriptor.rs
-  - zircon_runtime/src/core/framework/scene/component_type_descriptor/component_type_descriptor.rs
 implementation_files:
   - zircon_runtime/src/scene/mod.rs
   - zircon_runtime/src/scene/reflect/conversion.rs
@@ -107,10 +105,7 @@ tests:
   - zircon_runtime/src/scene/tests/ecs_typed_api.rs
   - zircon_runtime/src/scene/tests/world_basics.rs
   - zircon_runtime/src/scene/tests/derived_state/checked_parent_chain.rs
-  - zircon_runtime/src/tests/plugin_extensions/dynamic_components.rs
-  - zircon_runtime/src/script/vm/reflection/tests.rs
   - zircon_runtime/src/script/vm/reflection/tests/schema_invariants.rs
-  - tests/acceptance/reflection-type-registry.md
 doc_type: module-detail
 ---
 

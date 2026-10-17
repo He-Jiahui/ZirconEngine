@@ -2,31 +2,21 @@
 related_code:
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product.rs
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product/camera.rs
-  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product/visibility.rs
+  - zircon_runtime/src/core/runtime/diagnostics/product/visibility.rs
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product/hzb.rs
-  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product/light_grid.rs
-  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product/effect_stack.rs
-  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product/material.rs
+  - zircon_runtime/src/core/runtime/diagnostics/product/light_grid.rs
+  - zircon_runtime/src/core/runtime/diagnostics/product/effect_stack.rs
+  - zircon_runtime/src/core/runtime/diagnostics/product/material.rs
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product/light.rs
-  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product/mesh_queue.rs
-  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product/gpu_scene.rs
+  - zircon_runtime/src/core/runtime/diagnostics/product/mesh_queue.rs
+  - zircon_runtime/src/core/runtime/diagnostics/product/gpu_scene.rs
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product/sprite.rs
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product/ui.rs
-  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product/tests.rs
-  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product/tests/camera_targets.rs
-  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product/tests/visibility_hzb_light.rs
-  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product/tests/mesh_gpu_scene.rs
+  - zircon_runtime/src/core/runtime/diagnostics/product/tests/camera_targets.rs
+  - zircon_runtime/src/core/runtime/product/tests/visibility_hzb_light.rs
+  - zircon_runtime/src/core/runtime/diagnostics/product/tests/mesh_gpu_scene.rs
   - zircon_runtime/src/core/framework/render/backend_types.rs
   - zircon_runtime/src/core/framework/render/virtual_geometry_debug_snapshot.rs
-  - zircon_runtime/src/core/framework/render/virtual_geometry_debug_snapshot/bvh_visualization.rs
-  - zircon_runtime/src/core/framework/render/virtual_geometry_debug_snapshot/cpu_reference.rs
-  - zircon_runtime/src/core/framework/render/virtual_geometry_debug_snapshot/cull_input.rs
-  - zircon_runtime/src/core/framework/render/virtual_geometry_debug_snapshot/execution.rs
-  - zircon_runtime/src/core/framework/render/virtual_geometry_debug_snapshot/node_and_cluster_cull.rs
-  - zircon_runtime/src/core/framework/render/virtual_geometry_debug_snapshot/snapshot.rs
-  - zircon_runtime/src/core/framework/render/virtual_geometry_debug_snapshot/sources.rs
-  - zircon_runtime/src/core/framework/render/post_process/stack.rs
-  - zircon_runtime/src/core/framework/render/post_process/volume_component.rs
   - zircon_runtime/src/asset/assets/scene/mod.rs
   - zircon_runtime/src/asset/artifact/cache_payload.rs
   - zircon_runtime/src/asset/artifact/cache_payload/json_value.rs
@@ -36,12 +26,9 @@ related_code:
   - zircon_runtime/src/navigation/runtime/baked_mesh.rs
   - zircon_runtime/src/navigation/runtime/world_scan.rs
   - zircon_runtime/src/navigation/runtime/avoidance.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_record.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command_list.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/build_virtual_geometry_debug_snapshot.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/build.rs
+  - zircon_runtime/src/graphics/runtime/framework/extract/update_stats/base_stats.rs
+  - zircon_runtime/src/graphics/scene/renderer/core/render/render/render.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/build_mesh_draws/build/build.rs
   - zircon_runtime/src/script/vm/gameplay_host.rs
   - zircon_runtime/src/script/vm/gameplay_host/combat.rs
   - zircon_runtime/src/script/vm/gameplay_host/components.rs
@@ -52,13 +39,8 @@ related_code:
   - zircon_runtime/src/script/vm/gameplay_host/transform.rs
   - zircon_runtime/src/script/vm/gameplay_host/values.rs
   - zircon_runtime/src/scene/world/project_io.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile.rs
   - zircon_runtime/src/ui/surface/surface.rs
-  - zircon_editor/src/ui/retained_host/host_contract/template_component_family/workbench.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/mod.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle.rs
   - zircon_editor/src/ui/asset_editor/style/theme_authoring.rs
   - zircon_hub/src/tauri_app/runtime_state/project_actions.rs
   - zircon_hub/src/tauri_app/view_model.rs

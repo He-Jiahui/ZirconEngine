@@ -15,14 +15,10 @@ related_code:
   - zircon_runtime/src/asset/assets/imported.rs
   - zircon_runtime/src/asset/assets/sound.rs
   - zircon_editor/src/core/asset/type_registry/asset_type_id.rs
-  - zircon_editor/src/ui/retained_host/viewport/poll_captured_frame.rs
-  - zircon_editor/src/ui/retained_host/viewport/tests/controller_polls_latest_captured_frame_from_render_framework.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/execution/output_capture.rs
+  - zircon_editor/src/ui/retained/viewport/poll_captured_frame.rs
+  - zircon_editor/src/ui/host/exports/wizard/execution/output_capture.rs
   - zircon_editor/src/ui/settings/settings_window_projection/capture.rs
-  - zircon_editor/assets/ui/editor/components/workbench/modules/core/rendering/workbench_render_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/diagnostics/workbench_extension_performance_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/diagnostics/workbench_extension_runtime_diagnostics_workspace.zui
-  - zircon_editor/assets/ui/editor/material_components/utils_lab/material_use_media_query.zui
+  - zircon_editor/assets/ui/editor/utils_lab/material_use_media_query.zui
   - zircon_plugins/first_party_editor_catalog/src/catalog.rs
   - zircon_plugins/audio_importer/runtime/src/lib.rs
   - zircon_app/src/entry/runtime_entry_app/frame_capture.rs

@@ -10,7 +10,6 @@ origin_child_dir: docs/plans/zircon_editor/editor/15
 fixing_child_dir: docs/plans/zircon_plugins/05
 related_code:
   - zircon_runtime/src/core/framework/navigation/query.rs
-  - zircon_runtime/src/core/framework/navigation/tests.rs
 tests:
   - cargo test -p zircon_plugin_navigation_recast --locked
   - cargo test -p zircon_plugin_navigation_runtime --locked

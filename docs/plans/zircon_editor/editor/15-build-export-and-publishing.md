@@ -6,8 +6,8 @@ related_code:
   - zircon_runtime_interface/src/export/stage.rs
   - zircon_editor/src/core/export/mod.rs
   - zircon_editor/src/core/export/pipeline.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/progress.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/controller.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/progress.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/controller.rs
   - tools/build/zircon_build.py
   - tools/export
   - zircon_runtime/src/asset/pack

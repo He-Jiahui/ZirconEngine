@@ -11,20 +11,13 @@ plan_link_mode: child_record_only
 related_code:
   - zircon_editor/src/ui/layouts/views/assets_activity.rs
   - zircon_editor/src/ui/layouts/views/asset_browser.rs
-  - zircon_editor/src/ui/retained_host/primitives.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/template_node_projection.rs
   - zircon_editor/src/ui/workbench/asset_content_layout/mod.rs
   - zircon_editor/src/ui/workbench/asset_content_layout/paint_metadata.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/docks/pane/template_nodes/asset_content/projector.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/docks/pane/template_nodes/asset_content/mod.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_pipeline/transform.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_pipeline/draw.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/native_panes/scrollbar/asset.rs
+  - zircon_editor/src/ui/contract/docks/pane/nodes/asset_content/projector.rs
+  - zircon_editor/src/ui/retained/contract/docks/pane/nodes/asset_content/mod.rs
+  - zircon_editor/src/ui/retained/contract/workbench/native_panes/scrollbar/asset.rs
 tests:
   - tools/tests/test_editor09_asset_content_generation_projection.py
-  - zircon_editor/src/ui/workbench/asset_content_layout/tests.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/docks/pane/template_nodes/asset_content/tests.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_pipeline_tests/transform.rs
 ---
 
 # Asset pane projector repeated model scans

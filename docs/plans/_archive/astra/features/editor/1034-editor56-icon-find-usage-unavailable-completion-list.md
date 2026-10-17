@@ -1,10 +1,8 @@
 ---
 related_code:
   - zircon_editor/src/core/context/editor_context.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/startup/with_viewport.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/startup/template_bridges/factory.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/componentized_window.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle/startup/with_viewport.rs
+  - zircon_editor/src/ui/retained/dispatch/workbench/componentized_window.rs
   - zircon_editor/assets/i18n/en.toml
   - zircon_editor/assets/i18n/zh-CN.toml
 plan_sources:

@@ -9,7 +9,6 @@ origin_child_dir: docs/plans/optimize/zircon_tooling/06
 fixing_child_dir: docs/plans/zircon_hub/03
 plan_link_mode: child_record_only
 related_code:
-  - zircon_hub/src/tauri_app/runtime_state/tests.rs
 tests:
   - cargo test -p zircon_hub --lib focus_refresh_reconciles_pending_hub_recents_with_editor_registry --locked
 ---

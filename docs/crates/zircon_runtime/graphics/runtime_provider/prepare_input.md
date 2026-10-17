@@ -14,8 +14,6 @@ plan_sources:
   - docs/plans/engine-code-review-findings-2026-06.md
   - docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md
 tests:
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/provider_boilerplate.rs::runtime_15_provider_prepare_input_uses_shared_extract_generation_owner
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data.rs
   - cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked
 doc_type: module-detail
 ---

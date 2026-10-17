@@ -12,10 +12,8 @@ related_code:
   - zircon_runtime/src/scene/world/error.rs
 tests:
   - zircon_runtime/src/scene/tests/derived_state/checked_parent_chain.rs
-  - zircon_runtime/src/scene/world/hierarchy/checked_parent_chain_profile.rs
   - zircon_runtime/src/scene/tests/derived_state/work_counters.rs
   - zircon_runtime/src/scene/tests/derived_state/spawn_paths.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/scene_derived_state.rs
 plan_sources:
   - docs/plans/optimize/zircon_runtime/62-runtime-scene-hierarchy-transform-propagation-reparent-activation-mobility-visibility-bounds-render-product-integration-review.md
   - docs/plans/optimize/zircon_runtime/99k-runtime-scene-hierarchy-transform-propagation-reparent-activation-mobility-visibility-bounds-render.md

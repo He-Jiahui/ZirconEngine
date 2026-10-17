@@ -11,8 +11,7 @@ plan_link_mode: child_record_only
 related_code:
   - zircon_runtime/src/dynamic_api/session/registry/session_store.rs
   - zircon_runtime/src/dynamic_api/session/registry/allocation_registry.rs
-  - zircon_runtime/src/dynamic_api/session/registry/tests.rs
-  - zircon_runtime/src/dynamic_api/session/registry/tests/destroy_registry_deadline.rs
+  - zircon_runtime/src/dynamic_api/session/tests/destroy_registry_deadline.rs
 tests:
   - cargo +1.94.1 check -p zircon_runtime --no-default-features --features dynamic-api --locked --lib --tests
   - cargo +1.94.1 test -p zircon_runtime --no-default-features --features dynamic-api --locked --lib destroy_registry_deadline -- --test-threads=1

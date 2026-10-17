@@ -3,8 +3,7 @@ related_code:
   - zircon_editor/src/core/context
   - zircon_editor/src/core/recovery/autosave_service.rs
   - zircon_editor/src/ui/host/editor_manager.rs
-  - zircon_editor/src/ui/retained_host/app/autosave.rs
-  - zircon_editor/src/ui/retained_host/app.rs
+  - zircon_editor/src/ui/retained/app/autosave.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/performance/review.md

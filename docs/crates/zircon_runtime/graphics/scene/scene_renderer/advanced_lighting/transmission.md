@@ -1,27 +1,19 @@
 ---
 related_code:
   - zircon_runtime/src/core/framework/render/advanced_lighting/material_usage.rs
-  - zircon_runtime/src/core/framework/render/advanced_lighting/screen_space_transmission.rs
+  - zircon_runtime/src/core/render/advanced_lighting/screen_space_transmission.rs
   - zircon_runtime/src/graphics/pipeline/declarations/advanced_pbr_pass_contract.rs
   - zircon_runtime/src/graphics/pipeline/compiled_graph_cache.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/resource_descriptors.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/material_feature_extract.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/transmission
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/surface.rs
+  - zircon_runtime/src/graphics/scene/renderer/advanced_lighting/transmission
+  - zircon_runtime/src/graphics/scene/renderer/execution/context/gpu/surface.rs
 implementation_files:
   - zircon_runtime/src/graphics/pipeline/compiled_graph_cache.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/resource_descriptors.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/material_feature_extract.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/transmission/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/transmission/resources.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/transmission/steps.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/bind_frame_graph_resources.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/resource_lookup.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/surface.rs
+  - zircon_runtime/src/graphics/scene/renderer/advanced_lighting/transmission/mod.rs
+  - zircon_runtime/src/graphics/scene/renderer/transmission/resources.rs
+  - zircon_runtime/src/graphics/scene/renderer/transmission/steps.rs
+  - zircon_runtime/src/graphics/scene/core/render/bind_frame_graph_resources.rs
+  - zircon_runtime/src/graphics/scene/renderer/context/gpu/resource_lookup.rs
+  - zircon_runtime/src/graphics/scene/renderer/execution/context/gpu/surface.rs
 plan_sources:
   - docs/plans/zircon_runtime/render/18-advanced-lighting-features.md
 tests:

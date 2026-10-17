@@ -6,9 +6,7 @@ plan_sources:
   - docs/plans/optimize/zircon_editor/01/2026-08-29-ui-hotspot-ownership-review.md
   - docs/plans/optimize/zircon_editor/01-retained-ui-architecture-performance-review.md
 related_code:
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection/activity_rail.rs
 tests:
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection/activity_rail.rs
 ---
 
 # Activity Rail Projection Capacity

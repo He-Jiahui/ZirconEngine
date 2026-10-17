@@ -15,11 +15,9 @@ related_code:
   - zircon_runtime/src/dynamic_api/session/state.rs
   - zircon_runtime/src/operation/service.rs
   - zircon_runtime/src/asset/pipeline/worker_pool.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager
   - zircon_runtime/src/graphics/pipeline/async_compile.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/pipelined/queue.rs
+  - zircon_runtime/src/graphics/runtime/framework/pipelined/queue.rs
   - zircon_runtime/src/platform/preferences/persistence/adapter.rs
-  - zircon_runtime/src/scene/dynamic_scene
   - zircon_runtime/src/scene/ecs/schedule_parallel_executor.rs
   - zircon_runtime/src/scene/ecs/schedule_runner.rs
   - zircon_runtime/src/scene/module/scene_artifact_io.rs
@@ -30,11 +28,9 @@ related_code:
   - zircon_editor/src/core/jobs
   - zircon_editor/src/core/context
   - zircon_editor/src/core/settings/persistence.rs
-  - zircon_editor/src/ui/retained_host/app.rs
   - zircon_app/src/bin/zircon_shader_pbr_viewer/scene.rs
 tests:
   - zircon_runtime/src/tests/tasks.rs
-  - zircon_runtime/src/core/runtime/tasks/bounded_keyed_io/tests.rs
   - zircon_runtime/src/core/runtime/tasks/bounded_keyed_io/tests
   - zircon_runtime/src/tests/runtime_absorption/job_system
   - zircon_editor/src/core/jobs/tests

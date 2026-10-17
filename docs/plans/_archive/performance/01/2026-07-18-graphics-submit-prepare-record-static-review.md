@@ -1,11 +1,6 @@
 ---
 related_code:
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/prepare_runtime_submission
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/record_submission
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/frame_submission_context.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submission_record_update.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/virtual_geometry_stats.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record
+  - zircon_runtime/src/graphics/extract/update_stats/virtual_geometry_stats.rs
   - zircon_runtime/src/graphics/runtime_provider/registration.rs
 tests:
   - current prepare/record slice 7 of 7 Rust files reviewed, 445 lines

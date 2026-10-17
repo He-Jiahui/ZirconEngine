@@ -1,39 +1,37 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/app.rs
-  - zircon_editor/src/ui/retained_host/app/welcome_session.rs
-  - zircon_editor/src/ui/retained_host/app/welcome_session/actions.rs
-  - zircon_editor/src/ui/retained_host/app/welcome_session/actions/draft.rs
-  - zircon_editor/src/ui/retained_host/app/welcome_session/actions/project.rs
-  - zircon_editor/src/ui/retained_host/app/welcome_session/actions/recent.rs
-  - zircon_editor/src/ui/retained_host/app/welcome_session/actions/startup_views.rs
-  - zircon_editor/src/ui/retained_host/app/welcome_session/bridge.rs
-  - zircon_editor/src/ui/retained_host/app/welcome_session/session.rs
-  - zircon_editor/src/ui/retained_host/app/welcome_session/session/apply.rs
-  - zircon_editor/src/ui/retained_host/app/welcome_session/session/present.rs
-  - zircon_editor/src/ui/retained_host/app/welcome_session/session/snapshot.rs
-  - zircon_editor/src/ui/retained_host/app/welcome_recent_pointer.rs
-  - zircon_editor/src/ui/retained_host/app/welcome_recent_pointer/click.rs
-  - zircon_editor/src/ui/retained_host/app/welcome_recent_pointer/motion.rs
-  - zircon_editor/src/ui/retained_host/app/welcome_recent_pointer/scroll.rs
-  - zircon_editor/src/ui/retained_host/app/pointer_layout.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/mod.rs
+  - zircon_editor/src/ui/retained/app/welcome_session.rs
+  - zircon_editor/src/ui/retained/app/welcome_session/actions.rs
+  - zircon_editor/src/ui/retained/app/welcome_session/actions/draft.rs
+  - zircon_editor/src/ui/retained/app/welcome_session/actions/project.rs
+  - zircon_editor/src/ui/retained/app/welcome_session/actions/recent.rs
+  - zircon_editor/src/ui/retained/app/welcome_session/actions/startup_views.rs
+  - zircon_editor/src/ui/retained/app/welcome_session/bridge.rs
+  - zircon_editor/src/ui/retained/app/welcome_session/session.rs
+  - zircon_editor/src/ui/retained/app/welcome_session/session/apply.rs
+  - zircon_editor/src/ui/retained/app/welcome_session/session/present.rs
+  - zircon_editor/src/ui/retained/app/welcome_session/session/snapshot.rs
+  - zircon_editor/src/ui/retained/app/welcome_recent_pointer.rs
+  - zircon_editor/src/ui/retained/app/welcome_recent_pointer/click.rs
+  - zircon_editor/src/ui/retained/app/welcome_recent_pointer/motion.rs
+  - zircon_editor/src/ui/retained/app/welcome_recent_pointer/scroll.rs
+  - zircon_editor/src/ui/retained/app/pointer_layout.rs
 implementation_files:
-  - zircon_editor/src/ui/retained_host/app/welcome_session.rs
-  - zircon_editor/src/ui/retained_host/app/welcome_session/actions.rs
-  - zircon_editor/src/ui/retained_host/app/welcome_session/actions/draft.rs
-  - zircon_editor/src/ui/retained_host/app/welcome_session/actions/project.rs
-  - zircon_editor/src/ui/retained_host/app/welcome_session/actions/recent.rs
-  - zircon_editor/src/ui/retained_host/app/welcome_session/actions/startup_views.rs
-  - zircon_editor/src/ui/retained_host/app/welcome_session/bridge.rs
-  - zircon_editor/src/ui/retained_host/app/welcome_session/session.rs
-  - zircon_editor/src/ui/retained_host/app/welcome_session/session/apply.rs
-  - zircon_editor/src/ui/retained_host/app/welcome_session/session/present.rs
-  - zircon_editor/src/ui/retained_host/app/welcome_session/session/snapshot.rs
-  - zircon_editor/src/ui/retained_host/app/welcome_recent_pointer.rs
-  - zircon_editor/src/ui/retained_host/app/welcome_recent_pointer/click.rs
-  - zircon_editor/src/ui/retained_host/app/welcome_recent_pointer/motion.rs
-  - zircon_editor/src/ui/retained_host/app/welcome_recent_pointer/scroll.rs
+  - zircon_editor/src/ui/retained/app/welcome_session.rs
+  - zircon_editor/src/ui/retained/app/welcome_session/actions.rs
+  - zircon_editor/src/ui/retained/app/welcome_session/actions/draft.rs
+  - zircon_editor/src/ui/retained/app/welcome_session/actions/project.rs
+  - zircon_editor/src/ui/retained/app/welcome_session/actions/recent.rs
+  - zircon_editor/src/ui/retained/app/welcome_session/actions/startup_views.rs
+  - zircon_editor/src/ui/retained/app/welcome_session/bridge.rs
+  - zircon_editor/src/ui/retained/app/welcome_session/session.rs
+  - zircon_editor/src/ui/retained/app/welcome_session/session/apply.rs
+  - zircon_editor/src/ui/retained/app/welcome_session/session/present.rs
+  - zircon_editor/src/ui/retained/app/welcome_session/session/snapshot.rs
+  - zircon_editor/src/ui/retained/app/welcome_recent_pointer.rs
+  - zircon_editor/src/ui/retained/app/welcome_recent_pointer/click.rs
+  - zircon_editor/src/ui/retained/app/welcome_recent_pointer/motion.rs
+  - zircon_editor/src/ui/retained/app/welcome_recent_pointer/scroll.rs
 plan_sources:
   - docs/plans/zircon_editor/editor_ui/08-workbench-shell-on-runtime-ui.md
   - user: 2026-06-18 editor UI architecture implementation, feature first and tests deferred

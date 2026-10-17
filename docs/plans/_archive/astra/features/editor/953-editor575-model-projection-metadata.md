@@ -7,9 +7,7 @@ related_records:
   - docs/plans/astra/features/runtime/896-runtime575-watch-error-path-move.md
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/model_projection.rs
 tests:
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/model_projection.rs
 ---
 
 # Editor953 Editor575 Model Projection Metadata

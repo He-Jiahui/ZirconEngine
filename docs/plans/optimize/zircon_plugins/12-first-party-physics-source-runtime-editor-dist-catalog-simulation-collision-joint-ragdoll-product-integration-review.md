@@ -26,16 +26,10 @@ related_code:
   - zircon_app/src/entry/first_party_runtime_plugins.rs
   - zircon_app/src/entry/first_party_editor_plugins.rs
   - zircon_app/src/entry/export_bootstrap.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog
-  - zircon_editor/src/ui/template_runtime/builtin/workbench_extension_module_template_bindings/simulation_physics.rs
 tests:
-  - zircon_plugins/physics/runtime/src/tests.rs
   - zircon_plugins/physics/runtime/src/backend/tests
-  - zircon_plugins/physics/runtime/src/manager/tests.rs
-  - zircon_plugins/physics/runtime/src/skeletal/tests.rs
   - zircon_plugins/physics/runtime/tests/physics_manager_runtime_contract.rs
   - zircon_plugins/physics/runtime/tests/physics_manager_runtime_contract
-  - zircon_plugins/physics/editor/src/tests.rs
   - zircon_plugins/physics/dist/src/lib.rs
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md

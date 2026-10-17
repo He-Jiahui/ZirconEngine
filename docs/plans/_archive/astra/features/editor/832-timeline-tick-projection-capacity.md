@@ -11,9 +11,7 @@ related_records:
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
   - zircon_editor/src/ui/timeline_strip/generation.rs
-  - zircon_editor/src/ui/timeline_strip/tests.rs
 tests:
-  - tools/tests/test_editor_timeline_tick_projection_capacity_performance_contract.py
 ---
 
 # Editor832 · timeline tick projection capacity

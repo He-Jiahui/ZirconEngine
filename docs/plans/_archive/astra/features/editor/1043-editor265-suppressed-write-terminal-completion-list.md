@@ -5,10 +5,8 @@ related_code:
   - zircon_editor/src/core/settings/persistence.rs
   - zircon_editor/src/core/settings/mutation.rs
   - zircon_editor/src/core/settings/mutation/health.rs
-  - zircon_editor/src/core/settings/persistence_suppressed_write_tests.rs
   - zircon_editor/src/core/context/builder/settings_persistence_health.rs
   - zircon_editor/src/ui/settings/persistence_health_projection.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_settings_window/persistence_health.rs
   - tools/tests/test_editor17_settings_persistence_health_contract.py
   - docs/plans/optimize/zircon_editor/265/2026-09-29-suppressed-write-terminal.md
 plan_sources:

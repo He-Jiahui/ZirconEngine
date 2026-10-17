@@ -9,7 +9,7 @@ related_code:
   - zircon_runtime/src/plugin/bridge/weak.rs
   - zircon_runtime/src/plugin/extension_registry/runtime_extension_registry.rs
   - zircon_runtime/src/plugin/extension_registry/register/bridge_registration.rs
-  - zircon_runtime/src/plugin/runtime_plugin/registration_report/validation/interfaces.rs
+  - zircon_runtime/src/plugin/runtime/registration_report/validation/interfaces.rs
   - zircon_runtime/src/core/framework/navigation/agent.rs
   - zircon_plugins/navigation/runtime/src/agent.rs
   - zircon_plugins/navigation/runtime/src/manager/tick.rs

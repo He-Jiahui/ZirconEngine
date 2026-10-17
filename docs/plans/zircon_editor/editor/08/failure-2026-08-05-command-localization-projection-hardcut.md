@@ -14,7 +14,7 @@ related_code:
   - zircon_editor/src/core/commands/menu.rs
   - zircon_editor/src/core/commands/palette.rs
   - zircon_editor/src/core/commands/registry.rs
-  - zircon_editor/src/ui/retained_host/app/command_palette_actions.rs
+  - zircon_editor/src/ui/retained/app/command_palette_actions.rs
   - zircon_editor/assets/i18n/en.toml
   - zircon_editor/assets/i18n/zh-CN.toml
 tests:

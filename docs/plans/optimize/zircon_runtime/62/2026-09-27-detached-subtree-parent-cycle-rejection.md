@@ -2,13 +2,11 @@
 doc_type: milestone-detail
 related_code:
   - zircon_runtime/src/scene/world/transaction/detached_entity_batch.rs
-  - zircon_runtime/src/scene/world/transaction/detached_entity_batch/root_normalization.rs
+  - zircon_runtime/src/scene/world/detached_entity_batch/root_normalization.rs
 plan_sources:
   - docs/plans/optimize/zircon_runtime/62-runtime-scene-hierarchy-transform-propagation-reparent-activation-mobility-visibility-bounds-render-product-integration-review.md
   - docs/plans/zircon_runtime/runtime/08-ecs-kernel-data-alignment.md
 tests:
-  - zircon_runtime/src/scene/world/transaction/detached_entity_batch/raw_cycle_tests.rs
-  - zircon_runtime/src/scene/world/transaction/detached_entity_batch/root_normalization_profile.rs
 ---
 
 # Runtime62：批量摘除的现存父链环拒绝

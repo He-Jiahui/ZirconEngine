@@ -9,9 +9,8 @@ origin_child_dir: docs/plans/performance/01
 fixing_child_dir: docs/plans/zircon_runtime/runtime/04
 plan_link_mode: child_record_only
 related_code:
-  - zircon_runtime/src/scene/dynamic_scene/session/construction
-  - zircon_runtime/src/scene/dynamic_scene/session/slot
-  - zircon_runtime/src/scene/dynamic_scene/session/slot_capture
+  - zircon_runtime/src/scene/dynamic/session/slot
+  - zircon_runtime/src/scene/dynamic/session/slot_capture
 tests:
   - cargo test -p zircon_runtime --lib dynamic_scene_session --locked --jobs 1 -- --nocapture --test-threads=1
   - large archive capture and serialization allocation counters

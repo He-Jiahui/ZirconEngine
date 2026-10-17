@@ -2,13 +2,9 @@
 related_code:
   - zircon_runtime_interface/src/ui/design_tokens.rs
   - zircon_editor/assets/ui/editor/theme/editor_tokens.zui
-  - zircon_editor/src/ui/retained_host/host_contract/paint_theme/palette_projection.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_theme/tokens.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_theme/model.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_theme.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_chrome/palette.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_button/palette.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_icon_button/palette.rs
+  - zircon_editor/src/ui/retained/contract/paint_theme/palette_projection.rs
+  - zircon_editor/src/ui/retained/contract/paint_theme/tokens.rs
+  - zircon_editor/src/ui/retained/contract/paint_theme/model.rs
 design_references:
   - docs/ui/editor-workbench-designs/STYLE-NOTES.md
   - docs/ui/design-language-contract.md

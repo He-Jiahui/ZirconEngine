@@ -15,7 +15,6 @@ plan_sources:
   - docs/plans/zircon_editor/editor/09-editor-asset-management.md
   - docs/plans/zircon_editor/editor/09/failure-2026-07-17-ui-asset-watcher-unbounded-refresh.md
 tests:
-  - zircon_editor/src/ui/host/asset_editor_sessions/watcher/tests.rs
   - tools/tests/test_editor09_ui_asset_watcher_bounded_refresh_contract.py
 doc_type: module-detail
 ---

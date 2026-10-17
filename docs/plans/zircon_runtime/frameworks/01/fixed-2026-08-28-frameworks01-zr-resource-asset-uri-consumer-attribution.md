@@ -11,7 +11,6 @@ fixing_child_dir: docs/plans/optimize/zircon_runtime/25
 plan_link_mode: child_record_only
 related_code:
   - zircon_runtime/src/asset/watch/asset_uri_for_path.rs
-  - zircon_runtime/src/asset/watch/asset_uri_for_path/tests.rs
 tests:
   - .\tools\dev\zircon-session.ps1 ownership matrix --prefix zircon_runtime/src/asset/watch/asset_uri_for_path -Json
 ---

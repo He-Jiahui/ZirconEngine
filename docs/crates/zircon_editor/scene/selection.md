@@ -5,7 +5,6 @@ plan_sources:
   - docs/plans/zircon_editor/editor/05-scene-editing-hierarchy-and-gizmos.md
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
 tests:
-  - zircon_editor/src/scene/selection/tests.rs
   - cargo test -p zircon_editor --lib scene:: --locked --jobs 1
 doc_type: module-detail
 ---

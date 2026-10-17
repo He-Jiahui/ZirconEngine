@@ -10,8 +10,7 @@ origin_child_dir: docs/plans/optimize/zircon_runtime_interface/03
 fixing_child_dir: docs/plans/optimize/zircon_runtime_interface/03
 plan_link_mode: child_record_only
 related_code:
-  - zircon_runtime_interface/src/ui/surface/render/text_geometry/source_map/cluster.rs
-  - zircon_runtime_interface/src/ui/surface/render/text_geometry/source_map_tests.rs
+  - zircon_runtime_interface/src/ui/surface/render/source_map/cluster.rs
   - zircon_runtime_interface/src/tests/render_contracts.rs
 tests:
   - cargo test -p zircon_runtime_interface --no-default-features --locked --lib ui::surface::render::text_geometry::

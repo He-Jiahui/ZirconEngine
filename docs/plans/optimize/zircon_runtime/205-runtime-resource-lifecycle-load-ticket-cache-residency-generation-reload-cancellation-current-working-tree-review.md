@@ -8,14 +8,12 @@ related_code:
   - zircon_runtime_interface/src/resource
   - zircon_runtime/crates/zr_resource/src
   - zircon_runtime/src/asset/facade
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager
   - zircon_runtime/src/asset/pipeline/worker_pool.rs
   - zircon_runtime/src/asset/pipeline/worker_pool
   - zircon_runtime/src/asset/artifact
   - zircon_runtime/src/asset/importer
   - zircon_runtime/src/asset/watch
   - zircon_runtime/src/asset/pack
-  - zircon_runtime/src/graphics/scene/resources/render_asset_residency
 plan_sources:
   - docs/plans/optimize/zircon_runtime/99m-runtime-resource-authority-asset-handle-load-request-state-machine-version-lease-cache-dependency-reload-cancellation.md
   - docs/plans/optimize/zircon_runtime/188-runtime-asset-resource-lifecycle-locator-registry-load-cache-import-cook-current-working-tree-review.md

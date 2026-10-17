@@ -1,21 +1,6 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/host_contract/template_activation_semantics.rs
-  - zircon_editor/src/ui/retained_host/host_contract/template_activation_semantics/asset.rs
-  - zircon_editor/src/ui/retained_host/host_contract/template_activation_semantics/dispatch.rs
-  - zircon_editor/src/ui/retained_host/host_contract/template_activation_semantics/helpers.rs
-  - zircon_editor/src/ui/retained_host/host_contract/template_activation_semantics/route.rs
-  - zircon_editor/src/ui/retained_host/host_contract/template_activation_semantics_tests.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch.rs
-  - zircon_editor/src/ui/retained_host/host_contract/template_input_semantics.rs
-  - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node.rs
 implementation_files:
-  - zircon_editor/src/ui/retained_host/host_contract/template_activation_semantics.rs
-  - zircon_editor/src/ui/retained_host/host_contract/template_activation_semantics/asset.rs
-  - zircon_editor/src/ui/retained_host/host_contract/template_activation_semantics/dispatch.rs
-  - zircon_editor/src/ui/retained_host/host_contract/template_activation_semantics/helpers.rs
-  - zircon_editor/src/ui/retained_host/host_contract/template_activation_semantics/route.rs
-  - zircon_editor/src/ui/retained_host/host_contract/template_activation_semantics_tests.rs
 plan_sources:
   - docs/plans/zircon_editor/editor_ui/08-workbench-shell-on-runtime-ui.md
   - user: 2026-06-20 editor UI architecture implementation, feature first and tests deferred

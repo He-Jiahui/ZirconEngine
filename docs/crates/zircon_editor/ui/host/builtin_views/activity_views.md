@@ -1,15 +1,11 @@
 ---
 related_code:
-  - zircon_editor/src/ui/host/builtin_views/activity_views/activity_view_descriptors.rs
-  - zircon_editor/src/ui/host/builtin_views/activity_views/functional_panel_view_descriptors.rs
   - zircon_editor/src/ui/host/builtin_views/activity_views/mod.rs
   - zircon_editor/src/ui/host/builtin_views/builtin_view_descriptors.rs
   - zircon_editor/src/ui/workbench/preset/default_registry.rs
   - zircon_editor/src/ui/workbench/preset/design_stack.rs
   - zircon_editor/src/tests/host/builtin_window_descriptors.rs
 implementation_files:
-  - zircon_editor/src/ui/host/builtin_views/activity_views/activity_view_descriptors.rs
-  - zircon_editor/src/ui/host/builtin_views/activity_views/functional_panel_view_descriptors.rs
   - zircon_editor/src/ui/host/builtin_views/activity_views/mod.rs
   - zircon_editor/src/ui/host/builtin_views/builtin_view_descriptors.rs
 plan_sources:

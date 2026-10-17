@@ -11,11 +11,8 @@ related_records:
   - docs/plans/astra/features/editor/664-20260911-editor-ui-optimization-batch-completion.md
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
-  - zircon_editor/src/ui/reflection/activity/capacity_tests.rs
-  - zircon_editor/src/ui/retained_host/console_output/tests.rs
   - zircon_editor/src/tests/host/retained_drawer_header_pointer/dispatch.rs
   - zircon_editor/src/core/asset/import_flow/tests/diagnostics.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_wizard_session/tests.rs
 ---
 
 # Editor919 Reflection, Console, Drawer, Import and Export Test Repairs

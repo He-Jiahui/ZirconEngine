@@ -6,7 +6,6 @@ related_code:
   - zircon_runtime/src/scene/inspection/
 tests:
   - zircon_runtime_interface/src/tests/world_sync_contracts.rs
-  - zircon_runtime/src/scene/inspection/tests.rs
 status: slices-implemented-parent-m1-test-stage-pending
 ---
 

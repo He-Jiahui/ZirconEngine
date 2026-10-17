@@ -1,20 +1,10 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_table_rows.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_table_rows/actions.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_table_rows/cells.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_table_rows/cells/allocation.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_table_rows/cells/commands.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_table_rows/cells/geometry.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_table_rows/cells/metrics.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_table_rows/cells/text.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_table_rows/identity.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_table_rows/style.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_table_rows/surface.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_table_rows_tests/geometry.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_table_row/palette.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_table_row/tests.rs
-  - zircon_editor/src/ui/retained_host/ui/template_layout_context.rs
+  - zircon_editor/src/ui/retained/contract/paint/table_rows/cells/allocation.rs
+  - zircon_editor/src/ui/retained/contract/paint/table_rows/cells/commands.rs
+  - zircon_editor/src/ui/retained/contract/paint/table_rows/cells/geometry.rs
+  - zircon_editor/src/ui/retained/contract/paint/table_rows/cells/metrics.rs
+  - zircon_editor/src/ui/retained/contract/paint/table_rows/cells/text.rs
 plan_sources:
   - docs/plans/zircon_editor/editor_layout/15-component-standardization-from-primitives.md
   - docs/plans/zircon_editor/editor_layout/15d-composite-density-and-alignment.md

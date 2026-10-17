@@ -8,9 +8,7 @@ related_records:
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
   - zircon_runtime/src/ui/v2/style/rule_index.rs
-  - zircon_runtime/src/ui/v2/style/rule_index/candidate_capacity_tests.rs
 tests:
-  - tools/tests/test_runtime860_selector_candidate_capacity_performance_contract.py
 ---
 
 # Runtime860 Selector Candidate Scratch Capacity

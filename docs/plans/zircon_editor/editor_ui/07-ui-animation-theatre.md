@@ -4,14 +4,12 @@ related_code:
   - zircon_runtime/src/animation/sequence/interpolation.rs
   - zircon_runtime/src/animation/sequence/channel_sample.rs
   - zircon_runtime/src/animation/sequence/time.rs
-  - zircon_runtime/src/ui/component/catalog/material_foundation/layout_transitions.rs
+  - zircon_runtime/src/ui/catalog/material_foundation/layout_transitions.rs
   - zircon_runtime/src/ui/surface/surface.rs
   - zircon_runtime/src/ui/surface/timeline.rs
   - zircon_runtime_interface/src/ui/style.rs
   - zircon_editor/src/ui/animation_editor/session.rs
   - zircon_editor/src/ui/animation_editor/presentation.rs
-  - dev/theatre/packages/core/src
-  - dev/theatre/packages/studio
 plan_sources:
   - .codex/plans/UI Asset Editor 与共享 Layout 未完成内容归档.md
   - .codex/plans/Zircon 性能时间轴与 Tracy 集成设计.md

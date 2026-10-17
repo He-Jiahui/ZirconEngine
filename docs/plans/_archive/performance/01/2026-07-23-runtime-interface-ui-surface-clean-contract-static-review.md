@@ -13,7 +13,6 @@ reference_sources:
 tests:
   - zircon_runtime_interface/src/tests/contracts.rs
   - zircon_runtime_interface/src/tests/ui_contract_spine.rs
-  - zircon_runtime_interface/src/ui/surface/render/text_geometry/source_map_tests.rs
   - current-source Windows surface/render/text tests pending
 doc_type: implementation-evidence
 status: partial_static_complete_dynamic_pending

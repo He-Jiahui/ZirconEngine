@@ -5,13 +5,6 @@ plan_sources:
   - docs/plans/zircon_tooling/session_coordinator/01-workflow-control-center-and-tray.md
 tests:
   - tools/session_coordinator/web/src/__tests__
-  - tools/session_coordinator/tests/test_control_assets.py
-  - tools/session_coordinator/tests/test_artifact_downloads.py
-  - tools/session_coordinator/tests/test_control_http.py
-  - tools/session_coordinator/tests/test_control_security.py
-  - tools/session_coordinator/tests/test_control_snapshot.py
-  - tools/session_coordinator/tests/test_workflow_projections.py
-  - tools/tests/workflow_control_center_smoke.py
 doc_type: plan-output-record
 ---
 

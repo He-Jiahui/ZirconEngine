@@ -9,7 +9,6 @@ plan_sources:
   - docs/plans/zircon_editor/editor/07-domain-editors-and-graph-foundation.md
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
 tests:
-  - zircon_editor/src/ui/host/asset_editor_sessions/imports/tests.rs
   - tools/tests/test_editor07_ui_asset_import_physical_cache_contract.py
 doc_type: module-detail
 ---

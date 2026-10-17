@@ -9,18 +9,8 @@ origin_child_dir: docs/plans/performance/01
 fixing_child_dir: docs/plans/zircon_editor/editor_layout/09
 plan_link_mode: child_record_only
 related_code:
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/notifications.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/template_nodes/node.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_notification_center/commands.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_notification_center/identity.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_notification_center/instrumentation.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_notification_center/panel.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_notification_center/row.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/notification_center/metadata.rs
-  - zircon_editor/src/ui/retained_host/ui/workbench_window_projection.rs
-  - zircon_editor/src/ui/retained_host/ui/workbench_window_projection/host_value_toml.rs
-  - zircon_editor/src/ui/retained_host/ui/workbench_window_projection/notification_cache.rs
-  - zircon_editor/src/ui/retained_host/ui/workbench_window_projection/previous_node_index.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/workbench/notifications.rs
+  - zircon_editor/src/ui/retained/ui/data/projection/notification_center/metadata.rs
 ---
 
 # Notification center double scan and unbounded paint

@@ -10,11 +10,9 @@ fixing_child_dir: docs/plans/zircon_runtime/shader/03
 plan_link_mode: child_record_only
 related_code:
   - zircon_app/src/bin/zircon_shader_pbr_viewer/app.rs
-  - zircon_app/src/bin/zircon_shader_pbr_viewer/app_tests.rs
   - zircon_app/src/bin/zircon_shader_pbr_viewer/scene.rs
   - zircon_runtime/src/graphics/pipeline/async_compile.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_pipeline.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer/scene_renderer.rs
+  - zircon_runtime/src/graphics/scene/mesh/mesh_pipeline_cache/ensure_pipeline.rs
 tests:
   - cargo test -p zircon_app --bin zircon_shader_pbr_viewer one_shot_base_pipeline --locked
   - cargo test -p zircon_runtime runtime_environment_only_pbr_base_queue --locked

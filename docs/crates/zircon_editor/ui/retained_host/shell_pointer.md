@@ -1,25 +1,23 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/shell_pointer.rs
-  - zircon_editor/src/ui/retained_host/shell_pointer/bridge.rs
-  - zircon_editor/src/ui/retained_host/shell_pointer/common.rs
-  - zircon_editor/src/ui/retained_host/shell_pointer/drag_frames.rs
-  - zircon_editor/src/ui/retained_host/shell_pointer/drag_surface.rs
-  - zircon_editor/src/ui/retained_host/shell_pointer/effects.rs
-  - zircon_editor/src/ui/retained_host/shell_pointer/node_ids.rs
-  - zircon_editor/src/ui/retained_host/shell_pointer/resize_surface.rs
-  - zircon_editor/src/ui/retained_host/shell_pointer/route.rs
-  - zircon_editor/src/ui/retained_host/route_intent/map.rs
-  - zircon_editor/src/ui/retained_host/app/workspace_docking/drag_drop/route.rs
-  - zircon_editor/src/ui/retained_host/app/workspace_docking/drawer_resize/capture.rs
-  - zircon_editor/src/ui/retained_host/app/workspace_docking/drawer_resize/movement.rs
+  - zircon_editor/src/ui/retained/shell_pointer/bridge.rs
+  - zircon_editor/src/ui/retained/shell_pointer/common.rs
+  - zircon_editor/src/ui/retained/shell_pointer/drag_frames.rs
+  - zircon_editor/src/ui/retained/shell_pointer/drag_surface.rs
+  - zircon_editor/src/ui/retained/shell_pointer/effects.rs
+  - zircon_editor/src/ui/retained/shell_pointer/node_ids.rs
+  - zircon_editor/src/ui/retained/shell_pointer/resize_surface.rs
+  - zircon_editor/src/ui/retained/shell_pointer/route.rs
+  - zircon_editor/src/ui/retained/route_intent/map.rs
+  - zircon_editor/src/ui/retained/app/workspace_docking/drag_drop/route.rs
+  - zircon_editor/src/ui/retained/app/workspace_docking/drawer_resize/capture.rs
+  - zircon_editor/src/ui/retained/app/workspace_docking/drawer_resize/movement.rs
 implementation_files:
-  - zircon_editor/src/ui/retained_host/shell_pointer.rs
-  - zircon_editor/src/ui/retained_host/shell_pointer/bridge.rs
-  - zircon_editor/src/ui/retained_host/shell_pointer/drag_surface.rs
-  - zircon_editor/src/ui/retained_host/shell_pointer/resize_surface.rs
-  - zircon_editor/src/ui/retained_host/shell_pointer/route.rs
-  - zircon_editor/src/ui/retained_host/route_intent/map.rs
+  - zircon_editor/src/ui/retained/shell_pointer/bridge.rs
+  - zircon_editor/src/ui/retained/shell_pointer/drag_surface.rs
+  - zircon_editor/src/ui/retained/shell_pointer/resize_surface.rs
+  - zircon_editor/src/ui/retained/shell_pointer/route.rs
+  - zircon_editor/src/ui/retained/route_intent/map.rs
 plan_sources:
   - docs/plans/zircon_editor/editor_ui/01-slate-input-dispatch-core.md
   - docs/plans/zircon_editor/editor_ui/08-workbench-shell-on-runtime-ui.md

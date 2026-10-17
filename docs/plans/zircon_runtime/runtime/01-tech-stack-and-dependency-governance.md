@@ -13,7 +13,6 @@ related_code:
   - zircon_runtime/src/ui/text/shaper.rs
   - zircon_runtime/src/tests/extensions/animation_physics_absorption.rs
   - zircon_runtime/src/tests/extensions/tech_stack_dependency_guard.rs
-  - zircon_runtime/src/tests/runtime_absorption/tech_stack.rs
   - zircon_runtime/src/platform/tests/feature_manifest.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/tech_stack_boundary.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/tech_stack_source_inventory.py

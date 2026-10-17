@@ -7,9 +7,7 @@ related_records:
   - docs/plans/astra/features/runtime/894-runtime577-mesh-sdf-dimension-fold.md
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/progress_value.rs
 tests:
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/progress_value.rs
 ---
 
 # Editor951 Editor577 Progress-Role Single Dispatch

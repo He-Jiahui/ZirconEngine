@@ -9,10 +9,7 @@ origin_child_dir: docs/plans/performance/01
 fixing_child_dir: docs/plans/zircon_plugins/01
 plan_link_mode: child_record_only
 related_code:
-  - zircon_runtime/src/plugin/native_plugin_loader/registration_manifest.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/registration_manifest/system_access.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/registration_replay.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/host_api_adapter.rs
+  - zircon_runtime/src/plugin/loader/registration_manifest/system_access.rs
   - zircon_runtime/src/plugin/extension_registry/register/system_registration.rs
   - zircon_runtime/src/scene/ecs/schedule_stage_plan.rs
   - zircon_runtime/src/scene/ecs/schedule_runner.rs

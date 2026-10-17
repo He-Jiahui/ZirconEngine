@@ -17,26 +17,21 @@ related_code:
   - zircon_editor/src/ui/host/editor_event_execution/hierarchy_event.rs
   - zircon_editor/src/ui/workbench/snapshot/data/scene_entry
   - zircon_editor/src/ui/workbench/state/editor_state_apply_intent.rs
-  - zircon_editor/src/ui/retained_host/app/hierarchy_pointer
-  - zircon_editor/src/ui/retained_host/app/hierarchy_filter.rs
-  - zircon_editor/src/ui/retained_host/app/hierarchy_rename.rs
-  - zircon_editor/src/ui/retained_host/app/assets/workspace.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/hierarchy
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/native_panes/hierarchy
+  - zircon_editor/src/ui/retained/app/hierarchy_pointer
+  - zircon_editor/src/ui/retained/app/hierarchy_filter.rs
+  - zircon_editor/src/ui/retained/app/hierarchy_rename.rs
+  - zircon_editor/src/ui/retained/app/assets/workspace.rs
+  - zircon_editor/src/ui/retained/contract/workbench/native_panes/hierarchy
 tests:
   - zircon_runtime/src/scene/tests/inspection.rs
   - zircon_runtime/src/scene/tests/derived_state/hierarchy_behavior.rs
-  - zircon_editor/src/tests/editing/node_ops.rs
+  - zircon_editor/src/tests/editing/node_ops/mod.rs
   - zircon_editor/src/tests/editing/history.rs
   - zircon_editor/src/tests/editor_event/runtime/integration/project.rs
   - zircon_editor/src/tests/host/retained_asset_refresh/scene_reload.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/hierarchy.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_projection/interaction.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_projection/scene_fragment.rs
   - zircon_editor/src/tests/host/retained_hierarchy_template_body.rs
   - zircon_editor/src/tests/host/retained_list_pointer/bridge_dispatch.rs
-  - zircon_editor/src/ui/retained_host/app/tests/drag_sources/scene_and_object.rs
+  - zircon_editor/src/ui/retained/app/tests/drag_sources/scene_and_object.rs
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md
   - docs/plans/optimize/01-cross-report-owner-schema-abi-p0-consolidation-review.md

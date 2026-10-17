@@ -12,7 +12,7 @@ implementation_files:
   - zircon_editor/src/core/gateway/contract.rs
   - zircon_editor/src/core/gateway/handle.rs
   - zircon_editor/src/ui/host/editor_event_execution/menu_action.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/tick.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle/tick.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_editor/editor/02/failure-2026-07-17-runtime-event-consumer-unbounded-pump-lock.md
@@ -22,7 +22,6 @@ plan_sources:
 tests:
   - zircon_editor/src/tests/runtime_event_consumer.rs
   - zircon_editor/src/tests/runtime_event_consumer_bounded_pump
-  - zircon_plugins/navigation/editor/src/tests.rs
 doc_type: module-detail
 ---
 

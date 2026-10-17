@@ -2,7 +2,6 @@
 related_code:
   - zircon_plugins/plugin_sdk/src/registration.rs
   - zircon_plugins/plugin_sdk/src/prelude.rs
-  - zircon_runtime/src/plugin/extension_registry/register/runtime_scene_system_registration.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/performance/02-unreal-aligned-engine-system-hard-cutover.md

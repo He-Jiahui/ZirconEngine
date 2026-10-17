@@ -11,7 +11,6 @@ plan_link_mode: child_record_only
 related_code:
   - zircon_runtime/src/dynamic_api/session/state.rs
   - zircon_runtime/src/dynamic_api/session/runtime_ui/input_routing.rs
-  - zircon_runtime/src/dynamic_api/session/runtime_ui/tests.rs
 tests:
   - tools/build/build-editor.ps1 -OutputDirectory D:/cargo-targets/penpot-editor-20260930-01a0f04d-6fc0351c
 ---

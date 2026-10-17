@@ -12,9 +12,7 @@ related_code:
   - zircon_editor/src/core/context/builder.rs
   - zircon_editor/src/ui/host/editor_manager.rs
   - zircon_editor/src/ui/host/export_cargo_process.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/panel_session.rs
-  - zircon_editor/src/ui/retained_host/app
-  - zircon_editor/src/ui/retained_host/viewport
+  - zircon_editor/src/ui/host/exports/export_build/wizard/tests/panel_session.rs
 tests:
   - cargo test -p zircon_editor --lib --locked --jobs 1
   - cargo test -p zircon_editor --lib --locked core::jobs::tests::thread_ownership_contract -- --test-threads=1

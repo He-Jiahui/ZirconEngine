@@ -2,7 +2,6 @@
 related_code:
   - zircon_runtime/src/core/framework/render/environment/ambient.rs
   - zircon_runtime/src/core/framework/render/environment/lightmap.rs
-  - zircon_runtime/src/core/framework/render/environment/lightmap/tests.rs
   - zircon_runtime/src/core/framework/render/environment/extract.rs
   - zircon_runtime/src/core/framework/render/environment/mod.rs
   - zircon_runtime/src/core/framework/render/mod.rs
@@ -10,27 +9,21 @@ related_code:
   - zircon_runtime/src/graphics/runtime/offline_bake/offline_bake_frame.rs
   - zircon_runtime/src/asset/assets/texture/lightmap_asset.rs
   - zircon_runtime/src/asset/assets/texture/upload_support.rs
-  - zircon_runtime/src/graphics/scene/resources/gpu_texture/gpu_texture_resource_from_asset.rs
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_scene_resources.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/lightmap_binding.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/lightmap_binding/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/forward_shadow_receiver.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_bind_group_layout/create.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/deferred_scene_resources/execute_lighting.rs
+  - zircon_runtime/src/graphics/scene/renderer/environment/lightmap_binding.rs
+  - zircon_runtime/src/graphics/mesh/mesh_pipeline_cache/forward_shadow_receiver.rs
+  - zircon_runtime/src/graphics/scene/deferred/lighting_bind_group_layout/create.rs
   - zircon_runtime/src/graphics/scene/gpu_scene/layout.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/gpu_scene_sync.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/shaders/zr_gpu_scene.wgsl
+  - zircon_runtime/src/graphics/scene/renderer/mesh/build/gpu_scene_sync.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/shaders/zr_gpu_scene.wgsl
   - zircon_runtime/src/graphics/shader/wgsl/zr_lightmap.wgsl
   - zircon_runtime/src/graphics/shader/wgsl/zr_template_forward.wgsl
   - zircon_runtime/src/graphics/shader/wgsl/zr_template_deferred_gbuffer.wgsl
   - zircon_runtime/src/graphics/tests/render_product_baked_lighting.rs
   - zircon_runtime/src/graphics/tests/fixtures/plan11_baked_lighting_v1.json
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/execute/build_post_process_params/baked_lighting.rs
+  - zircon_runtime/src/graphics/post/build_post_process_params/baked_lighting.rs
 implementation_files:
   - zircon_runtime/src/core/framework/render/environment/ambient.rs
   - zircon_runtime/src/core/framework/render/environment/lightmap.rs
-  - zircon_runtime/src/core/framework/render/environment/lightmap/tests.rs
   - zircon_runtime/src/core/framework/render/environment/extract.rs
   - zircon_runtime/src/core/framework/render/environment/mod.rs
   - zircon_runtime/src/core/framework/render/mod.rs
@@ -38,23 +31,18 @@ implementation_files:
   - zircon_runtime/src/graphics/runtime/offline_bake/offline_bake_frame.rs
   - zircon_runtime/src/asset/assets/texture/lightmap_asset.rs
   - zircon_runtime/src/asset/assets/texture/upload_support.rs
-  - zircon_runtime/src/graphics/scene/resources/gpu_texture/gpu_texture_resource_from_asset.rs
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_scene_resources.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/lightmap_binding.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/lightmap_binding/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/forward_shadow_receiver.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_bind_group_layout/create.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/deferred_scene_resources/execute_lighting.rs
+  - zircon_runtime/src/graphics/scene/renderer/environment/lightmap_binding.rs
+  - zircon_runtime/src/graphics/mesh/mesh_pipeline_cache/forward_shadow_receiver.rs
+  - zircon_runtime/src/graphics/scene/deferred/lighting_bind_group_layout/create.rs
   - zircon_runtime/src/graphics/scene/gpu_scene/layout.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/gpu_scene_sync.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/shaders/zr_gpu_scene.wgsl
+  - zircon_runtime/src/graphics/scene/renderer/mesh/build/gpu_scene_sync.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/shaders/zr_gpu_scene.wgsl
   - zircon_runtime/src/graphics/shader/wgsl/zr_lightmap.wgsl
   - zircon_runtime/src/graphics/shader/wgsl/zr_template_forward.wgsl
   - zircon_runtime/src/graphics/shader/wgsl/zr_template_deferred_gbuffer.wgsl
   - zircon_runtime/src/graphics/tests/render_product_baked_lighting.rs
   - zircon_runtime/src/graphics/tests/fixtures/plan11_baked_lighting_v1.json
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/execute/build_post_process_params/baked_lighting.rs
+  - zircon_runtime/src/graphics/post/build_post_process_params/baked_lighting.rs
 plan_sources:
   - docs/plans/zircon_runtime/render/11-environment-lighting.md
   - .codex/plans/Hybrid GI Lumen-Style V1 三阶段计划.md
@@ -62,7 +50,6 @@ plan_sources:
 tests:
   - tools/tests/test_environment_lightmap_contract.py
   - tools/tests/test_environment_lightmap_gpu_binding_contract.py
-  - zircon_runtime/src/core/framework/render/environment/lightmap/tests.rs
   - zircon_runtime/src/core/framework/render/environment/extract.rs::baked_environment_requires_one_light_set_generation
   - zircon_runtime/src/graphics/tests/render_product_baked_lighting.rs
 doc_type: module-detail

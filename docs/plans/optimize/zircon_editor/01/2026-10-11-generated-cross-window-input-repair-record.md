@@ -1,9 +1,9 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/recompute.rs
-  - zircon_editor/src/ui/retained_host/app/generated_bottom_pane.rs
-  - zircon_editor/src/ui/template_runtime/runtime/runtime_host/generated_bottom_pane.rs
-  - zircon_editor/src/ui/retained_host/app/tests/generated_bottom_pane.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle/recompute.rs
+  - zircon_editor/src/ui/retained/app/generated_bottom_pane.rs
+  - zircon_editor/src/ui/runtime/runtime/runtime_host/generated_bottom_pane.rs
+  - zircon_editor/src/ui/retained/app/tests/generated_bottom_pane.rs
 doc_type: source-repair-record
 title: Editor Generated 跨窗口旧输入退休修复记录
 date: 2026-10-11

@@ -7,7 +7,6 @@ related_code:
   - zircon_runtime/src/core/runtime/diagnostics/profiling/counter_hotspot.rs
   - zircon_runtime/src/core/runtime/diagnostics/profiling/ui_hotspot.rs
   - zircon_runtime/src/core/runtime/diagnostics/profiling/export.rs
-  - zircon_editor/src/ui/retained_host/ui_perf.rs
   - zircon_runtime/src/dynamic_api/session.rs
   - zircon_runtime/src/dynamic_api/frame.rs
   - zircon_app/src/entry/runtime_library/loaded_runtime.rs
@@ -19,7 +18,6 @@ implementation_files:
   - zircon_runtime/src/core/runtime/diagnostics/profiling/counter_hotspot.rs
   - zircon_runtime/src/core/runtime/diagnostics/profiling/ui_hotspot.rs
   - zircon_runtime/src/core/runtime/diagnostics/profiling/export.rs
-  - zircon_editor/src/ui/retained_host/ui_perf.rs
   - zircon_runtime/src/dynamic_api/session.rs
   - zircon_runtime/src/dynamic_api/frame.rs
   - zircon_app/src/entry/runtime_library/loaded_runtime.rs
@@ -30,9 +28,8 @@ plan_sources:
   - user: 2026-05-15 retained UI profile should report actual GPU batch draw efficiency
 tests:
   - zircon_runtime_interface/src/tests/contracts.rs
-  - zircon_runtime/src/core/diagnostics/profiling/ui_hotspot.rs
-  - zircon_runtime/src/dynamic_api/tests.rs
-  - zircon_app/src/entry/runtime_library/tests.rs
+  - zircon_runtime/src/core/runtime/diagnostics/profiling/ui_hotspot.rs
+  - zircon_runtime/src/dynamic_api/tests/mod.rs
   - target: cargo check -p zircon_runtime_interface --locked
   - target: cargo test -p zircon_runtime_interface --locked
   - target: cargo check -p zircon_app --profile profiling --features "target-editor-host profiling profiling-tracy profiling-chrome" --locked

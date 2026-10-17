@@ -6,9 +6,9 @@ managed_validation_status: pending-product-lane
 related_code:
   - zircon_editor/src/ui/host/editor_event_runtime_access/mod.rs
   - zircon_editor/src/ui/host/runtime_services.rs
-  - zircon_editor/src/ui/retained_host/app/runtime_lease.rs
-  - zircon_editor/src/ui/retained_host/app/asset_runtime_access.rs
-  - zircon_editor/src/ui/retained_host/viewport/render_framework_access.rs
+  - zircon_editor/src/ui/retained/app/runtime_lease.rs
+  - zircon_editor/src/ui/retained/app/asset_runtime_access.rs
+  - zircon_editor/src/ui/retained/viewport/render_framework_access.rs
   - zircon_editor/src/tests/ui/boundary/runtime_service_access_cutover.rs
   - zircon_editor/src/tests/ui/boundary/host_cutover.rs
 ---

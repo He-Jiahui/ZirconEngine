@@ -10,7 +10,6 @@ related_records:
 implementation_files:
   - zircon_editor/src/core/jobs/system/state.rs
 tests:
-  - zircon_editor/src/core/jobs/system/state/job_record_hash_tests.rs
 ---
 
 # Editor937 Editor09 Job Record Hash Index

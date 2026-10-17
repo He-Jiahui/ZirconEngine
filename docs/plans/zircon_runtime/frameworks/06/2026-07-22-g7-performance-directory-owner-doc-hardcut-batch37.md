@@ -1,13 +1,9 @@
 ---
 related_code:
-  - docs/plans/performance/01/2026-07-17-editor-host-window-static-review.md
-  - docs/plans/performance/01/2026-07-17-editor-material-primitives-static-review.md
-  - docs/plans/performance/01/2026-07-17-editor-mui-x-primitives-static-review.md
-  - docs/plans/performance/01/2026-07-17-editor-native-pointer-button-dispatch-static-review.md
-  - zircon_editor/src/ui/retained_host/host_contract/window
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mui_x_primitives
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch
+  - docs/plans/_archive/performance/01/2026-07-17-editor-host-window-static-review.md
+  - docs/plans/_archive/performance/01/2026-07-17-editor-material-primitives-static-review.md
+  - docs/plans/_archive/performance/01/2026-07-17-editor-mui-x-primitives-static-review.md
+  - docs/plans/_archive/performance/01/2026-07-17-editor-native-pointer-button-dispatch-static-review.md
 plan_sources:
   - docs/plans/zircon_runtime/frameworks/06-development-conventions-and-guardrails.md
   - docs/plans/engine-code-structure-convention.md

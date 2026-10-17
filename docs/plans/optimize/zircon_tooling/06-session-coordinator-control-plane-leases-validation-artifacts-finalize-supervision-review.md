@@ -3,18 +3,9 @@ related_code:
   - .github/workflows/ci.yml
   - Cargo.toml
   - tools/setup/install-codex-session-hook.ps1
-  - tools/setup/install-session-coordinator-task.ps1
   - tools/dev/zircon-session.ps1
 tests:
-  - tools/session_coordinator/tests/test_control_http.py
-  - tools/session_coordinator/tests/test_control_snapshot.py
-  - tools/session_coordinator/tests/test_deferred_action_client.py
-  - tools/session_coordinator/tests/test_integration_candidates.py
-  - tools/session_coordinator/tests/test_validation_tickets.py
-  - tools/session_coordinator/tests/test_workspace_copy.py
-  - tools/session_coordinator/tests/test_artifact_governance.py
-  - tools/session_coordinator/tests/test_git_index_lock.py
-  - tools/session_tray/src/lib.rs
+  - tools/cargo/src/lib.rs
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md
   - docs/plans/optimize/zircon_tooling/01-workspace-toolchain-ci-validation-and-developer-entrypoints-review.md

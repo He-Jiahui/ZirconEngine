@@ -11,7 +11,6 @@ implementation_files:
   - zircon_runtime/src/ui/component/state_reducer/tree_view.rs
 tests:
   - zircon_runtime/src/ui/component/state_reducer/tree_view.rs
-  - tools/tests/test_runtime_tree_id_collection_capacity_performance_contract.py
 ---
 
 # Runtime757 · Tree ID collection capacity

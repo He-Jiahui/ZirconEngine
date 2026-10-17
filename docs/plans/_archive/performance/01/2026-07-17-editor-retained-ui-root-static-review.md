@@ -1,11 +1,7 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/ui/component_contract_metadata.rs
-  - zircon_editor/src/ui/retained_host/ui/reference_component_tests.rs
-  - zircon_editor/src/ui/retained_host/ui/reference_overlay_apply_tests.rs
-  - zircon_editor/src/ui/retained_host/ui/root_template_overlay.rs
-  - zircon_editor/src/ui/retained_host/ui/structure_component_tests.rs
-  - zircon_editor/src/ui/retained_host/ui/template_layout_context.rs
+  - zircon_editor/src/ui/retained/ui/component_contract_metadata.rs
+  - zircon_editor/src/ui/retained/ui/root_template_overlay.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_editor/editor_ui/05

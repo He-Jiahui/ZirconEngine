@@ -19,10 +19,7 @@ related_code:
   - zircon_runtime/src/asset/project/paths.rs
   - zircon_runtime/src/asset/migration/transaction.rs
   - zircon_runtime/src/asset/migration/transaction/recovery.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/runtime.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/resource_publication.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/open_project.rs
-  - zircon_runtime/src/asset/pipeline/manager/service_contracts/asset_manager_contract.rs
+  - zircon_runtime/src/asset/manager/service_contracts/asset_manager_contract.rs
 references:
   - docs/plans/optimize/zircon_runtime/03-core-runtime-diagnostics-profiling-config-review.md
   - docs/plans/optimize/zircon_runtime/04-core-resource-asset-serialization-review.md

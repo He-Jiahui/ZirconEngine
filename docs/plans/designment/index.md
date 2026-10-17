@@ -1,6 +1,5 @@
 ---
 related_code:
-  - dev/penpot/plugins/apps/zircon-zui-plugin
   - zircon_runtime/src/ui/v2/loader.rs
   - zircon_runtime/src/ui/v2/compiler.rs
   - zircon_editor/src/ui/workbench/mod.rs
@@ -8,12 +7,9 @@ related_code:
   - zircon_hub/src/tauri_app/view_model.rs
   - zircon_hub/web/src/App.tsx
 implementation_files:
-  - dev/penpot/plugins/apps/zircon-zui-plugin/src/plugin.ts
-  - dev/penpot/plugins/apps/zircon-zui-plugin/src/cli.ts
   - zircon_editor/src/ui/workbench/mod.rs
   - zircon_hub/src/tauri_app/view_model.rs
 tests:
-  - dev/penpot/plugins/apps/zircon-zui-plugin/src/bridge/penpot-asset.spec.ts
   - zircon_runtime/tests/zui_penpot_bridge_contract.rs
   - zircon_editor/tests/integration_contracts.rs
   - zircon_hub/tests/tauri_react_shell_contract.rs

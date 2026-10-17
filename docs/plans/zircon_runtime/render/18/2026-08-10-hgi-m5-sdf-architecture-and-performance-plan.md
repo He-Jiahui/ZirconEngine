@@ -2,8 +2,6 @@
 related_code:
   - zircon_runtime/src/core/framework/render/mesh/bounds.rs
   - zircon_runtime/src/graphics/runtime_prepare_collector.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/scene_representation
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer
 plan_sources:
   - .codex/plans/Hybrid GI Lumen-Style V1 三阶段计划.md
   - docs/plans/engine-code-structure-convention.md

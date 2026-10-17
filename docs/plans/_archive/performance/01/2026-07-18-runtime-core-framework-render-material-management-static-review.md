@@ -2,7 +2,6 @@
 related_code:
   - zircon_runtime/src/core/framework/render/material/management
   - zircon_runtime/src/core/framework/render/material/readiness_report.rs
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_accessors/material_diagnostics.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_runtime/render/08-material-shader-permutation.md

@@ -11,10 +11,7 @@ related_records:
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
   - zircon_runtime/src/ui/component/state_reducer/notification_center.rs
-  - zircon_runtime/src/ui/component/state_reducer/notification_static_key_tests.rs
 tests:
-  - zircon_runtime/src/ui/component/state_reducer/notification_static_key_tests.rs
-  - tools/tests/test_runtime_notification_static_key_update_performance_contract.py
 ---
 
 # Runtime784 · Notification static-key update

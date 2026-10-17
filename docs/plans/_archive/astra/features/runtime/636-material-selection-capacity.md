@@ -5,9 +5,7 @@ plan_sources:
   - docs/plans/optimize/zircon_runtime/636/2026-09-01-preallocated-material-selection-results.md
 related_code:
   - zircon_runtime/src/core/framework/render/material/management/selection.rs
-  - zircon_runtime/src/core/framework/render/material/management/selection/optimization_batch_iy_runtime636_tests.rs
 tests:
-  - zircon_runtime/src/core/framework/render/material/management/selection/optimization_batch_iy_runtime636_tests.rs
 ---
 
 # Material Selection Result Capacity

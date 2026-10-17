@@ -7,11 +7,8 @@ related_records:
   - docs/plans/astra/features/editor/664-20260911-editor-ui-optimization-batch-completion.md
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
-  - zircon_editor/src/ui/template_runtime/showcase_demo_state/state_panel.rs
+  - zircon_editor/src/ui/runtime/showcase_demo_state/state_panel.rs
 tests:
-  - zircon_editor/src/ui/template_runtime/showcase_demo_state/state_panel/capacity_tests.rs
-  - zircon_editor/src/ui/template_runtime/showcase_demo_state/state_panel/stack_buffer_tests.rs
-  - tools/tests/test_editor895_showcase_state_flag_stack_performance_contract.py
 ---
 
 # Editor895 Showcase State Flag Stack

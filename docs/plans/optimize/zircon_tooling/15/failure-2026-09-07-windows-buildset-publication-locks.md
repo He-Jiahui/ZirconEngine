@@ -10,7 +10,6 @@ origin_child_dir: docs/plans/optimize/zircon_app/08
 fixing_child_dir: docs/plans/optimize/zircon_tooling/15
 related_code:
   - tools/cargo/src/build/product_build/build_set.rs
-  - tools/cargo/src/build/product_build/build_set/behavior_tests.rs
   - tools/cargo/src/build/product_build/build_set/namespace_lock.rs
   - tools/cargo/src/build/product_build/build_set/namespace_lock/journal.rs
   - tools/cargo/src/build/product_build/batch.rs

@@ -1,28 +1,28 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/host_contract/data/panes.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/panes/animation.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/panes/basic.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/panes/build_export.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/panes/hierarchy.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/panes/inspector.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/panes/module_plugins.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/panes/pane.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/panes/performance_timeline.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/panes/runtime_diagnostics.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/panes/viewport.rs
+  - zircon_editor/src/ui/retained/contract/data/panes.rs
+  - zircon_editor/src/ui/retained/contract/data/panes/animation.rs
+  - zircon_editor/src/ui/retained/contract/data/panes/basic.rs
+  - zircon_editor/src/ui/retained/contract/data/panes/build_export.rs
+  - zircon_editor/src/ui/retained/contract/data/panes/hierarchy.rs
+  - zircon_editor/src/ui/retained/contract/data/panes/inspector.rs
+  - zircon_editor/src/ui/retained/contract/data/panes/module_plugins.rs
+  - zircon_editor/src/ui/retained/contract/data/panes/pane.rs
+  - zircon_editor/src/ui/retained/contract/data/panes/performance_timeline.rs
+  - zircon_editor/src/ui/retained/contract/data/panes/runtime_diagnostics.rs
+  - zircon_editor/src/ui/retained/contract/data/panes/viewport.rs
 implementation_files:
-  - zircon_editor/src/ui/retained_host/host_contract/data/panes.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/panes/animation.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/panes/basic.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/panes/build_export.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/panes/hierarchy.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/panes/inspector.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/panes/module_plugins.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/panes/pane.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/panes/performance_timeline.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/panes/runtime_diagnostics.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/panes/viewport.rs
+  - zircon_editor/src/ui/retained/contract/data/panes.rs
+  - zircon_editor/src/ui/retained/contract/data/panes/animation.rs
+  - zircon_editor/src/ui/retained/contract/data/panes/basic.rs
+  - zircon_editor/src/ui/retained/contract/data/panes/build_export.rs
+  - zircon_editor/src/ui/retained/contract/data/panes/hierarchy.rs
+  - zircon_editor/src/ui/retained/contract/data/panes/inspector.rs
+  - zircon_editor/src/ui/retained/contract/data/panes/module_plugins.rs
+  - zircon_editor/src/ui/retained/contract/data/panes/pane.rs
+  - zircon_editor/src/ui/retained/contract/data/panes/performance_timeline.rs
+  - zircon_editor/src/ui/retained/contract/data/panes/runtime_diagnostics.rs
+  - zircon_editor/src/ui/retained/contract/data/panes/viewport.rs
 plan_sources:
   - docs/plans/zircon_editor/editor_ui/08-workbench-shell-on-runtime-ui.md
   - user: 2026-06-21 editor UI architecture implementation, feature first and tests deferred

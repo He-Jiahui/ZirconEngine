@@ -1,9 +1,8 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/app/asset_surface_pointer_state.rs
-  - zircon_editor/src/ui/retained_host/app/reference_drop_payload.rs
-  - zircon_editor/src/ui/retained_host/app/runtime_diagnostics_visibility.rs
-  - zircon_editor/src/ui/retained_host/app/workbench_snapshot_access.rs
+  - zircon_editor/src/ui/retained/app/asset_surface_pointer_state.rs
+  - zircon_editor/src/ui/retained/app/reference_drop_payload.rs
+  - zircon_editor/src/ui/retained/app/runtime_diagnostics_visibility.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_editor/editor_ui/01-slate-input-dispatch-core.md

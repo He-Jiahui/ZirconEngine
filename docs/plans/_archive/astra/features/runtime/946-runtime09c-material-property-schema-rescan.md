@@ -7,9 +7,7 @@ related_records:
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
   - zircon_runtime/src/asset/assets/material/property_values.rs
-  - zircon_runtime/src/asset/assets/material/property_values/schema_index_tests.rs
 tests:
-  - zircon_runtime/src/asset/assets/material/property_values/schema_index_tests.rs
 ---
 
 # Runtime946 · material property schema rescan elision

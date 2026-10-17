@@ -11,12 +11,8 @@ related_records:
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
   - zircon_runtime/src/graphics/visibility/culling/mesh_bounds.rs
-  - zircon_runtime/src/graphics/visibility/context/from_extract_with_history/collect_batching_result.rs
-  - zircon_runtime/src/graphics/visibility/context/from_extract_with_history/construct.rs
-  - zircon_runtime/src/graphics/visibility/context/from_extract_with_history/construct/tests.rs
 tests:
   - zircon_runtime/src/graphics/visibility/culling/mesh_bounds.rs
-  - zircon_runtime/src/graphics/visibility/context/from_extract_with_history/construct/tests.rs
 ---
 
 # Runtime961 · prepared local-bounds projection and fail-open visibility

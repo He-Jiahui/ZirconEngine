@@ -9,8 +9,6 @@ related_code:
   - zircon_runtime/src/asset/mesh_sdf_cook/cook.rs
   - zircon_runtime/src/asset/importer/ingest/import_mesh.rs
   - zircon_runtime/src/asset/importer/ingest/primitive_from_indexed_mesh.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/parallel_encoder_set.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command_list/builder.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/job_system_boundary.py
 plan_sources:
   - docs/plans/zircon_runtime/runtime/11-job-system-task-model.md

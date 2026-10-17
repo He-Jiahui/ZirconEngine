@@ -8,8 +8,6 @@ related_code:
   - zircon_editor/src/core/export/pipeline.rs
   - zircon_editor/src/ui/asset_editor/promote_widget.rs
 tests:
-  - zircon_editor/src/core/export/pipeline/optimization_batch_iv_editor633_tests.rs
-  - zircon_editor/src/ui/asset_editor/promote_widget/optimization_batch_iw_editor633_tests.rs
 ---
 
 # Editor633 Capacity And Membership Completion

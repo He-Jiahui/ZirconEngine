@@ -1,7 +1,6 @@
 ---
 related_code:
   - zircon_editor/src/core/commands/keymap.rs
-  - zircon_editor/src/core/commands/keymap/tests.rs
   - zircon_editor/src/core/settings/defaults.rs
   - zircon_editor/src/core/settings/io.rs
   - zircon_editor/src/core/settings/keymap_overrides.rs
@@ -12,8 +11,7 @@ plan_sources:
   - docs/plans/zircon_editor/editor/11-serialization-and-versioning.md
   - docs/plans/zircon_editor/editor/17-editor-services-and-recovery.md
 tests:
-  - zircon_editor/src/core/commands/keymap/tests.rs
-  - zircon_editor/src/core/settings/tests.rs
+  - zircon_editor/src/core/settings/tests/mod.rs
   - zircon_editor/src/tests/editor_event/runtime/keymap_settings.rs
 doc_type: module-detail
 ---

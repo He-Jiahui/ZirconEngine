@@ -1,22 +1,20 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/visual_assets/svg/cache.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/visual_assets/svg/pixels.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/visual_assets/loading/cache.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/visual_assets/loading/async_loader.rs
-  - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/icon_atlas.rs
-  - zircon_editor/src/ui/retained_host/ui_perf.rs
-  - zircon_editor/src/ui/retained_host/ui_perf/counter_catalog.rs
-  - zircon_editor/src/ui/retained_host/host_contract/presenter/gpu/stats.rs
+  - zircon_editor/src/ui/retained/contract/paint/visual_assets/svg/cache.rs
+  - zircon_editor/src/ui/retained/contract/paint/visual_assets/svg/pixels.rs
+  - zircon_editor/src/ui/retained/contract/paint/visual_assets/loading/cache.rs
+  - zircon_editor/src/ui/retained/contract/paint/loading/async_loader.rs
+  - zircon_editor/src/ui/retained/contract/chrome_command_stream/icon_atlas.rs
+  - zircon_editor/src/ui/retained/ui_perf/counter_catalog.rs
+  - zircon_editor/src/ui/retained/contract/presenter/gpu/stats.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/image_cache.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/image_cache/resource.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/shared_image_registry.rs
-  - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/shared_image_registry/allocation_ledger.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/shared_image_registry/allocation_ledger.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/presentation.rs
   - zircon_runtime/crates/zr_rhi/src/ui_surface.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/render_framework_trait_binding/wgpu_framework.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/render_framework_state/viewport_product_registry.rs
+  - zircon_runtime/src/graphics/render_framework_trait_binding/wgpu_framework.rs
   - tools/analysis/performance/editor/editor_svg_gpu_residency_pressure.py
   - tools/tests/test_editor_svg_gpu_residency_design_contract.py
   - tools/tests/test_editor_svg_gpu_residency_pressure.py

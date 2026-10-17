@@ -9,11 +9,7 @@ canonical_owner: Editor45
 refreshes:
   - docs/plans/optimize/zircon_editor/45-cinematic-sequencer-shot-track-binding-take-recorder-movie-render-queue-authoring-review.md
 related_code:
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/animation/workbench_extension_sequencer_workspace.zui
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation/specs/gameplay_animation.rs
-  - zircon_editor/src/ui/template_runtime/builtin/workbench_extension_module_template_bindings/gameplay_animation.rs
-  - zircon_editor/src/ui/retained_host/workbench_preview_actions/extensions.rs
+  - zircon_editor/src/ui/retained/dispatch/workbench/specs/gameplay_animation.rs
   - zircon_editor/src/ui/animation_editor/session.rs
   - zircon_editor/src/ui/animation_editor/session/sequence.rs
   - zircon_plugins/timeline_sequence
@@ -27,10 +23,9 @@ related_code:
   - zircon_runtime/src/core/framework/sound/automation.rs
   - zircon_plugins/sound/runtime/src/timeline
   - zircon_runtime/src/core/framework/render/capture.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/capture_mailbox.rs
+  - zircon_runtime/src/graphics/runtime/framework/viewport_record/capture_mailbox.rs
   - zircon_app/src/entry/runtime_entry_app/frame_capture.rs
 tests:
-  - zircon_plugins/timeline_sequence/editor/src/tests.rs
   - zircon_editor/src/tests/editor_event/runtime/animation_assets.rs
   - zircon_editor/src/tests/editor_event/support.rs
   - zircon_editor/src/tests/workbench/reflection/action_dispatch.rs

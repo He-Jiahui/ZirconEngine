@@ -19,8 +19,6 @@ related_code:
   - zircon_runtime/src/core/framework/animation
   - zircon_runtime/src/core/framework/render
   - zircon_runtime/src/graphics/scene/resources/gpu_mesh
-  - zircon_runtime/src/graphics/scene/scene_renderer/shadow
-  - zircon_runtime/src/graphics/scene/scene_renderer/temporal/velocity
   - zircon_runtime/src/graphics/visibility
   - zircon_runtime/src/graphics/material
 reference_engines:

@@ -11,7 +11,6 @@ related_records:
 implementation_files:
   - zircon_editor/src/ui/workbench/snapshot/data/console_output_snapshot.rs
 tests:
-  - tools/tests/test_editor_console_snapshot_generation_capacity_performance_contract.py
 ---
 
 # Editor834 · console snapshot generation capacity

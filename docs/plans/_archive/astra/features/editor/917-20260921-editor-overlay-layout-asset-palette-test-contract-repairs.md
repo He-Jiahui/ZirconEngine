@@ -10,10 +10,8 @@ related_records:
   - docs/plans/astra/features/editor/664-20260911-editor-ui-optimization-batch-completion.md
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
-  - zircon_editor/src/tests/editor_event/runtime/extensions_registration/overlay_lifecycle.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/layout/tab_drop.rs
-  - zircon_editor/src/tests/host/retained_menu_pointer/visual_screenshot/asset_browser_content.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/command_palette.rs
+  - zircon_editor/src/tests/runtime/extensions_registration/overlay_lifecycle.rs
+  - zircon_editor/src/tests/host/menus/visual_screenshot/asset_browser_content.rs
 ---
 
 # Editor917 Overlay, Layout, Asset Browser, and Palette Test Contract Repairs

@@ -12,13 +12,9 @@ related_code:
   - zircon_editor/src/ui/host/editor_event_runtime_access
   - zircon_editor/src/ui/host/project_access.rs
   - zircon_editor/src/ui/host/editor_manager_project.rs
-  - zircon_editor/src/ui/retained_host/app/settings_window_actions.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/settings_window.rs
-  - zircon_editor/src/ui/retained_host/host_contract/settings_window_geometry.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_settings_window.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_settings_window
-  - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node/popup_rows/settings.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/settings_window
+  - zircon_editor/src/ui/retained/app/settings_window_actions.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/workbench/settings_window.rs
+  - zircon_editor/src/ui/retained/contract/node/popup_rows/settings.rs
   - zircon_app/src
 plan_sources:
   - docs/plans/optimize/zircon_editor/12-settings-preferences-scope-persistence-locale-i18n-appearance-plugin-extensibility-review.md

@@ -5,10 +5,9 @@ related_code:
   - zircon_runtime/src/asset/importer/ingest/import_font_asset/mod.rs
   - zircon_runtime/src/asset/importer/ingest/import_font_asset/parse_sfnt.rs
   - zircon_runtime/src/text/font/asset_registration.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/font_asset.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/text.rs
   - zircon_runtime/src/text/sdf/font_bake.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/sdf_render.rs
   - zircon_runtime/src/text/model/font/mod.rs
   - zircon_runtime/src/text/font/database.rs
   - zircon_runtime/src/text/font/database/equivalence.rs

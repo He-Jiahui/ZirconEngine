@@ -7,10 +7,7 @@ related_records:
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
   - docs/plans/astra/features/runtime/972-runtime09d-to-09h1-completion-list.md
 implementation_files:
-  - zircon_runtime/src/graphics/scene/scene_renderer/temporal/taa/taa_resolve_bind_group_cache.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/temporal/taa/taa_resolve_bind_group_cache/mru_tests.rs
 tests:
-  - zircon_runtime/src/graphics/scene/scene_renderer/temporal/taa/taa_resolve_bind_group_cache/mru_tests.rs
 ---
 
 # Runtime971 · TAA bind-group MRU fast path

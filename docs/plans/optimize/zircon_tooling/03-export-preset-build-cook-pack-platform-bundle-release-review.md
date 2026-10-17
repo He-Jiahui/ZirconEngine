@@ -32,12 +32,10 @@ related_code:
   - zircon_runtime/src/plugin/export_build_plan/platform_host_files/mobile.rs
   - zircon_editor/src/core/export/stages/compile_host.rs
   - zircon_editor/src/core/export/stages/platform_bundle.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/execution.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_wizard_session/options.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/execution.rs
 tests:
   - tools/export/tests
   - zircon_runtime/src/asset/tests/pack.rs
-  - zircon_editor/src/core/export/tests.rs
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md
   - docs/plans/optimize/zircon_runtime/04-core-resource-asset-serialization-review.md

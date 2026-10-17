@@ -29,12 +29,10 @@ related_code:
   - zircon_runtime/src/core/framework/sound/playback.rs
   - zircon_runtime/src/core/framework/sound/preset.rs
   - zircon_runtime/src/core/framework/sound/status.rs
-  - zircon_runtime/src/core/framework/sound/tests.rs
   - zircon_plugins/sound/runtime/src/module.rs
   - zircon_plugins/sound/runtime/src/components.rs
   - zircon_plugins/sound/runtime/src/service_types/manager_trait.rs
   - zircon_plugins/sound/runtime/src/service_types/manager_trait/acoustics.rs
-  - zircon_plugins/sound/runtime/src/service_types/manager_trait/automation_timeline.rs
   - zircon_plugins/sound/runtime/src/service_types/manager_trait/backend.rs
   - zircon_plugins/sound/runtime/src/service_types/manager_trait/dynamic_events.rs
   - zircon_plugins/sound/runtime/src/service_types/manager_trait/mixer_graph.rs
@@ -73,13 +71,11 @@ implementation_files:
   - zircon_runtime/src/core/framework/sound/playback.rs
   - zircon_runtime/src/core/framework/sound/preset.rs
   - zircon_runtime/src/core/framework/sound/status.rs
-  - zircon_runtime/src/core/framework/sound/tests.rs
   - zircon_runtime/src/tests/extensions/manager_handles.rs
 plan_sources:
   - .codex/plans/Sound 插件核心完善计划.md
   - user: 2026-06-04 plugin ecosystem infrastructure expansion
 tests:
-  - zircon_runtime/src/core/framework/sound/tests.rs
   - default_sound_plugin_options_match_runtime_contract
   - default_stereo_mixer_graph_keeps_master_track_and_event_namespace
   - sound_channel_layouts_name_speaker_order_for_multichannel_formats

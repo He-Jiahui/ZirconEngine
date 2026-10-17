@@ -1,23 +1,22 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/app.rs
-  - zircon_editor/src/ui/retained_host/app/asset_tree_pointer.rs
-  - zircon_editor/src/ui/retained_host/app/asset_tree_pointer/dispatch.rs
-  - zircon_editor/src/ui/retained_host/app/asset_tree_pointer/dispatch/click.rs
-  - zircon_editor/src/ui/retained_host/app/asset_tree_pointer/dispatch/motion.rs
-  - zircon_editor/src/ui/retained_host/app/asset_tree_pointer/dispatch/scroll.rs
-  - zircon_editor/src/ui/retained_host/app/asset_tree_pointer/events.rs
-  - zircon_editor/src/ui/retained_host/app/asset_tree_pointer/target.rs
-  - zircon_editor/src/ui/retained_host/app/pointer_layout/asset_surfaces.rs
-  - zircon_editor/src/ui/retained_host/app/assets.rs
+  - zircon_editor/src/ui/retained/app/asset_tree_pointer.rs
+  - zircon_editor/src/ui/retained/app/asset_tree_pointer/dispatch.rs
+  - zircon_editor/src/ui/retained/app/asset_tree_pointer/dispatch/click.rs
+  - zircon_editor/src/ui/retained/app/asset_tree_pointer/dispatch/motion.rs
+  - zircon_editor/src/ui/retained/app/asset_tree_pointer/dispatch/scroll.rs
+  - zircon_editor/src/ui/retained/app/asset_tree_pointer/events.rs
+  - zircon_editor/src/ui/retained/app/asset_tree_pointer/target.rs
+  - zircon_editor/src/ui/retained/app/pointer_layout/asset_surfaces.rs
+  - zircon_editor/src/ui/retained/app/assets.rs
 implementation_files:
-  - zircon_editor/src/ui/retained_host/app/asset_tree_pointer.rs
-  - zircon_editor/src/ui/retained_host/app/asset_tree_pointer/dispatch.rs
-  - zircon_editor/src/ui/retained_host/app/asset_tree_pointer/dispatch/click.rs
-  - zircon_editor/src/ui/retained_host/app/asset_tree_pointer/dispatch/motion.rs
-  - zircon_editor/src/ui/retained_host/app/asset_tree_pointer/dispatch/scroll.rs
-  - zircon_editor/src/ui/retained_host/app/asset_tree_pointer/events.rs
-  - zircon_editor/src/ui/retained_host/app/asset_tree_pointer/target.rs
+  - zircon_editor/src/ui/retained/app/asset_tree_pointer.rs
+  - zircon_editor/src/ui/retained/app/asset_tree_pointer/dispatch.rs
+  - zircon_editor/src/ui/retained/app/asset_tree_pointer/dispatch/click.rs
+  - zircon_editor/src/ui/retained/app/asset_tree_pointer/dispatch/motion.rs
+  - zircon_editor/src/ui/retained/app/asset_tree_pointer/dispatch/scroll.rs
+  - zircon_editor/src/ui/retained/app/asset_tree_pointer/events.rs
+  - zircon_editor/src/ui/retained/app/asset_tree_pointer/target.rs
 plan_sources:
   - docs/plans/zircon_editor/editor_ui/08-workbench-shell-on-runtime-ui.md
   - user: 2026-06-18 editor UI architecture implementation, feature first and tests deferred

@@ -1,11 +1,7 @@
 ---
 related_code:
   - zircon_runtime_interface/src/ui/design_tokens.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/ui_asset_detail_fields/mod.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/ui_asset_detail_fields/row_model.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/ui_asset_detail_fields/section_nodes.rs
 implementation_files:
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/ui_asset_detail_fields/section_nodes.rs
 plan_sources:
   - docs/plans/zircon_editor/editor_layout/15-component-standardization-from-primitives.md
   - docs/plans/zircon_editor/editor_layout/17-text-rendering-and-typography.md

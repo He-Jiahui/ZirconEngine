@@ -10,8 +10,6 @@ implementation_files:
   - zircon_editor/src/ui/asset_editor/tree/palette_drop/resolution.rs
   - zircon_editor/src/ui/asset_editor/tree/palette_drop/resolution/title_case.rs
 tests:
-  - zircon_editor/src/ui/asset_editor/tree/palette_drop/resolution/title_case/tests.rs
-  - tools/tests/test_editor897_palette_slot_title_direct_performance_contract.py
 ---
 
 # Editor897 Palette Slot Title Direct

@@ -7,35 +7,28 @@ baseline_head: 681588f7a1cbfaae3147e8b93e1be6705d810f21
 related_code:
   - zircon_editor/src/scene/viewport/settings.rs
   - zircon_editor/src/scene/viewport/render_packet.rs
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_overlay_providers.rs
   - zircon_editor/src/scene/viewport/edit_mode_projection
   - zircon_editor/src/core/settings/defaults.rs
   - zircon_editor/src/ui/binding/viewport
-  - zircon_editor/src/ui/retained_host/callback_dispatch/viewport
-  - zircon_editor/src/ui/retained_host/viewport_toolbar_pointer
   - zircon_editor/src/ui/workbench/state/editor_state_viewport.rs
   - zircon_editor/src/ui/workbench/state/editor_state_play_mode.rs
   - zircon_editor/src/ui/layouts/views/viewport_chrome.rs
   - zircon_editor/assets/ui/editor/host/scene_viewport_toolbar.zui
   - zircon_runtime/src/core/framework/render
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store
-  - zircon_runtime/src/graphics/scene/scene_renderer/overlay
-  - zircon_runtime/src/graphics/scene/scene_renderer/primitives/wireframe
-  - zircon_runtime/src/graphics/scene/scene_renderer/primitives/scene_uniform/from_frame.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/deferred_scene_resources/execute_lighting.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/shadow/plan.rs
+  - zircon_runtime/src/graphics/scene/renderer/primitives/wireframe
+  - zircon_runtime/src/graphics/scene/renderer/scene_uniform/from_frame.rs
+  - zircon_runtime/src/graphics/scene/renderer/shadow/plan.rs
   - zircon_runtime/src/scene/world/render.rs
 tests:
   - zircon_editor/src/tests/editing/viewport.rs
   - zircon_editor/src/tests/editing/state/viewport.rs
   - zircon_editor/src/tests/editing/state/play_mode.rs
   - zircon_editor/src/tests/host/binding_dispatch/viewport.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/viewport/toolbar_dispatch.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/viewport/typed_command.rs
+  - zircon_editor/src/tests/host/callbacks/viewport/toolbar_dispatch.rs
+  - zircon_editor/src/tests/host/callbacks/viewport/typed_command.rs
   - zircon_editor/src/tests/host/retained_viewport_toolbar_pointer/dispatch.rs
-  - zircon_editor/src/tests/host/template_runtime/scene_viewport_toolbar_runtime_projection.rs
   - zircon_editor/src/tests/workbench/chrome_snapshot/viewport_settings.rs
-  - zircon_editor/src/tests/host/template_runtime/pane_payload_projection.rs
 plan_sources:
   - docs/plans/optimize/zircon_editor/68-editor-scene-viewport-display-mode-lighting-skybox-show-flag-debug-visualization-overlay-composition-profile-persistence.md
   - docs/plans/optimize/zircon_editor/22-render-pipeline-frame-capture-lighting-bake-reflection-probe-post-process-debug-authoring-review.md

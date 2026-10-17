@@ -1,7 +1,6 @@
 ---
 related_code:
   - zircon_editor/src/core/editor_message/topic.rs
-  - zircon_editor/src/core/editor_message/topic/deserialize_tests.rs
 plan_sources:
   - docs/plans/optimize/zircon_editor/48/2026-09-28-topic-deserialization-admission.md
   - docs/plans/optimize/zircon_editor/48-editor-message-bus-topic-subscription-inbox-retention-admission-dispatch-request-dirty-projection-shutdown-product-integration-review.md

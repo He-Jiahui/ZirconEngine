@@ -1,32 +1,23 @@
 ---
 related_code:
-  - zircon_editor/assets/ui/editor/material_components/inputs/material_autocomplete.zui
-  - zircon_editor/assets/ui/editor/material_components/inputs/material_checkboxes.zui
-  - zircon_editor/assets/ui/editor/material_components/inputs/material_number_field.zui
-  - zircon_editor/assets/ui/editor/material_components/inputs/material_radio_buttons.zui
+  - zircon_editor/assets/ui/editor/inputs/material_autocomplete.zui
+  - zircon_editor/assets/ui/editor/inputs/material_checkboxes.zui
+  - zircon_editor/assets/ui/editor/inputs/material_number_field.zui
+  - zircon_editor/assets/ui/editor/inputs/material_radio_buttons.zui
   - zircon_editor/assets/ui/editor/material_components/inputs/material_selects.zui
   - zircon_editor/assets/ui/editor/material_components/inputs/material_switches.zui
-  - zircon_editor/assets/ui/editor/material_components/inputs/material_text_fields.zui
-  - zircon_editor/assets/ui/editor/material_components/inputs/material_textarea_autosize.zui
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/feedback/workbench_context_menu.zui
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/feedback/workbench_dropdown_popup.zui
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/feedback/workbench_command_palette.zui
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/feedback/workbench_notification_center.zui
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/feedback/workbench_drag_overlay.zui
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/feedback/workbench_alert.zui
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/feedback/workbench_dialog.zui
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/feedback/workbench_confirm_dialog.zui
+  - zircon_editor/assets/ui/editor/inputs/material_text_fields.zui
   - zircon_editor/src/ui/workbench/preset/design_stack.rs
   - zircon_editor/src/ui/workbench/preset/panel_preset.rs
   - zircon_runtime/src/ui/component/catalog/material_foundation/mod.rs
   - zircon_runtime/src/ui/component/catalog/material_foundation/shared.rs
   - zircon_runtime/src/ui/component/catalog/material_foundation/button_inputs.rs
   - zircon_runtime/src/ui/component/catalog/material_foundation/data_display.rs
-  - zircon_runtime/src/ui/component/catalog/material_foundation/data_display_editor.rs
-  - zircon_runtime/src/ui/component/catalog/material_foundation/data_display_subcomponents.rs
-  - zircon_runtime/src/ui/component/catalog/material_foundation/data_display_table.rs
+  - zircon_runtime/src/ui/catalog/material_foundation/data_display_editor.rs
+  - zircon_runtime/src/ui/catalog/material_foundation/data_display_subcomponents.rs
+  - zircon_runtime/src/ui/catalog/material_foundation/data_display_table.rs
   - zircon_runtime/src/ui/component/catalog/material_foundation/feedback.rs
-  - zircon_runtime/src/ui/component/catalog/material_foundation/feedback_editor_overlays.rs
+  - zircon_runtime/src/ui/catalog/material_foundation/feedback_editor_overlays.rs
   - zircon_runtime/src/ui/component/state_reducer/toast.rs
   - zircon_runtime/src/ui/surface/input/toast_timer.rs
   - zircon_runtime/src/ui/surface/surface/default_interactions/toast_timer.rs
@@ -41,11 +32,11 @@ related_code:
   - zircon_runtime/src/ui/component/catalog/material_foundation/layout_utilities.rs
   - zircon_runtime/src/ui/component/catalog/material_foundation/navigation.rs
   - zircon_runtime/src/ui/component/catalog/material_foundation/navigation_editor.rs
-  - zircon_runtime/src/ui/component/catalog/material_foundation/navigation_secondary.rs
-  - zircon_runtime/src/ui/component/catalog/material_foundation/navigation_subcomponents.rs
+  - zircon_runtime/src/ui/catalog/material_foundation/navigation_secondary.rs
+  - zircon_runtime/src/ui/catalog/material_foundation/navigation_subcomponents.rs
   - zircon_runtime/src/ui/component/catalog/material_foundation/selection_inputs.rs
   - zircon_runtime/src/ui/component/catalog/material_foundation/surfaces.rs
-  - zircon_runtime/src/ui/component/catalog/material_foundation/surface_subcomponents.rs
+  - zircon_runtime/src/ui/catalog/material_foundation/surface_subcomponents.rs
   - zircon_runtime/src/ui/component/catalog/material_foundation/text_inputs.rs
   - zircon_runtime/src/ui/component/state_reducer/keyboard.rs
   - zircon_runtime/src/ui/component/state_reducer/command_palette.rs
@@ -59,11 +50,11 @@ related_code:
   - zircon_runtime/src/ui/surface/surface/default_interactions/range.rs
   - zircon_runtime/src/ui/surface/surface/default_interactions/table/mod.rs
   - zircon_runtime/src/ui/surface/surface/default_interactions/table/selection.rs
-  - zircon_runtime/src/ui/surface/surface/default_interactions/table/virtualization.rs
+  - zircon_runtime/src/ui/surface/surface/table/virtualization.rs
   - zircon_runtime/src/ui/surface/surface/default_interactions/tree_view.rs
   - zircon_runtime/src/ui/surface/surface/default_interactions/tree_view_reparent.rs
   - zircon_runtime/src/ui/surface/surface/default_interactions/tree_view_support.rs
-  - zircon_runtime/src/ui/surface/surface/default_interactions/tree_view_virtualization.rs
+  - zircon_runtime/src/ui/surface/default_interactions/tree_view_virtualization.rs
   - zircon_runtime/src/ui/dispatch/input_manager/manager.rs
   - zircon_runtime/src/ui/dispatch/input_manager/timers.rs
   - zircon_runtime/src/ui/surface/input/typeahead_timer.rs
@@ -81,36 +72,30 @@ related_code:
   - zircon_runtime_interface/src/tests/ui_contract_spine.rs
   - zircon_runtime/src/ui/component/catalog/mod.rs
   - zircon_runtime/src/ui/template/asset/compiler/style_apply/mui_lab_classes.rs
-  - zircon_runtime/src/ui/template/asset/compiler/style_apply/mui_display_surface_classes.rs
+  - zircon_runtime/src/ui/asset/compiler/style_apply/mui_display_surface_classes.rs
   - zircon_runtime/src/ui/template/asset/compiler/style_apply.rs
   - zircon_runtime/src/ui/tests/asset_mui_web_badge_style.rs
   - zircon_runtime/src/ui/tests/component_catalog.rs
   - zircon_runtime/src/ui/tests/component_catalog/material_foundation/mod.rs
-  - zircon_runtime/src/ui/tests/component_catalog/material_foundation/button_inputs.rs
   - zircon_runtime/src/ui/tests/component_catalog/material_foundation/feedback.rs
   - zircon_runtime/src/ui/tests/component_catalog/component_state/toast.rs
   - zircon_runtime/src/ui/tests/render_drag_overlay.rs
   - zircon_runtime/src/ui/tests/render_notification_center.rs
   - zircon_runtime/src/ui/tests/component_catalog/material_foundation/inputs.rs
-  - zircon_runtime/src/ui/tests/component_catalog/material_foundation/lab_subcomponents.rs
   - zircon_runtime/src/ui/tests/component_catalog/material_foundation/layout.rs
   - zircon_runtime/src/ui/tests/component_catalog/material_foundation/navigation.rs
-  - zircon_runtime/src/ui/tests/component_catalog/material_foundation/navigation_editor.rs
-  - zircon_runtime/src/ui/tests/component_catalog/material_foundation/navigation_secondary.rs
-  - zircon_runtime/src/ui/tests/component_catalog/material_foundation/selection_inputs.rs
   - zircon_runtime/src/ui/tests/component_catalog/material_foundation/surfaces.rs
   - zircon_runtime/src/ui/tests/component_catalog/component_state.rs
   - zircon_runtime/src/ui/tests/component_catalog/component_state/command_palette.rs
-  - zircon_runtime/src/ui/tests/component_catalog/component_state/notification_center.rs
+  - zircon_runtime/src/ui/tests/component_state/notification_center.rs
   - zircon_runtime/src/ui/tests/component_catalog/component_state/keyboard_menu.rs
   - zircon_runtime/src/ui/tests/component_catalog/component_state/slider.rs
   - zircon_runtime/src/ui/tests/component_catalog/component_state/table.rs
-  - zircon_runtime/src/ui/tests/component_catalog/component_state/text_input_validation.rs
+  - zircon_runtime/src/ui/tests/component_state/text_input_validation.rs
   - zircon_runtime/src/ui/tests/component_catalog/component_state/tree_view.rs
   - zircon_runtime/src/ui/tests/focus_navigation.rs
   - zircon_runtime/src/ui/tests/render_popup_menu.rs
   - zircon_runtime/src/ui/tests/render_popup_options.rs
-  - zircon_runtime/src/ui/tests/runtime_input_reply_routes/pointer_popup_routes.rs
   - zircon_runtime/src/ui/tests/render_sliders.rs
   - zircon_runtime/src/ui/tests/asset_mui_web_lab_style.rs
   - zircon_runtime/src/ui/tests/v2_asset.rs
@@ -118,29 +103,22 @@ related_code:
   - zircon_editor/assets/ui/editor/layout_demo_window.zui
   - zircon_runtime_interface/src/ui/skin/preset.rs
 implementation_files:
-  - zircon_editor/assets/ui/editor/material_components/inputs/material_autocomplete.zui
-  - zircon_editor/assets/ui/editor/material_components/inputs/material_checkboxes.zui
-  - zircon_editor/assets/ui/editor/material_components/inputs/material_number_field.zui
-  - zircon_editor/assets/ui/editor/material_components/inputs/material_radio_buttons.zui
+  - zircon_editor/assets/ui/editor/inputs/material_autocomplete.zui
+  - zircon_editor/assets/ui/editor/inputs/material_checkboxes.zui
+  - zircon_editor/assets/ui/editor/inputs/material_number_field.zui
+  - zircon_editor/assets/ui/editor/inputs/material_radio_buttons.zui
   - zircon_editor/assets/ui/editor/material_components/inputs/material_selects.zui
   - zircon_editor/assets/ui/editor/material_components/inputs/material_switches.zui
-  - zircon_editor/assets/ui/editor/material_components/inputs/material_text_fields.zui
-  - zircon_editor/assets/ui/editor/material_components/inputs/material_textarea_autosize.zui
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/feedback/workbench_command_palette.zui
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/feedback/workbench_notification_center.zui
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/feedback/workbench_drag_overlay.zui
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/feedback/workbench_alert.zui
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/feedback/workbench_dialog.zui
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/feedback/workbench_confirm_dialog.zui
+  - zircon_editor/assets/ui/editor/inputs/material_text_fields.zui
   - zircon_runtime/src/ui/component/catalog/material_foundation/mod.rs
   - zircon_runtime/src/ui/component/catalog/material_foundation/shared.rs
   - zircon_runtime/src/ui/component/catalog/material_foundation/button_inputs.rs
   - zircon_runtime/src/ui/component/catalog/material_foundation/data_display.rs
-  - zircon_runtime/src/ui/component/catalog/material_foundation/data_display_editor.rs
-  - zircon_runtime/src/ui/component/catalog/material_foundation/data_display_subcomponents.rs
-  - zircon_runtime/src/ui/component/catalog/material_foundation/data_display_table.rs
+  - zircon_runtime/src/ui/catalog/material_foundation/data_display_editor.rs
+  - zircon_runtime/src/ui/catalog/material_foundation/data_display_subcomponents.rs
+  - zircon_runtime/src/ui/catalog/material_foundation/data_display_table.rs
   - zircon_runtime/src/ui/component/catalog/material_foundation/feedback.rs
-  - zircon_runtime/src/ui/component/catalog/material_foundation/feedback_editor_overlays.rs
+  - zircon_runtime/src/ui/catalog/material_foundation/feedback_editor_overlays.rs
   - zircon_runtime/src/ui/component/state_reducer/toast.rs
   - zircon_runtime/src/ui/surface/input/toast_timer.rs
   - zircon_runtime/src/ui/surface/surface/default_interactions/toast_timer.rs
@@ -155,11 +133,11 @@ implementation_files:
   - zircon_runtime/src/ui/component/catalog/material_foundation/layout_utilities.rs
   - zircon_runtime/src/ui/component/catalog/material_foundation/navigation.rs
   - zircon_runtime/src/ui/component/catalog/material_foundation/navigation_editor.rs
-  - zircon_runtime/src/ui/component/catalog/material_foundation/navigation_secondary.rs
-  - zircon_runtime/src/ui/component/catalog/material_foundation/navigation_subcomponents.rs
+  - zircon_runtime/src/ui/catalog/material_foundation/navigation_secondary.rs
+  - zircon_runtime/src/ui/catalog/material_foundation/navigation_subcomponents.rs
   - zircon_runtime/src/ui/component/catalog/material_foundation/selection_inputs.rs
   - zircon_runtime/src/ui/component/catalog/material_foundation/surfaces.rs
-  - zircon_runtime/src/ui/component/catalog/material_foundation/surface_subcomponents.rs
+  - zircon_runtime/src/ui/catalog/material_foundation/surface_subcomponents.rs
   - zircon_runtime/src/ui/component/catalog/material_foundation/text_inputs.rs
   - zircon_runtime/src/ui/component/state_reducer/keyboard.rs
   - zircon_runtime/src/ui/component/state_reducer/command_palette.rs
@@ -176,7 +154,7 @@ implementation_files:
   - zircon_runtime/src/ui/surface/surface/default_interactions/tree_view.rs
   - zircon_runtime/src/ui/surface/surface/default_interactions/tree_view_reparent.rs
   - zircon_runtime/src/ui/surface/surface/default_interactions/tree_view_support.rs
-  - zircon_runtime/src/ui/surface/surface/default_interactions/tree_view_virtualization.rs
+  - zircon_runtime/src/ui/surface/default_interactions/tree_view_virtualization.rs
   - zircon_runtime/src/ui/dispatch/input_manager/manager.rs
   - zircon_runtime/src/ui/dispatch/input_manager/timers.rs
   - zircon_runtime/src/ui/surface/input/typeahead_timer.rs
@@ -194,11 +172,11 @@ implementation_files:
   - zircon_runtime_interface/src/tests/ui_contract_spine.rs
   - zircon_runtime/src/ui/component/catalog/mod.rs
   - zircon_runtime/src/ui/template/asset/compiler/style_apply/mui_lab_classes.rs
-  - zircon_runtime/src/ui/template/asset/compiler/style_apply/mui_display_surface_classes.rs
+  - zircon_runtime/src/ui/asset/compiler/style_apply/mui_display_surface_classes.rs
   - zircon_runtime/src/ui/tests/asset_mui_web_badge_style.rs
   - zircon_runtime/src/ui/tests/component_catalog/component_state/tree_view.rs
   - zircon_runtime/src/ui/tests/component_catalog/component_state/command_palette.rs
-  - zircon_runtime/src/ui/tests/component_catalog/component_state/notification_center.rs
+  - zircon_runtime/src/ui/tests/component_state/notification_center.rs
   - zircon_editor/assets/ui/editor/fyrox_panel_demo_window.zui
   - zircon_editor/assets/ui/editor/layout_demo_window.zui
 plan_sources:
@@ -209,7 +187,6 @@ plan_sources:
 tests:
   - zircon_runtime/src/ui/tests/component_catalog.rs
   - zircon_runtime/src/ui/tests/component_catalog/material_foundation/mod.rs
-  - zircon_runtime/src/ui/tests/component_catalog/material_foundation/button_inputs.rs
   - zircon_runtime/src/ui/tests/component_catalog/material_foundation/feedback.rs
   - zircon_runtime/src/ui/tests/component_catalog/component_state/toast.rs
   - rustfmt --edition 2021 --check zircon_runtime_interface/src/ui/dispatch/input/event.rs zircon_runtime_interface/src/ui/dispatch/input/mod.rs zircon_runtime_interface/src/ui/dispatch/mod.rs zircon_runtime_interface/src/tests/contracts.rs zircon_runtime/src/ui/dispatch/input_manager/timers.rs zircon_runtime/src/ui/dispatch/input_manager/manager.rs zircon_runtime/src/ui/surface/surface/default_interactions.rs zircon_runtime/src/ui/surface/surface/default_interactions/toast_timer.rs zircon_runtime/src/ui/surface/input/mod.rs zircon_runtime/src/ui/surface/input/dispatch.rs zircon_runtime/src/ui/surface/input/toast_timer.rs zircon_runtime/src/ui/surface/input/route_policy.rs zircon_runtime/src/ui/surface/input/owner_route.rs zircon_runtime/src/ui/surface/input/editable_text/ime_context.rs zircon_runtime/src/ui/tests/runtime_input_reply_routes.rs zircon_runtime/src/ui/tests/runtime_input_reply_routes/keyboard_navigation_routes.rs (2026-06-15 M3.S2 Snackbar/Toast input-manager auto-hide timer dispatch: passed)
@@ -219,14 +196,10 @@ tests:
   - git diff --check -- zircon_runtime/src/ui/component/state_reducer.rs zircon_runtime/src/ui/component/state_reducer/toast.rs zircon_runtime/src/ui/component/catalog/material_foundation/feedback.rs zircon_runtime/src/ui/tests/component_catalog/component_state.rs zircon_runtime/src/ui/tests/component_catalog/component_state/toast.rs zircon_runtime/src/ui/tests/component_catalog/material_foundation/feedback.rs docs/crates/zircon_runtime/ui/component/state_reducer.md docs/crates/zircon_runtime/ui/components.md docs/crates/zircon_runtime/ui/component/catalog/material_foundation.md docs/plans/zircon_editor/editor_ui/06-component-library-mui.md .codex/sessions/20260612-0904-editor-ui-architecture-implementation.md (2026-06-15 M3.S2 Snackbar/Toast queue reducer: passed with LF-to-CRLF warnings only)
   - zircon_runtime/src/ui/tests/component_catalog/component_state/toast.rs
   - zircon_runtime/src/ui/tests/component_catalog/material_foundation/inputs.rs
-  - zircon_runtime/src/ui/tests/component_catalog/material_foundation/lab_subcomponents.rs
   - zircon_runtime/src/ui/tests/component_catalog/material_foundation/layout.rs
-  - zircon_runtime/src/ui/tests/component_catalog/material_foundation/navigation_editor.rs
-  - zircon_runtime/src/ui/tests/component_catalog/material_foundation/selection_inputs.rs
   - zircon_runtime/src/ui/tests/component_catalog/material_foundation/surfaces.rs
   - zircon_runtime/src/ui/tests/component_catalog/component_state/table.rs
-  - zircon_runtime/src/ui/tests/runtime_input_reply_routes/table_pointer_routes.rs
-  - zircon_runtime/src/ui/tests/component_catalog/component_state/text_input_validation.rs
+  - zircon_runtime/src/ui/tests/component_state/text_input_validation.rs
   - zircon_runtime/src/ui/tests/v2_asset.rs
   - zircon_runtime_interface/src/tests/ui_contract_spine.rs
   - zircon_runtime/src/ui/tests/material_layout.rs
@@ -235,7 +208,7 @@ tests:
   - zircon_editor/src/tests/ui/boundary/material_component_lab/inputs/checkbox.rs
   - zircon_editor/src/tests/ui/boundary/material_component_lab/inputs/radio.rs
   - zircon_editor/src/tests/ui/boundary/material_component_lab/inputs/switch.rs
-  - zircon_editor/src/tests/ui/boundary/material_component_lab/feedback.rs
+  - zircon_editor/src/tests/ui/boundary/material_component_lab/feedback/mod.rs
   - CARGO_TARGET_DIR=/mnt/f/cargo-targets/zircon-zmaterial-final-wsl cargo test -p zircon_runtime --lib material_editor_foundation_catalog_covers_planned_component_layers --locked --jobs 1 --message-format short --color never (2026-05-18: passed, 1 passed)
   - CARGO_TARGET_DIR=/mnt/f/cargo-targets/zircon-zmaterial-final-wsl cargo test -p zircon_runtime --lib material --locked --offline --jobs 1 --message-format short --color never (2026-05-18: passed, 68 passed)
   - zircon_editor/src/ui/workbench/preset/design_stack.rs

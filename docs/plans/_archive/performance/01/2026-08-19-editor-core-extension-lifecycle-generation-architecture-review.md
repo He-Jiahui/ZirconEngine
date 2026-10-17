@@ -8,7 +8,6 @@ related_code:
   - zircon_editor/src/ui/workbench/shell_state.rs
   - zircon_editor/src/ui/workbench/snapshot/data/editor_state_snapshot_build.rs
 tests:
-  - zircon_editor/src/core/extension/store/tests.rs
   - zircon_editor/src/core/extension/toolkit/tests
   - tools/tests/test_editor02_plugin_registration_atomicity_contract.py
   - tools/tests/test_editor06_document_toolkit_contract.py

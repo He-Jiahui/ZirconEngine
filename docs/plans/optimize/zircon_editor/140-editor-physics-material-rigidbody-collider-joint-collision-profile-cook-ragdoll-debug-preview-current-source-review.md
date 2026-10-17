@@ -31,7 +31,6 @@ related_code:
   - zircon_editor/src/core/jobs
   - zircon_editor/src/core/editor_extension
   - zircon_editor/src/scene/viewport
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench
   - zircon_runtime/src/core/framework/physics
   - zircon_runtime/src/core/framework/scene/physics
   - zircon_runtime/src/asset/assets/physics_material.rs

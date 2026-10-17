@@ -10,7 +10,7 @@ origin_child_dir: docs/plans/zircon_editor/editor_ui/12
 fixing_child_dir: docs/plans/optimize/zircon_editor/01
 plan_link_mode: child_record_only
 related_code:
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/viewport_toolbar/surface_frame_cache.rs
+  - zircon_editor/src/ui/retained/dispatch/viewport_toolbar/surface_frame_cache.rs
 ---
 
 # Editor01 viewport-toolbar cache signature move: validation failure handoff

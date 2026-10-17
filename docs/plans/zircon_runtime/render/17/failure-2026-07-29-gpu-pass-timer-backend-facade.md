@@ -10,9 +10,9 @@ fixing_child_dir: docs/plans/zircon_runtime/render/17
 plan_link_mode: child_record_only
 related_code:
   - zircon_runtime/src/graphics/backend/mod.rs
-  - zircon_runtime/src/graphics/backend/render_backend/gpu_pass_timer/mod.rs
+  - zircon_runtime/src/graphics/backend/backend/gpu_pass_timer/mod.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/gpu_pass_timer.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
+  - zircon_runtime/src/graphics/scene/renderer/core/render/render/render.rs
 tests:
   - cargo check -p zircon_runtime --lib --locked --jobs 1 --color never
   - cargo +1.94.1 test -p zircon_runtime --test plugins09_export_validate_report --bin zircon_export_validate --locked --jobs 1 --color never -- --nocapture --test-threads=1

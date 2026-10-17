@@ -20,19 +20,17 @@ related_code:
   - zircon_editor/src/ui/host/editor_host_event_controller/runtime_shutdown.rs
   - zircon_editor/src/ui/host/editor_host_event_controller/play_preview_input.rs
   - zircon_editor/src/ui/host/editor_host_event_controller/simulate_camera.rs
-  - zircon_editor/src/ui/retained_host/run_config.rs
-  - zircon_editor/src/ui/retained_host/app/play_preview_redraw.rs
-  - zircon_editor/src/ui/retained_host/app/simulate_camera_sync.rs
-  - zircon_editor/src/ui/retained_host/app/native_keyboard_actions.rs
-  - zircon_editor/src/ui/retained_host/app/viewport/game_input.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/viewport_image.rs
+  - zircon_editor/src/ui/retained/app/play_preview_redraw.rs
+  - zircon_editor/src/ui/retained/app/simulate_camera_sync.rs
+  - zircon_editor/src/ui/retained/app/native_keyboard_actions.rs
+  - zircon_editor/src/ui/retained/app/viewport/game_input.rs
+  - zircon_editor/src/ui/retained/contract/data/viewport_image.rs
   - zircon_runtime/src/dynamic_api/camera_controller.rs
   - zircon_runtime_interface/src/runtime_api/session/camera.rs
   - zircon_editor/src/ui/host/command_eval_projection.rs
   - zircon_app/src/entry/entry_runner/editor/play_session_factory.rs
   - zircon_app/src/entry/runtime_library/runtime_session.rs
 tests:
-  - zircon_editor/src/core/play/tests.rs
   - zircon_editor/src/tests/editor_event/runtime/stack_play.rs
   - tools/tests/test_editor04_play_session_controller_contract.py
   - tools/tests/test_editor04_process_play_backend_contract.py

@@ -13,7 +13,6 @@ implementation_files:
 tests:
   - zircon_editor/src/core/project/tests/template_creation.rs
   - zircon_editor/src/core/project/tests/directory_transaction.rs
-  - zircon_editor/src/ui/host/editor_manager_project_session/tests.rs
 ---
 
 # Editor1046 / Editor268 published create artifact completion list

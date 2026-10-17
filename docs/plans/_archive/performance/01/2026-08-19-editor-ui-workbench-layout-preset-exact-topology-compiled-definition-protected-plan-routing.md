@@ -4,7 +4,6 @@ related_code:
   - zircon_editor/src/ui/workbench/page_layout_template.rs
   - zircon_editor/src/ui/workbench/preset
   - zircon_editor/src/ui/host/layout_persistence.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/shell_presentation.rs
 plan_sources:
   - docs/plans/performance/01/2026-08-19-editor-ui-workbench-layout-preset-exact-topology-compiled-definition-architecture-review.md
 owner_plans:

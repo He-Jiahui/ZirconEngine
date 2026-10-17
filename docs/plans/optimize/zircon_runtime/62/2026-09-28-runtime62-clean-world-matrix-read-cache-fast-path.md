@@ -5,7 +5,6 @@ runtime: Runtime62
 gate: RSH-G19
 related_code:
   - zircon_runtime/src/scene/world/derived_state.rs
-  - zircon_runtime/src/scene/world/derived_state_clean_world_matrix_profile.rs
   - zircon_runtime/tests/runtime_scene_projected_read_performance.rs
 tests:
   - clean_world_matrix_reads_match_the_published_cache

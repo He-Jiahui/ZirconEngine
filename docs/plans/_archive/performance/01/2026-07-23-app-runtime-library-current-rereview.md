@@ -10,7 +10,6 @@ reference_sources:
   - dev/bevy/crates/bevy_winit/src/state.rs
   - dev/UnrealEngine/Engine/Source/Runtime/Launch/Private/LaunchEngineLoop.cpp
 tests:
-  - zircon_app/src/entry/runtime_library/tests.rs
   - current-source managed Windows Cargo pending
   - owned-output and failed-destroy failure storms pending
 doc_type: implementation-evidence

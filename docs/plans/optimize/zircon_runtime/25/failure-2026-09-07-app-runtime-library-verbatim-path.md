@@ -10,9 +10,7 @@ fixing_child_dir: docs/plans/optimize/zircon_runtime/25
 plan_link_mode: child_record_only
 related_code:
   - zircon_runtime/src/asset/project/paths.rs
-  - zircon_runtime/src/asset/project/paths/tests.rs
   - zircon_app/src/entry/runtime_library/library_path.rs
-  - zircon_app/src/entry/runtime_library/tests.rs
 tests:
   - tools/dev/dev-fast-build.ps1 -Action test -Package zircon_app -FeatureOverride target-server -LibTests -TestFilter runtime_library_path_prefers_executable_sibling_when_present -LinkMode static
   - tools/dev/dev-fast-build.ps1 -Action test -Package zircon_app -FeatureOverride target-server -LibTests -TestFilter runtime_library_path_prefers_executable_sibling_when_present -LinkMode dev-dynamic

@@ -16,7 +16,6 @@ related_code:
   - zircon_runtime/src/ui/surface/render/text_fields.rs
   - zircon_runtime/src/ui/tests/surface_frame_authority/arranged_authority.rs
   - zircon_runtime_interface/src/ui/surface/render/command.rs
-  - zircon_runtime_interface/src/ui/surface/render/command/clip_tests.rs
   - zircon_runtime/src/ui/surface/interaction_gate.rs
   - zircon_runtime/src/ui/surface/surface/rebuild.rs
   - zircon_runtime/src/ui/surface/surface/rebuild/incremental.rs
@@ -25,8 +24,6 @@ related_code:
   - zircon_runtime_interface/src/ui/surface/diagnostics.rs
   - zircon_runtime/src/ui/tests/surface_dirty_domains/patch_publication.rs
   - zircon_runtime_interface/src/ui/surface/arranged.rs
-  - dev/UnrealEngine/Engine/Source/Runtime/SlateCore/Private/FastUpdate/SlateInvalidationWidgetHeap.h
-  - dev/slint/internal/core/partial_renderer.rs
 tests:
   - 10k-node arranged node-slot-ancestor probe counter
   - one-percent dirty stage visited-node test

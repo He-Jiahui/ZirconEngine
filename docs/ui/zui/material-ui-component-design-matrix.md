@@ -1,13 +1,8 @@
 ---
 related_code:
-  - dev/material-ui/docs/data/material/components
-  - dev/material-ui/packages/mui-material/src
-  - dev/material-ui/packages/mui-lab/src
-  - dev/material-ui/packages/mui-icons-material/lib
   - zircon_editor/assets/ui/theme/editor_material.zui
   - zircon_editor/assets/ui/editor/component_showcase.zui
   - zircon_editor/assets/ui/editor/material_component_lab.zui
-  - zircon_editor/assets/ui/editor/material_components/data_display
   - zircon_editor/assets/ui/editor/material_components/feedback
   - zircon_editor/assets/ui/editor/material_components/inputs
   - zircon_editor/assets/ui/editor/material_components/layout
@@ -20,19 +15,19 @@ related_code:
   - zircon_runtime/src/ui/component/catalog/material_foundation
   - zircon_runtime/src/ui/component/catalog/material_foundation/shared.rs
   - zircon_runtime/src/ui/component/catalog/material_foundation/data_display.rs
-  - zircon_runtime/src/ui/component/catalog/material_foundation/data_display_subcomponents.rs
-  - zircon_runtime/src/ui/component/catalog/material_foundation/data_display_table.rs
+  - zircon_runtime/src/ui/catalog/material_foundation/data_display_subcomponents.rs
+  - zircon_runtime/src/ui/catalog/material_foundation/data_display_table.rs
   - zircon_runtime/src/ui/component/catalog/material_foundation/feedback.rs
   - zircon_runtime/src/ui/component/catalog/material_foundation/surfaces.rs
-  - zircon_runtime/src/ui/component/catalog/material_foundation/surface_subcomponents.rs
+  - zircon_runtime/src/ui/catalog/material_foundation/surface_subcomponents.rs
   - zircon_runtime/src/ui/component/catalog/material_foundation/navigation.rs
-  - zircon_runtime/src/ui/component/catalog/material_foundation/navigation_subcomponents.rs
-  - zircon_runtime/src/ui/component/catalog/material_foundation/navigation_secondary.rs
+  - zircon_runtime/src/ui/catalog/material_foundation/navigation_subcomponents.rs
+  - zircon_runtime/src/ui/catalog/material_foundation/navigation_secondary.rs
   - zircon_runtime/src/ui/component/catalog/material_foundation/navigation_editor.rs
   - zircon_runtime/src/ui/component/catalog/material_foundation/layout.rs
   - zircon_runtime/src/ui/component/catalog/material_foundation/layout_mui.rs
   - zircon_runtime/src/ui/component/catalog/material_foundation/layout_utilities.rs
-  - zircon_runtime/src/ui/component/catalog/material_foundation/layout_transitions.rs
+  - zircon_runtime/src/ui/catalog/material_foundation/layout_transitions.rs
   - zircon_runtime/src/ui/component/catalog/material_foundation/layout_editor.rs
   - zircon_runtime/src/ui/component/catalog/material_foundation/form_controls.rs
   - zircon_runtime/src/ui/component/catalog/material_foundation/lab_subcomponents.rs
@@ -41,25 +36,19 @@ related_code:
   - zircon_runtime/src/ui/template/asset/style.rs
   - zircon_runtime/src/ui/template/asset/compiler/component_instance_expander.rs
   - zircon_runtime/src/ui/template/asset/compiler/style_apply.rs
-  - zircon_runtime/src/ui/template/asset/compiler/style_apply/mui_collection_classes.rs
-  - zircon_runtime/src/ui/template/asset/compiler/style_apply/mui_display_surface_classes.rs
+  - zircon_runtime/src/ui/asset/compiler/style_apply/mui_collection_classes.rs
+  - zircon_runtime/src/ui/asset/compiler/style_apply/mui_display_surface_classes.rs
   - zircon_runtime/src/ui/template/asset/compiler/style_apply/mui_form_classes.rs
   - zircon_runtime/src/ui/template/asset/compiler/style_apply/mui_lab_classes.rs
   - zircon_runtime/src/ui/template/asset/compiler/style_apply/mui_layout_classes.rs
-  - zircon_runtime/src/ui/template/asset/compiler/style_apply/mui_navigation_classes.rs
-  - zircon_runtime/src/ui/template/asset/compiler/style_apply/mui_selection_classes.rs
-  - zircon_runtime/src/ui/template/asset/compiler/style_apply/mui_surface_child_classes.rs
+  - zircon_runtime/src/ui/asset/compiler/style_apply/mui_navigation_classes.rs
+  - zircon_runtime/src/ui/asset/compiler/style_apply/mui_selection_classes.rs
+  - zircon_runtime/src/ui/asset/compiler/style_apply/mui_surface_child_classes.rs
   - zircon_runtime/src/ui/template/asset/compiler/style_apply/mui_x_classes.rs
   - zircon_runtime/src/ui/template/asset/compiler/prototype_instancer.rs
-  - zircon_runtime/src/ui/tests/component_catalog/material_foundation/mui_web_inventory.rs
-  - zircon_runtime/src/ui/tests/component_catalog/material_foundation/data_display.rs
-  - zircon_runtime/src/ui/tests/component_catalog/material_foundation/data_display_subcomponents.rs
-  - zircon_runtime/src/ui/tests/component_catalog/material_foundation/form_controls.rs
+  - zircon_runtime/src/ui/tests/material_foundation/mui_web_inventory.rs
   - zircon_runtime/src/ui/tests/component_catalog/material_foundation/navigation.rs
-  - zircon_runtime/src/ui/tests/component_catalog/material_foundation/navigation_secondary.rs
-  - zircon_runtime/src/ui/tests/component_catalog/material_foundation/lab_subcomponents.rs
   - zircon_runtime/src/ui/tests/component_catalog/material_foundation/mui_x.rs
-  - zircon_runtime/src/ui/tests/component_catalog/material_foundation/surface_subcomponents.rs
   - zircon_runtime/src/ui/tests/component_catalog/material_foundation/layout.rs
   - zircon_runtime/src/ui/tests/asset_mui_web_collection_style.rs
   - zircon_runtime/src/ui/tests/asset_mui_web_form_style.rs
@@ -70,28 +59,14 @@ related_code:
   - zircon_runtime/src/ui/tests/asset_mui_web_surface_child_style.rs
   - zircon_runtime/src/ui/tests/asset_mui_web_style.rs
   - zircon_runtime/src/ui/tests/asset_mui_web_badge_style.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/visual_assets.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/visual_assets/mui_icons.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mui_x_primitives.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mui_x_primitives/charts.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/alert.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/avatar.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/badge.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/timeline.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_nodes.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/template_nodes.rs
+  - zircon_editor/src/ui/retained/contract/paint/visual_assets/mui_icons.rs
+  - zircon_editor/src/ui/retained/contract/paint/mui_x_primitives/charts.rs
   - zircon_editor/src/ui/layouts/views/view_data.rs
   - zircon_editor/src/ui/layouts/views/view_projection.rs
   - zircon_editor/src/ui/asset_editor/node_projection.rs
-  - zircon_editor/src/ui/retained_host/ui/template_node_conversion.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/mod.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/tests/actions.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/popup_frame/mod.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/progress_value.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/surface_defaults/mod.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/transition_metadata/mod.rs
-  - zircon_editor/src/tests/host/retained_window/native_material_painter_mui_primitives.rs
+  - zircon_editor/src/ui/retained/ui/data/projection/popup_frame/mod.rs
+  - zircon_editor/src/ui/retained/ui/data/projection/surface_defaults/mod.rs
+  - zircon_editor/src/ui/retained/ui/data/projection/transition_metadata/mod.rs
   - zircon_runtime/src/ui/layout/pass/material.rs
   - zircon_runtime/src/ui/surface/property_mutation.rs
   - zircon_runtime_interface/src/ui/surface/focus_state.rs
@@ -107,55 +82,46 @@ related_code:
   - zircon_runtime/src/ui/tests/focus_navigation.rs
   - zircon_runtime/src/ui/tests/widget_menu_behavior.rs
   - zircon_runtime/src/ui/tests/widget_text_input_mui.rs
-  - zircon_runtime/src/ui/tests/component_catalog/material_foundation/virtualization.rs
+  - zircon_runtime/src/ui/tests/material_foundation/virtualization.rs
   - zircon_runtime/src/ui/tests/surface_dirty_domains.rs
   - zircon_editor/assets/ui/editor/components/showcase\showcase_visual_section.zui
   - zircon_editor/assets/ui/editor/components/showcase\showcase_input_section.zui
-  - zircon_editor/assets/ui/editor/components/showcase\showcase_selection_section.zui
-  - zircon_editor/assets/ui/editor/components/showcase\showcase_collections_section.zui
   - zircon_editor/src/tests/ui/boundary/material_ui_component_design_matrix.rs
   - zircon_editor/src/tests/ui/boundary/mui_web_parity_inventory.rs
 implementation_files:
-  - docs/ui-and-layout/material-ui-component-design-matrix.md
-  - zircon_editor/assets/ui/editor/material_components/inputs/material_button_group.zui
-  - zircon_editor/assets/ui/editor/material_components/inputs/material_floating_action_button.zui
-  - zircon_editor/assets/ui/editor/material_components/inputs/material_text_fields.zui
-  - zircon_editor/assets/ui/editor/material_components/inputs/material_textarea_autosize.zui
+  - zircon_editor/assets/ui/editor/inputs/material_button_group.zui
+  - zircon_editor/assets/ui/editor/inputs/material_text_fields.zui
   - zircon_editor/assets/ui/editor/material_components/inputs/material_selects.zui
-  - zircon_editor/assets/ui/editor/material_components/inputs/material_autocomplete.zui
-  - zircon_editor/assets/ui/editor/material_components/inputs/material_checkboxes.zui
-  - zircon_editor/assets/ui/editor/material_components/inputs/material_radio_buttons.zui
-  - zircon_editor/assets/ui/editor/material_components/mui_x/material_mui_x_agent_chat.zui
-  - zircon_editor/assets/ui/editor/material_components/mui_x/material_mui_x_bar_chart.zui
-  - zircon_editor/assets/ui/editor/material_components/mui_x/material_mui_x_charts.zui
-  - zircon_editor/assets/ui/editor/material_components/mui_x/material_mui_x_chat_composer.zui
-  - zircon_editor/assets/ui/editor/material_components/mui_x/material_mui_x_data_grid.zui
-  - zircon_editor/assets/ui/editor/material_components/mui_x/material_mui_x_date_time_pickers.zui
-  - zircon_editor/assets/ui/editor/material_components/mui_x/material_mui_x_gauge.zui
-  - zircon_editor/assets/ui/editor/material_components/mui_x/material_mui_x_line_chart.zui
+  - zircon_editor/assets/ui/editor/inputs/material_autocomplete.zui
+  - zircon_editor/assets/ui/editor/inputs/material_checkboxes.zui
+  - zircon_editor/assets/ui/editor/inputs/material_radio_buttons.zui
+  - zircon_editor/assets/ui/editor/mui_x/material_mui_x_bar_chart.zui
+  - zircon_editor/assets/ui/editor/mui_x/material_mui_x_charts.zui
+  - zircon_editor/assets/ui/editor/mui_x/material_mui_x_data_grid.zui
+  - zircon_editor/assets/ui/editor/mui_x/material_mui_x_gauge.zui
   - zircon_editor/assets/ui/editor/material_components/layout/material_masonry.zui
-  - zircon_editor/assets/ui/editor/material_components/navigation/material_transfer_list.zui
-  - zircon_editor/assets/ui/editor/material_components/mui_x/material_mui_x_pie_chart.zui
-  - zircon_editor/assets/ui/editor/material_components/mui_x/material_mui_x_sparkline.zui
-  - zircon_editor/assets/ui/editor/material_components/mui_x/material_mui_x_tree_view.zui
+  - zircon_editor/assets/ui/editor/navigation/material_transfer_list.zui
+  - zircon_editor/assets/ui/editor/mui_x/material_mui_x_pie_chart.zui
+  - zircon_editor/assets/ui/editor/mui_x/material_mui_x_sparkline.zui
+  - zircon_editor/assets/ui/editor/mui_x/material_mui_x_tree_view.zui
   - zircon_editor/assets/ui/editor/material_component_lab.zui
   - zircon_runtime_interface/src/ui/style.rs
   - zircon_runtime/src/ui/style.rs
   - zircon_runtime/src/ui/component/catalog/material_foundation/shared.rs
   - zircon_runtime/src/ui/component/catalog/material_foundation/data_display.rs
-  - zircon_runtime/src/ui/component/catalog/material_foundation/data_display_subcomponents.rs
-  - zircon_runtime/src/ui/component/catalog/material_foundation/data_display_table.rs
+  - zircon_runtime/src/ui/catalog/material_foundation/data_display_subcomponents.rs
+  - zircon_runtime/src/ui/catalog/material_foundation/data_display_table.rs
   - zircon_runtime/src/ui/component/catalog/material_foundation/feedback.rs
   - zircon_runtime/src/ui/component/catalog/material_foundation/surfaces.rs
-  - zircon_runtime/src/ui/component/catalog/material_foundation/surface_subcomponents.rs
+  - zircon_runtime/src/ui/catalog/material_foundation/surface_subcomponents.rs
   - zircon_runtime/src/ui/component/catalog/material_foundation/navigation.rs
-  - zircon_runtime/src/ui/component/catalog/material_foundation/navigation_subcomponents.rs
-  - zircon_runtime/src/ui/component/catalog/material_foundation/navigation_secondary.rs
+  - zircon_runtime/src/ui/catalog/material_foundation/navigation_subcomponents.rs
+  - zircon_runtime/src/ui/catalog/material_foundation/navigation_secondary.rs
   - zircon_runtime/src/ui/component/catalog/material_foundation/navigation_editor.rs
   - zircon_runtime/src/ui/component/catalog/material_foundation/layout.rs
   - zircon_runtime/src/ui/component/catalog/material_foundation/layout_mui.rs
   - zircon_runtime/src/ui/component/catalog/material_foundation/layout_utilities.rs
-  - zircon_runtime/src/ui/component/catalog/material_foundation/layout_transitions.rs
+  - zircon_runtime/src/ui/catalog/material_foundation/layout_transitions.rs
   - zircon_runtime/src/ui/component/catalog/material_foundation/layout_editor.rs
   - zircon_runtime/src/ui/component/catalog/material_foundation/form_controls.rs
   - zircon_runtime/src/ui/component/catalog/material_foundation/inputs.rs
@@ -167,14 +133,14 @@ implementation_files:
   - zircon_runtime/src/ui/template/asset/style.rs
   - zircon_runtime/src/ui/template/asset/compiler/component_instance_expander.rs
   - zircon_runtime/src/ui/template/asset/compiler/style_apply.rs
-  - zircon_runtime/src/ui/template/asset/compiler/style_apply/mui_collection_classes.rs
-  - zircon_runtime/src/ui/template/asset/compiler/style_apply/mui_display_surface_classes.rs
+  - zircon_runtime/src/ui/asset/compiler/style_apply/mui_collection_classes.rs
+  - zircon_runtime/src/ui/asset/compiler/style_apply/mui_display_surface_classes.rs
   - zircon_runtime/src/ui/template/asset/compiler/style_apply/mui_form_classes.rs
   - zircon_runtime/src/ui/template/asset/compiler/style_apply/mui_lab_classes.rs
   - zircon_runtime/src/ui/template/asset/compiler/style_apply/mui_layout_classes.rs
-  - zircon_runtime/src/ui/template/asset/compiler/style_apply/mui_navigation_classes.rs
-  - zircon_runtime/src/ui/template/asset/compiler/style_apply/mui_selection_classes.rs
-  - zircon_runtime/src/ui/template/asset/compiler/style_apply/mui_surface_child_classes.rs
+  - zircon_runtime/src/ui/asset/compiler/style_apply/mui_navigation_classes.rs
+  - zircon_runtime/src/ui/asset/compiler/style_apply/mui_selection_classes.rs
+  - zircon_runtime/src/ui/asset/compiler/style_apply/mui_surface_child_classes.rs
   - zircon_runtime/src/ui/template/asset/compiler/style_apply/mui_x_classes.rs
   - zircon_runtime/src/ui/template/asset/compiler/prototype_instancer.rs
   - zircon_runtime/src/ui/tests/asset_mui_web_navigation_style.rs
@@ -186,40 +152,20 @@ implementation_files:
   - zircon_runtime/src/ui/tests/asset_mui_web_surface_child_style.rs
   - zircon_runtime/src/ui/tests/asset_mui_web_style.rs
   - zircon_runtime/src/ui/tests/component_catalog/material_foundation/mod.rs
-  - zircon_runtime/src/ui/tests/component_catalog/material_foundation/data_display.rs
-  - zircon_runtime/src/ui/tests/component_catalog/material_foundation/data_display_subcomponents.rs
-  - zircon_runtime/src/ui/tests/component_catalog/material_foundation/form_controls.rs
   - zircon_runtime/src/ui/tests/component_catalog/material_foundation/navigation.rs
-  - zircon_runtime/src/ui/tests/component_catalog/material_foundation/navigation_secondary.rs
-  - zircon_runtime/src/ui/tests/component_catalog/material_foundation/lab_subcomponents.rs
   - zircon_runtime/src/ui/tests/component_catalog/material_foundation/mui_x.rs
   - zircon_runtime/src/ui/tests/component_catalog/material_foundation/layout.rs
   - zircon_runtime/src/ui/tests/component_catalog/material_foundation/surfaces.rs
-  - zircon_runtime/src/ui/tests/component_catalog/material_foundation/surface_subcomponents.rs
-  - zircon_runtime/src/ui/tests/component_catalog/material_foundation/mui_web_inventory.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/visual_assets.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/visual_assets/mui_icons.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mui_x_primitives.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mui_x_primitives/charts.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/alert.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/avatar.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/badge.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/timeline.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/template_nodes.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_nodes.rs
+  - zircon_runtime/src/ui/tests/material_foundation/mui_web_inventory.rs
+  - zircon_editor/src/ui/retained/contract/paint/visual_assets/mui_icons.rs
+  - zircon_editor/src/ui/retained/contract/paint/mui_x_primitives/charts.rs
   - zircon_editor/src/ui/layouts/views/view_data.rs
   - zircon_editor/src/ui/layouts/views/view_projection.rs
   - zircon_editor/src/ui/asset_editor/node_projection.rs
-  - zircon_editor/src/ui/retained_host/ui/template_node_conversion.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/mod.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/tests/actions.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/popup_frame/mod.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/progress_value.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/surface_defaults/mod.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/transition_metadata/mod.rs
+  - zircon_editor/src/ui/retained/ui/data/projection/popup_frame/mod.rs
+  - zircon_editor/src/ui/retained/ui/data/projection/surface_defaults/mod.rs
+  - zircon_editor/src/ui/retained/ui/data/projection/transition_metadata/mod.rs
   - zircon_editor/src/tests/host/retained_window/native_material_painter_alert.rs
-  - zircon_editor/src/tests/host/retained_window/native_material_painter_mui_primitives.rs
   - zircon_runtime/src/ui/layout/pass/material.rs
   - zircon_runtime/src/ui/surface/property_mutation.rs
   - zircon_runtime_interface/src/ui/surface/focus_state.rs
@@ -235,12 +181,11 @@ implementation_files:
   - zircon_runtime/src/ui/tests/focus_navigation.rs
   - zircon_runtime/src/ui/tests/widget_menu_behavior.rs
   - zircon_runtime/src/ui/tests/widget_text_input_mui.rs
-  - zircon_runtime/src/ui/tests/component_catalog/material_foundation/virtualization.rs
+  - zircon_runtime/src/ui/tests/material_foundation/virtualization.rs
   - zircon_runtime/src/ui/tests/surface_dirty_domains.rs
   - zircon_runtime/src/ui/tests/component_catalog/material_foundation/inputs.rs
-  - zircon_runtime/src/ui/tests/component_catalog/material_foundation/selection_inputs.rs
-  - zircon_editor/src/ui/template_runtime/builtin/material_lab_template_bindings.rs
-  - zircon_editor/src/ui/template_runtime/builtin/showcase_template_bindings.rs
+  - zircon_editor/src/ui/runtime/builtin/material_lab_template_bindings.rs
+  - zircon_editor/src/ui/runtime/builtin/showcase_template_bindings.rs
   - zircon_editor/assets/ui/theme/editor_material.zui
   - zircon_runtime_interface/src/ui/layout/scroll.rs
   - zircon_runtime_interface/src/ui/layout/engine.rs
@@ -256,8 +201,8 @@ implementation_files:
   - zircon_runtime/src/ui/tests/template_grid_flow.rs
   - zircon_runtime/src/ui/tests/taffy_bridge.rs
   - zircon_editor/src/tests/ui/boundary/material_component_lab/catalog.rs
-  - zircon_editor/src/tests/ui/boundary/material_component_lab/feedback.rs
-  - zircon_editor/src/tests/ui/boundary/material_component_lab/lab_theme.rs
+  - zircon_editor/src/tests/ui/boundary/material_component_lab/feedback/mod.rs
+  - zircon_editor/src/tests/ui/boundary/material_component_lab/lab_theme/mod.rs
   - zircon_editor/src/tests/ui/boundary/material_component_lab/inputs/mod.rs
   - zircon_editor/src/tests/ui/boundary/material_component_lab/inputs/checkbox.rs
   - zircon_editor/src/tests/ui/boundary/material_component_lab/inputs/radio.rs
@@ -265,9 +210,9 @@ implementation_files:
   - zircon_editor/src/tests/ui/boundary/material_component_lab/inputs/selection.rs
   - zircon_editor/src/tests/ui/boundary/material_component_lab/inputs/text.rs
   - zircon_editor/src/tests/ui/boundary/material_component_lab/inputs/toggle.rs
-  - zircon_editor/src/tests/ui/boundary/material_component_lab/inventory.rs
+  - zircon_editor/src/tests/ui/boundary/material_component_lab/inventory/mod.rs
   - zircon_editor/src/tests/ui/boundary/material_component_lab/mui_x_theme.rs
-  - zircon_editor/src/tests/ui/boundary/material_component_lab/shell.rs
+  - zircon_editor/src/tests/ui/boundary/material_component_lab/shell/mod.rs
   - zircon_editor/src/tests/ui/boundary/material_component_lab/support.rs
   - zircon_editor/src/tests/ui/boundary/material_ui_component_design_matrix.rs
   - zircon_editor/src/tests/ui/boundary/mui_web_parity_inventory.rs

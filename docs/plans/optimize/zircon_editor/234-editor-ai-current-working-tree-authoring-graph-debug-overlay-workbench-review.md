@@ -22,13 +22,10 @@ related_code:
   - zircon_editor/src/core/editor_extension.rs
   - zircon_editor/src/core/extension/store/batch.rs
   - zircon_editor/src/scene/modes
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/module_navigation.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/module_command_feedback.rs
-  - zircon_editor/assets/ui/editor/components/workbench/modules/core/ai
+  - zircon_editor/src/ui/retained/dispatch/templates/workbench/module_navigation.rs
+  - zircon_editor/src/ui/retained/dispatch/workbench/module_command_feedback.rs
+  - zircon_editor/assets/ui/editor/workbench/modules/core/ai
 tests:
-  - zircon_plugins/ai/editor/src/tests.rs
-  - zircon_plugins/ai/editor/src/overlay/allocation_tests.rs
-  - zircon_plugins/ai/editor/src/runtime_mirror/lookup_allocation_tests.rs
 plan_sources:
   - docs/plans/optimize/zircon_editor/20-ai-behavior-tree-blackboard-perception-eqs-debug-authoring-review.md
   - docs/plans/optimize/zircon_editor/89-editor-ai-behavior-tree-blackboard-perception-eqs-state-tree-smart-object-debug-authoring-product-integration-current-source-review.md

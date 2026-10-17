@@ -20,12 +20,12 @@ related_code:
   - zircon_editor/src/ui/asset_editor/binding/binding_inspector.rs
   - zircon_editor/src/ui/host/asset_editor_sessions/refresh/pipeline/queue.rs
   - zircon_editor/src/ui/host/asset_editor_sessions/save.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/execution.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/execution.rs
   - zircon_editor/src/ui/host/layout_persistence.rs
-  - zircon_editor/src/ui/retained_host/host_contract/window/capture.rs
-  - zircon_editor/src/ui/retained_host/host_contract/window/event_loop.rs
-  - zircon_editor/src/ui/retained_host/host_contract/window/redraw.rs
-  - zircon_editor/src/ui/retained_host/ui_perf/counter_batch.rs
+  - zircon_editor/src/ui/retained/contract/window/capture.rs
+  - zircon_editor/src/ui/retained/contract/window/event_loop.rs
+  - zircon_editor/src/ui/retained/contract/window/redraw.rs
+  - zircon_editor/src/ui/retained/ui_perf/counter_batch.rs
   - zircon_hub/src/process/editor_handshake/wait.rs
   - zircon_plugins/animation/runtime/src/manager.rs
   - zircon_plugins/net/features/reliable_udp/runtime/src/manager/resend.rs
@@ -52,21 +52,18 @@ related_code:
   - zircon_runtime/src/dynamic_api/runtime_loop.rs
   - zircon_runtime/src/dynamic_api/session/registry/frame_demand.rs
   - zircon_runtime/src/foundation/runtime/config_manager.rs
-  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/compute_workload.rs
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_construction.rs
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_mip_streaming.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_compute_executor.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_graph_plan.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_shader_plan.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_wgpu_dispatch.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/hzb/hzb_occlusion_culler.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/build.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/shadow/plan.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/shadow/view_projection.rs
+  - zircon_runtime/src/graphics/builtin/feature_descriptors/compute_workload.rs
+  - zircon_runtime/src/graphics/scene/environment/ibl_bake_compute_executor.rs
+  - zircon_runtime/src/graphics/scene/renderer/environment/ibl_bake_graph_plan.rs
+  - zircon_runtime/src/graphics/scene/renderer/environment/ibl_bake_shader_plan.rs
+  - zircon_runtime/src/graphics/scene/renderer/environment/ibl_bake_wgpu_dispatch.rs
+  - zircon_runtime/src/graphics/scene/renderer/hzb/hzb_occlusion_culler.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/build_mesh_draws/build/build.rs
+  - zircon_runtime/src/graphics/scene/renderer/shadow/plan.rs
+  - zircon_runtime/src/graphics/scene/renderer/shadow/view_projection.rs
   - zircon_runtime/src/graphics/visibility/view_context/build_views.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/behavior_calls.rs
-  - zircon_runtime/src/scene/dynamic_scene/asset_reload/reports.rs
-  - zircon_runtime/src/scene/dynamic_scene/spawn_task/loader.rs
+  - zircon_runtime/src/scene/dynamic/asset_reload/reports.rs
+  - zircon_runtime/src/scene/dynamic/spawn_task/loader.rs
   - zircon_runtime/src/scene/inspection/snapshot.rs
   - zircon_runtime/src/scene/world/project_io/scene_asset.rs
   - zircon_runtime/src/text/model/style.rs

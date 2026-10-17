@@ -9,7 +9,6 @@ origin_child_dir: docs/plans/performance/01
 fixing_child_dir: docs/plans/zircon_plugins/13
 plan_link_mode: child_record_only
 related_code:
-  - tools/plugin_structure_audits
 tests:
   - git ls-files tools/tests/test_plugin_docs_current_status*.py
   - python tools/tests/test_current_status_tests_do_not_assert_local_validation_receipts.py

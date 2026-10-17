@@ -11,8 +11,6 @@ related_records:
 implementation_files:
   - zircon_editor/src/ui/workbench/asset_content_layout/paint_metadata.rs
 tests:
-  - zircon_editor/src/ui/workbench/asset_content_layout/paint_metadata/capacity_tests.rs
-  - tools/tests/test_editor_asset_visible_row_capacity_performance_contract.py
 ---
 
 # Editor760 · AssetContent visible-row bounded capacity

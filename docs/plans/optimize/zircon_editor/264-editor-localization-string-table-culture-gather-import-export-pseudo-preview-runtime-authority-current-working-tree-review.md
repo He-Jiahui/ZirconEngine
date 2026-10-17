@@ -33,7 +33,7 @@ related_code:
   - zircon_editor/src/ui/asset_editor/session/preview_compile.rs
   - zircon_editor/src/ui/asset_editor/session/resolver_state.rs
   - zircon_editor/src/ui/asset_editor/session/runtime_report_state.rs
-  - zircon_editor/src/ui/retained_host/app/ui_asset_editor/actions/mode_preview/locale.rs
+  - zircon_editor/src/ui/retained/app/ui_asset_editor/actions/mode_preview/locale.rs
   - zircon_runtime_interface/src/editor_contribution.rs
   - zircon_runtime_interface/src/ui/template/asset/localization
   - zircon_runtime/src/ui/template/asset/localization
@@ -48,9 +48,6 @@ related_code:
   - zircon_plugins
   - examples
 tests:
-  - zircon_editor/src/core/i18n/tests.rs
-  - zircon_editor/src/core/commands/presentation/tests.rs
-  - zircon_editor/src/core/commands/palette/localization_tests.rs
   - zircon_editor/src/core/settings/tests/registry.rs
   - zircon_editor/src/core/extension/settings_page_projection.rs
   - zircon_editor/src/core/plugin/materializer.rs

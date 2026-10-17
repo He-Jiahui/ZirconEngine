@@ -10,7 +10,6 @@ fixing_child_dir: docs/plans/zircon_plugins/04
 plan_link_mode: child_record_only
 related_code:
   - zircon_runtime/src/animation/manager
-  - zircon_runtime/src/animation/scene_hook
   - zircon_runtime/src/animation/sequence
   - zircon_runtime/src/animation/clip_event.rs
   - zircon_plugins/animation/runtime/src/evaluation

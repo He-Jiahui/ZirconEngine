@@ -10,9 +10,6 @@ related_code:
   - zircon_editor/src/ui/binding/animation
   - zircon_editor/src/ui/binding_dispatch/animation
   - zircon_editor/src/ui/host/animation_editor_sessions
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload_builders/animation_graph.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/animation_projection.rs
-  - zircon_editor/src/ui/template_runtime/builtin/template_bindings.rs
   - zircon_editor/assets/ui/editor/host/animation_graph_body.zui
   - zircon_plugins/animation_graph/editor
   - zircon_plugins/animation/runtime/src/evaluation/compiled_graph
@@ -22,14 +19,11 @@ related_code:
   - zircon_runtime/src/animation/manager
   - zircon_runtime/src/core/framework/animation
 tests:
-  - zircon_editor/src/ui/animation_editor/session/tests.rs
   - zircon_editor/src/tests/editor_event/animation_runtime
   - zircon_editor/src/tests/editor_event/locator_protocol_hard_cut.rs
   - zircon_editor/src/tests/host/animation_editor.rs
   - zircon_editor/src/tests/host/binding_dispatch/animation.rs
   - zircon_editor/src/tests/host/retained_animation_template_body.rs
-  - zircon_plugins/animation_graph/editor/src/tests.rs
-  - zircon_plugins/animation/runtime/src/tests.rs
   - zircon_runtime/src/core/framework/tests/framework_surfaces.rs
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md

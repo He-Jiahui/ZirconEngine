@@ -1,43 +1,40 @@
 ---
 related_code:
   - zircon_runtime/src/core/framework/render/advanced_lighting/planar.rs
-  - zircon_runtime/src/core/framework/render/advanced_lighting/planar/derive_camera.rs
-  - zircon_runtime/src/core/framework/render/advanced_lighting/planar/oblique_projection.rs
+  - zircon_runtime/src/core/framework/render/planar/derive_camera.rs
+  - zircon_runtime/src/core/framework/render/planar/oblique_projection.rs
   - zircon_runtime/src/core/framework/render/advanced_lighting/planar/probe_data.rs
   - zircon_runtime/src/core/framework/render/advanced_lighting/planar/quality.rs
-  - zircon_runtime/src/core/framework/render/advanced_lighting/planar/reflection_matrix.rs
-  - zircon_runtime/src/core/framework/render/advanced_lighting/planar/tests.rs
+  - zircon_runtime/src/core/framework/render/planar/reflection_matrix.rs
   - zircon_runtime/src/core/framework/render/advanced_lighting/planar/update_mode.rs
-  - zircon_runtime/src/core/framework/render/advanced_lighting/planar/update_state.rs
+  - zircon_runtime/src/core/framework/render/planar/update_state.rs
   - zircon_runtime/src/core/framework/render/camera.rs
   - zircon_runtime/src/core/framework/render/view_matrix_pair.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/camera_loop.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/planar_filter/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/planar_filter/executor.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/planar_filter/shaders/filter.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/probe_buffer/resources.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/probe_buffer/gpu_layout.rs
+  - zircon_runtime/src/graphics/runtime/framework/extract/submit/camera_loop.rs
+  - zircon_runtime/src/graphics/scene/renderer/planar_filter/mod.rs
+  - zircon_runtime/src/graphics/scene/renderer/planar_filter/executor.rs
+  - zircon_runtime/src/graphics/scene/renderer/planar_filter/shaders/filter.wgsl
+  - zircon_runtime/src/graphics/scene/renderer/environment/probe_buffer/resources.rs
+  - zircon_runtime/src/graphics/scene/renderer/probe_buffer/gpu_layout.rs
   - zircon_runtime/src/graphics/shader/wgsl/zr_environment.wgsl
   - zircon_plugins/rendering/features/planar_reflections/runtime/src/lib.rs
 implementation_files:
   - zircon_runtime/src/core/framework/render/advanced_lighting/planar.rs
-  - zircon_runtime/src/core/framework/render/advanced_lighting/planar/derive_camera.rs
-  - zircon_runtime/src/core/framework/render/advanced_lighting/planar/oblique_projection.rs
+  - zircon_runtime/src/core/framework/render/planar/derive_camera.rs
+  - zircon_runtime/src/core/framework/render/planar/oblique_projection.rs
   - zircon_runtime/src/core/framework/render/advanced_lighting/planar/probe_data.rs
   - zircon_runtime/src/core/framework/render/advanced_lighting/planar/quality.rs
-  - zircon_runtime/src/core/framework/render/advanced_lighting/planar/reflection_matrix.rs
+  - zircon_runtime/src/core/framework/render/planar/reflection_matrix.rs
   - zircon_runtime/src/core/framework/render/advanced_lighting/planar/update_mode.rs
-  - zircon_runtime/src/core/framework/render/advanced_lighting/planar/update_state.rs
+  - zircon_runtime/src/core/framework/render/planar/update_state.rs
   - zircon_runtime/src/core/framework/render/camera.rs
   - zircon_runtime/src/core/framework/render/view_matrix_pair.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/camera_loop.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/planar_filter/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/planar_filter/executor.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/planar_filter/shaders/filter.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/probe_buffer/resources.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/probe_buffer/gpu_layout.rs
+  - zircon_runtime/src/graphics/runtime/framework/extract/submit/camera_loop.rs
+  - zircon_runtime/src/graphics/scene/renderer/planar_filter/mod.rs
+  - zircon_runtime/src/graphics/scene/renderer/planar_filter/executor.rs
+  - zircon_runtime/src/graphics/scene/renderer/planar_filter/shaders/filter.wgsl
+  - zircon_runtime/src/graphics/scene/renderer/environment/probe_buffer/resources.rs
+  - zircon_runtime/src/graphics/scene/renderer/probe_buffer/gpu_layout.rs
   - zircon_runtime/src/graphics/shader/wgsl/zr_environment.wgsl
   - zircon_plugins/rendering/features/planar_reflections/runtime/src/lib.rs
 plan_sources:
@@ -45,11 +42,7 @@ plan_sources:
   - dev/Graphics/Packages/com.unity.render-pipelines.high-definition/Runtime/Lighting/Reflection/PlanarReflectionProbe.cs
   - dev/Graphics/Packages/com.unity.render-pipelines.high-definition/Runtime/Lighting/PlanarReflectionFiltering.compute
 tests:
-  - zircon_runtime/src/core/framework/render/advanced_lighting/planar/tests.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/camera_loop/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/planar_filter/tests.rs
   - zircon_runtime/src/graphics/tests/render_product_planar_reflection.rs
-  - zircon_plugins/rendering/features/planar_reflections/runtime/src/tests.rs
 doc_type: module-detail
 ---
 

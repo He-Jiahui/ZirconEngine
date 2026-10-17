@@ -29,14 +29,9 @@ related_code:
   - zircon_runtime/src/asset/assets/texture
   - zircon_runtime/src/asset/importer/ingest/import_texture.rs
   - zircon_runtime/src/asset/importer/image_decode.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog.rs
 tests:
-  - zircon_plugins/texture/runtime/src/tests.rs
-  - zircon_plugins/texture/editor/src/tests.rs
   - zircon_plugins/texture_importer/runtime/src/tests
   - zircon_plugins/texture_importer/runtime/src/container/tests
-  - zircon_runtime/src/asset/assets/texture/descriptor/tests.rs
-  - zircon_runtime/src/asset/assets/texture/upload_support/tests.rs
   - zircon_app/src/entry/tests/source_assertions.rs
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md

@@ -6,21 +6,10 @@ review_date: 2026-08-23
 baseline_head: f1614c5e601d0879cfa3ac1e5d4886f0d8734d97
 baseline_epoch: 355
 related_code:
-  - zircon_editor/assets/ui/editor/components/workbench/modules/core/gameplay/workbench_ability_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/animation/workbench_extension_motion_matching_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/index/workbench_extension_module_workspaces.zui
-  - zircon_editor/src/ui/template_runtime/builtin/workbench_extension_module_template_bindings/gameplay_animation.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation/specs.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation/specs/gameplay_animation.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/reference_menu_actions.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/componentized_window.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback.rs
-  - zircon_editor/src/ui/retained_host/workbench_preview_actions.rs
-  - zircon_editor/src/ui/retained_host/workbench_preview_actions/extensions.rs
+  - zircon_editor/src/ui/retained/dispatch/workbench/specs/gameplay_animation.rs
+  - zircon_editor/src/ui/retained/dispatch/workbench/reference_menu_actions.rs
+  - zircon_editor/src/ui/retained/dispatch/workbench/componentized_window.rs
 tests:
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation.rs
-  - zircon_editor/src/ui/retained_host/workbench_preview_actions.rs
 plan_sources:
   - docs/plans/mvp/index.md
   - docs/plans/optimize/00-engine-wide-review.md

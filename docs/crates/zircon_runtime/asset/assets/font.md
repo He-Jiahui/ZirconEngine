@@ -7,22 +7,19 @@ related_code:
   - zircon_runtime/src/asset/assets/font_source.rs
   - zircon_plugins/ui_document_importer/runtime/src/lib.rs
   - zircon_plugins/ui_document_importer/runtime/src/lib.rs
-  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/asset_schema.rs
+  - zircon_runtime/src/tests/contracts/naming_boundary/runtime_15_m2/asset_schema.rs
   - zircon_runtime/src/asset/assets/mod.rs
   - zircon_runtime/src/asset/mod.rs
   - zircon_runtime/src/asset/importer/ingest/import_font_asset/mod.rs
   - zircon_runtime/src/asset/importer/ingest/import_font_asset/parse_sfnt.rs
-  - zircon_runtime/src/asset/importer/ingest/import_font_asset/parse_sfnt/tests/mod.rs
-  - zircon_runtime/src/asset/importer/ingest/import_font_asset/parse_sfnt/tests/fixtures.rs
+  - zircon_runtime/src/asset/importer/ingest/parse_sfnt/tests/mod.rs
+  - zircon_runtime/src/asset/importer/ingest/parse_sfnt/tests/fixtures.rs
   - zircon_runtime/src/asset/tests/assets/font.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/font_asset.rs
   - zircon_runtime/src/text/font/database.rs
   - zircon_runtime/src/text/font/composite_resolve.rs
   - zircon_runtime/src/text/font/asset_registration.rs
-  - zircon_runtime/src/text/font/test_font_fixtures.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/text.rs
   - tools/tests/test_text_01_composite_activation.py
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/asset_records.rs
 implementation_files:
   - zircon_runtime/assets/fonts/default.font.toml
   - zircon_runtime/assets/fonts/ZirconDefaultComposite-subset.ttc
@@ -33,18 +30,15 @@ implementation_files:
   - zircon_runtime/src/asset/mod.rs
   - zircon_runtime/src/asset/importer/ingest/import_font_asset/mod.rs
   - zircon_runtime/src/asset/importer/ingest/import_font_asset/parse_sfnt.rs
-  - zircon_runtime/src/asset/importer/ingest/import_font_asset/parse_sfnt/tests/mod.rs
-  - zircon_runtime/src/asset/importer/ingest/import_font_asset/parse_sfnt/tests/fixtures.rs
+  - zircon_runtime/src/asset/importer/ingest/parse_sfnt/tests/mod.rs
+  - zircon_runtime/src/asset/importer/ingest/parse_sfnt/tests/fixtures.rs
   - zircon_runtime/src/text/font/database.rs
-  - zircon_runtime/src/text/font/database/tests.rs
   - zircon_runtime/src/text/font/composite_resolve.rs
   - zircon_runtime/src/text/sdf/font_bake.rs
   - zircon_runtime/src/asset/tests/assets/font.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/font_asset.rs
   - zircon_runtime/src/text/font/asset_registration.rs
-  - zircon_runtime/src/text/font/test_font_fixtures.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/font_assets.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/text.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/text/font_assets.rs
 plan_sources:
   - user: 2026-07-10 complete the runtime text/font/layout architecture and rendered evidence
   - docs/plans/zircon_runtime/text/01-font-resource-faces-and-database.md
@@ -56,20 +50,13 @@ tests:
   - zircon_runtime/src/asset/tests/assets/font.rs::importer_decodes_font_assets_from_font_toml
   - zircon_runtime/src/asset/tests/assets/font.rs::importer_preserves_woff2_decode_error_source
   - zircon_runtime/src/asset/tests/assets/font.rs::runtime_default_font_manifest_declares_culture_aware_composite_font
-  - zircon_runtime/src/asset/importer/ingest/import_font_asset/parse_sfnt/tests/mod.rs::text_font_cmap_coverage_bitset_matches_face
-  - zircon_runtime/src/asset/importer/ingest/import_font_asset/parse_sfnt/tests/mod.rs::text_font_static_face_reports_no_variable_axes
-  - zircon_runtime/src/asset/importer/ingest/import_font_asset/parse_sfnt/tests/mod.rs::text_font_parse_ttf_extracts_os2_name_metadata
-  - zircon_runtime/src/asset/importer/ingest/import_font_asset/parse_sfnt/tests/mod.rs::text_font_variable_axes_roundtrip
-  - zircon_runtime/src/asset/importer/ingest/import_font_asset/parse_sfnt/tests/mod.rs::text_font_woff2_decodes_to_sfnt
-  - zircon_runtime/src/asset/importer/ingest/import_font_asset/parse_sfnt/tests/mod.rs::text_font_malformed_woff2_preserves_decode_failure
-  - zircon_runtime/src/text/font/database/tests.rs::text_font_database_decodes_woff2_once_for_native_and_sdf_consumers
-  - zircon_runtime/src/text/font/database/tests.rs::text_font_ttc_nonzero_face_materializes_for_real_sdf_raster
-  - zircon_runtime/src/text/font/database/tests.rs::text_font_variations_hash_normalizes_coordinate_order
-  - zircon_runtime/src/text/font/database/tests.rs::text_composite_font_resolves_default_and_subfont_ranges
-  - zircon_runtime/src/text/font/database/tests.rs::text_font_database_composite_activation_is_explicit_and_replaceable
-  - zircon_runtime/src/text/font/database/tests.rs::text_font_runtime_default_composite_selects_checked_in_zh_hans_face
+  - zircon_runtime/src/asset/importer/ingest/parse_sfnt/tests/mod.rs::text_font_cmap_coverage_bitset_matches_face
+  - zircon_runtime/src/asset/importer/ingest/parse_sfnt/tests/mod.rs::text_font_static_face_reports_no_variable_axes
+  - zircon_runtime/src/asset/importer/ingest/parse_sfnt/tests/mod.rs::text_font_parse_ttf_extracts_os2_name_metadata
+  - zircon_runtime/src/asset/importer/ingest/parse_sfnt/tests/mod.rs::text_font_variable_axes_roundtrip
+  - zircon_runtime/src/asset/importer/ingest/parse_sfnt/tests/mod.rs::text_font_woff2_decodes_to_sfnt
+  - zircon_runtime/src/asset/importer/ingest/parse_sfnt/tests/mod.rs::text_font_malformed_woff2_preserves_decode_failure
   - tools/tests/test_text_01_composite_activation.py
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/asset_records.rs::review_f5_font_asset_uses_typed_error_source
   - "2026-06-25 static: scoped rustfmt/static scans/docs-status-session anchors passed; Cargo deferred due active cargo/rustc lanes"
   - "2026-06-28 FR-M2: scoped rustfmt --check and cargo metadata --locked passed; runtime cargo check/focused text_font timed out during compile without Rust diagnostics"
   - "2026-06-28 FR-M2 render strategy: scoped rustfmt/git diff/cargo metadata passed; focused render_strategy runtime test timed out during compile without Rust diagnostics"

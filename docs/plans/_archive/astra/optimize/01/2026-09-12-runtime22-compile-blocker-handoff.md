@@ -12,7 +12,6 @@ related_code:
   - zircon_runtime/crates/zr_contracts/src/random/service_checkpoint.rs
   - zircon_runtime/crates/zr_contracts/src/random/tests/checkpoint.rs
   - zircon_runtime_host/src/foreign_output/decode.rs
-  - zircon_runtime_host/src/foreign_output/tests.rs
 tests:
   - cargo test -p zr_contracts --no-default-features --locked --lib random::tests::checkpoint
   - cargo test -p zircon_runtime --no-default-features --features target-server --locked --lib core::runtime::random::

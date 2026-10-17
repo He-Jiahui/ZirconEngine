@@ -9,8 +9,6 @@ related_records:
 implementation_files:
   - zircon_runtime/src/asset/registry/dependency_extractors/mod.rs
 tests:
-  - zircon_runtime/src/asset/registry/dependency_extractors/dedup_index_tests.rs
-  - tools/tests/test_runtime864_handwritten_dependency_move_append_performance_contract.py
 ---
 
 # Runtime864 Handwritten Dependency Move Append

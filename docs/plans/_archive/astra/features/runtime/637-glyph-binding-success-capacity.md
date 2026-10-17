@@ -4,10 +4,8 @@ status: implemented_pending_validation
 plan_sources:
   - docs/plans/optimize/zircon_runtime/637/2026-09-01-preallocated-glyph-binding-successes.md
 related_code:
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/binding.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/tests.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/atlas_texture_upload/binding.rs
 tests:
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/tests.rs
 ---
 
 # Glyph Binding Success Capacity

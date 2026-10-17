@@ -6,7 +6,7 @@ date: 2026-08-26
 related_code:
   - zircon_runtime/src/graphics/scene/render_scene
   - zircon_runtime/src/graphics/scene/gpu_scene
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/build_compiled_scene_draws.rs
+  - zircon_runtime/src/graphics/scene/core/render/build_compiled_scene_draws.rs
   - zircon_runtime/src/core/framework/render/frame_extract/geometry.rs
   - zircon_runtime/src/core/framework/render/frame_extract/scene_changes
 reference_code:

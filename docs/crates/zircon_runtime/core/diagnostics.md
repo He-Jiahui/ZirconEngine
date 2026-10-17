@@ -12,23 +12,22 @@ related_code:
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/capability.rs
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/history.rs
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/graph/mod.rs
-  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/graph/execution_resources.rs
+  - zircon_runtime/src/core/runtime/diagnostics/graph/execution_resources.rs
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/anti_alias.rs
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/particle.rs
-  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/virtual_geometry/mod.rs
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/hybrid_gi.rs
-  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/advanced_provider.rs
+  - zircon_runtime/src/core/runtime/render_stats_store/advanced_provider.rs
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/solari.rs
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product.rs
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product/camera.rs
-  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product/visibility.rs
+  - zircon_runtime/src/core/runtime/diagnostics/product/visibility.rs
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product/hzb.rs
-  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product/light_grid.rs
-  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product/effect_stack.rs
-  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product/material.rs
+  - zircon_runtime/src/core/runtime/diagnostics/product/light_grid.rs
+  - zircon_runtime/src/core/runtime/diagnostics/product/effect_stack.rs
+  - zircon_runtime/src/core/runtime/diagnostics/product/material.rs
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product/light.rs
-  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product/mesh_queue.rs
-  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product/gpu_scene.rs
+  - zircon_runtime/src/core/runtime/diagnostics/product/mesh_queue.rs
+  - zircon_runtime/src/core/runtime/diagnostics/product/gpu_scene.rs
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product/sprite.rs
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product/ui.rs
   - zircon_runtime/src/core/runtime/diagnostics/snapshot.rs
@@ -42,29 +41,16 @@ related_code:
   - zircon_runtime/src/core/framework/render/backend_types.rs
   - zircon_runtime/src/graphics/pipeline/compiled_graph_cache.rs
   - zircon_runtime/src/core/framework/render/capture.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/transient_resource_pool.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_record.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/history/copy_history_textures.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render_with_pipeline/render_frame_with_pipeline.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/render_framework_state/render_framework_state.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/compile_pipeline.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/frame_submission_context.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submission_record_update.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/record_submission/record.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/record_submission/record_capture.rs
+  - zircon_runtime/src/graphics/scene/core/render/history/copy_history_textures.rs
+  - zircon_runtime/src/graphics/runtime/framework/extract/update_stats/base_stats.rs
+  - zircon_runtime/src/graphics/runtime/extract/record_submission/record.rs
+  - zircon_runtime/src/graphics/runtime/extract/record_submission/record_capture.rs
   - zircon_runtime/src/graphics/types/viewport_frame.rs
   - zircon_runtime/src/graphics/types/viewport_render_output_target.rs
   - zircon_runtime/src/graphics/scene/gpu_scene/prev_transform.rs
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_scene_resources.rs
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_execute_output_target_writeback.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/compiled_scene_outputs.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/execute_graph_stage.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/bind_execution_owned_graph_resources.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_runtime_outputs/store_last_runtime_outputs.rs
+  - zircon_runtime/src/graphics/scene/core/render/render/execute_graph_stage.rs
+  - zircon_runtime/src/graphics/scene/renderer/core/render/render/render.rs
+  - zircon_runtime/src/graphics/core/render/bind_execution_owned_graph_resources.rs
   - zircon_runtime/src/graphics/tests/render_framework_graph_stats.rs
   - zircon_runtime/src/core/runtime/runtime.rs
   - zircon_runtime/src/core/runtime/handle/diagnostics.rs
@@ -87,23 +73,22 @@ implementation_files:
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/capability.rs
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/history.rs
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/graph/mod.rs
-  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/graph/execution_resources.rs
+  - zircon_runtime/src/core/runtime/diagnostics/graph/execution_resources.rs
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/anti_alias.rs
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/particle.rs
-  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/virtual_geometry/mod.rs
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/hybrid_gi.rs
-  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/advanced_provider.rs
+  - zircon_runtime/src/core/runtime/render_stats_store/advanced_provider.rs
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/solari.rs
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product.rs
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product/camera.rs
-  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product/visibility.rs
+  - zircon_runtime/src/core/runtime/diagnostics/product/visibility.rs
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product/hzb.rs
-  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product/light_grid.rs
-  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product/effect_stack.rs
-  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product/material.rs
+  - zircon_runtime/src/core/runtime/diagnostics/product/light_grid.rs
+  - zircon_runtime/src/core/runtime/diagnostics/product/effect_stack.rs
+  - zircon_runtime/src/core/runtime/diagnostics/product/material.rs
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product/light.rs
-  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product/mesh_queue.rs
-  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product/gpu_scene.rs
+  - zircon_runtime/src/core/runtime/diagnostics/product/mesh_queue.rs
+  - zircon_runtime/src/core/runtime/diagnostics/product/gpu_scene.rs
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product/sprite.rs
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product/ui.rs
   - zircon_runtime/src/core/runtime/diagnostics/render.rs
@@ -116,27 +101,16 @@ implementation_files:
   - zircon_runtime/src/core/framework/render/backend_types.rs
   - zircon_runtime/src/graphics/pipeline/compiled_graph_cache.rs
   - zircon_runtime/src/core/framework/render/capture.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/transient_resource_pool.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_record.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/history/copy_history_textures.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render_with_pipeline/render_frame_with_pipeline.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/render_framework_state/render_framework_state.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/compile_pipeline.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submission_record_update.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/record_submission/record.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/record_submission/record_capture.rs
+  - zircon_runtime/src/graphics/scene/core/render/history/copy_history_textures.rs
+  - zircon_runtime/src/graphics/runtime/framework/extract/update_stats/base_stats.rs
+  - zircon_runtime/src/graphics/runtime/extract/record_submission/record.rs
+  - zircon_runtime/src/graphics/runtime/extract/record_submission/record_capture.rs
   - zircon_runtime/src/graphics/types/viewport_frame.rs
   - zircon_runtime/src/graphics/types/viewport_render_output_target.rs
   - zircon_runtime/src/graphics/scene/gpu_scene/prev_transform.rs
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_scene_resources.rs
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_execute_output_target_writeback.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/compiled_scene_outputs.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/execute_graph_stage.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/bind_execution_owned_graph_resources.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_runtime_outputs/store_last_runtime_outputs.rs
+  - zircon_runtime/src/graphics/scene/core/render/render/execute_graph_stage.rs
+  - zircon_runtime/src/graphics/scene/renderer/core/render/render/render.rs
+  - zircon_runtime/src/graphics/core/render/bind_execution_owned_graph_resources.rs
   - zircon_runtime/src/core/runtime/runtime.rs
   - zircon_runtime/src/core/runtime/handle/diagnostics.rs
   - zircon_runtime/src/core/runtime/handle/time.rs
@@ -167,20 +141,15 @@ tests:
   - zircon_runtime/src/core/runtime/diagnostics/store.rs::tests::static_diagnostic_series_reuses_path_and_metadata_allocations
   - zircon_runtime/src/tests/runtime_diagnostics/mod.rs
   - zircon_runtime/src/core/runtime/diagnostics/devtools.rs::devtools_snapshot_recovers_poisoned_runtime_registry_locks
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy.rs::runtime_15_core_runtime_devtools_lock_poison_recovery_guard_covers_devtools_snapshot
   - zircon_runtime/src/core/runtime/diagnostics/profiling/mod.rs::tests::profile_recorder_accessors_recover_poisoned_global_lock
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy.rs::runtime_15_core_runtime_profiling_lock_poison_recovery_guard_covers_global_recorder
   - zircon_runtime/src/core/runtime/handle/diagnostics.rs::tests::core_handle_diagnostic_accessors_recover_poisoned_store_lock
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy.rs::runtime_15_core_handle_diagnostics_lock_poison_recovery_guard_covers_diagnostic_store
   - zircon_runtime/src/core/runtime/handle/time.rs::tests::core_handle_time_accessors_recover_poisoned_runtime_clocks
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy.rs::runtime_15_core_handle_time_lock_poison_recovery_guard_covers_runtime_clocks
   - zircon_runtime/src/tests/runtime_diagnostics/motion_vector.rs
   - zircon_runtime/src/tests/runtime_diagnostics/motion_vector.rs::runtime_diagnostics_reports_motion_vector_camera_and_mesh_draw_eligibility
   - zircon_runtime/src/tests/runtime_diagnostics/support.rs
   - zircon_runtime/src/core/framework/render/backend_types.rs::tests::history_copy_report_counts_copied_slots_from_slot_flags
   - zircon_runtime/src/core/framework/render/backend_types.rs::tests::camera_target_writeback_report_separates_copy_and_conversion_debug_markers
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product.rs::tests::render_product_diagnostics_record_texture_conversion_writeback_marker
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget.rs::runtime_15_render_stats_graph_execution_resources_are_child_owner
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product.rs::tests::render_product_diagnostics_record_texture_direct_graph_import_readiness
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product.rs::tests::render_product_diagnostics_record_camera_stack_suppressed_target_output
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product.rs::tests::render_product_diagnostics_record_capture_source_report
@@ -195,20 +164,9 @@ tests:
   - zircon_runtime/src/graphics/tests/render_framework_graph_stats.rs::render_framework_stats_report_transient_allocation_bytes
   - zircon_runtime/src/graphics/tests/render_framework_graph_stats.rs::render_framework_stats_report_graph_execution_coverage
   - zircon_runtime/src/graphics/tests/render_framework_graph_stats.rs::render_framework_stats_report_graph_stage_execution
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_record.rs::tests::execution_record_tracks_compute_dispatch_metadata
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_record.rs::tests::execution_record_preserves_resource_binding_report
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_record.rs::tests::execution_record_preserves_renderer_stage_metadata
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_record.rs::tests::execution_record_counts_renderer_stage_order_violations
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_record.rs::tests::execution_record_preserves_history_copy_report
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/materialization/tests.rs::materialization_creates_dense_transients_and_skips_sparse_reservations
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/materialization_validation.rs::tests::materialization_validation_fails_unbound_required_external_buffer
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/materialization_validation.rs::tests::materialization_validation_rejects_stale_texture_binding_outside_live_lifetimes
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/materialization_validation.rs::tests::materialization_validation_rejects_stale_buffer_binding_outside_live_lifetimes
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/bind_execution_owned_graph_resources.rs::tests::hzb_external_fallback_buffers_satisfy_materialization_report
-  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/hzb.rs::tests::hzb_occlusion_cull_declares_execution_owned_external_buffers
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile.rs::tests::compile_describes_hzb_as_half_power_of_two_mip_chain
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/transient_resource_pool.rs::tests::transient_resource_pool_evicts_oldest_entries_to_budget
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs::tests::graph_execution_coverage_report_counts_missing_unexpected_and_duplicate_passes
+  - zircon_runtime/src/graphics/core/render/bind_execution_owned_graph_resources.rs::tests::hzb_external_fallback_buffers_satisfy_materialization_report
+  - zircon_runtime/src/graphics/feature/builtin/feature_descriptors/hzb.rs::tests::hzb_occlusion_cull_declares_execution_owned_external_buffers
+  - zircon_runtime/src/graphics/runtime/framework/extract/update_stats/base_stats.rs::tests::graph_execution_coverage_report_counts_missing_unexpected_and_duplicate_passes
   - zircon_runtime/src/graphics/pipeline/compiled_graph_cache.rs::tests::compiled_render_pipeline_cache_hits_on_identical_key
   - zircon_runtime/src/graphics/pipeline/compiled_graph_cache.rs::tests::compiled_render_pipeline_cache_misses_on_feature_set_change
   - zircon_runtime/src/graphics/pipeline/compiled_graph_cache.rs::tests::compiled_render_pipeline_cache_misses_on_viewport_resize
@@ -222,13 +180,11 @@ tests:
   - zircon_runtime/src/graphics/tests/render_framework_bridge/pipeline_profiles.rs
   - zircon_runtime/src/graphics/tests/render_framework_bridge/neural_compute.rs
   - zircon_runtime/src/graphics/tests/render_framework_bridge/advanced_providers.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_framework_bridge_tests.rs::runtime_15_render_framework_bridge_tests_are_child_owners
   - zircon_runtime/src/graphics/tests/render_framework_bridge/pipeline_profiles.rs::headless_wgpu_server_falls_back_async_compute_passes_to_graphics
   - cargo test -p zircon_runtime --lib runtime_diagnostics_combines_core_render_contract_and_missing_externalized_plugins --locked
   - cargo test -p zircon_runtime --lib execution_record_tracks_compute_dispatch_metadata --locked --jobs 1 --target-dir E:\cargo-targets\zircon-render-main-chain --message-format short --color never
   - cargo test -p zircon_runtime --lib headless_wgpu_server_falls_back_async_compute_passes_to_graphics --locked --jobs 1 --target-dir E:\cargo-targets\zircon-render-main-chain --message-format short --color never
   - cargo test -p zircon_runtime --lib runtime_diagnostics_combines_core_render_contract_and_missing_externalized_plugins --locked --jobs 1 --target-dir E:\cargo-targets\zircon-render-main-chain --message-format short --color never
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_execute_output_target_writeback.rs::tests::output_target_writeback_report_maps_ready_and_blocked_plans
   - cargo test -p zircon_runtime --lib tests::time:: --locked
   - cargo check -p zircon_runtime --profile profiling --features profiling --locked
   - cargo test -p zircon_runtime --lib core::runtime::tests:: --locked --jobs 1 --target-dir D:\cargo-targets\zircon-core-runtime-registry-cache-0605 --message-format short --color never -- --test-threads=1 --nocapture

@@ -19,8 +19,6 @@ related_code:
   - zircon_runtime/src/dynamic_api/session/runtime_ui.rs
   - zircon_runtime/src/dynamic_api/session/state.rs
   - zircon_runtime/src/dynamic_api/session/status.rs
-  - zircon_runtime/src/graphics/backend/render_backend/viewport_surface.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/viewport_surface
   - zircon_runtime/src/plugin/export_build_plan/platform_host_files.rs
   - zircon_runtime/src/plugin/export_build_plan/platform_host_files
   - zircon_runtime_interface/src/runtime_api/abi/api_table.rs
@@ -33,12 +31,10 @@ related_code:
   - zircon_app/src/entry/runtime_library/loaded_runtime.rs
   - zircon_app/src/entry/runtime_library/runtime_session.rs
 tests:
-  - zircon_runtime/src/core/framework/window/tests.rs
   - zircon_runtime/src/platform/tests
   - zircon_runtime/src/dynamic_api/tests/session_lifecycle.rs
   - zircon_runtime/src/dynamic_api/tests/viewport.rs
   - zircon_runtime/src/dynamic_api/session/tests/runtime_ui_surface.rs
-  - zircon_runtime/src/tests/plugin_extensions/export_build_plan_platform.rs
   - zircon_runtime/src/graphics/tests/surface_targets.rs
   - zircon_runtime_interface/src/tests/contracts.rs
   - zircon_runtime_interface/src/tests/abi_safety_contracts.rs

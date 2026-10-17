@@ -7,10 +7,8 @@ related_records:
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
   - docs/plans/astra/features/runtime/972-runtime09d-to-09h1-completion-list.md
 implementation_files:
-  - zircon_runtime/src/graphics/scene/scene_renderer/shadow/atlas/allocator.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/shadow/atlas/allocator/tests.rs
+  - zircon_runtime/src/graphics/scene/renderer/shadow/atlas/allocator.rs
 tests:
-  - zircon_runtime/src/graphics/scene/scene_renderer/shadow/atlas/allocator/tests.rs
 ---
 
 # Runtime967 · indexed shadow preemption lookup

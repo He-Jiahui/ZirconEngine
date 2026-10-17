@@ -10,13 +10,9 @@ related_code:
   - zircon_plugins/virtual_geometry/runtime/Cargo.toml
   - zircon_plugins/virtual_geometry/runtime/src
   - zircon_plugins/virtual_geometry/runtime/src/lib.rs
-  - zircon_plugins/virtual_geometry/runtime/src/render_pass_executors.rs
   - zircon_plugins/virtual_geometry/runtime/src/provider.rs
-  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry
-  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/nanite/page_payload.rs
-  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer
-  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/shaders
-  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources
+  - zircon_plugins/virtual_geometry/runtime/src/geometry/nanite/page_payload.rs
+  - zircon_plugins/hybrid_gi/runtime/src/gi/renderer/shaders
   - zircon_plugins/virtual_geometry/editor/Cargo.toml
   - zircon_plugins/virtual_geometry/editor/src
   - zircon_plugins/virtual_geometry/dist/Cargo.toml
@@ -34,17 +30,12 @@ related_code:
   - zircon_runtime/src/asset/assets/model/primitive.rs
   - zircon_runtime/src/asset/importer/ingest/primitive_from_indexed_mesh.rs
   - zircon_runtime/src/asset/virtual_geometry_cook
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh
   - zircon_runtime/src/graphics/shader/template/module_registry.rs
   - zircon_editor/src/scene/viewport/render_packet.rs
-  - zircon_editor/src/ui/retained_host/viewport/editor_viewport_render_defaults.rs
+  - zircon_editor/src/ui/retained/viewport/editor_viewport_render_defaults.rs
 tests:
-  - zircon_plugins/virtual_geometry/runtime/src/tests.rs
-  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_renderer_test_promotion_guard.rs
   - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/root_render_passes/virtual_geometry_node_and_cluster_cull_pass/tests
-  - zircon_plugins/virtual_geometry/editor/src/tests.rs
   - zircon_runtime/src/asset/tests/virtual_geometry_cook.rs
-  - zircon_runtime/src/graphics/tests/render_product_mesh_cache/virtual_geometry.rs
   - zircon_runtime/src/graphics/tests/plugin_render_feature_fixtures.rs
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md

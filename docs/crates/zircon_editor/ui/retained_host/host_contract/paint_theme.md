@@ -3,67 +3,25 @@ related_code:
   - zircon_editor/src/core/settings/mod.rs
   - zircon_editor/src/core/settings/defaults.rs
   - zircon_editor/src/core/settings/io.rs
-  - zircon_editor/src/ui/retained_host/app.rs
   - zircon_runtime_interface/src/ui/design_tokens.rs
   - zircon_editor/assets/ui/editor/theme/editor_tokens.zui
-  - zircon_editor/src/ui/retained_host/asset_control_ids.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_theme.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_theme/metrics.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_theme/model.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_theme/palette_projection.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_theme/typography.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_theme/tokens.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_text_field/palette.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_text_field/surface.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_text_field/text.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_table_row/palette.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_table_rows/surface.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/
-  - zircon_editor/src/tests/host/retained_menu_pointer/appearance_visual_screenshot.rs
+  - zircon_editor/src/ui/retained/contract/paint_theme/metrics.rs
+  - zircon_editor/src/ui/retained/contract/paint_theme/model.rs
+  - zircon_editor/src/ui/retained/contract/paint_theme/palette_projection.rs
+  - zircon_editor/src/ui/retained/contract/paint_theme/typography.rs
+  - zircon_editor/src/ui/retained/contract/paint_theme/tokens.rs
 implementation_files:
   - zircon_editor/src/core/settings/mod.rs
   - zircon_editor/src/core/settings/defaults.rs
   - zircon_editor/src/core/settings/io.rs
-  - zircon_editor/src/ui/retained_host/app.rs
   - zircon_runtime_interface/src/ui/design_tokens.rs
   - zircon_editor/assets/ui/editor/theme/editor_tokens.zui
-  - zircon_editor/src/ui/retained_host/asset_control_ids.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_theme.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_theme/metrics.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_theme/model.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_theme/palette_projection.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_theme/typography.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_theme/tokens.rs
-  - zircon_editor/src/tests/host/retained_menu_pointer/appearance_visual_screenshot.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_text_field/palette.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_text_field/surface.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_text_field/text.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_text_field/tests.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_button/command.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_button/tab_like.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_button/selection.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_table_row/palette.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_table_row/colors/background.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_table_rows/surface.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_chrome/separators.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_buttons/identity.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_buttons/surface.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_buttons/content/
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_button_glyphs/
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_icon_buttons/metrics.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_fields/metrics.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_selection_control_geometry/metrics.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_row_metrics.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_command_palette/layout/metrics.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_status_control_geometry/metrics.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_fields/text.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_dropdowns/text.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_dropdown_glyphs/
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_axis_value_fields/
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_inspector_rows/
-  - zircon_editor/src/ui/retained_host/host_contract/template_activation_semantics/
+  - zircon_editor/src/ui/retained/contract/paint_theme/metrics.rs
+  - zircon_editor/src/ui/retained/contract/paint_theme/model.rs
+  - zircon_editor/src/ui/retained/contract/paint_theme/palette_projection.rs
+  - zircon_editor/src/ui/retained/contract/paint_theme/typography.rs
+  - zircon_editor/src/ui/retained/contract/paint_theme/tokens.rs
+  - zircon_editor/src/ui/retained/contract/paint/selector/colors/background.rs
 plan_sources:
   - docs/plans/zircon_editor/editor_layout/15-component-standardization-from-primitives.md
   - docs/plans/zircon_editor/editor_layout/15b-host-control-metrics-single-source.md

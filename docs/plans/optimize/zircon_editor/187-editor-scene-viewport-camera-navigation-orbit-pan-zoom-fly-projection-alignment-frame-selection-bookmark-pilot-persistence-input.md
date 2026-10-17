@@ -20,10 +20,8 @@ related_code:
   - zircon_editor/src/scene/viewport/settings.rs
   - zircon_editor/src/ui/binding/viewport
   - zircon_editor/src/ui/host/editor_event_execution/viewport_event.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/viewport
   - zircon_editor/src/ui/workbench/state/editor_state_viewport.rs
   - zircon_editor/assets/ui/editor/host/scene_viewport_toolbar.zui
-  - zircon_editor/assets/ui/editor/components/workbench/shell/workbench_viewport_panel.zui
 tests:
   - zircon_runtime/src/tests/camera_controller.rs
   - zircon_runtime/src/input/tests/input_manager/frame_state.rs
@@ -31,9 +29,8 @@ tests:
   - zircon_editor/src/tests/editing/state/viewport.rs
   - zircon_editor/src/tests/editing/viewport.rs
   - zircon_editor/src/tests/host/binding_dispatch/viewport.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/viewport/toolbar_dispatch.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/viewport/typed_command.rs
-  - zircon_editor/src/tests/host/template_runtime/scene_viewport_toolbar_runtime_projection.rs
+  - zircon_editor/src/tests/host/callbacks/viewport/toolbar_dispatch.rs
+  - zircon_editor/src/tests/host/callbacks/viewport/typed_command.rs
   - zircon_editor/src/tests/ui/binding/viewport.rs
   - zircon_editor/src/tests/workbench/chrome_snapshot/viewport_settings.rs
 plan_sources:

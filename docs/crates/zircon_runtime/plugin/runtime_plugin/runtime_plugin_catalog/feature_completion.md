@@ -1,18 +1,14 @@
 ---
 related_code:
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_completion.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_completion/owner_selection.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_definitions/lookup.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/project_manifest/completion.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/package_feature_definitions.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_status.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/enablement/features.rs
+  - zircon_runtime/src/plugin/runtime/catalog/feature_completion/owner_selection.rs
+  - zircon_runtime/src/plugin/runtime/catalog/feature_definitions/lookup.rs
+  - zircon_runtime/src/plugin/runtime/catalog/project_manifest/completion.rs
+  - zircon_editor/src/ui/host/exports/enablement/features.rs
 implementation_files:
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_completion.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_completion/owner_selection.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_definitions/lookup.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/project_manifest/completion.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/enablement/features.rs
+  - zircon_runtime/src/plugin/runtime/catalog/feature_completion/owner_selection.rs
+  - zircon_runtime/src/plugin/runtime/catalog/feature_definitions/lookup.rs
+  - zircon_runtime/src/plugin/runtime/catalog/project_manifest/completion.rs
+  - zircon_editor/src/ui/host/exports/enablement/features.rs
 plan_sources:
   - docs/plans/zircon_runtime/frameworks/02-module-kernel-and-lifecycle-unification.md
   - docs/plans/zircon_editor/editor/01/fixed-2026-07-11-editor-m1-plugin-provider-lookup.md
@@ -20,8 +16,6 @@ plan_sources:
   - docs/plans/engine-code-structure-convention.md
   - docs/plans/engine-code-review-findings-2026-06.md
 tests:
-  - zircon_runtime/src/tests/plugin_extensions/runtime_plugin_catalog_features.rs
-  - zircon_runtime/src/tests/plugin_extensions/runtime_plugin_catalog_features/feature_dependency_reports.rs
   - zircon_editor/src/tests/host/manager/minimal_host_contract/optional_features.rs
   - zircon_editor/src/tests/host/manager/minimal_host_contract/native_plugins.rs
 doc_type: module-detail

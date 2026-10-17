@@ -15,7 +15,6 @@ related_code:
   - zircon_runtime/src/plugin/extension_registry
   - zircon_runtime/src/plugin/extension_registry/apply_to_world.rs
   - zircon_runtime/src/plugin/extension_registry/register/system_registration.rs
-  - zircon_runtime/src/plugin/extension_registry/register/runtime_scene_system_registration.rs
 tests:
   - cargo test -p zircon_runtime --lib scene --locked --jobs 1 -- --nocapture --test-threads=1
   - concurrent world creation with slow and reentrant extension callbacks

@@ -1,42 +1,34 @@
 ---
 related_code:
   - zircon_editor/src/ui/host/resource_access.rs
-  - zircon_editor/src/ui/retained_host/app.rs
-  - zircon_editor/src/ui/retained_host/app/assets.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback/gameplay_state.rs
+  - zircon_editor/src/ui/retained/app/assets.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle.rs
   - zircon_editor/src/ui/workbench/state/editor_state.rs
   - zircon_hub/src/projects/metadata.rs
   - zircon_runtime/src/ui/component/state_reducer/table.rs
   - zircon_runtime/src/ui/surface/surface/default_interactions/table/mod.rs
   - zircon_runtime/src/ui/surface/surface/default_interactions/table/columns.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/capture_frame/capture_frame.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/create_viewport/create.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/destroy_viewport/destroy_viewport.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/query_stats/query_stats.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/query_virtual_geometry_debug_snapshot/query_virtual_geometry_debug_snapshot.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/register_pipeline_asset/register_pipeline_asset.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/reload_pipeline/reload_pipeline.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/set_pipeline_asset/set_pipeline_asset.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/set_quality_profile/set_quality_profile.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/resolve_viewport_record_state.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/submit.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/submit_runtime_frame.rs
+  - zircon_runtime/src/graphics/runtime/framework/capture_frame/capture_frame.rs
+  - zircon_runtime/src/graphics/runtime/framework/create_viewport/create.rs
+  - zircon_runtime/src/graphics/runtime/destroy_viewport/destroy_viewport.rs
+  - zircon_runtime/src/graphics/runtime/framework/query_stats/query_stats.rs
+  - zircon_runtime/src/graphics/register_pipeline_asset/register_pipeline_asset.rs
+  - zircon_runtime/src/graphics/runtime/framework/reload_pipeline/reload_pipeline.rs
+  - zircon_runtime/src/graphics/runtime/set_pipeline_asset/set_pipeline_asset.rs
+  - zircon_runtime/src/graphics/runtime/set_quality_profile/set_quality_profile.rs
+  - zircon_runtime/src/graphics/runtime/framework/extract/submit/submit.rs
+  - zircon_runtime/src/graphics/runtime/extract/submit/submit_runtime_frame.rs
   - docs/architecture/runtime-reference-engine-evidence.md
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/non_network_server_naming.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/non_network_server_naming_markdown.py
-  - zircon_runtime/src/tests/runtime_absorption/naming_boundary.rs
-  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/editor_workbench.rs
+  - zircon_runtime/src/tests/contracts/runtime_15_m2/editor_workbench.rs
 implementation_files:
   - zircon_editor/src/ui/host/resource_access.rs
-  - zircon_editor/src/ui/retained_host/app.rs
-  - zircon_editor/src/ui/retained_host/app/assets.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle.rs
+  - zircon_editor/src/ui/retained/app/assets.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle.rs
   - zircon_editor/src/tests/host/resource_access/mod.rs
   - zircon_editor/src/ui/workbench/state/editor_state.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback/gameplay_state.rs
   - docs/architecture/non-network-server-naming-m1.md
   - docs/architecture/runtime-architecture-review-m0.md
   - docs/architecture/runtime-interface-convergence.md
@@ -44,7 +36,7 @@ implementation_files:
   - docs/architecture/index.md
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/non_network_server_naming.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/non_network_server_naming_markdown.py
-  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/editor_workbench.rs
+  - zircon_runtime/src/tests/contracts/runtime_15_m2/editor_workbench.rs
 plan_sources:
   - user: 2026-06-04 optimize Zircon Engine runtime architecture with breaking changes allowed
   - .codex/plans/Zircon Runtime 架构渐进式 Review 与优化计划.md

@@ -9,8 +9,8 @@ origin_child_dir: docs/plans/zircon_runtime/shader/06
 fixing_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 plan_link_mode: child_record_only
 related_code:
-  - tools/profiling/shader_pbr/write_zircon_shader_pbr_build_provenance.ps1
-  - tools/profiling/shader_pbr/zircon_profile_shader_pbr_viewer.ps1
+  - tools/analysis/profiling/shader_pbr/write_zircon_shader_pbr_build_provenance.ps1
+  - tools/analysis/profiling/shader_pbr/zircon_profile_shader_pbr_viewer.ps1
 tests:
   - python -m unittest tools.session_coordinator.tests.test_artifact_receipts -v
   - Invoke-Pester -Script .\tools\tests\zircon_profile_shader_pbr_viewer.Tests.ps1 -PassThru

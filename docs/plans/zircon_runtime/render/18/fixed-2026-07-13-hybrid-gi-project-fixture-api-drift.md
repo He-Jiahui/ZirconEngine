@@ -8,10 +8,6 @@ fixing_plan: docs/plans/zircon_editor/editor/10-project-and-asset-reference-mana
 origin_child_dir: docs/plans/zircon_runtime/render/18
 fixing_child_dir: docs/plans/zircon_editor/editor/10
 related_code:
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_scene_prepare_material_fixtures.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_scene_prepare_material_fixtures/project_documents.rs
-  - zircon_plugins/hybrid_gi/runtime/src/provider/tests.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/root_output_sources/runtime_prepare_collector.rs
   - zircon_plugins/hybrid_gi/runtime/Cargo.toml
   - zircon_runtime/src/asset/project/paths.rs
   - zircon_runtime/src/asset/assets/material/material_asset.rs

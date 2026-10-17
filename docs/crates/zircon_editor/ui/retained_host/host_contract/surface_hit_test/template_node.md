@@ -1,14 +1,6 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node.rs
-  - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node/tests
-  - zircon_editor/src/ui/retained_host/host_contract/template_popup_layout.rs
-  - zircon_editor/src/ui/retained_host/host_contract/template_component_family.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_geometry.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/template_nodes.rs
 implementation_files:
-  - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node.rs
-  - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node/tests
 plan_sources:
   - docs/plans/zircon_editor/editor_ui/08-workbench-shell-on-runtime-ui.md
   - user: 2026-06-18 editor UI architecture implementation, feature first and tests deferred

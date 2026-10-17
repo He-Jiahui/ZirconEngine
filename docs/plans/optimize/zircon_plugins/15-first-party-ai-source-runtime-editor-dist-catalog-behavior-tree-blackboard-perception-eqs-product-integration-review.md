@@ -25,20 +25,16 @@ related_code:
   - zircon_app/Cargo.toml
   - zircon_app/src/entry/first_party_runtime_plugins.rs
   - zircon_app/src/entry/first_party_editor_plugins.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/augmentation/capabilities.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/core_classification/runtime/systems.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/core_rows/runtime/systems.rs
+  - zircon_runtime/src/plugin/runtime/builtin_catalog/augmentation/capabilities.rs
+  - zircon_runtime/src/plugin/runtime/builtin_catalog/core_rows/runtime/systems.rs
   - examples/vampire/README.md
   - examples/vampire/assets/data/enemy_behavior_tree.toml
   - examples/vampire/assets/data/enemy_behavior_tree.toml.zmeta
   - examples/vampire/assets/scenes/main.scene.toml
   - zircon_editor/assets/icons/zircon_engine_style/graph/behavior-tree.svg
   - zircon_editor/assets/icons/zircon_engine_style/graph/blackboard.svg
-  - zircon_editor/assets/ui/editor/components/workbench/modules/core/ai/workbench_behavior_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/core/ai/workbench_perception_workspace.zui
 tests:
   - zircon_plugins/ai/runtime/src/tests
-  - zircon_plugins/ai/editor/src/tests.rs
   - zircon_plugins/ai/dist/src/lib.rs
   - zircon_runtime/src/dynamic_api/session/tests/vampire_gameplay.rs
 plan_sources:

@@ -6,10 +6,8 @@ plan_sources:
 related_records:
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
-  - zircon_runtime/src/graphics/scene/scene_renderer/hzb/bind_group_cache.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/hzb/bind_group_cache/hash_lru_tests.rs
+  - zircon_runtime/src/graphics/scene/renderer/hzb/bind_group_cache.rs
 tests:
-  - zircon_runtime/src/graphics/scene/scene_renderer/hzb/bind_group_cache/hash_lru_tests.rs
 ---
 
 # Runtime948 · HZB bind-group hash LRU hit path

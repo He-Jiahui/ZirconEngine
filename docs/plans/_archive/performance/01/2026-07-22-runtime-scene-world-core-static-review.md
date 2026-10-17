@@ -13,7 +13,6 @@ reference_sources:
   - dev/bevy/crates/bevy_transform/src/systems.rs
   - dev/godot/scene/3d/node_3d.cpp
 tests:
-  - zircon_runtime/src/scene/world/generation/tests.rs
   - zircon_runtime/src/scene/tests/derived_state/hierarchy_rebuild.rs
   - zircon_runtime/src/scene/tests/derived_state/projected_reads.rs
   - zircon_runtime/src/scene/tests/ecs_identity_storage.rs

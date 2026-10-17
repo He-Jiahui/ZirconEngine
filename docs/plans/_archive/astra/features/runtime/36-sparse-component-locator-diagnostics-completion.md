@@ -9,7 +9,6 @@ related_code:
   - zircon_runtime/src/scene/ecs/storage/component_storage/sparse/locator.rs
   - zircon_runtime/src/scene/ecs/storage/component_storage/store.rs
 tests:
-  - zircon_runtime/src/scene/ecs/storage/component_storage/sparse/tests.rs
   - zircon_runtime/src/scene/ecs/storage/component_storage/store.rs
   - tools/tests/test_runtime_sparse_component_locator_pages_contract.py
 ---

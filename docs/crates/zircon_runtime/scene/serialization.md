@@ -4,10 +4,7 @@ related_code:
   - zircon_runtime/src/scene/reflect/mod.rs
   - zircon_runtime/src/scene/reflect/conversion.rs
   - zircon_runtime/src/scene/reflect/json_document
-  - zircon_runtime/src/scene/dynamic_scene/document
-  - zircon_runtime/src/scene/dynamic_scene/scene/mod.rs
-  - zircon_runtime/src/scene/dynamic_scene/scene/validation.rs
-  - zircon_runtime/src/scene/dynamic_scene/error.rs
+  - zircon_runtime/src/scene/dynamic/scene/validation.rs
   - zircon_runtime_interface/src/serialization
   - zircon_runtime_interface/src/project
   - zircon_runtime_interface/src/project/retired_asset_ref_migration
@@ -19,17 +16,14 @@ implementation_files:
   - zircon_runtime/src/scene/reflect/json_document/read.rs
   - zircon_runtime/src/scene/reflect/json_document/schema.rs
   - zircon_runtime/src/scene/reflect/json_document/write.rs
-  - zircon_runtime/src/scene/dynamic_scene/document/mod.rs
-  - zircon_runtime/src/scene/dynamic_scene/document/migration/mod.rs
-  - zircon_runtime/src/scene/dynamic_scene/document/migration/project_world.rs
-  - zircon_runtime/src/scene/dynamic_scene/document/read.rs
-  - zircon_runtime/src/scene/dynamic_scene/document/schema.rs
-  - zircon_runtime/src/scene/dynamic_scene/document/write.rs
-  - zircon_runtime/src/scene/dynamic_scene/scene/mod.rs
-  - zircon_runtime/src/scene/dynamic_scene/scene/validation.rs
-  - zircon_runtime/src/scene/dynamic_scene/error.rs
-  - zircon_runtime/src/scene/dynamic_scene/session/construction/serialization.rs
-  - zircon_runtime/src/scene/dynamic_scene/session/slot/scene_document.rs
+  - zircon_runtime/src/scene/dynamic/document/migration/mod.rs
+  - zircon_runtime/src/scene/dynamic/document/migration/project_world.rs
+  - zircon_runtime/src/scene/dynamic/document/read.rs
+  - zircon_runtime/src/scene/dynamic/document/schema.rs
+  - zircon_runtime/src/scene/dynamic/document/write.rs
+  - zircon_runtime/src/scene/dynamic/scene/validation.rs
+  - zircon_runtime/src/scene/dynamic/session/construction/serialization.rs
+  - zircon_runtime/src/scene/dynamic/session/slot/scene_document.rs
   - zircon_runtime_interface/src/project/retired_asset_ref_migration/migrate.rs
 plan_sources:
   - docs/plans/zircon_editor/editor/11-serialization-and-versioning.md

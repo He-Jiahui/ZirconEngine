@@ -8,7 +8,7 @@ fixing_plan: docs/plans/zircon_runtime/render/11-environment-lighting.md
 origin_child_dir: docs/plans/zircon_runtime/text/01
 fixing_child_dir: docs/plans/zircon_runtime/render/11
 related_code:
-  - zircon_runtime/src/graphics/tests/project_render/project_scenes/reflection_probe_product.rs
+  - zircon_runtime/src/graphics/tests/project_scenes/reflection_probe_product.rs
 plan_sources:
   - docs/plans/zircon_runtime/render/11-environment-lighting.md
   - docs/plans/zircon_runtime/text/01-font-resource-faces-and-database.md

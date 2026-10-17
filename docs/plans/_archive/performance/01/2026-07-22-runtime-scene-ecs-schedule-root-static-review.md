@@ -13,7 +13,7 @@ reference_sources:
 tests:
   - zircon_runtime/src/scene/tests/ecs_schedule
   - zircon_runtime/src/scene/tests/ecs_schedule_parallel_executor_structure.rs
-  - zircon_runtime/src/tests/runtime_absorption/schedule_frame_loop/runtime_anchors.rs
+  - zircon_runtime/src/tests/contracts/schedule_frame_loop/runtime_anchors.rs
   - current-source Windows zircon_runtime ECS schedule tests pending
 doc_type: implementation-evidence
 status: static_complete_dynamic_pending

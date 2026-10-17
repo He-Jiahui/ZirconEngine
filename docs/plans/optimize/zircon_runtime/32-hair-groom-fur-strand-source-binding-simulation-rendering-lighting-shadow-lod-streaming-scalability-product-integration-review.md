@@ -15,10 +15,7 @@ related_code:
   - zircon_runtime/src/graphics/material/shading_models
   - zircon_runtime/src/graphics/scene/resources/gpu_mesh
   - zircon_runtime/src/graphics/scene/resources/resource_streamer
-  - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/oit_buffers
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh
-  - zircon_runtime/src/graphics/scene/scene_renderer/shadow
-  - zircon_runtime/src/graphics/scene/scene_renderer/temporal/velocity
+  - zircon_runtime/src/graphics/scene/renderer/advanced_lighting/oit_buffers
   - zircon_runtime/src/graphics/shader
   - zircon_runtime/src/graphics/visibility
   - zircon_plugins/asset_importers/model/runtime/src
@@ -26,14 +23,11 @@ related_code:
 tests:
   - zircon_runtime/src/asset/tests/assets/mesh/morph_targets.rs
   - zircon_runtime/src/asset/tests/assets/gltf_importer
-  - zircon_runtime/src/core/framework/render/frame_extract/tests.rs
   - zircon_runtime/src/graphics/tests/m4_behavior_layers/transparent3d.rs
   - zircon_runtime/src/graphics/tests/render_product_mesh_cache/morph
-  - zircon_runtime/src/graphics/tests/render_product_mesh_cache/shading_model_parity.rs
   - zircon_runtime/src/graphics/tests/render_product_shadow_captures/directional.rs
   - zircon_runtime/src/graphics/shader/template/tests/standard_pbr_specialization.rs
   - zircon_plugins/asset_importers/model/runtime/src/tests
-  - zircon_plugins/gltf_importer/runtime/src/tests.rs
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md
   - docs/plans/optimize/01-cross-report-owner-schema-abi-p0-consolidation-review.md

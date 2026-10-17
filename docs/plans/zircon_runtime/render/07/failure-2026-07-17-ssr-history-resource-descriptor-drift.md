@@ -10,8 +10,6 @@ fixing_child_dir: docs/plans/zircon_runtime/render/07
 plan_link_mode: child_record_only
 related_code:
   - zircon_runtime/src/graphics/tests/pipeline_compile/feature_descriptors.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/resource_descriptors.rs
-  - zircon_runtime/src/core/framework/render/post_process/color_space.rs
   - docs/plans/zircon_runtime/render/06-temporal-pipeline.md
   - docs/plans/zircon_runtime/render/07-postprocess-color-pipeline.md
 tests:

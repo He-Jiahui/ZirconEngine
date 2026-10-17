@@ -7,9 +7,9 @@ related_records:
   - docs/plans/astra/features/editor/955-editor572-build-export-target-single-buffer.md
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
-  - zircon_editor/src/ui/host/editor_asset_manager/manager/sprite_atlas/packer.rs
+  - zircon_editor/src/ui/host/assets/manager/sprite_atlas/packer.rs
 tests:
-  - zircon_editor/src/ui/host/editor_asset_manager/manager/sprite_atlas/packer.rs
+  - zircon_editor/src/ui/host/assets/manager/sprite_atlas/packer.rs
 ---
 
 # Editor954 Editor571 Sprite-Atlas Dense Placement Index

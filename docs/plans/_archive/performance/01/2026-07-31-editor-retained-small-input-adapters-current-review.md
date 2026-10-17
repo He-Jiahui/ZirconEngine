@@ -1,9 +1,8 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/app/pane_payload_visibility.rs
-  - zircon_editor/src/ui/retained_host/app/native_keyboard_actions.rs
-  - zircon_editor/src/ui/retained_host/app/workbench_context_menu.rs
-  - zircon_editor/src/ui/retained_host/app/menu_pointer.rs
+  - zircon_editor/src/ui/retained/app/pane_payload_visibility.rs
+  - zircon_editor/src/ui/retained/app/native_keyboard_actions.rs
+  - zircon_editor/src/ui/retained/app/menu_pointer.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_editor/editor_ui/01-slate-input-dispatch-core.md

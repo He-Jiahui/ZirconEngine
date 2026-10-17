@@ -4,9 +4,9 @@ status: implemented_pending_validation
 plan_sources:
   - docs/plans/optimize/zircon_runtime/02/2026-08-30-runtime528-rich-text-line-binary-lookup.md
 implementation_files:
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render/text_provenance.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/render/text_provenance.rs
 tests:
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render/text_provenance.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/render/text_provenance.rs
 ---
 
 # Runtime921 Runtime528 rich-text line range lookup

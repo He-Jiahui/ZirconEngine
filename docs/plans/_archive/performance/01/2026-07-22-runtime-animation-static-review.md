@@ -12,7 +12,6 @@ reference_sources:
   - dev/Fyrox/fyrox-animation/src/pose.rs
   - dev/UnrealEngine/Engine/Source/Runtime/Engine/Private/Animation/AnimInstance.cpp
 tests:
-  - zircon_runtime/src/animation/sequence/tests.rs
   - zircon_runtime/src/animation/manager/graph.rs::performance_contract_tests
   - zircon_plugins/animation/runtime/src/manager/graph.rs
   - current-source Windows Cargo and animation-scale product traces pending

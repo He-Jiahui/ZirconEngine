@@ -1,9 +1,5 @@
 ---
 related_code:
-  - zircon_editor/assets/ui/editor/host/workbench_shell.zui
-  - zircon_editor/assets/ui/editor/components/workbench/shell/workbench_main_band.zui
-  - zircon_editor/assets/ui/editor/components/workbench/shell/workbench_top_toolbar.zui
-  - zircon_editor/assets/ui/editor/components/workbench/shell/workbench_activity_rail.zui
   - zircon_editor/assets/ui/theme/editor_workbench_strict.zui
   - zircon_editor/assets/ui/editor/layout/shell_regions.toml
 design_references:
@@ -23,8 +19,6 @@ plan_sources:
 implementation_files:
   - docs/plans/zircon_editor/editor_ui/manifests/m0-zui-slate-ui-contract.yaml
   - docs/plans/zircon_editor/editor_ui/evidence/m0-zui-slate-ui-contract.md
-  - zircon_editor/assets/ui/editor/host/workbench_shell.zui
-  - zircon_editor/assets/ui/editor/components/workbench/shell/workbench_main_band.zui
   - zircon_editor/assets/ui/theme/editor_workbench_strict.zui
 tests:
   - zircon_runtime/tests/zui_penpot_bridge_contract.rs

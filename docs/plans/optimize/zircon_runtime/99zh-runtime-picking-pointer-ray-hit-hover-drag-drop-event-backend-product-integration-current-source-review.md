@@ -21,13 +21,10 @@ related_code:
   - zircon_runtime_interface/src/ui/picking.rs
   - zircon_app/src/entry/runtime_entry_app/pointer_input
   - zircon_editor/src/scene/viewport/pointer
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_pointer_route.rs
   - zircon_plugins/physics/runtime/src
 tests:
   - zircon_runtime/src/tests/picking
-  - zircon_editor/src/scene/viewport/pointer/tests.rs
-  - zircon_editor/src/scene/viewport/pointer/precision/renderer_visible_spatial_pick_source.rs
-  - zircon_editor/src/scene/viewport/pointer/overlay_router/viewport_overlay_pointer_router_visible_spatial_query.rs
+  - zircon_editor/src/scene/precision/renderer_visible_spatial_pick_source.rs
 plan_sources:
   - docs/plans/zircon_runtime/runtime/12-input-stack-and-action-mapping.md
   - docs/plans/optimize/zircon_runtime/23-coordinate-space-unit-precision-transform-numeric-robustness-large-world-review.md

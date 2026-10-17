@@ -6,9 +6,6 @@ plan_sources:
   - docs/plans/optimize/zircon_runtime/82/2026-08-27-focused-bound-text-policy.md
   - docs/plans/optimize/zircon_runtime/82/2026-08-29-number-field-focused-model-refresh-architecture.md
 related_code:
-  - zircon_runtime/src/ui/text/measure_cache/generation_key_tests.rs
-  - zircon_runtime/src/ui/dispatch/input_manager/bound_text_model_updates/tests.rs
-  - zircon_runtime/src/ui/dispatch/input_manager/number_model_updates/tests.rs
   - zircon_runtime/src/ui/surface/render/cache/tests/update.rs
 ---
 

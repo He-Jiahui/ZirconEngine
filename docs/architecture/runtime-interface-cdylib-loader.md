@@ -23,7 +23,6 @@ related_code:
   - zircon_app/src/entry/runtime_library/loaded_runtime.rs
   - zircon_app/src/entry/runtime_library/runtime_session.rs
   - zircon_app/src/entry/runtime_library/runtime_session/operation.rs
-  - zircon_app/src/entry/runtime_library/tests.rs
   - zircon_app/src/entry/tests/mod.rs
   - zircon_runtime_interface/Cargo.toml
   - zircon_runtime_interface/src/lib.rs
@@ -53,7 +52,7 @@ related_code:
   - zircon_runtime/src/ui/surface/surface.rs
   - zircon_runtime/src/ui/v2/mod.rs
   - zircon_runtime/src/ui/template/asset/component_contract/validation.rs
-  - zircon_runtime/src/tests/runtime_absorption/dynamic_api_session/v2_contract.rs
+  - zircon_runtime/src/tests/contracts/dynamic_api_session/v2_contract.rs
   - zircon_runtime_interface/src/tests/mod.rs
   - zircon_runtime_interface/src/tests/boundary.rs
   - zircon_runtime_interface/src/tests/contracts.rs
@@ -91,7 +90,6 @@ implementation_files:
   - zircon_app/src/entry/runtime_library/loaded_runtime.rs
   - zircon_app/src/entry/runtime_library/runtime_session.rs
   - zircon_app/src/entry/runtime_library/runtime_session/operation.rs
-  - zircon_app/src/entry/runtime_library/tests.rs
   - zircon_runtime_interface/Cargo.toml
   - zircon_runtime_interface/src/lib.rs
   - zircon_runtime_interface/src/version.rs
@@ -118,7 +116,7 @@ implementation_files:
   - zircon_runtime/src/ui/surface/surface.rs
   - zircon_runtime/src/ui/v2/mod.rs
   - zircon_runtime/src/ui/template/asset/component_contract/validation.rs
-  - zircon_runtime/src/tests/runtime_absorption/dynamic_api_session/v2_contract.rs
+  - zircon_runtime/src/tests/contracts/dynamic_api_session/v2_contract.rs
   - zircon_runtime_interface/src/tests/boundary.rs
   - zircon_editor/src
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/dynamic_runtime_api_boundary.py
@@ -142,7 +140,6 @@ tests:
   - zircon_runtime/src/dynamic_api/tests/mod.rs
   - zircon_app/src/entry/entry_runner/runtime_session_args.rs
   - zircon_app/src/entry/tests/mod.rs
-  - zircon_app/src/entry/runtime_library/tests.rs
   - cargo check -p zircon_runtime_interface --locked
   - cargo test -p zircon_runtime_interface --locked
   - cargo tree -p zircon_runtime_interface --locked

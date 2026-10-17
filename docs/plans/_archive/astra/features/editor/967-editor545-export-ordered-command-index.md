@@ -4,9 +4,9 @@ status: implemented_pending_validation
 plan_sources:
   - docs/plans/optimize/zircon_runtime/02/2026-08-30-editor545-export-ordered-command-index.md
 implementation_files:
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/plan.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/plan.rs
 tests:
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/plan.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/plan.rs
 ---
 
 # Editor967 Editor545 export ordered-command index

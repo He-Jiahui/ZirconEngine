@@ -29,16 +29,14 @@ related_code:
   - zircon_runtime/src/asset/migration/transaction.rs
   - zircon_runtime/src/asset/migration/transaction/journal_owner.rs
   - zircon_runtime/src/asset/migration/transaction/recovery.rs
-  - zircon_runtime/src/scene/dynamic_scene/document/schema.rs
-  - zircon_runtime/src/scene/dynamic_scene/document/migration/mod.rs
+  - zircon_runtime/src/scene/dynamic/document/schema.rs
+  - zircon_runtime/src/scene/dynamic/document/migration/mod.rs
   - zircon_runtime/src/scene/reflect/json_document/schema.rs
   - zircon_runtime/src/scene/reflect/json_document/migration.rs
   - zircon_runtime/src/ui/template/asset/schema/migrator.rs
   - zircon_runtime/src/script/vm/plugin/state_migration.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/compatibility.rs
   - zircon_runtime/src/plugin/package_manifest/plugin_distribution_manifest.rs
-  - zircon_runtime/src/plugin/runtime_plugin/package_validation/versions.rs
-  - zircon_runtime/src/plugin/runtime_plugin/package_validation/versions/segments.rs
+  - zircon_runtime/src/plugin/runtime/validation/versions/segments.rs
   - zircon_editor/src/core/settings/io.rs
   - zircon_editor/src/core/commandlet/runner.rs
   - zircon_editor/src/ui/workbench/project/constants.rs
@@ -56,9 +54,7 @@ tests:
   - zircon_runtime_interface/src/serialization/tests/migration_contract.rs
   - zircon_runtime_interface/src/serialization/tests/migration_failure_contract.rs
   - zircon_runtime_interface/src/serialization/tests/load_contract.rs
-  - zircon_runtime/src/asset/tests/migration/project_commandlet/transaction_recovery.rs
-  - zircon_editor/src/core/commandlet/tests.rs
-  - tools/session_coordinator/tests/test_migrations.py
+  - zircon_runtime/src/asset/tests/project_commandlet/transaction_recovery.rs
   - tools/cargo/tests/plugin_commands.rs
   - examples/woc/native/crates/woc_contract_codegen/tests/contract_generation.rs
   - examples/woc/native/crates/woc_protocol/tests/protocol.rs

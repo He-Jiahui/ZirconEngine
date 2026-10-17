@@ -11,12 +11,8 @@ related_code:
   - zircon_editor/src/ui/host/workspace_state.rs
   - zircon_editor/src/ui/host/window_host_manager.rs
   - zircon_editor/src/ui/host/layout_hosts
-  - zircon_editor/src/ui/retained_host/tab_drag
-  - zircon_editor/src/ui/retained_host/callback_dispatch/layout
-  - zircon_editor/src/ui/retained_host/floating_window_projection.rs
-  - zircon_editor/src/ui/retained_host/app/native_windows
-  - zircon_editor/src/ui/retained_host/app/native_window_close
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/native_window_presenters
+  - zircon_editor/src/ui/retained/app/native_windows
+  - zircon_editor/src/ui/retained/app/native_window_close
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md
   - docs/plans/optimize/zircon_editor/01-retained-ui-architecture-performance-review.md

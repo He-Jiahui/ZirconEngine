@@ -7,10 +7,8 @@ related_records:
   - docs/plans/astra/features/editor/664-20260911-editor-ui-optimization-batch-completion.md
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/notifications.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/workbench/notifications.rs
 tests:
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/notifications/pipe_value_single_buffer_tests.rs
-  - tools/tests/test_editor893_notification_pipe_value_single_buffer_performance_contract.py
 ---
 
 # Editor893 Notification Pipe Value Single Buffer

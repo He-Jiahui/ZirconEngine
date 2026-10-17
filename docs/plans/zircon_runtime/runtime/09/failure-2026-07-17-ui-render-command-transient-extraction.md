@@ -11,12 +11,9 @@ plan_link_mode: child_record_only
 related_code:
   - zircon_runtime_interface/src/ui/surface/render/command.rs
   - zircon_runtime_interface/src/ui/surface/render/list.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/render.rs
   - zircon_runtime/src/ui/surface/render/sliders.rs
   - zircon_runtime_interface/src/ui/surface/render
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_command_conversion
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_pipeline
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_sliders
 tests:
   - cargo test -p zircon_runtime_interface --no-default-features --locked --lib ui_render_command_cache_generation
   - cargo test -p zircon_runtime_interface --no-default-features --locked --lib

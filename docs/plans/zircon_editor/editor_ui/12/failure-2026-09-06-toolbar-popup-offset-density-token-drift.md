@@ -11,8 +11,6 @@ origin_child_dir: docs/plans/zircon_editor/editor_ui/08
 fixing_child_dir: docs/plans/zircon_editor/editor_ui/12
 related_code:
   - zircon_editor/assets/ui/editor/theme/editor_tokens.zui
-  - zircon_editor/assets/ui/editor/components/workbench/shell/workbench_top_toolbar.zui
-  - zircon_editor/assets/ui/editor/windows/workbench_window.zui
   - tools/tests/test_editor_zui_live_state_authority_contract.py
 tests:
   - python -B -m unittest tools.tests.test_editor_zui_live_state_authority_contract.EditorZuiLiveStateAuthorityContractTests.test_toolbar_popup_offsets_follow_the_shared_two_row_chrome_metrics -v

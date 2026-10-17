@@ -7,10 +7,9 @@ related_code:
   - zircon_editor/src/ui/host/startup/recent_projects.rs
   - zircon_editor/src/ui/host/editor_manager_startup.rs
   - zircon_editor/src/core/project/authority/mod.rs
-  - zircon_editor/src/ui/retained_host/app/startup.rs
-  - zircon_editor/src/ui/retained_host/app/welcome_session.rs
+  - zircon_editor/src/ui/retained/app/startup.rs
+  - zircon_editor/src/ui/retained/app/welcome_session.rs
   - zircon_editor/src/ui/workbench/startup/editor_startup_session_document.rs
-  - zircon_editor/src/ui/host/builtin_views/activity_windows/component_showcase_view_descriptor.rs
   - zircon_editor/assets/ui/editor/welcome.zui
   - zircon_editor/assets/ui/editor/component_showcase.zui
 implementation_files:
@@ -19,10 +18,9 @@ implementation_files:
   - zircon_editor/src/ui/host/startup/recent_projects.rs
   - zircon_editor/src/ui/host/editor_manager_startup.rs
   - zircon_editor/src/core/project/authority/mod.rs
-  - zircon_editor/src/ui/retained_host/app/startup.rs
-  - zircon_editor/src/ui/retained_host/app/welcome_session.rs
+  - zircon_editor/src/ui/retained/app/startup.rs
+  - zircon_editor/src/ui/retained/app/welcome_session.rs
   - zircon_editor/src/ui/workbench/startup/editor_startup_session_document.rs
-  - zircon_editor/src/ui/host/builtin_views/activity_windows/component_showcase_view_descriptor.rs
   - zircon_editor/assets/ui/editor/welcome.zui
 plan_sources:
   - user: 2026-05-15 continue Zircon Editor Demo front screen plan

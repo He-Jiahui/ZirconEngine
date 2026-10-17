@@ -11,7 +11,7 @@ related_code:
   - zircon_editor/src/ui/workbench/asset_content_layout/browser_virtualization.rs
   - zircon_editor/src/ui/layouts/views/asset_browser/thumbnail_nodes.rs
   - zircon_editor/src/ui/layouts/views/asset_browser/thumbnail_layout.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/docks/pane/template_nodes/asset_content/projector.rs
+  - zircon_editor/src/ui/contract/docks/pane/nodes/asset_content/projector.rs
   - tools/analysis/profiling/ui/ui-profile-capture.ps1
 ---
 

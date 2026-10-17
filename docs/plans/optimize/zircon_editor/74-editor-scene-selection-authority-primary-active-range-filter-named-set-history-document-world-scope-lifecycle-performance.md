@@ -15,14 +15,13 @@ related_code:
   - zircon_editor/src/ui/binding/selection
   - zircon_editor/src/ui/binding_dispatch/selection
   - zircon_editor/src/ui/host
-  - zircon_editor/src/ui/retained_host
   - zircon_editor/src/ui/workbench
   - zircon_runtime/src/scene/world/bootstrap.rs
   - zircon_runtime_interface/src/ui/binding/model/binding_value.rs
 tests:
   - zircon_editor/src/tests/editing/state/selection.rs
   - zircon_editor/src/tests/editing/state/viewport.rs
-  - zircon_editor/src/ui/retained_host/app/tests/retained_host_automation.rs
+  - zircon_editor/src/ui/retained/app/tests/retained_host_automation.rs
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md
   - docs/plans/optimize/01-cross-report-owner-schema-abi-p0-consolidation-review.md

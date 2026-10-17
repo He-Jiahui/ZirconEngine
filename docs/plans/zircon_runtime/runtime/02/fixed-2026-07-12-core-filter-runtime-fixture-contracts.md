@@ -8,8 +8,7 @@ fixing_plan: docs/plans/zircon_runtime/shader/06-environment-ibl-and-pbr-correct
 origin_child_dir: docs/plans/zircon_runtime/runtime/02
 fixing_child_dir: docs/plans/zircon_runtime/shader/06
 related_code:
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/runtime_features/runtime_features_from_pipeline.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/bind_environment_ibl_graph_resources.rs
+  - zircon_runtime/src/graphics/core/render/bind_environment_ibl_graph_resources.rs
 tests:
   - cargo test -p zircon_runtime --lib --locked --offline --jobs 1 core:: -- --test-threads=1
   - cargo test -p zircon_runtime --lib --locked --offline --jobs 1 graphics::scene::scene_renderer::core::runtime_features::runtime_features_from_pipeline::tests::pluginized_rendering_feature_names_drive_runtime_post_process_flags -- --exact --test-threads=1

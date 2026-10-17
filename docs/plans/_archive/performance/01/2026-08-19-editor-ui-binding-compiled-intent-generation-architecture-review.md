@@ -5,7 +5,6 @@ related_code:
   - zircon_editor/src/ui/host/editor_event_control_requests.rs
   - zircon_editor/src/ui/host/editor_event_dispatch.rs
   - zircon_editor/src/ui/reflection/adapter.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch
   - zircon_runtime_interface/src/ui/binding
 tests:
   - zircon_editor/src/tests/ui/binding

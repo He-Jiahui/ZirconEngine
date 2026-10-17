@@ -7,14 +7,12 @@ baseline_head: bee4c707b714738346b49bba15c59468b8bd9b39
 baseline_epoch: 339
 related_code:
   - zircon_editor/src/core/extension/inspector.rs
-  - zircon_editor/src/ui/retained_host/app/inspector
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench
+  - zircon_editor/src/ui/retained/app/inspector
   - zircon_runtime/src/scene/world
 tests:
   - zircon_editor/src/tests/editing/inspector.rs
-  - zircon_editor/src/tests/editing/reflected_command.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/component_property_rows.rs
-  - zircon_editor/src/ui/runtime_component/adapter/inspector.rs
+  - zircon_editor/src/tests/editing/reflected_command/mod.rs
+  - zircon_editor/src/ui/retained/dispatch/workbench/component_property_rows.rs
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md
   - docs/plans/optimize/01-cross-report-owner-schema-abi-p0-consolidation-review.md

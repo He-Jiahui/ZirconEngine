@@ -5,8 +5,6 @@ related_code:
   - zircon_runtime/src/core/runtime/descriptors/module_descriptor.rs
   - zircon_runtime/src/engine_module/engine_module.rs
   - zircon_runtime/src/builtin/runtime_modules/core_modules.rs
-  - zircon_runtime/src/plugin/runtime_plugin/mod.rs
-  - zircon_runtime/src/plugin/runtime_plugin/descriptor.rs
   - zircon_app/src/plugins/groups.rs
 plan_sources:
   - docs/plans/zircon_runtime/frameworks/index.md

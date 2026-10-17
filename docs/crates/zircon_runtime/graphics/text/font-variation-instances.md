@@ -11,18 +11,15 @@ related_code:
   - zircon_runtime/src/text/shaping/vertical/backend.rs
   - zircon_runtime/src/text/raster/swash
   - zircon_runtime/src/text/sdf/fdsm_gen.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas/text_keys.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/font_assets.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/resolved_batches.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render/text_advances.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/sdf_atlas/text_keys.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/text/font_assets.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/text/resolved_batches.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/render/text_advances.rs
 implementation_files:
   - zircon_runtime/src/text/font/instance.rs
-  - zircon_runtime/src/text/font/instance/tests.rs
   - zircon_runtime/src/text/font/database.rs
-  - zircon_runtime/src/text/font/database/tests.rs
   - zircon_runtime/src/text/shaping/horizontal/backend.rs
   - zircon_runtime/src/text/shaping/horizontal/direct.rs
-  - zircon_runtime/src/text/shaping/horizontal/tests.rs
   - zircon_runtime/src/text/shaping/fallback_spans.rs
   - zircon_runtime/src/text/shaping/cosmic.rs
   - zircon_runtime/src/text/shaping/vertical/backend.rs
@@ -33,12 +30,10 @@ implementation_files:
   - zircon_runtime/src/text/sdf/offline/identity.rs
   - zircon_runtime/src/text/sdf/font_bake/distance_field.rs
   - zircon_runtime/src/text/sdf/font_bake/offline_source.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas/text_keys.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render/text_advances.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/font_assets.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/resolved_batches.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/tests.rs
-  - zircon_runtime/tests/runtime_text_multilingual_product_framebuffer/product_project_fixture.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/sdf_atlas/text_keys.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/render/text_advances.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/text/font_assets.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/text/resolved_batches.rs
 plan_sources:
   - docs/plans/zircon_runtime/text/index.md
   - docs/plans/zircon_runtime/text/01-font-resource-faces-and-database.md

@@ -10,7 +10,6 @@ related_code:
   - zircon_editor/src/core/asset/type_registry/definition.rs
   - zircon_editor/src/core/asset/type_registry/registry.rs
   - zircon_editor/src/ui/host/editor_event_execution/asset_event.rs
-  - zircon_editor/src/ui/host/editor_asset_manager/
   - zircon_editor/src/ui/workbench/snapshot/asset/
   - zircon_editor/src/ui/workbench/project/asset_workspace_state.rs
   - zircon_editor/src/ui/layouts/views/asset_browser.rs
@@ -19,10 +18,9 @@ related_code:
 tests:
   - zircon_editor/src/tests/editor_asset_type_registry/consumer_projection.rs
   - zircon_editor/src/tests/editor_asset_type_registry/materialization.rs
-  - zircon_editor/src/tests/editor_event/runtime/integration.rs
+  - zircon_editor/src/tests/editor_event/runtime/integration/mod.rs
   - zircon_editor/src/tests/editing/asset_workspace.rs
-  - zircon_editor/src/ui/layouts/views/asset_browser/tests.rs
-  - zircon_editor/src/ui/retained_host/app/tests/drag_sources.rs
+  - zircon_editor/src/ui/layouts/views/asset_browser/tests/mod.rs
   - zircon_plugins/ui_asset_authoring/editor/src/plugin.rs
 ---
 

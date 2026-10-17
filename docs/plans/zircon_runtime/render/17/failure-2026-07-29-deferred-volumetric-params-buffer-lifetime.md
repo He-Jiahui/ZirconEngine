@@ -9,7 +9,6 @@ origin_child_dir: docs/plans/zircon_plugins/09
 fixing_child_dir: docs/plans/zircon_runtime/render/17
 plan_link_mode: child_record_only
 related_code:
-  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/deferred_scene_resources/execute_lighting.rs
 tests:
   - cargo check -p zircon_runtime --lib --locked --jobs 1 --color never
   - cargo +1.94.1 test -p zircon_runtime --test plugins09_export_validate_report --bin zircon_export_validate --locked --jobs 1 --color never -- --nocapture --test-threads=1

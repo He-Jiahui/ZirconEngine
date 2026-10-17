@@ -6,9 +6,7 @@ plan: docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions
 plan_sources:
   - docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md
 implementation_files:
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/texture_descriptor_settings.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/runtime_dead_code/script_host.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/support.rs
+  - zircon_runtime/src/tests/contracts/structure/runtime_dead_code/script_host.rs
 tests:
   - runtime_15_texture_descriptor_settings_parser_is_child_owner
   - runtime_15_script_host_value_descriptors_do_not_suppress_dead_code

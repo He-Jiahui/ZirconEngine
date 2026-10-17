@@ -8,9 +8,8 @@ fixing_plan: docs/plans/zircon_runtime/text/01-font-resource-faces-and-database.
 origin_child_dir: docs/plans/zircon_editor/editor_layout/15
 fixing_child_dir: docs/plans/zircon_runtime/text/01
 related_code:
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/construct.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/access.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/construct.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/text.rs
 tests:
   - .\\.codex\\skills\\zircon-dev\\scripts\\validate-matrix.ps1 -Package zircon_editor -SkipBuild -VerboseOutput
   - focused Blend Space preview contract and ignored screenshot capture after Runtime Text repair

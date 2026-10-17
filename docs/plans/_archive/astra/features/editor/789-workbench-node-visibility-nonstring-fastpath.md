@@ -9,10 +9,7 @@ related_records:
   - docs/plans/astra/features/editor/664-20260911-editor-ui-optimization-batch-completion.md
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
-  - zircon_editor/src/ui/retained_host/ui/workbench_window_projection/node_index.rs
 tests:
-  - zircon_editor/src/ui/retained_host/ui/workbench_window_projection/node_index/visibility_nonstring_tests.rs
-  - tools/tests/test_editor_workbench_node_visibility_nonstring_performance_contract.py
 ---
 
 # Editor789 · Workbench 节点可见性非字符串快路径

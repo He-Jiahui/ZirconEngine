@@ -18,8 +18,6 @@ tests:
   - zircon_runtime/src/scene/tests/derived_state/checked_parent_chain.rs
   - zircon_runtime/src/scene/tests/ecs_typed_api/persistent_entity_core.rs
   - zircon_runtime/src/scene/tests/ecs_typed_api/persistent_scene_render.rs
-  - zircon_runtime/src/scene/world/transaction/detached_entity_batch/raw_cycle_tests.rs
-  - zircon_runtime/src/scene/world/transaction/detached_entity_batch/restore_cycle_tests.rs
 ---
 
 # Runtime1017: protected Scene-authored component authority

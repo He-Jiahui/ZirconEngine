@@ -1,24 +1,19 @@
 ---
 related_code:
-  - dev/bevy/crates/bevy_light/src/lib.rs
-  - dev/bevy/crates/bevy_light/src/ambient_light.rs
-  - dev/bevy/crates/bevy_light/src/rect_light.rs
-  - dev/bevy/crates/bevy_pbr/src/render/light.rs
-  - dev/bevy/crates/bevy_pbr/src/render/mesh_view_types.wgsl
   - zircon_runtime/src/core/framework/render/light/mod.rs
   - zircon_runtime/src/core/framework/render/light/snapshots.rs
   - zircon_runtime/src/core/framework/render/light/readiness.rs
   - zircon_runtime/src/core/framework/render/frame_extract.rs
   - zircon_runtime/src/core/framework/render/scene_extract.rs
   - zircon_runtime/src/scene/world/render.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/lighting/light_buffer.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/shadow/plan.rs
+  - zircon_runtime/src/graphics/scene/renderer/lighting/light_buffer.rs
+  - zircon_runtime/src/graphics/scene/renderer/shadow/plan.rs
   - zircon_runtime/src/runtime_diagnostics/collect.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/primitives/scene_uniform/scene_uniform.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/primitives/scene_uniform/from_frame.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/shaders/fallback_mesh.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/shaders/deferred_lighting.wgsl
+  - zircon_runtime/src/graphics/runtime/framework/extract/update_stats/base_stats.rs
+  - zircon_runtime/src/graphics/scene/renderer/scene_uniform/scene_uniform.rs
+  - zircon_runtime/src/graphics/scene/renderer/scene_uniform/from_frame.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/shaders/fallback_mesh.wgsl
+  - zircon_runtime/src/graphics/scene/deferred/shaders/deferred_lighting.wgsl
 implementation_files:
   - zircon_runtime/src/core/framework/render/light/mod.rs
   - zircon_runtime/src/core/framework/render/light/snapshots.rs
@@ -26,14 +21,14 @@ implementation_files:
   - zircon_runtime/src/core/framework/render/mod.rs
   - zircon_runtime/src/core/framework/render/scene_extract.rs
   - zircon_runtime/src/scene/world/render.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/lighting/light_buffer.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/shadow/plan.rs
+  - zircon_runtime/src/graphics/scene/renderer/lighting/light_buffer.rs
+  - zircon_runtime/src/graphics/scene/renderer/shadow/plan.rs
   - zircon_runtime/src/runtime_diagnostics/collect.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/primitives/scene_uniform/scene_uniform.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/primitives/scene_uniform/from_frame.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/shaders/fallback_mesh.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/shaders/deferred_lighting.wgsl
+  - zircon_runtime/src/graphics/runtime/framework/extract/update_stats/base_stats.rs
+  - zircon_runtime/src/graphics/scene/renderer/scene_uniform/scene_uniform.rs
+  - zircon_runtime/src/graphics/scene/renderer/scene_uniform/from_frame.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/shaders/fallback_mesh.wgsl
+  - zircon_runtime/src/graphics/scene/deferred/shaders/deferred_lighting.wgsl
 plan_sources:
   - user: 2026-05-20 Bevy rendering completion plan continuation
   - user: 2026-06-11 vampire runtime point light illumination
@@ -42,10 +37,9 @@ plan_sources:
 tests:
   - zircon_runtime/src/tests/runtime_diagnostics/mod.rs::runtime_diagnostics_combines_core_render_contract_and_missing_externalized_plugins
   - zircon_runtime/src/core/framework/render/light/readiness.rs::light_status_counts_split_ready_and_degraded_slots
-  - zircon_runtime/src/graphics/scene/scene_renderer/lighting/light_buffer.rs::pack_light_slices_encodes_directional_shadow_and_layer_contract
-  - zircon_runtime/src/graphics/scene/scene_renderer/primitives/scene_uniform/from_frame.rs::scene_uniform_packs_authored_point_lights
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/fallback_mesh_shader_source.rs::fallback_mesh_shader_applies_shadow_visibility_to_directional_light_and_adds_point_lights
-  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_pipeline/tests.rs::deferred_lighting_shader_receives_scene_point_lights
+  - zircon_runtime/src/graphics/scene/renderer/lighting/light_buffer.rs::pack_light_slices_encodes_directional_shadow_and_layer_contract
+  - zircon_runtime/src/graphics/scene/renderer/scene_uniform/from_frame.rs::scene_uniform_packs_authored_point_lights
+  - zircon_runtime/src/graphics/mesh/mesh_pipeline/fallback_mesh_shader_source.rs::fallback_mesh_shader_applies_shadow_visibility_to_directional_light_and_adds_point_lights
   - zircon_runtime/src/graphics/tests/render_product_submit.rs::render_product_pbr_submit_reports_material_fallback_and_light_stats
   - cargo check -p zircon_runtime --lib --locked
 doc_type: module-detail

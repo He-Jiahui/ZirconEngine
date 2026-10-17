@@ -1,60 +1,40 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/alert.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/alert/geometry.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/alert/style.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/avatar.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/avatar/geometry.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/avatar/style.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/badge.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/badge/geometry.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/badge/style.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/chip.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/chip/geometry.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/chip/style.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/divider/geometry.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/divider/style.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/skeleton.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/skeleton/geometry.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/skeleton/style.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/timeline.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/timeline/style.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_nodes.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_commands.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_theme.rs
-  - zircon_runtime/src/ui/template/asset/compiler/style_apply/mui_display_surface_classes.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/mod.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/surface_defaults/mod.rs
+  - zircon_editor/src/ui/retained/contract/paint/primitives/alert/geometry.rs
+  - zircon_editor/src/ui/retained/contract/paint/primitives/alert/style.rs
+  - zircon_editor/src/ui/retained/contract/paint/primitives/avatar/geometry.rs
+  - zircon_editor/src/ui/retained/contract/paint/primitives/avatar/style.rs
+  - zircon_editor/src/ui/retained/contract/paint/primitives/badge/geometry.rs
+  - zircon_editor/src/ui/retained/contract/paint/primitives/badge/style.rs
+  - zircon_editor/src/ui/retained/contract/paint/primitives/chip/geometry.rs
+  - zircon_editor/src/ui/retained/contract/paint/primitives/chip/style.rs
+  - zircon_editor/src/ui/retained/contract/paint/primitives/divider/geometry.rs
+  - zircon_editor/src/ui/retained/contract/paint/primitives/divider/style.rs
+  - zircon_editor/src/ui/retained/contract/paint/primitives/skeleton/geometry.rs
+  - zircon_editor/src/ui/retained/contract/paint/primitives/skeleton/style.rs
+  - zircon_editor/src/ui/retained/contract/paint/primitives/timeline/style.rs
+  - zircon_runtime/src/ui/asset/compiler/style_apply/mui_display_surface_classes.rs
+  - zircon_editor/src/ui/retained/ui/data/projection/surface_defaults/mod.rs
   - zircon_editor/src/ui/layouts/views/view_projection.rs
   - zircon_editor/src/tests/host/retained_window/native_material_painter_alert.rs
   - zircon_runtime/src/ui/tests/asset_mui_web_style.rs
   - zircon_runtime/src/ui/tests/asset_mui_web_badge_style.rs
 implementation_files:
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/alert.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/alert/geometry.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/alert/style.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/avatar.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/avatar/geometry.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/avatar/style.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/badge.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/badge/geometry.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/badge/style.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/chip.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/chip/geometry.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/chip/style.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/divider/geometry.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/divider/style.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/skeleton.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/skeleton/geometry.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/skeleton/style.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/timeline.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/timeline/style.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_nodes.rs
-  - zircon_runtime/src/ui/template/asset/compiler/style_apply/mui_display_surface_classes.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/mod.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/surface_defaults/mod.rs
+  - zircon_editor/src/ui/retained/contract/paint/primitives/alert/geometry.rs
+  - zircon_editor/src/ui/retained/contract/paint/primitives/alert/style.rs
+  - zircon_editor/src/ui/retained/contract/paint/primitives/avatar/geometry.rs
+  - zircon_editor/src/ui/retained/contract/paint/primitives/avatar/style.rs
+  - zircon_editor/src/ui/retained/contract/paint/primitives/badge/geometry.rs
+  - zircon_editor/src/ui/retained/contract/paint/primitives/badge/style.rs
+  - zircon_editor/src/ui/retained/contract/paint/primitives/chip/geometry.rs
+  - zircon_editor/src/ui/retained/contract/paint/primitives/chip/style.rs
+  - zircon_editor/src/ui/retained/contract/paint/primitives/divider/geometry.rs
+  - zircon_editor/src/ui/retained/contract/paint/primitives/divider/style.rs
+  - zircon_editor/src/ui/retained/contract/paint/primitives/skeleton/geometry.rs
+  - zircon_editor/src/ui/retained/contract/paint/primitives/skeleton/style.rs
+  - zircon_editor/src/ui/retained/contract/paint/primitives/timeline/style.rs
+  - zircon_runtime/src/ui/asset/compiler/style_apply/mui_display_surface_classes.rs
+  - zircon_editor/src/ui/retained/ui/data/projection/surface_defaults/mod.rs
   - zircon_editor/src/ui/layouts/views/view_projection.rs
 plan_sources:
   - user: 2026-05-25 continue ZirconEditor MUI Web parity visual/feedback implementation
@@ -62,8 +42,6 @@ plan_sources:
   - docs/ui/material-ui-component-design-matrix.md
 tests:
   - zircon_editor/src/tests/host/retained_window/native_material_painter_alert.rs
-  - zircon_editor/src/tests/host/retained_window/native_material_painter_mui_primitives.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/tests/actions.rs
   - zircon_runtime/src/ui/tests/asset_mui_web_style.rs
   - zircon_runtime/src/ui/tests/asset_mui_web_badge_style.rs
   - rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/avatar.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/badge.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/skeleton.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/timeline.rs zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/mod.rs zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/surface_defaults/mod.rs zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/tests/actions.rs zircon_editor/src/tests/host/retained_window/native_material_painter_mui_primitives.rs zircon_runtime/src/ui/template/asset/compiler/style_apply/mui_display_surface_classes.rs zircon_runtime/src/ui/tests/asset_mui_web_style.rs

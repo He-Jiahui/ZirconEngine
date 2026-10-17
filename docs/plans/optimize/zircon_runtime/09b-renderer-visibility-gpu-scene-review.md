@@ -2,9 +2,6 @@
 related_code:
   - zircon_runtime/src/graphics/scene/gpu_scene
   - zircon_runtime/src/graphics/visibility
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh
-  - zircon_runtime/src/graphics/scene/scene_renderer/hzb
-  - zircon_runtime/src/graphics/scene/scene_renderer/core
   - zircon_runtime/src/graphics/virtual_geometry_runtime_provider
   - zircon_plugins/virtual_geometry/runtime/src
 plan_sources:

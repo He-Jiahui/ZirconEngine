@@ -4,9 +4,9 @@ status: implemented_pending_validation
 plan_sources:
   - docs/plans/optimize/zircon_runtime/02/2026-08-30-runtime549-post-process-disabled-short-circuit.md
 implementation_files:
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats/post_process_diagnostics.rs
+  - zircon_runtime/src/graphics/extract/base_stats/post_process_diagnostics.rs
 tests:
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats/post_process_diagnostics.rs
+  - zircon_runtime/src/graphics/extract/base_stats/post_process_diagnostics.rs
 ---
 
 # Runtime937 Runtime549 disabled post-process diagnostic short circuit

@@ -10,10 +10,8 @@ implementation_files:
   - zircon_editor/src/ui/host/workspace_state.rs
   - zircon_editor/src/ui/host/editor_manager_workspace.rs
   - zircon_editor/src/ui/host/editor_event_runtime_access/workbench_projection.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/render_submission.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle/render_submission.rs
 tests:
-  - zircon_editor/src/ui/host/workspace_state_identity_projection_tests.rs
-  - tools/tests/test_editor867_871_workspace_identity_projection_performance_contract.py
 ---
 
 # Editor869 - Scene viewport identity projection

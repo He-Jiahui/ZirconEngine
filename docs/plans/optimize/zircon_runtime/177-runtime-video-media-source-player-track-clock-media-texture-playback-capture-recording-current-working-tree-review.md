@@ -12,14 +12,12 @@ related_code:
   - zircon_runtime_interface/src/resource/marker.rs
   - zircon_runtime/src/asset/assets/imported.rs
   - zircon_runtime/src/asset/assets/sound.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/asset_rows/media.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/importer_classification/media.rs
+  - zircon_runtime/src/plugin/runtime/builtin_catalog/asset_rows/media.rs
+  - zircon_runtime/src/plugin/runtime/importer_classification/media.rs
   - zircon_plugins/audio_importer/runtime/src/lib.rs
   - zircon_plugins/audio_importer/dist/src/lib.rs
   - zircon_plugins/opus_importer/runtime/src/lib.rs
   - zircon_runtime/src/core/framework/render/capture.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/capture_frame
-  - zircon_runtime/src/graphics/runtime/render_framework/environment_capture_scheduler.rs
   - zircon_app/src/entry/runtime_entry_app/frame_capture.rs
 reference_engines:
   - dev/UnrealEngine/Engine/Source/Runtime/Media/Public/IMediaPlayer.h

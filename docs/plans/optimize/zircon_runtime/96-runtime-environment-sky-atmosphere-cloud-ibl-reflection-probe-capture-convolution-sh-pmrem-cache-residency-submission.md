@@ -7,12 +7,7 @@ baseline_head: be5a281c96b6dc9d33b5c9d0f2699a8bf75afcf1
 baseline_epoch: 336
 related_code:
   - zircon_runtime/src/core/framework/render/environment
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/environment_cubemap
   - zircon_runtime/src/graphics/shader/wgsl/zr_environment.wgsl
-  - zircon_runtime/src/graphics/runtime/render_framework/render_framework_state/environment_ibl_hydration_cache.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/environment_ibl_compile_options.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/capture_frame
   - zircon_runtime/src/asset/artifact/ibl_bake_artifact_asset_derived.rs
   - zircon_runtime/src/asset/artifact/ibl_source_cubemap_staging.rs
   - zircon_runtime/src/asset/importer/environment_ibl
@@ -28,7 +23,7 @@ related_code:
   - zircon_plugins/rendering/features/reflection_probes/runtime
   - zircon_plugins/rendering/features/reflection_probes/editor
 tests:
-  - zircon_runtime/src/graphics/tests/project_render/project_scenes/reflection_probe_product.rs
+  - zircon_runtime/src/graphics/tests/project_scenes/reflection_probe_product.rs
   - zircon_runtime/src/scene/tests/authoring_boundary.rs
   - zircon_runtime/src/scene/tests/ecs_schedule/render_extract.rs
   - zircon_runtime/src/scene/tests/render_extract/direct_sections.rs

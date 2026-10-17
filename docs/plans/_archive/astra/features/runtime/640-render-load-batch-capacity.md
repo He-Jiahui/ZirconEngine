@@ -5,9 +5,7 @@ plan_sources:
   - docs/plans/optimize/zircon_runtime/640/2026-09-01-preallocated-render-load-batches.md
 related_code:
   - zircon_runtime/src/asset/artifact/render_manifest/plan.rs
-  - zircon_runtime/src/asset/artifact/render_manifest/plan/optimization_batch_ja_runtime640_tests.rs
 tests:
-  - zircon_runtime/src/asset/artifact/render_manifest/plan/optimization_batch_ja_runtime640_tests.rs
 ---
 
 # Render Load Batch Capacity

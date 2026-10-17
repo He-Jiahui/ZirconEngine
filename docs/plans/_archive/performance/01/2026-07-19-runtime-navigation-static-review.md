@@ -11,7 +11,6 @@ reference_sources:
   - zircon_plugins/navigation/native/vendor/recastnavigation/Detour/Source/DetourNavMeshQuery.cpp
   - zircon_plugins/navigation/runtime/src/agent/repath.rs
 tests:
-  - zircon_runtime/src/navigation/runtime/tests.rs
   - zircon_runtime/src/navigation/runtime/baked_mesh.rs::performance_contract_tests
   - current-source Windows Cargo and navigation-scale product traces pending
 doc_type: implementation-evidence

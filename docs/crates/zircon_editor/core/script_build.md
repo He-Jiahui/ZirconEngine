@@ -4,13 +4,10 @@ related_code:
   - zircon_editor/src/core/script_build/request.rs
   - zircon_editor/src/core/script_build/orchestrator.rs
   - zircon_editor/src/core/script_build/settings.rs
-  - zircon_editor/src/core/script_build/tests.rs
 plan_sources:
   - docs/plans/zircon_editor/editor/13-script-compilation-management.md
   - docs/plans/engine-code-structure-convention.md
 tests:
-  - zircon_editor/src/core/script_build/tests.rs
-  - zircon_editor/src/core/script_build/settings/tests.rs
   - tools/tests/test_editor13_script_build_orchestrator_contract.py
 doc_type: module-detail
 ---

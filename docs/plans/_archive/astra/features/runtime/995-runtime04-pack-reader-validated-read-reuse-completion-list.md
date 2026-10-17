@@ -9,7 +9,6 @@ tests:
   - zircon_runtime/src/asset/tests/pack/basic.rs
   - zircon_runtime/src/asset/tests/pack/reader_validation.rs
   - zircon_runtime/src/asset/tests/pack/delta_pack.rs
-  - zircon_runtime/src/asset/pack/reader/optimization_tests.rs
 ---
 
 # Runtime04 pack reader validated read reuse completion list

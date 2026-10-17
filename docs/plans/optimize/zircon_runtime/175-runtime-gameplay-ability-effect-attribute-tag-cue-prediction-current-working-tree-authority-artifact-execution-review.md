@@ -18,13 +18,12 @@ related_code:
   - zircon_runtime/src/script/vm/host
   - zircon_runtime/src/script/vm/plugin
   - zircon_runtime/src/scene/world/project_io
-  - zircon_runtime/src/scene/dynamic_scene
   - zircon_runtime/src/core/framework/time
   - zircon_runtime/src/core/framework/net
   - zircon_plugins/net/features/replication/runtime/src
   - zircon_plugins/first_party_runtime_catalog/src/lib.rs
   - zircon_plugins/first_party_editor_catalog/src/catalog.rs
-  - zircon_editor/assets/ui/editor/components/workbench/modules/core/gameplay
+  - zircon_editor/assets/ui/editor/modules/core/gameplay
 reference_engines:
   - dev/UnrealEngine/Engine/Plugins/Runtime/GameplayAbilities/Source/GameplayAbilities/Public/AbilitySystemComponent.h
   - dev/UnrealEngine/Engine/Plugins/Runtime/GameplayAbilities/Source/GameplayAbilities/Public/Abilities/GameplayAbility.h

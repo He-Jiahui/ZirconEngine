@@ -8,9 +8,7 @@ related_records:
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
   - zircon_runtime/src/navigation/runtime/world_scan.rs
-  - zircon_runtime/src/navigation/runtime/world_scan/capacity_tests.rs
 tests:
-  - tools/tests/test_runtime_navigation_projection_capacity_performance_contract.py
 ---
 
 # Runtime846 · navigation projection capacity

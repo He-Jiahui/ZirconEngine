@@ -14,7 +14,7 @@ related_code:
   - zircon_runtime/src/core/framework/render/material/validation_error.rs
   - zircon_runtime/src/graphics/pipeline/declarations/renderer_asset.rs
   - zircon_runtime/src/graphics/pipeline/declarations/renderer_feature_asset.rs
-  - zircon_runtime/src/graphics/pipeline/declarations/renderer_feature_contract_diagnostic.rs
+  - zircon_runtime/src/graphics/declarations/renderer_feature_contract_diagnostic.rs
 implementation_files:
   - zircon_editor/src/ui/material_editor/mod.rs
   - zircon_editor/src/ui/material_editor/projection.rs

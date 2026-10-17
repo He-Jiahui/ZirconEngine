@@ -1,25 +1,7 @@
 ---
 related_code:
   - zircon_runtime/src/graphics/particle_runtime_provider/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/particle/mod.rs
   - zircon_plugins/rendering/plugin.toml
-  - dev/UnrealEngine/Engine/Plugins/FX/Niagara/Source/Niagara/Private/NiagaraSystemSimulation.cpp
-  - dev/UnrealEngine/Engine/Plugins/FX/Niagara/Source/Niagara/Private/NiagaraSystemGpuComputeProxy.cpp
-  - dev/UnrealEngine/Engine/Plugins/FX/Niagara/Source/Niagara/Private/NiagaraSystemRenderData.cpp
-  - dev/Graphics/Packages/com.unity.render-pipelines.core/Runtime/PostProcessing/LensFlareCommonSRP.cs
-  - dev/Graphics/Packages/com.unity.render-pipelines.core/Runtime/PostProcessing/LensFlareDataSRP.cs
-  - dev/Graphics/Packages/com.unity.render-pipelines.universal/Runtime/Passes/PostProcess/LensFlareDataDrivenPostProcessPass.cs
-  - dev/Graphics/Packages/com.unity.render-pipelines.universal/Runtime/Passes/PostProcess/LensFlareScreenSpacePostProcessPass.cs
-  - dev/Graphics/Packages/com.unity.visualeffectgraph
-  - dev/Fyrox/fyrox-impl/src/scene/particle_system/mod.rs
-  - dev/Fyrox/fyrox-impl/src/scene/particle_system/draw.rs
-  - dev/Fyrox/fyrox-impl/src/scene/particle_system/emitter/base.rs
-  - dev/Fyrox/fyrox-impl/src/scene/sprite.rs
-  - dev/Fyrox/fyrox-impl/src/scene/decal.rs
-  - dev/bevy/crates/bevy_pbr/src/decal/forward.rs
-  - dev/bevy/crates/bevy_pbr/src/decal/clustered.rs
-  - dev/godot/servers/rendering/renderer_rd/storage_rd/particles_storage.cpp
-  - dev/godot/scene/resources/3d/primitive_meshes.cpp
 plan_sources:
   - .codex/plans/ZirconEngine Particles 插件完善计划.md
   - .codex/plans/Rendering 插件选项补齐计划.md

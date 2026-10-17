@@ -11,8 +11,6 @@ refreshes:
   - docs/plans/optimize/zircon_editor/84-editor-liveops-feature-flag-remote-config-segmentation-experiment-patch-dlc-crash-control-plane-product-integration-current-source-review.md
 related_code:
   - zircon_editor/src/ui/workbench/page_layout_template.rs
-  - zircon_editor/src/ui/template_runtime/builtin/workbench_extension_module_template_bindings.rs
-  - zircon_editor/src/ui/template_runtime/builtin/workbench_extension_module_template_bindings
   - zircon_editor/src/core/settings
   - zircon_editor/src/core/jobs
   - zircon_editor/src/core/notifications
@@ -22,9 +20,6 @@ related_code:
   - zircon_runtime/src/core/framework/net/download.rs
   - zircon_plugins/net/features/content_download
   - zircon_runtime/src/asset/pack
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/hot_update_application.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/bridge_lifecycle.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/bridge_lifecycle_state.rs
   - zircon_runtime/src/plugin/extension_registry
 related_reviews:
   - docs/plans/optimize/zircon_editor/132-editor-notification-center-toast-decision-history-actions-retention-accessibility-diagnostic-integration-current-source-review.md

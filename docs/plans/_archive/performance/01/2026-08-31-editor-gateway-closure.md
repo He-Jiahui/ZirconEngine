@@ -1,8 +1,8 @@
 ---
 related_code:
   - zircon_editor/src/core/sync/pump.rs
-  - zircon_editor/src/ui/host/editor_host_event_controller/runtime_event_consumers.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/tick.rs
+  - zircon_editor/src/ui/editor_host_event_controller/runtime_event_consumers.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle/tick.rs
 related_plans:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/performance/02-unreal-aligned-engine-system-hard-cutover.md

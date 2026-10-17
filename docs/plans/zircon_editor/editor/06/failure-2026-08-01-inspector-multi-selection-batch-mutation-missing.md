@@ -14,7 +14,6 @@ related_code:
   - zircon_editor/src/ui/workbench/state/editor_state_selection.rs
   - zircon_editor/src/tests/editing/reflected_command/multi_selection.rs
   - zircon_editor/src/core/editing/engine/transaction.rs
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_selection.rs
 tests:
   - reflected_inspector_batch_mutates_all_selected_nodes_in_one_history_record
   - cargo test -p zircon_editor --lib --locked

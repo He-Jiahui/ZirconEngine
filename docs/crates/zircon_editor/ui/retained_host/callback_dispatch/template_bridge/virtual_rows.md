@@ -4,30 +4,23 @@ related_code:
   - zircon_runtime_interface/src/ui/v2/asset.rs
   - zircon_runtime_interface/src/ui/v2/arena.rs
   - zircon_runtime/src/ui/v2/surface_tree/node.rs
-  - zircon_editor/assets/ui/editor/components/workbench\shell\workbench_scene_tree_panel.zui
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/mod.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/virtual_rows.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/scene_tree_rows.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/data_sync.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/error.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/workbench/scene_tree_rows.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/workbench/data_sync.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/workbench/error.rs
   - zircon_runtime/src/ui/surface/node_pool.rs
   - zircon_runtime/src/ui/surface/surface.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_projection/mod.rs
 implementation_files:
   - zircon_runtime_interface/src/ui/v2/repeat.rs
   - zircon_runtime_interface/src/ui/v2/asset.rs
   - zircon_runtime_interface/src/ui/v2/arena.rs
   - zircon_runtime/src/ui/v2/surface_tree/node.rs
-  - zircon_editor/assets/ui/editor/components/workbench\shell\workbench_scene_tree_panel.zui
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/virtual_rows.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/scene_tree_rows.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/data_sync.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/error.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/workbench/scene_tree_rows.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/workbench/data_sync.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/workbench/error.rs
 plan_sources:
   - user: 2026-06-01 Continue approximating the zirconEngine editor from base rendering, input response, Taffy layout, and declared component composition
   - docs/ui/workbench.png
 tests:
-  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_projection/mod.rs
   - cargo check -p zircon_editor --lib --locked --jobs 1 --message-format short --color never with CARGO_TARGET_DIR=D:\cargo-targets\zircon-editor-workbench-reference-sync-1208 and RUSTFLAGS=-Awarnings (2026-06-01 after helper extraction: passed)
   - cargo test -p zircon_editor --lib componentized_workbench_scene_tree_grows_and_reuses_virtual_rows_for_live_snapshot_state --locked --jobs 1 --message-format short --color never -- --nocapture with CARGO_TARGET_DIR=D:\cargo-targets\zircon-editor-workbench-virtual-rows-1435 and RUSTFLAGS=-Awarnings (2026-06-01 after helper extraction: passed, 1 passed)
   - cargo test -p zircon_editor --lib componentized_workbench --locked --jobs 1 --message-format short --color never -- --nocapture with CARGO_TARGET_DIR=D:\cargo-targets\zircon-editor-workbench-virtual-rows-1435 and RUSTFLAGS=-Awarnings (2026-06-01 after helper extraction: passed, 24 passed)

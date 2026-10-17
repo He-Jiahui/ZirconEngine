@@ -1,6 +1,6 @@
 """Read the frozen review baseline directly from Git; never copy a source tree.
 
-CI needs full history for these two debt gates. Only violations present at this
+CI needs full history for these debt gates. Only violations present at this
 revision are grandfathered; new references and test declarations still fail.
 """
 from __future__ import annotations

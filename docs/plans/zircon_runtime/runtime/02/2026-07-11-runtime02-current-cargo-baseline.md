@@ -1,7 +1,6 @@
 ---
 related_code:
   - zircon_runtime/src/core/mod.rs
-  - zircon_runtime/src/tests/runtime_absorption
   - zircon_app/src/entry
 plan_sources:
   - docs/plans/zircon_runtime/runtime/02-core-spine-and-root-surface.md

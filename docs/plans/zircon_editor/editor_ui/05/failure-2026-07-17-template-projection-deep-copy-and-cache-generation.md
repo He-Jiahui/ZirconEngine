@@ -9,17 +9,9 @@ origin_child_dir: docs/plans/performance/01
 fixing_child_dir: docs/plans/zircon_editor/editor_ui/05
 plan_link_mode: child_record_only
 related_code:
-  - zircon_editor/src/ui/template_runtime/runtime/build_session.rs
-  - zircon_editor/src/ui/template_runtime/runtime/projection.rs
-  - zircon_editor/src/ui/template_runtime/runtime/pane_payload_projection.rs
-  - zircon_editor/src/ui/template_runtime/runtime/runtime_host.rs
-  - zircon_editor/src/ui/template_runtime/retained_adapter.rs
-  - zircon_editor/src/ui/retained_host/ui/workbench_window_projection.rs
-  - zircon_editor/src/ui/retained_host/ui/workbench_window_projection/host_value_toml.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_ui_asset_conversion
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/ui_asset_detail_fields
-  - zircon_editor/src/ui/retained_host/host_contract/data/template_nodes
+  - zircon_editor/src/ui/runtime/runtime/build_session.rs
+  - zircon_editor/src/ui/runtime/runtime/projection.rs
+  - zircon_editor/src/ui/runtime/runtime/runtime_host.rs
 reference_sources:
   - dev/slint/internal/core/properties.rs
   - dev/slint/internal/core/items/component_container.rs

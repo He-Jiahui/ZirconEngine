@@ -1,47 +1,16 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/host_contract/paint_geometry
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text_tests
-  - zircon_editor/src/ui/retained_host/host_contract/paint_theme
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench
-  - zircon_editor/src/ui/retained_host/host_contract/paint_close_prompt
-  - zircon_editor/src/ui/retained_host/host_contract/profiling_artifacts
-  - zircon_editor/src/ui/retained_host/host_contract/profiling_hit_routes
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion
-  - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node/surface_frame_builder
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/sprite_atlas
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/sprite_atlas_tests
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_alert_glyphs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_alerts
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_alerts_tests
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_axis_labels
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_axis_labels_tests
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_axis_value_field_style
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_axis_value_fields
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_axis_value_fields_tests
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_button_glyphs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_buttons
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_buttons_tests
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_chip_glyphs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_chips
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_chips_tests
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_nodes
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_pipeline
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_pipeline_tests
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_commands
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_command_conversion
 implementation_files:
-  - docs/plans/performance/01/2026-07-17-editor-paint-text-static-review.md
-  - docs/plans/performance/01/2026-07-17-editor-paint-theme-overlays-static-review.md
-  - docs/plans/performance/01/2026-07-17-editor-profiling-artifacts-hit-routes-static-review.md
-  - docs/plans/performance/01/2026-07-17-editor-retained-pane-data-conversion-static-review.md
-  - docs/plans/performance/01/2026-07-17-editor-sprite-atlas-static-review.md
-  - docs/plans/performance/01/2026-07-17-editor-template-alerts-static-review.md
-  - docs/plans/performance/01/2026-07-17-editor-template-axis-controls-static-review.md
-  - docs/plans/performance/01/2026-07-17-editor-template-buttons-static-review.md
-  - docs/plans/performance/01/2026-07-17-editor-template-chips-static-review.md
-  - docs/plans/performance/01/2026-07-17-editor-template-command-pipeline-static-review.md
+  - docs/plans/_archive/performance/01/2026-07-17-editor-paint-text-static-review.md
+  - docs/plans/_archive/performance/01/2026-07-17-editor-paint-theme-overlays-static-review.md
+  - docs/plans/_archive/performance/01/2026-07-17-editor-profiling-artifacts-hit-routes-static-review.md
+  - docs/plans/_archive/performance/01/2026-07-17-editor-retained-pane-data-conversion-static-review.md
+  - docs/plans/_archive/performance/01/2026-07-17-editor-sprite-atlas-static-review.md
+  - docs/plans/_archive/performance/01/2026-07-17-editor-template-alerts-static-review.md
+  - docs/plans/_archive/performance/01/2026-07-17-editor-template-axis-controls-static-review.md
+  - docs/plans/_archive/performance/01/2026-07-17-editor-template-buttons-static-review.md
+  - docs/plans/_archive/performance/01/2026-07-17-editor-template-chips-static-review.md
+  - docs/plans/_archive/performance/01/2026-07-17-editor-template-command-pipeline-static-review.md
 plan_sources:
   - docs/plans/zircon_runtime/frameworks/06-development-conventions-and-guardrails.md
   - docs/plans/engine-code-structure-convention.md

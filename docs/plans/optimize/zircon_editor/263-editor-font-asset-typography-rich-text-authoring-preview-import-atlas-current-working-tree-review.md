@@ -16,9 +16,7 @@ canonical_parent_owners:
   - docs/plans/optimize/zircon_runtime/200-runtime-ui-surface-input-focus-pointer-capture-ime-accessibility-frame-authority-current-working-tree-review.md
 related_code:
   - zircon_editor/src/ui/asset_editor
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text
-  - zircon_editor/src/ui/retained_host/host_contract/paint_theme/typography.rs
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/ui/workbench_extension_font_atlas_workspace.zui
+  - zircon_editor/src/ui/retained/contract/paint_theme/typography.rs
   - zircon_plugins/ui_asset_authoring
   - zircon_plugins/ui_document_importer
   - zircon_runtime_interface/src/ui/design_tokens.rs

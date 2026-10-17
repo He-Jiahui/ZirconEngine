@@ -16,21 +16,15 @@ related_code:
   - zircon_editor/src/ui/workbench/snapshot/data/inspector_snapshot.rs
   - zircon_editor/src/ui/host/editor_event_runtime_reflection.rs
   - zircon_editor/src/ui/host/scene_inspection_publication.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window
-  - zircon_editor/src/ui/retained_host/app/inspector
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion
-  - zircon_editor/src/ui/template_runtime/component_adapter
+  - zircon_editor/src/ui/retained/app/inspector
   - zircon_runtime/src/scene/inspection/artifact/fields.rs
   - zircon_runtime/src/ui/surface/virtual_list_materialization.rs
   - zircon_runtime_interface/src/reflect
 tests:
-  - zircon_editor/src/tests/editing/reflected_command.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_inspector_property_edit.rs
+  - zircon_editor/src/tests/editing/reflected_command/mod.rs
   - zircon_editor/src/tests/ui/component_adapter/inspector.rs
-  - zircon_editor/src/tests/editor_event/runtime/extensions_registration/plugin_contributions.rs
+  - zircon_editor/src/tests/runtime/extensions_registration/plugin_contributions.rs
   - zircon_editor/src/tests/editor_event/runtime/when_evaluation.rs
-  - zircon_editor/src/core/extension/store/tests.rs
 plan_sources:
   - docs/plans/optimize/zircon_editor/05-inspector-reflection-property-authoring-customization-review.md
   - docs/plans/optimize/zircon_editor/62-editor-inspector-property-grid-reflection-schema-multi-selection-edit-transaction-undo-prefab-override-customization-asset-reference-virtualization-product-integration-current-source-review.md

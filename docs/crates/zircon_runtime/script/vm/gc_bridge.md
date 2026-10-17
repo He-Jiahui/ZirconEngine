@@ -10,7 +10,6 @@ related_code:
   - zircon_runtime/src/script/vm/host/builtin_host_modules.rs
   - zircon_runtime/src/script/vm/plugin/vm_plugin_instance.rs
   - zircon_runtime/src/script/vm/runtime/hot_reload_coordinator.rs
-  - zircon_runtime/src/script/vm/runtime/hot_reload_coordinator/tests.rs
   - zircon_runtime/src/script/vm/runtime/hot_reload_coordinator/tests/gc.rs
   - zircon_runtime/src/script/vm/runtime/vm_plugin_manager.rs
   - zircon_runtime/src/script/vm/mod.rs
@@ -42,13 +41,11 @@ tests:
   - zircon_runtime/src/script/vm/gc_bridge/vm_object_ref.rs
   - zircon_runtime/src/script/vm/gc_bridge/budget.rs
   - zircon_runtime/src/script/vm/host/host_registry.rs
-  - zircon_runtime/src/script/vm/runtime/hot_reload_coordinator/tests.rs
   - zircon_runtime/src/script/vm/runtime/hot_reload_coordinator/tests/gc.rs
   - zircon_runtime/src/script/vm/tests/host_exports.rs
   - zircon_runtime/src/script/vm/tests/module_surface.rs
   - zircon_plugins/zr_vm_language/runtime/src/tests/registration.rs
   - zircon_plugins/zr_vm_language/runtime/src/tests/real_backend.rs
-  - zircon_plugins/zr_vm_language/runtime/src/real_backend/tests.rs
   - milestone M3 Cargo and unit validation deferred to the controller testing stage
 doc_type: module-detail
 ---

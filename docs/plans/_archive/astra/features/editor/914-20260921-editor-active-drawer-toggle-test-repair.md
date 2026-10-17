@@ -8,7 +8,6 @@ related_records:
   - docs/plans/astra/features/editor/664-20260911-editor-ui-optimization-batch-completion.md
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
-  - zircon_editor/src/tests/host/retained_callback_dispatch/layout/drawer_toggle.rs
 ---
 
 # Editor914 Active Drawer Toggle Test Repair

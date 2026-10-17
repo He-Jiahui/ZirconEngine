@@ -2,7 +2,6 @@
 related_code:
   - zircon_editor/src/ui/component_registry/mod.rs
   - zircon_editor/src/ui/component_registry/registry.rs
-  - zircon_editor/src/ui/component_registry/tests.rs
   - zircon_runtime/src/ui/component/catalog/registry.rs
   - zircon_runtime/src/ui/component/catalog/editor_showcase.rs
   - zircon_runtime/src/ui/component/catalog/material_foundation/mod.rs

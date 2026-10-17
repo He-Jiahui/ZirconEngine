@@ -16,7 +16,7 @@ related_code:
   - zircon_runtime/src/dynamic_api/session/registry/wake_registration.rs
   - zircon_runtime/src/dynamic_api/session/ffi.rs
   - zircon_runtime/src/dynamic_api/session/state.rs
-  - zircon_runtime/src/scene/dynamic_scene/asset_reload/queue.rs
+  - zircon_runtime/src/scene/dynamic/asset_reload/queue.rs
 tests:
   - reactive_cadence_coalesces_requests_and_suppresses_idle_frames
   - foreground_game_and_explicit_continuous_cadence_never_suppress_frame_pumps

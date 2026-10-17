@@ -7,13 +7,10 @@ related_code:
   - zircon_editor/src/scene/viewport/pointer/viewport_pointer_dispatch.rs
   - zircon_editor/src/scene/viewport/pointer/overlay_router/build_dispatcher.rs
   - zircon_editor/src/scene/viewport/pointer/overlay_router/rebuild_surface.rs
-  - zircon_editor/src/scene/viewport/pointer/overlay_router/viewport_overlay_pointer_router_debug.rs
-  - zircon_editor/src/scene/viewport/pointer/overlay_router/viewport_overlay_pointer_router_event.rs
-  - zircon_editor/src/scene/viewport/pointer/overlay_router/viewport_overlay_pointer_router_sync.rs
   - zircon_editor/src/scene/viewport/interaction_extract/cache.rs
   - zircon_editor/src/scene/viewport/interaction_extract/extract.rs
   - zircon_editor/src/scene/viewport/interaction_extract/key.rs
-  - zircon_editor/src/scene/viewport/pointer/candidates/precision_candidates_from_layout.rs
+  - zircon_editor/src/scene/pointer/candidates/precision_candidates_from_layout.rs
   - zircon_editor/src/scene/viewport/pointer/candidates/handle_candidate.rs
   - zircon_editor/src/scene/viewport/pointer/candidates/scene_gizmo_candidate.rs
   - zircon_editor/src/scene/viewport/pointer/candidates/renderable_candidate.rs
@@ -21,7 +18,6 @@ related_code:
   - zircon_editor/src/scene/viewport/pointer/precision/precision_candidate.rs
   - zircon_editor/src/scene/viewport/pointer/precision/precision_candidate_score.rs
   - zircon_editor/src/scene/viewport/pointer/precision/precision_shape.rs
-  - zircon_editor/src/scene/viewport/pointer/tests.rs
   - zircon_runtime/src/core/framework/picking/mod.rs
   - zircon_runtime/src/core/framework/picking/pointer_hits.rs
   - zircon_runtime/src/core/framework/picking/hit_target.rs
@@ -29,19 +25,16 @@ implementation_files:
   - zircon_editor/src/scene/viewport/pointer/mod.rs
   - zircon_editor/src/scene/viewport/pointer/runtime_picking_adapter.rs
   - zircon_editor/src/scene/viewport/pointer/viewport_pointer_route.rs
-  - zircon_editor/src/scene/viewport/pointer/overlay_router/viewport_overlay_pointer_router_debug.rs
   - zircon_editor/src/scene/viewport/pointer/overlay_router/build_dispatcher.rs
   - zircon_editor/src/scene/viewport/pointer/overlay_router/rebuild_surface.rs
-  - zircon_editor/src/scene/viewport/pointer/candidates/precision_candidates_from_layout.rs
+  - zircon_editor/src/scene/pointer/candidates/precision_candidates_from_layout.rs
   - zircon_editor/src/scene/viewport/pointer/precision/candidate_score.rs
   - zircon_editor/src/scene/viewport/pointer/precision/precision_candidate.rs
   - zircon_editor/src/scene/viewport/pointer/precision/precision_candidate_score.rs
-  - zircon_editor/src/scene/viewport/pointer/tests.rs
 plan_sources:
   - .codex/plans/runtime-picking-gizmos-camera-remote-bevy-completion-plan.md
   - .codex/plans/Runtime 吸收层与 Editor_Scene 边界收束计划.md
 tests:
-  - zircon_editor/src/scene/viewport/pointer/tests.rs
   - zircon_editor/src/tests/editing/viewport.rs
   - cargo test -p zircon_editor --lib viewport --locked --color never --jobs 1
 doc_type: module-detail

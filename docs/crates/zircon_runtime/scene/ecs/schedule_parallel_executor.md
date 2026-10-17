@@ -5,7 +5,6 @@ related_code:
   - zircon_runtime/src/scene/ecs/mod.rs
   - zircon_runtime/src/scene/tests/ecs_schedule/parallel_executor.rs
   - zircon_runtime/src/scene/tests/ecs_schedule_parallel_executor_structure.rs
-  - zircon_runtime/src/tests/runtime_absorption/rayon_boundary.rs
   - docs/plans/zircon_runtime/runtime/03-schedule-and-frame-loop-alignment.md
   - docs/plans/zircon_runtime/runtime/11-job-system-task-model.md
 implementation_files:
@@ -13,7 +12,6 @@ implementation_files:
   - zircon_runtime/src/scene/ecs/mod.rs
   - zircon_runtime/src/scene/tests/ecs_schedule/parallel_executor.rs
   - zircon_runtime/src/scene/tests/ecs_schedule_parallel_executor_structure.rs
-  - zircon_runtime/src/tests/runtime_absorption/rayon_boundary.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/performance/01/2026-07-17-ecs-schedule-static-review.md

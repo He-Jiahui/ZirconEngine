@@ -8,7 +8,6 @@ related_code:
   - zircon_runtime/src/ui/surface/focus.rs
 tests:
   - zircon_runtime/src/ui/surface/focus.rs
-  - tools/tests/test_runtime_focus_hovered_retain_performance_contract.py
 ---
 
 # Runtime821 Focus Hovered-Path Retention

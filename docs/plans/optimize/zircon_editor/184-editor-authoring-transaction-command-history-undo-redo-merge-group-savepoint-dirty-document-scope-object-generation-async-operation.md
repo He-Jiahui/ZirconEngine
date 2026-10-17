@@ -21,7 +21,6 @@ related_code:
 tests:
   - zircon_editor/src/tests/editing
   - zircon_plugins/navigation/editor/src/tests/operation_command.rs
-  - zircon_plugins/neural/editor/src/tests.rs
 plan_sources:
   - docs/plans/optimize/zircon_editor/02-document-transaction-save-autosave-recovery-review.md
   - docs/plans/optimize/zircon_editor/03-scene-prefab-selection-mode-gizmo-picking-review.md

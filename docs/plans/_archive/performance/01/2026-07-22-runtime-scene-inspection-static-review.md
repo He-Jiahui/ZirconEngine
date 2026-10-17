@@ -11,8 +11,6 @@ reference_sources:
   - dev/godot/editor/scene/scene_tree_editor.cpp
   - dev/bevy/crates/bevy_ecs/src/query/filter.rs
 tests:
-  - zircon_runtime/src/scene/inspection/tests.rs
-  - zircon_runtime/src/scene/inspection/subscription/tests.rs
   - zircon_runtime/src/scene/tests/inspection.rs
   - current-source Windows zircon_runtime inspection tests pending
 doc_type: implementation-evidence

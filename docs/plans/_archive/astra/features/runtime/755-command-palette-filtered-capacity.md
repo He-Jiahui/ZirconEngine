@@ -11,7 +11,6 @@ implementation_files:
   - zircon_runtime/src/ui/component/state_reducer/command_palette.rs
 tests:
   - zircon_runtime/src/ui/component/state_reducer/command_palette.rs
-  - tools/tests/test_runtime_command_palette_filtered_capacity_performance_contract.py
 ---
 
 # Runtime755 · Command-palette filtered capacity

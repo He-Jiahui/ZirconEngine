@@ -10,7 +10,7 @@ related_code:
   - zircon_runtime/src/core/runtime/frame_clock.rs
   - zircon_runtime/src/core/runtime/tasks/job_scheduler.rs
   - zircon_runtime/src/core/runtime/tests/activation/behavior/activation.rs
-  - zircon_runtime/src/core/runtime/tests/activation/behavior/activation/contention.rs
+  - zircon_runtime/src/core/runtime/tests/behavior/activation/contention.rs
   - tools/tests/test_runtime_activation_contention_test_structure.py
   - zircon_runtime/src/core/runtime/lifecycle.rs
   - zircon_runtime/src/core/runtime/time.rs
@@ -19,11 +19,6 @@ related_code:
   - zircon_runtime/src/core/runtime/modules
   - zircon_runtime/src/core/runtime/diagnostics
   - zircon_runtime/src/foundation/mod.rs
-  - zircon_runtime/src/tests/runtime_absorption/root_entries.rs
-  - zircon_runtime/src/tests/runtime_absorption/root_surface.rs
-  - zircon_runtime/src/tests/runtime_absorption/naming_boundary.rs
-  - zircon_runtime/src/tests/runtime_absorption/generated_code_guard.rs
-  - zircon_runtime/src/tests/runtime_absorption/core_spine_root_generated.rs
   - tools/tests/test_frameworks_02_core_error_single_source.py
   - docs/crates/zircon_runtime/core/root_surface.md
   - docs/architecture/generated-code-boundary.md
@@ -37,9 +32,6 @@ related_code:
   - zircon_app/src/entry/export_bootstrap.rs
   - zircon_app/src/entry/entry_runner/bootstrap.rs
   - zircon_app/src/entry/tests/export_bootstrap.rs
-  - zircon_runtime/src/tests/plugin_extensions/export_build_plan.rs
-  - zircon_runtime/src/tests/plugin_extensions/export_build_plan_feature_provider.rs
-  - zircon_runtime/src/tests/plugin_extensions/export_build_plan_platform.rs
   - zircon_runtime/src/plugin/export_build_plan/platform_host_files/browser.rs
 plan_sources:
   - docs/plans/zircon_runtime/runtime/index.md

@@ -2,26 +2,22 @@
 related_code:
   - zircon_runtime/src/core/framework/render/view_matrix_pair.rs
   - zircon_runtime/src/core/framework/render/temporal_jitter.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/camera_matrices/view_projection.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/encode_reflection_probes/encode.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/execute/build_post_process_params/build.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/post_process_screen_space_reflection.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/ssao.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/post_process.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/primitives/scene_uniform/from_frame.rs
+  - zircon_runtime/src/graphics/scene/post/camera_matrices/view_projection.rs
+  - zircon_runtime/src/graphics/scene/post/encode_reflection_probes/encode.rs
+  - zircon_runtime/src/graphics/scene/post/build_post_process_params/build.rs
+  - zircon_runtime/src/graphics/scene/renderer/post/shaders/ssao.wgsl
+  - zircon_runtime/src/graphics/scene/renderer/scene_uniform/from_frame.rs
 implementation_files:
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/camera_matrices/view_projection.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/encode_reflection_probes/encode.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/execute/build_post_process_params/build.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/post_process_screen_space_reflection.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/ssao.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/post_process.wgsl
+  - zircon_runtime/src/graphics/scene/post/camera_matrices/view_projection.rs
+  - zircon_runtime/src/graphics/scene/post/encode_reflection_probes/encode.rs
+  - zircon_runtime/src/graphics/scene/post/build_post_process_params/build.rs
+  - zircon_runtime/src/graphics/scene/renderer/post/shaders/ssao.wgsl
 plan_sources:
   - docs/plans/zircon_runtime/render/06-temporal-pipeline.md
   - user: 2026-06-14 implement WGPU render pipeline architecture code and update plan progress
 tests:
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/execute/build_post_process_params/build.rs::tests::post_process_projection_params_ignore_temporal_jitter
-  - zircon_runtime/src/graphics/scene/scene_renderer/primitives/scene_uniform/from_frame.rs::tests::scene_uniform_inverse_view_projection_is_unjittered
+  - zircon_runtime/src/graphics/scene/post/build_post_process_params/build.rs::tests::post_process_projection_params_ignore_temporal_jitter
+  - zircon_runtime/src/graphics/scene/renderer/scene_uniform/from_frame.rs::tests::scene_uniform_inverse_view_projection_is_unjittered
   - cargo fmt --package zircon_runtime -- --check
   - cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-temporal-s2-0614 --message-format short --color never
 doc_type: module-detail

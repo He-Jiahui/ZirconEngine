@@ -10,7 +10,6 @@ origin_child_dir: docs/plans/performance/01
 fixing_child_dir: docs/plans/performance/01
 plan_link_mode: child_record_only
 related_code:
-  - tools/check_conventions.py
   - docs/architecture/runtime-editor-pluginized-export.md
   - docs/crates/zircon_runtime/plugin/package_manifest.md
   - docs/crates/zircon_runtime/performance/hotspot_inventory.md

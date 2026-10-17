@@ -10,8 +10,6 @@ fixing_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 plan_link_mode: child_record_only
 related_code:
 tests:
-  - tools/session_coordinator/tests/test_leases.py::LeaseTests::test_directory_owner_satisfies_an_exact_child_ownership_check
-  - tools/session_coordinator/tests/test_workflow_commit.py::WorkflowCommitTests::test_bind_manifest_allows_directory_leases_to_cover_child_files
 resolved_at: 2026-07-17
 ---
 

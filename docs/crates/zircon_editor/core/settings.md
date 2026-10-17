@@ -6,8 +6,6 @@ related_code:
   - zircon_editor/src/core/jobs/quota_settings.rs
   - zircon_editor/src/core/context/editor_context.rs
   - zircon_editor/src/ui/host/editor_manager.rs
-  - zircon_editor/src/ui/retained_host/app.rs
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_accessors.rs
   - zircon_runtime/src/core/runtime/tasks/bounded_keyed_io/lane/shutdown.rs
 implementation_files:
   - zircon_editor/src/core/settings/startup.rs
@@ -23,10 +21,7 @@ plan_sources:
   - docs/plans/zircon_editor/editor/13/failure-2026-07-23-settings-registry-script-build-batch-window-migration.md
 tests:
   - zircon_editor/src/core/settings/tests/
-  - zircon_editor/src/core/settings/persistence_suppressed_write_tests.rs
-  - zircon_editor/src/core/script_build/settings/tests.rs
   - zircon_editor/src/core/jobs/tests/quota_settings_contract.rs
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_accessors.rs
 doc_type: module-detail
 ---
 

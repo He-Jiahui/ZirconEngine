@@ -1,51 +1,41 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/route_intent/mod.rs
-  - zircon_editor/src/ui/retained_host/route_intent/map.rs
-  - zircon_editor/src/ui/retained_host/shell_pointer/bridge.rs
-  - zircon_editor/src/ui/retained_host/app/workspace_docking/drag_drop.rs
-  - zircon_editor/src/ui/retained_host/shell_pointer/drag_surface.rs
-  - zircon_editor/src/ui/retained_host/shell_pointer/resize_surface.rs
-  - zircon_editor/src/ui/retained_host/document_tab_pointer/host_document_tab_pointer_bridge.rs
-  - zircon_editor/src/ui/retained_host/drawer_header_pointer/host_drawer_header_pointer_bridge.rs
-  - zircon_editor/src/ui/retained_host/menu_pointer/host_menu_pointer_bridge.rs
-  - zircon_editor/src/ui/retained_host/menu_pointer/host_menu_pointer_route_intent.rs
-  - zircon_editor/src/ui/retained_host/activity_rail_pointer/host_activity_rail_pointer_bridge.rs
-  - zircon_editor/src/ui/retained_host/hierarchy_pointer/hierarchy_pointer_bridge.rs
-  - zircon_editor/src/ui/retained_host/hierarchy_pointer/route_at_point.rs
-  - zircon_editor/src/ui/retained_host/detail_pointer/scroll_surface_pointer_bridge.rs
-  - zircon_editor/src/ui/retained_host/host_page_pointer/host_page_pointer_bridge.rs
-  - zircon_editor/src/ui/retained_host/viewport_toolbar_pointer/viewport_toolbar_pointer_bridge.rs
-  - zircon_editor/src/ui/retained_host/viewport_toolbar_pointer/rebuild_surface.rs
-  - zircon_editor/src/ui/retained_host/viewport_toolbar_pointer/sync_surface_frame.rs
-  - zircon_editor/src/ui/retained_host/viewport_toolbar_pointer/viewport_toolbar_pointer_control.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/shared_pointer/viewport_toolbar.rs
-  - zircon_editor/src/ui/retained_host/app/viewport/toolbar_pointer/click.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/routing/panes/pane/toolbar.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/pane_callbacks/viewport/toolbar/entry.rs
-  - zircon_editor/src/ui/retained_host/welcome_recent_pointer/welcome_recent_pointer_bridge.rs
-  - zircon_editor/src/ui/retained_host/welcome_recent_pointer/welcome_recent_pointer_bridge_project_route.rs
-  - zircon_editor/src/ui/retained_host/tab_drag/bridge.rs
+  - zircon_editor/src/ui/retained/route_intent/mod.rs
+  - zircon_editor/src/ui/retained/route_intent/map.rs
+  - zircon_editor/src/ui/retained/shell_pointer/bridge.rs
+  - zircon_editor/src/ui/retained/app/workspace_docking/drag_drop.rs
+  - zircon_editor/src/ui/retained/shell_pointer/drag_surface.rs
+  - zircon_editor/src/ui/retained/shell_pointer/resize_surface.rs
+  - zircon_editor/src/ui/document_tab_pointer/host_document_tab_pointer_bridge.rs
+  - zircon_editor/src/ui/drawer_header_pointer/host_drawer_header_pointer_bridge.rs
+  - zircon_editor/src/ui/retained/menu_pointer/host_menu_pointer_bridge.rs
+  - zircon_editor/src/ui/retained/menu_pointer/host_menu_pointer_route_intent.rs
+  - zircon_editor/src/ui/activity_rail_pointer/host_activity_rail_pointer_bridge.rs
+  - zircon_editor/src/ui/retained/hierarchy_pointer/hierarchy_pointer_bridge.rs
+  - zircon_editor/src/ui/retained/hierarchy_pointer/route_at_point.rs
+  - zircon_editor/src/ui/retained/detail_pointer/scroll_surface_pointer_bridge.rs
+  - zircon_editor/src/ui/retained/host_page_pointer/host_page_pointer_bridge.rs
+  - zircon_editor/src/ui/retained/viewport_toolbar_pointer/rebuild_surface.rs
+  - zircon_editor/src/ui/retained/viewport_toolbar_pointer/sync_surface_frame.rs
+  - zircon_editor/src/ui/retained/dispatch/shared_pointer/viewport_toolbar.rs
+  - zircon_editor/src/ui/retained/app/viewport/toolbar_pointer/click.rs
+  - zircon_editor/src/ui/retained/contract/pointer/routing/panes/pane/toolbar.rs
+  - zircon_editor/src/ui/retained/contract/pointer/buttons/viewport/toolbar/entry.rs
+  - zircon_editor/src/ui/retained/tab_drag/bridge.rs
   - zircon_editor/src/tests/host/retained_document_tab_pointer/surface_contract.rs
   - zircon_editor/src/tests/host/retained_drawer_header_pointer/surface_contract.rs
-  - zircon_editor/src/tests/host/retained_menu_pointer/surface_contract.rs
   - zircon_editor/src/tests/host/retained_activity_rail_pointer/surface_contract.rs
   - zircon_editor/src/tests/host/retained_list_pointer/surface_contract.rs
   - zircon_editor/src/tests/host/retained_detail_pointer/surface_contract.rs
   - zircon_editor/src/tests/host/retained_host_page_pointer/surface_contract.rs
-  - zircon_editor/src/tests/host/retained_viewport_toolbar_pointer/surface_contract.rs
+  - zircon_editor/src/tests/retained_viewport_toolbar_pointer/surface_contract.rs
   - zircon_editor/src/tests/host/retained_tab_drag/surface_contract.rs
 implementation_files:
-  - zircon_editor/src/ui/retained_host/route_intent/mod.rs
-  - zircon_editor/src/ui/retained_host/route_intent/map.rs
-  - zircon_editor/src/ui/retained_host/hierarchy_pointer
-  - zircon_editor/src/ui/retained_host/detail_pointer
-  - zircon_editor/src/ui/retained_host/host_page_pointer
-  - zircon_editor/src/ui/retained_host/viewport_toolbar_pointer
-  - zircon_editor/src/ui/retained_host/callback_dispatch/shared_pointer/viewport_toolbar.rs
-  - zircon_editor/src/ui/retained_host/app/viewport/toolbar_pointer/click.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/routing/panes/pane/toolbar.rs
-  - zircon_editor/src/ui/retained_host/welcome_recent_pointer
+  - zircon_editor/src/ui/retained/route_intent/mod.rs
+  - zircon_editor/src/ui/retained/route_intent/map.rs
+  - zircon_editor/src/ui/retained/dispatch/shared_pointer/viewport_toolbar.rs
+  - zircon_editor/src/ui/retained/app/viewport/toolbar_pointer/click.rs
+  - zircon_editor/src/ui/retained/contract/pointer/routing/panes/pane/toolbar.rs
 plan_sources:
   - docs/plans/zircon_editor/editor_ui/01-slate-input-dispatch-core.md
 tests:

@@ -4,7 +4,6 @@ implementation_files:
   - tools/analysis/performance/ui/ui_render_segment_evidence.py
   - tools/analysis/performance/ui/ui_render_dependency_delta_evidence.py
   - tools/analysis/performance/ui/ui_render_dependency_memory_evidence.py
-  - tools/tests/test_ui_render_evidence_single_read_performance_contract.py
 ---
 
 # UI render evidence single-read snapshots

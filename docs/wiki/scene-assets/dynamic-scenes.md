@@ -6,7 +6,6 @@ related_code:
   - zircon_runtime/src/scene/dynamic/document/schema.rs
   - zircon_runtime/src/scene/dynamic/session/archive.rs
 implementation_files:
-  - zircon_runtime/src/scene/dynamic_scene
 plan_sources:
   - user: 2026-09-09 动态场景与序列化说明
 tests:

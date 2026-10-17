@@ -8,10 +8,7 @@ related_records:
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
   - zircon_runtime/src/ui/v2/style/rule_index.rs
-  - zircon_runtime/src/ui/v2/style/rule_index/hash_bucket_tests.rs
 tests:
-  - zircon_runtime/src/ui/v2/style/rule_index/hash_bucket_tests.rs
-  - tools/tests/test_runtime73_terminal_selector_index_performance_contract.py
 ---
 
 # Runtime801 · terminal-selector singleton candidate fast path

@@ -6,8 +6,6 @@ related_code:
   - zircon_runtime/src/scene/inspection
   - zircon_editor/src/ui/host/command_eval_projection.rs
   - zircon_editor/src/ui/host/project_access.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch
-  - zircon_editor/src/ui/template_runtime/builtin/workbench_window_template_bindings.rs
   - zircon_editor/src/core/commands
   - zircon_editor/src/core/editing
 related_tests:

@@ -4,10 +4,7 @@ status: implemented_pending_validation
 plan_sources:
   - docs/plans/optimize/zircon_editor/656/2026-09-02-preallocated-catalog-update-index.md
 related_code:
-  - zircon_editor/src/ui/host/editor_asset_manager/generation.rs
-  - zircon_editor/src/ui/host/editor_asset_manager/generation/optimization_batch_jq_editor656_tests.rs
 tests:
-  - zircon_editor/src/ui/host/editor_asset_manager/generation/optimization_batch_jq_editor656_tests.rs
 ---
 
 # Catalog Update Index Capacity

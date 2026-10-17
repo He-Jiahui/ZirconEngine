@@ -10,15 +10,14 @@ related_code:
   - zircon_editor/src/ui/workbench/project/editor_project_document_load.rs
   - zircon_editor/src/ui/workbench/project/editor_project_document_save.rs
   - zircon_editor/src/ui/workbench/project/layout_preset_assets.rs
-  - zircon_editor/src/ui/workbench/startup/editor_startup_session_document_welcome_pane_snapshot.rs
-  - zircon_editor/src/ui/retained_host/app/welcome_session/project_probe.rs
+  - zircon_editor/src/ui/retained/app/welcome_session/project_probe.rs
   - zircon_runtime/src/asset/pipeline/manager/asset_manager/asset_manager.rs
-  - zircon_runtime/src/asset/pipeline/manager/service_contracts/asset_manager_contract.rs
+  - zircon_runtime/src/asset/manager/service_contracts/asset_manager_contract.rs
 tests:
   - zircon_editor/src/core/project/tests/boundary.rs
   - zircon_editor/src/core/project/tests/template_creation.rs
   - zircon_editor/src/tests/host/asset_references.rs
-  - zircon_editor/src/tests/host/manager/bootstrap_and_startup.rs
+  - zircon_editor/src/tests/host/manager/bootstrap_and_startup/mod.rs
   - zircon_editor/src/tests/host/manager/project_generation_projection.rs
   - zircon_editor/src/tests/workbench/project/document_roundtrip.rs
 plan_sources:

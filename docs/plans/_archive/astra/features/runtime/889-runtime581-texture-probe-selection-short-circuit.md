@@ -8,9 +8,9 @@ related_records:
   - docs/plans/astra/features/editor/945-editor581-badge-overlay-clip-early-exit.md
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/probe_buffer/selection.rs
+  - zircon_runtime/src/graphics/scene/renderer/environment/probe_buffer/selection.rs
 tests:
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/probe_buffer/selection.rs
+  - zircon_runtime/src/graphics/scene/renderer/environment/probe_buffer/selection.rs
 ---
 
 # Runtime889 Runtime581 Texture-Probe Selection Short Circuit

@@ -42,7 +42,6 @@ tests:
   - zircon_plugins/ai/runtime/src/tests/mod.rs
   - zircon_plugins/ai/runtime/src/tests/perception_conditions.rs
   - zircon_plugins/ai/runtime/src/tests/perception_runtime.rs
-  - zircon_runtime/src/tests/plugin_extensions/manifest_contributions.rs
   - cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_ai_runtime --locked --jobs 1 --message-format short --color never
   - cargo test -p zircon_runtime --lib runtime_experimental_plugin_toml_matches_catalog_partial_metadata --locked --jobs 1 --message-format short --color never
   - python -m unittest tools.tests.test_frameworks_03_contract_feature_boundary

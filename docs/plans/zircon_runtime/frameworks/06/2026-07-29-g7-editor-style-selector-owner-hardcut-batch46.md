@@ -1,8 +1,7 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector
 implementation_files:
-  - docs/plans/performance/01/2026-07-17-editor-style-selector-static-review.md
+  - docs/plans/_archive/performance/01/2026-07-17-editor-style-selector-static-review.md
 plan_sources:
   - docs/plans/zircon_runtime/frameworks/06-development-conventions-and-guardrails.md
   - docs/plans/engine-code-structure-convention.md

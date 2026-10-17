@@ -4,7 +4,7 @@ related_code:
   - zircon_runtime/src/ui/tests/taffy_layout_diagnostics.rs
   - zircon_runtime/src/ui/tests/taffy_visual_verification.rs
   - zircon_runtime/src/ui/layout/taffy_bridge
-  - tools/profiling/ui/ui-profile-capture.ps1
+  - tools/analysis/profiling/ui/ui-profile-capture.ps1
   - docs/crates/zircon_runtime/ui/layout/pass.md
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md

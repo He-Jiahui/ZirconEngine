@@ -4,7 +4,6 @@ related_code:
   - zircon_runtime/src/core/manager/resolver.rs
   - zircon_runtime/src/core/manager/service.rs
   - zircon_runtime/src/core/manager/service_names.rs
-  - zircon_runtime/src/core/manager/tests.rs
   - zircon_runtime/src/core/runtime/handle/resolution.rs
   - zircon_runtime/src/core/runtime/handle/activation.rs
   - zircon_runtime/src/core/runtime/handle/activation/batch.rs
@@ -12,12 +11,10 @@ related_code:
   - zircon_runtime/src/core/runtime/state/service_entry.rs
   - zircon_runtime/src/core/runtime/tests/activation/behavior/reactivation.rs
   - zircon_runtime/src/core/runtime/tests/activation/structure/reactivation.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/access.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/construct.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_scene/render_scene.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/surface.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/construct.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/text.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/render.rs
+  - zircon_runtime/src/graphics/scene/renderer/execution/context/gpu/surface.rs
   - zircon_runtime/src/tests/extensions/manager_handles.rs
   - zircon_runtime/src/core/framework/ai/manager.rs
   - zircon_plugins/ai/runtime/src/module.rs
@@ -29,7 +26,6 @@ implementation_files:
   - zircon_runtime/src/core/manager/resolver.rs
   - zircon_runtime/src/core/manager/service.rs
   - zircon_runtime/src/core/manager/service_names.rs
-  - zircon_runtime/src/core/manager/tests.rs
   - zircon_runtime/src/tests/extensions/manager_handles.rs
   - zircon_runtime/src/core/runtime/handle/activation.rs
   - zircon_runtime/src/core/runtime/handle/activation/batch.rs
@@ -37,11 +33,10 @@ implementation_files:
   - zircon_runtime/src/core/runtime/state/service_entry.rs
   - zircon_runtime/src/core/runtime/tests/activation/behavior/reactivation.rs
   - zircon_runtime/src/core/runtime/tests/activation/structure/reactivation.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/construct.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_scene/render_scene.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/surface.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/construct.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/text.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/render.rs
+  - zircon_runtime/src/graphics/scene/renderer/execution/context/gpu/surface.rs
 plan_sources:
   - user: 2026-06-04 optimize Zircon Engine runtime architecture with breaking changes allowed
   - .codex/plans/Zircon Runtime 架构渐进式 Review 与优化计划.md
@@ -55,7 +50,6 @@ plan_sources:
   - docs/plans/zircon_runtime/frameworks/05/2026-07-14-ui-text-project-asset-manager-access-consumer-drift.md
   - docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md
 tests:
-  - zircon_runtime/src/core/manager/tests.rs
   - zircon_runtime/src/tests/extensions/manager_handles.rs
   - rustfmt --edition 2021 --check zircon_runtime\src\core\manager\tests.rs zircon_runtime\src\tests\extensions\manager_handles.rs
   - rustfmt --edition 2021 --check zircon_runtime\src\core\manager\resolver.rs zircon_runtime\src\core\manager\tests.rs (2026-06-11 M5 manager resolver direct projection: passed)

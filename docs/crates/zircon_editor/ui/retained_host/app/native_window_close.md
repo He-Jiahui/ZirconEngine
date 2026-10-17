@@ -1,23 +1,22 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/app.rs
-  - zircon_editor/src/ui/retained_host/app/native_window_close.rs
-  - zircon_editor/src/ui/retained_host/app/native_window_close/floating_window.rs
-  - zircon_editor/src/ui/retained_host/app/native_window_close/prompt_actions.rs
-  - zircon_editor/src/ui/retained_host/app/native_window_close/prompt_actions/actions.rs
-  - zircon_editor/src/ui/retained_host/app/native_window_close/prompt_actions/completion.rs
-  - zircon_editor/src/ui/retained_host/app/native_window_close/prompt_actions/presentation.rs
-  - zircon_editor/src/ui/retained_host/app/close_prompt.rs
-  - zircon_editor/src/ui/retained_host/app/callback_wiring.rs
-  - zircon_editor/src/ui/retained_host/app/native_windows.rs
+  - zircon_editor/src/ui/retained/app/native_window_close.rs
+  - zircon_editor/src/ui/retained/app/native_window_close/floating_window.rs
+  - zircon_editor/src/ui/retained/app/native_window_close/prompt_actions.rs
+  - zircon_editor/src/ui/retained/app/native_window_close/prompt_actions/actions.rs
+  - zircon_editor/src/ui/retained/app/prompt_actions/completion.rs
+  - zircon_editor/src/ui/retained/app/prompt_actions/presentation.rs
+  - zircon_editor/src/ui/retained/app/close_prompt.rs
+  - zircon_editor/src/ui/retained/app/callback_wiring.rs
+  - zircon_editor/src/ui/retained/app/native_windows.rs
 implementation_files:
-  - zircon_editor/src/ui/retained_host/app/native_window_close.rs
-  - zircon_editor/src/ui/retained_host/app/native_window_close/floating_window.rs
-  - zircon_editor/src/ui/retained_host/app/native_window_close/prompt_actions.rs
-  - zircon_editor/src/ui/retained_host/app/native_window_close/prompt_actions/actions.rs
-  - zircon_editor/src/ui/retained_host/app/native_window_close/prompt_actions/completion.rs
-  - zircon_editor/src/ui/retained_host/app/native_window_close/prompt_actions/presentation.rs
-  - zircon_editor/src/ui/retained_host/app/close_prompt.rs
+  - zircon_editor/src/ui/retained/app/native_window_close.rs
+  - zircon_editor/src/ui/retained/app/native_window_close/floating_window.rs
+  - zircon_editor/src/ui/retained/app/native_window_close/prompt_actions.rs
+  - zircon_editor/src/ui/retained/app/native_window_close/prompt_actions/actions.rs
+  - zircon_editor/src/ui/retained/app/prompt_actions/completion.rs
+  - zircon_editor/src/ui/retained/app/prompt_actions/presentation.rs
+  - zircon_editor/src/ui/retained/app/close_prompt.rs
 plan_sources:
   - docs/plans/zircon_editor/editor_ui/08-workbench-shell-on-runtime-ui.md
   - user: 2026-06-18 editor UI architecture implementation, feature first and tests deferred

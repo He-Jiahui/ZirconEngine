@@ -1,23 +1,14 @@
 ---
 related_code:
-  - zircon_runtime/src/plugin/native_plugin_loader/mod.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_host_handle.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/host_api_adapter.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/host_api_adapter/abi_decode
-  - zircon_runtime/src/plugin/native_plugin_loader/host_api_adapter/context_handles
-  - zircon_runtime/src/plugin/native_plugin_loader/host_api_adapter/bridge_scope
-  - zircon_runtime/src/plugin/native_plugin_loader/host_api_adapter/registration_policy
-  - zircon_runtime/src/plugin/native_plugin_loader/host_api_adapter/ecs_registration
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_abi.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/host_callbacks.rs
+  - zircon_runtime/src/plugin/loader/host_api_adapter/abi_decode
+  - zircon_runtime/src/plugin/loader/host_api_adapter/context_handles
+  - zircon_runtime/src/plugin/loader/host_api_adapter/bridge_scope
+  - zircon_runtime/src/plugin/loader/host_api_adapter/registration_policy
+  - zircon_runtime/src/plugin/loader/host_api_adapter/ecs_registration
   - zircon_runtime_interface/src/plugin_api.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/loaded_native_plugin.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/runtime_behavior.rs
   - zircon_runtime/src/plugin/bridge/import.rs
   - zircon_runtime/src/plugin/bridge/weak.rs
   - zircon_runtime/src/plugin/bridge/table.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog.rs
   - zircon_app/src/entry/entry_runner/bootstrap.rs
   - zircon_runtime/src/core/runtime/handle/diagnostics.rs
   - zircon_runtime/src/core/runtime/diagnostics/store.rs
@@ -25,15 +16,12 @@ related_code:
   - zircon_plugins/physics/runtime/src/diagnostics.rs
   - zircon_plugins/net/runtime/src/runtime_system.rs
 implementation_files:
-  - zircon_runtime/src/plugin/native_plugin_loader/benchmark_harness.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/host_api_adapter.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_host_handle.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/host_api_adapter/abi_decode
-  - zircon_runtime/src/plugin/native_plugin_loader/host_api_adapter/context_handles
-  - zircon_runtime/src/plugin/native_plugin_loader/host_api_adapter/bridge_scope
-  - zircon_runtime/src/plugin/native_plugin_loader/host_api_adapter/registration_policy
-  - zircon_runtime/src/plugin/native_plugin_loader/host_api_adapter/ecs_registration
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests/callback_lease.rs
+  - zircon_runtime/src/plugin/loader/host_api_adapter/abi_decode
+  - zircon_runtime/src/plugin/loader/host_api_adapter/context_handles
+  - zircon_runtime/src/plugin/loader/host_api_adapter/bridge_scope
+  - zircon_runtime/src/plugin/loader/host_api_adapter/registration_policy
+  - zircon_runtime/src/plugin/loader/host_api_adapter/ecs_registration
+  - zircon_runtime/src/plugin/loader/live/tests/callback_lease.rs
 plan_sources:
   - user: 2026-08-09 native plugin structural performance optimization request
   - docs/plans/zircon_plugins/01-plugin-architecture-core.md
@@ -42,14 +30,9 @@ plan_sources:
   - docs/plans/zircon_runtime/runtime/06-plugin-surface-and-lifecycle.md
 tests:
   - zircon_runtime/tests/native_plugin_loader_contract.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests/runtime_behavior.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests/callback_lease.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests/hot_reload_publication.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/host_api_adapter/abi_decode/tests.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/host_api_adapter/context_handles/tests.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/host_api_adapter/bridge_scope/tests.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/host_api_adapter/registration_policy/tests.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/host_api_adapter/ecs_registration/tests.rs
+  - zircon_runtime/src/plugin/loader/live/tests/runtime_behavior.rs
+  - zircon_runtime/src/plugin/loader/live/tests/callback_lease.rs
+  - zircon_runtime/src/plugin/loader/live/tests/hot_reload_publication.rs
   - tools/tests/test_plugins_01_host_api_adapter_boundary.py
   - tools/tests/test_plugins_01_native_benchmark_harness_contract.py
   - docs/plans/zircon_plugins/01/failure-2026-07-17-bridge-import-stable-call-double-mutex.md

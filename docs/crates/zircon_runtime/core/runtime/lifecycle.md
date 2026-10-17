@@ -2,7 +2,6 @@
 related_code:
   - zircon_runtime/src/core/runtime/lifecycle.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/runtime_naming_boundary.py
-  - tools/plugin_structure_audits/manifest_schema.py
   - tools/tests/test_runtime_init_level_naming.py
   - tools/tests/test_plugin_structure_audit_manifest_schema_modules.py
   - zircon_runtime/src/core/runtime/mod.rs
@@ -27,9 +26,8 @@ related_code:
   - zircon_runtime/src/input/module/descriptor.rs
   - zircon_runtime/src/asset/module.rs
   - zircon_runtime/src/asset/module/lifecycle.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/readiness.rs
   - zircon_runtime/src/scene/module/mod.rs
-  - zircon_runtime/src/graphics/runtime_builtin_graphics/host/module_host/module_registration/module_descriptor.rs
+  - zircon_runtime/src/graphics/host/module_registration/module_descriptor.rs
   - zircon_runtime/src/script/vm/module/module_descriptor.rs
   - zircon_runtime/src/ui/module.rs
   - zircon_runtime/src/builtin/runtime_modules/assembly.rs
@@ -58,26 +56,22 @@ related_code:
   - zircon_runtime/src/core/runtime/tests/activation/behavior.rs
   - zircon_runtime/src/core/runtime/tests/activation/behavior/module_lifecycle.rs
   - zircon_runtime/src/builtin/runtime_modules/tests/registration/behavior.rs
-  - zircon_app/src/plugins/tests.rs
-  - zircon_runtime/src/core/runtime/tests/registration/structure/service_count_paths.rs
-  - zircon_runtime/src/core/runtime/tests/registration/structure/service_list_caches.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy.rs
-  - zircon_runtime/src/core/runtime/tests/activation/behavior/deactivation/blocked.rs
-  - zircon_runtime/src/core/runtime/tests/activation/behavior/deactivation/blocked/external_dependents.rs
-  - zircon_runtime/src/core/runtime/tests/activation/behavior/deactivation/blocked/exact_two_three_dependency_matcher.rs
-  - zircon_runtime/src/core/runtime/tests/activation/behavior/deactivation/blocked/shutdown_order.rs
-  - zircon_runtime/src/core/runtime/tests/activation/behavior/deactivation/blocked/exact_four_dependency_matcher.rs
-  - zircon_runtime/src/core/runtime/tests/activation/behavior/deactivation/blocked/exact_five_without_index_map.rs
-  - zircon_runtime/src/core/runtime/tests/activation/behavior/deactivation/blocked/exact_five_dependency_matcher.rs
+  - zircon_runtime/src/core/runtime/tests/structure/service_count_paths.rs
+  - zircon_runtime/src/core/runtime/tests/structure/service_list_caches.rs
+  - zircon_runtime/src/core/runtime/tests/behavior/deactivation/blocked.rs
+  - zircon_runtime/src/core/runtime/tests/behavior/blocked/external_dependents.rs
+  - zircon_runtime/src/core/tests/blocked/exact_two_three_dependency_matcher.rs
+  - zircon_runtime/src/core/runtime/tests/behavior/blocked/shutdown_order.rs
+  - zircon_runtime/src/core/runtime/tests/blocked/exact_four_dependency_matcher.rs
+  - zircon_runtime/src/core/runtime/tests/blocked/exact_five_without_index_map.rs
+  - zircon_runtime/src/core/runtime/tests/blocked/exact_five_dependency_matcher.rs
   - zircon_runtime/src/core/runtime/tests/activation/structure/fixture.rs
-  - zircon_runtime/src/core/runtime/tests/activation/structure/blocked_dependencies.rs
+  - zircon_runtime/src/core/runtime/tests/structure/blocked_dependencies.rs
   - zircon_runtime/src/core/runtime/tests/activation/structure/blocked_unload.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/core_runtime_deactivation.rs
 implementation_files:
   - zircon_runtime/src/core/runtime/tests/activation/structure/fixture.rs
   - zircon_runtime/src/core/runtime/lifecycle.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/runtime_naming_boundary.py
-  - tools/plugin_structure_audits/manifest_schema.py
   - zircon_runtime/src/core/runtime/mod.rs
   - zircon_runtime/src/core/mod.rs
   - zircon_runtime/src/engine_module/mod.rs
@@ -100,9 +94,8 @@ implementation_files:
   - zircon_runtime/src/input/module/descriptor.rs
   - zircon_runtime/src/asset/module.rs
   - zircon_runtime/src/asset/module/lifecycle.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/readiness.rs
   - zircon_runtime/src/scene/module/mod.rs
-  - zircon_runtime/src/graphics/runtime_builtin_graphics/host/module_host/module_registration/module_descriptor.rs
+  - zircon_runtime/src/graphics/host/module_registration/module_descriptor.rs
   - zircon_runtime/src/script/vm/module/module_descriptor.rs
   - zircon_runtime/src/ui/module.rs
   - zircon_runtime/src/builtin/runtime_modules/assembly.rs
@@ -129,17 +122,15 @@ implementation_files:
   - zircon_runtime/src/core/runtime/tests/registration/behavior/module_order.rs
   - zircon_runtime/src/core/runtime/tests/activation/behavior.rs
   - zircon_runtime/src/core/runtime/tests/activation/behavior/module_lifecycle.rs
-  - zircon_runtime/src/core/runtime/tests/registration/structure/service_count_paths.rs
-  - zircon_runtime/src/core/runtime/tests/registration/structure/service_list_caches.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy.rs
-  - zircon_runtime/src/core/runtime/tests/activation/behavior/deactivation/blocked.rs
-  - zircon_runtime/src/core/runtime/tests/activation/behavior/deactivation/blocked/external_dependents.rs
-  - zircon_runtime/src/core/runtime/tests/activation/behavior/deactivation/blocked/exact_two_three_dependency_matcher.rs
-  - zircon_runtime/src/core/runtime/tests/activation/behavior/deactivation/blocked/shutdown_order.rs
-  - zircon_runtime/src/core/runtime/tests/activation/behavior/deactivation/blocked/exact_four_dependency_matcher.rs
-  - zircon_runtime/src/core/runtime/tests/activation/behavior/deactivation/blocked/exact_five_without_index_map.rs
-  - zircon_runtime/src/core/runtime/tests/activation/behavior/deactivation/blocked/exact_five_dependency_matcher.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/core_runtime_deactivation.rs
+  - zircon_runtime/src/core/runtime/tests/structure/service_count_paths.rs
+  - zircon_runtime/src/core/runtime/tests/structure/service_list_caches.rs
+  - zircon_runtime/src/core/runtime/tests/behavior/deactivation/blocked.rs
+  - zircon_runtime/src/core/runtime/tests/behavior/blocked/external_dependents.rs
+  - zircon_runtime/src/core/tests/blocked/exact_two_three_dependency_matcher.rs
+  - zircon_runtime/src/core/runtime/tests/behavior/blocked/shutdown_order.rs
+  - zircon_runtime/src/core/runtime/tests/blocked/exact_four_dependency_matcher.rs
+  - zircon_runtime/src/core/runtime/tests/blocked/exact_five_without_index_map.rs
+  - zircon_runtime/src/core/runtime/tests/blocked/exact_five_dependency_matcher.rs
 plan_sources:
   - user: 2026-06-12 runtime architecture implementation from docs/plans/zircon_runtime/runtime
   - docs/plans/zircon_runtime/runtime/02-core-spine-and-root-surface.md
@@ -147,14 +138,12 @@ plan_sources:
   - docs/plans/zircon_runtime/frameworks/02-module-kernel-and-lifecycle-unification.md
   - .codex/plans/Runtime 吸收层与 Editor_Scene 边界收束计划.md
 tests:
-  - zircon_runtime/src/core/runtime/tests/activation/structure/blocked_dependencies.rs
+  - zircon_runtime/src/core/runtime/tests/structure/blocked_dependencies.rs
   - zircon_runtime/src/core/runtime/tests/activation/structure/blocked_unload.rs
-  - zircon_runtime/src/tests/runtime_absorption/root_entries.rs
   - tools/tests/test_runtime_init_level_naming.py
   - tools/tests/test_plugin_structure_audit_manifest_schema_modules.py
   - zircon_runtime::tests::runtime_absorption::structure_convention::production_file_budget::runtime_15_core_runtime_service_lists_are_folder_backed
   - zircon_runtime/src/core/runtime/handle/core_handle.rs::tests::core_handle_registry_accessors_recover_poisoned_runtime_locks
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy.rs::runtime_15_core_handle_registry_lock_poison_recovery_guard_covers_registry_accessors
   - zircon_runtime::tests::runtime_absorption::structure_convention::test_file_budget::core_runtime_deactivation::runtime_15_core_runtime_deactivation_blocked_tests_are_folder_backed
   - zircon_runtime::core::runtime::tests::registration::behavior::module_order::module_descriptor_defaults_to_post_without_module_dependencies
   - zircon_runtime::core::runtime::tests::registration::behavior::module_order::module_activation_order_sorts_levels_and_declared_dependencies

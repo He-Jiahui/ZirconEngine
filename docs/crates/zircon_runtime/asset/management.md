@@ -8,13 +8,10 @@ related_code:
   - zircon_runtime/src/asset/assets/material/mod.rs
   - zircon_runtime/src/asset/assets/scene/mod.rs
   - zircon_runtime/src/asset/assets/shader/readiness.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/management.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/mod.rs
   - zircon_runtime/src/asset/tests/project/asset_flow_sample.rs
   - zircon_runtime/src/core/framework/render/material/management/record_set.rs
   - zircon_runtime/src/core/framework/render/material/management/record_summary.rs
   - zircon_runtime/src/graphics/scene/mod.rs
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_accessors.rs
   - zircon_runtime/src/asset/tests/assets/scene/management.rs
 implementation_files:
   - zircon_runtime/src/asset/management.rs
@@ -24,10 +21,7 @@ implementation_files:
   - zircon_runtime/src/asset/assets/material/mod.rs
   - zircon_runtime/src/asset/assets/shader/readiness.rs
   - zircon_runtime/src/asset/assets/mod.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/management.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/mod.rs
   - zircon_runtime/src/graphics/scene/mod.rs
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_accessors.rs
   - zircon_runtime/src/asset/tests/assets/scene/management.rs
 plan_sources:
   - user: 2026-05-30 continue model material mesh entity shader flow and asset management

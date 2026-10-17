@@ -12,7 +12,7 @@ related_code:
   - zircon_runtime/src/ui/text/layout_engine.rs
   - zircon_runtime/src/ui/text/layout_engine/rich_table.rs
   - zircon_runtime/src/ui/text/layout_engine/tests/rich_table/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render/tests/rich_table.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/render/tests/rich_table.rs
 tests:
   - cargo test -p zircon_runtime --lib ui::text::layout_engine::tests::rich_table --locked -- --test-threads=1
   - cargo test -p zircon_runtime --lib graphics::scene::scene_renderer::ui::render::tests::rich_table --locked -- --test-threads=1

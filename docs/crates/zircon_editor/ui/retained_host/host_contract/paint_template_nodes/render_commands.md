@@ -1,25 +1,11 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_commands.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_commands/command.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_commands/draw.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_command_conversion.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_command_conversion/brush.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_command_conversion/image.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_command_conversion/style.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_command_conversion/text.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_pipeline.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_primitives.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_primitives/image.rs
+  - zircon_editor/src/ui/retained/contract/paint/render_commands/command.rs
+  - zircon_editor/src/ui/retained/contract/paint/render_commands/draw.rs
+  - zircon_editor/src/ui/retained/contract/paint_primitives/image.rs
 implementation_files:
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_commands.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_commands/command.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_commands/draw.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_command_conversion.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_command_conversion/brush.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_command_conversion/image.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_command_conversion/style.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_command_conversion/text.rs
+  - zircon_editor/src/ui/retained/contract/paint/render_commands/command.rs
+  - zircon_editor/src/ui/retained/contract/paint/render_commands/draw.rs
 tests:
   - cargo fmt -p zircon_editor --check
   - render command subtree ownership scan

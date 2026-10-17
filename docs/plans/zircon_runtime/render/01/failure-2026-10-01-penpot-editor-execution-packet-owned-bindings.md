@@ -9,7 +9,6 @@ origin_child_dir: docs/plans/designment/02
 fixing_child_dir: docs/plans/zircon_runtime/render/01
 plan_link_mode: child_record_only
 related_code:
-  - zircon_runtime/src/graphics/pipeline/declarations/compiled_render_pipeline/execution_packet.rs
 tests:
   - tools/build/build-editor.ps1 -OutputDirectory D:/cargo-targets/penpot-editor-20260930-01a0f04d-6fc0351c
 ---

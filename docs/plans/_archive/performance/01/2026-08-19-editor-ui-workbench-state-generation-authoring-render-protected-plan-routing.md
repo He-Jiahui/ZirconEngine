@@ -3,7 +3,7 @@ related_code:
   - zircon_editor/src/ui/workbench/state
   - zircon_editor/src/ui/workbench/snapshot/data/editor_state_snapshot_build.rs
   - zircon_editor/src/ui/host/editor_event_execution/menu_action.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/render_submission.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle/render_submission.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/performance/pending.md

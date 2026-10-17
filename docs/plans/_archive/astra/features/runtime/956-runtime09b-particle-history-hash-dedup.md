@@ -6,9 +6,7 @@ plan_sources:
 related_records:
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
-  - zircon_runtime/src/graphics/visibility/context/from_extract_with_history/build_history_snapshot.rs
 tests:
-  - zircon_runtime/src/graphics/visibility/context/from_extract_with_history/build_history_snapshot.rs
 ---
 
 # Runtime956 · particle-history hash deduplication

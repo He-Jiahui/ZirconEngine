@@ -17,15 +17,11 @@ related_code:
   - zircon_runtime/src/scene/world_time
   - zircon_runtime/src/core/framework/render/camera_stack.rs
   - zircon_runtime/src/core/framework/render/capture.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record
   - zircon_runtime/src/core/framework/sound/automation.rs
   - zircon_plugins/sound/runtime/src/timeline
   - zircon_plugins/net/features/replication/runtime/src
-  - zircon_runtime/src/scene/dynamic_scene
   - zircon_runtime/src/operation
   - zircon_app/src/entry/runtime_entry_app/frame_capture.rs
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/animation/workbench_extension_sequencer_workspace.zui
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback.rs
 plan_sources:
   - docs/plans/mvp/index.md
   - docs/plans/optimize/zircon_editor/45-cinematic-sequencer-shot-track-binding-take-recorder-movie-render-queue-authoring-review.md

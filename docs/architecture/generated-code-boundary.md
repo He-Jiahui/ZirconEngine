@@ -7,7 +7,6 @@ related_code:
   - zircon_runtime/src/plugin/export_build_plan/platform_host_files.rs
   - zircon_runtime/src/plugin/export_build_plan/platform_host_files/browser.rs
   - zircon_runtime/src/plugin/export_build_plan/platform_host_files/mobile.rs
-  - zircon_runtime/src/plugin/export_build_plan/native_plugin_load_manifest_template.rs
   - zircon_runtime/src/plugin/export_build_plan/materialize/mod.rs
   - zircon_runtime/src/plugin/export_build_plan/materialize/generated.rs
   - zircon_runtime/src/plugin/export_build_plan/materialize/paths.rs
@@ -15,13 +14,7 @@ related_code:
   - zircon_app/src/entry/export_bootstrap.rs
   - zircon_app/src/entry/entry_runner/bootstrap.rs
   - zircon_app/src/entry/tests/export_bootstrap.rs
-  - zircon_runtime/src/tests/plugin_extensions/export_build_plan.rs
-  - zircon_runtime/src/tests/plugin_extensions/export_build_plan_feature_provider.rs
-  - zircon_runtime/src/tests/plugin_extensions/export_build_plan_platform.rs
   - docs/crates/zircon_app/export-bootstrap.md
-  - zircon_runtime/src/tests/runtime_absorption/generated_code_guard.rs
-  - zircon_runtime/src/tests/runtime_absorption/core_spine_root_generated.rs
-  - zircon_runtime/src/tests/runtime_absorption/mod.rs
   - docs/architecture/runtime-reference-engine-evidence.md
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/generated_code_boundary.py
@@ -30,9 +23,6 @@ implementation_files:
   - docs/crates/zircon_app/export-bootstrap.md
   - zircon_app/src/entry/export_bootstrap.rs
   - zircon_app/src/entry/entry_runner/bootstrap.rs
-  - zircon_runtime/src/tests/runtime_absorption/generated_code_guard.rs
-  - zircon_runtime/src/tests/runtime_absorption/core_spine_root_generated.rs
-  - zircon_runtime/src/tests/runtime_absorption/mod.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/generated_code_boundary.py
 plan_sources:

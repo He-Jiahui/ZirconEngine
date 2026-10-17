@@ -11,7 +11,7 @@ related_code:
   - zircon_runtime/src/core/framework/ai/behavior_tree.rs
   - zircon_runtime/src/core/framework/ai/error.rs
   - zircon_runtime/src/plugin/extension_registry/runtime_extension_registry.rs
-  - zircon_runtime/src/plugin/extension_registry/runtime_extension_registry/owner_revocation.rs
+  - zircon_runtime/src/plugin/runtime_extension_registry/owner_revocation.rs
   - zircon_runtime/src/plugin/extension_registry/typed_extension_point.rs
 implementation_files:
   - zircon_plugins/ai/plugin.toml
@@ -35,7 +35,7 @@ implementation_files:
   - zircon_runtime/src/core/framework/ai/behavior_tree.rs
   - zircon_runtime/src/core/framework/ai/error.rs
   - zircon_runtime/src/plugin/extension_registry/runtime_extension_registry.rs
-  - zircon_runtime/src/plugin/extension_registry/runtime_extension_registry/owner_revocation.rs
+  - zircon_runtime/src/plugin/runtime_extension_registry/owner_revocation.rs
   - zircon_runtime/src/plugin/extension_registry/typed_extension_point.rs
 plan_sources:
   - docs/plans/zircon_plugins/06-ai.md

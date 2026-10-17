@@ -22,7 +22,6 @@ related_code:
   - zircon_runtime/src/scene/world/typed_api/fixed_components.rs
   - zircon_runtime/src/scene/world/typed_api/projection_rebuild.rs
   - zircon_runtime/src/scene/world/project_io
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui
   - zircon_runtime/src/ui/text
   - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/text.rs
   - zircon_runtime/src/dynamic_api/session/hud.rs
@@ -35,13 +34,8 @@ related_code:
   - zircon_editor/src/ui/workbench/event/node_kind_id.rs
   - zircon_editor/src/ui/workbench/event/menu_item_binding.rs
 tests:
-  - zircon_runtime/src/core/framework/text/tests.rs
   - zircon_runtime/src/asset/tests/assets/font.rs
-  - zircon_runtime/src/text/glyph_artifact/tests.rs
   - zircon_runtime/src/text/font/database/tests
-  - zircon_runtime/src/text/layout/line_break/tests.rs
-  - zircon_runtime/src/text/shaping/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/tests.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests
   - zircon_runtime/src/scene/tests
   - zircon_editor/src/tests

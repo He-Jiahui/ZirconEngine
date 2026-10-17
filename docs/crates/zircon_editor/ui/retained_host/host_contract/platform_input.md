@@ -1,14 +1,13 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/host_contract/window/event_loop.rs
-  - zircon_editor/src/ui/retained_host/host_contract/window/event_loop/events.rs
-  - zircon_editor/src/ui/retained_host/host_contract/window/event_loop/events/keyboard.rs
-  - zircon_editor/src/ui/retained_host/host_contract/window/event_loop/events/pointer.rs
-  - zircon_editor/src/ui/retained_host/host_contract/window/event_loop/input.rs
-  - zircon_editor/src/ui/retained_host/host_contract/window/event_loop/platform_input.rs
-  - zircon_editor/src/ui/retained_host/host_contract/window/text_input/keyboard.rs
-  - zircon_editor/src/ui/retained_host/host_contract/window/text_input/keyboard/unhandled.rs
-  - zircon_editor/src/ui/retained_host/host_contract/window/test_support.rs
+  - zircon_editor/src/ui/retained/contract/window/event_loop.rs
+  - zircon_editor/src/ui/retained/contract/window/event_loop/events.rs
+  - zircon_editor/src/ui/retained/contract/window/event_loop/events/keyboard.rs
+  - zircon_editor/src/ui/retained/contract/window/event_loop/events/pointer.rs
+  - zircon_editor/src/ui/retained/contract/window/event_loop/input.rs
+  - zircon_editor/src/ui/retained/contract/window/event_loop/platform_input.rs
+  - zircon_editor/src/ui/retained/contract/window/text_input/keyboard.rs
+  - zircon_editor/src/ui/retained/contract/window/text_input/keyboard/unhandled.rs
   - zircon_editor/src/tests/host/retained_window/platform_input_translation.rs
   - zircon_runtime/src/ui/platform_input/mod.rs
   - zircon_runtime/src/ui/platform_input/keyboard_map.rs
@@ -16,13 +15,12 @@ related_code:
   - zircon_runtime_interface/src/ui/window/input.rs
   - zircon_runtime_interface/src/ui/window/pump.rs
 implementation_files:
-  - zircon_editor/src/ui/retained_host/host_contract/window/event_loop/platform_input.rs
-  - zircon_editor/src/ui/retained_host/host_contract/window/event_loop/events.rs
-  - zircon_editor/src/ui/retained_host/host_contract/window/event_loop/events/keyboard.rs
-  - zircon_editor/src/ui/retained_host/host_contract/window/event_loop/events/pointer.rs
-  - zircon_editor/src/ui/retained_host/host_contract/window/text_input/keyboard.rs
-  - zircon_editor/src/ui/retained_host/host_contract/window/text_input/keyboard/unhandled.rs
-  - zircon_editor/src/ui/retained_host/host_contract/window/test_support.rs
+  - zircon_editor/src/ui/retained/contract/window/event_loop/platform_input.rs
+  - zircon_editor/src/ui/retained/contract/window/event_loop/events.rs
+  - zircon_editor/src/ui/retained/contract/window/event_loop/events/keyboard.rs
+  - zircon_editor/src/ui/retained/contract/window/event_loop/events/pointer.rs
+  - zircon_editor/src/ui/retained/contract/window/text_input/keyboard.rs
+  - zircon_editor/src/ui/retained/contract/window/text_input/keyboard/unhandled.rs
   - zircon_runtime/src/ui/platform_input/winit_translation.rs
 plan_sources:
   - docs/plans/zircon_editor/editor_ui/01-slate-input-dispatch-core.md

@@ -10,9 +10,7 @@ related_records:
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
   - zircon_runtime/src/animation/sequence/compiled.rs
-  - zircon_runtime/src/animation/sequence/compiled_missing_track_capacity_tests.rs
 tests:
-  - tools/tests/test_runtime_animation_missing_track_capacity_performance_contract.py
 ---
 
 # Runtime839 · animation missing-track diagnostic capacity

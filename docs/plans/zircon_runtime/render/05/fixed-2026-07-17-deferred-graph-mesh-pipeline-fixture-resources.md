@@ -9,7 +9,7 @@ origin_child_dir: docs/plans/zircon_runtime/render/05
 fixing_child_dir: docs/plans/zircon_runtime/render/01
 plan_link_mode: child_record_only
 related_code:
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/deferred.rs
+  - zircon_runtime/src/graphics/scene/renderer/execution/context/gpu/deferred.rs
   - zircon_runtime/src/graphics/tests/render_product_shadows/many_point_lights.rs
   - zircon_runtime/src/graphics/tests/render_product_shadow_captures/directional.rs
 tests:

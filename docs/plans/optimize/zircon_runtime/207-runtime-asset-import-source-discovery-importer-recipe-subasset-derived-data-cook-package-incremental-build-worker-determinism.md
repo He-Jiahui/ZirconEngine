@@ -26,7 +26,7 @@ related_code:
   - zircon_runtime/src/asset/pack
   - zircon_runtime/src/bin/zircon_export_pack
   - zircon_editor/src/core/export
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard
+  - zircon_editor/src/ui/host/exports/export_build/wizard
 tests:
   - zircon_runtime/src/asset
   - zircon_runtime/tests

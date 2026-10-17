@@ -2,7 +2,6 @@
 related_code:
 implementation_files:
 tests:
-  - tools/session_coordinator/tests/test_workspace_copy.py
 doc_type: milestone-detail
 ---
 

@@ -17,8 +17,8 @@ related_code:
   - zircon_editor/src/ui/host/editor_manager.rs
   - zircon_editor/src/ui/host/editor_manager_project.rs
   - zircon_editor/src/ui/host/scene_inspection_publication.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/scene_hierarchy_refresh.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/tick.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle/scene_hierarchy_refresh.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle/tick.rs
 tests:
   - zircon_editor/src/tests/editor_message
 plan_sources:

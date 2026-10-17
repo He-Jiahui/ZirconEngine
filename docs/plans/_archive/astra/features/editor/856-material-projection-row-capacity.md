@@ -8,9 +8,7 @@ related_records:
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
   - zircon_editor/src/ui/material_editor/projection.rs
-  - zircon_editor/src/ui/material_editor/projection/row_capacity_tests.rs
 tests:
-  - tools/tests/test_editor_material_projection_row_capacity_performance_contract.py
 ---
 
 # Editor856 - material projection row capacity

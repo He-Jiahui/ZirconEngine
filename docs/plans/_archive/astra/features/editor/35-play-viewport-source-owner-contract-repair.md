@@ -8,7 +8,7 @@ plan_sources:
 related_code:
   - zircon_editor/src/core/play/controller/preview_routing.rs
   - zircon_editor/src/core/play/controller/runtime_ownership.rs
-  - zircon_editor/src/ui/host/editor_host_event_controller/runtime_event_consumers.rs
+  - zircon_editor/src/ui/editor_host_event_controller/runtime_event_consumers.rs
 tests:
   - tools/tests/test_editor_game_viewport_input_contract.py
   - tools/tests/test_editor_pie_preview_frame_contract.py

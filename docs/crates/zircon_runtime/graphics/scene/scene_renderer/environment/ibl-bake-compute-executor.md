@@ -1,17 +1,15 @@
 ---
 related_code:
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_compute_executor.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_graph_plan.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_wgpu_readback.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_runtime_writeback.rs
+  - zircon_runtime/src/graphics/scene/environment/ibl_bake_compute_executor.rs
+  - zircon_runtime/src/graphics/scene/renderer/environment/ibl_bake_graph_plan.rs
+  - zircon_runtime/src/graphics/scene/renderer/environment/ibl_bake_wgpu_readback.rs
+  - zircon_runtime/src/graphics/scene/environment/ibl_bake_runtime_writeback.rs
   - zircon_runtime/src/core/framework/render/environment/extract.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/reports.rs
+  - zircon_runtime/src/graphics/scene/renderer/execution/context/gpu/reports.rs
 implementation_files:
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_compute_executor.rs
+  - zircon_runtime/src/graphics/scene/environment/ibl_bake_compute_executor.rs
   - zircon_runtime/src/core/framework/render/environment/extract.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/reports.rs
+  - zircon_runtime/src/graphics/scene/renderer/execution/context/gpu/reports.rs
 plan_sources:
   - docs/plans/zircon_runtime/render/11-environment-lighting.md
   - docs/plans/zircon_runtime/shader/06-environment-ibl-and-pbr-correctness.md

@@ -8,8 +8,7 @@ related_records:
   - docs/plans/astra/features/editor/664-20260911-editor-ui-optimization-batch-completion.md
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/component_lab_field_edit.rs
-  - zircon_editor/src/ui/asset_editor/preview/mock_suggestions/borrowed_root_tests.rs
+  - zircon_editor/src/ui/retained/dispatch/workbench/component_lab_field_edit.rs
 ---
 
 # Editor916 Component Lab and Preview Test Fixture Repairs

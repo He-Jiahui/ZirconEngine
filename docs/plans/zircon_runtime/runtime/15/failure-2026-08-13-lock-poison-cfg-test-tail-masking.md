@@ -10,30 +10,16 @@ fixing_child_dir: docs/plans/zircon_runtime/runtime/15
 plan_link_mode: child_record_only
 failure_scope: local
 related_code:
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/rust_source_view.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy/support.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy/core_runtime/global_gate.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy/asset_render_input/asset_pipeline.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy/runtime_services/dynamic_scene.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_ui_text_font_id_report.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/native_live_host_lock_poison.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/rhi_wgpu_lock_poison.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/script_vm_lock_poison.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_shader_template_assembly/assembly_assertions/mesh_pipeline_shadow_graph_contracts.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_shader_template_assembly/sources.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/depth_prepass_pure_depth_product_migration.rs
+  - zircon_runtime/src/tests/contracts/structure/lock_poison_policy/support.rs
+  - zircon_runtime/src/tests/contracts/structure/core_runtime/global_gate.rs
+  - zircon_runtime/src/tests/structure/asset_render_input/asset_pipeline.rs
   - zircon_runtime/crates/zr_resource/src/event_stream.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_system_texture_generation_owner.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_ui_resource_upload_transaction.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/ui_dispatch_bound_text_model_updates.rs
   - docs/plans/engine-code-structure-convention.md
   - docs/plans/engine-code-review-findings-2026-06.md
   - docs/plans/zircon_runtime/text/08-ime-and-text-input.md
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/vertex_buffer.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/sdf_render/vertex_buffer.rs
   - zircon_runtime/src/ui/dispatch/input_manager/manager.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/environment_frame.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/commit_compiled_scene_frame_success.rs
+  - zircon_runtime/src/graphics/core/render/commit_compiled_scene_frame_success.rs
 tests:
   - runtime_15_rust_production_view_rejects_lexical_and_test_only_false_positives
   - runtime_15_structure_guards_share_the_rust_production_view_owner

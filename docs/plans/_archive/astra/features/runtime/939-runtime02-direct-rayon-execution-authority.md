@@ -11,14 +11,11 @@ implementation_files:
   - zircon_runtime/src/core/framework/tasks/parallel_slice_executor.rs
   - zircon_runtime/src/core/runtime/tasks/parallel_for.rs
   - zircon_runtime/src/asset/mesh_sdf_cook/cook.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/parallel_encoder_set.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command_list/builder.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command_list/builder/parallel_preparation.rs
+  - zircon_runtime/src/graphics/scene/mesh/commands/builder/parallel_preparation.rs
 tests:
   - tools/tests/test_runtime_job_system_audit.py
   - zircon_runtime/src/core/framework/tasks/parallel_slice_executor.rs
   - zircon_runtime/src/core/runtime/tasks/parallel_for.rs
-  - zircon_runtime/src/asset/mesh_sdf_cook/tests.rs
 ---
 
 # Runtime939 Runtime02 Direct-Rayon Execution Authority

@@ -3,8 +3,7 @@ related_code:
   - zircon_runtime/src/core/framework/render/backend_types
   - zircon_runtime/src/core/framework/render/frame_extract.rs
   - zircon_runtime/src/graphics/types/viewport_render_frame_from_snapshot.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution
+  - zircon_runtime/src/graphics/runtime/framework/extract/update_stats/base_stats.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_runtime/render/10-renderer-family.md

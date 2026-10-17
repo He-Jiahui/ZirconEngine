@@ -4,16 +4,13 @@ related_code:
   - zircon_runtime/src/core/framework/render/advanced_lighting/extract.rs
   - zircon_runtime/src/asset/assets/material/material_asset.rs
   - zircon_runtime/src/asset/assets/material/material_control.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/subsurface_profile_extract.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/resource_descriptors.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/shaders/deferred_lighting.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/subsurface_pass/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/subsurface_pass/executors.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/subsurface_pass/pipelines.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/subsurface_pass/shaders/setup.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/subsurface_pass/shaders/scatter.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/subsurface_pass/shaders/recombine.wgsl
+  - zircon_runtime/src/graphics/scene/deferred/shaders/deferred_lighting.wgsl
+  - zircon_runtime/src/graphics/scene/renderer/subsurface_pass/mod.rs
+  - zircon_runtime/src/graphics/scene/renderer/subsurface_pass/executors.rs
+  - zircon_runtime/src/graphics/scene/renderer/subsurface_pass/pipelines.rs
+  - zircon_runtime/src/graphics/scene/renderer/subsurface_pass/shaders/setup.wgsl
+  - zircon_runtime/src/graphics/scene/renderer/subsurface_pass/shaders/scatter.wgsl
+  - zircon_runtime/src/graphics/scene/renderer/shaders/recombine.wgsl
   - zircon_runtime/src/graphics/shader/wgsl/zr_environment.wgsl
   - zircon_runtime/src/graphics/shader/wgsl/zr_volumetric.wgsl
   - zircon_runtime/src/graphics/shader/wgsl/zr_gbuffer_encode_subsurface.wgsl
@@ -24,16 +21,13 @@ implementation_files:
   - zircon_runtime/src/core/framework/render/advanced_lighting/extract.rs
   - zircon_runtime/src/asset/assets/material/material_asset.rs
   - zircon_runtime/src/asset/assets/material/material_control.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/subsurface_profile_extract.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/resource_descriptors.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/shaders/deferred_lighting.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/subsurface_pass/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/subsurface_pass/executors.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/subsurface_pass/pipelines.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/subsurface_pass/shaders/setup.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/subsurface_pass/shaders/scatter.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/subsurface_pass/shaders/recombine.wgsl
+  - zircon_runtime/src/graphics/scene/deferred/shaders/deferred_lighting.wgsl
+  - zircon_runtime/src/graphics/scene/renderer/subsurface_pass/mod.rs
+  - zircon_runtime/src/graphics/scene/renderer/subsurface_pass/executors.rs
+  - zircon_runtime/src/graphics/scene/renderer/subsurface_pass/pipelines.rs
+  - zircon_runtime/src/graphics/scene/renderer/subsurface_pass/shaders/setup.wgsl
+  - zircon_runtime/src/graphics/scene/renderer/subsurface_pass/shaders/scatter.wgsl
+  - zircon_runtime/src/graphics/scene/renderer/shaders/recombine.wgsl
   - zircon_runtime/src/graphics/shader/wgsl/zr_environment.wgsl
   - zircon_runtime/src/graphics/shader/wgsl/zr_volumetric.wgsl
   - zircon_runtime/src/graphics/shader/wgsl/zr_gbuffer_encode_subsurface.wgsl
@@ -47,10 +41,8 @@ plan_sources:
 tests:
   - zircon_runtime/src/core/framework/render/advanced_lighting/subsurface.rs
   - zircon_runtime/src/asset/assets/material/material_control.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/subsurface_pass/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_record/compute_workload/tests.rs
+  - zircon_runtime/src/graphics/scene/renderer/subsurface_pass/mod.rs
   - zircon_runtime/src/graphics/tests/render_product_subsurface.rs
-  - zircon_plugins/rendering/features/subsurface_scattering/runtime/src/tests.rs
   - zircon_plugins/rendering/features/subsurface/editor/src/lib.rs
 doc_type: module-detail
 ---

@@ -5,9 +5,7 @@ plan_sources:
   - docs/plans/optimize/zircon_editor/01-retained-ui-architecture-performance-review.md
   - docs/plans/optimize/zircon_editor/01/2026-08-29-ui-hotspot-ownership-review.md
 related_code:
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection/menu_chrome.rs
 tests:
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection/menu_chrome.rs
 ---
 
 # Menu Chrome Projection Capacity

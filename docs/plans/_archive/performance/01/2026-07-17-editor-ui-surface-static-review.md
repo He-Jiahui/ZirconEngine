@@ -5,11 +5,10 @@ status: static-reviewed-handoffs-open-dynamic-pending
 related_code:
   - zircon_runtime/src/ui/surface/surface/rebuild.rs
   - zircon_runtime/src/ui/surface/surface.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/recompute.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/recompute/viewport_surfaces.rs
-  - zircon_editor/src/ui/retained_host/app/viewport_toolbar_projection/surface_frames.rs
-  - zircon_editor/src/ui/retained_host/app/viewport_toolbar_projection/surface_frames/pane_frame.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/viewport_toolbar/bridge.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle/recompute.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle/recompute/viewport_surfaces.rs
+  - zircon_editor/src/ui/retained/app/surface_frames/pane_frame.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/viewport_toolbar/bridge.rs
 plan: docs/plans/performance/01-mvp-performance-audit-and-optimization.md
 ---
 

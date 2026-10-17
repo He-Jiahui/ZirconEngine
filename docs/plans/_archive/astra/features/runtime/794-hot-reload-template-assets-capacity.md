@@ -10,8 +10,6 @@ related_records:
 implementation_files:
   - zircon_runtime/src/ui/template/asset/hot_reload_executor.rs
 tests:
-  - zircon_runtime/src/ui/template/asset/hot_reload_executor/template_assets_capacity_tests.rs
-  - tools/tests/test_runtime_hot_reload_template_assets_capacity_performance_contract.py
 ---
 
 # Runtime794 · Hot-reload template-asset projection capacity

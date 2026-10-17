@@ -3,7 +3,6 @@ related_code:
   - zircon_plugins/plugin_sdk/src/manifest
   - zircon_runtime/src/plugin/package_manifest/constructors.rs
   - zircon_runtime/src/plugin/package_manifest/plugin_feature_bundle_manifest.rs
-  - zircon_runtime/src/plugin/runtime_plugin/descriptor/builder/runtime_plugin_descriptor_builder.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/performance/02-unreal-aligned-engine-system-hard-cutover.md

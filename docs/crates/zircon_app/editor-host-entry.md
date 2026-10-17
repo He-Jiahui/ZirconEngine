@@ -6,12 +6,9 @@ related_code:
   - zircon_app/src/entry/builtin_modules.rs
   - zircon_app/src/entry/entry_runner/editor.rs
   - zircon_runtime/src/lib.rs
-  - zircon_editor/src/ui/retained_host/app.rs
-  - zircon_editor/src/ui/retained_host/run_config.rs
-  - zircon_editor/src/ui/retained_host/host_contract/globals/state.rs
-  - zircon_editor/src/ui/retained_host/host_contract/window.rs
-  - zircon_editor/src/ui/retained_host/host_contract/window/lifecycle.rs
-  - zircon_editor/src/ui/retained_host/host_contract/window/event_loop/redraw/present.rs
+  - zircon_editor/src/ui/retained/contract/globals/state.rs
+  - zircon_editor/src/ui/retained/contract/window/lifecycle.rs
+  - zircon_editor/src/ui/retained/contract/window/event_loop/redraw/present.rs
 implementation_files:
   - zircon_app/Cargo.toml
   - zircon_app/build.rs
@@ -19,11 +16,9 @@ implementation_files:
   - zircon_app/src/entry/builtin_modules.rs
   - zircon_app/src/entry/entry_runner/editor.rs
   - zircon_runtime/src/lib.rs
-  - zircon_editor/src/ui/retained_host/app.rs
-  - zircon_editor/src/ui/retained_host/run_config.rs
-  - zircon_editor/src/ui/retained_host/host_contract/globals/state.rs
-  - zircon_editor/src/ui/retained_host/host_contract/window/lifecycle.rs
-  - zircon_editor/src/ui/retained_host/host_contract/window/event_loop/redraw/present.rs
+  - zircon_editor/src/ui/retained/contract/globals/state.rs
+  - zircon_editor/src/ui/retained/contract/window/lifecycle.rs
+  - zircon_editor/src/ui/retained/contract/window/event_loop/redraw/present.rs
 plan_sources:
   - user: 2026-05-22 continue Editor/runtime UI layout visual validation
   - user: UI Layout 架构评审与 Taffy 收敛计划

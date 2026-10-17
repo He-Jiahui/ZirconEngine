@@ -1,32 +1,22 @@
 ---
 related_code:
   - zircon_runtime_interface/src/ui/design_tokens.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection/menu_chrome.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection/dock_header.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/shell_presentation.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_projection.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/floating_windows.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/host_data.rs
-  - zircon_editor/src/ui/retained_host/menu_pointer/host_menu_pointer_bridge.rs
-  - zircon_editor/src/ui/retained_host/menu_pointer/host_menu_pointer_layout.rs
-  - zircon_editor/src/ui/retained_host/menu_pointer/host_menu_pointer_bridge_rebuild_surface.rs
-  - zircon_editor/src/ui/retained_host/menu_pointer/host_menu_pointer_bridge_sync.rs
-  - zircon_editor/src/ui/retained_host/menu_pointer/popup_layout.rs
+  - zircon_editor/src/ui/retained/menu_pointer/host_menu_pointer_bridge.rs
+  - zircon_editor/src/ui/retained/menu_pointer/host_menu_pointer_layout.rs
+  - zircon_editor/src/ui/menu_pointer/host_menu_pointer_bridge_rebuild_surface.rs
+  - zircon_editor/src/ui/retained/menu_pointer/host_menu_pointer_bridge_sync.rs
+  - zircon_editor/src/ui/retained/menu_pointer/popup_layout.rs
   - zircon_editor/src/ui/workbench/window_registry/menu_overflow_mode.rs
-  - zircon_editor/src/ui/retained_host/activity_rail_pointer/host_activity_rail_pointer_bridge.rs
-  - zircon_editor/src/ui/retained_host/activity_rail_pointer/sync.rs
-  - zircon_editor/src/ui/retained_host/host_page_pointer/host_page_pointer_bridge.rs
-  - zircon_editor/src/ui/retained_host/host_page_pointer/sync.rs
-  - zircon_editor/src/ui/retained_host/drawer_header_pointer/host_drawer_header_pointer_bridge.rs
-  - zircon_editor/src/ui/retained_host/drawer_header_pointer/sync.rs
-  - zircon_editor/src/ui/retained_host/document_tab_pointer/host_document_tab_pointer_bridge.rs
-  - zircon_editor/src/ui/retained_host/document_tab_pointer/host_document_tab_pointer_bridge_sync.rs
-  - zircon_editor/src/ui/retained_host/viewport_toolbar_pointer/viewport_toolbar_pointer_bridge.rs
-  - zircon_editor/src/ui/retained_host/viewport_toolbar_pointer/sync.rs
-  - zircon_editor/src/ui/retained_host/shell_pointer/bridge.rs
-  - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node.rs
-  - zircon_editor/src/ui/retained_host/tab_drag/host_resolution.rs
+  - zircon_editor/src/ui/activity_rail_pointer/host_activity_rail_pointer_bridge.rs
+  - zircon_editor/src/ui/retained/activity_rail_pointer/sync.rs
+  - zircon_editor/src/ui/retained/host_page_pointer/host_page_pointer_bridge.rs
+  - zircon_editor/src/ui/retained/host_page_pointer/sync.rs
+  - zircon_editor/src/ui/drawer_header_pointer/host_drawer_header_pointer_bridge.rs
+  - zircon_editor/src/ui/retained/drawer_header_pointer/sync.rs
+  - zircon_editor/src/ui/document_tab_pointer/host_document_tab_pointer_bridge.rs
+  - zircon_editor/src/ui/retained/viewport_toolbar_pointer/sync.rs
+  - zircon_editor/src/ui/retained/shell_pointer/bridge.rs
+  - zircon_editor/src/ui/retained/tab_drag/host_resolution.rs
   - zircon_editor/src/ui/layouts/views/view_projection.rs
   - zircon_editor/src/ui/workbench/document_tabs/metrics.rs
   - zircon_editor/src/ui/workbench/page_tabs/metrics.rs
@@ -35,64 +25,40 @@ related_code:
   - zircon_editor/src/ui/workbench/autolayout/geometry/compute.rs
   - zircon_editor/src/ui/workbench/autolayout/geometry/region_frames.rs
   - zircon_editor/src/ui/workbench/autolayout/region/tool_region/build.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/drawer_layout.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/workbench/drawer_layout.rs
   - zircon_editor/src/ui/reflection/mod.rs
   - zircon_editor/src/ui/reflection/adapter.rs
-  - zircon_editor/src/ui/template_runtime/retained_adapter.rs
-  - zircon_editor/src/ui/retained_host/ui/workbench_window_projection.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/data_sync.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_tree_row/surface.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/workbench/data_sync.rs
   - zircon_runtime/src/ui/surface/render/collection_rows/tree.rs
-  - zircon_editor/assets/ui/editor/components/workbench/shell/workbench_viewport_panel.zui
-  - zircon_editor/src/tests/host/retained_menu_pointer/dispatcher.rs
-  - zircon_editor/src/tests/host/retained_menu_pointer/pointer_bridge.rs
-  - zircon_editor/src/tests/host/retained_menu_pointer/visual_screenshot.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_drawer_breakpoints.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/layout/drawer_toggle.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/layout/tab_drop.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/layout/floating_window_focus.rs
+  - zircon_editor/src/tests/host/callbacks/layout/floating_window_focus.rs
   - zircon_editor/src/tests/ui/project_overview/bootstrap_assets.rs
   - zircon_runtime/src/ui/surface/render/resolve.rs
   - zircon_runtime/src/ui/tests/shared_core.rs
   - zircon_editor/assets/ui/editor/asset_browser.zui
   - zircon_editor/assets/ui/editor/assets_activity.zui
-  - zircon_editor/assets/ui/editor/workbench_menu_chrome.zui
   - zircon_editor/assets/ui/editor/workbench_menu_popup.zui
-  - zircon_editor/assets/ui/editor/workbench_page_chrome.zui
-  - zircon_editor/assets/ui/editor/workbench_dock_header.zui
-  - zircon_editor/assets/ui/editor/workbench_status_bar.zui
   - zircon_editor/assets/ui/editor/workbench_activity_rail.zui
   - zircon_editor/assets/ui/editor/host/editor_main_frame.zui
-  - zircon_editor/assets/ui/editor/host/workbench_shell.zui
-  - zircon_editor/assets/ui/editor/windows/workbench_window.zui
-  - zircon_editor/assets/ui/editor/components/workbench/shell/activity_drawer_window.zui
+  - zircon_editor/assets/ui/editor/workbench/shell/activity_drawer_window.zui
   - zircon_editor/assets/ui/editor/host/floating_window_source.zui
   - zircon_editor/assets/ui/editor/host/scene_viewport_toolbar.zui
 implementation_files:
   - zircon_runtime_interface/src/ui/design_tokens.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection/menu_chrome.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection/dock_header.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/shell_presentation.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_projection.rs
-  - zircon_editor/src/ui/retained_host/menu_pointer/host_menu_pointer_bridge.rs
-  - zircon_editor/src/ui/retained_host/menu_pointer/host_menu_pointer_layout.rs
-  - zircon_editor/src/ui/retained_host/menu_pointer/host_menu_pointer_bridge_rebuild_surface.rs
-  - zircon_editor/src/ui/retained_host/menu_pointer/host_menu_pointer_bridge_sync.rs
-  - zircon_editor/src/ui/retained_host/menu_pointer/popup_layout.rs
-  - zircon_editor/src/ui/retained_host/activity_rail_pointer/host_activity_rail_pointer_bridge.rs
-  - zircon_editor/src/ui/retained_host/activity_rail_pointer/sync.rs
-  - zircon_editor/src/ui/retained_host/host_page_pointer/host_page_pointer_bridge.rs
-  - zircon_editor/src/ui/retained_host/host_page_pointer/sync.rs
-  - zircon_editor/src/ui/retained_host/drawer_header_pointer/host_drawer_header_pointer_bridge.rs
-  - zircon_editor/src/ui/retained_host/drawer_header_pointer/sync.rs
-  - zircon_editor/src/ui/retained_host/document_tab_pointer/host_document_tab_pointer_bridge.rs
-  - zircon_editor/src/ui/retained_host/document_tab_pointer/host_document_tab_pointer_bridge_sync.rs
-  - zircon_editor/src/ui/retained_host/viewport_toolbar_pointer/viewport_toolbar_pointer_bridge.rs
-  - zircon_editor/src/ui/retained_host/viewport_toolbar_pointer/sync.rs
-  - zircon_editor/src/ui/retained_host/shell_pointer/bridge.rs
-  - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node.rs
-  - zircon_editor/src/ui/retained_host/tab_drag/host_resolution.rs
+  - zircon_editor/src/ui/retained/menu_pointer/host_menu_pointer_bridge.rs
+  - zircon_editor/src/ui/retained/menu_pointer/host_menu_pointer_layout.rs
+  - zircon_editor/src/ui/menu_pointer/host_menu_pointer_bridge_rebuild_surface.rs
+  - zircon_editor/src/ui/retained/menu_pointer/host_menu_pointer_bridge_sync.rs
+  - zircon_editor/src/ui/retained/menu_pointer/popup_layout.rs
+  - zircon_editor/src/ui/activity_rail_pointer/host_activity_rail_pointer_bridge.rs
+  - zircon_editor/src/ui/retained/activity_rail_pointer/sync.rs
+  - zircon_editor/src/ui/retained/host_page_pointer/host_page_pointer_bridge.rs
+  - zircon_editor/src/ui/retained/host_page_pointer/sync.rs
+  - zircon_editor/src/ui/drawer_header_pointer/host_drawer_header_pointer_bridge.rs
+  - zircon_editor/src/ui/retained/drawer_header_pointer/sync.rs
+  - zircon_editor/src/ui/document_tab_pointer/host_document_tab_pointer_bridge.rs
+  - zircon_editor/src/ui/retained/viewport_toolbar_pointer/sync.rs
+  - zircon_editor/src/ui/retained/shell_pointer/bridge.rs
+  - zircon_editor/src/ui/retained/tab_drag/host_resolution.rs
   - zircon_editor/src/ui/reflection/mod.rs
   - zircon_editor/src/ui/reflection/adapter.rs
   - zircon_editor/src/ui/layouts/views/view_projection.rs
@@ -103,22 +69,14 @@ implementation_files:
   - zircon_editor/src/ui/workbench/autolayout/geometry/compute.rs
   - zircon_editor/src/ui/workbench/autolayout/geometry/region_frames.rs
   - zircon_editor/src/ui/workbench/autolayout/region/tool_region/build.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/drawer_layout.rs
-  - zircon_editor/src/ui/template_runtime/retained_adapter.rs
-  - zircon_editor/src/ui/retained_host/ui/workbench_window_projection.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/workbench/drawer_layout.rs
   - zircon_runtime/src/ui/surface/render/resolve.rs
-  - zircon_editor/assets/ui/editor/workbench_menu_chrome.zui
   - zircon_editor/assets/ui/editor/workbench_menu_popup.zui
-  - zircon_editor/assets/ui/editor/workbench_page_chrome.zui
   - zircon_editor/assets/ui/editor/asset_browser.zui
   - zircon_editor/assets/ui/editor/assets_activity.zui
-  - zircon_editor/assets/ui/editor/workbench_dock_header.zui
-  - zircon_editor/assets/ui/editor/workbench_status_bar.zui
   - zircon_editor/assets/ui/editor/workbench_activity_rail.zui
   - zircon_editor/assets/ui/editor/host/editor_main_frame.zui
-  - zircon_editor/assets/ui/editor/host/workbench_shell.zui
-  - zircon_editor/assets/ui/editor/windows/workbench_window.zui
-  - zircon_editor/assets/ui/editor/components/workbench/shell/activity_drawer_window.zui
+  - zircon_editor/assets/ui/editor/workbench/shell/activity_drawer_window.zui
   - zircon_editor/assets/ui/editor/host/floating_window_source.zui
   - zircon_editor/assets/ui/editor/host/scene_viewport_toolbar.zui
 plan_sources:
@@ -127,7 +85,6 @@ plan_sources:
   - .codex/plans/Drawer_Window_Menu Slate 化推进计划.md
   - user: 2026-06-24 editor UI architecture screenshot validation and layout readability pass
 tests:
-  - zircon_editor/src/tests/ui/boundary/workbench_projection_cutover.rs
   - rustfmt --edition 2021 --check zircon_editor/src/tests/ui/boundary/workbench_projection_cutover.rs
   - cargo test -p zircon_editor --lib workbench_main_interface_entries_are_template_backed_and_reflected --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never -- --nocapture
   - cargo test -p zircon_editor --lib workbench_host_pointer_paths_are_shared_surface_bridges_not_host_hit_tables --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never -- --nocapture

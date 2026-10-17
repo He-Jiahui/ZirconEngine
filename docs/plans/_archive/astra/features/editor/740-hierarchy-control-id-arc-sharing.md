@@ -11,10 +11,7 @@ related_records:
   - docs/plans/astra/features/editor/664-20260911-editor-ui-optimization-batch-completion.md
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/scene_hierarchy_projection.rs
 tests:
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/scene_hierarchy_projection.rs
-  - tools/tests/test_editor_scene_hierarchy_control_arc_sharing_performance_contract.py
   - tools/tests/test_editor_scene_hierarchy_generation_index_performance_contract.py
 ---
 

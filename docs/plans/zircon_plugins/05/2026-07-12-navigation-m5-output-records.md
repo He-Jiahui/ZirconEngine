@@ -20,7 +20,6 @@ tests:
   - zircon_plugins/navigation/native/src/tests/tile_cache.rs
   - zircon_plugins/navigation/runtime/src/tests/off_mesh.rs
   - zircon_plugins/navigation/runtime/src/tests/asset_migration.rs
-  - zircon_plugins/navigation/runtime/src/manager/traversal/tests.rs
 doc_type: milestone-detail
 ---
 

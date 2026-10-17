@@ -4,9 +4,6 @@ related_code:
   - zircon_runtime/src/core/framework/render/environment/mod.rs
   - zircon_runtime/src/core/framework/render/mod.rs
   - zircon_runtime/tests/runtime_environment_cubemap_projection_contract.rs
-  - dev/cmft/src/cmft/cubemaputils.h
-  - dev/cmft/src/cmft/cubemapfilter.cpp
-  - dev/UnrealEngine/Engine/Shaders/Private/ReflectionEnvironmentShaders.usf
 implementation_files:
   - zircon_runtime/src/core/framework/render/environment/cubemap_projection.rs
   - zircon_runtime/src/core/framework/render/environment/mod.rs

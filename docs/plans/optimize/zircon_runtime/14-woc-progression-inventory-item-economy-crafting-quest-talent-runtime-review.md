@@ -12,7 +12,6 @@ related_code:
   - examples/woc/scripts/woc_game/src/progression/market_state.zr
   - examples/woc/scripts/woc_game/src/progression/loot_distribution_state.zr
   - examples/woc/scripts/woc_game/src/progression/loot_roll_runtime.zr
-  - examples/woc/scripts/woc_game/src/progression/craft_item_state.zr
   - examples/woc/scripts/woc_game/src/progression/crafting_transaction.zr
   - examples/woc/scripts/woc_game/src/progression/gathering_state.zr
   - examples/woc/scripts/woc_game/src/progression/enchanting_state.zr

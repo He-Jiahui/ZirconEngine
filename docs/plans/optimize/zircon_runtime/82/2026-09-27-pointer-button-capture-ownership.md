@@ -7,14 +7,13 @@ related_code:
 implementation_files:
   - zircon_runtime/src/ui/surface/input/effect/focus_pointer.rs
   - zircon_runtime/src/ui/surface/input/window_pump.rs
-  - zircon_runtime/src/ui/surface/surface/pointer_component_events/state_invalidation.rs
+  - zircon_runtime/src/ui/surface/pointer_component_events/state_invalidation.rs
 plan_sources:
   - user: 2026-09-27 Runtime/Editor optimization with asynchronous batched validation
   - docs/plans/optimize/zircon_editor/59-editor-scene-viewport-interaction-controller-input-picking-selection-highlight-gizmo-transaction-cancel-generation.md
 tests:
   - zircon_runtime/src/ui/tests/event_routing/pointer_state.rs
-  - zircon_runtime/src/ui/tests/runtime_input_reply_routes/pointer_capture_routes.rs
-  - zircon_runtime/src/ui/tests/runtime_input_reply_routes/pointer_capture_routes/ownership_lifecycle.rs
+  - zircon_runtime/src/ui/tests/input/pointer_capture_routes/ownership_lifecycle.rs
   - zircon_runtime/src/ui/tests/widget_range_navigation.rs
   - zircon_runtime/src/ui/tests/widget_scrollbar_behavior.rs
 doc_type: milestone-detail

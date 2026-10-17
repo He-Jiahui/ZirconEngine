@@ -17,9 +17,8 @@ related_code:
   - zircon_runtime/crates/zr_rhi
   - zircon_runtime/crates/zr_rhi_wgpu
   - zircon_runtime/src/core/runtime/random
-  - zircon_runtime/src/graphics/backend/render_backend
 tests:
-  - zircon_runtime/crates/zr_contracts/src/random/tests.rs
+  - zircon_runtime/crates/zr_contracts/src/random/tests/mod.rs
   - zircon_runtime/crates/zr_math/src/tests
   - zircon_runtime/crates/zr_resource/src/tests
   - zircon_runtime/crates/zr_rhi/src/tests

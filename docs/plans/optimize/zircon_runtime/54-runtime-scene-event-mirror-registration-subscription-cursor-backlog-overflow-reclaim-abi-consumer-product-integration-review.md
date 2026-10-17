@@ -23,14 +23,11 @@ related_code:
 tests:
   - zircon_runtime/src/scene/tests/ecs_event_mirror.rs
   - zircon_runtime/src/dynamic_api/tests/linked_plugins.rs
-  - zircon_runtime/src/dynamic_api/session/registry/tests.rs
   - zircon_editor/src/tests/runtime_event_consumer.rs
   - zircon_editor/src/tests/runtime_event_consumer_bounded_pump
   - zircon_editor/src/tests/runtime_event_consumer_bounded_pump/real_runtime_abi.rs
   - zircon_editor/src/tests/gateway/session/plugin_operations.rs
   - zircon_plugins/navigation/runtime/src/tests/runtime_mirror.rs
-  - zircon_plugins/navigation/editor/src/tests.rs
-  - zircon_plugins/ai/editor/src/tests.rs
   - zircon_runtime_interface/src/tests/abi_safety_contracts.rs
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md

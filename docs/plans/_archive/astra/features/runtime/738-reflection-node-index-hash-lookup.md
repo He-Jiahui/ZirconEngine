@@ -11,10 +11,7 @@ related_records:
 related_code:
   - zircon_runtime/src/ui/event_ui/manager/ui_event_manager.rs
   - zircon_runtime/src/ui/event_ui/manager/reflection_store.rs
-  - zircon_runtime/src/ui/event_ui/manager/reflection_store/optimization_tests.rs
 tests:
-  - zircon_runtime/src/ui/event_ui/manager/reflection_store/optimization_tests.rs
-  - tools/tests/test_runtime_ui_reflection_node_index_hash_lookup_performance_contract.py
 ---
 
 # Runtime UI reflection node-index hash lookup

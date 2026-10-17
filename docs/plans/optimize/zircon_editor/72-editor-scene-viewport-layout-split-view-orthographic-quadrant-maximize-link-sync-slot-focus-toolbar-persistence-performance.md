@@ -15,7 +15,6 @@ related_code:
   - zircon_editor/src/ui/workbench/view/view_descriptor.rs
   - zircon_editor/src/ui/workbench/view/view_descriptor_builder.rs
   - zircon_editor/src/ui/workbench/view/view_instance.rs
-  - zircon_editor/src/ui/workbench/view/view_registry_open_descriptor.rs
   - zircon_editor/src/ui/host/builtin_views/activity_views/scene_view_descriptor.rs
   - zircon_editor/src/ui/host/builtin_views/activity_views/game_view_descriptor.rs
   - zircon_editor/src/ui/host/builtin_layout/ensure_shell_instances.rs
@@ -23,33 +22,24 @@ related_code:
   - zircon_editor/src/ui/workbench/project/project_editor_workspace.rs
   - zircon_editor/src/ui/workbench/snapshot/workbench/resolve_document_workspace.rs
   - zircon_editor/src/ui/workbench/model/document_tabs/collect.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/host_data.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_projection.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/scene_projection.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/shell_content_selection.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/recompute_viewport.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/recompute/viewport_surfaces.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/render_submission.rs
-  - zircon_editor/src/ui/retained_host/app/viewport_image_redraw.rs
-  - zircon_editor/src/ui/retained_host/app/viewport_toolbar_projection/surface_frames/docked.rs
-  - zircon_editor/src/ui/retained_host/app/viewport_toolbar_projection/surface_frames/pane_frame.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/viewport/route_mapping.rs
-  - zircon_editor/src/ui/retained_host/app/viewport/toolbar_pointer/chrome_projection.rs
-  - zircon_editor/src/ui/retained_host/viewport_toolbar_pointer/viewport_toolbar_pointer_route.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle/recompute_viewport.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle/recompute/viewport_surfaces.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle/render_submission.rs
+  - zircon_editor/src/ui/retained/app/viewport_image_redraw.rs
+  - zircon_editor/src/ui/retained/app/surface_frames/docked.rs
+  - zircon_editor/src/ui/retained/app/surface_frames/pane_frame.rs
+  - zircon_editor/src/ui/retained/dispatch/viewport/route_mapping.rs
+  - zircon_editor/src/ui/retained/app/viewport/toolbar_pointer/chrome_projection.rs
   - zircon_editor/src/ui/workbench/state/editor_state.rs
   - zircon_editor/src/ui/workbench/state/editor_state_render.rs
   - zircon_editor/src/ui/workbench/state/editor_state_viewport.rs
   - zircon_editor/src/scene/viewport/settings.rs
   - zircon_editor/src/scene/viewport/controller/scene_viewport_controller.rs
   - zircon_editor/src/scene/viewport/controller/scene_viewport_state.rs
-  - zircon_editor/src/ui/retained_host/viewport/mod.rs
-  - zircon_editor/src/ui/retained_host/viewport/poll_viewport_product.rs
-  - zircon_editor/src/ui/retained_host/viewport/poll_captured_frame.rs
-  - zircon_editor/src/ui/retained_host/viewport/submit_extract.rs
+  - zircon_editor/src/ui/retained/viewport/poll_viewport_product.rs
+  - zircon_editor/src/ui/retained/viewport/poll_captured_frame.rs
+  - zircon_editor/src/ui/retained/viewport/submit_extract.rs
   - zircon_editor/assets/ui/editor/host/scene_viewport_toolbar.zui
-  - zircon_editor/assets/ui/editor/components/workbench/shell/workbench_viewport_panel.zui
-  - zircon_editor/assets/ui/editor/windows/workbench_window.zui
-  - zircon_editor/assets/ui/editor/host/workbench_shell.zui
 tests:
   - zircon_editor/src/tests/workbench/layout/split_creation.rs
   - zircon_editor/src/tests/workbench/layout/document_attachment.rs
@@ -59,14 +49,10 @@ tests:
   - zircon_editor/src/tests/workbench/project/document_roundtrip.rs
   - zircon_editor/src/tests/workbench/view_model/document_workspace.rs
   - zircon_editor/src/tests/host/pane_presentation/document_projection.rs
-  - zircon_editor/src/tests/host/retained_viewport_toolbar_pointer/surface_contract.rs
+  - zircon_editor/src/tests/retained_viewport_toolbar_pointer/surface_contract.rs
   - zircon_editor/src/tests/host/retained_viewport_toolbar_pointer/dispatch.rs
   - zircon_editor/src/tests/host/retained_window/native_viewport_image.rs
-  - zircon_editor/src/ui/retained_host/ui/tests/scene_document_pane.rs
-  - zircon_editor/src/ui/retained_host/viewport/tests/controller_polls_latest_captured_frame_from_render_framework.rs
-  - zircon_editor/src/ui/retained_host/viewport/tests/controller_polls_latest_viewport_product_from_render_framework.rs
-  - zircon_editor/src/ui/retained_host/viewport/tests/controller_submits_shared_ui_overlay_through_render_framework.rs
-  - zircon_editor/src/tests/ui/boundary/workbench_projection_cutover/layout_frames.rs
+  - zircon_editor/src/ui/retained/ui/tests/scene_document_pane.rs
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md
   - docs/plans/optimize/01-cross-report-owner-schema-abi-p0-consolidation-review.md

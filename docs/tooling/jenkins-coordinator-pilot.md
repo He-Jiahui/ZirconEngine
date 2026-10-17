@@ -1,17 +1,10 @@
 ---
 related_code:
-  - tools/jenkins_pilot/
-  - tools/jenkins_coordinator.py
-  - tools/jenkins_tray/
   - tools/jenkins/install-coordinator-worker.ps1
-  - tools/build-editor.ps1
   - tools/dev/dev-fast-build.ps1
-  - tools/zircon_build.py
   - tools/build/zircon_build_cargo_environment.py
-  - tools/zircon-session.ps1
   - .codex/skills/zircon-dev/scripts/validate-matrix.ps1
 implementation_files:
-  - tools/jenkins_pilot/
 plan_sources:
   - "user: 2026-10-01 isolated Jenkins coordinator pilot with retained source acceptance authority"
   - "user: 2026-10-02 keep the old service retired and establish independent Jenkins acceptance"

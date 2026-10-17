@@ -48,9 +48,6 @@ plan_sources:
   - dev/godot/modules/jolt_physics
   - dev/bevy/crates
 tests:
-  - tests/acceptance/plugins-03-physics-backend-trait-builtin.md
-  - tests/acceptance/plugins-03-physics-jolt-backend.md
-  - tests/acceptance/plugins-03-physics-change-detection-command-buffer.md
   - zircon_plugins/physics/runtime/src/backend/tests/builtin_contract.rs
   - zircon_plugins/physics/runtime/src/backend/tests/jolt_contract.rs
   - physics_backend_generation_rejects_destroyed_body_after_slot_reuse
@@ -62,7 +59,6 @@ tests:
   - linked_jolt_backend_reports_ready
   - linked_jolt_backend_ticks_scene_without_builtin_fallback
   - zircon_runtime/src/tests/extensions/tech_stack_dependency_guard.rs::physics_backend_option_decision_keeps_jolt_feature_gated_and_plugin_owned
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/cargo_gates/early/runtime_01.rs::runtime_01_tech_stack_cargo_gate_records_completed_dependency_validation
   - jolt_box_stack_settles_deterministically
   - jolt_creates_box_sphere_and_capsule_bodies
   - unchanged_bodies_skip_sync

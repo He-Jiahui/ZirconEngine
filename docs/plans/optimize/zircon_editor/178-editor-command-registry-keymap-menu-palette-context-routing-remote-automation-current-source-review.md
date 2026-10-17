@@ -1,7 +1,6 @@
 ---
 related_code:
   - zircon_editor/assets/ui/editor/keymap/default.keymap.toml
-  - zircon_editor/assets/ui/editor/components/workbench/floating/workbench_command_palette.zui
   - zircon_editor/src/core/commands
   - zircon_editor/src/core/commandlet
   - zircon_editor/src/core/editor_operation.rs
@@ -16,11 +15,8 @@ related_code:
   - zircon_editor/src/ui/host/editor_extension_registration.rs
   - zircon_editor/src/ui/host/editor_manager.rs
   - zircon_editor/src/ui/host/editor_operation_dispatch.rs
-  - zircon_editor/src/ui/retained_host/app/command_palette_actions.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/workbench/command_palette.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/workbench/menu_action.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/command_palette.rs
-  - zircon_editor/src/ui/retained_host/host_contract/window/text_input/keyboard
+  - zircon_editor/src/ui/retained/app/command_palette_actions.rs
+  - zircon_editor/src/ui/retained/contract/window/text_input/keyboard
   - zircon_editor/src/ui/workbench/event
   - zircon_editor/src/ui/workbench/model/menu
   - zircon_runtime_interface/src/editor_contribution.rs
@@ -31,11 +27,10 @@ tests:
   - zircon_editor/src/tests/editor_event/runtime/keymap_settings.rs
   - zircon_editor/src/tests/editor_event/runtime/registry.rs
   - zircon_editor/src/tests/editor_event/runtime/extensions_registration
-  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/command_palette.rs
   - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_window_menus
   - zircon_editor/src/tests/ui/control/reflection_projection.rs
   - zircon_editor/src/tests/workbench/reflection
-  - zircon_editor/src/ui/retained_host/app/tests/command_palette.rs
+  - zircon_editor/src/ui/retained/app/tests/command_palette.rs
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md
   - docs/plans/optimize/01-cross-report-owner-schema-abi-p0-consolidation-review.md

@@ -5,18 +5,9 @@ report_id: Editor200
 review_date: 2026-08-28
 baseline_head: e2d29a4a9cbbfc2c80067f3380212d6efd730361
 related_code:
-  - zircon_editor/assets/ui/editor/components/workbench/modules/core/gameplay/workbench_ability_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/animation/workbench_extension_motion_matching_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/index/workbench_extension_module_workspaces.zui
-  - zircon_editor/src/ui/template_runtime/builtin/workbench_extension_module_template_bindings/gameplay_animation.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation/specs.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation/specs/gameplay_animation.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/reference_menu_actions.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/componentized_window.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback.rs
-  - zircon_editor/src/ui/retained_host/workbench_preview_actions.rs
-  - zircon_editor/src/ui/retained_host/workbench_preview_actions/extensions.rs
+  - zircon_editor/src/ui/retained/dispatch/workbench/specs/gameplay_animation.rs
+  - zircon_editor/src/ui/retained/dispatch/workbench/reference_menu_actions.rs
+  - zircon_editor/src/ui/retained/dispatch/workbench/componentized_window.rs
   - zircon_editor/src/core/jobs/spec.rs
   - zircon_editor/src/core/jobs/admission.rs
   - zircon_editor/src/core/jobs/progress.rs
@@ -32,8 +23,6 @@ related_code:
   - zircon_plugins/animation/runtime/src/evaluation/compiled_graph/compile.rs
   - zircon_plugins/animation/runtime/src/evaluation/compiled_graph/evaluate.rs
 tests:
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation.rs
-  - zircon_editor/src/ui/retained_host/workbench_preview_actions.rs
   - zircon_editor/src/core/jobs/system/submission.rs
 plan_sources:
   - docs/plans/mvp/index.md

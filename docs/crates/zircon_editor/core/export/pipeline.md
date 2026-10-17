@@ -6,7 +6,6 @@ related_code:
   - zircon_editor/src/core/export/stages/compile_host.rs
   - zircon_editor/src/core/export/stages/executor.rs
   - zircon_editor/src/core/export/stages/platform_bundle.rs
-  - zircon_editor/src/core/export/tests.rs
   - zircon_runtime_interface/src/export/mod.rs
   - zircon_runtime_interface/src/export/artifact.rs
   - zircon_runtime_interface/src/export/report.rs
@@ -29,8 +28,6 @@ plan_sources:
   - docs/plans/engine-code-structure-convention.md
   - docs/plans/engine-code-review-findings-2026-06.md
 tests:
-  - zircon_editor/src/core/export/tests.rs
-  - zircon_runtime_interface/src/export/tests.rs
 doc_type: module-detail
 ---
 

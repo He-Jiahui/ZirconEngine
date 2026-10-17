@@ -4,9 +4,9 @@ status: implemented_pending_validation
 plan_sources:
   - docs/plans/optimize/zircon_runtime/02/2026-08-30-runtime527-planar-camera-selective-clone.md
 implementation_files:
-  - zircon_runtime/src/core/framework/render/advanced_lighting/planar/derive_camera.rs
+  - zircon_runtime/src/core/framework/render/planar/derive_camera.rs
 tests:
-  - zircon_runtime/src/core/framework/render/advanced_lighting/planar/derive_camera.rs
+  - zircon_runtime/src/core/framework/render/planar/derive_camera.rs
 ---
 
 # Runtime920 Runtime527 planar-camera selective clone

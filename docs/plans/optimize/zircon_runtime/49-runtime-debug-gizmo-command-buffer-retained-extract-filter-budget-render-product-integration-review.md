@@ -9,25 +9,21 @@ related_code:
   - zircon_runtime/src/core/framework/gizmos
   - zircon_runtime/src/core/framework/render/overlay.rs
   - zircon_runtime/src/core/framework/navigation/gizmo.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/overlay/passes/scene_gizmo_pass
-  - zircon_runtime/src/graphics/scene/scene_renderer/overlay/passes/line_pass.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/overlay/viewport_overlay_renderer/construct/create_line_pipeline.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/overlay/shaders/line.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/primitives/buffers/build_line_buffer.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/primitives/scene_gizmo
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/build_runtime_frame.rs
+  - zircon_runtime/src/graphics/scene/overlay/passes/scene_gizmo_pass
+  - zircon_runtime/src/graphics/scene/renderer/overlay/passes/line_pass.rs
+  - zircon_runtime/src/graphics/scene/overlay/construct/create_line_pipeline.rs
+  - zircon_runtime/src/graphics/scene/renderer/overlay/shaders/line.wgsl
+  - zircon_runtime/src/graphics/scene/renderer/buffers/build_line_buffer.rs
+  - zircon_runtime/src/graphics/scene/renderer/primitives/scene_gizmo
+  - zircon_runtime/src/graphics/runtime/extract/submit/build_runtime_frame.rs
   - zircon_runtime/src/dynamic_api/session/extract_stats.rs
   - zircon_editor/src/scene/viewport/render_packet.rs
   - zircon_plugins/navigation/editor/src/overlay.rs
   - zircon_plugins/ai/editor/src/overlay.rs
 tests:
   - zircon_runtime/src/tests/gizmos
-  - zircon_runtime/src/core/framework/navigation/tests.rs
   - zircon_runtime/src/graphics/tests/render_product_ui.rs
-  - zircon_editor/src/scene/viewport/pointer/tests.rs
   - zircon_editor/src/tests/editing/viewport.rs
-  - zircon_plugins/navigation/editor/src/tests.rs
-  - zircon_plugins/ai/editor/src/tests.rs
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md
   - docs/plans/optimize/01-cross-report-owner-schema-abi-p0-consolidation-review.md

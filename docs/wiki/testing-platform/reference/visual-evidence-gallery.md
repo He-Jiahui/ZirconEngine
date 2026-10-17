@@ -2,13 +2,12 @@
 related_code:
   - zircon_editor/src/tests/host/callbacks/templates/breakpoints/visual_artifacts.rs
   - zircon_editor/src/tests/host/menus/visual_screenshot/chrome_artifacts.rs
-  - zircon_editor/src/tests/host/retained_menu_pointer/visual_screenshot/component_atlas
+  - zircon_editor/src/tests/host/menus/visual_screenshot/component_atlas
   - zircon_runtime/tests/zui_native_visual_acceptance.rs
   - zircon_runtime/tests/runtime_text_multilingual_product_framebuffer.rs
   - zircon_runtime/tests/virtual_geometry_visbuffer_overlay_contract.rs
   - tools/analysis/visual/capture-editor-ui-visual.ps1
 implementation_files:
-  - docs/tests/editor
   - tools/analysis/visual/capture-editor-ui-visual.ps1
   - .codex/skills/zircon-project-skills/capture-hub-window-screenshot/scripts/capture-hub-window.ps1
 plan_sources:

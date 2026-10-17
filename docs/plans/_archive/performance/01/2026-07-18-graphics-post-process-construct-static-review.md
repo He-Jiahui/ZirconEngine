@@ -1,11 +1,9 @@
 ---
 related_code:
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/construct/construct.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/build.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/post_process_pipeline.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/bind_group_layouts/post_process.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/buffer_bundle/buffer_bundle.rs
+  - zircon_runtime/src/graphics/scene/renderer/post/resources/construct
+  - zircon_runtime/src/graphics/scene/renderer/post/create_pipeline_bundle/build.rs
+  - zircon_runtime/src/graphics/post/create_pipeline_bundle/post_process_pipeline.rs
+  - zircon_runtime/src/graphics/scene/renderer/post/buffer_bundle/buffer_bundle.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_runtime/render/07-postprocess-color-pipeline.md

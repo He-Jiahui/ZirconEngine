@@ -4,7 +4,6 @@ related_code:
   - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/batching.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/batching/dependency_depths.rs
-  - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/tests.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_runtime/render/17-performance-and-profiling.md
@@ -13,8 +12,6 @@ reference_sources:
   - dev/slint/internal/core/partial_renderer.rs
 tests:
   - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/batching.rs::batch_plan_prunes_axis_disjoint_overlap_candidates
-  - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/tests.rs::full_redraw_without_damage_borrows_the_original_draw_list
-  - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/tests.rs::cache_bootstrap_full_redraw_owns_an_unclipped_damage_list
   - current-source Windows zircon_runtime ui_surface tests pending
   - current-source GPU/Softbuffer/RenderDoc comparison pending
 doc_type: implementation-evidence

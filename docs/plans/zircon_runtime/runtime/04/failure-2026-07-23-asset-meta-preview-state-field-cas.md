@@ -15,11 +15,10 @@ related_code:
   - zircon_runtime/src/asset/project/manager/scan_and_import.rs
   - zircon_runtime/src/asset/project/manager/load_or_create_meta.rs
   - zircon_runtime/src/asset/project/manager/scan_and_import/targeted.rs
-  - zircon_runtime/src/asset/tests/project/manager/targeted_import/meta_preconditions.rs
+  - zircon_runtime/src/asset/tests/manager/targeted_import/meta_preconditions.rs
   - zircon_runtime/src/asset/migration/run.rs
-  - zircon_runtime/src/asset/migration/run/meta_authority_tests.rs
   - zircon_runtime/crates/zr_resource/src/io/atomic_file
-  - zircon_editor/src/ui/host/editor_asset_manager/manager/preview_refresh/request_preview_refresh.rs
+  - zircon_editor/src/ui/host/assets/preview_refresh/request_preview_refresh.rs
 tests:
   - cargo test -p zircon_runtime asset_meta_preview_state --locked
   - cargo test -p zircon_editor preview_refresh --locked

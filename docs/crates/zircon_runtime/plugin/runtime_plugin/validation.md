@@ -1,32 +1,24 @@
 ---
 related_code:
-  - zircon_runtime/src/plugin/runtime_plugin/feature_validation
-  - zircon_runtime/src/plugin/runtime_plugin/module_validation
-  - zircon_runtime/src/plugin/runtime_plugin/registration_report
 implementation_files:
-  - zircon_runtime/src/plugin/runtime_plugin/feature_validation/shape/namespace/segments.rs
-  - zircon_runtime/src/plugin/runtime_plugin/feature_validation/shape/namespace/segments/count.rs
-  - zircon_runtime/src/plugin/runtime_plugin/feature_validation/shape/namespace/segments/tokens.rs
-  - zircon_runtime/src/plugin/runtime_plugin/feature_validation/identity.rs
-  - zircon_runtime/src/plugin/runtime_plugin/package_validation/shape/namespace/segments.rs
-  - zircon_runtime/src/plugin/runtime_plugin/package_validation/versions/segments.rs
-  - zircon_runtime/src/plugin/runtime_plugin/package_validation/embedded_feature_providers/uniqueness.rs
-  - zircon_runtime/src/plugin/runtime_plugin/package_validation/contribution_owners/event_catalogs/prefix.rs
-  - zircon_runtime/src/plugin/runtime_plugin/package_validation/modules/row/systems.rs
+  - zircon_runtime/src/plugin/runtime/feature_validation/shape/namespace/segments.rs
+  - zircon_runtime/src/plugin/runtime/feature_validation/identity.rs
+  - zircon_runtime/src/plugin/runtime/validation/versions/segments.rs
+  - zircon_runtime/src/plugin/runtime/embedded_feature_providers/uniqueness.rs
+  - zircon_runtime/src/plugin/runtime/validation/event_catalogs/prefix.rs
+  - zircon_runtime/src/plugin/runtime/validation/modules/row/systems.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_plugins/01-plugin-architecture-core.md
 tests:
-  - zircon_runtime/src/plugin/runtime_plugin/feature_validation/shape/namespace/segments.rs::tests::runtime_feature_namespace_validation_streams_segments
-  - zircon_runtime/src/plugin/runtime_plugin/feature_validation/identity.rs::tests::runtime_feature_owner_prefix_check_does_not_format_a_string
-  - zircon_runtime/src/plugin/runtime_plugin/feature_validation/identity.rs::tests::runtime_feature_owner_matching_preserves_the_dot_boundary
-  - zircon_runtime/src/plugin/runtime_plugin/package_validation/shape/namespace/segments.rs::tests::package_namespace_validation_streams_segments
-  - zircon_runtime/src/plugin/runtime_plugin/package_validation/shape/namespace/segments.rs::tests::package_namespace_validation_preserves_segment_diagnostics
-  - zircon_runtime/src/plugin/runtime_plugin/package_validation/versions/segments.rs::tests::package_semver_validation_does_not_collect_segments
-  - zircon_runtime/src/plugin/runtime_plugin/package_validation/versions/segments.rs::tests::package_semver_validation_preserves_shape_and_component_diagnostics
-  - zircon_runtime/src/plugin/runtime_plugin/package_validation/embedded_feature_providers/uniqueness.rs::tests::feature_provider_uniqueness_preserves_duplicate_diagnostics
-  - zircon_runtime/src/plugin/runtime_plugin/package_validation/contribution_owners/event_catalogs/prefix.rs::tests::event_catalog_owner_check_preserves_the_dot_boundary
-  - zircon_runtime/src/plugin/runtime_plugin/package_validation/modules/row/systems.rs::tests::module_system_owner_check_preserves_the_dot_boundary
+  - zircon_runtime/src/plugin/runtime/feature_validation/shape/namespace/segments.rs::tests::runtime_feature_namespace_validation_streams_segments
+  - zircon_runtime/src/plugin/runtime/feature_validation/identity.rs::tests::runtime_feature_owner_prefix_check_does_not_format_a_string
+  - zircon_runtime/src/plugin/runtime/feature_validation/identity.rs::tests::runtime_feature_owner_matching_preserves_the_dot_boundary
+  - zircon_runtime/src/plugin/runtime/validation/versions/segments.rs::tests::package_semver_validation_does_not_collect_segments
+  - zircon_runtime/src/plugin/runtime/validation/versions/segments.rs::tests::package_semver_validation_preserves_shape_and_component_diagnostics
+  - zircon_runtime/src/plugin/runtime/embedded_feature_providers/uniqueness.rs::tests::feature_provider_uniqueness_preserves_duplicate_diagnostics
+  - zircon_runtime/src/plugin/runtime/validation/event_catalogs/prefix.rs::tests::event_catalog_owner_check_preserves_the_dot_boundary
+  - zircon_runtime/src/plugin/runtime/validation/modules/row/systems.rs::tests::module_system_owner_check_preserves_the_dot_boundary
 doc_type: module-detail
 ---
 

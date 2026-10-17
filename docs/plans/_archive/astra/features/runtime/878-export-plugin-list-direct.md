@@ -8,8 +8,6 @@ related_records:
 implementation_files:
   - zircon_runtime/src/plugin/export_build_plan/plugin_selection_template.rs
 tests:
-  - zircon_runtime/src/plugin/export_build_plan/plugin_selection_template/direct_string_vec_tests.rs
-  - tools/tests/test_runtime878_export_plugin_list_direct_performance_contract.py
 ---
 
 # Runtime878 Export Plugin List Direct

@@ -1,21 +1,11 @@
 ---
 related_code:
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/transient_materialization.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/materialization.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/materialization/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources/lifecycle.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/transient_resource_pool.rs
   - zircon_runtime/src/render_graph/dump.rs
   - zircon_runtime/src/render_graph/builder/compile.rs
   - zircon_runtime/src/render_graph/graph.rs
   - zircon_runtime/src/render_graph/types.rs
   - zircon_runtime/src/render_graph/tests/resources/transient_aliasing.rs
 implementation_files:
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/transient_materialization.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/transient_resource_pool.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/materialization.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/materialization/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources/binding.rs
   - zircon_runtime/src/render_graph/graph.rs
   - zircon_runtime/src/render_graph/builder/compile.rs
   - zircon_runtime/src/render_graph/dump.rs
@@ -24,19 +14,9 @@ plan_sources:
   - docs/plans/zircon_runtime/render/01-render-graph-rdg-alignment.md
   - user: 2026-06-17 implement WGPU-to-render pipeline design from docs/plans/zircon_runtime/render, feature-first with tests deferred
 tests:
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/materialization/tests.rs::materialization_creates_dense_transients_and_skips_sparse_reservations
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/materialization/tests.rs::materialization_aliases_compatible_transient_texture_slots
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/materialization/tests.rs::materialization_receives_incompatible_texture_resources_in_separate_graph_slots
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/materialization/tests.rs::materialization_overrides_preimported_terminal_aa_input_with_owned_transient
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/materialization/tests.rs::materialization_preserves_imported_persistent_texture_without_pool_backing
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/materialization/tests.rs::materialization_aliases_transient_buffer_slots
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/materialization/tests.rs::materialization_exposes_owned_texture_mip_views
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/materialization/tests.rs::materialization_aliases_ssr_reflection_coarse_pyramid_to_parent_mip_view
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/materialization/tests.rs::materialization_allocates_ssr_reflection_coarse_resource_when_parent_has_no_coarse_mip
   - zircon_runtime/src/render_graph/tests/resources/transient_aliasing.rs::graph_transient_allocation_plan_reports_slot_reserved_bytes
   - zircon_runtime/src/render_graph/tests/resources/transient_aliasing.rs::graph_transient_allocation_plan_bypasses_persistent_textures
   - zircon_runtime/src/render_graph/tests/resources/transient_aliasing.rs::graph_readback_lifetimes_extend_to_graph_end_and_do_not_alias
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_graph_materialization_tests.rs::runtime_15_render_graph_materialization_requires_transient_pool
 doc_type: module-detail
 ---
 

@@ -1,6 +1,5 @@
 ---
 related_code:
-  - zircon_editor/src/ui/host/editor_asset_manager/handle.rs
   - zircon_runtime/src/asset/pipeline/manager/asset_manager/handle.rs
   - zircon_runtime/src/core/manager/mod.rs
 implementation_files:

@@ -1,9 +1,8 @@
 ---
 related_code:
   - zircon_editor/src/core/settings/catalog/settings_catalog.rs
-  - zircon_editor/src/core/settings/catalog/settings_catalog/optimization_batch_hy_editor608_tests.rs
   - zircon_editor/src/ui/host/editor_event_runtime_access/settings_projection.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/settings_window/mod.rs
+  - zircon_editor/src/ui/retained/ui/data/projection/settings_window/mod.rs
   - docs/crates/zircon_editor/core/settings.md
 plan_source: docs/plans/optimize/zircon_editor/265-editor-settings-preferences-project-settings-scope-schema-overlay-persistence-migration-restart-plugin-window-current-working-tree-review.md
 plan_item: E-SET-P2-13

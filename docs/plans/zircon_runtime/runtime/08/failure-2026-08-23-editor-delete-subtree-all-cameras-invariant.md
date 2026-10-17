@@ -12,8 +12,7 @@ failure_scope: cross_plan
 related_code:
   - zircon_runtime/src/scene/world/transaction/detached_entity_batch.rs
   - zircon_runtime/src/scene/world/transaction/detached_entity_batch/prepared.rs
-  - zircon_runtime/src/scene/world/transaction/detached_entity_batch/preparation_owner.rs
-  - zircon_runtime/src/scene/world/transaction/detached_entity_batch/tests.rs
+  - zircon_runtime/src/scene/world/detached_entity_batch/preparation_owner.rs
   - zircon_runtime/src/scene/world/world.rs
   - zircon_runtime/src/scene/world/derived_state.rs
   - zircon_editor/src/core/editing/command.rs

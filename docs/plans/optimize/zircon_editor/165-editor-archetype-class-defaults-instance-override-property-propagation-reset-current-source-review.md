@@ -30,7 +30,6 @@ related_code:
   - zircon_runtime/src/asset/assets/scene
   - zircon_runtime/src/asset/artifact/cache_payload
   - zircon_runtime/src/asset/importer
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/loading
   - zircon_runtime/src/scene/world/project_io.rs
   - zircon_runtime/src/scene/world/project_io
   - zircon_runtime/src/scene/reflect
@@ -40,8 +39,6 @@ related_code:
   - zircon_editor/src/core/extension
   - zircon_editor/src/ui/workbench/snapshot/data/inspector_snapshot.rs
   - zircon_editor/src/ui/material_editor/projection.rs
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/world/workbench_extension_prefab_editor_workspace.zui
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback.rs
   - zircon_plugins/prefab_tools
   - zircon_plugins/editor_support/src/lib.rs
 reference_engines:

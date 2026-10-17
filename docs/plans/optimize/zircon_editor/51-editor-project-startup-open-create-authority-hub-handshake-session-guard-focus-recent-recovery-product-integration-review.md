@@ -11,18 +11,15 @@ related_code:
   - zircon_editor/src/ui/host/editor_manager_startup.rs
   - zircon_editor/src/ui/host/project_access.rs
   - zircon_editor/src/ui/host/startup
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/native_registration
   - zircon_editor/src/ui/workbench/project
   - zircon_editor/src/ui/workbench/startup
-  - zircon_editor/src/ui/retained_host/app.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/startup
-  - zircon_editor/src/ui/retained_host/app/welcome_session/actions
-  - zircon_editor/src/ui/retained_host/host_contract/window/attention.rs
-  - zircon_editor/src/ui/retained_host/host_contract/window/capture.rs
-  - zircon_editor/src/ui/retained_host/host_contract/window/event_loop.rs
-  - zircon_editor/src/ui/retained_host/host_contract/window/lifecycle.rs
-  - zircon_editor/src/ui/retained_host/host_contract/window/event_loop/redraw/present.rs
-  - zircon_editor/src/ui/retained_host/run_config.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle/startup
+  - zircon_editor/src/ui/retained/app/welcome_session/actions
+  - zircon_editor/src/ui/retained/contract/window/attention.rs
+  - zircon_editor/src/ui/retained/contract/window/capture.rs
+  - zircon_editor/src/ui/retained/contract/window/event_loop.rs
+  - zircon_editor/src/ui/retained/contract/window/lifecycle.rs
+  - zircon_editor/src/ui/retained/contract/window/event_loop/redraw/present.rs
   - zircon_app/src/entry/entry_runner/editor.rs
   - zircon_app/src/entry/entry_runner/editor
   - zircon_app/src/entry/entry_runner/bootstrap.rs
@@ -41,13 +38,9 @@ related_code:
   - zircon_runtime/src/asset/project/paths.rs
 tests:
   - zircon_editor/src/core/project/tests
-  - zircon_editor/src/core/recovery/tests.rs
   - zircon_editor/src/tests/host/manager/bootstrap_and_startup/session_startup.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/welcome/open_recent.rs
+  - zircon_editor/src/tests/host/callbacks/welcome/open_recent.rs
   - zircon_app/src/entry/entry_runner/editor/tests
-  - zircon_hub/src/process/editor_handshake/tests.rs
-  - zircon_runtime_interface/src/hub_protocol/tests.rs
-  - zircon_runtime_interface/src/project/session_lock/tests.rs
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md
   - docs/plans/optimize/01-cross-report-owner-schema-abi-p0-consolidation-review.md

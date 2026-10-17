@@ -12,38 +12,19 @@ related_code:
   - zircon_runtime/src/plugin/extension_registry/runtime_extension_registry.rs
   - zircon_runtime/src/plugin/extension_registry/register/bridge_registration.rs
   - zircon_runtime/src/plugin/extension_registry/ownership.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/bridge_lifecycle.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/bridge_dependencies.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/bridge_lifecycle_state.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/contributions/extension.rs
+  - zircon_runtime/src/plugin/runtime/catalog/contributions/extension.rs
   - zircon_runtime/src/plugin/package_manifest/plugin_interface_manifest.rs
   - zircon_runtime/src/plugin/package_manifest/plugin_package_manifest.rs
-  - zircon_runtime/src/plugin/runtime_plugin/package_validation/interfaces/exports.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/access.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/diagnostics.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/abi_declarations.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/bridge_method_abi.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/bridge_method_bindings.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/host_api_adapter.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/mod.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_abi.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/bridge_lifecycle.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/bridge_methods.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/reports.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests/runtime_behavior.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests/bridge_bindings.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests/hot_reload_state.rs
-  - zircon_runtime/src/tests/plugin_extensions/native_plugin_loader.rs
-  - zircon_runtime/src/tests/plugin_extensions/native_plugin_loader/real_fixture.rs
+  - zircon_runtime/src/plugin/runtime/validation/interfaces/exports.rs
+  - zircon_runtime/src/plugin/loader/live/tests/runtime_behavior.rs
+  - zircon_runtime/src/plugin/loader/live/tests/bridge_bindings.rs
+  - zircon_runtime/src/plugin/loader/live/tests/hot_reload_state.rs
   - zircon_runtime/src/script/vm/host/bridge_host_module.rs
   - zircon_runtime/src/script/vm/host/script_call_table.rs
   - zircon_plugins/zr_vm_language/runtime/src/real_backend/host_modules.rs
   - zircon_runtime/src/script/vm/host/mod.rs
   - zircon_runtime/src/script/vm/mod.rs
   - zircon_runtime/src/script/mod.rs
-  - zircon_runtime/src/script/vm/tests.rs
   - zircon_runtime/src/core/runtime/runtime.rs
   - zircon_runtime/src/core/runtime/handle/runtime_extensions.rs
   - zircon_runtime/src/core/runtime/state/core_runtime_state.rs
@@ -82,40 +63,21 @@ implementation_files:
   - zircon_runtime/src/plugin/extension_registry/runtime_extension_registry.rs
   - zircon_runtime/src/plugin/extension_registry/register/bridge_registration.rs
   - zircon_runtime/src/plugin/extension_registry/ownership.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/bridge_lifecycle.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/bridge_dependencies.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/bridge_lifecycle_state.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/contributions/extension.rs
+  - zircon_runtime/src/plugin/runtime/catalog/contributions/extension.rs
   - zircon_runtime/src/plugin/package_manifest/plugin_interface_manifest.rs
   - zircon_runtime/src/plugin/package_manifest/plugin_package_manifest.rs
-  - zircon_runtime/src/plugin/runtime_plugin/package_validation/interfaces/exports.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/access.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/diagnostics.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/registration/reports.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/registration/plugin.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/abi_declarations.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/bridge_method_abi.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/bridge_method_bindings.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/host_api_adapter.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/mod.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_abi.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/bridge_lifecycle.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/bridge_methods.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/reports.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests/runtime_behavior.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests/bridge_bindings.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests/hot_reload_state.rs
-  - zircon_runtime/src/tests/plugin_extensions/native_plugin_loader.rs
-  - zircon_runtime/src/tests/plugin_extensions/native_plugin_loader/real_fixture.rs
+  - zircon_runtime/src/plugin/runtime/validation/interfaces/exports.rs
+  - zircon_runtime/src/plugin/runtime/catalog/registration/reports.rs
+  - zircon_runtime/src/plugin/runtime/catalog/registration/plugin.rs
+  - zircon_runtime/src/plugin/loader/live/tests/runtime_behavior.rs
+  - zircon_runtime/src/plugin/loader/live/tests/bridge_bindings.rs
+  - zircon_runtime/src/plugin/loader/live/tests/hot_reload_state.rs
   - zircon_runtime/src/script/vm/host/bridge_host_module.rs
   - zircon_runtime/src/script/vm/host/script_call_table.rs
   - zircon_plugins/zr_vm_language/runtime/src/real_backend/host_modules.rs
   - zircon_runtime/src/script/vm/host/mod.rs
   - zircon_runtime/src/script/vm/mod.rs
   - zircon_runtime/src/script/mod.rs
-  - zircon_runtime/src/script/vm/tests.rs
   - zircon_runtime/src/core/runtime/runtime.rs
   - zircon_runtime/src/core/runtime/handle/runtime_extensions.rs
   - zircon_runtime/src/core/runtime/state/core_runtime_state.rs
@@ -148,31 +110,16 @@ plan_sources:
   - docs/plans/engine-code-structure-convention.md
   - docs/plans/engine-code-review-findings-2026-06.md
 tests:
-  - zircon_runtime/src/tests/plugin_extensions/extension_registry_bridge.rs
-  - zircon_runtime/src/tests/plugin_extensions/extension_registry_bridge/basics.rs
-  - zircon_runtime/src/tests/plugin_extensions/extension_registry_bridge/diagnostics.rs
-  - zircon_runtime/src/tests/plugin_extensions/extension_registry_bridge/lifecycle.rs
-  - zircon_runtime/src/tests/plugin_extensions/extension_registry_bridge_performance_baseline.rs
-  - zircon_runtime/src/tests/plugin_extensions/runtime_plugin_bridge_dependencies.rs
+  - zircon_runtime/src/tests/plugins/extension_registry_bridge/basics.rs
+  - zircon_runtime/src/tests/plugins/extension_registry_bridge/diagnostics.rs
+  - zircon_runtime/src/tests/plugins/extension_registry_bridge/lifecycle.rs
   - zircon_runtime/src/plugin/bridge/table.rs::tests::bridge_entry_provider_accessors_recover_poisoned_provider_lock
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy.rs::runtime_15_plugin_bridge_table_lock_poison_recovery_guard_covers_provider_slot
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/bridge_methods.rs::tests::native_live_host_bridge_method_bindings_recover_poisoned_lock
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/native_live_host_lock_poison.rs::runtime_15_native_live_host_bridge_methods_lock_poison_recovery_guard_covers_binding_registry
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests/runtime_behavior.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests/bridge_bindings.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests/hot_reload_state.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/native_live_host_tests.rs::runtime_15_native_live_host_tests_are_folder_backed
-  - zircon_runtime/src/tests/plugin_extensions/native_plugin_loader.rs
-  - zircon_runtime/src/tests/plugin_extensions/native_plugin_loader/real_fixture.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/native_plugin_loader.rs::runtime_15_native_plugin_loader_real_fixture_tests_are_folder_backed
-  - zircon_runtime/src/plugin/native_plugin_loader/host_api_adapter/tests.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/native_host_api_adapter.rs::runtime_15_native_host_api_adapter_tests_are_child_owner
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/extension_registry_bridge.rs::runtime_15_extension_registry_bridge_tests_are_folder_backed
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests.rs
-  - zircon_runtime/src/script/vm/tests.rs
+  - zircon_runtime/src/plugin/loader/live/tests/runtime_behavior.rs
+  - zircon_runtime/src/plugin/loader/live/tests/bridge_bindings.rs
+  - zircon_runtime/src/plugin/loader/live/tests/hot_reload_state.rs
   - zircon_runtime/src/scene/tests/ecs_schedule.rs
   - zircon_app/src/entry/tests/profile_bootstrap.rs
-  - zircon_editor/src/tests/editor_event/runtime.rs
+  - zircon_editor/src/tests/editor_event/runtime/mod.rs
 ---
 
 # Plugin Bridge

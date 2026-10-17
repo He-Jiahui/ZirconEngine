@@ -13,7 +13,6 @@ related_records:
 implementation_files:
   - zircon_runtime/src/ui/surface/navigation_index.rs
 tests:
-  - zircon_runtime/src/ui/surface/navigation_index/tests.rs
   - tools/tests/test_runtime_ui_navigation_index_performance_contract.py
 ---
 

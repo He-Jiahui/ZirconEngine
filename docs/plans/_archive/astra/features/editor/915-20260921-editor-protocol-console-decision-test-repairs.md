@@ -10,7 +10,6 @@ related_records:
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
   - zircon_editor/src/core/gateway/session/protocol.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/console_projection/tests.rs
   - zircon_editor/src/core/notifications/decision/model.rs
 ---
 

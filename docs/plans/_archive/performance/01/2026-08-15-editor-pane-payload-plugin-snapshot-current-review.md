@@ -1,11 +1,11 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/pane_payloads.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/pane_payloads
+  - zircon_editor/src/ui/retained/app/host_lifecycle/pane_payloads.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle/pane_payloads
   - zircon_editor/src/ui/host/editor_event_runtime_access/extension_access.rs
   - zircon_editor/src/core/extension/store/model/snapshot.rs
   - zircon_editor/src/core/editor_extension/view_descriptor.rs
-  - zircon_editor/src/ui/retained_host/app/pane_payload_visibility.rs
+  - zircon_editor/src/ui/retained/app/pane_payload_visibility.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_editor/editor_ui/08-workbench-shell-on-runtime-ui.md

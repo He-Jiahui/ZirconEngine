@@ -2,7 +2,6 @@
 status: local_candidate
 implementation_files:
   - tools/analysis/visual/zircon_editor_ui_visual_oracle.py
-  - tools/tests/test_editor_visual_oracle_profile_single_read_performance_contract.py
 ---
 
 # Visual oracle capture inputs single read

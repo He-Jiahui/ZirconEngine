@@ -8,9 +8,9 @@ related_records:
   - docs/plans/astra/features/runtime/890-runtime580-responsive-definition-move.md
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
-  - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node/index/persistent_buckets.rs
+  - zircon_editor/src/ui/retained/contract/node/index/persistent_buckets.rs
 tests:
-  - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node/index/persistent_buckets.rs
+  - zircon_editor/src/ui/retained/contract/node/index/persistent_buckets.rs
 ---
 
 # Editor947 Editor580 Persistent-Bucket Dense Sort

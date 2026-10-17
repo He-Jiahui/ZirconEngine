@@ -10,40 +10,28 @@ related_code:
   - .codex/skills/zircon-project-skills/close-session-goal-milestones/scripts/check-closeout.ps1
   - .codex/skills/zircon-project-skills/close-session-goal-milestones/scripts/read-closeout-evidence.py
   - .codex/skills/zircon-project-skills/write-plan-output-records/scripts/audit_plan_output_records.py
-  - tools/zircon_build.py
-  - tools/zircon_export/__main__.py
-  - tools/zircon_export/cli.py
-  - tools/zircon-session.ps1
-  - tools/build-editor.ps1
-  - tools/check-conventions.ps1
-  - tools/check_conventions.py
   - tools/audits/runtime_domain_dependency_audit.py
-  - tools/validation/runtime-profile-feature-presets.py
+  - tools/analysis/validation/runtime-profile-feature-presets.py
   - tools/dev/dev-fast-build.ps1
   - tools/dev/dev-fast-aliases.ps1
   - tools/dev/dev-module-interactive.ps1
   - tools/maintenance/cleanup-stale-targets.ps1
-  - tools/install-codex-session-hook.ps1
-  - tools/install-session-coordinator-task.ps1
-  - tools/install-session-tray-startup.ps1
   - tools/mvp/Build-MvpProductInputs.ps1
   - tools/mvp/Stage-MvpProducts.ps1
   - tools/mvp/Invoke-MvpAcceptance.ps1
   - tools/mvp/Capture-RenderExtractBaseline.ps1
-  - tools/profiling/shared/profile-capture-manifest.ps1
-  - tools/profiling/ui/ui-profile-capture.ps1
-  - tools/profiling/ui/ui-profile-process-evidence.ps1
-  - tools/profiling/shader_pbr/zircon_profile_shader_pbr_viewer.ps1
-  - tools/profiling/shader_pbr/zircon_summarize_shader_pbr_profile.py
-  - tools/profiling/shader_pbr/zircon_validate_shader_pbr_gpu_timing_evidence.py
-  - tools/profiling/shader_pbr/zircon_validate_shader_pbr_renderdoc_replay.py
-  - tools/profiling/shader_pbr/zircon_validate_shader_pbr_viewer_evidence.py
+  - tools/analysis/profiling/shared/profile-capture-manifest.ps1
+  - tools/analysis/profiling/ui/ui-profile-capture.ps1
+  - tools/analysis/profiling/ui/ui-profile-process-evidence.ps1
+  - tools/analysis/profiling/shader_pbr/zircon_profile_shader_pbr_viewer.ps1
+  - tools/analysis/profiling/shader_pbr/zircon_summarize_shader_pbr_profile.py
+  - tools/analysis/profiling/shader_pbr/zircon_validate_shader_pbr_gpu_timing_evidence.py
+  - tools/analysis/profiling/shader_pbr/zircon_validate_shader_pbr_renderdoc_replay.py
+  - tools/analysis/profiling/shader_pbr/zircon_validate_shader_pbr_viewer_evidence.py
   - examples/woc/tools/package.json
   - examples/woc/tools/package-lock.json
   - examples/woc/tools/reference_inventory.mjs
   - examples/woc/tools/command_codegen.mjs
-  - tools/editor-workbench-preview/package.json
-  - tools/editor-workbench-preview/package-lock.json
   - zircon_hub/package.json
   - zircon_hub/package-lock.json
 tests:
@@ -54,9 +42,6 @@ tests:
   - tools/tests/test_zircon_build_cargo_environment.py
   - tools/tests/test_zircon_export_cli_owner_boundaries.py
   - tools/tests/test_zircon_summarize_shader_pbr_profile.py
-  - tools/session_coordinator/tests/test_milestone_cli.py
-  - tools/session_coordinator/tests/test_powershell_wrapper_arguments.py
-  - tools/session_coordinator/tests/test_soak.py
 plan_sources:
   - docs/plans/optimize/01-cross-report-owner-schema-abi-p0-consolidation-review.md
   - docs/plans/optimize/zircon_tooling/01-workspace-toolchain-ci-validation-and-developer-entrypoints-review.md

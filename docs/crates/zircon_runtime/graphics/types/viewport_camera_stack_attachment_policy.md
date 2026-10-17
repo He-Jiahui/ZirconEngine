@@ -4,28 +4,14 @@ related_code:
   - zircon_runtime/src/graphics/types/viewport_render_frame.rs
   - zircon_runtime/src/graphics/types/viewport_render_frame_from_extract.rs
   - zircon_runtime/src/graphics/types/viewport_render_frame_from_snapshot.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/scene_clear/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/scene_clear/scene_region_clear_resources.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/scene_clear/scene_region_clear_color_uniform.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/scene_clear/scene_region_clear_shader.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/scene_renderer_core.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_construct/construct/construct.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
+  - zircon_runtime/src/graphics/scene/renderer/scene_clear/mod.rs
+  - zircon_runtime/src/graphics/scene/renderer/core/render/render/render.rs
 implementation_files:
   - zircon_runtime/src/graphics/types/viewport_camera_stack_attachment_policy.rs
   - zircon_runtime/src/graphics/types/viewport_render_frame.rs
   - zircon_runtime/src/graphics/types/viewport_render_frame_from_extract.rs
   - zircon_runtime/src/graphics/types/viewport_render_frame_from_snapshot.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/scene_clear/scene_region_clear_resources.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/scene_clear/scene_region_clear_color_uniform.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/scene_clear/scene_region_clear_shader.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/scene_renderer_core.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_construct/construct/construct.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
+  - zircon_runtime/src/graphics/scene/renderer/core/render/render/render.rs
 plan_sources:
   - docs/plans/zircon_runtime/render/09-camera-render-ordering.md
   - docs/plans/zircon_runtime/render/01-render-graph-rdg-alignment.md
@@ -34,7 +20,6 @@ tests:
   - zircon_runtime/src/graphics/types/viewport_camera_stack_attachment_policy.rs::tests::base_camera_none_clear_with_msaa_clears_scene_color_only
   - zircon_runtime/src/graphics/types/viewport_camera_stack_attachment_policy.rs::tests::overlay_camera_never_clears_scene_color_and_uses_clear_depth_for_depth
   - zircon_runtime/src/graphics/types/viewport_camera_stack_attachment_policy.rs::tests::policy_only_rewrites_scene_first_clear_writes_and_preserves_store
-  - zircon_runtime/src/graphics/scene/scene_renderer/scene_clear/scene_region_clear_resources.rs::tests::scene_region_clear_resources_build_for_offscreen_backend
   - cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-camera-attachment-policy-0618 --message-format short --color never
   - cargo test -p zircon_runtime --lib viewport_camera_stack_attachment_policy --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-scene-region-clear-0619 --message-format short --color never -- --nocapture
   - cargo test -p zircon_runtime --lib scene_region_clear_resources --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-scene-region-clear-0619 --message-format short --color never -- --nocapture

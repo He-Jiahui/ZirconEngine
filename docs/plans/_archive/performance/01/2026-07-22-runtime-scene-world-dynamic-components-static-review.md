@@ -14,7 +14,6 @@ reference_sources:
 tests:
   - zircon_runtime/src/scene/tests/ecs_dynamic_components_structure.rs
   - zircon_runtime/src/scene/tests/ecs_reflect/dynamic_components.rs
-  - zircon_runtime/src/script/vm/reflection/tests.rs
   - current-source Windows zircon_runtime dynamic-component tests pending
 doc_type: implementation-evidence
 status: static_complete_dynamic_pending

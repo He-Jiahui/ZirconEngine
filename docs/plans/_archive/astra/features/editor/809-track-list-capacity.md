@@ -11,7 +11,6 @@ related_records:
 implementation_files:
   - zircon_editor/src/ui/timeline/track_list.rs
 tests:
-  - tools/tests/test_editor_track_list_capacity_performance_contract.py
 ---
 
 # Editor809 · timeline track-list projection capacity

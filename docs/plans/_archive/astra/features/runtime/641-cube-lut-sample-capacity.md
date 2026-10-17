@@ -5,9 +5,7 @@ plan_sources:
   - docs/plans/optimize/zircon_runtime/641/2026-09-01-preallocated-cube-lut-samples.md
 related_code:
   - zircon_runtime/src/asset/assets/texture/cube_lut.rs
-  - zircon_runtime/src/asset/assets/texture/cube_lut/optimization_batch_jb_runtime641_tests.rs
 tests:
-  - zircon_runtime/src/asset/assets/texture/cube_lut/optimization_batch_jb_runtime641_tests.rs
 ---
 
 # Cube LUT Sample Capacity

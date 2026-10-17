@@ -12,7 +12,6 @@ related_code:
   - zircon_runtime/src/core/runtime/handle/runtime_extensions.rs
   - zircon_runtime/src/core/runtime/runtime.rs
   - zircon_runtime/src/core/runtime/state/core_runtime_state.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/bridge_lifecycle_state.rs
 tests:
   - cargo test -p zircon_editor --lib --no-run --locked --jobs 1
 resolved_at: 2026-07-13

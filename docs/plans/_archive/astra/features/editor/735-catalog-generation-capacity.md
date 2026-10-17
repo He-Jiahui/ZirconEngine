@@ -6,10 +6,8 @@ plan_sources:
   - docs/plans/optimize/zircon_editor/129-editor-search-filter-query-index-result-find-usage-reference-navigation-current-source-review.md
   - docs/plans/optimize/zircon_editor/04/2026-09-13-catalog-generation-capacity.md
 related_code:
-  - zircon_editor/src/ui/host/editor_asset_manager/manager/catalog_generation/build.rs
+  - zircon_editor/src/ui/host/assets/manager/catalog_generation/build.rs
 tests:
-  - tools/tests/test_editor_catalog_generation_capacity_performance_contract.py
-  - zircon_editor/src/ui/host/editor_asset_manager/manager/catalog_generation/tests.rs
 ---
 
 # Editor Catalog Generation Capacity

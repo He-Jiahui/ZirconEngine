@@ -2,8 +2,7 @@
 related_code:
   - zircon_editor/src/core/notifications
   - zircon_editor/src/ui/host/play_pending_decision
-  - zircon_editor/src/ui/retained_host/app/workbench_notifications.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/notifications.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/workbench/notifications.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/performance/review.md

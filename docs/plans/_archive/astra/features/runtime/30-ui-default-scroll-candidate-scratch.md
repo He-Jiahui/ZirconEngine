@@ -4,7 +4,6 @@ related_code:
   - zircon_runtime/src/ui/surface/surface.rs
   - zircon_runtime/src/ui/surface/surface/event_routing.rs
   - zircon_runtime/src/ui/tests/shared_core.rs
-  - zircon_runtime/src/ui/tree/node/interaction/first_scrollable_short_circuit_tests.rs
   - zircon_runtime/src/ui/tests/shared_core/scroll_mutation/pointer_routes.rs
 implementation_files:
   - zircon_runtime/src/ui/tree/node/interaction.rs
@@ -14,7 +13,6 @@ plan_sources:
   - docs/plans/optimize/zircon_runtime/11a-runtime-ui-architecture-tree-layout-input-accessibility-review.md
   - docs/plans/optimize/zircon_runtime/11a/2026-09-10-default-scroll-candidate-scratch.md
 tests:
-  - zircon_runtime/src/ui/tree/node/interaction/first_scrollable_short_circuit_tests.rs
   - zircon_runtime/src/ui/tests/shared_core.rs
   - zircon_runtime/src/ui/tests/shared_core/scroll_mutation/pointer_routes.rs
   - tools/tests/test_runtime_pointer_hover_hot_paths_pressure.py

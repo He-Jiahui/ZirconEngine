@@ -8,8 +8,7 @@ related_code:
   - zircon_runtime/src/scene/world/property_access/write/physics.rs
   - zircon_runtime/src/scene/tests/property_paths/write_validation.rs
   - zircon_runtime/src/scene/tests/component_structure/runtime_world_domains.rs
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/scene_world/property_access.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/scene_world_property_access.rs
+  - zircon_runtime/src/tests/contracts/review/errors/scene_world/property_access.rs
 implementation_files:
   - zircon_runtime/src/scene/world/property_access/write.rs
   - zircon_runtime/src/scene/world/property_access/write/animation.rs
@@ -18,8 +17,7 @@ implementation_files:
   - zircon_runtime/src/scene/world/property_access/write/mesh.rs
   - zircon_runtime/src/scene/tests/property_paths/write_validation.rs
   - zircon_runtime/src/scene/tests/component_structure/runtime_world_domains.rs
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/scene_world/property_access.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/scene_world_property_access.rs
+  - zircon_runtime/src/tests/contracts/review/errors/scene_world/property_access.rs
 plan_sources:
   - docs/plans/engine-code-structure-convention.md
   - docs/plans/engine-code-review-findings-2026-06.md
@@ -30,8 +28,7 @@ tests:
   - zircon_runtime/src/scene/tests/property_paths/write_validation.rs::world_property_writes_use_direct_optional_state_branches
   - zircon_runtime/src/scene/tests/property_paths/write_validation.rs::world_property_writes_pre_size_normalized_segment_vector
   - zircon_runtime/src/scene/tests/component_structure/runtime_world_domains.rs::world_property_access_moves_into_folder_backed_subtree
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/scene_world/property_access.rs::review_f5_scene_property_access_uses_scene_error
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/scene_world_property_access.rs::runtime_15_scene_world_property_access_physics_writes_are_child_owner
+  - zircon_runtime/src/tests/contracts/review/errors/scene_world/property_access.rs::review_f5_scene_property_access_uses_scene_error
   - rustfmt --edition 2021 --check
   - git diff --check
 doc_type: milestone-detail

@@ -9,12 +9,8 @@ canonical_owner: Editor41
 refreshes:
   - docs/plans/optimize/zircon_editor/41-level-variant-data-layer-level-instance-world-outliner-authoring-review.md
 related_code:
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/world/workbench_extension_level_variant_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/shell/workbench_scene_tree_panel.zui
-  - zircon_editor/src/ui/retained_host/app/hierarchy_filter.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/scene_hierarchy_fragment.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback.rs
-  - zircon_editor/src/ui/retained_host/hierarchy_pointer
+  - zircon_editor/src/ui/retained/app/hierarchy_filter.rs
+  - zircon_editor/src/ui/retained/dispatch/workbench/scene_hierarchy_fragment.rs
   - zircon_editor/src/ui/workbench/state/editor_state_apply_intent.rs
   - zircon_runtime/src/scene/inspection
   - zircon_runtime/src/scene/world/project_io/scene_asset.rs
@@ -23,8 +19,8 @@ related_code:
   - zircon_runtime_interface/src/resource/marker.rs
   - zircon_plugins/prefab_tools
 tests:
-  - zircon_editor/src/ui/retained_host/app/hierarchy_filter.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/scene_hierarchy_fragment.rs
+  - zircon_editor/src/ui/retained/app/hierarchy_filter.rs
+  - zircon_editor/src/ui/retained/dispatch/workbench/scene_hierarchy_fragment.rs
   - zircon_editor/src/ui/retained_host/hierarchy_pointer
   - zircon_runtime/src/scene/inspection
   - zircon_runtime/src/scene/world/project_io/scene_asset.rs

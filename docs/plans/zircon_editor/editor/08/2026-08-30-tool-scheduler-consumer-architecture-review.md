@@ -9,9 +9,8 @@ related_code:
   - zircon_editor/src/core/editor_message/topic.rs
   - zircon_editor/src/scene/modes/scene_mode_stack.rs
   - zircon_editor/src/scene/modes/scene_mode_ctx.rs
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_scene_modes.rs
   - zircon_editor/src/ui/workbench/startup/editor_state_construction.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/controller.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/controller.rs
 reference_sources:
   - dev/UnrealEngine/Engine/Source/Editor/UnrealEd/Public/EditorModeManager.h
   - dev/UnrealEngine/Engine/Source/Editor/Blutility/Private/EditorUtilitySubsystem.cpp

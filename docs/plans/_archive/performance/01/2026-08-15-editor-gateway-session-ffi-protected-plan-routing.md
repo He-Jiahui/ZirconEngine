@@ -5,7 +5,7 @@ related_code:
   - zircon_editor/src/core/runtime_event_consumer
   - zircon_editor/src/core/sync/pump.rs
   - zircon_editor/src/ui/host/editor_host_event_controller.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/tick.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle/tick.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/performance/review.md

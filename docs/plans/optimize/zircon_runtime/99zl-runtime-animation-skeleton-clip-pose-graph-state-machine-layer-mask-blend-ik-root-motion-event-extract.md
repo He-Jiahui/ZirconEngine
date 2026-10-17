@@ -19,7 +19,6 @@ related_code:
   - zircon_plugins/gltf_importer/runtime/src/subassets.rs
   - zircon_runtime/src/scene/level_system/animation_runtime.rs
   - zircon_runtime/src/scene/level_system_render_extract.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh
   - zircon_plugins/physics/runtime/src/skeletal
   - zircon_editor/src/core/editing/animation_document
   - zircon_editor/src/ui/animation_editor

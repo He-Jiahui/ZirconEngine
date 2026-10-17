@@ -38,9 +38,9 @@ related_code:
   - zircon_editor/src/ui/host/scene_inspection_publication.rs
   - zircon_editor/src/ui/host/play_gizmo.rs
   - zircon_editor/src/ui/host/play_hierarchy_projection.rs
-  - zircon_editor/src/ui/retained_host/app/hierarchy_world_watch.rs
-  - zircon_editor/src/ui/retained_host/app/hierarchy_rename.rs
-  - zircon_editor/src/ui/retained_host/app/play_viewport_pick.rs
+  - zircon_editor/src/ui/retained/app/hierarchy_world_watch.rs
+  - zircon_editor/src/ui/retained/app/hierarchy_rename.rs
+  - zircon_editor/src/ui/retained/app/play_viewport_pick.rs
 reference_engines:
   - dev/UnrealEngine/Engine/Source/Runtime/Engine/Classes/Engine/World.h
   - dev/UnrealEngine/Engine/Source/Runtime/Engine/Private/World.cpp

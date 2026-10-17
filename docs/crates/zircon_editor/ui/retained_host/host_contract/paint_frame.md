@@ -1,40 +1,28 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/host_contract/paint_frame.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_frame/frame.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_frame/geometry.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_frame/pixels.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_frame/recording.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_frame/recording/model.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_frame/recording/state.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_frame/recording_frame.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_frame/recording_frame/commands.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_frame/recording_frame/commands/image.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_frame/recording_frame/commands/record.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_frame/recording_frame/commands/shapes.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_frame/recording_frame/commands/text.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_frame/recording_frame/state.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_frame/tests.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_recording.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_primitives.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_primitives/image.rs
-  - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/extraction.rs
+  - zircon_editor/src/ui/retained/contract/paint_frame/frame.rs
+  - zircon_editor/src/ui/retained/contract/paint_frame/geometry.rs
+  - zircon_editor/src/ui/retained/contract/paint_frame/pixels.rs
+  - zircon_editor/src/ui/retained/contract/paint_frame/recording.rs
+  - zircon_editor/src/ui/retained/contract/paint_frame/recording/model.rs
+  - zircon_editor/src/ui/retained/contract/paint_frame/recording/state.rs
+  - zircon_editor/src/ui/retained/contract/paint_frame/recording_frame.rs
+  - zircon_editor/src/ui/retained/contract/paint_frame/recording_frame/commands.rs
+  - zircon_editor/src/ui/retained/contract/paint_frame/commands/record.rs
+  - zircon_editor/src/ui/retained/contract/paint_frame/recording_frame/state.rs
+  - zircon_editor/src/ui/retained/contract/paint_primitives/image.rs
+  - zircon_editor/src/ui/retained/contract/chrome_command_stream/extraction.rs
 implementation_files:
-  - zircon_editor/src/ui/retained_host/host_contract/paint_frame.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_frame/frame.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_frame/geometry.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_frame/pixels.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_frame/recording.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_frame/recording/model.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_frame/recording/state.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_frame/recording_frame.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_frame/recording_frame/commands.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_frame/recording_frame/commands/image.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_frame/recording_frame/commands/record.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_frame/recording_frame/commands/shapes.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_frame/recording_frame/commands/text.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_frame/recording_frame/state.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_frame/tests.rs
+  - zircon_editor/src/ui/retained/contract/paint_frame/frame.rs
+  - zircon_editor/src/ui/retained/contract/paint_frame/geometry.rs
+  - zircon_editor/src/ui/retained/contract/paint_frame/pixels.rs
+  - zircon_editor/src/ui/retained/contract/paint_frame/recording.rs
+  - zircon_editor/src/ui/retained/contract/paint_frame/recording/model.rs
+  - zircon_editor/src/ui/retained/contract/paint_frame/recording/state.rs
+  - zircon_editor/src/ui/retained/contract/paint_frame/recording_frame.rs
+  - zircon_editor/src/ui/retained/contract/paint_frame/recording_frame/commands.rs
+  - zircon_editor/src/ui/retained/contract/paint_frame/commands/record.rs
+  - zircon_editor/src/ui/retained/contract/paint_frame/recording_frame/state.rs
 plan_sources:
   - docs/plans/zircon_editor/editor_ui/08-workbench-shell-on-runtime-ui.md
   - user: 2026-06-18 continue editor UI architecture implementation

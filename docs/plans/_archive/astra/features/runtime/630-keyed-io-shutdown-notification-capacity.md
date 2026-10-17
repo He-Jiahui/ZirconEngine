@@ -5,9 +5,7 @@ plan_sources:
   - docs/plans/optimize/zircon_runtime/630/2026-09-01-preallocated-keyed-io-shutdown-notifications.md
 related_code:
   - zircon_runtime/src/core/runtime/tasks/bounded_keyed_io/lane.rs
-  - zircon_runtime/src/core/runtime/tasks/bounded_keyed_io/lane/optimization_batch_it_runtime630_tests.rs
 tests:
-  - zircon_runtime/src/core/runtime/tasks/bounded_keyed_io/lane/optimization_batch_it_runtime630_tests.rs
 ---
 
 # Keyed I/O Shutdown Notification Capacity

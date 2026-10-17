@@ -8,9 +8,9 @@ related_records:
   - docs/plans/astra/features/runtime/888-runtime581-visible-spatial-hash-index.md
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/badge/commands/overlay.rs
+  - zircon_editor/src/ui/retained/contract/paint/badge/commands/overlay.rs
 tests:
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_primitives/badge/commands/overlay.rs
+  - zircon_editor/src/ui/retained/contract/paint/badge/commands/overlay.rs
 ---
 
 # Editor945 Editor581 Badge Overlay Clip Early Exit

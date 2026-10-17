@@ -5,7 +5,6 @@ related_code:
   - zircon_app/src/entry/runtime_library/runtime_session.rs
   - zircon_app/src/entry/tests/runtime_entry_surface_present_guards
   - zircon_runtime/src/dynamic_api/session
-  - zircon_runtime/src/graphics/runtime/render_framework/capture_frame
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_runtime/runtime/10-dynamic-api-and-interface-convergence.md

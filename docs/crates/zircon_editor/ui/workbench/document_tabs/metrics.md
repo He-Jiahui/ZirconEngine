@@ -3,17 +3,12 @@ related_code:
   - zircon_runtime_interface/src/ui/design_tokens.rs
   - zircon_editor/src/ui/workbench/document_tabs/mod.rs
   - zircon_editor/src/ui/workbench/document_tabs/metrics.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection/dock_header.rs
-  - zircon_editor/src/ui/retained_host/tab_drag/tab_width.rs
-  - zircon_editor/src/ui/retained_host/document_tab_pointer/host_document_tab_pointer_bridge.rs
-  - zircon_editor/src/ui/retained_host/document_tab_pointer/host_document_tab_pointer_bridge_sync.rs
-  - zircon_editor/assets/ui/editor/workbench_dock_header.zui
+  - zircon_editor/src/ui/retained/tab_drag/tab_width.rs
+  - zircon_editor/src/ui/document_tab_pointer/host_document_tab_pointer_bridge.rs
 implementation_files:
   - zircon_runtime_interface/src/ui/design_tokens.rs
   - zircon_editor/src/ui/workbench/document_tabs/metrics.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection/dock_header.rs
-  - zircon_editor/src/ui/retained_host/tab_drag/tab_width.rs
-  - zircon_editor/assets/ui/editor/workbench_dock_header.zui
+  - zircon_editor/src/ui/retained/tab_drag/tab_width.rs
 plan_sources:
   - docs/plans/zircon_editor/editor_layout/15-component-standardization-from-primitives.md
   - docs/plans/zircon_editor/editor_layout/17-text-rendering-and-typography.md

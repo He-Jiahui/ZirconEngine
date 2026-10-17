@@ -5,7 +5,6 @@ related_code:
   - zircon_hub/src/tauri_app/runtime_state.rs
   - zircon_hub/src/tauri_app/runtime_state/action_targets.rs
   - zircon_hub/src/tauri_app/runtime_state/project_actions.rs
-  - zircon_hub/src/tauri_app/runtime_state/project_actions/tests.rs
   - zircon_hub/src/tauri_app/runtime_state/project_delivery_actions.rs
   - zircon_hub/src/tauri_app/runtime_state/editor_launch_actions.rs
   - zircon_hub/src/tauri_app/runtime_state/scoped_views.rs
@@ -47,7 +46,6 @@ implementation_files:
   - zircon_hub/src/tauri_app/runtime_state.rs
   - zircon_hub/src/tauri_app/runtime_state/action_targets.rs
   - zircon_hub/src/tauri_app/runtime_state/project_actions.rs
-  - zircon_hub/src/tauri_app/runtime_state/project_actions/tests.rs
   - zircon_hub/src/tauri_app/runtime_state/project_delivery_actions.rs
   - zircon_hub/src/tauri_app/runtime_state/editor_launch_actions.rs
   - zircon_hub/src/tauri_app/runtime_state/scoped_views.rs

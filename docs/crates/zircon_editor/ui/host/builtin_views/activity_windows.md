@@ -1,8 +1,5 @@
 ---
 related_code:
-  - zircon_editor/src/ui/host/builtin_views/activity_windows/activity_window_descriptors.rs
-  - zircon_editor/src/ui/host/builtin_views/activity_windows/component_showcase_view_descriptor.rs
-  - zircon_editor/src/ui/host/builtin_views/activity_windows/functional_window_view_descriptors.rs
   - zircon_editor/src/ui/host/builtin_views/activity_windows/mod.rs
   - zircon_editor/src/ui/host/builtin_views/builtin_view_descriptors.rs
   - zircon_editor/src/ui/workbench/preset/default_layout.rs
@@ -14,9 +11,6 @@ related_code:
   - zircon_editor/src/tests/host/builtin_window_descriptors.rs
   - zircon_editor/src/tests/workbench/view_model/shell_projection.rs
 implementation_files:
-  - zircon_editor/src/ui/host/builtin_views/activity_windows/activity_window_descriptors.rs
-  - zircon_editor/src/ui/host/builtin_views/activity_windows/component_showcase_view_descriptor.rs
-  - zircon_editor/src/ui/host/builtin_views/activity_windows/functional_window_view_descriptors.rs
   - zircon_editor/src/ui/host/builtin_views/activity_windows/mod.rs
   - zircon_editor/src/ui/host/builtin_views/builtin_view_descriptors.rs
   - zircon_editor/src/core/commands/menu.rs

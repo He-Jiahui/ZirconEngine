@@ -13,7 +13,6 @@ related_code:
   - zircon_editor/src/ui/host/editor_host_event_controller.rs
   - zircon_editor/src/core/gateway/contract.rs
   - zircon_editor/src/core/editing/authoring_world.rs
-  - zircon_editor/src/ui/retained_host/app.rs
 tests:
   - attach a SessionGateway while the edit domain remains readable and mutable through its authoring facade
   - SessionGateway with_world and with_world_mut remain RequiresSerializedAccess

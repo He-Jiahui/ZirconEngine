@@ -7,10 +7,8 @@ related_records:
   - docs/plans/astra/features/editor/664-20260911-editor-ui-optimization-batch-completion.md
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
-  - zircon_editor/src/ui/retained_host/host_contract/data/viewport_image/overlay.rs
+  - zircon_editor/src/ui/retained/contract/data/viewport_image/overlay.rs
 tests:
-  - zircon_editor/src/ui/retained_host/host_contract/data/viewport_image/overlay/capacity_tests.rs
-  - tools/tests/test_editor881_viewport_overlay_clipped_line_capacity_performance_contract.py
 ---
 
 # Editor881 Viewport Overlay Clipped-Line Capacity

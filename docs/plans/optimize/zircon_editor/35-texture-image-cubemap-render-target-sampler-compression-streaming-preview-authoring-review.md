@@ -12,10 +12,8 @@ related_code:
   - zircon_runtime/src/core/framework/render/camera.rs
   - zircon_runtime/src/graphics/scene/resources/gpu_texture
   - zircon_runtime/src/graphics/scene/resources/output_target_texture
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_texture.rs
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_mip_streaming.rs
   - zircon_editor/src/core/asset/type_registry
-  - zircon_editor/src/ui/host/editor_asset_manager/manager/preview_refresh
+  - zircon_editor/src/ui/host/assets/manager/preview_refresh
   - zircon_plugins/texture
   - zircon_plugins/texture_importer
   - zircon_plugins/asset_importers/texture

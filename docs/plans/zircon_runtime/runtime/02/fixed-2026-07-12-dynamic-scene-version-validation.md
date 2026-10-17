@@ -8,8 +8,8 @@ fixing_plan: docs/plans/zircon_runtime/runtime/05-scene-editor-boundary-closeout
 origin_child_dir: docs/plans/zircon_runtime/runtime/02
 fixing_child_dir: docs/plans/zircon_runtime/runtime/05
 related_code:
-  - zircon_runtime/src/scene/dynamic_scene/scene/validation.rs
-  - zircon_runtime/src/scene/dynamic_scene/document/write.rs
+  - zircon_runtime/src/scene/dynamic/scene/validation.rs
+  - zircon_runtime/src/scene/dynamic/document/write.rs
   - zircon_runtime/src/scene/tests/dynamic_scene/archive_core.rs
 plan_sources:
   - docs/plans/zircon_runtime/runtime/05-scene-editor-boundary-closeout.md

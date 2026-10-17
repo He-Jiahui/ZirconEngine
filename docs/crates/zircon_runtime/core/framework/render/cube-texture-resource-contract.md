@@ -7,8 +7,6 @@ related_code:
   - zircon_runtime/src/asset/assets/texture/descriptor/settings.rs
   - zircon_runtime/src/asset/assets/texture/upload_support.rs
   - zircon_runtime/src/asset/assets/texture/upload_support/compressed.rs
-  - zircon_runtime/src/graphics/scene/resources/gpu_texture/gpu_texture_resource_from_asset.rs
-  - zircon_runtime/src/graphics/scene/resources/post_process_lut_texture/post_process_lut_texture_resource.rs
   - zircon_runtime/tests/runtime_texture_cube_resource_contract.rs
 implementation_files:
   - zircon_runtime/src/core/framework/render/image/dimension.rs
@@ -18,8 +16,6 @@ implementation_files:
   - zircon_runtime/src/asset/assets/texture/descriptor/settings.rs
   - zircon_runtime/src/asset/assets/texture/upload_support.rs
   - zircon_runtime/src/asset/assets/texture/upload_support/compressed.rs
-  - zircon_runtime/src/graphics/scene/resources/gpu_texture/gpu_texture_resource_from_asset.rs
-  - zircon_runtime/src/graphics/scene/resources/post_process_lut_texture/post_process_lut_texture_resource.rs
 plan_sources:
   - user: 2026-07-05 cubemap skybox/reflection mosaic correction and cmft/Unreal mip design request
   - docs/plans/zircon_runtime/shader/06-environment-ibl-and-pbr-correctness.md
@@ -27,8 +23,6 @@ plan_sources:
 tests:
   - zircon_runtime/tests/runtime_texture_cube_resource_contract.rs
   - zircon_runtime/src/asset/assets/texture/descriptor.rs
-  - zircon_runtime/src/asset/assets/texture/upload_support/tests.rs
-  - zircon_runtime/src/graphics/scene/resources/gpu_texture/gpu_texture_resource_from_asset/tests.rs
 doc_type: module-detail
 ---
 

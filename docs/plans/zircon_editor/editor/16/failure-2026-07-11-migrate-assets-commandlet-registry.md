@@ -11,8 +11,6 @@ plan_link_mode: child_record_only
 related_code:
   - zircon_editor/src/core/commandlet/mod.rs
   - zircon_editor/src/core/commandlet/runner.rs
-  - zircon_editor/src/core/commandlet/tests.rs
-  - zircon_editor/src/core/commandlet/runner/capability_error_tests.rs
   - zircon_editor/src/core/commands/defaults.rs
   - zircon_editor/src/core/commands/registry.rs
   - zircon_editor/src/core/commands/descriptor.rs

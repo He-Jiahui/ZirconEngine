@@ -4,9 +4,9 @@ status: implemented_pending_validation
 plan_sources:
   - docs/plans/optimize/zircon_runtime/02/2026-08-30-runtime522-virtual-geometry-cluster-ordinal.md
 implementation_files:
-  - zircon_runtime/src/graphics/visibility/planning/build_virtual_geometry_plan/ordering/virtual_geometry_cluster_ordinal.rs
+  - zircon_runtime/src/graphics/ordering/virtual_geometry_cluster_ordinal.rs
 tests:
-  - zircon_runtime/src/graphics/visibility/planning/build_virtual_geometry_plan/ordering/virtual_geometry_cluster_ordinal.rs
+  - zircon_runtime/src/graphics/ordering/virtual_geometry_cluster_ordinal.rs
 ---
 
 # Runtime917 Runtime522 virtual-geometry cluster ordinal lookup

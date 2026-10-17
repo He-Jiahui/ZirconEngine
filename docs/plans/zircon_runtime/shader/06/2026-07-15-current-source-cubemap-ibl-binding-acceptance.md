@@ -1,18 +1,16 @@
 ---
 related_code:
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_wgpu_dispatch/tests/reference_parity.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_wgpu_dispatch.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/shaders/ibl_prefilter.wgsl
+  - zircon_runtime/src/graphics/scene/renderer/environment/tests/reference_parity.rs
+  - zircon_runtime/src/graphics/scene/renderer/environment/ibl_bake_wgpu_dispatch.rs
+  - zircon_runtime/src/graphics/scene/renderer/shaders/ibl_prefilter.wgsl
   - zircon_runtime/tests/runtime_texture_cube_resource_contract.rs
   - zircon_runtime/tests/runtime_environment_ibl_bake_artifact_contract.rs
   - zircon_runtime/tests/runtime_texture_external_cubemap_source_only_contract.rs
-  - zircon_runtime/tests/runtime_environment_external_cubemap_import_staging_contract.rs
   - zircon_runtime/tests/runtime_environment_brdf_lut_contract.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_wgpu_dispatch/tests/irradiance_parity.rs
+  - zircon_runtime/src/graphics/scene/renderer/tests/irradiance_parity.rs
   - docs/plans/zircon_editor/editor/03/fixed-2026-07-15-external-source-cubemap-contract-api-drift.md
 implementation_files:
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_wgpu_dispatch/tests/reference_parity.rs
-  - zircon_runtime/tests/runtime_environment_external_cubemap_import_staging_contract.rs
+  - zircon_runtime/src/graphics/scene/renderer/environment/tests/reference_parity.rs
   - docs/crates/zircon_runtime/graphics/scene/scene_renderer/environment/ibl-bake-wgpu-dispatch.md
 plan_sources:
   - docs/plans/zircon_runtime/shader/06-environment-ibl-and-pbr-correctness.md

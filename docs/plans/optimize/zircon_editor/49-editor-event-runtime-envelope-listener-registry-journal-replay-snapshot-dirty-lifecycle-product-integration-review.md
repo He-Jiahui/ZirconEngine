@@ -8,13 +8,13 @@ related_code:
   - zircon_editor/src/ui/host/editor_event_execution/execution_outcome.rs
   - zircon_editor/src/ui/host/editor_event_execution/undo_policy.rs
   - zircon_editor/src/ui/host/editor_event_runtime_access/event_dispatch.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/viewport/pointer_dispatch.rs
-  - zircon_editor/src/ui/retained_host/app/automation.rs
+  - zircon_editor/src/ui/retained/dispatch/viewport/pointer_dispatch.rs
+  - zircon_editor/src/ui/retained/app/automation.rs
   - zircon_app/src/entry/entry_runner/editor/composition.rs
   - zircon_app/src/entry/entry_runner/editor/project_automation.rs
 tests:
   - zircon_editor/src/tests/editor_event
-  - zircon_editor/src/ui/retained_host/app/tests/retained_host_automation.rs
+  - zircon_editor/src/ui/retained/app/tests/retained_host_automation.rs
   - zircon_app/tests/editor_mvp_authoring.rs
 plan_sources:
   - docs/crates/zircon_editor/core/editor_event.md

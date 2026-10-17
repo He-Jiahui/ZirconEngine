@@ -7,10 +7,8 @@ related_code:
   - zircon_editor/src/ui/asset_editor/node_projection.rs
   - zircon_editor/src/ui/host/editor_manager.rs
   - zircon_editor/src/ui/layouts/views/view_projection/projection_cache.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_theme.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/template_runtime_projection.rs
-  - zircon_editor/src/ui/retained_host/viewport/editor_viewport_render_defaults.rs
-  - zircon_editor/src/ui/template_runtime/runtime/build_session.rs
+  - zircon_editor/src/ui/retained/viewport/editor_viewport_render_defaults.rs
+  - zircon_editor/src/ui/runtime/runtime/build_session.rs
   - zircon_runtime/src/core/runtime/runtime.rs
   - zircon_runtime/src/core/runtime/state/core_runtime_state.rs
   - zircon_runtime/src/core/runtime/tasks/pools.rs
@@ -19,17 +17,15 @@ related_code:
   - zircon_runtime/src/dynamic_api/session/registry/allocation_registry.rs
   - zircon_runtime/src/dynamic_api/session/registry/session_store.rs
   - zircon_runtime/src/foundation/runtime/config_manager/commit_fence.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/discover/authority.rs
-  - zircon_runtime/src/scene/dynamic_scene/session/io/atomic.rs
+  - zircon_runtime/src/plugin/loader/discover/authority.rs
+  - zircon_runtime/src/scene/dynamic/session/io/atomic.rs
   - zircon_runtime/src/text/font/shared.rs
   - zircon_runtime/src/text/render_state.rs
 tests:
   - zircon_editor/src/core/plugin/manager/tests/project_registration.rs
   - zircon_editor/src/tests/ui/ui_asset_editor/workbench_projection_layout.rs
-  - zircon_runtime/src/core/runtime/tests/activation/behavior/deactivation/veto_atomicity.rs
+  - zircon_runtime/src/core/runtime/tests/behavior/deactivation/veto_atomicity.rs
   - zircon_runtime/src/diagnostic_log/sink/tests/lifecycle.rs
-  - zircon_runtime/src/dynamic_api/session/registry/tests.rs
-  - zircon_runtime/src/text/font/shared/tests.rs
 plan_sources:
   - docs/plans/optimize/01-cross-report-owner-schema-abi-p0-consolidation-review.md
   - docs/plans/optimize/coverage.md

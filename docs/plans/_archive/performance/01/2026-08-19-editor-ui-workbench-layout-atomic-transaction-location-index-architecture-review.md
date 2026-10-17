@@ -8,7 +8,7 @@ tests:
   - zircon_editor/src/tests/workbench/layout/document_attachment.rs
   - zircon_editor/src/tests/workbench/layout/drawer_attachment.rs
   - zircon_editor/src/tests/workbench/layout/drawer_extent.rs
-  - zircon_editor/src/tests/workbench/layout/editor_layout_contracts/layout_commands.rs
+  - zircon_editor/src/tests/layout/editor_layout_contracts/layout_commands.rs
   - zircon_editor/src/tests/workbench/layout/editor_main_frame_layout.rs
   - zircon_editor/src/tests/workbench/layout/layout_preset_persistence.rs
   - zircon_editor/src/tests/workbench/layout/page_layout_templates.rs

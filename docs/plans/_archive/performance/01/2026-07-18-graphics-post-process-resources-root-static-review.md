@@ -1,9 +1,8 @@
 ---
 related_code:
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/depth_sampling_mode.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/render_region.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/shader_sources.rs
+  - zircon_runtime/src/graphics/scene/renderer/post/resources/depth_sampling_mode.rs
+  - zircon_runtime/src/graphics/scene/renderer/post/resources/render_region.rs
+  - zircon_runtime/src/graphics/scene/renderer/post/resources/shader_sources.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_runtime/render/07-postprocess-color-pipeline.md

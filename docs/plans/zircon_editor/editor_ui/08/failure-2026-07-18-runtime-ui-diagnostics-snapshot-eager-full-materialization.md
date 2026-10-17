@@ -12,7 +12,6 @@ related_code:
   - zircon_runtime/src/ui/surface/diagnostics.rs
   - zircon_runtime/src/ui/surface/reflection_snapshot.rs
   - zircon_runtime/src/ui/surface/timeline.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/runtime_diagnostics.rs
 tests:
   - default summary zero-overdraw-grid test
   - timeline frame-and-byte-budget retention test

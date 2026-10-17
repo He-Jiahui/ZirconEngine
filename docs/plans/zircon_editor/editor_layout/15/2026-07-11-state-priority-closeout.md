@@ -5,8 +5,6 @@ plan_source: docs/plans/zircon_editor/editor_layout/15-component-standardization
 related_code:
   - zircon_runtime_interface/src/ui/style.rs
   - zircon_runtime/src/ui/tests/render_painter_state.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes
-  - zircon_editor/src/tests/host/retained_menu_pointer/state_priority_visual_screenshot.rs
 evidence:
   - docs/tests/editor/editor-components-state-priority-900x360.png
 ---

@@ -1,7 +1,7 @@
 ---
 related_code:
   - zircon_runtime/src/script/vm/host/host_registry.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy/asset_render_input/input_script.rs
+  - zircon_runtime/src/tests/contracts/structure/asset_render_input/input_script.rs
 plan_sources:
   - docs/plans/engine-code-structure-convention.md
   - docs/plans/engine-code-review-findings-2026-06.md

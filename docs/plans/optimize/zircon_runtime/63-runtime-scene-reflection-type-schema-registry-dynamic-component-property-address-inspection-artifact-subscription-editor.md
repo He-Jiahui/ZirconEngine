@@ -27,9 +27,7 @@ tests:
   - zircon_runtime/src/scene/tests/property_paths
   - zircon_runtime/src/scene/tests/inspection.rs
   - zircon_runtime/src/scene/tests/ecs_dynamic_components_structure.rs
-  - zircon_runtime/src/scene/inspection/tests.rs
-  - zircon_runtime/src/scene/inspection/subscription/tests.rs
-  - zircon_editor/src/tests/editing/reflected_command.rs
+  - zircon_editor/src/tests/editing/reflected_command/mod.rs
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md
   - docs/plans/optimize/01-cross-report-owner-schema-abi-p0-consolidation-review.md

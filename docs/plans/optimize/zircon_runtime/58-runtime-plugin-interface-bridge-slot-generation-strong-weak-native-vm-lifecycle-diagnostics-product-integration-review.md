@@ -10,15 +10,7 @@ related_code:
   - zircon_runtime/src/plugin/bridge.rs
   - zircon_runtime/src/plugin/bridge
   - zircon_runtime/src/plugin/extension_registry/register/bridge_registration.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog
-  - zircon_runtime/src/plugin/native_plugin_loader/host_api_adapter/bridge_scope
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_host_handle.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/loaded_native_plugin.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/bridge_lifecycle.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/bridge_methods.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/lifecycle.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/registration_replay.rs
+  - zircon_runtime/src/plugin/loader/host_api_adapter/bridge_scope
   - zircon_runtime/src/script/vm/host/bridge_host_module.rs
   - zircon_app/src/entry/builtin_modules.rs
   - zircon_app/src/entry/engine_entry.rs
@@ -28,13 +20,10 @@ related_code:
   - zircon_plugins/physics/runtime/src/plugin.rs
   - zircon_plugins/zr_vm_language/runtime/src/plugin.rs
 tests:
-  - zircon_runtime/src/tests/plugin_extensions/extension_registry_bridge.rs
   - zircon_runtime/src/tests/plugin_extensions/extension_registry_bridge
-  - zircon_runtime/src/tests/plugin_extensions/runtime_plugin_bridge_dependencies.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/host_api_adapter/bridge_scope/tests.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests/bridge_bindings.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests/hot_reload_publication.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests/registration_replay.rs
+  - zircon_runtime/src/plugin/loader/live/tests/bridge_bindings.rs
+  - zircon_runtime/src/plugin/loader/live/tests/hot_reload_publication.rs
+  - zircon_runtime/src/plugin/loader/live/tests/registration_replay.rs
   - zircon_runtime/src/script/vm/tests/bridge_host.rs
   - zircon_app/src/entry/tests/profile_bootstrap.rs
   - zircon_editor/src/tests/editor_event/runtime/stack_play.rs

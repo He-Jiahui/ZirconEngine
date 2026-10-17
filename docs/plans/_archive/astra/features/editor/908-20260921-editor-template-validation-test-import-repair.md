@@ -7,7 +7,6 @@ related_records:
   - docs/plans/astra/features/editor/664-20260911-editor-ui-optimization-batch-completion.md
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
-  - zircon_editor/src/core/editor_extension/template_contributions/single_trim_tests.rs
 ---
 
 # Editor908 Single-Trim Template Test Import Repair

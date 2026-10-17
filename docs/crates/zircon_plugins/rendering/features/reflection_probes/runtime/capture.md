@@ -1,31 +1,17 @@
 ---
 related_code:
   - zircon_plugins/rendering/features/reflection_probes/runtime/src/capture/mod.rs
-  - zircon_plugins/rendering/features/reflection_probes/runtime/src/capture/request.rs
-  - zircon_plugins/rendering/features/reflection_probes/runtime/src/capture/face_view.rs
-  - zircon_plugins/rendering/features/reflection_probes/runtime/src/capture/execute.rs
-  - zircon_plugins/rendering/features/reflection_probes/runtime/src/capture/consume.rs
   - zircon_plugins/rendering/features/reflection_probes/runtime/src/lib.rs
   - zircon_plugins/rendering/features/reflection_probes/runtime/src/plugin.rs
-  - zircon_plugins/rendering/features/reflection_probes/editor/src/capture/trigger.rs
   - zircon_runtime/src/core/framework/render/environment/source_cubemap.rs
   - zircon_runtime/src/core/framework/render/environment/source_cubemap/pmrem.rs
   - zircon_runtime/src/asset/artifact/ibl_source_cubemap_staging.rs
 implementation_files:
-  - zircon_plugins/rendering/features/reflection_probes/runtime/src/capture/request.rs
-  - zircon_plugins/rendering/features/reflection_probes/runtime/src/capture/face_view.rs
-  - zircon_plugins/rendering/features/reflection_probes/runtime/src/capture/execute.rs
-  - zircon_plugins/rendering/features/reflection_probes/editor/src/capture/trigger.rs
 plan_sources:
   - user: 2026-07-11 continue reflection-probe capture, cmft filtering and visual verification
   - docs/plans/zircon_runtime/shader/06-environment-ibl-and-pbr-correctness.md
   - docs/plans/zircon_runtime/render/11-environment-lighting.md
 tests:
-  - zircon_plugins/rendering/features/reflection_probes/runtime/src/capture/request.rs
-  - zircon_plugins/rendering/features/reflection_probes/runtime/src/capture/face_view.rs
-  - zircon_plugins/rendering/features/reflection_probes/runtime/src/capture/execute.rs
-  - zircon_plugins/rendering/features/reflection_probes/editor/src/capture/trigger.rs
-  - zircon_runtime/src/core/framework/render/environment/source_cubemap/tests.rs
 doc_type: module-detail
 ---
 

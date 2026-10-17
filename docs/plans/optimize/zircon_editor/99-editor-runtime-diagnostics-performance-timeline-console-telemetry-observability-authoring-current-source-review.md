@@ -12,22 +12,15 @@ source_recheck_required: true
 supersedes_currentness_of:
   - docs/plans/optimize/zircon_editor/25-runtime-diagnostics-performance-timeline-console-telemetry-observability-authoring-review.md
 related_code:
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/diagnostics
   - zircon_editor/assets/ui/editor/host/runtime_diagnostics_body.zui
   - zircon_editor/assets/ui/editor/host/performance_timeline_body.zui
   - zircon_editor/src/core/gateway/session/profile.rs
   - zircon_editor/src/ui/host/editor_manager_runtime_diagnostics.rs
-  - zircon_editor/src/ui/host/builtin_views/activity_views/runtime_diagnostics_view_descriptor.rs
-  - zircon_editor/src/ui/host/builtin_views/activity_views/performance_timeline_view_descriptor.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload_builders
-  - zircon_editor/src/ui/retained_host/app/profiling
-  - zircon_editor/src/ui/retained_host/app/runtime_diagnostics_visibility.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/pane_payloads.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/pane_payloads/workbench_panes.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/panes
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback/ui_diagnostics
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation/specs/ui_diagnostics
+  - zircon_editor/src/ui/retained/app/profiling
+  - zircon_editor/src/ui/retained/app/runtime_diagnostics_visibility.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle/pane_payloads.rs
+  - zircon_editor/src/ui/retained/contract/data/panes
+  - zircon_editor/src/ui/retained/dispatch/specs/ui_diagnostics
   - zircon_runtime/src/core/runtime/diagnostics
   - zircon_runtime/src/runtime_diagnostics
   - zircon_runtime/src/core/runtime/handle/diagnostics.rs

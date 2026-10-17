@@ -10,7 +10,6 @@ fixing_child_dir: docs/plans/zircon_plugins/01
 plan_link_mode: child_record_only
 related_code:
   - zircon_runtime/src/builtin/runtime_modules/ids/plugin_id.rs
-  - zircon_runtime/src/plugin/runtime_plugin
 tests:
   - dynamic plugin id load/unload churn
   - serde/hash/equality/order compatibility

@@ -9,27 +9,11 @@ origin_child_dir: docs/plans/zircon_runtime/shader/06
 fixing_child_dir: docs/plans/zircon_runtime/render/11
 plan_link_mode: child_record_only
 related_code:
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/environment_cubemap.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_write_scene_uniform/write_scene_uniform.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_scene/render_scene.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_environment_capture.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/environment_cubemap/resources.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/environment_frame.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/environment_frame/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/scene_renderer_core.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_construct/construct/construct.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/execute_compiled_scene_graph_stages.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/submit_compiled_scene_frame.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/submit_compiled_scene_frame/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/scene_passes/render_scene_passes.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/environment_capture_source_submission.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/environment_capture_wgpu_recorder.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/realtime_ibl_runtime/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/realtime_ibl_wgpu_recorder/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/realtime_ibl_profile_test_support.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_runtime_writeback/tests.rs
+  - zircon_runtime/src/graphics/scene/core/core/environment_cubemap/resources.rs
+  - zircon_runtime/src/graphics/scene/renderer/core/render/render/render.rs
+  - zircon_runtime/src/graphics/core/render/execute_compiled_scene_graph_stages.rs
+  - zircon_runtime/src/graphics/scene/core/render/submit_compiled_scene_frame.rs
+  - zircon_runtime/src/graphics/scene/core/scene_passes/render_scene_passes.rs
 tests:
   - managed Rust transaction tests for rebind commit, rollback, unchanged-size upload, and old-environment restoration
   - managed WGPU fault injection before resource-upload admission and graphics submission

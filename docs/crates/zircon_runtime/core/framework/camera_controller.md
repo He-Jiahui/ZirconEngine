@@ -3,7 +3,6 @@ related_code:
   - zircon_runtime/src/core/framework/camera_controller/mod.rs
   - zircon_runtime/src/input/camera_controller/mod.rs
   - zircon_runtime/src/dynamic_api/camera_controller.rs
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_navigation.rs
 implementation_files:
   - zircon_runtime/src/core/framework/camera_controller/controller_output.rs
   - zircon_runtime/src/input/camera_controller/free/controller.rs

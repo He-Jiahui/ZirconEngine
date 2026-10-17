@@ -5,7 +5,6 @@ plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_runtime/runtime/02-core-spine-and-root-surface.md
 tests:
-  - zircon_runtime/src/engine_module/tests.rs
   - current 8 of 8 Rust files, 509 lines, 8 tests inventoried
   - deterministic current manifest SHA256 91b75828fe6dbd2cbe8f30ddbd9ce1be8d93dbdcb2b868aa88e81607907784e6
   - rustfmt plus 1.94.1 edition 2021 check passed for current 8 of 8 files

@@ -9,7 +9,7 @@ origin_child_dir: docs/plans/zircon_runtime/render/18
 fixing_child_dir: docs/plans/zircon_runtime/render/05
 plan_link_mode: child_record_only
 related_code:
-  - zircon_runtime/src/graphics/scene/scene_renderer/shadow/atlas/resources.rs
+  - zircon_runtime/src/graphics/scene/renderer/shadow/atlas/resources.rs
 tests:
   - cargo +1.94.1 test -p zircon_runtime --lib --locked --jobs 1 --no-run --message-format short --color never
   - cargo +1.94.1 test -p zircon_runtime --lib --locked --jobs 1 render_shadow_atlas_compare_function_matches_forward_depth_contract -- --exact --test-threads=1

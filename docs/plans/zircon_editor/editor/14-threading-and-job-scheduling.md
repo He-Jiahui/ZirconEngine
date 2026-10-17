@@ -6,12 +6,11 @@ related_code:
   - zircon_runtime/src/core/runtime/tasks/pools.rs
   - zircon_runtime/src/core/runtime/tasks/thread_assignment.rs
   - zircon_runtime/src/asset/pipeline/worker_pool.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/controller.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/execution.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/controller.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/execution.rs
   - zircon_editor/src/ui/host/export_cargo_process.rs
   - zircon_editor/src/ui/host/export_process_support
-  - zircon_editor/src/ui/retained_host/app/build_export_actions/job_queue
-  - zircon_editor/src/ui/retained_host/viewport
+  - zircon_editor/src/ui/retained/app/build_export_actions/job_queue
 reference_sources:
   - dev/bevy/crates/bevy_tasks/src/usages.rs
   - dev/bevy/crates/bevy_tasks/src/task_pool.rs
@@ -40,26 +39,25 @@ implementation_files:
   - zircon_editor/src/core/jobs/system/mod.rs
   - zircon_editor/src/core/jobs/system/pending.rs
   - zircon_editor/src/core/jobs/system/state.rs
-  - zircon_editor/src/core/jobs/test_support.rs
   - zircon_editor/src/core/jobs/cancellation_token.rs
   - zircon_editor/src/core/jobs/ticket.rs
   - zircon_editor/src/core/process.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/controller.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/controller/job.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/controller/completion.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/controller/poll.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/execution.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/controller.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/controller/job.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/controller/completion.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/controller/poll.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/execution.rs
   - zircon_editor/src/ui/host/export_cargo_process.rs
   - zircon_editor/src/ui/host/export_process_support/output_capture.rs
   - zircon_editor/src/ui/host/export_process_support/child_guard.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_actions/job_queue/state.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_actions/job_queue/start.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_actions/job_queue/updates.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_actions/job_queue/worker.rs
-  - zircon_editor/src/ui/retained_host/viewport/bind_jobs.rs
-  - zircon_editor/src/ui/retained_host/viewport/render_framework_resolve_job.rs
-  - zircon_editor/src/ui/retained_host/viewport/viewport_state.rs
-  - zircon_editor/src/ui/retained_host/viewport/viewport_state_drop.rs
+  - zircon_editor/src/ui/retained/app/build_export_actions/job_queue/state.rs
+  - zircon_editor/src/ui/retained/app/build_export_actions/job_queue/start.rs
+  - zircon_editor/src/ui/retained/app/build_export_actions/job_queue/updates.rs
+  - zircon_editor/src/ui/retained/app/build_export_actions/job_queue/worker.rs
+  - zircon_editor/src/ui/retained/viewport/bind_jobs.rs
+  - zircon_editor/src/ui/retained/viewport/render_framework_resolve_job.rs
+  - zircon_editor/src/ui/retained/viewport/viewport_state.rs
+  - zircon_editor/src/ui/retained/viewport/viewport_state_drop.rs
 tests:
   - zircon_editor/src/core/jobs/tests/admission_scaling_contract.rs
   - zircon_editor/src/core/jobs/tests/scheduling_contract.rs
@@ -71,10 +69,8 @@ tests:
   - zircon_editor/src/ui/host/export_process_support/output_capture.rs
   - zircon_editor/src/core/process.rs
   - zircon_editor/src/ui/host/export_process_support/child_guard.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/job.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/tests/panel_session.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_actions/tests.rs
-  - zircon_editor/src/ui/retained_host/viewport/viewport_state_job_tests.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/tests/job.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/tests/panel_session.rs
 doc_type: implementation-plan
 status: in_progress
 ---

@@ -16,7 +16,6 @@ related_code:
 tests:
   - examples/woc/native/apps/woc_client/tests/application.rs
   - examples/woc/native/apps/woc_client/tests/input.rs
-  - examples/woc/native/apps/woc_client/tests/preference_storage_support.rs
   - examples/woc/native/apps/woc_client/tests/preferences.rs
   - examples/woc/native/apps/woc_client/tests/presentation.rs
   - examples/woc/native/apps/woc_client/tests/shell.rs

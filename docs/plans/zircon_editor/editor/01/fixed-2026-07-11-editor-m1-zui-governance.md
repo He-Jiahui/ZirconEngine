@@ -10,13 +10,11 @@ fixing_child_dir: docs/plans/zircon_editor/editor_layout/15
 resolved_at: 2026-07-11
 related_code:
   - zircon_editor/src/tests/ui/boundary/zui_asset_governance
-  - zircon_editor/assets/ui/editor/components/workbench/shell/activity_drawer_window.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/animation/workbench_extension_blend_space_workspace.zui
+  - zircon_editor/assets/ui/editor/workbench/shell/activity_drawer_window.zui
   - zircon_editor/assets/ui/editor/windows/asset_window.zui
   - zircon_editor/assets/ui/editor/windows/ui_layout_editor_window.zui
   - zircon_editor/src/tests/ui/boundary/zui_asset_governance/slot.rs
   - zircon_editor/src/tests/ui/boundary/zui_asset_governance/workbench_shell.rs
-  - zircon_editor/src/ui/template_runtime/builtin/template_documents.rs
   - zircon_editor/assets/ui/editor
   - zircon_runtime/assets/ui
   - zircon_runtime/src/ui/tests/v2_asset/file_cache.rs

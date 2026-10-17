@@ -10,7 +10,6 @@ related_code:
   - zircon_editor/src/ui/asset_editor/session/import_reference_access.rs
 tests:
   - tools/tests/test_editor09_ui_asset_watcher_bounded_refresh_contract.py
-  - zircon_editor/src/ui/host/asset_editor_sessions/watcher/tests.rs
   - zircon_editor/src/tests/host/manager/ui_asset_workspace_watcher.rs
 ---
 

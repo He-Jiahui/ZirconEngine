@@ -35,23 +35,16 @@ related_code:
   - zircon_runtime/src/scene/ecs/internal_scene_system.rs
   - zircon_runtime/src/core/framework/scene/system_stage.rs
   - zircon_runtime/src/core/framework/render/frame_extract.rs
-  - zircon_runtime/src/core/framework/render/frame_extract/tests.rs
   - zircon_runtime/src/core/framework/render/sprite/sprite.rs
   - zircon_runtime/src/core/framework/render/camera_ordering.rs
   - zircon_runtime/src/core/framework/render/camera_stack.rs
   - zircon_runtime/src/core/framework/render/light/mod.rs
   - zircon_runtime/src/core/framework/render/light/snapshots.rs
   - zircon_runtime/src/core/framework/render/light/readiness.rs
-  - zircon_runtime/src/core/framework/render/post_process/volume_profile.rs
-  - zircon_runtime/src/core/framework/render/post_process/volume_extract.rs
-  - zircon_runtime/src/core/framework/render/post_process/volume_evaluator.rs
-  - zircon_runtime/src/core/framework/render/post_process/exposure_settings.rs
-  - zircon_runtime/src/core/framework/render/post_process/effect_stack_settings.rs
   - zircon_runtime/src/core/framework/render/scene_extract.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build.rs
   - zircon_runtime/src/graphics/types/viewport_render_frame.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/primitives/scene_uniform/from_frame.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs
+  - zircon_runtime/src/graphics/scene/renderer/scene_uniform/from_frame.rs
+  - zircon_runtime/src/graphics/runtime/framework/extract/update_stats/base_stats.rs
 implementation_files:
   - zircon_runtime/src/scene/components/scene/mod.rs
   - zircon_runtime/src/scene/components/scene/hierarchy.rs
@@ -90,16 +83,9 @@ implementation_files:
   - zircon_runtime/src/core/framework/render/camera_stack.rs
   - zircon_runtime/src/core/framework/render/light/snapshots.rs
   - zircon_runtime/src/core/framework/render/light/readiness.rs
-  - zircon_runtime/src/core/framework/render/frame_extract/tests.rs
-  - zircon_runtime/src/core/framework/render/post_process/volume_profile.rs
-  - zircon_runtime/src/core/framework/render/post_process/volume_extract.rs
-  - zircon_runtime/src/core/framework/render/post_process/volume_evaluator.rs
-  - zircon_runtime/src/core/framework/render/post_process/exposure_settings.rs
-  - zircon_runtime/src/core/framework/render/post_process/effect_stack_settings.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build.rs
   - zircon_runtime/src/graphics/types/viewport_render_frame.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/primitives/scene_uniform/from_frame.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs
+  - zircon_runtime/src/graphics/scene/renderer/scene_uniform/from_frame.rs
+  - zircon_runtime/src/graphics/runtime/framework/extract/update_stats/base_stats.rs
 plan_sources:
   - user: 2026-05-08 ECS to render chain milestone execution
   - .codex/plans/ZirconEngine ECS 到渲染链路完善里程碑计划.md
@@ -127,9 +113,6 @@ tests:
   - zircon_runtime/src/scene/tests/render_extract.rs::render_frame_extract_carries_scene_camera_order_report_for_scene_camera
   - zircon_runtime/src/scene/tests/render_extract.rs::explicit_camera_render_frame_extract_has_no_scene_camera_order_report
   - zircon_runtime/src/scene/tests/render_extract.rs::render_frame_extract_keeps_custom_target_layer_geometry_for_visibility_views
-  - zircon_runtime/src/core/framework/render/frame_extract/tests.rs::render_frame_extract_visibility_input_preserves_layers_above_legacy_mask_width
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget.rs::runtime_15_scene_world_render_visibility_input_is_child_owner
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/scene_world_render_lights.rs::runtime_15_scene_world_render_light_collectors_are_child_owner
   - zircon_runtime/src/scene/tests/world_basics.rs
   - zircon_runtime/src/scene/tests/world_basics/render_extract.rs::mesh_renderer_sort_fields_feed_geometry_phase_queue
   - zircon_runtime/src/scene/tests/world_basics/render_extract.rs::render_mesh_phase_projection_consumes_entries_without_cloning_snapshots
@@ -141,10 +124,9 @@ tests:
   - zircon_runtime/src/scene/tests/derived_state.rs
   - zircon_runtime/src/scene/tests/world_basics.rs
   - zircon_runtime/src/scene/tests/physics_animation_components.rs
-  - tests/acceptance/ecs-to-render-chain.md
   - .opencode/workflows/20260531_215744_101_完善ECS到渲染工作流，你可以参照dev 下面graphics的unity的SRP工作流以及unrealEngine虚幻源码渲染能力、bevy fyrox等对w/m03-canonical-render-extract/validation-evidence.md
   - zircon_runtime/src/core/framework/render/light/readiness.rs::light_status_counts_split_ready_and_degraded_slots
-  - zircon_runtime/src/graphics/scene/scene_renderer/primitives/scene_uniform/from_frame.rs::scene_uniform_packs_authored_point_lights
+  - zircon_runtime/src/graphics/scene/renderer/scene_uniform/from_frame.rs::scene_uniform_packs_authored_point_lights
   - .github/workflows/ci.yml
   - cargo test -p zircon_runtime --lib render_frame_extract_collects_dynamic_particle_sprites_by_camera_layers --locked --message-format short -- --nocapture --test-threads=1 with CARGO_TARGET_DIR=D:\cargo-targets\zircon-vampire-app: passed 2026-06-10
   - cargo test -p zircon_runtime --lib render_frame_extract_collects_world_hud_health_bars_as_scene_particles --message-format short --color never: passed 2026-06-11

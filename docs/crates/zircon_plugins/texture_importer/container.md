@@ -9,14 +9,14 @@ related_code:
   - zircon_plugins/texture_importer/runtime/src/container/ktx/mod.rs
   - zircon_plugins/texture_importer/runtime/src/container/ktx/ktx1.rs
   - zircon_plugins/texture_importer/runtime/src/container/ktx/ktx2.rs
-  - zircon_plugins/texture_importer/runtime/src/container/ktx/ktx2/supercompression.rs
+  - zircon_plugins/texture_importer/runtime/src/container/ktx2/supercompression.rs
   - zircon_plugins/texture_importer/runtime/src/container/ktx/ktx2/dfd.rs
   - zircon_plugins/texture_importer/runtime/src/container/support.rs
   - zircon_plugins/texture_importer/runtime/src/container/tests/mod.rs
   - zircon_plugins/texture_importer/runtime/src/container/tests/common.rs
   - zircon_plugins/texture_importer/runtime/src/container/tests/astc.rs
   - zircon_plugins/texture_importer/runtime/src/container/tests/dds.rs
-  - zircon_plugins/texture_importer/runtime/src/container/tests/dds_header_pixel_format.rs
+  - zircon_plugins/texture_importer/runtime/src/tests/dds_header_pixel_format.rs
   - zircon_plugins/texture_importer/runtime/src/container/tests/diagnostics.rs
   - zircon_plugins/texture_importer/runtime/src/container/tests/ktx1.rs
   - zircon_plugins/texture_importer/runtime/src/container/tests/ktx1_metadata.rs
@@ -40,14 +40,14 @@ implementation_files:
   - zircon_plugins/texture_importer/runtime/src/container/ktx/mod.rs
   - zircon_plugins/texture_importer/runtime/src/container/ktx/ktx1.rs
   - zircon_plugins/texture_importer/runtime/src/container/ktx/ktx2.rs
-  - zircon_plugins/texture_importer/runtime/src/container/ktx/ktx2/supercompression.rs
+  - zircon_plugins/texture_importer/runtime/src/container/ktx2/supercompression.rs
   - zircon_plugins/texture_importer/runtime/src/container/ktx/ktx2/dfd.rs
   - zircon_plugins/texture_importer/runtime/src/container/support.rs
   - zircon_plugins/texture_importer/runtime/src/container/tests/mod.rs
   - zircon_plugins/texture_importer/runtime/src/container/tests/common.rs
   - zircon_plugins/texture_importer/runtime/src/container/tests/astc.rs
   - zircon_plugins/texture_importer/runtime/src/container/tests/dds.rs
-  - zircon_plugins/texture_importer/runtime/src/container/tests/dds_header_pixel_format.rs
+  - zircon_plugins/texture_importer/runtime/src/tests/dds_header_pixel_format.rs
   - zircon_plugins/texture_importer/runtime/src/container/tests/diagnostics.rs
   - zircon_plugins/texture_importer/runtime/src/container/tests/ktx1.rs
   - zircon_plugins/texture_importer/runtime/src/container/tests/ktx1_metadata.rs
@@ -77,39 +77,39 @@ tests:
   - zircon_plugins/texture_importer/runtime/src/container/tests/dds.rs::dds_container_importer_rejects_cubemap_without_complex_caps
   - zircon_plugins/texture_importer/runtime/src/container/tests/dds.rs::dds_dx10_container_importer_rejects_misc_texturecube_without_complex_caps
   - zircon_plugins/texture_importer/runtime/src/container/tests/dds.rs::dds_container_importer_rejects_cubemap_face_flags_without_cubemap_bit
-  - zircon_plugins/texture_importer/runtime/src/container/tests/dds_header_pixel_format.rs::dds_container_importer_rejects_bump_layout_without_bump_masks
-  - zircon_plugins/texture_importer/runtime/src/container/tests/dds_header_pixel_format.rs::dds_container_importer_rejects_fourcc_flag_without_fourcc_field
-  - zircon_plugins/texture_importer/runtime/src/container/tests/dds_header_pixel_format.rs::dds_container_importer_rejects_fourcc_without_pixel_format_flag
-  - zircon_plugins/texture_importer/runtime/src/container/tests/dds_header_pixel_format.rs::dds_container_importer_rejects_alpha_layout_without_alpha_mask
-  - zircon_plugins/texture_importer/runtime/src/container/tests/dds_header_pixel_format.rs::dds_container_importer_rejects_alpha_pixels_without_alpha_mask
-  - zircon_plugins/texture_importer/runtime/src/container/tests/dds_header_pixel_format.rs::dds_container_importer_rejects_invalid_pixel_format_size
-  - zircon_plugins/texture_importer/runtime/src/container/tests/dds_header_pixel_format.rs::dds_container_importer_rejects_luminance_layout_without_luminance_mask
-  - zircon_plugins/texture_importer/runtime/src/container/tests/dds_header_pixel_format.rs::dds_container_importer_rejects_missing_pixel_format_layout_flags
-  - zircon_plugins/texture_importer/runtime/src/container/tests/dds_header_pixel_format.rs::dds_container_importer_rejects_multiple_uncompressed_layout_flags
-  - zircon_plugins/texture_importer/runtime/src/container/tests/dds_header_pixel_format.rs::dds_container_importer_rejects_compressed_pitch_and_linear_size_flags
-  - zircon_plugins/texture_importer/runtime/src/container/tests/dds_header_pixel_format.rs::dds_container_importer_rejects_missing_compressed_linear_size_flag
-  - zircon_plugins/texture_importer/runtime/src/container/tests/dds_header_pixel_format.rs::dds_container_importer_rejects_missing_uncompressed_bit_count
-  - zircon_plugins/texture_importer/runtime/src/container/tests/dds_header_pixel_format.rs::dds_container_importer_rejects_missing_uncompressed_channel_masks
-  - zircon_plugins/texture_importer/runtime/src/container/tests/dds_header_pixel_format.rs::dds_container_importer_rejects_missing_uncompressed_pitch_flag
-  - zircon_plugins/texture_importer/runtime/src/container/tests/dds_header_pixel_format.rs::dds_container_importer_rejects_overlapping_uncompressed_channel_masks
-  - zircon_plugins/texture_importer/runtime/src/container/tests/dds_header_pixel_format.rs::dds_container_importer_rejects_rgb_layout_without_color_masks
-  - zircon_plugins/texture_importer/runtime/src/container/tests/dds_header_pixel_format.rs::dds_container_importer_rejects_uncompressed_bit_count_larger_than_mask_width
-  - zircon_plugins/texture_importer/runtime/src/container/tests/dds_header_pixel_format.rs::dds_container_importer_rejects_uncompressed_channel_masks_outside_bit_count
-  - zircon_plugins/texture_importer/runtime/src/container/tests/dds_header_pixel_format.rs::dds_container_importer_rejects_yuv_layout_without_yuv_masks
-  - zircon_plugins/texture_importer/runtime/src/container/tests/dds_header_pixel_format.rs::dds_container_importer_rejects_zero_compressed_linear_size
-  - zircon_plugins/texture_importer/runtime/src/container/tests/dds_header_pixel_format.rs::dds_container_importer_rejects_uncompressed_pitch_and_linear_size_flags
-  - zircon_plugins/texture_importer/runtime/src/container/tests/dds_header_pixel_format.rs::dds_container_importer_rejects_zero_uncompressed_pitch
+  - zircon_plugins/texture_importer/runtime/src/tests/dds_header_pixel_format.rs::dds_container_importer_rejects_bump_layout_without_bump_masks
+  - zircon_plugins/texture_importer/runtime/src/tests/dds_header_pixel_format.rs::dds_container_importer_rejects_fourcc_flag_without_fourcc_field
+  - zircon_plugins/texture_importer/runtime/src/tests/dds_header_pixel_format.rs::dds_container_importer_rejects_fourcc_without_pixel_format_flag
+  - zircon_plugins/texture_importer/runtime/src/tests/dds_header_pixel_format.rs::dds_container_importer_rejects_alpha_layout_without_alpha_mask
+  - zircon_plugins/texture_importer/runtime/src/tests/dds_header_pixel_format.rs::dds_container_importer_rejects_alpha_pixels_without_alpha_mask
+  - zircon_plugins/texture_importer/runtime/src/tests/dds_header_pixel_format.rs::dds_container_importer_rejects_invalid_pixel_format_size
+  - zircon_plugins/texture_importer/runtime/src/tests/dds_header_pixel_format.rs::dds_container_importer_rejects_luminance_layout_without_luminance_mask
+  - zircon_plugins/texture_importer/runtime/src/tests/dds_header_pixel_format.rs::dds_container_importer_rejects_missing_pixel_format_layout_flags
+  - zircon_plugins/texture_importer/runtime/src/tests/dds_header_pixel_format.rs::dds_container_importer_rejects_multiple_uncompressed_layout_flags
+  - zircon_plugins/texture_importer/runtime/src/tests/dds_header_pixel_format.rs::dds_container_importer_rejects_compressed_pitch_and_linear_size_flags
+  - zircon_plugins/texture_importer/runtime/src/tests/dds_header_pixel_format.rs::dds_container_importer_rejects_missing_compressed_linear_size_flag
+  - zircon_plugins/texture_importer/runtime/src/tests/dds_header_pixel_format.rs::dds_container_importer_rejects_missing_uncompressed_bit_count
+  - zircon_plugins/texture_importer/runtime/src/tests/dds_header_pixel_format.rs::dds_container_importer_rejects_missing_uncompressed_channel_masks
+  - zircon_plugins/texture_importer/runtime/src/tests/dds_header_pixel_format.rs::dds_container_importer_rejects_missing_uncompressed_pitch_flag
+  - zircon_plugins/texture_importer/runtime/src/tests/dds_header_pixel_format.rs::dds_container_importer_rejects_overlapping_uncompressed_channel_masks
+  - zircon_plugins/texture_importer/runtime/src/tests/dds_header_pixel_format.rs::dds_container_importer_rejects_rgb_layout_without_color_masks
+  - zircon_plugins/texture_importer/runtime/src/tests/dds_header_pixel_format.rs::dds_container_importer_rejects_uncompressed_bit_count_larger_than_mask_width
+  - zircon_plugins/texture_importer/runtime/src/tests/dds_header_pixel_format.rs::dds_container_importer_rejects_uncompressed_channel_masks_outside_bit_count
+  - zircon_plugins/texture_importer/runtime/src/tests/dds_header_pixel_format.rs::dds_container_importer_rejects_yuv_layout_without_yuv_masks
+  - zircon_plugins/texture_importer/runtime/src/tests/dds_header_pixel_format.rs::dds_container_importer_rejects_zero_compressed_linear_size
+  - zircon_plugins/texture_importer/runtime/src/tests/dds_header_pixel_format.rs::dds_container_importer_rejects_uncompressed_pitch_and_linear_size_flags
+  - zircon_plugins/texture_importer/runtime/src/tests/dds_header_pixel_format.rs::dds_container_importer_rejects_zero_uncompressed_pitch
   - zircon_plugins/texture_importer/runtime/src/container/tests/dds.rs::dds_container_importer_rejects_truncated_compressed_mip_chain_payload
   - zircon_plugins/texture_importer/runtime/src/container/tests/dds.rs::dds_container_importer_rejects_incomplete_cubemap_face_flags
-  - zircon_plugins/texture_importer/runtime/src/container/tests/dds_header_pixel_format.rs::dds_container_importer_rejects_malformed_fourcc_tokens
-  - zircon_plugins/texture_importer/runtime/src/container/tests/dds_header_pixel_format.rs::dds_container_importer_rejects_short_header
-  - zircon_plugins/texture_importer/runtime/src/container/tests/dds_header_pixel_format.rs::dds_container_importer_rejects_missing_magic
-  - zircon_plugins/texture_importer/runtime/src/container/tests/dds_header_pixel_format.rs::dds_container_importer_rejects_invalid_header_size
-  - zircon_plugins/texture_importer/runtime/src/container/tests/dds_header_pixel_format.rs::dds_container_importer_rejects_missing_required_header_flags
+  - zircon_plugins/texture_importer/runtime/src/tests/dds_header_pixel_format.rs::dds_container_importer_rejects_malformed_fourcc_tokens
+  - zircon_plugins/texture_importer/runtime/src/tests/dds_header_pixel_format.rs::dds_container_importer_rejects_short_header
+  - zircon_plugins/texture_importer/runtime/src/tests/dds_header_pixel_format.rs::dds_container_importer_rejects_missing_magic
+  - zircon_plugins/texture_importer/runtime/src/tests/dds_header_pixel_format.rs::dds_container_importer_rejects_invalid_header_size
+  - zircon_plugins/texture_importer/runtime/src/tests/dds_header_pixel_format.rs::dds_container_importer_rejects_missing_required_header_flags
   - zircon_plugins/texture_importer/runtime/src/container/tests/dds.rs::dds_container_importer_rejects_missing_texture_caps
   - zircon_plugins/texture_importer/runtime/src/container/tests/dds.rs::dds_container_importer_rejects_mip_count_larger_than_extent_chain
   - zircon_plugins/texture_importer/runtime/src/container/tests/dds.rs::dds_container_importer_rejects_mipmap_count_without_mipmap_caps
-  - zircon_plugins/texture_importer/runtime/src/container/tests/dds_header_pixel_format.rs::dds_container_importer_rejects_volume_headers
+  - zircon_plugins/texture_importer/runtime/src/tests/dds_header_pixel_format.rs::dds_container_importer_rejects_volume_headers
   - zircon_plugins/texture_importer/runtime/src/container/tests/dds.rs::dds_dx10_container_importer_reads_cubemap_array_layers
   - zircon_plugins/texture_importer/runtime/src/container/tests/dds.rs::dds_dx10_container_importer_reads_misc_texturecube_flag
   - zircon_plugins/texture_importer/runtime/src/container/tests/dds.rs::dds_dx10_container_importer_rejects_invalid_misc_flags2
@@ -122,7 +122,7 @@ tests:
   - zircon_plugins/texture_importer/runtime/src/container/tests/dds.rs::dds_dx10_container_importer_rejects_unsupported_misc_flag_bits
   - zircon_plugins/texture_importer/runtime/src/container/tests/dds.rs::dds_dx10_container_importer_rejects_unsupported_resource_dimension
   - zircon_plugins/texture_importer/runtime/src/container/tests/dds.rs::dds_dx10_container_importer_rejects_zero_array_size
-  - zircon_plugins/texture_importer/runtime/src/container/tests/dds_header_pixel_format.rs::dds_container_importer_accepts_uncompressed_pixel_format_layout_flags
+  - zircon_plugins/texture_importer/runtime/src/tests/dds_header_pixel_format.rs::dds_container_importer_accepts_uncompressed_pixel_format_layout_flags
   - zircon_plugins/texture_importer/runtime/src/container/tests/diagnostics.rs::astc_container_importer_rejects_zero_block_or_extent_fields
   - zircon_plugins/texture_importer/runtime/src/container/tests/diagnostics.rs::container_importer_rejects_invalid_ktx_face_counts
   - zircon_plugins/texture_importer/runtime/src/container/tests/diagnostics.rs::container_importer_reports_invalid_header_diagnostics

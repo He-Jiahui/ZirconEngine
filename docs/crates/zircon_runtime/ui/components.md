@@ -24,13 +24,13 @@ related_code:
   - zircon_runtime/src/ui/component/state_reducer/windowing.rs
   - zircon_runtime/src/ui/component/catalog/material_foundation
   - zircon_runtime/src/ui/component/catalog/material_foundation/data_display.rs
-  - zircon_runtime/src/ui/component/catalog/material_foundation/data_display_visuals.rs
+  - zircon_runtime/src/ui/catalog/material_foundation/data_display_visuals.rs
   - zircon_runtime/src/ui/component/catalog/material_foundation/mui_x.rs
   - zircon_runtime/src/ui/component/catalog/material_foundation/layout.rs
   - zircon_runtime/src/ui/component/catalog/material_foundation/navigation_editor.rs
   - zircon_runtime/src/ui/component/catalog/material_foundation/selection_inputs.rs
   - zircon_runtime/src/ui/component/catalog/material_foundation/surfaces.rs
-  - zircon_runtime/src/ui/component/catalog/material_foundation/feedback_editor_overlays.rs
+  - zircon_runtime/src/ui/catalog/material_foundation/feedback_editor_overlays.rs
   - zircon_runtime/src/ui/icon_atlas
   - zircon_runtime_interface/src/ui/component/event.rs
   - zircon_runtime_interface/src/ui/component/state.rs
@@ -50,15 +50,13 @@ related_code:
   - zircon_runtime/src/ui/tests/v2_asset.rs
   - zircon_runtime/src/ui/tests/component_catalog/material_foundation/inputs.rs
   - zircon_runtime/src/ui/tests/component_catalog/material_foundation/layout.rs
-  - zircon_runtime/src/ui/tests/component_catalog/material_foundation/navigation_editor.rs
-  - zircon_runtime/src/ui/tests/component_catalog/material_foundation/selection_inputs.rs
   - zircon_runtime/src/ui/tests/component_catalog/material_foundation/surfaces.rs
   - zircon_runtime/src/ui/tests/component_catalog/component_state/keyboard.rs
   - zircon_runtime/src/ui/tests/component_catalog/component_state/keyboard_menu.rs
-  - zircon_runtime/src/ui/tests/component_catalog/component_state/notification_center.rs
+  - zircon_runtime/src/ui/tests/component_state/notification_center.rs
   - zircon_runtime/src/ui/tests/component_catalog/component_state/slider.rs
   - zircon_runtime/src/ui/tests/component_catalog/component_state/table.rs
-  - zircon_runtime/src/ui/tests/component_catalog/component_state/text_input_validation.rs
+  - zircon_runtime/src/ui/tests/component_state/text_input_validation.rs
   - zircon_runtime/src/ui/tests/component_catalog/component_state/toast.rs
   - zircon_runtime/src/ui/tests/component_catalog/component_state/tree_view.rs
   - zircon_runtime/src/ui/surface/input/keyboard.rs
@@ -83,20 +81,14 @@ related_code:
   - zircon_runtime/src/ui/surface/surface/default_interactions/range.rs
   - zircon_runtime/src/ui/surface/surface/default_interactions/table/mod.rs
   - zircon_runtime/src/ui/surface/surface/default_interactions/table/selection.rs
-  - zircon_runtime/src/ui/surface/surface/default_interactions/table/virtualization.rs
+  - zircon_runtime/src/ui/surface/surface/table/virtualization.rs
   - zircon_runtime/src/ui/surface/surface/default_interactions/tree_view.rs
   - zircon_runtime/src/ui/surface/surface/default_interactions/tree_view_reparent.rs
   - zircon_runtime/src/ui/surface/surface/default_interactions/tree_view_support.rs
-  - zircon_runtime/src/ui/surface/surface/default_interactions/tree_view_virtualization.rs
+  - zircon_runtime/src/ui/surface/default_interactions/tree_view_virtualization.rs
   - zircon_runtime/src/ui/v2/surface_tree/interaction.rs
   - zircon_runtime_interface/src/ui/dispatch/input/event.rs
   - zircon_runtime_interface/src/ui/surface/pointer/route.rs
-  - zircon_runtime/src/ui/tests/runtime_input_reply_routes/keyboard_activation_routes.rs
-  - zircon_runtime/src/ui/tests/runtime_input_reply_routes/keyboard_navigation_routes.rs
-  - zircon_runtime/src/ui/tests/runtime_input_reply_routes/tree_view_pointer_routes.rs
-  - zircon_runtime/src/ui/tests/runtime_input_reply_routes/table_pointer_routes.rs
-  - zircon_runtime/src/ui/tests/runtime_input_reply_routes/keyboard_popup_routes.rs
-  - zircon_runtime/src/ui/tests/runtime_input_reply_routes/pointer_popup_routes.rs
   - zircon_runtime/src/ui/tests/focus_navigation.rs
   - zircon_runtime/src/ui/tests/render_popup_menu.rs
   - zircon_runtime/src/ui/tests/render_popup_options.rs
@@ -105,26 +97,8 @@ related_code:
   - zircon_runtime/src/ui/tests/widget_text_input_ime_context.rs
   - zircon_runtime/src/ui/tests/widget_text_input_mui.rs
   - zircon_editor/assets/ui/editor/components/workbench/primitives
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_search_input.zui
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_range_slider.zui
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_number_field.zui
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_tab_strip.zui
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_label.zui
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_icon.zui
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_divider.zui
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/feedback/workbench_progress_bar.zui
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/feedback/workbench_skeleton.zui
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/feedback/workbench_context_menu.zui
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/feedback/workbench_dropdown_popup.zui
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/feedback/workbench_notification_center.zui
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/feedback/workbench_drag_overlay.zui
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/drag_overlay/mod.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_drag_overlay.rs
-  - zircon_editor/src/tests/host/retained_window/native_material_painter_drag_overlay.rs
-  - zircon_editor/assets/ui/editor/components/workbench/shell/workbench_component_drawer.zui
-  - zircon_editor/assets/ui/editor/components/workbench/shell/workbench_inspector_panel.zui
-  - zircon_editor/assets/ui/editor/components/workbench/shell/workbench_scene_tree_panel.zui
-  - zircon_editor/assets/ui/editor/components/workbench/shell/workbench_viewport_panel.zui
+  - zircon_editor/src/ui/retained/ui/data/projection/drag_overlay/mod.rs
+  - zircon_editor/src/tests/retained_window/native_material_painter_drag_overlay.rs
   - zircon_editor/src/tests/ui/boundary/zui_asset_governance/workbench_shell.rs
   - zircon_editor/src/tests/ui/boundary/template_assets
   - zircon_editor/assets/ui/editor/material_components
@@ -150,12 +124,12 @@ implementation_files:
   - zircon_runtime/src/ui/component/state_reducer/windowing.rs
   - zircon_runtime/src/ui/component/catalog/material_foundation
   - zircon_runtime/src/ui/component/catalog/material_foundation/data_display.rs
-  - zircon_runtime/src/ui/component/catalog/material_foundation/data_display_visuals.rs
+  - zircon_runtime/src/ui/catalog/material_foundation/data_display_visuals.rs
   - zircon_runtime/src/ui/component/catalog/material_foundation/layout.rs
   - zircon_runtime/src/ui/component/catalog/material_foundation/navigation_editor.rs
   - zircon_runtime/src/ui/component/catalog/material_foundation/selection_inputs.rs
   - zircon_runtime/src/ui/component/catalog/material_foundation/surfaces.rs
-  - zircon_runtime/src/ui/component/catalog/material_foundation/feedback_editor_overlays.rs
+  - zircon_runtime/src/ui/catalog/material_foundation/feedback_editor_overlays.rs
   - zircon_runtime_interface/src/ui/widget.rs
   - zircon_runtime_interface/src/tests/ui_contract_spine.rs
   - zircon_runtime_interface/src/ui/window/runtime_event_adapter.rs
@@ -172,14 +146,12 @@ implementation_files:
   - zircon_runtime/src/ui/tests/v2_asset.rs
   - zircon_runtime/src/ui/tests/component_catalog/material_foundation/inputs.rs
   - zircon_runtime/src/ui/tests/component_catalog/material_foundation/layout.rs
-  - zircon_runtime/src/ui/tests/component_catalog/material_foundation/navigation_editor.rs
-  - zircon_runtime/src/ui/tests/component_catalog/material_foundation/selection_inputs.rs
   - zircon_runtime/src/ui/tests/component_catalog/material_foundation/surfaces.rs
   - zircon_runtime/src/ui/tests/component_catalog/component_state/keyboard.rs
-  - zircon_runtime/src/ui/tests/component_catalog/component_state/notification_center.rs
+  - zircon_runtime/src/ui/tests/component_state/notification_center.rs
   - zircon_runtime/src/ui/tests/component_catalog/component_state/slider.rs
   - zircon_runtime/src/ui/tests/component_catalog/component_state/table.rs
-  - zircon_runtime/src/ui/tests/component_catalog/component_state/text_input_validation.rs
+  - zircon_runtime/src/ui/tests/component_state/text_input_validation.rs
   - zircon_runtime/src/ui/tests/component_catalog/component_state/toast.rs
   - zircon_runtime/src/ui/tests/component_catalog/component_state/tree_view.rs
   - zircon_runtime/src/ui/surface/input/keyboard.rs
@@ -204,19 +176,14 @@ implementation_files:
   - zircon_runtime/src/ui/surface/surface/default_interactions/range.rs
   - zircon_runtime/src/ui/surface/surface/default_interactions/table/mod.rs
   - zircon_runtime/src/ui/surface/surface/default_interactions/table/selection.rs
-  - zircon_runtime/src/ui/surface/surface/default_interactions/table/virtualization.rs
+  - zircon_runtime/src/ui/surface/surface/table/virtualization.rs
   - zircon_runtime/src/ui/surface/surface/default_interactions/tree_view.rs
   - zircon_runtime/src/ui/surface/surface/default_interactions/tree_view_reparent.rs
   - zircon_runtime/src/ui/surface/surface/default_interactions/tree_view_support.rs
-  - zircon_runtime/src/ui/surface/surface/default_interactions/tree_view_virtualization.rs
+  - zircon_runtime/src/ui/surface/default_interactions/tree_view_virtualization.rs
   - zircon_runtime/src/ui/v2/surface_tree/interaction.rs
   - zircon_runtime_interface/src/ui/dispatch/input/event.rs
   - zircon_runtime_interface/src/ui/surface/pointer/route.rs
-  - zircon_runtime/src/ui/tests/runtime_input_reply_routes/keyboard_activation_routes.rs
-  - zircon_runtime/src/ui/tests/runtime_input_reply_routes/keyboard_navigation_routes.rs
-  - zircon_runtime/src/ui/tests/runtime_input_reply_routes/tree_view_pointer_routes.rs
-  - zircon_runtime/src/ui/tests/runtime_input_reply_routes/table_pointer_routes.rs
-  - zircon_runtime/src/ui/tests/runtime_input_reply_routes/keyboard_popup_routes.rs
   - zircon_runtime/src/ui/tests/focus_navigation.rs
   - zircon_runtime/src/ui/tests/render_popup_menu.rs
   - zircon_runtime/src/ui/tests/render_popup_options.rs
@@ -225,24 +192,8 @@ implementation_files:
   - zircon_runtime/src/ui/tests/widget_text_input_ime_context.rs
   - zircon_runtime/src/ui/tests/widget_text_input_mui.rs
   - zircon_editor/assets/ui/editor/components/workbench/primitives
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_search_input.zui
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_range_slider.zui
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_number_field.zui
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_tab_strip.zui
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_label.zui
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_icon.zui
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/data/workbench_divider.zui
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/feedback/workbench_progress_bar.zui
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/feedback/workbench_skeleton.zui
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/feedback/workbench_notification_center.zui
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/feedback/workbench_drag_overlay.zui
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/drag_overlay/mod.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_drag_overlay.rs
-  - zircon_editor/src/tests/host/retained_window/native_material_painter_drag_overlay.rs
-  - zircon_editor/assets/ui/editor/components/workbench/shell/workbench_component_drawer.zui
-  - zircon_editor/assets/ui/editor/components/workbench/shell/workbench_inspector_panel.zui
-  - zircon_editor/assets/ui/editor/components/workbench/shell/workbench_scene_tree_panel.zui
-  - zircon_editor/assets/ui/editor/components/workbench/shell/workbench_viewport_panel.zui
+  - zircon_editor/src/ui/retained/ui/data/projection/drag_overlay/mod.rs
+  - zircon_editor/src/tests/retained_window/native_material_painter_drag_overlay.rs
   - zircon_editor/src/tests/ui/boundary/zui_asset_governance/workbench_shell.rs
   - zircon_editor/src/tests/ui/boundary/template_assets
   - zircon_editor/assets/ui/editor/material_components
@@ -264,13 +215,11 @@ tests:
   - zircon_runtime/src/ui/tests/component_catalog/material_foundation
   - zircon_runtime/src/ui/tests/component_catalog/component_state.rs
   - zircon_runtime/src/ui/tests/component_catalog/component_state/button.rs
-  - zircon_runtime/src/ui/tests/component_catalog/component_state/notification_center.rs
+  - zircon_runtime/src/ui/tests/component_state/notification_center.rs
   - zircon_runtime/src/ui/tests/component_catalog/component_state/overlay.rs
   - zircon_runtime/src/ui/tests/component_catalog/component_state/windowing.rs
   - zircon_runtime/src/ui/tests/component_catalog/component_state/tree_view.rs
   - zircon_runtime/src/ui/tests/component_catalog/component_state/table.rs
-  - zircon_runtime/src/ui/tests/runtime_input_reply_routes/tree_view_pointer_routes.rs
-  - zircon_runtime/src/ui/tests/runtime_input_reply_routes/table_pointer_routes.rs
   - rustfmt --edition 2021 --check zircon_runtime/src/ui/component/catalog/material_foundation/feedback_editor_overlays.rs zircon_runtime/src/ui/tests/component_catalog/material_foundation/feedback.rs zircon_runtime/src/ui/tests/component_catalog/material_foundation/mod.rs zircon_runtime/src/ui/surface/render/drag_overlay.rs zircon_runtime/src/ui/surface/render/extract.rs zircon_runtime/src/ui/surface/render/mod.rs zircon_runtime/src/ui/tests/render_drag_overlay.rs zircon_runtime/src/ui/tests/mod.rs (passed after M3.S4 DragOverlay descriptor/render baseline)
   - scoped git diff --check for M3.S4 DragOverlay descriptor/render baseline docs/code/session files (passed with LF-to-CRLF warnings only)
   - conflict marker and trailing-whitespace scans for M3.S4 DragOverlay descriptor/render baseline docs/code/session files (passed with no matches)

@@ -12,7 +12,6 @@ related_records:
 implementation_files:
   - zircon_runtime/src/dynamic_api/session/runtime_ui/font_admission.rs
 tests:
-  - tools/tests/test_runtime_font_admission_dependency_projection_performance_contract.py
 ---
 
 # Runtime808 · font-admission dependency projection

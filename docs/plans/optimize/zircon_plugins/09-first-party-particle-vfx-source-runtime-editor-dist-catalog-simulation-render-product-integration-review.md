@@ -11,14 +11,12 @@ related_code:
   - zircon_plugins/first_party_editor_catalog/src/lib.rs
   - zircon_app/src/entry/first_party_runtime_plugins.rs
   - zircon_app/src/entry/first_party_editor_plugins.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/particles_features/rows.rs
+  - zircon_runtime/src/plugin/runtime/builtin_catalog/particles_features/rows.rs
   - zircon_runtime/src/scene/world/render_particles.rs
   - zircon_runtime/src/script/vm/gameplay_host.rs
 tests:
   - zircon_plugins/particles/runtime/src/tests
-  - zircon_plugins/particles/editor/src/tests.rs
   - zircon_plugins/particles/dist/src/lib.rs
-  - tests/acceptance/particles-gpu-readback-mailbox.md
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md
   - docs/plans/optimize/01-cross-report-owner-schema-abi-p0-consolidation-review.md

@@ -1,17 +1,16 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/app.rs
-  - zircon_editor/src/ui/retained_host/app/native_windows.rs
-  - zircon_editor/src/ui/retained_host/app/native_windows/target.rs
-  - zircon_editor/src/ui/retained_host/app/native_windows/presentation.rs
-  - zircon_editor/src/ui/retained_host/app/native_windows/store.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/native_window_presenters.rs
-  - zircon_editor/src/ui/retained_host/app/native_window_close.rs
+  - zircon_editor/src/ui/retained/app/native_windows.rs
+  - zircon_editor/src/ui/retained/app/native_windows/target.rs
+  - zircon_editor/src/ui/retained/app/native_windows/presentation.rs
+  - zircon_editor/src/ui/retained/app/native_windows/store.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle/native_window_presenters.rs
+  - zircon_editor/src/ui/retained/app/native_window_close.rs
 implementation_files:
-  - zircon_editor/src/ui/retained_host/app/native_windows.rs
-  - zircon_editor/src/ui/retained_host/app/native_windows/target.rs
-  - zircon_editor/src/ui/retained_host/app/native_windows/presentation.rs
-  - zircon_editor/src/ui/retained_host/app/native_windows/store.rs
+  - zircon_editor/src/ui/retained/app/native_windows.rs
+  - zircon_editor/src/ui/retained/app/native_windows/target.rs
+  - zircon_editor/src/ui/retained/app/native_windows/presentation.rs
+  - zircon_editor/src/ui/retained/app/native_windows/store.rs
 plan_sources:
   - docs/plans/zircon_editor/editor_ui/08-workbench-shell-on-runtime-ui.md
   - user: 2026-06-18 editor UI architecture implementation, feature first and tests deferred

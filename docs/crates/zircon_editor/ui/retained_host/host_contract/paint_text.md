@@ -1,40 +1,30 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text/blend.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text/clip.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/clip_rect.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/entry.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs/tests.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs/row.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs/row/tests.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout/metrics.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/metrics.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout/tests.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/placement.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/recording.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text/font.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text/font/metrics.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text/font/tests.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text_tests.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_theme.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_theme/typography.rs
+  - zircon_editor/src/ui/retained/contract/paint_text/blend.rs
+  - zircon_editor/src/ui/retained/contract/paint_text/clip.rs
+  - zircon_editor/src/ui/retained/contract/paint_text/draw.rs
+  - zircon_editor/src/ui/retained/contract/paint_text/draw/clip_rect.rs
+  - zircon_editor/src/ui/retained/contract/paint_text/draw/entry.rs
+  - zircon_editor/src/ui/retained/contract/paint_text/draw/glyphs.rs
+  - zircon_editor/src/ui/retained/contract/paint_text/draw/glyphs/row.rs
+  - zircon_editor/src/ui/retained/contract/paint_text/draw/layout.rs
+  - zircon_editor/src/ui/retained/contract/paint_text/draw/layout/metrics.rs
+  - zircon_editor/src/ui/retained/contract/paint_text/draw/metrics.rs
+  - zircon_editor/src/ui/retained/contract/paint_text/draw/placement.rs
+  - zircon_editor/src/ui/retained/contract/paint_text/draw/recording.rs
+  - zircon_editor/src/ui/retained/contract/paint_text/font.rs
+  - zircon_editor/src/ui/retained/contract/paint_text/font/metrics.rs
+  - zircon_editor/src/ui/retained/contract/paint_theme/typography.rs
   - zircon_editor/src/core/settings/mod.rs
   - zircon_editor/src/core/settings/defaults.rs
   - zircon_editor/src/core/settings/io.rs
   - zircon_editor/src/core/settings/tests/mod.rs
-  - zircon_editor/src/ui/retained_host/app.rs
-  - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/replay.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_commands/draw.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_command_conversion/style.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_command_conversion/style/text.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_command_conversion/text/commands.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_command_conversion/text/commands/fallback.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_command_conversion/text/commands/shaped.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_primitives/text_markers.rs
+  - zircon_editor/src/ui/retained/contract/chrome_command_stream/replay.rs
+  - zircon_editor/src/ui/retained/contract/paint/render_commands/draw.rs
+  - zircon_editor/src/ui/retained/contract/paint/commands/text/commands.rs
+  - zircon_editor/src/ui/retained/contract/paint/commands/text/commands/fallback.rs
+  - zircon_editor/src/ui/retained/contract/paint/commands/text/commands/shaped.rs
+  - zircon_editor/src/ui/retained/contract/paint_primitives/text_markers.rs
   - zircon_runtime_interface/src/ui/design_tokens.rs
   - zircon_runtime_interface/src/ui/skin/preset.rs
   - zircon_runtime_interface/src/ui/surface/render/resolved_style.rs
@@ -49,38 +39,28 @@ related_code:
   - zircon_runtime/src/text/shaping/mod.rs
   - zircon_runtime/src/text/shaping/cosmic.rs
 implementation_files:
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text/blend.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text/clip.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/clip_rect.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/entry.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs/tests.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs/row.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs/row/tests.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout/metrics.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/metrics.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout/tests.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/placement.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/recording.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text/font.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text/font/metrics.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text/font/tests.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text_tests.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_theme.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_theme/typography.rs
+  - zircon_editor/src/ui/retained/contract/paint_text/blend.rs
+  - zircon_editor/src/ui/retained/contract/paint_text/clip.rs
+  - zircon_editor/src/ui/retained/contract/paint_text/draw.rs
+  - zircon_editor/src/ui/retained/contract/paint_text/draw/clip_rect.rs
+  - zircon_editor/src/ui/retained/contract/paint_text/draw/entry.rs
+  - zircon_editor/src/ui/retained/contract/paint_text/draw/glyphs.rs
+  - zircon_editor/src/ui/retained/contract/paint_text/draw/glyphs/row.rs
+  - zircon_editor/src/ui/retained/contract/paint_text/draw/layout.rs
+  - zircon_editor/src/ui/retained/contract/paint_text/draw/layout/metrics.rs
+  - zircon_editor/src/ui/retained/contract/paint_text/draw/metrics.rs
+  - zircon_editor/src/ui/retained/contract/paint_text/draw/placement.rs
+  - zircon_editor/src/ui/retained/contract/paint_text/draw/recording.rs
+  - zircon_editor/src/ui/retained/contract/paint_text/font.rs
+  - zircon_editor/src/ui/retained/contract/paint_text/font/metrics.rs
+  - zircon_editor/src/ui/retained/contract/paint_theme/typography.rs
   - zircon_editor/src/core/settings/mod.rs
   - zircon_editor/src/core/settings/defaults.rs
   - zircon_editor/src/core/settings/io.rs
   - zircon_editor/src/core/settings/tests/mod.rs
-  - zircon_editor/src/ui/retained_host/app.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_command_conversion/style.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_command_conversion/style/text.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_command_conversion/text/commands.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_command_conversion/text/commands/fallback.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_command_conversion/text/commands/shaped.rs
+  - zircon_editor/src/ui/retained/contract/paint/commands/text/commands.rs
+  - zircon_editor/src/ui/retained/contract/paint/commands/text/commands/fallback.rs
+  - zircon_editor/src/ui/retained/contract/paint/commands/text/commands/shaped.rs
   - zircon_runtime_interface/src/ui/surface/render/resolved_style.rs
   - zircon_runtime_interface/src/ui/surface/render/command.rs
   - zircon_runtime_interface/src/ui/surface/render/text_shape.rs

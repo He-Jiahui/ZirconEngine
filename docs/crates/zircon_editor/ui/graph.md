@@ -15,13 +15,11 @@ implementation_files:
   - zircon_editor/src/ui/graph/commands.rs
   - zircon_editor/src/ui/graph/node_widget.rs
   - zircon_editor/src/ui/graph/routing.rs
-  - zircon_editor/src/ui/graph/tests.rs
 plan_sources:
   - docs/plans/zircon_editor/editor/07-domain-editors-and-graph-foundation.md
   - docs/plans/engine-code-structure-convention.md
   - docs/plans/engine-code-review-findings-2026-06.md
 tests:
-  - zircon_editor/src/ui/graph/tests.rs
   - cargo test -p zircon_editor --lib ui::graph::tests --locked --jobs 1
 doc_type: module-detail
 ---

@@ -9,10 +9,7 @@ related_records:
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
   - zircon_runtime/src/ui/template/asset/compiler/ui_style_resolver.rs
-  - zircon_runtime/src/ui/template/asset/compiler/ui_style_resolver/capacity_tests.rs
-  - zircon_runtime/src/ui/template/asset/compiler/ui_style_resolver/import_capacity_tests.rs
 tests:
-  - tools/tests/test_runtime_style_resolver_import_capacity_performance_contract.py
 ---
 
 # Runtime851 - style import resolution capacity

@@ -1,14 +1,12 @@
 ---
 related_code:
-  - zircon_runtime/src/plugin/native_plugin_loader/loaded_native_plugin.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/loaded_native_plugin/asset_import.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/loaded_native_plugin/behavior.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/loaded_native_plugin/callback.rs
+  - zircon_runtime/src/plugin/loader/loaded_native_plugin/asset_import.rs
+  - zircon_runtime/src/plugin/loader/loaded_native_plugin/behavior.rs
+  - zircon_runtime/src/plugin/loader/loaded_native_plugin/callback.rs
 implementation_files:
-  - zircon_runtime/src/plugin/native_plugin_loader/loaded_native_plugin.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/loaded_native_plugin/asset_import.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/loaded_native_plugin/behavior.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/loaded_native_plugin/callback.rs
+  - zircon_runtime/src/plugin/loader/loaded_native_plugin/asset_import.rs
+  - zircon_runtime/src/plugin/loader/loaded_native_plugin/behavior.rs
+  - zircon_runtime/src/plugin/loader/loaded_native_plugin/callback.rs
 plan_sources:
   - docs/plans/engine-code-structure-convention.md
   - docs/plans/engine-code-review-findings-2026-06.md
@@ -16,7 +14,7 @@ plan_sources:
   - docs/plans/optimize/zircon_runtime/99p-runtime-plugin-interface-bridge-slot-generation-strong-weak-native-vm-lifecycle-diagnostics-product-integration-current-source-review.md
   - docs/plans/optimize/zircon_runtime/58-runtime-plugin-interface-bridge-slot-generation-strong-weak-native-vm-lifecycle-diagnostics-product-integration-review.md
 tests:
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests/callback_lease.rs
+  - zircon_runtime/src/plugin/loader/live/tests/callback_lease.rs
   - rustfmt --edition 2021 --check
   - static function, type, string, and atomic-protocol migration comparison
   - git diff --check

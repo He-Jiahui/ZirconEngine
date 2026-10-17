@@ -8,9 +8,8 @@ related_code:
   - zircon_runtime/src/asset/pipeline/worker_pool.rs
   - zircon_runtime/src/asset/module.rs
   - zircon_runtime/src/asset/tests/module_lifecycle.rs
-  - zircon_runtime/src/asset/pipeline/manager/service_contracts/asset_manager_contract.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/runtime.rs
-  - zircon_runtime/src/asset/pipeline/manager/resource_sync/register_project_resource.rs
+  - zircon_runtime/src/asset/manager/service_contracts/asset_manager_contract.rs
+  - zircon_runtime/src/asset/manager/resource_sync/register_project_resource.rs
   - zircon_runtime/src/asset/watch/asset_watcher.rs
   - zircon_runtime/src/asset/watch/watch_loop.rs
   - zircon_runtime/src/asset/artifact/cache_payload.rs
@@ -25,30 +24,24 @@ related_code:
   - zircon_runtime/src/core/resource
   - zircon_plugins/texture_importer/runtime/src/importers.rs
   - zircon_runtime_interface/src/resource/resource_record.rs
-  - zircon_runtime/src/tests/runtime_absorption/asset_pipeline.rs
-  - zircon_runtime/src/tests/runtime_absorption/asset_pipeline/inventory.rs
-  - zircon_runtime/src/tests/runtime_absorption/asset_pipeline/mirror_docs.rs
-  - zircon_runtime/src/tests/runtime_absorption/asset_pipeline/support.rs
-  - zircon_runtime/src/tests/runtime_absorption/asset_pipeline/split_layout.rs
-  - zircon_runtime/src/tests/runtime_absorption/asset_surface.rs
-  - zircon_runtime/src/tests/runtime_absorption/asset_surface/registration.rs
-  - zircon_runtime/src/tests/runtime_absorption/asset_surface/namespace_surface.rs
-  - zircon_runtime/src/tests/runtime_absorption/asset_surface/facade_query.rs
-  - zircon_runtime/src/tests/runtime_absorption/asset_surface/support.rs
-  - zircon_runtime/src/tests/runtime_absorption/asset_surface/split_layout.rs
-  - zircon_runtime/src/tests/runtime_absorption/asset_worker_policy.rs
-  - zircon_runtime/src/tests/runtime_absorption/asset_worker_policy/worker_pool.rs
-  - zircon_runtime/src/tests/runtime_absorption/asset_worker_policy/split_layout.rs
-  - zircon_runtime/src/tests/runtime_absorption/asset_pipeline/cargo_gate.rs
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings.rs
+  - zircon_runtime/src/tests/contracts/asset_pipeline/inventory.rs
+  - zircon_runtime/src/tests/contracts/asset_pipeline/mirror_docs.rs
+  - zircon_runtime/src/tests/contracts/asset_pipeline/support.rs
+  - zircon_runtime/src/tests/contracts/asset_pipeline/split_layout.rs
+  - zircon_runtime/src/tests/contracts/asset_surface/registration.rs
+  - zircon_runtime/src/tests/contracts/asset_surface/namespace_surface.rs
+  - zircon_runtime/src/tests/contracts/asset_surface/facade_query.rs
+  - zircon_runtime/src/tests/contracts/asset_surface/support.rs
+  - zircon_runtime/src/tests/contracts/asset_surface/split_layout.rs
+  - zircon_runtime/src/tests/contracts/asset_worker_policy/worker_pool.rs
+  - zircon_runtime/src/tests/contracts/asset_worker_policy/split_layout.rs
+  - zircon_runtime/src/tests/contracts/asset_pipeline/cargo_gate.rs
   - tools/tests/test_runtime_asset_pipeline_audit.py
   - tools/tests/test_frameworks_02_core_error_single_source.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/asset_pipeline_boundary.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/asset_pipeline_markdown.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/asset_pipeline_source_inventory.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/asset_pipeline_anchor_inventory.py
-  - dev/bevy/crates/bevy_asset/src
-  - dev/Fyrox/fyrox-resource/src
 plan_sources:
   - docs/plans/zircon_runtime/runtime/index.md
   - docs/plans/zircon_runtime/frameworks/02-module-kernel-and-lifecycle-unification.md

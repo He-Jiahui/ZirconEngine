@@ -10,8 +10,6 @@ related_records:
 implementation_files:
   - zircon_runtime/src/ui/tree/node/focus.rs
 tests:
-  - zircon_runtime/src/ui/tree/node/focus/navigation_capacity_tests.rs
-  - tools/tests/test_runtime_tree_focus_navigation_capacity_performance_contract.py
 ---
 
 # Runtime791 · Focus navigation output capacity

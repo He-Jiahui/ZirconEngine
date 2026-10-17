@@ -27,16 +27,11 @@ related_code:
   - zircon_runtime_interface/src/ui/surface/render/text_shape.rs
   - zircon_runtime_interface/src/ui/surface/render/text_layout.rs
   - zircon_runtime_interface/src/ui/surface/render/command.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render/resolved_layout.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render/text_advances.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout/runtime_lines.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/render/resolved_layout.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/render/text_advances.rs
+  - zircon_editor/src/ui/retained/contract/paint_text/draw/layout/runtime_lines.rs
 tests:
-  - zircon_runtime/src/text/shaping/tests.rs
-  - zircon_runtime/src/text/layout/line_break/tests.rs
-  - zircon_runtime/src/text/layout/line_break/boundary_correction/tests.rs
-  - zircon_runtime/src/text/layout/rich_advance_index/tests.rs
   - zircon_runtime/src/ui/text/layout_engine/tests
-  - zircon_runtime/src/ui/surface/render/text_prewarm/tests.rs
   - zircon_runtime/src/ui/tests/text_pipeline/render_extract_prewarm.rs
   - zircon_runtime_interface/src/tests/render_contracts.rs
 plan_sources:

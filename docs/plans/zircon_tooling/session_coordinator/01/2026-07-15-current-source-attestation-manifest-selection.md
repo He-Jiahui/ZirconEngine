@@ -5,7 +5,6 @@ created_at: 2026-07-15
 plan_source: docs/plans/zircon_tooling/session_coordinator/01-workflow-control-center-and-tray.md
 related_code:
 tests:
-  - tools/session_coordinator/tests/test_workflow_commit.py
 ---
 
 # Coordinator01：当前源码 Milestone Manifest 选择

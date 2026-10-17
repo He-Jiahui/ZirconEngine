@@ -9,7 +9,6 @@ origin_child_dir: docs/plans/zircon_editor/editor/10
 fixing_child_dir: docs/plans/zircon_runtime/frameworks/01
 plan_link_mode: child_record_only
 related_code:
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/animation_resource.rs
   - zircon_runtime/src/core/runtime/error.rs
 tests:
   - cargo test -p zircon_runtime --lib project_asset_manager --locked -- --nocapture --test-threads=1

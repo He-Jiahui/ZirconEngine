@@ -14,8 +14,6 @@ related_code:
   - zircon_plugins/prefab_tools/README.md
   - zircon_plugins/prefab_tools/runtime/src/lib.rs
   - zircon_plugins/prefab_tools/editor/src/lib.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog.rs
-  - zircon_runtime/src/tests/plugin_extensions/manifest_contributions.rs
 implementation_files:
   - zircon_plugins/terrain/plugin.toml
   - zircon_plugins/terrain/runtime/src/lib.rs
@@ -27,14 +25,12 @@ implementation_files:
   - zircon_plugins/prefab_tools/plugin.toml
   - zircon_plugins/prefab_tools/runtime/src/lib.rs
   - zircon_plugins/prefab_tools/editor/src/lib.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog.rs
 plan_sources:
   - .codex/plans/ZirconEngine Bevy 完成度两层路线图.md
 tests:
   - zircon_plugins/terrain/runtime/src/lib.rs
   - zircon_plugins/tilemap_2d/runtime/src/lib.rs
   - zircon_plugins/prefab_tools/runtime/src/lib.rs
-  - zircon_runtime/src/tests/plugin_extensions/manifest_contributions.rs
 validation:
   - 2026-05-31: cargo test --manifest-path .\zircon_plugins\terrain\runtime\Cargo.toml terrain_runtime_plugin_contributes_component_and_importers --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-authoring-runtime-metadata --color never --quiet (red before linked maturity metadata, then passed with existing runtime warnings)
   - 2026-05-31: cargo test --manifest-path .\zircon_plugins\tilemap_2d\runtime\Cargo.toml tilemap_runtime_plugin_contributes_component_and_importers --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-authoring-runtime-metadata --color never --quiet (passed with existing runtime warnings)

@@ -6,7 +6,7 @@ related_code:
   - zircon_runtime/src/plugin/bridge/weak.rs
   - zircon_runtime/src/plugin/extension_registry/runtime_extension_registry.rs
   - zircon_runtime/src/plugin/extension_registry/register/bridge_registration.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/contributions/extension.rs
+  - zircon_runtime/src/plugin/runtime/catalog/contributions/extension.rs
   - zircon_runtime/src/script/vm/behavior_bridge.rs
   - zircon_runtime/src/script/vm/runtime/hot_reload_coordinator.rs
   - zircon_plugins/plugin_sdk/src/registration.rs
@@ -17,8 +17,8 @@ related_code:
   - zircon_plugins/ai/runtime/src/behavior_tree/nodes/integration.rs
 tests:
   - zircon_runtime/src/core/framework/script/behavior_bridge.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/contributions/extension.rs
-  - zircon_runtime/src/plugin/runtime_plugin/registration_report/validation/interfaces.rs
+  - zircon_runtime/src/plugin/runtime/catalog/contributions/extension.rs
+  - zircon_runtime/src/plugin/runtime/registration_report/validation/interfaces.rs
   - zircon_runtime/src/script/vm/behavior_bridge.rs
   - zircon_plugins/plugin_sdk/src/registration.rs
   - zircon_plugins/zr_vm_language/runtime/src/tests/registration.rs
