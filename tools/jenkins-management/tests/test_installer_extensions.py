@@ -1,0 +1,274 @@
+"""Exercise official installer extension functions in Windows PowerShell, without installing."""
+from __future__ import annotations
+
+import base64
+import hashlib
+import json
+from pathlib import Path
+import shutil
+import subprocess
+import unittest
+
+ROOT = Path(__file__).resolve().parents[3]
+INSTALLER = ROOT / "tools/dev/install-jenkins-management.ps1"
+ADDON = ROOT / "tools/jenkins-management/checkout-commit.groovy"
+DELIVERY_ADDON = ROOT / "tools/jenkins-management/delivery.groovy"
+MARKER = "ZR_INSTALLER_EXTENSION_RESULTS:"
+OLD_CORE = "// pinned old core\n"
+NEW_CORE = "// pinned new core\n"
+
+
+def _command(cases, raw, delivery_raw):
+    path = base64.b64encode(str(INSTALLER).encode()).decode()
+    payload = base64.b64encode(json.dumps(cases, separators=(",", ":")).encode()).decode()
+    addon = base64.b64encode(raw).decode()
+    delivery_addon = base64.b64encode(delivery_raw).decode()
+    return r"""
+$ErrorActionPreference = 'Stop'
+if ($PSVersionTable.PSEdition -ne 'Desktop') { throw 'Windows PowerShell Desktop is required' }
+$path = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('__PATH__'))
+$tokens = $null
+$errors = $null
+$tree = [Management.Automation.Language.Parser]::ParseFile($path, [ref]$tokens, [ref]$errors)
+if ($null -eq $tree -or $errors.Count) { throw 'Canonical installer did not parse' }
+$names = @('Hash-Bytes','Get-ManagementJobExtensionPrefix','Join-ManagementJobExtension','Assert-ManagementJob')
+$definitions = ''
+foreach ($name in $names) {
+    $nodes = @($tree.FindAll({
+        param($node)
+        $node -is [Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -ceq $name
+    }, $true))
+    if ($nodes.Count -ne 1) { throw ('Expected one official function: ' + $name) }
+    $definitions += $nodes[0].Extent.Text + [Environment]::NewLine
+}
+. ([ScriptBlock]::Create($definitions))
+function New-ExtensionCaseJob([string]$Script) {
+    $parameters = ''
+    foreach ($name in @('SESSION_ID','REQUEST_ID','OPERATION_ID','ACTION','INPUT_JSON','EXPECTED_DRIVER_DIGEST','RUNTIME_OPERATION_ID')) {
+        $default = if ($name -ceq 'EXPECTED_DRIVER_DIGEST') { 'driver-fixture' } elseif ($name -ceq 'RUNTIME_OPERATION_ID') { 'runtime-fixture' } else { '' }
+        $parameters += "<hudson.model.StringParameterDefinition><name>$name</name><defaultValue>$default</defaultValue><trim>true</trim></hudson.model.StringParameterDefinition>"
+    }
+    $parameters += '<hudson.model.BooleanParameterDefinition><name>QUERY_ONLY</name><defaultValue>false</defaultValue></hudson.model.BooleanParameterDefinition>'
+    $escaped = [Security.SecurityElement]::Escape($Script)
+    return [xml]"<flow-definition><actions/><description>Bounded Jenkins management MVP; no M8 acceptance</description><keepDependencies>false</keepDependencies><properties><hudson.model.ParametersDefinitionProperty><parameterDefinitions>$parameters</parameterDefinitions></hudson.model.ParametersDefinitionProperty></properties><definition class='org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition' plugin='workflow-cps'><script>$escaped</script><sandbox>true</sandbox></definition><triggers/><disabled>false</disabled></flow-definition>"
+}
+$deliveryBaseBytes = [Convert]::FromBase64String('__DELIVERY__')
+$deliveryBaseText = [Text.Encoding]::UTF8.GetString($deliveryBaseBytes).TrimStart([char]0xfeff).Replace(([string][char]13 + [char]10), [string][char]10)
+$baseBytes = [Convert]::FromBase64String('__ADDON__')
+$baseText = [Text.Encoding]::UTF8.GetString($baseBytes)
+if ($baseText.StartsWith([string][char]0xfeff, [StringComparison]::Ordinal)) { $baseText = $baseText.Substring(1) }
+$baseText = $baseText.Replace(([string][char]13 + [char]10), [string][char]10)
+$cases = ConvertFrom-Json ([Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('__CASES__')))
+$rows = New-Object 'System.Collections.Generic.List[object]'
+foreach ($case in $cases) {
+    try {
+        [byte[]]$bytes = $baseBytes
+        switch ([string]$case.bytes) {
+            'changed' { $bytes = [Text.Encoding]::UTF8.GetBytes($baseText + '// drift') }
+            'duplicate' { $bytes = [Text.Encoding]::UTF8.GetBytes($baseText + $baseText) }
+            'leading' { $bytes = [Text.Encoding]::UTF8.GetBytes('// foreign' + [char]10 + $baseText) }
+            'missing-end' { $bytes = [Text.Encoding]::UTF8.GetBytes($baseText.Replace('// END ZIRCON SCOPED CHECKOUT COMMIT','')) }
+            'crlf' { $bytes = [Text.Encoding]::UTF8.GetBytes($baseText.Replace([string][char]10, ([string][char]13 + [char]10))) }
+            'bom-crlf' { $bytes = [byte[]](@(239,187,191) + [Text.Encoding]::UTF8.GetBytes($baseText.Replace([string][char]10, ([string][char]13 + [char]10)))) }
+            'trailing-newline' { $bytes = [byte[]](@($baseBytes) + @(10)) }
+            'invalid-utf8' { $bytes = [byte[]]@(255) }
+        }
+        $pin = [string]$case.pin
+        if ($case.pinMode -ceq 'actual') { $pin = Hash-Bytes $bytes }
+        $prefix = ''
+        if ($case.addon -eq $true) {
+            $prefix = Get-ManagementJobExtensionPrefix -AddonBytes $bytes -ExpectedSha256 $pin
+        }
+        $checkoutPrefix = $prefix
+        $deliveryPrefix = ''
+        if ($case.delivery -eq $true) {
+            [byte[]]$deliveryBytes = $deliveryBaseBytes
+            switch ([string]$case.deliveryBytes) {
+                'changed' { $deliveryBytes = [Text.Encoding]::UTF8.GetBytes($deliveryBaseText + '// drift') }
+                'duplicate' { $deliveryBytes = [Text.Encoding]::UTF8.GetBytes($deliveryBaseText + $deliveryBaseText) }
+                'missing-end' { $deliveryBytes = [Text.Encoding]::UTF8.GetBytes($deliveryBaseText.Replace('// END ZIRCON VALIDATED DELIVERY','')) }
+                'crlf' { $deliveryBytes = [Text.Encoding]::UTF8.GetBytes($deliveryBaseText.Replace([string][char]10, ([string][char]13 + [char]10))) }
+            }
+            $deliveryPin = [string]$case.deliveryPin
+            if ($case.deliveryPinMode -ceq 'actual') { $deliveryPin = Hash-Bytes $deliveryBytes }
+            $deliveryPrefix = Get-ManagementJobExtensionPrefix -AddonBytes $deliveryBytes -ExpectedSha256 $deliveryPin -Kind 'delivery'
+            $prefix = $deliveryPrefix + $checkoutPrefix
+        }
+        $expected = Join-ManagementJobExtension -Core ([string]$case.core) -Prefix $prefix
+        $actual = $expected
+        switch ([string]$case.actual) {
+            'missing-delivery' { $actual = $checkoutPrefix + [string]$case.core }
+            'duplicate-delivery' { $actual = $deliveryPrefix + $expected }
+            'moved-delivery' { $actual = $checkoutPrefix + $deliveryPrefix + [string]$case.core }
+            'bare' { $actual = [string]$case.core }
+            'duplicate' { $actual = $prefix + $expected }
+            'suffix' { $actual = [string]$case.core + $prefix }
+            'leading' { $actual = '// foreign' + [char]10 + $expected }
+            'changed-core' { $actual = $expected + '// foreign core' + [char]10 }
+            'base-addon' {
+                $actual = (Get-ManagementJobExtensionPrefix -AddonBytes $baseBytes -ExpectedSha256 (Hash-Bytes $baseBytes)) + [string]$case.core
+            }
+        }
+        $job = New-ExtensionCaseJob $actual
+        if ($case.tamper -ceq 'disabled') { $job.'flow-definition'.disabled = 'true' }
+        if ($case.tamper -ceq 'sandbox') { $job.'flow-definition'.definition.sandbox = 'false' }
+        Assert-ManagementJob $job $expected 'driver-fixture' 'runtime-fixture'
+        if ($case.resume -eq $true) {
+            $old = Join-ManagementJobExtension -Core ('// pinned old core' + [char]10) -Prefix $prefix
+            $archive = New-ExtensionCaseJob $old
+            if ($case.archive -ceq 'bare') { $archive = New-ExtensionCaseJob ('// pinned old core' + [char]10) }
+            if ($case.archive -ceq 'missing-delivery') { $archive = New-ExtensionCaseJob ($checkoutPrefix + '// pinned old core' + [char]10) }
+            Assert-ManagementJob $archive $old 'driver-fixture' 'runtime-fixture'
+        }
+        $rows.Add([ordered]@{id=[string]$case.id;status='accepted';value=$expected;error=$null}) | Out-Null
+    } catch {
+        $rows.Add([ordered]@{id=[string]$case.id;status='rejected';value=$null;error=$_.Exception.Message}) | Out-Null
+    }
+}
+[Console]::Out.WriteLine('ZR_INSTALLER_EXTENSION_RESULTS:' + (ConvertTo-Json -InputObject @($rows.ToArray()) -Depth 5 -Compress))
+""".replace("__PATH__", path).replace("__ADDON__", addon).replace("__DELIVERY__", delivery_addon).replace("__CASES__", payload)
+
+
+class InstallerExtensionTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        raw = ADDON.read_bytes()
+        pin = hashlib.sha256(raw).hexdigest()
+        delivery_raw = DELIVERY_ADDON.read_bytes() if getattr(cls, "delivery_only", False) else b""
+        delivery_pin = hashlib.sha256(delivery_raw).hexdigest()
+        cls.delivery_prefix = delivery_raw.decode("utf-8-sig").replace("\r\n", "\n").rstrip("\r\n") + "\n\n"
+        cls.prefix = raw.decode("utf-8-sig").replace("\r\n", "\n").rstrip("\r\n") + "\n\n"
+
+        def case(identifier, **overrides):
+            value = dict(id=identifier, addon=True, pin=pin, core=OLD_CORE)
+            value.update(overrides)
+            return value
+
+        def delivery(identifier, **overrides):
+            value = dict(delivery=True, deliveryPin=delivery_pin)
+            value.update(overrides)
+            return case(identifier, **value)
+
+        cases = [
+            dict(id="plain", addon=False, core=OLD_CORE),
+            dict(id="plain-rejects-addon", addon=False, core=OLD_CORE, actual="base-addon"),
+            case("old"),
+            case("new", core=NEW_CORE),
+            case("resume", core=NEW_CORE, resume=True),
+            case("resume-wrong-archive", core=NEW_CORE, resume=True, archive="bare"),
+            case("missing", actual="bare"),
+            case("duplicate", actual="duplicate"),
+            case("suffix", actual="suffix"),
+            case("leading", actual="leading"),
+            case("changed-core", actual="changed-core"),
+            case("disabled", tamper="disabled"),
+            case("sandbox", tamper="sandbox"),
+            case("source-drift", bytes="changed"),
+            case("wrong-pin", pin="0" * 64),
+            case("empty-pin", pin=""),
+            case("invalid-template", bytes="missing-end", pinMode="actual"),
+            case("duplicate-template", bytes="duplicate", pinMode="actual"),
+            case("leading-template", bytes="leading", pinMode="actual"),
+            case("invalid-utf8", bytes="invalid-utf8", pinMode="actual"),
+            case("crlf", bytes="crlf", pinMode="actual"),
+            case("bom-crlf", bytes="bom-crlf", pinMode="actual"),
+            case("raw-newline-drift", bytes="trailing-newline"),
+            case("nested-core", core=cls.prefix + OLD_CORE),
+            delivery("delivery-old"),
+            delivery("delivery-new", core=NEW_CORE),
+            delivery("delivery-resume", core=NEW_CORE, resume=True),
+            delivery("delivery-crlf", deliveryBytes="crlf", deliveryPinMode="actual"),
+            delivery("delivery-missing", actual="missing-delivery"),
+            delivery("delivery-duplicate", actual="duplicate-delivery"),
+            delivery("delivery-moved", actual="moved-delivery"),
+            delivery("delivery-source-drift", deliveryBytes="changed"),
+            delivery("delivery-wrong-pin", deliveryPin="0" * 64),
+            delivery("delivery-incomplete", deliveryBytes="missing-end", deliveryPinMode="actual"),
+            delivery("delivery-duplicate-template", deliveryBytes="duplicate", deliveryPinMode="actual"),
+            delivery("delivery-nested-core", core=cls.delivery_prefix + OLD_CORE),
+            delivery("delivery-resume-wrong-archive", core=NEW_CORE, resume=True, archive="missing-delivery"),
+        ]
+        if getattr(cls, "delivery_only", False):
+            cases = [row for row in cases if row.get("delivery") is True]
+        else:
+            cases = [row for row in cases if row.get("delivery") is not True]
+        powershell = shutil.which("powershell.exe") or shutil.which("powershell")
+        if powershell is None:
+            raise RuntimeError("Windows PowerShell Desktop is required; this is not a passing skip")
+        command = _command(cases, raw, delivery_raw)
+        if len(command) > 24000:
+            raise RuntimeError("Installer extension fixture exceeded the bounded native command")
+        completed = subprocess.run(
+            [powershell, "-NoLogo", "-NoProfile", "-NonInteractive", "-Command", command],
+            capture_output=True, text=True, encoding="utf-8", errors="replace",
+            timeout=120, check=False,
+        )
+        if completed.returncode:
+            raise RuntimeError(f"Official installer functions failed: {completed.stderr.strip()}")
+        lines = completed.stdout.splitlines()
+        if len(lines) != 1 or not lines[0].startswith(MARKER):
+            raise RuntimeError("Installer extension fixture produced no unique completion marker")
+        rows = json.loads(lines[0][len(MARKER):])
+        cls.rows = {row["id"]: row for row in rows}
+        if len(rows) != len(cases) or set(cls.rows) != {case["id"] for case in cases}:
+            raise RuntimeError("Installer extension fixture returned an incomplete case set")
+
+    def accepted(self, identifier, expected):
+        row = self.rows[identifier]
+        self.assertEqual(row["status"], "accepted", row)
+        self.assertEqual(row["value"], expected, row)
+        self.assertIsNone(row["error"], row)
+
+    def rejected(self, *identifiers):
+        for identifier in identifiers:
+            with self.subTest(identifier=identifier):
+                row = self.rows[identifier]
+                self.assertEqual(row["status"], "rejected", row)
+                self.assertIsNone(row["value"], row)
+                self.assertTrue(row["error"], row)
+
+    def test_plain_installation_stays_exact_and_does_not_drop_an_unpinned_addon(self):
+        self.accepted("plain", OLD_CORE)
+        self.rejected("plain-rejects-addon")
+
+    def test_extension_is_preserved_across_old_new_and_prepared_resume_jobs(self):
+        self.accepted("old", self.prefix + OLD_CORE)
+        self.accepted("new", self.prefix + NEW_CORE)
+        self.accepted("resume", self.prefix + NEW_CORE)
+        self.rejected("resume-wrong-archive")
+
+    def test_missing_duplicate_moved_or_changed_routes_and_job_settings_are_rejected(self):
+        self.rejected("missing", "duplicate", "suffix", "leading", "changed-core", "disabled", "sandbox", "nested-core")
+
+    def test_raw_source_pin_and_complete_unique_template_are_required(self):
+        self.rejected("source-drift", "wrong-pin", "empty-pin", "invalid-template", "duplicate-template", "leading-template", "invalid-utf8")
+
+    def test_bom_and_crlf_normalization_preserves_script_but_not_raw_source_pins(self):
+        self.accepted("crlf", self.prefix + OLD_CORE)
+        self.accepted("bom-crlf", self.prefix + OLD_CORE)
+        self.rejected("raw-newline-drift")
+
+class DeliveryInstallerExtensionTests(unittest.TestCase):
+    delivery_only = True
+    setUpClass = classmethod(InstallerExtensionTests.setUpClass.__func__)
+    accepted = InstallerExtensionTests.accepted
+    rejected = InstallerExtensionTests.rejected
+
+    def test_delivery_and_checkout_extensions_preserve_old_new_and_resumed_jobs(self):
+        prefix = self.delivery_prefix + self.prefix
+        self.accepted("delivery-old", prefix + OLD_CORE)
+        self.accepted("delivery-new", prefix + NEW_CORE)
+        self.accepted("delivery-resume", prefix + NEW_CORE)
+        self.accepted("delivery-crlf", prefix + OLD_CORE)
+
+    def test_delivery_route_loss_duplication_source_drift_and_wrong_archive_are_rejected(self):
+        self.rejected(
+            "delivery-missing", "delivery-duplicate", "delivery-moved",
+            "delivery-source-drift", "delivery-wrong-pin", "delivery-incomplete",
+            "delivery-duplicate-template", "delivery-nested-core",
+            "delivery-resume-wrong-archive",
+        )
+
+
+if __name__ == "__main__":
+    unittest.main()
