@@ -11,7 +11,9 @@ application, compilation and validation, with a reusable source baseline.
   backups as well as whole-project copies, including `.codex/outbox`, temporary
   directories and locations outside the checkout. A writable destination does
   not grant an exception to this rule.
-- Edit authorized canonical files directly. Preserve ownership and before/after
+- Keep shared main clean; edit authorized canonical paths in the task's assigned
+  Jenkins-managed worktree. See the [checkout policy](../../zircon-dev/references/main-branch-development-policy.md).
+  Preserve ownership and before/after
   hashes; hand off scoped patches and metadata. Do not store complete before/after
   source copies in evidence files as a substitute for snapshots, or call
   `snapshot.capture` and `snapshot.materialize` from the agent session.
@@ -23,7 +25,7 @@ application, compilation and validation, with a reusable source baseline.
 
 ## Patch handoff
 
-- Edit the shared checkout with `apply_patch` or another scoped patch operation.
+- Edit the assigned task worktree with `apply_patch` or another scoped patch operation.
   Preserve preexisting and foreign changes. Do not derive task ownership from a
   whole-checkout diff; select the authorized paths and changes explicitly.
 - Ordinary local requests register automatically through the verified current

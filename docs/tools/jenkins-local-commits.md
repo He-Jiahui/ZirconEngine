@@ -1,6 +1,6 @@
 # Jenkins 验证、提交与主干集成
 
-2026-10-17 用户进一步明确：**任意会话先由 Jenkins 在自己的工作树分支提交，再由统一定时流程验证合并候选，通过后合入 `main`**。不再逐会话、逐提交或逐合并申请许可。当前流程、状态含义与入口见 [Jenkins 分支提交与统一定时合并](jenkins-branch-integration.md)。本页下方保留早期接口的对账说明；新任务不再直接在共享 main commit 或即时合并。
+2026-10-17 用户进一步明确：**main 工作区保持纯净；任意会话先由 Jenkins 在自己的工作树分支提交，合入最新 main 内容并验证，通过真实 PR 合并后才快进同步本地主干**。不再逐会话、逐提交或逐本地同步申请许可。当前流程、状态含义与入口见 [Jenkins 分支提交与统一定时合并](jenkins-branch-integration.md)。缺少已合并 PR 证据时状态为 `awaiting-pr`，禁止直接把本地候选合入 main。本页下方保留早期接口的对账说明；新任务不再直接在共享 main commit 或即时合并。
 
 新请求使用 `tools/dev/jenkins_branch_queue.py`，必须包含原 ready 工作树的 `sourceRoot`、`sessionId` 和用于失败交接的 `ownerThreadId`。下面的旧请求字段仅用于理解历史回执，实际新请求使用上方流程文档的完整示例：
 

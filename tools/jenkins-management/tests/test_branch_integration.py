@@ -66,7 +66,8 @@ class BranchQueueTests(unittest.TestCase):
 
     def integrate(self, fixture, validate=None):
         return queue.integrate(d, fixture[0], queue.directory(fixture[0]) / "requests/task-delivery.json",
-                               runtime={}, check_runtime=lambda: None, validate=validate or self.validation)
+                               runtime={}, check_runtime=lambda: None, validate=validate or self.validation,
+                               pull_request=lambda d, repo, root, record, policy: {"status": "merged", "mergeCommit": record["candidateHead"]})
 
     def test_branch_commits_before_validation_preserves_foreign_staging_and_main(self):
         with self.fixture() as f:
@@ -186,7 +187,8 @@ class BranchQueueTests(unittest.TestCase):
             self.stage(f)
             runtime = d.commit.read_json(d.ROOT / ".jenkins/state/deployment/driver.json")
             result = queue.integrate(d, f[0], queue.directory(f[0]) / "requests/task-delivery.json",
-                runtime={k: runtime[k] for k in ("driverDigest", "runtimeOperationId")}, check_runtime=lambda: None)
+                runtime={k: runtime[k] for k in ("driverDigest", "runtimeOperationId")}, check_runtime=lambda: None,
+                pull_request=lambda d, repo, root, record, policy: {"status": "merged", "mergeCommit": record["candidateHead"]})
             self.assertEqual(result["status"], "merged", result.get("reason"))
             step = result["candidateValidation"]["steps"][0]
             self.assertTrue(step["complete"])

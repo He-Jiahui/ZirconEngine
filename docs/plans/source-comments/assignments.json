@@ -15105,9 +15105,248 @@
         ],
         "authoritative_assignment_claims": []
       }
+    },
+    "R105": {
+      "owner": "reflection_luna",
+      "model": "gpt-6-luna",
+      "reasoning_effort": "max",
+      "mode": "scoped-source-audit-and-necessary-comments-only-canonical-source",
+      "write_path": "docs/plans/source-comments/reviews/R105.json",
+      "audited_paths": [
+        "zircon_runtime/src/text/layout/line_break/mod.rs",
+        "zircon_runtime/src/text/layout/line_break/tests/cases.rs"
+      ],
+      "before_sha256": {
+        "zircon_runtime/src/text/layout/line_break/mod.rs": "bc035119ac696b0eb86d8593fcca5e9ea822e8c27aeda527eabb38e5e7b24a6b",
+        "zircon_runtime/src/text/layout/line_break/tests/cases.rs": "3fb3240c612b2b83074ff66309aa7e439897142c437039540626a9831bc7f89a"
+      },
+      "before_source_pins": [
+        {
+          "path": "zircon_runtime/src/text/layout/line_break/mod.rs",
+          "sha256": "bc035119ac696b0eb86d8593fcca5e9ea822e8c27aeda527eabb38e5e7b24a6b",
+          "bytes": 8957,
+          "lines": 262,
+          "eol": {
+            "crlf": 0,
+            "lf_only": 262
+          },
+          "raw_HEAD_sha256": "bc035119ac696b0eb86d8593fcca5e9ea822e8c27aeda527eabb38e5e7b24a6b",
+          "checkout_equals_raw_HEAD": true,
+          "normalized_HEAD_equal": true,
+          "stage0_blob": "b4489fa1acff75808c8ab00edaa264ce53ea48cb",
+          "unfiltered_blob": "b4489fa1acff75808c8ab00edaa264ce53ea48cb",
+          "clean_filter_blob": "b4489fa1acff75808c8ab00edaa264ce53ea48cb"
+        },
+        {
+          "path": "zircon_runtime/src/text/layout/line_break/tests/cases.rs",
+          "sha256": "3fb3240c612b2b83074ff66309aa7e439897142c437039540626a9831bc7f89a",
+          "bytes": 14158,
+          "lines": 428,
+          "eol": {
+            "crlf": 0,
+            "lf_only": 428
+          },
+          "raw_HEAD_sha256": "3fb3240c612b2b83074ff66309aa7e439897142c437039540626a9831bc7f89a",
+          "checkout_equals_raw_HEAD": true,
+          "normalized_HEAD_equal": true,
+          "stage0_blob": "f36afaf2137eeec2eb8b61ece2b2d85288589599",
+          "unfiltered_blob": "f36afaf2137eeec2eb8b61ece2b2d85288589599",
+          "clean_filter_blob": "f36afaf2137eeec2eb8b61ece2b2d85288589599"
+        }
+      ],
+      "line_count": 690,
+      "status": "assigned-awaiting-independent-readback-and-explicit-root-dispatch",
+      "authority": "Exact granted canonical sources and sole child only; add necessary Chinese explanatory comments after tracing actual definitions/callers/traits/macros/dynamic registrations/FFI and direct tests. Preserve every original byte/EOL/code/API/old comment/string/assertion/macro/format input; no behavior or public API changes. Review every declaration/member/variant and every semantic entry/state/effect. Use module docs, detailed purpose/when/parameters/returns/references/lifecycle/constraints where meaningful; no empty mechanical sections. No copies/snapshots/helpers/generated fixtures/Cargo/build/broad tests/Git mutation/permission or service bypass. Root owns global ledgers/main/post and source ownership. Python3.14 -B -X utf8 inline<=22000chars, one own pending native request at a time, reconcile actual terminal/readback without inventing PID/exit or replaying unknown writers. Compact pin/range proofs plus concise object/block/call/test models, no duplicate whole models/logs. Only3 preregistered child/rootmain/post records; each final source<=800LF soft cap. New confirmed BUG needs root proof; unresolved intent uses evidence-specific TODO. Other batches/source hashes frozen. Saved permission config does not itself prove active enforcement. Before write recheck exact source pins/rawHEAD/stage/scoped diff/child absence; disjoint global metadata updates do not revoke unchanged exact grant. Review parent one type6fields/1impl/8functions26parameters/10imports14attrs/8mounts/19continuous semantic partitions; tests2types4fields/2trait impls/23functions14params/5imports20attrs/26partitions,19normal0ignored tests40asserts (23assert_eq+17assert). Lexical counts are aids, manually cover every declaration/member/block and actual complete multiline macros. Explain each input text's UTF8 byte coordinate base and borrowed chunk lifetime, not global document offsets; shape each hard-line Auto+kerning through trait provider and preserve Ready/Deferred/Failed, empty text earlyReady. Only cluster_start glyph source ranges are inspected; do not claim every glyph or shaped metadata/text validated. Empty virtual anchor checks inclusiveend then skipped; gather break boundaries from flags, sort only if logical-order inversion, coalesce identical start/end while OR mandatory, reject conflicting/overlapping boundaries. SHY push may omit empty chunks, kinsoku runs after all paragraph chunking, WordSmart only mapsReady. Chunk new computes glue permission once and mandatory initiallyfalse; callers decide actual wrapping/suffix display and may rebase checked offsets. Advance API consumes caller-paired candidate/text basis; wrapping passes line_advance.unwrap_or(word_advance), not guaranteed standalone remeasurement. Existing English RTL comment retained. cfgtest convenience uses direct provider +expect and canpanic; Fixed provider returns Arc fixture ignoring request identity and cannot prove real RTL shaping. Counting provider mutates count/ranges before delegate, retains records even if delegate fails. Preserve all existing bytes, trait signatures, attrs, macro/format inputs and tests. Naming legacy/editor local vectors []/[], lexical-mask text boundary production four forbidden vectors0 and tests actuallyexcluded; new comments contribute0, no wholeguard or fullrepo readerabsence claims. No new proved issue from candidate; reservedCR-ZCA-R105-0001 for root-proved finding if needed. Core Sol/max independently examining ownership/call semantics now; integrate its actual delivered constraints and receipts, never claim completion before response. Sole compact complete child final thenfreeze.",
+      "boundary": "Only line_break/mod.rs and directly mounted tests/cases.rs,690LF natural exact2. All seven child modules (including frozen R099/R101/R103), other tests and callees/callers/readers are readonly; parent file ownership never grants subtree source writes.",
+      "reserved_at_utc": "2026-10-17T13:57:49.648208+00:00",
+      "formal_acceptance": false,
+      "context_files_formal_coverage": false,
+      "reserved_issue_ids": [
+        "CR-ZCA-R105-0001"
+      ],
+      "activation_condition": "Actual successful root grant and independent fixed readback plus explicit root dispatch; own fresh exact source pins/rawHEAD/child absence before source write.",
+      "root_candidate_evidence": {
+        "head_observed": "eebf938778543ae9852606b93d7c864d253a0388",
+        "readonly_receipts": [
+          "reflection outer113/a0d27c native33515 ->044bcc exit0/PID46124 exact2 pending/unowned/noassignment/rawHEAD/stage/filter/scopedclean;lock observed untouched",
+          "fd0ae2 exit0/PID52064 fullparent262LF;ebef29 native69974 ->ebc673 exit0/PID32624 tests1-220;9347ed native71113 ->508e51 exit0/PID51448 tests221-428 plus bounded lexical indices",
+          "bde0bb exit0/PID48292 actual UI callers;8f53a9 exit0/PID35396 final callee/raw reader bounded proof;all requests actual terminal/0writes/0tests",
+          "root979/84a3c7 exit0/PID44292 independent complete690LF exact2 at same pins"
+        ],
+        "core_assistance": "Existing core_sol gpt-6.1-sol/max dispatched readonly independent core semantics review; response pending, not counted as completed",
+        "root_complete_before_source_evidence": "root979/84a3c7 exit0/PID44292 complete690LF both sources; current gate rechecks same pins",
+        "root_manual_final_review": "pending",
+        "root_full_final_review": false,
+        "gate_commands": [
+          {
+            "argv": [
+              "git",
+              "--no-optional-locks",
+              "rev-parse",
+              "HEAD"
+            ],
+            "exit_code": 0,
+            "stdout_bytes": 41,
+            "stdout_sha256": "4d2e4db34a1c98072778480d2a87ddd69164ea4f786c1964f77c1642ccd4e3c9",
+            "stderr": "",
+            "stdout": "eebf938778543ae9852606b93d7c864d253a0388\n"
+          },
+          {
+            "argv": [
+              "git",
+              "--no-optional-locks",
+              "status",
+              "--porcelain=v1",
+              "--untracked-files=all",
+              "--",
+              "zircon_runtime/src/text/layout/line_break/mod.rs",
+              "zircon_runtime/src/text/layout/line_break/tests/cases.rs"
+            ],
+            "exit_code": 0,
+            "stdout_bytes": 0,
+            "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stderr": "warning: unable to access 'C:\\Users\\HeJiahui/.config/git/ignore': Permission denied\n",
+            "stdout": ""
+          },
+          {
+            "argv": [
+              "git",
+              "--no-optional-locks",
+              "diff",
+              "--name-only",
+              "--",
+              "zircon_runtime/src/text/layout/line_break/mod.rs",
+              "zircon_runtime/src/text/layout/line_break/tests/cases.rs"
+            ],
+            "exit_code": 0,
+            "stdout_bytes": 0,
+            "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stderr": "",
+            "stdout": ""
+          },
+          {
+            "argv": [
+              "git",
+              "--no-optional-locks",
+              "diff",
+              "--cached",
+              "--name-only",
+              "--",
+              "zircon_runtime/src/text/layout/line_break/mod.rs",
+              "zircon_runtime/src/text/layout/line_break/tests/cases.rs"
+            ],
+            "exit_code": 0,
+            "stdout_bytes": 0,
+            "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stderr": "",
+            "stdout": ""
+          },
+          {
+            "argv": [
+              "git",
+              "--no-optional-locks",
+              "ls-files",
+              "--stage",
+              "--",
+              "zircon_runtime/src/text/layout/line_break/mod.rs",
+              "zircon_runtime/src/text/layout/line_break/tests/cases.rs"
+            ],
+            "exit_code": 0,
+            "stdout_bytes": 206,
+            "stdout_sha256": "7577c1ce734e4481026d97e509d74efe010ede007d95315e96edee10b0d9f224",
+            "stderr": "",
+            "stdout": "100644 b4489fa1acff75808c8ab00edaa264ce53ea48cb 0\tzircon_runtime/src/text/layout/line_break/mod.rs\n100644 f36afaf2137eeec2eb8b61ece2b2d85288589599 0\tzircon_runtime/src/text/layout/line_break/tests/cases.rs\n"
+          },
+          {
+            "argv": [
+              "git",
+              "--no-optional-locks",
+              "show",
+              "HEAD:zircon_runtime/src/text/layout/line_break/mod.rs"
+            ],
+            "exit_code": 0,
+            "stdout_bytes": 8957,
+            "stdout_sha256": "bc035119ac696b0eb86d8593fcca5e9ea822e8c27aeda527eabb38e5e7b24a6b",
+            "stderr": ""
+          },
+          {
+            "argv": [
+              "git",
+              "--no-optional-locks",
+              "hash-object",
+              "--no-filters",
+              "--",
+              "zircon_runtime/src/text/layout/line_break/mod.rs"
+            ],
+            "exit_code": 0,
+            "stdout_bytes": 41,
+            "stdout_sha256": "0cf12dc14625ed72d05f3ac6df7e7d871ade3a4a7151d77f8c26343875c5e62c",
+            "stderr": "",
+            "stdout": "b4489fa1acff75808c8ab00edaa264ce53ea48cb\n"
+          },
+          {
+            "argv": [
+              "git",
+              "--no-optional-locks",
+              "hash-object",
+              "--path=zircon_runtime/src/text/layout/line_break/mod.rs",
+              "--",
+              "zircon_runtime/src/text/layout/line_break/mod.rs"
+            ],
+            "exit_code": 0,
+            "stdout_bytes": 41,
+            "stdout_sha256": "0cf12dc14625ed72d05f3ac6df7e7d871ade3a4a7151d77f8c26343875c5e62c",
+            "stderr": "",
+            "stdout": "b4489fa1acff75808c8ab00edaa264ce53ea48cb\n"
+          },
+          {
+            "argv": [
+              "git",
+              "--no-optional-locks",
+              "show",
+              "HEAD:zircon_runtime/src/text/layout/line_break/tests/cases.rs"
+            ],
+            "exit_code": 0,
+            "stdout_bytes": 14158,
+            "stdout_sha256": "3fb3240c612b2b83074ff66309aa7e439897142c437039540626a9831bc7f89a",
+            "stderr": ""
+          },
+          {
+            "argv": [
+              "git",
+              "--no-optional-locks",
+              "hash-object",
+              "--no-filters",
+              "--",
+              "zircon_runtime/src/text/layout/line_break/tests/cases.rs"
+            ],
+            "exit_code": 0,
+            "stdout_bytes": 41,
+            "stdout_sha256": "80ba39c500a50719f1248057aa5d2c1675e3c614381ea8d2a2044304db8976bb",
+            "stderr": "",
+            "stdout": "f36afaf2137eeec2eb8b61ece2b2d85288589599\n"
+          },
+          {
+            "argv": [
+              "git",
+              "--no-optional-locks",
+              "hash-object",
+              "--path=zircon_runtime/src/text/layout/line_break/tests/cases.rs",
+              "--",
+              "zircon_runtime/src/text/layout/line_break/tests/cases.rs"
+            ],
+            "exit_code": 0,
+            "stdout_bytes": 41,
+            "stdout_sha256": "80ba39c500a50719f1248057aa5d2c1675e3c614381ea8d2a2044304db8976bb",
+            "stderr": "",
+            "stdout": "f36afaf2137eeec2eb8b61ece2b2d85288589599\n"
+          }
+        ],
+        "authoritative_assignment_claims": []
+      }
     }
   },
-  "updated_at_utc": "2026-10-17T13:34:03.617170+00:00",
+  "updated_at_utc": "2026-10-17T13:57:49.648208+00:00",
   "source_review_invalidations": {
     "20261017-final-pin-sweep": {
       "observed_at_utc": "2026-10-17T07:01:51.686773+00:00",

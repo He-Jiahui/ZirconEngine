@@ -11,7 +11,7 @@ related_code:
 
 # Jenkins 固定工作树与增量验证
 
-本流程用于共享 checkout 持续变化时的独立构建。Jenkins 为任务创建并复用一个短路径 Git worktree，将选定时刻的完整输入登记、封存，再通过 zircon-flow 和 zircon-execution 构建。AI 只编辑获准的规范源码、提交补丁和输入 metadata；工作树创建、写入、合并、编译及释放均由 Jenkins 执行。
+按用户 2026-10-17 最新要求，共享 main 必须保持纯净，任务从一开始就在 Jenkins 分配的 worktree 分支中实现。Jenkins 为任务创建并复用一个短路径 Git worktree，将选定时刻的完整输入登记、封存，再通过 zircon-flow 和 zircon-execution 构建。AI 只编辑所属任务工作树中获准的规范路径、提交补丁和输入 metadata；工作树创建、受管准备、合并、编译及释放均由 Jenkins 执行。下文观测共享 checkout 脏输入的字段保留用于历史请求对账，不能作为新任务继续修改 main 的许可。交付遵循[纯净主干与 PR 流程](jenkins-branch-integration.md)。
 
 本文说明实现接口。是否正式可用，以当前 selected driver、management installed.json 的 managedWorktree.enabled、实际运行回执为准；静态文档和 Jenkins SUCCESS 不能替代源码、覆盖、产物及原生终结核验。当前任务证据索引为 E:/cargo-targets/zircon-local/reports/jenkins-one-worktree-flow-20261015/artifacts.json。
 

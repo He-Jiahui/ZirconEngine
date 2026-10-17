@@ -95,6 +95,8 @@ def github_json(d, root, repository, endpoint):
             return json.load(response)
     except urllib.error.HTTPError as error:
         raise d.commit.CommitBusy("GitHub PR observation unavailable (HTTP " + str(error.code) + "); retain the original queue entry") from None
+    except (urllib.error.URLError, TimeoutError):
+        raise d.commit.CommitBusy("GitHub PR observation did not complete; reconcile this original queue entry") from None
 
 
 def verified_pr_commit(d, repo, root, record, policy):
@@ -290,7 +292,9 @@ def clean_candidate(d, repo, main, record):
         require_index(d, root)
         if text(d, root, "status", "--porcelain=v1", "--untracked-files=all"):
             raise ValueError("Retain unexpected candidate changes; no automatic reset or clean")
-        git(d, root, "checkout", "--detach", main)
+        if not (record.get("integrationStatus") == "awaiting-pr" and record.get("mainHeadBefore") == main
+                and text(d, root, "rev-parse", "HEAD") == record.get("candidateHead")):
+            git(d, root, "checkout", "--detach", main)
     else:
         d.commit.write_json(marker, {"path": str(root), "status": "creating", "operationId": record["request"]["operationId"]})
         git(d, repo, "worktree", "add", "--detach", str(root), main)
@@ -304,6 +308,7 @@ def integrate(d, repo, path, *, runtime, check_runtime, validate=None, pull_requ
     validate = d.run_validation if validate is None else validate
     pull_request = verified_pr_commit if pull_request is None else pull_request
     candidate_marker = None
+    was_awaiting_pr = record.get("integrationStatus") == "awaiting-pr"
     try:
         check_runtime()
         with d.commit.git_lock(repo / ".jenkins/state/locks/management-git.lock"):
@@ -339,7 +344,16 @@ def integrate(d, repo, path, *, runtime, check_runtime, validate=None, pull_requ
         d.commit.write_json(path, record)
         _, names = d.validate_request(repo, payload, d.policy_for(repo),
             tomllib.loads((repo / ".codex/config.toml").read_text("utf-8-sig"))["permissions"]["zircon-strict"]["filesystem"])
-        validation = validate(root, payload, names, d.OUTPUT / payload["operationId"] / ("integration-" + str(attempt)), runtime)
+        cached = record.get("candidateValidation", {})
+        if (was_awaiting_pr and cached.get("status") == "passed" and cached.get("head") == candidate
+                and cached.get("runtime") == runtime and cached.get("files") == d.files(root, names)
+                and len(cached.get("steps", [])) == len(payload["validation"])
+                and all(s.get("complete") is True and s.get("status") == "passed" for s in cached["steps"])):
+            validation = cached
+            record["validationReused"] = True
+        else:
+            validation = validate(root, payload, names, d.OUTPUT / payload["operationId"] / ("integration-" + str(attempt)), runtime)
+            record["validationReused"] = False
         record["candidateValidation"] = validation
         if validation["status"] != "passed" or any((root / n).exists() for n in record.get("expectedAbsences", [])):
             record.update(integrationStatus="validation-failed", reason="Actual merged candidate validation failed; retain the branch commit")
@@ -358,7 +372,8 @@ def integrate(d, repo, path, *, runtime, check_runtime, validate=None, pull_requ
                 require_index(d, root)
                 if (require_clean_main(d, repo) != main
                         or text(d, root, "rev-parse", "HEAD") != candidate
-                        or d.files(root, names) != validation["files"] or d.active_reader(repo)):
+                        or d.files(root, names) != validation["files"] or d.active_reader(repo)
+                        or text(d, root, "status", "--porcelain=v1", "--untracked-files=all")):
                     raise d.commit.CommitBusy("Main/candidate or an active source reader changed; retry this original queue entry")
                 result = git(d, repo, "-c", "core.hooksPath=" + str(hooks), "merge", "--ff-only", publication["mergeCommit"], check=False)
                 if result.returncode:
