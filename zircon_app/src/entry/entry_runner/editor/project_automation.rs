@@ -1,7 +1,6 @@
 use std::{
     env,
     error::Error,
-    ffi::OsString,
     fs, io,
     path::{Path, PathBuf},
 };
@@ -163,54 +162,6 @@ fn normalize_resolved_project_automation_root(
     Ok(path)
 }
 
-const WORKBENCH_REVIEW_PROJECT_ROOT_ENV: &str = "ZIRCON_EDITOR_WORKBENCH_REVIEW_PROJECT_ROOT";
-
-/// Supplies the capture builder's managed-project input from the same resolved identity as the
-/// commandlet's `--project`. A caller-provided value is accepted only when it resolves to that
-/// physical project; an installed value is restored when the capture operation finishes.
-struct WorkbenchReviewProjectRoot {
-    previous: Option<OsString>,
-}
-
-impl WorkbenchReviewProjectRoot {
-    fn bind(project_root: &ResolvedProjectPath) -> Result<Self, io::Error> {
-        let previous = env::var_os(WORKBENCH_REVIEW_PROJECT_ROOT_ENV);
-        if let Some(value) = &previous {
-            let configured_input = resolve_project_automation_input_path(
-                PathBuf::from(value),
-                "workbench review project root",
-            )?;
-            let configured = normalize_resolved_project_automation_root(configured_input)?;
-            if configured.operation_path() != project_root.operation_path() {
-                return Err(io::Error::new(
-                    io::ErrorKind::InvalidInput,
-                    format!(
-                        "{WORKBENCH_REVIEW_PROJECT_ROOT_ENV} resolves to '{}' but --project resolves to '{}'",
-                        configured.display_path().display(),
-                        project_root.display_path().display(),
-                    ),
-                ));
-            }
-        }
-
-        env::set_var(
-            WORKBENCH_REVIEW_PROJECT_ROOT_ENV,
-            project_root.operation_path(),
-        );
-        Ok(Self { previous })
-    }
-}
-
-impl Drop for WorkbenchReviewProjectRoot {
-    fn drop(&mut self) {
-        if let Some(previous) = self.previous.take() {
-            env::set_var(WORKBENCH_REVIEW_PROJECT_ROOT_ENV, previous);
-        } else {
-            env::remove_var(WORKBENCH_REVIEW_PROJECT_ROOT_ENV);
-        }
-    }
-}
-
 fn resolve_product_capture_repo_root(path: &Path) -> Result<PathBuf, io::Error> {
     let resolved = ProjectPaths::resolve_existing(path).map_err(|error| {
         io::Error::other(format!(
@@ -335,7 +286,6 @@ pub(crate) fn execute_project_automation(
     let scene_uri = summary.default_scene.clone();
 
     if let Some(capture_request) = &request.product_workbench_capture {
-        let _review_project_root = WorkbenchReviewProjectRoot::bind(project_root)?;
         let repo_root = resolve_product_capture_repo_root(&capture_request.repo_root)?;
         let snapshots_output_path = capture_request
             .snapshots_output_path
@@ -352,6 +302,7 @@ pub(crate) fn execute_project_automation(
             })?;
         let capture_result = composition.run_product_workbench_capture(
             &repo_root,
+            project_root.operation_path(),
             snapshots_output_path.as_deref(),
             capture_request.capture_zui_visual_evidence,
         )?;

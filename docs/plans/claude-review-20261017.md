@@ -92,3 +92,8 @@ explicit evidence below says otherwise. No build outputs are created here.
   its Bash-only, fail-open text matching and known bypasses in the hook and
   current operator guide. It is explicitly advisory. A focused import/decision
   check passes without creating state; wrapper existence and diff checks pass.
+- L2: Remove the commandlet environment RAII mutation. Pass the resolved
+  project root through App/editor snapshot, capture, materialization and empty-
+  scene paths; keep project/fingerprint validation. Existing normal-host evidence
+  retains its read-only startup environment opt-in. Explicit forwarding and
+  no-mutation source checks pass; editor compilation/capture is pending.

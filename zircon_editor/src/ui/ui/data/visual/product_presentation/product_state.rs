@@ -38,6 +38,8 @@ use super::{
 
 const REVIEW_EMPTY_SCENE_URI: &str = "res://scenes/workbench-review-empty.scene.toml";
 const REVIEW_EMPTY_SCENE_RELATIVE_PATH: &str = "assets/scenes/workbench-review-empty.scene.toml";
+// Optional startup opt-in for normal retained-host evidence. Commandlet captures
+// receive their project root explicitly and never write this environment value.
 pub(super) const REVIEW_PROJECT_ROOT_ENV: &str = "ZIRCON_EDITOR_WORKBENCH_REVIEW_PROJECT_ROOT";
 const DEFAULT_LOGICAL_SIZE: (u32, u32) = (1280, 800);
 static REVIEW_PROJECT_OPERATION_IDS: OnceLock<ProjectActivationOperationIdGenerator> =
@@ -196,6 +198,7 @@ pub(crate) fn build_product_workbench_snapshot_with_context(
     state: ProductWorkbenchState,
     core: &CoreHandle,
     app_preflighted_build_set: &ZrRuntimeBuildSetId,
+    project_root: &Path,
 ) -> Result<WorkbenchPresentationSnapshot, String> {
     let materialization = materialize_product_workbench(
         repo_root,
@@ -204,6 +207,7 @@ pub(crate) fn build_product_workbench_snapshot_with_context(
         state.locale(),
         core,
         app_preflighted_build_set,
+        project_root,
     )?;
     let snapshot = materialization.snapshot.clone();
     close_product_workbench_materialization(materialization)?;
@@ -217,6 +221,7 @@ pub(super) fn materialize_product_workbench(
     locale: &str,
     core: &CoreHandle,
     app_preflighted_build_set: &ZrRuntimeBuildSetId,
+    project_root: &Path,
 ) -> Result<ProductWorkbenchMaterialization, String> {
     let manager_handle = core
         .resolve_manager_handle::<EditorManager>(EDITOR_MANAGER_NAME)
@@ -228,8 +233,7 @@ pub(super) fn materialize_product_workbench(
     let settings_snapshot = manager.context().settings().snapshot();
     apply_host_appearance_from_tokens(settings_snapshot.design_tokens());
     install_editor_v2_design_tokens(settings_snapshot.as_ref());
-    let project_root = review_project_root()?;
-    let project_root = canonicalize_review_project_root(&project_root)?;
+    let project_root = review_project_root(project_root)?;
     let mut locale_overlay = ProductWorkbenchLocaleOverlay::install(&manager, locale)?;
     let controller = match editor_controller_for(&project_root, manager_handle.clone()) {
         Ok(controller) => controller,
@@ -266,7 +270,7 @@ pub(super) fn materialize_product_workbench(
             .apply_project_workspace(Some(workspace))
             .map_err(|error| error.to_string())?;
     }
-    apply_product_workbench_state(&mut materialization, state)?;
+    apply_product_workbench_state(&mut materialization, state, &project_root)?;
     refresh_product_workbench_materialization(repo_root, &mut materialization)?;
     Ok(materialization)
 }
@@ -277,6 +281,7 @@ pub(super) fn materialize_matching_product_workbench(
     layout: WorkbenchLayout,
     core: &CoreHandle,
     app_preflighted_build_set: &ZrRuntimeBuildSetId,
+    project_root: &Path,
 ) -> Result<ProductWorkbenchMaterialization, String> {
     for state in ProductWorkbenchState::ALL {
         if state.locale() != expected.active_locale {
@@ -289,6 +294,7 @@ pub(super) fn materialize_matching_product_workbench(
             state.locale(),
             core,
             app_preflighted_build_set,
+            project_root,
         )?;
         if same_product_snapshot_state(&materialization.snapshot, expected)? {
             return Ok(materialization);
@@ -365,8 +371,9 @@ pub(crate) fn export_product_workbench_case_snapshots_with_context(
     output_path: &Path,
     core: &CoreHandle,
     app_preflighted_build_set: &ZrRuntimeBuildSetId,
+    project_root: &Path,
 ) -> Result<(), String> {
-    let project_root = review_project_root()?;
+    let project_root = review_project_root(project_root)?;
     let managed_scene_fingerprint = managed_inputs::capture(&project_root)?;
 
     let default_materialization = materialize_product_workbench(
@@ -376,6 +383,7 @@ pub(crate) fn export_product_workbench_case_snapshots_with_context(
         ProductWorkbenchState::Default.locale(),
         core,
         app_preflighted_build_set,
+        &project_root,
     )?;
     let default_snapshot = default_materialization.snapshot.clone();
     let shared_layout = default_snapshot.workbench_layout()?;
@@ -389,6 +397,7 @@ pub(crate) fn export_product_workbench_case_snapshots_with_context(
         ProductWorkbenchState::Selected.locale(),
         core,
         app_preflighted_build_set,
+        &project_root,
     )?;
     let selected_snapshot = selected_materialization.snapshot.clone();
     close_product_workbench_materialization(selected_materialization)?;
@@ -401,6 +410,7 @@ pub(crate) fn export_product_workbench_case_snapshots_with_context(
         ProductWorkbenchState::Hierarchy.locale(),
         core,
         app_preflighted_build_set,
+        &project_root,
     )?;
     let hierarchy_snapshot = hierarchy_materialization.snapshot.clone();
     close_product_workbench_materialization(hierarchy_materialization)?;
@@ -413,6 +423,7 @@ pub(crate) fn export_product_workbench_case_snapshots_with_context(
         ProductWorkbenchState::Empty.locale(),
         core,
         app_preflighted_build_set,
+        &project_root,
     )?;
     let empty_snapshot = empty_materialization.snapshot.clone();
     close_product_workbench_materialization(empty_materialization)?;
@@ -438,6 +449,7 @@ pub(crate) fn export_product_workbench_case_snapshots_with_context(
         ProductWorkbenchState::LongEnglish.locale(),
         core,
         app_preflighted_build_set,
+        &project_root,
     )?;
     let long_english_snapshot = long_english_materialization.snapshot.clone();
     close_product_workbench_materialization(long_english_materialization)?;
@@ -450,6 +462,7 @@ pub(crate) fn export_product_workbench_case_snapshots_with_context(
         ProductWorkbenchState::LongChinese.locale(),
         core,
         app_preflighted_build_set,
+        &project_root,
     )?;
     let long_chinese_snapshot = long_chinese_materialization.snapshot.clone();
     close_product_workbench_materialization(long_chinese_materialization)?;
@@ -657,19 +670,15 @@ fn editor_controller_for(
     Ok(controller)
 }
 
-pub(super) fn review_project_root() -> Result<PathBuf, String> {
-    let configured = std::env::var_os(REVIEW_PROJECT_ROOT_ENV)
-        .ok_or_else(|| format!("{REVIEW_PROJECT_ROOT_ENV} must name the managed review project"))?;
-    let path = PathBuf::from(configured);
+/// Validates the project identity supplied by the App capture request.
+pub(super) fn review_project_root(path: &Path) -> Result<PathBuf, String> {
     if !path.is_absolute() {
-        return Err(format!(
-            "{REVIEW_PROJECT_ROOT_ENV} must be an absolute path"
-        ));
+        return Err("review project root must be an absolute path".into());
     }
-    let path = canonicalize_review_project_root(&path)?;
+    let path = canonicalize_review_project_root(path)?;
     if !path.is_dir() {
         return Err(format!(
-            "{REVIEW_PROJECT_ROOT_ENV} does not name a project directory: {}",
+            "review project root is not a directory: {}",
             path.display()
         ));
     }
@@ -679,7 +688,7 @@ pub(super) fn review_project_root() -> Result<PathBuf, String> {
 fn canonicalize_review_project_root(path: &Path) -> Result<PathBuf, String> {
     std::fs::canonicalize(path).map_err(|error| {
         format!(
-            "cannot resolve {REVIEW_PROJECT_ROOT_ENV} project root {}: {error}",
+            "cannot resolve review project root {}: {error}",
             path.display()
         )
     })
@@ -694,11 +703,12 @@ pub(super) fn canonical_project_path(path: &Path) -> Result<String, String> {
 fn apply_product_workbench_state(
     materialization: &mut ProductWorkbenchMaterialization,
     state: ProductWorkbenchState,
+    project_root: &Path,
 ) -> Result<(), String> {
     use crate::ui::workbench::shell_state::WorkbenchShellStateData;
 
     if state == ProductWorkbenchState::Empty {
-        open_review_empty_scene(&materialization._controller)?;
+        open_review_empty_scene(&materialization._controller, project_root)?;
         let snapshot = materialization
             ._controller
             .chrome_snapshot()
@@ -830,8 +840,11 @@ fn apply_product_workbench_state(
     apply(&mut shell.lock(), state)
 }
 
-fn open_review_empty_scene(controller: &EditorHostEventController) -> Result<(), String> {
-    let project_root = review_project_root()?;
+fn open_review_empty_scene(
+    controller: &EditorHostEventController,
+    project_root: &Path,
+) -> Result<(), String> {
+    let project_root = review_project_root(project_root)?;
     let source_path = project_root.join(REVIEW_EMPTY_SCENE_RELATIVE_PATH);
     if !source_path.is_file() {
         return Err(format!(
