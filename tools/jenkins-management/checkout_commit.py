@@ -281,6 +281,53 @@ def recover_stale_index_lock(repo, operation_id):
             api.CloseHandle(handle)
 
 
+def expected_file_hashes(payload, paths):
+    """Optional validation pins apply only to the explicitly selected files."""
+    if "expectedFileHashes" not in payload:
+        return None
+    expected = payload["expectedFileHashes"]
+    if (not isinstance(expected, dict) or set(expected) != set(paths)
+            or any(not isinstance(value, str) or not re.fullmatch(r"[0-9a-f]{64}", value)
+                   for value in expected.values())):
+        raise ValueError("expectedFileHashes must contain exactly the selected paths and SHA-256 values")
+    return dict(expected)
+
+
+@contextmanager
+def verified_commit_files(repo, expected):
+    """Reuse native read pins through commit; ordinary unbound requests stay unchanged."""
+    if expected is None:
+        yield
+        return
+    if os.name != "nt":
+        raise ValueError("Validated checkout commits require Windows native read pins")
+    path = ROOT / "tools/jenkins-management/checkout_guard.py"
+    spec = importlib.util.spec_from_file_location("checkout_commit_read_guard", path)
+    guard = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(guard)
+    added_root = str(ROOT) not in sys.path
+    if added_root:
+        sys.path.insert(0, str(ROOT))
+    hierarchy = None
+    try:
+        hierarchy = guard._PinnedHierarchy()
+        for name, checksum in sorted(expected.items()):
+            try:
+                hierarchy.file(guard._absolute(physical(repo / name)), checksum)
+            except guard.CheckoutGuardBusy as error:
+                raise CommitBusy("A selected validated file has an active writer; continue the same request") from error
+        hierarchy.verify()
+        yield
+        hierarchy.verify()
+    finally:
+        try:
+            if hierarchy is not None:
+                hierarchy.close()
+        finally:
+            if added_root:
+                sys.path.remove(str(ROOT))
+
+
 def execute(repo, payload, *, policy=None, grants=None):
     """Called under the shared management Git lock by the Jenkins worker."""
     repo = physical(repo)
@@ -294,12 +341,15 @@ def execute(repo, payload, *, policy=None, grants=None):
         if not isinstance(payload.get(field), str) or not ID.fullmatch(payload[field]):
             raise ValueError("Invalid " + field)
     paths = selected_paths(repo, payload.get("paths"), policy, grants)
+    expected = expected_file_hashes(payload, paths)
     message = payload.get("message")
     if not isinstance(message, str) or not message.strip() or len(message) > 4096 or "\0" in message:
         raise ValueError("A bounded commit message is required")
     if type(payload.get("observationOnly", False)) is not bool:
         raise ValueError("observationOnly must be boolean")
     request = {k: payload[k] for k in ("sessionId", "requestId", "operationId", "action", "paths", "message")}
+    if expected is not None:
+        request["expectedFileHashes"] = expected
     directory = physical(repo / ".jenkins/state/management/checkout-commits")
     record_path = physical(directory / (payload["operationId"] + ".json"))
     previous = read_json(record_path) if record_path.exists() else None
@@ -327,37 +377,40 @@ def execute(repo, payload, *, policy=None, grants=None):
                 return result
         if head != previous.get("headBefore"):
             raise ValueError("Interrupted commit has a changed HEAD; retain its original request")
-    tracked = set(git(repo, "ls-files", "-z", "--", *paths).stdout.decode("utf-8").split("\0"))
-    for name in paths:
-        if not (repo / name).exists() and name not in tracked:
-            raise ValueError("Selected file does not exist in Git or the checkout: " + name)
-        mode = git(repo, "ls-files", "--stage", "--", name).stdout
-        if mode.startswith(b"160000 "):
-            raise ValueError("Submodule commits require their separate integration workflow")
-    dirty = git(repo, "status", "--porcelain=v1", "-z", "--untracked-files=all", "--", *paths).stdout
-    result = {"schemaVersion": 1, "status": "committing" if dirty else "no-changes",
-              "request": request, "headBefore": head, "paths": paths,
-              "authorization": policy["authorization"], "sourceDigestRequired": False,
-              "sessionGrantRequired": False, "formalAcceptance": False,
-              "pushPerformed": False, "notificationPerformed": False, "startedAt": time.time()}
-    if lock_recovery:
-        result["indexLockRecovery"] = lock_recovery
-    write_json(record_path, result)
-    if not dirty:
+    with verified_commit_files(repo, expected):
+        tracked = set(git(repo, "ls-files", "-z", "--", *paths).stdout.decode("utf-8").split("\0"))
+        for name in paths:
+            if not (repo / name).exists() and name not in tracked:
+                raise ValueError("Selected file does not exist in Git or the checkout: " + name)
+            mode = git(repo, "ls-files", "--stage", "--", name).stdout
+            if mode.startswith(b"160000 "):
+                raise ValueError("Submodule commits require their separate integration workflow")
+        dirty = git(repo, "status", "--porcelain=v1", "-z", "--untracked-files=all", "--", *paths).stdout
+        result = {"schemaVersion": 1, "status": "committing" if dirty else "no-changes",
+                  "request": request, "headBefore": head, "paths": paths,
+                  "authorization": policy["authorization"], "sourceDigestRequired": False,
+                  "sessionGrantRequired": False, "formalAcceptance": False,
+                  "pushPerformed": False, "notificationPerformed": False, "startedAt": time.time()}
+        if expected is not None:
+            result["verifiedFileHashes"] = expected
+        if lock_recovery:
+            result["indexLockRecovery"] = lock_recovery
+        write_json(record_path, result)
+        if not dirty:
+            return result
+        # --only commits exactly these working files and retains other staged entries.
+        # Add makes explicitly selected untracked files available to --only.
+        git(repo, "add", "--", *paths)
+        hooks = physical(repo / ".jenkins/state/management/empty-commit-hooks")
+        hooks.mkdir(parents=True, exist_ok=True)
+        if any(hooks.iterdir()):
+            raise ValueError("The managed empty hooks directory must remain empty")
+        git(repo, "-c", "core.hooksPath=" + str(hooks), "-c", "commit.gpgSign=false",
+            "commit", "--only", "--no-gpg-sign", "-m", message.strip(), "-m", trailer, "--", *paths)
+        commit = git(repo, "rev-parse", "HEAD").stdout.decode().strip()
+        result.update(status="complete", commit=commit, finishedAt=time.time())
+        write_json(record_path, result)
         return result
-    # --only commits exactly these working files and retains other staged entries.
-    # Add makes explicitly selected untracked files available to --only.
-    git(repo, "add", "--", *paths)
-    hooks = physical(repo / ".jenkins/state/management/empty-commit-hooks")
-    hooks.mkdir(parents=True, exist_ok=True)
-    if any(hooks.iterdir()):
-        raise ValueError("The managed empty hooks directory must remain empty")
-    git(repo, "-c", "core.hooksPath=" + str(hooks), "-c", "commit.gpgSign=false",
-        "commit", "--only", "--no-gpg-sign", "-m", message.strip(), "-m", trailer, "--", *paths)
-    commit = git(repo, "rev-parse", "HEAD").stdout.decode().strip()
-    result.update(status="complete", commit=commit, finishedAt=time.time())
-    write_json(record_path, result)
-    return result
 
 
 def transport(repo):

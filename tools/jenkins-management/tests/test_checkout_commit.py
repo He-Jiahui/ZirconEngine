@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from contextlib import contextmanager
+import hashlib
 import importlib.util
 import json
 import os
@@ -144,6 +145,76 @@ class CheckoutCommitTests(unittest.TestCase):
                         self.run_commit(f)
             with self.assertRaisesRegex(ValueError, "no project write grant"):
                 commit.selected_paths(repo, ["owned.txt"], policy, {str(repo): "read"})
+
+    @unittest.skipUnless(os.name == "nt", "Windows native validation pins")
+    def test_validated_hashes_bind_the_receipt_and_mismatch_does_not_stage(self):
+        with self.fixture() as f:
+            repo, _, _, payload = f
+            (repo / "owned.txt").write_bytes(b"validated fix\n")
+            payload["expectedFileHashes"] = {"owned.txt": hashlib.sha256(b"validated fix\n").hexdigest()}
+            (repo / "owned.txt").write_bytes(b"changed after validation\n")
+            before = commit.git(repo, "ls-files", "--stage").stdout
+            with self.assertRaisesRegex(ValueError, "declared bytes"):
+                self.run_commit(f)
+            self.assertEqual(commit.git(repo, "ls-files", "--stage").stdout, before)
+            self.assertFalse((repo / ".jenkins/state/management/checkout-commits/task-commit.json").exists())
+            (repo / "owned.txt").write_bytes(b"validated fix\n")
+            result = self.run_commit(f)
+            self.assertEqual(result["verifiedFileHashes"], payload["expectedFileHashes"])
+            self.assertEqual(result["request"]["expectedFileHashes"], payload["expectedFileHashes"])
+            self.assertEqual(commit.git(repo, "show", "HEAD:owned.txt").stdout, b"validated fix\n")
+            (repo / "owned.txt").write_bytes(b"next task\n")
+            self.assertEqual(self.run_commit(f)["commit"], result["commit"])
+            payload["expectedFileHashes"]["owned.txt"] = hashlib.sha256(b"next task\n").hexdigest()
+            with self.assertRaisesRegex(ValueError, "already belongs"):
+                self.run_commit(f)
+
+    def test_optional_validation_hashes_require_exact_scope_and_valid_sha256(self):
+        with self.fixture() as f:
+            repo, _, _, payload = f
+            before = commit.git(repo, "ls-files", "--stage").stdout
+            digest = hashlib.sha256(b"base\n").hexdigest()
+            for value in (None, [], {}, {"foreign.txt": digest},
+                          {"owned.txt": digest, "foreign.txt": digest},
+                          {"owned.txt": "invalid"}, {"owned.txt": 123}):
+                with self.subTest(value=value):
+                    payload["expectedFileHashes"] = value
+                    with self.assertRaisesRegex(ValueError, "exactly the selected"):
+                        self.run_commit(f)
+            self.assertEqual(commit.git(repo, "ls-files", "--stage").stdout, before)
+            self.assertFalse((repo / ".jenkins").exists())
+
+    @unittest.skipUnless(os.name == "nt", "Windows native validation pins")
+    def test_validated_files_cannot_change_or_be_replaced_during_git_and_release_afterwards(self):
+        with self.fixture() as f:
+            repo, _, _, payload = f
+            owned = repo / "owned.txt"
+            owned.write_bytes(b"validated fix\n")
+            payload["expectedFileHashes"] = {"owned.txt": hashlib.sha256(owned.read_bytes()).hexdigest()}
+            replacement = repo / "replacement.txt"
+            replacement.write_bytes(b"foreign replacement\n")
+            original_git = commit.git
+            attempts = []
+
+            def protected_git(root, *args, **kwargs):
+                if args and args[0] == "add":
+                    with self.assertRaises(PermissionError):
+                        owned.write_bytes(b"foreign write\n")
+                    with self.assertRaises(PermissionError):
+                        os.replace(replacement, owned)
+                    attempts.append("write-and-replace-denied")
+                return original_git(root, *args, **kwargs)
+
+            with owned.open("r+b"):
+                with self.assertRaises(commit.CommitBusy):
+                    self.run_commit(f)
+            self.assertFalse((repo / ".jenkins/state/management/checkout-commits/task-commit.json").exists())
+            with patch.object(commit, "git", side_effect=protected_git):
+                result = self.run_commit(f)
+            self.assertEqual(attempts, ["write-and-replace-denied"])
+            self.assertEqual(commit.git(repo, "show", result["commit"] + ":owned.txt").stdout, b"validated fix\n")
+            owned.write_bytes(b"next task after release\n")
+            self.assertEqual(owned.read_bytes(), b"next task after release\n")
 
     def test_submodule_commit_requires_separate_integration(self):
         with self.fixture() as f:
