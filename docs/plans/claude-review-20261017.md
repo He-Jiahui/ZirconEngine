@@ -132,3 +132,9 @@ explicit evidence below says otherwise. No build outputs are created here.
   a Cell marker prevents sharing one token between threads. Update owner and
   instance consumers; retain the existing poison/concurrency regression. Token
   privacy and consumer inventory checks pass; compiled VM validation is pending.
+- L8: Propagate an absolute admission deadline through scoped dispatch and
+  use `send_timeout`, sharing the existing five-second host admission budget.
+  Timeout reports AdmissionIncomplete (ABI Error), disconnect reports Terminated;
+  admitted commands still wait without an execution timeout for the Drop signal.
+  Add full-queue/shutdown-lock and admitted-borrow completion regressions. Source
+  checks pass; compiled concurrency tests remain pending the guarded Rust lane.

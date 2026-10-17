@@ -25,7 +25,7 @@ pub(in crate::dynamic_api::session) mod receipt_publication;
 
 use crate::core::runtime::tasks::{TaskPool, TaskPoolDescriptor};
 
-// 有界队列限制待执行命令；owned 动作的 deadline 只限制这一步准入。
+// 有界队列限制待执行命令；deadline 只限制这一步准入。
 const COMMAND_CAPACITY: usize = 64;
 // 回执描述一次清理回调的结果；成功值尚不能证明 worker/TLS 已退出。
 const RECEIPT_PENDING: u8 = 0;
@@ -109,7 +109,7 @@ pub(super) enum OwnerDispatchError {
     Reentrant,
     /// 命令通道或结果路径已终止，未取得正常结果。
     Terminated,
-    /// owned 动作未在准入等待预算内进入命令队列。
+    /// 动作未在准入等待预算内进入命令队列。
     AdmissionIncomplete,
 }
 
@@ -287,9 +287,11 @@ impl<S: 'static> SessionOwner<S> {
     /// 回调 panic 在完成信号之后回到调用线程继续展开，不让栈借用提前失效。
     ///
     /// # 约束
+    /// deadline 只限制准入；入队后仍等待完成以保护栈借用。
     /// 同一 owner 的同步重入被拒绝；本方法不为上层登记 SessionSlot 动作计数，也不设执行超时。
     pub(super) fn dispatch_scoped<R: Send>(
         &self,
+        deadline: Instant,
         action: impl FnOnce(&mut S) -> R + Send,
     ) -> Result<R, OwnerDispatchError> {
         if self.is_current_thread() {
@@ -312,11 +314,14 @@ impl<S: 'static> SessionOwner<S> {
                 .unwrap_or_else(|poisoned| poisoned.into_inner()) = Some(outcome);
         });
         self.sender
-            .send(OwnerCommand::Scoped(ScopedAction::new(
-                &mut callback,
-                completed_tx,
-            )))
-            .map_err(|_| OwnerDispatchError::Terminated)?;
+            .send_timeout(
+                OwnerCommand::Scoped(ScopedAction::new(&mut callback, completed_tx)),
+                deadline.saturating_duration_since(Instant::now()),
+            )
+            .map_err(|error| match error {
+                SendTimeoutError::Timeout(_) => OwnerDispatchError::AdmissionIncomplete,
+                SendTimeoutError::Disconnected(_) => OwnerDispatchError::Terminated,
+            })?;
         // 命令入队后才放开关闭登记锁；接下来始终等 ScopedAction 的 Drop 完成信号。
         drop(shutdown);
         completed_rx

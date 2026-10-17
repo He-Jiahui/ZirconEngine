@@ -216,9 +216,10 @@ impl SessionSlot {
     /// 本方法不登记动作；`session_store` 须另外保留动作 guard，且同一 owner 的同步重入会被拒绝。
     pub(super) fn dispatch_scoped<R: Send>(
         &self,
+        deadline: Instant,
         action: impl FnOnce(&mut RuntimeDynamicSession) -> Result<R, ZrStatus> + Send,
     ) -> Result<Result<R, OwnedSessionStatus>, OwnerDispatchError> {
-        self.owner.dispatch_scoped(action)
+        self.owner.dispatch_scoped(deadline, action)
     }
 
     /// 将拥有全部捕获数据的命令送到 owner，`deadline` 只限制命令准入等待。

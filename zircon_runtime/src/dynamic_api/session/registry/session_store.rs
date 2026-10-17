@@ -604,12 +604,20 @@ fn dispatch_session_action<R: Send>(
     slot: &SessionSlot,
     action: impl FnOnce(&mut RuntimeDynamicSession) -> Result<R, ZrStatus> + Send,
 ) -> Result<R, ZrStatus> {
-    match slot.dispatch_scoped(action) {
+    let admission_deadline = Instant::now()
+        .checked_add(DYNAMIC_SESSION_OWNED_COMMAND_ADMISSION_TIMEOUT)
+        .unwrap_or_else(Instant::now);
+    match slot.dispatch_scoped(admission_deadline, action) {
         Ok(Ok(value)) => Ok(value),
         Ok(Err(error)) => Err(error.into_abi()),
         Err(super::session_owner::OwnerDispatchError::Reentrant) => Err(invalid_argument(
             b"runtime session callback cannot reenter synchronously",
         )),
+        Err(super::session_owner::OwnerDispatchError::AdmissionIncomplete) => {
+            Err(crate::dynamic_api::session::status::error_status(
+                b"runtime session command admission timed out",
+            ))
+        }
         Err(_) => Err(not_found(b"runtime session not found")),
     }
 }
