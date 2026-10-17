@@ -58,6 +58,26 @@ class CiGatesContractTests(unittest.TestCase):
                     count += 1
         self.assertGreater(count, 0)
 
+    def test_all_workflows_pin_actions_and_explicit_rust_toolchains(self) -> None:
+        workflows = sorted((REPO_ROOT / ".github/workflows").glob("*.y*ml"))
+        self.assertGreater(len(workflows), 0)
+        for path in workflows:
+            source = path.read_text(encoding="utf-8")
+            for action in re.findall(r"(?m)^\s*(?:-\s*)?uses:\s*(\S+)", source):
+                if action.startswith("./"):
+                    continue
+                self.assertRegex(action, r"^[^@]+@[0-9a-f]{40}$", path.name)
+            for step in re.split(r"(?m)^      - ", source):
+                if "uses: dtolnay/rust-toolchain@" not in step:
+                    continue
+                match = re.search(r"(?m)^          toolchain: (.+)$", step)
+                self.assertIsNotNone(match, path.name)
+                toolchain = match.group(1)
+                if toolchain == "${{ env.MVP_RUST_TOOLCHAIN }}":
+                    self.assertIn("MVP_RUST_TOOLCHAIN: 1.94.1", source)
+                else:
+                    self.assertIn(toolchain, ("1.94.1", "nightly-2026-10-10"), path.name)
+
     def assert_workspace_member_fmt_gate(self, rust: str, manifest: str) -> None:
         step_name = "Check Rust formatting" if manifest == "Cargo.toml" else "Check plugin workspace formatting"
         match = re.search(

@@ -117,3 +117,13 @@ explicit evidence below says otherwise. No build outputs are created here.
   release. Add live/stale/foreign and symlink regression tests. Source/lifecycle
   checks pass; Rust/Windows tests remain pending. Legacy unmarked roots cannot
   establish ownership and are intentionally retained for operator review.
+- L6: Pin every third-party action in all four workflows to a full commit.
+  Resolve checkout/setup-python/Pages tags through read-only upstream GitHub refs;
+  reuse the existing reviewed Rust/cache/upload pins. Every Rust installation now
+  supplies 1.94.1 or the existing Miri nightly explicitly. Extend CI contracts to
+  all workflows and update tag-dependent assertions. 21 focused Python tests
+  pass; workflow execution remains pending. Resolved pins: setup-python v5
+  `a26af69be951a213d495a4c3e4e4022e16d87065`, configure-pages v5
+  `983d7736d9b0ae728b81ab479565c72886d7745b`, upload-pages-artifact v4
+  `7b1f4a764d45c48632c6b24a0339c27f5614fb0b`, deploy-pages v4
+  `d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e`.

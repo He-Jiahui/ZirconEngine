@@ -112,7 +112,8 @@ class Frameworks06DependencyGovernanceContractTests(unittest.TestCase):
             1,
         )
         self.assertIn("runs-on: [self-hosted, Windows, X64]", job)
-        self.assertIn(f"uses: dtolnay/rust-toolchain@{RUST_TOOLCHAIN}", job)
+        self.assertIn("uses: dtolnay/rust-toolchain@75be91dd2711b583df57c31d0873b4145c89f1d9", job)
+        self.assertIn(f"toolchain: {RUST_TOOLCHAIN}", job)
         self.assertIn("run: ./.github/scripts/prepare-cargo-roots.ps1", job)
         self.assertIn(
             r"CARGO_TARGET_DIR: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\dependency-governance-${{ strategy.job-index || 0 }}\target",
