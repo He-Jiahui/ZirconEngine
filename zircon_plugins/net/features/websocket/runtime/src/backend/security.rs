@@ -5,11 +5,19 @@ use zircon_runtime::core::framework::net::{NetError, NetWebSocketConnectDescript
 pub(super) fn validate_websocket_security_policy(
     descriptor: &NetWebSocketConnectDescriptor,
 ) -> Result<Uri, NetError> {
-    let uri: Uri = descriptor.url.parse().map_err(|_| NetError::SecurityPolicyViolation {
-        reason: "WebSocket connection requires a valid WS/WSS URI".to_string(),
-    })?;
-    let secure = uri.scheme_str().is_some_and(|scheme| scheme.eq_ignore_ascii_case("wss"));
-    if (!secure && !uri.scheme_str().is_some_and(|scheme| scheme.eq_ignore_ascii_case("ws")))
+    let uri: Uri = descriptor
+        .url
+        .parse()
+        .map_err(|_| NetError::SecurityPolicyViolation {
+            reason: "WebSocket connection requires a valid WS/WSS URI".to_string(),
+        })?;
+    let secure = uri
+        .scheme_str()
+        .is_some_and(|scheme| scheme.eq_ignore_ascii_case("wss"));
+    if (!secure
+        && !uri
+            .scheme_str()
+            .is_some_and(|scheme| scheme.eq_ignore_ascii_case("ws")))
         || uri.host().is_none()
     {
         return Err(NetError::SecurityPolicyViolation {
@@ -42,7 +50,8 @@ pub(super) fn validate_websocket_security_policy(
     if descriptor.security.tls_required
         && !secure
         && !(descriptor.security.allow_insecure_loopback
-            && websocket_uri_host(&uri).is_some_and(|host| matches!(host.as_str(), "localhost" | "127.0.0.1" | "::1")))
+            && websocket_uri_host(&uri)
+                .is_some_and(|host| matches!(host.as_str(), "localhost" | "127.0.0.1" | "::1")))
     {
         return Err(NetError::SecurityPolicyViolation {
             reason: "WebSocket connection requires WSS by security policy".to_string(),
@@ -51,7 +60,11 @@ pub(super) fn validate_websocket_security_policy(
 
     // Use this exact parsed authority and normalized scheme for the connection.
     let mut parts = uri.into_parts();
-    parts.scheme = Some(if secure { "wss" } else { "ws" }.parse().expect("static WS scheme"));
+    parts.scheme = Some(
+        if secure { "wss" } else { "ws" }
+            .parse()
+            .expect("static WS scheme"),
+    );
     Uri::from_parts(parts).map_err(|error| NetError::Io(error.to_string()))
 }
 
