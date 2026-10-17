@@ -54,3 +54,11 @@ explicit evidence below says otherwise. No build outputs are created here.
   text are visible to ordinary Git add. CI checks tracked-but-ignored paths and
   representative new files; only the two exact L4 legacy cache outputs remain
   temporarily allowlisted. Three focused ignore-contract tests passed.
+- M4: Cache candidate validation by tree, runtime, recipes and pinned inputs.
+  A fetched, fast-forward origin/main receives a separate full root/plugin
+  workspace check/test/clippy batch before local synchronization; divergence,
+  dirty state, unknown native outcomes and failed validation retain local main.
+  Already-synchronized merged PRs can finish queue reconciliation. Waiting for an
+  open PR is a successful scheduled observation. Four new real-Git queue tests
+  and six existing PR-gate scenarios passed with Windows read pins mocked for
+  portable logic coverage. Native validation/service acceptance stays pending.
