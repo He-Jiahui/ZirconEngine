@@ -60,5 +60,11 @@ explicit evidence below says otherwise. No build outputs are created here.
   dirty state, unknown native outcomes and failed validation retain local main.
   Already-synchronized merged PRs can finish queue reconciliation. Waiting for an
   open PR is a successful scheduled observation. Four new real-Git queue tests
-  and six existing PR-gate scenarios passed with Windows read pins mocked for
+  and seven existing PR-gate scenarios passed with Windows read pins mocked for
   portable logic coverage. Native validation/service acceptance stays pending.
+- M5: Remove the deleted Pester suite and exact aggregate count, check every
+  suite exists, and require at least one test per listed suite in aggregate.
+  Supply Rust 1.94.1 explicitly. Check the physical D: drive before toolchain/
+  cache setup and give Cargo/toolchain/temp paths a unique run root. A hosted
+  image without approved physical storage now fails with an explicit requirement.
+  Workflow/suite/toolchain source checks passed; PowerShell execution is pending.
