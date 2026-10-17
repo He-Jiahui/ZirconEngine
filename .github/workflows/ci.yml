@@ -6,6 +6,13 @@ on:
   pull_request:
     branches: [main, master]
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   CARGO_TERM_COLOR: always
   RUST_BACKTRACE: 1
@@ -56,16 +63,24 @@ jobs:
   portable-runtime-core:
     name: Portable runtime core (Wasm)
     # CI outputs must pass the physical E: root and reparse-point guard.
+    # Persistent runners execute only trusted branch pushes.
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
     runs-on: [self-hosted, Windows, X64]
     env:
-      CARGO_HOME: E:\cargo-targets\zircon-local\cache\cargo-home
-      RUSTUP_HOME: E:\cargo-targets\zircon-local\cache\rustup
-      TEMP: E:\cargo-targets\zircon-local\tmp
-      TMP: E:\cargo-targets\zircon-local\tmp
-      CARGO_TARGET_DIR: E:\cargo-targets\zircon-local\wasm\ci\target
+      ZR_CI_OUTPUT_ROOT: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\portable-runtime-core-${{ strategy.job-index || 0 }}
+      CARGO_HOME: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\portable-runtime-core-${{ strategy.job-index || 0 }}\cargo-home
+      RUSTUP_HOME: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\portable-runtime-core-${{ strategy.job-index || 0 }}\rustup
+      TEMP: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\portable-runtime-core-${{ strategy.job-index || 0 }}\tmp
+      TMP: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\portable-runtime-core-${{ strategy.job-index || 0 }}\tmp
+      CARGO_TARGET_DIR: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\portable-runtime-core-${{ strategy.job-index || 0 }}\target
       PYTHONDONTWRITEBYTECODE: '1'
     steps:
       - uses: actions/checkout@v5
+        env:
+          TEMP: ${{ runner.temp }}
+          TMP: ${{ runner.temp }}
+        with:
+          persist-credentials: false
       - name: Prepare physical output roots
         shell: pwsh
         run: ./.github/scripts/prepare-cargo-roots.ps1
@@ -84,13 +99,16 @@ jobs:
 
   dependency-governance:
     name: Dependency governance (${{ matrix.manifest }})
+    # Persistent runners execute only trusted branch pushes.
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
     runs-on: [self-hosted, Windows, X64]
     env:
-      CARGO_HOME: E:\cargo-targets\zircon-local\cache\cargo-home
-      RUSTUP_HOME: E:\cargo-targets\zircon-local\cache\rustup
-      TEMP: E:\cargo-targets\zircon-local\tmp
-      TMP: E:\cargo-targets\zircon-local\tmp
-      CARGO_TARGET_DIR: E:\cargo-targets\zircon-local\ci\deny-${{ matrix.output }}\target
+      ZR_CI_OUTPUT_ROOT: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\dependency-governance-${{ strategy.job-index || 0 }}
+      CARGO_HOME: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\dependency-governance-${{ strategy.job-index || 0 }}\cargo-home
+      RUSTUP_HOME: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\dependency-governance-${{ strategy.job-index || 0 }}\rustup
+      TEMP: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\dependency-governance-${{ strategy.job-index || 0 }}\tmp
+      TMP: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\dependency-governance-${{ strategy.job-index || 0 }}\tmp
+      CARGO_TARGET_DIR: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\dependency-governance-${{ strategy.job-index || 0 }}\target
     strategy:
       fail-fast: false
       matrix:
@@ -104,6 +122,11 @@ jobs:
             output: plugins
     steps:
       - uses: actions/checkout@v5
+        env:
+          TEMP: ${{ runner.temp }}
+          TMP: ${{ runner.temp }}
+        with:
+          persist-credentials: false
 
       - name: Prepare physical output roots
         shell: pwsh
@@ -149,18 +172,26 @@ jobs:
     needs: runtime-profile-feature-matrix-plan
     # Compile on the Windows runner because the physical E: cargo root is required.
     # Linux-host ABI/system dependency behavior remains outside this lane's coverage.
+    # Persistent runners execute only trusted branch pushes.
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
     runs-on: [self-hosted, Windows, X64]
     env:
-      CARGO_HOME: E:\cargo-targets\zircon-local\cache\cargo-home
-      RUSTUP_HOME: E:\cargo-targets\zircon-local\cache\rustup
-      TEMP: E:\cargo-targets\zircon-local\tmp
-      TMP: E:\cargo-targets\zircon-local\tmp
-      CARGO_TARGET_DIR: E:\cargo-targets\zircon-local\ci\profile-${{ matrix.profile }}\target
+      ZR_CI_OUTPUT_ROOT: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\runtime-profile-feature-matrix-${{ strategy.job-index || 0 }}
+      CARGO_HOME: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\runtime-profile-feature-matrix-${{ strategy.job-index || 0 }}\cargo-home
+      RUSTUP_HOME: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\runtime-profile-feature-matrix-${{ strategy.job-index || 0 }}\rustup
+      TEMP: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\runtime-profile-feature-matrix-${{ strategy.job-index || 0 }}\tmp
+      TMP: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\runtime-profile-feature-matrix-${{ strategy.job-index || 0 }}\tmp
+      CARGO_TARGET_DIR: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\runtime-profile-feature-matrix-${{ strategy.job-index || 0 }}\target
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.runtime-profile-feature-matrix-plan.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v5
+        env:
+          TEMP: ${{ runner.temp }}
+          TMP: ${{ runner.temp }}
+        with:
+          persist-credentials: false
 
       - name: Prepare physical output roots
         shell: pwsh
@@ -181,13 +212,16 @@ jobs:
     name: Runtime additive domain (${{ matrix.feature }})
     # Compile on the Windows runner because the physical E: cargo root is required.
     # Linux-host ABI/system dependency behavior remains outside this lane's coverage.
+    # Persistent runners execute only trusted branch pushes.
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
     runs-on: [self-hosted, Windows, X64]
     env:
-      CARGO_HOME: E:\cargo-targets\zircon-local\cache\cargo-home
-      RUSTUP_HOME: E:\cargo-targets\zircon-local\cache\rustup
-      TEMP: E:\cargo-targets\zircon-local\tmp
-      TMP: E:\cargo-targets\zircon-local\tmp
-      CARGO_TARGET_DIR: E:\cargo-targets\zircon-local\ci\domain-${{ matrix.feature }}\target
+      ZR_CI_OUTPUT_ROOT: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\runtime-domain-feature-matrix-${{ strategy.job-index || 0 }}
+      CARGO_HOME: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\runtime-domain-feature-matrix-${{ strategy.job-index || 0 }}\cargo-home
+      RUSTUP_HOME: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\runtime-domain-feature-matrix-${{ strategy.job-index || 0 }}\rustup
+      TEMP: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\runtime-domain-feature-matrix-${{ strategy.job-index || 0 }}\tmp
+      TMP: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\runtime-domain-feature-matrix-${{ strategy.job-index || 0 }}\tmp
+      CARGO_TARGET_DIR: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\runtime-domain-feature-matrix-${{ strategy.job-index || 0 }}\target
     strategy:
       fail-fast: false
       matrix:
@@ -206,6 +240,11 @@ jobs:
           - ui
     steps:
       - uses: actions/checkout@v5
+        env:
+          TEMP: ${{ runner.temp }}
+          TMP: ${{ runner.temp }}
+        with:
+          persist-credentials: false
 
       - name: Prepare physical output roots
         shell: pwsh
@@ -226,15 +265,23 @@ jobs:
     name: Rust build & test
     # This Windows lane preserves the workspace gate on the physical E: cargo root.
     # It does not claim Linux-host ABI/system dependency coverage.
+    # Persistent runners execute only trusted branch pushes.
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
     runs-on: [self-hosted, Windows, X64]
     env:
-      CARGO_HOME: E:\cargo-targets\zircon-local\cache\cargo-home
-      RUSTUP_HOME: E:\cargo-targets\zircon-local\cache\rustup
-      TEMP: E:\cargo-targets\zircon-local\tmp
-      TMP: E:\cargo-targets\zircon-local\tmp
-      CARGO_TARGET_DIR: E:\cargo-targets\zircon-local\ci\rust\target
+      ZR_CI_OUTPUT_ROOT: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\rust-${{ strategy.job-index || 0 }}
+      CARGO_HOME: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\rust-${{ strategy.job-index || 0 }}\cargo-home
+      RUSTUP_HOME: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\rust-${{ strategy.job-index || 0 }}\rustup
+      TEMP: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\rust-${{ strategy.job-index || 0 }}\tmp
+      TMP: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\rust-${{ strategy.job-index || 0 }}\tmp
+      CARGO_TARGET_DIR: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\rust-${{ strategy.job-index || 0 }}\target
     steps:
       - uses: actions/checkout@v5
+        env:
+          TEMP: ${{ runner.temp }}
+          TMP: ${{ runner.temp }}
+        with:
+          persist-credentials: false
 
       - name: Install Python
         uses: actions/setup-python@v5
@@ -343,22 +390,30 @@ jobs:
 
   scene-ecs-miri:
     name: Scene ECS storage and query (Miri)
+    # Persistent runners execute only trusted branch pushes.
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
     runs-on: [self-hosted, Windows, X64]
     env:
-      CARGO_HOME: E:\cargo-targets\zircon-local\cache\cargo-home
-      RUSTUP_HOME: E:\cargo-targets\zircon-local\cache\rustup
-      TEMP: E:\cargo-targets\zircon-local\tmp
-      TMP: E:\cargo-targets\zircon-local\tmp
-      CARGO_TARGET_DIR: E:\cargo-targets\zircon-local\ci\miri-scene-ecs\target
-      MIRI_SYSROOT: E:\cargo-targets\zircon-local\ci\miri-scene-ecs\sysroot
-      ZIG_LOCAL_CACHE_DIR: E:\cargo-targets\zircon-local\ci\miri-scene-ecs\zig-cache\local
-      ZIG_GLOBAL_CACHE_DIR: E:\cargo-targets\zircon-local\ci\miri-scene-ecs\zig-cache\global
+      ZR_CI_OUTPUT_ROOT: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\scene-ecs-miri-${{ strategy.job-index || 0 }}
+      CARGO_HOME: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\scene-ecs-miri-${{ strategy.job-index || 0 }}\cargo-home
+      RUSTUP_HOME: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\scene-ecs-miri-${{ strategy.job-index || 0 }}\rustup
+      TEMP: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\scene-ecs-miri-${{ strategy.job-index || 0 }}\tmp
+      TMP: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\scene-ecs-miri-${{ strategy.job-index || 0 }}\tmp
+      CARGO_TARGET_DIR: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\scene-ecs-miri-${{ strategy.job-index || 0 }}\target
+      MIRI_SYSROOT: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\scene-ecs-miri-${{ strategy.job-index || 0 }}\sysroot
+      ZIG_LOCAL_CACHE_DIR: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\scene-ecs-miri-${{ strategy.job-index || 0 }}\zig-cache\local
+      ZIG_GLOBAL_CACHE_DIR: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\scene-ecs-miri-${{ strategy.job-index || 0 }}\zig-cache\global
       CC_x86_64_unknown_linux_gnu: ${{ github.workspace }}\.github\scripts\zig-cc-x86_64-unknown-linux-gnu.cmd
       CXX_x86_64_unknown_linux_gnu: ${{ github.workspace }}\.github\scripts\zig-cxx-x86_64-unknown-linux-gnu.cmd
       AR_x86_64_unknown_linux_gnu: ${{ github.workspace }}\.github\scripts\zig-ar-x86_64-unknown-linux-gnu.cmd
       RANLIB_x86_64_unknown_linux_gnu: ${{ github.workspace }}\.github\scripts\zig-ranlib-x86_64-unknown-linux-gnu.cmd
     steps:
       - uses: actions/checkout@v5
+        env:
+          TEMP: ${{ runner.temp }}
+          TMP: ${{ runner.temp }}
+        with:
+          persist-credentials: false
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
@@ -394,14 +449,17 @@ jobs:
 
   render-feature-smoke:
     name: Rendering feature graph and frame smoke (${{ matrix.feature }})
+    # Persistent runners execute only trusted branch pushes.
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
     runs-on: [self-hosted, Windows, X64]
     env:
-      CARGO_HOME: E:\cargo-targets\zircon-local\cache\cargo-home
-      RUSTUP_HOME: E:\cargo-targets\zircon-local\cache\rustup
-      TEMP: E:\cargo-targets\zircon-local\tmp
-      TMP: E:\cargo-targets\zircon-local\tmp
-      CARGO_TARGET_DIR: E:\cargo-targets\zircon-local\ci\render-feature-${{ matrix.feature }}\target
-      ZIRCON_RENDERING_SMOKE_OUTPUT_DIR: E:\cargo-targets\zircon-local\ci\render-feature-${{ matrix.feature }}\target\product-frame
+      ZR_CI_OUTPUT_ROOT: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\render-feature-smoke-${{ strategy.job-index || 0 }}
+      CARGO_HOME: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\render-feature-smoke-${{ strategy.job-index || 0 }}\cargo-home
+      RUSTUP_HOME: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\render-feature-smoke-${{ strategy.job-index || 0 }}\rustup
+      TEMP: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\render-feature-smoke-${{ strategy.job-index || 0 }}\tmp
+      TMP: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\render-feature-smoke-${{ strategy.job-index || 0 }}\tmp
+      CARGO_TARGET_DIR: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\render-feature-smoke-${{ strategy.job-index || 0 }}\target
+      ZIRCON_RENDERING_SMOKE_OUTPUT_DIR: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\render-feature-smoke-${{ strategy.job-index || 0 }}\target\product-frame
     strategy:
       fail-fast: false
       matrix:
@@ -483,6 +541,11 @@ jobs:
             filter: smoke_volumetric_fog_executes_a_product_frame
     steps:
       - uses: actions/checkout@v5
+        env:
+          TEMP: ${{ runner.temp }}
+          TMP: ${{ runner.temp }}
+        with:
+          persist-credentials: false
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
@@ -523,13 +586,16 @@ jobs:
 
   plugin-standalone-dist:
     name: Plugin standalone dist (${{ matrix.plugin_id }})
+    # Persistent runners execute only trusted branch pushes.
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
     runs-on: [self-hosted, Windows, X64]
     env:
-      CARGO_HOME: E:\cargo-targets\zircon-local\cache\cargo-home
-      RUSTUP_HOME: E:\cargo-targets\zircon-local\cache\rustup
-      TEMP: E:\cargo-targets\zircon-local\tmp
-      TMP: E:\cargo-targets\zircon-local\tmp
-      CARGO_TARGET_DIR: E:\cargo-targets\zircon-local\ci\plugin-${{ matrix.plugin_id }}\target
+      ZR_CI_OUTPUT_ROOT: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\plugin-standalone-dist-${{ strategy.job-index || 0 }}
+      CARGO_HOME: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\plugin-standalone-dist-${{ strategy.job-index || 0 }}\cargo-home
+      RUSTUP_HOME: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\plugin-standalone-dist-${{ strategy.job-index || 0 }}\rustup
+      TEMP: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\plugin-standalone-dist-${{ strategy.job-index || 0 }}\tmp
+      TMP: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\plugin-standalone-dist-${{ strategy.job-index || 0 }}\tmp
+      CARGO_TARGET_DIR: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\plugin-standalone-dist-${{ strategy.job-index || 0 }}\target
     strategy:
       fail-fast: false
       matrix:
@@ -618,6 +684,11 @@ jobs:
             package: zircon_plugin_prefab_tools_dist
     steps:
       - uses: actions/checkout@v5
+        env:
+          TEMP: ${{ runner.temp }}
+          TMP: ${{ runner.temp }}
+        with:
+          persist-credentials: false
 
       - uses: actions/setup-python@v5
         with:
@@ -640,19 +711,27 @@ jobs:
 
   export-platform-contract:
     name: Export platform contract (${{ matrix.export-platform }})
+    # Persistent runners execute only trusted branch pushes.
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
     runs-on: [self-hosted, Windows, X64]
     env:
-      CARGO_HOME: E:\cargo-targets\zircon-local\cache\cargo-home
-      RUSTUP_HOME: E:\cargo-targets\zircon-local\cache\rustup
-      TEMP: E:\cargo-targets\zircon-local\tmp
-      TMP: E:\cargo-targets\zircon-local\tmp
-      CARGO_TARGET_DIR: E:\cargo-targets\zircon-local\ci\export-${{ matrix.export-platform }}\target
+      ZR_CI_OUTPUT_ROOT: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\export-platform-contract-${{ strategy.job-index || 0 }}
+      CARGO_HOME: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\export-platform-contract-${{ strategy.job-index || 0 }}\cargo-home
+      RUSTUP_HOME: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\export-platform-contract-${{ strategy.job-index || 0 }}\rustup
+      TEMP: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\export-platform-contract-${{ strategy.job-index || 0 }}\tmp
+      TMP: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\export-platform-contract-${{ strategy.job-index || 0 }}\tmp
+      CARGO_TARGET_DIR: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\export-platform-contract-${{ strategy.job-index || 0 }}\target
     strategy:
       fail-fast: false
       matrix:
         export-platform: [windows, linux, macos, android, ios, web_gpu, wasm, headless]
     steps:
       - uses: actions/checkout@v5
+        env:
+          TEMP: ${{ runner.temp }}
+          TMP: ${{ runner.temp }}
+        with:
+          persist-credentials: false
 
       - uses: actions/setup-python@v5
         with:

@@ -39,3 +39,9 @@ explicit evidence below says otherwise. No build outputs are created here.
   Skipped: relocating the live Jenkins install/authorization DB, immutable
   external bootstrap and interpreter pinning; those need operator installation
   changes. No service configuration or runtime was modified or activated.
+- H4: Self-hosted jobs run only on main/master pushes; PR source contracts use
+  GitHub-hosted runners. Limit tokens to contents:read and disable persisted
+  checkout credentials. Add workflow concurrency and fresh run/attempt/job/matrix
+  roots for Cargo, rustup, temp, targets, Miri and Zig. Physical/reparse guards
+  reject reused output roots. 48 focused Python contracts passed. YAML parser
+  unavailable here; actual Windows runner execution remains pending.

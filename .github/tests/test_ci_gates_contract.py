@@ -25,6 +25,23 @@ class CiGatesContractTests(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.workflow = WORKFLOW_PATH.read_text(encoding="utf-8")
 
+    def test_persistent_runners_are_trusted_and_run_isolated(self) -> None:
+        for path in (WORKFLOW_PATH, WORKFLOW_PATH.with_name("profile-feature-contract.yml")):
+            workflow = path.read_text(encoding="utf-8")
+            self.assertIn("permissions:\n  contents: read", workflow)
+            self.assertIn("concurrency:", workflow)
+            for name in re.findall(r"(?m)^  ([a-z0-9-]+):$", workflow):
+                body = job_body(workflow, name)
+                if "runs-on: [self-hosted, Windows, X64]" not in body:
+                    continue
+                self.assertIn("if: github.event_name == 'push'", body, name)
+                self.assertIn("persist-credentials: false", body, name)
+                for variable in ("CARGO_HOME", "RUSTUP_HOME", "TEMP", "TMP", "CARGO_TARGET_DIR"):
+                    self.assertRegex(body, rf"(?m)^      {variable}: .*github.run_id.*github.run_attempt.*strategy.job-index", name)
+        preparation = (REPO_ROOT / ".github/scripts/prepare-cargo-roots.ps1").read_text()
+        self.assertIn("Refusing to reuse a prior CI output tree", preparation)
+        self.assertIn("Assert-NoReparseAncestors $directory", preparation)
+
     def test_workflow_unittest_modules_are_tracked(self) -> None:
         tracked = set(subprocess.check_output(
             ["git", "ls-files", "-z"], cwd=REPO_ROOT
@@ -148,7 +165,7 @@ class CiGatesContractTests(unittest.TestCase):
         self.assertIn("https://ziglang.org/download/0.14.1/zig-x86_64-windows-0.14.1.zip", bootstrap)
         self.assertIn("554f5378228923ffd558eac35e21af020c73789d87afeabf4bfd16f2e6feed2c", bootstrap)
         self.assertIn("82229343L", bootstrap)
-        self.assertIn("E:\\cargo-targets\\zircon-local\\ci\\miri-scene-ecs", bootstrap)
+        self.assertIn("E:\\cargo-targets\\zircon-local\\ci\\runs\\", bootstrap)
         self.assertIn("Assert-NoReparseAncestors", bootstrap)
         self.assertIn("Assert-InstallMatchesArchive", bootstrap)
         env_frontends = {
@@ -161,7 +178,7 @@ class CiGatesContractTests(unittest.TestCase):
             self.assertIn(f"{variable}:", miri)
             self.assertIn(f".github\\scripts\\{frontend}", miri)
             contents = (script_root / frontend).read_text(encoding="utf-8")
-            self.assertIn("zig-0.14.1\\zig.exe", contents)
+            self.assertIn("%ZR_CI_OUTPUT_ROOT%\\zig-0.14.1\\zig.exe", contents)
         for frontend in (
             "zig-cc-x86_64-unknown-linux-gnu.cmd",
             "zig-cxx-x86_64-unknown-linux-gnu.cmd",
@@ -185,7 +202,7 @@ class CiGatesContractTests(unittest.TestCase):
             body = job_body(self.workflow, name)
             self.assertIn("runs-on: [self-hosted, Windows, X64]", body, name)
             self.assertIn("CARGO_TARGET_DIR: E:\\cargo-targets\\zircon-local\\ci\\", body, name)
-            self.assertIn("CARGO_HOME: E:\\cargo-targets\\zircon-local\\cache\\cargo-home", body, name)
+            self.assertIn("CARGO_HOME: E:\\cargo-targets\\zircon-local\\ci\\runs\\", body, name)
             self.assertIn("prepare-cargo-roots.ps1", body, name)
             self.assertNotIn("local-cargo.ps1", body, name)
 
@@ -193,11 +210,11 @@ class CiGatesContractTests(unittest.TestCase):
         smoke = job_body(self.workflow, "render-feature-smoke")
         self.assertEqual(len(re.findall(r"(?m)^          - feature:", smoke)), 15)
         self.assertIn(
-            "CARGO_TARGET_DIR: E:\\cargo-targets\\zircon-local\\ci\\render-feature-${{ matrix.feature }}\\target",
+            "CARGO_TARGET_DIR: E:\\cargo-targets\\zircon-local\\ci\\runs\\${{ github.run_id }}-${{ github.run_attempt }}\\render-feature-smoke-${{ strategy.job-index || 0 }}\\target",
             smoke,
         )
         self.assertIn(
-            "ZIRCON_RENDERING_SMOKE_OUTPUT_DIR: E:\\cargo-targets\\zircon-local\\ci\\render-feature-${{ matrix.feature }}\\target\\product-frame",
+            "ZIRCON_RENDERING_SMOKE_OUTPUT_DIR: E:\\cargo-targets\\zircon-local\\ci\\runs\\${{ github.run_id }}-${{ github.run_attempt }}\\render-feature-smoke-${{ strategy.job-index || 0 }}\\target\\product-frame",
             smoke,
         )
         self.assertIn("-RequireMatchingTests cargo test", smoke)
@@ -362,7 +379,7 @@ class CiGatesContractTests(unittest.TestCase):
         self.assertIn("-RequireMatchingTests cargo test", smoke)
         self.assertNotIn("--exact", smoke)
         self.assertIn(
-            "ZIRCON_RENDERING_SMOKE_OUTPUT_DIR: E:\\cargo-targets\\zircon-local\\ci\\render-feature-${{ matrix.feature }}\\target\\product-frame",
+            "ZIRCON_RENDERING_SMOKE_OUTPUT_DIR: E:\\cargo-targets\\zircon-local\\ci\\runs\\${{ github.run_id }}-${{ github.run_attempt }}\\render-feature-smoke-${{ strategy.job-index || 0 }}\\target\\product-frame",
             smoke,
         )
         self.assertIn(

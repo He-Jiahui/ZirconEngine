@@ -6,6 +6,13 @@ on:
   pull_request:
     branches: [main, master]
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   CARGO_TERM_COLOR: always
   RUST_BACKTRACE: 1
@@ -13,13 +20,16 @@ env:
 jobs:
   profile-feature-contract:
     name: Profile feature contract (${{ matrix.label }})
+    # Persistent runners execute only trusted branch pushes.
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
     runs-on: [self-hosted, Windows, X64]
     env:
-      CARGO_HOME: E:\cargo-targets\zircon-local\cache\cargo-home
-      RUSTUP_HOME: E:\cargo-targets\zircon-local\cache\rustup
-      TEMP: E:\cargo-targets\zircon-local\tmp
-      TMP: E:\cargo-targets\zircon-local\tmp
-      CARGO_TARGET_DIR: E:\cargo-targets\zircon-local\ci\profile-contract-${{ strategy.job-index }}\target
+      ZR_CI_OUTPUT_ROOT: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\profile-feature-contract-${{ strategy.job-index || 0 }}
+      CARGO_HOME: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\profile-feature-contract-${{ strategy.job-index || 0 }}\cargo-home
+      RUSTUP_HOME: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\profile-feature-contract-${{ strategy.job-index || 0 }}\rustup
+      TEMP: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\profile-feature-contract-${{ strategy.job-index || 0 }}\tmp
+      TMP: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\profile-feature-contract-${{ strategy.job-index || 0 }}\tmp
+      CARGO_TARGET_DIR: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\profile-feature-contract-${{ strategy.job-index || 0 }}\target
     strategy:
       fail-fast: false
       matrix:
@@ -54,6 +64,11 @@ jobs:
             bin: ""
     steps:
       - uses: actions/checkout@v5
+        env:
+          TEMP: ${{ runner.temp }}
+          TMP: ${{ runner.temp }}
+        with:
+          persist-credentials: false
 
       - name: Prepare physical output roots
         shell: pwsh
