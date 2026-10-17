@@ -24,7 +24,10 @@ if ($taskSelected.root -ne $taskDriverRoot -or $taskSelected.steps -ne $taskStep
     throw 'Selected sealed driver paths differ from the configured runtime'
 }
 $taskSourcePath = Join-Path $taskRepo 'tools/jenkins-management/zircon-scheduled-cleanup.groovy'
-foreach ($taskInput in @($taskSourcePath, $taskSteps, $taskLauncher)) {
+$taskCacheSourcePath = Join-Path $taskRepo 'tools/jenkins-management/incremental-cache-cleanup.groovy'
+$taskBindingPath = Join-Path $taskRepo 'tools/dev/jenkins_cleanup_runtime.py'
+$taskPythonPath = Join-Path $taskRepo '.jenkins/runtime/python/python.exe'
+foreach ($taskInput in @($taskSourcePath, $taskCacheSourcePath, $taskBindingPath, $taskPythonPath, $taskSteps, $taskLauncher)) {
     if (-not (Test-Path -LiteralPath $taskInput -PathType Leaf)) { throw 'Scheduled cleanup implementation is missing' }
     $taskCursor = $taskInput
     while ($taskCursor) {
@@ -40,6 +43,7 @@ foreach ($taskBinding in @(@{name = 'pipeline/steps.groovy'; path = $taskSteps},
     }
 }
 $taskSource = Get-Content -LiteralPath $taskSourcePath -Raw
+$taskSource = (Get-Content -LiteralPath $taskCacheSourcePath -Raw) + [Environment]::NewLine + $taskSource
 $taskSourceDigest = (Get-FileHash -LiteralPath $taskSourcePath -Algorithm SHA256).Hash.ToLowerInvariant()
 $taskEnvironment = [ordered]@{
     ZIRCON_REPO_ROOT = $taskRepo
@@ -51,6 +55,8 @@ $taskEnvironment = [ordered]@{
     ZIRCON_RUNTIME_OPERATION_ID = $ExpectedRuntimeOperationId
     ZIRCON_MAINTENANCE_SESSION = $SessionId
     ZIRCON_AGENT_LABEL = 'zircon-windows-agent'
+    ZIRCON_CLEANUP_BINDING_SHA256 = (Get-FileHash -LiteralPath $taskBindingPath -Algorithm SHA256).Hash.ToLowerInvariant()
+    ZIRCON_CLEANUP_PYTHON_SHA256 = (Get-FileHash -LiteralPath $taskPythonPath -Algorithm SHA256).Hash.ToLowerInvariant()
     PYTHONDONTWRITEBYTECODE = '1'
 }
 # Repository identity matches the default CLI: contracts.digest(casefolded absolute root).
@@ -62,6 +68,12 @@ $taskPrelude = ($taskEnvironment.GetEnumerator() | ForEach-Object {
     'env.' + $_.Key + '=' + (ConvertTo-Json -InputObject ([string]$_.Value) -Compress) + ';'
 }) -join [Environment]::NewLine
 function Escape-Xml([string]$Text) { return [Security.SecurityElement]::Escape($Text) }
+function Read-JenkinsJobXml([string]$Text) {
+    # Jenkins serializes XML 1.1; .NET accepts the same declaration as 1.0.
+    # Strict XML parsing still rejects any unsupported content.
+    try { return [xml]($Text.Replace('<?xml version="1.1"', '<?xml version="1.0"')) }
+    catch { throw 'Cannot parse Jenkins job configuration XML' }
+}
 $taskDryRunText = $DryRun.ToString().ToLowerInvariant()
 $taskXml = @"
 <?xml version='1.0' encoding='UTF-8'?>
@@ -95,19 +107,56 @@ try {
 $taskJob = 'zircon-scheduled-cleanup'
 $taskConfigUrl = $taskBase + '/job/' + $taskJob + '/config.xml'
 $taskExists = $true
+$taskPreserveGovernance = $false
 try {
-    $null = Invoke-WebRequest -Uri $taskConfigUrl -Method Get -Headers $taskHeaders -UseBasicParsing -TimeoutSec 15
+    $taskPrevious = Invoke-WebRequest -Uri $taskConfigUrl -Method Get -Headers $taskHeaders -UseBasicParsing -TimeoutSec 15
 } catch {
     if ($null -eq $_.Exception.Response -or [int]$_.Exception.Response.StatusCode -ne 404) { throw 'Cannot inspect the scheduled cleanup job' }
     $taskExists = $false
+}
+if ($taskExists) {
+    $taskPreviousDocument = Read-JenkinsJobXml ([string]$taskPrevious.Content)
+    $taskPreserveGovernance = ([string]$taskPreviousDocument.'flow-definition'.definition.script).Contains('// ZIRCON HOST GOVERNANCE AUDIT')
+    $taskCurrent = Invoke-WebRequest -Uri $taskConfigUrl -Method Get -Headers $taskHeaders -UseBasicParsing -TimeoutSec 15
+    if ([string]$taskCurrent.Content -cne [string]$taskPrevious.Content) { throw 'Scheduled cleanup changed during installation review' }
 }
 $taskPostUrl = if ($taskExists) { $taskConfigUrl } else { $taskBase + '/createItem?name=' + $taskJob }
 try {
     $null = Invoke-WebRequest -Uri $taskPostUrl -Method Post -Headers $taskHeaders -ContentType 'application/xml; charset=utf-8' -Body ([Text.Encoding]::UTF8.GetBytes($taskXml)) -UseBasicParsing -TimeoutSec 15
 } catch { throw 'Jenkins scheduled cleanup job installation failed' }
+# Rebinding the selected runtime must retain the existing governance stage.
+if ($taskPreserveGovernance) {
+    Push-Location -LiteralPath $taskRepo
+    try {
+        & $taskEnvironment.JENKINS_PYTHON -B -X utf8 -m tools.dev.jenkins_governance --repo-root $taskRepo attach-maintenance
+        if ($LASTEXITCODE -ne 0) { throw 'Scheduled cleanup was rebound but its governance stage could not be restored' }
+    } finally { Pop-Location }
+}
+$taskReadback = Invoke-WebRequest -Uri $taskConfigUrl -Method Get -Headers $taskHeaders -UseBasicParsing -TimeoutSec 15
+$taskInstalledDocument = Read-JenkinsJobXml ([string]$taskReadback.Content)
+$taskInstalledScript = [string]$taskInstalledDocument.'flow-definition'.definition.script
+# Keep the cache result visible when a retained governance hook writes the final description.
+$taskDisplayScript = $taskInstalledScript.Replace("currentBuild.description = report.status +", "currentBuild.description = 'compiler cache ' + (env.ZIRCON_INCREMENTAL_DELETED_BYTES ?: '0') + ' logical bytes; ' + report.status +")
+if ($taskDisplayScript -cne $taskInstalledScript) {
+    $taskInstalledDocument.'flow-definition'.definition.script = $taskDisplayScript
+    $null = Invoke-WebRequest -Uri $taskConfigUrl -Method Post -Headers $taskHeaders -ContentType 'application/xml; charset=utf-8' -Body ([Text.Encoding]::UTF8.GetBytes($taskInstalledDocument.OuterXml)) -UseBasicParsing -TimeoutSec 15
+    $taskReadback = Invoke-WebRequest -Uri $taskConfigUrl -Method Get -Headers $taskHeaders -UseBasicParsing -TimeoutSec 15
+    $taskInstalledDocument = Read-JenkinsJobXml ([string]$taskReadback.Content)
+    $taskInstalledScript = [string]$taskInstalledDocument.'flow-definition'.definition.script
+    if ($taskInstalledScript -cne $taskDisplayScript) { throw 'Scheduled cleanup description readback differs' }
+}
+$taskExpectedScript = ($taskPrelude + [Environment]::NewLine + $taskSource).Replace("`r`n", "`n").TrimEnd()
+if (-not $taskInstalledScript.Replace("`r`n", "`n").StartsWith($taskExpectedScript) -or
+    ($taskPreserveGovernance -and -not $taskInstalledScript.Contains('// ZIRCON HOST GOVERNANCE AUDIT'))) {
+    throw 'Scheduled cleanup installation readback differs from the reviewed source and governance stage'
+}
 [ordered]@{
     job = $taskJob; node = 'zircon-windows-agent'; schedule = 'H/30 * * * *'; dryRun = $DryRun
     implementationDigest = $taskSourceDigest; driverDigest = $ExpectedDriverDigest
     runtimeOperationId = $ExpectedRuntimeOperationId; maintenanceSession = $SessionId
     maxObjectsPerRun = 64; maxBytesPerRun = 268435456; controllerRestartRequired = $false
+    incrementalCacheMaxBytesPerRun = 34359738368L; incrementalCacheTriggerFreeBytes = 85899345920L
+    governanceStagePreserved = $taskPreserveGovernance; readbackVerified = $true
+    runtimeBinding = 'same reviewed driver; fresh native owners per new run; exact runtime fence thereafter'
+    runtimeBindingImplementationSha256 = $taskEnvironment.ZIRCON_CLEANUP_BINDING_SHA256
 } | ConvertTo-Json -Depth 4

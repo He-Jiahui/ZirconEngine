@@ -12,6 +12,12 @@ def plain(Object value) {
 @NonCPS
 def readJson(String text) { return plain(new groovy.json.JsonSlurper().parseText(text)) }
 
+def maintenanceAgent(Closure body) {
+    timeout(time: 5, unit: 'MINUTES') {
+        node('zircon-windows-agent') { body() }
+    }
+}
+
 def runtimeFence() {
     if (env.NODE_NAME != 'zircon-windows-agent') error('scheduled cleanup requires the fixed node')
     powershell(label: 'Verify selected maintenance runtime', script: '''
@@ -25,10 +31,32 @@ if ($selected.steps -ne $env:ZIRCON_SEALED_DRIVER -or $selected.launcher -ne $en
 }
 ''')
 }
+def bindScheduledRuntime() {
+    def binding
+    maintenanceAgent {
+        if (env.NODE_NAME != 'zircon-windows-agent') error('scheduled cleanup requires the fixed node')
+        binding = readJson(powershell(returnStdout: true, label: 'Bind new cleanup run to verified native runtime', script: '''
+$ErrorActionPreference = 'Stop'
+$entry = Join-Path $env:ZIRCON_REPO_ROOT 'tools/dev/jenkins_cleanup_runtime.py'
+if ((Get-FileHash -LiteralPath $entry -Algorithm SHA256).Hash.ToLowerInvariant() -ne $env:ZIRCON_CLEANUP_BINDING_SHA256) { throw 'Cleanup runtime binding implementation changed; reinstall reviewed job' }
+if ((Get-FileHash -LiteralPath $env:JENKINS_PYTHON -Algorithm SHA256).Hash.ToLowerInvariant() -ne $env:ZIRCON_CLEANUP_PYTHON_SHA256) { throw 'Cleanup job interpreter changed' }
+& $env:JENKINS_PYTHON -B -X utf8 $entry --repo-root $env:ZIRCON_REPO_ROOT --expected-driver-digest $env:ZIRCON_DRIVER_DIGEST
+if ($LASTEXITCODE -ne 0) { throw 'Cannot bind cleanup to the verified native runtime' }
+'''))
+    }
+    if (binding.driverDigest != env.ZIRCON_DRIVER_DIGEST || !binding.runtimeOperationId ||
+            !(binding.nativeOwners instanceof Map) || !(binding.endpoint instanceof Map)) {
+        error('new cleanup runtime proof is incomplete')
+    }
+    binding.put('installedRuntimeOperationId', env.ZIRCON_RUNTIME_OPERATION_ID)
+    env.ZIRCON_RUNTIME_OPERATION_ID = binding.runtimeOperationId
+    return binding
+}
+
 def control(String action, Map payload) {
     def result
     for (int attempt = 0; attempt < 12; attempt++) {
-        node('zircon-windows-agent') {
+        maintenanceAgent {
             runtimeFence()
             result = load(env.ZIRCON_SEALED_DRIVER).control('maintenance', action, payload)
         }
@@ -40,9 +68,27 @@ def control(String action, Map payload) {
         sleep(time: 5, unit: 'SECONDS')
     }
 }
+
+def diskSpaceSnapshot() {
+    def result
+    maintenanceAgent {
+        runtimeFence()
+        result = readJson(powershell(returnStdout: true, label: 'Measure maintenance disk headroom', script: '''
+$ErrorActionPreference = 'Stop'
+@(foreach ($drive in @('D', 'E', 'F')) {
+    $volume = [IO.DriveInfo]::new($drive + ':\')
+    if (-not $volume.IsReady) { throw 'Maintenance volume is unavailable' }
+    [long]$free = $volume.AvailableFreeSpace
+    if ($free -lt 0 -or $free -gt $volume.TotalSize) { throw 'Invalid native disk space observation' }
+    @{drive = $drive; freeBytes = $free; totalBytes = [long]$volume.TotalSize}
+}) | ConvertTo-Json -Compress
+'''))
+    }
+    return result
+}
 def selectCandidates(Map inventory, String root, String selectionId, int maxObjects, long maxBytes) {
     def candidates
-    node('zircon-windows-agent') {
+    maintenanceAgent {
         runtimeFence()
         def selectionFile = env.ZIRCON_REPO_ROOT + '/.jenkins/state/controls/' + selectionId + '.json'
         writeFile(file: selectionFile, text: groovy.json.JsonOutput.toJson([
@@ -89,10 +135,15 @@ def report = [schemaVersion: 1, requestId: requestId, identity: identity,
               driverDigest: env.ZIRCON_DRIVER_DIGEST, runtimeOperationId: env.ZIRCON_RUNTIME_OPERATION_ID,
               dryRun: params.DRY_RUN == true, maxObjects: 64, maxBytes: 268435456,
               plannedBytes: 0L, reclaimedBytes: 0L, roots: [], status: 'running',
+              scope: 'registered-CAS-objects-only', minimumFreeBytes: 37580963840L,
+              startedAt: new Date().format("yyyy-MM-dd'T'HH:mm:ssXXX", TimeZone.getTimeZone('UTC')),
               preserved: ['warm preparation/target/compiler caches', 'active and historical references', 'unregistered objects']]
 int remainingObjects = 64
 long remainingBytes = 268435456L
 try {
+    report.put('runtimeBinding', bindScheduledRuntime())
+    report.runtimeOperationId = env.ZIRCON_RUNTIME_OPERATION_ID
+    report.put('diskFreeBefore', diskSpaceSnapshot())
     for (String drive : ['D', 'E', 'F']) {
         def root = drive + ':\\cargo-targets'
         def operation = requestId + '-' + drive.toLowerCase()
@@ -141,13 +192,36 @@ try {
     report.status = 'failed'
     report.reason = err.toString()
     report.put('unknownGcOperations', report.roots.findAll { it.status == 'gc-requested' }.collect { it.gcOperationId })
+    currentBuild.description = 'failed; original maintenance ' + requestId
     throw err
 } finally {
-    node('zircon-windows-agent') {
-        def name = 'scheduled-cleanup-' + env.BUILD_NUMBER + '.json'
-        writeFile(file: name, text: groovy.json.JsonOutput.prettyPrint(groovy.json.JsonOutput.toJson(report)))
-        archiveArtifacts(artifacts: name, fingerprint: true)
-        currentBuild.description = report.status + '; reclaimed ' + report.reclaimedBytes + ' logical bytes; ' + requestId
+    try {
+        report.put('diskFreeAfter', diskSpaceSnapshot())
+        report.put('diskPressure', report.diskFreeAfter.findAll { it.freeBytes < report.minimumFreeBytes })
+    } catch (observationError) {
+        report.put('diskSnapshotError', observationError.toString())
+        if (report.status != 'failed') {
+            report.status = 'failed'
+            report.reason = observationError.toString()
+            currentBuild.result = 'FAILURE'
+        }
+    }
+    report.put('finishedAt', new Date().format("yyyy-MM-dd'T'HH:mm:ssXXX", TimeZone.getTimeZone('UTC')))
+    if (report.status in ['complete', 'dry-run'] && report.diskPressure && !report.diskPressure.isEmpty()) {
+        report.status = 'needs-review'
+        currentBuild.result = 'UNSTABLE'
+    }
+    maintenanceAgent {
+        ws('E:/cargo-targets/zircon-local/reports/jenkins-scheduled-cleanup') {
+            def name = 'scheduled-cleanup-' + env.BUILD_NUMBER + '.json'
+            def ledger = 'scheduled-cleanup-' + env.BUILD_NUMBER + '.artifacts.json'
+            writeFile(file: ledger, text: groovy.json.JsonOutput.toJson([schemaVersion: 1,
+                taskId: 'jenkins-scheduled-cleanup', owner: requestId,
+                artifacts: [[path: pwd() + '/' + name, retainUntil: 'original maintenance and references reconciled']]]))
+            writeFile(file: name, text: groovy.json.JsonOutput.prettyPrint(groovy.json.JsonOutput.toJson(report)))
+            archiveArtifacts(artifacts: name + ',' + ledger, fingerprint: true)
+        }
+        currentBuild.description = 'compiler cache ' + (env.ZIRCON_INCREMENTAL_DELETED_BYTES ?: '0') + ' logical bytes; ' + report.status + '; reclaimed ' + report.reclaimedBytes + ' logical bytes; ' + requestId
         echo('Scheduled cleanup: planned=' + report.plannedBytes + ', reclaimed=' + report.reclaimedBytes + ', status=' + report.status)
     }
 }

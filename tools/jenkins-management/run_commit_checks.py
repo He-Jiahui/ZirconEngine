@@ -16,7 +16,7 @@ OUTPUT = Path('E:/cargo-targets/zircon-local/reports/jenkins-commit-audit-202610
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--run-id', required=True)
-    parser.add_argument('--suite', choices=('all', 'support'), default='all')
+    parser.add_argument('--suite', choices=('all', 'support', 'cache'), default='all')
     args = parser.parse_args()
     if not re.fullmatch(r'checkout-commit-[A-Za-z0-9_.-]{1,64}', args.run_id):
         raise ValueError('Invalid regression run ID')
@@ -41,7 +41,8 @@ def main():
     environment = dict(os.environ, ZR_COMMIT_TEST_ROOT=str(fixtures), TEMP=str(fixtures), TMP=str(fixtures),
                        TMPDIR=str(fixtures), PYTHONDONTWRITEBYTECODE='1', ZR_COMMIT_NATIVE='1')
     start = time.time()
-    command = [sys.executable, '-B', '-X', 'utf8', str(ROOT / 'tools/jenkins-management/tests/test_checkout_commit.py')]
+    test_file = 'test_incremental_cache_cleanup.py' if args.suite == 'cache' else 'test_checkout_commit.py'
+    command = [sys.executable, '-B', '-X', 'utf8', str(ROOT / 'tools/jenkins-management/tests' / test_file)]
     if args.suite == 'support':
         command.append('CommitEntrySupportTests')
     with (output / 'stdout.txt').open('wb') as stdout, (output / 'stderr.txt').open('wb') as stderr:

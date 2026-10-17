@@ -13,6 +13,8 @@
 
 请求 ID 和操作 ID 用于查询与避免重复提交。查询同一输入时加 `--query-only`；中断后继续使用同一个操作 ID，不换 ID 重放。实际结果保存在 Jenkins 构建归档及 `.jenkins/state/management/checkout-commits/<操作ID>.json`。
 
+Windows 上，超过十分钟且内容为空的 `index.lock` 只有在原生独占打开成功、文件身份再次吻合时才会恢复；原文件移动保留在 `.jenkins/state/management/recovered-index-locks` 并记录回执。仍有句柄、较新或含待写索引内容的锁继续等待，不删除锁来掩盖活动操作。
+
 该入口返回实际本地提交号。按需执行的定向测试保持原有职责，普通提交不再依赖旧 formal flow 的验收记录。产品、里程碑和迁移验收仍以各自实际测试为准。推送、发布和外部通知需要另外授权。
 
 安装管理 job 时若覆盖了扩展，此入口会在下一次提交时恢复同一动作；也可运行 `tools/dev/jenkins_commit.py install`。安装只扩展当前管理 job，保留其已有路由和正在执行的 Pipeline，不重启 Jenkins。

@@ -9,6 +9,7 @@ from pathlib import Path
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 import xml.etree.ElementTree as ET
 from unittest.mock import patch
@@ -155,6 +156,30 @@ class CheckoutCommitTests(unittest.TestCase):
 
 
 class CommitEntrySupportTests(unittest.TestCase):
+    @unittest.skipUnless(os.name == "nt", "Windows exclusive-handle recovery")
+    def test_abandoned_empty_index_lock_is_preserved_and_live_or_nonempty_locks_wait(self):
+        with tempfile.TemporaryDirectory(dir=os.environ["ZR_COMMIT_TEST_ROOT"]) as directory:
+            repo = Path(directory)
+            (repo / ".git").mkdir()
+            lock = repo / ".git/index.lock"
+            lock.write_bytes(b"")
+            with self.assertRaises(commit.CommitBusy):
+                commit.recover_stale_index_lock(repo, "recent")
+            old = time.time() - 1200
+            os.utime(lock, (old, old))
+            with lock.open("rb"):
+                with self.assertRaises(commit.CommitBusy):
+                    commit.recover_stale_index_lock(repo, "owned")
+            recovered = commit.recover_stale_index_lock(repo, "abandoned")
+            self.assertEqual(recovered["status"], "quarantined")
+            self.assertFalse(lock.exists())
+            self.assertEqual(Path(recovered["retainedPath"]).read_bytes(), b"")
+            lock.write_bytes(b"pending index data")
+            os.utime(lock, (old, old))
+            with self.assertRaises(commit.CommitBusy):
+                commit.recover_stale_index_lock(repo, "nonempty")
+            self.assertEqual(lock.read_bytes(), b"pending index data")
+
     @unittest.skipUnless(os.name == "nt", "Windows Job lifecycle regression")
     def test_native_timeout_terminates_root_and_descendant_without_hanging(self):
         with tempfile.TemporaryDirectory(dir=os.environ["ZR_COMMIT_TEST_ROOT"]) as directory:

@@ -226,6 +226,61 @@ def checkout_reader(repo):
     return None
 
 
+def recover_stale_index_lock(repo, operation_id):
+    """Quarantine an abandoned empty lock, while holding its exclusive handle."""
+    lock = physical(repo / ".git/index.lock")
+    if not lock.exists():
+        return None
+    before = lock.stat()
+    if before.st_size or time.time() - before.st_mtime < 600 or os.name != "nt":
+        raise CommitBusy("Git index lock is recent or contains pending index data")
+    import ctypes
+    from ctypes import wintypes
+    import msvcrt
+    api = ctypes.WinDLL("kernel32", use_last_error=True)
+    api.CreateFileW.argtypes = [wintypes.LPCWSTR, wintypes.DWORD, wintypes.DWORD,
+                               ctypes.c_void_p, wintypes.DWORD, wintypes.DWORD, ctypes.c_void_p]
+    api.CreateFileW.restype = wintypes.HANDLE
+    api.CloseHandle.argtypes = [wintypes.HANDLE]
+    api.CloseHandle.restype = wintypes.BOOL
+    api.SetFileInformationByHandle.argtypes = [wintypes.HANDLE, ctypes.c_int, ctypes.c_void_p, wintypes.DWORD]
+    api.SetFileInformationByHandle.restype = wintypes.BOOL
+    # Share mode zero proves that no process still has this lock open for I/O.
+    handle = api.CreateFileW(str(lock), 0x80000000 | 0x10000, 0, None, 3, 0x02200000, None)
+    if handle == wintypes.HANDLE(-1).value:
+        raise CommitBusy("Git index lock still has a native owner")
+    descriptor = None
+    try:
+        descriptor = msvcrt.open_osfhandle(handle, os.O_RDONLY | os.O_BINARY)
+        observed = os.fstat(descriptor)
+        if ((observed.st_dev, observed.st_ino, observed.st_size, observed.st_mtime_ns)
+                != (before.st_dev, before.st_ino, 0, before.st_mtime_ns)):
+            raise CommitBusy("Git index lock changed during recovery")
+        directory = physical(repo / ".jenkins/state/management/recovered-index-locks")
+        directory.mkdir(parents=True, exist_ok=True)
+        base = directory / (operation_id + "-" + str(time.time_ns()))
+        destination = str(base) + ".lock"
+        class RenameInfo(ctypes.Structure):
+            _fields_ = [("replace", wintypes.BOOL), ("root", wintypes.HANDLE),
+                        ("length", wintypes.DWORD), ("name", wintypes.WCHAR * (len(destination) + 1))]
+        rename = RenameInfo(False, None, len(destination.encode("utf-16-le")), destination)
+        evidence = {"status": "recovery-intent", "originalPath": str(lock), "retainedPath": destination,
+                    "identity": [before.st_dev, before.st_ino], "bytes": 0,
+                    "lastModified": before.st_mtime, "exclusiveNativeHandle": True,
+                    "reason": "abandoned empty Git index lock older than ten minutes"}
+        write_json(Path(str(base) + ".json"), evidence)
+        if not api.SetFileInformationByHandle(handle, 3, ctypes.byref(rename), ctypes.sizeof(rename)):
+            raise ctypes.WinError(ctypes.get_last_error())
+        evidence.update(status="quarantined", recoveredAt=time.time())
+        write_json(Path(str(base) + ".json"), evidence)
+        return evidence
+    finally:
+        if descriptor is not None:
+            os.close(descriptor)
+        else:
+            api.CloseHandle(handle)
+
+
 def execute(repo, payload, *, policy=None, grants=None):
     """Called under the shared management Git lock by the Jenkins worker."""
     repo = physical(repo)
@@ -258,6 +313,7 @@ def execute(repo, payload, *, policy=None, grants=None):
     if reader:
         return {"status": "waiting", "reasonCode": "checkout_source_busy", "blockingReader": reader,
                 "request": request, "formalAcceptance": False}
+    lock_recovery = recover_stale_index_lock(repo, payload["operationId"])
     head = git(repo, "rev-parse", "HEAD").stdout.decode().strip()
     trailer = "Zircon-Commit-Operation: " + payload["operationId"]
     if previous:
@@ -284,6 +340,8 @@ def execute(repo, payload, *, policy=None, grants=None):
               "authorization": policy["authorization"], "sourceDigestRequired": False,
               "sessionGrantRequired": False, "formalAcceptance": False,
               "pushPerformed": False, "notificationPerformed": False, "startedAt": time.time()}
+    if lock_recovery:
+        result["indexLockRecovery"] = lock_recovery
     write_json(record_path, result)
     if not dirty:
         return result

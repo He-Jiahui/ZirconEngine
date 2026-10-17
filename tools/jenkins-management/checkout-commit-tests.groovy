@@ -1,7 +1,7 @@
 // BEGIN ZIRCON SCOPED COMMIT TESTS
 if (params.RUN_ID != null && params.RUN_ID.toString().startsWith('checkout-commit-')) {
     def commitRun = params.RUN_ID.toString()
-    def commitSuite = commitRun.contains('-support-') ? 'support' : 'all'
+    def commitSuite = commitRun.contains('-cache-') ? 'cache' : (commitRun.contains('-support-') ? 'support' : 'all')
     if (!(commitRun ==~ /[A-Za-z0-9][A-Za-z0-9_.-]{0,79}/)) error('Invalid commit regression run ID')
     node('zircon-windows-agent') {
         dir('E:/Git/ZirconEngine/.jenkins/agent/workspace/zircon-management-tests') {
