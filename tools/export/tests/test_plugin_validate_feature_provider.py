@@ -228,7 +228,7 @@ class PluginValidateFeatureProviderTests(unittest.TestCase):
                 repo_root,
                 [
                     "native_dynamic_fixture/native",
-                    "sound/features/timeline_animation_track/dist",
+                    "sound/features/timeline/dist",
                 ],
             )
 
@@ -279,7 +279,7 @@ class PluginValidateFeatureProviderTests(unittest.TestCase):
                 repo_root,
                 [
                     "native_dynamic_fixture/native",
-                    "sound/features/timeline_animation_track/dist",
+                    "sound/features/timeline/dist",
                 ],
             )
 
@@ -331,7 +331,7 @@ class PluginValidateFeatureProviderTests(unittest.TestCase):
                 repo_root,
                 [
                     "native_dynamic_fixture/native",
-                    "sound/features/timeline_animation_track/dist",
+                    "sound/features/timeline/dist",
                 ],
             )
 

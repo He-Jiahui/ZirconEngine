@@ -603,13 +603,13 @@ def _write_dist_plugin_workspace(
 def _write_feature_provider_workspace(repo_root: Path, crate_name: str) -> None:
     plugins_root = repo_root / "zircon_plugins"
     plugin_root = plugins_root / "sound"
-    crate_root = plugin_root / "features" / "timeline_animation_track" / "dist"
+    crate_root = plugin_root / "features" / "timeline" / "dist"
     crate_root.mkdir(parents=True)
     (plugins_root / "Cargo.toml").write_text(
         "\n".join(
             [
                 "[workspace]",
-                'members = ["sound/features/timeline_animation_track/dist"]',
+                'members = ["sound/features/timeline/dist"]',
                 'resolver = "2"',
             ]
         ),

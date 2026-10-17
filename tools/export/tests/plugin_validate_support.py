@@ -72,7 +72,7 @@ def _write_sound_feature_dist_crate(repo_root: Path, crate_name: str) -> None:
         / "zircon_plugins"
         / "sound"
         / "features"
-        / "timeline_animation_track"
+        / "timeline"
         / "dist"
     )
     crate_root.mkdir(parents=True, exist_ok=True)

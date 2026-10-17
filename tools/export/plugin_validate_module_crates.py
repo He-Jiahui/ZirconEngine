@@ -5,6 +5,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+from .plugin_package_identity import optional_feature_directory
+
 Diagnostics = list[str]
 
 
@@ -41,12 +43,7 @@ def plugin_validate_optional_feature_root(
     package_id: str,
     feature_id: str,
 ) -> Path:
-    feature_suffix = (
-        feature_id.removeprefix(f"{package_id}.")
-        if feature_id.startswith(f"{package_id}.")
-        else feature_id
-    )
-    return package_root / "features" / feature_suffix.replace(".", "/")
+    return package_root / "features" / optional_feature_directory(package_id, feature_id)
 
 
 def plugin_validate_path_is_relative_to(path: Path, root: Path) -> bool:

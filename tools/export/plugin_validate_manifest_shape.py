@@ -6,7 +6,10 @@ from pathlib import Path
 from typing import Any
 
 from .native_build_workspace import read_toml
-from .plugin_validate_common import plugin_validate_trimmed_string
+from .plugin_validate_common import (
+    plugin_validate_optional_trimmed_string,
+    plugin_validate_trimmed_string,
+)
 
 
 Diagnostics = list[str]
@@ -17,12 +20,13 @@ PLUGIN_VALIDATE_MANIFEST_ROOT_FIELDS = frozenset(
     asset_importers asset_roots capabilities capability_statuses category components
     content_roots default_packaging dependencies description display_name distribution
     event_catalogs feature_extensions geometry_sources id maturity modules optional_features
-    options package_company package_kind package_name package_prefix provides_interfaces
+    options package_company package_kind package_name package_prefix package_role provides_interfaces
     sdk_api_version shader_permutation shading_models supported_platforms supported_targets
     ui_components version
     """.split()
 )
 PLUGIN_VALIDATE_MANIFEST_VERSION_FIELDS = ("version", "sdk_api_version")
+PLUGIN_VALIDATE_MANIFEST_PACKAGE_ROLES = ("production", "developer_tool", "sample", "test_fixture")
 PLUGIN_VALIDATE_MANIFEST_SEMVER_COMPONENTS = ("major", "minor", "patch")
 PLUGIN_VALIDATE_U32_MAX = (1 << 32) - 1
 PLUGIN_VALIDATE_MANIFEST_ID_CHARSET_MESSAGE = "must contain only lowercase ASCII letters, digits, underscores, and dots in non-empty segments"
@@ -44,6 +48,14 @@ def validate_plugin_manifest_shape(
         return
     validate_plugin_manifest_known_fields(manifest, package_label, diagnostics)
     plugin_validate_manifest_identity(manifest, package_label, diagnostics)
+    role = plugin_validate_optional_trimmed_string(
+        manifest, "package_role", f"plugin {package_label} package_role", diagnostics
+    )
+    if role is not None and role not in PLUGIN_VALIDATE_MANIFEST_PACKAGE_ROLES:
+        diagnostics.append(
+            f"plugin {package_label} package_role {role} should be one of "
+            + ", ".join(PLUGIN_VALIDATE_MANIFEST_PACKAGE_ROLES)
+        )
     for field_name in PLUGIN_VALIDATE_MANIFEST_VERSION_FIELDS:
         plugin_validate_manifest_semver(
             manifest,

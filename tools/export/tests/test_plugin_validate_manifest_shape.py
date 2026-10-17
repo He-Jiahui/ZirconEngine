@@ -39,6 +39,39 @@ def _write_manifest_shape_fixture(repo_root: Path) -> Path:
 
 
 class PluginValidateManifestShapeTests(unittest.TestCase):
+    def test_plugin_validate_accepts_runtime_package_roles(self) -> None:
+        for role in ("production", "developer_tool", "sample", "test_fixture"):
+            with self.subTest(role=role), tempfile.TemporaryDirectory() as temp_dir:
+                repo_root = Path(temp_dir) / "repo"
+                manifest = _write_manifest_shape_fixture(repo_root)
+                _replace_manifest_line(
+                    manifest,
+                    'id = "native_dynamic_fixture"',
+                    f'id = "native_dynamic_fixture"\npackage_role = "{role}"',
+                )
+
+                exit_code, report = _run_plugin_validate(repo_root)
+
+                self.assertEqual(exit_code, 0, report["diagnostics"])
+                self.assertFalse(report["fatal"])
+
+    def test_plugin_validate_rejects_invalid_package_roles(self) -> None:
+        for value in ('"fixture"', '" sample "', '""', 'false'):
+            with self.subTest(value=value), tempfile.TemporaryDirectory() as temp_dir:
+                repo_root = Path(temp_dir) / "repo"
+                manifest = _write_manifest_shape_fixture(repo_root)
+                _replace_manifest_line(
+                    manifest,
+                    'id = "native_dynamic_fixture"',
+                    f'id = "native_dynamic_fixture"\npackage_role = {value}',
+                )
+
+                exit_code, report = _run_plugin_validate(repo_root)
+
+                self.assertEqual(exit_code, 2)
+                self.assertTrue(report["fatal"])
+                self.assertTrue(any("package_role" in item for item in report["diagnostics"]))
+
     def test_plugin_validate_rejects_manifest_identity_and_display_name_shape(
         self,
     ) -> None:
