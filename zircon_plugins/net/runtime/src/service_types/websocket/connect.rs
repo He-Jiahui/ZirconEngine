@@ -41,8 +41,13 @@ impl DefaultNetManager {
                 return Err(error);
             }
         };
-        connections.insert(connection, ManagedWebSocketConnection::Network(network));
+        connections.insert(
+            connection,
+            ManagedWebSocketConnection::Network(Arc::clone(&network)),
+        );
         drop(connections);
+        // Cover a drain that raced with the reader before registry publication.
+        network.notify_event_capacity();
         self.state.push_event(NetEvent::ConnectionStateChanged {
             connection,
             transport: NetTransportKind::WebSocket,

@@ -147,4 +147,14 @@ explicit evidence below says otherwise. No build outputs are created here.
   root from its driver path; its focused Python test passes. Remove 17 nonexistent
   saved documentation grants and add the six current owners. Canonical TOML and
   source checks pass; preserve Linux overlay bytes through the index. Compiled
-  catalog tests remain pending. WebSocket wakeups and RPC poison handling follow.
+  catalog tests remain pending.
+- L9 (WebSocket): Replace all three production queue polling loops with
+  registered capacity notifications. Frame drains and manager event drains wake
+  readers; registration covers an early-drain race, and writer failure cancels
+  readers. Capacity and cancellation use distinct Notify objects. Clone callbacks
+  under the registry lock, then invoke after releasing locks. Recover only the
+  primitive enum/frame/event locks without asserting that partial events are valid.
+  Move existing admission tests out of production source; add notification-race
+  and poisoned-buffer regressions and update explicit test drains. Source checks
+  and the test-layout gate pass (zero new violations); compiled socket/concurrency
+  tests remain pending. RPC protocol-state poison handling follows.

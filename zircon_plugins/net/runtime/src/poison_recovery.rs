@@ -36,7 +36,8 @@ impl NetSharedState {
     }
 }
 
-/// Recovers the last valid state when a network worker panic poisons shared state.
+/// Retrieves possibly partial buffers/counters after a worker panic; this does not
+/// validate protocol state or authorize continuing a transport operation.
 pub(crate) fn lock_recover<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
     match mutex.lock() {
         Ok(guard) => guard,

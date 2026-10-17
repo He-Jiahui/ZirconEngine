@@ -104,7 +104,8 @@ impl DefaultNetManager {
         }
         drop(connections);
         let mut accepted = Vec::with_capacity(staged.len());
-        for (connection, remote_endpoint, _) in staged {
+        for (connection, remote_endpoint, network) in staged {
+            network.notify_event_capacity();
             self.state.push_event(NetEvent::ConnectionAccepted {
                 listener,
                 connection,

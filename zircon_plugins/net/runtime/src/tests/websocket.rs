@@ -111,6 +111,7 @@ fn websocket_callbacks_can_reenter_manager_without_registry_deadlock() {
             );
             caller.send_websocket_frame(connection, NetWebSocketFrame::Ping(vec![1]))?;
             assert!(caller.poll_websocket_frames(connection, 1)?.is_empty());
+            assert!(!caller.drain_events(usize::MAX).is_empty());
             caller.close_connection(connection)
         })();
         let _ = completed.send(result);
@@ -366,5 +367,9 @@ impl WebSocketRuntimeConnection for ReentrantWebSocketConnection {
     fn drain_frames(&self, _max_frames: usize) -> Vec<NetWebSocketFrame> {
         self.reenter();
         Vec::new()
+    }
+
+    fn notify_event_capacity(&self) {
+        self.reenter();
     }
 }
