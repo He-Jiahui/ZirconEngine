@@ -1,3 +1,9 @@
+//! 规范硬行扫描、行窗口与源偏移导航的直属回归夹具。
+//!
+//! 大输入跨过默认内联阈值，检查源硬行身份不会随成形分块改变。
+//! 窗口参数是行序号，断言中的范围则是原文的 UTF-8 字节偏移。
+//! 这些夹具直接调用同步范围服务，未调用文本成形后端。
+
 use super::{
     hard_line_count, hard_line_count_and_window, hard_line_end, hard_line_start, hard_line_window,
     hard_lines, has_multiple_hard_lines, next_hard_line_start, visit_hard_lines,
