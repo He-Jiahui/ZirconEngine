@@ -52,8 +52,8 @@ explicit evidence below says otherwise. No build outputs are created here.
 - M2: Replace blanket source-tree/text ignores with specific state/cache/log
   exclusions. New tests, skills, examples, documentation layouts and CMake/license
   text are visible to ordinary Git add. CI checks tracked-but-ignored paths and
-  representative new files; only the two exact L4 legacy cache outputs remain
-  temporarily allowlisted. Three focused ignore-contract tests passed.
+  representative new files. L4 subsequently removes the two legacy cache outputs
+  and their temporary allowance. Three focused ignore-contract tests passed.
 - M4: Cache candidate validation by tree, runtime, recipes and pinned inputs.
   A fetched, fast-forward origin/main receives a separate full root/plugin
   workspace check/test/clippy batch before local synchronization; divergence,
@@ -169,3 +169,27 @@ explicit evidence below says otherwise. No build outputs are created here.
   phases and cleanup during unwind. Source/access/caller checks pass; compiled RPC
   tests remain pending. The broader base-net manager already has typed lock errors;
   unrelated optional protocol managers are outside this WebSocket/RPC finding.
+
+## Final source verification
+
+- 43 convention/path/ignore Python tests and 12 workflow contracts pass; the
+  focused checkout-relative Jenkins root test also passes.
+- Convention guards and exemptions have zero violations. All 28 layering tests
+  pass, including the explicit baseline policy for existing reference debt.
+- The final documentation audit checks 68,178 paths in 6,360 documents with zero
+  invalid references. Test separation has zero new violations (62 existing);
+  the source path audit passes with the nine recorded existing exceptions.
+- Manual review covers the changed Rust contracts and their callers. Whitespace
+  checks pass. Formatting, compilation and native execution are not claimed;
+  Rustfmt and the guarded Rust/Windows validation environment are unavailable here.
+
+Required external validation remains: the affected App/editor/runtime/tooling
+packages, HTTP handshake pinning, WebSocket backpressure/cancellation, RPC poison
+handling, ECS unsafe-contract/doctest checks, native staging and the real ZrVM
+backend. These checks require the approved output lane. Jenkins artifact-store
+import for the preserved M6 archive also remains pending. H3 installation/state
+relocation stays skipped as scoped above.
+
+All in-repo review items have item-named commits on the requested branch. No push
+or PR was made. The only remaining tracked working-tree modification is the
+preexisting Linux config overlay, whose bytes were preserved.
