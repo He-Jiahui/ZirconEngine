@@ -1,3 +1,4 @@
+//! 对最近项目合并和有界排序做规模回归检查，不是运行时性能基准。
 use std::collections::BTreeMap;
 use std::hint::black_box;
 use std::time::Instant;
@@ -32,6 +33,87 @@ fn single_pass_validation_preserves_duplicate_error_precedence() {
             path_key: "e:/projects/shared".to_string(),
         })
     );
+}
+
+#[test]
+fn decoded_tombstones_normalize_paths_and_are_cleared_by_record() {
+    for path in [
+        "E:/Projects/Game",
+        "e:/projects/game/",
+        r"E:\Projects\Game\",
+    ] {
+        let mut wire = serde_json::to_value(HubRecentProjectsV1::default()).unwrap();
+        wire["tombstones"] = serde_json::json!([{
+            "path_key": path,
+            "deleted_logical_unix_ms": 101
+        }]);
+        let mut registry: HubRecentProjectsV1 = serde_json::from_value(wire).unwrap();
+        assert_eq!(registry.tombstones[0].path_key(), "e:/projects/game");
+        registry.validate().unwrap();
+        registry
+            .record(recent_project("Game", "E:/Projects/Game", 1))
+            .unwrap();
+        assert!(registry.tombstones.is_empty());
+        assert_eq!(registry.projects[0].last_opened_unix_ms, 102);
+        registry.validate().unwrap();
+    }
+}
+
+#[test]
+fn decoded_tombstones_cannot_overlap_projects_or_duplicate_normalized_keys() {
+    let mut wire = serde_json::to_value(HubRecentProjectsV1::new([recent_project(
+        "Game",
+        "E:/Projects/Game",
+        100,
+    )]))
+    .unwrap();
+    wire["tombstones"] = serde_json::json!([{
+        "path_key": "E:/Projects/Game",
+        "deleted_logical_unix_ms": 101
+    }]);
+    let registry: HubRecentProjectsV1 = serde_json::from_value(wire.clone()).unwrap();
+    assert_eq!(
+        registry.validate(),
+        Err(HubRecentProjectsError::TombstoneOverlapsProject {
+            path_key: "e:/projects/game".to_owned()
+        })
+    );
+
+    wire["projects"] = serde_json::json!([]);
+    wire["tombstones"] = serde_json::json!([
+        { "path_key": "E:/Projects/Game", "deleted_logical_unix_ms": 101 },
+        { "path_key": "e:/projects/game/", "deleted_logical_unix_ms": 100 }
+    ]);
+    let registry: HubRecentProjectsV1 = serde_json::from_value(wire).unwrap();
+    assert_eq!(
+        registry.validate(),
+        Err(HubRecentProjectsError::DuplicateTombstonePathKey {
+            path_key: "e:/projects/game".to_owned()
+        })
+    );
+}
+
+#[test]
+fn removal_rejects_exhausted_revision_without_mutating_the_registry() {
+    let mut registry = HubRecentProjectsV1::new([recent_project("Game", "E:/Projects/Game", 100)]);
+    registry.revision = u64::MAX;
+    registry.validate().unwrap();
+    let before = registry.clone();
+
+    assert_eq!(
+        registry.remove("E:/Projects/Game"),
+        Err(HubRecentProjectsError::RevisionExhausted)
+    );
+    assert_eq!(registry, before);
+
+    let mut registry =
+        HubRecentProjectsV1::new([recent_project("Game", "E:/Projects/Game", u64::MAX)]);
+    let before = registry.clone();
+    assert_eq!(
+        registry.remove("E:/Projects/Game"),
+        Err(HubRecentProjectsError::LogicalClockExhausted)
+    );
+    assert_eq!(registry, before);
 }
 
 #[test]

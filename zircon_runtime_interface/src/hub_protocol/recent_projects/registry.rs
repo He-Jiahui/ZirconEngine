@@ -16,9 +16,23 @@ pub const HUB_RECENT_PROJECT_TOMBSTONE_LIMIT_V1: usize = 64;
 /// a project identity authority.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
+/// 记录最近项目被显式移除的规范路径键和删除逻辑时刻。
+///
+/// `remove` 创建墓碑；重新 `record` 同一键时将其移除，墓碑时间也参与后续逻辑时钟。
+/// 从外部解码后须通过 [`HubRecentProjectsV1::validate`] 检查整个投影的约束。
 pub struct HubRecentProjectTombstoneV1 {
+    #[serde(deserialize_with = "deserialize_tombstone_path_key")]
     path_key: String,
     deleted_logical_unix_ms: u64,
+}
+
+// 外部墓碑必须沿用项目条目的路径键规则，防止大小写或分隔符变体绕过互斥检查。
+fn deserialize_tombstone_path_key<'de, D>(deserializer: D) -> Result<String, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let path_key = String::deserialize(deserializer)?;
+    Ok(hub_recent_project_path_key(path_key))
 }
 
 impl HubRecentProjectTombstoneV1 {
@@ -41,6 +55,11 @@ impl HubRecentProjectTombstoneV1 {
 /// Canonical on-disk document shared between the Hub and Editor.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
+/// Hub 与 Editor 共享的有界最近项目文件投影。
+///
+/// 路径键只用于展示记录去重；项目身份和打开权限由宿主预检。字段公开且 Serde 派生
+/// 不会调用 [`Self::validate`]，直接构造或解码后应先校验；持久化交给
+/// [`crate::hub_protocol::HubRecentProjectsStore`] 在写锁内完成读改写。
 pub struct HubRecentProjectsV1 {
     pub protocol_version: HubProtocolVersionV1,
     pub revision: u64,
@@ -49,6 +68,17 @@ pub struct HubRecentProjectsV1 {
 }
 
 impl HubRecentProjectsV1 {
+    /// 从项目条目创建规范排序的初始投影。
+    ///
+    /// # 参数
+    /// - `projects`：将被按共享路径键去重、排序并截断的记录；条目有效性由调用方保证。
+    ///
+    /// # 返回值与边界
+    /// 空投影的 revision 为 0，非空为 1，墓碑为空。此构造只合并条目，不执行
+    /// [`Self::validate`] 或文件读写；已有文档的持续更新应使用文件事务。
+    ///
+    /// # 参考
+    /// [`merge_hub_recent_projects`]；[`crate::hub_protocol::HubRecentProjectsStore::update`]。
     pub fn new(projects: impl IntoIterator<Item = HubRecentProjectV1>) -> Self {
         let projects = merge_hub_recent_projects(projects, []);
         Self {
@@ -64,6 +94,16 @@ impl HubRecentProjectsV1 {
     }
 
     /// 按逻辑时钟推进打开时间，再以规范化路径合并项目并清除同路径墓碑；revision 随此次变更递增。
+    ///
+    /// # 参数
+    /// - `project`：已校验的展示记录；其打开时间是提议值，会推进到所有项目和墓碑时间之后。
+    ///
+    /// # 返回值与约束
+    /// 成功时按路径键合并、保留最近的有限条目，并清除该规范键的墓碑。逻辑时钟或
+    /// revision 耗尽时返回错误，赋值尚未提交到 `self`；本方法不执行整个投影的校验。
+    ///
+    /// # 参考
+    /// [`Self::validate`]；文件更新使用 [`crate::hub_protocol::HubRecentProjectsStore::update`]。
     pub fn record(
         &mut self,
         mut project: HubRecentProjectV1,
@@ -79,6 +119,17 @@ impl HubRecentProjectsV1 {
     }
 
     /// 从当前投影移除路径并记录墓碑，使较旧的合并输入不能把用户已删除的项目重新带回。
+    ///
+    /// # 参数
+    /// - `path`：按共享词法规则生成键的展示路径，不要求文件仍然存在。
+    ///
+    /// # 返回值与约束
+    /// 项目已不存在且同键墓碑已存在时成功返回且不推进 revision；其余情况生成删除墓碑。
+    /// 逻辑时钟或 revision 耗尽均在修改集合前返回错误，内存投影保持不变。
+    /// 文件事务的失败副本不会写回。
+    ///
+    /// # 参考
+    /// [`crate::hub_protocol::hub_recent_project_path_key`]；[`Self::record`]。
     pub fn remove(&mut self, path: impl AsRef<Path>) -> Result<(), HubRecentProjectsError> {
         let path_key = hub_recent_project_path_key(path);
         let project_exists = self
@@ -94,6 +145,8 @@ impl HubRecentProjectsV1 {
             return Ok(());
         }
         let deleted_logical_unix_ms = self.next_tombstone_timestamp()?;
+        // 所有可恢复错误均在修改集合前返回。
+        self.bump_revision()?;
         self.projects
             .retain(|project| hub_recent_project_path_key(&project.path) != path_key);
         self.tombstones
@@ -103,11 +156,19 @@ impl HubRecentProjectsV1 {
             deleted_logical_unix_ms,
         ));
         self.canonicalize_tombstones();
-        self.bump_revision()?;
         Ok(())
     }
 
     /// 文件解码和写回前都用此检查拒绝超限、重复或未按规范排序的投影与墓碑。
+    ///
+    /// # 返回值
+    /// 成功表示容量、项目路径、规范键唯一性、项目与墓碑互斥和排序检查通过；
+    /// 按源码检查顺序返回首个错误。时间只参与排序，不额外校验与 revision 的关系。
+    ///
+    /// 本方法不访问文件系统；协议版本由标记类型的 Serde 边界校验，墓碑路径键在解码时归一化。
+    ///
+    /// # 参考
+    /// [`HubRecentProjectV1`]；[`crate::hub_protocol::HubRecentProjectsStore::load_projection`]。
     pub fn validate(&self) -> Result<(), HubRecentProjectsError> {
         if self.projects.len() > HUB_RECENT_PROJECT_LIMIT_V1 {
             return Err(HubRecentProjectsError::TooManyEntries {
@@ -259,6 +320,17 @@ impl Default for HubRecentProjectsV1 {
 ///
 /// The newest timestamp wins; identical timestamps use manifest name as a deterministic tie
 /// break. The resulting collection is path-deduplicated, ordered, and bounded.
+///
+/// # 参数
+/// - `left`、`right`：移交所有权的项目记录迭代器；调用方须保证条目满足自身契约。
+///
+/// # 返回值与边界
+/// 按规范路径键去重，保留较新时间；时间相同则选名称字典序较小者。结果按时间降序、
+/// 原始路径升序排列并截为最近项目上限。此入口只接收项目条目，不接收或应用墓碑，
+/// 也不验证文件系统身份。
+///
+/// # 参考
+/// [`crate::hub_protocol::hub_recent_project_path_key`]；[`HUB_RECENT_PROJECT_LIMIT_V1`]。
 pub fn merge_hub_recent_projects<I, J>(left: I, right: J) -> Vec<HubRecentProjectV1>
 where
     I: IntoIterator<Item = HubRecentProjectV1>,

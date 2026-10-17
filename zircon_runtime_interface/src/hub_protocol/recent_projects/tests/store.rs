@@ -1,3 +1,4 @@
+//! 覆盖 Store 读改写、revision 比较、取消、损坏隔离和锁释放契约。
 use std::cell::Cell;
 use std::fs;
 use std::time::SystemTime;
@@ -9,6 +10,40 @@ use super::{
     HubRecentProjectsWritePolicy, HUB_RECENT_PROJECTS_MAX_ENCODED_BYTES_V1,
 };
 use crate::hub_protocol::HubRecentProjectV1;
+
+#[test]
+fn rejected_remove_does_not_persist_partial_registry_changes() {
+    use crate::hub_protocol::{HubRecentProjectsError, HubRecentProjectsV1};
+
+    let root = temporary_root("remove-revision-exhausted");
+    fs::create_dir_all(&root).unwrap();
+    let path = root.join("recent_projects.json");
+    let project = project();
+    let project_path = project.path.clone();
+    let mut registry = HubRecentProjectsV1::new([project]);
+    registry.revision = u64::MAX;
+    let before = serde_json::to_vec(&registry).unwrap();
+    fs::write(&path, &before).unwrap();
+    let store = HubRecentProjectsStore::new(path.clone());
+
+    let error = store
+        .update(
+            HubRecentProjectsWritePolicy::with_timeout(std::time::Duration::from_millis(50)),
+            |registry| registry.remove(&project_path),
+        )
+        .unwrap_err();
+
+    assert!(matches!(
+        error,
+        HubRecentProjectsStoreError::Contract {
+            source: HubRecentProjectsError::RevisionExhausted,
+            ..
+        }
+    ));
+    assert_eq!(fs::read(&path).unwrap(), before);
+    assert_eq!(store.load_projection().unwrap().registry(), &registry);
+    fs::remove_dir_all(root).unwrap();
+}
 
 #[test]
 fn corrupted_projection_is_quarantined_and_rebuilt_during_a_bounded_mutation() {
