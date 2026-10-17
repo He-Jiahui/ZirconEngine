@@ -21,3 +21,7 @@ explicit evidence below says otherwise. No build outputs are created here.
   Validation: 61 focused Python tests passed; docs and test-layout gates report
   zero new violations (36,858 and 63 existing respectively). Nine existing path
   budget violations and 30 existing layering edges are also explicitly baselined.
+- H1: Remove managed-storage enforcement from the reusable interface build script;
+  retain the generated availability fallback. Move the profile contract workflow
+  onto the guarded Windows output lane with Rust 1.94.1. Build-script and workflow
+  source checks passed; cross-platform Cargo validation requires approved storage.

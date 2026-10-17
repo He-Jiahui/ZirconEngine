@@ -13,7 +13,13 @@ env:
 jobs:
   profile-feature-contract:
     name: Profile feature contract (${{ matrix.label }})
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Windows, X64]
+    env:
+      CARGO_HOME: E:\cargo-targets\zircon-local\cache\cargo-home
+      RUSTUP_HOME: E:\cargo-targets\zircon-local\cache\rustup
+      TEMP: E:\cargo-targets\zircon-local\tmp
+      TMP: E:\cargo-targets\zircon-local\tmp
+      CARGO_TARGET_DIR: E:\cargo-targets\zircon-local\ci\profile-contract-${{ strategy.job-index }}\target
     strategy:
       fail-fast: false
       matrix:
@@ -49,41 +55,20 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Install Linux system dependencies (profile feature contract)
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            pkg-config \
-            libfontconfig-dev \
-            libudev-dev \
-            libinput-dev \
-            libdbus-1-dev \
-            libx11-dev \
-            libx11-xcb-dev \
-            libxcursor-dev \
-            libxcb1-dev \
-            libxcb-render0-dev \
-            libxcb-shape0-dev \
-            libxcb-xfixes0-dev \
-            libxkbcommon-dev \
-            libxkbcommon-x11-dev \
-            libwayland-dev \
-            xinput \
-            libasound2-dev
+      - name: Prepare physical output roots
+        shell: pwsh
+        run: ./.github/scripts/prepare-cargo-roots.ps1
 
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Cache cargo registry
-        uses: Swatinem/rust-cache@v2
+        uses: dtolnay/rust-toolchain@1.94.1
 
       - name: Check profile features for ${{ matrix.label }}
         env:
           PROFILE_FEATURE_BIN: ${{ matrix.bin }}
+        shell: pwsh
         run: |
-          cargo_args=(check -p "${{ matrix.package }}")
-          if [[ -n "${PROFILE_FEATURE_BIN}" ]]; then
-            cargo_args+=(--bin "${PROFILE_FEATURE_BIN}")
-          fi
-          cargo_args+=(--no-default-features --features "${{ matrix.features }}" --locked --verbose)
-          cargo "${cargo_args[@]}"
+          $cargoArgs = @('check', '-p', '${{ matrix.package }}')
+          if ($env:PROFILE_FEATURE_BIN) { $cargoArgs += @('--bin', $env:PROFILE_FEATURE_BIN) }
+          $cargoArgs += @('--no-default-features', '--features', '${{ matrix.features }}', '--locked', '--verbose')
+          & ./.github/scripts/invoke-cargo-msvc.ps1 cargo @cargoArgs
+          exit $LASTEXITCODE
