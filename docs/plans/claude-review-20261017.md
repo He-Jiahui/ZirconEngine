@@ -127,3 +127,8 @@ explicit evidence below says otherwise. No build outputs are created here.
   `983d7736d9b0ae728b81ab479565c72886d7745b`, upload-pages-artifact v4
   `7b1f4a764d45c48632c6b24a0339c27f5614fb0b`, deploy-pages v4
   `d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e`.
+- L7: Replace generic mutex proofs with `ZrVmLockGuard`, constructed only
+  inside the process-lock module. Its private mutex guard retains ownership and
+  a Cell marker prevents sharing one token between threads. Update owner and
+  instance consumers; retain the existing poison/concurrency regression. Token
+  privacy and consumer inventory checks pass; compiled VM validation is pending.
