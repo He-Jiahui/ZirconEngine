@@ -21,9 +21,9 @@ doc_type: operations-reference
 
 # Session Coordinator 与受管验证
 
-旧 Session Coordinator 及其服务、托盘、自动登记、租约、验证票据和提交接口已经退役。`tools/dev/zircon-session.ps1` 是返回退出码 3 的停用入口；不要为普通开发恢复旧服务、队列或自动同步。历史数据与恢复约束见 [协调器退役记录](../../tooling/coordinator-retirement.md)。
+旧 Session Coordinator 及其服务、托盘、自动登记、租约、验证票据和提交接口已经退役。`tools/dev/zircon-session.ps1` 是返回退出码 3 的停用入口；不要为普通开发恢复旧服务、队列或自动同步。历史数据与恢复约束见 [协调器退役记录](https://github.com/He-Jiahui/ZirconEngine/blob/main/docs/tooling/coordinator-retirement.md)。
 
-当前开发使用独立本地命令证据或已核验激活状态的 Jenkins 协调器。执行节奏遵循 [里程碑验证策略](../../plans/milestone-validation-policy.md)，具体命令遵循 [Zircon Dev 验证指南](../../../.codex/skills/zircon-dev/validation/guide.md)。这两个入口都不自动授予全工作区、里程碑或生产迁移接受。
+当前开发使用独立本地命令证据或已核验激活状态的 Jenkins 协调器。执行节奏遵循 [里程碑验证策略](https://github.com/He-Jiahui/ZirconEngine/blob/main/docs/plans/milestone-validation-policy.md)，具体命令遵循 [Zircon Dev 验证指南](https://github.com/He-Jiahui/ZirconEngine/blob/main/.codex/skills/zircon-dev/validation/guide.md)。这两个入口都不自动授予全工作区、里程碑或生产迁移接受。
 
 ## 当前本地入口
 
@@ -41,7 +41,7 @@ doc_type: operations-reference
 
 ## Jenkins 的独立激活和接受
 
-根据 [jenkins-coordination 技能](../../../.codex/skills/jenkins-coordination/SKILL.md)，先核验 `.codex/state/jenkins-coordinator/active.json` 的启用状态、`functionalTestsAllowed` 及对应证据。核验通过后，才在任务授权范围内运行协调器功能测试或提交有边界的命令。普通本地命令结果和旧票据都不能替代新的 Jenkins 接受回执。
+根据 [jenkins-coordination 技能](https://github.com/He-Jiahui/ZirconEngine/blob/main/.codex/skills/jenkins-coordination/SKILL.md)，先核验 `.codex/state/jenkins-coordinator/active.json` 的启用状态、`functionalTestsAllowed` 及对应证据。核验通过后，才在任务授权范围内运行协调器功能测试或提交有边界的命令。普通本地命令结果和旧票据都不能替代新的 Jenkins 接受回执。
 
 异步提交后保留原请求 ID，并查询、归并同一请求。客户端超时或暂时没有终端输出不表示任务未运行；不得因此重复提交。pending、dry run 与本地退出码不能改写为里程碑或生产迁移接受。
 
