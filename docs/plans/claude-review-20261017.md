@@ -74,3 +74,11 @@ explicit evidence below says otherwise. No build outputs are created here.
   dependencies in CI. Update the owning audit and version-pairing docs. Upstream
   manifests were inspected through read-only HTTP; no sibling checkout/session
   was accessed. TOML/source contracts pass; locked Cargo/native validation is pending.
+- M6: Preserve 321 generated audit/receipt files (60,187,713 logical bytes) in
+  the ignored task artifact archive, with SHA-256/length manifest; Git also retains
+  their originals. Artifact-store import by Jenkins remains pending. Reject new
+  source commits of these generated reports. A reproducible metadata-only sweep
+  repaired 16,128 unambiguous moved references and retired 20,730 declarations
+  with no current owner. Historical prose is untouched. The raw audit now checks
+  6,360 documents with zero invalid references, so docs no longer need a debt
+  exemption. 45 focused Python checks passed. Acceptance results are unchanged.

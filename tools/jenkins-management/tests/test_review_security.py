@@ -22,6 +22,18 @@ commit = load("review_commit", "checkout_commit.py")
 
 
 class ReviewSecurityTests(unittest.TestCase):
+    def test_generated_audit_cannot_be_added_but_can_be_retired(self):
+        with tempfile.TemporaryDirectory(dir=os.environ["ZR_COMMIT_TEST_ROOT"]) as name:
+            root = Path(name)
+            relative = "docs/plans/source-comments/new.json"
+            output = root / relative
+            output.parent.mkdir(parents=True)
+            output.write_text("{}")
+            with self.assertRaisesRegex(ValueError, "artifact store"):
+                commit.selected_paths(root, [relative], {}, {str(root): "write"})
+            output.unlink()
+            self.assertEqual(commit.selected_paths(root, [relative], {}, {str(root): "write"}), [relative])
+
     def test_delivery_pin_matches_reviewed_bytes(self):
         raw = Path(queue.__file__).with_name("delivery.py").read_bytes()
         self.assertEqual(queue.DELIVERY_SHA256, hashlib.sha256(raw).hexdigest())

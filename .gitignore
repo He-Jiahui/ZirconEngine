@@ -149,3 +149,8 @@ docs/ui-and-layout/**/*.png
 
 # Layout migration keeps regenerable captures and copied inputs under this owner.
 /docs/_data/layout/
+
+# Generated audits belong in task artifacts, with historical receipts retained.
+/docs/plans/source-comments/**/*.json
+/docs/plans/source-comments/**/*.jsonl
+/docs/**/*-post-validation.json

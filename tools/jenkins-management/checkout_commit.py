@@ -121,6 +121,11 @@ def selected_paths(repo, paths, policy, grants):
                 or name.casefold() in seen):
             raise ValueError("Commit requires unique literal repository-relative file paths")
         target = physical(repo / name)
+        if target.exists() and (
+            name.startswith("docs/plans/source-comments/") and target.suffix in {".json", ".jsonl"}
+            or name.startswith("docs/") and name.endswith("-post-validation.json")
+        ):
+            raise ValueError("Generated audit evidence belongs in the retained artifact store, not a source commit")
         if target.exists() and not target.is_file():
             raise ValueError("Select individual files, not directories")
         if not target.is_relative_to(repo):
