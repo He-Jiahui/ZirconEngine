@@ -138,3 +138,5 @@ explicit evidence below says otherwise. No build outputs are created here.
   admitted commands still wait without an execution timeout for the Drop signal.
   Add full-queue/shutdown-lock and admitted-borrow completion regressions. Source
   checks pass; compiled concurrency tests remain pending the guarded Rust lane.
+  Follow-up review fixes the completion regression's Send capture by moving its
+  receiver and borrowed output into the callback.
