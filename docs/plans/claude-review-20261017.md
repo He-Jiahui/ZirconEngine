@@ -49,3 +49,8 @@ explicit evidence below says otherwise. No build outputs are created here.
   pin host and connection share the parsed URI. Normalize schemes and hosts.
   Add query/fragment loopback-spoof and uppercase-scheme regressions. Source
   wiring checks passed; Rust regressions await the guarded build lane.
+- M2: Replace blanket source-tree/text ignores with specific state/cache/log
+  exclusions. New tests, skills, examples, documentation layouts and CMake/license
+  text are visible to ordinary Git add. CI checks tracked-but-ignored paths and
+  representative new files; only the two exact L4 legacy cache outputs remain
+  temporarily allowlisted. Three focused ignore-contract tests passed.
