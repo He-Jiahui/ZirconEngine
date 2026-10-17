@@ -82,3 +82,9 @@ explicit evidence below says otherwise. No build outputs are created here.
   with no current owner. Historical prose is untouched. The raw audit now checks
   6,360 documents with zero invalid references, so docs no longer need a debt
   exemption. 45 focused Python checks passed. Acceptance results are unchanged.
+- M7: Make `SystemParam` unsafe with explicit access, aliasing, state ownership
+  and item-lifetime obligations. Mark all 18 implementations (including tuple
+  generation and probes) unsafe with local justifications. Removed-component
+  readers now conservatively declare their retained World access. Add a complete
+  compile-fail example for safe implementations. Source inventory and diff checks
+  pass; compiled ECS/doctest acceptance is pending the guarded Rust lane.

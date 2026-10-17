@@ -41,7 +41,8 @@ pub trait ParamSetParam {
     }
 }
 
-impl<P> SystemParam for ParamSet<P>
+// SAFETY: Tuple accessors borrow one member at a time; initialization merges their registered access.
+unsafe impl<P> SystemParam for ParamSet<P>
 where
     P: ParamSetParam,
 {

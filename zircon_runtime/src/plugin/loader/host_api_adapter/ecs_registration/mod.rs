@@ -295,7 +295,8 @@ unsafe fn register_system_from_abi_v4(
 
 pub(super) struct NativeDynamicAccess;
 
-impl SystemParam for NativeDynamicAccess {
+// SAFETY: Registers conservative World access for native callbacks and returns no borrowed item.
+unsafe impl SystemParam for NativeDynamicAccess {
     type State = ();
     type Item<'world> = ();
 

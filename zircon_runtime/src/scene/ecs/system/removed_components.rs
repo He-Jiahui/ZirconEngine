@@ -42,7 +42,8 @@ where
     }
 }
 
-impl<T> SystemParam for RemovedComponentsParam<T>
+// SAFETY: Registers conservative World access for the retained event slice; the cursor is state-local.
+unsafe impl<T> SystemParam for RemovedComponentsParam<T>
 where
     T: Component,
 {
@@ -51,8 +52,9 @@ where
 
     fn init_state(
         _world: &mut World,
-        _access: &mut SystemParamAccess,
+        access: &mut SystemParamAccess,
     ) -> Result<Self::State, SystemParamError> {
+        access.add_conservative_world_access();
         Ok(RemovedComponentReader::default())
     }
 
