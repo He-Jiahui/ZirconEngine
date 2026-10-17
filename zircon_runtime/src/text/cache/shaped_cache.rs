@@ -1,3 +1,6 @@
+//! 成形产物的拥有式缓存、借用查询键和按帧操作报告。
+//! 指纹只缩小候选范围；命中仍核对身份载荷与共享产物中的原文。
+
 use std::{
     collections::HashMap,
     hash::{Hash, Hasher},
@@ -23,6 +26,13 @@ use memory::estimated_entry_bytes;
 pub(crate) const DEFAULT_SHAPED_RUN_CACHE_CAPACITY: usize = 1024;
 pub(crate) const DEFAULT_SHAPED_RUN_CACHE_MAX_BYTES: usize = 8 * 1024 * 1024;
 
+/// 成形缓存的拥有式身份键；保存文本指纹与源区间，不保存全文。
+///
+/// 字符串与特征载荷在从查询键转换时复制；原文另由条目的共享产物保留。
+/// # 约束
+/// 请求须已规范化；构造仅以调试断言检查前提，不执行规范化。
+/// 字体集合、字体代次与 Unicode 快照参与身份，不负责冻结字体数据库。
+/// 参考 [`ShapedRunCacheLookupKey`] 与 [`ShapedRunCache::get_with_lookup`]。
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct ShapedRunCacheKey {
     pub(crate) text_hash: EphemeralCacheHash,
@@ -46,6 +56,11 @@ pub(crate) struct ShapedRunCacheKey {
     pub(crate) unicode_data_snapshot: UnicodeDataSnapshotId,
 }
 
+/// 仅在请求借用期间使用的查询元数据视图，避免查询前构造拥有式键。
+///
+/// 借用字符串及特征切片；其生命周期不随命中返回的共享产物延长。
+/// 文本仍由调用者另传给查询方法核对，不由此视图持有。
+/// 参考 [`ShapedRunCacheKey`]。
 #[derive(Clone, Copy, Debug)]
 pub(crate) struct ShapedRunCacheLookupKey<'a> {
     text_hash: EphemeralCacheHash,
@@ -70,6 +85,7 @@ pub(crate) struct ShapedRunCacheLookupKey<'a> {
 }
 
 impl ShapedRunCacheKey {
+    /// 从已规范化请求复制身份载荷；共享字体集合及当前代次取自进程入口。
     pub(crate) fn from_request(request: &BackendShapeRequest<'_>) -> Self {
         Self::from_lookup(&ShapedRunCacheLookupKey::from_request(request))
     }
@@ -158,6 +174,12 @@ impl<'a> ShapedRunCacheLookupKey<'a> {
         )
     }
 
+    /// 借用已规范化请求，并记录所给字体集合及代次。
+    ///
+    /// # 参数与返回
+    /// `request` 供本次查询使用；集合句柄、代次及 Unicode 快照只组成身份值。
+    /// 返回不拥有原文字节的借用视图；调试断言不能替代调用方规范化。
+    /// 参考 [`ShapedRunCache::get_with_lookup`]。
     pub(crate) fn from_request_in_font_collection(
         request: &'a BackendShapeRequest<'a>,
         font_collection: TextFontCollectionHandle,
@@ -199,6 +221,7 @@ impl<'a> ShapedRunCacheLookupKey<'a> {
         self.font_database_generation
     }
 
+    // 指纹只选择候选桶；命中仍须比较身份字段、特征载荷及原文。
     fn full_fingerprint(&self) -> EphemeralCacheHash {
         let mut hasher = EphemeralCacheHasher::new();
         hasher.write(&self.text_hash);
@@ -223,6 +246,7 @@ impl<'a> ShapedRunCacheLookupKey<'a> {
         hasher.finish()
     }
 
+    // 别名桶仅省略基础方向；方向转换是否合法由候选的命中条件单独判定。
     fn direction_alias_fingerprint(&self) -> EphemeralCacheHash {
         let mut hasher = EphemeralCacheHasher::new();
         hasher.write(&self.text_hash);
@@ -284,6 +308,10 @@ impl Hash for ShapedRunCacheKey {
     }
 }
 
+/// 当前帧的缓存操作计数及当前条目数、估算体积快照。
+///
+/// 帧开始重置操作计数；载荷复制量仅统计专门的查询键拥有化入口，
+/// 不表示所有分配、分配器实测或物理驻留量。
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub(crate) struct ShapedRunCacheReport {
     pub(crate) frame_index: u64,
@@ -318,6 +346,12 @@ impl IndexedTextCacheEntry<ShapedRunCacheKey> for ShapedRunCacheEntry {
     }
 }
 
+/// 单个拥有者维护的成形缓存，使用稳定槽与两类候选桶辅助查找和淘汰。
+///
+/// 容量与字节限制在插入或更新后整理，不是分配前准入门。
+/// 返回的 `Arc` 可独立持有，淘汰和清空不会撤销外部引用。
+/// 就绪状态与字体代次的一致性由调用方把关，缓存不自行冻结字体资源。
+/// 参考 [`ShapedRunCacheReport`]。
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct ShapedRunCache {
     index: IndexedTextCache<ShapedRunCacheKey, ShapedRunCacheEntry>,
@@ -349,6 +383,12 @@ impl ShapedRunCache {
         Self::with_limits(capacity, DEFAULT_SHAPED_RUN_CACHE_MAX_BYTES)
     }
 
+    /// 以条目数和启发式字节上限创建空缓存。
+    ///
+    /// # 参数与返回
+    /// 两个上限均可为零；返回拥有独立索引和空报告的缓存。
+    /// 插入后再淘汰，可能立刻移除新条目，但该次返回的共享产物仍有效。
+    /// 参考 [`Self::insert_ready`]。
     pub(crate) fn with_limits(capacity: usize, max_bytes: usize) -> Self {
         let mut cache = Self {
             index: IndexedTextCache::new(),
@@ -366,6 +406,9 @@ impl ShapedRunCache {
         cache
     }
 
+    /// 开始指定帧并重置操作报告，保留已有缓存条目。
+    ///
+    /// `frame_index` 仅写入报告，不据此清空条目或改变外部引用。
     pub(crate) fn begin_frame(&mut self, frame_index: u64) {
         self.frame_report = ShapedRunCacheReport {
             frame_index,
@@ -377,10 +420,14 @@ impl ShapedRunCache {
         };
     }
 
+    /// 执行帧尾限制整理，保留该帧已累计的计数。
     pub(crate) fn finish_frame(&mut self) {
         self.trim_to_limits();
     }
 
+    /// 移除全部条目和辅助索引，更新体积并累计清空、逐出数。
+    ///
+    /// 不重置同帧的其余操作计数，也不撤销调用方已持有的 `Arc`。
     pub(crate) fn clear(&mut self) {
         self.frame_report.evicted_count = self
             .frame_report
@@ -408,6 +455,7 @@ impl ShapedRunCache {
         self.estimated_bytes
     }
 
+    /// 按值返回操作计数，并以当前条目数和估算体积刷新快照。
     pub(crate) fn report(&self) -> ShapedRunCacheReport {
         let mut report = self.frame_report;
         report.entry_count = self.index.len();
@@ -415,6 +463,9 @@ impl ShapedRunCache {
         report
     }
 
+    /// 只检查精确键及原文，不走方向别名，也不触碰使用顺序或查询计数。
+    ///
+    /// `text` 须对应键的原文；返回布尔值，不交出产物引用。
     pub(crate) fn contains_exact(&self, key: &ShapedRunCacheKey, text: &str) -> bool {
         self.index
             .find_slot(key, |entry| entry.run.source_text.as_ref() == text)
@@ -422,6 +473,7 @@ impl ShapedRunCache {
             .is_some()
     }
 
+    /// 以拥有式键借出的查询视图查找；命中语义见 [`Self::get_with_lookup`]。
     pub(crate) fn get(
         &mut self,
         key: &ShapedRunCacheKey,
@@ -430,6 +482,13 @@ impl ShapedRunCache {
         self.get_with_lookup(&key.lookup(), text)
     }
 
+    /// 以借用键及原文查找共享产物；命中后推进条目的使用顺序。
+    ///
+    /// # 参数与返回
+    /// `lookup` 决定候选桶及身份比较，`text` 另行精确核对全文；两者仅借用至返回。
+    /// 返回独立共享引用或未命中；精确候选失败后仅尝试受限方向别名。
+    /// 别名要求无规定的行、段分隔符，缓存为自动或混合方向，请求为左右定向且产物方向一致。
+    /// 参考 [`ShapedRunCacheKey::matches_lookup`]。
     pub(crate) fn get_with_lookup(
         &mut self,
         lookup: &ShapedRunCacheLookupKey<'_>,
@@ -488,6 +547,11 @@ impl ShapedRunCache {
         Some(run)
     }
 
+    /// 复制查询键中的字符串与特征载荷，生成可脱离查询借用持有的键。
+    ///
+    /// 返回键仍只保存文本指纹，不复制或持有原文。
+    /// 报告只累加本入口载荷长度，未计容量、控制块或其他分配。
+    /// 参考 [`ShapedRunCacheLookupKey`]。
     pub(crate) fn own_lookup_key(
         &mut self,
         lookup: &ShapedRunCacheLookupKey<'_>,
@@ -499,6 +563,7 @@ impl ShapedRunCache {
         ShapedRunCacheKey::from_lookup(lookup)
     }
 
+    /// 将拥有式产物包装为共享引用后插入；返回语义见 [`Self::insert_ready`]。
     pub(crate) fn insert(
         &mut self,
         key: ShapedRunCacheKey,
@@ -507,6 +572,12 @@ impl ShapedRunCache {
         self.insert_ready(key, Arc::new(run))
     }
 
+    /// 复用传入共享产物，更新同键同原文的条目或新增条目，再执行限制整理。
+    ///
+    /// 返回所传产物的共享引用，即使条目在整理中被逐出仍可持有。
+    /// 调试断言仅核对 Unicode 快照，不检查所有字体代次或就绪状态。
+    /// 调用方需先验证上述状态；原文字节从产物读取。
+    /// 参考 [`Self::with_limits`]。
     /// Inserts a successful shaping artifact without copying its glyph storage.
     pub(crate) fn insert_ready(
         &mut self,
@@ -569,6 +640,8 @@ impl ShapedRunCache {
         run
     }
 
+    /// 先查缓存；仅未命中时调用一次 `shape`，并将其返回产物插入。
+    /// 调用方负责让键、`text` 和闭包产物描述同一已规范化请求。
     pub(crate) fn get_or_insert_with(
         &mut self,
         key: ShapedRunCacheKey,
@@ -581,6 +654,7 @@ impl ShapedRunCache {
         self.insert(key, shape())
     }
 
+    // 逐出时同步移除两个辅助桶的槽映射，避免留下已失效的候选。
     fn trim_to_limits(&mut self) {
         let mut evicted = 0_u64;
         while self.over_limits() {
@@ -663,6 +737,7 @@ impl ShapedRunCache {
         positions.insert(slot, position);
     }
 
+    // 用保存的位置作交换删除；尾槽移入后立即修正位置，保持下一次删除可定位。
     fn remove_bucket_slot(
         candidates: &mut Vec<TextCacheSlot>,
         positions: &mut HashMap<TextCacheSlot, usize>,
@@ -685,6 +760,7 @@ impl ShapedRunCache {
 }
 
 impl ShapedRunCacheKey {
+    // 方向别名只放宽基础方向；其余身份及特征仍作精确比较。
     fn can_reuse_resolved_direction_for_lookup(
         &self,
         requested: &ShapedRunCacheLookupKey<'_>,
@@ -722,6 +798,7 @@ impl ShapedRunCacheKey {
     }
 }
 
+/// 将规定的行、段分隔字符视为禁止方向别名的边界。
 fn is_single_text_paragraph(text: &str) -> bool {
     !text.chars().any(|ch| {
         matches!(
@@ -749,6 +826,7 @@ fn shaping_features_hash(request: &BackendShapeRequest<'_>) -> EphemeralCacheHas
     hasher.finish()
 }
 
+// 家族名称的空白归一化不适用于字体资源身份；后者仅排除空串。
 fn cache_text_identity_ref(value: Option<&str>) -> Option<&str> {
     value.map(str::trim).filter(|value| !value.is_empty())
 }
@@ -757,6 +835,7 @@ fn cache_font_asset_ref(value: Option<&str>) -> Option<&str> {
     value.filter(|value| !value.is_empty())
 }
 
+// 仅统一正负零的位表示，其余位模式原样参与身份。
 fn normalized_f32_bits(value: f32) -> u32 {
     if value == 0.0 {
         0.0_f32.to_bits()

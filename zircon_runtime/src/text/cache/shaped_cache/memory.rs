@@ -1,3 +1,6 @@
+//! 成形缓存单条目的保守体积估算，供缓存计账与限制整理使用。
+//! 固定余量与容器容量属于计量模型，不等同分配器实测或物理内存上界。
+
 use std::mem::size_of;
 
 use crate::text::{
@@ -10,6 +13,12 @@ use super::{ShapedRunCacheEntry, ShapedRunCacheKey, TextCacheSlot};
 const SHAPED_CACHE_ARC_ALLOCATIONS_PER_ENTRY: usize = 3;
 const HASH_INDEX_CAPACITY_RESERVE_DIVISOR: usize = 2;
 
+/// 汇总键、共享产物、容器容量及索引余量的饱和估算。
+///
+/// # 参数与返回
+/// 借用同一缓存条目的键与产物，返回用于缓存计账的字节估计值。
+/// 按当前字段模型计账，不保证各条目间共享载荷只在全局计一次。
+/// 参考 [`super::ShapedRunCache`]。
 pub(super) fn estimated_entry_bytes(key: &ShapedRunCacheKey, run: &ShapedGlyphRun) -> usize {
     // The cache budget is intentionally conservative: capacities retain memory,
     // and every entry participates in eight hash-backed indexes, including LRU links.

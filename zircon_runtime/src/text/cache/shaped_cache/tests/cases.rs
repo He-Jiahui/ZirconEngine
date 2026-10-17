@@ -1,3 +1,7 @@
+//! 成形缓存的身份、方向复用、槽删除和估算体积契约夹具。
+//! 共享产物由本模块手工组装，不调用真实字体整形后端或测量分配器。
+//! 一项测试只检查原始源码文本，不能替代运行行为与复杂度证明。
+
 use super::*;
 use crate::core::framework::text::TextFontCollectionHandle;
 use crate::text::{
@@ -287,6 +291,7 @@ fn shaped_run_cache_does_not_alias_multi_paragraph_auto_with_forced_direction() 
     }
 }
 
+// 这里只断言估算高于给定载荷下界，未逐项验证共享原文的精确计次。
 #[test]
 fn shaped_run_cache_estimate_counts_the_shared_source_once() {
     let text = "single source";
@@ -370,6 +375,7 @@ fn shaped_run_cache_keeps_a_surviving_exact_lookup_candidate_after_eviction() {
     assert!(cache.get(&second_key, text).is_some());
 }
 
+// 预留容量及回执增量的下界夹具，不是实际堆分配或驻留内存测量。
 #[test]
 fn shaped_run_cache_estimate_accounts_for_capacity_key_and_index_residency() {
     let text = "resident estimate";
@@ -561,6 +567,7 @@ fn shaped_run_cache_preserves_forced_direction_and_vertical_mode_boundaries() {
         .is_none());
 }
 
+// 人为碰撞特征指纹后直接比较键，不执行完整缓存查询路径。
 #[test]
 fn shaped_run_cache_exact_match_rejects_a_feature_hash_collision() {
     let text = "0123";
@@ -590,6 +597,7 @@ fn shaped_run_cache_exact_match_rejects_a_feature_hash_collision() {
     assert!(!key.matches_lookup(&collided_lookup));
 }
 
+// 使用最小拥有式产物隔离缓存逻辑，不以夹具中的空字形行代表真实整形结果。
 fn cached_run(request: &BackendShapeRequest<'_>, direction: TextDirection) -> ShapedGlyphRun {
     ShapedGlyphRun {
         source_text: Arc::from(request.text),

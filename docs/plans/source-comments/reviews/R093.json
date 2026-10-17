@@ -1,0 +1,764 @@
+{
+  "schema_version": 1,
+  "batch": "R093",
+  "owner": "/root/reflection_luna",
+  "model": "gpt-6-luna/max",
+  "status": "complete-local-review/root-and-formal-pending",
+  "assembly": {
+    "complete": true,
+    "source_writes_frozen": true,
+    "child_freeze": "after independent readback; final assembly tool and readback receipts are reported separately, not predicted here"
+  },
+  "authority": {
+    "assignment_path": "docs/plans/source-comments/assignments.json",
+    "entry": "metadata_tasks.R093",
+    "canonical_sha256": "bb61a5e349f36d2f74cc281f16bacaf0ba9eb8b0ba84494442ccb3ac15dd0c13",
+    "root_grant_receipts": [
+      "root797/3cb3d4 native55544→798/f07b69 exit0/PID50812",
+      "root799/54c395 exit0/PID7792"
+    ],
+    "activation": "root explicit R093 dispatch after completed core review; historical awaiting-dispatch text does not revoke explicit activation",
+    "sole_child": "docs/plans/source-comments/reviews/R093.json",
+    "source_write_paths": [
+      "zircon_runtime/src/text/cache/shaped_cache.rs",
+      "zircon_runtime/src/text/cache/shaped_cache/memory.rs",
+      "zircon_runtime/src/text/cache/shaped_cache/tests/cases.rs"
+    ],
+    "global_main_post_write_authorized": false,
+    "soft_size_exception": "natural3 original1472LF; main final <=900LF explicitly authorized, other2 <=800LF",
+    "standard": {
+      "path": "docs/plans/source-comments/01-standard.md",
+      "sha256": "5671f048b79d8a5d6dc39cedbbfb7150bf111edf77726e03dd0ba568d41c85c3"
+    }
+  },
+  "scope": {
+    "audited_files_only": [
+      "zircon_runtime/src/text/cache/shaped_cache.rs",
+      "zircon_runtime/src/text/cache/shaped_cache/memory.rs",
+      "zircon_runtime/src/text/cache/shaped_cache/tests/cases.rs"
+    ],
+    "context_not_coverage": true,
+    "read_method": "原1472LF完整人工逐段审查；逐声明、字段、完整语义连续块及测试断言归档。词法定位只校对位置，不宣称AST或全仓调用穷尽。",
+    "preservation": "仅插入中文说明/空行；新memory首句的窄修订只改本任务新增字节。按最终插入块反演，全部原bytes/注释/代码/API/字符串/assert/宏参数/EOL恢复原grant与rawHEAD。",
+    "source_copies": 0,
+    "helpers_created": 0,
+    "build_test_benchmark_executions": 0
+  },
+  "totals": {
+    "before_bytes": 52853,
+    "after_bytes": 59500,
+    "before_LF": 1472,
+    "after_LF": 1568,
+    "insertions": 34,
+    "inserted_LF": 96,
+    "object_groups": 86,
+    "member_fields": 67,
+    "continuous_blocks": 52,
+    "normal_tests": 14,
+    "ignored_tests": 0,
+    "assertion_sites": 26,
+    "test_executions": 0
+  },
+  "files": [
+    {
+      "path": "zircon_runtime/src/text/cache/shaped_cache.rs",
+      "before_sha256": "13229cb0af59dc34be8155ceafabaa946f970b8c3fa977b08b8a357984a8eba5",
+      "after_sha256": "77122726efaf3549a972cd00e04788dc819cc602f529405aeaaea4a5f65f18d0",
+      "before_bytes": 28110,
+      "after_bytes": 33580,
+      "before_LF": 770,
+      "after_LF": 849,
+      "before_CRLF": 0,
+      "after_CRLF": 0,
+      "BOM": false,
+      "inverse_sha256": "13229cb0af59dc34be8155ceafabaa946f970b8c3fa977b08b8a357984a8eba5",
+      "raw_HEAD_sha256": "13229cb0af59dc34be8155ceafabaa946f970b8c3fa977b08b8a357984a8eba5",
+      "insertions": [
+        {"before_offset":0,"before_line":1,"length":170,"sha256":"7506def07af3841e4456395230f574cdafc5e50d781b04feb3e7d18cba76b25c","LF":3,"exact_text":"//! 成形产物的拥有式缓存、借用查询键和按帧操作报告。\n//! 指纹只缩小候选范围；命中仍核对身份载荷与共享产物中的原文。\n\n","after_offset":0,"after_line":1},
+        {"before_offset":794,"before_line":26,"length":482,"sha256":"ea64846857161399359393c339f08eb44031938499fb9508c581801512e578ae","LF":7,"exact_text":"/// 成形缓存的拥有式身份键；保存文本指纹与源区间，不保存全文。\n///\n/// 字符串与特征载荷在从查询键转换时复制；原文另由条目的共享产物保留。\n/// # 约束\n/// 请求须已规范化；构造仅以调试断言检查前提，不执行规范化。\n/// 字体集合、字体代次与 Unicode 快照参与身份，不负责冻结字体数据库。\n/// 参考 [`ShapedRunCacheLookupKey`] 与 [`ShapedRunCache::get_with_lookup`]。\n","after_offset":964,"after_line":29},
+        {"before_offset":1679,"before_line":49,"length":313,"sha256":"515d5f4133a6264241f54647b61cf3e9ad45cd72333c8e8c5dcde73e56cac249","LF":5,"exact_text":"/// 仅在请求借用期间使用的查询元数据视图，避免查询前构造拥有式键。\n///\n/// 借用字符串及特征切片；其生命周期不随命中返回的共享产物延长。\n/// 文本仍由调用者另传给查询方法核对，不由此视图持有。\n/// 参考 [`ShapedRunCacheKey`]。\n","after_offset":2331,"after_line":59},
+        {"before_offset":2405,"before_line":73,"length":105,"sha256":"3f425346ce75c1b92c738105e0c5228b138589d0b4f273aa785096ebc453114b","LF":1,"exact_text":"    /// 从已规范化请求复制身份载荷；共享字体集合及当前代次取自进程入口。\n","after_offset":3370,"after_line":88},
+        {"before_offset":6364,"before_line":161,"length":365,"sha256":"ef61a7138c19b25aa9545ef7e05e5d30cd6bb5da23d7370adb7f375999cf426b","LF":6,"exact_text":"    /// 借用已规范化请求，并记录所给字体集合及代次。\n    ///\n    /// # 参数与返回\n    /// `request` 供本次查询使用；集合句柄、代次及 Unicode 快照只组成身份值。\n    /// 返回不拥有原文字节的借用视图；调试断言不能替代调用方规范化。\n    /// 参考 [`ShapedRunCache::get_with_lookup`]。\n","after_offset":7434,"after_line":177},
+        {"before_offset":8125,"before_line":202,"length":92,"sha256":"47f7a02b84516c96558ca3440cb5a0812d030b37466ebbb578660df7ba40d533","LF":1,"exact_text":"    // 指纹只选择候选桶；命中仍须比较身份字段、特征载荷及原文。\n","after_offset":9560,"after_line":224},
+        {"before_offset":9203,"before_line":226,"length":104,"sha256":"ce1afd10aade03fe98ba2d11daeb881a729ef7157f05ca4227a6f9acf24e587f","LF":1,"exact_text":"    // 别名桶仅省略基础方向；方向转换是否合法由候选的命中条件单独判定。\n","after_offset":10730,"after_line":249},
+        {"before_offset":11605,"before_line":287,"length":241,"sha256":"bf656491c20b702c88cd21d7c1d59d602e0bb58b7d6026892f92aa6b4402ff97","LF":4,"exact_text":"/// 当前帧的缓存操作计数及当前条目数、估算体积快照。\n///\n/// 帧开始重置操作计数；载荷复制量仅统计专门的查询键拥有化入口，\n/// 不表示所有分配、分配器实测或物理驻留量。\n","after_offset":13236,"after_line":311},
+        {"before_offset":12619,"before_line":321,"length":409,"sha256":"0fa3a17a7d1206f3a57aace6317ea9876155d0423a3af6d9b9498b7e2f015883","LF":6,"exact_text":"/// 单个拥有者维护的成形缓存，使用稳定槽与两类候选桶辅助查找和淘汰。\n///\n/// 容量与字节限制在插入或更新后整理，不是分配前准入门。\n/// 返回的 `Arc` 可独立持有，淘汰和清空不会撤销外部引用。\n/// 就绪状态与字体代次的一致性由调用方把关，缓存不自行冻结字体资源。\n/// 参考 [`ShapedRunCacheReport`]。\n","after_offset":14491,"after_line":349},
+        {"before_offset":13571,"before_line":352,"length":324,"sha256":"77ef1d7f4460955a5c6b9f650e5d1200739341b520c5a8a19cb0db0998e983c7","LF":6,"exact_text":"    /// 以条目数和启发式字节上限创建空缓存。\n    ///\n    /// # 参数与返回\n    /// 两个上限均可为零；返回拥有独立索引和空报告的缓存。\n    /// 插入后再淘汰，可能立刻移除新条目，但该次返回的共享产物仍有效。\n    /// 参考 [`Self::insert_ready`]。\n","after_offset":15852,"after_line":386},
+        {"before_offset":14199,"before_line":369,"length":169,"sha256":"9b8dd06c4801a57b51b507ba65ccaa7e181f44d3ce087bd26ee3dad07421f08f","LF":3,"exact_text":"    /// 开始指定帧并重置操作报告，保留已有缓存条目。\n    ///\n    /// `frame_index` 仅写入报告，不据此清空条目或改变外部引用。\n","after_offset":16804,"after_line":409},
+        {"before_offset":14570,"before_line":380,"length":69,"sha256":"828062d7cddc6874bc874ce13cf078989f7ef339e65cb443aecddac0f17f0940","LF":1,"exact_text":"    /// 执行帧尾限制整理，保留该帧已累计的计数。\n","after_offset":17344,"after_line":423},
+        {"before_offset":14652,"before_line":384,"length":185,"sha256":"8ee6f160bdf3bd422e21270cf994b514b32606f38465ac7fe8e2eb345a0a1776","LF":3,"exact_text":"    /// 移除全部条目和辅助索引，更新体积并累计清空、逐出数。\n    ///\n    /// 不重置同帧的其余操作计数，也不撤销调用方已持有的 `Arc`。\n","after_offset":17495,"after_line":428},
+        {"before_offset":15462,"before_line":411,"length":87,"sha256":"24b0a9a6232d68b7c1828833ba6efc52f599418d7241cf1aae7c94e9e949605a","LF":1,"exact_text":"    /// 按值返回操作计数，并以当前条目数和估算体积刷新快照。\n","after_offset":18490,"after_line":458},
+        {"before_offset":15688,"before_line":418,"length":192,"sha256":"03ff1ad110a67d5a598fb6af3caa9fa9bf22ddc5247d502e6f90d97e51813f48","LF":3,"exact_text":"    /// 只检查精确键及原文，不走方向别名，也不触碰使用顺序或查询计数。\n    ///\n    /// `text` 须对应键的原文；返回布尔值，不交出产物引用。\n","after_offset":18803,"after_line":466},
+        {"before_offset":15918,"before_line":425,"length":98,"sha256":"07bf771728f71d5ce48026d51d886febd8bfdcd0b271297f88f77216a5da3134","LF":1,"exact_text":"    /// 以拥有式键借出的查询视图查找；命中语义见 [`Self::get_with_lookup`]。\n","after_offset":19225,"after_line":476},
+        {"before_offset":16109,"before_line":433,"length":523,"sha256":"fb0ad23ca1e2604eea44b4c1aa5fc2567194ac446ffd08c7a553bc916460c102","LF":7,"exact_text":"    /// 以借用键及原文查找共享产物；命中后推进条目的使用顺序。\n    ///\n    /// # 参数与返回\n    /// `lookup` 决定候选桶及身份比较，`text` 另行精确核对全文；两者仅借用至返回。\n    /// 返回独立共享引用或未命中；精确候选失败后仅尝试受限方向别名。\n    /// 别名要求无规定的行、段分隔符，缓存为自动或混合方向，请求为左右定向且产物方向一致。\n    /// 参考 [`ShapedRunCacheKey::matches_lookup`]。\n","after_offset":19514,"after_line":485},
+        {"before_offset":18310,"before_line":491,"length":315,"sha256":"0a3d450e5a649a18fbe73c676a5e65a976ffd1d84da72ee2071e2f24d4e4d355","LF":5,"exact_text":"    /// 复制查询键中的字符串与特征载荷，生成可脱离查询借用持有的键。\n    ///\n    /// 返回键仍只保存文本指纹，不复制或持有原文。\n    /// 报告只累加本入口载荷长度，未计容量、控制块或其他分配。\n    /// 参考 [`ShapedRunCacheLookupKey`]。\n","after_offset":22238,"after_line":550},
+        {"before_offset":18683,"before_line":502,"length":101,"sha256":"6ed07f5b54652a788b9ff2251665f0822d8e6c5ae31d3262abbbb206478809aa","LF":1,"exact_text":"    /// 将拥有式产物包装为共享引用后插入；返回语义见 [`Self::insert_ready`]。\n","after_offset":22926,"after_line":566},
+        {"before_offset":18873,"before_line":510,"length":417,"sha256":"d8351c0f04b3cf22d5d065f20af9de8c911d6bf3e50574153f05abf820845a38","LF":6,"exact_text":"    /// 复用传入共享产物，更新同键同原文的条目或新增条目，再执行限制整理。\n    ///\n    /// 返回所传产物的共享引用，即使条目在整理中被逐出仍可持有。\n    /// 调试断言仅核对 Unicode 快照，不检查所有字体代次或就绪状态。\n    /// 调用方需先验证上述状态；原文字节从产物读取。\n    /// 参考 [`Self::with_limits`]。\n","after_offset":23217,"after_line":575},
+        {"before_offset":21202,"before_line":572,"length":180,"sha256":"6970f5b85aceadcbc696020480e4bbb2c83f3df355c9b9f5e88d13a72623a61c","LF":2,"exact_text":"    /// 先查缓存；仅未命中时调用一次 `shape`，并将其返回产物插入。\n    /// 调用方负责让键、`text` 和闭包产物描述同一已规范化请求。\n","after_offset":25963,"after_line":643},
+        {"before_offset":21515,"before_line":584,"length":92,"sha256":"f00cf51355057e99b2e70307f1a286095df7978f6fe3dcb0e515131555ed64ad","LF":1,"exact_text":"    // 逐出时同步移除两个辅助桶的槽映射，避免留下已失效的候选。\n","after_offset":26456,"after_line":657},
+        {"before_offset":24552,"before_line":666,"length":113,"sha256":"139ab3a16a13beeb65ec2fb5cc4c94ec7ffc778643afe2c3bf6750aaeee6f7d0","LF":1,"exact_text":"    // 用保存的位置作交换删除；尾槽移入后立即修正位置，保持下一次删除可定位。\n","after_offset":29585,"after_line":740},
+        {"before_offset":25233,"before_line":688,"length":86,"sha256":"a41a32beeb97c452b7db9d579c24672118708dc004e5bec05f28092630132e98","LF":1,"exact_text":"    // 方向别名只放宽基础方向；其余身份及特征仍作精确比较。\n","after_offset":30379,"after_line":763},
+        {"before_offset":26959,"before_line":725,"length":74,"sha256":"0aed204be45cbc7d09087b857de7be81ee28a939b913368512f8cdef8ad59bf0","LF":1,"exact_text":"/// 将规定的行、段分隔字符视为禁止方向别名的边界。\n","after_offset":32191,"after_line":801},
+        {"before_offset":27670,"before_line":752,"length":91,"sha256":"464d7e4bdf39f63276cc5cc9aa4f6fd062df3c3f055aadf2d5d0714c317143e2","LF":1,"exact_text":"// 家族名称的空白归一化不适用于字体资源身份；后者仅排除空串。\n","after_offset":32976,"after_line":829},
+        {"before_offset":27908,"before_line":760,"length":73,"sha256":"0a683d47f47c6eba0ce1733e36c74dc70f4c07de08b1e066357394516ffee58e","LF":1,"exact_text":"// 仅统一正负零的位表示，其余位模式原样参与身份。\n","after_offset":33305,"after_line":838}
+      ],
+      "objects": [
+        {"name":"imports_and_memory_mount","before_lines":[1,21],"after_code_lines":[4,24],"audit":"标准库Hash/Arc/容器与文本类型导入；path属性将私有估算实现挂到memory，主源只导入estimated_entry_bytes。","documentation":{"decision":"added-specific-contract","insertion_before_lines":[1],"reason":"模块新增整体职责；导入项和挂载无需逐行重复。"}},
+        {"name":"DEFAULT_SHAPED_RUN_CACHE_CAPACITY","declaration":"pub(crate) const DEFAULT_SHAPED_RUN_CACHE_CAPACITY: usize = 1024;","before_lines":[23,23],"after_code_lines":[26,26],"audit":"默认容量1024；new/default使用，with_limits可覆盖，不是全局上界。","documentation":{"decision":"no-addition","insertion_before_lines":[],"reason":"实现、名称和所属类型/调用块已足够表达该局部操作；未机械增加重复说明。"}},
+        {"name":"DEFAULT_SHAPED_RUN_CACHE_MAX_BYTES","declaration":"pub(crate) const DEFAULT_SHAPED_RUN_CACHE_MAX_BYTES: usize = 8 * 1024 * 1024;","before_lines":[24,24],"after_code_lines":[27,27],"audit":"默认估算预算8MiB；按启发式条目估算整理，不是分配器硬上限。","documentation":{"decision":"no-addition","insertion_before_lines":[],"reason":"实现、名称和所属类型/调用块已足够表达该局部操作；未机械增加重复说明。"}},
+        {"name":"ShapedRunCacheKey","declaration":"pub(crate) struct ShapedRunCacheKey {","before_lines":[27,47],"after_code_lines":[37,57],"audit":"拥有19项身份字段，正文只保存指纹和范围；实际全文随entry.run保存并在查询复核。字符串与features转换拥有值，字体身份及代次不冻结外部集合。","documentation":{"decision":"added-specific-contract","insertion_before_lines":[26],"reason":"补充职责、调用时机或本对象容易误解的约束；原文全部保留。"},"members":[{"name":"text_hash","before_line":28,"after_line":38,"declaration":"pub(crate) text_hash: EphemeralCacheHash,","audit":"正文指纹仅分桶；实际全文保存在run并由查询另核。","documentation_decision":"所属类型新增合同与方法/分支证据覆盖此字段；不机械逐字段重复注释。"},{"name":"source_range","before_line":29,"after_line":39,"declaration":"pub(crate) source_range: TextRange,","audit":"请求的源范围身份；该字段不自行校验范围或UTF-8边界。","documentation_decision":"所属类型新增合同与方法/分支证据覆盖此字段；不机械逐字段重复注释。"},{"name":"font_asset","before_line":30,"after_line":40,"declaration":"pub(crate) font_asset: Option<String>,","audit":"非空字体资源原字符串身份，保留非空字符串的空白差异。","documentation_decision":"所属类型新增合同与方法/分支证据覆盖此字段；不机械逐字段重复注释。"},{"name":"font_family","before_line":31,"after_line":41,"declaration":"pub(crate) font_family: Option<String>,","audit":"经trim/空串过滤的字体族身份。","documentation_decision":"所属类型新增合同与方法/分支证据覆盖此字段；不机械逐字段重复注释。"},{"name":"font_weight","before_line":32,"after_line":42,"declaration":"pub(crate) font_weight: u16,","audit":"TextStyle归一化后的字体粗细身份。","documentation_decision":"所属类型新增合同与方法/分支证据覆盖此字段；不机械逐字段重复注释。"},{"name":"font_italic","before_line":33,"after_line":43,"declaration":"pub(crate) font_italic: bool,","audit":"斜体样式身份。","documentation_decision":"所属类型新增合同与方法/分支证据覆盖此字段；不机械逐字段重复注释。"},{"name":"font_size_bits","before_line":34,"after_line":44,"declaration":"pub(crate) font_size_bits: u32,","audit":"按构造器尺寸处理后保存的浮点位型。","documentation_decision":"所属类型新增合同与方法/分支证据覆盖此字段；不机械逐字段重复注释。"},{"name":"line_height_bits","before_line":35,"after_line":45,"declaration":"pub(crate) line_height_bits: u32,","audit":"按字体尺寸/行高处理后保存的位型。","documentation_decision":"所属类型新增合同与方法/分支证据覆盖此字段；不机械逐字段重复注释。"},{"name":"tab_size_bits","before_line":36,"after_line":46,"declaration":"pub(crate) tab_size_bits: u32,","audit":"tab_size的正负零折叠位型。","documentation_decision":"所属类型新增合同与方法/分支证据覆盖此字段；不机械逐字段重复注释。"},{"name":"base_direction","before_line":37,"after_line":47,"declaration":"pub(crate) base_direction: TextDirection,","audit":"请求基本方向；别名指纹可省略但复用有额外门。","documentation_decision":"所属类型新增合同与方法/分支证据覆盖此字段；不机械逐字段重复注释。"},{"name":"orientation","before_line":38,"after_line":48,"declaration":"pub(crate) orientation: TextOrientation,","audit":"横竖排方向身份。","documentation_decision":"所属类型新增合同与方法/分支证据覆盖此字段；不机械逐字段重复注释。"},{"name":"vertical_mode","before_line":39,"after_line":49,"declaration":"pub(crate) vertical_mode: VerticalMode,","audit":"竖排模式身份，不跨模式复用。","documentation_decision":"所属类型新增合同与方法/分支证据覆盖此字段；不机械逐字段重复注释。"},{"name":"include_kerning","before_line":40,"after_line":50,"declaration":"include_kerning: bool,","audit":"字距开关身份，也参与features指纹。","documentation_decision":"所属类型新增合同与方法/分支证据覆盖此字段；不机械逐字段重复注释。"},{"name":"features_hash","before_line":41,"after_line":51,"declaration":"pub(crate) features_hash: EphemeralCacheHash,","audit":"features辅助指纹，不能替代实际载荷相等。","documentation_decision":"所属类型新增合同与方法/分支证据覆盖此字段；不机械逐字段重复注释。"},{"name":"features","before_line":42,"after_line":52,"declaration":"features: Arc<[OpenTypeFeature]>,","audit":"实际OpenType features载荷；拥有键Arc持有，查询键仅借用。","documentation_decision":"所属类型新增合同与方法/分支证据覆盖此字段；不机械逐字段重复注释。"},{"name":"language","before_line":43,"after_line":53,"declaration":"pub(crate) language: Option<String>,","audit":"规范形语言身份；构造器仅debug检查已有规范化。","documentation_decision":"所属类型新增合同与方法/分支证据覆盖此字段；不机械逐字段重复注释。"},{"name":"font_collection","before_line":44,"after_line":54,"declaration":"pub(crate) font_collection: TextFontCollectionHandle,","audit":"字体集合句柄身份；缓存不在此检查或冻结外部集合状态。","documentation_decision":"所属类型新增合同与方法/分支证据覆盖此字段；不机械逐字段重复注释。"},{"name":"font_database_generation","before_line":45,"after_line":55,"declaration":"pub(crate) font_database_generation: u64,","audit":"键捕获的数据库代次，不是即时查询。","documentation_decision":"所属类型新增合同与方法/分支证据覆盖此字段；不机械逐字段重复注释。"},{"name":"unicode_data_snapshot","before_line":46,"after_line":56,"declaration":"pub(crate) unicode_data_snapshot: UnicodeDataSnapshotId,","audit":"编译Unicode数据快照身份，区别于字体代次。","documentation_decision":"所属类型新增合同与方法/分支证据覆盖此字段；不机械逐字段重复注释。"}]},
+        {"name":"ShapedRunCacheLookupKey<'a>","declaration":"pub(crate) struct ShapedRunCacheLookupKey<'a> {","before_lines":[50,70],"after_code_lines":[65,85],"audit":"短期借用请求的字体/语言/features元数据；不拥有正文。查询返回Arc产物的生命周期独立于该查询键借用。","documentation":{"decision":"added-specific-contract","insertion_before_lines":[49],"reason":"补充职责、调用时机或本对象容易误解的约束；原文全部保留。"},"members":[{"name":"text_hash","before_line":51,"after_line":66,"declaration":"text_hash: EphemeralCacheHash,","audit":"正文指纹仅分桶；实际全文保存在run并由查询另核。","documentation_decision":"所属类型新增合同与方法/分支证据覆盖此字段；不机械逐字段重复注释。"},{"name":"source_range","before_line":52,"after_line":67,"declaration":"source_range: TextRange,","audit":"请求的源范围身份；该字段不自行校验范围或UTF-8边界。","documentation_decision":"所属类型新增合同与方法/分支证据覆盖此字段；不机械逐字段重复注释。"},{"name":"font_asset","before_line":53,"after_line":68,"declaration":"font_asset: Option<&'a str>,","audit":"非空字体资源原字符串身份，保留非空字符串的空白差异。","documentation_decision":"所属类型新增合同与方法/分支证据覆盖此字段；不机械逐字段重复注释。"},{"name":"font_family","before_line":54,"after_line":69,"declaration":"font_family: Option<&'a str>,","audit":"经trim/空串过滤的字体族身份。","documentation_decision":"所属类型新增合同与方法/分支证据覆盖此字段；不机械逐字段重复注释。"},{"name":"font_weight","before_line":55,"after_line":70,"declaration":"font_weight: u16,","audit":"TextStyle归一化后的字体粗细身份。","documentation_decision":"所属类型新增合同与方法/分支证据覆盖此字段；不机械逐字段重复注释。"},{"name":"font_italic","before_line":56,"after_line":71,"declaration":"font_italic: bool,","audit":"斜体样式身份。","documentation_decision":"所属类型新增合同与方法/分支证据覆盖此字段；不机械逐字段重复注释。"},{"name":"font_size_bits","before_line":57,"after_line":72,"declaration":"font_size_bits: u32,","audit":"按构造器尺寸处理后保存的浮点位型。","documentation_decision":"所属类型新增合同与方法/分支证据覆盖此字段；不机械逐字段重复注释。"},{"name":"line_height_bits","before_line":58,"after_line":73,"declaration":"line_height_bits: u32,","audit":"按字体尺寸/行高处理后保存的位型。","documentation_decision":"所属类型新增合同与方法/分支证据覆盖此字段；不机械逐字段重复注释。"},{"name":"tab_size_bits","before_line":59,"after_line":74,"declaration":"tab_size_bits: u32,","audit":"tab_size的正负零折叠位型。","documentation_decision":"所属类型新增合同与方法/分支证据覆盖此字段；不机械逐字段重复注释。"},{"name":"base_direction","before_line":60,"after_line":75,"declaration":"base_direction: TextDirection,","audit":"请求基本方向；别名指纹可省略但复用有额外门。","documentation_decision":"所属类型新增合同与方法/分支证据覆盖此字段；不机械逐字段重复注释。"},{"name":"orientation","before_line":61,"after_line":76,"declaration":"orientation: TextOrientation,","audit":"横竖排方向身份。","documentation_decision":"所属类型新增合同与方法/分支证据覆盖此字段；不机械逐字段重复注释。"},{"name":"vertical_mode","before_line":62,"after_line":77,"declaration":"vertical_mode: VerticalMode,","audit":"竖排模式身份，不跨模式复用。","documentation_decision":"所属类型新增合同与方法/分支证据覆盖此字段；不机械逐字段重复注释。"},{"name":"include_kerning","before_line":63,"after_line":78,"declaration":"include_kerning: bool,","audit":"字距开关身份，也参与features指纹。","documentation_decision":"所属类型新增合同与方法/分支证据覆盖此字段；不机械逐字段重复注释。"},{"name":"features_hash","before_line":64,"after_line":79,"declaration":"features_hash: EphemeralCacheHash,","audit":"features辅助指纹，不能替代实际载荷相等。","documentation_decision":"所属类型新增合同与方法/分支证据覆盖此字段；不机械逐字段重复注释。"},{"name":"features","before_line":65,"after_line":80,"declaration":"features: &'a [OpenTypeFeature],","audit":"实际OpenType features载荷；拥有键Arc持有，查询键仅借用。","documentation_decision":"所属类型新增合同与方法/分支证据覆盖此字段；不机械逐字段重复注释。"},{"name":"language","before_line":66,"after_line":81,"declaration":"language: Option<&'a str>,","audit":"规范形语言身份；构造器仅debug检查已有规范化。","documentation_decision":"所属类型新增合同与方法/分支证据覆盖此字段；不机械逐字段重复注释。"},{"name":"font_collection","before_line":67,"after_line":82,"declaration":"font_collection: TextFontCollectionHandle,","audit":"字体集合句柄身份；缓存不在此检查或冻结外部集合状态。","documentation_decision":"所属类型新增合同与方法/分支证据覆盖此字段；不机械逐字段重复注释。"},{"name":"font_database_generation","before_line":68,"after_line":83,"declaration":"font_database_generation: u64,","audit":"键捕获的数据库代次，不是即时查询。","documentation_decision":"所属类型新增合同与方法/分支证据覆盖此字段；不机械逐字段重复注释。"},{"name":"unicode_data_snapshot","before_line":69,"after_line":84,"declaration":"unicode_data_snapshot: UnicodeDataSnapshotId,","audit":"编译Unicode数据快照身份，区别于字体代次。","documentation_decision":"所属类型新增合同与方法/分支证据覆盖此字段；不机械逐字段重复注释。"}]},
+        {"name":"impl ShapedRunCacheKey (conversion/exact)","declaration":"impl ShapedRunCacheKey {","before_lines":[72,150],"after_code_lines":[87,166],"audit":"拥有键转换、重新借用、完整逐字段匹配与代次读取的实现容器。","documentation":{"decision":"no-addition","insertion_before_lines":[],"reason":"实现、名称和所属类型/调用块已足够表达该局部操作；未机械增加重复说明。"}},
+        {"name":"ShapedRunCacheKey::from_request","declaration":"pub(crate) fn from_request(request: &BackendShapeRequest<'_>) -> Self {","before_lines":[73,75],"after_code_lines":[89,91],"audit":"用共享字体集合/当前共享代次构造借用键再复制为拥有键；规范化前提由底层debug断言检查。","documentation":{"decision":"added-specific-contract","insertion_before_lines":[73],"reason":"补充职责、调用时机或本对象容易误解的约束；原文全部保留。"}},
+        {"name":"ShapedRunCacheKey::from_lookup","declaration":"fn from_lookup(lookup: &ShapedRunCacheLookupKey<'_>) -> Self {","before_lines":[77,99],"after_code_lines":[93,115],"audit":"复制可选字符串，Arc化features，并复制标量身份；不复制请求正文。","documentation":{"decision":"no-addition","insertion_before_lines":[],"reason":"实现、名称和所属类型/调用块已足够表达该局部操作；未机械增加重复说明。"}},
+        {"name":"ShapedRunCacheKey::lookup","declaration":"fn lookup(&self) -> ShapedRunCacheLookupKey<'_> {","before_lines":[101,123],"after_code_lines":[117,139],"audit":"将拥有键字段重新借出，借用不能超过self；供精确查询包装调用。","documentation":{"decision":"no-addition","insertion_before_lines":[],"reason":"实现、名称和所属类型/调用块已足够表达该局部操作；未机械增加重复说明。"}},
+        {"name":"ShapedRunCacheKey::matches_lookup","declaration":"pub(crate) fn matches_lookup(&self, lookup: &ShapedRunCacheLookupKey<'_>) -> bool {","before_lines":[125,145],"after_code_lines":[141,161],"audit":"19项身份逐一相等，含features实际载荷及其hash；仍不核正文，正文由调用查询路径复核。","documentation":{"decision":"no-addition","insertion_before_lines":[],"reason":"实现、名称和所属类型/调用块已足够表达该局部操作；未机械增加重复说明。"}},
+        {"name":"ShapedRunCacheKey::font_database_generation","declaration":"pub(crate) const fn font_database_generation(&self) -> u64 {","before_lines":[147,149],"after_code_lines":[163,165],"audit":"返回键保存的字体数据库代次快照，不读取当前数据库。","documentation":{"decision":"no-addition","insertion_before_lines":[],"reason":"实现、名称和所属类型/调用块已足够表达该局部操作；未机械增加重复说明。"}},
+        {"name":"impl<'a> ShapedRunCacheLookupKey<'a>","declaration":"impl<'a> ShapedRunCacheLookupKey<'a> {","before_lines":[152,260],"after_code_lines":[168,284],"audit":"借用键组装、指纹分桶和转拥有载荷计量；不在此执行成形或发布。","documentation":{"decision":"no-addition","insertion_before_lines":[],"reason":"实现、名称和所属类型/调用块已足够表达该局部操作；未机械增加重复说明。"}},
+        {"name":"ShapedRunCacheLookupKey::from_request","declaration":"pub(crate) fn from_request(request: &'a BackendShapeRequest<'a>) -> Self {","before_lines":[153,159],"after_code_lines":[169,175],"audit":"选共享字体集合及当前代次，委派显式集合构造；返回继续借用request的元数据。","documentation":{"decision":"no-addition","insertion_before_lines":[],"reason":"实现、名称和所属类型/调用块已足够表达该局部操作；未机械增加重复说明。"}},
+        {"name":"ShapedRunCacheLookupKey::from_request_in_font_collection","declaration":"pub(crate) fn from_request_in_font_collection(","before_lines":[161,192],"after_code_lines":[183,214],"audit":"参数含请求、集合和代次；debug检查features/language已有规范形，未执行规范化。字体尺寸/行高处理及其余身份字段由当前请求组装。","documentation":{"decision":"added-specific-contract","insertion_before_lines":[161],"reason":"补充职责、调用时机或本对象容易误解的约束；原文全部保留。"}},
+        {"name":"ShapedRunCacheLookupKey::exact_fingerprint","declaration":"pub(crate) fn exact_fingerprint(&self) -> EphemeralCacheHash {","before_lines":[194,196],"after_code_lines":[216,218],"audit":"返回全指纹以分桶；不能替代matches_lookup及全文核对。","documentation":{"decision":"no-addition","insertion_before_lines":[],"reason":"实现、名称和所属类型/调用块已足够表达该局部操作；未机械增加重复说明。"}},
+        {"name":"ShapedRunCacheLookupKey::font_database_generation","declaration":"pub(crate) const fn font_database_generation(&self) -> u64 {","before_lines":[198,200],"after_code_lines":[220,222],"audit":"只返回保存的代次值；外部session/pool负责同当前代次比较。","documentation":{"decision":"no-addition","insertion_before_lines":[],"reason":"实现、名称和所属类型/调用块已足够表达该局部操作；未机械增加重复说明。"}},
+        {"name":"ShapedRunCacheLookupKey::full_fingerprint","declaration":"fn full_fingerprint(&self) -> EphemeralCacheHash {","before_lines":[202,224],"after_code_lines":[225,247],"audit":"以标量和features_hash参与分桶；真实features与原文仍在候选匹配时核对。","documentation":{"decision":"added-specific-contract","insertion_before_lines":[202],"reason":"补充职责、调用时机或本对象容易误解的约束；原文全部保留。"}},
+        {"name":"ShapedRunCacheLookupKey::direction_alias_fingerprint","declaration":"fn direction_alias_fingerprint(&self) -> EphemeralCacheHash {","before_lines":[226,247],"after_code_lines":[250,271],"audit":"只省略base_direction，保留其他指纹身份，供受限方向别名候选查找。","documentation":{"decision":"added-specific-contract","insertion_before_lines":[226],"reason":"补充职责、调用时机或本对象容易误解的约束；原文全部保留。"}},
+        {"name":"ShapedRunCacheLookupKey::owned_key_byte_len","declaration":"fn owned_key_byte_len(&self) -> usize {","before_lines":[249,259],"after_code_lines":[273,283],"audit":"饱和累加将复制的字体/语言字符串长度与features载荷字节；不是容量、Arc头或分配次数统计。","documentation":{"decision":"no-addition","insertion_before_lines":[],"reason":"实现、名称和所属类型/调用块已足够表达该局部操作；未机械增加重复说明。"}},
+        {"name":"impl Hash for ShapedRunCacheKey","declaration":"impl Hash for ShapedRunCacheKey {","before_lines":[262,285],"after_code_lines":[286,309],"audit":"与拥有键相等语义对应的Hash实现；与EphemeralCacheHash分桶辅助值区分。","documentation":{"decision":"no-addition","insertion_before_lines":[],"reason":"实现、名称和所属类型/调用块已足够表达该局部操作；未机械增加重复说明。"}},
+        {"name":"ShapedRunCacheKey::hash","declaration":"fn hash<H: Hasher>(&self, state: &mut H) {","before_lines":[263,284],"after_code_lines":[287,308],"audit":"依次哈希所有身份，包含features实际内容；不哈希不存在于键内的全文。","documentation":{"decision":"no-addition","insertion_before_lines":[],"reason":"实现、名称和所属类型/调用块已足够表达该局部操作；未机械增加重复说明。"}},
+        {"name":"ShapedRunCacheReport","declaration":"pub(crate) struct ShapedRunCacheReport {","before_lines":[288,306],"after_code_lines":[316,334],"audit":"Copy操作快照含当前尺寸与按帧计数；owned_key_allocation_bytes只测显式转拥有字段载荷，不是allocator实测。","documentation":{"decision":"added-specific-contract","insertion_before_lines":[287],"reason":"补充职责、调用时机或本对象容易误解的约束；原文全部保留。"},"members":[{"name":"frame_index","before_line":289,"after_line":317,"declaration":"pub(crate) frame_index: u64,","audit":"begin_frame调用方提供的报告帧编号。","documentation_decision":"所属类型新增合同与方法/分支证据覆盖此字段；不机械逐字段重复注释。"},{"name":"capacity","before_line":290,"after_line":318,"declaration":"pub(crate) capacity: usize,","audit":"条目数限制，允许0，超限整理发生在插入/帧末。","documentation_decision":"所属类型新增合同与方法/分支证据覆盖此字段；不机械逐字段重复注释。"},{"name":"max_bytes","before_line":291,"after_line":319,"declaration":"pub(crate) max_bytes: usize,","audit":"估算字节限制，非分配前硬预算。","documentation_decision":"所属类型新增合同与方法/分支证据覆盖此字段；不机械逐字段重复注释。"},{"name":"entry_count","before_line":292,"after_line":320,"declaration":"pub(crate) entry_count: usize,","audit":"当前索引条目数，在report/刷新时更新。","documentation_decision":"所属类型新增合同与方法/分支证据覆盖此字段；不机械逐字段重复注释。"},{"name":"estimated_bytes","before_line":293,"after_line":321,"declaration":"pub(crate) estimated_bytes: usize,","audit":"当前缓存估算总量，供报告与限制整理。","documentation_decision":"所属类型新增合同与方法/分支证据覆盖此字段；不机械逐字段重复注释。"},{"name":"hit_count","before_line":294,"after_line":322,"declaration":"pub(crate) hit_count: u64,","audit":"本帧get成功次数，contains_exact不加。","documentation_decision":"所属类型新增合同与方法/分支证据覆盖此字段；不机械逐字段重复注释。"},{"name":"miss_count","before_line":295,"after_line":323,"declaration":"pub(crate) miss_count: u64,","audit":"本帧get失败次数。","documentation_decision":"所属类型新增合同与方法/分支证据覆盖此字段；不机械逐字段重复注释。"},{"name":"collision_miss_count","before_line":296,"after_line":324,"declaration":"pub(crate) collision_miss_count: u64,","audit":"完整元数据候选但原文不等且最终miss的计数。","documentation_decision":"所属类型新增合同与方法/分支证据覆盖此字段；不机械逐字段重复注释。"},{"name":"lookup_candidate_count","before_line":297,"after_line":325,"declaration":"pub(crate) lookup_candidate_count: u64,","audit":"实际存在候选的累计检查数，饱和。","documentation_decision":"所属类型新增合同与方法/分支证据覆盖此字段；不机械逐字段重复注释。"},{"name":"owned_key_allocation_bytes","before_line":298,"after_line":326,"declaration":"pub(crate) owned_key_allocation_bytes: u64,","audit":"own_lookup_key复制字段payload的累计字节，不是allocator计量。","documentation_decision":"所属类型新增合同与方法/分支证据覆盖此字段；不机械逐字段重复注释。"},{"name":"eviction_scan_count","before_line":299,"after_line":327,"declaration":"pub(crate) eviction_scan_count: u64,","audit":"索引pop_oldest返回的scan工作累计。","documentation_decision":"所属类型新增合同与方法/分支证据覆盖此字段；不机械逐字段重复注释。"},{"name":"entry_move_count","before_line":300,"after_line":328,"declaration":"pub(crate) entry_move_count: u64,","audit":"索引pop_oldest返回的entry move工作累计。","documentation_decision":"所属类型新增合同与方法/分支证据覆盖此字段；不机械逐字段重复注释。"},{"name":"insert_count","before_line":301,"after_line":329,"declaration":"pub(crate) insert_count: u64,","audit":"新增slot次数，随即淘汰仍已记录。","documentation_decision":"所属类型新增合同与方法/分支证据覆盖此字段；不机械逐字段重复注释。"},{"name":"update_count","before_line":302,"after_line":330,"declaration":"pub(crate) update_count: u64,","audit":"既存完全身份与原文条目的替换次数。","documentation_decision":"所属类型新增合同与方法/分支证据覆盖此字段；不机械逐字段重复注释。"},{"name":"evicted_count","before_line":303,"after_line":331,"declaration":"pub(crate) evicted_count: u64,","audit":"整理与clear移除的条目数累计。","documentation_decision":"所属类型新增合同与方法/分支证据覆盖此字段；不机械逐字段重复注释。"},{"name":"trim_count","before_line":304,"after_line":332,"declaration":"pub(crate) trim_count: u64,","audit":"至少逐出一个条目的整理调用次数。","documentation_decision":"所属类型新增合同与方法/分支证据覆盖此字段；不机械逐字段重复注释。"},{"name":"clear_count","before_line":305,"after_line":333,"declaration":"pub(crate) clear_count: u64,","audit":"clear调用次数，begin_frame重置。","documentation_decision":"所属类型新增合同与方法/分支证据覆盖此字段；不机械逐字段重复注释。"}]},
+        {"name":"ShapedRunCacheEntry","declaration":"struct ShapedRunCacheEntry {","before_lines":[309,313],"after_code_lines":[337,341],"audit":"持有拥有键、Arc成形产物和该条目的估算体积；淘汰移除缓存所有权，不使外部Arc失效。","documentation":{"decision":"no-addition","insertion_before_lines":[],"reason":"实现、名称和所属类型/调用块已足够表达该局部操作；未机械增加重复说明。"},"members":[{"name":"key","before_line":310,"after_line":338,"declaration":"key: ShapedRunCacheKey,","audit":"Entry拥有身份键；被索引借用期间不得漂移。","documentation_decision":"所属类型新增合同与方法/分支证据覆盖此字段；不机械逐字段重复注释。"},{"name":"run","before_line":311,"after_line":339,"declaration":"run: Arc<ShapedGlyphRun>,","audit":"Arc共享成形产物，外部克隆可超出缓存驻留期。","documentation_decision":"所属类型新增合同与方法/分支证据覆盖此字段；不机械逐字段重复注释。"},{"name":"estimated_bytes","before_line":312,"after_line":340,"declaration":"estimated_bytes: usize,","audit":"当前缓存估算总量，供报告与限制整理。","documentation_decision":"所属类型新增合同与方法/分支证据覆盖此字段；不机械逐字段重复注释。"}]},
+        {"name":"impl IndexedTextCacheEntry<ShapedRunCacheKey> for ShapedRunCacheEntry","declaration":"impl IndexedTextCacheEntry<ShapedRunCacheKey> for ShapedRunCacheEntry {","before_lines":[315,319],"after_code_lines":[343,347],"audit":"向通用slot/LRU索引暴露稳定的entry.key借用；修改条目时键保持原身份。","documentation":{"decision":"no-addition","insertion_before_lines":[],"reason":"实现、名称和所属类型/调用块已足够表达该局部操作；未机械增加重复说明。"}},
+        {"name":"ShapedRunCacheEntry::cache_key","declaration":"fn cache_key(&self) -> &ShapedRunCacheKey {","before_lines":[316,318],"after_code_lines":[344,346],"audit":"返回self.key借用；索引按该键维护桶和移除关系。","documentation":{"decision":"no-addition","insertion_before_lines":[],"reason":"实现、名称和所属类型/调用块已足够表达该局部操作；未机械增加重复说明。"}},
+        {"name":"ShapedRunCache","declaration":"pub(crate) struct ShapedRunCache {","before_lines":[322,332],"after_code_lines":[356,366],"audit":"slot索引、精确/方向桶及槽位置表共同维护；条目上限与估算字节限制在插入/帧末后整理，返回Arc可在淘汰后保活产物。","documentation":{"decision":"added-specific-contract","insertion_before_lines":[321],"reason":"补充职责、调用时机或本对象容易误解的约束；原文全部保留。"},"members":[{"name":"index","before_line":323,"after_line":357,"declaration":"index: IndexedTextCache<ShapedRunCacheKey, ShapedRunCacheEntry>,","audit":"通用slot/LRU索引维护entry与精确拥有键桶。","documentation_decision":"所属类型新增合同与方法/分支证据覆盖此字段；不机械逐字段重复注释。"},{"name":"lookup_buckets","before_line":324,"after_line":358,"declaration":"lookup_buckets: HashMap<EphemeralCacheHash, Vec<TextCacheSlot>>,","audit":"全指纹到slot列表，匹配后仍复核字段与原文。","documentation_decision":"所属类型新增合同与方法/分支证据覆盖此字段；不机械逐字段重复注释。"},{"name":"lookup_bucket_positions","before_line":325,"after_line":359,"declaration":"lookup_bucket_positions: HashMap<TextCacheSlot, usize>,","audit":"slot到精确桶内位置，支持swap_remove更新。","documentation_decision":"所属类型新增合同与方法/分支证据覆盖此字段；不机械逐字段重复注释。"},{"name":"direction_alias_buckets","before_line":326,"after_line":360,"declaration":"direction_alias_buckets: HashMap<EphemeralCacheHash, Vec<TextCacheSlot>>,","audit":"省略基本方向的指纹到slot列表，另核有限复用门。","documentation_decision":"所属类型新增合同与方法/分支证据覆盖此字段；不机械逐字段重复注释。"},{"name":"direction_alias_bucket_positions","before_line":327,"after_line":361,"declaration":"direction_alias_bucket_positions: HashMap<TextCacheSlot, usize>,","audit":"slot到方向桶内位置。","documentation_decision":"所属类型新增合同与方法/分支证据覆盖此字段；不机械逐字段重复注释。"},{"name":"capacity","before_line":328,"after_line":362,"declaration":"capacity: usize,","audit":"条目数限制，允许0，超限整理发生在插入/帧末。","documentation_decision":"所属类型新增合同与方法/分支证据覆盖此字段；不机械逐字段重复注释。"},{"name":"max_bytes","before_line":329,"after_line":363,"declaration":"max_bytes: usize,","audit":"估算字节限制，非分配前硬预算。","documentation_decision":"所属类型新增合同与方法/分支证据覆盖此字段；不机械逐字段重复注释。"},{"name":"estimated_bytes","before_line":330,"after_line":364,"declaration":"estimated_bytes: usize,","audit":"当前缓存估算总量，供报告与限制整理。","documentation_decision":"所属类型新增合同与方法/分支证据覆盖此字段；不机械逐字段重复注释。"},{"name":"frame_report","before_line":331,"after_line":365,"declaration":"frame_report: ShapedRunCacheReport,","audit":"按begin_frame重置的操作报告；clear不抹除其他本帧计数。","documentation_decision":"所属类型新增合同与方法/分支证据覆盖此字段；不机械逐字段重复注释。"}]},
+        {"name":"impl Default for ShapedRunCache","declaration":"impl Default for ShapedRunCache {","before_lines":[334,338],"after_code_lines":[368,372],"audit":"Default委派new，以命名默认容量和估算预算创建空缓存。","documentation":{"decision":"no-addition","insertion_before_lines":[],"reason":"实现、名称和所属类型/调用块已足够表达该局部操作；未机械增加重复说明。"}},
+        {"name":"ShapedRunCache::default","declaration":"fn default() -> Self {","before_lines":[335,337],"after_code_lines":[369,371],"audit":"无参数返回默认空缓存；不启动工作线程或加载字体。","documentation":{"decision":"no-addition","insertion_before_lines":[],"reason":"实现、名称和所属类型/调用块已足够表达该局部操作；未机械增加重复说明。"}},
+        {"name":"impl ShapedRunCache","declaration":"impl ShapedRunCache {","before_lines":[340,685],"after_code_lines":[374,760],"audit":"构造、生命周期、命中、转拥有、插入和双桶淘汰操作的实现容器。","documentation":{"decision":"no-addition","insertion_before_lines":[],"reason":"实现、名称和所属类型/调用块已足够表达该局部操作；未机械增加重复说明。"}},
+        {"name":"ShapedRunCache::new","declaration":"pub(crate) fn new() -> Self {","before_lines":[341,346],"after_code_lines":[375,380],"audit":"用两个默认常量委派with_limits；不预成形。","documentation":{"decision":"no-addition","insertion_before_lines":[],"reason":"实现、名称和所属类型/调用块已足够表达该局部操作；未机械增加重复说明。"}},
+        {"name":"ShapedRunCache::with_capacity","declaration":"pub(crate) fn with_capacity(capacity: usize) -> Self {","before_lines":[348,350],"after_code_lines":[382,384],"audit":"参数只覆写条目数限制，字节限制仍取默认；0允许。","documentation":{"decision":"no-addition","insertion_before_lines":[],"reason":"实现、名称和所属类型/调用块已足够表达该局部操作；未机械增加重复说明。"}},
+        {"name":"ShapedRunCache::with_limits","declaration":"pub(crate) fn with_limits(capacity: usize, max_bytes: usize) -> Self {","before_lines":[352,367],"after_code_lines":[392,407],"audit":"参数为条目和估算字节限制；0允许。初始化空索引/报告；以后先插入或更新再整理，可能移除刚插入条目但返回Arc有效。","documentation":{"decision":"added-specific-contract","insertion_before_lines":[352],"reason":"补充职责、调用时机或本对象容易误解的约束；原文全部保留。"}},
+        {"name":"ShapedRunCache::begin_frame","declaration":"pub(crate) fn begin_frame(&mut self, frame_index: u64) {","before_lines":[369,378],"after_code_lines":[412,421],"audit":"以frame_index新建报告并填入当前容量/尺寸，保留缓存条目和索引；不累计上帧操作计数。","documentation":{"decision":"added-specific-contract","insertion_before_lines":[369],"reason":"补充职责、调用时机或本对象容易误解的约束；原文全部保留。"}},
+        {"name":"ShapedRunCache::finish_frame","declaration":"pub(crate) fn finish_frame(&mut self) {","before_lines":[380,382],"after_code_lines":[424,426],"audit":"仅整理超限条目；不清报告也不发布渲染结果。","documentation":{"decision":"added-specific-contract","insertion_before_lines":[380],"reason":"补充职责、调用时机或本对象容易误解的约束；原文全部保留。"}},
+        {"name":"ShapedRunCache::clear","declaration":"pub(crate) fn clear(&mut self) {","before_lines":[384,397],"after_code_lines":[431,444],"audit":"增加当前报告的clear/evicted计数并清全部索引与估算尺寸；保留本帧其他已累计计数，外部Arc仍有效。","documentation":{"decision":"added-specific-contract","insertion_before_lines":[384],"reason":"补充职责、调用时机或本对象容易误解的约束；原文全部保留。"}},
+        {"name":"ShapedRunCache::len","declaration":"pub(crate) fn len(&self) -> usize {","before_lines":[399,401],"after_code_lines":[446,448],"audit":"读取当前索引条目数，无touch/计数副作用。","documentation":{"decision":"no-addition","insertion_before_lines":[],"reason":"实现、名称和所属类型/调用块已足够表达该局部操作；未机械增加重复说明。"}},
+        {"name":"ShapedRunCache::is_empty","declaration":"pub(crate) fn is_empty(&self) -> bool {","before_lines":[403,405],"after_code_lines":[450,452],"audit":"读取当前索引是否空，无touch/查询计数。","documentation":{"decision":"no-addition","insertion_before_lines":[],"reason":"实现、名称和所属类型/调用块已足够表达该局部操作；未机械增加重复说明。"}},
+        {"name":"ShapedRunCache::estimated_bytes","declaration":"pub(crate) fn estimated_bytes(&self) -> usize {","before_lines":[407,409],"after_code_lines":[454,456],"audit":"返回当前缓存条目估算总量，不测物理内存。","documentation":{"decision":"no-addition","insertion_before_lines":[],"reason":"实现、名称和所属类型/调用块已足够表达该局部操作；未机械增加重复说明。"}},
+        {"name":"ShapedRunCache::report","declaration":"pub(crate) fn report(&self) -> ShapedRunCacheReport {","before_lines":[411,416],"after_code_lines":[459,464],"audit":"复制报告并刷新尺寸字段；不重置或改变缓存，估算也可由此暴露。","documentation":{"decision":"added-specific-contract","insertion_before_lines":[411],"reason":"补充职责、调用时机或本对象容易误解的约束；原文全部保留。"}},
+        {"name":"ShapedRunCache::contains_exact","declaration":"pub(crate) fn contains_exact(&self, key: &ShapedRunCacheKey, text: &str) -> bool {","before_lines":[418,423],"after_code_lines":[469,474],"audit":"参数拥有键和正文；只查完全身份及正文，不走方向别名，不touch也不记query计数。","documentation":{"decision":"added-specific-contract","insertion_before_lines":[418],"reason":"补充职责、调用时机或本对象容易误解的约束；原文全部保留。"}},
+        {"name":"ShapedRunCache::get","declaration":"pub(crate) fn get(","before_lines":[425,431],"after_code_lines":[477,483],"audit":"从拥有键重新借用后委派get_with_lookup；返回克隆Arc或None并保留委派的LRU/计数效果。","documentation":{"decision":"added-specific-contract","insertion_before_lines":[425],"reason":"补充职责、调用时机或本对象容易误解的约束；原文全部保留。"}},
+        {"name":"ShapedRunCache::get_with_lookup","declaration":"pub(crate) fn get_with_lookup(","before_lines":[433,489],"after_code_lines":[492,548],"audit":"参数借用键和正文；精确桶后复核完整身份/正文，条件允许时才试方向桶。miss记计数，hit克隆Arc并touch；不延长lookup借用。","documentation":{"decision":"added-specific-contract","insertion_before_lines":[433],"reason":"补充职责、调用时机或本对象容易误解的约束；原文全部保留。"}},
+        {"name":"ShapedRunCache::own_lookup_key","declaration":"pub(crate) fn own_lookup_key(","before_lines":[491,500],"after_code_lines":[555,564],"audit":"显式复制借用字段，饱和记录对应payload字节；只供需要保存身份的路径，不能据此推出总分配或零分配命中。","documentation":{"decision":"added-specific-contract","insertion_before_lines":[491],"reason":"补充职责、调用时机或本对象容易误解的约束；原文全部保留。"}},
+        {"name":"ShapedRunCache::insert","declaration":"pub(crate) fn insert(","before_lines":[502,508],"after_code_lines":[567,573],"audit":"将值产物包成Arc后委派insert_ready，返回持有的Arc。","documentation":{"decision":"added-specific-contract","insertion_before_lines":[502],"reason":"补充职责、调用时机或本对象容易误解的约束；原文全部保留。"}},
+        {"name":"ShapedRunCache::insert_ready","declaration":"pub(crate) fn insert_ready(","before_lines":[511,570],"after_code_lines":[582,641],"audit":"参数为拥有键和Arc产物；debug只核Unicode快照，不完整验证请求/代次。复用或新建slot后整理限制，返回Arc可能已不驻留。","documentation":{"decision":"added-specific-contract","insertion_before_lines":[510],"reason":"补充职责、调用时机或本对象容易误解的约束；原文全部保留。"}},
+        {"name":"ShapedRunCache::get_or_insert_with","declaration":"pub(crate) fn get_or_insert_with(","before_lines":[572,582],"after_code_lines":[645,655],"audit":"先get；仅miss调用FnOnce并插入，调用方负责键/正文/产物一致及规范化前提。","documentation":{"decision":"added-specific-contract","insertion_before_lines":[572],"reason":"补充职责、调用时机或本对象容易误解的约束；原文全部保留。"}},
+        {"name":"ShapedRunCache::trim_to_limits","declaration":"fn trim_to_limits(&mut self) {","before_lines":[584,611],"after_code_lines":[658,685],"audit":"超限时移除最旧slot，同步双桶/位置表/字节和操作计数；空索引break，至少发生淘汰才加trim_count。","documentation":{"decision":"added-specific-contract","insertion_before_lines":[584],"reason":"补充职责、调用时机或本对象容易误解的约束；原文全部保留。"}},
+        {"name":"ShapedRunCache::over_limits","declaration":"fn over_limits(&self) -> bool {","before_lines":[613,615],"after_code_lines":[687,689],"audit":"严格len>capacity或estimated_bytes>max_bytes；等于上限允许。","documentation":{"decision":"no-addition","insertion_before_lines":[],"reason":"实现、名称和所属类型/调用块已足够表达该局部操作；未机械增加重复说明。"}},
+        {"name":"ShapedRunCache::record_lookup","declaration":"fn record_lookup(&mut self, candidate_count: usize) {","before_lines":[617,622],"after_code_lines":[691,696],"audit":"对实际索引候选计数做u64饱和累加，不是总桶长度或探针次数。","documentation":{"decision":"no-addition","insertion_before_lines":[],"reason":"实现、名称和所属类型/调用块已足够表达该局部操作；未机械增加重复说明。"}},
+        {"name":"ShapedRunCache::remove_lookup_slot","declaration":"fn remove_lookup_slot(&mut self, fingerprint: EphemeralCacheHash, slot: TextCacheSlot) {","before_lines":[624,634],"after_code_lines":[698,708],"audit":"在精确桶中按位置表删除slot；桶缺失不删除map，删后空桶才移除。","documentation":{"decision":"no-addition","insertion_before_lines":[],"reason":"实现、名称和所属类型/调用块已足够表达该局部操作；未机械增加重复说明。"}},
+        {"name":"ShapedRunCache::remove_direction_alias_slot","declaration":"fn remove_direction_alias_slot(","before_lines":[636,652],"after_code_lines":[710,726],"audit":"方向桶同样按slot位置删除并清空桶；与精确索引移除同步。","documentation":{"decision":"no-addition","insertion_before_lines":[],"reason":"实现、名称和所属类型/调用块已足够表达该局部操作；未机械增加重复说明。"}},
+        {"name":"ShapedRunCache::insert_bucket_slot","declaration":"fn insert_bucket_slot(","before_lines":[654,664],"after_code_lines":[728,738],"audit":"向指定指纹桶尾部追加slot，并记录其桶内下标；调用者已完成entry插入。","documentation":{"decision":"no-addition","insertion_before_lines":[],"reason":"实现、名称和所属类型/调用块已足够表达该局部操作；未机械增加重复说明。"}},
+        {"name":"ShapedRunCache::remove_bucket_slot","declaration":"fn remove_bucket_slot(","before_lines":[666,679],"after_code_lines":[741,754],"audit":"slot位置不存在直接返回；swap_remove删除并回写被搬入slot的位置，避免线性寻找。","documentation":{"decision":"added-specific-contract","insertion_before_lines":[666],"reason":"补充职责、调用时机或本对象容易误解的约束；原文全部保留。"}},
+        {"name":"ShapedRunCache::refresh_report_size","declaration":"fn refresh_report_size(&mut self) {","before_lines":[681,684],"after_code_lines":[756,759],"audit":"将当前索引长度与估算总量写回报告，其余计数不变。","documentation":{"decision":"no-addition","insertion_before_lines":[],"reason":"实现、名称和所属类型/调用块已足够表达该局部操作；未机械增加重复说明。"}},
+        {"name":"impl ShapedRunCacheKey (direction alias)","declaration":"impl ShapedRunCacheKey {","before_lines":[687,723],"after_code_lines":[762,799],"audit":"封装有限方向复用条件及省略base_direction的逐字段匹配。","documentation":{"decision":"no-addition","insertion_before_lines":[],"reason":"实现、名称和所属类型/调用块已足够表达该局部操作；未机械增加重复说明。"}},
+        {"name":"ShapedRunCacheKey::can_reuse_resolved_direction_for_lookup","declaration":"fn can_reuse_resolved_direction_for_lookup(","before_lines":[688,701],"after_code_lines":[764,777],"audit":"只允许缓存Auto/Mixed、请求LTR/RTL、缓存run方向等于请求方向并且其他身份相同；不是任意双向复用。","documentation":{"decision":"added-specific-contract","insertion_before_lines":[688],"reason":"补充职责、调用时机或本对象容易误解的约束；原文全部保留。"}},
+        {"name":"ShapedRunCacheKey::matches_lookup_except_base_direction","declaration":"fn matches_lookup_except_base_direction(&self, lookup: &ShapedRunCacheLookupKey<'_>) -> bool {","before_lines":[703,722],"after_code_lines":[779,798],"audit":"逐字段核对除base_direction外的所有身份，仍核features真实内容；正文由上层核。","documentation":{"decision":"no-addition","insertion_before_lines":[],"reason":"实现、名称和所属类型/调用块已足够表达该局部操作；未机械增加重复说明。"}},
+        {"name":"is_single_text_paragraph","declaration":"fn is_single_text_paragraph(text: &str) -> bool {","before_lines":[725,738],"after_code_lines":[802,815],"audit":"扫描正文是否包含8种段落分隔符，作为方向别名门；无分隔符并不验证字节范围或运行结果。","documentation":{"decision":"added-specific-contract","insertion_before_lines":[725],"reason":"补充职责、调用时机或本对象容易误解的约束；原文全部保留。"}},
+        {"name":"hash_text","declaration":"fn hash_text(text: &str) -> EphemeralCacheHash {","before_lines":[740,742],"after_code_lines":[817,819],"audit":"为正文产生EphemeralCacheHash；命中路径仍比较原始字符串。","documentation":{"decision":"no-addition","insertion_before_lines":[],"reason":"实现、名称和所属类型/调用块已足够表达该局部操作；未机械增加重复说明。"}},
+        {"name":"shaping_features_hash","declaration":"fn shaping_features_hash(request: &BackendShapeRequest<'_>) -> EphemeralCacheHash {","before_lines":[744,750],"after_code_lines":[821,827],"audit":"对include_kerning及request.features载荷哈希；规范化是调用前提。","documentation":{"decision":"no-addition","insertion_before_lines":[],"reason":"实现、名称和所属类型/调用块已足够表达该局部操作；未机械增加重复说明。"}},
+        {"name":"cache_text_identity_ref","declaration":"fn cache_text_identity_ref(value: Option<&str>) -> Option<&str> {","before_lines":[752,754],"after_code_lines":[830,832],"audit":"字体族等身份trim后过滤空串；返回借用，不分配。与font_asset处理刻意不同。","documentation":{"decision":"added-specific-contract","insertion_before_lines":[752],"reason":"补充职责、调用时机或本对象容易误解的约束；原文全部保留。"}},
+        {"name":"cache_font_asset_ref","declaration":"fn cache_font_asset_ref(value: Option<&str>) -> Option<&str> {","before_lines":[756,758],"after_code_lines":[834,836],"audit":"只过滤空串，保留非空原始字符串含空白的资源身份，不做解析/规范化。","documentation":{"decision":"no-addition","insertion_before_lines":[],"reason":"实现、名称和所属类型/调用块已足够表达该局部操作；未机械增加重复说明。"}},
+        {"name":"normalized_f32_bits","declaration":"fn normalized_f32_bits(value: f32) -> u32 {","before_lines":[760,766],"after_code_lines":[839,845],"audit":"仅把正负0折叠为0，其他位型原样；不是有限数/NaN验证器。","documentation":{"decision":"added-specific-contract","insertion_before_lines":[760],"reason":"补充职责、调用时机或本对象容易误解的约束；原文全部保留。"}},
+        {"name":"module tests","before_lines":[768,770],"after_code_lines":[847,849],"audit":"cfg(test)+path直接挂载本批cases.rs；仅测试编译，未执行。","documentation":{"decision":"no-addition","insertion_before_lines":[],"reason":"属性与实际路径清楚，无需新增。"}}
+      ],
+      "block_audit": [
+        {"name":"imports_defaults","before_lines":[1,25],"after_code_lines":[4,28],"entry":"进入模块编译，导入文本缓存身份/产物及通用索引。","effect":"挂载私有memory并定义默认限制；无运行期注册。","control_points":[{"before_lines":[18,21],"after_code_lines":[21,24],"audit":"path与use把估算器供主实现使用。"}]},
+        {"name":"owned_borrowed_key_fields","before_lines":[26,71],"after_code_lines":[36,86],"entry":"创建拥有键或短期查询视图。","effect":"19项身份分 owned/borrowed 载荷；正文不在键内。","control_points":[{"before_lines":[28,46],"after_code_lines":[38,56],"audit":"拥有字符串与Arc features。"},{"before_lines":[51,69],"after_code_lines":[66,84],"audit":"对应字段借用，生命周期'a。"}]},
+        {"name":"owned_key_conversion","before_lines":[72,124],"after_code_lines":[87,140],"entry":"调用from_request/from_lookup或重新借用拥有键。","effect":"复制必要元数据或形成self借用，不复制正文。","control_points":[{"before_lines":[73,75],"after_code_lines":[89,91],"audit":"共享集合入口。"},{"before_lines":[77,99],"after_code_lines":[93,115],"audit":"拥有转换。"},{"before_lines":[101,123],"after_code_lines":[117,139],"audit":"字段重借用。"}]},
+        {"name":"exact_identity_compare","before_lines":[125,151],"after_code_lines":[141,167],"entry":"候选键与查询身份需要判等。","effect":"逐字段包含features载荷并读取已保存代次；不读当前数据库。","control_points":[{"before_lines":[125,145],"after_code_lines":[141,161],"audit":"所有身份相等。"},{"before_lines":[147,149],"after_code_lines":[163,165],"audit":"代次getter。"}]},
+        {"name":"borrowed_key_construction","before_lines":[152,193],"after_code_lines":[168,215],"entry":"外部已规范化请求和集合/代次传入。","effect":"debug前提检查后组装借用身份，执行现有尺寸/字符串处理。","control_points":[{"before_lines":[166,167],"after_code_lines":[188,189],"audit":"features/language仅debug断言。"},{"before_lines":[168,190],"after_code_lines":[190,212],"audit":"字段组装，不校验所有代次。"}]},
+        {"name":"full_fingerprint","before_lines":[194,225],"after_code_lines":[216,248],"entry":"查询准备分桶。","effect":"全指纹包含基本方向；实际features正文留待后核。","control_points":[{"before_lines":[194,200],"after_code_lines":[216,222],"audit":"指纹与代次getter。"},{"before_lines":[202,224],"after_code_lines":[225,247],"audit":"哈希输入序列。"}]},
+        {"name":"alias_fingerprint_and_ownership_cost","before_lines":[226,261],"after_code_lines":[250,285],"entry":"受限方向别名或转拥有计账。","effect":"别名指纹只去基本方向；拥有转换成本只计payload长度。","control_points":[{"before_lines":[226,247],"after_code_lines":[250,271],"audit":"其余身份仍参与分桶。"},{"before_lines":[249,259],"after_code_lines":[273,283],"audit":"可选字符串/features长度饱和相加。"}]},
+        {"name":"owned_key_hash_trait","before_lines":[262,286],"after_code_lines":[286,310],"entry":"通用索引请求Hash。","effect":"拥有键所有身份参与Hash，含features实际载荷，配合派生Eq。","control_points":[{"before_lines":[263,284],"after_code_lines":[287,308],"audit":"按字段顺序调用Hash。"}]},
+        {"name":"report_entry_trait","before_lines":[287,320],"after_code_lines":[315,348],"entry":"报告Copy快照与entry载荷声明。","effect":"报告按帧；entry持有Arc并向索引借出稳定key。","control_points":[{"before_lines":[288,306],"after_code_lines":[316,334],"audit":"17报告字段。"},{"before_lines":[309,319],"after_code_lines":[337,347],"audit":"条目与cache_key trait实现。"}]},
+        {"name":"cache_defaults_and_wrappers","before_lines":[321,351],"after_code_lines":[355,385],"entry":"创建缓存。","effect":"容器、双桶和位置表初始化的参数入口由Default/new/with_capacity归集。","control_points":[{"before_lines":[334,350],"after_code_lines":[368,384],"audit":"三种构造入口委派with_limits。"}]},
+        {"name":"limits_empty_state","before_lines":[352,368],"after_code_lines":[392,408],"entry":"显式capacity/max_bytes传入，包含0。","effect":"所有容器空、估算0、报告默认；不预留受预算约束的物理内存。","control_points":[{"before_lines":[353,366],"after_code_lines":[393,406],"audit":"初始化一致的索引/双桶/位置表。"}]},
+        {"name":"frame_lifecycle","before_lines":[369,383],"after_code_lines":[412,427],"entry":"帧开始/结束由调用者驱动。","effect":"begin仅重置报告保缓存；finish仅按限制整理。","control_points":[{"before_lines":[370,377],"after_code_lines":[413,420],"audit":"新报告保当前尺寸。"},{"before_lines":[380,382],"after_code_lines":[424,426],"audit":"finish委派trim。"}]},
+        {"name":"clear_and_observers","before_lines":[384,417],"after_code_lines":[431,465],"entry":"清缓存或读取当前状态。","effect":"clear记移除/清空计数并清全部索引；getter只观察，report返回刷新尺寸的Copy。","control_points":[{"before_lines":[385,396],"after_code_lines":[432,443],"audit":"clear保其他本帧历史计数。"},{"before_lines":[399,416],"after_code_lines":[446,464],"audit":"无命中touch的只读观察。"}]},
+        {"name":"contains_and_get_wrapper","before_lines":[418,432],"after_code_lines":[469,484],"entry":"拥有键与原文查询。","effect":"contains_exact只核完全身份/原文；get走完整借用查询副作用。","control_points":[{"before_lines":[419,422],"after_code_lines":[470,473],"audit":"find_slot callback核原文。"},{"before_lines":[425,431],"after_code_lines":[477,483],"audit":"get委派。"}]},
+        {"name":"exact_candidate_search","before_lines":[433,455],"after_code_lines":[492,514],"entry":"全指纹命中一个候选桶。","effect":"索引逐候选复核完整身份和run.source_text；仅元数据匹配而正文不等置collision_seen。","control_points":[{"before_lines":[438,454],"after_code_lines":[497,513],"audit":"find_in_slots及正文比较；候选计数来自索引。"}]},
+        {"name":"direction_alias_gate","before_lines":[456,474],"after_code_lines":[515,533],"entry":"精确查询结果与单段门已知。","effect":"先记录精确候选数；只有精确未中且无段落分隔符才尝试方向桶和有限别名判等。","control_points":[{"before_lines":[457,459],"after_code_lines":[516,518],"audit":"已有精确结果或多段直接使用精确结果。"},{"before_lines":[460,474],"after_code_lines":[519,533],"audit":"别名桶及原文复核。"}]},
+        {"name":"lookup_result_and_lru","before_lines":[475,489],"after_code_lines":[534,548],"entry":"精确/别名结果已完成。","effect":"无slot加miss/可选collision_miss并返回None；有slot克隆Arc、touch、记hit。","control_points":[{"before_lines":[476,483],"after_code_lines":[535,542],"audit":"miss早返回。"},{"before_lines":[485,488],"after_code_lines":[544,547],"audit":"hit更新LRU和报告。"}]},
+        {"name":"ownership_and_insert_wrapper","before_lines":[490,509],"after_code_lines":[549,574],"entry":"查询键需持久保存或值产物插入。","effect":"own复制payload并记字段字节，insert包Arc委派；不测全局分配。","control_points":[{"before_lines":[491,500],"after_code_lines":[555,564],"audit":"拥有转换计账。"},{"before_lines":[502,508],"after_code_lines":[567,573],"audit":"Arc包装。"}]},
+        {"name":"insert_ready_update","before_lines":[510,544],"after_code_lines":[581,615],"entry":"拥有键与Ready Arc传入。","effect":"只debug核Unicode，先估算再找完全身份/原文条目；更新Arc/字节，touch并整理后返回。","control_points":[{"before_lines":[516,520],"after_code_lines":[587,591],"audit":"局部debug前提和估算。"},{"before_lines":[522,543],"after_code_lines":[593,614],"audit":"既存slot替换路径。"}]},
+        {"name":"insert_ready_new","before_lines":[545,571],"after_code_lines":[616,642],"entry":"完全身份/原文尚未驻留。","effect":"创建entry/slot，记录双桶位置和insert，再trim；返回Arc可已被逐出。","control_points":[{"before_lines":[546,556],"after_code_lines":[617,627],"audit":"增加估算并插入通用索引。"},{"before_lines":[557,569],"after_code_lines":[628,640],"audit":"双桶/计数/整理/返回。"}]},
+        {"name":"miss_callback","before_lines":[572,583],"after_code_lines":[645,656],"entry":"调用者提供FnOnce成形回调。","effect":"hit直接返回；miss才执行回调并插入，调用者负责身份和产物一致。","control_points":[{"before_lines":[578,581],"after_code_lines":[651,654],"audit":"回调不在hit执行。"}]},
+        {"name":"eviction_loop","before_lines":[584,603],"after_code_lines":[658,677],"entry":"条目或估算字节超限。","effect":"逐出最旧slot，同步双桶/位置表/字节与工作计数；索引空break。","control_points":[{"before_lines":[586,589],"after_code_lines":[660,663],"audit":"严格超限循环，pop失败break。"},{"before_lines":[590,602],"after_code_lines":[664,676],"audit":"同步删除和计量。"}]},
+        {"name":"trim_report_and_limit_predicate","before_lines":[604,616],"after_code_lines":[678,690],"entry":"一次整理循环结束。","effect":"至少淘汰一项才累计evicted和trim；刷新尺寸，等于边界不超限。","control_points":[{"before_lines":[605,610],"after_code_lines":[679,684],"audit":"仅evicted>0记录trim。"},{"before_lines":[613,615],"after_code_lines":[687,689],"audit":"两个严格大于条件。"}]},
+        {"name":"candidate_account_and_exact_bucket_remove","before_lines":[617,635],"after_code_lines":[691,709],"entry":"查询结束或精确slot被逐出。","effect":"候选计数饱和；桶删除按位置，空桶移除，缺桶保持无操作。","control_points":[{"before_lines":[617,622],"after_code_lines":[691,696],"audit":"usize候选数转u64饱和累加。"},{"before_lines":[624,634],"after_code_lines":[698,708],"audit":"空桶条件删除。"}]},
+        {"name":"alias_bucket_remove_and_append","before_lines":[636,665],"after_code_lines":[710,739],"entry":"别名slot删除或任一新slot入桶。","effect":"双桶同步使用相同位置索引策略；新slot追加并记位置。","control_points":[{"before_lines":[636,652],"after_code_lines":[710,726],"audit":"方向空桶删除。"},{"before_lines":[654,664],"after_code_lines":[728,738],"audit":"append记录桶内位置。"}]},
+        {"name":"swap_removal_and_size_refresh","before_lines":[666,685],"after_code_lines":[741,760],"entry":"已知slot需要从桶去除。","effect":"位置缺失早退；swap_remove后修正搬入slot位置；报告只更新尺寸字段。","control_points":[{"before_lines":[671,677],"after_code_lines":[746,752],"audit":"缺位置return与搬入位置修复。"},{"before_lines":[681,684],"after_code_lines":[756,759],"audit":"尺寸刷新。"}]},
+        {"name":"narrow_direction_reuse","before_lines":[686,723],"after_code_lines":[761,799],"entry":"方向别名候选已选。","effect":"缓存Auto/Mixed仅复用给解析一致的LTR/RTL；除基本方向外所有身份仍相等。","control_points":[{"before_lines":[693,700],"after_code_lines":[769,776],"audit":"方向条件与run.direction。"},{"before_lines":[703,722],"after_code_lines":[779,798],"audit":"其余完整身份逐项复核。"}]},
+        {"name":"paragraph_and_hash_helpers","before_lines":[724,750],"after_code_lines":[800,827],"entry":"对正文或features创建辅助标识。","effect":"8分隔符阻止单段别名；正文hash不替代原文比较，features hash含kerning。","control_points":[{"before_lines":[725,738],"after_code_lines":[802,815],"audit":"分隔符any。"},{"before_lines":[740,750],"after_code_lines":[817,827],"audit":"两类hash。"}]},
+        {"name":"identity_normalization","before_lines":[751,767],"after_code_lines":[828,846],"entry":"字符串或f32参与身份键。","effect":"字体族trim空过滤；资源只空过滤；浮点只折叠正负零，非数值验证。","control_points":[{"before_lines":[752,758],"after_code_lines":[830,836],"audit":"两字符串规则不同。"},{"before_lines":[760,766],"after_code_lines":[839,845],"audit":"value==0否则to_bits。"}]},
+        {"name":"direct_test_mount","before_lines":[768,770],"after_code_lines":[847,849],"entry":"测试配置编译此模块。","effect":"实际path挂cases；不执行测试。","control_points":[{"before_lines":[768,770],"after_code_lines":[847,849],"audit":"cfg+path+mod原字节保留。"}]}
+      ],
+      "attributes": [
+        {"line":18,"text":"#[path = \"shaped_cache/memory.rs\"]"},
+        {"line":26,"text":"#[derive(Clone, Debug, PartialEq, Eq)]"},
+        {"line":49,"text":"#[derive(Clone, Copy, Debug)]"},
+        {"line":287,"text":"#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]"},
+        {"line":308,"text":"#[derive(Clone, Debug, PartialEq)]"},
+        {"line":321,"text":"#[derive(Clone, Debug, PartialEq)]"},
+        {"line":768,"text":"#[cfg(test)]"},
+        {"line":769,"text":"#[path = \"shaped_cache/tests/cases.rs\"]"}
+      ],
+      "review_basis": {
+        "original_complete_lines": [
+          1,
+          770
+        ],
+        "physical_line_basis": "LF-only file; terminal LF included in count",
+        "manual_read_receipts": [
+          "D",
+          "E"
+        ],
+        "locator_limitation": "声明/成员词法索引仅用于校对定位；对象与语义分区来自逐段人工审读，不宣称AST穷尽。"
+      }
+    },
+    {
+      "path": "zircon_runtime/src/text/cache/shaped_cache/memory.rs",
+      "before_sha256": "c2f79bacd5a8f2e3576ba2a7fbb1e47922c41a692b858034ea1b839d792dc6a4",
+      "after_sha256": "cd715404e1c1c33d4ee3c7933014de30f31da7f5ddf205b422c5f135a0390f5e",
+      "before_bytes": 3836,
+      "after_bytes": 4354,
+      "before_LF": 92,
+      "after_LF": 101,
+      "before_CRLF": 0,
+      "after_CRLF": 0,
+      "BOM": false,
+      "inverse_sha256": "c2f79bacd5a8f2e3576ba2a7fbb1e47922c41a692b858034ea1b839d792dc6a4",
+      "raw_HEAD_sha256": "c2f79bacd5a8f2e3576ba2a7fbb1e47922c41a692b858034ea1b839d792dc6a4",
+      "insertions": [
+        {"before_offset":0,"before_line":1,"after_offset":0,"after_line":1,"length":191,"sha256":"38351bfb840ac54d6dd5545770d32c0136e44aa1fdc68e1274d30c27978463f7","LF":3,"exact_text":"//! 成形缓存单条目的保守体积估算，供缓存计账与限制整理使用。\n//! 固定余量与容器容量属于计量模型，不等同分配器实测或物理内存上界。\n\n"},
+        {"before_offset":396,"before_line":13,"after_offset":587,"after_line":16,"length":327,"sha256":"117d753104aedb594184f889c674cda1db99af1f4efa2da29522766f9f3a3ea5","LF":6,"exact_text":"/// 汇总键、共享产物、容器容量及索引余量的饱和估算。\n///\n/// # 参数与返回\n/// 借用同一缓存条目的键与产物，返回用于缓存计账的字节估计值。\n/// 按当前字段模型计账，不保证各条目间共享载荷只在全局计一次。\n/// 参考 [`super::ShapedRunCache`]。\n"}
+      ],
+      "objects": [
+        {"name":"imports_and_estimation_model","before_lines":[1,8],"after_code_lines":[4,11],"audit":"仅导入估算所需类型size_of/Arc/键和成形类型，不拥有或复制其载荷。","documentation":{"decision":"added-module-contract","insertion_before_lines":[1],"reason":"明确报告计账与限制整理共同消费、固定余量不等同allocator实测。"}},
+        {"name":"SHAPED_CACHE_ARC_ALLOCATIONS_PER_ENTRY","declaration":"const SHAPED_CACHE_ARC_ALLOCATIONS_PER_ENTRY: usize = 3;","before_lines":[10,10],"after_code_lines":[13,13],"audit":"模型固定把三份Arc分配头计入条目估算，不测真实allocator或实际去重。","documentation":{"decision":"no-addition","insertion_before_lines":[],"reason":"公式和旧说明足够；模块已明确非物理内存上界。"}},
+        {"name":"HASH_INDEX_CAPACITY_RESERVE_DIVISOR","declaration":"const HASH_INDEX_CAPACITY_RESERVE_DIVISOR: usize = 2;","before_lines":[11,11],"after_code_lines":[14,14],"audit":"为固定索引载荷增加一半余量；启发式容量保守项，不是上界。","documentation":{"decision":"no-addition","insertion_before_lines":[],"reason":"公式和旧说明足够；模块已明确非物理内存上界。"}},
+        {"name":"estimated_entry_bytes","declaration":"pub(super) fn estimated_entry_bytes(key: &ShapedRunCacheKey, run: &ShapedGlyphRun) -> usize {","before_lines":[13,70],"after_code_lines":[22,79],"audit":"借用同条目的拥有键与成形产物，返回饱和字节估计。按Vec/String容量、共享源长度、features长度、receipt及固定头/索引余量计账；报告也暴露此值，不只供trim。跨条目共享不能保证只计一次。","documentation":{"decision":"added-specific-contract","insertion_before_lines":[13],"reason":"补充参数/返回、计账用途与启发式边界，原英文说明保留。"}},
+        {"name":"arc_allocation_header_bytes","declaration":"const fn arc_allocation_header_bytes() -> usize {","before_lines":[72,75],"after_code_lines":[81,84],"audit":"返回两usize的Arc引用计数头估计；保留旧英文说明，非平台分配器布局承诺。","documentation":{"decision":"no-addition","insertion_before_lines":[],"reason":"公式和旧说明足够；模块已明确非物理内存上界。"}},
+        {"name":"cache_index_resident_bytes","declaration":"const fn cache_index_resident_bytes() -> usize {","before_lines":[77,92],"after_code_lines":[86,101],"audit":"估算slot/node及双桶键/位置等固定载荷并加50%余量；无实际HashMap容量测量。","documentation":{"decision":"no-addition","insertion_before_lines":[],"reason":"公式和旧说明足够；模块已明确非物理内存上界。"}}
+      ],
+      "block_audit": [
+        {"name":"imports_fixed_model","before_lines":[1,12],"after_code_lines":[4,15],"entry":"估算模块被主源调用。","effect":"导入类型并定义Arc头份数/余量除数。","control_points":[{"before_lines":[10,11],"after_code_lines":[13,14],"audit":"启发式常量，无运行期配置。"}]},
+        {"name":"glyph_capacities","before_lines":[13,22],"after_code_lines":[22,31],"entry":"键与run借用传入。","effect":"按每条line.glyphs.capacity计glyph载荷，保留原英文的共享源说明。","control_points":[{"before_lines":[16,22],"after_code_lines":[25,31],"audit":"遍历行容量并饱和求和。"}]},
+        {"name":"optional_dynamic_capacities","before_lines":[23,44],"after_code_lines":[32,53],"entry":"各动态字段存在或缺省。","effect":"字体/语言String容量、raw metrics/span容量及可选composition receipt容量被计入。","control_points":[{"before_lines":[23,33],"after_code_lines":[32,42],"audit":"各容器容量。"},{"before_lines":[34,44],"after_code_lines":[43,53],"audit":"None为0，Some计receipt与alternate_ranges容量。"}]},
+        {"name":"saturating_entry_total","before_lines":[45,70],"after_code_lines":[54,79],"entry":"动态载荷估计已得到。","effect":"饱和累加内联entry/run、行容量、字符串余量、features长度、每条目源长度、Arc头和索引估计；并非全局共享唯一计量。","control_points":[{"before_lines":[46,69],"after_code_lines":[55,78],"audit":"每一size_of/capacity/len加项保留。"}]},
+        {"name":"arc_header_estimate","before_lines":[71,76],"after_code_lines":[80,85],"entry":"需要固定Arc头估计。","effect":"两usize计数头作为模型，旧英文注释保留。","control_points":[{"before_lines":[72,75],"after_code_lines":[81,84],"audit":"const计算，无分配。"}]},
+        {"name":"index_reserve_estimate","before_lines":[77,92],"after_code_lines":[86,101],"entry":"需要索引固定载荷。","effect":"内联结构size之和加一半余量；不查询实际HashMap/allocator状态。","control_points":[{"before_lines":[78,86],"after_code_lines":[87,95],"audit":"固定类型组成。"},{"before_lines":[87,91],"after_code_lines":[96,100],"audit":"旧容量余量说明及饱和加法。"}]}
+      ],
+      "attributes": [],
+      "review_basis": {
+        "original_complete_lines": [
+          1,
+          92
+        ],
+        "physical_line_basis": "LF-only file; terminal LF included in count",
+        "manual_read_receipts": [
+          "D"
+        ],
+        "locator_limitation": "声明/成员词法索引仅用于校对定位；对象与语义分区来自逐段人工审读，不宣称AST穷尽。"
+      }
+    },
+    {
+      "path": "zircon_runtime/src/text/cache/shaped_cache/tests/cases.rs",
+      "before_sha256": "6965d6c60f621e7eba06d71b3a3167c9d414d04cf956e1c5564086445785082c",
+      "after_sha256": "26b9093be112f009a6c3ed58bbf993083f4650b5da2786cbf3fddc8ec1f767fc",
+      "before_bytes": 20907,
+      "after_bytes": 21566,
+      "before_LF": 610,
+      "after_LF": 618,
+      "before_CRLF": 0,
+      "after_CRLF": 0,
+      "BOM": false,
+      "inverse_sha256": "6965d6c60f621e7eba06d71b3a3167c9d414d04cf956e1c5564086445785082c",
+      "raw_HEAD_sha256": "6965d6c60f621e7eba06d71b3a3167c9d414d04cf956e1c5564086445785082c",
+      "insertions": [
+        {"before_offset":0,"before_line":1,"length":274,"sha256":"e036bc9e478598335ac4eeffea1ad2eb2be8aaee542bcfe92e963a4cc437acc6","LF":4,"exact_text":"//! 成形缓存的身份、方向复用、槽删除和估算体积契约夹具。\n//! 共享产物由本模块手工组装，不调用真实字体整形后端或测量分配器。\n//! 一项测试只检查原始源码文本，不能替代运行行为与复杂度证明。\n\n","after_offset":0,"after_line":1},
+        {"before_offset":9684,"before_line":290,"length":97,"sha256":"5d70525346e4890dbc11f752a7a3493003227e0302e1fa4a9e1de4ac26905b3a","LF":1,"exact_text":"// 这里只断言估算高于给定载荷下界，未逐项验证共享原文的精确计次。\n","after_offset":9958,"after_line":294},
+        {"before_offset":12578,"before_line":373,"length":94,"sha256":"d094f3e202dc449bcdb064fc5cc79b8cac89edf81172ad5a75132c6c3b095914","LF":1,"exact_text":"// 预留容量及回执增量的下界夹具，不是实际堆分配或驻留内存测量。\n","after_offset":12949,"after_line":378},
+        {"before_offset":18989,"before_line":564,"length":85,"sha256":"70ae3310fb6c423d1c0a33493789e419d8ddfb8a0bdac53ae7862af91abca84e","LF":1,"exact_text":"// 人为碰撞特征指纹后直接比较键，不执行完整缓存查询路径。\n","after_offset":19454,"after_line":570},
+        {"before_offset":20209,"before_line":593,"length":109,"sha256":"6b20aae02437b0dbf0f56a87083c67b0d7bc3c9c003b183c0d54952c52f21ffb","LF":1,"exact_text":"// 使用最小拥有式产物隔离缓存逻辑，不以夹具中的空字形行代表真实整形结果。\n","after_offset":20759,"after_line":600}
+      ],
+      "objects": [
+        {"name":"test_imports","before_lines":[1,7],"after_code_lines":[5,11],"audit":"super::*导入私有缓存实现并借用文本样式/Unicode测试helper；不注册生产组件。","documentation":{"decision":"added-module-contract","insertion_before_lines":[1],"reason":"解释合成DTO、计账下界和静态原文断言的证明范围。"}},
+        {"name":"shaped_run_cache_identity_includes_the_font_collection","declaration":"fn shaped_run_cache_identity_includes_the_font_collection() {","before_lines":[10,35],"after_code_lines":[14,39],"audit":"相同请求/不同合成collection handle与同代次构建查询键；无需真实字体库。 只证明给定合成句柄身份隔离，不测资源生命周期。","documentation":{"decision":"no-addition","insertion_before_lines":[],"reason":"模块说明、fixture及断言已清楚；不为每个测试机械加doc。"},"test_attribute":{"before_line":9,"after_line":13,"kind":"normal #[test]"}},
+        {"name":"direction_alias_exact_compare_rejects_foreign_collection_and_unicode_snapshot","declaration":"fn direction_alias_exact_compare_rejects_foreign_collection_and_unicode_snapshot() {","before_lines":[38,75],"after_code_lines":[42,79],"audit":"以相同文本和代次比较foreign collection及不同Unicode snapshot。 直接调用内部比较器，不是完整缓存查找/真实代次切换。","documentation":{"decision":"no-addition","insertion_before_lines":[],"reason":"模块说明、fixture及断言已清楚；不为每个测试机械加doc。"},"test_attribute":{"before_line":37,"after_line":41,"kind":"normal #[test]"}},
+        {"name":"shaped_run_cache_reuses_single_paragraph_auto_result_for_resolved_ltr","declaration":"fn shaped_run_cache_reuses_single_paragraph_auto_result_for_resolved_ltr() {","before_lines":[78,97],"after_code_lines":[82,101],"audit":"Auto请求和LTR请求相同单段文本，插入合成resolved LTR run。 合成run无真实成形；只检这一Auto→LTR路径。","documentation":{"decision":"no-addition","insertion_before_lines":[],"reason":"模块说明、fixture及断言已清楚；不为每个测试机械加doc。"},"test_attribute":{"before_line":77,"after_line":81,"kind":"normal #[test]"}},
+        {"name":"shaped_run_cache_uses_request_level_canonical_language_identity","declaration":"fn shaped_run_cache_uses_request_level_canonical_language_identity() {","before_lines":[100,136],"after_code_lines":[104,140],"audit":"两style语言形态先显式canonicalized。 不证明cache构造器主动规范化；其debug前提由caller满足。","documentation":{"decision":"no-addition","insertion_before_lines":[],"reason":"模块说明、fixture及断言已清楚；不为每个测试机械加doc。"},"test_attribute":{"before_line":99,"after_line":103,"kind":"normal #[test]"}},
+        {"name":"shaped_run_cache_separates_italic_and_inherits_style_features","declaration":"fn shaped_run_cache_separates_italic_and_inherits_style_features() {","before_lines":[139,176],"after_code_lines":[143,180],"audit":"构造普通与斜体+style features请求并规范化。 仅特定style输入，不穷尽所有OpenType排列。","documentation":{"decision":"no-addition","insertion_before_lines":[],"reason":"模块说明、fixture及断言已清楚；不为每个测试机械加doc。"},"test_attribute":{"before_line":138,"after_line":142,"kind":"normal #[test]"}},
+        {"name":"shaped_run_cache_separates_font_assets_that_share_a_typeface_name","declaration":"fn shaped_run_cache_separates_font_assets_that_share_a_typeface_name() {","before_lines":[179,228],"after_code_lines":[183,232],"audit":"同字体族、不同非空资源字符串及带空白资源字符串。 不读取字体文件，不证明资源解析或存在。","documentation":{"decision":"no-addition","insertion_before_lines":[],"reason":"模块说明、fixture及断言已清楚；不为每个测试机械加doc。"},"test_attribute":{"before_line":178,"after_line":182,"kind":"normal #[test]"}},
+        {"name":"shaped_run_cache_separates_unicode_data_generations","declaration":"fn shaped_run_cache_separates_unicode_data_generations() {","before_lines":[231,256],"after_code_lines":[235,260],"audit":"当前与下一Unicode snapshot的请求/合成run。 不触发真实字体热切换、并发或数据库代次更新。","documentation":{"decision":"no-addition","insertion_before_lines":[],"reason":"模块说明、fixture及断言已清楚；不为每个测试机械加doc。"},"test_attribute":{"before_line":230,"after_line":234,"kind":"normal #[test]"}},
+        {"name":"shaped_run_cache_does_not_alias_multi_paragraph_auto_with_forced_direction","declaration":"fn shaped_run_cache_does_not_alias_multi_paragraph_auto_with_forced_direction() {","before_lines":[259,288],"after_code_lines":[263,292],"audit":"循环7种分隔符，Auto缓存与强制方向请求。 生产检查8种，fixture未包括U+2028；不宣称全部分隔符逐项实测。","documentation":{"decision":"no-addition","insertion_before_lines":[],"reason":"模块说明、fixture及断言已清楚；不为每个测试机械加doc。"},"test_attribute":{"before_line":258,"after_line":262,"kind":"normal #[test]"}},
+        {"name":"shaped_run_cache_estimate_counts_the_shared_source_once","declaration":"fn shaped_run_cache_estimate_counts_the_shared_source_once() {","before_lines":[291,310],"after_code_lines":[296,315],"audit":"构造源和run并计算只含部分payload的floor。 测试名counts_shared_source_once不等于精确共享一次证明；未测allocator。","documentation":{"decision":"added-specific-contract","insertion_before_lines":[290],"reason":"在易被测试名误解的位置说明实际断言边界。"},"test_attribute":{"before_line":290,"after_line":295,"kind":"normal #[test]"}},
+        {"name":"shaped_run_cache_bucket_removal_does_not_scan_candidates","declaration":"fn shaped_run_cache_bucket_removal_does_not_scan_candidates() {","before_lines":[313,321],"after_code_lines":[318,326],"audit":"include_str!读取主源，concat!组装禁用needle。 仅原文结构约束，不证明复杂度或执行删除。","documentation":{"decision":"no-addition","insertion_before_lines":[],"reason":"模块说明、fixture及断言已清楚；不为每个测试机械加doc。"},"test_attribute":{"before_line":312,"after_line":317,"kind":"normal #[test]"}},
+        {"name":"shaped_run_cache_keeps_a_surviving_exact_lookup_candidate_after_eviction","declaration":"fn shaped_run_cache_keeps_a_surviving_exact_lookup_candidate_after_eviction() {","before_lines":[324,371],"after_code_lines":[329,376],"audit":"手动令第二key.features_hash等于第一，容量2插入三项并逐出。 此fixture执行完整get分桶/淘汰路径；不构造任意正文hash碰撞。","documentation":{"decision":"no-addition","insertion_before_lines":[],"reason":"模块说明、fixture及断言已清楚；不为每个测试机械加doc。"},"test_attribute":{"before_line":323,"after_line":328,"kind":"normal #[test]"}},
+        {"name":"shaped_run_cache_estimate_accounts_for_capacity_key_and_index_residency","declaration":"fn shaped_run_cache_estimate_accounts_for_capacity_key_and_index_residency() {","before_lines":[374,509],"after_code_lines":[380,515],"audit":"预留glyph/line等容量、具体metrics/span/成形DTO，然后追加失败receipt。 两个下界/增量断言，不是allocator精度或驻留物理上界。","documentation":{"decision":"added-specific-contract","insertion_before_lines":[373],"reason":"在易被测试名误解的位置说明实际断言边界。"},"test_attribute":{"before_line":373,"after_line":379,"kind":"normal #[test]"}},
+        {"name":"shaped_run_cache_preserves_forced_direction_and_vertical_mode_boundaries","declaration":"fn shaped_run_cache_preserves_forced_direction_and_vertical_mode_boundaries() {","before_lines":[512,562],"after_code_lines":[518,568],"audit":"Mixed/Upright缓存resolved LTR，与显式LTR、强制RTL、Sideways请求比较。 有限合成方向/模式组合，不是双向任意复用保证。","documentation":{"decision":"no-addition","insertion_before_lines":[],"reason":"模块说明、fixture及断言已清楚；不为每个测试机械加doc。"},"test_attribute":{"before_line":511,"after_line":517,"kind":"normal #[test]"}},
+        {"name":"shaped_run_cache_exact_match_rejects_a_feature_hash_collision","declaration":"fn shaped_run_cache_exact_match_rejects_a_feature_hash_collision() {","before_lines":[565,591],"after_code_lines":[572,598],"audit":"将借用键features_hash伪装为另一请求的hash。 直接比较方法，不是完整get哈希碰撞执行。","documentation":{"decision":"added-specific-contract","insertion_before_lines":[564],"reason":"在易被测试名误解的位置说明实际断言边界。"},"test_attribute":{"before_line":564,"after_line":571,"kind":"normal #[test]"}},
+        {"name":"cached_run","declaration":"fn cached_run(request: &BackendShapeRequest<'_>, direction: TextDirection) -> ShapedGlyphRun {","before_lines":[593,610],"after_code_lines":[601,618],"audit":"参数为借用request和指定解析方向；复制源为Arc、保存范围/snapshot/方向等身份并创建空glyph/line/metrics载荷，尺寸占位为1；返回合成ShapedGlyphRun，不调用backend。","documentation":{"decision":"added-specific-contract","insertion_before_lines":[593],"reason":"明确夹具是合成空载荷，防止把缓存契约当真实成形验证。"}}
+      ],
+      "test_contracts": [
+        {"name":"shaped_run_cache_identity_includes_the_font_collection","before_lines":[10,35],"after_code_lines":[14,39],"fixture":"相同请求/不同合成collection handle与同代次构建查询键；无需真实字体库。","assertions":[{"before_lines":[33,33],"after_code_lines":[37,37],"operator":"assert_ne","proves":"两collection的exact_fingerprint不同。"},{"before_lines":[34,34],"after_code_lines":[38,38],"operator":"assert_not","proves":"完整拥有/借用身份不匹配。"}],"does_not_prove":"只证明给定合成句柄身份隔离，不测资源生命周期。","execution":"not-run"},
+        {"name":"direction_alias_exact_compare_rejects_foreign_collection_and_unicode_snapshot","before_lines":[38,75],"after_code_lines":[42,79],"fixture":"以相同文本和代次比较foreign collection及不同Unicode snapshot。","assertions":[{"before_lines":[73,73],"after_code_lines":[77,77],"operator":"assert_not","proves":"除方向判等拒绝不同collection。"},{"before_lines":[74,74],"after_code_lines":[78,78],"operator":"assert_not","proves":"除方向判等拒绝不同Unicode snapshot。"}],"does_not_prove":"直接调用内部比较器，不是完整缓存查找/真实代次切换。","execution":"not-run"},
+        {"name":"shaped_run_cache_reuses_single_paragraph_auto_result_for_resolved_ltr","before_lines":[78,97],"after_code_lines":[82,101],"fixture":"Auto请求和LTR请求相同单段文本，插入合成resolved LTR run。","assertions":[{"before_lines":[92,92],"after_code_lines":[96,96],"operator":"assert_none","proves":"首次get未命中。"},{"before_lines":[94,94],"after_code_lines":[98,98],"operator":"assert_some","proves":"方向别名get命中。"},{"before_lines":[95,95],"after_code_lines":[99,99],"operator":"assert_eq","proves":"miss_count=1。"},{"before_lines":[96,96],"after_code_lines":[100,100],"operator":"assert_eq","proves":"hit_count=1。"}],"does_not_prove":"合成run无真实成形；只检这一Auto→LTR路径。","execution":"not-run"},
+        {"name":"shaped_run_cache_uses_request_level_canonical_language_identity","before_lines":[100,136],"after_code_lines":[104,140],"fixture":"两style语言形态先显式canonicalized。","assertions":[{"before_lines":[131,131],"after_code_lines":[135,135],"operator":"assert_eq","proves":"首请求语言规范为zh-Hans-CN。"},{"before_lines":[132,135],"after_code_lines":[136,139],"operator":"assert_eq","proves":"两规范请求构造的拥有键相等。"}],"does_not_prove":"不证明cache构造器主动规范化；其debug前提由caller满足。","execution":"not-run"},
+        {"name":"shaped_run_cache_separates_italic_and_inherits_style_features","before_lines":[139,176],"after_code_lines":[143,180],"fixture":"构造普通与斜体+style features请求并规范化。","assertions":[{"before_lines":[165,168],"after_code_lines":[169,172],"operator":"assert_ne","proves":"斜体/特性变化区分键。"},{"before_lines":[169,175],"after_code_lines":[173,179],"operator":"assert_eq","proves":"实际继承features序列为liga=0、ss01=1。"}],"does_not_prove":"仅特定style输入，不穷尽所有OpenType排列。","execution":"not-run"},
+        {"name":"shaped_run_cache_separates_font_assets_that_share_a_typeface_name","before_lines":[179,228],"after_code_lines":[183,232],"fixture":"同字体族、不同非空资源字符串及带空白资源字符串。","assertions":[{"before_lines":[219,222],"after_code_lines":[223,226],"operator":"assert_ne","proves":"不同资源身份区分键。"},{"before_lines":[223,227],"after_code_lines":[227,231],"operator":"assert_ne","proves":"资源外侧空白不被键层trim。"}],"does_not_prove":"不读取字体文件，不证明资源解析或存在。","execution":"not-run"},
+        {"name":"shaped_run_cache_separates_unicode_data_generations","before_lines":[231,256],"after_code_lines":[235,260],"fixture":"当前与下一Unicode snapshot的请求/合成run。","assertions":[{"before_lines":[248,251],"after_code_lines":[252,255],"operator":"assert_ne","proves":"不同Unicode快照区分拥有键。"},{"before_lines":[252,255],"after_code_lines":[256,259],"operator":"assert_eq","proves":"合成run保留传入snapshot。"}],"does_not_prove":"不触发真实字体热切换、并发或数据库代次更新。","execution":"not-run"},
+        {"name":"shaped_run_cache_does_not_alias_multi_paragraph_auto_with_forced_direction","before_lines":[259,288],"after_code_lines":[263,292],"fixture":"循环7种分隔符，Auto缓存与强制方向请求。","assertions":[{"before_lines":[282,286],"after_code_lines":[286,290],"operator":"assert_none","proves":"每个fixture不走方向别名命中。"}],"does_not_prove":"生产检查8种，fixture未包括U+2028；不宣称全部分隔符逐项实测。","execution":"not-run"},
+        {"name":"shaped_run_cache_estimate_counts_the_shared_source_once","before_lines":[291,310],"after_code_lines":[296,315],"fixture":"构造源和run并计算只含部分payload的floor。","assertions":[{"before_lines":[309,309],"after_code_lines":[314,314],"operator":"assert_gt","proves":"估算大于给定payload_floor。"}],"does_not_prove":"测试名counts_shared_source_once不等于精确共享一次证明；未测allocator。","execution":"not-run"},
+        {"name":"shaped_run_cache_bucket_removal_does_not_scan_candidates","before_lines":[313,321],"after_code_lines":[318,326],"fixture":"include_str!读取主源，concat!组装禁用needle。","assertions":[{"before_lines":[317,320],"after_code_lines":[322,325],"operator":"assert_not_contains","proves":"原始主源不含candidates.iter().position。"}],"does_not_prove":"仅原文结构约束，不证明复杂度或执行删除。","execution":"not-run"},
+        {"name":"shaped_run_cache_keeps_a_surviving_exact_lookup_candidate_after_eviction","before_lines":[324,371],"after_code_lines":[329,376],"fixture":"手动令第二key.features_hash等于第一，容量2插入三项并逐出。","assertions":[{"before_lines":[370,370],"after_code_lines":[375,375],"operator":"assert_some","proves":"幸存第二候选仍可get。"}],"does_not_prove":"此fixture执行完整get分桶/淘汰路径；不构造任意正文hash碰撞。","execution":"not-run"},
+        {"name":"shaped_run_cache_estimate_accounts_for_capacity_key_and_index_residency","before_lines":[374,509],"after_code_lines":[380,515],"fixture":"预留glyph/line等容量、具体metrics/span/成形DTO，然后追加失败receipt。","assertions":[{"before_lines":[485,485],"after_code_lines":[491,491],"operator":"assert_gt","proves":"无receipt估算大于该容量floor。"},{"before_lines":[505,508],"after_code_lines":[511,514],"operator":"assert_ge","proves":"加receipt后的增量至少含receipt及alternate range容量项。"}],"does_not_prove":"两个下界/增量断言，不是allocator精度或驻留物理上界。","execution":"not-run"},
+        {"name":"shaped_run_cache_preserves_forced_direction_and_vertical_mode_boundaries","before_lines":[512,562],"after_code_lines":[518,568],"fixture":"Mixed/Upright缓存resolved LTR，与显式LTR、强制RTL、Sideways请求比较。","assertions":[{"before_lines":[553,555],"after_code_lines":[559,561],"operator":"assert_some","proves":"允许的LTR别名命中。"},{"before_lines":[556,558],"after_code_lines":[562,564],"operator":"assert_none","proves":"强制RTL不命中。"},{"before_lines":[559,561],"after_code_lines":[565,567],"operator":"assert_none","proves":"竖排模式改变不命中。"}],"does_not_prove":"有限合成方向/模式组合，不是双向任意复用保证。","execution":"not-run"},
+        {"name":"shaped_run_cache_exact_match_rejects_a_feature_hash_collision","before_lines":[565,591],"after_code_lines":[572,598],"fixture":"将借用键features_hash伪装为另一请求的hash。","assertions":[{"before_lines":[590,590],"after_code_lines":[597,597],"operator":"assert_not","proves":"matches_lookup仍凭真实features拒绝。"}],"does_not_prove":"直接比较方法，不是完整get哈希碰撞执行。","execution":"not-run"}
+      ],
+      "block_audit": [
+        {"name":"test_imports","before_lines":[1,8],"after_code_lines":[5,12],"entry":"测试模块编译。","effect":"导入fixture依赖，不执行生产注册。","control_points":[]},
+        {"name":"collection_identity","before_lines":[9,36],"after_code_lines":[13,40],"entry":"相同请求/不同合成collection handle与同代次构建查询键；无需真实字体库。","effect":"只证明给定合成句柄身份隔离，不测资源生命周期。","control_points":[{"before_lines":[33,33],"after_code_lines":[37,37],"audit":"两collection的exact_fingerprint不同。"},{"before_lines":[34,34],"after_code_lines":[38,38],"audit":"完整拥有/借用身份不匹配。"}]},
+        {"name":"alias_collection_unicode","before_lines":[37,76],"after_code_lines":[41,80],"entry":"以相同文本和代次比较foreign collection及不同Unicode snapshot。","effect":"直接调用内部比较器，不是完整缓存查找/真实代次切换。","control_points":[{"before_lines":[73,73],"after_code_lines":[77,77],"audit":"除方向判等拒绝不同collection。"},{"before_lines":[74,74],"after_code_lines":[78,78],"audit":"除方向判等拒绝不同Unicode snapshot。"}]},
+        {"name":"auto_to_ltr","before_lines":[77,98],"after_code_lines":[81,102],"entry":"Auto请求和LTR请求相同单段文本，插入合成resolved LTR run。","effect":"合成run无真实成形；只检这一Auto→LTR路径。","control_points":[{"before_lines":[92,92],"after_code_lines":[96,96],"audit":"首次get未命中。"},{"before_lines":[94,94],"after_code_lines":[98,98],"audit":"方向别名get命中。"},{"before_lines":[95,95],"after_code_lines":[99,99],"audit":"miss_count=1。"},{"before_lines":[96,96],"after_code_lines":[100,100],"audit":"hit_count=1。"}]},
+        {"name":"canonical_language","before_lines":[99,137],"after_code_lines":[103,141],"entry":"两style语言形态先显式canonicalized。","effect":"不证明cache构造器主动规范化；其debug前提由caller满足。","control_points":[{"before_lines":[131,131],"after_code_lines":[135,135],"audit":"首请求语言规范为zh-Hans-CN。"},{"before_lines":[132,135],"after_code_lines":[136,139],"audit":"两规范请求构造的拥有键相等。"}]},
+        {"name":"italic_inherited_features","before_lines":[138,177],"after_code_lines":[142,181],"entry":"构造普通与斜体+style features请求并规范化。","effect":"仅特定style输入，不穷尽所有OpenType排列。","control_points":[{"before_lines":[165,168],"after_code_lines":[169,172],"audit":"斜体/特性变化区分键。"},{"before_lines":[169,175],"after_code_lines":[173,179],"audit":"实际继承features序列为liga=0、ss01=1。"}]},
+        {"name":"font_asset_identity","before_lines":[178,229],"after_code_lines":[182,233],"entry":"同字体族、不同非空资源字符串及带空白资源字符串。","effect":"不读取字体文件，不证明资源解析或存在。","control_points":[{"before_lines":[219,222],"after_code_lines":[223,226],"audit":"不同资源身份区分键。"},{"before_lines":[223,227],"after_code_lines":[227,231],"audit":"资源外侧空白不被键层trim。"}]},
+        {"name":"unicode_generation","before_lines":[230,257],"after_code_lines":[234,261],"entry":"当前与下一Unicode snapshot的请求/合成run。","effect":"不触发真实字体热切换、并发或数据库代次更新。","control_points":[{"before_lines":[248,251],"after_code_lines":[252,255],"audit":"不同Unicode快照区分拥有键。"},{"before_lines":[252,255],"after_code_lines":[256,259],"audit":"合成run保留传入snapshot。"}]},
+        {"name":"multi_paragraph","before_lines":[258,289],"after_code_lines":[262,293],"entry":"循环7种分隔符，Auto缓存与强制方向请求。","effect":"生产检查8种，fixture未包括U+2028；不宣称全部分隔符逐项实测。","control_points":[{"before_lines":[282,286],"after_code_lines":[286,290],"audit":"每个fixture不走方向别名命中。"}]},
+        {"name":"estimate_source_floor","before_lines":[290,311],"after_code_lines":[295,316],"entry":"构造源和run并计算只含部分payload的floor。","effect":"测试名counts_shared_source_once不等于精确共享一次证明；未测allocator。","control_points":[{"before_lines":[309,309],"after_code_lines":[314,314],"audit":"估算大于给定payload_floor。"}]},
+        {"name":"bucket_source_guard","before_lines":[312,322],"after_code_lines":[317,327],"entry":"include_str!读取主源，concat!组装禁用needle。","effect":"仅原文结构约束，不证明复杂度或执行删除。","control_points":[{"before_lines":[317,320],"after_code_lines":[322,325],"audit":"原始主源不含candidates.iter().position。"}]},
+        {"name":"surviving_collision_slot","before_lines":[323,372],"after_code_lines":[328,377],"entry":"手动令第二key.features_hash等于第一，容量2插入三项并逐出。","effect":"此fixture执行完整get分桶/淘汰路径；不构造任意正文hash碰撞。","control_points":[{"before_lines":[370,370],"after_code_lines":[375,375],"audit":"幸存第二候选仍可get。"}]},
+        {"name":"capacity_receipt_floor","before_lines":[373,510],"after_code_lines":[379,516],"entry":"预留glyph/line等容量、具体metrics/span/成形DTO，然后追加失败receipt。","effect":"两个下界/增量断言，不是allocator精度或驻留物理上界。","control_points":[{"before_lines":[485,485],"after_code_lines":[491,491],"audit":"无receipt估算大于该容量floor。"},{"before_lines":[505,508],"after_code_lines":[511,514],"audit":"加receipt后的增量至少含receipt及alternate range容量项。"}]},
+        {"name":"forced_vertical_boundaries","before_lines":[511,563],"after_code_lines":[517,569],"entry":"Mixed/Upright缓存resolved LTR，与显式LTR、强制RTL、Sideways请求比较。","effect":"有限合成方向/模式组合，不是双向任意复用保证。","control_points":[{"before_lines":[553,555],"after_code_lines":[559,561],"audit":"允许的LTR别名命中。"},{"before_lines":[556,558],"after_code_lines":[562,564],"audit":"强制RTL不命中。"},{"before_lines":[559,561],"after_code_lines":[565,567],"audit":"竖排模式改变不命中。"}]},
+        {"name":"feature_hash_payload_check","before_lines":[564,592],"after_code_lines":[571,599],"entry":"将借用键features_hash伪装为另一请求的hash。","effect":"直接比较方法，不是完整get哈希碰撞执行。","control_points":[{"before_lines":[590,590],"after_code_lines":[597,597],"audit":"matches_lookup仍凭真实features拒绝。"}]},
+        {"name":"synthetic_cached_run","before_lines":[593,610],"after_code_lines":[601,618],"entry":"测试提供request和resolved direction。","effect":"只组装拥有合成DTO，借用结束后源Arc仍由返回值持有。","control_points":[{"before_lines":[595,609],"after_code_lines":[603,617],"audit":"字段初始化与空容器，无backend调用。"}]}
+      ],
+      "attributes": [
+        {"line":9,"text":"#[test]"},
+        {"line":37,"text":"#[test]"},
+        {"line":77,"text":"#[test]"},
+        {"line":99,"text":"#[test]"},
+        {"line":138,"text":"#[test]"},
+        {"line":178,"text":"#[test]"},
+        {"line":230,"text":"#[test]"},
+        {"line":258,"text":"#[test]"},
+        {"line":290,"text":"#[test]"},
+        {"line":312,"text":"#[test]"},
+        {"line":323,"text":"#[test]"},
+        {"line":373,"text":"#[test]"},
+        {"line":511,"text":"#[test]"},
+        {"line":564,"text":"#[test]"}
+      ],
+      "review_basis": {
+        "original_complete_lines": [
+          1,
+          610
+        ],
+        "physical_line_basis": "LF-only file; terminal LF included in count",
+        "manual_read_receipts": [
+          "E",
+          "F"
+        ],
+        "locator_limitation": "声明/成员词法索引仅用于校对定位；对象与语义分区来自逐段人工审读，不宣称AST穷尽。"
+      }
+    }
+  ],
+  "context_files": [
+    {"id":"cache_mod","path":"zircon_runtime/src/text/cache/mod.rs","sha256":"09f7e9f0630575eaf2c10a7a90d7c437eb0068f4bfe978f6e809e4369c4784c5","bytes":1284,"LF":40,"read_spans":[[1,40]],"evidence":"主源实际mount15–16；reexports37–40；R091 shared tests18–20只读。","ownership":"context-only; no source coverage/write claim"},
+    {"id":"text_mod","path":"zircon_runtime/src/text/mod.rs","sha256":"38aef7102fa2a7850d4b7b2b8d644400ef0bb9e01cb5222cefbd642694201157","bytes":7193,"LF":170,"read_spans":[[35,43]],"evidence":"cache模块入口40–41。","ownership":"context-only; no source coverage/write claim"},
+    {"id":"session","path":"zircon_runtime/src/text/layout_session.rs","sha256":"43986fbac9bd3854e0cb45f9f706b5391066d68c72284f26ac71532fb3fbc858","bytes":28701,"LF":705,"read_spans":[[200,220],[225,247],[246,310],[484,560]],"evidence":"SharedTextLayoutSession实际构造/帧生命周期/报告及规范化→查询→Ready代次检查→插入。","ownership":"context-only; no source coverage/write claim"},
+    {"id":"pool","path":"zircon_runtime/src/text/parallel/shape_pool.rs","sha256":"e43f795564db3a1bab8226845c95162ae379a7ad6e05c5f634cba965869a6e06","bytes":18455,"LF":532,"read_spans":[[210,330],[485,532]],"evidence":"Pending job先指纹后完整身份/文本核；cache miss才拥有键；Ready插入前外部代次门。","ownership":"context-only; no source coverage/write claim"},
+    {"id":"outcome_guard","path":"zircon_runtime/src/text/shaping/tests/outcome.rs","sha256":"78661a0b067db2bb4b38c5787a38905b56870f5bb4cd8c1a6ce5292bb9b43c03","bytes":3296,"LF":81,"read_spans":[[1,75]],"evidence":"8–21 include_str循环扫描model/shaped_run与memory，18–19两个not contains；其余不计正式覆盖。","ownership":"context-only; no source coverage/write claim"},
+    {"id":"request_dto","path":"zircon_runtime/src/text/model/shaped_run.rs","sha256":"9b5a75ad0c2b0d29ec500fcd6e50c0bd8927d32e53820106c1d9cc90b2399b44","bytes":24808,"LF":758,"read_spans":[[469,510],[640,666]],"evidence":"借用请求/拥有规范形包装、canonical标志getter与重建；仅这些段语义审读，原文件字节另供guard计数。","ownership":"context-only; no source coverage/write claim"},
+    {"id":"index","path":"zircon_runtime/src/text/cache/index.rs","sha256":"b74a2bab18bd4b8c5094324a431d67ad542102e827974fd48f8f39d4cd0d527f","bytes":16708,"LF":415,"read_spans":[[11,11],[32,35],[106,113],[120,159],[249,255],[276,292]],"evidence":"IndexedTextCacheEntry稳定key借用、候选枚举与slot LRU/touch/pop合同；R088只读。","ownership":"context-only; no source coverage/write claim"},
+    {"id":"naming_test","path":"tools/tests/test_runtime_init_level_naming.py","sha256":"bacf0052ec0923fbf7678a4acee7e1e2e245e64ddae45fad4970a66bcc5b6015","bytes":12350,"LF":348,"read_spans":[[1,58],[60,88],[190,222]],"evidence":"导入命名审计器；77路径分类、201–213生产与cfg test样例；未执行Python测试。","ownership":"context-only; no source coverage/write claim"},
+    {"id":"naming_reader","path":".codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/runtime_naming_boundary.py","sha256":"bbf991fdfc3caf46478c0372d511d27e346803fec1add372e8a95ee17e19100a","bytes":36537,"LF":953,"read_spans":[[268,286],[289,408],[876,953]],"evidence":"原始UTF8 replace读取及全部Runtime rs递归域，raw splitlines正则命中后分类，不先剥注释；未跑全仓审计。","ownership":"context-only; no source coverage/write claim"}
+  ],
+  "call_edges": [
+    {"id":"C1","from":"cache_mod","from_lines":[15,16],"to":"R093-main","to_lines":[1,770],"kind":"mount","evidence":"cache/mod通过实际path挂载本主实现；本批正式覆盖仅三个源。","line_basis":"grant-before for R093-*; pinned context lines otherwise"},
+    {"id":"C2","from":"R093-main","from_lines":[18,21],"to":"R093-memory","to_lines":[13,70],"kind":"module/private-call","evidence":"主源导入memory::estimated_entry_bytes，insert_ready原520估算每条目。","line_basis":"grant-before for R093-*; pinned context lines otherwise"},
+    {"id":"C3","from":"R093-main","from_lines":[768,770],"to":"R093-tests","to_lines":[1,610],"kind":"test-mount","evidence":"cfg(test)+path挂载14 normal tests和helper；0执行。","line_basis":"grant-before for R093-*; pinned context lines otherwise"},
+    {"id":"C4","from":"session","from_lines":[210,213],"to":"R093-main","to_lines":[352,367],"kind":"production-construction","evidence":"会话构造时依配置创建成形缓存，不由缓存决定文档生命周期。","line_basis":"grant-before for R093-*; pinned context lines otherwise"},
+    {"id":"C5","from":"session","from_lines":[228,246],"to":"R093-main","to_lines":[369,397],"kind":"production-lifecycle","evidence":"begin/finish/clear驱动报告重置、限制整理或清缓存。","line_basis":"grant-before for R093-*; pinned context lines otherwise"},
+    {"id":"C6","from":"session","from_lines":[298,300],"to":"R093-main","to_lines":[411,416],"kind":"report-read","evidence":"报告暴露estimated_bytes等快照，故memory估算同时供计账和trim。","line_basis":"grant-before for R093-*; pinned context lines otherwise"},
+    {"id":"C7","from":"session","from_lines":[486,507],"to":"R093-main","to_lines":[161,192],"kind":"production-lookup","evidence":"请求先canonicalized，字体尺寸门后显式collection/gen lookup；cache hit后仍核外部generation。","line_basis":"grant-before for R093-*; pinned context lines otherwise"},
+    {"id":"C8","from":"session","from_lines":[511,535],"to":"R093-main","to_lines":[491,570],"kind":"production-miss/ready","evidence":"miss记工作并调用backend；Ready诊断后核tag==lookup==当前代次，才own key/insert_ready。","line_basis":"grant-before for R093-*; pinned context lines otherwise"},
+    {"id":"C9","from":"pool","from_lines":[283,325],"to":"R093-main","to_lines":[161,192],"kind":"production-lookup/owning","evidence":"按collection/gen建立借用键；pending精确核与缓存查询后才显式转拥有。","line_basis":"grant-before for R093-*; pinned context lines otherwise"},
+    {"id":"C10","from":"pool","from_lines":[492,527],"to":"R093-main","to_lines":[511,570],"kind":"production-ready","evidence":"Ready仅在key generation==tag==current时插入，其他为Deferred；此门不在insert_ready内。","line_basis":"grant-before for R093-*; pinned context lines otherwise"},
+    {"id":"C11","from":"index","from_lines":[32,35],"to":"R093-main","to_lines":[315,319],"kind":"trait","evidence":"通用索引借用entry key；R093 entry不在索引驻留时更改键。","line_basis":"grant-before for R093-*; pinned context lines otherwise"},
+    {"id":"C12","from":"R093-main","from_lines":[438,474],"to":"index","to_lines":[130,153],"kind":"generic-call","evidence":"find_in_slots按slot逐一调用匹配closure并计存在候选，跳过已无slot。","line_basis":"grant-before for R093-*; pinned context lines otherwise"},
+    {"id":"C13","from":"R093-main","from_lines":[485,488],"to":"index","to_lines":[249,255],"kind":"lru-call","evidence":"命中clone Arc后touch slot；外部Arc不依赖缓存驻留。","line_basis":"grant-before for R093-*; pinned context lines otherwise"},
+    {"id":"C14","from":"R093-main","from_lines":[586,600],"to":"index","to_lines":[276,292],"kind":"eviction-call","evidence":"pop_oldest移除头slot并返回工作计量，R093同步双桶/位置表。","line_basis":"grant-before for R093-*; pinned context lines otherwise"},
+    {"id":"C15","from":"request_dto","from_lines":[640,661],"to":"R093-main","to_lines":[166,167],"kind":"canonical-precondition","evidence":"请求重建可设置规范形标志，lookup只debug检查getter，未主动canonicalize。","line_basis":"grant-before for R093-*; pinned context lines otherwise"},
+    {"id":"C16","from":"R093-tests","from_lines":[314,320],"to":"R093-main","to_lines":[1,770],"kind":"raw-source-consumer","evidence":"include_str原始文本禁止线性position查找，结构静态约束不等实际复杂度测量。","line_basis":"grant-before for R093-*; pinned context lines otherwise"},
+    {"id":"C17","from":"outcome_guard","from_lines":[8,21],"to":"R093-memory","to_lines":[1,92],"kind":"raw-source-consumer","evidence":"两种禁止名称对memory原始文本与另一个model输入分别not contains。","line_basis":"grant-before for R093-*; pinned context lines otherwise"},
+    {"id":"C18","from":"naming_reader","from_lines":[876,915],"to":"R093-main","to_lines":[1,770],"kind":"raw-regex-consumer","evidence":"含注释的原始行先regex再cfg/path分类；本批只比较相同原tokens及新增0。","line_basis":"grant-before for R093-*; pinned context lines otherwise"}
+  ],
+  "traits_macros_registration_ffi": {
+    "traits": [
+      {
+        "name": "Hash for ShapedRunCacheKey",
+        "before_lines": [
+          262,
+          285
+        ],
+        "contract": "与派生Eq身份对应，真实features载荷也参与Hash。"
+      },
+      {
+        "name": "IndexedTextCacheEntry<ShapedRunCacheKey> for ShapedRunCacheEntry",
+        "before_lines": [
+          315,
+          319
+        ],
+        "contract": "稳定entry.key借用供slot/LRU索引。"
+      },
+      {
+        "name": "Default for ShapedRunCache",
+        "before_lines": [
+          334,
+          338
+        ],
+        "contract": "委派命名默认构造。"
+      }
+    ],
+    "attributes": "每file attributes是原文精确清单；内建derive输入不变，无本地proc-macro定义。",
+    "macro_contracts": "原debug_assert/debug_assert_eq、include_str/concat、assert等调用字节均由inverse证明保留；未以新增注释满足needle。",
+    "serde": "正式3源没有Serde实现或Serde派生入口。",
+    "dynamic_registration": "本3源无动态组件/反射注册入口；实际生产消费者是直接Rust调用，未据局部读取声称全仓无注册。",
+    "ffi_unsafe": "本3源无extern/unsafe ABI入口；字体集合/Unicode代次有效性由外部session/pool路径管理，缓存身份不是外部资源锁。"
+  },
+  "raw_source_consumers": {
+    "literal_predicates": [
+      {
+        "input": "zircon_runtime/src/text/cache/shaped_cache.rs",
+        "needle": "candidates.iter().position",
+        "operator": "not contains",
+        "before_count": 0,
+        "current_count": 0,
+        "new_count": 0
+      },
+      {
+        "input": "zircon_runtime/src/text/cache/shaped_cache/memory.rs",
+        "needle": "TextShapingRequestDiagnostics",
+        "operator": "not contains",
+        "before_count": 0,
+        "current_count": 0,
+        "new_count": 0
+      },
+      {
+        "input": "zircon_runtime/src/text/cache/shaped_cache/memory.rs",
+        "needle": "TextFontResolutionReport",
+        "operator": "not contains",
+        "before_count": 0,
+        "current_count": 0,
+        "new_count": 0
+      }
+    ],
+    "literal_reader_details": [
+      {
+        "reader_file": "R093-tests",
+        "before_lines": [
+          313,
+          321
+        ],
+        "input_selector": "include_str!(\"../../shaped_cache.rs\")",
+        "operand_selector": "concat! at original line315; exact resulting needle candidates.iter().position",
+        "read_semantics": "Rust include_str raw UTF8 includes comments/EOL; no normalization/stripping",
+        "operator": "!source.contains(linear_search)",
+        "proof_boundary": "原文结构约束，不等实际删除路径复杂度或性能实测。"
+      },
+      {
+        "reader_file": "outcome_guard",
+        "before_lines": [
+          8,
+          21
+        ],
+        "inputs": [
+          "include_str!(\"../../model/shaped_run.rs\")",
+          "include_str!(\"../../cache/shaped_cache/memory.rs\")"
+        ],
+        "operators": [
+          "!source.contains(\"TextShapingRequestDiagnostics\")",
+          "!source.contains(\"TextFontResolutionReport\")"
+        ],
+        "other_input_sha256": "9b5a75ad0c2b0d29ec500fcd6e50c0bd8927d32e53820106c1d9cc90b2399b44",
+        "other_input_counts": [
+          0,
+          0
+        ],
+        "proof_boundary": "逐输入原始谓词静态求值；没有执行Rust测试。"
+      }
+    ],
+    "naming_reader": {
+      "context": "naming_reader",
+      "read_lines": [
+        268,
+        286
+      ],
+      "operator_lines": [
+        876,
+        915
+      ],
+      "report_lines": [
+        918,
+        953
+      ],
+      "domain": "all zircon_runtime/src/**/*.rs including test paths; tests classified after raw token matching",
+      "text_read": "Path.read_text(encoding='utf-8',errors='replace'); splitlines then regex.finditer, comments not removed first",
+      "regex": [
+        {
+          "name": "EDITOR",
+          "pattern": "\\b[A-Za-z0-9_]*editor[A-Za-z0-9_]*\\b",
+          "flags": "IGNORECASE"
+        },
+        {
+          "name": "LEGACY",
+          "pattern": "\\b[A-Za-z0-9_]*legacy[A-Za-z0-9_]*\\b",
+          "flags": "IGNORECASE"
+        }
+      ],
+      "tokens": [
+        {
+          "path": "zircon_runtime/src/text/cache/shaped_cache.rs",
+          "tokens": [
+            {
+              "term": "editor",
+              "before": [],
+              "current": [],
+              "new": []
+            },
+            {
+              "term": "legacy",
+              "before": [],
+              "current": [],
+              "new": []
+            }
+          ]
+        },
+        {
+          "path": "zircon_runtime/src/text/cache/shaped_cache/memory.rs",
+          "tokens": [
+            {
+              "term": "editor",
+              "before": [],
+              "current": [],
+              "new": []
+            },
+            {
+              "term": "legacy",
+              "before": [],
+              "current": [],
+              "new": []
+            }
+          ]
+        },
+        {
+          "path": "zircon_runtime/src/text/cache/shaped_cache/tests/cases.rs",
+          "tokens": [
+            {
+              "term": "editor",
+              "before": [
+                "editor"
+              ],
+              "current": [
+                "editor"
+              ],
+              "new": []
+            },
+            {
+              "term": "legacy",
+              "before": [
+                "legacy"
+              ],
+              "current": [
+                "legacy"
+              ],
+              "new": []
+            }
+          ]
+        }
+      ],
+      "proof_boundary": "比较本3源原token序列/新增0，不运行全仓audit，不声称所有分类报告通过。"
+    }
+  },
+  "core_review": {
+    "baseline": "Sol完整1472LF natural3，无新增BUG/TODO；e5e821/native72186→69569a/PID37848,08334a/PID35316,beb2d5/PID41512,7c33ec/PID42520,c780df/PID32980全部exit0；另一次prebody spawn_ready未执行。",
+    "post_source": "f900b8 exit0/PID19720完整实读34组96LF；其余33组语义准确，唯一memory首句由root授权收窄。",
+    "accepted_boundaries": [
+      "lookup仅借元数据；完整正文在entry.run.source_text，get另核原文。",
+      "canonical是debug前提，不由构造器规范化；fingerprint只分桶后逐字段/features/全文核。",
+      "方向别名仅无分隔符、cached Auto/Mixed→requested LTR/RTL且run.direction相等、其他身份全相等。",
+      "with_limits允许0；先插入/更新再trim，返回Arc可能不驻留。",
+      "报告按begin_frame重置；clear清索引并累计clear/evicted，保留其他本帧计数。",
+      "估算/own字段字节不是物理上界/allocator计量；Ready与完整代次门在session/pool。",
+      "14normal合成DTO tests0运行；下界、直接比较与完整get证据分别记录。"
+    ]
+  },
+  "memory_doc_amendment": {
+    "old_after_sha256": "14dfdbb55cd3596ee904926bc5f058f617d10ed2859db72a4dbb15424fbb19b6",
+    "new_after_sha256": "cd715404e1c1c33d4ee3c7933014de30f31da7f5ddf205b422c5f135a0390f5e",
+    "old_inserted_prefix": "//! 成形缓存单条目的保守体积估算，只供缓存限制整理使用。\n//! 固定余量与容器容量属于计量模型，不等同分配器实测或物理内存上界。\n\n",
+    "new_inserted_prefix": "//! 成形缓存单条目的保守体积估算，供缓存计账与限制整理使用。\n//! 固定余量与容器容量属于计量模型，不等同分配器实测或物理内存上界。\n\n",
+    "old_prefix_sha256": "5725189896c6e636f77307c92ca8880631fa1ee82c50f38525e5b735ff92c505",
+    "new_prefix_sha256": "38351bfb840ac54d6dd5545770d32c0136e44aa1fdc68e1274d30c27978463f7",
+    "root_authorization": "root explicit message: change only this task's new first memory module sentence before child fixed",
+    "receipt_sequence": [
+      "N failed terminal; no success claim",
+      "O independent old pins unchanged",
+      "P apply_patch terminal {} without native receipt",
+      "Q actual readback verified final bytes/inverse/fmt/raw"
+    ]
+  },
+  "validation": {
+    "fresh_gate": {
+      "receipt": "J",
+      "canonical_grant": true,
+      "source_checkout_rawHEAD_stage_filter_equal": true,
+      "scoped_git_stdout_empty": true,
+      "child_absent": true,
+      "three_artifacts_planned": true,
+      "index_lock_observation": "existing foreign .git/index.lock present; preserved, no attribution/removal",
+      "head_observed": "89789b74beaef9bf83cb61f8c13236ca730a81c0"
+    },
+    "source_writer": {
+      "receipt": "K",
+      "pure_insertion_blocks": 34,
+      "inserted_LF": 96
+    },
+    "independent_exact3": {
+      "receipt": "L",
+      "rustfmt": [
+        0,
+        0,
+        0
+      ],
+      "args": [
+        "rustfmt",
+        "--check",
+        "--edition",
+        "2021",
+        "--config",
+        "skip_children=true",
+        "<each exact path>"
+      ],
+      "diff_check_exit": 0,
+      "cached_stdout_empty": true
+    },
+    "post_amendment": {
+      "receipt": "Q",
+      "affected_memory_rustfmt_exit": 0,
+      "exact3_diff_check_exit": 0,
+      "cached_stdout_empty": true,
+      "all3_inverse_grant_rawHEAD": true,
+      "LF_only_no_BOM": true,
+      "raw_predicates_unchanged": true,
+      "new_raw_contribution": 0,
+      "naming_original_tokens_unchanged": true,
+      "new_naming_tokens": 0,
+      "head_observed": "89789b74beaef9bf83cb61f8c13236ca730a81c0"
+    },
+    "tool_boundaries": "无Cargo/build/benchmark/Rustdoc执行；rustfmt是局部格式/解析证据。Git LF→CRLF提醒不是实际EOL变化；raw读回全LF。",
+    "failures": [
+      {
+        "receipt": "I",
+        "effect": "prebody创建拒绝；无native/执行/写入。"
+      },
+      {
+        "receipt": "N",
+        "error": "OSError: [Errno 22] Invalid argument at pathlib.write_bytes→open('wb') for owned memory.rs",
+        "effect": "exit1，未输出AMENDED_MODEL；O确认原K pins未变；未重放未知请求。"
+      },
+      {
+        "kind": "auxiliary stored receipt print",
+        "effect": "一次JS仅打印存储中的L请求/输出被UI截断；后续仅使用完整已存L数据和窄抽取，不算新的源码完整读取。"
+      },
+      {
+        "receipt": "child-root-section-2-failed",
+        "error": "apply_patch Exit code1 /130.2s / Failed to write sole child; no native/session/PID exposed",
+        "effect": "T actual readback132809B/712LF/SHA4dc94e0345b912daadff543f782d935fe1105d794db1417c07a95edf0db383d8 exactly equals successful first-section model, receipts remained[]; no source drift and no replay."
+      },
+      {
+        "receipt": "final-readback-first",
+        "error": "AttributeError: NoneType.group at checker regex requiring let needle",
+        "effect": "af2346 exit1 after child/grant/source model/9context and18call range checks; raw/Git tail not reached. 3c5cda proves actual local linear_search; metadata operator label corrected before fixed delivery."
+      }
+    ],
+    "final_child_readback": "最终独立读回将以实际bytes/hash及模型/范围/插入反演/raw操作数核验；其真实终态在固定后外报，不在此预测。",
+    "draft_readback": {
+      "receipt": "S",
+      "bytes": 24133,
+      "LF": 254,
+      "sha256": "ae82687c95caa34d468da9ff8974a64a4ec6ce2db5640f6ff3ab343d95c8182e",
+      "status": "incomplete/draft",
+      "three_source_pins_equal": true
+    }
+  },
+  "native_receipts": [
+    {"id":"A","outer":53,"native_session":null,"terminal_chunk":"ada4f8","exit_code":0,"pid":null,"scope":"candidate directory discovery","write_attempt":false,"terminal":true,"pid_note":"PID not exposed in captured receipt"},
+    {"id":"B","outer":54,"native_session":null,"terminal_chunk":"0265bf","exit_code":0,"pid":34952,"scope":"cache/mod full and inventory","write_attempt":false,"terminal":true},
+    {"id":"C","outer":55,"native_session":36004,"terminal_chunk":"249394","exit_code":0,"pid":null,"scope":"rawHEAD/stage/filter/scoped clean","write_attempt":false,"terminal":true,"pid_note":"PID not exposed in captured receipt"},
+    {"id":"D","outer":57,"native_session":null,"terminal_chunk":"595c1a","exit_code":0,"pid":null,"scope":"main1–390/memory1–92 full candidate read","write_attempt":false,"terminal":true,"pid_note":"PID not exposed in captured receipt"},
+    {"id":"E","outer":58,"native_session":3986,"terminal_chunk":"ed934f","exit_code":0,"pid":null,"scope":"main391–770/tests1–324 read","write_attempt":false,"terminal":true,"pid_note":"PID not exposed in captured receipt"},
+    {"id":"F","outer":61,"native_session":35381,"terminal_chunk":"3de517","exit_code":0,"pid":29324,"scope":"tests325–610/callers/recursive refs","write_attempt":false,"terminal":true},
+    {"id":"G","outer":63,"native_session":null,"terminal_chunk":"911ea3","exit_code":0,"pid":29864,"scope":"lifecycle/context/raw counts","write_attempt":false,"terminal":true},
+    {"id":"H","outer":64,"native_session":65044,"terminal_chunk":"3dd0b1","exit_code":0,"pid":23968,"scope":"naming reader/classifier","write_attempt":false,"terminal":true},
+    {"id":"J","outer":1,"native_session":85775,"terminal_chunk":"5d0491","exit_code":0,"pid":45944,"scope":"formal gate exact grant/pins/HEAD/rawHEAD/stage/filter/scoped Git/child absence/registry","write_attempt":false,"terminal":true},
+    {"id":"K","outer":4,"native_session":22189,"terminal_chunk":"1330c4","exit_code":0,"pid":3668,"scope":"source writer34 insertions96LF; original byte inverse and guard model","write_attempt":true,"terminal":true,"command_characters":14235,"request_sha256":"f8947da0ce5a041806f9b73aac27ac32d5289d80a63b27c445d82bbfcaffdaf4","interpreter_argv":["C:/Users/HeJiahui/AppData/Local/Python/pythoncore-3.14-64/python.exe","-B","-X","utf8","-"]},
+    {"id":"L","outer":7,"native_session":null,"terminal_chunk":"bdd72b","exit_code":0,"pid":51472,"scope":"independent exact3 rustfmt/diff/inverse/rawHEAD/raw guards/declaration locator","write_attempt":false,"terminal":true,"command_characters":12299,"request_sha256":"08f7fb5172f01eae9d055065390fd627ebc9e6cf30ca4c678f9543cdccbbd940","interpreter_argv":["C:/Users/HeJiahui/AppData/Local/Python/pythoncore-3.14-64/python.exe","-B","-X","utf8","-"]},
+    {"id":"M","outer":8,"native_session":null,"terminal_chunk":"21d871","exit_code":0,"pid":10992,"scope":"index trait/method and request locator context","write_attempt":false,"terminal":true},
+    {"id":"M2","outer":9,"native_session":null,"terminal_chunk":"da977e","exit_code":0,"pid":47128,"scope":"request flags/borrowed DTO callee","write_attempt":false,"terminal":true},
+    {"id":"N","outer":10,"native_session":null,"terminal_chunk":"c93e1b","exit_code":1,"pid":38904,"scope":"narrow amendment writer failed at pathlib.write_bytes/open with OSError EINVAL","write_attempt":true,"terminal":true,"command_characters":3009,"request_sha256":"c61bbccfe2b36148cebc2b5aae5b02898ac8becd49631ff55b9b2da1457fc4fa","interpreter_argv":["C:/Users/HeJiahui/AppData/Local/Python/pythoncore-3.14-64/python.exe","-B","-X","utf8","-"]},
+    {"id":"O","outer":12,"native_session":null,"terminal_chunk":"7b7285","exit_code":0,"pid":21420,"scope":"independent failure readback: all old K pins/child absent/cached empty","write_attempt":false,"terminal":true,"command_characters":923,"request_sha256":"8fddf916aec342bba62177fc21e35a7afd2d84f71b77558b895473cbf2eb3bf7","interpreter_argv":["C:/Users/HeJiahui/AppData/Local/Python/pythoncore-3.14-64/python.exe","-B","-X","utf8","-"]},
+    {"id":"Q","outer":15,"native_session":null,"terminal_chunk":"d9352f","exit_code":0,"pid":43544,"scope":"independent corrected memory/three inverses/rawHEAD/final pins/affected fmt/diff/raw/naming","write_attempt":false,"terminal":true,"command_characters":11672,"request_sha256":"323baa9f8ac3883aef4505be44cd49f537fe785b1de129cc45aa1a17d6d11047","interpreter_argv":["C:/Users/HeJiahui/AppData/Local/Python/pythoncore-3.14-64/python.exe","-B","-X","utf8","-"]},
+    {"id":"R","outer":null,"native_session":null,"terminal_chunk":"33006c","exit_code":0,"pid":20356,"scope":"original26 assert and22 attribute locator readback","write_attempt":false,"terminal":true,"outer_note":"immediate completion; no cell ID was exposed in the direct return","command_characters":1283,"request_sha256":"58e2c28e4cae7d309b8ff44aadac6ef4ac49951ea0f6e8175fe36c4e6a0c4a9c","interpreter_argv":["C:/Users/HeJiahui/AppData/Local/Python/pythoncore-3.14-64/python.exe","-B","-X","utf8","-"]},
+    {"id":"I","outer":66,"status":"not-started","native_session":null,"pid":null,"exit_code":null,"error":"exec_command failed: CreateProcess { message: \"Rejected(\\\"Failed to create unified exec process: wait for runner spawn_ready\\\")\" }","scope":"candidate readonly; rejected before body/native, no passing claim","terminal":true},
+    {"id":"P","outer":13,"tool":"apply_patch","result":{},"native_session":null,"pid":null,"exit_code":null,"terminal":true,"scope":"same authorized memory first added sentence only; {} is not native success; Q independently confirms actual patch bytes"},
+    {"id":"S","outer":27,"native_session":null,"terminal_chunk":"58ec92","exit_code":0,"pid":32304,"terminal":true,"scope":"independent first legal child draft and3finalsourcepins","request_sha256":"a05149dde02da2e9b69ee534e747772c937e69f8fcfe78d8e36afa333bb9870a","command_characters":939},
+    {"id":"child-A","outer":26,"tool":"apply_patch","terminal":true,"result":{},"native_session":null,"pid":null,"exit_code":null,"input_sha256":"1df955130ff78f36ff09f6743712d681735d117baf28e4924f04eb5fa1d92812","characters":19589,"scope":"sole legal incomplete/draft AddFile; S actual readback confirms"},
+    {"id":"child-append-1","outer":29,"tool":"apply_patch","terminal":true,"result":{},"native_session":null,"pid":null,"exit_code":null,"operation":"append 0/objects","characters":15450,"input_sha256":"c3217cd531ef646061da287944c7ac67ecb0428a35e2d629d4e32229119d135b"},
+    {"id":"child-append-2","outer":29,"tool":"apply_patch","terminal":true,"result":{},"native_session":null,"pid":null,"exit_code":null,"operation":"append 0/objects","characters":18923,"input_sha256":"8c62c918207abb47711c5ff17dc1ebad83d289b16f2bc4005c4b7433051a1589"},
+    {"id":"child-append-3","outer":29,"tool":"apply_patch","terminal":true,"result":{},"native_session":null,"pid":null,"exit_code":null,"operation":"append 0/objects","characters":3242,"input_sha256":"9b3011096c3f9d188ef1cd6f0fe5bc8c0847381b135f0d9b6ecbeac5c209de53"},
+    {"id":"child-append-4","outer":29,"tool":"apply_patch","terminal":true,"result":{},"native_session":null,"pid":null,"exit_code":null,"operation":"append 0/block_audit","characters":10350,"input_sha256":"1f4889fbdfade062c5375445b1a7ca9db810cb2ee552986b26a86015ec9e612c"},
+    {"id":"child-append-5","outer":29,"tool":"apply_patch","terminal":true,"result":{},"native_session":null,"pid":null,"exit_code":null,"operation":"append 1/objects","characters":2409,"input_sha256":"e595c9347bc9f50039491f321776a40f7d552149914125c5a5b9888dccc5bb81"},
+    {"id":"child-append-6","outer":29,"tool":"apply_patch","terminal":true,"result":{},"native_session":null,"pid":null,"exit_code":null,"operation":"append 1/block_audit","characters":2101,"input_sha256":"c73c43e7115b2fe72e2158ea45cf821b4bdb02360a01914f7335dbd8e6c80ac4"},
+    {"id":"child-append-7","outer":29,"tool":"apply_patch","terminal":true,"result":{},"native_session":null,"pid":null,"exit_code":null,"operation":"append 2/objects","characters":8033,"input_sha256":"3321dfc1fc157c1344789ea9f8a12bb8d2fbc9368a8f4c86ffa48ad82a1b8f93"},
+    {"id":"child-append-8","outer":29,"tool":"apply_patch","terminal":true,"result":{},"native_session":null,"pid":null,"exit_code":null,"operation":"append 2/block_audit","characters":5710,"input_sha256":"38f0f8d5a3e2008b7e010444758dec1b16e0d17356309ad7b60ad28c343d15a1"},
+    {"id":"child-append-9","outer":29,"tool":"apply_patch","terminal":true,"result":{},"native_session":null,"pid":null,"exit_code":null,"operation":"append 2/test_contracts","characters":7266,"input_sha256":"f17a2cdb1b9be9ab70ebf15b2147707c426abce68e07442d77e13d7d5d6a9ab0"},
+    {"id":"child-root-section-1","outer":32,"tool":"apply_patch","terminal":true,"result":{},"native_session":null,"pid":null,"exit_code":null,"operation":"contexts/calls/contracts/guards/core/amendment/validation","characters":17722,"actual_landing_proof":"T readback exact draft SHA4dc94e…"},
+    {"id":"child-root-section-2-failed","outer":32,"tool":"apply_patch","terminal":true,"native_session":null,"pid":null,"exit_code":null,"tool_exit_code":1,"wall_time_seconds":130.2,"characters":8679,"error":"Failed to write file E:\\Git\\ZirconEngine\\docs\\plans\\source-comments\\reviews\\R093.json","effect":"T proves receipts field remained [] and other landed model unchanged; not replayed."},
+    {"id":"T","outer":33,"native_session":8395,"initial_chunk":"34ec5d","terminal_chunk":"b32351","exit_code":0,"pid":13568,"terminal":true,"scope":"independent failed-metadata readback; source3fixed, valid draft132809B/712LF, receipts[]","request_sha256":"34a84f5c2076cdc96d31894225ba47b0e55f49281dfbdd137a24ef3d8af62ff3"},
+    {"id":"child-recovery-CAS-1","outer":36,"tool":"exec_command","native_session":null,"initial_chunk":"f0e79b","terminal_chunk":"f0e79b","exit_code":0,"pid":39204,"terminal":true,"operation":"record metadata failure and actual T boundary","request_sha256":"2ea86cfa3a802cfb9bee46673f0c4a9fc7f5d364438ba8467b0072123050f620","command_characters":2019},
+    {"id":"child-recovery-CAS-2","outer":36,"tool":"exec_command","native_session":null,"initial_chunk":"42b1d2","terminal_chunk":"42b1d2","exit_code":0,"pid":23788,"terminal":true,"operation":"append actual receipts 0..13","request_sha256":"d09aceec8c3041c6c780bde895dbbac7bc513229a1fcb945b0320ff7ee2a831c","command_characters":5380},
+    {"id":"child-recovery-CAS-3","outer":36,"tool":"exec_command","native_session":null,"initial_chunk":"547ed5","terminal_chunk":"547ed5","exit_code":0,"pid":31580,"terminal":true,"operation":"append actual receipts 14..21","request_sha256":"f9753282805d2bab9b3d0420f74c4801c1f63d4bc7adf496a7563fa7124c041d","command_characters":5456},
+    {"id":"child-recovery-CAS-4","outer":36,"tool":"exec_command","native_session":null,"initial_chunk":"f9e090","terminal_chunk":"f9e090","exit_code":0,"pid":45516,"terminal":true,"operation":"append actual receipts 22..32","request_sha256":"e66c3b848aa3d715ea2d118dfac5a4f7171a0637b8f1c7855505f12590f834ca","command_characters":5467},
+    {"id":"child-finalization-plan-prebody-failed","tool":"functions.exec","native_session":null,"pid":null,"exit_code":null,"terminal":true,"error":"Error: delta ambiguous","effect":"JS planning failed before exec_command; no child/source write."},
+    {"id":"child-complete-CAS","tool":"exec_command","native_session":null,"initial_chunk":"c6d230","terminal_chunk":"c6d230","exit_code":0,"pid":45016,"terminal":true,"scope":"complete status and append actual recovery receipts","request_sha256":"f2081bc215dc68f741adf44bc5b3757c532de0910774faea628e11e4d98e89c4"},
+    {"id":"final-readback-first","tool":"exec_command","native_session":64627,"initial_chunk":"738354","terminal_chunk":"af2346","exit_code":1,"pid":44184,"terminal":true,"scope":"source/model/context pass; raw selector checker then failed, not whole final validation","request_sha256":"a5d1afa85c8ddf5037c51b28edb71e334e5a9cb32b43db6f516f89a88f28cdc5"},
+    {"id":"raw-reader-actual-locator","tool":"exec_command","native_session":null,"initial_chunk":"3c5cda","terminal_chunk":"3c5cda","exit_code":0,"pid":22572,"terminal":true,"scope":"actual owned operator and context outcome/naming reader narrow read; source3 pins unchanged","request_sha256":"54eab2412e453f248bb3b2b2e11c50269eafa2afc717b74dd71de5f839df2f87"}
+  ],
+  "issues": [],
+  "context_issue_boundary": {
+    "id": "CR-ZCA-R091-0001",
+    "status": "root/core-confirmed external caller finding owned by R091, not a new R093 issue",
+    "boundary": "错误测试调用者的canonical前提问题不在本批写集；本记录只依据已读lookup debug断言和请求标志说明真实前提，不修改/重复标注R091。"
+  },
+  "reserved_issue": {
+    "id": "CR-ZCA-R093-0001",
+    "used": false
+  },
+  "acceptance": {
+    "local_review_complete": true,
+    "root_independent_review": "pending",
+    "jenkins_formal_acceptance": false,
+    "commit_push_publish_authorized": false,
+    "all_source_writes_stopped": true
+  }
+}
