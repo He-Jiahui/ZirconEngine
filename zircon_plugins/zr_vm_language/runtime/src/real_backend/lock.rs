@@ -11,7 +11,8 @@ pub(super) struct ZrVmLockGuard {
 
 pub(super) fn acquire_zr_vm_lock() -> ZrVmLockGuard {
     static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
-    let guard = LOCK.get_or_init(|| Mutex::new(()))
+    let guard = LOCK
+        .get_or_init(|| Mutex::new(()))
         .lock()
         .unwrap_or_else(|poisoned| poisoned.into_inner());
     ZrVmLockGuard {
