@@ -1,6 +1,9 @@
+//! 驻留字节报告的手工公式夹具，覆盖更新、容量淘汰和清空。
+//! 报告是实现的估计计量，不是分配器、进程 RSS 或实际释放容量的测量。
 use super::MeasureKey;
 use crate::text::cache::{TextLayoutCache, TextLayoutWidthValidity, TextMeasureCache};
 
+/// 保持键及原文不变而替换额外堆字节，再按保留条目推导淘汰后的估计值。
 #[test]
 fn text_measure_cache_reports_resident_bytes_across_update_eviction_and_clear() {
     let width = 80.0;
@@ -37,6 +40,7 @@ fn text_measure_cache_reports_resident_bytes_across_update_eviction_and_clear() 
     assert_eq!(cache.report().estimated_bytes, 0);
 }
 
+/// 对布局缓存重复同类公式，并固定宽度有效性；不执行真实塑形或内存采样。
 #[test]
 fn text_layout_cache_reports_resident_bytes_across_update_eviction_and_clear() {
     let width = TextLayoutWidthValidity::exact(80.0);

@@ -513,6 +513,7 @@ fn shaped_run_cache_key_omits_wrap_alignment_and_overflow() {
 fn shaped_run_cache_key_includes_normalized_language() {
     let style = TextStyle::default();
     let source_range = source_range_for("界");
+    // BUG: [CR-ZCA-R091-0001] 未规范化非空语言在启用调试断言时触发前提断言；禁用时大小写仍使下方等价断言失配。
     let simplified = ShapedRunCacheKey::from_request(
         &BackendShapeRequest::horizontal("界", &style, TextDirection::LeftToRight, source_range)
             .with_language(Some(" zh-Hans-CN ")),
@@ -551,6 +552,7 @@ fn shaped_run_cache_key_separates_resolved_style_languages() {
         ..TextStyle::default()
     };
 
+    // BUG: [CR-ZCA-R091-0001] 样式的非空语言未经过规范化入口，启用调试断言时直接造键会违反语言前提。
     let simplified = ShapedRunCacheKey::from_request(&BackendShapeRequest::horizontal(
         "界",
         &simplified_style,
@@ -742,6 +744,7 @@ fn shaped_run_cache_borrowed_request_lookup_avoids_owned_key_bytes_on_hot_hit() 
         source_range_for("editor base.zui"),
     )
     .with_language(Some(" ZH_hans-CN "));
+    // BUG: [CR-ZCA-R091-0001] 请求的非空语言未经过规范化入口，启用调试断言时借用键构造会阻断后续热命中断言。
     let lookup = ShapedRunCacheLookupKey::from_request(&request);
     let mut cache = ShapedRunCache::with_capacity(4);
 
