@@ -110,3 +110,10 @@ explicit evidence below says otherwise. No build outputs are created here.
   against tracking stage/shader caches, removing the M2 allowance. Contact-shadow
   tests already use the physical-output-checked project helper. Seven focused
   Python tests pass with subprocesses mocked; no compiler was invoked.
+- L5: Stage under a versioned parent with a per-generation OS file-lock lease
+  and UUID-bound marker. A parent lifecycle lock closes the create/sweep race;
+  startup sweeps only unlocked, marked, plain-file generations. Live, malformed,
+  unmarked and reparse paths are retained. Cleanup follows DLL/directory guard
+  release. Add live/stale/foreign and symlink regression tests. Source/lifecycle
+  checks pass; Rust/Windows tests remain pending. Legacy unmarked roots cannot
+  establish ownership and are intentionally retained for operator review.
