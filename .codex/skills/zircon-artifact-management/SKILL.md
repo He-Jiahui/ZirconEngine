@@ -29,6 +29,14 @@ or generation runs, cleanup commands or independent scheduled jobs. Follow the
 
 ## Audit and route
 
+For task delivery, the user's 2026-10-17 standing authorization covers **any
+session** submitting Jenkins validation followed by local task commit and main
+integration. Use [validated delivery](../../../docs/tools/jenkins-local-commits.md)
+and its executable policy. No separate session grant or commit/merge approval
+is required. Jenkins retains version ownership; task scope, actual validation,
+foreign changes and unknown-result reconciliation still apply. Do not treat the
+older transition exception below as revoking this later authorization.
+
 - Read the current `.codex/config.toml`; distinguish explicit write grants from
   actual ownership and sandbox enforcement. Do not change grants during cleanup.
 - Inspect current selected Jenkins driver/runtime, the relevant job, shared
@@ -73,7 +81,8 @@ Windows Task Scheduler, a background polling service or direct Codex data edits.
 The task records observations and reports meaningful changes or required action.
 Reviewed operator batches integrate exact paths with current evidence. Record
 health and merge blockers separately.
-This exception does not authorize automatic commits, source copies, cleanup,
+This daily-review exception itself does not authorize automatic commits; task
+delivery has the separate standing authority above. It does not authorize source copies, cleanup,
 service adoption/restart, pushes, or restoration of the retired coordinator.
 Retire the temporary scheduler after the actual Jenkins lifecycle handoff has
 been recorded. Jenkins Ready alone does not satisfy that handoff.

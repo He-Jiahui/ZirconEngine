@@ -4,13 +4,23 @@
   "repositoryRoot": "E:/Git/ZirconEngine",
   "authorization": {
     "source": "user",
-    "instruction": "请你帮我修复，不要做什么哈希对账验证了，提交权限放宽松",
-    "scope": "Standing permission for Jenkins to make local commits of explicitly selected task files in this checkout"
+    "instruction": "再次放宽限制，我需要任意会话都有能力提交jenkins，然后完成验证后提交git commit，合并功能到主干",
+    "scope": "Any session may submit scoped work to Jenkins, validate it, commit task files locally and integrate the validated result into main"
   },
   "requireSessionGrant": false,
   "requireSourceDigest": false,
   "requireFormalAcceptance": false,
   "controlFiles": [".codex/config.toml"],
   "pushAllowed": false,
-  "notificationAllowed": false
+  "notificationAllowed": false,
+  "integration": {
+    "enabled": true,
+    "sessions": "any",
+    "targetBranch": "main",
+    "validationRequired": true,
+    "requireSeparateCommitApproval": false,
+    "requireSeparateMergeApproval": false,
+    "requireWholeWorkspaceAcceptance": false,
+    "executor": "zircon-management"
+  }
 }

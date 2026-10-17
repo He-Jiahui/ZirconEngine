@@ -393,7 +393,10 @@ def execute(repo, payload, *, policy=None, grants=None):
             if mode.startswith(b"160000 "):
                 raise ValueError("Submodule commits require their separate integration workflow")
         dirty = git(repo, "status", "--porcelain=v1", "-z", "--untracked-files=all", "--", *paths).stdout
-        result = {"schemaVersion": 1, "status": "committing" if dirty else "no-changes",
+        # Status omits ignored untracked files even when named explicitly.
+        # A selected canonical skill can therefore be the entire task change.
+        has_changes = bool(dirty) or any(name not in tracked and (repo / name).is_file() for name in paths)
+        result = {"schemaVersion": 1, "status": "committing" if has_changes else "no-changes",
                   "request": request, "headBefore": head, "paths": paths,
                   "authorization": policy["authorization"], "sourceDigestRequired": False,
                   "sessionGrantRequired": False, "formalAcceptance": False,
@@ -407,11 +410,20 @@ def execute(repo, payload, *, policy=None, grants=None):
         if lock_recovery:
             result["indexLockRecovery"] = lock_recovery
         write_json(record_path, result)
-        if not dirty:
+        if not has_changes:
             return result
         # --only commits exactly these working files and retains other staged entries.
         # Add makes explicitly selected untracked files available to --only.
-        git(repo, "add", "--", *paths)
+        # Git 2.31 still rejects an ignored parent on a later plain add even
+        # after its selected child was force-staged. Canonical skill sources
+        # are explicitly selected task files, so stage those exact paths once.
+        skills = [name for name in paths if name.casefold().startswith(".codex/skills/")]
+        ordinary = [name for name in paths if name not in skills]
+        if ordinary:
+            git(repo, "add", "--", *ordinary)
+        if skills:
+            git(repo, "add", "--force", "--", *skills)
+            result["forcedCanonicalSkillPaths"] = skills
         hooks = physical(repo / ".jenkins/state/management/empty-commit-hooks")
         hooks.mkdir(parents=True, exist_ok=True)
         if any(hooks.iterdir()):
