@@ -156,6 +156,7 @@ if (-not $taskInstalledScript.Replace("`r`n", "`n").StartsWith($taskExpectedScri
     runtimeOperationId = $ExpectedRuntimeOperationId; maintenanceSession = $SessionId
     maxObjectsPerRun = 64; maxBytesPerRun = 268435456; controllerRestartRequired = $false
     incrementalCacheMaxBytesPerRun = 34359738368L; incrementalCacheTriggerFreeBytes = 85899345920L
+    incrementalDCacheTriggerFreeBytes = 42949672960L
     governanceStagePreserved = $taskPreserveGovernance; readbackVerified = $true
     runtimeBinding = 'same reviewed driver; fresh native owners per new run; exact runtime fence thereafter'
     runtimeBindingImplementationSha256 = $taskEnvironment.ZIRCON_CLEANUP_BINDING_SHA256

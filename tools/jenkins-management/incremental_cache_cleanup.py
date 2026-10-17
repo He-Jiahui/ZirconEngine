@@ -28,6 +28,11 @@ REPORTS = Path("E:/cargo-targets/zircon-local/reports/jenkins-scheduled-cleanup/
 BEGIN = "// BEGIN ZIRCON INCREMENTAL CACHE CLEANUP"
 END = "// END ZIRCON INCREMENTAL CACHE CLEANUP"
 GIB = 2 ** 30
+CACHE_POLICIES = {
+    "shared-e": (CACHE, 80 * GIB),
+    "legacy-d-integration": (Path("D:/cargo-targets/zircon-local/win32/2e35cdd9399f5e89889e/build/debug/incremental"), 40 * GIB),
+    "legacy-d-editor": (Path("D:/cargo-targets/zircon-local/win32/engine-audit-editor102-testbuild-20261007-r4/build/debug/incremental"), 40 * GIB),
+}
 
 
 class CacheBusy(OSError):
@@ -236,7 +241,8 @@ def install(repo, client):
     if code != 200 or ET.fromstring(client.request(route)[1]).findtext("definition/script") != script.text:
         raise ValueError("Scheduled cache-cleanup installation failed")
     return {"status": "installed", "job": "zircon-scheduled-cleanup", "schedule": "H/30 * * * *",
-            "scope": str(CACHE), "maxBytesPerRun": 32 * GIB, "triggerFreeBytes": 80 * GIB,
+            "scope": [{"key": key, "path": str(path), "triggerFreeBytes": threshold}
+                      for key, (path, threshold) in CACHE_POLICIES.items()], "maxBytesPerNamespacePerRun": 32 * GIB,
             "existingWorkflowPreserved": True}
 
 
@@ -245,6 +251,7 @@ def main():
     parser.add_argument("command", choices=("install", "run"))
     parser.add_argument("--run-id")
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--cache-key", choices=tuple(CACHE_POLICIES), default="shared-e")
     args = parser.parse_args()
     if args.command == "install":
         result = install(REPO, transport(REPO))
@@ -253,7 +260,9 @@ def main():
             raise ValueError("Cache deletion requires the existing Jenkins scheduled job and fixed agent")
         if not args.run_id or not re.fullmatch(r"incremental-[0-9]+", args.run_id):
             raise ValueError("Invalid scheduled cleanup identity")
-        result = clean(CACHE, REPORTS / args.run_id, dry_run=args.dry_run)
+        cache, threshold = CACHE_POLICIES[args.cache_key]
+        suffix = "" if args.cache_key == "shared-e" else "-" + args.cache_key
+        result = clean(cache, REPORTS / (args.run_id + suffix), dry_run=args.dry_run, trigger_free=threshold)
     print(json.dumps(result))
 
 

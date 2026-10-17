@@ -1,5 +1,7 @@
 """Real Windows lock/deletion regressions for the fixed Rust cache policy."""
 import importlib.util
+import io
+from contextlib import redirect_stderr
 import json
 import os
 from pathlib import Path
@@ -143,6 +145,13 @@ class IncrementalCacheCleanupTests(unittest.TestCase):
                 sys, "argv", ["cleanup", "run", "--run-id", "incremental-1"]):
             with self.assertRaisesRegex(ValueError, "requires.*Jenkins"):
                 cleanup.main()
+
+    def test_production_cli_rejects_an_arbitrary_cleanup_path(self):
+        with patch.dict(os.environ, {"JOB_NAME": "zircon-scheduled-cleanup", "NODE_NAME": "zircon-windows-agent"}), patch.object(
+                sys, "argv", ["cleanup", "run", "--run-id", "incremental-1", "--cache-key", "D:/Git/source"]):
+            with redirect_stderr(io.StringIO()), self.assertRaises(SystemExit) as error:
+                cleanup.main()
+            self.assertEqual(error.exception.code, 2)
 
 
 if __name__ == "__main__":
