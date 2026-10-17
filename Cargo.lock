@@ -10335,6 +10335,7 @@ dependencies = [
 [[package]]
 name = "zr_vm_rust_binding"
 version = "0.1.0"
+source = "git+https://github.com/He-Jiahui/zr_vm.git?rev=3c1352ecb6ddfab02752d46682cc376558d5f481#3c1352ecb6ddfab02752d46682cc376558d5f481"
 dependencies = [
  "zr_vm_rust_binding_sys",
 ]
@@ -10342,6 +10343,7 @@ dependencies = [
 [[package]]
 name = "zr_vm_rust_binding_sys"
 version = "0.1.0"
+source = "git+https://github.com/He-Jiahui/zr_vm.git?rev=3c1352ecb6ddfab02752d46682cc376558d5f481#3c1352ecb6ddfab02752d46682cc376558d5f481"
 
 [[package]]
 name = "zstd"

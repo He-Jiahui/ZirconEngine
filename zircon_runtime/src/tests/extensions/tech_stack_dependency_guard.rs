@@ -19,12 +19,12 @@ fn read_repo_file(path: &str) -> String {
 #[test]
 fn runtime_tech_stack_doc_exists_and_is_linked_from_architecture_index() {
     let repo_root = repo_root();
-    let tech_stack = repo_root.join("docs/engine-architecture/runtime-tech-stack.md");
+    let tech_stack = repo_root.join("docs/architecture/runtime-tech-stack.md");
     let index = read_repo_file("docs/engine-architecture/index.md");
 
     assert!(
         tech_stack.exists(),
-        "docs/engine-architecture/runtime-tech-stack.md should be the runtime dependency authority"
+        "docs/architecture/runtime-tech-stack.md should be the runtime dependency authority"
     );
     assert!(
         index.contains("runtime-tech-stack.md")
@@ -36,7 +36,7 @@ fn runtime_tech_stack_doc_exists_and_is_linked_from_architecture_index() {
 #[test]
 fn runtime_manifest_keeps_pinned_prerelease_versions_until_upgrade_gate() {
     let workspace_manifest = read_repo_file("Cargo.toml");
-    let tech_stack = read_repo_file("docs/engine-architecture/runtime-tech-stack.md");
+    let tech_stack = read_repo_file("docs/architecture/runtime-tech-stack.md");
 
     assert!(
         workspace_manifest.contains("0.31.0-beta.2"),
@@ -64,7 +64,7 @@ fn runtime_manifest_keeps_pinned_prerelease_versions_until_upgrade_gate() {
 #[test]
 fn wgpu_windows_dependency_family_stays_on_one_compatible_patch_line() {
     let lock = read_repo_file("Cargo.lock");
-    let tech_stack = read_repo_file("docs/engine-architecture/runtime-tech-stack.md");
+    let tech_stack = read_repo_file("docs/architecture/runtime-tech-stack.md");
 
     for package in [
         "wgpu",
@@ -95,23 +95,24 @@ fn wgpu_windows_dependency_family_stays_on_one_compatible_patch_line() {
 }
 
 #[test]
-fn zr_vm_path_dependency_gate_is_documented_with_version_pairing() {
+fn zr_vm_git_dependency_gate_is_documented_with_version_pairing() {
     let plugin_manifest = read_repo_file("zircon_plugins/zr_vm_language/runtime/Cargo.toml");
-    let tech_stack = read_repo_file("docs/engine-architecture/runtime-tech-stack.md");
+    let tech_stack = read_repo_file("docs/architecture/runtime-tech-stack.md");
 
     assert!(
         plugin_manifest.contains("backend-zr-vm"),
         "real ZrVM backend should stay explicitly feature gated by its plugin owner"
     );
     assert!(
-        plugin_manifest.contains("../../../../zr_vm/zr_vm_rust_binding")
+        plugin_manifest.contains("https://github.com/He-Jiahui/zr_vm.git")
+            && plugin_manifest.contains("3c1352ecb6ddfab02752d46682cc376558d5f481")
             && plugin_manifest.contains("optional = true")
             && !read_repo_file("zircon_runtime/Cargo.toml").contains("zr_vm_rust_binding"),
-        "ZrVM path dependencies must stay optional and plugin-owned"
+        "Pinned ZrVM dependencies must stay optional and plugin-owned"
     );
     assert!(
-        tech_stack.contains("../../zr_vm") && tech_stack.contains("external checkout"),
-        "runtime tech-stack doc should document the external ZrVM checkout decision"
+        tech_stack.contains("3c1352ecb6ddfab02752d46682cc376558d5f481") && tech_stack.contains("immutable git revision"),
+        "runtime tech-stack doc should document the pinned ZrVM dependency"
     );
     assert!(
         tech_stack.contains("empty export argument lists")
@@ -124,7 +125,7 @@ fn zr_vm_path_dependency_gate_is_documented_with_version_pairing() {
 fn interface_and_editor_dependency_boundaries_stay_documented_and_guarded() {
     let interface_manifest = read_repo_file("zircon_runtime_interface/Cargo.toml");
     let editor_manifest = read_repo_file("zircon_editor/Cargo.toml");
-    let tech_stack = read_repo_file("docs/engine-architecture/runtime-tech-stack.md");
+    let tech_stack = read_repo_file("docs/architecture/runtime-tech-stack.md");
 
     assert!(
         !interface_manifest.contains("wgpu"),
@@ -156,7 +157,7 @@ fn interface_and_editor_dependency_boundaries_stay_documented_and_guarded() {
 #[test]
 fn removed_or_editor_only_dependencies_do_not_silently_enter_runtime_stack() {
     let runtime_manifest = read_repo_file("zircon_runtime/Cargo.toml");
-    let tech_stack = read_repo_file("docs/engine-architecture/runtime-tech-stack.md");
+    let tech_stack = read_repo_file("docs/architecture/runtime-tech-stack.md");
     let manifests = all_manifest_sources();
     let zip_dependency_line =
         "zip = { version = \"9.0.0-pre2\", default-features = false, features = [\"deflate-flate2\"] }";
@@ -268,7 +269,7 @@ fn dependency_package_identity_cannot_hide_kira_behind_alias_or_metadata() {
 fn export_archive_policy_allows_zip_only_for_archive_materializer() {
     let export_profile = read_repo_file("zircon_runtime/src/plugin/export_profile.rs");
     let runtime_manifest = read_repo_file("zircon_runtime/Cargo.toml");
-    let tech_stack = read_repo_file("docs/engine-architecture/runtime-tech-stack.md");
+    let tech_stack = read_repo_file("docs/architecture/runtime-tech-stack.md");
     let manifests = all_manifest_sources();
     let zip_dependency_line =
         "zip = { version = \"9.0.0-pre2\", default-features = false, features = [\"deflate-flate2\"] }";
@@ -371,7 +372,7 @@ fn physics_backend_option_decision_keeps_jolt_feature_gated_and_plugin_owned() {
 
 #[test]
 fn editor_only_dependency_candidates_have_editor_backlog_owner() {
-    let tech_stack = read_repo_file("docs/engine-architecture/runtime-tech-stack.md");
+    let tech_stack = read_repo_file("docs/architecture/runtime-tech-stack.md");
     let backlog =
         read_repo_file("docs/editor-and-tooling/runtime-editor-only-dependency-backlog.md");
     let editor_index = read_repo_file("docs/editor-and-tooling/index.md");
@@ -425,7 +426,7 @@ fn fontdue_editor_retained_host_dependency_has_migration_owner() {
     .map(read_repo_file)
     .collect::<Vec<_>>()
     .join("\n");
-    let tech_stack = read_repo_file("docs/engine-architecture/runtime-tech-stack.md");
+    let tech_stack = read_repo_file("docs/architecture/runtime-tech-stack.md");
     let backlog =
         read_repo_file("docs/editor-and-tooling/runtime-editor-only-dependency-backlog.md");
 
@@ -458,7 +459,7 @@ fn fontdue_editor_retained_host_dependency_has_migration_owner() {
 fn complex_text_backends_can_only_enter_through_ui_text_shaper() {
     let shaper = read_repo_file("zircon_runtime/src/ui/text/shaper.rs");
     let shaper_tests = read_repo_file("zircon_runtime/src/ui/tests/text_shaper.rs");
-    let tech_stack = read_repo_file("docs/engine-architecture/runtime-tech-stack.md");
+    let tech_stack = read_repo_file("docs/architecture/runtime-tech-stack.md");
 
     assert!(
         shaper.contains("trait UiTextShaper")
@@ -502,7 +503,7 @@ fn complex_text_backends_can_only_enter_through_ui_text_shaper() {
 #[test]
 fn runtime_text_doc_records_three_layer_stack_and_cross_reference() {
     let text_doc = read_repo_file("docs/zircon_runtime/ui/text.md");
-    let tech_stack = read_repo_file("docs/engine-architecture/runtime-tech-stack.md");
+    let tech_stack = read_repo_file("docs/architecture/runtime-tech-stack.md");
 
     assert!(
         text_doc.contains("## Backend Responsibility Matrix"),

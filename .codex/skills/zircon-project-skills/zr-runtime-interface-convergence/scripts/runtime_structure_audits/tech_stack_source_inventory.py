@@ -11,7 +11,8 @@ KIRA_DEPENDENCY_LINE = 'kira = "0.12.2"'
 ZR_VM_PLUGIN_MANIFEST = "zircon_plugins/zr_vm_language/runtime/Cargo.toml"
 ZR_VM_BACKEND_FEATURE = "backend-zr-vm"
 ZR_VM_BINDING_DEPENDENCY_PREFIX = "zr_vm_rust_binding"
-ZR_VM_EXTERNAL_PATH_PREFIX = "../../../../zr_vm/"
+ZR_VM_GIT_URL = "https://github.com/He-Jiahui/zr_vm.git"
+ZR_VM_GIT_REV = "3c1352ecb6ddfab02752d46682cc376558d5f481"
 ZIP_DEPENDENCY_LINE = (
     'zip = { version = "9.0.0-pre2", default-features = false, '
     'features = ["deflate-flate2"] }'

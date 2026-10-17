@@ -343,6 +343,10 @@ jobs:
         shell: pwsh
         run: ./.github/scripts/invoke-cargo-msvc.ps1 cargo check --manifest-path zircon_plugins/Cargo.toml --workspace --locked --all-targets --verbose
 
+      - name: Fetch pinned plugin dependencies
+        shell: pwsh
+        run: ./.github/scripts/invoke-cargo-msvc.ps1 cargo fetch --manifest-path zircon_plugins/Cargo.toml --locked
+
       - name: Build plugin workspace
         shell: pwsh
         run: ./.github/scripts/invoke-cargo-msvc.ps1 cargo build --manifest-path zircon_plugins/Cargo.toml --workspace --locked --verbose

@@ -68,3 +68,9 @@ explicit evidence below says otherwise. No build outputs are created here.
   cache setup and give Cargo/toolchain/temp paths a unique run root. A hosted
   image without approved physical storage now fails with an explicit requirement.
   Workflow/suite/toolchain source checks passed; PowerShell execution is pending.
+- M3: Pin both bindings in plugin/WoC manifests and all three lockfiles to
+  public upstream revision `3c1352ecb6ddfab02752d46682cc376558d5f481`. Restrict cargo-deny
+  to that git URL and revision-qualified sources; explicitly fetch locked plugin
+  dependencies in CI. Update the owning audit and version-pairing docs. Upstream
+  manifests were inspected through read-only HTTP; no sibling checkout/session
+  was accessed. TOML/source contracts pass; locked Cargo/native validation is pending.
