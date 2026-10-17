@@ -133,7 +133,7 @@ fn bidirectional_client_origin_requires_joined_source_session() {
     );
     assert_eq!(missing.status, RpcDispatchStatus::SessionUnavailable);
 
-    let pending = rpc.begin_handshake();
+    let pending = rpc.begin_handshake().unwrap();
     let unauthenticated = rpc.invoke_rpc(
         RpcInvocationDescriptor::new("chat.moderate", RpcDirection::ClientToServer, Vec::new())
             .with_source_session(pending),
@@ -171,7 +171,7 @@ fn bidirectional_invocation_from_client_requires_joined_source_session() {
     assert_eq!(missing.status, RpcDispatchStatus::SessionUnavailable);
     assert_eq!(calls.load(Ordering::SeqCst), 0);
 
-    let pending_session = rpc.begin_handshake();
+    let pending_session = rpc.begin_handshake().unwrap();
     let pending = rpc.invoke_rpc(
         RpcInvocationDescriptor::new("chat.moderate", RpcDirection::Bidirectional, Vec::new())
             .with_source_session(pending_session),
@@ -212,7 +212,7 @@ fn rpc_feature_manager_denies_client_rpc_until_source_session_joined() {
     let rpc = net_rpc_runtime_manager();
     rpc.register_rpc(RpcDescriptor::command("chat.send"))
         .unwrap();
-    let pending_session = rpc.begin_handshake();
+    let pending_session = rpc.begin_handshake().unwrap();
     let joined_session = complete_joined_session(&rpc, "joined-player");
 
     let missing_source = rpc.dispatch_rpc(

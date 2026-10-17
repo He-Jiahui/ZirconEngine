@@ -380,6 +380,12 @@ transport manager. `NetRpcRuntimeManager` owns feature-local state for:
 - queue admission through `enqueue_rpc`, bounded queue rejection through `QueueFull`, priority-ordered `drain_rpc_queue`, and timeout diagnostics through `TimedOut` for zero-timeout invocations, expired queued calls, pending request expiry, and direct/queued handlers whose wall-clock execution exceeds the invocation timeout
 - correlated request tracking through `pending_request` and `expire_pending_requests`, keyed by `NetRequestId`, so feature callers can observe outstanding request/response contracts and timeout diagnostics
 
+RPC state poisoning makes the manager and all clones unavailable until replaced.
+Fallible operations, including handshake creation and schema registration, return
+`NetError::SharedStatePoisoned`; dispatch returns `SessionUnavailable` with that
+diagnostic. Optional observations return `None` and drains return empty results.
+No poisoned authentication, quota or request state is recovered for further use.
+
 `dispatch_rpc` remains a validation-only path for diagnostics and queues. `invoke_rpc` runs the same
 validation path and then executes a registered handler closure only after direction, payload, schema,
 and quota gates accept the invocation. Direct and queued handler calls measure wall-clock elapsed time

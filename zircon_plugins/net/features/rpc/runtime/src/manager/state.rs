@@ -3,11 +3,11 @@
 
 use std::cmp::Ordering;
 use std::collections::{BinaryHeap, HashMap, VecDeque};
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, MutexGuard};
 use std::time::Instant;
 
 use zircon_runtime::core::framework::net::{
-    NetConnectionId, NetRequestId, NetSessionHandshakePolicy, NetSessionHandshakeState,
+    NetConnectionId, NetError, NetRequestId, NetSessionHandshakePolicy, NetSessionHandshakeState,
     NetSessionId, NetSessionInfo, RpcDescriptor, RpcInvocationDescriptor, RpcPeerRole,
 };
 
@@ -18,6 +18,10 @@ use super::{
     RPC_PROTOCOL_VERSION,
 };
 
+/// Clones share one protocol state. Poisoning permanently makes that state
+/// unavailable: fallible operations return SharedStatePoisoned, observations
+/// return None/empty, and dispatch rejects without executing handlers. Construct
+/// a new manager to establish fresh sessions; partial authentication is not reused.
 #[derive(Clone)]
 pub struct NetRpcRuntimeManager {
     pub(in crate::manager) state: Arc<Mutex<NetRpcRuntimeState>>,
@@ -130,13 +134,22 @@ pub(in crate::manager) struct NetSpeedWindow {
 
 impl NetRpcRuntimeManager {
     pub fn new() -> Self {
-        Self::with_handshake_policy(
-            NetSessionHandshakePolicy::new(RPC_PROTOCOL_VERSION)
-                .with_required_feature(NET_RPC_FEATURE_CAPABILITY),
-        )
+        Self::with_max_queue_depth(DEFAULT_RPC_QUEUE_DEPTH)
     }
 
     pub fn with_handshake_policy(policy: NetSessionHandshakePolicy) -> Self {
+        Self::with_configuration(policy, DEFAULT_RPC_QUEUE_DEPTH)
+    }
+
+    pub fn with_max_queue_depth(max_queue_depth: usize) -> Self {
+        Self::with_configuration(
+            NetSessionHandshakePolicy::new(RPC_PROTOCOL_VERSION)
+                .with_required_feature(NET_RPC_FEATURE_CAPABILITY),
+            max_queue_depth,
+        )
+    }
+
+    fn with_configuration(policy: NetSessionHandshakePolicy, max_queue_depth: usize) -> Self {
         Self {
             state: Arc::new(Mutex::new(NetRpcRuntimeState {
                 next_session_id: 0,
@@ -150,23 +163,27 @@ impl NetRpcRuntimeManager {
                 queued_invocations: BinaryHeap::new(),
                 pending_requests: HashMap::new(),
                 next_queue_sequence: 0,
-                max_queue_depth: DEFAULT_RPC_QUEUE_DEPTH,
+                max_queue_depth,
                 channel_queues: HashMap::new(),
                 channel_sequences: HashMap::new(),
             })),
         }
     }
 
-    pub fn with_max_queue_depth(max_queue_depth: usize) -> Self {
-        let manager = Self::new();
-        manager
-            .state
-            .lock()
-            .expect("net RPC state mutex poisoned")
-            .max_queue_depth = max_queue_depth;
-        manager
+    // Authentication, quota and request bookkeeping may be partially updated.
+    // Never recover or clear this poison, even for a later call through a clone.
+    pub(in crate::manager) fn lock_state(
+        &self,
+    ) -> Result<MutexGuard<'_, NetRpcRuntimeState>, NetError> {
+        self.state.lock().map_err(|_| NetError::SharedStatePoisoned {
+            resource: "net.rpc_state".to_string(),
+        })
     }
 }
+
+#[cfg(test)]
+#[path = "../tests/poisoned_manager.rs"]
+mod poisoned_manager_tests;
 
 impl Default for NetRpcRuntimeManager {
     fn default() -> Self {

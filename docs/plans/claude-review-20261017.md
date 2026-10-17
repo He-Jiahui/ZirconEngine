@@ -157,4 +157,13 @@ explicit evidence below says otherwise. No build outputs are created here.
   Move existing admission tests out of production source; add notification-race
   and poisoned-buffer regressions and update explicit test drains. Source checks
   and the test-layout gate pass (zero new violations); compiled socket/concurrency
-  tests remain pending. RPC protocol-state poison handling follows.
+  tests remain pending.
+- L9 (RPC): Centralize all production protocol-state locks behind typed poison
+  errors. Poison permanently closes admission across clones; dispatch reports
+  SessionUnavailable and observations/drains return unavailable results. Handshake
+  creation and validator registration now return Result, with all current callers
+  updated. Pending cleanup skips poisoned state, including during handler unwind.
+  Add regressions for populated/partially updated state, poison between admission
+  phases and cleanup during unwind. Source/access/caller checks pass; compiled RPC
+  tests remain pending. The broader base-net manager already has typed lock errors;
+  unrelated optional protocol managers are outside this WebSocket/RPC finding.

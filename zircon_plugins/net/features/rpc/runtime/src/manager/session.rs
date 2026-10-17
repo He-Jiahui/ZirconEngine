@@ -11,31 +11,32 @@ use zircon_runtime::core::framework::net::{
 use super::{state::NetRpcSessionState, NetRpcRuntimeManager};
 
 impl NetRpcRuntimeManager {
-    pub fn begin_handshake(&self) -> NetSessionId {
+    pub fn begin_handshake(&self) -> Result<NetSessionId, NetError> {
         self.begin_session(None)
     }
 
-    pub fn begin_handshake_for_connection(&self, connection: NetConnectionId) -> NetSessionId {
+    pub fn begin_handshake_for_connection(
+        &self,
+        connection: NetConnectionId,
+    ) -> Result<NetSessionId, NetError> {
         self.begin_session(Some(connection))
     }
 
-    fn begin_session(&self, connection: Option<NetConnectionId>) -> NetSessionId {
-        let mut state = self.state.lock().expect("net RPC state mutex poisoned");
+    fn begin_session(&self, connection: Option<NetConnectionId>) -> Result<NetSessionId, NetError> {
+        let mut state = self.lock_state()?;
         state.next_session_id += 1;
         let session = NetSessionId::new(state.next_session_id);
         state
             .sessions
             .insert(session, NetRpcSessionState::new(connection));
-        session
+        Ok(session)
     }
 
     pub fn handshake_state(
         &self,
         session: NetSessionId,
     ) -> Result<NetSessionHandshakeState, NetError> {
-        self.state
-            .lock()
-            .expect("net RPC state mutex poisoned")
+        self.lock_state()?
             .sessions
             .get(&session)
             .map(|session_state| session_state.handshake_state)
@@ -43,9 +44,7 @@ impl NetRpcRuntimeManager {
     }
 
     pub fn session_info(&self, session: NetSessionId) -> Result<NetSessionInfo, NetError> {
-        self.state
-            .lock()
-            .expect("net RPC state mutex poisoned")
+        self.lock_state()?
             .sessions
             .get(&session)
             .map(|session_state| session_state.info(session))
@@ -53,7 +52,7 @@ impl NetRpcRuntimeManager {
     }
 
     pub fn close_session(&self, session: NetSessionId) -> Result<NetSessionInfo, NetError> {
-        let mut state = self.state.lock().expect("net RPC state mutex poisoned");
+        let mut state = self.lock_state()?;
         let session_state = state
             .sessions
             .get_mut(&session)
@@ -63,7 +62,9 @@ impl NetRpcRuntimeManager {
     }
 
     pub fn close_connection_sessions(&self, connection: NetConnectionId) -> Vec<NetSessionInfo> {
-        let mut state = self.state.lock().expect("net RPC state mutex poisoned");
+        let Ok(mut state) = self.lock_state() else {
+            return Vec::new();
+        };
         state
             .sessions
             .iter_mut()
@@ -97,7 +98,9 @@ impl NetRpcRuntimeManager {
             return Vec::new();
         }
 
-        let mut state = self.state.lock().expect("net RPC state mutex poisoned");
+        let Ok(mut state) = self.lock_state() else {
+            return Vec::new();
+        };
         close_sessions_for_connections(&mut state.sessions, close_connections)
     }
 }

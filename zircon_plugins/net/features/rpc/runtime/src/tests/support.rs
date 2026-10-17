@@ -3,7 +3,7 @@ use zircon_runtime::core::framework::net::{NetConnectionId, NetControlMessage, N
 use crate::{NetRpcRuntimeManager, NET_RPC_FEATURE_CAPABILITY};
 
 pub(super) fn complete_joined_session(rpc: &NetRpcRuntimeManager, player_id: &str) -> NetSessionId {
-    let session = rpc.begin_handshake();
+    let session = rpc.begin_handshake().unwrap();
     complete_existing_session(rpc, session, player_id);
     session
 }
@@ -13,7 +13,7 @@ pub(super) fn complete_joined_connection_session(
     connection: NetConnectionId,
     player_id: &str,
 ) -> NetSessionId {
-    let session = rpc.begin_handshake_for_connection(connection);
+    let session = rpc.begin_handshake_for_connection(connection).unwrap();
     complete_existing_session(rpc, session, player_id);
     session
 }
