@@ -25,7 +25,7 @@ if (params.ACTION == 'commit-checkout') {
             def receipt = "checkout-commit-${params.OPERATION_ID}.${env.BUILD_NUMBER}.receipt.json"
             writeFile(file: receipt, text: response, encoding: 'UTF-8')
             archiveArtifacts(artifacts: receipt, fingerprint: false)
-            currentBuild.description = "commit-checkout: ${params.REQUEST_ID}"
+            currentBuild.description = "commit-checkout ${commitResult.status}: ${commitResult.commit ?: params.REQUEST_ID}"
             if (status != 0 && commitResult.status != 'waiting') error('Scoped commit failed; inspect the archived receipt')
         }
       }

@@ -328,8 +328,8 @@ def verified_commit_files(repo, expected):
                 sys.path.remove(str(ROOT))
 
 
-def execute(repo, payload, *, policy=None, grants=None):
-    """Called under the shared management Git lock by the Jenkins worker."""
+def commit_request(repo, payload, *, policy=None, grants=None):
+    """Validate explicit task scope without reading or changing the Git index."""
     repo = physical(repo)
     policy = load_policy(repo) if policy is None else policy
     if grants is None:
@@ -350,6 +350,15 @@ def execute(repo, payload, *, policy=None, grants=None):
     request = {k: payload[k] for k in ("sessionId", "requestId", "operationId", "action", "paths", "message")}
     if expected is not None:
         request["expectedFileHashes"] = expected
+    return request, policy
+
+
+def execute(repo, payload, *, policy=None, grants=None):
+    """Called under the shared management Git lock by the Jenkins worker."""
+    repo = physical(repo)
+    request, policy = commit_request(repo, payload, policy=policy, grants=grants)
+    paths, message = request["paths"], request["message"]
+    expected = request.get("expectedFileHashes")
     directory = physical(repo / ".jenkins/state/management/checkout-commits")
     record_path = physical(directory / (payload["operationId"] + ".json"))
     previous = read_json(record_path) if record_path.exists() else None
@@ -375,8 +384,6 @@ def execute(repo, payload, *, policy=None, grants=None):
                 result = {**previous, "status": "complete", "commit": commit.strip(), "recoveredReceipt": True}
                 write_json(record_path, result)
                 return result
-        if head != previous.get("headBefore"):
-            raise ValueError("Interrupted commit has a changed HEAD; retain its original request")
     with verified_commit_files(repo, expected):
         tracked = set(git(repo, "ls-files", "-z", "--", *paths).stdout.decode("utf-8").split("\0"))
         for name in paths:
@@ -391,6 +398,10 @@ def execute(repo, payload, *, policy=None, grants=None):
                   "authorization": policy["authorization"], "sourceDigestRequired": False,
                   "sessionGrantRequired": False, "formalAcceptance": False,
                   "pushPerformed": False, "notificationPerformed": False, "startedAt": time.time()}
+        if previous:
+            result["previousAttempts"] = [*previous.get("previousAttempts", []),
+                {"headBefore": previous.get("headBefore"), "status": previous["status"],
+                 "startedAt": previous.get("startedAt")}]
         if expected is not None:
             result["verifiedFileHashes"] = expected
         if lock_recovery:
@@ -411,6 +422,138 @@ def execute(repo, payload, *, policy=None, grants=None):
         result.update(status="complete", commit=commit, finishedAt=time.time())
         write_json(record_path, result)
         return result
+
+
+TERMINAL = {"complete", "no-changes"}
+QUEUE_PENDING = {"pending", "dispatching", "submitted", "delivery-unknown", "waiting"}
+
+
+def queue_record_path(repo, operation_id):
+    if not isinstance(operation_id, str) or not ID.fullmatch(operation_id):
+        raise ValueError("Invalid operationId")
+    return physical(repo / ".jenkins/state/management/checkout-queue" / (operation_id + ".json"))
+
+
+def queue_observation(repo, request):
+    """Queries never enqueue builds or change a Git/request file."""
+    journal = None
+    for directory in ("checkout-commits", "checkout-queue"):
+        path = physical(repo / ".jenkins/state/management" / directory / (request["operationId"] + ".json"))
+        if path.exists():
+            value = read_json(path)
+            if value.get("request") != request:
+                raise ValueError("This operation ID already belongs to another commit request")
+            if directory == "checkout-commits" and value.get("status") not in TERMINAL:
+                journal = value
+                continue
+            return value
+    return journal or {"status": "not-started", "request": request, "formalAcceptance": False}
+
+
+def queue_intake(repo, request, *, claim_delivery=False):
+    """Record intent while allowing only one client to dispatch its initial build."""
+    path = queue_record_path(repo, request["operationId"])
+    with git_lock(repo / ".jenkins/state/locks/checkout-queue.lock"):
+        previous = read_json(path) if path.exists() else None
+        if previous and previous.get("request") != request:
+            raise ValueError("This operation ID already belongs to another commit request")
+        if previous and (previous["status"] in TERMINAL or (not claim_delivery and previous["status"] != "failed")
+                         or (previous.get("deliveryAttemptedAt") and previous["status"] != "failed")):
+            return previous, False
+        value = {**(previous or {"schemaVersion": 1, "createdAt": time.time()}), "request": request,
+                 "status": "dispatching" if claim_delivery else "pending", "updatedAt": time.time(),
+                 "formalAcceptance": False, "pushPerformed": False, "notificationPerformed": False}
+        if claim_delivery:
+            value["deliveryAttemptedAt"] = time.time()
+        elif previous and previous["status"] == "failed":
+            value.pop("deliveryAttemptedAt", None)
+        write_json(path, value)
+        return value, True
+
+
+def queue_update(repo, request, result, *, create=False):
+    path = queue_record_path(repo, request["operationId"])
+    with git_lock(repo / ".jenkins/state/locks/checkout-queue.lock"):
+        previous = read_json(path) if path.exists() else None
+        if previous and previous.get("request") != request:
+            raise ValueError("This operation ID already belongs to another commit request")
+        if previous and previous.get("status") in TERMINAL:
+            return previous
+        if previous is None and not create:
+            return None
+        value = {**(previous or {"schemaVersion": 1, "createdAt": time.time()}),
+                 **result, "request": request, "updatedAt": time.time(), "formalAcceptance": False,
+                 "pushPerformed": False, "notificationPerformed": False}
+        write_json(path, value)
+        return value
+
+
+def submit_queued(repo, payload, client, *, query_only=False):
+    request, _ = commit_request(repo, payload)
+    observed = queue_observation(repo, request)
+    if query_only or observed["status"] in TERMINAL:
+        return observed
+    # Persist the exact file list BEFORE any external delivery. A lost HTTP
+    # response is recovered by the Jenkins followup under this same identity.
+    value, claimed = queue_intake(repo, request, claim_delivery=True)
+    if not claimed:
+        return {**value, "status": "queued" if value["status"] not in TERMINAL else value["status"],
+                "automaticFollowup": True}
+    selected = read_json(repo / ".jenkins/state/deployment/driver.json")
+    fields = {"ACTION": "commit-checkout", "SESSION_ID": request["sessionId"],
+              "REQUEST_ID": request["requestId"], "OPERATION_ID": request["operationId"],
+              "INPUT_JSON": json.dumps(request, ensure_ascii=False), "QUERY_ONLY": "false",
+              "EXPECTED_DRIVER_DIGEST": selected["driverDigest"],
+              "RUNTIME_OPERATION_ID": selected["runtimeOperationId"]}
+    try:
+        status, body, headers = client.request("/job/zircon-management/buildWithParameters", method="POST",
+            data=urllib.parse.urlencode(fields).encode(), content_type="application/x-www-form-urlencoded")
+        if status not in (201, 302):
+            raise ValueError("Jenkins commit submission returned HTTP " + str(status))
+        value = queue_update(repo, request, {"status": "submitted", "queueUrl": headers.get("Location")})
+        return {**value, "status": "queued" if value["status"] not in TERMINAL else value["status"],
+                "automaticFollowup": True}
+    except Exception as error:
+        value = queue_update(repo, request, {"status": "delivery-unknown", "lastDeliveryError": str(error)})
+        return {**value, "status": "pending" if value["status"] not in TERMINAL else value["status"],
+                "automaticFollowup": True}
+
+
+def process_pending(repo, *, limit=12, budget_seconds=120):
+    """Only explicit submitted commit requests are eligible; never sweep sources."""
+    directory = physical(repo / ".jenkins/state/management/checkout-queue")
+    results = []
+    start = time.monotonic()
+    if directory.exists():
+        for path in sorted(directory.glob("*.json"), key=lambda entry: entry.stat().st_mtime_ns):
+            if len(results) >= limit or time.monotonic() - start >= budget_seconds:
+                break
+            value = read_json(path)
+            if value.get("status") not in QUEUE_PENDING:
+                continue
+            request = value["request"]
+            if path != queue_record_path(repo, request["operationId"]):
+                raise ValueError("Queued commit filename differs from its operation ID")
+            try:
+                with git_lock(repo / ".jenkins/state/locks/management-git.lock"):
+                    result = execute(repo, request)
+            except Exception as error:
+                result = {"status": "waiting" if isinstance(error, CommitBusy) else "failed",
+                          "reasonCode": getattr(error, "code", "scoped_commit_failed"), "message": str(error)}
+            updated = queue_update(repo, request, result)
+            results.append({"operationId": request["operationId"], "status": updated["status"],
+                            "commit": updated.get("commit"), "reasonCode": updated.get("reasonCode")})
+    failures = []
+    if directory.exists():
+        for path in directory.glob("*.json"):
+            if read_json(path).get("status") == "failed":
+                failures.append(path.stem)
+    completed = sum(value["status"] in TERMINAL for value in results)
+    waiting = sum(value["status"] == "waiting" for value in results)
+    return {"status": "complete", "requests": results, "failedRequests": failures,
+            "description": f"Git commits: {completed} completed; {waiting} waiting; {len(failures)} failed",
+            "formalAcceptance": False,
+            "pushPerformed": False, "notificationPerformed": False}
 
 
 def transport(repo):
@@ -508,24 +651,78 @@ def install_tests(repo, client):
     return {"job": "zircon-management-tests", "status": "installed"}
 
 
+def install_followup(repo, client):
+    """Keep a bounded Jenkins timer for durable, explicitly scoped requests."""
+    name = "zircon-git-followup"
+    endpoint = "/job/" + name + "/config.xml"
+    status, raw, _ = client.request(endpoint)
+    if status == 404:
+        document = ET.fromstring('''<flow-definition><description>Resume explicit local Git commit requests</description>
+          <properties><org.jenkinsci.plugins.workflow.job.properties.DisableConcurrentBuildsJobProperty/>
+          <jenkins.model.BuildDiscarderProperty><strategy class="hudson.tasks.LogRotator"><numToKeep>30</numToKeep>
+          <daysToKeep>-1</daysToKeep><artifactDaysToKeep>-1</artifactDaysToKeep><artifactNumToKeep>-1</artifactNumToKeep>
+          </strategy></jenkins.model.BuildDiscarderProperty>
+          <org.jenkinsci.plugins.workflow.job.properties.PipelineTriggersJobProperty><triggers>
+          <hudson.triggers.TimerTrigger><spec>H/5 * * * *</spec></hudson.triggers.TimerTrigger>
+          </triggers></org.jenkinsci.plugins.workflow.job.properties.PipelineTriggersJobProperty></properties>
+          <definition class="org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition"><script/><sandbox>true</sandbox></definition>
+          <disabled>false</disabled></flow-definition>''')
+        post = "/createItem?name=" + name
+    elif status == 200:
+        document = ET.fromstring(raw)
+        if "// ZIRCON DURABLE CHECKOUT COMMIT FOLLOWUP" not in document.findtext("definition/script", ""):
+            raise ValueError("Existing Git followup job has an unknown owner")
+        post = endpoint
+    else:
+        raise ValueError("Git followup job inspection failed: HTTP " + str(status))
+    script = document.find("definition/script")
+    source = (repo / "tools/jenkins-management/checkout-commit-followup.groovy").read_text(encoding="utf-8-sig")
+    if (status == 200 and script.text == source and document.findtext("disabled") == "false"
+            and document.findtext(".//hudson.triggers.TimerTrigger/spec") == "H/5 * * * *"):
+        return {"status": "installed", "job": name, "unchanged": True}
+    if status == 200:
+        if document.findtext(".//hudson.triggers.TimerTrigger/spec") != "H/5 * * * *":
+            raise ValueError("Git followup timer changed; repair its schedule before submitting")
+        document.find("disabled").text = "false"
+    script.text = source
+    code, _, _ = client.request(post, method="POST", data=ET.tostring(document, encoding="utf-8", xml_declaration=True),
+                                content_type="application/xml")
+    if code not in (200, 201, 302):
+        raise ValueError("Git followup job installation failed: HTTP " + str(code))
+    code, raw, _ = client.request(endpoint)
+    after = ET.fromstring(raw) if code == 200 else None
+    if after is None or after.findtext("definition/script") != source or after.findtext("disabled") != "false":
+        raise ValueError("Git followup job read-back differs or is disabled")
+    return {"status": "installed", "job": name, "schedule": "H/5 * * * *"}
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("command", choices=("install", "submit", "run"))
+    parser.add_argument("command", choices=("install", "submit", "run", "followup"))
     parser.add_argument("--repo-root", type=Path, default=ROOT)
     parser.add_argument("--input-file", type=Path)
     parser.add_argument("--output-file", type=Path)
     parser.add_argument("--path", action="append", dest="paths")
     parser.add_argument("--message")
-    parser.add_argument("--session-id", default="local-checkout")
+    parser.add_argument("--session-id")
     parser.add_argument("--request-id")
     parser.add_argument("--operation-id")
     parser.add_argument("--query-only", action="store_true")
+    parser.add_argument("--defer", action="store_true", help="Leave the durable request for the next Jenkins followup")
     args = parser.parse_args(argv)
     repo = physical(args.repo_root)
+    payload = None
     try:
         if repo != physical(ROOT):
             raise ValueError("The public entry is limited to the authorized checkout")
-        if args.command == "run":
+        if args.defer and (args.command != "submit" or args.query_only):
+            raise ValueError("Deferred delivery requires a new submit, without --query-only")
+        if args.command == "followup":
+            if os.environ.get("JOB_NAME") != "zircon-git-followup" or os.environ.get("NODE_NAME") != "zircon-windows-agent":
+                raise ValueError("Git followup requires its Jenkins job and fixed agent")
+            os.environ["ZR_COMMIT_NATIVE"] = "1"
+            result = process_pending(repo)
+        elif args.command == "run":
             if os.environ.get("JOB_NAME") != "zircon-management" or os.environ.get("NODE_NAME") != "zircon-windows-agent":
                 raise ValueError("Git mutations require the Jenkins management job and fixed agent")
             payload = read_json(args.input_file)
@@ -540,47 +737,77 @@ def main(argv=None):
                 ("native-git-" + payload["operationId"] + "." + os.environ.get("BUILD_NUMBER", "unknown") + ".jsonl"))
             with git_lock(repo / ".jenkins/state/locks/management-git.lock"):
                 result = execute(repo, payload)
+            if payload.get("observationOnly") is not True:
+                request, _ = commit_request(repo, payload)
+                queue_update(repo, request, result)
         else:
             load_policy(repo)
             client = transport(repo)
             if args.command == "install":
                 result = install(repo, client)
                 result["regression"] = install_tests(repo, client)
+                result["followup"] = install_followup(repo, client)
             else:
                 payload = read_json(args.input_file) if args.input_file else {
                     "action": "commit-checkout", "paths": args.paths, "message": args.message,
-                    "sessionId": args.session_id, "requestId": args.request_id or "commit-" + uuid.uuid4().hex[:16],
+                    "sessionId": args.session_id or "local-checkout", "requestId": args.request_id or "commit-" + uuid.uuid4().hex[:16],
                     "operationId": args.operation_id or "commit-" + uuid.uuid4().hex[:16]}
                 payload["observationOnly"] = args.query_only
-                for field in ("sessionId", "requestId", "operationId"):
-                    if not isinstance(payload.get(field), str) or not ID.fullmatch(payload[field]):
-                        raise ValueError("Invalid " + field)
+                for field, value in (("sessionId", args.session_id), ("requestId", args.request_id),
+                                     ("operationId", args.operation_id)):
+                    if value is not None and payload.get(field) != value:
+                        raise ValueError("Commit input differs from explicit " + field)
+                request, _ = commit_request(repo, payload)
+                observed = queue_observation(repo, request)
+                if args.query_only or observed["status"] in TERMINAL:
+                    result = observed
+                    if args.output_file:
+                        write_json(args.output_file, result)
+                    print(json.dumps(result, ensure_ascii=False))
+                    return 0
+                queue_intake(repo, request)
                 # Repair only this extension if a normal management reinstall removed it.
                 status, job, _ = client.request("/job/zircon-management/config.xml")
                 if status != 200:
                     raise ValueError("Jenkins management job is unavailable")
                 if BEGIN not in ET.fromstring(job).findtext("definition/script", ""):
                     install(repo, client)
-                selected = read_json(repo / ".jenkins/state/deployment/driver.json")
-                fields = {"ACTION": "commit-checkout", "SESSION_ID": payload["sessionId"],
-                          "REQUEST_ID": payload["requestId"], "OPERATION_ID": payload["operationId"],
-                          "INPUT_JSON": json.dumps(payload, ensure_ascii=False),
-                          "QUERY_ONLY": str(args.query_only).lower(),
-                          "EXPECTED_DRIVER_DIGEST": selected["driverDigest"],
-                          "RUNTIME_OPERATION_ID": selected["runtimeOperationId"]}
-                status, body, headers = client.request("/job/zircon-management/buildWithParameters", method="POST",
-                    data=urllib.parse.urlencode(fields).encode(), content_type="application/x-www-form-urlencoded")
-                if status not in (201, 302):
-                    raise ValueError("Jenkins commit submission failed: HTTP " + str(status))
-                result = {"status": "queued", "queueUrl": headers.get("Location"), "request": payload}
+                install_followup(repo, client)
+                if args.defer:
+                    result = queue_observation(repo, request)
+                    if result["status"] not in TERMINAL:
+                        result = {**result, "status": "queued", "automaticFollowup": True, "deferred": True}
+                else:
+                    result = submit_queued(repo, payload, client)
         if args.output_file:
             write_json(args.output_file, result)
+            if args.command == "followup":
+                description = physical(args.output_file.with_suffix(".description.txt"))
+                description.write_text(result["description"] + "\n", encoding="utf-8")
         print(json.dumps(result, ensure_ascii=False))
+        if args.command == "followup" and result.get("failedRequests"):
+            return 3
         return 0 if result["status"] not in {"failed", "unknown", "waiting"} else 1
     except Exception as error:
         result = {"status": "waiting" if getattr(error, "code", None) == "management_git_busy" else "failed",
                   "reasonCode": getattr(error, "code", "scoped_commit_failed"),
                   "message": str(error), "formalAcceptance": False, "pushPerformed": False}
+        if args.command == "run" and payload and payload.get("observationOnly") is not True:
+            try:
+                request, _ = commit_request(repo, payload)
+                queue_update(repo, request, result)
+            except Exception:
+                # Retain the original failure. The durable input remains pending
+                # if another short-lived queue writer owns its native lock.
+                pass
+        elif args.command == "submit" and payload and not args.query_only:
+            try:
+                request, _ = commit_request(repo, payload)
+                pending = queue_observation(repo, request)
+                if pending["status"] in QUEUE_PENDING:
+                    result = {**pending, "automaticFollowup": True, "lastDeliveryError": str(error)}
+            except Exception:
+                pass
         if args.output_file:
             write_json(args.output_file, result)
         print(json.dumps(result, ensure_ascii=False))

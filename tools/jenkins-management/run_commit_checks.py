@@ -16,7 +16,7 @@ OUTPUT = Path('E:/cargo-targets/zircon-local/reports/jenkins-commit-audit-202610
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--run-id', required=True)
-    parser.add_argument('--suite', choices=('all', 'support', 'cache'), default='all')
+    parser.add_argument('--suite', choices=('all', 'support', 'cache', 'delivery'), default='all')
     args = parser.parse_args()
     if not re.fullmatch(r'checkout-commit-[A-Za-z0-9_.-]{1,64}', args.run_id):
         raise ValueError('Invalid regression run ID')
@@ -45,6 +45,10 @@ def main():
     command = [sys.executable, '-B', '-X', 'utf8', str(ROOT / 'tools/jenkins-management/tests' / test_file)]
     if args.suite == 'support':
         command.append('CommitEntrySupportTests')
+    elif args.suite == 'delivery':
+        command.extend(['CommitQueueTests',
+                        'CheckoutCommitTests.test_retry_after_precommit_failure_allows_unrelated_head_advance',
+                        'CheckoutCommitTests.test_interrupted_receipt_recovers_existing_commit_without_recommit'])
     with (output / 'stdout.txt').open('wb') as stdout, (output / 'stderr.txt').open('wb') as stderr:
         process = subprocess.Popen(command, cwd=ROOT, env=environment, stdout=stdout, stderr=stderr)
         try:

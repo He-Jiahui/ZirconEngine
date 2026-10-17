@@ -18,6 +18,8 @@ created: 2026-10-11
 
 当前用户已授权 Jenkins 对明确选定的业务和工具文件执行普通本地提交，并要求取消哈希对账和逐会话提交许可。已完成范围审阅的业务改动使用 [普通本地提交入口](jenkins-local-commits.md)：`tools/dev/jenkins_commit.py submit`，复用实际 checkout，不等待整树封存、配置/依赖哈希或旧 formal flow。活动读取、文件写权限和原生 Git 锁仍保留；产品测试与里程碑验收记录如实报告。该本地提交授权不包含推送或外部通知。
 
+在这一已有授权内，完成范围审阅的任务交付明确的文件清单和提交说明，可使用 [本地提交队列](jenkins-commit-queue.md) 或 `submit-jenkins-management.ps1 -Action commit-checkout`。入口会保存原请求，由即时构建或每五分钟的 `zircon-git-followup` 完成；等待锁和回执不明的请求会自动接续。核对回执中的实际提交号后再报告已提交；验证成功或收件成功不能代替 Git 提交，未交付清单的其他会话改动保持原状。
+
 现有 `zircon-scheduled-cleanup` 的半小时触发器还承担[共享 Rust 增量缓存清理](jenkins-incremental-cleanup.md)。已解锁的指定编译缓存可直接按物理路径、原生锁和文件身份清理，无需让未知源码、历史归属对账或缺席 inventory 阻止本轮缓存回收。
 
 ## 管理边界

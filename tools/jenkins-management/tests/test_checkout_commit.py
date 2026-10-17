@@ -101,6 +101,30 @@ class CheckoutCommitTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "already belongs"):
                 self.run_commit(f)
 
+    def test_retry_after_precommit_failure_allows_unrelated_head_advance(self):
+        with self.fixture() as f:
+            repo = f[0]
+            (repo / "owned.txt").write_text("ready fix\n", encoding="utf-8")
+            original_git = commit.git
+
+            def fail_before_stage(root, *args, **kwargs):
+                if args and args[0] == "add":
+                    raise ValueError("temporary index failure")
+                return original_git(root, *args, **kwargs)
+
+            with patch.object(commit, "git", side_effect=fail_before_stage):
+                with self.assertRaisesRegex(ValueError, "temporary index failure"):
+                    self.run_commit(f)
+            (repo / "foreign.txt").write_text("another completed task\n", encoding="utf-8")
+            commit.git(repo, "commit", "--only", "--no-gpg-sign", "-m", "Foreign task", "--", "foreign.txt")
+            foreign_head = commit.git(repo, "rev-parse", "HEAD").stdout.decode().strip()
+            result = self.run_commit(f)
+            self.assertEqual(result["status"], "complete")
+            self.assertEqual(result["headBefore"], foreign_head)
+            self.assertEqual(len(result["previousAttempts"]), 1)
+            self.assertEqual(commit.git(repo, "show", "HEAD:foreign.txt").stdout, b"another completed task\n")
+            self.assertEqual(commit.git(repo, "diff-tree", "--no-commit-id", "--name-only", "-r", "HEAD").stdout.strip(), b"owned.txt")
+
     def test_source_and_configuration_changes_do_not_require_digests_or_session_grants(self):
         with self.fixture() as f:
             repo, policy, grants, payload = f
@@ -224,6 +248,115 @@ class CheckoutCommitTests(unittest.TestCase):
             payload["paths"] = ["dependency"]
             with self.assertRaisesRegex(ValueError, "Submodule"):
                 self.run_commit(f)
+
+
+class CommitQueueTests(unittest.TestCase):
+    @contextmanager
+    def fixture(self):
+        with CheckoutCommitTests.fixture(self) as fixture:
+            repo, policy, _, _ = fixture
+            (repo / ".codex").mkdir()
+            (repo / ".codex/config.toml").write_text(
+                '[permissions.zircon-strict.filesystem]\n' + json.dumps(str(repo)) + ' = "write"\n',
+                encoding="utf-8")
+            commit.write_json(repo / ".jenkins/state/deployment/driver.json",
+                              {"driverDigest": "selected", "runtimeOperationId": "current"})
+            with patch.object(commit, "load_policy", return_value=policy):
+                yield fixture
+
+    class Client:
+        def __init__(self, repo, request, error=None):
+            self.repo, self.request_input, self.error = repo, request, error
+            self.posts = 0
+
+        def request(self, path, **kwargs):
+            self.posts += 1
+            value = commit.read_json(commit.queue_record_path(self.repo, self.request_input["operationId"]))
+            if value["request"] != self.request_input or value["status"] != "dispatching":
+                raise AssertionError("Exact durable intent must precede HTTP delivery")
+            if self.error:
+                raise self.error
+            return 201, b"", {"Location": "http://127.0.0.1:18080/queue/item/1/"}
+
+    def test_lost_http_response_is_recovered_by_followup_without_duplicate_commit(self):
+        with self.fixture() as f:
+            repo, _, _, payload = f
+            (repo / "owned.txt").write_text("ready fix\n", encoding="utf-8")
+            client = self.Client(repo, payload, TimeoutError("response lost"))
+            submitted = commit.submit_queued(repo, payload, client)
+            self.assertEqual(submitted["status"], "pending")
+            self.assertTrue(submitted["automaticFollowup"])
+            commit.submit_queued(repo, payload, client)
+            self.assertEqual(client.posts, 1)
+            result = commit.process_pending(repo)
+            self.assertEqual(result["requests"][0]["status"], "complete")
+            actual = result["requests"][0]["commit"]
+            (repo / "owned.txt").write_text("next task\n", encoding="utf-8")
+            self.assertEqual(commit.process_pending(repo)["requests"], [])
+            self.assertEqual(commit.submit_queued(repo, payload, client)["commit"], actual)
+            self.assertEqual(commit.git(repo, "rev-list", "--count", "HEAD").stdout.strip(), b"2")
+
+    def test_busy_request_stays_durable_and_commits_when_reader_releases(self):
+        with self.fixture() as f:
+            repo, _, _, payload = f
+            (repo / "owned.txt").write_text("ready fix\n", encoding="utf-8")
+            commit.submit_queued(repo, payload, self.Client(repo, payload))
+            with patch.object(commit, "checkout_reader", return_value="active-source"):
+                self.assertEqual(commit.process_pending(repo)["requests"][0]["status"], "waiting")
+            with commit.git_lock(repo / ".jenkins/state/locks/management-git.lock"):
+                self.assertEqual(commit.process_pending(repo)["requests"][0]["status"], "waiting")
+            self.assertEqual(commit.process_pending(repo)["requests"][0]["status"], "complete")
+
+    def test_query_does_not_write_or_submit_and_conflicting_identity_is_rejected(self):
+        with self.fixture() as f:
+            repo, _, _, payload = f
+            client = self.Client(repo, payload)
+            self.assertEqual(commit.submit_queued(repo, payload, client, query_only=True)["status"], "not-started")
+            self.assertFalse(commit.queue_record_path(repo, payload["operationId"]).exists())
+            self.assertEqual(client.posts, 0)
+            commit.submit_queued(repo, payload, client)
+            changed = {**payload, "paths": ["foreign.txt"]}
+            with self.assertRaisesRegex(ValueError, "already belongs"):
+                commit.submit_queued(repo, changed, client)
+
+    def test_delivery_claim_is_unique_and_late_queue_update_cannot_undo_completion(self):
+        with self.fixture() as f:
+            repo, _, _, request = f
+            commit.queue_intake(repo, request)
+            self.assertTrue(commit.queue_intake(repo, request, claim_delivery=True)[1])
+            self.assertFalse(commit.queue_intake(repo, request, claim_delivery=True)[1])
+            commit.queue_update(repo, request, {"status": "complete", "commit": "actual"})
+            self.assertEqual(commit.queue_update(repo, request, {"status": "waiting"})["commit"], "actual")
+
+    def test_failed_request_requires_explicit_same_identity_retry(self):
+        with self.fixture() as f:
+            repo, _, _, payload = f
+            commit.queue_intake(repo, payload)
+            with patch.object(commit, "execute", side_effect=ValueError("invalid request")):
+                self.assertEqual(commit.process_pending(repo)["requests"][0]["status"], "failed")
+            failed = commit.process_pending(repo)
+            self.assertEqual(failed["requests"], [])
+            self.assertEqual(failed["failedRequests"], [payload["operationId"]])
+            commit.submit_queued(repo, payload, self.Client(repo, payload))
+            self.assertEqual(commit.process_pending(repo)["requests"][0]["status"], "no-changes")
+
+    def test_unsubmitted_foreign_edits_are_never_discovered_by_followup(self):
+        with self.fixture() as f:
+            repo = f[0]
+            (repo / "foreign.txt").write_text("foreign work\n", encoding="utf-8")
+            self.assertEqual(commit.process_pending(repo)["requests"], [])
+            self.assertEqual(commit.git(repo, "rev-list", "--count", "HEAD").stdout.strip(), b"1")
+
+    def test_explicit_deferred_retry_reopens_a_failed_request(self):
+        with self.fixture() as f:
+            repo, _, _, request = f
+            commit.submit_queued(repo, request, self.Client(repo, request))
+            commit.queue_update(repo, request, {"status": "failed", "message": "temporary failure"})
+            value, accepted = commit.queue_intake(repo, request)
+            self.assertTrue(accepted)
+            self.assertEqual(value["status"], "pending")
+            self.assertNotIn("deliveryAttemptedAt", value)
+            self.assertEqual(commit.process_pending(repo)["requests"][0]["status"], "no-changes")
 
 
 class CommitEntrySupportTests(unittest.TestCase):
