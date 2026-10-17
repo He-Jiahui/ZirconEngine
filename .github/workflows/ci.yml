@@ -11,6 +11,48 @@ env:
   RUST_BACKTRACE: 1
 
 jobs:
+  source-contracts:
+    name: Source and tooling contracts
+    runs-on: ubuntu-latest
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Test convention runner
+        run: python -B -m unittest tools.tests.test_check_conventions tools.tests.test_frameworks_06_ci_toolchain_contract -v
+
+      - name: Test CI gate wiring
+        run: python -B .github/tests/test_ci_gates_contract.py
+
+      - name: Test Cargo test-reachability guard
+        run: python -m unittest tools.tests.test_validate_cargo_test_reachability -v
+
+      - name: Guard Cargo test reachability
+        run: python tools/audits/validate_cargo_test_reachability.py --json
+
+      - name: Test Rust test separation guard
+        run: python -B -m unittest tools.tests.test_separate_rust_tests tools.tests.test_review_debt -v
+
+      - name: Guard Rust test directories
+        run: python -B tools/audits/separate_rust_tests.py --check
+
+      - name: Run convention gates
+        run: >-
+          python tools/audits/check_conventions.py --json
+          --only docs --only guards --only exemptions --only layering
+
+      - name: Check engine source path budget
+        run: python -B -m unittest tools.tests.test_path_names -v
+
+      - name: Audit engine source path budget
+        run: python -B tools/audits/path_names.py --summary
+
+
   portable-runtime-core:
     name: Portable runtime core (Wasm)
     # CI outputs must pass the physical E: root and reparse-point guard.
@@ -208,34 +250,9 @@ jobs:
         with:
           components: rustfmt, clippy
 
-      - name: Test convention runner
-        run: python -B -m unittest tools.tests.test_check_conventions tools.tests.test_frameworks_06_ci_toolchain_contract -v
-
-      - name: Test CI gate wiring
-        run: python -B .github/tests/test_ci_gates_contract.py
-
-      - name: Test Cargo test-reachability guard
-        run: python -m unittest tools.tests.test_validate_cargo_test_reachability -v
-
-      - name: Guard Cargo test reachability
-        run: python tools/audits/validate_cargo_test_reachability.py --json
-
-      - name: Test Rust test separation guard
-        run: python -B -m unittest tools.tests.test_separate_rust_tests -v
-
-      - name: Guard Rust test directories
-        run: python -B tools/audits/separate_rust_tests.py --check
-
-      - name: Run convention gates
-        run: >-
-          python tools/audits/check_conventions.py --json
-          --only docs --only guards --only exemptions --only layering --only structure
-
-      - name: Check engine source path budget
-        run: python -B -m unittest tools.tests.test_path_names -v
-
-      - name: Audit engine source path budget
-        run: python -B tools/audits/path_names.py --summary
+      - name: Check runtime structure conventions
+        shell: pwsh
+        run: ./.github/scripts/invoke-cargo-msvc.ps1 cargo +1.94.1 test -p zircon_runtime --lib structure_convention --locked
 
       - name: Check Rust formatting
         shell: pwsh

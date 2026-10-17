@@ -4,6 +4,7 @@ import argparse
 from collections import Counter
 import json
 import os
+import posixpath
 import re
 import stat
 import subprocess
@@ -11,6 +12,11 @@ import sys
 from dataclasses import asdict, dataclass
 from pathlib import Path, PurePosixPath, PureWindowsPath
 from typing import Iterable
+
+if __package__:
+    from .review_debt import baseline_sources
+else:
+    from review_debt import baseline_sources
 
 if __package__:
     from .convention_exemptions import (
@@ -459,26 +465,30 @@ def audit_rust_exemptions(repo_root: Path) -> dict[str, object]:
 
 
 def _front_matter_path_fields(document: Path) -> dict[str, list[str]] | None:
-    with document.open("r", encoding="utf-8-sig") as stream:
-        first_line = next(stream, None)
-        if first_line is None or first_line.strip() != "---":
-            return None
+    return _parse_front_matter(document.read_text(encoding="utf-8-sig").splitlines())
 
-        fields = {field: [] for field in FRONT_MATTER_LIST_FIELDS}
-        active_field: str | None = None
-        for line in stream:
-            if line.strip() == "---":
-                return fields
-            if line and not line[0].isspace():
-                key, separator, _ = line.partition(":")
-                active_field = key if separator and key in fields else None
-                continue
-            stripped = line.strip()
-            if active_field is None or not stripped.startswith("- "):
-                continue
-            value = stripped[2:].strip().strip("'\"").strip("`")
-            if value:
-                fields[active_field].append(value)
+
+def _parse_front_matter(lines: Iterable[str]) -> dict[str, list[str]] | None:
+    stream = iter(lines)
+    first_line = next(stream, None)
+    if first_line is None or first_line.strip() != "---":
+        return None
+
+    fields = {field: [] for field in FRONT_MATTER_LIST_FIELDS}
+    active_field: str | None = None
+    for line in stream:
+        if line.strip() == "---":
+            return fields
+        if line and not line[0].isspace():
+            key, separator, _ = line.partition(":")
+            active_field = key if separator and key in fields else None
+            continue
+        stripped = line.strip()
+        if active_field is None or not stripped.startswith("- "):
+            continue
+        value = stripped[2:].strip().strip("'\"").strip("`")
+        if value:
+            fields[active_field].append(value)
     return None
 
 
@@ -595,6 +605,35 @@ def run_conventions(
     }
     if "docs" in selected_set:
         docs_report = audit_document_paths(repo_root)
+        if repo_root.resolve() == Path(__file__).resolve().parents[2]:
+            violations = docs_report["violations"]
+            files, sources = baseline_sources(repo_root, [v["document"] for v in violations])
+            debt = Counter()
+            for document, source in sources.items():
+                fields = _parse_front_matter(source.splitlines()) or {}
+                for field, entries in fields.items():
+                    paths = [p for entry in entries for p in _test_reference_paths(entry)] if field == "tests" else entries
+                    for path in paths:
+                        normalized = path.replace("\\", "/")
+                        if PureWindowsPath(path).drive or normalized.startswith("/"):
+                            reason = "absolute path"
+                        elif posixpath.normpath(normalized).startswith("../"):
+                            reason = "repository escape"
+                        elif posixpath.normpath(normalized) not in files:
+                            reason = "missing path"
+                        else:
+                            continue
+                        debt[(document, field, path, reason)] += 1
+            new = []
+            for violation in violations:
+                key = tuple(violation[k] for k in ("document", "field", "path", "reason"))
+                if debt[key]:
+                    debt[key] -= 1
+                else:
+                    new.append(violation)
+            docs_report["baseline_violation_count"] = len(violations) - len(new)
+            docs_report["violations"] = new
+            docs_report["violation_count"] = len(new)
         report["docs"] = docs_report
         if docs_report["violation_count"]:
             report["passed"] = False
@@ -620,8 +659,9 @@ def run_conventions(
         }
         if not dry_run:
             try:
+                argv = (sys.executable, *command.argv[1:]) if command.argv[0] == "python" else command.argv
                 completed = subprocess.run(
-                    command.argv,
+                    argv,
                     cwd=repo_root,
                     check=False,
                     capture_output=capture_output,

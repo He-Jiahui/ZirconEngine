@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+import subprocess
 import unittest
 from pathlib import Path
 
@@ -23,6 +24,22 @@ class CiGatesContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.workflow = WORKFLOW_PATH.read_text(encoding="utf-8")
+
+    def test_workflow_unittest_modules_are_tracked(self) -> None:
+        tracked = set(subprocess.check_output(
+            ["git", "ls-files", "-z"], cwd=REPO_ROOT
+        ).decode().split("\0"))
+        count = 0
+        for workflow in (REPO_ROOT / ".github/workflows").glob("*.yml"):
+            for match in re.finditer(r"-m unittest ([^\n]+)", workflow.read_text(encoding="utf-8")):
+                for module in match.group(1).split():
+                    if module.startswith("-"):
+                        continue
+                    path = module.replace(".", "/") + ".py"
+                    self.assertIn(path, tracked, f"{workflow.name}: {module}")
+                    self.assertTrue((REPO_ROOT / path).is_file(), path)
+                    count += 1
+        self.assertGreater(count, 0)
 
     def assert_workspace_member_fmt_gate(self, rust: str, manifest: str) -> None:
         step_name = "Check Rust formatting" if manifest == "Cargo.toml" else "Check plugin workspace formatting"
@@ -61,8 +78,8 @@ class CiGatesContractTests(unittest.TestCase):
             "invoke-cargo-msvc.ps1 cargo clippy --workspace --all-targets --locked -- -D warnings",
             rust,
         )
-        self.assertIn("python -B -m unittest tools.tests.test_path_names -v", rust)
-        self.assertIn("python -B tools/audits/path_names.py --summary", rust)
+        self.assertIn("python -B -m unittest tools.tests.test_path_names -v", job_body(self.workflow, "source-contracts"))
+        self.assertIn("python -B tools/audits/path_names.py --summary", job_body(self.workflow, "source-contracts"))
 
     def test_plugins_workspace_has_its_own_format_and_lint_gates(self) -> None:
         rust = job_body(self.workflow, "rust")
@@ -120,7 +137,7 @@ class CiGatesContractTests(unittest.TestCase):
         runtime_lib = (runtime_root / "lib.rs").read_text(encoding="utf-8")
         self.assertRegex(
             runtime_lib,
-            r'(?s)#\[cfg\(feature = "native-host"\)\]\s*#\[path = "scene/mod.rs"\]\s*pub mod scene;',
+            r'(?s)#\[cfg\(any\(\s*feature = "native-host",\s*feature = "graphics",\s*feature = "animation",\s*feature = "ui"\s*\)\)\]\s*#\[path = "scene/mod.rs"\]\s*pub mod scene;',
         )
         self.assertIn("#[cfg(all(test, feature = \"native-host\"))]", runtime_lib)
 
@@ -356,7 +373,7 @@ class CiGatesContractTests(unittest.TestCase):
             volumetric_tests,
             r'(?s)#\[ignore[^\]]*\]\s*fn smoke_volumetric_fog_executes_a_product_frame\(',
         )
-        self.assertIn("let (frame, stats) = render_frame(", volumetric_tests)
+        self.assertIn("let (volumetric_frame, volumetric_stats) = render_frame(", volumetric_tests)
         self.assertIn(".submit_frame_extract(viewport, extract)", volumetric_tests)
         self.assertIn(".capture_frame(viewport)", volumetric_tests)
         self.assertIn(

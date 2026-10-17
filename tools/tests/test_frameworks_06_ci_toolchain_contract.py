@@ -41,7 +41,7 @@ class Frameworks06CiToolchainContractTests(unittest.TestCase):
             r"(?m)^\s*components:\s*rustfmt,\s*clippy\s*$",
         )
         self.assertEqual(
-            rust_job.count(
+            workflow.count(
                 "python -B -m unittest "
                 "tools.tests.test_check_conventions "
                 "tools.tests.test_frameworks_06_ci_toolchain_contract -v"

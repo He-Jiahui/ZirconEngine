@@ -7,6 +7,11 @@ import json
 from pathlib import Path, PurePosixPath
 import subprocess
 
+if __package__:
+    from .review_debt import baseline_sources
+else:
+    from review_debt import baseline_sources
+
 TOTAL_LIMIT = 128
 PREFIX_RESERVE = 48
 RELATIVE_LIMIT = TOTAL_LIMIT - PREFIX_RESERVE
@@ -83,6 +88,12 @@ def main() -> int:
     parser.add_argument("--summary", action="store_true")
     args = parser.parse_args()
     report = audit(files(args.repo_root), str(args.repo_root))
+    baseline, _ = baseline_sources(args.repo_root, [])
+    violations = report["violations"]
+    # Existing path debt does not excuse a new name, even at the same length.
+    report["violations"] = [v for v in violations if v["path"] not in baseline]
+    report["baseline_violation_count"] = len(violations) - len(report["violations"])
+    report["passed"] = not report["violations"]
     if args.summary:
         report["violations_by_root"] = dict(Counter(v["path"].split("/")[0] for v in report["violations"]))
         report.pop("violations")

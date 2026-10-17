@@ -4,3 +4,5 @@
 # This regression test moved here from the tools root.
 !/cleanup-stale-targets.Tests.ps1
 !/test_separate_rust_tests.py
+!/test_path_names.py
+!/test_review_debt.py
