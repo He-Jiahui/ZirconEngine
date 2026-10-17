@@ -110,6 +110,8 @@ explicit evidence below says otherwise. No build outputs are created here.
   against tracking stage/shader caches, removing the M2 allowance. Contact-shadow
   tests already use the physical-output-checked project helper. Seven focused
   Python tests pass with subprocesses mocked; no compiler was invoked.
+  Final documentation audit also retires the two metadata links to those removed
+  shader-cache artifacts; historical review prose remains intact.
 - L5: Stage under a versioned parent with a per-generation OS file-lock lease
   and UUID-bound marker. A parent lifecycle lock closes the create/sweep race;
   startup sweeps only unlocked, marked, plain-file generations. Live, malformed,

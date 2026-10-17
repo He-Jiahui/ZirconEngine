@@ -19,8 +19,6 @@ related_code:
   - examples/vampire/assets/models/kenney_graveyard/KENNEY_GRAVEYARD_LICENSE.txt
   - zircon_plugins/navigation/native/NOTICE.md
   - zircon_plugins/navigation/native/vendor/recastnavigation/License.txt
-  - zircon_plugins/rendering/features/contact_shadow/runtime/.zircon-cache/shader_variants/v1/11/1171588ec74b24db4d0fa1713feaa266d70f856d5a50466b4d91de94ae01a58e.meta
-  - zircon_plugins/rendering/features/contact_shadow/runtime/.zircon-cache/shader_variants/v1/11/1171588ec74b24db4d0fa1713feaa266d70f856d5a50466b4d91de94ae01a58e.wgsl.zst
 tests:
   - tools/tests/mvp-product-inputs.Tests.ps1
 plan_sources:
