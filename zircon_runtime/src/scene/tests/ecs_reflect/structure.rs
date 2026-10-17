@@ -1,4 +1,6 @@
 //! 源码结构守卫锁定中立模式目录、派生适配器和稠密字段槽的唯一所有权。
+//! 这些守卫通过 `include_str!` 的字符串断言和文件存在性检查约束当前源码结构；
+//! 它们不执行被检查的注册、转换或适配器函数，运行时结果须由行为测试验证。
 
 #[test]
 fn type_registry_publication_uses_the_neutral_schema_catalog() {
@@ -210,6 +212,14 @@ fn builtin_reflection_special_adapters_only_enforce_world_owned_invariants() {
 
 #[test]
 fn builtin_component_metadata_is_owned_by_zr_reflect_derives() {
+    /// 在元数据归属守卫中检查规范类型路径及其最近的 derive 标记。
+    ///
+    /// # 参数
+    /// `type_path` 是预期只出现一次的完整路径；`owner` 是编译期嵌入的组件所属源码。
+    ///
+    /// # 约束与边界
+    /// 通过子串计数和前缀搜索判断词面位置，不解析 Rust AST，也不证明 derive 的运行时实现。
+    /// 任一位置或标记断言失败时中止本测试；返回后只表示当前源码符合这些词面约束。
     fn assert_component_owner(type_path: &str, owner: &str) {
         let type_path_offset = owner
             .find(type_path)
@@ -333,7 +343,7 @@ fn derived_component_write_reinserts_through_world_with_direct_error_branches() 
     assert!(
         write_field.contains("match world.insert(entity, next) {")
             && write_field.contains("Ok(_) => Ok(true),")
-            && write_field.contains("Err(error) => Err(ReflectError::UnsupportedConversion")
+            && write_field.contains("Err(error) => Err(error.into_reflect_error(target))")
             && !write_field.contains(".map(")
             && !write_field.contains(".map_err("),
         "derived component writes must re-enter World invariants with direct success/error branches"
@@ -401,7 +411,9 @@ fn derived_component_registration_constructs_reflection_metadata_once() {
                 .matches("T::reflect_type_registration()?")
                 .count()
                 == 1
-            && derived_registration.contains("finish_component_registration(registration,")
+            && derived_registration
+                .split_once("finish_component_registration(")
+                .is_some_and(|(_, arguments)| arguments.trim_start().starts_with("registration,"))
             && custom_adapter_registration
                 .contains("finish_component_registration(registration, component)"),
         "each derived adapter constructor must build reflected registration metadata exactly once"

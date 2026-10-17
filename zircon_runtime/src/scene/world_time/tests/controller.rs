@@ -191,6 +191,43 @@ fn fixed_timestep_policy_changes_reject_while_fixed_debt_is_pending() {
 }
 
 #[test]
+fn fixed_interpolation_preserves_committed_endpoints_when_elapsed_saturates() {
+    let outer = CoreRuntime::new();
+    let policy = TimePolicy::new(Duration::MAX, 1.0, Duration::MAX);
+    let mut controller = WorldTimeController::new(policy).expect("valid maximum policy");
+
+    controller
+        .advance(outer.advance_time_by(Duration::MAX, 1))
+        .unwrap();
+    let first = controller.begin_fixed_step(17).unwrap();
+    controller.commit_fixed_step(&first).unwrap();
+    let first_context = controller.fixed_interpolation_context();
+    assert_eq!(first_context.previous().elapsed(), Duration::ZERO);
+    assert_eq!(first_context.current().elapsed(), Duration::MAX);
+
+    controller
+        .advance(outer.advance_time_by(Duration::MAX, 1))
+        .unwrap();
+    let second = controller.begin_fixed_step(17).unwrap();
+    controller.commit_fixed_step(&second).unwrap();
+    let second_context = controller.fixed_interpolation_context();
+    assert_eq!(second_context.previous(), first_context.current());
+    assert_eq!(
+        second_context.current().simulation_tick(),
+        Some(second.id())
+    );
+    assert_eq!(second_context.current().elapsed(), Duration::MAX);
+    assert_eq!(second_context.remaining_debt(), Duration::ZERO);
+
+    controller.reset_fixed_interpolation_history();
+    let baseline = controller.fixed_interpolation_context();
+    assert_eq!(baseline.previous().simulation_tick(), None);
+    assert_eq!(baseline.current().simulation_tick(), None);
+    assert_eq!(baseline.previous().elapsed(), Duration::MAX);
+    assert_eq!(baseline.current().elapsed(), Duration::MAX);
+}
+
+#[test]
 fn fixed_interpolation_observes_only_committed_steps_and_actual_remaining_debt() {
     let outer = CoreRuntime::new();
     let policy = TimePolicy::default().with_fixed_timestep(Duration::from_millis(10));

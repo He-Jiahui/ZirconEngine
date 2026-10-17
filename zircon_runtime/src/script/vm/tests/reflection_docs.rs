@@ -536,3 +536,63 @@ fn rust_reflection_macros_generate_type_function_and_module_descriptors() {
         .unwrap();
     assert_eq!(value, ScriptHostValue::Float(5.0));
 }
+
+#[test]
+fn rust_reflection_macros_register_renamed_types_and_host_modules() {
+    #[crate::zircon_host_module(name = "test.macro.renamed", version = "0.1.0")]
+    mod renamed {
+        use super::*;
+
+        #[derive(crate::ZirconScriptType)]
+        #[zircon_script(name = "PublicPoint", value_kind = ScriptHostValueKind::Float)]
+        pub(super) struct RustPoint {
+            #[zircon_script(type_name = "float")]
+            pub(super) x: f64,
+        }
+
+        #[derive(crate::ZirconScriptType)]
+        #[zircon_script(name = "PublicChoice", value_kind = ScriptHostValueKind::Int)]
+        pub(super) enum RustChoice {
+            Only,
+        }
+    }
+
+    let registration = renamed::RustPoint::reflect_type_registration().unwrap();
+    assert_eq!(
+        registration.type_path.type_path(),
+        concat!(module_path!(), "::renamed::PublicPoint")
+    );
+    assert_eq!(renamed::RustPoint { x: 1.0 }.x, 1.0);
+    assert_eq!(
+        renamed::RustPoint::script_host_type_descriptor()
+            .unwrap()
+            .name,
+        "PublicPoint"
+    );
+    assert!(matches!(
+        renamed::RustChoice::Only,
+        renamed::RustChoice::Only
+    ));
+    let choice = renamed::RustChoice::reflect_type_registration().unwrap();
+    assert_eq!(
+        choice.type_path.type_path(),
+        concat!(module_path!(), "::renamed::PublicChoice")
+    );
+    assert_eq!(
+        renamed::RustChoice::script_host_type_descriptor()
+            .unwrap()
+            .name,
+        "PublicChoice"
+    );
+
+    let descriptor = renamed::renamed_host_module_descriptor().unwrap();
+    assert_eq!(
+        descriptor
+            .types
+            .iter()
+            .map(|ty| ty.name.as_str())
+            .collect::<Vec<_>>(),
+        vec!["PublicPoint", "PublicChoice"]
+    );
+    renamed::register_renamed_host_module(&HostExportRegistry::default()).unwrap();
+}
