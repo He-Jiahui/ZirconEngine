@@ -38,3 +38,22 @@ fn configured_tls_material_cannot_be_silently_ignored_for_plaintext_loopback() {
         })
     );
 }
+
+#[test]
+fn query_and_fragment_cannot_spoof_loopback() {
+    for url in ["ws://evil.example?@127.0.0.1/", "ws://evil.example#@127.0.0.1/"] {
+        assert_ne!(websocket_url_host(url).as_deref(), Some("127.0.0.1"));
+        let mut descriptor = NetWebSocketConnectDescriptor::new(url);
+        descriptor.security = NetSecurityPolicy::production_tls();
+        descriptor.security.allow_insecure_loopback = true;
+        assert!(validate_websocket_security_policy(&descriptor).is_err());
+    }
+}
+
+#[test]
+fn uppercase_schemes_are_normalized_for_policy_and_connection() {
+    let descriptor = NetWebSocketConnectDescriptor::new("WSS://EXAMPLE.INVALID/socket");
+    let uri = validate_websocket_security_policy(&descriptor).unwrap();
+    assert_eq!(uri.scheme_str(), Some("wss"));
+    assert_eq!(websocket_uri_host(&uri).as_deref(), Some("example.invalid"));
+}

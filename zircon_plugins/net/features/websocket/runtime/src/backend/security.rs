@@ -1,18 +1,31 @@
+use tokio_tungstenite::tungstenite::http::Uri;
+
 use zircon_runtime::core::framework::net::{NetError, NetWebSocketConnectDescriptor};
 
 pub(super) fn validate_websocket_security_policy(
     descriptor: &NetWebSocketConnectDescriptor,
-) -> Result<(), NetError> {
+) -> Result<Uri, NetError> {
+    let uri: Uri = descriptor.url.parse().map_err(|_| NetError::SecurityPolicyViolation {
+        reason: "WebSocket connection requires a valid WS/WSS URI".to_string(),
+    })?;
+    let secure = uri.scheme_str().is_some_and(|scheme| scheme.eq_ignore_ascii_case("wss"));
+    if (!secure && !uri.scheme_str().is_some_and(|scheme| scheme.eq_ignore_ascii_case("ws")))
+        || uri.host().is_none()
+    {
+        return Err(NetError::SecurityPolicyViolation {
+            reason: "WebSocket connection requires a valid WS/WSS URI".to_string(),
+        });
+    }
     let has_tls_material =
         descriptor.security.certificate_pinning || descriptor.security.has_certificate_roots();
-    if has_tls_material && !descriptor.url.starts_with("wss://") {
+    if has_tls_material && !secure {
         return Err(NetError::SecurityPolicyViolation {
             reason: "WebSocket certificate roots and pinning require WSS".to_string(),
         });
     }
 
     if descriptor.security.certificate_pinning {
-        let host = websocket_url_host(&descriptor.url).ok_or_else(|| {
+        let host = websocket_uri_host(&uri).ok_or_else(|| {
             NetError::SecurityPolicyViolation {
                 reason: "WebSocket certificate pinning requires a valid request host".to_string(),
             }
@@ -27,38 +40,28 @@ pub(super) fn validate_websocket_security_policy(
     }
 
     if descriptor.security.tls_required
-        && !descriptor.url.starts_with("wss://")
+        && !secure
         && !(descriptor.security.allow_insecure_loopback
-            && websocket_url_is_loopback(&descriptor.url))
+            && websocket_uri_host(&uri).is_some_and(|host| matches!(host.as_str(), "localhost" | "127.0.0.1" | "::1")))
     {
         return Err(NetError::SecurityPolicyViolation {
             reason: "WebSocket connection requires WSS by security policy".to_string(),
         });
     }
 
-    Ok(())
+    // Use this exact parsed authority and normalized scheme for the connection.
+    let mut parts = uri.into_parts();
+    parts.scheme = Some(if secure { "wss" } else { "ws" }.parse().expect("static WS scheme"));
+    Uri::from_parts(parts).map_err(|error| NetError::Io(error.to_string()))
 }
 
-fn websocket_url_is_loopback(url: &str) -> bool {
-    websocket_url_host(url)
-        .is_some_and(|host| matches!(host.as_str(), "localhost" | "127.0.0.1" | "::1"))
+pub(super) fn websocket_uri_host(uri: &Uri) -> Option<String> {
+    Some(uri.host()?.trim_matches(['[', ']']).to_ascii_lowercase())
 }
 
-pub(super) fn websocket_url_host(url: &str) -> Option<String> {
-    let authority = url
-        .strip_prefix("ws://")
-        .or_else(|| url.strip_prefix("wss://"))
-        .map(|rest| rest.split('/').next().unwrap_or_default())?;
-    let authority = authority
-        .rsplit_once('@')
-        .map(|(_, host)| host)
-        .unwrap_or(authority);
-    let host = if let Some(bracketed) = authority.strip_prefix('[') {
-        bracketed.split(']').next().unwrap_or_default()
-    } else {
-        authority.split(':').next().unwrap_or_default()
-    };
-    (!host.is_empty()).then(|| host.to_string())
+#[cfg(test)]
+fn websocket_url_host(url: &str) -> Option<String> {
+    websocket_uri_host(&url.parse().ok()?)
 }
 
 #[cfg(test)]

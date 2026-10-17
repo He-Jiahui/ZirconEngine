@@ -45,3 +45,7 @@ explicit evidence below says otherwise. No build outputs are created here.
   roots for Cargo, rustup, temp, targets, Miri and Zig. Physical/reparse guards
   reject reused output roots. 48 focused Python contracts passed. YAML parser
   unavailable here; actual Windows runner execution remains pending.
+- M1: Parse WebSocket URIs with the connection library's HTTP URI parser; policy,
+  pin host and connection share the parsed URI. Normalize schemes and hosts.
+  Add query/fragment loopback-spoof and uppercase-scheme regressions. Source
+  wiring checks passed; Rust regressions await the guarded build lane.
