@@ -5,16 +5,15 @@ plan_sources:
   - docs/plans/optimize/zircon_editor/60/2026-09-27-hierarchy-reparent-drag-threshold.md
   - docs/plans/optimize/zircon_editor/60-editor-scene-hierarchy-outliner-tree-projection-expansion-selection-rename-reparent-drag-drop-visibility-lock-multi-world.md
 implementation_files:
-  - zircon_editor/src/ui/retained_host/hierarchy_pointer/gesture.rs
-  - zircon_editor/src/ui/retained_host/hierarchy_pointer/hierarchy_pointer_bridge.rs
-  - zircon_editor/src/ui/retained_host/hierarchy_pointer/sync.rs
-  - zircon_editor/src/ui/retained_host/app/hierarchy_pointer/events/drag.rs
-  - zircon_editor/src/ui/retained_host/app/hierarchy_pointer/events/motion.rs
-  - zircon_editor/src/ui/retained_host/input_policy.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/drag_resize/tab_drag/lifecycle/move_event/start.rs
+  - zircon_editor/src/ui/retained/hierarchy_pointer/gesture.rs
+  - zircon_editor/src/ui/retained/hierarchy_pointer/hierarchy_pointer_bridge.rs
+  - zircon_editor/src/ui/retained/hierarchy_pointer/sync.rs
+  - zircon_editor/src/ui/retained/app/hierarchy_pointer/events/drag.rs
+  - zircon_editor/src/ui/retained/app/hierarchy_pointer/events/motion.rs
+  - zircon_editor/src/ui/retained/contract/pointer/tab_drag/move_event/start.rs
 tests:
-  - zircon_editor/src/ui/retained_host/app/tests/drag_sources/hierarchy_gesture.rs
-  - zircon_editor/src/ui/retained_host/hierarchy_pointer/gesture.rs
+  - zircon_editor/src/ui/retained/app/tests/drag_sources/hierarchy_gesture.rs
+  - zircon_editor/src/ui/retained/hierarchy_pointer/gesture.rs
 ---
 
 # Editor60 hierarchy Reparent drag threshold completion list

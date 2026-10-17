@@ -1,11 +1,8 @@
 ---
 related_code:
-  - zircon_editor/src/ui/host/editor_asset_manager/preview.rs
-  - zircon_editor/src/ui/host/editor_asset_manager/preview/visibility_tests.rs
 plan_sources:
   - docs/plans/optimize/zircon_editor/04/2026-09-27-preview-scheduler-visible-set-removal.md
 tests:
-  - zircon_editor/src/ui/host/editor_asset_manager/preview/visibility_tests.rs
 doc_type: milestone-detail
 status: implemented_pending_validation
 ---

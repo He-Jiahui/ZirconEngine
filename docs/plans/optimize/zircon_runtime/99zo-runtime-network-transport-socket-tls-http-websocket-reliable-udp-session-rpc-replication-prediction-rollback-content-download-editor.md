@@ -16,11 +16,8 @@ related_code:
   - zircon_plugins/net
   - zircon_plugins/first_party_runtime_catalog
   - zircon_plugins/first_party_editor_catalog
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog
   - zircon_runtime/src/plugin/export_build_plan
   - zircon_app/src/entry
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/multiplayer
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench
 plan_sources:
   - docs/plans/optimize/zircon_runtime/08e-network-runtime-review.md
   - docs/plans/optimize/zircon_plugins/10-first-party-network-source-runtime-editor-dist-catalog-transport-rpc-replication-product-integration-review.md

@@ -3,7 +3,7 @@ related_code:
   - zircon_editor/src/ui/binding_dispatch/inspector/field_value.rs
   - zircon_editor/src/ui/host/editor_event_control_requests.rs
   - zircon_editor/src/ui/host/editor_event_dispatch.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/common/dispatch.rs
+  - zircon_editor/src/ui/retained/dispatch/common/dispatch.rs
   - zircon_runtime_interface/src/ui/binding/model/binding_value.rs
   - zircon_runtime_interface/src/ui/binding/model/binding_value/types.rs
   - zircon_runtime_interface/src/ui/binding/model/binding_value/validation.rs
@@ -60,7 +60,7 @@ implementation_files:
   - zircon_editor/src/ui/binding_dispatch/inspector/field_value.rs
   - zircon_editor/src/ui/host/editor_event_control_requests.rs
   - zircon_editor/src/ui/host/editor_event_dispatch.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/common/dispatch.rs
+  - zircon_editor/src/ui/retained/dispatch/common/dispatch.rs
   - zircon_runtime_interface/src/ui/binding/model/binding_value.rs
   - zircon_runtime_interface/src/ui/binding/model/binding_value/types.rs
   - zircon_runtime_interface/src/ui/binding/model/binding_value/validation.rs

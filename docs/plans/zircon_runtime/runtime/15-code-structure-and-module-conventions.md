@@ -7,7 +7,7 @@ related_code:
   - zircon_runtime/src/asset/prelude.rs
   - zircon_runtime/src/asset/assets/texture/upload_support/dds.rs
   - zircon_runtime/src/asset/tests/assets/texture_upload_readiness.rs
-  - zircon_runtime/src/asset/tests/assets/texture_upload_readiness/container_fixtures.rs
+  - zircon_runtime/src/asset/tests/texture_upload_readiness/container_fixtures.rs
   - docs/crates/zircon_runtime/asset/render-assets.md
   - zircon_runtime/src/scene/mod.rs
   - zircon_runtime/src/scene/prelude.rs
@@ -18,9 +18,9 @@ related_code:
   - zircon_runtime/src/scene/world/property_access/entries/animation.rs
   - tools/tests/test_runtime_scene_property_entry_owner_structure.py
   - zircon_runtime/src/plugin/mod.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/registration_manifest/system_access.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/registration_manifest/system_access/authority.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/registration_manifest/system_access/error.rs
+  - zircon_runtime/src/plugin/loader/registration_manifest/system_access.rs
+  - zircon_runtime/src/plugin/loader/system_access/authority.rs
+  - zircon_runtime/src/plugin/loader/registration_manifest/system_access/error.rs
   - tools/tests/test_runtime_native_system_access_owner_structure.py
   - zircon_runtime/src/plugin/package_manifest/constructors.rs
   - zircon_runtime/src/plugin/package_manifest/constructors/module.rs
@@ -38,8 +38,7 @@ related_code:
   - zircon_runtime/src/ui/platform_input/winit_translation/window.rs
   - tools/tests/test_runtime_ui_winit_translation_owner_structure.py
   - zircon_runtime/src/ui/surface/surface/pointer_component_events.rs
-  - zircon_runtime/src/ui/surface/surface/pointer_component_events/state_invalidation.rs
-  - zircon_runtime/src/ui/surface/surface/pointer_component_events/template_action.rs
+  - zircon_runtime/src/ui/surface/pointer_component_events/state_invalidation.rs
   - tools/tests/test_runtime_ui_pointer_component_state_owner_structure.py
   - tools/tests/test_runtime_ui_pointer_template_action_owner_structure.py
   - zircon_runtime/src/ui/template/asset/surface_index.rs
@@ -64,37 +63,30 @@ related_code:
   - zircon_runtime/src/operation/tests/source_guards.rs
   - tools/tests/test_runtime_operation_service_structure.py
   - zircon_runtime/src/dynamic_api/session/project.rs
-  - zircon_runtime/src/dynamic_api/session/project/tests.rs
-  - zircon_runtime/src/dynamic_api/session/project/runtime61_characterization.rs
   - tools/tests/test_runtime_dynamic_project_test_structure.py
   - zircon_runtime/src/dynamic_api/session/events.rs
   - zircon_runtime/src/dynamic_api/session/events/keyboard_ime.rs
   - zircon_runtime/src/dynamic_api/session/events/gamepad.rs
   - tools/tests/test_runtime_dynamic_event_input_owner_structure.py
   - zircon_runtime/src/plugin/extension_registry/register/system_registration.rs
-  - zircon_runtime/src/plugin/extension_registry/register/system_registration/tests.rs
   - tools/tests/test_runtime_plugin_system_registration_test_structure.py
   - zircon_runtime/src/graphics/shader/variant_cache/prewarm.rs
   - zircon_runtime/src/graphics/shader/variant_cache/prewarm/worker.rs
-  - zircon_runtime/src/graphics/shader/variant_cache/prewarm/tests.rs
-  - zircon_runtime/src/graphics/shader/variant_cache/prewarm/tests/combined_validation_tests.rs
   - tools/tests/test_runtime_shader_prewarm_test_structure.py
   - zircon_runtime/src/graphics/shader/template/module_registry.rs
-  - zircon_runtime/src/graphics/shader/template/module_registry/tests.rs
   - tools/tests/test_runtime_shader_module_registry_test_structure.py
   - zircon_runtime/src/core/runtime/tests/resolution/behavior.rs
   - zircon_runtime/src/core/runtime/tests/resolution/behavior/dependency_cycles.rs
-  - zircon_runtime/src/core/runtime/tests/resolution/behavior/exact_dependency_resolution.rs
+  - zircon_runtime/src/core/runtime/tests/behavior/exact_dependency_resolution.rs
   - zircon_runtime/src/core/runtime/tests/resolution/behavior/factory_panics.rs
   - tools/tests/test_runtime_resolution_behavior_test_structure.py
   - zircon_runtime/src/ui/tests/widget_menu_behavior.rs
   - zircon_runtime/src/ui/tests/widget_menu_behavior/control_anchored_overlays.rs
   - tools/tests/test_runtime_widget_menu_behavior_test_structure.py
   - zircon_runtime/src/core/runtime/tests/activation/behavior/activation.rs
-  - zircon_runtime/src/core/runtime/tests/activation/behavior/activation/contention.rs
+  - zircon_runtime/src/core/runtime/tests/behavior/activation/contention.rs
   - tools/tests/test_runtime_activation_contention_test_structure.py
-  - zircon_runtime/src/graphics/runtime/render_framework/frame_profiler.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/frame_profiler/gpu_resolution.rs
+  - zircon_runtime/src/graphics/runtime/framework/frame_profiler/gpu_resolution.rs
   - zircon_runtime/src/dynamic_api/session/events.rs
   - zircon_runtime/src/dynamic_api/session/events/keyboard_ime.rs
   - zircon_runtime/src/dynamic_api/session/events/gamepad.rs
@@ -105,10 +97,7 @@ related_code:
   - zircon_runtime/src/animation/manager/pose.rs
   - zircon_runtime/src/animation/manager/sampling.rs
   - zircon_runtime/src/animation/sequence/conversion.rs
-  - zircon_plugins/animation/runtime/tests/runtime_physics_animation_tick_contract.rs
-  - zircon_plugins/animation/runtime/tests/runtime_physics_animation_tick_contract/animation_assets.rs
-  - zircon_plugins/animation/runtime/tests/runtime_physics_animation_tick_contract/runtime_helpers.rs
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/plugin_importer_dx/d11_test_runtime_fixture.rs
+  - zircon_runtime/src/tests/review/plugin_importer_dx/d11_test_runtime_fixture.rs
   - zircon_runtime/src/core/framework/animation/error.rs
   - zircon_runtime/src/core/framework/animation/manager.rs
   - docs/crates/zircon_runtime/animation/runtime.md
@@ -120,15 +109,12 @@ related_code:
   - zircon_runtime/src/dynamic_api/session/events.rs
   - zircon_runtime/src/dynamic_api/tests/input_events.rs
   - docs/crates/zircon_runtime/input/input_state.md
-  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/input.rs
-  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/input/mouse_wheel_line_delta.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/naming_boundary_input_mouse_wheel.rs
-  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/hub.rs
-  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/hub/raw_text_policy.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/naming_boundary_hub_raw_text.rs
-  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/net.rs
-  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/net/http1_client_policy.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/naming_boundary_net_http.rs
+  - zircon_runtime/src/tests/contracts/naming_boundary/runtime_15_m2/input.rs
+  - zircon_runtime/src/tests/contracts/runtime_15_m2/input/mouse_wheel_line_delta.rs
+  - zircon_runtime/src/tests/contracts/naming_boundary/runtime_15_m2/hub.rs
+  - zircon_runtime/src/tests/contracts/runtime_15_m2/hub/raw_text_policy.rs
+  - zircon_runtime/src/tests/contracts/naming_boundary/runtime_15_m2/net.rs
+  - zircon_runtime/src/tests/contracts/runtime_15_m2/net/http1_client_policy.rs
   - zircon_runtime/src/graphics/hybrid_gi_runtime_provider/mod.rs
   - zircon_runtime/src/graphics/virtual_geometry_runtime_provider/mod.rs
   - zircon_runtime/src/dynamic_api/session.rs
@@ -140,9 +126,7 @@ related_code:
   - docs/crates/zircon_runtime/core/framework/camera_controller.md
   - zircon_runtime/src/scene/tests/ecs_systems.rs
   - zircon_runtime/src/scene/tests/ecs_systems/many_single_queries.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/scene_ecs_systems.rs
   - zircon_runtime/src/dynamic_api/session/tests/lock_poison.rs
-  - zircon_runtime/src/core/framework/tests.rs
   - zircon_runtime/src/ui/tests/v2_asset.rs
   - zircon_runtime/src/ui/tests/shared_core.rs
   - zircon_runtime/src/asset/pipeline/worker_pool.rs
@@ -153,7 +137,6 @@ related_code:
   - zircon_runtime/src/core/runtime/config_store.rs
   - docs/crates/zircon_runtime/core/resource.md
   - zircon_runtime/src/navigation/runtime.rs
-  - zircon_runtime/src/navigation/runtime/tests.rs
   - docs/crates/zircon_runtime/navigation/runtime.md
   - zircon_runtime/src/core/runtime/handle/registration/register_module.rs
   - zircon_runtime/src/core/runtime/handle/registration/service_lists/mod.rs
@@ -189,55 +172,38 @@ related_code:
   - zircon_runtime/src/scene/ecs/storage/component_storage/component_results.rs
   - zircon_runtime/src/scene/tests/ecs_query.rs
   - zircon_runtime/src/scene/tests/ecs_query/cached_queries.rs
-  - zircon_runtime/src/tests/runtime_absorption/naming_boundary.rs
-  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/top_level.rs
-  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/classifiers.rs
-  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/lexical_scan.rs
-  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/support.rs
-  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/split_layout.rs
-  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2.rs
-  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/core_framework.rs
-  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/core_framework/camera_controller.rs
-  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/core_framework/render_fixtures.rs
-  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/core_scene.rs
-  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/core_scene/render_contracts.rs
-  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/core_scene/scene_ecs_owners.rs
-  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/core_scene/scene_ecs_owners/observer_callback_registry.rs
-  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/core_scene/scene_ecs_owners/query_state_many_item_array.rs
-  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/core_scene/scene_ecs_owners/component_storage_component_results.rs
-  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/core_scene/scene_ecs_owners/split_layout.rs
-  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/asset_dynamic.rs
-  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/asset_dynamic/asset_watch.rs
-  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/asset_dynamic/dynamic_api_vampire.rs
-  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/asset_dynamic/scene_ecs_queries.rs
-  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/asset_dynamic/texture_containers.rs
-  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/scene_tests.rs
-  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/plugin_static_manifest.rs
-  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/plugin_static_manifest/contract_owners.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/naming_boundary_plugin_static_manifest.rs
-  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/ui.rs
-  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/graphics.rs
-  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/graphics/render_fixtures.rs
-  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/banned_names.rs
-  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/banned_names/scene_dynamic.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/naming_boundary_asset_dynamic.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/naming_boundary_asset_dynamic_asset_watch.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/naming_boundary_asset_dynamic_dynamic_api_vampire.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/naming_boundary_asset_dynamic_scene_ecs_queries.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/naming_boundary_core_framework.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/naming_boundary_core_framework_render_fixtures.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/naming_boundary_core_scene.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/naming_boundary_core_scene_ecs.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/naming_boundary_graphics.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/naming_boundary_banned_names.rs
-  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/editor_workbench.rs
+  - zircon_runtime/src/tests/contracts/naming_boundary/top_level.rs
+  - zircon_runtime/src/tests/contracts/naming_boundary/classifiers.rs
+  - zircon_runtime/src/tests/contracts/naming_boundary/lexical_scan.rs
+  - zircon_runtime/src/tests/contracts/naming_boundary/support.rs
+  - zircon_runtime/src/tests/contracts/naming_boundary/split_layout.rs
+  - zircon_runtime/src/tests/contracts/naming_boundary/runtime_15_m2.rs
+  - zircon_runtime/src/tests/contracts/runtime_15_m2/core_framework.rs
+  - zircon_runtime/src/tests/contracts/core_framework/camera_controller.rs
+  - zircon_runtime/src/tests/contracts/core_framework/render_fixtures.rs
+  - zircon_runtime/src/tests/contracts/naming_boundary/runtime_15_m2/core_scene.rs
+  - zircon_runtime/src/tests/contracts/runtime_15_m2/core_scene/render_contracts.rs
+  - zircon_runtime/src/tests/contracts/runtime_15_m2/core_scene/scene_ecs_owners.rs
+  - zircon_runtime/src/tests/scene_ecs_owners/observer_callback_registry.rs
+  - zircon_runtime/src/tests/scene_ecs_owners/query_state_many_item_array.rs
+  - zircon_runtime/src/tests/scene_ecs_owners/component_storage_component_results.rs
+  - zircon_runtime/src/tests/contracts/core_scene/scene_ecs_owners/split_layout.rs
+  - zircon_runtime/src/tests/contracts/runtime_15_m2/asset_dynamic.rs
+  - zircon_runtime/src/tests/contracts/runtime_15_m2/asset_dynamic/asset_watch.rs
+  - zircon_runtime/src/tests/contracts/asset_dynamic/dynamic_api_vampire.rs
+  - zircon_runtime/src/tests/contracts/asset_dynamic/scene_ecs_queries.rs
+  - zircon_runtime/src/tests/contracts/asset_dynamic/texture_containers.rs
+  - zircon_runtime/src/tests/contracts/runtime_15_m2/plugin_static_manifest.rs
+  - zircon_runtime/src/tests/contracts/plugin_static_manifest/contract_owners.rs
+  - zircon_runtime/src/tests/contracts/naming_boundary/runtime_15_m2/ui.rs
+  - zircon_runtime/src/tests/contracts/naming_boundary/runtime_15_m2/graphics.rs
+  - zircon_runtime/src/tests/contracts/runtime_15_m2/graphics/render_fixtures.rs
+  - zircon_runtime/src/tests/contracts/naming_boundary/runtime_15_m2/banned_names.rs
+  - zircon_runtime/src/tests/contracts/runtime_15_m2/banned_names/scene_dynamic.rs
+  - zircon_runtime/src/tests/contracts/runtime_15_m2/editor_workbench.rs
   - zircon_runtime/src/ui/surface/surface/default_interactions/table/columns.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback/gameplay_state.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/non_network_server_naming.py
-  - zircon_runtime/src/graphics/runtime/render_framework
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_construction.rs
-  - zircon_runtime/src/graphics/backend/render_backend/mod.rs
-  - zircon_runtime/src/graphics/backend/render_backend/offscreen_target_construct/construct.rs
+  - zircon_runtime/src/graphics/backend/offscreen_target_construct/construct.rs
   - docs/crates/zircon_runtime/core/diagnostics.md
   - docs/crates/zircon_runtime/core/runtime/lifecycle.md
   - docs/crates/zircon_runtime/core/state.md
@@ -245,23 +211,17 @@ related_code:
   - docs/crates/zircon_runtime/scene/ecs.md
   - zircon_runtime/src/script/vm/host/builtin_host_modules.rs
   - docs/crates/zircon_runtime/script/vm/host/function_ledger.md
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/provider_boilerplate.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/facade_surface.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/runtime_dead_code/mod.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/runtime_dead_code/runtime_ui.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/runtime_dead_code/production_scan.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy/core_runtime.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy/runtime_services.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy/asset_render_input.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy/split_layout.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy/split_layout/sources.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy/split_layout/folder_backing.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy/split_layout/mounts.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy/split_layout/budgets.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy/support.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/diagnostics_surface.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/mod.rs
+  - zircon_runtime/src/tests/contracts/structure/runtime_dead_code/mod.rs
+  - zircon_runtime/src/tests/contracts/structure/runtime_dead_code/runtime_ui.rs
+  - zircon_runtime/src/tests/structure/runtime_dead_code/production_scan.rs
+  - zircon_runtime/src/tests/contracts/structure/lock_poison_policy/core_runtime.rs
+  - zircon_runtime/src/tests/structure/lock_poison_policy/runtime_services.rs
+  - zircon_runtime/src/tests/structure/lock_poison_policy/asset_render_input.rs
+  - zircon_runtime/src/tests/contracts/structure/lock_poison_policy/split_layout.rs
+  - zircon_runtime/src/tests/contracts/structure/split_layout/folder_backing.rs
+  - zircon_runtime/src/tests/contracts/structure/split_layout/mounts.rs
+  - zircon_runtime/src/tests/contracts/structure/split_layout/budgets.rs
+  - zircon_runtime/src/tests/contracts/structure/lock_poison_policy/support.rs
   - zircon_runtime/src/core/framework/tests/framework_surfaces.rs
   - zircon_runtime/src/core/framework/tests/render_product_surface.rs
   - zircon_runtime/src/ui/tests/v2_asset/asset_loading.rs
@@ -276,48 +236,27 @@ related_code:
   - zircon_runtime/src/ui/tests/shared_core/input_visibility.rs
   - zircon_runtime/src/ui/tests/shared_core/navigation.rs
   - zircon_runtime/src/ui/tests/shared_core/scroll_mutation.rs
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings.rs
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/p0_robustness.rs
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/p0_robustness/native_fixture.rs
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/p0_robustness/priority_recommendation.rs
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/mod.rs
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/asset_records.rs
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/diagnostics.rs
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/scene_world.rs
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/f12_dead_code.rs
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/f8_api_convergence.rs
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/f8_api_convergence/descriptor_builder.rs
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/f8_api_convergence/descriptor_builder/first_party_descriptors.rs
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/f8_api_convergence/descriptor_builder/scaffold.rs
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/f8_api_convergence/descriptor_builder/test_fixtures.rs
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/f8_api_convergence/descriptor_privacy.rs
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/f8_api_convergence/descriptor_privacy/constructor_retirement.rs
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/f8_api_convergence/descriptor_privacy/private_fields.rs
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/f8_api_convergence/descriptor_privacy/status_mirrors.rs
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/plugin_importer_dx.rs
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/plugin_importer_dx/d1_capability_single_source.rs
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/plugin_importer_dx/d1_capability_single_source/audit_surfaces.rs
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/plugin_importer_dx/d1_capability_single_source/runtime_roots.rs
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/plugin_importer_dx/d1_capability_single_source/sdk_builder.rs
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/plugin_importer_dx/d1_capability_single_source/split_layout.rs
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/plugin_importer_dx/d1_capability_single_source/status_docs.rs
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/plugin_importer_dx/d1_capability_single_source/support.rs
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/render_structure.rs
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/late_api_cleanup.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/f8_child_owners.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/p0_child_owners.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/structure_guard_children.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure_assertions.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/source_inventory.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/sources/paths.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/sources/reads.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/sources/inventory/current/budgets.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/sources/delegation.rs
+  - zircon_runtime/src/tests/contracts/review/p0_robustness/native_fixture.rs
+  - zircon_runtime/src/tests/review/p0_robustness/priority_recommendation.rs
+  - zircon_runtime/src/tests/review/f8_api_convergence/descriptor_builder.rs
+  - zircon_runtime/src/tests/review/descriptor_builder/first_party_descriptors.rs
+  - zircon_runtime/src/tests/contracts/review/descriptor_builder/scaffold.rs
+  - zircon_runtime/src/tests/contracts/review/descriptor_builder/test_fixtures.rs
+  - zircon_runtime/src/tests/review/f8_api_convergence/descriptor_privacy.rs
+  - zircon_runtime/src/tests/review/descriptor_privacy/constructor_retirement.rs
+  - zircon_runtime/src/tests/contracts/review/descriptor_privacy/private_fields.rs
+  - zircon_runtime/src/tests/contracts/review/descriptor_privacy/status_mirrors.rs
+  - zircon_runtime/src/tests/plugin_importer_dx/d1_capability_single_source.rs
+  - zircon_runtime/src/tests/review/d1_capability_single_source/audit_surfaces.rs
+  - zircon_runtime/src/tests/review/d1_capability_single_source/runtime_roots.rs
+  - zircon_runtime/src/tests/review/d1_capability_single_source/sdk_builder.rs
+  - zircon_runtime/src/tests/review/d1_capability_single_source/split_layout.rs
+  - zircon_runtime/src/tests/review/d1_capability_single_source/status_docs.rs
+  - zircon_runtime/src/tests/contracts/review/d1_capability_single_source/support.rs
+  - zircon_runtime/src/tests/review/errors/sources/inventory/current/budgets.rs
   - zircon_runtime/src/asset/assets/font.rs
   - zircon_plugins/ui_document_importer/runtime/src/lib.rs
-  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/asset_schema.rs
+  - zircon_runtime/src/tests/contracts/naming_boundary/runtime_15_m2/asset_schema.rs
   - docs/crates/zircon_runtime/asset/assets/font.md
   - docs/crates/zircon_runtime/asset/assets/ui.md
   - tools/audits/plugins/capability.py
@@ -332,15 +271,13 @@ implementation_files:
   - docs/crates/zircon_runtime/structure/module-convention.md
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/module_convention_gate.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/module_convention_gate_markdown.py
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/module_convention_gate.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/module_convention_gate/helpers.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/module_convention_gate/module_doc_frontmatter.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/module_convention_gate/output_contract.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/module_convention_gate/debt_boundary.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/module_convention_gate/split_layout.rs
+  - zircon_runtime/src/tests/contracts/structure/module_convention_gate/helpers.rs
+  - zircon_runtime/src/tests/module_convention_gate/module_doc_frontmatter.rs
+  - zircon_runtime/src/tests/structure/module_convention_gate/output_contract.rs
+  - zircon_runtime/src/tests/structure/module_convention_gate/debt_boundary.rs
+  - zircon_runtime/src/tests/structure/module_convention_gate/split_layout.rs
   - zircon_runtime/src/graphics/mod.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/frame_profiler.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/frame_profiler/gpu_resolution.rs
+  - zircon_runtime/src/graphics/runtime/framework/frame_profiler/gpu_resolution.rs
   - zircon_runtime/src/prelude.rs
   - zircon_runtime/src/asset/prelude.rs
   - zircon_runtime/src/scene/prelude.rs
@@ -367,7 +304,6 @@ implementation_files:
   - zircon_runtime/src/input/runtime/default_input_action_manager.rs
   - docs/crates/zircon_runtime/input/input_state.md
   - zircon_runtime/src/navigation/runtime.rs
-  - zircon_runtime/src/navigation/runtime/tests.rs
   - docs/crates/zircon_runtime/navigation/runtime.md
   - zircon_runtime/src/core/runtime/handle/registration/register_module.rs
   - zircon_runtime/src/core/runtime/handle/registration/service_lists/mod.rs
@@ -391,35 +327,26 @@ implementation_files:
   - zircon_runtime/src/scene/ecs/storage/component_storage/mod.rs
   - zircon_runtime/src/scene/ecs/storage/component_storage/store.rs
   - zircon_runtime/src/scene/ecs/storage/component_storage/component_results.rs
-  - zircon_runtime/src/tests/runtime_absorption/naming_boundary.rs
-  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/top_level.rs
-  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/classifiers.rs
-  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/lexical_scan.rs
-  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/support.rs
-  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/split_layout.rs
+  - zircon_runtime/src/tests/contracts/naming_boundary/top_level.rs
+  - zircon_runtime/src/tests/contracts/naming_boundary/classifiers.rs
+  - zircon_runtime/src/tests/contracts/naming_boundary/lexical_scan.rs
+  - zircon_runtime/src/tests/contracts/naming_boundary/support.rs
+  - zircon_runtime/src/tests/contracts/naming_boundary/split_layout.rs
   - docs/crates/zircon_runtime/core/runtime/lifecycle.md
   - docs/crates/zircon_runtime/scene/ecs.md
   - zircon_runtime/src/script/vm/host/builtin_host_modules.rs
   - docs/crates/zircon_runtime/script/vm/host/function_ledger.md
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/provider_boilerplate.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/facade_surface.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/runtime_dead_code/mod.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/runtime_dead_code/runtime_ui.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/runtime_dead_code/production_scan.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy/core_runtime.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy/runtime_services.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy/asset_render_input.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy/split_layout.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy/split_layout/sources.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy/split_layout/folder_backing.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy/split_layout/mounts.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy/split_layout/budgets.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy/support.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/diagnostics_surface.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/mod.rs
-  - zircon_runtime/src/core/framework/tests.rs
+  - zircon_runtime/src/tests/contracts/structure/runtime_dead_code/mod.rs
+  - zircon_runtime/src/tests/contracts/structure/runtime_dead_code/runtime_ui.rs
+  - zircon_runtime/src/tests/structure/runtime_dead_code/production_scan.rs
+  - zircon_runtime/src/tests/contracts/structure/lock_poison_policy/core_runtime.rs
+  - zircon_runtime/src/tests/structure/lock_poison_policy/runtime_services.rs
+  - zircon_runtime/src/tests/structure/lock_poison_policy/asset_render_input.rs
+  - zircon_runtime/src/tests/contracts/structure/lock_poison_policy/split_layout.rs
+  - zircon_runtime/src/tests/contracts/structure/split_layout/folder_backing.rs
+  - zircon_runtime/src/tests/contracts/structure/split_layout/mounts.rs
+  - zircon_runtime/src/tests/contracts/structure/split_layout/budgets.rs
+  - zircon_runtime/src/tests/contracts/structure/lock_poison_policy/support.rs
   - zircon_runtime/src/core/framework/tests/framework_surfaces.rs
   - zircon_runtime/src/core/framework/tests/render_product_surface.rs
   - zircon_runtime/src/ui/tests/v2_asset.rs
@@ -436,12 +363,12 @@ implementation_files:
   - zircon_runtime/src/ui/tests/shared_core/input_visibility.rs
   - zircon_runtime/src/ui/tests/shared_core/navigation.rs
   - zircon_runtime/src/ui/tests/shared_core/scroll_mutation.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/graphics_dead_code/mod.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/graphics_dead_code/module_layout.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/graphics_dead_code/renderer_output_accessors.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/graphics_dead_code/backend_owners.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/graphics_dead_code/gpu_resource_owners.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/graphics_dead_code/resource_streamer_cleanup.rs
+  - zircon_runtime/src/tests/contracts/structure/graphics_dead_code/mod.rs
+  - zircon_runtime/src/tests/contracts/structure/graphics_dead_code/module_layout.rs
+  - zircon_runtime/src/tests/graphics_dead_code/renderer_output_accessors.rs
+  - zircon_runtime/src/tests/structure/graphics_dead_code/backend_owners.rs
+  - zircon_runtime/src/tests/structure/graphics_dead_code/gpu_resource_owners.rs
+  - zircon_runtime/src/tests/graphics_dead_code/resource_streamer_cleanup.rs
 tests:
   - python -B -m unittest tools.tests.test_runtime_frame_profiler_gpu_resolution_owner_structure
   - python -B -m unittest tools.tests.test_runtime_dynamic_event_input_owner_structure
@@ -451,7 +378,6 @@ tests:
   - cargo test -p zircon_runtime --lib runtime_15_mixed_visibility_has_facade_note --no-default-features --features core-min --locked
   - cargo test -p zircon_runtime --lib prelude --no-default-features --features core-min --locked
   - cargo test -p zircon_runtime --lib structure_convention --no-default-features --features core-min --locked
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/module_convention_gate.rs::runtime_15_module_convention_gate_reports_non_render_debt_boundary
   - cargo test -p zircon_runtime --lib runtime_15_runtime_ui_dead_code_surface_is_test_support --no-default-features --features core-min --locked
   - cargo test -p zircon_runtime --lib runtime_15_runtime_owned_dead_code_suppression_cleanup --no-default-features --features core-min --locked
   - cargo test -p zircon_runtime --lib runtime_15_script_host_value_descriptors_do_not_suppress_dead_code --no-default-features --features core-min --locked

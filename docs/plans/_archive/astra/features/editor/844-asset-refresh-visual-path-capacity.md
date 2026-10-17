@@ -8,10 +8,8 @@ related_records:
   - docs/plans/astra/features/editor/664-20260911-editor-ui-optimization-batch-completion.md
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
-  - zircon_editor/src/ui/retained_host/app/assets/refresh.rs
-  - zircon_editor/src/ui/retained_host/app/assets/refresh/capacity_tests.rs
+  - zircon_editor/src/ui/retained/app/assets/refresh.rs
 tests:
-  - tools/tests/test_editor_asset_refresh_visual_path_capacity_performance_contract.py
 ---
 
 # Editor844 · asset refresh visual-path capacity

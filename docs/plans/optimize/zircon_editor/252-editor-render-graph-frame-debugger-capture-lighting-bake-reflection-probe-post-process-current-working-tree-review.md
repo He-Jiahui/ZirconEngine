@@ -20,21 +20,15 @@ related_code:
   - zircon_plugins/rendering/features
   - zircon_plugins/first_party_editor_catalog
   - zircon_app/src/entry/first_party_editor_plugins.rs
-  - zircon_editor/assets/ui/editor/components/workbench/modules/core/rendering
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/rendering
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/module_navigation.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/module_command_feedback.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/module_field_edit.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation
-  - zircon_editor/src/ui/template_runtime/builtin/workbench_extension_module_template_bindings/render_asset_vfx.rs
-  - zircon_editor/src/ui/retained_host/viewport
+  - zircon_editor/assets/ui/editor/modules/core/rendering
+  - zircon_editor/src/ui/retained/dispatch/templates/workbench/module_navigation.rs
+  - zircon_editor/src/ui/retained/dispatch/workbench/module_command_feedback.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/workbench/module_field_edit.rs
   - zircon_runtime/src/core/framework/render/capture.rs
   - zircon_runtime/src/core/framework/render/frame_profile.rs
   - zircon_runtime/src/render_graph/dump.rs
   - zircon_runtime/src/graphics/runtime/offline_bake
   - zircon_runtime/src/core/framework/render/environment/lightmap.rs
-  - zircon_plugins/rendering/features/reflection_probes/editor/src/capture/trigger.rs
   - zircon_plugins/rendering/features/reflection_probes/runtime/src/capture
 reference_engines:
   - dev/UnrealEngine/Engine/Source/Runtime/RenderCore/Public/RenderGraphBuilder.h

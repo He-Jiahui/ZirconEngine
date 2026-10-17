@@ -4,9 +4,9 @@ status: implemented_pending_validation
 plan_sources:
   - docs/plans/optimize/zircon_runtime/02/2026-08-30-editor525-callback-source-window-replace.md
 implementation_files:
-  - zircon_editor/src/ui/retained_host/app/helpers/callback_surface/source_window/focus.rs
+  - zircon_editor/src/ui/retained/app/helpers/source_window/focus.rs
 tests:
-  - zircon_editor/src/ui/retained_host/app/helpers/callback_surface/source_window/focus.rs
+  - zircon_editor/src/ui/retained/app/helpers/source_window/focus.rs
 ---
 
 # Editor959 Editor525 callback source-window owner move

@@ -32,7 +32,6 @@ tests:
   - zircon_runtime/src/scene/tests/derived_state
   - zircon_runtime/src/scene/tests/ecs_hierarchy_structure.rs
   - zircon_runtime/src/scene/tests/ecs_performance_acceptance.rs
-  - zircon_runtime/src/scene/inspection/subscription/tests.rs
   - direct rustfmt check 20/20 passed
   - managed Windows zircon_runtime lib-test compile failed before focused tests ran
 doc_type: implementation-evidence

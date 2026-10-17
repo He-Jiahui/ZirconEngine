@@ -8,26 +8,21 @@ baseline_epoch: 336
 related_code:
   - zircon_runtime/src/asset/watch
   - zircon_runtime/src/asset/pipeline/manager
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/runtime.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/watch_dispatch.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/watch_diagnostics.rs
   - zircon_runtime/src/asset/project/manager
   - zircon_runtime/src/asset/project/manager/scan_and_import.rs
   - zircon_runtime/src/asset/project/manager/scan_and_import/sources.rs
   - zircon_runtime/src/asset/project/manager/scan_and_import/targeted.rs
   - zircon_runtime/src/asset/project/catalog_input_generation.rs
-  - zircon_editor/src/ui/host/editor_asset_manager
   - zircon_editor/src/ui/host/asset_editor_sessions/watcher
   - zircon_editor/src/ui/host/asset_editor_sessions/refresh
-  - zircon_editor/src/ui/retained_host/app/assets/refresh.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/startup/resources/events.rs
+  - zircon_editor/src/ui/retained/app/assets/refresh.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle/startup/resources/events.rs
 tests:
   - zircon_runtime/src/asset/tests/watcher.rs
   - zircon_runtime/src/asset/tests/pipeline/manager/watcher.rs
   - zircon_runtime/src/asset/tests/project/manager/targeted_import.rs
   - zircon_runtime/src/asset/tests/project/manager/full_generation.rs
   - zircon_runtime/src/asset/tests/project/manager/catalog_input_generation.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/runtime/tests.rs
   - zircon_editor/src/tests/host/asset_manager_boundary
   - zircon_editor/src/tests/host/retained_asset_refresh
   - zircon_editor/src/tests/host/retained_event_bridge/asset_refresh_effects.rs

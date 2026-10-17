@@ -13,7 +13,7 @@ plan_link_mode: child_record_only
 related_code:
   - zircon_runtime/src/asset/project/manager/scan_and_import.rs
   - zircon_runtime/src/asset/project/manager/scan_and_import/full_generation.rs
-  - zircon_runtime/src/asset/project/manager/scan_and_import/shader_import_dependencies.rs
+  - zircon_runtime/src/asset/manager/scan_and_import/shader_import_dependencies.rs
   - zircon_runtime/src/asset/project/manager/scan_and_import/targeted.rs
   - zircon_runtime/src/asset/artifact/cache_payload.rs
   - zircon_runtime/src/asset/artifact/cache_payload/model.rs

@@ -1,15 +1,14 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/app.rs
-  - zircon_editor/src/ui/retained_host/app/asset_drag_payload.rs
-  - zircon_editor/src/ui/retained_host/app/asset_drag_payload/content.rs
-  - zircon_editor/src/ui/retained_host/app/asset_drag_payload/reference.rs
-  - zircon_editor/src/ui/retained_host/app/asset_content_pointer/press.rs
-  - zircon_editor/src/ui/retained_host/app/asset_reference_pointer/press.rs
+  - zircon_editor/src/ui/retained/app/asset_drag_payload.rs
+  - zircon_editor/src/ui/retained/app/asset_drag_payload/content.rs
+  - zircon_editor/src/ui/retained/app/asset_drag_payload/reference.rs
+  - zircon_editor/src/ui/retained/app/asset_content_pointer/press.rs
+  - zircon_editor/src/ui/retained/app/asset_reference_pointer/press.rs
 implementation_files:
-  - zircon_editor/src/ui/retained_host/app/asset_drag_payload.rs
-  - zircon_editor/src/ui/retained_host/app/asset_drag_payload/content.rs
-  - zircon_editor/src/ui/retained_host/app/asset_drag_payload/reference.rs
+  - zircon_editor/src/ui/retained/app/asset_drag_payload.rs
+  - zircon_editor/src/ui/retained/app/asset_drag_payload/content.rs
+  - zircon_editor/src/ui/retained/app/asset_drag_payload/reference.rs
 plan_sources:
   - docs/plans/zircon_editor/editor_ui/08-workbench-shell-on-runtime-ui.md
   - user: 2026-06-18 editor UI architecture implementation, feature first and tests deferred

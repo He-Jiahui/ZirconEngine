@@ -9,7 +9,7 @@ related_code:
   - zircon_editor/src/core/runtime_event_consumer/pump.rs
 tests:
   - tools/tests/test_editor02_runtime_event_consumer_bounded_pump_contract.py
-  - zircon_editor/src/tests/runtime_event_consumer_bounded_pump.rs
+  - zircon_editor/src/tests/runtime_event_consumer_bounded_pump/mod.rs
 failure:
   - docs/plans/zircon_editor/editor/02/failure-2026-07-17-runtime-event-consumer-unbounded-pump-lock.md
 ---

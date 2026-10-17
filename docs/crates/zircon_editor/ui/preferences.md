@@ -5,9 +5,8 @@ related_code:
   - zircon_editor/src/core/settings/io.rs
   - zircon_editor/src/core/settings/registry.rs
   - zircon_editor/src/ui/mod.rs
-  - zircon_editor/src/ui/retained_host/app.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_theme/model.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text/font.rs
+  - zircon_editor/src/ui/retained/contract/paint_theme/model.rs
+  - zircon_editor/src/ui/retained/contract/paint_text/font.rs
   - zircon_runtime_interface/src/ui/design_tokens.rs
   - zircon_runtime_interface/src/ui/skin/preset.rs
 implementation_files:
@@ -16,7 +15,6 @@ implementation_files:
   - zircon_editor/src/core/settings/io.rs
   - zircon_editor/src/core/settings/registry.rs
   - zircon_editor/src/ui/mod.rs
-  - zircon_editor/src/ui/retained_host/app.rs
 plan_sources:
   - user: 2026-07-02 do not hardcode fonts; allow global engine preferences for fonts, colors, themes, and styles
   - docs/plans/zircon_editor/editor_layout/15-component-standardization-from-primitives.md

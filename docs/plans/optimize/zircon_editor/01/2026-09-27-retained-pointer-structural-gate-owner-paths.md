@@ -7,7 +7,7 @@ plan_sources:
 tests:
   - zircon_editor/src/tests/ui/boundary/template_assets/invalidation.rs
   - zircon_editor/src/tests/host/retained_drawer_resize/surface_contract.rs
-  - zircon_editor/src/ui/retained_host/app/tests/projection_geometry.rs
+  - zircon_editor/src/ui/retained/app/tests/projection_geometry.rs
   - zircon_editor/src/tests/host/retained_drawer_resize/pointer_bridge.rs
 doc_type: milestone-detail
 title: Editor1023 retained pointer structural gate owner paths

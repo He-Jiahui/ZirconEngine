@@ -1,7 +1,5 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/app
-  - zircon_editor/src/ui/retained_host/scroll_surface_host.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_editor/editor_ui/08/failure-2026-07-17-editor-event-full-reflection-rebuild.md

@@ -13,11 +13,7 @@ related_code:
   - zircon_runtime/src/navigation/runtime/baked_mesh/spatial_index.rs
   - zircon_runtime/src/navigation/runtime/math.rs
   - zircon_runtime/src/navigation/runtime/state.rs
-  - zircon_runtime/src/navigation/runtime/state/repath_entry_tests.rs
-  - zircon_runtime/src/navigation/runtime/tests.rs
   - zircon_runtime/src/navigation/runtime/world_scan.rs
-  - zircon_runtime/src/navigation/runtime/world_scan/capacity_tests.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy.rs
   - zircon_runtime/src/lib.rs
   - zircon_runtime/src/dynamic_api/session.rs
   - zircon_runtime/src/dynamic_api/session/project.rs
@@ -38,10 +34,7 @@ implementation_files:
   - zircon_runtime/src/navigation/runtime/baked_mesh/spatial_index.rs
   - zircon_runtime/src/navigation/runtime/math.rs
   - zircon_runtime/src/navigation/runtime/state.rs
-  - zircon_runtime/src/navigation/runtime/state/repath_entry_tests.rs
-  - zircon_runtime/src/navigation/runtime/tests.rs
   - zircon_runtime/src/navigation/runtime/world_scan.rs
-  - zircon_runtime/src/navigation/runtime/world_scan/capacity_tests.rs
   - zircon_runtime/src/lib.rs
   - zircon_runtime/src/dynamic_api/session.rs
   - zircon_runtime/src/dynamic_api/session/project.rs
@@ -60,10 +53,6 @@ tests:
   - zircon_runtime/src/navigation/module.rs::tests::builtin_navigation_module_obeys_driver_manager_dependency_layers
   - cargo test -p zircon_runtime --lib builtin_host_modules_register_gameplay_capabilities --message-format short --color never
   - cargo test -p zircon_runtime --lib vampire_example_manifest_scene_and_scripts_are_importable --message-format short --color never
-  - zircon_runtime/src/tests/runtime_absorption/root_entries.rs::runtime_navigation_boundary_file_set_requires_doc_update
-  - zircon_runtime/src/navigation/runtime/tests.rs::tick_world_agent_moves_only_selected_agent_and_avoids_local_colliders
-  - zircon_runtime/src/navigation/runtime/tests.rs::navigation_manager_accessors_recover_poisoned_state_lock
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy.rs::runtime_15_navigation_lock_poison_recovery_guard_covers_builtin_navigation_manager
   - "pending: cargo test -p zircon_runtime --lib navigation --locked"
 doc_type: module-detail
 ---

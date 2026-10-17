@@ -13,15 +13,11 @@ related_code:
   - zircon_runtime/src/scene/world/render.rs
   - zircon_runtime/src/graphics/feature/builtin_render_feature/advanced_slots.rs
   - zircon_runtime/src/graphics/scene/gpu_scene
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh
   - zircon_plugins/gltf_importer/runtime
   - zircon_plugins/terrain
   - zircon_plugins/first_party_runtime_catalog
   - zircon_plugins/first_party_editor_catalog
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/world/workbench_extension_foliage_editor_workspace.zui
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback.rs
   - examples/vampire/assets/materials/forest_grass_billboard.zmaterial
-  - examples/vampire/assets/models/grass_billboard_static_batch.model.toml
 plan_sources:
   - docs/plans/optimize/zircon_runtime/34-vegetation-tree-foliage-grass-species-instancing-wind-animation-billboard-impostor-lod-streaming-scalability-product-integration-review.md
   - docs/plans/optimize/zircon_runtime/85-runtime-asset-import-source-discovery-importer-recipe-subasset-derived-data-artifact-cook-package-incremental-build-worker-determinism.md

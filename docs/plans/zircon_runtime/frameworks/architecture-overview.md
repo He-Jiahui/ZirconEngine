@@ -8,7 +8,6 @@ related_code:
   - zircon_runtime/src/core/runtime/mod.rs
   - zircon_runtime/src/builtin/runtime_modules/core_modules.rs
   - zircon_runtime/src/dynamic_api/exports.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/mod.rs
   - zircon_runtime_interface/src/lib.rs
   - zircon_editor/src/lib.rs
   - zircon_plugins/Cargo.toml

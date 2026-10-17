@@ -1,8 +1,7 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/app/backend_refresh.rs
-  - zircon_editor/src/ui/retained_host/app/job_progress.rs
-  - zircon_editor/src/ui/retained_host/app/workbench_notifications.rs
+  - zircon_editor/src/ui/retained/app/backend_refresh.rs
+  - zircon_editor/src/ui/retained/app/job_progress.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_editor/editor/04-pie-and-simulation.md

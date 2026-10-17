@@ -18,16 +18,13 @@ related_code:
   - zircon_runtime/src/scene/world/project_io/scene_asset.rs
   - zircon_runtime/src/core/framework/render/light
   - zircon_runtime/src/core/framework/render/advanced_lighting/cookie.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/lighting/light_buffer.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/lighting/light_grid_builder.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/lighting/light_grid_pass.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/lighting/shaders/zr_light_grid.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/shadow
-  - zircon_runtime/src/graphics/scene/scene_renderer/shadow/atlas
-  - zircon_runtime/src/graphics/scene/scene_renderer/shadow/shaders/zr_shadow.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/light_cookie
-  - zircon_runtime/src/graphics/scene/scene_renderer/deferred
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process
+  - zircon_runtime/src/graphics/scene/renderer/lighting/light_buffer.rs
+  - zircon_runtime/src/graphics/scene/renderer/lighting/light_grid_builder.rs
+  - zircon_runtime/src/graphics/scene/renderer/lighting/light_grid_pass.rs
+  - zircon_runtime/src/graphics/scene/renderer/lighting/shaders/zr_light_grid.wgsl
+  - zircon_runtime/src/graphics/scene/renderer/shadow/atlas
+  - zircon_runtime/src/graphics/scene/renderer/shadow/shaders/zr_shadow.wgsl
+  - zircon_runtime/src/graphics/scene/renderer/advanced_lighting/light_cookie
   - zircon_runtime/src/graphics/visibility/view_context/build_views.rs
   - zircon_plugins/rendering/features/contact_shadow/runtime/src
 tests:
@@ -36,9 +33,8 @@ tests:
   - zircon_runtime/src/graphics/tests/render_product_shadow_wide.rs
   - zircon_runtime/src/graphics/tests/render_product_shadow_captures.rs
   - zircon_runtime/src/graphics/tests/render_product_shadow_captures/directional.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/shadow_atlas_required_external_tests.rs
   - zircon_runtime/src/scene/tests/render_extract/lighting_postprocess.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/lighting/light_buffer.rs
+  - zircon_runtime/src/graphics/scene/renderer/lighting/light_buffer.rs
 reference_engines:
   - dev/UnrealEngine/Engine/Source/Runtime/Renderer/Private/LightGridInjection.cpp
   - dev/UnrealEngine/Engine/Source/Runtime/Renderer/Private/LightGrid.h

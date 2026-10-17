@@ -1,16 +1,11 @@
 ---
 related_code:
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_graph_plan.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_record.rs
+  - zircon_runtime/src/graphics/scene/renderer/environment/ibl_bake_graph_plan.rs
   - zircon_runtime/src/render_graph/builder.rs
   - zircon_runtime/src/render_graph/types.rs
   - zircon_runtime/src/core/framework/render/environment/ibl_bake_artifact.rs
 implementation_files:
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_graph_plan.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/mod.rs
+  - zircon_runtime/src/graphics/scene/renderer/environment/ibl_bake_graph_plan.rs
 plan_sources:
   - docs/plans/zircon_runtime/render/11-environment-lighting.md
   - docs/plans/zircon_runtime/shader/06-environment-ibl-and-pbr-correctness.md

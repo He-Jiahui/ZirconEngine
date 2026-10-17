@@ -2,12 +2,10 @@
 doc_type: milestone-detail
 related_code:
   - zircon_runtime/src/scene/world/transaction/detached_entity_batch.rs
-  - zircon_runtime/src/scene/world/transaction/detached_entity_batch/root_normalization.rs
+  - zircon_runtime/src/scene/world/detached_entity_batch/root_normalization.rs
 plan_sources:
   - docs/plans/optimize/zircon_runtime/62/2026-09-27-detached-subtree-parent-cycle-rejection.md
 tests:
-  - zircon_runtime/src/scene/world/transaction/detached_entity_batch/raw_cycle_tests.rs
-  - zircon_runtime/src/scene/world/transaction/detached_entity_batch/root_normalization_profile.rs
 ---
 
 # Runtime1012：detached subtree parent-cycle rejection

@@ -1,24 +1,21 @@
 ---
 related_code:
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/processors/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/processors/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/processors/tests/material_options.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/mesh_pipeline_variant_registry.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/mesh_pass/processors/mod.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/tests/material_options.rs
   - zircon_runtime/src/graphics/scene/resources/runtime/material_runtime.rs
 implementation_files:
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/processors/depth_prepass.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/processors/opaque_base.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/processors/shadow.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/processors/transparent.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/processors/velocity.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/processors/taa_reactive_mask.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/processors/depth_prepass.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/processors/opaque_base.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/mesh_pass/processors/shadow.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/processors/transparent.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/mesh_pass/processors/velocity.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/processors/taa_reactive_mask.rs
 plan_sources:
   - docs/plans/zircon_runtime/shader/04-material-binding-and-renderer-contract.md
   - docs/plans/engine-code-structure-convention.md
   - docs/plans/engine-code-review-findings-2026-06.md
 tests:
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/processors/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/processors/tests/material_options.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/tests/material_options.rs
 doc_type: module-detail
 ---
 

@@ -12,12 +12,10 @@ related_code:
   - zircon_runtime/src/animation/manager/mod.rs
   - zircon_plugins/animation/runtime/src/evaluation/clip_evaluator/mod.rs
   - zircon_plugins/animation/runtime/src/evaluation/pipeline/mod.rs
-  - zircon_plugins/animation/runtime/src/evaluation/pipeline/animation_evaluation_pipeline.rs
   - zircon_plugins/animation/runtime/src/evaluation/pipeline/graph_cache.rs
   - zircon_plugins/animation/runtime/src/evaluation/pipeline/state_machine_cache.rs
   - zircon_plugins/animation/runtime/src/evaluation/pipeline/state_graph_sample.rs
   - zircon_plugins/animation/runtime/src/evaluation/pipeline/simulated_pose_blend.rs
-  - zircon_plugins/animation/runtime/src/evaluation/state_machine_layer_diagnostic.rs
   - zircon_runtime/src/core/framework/animation/asset/state_kind.rs
   - zircon_plugins/animation/runtime/src/module.rs
   - zircon_plugins/animation/runtime/src/manager.rs
@@ -38,24 +36,17 @@ related_code:
   - zircon_plugins/animation/runtime/src/evaluation/pipeline/pose_apply.rs
   - zircon_plugins/animation/runtime/src/evaluation/pipeline/pose_target_binding.rs
   - zircon_plugins/animation/runtime/src/evaluation/pipeline/simulated_pose_blend.rs
-  - zircon_plugins/animation/runtime/src/evaluation/state_machine_layer_diagnostic.rs
   - zircon_runtime/src/core/framework/physics/skeletal_pose.rs
   - zircon_plugins/animation/runtime/tests/physics_tick.rs
-  - zircon_plugins/animation/runtime/tests/runtime_physics_animation_tick_contract/runtime_helpers.rs
-  - zircon_plugins/animation/runtime/tests/runtime_physics_animation_tick_contract/target_resolution.rs
-  - zircon_plugins/animation/runtime/tests/runtime_physics_animation_tick_contract/state_machine_interruption.rs
   - zircon_runtime/src/core/framework/physics/skeletal_pose.rs
   - zircon_runtime/src/core/framework/physics/query_interface.rs
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/plugin_importer_dx/d10_bridge_call.rs
+  - zircon_runtime/src/tests/contracts/review/plugin_importer_dx/d10_bridge_call.rs
   - zircon_plugins/animation/editor/Cargo.toml
   - zircon_plugins/animation/editor/src/plugin.rs
-  - zircon_plugins/animation/editor/src/tests.rs
   - zircon_plugins/animation_graph/editor/src/plugin.rs
-  - zircon_plugins/animation_graph/editor/src/tests.rs
   - zircon_plugins/timeline_sequence/editor/src/plugin.rs
-  - zircon_plugins/timeline_sequence/editor/src/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/skinning/joint_palette_storage.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/shaders/zr_gpu_scene.wgsl
+  - zircon_runtime/src/graphics/scene/mesh/skinning/joint_palette_storage.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/shaders/zr_gpu_scene.wgsl
   - zircon_runtime/src/core/framework/animation/asset/mod.rs
   - zircon_runtime/src/core/framework/animation/asset/state_kind.rs
   - zircon_runtime/src/core/framework/animation/asset/state_machine.rs
@@ -85,9 +76,6 @@ implementation_files:
   - zircon_plugins/animation/runtime/src/state_machine/blend_space/blend_space_1d.rs
   - zircon_plugins/animation/runtime/src/state_machine/blend_space/blend_space_2d.rs
   - zircon_plugins/animation/runtime/src/state_machine/compiled/evaluate.rs
-  - zircon_plugins/animation/runtime/src/state_machine/condition_expression/compile.rs
-  - zircon_plugins/animation/runtime/src/state_machine/condition_expression/evaluate.rs
-  - zircon_plugins/animation/runtime/src/state_machine/transition/transition_runtime.rs
   - zircon_plugins/animation/runtime/src/gpu_skinning/palette.rs
   - zircon_plugins/animation/runtime/src/gpu_skinning/double_buffer.rs
   - zircon_plugins/animation/runtime/src/gpu_skinning/decision.rs
@@ -117,7 +105,6 @@ implementation_files:
   - zircon_plugins/animation/runtime/src/evaluation/pipeline/pose_target_binding.rs
   - zircon_plugins/animation/editor/Cargo.toml
   - zircon_plugins/animation/editor/src/plugin.rs
-  - zircon_plugins/animation/editor/src/tests.rs
   - zircon_runtime/src/core/framework/animation/asset/mod.rs
   - zircon_runtime/src/animation/clip_event.rs
   - zircon_runtime/src/asset/importer/ingest/gltf_animation_subassets.rs
@@ -142,7 +129,6 @@ plan_sources:
   - .codex/plans/ZirconEngine 周边设施与插件能力完善计划.md
   - docs/superpowers/plans/2026-05-03-physics-animation-aggressive-plugin-migration.md
 tests:
-  - zircon_runtime/src/tests/runtime_absorption/service_registry_ownership.rs::registry_owned_services_store_only_weak_runtime_back_references
   - zircon_plugins/animation/runtime/src/lib.rs
   - zircon_plugins/animation/runtime/tests/animation_avatar_mask_contract.rs
   - zircon_plugins/animation/runtime/tests/animation_blend_space_contract.rs
@@ -155,11 +141,6 @@ tests:
   - zircon_plugins/animation/runtime/tests/animation_pose_buffer_contract.rs
   - zircon_plugins/animation/runtime/tests/animation_state_transition_contract.rs
   - zircon_plugins/animation/runtime/tests/physics_tick.rs
-  - zircon_plugins/animation/runtime/tests/runtime_physics_animation_tick_contract/animation_assets.rs
-  - zircon_plugins/animation/runtime/tests/runtime_physics_animation_tick_contract/runtime_helpers.rs
-  - zircon_plugins/animation/runtime/tests/runtime_physics_animation_tick_contract/target_resolution.rs
-  - zircon_plugins/animation/runtime/tests/runtime_physics_animation_tick_contract/state_machine_interruption.rs
-  - zircon_plugins/animation/runtime/tests/runtime_physics_animation_tick_contract/blend_space_state.rs
   - runtime_physics_animation_tick_contract::level_tick_emits_animation_clip_event_tracks_crossed_by_player_time
   - runtime_physics_animation_tick_contract::clip_event_sampling_reports_loop_boundary_occurrences_in_playback_order
   - runtime_physics_animation_tick_contract::graph_player_emits_clip_events_using_graph_clip_playback_speed

@@ -8,7 +8,6 @@ related_code:
   - zircon_runtime/src/core/framework/scene/physics/joint_drive.rs
   - zircon_runtime/src/core/framework/scene/physics/material_metadata.rs
   - zircon_runtime/src/core/framework/scene/physics/skeleton_joint_binding.rs
-  - zircon_runtime/src/core/framework/scene/physics/tests.rs
   - zircon_runtime/src/core/framework/physics/mod.rs
 implementation_files:
   - zircon_runtime/src/core/framework/scene/physics/mod.rs
@@ -24,9 +23,7 @@ plan_sources:
   - docs/plans/engine-code-structure-convention.md
   - docs/plans/engine-code-review-findings-2026-06.md
 tests:
-  - zircon_runtime/src/core/framework/scene/physics/tests.rs
   - tools/tests/test_frameworks_03_contract_feature_boundary.py
-  - tests/acceptance/frameworks-03-physics-contract-feature-boundary.md
 doc_type: module-detail
 ---
 

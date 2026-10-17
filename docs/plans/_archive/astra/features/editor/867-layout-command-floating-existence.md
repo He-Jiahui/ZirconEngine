@@ -9,7 +9,6 @@ related_records:
 implementation_files:
   - zircon_editor/src/ui/host/layout_commands.rs
 tests:
-  - tools/tests/test_editor867_871_workspace_identity_projection_performance_contract.py
 ---
 
 # Editor867 - layout-command floating-window existence query

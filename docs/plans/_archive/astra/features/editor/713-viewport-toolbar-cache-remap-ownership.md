@@ -13,10 +13,10 @@ related_records:
   - docs/plans/astra/features/editor/34-viewport-pointer-delta-contract-repair.md
   - docs/plans/astra/features/editor/664-20260911-editor-ui-optimization-batch-completion.md
 implementation_files:
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/viewport_toolbar/surface_frame_cache.rs
+  - zircon_editor/src/ui/retained/dispatch/viewport_toolbar/surface_frame_cache.rs
 tests:
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/viewport_toolbar/surface_frame_cache.rs
-  - zircon_editor/src/ui/retained_host/app/viewport_toolbar_projection/surface_frames/pane_frame.rs
+  - zircon_editor/src/ui/retained/dispatch/viewport_toolbar/surface_frame_cache.rs
+  - zircon_editor/src/ui/retained/app/surface_frames/pane_frame.rs
   - tools/tests/test_editor_retained_viewport_toolbar_pointer_generation_performance_contract.py
   - tools/tests/test_editor_viewport_toolbar_pointer_surface_reuse.py
   - tools/tests/test_editor_menu_pointer_resize_pressure.py

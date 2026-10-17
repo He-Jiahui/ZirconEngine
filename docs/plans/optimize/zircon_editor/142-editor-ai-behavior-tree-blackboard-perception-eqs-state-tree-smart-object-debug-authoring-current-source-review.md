@@ -32,8 +32,8 @@ related_code:
   - zircon_editor/src/core/editor_extension.rs
   - zircon_editor/src/core/runtime_event_consumer
   - zircon_editor/src/scene/viewport
-  - zircon_editor/assets/ui/editor/components/workbench/modules/core/ai
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/module_command_feedback.rs
+  - zircon_editor/assets/ui/editor/workbench/modules/core/ai
+  - zircon_editor/src/ui/retained/dispatch/workbench/module_command_feedback.rs
   - zircon_runtime/src/core/framework/ai
 reference_engines:
   - dev/UnrealEngine/Engine/Source/Editor/BehaviorTreeEditor

@@ -39,7 +39,6 @@ plan_sources:
 tests:
   - tools/tests/test_frameworks_01_time_product_policy_owner_boundary.py
   - zircon_runtime/src/tests/time.rs
-  - zircon_runtime/src/core/framework/tests.rs
   - cargo test -p zircon_runtime --lib time_framework --locked
   - cargo test -p zircon_runtime --lib framework_contract_types_are_constructible --locked
 doc_type: module-detail

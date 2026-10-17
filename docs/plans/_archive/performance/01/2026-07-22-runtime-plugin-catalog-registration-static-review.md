@@ -1,12 +1,5 @@
 ---
 related_code:
-  - zircon_runtime/src/plugin/runtime_plugin/mod.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin
-  - zircon_runtime/src/plugin/runtime_plugin/descriptor
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog
-  - zircon_runtime/src/plugin/runtime_plugin/feature_registration_report
-  - zircon_runtime/src/plugin/runtime_plugin/registration_report
   - zircon_runtime/src/plugin/extension_registry/access.rs
   - zircon_runtime/src/plugin/bridge/table.rs
 plan_sources:
@@ -21,10 +14,6 @@ reference_sources:
   - dev/godot/core/extension/gdextension_manager.cpp
   - dev/godot/core/extension/gdextension_manager.h
 tests:
-  - zircon_runtime/src/tests/plugin_extensions/extension_registry_bridge_performance_baseline.rs::bridge_owner_reload_borrows_registry_exports_without_cloning_the_replacement_batch
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/derived_projection/tests.rs::feature_capability_projection_borrows_manifest_rows_until_owned_index_insertion
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/derived_projection/tests.rs::catalog_generation_builds_one_projection_for_all_consumers
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/derived_projection/tests.rs::feature_resolution_visits_each_feature_and_dependency_once
   - current-source Windows Cargo and F0/F4 product traces pending
 doc_type: implementation-evidence
 status: static_complete_dynamic_pending

@@ -20,16 +20,13 @@ related_code:
   - zircon_runtime/src/scene/tests/ecs_schedule/fixed_update.rs
   - zircon_runtime/src/scene/tests/ecs_schedule/schedule_plan.rs
   - zircon_runtime/src/scene/tests/ecs_schedule/world_driver.rs
-  - zircon_runtime/src/tests/runtime_absorption/schedule_frame_loop.rs
-  - zircon_runtime/src/tests/runtime_absorption/schedule_frame_loop/mirror_docs.rs
+  - zircon_runtime/src/tests/contracts/schedule_frame_loop/mirror_docs.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/schedule_frame_loop_boundary.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/schedule_frame_loop_source_inventory.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/schedule_frame_loop_anchor_inventory.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/schedule_frame_loop_markdown.py
   - tools/tests/test_runtime_schedule_frame_loop_audit.py
   - docs/crates/zircon_runtime/core/frame_schedule.md
-  - dev/bevy/crates/bevy_app/src/main_schedule.rs
-  - dev/Fyrox/fyrox-impl/src/engine/executor.rs
 plan_sources:
   - docs/plans/zircon_runtime/runtime/index.md
 status: completed

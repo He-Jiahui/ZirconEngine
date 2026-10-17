@@ -1,11 +1,10 @@
 ---
 related_code:
-  - zircon_editor/src/ui/host/editor_asset_manager/manager/catalog_generation/details.rs
-  - zircon_editor/src/ui/host/editor_asset_manager/manager/catalog_generation/record.rs
+  - zircon_editor/src/ui/host/assets/manager/catalog_generation/details.rs
+  - zircon_editor/src/ui/host/assets/manager/catalog_generation/record.rs
 plan_sources:
   - docs/plans/optimize/zircon_editor/57/2026-09-27-reference-guid-preserving-projection.md
 tests:
-  - zircon_editor/src/ui/host/editor_asset_manager/manager/catalog_generation/record/reference_identity_tests.rs
 doc_type: milestone-detail
 status: implemented_pending_validation
 ---

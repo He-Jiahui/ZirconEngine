@@ -1,6 +1,5 @@
 ---
 related_code:
-  - zircon_runtime/src/scene/dynamic_scene
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_runtime/runtime/04-asset-pipeline-alignment.md
@@ -10,10 +9,10 @@ reference_sources:
   - dev/godot/scene/resources/packed_scene.cpp
   - dev/godot/core/io/resource_loader.cpp
 tests:
-  - zircon_runtime/src/scene/dynamic_scene/document/migration/project_world.rs
-  - zircon_runtime/src/scene/dynamic_scene/scene/capture.rs
-  - zircon_runtime/src/scene/dynamic_scene/scene/validation.rs
-  - zircon_runtime/src/scene/dynamic_scene/spawn_task/task.rs
+  - zircon_runtime/src/scene/dynamic/document/migration/project_world.rs
+  - zircon_runtime/src/scene/dynamic/scene/capture.rs
+  - zircon_runtime/src/scene/dynamic/scene/validation.rs
+  - zircon_runtime/src/scene/dynamic/spawn_task/task.rs
   - zircon_runtime/src/scene/tests/dynamic_scene
   - current-source Windows zircon_runtime dynamic-scene tests pending
 doc_type: implementation-evidence

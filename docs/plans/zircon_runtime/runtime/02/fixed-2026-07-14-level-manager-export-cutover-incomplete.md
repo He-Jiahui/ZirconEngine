@@ -13,7 +13,6 @@ related_code:
   - zircon_runtime/src/core/manager/resolver.rs
   - zircon_runtime/src/core/manager/service.rs
   - zircon_runtime/src/scene/module/mod.rs
-  - zircon_runtime/src/foundation/tests.rs
 tests:
   - cargo test -p zircon_runtime --lib scene:: --no-default-features --features core-min --locked
 resolved_at: 2026-07-14

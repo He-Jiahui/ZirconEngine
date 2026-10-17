@@ -4,7 +4,7 @@
 use std::time::{Duration, Instant};
 
 use zircon_runtime::core::framework::net::{
-    NetRequestId, NetSessionHandshakeState, RpcDispatchReport, RpcDispatchStatus,
+    NetError, NetRequestId, NetSessionHandshakeState, RpcDispatchReport, RpcDispatchStatus,
     RpcInvocationDescriptor, RpcPeerRole,
 };
 
@@ -15,9 +15,8 @@ use super::{
 
 impl NetRpcRuntimeManager {
     pub fn pending_request(&self, request: NetRequestId) -> Option<RpcInvocationDescriptor> {
-        self.state
-            .lock()
-            .expect("net RPC state mutex poisoned")
+        self.lock_state()
+            .ok()?
             .pending_requests
             .get(&request)
             .map(|pending| pending.invocation.clone())
@@ -69,7 +68,10 @@ impl NetRpcRuntimeManager {
         if report.status != RpcDispatchStatus::Accepted {
             return report;
         }
-        let mut state = self.state.lock().expect("net RPC state mutex poisoned");
+        let mut state = match self.lock_state() {
+            Ok(state) => state,
+            Err(error) => return Self::unavailable_report(&invocation, error),
+        };
         if state.queued_invocations.len() >= state.max_queue_depth {
             report.status = RpcDispatchStatus::QueueFull;
             return report.with_diagnostic("RPC queue depth exceeded");
@@ -94,7 +96,9 @@ impl NetRpcRuntimeManager {
     /// 配额在入队时计费，出队执行不重复计费；同步 handler 的时间不受条数预算限制。
     pub fn drain_rpc_queue(&self, max_invocations: usize) -> Vec<RpcDispatchReport> {
         let queued = {
-            let mut state = self.state.lock().expect("net RPC state mutex poisoned");
+            let Ok(mut state) = self.lock_state() else {
+                return Vec::new();
+            };
             take_queued_invocations(&mut state.queued_invocations, max_invocations)
         };
 
@@ -139,7 +143,9 @@ impl NetRpcRuntimeManager {
     /// handlers remain pending until they return because this runtime cannot cancel them.
     pub fn expire_pending_requests(&self) -> Vec<RpcDispatchReport> {
         let now = Instant::now();
-        let mut state = self.state.lock().expect("net RPC state mutex poisoned");
+        let Ok(mut state) = self.lock_state() else {
+            return Vec::new();
+        };
         let mut expired_reports = Vec::new();
         state.pending_requests.retain(|_, pending| {
             let expired = !pending.handler_executing
@@ -287,7 +293,10 @@ impl NetRpcRuntimeManager {
         capture_handler: bool,
     ) -> (RpcDispatchReport, Option<RpcHandler>) {
         let (preflight, descriptor, validator, handler) = {
-            let mut state = self.state.lock().expect("net RPC state mutex poisoned");
+            let mut state = match self.lock_state() {
+                Ok(state) => state,
+                Err(error) => return (Self::unavailable_report(invocation, error), None),
+            };
             let report = Self::validate_invocation(&mut state, invocation, caller, false);
             if report.status != RpcDispatchStatus::Accepted {
                 return (report, None);
@@ -313,7 +322,10 @@ impl NetRpcRuntimeManager {
             }
         }
 
-        let mut state = self.state.lock().expect("net RPC state mutex poisoned");
+        let mut state = match self.lock_state() {
+            Ok(state) => state,
+            Err(error) => return (Self::unavailable_report(invocation, error), None),
+        };
         let current_descriptor = state.rpc_descriptors.get(&invocation.rpc_id);
         let descriptor_matches = current_descriptor == descriptor.as_ref();
         let current_validator = descriptor
@@ -353,6 +365,11 @@ impl NetRpcRuntimeManager {
         invocation
             .timeout_ms
             .is_some_and(|timeout_ms| timeout_ms == 0)
+    }
+
+    fn unavailable_report(invocation: &RpcInvocationDescriptor, error: NetError) -> RpcDispatchReport {
+        RpcDispatchReport::for_invocation(invocation, RpcDispatchStatus::SessionUnavailable)
+            .with_diagnostic(format!("{error:?}"))
     }
 
     /// `timeout_ms == 0` is rejected before execution. For positive values, synchronous
@@ -408,11 +425,9 @@ impl NetRpcRuntimeManager {
 
     fn complete_pending_request(&self, invocation: &RpcInvocationDescriptor) {
         if let Some(request) = invocation.request {
-            self.state
-                .lock()
-                .expect("net RPC state mutex poisoned")
-                .pending_requests
-                .remove(&request);
+            if let Ok(mut state) = self.lock_state() {
+                state.pending_requests.remove(&request);
+            }
         }
     }
 
@@ -438,12 +453,9 @@ impl<'a> PendingRequestGuard<'a> {
 impl Drop for PendingRequestGuard<'_> {
     fn drop(&mut self) {
         if let Some(request) = self.request {
-            self.manager
-                .state
-                .lock()
-                .expect("net RPC state mutex poisoned")
-                .pending_requests
-                .remove(&request);
+            if let Ok(mut state) = self.manager.lock_state() {
+                state.pending_requests.remove(&request);
+            }
         }
     }
 }

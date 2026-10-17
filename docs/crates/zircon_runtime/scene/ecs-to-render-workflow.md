@@ -26,16 +26,10 @@ related_code:
   - zircon_runtime/src/scene/tests/render_post_process_extract.rs
   - zircon_runtime/src/core/framework/render/frame_extract.rs
   - zircon_runtime/src/core/framework/render/scene_extract.rs
-  - zircon_runtime/src/core/framework/render/post_process/volume_profile.rs
-  - zircon_runtime/src/core/framework/render/post_process/volume_extract.rs
-  - zircon_runtime/src/core/framework/render/post_process/volume_evaluator.rs
   - zircon_runtime/src/core/framework/render/material/mod.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/prepare_runtime_submission/prepare.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/submit.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/build_runtime_frame.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render_with_pipeline/render_frame_with_pipeline.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/runtime_features/runtime_features_from_pipeline.rs
+  - zircon_runtime/src/graphics/extract/prepare_runtime_submission/prepare.rs
+  - zircon_runtime/src/graphics/runtime/framework/extract/submit/submit.rs
+  - zircon_runtime/src/graphics/runtime/extract/submit/build_runtime_frame.rs
   - zircon_runtime/src/graphics/visibility/mod.rs
   - zircon_runtime/src/graphics/virtual_geometry_runtime_provider/provider.rs
   - zircon_runtime/src/graphics/hybrid_gi_runtime_provider/provider.rs
@@ -67,12 +61,9 @@ implementation_files:
   - zircon_runtime/src/scene/tests/render_post_process_extract.rs
   - zircon_runtime/src/core/framework/render/frame_extract.rs
   - zircon_runtime/src/core/framework/render/scene_extract.rs
-  - zircon_runtime/src/core/framework/render/post_process/volume_profile.rs
-  - zircon_runtime/src/core/framework/render/post_process/volume_extract.rs
-  - zircon_runtime/src/core/framework/render/post_process/volume_evaluator.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/prepare_runtime_submission/prepare.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/submit.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/build_runtime_frame.rs
+  - zircon_runtime/src/graphics/extract/prepare_runtime_submission/prepare.rs
+  - zircon_runtime/src/graphics/runtime/framework/extract/submit/submit.rs
+  - zircon_runtime/src/graphics/runtime/extract/submit/build_runtime_frame.rs
 plan_sources:
   - user: 2026-05-31 完善 ECS 到渲染链路，参考 Unity SRP / Unreal / Bevy / Fyrox / WGPU 架构
   - .codex/plans/ZirconEngine ECS 到渲染链路完善里程碑计划.md
@@ -96,7 +87,6 @@ tests:
   - zircon_runtime/src/graphics/tests/render_product_submit.rs
   - zircon_runtime/src/graphics/tests/m5_flagship_slots.rs
   - zircon_runtime/src/graphics/tests/visibility.rs
-  - tests/acceptance/ecs-to-render-chain.md
   - .opencode/workflows/20260531_215744_101_完善ECS到渲染工作流，你可以参照dev 下面graphics的unity的SRP工作流以及unrealEngine虚幻源码渲染能力、bevy fyrox等对w/m00-baseline-evidence/baseline-commands.md
   - .opencode/workflows/20260531_215744_101_完善ECS到渲染工作流，你可以参照dev 下面graphics的unity的SRP工作流以及unrealEngine虚幻源码渲染能力、bevy fyrox等对w/m01-ecs-schedule-foundation/validation-evidence.md
   - .opencode/workflows/20260531_215744_101_完善ECS到渲染工作流，你可以参照dev 下面graphics的unity的SRP工作流以及unrealEngine虚幻源码渲染能力、bevy fyrox等对w/m02-derived-transform-active/validation-evidence.md

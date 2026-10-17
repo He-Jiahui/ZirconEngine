@@ -5,9 +5,7 @@ plan_sources:
   - docs/plans/optimize/zircon_runtime/631/2026-09-01-preallocated-reference-candidates.md
 related_code:
   - zircon_runtime/src/asset/reference_resolver.rs
-  - zircon_runtime/src/asset/reference_resolver/optimization_batch_is_runtime631_tests.rs
 tests:
-  - zircon_runtime/src/asset/reference_resolver/optimization_batch_is_runtime631_tests.rs
 ---
 
 # Reference Candidate Capacity

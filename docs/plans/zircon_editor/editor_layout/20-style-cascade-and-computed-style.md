@@ -6,7 +6,6 @@ related_code:
   - zircon_runtime/src/ui/v2/style/runtime_state.rs
   - zircon_runtime/src/ui/v2/style/tokens.rs
   - zircon_runtime/src/ui/template/asset/style.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector
 plan_sources:
   - docs/plans/zircon_editor/editor_ui/04-style-theme-and-painter-selector.md
   - docs/plans/zircon_editor/editor_layout/01-design-tokens-and-language-contract.md

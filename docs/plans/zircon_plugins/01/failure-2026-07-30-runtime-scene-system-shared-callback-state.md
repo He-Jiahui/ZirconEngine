@@ -10,7 +10,6 @@ fixing_child_dir: docs/plans/zircon_plugins/01
 plan_link_mode: child_record_only
 related_code:
   - zircon_runtime/src/plugin/extension_registry/register/system_registration.rs
-  - zircon_runtime/src/plugin/extension_registry/register/runtime_scene_system_registration.rs
   - zircon_plugins/plugin_sdk/src/registration.rs
 tests:
   - per-World typed scene-system callback state fixture

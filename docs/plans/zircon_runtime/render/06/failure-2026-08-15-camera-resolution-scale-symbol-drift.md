@@ -11,9 +11,7 @@ plan_link_mode: child_record_only
 related_code:
   - zircon_runtime/src/core/framework/render/camera.rs
   - zircon_runtime/src/core/framework/render/camera/camera_snapshot.rs
-  - zircon_runtime/src/core/framework/render/camera/tests.rs
   - zircon_runtime/src/core/framework/render/view_family/resolution.rs
-  - zircon_runtime/src/core/framework/render/view_family/tests.rs
 tests:
   - .\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -SkipTest
 ---

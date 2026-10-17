@@ -1,10 +1,10 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/host_contract/window/metadata.rs
-  - zircon_editor/src/ui/retained_host/app/hierarchy_pointer/input_owner.rs
-  - zircon_editor/src/ui/retained_host/app/hierarchy_pointer/events/drag.rs
-  - zircon_editor/src/ui/retained_host/app/hierarchy_pointer/events/motion.rs
-  - zircon_editor/src/ui/retained_host/app/tests/hierarchy_native_capture.rs
+  - zircon_editor/src/ui/retained/contract/window/metadata.rs
+  - zircon_editor/src/ui/retained/app/hierarchy_pointer/input_owner.rs
+  - zircon_editor/src/ui/retained/app/hierarchy_pointer/events/drag.rs
+  - zircon_editor/src/ui/retained/app/hierarchy_pointer/events/motion.rs
+  - zircon_editor/src/ui/retained/app/tests/hierarchy_native_capture.rs
 plan_sources:
   - docs/plans/optimize/zircon_editor/60/2026-09-27-hierarchy-native-input-owner.md
 status: implemented_pending_validation

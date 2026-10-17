@@ -9,9 +9,7 @@ related_records:
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
   - zircon_runtime/src/render_graph/graph/transient_allocation.rs
-  - zircon_runtime/src/render_graph/graph/transient_allocation/capacity_tests.rs
 tests:
-  - tools/tests/test_runtime_transient_allocation_capacity_performance_contract.py
 ---
 
 # Runtime840 · transient allocation output capacity

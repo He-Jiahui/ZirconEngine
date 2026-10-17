@@ -11,7 +11,6 @@ related_records:
 implementation_files:
   - zircon_editor/src/core/commands/palette/locale_projection.rs
 tests:
-  - tools/tests/test_editor_palette_locale_posting_capacity_performance_contract.py
 ---
 
 # Editor812 · palette locale posting capacity

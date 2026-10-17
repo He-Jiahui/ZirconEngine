@@ -14,15 +14,12 @@ related_code:
   - zircon_runtime/src/script/vm/host
   - zircon_runtime/src/script/vm/plugin
   - zircon_runtime/src/scene/world/project_io
-  - zircon_runtime/src/scene/dynamic_scene
   - zircon_runtime/src/core/framework/time
   - zircon_runtime/src/core/framework/net
   - zircon_plugins/net/features/replication/runtime/src
   - zircon_runtime/src/asset
   - zircon_runtime_interface/src/resource/marker.rs
-  - zircon_editor/assets/ui/editor/components/workbench/modules/core/gameplay
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench
-  - zircon_editor/src/ui/template_runtime/builtin/workbench_generated_bottom_template_bindings.rs
+  - zircon_editor/assets/ui/editor/modules/core/gameplay
   - examples/woc/scripts/woc_game/src/combat
   - examples/woc/scripts/woc_game/src/world/state.zr
 plan_sources:

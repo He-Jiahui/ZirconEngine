@@ -9,11 +9,9 @@ origin_child_dir: docs/plans/zircon_editor/editor/11
 fixing_child_dir: docs/plans/zircon_plugins/01
 plan_link_mode: child_record_only
 related_code:
-  - zircon_runtime/src/plugin/native_plugin_loader/discover/authority.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/discover/tests.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/discovery_refresh/contract.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/discover_load_manifest.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/discovery_refresh/tests/admission.rs
+  - zircon_runtime/src/plugin/loader/discover/authority.rs
+  - zircon_runtime/src/plugin/loader/discovery_refresh/contract.rs
+  - zircon_runtime/src/plugin/loader/discovery_refresh/tests/admission.rs
 tests:
   - bounded_load_manifest_rejects_an_entry_before_unbounded_vector_growth
   - bounded_root_admission_rejects_new_roots_without_evicting_a_snapshot

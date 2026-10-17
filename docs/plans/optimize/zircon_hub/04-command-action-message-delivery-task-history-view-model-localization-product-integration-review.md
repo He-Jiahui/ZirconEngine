@@ -16,8 +16,6 @@ related_code:
   - zircon_hub/src/tauri_app/runtime_state/learn_actions.rs
   - zircon_hub/src/tauri_app/runtime_state/output_actions.rs
   - zircon_hub/src/tauri_app/runtime_state/quick_actions.rs
-  - zircon_hub/src/tauri_app/runtime_state/tests.rs
-  - zircon_hub/src/tauri_app/runtime_state/project_actions/tests.rs
   - zircon_hub/src/tauri_app/view_model.rs
   - zircon_hub/src/tauri_app/view_model/action_history.rs
   - zircon_hub/src/tauri_app/view_model/display.rs
@@ -26,7 +24,6 @@ related_code:
   - zircon_hub/src/tauri_app/view_model/project_templates.rs
   - zircon_hub/src/tauri_app/view_model/quick_actions.rs
   - zircon_hub/src/tauri_app/view_model/source_engines.rs
-  - zircon_hub/src/tauri_app/view_model/tests.rs
   - zircon_hub/src/tauri_app/view_model/ui_text.rs
 tests:
   - zircon_hub/tests

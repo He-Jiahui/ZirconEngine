@@ -6,8 +6,8 @@ related_code:
   - zircon_editor/src/ui/host/editor_event_runtime_access/snapshot.rs
   - zircon_editor/src/ui/host/editor_event_runtime_access/asset_access.rs
   - zircon_editor/src/ui/host/editor_activity_log.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/recompute.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/recompute/shell/builder.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle/recompute.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle/recompute/shell/builder.rs
   - zircon_editor/src/ui/workbench/model
 tests:
   - zircon_editor/src/tests/workbench/chrome_snapshot

@@ -15,7 +15,6 @@ related_code:
   - zircon_runtime/src/builtin/runtime_modules/core_modules.rs
   - zircon_runtime/src/dynamic_api/session
   - zircon_runtime/src/core/runtime/diagnostics/profiling
-  - zircon_runtime/src/plugin/native_plugin_loader
   - zircon_app/src/bin/editor.rs
   - zircon_app/src/bin/runtime_preview.rs
   - zircon_app/src/entry
@@ -28,7 +27,6 @@ tests:
   - zircon_runtime/src/diagnostic_log/sink/tests
   - zircon_runtime/src/dynamic_api/tests/session_lifecycle.rs
   - zircon_app/src/entry/tests/runtime_entry_source_guards/product_teardown.rs
-  - zircon_editor/src/core/logging/tests.rs
 plan_sources:
   - docs/plans/optimize/01-cross-report-owner-schema-abi-p0-consolidation-review.md
   - docs/plans/optimize/zircon_runtime/03-core-runtime-diagnostics-profiling-config-review.md

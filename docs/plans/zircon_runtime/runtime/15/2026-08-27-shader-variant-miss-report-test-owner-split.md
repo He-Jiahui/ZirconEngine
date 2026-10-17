@@ -1,10 +1,8 @@
 ---
 related_code:
   - zircon_runtime/src/core/framework/render/shader/variant_miss_report.rs
-  - zircon_runtime/src/core/framework/render/shader/variant_miss_report/tests.rs
 implementation_files:
   - zircon_runtime/src/core/framework/render/shader/variant_miss_report.rs
-  - zircon_runtime/src/core/framework/render/shader/variant_miss_report/tests.rs
 plan_sources:
   - docs/plans/engine-code-structure-convention.md
   - docs/plans/engine-code-review-findings-2026-06.md

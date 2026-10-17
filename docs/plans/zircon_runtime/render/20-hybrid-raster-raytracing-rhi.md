@@ -2,13 +2,12 @@
 related_code:
   - zircon_runtime/src/core/framework/render/backend_types/capability.rs
   - zircon_runtime/src/core/framework/render/solari/capability.rs
-  - zircon_runtime/src/graphics/backend/render_backend/request_device.rs
   - zircon_runtime/src/graphics/feature/render_feature_capability_requirement.rs
-  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/ray_tracing.rs
-  - zircon_runtime/src/graphics/pipeline/declarations/render_pipeline_compile_options.rs
+  - zircon_runtime/src/graphics/feature/builtin/feature_descriptors/ray_tracing.rs
+  - zircon_runtime/src/graphics/declarations/render_pipeline_compile_options.rs
   - zircon_runtime/src/graphics/pipeline/compile_options/methods.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/capability_summary/capability_summary.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/capability_validation/mod.rs
+  - zircon_runtime/src/graphics/runtime/capability_summary/capability_summary.rs
+  - zircon_runtime/src/graphics/runtime/framework/capability_validation/mod.rs
   - zircon_runtime/src/graphics/scene/gpu_scene/gpu_scene.rs
   - zircon_runtime/src/render_graph/types.rs
   - zircon_runtime/src/render_graph/builder.rs

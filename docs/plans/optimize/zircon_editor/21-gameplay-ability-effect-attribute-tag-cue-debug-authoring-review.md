@@ -1,27 +1,14 @@
 ---
 related_code:
-  - zircon_editor/assets/ui/editor/components/workbench/modules/core/gameplay/workbench_effect_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/core/gameplay/workbench_ability_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/core/gameplay/workbench_tags_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/core/index/workbench_module_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/core/index/workbench_additional_module_workspaces.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/generated/workbench_generated_bottom_panel.zui
-  - zircon_editor/assets/ui/editor/components/workbench/shell/workbench_top_toolbar.zui
-  - zircon_editor/src/ui/retained_host/workbench_preview_actions.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/module_command_feedback.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/module_field_edit.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/module_navigation.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/reference_menu_actions.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/generated_bottom_panel_actions.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/generated_bottom_panel_feedback.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/generated_bottom_panel_lifecycle.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/generated_bottom_panel_navigation.rs
-  - zircon_editor/src/ui/template_runtime/builtin/workbench_module_template_bindings.rs
-  - zircon_editor/src/ui/template_runtime/builtin/workbench_generated_bottom_template_bindings.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_module_navigation/
-  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_projection/document_module.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_inspector_property_edit.rs
-  - zircon_editor/src/tests/host/retained_window/native_workbench_reference/text_and_module_input.rs
+  - zircon_editor/src/ui/retained/dispatch/workbench/module_command_feedback.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/workbench/module_field_edit.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/workbench/module_navigation.rs
+  - zircon_editor/src/ui/retained/dispatch/workbench/reference_menu_actions.rs
+  - zircon_editor/src/ui/dispatch/workbench/generated_bottom_panel_actions.rs
+  - zircon_editor/src/ui/dispatch/workbench/generated_bottom_panel_feedback.rs
+  - zircon_editor/src/ui/dispatch/workbench/generated_bottom_panel_lifecycle.rs
+  - zircon_editor/src/ui/dispatch/workbench/generated_bottom_panel_navigation.rs
+  - zircon_editor/src/tests/host/native_workbench_reference/text_and_module_input.rs
   - zircon_editor/src/tests/workbench/reference_surface.rs
   - zircon_runtime/src/script/vm/gameplay_host.rs
   - zircon_runtime/src/script/vm/gameplay_host
@@ -31,7 +18,6 @@ related_code:
   - zircon_plugins/first_party_editor_catalog/Cargo.toml
   - zircon_plugins/first_party_editor_catalog/src/catalog.rs
   - zircon_plugins/first_party_editor_catalog/src/lib.rs
-  - zircon_plugins/first_party_editor_catalog/src/tests.rs
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md
   - docs/plans/optimize/zircon_runtime/08g-gameplay-ability-effect-attribute-tag-cue-prediction-runtime-review.md

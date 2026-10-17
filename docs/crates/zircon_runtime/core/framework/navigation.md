@@ -16,7 +16,6 @@ related_code:
   - zircon_runtime/src/core/framework/navigation/settings.rs
   - zircon_runtime/src/core/framework/navigation/stats.rs
   - zircon_runtime/src/core/framework/navigation/surface.rs
-  - zircon_runtime/src/core/framework/navigation/tests.rs
   - zircon_runtime/src/core/framework/render/overlay.rs
   - zircon_runtime/src/core/framework/mod.rs
   - zircon_runtime/src/core/framework/navigation/asset/mod.rs
@@ -68,7 +67,6 @@ plan_sources:
   - user: 2026-05-02 ZirconEngine navigation/pathfinding plugin completion plan
   - user: 2026-06-04 plugin ecosystem infrastructure expansion
 tests:
-  - zircon_runtime/src/core/framework/navigation/tests.rs
   - zircon_plugins/navigation/runtime/src/tests/operation.rs
   - zircon_plugins/navigation/editor/src/tests/operation_command.rs
   - tools/tests/test_frameworks_05_layer_direction.py::Frameworks05LayerDirectionTests::test_navigation_gizmo_contract_does_not_project_nav_mesh_assets

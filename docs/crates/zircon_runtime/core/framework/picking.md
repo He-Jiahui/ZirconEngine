@@ -28,9 +28,7 @@ related_code:
   - zircon_editor/src/scene/viewport/pointer/runtime_picking_adapter.rs
   - zircon_editor/src/scene/viewport/pointer/precision/candidate_score.rs
   - zircon_editor/src/scene/viewport/pointer/precision/precision_candidate_score.rs
-  - zircon_editor/src/scene/viewport/pointer/overlay_router/viewport_overlay_pointer_router_debug.rs
   - zircon_editor/src/scene/viewport/pointer/constants.rs
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_pointer_route.rs
 implementation_files:
   - zircon_runtime/src/core/framework/picking/mod.rs
   - zircon_runtime/src/core/framework/picking/backend.rs
@@ -54,9 +52,7 @@ implementation_files:
   - zircon_editor/src/scene/viewport/pointer/runtime_picking_adapter.rs
   - zircon_editor/src/scene/viewport/pointer/precision/candidate_score.rs
   - zircon_editor/src/scene/viewport/pointer/precision/precision_candidate_score.rs
-  - zircon_editor/src/scene/viewport/pointer/overlay_router/viewport_overlay_pointer_router_debug.rs
   - zircon_editor/src/scene/viewport/pointer/constants.rs
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_pointer_route.rs
 plan_sources:
   - user: 2026-05-08 implement Runtime Picking / Gizmos / Camera / Remote Bevy completion plan
   - .codex/plans/runtime-picking-gizmos-camera-remote-bevy-completion-plan.md

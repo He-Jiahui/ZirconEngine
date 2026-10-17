@@ -17,8 +17,7 @@ related_code:
   - zircon_editor/src/ui/workbench/state/editor_state_play_mode.rs
   - zircon_editor/src/ui/workbench/state/editor_state_viewport_error.rs
   - zircon_editor/src/core/editing/interactive_transform/session.rs
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_handle_interaction.rs
-  - zircon_editor/src/scene/viewport/handles/handle_drag_session_interactive_transform.rs
+  - zircon_editor/src/scene/handles/handle_drag_session_interactive_transform.rs
   - zircon_editor/src/tests/editing/state/viewport.rs
   - zircon_editor/src/tests/editing/history.rs
   - zircon_editor/src/tests/editing/transaction_engine/history.rs

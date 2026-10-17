@@ -8,9 +8,9 @@ related_records:
   - docs/plans/astra/features/runtime/910-runtime558-animation-target-fixed-hex-display.md
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
-  - zircon_runtime/src/core/framework/render/environment/source_irradiance_cubemap.rs
+  - zircon_runtime/src/core/render/environment/source_irradiance_cubemap.rs
 tests:
-  - zircon_runtime/src/core/framework/render/environment/source_irradiance_cubemap.rs
+  - zircon_runtime/src/core/render/environment/source_irradiance_cubemap.rs
 ---
 
 # Runtime909 Runtime557 Irradiance Hash Batches

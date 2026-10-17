@@ -1,8 +1,6 @@
 use zr_vm_rust_binding as zrvm;
 
-use std::sync::MutexGuard;
-
-use super::lock::acquire_zr_vm_lock;
+use super::lock::{acquire_zr_vm_lock, ZrVmLockGuard};
 use super::ZrVmRegistration;
 
 /// Owns every raw-pointer-backed ZrVM object that belongs to one plugin instance.
@@ -41,14 +39,14 @@ impl ZrVmRuntimeOwner {
 
     pub(super) fn take_lowered_arguments(
         &mut self,
-        _guard: &MutexGuard<'static, ()>,
+        _guard: &ZrVmLockGuard,
     ) -> Vec<zrvm::Value> {
         std::mem::take(&mut self.lowered_arguments)
     }
 
     pub(super) fn recycle_lowered_arguments(
         &mut self,
-        _guard: &MutexGuard<'static, ()>,
+        _guard: &ZrVmLockGuard,
         mut lowered_arguments: Vec<zrvm::Value>,
     ) {
         lowered_arguments.clear();
@@ -58,7 +56,7 @@ impl ZrVmRuntimeOwner {
 
     pub(super) fn call_module_export(
         &mut self,
-        _guard: &MutexGuard<'static, ()>,
+        _guard: &ZrVmLockGuard,
         module_name: &str,
         export_name: &str,
         arguments: &[zrvm::Value],
@@ -69,7 +67,7 @@ impl ZrVmRuntimeOwner {
 
     pub(super) fn gc_step(
         &mut self,
-        _guard: &MutexGuard<'static, ()>,
+        _guard: &ZrVmLockGuard,
         max_micros_per_frame: u64,
     ) -> Result<zrvm::GcStepResult, zrvm::Error> {
         self.session_mut().gc_step(max_micros_per_frame)

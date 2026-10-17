@@ -16,9 +16,6 @@ related_code:
   - zircon_runtime/src/ui/surface/surface/default_interactions/tree_view.rs
   - zircon_runtime/src/ui/surface/surface/default_interactions/tree_view_reparent.rs
   - zircon_runtime/src/ui/surface/surface/default_interactions/tree_view_support.rs
-  - dev/UnrealEngine/Engine/Source/Runtime/Slate/Public/Widgets/Views/IItemsSource.h
-  - dev/UnrealEngine/Engine/Source/Runtime/Slate/Public/Widgets/Views/STreeView.h
-  - dev/slint/internal/core/model/adapters.rs
 tests:
   - 100k-control pointer move structure-discovery counter
   - 100k-row table sort and resize transaction test

@@ -5,8 +5,6 @@ related_code:
   - zircon_editor/src/core/play/edit_protection.rs
   - zircon_editor/src/core/play/controller.rs
 tests:
-  - zircon_editor/src/core/play/edit_policy/tests.rs
-  - zircon_editor/src/core/play/pending_edits/tests.rs
   - tools/tests/test_editor04_play_edit_protection_contract.py
 doc_type: module-detail
 ---

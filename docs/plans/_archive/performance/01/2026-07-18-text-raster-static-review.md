@@ -4,7 +4,7 @@ related_code:
   - zircon_runtime/src/text/parallel/raster_pool.rs
   - zircon_runtime/src/text/native_bitmap_atlas/source_cache.rs
   - zircon_runtime/src/text/font/database.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/resolved_batches.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/text/resolved_batches.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_runtime/text/01-font-resource-faces-and-database.md

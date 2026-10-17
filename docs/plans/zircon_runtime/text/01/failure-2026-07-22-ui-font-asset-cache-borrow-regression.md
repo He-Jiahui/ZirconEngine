@@ -9,9 +9,8 @@ origin_child_dir: docs/plans/zircon_editor/editor_layout/15
 fixing_child_dir: docs/plans/zircon_runtime/text/01
 plan_link_mode: child_record_only
 related_code:
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/font_assets.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/tests/font_assets.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/text/font_assets.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/text/tests/font_assets.rs
 tests:
   - python -m unittest -v tools.tests.test_text_01_composite_activation.Text01CompositeActivationTests.test_renderer_invalidation_consumes_semantic_font_asset_changes
   - cargo +1.94.1 test -p zircon_runtime --lib text_font_database_shared_face_tracks_owner_mapping_without_render_input_change --locked --jobs 1 -- --exact --test-threads=1

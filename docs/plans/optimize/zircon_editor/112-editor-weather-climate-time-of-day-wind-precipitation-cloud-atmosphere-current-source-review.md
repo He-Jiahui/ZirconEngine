@@ -9,10 +9,7 @@ canonical_owner: Editor38
 refreshes:
   - docs/plans/optimize/zircon_editor/38-weather-climate-time-of-day-wind-precipitation-cloud-atmosphere-environment-authoring-review.md
 related_code:
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/world/workbench_extension_weather_editor_workspace.zui
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation/specs/world_building/volume_and_weather.rs
-  - zircon_editor/src/ui/template_runtime/builtin/workbench_extension_module_template_bindings/world_building.rs
+  - zircon_editor/src/ui/dispatch/specs/world_building/volume_and_weather.rs
   - zircon_runtime/src/asset/assets/scene
   - zircon_runtime/src/scene/components/scene
   - zircon_runtime/src/scene/world/render.rs
@@ -20,7 +17,6 @@ related_code:
   - zircon_runtime/src/core/runtime/time.rs
   - zircon_runtime/src/core/framework/render/environment
   - zircon_runtime/src/core/framework/render/advanced_lighting/volumetric.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment
   - zircon_plugins/particles/runtime/src
   - zircon_plugins/particles/editor/src
   - zircon_plugins/first_party_runtime_catalog/src/lib.rs
@@ -31,14 +27,8 @@ tests:
   - zircon_runtime/src/core/runtime/time.rs
   - zircon_runtime/src/core/framework/time
   - zircon_runtime/src/scene/world/render.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/realtime_ibl_wgpu_recorder/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/realtime_ibl_runtime/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/realtime_ibl_time_slice/tests.rs
   - zircon_plugins/particles/runtime/src/tests
-  - zircon_plugins/particles/editor/src/tests.rs
-  - zircon_plugins/first_party_runtime_catalog/src/tests.rs
-  - zircon_plugins/first_party_editor_catalog/src/tests.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation/specs/world_building/volume_and_weather.rs
+  - zircon_editor/src/ui/dispatch/specs/world_building/volume_and_weather.rs
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md
   - docs/plans/optimize/zircon_runtime/01-core-runtime-lifecycle-registry-review.md

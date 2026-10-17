@@ -11,7 +11,6 @@ related_code:
   - zircon_runtime/src/script/vm/runtime/vm_plugin_manager.rs
   - zircon_runtime/src/core/framework/project/project_plugin_manifest/mod.rs
   - zircon_runtime/src/plugin/export_build_plan/mod.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host.rs
   - zircon_editor/src/core/editor_extension.rs
   - zircon_editor/src/core/editor_operation.rs
   - zircon_editor/src/core/plugin/descriptor.rs
@@ -33,24 +32,13 @@ related_code:
   - zircon_editor/src/ui/host/editor_capabilities.rs
   - zircon_editor/src/ui/host/editor_subsystems.rs
   - zircon_editor/src/ui/host/editor_manager_minimal_host.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/mod.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/native_registration/registration_projection.rs
+  - zircon_editor/src/ui/host/exports/native_registration/registration_projection.rs
   - zircon_editor/src/ui/host/builtin_layout/builtin_shell_view_instances.rs
-  - zircon_editor/src/ui/host/builtin_views/activity_views/module_plugins_view_descriptor.rs
-  - zircon_editor/src/ui/host/builtin_views/activity_views/runtime_diagnostics_view_descriptor.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/host_data.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload_builders/module_plugins.rs
-  - zircon_editor/src/ui/retained_host/app.rs
-  - zircon_editor/src/ui/retained_host/app/module_plugin_actions.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/panes.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/mod.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/module_plugins.rs
-  - zircon_editor/src/ui/retained_host/ui/apply_presentation.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle.rs
+  - zircon_editor/src/ui/retained/contract/data/panes.rs
+  - zircon_editor/src/ui/retained/ui/apply_presentation.rs
   - zircon_editor/src/core/commands/menu.rs
   - zircon_editor/src/ui/workbench/view/view_registry_register_view.rs
-  - zircon_editor/src/ui/host/editor_asset_manager/api.rs
   - zircon_editor/fixtures/workbench/default-layout.json
   - zircon_editor/fixtures/workbench/view-descriptors.json
   - zircon_editor/fixtures/workbench/view-instances.json
@@ -65,7 +53,6 @@ implementation_files:
   - zircon_runtime/src/script/mod.rs
   - zircon_runtime/src/core/framework/project/project_plugin_manifest/mod.rs
   - zircon_runtime/src/plugin/export_build_plan/mod.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host.rs
   - zircon_editor/src/core/editor_extension.rs
   - zircon_editor/src/core/editor_operation.rs
   - zircon_editor/src/core/plugin/descriptor.rs
@@ -85,21 +72,11 @@ implementation_files:
   - zircon_editor/src/ui/host/editor_capabilities.rs
   - zircon_editor/src/ui/host/editor_subsystems.rs
   - zircon_editor/src/ui/host/editor_manager_minimal_host.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/mod.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/native_registration/registration_projection.rs
+  - zircon_editor/src/ui/host/exports/native_registration/registration_projection.rs
   - zircon_editor/src/ui/host/builtin_layout/builtin_shell_view_instances.rs
-  - zircon_editor/src/ui/host/builtin_views/activity_views/module_plugins_view_descriptor.rs
-  - zircon_editor/src/ui/host/builtin_views/activity_views/runtime_diagnostics_view_descriptor.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/host_data.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload_builders/module_plugins.rs
-  - zircon_editor/src/ui/retained_host/app.rs
-  - zircon_editor/src/ui/retained_host/app/module_plugin_actions.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/panes.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/mod.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/module_plugins.rs
-  - zircon_editor/src/ui/retained_host/ui/apply_presentation.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle.rs
+  - zircon_editor/src/ui/retained/contract/data/panes.rs
+  - zircon_editor/src/ui/retained/ui/apply_presentation.rs
   - zircon_editor/src/core/commands/menu.rs
   - zircon_editor/src/ui/workbench/view/view_registry_register_view.rs
   - zircon_editor/fixtures/workbench/default-layout.json
@@ -120,11 +97,10 @@ plan_sources:
   - docs/plans/engine-code-review-findings-2026-06.md
 tests:
   - zircon_app/src/entry/builtin_modules.rs
-  - zircon_runtime/src/script/vm/tests.rs
   - zircon_editor/src/tests/editor_plugin_sdk.rs
-  - zircon_editor/src/tests/editor_event/runtime.rs
+  - zircon_editor/src/tests/editor_event/runtime/mod.rs
   - zircon_editor/src/tests/host/manager/minimal_host_contract.rs
-  - zircon_editor/src/tests/host/pane_presentation.rs
+  - zircon_editor/src/tests/host/pane_presentation/mod.rs
   - zircon_editor/src/tests/workbench/view_model/document_workspace.rs
   - cargo test -p zircon_app --locked bootstrap_accepts_required_external_runtime_plugin_when_linked_report_contributes_module --lib
   - cargo test -p zircon_runtime --locked host_registry_exposes_stable_capability_records_without_concrete_objects --lib

@@ -8,7 +8,6 @@ related_code:
   - zircon_runtime/src/graphics/shader/template/pass_specialization.rs
   - zircon_runtime/src/graphics/shader/template/taa_reactive_mask.rs
   - zircon_runtime/src/graphics/shader/template/validation.rs
-  - zircon_runtime/src/graphics/shader/template/tests.rs
   - zircon_runtime/src/graphics/shader/wgsl/zr_surface_types.wgsl
   - zircon_runtime/src/graphics/shader/wgsl/zr_scene_runtime.wgsl
   - zircon_runtime/src/graphics/shader/wgsl/zr_geometry_static.wgsl
@@ -29,26 +28,20 @@ related_code:
   - zircon_runtime/src/graphics/shader/wgsl/zr_shade_deferred_standard_pbr.wgsl
   - zircon_runtime/src/graphics/shader/wgsl/zr_shade_deferred_blinn_phong.wgsl
   - zircon_runtime/src/graphics/shader/wgsl/zr_shade_deferred_unlit.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/shaders/zr_gpu_scene.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_pipeline/shader_source.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_pipeline/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/shaders/deferred_lighting.wgsl
+  - zircon_runtime/src/graphics/scene/renderer/mesh/shaders/zr_gpu_scene.wgsl
+  - zircon_runtime/src/graphics/scene/deferred/lighting_pipeline/shader_source.rs
+  - zircon_runtime/src/graphics/scene/deferred/shaders/deferred_lighting.wgsl
   - zircon_runtime/src/graphics/tests/pipeline_compile/dynamic_resolution.rs
   - zircon_runtime/src/graphics/scene/resources/gpu_mesh/gpu_mesh_vertex.rs
   - zircon_runtime/src/graphics/scene/resources/gpu_mesh/gpu_mesh_vertex_layout.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/shader_source.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/prewarm_pipeline_validation.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_depth_prepass_pipeline.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_gbuffer_pipeline.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_shadow_pipeline.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_taa_reactive_mask_pipeline.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_velocity_pipeline.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/create_taa_reactive_mask_mesh_pipeline.rs
+  - zircon_runtime/src/graphics/scene/mesh/mesh_pipeline_cache/shader_source.rs
+  - zircon_runtime/src/graphics/mesh_pipeline_cache/ensure_depth_prepass_pipeline.rs
+  - zircon_runtime/src/graphics/mesh/mesh_pipeline_cache/ensure_gbuffer_pipeline.rs
+  - zircon_runtime/src/graphics/mesh/mesh_pipeline_cache/ensure_shadow_pipeline.rs
+  - zircon_runtime/src/graphics/mesh/mesh_pipeline_cache/ensure_velocity_pipeline.rs
   - zircon_runtime/src/core/framework/render/shader/geometry_source.rs
   - zircon_runtime/src/core/framework/render/shader/variant_prewarm.rs
   - zircon_runtime/src/graphics/shader/variant_cache/prewarm.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_shader_geometry_source_descriptor.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_shader_template_assembly.rs
   - zircon_runtime/src/bin/zircon_shader_prewarm/args.rs
   - zircon_runtime/src/bin/zircon_shader_prewarm/manifest.rs
   - zircon_runtime/src/bin/zircon_shader_prewarm/manifest/material_sources.rs
@@ -56,7 +49,6 @@ related_code:
   - zircon_runtime/src/bin/zircon_shader_prewarm/manifest/permutation_registry.rs
   - zircon_runtime/src/bin/zircon_shader_prewarm/manifest/resource_registry.rs
   - zircon_runtime/src/bin/zircon_shader_prewarm/manifest/revision.rs
-  - zircon_runtime/src/bin/zircon_shader_prewarm/manifest/tests.rs
   - zircon_runtime/src/bin/zircon_shader_prewarm/run.rs
   - zircon_runtime/src/dynamic_api/shader_prewarm.rs
   - zircon_runtime/src/plugin/package_manifest/plugin_package_manifest.rs
@@ -67,46 +59,24 @@ related_code:
   - zircon_runtime/src/plugin/extension_registry/register/metadata.rs
   - zircon_runtime/src/plugin/extension_registry/access/metadata.rs
   - zircon_runtime/src/plugin/extension_registry_error.rs
-  - zircon_runtime/src/plugin/runtime_plugin/registration_report/package_contributions/manifest_metadata.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/contributions/extension.rs
+  - zircon_runtime/src/plugin/runtime/package_contributions/manifest_metadata.rs
+  - zircon_runtime/src/plugin/runtime/catalog/contributions/extension.rs
   - zircon_runtime/src/graphics/material/shading_models/registry.rs
   - zircon_runtime/src/graphics/material/shading_models/builtins.rs
   - zircon_runtime/src/builtin/runtime_modules/assembly/extension_inputs.rs
   - zircon_runtime/src/builtin/runtime_modules/assembly/registration_inputs.rs
   - zircon_runtime/src/builtin/runtime_modules/assembly/target_modules.rs
   - zircon_runtime/src/builtin/runtime_modules/core_modules.rs
-  - zircon_runtime/src/graphics/runtime_builtin_graphics/mod.rs
-  - zircon_runtime/src/graphics/runtime_builtin_graphics/host/module_host/module_registration/module_descriptor.rs
-  - zircon_runtime/src/graphics/runtime_builtin_graphics/host/module_host/create/create_render_framework.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/wgpu_render_framework_construction/construct.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_construct/construct.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_construct/new_with_icon_source.rs
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer.rs
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_construction.rs
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_shading_models.rs
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_accessors/material_capture.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/shader_source/tests/runtime_shading_model_sources.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/deferred_scene_resources/construct.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/deferred_scene_resources/record_gbuffer_geometry.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_pipeline/create.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/deferred.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/material_custom_shading_model_runtime.rs
+  - zircon_runtime/src/graphics/host/module_registration/module_descriptor.rs
+  - zircon_runtime/src/graphics/graphics/host/create/create_render_framework.rs
+  - zircon_runtime/src/graphics/scene/core/scene_renderer_construct/construct.rs
+  - zircon_runtime/src/graphics/scene_renderer_construct/new_with_icon_source.rs
+  - zircon_runtime/src/graphics/scene/resource_streamer/resource_streamer.rs
+  - zircon_runtime/src/graphics/scene/mesh/tests/runtime_shading_model_sources.rs
+  - zircon_runtime/src/graphics/scene/renderer/deferred/lighting_pipeline/create.rs
+  - zircon_runtime/src/graphics/scene/renderer/execution/context/gpu/deferred.rs
   - zircon_plugins/virtual_geometry/runtime/src/plugin.rs
   - zircon_plugins/virtual_geometry/plugin.toml
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_manifest.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_registry_revision.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_registry_auto_export.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_permutation_registry.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_permutation_registry_auto_export.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_plugin_shading_model_descriptor.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_plugin_geometry_source_descriptor.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_plugin_permutation_registry_auto_export.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_cache_artifact_contract.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_resource_registry_report_correlation.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_project_plugin_registry_runtime_staged_cache_hit.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/mesh_pipeline_variant_cache_owner.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_report_dimension_contract.rs
   - tools/build/zircon_build_shader_prewarm.py
   - tools/build/zircon_build_shader_prewarm_cache_artifacts.py
   - tools/build/zircon_build.py
@@ -118,51 +88,21 @@ related_code:
   - zircon_runtime/src/core/framework/render/shader/pipeline_layout.rs
   - zircon_runtime/src/core/framework/render/material/standard_material.rs
   - zircon_runtime/src/core/framework/render/material/management.rs
-  - zircon_runtime/src/core/framework/render/material/management/tests.rs
-  - zircon_runtime/src/core/framework/render/material/management/tests/record_views.rs
-  - zircon_runtime/src/core/framework/render/material/management/tests/query_execution.rs
-  - zircon_runtime/src/graphics/scene/render_product_material_property_tests.rs
-  - zircon_runtime/src/graphics/scene/render_product_material_property_tests/uniform_debug_counts.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_material_product_debug_counts_tests.rs
+  - zircon_runtime/src/core/framework/render/material/tests/record_views.rs
+  - zircon_runtime/src/core/framework/render/material/tests/query_execution.rs
   - zircon_runtime/src/core/framework/render/backend_types.rs
-  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product/mesh_queue.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs
+  - zircon_runtime/src/core/runtime/diagnostics/product/mesh_queue.rs
+  - zircon_runtime/src/graphics/runtime/framework/extract/update_stats/base_stats.rs
   - zircon_runtime/src/graphics/tests/project_render.rs
   - zircon_runtime/src/graphics/tests/project_render/project_scenes.rs
   - zircon_runtime/src/graphics/tests/project_render/render_quality.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_project_scene_products_tests.rs
-  - zircon_runtime/src/graphics/scene/render_product_streamer_tests/material_runtime.rs
-  - zircon_runtime/src/graphics/scene/render_product_streamer_tests/material_runtime/pbr_projection.rs
   - zircon_runtime/src/graphics/scene/resources/runtime/material_runtime.rs
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_material.rs
-  - zircon_runtime/src/graphics/scene/resources/gpu_material_uniform/gpu_material_uniform_resource.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/material_runtime_pbr_projection_tests.rs
   - zircon_runtime/src/graphics/material/mod.rs
   - zircon_runtime/src/graphics/material/shading_models/mod.rs
   - zircon_runtime/src/graphics/material/shading_models/include_sources.rs
   - zircon_runtime/src/graphics/tests/render_product_mesh_cache.rs
-  - zircon_runtime/src/graphics/tests/render_product_mesh_cache/morph.rs
-  - zircon_runtime/src/graphics/tests/render_product_mesh_cache/project_plugin_registry_material_passes_staged_cache/mod.rs
-  - zircon_runtime/src/graphics/tests/render_product_mesh_cache/project_plugin_registry_material_passes_staged_cache/fixture.rs
-  - zircon_runtime/src/graphics/tests/render_product_mesh_cache/project_plugin_registry_material_passes_staged_cache/product_png.rs
-  - zircon_runtime/src/graphics/tests/render_product_mesh_cache/project_plugin_registry_material_passes_staged_cache/custom_second_launch.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/mesh_pipeline_cache.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/skinning.rs
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_shader_source.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_material_management_tests.rs
-  - dev/UnrealEngine/Engine/Source/Runtime/RenderCore/Public/VertexFactory.h
-  - dev/UnrealEngine/Engine/Source/Runtime/Renderer/Public/MaterialShader.h
-  - dev/UnrealEngine/Engine/Source/Runtime/Renderer/Public/MeshMaterialShader.h
-  - dev/UnrealEngine/Engine/Source/Runtime/RenderCore/Public/GlobalShader.h
-  - dev/Graphics/Packages/com.unity.shadergraph
-  - dev/bevy/crates/bevy_pbr/src/render/mesh.rs
-  - dev/bevy/crates/bevy_mesh/src/lib.rs
-  - dev/bevy/crates/bevy_material/src/specialize.rs
-  - dev/bevy/crates/bevy_shader/src/shader.rs
-  - dev/bevy/crates/bevy_shader/src/shader_cache.rs
-  - dev/bevy/crates/bevy_pbr/src/render/skin.rs
-  - dev/bevy/crates/bevy_pbr/src/render/morph.rs
-  - dev/Fyrox/fyrox-material/src/shader/mod.rs
+  - zircon_runtime/src/graphics/mesh/mesh_pipeline_cache/mesh_pipeline_cache.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/build/skinning.rs
 plan_sources:
   - .codex/plans/Rendering 插件选项补齐计划.md
   - .codex/plans/ZirconEngine 资产、Texture、模型、ZShaderZMaterialZMesh 缺口补齐计划.md

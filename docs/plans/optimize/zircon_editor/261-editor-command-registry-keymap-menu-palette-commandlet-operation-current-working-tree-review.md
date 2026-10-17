@@ -18,8 +18,7 @@ related_code:
   - zircon_editor/src/core/commandlet
   - zircon_editor/src/ui/host/editor_operation_dispatch.rs
   - zircon_editor/src/ui/host/editor_event_control_requests.rs
-  - zircon_editor/src/ui/retained_host/app/command_palette_actions.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/workbench/command_palette.rs
+  - zircon_editor/src/ui/retained/app/command_palette_actions.rs
   - zircon_editor/src/tests/workbench/reflection/remote_routes.rs
   - zircon_plugins/plugin_sdk/src/editor_contribution.rs
   - zircon_editor/src/core/plugin/materializer.rs

@@ -8,7 +8,6 @@ related_code:
   - zircon_runtime/src/foundation/runtime/config_manager/state.rs
   - zircon_runtime/src/foundation/runtime/config_manager/worker.rs
   - zircon_runtime/src/foundation/runtime/config_manager/writer.rs
-  - zircon_runtime/src/foundation/runtime/config_manager_tests.rs
 implementation_files:
   - zircon_runtime/src/core/framework/foundation/mod.rs
   - zircon_runtime/src/core/runtime/handle/events.rs
@@ -22,7 +21,6 @@ plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_runtime/runtime/02-core-spine-and-root-surface.md
 tests:
-  - zircon_runtime/src/foundation/runtime/config_manager_tests.rs
 doc_type: code-module
 status: current
 ---

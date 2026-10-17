@@ -1,16 +1,13 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/app.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle
-  - zircon_editor/src/ui/retained_host/app/viewport
-  - zircon_editor/src/ui/retained_host/app/play_preview_redraw.rs
-  - zircon_editor/src/ui/retained_host/app/play_viewport_pick.rs
-  - zircon_editor/src/ui/retained_host/app/simulate_camera_sync.rs
-  - zircon_editor/src/ui/retained_host/viewport
-  - zircon_editor/src/ui/retained_host/host_contract/data/viewport_image.rs
-  - zircon_editor/src/ui/retained_host/host_contract/globals/pane_context
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/native_panes/viewport.rs
-  - zircon_editor/src/ui/retained_host/host_contract/window
+  - zircon_editor/src/ui/retained/app/host_lifecycle
+  - zircon_editor/src/ui/retained/app/viewport
+  - zircon_editor/src/ui/retained/app/play_preview_redraw.rs
+  - zircon_editor/src/ui/retained/app/play_viewport_pick.rs
+  - zircon_editor/src/ui/retained/app/simulate_camera_sync.rs
+  - zircon_editor/src/ui/retained/contract/data/viewport_image.rs
+  - zircon_editor/src/ui/retained/contract/globals/pane_context
+  - zircon_editor/src/ui/retained/contract/workbench/native_panes/viewport.rs
   - zircon_editor/src/ui/host/builtin_layout/builtin_shell_view_instances.rs
   - zircon_editor/src/ui/host/builtin_views/activity_views
   - zircon_editor/src/ui/workbench/state/editor_state_render.rs
@@ -28,16 +25,12 @@ related_code:
   - zircon_runtime_interface/src/runtime_api/session/viewport.rs
   - zircon_runtime_interface/src/runtime_api/session/session_identity.rs
   - zircon_runtime/src/core/framework/render
-  - zircon_runtime/src/graphics/runtime/render_framework
   - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface
 tests:
-  - zircon_editor/src/core/gateway/session/tests.rs
-  - zircon_editor/src/core/play/tests.rs
   - zircon_editor/src/scene/viewport
   - zircon_editor/src/tests/host/retained_window/native_viewport_image.rs
-  - zircon_editor/src/ui/retained_host/ui/tests/floating_windows.rs
+  - zircon_editor/src/ui/retained/ui/tests/floating_windows.rs
   - zircon_editor/src/ui/retained_host/viewport/tests
-  - zircon_editor/src/ui/retained_host/viewport/viewport_state_job_tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/window/tests/
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md

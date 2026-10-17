@@ -47,7 +47,7 @@ fn runtime_15_dynamic_api_session_lock_poison_recovery_guard_covers_session_regi
             "fn lock_registry() -> MutexGuard<'static, SessionRegistry>",
             ".unwrap_or_else(|poisoned| poisoned.into_inner())",
             "let registry = lock_registry();",
-            "match slot.dispatch_scoped(action)",
+            "match slot.dispatch_scoped(admission_deadline, action)",
             "let slot = find_session_slot(handle)?;",
         ],
     );
@@ -59,7 +59,7 @@ fn runtime_15_dynamic_api_session_lock_poison_recovery_guard_covers_session_regi
             "lifecycle: Mutex<SessionSlotLifecycle>",
             "fn lock_lifecycle(&self) -> MutexGuard<'_, SessionSlotLifecycle>",
             "pub(super) fn dispatch_scoped<R: Send>(",
-            "self.owner.dispatch_scoped(action)",
+            "self.owner.dispatch_scoped(deadline, action)",
             ".unwrap_or_else(|poisoned| poisoned.into_inner())",
         ],
     );

@@ -1,9 +1,7 @@
 ---
 related_code:
   - zircon_editor/src/core/asset
-  - zircon_editor/src/ui/host/editor_asset_manager
   - zircon_runtime/src/asset/mutation
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/relocation.rs
   - zircon_runtime/src/asset/registry/query.rs
   - zircon_runtime/src/asset/registry/relocation.rs
 base_reports:

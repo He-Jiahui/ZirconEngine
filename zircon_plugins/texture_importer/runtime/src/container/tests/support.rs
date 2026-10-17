@@ -49,7 +49,7 @@ fn benchmark_single_allocation_parse_error_formatting() {
     );
 
     println!(
-        "PERF_RESULT task=plugins07_container_parse_error_formatting sample_pairs={SAMPLE_PAIRS} order=alternating_legacy_first_even legacy_first_pairs=11 optimized_first_pairs=10 percentile_method=nearest_rank calls_per_sample={FORMAT_CALLS_PER_SAMPLE} legacy_allocations_per_call=2 optimized_allocations_per_call=1 legacy_detail_allocations_per_sample={FORMAT_CALLS_PER_SAMPLE} optimized_detail_allocations_per_sample=0 threshold_percent=15 legacy_p95_ns={legacy_p95_ns} optimized_p95_ns={optimized_p95_ns} improvement_percent={improvement_percent} legacy_raw_ns={} optimized_raw_ns={}",
+        "PERF_RESULT task=plugins07_container_parse_error_formatting sample_pairs={SAMPLE_PAIRS} order=alternating_legacy_first_even legacy_first_pairs=11 optimized_first_pairs=10 percentile_method=nearest_rank calls_per_sample={FORMAT_CALLS_PER_SAMPLE} legacy_allocations_per_call_expected=2 optimized_allocations_per_call_expected=1 legacy_detail_allocations_per_sample={FORMAT_CALLS_PER_SAMPLE} optimized_detail_allocations_per_sample_expected=0 threshold_percent=15 legacy_p95_ns={legacy_p95_ns} optimized_p95_ns={optimized_p95_ns} improvement_percent={improvement_percent} legacy_raw_ns={} optimized_raw_ns={}",
         raw_samples(&legacy_raw),
         raw_samples(&optimized_raw)
     );

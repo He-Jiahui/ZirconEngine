@@ -1,6 +1,6 @@
 ---
 related_code:
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/build_runtime_frame.rs
+  - zircon_runtime/src/graphics/runtime/extract/submit/build_runtime_frame.rs
 tests:
   - current runtime-frame builder 1 of 1 Rust file reviewed, 521 lines
   - both tests read; visbuffer mark borrow source regression added

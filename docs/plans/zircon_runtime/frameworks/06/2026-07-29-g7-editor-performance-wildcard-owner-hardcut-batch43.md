@@ -1,24 +1,15 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/menu_geometry
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/routing
-  - zircon_editor/src/ui/retained_host
-  - zircon_editor/src/ui/retained_host/ui/tests
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_command_palette
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_dialogs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_drag_overlay
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_icon_button_glyph_shapes
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_notification_center
 implementation_files:
-  - docs/plans/performance/01/2026-07-17-editor-native-pointer-menu-geometry-static-review.md
-  - docs/plans/performance/01/2026-07-17-editor-native-pointer-routing-static-review.md
-  - docs/plans/performance/01/2026-07-17-editor-retained-root-static-review.md
-  - docs/plans/performance/01/2026-07-17-editor-retained-ui-tests-static-review.md
-  - docs/plans/performance/01/2026-07-17-editor-template-command-palette-static-review.md
-  - docs/plans/performance/01/2026-07-17-editor-template-dialogs-static-review.md
-  - docs/plans/performance/01/2026-07-17-editor-template-drag-overlay-static-review.md
-  - docs/plans/performance/01/2026-07-17-editor-template-icon-glyph-shapes-static-review.md
-  - docs/plans/performance/01/2026-07-17-editor-template-notification-center-static-review.md
+  - docs/plans/_archive/performance/01/2026-07-17-editor-native-pointer-menu-geometry-static-review.md
+  - docs/plans/_archive/performance/01/2026-07-17-editor-native-pointer-routing-static-review.md
+  - docs/plans/_archive/performance/01/2026-07-17-editor-retained-root-static-review.md
+  - docs/plans/_archive/performance/01/2026-07-17-editor-retained-ui-tests-static-review.md
+  - docs/plans/_archive/performance/01/2026-07-17-editor-template-command-palette-static-review.md
+  - docs/plans/_archive/performance/01/2026-07-17-editor-template-dialogs-static-review.md
+  - docs/plans/_archive/performance/01/2026-07-17-editor-template-drag-overlay-static-review.md
+  - docs/plans/_archive/performance/01/2026-07-17-editor-template-icon-glyph-shapes-static-review.md
+  - docs/plans/_archive/performance/01/2026-07-17-editor-template-notification-center-static-review.md
 plan_sources:
   - docs/plans/zircon_runtime/frameworks/06-development-conventions-and-guardrails.md
   - docs/plans/engine-code-structure-convention.md

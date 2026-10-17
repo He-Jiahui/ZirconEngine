@@ -9,7 +9,6 @@ related_code:
   - zircon_runtime/src/core/runtime/tasks/diagnostics/snapshot.rs
   - zircon_runtime/src/core/runtime/tasks/job_scheduler.rs
   - zircon_runtime/src/core/runtime/tasks/job_scheduler/pending.rs
-  - zircon_runtime/src/core/runtime/tasks/job_scheduler/tests.rs
   - zircon_runtime/src/core/runtime/tasks/job_handle.rs
   - zircon_runtime/src/core/runtime/tasks/parallel_for.rs
   - zircon_runtime/src/core/runtime/tasks/pool.rs
@@ -33,7 +32,6 @@ implementation_files:
   - zircon_runtime/src/core/runtime/tasks/diagnostics/snapshot.rs
   - zircon_runtime/src/core/runtime/tasks/job_scheduler.rs
   - zircon_runtime/src/core/runtime/tasks/job_scheduler/pending.rs
-  - zircon_runtime/src/core/runtime/tasks/job_scheduler/tests.rs
   - zircon_runtime/src/core/runtime/tasks/job_handle.rs
   - zircon_runtime/src/core/runtime/tasks/parallel_for.rs
   - zircon_runtime/src/core/runtime/tasks/pool.rs
@@ -59,23 +57,13 @@ plan_sources:
   - docs/plans/zircon_runtime/runtime/11/2026-07-17-task-diagnostics-accuracy-current-source.md
   - .codex/plans/Runtime 吸收层与 Editor_Scene 边界收束计划.md
 tests:
-  - zircon_runtime/src/core/runtime/tasks/job_scheduler/tests.rs::detached_spawn_counts_panicked_tasks_as_completed
-  - zircon_runtime/src/core/runtime/tasks/diagnostic_observation/tests.rs
-  - zircon_runtime/src/core/runtime/tasks/task_graph/engine_task_graph/tests.rs::shutdown_joins_owned_workers_even_when_pool_handles_are_retained
-  - zircon_runtime/src/core/runtime/tasks/task_graph/engine_task_graph/tests.rs::shutdown_timeout_keeps_unjoined_workers_visible_and_retryable
-  - zircon_runtime/src/core/runtime/tasks/task_graph/engine_task_graph/tests.rs::shutdown_from_owned_worker_returns_incomplete_without_self_joining
-  - zircon_runtime/src/core/runtime/tasks/task_graph/engine_task_graph/tests.rs::blocked_owned_timer_callback_keeps_graph_shutdown_incomplete_until_retry
-  - zircon_runtime/src/core/runtime/tasks/timer/tests.rs::explicit_timer_shutdown_closes_admission_and_retains_a_blocked_worker_for_retry
-  - zircon_editor/src/core/logging/runtime_task_diagnostics/tests.rs
   - zircon_runtime/src/tests/tasks.rs::task_diagnostics_track_ready_queue_active_and_queue_wait
   - zircon_runtime/src/tests/tasks.rs::task_diagnostics_queue_pressure_matrix_drains_without_gauge_leaks
   - zircon_runtime/src/tests/tasks.rs::task_diagnostics_reports_conserved_lifecycle_snapshots_during_transitions
   - zircon_runtime/src/tests/tasks.rs::worker_side_wait_is_reported_as_explicit_wait
   - zircon_runtime/src/tests/tasks.rs::task_diagnostics_distinguish_panics_from_dependency_cancellation
   - tools/tests/test_frameworks_02_core_error_single_source.py
-  - zircon_runtime/src/core/framework/render/environment/source_cubemap/tests.rs
   - tools/tests/test_runtime_job_system_audit.py
-  - zircon_runtime/src/tests/runtime_absorption/root_entries.rs
   - zircon_runtime/src/tests/tasks.rs::isolated_runtime_fixtures_share_the_process_task_owner
   - zircon_runtime/src/asset/tests/pipeline/worker_pool.rs::project_asset_manager_uses_the_injected_runtime_io_pool
   - rustc --edition 2021 --test zircon_runtime/src/tests/runtime_absorption/root_entries.rs

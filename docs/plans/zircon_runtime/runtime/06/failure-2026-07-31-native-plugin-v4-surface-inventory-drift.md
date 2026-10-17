@@ -10,8 +10,7 @@ fixing_child_dir: docs/plans/zircon_runtime/runtime/06
 plan_link_mode: child_record_only
 related_code:
   - zircon_runtime/src/plugin/native.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/abi_declarations.rs
-  - zircon_runtime/src/tests/runtime_absorption/plugin_surface_lifecycle/mirror_docs.rs
+  - zircon_runtime/src/tests/contracts/plugin_surface_lifecycle/mirror_docs.rs
   - zircon_app/src/entry/entry_runner/editor/tests/gui_startup.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/native_plugin_public_surface.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/plugin_surface_lifecycle_boundary.py

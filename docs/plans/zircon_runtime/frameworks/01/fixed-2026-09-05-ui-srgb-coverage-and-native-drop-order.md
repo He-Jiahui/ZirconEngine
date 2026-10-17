@@ -13,9 +13,6 @@ related_code:
   - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/tests/native_submission.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/shaders/ui_material.wgsl
-  - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/tests.rs
-  - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/geometry/tests.rs
-  - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/batching/tests.rs
 tests:
   - >-
     $env:RUST_TEST_THREADS='1'; $env:RUST_TEST_NOCAPTURE='1';

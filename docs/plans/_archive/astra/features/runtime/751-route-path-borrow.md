@@ -11,8 +11,6 @@ related_records:
 implementation_files:
   - zircon_runtime/src/ui/surface/input/route_policy.rs
 tests:
-  - zircon_runtime/src/ui/surface/input/route_policy_tests.rs
-  - tools/tests/test_runtime_ui_route_path_borrow_performance_contract.py
 ---
 
 # Runtime751 · Generic route preview path borrow

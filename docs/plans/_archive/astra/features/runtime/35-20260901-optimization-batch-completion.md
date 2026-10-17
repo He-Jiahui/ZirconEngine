@@ -49,44 +49,21 @@ related_code:
   - zircon_runtime/src/asset/assets/material/dependency_set.rs
   - zircon_runtime/src/asset/assets/material/material_asset.rs
   - zircon_runtime/src/core/runtime/diagnostics/profiling/counter_hotspot.rs
-  - zircon_runtime/src/asset/pack/delta/optimization_tests.rs
   - zircon_runtime/src/core/runtime/diagnostics/profiling/ui_hotspot/tests/mod.rs
-  - zircon_runtime/src/asset/mutation/tests.rs
   - zircon_runtime/src/scene/module/level_manager_lifecycle.rs
-  - zircon_runtime/src/asset/pack/trim/optimization_tests.rs
   - zircon_runtime/src/asset/assets/scene/management.rs
   - zircon_runtime/src/asset/pack/manifest.rs
-  - zircon_runtime/src/scene/dynamic_scene/scene/validation.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/registration_manifest.rs
+  - zircon_runtime/src/scene/dynamic/scene/validation.rs
   - zircon_runtime/src/plugin/extension_registry/validation/component.rs
   - zircon_runtime/src/plugin/extension_registry/validation/plugin_event_catalog.rs
   - zircon_runtime/src/plugin/extension_registry/validation/plugin_option.rs
-  - zircon_runtime/src/plugin/extension_registry/access/interface_owner_dedup_tests.rs
   - zircon_runtime/src/core/runtime/descriptors/module_order.rs
   - zircon_runtime/src/animation/manager/graph.rs
-  - zircon_runtime/src/core/framework/render/post_process/volume_registry.rs
-  - zircon_runtime/src/graphics/visibility/context/from_extract_with_history/collect_batching_result.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/gpu_scene_sync.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/build/gpu_scene_sync.rs
   - zircon_runtime/src/graphics/shader/template/module_registry.rs
 tests:
-  - zircon_runtime/src/ui/template/asset/compiler/prototype_instancer/optimization_batch_hp_runtime597_tests.rs
-  - zircon_runtime/src/core/framework/picking/pointer_event_state/optimization_batch_hq_runtime598_tests.rs
-  - zircon_runtime/src/core/framework/render/frame_extract/sprite_extract/optimization_batch_ht_runtime602_tests.rs
-  - zircon_runtime/src/core/runtime/state_machine/hook_index/optimization_batch_hu_runtime603_tests.rs
-  - zircon_runtime/src/core/framework/picking/report/optimization_batch_hv_runtime604_tests.rs
-  - zircon_runtime/src/core/framework/render/shader/variant_prewarm/optimization_batch_hx_runtime607_tests.rs
-  - zircon_runtime/src/asset/assets/material/dependency_set/optimization_batch_hy_runtime608_tests.rs
-  - zircon_runtime/src/asset/assets/material/material_asset/optimization_batch_hz_runtime609_tests.rs
-  - zircon_runtime/src/asset/pack/delta/optimization_tests.rs
   - zircon_runtime/src/core/runtime/diagnostics/profiling/ui_hotspot/tests/mod.rs
-  - zircon_runtime/src/asset/mutation/tests.rs
-  - zircon_runtime/src/asset/pack/trim/optimization_tests.rs
-  - zircon_runtime/src/plugin/extension_registry/access/interface_owner_dedup_tests.rs
-  - zircon_runtime/src/core/runtime/descriptors/module_order/optimization_batch_im_runtime623_tests.rs
-  - zircon_runtime/src/core/framework/render/post_process/volume_registry/optimization_batch_in_runtime624_tests.rs
-  - zircon_runtime/src/graphics/visibility/context/from_extract_with_history/collect_batching_result/optimization_batch_io_runtime625_tests.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/gpu_scene_sync/optimization_batch_ip_runtime626_tests.rs
-  - zircon_runtime/src/graphics/shader/template/module_registry/optimization_batch_iq_runtime627_tests.rs
 ---
 
 # Runtime September Micro-Optimization Completion

@@ -5,8 +5,8 @@ related_code:
   - zircon_editor/src/ui/host/workspace_state.rs
   - zircon_editor/src/ui/host/layout_commands.rs
   - zircon_editor/src/ui/host/editor_event_runtime_reflection.rs
-  - zircon_editor/src/ui/retained_host/app/native_window_close.rs
-  - zircon_editor/src/ui/retained_host/app/viewport/toolbar_pointer/size.rs
+  - zircon_editor/src/ui/retained/app/native_window_close.rs
+  - zircon_editor/src/ui/retained/app/viewport/toolbar_pointer/size.rs
 tests:
   - zircon_editor/src/tests/workbench/registry/instance_policy.rs
   - zircon_editor/src/tests/host/pane_template_descriptor.rs

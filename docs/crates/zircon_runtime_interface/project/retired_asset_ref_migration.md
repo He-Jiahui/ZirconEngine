@@ -3,12 +3,11 @@ related_code:
   - zircon_runtime_interface/src/project/retired_asset_ref_migration
   - zircon_runtime_interface/src/project/asset_ref
   - zircon_runtime/src/scene/reflect/json_document/migration.rs
-  - zircon_runtime/src/scene/dynamic_scene/document/migration/mod.rs
+  - zircon_runtime/src/scene/dynamic/document/migration/mod.rs
   - zircon_runtime/src/asset/migration/document.rs
 implementation_files:
   - zircon_runtime_interface/src/project/retired_asset_ref_migration/mod.rs
   - zircon_runtime_interface/src/project/retired_asset_ref_migration/error.rs
-  - zircon_runtime_interface/src/project/retired_asset_ref_migration/retired_asset_reference.rs
   - zircon_runtime_interface/src/project/retired_asset_ref_migration/migrate.rs
 plan_sources:
   - docs/plans/zircon_editor/editor/10-project-and-asset-reference-management.md
@@ -17,7 +16,7 @@ plan_sources:
   - docs/plans/engine-code-review-findings-2026-06.md
 tests:
   - zircon_runtime_interface/src/project/tests/retired_asset_ref_migration.rs
-  - zircon_runtime/src/asset/tests/migration/project_commandlet/document_migration.rs
+  - zircon_runtime/src/asset/tests/project_commandlet/document_migration.rs
   - tests/fixtures/serialization/scene-reflection/v0/reflected-value.json
   - tests/fixtures/serialization/scene-dynamic/v0/dynamic-scene.json
 doc_type: module-detail

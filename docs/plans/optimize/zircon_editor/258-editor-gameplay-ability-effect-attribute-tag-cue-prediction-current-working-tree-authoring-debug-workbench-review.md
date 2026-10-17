@@ -11,13 +11,9 @@ supersedes_currentness_of:
 related_runtime_owner:
   - docs/plans/optimize/zircon_runtime/198-runtime-gameplay-ability-effect-attribute-tag-cue-prediction-current-working-tree-authority-artifact-execution-review.md
 related_code:
-  - zircon_editor/assets/ui/editor/components/workbench/modules/core/gameplay/workbench_ability_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/core/gameplay/workbench_effect_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/core/gameplay/workbench_tags_workspace.zui
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/module_navigation.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/module_command_feedback.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/module_field_edit.rs
-  - zircon_editor/src/ui/template_runtime/builtin/workbench_generated_bottom_template_bindings.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/workbench/module_navigation.rs
+  - zircon_editor/src/ui/retained/dispatch/workbench/module_command_feedback.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/workbench/module_field_edit.rs
   - zircon_editor/src/core/asset
   - zircon_editor/src/core/document
   - zircon_editor/src/core/editing

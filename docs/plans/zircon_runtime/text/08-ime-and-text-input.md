@@ -24,7 +24,7 @@ related_code:
   - zircon_app/src/entry/runtime_entry_app/host_requests/drain.rs
   - zircon_app/src/entry/runtime_entry_app/host_requests/routing.rs
   - zircon_app/src/entry/runtime_entry_app/host_requests/clipboard/mod.rs
-  - zircon_app/src/entry/runtime_entry_app/host_requests/clipboard/platform/windows.rs
+  - zircon_app/src/entry/host_requests/clipboard/platform/windows.rs
   - zircon_app/src/entry/runtime_entry_app/host_requests/ime/request.rs
   - zircon_app/src/entry/runtime_entry_app/host_requests/ime/geometry.rs
   - zircon_app/src/entry/tests/runtime_entry_source_guards/host_requests.rs

@@ -2,8 +2,8 @@
 related_code:
   - zircon_runtime/src/text/sdf
   - zircon_runtime/src/text/render_state.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/sdf_render.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/text.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_runtime/text/05-sdf-msdf-pipeline.md

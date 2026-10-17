@@ -1,23 +1,6 @@
 ---
 related_code:
   - zircon_runtime/src/core/framework/render/backend_types.rs
-  - zircon_runtime/src/graphics/backend/render_backend/request_device.rs
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_texture.rs
-  - zircon_runtime/src/graphics/scene/resources/gpu_texture/gpu_texture_resource_from_asset.rs
-  - dev/bevy/crates/bevy_render/src/material_bind_groups.rs
-  - dev/bevy/crates/bevy_render/src/render_resource/bindless.rs
-  - dev/bevy/crates/bevy_render/src/batching/gpu_preprocessing.rs
-  - dev/bevy/crates/bevy_render/src/render_phase/draw_state.rs
-  - dev/bevy/crates/bevy_core_pipeline/src/mip_generation/mod.rs
-  - dev/bevy/crates/bevy_core_pipeline/src/mip_generation/downsample.wgsl
-  - dev/UnrealEngine/Engine/Source/Runtime/Engine/Private/GPUSort.cpp
-  - dev/UnrealEngine/Engine/Source/Runtime/Engine/Private/Streaming/StreamingManagerTexture.cpp
-  - dev/UnrealEngine/Engine/Source/Runtime/Engine/Private/Streaming/AsyncTextureStreaming.cpp
-  - dev/UnrealEngine/Engine/Source/Runtime/Renderer/Private/ShadowSetup.cpp
-  - dev/UnrealEngine/Engine/Source/Runtime/Renderer/Private/ScenePrivate.h
-  - dev/UnrealEngine/Engine/Source/Runtime/Renderer/Private/DeferredShadingRenderer.cpp
-  - dev/UnrealEngine/Engine/Shaders/Private/MaterialTemplate.ush
-  - dev/Graphics/Packages/com.unity.render-pipelines.core/ShaderLibrary/CommonMaterial.hlsl
 plan_sources:
   - docs/plans/zircon_runtime/render/index.md
   - .codex/plans/Zircon SRP_RHI Rendering Architecture Roadmap.md

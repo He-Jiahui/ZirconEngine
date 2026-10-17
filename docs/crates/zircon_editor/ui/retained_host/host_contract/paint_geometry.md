@@ -1,17 +1,13 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/host_contract/paint_geometry.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_geometry/frame.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_geometry/pixel_rect.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_geometry/rect_ops.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_primitives.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_debug_reflector_overlay/draw.rs
+  - zircon_editor/src/ui/retained/contract/paint_geometry/frame.rs
+  - zircon_editor/src/ui/retained/contract/paint_geometry/pixel_rect.rs
+  - zircon_editor/src/ui/retained/contract/paint_geometry/rect_ops.rs
+  - zircon_editor/src/ui/retained/contract/paint_debug_reflector_overlay/draw.rs
 implementation_files:
-  - zircon_editor/src/ui/retained_host/host_contract/paint_geometry.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_geometry/frame.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_geometry/pixel_rect.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_geometry/rect_ops.rs
+  - zircon_editor/src/ui/retained/contract/paint_geometry/frame.rs
+  - zircon_editor/src/ui/retained/contract/paint_geometry/pixel_rect.rs
+  - zircon_editor/src/ui/retained/contract/paint_geometry/rect_ops.rs
 plan_sources:
   - docs/plans/zircon_editor/editor_ui/08-workbench-shell-on-runtime-ui.md
   - user: 2026-06-20 editor UI architecture implementation, feature first and tests deferred

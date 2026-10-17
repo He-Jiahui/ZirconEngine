@@ -1,6 +1,5 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/host_page_pointer
   - zircon_editor/src/tests/host/retained_host_page_pointer
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md

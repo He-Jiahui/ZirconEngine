@@ -9,9 +9,7 @@ origin_child_dir: docs/plans/performance/01
 fixing_child_dir: docs/plans/zircon_runtime/shader/03
 plan_link_mode: child_record_only
 related_code:
-  - zircon_runtime/src/asset/project/manager/scan_and_import/shader_import_dependencies.rs
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_shader_source.rs
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_accessors.rs
+  - zircon_runtime/src/asset/manager/scan_and_import/shader_import_dependencies.rs
   - zircon_runtime/src/graphics/shader/template/module_registry.rs
   - zircon_runtime/src/plugin/package_manifest/plugin_shader_permutation_manifest.rs
   - zircon_runtime/src/bin/zircon_shader_prewarm/manifest/permutation_registry.rs

@@ -10,10 +10,8 @@ implementation_files:
   - zircon_editor/src/ui/host/workspace_state.rs
   - zircon_editor/src/ui/host/editor_manager_workspace.rs
   - zircon_editor/src/ui/host/editor_event_runtime_access/workbench_projection.rs
-  - zircon_editor/src/ui/retained_host/app/viewport/toolbar_pointer/size.rs
+  - zircon_editor/src/ui/retained/app/viewport/toolbar_pointer/size.rs
 tests:
-  - zircon_editor/src/ui/host/workspace_state_direct_query_batch_tests.rs
-  - tools/tests/test_editor863_866_workspace_direct_query_performance_contract.py
 ---
 
 # Editor866 - viewport toolbar view-host direct query

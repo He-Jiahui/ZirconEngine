@@ -9,7 +9,6 @@ implementation_files:
   - zircon_runtime/src/ui/surface/input/owner_route.rs
   - zircon_runtime/src/ui/surface/input/keyboard.rs
 tests:
-  - zircon_runtime/src/ui/surface/input/validation/visibility_first_tests.rs
 ---
 
 # Runtime200 valid input owner route completion list

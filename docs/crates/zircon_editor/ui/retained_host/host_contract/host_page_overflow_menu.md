@@ -2,29 +2,25 @@
 related_code:
   - zircon_editor/src/ui/workbench/page_tabs/metrics.rs
   - zircon_editor/src/ui/workbench/page_tabs/mod.rs
-  - zircon_editor/src/ui/retained_host/host_contract/host_page_overflow_menu.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/host_interaction/page_overflow.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/host_components/menus.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/page_overflow_menu.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/routing/chrome/tabs/host_page.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/routing/chrome_route.rs
+  - zircon_editor/src/ui/retained/contract/data/host_interaction/page_overflow.rs
+  - zircon_editor/src/ui/retained/contract/data/host_components/menus.rs
+  - zircon_editor/src/ui/retained/contract/pointer/routing/chrome/tabs/host_page.rs
+  - zircon_editor/src/ui/retained/contract/pointer/routing/chrome_route.rs
   - zircon_editor/src/ui/retained/contract/native_keyboard/target/page_overflow.rs
   - zircon_editor/src/ui/retained/contract/native_keyboard/target/model.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_keyboard/dispatch/actions.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/scene_layers/overlay/page_overflow.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/scene_layers/overlay.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/scene_layers/overlay/componentized.rs
-  - zircon_editor/src/ui/retained_host/app/workbench_pointer/shell_chrome/host_page.rs
-  - zircon_editor/src/ui/retained_host/ui/apply_presentation/scene_conversion.rs
+  - zircon_editor/src/ui/retained/contract/native_keyboard/dispatch/actions.rs
+  - zircon_editor/src/ui/retained/contract/workbench/overlay/page_overflow.rs
+  - zircon_editor/src/ui/retained/contract/workbench/scene_layers/overlay.rs
+  - zircon_editor/src/ui/retained/contract/workbench/overlay/componentized.rs
+  - zircon_editor/src/ui/retained/app/pointer/shell_chrome/host_page.rs
+  - zircon_editor/src/ui/retained/ui/apply_presentation/scene_conversion.rs
 implementation_files:
   - zircon_editor/src/ui/workbench/page_tabs/metrics.rs
-  - zircon_editor/src/ui/retained_host/host_contract/host_page_overflow_menu.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/host_interaction/page_overflow.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/page_overflow_menu.rs
+  - zircon_editor/src/ui/retained/contract/data/host_interaction/page_overflow.rs
   - zircon_editor/src/ui/retained/contract/native_keyboard/target/page_overflow.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_keyboard/dispatch/actions.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/scene_layers/overlay/page_overflow.rs
-  - zircon_editor/src/ui/retained_host/app/workbench_pointer/shell_chrome/host_page.rs
+  - zircon_editor/src/ui/retained/contract/native_keyboard/dispatch/actions.rs
+  - zircon_editor/src/ui/retained/contract/workbench/overlay/page_overflow.rs
+  - zircon_editor/src/ui/retained/app/pointer/shell_chrome/host_page.rs
 plan_sources:
   - user: 2026-06-25 Optimize Zircon editor UI from primitive components upward before composing drawers and windows
   - docs/plans/zircon_editor/editor_layout/15-component-standardization-from-primitives.md
@@ -43,8 +39,6 @@ tests:
   - cargo test -p zircon_editor capture_m3_gui_acceptance_visual_artifacts --locked --jobs 1 --target-dir D:\cargo-targets\zircon-editor-components-0625 --message-format short --color never -- --ignored --test-threads=1 --nocapture
   - cargo test -p zircon_editor --lib host_page_overflow_keyboard --locked --jobs 1 -- --test-threads=1 --nocapture
   - cargo test -p zircon_editor --lib capture_host_page_overflow_keyboard_visual_artifact --locked --jobs 1 -- --ignored --test-threads=1 --nocapture
-  - docs/tests/editor/editor-window-m3-host-page-overflow-420x260.png
-  - docs/tests/editor/editor-window-m3-host-page-overflow-keyboard-640x420.png
 doc_type: module-detail
 status: implemented-awaiting-managed-validation
 ---

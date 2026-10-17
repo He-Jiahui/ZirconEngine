@@ -10,7 +10,7 @@ related_code:
   - zircon_runtime/src/core/framework/render/frame_extract/sprite_extract.rs
   - zircon_runtime/src/core/framework/render/frame_extract/sprite_phase_input.rs
   - zircon_runtime/src/core/framework/render/frame_extract/particle.rs
-  - zircon_runtime/src/core/framework/render/frame_extract/particle_extract_policy.rs
+  - zircon_runtime/src/core/render/frame_extract/particle_extract_policy.rs
   - zircon_runtime/src/core/framework/render/frame_extract/particle_gpu_frame.rs
   - zircon_runtime/src/core/framework/render/frame_extract/visibility.rs
   - zircon_runtime/src/core/framework/render/frame_extract/visibility_renderable.rs
@@ -18,7 +18,6 @@ related_code:
   - zircon_runtime/src/core/framework/render/frame_extract/debug_overlay.rs
   - zircon_runtime/src/core/framework/render/frame_extract/extract_context.rs
   - zircon_runtime/src/core/framework/render/frame_extract/world_snapshot_handle.rs
-  - zircon_runtime/src/core/framework/render/frame_extract/tests.rs
   - zircon_runtime/tests/virtual_geometry_debug_snapshot_contract.rs
   - zircon_runtime/src/core/framework/render/scene_extract.rs
   - zircon_runtime/src/core/framework/render/frame_phase_queue_summary.rs
@@ -31,9 +30,9 @@ related_code:
   - zircon_runtime/src/core/framework/render/core_pipeline/render_phase.rs
   - zircon_runtime/src/core/framework/render/core_pipeline/phase_sort.rs
   - zircon_runtime/src/core/framework/render/core_pipeline/phase_sort_decision.rs
-  - zircon_runtime/src/core/framework/render/core_pipeline/phase_sort_decision_field.rs
-  - zircon_runtime/src/core/framework/render/core_pipeline/phase_sort_key_breakdown.rs
-  - zircon_runtime/src/core/framework/render/core_pipeline/phase_queue_ordering_key.rs
+  - zircon_runtime/src/core/render/core_pipeline/phase_sort_decision_field.rs
+  - zircon_runtime/src/core/render/core_pipeline/phase_sort_key_breakdown.rs
+  - zircon_runtime/src/core/render/core_pipeline/phase_queue_ordering_key.rs
   - zircon_runtime/src/core/framework/render/core_pipeline/phase_queue_summary.rs
   - zircon_runtime/src/core/framework/render/core_pipeline/phase_queue.rs
   - zircon_runtime/src/core/framework/render/sprite/extract.rs
@@ -41,47 +40,30 @@ related_code:
   - zircon_runtime/src/scene/world/render.rs
   - zircon_runtime/src/scene/world/render_post_process.rs
   - zircon_runtime/src/scene/world/render_particles.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/phase_ordering.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/build/phase_ordering.rs
   - zircon_runtime/src/graphics/runtime/history/validation_key.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/particle/build_particle_vertices/build_particle_vertices.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/particle/build_particle_velocity_vertices/build_particle_velocity_vertices.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/frame_submission_context.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/target_resolution.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/camera_loop.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/build_runtime_frame.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/submit_runtime_frame.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/update_temporal_camera_history.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submission_record_update.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/record_submission/record.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/record_submission/record_capture.rs
+  - zircon_runtime/src/graphics/build_particle_vertices/build_particle_vertices.rs
+  - zircon_runtime/src/graphics/runtime/framework/extract/submit/camera_loop.rs
+  - zircon_runtime/src/graphics/runtime/extract/submit/build_runtime_frame.rs
+  - zircon_runtime/src/graphics/runtime/extract/submit/submit_runtime_frame.rs
+  - zircon_runtime/src/graphics/extract/submit/update_temporal_camera_history.rs
+  - zircon_runtime/src/graphics/runtime/extract/record_submission/record.rs
+  - zircon_runtime/src/graphics/runtime/extract/record_submission/record_capture.rs
   - zircon_runtime/src/graphics/types/viewport_frame.rs
   - zircon_runtime/src/graphics/types/viewport_render_output_target.rs
   - zircon_runtime/src/graphics/types/viewport_render_frame.rs
   - zircon_runtime/src/graphics/scene/gpu_scene/prev_transform.rs
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_scene_resources.rs
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_output_target_texture.rs
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_execute_output_target_writeback.rs
-  - zircon_runtime/src/graphics/scene/resources/output_target_texture/output_target_texture_resource.rs
-  - zircon_runtime/src/graphics/scene/resources/prepared/prepared_output_target_texture.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/compiled_scene_outputs.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/execute_graph_stage.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/final_target_output.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_runtime_outputs/store_last_runtime_outputs.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render/render_frame.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render_with_pipeline/render_frame_with_pipeline.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_target/finish_viewport_frame.rs
+  - zircon_runtime/src/graphics/scene/core/render/render/execute_graph_stage.rs
+  - zircon_runtime/src/graphics/scene/renderer/core/render/render/render.rs
+  - zircon_runtime/src/graphics/scene/core/render/render/final_target_output.rs
+  - zircon_runtime/src/graphics/scene/core/scene_renderer_render/render_frame.rs
+  - zircon_runtime/src/graphics/core/scene_renderer_target/finish_viewport_frame.rs
   - zircon_runtime/src/graphics/visibility/view_context/build_views.rs
-  - zircon_runtime/src/graphics/visibility/context/from_extract_with_history/construct.rs
   - zircon_runtime/src/graphics/debug_markers.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs
+  - zircon_runtime/src/graphics/runtime/framework/extract/update_stats/base_stats.rs
   - zircon_runtime/src/scene/tests/render_extract.rs
   - zircon_runtime/src/asset/tests/project/example_vampire.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile.rs
   - zircon_runtime/src/scene/tests/render_post_process_extract.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_frame_extract_geometry.rs
 implementation_files:
   - zircon_runtime/src/core/framework/render/frame_extract.rs
   - zircon_runtime/src/core/framework/render/frame_extract/frame.rs
@@ -91,7 +73,7 @@ implementation_files:
   - zircon_runtime/src/core/framework/render/frame_extract/sprite_extract.rs
   - zircon_runtime/src/core/framework/render/frame_extract/sprite_phase_input.rs
   - zircon_runtime/src/core/framework/render/frame_extract/particle.rs
-  - zircon_runtime/src/core/framework/render/frame_extract/particle_extract_policy.rs
+  - zircon_runtime/src/core/render/frame_extract/particle_extract_policy.rs
   - zircon_runtime/src/core/framework/render/frame_extract/particle_gpu_frame.rs
   - zircon_runtime/src/core/framework/render/frame_extract/visibility.rs
   - zircon_runtime/src/core/framework/render/frame_extract/visibility_renderable.rs
@@ -99,7 +81,6 @@ implementation_files:
   - zircon_runtime/src/core/framework/render/frame_extract/debug_overlay.rs
   - zircon_runtime/src/core/framework/render/frame_extract/extract_context.rs
   - zircon_runtime/src/core/framework/render/frame_extract/world_snapshot_handle.rs
-  - zircon_runtime/src/core/framework/render/frame_extract/tests.rs
   - zircon_runtime/tests/virtual_geometry_debug_snapshot_contract.rs
   - zircon_runtime/src/core/framework/render/scene_extract.rs
   - zircon_runtime/src/core/framework/render/frame_phase_queue_summary.rs
@@ -110,62 +91,42 @@ implementation_files:
   - zircon_runtime/src/scene/world/render.rs
   - zircon_runtime/src/scene/world/render_post_process.rs
   - zircon_runtime/src/scene/world/render_particles.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/phase_ordering.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/build/phase_ordering.rs
   - zircon_runtime/src/graphics/runtime/history/validation_key.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/particle/build_particle_vertices/build_particle_vertices.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/particle/build_particle_velocity_vertices/build_particle_velocity_vertices.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/frame_submission_context.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/target_resolution.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/camera_loop.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/build_runtime_frame.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/submit_runtime_frame.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/update_temporal_camera_history.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submission_record_update.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/record_submission/record.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/record_submission/record_capture.rs
+  - zircon_runtime/src/graphics/build_particle_vertices/build_particle_vertices.rs
+  - zircon_runtime/src/graphics/runtime/framework/extract/submit/camera_loop.rs
+  - zircon_runtime/src/graphics/runtime/extract/submit/build_runtime_frame.rs
+  - zircon_runtime/src/graphics/runtime/extract/submit/submit_runtime_frame.rs
+  - zircon_runtime/src/graphics/extract/submit/update_temporal_camera_history.rs
+  - zircon_runtime/src/graphics/runtime/extract/record_submission/record.rs
+  - zircon_runtime/src/graphics/runtime/extract/record_submission/record_capture.rs
   - zircon_runtime/src/graphics/types/viewport_frame.rs
   - zircon_runtime/src/graphics/types/viewport_render_output_target.rs
   - zircon_runtime/src/graphics/types/viewport_render_frame.rs
   - zircon_runtime/src/graphics/scene/gpu_scene/prev_transform.rs
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_scene_resources.rs
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_output_target_texture.rs
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_execute_output_target_writeback.rs
-  - zircon_runtime/src/graphics/scene/resources/output_target_texture/output_target_texture_resource.rs
-  - zircon_runtime/src/graphics/scene/resources/prepared/prepared_output_target_texture.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render/render_frame.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render_with_pipeline/render_frame_with_pipeline.rs
+  - zircon_runtime/src/graphics/scene/core/scene_renderer_render/render_frame.rs
   - zircon_runtime/src/graphics/visibility/view_context/build_views.rs
-  - zircon_runtime/src/graphics/visibility/context/from_extract_with_history/construct.rs
   - zircon_runtime/src/graphics/debug_markers.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs
+  - zircon_runtime/src/graphics/runtime/framework/extract/update_stats/base_stats.rs
   - zircon_runtime/src/core/framework/render/core_pipeline/phase_sort.rs
   - zircon_runtime/src/core/framework/render/core_pipeline/phase_sort_decision.rs
-  - zircon_runtime/src/core/framework/render/core_pipeline/phase_sort_decision_field.rs
-  - zircon_runtime/src/core/framework/render/core_pipeline/phase_sort_key_breakdown.rs
-  - zircon_runtime/src/core/framework/render/core_pipeline/phase_queue_ordering_key.rs
+  - zircon_runtime/src/core/render/core_pipeline/phase_sort_decision_field.rs
+  - zircon_runtime/src/core/render/core_pipeline/phase_sort_key_breakdown.rs
+  - zircon_runtime/src/core/render/core_pipeline/phase_queue_ordering_key.rs
   - zircon_runtime/src/core/framework/render/core_pipeline/phase_queue_summary.rs
   - zircon_runtime/src/core/framework/render/core_pipeline/phase_queue.rs
   - zircon_runtime/src/core/framework/render/sprite/extract.rs
   - zircon_runtime/src/core/framework/tests/phase_queue_summary.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile.rs
 plan_sources:
   - user: 2026-06-02 implement ZirconEngine WGPU render main-chain closure plan
   - .codex/plans/ZirconEngine ECS 到渲染链路完善里程碑计划.md
   - .codex/plans/Zircon SRPRHI 渲染管线补全计划.md
   - docs/plans/zircon_runtime/render/09-camera-render-ordering.md
 tests:
-  - zircon_runtime/src/core/framework/tests.rs::render_phase_sort_key_uses_unified_queue_layer_depth_order
-  - zircon_runtime/src/core/framework/tests.rs::geometry_phase_inputs_feed_unified_sort_components_into_queue
-  - zircon_runtime/src/core/framework/tests.rs::render_phase_queue_order_exposes_submission_phase_precedence
-  - zircon_runtime/src/core/framework/tests.rs::render_phase_item_ordering_key_matches_queue_sort_tuple
   - zircon_runtime/src/core/framework/tests/phase_queue_summary.rs::render_phase_queue_summary_reports_phase_counts_and_ordering_bounds
   - zircon_runtime/src/core/framework/tests/phase_queue_summary.rs::geometry_extract_phase_queue_summary_reports_sorted_bounds
   - zircon_runtime/src/core/framework/tests/phase_queue_summary.rs::sprite_extract_phase_queue_summary_reports_core2d_phase_counts
   - zircon_runtime/src/core/framework/tests/phase_queue_summary.rs::render_frame_phase_queue_summary_merges_geometry_and_sprite_counts
-  - zircon_runtime/src/core/framework/tests.rs::render_phase_sort_key_breakdown_explains_depth_and_queue_order
-  - zircon_runtime/src/core/framework/tests.rs::render_phase_sort_key_breakdown_reports_first_ordering_difference
-  - zircon_runtime/src/core/framework/tests.rs::geometry_extract_builds_static_mesh_batches_by_resource_key
   - zircon_runtime/src/asset/tests/project/example_vampire.rs::vampire_example_scene_extracts_playable_third_person_meshes
   - zircon_runtime/src/graphics/tests/render_product_sprite.rs::render_product_sprite_phase_queue_honors_material_queue_and_ui_z_index
   - zircon_runtime/src/scene/tests/render_extract.rs::render_frame_extract_carries_scene_camera_order_report_for_scene_camera
@@ -187,15 +148,10 @@ tests:
   - zircon_runtime/src/graphics/types/viewport_render_output_target.rs::tests::output_target_graph_import_plan_keeps_linear_texture_on_conversion_writeback_path
   - zircon_runtime/src/graphics/types/viewport_render_output_target.rs::tests::output_target_graph_import_plan_blocks_unsupported_target_format
   - zircon_runtime/src/graphics/types/viewport_render_output_target.rs::tests::output_target_graph_import_plan_blocks_prepared_format_drift
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/build_runtime_frame.rs::tests::build_runtime_frame_carries_prepared_sideband_and_output_target_into_viewport_frame
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/submit_runtime_frame.rs::tests::direct_runtime_frame_submit_projects_resolved_output_target
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_output_target_texture.rs::tests::output_target_texture_id_uses_resolved_texture_target_only
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_output_target_texture.rs::tests::output_target_texture_id_ignores_non_texture_targets
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_scene_resources.rs::tests::output_target_graph_import_report_marks_srgb_texture_ready_for_direct_import
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_scene_resources.rs::tests::output_target_graph_import_report_keeps_linear_texture_on_writeback_path
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/execute_graph_stage.rs::tests::import_frame_targets_rebinds_final_aliases_to_imported_texture_target
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/compiled_scene_outputs.rs::tests::compiled_scene_outputs_can_carry_output_target_graph_import_report
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/final_target_output.rs::tests::final_target_output_reports_suppressed_texture_children_only
+  - zircon_runtime/src/graphics/runtime/extract/submit/build_runtime_frame.rs::tests::build_runtime_frame_carries_prepared_sideband_and_output_target_into_viewport_frame
+  - zircon_runtime/src/graphics/runtime/extract/submit/submit_runtime_frame.rs::tests::direct_runtime_frame_submit_projects_resolved_output_target
+  - zircon_runtime/src/graphics/scene/core/render/render/execute_graph_stage.rs::tests::import_frame_targets_rebinds_final_aliases_to_imported_texture_target
+  - zircon_runtime/src/graphics/scene/core/render/render/final_target_output.rs::tests::final_target_output_reports_suppressed_texture_children_only
   - zircon_runtime/src/graphics/tests/surface_targets.rs::graphics_camera_target_texture_srgb_target_imports_direct_graph_final_target
   - zircon_runtime/src/graphics/tests/surface_targets.rs::graphics_camera_target_texture_overlay_stack_preserves_base_composite
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product.rs::tests::render_product_diagnostics_record_camera_stack_suppressed_target_output
@@ -203,34 +159,17 @@ tests:
   - zircon_runtime/src/core/framework/render/capture.rs::tests::captured_frame_new_defaults_to_primary_framework_offscreen_source
   - zircon_runtime/src/core/framework/render/capture.rs::tests::texture_capture_report_distinguishes_direct_import_and_conversion_sources
   - zircon_runtime/src/core/framework/render/backend_types.rs::tests::camera_target_writeback_report_separates_copy_and_conversion_debug_markers
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_execute_output_target_writeback.rs::tests::output_target_writeback_executes_ready_copy_and_conversion_plans
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_execute_output_target_writeback.rs::tests::output_target_writeback_report_maps_ready_and_blocked_plans
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_execute_output_target_writeback.rs::tests::suppressed_output_target_writeback_report_is_texture_only
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_execute_output_target_writeback.rs::tests::output_target_writeback_extent_accepts_matching_source_and_destination
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_execute_output_target_writeback.rs::tests::output_target_writeback_extent_rejects_source_size_mismatch
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_execute_output_target_writeback.rs::tests::output_target_writeback_extent_rejects_destination_size_mismatch
-  - zircon_runtime/src/graphics/scene/resources/output_target_texture/output_target_texture_resource.rs::tests::output_target_texture_usages_prepare_render_target_only_without_sampled_binding
-  - zircon_runtime/src/graphics/scene/resources/output_target_texture/output_target_texture_resource.rs::tests::output_target_texture_usages_preserve_copy_and_sampled_authoring_flags
   - zircon_runtime/src/graphics/tests/render_debugger_and_history.rs::renderdoc_debug_marker_registry_covers_capture_timeline
   - zircon_runtime/src/tests/runtime_diagnostics/mod.rs::runtime_diagnostics_combines_core_render_contract_and_missing_externalized_plugins
   - zircon_runtime/src/graphics/tests/pipeline_compile/feature_descriptors.rs::compiled_pipeline_resources_use_extract_viewport_hdr_and_msaa_descriptors
   - cargo test -p zircon_runtime --locked pipeline_compile --jobs 1 --message-format short --color never
   - cargo test -p zircon_runtime --lib --locked unified_sort_components --jobs 1 --message-format short --color never
   - cargo test -p zircon_runtime --lib --locked render_product_sprite_phase_queue_honors --jobs 1 --message-format short --color never
-  - zircon_runtime/src/core/framework/render/frame_extract/tests.rs::render_view_apply_target_size_preserves_descriptor_target_and_layers
-  - zircon_runtime/src/core/framework/render/frame_extract/tests.rs::render_frame_extract_selected_camera_descriptor_replaces_active_selection_only
-  - zircon_runtime/src/core/framework/render/frame_extract/tests.rs::render_view_select_camera_descriptor_preserves_explicit_anti_alias
-  - zircon_runtime/src/core/framework/render/frame_extract/tests.rs::render_frame_extract_visibility_input_preserves_layers_above_legacy_mask_width
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_frame_extract_geometry.rs::runtime_15_frame_extract_geometry_is_child_owner
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/camera_loop.rs::tests::camera_loop_flattens_base_then_overlays_for_submit_order
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/camera_loop.rs::tests::camera_loop_extracts_select_each_sequence_descriptor
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/camera_loop.rs::tests::camera_loop_routes_ui_to_last_primary_stack_terminal_only
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/camera_loop.rs::tests::camera_loop_routes_ui_to_last_base_when_no_primary_base_exists
-  - zircon_runtime/src/core/framework/render/frame_extract/tests.rs::particle_extract_counts_previous_state_by_entity
-  - zircon_runtime/src/core/framework/render/frame_extract/tests.rs::particle_extract_consumes_duplicate_entity_previous_state_once_per_row
-  - zircon_runtime/src/graphics/scene/scene_renderer/particle/build_particle_vertices/build_particle_vertices.rs::tests::particle_vertices_filter_sprites_by_selected_camera_layers
-  - zircon_runtime/src/graphics/scene/scene_renderer/particle/build_particle_velocity_vertices/build_particle_velocity_vertices.rs::tests::particle_velocity_vertices_filter_current_sprites_by_selected_camera_layers
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests.rs::compile_skips_core_particle_pass_when_particle_sprites_miss_selected_camera_layers
+  - zircon_runtime/src/graphics/runtime/framework/extract/submit/camera_loop.rs::tests::camera_loop_flattens_base_then_overlays_for_submit_order
+  - zircon_runtime/src/graphics/runtime/framework/extract/submit/camera_loop.rs::tests::camera_loop_extracts_select_each_sequence_descriptor
+  - zircon_runtime/src/graphics/runtime/framework/extract/submit/camera_loop.rs::tests::camera_loop_routes_ui_to_last_primary_stack_terminal_only
+  - zircon_runtime/src/graphics/runtime/framework/extract/submit/camera_loop.rs::tests::camera_loop_routes_ui_to_last_base_when_no_primary_base_exists
+  - zircon_runtime/src/graphics/build_particle_vertices/build_particle_vertices.rs::tests::particle_vertices_filter_sprites_by_selected_camera_layers
   - cargo test -p zircon_runtime --lib particle_vertices_filter_sprites_by_selected_camera_layers --no-default-features --features core-min --locked --jobs 1 --target-dir target\codex-plan09-particle-typed-layer-0623 --message-format short --color never -- --test-threads=1 --nocapture (blocked before compilation by current Cargo.lock drift)
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/phase_ordering.rs::tests::phase_ordered_meshes_filter_meshes_by_selected_camera_layers
   - cargo test -p zircon_runtime --lib phase_ordered_meshes_filter_meshes_by_selected_camera_layers --no-default-features --features core-min --locked --jobs 1 --target-dir target\codex-plan09-mesh-typed-layer-0623 --message-format short --color never -- --test-threads=1 --nocapture (blocked before compilation by current Cargo.lock drift)

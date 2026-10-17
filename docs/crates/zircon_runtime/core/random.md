@@ -28,8 +28,8 @@ plan_sources:
   - dev/godot/core/math/random_pcg.h
   - dev/godot/core/math/random_number_generator.h
 tests:
-  - zircon_runtime/crates/zr_contracts/src/random/tests.rs
-  - zircon_runtime/src/core/runtime/random/tests.rs
+  - zircon_runtime/crates/zr_contracts/src/random/tests/mod.rs
+  - zircon_runtime/src/core/runtime/random/tests/mod.rs
   - zircon_runtime/src/core/runtime/handle/random.rs::tests
   - tools/tests/test_frameworks_01_random_contract_kernel_boundary.py
 doc_type: module-detail

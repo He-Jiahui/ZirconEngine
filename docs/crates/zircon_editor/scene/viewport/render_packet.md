@@ -2,7 +2,6 @@
 related_code:
   - zircon_editor/src/scene/viewport/mod.rs
   - zircon_editor/src/scene/viewport/render_packet.rs
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_build_render_snapshot.rs
   - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_camera.rs
   - zircon_editor/src/scene/viewport/handles/mod.rs
   - zircon_editor/src/scene/viewport/pointer/viewport_pointer_layout.rs
@@ -11,7 +10,6 @@ related_code:
   - zircon_runtime/src/scene/render_extract/mod.rs
 implementation_files:
   - zircon_editor/src/scene/viewport/render_packet.rs
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_build_render_snapshot.rs
 plan_sources:
   - docs/plans/zircon_editor/editor_ui/08-workbench-shell-on-runtime-ui.md
   - docs/plans/zircon_runtime/render/09-camera-render-ordering.md

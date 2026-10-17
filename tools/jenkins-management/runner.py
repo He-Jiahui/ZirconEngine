@@ -104,7 +104,7 @@ def deepest_tracked_paths(root):
     Raw bytes are used so a non-UTF-8 name cannot abort the measurement; the
     comparison only needs character counts.
     """
-    command = ["git", "-c", "core.longpaths=true", "-C", str(root), "ls-files", "-z"]
+    command = ["git", "-c", "core.fsmonitor=false", "-c", "core.hooksPath=" + os.devnull, "-c", "core.longpaths=true", "-C", str(root), "ls-files", "-z"]
     completed = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
     if completed.returncode:
         raise ValueError(stderr_tail(completed.stderr))

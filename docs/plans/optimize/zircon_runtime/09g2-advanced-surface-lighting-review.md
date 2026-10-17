@@ -7,15 +7,11 @@ related_code:
   - zircon_runtime/src/core/framework/render/advanced_lighting
   - zircon_runtime/src/core/framework/render/material/standard_material.rs
   - zircon_runtime/src/scene/world/render.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract
-  - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/light_cookie
-  - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/oit_buffers
-  - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/planar_filter
-  - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/subsurface_pass
-  - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/transmission
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/probe_buffer/resources.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/oit.rs
+  - zircon_runtime/src/graphics/scene/renderer/advanced_lighting/light_cookie
+  - zircon_runtime/src/graphics/scene/renderer/advanced_lighting/oit_buffers
+  - zircon_runtime/src/graphics/scene/renderer/advanced_lighting/transmission
+  - zircon_runtime/src/graphics/scene/renderer/environment/probe_buffer/resources.rs
+  - zircon_runtime/src/graphics/scene/renderer/execution/context/gpu/oit.rs
   - zircon_runtime/src/graphics/shader/includes/zr_oit.wgsl
   - zircon_runtime/src/graphics/shader/includes/zr_pbr_extras.wgsl
   - zircon_runtime/src/graphics/shader/wgsl/zr_environment_core.wgsl
@@ -23,7 +19,6 @@ related_code:
   - zircon_plugins/rendering/features/light_cookies
   - zircon_plugins/rendering/features/oit
   - zircon_plugins/rendering/features/planar_reflections
-  - zircon_plugins/rendering/features/subsurface_scattering
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md
   - docs/plans/optimize/zircon_runtime/09a-rhi-render-graph-gpu-lifetime-review.md

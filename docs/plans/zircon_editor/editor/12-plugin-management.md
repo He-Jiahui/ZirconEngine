@@ -3,7 +3,6 @@ related_code:
   - zircon_editor/src/core/plugin/descriptor.rs
   - zircon_editor/src/core/plugin/sdk
   - zircon_editor/src/core/plugin/catalog_gen.rs
-  - zircon_runtime/src/plugin/runtime_plugin/descriptor.rs
   - zircon_runtime/src/plugin/core_profiles.rs
   - zircon_runtime_interface/src/plugin_api.rs
   - zircon_runtime_interface/src/manifest.rs

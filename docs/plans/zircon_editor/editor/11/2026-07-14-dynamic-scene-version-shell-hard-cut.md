@@ -1,9 +1,7 @@
 ---
 plan_source: docs/plans/zircon_editor/editor/11-serialization-and-versioning.md
 related_code:
-  - zircon_runtime/src/scene/dynamic_scene/document/
-  - zircon_runtime/src/scene/dynamic_scene/scene/
-  - zircon_runtime/src/scene/dynamic_scene/session/slot/summary.rs
+  - zircon_runtime/src/scene/dynamic/session/slot/summary.rs
   - zircon_runtime/src/scene/mod.rs
 tests:
   - zircon_runtime/tests/plan11_scene_serialization_contract.rs

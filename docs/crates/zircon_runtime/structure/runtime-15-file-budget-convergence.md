@@ -1,22 +1,13 @@
 ---
 related_code:
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/support.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/mod.rs
   - zircon_runtime/src/core/framework/render/environment/source_cubemap.rs
-  - zircon_runtime/src/core/framework/render/environment/source_cubemap/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_wgpu_command_plan.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_wgpu_command_plan/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/surface.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_record/compute_workload.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_record/compute_workload/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render/geometry.rs
+  - zircon_runtime/src/graphics/scene/environment/ibl_bake_wgpu_command_plan.rs
+  - zircon_runtime/src/graphics/scene/renderer/execution/context/gpu/surface.rs
+  - zircon_runtime/src/graphics/render_graph_execution_record/compute_workload.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/render.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/render/geometry.rs
   - zircon_runtime/src/text/layout/rich.rs
-  - zircon_runtime/src/text/layout/rich/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/froxel/integrate/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/froxel/integrate/tests/support.rs
+  - zircon_runtime/src/graphics/scene/renderer/froxel/integrate/tests/support.rs
 plan_sources:
   - docs/plans/engine-code-structure-convention.md
   - docs/plans/engine-code-review-findings-2026-06.md

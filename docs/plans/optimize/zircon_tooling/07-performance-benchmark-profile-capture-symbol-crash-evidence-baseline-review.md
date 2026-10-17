@@ -22,7 +22,6 @@ related_code:
   - tools/mvp/RenderExtractBaselineMetrics.psm1
   - tools/mvp/RenderExtractFrozenInput.psm1
   - tools/mvp/RenderExtractProcessJob.psm1
-  - zircon_runtime/src/plugin/native_plugin_loader/benchmark_harness.rs
   - zircon_runtime/src/diagnostic_log/sink.rs
   - zircon_app/src/bin/editor.rs
   - zircon_app/src/bin/runtime_preview.rs

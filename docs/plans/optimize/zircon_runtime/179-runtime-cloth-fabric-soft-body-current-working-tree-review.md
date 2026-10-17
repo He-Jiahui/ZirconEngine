@@ -21,8 +21,6 @@ related_code:
   - zircon_plugins/physics/runtime/src
   - zircon_runtime/src/core/framework/render/frame_extract.rs
   - zircon_runtime/src/graphics/scene/resources/gpu_mesh
-  - zircon_runtime/src/graphics/scene/scene_renderer/temporal/velocity
-  - zircon_runtime/src/graphics/scene/scene_renderer/shadow
   - zircon_plugins/first_party_runtime_catalog
 reference_engines:
   - dev/UnrealEngine/Engine/Plugins/ChaosCloth/Source/ChaosCloth

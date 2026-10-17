@@ -1,10 +1,8 @@
 ---
 related_code:
   - zircon_runtime/src/asset/artifact/ibl_source_cubemap_staging.rs
-  - zircon_runtime/src/asset/artifact/ibl_source_cubemap_staging/tests.rs
 implementation_files:
   - zircon_runtime/src/asset/artifact/ibl_source_cubemap_staging.rs
-  - zircon_runtime/src/asset/artifact/ibl_source_cubemap_staging/tests.rs
 plan_sources:
   - docs/plans/engine-code-structure-convention.md
   - docs/plans/engine-code-review-findings-2026-06.md

@@ -1,17 +1,14 @@
 ---
 related_code:
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_scene/render_scene.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/build.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_mesh_draw.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/virtual_geometry_indirect.rs
-  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_unified_indirect.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/build_mesh_draws/build/build.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/build/pending_mesh_draw.rs
+  - zircon_runtime/src/graphics/scene/mesh/build/virtual_geometry_indirect.rs
   - zircon_runtime/src/asset/pipeline/manager/records
   - zircon_runtime/src/asset/pipeline/manager/records/mod.rs
   - zircon_runtime/src/core/manager/mod.rs
   - zircon_runtime/src/core/framework
   - zircon_runtime/src/core/framework
   - zircon_runtime/src/core/manager/service_names.rs
-  - zircon_runtime/src/core/manager/tests.rs
   - zircon_runtime/Cargo.toml
   - zircon_runtime/src/core/framework/scene
   - zircon_runtime/src/core/framework/scene/world_handle.rs
@@ -24,13 +21,11 @@ related_code:
   - zircon_runtime/src/scene/module/level_manager_lifecycle.rs
   - zircon_runtime/src/scene/module/level_manager_project_io.rs
   - zircon_runtime/src/scene/tests
-  - zircon_editor/src/ui/host/editor_asset_manager/records.rs
-  - zircon_editor/src/ui/host/editor_asset_manager/manager/mod.rs
   - zircon_runtime/src/asset/pipeline/manager/records/mod.rs
   - zircon_runtime/src/asset/pipeline/manager/records/asset_status_record.rs
   - zircon_runtime/src/asset/pipeline/manager/records/status_record.rs
   - zircon_runtime/src/asset/pipeline/manager/records/metadata_import_state.rs
-  - zircon_runtime/src/asset/pipeline/manager/service_contracts/resource_manager_contract.rs
+  - zircon_runtime/src/asset/manager/service_contracts/resource_manager_contract.rs
   - zircon_runtime/src/asset/pipeline/manager/registration/service_names.rs
   - zircon_runtime/src/asset/pipeline/manager/asset_manager/mod.rs
   - zircon_runtime/src/asset/pipeline/manager/asset_manager/asset_manager.rs
@@ -64,19 +59,16 @@ related_code:
   - zircon_runtime/src/script/vm/host/host_registry.rs
   - zircon_runtime/src/script/vm/plugin/vm_plugin_manifest.rs
   - zircon_runtime/src/script/vm/runtime/hot_reload_coordinator.rs
-  - zircon_runtime/src/script/vm/tests.rs
   - zircon_runtime/src/asset/mod.rs
   - zircon_runtime/src/asset/module.rs
   - zircon_runtime/src/scene/mod.rs
   - zircon_runtime/src/scene/module/mod.rs
-  - zircon_runtime/src/graphics/runtime_builtin_graphics/host/module_host/rendering_manager/manager_backend_info.rs
+  - zircon_runtime/src/graphics/host/rendering_manager/manager_backend_info.rs
   - zircon_editor/src/ui/workbench/project/asset_workspace_state.rs
   - zircon_editor/src/ui/workbench/project/editor_state_asset_workspace.rs
   - zircon_editor/src/ui/host/editor_event_execution/common.rs
   - zircon_editor/src/ui/host/resource_access.rs
-  - zircon_editor/src/ui/retained_host/app.rs
-  - zircon_editor/src/ui/retained_host/app/backend_refresh.rs
-  - zircon_editor/src/ui/retained_host/ui.rs
+  - zircon_editor/src/ui/retained/app/backend_refresh.rs
   - zircon_editor/src/ui/workbench/snapshot/asset/asset_item_snapshot.rs
   - zircon_editor/src/ui/workbench/snapshot/asset/asset_reference_snapshot.rs
   - zircon_editor/src/ui/workbench/snapshot/asset/asset_selection_snapshot.rs
@@ -90,7 +82,6 @@ related_code:
   - zircon_app/src/entry/runtime_entry_app/application_handler/mod.rs
   - zircon_app/src/entry/tests/mod.rs
 implementation_files:
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_scene/render_scene.rs
   - Cargo.toml
   - zircon_runtime/src/asset/pipeline/manager/records
   - zircon_runtime/Cargo.toml
@@ -118,13 +109,11 @@ implementation_files:
   - zircon_runtime/src/core/framework/input/input_event_record.rs
   - zircon_runtime/src/core/framework/input/input_snapshot.rs
   - zircon_runtime/Cargo.toml
-  - zircon_editor/src/ui/host/editor_asset_manager/records.rs
-  - zircon_editor/src/ui/host/editor_asset_manager/manager/mod.rs
   - zircon_runtime/src/asset/pipeline/manager/records/mod.rs
   - zircon_runtime/src/asset/pipeline/manager/records/asset_status_record.rs
   - zircon_runtime/src/asset/pipeline/manager/records/status_record.rs
   - zircon_runtime/src/asset/pipeline/manager/records/metadata_import_state.rs
-  - zircon_runtime/src/asset/pipeline/manager/service_contracts/resource_manager_contract.rs
+  - zircon_runtime/src/asset/manager/service_contracts/resource_manager_contract.rs
   - zircon_runtime/src/asset/pipeline/manager/registration/service_names.rs
   - zircon_runtime/src/asset/pipeline/manager/asset_manager/mod.rs
   - zircon_runtime/src/asset/pipeline/manager/asset_manager/asset_manager.rs
@@ -140,20 +129,17 @@ implementation_files:
   - zircon_runtime/src/script/vm/host/host_registry.rs
   - zircon_runtime/src/script/vm/plugin/vm_plugin_manifest.rs
   - zircon_runtime/src/script/vm/runtime/hot_reload_coordinator.rs
-  - zircon_runtime/src/script/vm/tests.rs
   - zircon_runtime/src/asset/mod.rs
   - zircon_runtime/src/asset/module.rs
   - zircon_runtime/src/scene/mod.rs
   - zircon_runtime/src/scene/module/mod.rs
-  - zircon_runtime/src/graphics/runtime_builtin_graphics/host/module_host/rendering_manager/manager_backend_info.rs
+  - zircon_runtime/src/graphics/host/rendering_manager/manager_backend_info.rs
   - zircon_app/src/entry/runtime_entry_app/application_handler/mod.rs
   - zircon_editor/src/ui/workbench/project/asset_workspace_state.rs
   - zircon_editor/src/ui/workbench/project/editor_state_asset_workspace.rs
   - zircon_editor/src/ui/host/editor_event_execution/common.rs
   - zircon_editor/src/ui/host/resource_access.rs
-  - zircon_editor/src/ui/retained_host/app.rs
-  - zircon_editor/src/ui/retained_host/app/backend_refresh.rs
-  - zircon_editor/src/ui/retained_host/ui.rs
+  - zircon_editor/src/ui/retained/app/backend_refresh.rs
   - zircon_editor/src/ui/workbench/snapshot/asset/asset_item_snapshot.rs
   - zircon_editor/src/ui/workbench/snapshot/asset/asset_reference_snapshot.rs
   - zircon_editor/src/ui/workbench/snapshot/asset/asset_selection_snapshot.rs
@@ -170,7 +156,6 @@ plan_sources:
   - user: 2026-04-18 下一步先做 ResourceStateRecord -> zircon_resource::ResourceState，再处理 ResourceStatusRecord 的 canonical 收口
   - user: 2026-04-18 继续下一步
 tests:
-  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_unified_indirect.rs
   - cargo test -p zircon_graphics virtual_geometry_prepare_uses_one_visibility_owned_indirect_segment_across_multi_primitive_model --locked -- --nocapture
   - cargo test -p zircon_graphics --locked
   - cargo check --workspace --locked

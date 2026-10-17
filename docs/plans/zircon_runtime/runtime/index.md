@@ -2,56 +2,38 @@
 related_code:
   - zircon_runtime/src/lib.rs
   - zircon_runtime/src/builtin/runtime_modules.rs
-  - zircon_plugins/animation/runtime/tests/runtime_physics_animation_tick_contract.rs
-  - zircon_plugins/animation/runtime/tests/runtime_physics_animation_tick_contract/animation_assets.rs
-  - zircon_plugins/animation/runtime/tests/runtime_physics_animation_tick_contract/runtime_helpers.rs
   - zircon_runtime/src/core/framework/physics/query_interface.rs
   - zircon_plugins/plugin_sdk/src/registration.rs
   - zircon_plugins/physics/runtime/src/plugin.rs
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/plugin_importer_dx/d10_bridge_call.rs
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/plugin_importer_dx/d11_test_runtime_fixture.rs
+  - zircon_runtime/src/tests/contracts/review/plugin_importer_dx/d10_bridge_call.rs
+  - zircon_runtime/src/tests/review/plugin_importer_dx/d11_test_runtime_fixture.rs
   - zircon_runtime/src/core/mod.rs
   - zircon_runtime/src/scene/ecs/mod.rs
   - zircon_runtime/src/plugin/mod.rs
-  - zircon_runtime/src/plugin/runtime_plugin/descriptor/builder/runtime_plugin_descriptor_builder.rs
   - zircon_runtime/src/asset/pipeline/worker_pool.rs
   - zircon_runtime/src/asset/assets/texture/descriptor.rs
   - zircon_runtime/src/asset/assets/texture/texture_asset.rs
   - zircon_runtime/src/asset/importer/ingest/import_texture.rs
   - zircon_plugins/texture_importer/runtime/src/importers.rs
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings.rs
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/p0_robustness.rs
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/p0_robustness/native_fixture.rs
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/p0_robustness/priority_recommendation.rs
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/f8_api_convergence.rs
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/f8_api_convergence/descriptor_builder.rs
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/f8_api_convergence/descriptor_builder/first_party_descriptors.rs
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/f8_api_convergence/descriptor_builder/scaffold.rs
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/f8_api_convergence/descriptor_builder/test_fixtures.rs
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/f8_api_convergence/descriptor_privacy.rs
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/f8_api_convergence/descriptor_privacy/constructor_retirement.rs
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/f8_api_convergence/descriptor_privacy/private_fields.rs
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/f8_api_convergence/descriptor_privacy/status_mirrors.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/f8_child_owners.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/p0_child_owners.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/structure_guard_children.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_child_owners.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/structure_assertions.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/source_inventory.rs
+  - zircon_runtime/src/tests/contracts/review/p0_robustness/native_fixture.rs
+  - zircon_runtime/src/tests/review/p0_robustness/priority_recommendation.rs
+  - zircon_runtime/src/tests/review/f8_api_convergence/descriptor_builder.rs
+  - zircon_runtime/src/tests/review/descriptor_builder/first_party_descriptors.rs
+  - zircon_runtime/src/tests/contracts/review/descriptor_builder/scaffold.rs
+  - zircon_runtime/src/tests/contracts/review/descriptor_builder/test_fixtures.rs
+  - zircon_runtime/src/tests/review/f8_api_convergence/descriptor_privacy.rs
+  - zircon_runtime/src/tests/review/descriptor_privacy/constructor_retirement.rs
+  - zircon_runtime/src/tests/contracts/review/descriptor_privacy/private_fields.rs
+  - zircon_runtime/src/tests/contracts/review/descriptor_privacy/status_mirrors.rs
   - zircon_runtime/src/asset/assets/font.rs
   - zircon_plugins/ui_document_importer/runtime/src/lib.rs
-  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/asset_schema.rs
+  - zircon_runtime/src/tests/contracts/naming_boundary/runtime_15_m2/asset_schema.rs
   - docs/crates/zircon_runtime/asset/assets/font.md
   - docs/crates/zircon_runtime/asset/assets/ui.md
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/f12_dead_code.rs
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/plugin_importer_dx.rs
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/plugin_importer_dx/d1_capability_single_source.rs
+  - zircon_runtime/src/tests/plugin_importer_dx/d1_capability_single_source.rs
   - zircon_plugins/plugin_sdk/src/manifest/importer_runtime.rs
   - zircon_plugins/plugin_sdk/src/manifest/feature_bundle_builder.rs
   - tools/audits/plugins/capability.py
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/mod.rs
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/asset_records.rs
   - zircon_app/Cargo.toml
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/entry_static_dependencies.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/entry_static_dependencies_markdown.py
@@ -69,15 +51,14 @@ related_code:
   - zircon_app/src/entry/runtime_entry_app/host_requests/cursor/request.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/runtime_api_boundary.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/runtime_api_markdown.py
-  - zircon_runtime/src/tests/runtime_absorption/input_stack.rs
-  - zircon_runtime/src/tests/runtime_absorption/input_stack/inventory.rs
-  - zircon_runtime/src/tests/runtime_absorption/input_stack/inventory/module_sets.rs
-  - zircon_runtime/src/tests/runtime_absorption/input_stack/inventory/public_surface.rs
-  - zircon_runtime/src/tests/runtime_absorption/input_stack/inventory/guard_anchors.rs
-  - zircon_runtime/src/tests/runtime_absorption/input_stack/inventory/behavior_anchors.rs
-  - zircon_runtime/src/tests/runtime_absorption/input_stack/inventory/cursor_host_requests.rs
-  - zircon_runtime/src/tests/runtime_absorption/input_stack/inventory/mirror_docs.rs
-  - zircon_runtime/src/tests/runtime_absorption/input_stack/inventory/split_layout.rs
+  - zircon_runtime/src/tests/contracts/input_stack/inventory.rs
+  - zircon_runtime/src/tests/contracts/input_stack/inventory/module_sets.rs
+  - zircon_runtime/src/tests/contracts/input_stack/inventory/public_surface.rs
+  - zircon_runtime/src/tests/contracts/input_stack/inventory/guard_anchors.rs
+  - zircon_runtime/src/tests/contracts/input_stack/inventory/behavior_anchors.rs
+  - zircon_runtime/src/tests/contracts/input_stack/inventory/cursor_host_requests.rs
+  - zircon_runtime/src/tests/contracts/input_stack/inventory/mirror_docs.rs
+  - zircon_runtime/src/tests/contracts/input_stack/inventory/split_layout.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/input_stack_boundary.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/input_stack_markdown.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/job_system_boundary.py
@@ -92,40 +73,28 @@ related_code:
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/plugin_runtime_gaps_markdown.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/module_convention_gate.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/module_convention_gate_markdown.py
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/module_convention_gate.rs
-  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/asset_dynamic.rs
-  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/asset_dynamic/texture_containers.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/naming_boundary_asset_dynamic.rs
-  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/core_framework.rs
-  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/core_framework/camera_controller.rs
-  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/core_framework/render_fixtures.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/naming_boundary_core_framework.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/naming_boundary_core_framework_render_fixtures.rs
-  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/core_scene.rs
-  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/core_scene/render_contracts.rs
-  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/core_scene/scene_ecs_owners.rs
-  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/core_scene/scene_ecs_owners/observer_callback_registry.rs
-  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/core_scene/scene_ecs_owners/query_state_many_item_array.rs
-  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/core_scene/scene_ecs_owners/component_storage_component_results.rs
-  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/core_scene/scene_ecs_owners/split_layout.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/naming_boundary_core_scene.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/naming_boundary_core_scene_ecs.rs
-  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/graphics.rs
-  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/graphics/render_fixtures.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/naming_boundary_graphics.rs
-  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/banned_names.rs
-  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/banned_names/scene_dynamic.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/naming_boundary_banned_names.rs
+  - zircon_runtime/src/tests/contracts/runtime_15_m2/asset_dynamic.rs
+  - zircon_runtime/src/tests/contracts/asset_dynamic/texture_containers.rs
+  - zircon_runtime/src/tests/contracts/runtime_15_m2/core_framework.rs
+  - zircon_runtime/src/tests/contracts/core_framework/camera_controller.rs
+  - zircon_runtime/src/tests/contracts/core_framework/render_fixtures.rs
+  - zircon_runtime/src/tests/contracts/naming_boundary/runtime_15_m2/core_scene.rs
+  - zircon_runtime/src/tests/contracts/runtime_15_m2/core_scene/render_contracts.rs
+  - zircon_runtime/src/tests/contracts/runtime_15_m2/core_scene/scene_ecs_owners.rs
+  - zircon_runtime/src/tests/scene_ecs_owners/observer_callback_registry.rs
+  - zircon_runtime/src/tests/scene_ecs_owners/query_state_many_item_array.rs
+  - zircon_runtime/src/tests/scene_ecs_owners/component_storage_component_results.rs
+  - zircon_runtime/src/tests/contracts/core_scene/scene_ecs_owners/split_layout.rs
+  - zircon_runtime/src/tests/contracts/naming_boundary/runtime_15_m2/graphics.rs
+  - zircon_runtime/src/tests/contracts/runtime_15_m2/graphics/render_fixtures.rs
+  - zircon_runtime/src/tests/contracts/naming_boundary/runtime_15_m2/banned_names.rs
+  - zircon_runtime/src/tests/contracts/runtime_15_m2/banned_names/scene_dynamic.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/large_file_ownership.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/large_file_ownership_markdown.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/runtime_root_surface.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/runtime_root_surface_markdown.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/ecs_query_state_boundary.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/ecs_query_state_markdown.py
-  - dev/bevy/crates/bevy_app/src/main_schedule.rs
-  - dev/bevy/crates/bevy_asset/src
-  - dev/Fyrox/fyrox-impl/src/plugin/mod.rs
-  - dev/UnrealEngine/Engine/Source/Runtime
 plan_sources:
   - .codex/plans/Zircon Runtime 架构渐进式 Review 与优化计划.md
   - .codex/plans/Runtime 吸收层与 Editor_Scene 边界收束计划.md

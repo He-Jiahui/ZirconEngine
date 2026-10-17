@@ -1,14 +1,7 @@
 ---
 related_code:
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_bloom
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_clustered_lighting
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_color_lut_bake
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_depth_of_field_prepare
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_exposure
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_smaa
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_ssao
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_clustered_lighting/execute_clustered_lighting.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/post_process/computed_resources.rs
+  - zircon_runtime/src/graphics/scene/renderer/post/resources/execute_bloom
+  - zircon_runtime/src/graphics/scene/renderer/post/resources/execute_smaa
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_runtime/render/01-render-graph-rdg-alignment.md

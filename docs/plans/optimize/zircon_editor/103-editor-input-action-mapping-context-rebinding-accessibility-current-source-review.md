@@ -30,7 +30,6 @@ tests:
   - zircon_runtime/src/input/tests/recording_replay.rs
   - zircon_runtime/src/input/tests/input_manager
   - zircon_runtime/src/dynamic_api/session/tests/physical_input_ownership.rs
-  - zircon_editor/src/core/commands/keymap/tests.rs
 plan_sources:
   - docs/plans/optimize/zircon_runtime/06-platform-input-process-review.md
   - docs/plans/optimize/zircon_runtime/07-script-plugin-runtime-review.md

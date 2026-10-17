@@ -24,10 +24,8 @@ related_code:
   - zircon_runtime_interface/src/tests/render_contracts.rs
   - zircon_runtime_interface/src/tests/ui_contract_spine.rs
   - zircon_runtime/src/ui/surface/diagnostics.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_commands.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/render.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/text.rs
 implementation_files:
   - zircon_runtime_interface/src/ui/layout/geometry.rs
   - zircon_runtime_interface/src/ui/layout/metrics.rs
@@ -51,10 +49,8 @@ implementation_files:
   - zircon_runtime_interface/src/tests/render_contracts.rs
   - zircon_runtime_interface/src/tests/ui_contract_spine.rs
   - zircon_runtime/src/ui/surface/diagnostics.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_commands.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/render.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/text.rs
 plan_sources:
   - docs/rendering/runtime-ui-slate-rendering-gap-audit.md
   - user: 2026-05-06 restore preedit text when composition is canceled
@@ -93,7 +89,6 @@ tests:
   - target: cargo test -p zircon_runtime_interface --lib ui_contract_spine --locked
   - cargo test -p zircon_runtime_interface --lib ui_image_control_paint_elements_preserve_background_image_and_border_order --locked --jobs 1 --message-format short --color never -- --nocapture with CARGO_TARGET_DIR=D:\cargo-targets\zircon-editor-workbench-reference-check and RUSTFLAGS=-Awarnings (2026-06-01 workbench icon chrome split: passed, 1 passed)
   - cargo test -p zircon_runtime_interface --lib render_contracts --locked --jobs 1 --message-format short --color never -- --nocapture with CARGO_TARGET_DIR=D:\cargo-targets\zircon-editor-workbench-reference-check-b and RUSTFLAGS=-Awarnings (2026-06-01 latest workbench icon chrome split: passed, 29 passed)
-  - zircon_runtime_interface/src/ui/surface/render/text_geometry/source_map_tests.rs
 doc_type: module-detail
 ---
 

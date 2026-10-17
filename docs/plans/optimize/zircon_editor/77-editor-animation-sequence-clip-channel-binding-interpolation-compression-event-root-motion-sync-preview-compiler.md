@@ -16,17 +16,13 @@ related_code:
   - zircon_plugins/animation/runtime/src/evaluation/pipeline
   - zircon_editor/src/ui/animation_editor/session/sequence.rs
   - zircon_editor/src/ui/host/animation_editor_sessions
-  - zircon_editor/src/ui/retained_host/app/assets/workspace.rs
+  - zircon_editor/src/ui/retained/app/assets/workspace.rs
   - zircon_runtime/src/asset/importer/ingest/gltf_animation_subassets.rs
 tests:
-  - zircon_runtime/src/animation/sequence/tests.rs
   - zircon_runtime/src/animation/clip_event.rs
-  - zircon_plugins/animation/runtime/src/tests.rs
-  - zircon_editor/src/ui/animation_editor/session/tests.rs
   - zircon_editor/src/tests/editor_event/animation_runtime/sequence.rs
   - zircon_editor/src/tests/host/animation_editor.rs
   - zircon_editor/src/tests/host/binding_dispatch/animation.rs
-  - zircon_editor/src/ui/retained_host/app/helpers/animation_assets/tests.rs
 plan_sources:
   - docs/plans/mvp/index.md
   - docs/plans/optimize/00-engine-wide-review.md

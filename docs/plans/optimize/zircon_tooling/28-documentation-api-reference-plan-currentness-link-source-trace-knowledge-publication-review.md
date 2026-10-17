@@ -2,7 +2,6 @@
 related_code:
   - Cargo.toml
   - .github/workflows/ci.yml
-  - tools/check_conventions.py
   - .codex/skills/zircon-project-skills/development-conventions.md
   - docs/plans/index.md
   - docs/crates/zircon_app/prelude.md

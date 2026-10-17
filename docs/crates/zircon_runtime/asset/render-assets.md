@@ -2,9 +2,7 @@
 
 related_code:
 
-  - dev/bevy/crates/bevy_pbr/src/render/mesh_types.wgsl
 
-  - dev/bevy/crates/bevy_pbr/src/render/pbr_functions.wgsl
   - zircon_runtime/src/asset/mod.rs
   - zircon_runtime/src/asset/project/shader_resource_records.rs
   - zircon_runtime/src/asset/assets/mod.rs
@@ -26,17 +24,16 @@ related_code:
   - zircon_runtime/src/asset/assets/texture/upload_support/compressed.rs
 
   - zircon_runtime/src/asset/assets/texture/upload_support/dds.rs
-  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/asset_dynamic.rs
-  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/asset_schema.rs
-  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/core_scene.rs
+  - zircon_runtime/src/tests/contracts/runtime_15_m2/asset_dynamic.rs
+  - zircon_runtime/src/tests/contracts/naming_boundary/runtime_15_m2/asset_schema.rs
+  - zircon_runtime/src/tests/contracts/naming_boundary/runtime_15_m2/core_scene.rs
   - zircon_runtime/src/asset/assets/texture/upload_support/ktx.rs
   - zircon_runtime/src/asset/assets/texture/upload_support/layout.rs
 
-  - zircon_runtime/src/asset/assets/texture/upload_support/tests.rs
 
   - zircon_runtime/src/asset/tests/assets/texture_upload_readiness.rs
 
-  - zircon_runtime/src/asset/tests/assets/texture_upload_readiness/container_fixtures.rs
+  - zircon_runtime/src/asset/tests/texture_upload_readiness/container_fixtures.rs
   - zircon_runtime/src/asset/tests/assets/texture_upload_readiness/containers.rs
 
   - zircon_runtime/src/asset/tests/assets/texture_upload_readiness/boundaries.rs
@@ -97,7 +94,6 @@ related_code:
   - zircon_runtime/src/asset/importer/ingest/primitive_from_indexed_mesh.rs
   - zircon_runtime/src/asset/tests/assets/gltf_importer/vertex_channels.rs
   - zircon_runtime/src/asset/tests/assets/model.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/mesh_asset.rs
   - zircon_runtime/src/asset/assets/shader/mod.rs
 
   - zircon_runtime/src/asset/assets/shader/shader_asset.rs
@@ -155,7 +151,6 @@ related_code:
 
   - zircon_runtime/src/asset/importer/ingest/import_shader_package.rs
 
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/management.rs
 
   - zircon_plugins/gltf_importer/runtime/Cargo.toml
 
@@ -163,7 +158,6 @@ related_code:
 
   - zircon_plugins/gltf_importer/runtime/src/subassets.rs
 
-  - zircon_plugins/gltf_importer/runtime/src/tests.rs
 
   - zircon_editor/src/ui/workbench/project/constants.rs
 
@@ -185,53 +179,34 @@ related_code:
   - zircon_runtime/src/asset/tests/assets/render_product.rs
   - zircon_runtime/src/asset/tests/project/zmeta.rs
   - zircon_editor/src/tests/ui/material_editor/projection.rs
-  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources
 
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/scene_representation/representation.rs
+  - zircon_plugins/hybrid_gi/runtime/src/gi/scene_representation/representation.rs
 
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources
 
   - zircon_runtime/tests/virtual_geometry_visibility_debug_contract.rs
 
   - zircon_runtime/src/graphics/scene/mod.rs
 
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_material.rs
 
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_validate_material_shader_layout.rs
 
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer.rs
+  - zircon_runtime/src/graphics/scene/resource_streamer/resource_streamer.rs
 
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_construction.rs
 
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_mesh.rs
 
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_scene_resources.rs
 
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_output_target_texture.rs
 
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_execute_output_target_writeback.rs
 
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_accessors.rs
 
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/compiled_scene_outputs.rs
 
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/execute_graph_stage.rs
+  - zircon_runtime/src/graphics/scene/core/render/render/execute_graph_stage.rs
 
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
+  - zircon_runtime/src/graphics/scene/renderer/core/render/render/render.rs
 
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_runtime_outputs/store_last_runtime_outputs.rs
 
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_texture.rs
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_mip_streaming.rs
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_shader_source.rs
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_resolve_texture_id.rs
 
-  - zircon_runtime/src/graphics/scene/resources/gpu_model/gpu_model_resource_from_asset.rs
 
   - zircon_runtime/src/graphics/scene/resources/prepared/prepared_mesh.rs
 
-  - zircon_runtime/src/graphics/scene/resources/gpu_mesh/gpu_mesh_resource_from_asset.rs
 
   - zircon_runtime/src/scene/components/scene/mesh_renderer.rs
   - zircon_runtime/src/scene/world/project_io.rs
@@ -244,60 +219,45 @@ related_code:
 
   - zircon_runtime/src/core/framework/render/scene_extract.rs
 
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/extend_pending_draws_for_mesh_instance.rs
+  - zircon_runtime/src/graphics/mesh/build/extend_pending_draws_for_mesh_instance.rs
 
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_mesh_draw.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/build/pending_mesh_draw.rs
 
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/create_mesh_draw.rs
+  - zircon_runtime/src/graphics/scene/mesh/build_mesh_draws/create_mesh_draw.rs
 
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/skinning.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/build/skinning.rs
 
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render_with_pipeline/render_frame_with_pipeline.rs
 
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs
+  - zircon_runtime/src/graphics/runtime/framework/extract/update_stats/base_stats.rs
 
-  - zircon_runtime/src/graphics/scene/resources/gpu_material_uniform/gpu_material_uniform_resource.rs
 
   - zircon_runtime/src/graphics/scene/resources/prepared/prepared_material.rs
 
-  - zircon_runtime/src/graphics/scene/resources/gpu_texture/gpu_texture_resource_from_asset.rs
   - zircon_runtime/src/graphics/scene/resources/gpu_texture/mod.rs
   - zircon_runtime/src/graphics/scene/resources/prepared/prepared_texture.rs
   - zircon_runtime/src/graphics/types/viewport_render_output_target.rs
 
-  - zircon_runtime/src/graphics/scene/resources/output_target_texture/output_target_texture_resource.rs
 
-  - zircon_runtime/src/graphics/scene/resources/prepared/prepared_output_target_texture.rs
 
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render/render_frame.rs
+  - zircon_runtime/src/graphics/scene/core/scene_renderer_render/render_frame.rs
 
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/target_resolution.rs
 
   - zircon_runtime/src/graphics/scene/resources/runtime/material_runtime.rs
 
-  - zircon_runtime/src/graphics/scene/render_product_streamer_tests.rs
 
-  - zircon_runtime/src/graphics/scene/render_product_streamer_tests/material_runtime.rs
 
-  - zircon_runtime/src/graphics/scene/render_product_streamer_tests/readiness_diagnostics.rs
 
-  - zircon_runtime/src/graphics/scene/render_product_streamer_tests/texture_slot_diagnostics.rs
 
-  - zircon_runtime/src/graphics/scene/render_product_zshader_import_tests.rs
 
-  - zircon_runtime/src/graphics/scene/render_product_material_property_tests.rs
 
-  - zircon_runtime/src/graphics/scene/render_product_material_property_tests/uniform_debug_counts.rs
 
   - zircon_runtime/src/graphics/tests/render_product_submit.rs
 
   - zircon_plugins/virtual_geometry/runtime/src/provider.rs
 
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/prepare_frame/build_scene_prepare_frame.rs
 
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/voxel_clipmap_debug.rs
+  - zircon_plugins/hybrid_gi/runtime/src/gi/gpu/execute/voxel_clipmap_debug.rs
 
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/scene_representation/voxel_scene_state.rs
 
 implementation_files:
   - zircon_runtime/src/asset/mod.rs
@@ -325,11 +285,10 @@ implementation_files:
 
   - zircon_runtime/src/asset/assets/texture/upload_support/layout.rs
 
-  - zircon_runtime/src/asset/assets/texture/upload_support/tests.rs
 
   - zircon_runtime/src/asset/tests/assets/texture_upload_readiness.rs
 
-  - zircon_runtime/src/asset/tests/assets/texture_upload_readiness/container_fixtures.rs
+  - zircon_runtime/src/asset/tests/texture_upload_readiness/container_fixtures.rs
   - zircon_runtime/src/asset/tests/assets/texture_upload_readiness/containers.rs
 
   - zircon_runtime/src/asset/tests/assets/texture_upload_readiness/boundaries.rs
@@ -450,7 +409,6 @@ implementation_files:
 
   - zircon_runtime/src/asset/importer/ingest/import_shader_package.rs
 
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/management.rs
 
   - zircon_plugins/gltf_importer/runtime/Cargo.toml
 
@@ -458,7 +416,6 @@ implementation_files:
 
   - zircon_plugins/gltf_importer/runtime/src/subassets.rs
 
-  - zircon_plugins/gltf_importer/runtime/src/tests.rs
 
   - zircon_editor/src/ui/workbench/project/constants.rs
 
@@ -471,44 +428,28 @@ implementation_files:
 
   - zircon_runtime/src/graphics/scene/mod.rs
 
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_material.rs
 
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_validate_material_shader_layout.rs
 
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer.rs
+  - zircon_runtime/src/graphics/scene/resource_streamer/resource_streamer.rs
 
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_construction.rs
 
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_mesh.rs
 
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_scene_resources.rs
 
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_output_target_texture.rs
 
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_execute_output_target_writeback.rs
 
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/compiled_scene_outputs.rs
 
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/execute_graph_stage.rs
+  - zircon_runtime/src/graphics/scene/core/render/render/execute_graph_stage.rs
 
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
+  - zircon_runtime/src/graphics/scene/renderer/core/render/render/render.rs
 
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_runtime_outputs/store_last_runtime_outputs.rs
 
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_texture.rs
 
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_shader_source.rs
 
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_resolve_texture_id.rs
 
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_accessors.rs
 
-  - zircon_runtime/src/graphics/scene/resources/gpu_model/gpu_model_resource_from_asset.rs
 
   - zircon_runtime/src/graphics/scene/resources/prepared/prepared_mesh.rs
 
-  - zircon_runtime/src/graphics/scene/resources/gpu_mesh/gpu_mesh_resource_from_asset.rs
 
   - zircon_runtime/src/scene/components/scene/mesh_renderer.rs
   - zircon_runtime/src/scene/world/project_io.rs
@@ -521,47 +462,34 @@ implementation_files:
 
   - zircon_runtime/src/core/framework/render/scene_extract.rs
 
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/extend_pending_draws_for_mesh_instance.rs
+  - zircon_runtime/src/graphics/mesh/build/extend_pending_draws_for_mesh_instance.rs
 
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/skinning.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/build/skinning.rs
 
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render_with_pipeline/render_frame_with_pipeline.rs
 
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs
+  - zircon_runtime/src/graphics/runtime/framework/extract/update_stats/base_stats.rs
 
-  - zircon_runtime/src/graphics/scene/resources/gpu_material_uniform/gpu_material_uniform_resource.rs
 
   - zircon_runtime/src/graphics/scene/resources/prepared/prepared_material.rs
 
-  - zircon_runtime/src/graphics/scene/resources/gpu_texture/gpu_texture_resource_from_asset.rs
 
   - zircon_runtime/src/graphics/scene/resources/gpu_texture/mod.rs
 
   - zircon_runtime/src/graphics/types/viewport_render_output_target.rs
 
-  - zircon_runtime/src/graphics/scene/resources/output_target_texture/output_target_texture_resource.rs
 
-  - zircon_runtime/src/graphics/scene/resources/prepared/prepared_output_target_texture.rs
 
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render/render_frame.rs
+  - zircon_runtime/src/graphics/scene/core/scene_renderer_render/render_frame.rs
 
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/target_resolution.rs
 
   - zircon_runtime/src/graphics/scene/resources/runtime/material_runtime.rs
 
-  - zircon_runtime/src/graphics/scene/render_product_streamer_tests.rs
 
-  - zircon_runtime/src/graphics/scene/render_product_streamer_tests/material_runtime.rs
 
-  - zircon_runtime/src/graphics/scene/render_product_streamer_tests/readiness_diagnostics.rs
 
-  - zircon_runtime/src/graphics/scene/render_product_streamer_tests/texture_slot_diagnostics.rs
 
-  - zircon_runtime/src/graphics/scene/render_product_zshader_import_tests.rs
 
-  - zircon_runtime/src/graphics/scene/render_product_material_property_tests.rs
 
-  - zircon_runtime/src/graphics/scene/render_product_material_property_tests/uniform_debug_counts.rs
 
   - zircon_runtime/src/graphics/tests/render_product_submit.rs
 
@@ -623,9 +551,7 @@ tests:
 
   - zircon_runtime/src/asset/tests/assets/gltf_importer.rs::importer_preserves_gltf_texture_transform_on_standard_material_slots
 
-  - zircon_plugins/gltf_importer/runtime/src/tests.rs::importer_preserves_gltf_material_texcoord_as_texture_slot_uv_channel
 
-  - zircon_plugins/gltf_importer/runtime/src/tests.rs::importer_preserves_gltf_texture_transform_on_standard_material_slot
 
   - cargo test -p zircon_runtime --lib importer_preserves_gltf_texcoord_1_on_model_vertices_and_mesh_subasset --locked --jobs 1 --target-dir E:\cargo-targets\zircon-render-main-chain --message-format short --color never -- --test-threads=1 --nocapture (2026-06-08 glTF TEXCOORD_1 and material texCoord ingress: passed, 1 passed / 0 failed / 3161 filtered; existing zircon_runtime lib-test warnings only)
 
@@ -665,30 +591,17 @@ tests:
 
   - zircon_runtime/src/asset/tests/assets/material.rs::shader_declared_texture_slot_overrides_standard_material_bridge
 
-  - zircon_runtime/src/graphics/scene/render_product_streamer_tests/readiness_diagnostics.rs::render_product_streamer_reports_shader_material_contract_diagnostics
 
-  - zircon_runtime/src/graphics/scene/render_product_streamer_tests/material_runtime.rs::render_product_streamer_prepares_shader_property_runtime_values
 
-  - zircon_runtime/src/graphics/scene/render_product_streamer_tests/material_runtime.rs::render_product_pbr_streamer_projects_material_sort_offsets_without_pipeline_variant
 
-  - zircon_runtime/src/graphics/scene/render_product_streamer_tests/material_runtime.rs::render_product_pbr_streamer_projects_standard_material_into_runtime_key
 
-  - zircon_runtime/src/graphics/scene/resources/gpu_material_uniform/gpu_material_uniform_resource.rs::tests::standard_material_uniform_packs_per_slot_texture_transforms
 
-  - zircon_runtime/src/graphics/scene/render_product_streamer_tests/readiness_diagnostics.rs::render_product_streamer_reports_shader_material_layout_abi_diagnostics
 
-  - zircon_runtime/src/graphics/scene/render_product_streamer_tests/material_runtime.rs::render_product_streamer_bridges_shader_standard_texture_alias_into_pbr_slot
 
-  - zircon_runtime/src/graphics/scene/render_product_streamer_tests/material_runtime.rs::render_product_streamer_shader_standard_alias_shadows_unresolved_stale_texture
-  - zircon_runtime/src/graphics/scene/render_product_streamer_tests/texture_slot_diagnostics.rs::render_product_streamer_reports_shader_texture_slot_upload_fallback_by_slot_key
 
-  - zircon_runtime/src/graphics/scene/render_product_streamer_tests/texture_slot_diagnostics.rs::render_product_streamer_reports_rgba8_descriptor_conversion_fallback_detail
 
-  - zircon_runtime/src/graphics/scene/render_product_streamer_tests/texture_slot_diagnostics.rs::render_product_streamer_reports_compressed_mip_chain_texture_fallback_detail
 
-  - zircon_runtime/src/graphics/scene/render_product_streamer_tests/texture_slot_diagnostics.rs::render_product_streamer_reports_unresolved_shader_texture_slot_by_slot_key
 
-  - zircon_runtime/src/asset/assets/texture/upload_support/tests.rs::compressed_upload_readiness_reports_shape_before_feature_support
 
   - zircon_runtime/src/asset/tests/project/asset_flow_sample.rs::project_manager_imports_minimal_gltf_material_shader_mesh_sample
 
@@ -713,9 +626,7 @@ tests:
 
   - cargo test -p zircon_runtime --lib skin_ --locked --jobs 1 --target-dir D:\cargo-targets\zircon-mesh-index-format-0530 --message-format short --color never -- --test-threads=1 --nocapture (2026-06-01 direct mesh CPU skinning parity after morph-aware conversion entry point: passed, 3 passed, 2274 filtered; package-cache lock waits and existing zircon_runtime lib-test warnings only)
 
-  - zircon_runtime/src/graphics/scene/resources/gpu_model/gpu_model_resource_from_asset.rs::tests::model_render_primitives_use_referenced_mesh_asset_payload_when_available
 
-  - zircon_runtime/src/graphics/scene/resources/gpu_model/gpu_model_resource_from_asset.rs::tests::model_render_primitives_keep_embedded_payload_when_mesh_reference_unresolved
   - zircon_runtime/src/core/framework/render/material/texture_slot_summary.rs::tests::material_texture_slot_summary_counts_resolved_and_fallback_slots
 
   - zircon_runtime/src/core/framework/render/material/texture_slot_summary.rs::tests::material_texture_slot_summary_counts_authored_standard_slot_states
@@ -726,31 +637,18 @@ tests:
 
   - zircon_runtime/src/core/framework/render/material/readiness_report.rs::tests::material_readiness_report_summary_counts_status_and_prepared_summaries
 
-  - zircon_runtime/src/core/framework/render/material/management/tests.rs::material_management_sort_orders_records_and_filtered_views
 
-  - zircon_runtime/src/core/framework/render/material/management/tests.rs::material_management_issue_summary_counts_filtered_and_selected_rows
 
-  - zircon_runtime/src/core/framework/render/material/management/tests.rs::material_management_issue_index_tracks_filtered_and_selected_issue_types
 
-  - zircon_runtime/src/core/framework/render/material/management/tests.rs::material_management_issue_view_returns_rows_for_issue_kind
 
-  - zircon_runtime/src/core/framework/render/material/management/tests.rs::material_management_query_filters_issue_kind_before_sorting_and_paging
 
-  - zircon_runtime/src/core/framework/render/material/management/tests.rs::material_management_query_selection_returns_page_details_in_display_order
 
-  - zircon_runtime/src/core/framework/render/material/management/tests.rs::material_management_query_filters_sorts_and_pages
 
-  - zircon_runtime/src/core/framework/render/material/management/tests.rs::material_management_selection_preserves_request_order_and_missing_ids
 
-  - zircon_runtime/src/graphics/scene/render_product_zshader_import_tests.rs::render_product_streamer_reports_imported_zshader_material_layout_abi_diagnostics
 
-  - zircon_runtime/src/graphics/scene/render_product_material_property_tests.rs::render_product_material_properties_prepare_uniform_payload
 
-  - zircon_runtime/src/graphics/scene/render_product_material_property_tests/uniform_debug_counts.rs::render_product_streamer_exposes_material_uniform_debug_counts
 
-  - zircon_runtime/src/graphics/scene/render_product_material_property_tests.rs::render_product_streamer_reports_material_uniform_diagnostics_in_readiness_report
 
-  - zircon_runtime/src/graphics/scene/render_product_material_property_tests.rs::render_product_streamer_reports_material_uniform_diagnostics_for_shader_string_defaults
 
   - zircon_runtime/src/graphics/tests/render_product_submit.rs::render_product_submit_material_stats_count_non_blocking_diagnostics
 
@@ -1096,17 +994,11 @@ tests:
 
   - zircon_runtime/src/asset/tests/assets/texture_upload_readiness/ktx.rs::texture_upload_readiness_rejects_ktx_structural_header_mismatches
 
-  - zircon_runtime/src/asset/assets/texture/upload_support/tests.rs::ktx2_upload_plan_rejects_level_payload_inside_level_index
 
-  - zircon_runtime/src/asset/assets/texture/upload_support/tests.rs::rgba8_upload_readiness_accepts_layered_shapes_with_complete_payloads
 
-  - zircon_runtime/src/asset/assets/texture/upload_support/tests.rs::rgba8_upload_readiness_accepts_complete_mip_chain_payloads
 
-  - zircon_runtime/src/asset/assets/texture/upload_support/tests.rs::rgba8_upload_readiness_accepts_complete_layered_mip_chain_payloads
 
-  - zircon_runtime/src/asset/assets/texture/upload_support/tests.rs::rgba8_upload_readiness_reports_linear_upload_format_for_linear_color_space
 
-  - zircon_runtime/src/asset/assets/texture/upload_support/tests.rs::rgba8_upload_readiness_rejects_descriptor_formats_that_need_conversion
 
   - zircon_runtime/src/asset/assets/texture/descriptor.rs::tests::linear_color_space_normalizes_default_rgba8_format_to_linear
 
@@ -1114,27 +1006,16 @@ tests:
 
   - zircon_plugins/texture_importer/runtime/src/lib.rs::tests::image_importer_normalizes_default_linear_rgba8_format
 
-  - zircon_runtime/src/graphics/scene/resources/gpu_texture/gpu_texture_resource_from_asset/tests.rs::rgba8_wgpu_format_uses_upload_plan_format
 
-  - zircon_runtime/src/graphics/scene/resources/gpu_texture/gpu_texture_resource_from_asset/tests.rs::rgba8_mip_uploads_pack_levels_and_layers_in_payload_order
 
-  - zircon_runtime/src/graphics/scene/resources/gpu_texture/gpu_texture_resource_from_asset/tests.rs::rgba8_mip_uploads_pack_layers_inside_each_mip_level
 
-  - zircon_runtime/src/graphics/scene/resources/gpu_texture/gpu_texture_resource_from_asset/tests.rs::rgba8_material_texture_view_keeps_current_d2_binding_contract
 
-  - zircon_runtime/src/graphics/scene/resources/gpu_texture/gpu_texture_resource_from_asset/tests.rs::wgpu_texture_usages_maps_render_image_usage_for_asset_residency
 
-  - zircon_runtime/src/graphics/scene/resources/gpu_texture/gpu_texture_resource_from_asset/tests.rs::wgpu_texture_usages_does_not_add_upload_dst_when_not_required
 
-  - zircon_runtime/src/graphics/scene/resources/gpu_texture/gpu_texture_resource_from_asset/tests.rs::wgpu_texture_usages_skips_storage_for_non_storage_formats
 
-  - zircon_runtime/src/graphics/scene/resources/gpu_texture/gpu_texture_resource_from_asset/tests.rs::wgpu_texture_usages_skips_render_attachment_for_non_renderable_formats
 
-  - zircon_runtime/src/graphics/scene/resources/gpu_texture/gpu_texture_resource_from_asset/tests.rs::sampler_descriptor_maps_texture_asset_sampler_settings
 
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_output_target_texture.rs::tests::output_target_texture_id_uses_resolved_texture_target_only
 
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_output_target_texture.rs::tests::output_target_texture_id_ignores_non_texture_targets
 
   - zircon_runtime/src/graphics/types/viewport_render_output_target.rs::tests::output_target_graph_import_plan_marks_srgb_texture_ready_for_direct_import
 
@@ -1142,29 +1023,19 @@ tests:
 
   - zircon_runtime/src/graphics/types/viewport_render_output_target.rs::tests::output_target_graph_import_plan_blocks_unsupported_target_format
 
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_scene_resources.rs::tests::output_target_graph_import_report_marks_srgb_texture_ready_for_direct_import
 
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_scene_resources.rs::tests::output_target_graph_import_report_keeps_linear_texture_on_writeback_path
 
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_execute_output_target_writeback.rs::tests::output_target_writeback_executes_ready_copy_and_conversion_plans
 
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_execute_output_target_writeback.rs::tests::output_target_writeback_report_maps_ready_and_blocked_plans
 
   - zircon_runtime/src/core/framework/render/backend_types.rs::tests::camera_target_writeback_report_separates_copy_and_conversion_debug_markers
 
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_execute_output_target_writeback.rs::tests::output_target_writeback_extent_accepts_matching_source_and_destination
 
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_execute_output_target_writeback.rs::tests::output_target_writeback_extent_rejects_source_size_mismatch
 
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_execute_output_target_writeback.rs::tests::output_target_writeback_extent_rejects_destination_size_mismatch
 
-  - zircon_runtime/src/graphics/scene/resources/output_target_texture/output_target_texture_resource.rs::tests::output_target_texture_usages_prepare_render_target_only_without_sampled_binding
 
-  - zircon_runtime/src/graphics/scene/resources/output_target_texture/output_target_texture_resource.rs::tests::output_target_texture_usages_preserve_copy_and_sampled_authoring_flags
 
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/execute_graph_stage.rs::tests::import_frame_targets_rebinds_final_aliases_to_imported_texture_target
+  - zircon_runtime/src/graphics/scene/core/render/render/execute_graph_stage.rs::tests::import_frame_targets_rebinds_final_aliases_to_imported_texture_target
 
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/compiled_scene_outputs.rs::tests::compiled_scene_outputs_can_carry_output_target_graph_import_report
 
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product.rs::tests::render_product_diagnostics_record_texture_direct_graph_import_execution
 
@@ -1240,7 +1111,6 @@ tests:
 
   - cargo test -p zircon_runtime --lib render_product_streamer_reports_shader_texture_slot_upload_fallback_by_slot_key --locked --jobs 1 --target-dir E:\Git\ZirconEngine\zircon_plugins\target --message-format short --color never -- --test-threads=1 (2026-05-20 M5 shader texture slot final: passed, 1 passed, 1720 filtered out)
 
-  - zircon_runtime/src/graphics/scene/render_product_streamer_tests/material_runtime.rs::render_product_streamer_prepares_shader_texture_slot_runtime_mapping
 
   - zircon_runtime/src/asset/tests/pipeline/manager.rs
 
@@ -1316,7 +1186,7 @@ tests:
 
   - zircon_runtime/src/asset/tests/assets/texture_upload_readiness.rs
 
-  - zircon_runtime/src/asset/tests/assets/texture_upload_readiness/container_fixtures.rs
+  - zircon_runtime/src/asset/tests/texture_upload_readiness/container_fixtures.rs
   - zircon_runtime/src/asset/tests/assets/texture_upload_readiness/containers.rs
 
   - zircon_runtime/src/asset/tests/assets/texture_upload_readiness/boundaries.rs
@@ -1353,7 +1223,6 @@ tests:
   - zircon_runtime/src/asset/assets/texture/descriptor.rs::dimension_3d_keeps_depth_and_single_array_layer
   - zircon_runtime/src/asset/assets/texture/descriptor.rs::import_extent_override_replaces_existing_2d_container_layers
   - zircon_runtime/src/asset/assets/texture/descriptor.rs::bevy_alias_diagnostics_report_actual_setting_keys
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/texture_descriptor_settings.rs::runtime_15_texture_descriptor_settings_parser_is_child_owner
   - zircon_runtime/src/asset/importer/image_decode.rs::default_format_reports_missing_extension
   - zircon_runtime/src/asset/importer/image_decode.rs::explicit_source_format_reports_unsupported_token
 
@@ -1395,17 +1264,11 @@ tests:
 
   - zircon_plugins/texture_importer/runtime/src/lib.rs::psd_importer_applies_texture_descriptor_settings
 
-  - zircon_runtime/src/graphics/scene/render_product_streamer_tests.rs
 
-  - zircon_runtime/src/graphics/scene/render_product_streamer_tests/material_runtime.rs
 
-  - zircon_runtime/src/graphics/scene/render_product_streamer_tests/readiness_diagnostics.rs
 
-  - zircon_runtime/src/graphics/scene/render_product_material_property_tests.rs
 
-  - zircon_runtime/src/graphics/scene/render_product_material_property_tests/uniform_debug_counts.rs
 
-  - tests/acceptance/render-product-m3a-assets.md
 
   - cargo test -p zircon_runtime --locked render_product_assets
 

@@ -16,18 +16,12 @@ related_records:
   - docs/plans/astra/features/editor/664-20260911-editor-ui-optimization-batch-completion.md
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/routing/panes/pane/entry/tests.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_wizard_session/session_state/hash_index_tests.rs
-  - zircon_editor/src/ui/retained_host/app/module_plugin_actions/project_policy/dependencies/capacity_tests.rs
   - zircon_editor/src/tests/editor_event/runtime/stack_play.rs
-  - zircon_editor/src/ui/host/project_recovery_decision/tests.rs
   - zircon_editor/src/tests/host/retained_activity_rail_pointer/dispatch.rs
-  - zircon_editor/src/ui/retained_host/app/tests/drag_sources/asset_browser.rs
+  - zircon_editor/src/ui/retained/app/tests/drag_sources/asset_browser.rs
   - zircon_editor/src/tests/ui/boundary/zui_asset_governance/interaction_policy.rs
-  - zircon_editor/src/ui/retained_host/host_contract/presenter/gpu/stats.rs
-  - zircon_editor/src/core/editing/animation_document/tests.rs
+  - zircon_editor/src/ui/retained/contract/presenter/gpu/stats.rs
   - zircon_editor/src/tests/editor_event/animation_runtime/graph.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_projection/support.rs
 ---
 
 # Editor921 Window, Animation, Event, and GPU Test Contract Repairs

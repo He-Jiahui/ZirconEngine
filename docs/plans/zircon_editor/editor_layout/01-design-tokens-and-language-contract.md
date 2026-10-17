@@ -3,7 +3,6 @@ related_code:
   - zircon_runtime_interface/src/ui/style.rs
   - zircon_runtime/src/ui/v2/style.rs
   - zircon_runtime/src/ui/template/asset/compiler/ui_style_resolver.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector
   - zircon_editor/assets/ui/editor/components
 design_references:
   - docs/ui/editor-workbench-designs/STYLE-NOTES.md

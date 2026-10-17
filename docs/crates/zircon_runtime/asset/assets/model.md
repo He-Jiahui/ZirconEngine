@@ -22,14 +22,7 @@ related_code:
   - zircon_plugins/obj_importer/runtime/src/lib.rs
   - zircon_plugins/gltf_importer/runtime/src/lib.rs
   - zircon_plugins/gltf_importer/runtime/src/subassets.rs
-  - zircon_plugins/gltf_importer/runtime/src/tests.rs
-  - zircon_plugins/gltf_importer/runtime/src/test_fixtures.rs
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_accessors.rs
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_model.rs
-  - zircon_runtime/src/graphics/scene/resources/gpu_model/gpu_model_resource_from_asset.rs
   - zircon_runtime/src/graphics/shader/wgsl/zr_geometry_virtual_geometry.wgsl
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/virtual_geometry_meshlet_vertex_ordinal.rs
-  - zircon_runtime/src/graphics/scene/resources/gpu_model/gpu_model_resource_from_asset.rs
 implementation_files:
   - zircon_runtime/src/asset/assets/model/model_asset.rs
   - zircon_runtime/src/asset/assets/model/primitive.rs
@@ -45,10 +38,6 @@ implementation_files:
   - zircon_runtime/src/asset/assets/model/mod.rs
   - zircon_runtime/src/asset/assets/mod.rs
   - zircon_runtime/src/asset/mod.rs
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_accessors.rs
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_model.rs
-  - zircon_runtime/src/graphics/scene/resources/gpu_model/gpu_model_resource_from_asset.rs
-  - zircon_runtime/src/graphics/scene/resources/gpu_model/gpu_model_resource_from_asset.rs
 plan_sources:
   - user: 2026-05-30 continue model material mesh entity shader flow and asset management
   - .codex/plans/ZirconEngine 资产、Texture、模型、ZShaderZMaterialZMesh 缺口补齐计划.md

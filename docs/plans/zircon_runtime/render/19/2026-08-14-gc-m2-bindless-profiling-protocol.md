@@ -6,8 +6,8 @@ status: implementation_in_progress
 coordination_owner: docs/plans/zircon_runtime/render/19
 related_code:
   - zircon_runtime/src/core/framework/render/backend_types.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/replay.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/prepared_queue/stats_bridge.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/mesh_pass/replay.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/prepared_queue/stats_bridge.rs
   - tools/analysis/validation/validate_render_measurement_evidence.py
 ---
 

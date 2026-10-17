@@ -1,37 +1,33 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/app/showcase_event_inputs.rs
-  - zircon_editor/src/ui/retained_host/app/showcase_event_inputs/action.rs
-  - zircon_editor/src/ui/retained_host/app/showcase_event_inputs/action/collections.rs
-  - zircon_editor/src/ui/retained_host/app/showcase_event_inputs/action/fields.rs
-  - zircon_editor/src/ui/retained_host/app/showcase_event_inputs/action/lists.rs
-  - zircon_editor/src/ui/retained_host/app/showcase_event_inputs/action/references.rs
-  - zircon_editor/src/ui/retained_host/app/showcase_event_inputs/action/selection.rs
-  - zircon_editor/src/ui/retained_host/app/showcase_event_inputs/action/world_surface.rs
-  - zircon_editor/src/ui/retained_host/app/showcase_event_inputs/action_tests.rs
-  - zircon_editor/src/ui/retained_host/app/showcase_event_inputs/edit.rs
-  - zircon_editor/src/ui/retained_host/app/showcase_event_inputs/edit/collections.rs
-  - zircon_editor/src/ui/retained_host/app/showcase_event_inputs/edit/lists.rs
-  - zircon_editor/src/ui/retained_host/app/showcase_event_inputs/edit/menu.rs
-  - zircon_editor/src/ui/retained_host/app/showcase_event_inputs/edit/values.rs
-  - zircon_editor/src/ui/retained_host/app/showcase_event_inputs/edit_tests.rs
-  - zircon_editor/src/ui/retained_host/app/pane_surface_actions/component_showcase.rs
+  - zircon_editor/src/ui/retained/app/showcase_event_inputs.rs
+  - zircon_editor/src/ui/retained/app/showcase_event_inputs/action.rs
+  - zircon_editor/src/ui/retained/app/showcase_event_inputs/action/collections.rs
+  - zircon_editor/src/ui/retained/app/showcase_event_inputs/action/fields.rs
+  - zircon_editor/src/ui/retained/app/showcase_event_inputs/action/lists.rs
+  - zircon_editor/src/ui/retained/app/showcase_event_inputs/action/references.rs
+  - zircon_editor/src/ui/retained/app/showcase_event_inputs/action/selection.rs
+  - zircon_editor/src/ui/retained/app/showcase_event_inputs/action/world_surface.rs
+  - zircon_editor/src/ui/retained/app/showcase_event_inputs/edit.rs
+  - zircon_editor/src/ui/retained/app/showcase_event_inputs/edit/collections.rs
+  - zircon_editor/src/ui/retained/app/showcase_event_inputs/edit/lists.rs
+  - zircon_editor/src/ui/retained/app/showcase_event_inputs/edit/menu.rs
+  - zircon_editor/src/ui/retained/app/showcase_event_inputs/edit/values.rs
+  - zircon_editor/src/ui/retained/app/pane_surface_actions/component_showcase.rs
 implementation_files:
-  - zircon_editor/src/ui/retained_host/app/showcase_event_inputs.rs
-  - zircon_editor/src/ui/retained_host/app/showcase_event_inputs/action.rs
-  - zircon_editor/src/ui/retained_host/app/showcase_event_inputs/action/collections.rs
-  - zircon_editor/src/ui/retained_host/app/showcase_event_inputs/action/fields.rs
-  - zircon_editor/src/ui/retained_host/app/showcase_event_inputs/action/lists.rs
-  - zircon_editor/src/ui/retained_host/app/showcase_event_inputs/action/references.rs
-  - zircon_editor/src/ui/retained_host/app/showcase_event_inputs/action/selection.rs
-  - zircon_editor/src/ui/retained_host/app/showcase_event_inputs/action/world_surface.rs
-  - zircon_editor/src/ui/retained_host/app/showcase_event_inputs/action_tests.rs
-  - zircon_editor/src/ui/retained_host/app/showcase_event_inputs/edit.rs
-  - zircon_editor/src/ui/retained_host/app/showcase_event_inputs/edit/collections.rs
-  - zircon_editor/src/ui/retained_host/app/showcase_event_inputs/edit/lists.rs
-  - zircon_editor/src/ui/retained_host/app/showcase_event_inputs/edit/menu.rs
-  - zircon_editor/src/ui/retained_host/app/showcase_event_inputs/edit/values.rs
-  - zircon_editor/src/ui/retained_host/app/showcase_event_inputs/edit_tests.rs
+  - zircon_editor/src/ui/retained/app/showcase_event_inputs.rs
+  - zircon_editor/src/ui/retained/app/showcase_event_inputs/action.rs
+  - zircon_editor/src/ui/retained/app/showcase_event_inputs/action/collections.rs
+  - zircon_editor/src/ui/retained/app/showcase_event_inputs/action/fields.rs
+  - zircon_editor/src/ui/retained/app/showcase_event_inputs/action/lists.rs
+  - zircon_editor/src/ui/retained/app/showcase_event_inputs/action/references.rs
+  - zircon_editor/src/ui/retained/app/showcase_event_inputs/action/selection.rs
+  - zircon_editor/src/ui/retained/app/showcase_event_inputs/action/world_surface.rs
+  - zircon_editor/src/ui/retained/app/showcase_event_inputs/edit.rs
+  - zircon_editor/src/ui/retained/app/showcase_event_inputs/edit/collections.rs
+  - zircon_editor/src/ui/retained/app/showcase_event_inputs/edit/lists.rs
+  - zircon_editor/src/ui/retained/app/showcase_event_inputs/edit/menu.rs
+  - zircon_editor/src/ui/retained/app/showcase_event_inputs/edit/values.rs
 plan_sources:
   - docs/plans/zircon_editor/editor_ui/08-workbench-shell-on-runtime-ui.md
   - user: 2026-06-18 editor UI architecture implementation, feature first and tests deferred

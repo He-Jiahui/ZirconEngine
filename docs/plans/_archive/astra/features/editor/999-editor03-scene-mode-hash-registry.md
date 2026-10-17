@@ -8,9 +8,7 @@ related_records:
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
   - zircon_editor/src/scene/modes/scene_mode_registry.rs
-  - zircon_editor/src/scene/modes/scene_mode_registry/hash_lookup_tests.rs
 tests:
-  - zircon_editor/src/scene/modes/scene_mode_registry/hash_lookup_tests.rs
 ---
 
 # Editor999 · scene-mode hash registry

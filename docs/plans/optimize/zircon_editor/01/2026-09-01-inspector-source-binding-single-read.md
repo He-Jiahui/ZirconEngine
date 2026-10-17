@@ -8,7 +8,6 @@ implementation_files:
   - tools/analysis/performance/editor/editor_inspector_projection_pressure.py
 tests:
   - tools/tests/test_editor_inspector_projection_pressure.py
-  - tools/tests/test_editor_inspector_source_binding_single_read_performance_contract.py
 ---
 
 # Editor01 inspector source binding single read

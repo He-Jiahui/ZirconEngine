@@ -11,7 +11,6 @@ implementation_files:
   - zircon_runtime/src/asset/project/manager/open.rs
   - zircon_runtime/src/asset/project/manager/scan_and_import.rs
   - zircon_runtime/src/asset/facade/manager.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/loading
 plan_sources:
   - user: 2026-09-09 引擎用户场景配方：安全导入并消费资源
   - docs/wiki/scene-assets/resource-runtime.md

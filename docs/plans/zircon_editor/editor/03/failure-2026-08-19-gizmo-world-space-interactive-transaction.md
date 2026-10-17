@@ -17,7 +17,6 @@ related_code:
   - zircon_editor/src/scene/viewport/handles/move_handle_tool_behavior.rs
   - zircon_editor/src/scene/viewport/handles/rotate_handle_tool_behavior.rs
   - zircon_editor/src/scene/viewport/handles/scale_handle_tool_behavior.rs
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_handle_input.rs
   - zircon_editor/src/scene/viewport/interaction/viewport_feedback.rs
   - zircon_editor/src/ui/workbench/state/editor_state_viewport.rs
   - zircon_runtime/src/scene/world/query.rs

@@ -11,7 +11,6 @@ related_code:
   - zircon_editor/src/ui/workbench/snapshot/workbench
   - zircon_editor/src/ui/workbench/reflection/activity_descriptors.rs
   - zircon_editor/src/ui/workbench/preset/design_stack.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_projection.rs
   - zircon_editor/src/core/editor_extension/view_descriptor.rs
   - zircon_editor/src/core/commands/defaults.rs
   - zircon_editor/src/ui/workbench/event/menu_item_binding.rs

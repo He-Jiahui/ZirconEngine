@@ -6,7 +6,6 @@ related_code:
   - zircon_runtime/src/graphics/mod.rs
   - zircon_runtime/src/graphics/text_transport/mod.rs
   - zircon_runtime/src/graphics/text_transport/conversion.rs
-  - zircon_runtime/src/graphics/text_transport/tests.rs
   - zircon_runtime/Cargo.toml
   - zircon_runtime/src/text/mod.rs
   - zircon_runtime/src/text/language.rs
@@ -21,7 +20,6 @@ related_code:
 
   - zircon_runtime/src/text/cache/shaped_cache.rs
 
-  - zircon_runtime/src/text/cache/tests.rs
 
   - zircon_runtime/src/text/atlas/mod.rs
 
@@ -39,7 +37,6 @@ related_code:
 
   - zircon_runtime/src/text/atlas/bitmap_run/staging.rs
 
-  - zircon_runtime/src/text/atlas/bitmap_run/tests.rs
 
   - zircon_runtime/src/text/atlas/bitmap_run/tests/retry.rs
 
@@ -53,23 +50,18 @@ related_code:
 
   - zircon_runtime/src/text/atlas/page_residency.rs
 
-  - zircon_runtime/src/text/atlas/page_residency/tests.rs
 
   - zircon_runtime/src/text/atlas/render_contract.rs
 
-  - zircon_runtime/src/text/atlas/render_contract/tests.rs
 
   - zircon_runtime/src/text/atlas/render_batch.rs
 
-  - zircon_runtime/src/text/atlas/render_batch/tests.rs
 
   - zircon_runtime/src/text/atlas/render_plan.rs
 
-  - zircon_runtime/src/text/atlas/render_plan/tests.rs
 
   - zircon_runtime/src/text/atlas/render_gpu_plan.rs
 
-  - zircon_runtime/src/text/atlas/render_gpu_plan/tests.rs
 
   - zircon_runtime/src/text/atlas/render_gpu_plan/bind_group.rs
 
@@ -92,7 +84,6 @@ related_code:
 
   - zircon_runtime/src/text/atlas/render_submission/retry.rs
 
-  - zircon_runtime/src/text/atlas/render_submission/tests.rs
 
   - zircon_runtime/src/text/atlas/render_submission/tests/retry_frame.rs
 
@@ -104,15 +95,12 @@ related_code:
 
   - zircon_runtime/src/text/atlas/dirty.rs
 
-  - zircon_runtime/src/text/atlas/dirty/tests.rs
 
   - zircon_runtime/src/text/atlas/upload.rs
 
-  - zircon_runtime/src/text/atlas/upload/tests.rs
 
   - zircon_runtime/src/text/atlas/raster_key/mod.rs
 
-  - zircon_runtime/src/text/atlas/raster_key/tests.rs
 
   - zircon_runtime/src/text/raster/mod.rs
 
@@ -132,7 +120,6 @@ related_code:
 
   - zircon_runtime/src/text/raster/swash/rasterizer.rs
 
-  - zircon_runtime/src/text/raster/swash/tests.rs
 
   - zircon_runtime/src/text/parallel/mod.rs
 
@@ -140,7 +127,6 @@ related_code:
 
   - zircon_runtime/src/text/parallel/raster_pool.rs
 
-  - zircon_runtime/src/text/parallel/tests.rs
 
   - zircon_runtime/src/text/font/mod.rs
 
@@ -151,7 +137,6 @@ related_code:
   - zircon_runtime/src/text/font/composite_resolve.rs
 
   - zircon_runtime/src/text/font/vertical_metrics.rs
-  - zircon_runtime/src/text/font/database/tests.rs
   - zircon_runtime/src/text/font/database/tests/system_policy.rs
   - zircon_runtime/src/text/font/descriptors.rs
 
@@ -165,19 +150,16 @@ related_code:
 
   - zircon_runtime/src/text/font/fallback.rs
 
-  - zircon_runtime/src/text/font/fallback/tests.rs
-  - zircon_runtime/src/text/font/test_font_fixtures.rs
   - zircon_runtime/src/text/font/handle_registry.rs
   - zircon_runtime/src/text/font/shared.rs
-  - zircon_runtime/src/text/font/shared/tests.rs
   - zircon_runtime/src/text/font/database/equivalence.rs
   - zircon_runtime/assets/fonts/ZirconDefaultComposite-subset.ttc
 
   - zircon_runtime/assets/fonts/OFL-NotoSansSC.md
 
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/text.rs
 
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/font_assets.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/text/font_assets.rs
 
   - tools/tests/test_text_01_composite_activation.py
 
@@ -189,15 +171,14 @@ related_code:
 
   - zircon_runtime/src/asset/importer/ingest/import_font_asset/parse_sfnt.rs
 
-  - zircon_runtime/src/asset/importer/ingest/import_font_asset/parse_sfnt/tests/mod.rs
+  - zircon_runtime/src/asset/importer/ingest/parse_sfnt/tests/mod.rs
 
-  - zircon_runtime/src/asset/importer/ingest/import_font_asset/parse_sfnt/tests/fixtures.rs
+  - zircon_runtime/src/asset/importer/ingest/parse_sfnt/tests/fixtures.rs
 
   - zircon_runtime/src/text/layout/mod.rs
 
   - zircon_runtime/src/text/layout/line_break/mod.rs
 
-  - zircon_runtime/src/text/layout/line_break/tests.rs
 
   - zircon_runtime/src/text/layout/line_break/glue.rs
 
@@ -223,7 +204,6 @@ related_code:
 
   - zircon_runtime/src/text/layout/kinsoku.rs
 
-  - zircon_runtime/src/text/layout/kinsoku/tests.rs
 
   - zircon_runtime/src/text/layout/measure.rs
 
@@ -286,7 +266,6 @@ related_code:
   - zircon_runtime/src/text/shaping/vertical/orientation.rs
 
   - zircon_runtime/src/text/shaping/vertical/direct.rs
-  - zircon_runtime/src/text/shaping/vertical/tests.rs
 
   - zircon_runtime/src/text/shaping/normalize.rs
 
@@ -294,7 +273,6 @@ related_code:
 
   - zircon_runtime/src/text/shaping/line_break.rs
 
-  - zircon_runtime/src/text/shaping/tests.rs
 
   - zircon_runtime/src/core/framework/render/mod.rs
 
@@ -312,36 +290,33 @@ related_code:
 
   - zircon_runtime/src/text/model/font/database.rs
 
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/text.rs
 
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/atlas_texture_upload.rs
 
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/write.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/atlas_texture_upload/write.rs
 
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/binding.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/atlas_texture_upload/binding.rs
 
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/frame.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/atlas_texture_upload/frame.rs
 
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/submission.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/atlas_texture_upload/submission.rs
 
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/resource.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/atlas_texture_upload/resource.rs
 
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/tests.rs
 
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/mod.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/atlas_renderer/mod.rs
 
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/pipeline.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/atlas_renderer/pipeline.rs
 
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/resources.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/atlas_renderer/resources.rs
 
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/instance.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/renderer.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/atlas_renderer/instance.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/atlas_renderer/renderer.rs
 
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/tests.rs
 
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text_pixel_snap.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/text_pixel_snap.rs
 
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/tests.rs
 
   - zircon_runtime/src/text/native_bitmap_atlas.rs
 
@@ -353,7 +328,6 @@ related_code:
 
   - zircon_runtime/src/text/native_bitmap_atlas/storage.rs
 
-  - zircon_runtime/src/text/native_bitmap_atlas/tests.rs
 
   - zircon_runtime/src/text/native_bitmap_atlas/tests/frame.rs
 
@@ -365,49 +339,44 @@ related_code:
 
   - zircon_runtime/src/text/native_bitmap_atlas/tests/source_cache.rs
 
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/font_id_report.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/text/font_id_report.rs
 
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/prepare_report.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/text/prepare_report.rs
 
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/sdf_fallback.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/text/sdf_fallback.rs
 
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/sdf_fallback/tests.rs
 
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_advances.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/sdf_advances.rs
 
   - zircon_runtime/src/text/sdf/font_bake.rs
 
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/render.rs
 
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render/rich_text.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/render/rich_text.rs
 
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/image.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/image.rs
 
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/surface.rs
+  - zircon_runtime/src/graphics/scene/renderer/execution/context/gpu/surface.rs
 
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/shaders/screen_space_ui_image.wgsl
+  - zircon_runtime/src/graphics/scene/renderer/ui/shaders/screen_space_ui_image.wgsl
 
   - zircon_runtime/src/graphics/scene/resources/ui_texture.rs
 
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_scene_resources.rs
 
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render/text_advances.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/render/text_advances.rs
 
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render/background.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/render/background.rs
 
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render/tests.rs
 
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/sdf_atlas.rs
 
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas/text_keys.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/sdf_atlas/text_keys.rs
 
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_upload.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/sdf_upload.rs
 
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_upload/tests.rs
 
   - zircon_runtime/src/text/sdf/font_bake.rs
 
-  - zircon_runtime/src/text/sdf/font_bake/tests.rs
   - zircon_runtime/src/text/sdf/font_bake/tests/cache_generation.rs
 - zircon_runtime/src/text/sdf/params.rs
 
@@ -630,7 +599,6 @@ related_code:
 implementation_files:
   - zircon_runtime/src/graphics/text_transport/mod.rs
   - zircon_runtime/src/graphics/text_transport/conversion.rs
-  - zircon_runtime/src/graphics/text_transport/tests.rs
   - zircon_runtime/src/text/mod.rs
   - zircon_runtime/src/text/language.rs
   - zircon_runtime/src/text/render_state.rs
@@ -644,7 +612,6 @@ implementation_files:
 
   - zircon_runtime/src/text/cache/shaped_cache.rs
 
-  - zircon_runtime/src/text/cache/tests.rs
 
   - zircon_runtime/src/text/atlas/mod.rs
 
@@ -656,7 +623,6 @@ implementation_files:
 
   - zircon_runtime/src/text/atlas/bitmap_run/staging.rs
 
-  - zircon_runtime/src/text/atlas/bitmap_run/tests.rs
 
   - zircon_runtime/src/text/atlas/bitmap_run/tests/retry.rs
 
@@ -664,23 +630,18 @@ implementation_files:
 
   - zircon_runtime/src/text/atlas/page_residency.rs
 
-  - zircon_runtime/src/text/atlas/page_residency/tests.rs
 
   - zircon_runtime/src/text/atlas/render_contract.rs
 
-  - zircon_runtime/src/text/atlas/render_contract/tests.rs
 
   - zircon_runtime/src/text/atlas/render_batch.rs
 
-  - zircon_runtime/src/text/atlas/render_batch/tests.rs
 
   - zircon_runtime/src/text/atlas/render_plan.rs
 
-  - zircon_runtime/src/text/atlas/render_plan/tests.rs
 
   - zircon_runtime/src/text/atlas/render_gpu_plan.rs
 
-  - zircon_runtime/src/text/atlas/render_gpu_plan/tests.rs
 
   - zircon_runtime/src/text/atlas/render_gpu_plan/bind_group.rs
 
@@ -697,7 +658,6 @@ implementation_files:
 
   - zircon_runtime/src/text/atlas/render_submission/placeholder.rs
 
-  - zircon_runtime/src/text/atlas/render_submission/tests.rs
 
   - zircon_runtime/src/text/atlas/render_submission/tests/retry_frame.rs
 
@@ -709,15 +669,12 @@ implementation_files:
 
   - zircon_runtime/src/text/atlas/dirty.rs
 
-  - zircon_runtime/src/text/atlas/dirty/tests.rs
 
   - zircon_runtime/src/text/atlas/upload.rs
 
-  - zircon_runtime/src/text/atlas/upload/tests.rs
 
   - zircon_runtime/src/text/atlas/raster_key/mod.rs
 
-  - zircon_runtime/src/text/atlas/raster_key/tests.rs
 
   - zircon_runtime/src/text/raster/mod.rs
 
@@ -737,7 +694,6 @@ implementation_files:
 
   - zircon_runtime/src/text/raster/swash/rasterizer.rs
 
-  - zircon_runtime/src/text/raster/swash/tests.rs
 
   - zircon_runtime/src/text/parallel/mod.rs
 
@@ -745,7 +701,6 @@ implementation_files:
 
   - zircon_runtime/src/text/parallel/raster_pool.rs
 
-  - zircon_runtime/src/text/parallel/tests.rs
 
   - zircon_runtime/src/text/font/mod.rs
 
@@ -756,7 +711,6 @@ implementation_files:
   - zircon_runtime/src/text/font/composite_resolve.rs
 
   - zircon_runtime/src/text/font/vertical_metrics.rs
-  - zircon_runtime/src/text/font/database/tests.rs
   - zircon_runtime/src/text/font/database/tests/system_policy.rs
   - zircon_runtime/src/text/font/descriptors.rs
 
@@ -770,8 +724,6 @@ implementation_files:
 
   - zircon_runtime/src/text/font/fallback.rs
 
-  - zircon_runtime/src/text/font/fallback/tests.rs
-  - zircon_runtime/src/text/font/test_font_fixtures.rs
   - zircon_runtime/src/text/font/handle_registry.rs
   - zircon_runtime/src/text/font/shared.rs
   - zircon_runtime/src/text/font/database/equivalence.rs
@@ -779,9 +731,9 @@ implementation_files:
 
   - zircon_runtime/assets/fonts/OFL-NotoSansSC.md
 
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/text.rs
 
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/font_assets.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/text/font_assets.rs
 
   - zircon_runtime/src/asset/assets/font.rs
 
@@ -821,7 +773,6 @@ implementation_files:
 
   - zircon_runtime/src/text/layout/kinsoku.rs
 
-  - zircon_runtime/src/text/layout/kinsoku/tests.rs
 
   - zircon_runtime/src/text/layout/measure.rs
 
@@ -859,7 +810,6 @@ implementation_files:
 
   - zircon_runtime/src/text/shaping/vertical/orientation.rs
 
-  - zircon_runtime/src/text/shaping/vertical/tests.rs
 
   - zircon_runtime/src/text/shaping/normalize.rs
 
@@ -867,7 +817,6 @@ implementation_files:
 
   - zircon_runtime/src/text/shaping/line_break.rs
 
-  - zircon_runtime/src/text/shaping/tests.rs
 
   - zircon_runtime/src/core/framework/render/mod.rs
 
@@ -885,36 +834,33 @@ implementation_files:
 
   - zircon_runtime/src/text/model/font/database.rs
 
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/text.rs
 
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/atlas_texture_upload.rs
 
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/write.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/atlas_texture_upload/write.rs
 
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/binding.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/atlas_texture_upload/binding.rs
 
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/frame.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/atlas_texture_upload/frame.rs
 
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/submission.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/atlas_texture_upload/submission.rs
 
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/resource.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/atlas_texture_upload/resource.rs
 
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/tests.rs
 
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/mod.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/atlas_renderer/mod.rs
 
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/pipeline.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/atlas_renderer/pipeline.rs
 
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/resources.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/atlas_renderer/resources.rs
 
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/instance.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/renderer.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/atlas_renderer/instance.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/atlas_renderer/renderer.rs
 
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/tests.rs
 
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text_pixel_snap.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/text_pixel_snap.rs
 
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/tests.rs
 
   - zircon_runtime/src/text/native_bitmap_atlas.rs
 
@@ -926,47 +872,42 @@ implementation_files:
 
   - zircon_runtime/src/text/native_bitmap_atlas/storage.rs
 
-  - zircon_runtime/src/text/native_bitmap_atlas/tests.rs
 
   - zircon_runtime/src/text/native_bitmap_atlas/tests/retry_frame.rs
 
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/font_id_report.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/text/font_id_report.rs
 
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/prepare_report.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/text/prepare_report.rs
 
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/sdf_fallback.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/text/sdf_fallback.rs
 
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/sdf_fallback/tests.rs
 
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_advances.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/sdf_advances.rs
 
   - zircon_runtime/src/text/sdf/font_bake.rs
 
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/render.rs
 
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render/rich_text.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/render/rich_text.rs
 
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/surface.rs
+  - zircon_runtime/src/graphics/scene/renderer/execution/context/gpu/surface.rs
 
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/image.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/image.rs
 
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/shaders/screen_space_ui_image.wgsl
+  - zircon_runtime/src/graphics/scene/renderer/ui/shaders/screen_space_ui_image.wgsl
 
   - zircon_runtime/src/graphics/scene/resources/ui_texture.rs
 
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_scene_resources.rs
 
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render/background.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/render/background.rs
 
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/sdf_atlas.rs
 
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_upload.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/sdf_upload.rs
 
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_upload/tests.rs
 
   - zircon_runtime/src/text/sdf/font_bake.rs
 
-  - zircon_runtime/src/text/sdf/font_bake/tests.rs
   - zircon_runtime/src/text/sdf/font_bake/tests/cache_generation.rs
 - zircon_runtime/src/text/sdf/params.rs
 

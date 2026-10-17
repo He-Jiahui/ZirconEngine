@@ -38,9 +38,6 @@ related_code:
   - zircon_editor/src/core/editor_extension
   - zircon_editor/src/core/runtime_event_consumer
   - zircon_editor/src/scene/viewport
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench
-  - zircon_editor/src/ui/template_runtime/builtin/workbench_extension_module_template_bindings
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/simulation/workbench_extension_navmesh_ai_workspace.zui
   - zircon_runtime/src/core/framework/navigation
   - zircon_runtime/src/navigation
 reference_engines:

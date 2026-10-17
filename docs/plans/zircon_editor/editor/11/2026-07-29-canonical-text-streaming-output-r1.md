@@ -8,9 +8,9 @@ related_code:
   - zircon_runtime_interface/src/serialization/text/canonical_writer.rs
   - zircon_runtime_interface/src/serialization/write.rs
   - zircon_runtime_interface/src/serialization/write_error.rs
-  - zircon_runtime/src/scene/dynamic_scene/session/construction/serialization.rs
-  - zircon_runtime/src/scene/dynamic_scene/session/io/load_save/save.rs
-  - zircon_runtime/src/scene/dynamic_scene/session/io/atomic.rs
+  - zircon_runtime/src/scene/dynamic/session/construction/serialization.rs
+  - zircon_runtime/src/scene/dynamic/session/io/load_save/save.rs
+  - zircon_runtime/src/scene/dynamic/session/io/atomic.rs
 tests:
   - zircon_runtime_interface::serialization::tests::write_contract
   - zircon_runtime dynamic_scene_session

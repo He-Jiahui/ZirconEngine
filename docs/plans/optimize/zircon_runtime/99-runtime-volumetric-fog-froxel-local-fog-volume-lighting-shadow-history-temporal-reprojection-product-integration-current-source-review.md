@@ -13,29 +13,18 @@ related_code:
   - zircon_runtime/src/asset/assets/scene/post_process.rs
   - zircon_runtime/src/core/framework/render/advanced_lighting/volumetric.rs
   - zircon_runtime/src/core/framework/render/advanced_lighting/extract.rs
-  - zircon_runtime/src/core/framework/render/post_process
   - zircon_runtime/src/scene/components/scene/post_process.rs
   - zircon_runtime/src/scene/world/render_post_process.rs
   - zircon_runtime/src/scene/world/render/lights.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/resource_descriptors.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/froxel
-  - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/oit_buffers
-  - zircon_runtime/src/graphics/scene/scene_renderer/history/scene_frame_history_textures/volumetric_history.rs
+  - zircon_runtime/src/graphics/scene/renderer/advanced_lighting/froxel
+  - zircon_runtime/src/graphics/scene/renderer/advanced_lighting/oit_buffers
   - zircon_runtime/src/graphics/shader/wgsl/zr_volumetric.wgsl
   - zircon_runtime/src/graphics/shader/includes/zr_oit.wgsl
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/volumetric_fog.rs
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/rendering/workbench_extension_post_process_workspace.zui
 tests:
-  - zircon_plugins/rendering/features/volumetric_fog/runtime/src/tests.rs
-  - zircon_plugins/rendering/features/volumetric_fog/runtime/src/wgpu_product_tests.rs
-  - zircon_runtime/src/core/framework/render/advanced_lighting/volumetric/tests.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/froxel/integrate/tests
-  - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/froxel/light_scatter/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/froxel/media_inject/tests.rs
   - zircon_runtime/tests/runtime_volumetric_shading_contract.rs
   - zircon_runtime/tests/runtime_volumetric_temporal_wgpu_contract.rs
-  - docs/tests/runtime/render/plan18_volumetric_compiled_scene_window_light_shaft_perf_wgpu_20260711.txt
-  - docs/tests/runtime/render/plan18_af_m3_volumetric_media_dx12_renderdoc_20260716_resource_stats.json
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md
   - docs/plans/optimize/01-cross-report-owner-schema-abi-p0-consolidation-review.md

@@ -7,7 +7,6 @@ plan_sources:
 implementation_files:
   - zircon_runtime/src/ui/text/grapheme.rs
 tests:
-  - zircon_runtime/src/ui/text/grapheme/tests.rs
 ---
 
 # Runtime81 ASCII grapheme boundary completion list

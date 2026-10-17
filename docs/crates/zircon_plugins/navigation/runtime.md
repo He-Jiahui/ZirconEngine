@@ -35,7 +35,6 @@ related_code:
   - zircon_plugins/navigation/runtime/src/manager/traversal/capacity.rs
   - zircon_plugins/navigation/runtime/src/manager/traversal/selection.rs
   - zircon_plugins/navigation/runtime/src/manager/traversal/state.rs
-  - zircon_plugins/navigation/runtime/src/manager/traversal/tests.rs
   - zircon_plugins/navigation/runtime/src/overlay_frame.rs
   - zircon_plugins/navigation/runtime/src/plugin.rs
   - zircon_plugins/navigation/runtime/src/component_json.rs
@@ -109,7 +108,6 @@ implementation_files:
   - zircon_plugins/navigation/runtime/src/manager/traversal/capacity.rs
   - zircon_plugins/navigation/runtime/src/manager/traversal/selection.rs
   - zircon_plugins/navigation/runtime/src/manager/traversal/state.rs
-  - zircon_plugins/navigation/runtime/src/manager/traversal/tests.rs
   - zircon_plugins/navigation/runtime/src/component_json.rs
   - zircon_plugins/navigation/runtime/src/off_mesh_connections.rs
   - zircon_plugins/navigation/runtime/src/runtime_obstacles.rs

@@ -8,7 +8,7 @@ related_code:
   - zircon_runtime/src/text/shaping/vertical/backend.rs
   - zircon_runtime/src/text/raster/swash
   - zircon_runtime/src/text/sdf
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas/text_keys.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/sdf_atlas/text_keys.rs
   - zircon_runtime/assets/fonts/default.font.toml
 plan_sources:
   - docs/plans/zircon_runtime/text/index.md

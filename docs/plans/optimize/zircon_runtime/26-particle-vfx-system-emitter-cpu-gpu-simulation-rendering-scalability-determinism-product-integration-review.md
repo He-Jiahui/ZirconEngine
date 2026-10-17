@@ -3,12 +3,10 @@ related_code:
   - zircon_plugins/particles
   - zircon_plugins/rendering/features/vfx_graph
   - zircon_runtime/src/graphics/particle_runtime_provider
-  - zircon_runtime/src/core/framework/render/frame_extract/particle_extract_policy.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/particle
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/particle.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/update_particle_previous_state.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/particle_previous_sprites.rs
-  - zircon_runtime/src/graphics/visibility/declarations/visibility_particle_upload_plan.rs
+  - zircon_runtime/src/core/render/frame_extract/particle_extract_policy.rs
+  - zircon_runtime/src/graphics/scene/renderer/execution/context/gpu/particle.rs
+  - zircon_runtime/src/graphics/extract/submit/update_particle_previous_state.rs
+  - zircon_runtime/src/graphics/runtime/viewport_record/particle_previous_sprites.rs
   - zircon_runtime/src/graphics/visibility/planning/build_particle_upload_plan.rs
   - zircon_runtime/src/scene/world/render_particles.rs
   - zircon_runtime/src/script/vm/gameplay_host.rs
@@ -16,14 +14,12 @@ related_code:
   - examples/vampire/scripts/vampire_game/main.zr
 tests:
   - zircon_plugins/particles/runtime/src/tests
-  - zircon_plugins/particles/editor/src/tests.rs
   - zircon_plugins/rendering/features/vfx_graph/runtime/src/lib.rs
   - zircon_runtime/src/graphics/tests/m4_behavior_layers/particles.rs
   - zircon_runtime/src/graphics/tests/plugin_feature_compile/particle.rs
   - zircon_runtime/src/graphics/tests/render_product_anti_alias/particle.rs
   - zircon_runtime/src/graphics/tests/render_product_particle_velocity.rs
   - zircon_runtime/src/scene/tests/render_extract/particles.rs
-  - tests/acceptance/particles-gpu-readback-mailbox.md
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md
   - docs/plans/optimize/01-cross-report-owner-schema-abi-p0-consolidation-review.md

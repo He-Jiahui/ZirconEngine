@@ -13,7 +13,6 @@ related_code:
   - zircon_runtime/src/core/framework/window/resolution.rs
   - zircon_runtime/src/core/framework/window/validation.rs
   - zircon_runtime/src/core/framework/window/video_mode_selection.rs
-  - zircon_runtime/src/core/framework/window/tests.rs
   - zircon_runtime/src/core/framework/mod.rs
   - zircon_runtime/src/prelude.rs
   - zircon_runtime/src/tests/prelude.rs
@@ -67,7 +66,6 @@ plan_sources:
   - dev/bevy/crates/bevy_winit/src/winit_windows.rs
   - dev/bevy/crates/bevy_winit/src/winit_config.rs
 tests:
-  - zircon_runtime/src/core/framework/window/tests.rs
   - zircon_runtime/src/tests/prelude.rs
   - zircon_app/src/entry/tests/builtin_engine_entry.rs
   - zircon_app/src/entry/tests/profile_bootstrap.rs

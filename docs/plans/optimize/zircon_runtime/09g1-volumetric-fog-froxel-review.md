@@ -9,15 +9,11 @@ related_code:
   - zircon_runtime/src/scene/world/render/lights.rs
   - zircon_runtime/src/scene/world/render_post_process.rs
   - zircon_runtime/src/scene/world/project_io/post_process.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/froxel
-  - zircon_runtime/src/graphics/scene/scene_renderer/lighting/light_buffer.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/history/scene_frame_history_textures/volumetric_history.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/deferred
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/shaders/fallback_mesh.wgsl
+  - zircon_runtime/src/graphics/scene/renderer/advanced_lighting/froxel
+  - zircon_runtime/src/graphics/scene/renderer/lighting/light_buffer.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/shaders/fallback_mesh.wgsl
   - zircon_plugins/rendering/features/volumetric_fog/runtime
   - zircon_plugins/rendering/features/volumetric_fog/editor
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/rendering/workbench_extension_post_process_workspace.zui
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback.rs
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md
   - docs/plans/optimize/zircon_runtime/09a-rhi-render-graph-gpu-lifetime-review.md

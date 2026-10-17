@@ -29,5 +29,5 @@ woc_protocol = { path = "crates/woc_protocol" }
 woc_runtime = { path = "plugins/woc_runtime" }
 zircon_runtime = { path = "../../../zircon_runtime", default-features = false, features = ["script"] }
 zircon_plugin_zr_vm_language_runtime = { path = "../../../zircon_plugins/zr_vm_language/runtime", features = ["backend-zr-vm"] }
-zr_vm_rust_binding = { path = "../../../../zr_vm/zr_vm_rust_binding/rust/zr_vm_rust_binding" }
-zr_vm_rust_binding_sys = { path = "../../../../zr_vm/zr_vm_rust_binding/rust/zr_vm_rust_binding_sys" }
+zr_vm_rust_binding = { git = "https://github.com/He-Jiahui/zr_vm.git", rev = "3c1352ecb6ddfab02752d46682cc376558d5f481" }
+zr_vm_rust_binding_sys = { git = "https://github.com/He-Jiahui/zr_vm.git", rev = "3c1352ecb6ddfab02752d46682cc376558d5f481" }

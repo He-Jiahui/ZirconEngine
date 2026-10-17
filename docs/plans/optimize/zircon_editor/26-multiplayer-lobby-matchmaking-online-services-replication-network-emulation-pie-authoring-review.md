@@ -1,11 +1,8 @@
 ---
 related_code:
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/multiplayer
-  - zircon_editor/src/ui/retained_host/workbench_preview_actions/extensions.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/module_field_edit.rs
-  - zircon_editor/src/ui/template_runtime/builtin/workbench_extension_module_template_bindings/online_sessions.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation/specs/online_sessions.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/module_command_feedback.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/workbench/module_field_edit.rs
+  - zircon_editor/src/ui/retained/dispatch/workbench/specs/online_sessions.rs
+  - zircon_editor/src/ui/retained/dispatch/workbench/module_command_feedback.rs
   - zircon_editor/src/core/play
   - zircon_editor/src/ui/host/editor_host_event_controller.rs
   - zircon_plugins/net/editor

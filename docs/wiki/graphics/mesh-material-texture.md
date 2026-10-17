@@ -8,8 +8,6 @@ related_code:
 implementation_files:
   - zircon_runtime/src/graphics/scene/resources/runtime
   - zircon_runtime/src/graphics/scene/resources/resource_streamer
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh
-  - zircon_runtime/src/graphics/scene/scene_renderer/material
 plan_sources:
   - user: 2026-09-09 构建 ZirconEngine 详细 Wiki 文档集合
   - docs/rendering/runtime-surface-and-assets-rules.md

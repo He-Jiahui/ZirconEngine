@@ -1,13 +1,9 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/app/pointer_layout.rs
-  - zircon_editor/src/ui/retained_host/app/pointer_layout
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/recompute/pointer_surfaces.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/recompute_viewport.rs
-  - zircon_editor/src/ui/retained_host/asset_pointer
-  - zircon_editor/src/ui/retained_host/hierarchy_pointer
-  - zircon_editor/src/ui/retained_host/menu_pointer
-  - zircon_editor/src/ui/retained_host/welcome_recent_pointer
+  - zircon_editor/src/ui/retained/app/pointer_layout.rs
+  - zircon_editor/src/ui/retained/app/pointer_layout
+  - zircon_editor/src/ui/retained/app/host_lifecycle/recompute/pointer_surfaces.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle/recompute_viewport.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_editor/editor_ui/01-slate-input-dispatch-core.md

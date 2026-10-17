@@ -9,9 +9,9 @@ origin_child_dir: docs/plans/performance/01
 fixing_child_dir: docs/plans/zircon_runtime/runtime/11
 plan_link_mode: child_record_only
 related_code:
-  - zircon_runtime/src/scene/dynamic_scene/session/io
-  - zircon_runtime/src/scene/dynamic_scene/session/path_mutation
-  - zircon_runtime/src/scene/dynamic_scene/session/path_api
+  - zircon_runtime/src/scene/dynamic/session/io
+  - zircon_runtime/src/scene/dynamic/session/path_mutation
+  - zircon_runtime/src/scene/dynamic/session/path_api
 tests:
   - cargo test -p zircon_runtime --lib dynamic_scene_session --locked --jobs 1 -- --nocapture --test-threads=1
   - slow disk, write storm, cancellation and shutdown fixtures

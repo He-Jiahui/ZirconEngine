@@ -19,7 +19,7 @@ doc_type: workflow-reference
 
 # 验证工作流
 
-[里程碑验证策略](../../plans/milestone-validation-policy.md) 是范围和节奏的权威；命令细节见 [Zircon Dev 验证指南](../../../.codex/skills/zircon-dev/validation/guide.md)。旧本地协调器、受管 matrix、登记、租约和提交工作流已经退役，不能把旧脚本当作当前执行前提，也不能为了运行旧计划恢复服务。
+[里程碑验证策略](https://github.com/He-Jiahui/ZirconEngine/blob/main/docs/plans/milestone-validation-policy.md) 是范围和节奏的权威；命令细节见 [Zircon Dev 验证指南](https://github.com/He-Jiahui/ZirconEngine/blob/main/.codex/skills/zircon-dev/validation/guide.md)。旧本地协调器、受管 matrix、登记、租约和提交工作流已经退役，不能把旧脚本当作当前执行前提，也不能为了运行旧计划恢复服务。
 
 ## 按变更选择验证
 
@@ -46,7 +46,7 @@ Windows PowerShell 是默认环境。WSL 仅用于具体的 Linux 专属失败�
 
 ## 异步请求和接受边界
 
-独立 Jenkins 协调器遵循 [jenkins-coordination 技能](../../../.codex/skills/jenkins-coordination/SKILL.md)。先核验当前启用记录、`functionalTestsAllowed` 和实际证据，再在任务授权内运行功能测试或提交有边界的命令。已经激活的唯一入口约束继续适用，不能绕开它使用独立命令。
+独立 Jenkins 协调器遵循 [jenkins-coordination 技能](https://github.com/He-Jiahui/ZirconEngine/blob/main/.codex/skills/jenkins-coordination/SKILL.md)。先核验当前启用记录、`functionalTestsAllowed` 和实际证据，再在任务授权内运行功能测试或提交有边界的命令。已经激活的唯一入口约束继续适用，不能绕开它使用独立命令。
 
 提交后保存原请求 ID；客户端超时或终端无输出时先核对该请求，避免重复提交。按真实阶段记录状态、stdout/stderr、退出码、timing 与 artifact digest。源码交接使用补丁和哈希，agent 不自行创建源码快照或备份；必要验证源码由独立协调器准备。
 

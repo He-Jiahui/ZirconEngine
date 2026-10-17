@@ -58,7 +58,8 @@ where
     }
 }
 
-impl<T> SystemParam for EventReaderParam<T>
+// SAFETY: Registers a shared event grant and keeps the reader cursor in its own state.
+unsafe impl<T> SystemParam for EventReaderParam<T>
 where
     T: 'static + Send + Sync,
 {
@@ -105,7 +106,8 @@ where
     }
 }
 
-impl<T> SystemParam for EventWriterParam<T>
+// SAFETY: Registers the exclusive event grant returned for the item lifetime.
+unsafe impl<T> SystemParam for EventWriterParam<T>
 where
     T: 'static + Send + Sync,
 {

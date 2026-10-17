@@ -9,12 +9,8 @@ related_records:
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
   - zircon_runtime/src/ui/template/asset/document.rs
-  - zircon_runtime/src/ui/template/asset/document/rename_single_pass_tests.rs
   - zircon_runtime/src/ui/surface/timeline.rs
-  - zircon_runtime/src/ui/surface/timeline/handle_range_tests.rs
 tests:
-  - zircon_runtime/src/ui/template/asset/document/rename_single_pass_tests.rs
-  - zircon_runtime/src/ui/surface/timeline/handle_range_tests.rs
 ---
 
 # Runtime03 · UI rename/timeline completion list

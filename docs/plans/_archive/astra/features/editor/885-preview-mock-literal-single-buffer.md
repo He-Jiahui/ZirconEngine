@@ -9,8 +9,6 @@ related_records:
 implementation_files:
   - zircon_editor/src/ui/asset_editor/preview/preview_mock/entries.rs
 tests:
-  - zircon_editor/src/ui/asset_editor/preview/preview_mock/entries/literal_single_buffer_tests.rs
-  - tools/tests/test_editor885_preview_mock_literal_single_buffer_performance_contract.py
 ---
 
 # Editor885 Preview Mock Literal Single Buffer

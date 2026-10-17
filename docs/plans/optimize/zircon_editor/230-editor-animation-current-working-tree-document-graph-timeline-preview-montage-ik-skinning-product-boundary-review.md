@@ -25,7 +25,6 @@ related_code:
   - zircon_plugins/animation_graph/editor
   - zircon_editor/assets/ui/editor/host/animation_sequence_body.zui
   - zircon_editor/assets/ui/editor/host/animation_graph_body.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/animation
   - zircon_runtime/src/core/framework/animation/compiler
 plan_sources:
   - docs/plans/optimize/zircon_editor/136-editor-animation-sequence-graph-state-machine-timeline-curve-preview-compiler-authoring-current-source-review.md

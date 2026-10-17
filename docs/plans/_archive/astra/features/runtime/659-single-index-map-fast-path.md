@@ -5,9 +5,7 @@ plan_sources:
   - docs/plans/optimize/zircon_runtime/659/2026-09-02-single-index-map-fast-path.md
 related_code:
   - zircon_runtime/src/core/runtime/tasks/parallel_for.rs
-  - zircon_runtime/src/core/runtime/tasks/parallel_for/optimization_batch_jt_runtime659_tests.rs
 tests:
-  - zircon_runtime/src/core/runtime/tasks/parallel_for/optimization_batch_jt_runtime659_tests.rs
 ---
 
 # Single-Index Map Fast Path

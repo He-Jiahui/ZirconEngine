@@ -1,41 +1,14 @@
 ---
 related_code:
   - zircon_runtime/src/plugin/native.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/mod.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/abi_declarations.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/bridge_method_abi.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/bridge_method_bindings.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_abi.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/behavior_calls.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/behavior_validation.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/ffi_panic_guard.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/host_api_adapter.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/host_callbacks.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_strings.rs
   - zircon_runtime/src/plugin/package_manifest/plugin_interface_manifest.rs
   - zircon_runtime/src/plugin/package_manifest/plugin_package_manifest.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/loaded_native_plugin.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/bridge_lifecycle.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/bridge_methods.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/hot_update_application.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/hot_reload.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/lifecycle.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/loading.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/reports.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/runtime_behavior.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests/hot_update_application.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests/hot_reload_failures.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_load_report.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_loader.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/load_discovered.rs
+  - zircon_runtime/src/plugin/loader/live/tests/hot_update_application.rs
+  - zircon_runtime/src/plugin/loader/live/tests/hot_reload_failures.rs
   - zircon_runtime_interface/src/plugin_api.rs
   - zircon_runtime_interface/src/buffer.rs
   - zircon_runtime_interface/src/status.rs
   - zircon_runtime/tests/native_plugin_loader_contract.rs
-  - zircon_runtime/src/tests/plugin_extensions/native_plugin_loader.rs
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/p0_robustness.rs
-  - zircon_runtime/src/tests/plugin_extensions/extension_registry_bridge_performance_baseline.rs
   - zircon_runtime/src/asset/pack/mod.rs
   - zircon_runtime/src/asset/pack/install/installer.rs
   - zircon_runtime/src/asset/pack/install/staging_report.rs
@@ -46,37 +19,14 @@ related_code:
   - zircon_plugins/native_dynamic_fixture/native/src/lib.rs
 implementation_files:
   - zircon_runtime/src/plugin/native.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/mod.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/abi_declarations.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/bridge_method_abi.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/bridge_method_bindings.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_abi.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/behavior_calls.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/behavior_validation.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/ffi_panic_guard.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/host_api_adapter.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/host_callbacks.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_strings.rs
   - zircon_runtime/src/plugin/package_manifest/plugin_interface_manifest.rs
   - zircon_runtime/src/plugin/package_manifest/plugin_package_manifest.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/loaded_native_plugin.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/bridge_lifecycle.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/bridge_methods.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/hot_update_application.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/hot_reload.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/lifecycle.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/loading.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/reports.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests/hot_update_application.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests/hot_reload_failures.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_load_report.rs
+  - zircon_runtime/src/plugin/loader/live/tests/hot_update_application.rs
+  - zircon_runtime/src/plugin/loader/live/tests/hot_reload_failures.rs
   - zircon_runtime_interface/src/plugin_api.rs
   - zircon_runtime_interface/src/buffer.rs
   - zircon_runtime_interface/src/status.rs
   - zircon_runtime_interface/src/tests/plugin_api_contracts.rs
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/p0_robustness.rs
   - zircon_runtime/src/asset/pack/mod.rs
   - zircon_runtime/src/asset/pack/install/installer.rs
   - zircon_runtime/src/asset/pack/install/staging_report.rs
@@ -137,13 +87,6 @@ tests:
   - cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_native_dynamic_fixture_native --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-architecture-native-fixture-0613 --message-format short --color never (2026-06-13: old blocked attempt; superseded by the 2026-06-19 lockfile refresh and passing fixture --locked build)
   - runtime_06_native_loader_tests_use_isolated_plugin_native_namespace
   - runtime_06_vm_lifecycle_fallback_failure_tests_are_folder_backed
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/p0_robustness.rs::review_d13_native_fixture_importer_is_manifest_described
-  - zircon_runtime/src/plugin/native_plugin_loader/host_api_adapter/tests.rs::native_bridge_call_context_snapshots_share_the_dispatch_table
-  - zircon_runtime/src/plugin/native_plugin_loader/host_api_adapter/tests.rs::native_host_bridge_call_checks_entry_status_without_materializing_a_diagnostic_snapshot
-  - zircon_runtime/src/plugin/native_plugin_loader/load_discovered.rs::candidate_loading_preserves_discovery_without_cloning_the_report
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_load_report/diagnostics.rs::plugin_diagnostic_matching_preserves_boundaries_and_embedded_prefixes
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_load_report/diagnostics.rs::plugin_diagnostic_matching_does_not_format_needles_per_message
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/hot_update_application.rs::hot_update_moves_owned_candidates_into_the_single_plugin_load_report
 doc_type: module-detail
 ---
 

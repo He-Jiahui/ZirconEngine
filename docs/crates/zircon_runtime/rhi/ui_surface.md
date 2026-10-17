@@ -5,7 +5,6 @@ related_code:
   - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/batching.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/color_space.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/geometry.rs
-  - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/geometry/tests.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/image_cache.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/image_cache/resource.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/pipeline.rs
@@ -14,33 +13,23 @@ related_code:
   - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/render_pass.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/shaders/ui_material.wgsl
   - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/surface_setup.rs
-  - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/tests.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/tests/native_submission.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/text.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/tests/capabilities.rs
   - zircon_runtime/crates/zr_rhi/src/lib.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/lib.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/viewport_image.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_primitives.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/sprite_atlas.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/visual_assets.rs
-  - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/mod.rs
-  - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/atlas_tests.rs
-  - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/tests.rs
-  - zircon_editor/src/ui/retained_host/host_contract/presenter/gpu.rs
-  - zircon_editor/src/ui/retained_host/host_contract/presenter/factory.rs
-  - zircon_editor/src/ui/retained_host/host_contract/profiling_artifacts.rs
-  - zircon_editor/src/ui/retained_host/host_contract/profiling_hit_routes.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle.rs
-  - zircon_editor/src/ui/retained_host/host_contract/window.rs
-  - tools/profiling/ui/ui-profile-capture.ps1
+  - zircon_editor/src/ui/retained/contract/data/viewport_image.rs
+  - zircon_editor/src/ui/retained/contract/chrome_command_stream/mod.rs
+  - zircon_editor/src/ui/retained/contract/presenter/gpu.rs
+  - zircon_editor/src/ui/retained/contract/presenter/factory.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle.rs
+  - tools/analysis/profiling/ui/ui-profile-capture.ps1
 implementation_files:
   - zircon_runtime/crates/zr_rhi/src/lib.rs
   - zircon_runtime/crates/zr_rhi/src/ui_surface.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/batching.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/geometry.rs
-  - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/geometry/tests.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/image_cache.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/image_cache/resource.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/pipeline.rs
@@ -49,24 +38,15 @@ implementation_files:
   - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/render_pass.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/shaders/ui_material.wgsl
   - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/surface_setup.rs
-  - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/tests.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/tests/native_submission.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/text.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/tests/capabilities.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/viewport_image.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_primitives.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/sprite_atlas.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/visual_assets.rs
-  - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/mod.rs
-  - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/atlas_tests.rs
-  - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/tests.rs
-  - zircon_editor/src/ui/retained_host/host_contract/presenter/gpu.rs
-  - zircon_editor/src/ui/retained_host/host_contract/presenter/factory.rs
-  - zircon_editor/src/ui/retained_host/host_contract/profiling_artifacts.rs
-  - zircon_editor/src/ui/retained_host/host_contract/profiling_hit_routes.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle.rs
-  - zircon_editor/src/ui/retained_host/host_contract/window.rs
-  - tools/profiling/ui/ui-profile-capture.ps1
+  - zircon_editor/src/ui/retained/contract/data/viewport_image.rs
+  - zircon_editor/src/ui/retained/contract/chrome_command_stream/mod.rs
+  - zircon_editor/src/ui/retained/contract/presenter/gpu.rs
+  - zircon_editor/src/ui/retained/contract/presenter/factory.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle.rs
+  - tools/analysis/profiling/ui/ui-profile-capture.ps1
 plan_sources:
   - .codex/plans/GPU Command Stream 接管 Editor UI 渲染计划.md
   - user: 2026-05-15 GPU command stream should take over editor UI rendering
@@ -84,7 +64,6 @@ tests:
   - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/batching.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/geometry.rs
-  - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/geometry/tests.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/image_cache.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/image_cache/resource.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/pipeline.rs
@@ -93,19 +72,12 @@ tests:
   - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/render_pass.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/shaders/ui_material.wgsl
   - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/surface_setup.rs
-  - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/tests.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/tests/native_submission.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/text.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/tests/capabilities.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/viewport_image.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_primitives.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/visual_assets.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/sprite_atlas.rs
-  - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/mod.rs
-  - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/tests.rs
-  - zircon_editor/src/ui/retained_host/host_contract/presenter/gpu.rs
-  - zircon_editor/src/ui/retained_host/host_contract/profiling_artifacts.rs
-  - zircon_editor/src/ui/retained_host/host_contract/profiling_hit_routes.rs
+  - zircon_editor/src/ui/retained/contract/data/viewport_image.rs
+  - zircon_editor/src/ui/retained/contract/chrome_command_stream/mod.rs
+  - zircon_editor/src/ui/retained/contract/presenter/gpu.rs
   - zircon_editor/src/tests/host/render_framework_boundary/mod.rs
   - cargo +1.94.1 test -p zr_rhi --lib ui_surface --locked --jobs 1 -- --test-threads=1
   - cargo +1.94.1 test -p zr_rhi_wgpu --lib ui_surface --locked --jobs 1 -- --test-threads=1

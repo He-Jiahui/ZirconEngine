@@ -13,8 +13,6 @@ related_code:
   - zircon_plugins/native_dynamic_fixture/plugin.toml
   - zircon_plugins/plugin_sdk_examples/plugin.toml
   - tools/audits/audit_plugin_structure.py
-  - tools/plugin_structure_audits/manifest_schema.py
-  - tools/plugin_structure_audits/manifest_schema_root_metadata.py
   - tools/tests/test_plugin_structure_audit_manifest_schema.py
 tests:
   - python -m unittest tools.tests.test_plugin_structure_audit_manifest_schema

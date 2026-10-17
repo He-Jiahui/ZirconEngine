@@ -12,15 +12,12 @@ related_code:
   - zircon_editor/src/ui/host/project_access.rs
   - zircon_editor/src/ui/workbench/project/editor_project_document_load.rs
   - zircon_editor/src/ui/workbench/project/editor_project_document_save.rs
-  - zircon_editor/src/ui/workbench/startup/editor_startup_session_document_welcome_pane_snapshot.rs
   - zircon_editor/src/ui/workbench/project/layout_preset_assets.rs
   - zircon_editor/src/core/project/authority/mod.rs
   - zircon_editor/src/core/project/authority/project_authority.rs
   - zircon_editor/src/core/project/authority/open_project.rs
   - zircon_editor/src/core/project/opened_project.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/open_project.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/runtime.rs
-  - zircon_runtime/src/asset/pipeline/manager/service_contracts/asset_manager_contract.rs
+  - zircon_runtime/src/asset/manager/service_contracts/asset_manager_contract.rs
 tests:
   - project open manager/manifest/scan build-count regression
   - 1/100/1000 locator resolution project-manager open-count regression

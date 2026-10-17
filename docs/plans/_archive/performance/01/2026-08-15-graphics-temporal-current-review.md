@@ -1,8 +1,6 @@
 ---
 related_code:
-  - zircon_runtime/src/graphics/scene/scene_renderer/temporal
-  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/temporal.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/history/scene_frame_history_textures
+  - zircon_runtime/src/graphics/feature/builtin/feature_descriptors/temporal.rs
   - zircon_runtime/src/graphics/shader/wgsl/zr_template_velocity.wgsl
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md

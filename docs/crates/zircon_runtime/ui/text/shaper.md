@@ -4,8 +4,7 @@ related_code:
   - zircon_runtime/src/ui/text/layout_engine.rs
   - zircon_runtime/src/ui/surface/render/text_measure.rs
   - zircon_runtime/src/ui/surface/render/resolve.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/font_asset.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/text.rs
   - zircon_runtime_interface/src/ui/surface/render/typography.rs
   - zircon_runtime_interface/src/ui/surface/render/text_shape.rs
   - zircon_runtime/src/ui/tests/text_shaper.rs
@@ -14,7 +13,7 @@ implementation_files:
   - zircon_runtime/src/ui/text/layout_engine.rs
   - zircon_runtime/src/ui/surface/render/text_measure.rs
   - zircon_runtime/src/ui/surface/render/resolve.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/text.rs
   - zircon_runtime_interface/src/ui/surface/render/typography.rs
   - zircon_runtime_interface/src/ui/surface/render/text_shape.rs
 plan_sources:

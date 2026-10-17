@@ -6,13 +6,10 @@ review_date: 2026-08-31
 baseline_head: working-tree
 related_code:
   - zircon_editor/src/core/asset
-  - zircon_editor/src/ui/host/editor_asset_manager
   - zircon_editor/src/ui/workbench/project/asset_workspace_state.rs
   - zircon_editor/src/ui/workbench/snapshot/asset
   - zircon_editor/src/ui/workbench/asset_content_layout
-  - zircon_editor/src/ui/retained_host/asset_pointer
-  - zircon_editor/src/ui/retained_host/app/asset_content_pointer
-  - zircon_editor/src/ui/retained_host/callback_dispatch/asset
+  - zircon_editor/src/ui/retained/app/asset_content_pointer
 plan_sources:
   - docs/plans/optimize/zircon_editor/248-editor-asset-workspace-catalog-provider-preview-import-reimport-current-working-tree-review.md
   - docs/plans/optimize/zircon_editor/257-editor-background-jobs-admission-scheduling-cancellation-progress-shutdown-product-integration-current-working-tree-review.md

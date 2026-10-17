@@ -1,19 +1,16 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/app.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle
-  - zircon_editor/src/ui/retained_host/app/viewport
-  - zircon_editor/src/ui/retained_host/app/play_preview_redraw.rs
-  - zircon_editor/src/ui/retained_host/app/play_viewport_pick.rs
-  - zircon_editor/src/ui/retained_host/app/viewport_image_redraw.rs
-  - zircon_editor/src/ui/retained_host/app/native_windows
-  - zircon_editor/src/ui/retained_host/app/callback_wiring/pane_surface/viewport.rs
-  - zircon_editor/src/ui/retained_host/viewport
-  - zircon_editor/src/ui/retained_host/host_contract/data/viewport_image.rs
-  - zircon_editor/src/ui/retained_host/host_contract/globals/pane_context
-  - zircon_editor/src/ui/retained_host/host_contract/globals/state.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/native_panes/viewport.rs
-  - zircon_editor/src/ui/retained_host/host_contract/window
+  - zircon_editor/src/ui/retained/app/host_lifecycle
+  - zircon_editor/src/ui/retained/app/viewport
+  - zircon_editor/src/ui/retained/app/play_preview_redraw.rs
+  - zircon_editor/src/ui/retained/app/play_viewport_pick.rs
+  - zircon_editor/src/ui/retained/app/viewport_image_redraw.rs
+  - zircon_editor/src/ui/retained/app/native_windows
+  - zircon_editor/src/ui/retained/app/callback_wiring/pane_surface/viewport.rs
+  - zircon_editor/src/ui/retained/contract/data/viewport_image.rs
+  - zircon_editor/src/ui/retained/contract/globals/pane_context
+  - zircon_editor/src/ui/retained/contract/globals/state.rs
+  - zircon_editor/src/ui/retained/contract/workbench/native_panes/viewport.rs
   - zircon_editor/src/core/play
   - zircon_editor/src/core/gateway
   - zircon_editor/src/scene/viewport
@@ -21,16 +18,12 @@ related_code:
   - zircon_runtime_host/src/viewport_surface.rs
   - zircon_runtime_interface/src/runtime_api/session
   - zircon_runtime/src/core/framework/render
-  - zircon_runtime/src/graphics/runtime/render_framework
   - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface
 tests:
-  - zircon_editor/src/core/gateway/session/tests.rs
-  - zircon_editor/src/core/play/tests.rs
   - zircon_editor/src/scene/viewport
   - zircon_editor/src/tests/host/retained_window/native_viewport_image.rs
-  - zircon_editor/src/ui/retained_host/ui/tests/floating_windows.rs
+  - zircon_editor/src/ui/retained/ui/tests/floating_windows.rs
   - zircon_editor/src/ui/retained_host/viewport/tests
-  - zircon_editor/src/ui/retained_host/viewport/viewport_state_job_tests.rs
 plan_sources:
   - docs/plans/mvp/index.md
   - docs/plans/optimize/00-engine-wide-review.md

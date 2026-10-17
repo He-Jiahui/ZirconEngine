@@ -12,7 +12,7 @@ related_code:
   - zircon_editor/src/ui/host/editor_event_runtime_reflection.rs
   - zircon_editor/src/ui/host/editor_host_event_controller.rs
   - zircon_editor/src/ui/control/service.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/data_sync.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/workbench/data_sync.rs
 tests:
   - cargo test -p zircon_editor --lib --locked --jobs 1 -- editor_message
   - hierarchy dirty-only frame must publish and consume a hierarchy fragment without a complete workbench reflection rebuild

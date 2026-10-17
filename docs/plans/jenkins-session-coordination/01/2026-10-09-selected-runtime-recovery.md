@@ -1,8 +1,6 @@
 ---
 doc_type: implementation-record
 related_code:
-  - .jenkins/state/migration-baseline/resume_selected_execution_upgrade.py
-  - .jenkins/state/migration-baseline/retire_failed_selected_upgrade_holder.py
 tests:
   - immutable control-byte checks and native lifecycle observations
 ---

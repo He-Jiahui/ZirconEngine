@@ -88,7 +88,7 @@ fn borrowed_weighted_random_keys_release_benchmark_evidence() {
     let legacy_key_allocations = BENCHMARK_CHILD_COUNT * 2;
 
     println!(
-        "PERF_RESULT plugins15_borrowed_weighted_random_keys children={BENCHMARK_CHILD_COUNT} samples={BENCHMARK_SAMPLE_COUNT} sample_pairs={BENCHMARK_SAMPLE_COUNT} sample_order=alternating percentile_method=nearest_rank legacy_key_string_allocations_per_sample={legacy_key_allocations} optimized_key_string_allocations_per_sample=0 legacy_p50_ns={legacy_p50} legacy_p95_ns={legacy_p95} optimized_p50_ns={optimized_p50} optimized_p95_ns={optimized_p95} legacy_ns={legacy_ns} optimized_ns={optimized_ns}"
+        "PERF_RESULT plugins15_borrowed_weighted_random_keys children={BENCHMARK_CHILD_COUNT} samples={BENCHMARK_SAMPLE_COUNT} sample_pairs={BENCHMARK_SAMPLE_COUNT} sample_order=alternating percentile_method=nearest_rank legacy_key_string_allocations_per_sample={legacy_key_allocations} optimized_key_string_allocations_per_sample_expected=0 legacy_p50_ns={legacy_p50} legacy_p95_ns={legacy_p95} optimized_p50_ns={optimized_p50} optimized_p95_ns={optimized_p95} legacy_ns={legacy_ns} optimized_ns={optimized_ns}"
     );
     assert!(
         optimized_p95 * 5 <= legacy_p95 * 4,

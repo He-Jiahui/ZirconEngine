@@ -4,9 +4,9 @@ status: implemented_pending_validation
 plan_sources:
   - docs/plans/optimize/zircon_runtime/02/2026-08-30-editor551-export-line-callback-stream.md
 implementation_files:
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/execution/output_capture.rs
+  - zircon_editor/src/ui/host/exports/wizard/execution/output_capture.rs
 tests:
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/execution/output_capture.rs
+  - zircon_editor/src/ui/host/exports/wizard/execution/output_capture.rs
 ---
 
 # Editor969 Editor551 export line callback stream

@@ -1,33 +1,32 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/app.rs
-  - zircon_editor/src/ui/retained_host/app/asset_content_pointer.rs
-  - zircon_editor/src/ui/retained_host/app/asset_content_pointer/events.rs
-  - zircon_editor/src/ui/retained_host/app/asset_content_pointer/events/click.rs
-  - zircon_editor/src/ui/retained_host/app/asset_content_pointer/events/motion.rs
-  - zircon_editor/src/ui/retained_host/app/asset_content_pointer/press.rs
-  - zircon_editor/src/ui/retained_host/app/asset_content_pointer/target.rs
+  - zircon_editor/src/ui/retained/app/asset_content_pointer.rs
+  - zircon_editor/src/ui/retained/app/asset_content_pointer/events.rs
+  - zircon_editor/src/ui/retained/app/asset_content_pointer/events/click.rs
+  - zircon_editor/src/ui/retained/app/asset_content_pointer/events/motion.rs
+  - zircon_editor/src/ui/retained/app/asset_content_pointer/press.rs
+  - zircon_editor/src/ui/retained/app/asset_content_pointer/target.rs
   - zircon_editor/src/ui/retained/app/asset_content_pointer/target/dispatch.rs
   - zircon_editor/src/ui/retained/app/asset_content_pointer/target/prepare.rs
   - zircon_editor/src/ui/retained/app/asset_content_pointer/target/state.rs
-  - zircon_editor/src/ui/retained_host/app/asset_surface_pointer_state.rs
-  - zircon_editor/src/ui/retained_host/app/pointer_layout/asset_surfaces.rs
-  - zircon_editor/src/ui/retained_host/asset_pointer/content/bridge.rs
-  - zircon_editor/src/ui/retained_host/asset_pointer/content/dispatch.rs
-  - zircon_editor/src/ui/retained_host/asset_pointer/content/layout.rs
-  - zircon_editor/src/ui/retained_host/asset_pointer/content/route.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/routing/panes/pane/entry/asset_content.rs
+  - zircon_editor/src/ui/retained/app/asset_surface_pointer_state.rs
+  - zircon_editor/src/ui/retained/app/pointer_layout/asset_surfaces.rs
+  - zircon_editor/src/ui/retained/asset_pointer/content/bridge.rs
+  - zircon_editor/src/ui/retained/asset_pointer/content/dispatch.rs
+  - zircon_editor/src/ui/retained/asset_pointer/content/layout.rs
+  - zircon_editor/src/ui/retained/asset_pointer/content/route.rs
+  - zircon_editor/src/ui/contract/pointer/routing/panes/pane/entry/asset_content.rs
 implementation_files:
-  - zircon_editor/src/ui/retained_host/app/asset_content_pointer.rs
-  - zircon_editor/src/ui/retained_host/app/asset_content_pointer/events.rs
-  - zircon_editor/src/ui/retained_host/app/asset_content_pointer/events/click.rs
-  - zircon_editor/src/ui/retained_host/app/asset_content_pointer/events/motion.rs
-  - zircon_editor/src/ui/retained_host/app/asset_content_pointer/press.rs
-  - zircon_editor/src/ui/retained_host/app/asset_content_pointer/target.rs
+  - zircon_editor/src/ui/retained/app/asset_content_pointer.rs
+  - zircon_editor/src/ui/retained/app/asset_content_pointer/events.rs
+  - zircon_editor/src/ui/retained/app/asset_content_pointer/events/click.rs
+  - zircon_editor/src/ui/retained/app/asset_content_pointer/events/motion.rs
+  - zircon_editor/src/ui/retained/app/asset_content_pointer/press.rs
+  - zircon_editor/src/ui/retained/app/asset_content_pointer/target.rs
   - zircon_editor/src/ui/retained/app/asset_content_pointer/target/dispatch.rs
   - zircon_editor/src/ui/retained/app/asset_content_pointer/target/prepare.rs
   - zircon_editor/src/ui/retained/app/asset_content_pointer/target/state.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/routing/panes/pane/entry/asset_content.rs
+  - zircon_editor/src/ui/contract/pointer/routing/panes/pane/entry/asset_content.rs
 plan_sources:
   - docs/plans/zircon_editor/editor_ui/08-workbench-shell-on-runtime-ui.md
   - user: 2026-06-18 editor UI architecture implementation, feature first and tests deferred

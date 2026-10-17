@@ -10,8 +10,6 @@ fixing_child_dir: docs/plans/zircon_editor/editor_ui/02
 plan_link_mode: child_record_only
 related_code:
   - zircon_runtime/src/ui/surface/node_pool.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/virtual_rows.rs
-  - dev/UnrealEngine/Engine/Source/Runtime/UMG/Public/Blueprint/UserWidgetPool.h
 tests:
   - 100k-row pool entry-byte-age hard-cap test
   - bulk detach slot-visit and bulk insert paint-order counter

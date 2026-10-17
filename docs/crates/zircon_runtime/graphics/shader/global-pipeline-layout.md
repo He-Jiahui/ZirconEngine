@@ -3,14 +3,11 @@ related_code:
   - zircon_runtime/src/graphics/shader/builtin_global_shader_contracts.rs
   - zircon_runtime/src/graphics/shader/global_pipeline_layout.rs
   - zircon_runtime/src/graphics/shader/wgsl/zr_fullscreen_triangle.wgsl
-  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/hzb.rs
-  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/post_process.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/bind_group_layouts/hzb.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/bind_group_layouts/motion_vector_tile_max.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/hzb_pipeline.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/motion_vector_tile_max_pipeline.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_hzb_build/execute_hzb_build.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_motion_vector_tile_max/execute_motion_vector_tile_max.rs
+  - zircon_runtime/src/graphics/feature/builtin/feature_descriptors/hzb.rs
+  - zircon_runtime/src/graphics/scene/renderer/post/bind_group_layouts/hzb.rs
+  - zircon_runtime/src/graphics/post/bind_group_layouts/motion_vector_tile_max.rs
+  - zircon_runtime/src/graphics/scene/post/create_pipeline_bundle/hzb_pipeline.rs
+  - zircon_runtime/src/graphics/scene/post/execute_hzb_build/execute_hzb_build.rs
 implementation_files:
   - zircon_runtime/src/graphics/shader/builtin_global_shader_contracts.rs
   - zircon_runtime/src/graphics/shader/global_pipeline_layout.rs
@@ -23,7 +20,6 @@ plan_sources:
 tests:
   - zircon_runtime/src/graphics/shader/builtin_global_shader_contracts.rs
   - zircon_runtime/src/graphics/shader/global_pipeline_layout.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_hzb_build/tests.rs
   - zircon_runtime/src/graphics/tests/render_product_post_process/motion_blur.rs
 doc_type: module-detail
 ---

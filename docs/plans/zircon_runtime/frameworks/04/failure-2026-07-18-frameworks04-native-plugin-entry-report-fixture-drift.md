@@ -9,8 +9,6 @@ origin_child_dir: docs/plans/zircon_runtime/runtime/12
 fixing_child_dir: docs/plans/zircon_runtime/frameworks/04
 plan_link_mode: child_record_only
 related_code:
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_abi.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests.rs
 tests:
   - managed Windows job b683460bdf5045908517e328b85f962b / run c96ead9118594183a538a77ea88626ec
   - runtime_12_input_stack_mirror_docs_match_structure_audit_counts retry pending

@@ -9,8 +9,6 @@ related_records:
 implementation_files:
   - zircon_editor/src/ui/layouts/views/asset_browser/summary_nodes.rs
 tests:
-  - zircon_editor/src/ui/layouts/views/asset_browser/summary_nodes/capacity_tests.rs
-  - tools/tests/test_editor880_asset_summary_append_capacity_performance_contract.py
 ---
 
 # Editor880 Asset Summary Append Capacity

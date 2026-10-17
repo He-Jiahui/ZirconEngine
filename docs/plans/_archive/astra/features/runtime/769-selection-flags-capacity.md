@@ -10,10 +10,7 @@ related_records:
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
   - zircon_runtime/src/ui/component/state_reducer/selection.rs
-  - zircon_runtime/src/ui/component/state_reducer/selection/flags_capacity_tests.rs
 tests:
-  - zircon_runtime/src/ui/component/state_reducer/selection/flags_capacity_tests.rs
-  - tools/tests/test_runtime_selection_flags_capacity_performance_contract.py
 ---
 
 # Runtime769 · Selection Flags array capacity

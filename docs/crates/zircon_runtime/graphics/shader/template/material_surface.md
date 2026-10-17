@@ -2,8 +2,7 @@
 related_code:
   - zircon_runtime/src/graphics/shader/template/material_surface.rs
   - zircon_runtime/src/graphics/shader/template/assemble.rs
-  - zircon_runtime/src/graphics/shader/template/tests/standard_material_surface_template.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/shader_source/tests.rs
+  - zircon_runtime/src/graphics/shader/tests/standard_material_surface_template.rs
   - zircon_runtime/src/graphics/scene/resources/pipeline/pipeline_key.rs
   - zircon_runtime/src/core/framework/render/shader/variant_key.rs
   - zircon_runtime/src/graphics/shader/ide_env_generation.rs
@@ -19,8 +18,7 @@ plan_sources:
   - docs/plans/zircon_runtime/shader/06-environment-ibl-and-pbr-correctness.md
   - docs/plans/zircon_runtime/render/11-environment-lighting.md
 tests:
-  - zircon_runtime/src/graphics/shader/template/tests/standard_material_surface_template.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/shader_source/tests.rs
+  - zircon_runtime/src/graphics/shader/tests/standard_material_surface_template.rs
   - zircon_runtime/tests/runtime_shader_pbr_hdri_export/frame_assertions.rs
   - zircon_runtime/tests/runtime_shader_pbr_hdri_export.rs
 doc_type: module-detail

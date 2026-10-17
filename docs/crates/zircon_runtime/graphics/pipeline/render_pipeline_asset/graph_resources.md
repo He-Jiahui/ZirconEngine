@@ -1,51 +1,31 @@
 ---
 related_code:
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/graph_resources.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/pass_authoring.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/descriptor_filtering.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/resource_descriptors.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/shadow_atlas_required_external_tests.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/typed_optional_external_tests.rs
-  - zircon_runtime/src/graphics/feature/render_feature_pass_descriptor/render_feature_pass_descriptor.rs
   - zircon_runtime/src/graphics/feature/render_feature_pass_descriptor/construct.rs
-  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/anti_alias.rs
-  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/bloom.rs
-  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/debug_overlay.rs
-  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/shadows.rs
-  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/mesh.rs
-  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/deferred_geometry.rs
-  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/deferred_lighting.rs
-  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/post_process.rs
-  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/screen_space_ambient_occlusion.rs
-  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/temporal.rs
-  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/ui.rs
+  - zircon_runtime/src/graphics/feature/builtin/feature_descriptors/anti_alias.rs
+  - zircon_runtime/src/graphics/feature/builtin/feature_descriptors/bloom.rs
+  - zircon_runtime/src/graphics/feature/builtin/feature_descriptors/debug_overlay.rs
+  - zircon_runtime/src/graphics/feature/builtin/feature_descriptors/shadows.rs
+  - zircon_runtime/src/graphics/feature/builtin/feature_descriptors/mesh.rs
+  - zircon_runtime/src/graphics/builtin/feature_descriptors/deferred_geometry.rs
+  - zircon_runtime/src/graphics/builtin/feature_descriptors/deferred_lighting.rs
+  - zircon_runtime/src/graphics/feature/builtin/feature_descriptors/temporal.rs
+  - zircon_runtime/src/graphics/feature/builtin/feature_descriptors/ui.rs
   - zircon_runtime/src/render_graph/types.rs
   - zircon_runtime/src/render_graph/builder.rs
   - zircon_plugins/particles/runtime/src/render/feature.rs
   - zircon_plugins/hybrid_gi/runtime/src/lib.rs
   - zircon_plugins/virtual_geometry/runtime/src/lib.rs
 implementation_files:
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/graph_resources.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/pass_authoring.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/descriptor_filtering.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/resource_descriptors.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/typed_optional_external_tests.rs
   - zircon_runtime/src/graphics/feature/render_feature_pass_descriptor/construct.rs
-  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/anti_alias.rs
-  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/bloom.rs
-  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/debug_overlay.rs
-  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/shadows.rs
-  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/mesh.rs
-  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/deferred_geometry.rs
-  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/deferred_lighting.rs
-  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/post_process.rs
-  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/screen_space_ambient_occlusion.rs
-  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/temporal.rs
-  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/ui.rs
+  - zircon_runtime/src/graphics/feature/builtin/feature_descriptors/anti_alias.rs
+  - zircon_runtime/src/graphics/feature/builtin/feature_descriptors/bloom.rs
+  - zircon_runtime/src/graphics/feature/builtin/feature_descriptors/debug_overlay.rs
+  - zircon_runtime/src/graphics/feature/builtin/feature_descriptors/shadows.rs
+  - zircon_runtime/src/graphics/feature/builtin/feature_descriptors/mesh.rs
+  - zircon_runtime/src/graphics/builtin/feature_descriptors/deferred_geometry.rs
+  - zircon_runtime/src/graphics/builtin/feature_descriptors/deferred_lighting.rs
+  - zircon_runtime/src/graphics/feature/builtin/feature_descriptors/temporal.rs
+  - zircon_runtime/src/graphics/feature/builtin/feature_descriptors/ui.rs
   - zircon_plugins/particles/runtime/src/render/feature.rs
   - zircon_plugins/hybrid_gi/runtime/src/lib.rs
   - zircon_plugins/virtual_geometry/runtime/src/lib.rs
@@ -54,14 +34,6 @@ plan_sources:
   - docs/plans/zircon_runtime/render/01-render-graph-rdg-alignment.md
   - user: 2026-06-17 continue Plan 01 required external texture import and materialization modularization
 tests:
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/typed_optional_external_tests.rs::compile_preserves_report_only_external_texture_binding
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/typed_optional_external_tests.rs::compile_preserves_report_only_external_buffer_binding
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/typed_optional_external_tests.rs::compile_rejects_conflicting_report_only_external_texture_and_buffer_binding
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/shadow_atlas_required_external_tests.rs::compile_forward_plus_preserves_shadow_atlas_required_external_texture_binding
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/shadow_atlas_required_external_tests.rs::compile_deferred_preserves_shadow_atlas_required_external_texture_binding
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests.rs::compile_preserves_required_external_texture_binding
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests.rs::compile_rejects_conflicting_required_external_texture_and_buffer_binding
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests.rs::compile_describes_hzb_as_half_power_of_two_mip_chain
   - cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-typed-optional-external-0617 --message-format short --color never
   - cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-required-external-texture-0617 --message-format short --color never
 doc_type: module-detail

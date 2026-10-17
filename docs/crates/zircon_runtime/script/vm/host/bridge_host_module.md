@@ -6,13 +6,11 @@ related_code:
   - zircon_runtime/src/script/vm/host/mod.rs
   - zircon_runtime/src/script/vm/mod.rs
   - zircon_runtime/src/script/mod.rs
-  - zircon_runtime/src/script/vm/tests.rs
   - zircon_runtime/src/script/vm/tests/host_exports.rs
   - zircon_runtime/src/script/vm/tests/bridge_host.rs
   - zircon_runtime/src/core/framework/bridge/mod.rs
   - zircon_runtime/src/core/framework/bridge/interface_slot.rs
   - zircon_runtime/src/plugin/bridge/table.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/host_api_adapter.rs
 implementation_files:
   - zircon_runtime/src/script/vm/host/bridge_host_module.rs
   - zircon_runtime/src/script/vm/host/script_call_table.rs
@@ -27,10 +25,8 @@ plan_sources:
   - docs/plans/zircon_plugins/08-zr-vm.md
   - docs/plans/zircon_runtime/frameworks/05-subsystem-decoupling-contracts.md
 tests:
-  - zircon_runtime/src/script/vm/tests.rs
   - zircon_runtime/src/script/vm/tests/host_exports.rs
   - zircon_runtime/src/script/vm/tests/bridge_host.rs
-  - zircon_runtime/src/tests/plugin_extensions/extension_registry_bridge_performance_baseline.rs
   - tools/tests/test_frameworks_05_layer_direction.py
 ---
 

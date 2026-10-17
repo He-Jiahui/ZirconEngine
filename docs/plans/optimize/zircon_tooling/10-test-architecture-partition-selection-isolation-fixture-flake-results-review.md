@@ -11,20 +11,14 @@ related_code:
   - zircon_hub/tests/project_workflow_contract.rs
   - zircon_hub/tests/tauri_react_shell_contract.rs
   - zircon_editor/src/tests/support.rs
-  - zircon_editor/src/tests/host/retained_menu_pointer/visual_screenshot/asset_browser_content.rs
-  - zircon_editor/src/tests/host/retained_menu_pointer/visual_screenshot/assets_drawer.rs
-  - zircon_editor/src/tests/host/retained_menu_pointer/welcome_visual_screenshot.rs
+  - zircon_editor/src/tests/host/menus/visual_screenshot/asset_browser_content.rs
+  - zircon_editor/src/tests/host/menus/visual_screenshot/assets_drawer.rs
   - zircon_editor/tests/editor_world_sync_watch_map.rs
-  - zircon_app/src/entry/runtime_library/tests.rs
   - zircon_app/tests/editor_mvp_authoring.rs
-  - zircon_runtime/src/foundation/tests.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/tests/device_contract.rs
-  - zircon_runtime/crates/zr_rhi_wgpu/src/gpu_readback_queue/tests.rs
   - zircon_runtime_interface/src/serialization/tests/write_contract.rs
   - .codex/skills/zircon-dev/scripts/validate-matrix.ps1
   - tools/audits/check_conventions.py
-  - tools/editor-workbench-preview/package.json
 tests:
   - .codex/skills/zircon-dev/scripts/validate-matrix.Tests.ps1
   - tools/tests/test_check_conventions.py
@@ -32,13 +26,9 @@ tests:
   - tools/tests/test_frameworks_06_dependency_governance_contract.py
   - tools/tests/mvp-acceptance.Tests.ps1
   - tools/tests/mvp-staging-release.Tests.ps1
-  - tools/tests/session-coordinator-smoke.Tests.ps1
   - tools/tests/ui-profile-latency-evidence.Tests.ps1
   - tools/export/tests/test_pack_stage_cli.py
   - tools/export/tests/test_pipeline_report_compile_host_stage_schema.py
-  - tools/session_coordinator/tests/test_action_execution.py
-  - tools/session_coordinator/tests/test_validation_tickets.py
-  - tools/session_coordinator/tests/test_workspace_copy.py
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md
   - docs/plans/optimize/zircon_hub/01-project-engine-build-editor-launch-process-persistence-delivery-review.md

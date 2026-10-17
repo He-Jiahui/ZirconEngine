@@ -5,9 +5,7 @@ plan_sources:
   - docs/plans/optimize/zircon_editor/66/2026-09-27-frame-selection-aspect-fit.md
   - docs/plans/optimize/zircon_editor/66-editor-scene-viewport-camera-navigation-orbit-pan-zoom-fly-projection-alignment-frame-selection-bookmark-pilot-persistence-input.md
 implementation_files:
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_frame_selection.rs
 tests:
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_frame_selection/aspect_fit_tests.rs
 ---
 
 # Editor66 Frame Selection aspect fit completion list

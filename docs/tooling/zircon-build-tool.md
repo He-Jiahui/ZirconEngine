@@ -1,7 +1,6 @@
 ---
 related_code:
   - tools/dev/dev-fast-build.ps1
-  - tools/zircon_build.py
   - tools/build/zircon_build_config.py
   - tools/build/zircon_build_arguments.py
   - tools/build/zircon_build_support.py
@@ -14,7 +13,6 @@ related_code:
   - tools/build/zircon_build_staging_manifest.py
   - tools/build/zircon_build_filesystem.py
   - tools/build/zircon_build_artifact_io.py
-  - tools/zircon_export/product_build_profiles.toml
   - docs/tooling/zircon-size-optimized-builds.md
   - tools/build/zircon_build_font_sdf.py
   - tools/build/zircon_build_asset_staging.py
@@ -62,58 +60,31 @@ related_code:
   - zircon_runtime/src/ui/tests/runtime_ui_support/runtime_ui_fixture.rs
   - zircon_editor/src/ui/asset_editor/node_projection.rs
   - zircon_editor/src/ui/layouts/views/view_projection.rs
-  - zircon_editor/src/ui/template_runtime/builtin/template_documents.rs
-  - zircon_editor/src/ui/template_runtime/runtime/build_session.rs
+  - zircon_editor/src/ui/runtime/runtime/build_session.rs
   - zircon_plugins/Cargo.toml
   - zircon_plugins/native_dynamic_fixture/plugin.toml
   - zircon_plugins/native_dynamic_fixture/assets/shader.wgsl
   - zircon_plugins/native_dynamic_fixture/native/Cargo.toml
-  - zircon_runtime/src/plugin/native_plugin_loader/mod.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/candidate_from_manifest.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/discover_load_manifest.rs
   - zircon_runtime/src/bin/zircon_shader_prewarm/main.rs
   - zircon_runtime/src/bin/zircon_shader_prewarm/args.rs
   - zircon_runtime/src/bin/zircon_shader_prewarm/manifest.rs
   - zircon_runtime/src/bin/zircon_shader_prewarm/manifest/paths.rs
   - zircon_runtime/src/bin/zircon_shader_prewarm/manifest/permutation_registry.rs
   - zircon_runtime/src/bin/zircon_shader_prewarm/manifest/resource_registry.rs
-  - zircon_runtime/src/bin/zircon_shader_prewarm/manifest/resource_registry/tests.rs
   - zircon_runtime/src/bin/zircon_shader_prewarm/manifest/revision.rs
   - zircon_runtime/src/bin/zircon_shader_prewarm/run.rs
   - zircon_runtime/src/core/framework/render/shader/variant_prewarm.rs
   - zircon_runtime/src/dynamic_api/mod.rs
   - zircon_runtime/src/dynamic_api/shader_prewarm.rs
-  - zircon_runtime/src/dynamic_api/shader_prewarm/tests.rs
   - zircon_runtime/src/graphics/shader/mod.rs
   - zircon_runtime/src/graphics/shader/variant_cache/mod.rs
   - zircon_runtime/src/graphics/shader/variant_cache/prewarm.rs
   - zircon_runtime/src/plugin/package_manifest/plugin_shader_permutation_manifest.rs
   - zircon_plugins/virtual_geometry/runtime/src/plugin.rs
   - zircon_plugins/virtual_geometry/plugin.toml
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_registry_auto_export.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_resource_registry_multi_root_dedupe.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_permutation_registry.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_permutation_registry_auto_export.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_plugin_permutation_registry_auto_export.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_plugin_asset_roots_auto_export.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_asset_root_plan_visibility.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_staged_wgpu_handoff_command_contract.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_acceptance_contract.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_project_plugin_registry_production_wrapper_no_proxy.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_plugin_geometry_source_descriptor.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_wgpu_module_validation.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_wgpu_validation_report_summary.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_wgpu_report_contract.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_source_provenance_summary.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_source_provenance_report_contract.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_resource_registry_export_contract.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_resource_registry_report_correlation.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_report_dimension_contract.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_cache_artifact_contract.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_manifest/manifest_contract.rs
+  - zircon_runtime/src/tests/test_size/shader_prewarm_manifest/manifest_contract.rs
 implementation_files:
   - tools/dev/dev-fast-build.ps1
-  - tools/zircon_build.py
   - tools/build/zircon_build_asset_staging.py
   - tools/build/zircon_build_plugin_assets.py
   - tools/build/zircon_build_plugin_manifest_contract.py
@@ -149,31 +120,15 @@ implementation_files:
   - zircon_runtime/src/bin/zircon_shader_prewarm/manifest/paths.rs
   - zircon_runtime/src/bin/zircon_shader_prewarm/manifest/permutation_registry.rs
   - zircon_runtime/src/bin/zircon_shader_prewarm/manifest/resource_registry.rs
-  - zircon_runtime/src/bin/zircon_shader_prewarm/manifest/resource_registry/tests.rs
   - zircon_runtime/src/bin/zircon_shader_prewarm/manifest/revision.rs
   - zircon_runtime/src/bin/zircon_shader_prewarm/run.rs
   - zircon_runtime/src/core/framework/render/shader/variant_prewarm.rs
   - zircon_runtime/src/dynamic_api/mod.rs
   - zircon_runtime/src/dynamic_api/shader_prewarm.rs
-  - zircon_runtime/src/dynamic_api/shader_prewarm/tests.rs
   - zircon_runtime/src/graphics/shader/mod.rs
   - zircon_runtime/src/graphics/shader/variant_cache/mod.rs
   - zircon_runtime/src/graphics/shader/variant_cache/prewarm.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_wgpu_module_validation.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_wgpu_validation_report_summary.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_wgpu_report_contract.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_source_provenance_summary.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_source_provenance_report_contract.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_resource_registry_export_contract.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_resource_registry_report_correlation.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_report_dimension_contract.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_cache_artifact_contract.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_manifest/manifest_contract.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_resource_registry_multi_root_dedupe.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_asset_root_plan_visibility.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_staged_wgpu_handoff_command_contract.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_acceptance_contract.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_project_plugin_registry_production_wrapper_no_proxy.rs
+  - zircon_runtime/src/tests/test_size/shader_prewarm_manifest/manifest_contract.rs
   - zircon_runtime/src/plugin/package_manifest/plugin_shader_permutation_manifest.rs
   - zircon_plugins/virtual_geometry/runtime/src/plugin.rs
   - zircon_plugins/virtual_geometry/plugin.toml
@@ -185,8 +140,7 @@ implementation_files:
   - zircon_runtime/src/ui/tests/runtime_ui_support/runtime_ui_fixture.rs
   - zircon_editor/src/ui/asset_editor/node_projection.rs
   - zircon_editor/src/ui/layouts/views/view_projection.rs
-  - zircon_editor/src/ui/template_runtime/builtin/template_documents.rs
-  - zircon_editor/src/ui/template_runtime/runtime/build_session.rs
+  - zircon_editor/src/ui/runtime/runtime/build_session.rs
 plan_sources:
   - docs/plans/zircon_runtime/runtime/07-runtime-performance-hotpath.md
   - user: 2026-05-03 add tools/zircon_build.py for staged editor/runtime/plugin builds

@@ -29,7 +29,6 @@ related_code:
 tests:
   - zircon_runtime/src/input/tests
   - zircon_runtime/src/dynamic_api/tests
-  - zircon_runtime/src/script/vm/gameplay_host/tests.rs
   - zircon_app/src/entry/tests/runtime_entry_input_guards
   - zircon_app/src/entry/tests/runtime_entry_input_guards/protocol.rs
   - zircon_app/src/entry/tests/runtime_entry_source_guards/host_requests.rs

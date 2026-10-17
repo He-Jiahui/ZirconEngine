@@ -8,9 +8,9 @@ related_records:
   - docs/plans/astra/features/editor/956-editor573-ui-asset-conflict-buffer-reuse.md
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/build_export/target_rows/identity.rs
+  - zircon_editor/src/ui/retained/ui/data/build_export/target_rows/identity.rs
 tests:
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/build_export/target_rows/identity.rs
+  - zircon_editor/src/ui/retained/ui/data/build_export/target_rows/identity.rs
 ---
 
 # Editor955 Editor572 Build-Export Target Single Buffer

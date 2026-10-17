@@ -10,7 +10,6 @@ related_records:
 implementation_files:
   - zircon_runtime/src/dynamic_api/session/runtime_ui/input_routing.rs
 tests:
-  - tools/tests/test_runtime_ui_dispatch_output_fastpath_performance_contract.py
 ---
 
 # Runtime804 · empty dispatch-output fast path

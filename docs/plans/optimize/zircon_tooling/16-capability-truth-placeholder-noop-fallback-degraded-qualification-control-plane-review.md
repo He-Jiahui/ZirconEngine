@@ -2,19 +2,17 @@
 related_code:
   - zircon_runtime/src/plugin/capability_status.rs
   - zircon_runtime/src/plugin/plugin_maturity.rs
-  - zircon_runtime/src/plugin/runtime_plugin/capability_view.rs
   - zircon_runtime/src/plugin/runtime_profile/availability_projection.rs
   - zircon_runtime/src/core/runtime/lifecycle.rs
   - zircon_runtime/src/core/runtime/descriptors/module_descriptor.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry.rs
   - zircon_editor/src/ui/host/editor_capabilities.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/enablement/capabilities.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/status/builtin.rs
+  - zircon_editor/src/ui/host/exports/enablement/capabilities.rs
+  - zircon_editor/src/ui/host/exports/status/builtin.rs
   - zircon_editor/src/core/play/controller.rs
   - zircon_editor/src/core/play/backend/noop.rs
   - zircon_editor/src/core/play/plugin_activation/noop.rs
   - zircon_editor/src/ui/host/editor_host_startup.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/startup/with_viewport/runtime_backend.rs
+  - zircon_editor/src/ui/retained/app/startup/with_viewport/runtime_backend.rs
   - zircon_plugins/rendering/plugin.toml
   - zircon_plugins/rendering/features/baked_lighting/runtime/src/lib.rs
   - zircon_plugins/rendering/features/decals/runtime/src/lib.rs
@@ -24,9 +22,8 @@ related_code:
   - zircon_plugins/particles/runtime/src/interop/physics.rs
   - zircon_hub/src/state/task_status.rs
 tests:
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry/tests/registry_contracts.rs
+  - zircon_runtime/src/graphics/scene/renderer/registry/tests/registry_contracts.rs
   - zircon_plugins/particles/runtime/src/tests/optional_features.rs
-  - zircon_editor/src/core/play/tests.rs
   - zircon_hub/tests/project_workflow_contract.rs
 plan_sources:
   - docs/plans/optimize/01-cross-report-owner-schema-abi-p0-consolidation-review.md

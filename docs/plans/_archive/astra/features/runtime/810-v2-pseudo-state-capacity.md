@@ -11,7 +11,6 @@ implementation_files:
   - zircon_runtime/src/ui/v2/style/runtime_state.rs
 tests:
   - zircon_runtime/src/ui/v2/style/runtime_state.rs
-  - tools/tests/test_runtime_v2_pseudo_state_capacity_performance_contract.py
 ---
 
 # Runtime810 · v2 pseudo-state collector capacity

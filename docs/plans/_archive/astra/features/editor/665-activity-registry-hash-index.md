@@ -4,7 +4,6 @@ plan_sources:
   - docs/plans/optimize/zircon_editor/01/2026-08-26-activity-registry-hash-index.md
 related_code:
   - zircon_editor/src/ui/control/service.rs
-  - zircon_editor/src/ui/control/service/activity_registry_hash_tests.rs
 ---
 
 # Editor01 活动注册表哈希索引

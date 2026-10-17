@@ -17,29 +17,12 @@ related_code:
   - zircon_editor/src/core/plugin/materializer.rs
   - zircon_editor/src/core/notifications/presentation.rs
   - zircon_editor/src/scene/viewport/controller/scene_viewport_controller.rs
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_accessors.rs
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_apply_command.rs
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_construction.rs
   - zircon_editor/src/ui/host/editor_event_execution/dispatch.rs
   - zircon_editor/src/ui/host/editor_event_runtime_access/settings_projection.rs
-  - zircon_editor/src/ui/retained_host/app.rs
-  - zircon_editor/src/ui/retained_host/app/settings_window_actions.rs
-  - zircon_editor/src/ui/retained_host/app/pane_surface_actions/workbench_surface/option.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/settings_window.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/popup_state.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/template_nodes/settings.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/template_nodes/node.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_settings_window.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_settings_window
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/settings_window
-  - zircon_editor/src/ui/retained_host/ui/workbench_window_projection.rs
-  - zircon_editor/src/ui/retained_host/ui/workbench_window_projection/defaults.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_theme.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_theme
-  - zircon_editor/src/ui/retained_host/host_contract/settings_window_geometry.rs
-  - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node/popup_rows/settings.rs
-  - zircon_editor/assets/ui/editor/components/workbench/floating/workbench_preferences.zui
-  - zircon_editor/assets/ui/editor/windows/workbench_window.zui
+  - zircon_editor/src/ui/retained/app/settings_window_actions.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/workbench/settings_window.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/workbench/popup_state.rs
+  - zircon_editor/src/ui/retained/contract/node/popup_rows/settings.rs
   - zircon_editor/assets/ui/editor/theme/editor_tokens.zui
   - zircon_runtime/src/ui/surface/render/buttons.rs
   - zircon_runtime/src/ui/surface/render/chrome.rs

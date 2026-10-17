@@ -12,14 +12,12 @@ related_code:
   - zircon_runtime/crates/zr_rhi_wgpu/src/gpu_readback_queue/
   - zircon_runtime/crates/zr_rhi_wgpu/src/gpu_pass_timer.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/production/diagnostics/readback/
-  - zircon_runtime/src/graphics/backend/render_backend/render_backend_diagnostics.rs
-  - zircon_runtime/src/graphics/backend/render_backend/product_diagnostic_delivery_router.rs
   - zircon_runtime/src/graphics/runtime_prepare_collector/
-  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/capture_mailbox.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/realtime_ibl_gpu_timestamps.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/hzb/hzb_occlusion_culler.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_readback/
-  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/gpu_readback/
+  - zircon_runtime/src/graphics/runtime/framework/viewport_record/capture_mailbox.rs
+  - zircon_runtime/src/graphics/scene/environment/realtime_ibl_gpu_timestamps.rs
+  - zircon_runtime/src/graphics/scene/renderer/hzb/hzb_occlusion_culler.rs
+  - zircon_plugins/hybrid_gi/runtime/src/gi/renderer/gpu_readback
+  - zircon_plugins/hybrid_gi/runtime/src/gi/renderer/gpu_readback
   - zircon_plugins/particles/runtime/src/render/runtime_prepare.rs
 tests:
   - readback_callback_fires_after_n_frame_delay

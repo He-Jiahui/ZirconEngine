@@ -12,9 +12,7 @@ related_code:
   - zircon_runtime/src/ui/dispatch/input_manager/manager.rs
   - zircon_runtime/src/ui/dispatch/input_manager/mod.rs
   - zircon_runtime/src/ui/dispatch/input_manager/manager/toast_timer_queue.rs
-  - zircon_runtime/src/ui/dispatch/input_manager/manager/tests.rs
   - zircon_runtime/src/ui/dispatch/input_manager/bound_text_model_updates.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/ui_dispatch_bound_text_model_updates.rs
 tests:
   - cargo test -p zircon_runtime --no-default-features --locked --lib tests::runtime_absorption::structure_convention::production_file_budget::ui_dispatch_bound_text_model_updates::runtime_text_bound_model_updates_are_bounded_child_owner
   - managed Windows input-manager dispatch and bound-text behavior regression

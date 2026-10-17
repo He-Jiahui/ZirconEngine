@@ -18,7 +18,6 @@ implementation_files:
   - zircon_runtime/src/ui/surface/frame_hit_test.rs
 tests:
   - zircon_runtime/src/ui/tree/hit_test.rs
-  - tools/tests/test_runtime_ui_hit_grid_cell_iterator_contract.py
   - tools/tests/test_runtime_ui_hit_grid_budget_contract.py
   - tools/tests/test_runtime_ui_projected_hit_grid_budget_contract.py
 ---

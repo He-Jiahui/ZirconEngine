@@ -9,8 +9,8 @@ origin_child_dir: docs/plans/zircon_runtime/text/01
 fixing_child_dir: docs/plans/zircon_runtime/runtime/07
 plan_link_mode: child_record_only
 related_code:
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/camera_loop.rs
-  - zircon_runtime/src/tests/runtime_absorption/performance_hotspots/submit_context/camera_loop_sharing.rs
+  - zircon_runtime/src/graphics/runtime/framework/extract/submit/camera_loop.rs
+  - zircon_runtime/src/tests/contracts/submit_context/camera_loop_sharing.rs
 ---
 
 # Runtime07：submit context camera target sharing 锚点漂移

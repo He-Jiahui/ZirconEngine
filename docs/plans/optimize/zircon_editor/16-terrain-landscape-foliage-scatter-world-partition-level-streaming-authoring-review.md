@@ -6,18 +6,13 @@ related_code:
   - zircon_editor/src/core/asset/type_registry/builtin.rs
   - zircon_editor/src/core/plugin
   - zircon_editor/src/ui/host/editor_operation_dispatch.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/reference_menu_actions.rs
-  - zircon_editor/src/ui/retained_host/workbench_preview_actions/extensions.rs
-  - zircon_editor/src/ui/template_runtime/builtin/workbench_extension_module_template_bindings/world_building.rs
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/world
+  - zircon_editor/src/ui/retained/dispatch/workbench/reference_menu_actions.rs
   - zircon_runtime/src/asset/assets/authoring.rs
   - zircon_runtime/src/asset/assets/scene/extensions.rs
   - zircon_runtime/src/asset/importer/ingest/asset_importer.rs
   - zircon_runtime/src/asset/importer/ingest/import_authoring_asset.rs
   - zircon_runtime/src/scene/level_system.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/core_rows/content.rs
+  - zircon_runtime/src/plugin/runtime/builtin_catalog/core_rows/content.rs
   - examples/vampire/assets/terrain/jungle_clearing.terrain.toml
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md

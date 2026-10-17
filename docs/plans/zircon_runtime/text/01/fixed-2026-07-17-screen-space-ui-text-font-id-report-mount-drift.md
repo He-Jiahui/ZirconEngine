@@ -9,9 +9,8 @@ origin_child_dir: docs/plans/zircon_runtime/text/01
 fixing_child_dir: docs/plans/zircon_runtime/runtime/15
 plan_link_mode: child_record_only
 related_code:
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/font_id_report.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_ui_text_font_id_report.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/text.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/text/font_id_report.rs
 tests:
   - cargo test -p zircon_runtime --lib runtime_15_screen_space_ui_text_font_id_report_is_child_owner --locked --jobs 1 -- --test-threads=1
   - cargo test -p zircon_runtime --lib text_font --locked --jobs 1 -- --test-threads=1

@@ -1,7 +1,5 @@
 ---
 related_code:
-  - dev/bevy/crates/bevy_image/src/lib.rs
-  - dev/bevy/crates/bevy_image/src/image.rs
   - zircon_runtime/src/core/framework/render/image/mod.rs
   - zircon_runtime/src/core/framework/render/image/asset_usage.rs
   - zircon_runtime/src/core/framework/render/image/color_space.rs
@@ -16,7 +14,6 @@ related_code:
   - zircon_runtime/src/asset/assets/texture/texture_asset.rs
   - zircon_runtime/src/asset/assets/texture/upload_support.rs
   - zircon_runtime/src/asset/assets/texture/upload_support/compressed.rs
-  - zircon_runtime/src/graphics/scene/resources/gpu_texture/gpu_texture_resource_from_asset.rs
   - zircon_runtime/src/graphics/scene/resources/gpu_texture/mod.rs
   - zircon_runtime/tests/runtime_texture_cube_resource_contract.rs
 implementation_files:
@@ -34,7 +31,6 @@ implementation_files:
   - zircon_runtime/src/asset/assets/texture/texture_asset.rs
   - zircon_runtime/src/asset/assets/texture/upload_support.rs
   - zircon_runtime/src/asset/assets/texture/upload_support/compressed.rs
-  - zircon_runtime/src/graphics/scene/resources/gpu_texture/gpu_texture_resource_from_asset.rs
 plan_sources:
   - user: 2026-05-20 Bevy rendering completion plan continuation
   - .codex/plans/ZirconEngine Bevy 完成度两层路线图.md

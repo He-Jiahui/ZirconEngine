@@ -11,8 +11,8 @@ plan_link_mode: child_record_only
 related_code:
   - zircon_runtime/src/text/sdf/font_bake.rs
   - zircon_runtime/src/text/render_state.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/sdf_render.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/text.rs
 ---
 
 # SDF frame多轮准备与整页重建

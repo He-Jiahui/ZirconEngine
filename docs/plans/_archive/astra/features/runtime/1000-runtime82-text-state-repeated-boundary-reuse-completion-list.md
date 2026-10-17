@@ -7,7 +7,6 @@ plan_sources:
 implementation_files:
   - zircon_runtime/src/ui/surface/input/text_state.rs
 tests:
-  - zircon_runtime/src/ui/surface/input/text_state/optimization_tests.rs
 ---
 
 # Runtime82 text state repeated boundary reuse completion list

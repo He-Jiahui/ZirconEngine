@@ -49,7 +49,6 @@ tests:
   - cargo test -p zircon_runtime --lib surface_debug_snapshot_json_exports --offline --jobs 1 --target-dir D:\cargo-targets\zircon-layout-diagnostics-20260522 --message-format short --color never (2026-05-22: passed, 2 passed after fallback_reason_counts JSON assertions; lock restored)
   - cargo test -p zircon_runtime_interface ui_surface_debug_snapshot_legacy_layout_report_recovers_fallback_reason_counts --offline --jobs 1 --target-dir D:\cargo-targets\zircon-layout-snapshot-deser-20260522 --message-format short --color never (2026-05-22: passed, 1 passed after nested legacy layout report aggregate recovery; lock restored)
   - zircon_runtime/src/ui/tests/hit_grid.rs
-  - tests/acceptance/ui-debug-reflector-full-closure.md
 doc_type: module-detail
 ---
 

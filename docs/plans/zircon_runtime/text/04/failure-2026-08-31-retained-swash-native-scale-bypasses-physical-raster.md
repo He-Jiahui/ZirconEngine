@@ -15,8 +15,8 @@ related_code:
   - zircon_runtime/src/text/raster/service
   - zircon_runtime/src/text/raster/swash/request.rs
   - zircon_runtime/src/ui/surface/text_artifact.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs.rs
+  - zircon_editor/src/ui/retained/contract/paint_text/draw/layout.rs
+  - zircon_editor/src/ui/retained/contract/paint_text/draw/glyphs.rs
 tests:
   - powershell -NoProfile -Command "Select-String over Editor paint_text and Cargo for removed backend symbols must return no matches"
   - py -m unittest discover -s tools/tests -p 'test_runtime_text_*.py' -v

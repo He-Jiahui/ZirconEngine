@@ -1,7 +1,6 @@
 ---
 related_code:
   - .github/workflows/ci.yml
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/module_convention_gate.rs
   - tools/audits/plugins/capability.py
   - tools/audits/check_conventions.py
   - tools/audits/convention_exemptions.py

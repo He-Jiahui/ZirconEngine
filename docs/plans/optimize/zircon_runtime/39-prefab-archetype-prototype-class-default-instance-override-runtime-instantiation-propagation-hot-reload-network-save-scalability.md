@@ -13,27 +13,20 @@ related_code:
   - zircon_runtime/src/asset/importer/ingest/asset_importer.rs
   - zircon_runtime/src/asset/importer/ingest/import_authoring_asset.rs
   - zircon_runtime/src/asset/facade/impls.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/construction.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/open_project.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/loading/load_asset.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/loading/load_imported_asset.rs
+  - zircon_runtime/src/asset/pipeline/manager/assets/loading/load_asset.rs
+  - zircon_runtime/src/asset/pipeline/manager/assets/loading/load_imported_asset.rs
   - zircon_runtime/src/asset/project/manager/importer_access.rs
   - zircon_runtime/src/asset/module.rs
   - zircon_runtime/src/builtin/runtime_modules/assembly/extension_inputs.rs
   - zircon_runtime/src/builtin/runtime_modules/assembly/registration_inputs.rs
   - zircon_runtime/src/builtin/runtime_modules/core_modules.rs
   - zircon_runtime/src/builtin/runtime_modules/load_report/diagnostics.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/augmentation/categories.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/core_classification/content.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/core_rows/content.rs
+  - zircon_runtime/src/plugin/runtime/builtin_catalog/augmentation/categories.rs
+  - zircon_runtime/src/plugin/runtime/builtin_catalog/core_classification/content.rs
+  - zircon_runtime/src/plugin/runtime/builtin_catalog/core_rows/content.rs
   - zircon_runtime/src/scene/world/project_io/scene_asset.rs
-  - zircon_runtime/src/scene/dynamic_scene/remap.rs
-  - zircon_runtime/src/scene/dynamic_scene/entity/dynamic_entity.rs
-  - zircon_runtime/src/scene/dynamic_scene/scene/mod.rs
-  - zircon_runtime/src/scene/dynamic_scene/scene/spawn
-  - zircon_runtime/src/scene/dynamic_scene/scene_asset
-  - zircon_runtime/src/scene/dynamic_scene/spawn_task
-  - zircon_runtime/src/scene/dynamic_scene/asset_reload
+  - zircon_runtime/src/scene/dynamic/entity/dynamic_entity.rs
+  - zircon_runtime/src/scene/dynamic/scene/spawn
   - zircon_plugins/prefab_tools
   - examples/vampire/zircon-project.toml
   - examples/vampire/assets/scenes/main.scene.toml
@@ -47,8 +40,6 @@ tests:
   - zircon_runtime/src/scene/tests/asset_scene/hierarchy_sources.rs
   - zircon_runtime/src/scene/tests/dynamic_scene/level_apply.rs
   - zircon_runtime/src/scene/tests/dynamic_scene/scene_patch_document.rs
-  - zircon_runtime/src/tests/plugin_extensions/plugin_workspace_shape.rs
-  - zircon_runtime/src/tests/plugin_extensions/export_build_plan.rs
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md
   - docs/plans/optimize/01-cross-report-owner-schema-abi-p0-consolidation-review.md

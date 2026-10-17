@@ -10,7 +10,7 @@ fixing_child_dir: docs/plans/zircon_runtime/frameworks/05
 plan_link_mode: child_record_only
 related_code:
   - zircon_runtime/src/graphics/text_transport/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render/rich_text.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/render/rich_text.rs
   - zircon_runtime_interface/src/ui/surface
 tests:
   - cargo check -p zircon_runtime --locked

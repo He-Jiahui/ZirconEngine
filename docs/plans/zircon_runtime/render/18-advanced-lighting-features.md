@@ -2,37 +2,8 @@
 related_code:
   - zircon_runtime/src/core/framework/render/frame_extract.rs
   - zircon_runtime/src/core/framework/render/light/snapshots.rs
-  - zircon_runtime/src/core/framework/render/post_process/volume_component.rs
-  - zircon_runtime/src/core/framework/render/post_process/volume_evaluator.rs
-  - zircon_runtime/src/core/framework/render/post_process/effect.rs
-  - zircon_runtime/src/graphics/feature/render_feature_descriptor/render_feature_descriptor.rs
-  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry.rs
+  - zircon_runtime/src/graphics/feature/builtin/feature_descriptors/mod.rs
   - zircon_plugins/rendering/plugin.toml
-  - dev/UnrealEngine/Engine/Source/Runtime/Renderer/Private/VolumetricFog.cpp
-  - dev/UnrealEngine/Engine/Source/Runtime/Renderer/Private/PostProcess/PostProcessSubsurface.cpp
-  - dev/Graphics/Packages/com.unity.render-pipelines.universal/Runtime/LightCookieManager.cs
-  - dev/Graphics/Packages/com.unity.render-pipelines.universal/ShaderLibrary/LightCookie/LightCookie.hlsl
-  - dev/Graphics/Packages/com.unity.render-pipelines.high-definition/Runtime/Lighting/Reflection/PlanarReflectionProbe.cs
-  - dev/Graphics/Packages/com.unity.render-pipelines.high-definition/Runtime/Lighting/PlanarReflectionFiltering.compute
-  - dev/bevy/crates/bevy_pbr/src/volumetric_fog/mod.rs
-  - dev/bevy/crates/bevy_pbr/src/volumetric_fog/render.rs
-  - dev/bevy/crates/bevy_light/src/volumetric.rs
-  - dev/bevy/crates/bevy_light/src/point_light.rs
-  - dev/bevy/crates/bevy_light/src/spot_light.rs
-  - dev/bevy/crates/bevy_light/src/directional_light.rs
-  - dev/bevy/crates/bevy_pbr/src/decal/clustered.rs
-  - dev/bevy/crates/bevy_pbr/src/pbr_material.rs
-  - dev/bevy/crates/bevy_pbr/src/transmission/mod.rs
-  - dev/bevy/crates/bevy_pbr/src/transmission/node.rs
-  - dev/bevy/crates/bevy_pbr/src/transmission/texture.rs
-  - dev/bevy/crates/bevy_pbr/src/transmission/phase.rs
-  - dev/bevy/crates/bevy_core_pipeline/src/oit/mod.rs
-  - dev/bevy/crates/bevy_core_pipeline/src/oit/resolve/mod.rs
-  - dev/bevy/crates/bevy_core_pipeline/src/oit/resolve/node.rs
-  - dev/bevy/crates/bevy_light/src/probe.rs
-  - dev/bevy/crates/bevy_pbr/src/light_probe/irradiance_volume.rs
-  - dev/Fyrox/fyrox-impl/src/renderer/light_volume.rs
 plan_sources:
   - .codex/plans/Rendering 插件选项补齐计划.md
 ---

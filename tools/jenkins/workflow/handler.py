@@ -5,6 +5,8 @@ artifact and validation authorities remain in their own support modules.
 """
 from __future__ import annotations
 
+import os
+
 from pathlib import Path
 import difflib
 import hashlib
@@ -264,7 +266,7 @@ def _sealed_classification(record: dict, state: State | None = None) -> dict:
             return None, "sealed_before_unavailable"
         try:
             base_result = subprocess.run(
-                ["git", "-C", str(payload.get("repoRoot", ".")),
+                ["git", "-c", "core.fsmonitor=false", "-c", "core.hooksPath=" + os.devnull, "-C", str(payload.get("repoRoot", ".")),
                  "show", f"{base_head}:{path}"],
                 capture_output=True, check=True)
             base_bytes = base_result.stdout

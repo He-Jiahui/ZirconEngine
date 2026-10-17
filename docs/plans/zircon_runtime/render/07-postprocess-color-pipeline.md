@@ -1,66 +1,23 @@
 ---
 related_code:
   - zircon_runtime/src/core/framework/render/frame_extract.rs
-  - zircon_runtime/src/core/framework/render/post_process/stack.rs
-  - zircon_runtime/src/core/framework/render/post_process/graph_resource_names.rs
-  - zircon_runtime/src/core/framework/render/post_process/stack/tests.rs
-  - zircon_runtime/src/core/framework/render/post_process/stack/tests/effect_stack.rs
-  - zircon_runtime/src/core/framework/render/post_process/stack/tests/exposure.rs
-  - zircon_runtime/src/core/framework/render/post_process/stack/tests/screen_space_reflection.rs
-  - zircon_runtime/src/core/framework/render/post_process/stack/tests/temporal_history.rs
-  - zircon_runtime/src/core/framework/render/post_process/stack/tests/terminal_chain.rs
-  - zircon_runtime/src/core/framework/render/post_process/effect.rs
-  - zircon_runtime/src/core/framework/render/post_process/resolved_stack.rs
-  - zircon_runtime/src/core/framework/render/post_process/volume_profile.rs
-  - zircon_runtime/src/core/framework/render/post_process/volume_component.rs
-  - zircon_runtime/src/core/framework/render/post_process/volume_component/params.rs
-  - zircon_runtime/src/core/framework/render/post_process/volume_component/tests.rs
-  - zircon_runtime/src/core/framework/render/post_process/volume_registry.rs
-  - zircon_runtime/src/core/framework/render/post_process/volume_extract.rs
-  - zircon_runtime/src/core/framework/render/post_process/volume_evaluator.rs
-  - zircon_runtime/src/core/framework/render/post_process/pass_graph.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build.rs
+  - zircon_runtime/src/core/framework/render/post/stack/tests/effect_stack.rs
+  - zircon_runtime/src/core/framework/render/post/stack/tests/exposure.rs
+  - zircon_runtime/src/core/render/post/stack/tests/screen_space_reflection.rs
+  - zircon_runtime/src/core/framework/render/post/stack/tests/temporal_history.rs
+  - zircon_runtime/src/core/framework/render/post/stack/tests/terminal_chain.rs
+  - zircon_runtime/src/core/framework/render/post/volume_component/params.rs
   - zircon_runtime/src/scene/world/render_post_process.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/mod.rs
+  - zircon_runtime/src/graphics/scene/renderer/post/execute_post_process/mod.rs
   - zircon_runtime/src/graphics/tests/render_product_post_process.rs
   - zircon_runtime/src/graphics/tests/render_product_post_process/motion_blur.rs
   - zircon_runtime/src/graphics/tests/render_product_post_process_volume.rs
   - zircon_runtime/src/graphics/tests/render_product_post_process_full_chain.rs
-  - zircon_runtime/src/graphics/tests/render_product_post_process_full_chain/fixture.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/builtin_postprocess_executors.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/builtin_postprocess_executors/frame_effects.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/builtin_postprocess_executors/graph_resources.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/builtin_postprocess_executors/resource_routing.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/post_process/screen_space_reflection.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/post_process/screen_space_reflection/tests.rs
+  - zircon_runtime/src/graphics/scene/builtin_postprocess_executors/frame_effects.rs
+  - zircon_runtime/src/graphics/builtin_postprocess_executors/graph_resources.rs
+  - zircon_runtime/src/graphics/builtin_postprocess_executors/resource_routing.rs
   - zircon_runtime/src/graphics/scene/resources/post_process_lut_texture/mod.rs
-  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/post_process.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/render_post_process_stack.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/render_post_process_volume_component.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/render_builtin_postprocess_executors.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_post_process_screen_space_reflection_tests.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_product_post_process_motion_blur_tests.rs
   - zircon_plugins/rendering/plugin.toml
-  - dev/UnrealEngine/Engine/Source/Runtime/Renderer/Private/PostProcess/PostProcessing.cpp
-  - dev/UnrealEngine/Engine/Source/Runtime/Renderer/Private/PostProcess/PostProcessEyeAdaptation.cpp
-  - dev/UnrealEngine/Engine/Source/Runtime/Renderer/Private/PostProcess/PostProcessTonemap.cpp
-  - dev/UnrealEngine/Engine/Source/Runtime/Renderer/Private/PostProcess/PostProcessBloomSetup.cpp
-  - dev/Graphics/Packages/com.unity.render-pipelines.core/Runtime/Volume/VolumeManager.cs
-  - dev/Graphics/Packages/com.unity.render-pipelines.core/Runtime/Volume/VolumeComponent.cs
-  - dev/Graphics/Packages/com.unity.render-pipelines.core/Runtime/Volume/VolumeStack.cs
-  - dev/Graphics/Packages/com.unity.render-pipelines.universal/Runtime/Passes/PostProcess/UberPostProcessPass.cs
-  - dev/Graphics/Packages/com.unity.render-pipelines.universal/Runtime/Passes/ColorGradingLutPass.cs
-  - dev/Graphics/Packages/com.unity.render-pipelines.universal/Runtime/Passes/PostProcess/BloomPostProcessPass.cs
-  - dev/Graphics/Packages/com.unity.render-pipelines.universal/Runtime/Passes/PostProcess/ScalingSetupPostProcessPass.cs
-  - dev/Graphics/Packages/com.unity.render-pipelines.core/Runtime/Textures/RTHandleSystem.cs
-  - dev/bevy/crates/bevy_post_process/src/auto_exposure/auto_exposure.wgsl
-  - dev/bevy/crates/bevy_post_process/src/auto_exposure/settings.rs
-  - dev/bevy/crates/bevy_post_process/src/bloom/mod.rs
-  - dev/bevy/crates/bevy_post_process/src/bloom/bloom.wgsl
-  - dev/bevy/crates/bevy_core_pipeline/src/tonemapping/mod.rs
-  - dev/bevy/crates/bevy_post_process/src/effect_stack/mod.rs
-  - dev/bevy/crates/bevy_core_pipeline/src/upscaling/mod.rs
-  - dev/Fyrox/fyrox-impl/src/renderer/hdr/mod.rs
 plan_sources:
   - .codex/plans/Rendering 插件选项补齐计划.md
   - .codex/plans/ZirconEngine Bevy-Level Rendering Completion Plan.md

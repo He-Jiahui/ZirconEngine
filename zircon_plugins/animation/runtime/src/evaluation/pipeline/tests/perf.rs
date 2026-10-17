@@ -49,7 +49,7 @@ fn interrupted_transition_string_reuse_release_benchmark_evidence() {
         legacy_p95.saturating_sub(optimized_p95).saturating_mul(100) / legacy_p95.max(1);
 
     println!(
-        "PERF_RESULT task=runtime170_interrupted_transition_string_reuse state_bytes={STATE_BYTES} updates_per_sample={UPDATES_PER_SAMPLE} sample_pairs={SAMPLE_PAIRS} order=alternating_legacy_first_even legacy_string_allocations_per_sample={} optimized_string_allocations_per_sample=2 legacy_p95_ns={legacy_p95} optimized_p95_ns={optimized_p95} improvement_percent={improvement_percent} threshold_percent={REQUIRED_IMPROVEMENT_PERCENT} legacy_raw_ns={} optimized_raw_ns={}",
+        "PERF_RESULT task=runtime170_interrupted_transition_string_reuse state_bytes={STATE_BYTES} updates_per_sample={UPDATES_PER_SAMPLE} sample_pairs={SAMPLE_PAIRS} order=alternating_legacy_first_even legacy_string_allocations_per_sample={} optimized_string_allocations_per_sample_expected=2 legacy_p95_ns={legacy_p95} optimized_p95_ns={optimized_p95} improvement_percent={improvement_percent} threshold_percent={REQUIRED_IMPROVEMENT_PERCENT} legacy_raw_ns={} optimized_raw_ns={}",
         UPDATES_PER_SAMPLE * 2,
         samples_csv(&legacy_samples),
         samples_csv(&optimized_samples),

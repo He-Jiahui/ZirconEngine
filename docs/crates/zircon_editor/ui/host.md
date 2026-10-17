@@ -19,12 +19,12 @@ implementation_files:
   - zircon_editor/src/ui/host/asset_editor_sessions/editing/palette.rs
   - zircon_editor/src/ui/host/animation_editor_sessions/editing.rs
   - zircon_editor/src/ui/host/native_dynamic_export_preparation/prepare.rs
-  - zircon_editor/src/ui/host/editor_asset_manager/manager/catalog_generation/folders.rs
-  - zircon_editor/src/ui/host/editor_asset_manager/manager/sprite_atlas/artifact.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/status/native_load_state.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/status/native.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/run.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/panel_projection.rs
+  - zircon_editor/src/ui/host/assets/manager/catalog_generation/folders.rs
+  - zircon_editor/src/ui/host/assets/manager/sprite_atlas/artifact.rs
+  - zircon_editor/src/ui/host/exports/status/native_load_state.rs
+  - zircon_editor/src/ui/host/exports/status/native.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/run.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/panel_projection.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_editor/editor/07/failure-2026-07-17-ui-asset-editor-full-projection-and-import-rehydrate.md
@@ -41,17 +41,14 @@ reference_sources:
   - dev/godot/editor/export/editor_export_platform.cpp
 tests:
   - zircon_editor/src/ui/host/editor_capabilities.rs::tests::enabled_capability_lookup_uses_the_sorted_snapshot
-  - zircon_editor/src/ui/host/editor_event_runtime_access/tests.rs::keyboard_dispatch_resolves_the_current_authority_keymap
   - zircon_editor/src/ui/host/asset_editor_sessions/mod.rs::tests::zui_suffix_check_does_not_lowercase_the_whole_asset_id
   - zircon_editor/src/ui/host/asset_editor_sessions/sync.rs::tests::syncing_instance_builds_one_reflection_model
-  - zircon_editor/src/ui/host/asset_editor_sessions/refresh/pipeline/tests.rs
   - zircon_editor/src/ui/host/asset_editor_sessions/editing/palette.rs::tests::unchanged_palette_drag_does_not_rebuild_instance_projection
   - zircon_editor/src/ui/host/animation_editor_sessions/editing.rs::performance_tests::animation_mutation_skips_noops_and_does_not_reserialize_the_stable_route
   - zircon_editor/src/ui/host/native_dynamic_export_preparation/prepare.rs::performance_tests::native_package_preparation_indexes_discovery_once
-  - zircon_editor/src/ui/host/editor_asset_manager/reference_graph.rs::performance_tests::reference_graph_borrows_catalog_records_during_rebuild
-  - zircon_editor/src/ui/host/editor_asset_manager/manager/catalog_generation/folders.rs::performance_tests::folder_sort_borrows_display_names
-  - zircon_editor/src/ui/host/editor_asset_manager/manager/sprite_atlas/artifact.rs::tests::sprite_atlas_artifact_writer_does_not_clone_the_full_rgba_payload
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/status/native_load_state.rs::performance_tests::native_load_state_streams_loaded_plugin_checks
+  - zircon_editor/src/ui/host/assets/manager/catalog_generation/folders.rs::performance_tests::folder_sort_borrows_display_names
+  - zircon_editor/src/ui/host/assets/manager/sprite_atlas/artifact.rs::tests::sprite_atlas_artifact_writer_does_not_clone_the_full_rgba_payload
+  - zircon_editor/src/ui/host/exports/status/native_load_state.rs::performance_tests::native_load_state_streams_loaded_plugin_checks
 doc_type: module-detail
 ---
 

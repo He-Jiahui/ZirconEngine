@@ -8,9 +8,7 @@ related_code:
 
   - zircon_hub/build.rs
 
-  - dev/material-rust-template/README.md
 
-  - dev/material-rust-template/material-1.0/material.slint
 
   - zircon_hub/src/lib.rs
 
@@ -329,11 +327,9 @@ related_code:
 
   - zircon_editor/src/core/gui_startup_request.rs
 
-  - zircon_editor/src/ui/retained_host/app.rs
 
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle.rs
 
-  - tools/zircon_build.py
 
 implementation_files:
 
@@ -636,7 +632,6 @@ implementation_files:
 
   - zircon_editor/src/core/gui_startup_request.rs
 
-  - tools/zircon_build.py
 
 plan_sources:
 

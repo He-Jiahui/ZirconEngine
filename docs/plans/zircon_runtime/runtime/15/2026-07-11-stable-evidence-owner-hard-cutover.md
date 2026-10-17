@@ -1,22 +1,13 @@
 ---
 related_code:
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/evidence_ownership.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/asset_artifact_store.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/asset_tests/project.rs
+  - zircon_runtime/src/tests/contracts/structure/test_size/asset_tests/project.rs
 implementation_files:
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/evidence_ownership.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/asset_artifact_store.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/asset_tests/project.rs
+  - zircon_runtime/src/tests/contracts/structure/test_size/asset_tests/project.rs
 plan_sources:
   - docs/plans/engine-code-structure-convention.md
   - docs/plans/engine-code-review-findings-2026-06.md
   - docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md
 tests:
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/evidence_ownership.rs
-  - tests/acceptance/runtime-priority-structure-review-managed-baseline.md
 doc_type: milestone-detail
 status: static_and_focused_passed_full_standalone_1297_1304_external_7
 ---

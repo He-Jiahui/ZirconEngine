@@ -8,20 +8,13 @@ baseline_epoch: 336
 related_code:
   - zircon_runtime/src/render_graph
   - zircon_runtime/src/graphics/pipeline/compiled_graph_cache.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset
   - zircon_runtime/src/graphics/pipeline/declarations/compiled_render_pipeline.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene
   - zircon_runtime/crates/zr_rhi
   - zircon_runtime/crates/zr_rhi_wgpu
 tests:
   - zircon_runtime/src/render_graph/tests
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/materialization/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_record/tests.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry/tests
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/tests.rs
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md
   - docs/plans/optimize/01-cross-report-owner-schema-abi-p0-consolidation-review.md

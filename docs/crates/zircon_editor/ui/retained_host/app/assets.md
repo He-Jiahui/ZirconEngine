@@ -1,34 +1,33 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/app.rs
-  - zircon_editor/src/ui/retained_host/app/assets.rs
-  - zircon_editor/src/ui/retained_host/app/assets/bridge.rs
-  - zircon_editor/src/ui/retained_host/app/assets/controls.rs
-  - zircon_editor/src/ui/retained_host/app/assets/refresh.rs
-  - zircon_editor/src/ui/retained_host/app/assets/refresh/apply.rs
-  - zircon_editor/src/ui/retained_host/app/assets/refresh/counters.rs
-  - zircon_editor/src/ui/retained_host/app/assets/refresh/events.rs
-  - zircon_editor/src/ui/retained_host/app/assets/refresh/events/runtime.rs
-  - zircon_editor/src/ui/retained_host/app/assets/refresh/events/startup.rs
-  - zircon_editor/src/ui/retained_host/app/assets/refresh/snapshots.rs
-  - zircon_editor/src/ui/retained_host/app/assets/relocation.rs
-  - zircon_editor/src/ui/retained_host/app/assets/workspace.rs
-  - zircon_editor/src/ui/retained_host/app/backend_refresh.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle.rs
+  - zircon_editor/src/ui/retained/app/assets.rs
+  - zircon_editor/src/ui/retained/app/assets/bridge.rs
+  - zircon_editor/src/ui/retained/app/assets/controls.rs
+  - zircon_editor/src/ui/retained/app/assets/refresh.rs
+  - zircon_editor/src/ui/retained/app/assets/refresh/apply.rs
+  - zircon_editor/src/ui/retained/app/assets/refresh/counters.rs
+  - zircon_editor/src/ui/retained/app/assets/refresh/events.rs
+  - zircon_editor/src/ui/retained/app/assets/refresh/events/runtime.rs
+  - zircon_editor/src/ui/retained/app/assets/refresh/events/startup.rs
+  - zircon_editor/src/ui/retained/app/assets/refresh/snapshots.rs
+  - zircon_editor/src/ui/retained/app/assets/relocation.rs
+  - zircon_editor/src/ui/retained/app/assets/workspace.rs
+  - zircon_editor/src/ui/retained/app/backend_refresh.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle.rs
 implementation_files:
-  - zircon_editor/src/ui/retained_host/app/assets.rs
-  - zircon_editor/src/ui/retained_host/app/assets/bridge.rs
-  - zircon_editor/src/ui/retained_host/app/assets/controls.rs
-  - zircon_editor/src/ui/retained_host/app/assets/refresh.rs
-  - zircon_editor/src/ui/retained_host/app/assets/refresh/apply.rs
-  - zircon_editor/src/ui/retained_host/app/assets/refresh/counters.rs
-  - zircon_editor/src/ui/retained_host/app/assets/refresh/events.rs
-  - zircon_editor/src/ui/retained_host/app/assets/refresh/events/runtime.rs
-  - zircon_editor/src/ui/retained_host/app/assets/refresh/events/startup.rs
-  - zircon_editor/src/ui/retained_host/app/assets/refresh/snapshots.rs
-  - zircon_editor/src/ui/retained_host/app/assets/relocation.rs
-  - zircon_editor/src/ui/retained_host/app/assets/workspace.rs
-  - zircon_editor/src/ui/retained_host/app/backend_refresh.rs
+  - zircon_editor/src/ui/retained/app/assets.rs
+  - zircon_editor/src/ui/retained/app/assets/bridge.rs
+  - zircon_editor/src/ui/retained/app/assets/controls.rs
+  - zircon_editor/src/ui/retained/app/assets/refresh.rs
+  - zircon_editor/src/ui/retained/app/assets/refresh/apply.rs
+  - zircon_editor/src/ui/retained/app/assets/refresh/counters.rs
+  - zircon_editor/src/ui/retained/app/assets/refresh/events.rs
+  - zircon_editor/src/ui/retained/app/assets/refresh/events/runtime.rs
+  - zircon_editor/src/ui/retained/app/assets/refresh/events/startup.rs
+  - zircon_editor/src/ui/retained/app/assets/refresh/snapshots.rs
+  - zircon_editor/src/ui/retained/app/assets/relocation.rs
+  - zircon_editor/src/ui/retained/app/assets/workspace.rs
+  - zircon_editor/src/ui/retained/app/backend_refresh.rs
 plan_sources:
   - docs/plans/zircon_editor/editor_ui/08-workbench-shell-on-runtime-ui.md
   - user: 2026-06-18 editor UI architecture implementation, feature first and tests deferred

@@ -9,11 +9,9 @@ origin_child_dir: docs/plans/zircon_runtime/runtime/15
 fixing_child_dir: docs/plans/zircon_runtime/render/18
 plan_link_mode: child_record_only
 related_code:
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/create_gbuffer_mesh_pipeline.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/prewarm_pipeline_validation.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/forward_shadow_receiver.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_construct/construct/construct.rs
+  - zircon_runtime/src/graphics/mesh/mesh_pipeline/create_gbuffer_mesh_pipeline.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/mesh_pipeline_cache/mod.rs
+  - zircon_runtime/src/graphics/mesh/mesh_pipeline_cache/forward_shadow_receiver.rs
   - zircon_runtime/src/graphics/shader/wgsl/zr_light_cookie.wgsl
   - zircon_runtime/src/graphics/shader/wgsl/zr_shading_standard_pbr.wgsl
 tests:

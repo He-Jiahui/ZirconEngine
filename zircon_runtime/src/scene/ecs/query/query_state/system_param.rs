@@ -6,7 +6,8 @@ use crate::scene::World;
 
 use super::QueryState;
 
-impl<D, F> SystemParam for QueryState<D, F>
+// SAFETY: Registers the query access set and ties the facade to the matching state lifetime.
+unsafe impl<D, F> SystemParam for QueryState<D, F>
 where
     D: QueryDataAccess + 'static,
     F: QueryFilter,

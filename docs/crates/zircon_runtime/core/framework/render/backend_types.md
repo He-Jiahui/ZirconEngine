@@ -9,8 +9,6 @@ related_code:
   - zircon_runtime/src/core/framework/render/backend_types/capability.rs
   - zircon_runtime/src/core/framework/render/backend_types/command.rs
   - zircon_runtime/src/core/framework/render/backend_types/quality.rs
-  - zircon_runtime/src/core/framework/render/backend_types/tests.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_backend_types.rs
 implementation_files:
   - zircon_runtime/src/core/framework/render/backend_types.rs
   - zircon_runtime/src/core/framework/render/backend_types/handles.rs
@@ -27,8 +25,6 @@ plan_sources:
   - docs/plans/engine-code-structure-convention.md
   - docs/plans/engine-code-review-findings-2026-06.md
 tests:
-  - zircon_runtime/src/core/framework/render/backend_types/tests.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_backend_types.rs::runtime_15_render_backend_types_are_child_owners
   - rustfmt --edition 2021 --check zircon_runtime/src/core/framework/render/backend_types.rs zircon_runtime/src/core/framework/render/backend_types/*.rs zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_backend_types.rs
 doc_type: module-detail
 ---

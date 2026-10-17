@@ -24,8 +24,6 @@ related_code:
   - zircon_runtime/src/core/framework/time
   - zircon_runtime/src/core/framework/sound
   - zircon_runtime/src/core/framework/render/capture.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/capture_frame
-  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record
   - zircon_runtime/src/dynamic_api/frame.rs
   - zircon_runtime/src/dynamic_api/session
   - zircon_runtime/crates/zr_rhi_wgpu/src/gpu_readback_queue
@@ -33,8 +31,8 @@ related_code:
   - zircon_plugins/sound/runtime/src/timeline
   - zircon_plugins/audio_importer/runtime
   - zircon_plugins/opus_importer/runtime
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/asset_rows/media.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/importer_classification/media.rs
+  - zircon_runtime/src/plugin/runtime/builtin_catalog/asset_rows/media.rs
+  - zircon_runtime/src/plugin/runtime/importer_classification/media.rs
   - zircon_plugins/first_party_runtime_catalog
   - zircon_plugins/first_party_editor_catalog
   - zircon_app/src/entry/runtime_entry_app/frame_capture.rs
@@ -42,22 +40,14 @@ related_code:
   - zircon_editor/src/core/gateway
   - zircon_editor/src/core/play
   - zircon_editor/src/core/asset/type_registry
-  - zircon_editor/src/ui/retained_host/viewport
-  - zircon_editor/src/ui/retained_host/host_contract/profiling_artifacts
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback/ui_diagnostics/observability.rs
 tests:
-  - zircon_runtime/crates/zr_rhi_wgpu/src/gpu_readback_queue/tests.rs
   - zircon_runtime/src/core/framework/render/capture.rs
-  - zircon_runtime/src/core/framework/sound/tests.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/capture_frame/capture_frame.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/capture_mailbox.rs
+  - zircon_runtime/src/graphics/runtime/framework/capture_frame/capture_frame.rs
+  - zircon_runtime/src/graphics/runtime/framework/viewport_record/capture_mailbox.rs
   - zircon_plugins/audio_importer/runtime/src/lib.rs
   - zircon_plugins/sound/runtime/src/tests
   - zircon_runtime_interface/src/tests/runtime_owned_result.rs
   - zircon_app/src/entry/runtime_entry_app/frame_capture.rs
-  - zircon_editor/src/core/gateway/session/tests.rs
-  - zircon_editor/src/core/play/tests.rs
-  - zircon_editor/src/ui/retained_host/viewport/tests/controller_polls_latest_captured_frame_from_render_framework.rs
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md
   - docs/plans/optimize/zircon_runtime/90-runtime-rhi-wgpu-adapter-device-capability-resource-command-queue-submission-completion-readback-surface-device-loss.md

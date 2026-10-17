@@ -179,7 +179,7 @@ fn prevalidated_blackboard_synchronize_release_benchmark_evidence() {
     let optimized_ns = benchmark_samples_csv(&optimized_samples);
 
     println!(
-        "PERF_RESULT plugins15_prevalidated_blackboard_synchronize entries={BENCHMARK_KEY_COUNT} samples={BENCHMARK_SAMPLE_COUNT} sample_pairs={BENCHMARK_SAMPLE_COUNT} sample_order=alternating percentile_method=nearest_rank legacy_layout_lookups_per_sample={} optimized_layout_lookups_per_sample={BENCHMARK_KEY_COUNT} legacy_hash_inserts_per_sample={BENCHMARK_KEY_COUNT} optimized_hash_inserts_per_sample=0 legacy_clear_slot_buffer_allocations_per_sample=1 optimized_clear_slot_buffer_allocations_per_sample=0 legacy_p50_ns={legacy_p50} legacy_p95_ns={legacy_p95} optimized_p50_ns={optimized_p50} optimized_p95_ns={optimized_p95} legacy_ns={legacy_ns} optimized_ns={optimized_ns}",
+        "PERF_RESULT plugins15_prevalidated_blackboard_synchronize entries={BENCHMARK_KEY_COUNT} samples={BENCHMARK_SAMPLE_COUNT} sample_pairs={BENCHMARK_SAMPLE_COUNT} sample_order=alternating percentile_method=nearest_rank legacy_layout_lookups_per_sample={} optimized_layout_lookups_per_sample={BENCHMARK_KEY_COUNT} legacy_hash_inserts_per_sample={BENCHMARK_KEY_COUNT} optimized_hash_inserts_per_sample=0 legacy_clear_slot_buffer_allocations_per_sample_expected=1 optimized_clear_slot_buffer_allocations_per_sample_expected=0 legacy_p50_ns={legacy_p50} legacy_p95_ns={legacy_p95} optimized_p50_ns={optimized_p50} optimized_p95_ns={optimized_p95} legacy_ns={legacy_ns} optimized_ns={optimized_ns}",
         BENCHMARK_KEY_COUNT * 2
     );
     assert!(

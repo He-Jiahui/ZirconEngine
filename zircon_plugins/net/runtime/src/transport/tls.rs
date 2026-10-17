@@ -67,7 +67,7 @@ pub fn rustls_client_config(policy: &NetSecurityPolicy) -> Result<ClientConfig, 
     )
 }
 
-/// Build the rustls client configuration used by WebSocket connections that
+/// Build the shared rustls client configuration used by HTTP and WebSocket connections that
 /// opt into a custom root set or certificate pinning.
 ///
 /// The normal WebSocket path keeps tokio-tungstenite's stock WebPKI

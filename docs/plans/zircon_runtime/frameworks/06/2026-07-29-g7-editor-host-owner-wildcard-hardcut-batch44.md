@@ -1,42 +1,18 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream
-  - zircon_editor/src/ui/retained_host/host_contract/paint_primitives/image
-  - zircon_editor/src/ui/retained_host/host_contract/data
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer
-  - zircon_editor/src/ui/retained_host/host_contract/globals
-  - zircon_editor/src/ui/retained_host/host_contract/diagnostics
-  - zircon_editor/src/ui/retained_host/host_contract/redraw
-  - zircon_editor/src/ui/retained_host/host_contract/presenter
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_state_layer
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_state_layer_tests
-  - zircon_editor/src/ui/retained_host/host_contract/native_keyboard
-  - zircon_editor/src/ui/retained_host/host_contract/native_popup_dismiss
-  - zircon_editor/src/ui/retained_host/host_contract/workbench_context_menu
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/chrome_damage
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/close_prompt_damage
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/pane_button_damage
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/redraw_result
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/tab_drag_damage
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/viewport_toolbar_damage
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/drag_resize
-  - zircon_editor/src/ui/retained_host/app/workspace_docking/drawer_resize
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/move_dispatch
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/scroll_dispatch
-  - zircon_editor/src/ui/retained_host/host_contract/paint_frame
-  - zircon_editor/src/ui/retained_host/host_contract/paint_recording
-  - zircon_editor/src/ui/retained_host/host_contract/paint_primitives
+  - zircon_editor/src/ui/retained/contract/paint_primitives/image
+  - zircon_editor/src/ui/retained/app/workspace_docking/drawer_resize
 implementation_files:
-  - docs/plans/performance/01/2026-07-17-editor-chrome-command-stream-static-review.md
-  - docs/plans/performance/01/2026-07-17-editor-host-contract-data-static-review.md
-  - docs/plans/performance/01/2026-07-17-editor-host-globals-redraw-static-review.md
-  - docs/plans/performance/01/2026-07-17-editor-host-presenter-static-review.md
-  - docs/plans/performance/01/2026-07-17-editor-material-state-layer-static-review.md
-  - docs/plans/performance/01/2026-07-17-editor-native-keyboard-popup-static-review.md
-  - docs/plans/performance/01/2026-07-17-editor-native-pointer-damage-redraw-static-review.md
-  - docs/plans/performance/01/2026-07-17-editor-native-pointer-drag-resize-static-review.md
-  - docs/plans/performance/01/2026-07-17-editor-native-pointer-move-scroll-static-review.md
-  - docs/plans/performance/01/2026-07-17-editor-paint-frame-primitives-static-review.md
+  - docs/plans/_archive/performance/01/2026-07-17-editor-chrome-command-stream-static-review.md
+  - docs/plans/_archive/performance/01/2026-07-17-editor-host-contract-data-static-review.md
+  - docs/plans/_archive/performance/01/2026-07-17-editor-host-globals-redraw-static-review.md
+  - docs/plans/_archive/performance/01/2026-07-17-editor-host-presenter-static-review.md
+  - docs/plans/_archive/performance/01/2026-07-17-editor-material-state-layer-static-review.md
+  - docs/plans/_archive/performance/01/2026-07-17-editor-native-keyboard-popup-static-review.md
+  - docs/plans/_archive/performance/01/2026-07-17-editor-native-pointer-damage-redraw-static-review.md
+  - docs/plans/_archive/performance/01/2026-07-17-editor-native-pointer-drag-resize-static-review.md
+  - docs/plans/_archive/performance/01/2026-07-17-editor-native-pointer-move-scroll-static-review.md
+  - docs/plans/_archive/performance/01/2026-07-17-editor-paint-frame-primitives-static-review.md
 plan_sources:
   - docs/plans/zircon_runtime/frameworks/06-development-conventions-and-guardrails.md
   - docs/plans/engine-code-structure-convention.md

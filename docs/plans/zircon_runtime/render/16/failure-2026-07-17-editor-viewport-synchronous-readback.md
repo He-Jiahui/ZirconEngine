@@ -11,17 +11,13 @@ plan_link_mode: child_record_only
 related_code:
   - zircon_editor/src/core/gateway/session/frame.rs
   - zircon_editor/src/core/gateway/session/contract.rs
-  - zircon_editor/src/ui/retained_host/viewport/submit_extract.rs
-  - zircon_editor/src/ui/retained_host/viewport/poll_captured_frame.rs
-  - zircon_editor/src/ui/retained_host/viewport/poll_viewport_product.rs
-  - zircon_editor/src/ui/retained_host/viewport/viewport_lifecycle.rs
-  - zircon_editor/src/ui/retained_host/viewport/world_space_ui.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract
-  - zircon_runtime/src/graphics/runtime/render_framework/render_framework_state/viewport_product_registry.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/capture_mailbox.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render_with_pipeline/render_frame_with_pipeline.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_target/finish_viewport_frame.rs
-  - zircon_runtime/src/graphics/backend/render_backend/render_backend_diagnostics.rs
+  - zircon_editor/src/ui/retained/viewport/submit_extract.rs
+  - zircon_editor/src/ui/retained/viewport/poll_captured_frame.rs
+  - zircon_editor/src/ui/retained/viewport/poll_viewport_product.rs
+  - zircon_editor/src/ui/retained/viewport/viewport_lifecycle.rs
+  - zircon_editor/src/ui/retained/viewport/world_space_ui.rs
+  - zircon_runtime/src/graphics/runtime/framework/viewport_record/capture_mailbox.rs
+  - zircon_runtime/src/graphics/core/scene_renderer_target/finish_viewport_frame.rs
 tests:
   - editor viewport steady-state no synchronous GPU poll guard
   - async readback ring backpressure and generation test

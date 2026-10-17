@@ -16,7 +16,6 @@ related_code:
   - zircon_runtime_interface/src/runtime_api/abi/api_table.rs
   - zircon_runtime/src/dynamic_api/session.rs
   - zircon_runtime/src/core/framework/render/overlay.rs
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_build_render_snapshot.rs
   - zircon_editor/src/scene/viewport/render_packet.rs
 tests:
   - zircon_editor gateway contract tests for in-process, detached, and session implementations

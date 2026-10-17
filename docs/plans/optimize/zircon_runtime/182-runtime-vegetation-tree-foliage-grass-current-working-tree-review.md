@@ -17,12 +17,10 @@ related_code:
   - zircon_runtime/src/scene/components/scene
   - zircon_runtime/src/graphics/feature/builtin_render_feature/advanced_slots.rs
   - zircon_runtime/src/graphics/scene/gpu_scene
-  - zircon_runtime/src/graphics/scene/scene_renderer
   - zircon_runtime/src/graphics/visibility
   - zircon_runtime/src/core/framework/render
   - zircon_plugins/terrain
   - zircon_plugins/first_party_runtime_catalog
-  - examples/vampire/assets/models/grass_billboard_static_batch.model.toml
 reference_engines:
   - dev/UnrealEngine/Engine/Source/Runtime/Foliage
   - dev/UnrealEngine/Engine/Source/Runtime/Engine/Classes/Components/InstancedStaticMeshComponent.h

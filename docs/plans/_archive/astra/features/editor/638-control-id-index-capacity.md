@@ -5,9 +5,7 @@ plan_sources:
   - docs/plans/optimize/zircon_editor/638/2026-09-01-preallocated-control-id-index.md
 related_code:
   - zircon_editor/src/ui/asset_editor/preview/preview_projection.rs
-  - zircon_editor/src/ui/asset_editor/preview/preview_projection/optimization_batch_iz_editor638_tests.rs
 tests:
-  - zircon_editor/src/ui/asset_editor/preview/preview_projection/optimization_batch_iz_editor638_tests.rs
 ---
 
 # Preview Control-ID Index Capacity

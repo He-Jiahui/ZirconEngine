@@ -13,7 +13,7 @@ use zircon_runtime::core::framework::net::{
 
 use super::connection::TungsteniteWebSocketConnection;
 use super::reader::spawn_reader;
-use super::security::{validate_websocket_security_policy, websocket_url_host};
+use super::security::{validate_websocket_security_policy, websocket_uri_host};
 
 pub(super) fn connect_websocket(
     runtime: &Runtime,
@@ -21,11 +21,11 @@ pub(super) fn connect_websocket(
     descriptor: NetWebSocketConnectDescriptor,
     events: Arc<Mutex<VecDeque<NetEvent>>>,
 ) -> Result<Box<dyn WebSocketRuntimeConnection>, NetError> {
-    validate_websocket_security_policy(&descriptor)?;
-    let tls_connector = if descriptor.url.starts_with("wss://")
+    let uri = validate_websocket_security_policy(&descriptor)?;
+    let tls_connector = if uri.scheme_str() == Some("wss")
         && (descriptor.security.certificate_pinning || descriptor.security.has_certificate_roots())
     {
-        let host = websocket_url_host(&descriptor.url).ok_or_else(|| {
+        let host = websocket_uri_host(&uri).ok_or_else(|| {
             NetError::SecurityPolicyViolation {
                 reason: "WebSocket TLS policy requires a valid request host".to_string(),
             }
@@ -36,9 +36,7 @@ pub(super) fn connect_websocket(
     } else {
         None
     };
-    let mut request = descriptor
-        .url
-        .as_str()
+    let mut request = uri
         .into_client_request()
         .map_err(|error| NetError::Io(error.to_string()))?;
     for (name, value) in &descriptor.headers {

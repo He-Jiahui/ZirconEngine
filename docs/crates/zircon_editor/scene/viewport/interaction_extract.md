@@ -4,13 +4,8 @@ related_code:
   - zircon_editor/src/scene/viewport/interaction_extract/key.rs
   - zircon_editor/src/scene/viewport/interaction_extract/cache.rs
   - zircon_editor/src/scene/viewport/interaction_extract/extract.rs
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_build_render_snapshot.rs
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_pointer_route.rs
   - zircon_editor/src/scene/viewport/render_packet.rs
-  - zircon_editor/src/scene/viewport/pointer/overlay_router/viewport_overlay_pointer_router_sync.rs
 tests:
-  - zircon_editor/src/scene/viewport/interaction_extract/tests.rs
-  - zircon_editor/src/scene/viewport/pointer/tests.rs
   - tools/tests/test_editor05_viewport_interaction_extract_contract.py
 doc_type: module-detail
 ---

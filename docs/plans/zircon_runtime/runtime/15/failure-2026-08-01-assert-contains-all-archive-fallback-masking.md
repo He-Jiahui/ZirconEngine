@@ -9,8 +9,6 @@ origin_child_dir: docs/plans/performance/01
 fixing_child_dir: docs/plans/zircon_runtime/runtime/15
 plan_link_mode: child_record_only
 related_code:
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/support.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention
   - tools/tests/test_runtime_receipt_hard_cut.py
 tests:
   - assert_contains_all rejects anchors absent from the supplied source

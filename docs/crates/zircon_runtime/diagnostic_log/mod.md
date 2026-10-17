@@ -25,10 +25,8 @@ related_code:
   - zircon_app/src/bin/editor.rs
   - zircon_app/src/bin/runtime_preview.rs
   - zircon_runtime/src/asset/runtime_asset_path.rs
-  - zircon_editor/src/ui/template_runtime/builtin/template_documents.rs
-  - zircon_editor/src/ui/template_runtime/runtime/build_session.rs
-  - zircon_editor/src/ui/retained_host/host_contract/window.rs
-  - zircon_editor/src/ui/retained_host/host_contract/presenter/softbuffer.rs
+  - zircon_editor/src/ui/runtime/runtime/build_session.rs
+  - zircon_editor/src/ui/retained/contract/presenter/softbuffer.rs
 implementation_files:
   - zircon_runtime/src/diagnostic_log/mod.rs
   - zircon_runtime/src/diagnostic_log/diagnostics.rs
@@ -63,7 +61,6 @@ plan_sources:
   - docs/superpowers/plans/2026-05-04-build-asset-staging.md
   - docs/plans/zircon_runtime/runtime/14-runtime-module-family-closeout.md
 tests:
-  - zircon_app/src/plugins/tests.rs
   - zircon_runtime/src/diagnostic_log/diagnostics/tests
   - zircon_runtime/src/diagnostic_log/diagnostics/tests/lazy_callsite_guards.rs::allocation_heavy_process_log_producers_use_lazy_entry_points
   - zircon_runtime/src/diagnostic_log/diagnostics/tests/ownership.rs::diagnostic_log_snapshot_bridge_stays_single_owner

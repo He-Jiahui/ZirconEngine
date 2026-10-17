@@ -9,10 +9,6 @@ origin_child_dir: docs/plans/performance/01
 fixing_child_dir: docs/plans/zircon_editor/editor/07
 plan_link_mode: child_record_only
 related_code:
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_sample_grid.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_sample_grid/surface.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_sample_grid/points.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_sample_grid/text.rs
 ---
 
 # Sample grid command amplification

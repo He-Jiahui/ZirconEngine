@@ -10,11 +10,9 @@ related_code:
   - zircon_runtime/src/asset/project/manager/open.rs
   - zircon_hub/src/projects/validation.rs
   - zircon_hub/src/tauri_app/runtime_state/editor_launch_actions.rs
-  - zircon_hub/src/tauri_app/runtime_state/project_actions/tests.rs
   - zircon_editor/src/ui/host/project_access.rs
   - zircon_editor/src/ui/host/editor_error.rs
   - zircon_editor/src/ui/host/asset_editor_sessions/watcher.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/runtime.rs
   - zircon_app/src/bin/zircon_shader_pbr_viewer/project_assets.rs
 implementation_files:
   - zircon_runtime_interface/src/project/manifest_summary/migration.rs
@@ -33,11 +31,9 @@ tests:
   - zircon_runtime/src/asset/tests/project/manifest.rs
   - zircon_runtime/src/asset/tests/project/package_assets.rs
   - zircon_runtime/src/asset/tests/pipeline/manager/watcher.rs
-  - zircon_editor/src/ui/retained_host/app/helpers/animation_assets/tests.rs
   - zircon_editor/src/ui/host/editor_error.rs
   - zircon_hub/src/projects/validation.rs
   - zircon_hub/src/tauri_app/runtime_state/editor_launch_actions.rs
-  - zircon_hub/src/tauri_app/runtime_state/project_actions/tests.rs
   - tests/fixtures/serialization/project-manifest/v1/zircon-project.toml
   - tests/fixtures/serialization/project-manifest/v2/zircon-project.toml
   - tests/fixtures/serialization/project-manifest/future/zircon-project.toml

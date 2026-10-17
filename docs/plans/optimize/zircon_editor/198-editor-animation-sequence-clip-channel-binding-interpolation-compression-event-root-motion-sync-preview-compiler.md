@@ -22,15 +22,11 @@ related_code:
   - zircon_editor/src/ui/host/animation_editor_sessions
   - zircon_runtime/src/asset/importer/ingest/gltf_animation_subassets.rs
 tests:
-  - zircon_runtime/src/core/framework/animation/compiler/sequence/tests.rs
-  - zircon_runtime/src/animation/sequence/tests.rs
   - zircon_runtime/src/animation/clip_event.rs
   - zircon_runtime/src/asset/tests/assets/animation.rs
   - zircon_runtime/src/asset/tests/assets/gltf_importer
   - zircon_plugins/animation/runtime/src/evaluation/clip_evaluator
   - zircon_plugins/animation/runtime/tests
-  - zircon_editor/src/core/editing/animation_document/tests.rs
-  - zircon_editor/src/ui/animation_editor/session/tests.rs
   - zircon_editor/src/tests/editor_event/animation_runtime/sequence.rs
   - zircon_editor/src/tests/host/animation_editor.rs
   - zircon_editor/src/tests/host/binding_dispatch/animation.rs

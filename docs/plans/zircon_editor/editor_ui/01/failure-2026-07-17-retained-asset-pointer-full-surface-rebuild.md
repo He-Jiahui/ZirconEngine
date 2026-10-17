@@ -9,19 +9,17 @@ origin_child_dir: docs/plans/performance/01
 fixing_child_dir: docs/plans/zircon_editor/editor_ui/01
 plan_link_mode: child_record_only
 related_code:
-  - zircon_editor/src/ui/retained_host/asset_pointer/content/bridge.rs
-  - zircon_editor/src/ui/retained_host/asset_pointer/reference/bridge.rs
-  - zircon_editor/src/ui/retained_host/asset_pointer/tree/bridge.rs
-  - zircon_editor/src/ui/retained_host/asset_pointer/content/layout.rs
-  - zircon_editor/src/ui/retained_host/asset_pointer/reference/layout.rs
-  - zircon_editor/src/ui/retained_host/asset_pointer/tree/layout.rs
-  - zircon_editor/src/ui/retained_host/hierarchy_pointer/handle_scroll.rs
-  - zircon_editor/src/ui/retained_host/hierarchy_pointer/sync.rs
-  - zircon_editor/src/ui/retained_host/menu_pointer/host_menu_pointer_bridge_rebuild_surface.rs
-  - zircon_editor/src/ui/retained_host/menu_pointer/host_menu_pointer_bridge_handle_scroll.rs
-  - zircon_editor/src/ui/retained_host/menu_pointer/popup_layout.rs
-  - zircon_editor/src/ui/retained_host/welcome_recent_pointer/welcome_recent_pointer_bridge_handle_scroll.rs
-  - zircon_editor/src/ui/retained_host/welcome_recent_pointer/welcome_recent_pointer_bridge_handle_move.rs
+  - zircon_editor/src/ui/retained/asset_pointer/content/bridge.rs
+  - zircon_editor/src/ui/retained/asset_pointer/reference/bridge.rs
+  - zircon_editor/src/ui/retained/asset_pointer/tree/bridge.rs
+  - zircon_editor/src/ui/retained/asset_pointer/content/layout.rs
+  - zircon_editor/src/ui/retained/asset_pointer/reference/layout.rs
+  - zircon_editor/src/ui/retained/asset_pointer/tree/layout.rs
+  - zircon_editor/src/ui/retained/hierarchy_pointer/handle_scroll.rs
+  - zircon_editor/src/ui/retained/hierarchy_pointer/sync.rs
+  - zircon_editor/src/ui/menu_pointer/host_menu_pointer_bridge_rebuild_surface.rs
+  - zircon_editor/src/ui/menu_pointer/host_menu_pointer_bridge_handle_scroll.rs
+  - zircon_editor/src/ui/retained/menu_pointer/popup_layout.rs
 reference_sources:
   - dev/slint/internal/core/model/repeater.rs
   - dev/godot/scene/gui/item_list.cpp

@@ -10,7 +10,6 @@ fixing_child_dir: docs/plans/optimize/zircon_runtime_interface/02
 plan_link_mode: child_record_only
 related_code:
   - zircon_runtime_interface/src/project/session_lock/codec.rs
-  - zircon_runtime_interface/src/project/session_lock/tests.rs
   - zircon_editor/src/core/recovery/session_guard/record.rs
   - zircon_hub/src/process/editor_focus/probe.rs
 tests:

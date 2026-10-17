@@ -16,10 +16,7 @@ plan_sources:
 tests:
   - zircon_runtime/src/scene/tests/derived_state/protected_authority.rs
   - zircon_runtime/src/scene/tests/derived_state/projected_reads.rs
-  - zircon_runtime/src/scene/tests/render_dirty_journal/render_component_projection.rs
-  - zircon_runtime/src/graphics/scene/render_scene/component_projector/tests.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/geometry_replay.rs
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_residency.rs
 ---
 
 # Runtime1015: protected derived-component authority

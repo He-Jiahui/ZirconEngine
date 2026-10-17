@@ -9,11 +9,10 @@ origin_child_dir: docs/plans/zircon_runtime/text/01
 fixing_child_dir: docs/plans/zircon_runtime/render/01
 plan_link_mode: child_record_only
 related_code:
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/mesh_pipeline_cache.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/construct.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/forward_shadow_receiver.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/froxel/apply_binding.rs
+  - zircon_runtime/src/graphics/mesh/mesh_pipeline_cache/mesh_pipeline_cache.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/mesh_pipeline_cache/construct.rs
+  - zircon_runtime/src/graphics/mesh/mesh_pipeline_cache/forward_shadow_receiver.rs
+  - zircon_runtime/src/graphics/scene/renderer/froxel/apply_binding.rs
 ---
 
 # Render01：disabled forward volumetric cache 字段锚点漂移

@@ -1,24 +1,6 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/host_contract/template_popup_layout.rs
-  - zircon_editor/src/ui/retained_host/host_contract/template_popup_layout/bounds.rs
-  - zircon_editor/src/ui/retained_host/host_contract/template_popup_layout/dropdown.rs
-  - zircon_editor/src/ui/retained_host/host_contract/template_popup_layout/metrics.rs
-  - zircon_editor/src/ui/retained_host/host_contract/template_popup_layout/rows.rs
-  - zircon_editor/src/ui/retained_host/host_contract/template_popup_layout/template.rs
-  - zircon_editor/src/ui/retained_host/host_contract/template_popup_layout_tests.rs
-  - zircon_editor/src/ui/retained_host/popup_anchor_metrics.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_popup_dismiss.rs
-  - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node/popup_rows.rs
 implementation_files:
-  - zircon_editor/src/ui/retained_host/host_contract/template_popup_layout.rs
-  - zircon_editor/src/ui/retained_host/host_contract/template_popup_layout/bounds.rs
-  - zircon_editor/src/ui/retained_host/host_contract/template_popup_layout/dropdown.rs
-  - zircon_editor/src/ui/retained_host/host_contract/template_popup_layout/metrics.rs
-  - zircon_editor/src/ui/retained_host/host_contract/template_popup_layout/rows.rs
-  - zircon_editor/src/ui/retained_host/host_contract/template_popup_layout/template.rs
-  - zircon_editor/src/ui/retained_host/host_contract/template_popup_layout_tests.rs
-  - zircon_editor/src/ui/retained_host/popup_anchor_metrics.rs
 plan_sources:
   - docs/plans/zircon_editor/editor_ui/08-workbench-shell-on-runtime-ui.md
   - user: 2026-06-20 editor UI architecture implementation, feature first and tests deferred

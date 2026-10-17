@@ -10,10 +10,7 @@ related_records:
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
   - zircon_runtime/src/ui/component/state_reducer/text_input.rs
-  - zircon_runtime/src/ui/component/state_reducer/text_input/timing_normalization_tests.rs
 tests:
-  - zircon_runtime/src/ui/component/state_reducer/text_input/timing_normalization_tests.rs
-  - tools/tests/test_runtime_text_input_timing_normalization_performance_contract.py
 ---
 
 # Runtime768 · TextInput timing normalization

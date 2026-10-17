@@ -24,7 +24,6 @@ related_code:
   - zircon_runtime/src/ui/tests/taffy_layout_pass/linear_slots.rs
   - zircon_runtime/src/ui/tests/taffy_layout_pass/fallback_policy.rs
   - zircon_runtime/src/ui/tests/taffy_layout_pass/grid_slots.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/ui_taffy_layout_pass.rs
   - zircon_runtime_interface/src/ui/layout/engine.rs
   - zircon_runtime/src/ui/tree/node/scroll.rs
   - zircon_runtime/src/ui/tests/scroll_virtualization.rs
@@ -33,8 +32,7 @@ related_code:
   - zircon_runtime/src/ui/surface/surface/rebuild/incremental.rs
   - zircon_runtime/src/ui/surface/surface/property_transaction.rs
   - zircon_runtime/src/ui/surface/surface/pointer_component_events.rs
-  - zircon_runtime/src/ui/surface/surface/pointer_component_events/state_invalidation.rs
-  - zircon_runtime/src/ui/surface/surface/pointer_component_events/template_action.rs
+  - zircon_runtime/src/ui/surface/pointer_component_events/state_invalidation.rs
   - tools/tests/test_runtime_ui_pointer_template_action_owner_structure.py
   - zircon_runtime/src/ui/template/asset/surface_index.rs
   - zircon_runtime/src/ui/template/asset/surface_index/node_resource_registration.rs
@@ -46,19 +44,14 @@ related_code:
   - zircon_runtime/src/ui/surface/input/state/pointer_capture.rs
   - zircon_runtime/src/ui/surface/input/effect/focus_pointer.rs
   - zircon_runtime/src/ui/dispatch/input_manager/manager.rs
-  - zircon_runtime/src/ui/dispatch/input_manager/manager/tests.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/ui_dispatch_input_manager_tests.rs
   - zircon_runtime/src/ui/platform_input/mod.rs
   - zircon_runtime/src/ui/platform_input/keyboard_map.rs
   - zircon_runtime/src/ui/platform_input/winit_translation.rs
-  - zircon_runtime/src/ui/surface/pointer
-  - zircon_runtime/src/ui/surface/navigation
   - zircon_runtime/src/ui/surface/render
   - zircon_runtime/src/ui/surface/render/collection_rows/table.rs
   - zircon_runtime/src/ui/surface/surface/default_interactions.rs
   - zircon_runtime/src/ui/surface/surface/default_interactions/table/columns.rs
-  - zircon_runtime/src/tests/runtime_absorption/naming_boundary.rs
-  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/ui.rs
+  - zircon_runtime/src/tests/contracts/naming_boundary/runtime_15_m2/ui.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/non_network_server_naming.py
   - zircon_runtime/src/ui/v2/style.rs
   - zircon_runtime/src/ui/v2/style/runtime_state.rs
@@ -68,14 +61,9 @@ related_code:
   - zircon_runtime/src/ui/template/asset/compiler/style_apply.rs
   - zircon_runtime/src/ui/template/asset/compiler/style_apply/slot_contract.rs
   - zircon_runtime/src/ui/template/asset/compiler/style_apply/mui_x_classes.rs
-  - zircon_runtime/src/ui/template/asset/compiler/style_apply/mui_x_classes/data_grid.rs
+  - zircon_runtime/src/ui/template/asset/compiler/mui_x_classes/data_grid.rs
   - zircon_runtime/src/ui/template/asset/document.rs
   - zircon_runtime/src/ui/template/asset/document/validation.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/ui_v2_style.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/ui_template_style_apply.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/ui_template_document.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/ui_accessibility_extract.rs
   - zircon_runtime/src/ui/accessibility/extract.rs
   - zircon_runtime/src/ui/accessibility/extract/state.rs
   - zircon_runtime/src/ui/component/catalog/editor_showcase.rs
@@ -85,7 +73,6 @@ related_code:
   - zircon_runtime/src/ui/v2/component_instancer.rs
   - zircon_editor/assets/ui/editor/product_binding_fixture.zui
   - zircon_editor/src/tests/ui/boundary/template_assets/product_binding_fixture.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/ui_component_catalog_editor_showcase.rs
   - zircon_runtime/src/ui/tests/accessibility.rs
   - zircon_runtime/src/ui/tests/accessibility/extraction.rs
   - zircon_runtime/src/ui/tests/accessibility/naming_relations.rs
@@ -93,19 +80,16 @@ related_code:
   - zircon_runtime/src/ui/tests/accessibility/description_references.rs
   - zircon_runtime/src/ui/tests/accessibility/activation_actions.rs
   - zircon_runtime/src/ui/tests/accessibility/value_actions.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/ui_accessibility.rs
   - zircon_runtime/src/ui/tests/event_routing.rs
   - zircon_runtime/src/ui/tests/event_routing/pointer_state.rs
   - zircon_runtime/src/ui/tests/event_routing/component_events.rs
   - zircon_runtime/src/ui/tests/event_routing/dispatch_effects.rs
   - zircon_runtime/src/ui/tests/event_routing/shared_input.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/ui_event_routing.rs
   - zircon_runtime/src/ui/tests/surface_dirty_domains.rs
   - zircon_runtime/src/ui/tests/surface_dirty_domains/rebuild_domains.rs
   - zircon_runtime/src/ui/tests/surface_dirty_domains/incremental_layout.rs
   - zircon_runtime/src/ui/tests/surface_dirty_domains/render_domains.rs
   - zircon_runtime/src/ui/tests/surface_dirty_domains/mutation_state.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/ui_surface_dirty_domains.rs
   - zircon_runtime/src/ui/tests/material_layout.rs
   - zircon_runtime/src/ui/tests/material_layout/button_icon_metrics.rs
   - zircon_runtime/src/ui/tests/material_layout/row_label_metrics.rs
@@ -115,11 +99,8 @@ related_code:
   - zircon_runtime/src/ui/v2/style.rs
   - zircon_runtime/src/ui/v2/style/runtime_state.rs
   - zircon_runtime/src/ui/v2/style/tokens.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/ui_v2_style.rs
   - zircon_runtime/src/ui/tests/material_layout/asset_icon_roles.rs
   - zircon_runtime/src/ui/tests/material_layout/constraints_children.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/ui_material_layout.rs
   - zircon_runtime/src/ui/tests/template.rs
   - zircon_runtime/src/ui/tests/template/interaction_bindings.rs
   - zircon_runtime/src/ui/tests/template/surface_containers.rs
@@ -128,92 +109,72 @@ related_code:
   - zircon_runtime/src/ui/template/asset/compiler/style_apply.rs
   - zircon_runtime/src/ui/template/asset/compiler/style_apply/slot_contract.rs
   - zircon_runtime/src/ui/template/asset/compiler/style_apply/mui_x_classes.rs
-  - zircon_runtime/src/ui/template/asset/compiler/style_apply/mui_x_classes/data_grid.rs
+  - zircon_runtime/src/ui/template/asset/compiler/mui_x_classes/data_grid.rs
   - zircon_runtime/src/ui/template/asset/document.rs
   - zircon_runtime/src/ui/template/asset/document/validation.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/ui_template_style_apply.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/ui_template_document.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/ui_template.rs
   - zircon_runtime/src/ui/tests/component_catalog.rs
   - zircon_runtime/src/ui/tests/component_catalog/catalog_inventory.rs
   - zircon_runtime/src/ui/tests/component_catalog/descriptor_contracts.rs
   - zircon_runtime/src/ui/tests/component_catalog/registry_queries.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/ui_component_catalog.rs
   - zircon_runtime/src/ui/tests/component_catalog/component_state.rs
   - zircon_runtime/src/ui/tests/component_catalog/component_state/retained_events.rs
-  - zircon_runtime/src/ui/tests/component_catalog/component_state/collection_mutation.rs
-  - zircon_runtime/src/ui/tests/component_catalog/component_state/reference_sources.rs
-  - zircon_runtime/src/ui/tests/component_catalog/component_state/interaction_numeric.rs
+  - zircon_runtime/src/ui/tests/component_state/collection_mutation.rs
+  - zircon_runtime/src/ui/tests/component_state/reference_sources.rs
+  - zircon_runtime/src/ui/tests/component_state/interaction_numeric.rs
   - zircon_runtime/src/ui/tests/component_catalog/component_state/keyboard.rs
-  - zircon_runtime/src/ui/tests/component_catalog/component_state/keyboard/action_selection.rs
-  - zircon_runtime/src/ui/tests/component_catalog/component_state/keyboard/menu_navigation.rs
-  - zircon_runtime/src/ui/tests/component_catalog/component_state/keyboard/text_inputs.rs
-  - zircon_runtime/src/ui/tests/component_catalog/component_state/keyboard/numeric_controls.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/ui_component_catalog_component_state.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/ui_component_catalog_component_state_keyboard.rs
+  - zircon_runtime/src/ui/tests/component_state/keyboard/action_selection.rs
+  - zircon_runtime/src/ui/tests/component_state/keyboard/menu_navigation.rs
+  - zircon_runtime/src/ui/tests/component_state/keyboard/text_inputs.rs
+  - zircon_runtime/src/ui/tests/component_state/keyboard/numeric_controls.rs
   - zircon_runtime/src/ui/tests/component_catalog/material_foundation/mod.rs
-  - zircon_runtime/src/ui/tests/component_catalog/material_foundation/planned_layers.rs
-  - zircon_runtime/src/ui/tests/component_catalog/material_foundation/editor_components.rs
-  - zircon_runtime/src/ui/tests/component_catalog/material_foundation/mui_surface_overlay.rs
-  - zircon_runtime/src/ui/tests/component_catalog/material_foundation/mui_x_runtime.rs
-  - zircon_runtime/src/ui/tests/component_catalog/material_foundation/folder_structure.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/ui_component_catalog_material_foundation.rs
+  - zircon_runtime/src/ui/tests/material_foundation/planned_layers.rs
+  - zircon_runtime/src/ui/tests/material_foundation/editor_components.rs
+  - zircon_runtime/src/ui/tests/material_foundation/mui_surface_overlay.rs
+  - zircon_runtime/src/ui/tests/material_foundation/mui_x_runtime.rs
+  - zircon_runtime/src/ui/tests/material_foundation/folder_structure.rs
   - zircon_runtime/src/ui/tests/boundary.rs
   - zircon_runtime/src/ui/tests/boundary/template_namespace.rs
   - zircon_runtime/src/ui/tests/boundary/layout_tree_surface.rs
   - zircon_runtime/src/ui/tests/boundary/binding_event_roots.rs
   - zircon_runtime/src/ui/tests/boundary/asset_fixture_projection.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/ui_boundary.rs
   - zircon_runtime/src/tests/ui_boundary/runtime_host.rs
   - zircon_runtime/src/ui/tests/surface_frame_authority.rs
   - zircon_runtime/src/ui/tests/surface_frame_authority/arranged_authority.rs
   - zircon_runtime/src/ui/tests/surface_frame_authority/taffy_flex.rs
   - zircon_runtime/src/ui/tests/surface_frame_authority/taffy_wrap_grid.rs
   - zircon_runtime/src/ui/tests/surface_frame_authority/zircon_fallback.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/ui_surface_frame_authority.rs
   - zircon_runtime/src/ui/tests/runtime_input_reply_routes.rs
-  - zircon_runtime/src/ui/tests/runtime_input_reply_routes/route_trace_routes.rs
-  - zircon_runtime/src/ui/tests/runtime_input_reply_routes/pointer_bubble_routes.rs
-  - zircon_runtime/src/ui/tests/runtime_input_reply_routes/focus_text_accessibility_routes.rs
-  - zircon_runtime/src/ui/tests/runtime_input_reply_routes/keyboard_navigation_routes.rs
-  - zircon_runtime/src/ui/tests/runtime_input_reply_routes/keyboard_navigation_routes/focus_path.rs
-  - zircon_runtime/src/ui/tests/runtime_input_reply_routes/keyboard_navigation_routes/semantic_actions.rs
-  - zircon_runtime/src/ui/tests/runtime_input_reply_routes/keyboard_navigation_routes/timers_disabled.rs
-  - zircon_runtime/src/ui/tests/runtime_input_reply_routes/keyboard_navigation_routes/directional.rs
-  - zircon_runtime/src/ui/tests/runtime_input_reply_routes/tree_view_pointer_routes.rs
-  - zircon_runtime/src/ui/tests/runtime_input_reply_routes/tree_view_pointer_routes/selection.rs
-  - zircon_runtime/src/ui/tests/runtime_input_reply_routes/tree_view_pointer_routes/drag_reorder.rs
-  - zircon_runtime/src/ui/tests/runtime_input_reply_routes/tree_view_pointer_routes/virtualization.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/ui_runtime_input_reply_routes.rs
+  - zircon_runtime/src/ui/tests/input/keyboard_navigation_routes/focus_path.rs
+  - zircon_runtime/src/ui/tests/input/keyboard_navigation_routes/semantic_actions.rs
+  - zircon_runtime/src/ui/tests/input/keyboard_navigation_routes/timers_disabled.rs
+  - zircon_runtime/src/ui/tests/input/keyboard_navigation_routes/directional.rs
+  - zircon_runtime/src/ui/tests/input/tree_view_pointer_routes/selection.rs
+  - zircon_runtime/src/ui/tests/input/tree_view_pointer_routes/drag_reorder.rs
+  - zircon_runtime/src/ui/tests/input/tree_view_pointer_routes/virtualization.rs
   - zircon_runtime/src/ui/tests/runtime_ui_window_event_routes/abi.rs
   - zircon_runtime/src/ui/tests/runtime_ui_window_event_routes/abi/batch_adapter.rs
-  - zircon_runtime/src/ui/tests/runtime_ui_window_event_routes/abi/pointer_window_routes.rs
-  - zircon_runtime/src/ui/tests/runtime_ui_window_event_routes/abi/keyboard_gamepad_routes.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/ui_runtime_window_event_abi.rs
+  - zircon_runtime/src/ui/tests/abi/pointer_window_routes.rs
+  - zircon_runtime/src/ui/tests/abi/keyboard_gamepad_routes.rs
   - zircon_runtime/src/ui/tests/runtime_window_input_pump.rs
   - zircon_runtime/src/ui/tests/runtime_window_input_pump/lifecycle.rs
   - zircon_runtime/src/ui/tests/runtime_window_input_pump/pointer_routes.rs
   - zircon_runtime/src/ui/tests/runtime_window_input_pump/metrics_dirty.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/ui_runtime_window_input_pump.rs
   - zircon_runtime/src/ui/tests/widget_text_input_keyboard.rs
   - zircon_runtime/src/ui/tests/widget_text_input_keyboard/basic_editing.rs
   - zircon_runtime/src/ui/tests/widget_text_input_keyboard/selection_navigation.rs
   - zircon_runtime/src/ui/tests/widget_text_input_keyboard/word_shortcuts.rs
   - zircon_runtime/src/ui/tests/widget_text_input_keyboard/clipboard_newline.rs
   - zircon_runtime/src/ui/tests/widget_text_input_keyboard/text_ime.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/ui_widget_text_input_keyboard.rs
   - zircon_runtime/src/ui/tests/focus_navigation.rs
   - zircon_runtime/src/ui/tests/focus_navigation/focus_state.rs
   - zircon_runtime/src/ui/tests/focus_navigation/property_mutation.rs
   - zircon_runtime/src/ui/tests/focus_navigation/tab_directional.rs
   - zircon_runtime/src/ui/tests/focus_navigation/modal_popup.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/ui_focus_navigation.rs
   - zircon_runtime/src/ui/tests/runtime_input_manager.rs
   - zircon_runtime/src/ui/tests/runtime_input_manager/window_timer.rs
   - zircon_runtime/src/ui/tests/runtime_input_manager/route_order.rs
   - zircon_runtime/src/ui/tests/runtime_input_manager/route_matrix.rs
   - zircon_runtime/src/ui/tests/runtime_input_manager/touch_pointer.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/ui_runtime_input_manager.rs
   - zircon_runtime/src/ui/tests/runtime_input_ownership.rs
   - zircon_runtime/src/ui/tests/runtime_input_ownership/input_method.rs
   - zircon_runtime/src/ui/tests/runtime_input_ownership/owner_validation.rs
@@ -221,7 +182,6 @@ related_code:
   - zircon_runtime/src/ui/tests/runtime_input_ownership/drag_drop.rs
   - zircon_runtime/src/ui/tests/runtime_input_ownership/popup_tooltip.rs
   - zircon_runtime/src/ui/tests/runtime_input_ownership/route_trace.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/ui_runtime_input_ownership.rs
   - zircon_runtime/src/ui/dispatch/mod.rs
   - zircon_runtime/src/ui/template/mod.rs
   - zircon_runtime/src/ui/template/instance.rs
@@ -242,8 +202,7 @@ related_code:
   - zircon_runtime/src/ui/template/asset/component_contract/validation.rs
   - zircon_runtime_interface/src/ui/template/asset/component_contract/api_version.rs
   - zircon_runtime_interface/src/tests/ui_v2_contracts.rs
-  - zircon_runtime/src/tests/runtime_absorption/dynamic_api_session/v2_contract.rs
-  - zircon_runtime/src/tests/runtime_absorption/ui_architecture.rs
+  - zircon_runtime/src/tests/contracts/dynamic_api_session/v2_contract.rs
   - zircon_runtime_interface/src/ui/v2/mod.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/ui_architecture_boundary.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/ui_architecture_markdown.py
@@ -261,24 +220,19 @@ implementation_files:
   - zircon_runtime/src/ui/surface/input/state/pointer_capture.rs
   - zircon_runtime/src/ui/surface/input/effect/focus_pointer.rs
   - zircon_runtime/src/ui/dispatch/input_manager/manager.rs
-  - zircon_runtime/src/ui/dispatch/input_manager/manager/tests.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/ui_dispatch_input_manager_tests.rs
   - zircon_runtime/src/ui/surface/render/collection_rows/table.rs
   - zircon_runtime/src/ui/surface/focus.rs
   - zircon_runtime/src/ui/surface/property_mutation.rs
   - zircon_runtime/src/ui/surface/property_mutation/metadata_dirty.rs
   - zircon_runtime/src/ui/surface/surface/default_interactions.rs
   - zircon_runtime/src/ui/surface/surface/default_interactions/table/columns.rs
-  - zircon_runtime/src/tests/runtime_absorption/naming_boundary.rs
-  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/ui.rs
+  - zircon_runtime/src/tests/contracts/naming_boundary/runtime_15_m2/ui.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/non_network_server_naming.py
   - zircon_runtime/src/ui/accessibility/extract.rs
   - zircon_runtime/src/ui/accessibility/extract/state.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/ui_accessibility_extract.rs
   - zircon_runtime/src/ui/component/catalog/editor_showcase.rs
   - zircon_runtime/src/ui/component/catalog/editor_showcase/descriptors.rs
   - zircon_runtime/src/ui/component/catalog/editor_showcase/descriptor_builders.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/ui_component_catalog_editor_showcase.rs
   - zircon_runtime/src/ui/tests/accessibility.rs
   - zircon_runtime/src/ui/tests/accessibility/extraction.rs
   - zircon_runtime/src/ui/tests/accessibility/naming_relations.rs
@@ -286,112 +240,90 @@ implementation_files:
   - zircon_runtime/src/ui/tests/accessibility/description_references.rs
   - zircon_runtime/src/ui/tests/accessibility/activation_actions.rs
   - zircon_runtime/src/ui/tests/accessibility/value_actions.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/ui_accessibility.rs
   - zircon_runtime/src/ui/tests/event_routing.rs
   - zircon_runtime/src/ui/tests/event_routing/pointer_state.rs
   - zircon_runtime/src/ui/tests/event_routing/component_events.rs
   - zircon_runtime/src/ui/tests/event_routing/dispatch_effects.rs
   - zircon_runtime/src/ui/tests/event_routing/shared_input.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/ui_event_routing.rs
   - zircon_runtime/src/ui/tests/surface_dirty_domains.rs
   - zircon_runtime/src/ui/tests/surface_dirty_domains/rebuild_domains.rs
   - zircon_runtime/src/ui/tests/surface_dirty_domains/incremental_layout.rs
   - zircon_runtime/src/ui/tests/surface_dirty_domains/render_domains.rs
   - zircon_runtime/src/ui/tests/surface_dirty_domains/mutation_state.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/ui_surface_dirty_domains.rs
   - zircon_runtime/src/ui/tests/material_layout.rs
   - zircon_runtime/src/ui/tests/material_layout/button_icon_metrics.rs
   - zircon_runtime/src/ui/tests/material_layout/row_label_metrics.rs
   - zircon_runtime/src/ui/tests/material_layout/field_values.rs
   - zircon_runtime/src/ui/tests/material_layout/asset_icon_roles.rs
   - zircon_runtime/src/ui/tests/material_layout/constraints_children.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/ui_material_layout.rs
   - zircon_runtime/src/ui/tests/template.rs
   - zircon_runtime/src/ui/tests/template/interaction_bindings.rs
   - zircon_runtime/src/ui/tests/template/surface_containers.rs
   - zircon_runtime/src/ui/tests/template/slot_contracts.rs
   - zircon_runtime/src/ui/tests/template/layout_compute.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/ui_template.rs
   - zircon_runtime/src/ui/tests/component_catalog.rs
   - zircon_runtime/src/ui/tests/component_catalog/catalog_inventory.rs
   - zircon_runtime/src/ui/tests/component_catalog/descriptor_contracts.rs
   - zircon_runtime/src/ui/tests/component_catalog/registry_queries.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/ui_component_catalog.rs
   - zircon_runtime/src/ui/tests/component_catalog/component_state.rs
   - zircon_runtime/src/ui/tests/component_catalog/component_state/retained_events.rs
-  - zircon_runtime/src/ui/tests/component_catalog/component_state/collection_mutation.rs
-  - zircon_runtime/src/ui/tests/component_catalog/component_state/reference_sources.rs
-  - zircon_runtime/src/ui/tests/component_catalog/component_state/interaction_numeric.rs
+  - zircon_runtime/src/ui/tests/component_state/collection_mutation.rs
+  - zircon_runtime/src/ui/tests/component_state/reference_sources.rs
+  - zircon_runtime/src/ui/tests/component_state/interaction_numeric.rs
   - zircon_runtime/src/ui/tests/component_catalog/component_state/keyboard.rs
-  - zircon_runtime/src/ui/tests/component_catalog/component_state/keyboard/action_selection.rs
-  - zircon_runtime/src/ui/tests/component_catalog/component_state/keyboard/menu_navigation.rs
-  - zircon_runtime/src/ui/tests/component_catalog/component_state/keyboard/text_inputs.rs
-  - zircon_runtime/src/ui/tests/component_catalog/component_state/keyboard/numeric_controls.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/ui_component_catalog_component_state.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/ui_component_catalog_component_state_keyboard.rs
+  - zircon_runtime/src/ui/tests/component_state/keyboard/action_selection.rs
+  - zircon_runtime/src/ui/tests/component_state/keyboard/menu_navigation.rs
+  - zircon_runtime/src/ui/tests/component_state/keyboard/text_inputs.rs
+  - zircon_runtime/src/ui/tests/component_state/keyboard/numeric_controls.rs
   - zircon_runtime/src/ui/tests/component_catalog/material_foundation/mod.rs
-  - zircon_runtime/src/ui/tests/component_catalog/material_foundation/planned_layers.rs
-  - zircon_runtime/src/ui/tests/component_catalog/material_foundation/editor_components.rs
-  - zircon_runtime/src/ui/tests/component_catalog/material_foundation/mui_surface_overlay.rs
-  - zircon_runtime/src/ui/tests/component_catalog/material_foundation/mui_x_runtime.rs
-  - zircon_runtime/src/ui/tests/component_catalog/material_foundation/folder_structure.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/ui_component_catalog_material_foundation.rs
+  - zircon_runtime/src/ui/tests/material_foundation/planned_layers.rs
+  - zircon_runtime/src/ui/tests/material_foundation/editor_components.rs
+  - zircon_runtime/src/ui/tests/material_foundation/mui_surface_overlay.rs
+  - zircon_runtime/src/ui/tests/material_foundation/mui_x_runtime.rs
+  - zircon_runtime/src/ui/tests/material_foundation/folder_structure.rs
   - zircon_runtime/src/ui/tests/boundary.rs
   - zircon_runtime/src/ui/tests/boundary/template_namespace.rs
   - zircon_runtime/src/ui/tests/boundary/layout_tree_surface.rs
   - zircon_runtime/src/ui/tests/boundary/binding_event_roots.rs
   - zircon_runtime/src/ui/tests/boundary/asset_fixture_projection.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/ui_boundary.rs
   - zircon_runtime/src/tests/ui_boundary/runtime_host.rs
   - zircon_runtime/src/ui/tests/surface_frame_authority.rs
   - zircon_runtime/src/ui/tests/surface_frame_authority/arranged_authority.rs
   - zircon_runtime/src/ui/tests/surface_frame_authority/taffy_flex.rs
   - zircon_runtime/src/ui/tests/surface_frame_authority/taffy_wrap_grid.rs
   - zircon_runtime/src/ui/tests/surface_frame_authority/zircon_fallback.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/ui_surface_frame_authority.rs
   - zircon_runtime/src/ui/tests/runtime_input_reply_routes.rs
-  - zircon_runtime/src/ui/tests/runtime_input_reply_routes/route_trace_routes.rs
-  - zircon_runtime/src/ui/tests/runtime_input_reply_routes/pointer_bubble_routes.rs
-  - zircon_runtime/src/ui/tests/runtime_input_reply_routes/focus_text_accessibility_routes.rs
-  - zircon_runtime/src/ui/tests/runtime_input_reply_routes/keyboard_navigation_routes.rs
-  - zircon_runtime/src/ui/tests/runtime_input_reply_routes/keyboard_navigation_routes/focus_path.rs
-  - zircon_runtime/src/ui/tests/runtime_input_reply_routes/keyboard_navigation_routes/semantic_actions.rs
-  - zircon_runtime/src/ui/tests/runtime_input_reply_routes/keyboard_navigation_routes/timers_disabled.rs
-  - zircon_runtime/src/ui/tests/runtime_input_reply_routes/keyboard_navigation_routes/directional.rs
-  - zircon_runtime/src/ui/tests/runtime_input_reply_routes/tree_view_pointer_routes.rs
-  - zircon_runtime/src/ui/tests/runtime_input_reply_routes/tree_view_pointer_routes/selection.rs
-  - zircon_runtime/src/ui/tests/runtime_input_reply_routes/tree_view_pointer_routes/drag_reorder.rs
-  - zircon_runtime/src/ui/tests/runtime_input_reply_routes/tree_view_pointer_routes/virtualization.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/ui_runtime_input_reply_routes.rs
+  - zircon_runtime/src/ui/tests/input/keyboard_navigation_routes/focus_path.rs
+  - zircon_runtime/src/ui/tests/input/keyboard_navigation_routes/semantic_actions.rs
+  - zircon_runtime/src/ui/tests/input/keyboard_navigation_routes/timers_disabled.rs
+  - zircon_runtime/src/ui/tests/input/keyboard_navigation_routes/directional.rs
+  - zircon_runtime/src/ui/tests/input/tree_view_pointer_routes/selection.rs
+  - zircon_runtime/src/ui/tests/input/tree_view_pointer_routes/drag_reorder.rs
+  - zircon_runtime/src/ui/tests/input/tree_view_pointer_routes/virtualization.rs
   - zircon_runtime/src/ui/tests/runtime_ui_window_event_routes/abi.rs
   - zircon_runtime/src/ui/tests/runtime_ui_window_event_routes/abi/batch_adapter.rs
-  - zircon_runtime/src/ui/tests/runtime_ui_window_event_routes/abi/pointer_window_routes.rs
-  - zircon_runtime/src/ui/tests/runtime_ui_window_event_routes/abi/keyboard_gamepad_routes.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/ui_runtime_window_event_abi.rs
+  - zircon_runtime/src/ui/tests/abi/pointer_window_routes.rs
+  - zircon_runtime/src/ui/tests/abi/keyboard_gamepad_routes.rs
   - zircon_runtime/src/ui/tests/runtime_window_input_pump.rs
   - zircon_runtime/src/ui/tests/runtime_window_input_pump/lifecycle.rs
   - zircon_runtime/src/ui/tests/runtime_window_input_pump/pointer_routes.rs
   - zircon_runtime/src/ui/tests/runtime_window_input_pump/metrics_dirty.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/ui_runtime_window_input_pump.rs
   - zircon_runtime/src/ui/tests/widget_text_input_keyboard.rs
   - zircon_runtime/src/ui/tests/widget_text_input_keyboard/basic_editing.rs
   - zircon_runtime/src/ui/tests/widget_text_input_keyboard/selection_navigation.rs
   - zircon_runtime/src/ui/tests/widget_text_input_keyboard/word_shortcuts.rs
   - zircon_runtime/src/ui/tests/widget_text_input_keyboard/clipboard_newline.rs
   - zircon_runtime/src/ui/tests/widget_text_input_keyboard/text_ime.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/ui_widget_text_input_keyboard.rs
   - zircon_runtime/src/ui/tests/focus_navigation.rs
   - zircon_runtime/src/ui/tests/focus_navigation/focus_state.rs
   - zircon_runtime/src/ui/tests/focus_navigation/property_mutation.rs
   - zircon_runtime/src/ui/tests/focus_navigation/tab_directional.rs
   - zircon_runtime/src/ui/tests/focus_navigation/modal_popup.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/ui_focus_navigation.rs
   - zircon_runtime/src/ui/tests/runtime_input_manager.rs
   - zircon_runtime/src/ui/tests/runtime_input_manager/window_timer.rs
   - zircon_runtime/src/ui/tests/runtime_input_manager/route_order.rs
   - zircon_runtime/src/ui/tests/runtime_input_manager/route_matrix.rs
   - zircon_runtime/src/ui/tests/runtime_input_manager/touch_pointer.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/ui_runtime_input_manager.rs
   - zircon_runtime/src/ui/tests/runtime_input_ownership.rs
   - zircon_runtime/src/ui/tests/runtime_input_ownership/input_method.rs
   - zircon_runtime/src/ui/tests/runtime_input_ownership/owner_validation.rs
@@ -399,7 +331,6 @@ implementation_files:
   - zircon_runtime/src/ui/tests/runtime_input_ownership/drag_drop.rs
   - zircon_runtime/src/ui/tests/runtime_input_ownership/popup_tooltip.rs
   - zircon_runtime/src/ui/tests/runtime_input_ownership/route_trace.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/ui_runtime_input_ownership.rs
   - zircon_runtime/src/ui/layout/mod.rs
   - zircon_runtime/src/ui/layout/style_mapping.rs
   - zircon_runtime/src/ui/layout/scroll.rs
@@ -417,7 +348,6 @@ implementation_files:
   - zircon_runtime/src/ui/tests/taffy_layout_pass/linear_slots.rs
   - zircon_runtime/src/ui/tests/taffy_layout_pass/fallback_policy.rs
   - zircon_runtime/src/ui/tests/taffy_layout_pass/grid_slots.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/ui_taffy_layout_pass.rs
   - zircon_runtime_interface/src/ui/layout/engine.rs
   - zircon_runtime/src/ui/layout/taffy_bridge/mod.rs
   - zircon_runtime/src/ui/layout/taffy_bridge/compute.rs
@@ -430,7 +360,7 @@ implementation_files:
   - zircon_runtime/src/ui/template/asset/component_contract/validation.rs
   - zircon_runtime_interface/src/ui/template/asset/component_contract/api_version.rs
   - zircon_runtime_interface/src/tests/ui_v2_contracts.rs
-  - zircon_runtime/src/tests/runtime_absorption/dynamic_api_session/v2_contract.rs
+  - zircon_runtime/src/tests/contracts/dynamic_api_session/v2_contract.rs
   - zircon_runtime/src/ui/tests/scroll_virtualization.rs
   - zircon_runtime/src/ui/template/mod.rs
   - zircon_runtime/src/ui/template/instance.rs
@@ -438,7 +368,6 @@ implementation_files:
   - zircon_runtime/src/ui/template/build/surface_builder.rs
   - zircon_runtime/src/ui/template/asset/compiler/package/artifact.rs
   - zircon_runtime/src/ui/tests/template_pipeline.rs
-  - zircon_runtime/src/tests/runtime_absorption/ui_architecture.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/ui_architecture_boundary.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/ui_architecture_markdown.py
 plan_sources:

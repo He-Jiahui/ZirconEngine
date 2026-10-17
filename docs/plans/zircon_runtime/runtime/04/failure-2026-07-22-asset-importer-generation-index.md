@@ -12,7 +12,6 @@ related_code:
   - zircon_runtime/src/asset/importer/registry.rs
   - zircon_runtime/src/asset/importer/contract.rs
   - zircon_runtime/src/asset/importer/ingest/asset_importer.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/construction.rs
   - zircon_plugins
 tests:
   - cargo test -p zircon_runtime --lib asset::tests::assets::importer --locked --jobs 1 -- --nocapture --test-threads=1

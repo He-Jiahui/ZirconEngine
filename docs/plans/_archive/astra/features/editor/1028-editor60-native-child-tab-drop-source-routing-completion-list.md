@@ -1,9 +1,9 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/app/workspace_docking/drag_drop.rs
-  - zircon_editor/src/ui/retained_host/app/workspace_docking.rs
-  - zircon_editor/src/ui/retained_host/app/callback_wiring/host_shell/drag_resize.rs
-  - zircon_editor/src/ui/retained_host/app/tests/child_window_tabs.rs
+  - zircon_editor/src/ui/retained/app/workspace_docking/drag_drop.rs
+  - zircon_editor/src/ui/retained/app/workspace_docking.rs
+  - zircon_editor/src/ui/retained/app/callback_wiring/host_shell/drag_resize.rs
+  - zircon_editor/src/ui/retained/app/tests/child_window_tabs.rs
 plan_sources:
   - docs/plans/optimize/zircon_editor/60/2026-09-28-native-child-tab-drop-source-routing.md
 status: implemented_pending_validation

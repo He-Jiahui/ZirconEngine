@@ -12,14 +12,12 @@ related_code:
   - zircon_runtime/src/text/atlas/render_batch.rs
   - zircon_runtime/src/text/atlas/render_gpu_plan.rs
   - zircon_runtime/src/text/atlas/render_gpu_plan/instance.rs
-  - zircon_runtime/src/text/atlas/render_gpu_plan/tests.rs
   - zircon_runtime/src/text/atlas/shaders/glyph_atlas_pipeline.wgsl
   - zircon_runtime/src/text/atlas/render_submission/plan.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/instance.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/instance_buffer.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/renderer.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/state.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/tests.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/atlas_renderer/instance.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/atlas_renderer/instance_buffer.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/atlas_renderer/renderer.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/atlas_renderer/state.rs
 ---
 
 # Glyph atlas draw双层六顶点物化

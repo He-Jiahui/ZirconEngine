@@ -1,35 +1,34 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/app.rs
-  - zircon_editor/src/ui/retained_host/app/pointer_layout.rs
-  - zircon_editor/src/ui/retained_host/app/pointer_layout/asset_surfaces.rs
-  - zircon_editor/src/ui/retained_host/app/pointer_layout/asset_surfaces/state.rs
-  - zircon_editor/src/ui/retained_host/app/pointer_layout/asset_surfaces/sync.rs
-  - zircon_editor/src/ui/retained_host/app/pointer_layout/asset_surfaces/ui_writeback.rs
-  - zircon_editor/src/ui/retained_host/app/pointer_layout/detail_scrolls.rs
-  - zircon_editor/src/ui/retained_host/app/pointer_layout/hierarchy.rs
-  - zircon_editor/src/ui/retained_host/app/pointer_layout/menu.rs
-  - zircon_editor/src/ui/retained_host/app/pointer_layout/pane_surface_context.rs
-  - zircon_editor/src/ui/retained_host/app/pointer_layout/shell_chrome.rs
-  - zircon_editor/src/ui/retained_host/app/pointer_layout/welcome_recent.rs
-  - zircon_editor/src/ui/retained_host/app/asset_tree_pointer.rs
-  - zircon_editor/src/ui/retained_host/app/asset_content_pointer.rs
-  - zircon_editor/src/ui/retained_host/app/asset_content_pointer/target.rs
-  - zircon_editor/src/ui/retained_host/app/asset_reference_pointer.rs
-  - zircon_editor/src/ui/retained_host/app/asset_reference_pointer/target.rs
-  - zircon_editor/src/ui/retained_host/app/asset_surface_pointer_state.rs
+  - zircon_editor/src/ui/retained/app/pointer_layout.rs
+  - zircon_editor/src/ui/retained/app/pointer_layout/asset_surfaces.rs
+  - zircon_editor/src/ui/retained/app/pointer_layout/asset_surfaces/state.rs
+  - zircon_editor/src/ui/retained/app/pointer_layout/asset_surfaces/sync.rs
+  - zircon_editor/src/ui/retained/app/pointer_layout/asset_surfaces/ui_writeback.rs
+  - zircon_editor/src/ui/retained/app/pointer_layout/detail_scrolls.rs
+  - zircon_editor/src/ui/retained/app/pointer_layout/hierarchy.rs
+  - zircon_editor/src/ui/retained/app/pointer_layout/menu.rs
+  - zircon_editor/src/ui/retained/app/pointer_layout/pane_surface_context.rs
+  - zircon_editor/src/ui/retained/app/pointer_layout/shell_chrome.rs
+  - zircon_editor/src/ui/retained/app/pointer_layout/welcome_recent.rs
+  - zircon_editor/src/ui/retained/app/asset_tree_pointer.rs
+  - zircon_editor/src/ui/retained/app/asset_content_pointer.rs
+  - zircon_editor/src/ui/retained/app/asset_content_pointer/target.rs
+  - zircon_editor/src/ui/retained/app/asset_reference_pointer.rs
+  - zircon_editor/src/ui/retained/app/asset_reference_pointer/target.rs
+  - zircon_editor/src/ui/retained/app/asset_surface_pointer_state.rs
 implementation_files:
-  - zircon_editor/src/ui/retained_host/app/pointer_layout.rs
-  - zircon_editor/src/ui/retained_host/app/pointer_layout/asset_surfaces.rs
-  - zircon_editor/src/ui/retained_host/app/pointer_layout/asset_surfaces/state.rs
-  - zircon_editor/src/ui/retained_host/app/pointer_layout/asset_surfaces/sync.rs
-  - zircon_editor/src/ui/retained_host/app/pointer_layout/asset_surfaces/ui_writeback.rs
-  - zircon_editor/src/ui/retained_host/app/pointer_layout/detail_scrolls.rs
-  - zircon_editor/src/ui/retained_host/app/pointer_layout/hierarchy.rs
-  - zircon_editor/src/ui/retained_host/app/pointer_layout/menu.rs
-  - zircon_editor/src/ui/retained_host/app/pointer_layout/pane_surface_context.rs
-  - zircon_editor/src/ui/retained_host/app/pointer_layout/shell_chrome.rs
-  - zircon_editor/src/ui/retained_host/app/pointer_layout/welcome_recent.rs
+  - zircon_editor/src/ui/retained/app/pointer_layout.rs
+  - zircon_editor/src/ui/retained/app/pointer_layout/asset_surfaces.rs
+  - zircon_editor/src/ui/retained/app/pointer_layout/asset_surfaces/state.rs
+  - zircon_editor/src/ui/retained/app/pointer_layout/asset_surfaces/sync.rs
+  - zircon_editor/src/ui/retained/app/pointer_layout/asset_surfaces/ui_writeback.rs
+  - zircon_editor/src/ui/retained/app/pointer_layout/detail_scrolls.rs
+  - zircon_editor/src/ui/retained/app/pointer_layout/hierarchy.rs
+  - zircon_editor/src/ui/retained/app/pointer_layout/menu.rs
+  - zircon_editor/src/ui/retained/app/pointer_layout/pane_surface_context.rs
+  - zircon_editor/src/ui/retained/app/pointer_layout/shell_chrome.rs
+  - zircon_editor/src/ui/retained/app/pointer_layout/welcome_recent.rs
 plan_sources:
   - docs/plans/zircon_editor/editor_ui/08-workbench-shell-on-runtime-ui.md
   - user: 2026-06-18 editor UI architecture implementation, feature first and tests deferred

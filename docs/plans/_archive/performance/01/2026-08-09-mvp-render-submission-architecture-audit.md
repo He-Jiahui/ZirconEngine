@@ -1,7 +1,6 @@
 ---
 related_code:
   - zircon_app/src/entry
-  - zircon_runtime/src/graphics/runtime/render_framework
   - zircon_runtime/src/core/runtime/diagnostics/profiling
   - zircon_runtime_interface/src
 primary_reference:

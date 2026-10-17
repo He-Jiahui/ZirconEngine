@@ -9,7 +9,6 @@ origin_child_dir: docs/plans/zircon_runtime/runtime/15
 fixing_child_dir: docs/plans/zircon_runtime/runtime/04
 plan_link_mode: child_record_only
 related_code:
-  - zircon_runtime/src/asset/assets/texture/descriptor/tests.rs
 tests:
   - asset::assets::texture::descriptor::tests::import_settings_parse_texture_metadata_tokens
   - asset::assets::texture::descriptor::tests::

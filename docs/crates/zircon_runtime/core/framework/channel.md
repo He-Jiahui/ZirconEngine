@@ -8,8 +8,6 @@ related_code:
   - zircon_runtime/src/core/runtime/handle/events.rs
   - zircon_runtime/src/asset/facade/event.rs
   - zircon_runtime/src/asset/pipeline/worker_pool.rs
-  - zircon_editor/src/ui/host/editor_asset_manager/api.rs
-  - zircon_editor/src/ui/retained_host/app.rs
 implementation_files:
   - zircon_runtime/src/core/framework/channel.rs
   - zircon_runtime/src/core/framework/mod.rs
@@ -19,7 +17,6 @@ plan_sources:
   - .codex/plans/Runtime 吸收层与 Editor_Scene 边界收束计划.md
 tests:
   - zircon_runtime/src/core/runtime/tests/channel.rs
-  - zircon_runtime/src/tests/runtime_absorption/root_entries.rs
   - rustc --edition 2021 --test zircon_runtime/src/tests/runtime_absorption/root_entries.rs
   - cargo check -p zircon_runtime --lib --locked
 doc_type: module-detail

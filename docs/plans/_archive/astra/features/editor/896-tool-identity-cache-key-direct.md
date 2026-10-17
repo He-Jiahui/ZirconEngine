@@ -9,8 +9,6 @@ related_records:
 implementation_files:
   - zircon_editor/src/core/export/inventory.rs
 tests:
-  - zircon_editor/src/core/export/inventory/tool_cache_key_tests.rs
-  - tools/tests/test_editor896_tool_identity_cache_key_direct_performance_contract.py
 ---
 
 # Editor896 Tool Identity Cache Key Direct

@@ -29,16 +29,11 @@ related_code:
   - zircon_runtime/src/animation
   - zircon_runtime/src/core/framework/animation
   - zircon_runtime/src/dynamic_api/session/construction.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog
 tests:
-  - zircon_plugins/animation/runtime/src/tests.rs
   - zircon_plugins/animation/runtime/src/evaluation
   - zircon_plugins/animation/runtime/src/state_machine
   - zircon_plugins/animation/runtime/tests
-  - zircon_plugins/animation/editor/src/tests.rs
   - zircon_plugins/animation/dist/src/lib.rs
-  - zircon_plugins/animation_graph/editor/src/tests.rs
-  - zircon_plugins/timeline_sequence/editor/src/tests.rs
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md
   - docs/plans/optimize/01-cross-report-owner-schema-abi-p0-consolidation-review.md

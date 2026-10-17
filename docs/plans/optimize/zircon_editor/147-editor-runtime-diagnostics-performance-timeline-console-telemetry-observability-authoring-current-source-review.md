@@ -16,16 +16,13 @@ related_editor_owners:
   - docs/plans/optimize/zircon_editor/09-background-jobs-admission-scheduling-cancellation-progress-shutdown-product-integration-review.md
   - docs/plans/optimize/zircon_editor/133-editor-logging-diagnostic-journal-output-console-status-routing-retention-export-current-source-review.md
 related_code:
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/diagnostics
   - zircon_editor/assets/ui/editor/host/runtime_diagnostics_body.zui
   - zircon_editor/assets/ui/editor/host/performance_timeline_body.zui
   - zircon_editor/src/core/gateway/session/profile.rs
   - zircon_editor/src/ui/host/editor_manager_runtime_diagnostics.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload_builders
-  - zircon_editor/src/ui/retained_host/app/profiling
-  - zircon_editor/src/ui/retained_host/app/runtime_diagnostics_visibility.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/pane_payloads
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion
+  - zircon_editor/src/ui/retained/app/profiling
+  - zircon_editor/src/ui/retained/app/runtime_diagnostics_visibility.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle/pane_payloads
   - zircon_runtime/src/core/runtime/diagnostics
   - zircon_runtime/src/runtime_diagnostics
   - zircon_runtime/src/dynamic_api/session/diagnostics.rs

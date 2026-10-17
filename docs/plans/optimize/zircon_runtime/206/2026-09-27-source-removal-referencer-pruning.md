@@ -10,7 +10,6 @@ related_code:
   - zircon_runtime/src/asset/registry/asset_registry_index.rs
   - zircon_runtime/src/asset/registry/targeted.rs
 tests:
-  - zircon_runtime/src/asset/registry/asset_registry_index/source_removal_pruning_tests.rs
 plan_sources:
   - docs/plans/optimize/zircon_runtime/206-runtime-asset-registry-project-catalog-index-persistence-rebuild-incremental-query-watch-generation-current-working-tree-review.md
   - docs/plans/optimize/zircon_runtime/206/2026-09-27-incremental-referencer-bucket-pruning.md

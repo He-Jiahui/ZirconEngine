@@ -14,7 +14,6 @@ reference_sources:
 tests:
   - zircon_runtime/src/bin/zircon_export_pack/manifest.rs::performance_contract_tests::included_assets_use_a_manifest_path_index
   - zircon_runtime/src/bin/zircon_shader_prewarm/run.rs::tests::exported_resource_records_move_into_the_overlay
-  - zircon_runtime/src/bin/zircon_shader_prewarm/manifest/resource_registry/tests.rs::nested_resource_arrays_are_moved_out_of_the_json_document
   - current-source Windows Cargo and cold/warm tool-scale traces pending
 doc_type: implementation-evidence
 status: static_complete_dynamic_pending

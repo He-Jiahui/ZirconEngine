@@ -4,14 +4,10 @@ related_code:
   - zircon_runtime/src/core/resource/io/mod.rs
   - zircon_runtime/src/asset/project/manager/durable_transaction.rs
   - zircon_runtime/src/bin/zircon_shader_prewarm/manifest/resource_registry.rs
-  - zircon_runtime/src/bin/zircon_shader_prewarm/manifest/resource_registry/tests.rs
   - zircon_runtime/src/asset/tests/pipeline/manager/resource_revisions.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy.rs
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings.rs
   - zircon_runtime_interface/src/resource/resource_record.rs
   - zircon_runtime_interface/src/resource/state.rs
   - zircon_runtime_interface/src/resource/diagnostic.rs
-  - zircon_runtime/src/tests/runtime_absorption/asset_pipeline.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/asset_pipeline_boundary.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/asset_pipeline_markdown.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/asset_pipeline_source_inventory.py
@@ -20,10 +16,8 @@ implementation_files:
   - zircon_runtime/src/core/resource/io/mod.rs
   - zircon_runtime/src/asset/project/manager/durable_transaction.rs
   - zircon_runtime/src/bin/zircon_shader_prewarm/manifest/resource_registry.rs
-  - zircon_runtime/src/bin/zircon_shader_prewarm/manifest/resource_registry/tests.rs
   - zircon_runtime_interface/src/resource/resource_record.rs
   - zircon_runtime_interface/src/resource/state.rs
-  - zircon_runtime/src/tests/runtime_absorption/asset_pipeline.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/asset_pipeline_boundary.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/asset_pipeline_markdown.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/asset_pipeline_source_inventory.py
@@ -38,22 +32,11 @@ plan_sources:
   - .codex/plans/Runtime 吸收层与 Editor_Scene 边界收束计划.md
   - .codex/plans/全系统重构方案.md
 tests:
-  - zircon_runtime/src/core/resource/tests.rs::registry_rename_reports_missing_locator_with_resource_error
-  - zircon_runtime/src/core/resource/tests.rs::manager_failed_reload_keeps_last_good_payload_and_emits_events
-  - zircon_runtime/src/core/resource/tests.rs::resource_state_rejects_error_to_ready_without_reloading
-  - zircon_runtime/src/core/resource/tests.rs::resource_state_recovers_from_error_only_through_reloading
-  - zircon_runtime/src/core/resource/tests.rs::resource_state_rejects_reload_failure_without_reload_boundary
-  - zircon_runtime/src/core/resource/manager/resource_manager.rs::tests::resource_manager_accessors_recover_poisoned_state_locks
-  - zircon_runtime/src/core/resource/manager/registry_export.rs::tests::resource_manager_exports_ready_records_for_kind_with_live_revisions
-  - zircon_runtime/src/bin/zircon_shader_prewarm/manifest/tests.rs::shader_prewarm_resource_registry_overlay_uses_live_resource_manager_shader_revisions
-  - zircon_runtime/src/bin/zircon_shader_prewarm/manifest/resource_registry/tests.rs::shader_prewarm_resource_registry_overlay_uses_ready_shader_revisions_only
+  - zircon_runtime/crates/zr_resource/src/manager/resource_manager.rs::tests::resource_manager_accessors_recover_poisoned_state_locks
+  - zircon_runtime/crates/zr_resource/src/manager/registry_export.rs::tests::resource_manager_exports_ready_records_for_kind_with_live_revisions
   - zircon_runtime/src/asset/tests/pipeline/manager/resource_revisions.rs::shader_reimport_exports_updated_revision_for_prewarm_registry
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/shader_prewarm_live_resource_registry.rs::runtime_15_shader_prewarm_live_resource_manager_registry_export_is_wired
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings.rs::review_f6_core_resource_registry_rename_uses_resource_error
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy.rs::runtime_15_core_resource_manager_lock_poison_recovery_guard_covers_resource_manager
   - zircon_runtime/src/asset/facade/load_state.rs::tests::asset_load_state_projection_matches_resource_record_matrix
   - zircon_runtime/tests/resource_snapshot_contract.rs::resource_snapshot_never_pairs_a_new_revision_with_an_old_payload
-  - zircon_runtime/src/core/resource/io/transaction/engine/tests.rs
   - zircon_runtime/src/asset/tests/project/manager/full_generation.rs
 doc_type: module-detail
 ---

@@ -36,10 +36,8 @@ plan_sources:
   - docs/plans/optimize/zircon_editor/626/2026-09-01-hash-plugin-snapshot-membership.md
   - docs/plans/optimize/zircon_editor/627/2026-09-01-hash-faulted-package-index.md
 related_code:
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/pane_payloads/editor_panes.rs
-  - zircon_editor/src/ui/template_runtime/runtime/pane_payload_projection.rs
-  - zircon_editor/src/ui/template_runtime/runtime/projection.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_projection.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle/pane_payloads/editor_panes.rs
+  - zircon_editor/src/ui/runtime/runtime/projection.rs
   - zircon_editor/src/core/extension/store/batch.rs
   - zircon_editor/src/core/commands/contribution.rs
   - zircon_editor/src/core/commands/descriptor.rs
@@ -49,11 +47,7 @@ related_code:
   - zircon_editor/src/core/settings/registry.rs
   - zircon_editor/src/core/extension/settings_page_projection.rs
   - zircon_editor/src/core/plugin/manager/discovery.rs
-  - zircon_editor/src/core/asset/dirty/save_batch/tests.rs
   - zircon_editor/src/core/plugin/catalog.rs
-  - zircon_editor/src/core/asset/dirty/registry/optimization_tests.rs
-  - zircon_editor/src/core/document/lifecycle/tests.rs
-  - zircon_editor/src/core/asset/refactor/tests.rs
   - zircon_editor/src/core/i18n/bundle.rs
   - zircon_editor/src/core/i18n/catalog.rs
   - zircon_editor/src/core/plugin/admission.rs
@@ -61,36 +55,12 @@ related_code:
   - zircon_editor/src/core/asset/type_registry/registry.rs
   - zircon_editor/src/core/editor_extension.rs
   - zircon_editor/src/ui/workbench/reflection/widget_reflector.rs
-  - zircon_editor/src/ui/template_runtime/runtime/build_session.rs
+  - zircon_editor/src/ui/runtime/runtime/build_session.rs
   - zircon_editor/src/ui/material_editor/projection.rs
   - zircon_editor/src/core/plugin/manager/project_selection.rs
   - zircon_editor/src/core/plugin/manager/snapshot.rs
   - zircon_editor/src/core/plugin/catalog_snapshot.rs
 tests:
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_projection/optimization_batch_hp_editor597_tests.rs
-  - zircon_editor/src/ui/template_runtime/runtime/projection/optimization_batch_ho_editor596_tests.rs
-  - zircon_editor/src/ui/retained_host/ui/apply_presentation/viewport_ownership_performance_tests.rs
-  - zircon_editor/src/core/extension/store/batch/optimization_batch_hq_editor598_tests.rs
-  - zircon_editor/src/core/commands/contribution/optimization_batch_ht_editor602_tests.rs
-  - zircon_editor/src/core/commands/descriptor/optimization_batch_hu_editor603_tests.rs
-  - zircon_editor/src/core/commands/registry/optimization_batch_hv_editor604_tests.rs
-  - zircon_editor/src/core/runtime_event_consumer/registration/optimization_batch_hx_editor607_tests.rs
-  - zircon_editor/src/core/settings/catalog/settings_catalog/optimization_batch_hy_editor608_tests.rs
-  - zircon_editor/src/core/settings/registry/optimization_batch_hz_editor609_tests.rs
-  - zircon_editor/src/core/plugin/manager/discovery/optimization_batch_ia_editor610_tests.rs
-  - zircon_editor/src/core/asset/dirty/save_batch/tests.rs
-  - zircon_editor/src/core/plugin/catalog/optimization_batch_ib_editor611_tests.rs
-  - zircon_editor/src/core/asset/dirty/registry/optimization_tests.rs
-  - zircon_editor/src/core/document/lifecycle/tests.rs
-  - zircon_editor/src/core/asset/refactor/tests.rs
-  - zircon_editor/src/core/extension/toolkit/registry/optimization_batch_ih_editor618_tests.rs
-  - zircon_editor/src/core/asset/type_registry/registry/optimization_batch_ii_editor619_tests.rs
-  - zircon_editor/src/core/asset/type_registry/registry/optimization_batch_ij_editor620_tests.rs
-  - zircon_editor/src/core/editor_extension/optimization_batch_ik_editor621_tests.rs
-  - zircon_editor/src/ui/material_editor/projection/optimization_batch_in_editor624_tests.rs
-  - zircon_editor/src/core/plugin/manager/project_selection/optimization_batch_io_editor625_tests.rs
-  - zircon_editor/src/core/plugin/manager/snapshot/optimization_batch_ip_editor626_tests.rs
-  - zircon_editor/src/core/plugin/catalog_snapshot/optimization_batch_iq_editor627_tests.rs
 ---
 
 # Editor September Micro-Optimization Completion

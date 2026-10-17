@@ -6,8 +6,6 @@ related_code:
   - zircon_runtime_interface/src/lib.rs
   - zircon_runtime_interface/src/tests/abi_safety_contracts.rs
   - zircon_runtime_interface/src/tests/plugin_api_contracts.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/host_api_adapter.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/mod.rs
   - zircon_runtime/src/plugin/mod.rs
 implementation_files:
   - zircon_runtime_interface/src/plugin_api.rs
@@ -16,8 +14,6 @@ implementation_files:
   - zircon_runtime_interface/src/lib.rs
   - zircon_runtime_interface/src/tests/abi_safety_contracts.rs
   - zircon_runtime_interface/src/tests/plugin_api_contracts.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/host_api_adapter.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/mod.rs
   - zircon_runtime/src/plugin/mod.rs
 plan_sources:
   - user: 2026-06-12 implement docs/plans/zircon_plugins plugin architecture code

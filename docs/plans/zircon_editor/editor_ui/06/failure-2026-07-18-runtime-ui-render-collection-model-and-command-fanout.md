@@ -16,8 +16,6 @@ related_code:
   - zircon_runtime/src/ui/surface/render/popup_options.rs
   - zircon_runtime/src/ui/surface/render/segmented_controls.rs
   - zircon_runtime/src/ui/surface/render/sliders.rs
-  - dev/slint/internal/core/model.rs
-  - dev/slint/internal/core/model/adapters.rs
 tests:
   - 100k-row visible-only render projection test
   - command palette filter mapping scale test

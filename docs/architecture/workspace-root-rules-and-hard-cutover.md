@@ -37,9 +37,6 @@ tests:
   - zircon_editor/src/tests/ui/boundary/mod.rs
   - zircon_editor/src/tests/ui/boundary/root_surfaces.rs
   - zircon_editor/src/tests/ui/boundary/host_cutover.rs
-  - zircon_runtime/src/tests/runtime_absorption/mod.rs
-  - zircon_runtime/src/tests/runtime_absorption/builtin_modules.rs
-  - zircon_runtime/src/tests/runtime_absorption/root_entries.rs
   - zircon_runtime/src/tests/graphics_surface/mod.rs
   - zircon_runtime/src/tests/scene_boundary/mod.rs
   - zircon_runtime/src/tests/ui_boundary/mod.rs

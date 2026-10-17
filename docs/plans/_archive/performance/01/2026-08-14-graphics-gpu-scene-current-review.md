@@ -13,10 +13,9 @@ related_code:
   - zircon_runtime/src/graphics/scene/gpu_scene/update_queue.rs
   - zircon_runtime/src/graphics/scene/gpu_scene/upload.rs
   - zircon_runtime/src/graphics/scene/gpu_scene/virtual_geometry.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_scene/render_scene.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/build.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/gpu_scene_sync.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/skinning/joint_palette_storage.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/build_mesh_draws/build/build.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/build/gpu_scene_sync.rs
+  - zircon_runtime/src/graphics/scene/mesh/skinning/joint_palette_storage.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_runtime/runtime/04-asset-pipeline-alignment.md

@@ -4,9 +4,9 @@ status: implemented_pending_validation
 plan_sources:
   - docs/plans/optimize/zircon_runtime/02/2026-08-30-runtime535-duplicate-feature-status-borrow.md
 implementation_files:
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_status_record/mutation.rs
+  - zircon_runtime/src/plugin/runtime/catalog/feature_status_record/mutation.rs
 tests:
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_status_record/mutation.rs
+  - zircon_runtime/src/plugin/runtime/catalog/feature_status_record/mutation.rs
 ---
 
 # Runtime927 Runtime535 duplicate feature-status borrowing

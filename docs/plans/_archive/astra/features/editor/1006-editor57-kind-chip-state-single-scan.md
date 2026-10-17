@@ -1,11 +1,9 @@
 ---
 related_code:
   - zircon_editor/src/ui/layouts/views/asset_browser/toolbar_layout.rs
-  - zircon_editor/src/ui/layouts/views/asset_browser/toolbar_layout/kind_chip_single_scan_tests.rs
 plan_sources:
   - docs/plans/optimize/zircon_editor/57/2026-09-26-kind-chip-state-single-scan.md
 tests:
-  - zircon_editor/src/ui/layouts/views/asset_browser/toolbar_layout/kind_chip_single_scan_tests.rs
 doc_type: milestone-detail
 status: implemented_pending_validation
 ---

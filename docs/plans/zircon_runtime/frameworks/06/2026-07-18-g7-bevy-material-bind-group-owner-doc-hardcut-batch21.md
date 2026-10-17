@@ -1,7 +1,5 @@
 ---
 related_code:
-  - dev/bevy/crates/bevy_render/src/material_bind_groups.rs
-  - dev/bevy/crates/bevy_pbr/src/material.rs
   - tools/audits/check_conventions.py
 implementation_files:
   - docs/plans/zircon_runtime/render/19-gpu-capability-optimizations.md

@@ -22,7 +22,8 @@ import xml.etree.ElementTree as ET
 JOB = "zircon-merge-queue"
 CRON = "H/15 * * * *"
 MODE = "branch-commit-then-scheduled-merge"
-ROOT = Path("E:/Git/ZirconEngine")
+DELIVERY_SHA256 = "1ba94073123567a57563aef0d9a8f23dd3aff028c4abcd970728fbf4f8b7d4bf"
+ROOT = Path(__file__).resolve().parents[2]
 BEGIN = "// BEGIN ZIRCON BRANCH QUEUE"
 END = "// END ZIRCON BRANCH QUEUE"
 
@@ -80,7 +81,7 @@ def github_json(d, root, repository, endpoint):
     token = os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN")
     if not token:
         env = {**os.environ, "GIT_TERMINAL_PROMPT": "0", "GCM_INTERACTIVE": "never"}
-        result = subprocess.run(["git", "-c", "credential.interactive=false", "credential", "fill"],
+        result = subprocess.run(["git", "-c", "core.fsmonitor=false", "-c", "core.hooksPath=" + os.devnull, "-c", "credential.interactive=false", "credential", "fill"],
             cwd=root, input=("protocol=https\nhost=github.com\npath=" + repository + ".git\n\n").encode(),
             stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env, timeout=30)
         if result.returncode == 0:
@@ -141,8 +142,13 @@ def verified_pr_commit(d, repo, root, record, policy):
     if not isinstance(revision, str) or not re.fullmatch(r"[0-9a-f]{40}", revision):
         raise ValueError("Merged PR has no immutable Git result")
     git(d, root, "fetch", "--no-tags", "origin", "refs/heads/main:refs/remotes/origin/main")
-    if (git(d, root, "merge-base", "--is-ancestor", revision, "refs/remotes/origin/main", check=False).returncode
-            or git(d, root, "merge-base", "--is-ancestor", record["mainHeadBefore"], revision, check=False).returncode):
+    if git(d, root, "merge-base", "--is-ancestor", revision, "refs/remotes/origin/main", check=False).returncode:
+        raise d.commit.CommitBusy("PR merge is not present on origin/main")
+    if git(d, root, "merge-base", "--is-ancestor", revision, record["mainHeadBefore"], check=False).returncode == 0:
+        if text(d, root, "rev-parse", record["candidateHead"] + "^{tree}") == text(d, root, "rev-parse", record["mainHeadBefore"] + "^{tree}"):
+            return {**receipt, "status": "merged", "mergeCommit": record["mainHeadBefore"], "prMergeCommit": revision,
+                    "alreadySynchronized": True}
+    if git(d, root, "merge-base", "--is-ancestor", record["mainHeadBefore"], revision, check=False).returncode:
         raise d.commit.CommitBusy("Merged PR is not a fast-forward of local main on origin/main; reconcile the local baseline")
     if text(d, root, "rev-parse", revision + "^{tree}") != text(d, root, "rev-parse", record["candidateHead"] + "^{tree}"):
         raise d.commit.CommitBusy("The actual PR merge tree differs from the validated candidate; validate the new result before main synchronization")
@@ -345,8 +351,11 @@ def integrate(d, repo, path, *, runtime, check_runtime, validate=None, pull_requ
         _, names = d.validate_request(repo, payload, d.policy_for(repo),
             tomllib.loads((repo / ".codex/config.toml").read_text("utf-8-sig"))["permissions"]["zircon-strict"]["filesystem"])
         cached = record.get("candidateValidation", {})
-        if (was_awaiting_pr and cached.get("status") == "passed" and cached.get("head") == candidate
-                and cached.get("runtime") == runtime and cached.get("files") == d.files(root, names)
+        validation_key = {"tree": text(d, root, "rev-parse", "HEAD^{tree}"),
+                          "runtime": runtime, "recipes": payload["validation"], "files": d.files(root, names)}
+        if (was_awaiting_pr and cached.get("status") == "passed"
+                and record.get("candidateValidationKey") == validation_key
+                and cached.get("runtime") == runtime and cached.get("files") == validation_key["files"]
                 and len(cached.get("steps", [])) == len(payload["validation"])
                 and all(s.get("complete") is True and s.get("status") == "passed" for s in cached["steps"])):
             validation = cached
@@ -354,6 +363,7 @@ def integrate(d, repo, path, *, runtime, check_runtime, validate=None, pull_requ
         else:
             validation = validate(root, payload, names, d.OUTPUT / payload["operationId"] / ("integration-" + str(attempt)), runtime)
             record["validationReused"] = False
+        record["candidateValidationKey"] = validation_key
         record["candidateValidation"] = validation
         if validation["status"] != "passed" or any((root / n).exists() for n in record.get("expectedAbsences", [])):
             record.update(integrationStatus="validation-failed", reason="Actual merged candidate validation failed; retain the branch commit")
@@ -399,9 +409,85 @@ def integrate(d, repo, path, *, runtime, check_runtime, validate=None, pull_requ
     return record
 
 
+# Recovery of out-of-band origin/main changes has its own broad gate, independent
+# of a queued task's narrower recipes. It never publishes an untested local tree.
+ORIGIN_MAIN_VALIDATION = [
+    {"kind": "cargo", "arguments": [command, *manifest, "--workspace", *targets, "--locked", *lint]}
+    for manifest in ([], ["--manifest-path", "zircon_plugins/Cargo.toml"])
+    for command, targets, lint in (("check", ["--all-targets"], []), ("test", [], []),
+                                   ("clippy", ["--all-targets"], ["--", "-D", "warnings"]))
+]
+
+
+def sync_origin_main(d, repo, *, runtime, check_runtime, validate=None):
+    """Validate the exact fetched main tree before a clean local fast-forward."""
+    validate = d.run_validation if validate is None else validate
+    policy = d.policy_for(repo)
+    repository = policy.get("integration", {}).get("pullRequestRepository")
+    if not isinstance(repository, str) or not re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", repository):
+        raise ValueError("Origin synchronization requires the authorized GitHub repository")
+    if text(d, repo, "remote", "get-url", "origin") not in {
+        "https://github.com/" + repository, "https://github.com/" + repository + ".git",
+        "git@github.com:" + repository, "git@github.com:" + repository + ".git",
+    }:
+        raise ValueError("Origin differs from the authorized PR repository")
+    with d.commit.git_lock(repo / ".jenkins/state/locks/management-git.lock"):
+        check_runtime()
+        before = require_clean_main(d, repo)
+        git(d, repo, "fetch", "--no-tags", "origin", "refs/heads/main:refs/remotes/origin/main")
+        revision = text(d, repo, "rev-parse", "refs/remotes/origin/main")
+        if revision == before:
+            return {"status": "current", "head": before}
+        if git(d, repo, "merge-base", "--is-ancestor", before, revision, check=False).returncode:
+            raise d.commit.CommitBusy("Local main diverges from origin/main; retain both histories")
+        operation = "origin-main-" + revision
+        receipt = directory(repo) / "origin-sync" / (revision + ".json")
+        previous = d.commit.read_json(receipt) if receipt.exists() else {}
+        if previous.get("status") in {"validating", "unknown"}:
+            raise d.commit.CommitBusy("Reconcile the original origin/main validation before retrying")
+        attempt = previous.get("attempt", -1) + 1
+        record = {"request": {"operationId": operation}, "status": "validating", "attempt": attempt,
+                  "before": before, "revision": revision, "runtime": runtime,
+                  "previousAttempts": [*previous.get("previousAttempts", []),
+                      *([ {k: v for k, v in previous.items() if k != "previousAttempts"} ] if previous else [])]}
+        root, marker = clean_candidate(d, repo, revision, record)
+        names = sorted(d.changed_paths(repo, "diff", "--name-only", "-z", before, revision, "--"))
+        record["tree"] = text(d, root, "rev-parse", "HEAD^{tree}")
+        d.commit.write_json(receipt, record)
+    payload = {"operationId": operation, "validation": ORIGIN_MAIN_VALIDATION}
+    validation = validate(root, payload, names, d.OUTPUT / operation / ("attempt-" + str(attempt)), runtime)
+    record["validation"] = validation
+    complete = (len(validation.get("steps", [])) == len(ORIGIN_MAIN_VALIDATION)
+                and all(step.get("complete") is True and step.get("status") == "passed" for step in validation["steps"]))
+    record["status"] = "validated" if validation.get("status") == "passed" and complete else "validation-failed"
+    d.commit.write_json(receipt, record)
+    if record["status"] != "validated":
+        # Incomplete native evidence must be reconciled, never overwritten.
+        if any(step.get("complete") is not True for step in validation.get("steps", [])):
+            record["status"] = "unknown"
+        elif not text(d, root, "status", "--porcelain=v1", "--untracked-files=all"):
+            d.commit.write_json(marker, {"path": str(root), "status": "idle"})
+        d.commit.write_json(receipt, record)
+        raise d.commit.CommitBusy("Fetched origin/main failed its full validation; local main retained")
+    with d.commit.git_lock(repo / ".jenkins/state/locks/management-git.lock"):
+        check_runtime()
+        require_index(d, root)
+        if (require_clean_main(d, repo) != before or text(d, root, "rev-parse", "HEAD") != revision
+                or d.files(root, names) != validation["files"] or d.active_reader(repo)
+                or text(d, root, "status", "--porcelain=v1", "--untracked-files=all")):
+            raise d.commit.CommitBusy("Main/candidate changed during origin validation; retain original receipt")
+        git(d, repo, "merge", "--ff-only", revision)
+        require_clean_main(d, repo)
+        record.update(status="synchronized", synchronizedAt=time.time())
+        d.commit.write_json(receipt, record)
+        d.commit.write_json(marker, {"path": str(root), "status": "idle"})
+    return record
+
+
 def drain(d, repo, *, runtime, check_runtime):
     results = []
     with d.commit.git_lock(directory(repo) / "drain.lock"):
+        synchronization = sync_origin_main(d, repo, runtime=runtime, check_runtime=check_runtime)
         for path in sorted((directory(repo) / "requests").glob("*.json"), key=lambda p: p.stat().st_mtime):
             record = d.commit.read_json(path)
             if record.get("status") != "committed" or record.get("integrationStatus") not in {"pending", "waiting", "awaiting-pr"}:
@@ -410,8 +496,8 @@ def drain(d, repo, *, runtime, check_runtime):
             results.append({k: record.get(k) for k in ("sourceCommit", "status", "integrationStatus", "mainHead", "reason", "notification")})
             if len(results) >= 8:
                 break
-    return {"status": "complete" if all(v["integrationStatus"] == "complete" for v in results) else "pending",
-            "job": JOB, "cron": CRON, "results": results, "observedAt": time.time(), "formalAcceptance": False}
+    return {"status": "complete" if all(v["integrationStatus"] in {"complete", "awaiting-pr"} for v in results) else "pending",
+            "originMain": synchronization, "job": JOB, "cron": CRON, "results": results, "observedAt": time.time(), "formalAcceptance": False}
 
 
 def install(d, repo, client, runtime):
@@ -485,6 +571,18 @@ def install_entry(d, repo, client):
     return {"status": "installed", "job": "zircon-management", "actions": ["commit-branch", "check-branch-queue"]}
 
 
+def load_delivery():
+    delivery_path = Path(__file__).with_name("delivery.py")
+    delivery_bytes = delivery_path.read_bytes()
+    if hashlib.sha256(delivery_bytes).hexdigest() != DELIVERY_SHA256:
+        raise ValueError("Branch delivery implementation differs from its reviewed digest")
+    spec = importlib.util.spec_from_file_location("branch_queue_delivery", delivery_path)
+    d = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = d
+    exec(compile(delivery_bytes, str(delivery_path), "exec"), d.__dict__)
+    return d
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("command", choices=("submit", "query", "install", "install-entry", "run", "drain"))
@@ -494,10 +592,7 @@ def main(argv=None):
     parser.add_argument("--validate-only", action="store_true")
     parser.add_argument("--resume", action="store_true")
     args = parser.parse_args(argv)
-    spec = importlib.util.spec_from_file_location("branch_queue_delivery", Path(__file__).with_name("delivery.py"))
-    d = importlib.util.module_from_spec(spec)
-    sys.modules[spec.name] = d
-    spec.loader.exec_module(d)
+    d = load_delivery()
     result = None
     try:
         if args.command == "query":

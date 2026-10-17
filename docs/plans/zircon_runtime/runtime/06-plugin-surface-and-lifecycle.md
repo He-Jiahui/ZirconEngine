@@ -2,22 +2,17 @@
 related_code:
   - zircon_runtime/src/plugin/mod.rs
   - zircon_runtime/src/plugin/native.rs
-  - zircon_runtime/src/plugin/native_plugin_loader
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/lifecycle.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/registration_manifest/system_access.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/registration_manifest/system_access/authority.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/registration_manifest/system_access/error.rs
+  - zircon_runtime/src/plugin/loader/registration_manifest/system_access.rs
+  - zircon_runtime/src/plugin/loader/system_access/authority.rs
+  - zircon_runtime/src/plugin/loader/registration_manifest/system_access/error.rs
   - tools/tests/test_runtime_native_system_access_owner_structure.py
   - zircon_plugins/zr_vm_language/runtime/src/real_backend/instance.rs
-  - zircon_runtime/src/plugin/runtime_plugin
-  - zircon_runtime/src/plugin/runtime_plugin/descriptor/builder/runtime_plugin_descriptor_builder.rs
   - zircon_runtime/src/plugin/runtime_profile
   - zircon_runtime/src/plugin/package_manifest/constructors.rs
   - zircon_runtime/src/plugin/package_manifest/constructors/module.rs
   - zircon_runtime/src/plugin/package_manifest/constructors/package.rs
   - tools/tests/test_runtime_plugin_manifest_constructor_owner_structure.py
   - zircon_runtime/src/plugin/extension_registry/register/system_registration.rs
-  - zircon_runtime/src/plugin/extension_registry/register/system_registration/tests.rs
   - tools/tests/test_runtime_plugin_system_registration_test_structure.py
   - zircon_runtime/src/asset/artifact/cache_payload.rs
   - zircon_runtime/src/asset/tests/assets/artifact_store.rs
@@ -25,21 +20,16 @@ related_code:
   - examples/vampire/assets/shaders/default_pbr.zmeta
   - zircon_app/src/entry/entry_runner/bootstrap.rs
   - zircon_plugins/native_dynamic_fixture/native/src/lib.rs
-  - zircon_runtime/src/tests/runtime_absorption/plugin_surface_lifecycle.rs
-  - zircon_runtime/src/tests/runtime_absorption/plugin_surface_lifecycle/inventory.rs
-  - zircon_runtime/src/tests/runtime_absorption/plugin_surface_lifecycle/lifecycle_fallback.rs
-  - zircon_runtime/src/tests/runtime_absorption/plugin_surface_lifecycle/mirror_docs.rs
-  - zircon_runtime/src/tests/runtime_absorption/plugin_surface_lifecycle/native_loader_namespace.rs
-  - zircon_runtime/src/tests/runtime_absorption/plugin_surface_lifecycle/split_layout.rs
-  - zircon_runtime/src/tests/runtime_absorption/plugin_surface_lifecycle/support.rs
+  - zircon_runtime/src/tests/contracts/plugin_surface_lifecycle/inventory.rs
+  - zircon_runtime/src/tests/plugin_surface_lifecycle/lifecycle_fallback.rs
+  - zircon_runtime/src/tests/contracts/plugin_surface_lifecycle/mirror_docs.rs
+  - zircon_runtime/src/tests/plugin_surface_lifecycle/native_loader_namespace.rs
+  - zircon_runtime/src/tests/contracts/plugin_surface_lifecycle/split_layout.rs
+  - zircon_runtime/src/tests/contracts/plugin_surface_lifecycle/support.rs
   - docs/architecture/native-plugin-boundary.md
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/native_plugin_public_surface.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/plugin_surface_lifecycle_boundary.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/plugin_surface_lifecycle_markdown.py
-  - dev/Fyrox/fyrox-impl/src/plugin/mod.rs
-  - dev/Fyrox/fyrox-impl/src/plugin/dylib.rs
-  - dev/UnrealEngine/Engine/Source/Runtime/Projects/Public/Interfaces/IPluginManager.h
-  - dev/UnrealEngine/Engine/Source/Runtime/Projects/Private/PluginManager.cpp
 plan_sources:
   - docs/plans/zircon_runtime/runtime/index.md
   - docs/plans/optimize/zircon_runtime/11/2026-08-27-native-plugin-discovery-authority-research.md

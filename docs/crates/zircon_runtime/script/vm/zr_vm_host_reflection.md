@@ -13,7 +13,6 @@ related_code:
   - zircon_runtime/reflection_macros/src/function.rs
   - zircon_runtime/reflection_macros/src/module.rs
   - zircon_runtime/reflection_macros/src/tokens.rs
-  - zircon_runtime/reflection_macros/src/tests.rs
   - zircon_runtime/src/script/mod.rs
   - zircon_runtime/src/script/vm/mod.rs
   - zircon_runtime/src/script/vm/plugin/mod.rs
@@ -42,7 +41,7 @@ related_code:
   - zircon_runtime/src/script/vm/reflection/error.rs
   - zircon_runtime/src/script/vm/reflection/schema.rs
   - zircon_runtime/src/script/vm/reflection/tests/schema_invariants.rs
-  - zircon_runtime/src/script/vm/runtime/hot_reload_coordinator/tests/unload_atomicity.rs
+  - zircon_runtime/src/script/vm/runtime/tests/unload_atomicity.rs
   - zircon_runtime/src/script/vm/backend/mod.rs
   - zircon_runtime/src/script/vm/backend/backend_registry.rs
   - zircon_plugins/zr_vm_language/runtime/src/real_backend/host_modules.rs
@@ -50,7 +49,6 @@ related_code:
   - zircon_plugins/zr_vm_language/runtime/src/real_backend/package.rs
   - zircon_plugins/zr_vm_language/runtime/src/real_backend/reflection_host.rs
   - zircon_plugins/zr_vm_language/runtime/src/call_site/script_call_table.rs
-  - zircon_plugins/zr_vm_language/runtime/src/reflection_host/reflection_host_module.rs
   - zircon_runtime/src/dynamic_api/session/tests/mod.rs
   - zircon_runtime/src/script/vm/plugin/management_policy/mod.rs
   - zircon_runtime/src/script/vm/plugin/management_policy/policy.rs
@@ -61,7 +59,6 @@ related_code:
   - zircon_runtime/src/script/vm/plugin/vm_plugin_package_discovery.rs
   - zircon_plugins/zr_vm_language/runtime/src/real_backend.rs
   - zircon_runtime/src/script/vm/runtime/hot_reload_coordinator.rs
-  - zircon_runtime/src/script/vm/runtime/hot_reload_coordinator/tests.rs
   - zircon_runtime/src/script/vm/runtime/vm_plugin_slot_record.rs
   - zircon_runtime/src/script/vm/runtime/vm_plugin_slot_state.rs
   - examples/vampire/scripts/vampire_game/plugin.toml
@@ -94,7 +91,6 @@ implementation_files:
   - zircon_runtime/reflection_macros/src/function.rs
   - zircon_runtime/reflection_macros/src/module.rs
   - zircon_runtime/reflection_macros/src/tokens.rs
-  - zircon_runtime/reflection_macros/src/tests.rs
   - zircon_runtime/src/script/mod.rs
   - zircon_runtime/src/script/vm/mod.rs
   - zircon_runtime/src/script/vm/plugin/mod.rs
@@ -125,7 +121,6 @@ implementation_files:
   - zircon_plugins/zr_vm_language/runtime/src/real_backend/package.rs
   - zircon_plugins/zr_vm_language/runtime/src/real_backend/reflection_host.rs
   - zircon_plugins/zr_vm_language/runtime/src/call_site/script_call_table.rs
-  - zircon_plugins/zr_vm_language/runtime/src/reflection_host/reflection_host_module.rs
   - zircon_runtime/src/dynamic_api/session/tests/mod.rs
   - zircon_runtime/src/script/vm/plugin/management_policy/mod.rs
   - zircon_runtime/src/script/vm/plugin/management_policy/policy.rs
@@ -136,7 +131,6 @@ implementation_files:
   - zircon_runtime/src/script/vm/plugin/vm_plugin_package_discovery.rs
   - zircon_plugins/zr_vm_language/runtime/src/real_backend.rs
   - zircon_runtime/src/script/vm/runtime/hot_reload_coordinator.rs
-  - zircon_runtime/src/script/vm/runtime/hot_reload_coordinator/tests.rs
   - zircon_runtime/src/script/vm/runtime/vm_plugin_slot_record.rs
   - zircon_runtime/src/script/vm/runtime/vm_plugin_slot_state.rs
   - examples/vampire/scripts/vampire_game/plugin.toml
@@ -175,12 +169,9 @@ plan_sources:
   - docs/plans/engine-code-review-findings-2026-06.md
   - docs/plans/zircon_plugins/08-zr-vm.md
 tests:
-  - zircon_runtime/src/script/vm/tests.rs
-  - zircon_runtime/src/script/vm/reflection/tests.rs
   - zircon_runtime/src/script/vm/reflection/tests/schema_invariants.rs
   - zircon_runtime/src/script/vm/runtime/hot_reload_coordinator/tests/reflection.rs
-  - zircon_runtime/src/script/vm/runtime/hot_reload_coordinator/tests/unload_atomicity.rs
-  - zircon_plugins/zr_vm_language/runtime/src/reflection_host/tests.rs
+  - zircon_runtime/src/script/vm/runtime/tests/unload_atomicity.rs
   - vm_backend_registry_accessors_recover_poisoned_family_lock
   - host_registry_accessors_recover_poisoned_handle_lock
   - host_export_registry_accessors_recover_poisoned_module_lock

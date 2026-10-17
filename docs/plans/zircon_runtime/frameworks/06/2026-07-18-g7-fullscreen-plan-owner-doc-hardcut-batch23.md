@@ -1,8 +1,8 @@
 ---
 related_code:
   - zircon_runtime/src/graphics/shader/builtin_global_shader_contracts.rs
-  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/hzb.rs
-  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/compute_workload.rs
+  - zircon_runtime/src/graphics/feature/builtin/feature_descriptors/hzb.rs
+  - zircon_runtime/src/graphics/builtin/feature_descriptors/compute_workload.rs
   - tools/audits/check_conventions.py
 implementation_files:
   - docs/plans/zircon_editor/editor/02/fixed-2026-07-14-compute-fullscreen-descriptor-compile-regression.md

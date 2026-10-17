@@ -8,7 +8,6 @@ fixing_plan: docs/plans/zircon_runtime/render/18-advanced-lighting-features.md
 origin_child_dir: docs/plans/zircon_editor/editor/02
 fixing_child_dir: docs/plans/zircon_runtime/render/18
 related_code:
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu.rs
 tests:
   - cargo check -p zircon_runtime --lib --locked
   - cargo test -p zircon_editor --lib --locked

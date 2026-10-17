@@ -1,175 +1,109 @@
 ---
 related_code:
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/cached_mesh_draw_commands.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command_list.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command_list/builder.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command_list/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/indirect_draw_batcher.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/indirect_compaction.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/indirect_compaction_resources.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/indirect_draw_execution.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_pass_processor.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/replay.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/processors/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/processors/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_draw/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_draw/command_sort_input.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_draw/mesh_draw.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_draw/mesh_pass_batch.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/extract_item.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/non_material_rebuild.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/rebuild_batch.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/remainder.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/residual_fallback.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/second_frame_tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/lazy_rebuild_tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/fallback_tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/visibility_tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_plan.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/extend_pending_draws_for_mesh_instance.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/extend_pending_draws_for_mesh_instance/material_inputs.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/extend_pending_draws_for_mesh_instance/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/skinning.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/skinning/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/skinning/joint_palette_storage.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_mesh_draw.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/virtual_geometry_indirect.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/phase_ordering.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_draw/geometry_source.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/mesh_pass/mod.rs
+  - zircon_runtime/src/graphics/scene/mesh/mesh_pass/cached_mesh_draw_commands.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/mesh_pass/mesh_draw_command.rs
+  - zircon_runtime/src/graphics/scene/mesh/mesh_pass/indirect_draw_batcher.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/mesh_pass/indirect_compaction.rs
+  - zircon_runtime/src/graphics/mesh/mesh_pass/indirect_compaction_resources.rs
+  - zircon_runtime/src/graphics/scene/mesh/mesh_pass/indirect_draw_execution.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/mesh_pass/mesh_pass_processor.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/mesh_pass/replay.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/mesh_pass/processors/mod.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/mesh_draw/mod.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/mesh_draw/command_sort_input.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/mesh_draw/mesh_draw.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/mesh_draw/mesh_pass_batch.rs
+  - zircon_runtime/src/graphics/scene/mesh/build/pending_command_cache_plan.rs
+  - zircon_runtime/src/graphics/mesh/build/extend_pending_draws_for_mesh_instance.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/build/skinning.rs
+  - zircon_runtime/src/graphics/scene/mesh/skinning/joint_palette_storage.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/build/pending_mesh_draw.rs
+  - zircon_runtime/src/graphics/scene/mesh/build/virtual_geometry_indirect.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/build/phase_ordering.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/mesh_draw/geometry_source.rs
   - zircon_runtime/src/core/framework/render/scene_extract.rs
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_accessors.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/mesh_pipeline_cache.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/construct.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/mesh_pipeline_variant_registry.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/prepared_queue.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/prepared_queue/stats_bridge.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/prepared_queue/stats_bridge_tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/prepared_queue/stats_bridge_tests/virtual_geometry.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/prepared_queue/tests.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/render_pending_command_cache_material_boundary.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_mesh_build_draws_build.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_mesh_build_draws_skinning_tests.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_extend_pending_draws_for_mesh_instance.rs
+  - zircon_runtime/src/graphics/mesh/mesh_pipeline_cache/mesh_pipeline_cache.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/mesh_pipeline_cache/construct.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/prepared_queue.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/prepared_queue/stats_bridge.rs
   - zircon_runtime/src/graphics/tests/render_product_mesh_cache.rs
-  - zircon_runtime/src/graphics/tests/render_product_mesh_cache/virtual_geometry.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_product_mesh_cache_virtual_geometry_tests.rs
   - zircon_runtime/src/graphics/scene/gpu_scene/mod.rs
   - zircon_runtime/src/graphics/scene/gpu_scene/gpu_scene.rs
-  - zircon_runtime/src/graphics/backend/render_backend/request_device.rs
   - zircon_runtime/src/core/framework/render/backend_types.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/frame_submission_context.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs
+  - zircon_runtime/src/graphics/runtime/framework/extract/update_stats/base_stats.rs
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product.rs
-  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product/mesh_queue.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/build.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/gpu_scene_sync.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/build_compiled_scene_draws.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/scene_renderer_core.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_construct/construct/construct.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_construct/layouts/create_material_texture_bind_group_layout.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/processors/velocity.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/create_depth_prepass_mesh_pipeline.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/overlay/passes/base_scene_pass.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/shadow/shadow_map_renderer.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/deferred_scene_resources/construct.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/deferred_scene_resources/record_gbuffer_geometry.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/create_gbuffer_mesh_pipeline.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/overlay/viewport_overlay_renderer/record/scene_content/record_meshes.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/fallback_mesh_shader_source.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/shaders/fallback_mesh.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/shaders/zr_gpu_scene.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_scene/render_scene.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_shadow_pipeline.rs
+  - zircon_runtime/src/core/runtime/diagnostics/product/mesh_queue.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/build_mesh_draws/build/build.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/build/gpu_scene_sync.rs
+  - zircon_runtime/src/graphics/scene/core/render/build_compiled_scene_draws.rs
+  - zircon_runtime/src/graphics/layouts/create_material_texture_bind_group_layout.rs
+  - zircon_runtime/src/graphics/scene/renderer/core/render/render/render.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/mesh_pass/processors/velocity.rs
+  - zircon_runtime/src/graphics/mesh_pipeline/create_depth_prepass_mesh_pipeline.rs
+  - zircon_runtime/src/graphics/scene/renderer/overlay/passes/base_scene_pass.rs
+  - zircon_runtime/src/graphics/scene/renderer/shadow/shadow_map_renderer.rs
+  - zircon_runtime/src/graphics/mesh/mesh_pipeline/create_gbuffer_mesh_pipeline.rs
+  - zircon_runtime/src/graphics/scene/overlay/record/scene_content/record_meshes.rs
+  - zircon_runtime/src/graphics/mesh/mesh_pipeline/fallback_mesh_shader_source.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/shaders/fallback_mesh.wgsl
+  - zircon_runtime/src/graphics/scene/renderer/mesh/shaders/zr_gpu_scene.wgsl
+  - zircon_runtime/src/graphics/mesh/mesh_pipeline_cache/ensure_shadow_pipeline.rs
   - zircon_runtime/src/graphics/shader/wgsl/zr_template_shadow.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/overlay/viewport_overlay_renderer/record/record.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/overlay/viewport_overlay_renderer/record/scene_content/record_scene_content.rs
+  - zircon_runtime/src/graphics/scene/renderer/overlay/overlay/record/record.rs
+  - zircon_runtime/src/graphics/scene/record/scene_content/record_scene_content.rs
 implementation_files:
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/cached_mesh_draw_commands.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command_list.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command_list/builder.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command_list/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/indirect_draw_batcher.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/indirect_compaction.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/indirect_compaction_resources.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/indirect_draw_execution.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_pass_processor.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/processors/depth_prepass.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/processors/opaque_base.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/processors/transparent.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/processors/shadow.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/processors/velocity.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/processors/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/replay.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_draw/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_draw/command_sort_input.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_draw/mesh_draw.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_draw/mesh_pass_batch.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/extract_item.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/non_material_rebuild.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/rebuild_batch.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/second_frame_tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/lazy_rebuild_tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/fallback_tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/visibility_tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_plan.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/extend_pending_draws_for_mesh_instance.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/extend_pending_draws_for_mesh_instance/material_inputs.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/extend_pending_draws_for_mesh_instance/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/skinning.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/skinning/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_mesh_draw.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/phase_ordering.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_draw/geometry_source.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/mesh_pass/mod.rs
+  - zircon_runtime/src/graphics/scene/mesh/mesh_pass/cached_mesh_draw_commands.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/mesh_pass/mesh_draw_command.rs
+  - zircon_runtime/src/graphics/scene/mesh/mesh_pass/indirect_draw_batcher.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/mesh_pass/indirect_compaction.rs
+  - zircon_runtime/src/graphics/mesh/mesh_pass/indirect_compaction_resources.rs
+  - zircon_runtime/src/graphics/scene/mesh/mesh_pass/indirect_draw_execution.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/mesh_pass/mesh_pass_processor.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/processors/depth_prepass.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/processors/opaque_base.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/processors/transparent.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/mesh_pass/processors/shadow.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/mesh_pass/processors/velocity.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/mesh_pass/replay.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/mesh_draw/mod.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/mesh_draw/command_sort_input.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/mesh_draw/mesh_draw.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/mesh_draw/mesh_pass_batch.rs
+  - zircon_runtime/src/graphics/scene/mesh/build/pending_command_cache_plan.rs
+  - zircon_runtime/src/graphics/mesh/build/extend_pending_draws_for_mesh_instance.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/build/skinning.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/build/pending_mesh_draw.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/build/phase_ordering.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/mesh_draw/geometry_source.rs
   - zircon_runtime/src/core/framework/render/scene_extract.rs
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_accessors.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/mesh_pipeline_cache.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/construct.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/mesh_pipeline_variant_registry.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/prepared_queue.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/prepared_queue/stats_bridge.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/prepared_queue/tests.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/render_pending_command_cache_material_boundary.rs
+  - zircon_runtime/src/graphics/mesh/mesh_pipeline_cache/mesh_pipeline_cache.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/mesh_pipeline_cache/construct.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/prepared_queue.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/prepared_queue/stats_bridge.rs
   - zircon_runtime/src/graphics/scene/gpu_scene/mod.rs
   - zircon_runtime/src/graphics/scene/gpu_scene/gpu_scene.rs
-  - zircon_runtime/src/graphics/backend/render_backend/request_device.rs
   - zircon_runtime/src/core/framework/render/backend_types.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/frame_submission_context.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs
+  - zircon_runtime/src/graphics/runtime/framework/extract/update_stats/base_stats.rs
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product.rs
-  - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product/mesh_queue.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/build.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/gpu_scene_sync.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/build_compiled_scene_draws.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/scene_renderer_core.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_construct/construct/construct.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/create_depth_prepass_mesh_pipeline.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/overlay/passes/base_scene_pass.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/shadow/shadow_map_renderer.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/deferred_scene_resources/construct.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/deferred_scene_resources/record_gbuffer_geometry.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/create_gbuffer_mesh_pipeline.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/overlay/viewport_overlay_renderer/record/scene_content/record_meshes.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/fallback_mesh_shader_source.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/shaders/fallback_mesh.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/shaders/zr_gpu_scene.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_scene/render_scene.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_shadow_pipeline.rs
+  - zircon_runtime/src/core/runtime/diagnostics/product/mesh_queue.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/build_mesh_draws/build/build.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/build/gpu_scene_sync.rs
+  - zircon_runtime/src/graphics/scene/core/render/build_compiled_scene_draws.rs
+  - zircon_runtime/src/graphics/scene/renderer/core/render/render/render.rs
+  - zircon_runtime/src/graphics/mesh_pipeline/create_depth_prepass_mesh_pipeline.rs
+  - zircon_runtime/src/graphics/scene/renderer/overlay/passes/base_scene_pass.rs
+  - zircon_runtime/src/graphics/scene/renderer/shadow/shadow_map_renderer.rs
+  - zircon_runtime/src/graphics/mesh/mesh_pipeline/create_gbuffer_mesh_pipeline.rs
+  - zircon_runtime/src/graphics/scene/overlay/record/scene_content/record_meshes.rs
+  - zircon_runtime/src/graphics/mesh/mesh_pipeline/fallback_mesh_shader_source.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/shaders/fallback_mesh.wgsl
+  - zircon_runtime/src/graphics/scene/renderer/mesh/shaders/zr_gpu_scene.wgsl
+  - zircon_runtime/src/graphics/mesh/mesh_pipeline_cache/ensure_shadow_pipeline.rs
   - zircon_runtime/src/graphics/shader/wgsl/zr_template_shadow.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/overlay/viewport_overlay_renderer/record/record.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/overlay/viewport_overlay_renderer/record/scene_content/record_scene_content.rs
+  - zircon_runtime/src/graphics/scene/renderer/overlay/overlay/record/record.rs
+  - zircon_runtime/src/graphics/scene/record/scene_content/record_scene_content.rs
 plan_sources:
   - docs/plans/zircon_runtime/render/index.md
   - docs/plans/zircon_runtime/render/02-mesh-draw-command-pipeline.md
@@ -180,20 +114,8 @@ tests:
   - zircon_runtime/src/core/framework/render/core_pipeline/phase_sort.rs::tests::packed_sort_key_clusters_opaque_by_pipeline_before_tie_breaker
   - zircon_runtime/src/core/framework/render/core_pipeline/phase_sort.rs::tests::packed_sort_key_keeps_transparent_depth_before_pipeline
   - zircon_runtime/src/core/framework/render/core_pipeline/phase_sort.rs::tests::packed_sort_key_ignores_transparent_pipeline_variant
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command_list/tests.rs::mesh_draw_command_list_sorts_by_phase_then_sort_key
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command_list/tests.rs::mesh_draw_command_list_reports_draw_and_instance_sources
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command_list/tests.rs::mesh_batch_ref_emits_gpu_scene_instance_command
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command_list/tests.rs::mesh_draw_command_list_filters_phase_views_without_resorting
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command_list/tests.rs::mesh_pass_command_buffers_build_expected_phase_counts_from_batches
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command_list/tests.rs::mesh_pass_command_buffers_assign_cache_variants_by_pipeline_kind
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command_list/tests.rs::mesh_pass_commands_sort_opaque_by_state_bucket_before_depth
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command_list/tests.rs::mesh_pass_commands_sort_transparent_by_depth_before_pipeline_bucket
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command_list/tests.rs::mesh_pass_command_buffers_reuse_static_cached_commands_on_second_frame
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command_list/tests.rs::mesh_pass_command_buffers_report_static_cache_invalidation_reasons
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/second_frame_tests.rs::pending_command_cache_extract_second_frame_full_hit_reports_zero_rebuilds
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract/second_frame_tests.rs::pending_command_cache_extract_rebuilds_shadow_material_invalidation_before_mesh_draw
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/render_pending_command_cache_material_boundary.rs::runtime_15_pending_command_cache_material_bound_phases_stay_out_of_pre_mesh_rebuild
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_mesh_build_draws_build.rs::runtime_15_build_mesh_draws_gpu_scene_sync_is_child_owner
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/skinning/tests.rs::joint_palette_composes_pose_world_against_bind_world_matrices
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/skinning/tests.rs::joint_palette_reports_missing_parent_bone_reference
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/skinning/tests.rs::joint_palette_storage_packs_gpu_matrices_and_count
@@ -203,64 +125,41 @@ tests:
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/skinning/tests.rs::skin_mesh_asset_primitive_converts_direct_mesh_attributes_before_skinning
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/skinning/tests.rs::skin_mesh_asset_primitive_applies_morph_weights_before_skinning
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/skinning/tests.rs::prepare_skinned_mesh_asset_primitive_keeps_morphed_shader_source_before_cpu_skinning
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_mesh_build_draws_skinning_tests.rs::runtime_15_build_mesh_draws_skinning_tests_are_child_owner
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/extend_pending_draws_for_mesh_instance/tests.rs::morphed_mesh_asset_primitive_ignores_zero_weights_for_static_direct_mesh_fallback
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/extend_pending_draws_for_mesh_instance/tests.rs::morphed_mesh_asset_primitive_applies_nonzero_weights_for_dynamic_direct_mesh
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/extend_pending_draws_for_mesh_instance/tests.rs::morph_shape_signature_tracks_mesh_and_weights
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/extend_pending_draws_for_mesh_instance/tests.rs::skinned_gpu_source_candidate_requires_palette
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_extend_pending_draws_for_mesh_instance.rs::runtime_15_extend_pending_draws_tests_are_child_owner
   - zircon_runtime/src/graphics/tests/render_product_mesh_cache.rs::render_product_static_mesh_second_submit_reports_pre_mesh_command_cache_reuse
   - zircon_runtime/src/graphics/tests/render_product_mesh_cache.rs::render_product_static_mesh_material_revision_invalidates_pre_mesh_cache
   - zircon_runtime/src/graphics/tests/render_product_mesh_cache.rs::render_product_static_mesh_taa_reactive_mask_keeps_residual_mesh_draw_path
   - zircon_runtime/src/graphics/tests/render_product_mesh_cache.rs::render_product_static_transparent_mesh_stays_out_of_pre_mesh_cache
   - zircon_runtime/src/graphics/tests/render_product_mesh_cache.rs::render_product_static_skinned_mesh_stays_out_of_pre_mesh_cache
-  - zircon_runtime/src/graphics/tests/render_product_mesh_cache/virtual_geometry.rs::render_product_virtual_geometry_extract_stays_out_of_pre_mesh_cache
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/cached_mesh_draw_commands.rs::tests::cached_mesh_draw_commands_reuse_matching_static_state
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/cached_mesh_draw_commands.rs::tests::cached_mesh_draw_commands_invalidate_changed_material_revision
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/cached_mesh_draw_commands.rs::tests::cached_mesh_draw_commands_reject_dynamic_transparent_and_indirect_batches
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/indirect_compaction.rs::tests::indirect_compaction_metadata_preserves_source_spans_and_prefixes_output_capacity
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/indirect_compaction.rs::tests::indirect_compaction_simulation_rewrites_args_to_visible_instance_remap
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/indirect_compaction.rs::tests::indirect_compaction_rejects_visible_instance_capacity_overflow
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/indirect_compaction_resources.rs::tests::bindable_storage_buffer_size_keeps_zero_capacity_buffers_bindable
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/indirect_compaction_resources.rs::tests::mesh_indirect_compaction_resources_reserve_expected_wgpu_usages
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/indirect_compaction_resources.rs::tests::mesh_indirect_compaction_resources_clear_outputs_without_rewriting_metadata
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/indirect_draw_execution.rs::tests::mesh_indirect_draw_execution_builds_compaction_plan_from_uploaded_args
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/indirect_draw_execution.rs::tests::mesh_indirect_args_snapshot_counts_zeroed_instance_args
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/indirect_draw_execution.rs::tests::mesh_indirect_draw_execution_sources_readback_from_indirect_args_buffer
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/processors/tests.rs::processors_emit_expected_mesh_phases
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/processors/tests.rs::render_mesh_draw_processor_depth_prepass_filters_transparent
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/processors/tests.rs::render_mesh_draw_processor_opaque_preserves_material_slots_for_fallback_shader_selection
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/processors/tests.rs::render_mesh_draw_processor_uses_batch_geometry_source_for_pipeline_variant_key
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/processors/tests.rs::render_mesh_draw_processor_shadow_excludes_non_casters_and_picks_alpha_mask_variant
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/replay.rs::tests::mesh_draw_command_replayer_counts_pipeline_changes
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/replay.rs::tests::mesh_draw_command_replayer_skips_redundant_tracked_bind_groups
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/replay.rs::tests::mesh_draw_command_replayer_resets_bind_tracking_on_pipeline_change
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/replay.rs::tests::mesh_draw_command_replayer_skips_redundant_geometry_until_pipeline_changes
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/processors/tests.rs::velocity_processor_requires_velocity_history_and_previous_transform
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/mesh_pipeline_variant_registry.rs::tests::mesh_pipeline_variant_registry_reuses_pass_pipeline_shape_id
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/mesh_pipeline_variant_registry.rs::tests::mesh_pipeline_variant_registry_separates_pass_and_pipeline_shape
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/prepared_queue/stats_bridge_tests.rs::prepared_queue_stats_carry_mesh_pass_command_buffer_counts
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/prepared_queue/stats_bridge_tests.rs::prepared_queue_stats_carry_mesh_draw_replay_counts
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/prepared_queue/stats_bridge_tests.rs::prepared_queue_stats_carry_gpu_scene_counts
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/prepared_queue/stats_bridge_tests/virtual_geometry.rs::prepared_queue_stats_carry_virtual_geometry_indirect_counts
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/prepared_queue/stats_bridge_tests/virtual_geometry.rs::prepared_queue_stats_carry_virtual_geometry_execution_counts
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/prepared_queue/tests.rs::prepared_queue_stats_exclude_gpu_skinned_draws_from_direct_batch_candidates
-  - zircon_runtime/src/graphics/scene/gpu_scene/gpu_scene/tests.rs::render_gpu_scene_static_scene_second_frame_uploads_zero_bytes
-  - zircon_runtime/src/graphics/scene/gpu_scene/gpu_scene/tests.rs::render_gpu_scene_single_moving_entity_uploads_only_its_entry
-  - zircon_runtime/src/graphics/scene/gpu_scene/gpu_scene/tests.rs::render_gpu_scene_light_buffer_grows_and_skips_unchanged_uploads
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_gpu_scene_tests.rs::runtime_15_gpu_scene_tests_are_child_owner
+  - zircon_runtime/src/graphics/scene/mesh/mesh_pass/cached_mesh_draw_commands.rs::tests::cached_mesh_draw_commands_reuse_matching_static_state
+  - zircon_runtime/src/graphics/scene/mesh/mesh_pass/cached_mesh_draw_commands.rs::tests::cached_mesh_draw_commands_invalidate_changed_material_revision
+  - zircon_runtime/src/graphics/scene/mesh/mesh_pass/cached_mesh_draw_commands.rs::tests::cached_mesh_draw_commands_reject_dynamic_transparent_and_indirect_batches
+  - zircon_runtime/src/graphics/scene/renderer/mesh/mesh_pass/indirect_compaction.rs::tests::indirect_compaction_metadata_preserves_source_spans_and_prefixes_output_capacity
+  - zircon_runtime/src/graphics/scene/renderer/mesh/mesh_pass/indirect_compaction.rs::tests::indirect_compaction_simulation_rewrites_args_to_visible_instance_remap
+  - zircon_runtime/src/graphics/scene/renderer/mesh/mesh_pass/indirect_compaction.rs::tests::indirect_compaction_rejects_visible_instance_capacity_overflow
+  - zircon_runtime/src/graphics/mesh/mesh_pass/indirect_compaction_resources.rs::tests::bindable_storage_buffer_size_keeps_zero_capacity_buffers_bindable
+  - zircon_runtime/src/graphics/mesh/mesh_pass/indirect_compaction_resources.rs::tests::mesh_indirect_compaction_resources_reserve_expected_wgpu_usages
+  - zircon_runtime/src/graphics/mesh/mesh_pass/indirect_compaction_resources.rs::tests::mesh_indirect_compaction_resources_clear_outputs_without_rewriting_metadata
+  - zircon_runtime/src/graphics/scene/mesh/mesh_pass/indirect_draw_execution.rs::tests::mesh_indirect_draw_execution_builds_compaction_plan_from_uploaded_args
+  - zircon_runtime/src/graphics/scene/mesh/mesh_pass/indirect_draw_execution.rs::tests::mesh_indirect_args_snapshot_counts_zeroed_instance_args
+  - zircon_runtime/src/graphics/scene/mesh/mesh_pass/indirect_draw_execution.rs::tests::mesh_indirect_draw_execution_sources_readback_from_indirect_args_buffer
+  - zircon_runtime/src/graphics/scene/renderer/mesh/mesh_pass/replay.rs::tests::mesh_draw_command_replayer_counts_pipeline_changes
+  - zircon_runtime/src/graphics/scene/renderer/mesh/mesh_pass/replay.rs::tests::mesh_draw_command_replayer_skips_redundant_tracked_bind_groups
+  - zircon_runtime/src/graphics/scene/renderer/mesh/mesh_pass/replay.rs::tests::mesh_draw_command_replayer_resets_bind_tracking_on_pipeline_change
+  - zircon_runtime/src/graphics/scene/renderer/mesh/mesh_pass/replay.rs::tests::mesh_draw_command_replayer_skips_redundant_geometry_until_pipeline_changes
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product.rs::tests::render_product_diagnostics_record_gpu_scene_upload_stats
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/fallback_mesh_shader_source.rs::tests::fallback_mesh_shader_declares_gpu_scene_group
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/shader_source.rs::tests::mesh_pipeline_shadow_template_source_uses_shadow_pass_surface_only_when_alpha_masked
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/fallback_mesh_shader_source.rs::tests::fallback_mesh_shader_reads_gpu_scene_instance_data
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_shadow_pipeline.rs::tests::shadow_mesh_shader_key_includes_shader_variant_identity_and_source_hash
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/fallback_mesh_shader_source.rs::tests::fallback_mesh_shader_is_valid_wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/create_shadow_mesh_pipeline.rs::tests::shadow_mesh_pipeline_declares_template_entries_static_layout_and_depth_bias
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/fallback_mesh_shader_source.rs::tests::fallback_mesh_shader_executes_skinned_joint_palette_behind_draw_flag
+  - zircon_runtime/src/graphics/mesh/mesh_pipeline/fallback_mesh_shader_source.rs::tests::fallback_mesh_shader_declares_gpu_scene_group
+  - zircon_runtime/src/graphics/scene/mesh/mesh_pipeline_cache/shader_source.rs::tests::mesh_pipeline_shadow_template_source_uses_shadow_pass_surface_only_when_alpha_masked
+  - zircon_runtime/src/graphics/mesh/mesh_pipeline/fallback_mesh_shader_source.rs::tests::fallback_mesh_shader_reads_gpu_scene_instance_data
+  - zircon_runtime/src/graphics/mesh/mesh_pipeline_cache/ensure_shadow_pipeline.rs::tests::shadow_mesh_shader_key_includes_shader_variant_identity_and_source_hash
+  - zircon_runtime/src/graphics/mesh/mesh_pipeline/fallback_mesh_shader_source.rs::tests::fallback_mesh_shader_is_valid_wgsl
+  - zircon_runtime/src/graphics/mesh/mesh_pipeline/create_shadow_mesh_pipeline.rs::tests::shadow_mesh_pipeline_declares_template_entries_static_layout_and_depth_bias
+  - zircon_runtime/src/graphics/mesh/mesh_pipeline/fallback_mesh_shader_source.rs::tests::fallback_mesh_shader_executes_skinned_joint_palette_behind_draw_flag
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/phase_ordering.rs::tests::phase_ordered_meshes_filter_meshes_by_selected_camera_layers
   - zircon_runtime/src/core/framework/render/relevance.rs::tests::primitive_relevance_preserves_layers_above_legacy_mask_width
-  - zircon_runtime/src/graphics/visibility/context/from_extract_with_history/construct/tests.rs::visibility_batch_key_preserves_layers_above_legacy_mask_width
-  - zircon_runtime/src/core/framework/render/frame_extract/tests.rs::render_frame_extract_visibility_input_preserves_layers_above_legacy_mask_width
   - cargo test -p zircon_runtime --lib render_gpu_scene_bind_group_layout_reserves_storage_and_palette_bindings --locked --jobs 1 --target-dir E:\cargo-targets\zircon-render-main-chain --message-format short --color never -- --test-threads=1 --nocapture
   - cargo test -p zircon_runtime --lib fallback_mesh_shader --locked --jobs 1 --target-dir E:\cargo-targets\zircon-render-main-chain --message-format short --color never -- --test-threads=1 --nocapture
   - cargo test -p zircon_runtime --lib shader_declares_gpu_scene_group --locked --jobs 1 --target-dir E:\cargo-targets\zircon-render-main-chain --message-format short --color never -- --test-threads=1 --nocapture

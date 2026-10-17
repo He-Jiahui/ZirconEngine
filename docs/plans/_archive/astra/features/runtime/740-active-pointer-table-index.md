@@ -7,9 +7,7 @@ plan_sources:
   - docs/plans/optimize/zircon_runtime/200/2026-09-13-active-pointer-index.md
 related_code:
   - zircon_runtime/src/ui/dispatch/input_manager/pointer_table.rs
-  - zircon_runtime/src/ui/dispatch/input_manager/pointer_table/index_tests.rs
 tests:
-  - tools/tests/test_runtime_ui_active_pointer_index_performance_contract.py
   - zircon_runtime/src/ui/tests/runtime_input_manager
 ---
 

@@ -11,7 +11,6 @@ plan_sources:
   - docs/plans/optimize/zircon_runtime/03-core-runtime-diagnostics-profiling-config-review.md
   - docs/plans/optimize/zircon_runtime/03/2026-09-27-profile-export-stale-perfetto-cleanup.md
 tests:
-  - zircon_runtime/src/core/runtime/diagnostics/profiling/export/streaming_tests.rs
 doc_type: milestone-detail
 title: Runtime03 buffered streaming JSON profile export
 date: 2026-09-27

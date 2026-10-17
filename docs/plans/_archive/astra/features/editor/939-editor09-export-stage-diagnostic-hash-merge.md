@@ -8,9 +8,8 @@ related_records:
   - docs/plans/astra/features/editor/938-editor09-export-wizard-session-hash-index.md
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/view_model.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/view_model.rs
 tests:
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/view_model/stage_diagnostics_tests.rs
 ---
 
 # Editor939 Editor09 Export Stage Diagnostic Hash Merge

@@ -8,9 +8,7 @@ related_records:
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
   - zircon_editor/src/core/asset/dirty/save_batch.rs
-  - zircon_editor/src/core/asset/dirty/save_batch/capacity_tests.rs
 tests:
-  - tools/tests/test_editor_save_batch_failure_capacity_performance_contract.py
 ---
 
 # Editor858 - save-batch failure capacity

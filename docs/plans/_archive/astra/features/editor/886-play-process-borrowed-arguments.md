@@ -9,11 +9,8 @@ related_records:
 implementation_files:
   - zircon_editor/src/core/play/process_backend/command.rs
   - zircon_editor/src/core/play/process_backend/mod.rs
-  - zircon_editor/src/core/play/process_backend/tests.rs
 tests:
-  - zircon_editor/src/core/play/process_backend/command/borrowed_arguments_tests.rs
   - tools/tests/test_editor04_process_play_backend_contract.py
-  - tools/tests/test_editor886_play_process_borrowed_arguments_performance_contract.py
 ---
 
 # Editor886 Play Process Borrowed Arguments

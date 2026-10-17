@@ -9,10 +9,6 @@ origin_child_dir: docs/plans/performance/01
 fixing_child_dir: docs/plans/zircon_plugins/01
 plan_link_mode: child_record_only
 related_code:
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/loading.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_load_report/manifests.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_load_report/registrations.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_load_report/diagnostics.rs
 tests:
   - projection_preserves_registration_and_diagnostic_outputs_as_json_bytes
   - native_load_projection_preserves_order_and_projection_statistics

@@ -11,7 +11,6 @@ related_code:
   - zircon_editor/src/ui/host/asset_editor_sessions/refresh/pipeline/commit.rs
 tests:
   - tools/tests/test_editor07_ui_asset_import_physical_cache_contract.py
-  - zircon_editor/src/ui/host/asset_editor_sessions/imports/tests.rs
 ---
 
 # UI Asset Import Physical Cache

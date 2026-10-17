@@ -7,7 +7,6 @@ status: local_candidate
 implementation_files:
   - tools/audits/framework_contract_partition_audit.py
 tests:
-  - tools/tests/test_tooling29_framework_contract_single_source_scan_performance_contract.py
   - tools/tests/test_framework_contract_partition_audit.py
 ---
 

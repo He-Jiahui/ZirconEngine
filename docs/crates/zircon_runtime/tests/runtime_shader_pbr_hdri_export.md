@@ -11,9 +11,7 @@ related_code:
   - zircon_app/src/bin/zircon_shader_pbr_viewer/project_assets.rs
   - zircon_app/src/bin/zircon_shader_pbr_viewer/scene.rs
   - zircon_runtime/src/core/framework/render/environment/source_cubemap.rs
-  - zircon_runtime/src/core/framework/render/environment/source_cubemap/pmrem_layout.rs
-  - zircon_runtime/src/core/framework/render/environment/source_cubemap/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render_capture.rs
+  - zircon_runtime/src/core/framework/render/source_cubemap/pmrem_layout.rs
   - zircon_runtime/src/asset/importer/environment_ibl.rs
   - zircon_runtime/src/asset/artifact/ibl_source_cubemap_staging.rs
   - zircon_runtime/tests/runtime_environment_ibl_source_import_staging_contract.rs
@@ -22,7 +20,6 @@ related_code:
   - zircon_runtime/tests/runtime_shader_pbr_hdri_export/frame_assertions.rs
   - zircon_runtime/tests/runtime_shader_pbr_hdri_export/pbr_matrix.rs
   - zircon_runtime/tests/runtime_shader_pbr_hdri_export/pbr_matrix_quantitative.rs
-  - zircon_runtime/tests/runtime_shader_pbr_hdri_export/pbr_matrix_quantitative/math.rs
   - zircon_runtime/tests/runtime_shader_pbr_hdri_export/scene_fixtures.rs
   - zircon_runtime/tests/runtime_shader_pbr_hdri_export/sphere_reflection.rs
 implementation_files:
@@ -37,15 +34,13 @@ implementation_files:
   - zircon_app/src/bin/zircon_shader_pbr_viewer/project_assets.rs
   - zircon_app/src/bin/zircon_shader_pbr_viewer/scene.rs
   - zircon_runtime/src/core/framework/render/environment/source_cubemap.rs
-  - zircon_runtime/src/core/framework/render/environment/source_cubemap/pmrem_layout.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render_capture.rs
+  - zircon_runtime/src/core/framework/render/source_cubemap/pmrem_layout.rs
   - zircon_runtime/src/asset/artifact/ibl_source_cubemap_staging.rs
   - zircon_runtime/tests/runtime_shader_pbr_hdri_export.rs
   - zircon_runtime/tests/runtime_shader_pbr_hdri_export/hdri_metrics.rs
   - zircon_runtime/tests/runtime_shader_pbr_hdri_export/frame_assertions.rs
   - zircon_runtime/tests/runtime_shader_pbr_hdri_export/pbr_matrix.rs
   - zircon_runtime/tests/runtime_shader_pbr_hdri_export/pbr_matrix_quantitative.rs
-  - zircon_runtime/tests/runtime_shader_pbr_hdri_export/pbr_matrix_quantitative/math.rs
   - zircon_runtime/tests/runtime_shader_pbr_hdri_export/scene_fixtures.rs
   - zircon_runtime/tests/runtime_shader_pbr_hdri_export/sphere_reflection.rs
 plan_sources:
@@ -55,40 +50,10 @@ plan_sources:
   - docs/plans/zircon_runtime/shader/06-environment-ibl-and-pbr-correctness.md
   - docs/plans/zircon_runtime/render/11-environment-lighting.md
 tests:
-  - zircon_runtime/src/core/framework/render/environment/source_cubemap/tests.rs
   - zircon_runtime/tests/runtime_shader_pbr_hdri_export.rs
   - zircon_runtime/tests/runtime_shader_pbr_hdri_export/pbr_matrix.rs
   - zircon_runtime/tests/runtime_shader_pbr_hdri_export/pbr_matrix_quantitative.rs
   - zircon_runtime/tests/runtime_shader_pbr_hdri_export/sphere_reflection.rs
-  - docs/tests/runtime/shader/runtime_shader_pbr_ibl_metallic_smoothness_matrix_angular0003_20260713.png
-  - docs/tests/runtime/shader/runtime_shader_pbr_ibl_metallic_smoothness_matrix_angular0003_20260713.txt
-  - docs/tests/runtime/shader/runtime_shader_pbr_ibl_metallic_smoothness_matrix_uepdf_20260713.png
-  - docs/tests/runtime/shader/runtime_shader_pbr_ibl_metallic_smoothness_matrix_uepdf_20260713.txt
-  - docs/tests/runtime/shader/runtime_shader_pbr_real_hdri_lakes_pmrem512_uepdf_exact_multiview_contact_sheet_20260713.png
-  - docs/tests/runtime/shader/zircon_shader_pbr_viewer_pmrem512_uepdf_dx12_renderdoc_20260713_capture.rdc
-  - docs/tests/runtime/shader/runtime_shader_pbr_real_hdri_lakes_2k_8x8_cmft_pmrem_reflection_20260710.png
-  - docs/tests/runtime/shader/runtime_shader_pbr_real_hdri_lakes_mirror_sphere_cardinal_120deg_reflection_20260708.png
-  - docs/tests/runtime/shader/runtime_shader_pbr_real_hdri_lakes_mirror_sphere_multi_view_reflection_20260707.png
-  - docs/tests/runtime/shader/runtime_shader_pbr_real_hdri_lakes_face512_baseline_20260713.png
-  - docs/tests/runtime/shader/runtime_shader_pbr_real_hdri_lakes_auto512_exact_multiview_contact_sheet_20260713.png
-  - docs/tests/runtime/shader/zircon_shader_pbr_viewer_auto512_dx12_renderdoc_20260713_verified_capture.rdc
-  - docs/tests/runtime/shader/zircon_shader_pbr_viewer_startup_fixed_20260708.png
-  - docs/tests/runtime/shader/zircon_shader_pbr_viewer_startup_lifetime_20260708.png
-  - docs/tests/runtime/shader/zircon_shader_pbr_viewer_renderdoc_vulkan_20260708_capture.rdc
-  - docs/tests/runtime/shader/zircon_shader_pbr_viewer_dx12_interactive_startup_20260710.png
-  - docs/tests/runtime/shader/zircon_shader_pbr_viewer_dx12_direct_after_depth_load_20260710.log
-  - docs/tests/runtime/shader/zircon_shader_pbr_viewer_renderdoc_dx12_20260710.log
-  - docs/tests/runtime/shader/zircon_shader_pbr_viewer_renderdoc_dx12_20260710_capture.rdc
-  - docs/tests/runtime/shader/polyhaven_lakes_2k_staged_ibl_20260710_report.txt
-  - docs/tests/runtime/shader/zircon_shader_pbr_viewer_staged_ibl_dx12_20260710.png
-  - docs/tests/runtime/shader/zircon_shader_pbr_viewer_staged_ibl_dx12_multiview_120_20260710.png
-  - docs/tests/runtime/shader/zircon_shader_pbr_viewer_dx12_rebuild_live_20260710.png
-  - docs/tests/runtime/shader/zircon_shader_pbr_viewer_renderdoc_dx12_rebuild_20260710_capture.rdc
-  - docs/tests/runtime/shader/zircon_shader_pbr_viewer_dx12_rebuild_validation_20260710.txt
-  - docs/tests/runtime/shader/zircon_shader_pbr_viewer_async_live_20260711.png
-  - docs/tests/runtime/shader/zircon_shader_pbr_viewer_async_mouse_drag_yaw_plus120_20260711.png
-  - docs/tests/runtime/shader/zircon_shader_pbr_viewer_renderdoc_async_dx12_20260711_capture.rdc
-  - docs/tests/runtime/shader/zircon_shader_pbr_viewer_async_validation_20260711.txt
 doc_type: testing-guide
 ---
 

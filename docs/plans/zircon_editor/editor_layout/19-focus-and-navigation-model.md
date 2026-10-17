@@ -5,7 +5,6 @@ related_code:
   - zircon_runtime/src/ui/tree/node/focus.rs
   - zircon_runtime/src/ui/surface/focus.rs
   - zircon_runtime/src/ui/surface/input
-  - zircon_editor/src/ui/retained_host/host_contract
 plan_sources:
   - docs/plans/zircon_editor/editor_ui/01-slate-input-dispatch-core.md
   - docs/plans/zircon_editor/editor_layout/18-input-response-and-hit-testing.md

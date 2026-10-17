@@ -68,7 +68,7 @@ fn borrowed_behavior_catalog_lookup_release_benchmark_evidence() {
     let optimized_ns = benchmark_samples_csv(&optimized_samples);
 
     println!(
-        "PERF_RESULT plugins15_borrowed_behavior_catalog_lookup entries={CATALOG_ENTRY_COUNT} lookups={BENCHMARK_LOOKUP_COUNT} samples={BENCHMARK_SAMPLE_COUNT} sample_pairs={BENCHMARK_SAMPLE_COUNT} sample_order=alternating percentile_method=nearest_rank legacy_string_allocations_per_sample={BENCHMARK_LOOKUP_COUNT} optimized_string_allocations_per_sample=0 legacy_p50_ns={legacy_p50} legacy_p95_ns={legacy_p95} optimized_p50_ns={optimized_p50} optimized_p95_ns={optimized_p95} legacy_ns={legacy_ns} optimized_ns={optimized_ns}"
+        "PERF_RESULT plugins15_borrowed_behavior_catalog_lookup entries={CATALOG_ENTRY_COUNT} lookups={BENCHMARK_LOOKUP_COUNT} samples={BENCHMARK_SAMPLE_COUNT} sample_pairs={BENCHMARK_SAMPLE_COUNT} sample_order=alternating percentile_method=nearest_rank legacy_string_allocations_per_sample={BENCHMARK_LOOKUP_COUNT} optimized_string_allocations_per_sample_expected=0 legacy_p50_ns={legacy_p50} legacy_p95_ns={legacy_p95} optimized_p50_ns={optimized_p50} optimized_p95_ns={optimized_p95} legacy_ns={legacy_ns} optimized_ns={optimized_ns}"
     );
     assert!(
         optimized_p95 * 2 <= legacy_p95,

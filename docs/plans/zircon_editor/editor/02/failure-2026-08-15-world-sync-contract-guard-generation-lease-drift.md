@@ -12,7 +12,6 @@ plan_link_mode: child_record_only
 related_code:
   - tools/tests/test_editor02_world_sync_watch_map_contract.py
   - zircon_editor/src/core/sync/pump.rs
-  - zircon_editor/src/core/sync/pump/tests.rs
 tests:
   - python -m unittest tools.tests.test_editor02_world_sync_watch_map_contract tools.tests.test_editor02_world_sync_subscription_table_contract
 ---

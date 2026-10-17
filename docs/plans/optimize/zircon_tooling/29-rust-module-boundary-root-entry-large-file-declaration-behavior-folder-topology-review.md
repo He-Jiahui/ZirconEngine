@@ -9,13 +9,11 @@ related_code:
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/module_convention_gate.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_editor_structure.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/editor_structure_audits/module_convention_boundary.py
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/global_budget.rs
   - examples/woc/native/crates/woc_protocol/src/command_payload.rs
   - examples/woc/native/apps/woc_client/src/input/intent.rs
   - zircon_runtime/src/asset/artifact/ibl_source_cubemap_staging.rs
   - zircon_app/src/entry/entry_runner/runtime.rs
   - zircon_app/src/bin/zircon_shader_pbr_viewer/app.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render_with_pipeline/render_frame_with_pipeline.rs
   - zircon_runtime/src/asset/importer/environment_ibl.rs
   - zircon_runtime/src/asset/project/paths.rs
   - zircon_runtime/src/core/runtime/diagnostics/profiling/ui_hotspot.rs
@@ -31,7 +29,6 @@ related_code:
   - zircon_runtime/src/graphics/scene/gpu_scene/binding.rs
   - zircon_editor/src/ui/host/asset_editor_sessions/editing/binding.rs
 tests:
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention.rs
   - tools/tests/test_editorui10_test_file_budget_contract.py
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md

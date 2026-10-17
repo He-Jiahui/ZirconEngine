@@ -20,7 +20,7 @@ plan_sources:
 tests:
   - zircon_editor/src/ui/workbench/layout/manager/restore.rs
   - zircon_editor/src/tests/workbench/project/document_roundtrip.rs
-  - zircon_editor/src/tests/host/manager/bootstrap_and_startup.rs
+  - zircon_editor/src/tests/host/manager/bootstrap_and_startup/mod.rs
   - cargo test -p zircon_editor --lib project_open_with_corrupt_workspace_falls_back_to_global_layout_with_diagnostic --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-ui-command-registry-0615 --message-format short --color never -- --nocapture --test-threads=1 (2026-06-16: passed)
   - cargo test -p zircon_editor --lib editor_project_document_ignores_unknown_workspace_format_with_diagnostic --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-ui-command-registry-0615 --message-format short --color never -- --nocapture --test-threads=1 (2026-06-16: passed)
 doc_type: module-detail

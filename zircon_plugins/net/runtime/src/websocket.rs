@@ -44,6 +44,9 @@ pub trait WebSocketRuntimeConnection: Send + Sync + std::fmt::Debug {
     fn set_state(&self, state: NetConnectionState);
     fn send(&self, runtime: &Runtime, frame: NetWebSocketFrame) -> Result<(), NetError>;
     fn drain_frames(&self, max_frames: usize) -> Vec<NetWebSocketFrame>;
+    /// Wake a reader after the manager frees shared event capacity. The manager
+    /// calls this after registration and outside all event/connection locks.
+    fn notify_event_capacity(&self);
 }
 
 #[derive(Debug)]

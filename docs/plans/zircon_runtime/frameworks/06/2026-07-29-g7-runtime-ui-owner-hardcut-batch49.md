@@ -1,22 +1,21 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/host_contract
   - zircon_runtime/src/ui
 implementation_files:
-  - docs/plans/performance/01/2026-07-17-editor-visual-assets-static-review.md
-  - docs/plans/performance/01/2026-07-18-runtime-ui-input-tests-static-review.md
-  - docs/plans/performance/01/2026-07-18-runtime-ui-text-static-review.md
-  - docs/plans/performance/01/2026-07-18-runtime-ui-template-static-review.md
-  - docs/plans/performance/01/2026-07-18-runtime-ui-taffy-tests-static-review.md
-  - docs/plans/performance/01/2026-07-18-runtime-ui-surface-input-static-review.md
-  - docs/plans/performance/01/2026-07-18-runtime-ui-surface-frame-tests-static-review.md
-  - docs/plans/performance/01/2026-07-18-runtime-ui-surface-default-interactions-static-review.md
-  - docs/plans/performance/01/2026-07-18-runtime-ui-input-ownership-tests-static-review.md
-  - docs/plans/performance/01/2026-07-18-runtime-ui-event-routing-tests-static-review.md
-  - docs/plans/performance/01/2026-07-18-runtime-ui-dirty-domain-tests-static-review.md
-  - docs/plans/performance/01/2026-07-18-runtime-ui-accessibility-widget-tests-static-review.md
-  - docs/plans/performance/01/2026-07-18-runtime-ui-window-event-tests-static-review.md
-  - docs/plans/performance/01/2026-07-18-runtime-ui-window-pump-tests-static-review.md
+  - docs/plans/_archive/performance/01/2026-07-17-editor-visual-assets-static-review.md
+  - docs/plans/_archive/performance/01/2026-07-18-runtime-ui-input-tests-static-review.md
+  - docs/plans/_archive/performance/01/2026-07-18-runtime-ui-text-static-review.md
+  - docs/plans/_archive/performance/01/2026-07-18-runtime-ui-template-static-review.md
+  - docs/plans/_archive/performance/01/2026-07-18-runtime-ui-taffy-tests-static-review.md
+  - docs/plans/_archive/performance/01/2026-07-18-runtime-ui-surface-input-static-review.md
+  - docs/plans/_archive/performance/01/2026-07-18-runtime-ui-surface-frame-tests-static-review.md
+  - docs/plans/_archive/performance/01/2026-07-18-runtime-ui-surface-default-interactions-static-review.md
+  - docs/plans/_archive/performance/01/2026-07-18-runtime-ui-input-ownership-tests-static-review.md
+  - docs/plans/_archive/performance/01/2026-07-18-runtime-ui-event-routing-tests-static-review.md
+  - docs/plans/_archive/performance/01/2026-07-18-runtime-ui-dirty-domain-tests-static-review.md
+  - docs/plans/_archive/performance/01/2026-07-18-runtime-ui-accessibility-widget-tests-static-review.md
+  - docs/plans/_archive/performance/01/2026-07-18-runtime-ui-window-event-tests-static-review.md
+  - docs/plans/_archive/performance/01/2026-07-18-runtime-ui-window-pump-tests-static-review.md
 plan_sources:
   - docs/plans/zircon_runtime/frameworks/06-development-conventions-and-guardrails.md
   - docs/plans/engine-code-structure-convention.md

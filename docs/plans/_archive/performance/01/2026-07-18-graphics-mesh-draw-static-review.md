@@ -1,7 +1,5 @@
 ---
 related_code:
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_draw
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command_list/builder.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_runtime/render/02-mesh-draw-command-pipeline.md

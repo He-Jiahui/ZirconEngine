@@ -12,8 +12,8 @@ related_code:
   - zircon_runtime/src/dynamic_api/session/state.rs
   - zircon_runtime/src/dynamic_api/session/construction.rs
   - zircon_runtime/src/dynamic_api/session/events.rs
-  - zircon_runtime/src/tests/runtime_absorption/dynamic_api_session/event_split.rs
-  - zircon_runtime/src/tests/runtime_absorption/performance_hotspots/scene_project_splits/dynamic_session_event.rs
+  - zircon_runtime/src/tests/contracts/dynamic_api_session/event_split.rs
+  - zircon_runtime/src/tests/contracts/scene_project_splits/dynamic_session_event.rs
 tests:
   - cargo test -p zircon_runtime --lib dynamic_session_event_split --locked --jobs 1 -- --test-threads=1
   - cargo test -p zircon_runtime --lib dynamic_api --locked --jobs 1 -- --test-threads=1

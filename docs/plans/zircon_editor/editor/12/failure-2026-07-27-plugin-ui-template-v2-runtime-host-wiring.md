@@ -11,11 +11,9 @@ plan_link_mode: child_record_only
 related_code:
   - zircon_editor/src/core/editor_extension.rs
   - zircon_editor/src/ui/host/editor_extension_registration.rs
-  - zircon_editor/src/ui/template_runtime/runtime/plugin_documents.rs
-  - zircon_editor/src/ui/template_runtime/runtime/runtime_host.rs
-  - zircon_editor/src/ui/retained_host/app.rs
-  - zircon_editor/src/ui/retained_host/app/pane_surface_actions/click.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_binding.rs
+  - zircon_editor/src/ui/runtime/runtime/plugin_documents.rs
+  - zircon_editor/src/ui/runtime/runtime/runtime_host.rs
+  - zircon_editor/src/ui/retained/app/pane_surface_actions/click.rs
 tests:
   - powershell -NoProfile -Command "$document_owner = Get-Content 'zircon_editor/src/ui/template_runtime/runtime/plugin_documents.rs' -Raw; $runtime_host = Get-Content 'zircon_editor/src/ui/template_runtime/runtime/runtime_host.rs' -Raw; $retained_click = Get-Content 'zircon_editor/src/ui/retained_host/app/pane_surface_actions/click.rs' -Raw; if (($document_owner -notmatch 'EditorUiTemplateDescriptor') -or ($runtime_host -notmatch 'plugin_v2_documents') -or ($retained_click -notmatch 'UiPointerComponentEvent') -or ($retained_click -notmatch 'dispatch_template_action')) { throw 'plugin template descriptors, generation-owned documents, and retained-host actions are not connected' }"
   - ./.codex/skills/zircon-dev/scripts/validate-matrix.ps1 -Package zircon_plugin_navigation_editor -SkipBuild -VerboseOutput

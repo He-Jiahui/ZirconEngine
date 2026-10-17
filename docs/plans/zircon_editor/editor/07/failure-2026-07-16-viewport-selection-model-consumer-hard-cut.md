@@ -9,7 +9,6 @@ origin_child_dir: docs/plans/zircon_editor/editor/05
 fixing_child_dir: docs/plans/zircon_editor/editor/07
 plan_link_mode: child_record_only
 related_code:
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_accessors.rs
   - zircon_editor/src/ui/binding_dispatch/inspector
   - zircon_editor/src/ui/workbench/snapshot
   - zircon_editor/src/ui/workbench/startup

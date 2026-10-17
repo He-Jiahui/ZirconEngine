@@ -7,7 +7,6 @@ related_code:
   - zircon_runtime/src/script/vm/plugin/state_migration.rs
   - zircon_runtime/src/script/vm/plugin/vm_plugin_instance.rs
   - zircon_runtime/src/script/vm/runtime/hot_reload_coordinator.rs
-  - zircon_runtime/src/script/vm/runtime/hot_reload_coordinator/tests/state_migration.rs
   - zircon_plugins/zr_vm_language/runtime/src/real_backend/instance.rs
 implementation_files:
   - zircon_plugins/zr_vm_language/runtime/src/lib.rs
@@ -25,7 +24,6 @@ plan_sources:
 tests:
   - zircon_runtime/src/script/vm/plugin/vm_state_blob.rs
   - zircon_runtime/src/script/vm/plugin/state_migration.rs
-  - zircon_runtime/src/script/vm/runtime/hot_reload_coordinator/tests/state_migration.rs
   - zircon_plugins/zr_vm_language/runtime/src/tests/real_backend.rs
 doc_type: module-detail
 ---

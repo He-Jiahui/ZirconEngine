@@ -1,9 +1,8 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/host_contract/window/text_input/keyboard.rs
-  - zircon_editor/src/ui/retained_host/host_contract/window/text_input/keyboard/popup.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_keyboard.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_keyboard/dispatch.rs
+  - zircon_editor/src/ui/retained/contract/window/text_input/keyboard.rs
+  - zircon_editor/src/ui/retained/contract/window/text_input/keyboard/popup.rs
+  - zircon_editor/src/ui/retained/contract/native_keyboard/dispatch.rs
   - zircon_editor/src/tests/host/retained_window/host_page_overflow_keyboard.rs
   - docs/plans/optimize/zircon_editor/57/2026-09-28-editor57-popup-enter-consumption.md
 plan_sources:

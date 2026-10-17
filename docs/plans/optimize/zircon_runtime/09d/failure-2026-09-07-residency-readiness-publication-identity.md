@@ -9,26 +9,18 @@ fixing_plan: docs/plans/optimize/zircon_runtime/09d-render-asset-streaming-resid
 origin_child_dir: docs/plans/zircon_runtime/frameworks/01
 fixing_child_dir: docs/plans/optimize/zircon_runtime/09d
 related_code:
-  - zircon_runtime/src/graphics/scene/resources/render_asset_residency/contract.rs
-  - zircon_runtime/src/graphics/scene/resources/render_asset_residency/manager.rs
-  - zircon_runtime/src/graphics/scene/resources/render_asset_residency/manager/ticket_issuance.rs
-  - zircon_runtime/src/graphics/scene/resources/render_asset_residency/manager/device_recovery.rs
-  - zircon_runtime/src/graphics/scene/resources/render_asset_residency/work_queue.rs
-  - zircon_runtime/src/graphics/scene/resources/render_asset_residency/semantic_blocks/contract.rs
-  - zircon_runtime/src/graphics/scene/resources/render_asset_residency/semantic_blocks/semantic_load.rs
-  - zircon_runtime/src/graphics/scene/resources/render_asset_residency/gpu_upload/plan.rs
-  - zircon_runtime/src/graphics/scene/resources/render_asset_residency/gpu_upload/submit.rs
-  - zircon_runtime/src/graphics/scene/resources/render_asset_residency/semantic_executor/contract.rs
-  - zircon_runtime/src/graphics/scene/resources/render_asset_residency/gpu_residency.rs
-  - zircon_runtime/src/graphics/scene/resources/render_asset_residency/gpu_maintenance.rs
-  - zircon_runtime/src/graphics/scene/resources/render_asset_residency/semantic_executor/owner.rs
-  - zircon_runtime/src/graphics/scene/resources/render_asset_residency/semantic_executor.rs
-  - zircon_runtime/src/graphics/scene/resources/render_asset_residency/tests.rs
-  - zircon_runtime/src/graphics/scene/resources/render_asset_residency/tests/device_recovery.rs
-  - zircon_runtime/src/graphics/scene/resources/render_asset_residency/tests/work_queue.rs
-  - zircon_runtime/src/graphics/scene/resources/render_asset_residency/tests/semantic_executor.rs
-  - zircon_runtime/src/graphics/scene/resources/render_asset_residency/tests/publication_identity.rs
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_residency.rs
+  - zircon_runtime/src/graphics/scene/resources/residency/manager/ticket_issuance.rs
+  - zircon_runtime/src/graphics/scene/resources/residency/manager/device_recovery.rs
+  - zircon_runtime/src/graphics/scene/residency/semantic_blocks/contract.rs
+  - zircon_runtime/src/graphics/scene/residency/semantic_blocks/semantic_load.rs
+  - zircon_runtime/src/graphics/scene/resources/residency/gpu_upload/plan.rs
+  - zircon_runtime/src/graphics/scene/resources/residency/gpu_upload/submit.rs
+  - zircon_runtime/src/graphics/scene/residency/semantic_executor/contract.rs
+  - zircon_runtime/src/graphics/scene/resources/residency/semantic_executor/owner.rs
+  - zircon_runtime/src/graphics/scene/resources/residency/tests/device_recovery.rs
+  - zircon_runtime/src/graphics/scene/resources/residency/tests/work_queue.rs
+  - zircon_runtime/src/graphics/scene/resources/residency/tests/semantic_executor.rs
+  - zircon_runtime/src/graphics/scene/residency/tests/publication_identity.rs
 tests:
   - managed Windows resource readiness publication identity regressions
   - managed Windows render asset residency ticket and completion regressions

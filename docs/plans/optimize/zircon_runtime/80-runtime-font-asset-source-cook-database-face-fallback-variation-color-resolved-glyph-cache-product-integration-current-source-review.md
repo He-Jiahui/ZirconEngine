@@ -16,19 +16,15 @@ related_code:
   - zircon_runtime/src/text/render_state.rs
   - zircon_runtime/src/text/shaping/cosmic
   - zircon_runtime/src/text/sdf/font_bake
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/font_asset.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/font_assets.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/text/font_assets.rs
   - zircon_runtime/src/ui/surface/text_artifact.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout/runtime_lines.rs
+  - zircon_editor/src/ui/retained/contract/paint_text/draw/layout/runtime_lines.rs
 tests:
   - zircon_runtime/src/asset/importer/ingest/import_font_asset/parse_sfnt/tests
   - zircon_runtime/src/asset/tests/assets/font.rs
   - zircon_runtime/src/text/font/database/tests
-  - zircon_runtime/src/text/font/fallback/tests.rs
-  - zircon_runtime/src/text/font/handle_registry/tests.rs
-  - zircon_runtime/src/text/font/source_manifest/tests.rs
   - zircon_runtime/src/text/sdf/font_bake/tests
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/tests/font_assets.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/text/tests/font_assets.rs
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md
   - docs/plans/optimize/01-cross-report-owner-schema-abi-p0-consolidation-review.md

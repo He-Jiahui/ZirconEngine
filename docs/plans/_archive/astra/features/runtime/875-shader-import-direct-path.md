@@ -8,8 +8,6 @@ related_records:
 implementation_files:
   - zircon_runtime/src/core/framework/render/shader/module_import.rs
 tests:
-  - zircon_runtime/src/core/framework/render/shader/module_import/direct_path_tests.rs
-  - tools/tests/test_runtime875_shader_import_direct_path_performance_contract.py
 ---
 
 # Runtime875 Shader Import Direct Path

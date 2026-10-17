@@ -9,40 +9,29 @@ related_code:
   - zircon_editor/src/core/editor_message/retention.rs
   - zircon_editor/src/core/editor_message/topics.rs
   - zircon_editor/src/scene/modes
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_accessors.rs
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_apply_command.rs
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_handle_input.rs
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_scene_modes.rs
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_handle_interaction.rs
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_interaction_cancel.rs
   - zircon_editor/src/ui/host/editor_scene_mode_lifecycle.rs
   - zircon_editor/src/ui/host/editor_extension_registration.rs
   - zircon_editor/src/ui/workbench/state/editor_state.rs
   - zircon_editor/src/ui/workbench/state/editor_state_viewport.rs
   - zircon_editor/src/ui/host/editor_event_execution/viewport_event.rs
-  - zircon_editor/src/ui/retained_host/host_contract/window/event_loop/events.rs
-  - zircon_editor/src/ui/retained_host/host_contract/window/event_loop/platform_input.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/viewport/pointer_dispatch.rs
-  - zircon_editor/src/ui/retained_host/viewport/world_space_ui.rs
-  - zircon_editor/src/ui/retained_host/app/workspace_docking/drawer_resize/capture.rs
-  - zircon_editor/src/ui/retained_host/app/scene_picker_actions.rs
-  - zircon_editor/src/ui/retained_host/app/scene_picker_session.rs
-  - zircon_editor/src/ui/retained_host/app/command_palette_actions.rs
-  - zircon_editor/src/ui/retained_host/app/settings_window_actions.rs
-  - zircon_editor/src/ui/retained_host/app/project_close.rs
+  - zircon_editor/src/ui/retained/contract/window/event_loop/events.rs
+  - zircon_editor/src/ui/retained/contract/window/event_loop/platform_input.rs
+  - zircon_editor/src/ui/retained/dispatch/viewport/pointer_dispatch.rs
+  - zircon_editor/src/ui/retained/viewport/world_space_ui.rs
+  - zircon_editor/src/ui/retained/app/workspace_docking/drawer_resize/capture.rs
+  - zircon_editor/src/ui/retained/app/scene_picker_actions.rs
+  - zircon_editor/src/ui/retained/app/scene_picker_session.rs
+  - zircon_editor/src/ui/retained/app/command_palette_actions.rs
+  - zircon_editor/src/ui/retained/app/settings_window_actions.rs
+  - zircon_editor/src/ui/retained/app/project_close.rs
 tests:
-  - zircon_editor/src/core/tools/tests.rs
   - zircon_editor/src/core/context/editor_context.rs
-  - zircon_editor/src/scene/modes/tests.rs
   - zircon_editor/src/scene/modes/tests/isolation.rs
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_handle_input.rs
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_scene_modes.rs
   - zircon_editor/src/ui/host/editor_event_execution/viewport_event.rs
   - zircon_editor/src/ui/workbench/state/editor_state_viewport.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/viewport/pointer_bridge.rs
+  - zircon_editor/src/tests/host/callbacks/viewport/pointer_bridge.rs
   - zircon_editor/src/tests/host/retained_window/platform_input_translation.rs
   - zircon_editor/src/tests/host/retained_drawer_resize/pointer_bridge.rs
-  - zircon_editor/src/ui/retained_host/viewport/tests/controller_submits_shared_ui_overlay_through_render_framework.rs
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md
   - docs/plans/optimize/01-cross-report-owner-schema-abi-p0-consolidation-review.md

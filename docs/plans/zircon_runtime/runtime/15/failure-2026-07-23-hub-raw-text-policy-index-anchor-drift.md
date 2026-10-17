@@ -10,9 +10,8 @@ fixing_child_dir: docs/plans/zircon_runtime/runtime/15
 plan_link_mode: child_record_only
 related_code:
   - docs/plans/zircon_runtime/runtime/index.md
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/naming_boundary_hub_raw_text.rs
-  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/hub.rs
-  - zircon_runtime/src/tests/runtime_absorption/naming_boundary/runtime_15_m2/hub/raw_text_policy.rs
+  - zircon_runtime/src/tests/contracts/naming_boundary/runtime_15_m2/hub.rs
+  - zircon_runtime/src/tests/contracts/runtime_15_m2/hub/raw_text_policy.rs
 ---
 
 # Runtime15：Hub raw-text policy index 锚点漂移

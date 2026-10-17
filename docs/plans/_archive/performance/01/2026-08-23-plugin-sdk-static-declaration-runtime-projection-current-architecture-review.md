@@ -2,7 +2,6 @@
 related_code:
   - zircon_plugins/plugin_sdk/src/declaration.rs
   - zircon_plugins/plugin_sdk/src/declaration/macros.rs
-  - zircon_plugins/plugin_sdk/src/declaration/tests.rs
   - zircon_plugins/plugin_sdk/src/runtime.rs
   - zircon_plugins/plugin_sdk/src/runtime_exports.rs
   - zircon_plugins/ai/runtime/src/plugin.rs

@@ -7,16 +7,14 @@ related_code:
   - zircon_runtime/src/asset/assets/mesh/mesh_asset.rs
   - zircon_plugins/gltf_importer/runtime/src/lib.rs
   - zircon_runtime/src/graphics/runtime/offline_bake
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/lightmap_binding.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/irradiance_volume
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/gpu_scene_sync.rs
+  - zircon_runtime/src/graphics/scene/renderer/environment/lightmap_binding.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/build/gpu_scene_sync.rs
   - zircon_runtime/src/graphics/shader/wgsl/zr_lightmap.wgsl
   - zircon_runtime/src/graphics/shader/wgsl/zr_irradiance_volume.wgsl
   - zircon_runtime/src/graphics/shader/wgsl/zr_template_forward.wgsl
   - zircon_runtime/src/graphics/shader/wgsl/zr_template_deferred_gbuffer.wgsl
   - zircon_plugins/rendering/features/baked_lighting
   - zircon_plugins/rendering/features/irradiance_volumes
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback.rs
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md
   - docs/plans/optimize/zircon_runtime/09a-rhi-render-graph-gpu-lifetime-review.md

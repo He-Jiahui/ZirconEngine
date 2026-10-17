@@ -1,7 +1,5 @@
 ---
 related_code:
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog
   - zircon_runtime/src/plugin/extension_registry
   - zircon_runtime/src/plugin/bridge.rs
   - zircon_runtime/src/plugin/bridge

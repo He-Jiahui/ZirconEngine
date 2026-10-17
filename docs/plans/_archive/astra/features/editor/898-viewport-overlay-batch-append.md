@@ -7,10 +7,7 @@ related_records:
   - docs/plans/astra/features/editor/664-20260911-editor-ui-optimization-batch-completion.md
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_overlay_providers.rs
 tests:
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_overlay_providers/batch_append_tests.rs
-  - tools/tests/test_editor898_viewport_overlay_batch_append_performance_contract.py
 ---
 
 # Editor898 Viewport Overlay Batch Append

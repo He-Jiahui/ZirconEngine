@@ -10,9 +10,6 @@ origin_child_dir: docs/plans/optimize/zircon_runtime/07
 fixing_child_dir: docs/plans/optimize/zircon_runtime/90
 plan_link_mode: child_record_only
 related_code:
-  - zircon_runtime/crates/zr_rhi_wgpu/src/command_validation.rs
-  - zircon_runtime/crates/zr_rhi_wgpu/src/command_validation/copy_commands.rs
-  - zircon_runtime/crates/zr_rhi_wgpu/src/command_validation/render_state.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/tests/capabilities.rs
 tests:
   - cargo +1.94.1 test -p zr_rhi_wgpu --lib --locked --jobs 1

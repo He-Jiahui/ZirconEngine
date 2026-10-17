@@ -15,7 +15,6 @@ related_code:
   - zircon_editor/src/scene/viewport
   - zircon_editor/src/ui/asset_editor
   - zircon_editor/src/ui/preview_scene
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/world/workbench_extension_weather_editor_workspace.zui
   - zircon_editor/src/core/extension/inspector.rs
   - zircon_plugins/first_party_editor_catalog/src
 reference_engines:

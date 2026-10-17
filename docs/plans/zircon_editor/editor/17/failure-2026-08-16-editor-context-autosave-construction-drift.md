@@ -14,7 +14,6 @@ related_code:
   - zircon_editor/src/core/context/editor_context.rs
   - zircon_editor/src/core/recovery/autosave_service.rs
   - zircon_editor/src/ui/host/editor_manager.rs
-  - zircon_editor/src/ui/retained_host/app.rs
 tests:
   - powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools/build/build-editor.ps1
 ---

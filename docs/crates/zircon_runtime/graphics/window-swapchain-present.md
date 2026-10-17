@@ -8,18 +8,16 @@ related_code:
   - zircon_runtime/src/dynamic_api/runtime_loop.rs
   - zircon_runtime/src/dynamic_api/session.rs
   - zircon_runtime/src/dynamic_api/surface.rs
-  - zircon_runtime/src/graphics/backend/render_backend/viewport_surface.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/render_framework_trait_binding/wgpu_framework.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/viewport_surface/viewport_surface.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/present_frame_extract.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/camera_loop.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/record_submission/record_present.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/surface.rs
+  - zircon_runtime/src/graphics/render_framework_trait_binding/wgpu_framework.rs
+  - zircon_runtime/src/graphics/runtime/viewport_surface/viewport_surface.rs
+  - zircon_runtime/src/graphics/runtime/extract/submit/present_frame_extract.rs
+  - zircon_runtime/src/graphics/runtime/framework/extract/submit/camera_loop.rs
+  - zircon_runtime/src/graphics/runtime/extract/record_submission/record_present.rs
+  - zircon_runtime/src/graphics/runtime/framework/viewport_record/surface.rs
   - zircon_runtime/src/graphics/types/viewport_camera_stack_output_policy.rs
   - zircon_runtime/src/graphics/tests/surface_targets.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render/render.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render/render_frame.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render_with_pipeline/render_frame_with_pipeline.rs
+  - zircon_runtime/src/graphics/scene/renderer/core/scene_renderer_render/render.rs
+  - zircon_runtime/src/graphics/scene/core/scene_renderer_render/render_frame.rs
   - zircon_app/src/entry/runtime_entry_app/application_handler/mod.rs
   - zircon_app/src/entry/runtime_entry_app/window_surface/native_target.rs
   - zircon_app/src/entry/runtime_library/loaded_runtime.rs
@@ -32,17 +30,15 @@ implementation_files:
   - zircon_runtime/src/dynamic_api/runtime_loop.rs
   - zircon_runtime/src/dynamic_api/session.rs
   - zircon_runtime/src/dynamic_api/surface.rs
-  - zircon_runtime/src/graphics/backend/render_backend/viewport_surface.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/viewport_surface/viewport_surface.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/present_frame_extract.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/camera_loop.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/record_submission/record_present.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/surface.rs
+  - zircon_runtime/src/graphics/runtime/viewport_surface/viewport_surface.rs
+  - zircon_runtime/src/graphics/runtime/extract/submit/present_frame_extract.rs
+  - zircon_runtime/src/graphics/runtime/framework/extract/submit/camera_loop.rs
+  - zircon_runtime/src/graphics/runtime/extract/record_submission/record_present.rs
+  - zircon_runtime/src/graphics/runtime/framework/viewport_record/surface.rs
   - zircon_runtime/src/graphics/types/viewport_camera_stack_output_policy.rs
   - zircon_runtime/src/graphics/tests/surface_targets.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render/render.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render/render_frame.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render_with_pipeline/render_frame_with_pipeline.rs
+  - zircon_runtime/src/graphics/scene/renderer/core/scene_renderer_render/render.rs
+  - zircon_runtime/src/graphics/scene/core/scene_renderer_render/render_frame.rs
   - zircon_app/src/entry/runtime_entry_app/application_handler/mod.rs
   - zircon_app/src/entry/runtime_entry_app/window_surface/native_target.rs
   - zircon_app/src/entry/runtime_library/loaded_runtime.rs
@@ -53,8 +49,7 @@ plan_sources:
   - .codex/plans/Runtime 渲染风险清单与 RenderDoc 调试支持计划.md
 tests:
   - zircon_runtime/src/graphics/tests/surface_targets.rs
-  - zircon_runtime/src/dynamic_api/tests.rs
-  - zircon_app/src/entry/runtime_library/tests.rs
+  - zircon_runtime/src/dynamic_api/tests/mod.rs
   - zircon_app/src/entry/tests/mod.rs
   - cargo test -p zircon_runtime --locked --verbose dynamic_api
   - cargo test -p zircon_runtime --locked --verbose graphics_surface

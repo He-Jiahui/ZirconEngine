@@ -3,7 +3,7 @@ related_code:
   - zircon_editor/src/core/jobs
   - zircon_editor/src/core/notifications/service.rs
   - zircon_editor/src/ui/host/editor_event_runtime_access/status.rs
-  - zircon_editor/src/ui/retained_host/app/job_progress.rs
+  - zircon_editor/src/ui/retained/app/job_progress.rs
   - zircon_runtime/src/core/runtime/tasks/job_scheduler.rs
 plan_sources:
   - docs/plans/performance/01/2026-08-15-editor-job-facade-admission-completion-current-architecture-review.md

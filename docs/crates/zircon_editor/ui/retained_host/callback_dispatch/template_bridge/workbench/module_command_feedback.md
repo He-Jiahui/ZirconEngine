@@ -1,23 +1,18 @@
 ---
 related_code:
-  - zircon_editor/assets/ui/editor/components/workbench\shell\workbench_top_toolbar.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/core/index/workbench_module_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/core/index/workbench_additional_module_workspaces.zui
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/componentized_window.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/error.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/module_command_feedback.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/module_navigation.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/toolbar_layout.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/window_menu_state.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_module_navigation/
-  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_toolbar_breakpoints/mod.rs
+  - zircon_editor/src/ui/retained/dispatch/workbench/componentized_window.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/workbench/error.rs
+  - zircon_editor/src/ui/retained/dispatch/workbench/module_command_feedback.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/workbench/module_navigation.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/workbench/toolbar_layout.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/workbench/window_menu_state.rs
 implementation_files:
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/module_command_feedback.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/componentized_window.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/error.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/module_navigation.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/toolbar_layout.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/window_menu_state.rs
+  - zircon_editor/src/ui/retained/dispatch/workbench/module_command_feedback.rs
+  - zircon_editor/src/ui/retained/dispatch/workbench/componentized_window.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/workbench/error.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/workbench/module_navigation.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/workbench/toolbar_layout.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/workbench/window_menu_state.rs
 plan_sources:
   - user: 2026-06-03 Continue the componentized editor workbench; keep layout component-based and make every button visibly responsive
   - docs/ui/componentized-workbench-shell.md

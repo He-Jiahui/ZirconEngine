@@ -1,34 +1,24 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout/metrics.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout/tests.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/placement.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs/tests.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text_tests.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text_tests/latest_crop.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_buttons/content/entry.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_buttons/content/metrics.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_buttons_tests/paint.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text/font.rs
-  - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/runtime_draw_list/command.rs
-  - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/runtime_draw_list/text_style.rs
-  - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/runtime_draw_list/tests.rs
+  - zircon_editor/src/ui/retained/contract/paint_text/draw/layout.rs
+  - zircon_editor/src/ui/retained/contract/paint_text/draw/layout/metrics.rs
+  - zircon_editor/src/ui/retained/contract/paint_text/draw/placement.rs
+  - zircon_editor/src/ui/retained/contract/paint_text/draw/glyphs.rs
+  - zircon_editor/src/ui/retained/contract/paint/buttons/content/entry.rs
+  - zircon_editor/src/ui/retained/contract/paint/buttons/content/metrics.rs
+  - zircon_editor/src/ui/retained/contract/paint_text/font.rs
+  - zircon_editor/src/ui/retained/contract/runtime_draw_list/command.rs
+  - zircon_editor/src/ui/retained/contract/runtime_draw_list/text_style.rs
 implementation_files:
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text/font.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout/metrics.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/placement.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text_tests.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text_tests/latest_crop.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_buttons/content/entry.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_buttons/content/metrics.rs
-  - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/runtime_draw_list/command.rs
-  - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/runtime_draw_list/text_style.rs
+  - zircon_editor/src/ui/retained/contract/paint_text/font.rs
+  - zircon_editor/src/ui/retained/contract/paint_text/draw/layout.rs
+  - zircon_editor/src/ui/retained/contract/paint_text/draw/layout/metrics.rs
+  - zircon_editor/src/ui/retained/contract/paint_text/draw/placement.rs
+  - zircon_editor/src/ui/retained/contract/paint_text/draw/glyphs.rs
+  - zircon_editor/src/ui/retained/contract/paint/buttons/content/entry.rs
+  - zircon_editor/src/ui/retained/contract/paint/buttons/content/metrics.rs
+  - zircon_editor/src/ui/retained/contract/runtime_draw_list/command.rs
+  - zircon_editor/src/ui/retained/contract/runtime_draw_list/text_style.rs
 plan_sources:
   - docs/plans/zircon_runtime/text/index.md
   - docs/plans/zircon_runtime/text/04-glyph-atlas-and-rasterization.md

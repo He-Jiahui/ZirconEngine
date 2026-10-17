@@ -5,7 +5,6 @@ related_code:
   - zircon_runtime/src/asset/mod.rs
   - zircon_runtime/src/asset/tests/assets/mod.rs
   - zircon_runtime/src/asset/tests/assets/navigation.rs
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/asset_records.rs
 implementation_files:
   - zircon_runtime/src/core/framework/navigation/asset/mod.rs
   - zircon_runtime/src/asset/assets/mod.rs
@@ -18,7 +17,6 @@ plan_sources:
   - docs/plans/engine-code-structure-convention.md
 tests:
   - zircon_runtime/src/asset/tests/assets/navigation.rs::navmesh_binary_roundtrip_reports_typed_errors
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/asset_records.rs::review_f5_navigation_asset_uses_typed_error
   - "2026-06-25 static: scoped rustfmt/static scans/docs-status-session anchors passed; Cargo deferred due active cargo/rustc lanes"
 doc_type: module-detail
 ---

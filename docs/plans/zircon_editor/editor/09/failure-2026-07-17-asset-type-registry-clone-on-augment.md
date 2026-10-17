@@ -11,8 +11,6 @@ plan_link_mode: child_record_only
 related_code:
   - zircon_editor/src/core/asset/type_registry/registry.rs
   - zircon_editor/src/core/asset/type_registry/registry/batch.rs
-  - zircon_editor/src/core/asset/type_registry/registry/optimization_batch_ii_editor619_tests.rs
-  - zircon_editor/src/core/asset/type_registry/registry/optimization_batch_ij_editor620_tests.rs
   - zircon_editor/src/core/plugin/extension_materialization.rs
 tests:
   - 1/100/10k/100k contribution post-extend collection length/sort/generation scaling benchmark

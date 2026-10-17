@@ -1,18 +1,16 @@
 ---
 related_code:
   - zircon_app/src/entry/entry_runner/editor.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/recompute.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/recompute/invalidation/decision.rs
-  - zircon_editor/src/ui/retained_host/app/runtime_diagnostics_visibility.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/render_submission.rs
-  - zircon_editor/src/ui/retained_host/viewport/mod.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/runtime_diagnostics.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle/recompute.rs
+  - zircon_editor/src/ui/retained/app/recompute/invalidation/decision.rs
+  - zircon_editor/src/ui/retained/app/runtime_diagnostics_visibility.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle/render_submission.rs
 implementation_files:
   - zircon_app/src/entry/entry_runner/editor.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/recompute.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/recompute/invalidation/decision.rs
-  - zircon_editor/src/ui/retained_host/app/runtime_diagnostics_visibility.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/render_submission.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle/recompute.rs
+  - zircon_editor/src/ui/retained/app/recompute/invalidation/decision.rs
+  - zircon_editor/src/ui/retained/app/runtime_diagnostics_visibility.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle/render_submission.rs
 plan_sources:
   - docs/plans/zircon_runtime/render/18-advanced-lighting-features.md
   - .codex/plans/Hybrid GI Lumen-Style V1 三阶段计划.md

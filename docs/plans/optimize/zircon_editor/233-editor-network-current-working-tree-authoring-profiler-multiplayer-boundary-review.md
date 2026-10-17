@@ -15,9 +15,7 @@ related_code:
   - zircon_plugins/net/editor/src/tests/authoring_extensions.rs
   - zircon_plugins/net/editor
   - zircon_plugins/first_party_editor_catalog/src/catalog.rs
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/multiplayer
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback/online_sessions.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation/specs/online_sessions.rs
+  - zircon_editor/src/ui/retained/dispatch/workbench/specs/online_sessions.rs
 tests:
   - zircon_plugins/net/editor/src/tests/authoring_extensions.rs
 plan_sources:

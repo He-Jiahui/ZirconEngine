@@ -21,7 +21,6 @@ tests:
   - zircon_runtime/src/scene/tests/ecs_schedule.rs
   - zircon_runtime/src/scene/tests/ecs_schedule/fixed_update.rs
   - zircon_runtime/src/scene/tests/ecs_schedule/world_driver.rs
-  - zircon_runtime/src/tests/plugin_extensions/extension_registry_scene_hooks.rs
   - zircon_runtime/src/scene/tests/ecs_scheduled_native_systems.rs::world_driver_reuses_tick_schedule_snapshots_for_stage_runs
   - managed Windows cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked (pending until the repository Cargo testing stage is available)
 doc_type: module-detail

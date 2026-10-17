@@ -8,10 +8,6 @@ fixing_plan: docs/plans/zircon_runtime/shader/04-material-binding-and-renderer-c
 origin_child_dir: docs/plans/zircon_editor/editor/02
 fixing_child_dir: docs/plans/zircon_runtime/shader/04
 related_code:
-  - zircon_runtime/src/graphics/scene/render_product_material_property_tests.rs
-  - zircon_runtime/src/graphics/scene/render_product_zshader_import_tests.rs
-  - zircon_runtime/src/graphics/scene/resources/gpu_material_uniform/gpu_material_uniform_resource.rs
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_validate_material_shader_layout.rs
 tests:
   - cargo test -p zircon_runtime --lib scene:: --locked
 resolved_at: 2026-07-14

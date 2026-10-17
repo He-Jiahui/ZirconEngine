@@ -6,9 +6,6 @@ review_date: 2026-08-20
 baseline_head: bea1acf91b909525ab1759e2c800858b0eda6528
 baseline_epoch: 335
 related_code:
-  - zircon_runtime/src/scene/dynamic_scene/session
-  - zircon_runtime/src/scene/dynamic_scene/scene
-  - zircon_runtime/src/scene/dynamic_scene/document
   - zircon_runtime/src/scene/level_system
   - zircon_runtime/src/core/runtime/tasks
 tests:

@@ -28,10 +28,8 @@ related_code:
   - zircon_runtime/src/plugin/export_build_plan/plugin_selection_template.rs
   - tools/audits/audit_plugin_structure.py
 tests:
-  - zircon_plugins/first_party_runtime_catalog/src/tests.rs
   - zircon_plugins/first_party_runtime_catalog/src/tests/provider_snapshot.rs
   - zircon_plugins/first_party_runtime_catalog/src/tests/runtime_projection.rs
-  - zircon_plugins/first_party_editor_catalog/src/tests.rs
   - zircon_app/src/entry/tests/profile_bootstrap.rs
   - zircon_app/src/entry/tests/source_assertions.rs
   - zircon_app/src/entry/entry_runner/editor/tests/gui_startup.rs

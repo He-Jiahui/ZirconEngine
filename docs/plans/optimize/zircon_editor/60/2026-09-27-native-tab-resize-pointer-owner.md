@@ -6,30 +6,25 @@ implementation_status: implemented
 validation_status: programmatic_hide_static_review_passed_managed_validation_pending
 performance_status: product_gate_pending
 related_code:
-  - zircon_editor/src/ui/retained_host/host_contract/window/event_loop/events/pointer.rs
-  - zircon_editor/src/ui/retained_host/host_contract/window/test_support.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/entry/sequence/entry.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/move_dispatch/entry.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/host_interaction/drag.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/host_interaction/resize.rs
-  - zircon_editor/src/ui/retained_host/host_contract/globals/ui_context.rs
-  - zircon_editor/src/ui/retained_host/host_contract/window/event_loop/events.rs
-  - zircon_editor/src/ui/retained_host/host_contract/window/event_loop/events/focus.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/constants.rs
-  - zircon_editor/src/ui/retained_host/app/workspace_docking.rs
-  - zircon_editor/src/ui/retained_host/app/workspace_docking/drawer_resize/movement.rs
-  - zircon_editor/src/ui/retained_host/app/callback_wiring/host_shell/drag_resize.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/recompute.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/native_window_presenters/callbacks.rs
-  - zircon_editor/src/ui/retained_host/host_contract/window/lifecycle.rs
+  - zircon_editor/src/ui/retained/contract/window/event_loop/events/pointer.rs
+  - zircon_editor/src/ui/retained/contract/data/host_interaction/drag.rs
+  - zircon_editor/src/ui/retained/contract/data/host_interaction/resize.rs
+  - zircon_editor/src/ui/retained/contract/globals/ui_context.rs
+  - zircon_editor/src/ui/retained/contract/window/event_loop/events.rs
+  - zircon_editor/src/ui/retained/contract/window/event_loop/events/focus.rs
+  - zircon_editor/src/ui/retained/app/workspace_docking.rs
+  - zircon_editor/src/ui/retained/app/workspace_docking/drawer_resize/movement.rs
+  - zircon_editor/src/ui/retained/app/callback_wiring/host_shell/drag_resize.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle/recompute.rs
+  - zircon_editor/src/ui/retained/app/native_window_presenters/callbacks.rs
+  - zircon_editor/src/ui/retained/contract/window/lifecycle.rs
 plan_sources:
   - docs/plans/optimize/zircon_editor/60-editor-scene-hierarchy-outliner-tree-projection-expansion-selection-rename-reparent-drag-drop-visibility-lock-multi-world.md
   - docs/plans/optimize/zircon_editor/60/2026-09-27-hierarchy-native-input-owner.md
 tests:
-  - zircon_editor/src/tests/host/retained_window/native_host_contract/native_capture_pointer_owner.rs
-  - zircon_editor/src/ui/retained_host/app/tests/hierarchy_native_capture.rs
-  - zircon_editor/src/ui/retained_host/app/tests/projection_geometry.rs
-  - zircon_editor/src/ui/retained_host/app/tests/close_prompt.rs
+  - zircon_editor/src/ui/retained/app/tests/hierarchy_native_capture.rs
+  - zircon_editor/src/ui/retained/app/tests/projection_geometry.rs
+  - zircon_editor/src/ui/retained/app/tests/close_prompt.rs
 ---
 
 # Editor60 native tab and resize pointer owner

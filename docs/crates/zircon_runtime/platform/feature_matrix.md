@@ -159,15 +159,12 @@ tests:
   - zircon_runtime/src/platform/tests/feature_manifest.rs
   - zircon_runtime/src/input/tests/input_manager.rs
   - zircon_runtime/src/input/tests/boundary.rs
-  - zircon_runtime/src/dynamic_api/tests.rs
+  - zircon_runtime/src/dynamic_api/tests/mod.rs
   - zircon_runtime_interface/src/tests/contracts.rs
   - zircon_runtime/src/tests/prelude.rs
-  - zircon_app/src/entry/runtime_library/tests.rs
   - zircon_app/src/tests/prelude.rs
   - zircon_app/src/entry/tests/mod.rs
-  - zircon_app/src/plugins/tests.rs
   - zircon_app/src/entry/tests/profile_bootstrap.rs
-  - zircon_runtime/src/tests/plugin_extensions/export_build_plan.rs
   - .github/workflows/ci.yml
 doc_type: module-detail
 ---

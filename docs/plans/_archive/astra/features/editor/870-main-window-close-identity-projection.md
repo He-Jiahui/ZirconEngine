@@ -10,10 +10,8 @@ implementation_files:
   - zircon_editor/src/ui/host/workspace_state.rs
   - zircon_editor/src/ui/host/editor_manager_workspace.rs
   - zircon_editor/src/ui/host/editor_event_runtime_access/workbench_projection.rs
-  - zircon_editor/src/ui/retained_host/app/native_window_close.rs
+  - zircon_editor/src/ui/retained/app/native_window_close.rs
 tests:
-  - zircon_editor/src/ui/host/workspace_state_identity_projection_tests.rs
-  - tools/tests/test_editor867_871_workspace_identity_projection_performance_contract.py
 ---
 
 # Editor870 - main-window close identity projection

@@ -4,17 +4,8 @@ related_code:
   - zircon_plugins/rendering/runtime/src/lib.rs
   - zircon_runtime/src/core/framework/render/backend_types/quality.rs
   - zircon_runtime/src/core/framework/render/frame_profile.rs
-  - zircon_runtime/src/core/framework/render/post_process/graph_resource_names.rs
-  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/screen_space_ambient_occlusion.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/default_forward_plus.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/default_deferred.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/plugin_render_features.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/budget/degrade_ladder.rs
-  - zircon_runtime/src/graphics/backend/render_backend/offscreen_target_construct/construct.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_history
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene
-  - zircon_runtime/src/graphics/scene/scene_renderer/history/scene_frame_history_textures
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process
+  - zircon_runtime/src/graphics/runtime/framework/budget/degrade_ladder.rs
+  - zircon_runtime/src/graphics/backend/offscreen_target_construct/construct.rs
   - zircon_runtime/src/graphics/shader/wgsl/zr_gbuffer_encode_standard_pbr.wgsl
 tests:
   - zircon_runtime/src/graphics/tests/pipeline_compile.rs

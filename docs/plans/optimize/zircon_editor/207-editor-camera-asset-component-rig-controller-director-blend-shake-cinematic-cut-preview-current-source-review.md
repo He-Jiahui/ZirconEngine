@@ -30,8 +30,6 @@ related_code:
   - zircon_runtime/src/dynamic_api/session/construction.rs
   - zircon_runtime/src/dynamic_api/session/events.rs
   - zircon_runtime/src/dynamic_api/session/extract.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record
-  - zircon_runtime/src/graphics/scene/scene_renderer/temporal/velocity
   - zircon_runtime/src/script/vm/gameplay_host/transform.rs
   - zircon_plugins/ai/runtime/src/plugin/registration.rs
   - zircon_runtime_interface/src/runtime_api/session/camera.rs
@@ -41,10 +39,9 @@ related_code:
   - zircon_editor/src/core/play/controller.rs
   - zircon_editor/src/core/play/simulate_camera.rs
   - zircon_editor/src/ui/host/editor_host_event_controller/simulate_camera.rs
-  - zircon_editor/src/ui/retained_host/app/simulate_camera_sync.rs
+  - zircon_editor/src/ui/retained/app/simulate_camera_sync.rs
   - zircon_editor/src/core/asset/type_registry
   - zircon_editor/src/ui/asset_editor/preview
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/animation/workbench_extension_sequencer_workspace.zui
   - zircon_plugins/timeline_sequence/editor/src
 plan_sources:
   - docs/plans/optimize/zircon_runtime/99za-runtime-camera-endpoint-director-rig-controller-blend-shake-cut-history-multiview-product-integration-current-source-review.md

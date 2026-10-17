@@ -8,7 +8,6 @@ fixing_plan: docs/plans/zircon_runtime/render/11-environment-lighting.md
 origin_child_dir: docs/plans/zircon_editor/editor/10
 fixing_child_dir: docs/plans/zircon_runtime/render/11
 related_code:
-  - zircon_runtime/src/core/framework/render/environment/source_cubemap/tests.rs
   - zircon_runtime/src/core/framework/render/environment/source_cubemap.rs
 plan_sources:
   - docs/plans/zircon_runtime/render/11-environment-lighting.md

@@ -6,10 +6,6 @@ plan_sources:
   - docs/plans/optimize/zircon_runtime/269/2026-08-28-owned-analog-route-policy-event.md
   - docs/plans/optimize/zircon_runtime/358/2026-08-30-style-sheet-capacity.md
 related_code:
-  - zircon_runtime/src/ui/template/asset/compiler/ui_style_resolver/capacity_tests.rs
-  - zircon_runtime/src/ui/template/asset/resource_ref/resolution_report/cached_diagnostic_index_tests.rs
-  - zircon_runtime/src/ui/event_ui/manager/invocation/owned_binding_arguments_tests.rs
-  - zircon_runtime/src/ui/surface/input/analog/owned_event_route_policy_tests.rs
 ---
 
 # Runtime 性能基准回归编译修复

@@ -14,7 +14,6 @@ related_code:
   - zircon_plugins/plugin_sdk/Cargo.toml
   - zircon_plugins/gltf_importer/dist/src/lib.rs
   - zircon_plugins/native_dynamic_fixture/native/src/lib.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/behavior_calls.rs
 tests:
   - '.\tools\dev\local-cargo.ps1 +1.94.1 test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_sdk --locked --no-default-features --features native --lib native::owned_buffers::tests:: -- --test-threads=1'
   - .\tools\dev\local-cargo.ps1 +1.94.1 test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_sdk --locked --no-default-features --features native --test native_owned_buffer_lower -- --test-threads=1

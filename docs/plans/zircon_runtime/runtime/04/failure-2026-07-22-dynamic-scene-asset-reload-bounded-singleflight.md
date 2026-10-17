@@ -9,8 +9,6 @@ origin_child_dir: docs/plans/performance/01
 fixing_child_dir: docs/plans/zircon_runtime/runtime/04
 plan_link_mode: child_record_only
 related_code:
-  - zircon_runtime/src/scene/dynamic_scene/asset_reload
-  - zircon_runtime/src/scene/dynamic_scene/spawn_task
   - zircon_runtime/src/dynamic_api/session
 tests:
   - cargo test -p zircon_runtime --lib dynamic_scene_asset_reload --locked --jobs 1 -- --nocapture --test-threads=1

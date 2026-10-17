@@ -9,7 +9,6 @@ origin_child_dir: docs/plans/zircon_runtime/runtime/10
 fixing_child_dir: docs/plans/zircon_plugins/05
 plan_link_mode: child_record_only
 related_code:
-  - zircon_plugins/navigation/editor/src/tests.rs
   - zircon_plugins/navigation/editor/src/tests/operation_command.rs
 tests:
   - git grep -n -E 'ZrRuntimeOperationProgressV1|ZrRuntimePollOperationFnV1' -- 'zircon_plugins/navigation/editor/**/*.rs'

@@ -3,11 +3,11 @@ related_code:
   - zircon_runtime/src/ui/text/layout_engine.rs
   - zircon_runtime/src/ui/text/grapheme.rs
   - zircon_runtime/src/ui/text/rich_text.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/glyphs/row.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render.rs
+  - zircon_editor/src/ui/retained/contract/paint_text/draw/layout.rs
+  - zircon_editor/src/ui/retained/contract/paint_text/draw/glyphs.rs
+  - zircon_editor/src/ui/retained/contract/paint_text/draw/glyphs/row.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/text.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/sdf_render.rs
   - zircon_runtime/src/text/sdf/font_bake.rs
   - zircon_runtime_interface/src/ui/surface/render/resolved_style.rs
 design_references:

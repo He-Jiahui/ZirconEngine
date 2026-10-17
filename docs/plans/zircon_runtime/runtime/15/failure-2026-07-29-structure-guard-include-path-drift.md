@@ -9,11 +9,10 @@ origin_child_dir: docs/plans/zircon_runtime/text/09
 fixing_child_dir: docs/plans/zircon_runtime/runtime/15
 plan_link_mode: child_record_only
 related_code:
-  - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/tests.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/tests/native_submission.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/presentation.rs
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/late_api_cleanup/f17_entity_path_lookup.rs
+  - zircon_runtime/src/tests/review/late_api_cleanup/f17_entity_path_lookup.rs
   - zircon_plugins/animation/runtime/src/lib.rs
   - zircon_runtime/src/animation/sequence/compiled.rs
   - zircon_runtime/src/animation/sequence/target.rs

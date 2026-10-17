@@ -9,11 +9,7 @@ origin_child_dir: docs/plans/performance/01
 fixing_child_dir: docs/plans/zircon_plugins/01
 plan_link_mode: child_record_only
 related_code:
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/derived_projection.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_resolution.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/registration/constructors.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog.rs
+  - zircon_runtime/src/plugin/runtime/catalog/registration/constructors.rs
 tests:
   - runtime plugin catalog projection build-count regression
   - 1/100/1000 feature graph and 1/100/10000 candidate transaction scaling regressions

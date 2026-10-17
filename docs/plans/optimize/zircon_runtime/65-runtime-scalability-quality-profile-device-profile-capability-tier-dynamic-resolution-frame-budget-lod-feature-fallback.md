@@ -9,16 +9,8 @@ related_code:
   - zircon_runtime/src/core/framework/render/backend_types/quality.rs
   - zircon_runtime/src/core/framework/render/camera.rs
   - zircon_runtime/src/core/framework/render/frame_profile.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/budget
-  - zircon_runtime/src/graphics/runtime/render_framework/capability_summary
-  - zircon_runtime/src/graphics/runtime/render_framework/capability_validation
-  - zircon_runtime/src/graphics/runtime/render_framework/compile_options_for_profile
-  - zircon_runtime/src/graphics/runtime/render_framework/frame_profiler.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/set_quality_profile
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context
-  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record
-  - zircon_editor/src/ui/retained_host/viewport/editor_viewport_render_defaults.rs
-  - zircon_editor/src/ui/retained_host/viewport/viewport_lifecycle.rs
+  - zircon_editor/src/ui/retained/viewport/editor_viewport_render_defaults.rs
+  - zircon_editor/src/ui/retained/viewport/viewport_lifecycle.rs
   - zircon_app/src/bin/zircon_shader_pbr_viewer/scene.rs
 tests:
   - zircon_runtime/src/graphics/tests/project_render/render_quality.rs
@@ -27,7 +19,7 @@ tests:
   - zircon_runtime/src/graphics/tests/render_framework_bridge/stats.rs
   - zircon_editor/src/tests/editing/state/viewport.rs
   - zircon_editor/src/tests/host/render_framework_boundary/mod.rs
-  - zircon_editor/src/ui/retained_host/viewport/tests/fake_render_framework.rs
+  - zircon_editor/src/ui/retained/viewport/tests/fake_render_framework.rs
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md
   - docs/plans/optimize/01-cross-report-owner-schema-abi-p0-consolidation-review.md

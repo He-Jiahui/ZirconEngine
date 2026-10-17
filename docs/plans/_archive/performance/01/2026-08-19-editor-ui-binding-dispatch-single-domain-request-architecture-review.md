@@ -4,7 +4,6 @@ related_code:
   - zircon_editor/src/ui/binding
   - zircon_editor/src/ui/host/editor_event_dispatch.rs
   - zircon_editor/src/ui/host/editor_event_execution
-  - zircon_editor/src/ui/retained_host/callback_dispatch/viewport
   - zircon_editor/src/ui/workbench/event
 tests:
   - zircon_editor/src/tests/host/binding_dispatch

@@ -4,15 +4,6 @@ implementation_files:
 plan_sources:
   - user: 2026-09-29 improve Coordinator storage policy, Failure claim handling, validation scheduling and single-port remote workers
 tests:
-  - tools/session_coordinator/tests/test_storage_ledger.py
-  - tools/session_coordinator/tests/test_storage_admission.py
-  - tools/session_coordinator/tests/test_validation_priority.py
-  - tools/session_coordinator/tests/test_validation_groups.py
-  - tools/session_coordinator/tests/test_durable_tasks.py
-  - tools/session_coordinator/tests/test_remote_paths.py
-  - tools/session_coordinator/tests/test_control_storage.py
-  - tools/session_coordinator/tests/test_optimization_cli.py
-  - tools/session_coordinator/tests/test_optimization_actions.py
 doc_type: workflow-detail
 ---
 

@@ -1,6 +1,5 @@
 ---
 related_code:
-  - zircon_runtime/src/graphics/runtime/render_framework
   - zircon_runtime/src/core/framework/render
 implementation_files:
   - zircon_runtime/src/graphics/wgpu_render_framework/wgpu_render_framework.rs

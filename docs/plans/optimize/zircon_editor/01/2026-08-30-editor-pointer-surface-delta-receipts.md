@@ -1,9 +1,8 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/viewport_toolbar_pointer/sync.rs
-  - zircon_editor/src/ui/retained_host/viewport_toolbar_pointer/sync_surface_frame.rs
-  - zircon_editor/src/ui/retained_host/viewport_toolbar_pointer/rebuild_surface.rs
-  - zircon_editor/src/scene/viewport/pointer/overlay_router/viewport_overlay_pointer_router_sync.rs
+  - zircon_editor/src/ui/retained/viewport_toolbar_pointer/sync.rs
+  - zircon_editor/src/ui/retained/viewport_toolbar_pointer/sync_surface_frame.rs
+  - zircon_editor/src/ui/retained/viewport_toolbar_pointer/rebuild_surface.rs
   - zircon_editor/src/scene/viewport/pointer/overlay_router/rebuild_surface.rs
 status: editor_private_receipt_candidate_static_validated_managed_validation_pending
 product_timing: false

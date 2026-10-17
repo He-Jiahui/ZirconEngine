@@ -1,20 +1,17 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/host_contract/presenter/gpu.rs
-  - zircon_editor/src/ui/retained_host/host_contract/presenter/gpu/geometry.rs
-  - zircon_editor/src/ui/retained_host/host_contract/presenter/gpu/lifecycle.rs
-  - zircon_editor/src/ui/retained_host/host_contract/presenter/gpu/present.rs
-  - zircon_editor/src/ui/retained_host/host_contract/presenter/gpu/stats.rs
-  - zircon_editor/src/ui/retained_host/host_contract/presenter/gpu/tests.rs
-  - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/mod.rs
-  - zircon_editor/src/ui/retained_host/host_contract/diagnostics.rs
+  - zircon_editor/src/ui/retained/contract/presenter/gpu.rs
+  - zircon_editor/src/ui/retained/contract/presenter/gpu/geometry.rs
+  - zircon_editor/src/ui/retained/contract/presenter/gpu/lifecycle.rs
+  - zircon_editor/src/ui/retained/contract/presenter/gpu/present.rs
+  - zircon_editor/src/ui/retained/contract/presenter/gpu/stats.rs
+  - zircon_editor/src/ui/retained/contract/chrome_command_stream/mod.rs
 implementation_files:
-  - zircon_editor/src/ui/retained_host/host_contract/presenter/gpu.rs
-  - zircon_editor/src/ui/retained_host/host_contract/presenter/gpu/geometry.rs
-  - zircon_editor/src/ui/retained_host/host_contract/presenter/gpu/lifecycle.rs
-  - zircon_editor/src/ui/retained_host/host_contract/presenter/gpu/present.rs
-  - zircon_editor/src/ui/retained_host/host_contract/presenter/gpu/stats.rs
-  - zircon_editor/src/ui/retained_host/host_contract/presenter/gpu/tests.rs
+  - zircon_editor/src/ui/retained/contract/presenter/gpu.rs
+  - zircon_editor/src/ui/retained/contract/presenter/gpu/geometry.rs
+  - zircon_editor/src/ui/retained/contract/presenter/gpu/lifecycle.rs
+  - zircon_editor/src/ui/retained/contract/presenter/gpu/present.rs
+  - zircon_editor/src/ui/retained/contract/presenter/gpu/stats.rs
 plan_sources:
   - docs/plans/zircon_editor/editor_ui/08-workbench-shell-on-runtime-ui.md
   - .codex/plans/GPU Command Stream 接管 Editor UI 渲染计划.md

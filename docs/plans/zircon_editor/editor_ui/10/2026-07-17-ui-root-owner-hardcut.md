@@ -4,7 +4,6 @@ plan: docs/plans/zircon_editor/editor_ui/10-code-structure-and-module-convention
 fixed: docs/plans/zircon_editor/editor/07/fixed-2026-07-17-ui-root-owner-boundary-migration-debt.md
 related_code:
   - zircon_editor/src/ui/component_registry
-  - zircon_editor/src/ui/preferences
 tests:
   - python .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_editor_structure.py --json
   - cargo test -p zircon_editor --lib structure_convention --locked

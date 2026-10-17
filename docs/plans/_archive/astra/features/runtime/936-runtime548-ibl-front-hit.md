@@ -4,9 +4,7 @@ status: implemented_pending_validation
 plan_sources:
   - docs/plans/optimize/zircon_runtime/02/2026-08-30-runtime548-ibl-front-hit.md
 implementation_files:
-  - zircon_runtime/src/graphics/runtime/render_framework/render_framework_state/environment_ibl_hydration_cache.rs
 tests:
-  - zircon_runtime/src/graphics/runtime/render_framework/render_framework_state/environment_ibl_hydration_cache.rs
 ---
 
 # Runtime936 Runtime548 IBL front-hit fast path

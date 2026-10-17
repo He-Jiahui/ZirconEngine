@@ -6,7 +6,6 @@ managed_validation_status: not-submitted-current-parent-and-mixed-api-closure-in
 source_baseline_sha256: 2B243ECD4233C602C0917B107F9972CF2ECA560E85FAF2D35B134357828D7A7D
 related_code:
   - zircon_editor/src/ui/workbench/project/asset_workspace_state.rs
-  - zircon_editor/src/ui/workbench/project/asset_workspace_state/performance_tests.rs
   - zircon_editor/src/ui/workbench/snapshot/asset/asset_workspace_item_generation.rs
   - zircon_editor/src/ui/workbench/snapshot/asset/asset_workspace_snapshot.rs
   - zircon_editor/src/ui/workbench/snapshot/asset/mod.rs
@@ -14,7 +13,7 @@ related_code:
   - zircon_editor/src/ui/workbench/shell_state.rs
   - zircon_editor/src/ui/host/editor_event_runtime_access/asset_access.rs
   - zircon_editor/src/ui/layouts/views/asset_browser/logical_paint_source.rs
-  - zircon_editor/src/ui/retained_host/asset_pointer/content/layout.rs
+  - zircon_editor/src/ui/retained/asset_pointer/content/layout.rs
   - zircon_editor/src/tests/editing/asset_workspace.rs
 ---
 

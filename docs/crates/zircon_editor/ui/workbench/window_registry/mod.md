@@ -22,17 +22,16 @@ related_code:
   - zircon_editor/src/ui/workbench/layout/manager/detach.rs
   - zircon_editor/src/ui/workbench/layout/manager/focus.rs
   - zircon_editor/src/ui/workbench/layout/manager/normalize.rs
-  - zircon_editor/src/ui/retained_host/app/workspace_docking.rs
-  - zircon_editor/src/ui/retained_host/app/native_window_close.rs
-  - zircon_editor/src/ui/retained_host/app/close_prompt.rs
+  - zircon_editor/src/ui/retained/app/workspace_docking.rs
+  - zircon_editor/src/ui/retained/app/native_window_close.rs
+  - zircon_editor/src/ui/retained/app/close_prompt.rs
   - zircon_editor/src/ui/host/editor_ui_host.rs
   - zircon_editor/src/ui/host/workspace_state.rs
   - zircon_editor/src/ui/host/layout_commands.rs
   - zircon_editor/src/ui/host/window_host_manager.rs
-  - zircon_editor/src/ui/retained_host/floating_window_projection.rs
-  - zircon_editor/src/ui/retained_host/app/workspace_docking.rs
-  - zircon_editor/src/ui/retained_host/app/native_window_close.rs
-  - zircon_editor/src/ui/retained_host/app/close_prompt.rs
+  - zircon_editor/src/ui/retained/app/workspace_docking.rs
+  - zircon_editor/src/ui/retained/app/native_window_close.rs
+  - zircon_editor/src/ui/retained/app/close_prompt.rs
 implementation_files:
   - zircon_editor/src/ui/host/builtin_layout/builtin_shell_view_instances.rs
   - zircon_editor/src/ui/host/builtin_layout/hybrid_layout.rs
@@ -53,7 +52,6 @@ implementation_files:
   - zircon_editor/src/ui/host/editor_ui_host.rs
   - zircon_editor/src/ui/host/workspace_state.rs
   - zircon_editor/src/ui/host/window_host_manager.rs
-  - zircon_editor/src/ui/retained_host/floating_window_projection.rs
 plan_sources:
   - user: 2026-05-06 Drawer/Window/Menu Slate 化推进计划，要求抽屉实例、含抽屉 window、普通 window 由 editor 内单例 registry 管理
   - user: 2026-05-11 Implement Material + Fyrox + JetBrains + Unreal editor UI plan
@@ -61,14 +59,11 @@ plan_sources:
   - .codex/plans/Zircon UI 与 Unreal Slate 差异审计及后续里程碑.md
   - .codex/plans/Zircon Editor UI Material  Fyrox  JetBrains  Unreal.md
 tests:
-  - zircon_editor/src/tests/host/manager/bootstrap_and_startup.rs
-  - zircon_editor/src/tests/host/retained_document_tab_pointer/floating_strip_bounds.rs
+  - zircon_editor/src/tests/host/manager/bootstrap_and_startup/mod.rs
   - zircon_editor/src/tests/host/retained_tab_drag/floating_pointer.rs
   - zircon_editor/src/tests/host/retained_window/native_window_targets.rs
   - zircon_editor/src/tests/workbench/registry/window_registry.rs
-  - zircon_editor/src/ui/retained_host/app/tests/close_prompt.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/layout/tab_drop.rs
-  - zircon_editor/src/tests/host/retained_menu_pointer/visual_screenshot.rs
+  - zircon_editor/src/ui/retained/app/tests/close_prompt.rs
   - cargo test -p zircon_editor --lib window_registry --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never -- --nocapture
   - cargo test -p zircon_editor --lib window_registry_syncs_collapsed_active_drawer_without_selecting_tab --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never -- --nocapture (2026-05-07: 1 passed, 0 failed, 1104 filtered out)
   - cargo test -p zircon_editor --lib window_registry --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never -- --nocapture (2026-05-07: 5 passed, 0 failed, 1101 filtered out)

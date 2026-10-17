@@ -10,7 +10,6 @@ fixing_child_dir: docs/plans/performance/01
 plan_link_mode: child_record_only
 related_code:
   - zircon_runtime/src/core/framework/picking/pointer_hits.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/picking.rs
 tests:
   - cargo +1.94.1 test -p zircon_runtime --no-default-features --lib picking --locked --jobs 1 -- --nocapture --test-threads=1
   - cargo +1.94.1 test -p zircon_runtime --no-default-features --lib runtime_12_input_stack_mirror_docs_match_structure_audit_counts --locked --jobs 1 -- --nocapture --test-threads=1

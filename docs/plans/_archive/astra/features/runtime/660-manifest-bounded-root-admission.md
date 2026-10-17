@@ -6,11 +6,8 @@ plan_sources:
 related_code:
   - zircon_runtime/src/asset/project/manifest/load.rs
   - zircon_runtime/src/asset/project/manifest/validation.rs
-  - zircon_runtime/src/asset/project/manifest/validation/astra_root_tests.rs
 tests:
   - tools/tests/test_runtime85_project_root_dedup_performance_contract.py
-  - tools/tests/test_astra_benchmark_evidence_scope_contract.py
-  - zircon_runtime/src/asset/project/manifest/validation/astra_root_tests.rs
 ---
 
 # Manifest Bounded Root Admission

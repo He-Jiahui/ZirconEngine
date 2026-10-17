@@ -1,11 +1,9 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/app/viewport.rs
-  - zircon_editor/src/ui/retained_host/app/viewport
-  - zircon_editor/src/ui/retained_host/app/viewport_image_redraw.rs
-  - zircon_editor/src/ui/retained_host/viewport
-  - zircon_editor/src/ui/retained_host/host_contract/data/viewport_image.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/capture_frame
+  - zircon_editor/src/ui/retained/app/viewport.rs
+  - zircon_editor/src/ui/retained/app/viewport
+  - zircon_editor/src/ui/retained/app/viewport_image_redraw.rs
+  - zircon_editor/src/ui/retained/contract/data/viewport_image.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_editor/editor_ui/08-workbench-shell-on-runtime-ui.md

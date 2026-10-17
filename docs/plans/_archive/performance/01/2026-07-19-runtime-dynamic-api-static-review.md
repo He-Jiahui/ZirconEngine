@@ -14,7 +14,6 @@ reference_sources:
 tests:
   - zircon_runtime/src/dynamic_api/tests
   - zircon_runtime/src/dynamic_api/session/tests
-  - zircon_runtime/src/dynamic_api/shader_prewarm/tests.rs
   - current-source Windows Cargo and F2 product traces pending
 doc_type: implementation-evidence
 status: static_complete_dynamic_pending

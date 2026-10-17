@@ -42,12 +42,8 @@ related_code:
   - examples/woc/zircon-project.toml
   - examples/woc/scripts/woc_game/plugin.toml
 tests:
-  - zircon_editor/src/core/script_build/tests.rs
   - zircon_runtime/src/script/vm/tests/plugin_runtime.rs
-  - zircon_runtime/src/script/vm/runtime/hot_reload_coordinator/tests.rs
-  - zircon_runtime/src/script/vm/runtime/hot_reload_coordinator/tests/state_migration.rs
   - zircon_runtime/src/script/vm/runtime/hot_reload_coordinator/tests/reflection.rs
-  - zircon_plugins/zr_vm_language/runtime/src/real_backend/tests.rs
   - zircon_plugins/zr_vm_language/runtime/src/tests/real_backend.rs
   - zircon_plugins/zr_vm_language/runtime/src/tests/registration.rs
   - zircon_editor/src/ui/host/editor_activity_log.rs

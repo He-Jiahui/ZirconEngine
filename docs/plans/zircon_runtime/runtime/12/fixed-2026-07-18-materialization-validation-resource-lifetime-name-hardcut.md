@@ -9,7 +9,6 @@ origin_child_dir: docs/plans/zircon_runtime/runtime/12
 fixing_child_dir: docs/plans/zircon_runtime/render/01
 plan_link_mode: child_record_only
 related_code:
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/materialization_validation.rs
   - zircon_runtime/src/render_graph/graph.rs
 tests:
   - cargo +1.94.1 check -p zircon_runtime --lib --locked --jobs 1

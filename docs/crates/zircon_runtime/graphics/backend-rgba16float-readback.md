@@ -1,17 +1,11 @@
 ---
 related_code:
-  - zircon_runtime/src/graphics/backend/render_backend/read_texture_rgba16float_region.rs
-  - zircon_runtime/src/graphics/backend/render_backend/mod.rs
   - zircon_runtime/src/graphics/backend/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/environment_cubemap.rs
 implementation_files:
-  - zircon_runtime/src/graphics/backend/render_backend/read_texture_rgba16float_region.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/environment_cubemap.rs
 plan_sources:
   - docs/plans/zircon_runtime/render/11-environment-lighting.md
   - docs/plans/zircon_runtime/shader/06-environment-ibl-and-pbr-correctness.md
 tests:
-  - zircon_runtime/src/graphics/backend/render_backend/read_texture_rgba16float_region.rs
 doc_type: module-detail
 ---
 

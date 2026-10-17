@@ -12,7 +12,6 @@ implementation_files:
   - zircon_runtime/src/ui/component/state_reducer/command_palette.rs
 tests:
   - zircon_runtime/src/ui/component/state_reducer/command_palette.rs
-  - tools/tests/test_runtime_command_palette_entry_streaming_performance_contract.py
 ---
 
 # Runtime756 · Command-palette entry streaming

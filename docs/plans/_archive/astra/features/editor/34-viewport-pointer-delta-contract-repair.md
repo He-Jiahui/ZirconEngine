@@ -6,12 +6,12 @@ plan_sources:
   - docs/plans/optimize/zircon_editor/01/2026-08-30-viewport-toolbar-pointer-surface-reuse.md
   - docs/plans/astra/performance/01-bounded-hotpaths.md
 related_code:
-  - zircon_editor/src/ui/retained_host/viewport_toolbar_pointer/rebuild_surface.rs
+  - zircon_editor/src/ui/retained/viewport_toolbar_pointer/rebuild_surface.rs
   - zircon_editor/src/scene/viewport/pointer/overlay_router/rebuild_surface.rs
 tests:
-  - tools/performance/editor/editor_viewport_toolbar_pointer_surface_reuse_pressure.py
+  - tools/analysis/performance/editor/editor_viewport_toolbar_pointer_surface_reuse_pressure.py
   - tools/tests/test_editor_viewport_toolbar_pointer_surface_reuse.py
-  - tools/performance/editor/editor_viewport_overlay_pointer_surface_reuse_pressure.py
+  - tools/analysis/performance/editor/editor_viewport_overlay_pointer_surface_reuse_pressure.py
   - tools/tests/test_editor_viewport_overlay_pointer_surface_reuse.py
 ---
 

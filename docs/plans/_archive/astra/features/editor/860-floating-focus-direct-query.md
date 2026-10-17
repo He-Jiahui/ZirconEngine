@@ -10,10 +10,8 @@ implementation_files:
   - zircon_editor/src/ui/host/workspace_state.rs
   - zircon_editor/src/ui/host/editor_manager_workspace.rs
   - zircon_editor/src/ui/host/editor_event_runtime_access/workbench_projection.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/layout/floating_window/dispatch.rs
+  - zircon_editor/src/ui/retained/dispatch/layout/floating_window/dispatch.rs
 tests:
-  - zircon_editor/src/ui/host/workspace_state_floating_focus_query_tests.rs
-  - tools/tests/test_editor860_floating_focus_direct_query_performance_contract.py
   - tools/tests/test_editor_retained_workbench_contribution_projection_contract.py
 ---
 

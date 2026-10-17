@@ -3,7 +3,7 @@ related_code:
   - zircon_runtime/src/core/framework/render/environment/source_cubemap.rs
   - zircon_runtime/src/core/framework/render/environment/source_cubemap/pmrem.rs
   - zircon_runtime/src/core/framework/render/environment/ibl_bake_artifact.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_compute_executor.rs
+  - zircon_runtime/src/graphics/scene/environment/ibl_bake_compute_executor.rs
   - zircon_runtime/tests/runtime_shader_pbr_hdri_export.rs
   - zircon_runtime/tests/runtime_shader_pbr_hdri_export/frame_assertions.rs
   - zircon_runtime/tests/runtime_shader_pbr_hdri_export/scene_fixtures.rs
@@ -17,68 +17,45 @@ related_code:
   - zircon_plugins/gltf_importer/runtime/Cargo.toml
   - zircon_plugins/gltf_importer/runtime/src/lib.rs
   - zircon_plugins/gltf_importer/runtime/src/subassets.rs
-  - zircon_plugins/gltf_importer/runtime/src/tests.rs
   - zircon_runtime/src/asset/tests/assets/artifact_store/material_data.rs
-  - zircon_runtime/src/graphics/scene/resources/gpu_material_uniform/gpu_material_uniform_resource.rs
   - zircon_runtime/src/graphics/scene/gpu_scene/bindless_material_payload.rs
   - zircon_runtime/src/graphics/shader/template/material_surface.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/shaders/fallback_mesh.wgsl
+  - zircon_runtime/src/graphics/scene/renderer/mesh/shaders/fallback_mesh.wgsl
   - zircon_runtime/src/graphics/shader/includes/zr_pbr_extras.wgsl
   - zircon_runtime/src/graphics/shader/template/material_surface.rs
-  - zircon_runtime/src/graphics/shader/template/tests/environment_specular_occlusion.rs
+  - zircon_runtime/src/graphics/shader/tests/environment_specular_occlusion.rs
   - zircon_runtime/src/core/framework/render/shader/variant_key.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_pipeline.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/mesh_pipeline_variant_registry.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/shader_source.rs
+  - zircon_runtime/src/graphics/scene/mesh/mesh_pipeline_cache/ensure_pipeline.rs
+  - zircon_runtime/src/graphics/scene/mesh/mesh_pipeline_cache/shader_source.rs
   - zircon_runtime/src/graphics/shader/wgsl/zr_gbuffer_encode_standard_pbr.wgsl
   - zircon_runtime/src/graphics/shader/wgsl/zr_shading_environment_only_pbr.wgsl
-  - zircon_runtime/src/graphics/shader/wgsl/zr_template_forward_environment_only_pbr.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/shaders/deferred_lighting.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/shaders/fallback_mesh.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/post_process_screen_space_reflection.wgsl
+  - zircon_runtime/src/graphics/wgsl/zr_template_forward_environment_only_pbr.wgsl
+  - zircon_runtime/src/graphics/scene/deferred/shaders/deferred_lighting.wgsl
+  - zircon_runtime/src/graphics/scene/renderer/mesh/shaders/fallback_mesh.wgsl
   - zircon_runtime/src/core/framework/render/environment/cubemap_projection.rs
   - zircon_runtime/tests/runtime_environment_cubemap_projection_contract.rs
   - zircon_runtime/src/core/framework/render/image/dimension.rs
   - zircon_runtime/src/asset/assets/texture/descriptor.rs
   - zircon_runtime/src/core/framework/render/image/sampler.rs
   - zircon_runtime/src/asset/assets/texture/upload_support.rs
-  - zircon_runtime/src/graphics/scene/resources/gpu_texture/gpu_texture_resource_from_asset.rs
   - zircon_runtime/tests/runtime_texture_cube_resource_contract.rs
   - zircon_runtime/src/graphics/shader/wgsl/zr_environment.wgsl
   - zircon_runtime/src/graphics/shader/wgsl/zr_environment_core.wgsl
   - zircon_runtime/src/graphics/shader/wgsl/zr_environment_generic_api.wgsl
   - zircon_runtime/src/graphics/shader/wgsl/zr_environment_only_pbr.wgsl
   - zircon_runtime/src/core/framework/render/backend_types.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render_with_pipeline/render_frame_with_pipeline.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/probe_buffer/capacity.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/probe_buffer/report.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/probe_buffer/resources.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/probe_buffer/selection.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/probe_buffer/slot_allocator.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/probe_buffer/tests/resources.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/probe_buffer/tests/slot_allocator.rs
+  - zircon_runtime/src/graphics/runtime/framework/extract/update_stats/base_stats.rs
+  - zircon_runtime/src/graphics/scene/renderer/environment/probe_buffer/capacity.rs
+  - zircon_runtime/src/graphics/scene/renderer/environment/probe_buffer/report.rs
+  - zircon_runtime/src/graphics/scene/renderer/environment/probe_buffer/resources.rs
+  - zircon_runtime/src/graphics/scene/renderer/environment/probe_buffer/selection.rs
+  - zircon_runtime/src/graphics/scene/renderer/probe_buffer/slot_allocator.rs
+  - zircon_runtime/src/graphics/scene/renderer/environment/tests/slot_allocator.rs
   - zircon_runtime/tests/runtime_environment_reflection_probe_product_contract.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/shaders/skybox_procedural.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/overlay/viewport_overlay_renderer/construct/create_sky_pipeline.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/primitives/scene_uniform/from_frame.rs
+  - zircon_runtime/src/graphics/scene/renderer/shaders/skybox_procedural.wgsl
+  - zircon_runtime/src/graphics/scene/overlay/construct/create_sky_pipeline.rs
+  - zircon_runtime/src/graphics/scene/renderer/scene_uniform/from_frame.rs
   - zircon_runtime/src/graphics/scene/resources/gpu_texture/mod.rs
-  - dev/cmft/src/cmft/cubemapfilter.cpp
-  - dev/cmft/src/cmft/image.cpp
-  - dev/cmft/src/cmft/cubemaputils.h
-  - dev/cmftStudio/src/shaders/fs_mesh.shdr
-  - dev/cmftStudio/src/shaders/fs_skybox.sc
-  - dev/cmftStudio/src/shaders/vs_skybox.sc
-  - dev/cmftStudio/src/shaders/utils.shdr
-  - dev/UnrealEngine/Engine/Source/Runtime/Renderer/Private/ReflectionEnvironmentCapture.cpp
-  - dev/UnrealEngine/Engine/Source/Runtime/Renderer/Private/ReflectionEnvironmentRealTimeCapture.cpp
-  - dev/UnrealEngine/Engine/Source/Runtime/Renderer/Private/ReflectionEnvironmentDiffuseIrradiance.cpp
-  - dev/UnrealEngine/Engine/Shaders/Private/ReflectionEnvironmentShaders.usf
-  - dev/UnrealEngine/Engine/Shaders/Private/ReflectionEnvironmentShared.ush
-  - dev/UnrealEngine/Engine/Shaders/Private/MonteCarlo.ush
-  - dev/UnrealEngine/Engine/Shaders/Private/BRDF.ush
-  - dev/UnrealEngine/Engine/Shaders/Private/SkyLightingShared.ush
-  - dev/UnrealEngine/Engine/Source/Developer/TextureCompressor/Private/TextureCompressorModule.cpp
 milestone_status:
   M5: in_progress
   M6: in_progress

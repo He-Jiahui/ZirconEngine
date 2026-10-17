@@ -5,9 +5,7 @@ plan_sources:
   - docs/plans/optimize/zircon_runtime/638/2026-09-01-preallocated-hovered-hit-output.md
 related_code:
   - zircon_runtime/src/core/framework/picking/pointer_hits.rs
-  - zircon_runtime/src/core/framework/picking/pointer_hits/optimization_batch_iz_runtime638_tests.rs
 tests:
-  - zircon_runtime/src/core/framework/picking/pointer_hits/optimization_batch_iz_runtime638_tests.rs
 ---
 
 # Hovered Hit Output Capacity

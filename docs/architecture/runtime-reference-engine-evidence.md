@@ -5,18 +5,6 @@ related_code:
   - docs/architecture/non-network-server-naming-m1.md
   - docs/architecture/hard-cutover-migration-smells-m1.md
   - docs/architecture/large-file-ownership-m1.md
-  - dev/bevy/crates/bevy_app/src/app.rs
-  - dev/bevy/crates/bevy_app/src/plugin.rs
-  - dev/bevy/crates/bevy_app/src/plugin_group.rs
-  - dev/bevy/crates/bevy_app/src/main_schedule.rs
-  - dev/bevy/crates/bevy_ecs/src/schedule/schedule.rs
-  - dev/bevy/crates/bevy_ecs/src/query/state.rs
-  - dev/Fyrox/fyrox-impl/src/engine/mod.rs
-  - dev/Fyrox/fyrox-impl/src/plugin/mod.rs
-  - dev/Fyrox/editor/src/lib.rs
-  - dev/UnrealEngine/Engine/Source/Runtime/Core/Core.Build.cs
-  - dev/UnrealEngine/Engine/Source/Editor/UnrealEd/UnrealEd.Build.cs
-  - dev/UnrealEngine/Engine/Plugins
 implementation_files:
   - docs/architecture/runtime-reference-engine-evidence.md
   - docs/architecture/runtime-architecture-review-m0.md

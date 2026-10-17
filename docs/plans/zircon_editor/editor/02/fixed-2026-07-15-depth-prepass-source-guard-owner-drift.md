@@ -9,9 +9,7 @@ fixing_plan: docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conv
 origin_child_dir: docs/plans/zircon_editor/editor/02
 fixing_child_dir: docs/plans/zircon_runtime/runtime/15
 related_code:
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/mesh_recording.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/tests.rs
+  - zircon_runtime/src/graphics/scene/renderer/context/gpu/mesh_recording.rs
 tests:
   - cargo test -p zircon_runtime --lib graphics::scene::scene_renderer::graph_execution::render_pass_execution_context::gpu::tests::depth_prepass_binds_forward_shadow_receiver_layout_slot --locked -- --exact --nocapture
   - cargo test -p zircon_runtime --lib scene:: --locked

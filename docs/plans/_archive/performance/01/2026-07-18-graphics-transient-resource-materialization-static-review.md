@@ -1,12 +1,8 @@
 ---
 related_code:
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/transient_resource_pool.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/materialization.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/materialization/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/transient_materialization.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/bind_compiled_scene_graph_resources.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/submit_compiled_scene_frame.rs
+  - zircon_runtime/src/graphics/core/render/bind_compiled_scene_graph_resources.rs
+  - zircon_runtime/src/graphics/scene/renderer/core/render/render/render.rs
+  - zircon_runtime/src/graphics/scene/core/render/submit_compiled_scene_frame.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_runtime/render/01-render-graph-rdg-alignment.md

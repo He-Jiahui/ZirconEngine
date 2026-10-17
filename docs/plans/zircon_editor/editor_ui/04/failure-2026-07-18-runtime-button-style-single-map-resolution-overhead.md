@@ -11,7 +11,6 @@ plan_link_mode: child_record_only
 related_code:
   - zircon_runtime/src/ui/style.rs
   - zircon_runtime/src/ui/tests/material_button_style.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector
 ---
 
 # Runtime button style单表解析重复物化

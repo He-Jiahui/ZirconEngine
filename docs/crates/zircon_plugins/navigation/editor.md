@@ -31,7 +31,6 @@ plan_sources:
   - docs/plans/engine-code-structure-convention.md
   - docs/plans/engine-code-review-findings-2026-06.md
 tests:
-  - zircon_plugins/navigation/editor/src/tests.rs
 doc_type: module-detail
 ---
 

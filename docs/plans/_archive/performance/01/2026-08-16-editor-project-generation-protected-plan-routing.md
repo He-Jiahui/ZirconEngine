@@ -2,7 +2,7 @@
 related_code:
   - zircon_editor/src/core/project
   - zircon_editor/src/ui/host/startup
-  - zircon_editor/src/ui/retained_host/app/welcome_session
+  - zircon_editor/src/ui/retained/app/welcome_session
   - zircon_runtime/src/asset/project
   - zircon_runtime/src/asset/pipeline/manager
 plan_sources:

@@ -14,17 +14,9 @@ canonical_parent_owners:
   - docs/plans/optimize/zircon_editor/253-editor-scene-viewport-host-render-product-surface-lifecycle-frame-currentness-multi-viewport-current-working-tree-review.md
   - docs/plans/optimize/zircon_editor/255-editor-interactive-tool-scheduler-resource-lease-input-capture-scene-mode-modal-extension-lifecycle-current-working-tree-review.md
 related_code:
-  - zircon_editor/src/ui/retained_host/app.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle
-  - zircon_editor/src/ui/retained_host/app/callback_wiring
-  - zircon_editor/src/ui/retained_host/app/native_windows
-  - zircon_editor/src/ui/retained_host/host_contract/window
-  - zircon_editor/src/ui/retained_host/host_contract/globals
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer
-  - zircon_editor/src/ui/retained_host/event_bridge.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/common
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge
-  - zircon_editor/src/ui/template_runtime
+  - zircon_editor/src/ui/retained/app/host_lifecycle
+  - zircon_editor/src/ui/retained/app/callback_wiring
+  - zircon_editor/src/ui/retained/app/native_windows
   - zircon_editor/src/ui/binding/core
   - zircon_editor/src/ui/binding_dispatch/editor_event_normalization.rs
   - zircon_editor/src/ui/control

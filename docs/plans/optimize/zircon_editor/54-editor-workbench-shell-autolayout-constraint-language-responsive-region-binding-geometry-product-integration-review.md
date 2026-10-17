@@ -2,32 +2,27 @@
 related_code:
   - zircon_editor/assets/ui/editor/layout/shell_regions.toml
   - zircon_editor/src/ui/workbench/autolayout
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/recompute.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/recompute/presentation.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/recompute/shell/builder.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/recompute/shell/snapshot.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/recompute/shell/template_bridges.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/componentized_window.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/componentized_window/mounted_layout.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/componentized_window/refresh_layout.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/componentized_window/resolution_projection.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/drawer_layout.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/layout_frames.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/responsive_layout.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/toolbar_layout.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/shell_presentation.rs
-  - zircon_editor/src/ui/retained_host/ui/apply_presentation.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle/recompute.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle/recompute/presentation.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle/recompute/shell/builder.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle/recompute/shell/snapshot.rs
+  - zircon_editor/src/ui/retained/dispatch/workbench/componentized_window.rs
+  - zircon_editor/src/ui/retained/dispatch/componentized_window/mounted_layout.rs
+  - zircon_editor/src/ui/retained/dispatch/componentized_window/refresh_layout.rs
+  - zircon_editor/src/ui/dispatch/componentized_window/resolution_projection.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/workbench/drawer_layout.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/workbench/layout_frames.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/workbench/responsive_layout.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/workbench/toolbar_layout.rs
+  - zircon_editor/src/ui/retained/ui/apply_presentation.rs
   - zircon_runtime/src/ui/layout/constraints.rs
   - zircon_runtime_interface/src/ui/layout/constraints.rs
   - zircon_runtime_interface/src/ui/layout/style.rs
 tests:
-  - zircon_editor/src/ui/workbench/autolayout/css_like_constraint/tests.rs
-  - zircon_editor/src/ui/workbench/autolayout/geometry/vertical_bands/tests.rs
   - zircon_editor/src/tests/workbench/layout/editor_layout_contracts/breakpoints.rs
   - zircon_editor/src/tests/workbench/layout/editor_layout_contracts/geometry.rs
-  - zircon_editor/src/tests/workbench/layout/editor_layout_contracts/region_contracts.rs
+  - zircon_editor/src/tests/layout/editor_layout_contracts/region_contracts.rs
   - zircon_editor/tests/integration_contracts/workbench_autolayout.rs
-  - zircon_editor/src/ui/retained_host/ui/tests/workbench_layout_frames.rs
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md
   - docs/plans/optimize/01-cross-report-owner-schema-abi-p0-consolidation-review.md

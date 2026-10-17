@@ -64,7 +64,6 @@ tests:
   - zircon_runtime/src/dynamic_api/tests/session_entry_points.rs
   - zircon_runtime/src/dynamic_api/tests/session_lifecycle.rs
   - zircon_runtime/src/dynamic_api/tests/session_profiles.rs
-  - zircon_runtime/src/script/vm/gameplay_host/tests.rs
   - zircon_runtime/src/script/vm/gameplay_host/tests/combat_lifecycle.rs
   - zircon_runtime/src/script/vm/gameplay_host/tests/component_state.rs
   - zircon_runtime/src/script/vm/gameplay_host/tests/property_animation.rs
@@ -72,7 +71,6 @@ tests:
   - zircon_runtime/src/input/tests/action_mapping.rs
   - zircon_runtime/src/input/tests/input_manager.rs
   - zircon_runtime/src/input/tests/input_manager/frame_state.rs
-  - zircon_runtime/src/core/framework/net/tests.rs
   - zircon_app/src/entry/tests/runtime_entry_source_guards/frame_loop.rs
   - zircon_app/src/entry/tests/runtime_entry_source_guards/host_requests.rs
   - zircon_app/src/entry/tests/runtime_entry_source_guards/runtime_session.rs

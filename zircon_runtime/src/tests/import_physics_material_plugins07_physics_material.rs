@@ -62,7 +62,7 @@ fn borrowed_document_source_performance_release_physics_material() {
     let improvement_percent =
         legacy_p95.saturating_sub(optimized_p95).saturating_mul(100) / legacy_p95.max(1);
     println!(
-        "PERF_RESULT plugins07_borrowed_physics_material_source sample_pairs={SAMPLE_PAIRS} checks_per_sample={CHECKS_PER_SAMPLE} source_bytes={SOURCE_BYTES} legacy_ns={} optimized_ns={} legacy_p95_ns={legacy_p95} optimized_p95_ns={optimized_p95} improvement_percent={improvement_percent} threshold_percent=40 legacy_source_string_allocations_per_sample={CHECKS_PER_SAMPLE} optimized_source_string_allocations_per_sample=0 order=alternating_legacy_first_even legacy_first_pairs=11 optimized_first_pairs=10",
+        "PERF_RESULT plugins07_borrowed_physics_material_source sample_pairs={SAMPLE_PAIRS} checks_per_sample={CHECKS_PER_SAMPLE} source_bytes={SOURCE_BYTES} legacy_ns={} optimized_ns={} legacy_p95_ns={legacy_p95} optimized_p95_ns={optimized_p95} improvement_percent={improvement_percent} threshold_percent=40 legacy_source_string_allocations_per_sample={CHECKS_PER_SAMPLE} optimized_source_string_allocations_per_sample_expected=0 order=alternating_legacy_first_even legacy_first_pairs=11 optimized_first_pairs=10",
         csv(&legacy_samples),
         csv(&optimized_samples),
     );

@@ -1,56 +1,28 @@
 ---
 related_code:
-  - zircon_editor/assets/ui/editor/components/workbench\modules\generated\workbench_generated_bottom_drawer.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\generated\workbench_generated_bottom_panel.zui
   - zircon_editor/assets/ui/editor/host/generated_bottom_body.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/core/index/workbench_module_workspace.zui
-  - zircon_editor/src/ui/template_runtime/builtin/template_documents.rs
-  - zircon_editor/src/ui/template_runtime/builtin/component_descriptors.rs
-  - zircon_editor/src/ui/template_runtime/builtin/workbench_generated_bottom_template_bindings.rs
-  - zircon_editor/src/ui/template_runtime/builtin/workbench_window_template_bindings.rs
-  - zircon_editor/src/ui/host/builtin_views/activity_views/generated_bottom_view_descriptor.rs
-  - zircon_editor/src/ui/host/builtin_views/activity_views/activity_view_descriptors.rs
+  - zircon_editor/src/ui/runtime/builtin/component_descriptors.rs
   - zircon_editor/src/ui/host/builtin_layout/builtin_shell_view_instances.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/host_data.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload_builders/generated_bottom.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_projection.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/mod.rs
-  - zircon_editor/src/ui/retained_host/ui/apply_presentation.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/panes.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench.rs
-  - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node.rs
-  - zircon_editor/src/ui/retained_host/host_contract/window.rs
-  - zircon_editor/src/ui/retained_host/host_contract/profiling_artifacts.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/generated_bottom_panel_navigation.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/generated_bottom_panel_feedback.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/generated_bottom_panel_actions.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/generated_bottom_panel_lifecycle.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/componentized_window.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/module_field_edit.rs
-  - zircon_editor/src/ui/retained_host/workbench_preview_actions.rs
+  - zircon_editor/src/ui/retained/ui/apply_presentation.rs
+  - zircon_editor/src/ui/retained/contract/data/panes.rs
+  - zircon_editor/src/ui/dispatch/workbench/generated_bottom_panel_navigation.rs
+  - zircon_editor/src/ui/dispatch/workbench/generated_bottom_panel_feedback.rs
+  - zircon_editor/src/ui/dispatch/workbench/generated_bottom_panel_actions.rs
+  - zircon_editor/src/ui/dispatch/workbench/generated_bottom_panel_lifecycle.rs
+  - zircon_editor/src/ui/retained/dispatch/workbench/componentized_window.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/workbench/module_field_edit.rs
   - zircon_editor/src/tests/host/retained_generated_bottom_template_body.rs
 implementation_files:
-  - zircon_editor/assets/ui/editor/components/workbench\modules\generated\workbench_generated_bottom_drawer.zui
-  - zircon_editor/assets/ui/editor/components/workbench\modules\generated\workbench_generated_bottom_panel.zui
   - zircon_editor/assets/ui/editor/host/generated_bottom_body.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/core/index/workbench_module_workspace.zui
-  - zircon_editor/src/ui/template_runtime/builtin/template_documents.rs
-  - zircon_editor/src/ui/template_runtime/builtin/component_descriptors.rs
-  - zircon_editor/src/ui/template_runtime/builtin/workbench_generated_bottom_template_bindings.rs
-  - zircon_editor/src/ui/host/builtin_views/activity_views/generated_bottom_view_descriptor.rs
+  - zircon_editor/src/ui/runtime/builtin/component_descriptors.rs
   - zircon_editor/src/ui/host/builtin_layout/builtin_shell_view_instances.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload_builders/generated_bottom.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_projection.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/mod.rs
-  - zircon_editor/src/ui/retained_host/ui/apply_presentation.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/panes.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/generated_bottom_panel_actions.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/generated_bottom_panel_lifecycle.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/generated_bottom_panel_navigation.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/generated_bottom_panel_feedback.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/componentized_window.rs
+  - zircon_editor/src/ui/retained/ui/apply_presentation.rs
+  - zircon_editor/src/ui/retained/contract/data/panes.rs
+  - zircon_editor/src/ui/dispatch/workbench/generated_bottom_panel_actions.rs
+  - zircon_editor/src/ui/dispatch/workbench/generated_bottom_panel_lifecycle.rs
+  - zircon_editor/src/ui/dispatch/workbench/generated_bottom_panel_navigation.rs
+  - zircon_editor/src/ui/dispatch/workbench/generated_bottom_panel_feedback.rs
+  - zircon_editor/src/ui/retained/dispatch/workbench/componentized_window.rs
   - zircon_editor/src/tests/host/retained_generated_bottom_template_body.rs
 plan_sources:
   - user: 2026-06-03 componentized editor UI prototype and native retained/Taffy replication request

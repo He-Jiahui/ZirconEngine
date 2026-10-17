@@ -7,16 +7,7 @@ related_records:
   - docs/plans/astra/features/runtime/680-20260911-runtime-ui-optimization-batch-completion.md
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/package_feature_definitions.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_definition_collection.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_definition_collection/package.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/runtime_feature_definitions/merge.rs
 tests:
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/package_feature_definitions/capacity_tests.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_definition_collection/package/capacity_tests.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_definition_collection/capacity_tests.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/runtime_feature_definitions/merge/capacity_tests.rs
-  - tools/tests/test_runtime200_package_feature_definition_streaming_performance_contract.py
 ---
 
 # Runtime800 · package feature-definition streaming

@@ -25,9 +25,7 @@ related_code:
   - zircon_runtime/src/dynamic_api/camera_controller.rs
   - zircon_runtime/src/dynamic_api/session
   - zircon_runtime/src/script/vm/gameplay_host/transform.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/camera_loop.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record
-  - zircon_runtime/src/graphics/scene/scene_renderer/temporal/velocity
+  - zircon_runtime/src/graphics/runtime/framework/extract/submit/camera_loop.rs
   - zircon_plugins/ai/runtime/src/plugin/registration.rs
 tests:
   - zircon_runtime/src/asset/tests/assets/scene/camera.rs

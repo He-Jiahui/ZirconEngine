@@ -11,7 +11,6 @@ plan_link_mode: child_record_only
 related_code:
   - zircon_runtime/src/core/framework/foundation/config_manager_error.rs
   - zircon_runtime/src/core/framework/foundation/config_manager.rs
-  - zircon_runtime/src/foundation/tests.rs
 tests:
   - python -B -m unittest tools.tests.test_frameworks_01_contracts_kernel_test_boundary -v
   - .codex/skills/zircon-dev/scripts/validate-matrix.ps1 -Package zircon_runtime -LibTests -TestFilter foundation_registry_services_do_not_retain_the_runtime_root -VerboseOutput

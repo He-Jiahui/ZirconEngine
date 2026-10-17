@@ -3,7 +3,6 @@ related_code:
   - zircon_runtime_interface/src/runtime_api/abi/api_table.rs
   - zircon_runtime_interface/src/lib.rs
   - zircon_runtime_interface/src/ui/surface/render/text_geometry/source_map
-  - zircon_runtime_interface/src/ui/surface/render/text_geometry/source_map_tests.rs
   - zircon_runtime/src/dynamic_api/exports.rs
   - zircon_runtime/src/dynamic_api/session.rs
   - zircon_runtime/src/dynamic_api/session/ffi.rs

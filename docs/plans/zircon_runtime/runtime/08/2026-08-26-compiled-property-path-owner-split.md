@@ -20,8 +20,6 @@ plan_sources:
   - docs/plans/zircon_runtime/runtime/08/failure-2026-07-22-scene-property-path-compiled-dispatch.md
 tests:
   - zircon_runtime/src/scene/tests/property_paths/read_paths.rs::compiled_sequence_apply_keeps_path_resolution_and_string_dispatch_at_compile_boundary
-  - zircon_runtime/src/scene/world/compiled_binding/tests.rs::compiled_scene_property_writer_stable_access_avoids_text_and_entry_work
-  - zircon_runtime/src/scene/world/compiled_binding/tests.rs::compiled_scene_property_writer_scales_stable_access_without_text_work
   - rustfmt --edition 2021 --check
   - git diff --check
 doc_type: milestone-detail

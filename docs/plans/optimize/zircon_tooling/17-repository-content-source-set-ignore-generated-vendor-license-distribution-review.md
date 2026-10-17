@@ -19,13 +19,8 @@ related_code:
   - examples/vampire/assets/models/kenney_graveyard/KENNEY_GRAVEYARD_LICENSE.txt
   - zircon_plugins/navigation/native/NOTICE.md
   - zircon_plugins/navigation/native/vendor/recastnavigation/License.txt
-  - zircon_plugins/rendering/features/contact_shadow/runtime/.zircon-cache/shader_variants/v1/11/1171588ec74b24db4d0fa1713feaa266d70f856d5a50466b4d91de94ae01a58e.meta
-  - zircon_plugins/rendering/features/contact_shadow/runtime/.zircon-cache/shader_variants/v1/11/1171588ec74b24db4d0fa1713feaa266d70f856d5a50466b4d91de94ae01a58e.wgsl.zst
 tests:
   - tools/tests/mvp-product-inputs.Tests.ps1
-  - tools/session_coordinator/tests/test_baselines.py
-  - tools/session_coordinator/tests/test_artifact_receipts.py
-  - tools/session_coordinator/tests/test_manifest_retention.py
 plan_sources:
   - docs/plans/optimize/01-cross-report-owner-schema-abi-p0-consolidation-review.md
   - docs/plans/optimize/zircon_app/03-woc-product-role-host-zrvm-transaction-state-client-server-integration-review.md

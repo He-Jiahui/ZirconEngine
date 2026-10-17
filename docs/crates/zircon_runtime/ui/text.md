@@ -15,8 +15,8 @@ related_code:
   - zircon_runtime/src/ui/text/resolved_layout.rs
   - zircon_runtime/src/ui/text/measure_cache.rs
   - zircon_runtime/src/ui/surface/render/text_prewarm.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render/text_advances.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/render/text_advances.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/sdf_render.rs
 implementation_files:
   - zircon_runtime/src/text/layout_session.rs
   - zircon_runtime/src/text/render_state.rs

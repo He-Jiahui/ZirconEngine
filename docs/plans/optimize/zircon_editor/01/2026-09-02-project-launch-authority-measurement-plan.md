@@ -11,7 +11,6 @@ implementation_files:
   - zircon_editor/src/ui/host/editor_manager_project_session.rs
 tests:
   - zircon_editor/src/core/project/tests/preflight.rs
-  - zircon_editor/src/ui/host/editor_manager_project_session/tests.rs
   - zircon_editor/src/tests/ui/boundary/host_cutover.rs
 ---
 

@@ -41,36 +41,26 @@ related_code:
   - zircon_runtime/src/asset/project/manager/meta_path_for_source.rs
   - zircon_runtime/src/asset/project/manager/is_meta_sidecar.rs
   - zircon_runtime/src/asset/project/manager/load_or_create_meta.rs
-  - zircon_editor/src/ui/host/editor_asset_manager/api.rs
-  - zircon_editor/src/ui/host/editor_asset_manager/catalog.rs
-  - zircon_editor/src/ui/host/editor_asset_manager/records.rs
-  - zircon_editor/src/ui/host/editor_asset_manager/preview.rs
-  - zircon_editor/src/ui/host/editor_asset_manager/manager/mod.rs
-  - zircon_editor/src/ui/host/editor_asset_manager/handle.rs
   - zircon_runtime/src/asset/pipeline/manager/mod.rs
   - zircon_runtime/src/asset/pipeline/manager/asset_manager/mod.rs
   - zircon_runtime/src/asset/pipeline/manager/asset_manager/asset_manager.rs
   - zircon_runtime/src/asset/pipeline/manager/asset_manager/handle.rs
   - zircon_runtime/src/asset/pipeline/manager/driver/mod.rs
   - zircon_runtime/src/asset/pipeline/manager/driver/asset_io_driver.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/mod.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/project_asset_manager.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/construction.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/loading/mod.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/loading/load_imported_asset.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/loading/load_asset.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/loading/acquire_asset.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/loading/load_typed.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/loading/acquire_typed.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/loading/ensure_resident.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/runtime.rs
+  - zircon_runtime/src/asset/pipeline/manager/assets/loading/mod.rs
+  - zircon_runtime/src/asset/pipeline/manager/assets/loading/load_imported_asset.rs
+  - zircon_runtime/src/asset/pipeline/manager/assets/loading/load_asset.rs
+  - zircon_runtime/src/asset/pipeline/manager/assets/loading/acquire_asset.rs
+  - zircon_runtime/src/asset/pipeline/manager/assets/loading/load_typed.rs
+  - zircon_runtime/src/asset/pipeline/manager/assets/loading/acquire_typed.rs
+  - zircon_runtime/src/asset/pipeline/manager/assets/loading/ensure_resident.rs
   - zircon_runtime/src/asset/pipeline/manager/service_contracts/mod.rs
-  - zircon_runtime/src/asset/pipeline/manager/service_contracts/asset_manager_contract.rs
-  - zircon_runtime/src/asset/pipeline/manager/service_contracts/resource_manager_contract.rs
+  - zircon_runtime/src/asset/manager/service_contracts/asset_manager_contract.rs
+  - zircon_runtime/src/asset/manager/service_contracts/resource_manager_contract.rs
   - zircon_runtime/src/asset/pipeline/manager/resource_sync/mod.rs
   - zircon_runtime/src/asset/pipeline/manager/resource_sync/project_locators.rs
-  - zircon_runtime/src/asset/pipeline/manager/resource_sync/clear_removed_project_resources.rs
-  - zircon_runtime/src/asset/pipeline/manager/resource_sync/register_project_resource.rs
+  - zircon_runtime/src/asset/resource_sync/clear_removed_project_resources.rs
+  - zircon_runtime/src/asset/manager/resource_sync/register_project_resource.rs
   - zircon_runtime/src/asset/pipeline/manager/resource_sync/store_runtime_payload.rs
   - zircon_runtime/src/asset/pipeline/manager/records/mod.rs
   - zircon_runtime/src/asset/pipeline/manager/records/asset_pipeline_info.rs
@@ -130,30 +120,20 @@ related_code:
   - zircon_runtime/src/scene/module/level_display_name.rs
   - zircon_runtime/src/scene/module/core_error.rs
   - zircon_runtime/src/graphics/scene/resources/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/overlay/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/overlay/viewport_overlay_renderer/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/overlay/passes/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/overlay/icons/viewport_icon_atlas/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/primitives/mod.rs
+  - zircon_runtime/src/graphics/scene/renderer/overlay/passes/mod.rs
+  - zircon_runtime/src/graphics/scene/overlay/icons/viewport_icon_atlas/mod.rs
+  - zircon_runtime/src/graphics/scene/renderer/primitives/mod.rs
   - zircon_runtime/src/graphics/mod.rs
   - zircon_runtime/src/graphics/types/mod.rs
-  - zircon_runtime/src/graphics/backend/render_backend/mod.rs
   - zircon_editor/src/core/editing/command.rs
   - zircon_editor/src/core/editing/intent.rs
   - zircon_editor/src/ui/workbench/project/asset_workspace_state.rs
   - zircon_editor/src/ui/workbench/snapshot/mod.rs
   - zircon_editor/src/ui/workbench/project/mod.rs
   - zircon_editor/src/ui/host/resource_access.rs
-  - zircon_editor/src/ui/retained_host/app.rs
-  - zircon_editor/src/ui/retained_host/event_bridge.rs
-  - zircon_editor/src/ui/retained_host/ui.rs
   - zircon_editor/assets/ui/editor/assets_activity.zui
   - zircon_editor/assets/ui/editor/asset_browser.zui
-  - zircon_editor/assets/ui/editor/workbench_menu_chrome.zui
-  - zircon_editor/src/ui/retained_host/app/viewport.rs
+  - zircon_editor/src/ui/retained/app/viewport.rs
 implementation_files:
   - zircon_runtime_interface/src/resource/mod.rs
   - zircon_runtime_interface/src/resource/locator.rs
@@ -196,36 +176,26 @@ implementation_files:
   - zircon_runtime/src/asset/project/manager/meta_path_for_source.rs
   - zircon_runtime/src/asset/project/manager/is_meta_sidecar.rs
   - zircon_runtime/src/asset/project/manager/load_or_create_meta.rs
-  - zircon_editor/src/ui/host/editor_asset_manager/api.rs
-  - zircon_editor/src/ui/host/editor_asset_manager/catalog.rs
-  - zircon_editor/src/ui/host/editor_asset_manager/records.rs
-  - zircon_editor/src/ui/host/editor_asset_manager/preview.rs
-  - zircon_editor/src/ui/host/editor_asset_manager/manager/mod.rs
-  - zircon_editor/src/ui/host/editor_asset_manager/handle.rs
   - zircon_runtime/src/asset/pipeline/manager/mod.rs
   - zircon_runtime/src/asset/pipeline/manager/asset_manager/mod.rs
   - zircon_runtime/src/asset/pipeline/manager/asset_manager/asset_manager.rs
   - zircon_runtime/src/asset/pipeline/manager/asset_manager/handle.rs
   - zircon_runtime/src/asset/pipeline/manager/driver/mod.rs
   - zircon_runtime/src/asset/pipeline/manager/driver/asset_io_driver.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/mod.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/project_asset_manager.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/construction.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/loading/mod.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/loading/load_imported_asset.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/loading/load_asset.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/loading/acquire_asset.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/loading/load_typed.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/loading/acquire_typed.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/loading/ensure_resident.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/runtime.rs
+  - zircon_runtime/src/asset/pipeline/manager/assets/loading/mod.rs
+  - zircon_runtime/src/asset/pipeline/manager/assets/loading/load_imported_asset.rs
+  - zircon_runtime/src/asset/pipeline/manager/assets/loading/load_asset.rs
+  - zircon_runtime/src/asset/pipeline/manager/assets/loading/acquire_asset.rs
+  - zircon_runtime/src/asset/pipeline/manager/assets/loading/load_typed.rs
+  - zircon_runtime/src/asset/pipeline/manager/assets/loading/acquire_typed.rs
+  - zircon_runtime/src/asset/pipeline/manager/assets/loading/ensure_resident.rs
   - zircon_runtime/src/asset/pipeline/manager/service_contracts/mod.rs
-  - zircon_runtime/src/asset/pipeline/manager/service_contracts/asset_manager_contract.rs
-  - zircon_runtime/src/asset/pipeline/manager/service_contracts/resource_manager_contract.rs
+  - zircon_runtime/src/asset/manager/service_contracts/asset_manager_contract.rs
+  - zircon_runtime/src/asset/manager/service_contracts/resource_manager_contract.rs
   - zircon_runtime/src/asset/pipeline/manager/resource_sync/mod.rs
   - zircon_runtime/src/asset/pipeline/manager/resource_sync/project_locators.rs
-  - zircon_runtime/src/asset/pipeline/manager/resource_sync/clear_removed_project_resources.rs
-  - zircon_runtime/src/asset/pipeline/manager/resource_sync/register_project_resource.rs
+  - zircon_runtime/src/asset/resource_sync/clear_removed_project_resources.rs
+  - zircon_runtime/src/asset/manager/resource_sync/register_project_resource.rs
   - zircon_runtime/src/asset/pipeline/manager/resource_sync/store_runtime_payload.rs
   - zircon_runtime/src/asset/pipeline/manager/records/mod.rs
   - zircon_runtime/src/asset/pipeline/manager/records/asset_pipeline_info.rs
@@ -283,11 +253,7 @@ implementation_files:
   - zircon_runtime/src/scene/module/level_display_name.rs
   - zircon_runtime/src/scene/module/core_error.rs
   - zircon_runtime/src/graphics/scene/resources/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/overlay/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/primitives/mod.rs
+  - zircon_runtime/src/graphics/scene/renderer/primitives/mod.rs
   - zircon_runtime/src/graphics/types/mod.rs
   - zircon_editor/src/core/editing/command.rs
   - zircon_editor/src/core/editing/intent.rs
@@ -295,10 +261,6 @@ implementation_files:
   - zircon_editor/src/ui/workbench/snapshot/mod.rs
   - zircon_editor/src/ui/workbench/project/mod.rs
   - zircon_editor/src/ui/host/resource_access.rs
-  - zircon_editor/src/ui/retained_host/app.rs
-  - zircon_editor/src/ui/retained_host/event_bridge.rs
-  - zircon_editor/src/ui/retained_host/ui.rs
-  - zircon_editor/assets/ui/editor/workbench_menu_chrome.zui
   - zircon_runtime_interface/src/resource/resource_id.rs
   - zircon_runtime/src/asset/tests/pipeline/manager.rs
   - zircon_editor/src/tests/host/resource_access/mod.rs
@@ -316,7 +278,6 @@ plan_sources:
   - .codex/plans/编辑器资源管理器双模式 UI 接线计划.md
   - .codex/plans/Bevy-Style Asset Stack Completion Plan.md
 tests:
-  - zircon_runtime/src/core/resource/tests.rs
   - zircon_runtime/src/asset/tests/facade.rs
   - zircon_runtime/src/asset/tests/project/manager.rs
   - zircon_runtime/src/asset/tests/project/package_assets.rs
@@ -325,11 +286,9 @@ tests:
   - zircon_runtime_interface/src/tests/resource_contracts.rs
   - zircon_runtime/src/asset/tests/project/manifest.rs
   - zircon_runtime/src/asset/tests/project/manager.rs
-  - zircon_editor/src/tests/host/asset_metadata/runtime_sidecar_isolation.rs
   - zircon_editor/src/tests/editing/asset_workspace.rs
   - zircon_runtime/src/asset/tests/pipeline/manager.rs
   - zircon_runtime/src/asset/tests/watcher.rs
-  - zircon_scene/src/lib.rs
   - zircon_runtime/src/graphics/tests/project_render.rs
   - zircon_editor/src/tests/workbench/project/document_roundtrip.rs
   - zircon_editor/src/tests/workbench/project/renderable_template.rs
@@ -337,12 +296,9 @@ tests:
   - zircon_editor/src/tests/editing/import.rs
   - zircon_editor/src/tests/host/asset_manager_boundary/mod.rs
   - zircon_editor/src/tests/host/resource_access/mod.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/asset/direct_dispatch.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/asset/template_bridge.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/layout/mod.rs
+  - zircon_editor/src/tests/host/callbacks/asset/direct_dispatch.rs
   - zircon_editor/src/tests/host/retained_event_bridge/mod.rs
   - zircon_editor/src/tests/host/retained_asset_refresh/mod.rs
-  - zircon_editor/src/tests/host/retained_builtin_assets.rs
   - cargo test -p zircon_runtime_interface --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-interface-boundary --message-format short --color never
   - cargo test -p zircon_runtime --lib core::resource --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-interface-boundary --message-format short --color never
   - cargo test -p zircon_runtime_interface --locked resource

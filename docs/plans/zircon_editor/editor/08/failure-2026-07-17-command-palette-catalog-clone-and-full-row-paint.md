@@ -13,8 +13,7 @@ related_code:
   - zircon_editor/src/core/commands/palette.rs
   - zircon_editor/src/core/commands/registry.rs
   - zircon_editor/src/tests/commands/descriptor_when.rs
-  - zircon_editor/src/ui/retained_host/app/command_palette_actions.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_command_palette/commands.rs
+  - zircon_editor/src/ui/retained/app/command_palette_actions.rs
   - tools/tests/test_editor08_command_palette_query_contract.py
   - tools/tests/test_editorui06_command_palette_paged_keyboard_contract.py
 ---

@@ -6,10 +6,6 @@ plan_sources:
   - docs/plans/optimize/zircon_editor/145-editor-ui-asset-hud-widget-binding-theme-icon-accessibility-menu-flow-font-atlas-authoring-current-source-review.md
   - docs/plans/astra/performance/01-bounded-hotpaths.md
 related_code:
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_settings_window.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_settings_window/commands.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_settings_window/scrollbars.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_settings_window/visible_rows.rs
 tests:
   - tools/tests/test_editor_settings_window_mutation_wiring_contract.py
 ---

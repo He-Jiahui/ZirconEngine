@@ -14,7 +14,7 @@ related_code:
   - zircon_runtime/src/core/runtime/handle/core_handle.rs
   - zircon_runtime/src/core/runtime/handle/activation.rs
   - zircon_runtime/src/core/runtime/handle/activation/batch.rs
-  - zircon_runtime/src/core/runtime/tests/activation/behavior/deactivation/veto_atomicity.rs
+  - zircon_runtime/src/core/runtime/tests/behavior/deactivation/veto_atomicity.rs
 tests:
   - cargo test -p zircon_runtime --lib param_ref_compile_ --locked -- --nocapture --test-threads=1
   - cargo test -p zircon_runtime --lib runtime_shutdown_active_module_order_tracks_successful_reactivation --locked -- --nocapture --test-threads=1

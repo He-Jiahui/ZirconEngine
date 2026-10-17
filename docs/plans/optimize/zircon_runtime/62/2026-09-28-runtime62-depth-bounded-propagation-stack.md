@@ -5,7 +5,6 @@ runtime: Runtime62
 gate: RSH-G24
 related_code:
   - zircon_runtime/src/scene/world/derived_state.rs
-  - zircon_runtime/src/scene/world/derived_state_scale_profile.rs
   - zircon_runtime/src/scene/tests/derived_state/hierarchy_rebuild.rs
 tests:
   - derived_propagation_preserves_nested_branch_values_and_dirty_scope

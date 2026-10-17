@@ -10,7 +10,6 @@ plan_sources:
 reference_sources:
   - dev/godot/editor/settings/editor_settings.cpp
 tests:
-  - zircon_runtime/src/foundation/runtime/config_manager_tests.rs
   - current-source Windows zircon_runtime foundation tests pending
 doc_type: implementation-evidence
 status: static_complete_dynamic_pending

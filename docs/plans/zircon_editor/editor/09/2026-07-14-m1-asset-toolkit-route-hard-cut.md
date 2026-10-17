@@ -13,7 +13,7 @@ related_code:
   - zircon_editor/src/ui/workbench/project/asset_workspace_state.rs
 tests:
   - zircon_editor/src/tests/editor_asset_type_registry/toolkit_route.rs
-  - zircon_editor/src/tests/editor_event/runtime/integration.rs
+  - zircon_editor/src/tests/editor_event/runtime/integration/mod.rs
 ---
 
 # Editor09 M1.3 资产工具包 typed route/source resolution 硬切

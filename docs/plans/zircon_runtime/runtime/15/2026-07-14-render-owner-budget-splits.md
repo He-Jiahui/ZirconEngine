@@ -1,36 +1,20 @@
 ---
 related_code:
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/mesh_command_lists.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/mesh_recording.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command_list/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command_list/tests/cache.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command_list/tests/advanced_materials.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/sprite_stage_selection.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/pipeline_resource_usage.rs
+  - zircon_runtime/src/graphics/scene/renderer/context/gpu/mesh_command_lists.rs
+  - zircon_runtime/src/graphics/scene/renderer/context/gpu/mesh_recording.rs
+  - zircon_runtime/src/graphics/scene/renderer/core/render/render/render.rs
+  - zircon_runtime/src/graphics/scene/core/render/render/sprite_stage_selection.rs
+  - zircon_runtime/src/graphics/scene/core/render/render/pipeline_resource_usage.rs
 implementation_files:
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/mesh_recording.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command_list/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command_list/tests/cache.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command_list/tests/advanced_materials.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/sprite_stage_selection.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/pipeline_resource_usage.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_pass_gpu_context_mesh_command_lists.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/render_mesh_draw_command_list.rs
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/render_structure.rs
+  - zircon_runtime/src/graphics/scene/renderer/context/gpu/mesh_recording.rs
+  - zircon_runtime/src/graphics/scene/renderer/core/render/render/render.rs
+  - zircon_runtime/src/graphics/scene/core/render/render/sprite_stage_selection.rs
+  - zircon_runtime/src/graphics/scene/core/render/render/pipeline_resource_usage.rs
 plan_sources:
   - docs/plans/engine-code-structure-convention.md
   - docs/plans/engine-code-review-findings-2026-06.md
   - docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md
 tests:
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_pass_gpu_context_mesh_command_lists.rs::runtime_15_render_pass_gpu_context_mesh_command_lists_are_child_owner
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/render_mesh_draw_command_list.rs::runtime_15_mesh_draw_command_list_is_folder_backed
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/render_structure.rs::review_f16_compiled_scene_render_path_uses_split_owners
   - rustfmt --edition 2021 --check
   - git diff --check
 doc_type: milestone-detail

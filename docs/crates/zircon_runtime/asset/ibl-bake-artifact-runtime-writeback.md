@@ -4,19 +4,19 @@ related_code:
   - zircon_runtime/src/asset/artifact/ibl_bake_artifact_runtime_dispatch.rs
   - zircon_runtime/src/asset/artifact/ibl_bake_artifact_runtime_writeback.rs
   - zircon_runtime/src/asset/artifact/ibl_bake_artifact_cache.rs
-  - zircon_runtime/src/core/framework/render/environment/ibl_bake_artifact_readback.rs
+  - zircon_runtime/src/core/render/environment/ibl_bake_artifact_readback.rs
   - zircon_runtime/src/core/framework/render/environment/ibl_bake_artifact_blob.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_runtime_writeback.rs
+  - zircon_runtime/src/graphics/scene/environment/ibl_bake_runtime_writeback.rs
   - zircon_runtime/tests/runtime_environment_ibl_bake_artifact_contract.rs
 implementation_files:
   - zircon_runtime/src/asset/artifact/ibl_bake_artifact_asset_derived.rs
   - zircon_runtime/src/asset/artifact/ibl_bake_artifact_runtime_dispatch.rs
   - zircon_runtime/src/asset/artifact/ibl_bake_artifact_runtime_writeback.rs
   - zircon_runtime/src/asset/artifact/ibl_bake_artifact_cache.rs
-  - zircon_runtime/src/core/framework/render/environment/ibl_bake_artifact_readback.rs
+  - zircon_runtime/src/core/render/environment/ibl_bake_artifact_readback.rs
   - zircon_runtime/tests/runtime_environment_ibl_bake_artifact_contract.rs
   - zircon_runtime/tests/runtime_environment_ibl_bake_asset_derived_contract.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_runtime_writeback.rs
+  - zircon_runtime/src/graphics/scene/environment/ibl_bake_runtime_writeback.rs
 plan_sources:
   - docs/plans/zircon_runtime/render/11-environment-lighting.md
   - docs/plans/zircon_runtime/shader/06-environment-ibl-and-pbr-correctness.md

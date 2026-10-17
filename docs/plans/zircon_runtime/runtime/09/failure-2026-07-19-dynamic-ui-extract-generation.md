@@ -17,8 +17,7 @@ related_code:
   - zircon_runtime/src/scene/world/generation.rs
   - zircon_runtime/src/core/framework/render/framework.rs
   - zircon_runtime/src/graphics/types/viewport_render_frame.rs
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_build_runtime_overlay_ui.rs
-  - zircon_editor/src/ui/retained_host/viewport/world_space_ui.rs
+  - zircon_editor/src/ui/retained/viewport/world_space_ui.rs
 tests:
   - stable UI extract build/visit counters
   - shared Arc identity across Runtime and Editor submission

@@ -4,7 +4,6 @@ related_code:
   - zircon_editor/src/core/jobs
   - zircon_editor/src/core/notifications
   - zircon_editor/src/ui/host/asset_editor_sessions
-  - zircon_editor/src/ui/host/editor_asset_manager
   - zircon_editor/src/ui/asset_editor/preview
   - zircon_runtime/src/asset
 related_plans:

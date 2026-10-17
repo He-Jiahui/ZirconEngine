@@ -192,7 +192,8 @@ fn complete_world_replacement_keeps_original_system_state_rejected() {
 }
 
 struct ExclusiveWorldParam;
-impl crate::scene::ecs::SystemParam for ExclusiveWorldParam {
+// SAFETY: Registers conservative access and returns the original exclusive World grant.
+unsafe impl crate::scene::ecs::SystemParam for ExclusiveWorldParam {
     type State = ();
     type Item<'world> = &'world mut World;
 

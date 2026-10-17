@@ -4,15 +4,13 @@ related_code:
   - zircon_runtime/crates/zr_rhi_wgpu
   - zircon_runtime/src/core/framework/render/backend_types/capability.rs
   - zircon_runtime/src/core/framework/render/solari
-  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/ray_tracing.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/capability_summary
+  - zircon_runtime/src/graphics/feature/builtin/feature_descriptors/ray_tracing.rs
   - zircon_runtime/src/graphics/solari_runtime_provider
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/advanced_rendering.rs
+  - zircon_runtime/src/plugin/runtime/builtin_catalog/advanced_rendering.rs
   - zircon_plugins/rendering/features/ray_tracing_policy
   - zircon_plugins/solari
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/scene_representation/trace_capability_graph
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/dispatch_probe_trace_tiles.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/shaders/trace_probe_tiles.wgsl
+  - zircon_plugins/hybrid_gi/runtime/src/gi/execute/dispatch_probe_trace_tiles.rs
+  - zircon_plugins/hybrid_gi/runtime/src/gi/renderer/shaders/trace_probe_tiles.wgsl
   - zircon_plugins/sound/runtime/src/ray_tracing
 tests:
   - zircon_runtime/crates/zr_rhi/src/tests
@@ -21,7 +19,6 @@ tests:
   - zircon_runtime/src/graphics/tests/pipeline_compile/validation_core.rs
   - zircon_runtime/src/graphics/tests/render_framework_bridge/advanced_providers.rs
   - zircon_runtime/src/graphics/tests/render_product_solari.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/scene_representation/trace_capability_graph/tests.rs
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md
   - docs/plans/optimize/01-cross-report-owner-schema-abi-p0-consolidation-review.md

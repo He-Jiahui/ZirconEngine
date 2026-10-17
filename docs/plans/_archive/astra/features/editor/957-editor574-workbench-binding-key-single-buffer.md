@@ -8,9 +8,7 @@ related_records:
   - docs/plans/astra/features/editor/956-editor573-ui-asset-conflict-buffer-reuse.md
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
-  - zircon_editor/src/ui/template_runtime/builtin/workbench_extension_module_template_bindings/install.rs
 tests:
-  - zircon_editor/src/ui/template_runtime/builtin/workbench_extension_module_template_bindings/install.rs
 ---
 
 # Editor957 Editor574 Workbench-Binding Key Single Buffer

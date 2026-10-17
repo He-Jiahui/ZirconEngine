@@ -2,8 +2,8 @@
 related_code:
   - zircon_runtime/src/core/framework/render/environment/ibl_bake_artifact.rs
   - zircon_runtime/src/core/framework/render/environment/ibl_bake_artifact_blob.rs
-  - zircon_runtime/src/core/framework/render/environment/ibl_bake_artifact_readback.rs
-  - zircon_runtime/src/core/framework/render/environment/ibl_bake_artifact_resolution.rs
+  - zircon_runtime/src/core/render/environment/ibl_bake_artifact_readback.rs
+  - zircon_runtime/src/core/render/environment/ibl_bake_artifact_resolution.rs
   - zircon_runtime/src/core/framework/render/environment/rgba16f.rs
   - zircon_runtime/src/core/framework/render/environment/source_cubemap_artifact.rs
   - zircon_runtime/src/asset/assets/texture/zcube.rs
@@ -13,14 +13,14 @@ related_code:
   - zircon_runtime/src/asset/artifact/ibl_bake_artifact_cache.rs
   - zircon_runtime/src/asset/artifact/ibl_bake_artifact_runtime_dispatch.rs
   - zircon_runtime/src/asset/artifact/ibl_bake_artifact_runtime_writeback.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_runtime_writeback.rs
+  - zircon_runtime/src/graphics/scene/environment/ibl_bake_runtime_writeback.rs
   - zircon_runtime/src/core/framework/render/environment/source_cubemap.rs
-  - zircon_runtime/src/core/framework/render/environment/source_irradiance_cubemap.rs
+  - zircon_runtime/src/core/render/environment/source_irradiance_cubemap.rs
 implementation_files:
   - zircon_runtime/src/core/framework/render/environment/ibl_bake_artifact.rs
   - zircon_runtime/src/core/framework/render/environment/ibl_bake_artifact_blob.rs
-  - zircon_runtime/src/core/framework/render/environment/ibl_bake_artifact_readback.rs
-  - zircon_runtime/src/core/framework/render/environment/ibl_bake_artifact_resolution.rs
+  - zircon_runtime/src/core/render/environment/ibl_bake_artifact_readback.rs
+  - zircon_runtime/src/core/render/environment/ibl_bake_artifact_resolution.rs
   - zircon_runtime/src/core/framework/render/environment/rgba16f.rs
   - zircon_runtime/src/core/framework/render/environment/source_cubemap_artifact.rs
   - zircon_runtime/src/asset/assets/texture/zcube.rs
@@ -28,7 +28,7 @@ implementation_files:
   - zircon_runtime/src/asset/artifact/ibl_bake_artifact_cache.rs
   - zircon_runtime/src/asset/artifact/ibl_bake_artifact_runtime_dispatch.rs
   - zircon_runtime/src/asset/artifact/ibl_bake_artifact_runtime_writeback.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_runtime_writeback.rs
+  - zircon_runtime/src/graphics/scene/environment/ibl_bake_runtime_writeback.rs
   - zircon_runtime/tests/runtime_environment_ibl_bake_artifact_contract.rs
   - zircon_runtime/tests/runtime_environment_ibl_bake_asset_derived_contract.rs
   - zircon_runtime/tests/runtime_texture_zcube_source_cubemap_contract.rs

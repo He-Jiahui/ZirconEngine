@@ -15,10 +15,7 @@ supersedes_currentness_of:
   - docs/plans/optimize/zircon_editor/112-editor-weather-climate-time-of-day-wind-precipitation-cloud-atmosphere-current-source-review.md
   - docs/plans/optimize/zircon_editor/159-editor-weather-climate-time-of-day-wind-precipitation-cloud-atmosphere-environment-current-source-review.md
 related_code:
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/world/workbench_extension_weather_editor_workspace.zui
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation/specs/world_building/volume_and_weather.rs
-  - zircon_editor/src/ui/template_runtime/builtin/workbench_extension_module_template_bindings/world_building.rs
+  - zircon_editor/src/ui/dispatch/specs/world_building/volume_and_weather.rs
   - zircon_editor/src/core/asset/type_registry
   - zircon_runtime/src/asset/assets/scene
   - zircon_runtime/src/scene/world/render.rs
@@ -27,7 +24,6 @@ related_code:
   - zircon_runtime/src/core/runtime/time.rs
   - zircon_runtime/src/core/framework/render/environment
   - zircon_runtime/src/core/framework/render/advanced_lighting/volumetric.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment
   - zircon_plugins/rendering/features/volumetric_fog
   - zircon_plugins/particles
   - zircon_plugins/terrain
@@ -39,12 +35,8 @@ tests:
   - zircon_runtime/src/core/framework/time
   - zircon_runtime/src/scene/world_time
   - zircon_runtime/src/core/framework/render/environment
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/realtime_ibl_wgpu_recorder/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/realtime_ibl_runtime/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/realtime_ibl_time_slice/tests.rs
   - zircon_plugins/particles/runtime/src/tests
-  - zircon_plugins/rendering/features/volumetric_fog/runtime/src/tests.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation/specs/world_building/volume_and_weather.rs
+  - zircon_editor/src/ui/dispatch/specs/world_building/volume_and_weather.rs
 plan_sources:
   - docs/plans/optimize/zircon_editor/38-weather-climate-time-of-day-wind-precipitation-cloud-atmosphere-environment-authoring-review.md
   - docs/plans/optimize/zircon_editor/112-editor-weather-climate-time-of-day-wind-precipitation-cloud-atmosphere-current-source-review.md

@@ -9,7 +9,7 @@ related_code:
   - zircon_editor/src/ui/host/editor_extension_views.rs
   - zircon_editor/src/ui/host/editor_manager_workspace.rs
   - zircon_editor/src/ui/host/editor_extension_registration.rs
-  - zircon_editor/src/tests/editor_event/runtime/extensions_registration/ticketed_command_revoke.rs
+  - zircon_editor/src/tests/extensions_registration/ticketed_command_revoke.rs
 reference_sources:
   - dev/UnrealEngine/Engine/Source/Editor/AnimationEditor/Private/AnimationEditor.cpp
   - dev/UnrealEngine/Engine/Source/Editor/Blutility/Private/EditorUtilitySubsystem.cpp

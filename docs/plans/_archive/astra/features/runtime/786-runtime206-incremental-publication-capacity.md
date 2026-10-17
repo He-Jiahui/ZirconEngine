@@ -11,10 +11,7 @@ related_records:
   - docs/plans/astra/features/runtime/746-runtime206-registry-build-capacity.md
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/resource_publication.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/resource_publication/incremental_capacity_tests.rs
 tests:
-  - tools/tests/test_runtime206_incremental_publication_capacity_performance_contract.py
 ---
 
 # Runtime786 · Incremental project resource publication capacity

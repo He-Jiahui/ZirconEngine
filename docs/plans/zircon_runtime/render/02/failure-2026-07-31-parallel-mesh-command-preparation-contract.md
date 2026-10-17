@@ -9,12 +9,10 @@ origin_child_dir: docs/plans/zircon_runtime/render/17
 fixing_child_dir: docs/plans/zircon_runtime/render/02
 plan_link_mode: child_record_only
 related_code:
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command_list/builder.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command_list/builder/parallel_admission.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command_list/builder/parallel_preparation.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_pass_processor.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/mesh_pipeline_variant_registry.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
+  - zircon_runtime/src/graphics/scene/mesh/commands/builder/parallel_admission.rs
+  - zircon_runtime/src/graphics/scene/mesh/commands/builder/parallel_preparation.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/mesh_pass/mesh_pass_processor.rs
+  - zircon_runtime/src/graphics/scene/renderer/core/render/render/render.rs
 tests:
   - managed current-source zircon_runtime mesh command tests
   - render_perf_parallel_prepare_deterministic_sort

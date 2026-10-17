@@ -1,19 +1,18 @@
 ---
 related_code:
-  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/mod.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/register_pipeline_asset/mod.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/register_pipeline_asset/register_pipeline_asset.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/render_framework_trait_binding/wgpu_framework.rs
+  - zircon_runtime/src/graphics/runtime/framework/register_pipeline_asset/mod.rs
+  - zircon_runtime/src/graphics/register_pipeline_asset/register_pipeline_asset.rs
+  - zircon_runtime/src/graphics/render_framework_trait_binding/wgpu_framework.rs
   - zircon_runtime/src/graphics/pipeline/declarations/render_pipeline_asset.rs
   - zircon_runtime/src/core/framework/render/framework.rs
   - zircon_plugins/rendering/features/ssao/runtime/src/lib.rs
 implementation_files:
-  - zircon_runtime/src/graphics/runtime/render_framework/register_pipeline_asset/mod.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/register_pipeline_asset/register_pipeline_asset.rs
+  - zircon_runtime/src/graphics/runtime/framework/register_pipeline_asset/mod.rs
+  - zircon_runtime/src/graphics/register_pipeline_asset/register_pipeline_asset.rs
 plan_sources:
   - docs/plans/zircon_runtime/frameworks/05-subsystem-decoupling-contracts.md
 tests:
-  - zircon_runtime/src/graphics/runtime/render_framework/register_pipeline_asset/register_pipeline_asset.rs
+  - zircon_runtime/src/graphics/register_pipeline_asset/register_pipeline_asset.rs
   - zircon_runtime/src/graphics/tests/render_framework_bridge.rs
   - zircon_runtime/src/graphics/tests/render_framework_graph_stats.rs
   - tools/tests/test_frameworks_05_layer_direction.py

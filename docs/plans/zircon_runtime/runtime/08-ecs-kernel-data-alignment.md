@@ -69,9 +69,7 @@ related_code:
   - zircon_runtime/src/scene/tests/component_structure.rs
   - zircon_runtime/src/scene/tests/component_structure/runtime_08_owner_tree.rs
   - zircon_runtime/src/scene/tests/property_paths.rs
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings.rs
-  - zircon_runtime/src/tests/runtime_absorption/ecs_kernel_data.rs
-  - zircon_runtime/src/tests/runtime_absorption/ecs_kernel_data/inventory.rs
+  - zircon_runtime/src/tests/contracts/ecs_kernel_data/inventory.rs
   - tools/tests/test_runtime_ecs_kernel_data_audit.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/ecs_query_state_boundary.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/ecs_query_state_markdown.py
@@ -79,7 +77,6 @@ related_code:
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/ecs_kernel_data_markdown.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/ecs_kernel_data_anchor_inventory.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/ecs_kernel_data_source_inventory.py
-  - dev/bevy/crates/bevy_ecs/src
 plan_sources:
   - docs/plans/zircon_runtime/runtime/index.md
 status: in_progress

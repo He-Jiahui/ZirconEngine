@@ -27,9 +27,6 @@ related_code:
   - zircon_editor/src/ui/host/layout_persistence.rs
   - zircon_editor/src/ui/host/project_access.rs
 tests:
-  - zircon_runtime/src/foundation/tests.rs
-  - zircon_runtime/src/foundation/runtime/config_manager_tests.rs
-  - zircon_runtime/src/core/manager/tests.rs
   - zircon_runtime/src/core/runtime/tests/events
   - zircon_app/src/entry/tests/entry_config_storage.rs
   - zircon_app/src/entry/tests/profile_bootstrap.rs

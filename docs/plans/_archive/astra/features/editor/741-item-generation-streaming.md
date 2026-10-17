@@ -12,7 +12,6 @@ implementation_files:
   - zircon_editor/src/ui/workbench/snapshot/asset/asset_workspace_item_generation.rs
 tests:
   - zircon_editor/src/ui/workbench/snapshot/asset/asset_workspace_item_generation.rs
-  - tools/tests/test_editor_asset_item_generation_streaming_performance_contract.py
 ---
 
 # Editor asset item-generation streaming construction

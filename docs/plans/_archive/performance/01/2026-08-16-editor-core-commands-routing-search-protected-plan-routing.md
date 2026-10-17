@@ -4,8 +4,8 @@ related_code:
   - zircon_editor/src/ui/host/editor_event_dispatch.rs
   - zircon_editor/src/ui/host/editor_extension_registration.rs
   - zircon_editor/src/ui/host/editor_event_runtime_reflection.rs
-  - zircon_editor/src/ui/retained_host/app/command_palette_actions.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/recompute
+  - zircon_editor/src/ui/retained/app/command_palette_actions.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle/recompute
   - zircon_editor/src/ui/workbench/model
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md

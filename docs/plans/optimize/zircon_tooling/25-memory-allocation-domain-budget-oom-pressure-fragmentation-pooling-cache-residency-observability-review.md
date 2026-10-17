@@ -4,15 +4,14 @@ related_code:
   - zircon_editor/src/core/asset/import_flow/state.rs
   - zircon_editor/src/core/play/process_backend/output.rs
   - zircon_editor/src/core/settings/change_log.rs
-  - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/icon_atlas.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/visual_assets/loading/cache.rs
-  - zircon_editor/src/ui/retained_host/host_contract/presenter/gpu/stats.rs
-  - zircon_editor/src/ui/retained_host/ui_perf.rs
+  - zircon_editor/src/ui/retained/contract/chrome_command_stream/icon_atlas.rs
+  - zircon_editor/src/ui/retained/contract/paint/visual_assets/loading/cache.rs
+  - zircon_editor/src/ui/retained/contract/presenter/gpu/stats.rs
   - zircon_plugins/navigation/native/src/detour.rs
   - zircon_plugins/plugin_sdk/src/native.rs
   - zircon_runtime/crates/zr_rhi/src/device.rs
   - zircon_runtime/crates/zr_rhi/src/ui_surface.rs
-  - zircon_runtime/crates/zr_rhi_wgpu/src/device.rs
+  - zircon_runtime/crates/zr_rhi/src/device.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/image_cache.rs
   - zircon_runtime/src/asset/artifact/chunk_residency.rs
   - zircon_runtime/src/asset/artifact/store.rs
@@ -24,14 +23,10 @@ related_code:
   - zircon_runtime/src/core/runtime/tasks/bounded_keyed_io/lane.rs
   - zircon_runtime/src/dynamic_api/session/registry/allocation_registry.rs
   - zircon_runtime/src/dynamic_api/shader_prewarm/execution_budget.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/budget/degrade_ladder.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/budget/memory_budget.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/transient_resource_pool.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/renderer.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/behavior_calls.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/candidate_from_manifest.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/discover_load_manifest.rs
-  - zircon_runtime/src/scene/dynamic_scene/session/artifact.rs
+  - zircon_runtime/src/graphics/runtime/framework/budget/degrade_ladder.rs
+  - zircon_runtime/src/graphics/runtime/framework/budget/memory_budget.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/atlas_renderer/renderer.rs
+  - zircon_runtime/src/scene/dynamic/session/artifact.rs
   - zircon_runtime/src/scene/ecs/archetype/index.rs
   - zircon_runtime/src/scene/ecs/archetype/table/column.rs
   - zircon_runtime/src/scene/ecs/commands/inline_command_arena.rs
@@ -48,17 +43,14 @@ related_code:
 tests:
   - zircon_editor/src/tests/editor_message/bus/backpressure/fixture.rs
   - zircon_editor/src/tests/editor_message/bus/backpressure/performance.rs
-  - zircon_plugins/animation/runtime/tests/animation_pose_buffer_allocation_contract.rs
   - zircon_plugins/sound/runtime/src/tests/kira_graph_sync.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/tests/resource_lifecycle.rs
-  - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/tests.rs
   - zircon_runtime/src/asset/tests/assets/artifact_store/lazy_residency.rs
   - zircon_runtime/src/asset/tests/pipeline/worker_pool/lifecycle.rs
   - zircon_runtime/src/core/runtime/tests/events/benchmark_evidence.rs
   - zircon_runtime/src/diagnostic_log/sink/tests/performance/rss/windows.rs
   - zircon_runtime/src/scene/tests/ecs_performance_acceptance/columnar.rs
-  - zircon_runtime/src/text/font/fallback/tests.rs
-  - zircon_runtime/src/tests/runtime_absorption/performance_hotspots/hotspot_inventory/ecs_extract_counters/asset_animation.rs
+  - zircon_runtime/src/tests/contracts/ecs_extract_counters/asset_animation.rs
   - tools/tests/render-extract-baseline-report/metrics.Tests.ps1
   - tools/tests/resource-management-baseline-report.Tests.ps1
 plan_sources:

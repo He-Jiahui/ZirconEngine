@@ -64,7 +64,7 @@ fn compiled_perception_condition_release_benchmark_evidence() {
     let optimized_ns = benchmark_samples_csv(&optimized_samples);
 
     println!(
-        "PERF_RESULT plugins15_compiled_perception_condition stimuli={BENCHMARK_STIMULUS_COUNT} parameters=4 samples={BENCHMARK_SAMPLE_COUNT} sample_pairs={BENCHMARK_SAMPLE_COUNT} sample_order=alternating percentile_method=nearest_rank legacy_parameter_linear_scans_per_sample={} optimized_parameter_linear_scans_per_sample=1 legacy_sense_normalization_allocations_per_sample={BENCHMARK_STIMULUS_COUNT} optimized_sense_normalization_allocations_per_sample=1 legacy_p50_ns={legacy_p50} legacy_p95_ns={legacy_p95} optimized_p50_ns={optimized_p50} optimized_p95_ns={optimized_p95} legacy_ns={legacy_ns} optimized_ns={optimized_ns}",
+        "PERF_RESULT plugins15_compiled_perception_condition stimuli={BENCHMARK_STIMULUS_COUNT} parameters=4 samples={BENCHMARK_SAMPLE_COUNT} sample_pairs={BENCHMARK_SAMPLE_COUNT} sample_order=alternating percentile_method=nearest_rank legacy_parameter_linear_scans_per_sample={} optimized_parameter_linear_scans_per_sample=1 legacy_sense_normalization_allocations_per_sample={BENCHMARK_STIMULUS_COUNT} optimized_sense_normalization_allocations_per_sample_expected=1 legacy_p50_ns={legacy_p50} legacy_p95_ns={legacy_p95} optimized_p50_ns={optimized_p50} optimized_p95_ns={optimized_p95} legacy_ns={legacy_ns} optimized_ns={optimized_ns}",
         BENCHMARK_STIMULUS_COUNT * 4,
     );
     assert!(

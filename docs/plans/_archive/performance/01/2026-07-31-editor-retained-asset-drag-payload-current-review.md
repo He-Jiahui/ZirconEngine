@@ -1,10 +1,9 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/app/asset_drag_payload.rs
-  - zircon_editor/src/ui/retained_host/app/asset_drag_payload
-  - zircon_editor/src/ui/retained_host/app/asset_content_pointer/press.rs
-  - zircon_editor/src/ui/retained_host/app/asset_reference_pointer/press.rs
-  - zircon_editor/src/ui/retained_host/asset_pointer
+  - zircon_editor/src/ui/retained/app/asset_drag_payload.rs
+  - zircon_editor/src/ui/retained/app/asset_drag_payload
+  - zircon_editor/src/ui/retained/app/asset_content_pointer/press.rs
+  - zircon_editor/src/ui/retained/app/asset_reference_pointer/press.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_editor/editor_ui/01-slate-input-dispatch-core.md

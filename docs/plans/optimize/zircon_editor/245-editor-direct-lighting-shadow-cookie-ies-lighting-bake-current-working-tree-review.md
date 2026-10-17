@@ -11,8 +11,6 @@ related_runtime_owner:
 related_code:
   - zircon_editor/src/scene/viewport/settings.rs
   - zircon_editor/src/scene/viewport/render_packet.rs
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_build_render_snapshot.rs
-  - zircon_editor/src/scene/viewport/edit_mode_projection/scene_viewport_toolbar_state.rs
   - zircon_editor/src/scene/viewport/edit_mode_projection/scene_viewport_stats.rs
   - zircon_editor/src/core/asset/type_registry
   - zircon_editor/src/core/editing
@@ -20,17 +18,13 @@ related_code:
   - zircon_editor/src/core/project
   - zircon_editor/src/ui/asset_editor
   - zircon_editor/src/ui/preview_scene
-  - zircon_editor/src/ui/retained_host
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/rendering/workbench_extension_lighting_bake_workspace.zui
   - zircon_plugins/first_party_editor_catalog/src
   - zircon_plugins/rendering/features/contact_shadow
 tests:
   - zircon_editor/src/tests/editing/viewport.rs
   - zircon_editor/src/tests/editing/state/viewport.rs
-  - zircon_editor/src/tests/host/template_runtime/scene_viewport_toolbar_runtime_projection.rs
   - zircon_editor/src/tests/workbench/chrome_snapshot/viewport_settings.rs
   - zircon_editor/src/tests/ui/boundary/zui_asset_governance/workbench_modules.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_projection/scene_snapshot.rs
   - zircon_runtime/src/graphics/tests/render_product_shadows.rs
 reference_engines:
   - dev/UnrealEngine/Engine/Source/Editor/ComponentVisualizers/Private/PointLightComponentVisualizer.cpp

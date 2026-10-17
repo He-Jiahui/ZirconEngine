@@ -8,10 +8,10 @@ fixing_plan: docs/plans/zircon_runtime/frameworks/05-subsystem-decoupling-contra
 origin_child_dir: docs/plans/zircon_editor/editor/02
 fixing_child_dir: docs/plans/zircon_runtime/frameworks/05
 related_code:
-  - zircon_editor/src/ui/retained_host/app/assets.rs
-  - zircon_editor/src/ui/retained_host/app/assets/refresh.rs
-  - zircon_editor/src/ui/retained_host/app/assets/refresh/snapshots.rs
-  - zircon_editor/src/ui/retained_host/app/assets/workspace.rs
+  - zircon_editor/src/ui/retained/app/assets.rs
+  - zircon_editor/src/ui/retained/app/assets/refresh.rs
+  - zircon_editor/src/ui/retained/app/assets/refresh/snapshots.rs
+  - zircon_editor/src/ui/retained/app/assets/workspace.rs
   - zircon_editor/src/tests/editing/state.rs
 tests:
   - cargo test -p zircon_editor --lib --locked

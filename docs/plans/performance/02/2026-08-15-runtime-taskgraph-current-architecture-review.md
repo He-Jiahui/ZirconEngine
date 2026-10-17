@@ -3,7 +3,6 @@ related_code:
   - zircon_runtime/src/core/runtime/tasks
   - zircon_runtime/src/core/framework/tasks
   - zircon_plugins/navigation/runtime/src
-  - zircon_runtime/src/graphics/runtime/render_framework
   - zircon_runtime/src/platform/module.rs
   - zircon_runtime/src/platform/service_types/driver.rs
   - zircon_runtime/src/platform/preferences/persistence/adapter.rs
@@ -12,7 +11,6 @@ related_code:
   - zircon_runtime/src/text/parallel/raster_pool.rs
   - zircon_runtime/src/ui/surface/render/text_prewarm.rs
   - zircon_editor/src/core/settings
-  - zircon_editor/src/ui/retained_host
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/performance/02-unreal-aligned-engine-system-hard-cutover.md

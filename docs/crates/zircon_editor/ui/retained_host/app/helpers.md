@@ -1,36 +1,33 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/app.rs
-  - zircon_editor/src/ui/retained_host/app/helpers.rs
-  - zircon_editor/src/ui/retained_host/app/helpers/asset_visibility.rs
-  - zircon_editor/src/ui/retained_host/app/helpers/callback_surface.rs
-  - zircon_editor/src/ui/retained_host/app/helpers/callback_surface/source_window.rs
-  - zircon_editor/src/ui/retained_host/app/helpers/callback_surface/source_window/focus.rs
-  - zircon_editor/src/ui/retained_host/app/helpers/callback_surface/source_window/resolution.rs
-  - zircon_editor/src/ui/retained_host/app/helpers/callback_surface/surface_size.rs
-  - zircon_editor/src/ui/retained_host/app/helpers/callback_surface/surface_size/asset_surface.rs
-  - zircon_editor/src/ui/retained_host/app/helpers/callback_surface/surface_size/frame.rs
-  - zircon_editor/src/ui/retained_host/app/helpers/callback_surface/surface_size/host_frames.rs
-  - zircon_editor/src/ui/retained_host/app/helpers/callback_surface/surface_size/host_frames/source_window.rs
-  - zircon_editor/src/ui/retained_host/app/helpers/callback_surface/surface_size/host_frames/workbench.rs
-  - zircon_editor/src/ui/retained_host/app/helpers/callback_surface/surface_size/workbench_regions.rs
-  - zircon_editor/src/ui/retained_host/app/helpers/geometry.rs
-  - zircon_editor/src/ui/retained_host/app/assets.rs
+  - zircon_editor/src/ui/retained/app/helpers.rs
+  - zircon_editor/src/ui/retained/app/helpers/asset_visibility.rs
+  - zircon_editor/src/ui/retained/app/helpers/callback_surface.rs
+  - zircon_editor/src/ui/retained/app/helpers/callback_surface/source_window.rs
+  - zircon_editor/src/ui/retained/app/helpers/source_window/focus.rs
+  - zircon_editor/src/ui/retained/app/helpers/source_window/resolution.rs
+  - zircon_editor/src/ui/retained/app/helpers/callback_surface/surface_size.rs
+  - zircon_editor/src/ui/retained/app/helpers/surface_size/asset_surface.rs
+  - zircon_editor/src/ui/retained/app/helpers/callback_surface/surface_size/frame.rs
+  - zircon_editor/src/ui/retained/app/helpers/surface_size/host_frames.rs
+  - zircon_editor/src/ui/retained/app/helpers/host_frames/source_window.rs
+  - zircon_editor/src/ui/retained/app/helpers/surface_size/host_frames/workbench.rs
+  - zircon_editor/src/ui/retained/app/helpers/geometry.rs
+  - zircon_editor/src/ui/retained/app/assets.rs
 implementation_files:
-  - zircon_editor/src/ui/retained_host/app/helpers.rs
-  - zircon_editor/src/ui/retained_host/app/helpers/asset_visibility.rs
-  - zircon_editor/src/ui/retained_host/app/helpers/callback_surface.rs
-  - zircon_editor/src/ui/retained_host/app/helpers/callback_surface/source_window.rs
-  - zircon_editor/src/ui/retained_host/app/helpers/callback_surface/source_window/focus.rs
-  - zircon_editor/src/ui/retained_host/app/helpers/callback_surface/source_window/resolution.rs
-  - zircon_editor/src/ui/retained_host/app/helpers/callback_surface/surface_size.rs
-  - zircon_editor/src/ui/retained_host/app/helpers/callback_surface/surface_size/asset_surface.rs
-  - zircon_editor/src/ui/retained_host/app/helpers/callback_surface/surface_size/frame.rs
-  - zircon_editor/src/ui/retained_host/app/helpers/callback_surface/surface_size/host_frames.rs
-  - zircon_editor/src/ui/retained_host/app/helpers/callback_surface/surface_size/host_frames/source_window.rs
-  - zircon_editor/src/ui/retained_host/app/helpers/callback_surface/surface_size/host_frames/workbench.rs
-  - zircon_editor/src/ui/retained_host/app/helpers/callback_surface/surface_size/workbench_regions.rs
-  - zircon_editor/src/ui/retained_host/app/helpers/geometry.rs
+  - zircon_editor/src/ui/retained/app/helpers.rs
+  - zircon_editor/src/ui/retained/app/helpers/asset_visibility.rs
+  - zircon_editor/src/ui/retained/app/helpers/callback_surface.rs
+  - zircon_editor/src/ui/retained/app/helpers/callback_surface/source_window.rs
+  - zircon_editor/src/ui/retained/app/helpers/source_window/focus.rs
+  - zircon_editor/src/ui/retained/app/helpers/source_window/resolution.rs
+  - zircon_editor/src/ui/retained/app/helpers/callback_surface/surface_size.rs
+  - zircon_editor/src/ui/retained/app/helpers/surface_size/asset_surface.rs
+  - zircon_editor/src/ui/retained/app/helpers/callback_surface/surface_size/frame.rs
+  - zircon_editor/src/ui/retained/app/helpers/surface_size/host_frames.rs
+  - zircon_editor/src/ui/retained/app/helpers/host_frames/source_window.rs
+  - zircon_editor/src/ui/retained/app/helpers/surface_size/host_frames/workbench.rs
+  - zircon_editor/src/ui/retained/app/helpers/geometry.rs
 plan_sources:
   - docs/plans/zircon_editor/editor_ui/08-workbench-shell-on-runtime-ui.md
   - user: 2026-06-18 editor UI architecture implementation, feature first and tests deferred

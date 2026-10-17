@@ -5,9 +5,7 @@ plan_sources:
   - docs/plans/optimize/zircon_editor/04-asset-index-import-reimport-catalog-thumbnail-reference-workflow-review.md
   - docs/plans/optimize/zircon_editor/04/2026-09-13-details-slice-share-on-preview-update.md
 related_code:
-  - zircon_editor/src/ui/host/editor_asset_manager/generation.rs
 tests:
-  - tools/tests/test_editor_catalog_details_cow_capacity_performance_contract.py
 ---
 
 # Editor Details Slice Sharing on Preview Update

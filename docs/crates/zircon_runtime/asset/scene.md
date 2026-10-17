@@ -1,9 +1,5 @@
 ---
 related_code:
-  - dev/bevy/crates/bevy_scene/src/lib.rs
-  - dev/bevy/crates/bevy_scene/src/scene.rs
-  - dev/bevy/crates/bevy_light/src/ambient_light.rs
-  - dev/bevy/crates/bevy_light/src/rect_light.rs
   - zircon_runtime/src/asset/assets/scene/mod.rs
   - zircon_runtime/src/scene/components/scene/mod.rs
   - zircon_runtime/src/scene/components/scene/transform.rs

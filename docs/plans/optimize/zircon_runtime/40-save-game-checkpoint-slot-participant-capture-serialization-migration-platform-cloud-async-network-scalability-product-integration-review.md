@@ -1,16 +1,10 @@
 ---
 related_code:
-  - zircon_runtime/src/scene/dynamic_scene/session
-  - zircon_runtime/src/scene/dynamic_scene/scene/capture.rs
-  - zircon_runtime/src/scene/dynamic_scene/scene/spawn
-  - zircon_runtime/src/scene/dynamic_scene/document
+  - zircon_runtime/src/scene/dynamic/scene/capture.rs
+  - zircon_runtime/src/scene/dynamic/scene/spawn
   - zircon_runtime/src/core/framework/platform/preferences
   - zircon_runtime/src/platform/preferences
   - zircon_runtime_interface/src/serialization
-  - zircon_runtime/src/plugin/native_plugin_loader/abi_declarations.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/behavior_calls.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/runtime_behavior.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/reports.rs
   - zircon_runtime/src/script/vm/plugin/vm_state_blob.rs
   - zircon_runtime/src/script/vm/plugin/state_migration.rs
   - zircon_runtime/src/script/vm/runtime/hot_reload_coordinator.rs
@@ -30,8 +24,8 @@ tests:
   - zircon_runtime/src/scene/tests/dynamic_scene/archive_manifest.rs
   - zircon_runtime/src/scene/tests/dynamic_scene/archive_mutation.rs
   - zircon_runtime/src/platform/tests/preferences.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests/hot_reload_state.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests/runtime_behavior.rs
+  - zircon_runtime/src/plugin/loader/live/tests/hot_reload_state.rs
+  - zircon_runtime/src/plugin/loader/live/tests/runtime_behavior.rs
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md
   - docs/plans/optimize/01-cross-report-owner-schema-abi-p0-consolidation-review.md

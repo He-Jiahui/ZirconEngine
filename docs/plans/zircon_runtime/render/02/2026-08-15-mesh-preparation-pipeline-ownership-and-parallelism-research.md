@@ -5,17 +5,13 @@ doc_type: structural-performance-research
 status: implementation_blocked_by_m0_baseline
 coordination_owner: docs/plans/zircon_runtime/render/02
 related_code:
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/build.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/extend_pending_draws_for_mesh_instance.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/gpu_scene_sync.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_command_cache_extract.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command_list/builder.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/cached_mesh_draw_commands.rs
+  - zircon_runtime/src/graphics/scene/renderer/core/render/render/render.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/build_mesh_draws/build/build.rs
+  - zircon_runtime/src/graphics/mesh/build/extend_pending_draws_for_mesh_instance.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/build/gpu_scene_sync.rs
+  - zircon_runtime/src/graphics/scene/mesh/mesh_pass/cached_mesh_draw_commands.rs
   - zircon_runtime/src/graphics/scene/gpu_scene/gpu_scene.rs
   - zircon_runtime/src/core/framework/render/frame_profile.rs
-  - dev/UnrealEngine/Engine/Source/Runtime/Renderer/Private/MeshDrawCommands.h
-  - dev/UnrealEngine/Engine/Source/Runtime/Renderer/Private/MeshDrawCommands.cpp
 tests:
   - deterministic serial/parallel command and cache-stat parity
   - GPUScene span lifetime and cache reuse/invalidation contracts

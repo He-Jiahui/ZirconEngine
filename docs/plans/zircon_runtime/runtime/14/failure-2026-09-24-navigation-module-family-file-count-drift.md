@@ -13,9 +13,8 @@ related_code:
   - tools/tests/test_runtime_module_family_boundary.py
   - docs/crates/zircon_runtime/navigation/runtime.md
   - zircon_runtime/src/navigation/runtime/world_scan.rs
-  - zircon_runtime/src/navigation/runtime/world_scan/capacity_tests.rs
-  - zircon_runtime/src/tests/runtime_absorption/root_entries/module_families/navigation.rs
-  - zircon_runtime/src/tests/runtime_absorption/root_entries/module_families/mirror_docs.rs
+  - zircon_runtime/src/tests/contracts/root_entries/module_families/navigation.rs
+  - zircon_runtime/src/tests/contracts/root_entries/module_families/mirror_docs.rs
   - docs/plans/zircon_runtime/runtime/14/2026-07-09-runtime-module-family-closeout-output-records.md
 tests:
   - python -B -m unittest tools.tests.test_runtime_module_family_boundary.RuntimeModuleFamilyBoundaryTests.test_navigation_family_includes_folder_backed_operation_owners -v

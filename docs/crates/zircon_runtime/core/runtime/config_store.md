@@ -7,14 +7,12 @@ related_code:
   - zircon_runtime/src/foundation/runtime/config_manager.rs
   - zircon_runtime/src/foundation/runtime/config_manager/commit_fence.rs
   - zircon_runtime/src/foundation/runtime/config_manager/worker.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy.rs
 implementation_files:
   - zircon_runtime/src/core/runtime/config_store.rs
   - zircon_runtime/src/core/runtime/handle/events.rs
   - zircon_runtime/src/foundation/runtime/config_manager.rs
   - zircon_runtime/src/foundation/runtime/config_manager/commit_fence.rs
   - zircon_runtime/src/foundation/runtime/config_manager/worker.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy.rs
 plan_sources:
   - docs/plans/zircon_runtime/runtime/02-core-spine-and-root-surface.md
   - docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md
@@ -22,8 +20,6 @@ plan_sources:
   - docs/plans/engine-code-review-findings-2026-06.md
 tests:
   - zircon_runtime/src/core/runtime/config_store.rs::config_store_accessors_recover_poisoned_values_lock
-  - zircon_runtime/src/foundation/runtime/config_manager_tests.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy.rs::runtime_15_config_store_lock_poison_recovery_guard_covers_runtime_config_store
 doc_type: module-detail
 ---
 

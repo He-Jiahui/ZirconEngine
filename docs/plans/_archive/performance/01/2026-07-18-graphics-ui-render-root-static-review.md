@@ -1,7 +1,6 @@
 ---
 related_code:
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render/tests.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/render.rs
   - zircon_runtime_interface/src/ui/surface/render/command.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md

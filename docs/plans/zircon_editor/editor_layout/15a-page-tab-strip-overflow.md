@@ -1,23 +1,18 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/host_page_pointer/constants.rs
-  - zircon_editor/src/ui/retained_host/host_page_pointer/build_host_page_pointer_layout.rs
-  - zircon_editor/src/ui/retained_host/host_page_pointer/host_page_pointer_layout.rs
-  - zircon_editor/src/ui/retained_host/host_page_pointer/handle_click.rs
-  - zircon_editor/src/ui/retained_host/host_page_pointer/host_page_pointer_route.rs
-  - zircon_editor/src/ui/retained_host/host_page_pointer/sync.rs
-  - zircon_editor/src/ui/retained_host/app/pointer_layout/shell_chrome.rs
-  - zircon_editor/src/ui/retained_host/app/workbench_pointer/shell_chrome/host_page.rs
-  - zircon_editor/src/ui/retained_host/host_contract/host_page_overflow_menu.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/host_interaction/page_overflow.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/page_overflow_menu.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_keyboard/target/page_overflow.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_keyboard/dispatch/actions.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/scene_layers/overlay/page_overflow.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_segmented_controls/tabs.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout.rs
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_tab.zui
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/workbench_tab_strip.zui
+  - zircon_editor/src/ui/retained/host_page_pointer/constants.rs
+  - zircon_editor/src/ui/host_page_pointer/build_host_page_pointer_layout.rs
+  - zircon_editor/src/ui/retained/host_page_pointer/host_page_pointer_layout.rs
+  - zircon_editor/src/ui/retained/host_page_pointer/handle_click.rs
+  - zircon_editor/src/ui/retained/host_page_pointer/host_page_pointer_route.rs
+  - zircon_editor/src/ui/retained/host_page_pointer/sync.rs
+  - zircon_editor/src/ui/retained/app/pointer_layout/shell_chrome.rs
+  - zircon_editor/src/ui/retained/app/pointer/shell_chrome/host_page.rs
+  - zircon_editor/src/ui/retained/contract/data/host_interaction/page_overflow.rs
+  - zircon_editor/src/ui/retained/contract/native_keyboard/target/page_overflow.rs
+  - zircon_editor/src/ui/retained/contract/native_keyboard/dispatch/actions.rs
+  - zircon_editor/src/ui/retained/contract/workbench/overlay/page_overflow.rs
+  - zircon_editor/src/ui/retained/contract/paint_text/draw/layout.rs
 design_references:
   - docs/ui/editor-workbench-designs/main-tabs-layout-spec.png
   - docs/ui/editor-workbench-designs/tab-overflow-window-spec.png
@@ -26,7 +21,6 @@ tests:
   - cargo test -p zircon_editor host_page_overflow_keyboard --locked --offline --jobs 1 --target-dir D:\cargo-targets\zircon-editor-overflow-keyboard-0711 -- --nocapture
   - direct editor test binary dropdown/menu/boundary-key exact regressions
   - direct editor test binary capture_host_page_overflow_keyboard_visual_artifact --exact --ignored --nocapture
-  - docs/tests/editor/editor-window-m3-host-page-overflow-keyboard-640x420.png
 plan_sources:
   - docs/plans/zircon_editor/editor_layout/15-component-standardization-from-primitives.md
   - docs/plans/zircon_editor/editor_layout/07-windowing-chrome-tabs-and-dockable-drawers.md

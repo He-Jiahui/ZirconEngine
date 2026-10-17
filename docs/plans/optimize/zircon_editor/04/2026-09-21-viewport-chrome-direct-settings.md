@@ -1,15 +1,13 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/app/viewport/toolbar_pointer/chrome_projection.rs
+  - zircon_editor/src/ui/retained/app/viewport/toolbar_pointer/chrome_projection.rs
   - zircon_editor/src/ui/workbench/model/status_bar_model.rs
 implementation_files:
-  - zircon_editor/src/ui/retained_host/app/viewport/toolbar_pointer/chrome_projection.rs
+  - zircon_editor/src/ui/retained/app/viewport/toolbar_pointer/chrome_projection.rs
   - zircon_editor/src/ui/workbench/model/status_bar_model.rs
 plan_sources:
   - user: 2026-09-21 optimize Runtime and Editor hot paths and record completion
 tests:
-  - zircon_editor/src/ui/workbench/model/status_bar_viewport_chrome_text_tests.rs
-  - tools/tests/test_editor862_viewport_chrome_direct_settings_performance_contract.py
 doc_type: milestone-detail
 title: Editor862 viewport chrome direct settings projection
 category: zircon_editor

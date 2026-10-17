@@ -24,12 +24,10 @@ tests:
   - zircon_editor/src/tests/editing/transaction_engine
   - zircon_editor/src/tests/editing/context_transactions.rs
   - zircon_editor/src/tests/editing/history.rs
-  - zircon_editor/src/tests/editing/reflected_command.rs
+  - zircon_editor/src/tests/editing/reflected_command/mod.rs
   - zircon_editor/src/tests/editing/ui_asset_replay
-  - zircon_editor/src/tests/editing/ui_asset/tree_and_undo.rs
-  - zircon_editor/src/core/asset/dirty/tests.rs
+  - zircon_editor/src/tests/editing/ui_asset/tree_and_undo/mod.rs
   - zircon_plugins/navigation/editor/src/tests/operation_command.rs
-  - zircon_plugins/neural/editor/src/tests.rs
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md
   - docs/plans/optimize/01-cross-report-owner-schema-abi-p0-consolidation-review.md

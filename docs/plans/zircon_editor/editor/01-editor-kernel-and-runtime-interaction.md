@@ -1,7 +1,6 @@
 ---
 related_code:
   - zircon_editor/src/ui/host/module.rs
-  - zircon_editor/src/ui/retained_host/app.rs
   - zircon_editor/src/core/context/editor_context.rs
   - zircon_editor/src/core/editor_event/service/editor_event_service.rs
   - zircon_editor/src/core/editor_message/shared.rs
@@ -17,7 +16,6 @@ related_code:
   - zircon_app/src/entry/entry_runner/editor.rs
   - zircon_app/src/entry/entry_runner/editor/tests/runtime_loading.rs
   - zircon_app/src/entry/runtime_library/loaded_runtime.rs
-  - zircon_app/src/entry/runtime_library/tests.rs
 reference_sources:
   - dev/Fyrox/editor/src/lib.rs
   - dev/Fyrox/editor/src/message.rs

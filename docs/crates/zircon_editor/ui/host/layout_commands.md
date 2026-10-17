@@ -5,7 +5,6 @@ related_code:
   - zircon_editor/src/ui/workbench/view/workbench_slot_to_view_host.rs
   - zircon_editor/src/ui/workbench/layout/manager/attach.rs
   - zircon_editor/src/ui/workbench/layout/manager/apply.rs
-  - zircon_editor/src/ui/host/builtin_views/activity_windows/functional_window_view_descriptors.rs
 implementation_files:
   - zircon_editor/src/ui/host/layout_commands.rs
   - zircon_editor/src/ui/host/window_host_manager.rs
@@ -14,7 +13,7 @@ plan_sources:
   - user: 2026-05-11 Implement Material + Fyrox + JetBrains + Unreal editor UI plan
   - .codex/plans/Zircon Editor UI Material  Fyrox  JetBrains  Unreal.md
 tests:
-  - zircon_editor/src/tests/host/manager/bootstrap_and_startup.rs
+  - zircon_editor/src/tests/host/manager/bootstrap_and_startup/mod.rs
   - cargo test -p zircon_editor --lib window_host_manager --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-ui-command-registry-0615 --message-format short --color never -- --nocapture --test-threads=1 (2026-06-15: passed, 3 passed, 0 failed, 2020 filtered out)
   - cargo test -p zircon_editor --lib opening_functional_editor_window_creates_instance_scoped_floating_window --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-ui-command-registry-0615 --message-format short --color never -- --nocapture --test-threads=1 (2026-06-15: passed, 1 passed, 0 failed, 2022 filtered out)
 doc_type: module-detail

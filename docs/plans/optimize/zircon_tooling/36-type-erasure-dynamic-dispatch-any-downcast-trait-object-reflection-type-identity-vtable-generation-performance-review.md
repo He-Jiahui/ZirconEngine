@@ -20,13 +20,10 @@ related_code:
   - zircon_runtime/src/plugin/bridge/table.rs
   - zircon_runtime/src/core/framework/bridge/mod.rs
   - zircon_runtime/src/script/vm/backend/backend_registry.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registration.rs
   - zircon_runtime/src/graphics/runtime_prepare_collector.rs
   - zircon_runtime/src/graphics/runtime_provider/registration.rs
   - zircon_runtime/src/asset/importer/registry.rs
   - zircon_editor/src/ui/layouts/views/view_projection/projection_composition.rs
-  - zircon_editor/src/ui/retained_host/primitives.rs
   - zircon_plugins/net/features/rpc/runtime/src/manager/registry.rs
   - zircon_plugins/net/features/rpc/runtime/src/manager/state.rs
   - zircon_runtime/src/core/framework/net/rpc.rs
@@ -37,14 +34,13 @@ related_code:
   - zircon_runtime_interface/src/plugin_api.rs
   - zircon_runtime/reflection_macros/src/derive_type.rs
 tests:
-  - zircon_runtime/reflection_macros/src/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry/tests/registry_contracts.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry/tests/validation_cache.rs
+  - zircon_runtime/src/graphics/scene/renderer/registry/tests/registry_contracts.rs
+  - zircon_runtime/src/graphics/scene/renderer/registry/tests/validation_cache.rs
   - zircon_runtime/src/scene/tests/ecs_reflect/foundation/registry.rs
   - zircon_runtime/src/scene/tests/ecs_reflect/foundation/versioned_json.rs
   - zircon_runtime/src/script/vm/reflection/tests/schema_invariants.rs
-  - zircon_runtime/src/tests/plugin_extensions/extension_registry_bridge/diagnostics.rs
-  - zircon_runtime/src/tests/plugin_extensions/extension_registry_bridge/lifecycle.rs
+  - zircon_runtime/src/tests/plugins/extension_registry_bridge/diagnostics.rs
+  - zircon_runtime/src/tests/plugins/extension_registry_bridge/lifecycle.rs
   - zircon_runtime_interface/src/tests/plugin_api_contracts.rs
 plan_sources:
   - docs/plans/optimize/01-cross-report-owner-schema-abi-p0-consolidation-review.md

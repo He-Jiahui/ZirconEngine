@@ -21,24 +21,9 @@ related_code:
   - zircon_editor/build.rs
   - zircon_editor/src/core/commands/registry.rs
   - zircon_editor/src/core/plugin/catalog_store.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/native_registration/manager.rs
-  - zircon_editor/src/ui/template_runtime/runtime/plugin_documents.rs
+  - zircon_editor/src/ui/host/exports/native_registration/manager.rs
+  - zircon_editor/src/ui/runtime/runtime/plugin_documents.rs
 tests:
-  - zircon_plugins/material_editor/editor/src/tests.rs
-  - zircon_plugins/animation_graph/editor/src/tests.rs
-  - zircon_plugins/timeline_sequence/editor/src/tests.rs
-  - zircon_plugins/ui_asset_authoring/editor/src/tests.rs
-  - zircon_plugins/prefab_tools/editor/src/tests.rs
-  - zircon_plugins/prefab_tools/runtime/src/tests.rs
-  - zircon_plugins/tilemap_2d/editor/src/tests.rs
-  - zircon_plugins/tilemap_2d/runtime/src/tests.rs
-  - zircon_plugins/terrain/editor/src/tests.rs
-  - zircon_plugins/terrain/runtime/src/tests.rs
-  - zircon_plugins/texture/editor/src/tests.rs
-  - zircon_plugins/texture/runtime/src/tests.rs
-  - zircon_plugins/runtime_diagnostics/editor/src/tests.rs
-  - zircon_plugins/first_party_editor_catalog/src/tests.rs
-  - zircon_editor/src/core/plugin/manager/tests.rs
   - zircon_editor/src/core/plugin/manager/tests/project_registration.rs
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md

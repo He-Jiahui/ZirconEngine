@@ -16,7 +16,6 @@ related_code:
   - zircon_runtime/runtime-feature-presets.toml
   - zircon_runtime/build.rs
   - zircon_runtime/src/plugin/runtime_profile
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog
   - zircon_runtime/src/core/framework/project/project_plugin_manifest
   - zircon_runtime/src/builtin/runtime_modules/manifest.rs
   - zircon_runtime/src/builtin/runtime_modules/assembly

@@ -9,26 +9,23 @@ performance_status: pending_editor_product_gate_no_performance_claim
 plan_sources:
   - docs/plans/optimize/zircon_editor/05/2026-09-29-inspector-transform-edit-entity-latch.md
 implementation_files:
-  - zircon_editor/assets/ui/editor/components/workbench/shell/workbench_inspector_panel.zui
   - zircon_editor/src/tests/editor_event/runtime/when_evaluation.rs
-  - zircon_editor/src/ui/retained_host/app/automation.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/recompute/shell/builder.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/tick.rs
-  - zircon_editor/src/ui/retained_host/app/pane_surface_actions/workbench_surface/edit.rs
-  - zircon_editor/src/ui/retained_host/app/tests/mod.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/componentized_window.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/data_sync.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/transform_edit.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/workbench/control.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/host_interaction/text_focus.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/text_focus/activation.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/text_focus/clear.rs
-  - zircon_editor/src/ui/retained_host/host_contract/window/event_loop/events/focus.rs
-  - zircon_editor/src/ui/retained_host/host_contract/window/event_loop/events.rs
-  - zircon_editor/src/ui/retained_host/host_contract/window/text_input/edit/dispatch/owned_control_id_tests.rs
-  - zircon_editor/src/ui/retained_host/host_contract/window/text_input/edit/dispatch.rs
-  - zircon_editor/src/ui/retained_host/host_contract/window/text_input/edit.rs
-  - zircon_editor/src/ui/retained_host/host_contract/window/text_input/keyboard.rs
+  - zircon_editor/src/ui/retained/app/automation.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle/recompute/shell/builder.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle/tick.rs
+  - zircon_editor/src/ui/retained/app/tests/mod.rs
+  - zircon_editor/src/ui/retained/dispatch/workbench/componentized_window.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/workbench/data_sync.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/workbench/transform_edit.rs
+  - zircon_editor/src/ui/retained/dispatch/workbench/control.rs
+  - zircon_editor/src/ui/retained/contract/data/host_interaction/text_focus.rs
+  - zircon_editor/src/ui/retained/contract/pointer/buttons/text_focus/activation.rs
+  - zircon_editor/src/ui/retained/contract/pointer/buttons/text_focus/clear.rs
+  - zircon_editor/src/ui/retained/contract/window/event_loop/events/focus.rs
+  - zircon_editor/src/ui/retained/contract/window/event_loop/events.rs
+  - zircon_editor/src/ui/retained/contract/window/text_input/edit/dispatch.rs
+  - zircon_editor/src/ui/retained/contract/window/text_input/edit.rs
+  - zircon_editor/src/ui/retained/contract/window/text_input/keyboard.rs
   - zircon_editor/src/ui/workbench/snapshot/data/mod.rs
   - zircon_editor/src/ui/workbench/snapshot/mod.rs
   - zircon_editor/src/ui/workbench/snapshot/data/inspector_snapshot.rs
@@ -38,23 +35,17 @@ implementation_files:
   - zircon_editor/src/ui/layouts/views/inspector.rs
   - zircon_editor/src/ui/workbench/fixture/preview_inspector_into_snapshot.rs
   - zircon_editor/src/tests/ui/inspector/bootstrap_assets.rs
-  - zircon_editor/src/tests/host/template_runtime/pane_payload_projection.rs
   - zircon_editor/src/tests/host/pane_presentation/support.rs
   - zircon_editor/src/tests/host/retained_inspector_template_body.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_projection/scene_snapshot.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_inspector_property_edit.rs
   - zircon_editor/src/ui/host/editor_event_runtime_access/mod.rs
   - zircon_editor/src/ui/host/editor_host_event_controller/play_inspector.rs
-  - zircon_editor/src/ui/retained_host/app/inspector.rs
+  - zircon_editor/src/ui/retained/app/inspector.rs
   - zircon_editor/src/ui/binding_dispatch/error.rs
   - zircon_editor/src/ui/host/editor_event_dispatch.rs
   - zircon_editor/src/ui/host/editor_event_execution/inspector_event.rs
   - zircon_editor/src/ui/host/editor_event_execution/mod.rs
   - zircon_editor/src/core/editing/authoring_world.rs
 tests:
-  - zircon_editor/src/tests/editor_event/runtime/when_evaluation/transform_edit_identity.rs
-  - zircon_editor/src/ui/retained_host/app/tests/inspector_transform_edit_lifecycle.rs
-  - zircon_editor/src/ui/retained_host/host_contract/window/text_input/edit/dispatch/owned_control_id_tests.rs
 ---
 
 # Editor1063: Editor05 transform edit entity identity

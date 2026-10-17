@@ -2,7 +2,7 @@
 related_code:
   - zircon_runtime/src/core/framework/render/advanced_lighting/material_features.rs
   - zircon_runtime/src/core/framework/render/advanced_lighting/material_usage.rs
-  - zircon_runtime/src/core/framework/render/advanced_lighting/screen_space_transmission.rs
+  - zircon_runtime/src/core/render/advanced_lighting/screen_space_transmission.rs
   - zircon_runtime/src/asset/assets/material/material_asset/advanced_features.rs
   - zircon_runtime/src/graphics/shader/includes/zr_pbr_extras.wgsl
 implementation_files:
@@ -10,7 +10,6 @@ implementation_files:
   - zircon_runtime/src/core/framework/render/advanced_lighting/material_usage.rs
   - zircon_runtime/src/core/framework/render/advanced_lighting/mod.rs
   - zircon_runtime/src/asset/assets/material/material_asset/advanced_features.rs
-  - zircon_runtime/src/graphics/scene/resources/gpu_material_uniform/gpu_material_uniform_resource.rs
   - zircon_runtime/src/graphics/shader/includes/zr_pbr_extras.wgsl
   - zircon_runtime/src/graphics/shader/wgsl/zr_shading_standard_pbr.wgsl
 plan_sources:

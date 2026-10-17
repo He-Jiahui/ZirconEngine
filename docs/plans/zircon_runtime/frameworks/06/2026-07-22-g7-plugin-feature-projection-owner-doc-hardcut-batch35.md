@@ -1,12 +1,8 @@
 ---
 related_code:
   - docs/architecture/plugin-optional-feature-bundles.md
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/derived_projection.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_capabilities.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_capabilities/feature.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_resolution.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_resolution/ordered_ready_set.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/project.rs
+  - zircon_runtime/src/plugin/runtime/catalog/feature_capabilities/feature.rs
+  - zircon_runtime/src/plugin/catalog/feature_resolution/ordered_ready_set.rs
 implementation_files:
   - docs/architecture/plugin-optional-feature-bundles.md
 plan_sources:

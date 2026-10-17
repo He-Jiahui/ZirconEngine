@@ -3,15 +3,12 @@ related_code:
   - zircon_runtime/src/asset/assets/sound.rs
   - zircon_runtime/src/asset/assets/mod.rs
   - zircon_runtime/src/asset/mod.rs
-  - zircon_runtime/src/asset/importer/ingest/import_sound.rs
   - zircon_runtime/src/asset/tests/assets/mod.rs
   - zircon_runtime/src/asset/tests/assets/sound.rs
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/asset_records.rs
 implementation_files:
   - zircon_runtime/src/asset/assets/sound.rs
   - zircon_runtime/src/asset/assets/mod.rs
   - zircon_runtime/src/asset/mod.rs
-  - zircon_runtime/src/asset/importer/ingest/import_sound.rs
   - zircon_runtime/src/asset/tests/assets/sound.rs
 plan_sources:
   - docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md
@@ -20,7 +17,6 @@ plan_sources:
 tests:
   - zircon_runtime/src/asset/tests/assets/sound.rs::sound_asset_wav_parse_reports_typed_error_variants
   - zircon_runtime/src/asset/tests/assets/sound.rs::sound_asset_rejects_wav_extensible_unsupported_speaker_mask_bits
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/asset_records.rs::review_f5_sound_asset_uses_typed_error
   - "2026-06-25 static: scoped rustfmt/static scans/docs-status-session anchors passed; Cargo deferred due active cargo/rustc lanes"
   - "2026-07-03 static: rustfmt --check passed for sound.rs/review guard; standalone review_f5_sound_asset_uses_typed_error passed 1/1; direct sound.rs unwrap/expect scan returned no matches; Cargo deferred due active cargo/rustc lanes"
 doc_type: module-detail

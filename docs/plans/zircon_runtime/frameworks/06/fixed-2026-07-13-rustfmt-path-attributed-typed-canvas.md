@@ -8,9 +8,6 @@ fixing_plan: docs/plans/zircon_editor/editor_layout/15-component-standardization
 origin_child_dir: docs/plans/zircon_runtime/frameworks/06
 fixing_child_dir: docs/plans/zircon_editor/editor_layout/15
 related_code:
-  - zircon_editor/src/ui/retained_host/ui.rs
-  - zircon_editor/src/ui/retained_host/ui/workbench_window_projection.rs
-  - zircon_editor/src/ui/retained_host/ui/workbench_window_projection/typed_canvas.rs
 tests:
   - cargo fmt -p zircon_editor -- --check
   - cargo fmt --all --check

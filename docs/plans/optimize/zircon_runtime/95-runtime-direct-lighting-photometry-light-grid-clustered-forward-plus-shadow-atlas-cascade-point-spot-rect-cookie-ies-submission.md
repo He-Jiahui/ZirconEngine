@@ -11,15 +11,10 @@ related_code:
   - zircon_runtime/src/scene/world/render/lights.rs
   - zircon_runtime/src/core/framework/render/light
   - zircon_runtime/src/core/framework/render/advanced_lighting/cookie.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/lighting
-  - zircon_runtime/src/graphics/scene/scene_renderer/shadow
   - zircon_runtime/src/graphics/visibility/view_context/build_views.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/light_cookie
-  - zircon_runtime/src/graphics/scene/scene_renderer/deferred
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/build.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/post_process/computed_resources.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/mesh_recording.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process
+  - zircon_runtime/src/graphics/scene/renderer/advanced_lighting/light_cookie
+  - zircon_runtime/src/graphics/scene/renderer/mesh/build_mesh_draws/build/build.rs
+  - zircon_runtime/src/graphics/scene/renderer/context/gpu/mesh_recording.rs
   - zircon_runtime/src/graphics/shader/wgsl/zr_shading_standard_pbr_basic.wgsl
   - zircon_runtime/src/graphics/shader/wgsl/zr_shading_standard_pbr.wgsl
   - zircon_runtime/src/graphics/shader/wgsl/zr_light_cookie.wgsl
@@ -30,7 +25,6 @@ tests:
   - zircon_runtime/src/graphics/tests/render_product_shadow_wide.rs
   - zircon_runtime/src/graphics/tests/render_product_shadow_captures.rs
   - zircon_runtime/src/graphics/tests/render_product_shadow_captures/directional.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/shadow_atlas_required_external_tests.rs
   - zircon_runtime/src/scene/tests/render_extract/lighting_postprocess.rs
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md

@@ -9,10 +9,9 @@ origin_child_dir: docs/plans/zircon_runtime/runtime/11
 fixing_child_dir: docs/plans/zircon_runtime/frameworks/04
 plan_link_mode: child_record_only
 related_code:
-  - zircon_runtime/src/plugin/native_plugin_loader/discovery_refresh/contract.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/discovery_refresh/service.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/discover.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/discover/authority.rs
+  - zircon_runtime/src/plugin/loader/discovery_refresh/contract.rs
+  - zircon_runtime/src/plugin/loader/discovery_refresh/service.rs
+  - zircon_runtime/src/plugin/loader/discover/authority.rs
 tests:
   - collector rejects candidate, diagnostic, read-byte, and scratch-byte limits before unbounded public payload allocation
   - cargo +1.94.1 test -p zircon_runtime --lib native_plugin_loader --locked --jobs 1 -- --nocapture --test-threads=1

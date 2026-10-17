@@ -5,9 +5,7 @@ plan_sources:
   - docs/plans/optimize/zircon_runtime/635/2026-09-01-single-icon-reference-without-hash-set.md
 related_code:
   - zircon_runtime/src/asset/assets/ui.rs
-  - zircon_runtime/src/asset/assets/ui/optimization_batch_ix_runtime635_tests.rs
 tests:
-  - zircon_runtime/src/asset/assets/ui/optimization_batch_ix_runtime635_tests.rs
 ---
 
 # Single Icon Reference Fast Path

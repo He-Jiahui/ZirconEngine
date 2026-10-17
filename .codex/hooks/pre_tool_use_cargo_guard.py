@@ -1,3 +1,10 @@
+"""Advisory Bash hook for common unmanaged Cargo commands.
+
+This fail-open text matcher is not a command parser or a security boundary. It
+misses aliases, global options, indirect execution, other tool names and rustc.
+Physical output enforcement belongs to tools/dev/local-cargo.ps1 and CI guards.
+"""
+
 from __future__ import annotations
 
 import json
@@ -24,7 +31,7 @@ _MANAGED_ARTIFACT_ROOT = re.compile(
     re.IGNORECASE,
 )
 _CARGO_DENIAL_REASON = (
-    "The local coordinator is retired. Use tools/local-cargo.ps1 for compilation: "
+    "The local coordinator is retired. Use tools/dev/local-cargo.ps1 for compilation: "
     "an explicit Cargo target alone does not confine build, cache and temporary outputs. "
     "Every compiler output must physically stay below D:/cargo-targets, E:/cargo-targets "
     "or F:/cargo-targets. Jenkins migration acceptance remains pending."

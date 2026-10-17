@@ -46,8 +46,7 @@ related_code:
   - zircon_runtime/src/navigation/runtime/world_scan.rs
   - zircon_runtime/src/navigation/runtime/avoidance.rs
   - docs/crates/zircon_runtime/scene/world/project_io.md
-  - zircon_runtime/src/tests/runtime_absorption/performance_hotspots.rs
-  - zircon_runtime/src/tests/runtime_absorption/performance_hotspots/scene_project_splits/dynamic_session_event.rs
+  - zircon_runtime/src/tests/contracts/scene_project_splits/dynamic_session_event.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/large_file_ownership.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/performance_hotpath_boundary.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/performance_hotpath_source_inventory.py
@@ -71,12 +70,10 @@ implementation_files:
   - zircon_plugins/animation/runtime/src/evaluation/pipeline/pose_apply.rs
   - zircon_plugins/animation/runtime/src/evaluation/pipeline/requests.rs
   - zircon_plugins/animation/runtime/src/evaluation/pipeline/tick.rs
-  - zircon_runtime/src/tests/runtime_absorption/performance_hotspots.rs
-  - zircon_runtime/src/tests/runtime_absorption/performance_hotspots/scene_project_splits/dynamic_session_event.rs
+  - zircon_runtime/src/tests/contracts/scene_project_splits/dynamic_session_event.rs
   - zircon_runtime_interface/src/profiling.rs
   - zircon_runtime/src/core/runtime/diagnostics/profiling/counter_hotspot.rs
   - zircon_runtime/src/core/runtime/diagnostics/profiling/export.rs
-  - zircon_runtime/src/tests/runtime_absorption/mod.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/large_file_ownership.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/performance_hotpath_boundary.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/performance_hotpath_source_inventory.py
@@ -88,11 +85,7 @@ plan_sources:
   - docs/plans/zircon_runtime/runtime/07/2026-07-09-runtime-performance-hotpath-output-records.md
   - docs/plans/zircon_runtime/runtime/07/2026-07-11-runtime07-durable-performance-evidence-and-resource-gate.md
 tests:
-  - zircon_runtime/src/tests/runtime_absorption/performance_hotspots.rs
-  - tests/acceptance/runtime-performance-filters-current-result.md
-  - zircon_runtime/src/tests/runtime_absorption/performance_hotspots/scene_project_splits/dynamic_session_event.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/cargo_gates.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/cargo_gates/early.rs
+  - zircon_runtime/src/tests/contracts/scene_project_splits/dynamic_session_event.rs
   - zircon_runtime/src/scene/tests/ecs_performance_acceptance.rs
   - zircon_runtime/src/scene/tests/ecs_change_detection.rs
   - zircon_runtime/src/dynamic_api/session/tests/frame_diagnostics.rs

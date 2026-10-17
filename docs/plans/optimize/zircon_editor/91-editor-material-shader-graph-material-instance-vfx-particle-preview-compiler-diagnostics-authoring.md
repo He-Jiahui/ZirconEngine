@@ -1,12 +1,9 @@
 ---
 related_code:
-  - zircon_editor/assets/ui/editor/components/workbench/modules/core/rendering
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/rendering
+  - zircon_editor/assets/ui/editor/modules/core/rendering
   - zircon_editor/src/ui/material_editor
   - zircon_editor/src/ui/host/asset_editor_sessions
   - zircon_editor/src/ui/host/editor_operation_dispatch.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench
-  - zircon_editor/src/ui/template_runtime/builtin/workbench_extension_module_template_bindings/render_asset_vfx.rs
   - zircon_editor/src/core/asset/type_registry/builtin.rs
   - zircon_plugins/editor_support
   - zircon_plugins/first_party_editor_catalog

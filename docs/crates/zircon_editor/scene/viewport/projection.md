@@ -1,7 +1,7 @@
 ---
 related_code:
   - zircon_editor/src/scene/viewport/projection.rs
-  - zircon_editor/src/scene/viewport/pointer/candidates/precision_candidates_from_layout.rs
+  - zircon_editor/src/scene/pointer/candidates/precision_candidates_from_layout.rs
   - zircon_editor/src/scene/viewport/pointer/candidates/handle_candidate.rs
   - zircon_editor/src/scene/viewport/pointer/candidates/projected_ring_segments.rs
   - zircon_editor/src/scene/viewport/pointer/candidates/renderable_candidate.rs

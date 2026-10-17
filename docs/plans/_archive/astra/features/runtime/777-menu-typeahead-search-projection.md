@@ -10,11 +10,7 @@ related_records:
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
   - zircon_runtime/src/ui/component/state_reducer/keyboard/menu.rs
-  - zircon_runtime/src/ui/component/state_reducer/keyboard/menu/typeahead_append_reuse_tests.rs
-  - zircon_runtime/src/ui/component/state_reducer/keyboard/menu/typeahead_search_projection_tests.rs
 tests:
-  - zircon_runtime/src/ui/component/state_reducer/keyboard/menu/typeahead_search_projection_tests.rs
-  - tools/tests/test_runtime_menu_typeahead_search_projection_performance_contract.py
 ---
 
 # Runtime777 · Menu typeahead search projection

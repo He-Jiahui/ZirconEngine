@@ -6,8 +6,6 @@ related_code:
   - zircon_editor/src/ui/workbench/view
   - zircon_editor/src/ui/host/editor_event_execution/layout_command.rs
   - zircon_editor/src/ui/host/editor_event_dispatch.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch
-  - zircon_editor/src/ui/retained_host/menu_pointer
   - zircon_editor/src/ui/workbench/reflection/model_build.rs
 tests:
   - zircon_editor/src/tests/workbench/host_events

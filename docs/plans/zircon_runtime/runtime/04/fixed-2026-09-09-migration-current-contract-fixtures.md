@@ -15,7 +15,7 @@ related_code:
   - zircon_runtime/src/asset/tests/migration/project_commandlet/scale_acceptance.rs
   - zircon_runtime/src/asset/tests/migration/project_commandlet/crash_windows.rs
   - zircon_runtime/src/asset/tests/migration/project_commandlet/source_boundary.rs
-  - zircon_runtime/src/asset/tests/migration/project_commandlet/document_migration.rs
+  - zircon_runtime/src/asset/tests/project_commandlet/document_migration.rs
 resolved_at: 2026-09-09
 ---
 

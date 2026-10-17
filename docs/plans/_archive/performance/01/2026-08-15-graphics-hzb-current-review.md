@@ -1,11 +1,8 @@
 ---
 related_code:
-  - zircon_runtime/src/graphics/scene/scene_renderer/hzb
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_hzb_build
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/post_process/computed_resources.rs
   - zircon_runtime/src/graphics/visibility/occlusion/hzb_builder.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/indirect_draw_workspace.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/indirect_draw_execution.rs
+  - zircon_runtime/src/graphics/scene/mesh/mesh_pass/indirect_draw_workspace.rs
+  - zircon_runtime/src/graphics/scene/mesh/mesh_pass/indirect_draw_execution.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_runtime/render/01-render-graph-rdg-alignment.md

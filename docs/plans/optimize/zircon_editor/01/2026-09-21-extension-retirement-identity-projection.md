@@ -8,8 +8,6 @@ implementation_files:
 plan_sources:
   - user: 2026-09-21 optimize Runtime and Editor hot paths and record completion
 tests:
-  - zircon_editor/src/ui/host/workspace_state_identity_projection_tests.rs
-  - tools/tests/test_editor867_871_workspace_identity_projection_performance_contract.py
 doc_type: milestone-detail
 title: Editor871 extension-retirement identity projection
 category: zircon_editor

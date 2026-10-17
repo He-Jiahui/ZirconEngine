@@ -7,7 +7,6 @@ status: local_candidate
 implementation_files:
   - tools/analysis/performance/editor/editor_menu_pointer_resize_pressure.py
 tests:
-  - tools/tests/test_editor_menu_pointer_source_binding_single_read_performance_contract.py
   - tools/tests/test_editor_menu_pointer_resize_pressure.py
 ---
 

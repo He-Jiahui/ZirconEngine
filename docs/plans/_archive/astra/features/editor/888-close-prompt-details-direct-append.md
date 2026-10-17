@@ -7,10 +7,8 @@ related_records:
   - docs/plans/astra/features/editor/664-20260911-editor-ui-optimization-batch-completion.md
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
-  - zircon_editor/src/ui/retained_host/app/close_prompt/presentation/text.rs
+  - zircon_editor/src/ui/retained/app/close_prompt/presentation/text.rs
 tests:
-  - zircon_editor/src/ui/retained_host/app/close_prompt/presentation/text/direct_append_tests.rs
-  - tools/tests/test_editor888_close_prompt_details_direct_append_performance_contract.py
 ---
 
 # Editor888 Close Prompt Details Direct Append

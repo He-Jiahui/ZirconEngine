@@ -13,7 +13,6 @@ related_code:
   - zircon_runtime_interface/src/ui/surface/navigation/event_kind.rs
   - zircon_runtime_interface/src/ui/dispatch/input/reply.rs
 tests:
-  - tools/tests/test_runtime_ui_dispatch_hash_lookup_performance_contract.py
   - zircon_runtime/src/ui/tests/event_routing
   - zircon_runtime/src/ui/tests/runtime_input_manager
 ---

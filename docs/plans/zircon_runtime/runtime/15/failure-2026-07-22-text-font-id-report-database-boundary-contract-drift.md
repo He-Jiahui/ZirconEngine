@@ -9,12 +9,9 @@ origin_child_dir: docs/plans/zircon_runtime/text/01
 fixing_child_dir: docs/plans/zircon_runtime/runtime/15
 plan_link_mode: child_record_only
 related_code:
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/rust_source_view.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/font_id_report.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/text.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/text/font_id_report.rs
   - zircon_runtime/src/text/render_state.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_ui_text_font_id_report.rs
 tests:
   - runtime_15_rust_production_view_rejects_lexical_and_test_only_false_positives
   - python -m unittest -v tools.tests.test_frameworks_05_text_boundary.Frameworks05TextBoundaryTests.test_graphics_does_not_own_cpu_text_service_state

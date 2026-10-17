@@ -25,14 +25,11 @@ related_failure:
 related_code:
   - zircon_plugins/physics/editor
   - zircon_editor/src/core/editor_extension/viewport_overlay_provider.rs
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_overlay_providers.rs
   - zircon_editor/src/core/asset/type_registry
   - zircon_editor/src/core/document
   - zircon_editor/src/core/editing
   - zircon_editor/src/core/jobs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback/simulation_physics.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation/specs/simulation_physics.rs
-  - zircon_editor/src/ui/retained_host/workbench_preview_actions/extensions.rs
+  - zircon_editor/src/ui/retained/dispatch/workbench/specs/simulation_physics.rs
   - zircon_plugins/first_party_editor_catalog/src/catalog.rs
   - zircon_plugins/first_party_runtime_catalog/src/lib.rs
 reference_engines:

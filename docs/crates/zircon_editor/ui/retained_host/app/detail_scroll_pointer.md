@@ -1,21 +1,19 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/app.rs
-  - zircon_editor/src/ui/retained_host/app/detail_scroll_pointer.rs
-  - zircon_editor/src/ui/retained_host/app/detail_scroll_pointer/asset_browser.rs
-  - zircon_editor/src/ui/retained_host/app/detail_scroll_pointer/console.rs
-  - zircon_editor/src/ui/retained_host/app/detail_scroll_pointer/inspector.rs
-  - zircon_editor/src/ui/retained_host/app/pointer_layout/detail_scrolls.rs
-  - zircon_editor/src/ui/retained_host/app/helpers/callback_surface/surface_size.rs
-  - zircon_editor/src/ui/retained_host/console_output/viewport_size.rs
-  - zircon_editor/src/ui/retained_host/host_contract/window/presentation.rs
-  - zircon_editor/src/ui/retained_host/scroll_surface_host.rs
-  - zircon_editor/src/ui/retained_host/detail_pointer/scroll_surface_pointer_layout.rs
+  - zircon_editor/src/ui/retained/app/detail_scroll_pointer.rs
+  - zircon_editor/src/ui/retained/app/detail_scroll_pointer/asset_browser.rs
+  - zircon_editor/src/ui/retained/app/detail_scroll_pointer/console.rs
+  - zircon_editor/src/ui/retained/app/detail_scroll_pointer/inspector.rs
+  - zircon_editor/src/ui/retained/app/pointer_layout/detail_scrolls.rs
+  - zircon_editor/src/ui/retained/app/helpers/callback_surface/surface_size.rs
+  - zircon_editor/src/ui/retained/console_output/viewport_size.rs
+  - zircon_editor/src/ui/retained/contract/window/presentation.rs
+  - zircon_editor/src/ui/retained/detail_pointer/scroll_surface_pointer_layout.rs
 implementation_files:
-  - zircon_editor/src/ui/retained_host/app/detail_scroll_pointer.rs
-  - zircon_editor/src/ui/retained_host/app/detail_scroll_pointer/asset_browser.rs
-  - zircon_editor/src/ui/retained_host/app/detail_scroll_pointer/console.rs
-  - zircon_editor/src/ui/retained_host/app/detail_scroll_pointer/inspector.rs
+  - zircon_editor/src/ui/retained/app/detail_scroll_pointer.rs
+  - zircon_editor/src/ui/retained/app/detail_scroll_pointer/asset_browser.rs
+  - zircon_editor/src/ui/retained/app/detail_scroll_pointer/console.rs
+  - zircon_editor/src/ui/retained/app/detail_scroll_pointer/inspector.rs
 plan_sources:
   - docs/plans/zircon_editor/editor_ui/08-workbench-shell-on-runtime-ui.md
   - user: 2026-06-18 editor UI architecture implementation, feature first and tests deferred

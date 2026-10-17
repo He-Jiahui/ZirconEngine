@@ -23,13 +23,12 @@ related_code:
   - zircon_editor/src/ui/asset_editor/session/runtime_report_state.rs
   - zircon_editor/src/ui/asset_editor/session/resolver_state.rs
   - zircon_editor/src/ui/asset_editor/session/preview_compile.rs
-  - zircon_editor/src/ui/retained_host/app/ui_asset_editor/actions/mode_preview/locale.rs
+  - zircon_editor/src/ui/retained/app/ui_asset_editor/actions/mode_preview/locale.rs
   - examples/woc/native/apps/woc_client/src/preferences/settings/options.rs
   - examples/woc/native/apps/woc_client/src/shell/realm_directory.rs
 tests:
   - zircon_runtime/src/ui/tests/asset_localization.rs
   - zircon_runtime/src/ui/tests/asset_package_validation.rs
-  - zircon_editor/src/core/i18n/tests.rs
   - zircon_editor/src/tests/ui/ui_asset_editor/action_localization_reports.rs
   - zircon_editor/src/tests/ui/ui_asset_editor/runtime_reports.rs
   - zircon_editor/src/tests/editing/ui_asset/runtime_report_productization.rs

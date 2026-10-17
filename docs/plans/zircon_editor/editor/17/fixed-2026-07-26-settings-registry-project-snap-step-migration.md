@@ -11,7 +11,7 @@ fixing_child_dir: docs/plans/zircon_editor/editor/05
 plan_link_mode: child_record_only
 related_code:
   - zircon_editor/src/scene/viewport/settings.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/viewport/route_mapping.rs
+  - zircon_editor/src/ui/retained/dispatch/viewport/route_mapping.rs
   - zircon_editor/src/core/settings/
 tests:
   - project snap-step SettingsRegistry resolve and persistence

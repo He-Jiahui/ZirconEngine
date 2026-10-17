@@ -9,7 +9,6 @@ related_code:
   - zircon_runtime/src/ui/template/asset/compiler/package/artifact.rs
   - zircon_runtime_interface/src/ui/template/asset/compiler/cache/cache_key.rs
   - zircon_runtime_interface/src/ui/template/asset/compiler/package/header.rs
-  - tools/zircon_build.py
   - zircon_runtime/src/ui/tests/asset_compile_cache.rs
   - zircon_runtime/src/ui/tests/v2_asset.rs
 implementation_files:
@@ -19,7 +18,6 @@ implementation_files:
   - zircon_runtime/src/ui/template/asset/mod.rs
   - zircon_runtime/src/ui/template/mod.rs
   - zircon_runtime/src/ui/v2/file_cache.rs
-  - tools/zircon_build.py
   - zircon_runtime/src/ui/tests/asset_compile_cache.rs
   - zircon_runtime/src/ui/tests/v2_asset.rs
 plan_sources:

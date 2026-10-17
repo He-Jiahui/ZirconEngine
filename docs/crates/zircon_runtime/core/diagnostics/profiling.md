@@ -1,13 +1,8 @@
 ---
 related_code:
   - tools/dev/dev-fast-build.ps1
-  - tools/zircon_build.py
   - Cargo.toml
   - zircon_runtime/Cargo.toml
-  - dev/bevy/docs/profiling.md
-  - dev/bevy/crates/bevy_diagnostic/src/diagnostic.rs
-  - dev/bevy/crates/bevy_render/src/diagnostic/mod.rs
-  - dev/bevy/crates/bevy_render/src/diagnostic/internal.rs
   - zircon_runtime/src/core/runtime/diagnostics/profiling/mod.rs
   - zircon_runtime/src/core/runtime/diagnostics/profiling/macros.rs
   - zircon_runtime/src/core/runtime/diagnostics/profiling/recorder.rs
@@ -19,9 +14,9 @@ related_code:
   - zircon_runtime/src/core/runtime/diagnostics/profiling/export.rs
   - zircon_runtime_interface/src/profiling.rs
   - zircon_runtime_interface/src/profiling/session_path.rs
-  - zircon_editor/src/ui/retained_host/host_contract/profiling_artifacts/environment.rs
-  - tools/profiling/shared/profile-capture-paths.ps1
-  - tools/profiling/ui/ui-profile-capture.ps1
+  - zircon_editor/src/ui/retained/contract/profiling_artifacts/environment.rs
+  - tools/analysis/profiling/shared/profile-capture-paths.ps1
+  - tools/analysis/profiling/ui/ui-profile-capture.ps1
   - tools/mvp/Capture-RenderExtractBaseline.ps1
   - tools/tests/ui-profile-capture-output-contract.Tests.ps1
   - tools/tests/render-extract-baseline-capture.Tests.ps1
@@ -35,16 +30,15 @@ related_code:
   - zircon_runtime/src/dynamic_api/runtime_loop.rs
   - zircon_app/src/entry/entry_runner/editor.rs
   - zircon_app/src/entry/entry_runner/runtime.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/submit.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/present_frame_extract.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/submit_runtime_frame.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/capture_frame/capture_frame.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/wgpu_render_framework/wgpu_render_framework.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/execute_graph_stage.rs
+  - zircon_runtime/src/graphics/runtime/framework/extract/submit/submit.rs
+  - zircon_runtime/src/graphics/runtime/extract/submit/present_frame_extract.rs
+  - zircon_runtime/src/graphics/runtime/extract/submit/submit_runtime_frame.rs
+  - zircon_runtime/src/graphics/runtime/framework/capture_frame/capture_frame.rs
+  - zircon_runtime/src/graphics/wgpu_render_framework/wgpu_render_framework.rs
+  - zircon_runtime/src/graphics/scene/core/render/render/execute_graph_stage.rs
   - zircon_runtime/src/graphics/tests/render_profiling.rs
 implementation_files:
   - tools/dev/dev-fast-build.ps1
-  - tools/zircon_build.py
   - zircon_runtime/Cargo.toml
   - zircon_runtime/src/core/runtime/diagnostics/profiling/mod.rs
   - zircon_runtime/src/core/runtime/diagnostics/profiling/macros.rs
@@ -57,9 +51,9 @@ implementation_files:
   - zircon_runtime/src/core/runtime/diagnostics/profiling/export.rs
   - zircon_runtime_interface/src/profiling.rs
   - zircon_runtime_interface/src/profiling/session_path.rs
-  - zircon_editor/src/ui/retained_host/host_contract/profiling_artifacts/environment.rs
-  - tools/profiling/shared/profile-capture-paths.ps1
-  - tools/profiling/ui/ui-profile-capture.ps1
+  - zircon_editor/src/ui/retained/contract/profiling_artifacts/environment.rs
+  - tools/analysis/profiling/shared/profile-capture-paths.ps1
+  - tools/analysis/profiling/ui/ui-profile-capture.ps1
   - tools/mvp/Capture-RenderExtractBaseline.ps1
   - zircon_runtime/src/runtime_diagnostics/collect.rs
   - zircon_runtime/src/dynamic_api/exports.rs
@@ -68,12 +62,12 @@ implementation_files:
   - zircon_runtime/src/dynamic_api/runtime_loop.rs
   - zircon_app/src/entry/entry_runner/editor.rs
   - zircon_app/src/entry/entry_runner/runtime.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/submit.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/present_frame_extract.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/submit_runtime_frame.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/capture_frame/capture_frame.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/wgpu_render_framework/wgpu_render_framework.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/execute_graph_stage.rs
+  - zircon_runtime/src/graphics/runtime/framework/extract/submit/submit.rs
+  - zircon_runtime/src/graphics/runtime/extract/submit/present_frame_extract.rs
+  - zircon_runtime/src/graphics/runtime/extract/submit/submit_runtime_frame.rs
+  - zircon_runtime/src/graphics/runtime/framework/capture_frame/capture_frame.rs
+  - zircon_runtime/src/graphics/wgpu_render_framework/wgpu_render_framework.rs
+  - zircon_runtime/src/graphics/scene/core/render/render/execute_graph_stage.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_runtime/runtime/07-runtime-performance-hotpath.md
@@ -91,11 +85,9 @@ tests:
   - zircon_runtime/src/core/runtime/diagnostics/profiling/counter_hotspot.rs
   - zircon_runtime/src/core/runtime/diagnostics/profiling/export.rs
   - zircon_runtime_interface/src/profiling/session_path.rs
-  - zircon_editor/src/ui/retained_host/host_contract/profiling_artifacts/environment/tests.rs
   - tools/tests/ui-profile-capture-output-contract.Tests.ps1
   - tools/tests/render-extract-baseline-capture.Tests.ps1
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/diagnostics.rs
-  - zircon_runtime/src/dynamic_api/tests.rs
+  - zircon_runtime/src/dynamic_api/tests/mod.rs
   - zircon_runtime/src/graphics/tests/render_profiling.rs
   - target: cargo check -p zircon_runtime --profile profiling --features profiling --locked
   - target: cargo test -p zircon_runtime --lib profiling --profile profiling --features profiling --locked

@@ -9,8 +9,8 @@ origin_child_dir: docs/plans/performance/01
 fixing_child_dir: docs/plans/zircon_editor/editor/15
 plan_link_mode: child_record_only
 related_code:
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/execution/output_capture.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/output_tail.rs
+  - zircon_editor/src/ui/host/exports/wizard/execution/output_capture.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/output_tail.rs
 tests:
   - tools.tests.test_editor15_export_generation_inventory_contract
   - 1-byte/64KiB chunks and 1MiB/1GiB output storm

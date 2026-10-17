@@ -6,7 +6,6 @@ plan_sources:
 implementation_files:
   - zircon_runtime/src/bin/zircon_export_pack/run.rs
 tests:
-  - zircon_runtime/src/bin/zircon_export_pack/run/optimization_tests.rs
 ---
 
 # Runtime04 pack export delta reader ownership completion list

@@ -11,7 +11,6 @@ reference_sources:
   - dev/godot/core/object/worker_thread_pool.cpp
   - dev/UnrealEngine/Engine/Source/Runtime/Core/Public/Async/TaskGraphInterfaces.h
 tests:
-  - zircon_runtime/src/operation/tests.rs
   - current-source Windows Cargo and operation-storm product traces pending
 doc_type: implementation-evidence
 status: static_complete_dynamic_pending

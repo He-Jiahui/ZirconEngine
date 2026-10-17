@@ -6,10 +6,8 @@ plan_sources:
   - docs/plans/astra/features/editor/664-20260911-editor-ui-optimization-batch-completion.md
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
-  - zircon_editor/src/ui/template_runtime/runtime/projection.rs
-  - zircon_editor/src/ui/template_runtime/runtime/projection/binding_capacity_tests.rs
+  - zircon_editor/src/ui/runtime/runtime/projection.rs
 tests:
-  - tools/tests/test_editor_template_binding_id_capacity_performance_contract.py
 ---
 
 # Editor837 · template binding-ID projection capacity

@@ -1,32 +1,32 @@
 ---
 related_code:
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_shader_plan.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_wgpu_command_plan.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_wgpu_binding.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_wgpu_dispatch.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_graph_plan.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_compute_executor.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/shaders/ibl_prefilter.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/shaders/ibl_irradiance_sh.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/shaders/ibl_irradiance_cube.wgsl
+  - zircon_runtime/src/graphics/scene/renderer/environment/ibl_bake_shader_plan.rs
+  - zircon_runtime/src/graphics/scene/environment/ibl_bake_wgpu_command_plan.rs
+  - zircon_runtime/src/graphics/scene/renderer/environment/ibl_bake_wgpu_binding.rs
+  - zircon_runtime/src/graphics/scene/renderer/environment/ibl_bake_wgpu_dispatch.rs
+  - zircon_runtime/src/graphics/scene/renderer/environment/ibl_bake_graph_plan.rs
+  - zircon_runtime/src/graphics/scene/environment/ibl_bake_compute_executor.rs
+  - zircon_runtime/src/graphics/scene/renderer/shaders/ibl_prefilter.wgsl
+  - zircon_runtime/src/graphics/scene/renderer/shaders/ibl_irradiance_sh.wgsl
+  - zircon_runtime/src/graphics/scene/renderer/shaders/ibl_irradiance_cube.wgsl
   - zircon_runtime/src/core/framework/render/environment/source_cubemap/pmrem.rs
   - zircon_runtime/src/core/framework/render/environment/source_cubemap.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_wgpu_dispatch/tests/reference_parity.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_wgpu_dispatch/tests/irradiance_parity.rs
+  - zircon_runtime/src/graphics/scene/renderer/environment/tests/reference_parity.rs
+  - zircon_runtime/src/graphics/scene/renderer/tests/irradiance_parity.rs
 implementation_files:
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_shader_plan.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_wgpu_command_plan.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_wgpu_binding.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_wgpu_dispatch.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/shaders/ibl_prefilter.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/shaders/ibl_irradiance_sh.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/shaders/ibl_irradiance_cube.wgsl
+  - zircon_runtime/src/graphics/scene/renderer/environment/ibl_bake_shader_plan.rs
+  - zircon_runtime/src/graphics/scene/environment/ibl_bake_wgpu_command_plan.rs
+  - zircon_runtime/src/graphics/scene/renderer/environment/ibl_bake_wgpu_binding.rs
+  - zircon_runtime/src/graphics/scene/renderer/environment/ibl_bake_wgpu_dispatch.rs
+  - zircon_runtime/src/graphics/scene/renderer/shaders/ibl_prefilter.wgsl
+  - zircon_runtime/src/graphics/scene/renderer/shaders/ibl_irradiance_sh.wgsl
+  - zircon_runtime/src/graphics/scene/renderer/shaders/ibl_irradiance_cube.wgsl
 plan_sources:
   - user: 2026-07-06 real HDRI PMREM mip blur and cmft/Unreal cubemap filtering correction
   - docs/plans/zircon_runtime/shader/06-environment-ibl-and-pbr-correctness.md
   - docs/plans/zircon_runtime/render/11-environment-lighting.md
 tests:
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_shader_plan.rs
+  - zircon_runtime/src/graphics/scene/renderer/environment/ibl_bake_shader_plan.rs
   - E:\cargo-targets\zircon-ibl-final-mip-average-0706\debug\deps\zircon_runtime-9b53a08da5f6e0e7.exe ibl_bake_wgpu_dispatch --nocapture --test-threads=1
 doc_type: module-detail
 ---

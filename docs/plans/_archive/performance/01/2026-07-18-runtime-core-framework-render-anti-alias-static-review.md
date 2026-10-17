@@ -5,17 +5,15 @@ related_code:
   - zircon_runtime/src/core/framework/render/anti_alias/mode.rs
   - zircon_runtime/src/core/framework/render/anti_alias/settings.rs
   - zircon_runtime/src/core/framework/render/anti_alias/taa_quality.rs
-  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/temporal.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/temporal/taa/execute_taa_resolve.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/temporal/taa/taa_resolve_bind_group_cache.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/temporal/taa/temporal_history_store.rs
+  - zircon_runtime/src/graphics/feature/builtin/feature_descriptors/temporal.rs
+  - zircon_runtime/src/graphics/scene/renderer/temporal/taa/execute_taa_resolve.rs
+  - zircon_runtime/src/graphics/scene/temporal/taa/temporal_history_store.rs
   - zircon_runtime/src/graphics/resource_identity.rs
-  - zircon_runtime/src/graphics/backend/render_backend/offscreen_target_construct/scene_velocity.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_history/prepare_history_textures.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_target/ensure_offscreen_target.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resource_identities.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/mesh_recording.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/bind_taa_reactive_mask_graph_resource.rs
+  - zircon_runtime/src/graphics/backend/offscreen_target_construct/scene_velocity.rs
+  - zircon_runtime/src/graphics/scene_renderer_history/prepare_history_textures.rs
+  - zircon_runtime/src/graphics/scene_renderer_target/ensure_offscreen_target.rs
+  - zircon_runtime/src/graphics/scene/renderer/context/gpu/mesh_recording.rs
+  - zircon_runtime/src/graphics/core/render/bind_taa_reactive_mask_graph_resource.rs
   - zircon_runtime/src/graphics/tests/render_product_anti_alias/reactive_mask.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md

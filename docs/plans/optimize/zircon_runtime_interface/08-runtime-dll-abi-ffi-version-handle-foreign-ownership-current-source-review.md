@@ -17,12 +17,6 @@ tests:
   - zircon_runtime_interface/src/tests/runtime_operation.rs
   - zircon_runtime/src/dynamic_api/tests
   - zircon_runtime/src/dynamic_api/session/tests
-  - zircon_runtime/src/dynamic_api/session/registry/tests.rs
-  - zircon_runtime/tests/runtime_owned_result_v7.rs
-  - zircon_runtime_host/src/foreign_output/tests.rs
-  - zircon_app/src/entry/runtime_library/tests.rs
-  - zircon_app/src/entry/runtime_library/runtime_session/tests.rs
-  - zircon_editor/src/core/gateway/session/tests.rs
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md
   - docs/plans/optimize/zircon_runtime_interface/01-runtime-dll-abi-ffi-version-handle-foreign-ownership-review.md

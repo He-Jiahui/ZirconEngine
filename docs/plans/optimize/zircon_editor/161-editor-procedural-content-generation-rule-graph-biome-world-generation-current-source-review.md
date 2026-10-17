@@ -21,12 +21,9 @@ related_handoffs:
   - docs/plans/zircon_plugins/10/failure-2026-08-01-terrain-tilemap-scene-mode-factories-missing.md
   - docs/plans/zircon_runtime/runtime/08/failure-2026-07-27-dynamic-component-property-world-generation.md
 related_code:
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/world
   - zircon_editor/src/core/editor_authoring_extension.rs
   - zircon_editor/src/core/editing
   - zircon_editor/src/core/jobs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench
-  - zircon_editor/src/ui/template_runtime/builtin/workbench_extension_module_template_bindings/world_building.rs
   - zircon_plugins/editor_support/src/lib.rs
   - zircon_plugins/terrain
   - zircon_plugins/first_party_runtime_catalog

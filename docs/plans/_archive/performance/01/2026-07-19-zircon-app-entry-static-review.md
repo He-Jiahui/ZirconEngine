@@ -14,7 +14,6 @@ reference_sources:
   - dev/UnrealEngine/Engine/Source/Runtime/Slate/Private/Framework/Application/SlateApplication.cpp
 tests:
   - zircon_app/src/entry/tests
-  - zircon_app/src/entry/runtime_library/tests.rs
   - zircon_app/src/entry/entry_runner/editor/tests
   - current-source Windows Cargo and product traces pending
 doc_type: implementation-evidence

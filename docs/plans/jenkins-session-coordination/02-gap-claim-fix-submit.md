@@ -5,7 +5,6 @@ related_code:
   - tools/jenkins/gap/state.py
   - tools/jenkins/gap/cli.py
   - .jenkins/pipeline/zircon-gap.groovy
-  - .jenkins/state/coordination.sqlite3
 implementation_files:
   - tools/jenkins/gap/__init__.py
   - tools/jenkins/gap/extractor.py

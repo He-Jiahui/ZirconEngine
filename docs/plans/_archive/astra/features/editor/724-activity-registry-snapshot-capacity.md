@@ -11,8 +11,6 @@ related_records:
 implementation_files:
   - zircon_editor/src/ui/control/service.rs
 tests:
-  - zircon_editor/src/ui/control/service/activity_registry_hash_tests.rs
-  - tools/tests/test_editor_activity_registry_snapshot_capacity_performance_contract.py
 ---
 
 # Editor activity-registry snapshot capacity

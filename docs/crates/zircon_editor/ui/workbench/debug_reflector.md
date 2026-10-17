@@ -10,27 +10,15 @@ related_code:
   - zircon_editor/src/ui/workbench/debug_reflector/mod.rs
   - zircon_editor/src/ui/workbench/debug_reflector/model.rs
   - zircon_editor/src/ui/workbench/debug_reflector/schedule_sections.rs
-  - zircon_editor/src/ui/workbench/debug_reflector/timeline.rs
-  - zircon_editor/src/ui/workbench/debug_reflector/selection.rs
-  - zircon_editor/src/ui/workbench/debug_reflector/export.rs
   - zircon_editor/src/ui/workbench/debug_reflector/overlay.rs
-  - zircon_editor/src/ui/host/builtin_views/activity_windows/debug_observatory_view_descriptor.rs
-  - zircon_editor/src/ui/host/builtin_views/activity_windows/activity_window_descriptors.rs
   - zircon_editor/src/ui/host/builtin_views/builtin_view_descriptors.rs
   - zircon_editor/src/core/commands/menu.rs
   - zircon_editor/src/core/commands/menu_model.rs
   - zircon_editor/src/core/editor_operation.rs
-  - zircon_editor/src/ui/retained_host/menu_pointer/menu_items_for_layout.rs
+  - zircon_editor/src/ui/retained/menu_pointer/menu_items_for_layout.rs
   - zircon_editor/src/ui/workbench/reflection/name_mapping.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload_builders/runtime_diagnostics.rs
-  - zircon_editor/src/ui/template_runtime/runtime/pane_payload_projection.rs
-  - zircon_editor/src/ui/retained_host/ui/apply_presentation.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/runtime_diagnostics.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/panes.rs
-  - zircon_editor/src/ui/retained_host/host_contract/mod.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_debug_reflector_overlay.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench.rs
+  - zircon_editor/src/ui/retained/ui/apply_presentation.rs
+  - zircon_editor/src/ui/retained/contract/data/panes.rs
   - zircon_editor/assets/ui/editor/host/runtime_diagnostics_body.zui
 implementation_files:
   - zircon_runtime_interface/src/ui/layout/engine.rs
@@ -43,27 +31,15 @@ implementation_files:
   - zircon_editor/src/ui/workbench/debug_reflector/mod.rs
   - zircon_editor/src/ui/workbench/debug_reflector/model.rs
   - zircon_editor/src/ui/workbench/debug_reflector/schedule_sections.rs
-  - zircon_editor/src/ui/workbench/debug_reflector/timeline.rs
-  - zircon_editor/src/ui/workbench/debug_reflector/selection.rs
-  - zircon_editor/src/ui/workbench/debug_reflector/export.rs
   - zircon_editor/src/ui/workbench/debug_reflector/overlay.rs
-  - zircon_editor/src/ui/host/builtin_views/activity_windows/debug_observatory_view_descriptor.rs
-  - zircon_editor/src/ui/host/builtin_views/activity_windows/activity_window_descriptors.rs
   - zircon_editor/src/ui/host/builtin_views/builtin_view_descriptors.rs
   - zircon_editor/src/core/commands/menu.rs
   - zircon_editor/src/core/commands/menu_model.rs
   - zircon_editor/src/core/editor_operation.rs
-  - zircon_editor/src/ui/retained_host/menu_pointer/menu_items_for_layout.rs
+  - zircon_editor/src/ui/retained/menu_pointer/menu_items_for_layout.rs
   - zircon_editor/src/ui/workbench/reflection/name_mapping.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload_builders/runtime_diagnostics.rs
-  - zircon_editor/src/ui/template_runtime/runtime/pane_payload_projection.rs
-  - zircon_editor/src/ui/retained_host/ui/apply_presentation.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/runtime_diagnostics.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/panes.rs
-  - zircon_editor/src/ui/retained_host/host_contract/mod.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_debug_reflector_overlay.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench.rs
+  - zircon_editor/src/ui/retained/ui/apply_presentation.rs
+  - zircon_editor/src/ui/retained/contract/data/panes.rs
   - zircon_editor/assets/ui/editor/host/runtime_diagnostics_body.zui
 plan_sources:
   - docs/superpowers/specs/2026-05-07-debug-observatory-design.md
@@ -77,8 +53,6 @@ plan_sources:
   - user: 2026-05-06 continue UI Debug Reflector full closure milestone
 tests:
   - zircon_runtime/src/ui/tests/timeline.rs
-  - zircon_editor/src/ui/workbench/debug_reflector/tests.rs
-  - zircon_editor/src/ui/workbench/debug_reflector/schedule_sections_tests.rs
   - rustfmt --edition 2021 --check zircon_editor/src/ui/workbench/debug_reflector/model.rs zircon_editor/src/ui/workbench/debug_reflector/tests.rs zircon_editor/src/tests/host/pane_presentation.rs zircon_editor/src/tests/host/template_runtime/pane_payload_projection.rs zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_status_controls.rs (2026-06-07 Canvas layer reflector section: passed after applying rustfmt)
   - cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir D:\cargo-targets\zircon-canvas-layer-reflector-editor-0607 --message-format short --color never (2026-06-07 Canvas layer reflector section: passed with existing warning noise)
   - cargo test -p zircon_editor --lib ui_debug_reflector_model_projects_snapshot_rows_and_sections --locked --jobs 1 --target-dir D:\cargo-targets\zircon-canvas-layer-reflector-editor-0607 --message-format short --color never -- --nocapture --test-threads=1 (2026-06-07 Canvas layer reflector section: passed, 1 passed, 1879 filtered out; first attempt timed out during test-target compilation without diagnostics)
@@ -95,18 +69,14 @@ tests:
   - zircon_editor/src/tests/host/builtin_window_descriptors.rs
   - zircon_editor/src/tests/host/pane_template_descriptor.rs
   - zircon_editor/src/tests/host/manager/minimal_host_contract.rs
-  - zircon_editor/src/tests/editor_event/runtime.rs
+  - zircon_editor/src/tests/editor_event/runtime/mod.rs
   - zircon_editor/src/tests/workbench/view_model/shell_projection.rs
   - zircon_editor/src/tests/workbench/host_events/menu_binding.rs
-  - zircon_editor/src/tests/host/pane_presentation.rs
-  - zircon_editor/src/tests/host/template_runtime/pane_payload_projection.rs
-  - zircon_editor/src/tests/host/template_runtime/pane_body_documents.rs
+  - zircon_editor/src/tests/host/pane_presentation/mod.rs
   - zircon_editor/src/tests/host/retained_runtime_diagnostics_template_body.rs
   - zircon_editor/src/tests/host/retained_window/ui_debug_reflector.rs
-  - zircon_editor/src/tests/host/retained_window/native_host_contract.rs
-  - zircon_editor/src/tests/host/retained_window/shell_window.rs
-  - zircon_editor/src/ui/retained_host/ui/tests/host_scene_projection.rs
-  - tests/acceptance/ui-debug-reflector-full-closure.md
+  - zircon_editor/src/tests/host/retained_window/native_host_contract/mod.rs
+  - zircon_editor/src/tests/host/retained_window/shell_window/mod.rs
 doc_type: module-detail
 ---
 

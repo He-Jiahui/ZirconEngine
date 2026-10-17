@@ -11,7 +11,6 @@ plan_link_mode: child_record_only
 related_code:
   - zircon_runtime/src/graphics/shader/wgsl/zr_shading_standard_pbr.wgsl
   - zircon_runtime/src/graphics/shader/includes/zr_pbr_extras.wgsl
-  - zircon_runtime/src/graphics/shader/template/tests.rs
   - zircon_runtime/src/graphics/shader/template/tests/material_template_assembly.rs
   - zircon_runtime/src/graphics/shader/template/tests/standard_pbr_specialization.rs
 tests:

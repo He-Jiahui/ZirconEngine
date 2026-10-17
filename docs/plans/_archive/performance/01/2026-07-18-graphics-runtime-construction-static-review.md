@@ -1,6 +1,5 @@
 ---
 related_code:
-  - zircon_runtime/src/graphics/runtime/render_framework/wgpu_render_framework_construction
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/performance/pending.md

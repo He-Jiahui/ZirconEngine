@@ -8,10 +8,8 @@ related_code:
   - zircon_editor/src/core/script_build/mod.rs
   - zircon_editor/src/core/script_build/request.rs
   - zircon_editor/src/core/script_build/orchestrator.rs
-  - zircon_editor/src/core/script_build/tests.rs
 tests:
   - tools/tests/test_editor13_script_build_orchestrator_contract.py
-  - zircon_editor/src/core/script_build/tests.rs
 ---
 
 # Script Build Orchestrator M1.1

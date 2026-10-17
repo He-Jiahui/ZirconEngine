@@ -13,15 +13,12 @@ related_code:
   - zircon_runtime/src/asset/facade/event/declaration.rs
   - zircon_runtime/src/asset/facade/event/projection.rs
   - zircon_runtime/src/asset/facade/event/receiver.rs
-  - zircon_runtime/src/asset/facade/event/tests.rs
   - zircon_runtime/crates/zr_resource/src/event_stream.rs
-  - zircon_runtime/crates/zr_resource/src/event_stream/event_order_tests.rs
-  - zircon_runtime/crates/zr_resource/src/event_stream/publication_index_tests.rs
   - zircon_runtime/crates/zr_resource/src/manager/resource_manager.rs
-  - zircon_runtime/src/scene/dynamic_scene/asset_reload/mod.rs
-  - zircon_runtime/src/scene/dynamic_scene/asset_reload/queue/event_processing.rs
-  - zircon_runtime/src/scene/dynamic_scene/asset_reload/queue/reconciliation.rs
-  - zircon_runtime/src/scene/dynamic_scene/asset_reload/reports.rs
+  - zircon_runtime/src/scene/dynamic/asset_reload/mod.rs
+  - zircon_runtime/src/scene/dynamic/asset_reload/queue/event_processing.rs
+  - zircon_runtime/src/scene/dynamic/asset_reload/queue/reconciliation.rs
+  - zircon_runtime/src/scene/dynamic/asset_reload/reports.rs
 tests:
   - cargo test -p zircon_runtime --lib typed_asset_receiver --locked --jobs 1 -- --nocapture --test-threads=1
   - asset event storm, stalled consumer, rename/remove ordering and bounded RSS fixtures

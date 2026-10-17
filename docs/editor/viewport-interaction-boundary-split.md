@@ -5,28 +5,24 @@ related_code:
   - zircon_editor/src/tests/host/render_framework_boundary/mod.rs
   - zircon_editor/src/scene/viewport/mod.rs
   - zircon_editor/src/scene/viewport/render_packet.rs
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_build_runtime_overlay_ui.rs
   - zircon_editor/src/scene/viewport/interaction/mod.rs
   - zircon_editor/src/scene/viewport/interaction/gizmo_axis.rs
   - zircon_editor/src/scene/viewport/interaction/viewport_input.rs
   - zircon_editor/src/scene/viewport/interaction/viewport_feedback.rs
   - zircon_editor/src/scene/viewport/interaction/viewport_state.rs
   - zircon_editor/src/scene/viewport/pointer/runtime_picking_adapter.rs
-  - zircon_editor/src/scene/viewport/pointer/tests.rs
   - zircon_editor/src/tests/editing/viewport.rs
   - zircon_editor/src/tests/editing/state.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/viewport/pointer_bridge.rs
+  - zircon_editor/src/tests/host/callbacks/viewport/pointer_bridge.rs
   - zircon_editor/src/ui/workbench/state/editor_state_render.rs
-  - zircon_editor/src/ui/retained_host/app/viewport.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/viewport/pointer_dispatch.rs
-  - zircon_editor/src/ui/retained_host/viewport/retained_viewport_controller.rs
-  - zircon_editor/src/ui/retained_host/viewport/submit_extract.rs
-  - zircon_editor/src/ui/retained_host/viewport/take_error.rs
-  - zircon_editor/src/ui/retained_host/viewport/world_space_ui.rs
-  - zircon_editor/src/ui/retained_host/viewport/tests/controller_submits_shared_ui_overlay_through_render_framework.rs
+  - zircon_editor/src/ui/retained/app/viewport.rs
+  - zircon_editor/src/ui/retained/dispatch/viewport/pointer_dispatch.rs
+  - zircon_editor/src/ui/retained/viewport/submit_extract.rs
+  - zircon_editor/src/ui/retained/viewport/take_error.rs
+  - zircon_editor/src/ui/retained/viewport/world_space_ui.rs
   - zircon_runtime/src/scene/world/render.rs
   - zircon_runtime/src/core/framework/render/framework.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/submit.rs
+  - zircon_runtime/src/graphics/runtime/framework/extract/submit/submit.rs
   - zircon_runtime/src/scene/tests/world_basics.rs
   - zircon_editor/src/ui/host/editor_event_runtime_access/
   - zircon_app/src/entry/runtime_entry_app/mod.rs
@@ -36,34 +32,30 @@ related_code:
   - zircon_runtime/src/graphics/mod.rs
   - zircon_runtime/src/graphics/types/viewport_render_frame.rs
   - zircon_runtime/src/graphics/types/viewport_render_frame_from_extract.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render/render.rs
+  - zircon_runtime/src/graphics/scene/renderer/core/scene_renderer_render/render.rs
 implementation_files:
   - zircon_editor/src/lib.rs
   - zircon_editor/Cargo.toml
   - zircon_editor/src/scene/viewport/mod.rs
   - zircon_editor/src/scene/viewport/render_packet.rs
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_build_runtime_overlay_ui.rs
   - zircon_editor/src/scene/viewport/interaction/mod.rs
   - zircon_editor/src/scene/viewport/interaction/gizmo_axis.rs
   - zircon_editor/src/scene/viewport/interaction/viewport_input.rs
   - zircon_editor/src/scene/viewport/interaction/viewport_feedback.rs
   - zircon_editor/src/scene/viewport/interaction/viewport_state.rs
   - zircon_editor/src/scene/viewport/pointer/runtime_picking_adapter.rs
-  - zircon_editor/src/scene/viewport/pointer/tests.rs
   - zircon_editor/src/tests/editing/viewport.rs
   - zircon_editor/src/tests/editing/state.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/viewport/pointer_bridge.rs
+  - zircon_editor/src/tests/host/callbacks/viewport/pointer_bridge.rs
   - zircon_editor/src/ui/workbench/state/editor_state_render.rs
-  - zircon_editor/src/ui/retained_host/app/viewport.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/viewport/pointer_dispatch.rs
-  - zircon_editor/src/ui/retained_host/viewport/retained_viewport_controller.rs
-  - zircon_editor/src/ui/retained_host/viewport/submit_extract.rs
-  - zircon_editor/src/ui/retained_host/viewport/take_error.rs
-  - zircon_editor/src/ui/retained_host/viewport/world_space_ui.rs
-  - zircon_editor/src/ui/retained_host/viewport/tests/controller_submits_shared_ui_overlay_through_render_framework.rs
+  - zircon_editor/src/ui/retained/app/viewport.rs
+  - zircon_editor/src/ui/retained/dispatch/viewport/pointer_dispatch.rs
+  - zircon_editor/src/ui/retained/viewport/submit_extract.rs
+  - zircon_editor/src/ui/retained/viewport/take_error.rs
+  - zircon_editor/src/ui/retained/viewport/world_space_ui.rs
   - zircon_runtime/src/scene/world/render.rs
   - zircon_runtime/src/core/framework/render/framework.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/submit.rs
+  - zircon_runtime/src/graphics/runtime/framework/extract/submit/submit.rs
   - zircon_runtime/src/scene/tests/world_basics.rs
   - zircon_app/src/entry/runtime_entry_app/mod.rs
   - zircon_app/src/entry/runtime_entry_app/application_handler/mod.rs
@@ -72,7 +64,7 @@ implementation_files:
   - zircon_runtime/src/graphics/mod.rs
   - zircon_runtime/src/graphics/types/viewport_render_frame.rs
   - zircon_runtime/src/graphics/types/viewport_render_frame_from_extract.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render/render.rs
+  - zircon_runtime/src/graphics/scene/renderer/core/scene_renderer_render/render.rs
 plan_sources:
   - user: 2026-04-17 功能性拆分要求，先找明显错包模块并迁回合理包
   - user: 2026-04-17 Viewport 交互边界重构计划
@@ -81,19 +73,13 @@ plan_sources:
   - user: 2026-04-21 M1 主链收口与文本底座计划，runtime 只负责中性 DTO，editor 成为作者态 overlay 唯一入口
 tests:
   - zircon_editor/src/tests/host/render_framework_boundary/mod.rs
-  - zircon_editor/src/scene/viewport/pointer/tests.rs
   - zircon_editor/src/tests/editing/viewport.rs
   - zircon_editor/src/tests/editing/state.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/viewport/pointer_bridge.rs
-  - zircon_editor/src/ui/retained_host/viewport/tests/controller_submits_shared_ui_overlay_through_render_framework.rs
+  - zircon_editor/src/tests/host/callbacks/viewport/pointer_bridge.rs
   - zircon_runtime/src/scene/tests/world_basics.rs
-  - zircon_app/src/entry/tests.rs
+  - zircon_app/src/entry/tests/mod.rs
   - zircon_runtime/src/dynamic_api/camera_controller.rs
   - zircon_runtime/src/graphics/tests/project_render.rs
-  - zircon_graphics/src/tests/hybrid_gi_gpu.rs
-  - zircon_graphics/src/tests/hybrid_gi_resolve_render.rs
-  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_gpu.rs
-  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_prepare_render.rs
   - cargo test -p zircon_graphics --locked
   - cargo test -p zircon_app --locked
   - cargo test -p zircon_editor editor_viewport_interaction_boundary_lives_in_editor_crate --locked

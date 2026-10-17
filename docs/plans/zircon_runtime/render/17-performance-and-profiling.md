@@ -2,26 +2,12 @@
 related_code:
   - zircon_runtime/src/graphics/debug_markers.rs
   - zircon_runtime/src/core/framework/render/backend_types.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/submit.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/update.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/graphics_debugger_capture/environment.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/frame_profiler.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/frame_profiler/gpu_resolution.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/execute_graph_stage.rs
+  - zircon_runtime/src/graphics/runtime/framework/extract/submit/submit.rs
+  - zircon_runtime/src/graphics/runtime/framework/extract/update_stats/update.rs
+  - zircon_runtime/src/graphics/runtime/framework/frame_profiler/gpu_resolution.rs
+  - zircon_runtime/src/graphics/scene/core/render/render/execute_graph_stage.rs
   - zircon_runtime/src/core/runtime/diagnostics/profiling/scope.rs
   - zircon_runtime/src/core/runtime/tasks/pool.rs
-  - dev/UnrealEngine/Engine/Source/Runtime/RenderCore/Public/ProfilingDebugging/RealtimeGPUProfiler.h
-  - dev/UnrealEngine/Engine/Source/Runtime/Renderer/Private/SceneRendering.h
-  - dev/Graphics/Packages/com.unity.render-pipelines.core/Runtime/Debugging/ProfilingScope.cs
-  - dev/bevy/crates/bevy_render/src/pipelined_rendering.rs
-  - dev/bevy/crates/bevy_render/src/lib.rs
-  - dev/bevy/crates/bevy_render/src/diagnostic/mod.rs
-  - dev/bevy/crates/bevy_render/src/diagnostic/internal.rs
-  - dev/bevy/crates/bevy_render/src/diagnostic/tracy_gpu.rs
-  - dev/bevy/crates/bevy_render/src/render_resource/pipeline_cache.rs
-  - dev/bevy/crates/bevy_diagnostic/src/diagnostic.rs
-  - dev/bevy/crates/bevy_diagnostic/src/frame_time_diagnostics_plugin.rs
-  - dev/Fyrox/fyrox-impl/src/renderer/stats.rs
 plan_sources:
   - .codex/plans/Runtime 渲染风险清单与 RenderDoc 调试支持计划.md
 ---

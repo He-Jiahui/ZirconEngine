@@ -11,9 +11,8 @@ plan_link_mode: child_record_only
 related_code:
   - zircon_runtime/src/graphics/mod.rs
   - zircon_runtime/src/graphics/scene/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_viewport_surface.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/viewport_surface/viewport_surface.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/surface.rs
+  - zircon_runtime/src/graphics/runtime/viewport_surface/viewport_surface.rs
+  - zircon_runtime/src/graphics/runtime/framework/viewport_record/surface.rs
 tests:
   - cargo +1.94.1 test -p zircon_runtime --test runtime_text_multilingual_product_framebuffer export_runtime_multilingual_text_product_framebuffer_png --locked --jobs 1 --color never -- --ignored --exact --test-threads=1
 ---

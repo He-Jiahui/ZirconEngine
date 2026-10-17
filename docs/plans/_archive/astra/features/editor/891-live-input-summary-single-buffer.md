@@ -7,10 +7,7 @@ related_records:
   - docs/plans/astra/features/editor/664-20260911-editor-ui-optimization-batch-completion.md
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback/live_input_summary.rs
 tests:
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback/live_input_summary/single_buffer_tests.rs
-  - tools/tests/test_editor891_live_input_summary_single_buffer_performance_contract.py
 ---
 
 # Editor891 Live Input Summary Single Buffer

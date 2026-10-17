@@ -1,23 +1,22 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/app.rs
-  - zircon_editor/src/ui/retained_host/app/profiling.rs
-  - zircon_editor/src/ui/retained_host/app/profiling/actions.rs
-  - zircon_editor/src/ui/retained_host/app/profiling/actions/commands.rs
-  - zircon_editor/src/ui/retained_host/app/profiling/actions/dispatch.rs
-  - zircon_editor/src/ui/retained_host/app/profiling/actions/status.rs
-  - zircon_editor/src/ui/retained_host/app/profiling/diagnostics.rs
-  - zircon_editor/src/ui/retained_host/app/profiling/snapshot_merge.rs
-  - zircon_editor/src/ui/retained_host/app/pane_surface_actions.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/pane_payloads.rs
+  - zircon_editor/src/ui/retained/app/profiling.rs
+  - zircon_editor/src/ui/retained/app/profiling/actions.rs
+  - zircon_editor/src/ui/retained/app/profiling/actions/commands.rs
+  - zircon_editor/src/ui/retained/app/profiling/actions/dispatch.rs
+  - zircon_editor/src/ui/retained/app/profiling/actions/status.rs
+  - zircon_editor/src/ui/retained/app/profiling/diagnostics.rs
+  - zircon_editor/src/ui/retained/app/profiling/snapshot_merge.rs
+  - zircon_editor/src/ui/retained/app/pane_surface_actions.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle/pane_payloads.rs
 implementation_files:
-  - zircon_editor/src/ui/retained_host/app/profiling.rs
-  - zircon_editor/src/ui/retained_host/app/profiling/actions.rs
-  - zircon_editor/src/ui/retained_host/app/profiling/actions/commands.rs
-  - zircon_editor/src/ui/retained_host/app/profiling/actions/dispatch.rs
-  - zircon_editor/src/ui/retained_host/app/profiling/actions/status.rs
-  - zircon_editor/src/ui/retained_host/app/profiling/diagnostics.rs
-  - zircon_editor/src/ui/retained_host/app/profiling/snapshot_merge.rs
+  - zircon_editor/src/ui/retained/app/profiling.rs
+  - zircon_editor/src/ui/retained/app/profiling/actions.rs
+  - zircon_editor/src/ui/retained/app/profiling/actions/commands.rs
+  - zircon_editor/src/ui/retained/app/profiling/actions/dispatch.rs
+  - zircon_editor/src/ui/retained/app/profiling/actions/status.rs
+  - zircon_editor/src/ui/retained/app/profiling/diagnostics.rs
+  - zircon_editor/src/ui/retained/app/profiling/snapshot_merge.rs
 plan_sources:
   - docs/plans/zircon_editor/editor_ui/08-workbench-shell-on-runtime-ui.md
   - user: 2026-06-18 editor UI architecture implementation, feature first and tests deferred

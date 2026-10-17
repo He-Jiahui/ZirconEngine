@@ -8,9 +8,7 @@ related_records:
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
   - zircon_editor/src/core/asset/dirty/registry.rs
-  - zircon_editor/src/core/asset/dirty/registry/optimization_tests.rs
 tests:
-  - zircon_editor/src/core/asset/dirty/registry/optimization_tests.rs
 ---
 
 # Editor993 · saved external-effect single-lock clear

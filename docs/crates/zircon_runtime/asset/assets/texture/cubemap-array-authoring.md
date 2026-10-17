@@ -3,7 +3,6 @@ related_code:
   - zircon_runtime/src/asset/assets/texture/cube_asset.rs
   - zircon_runtime/src/asset/assets/texture/array_asset.rs
   - zircon_runtime/src/asset/assets/texture/texture_asset.rs
-  - zircon_runtime/src/graphics/scene/resources/gpu_texture/gpu_texture_resource_from_asset.rs
   - zircon_plugins/texture_importer/runtime/src/cubemap.rs
   - zircon_plugins/texture_importer/runtime/src/array.rs
   - zircon_plugins/texture_importer/runtime/src/manifest_source.rs
@@ -12,7 +11,6 @@ related_code:
 implementation_files:
   - zircon_runtime/src/asset/assets/texture/cube_asset.rs
   - zircon_runtime/src/asset/assets/texture/array_asset.rs
-  - zircon_runtime/src/graphics/scene/resources/gpu_texture/gpu_texture_resource_from_asset.rs
   - zircon_plugins/texture_importer/runtime/src/cubemap.rs
   - zircon_plugins/texture_importer/runtime/src/array.rs
   - zircon_plugins/texture_importer/runtime/src/manifest_source.rs
@@ -25,9 +23,7 @@ plan_sources:
   - dev/cmft/src/cmft/image.cpp
 tests:
   - zircon_runtime/tests/runtime_texture_cube_resource_contract.rs
-  - zircon_runtime/src/graphics/scene/resources/gpu_texture/gpu_texture_resource_from_asset/tests.rs
   - zircon_plugins/texture_importer/runtime/src/tests/cubemap.rs
-  - zircon_runtime/src/graphics/scene/render_product_streamer_tests/texture_slot_diagnostics.rs
 doc_type: module-detail
 ---
 

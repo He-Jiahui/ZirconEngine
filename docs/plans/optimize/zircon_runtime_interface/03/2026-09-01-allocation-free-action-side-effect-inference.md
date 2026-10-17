@@ -5,7 +5,7 @@ created_at: 2026-09-01
 owner_session: root-runtime-interface03-activate-link-failure-20260831
 related_plan: docs/plans/optimize/zircon_runtime_interface/03-ui-authoring-accessibility-input-diagnostic-status-public-contract-review.md
 related_code:
-  - zircon_runtime_interface/src/ui/template/asset/action_policy/side_effect_class.rs
+  - zircon_runtime_interface/src/ui/asset/action_policy/side_effect_class.rs
 related_tests:
   - zircon_runtime_interface/src/ui/template/asset/action_policy/side_effect_class/performance_tests.rs
   - tools/tests/test_runtime_interface03_action_side_effect_inference_performance_contract.py

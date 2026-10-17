@@ -10,8 +10,6 @@ related_records:
 implementation_files:
   - zircon_editor/src/core/tools/scheduler.rs
 tests:
-  - zircon_editor/src/core/tools/optimization_batch_editor876_tool_scheduler_shutdown_owned_drain_tests.rs
-  - tools/tests/test_editor876_tool_scheduler_shutdown_owned_drain_performance_contract.py
 ---
 
 # Editor876 Tool Scheduler Shutdown Owned Drain

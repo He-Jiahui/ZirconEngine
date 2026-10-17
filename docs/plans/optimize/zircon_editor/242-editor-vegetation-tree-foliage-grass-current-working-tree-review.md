@@ -14,10 +14,8 @@ related_code:
   - zircon_editor/src/scene
   - zircon_editor/src/scene/viewport
   - zircon_editor/src/ui/asset_editor
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/world/workbench_extension_foliage_editor_workspace.zui
   - zircon_plugins/first_party_editor_catalog/src
   - zircon_plugins/terrain/editor
-  - examples/vampire/assets/models/grass_billboard_static_batch.model.toml
 reference_engines:
   - dev/UnrealEngine/Engine/Source/Editor/FoliageEdit
   - dev/UnrealEngine/Engine/Source/Runtime/Foliage

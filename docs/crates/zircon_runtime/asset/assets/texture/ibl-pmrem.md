@@ -3,7 +3,7 @@ related_code:
   - zircon_runtime/src/asset/assets/texture/ibl_pmrem.rs
   - zircon_runtime/src/asset/assets/texture/mod.rs
   - zircon_runtime/src/core/framework/render/environment/ibl_bake_artifact.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/probe_buffer/upload.rs
+  - zircon_runtime/src/graphics/scene/renderer/environment/probe_buffer/upload.rs
 implementation_files:
   - zircon_runtime/src/asset/assets/texture/ibl_pmrem.rs
 plan_sources:
@@ -11,9 +11,7 @@ plan_sources:
   - docs/plans/zircon_runtime/shader/06-environment-ibl-and-pbr-correctness.md
   - docs/plans/zircon_runtime/render/11-environment-lighting.md
 tests:
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/probe_buffer/tests/upload.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/probe_buffer/tests/resources.rs
-  - zircon_runtime/src/graphics/tests/project_render/project_scenes/reflection_probe_product.rs
+  - zircon_runtime/src/graphics/tests/project_scenes/reflection_probe_product.rs
 doc_type: module-detail
 ---
 

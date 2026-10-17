@@ -8,20 +8,16 @@ baseline_epoch: 336
 related_code:
   - zircon_runtime/src/asset/assets/texture
   - zircon_runtime/src/asset/artifact
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/loading
   - zircon_runtime/src/core/framework/render/image
-  - zircon_runtime/src/graphics/runtime/render_framework/budget
   - zircon_runtime/src/graphics/scene/resources/gpu_texture
   - zircon_runtime/src/graphics/scene/resources/post_process_lut_texture
   - zircon_runtime/src/graphics/scene/resources/resource_streamer
-  - zircon_runtime/src/graphics/scene/scene_renderer
   - zircon_plugins/texture_importer/runtime/src
 tests:
   - zircon_runtime/src/asset/assets/texture
   - zircon_runtime/src/asset/artifact
   - zircon_runtime/src/core/framework/render/image
   - zircon_runtime/src/graphics/scene/resources/gpu_texture
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_mip_streaming.rs
   - zircon_runtime/src/tests/runtime_absorption
   - zircon_plugins/texture_importer/runtime/src/tests
   - zircon_plugins/texture_importer/runtime/src/container/tests

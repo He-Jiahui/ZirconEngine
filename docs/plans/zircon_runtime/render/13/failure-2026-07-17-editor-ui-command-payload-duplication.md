@@ -9,12 +9,11 @@ origin_child_dir: docs/plans/performance/01
 fixing_child_dir: docs/plans/zircon_runtime/render/13
 plan_link_mode: child_record_only
 related_code:
-  - zircon_editor/src/ui/retained_host/host_contract/paint_frame/recording/model.rs
-  - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream
-  - zircon_editor/src/ui/retained_host/host_contract/paint_primitives/image
+  - zircon_editor/src/ui/retained/contract/paint_frame/recording/model.rs
+  - zircon_editor/src/ui/retained/contract/paint_primitives/image
   - zircon_runtime/crates/zr_rhi/src/ui_surface.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/image.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/image.rs
 tests:
   - UI image resource generation/upload deduplication
   - atlas multi-command CPU payload ownership

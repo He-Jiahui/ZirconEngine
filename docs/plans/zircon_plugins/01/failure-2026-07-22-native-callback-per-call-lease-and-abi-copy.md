@@ -9,10 +9,6 @@ origin_child_dir: docs/plans/performance/01
 fixing_child_dir: docs/plans/zircon_plugins/01
 plan_link_mode: child_record_only
 related_code:
-  - zircon_runtime/src/plugin/native_plugin_loader/loaded_native_plugin.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/behavior_calls.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/runtime_behavior.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/registration_replay.rs
 tests:
   - 1/2/16/64-thread same-plugin 1M callback lease benchmark
   - transition-vs-callback epoch and dynamic-library lifetime stress

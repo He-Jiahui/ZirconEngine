@@ -10,10 +10,7 @@ related_records:
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
   - zircon_editor/src/ui/timeline/ruler.rs
-  - zircon_editor/src/ui/timeline/tests.rs
 tests:
-  - zircon_editor/src/ui/timeline/tests.rs
-  - tools/tests/test_editor_timeline_ruler_capacity_performance_contract.py
 ---
 
 # Editor761 · Timeline ruler upper-bound capacity

@@ -8,8 +8,6 @@ related_code:
 implementation_files:
   - zircon_runtime/src/graphics/runtime/wgpu_render_framework_construct/construct.rs
   - zircon_runtime/src/graphics/runtime/framework/create_viewport/create.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract
-  - zircon_runtime/src/graphics/runtime/render_framework/viewport_surface
 plan_sources:
   - user: 2026-09-09 构建 ZirconEngine 详细 Wiki 文档集合
   - docs/rendering/render-framework-architecture.md

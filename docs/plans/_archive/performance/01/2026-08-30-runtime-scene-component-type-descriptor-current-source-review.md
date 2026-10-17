@@ -5,7 +5,7 @@ related_code:
   - zircon_runtime/src/scene/world/dynamic_components.rs
   - zircon_runtime/src/scene/reflect/dynamic_component.rs
   - zircon_runtime/src/scene/reflect/type_registry.rs
-  - zircon_runtime/src/scene/dynamic_scene/scene/capture.rs
+  - zircon_runtime/src/scene/dynamic/scene/capture.rs
 reference_code:
   - dev/UnrealEngine/Engine/Source/Runtime/CoreUObject/Public/UObject/Class.h
 related_plans:

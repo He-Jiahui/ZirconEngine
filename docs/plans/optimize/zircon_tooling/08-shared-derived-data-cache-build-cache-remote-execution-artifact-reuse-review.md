@@ -25,11 +25,8 @@ tests:
   - tools/tests/dev-fast-build.Tests.ps1
   - tools/tests/test_zircon_build_cargo_environment.py
   - tools/tests/test_zircon_build_shader_prewarm_cache_contract.py
-  - tools/session_coordinator/tests/test_cargo_runner.py
-  - tools/session_coordinator/tests/test_workspace_copy.py
   - zircon_runtime/src/asset/tests/artifact.rs
   - zircon_runtime/src/asset/tests/project/manager/artifact_cache_imports.rs
-  - zircon_runtime/src/graphics/shader/variant_cache/prewarm/tests/combined_validation_tests.rs
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md
   - docs/plans/optimize/zircon_runtime/04-core-resource-asset-serialization-review.md

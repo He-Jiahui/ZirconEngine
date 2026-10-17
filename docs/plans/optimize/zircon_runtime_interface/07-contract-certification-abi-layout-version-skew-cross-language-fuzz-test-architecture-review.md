@@ -11,19 +11,11 @@ tests:
   - zircon_runtime_interface/src/tests
   - zircon_runtime_interface/tests/ui_binding_control_prop_ref.rs
   - zircon_runtime_interface/src/serialization/tests
-  - zircon_runtime_interface/src/export/tests.rs
-  - zircon_runtime_interface/src/hub_protocol/tests.rs
   - zircon_runtime_interface/src/project/tests
-  - zircon_runtime_interface/src/project/session_lock/tests.rs
   - zircon_runtime_interface/src/ui
   - zircon_runtime/src/dynamic_api/tests/api_table.rs
   - zircon_runtime/src/dynamic_api/tests/session_entry_points.rs
   - zircon_runtime/src/dynamic_api/tests/session_lifecycle.rs
-  - zircon_runtime/tests/runtime_owned_result_v7.rs
-  - zircon_runtime_host/src/foreign_output/tests.rs
-  - zircon_app/src/entry/runtime_library/tests.rs
-  - zircon_app/src/entry/runtime_library/runtime_session/tests.rs
-  - zircon_editor/src/core/gateway/session/tests.rs
   - zircon_editor/src/tests/runtime_event_consumer_bounded_pump/real_runtime_abi.rs
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md

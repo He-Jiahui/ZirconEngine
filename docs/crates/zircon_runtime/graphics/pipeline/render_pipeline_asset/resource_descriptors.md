@@ -1,10 +1,6 @@
 ---
 related_code:
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/resource_descriptors.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests/postprocess_routes.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/build.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests.rs
+  - zircon_runtime/src/graphics/scene/renderer/post/create_pipeline_bundle/build.rs
   - zircon_runtime/src/graphics/tests/pipeline_compile.rs
   - zircon_runtime/src/graphics/tests/pipeline_compile/default_pipelines.rs
   - zircon_runtime/src/graphics/tests/pipeline_compile/dynamic_resolution.rs
@@ -14,28 +10,13 @@ related_code:
   - zircon_runtime/src/graphics/tests/pipeline_compile/feature_descriptors.rs
   - zircon_runtime/src/graphics/tests/pipeline_compile/validation_core.rs
   - zircon_runtime/src/graphics/tests/pipeline_compile/validation_descriptors.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_pipeline_compile_monolith_tests.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/pass_authoring.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/descriptor_filtering.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/graph_resources.rs
-  - zircon_runtime/src/core/framework/render/post_process/stack.rs
-  - zircon_runtime/src/core/framework/render/post_process/color_space.rs
-  - zircon_runtime/src/core/framework/render/post_process/exposure_settings.rs
   - zircon_runtime/src/graphics/visibility/occlusion/hzb_builder.rs
 implementation_files:
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/resource_descriptors.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/pass_authoring.rs
 plan_sources:
   - docs/plans/zircon_runtime/render/index.md
   - docs/plans/zircon_runtime/render/01-render-graph-rdg-alignment.md
   - user: 2026-06-17 continue Plan 01 compile.rs modularization
 tests:
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests.rs::compile_describes_hzb_and_ssr_reflection_pyramids_as_mip_chain_transients
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests.rs::compile_describes_color_lut_as_rgba16float_3d_transient_when_enabled
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests.rs::compile_describes_hzb_as_half_power_of_two_mip_chain
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests/postprocess_routes.rs::compile_routes_bloom_extract_after_split_scene_color_passes
   - zircon_runtime/src/graphics/tests/pipeline_compile/dynamic_resolution.rs::dynamic_resolution_keeps_terminal_anti_alias_input_at_viewport_size
   - cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-rg-resource-descriptors-0617 --message-format short --color never
 doc_type: module-detail

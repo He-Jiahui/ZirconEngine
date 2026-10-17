@@ -13,11 +13,11 @@ related_code:
   - zircon_editor/src/ui/host/editor_event_dispatch.rs
   - zircon_editor/src/ui/host/editor_event_runtime_access/
   - zircon_editor/src/ui/host/editor_event_runtime_reflection.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/invalidation_bridge/dirty_flags.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/invalidation_bridge/dirty_marking.rs
-  - zircon_editor/src/ui/retained_host/app/invalidation/mask/requirements.rs
-  - zircon_editor/src/ui/retained_host/app/invalidation/mask/summary.rs
-  - zircon_editor/src/ui/retained_host/app/assets/refresh/apply.rs
+  - zircon_editor/src/ui/retained/app/invalidation_bridge/dirty_flags.rs
+  - zircon_editor/src/ui/retained/app/invalidation_bridge/dirty_marking.rs
+  - zircon_editor/src/ui/retained/app/invalidation/mask/requirements.rs
+  - zircon_editor/src/ui/retained/app/invalidation/mask/summary.rs
+  - zircon_editor/src/ui/retained/app/assets/refresh/apply.rs
   - zircon_editor/src/core/editor_event/mod.rs
 design_references:
   - docs/ui/ai-workbench-style/prototype/README.md

@@ -17,7 +17,6 @@ related_code:
   - zircon_runtime/src/asset/project/manager/mod.rs
   - zircon_runtime/src/asset/project/manager/scan_and_import.rs
   - zircon_runtime/src/asset/project/meta.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/runtime.rs
   - zircon_runtime/src/scene/world/project_io/references.rs
 implementation_files:
   - zircon_runtime/src/asset/registry/mod.rs
@@ -50,7 +49,6 @@ tests:
   - zircon_runtime/src/asset/tests/project/zmeta/schema_v7.rs
   - zircon_runtime/src/asset/tests/project/zmeta/metadata_lifecycle.rs
   - zircon_runtime/src/asset/tests/project/package_assets.rs
-  - zircon_runtime/src/asset/mutation/tests.rs
 doc_type: module-detail
 ---
 

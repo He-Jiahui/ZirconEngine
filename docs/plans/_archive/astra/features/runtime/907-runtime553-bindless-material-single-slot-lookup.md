@@ -8,9 +8,9 @@ related_records:
   - docs/plans/astra/features/runtime/908-runtime556-builtin-texture-row-templates.md
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
-  - zircon_runtime/src/graphics/scene/scene_renderer/material/bindless_material_payload_registry.rs
+  - zircon_runtime/src/graphics/scene/material/bindless_material_payload_registry.rs
 tests:
-  - zircon_runtime/src/graphics/scene/scene_renderer/material/bindless_material_payload_registry.rs
+  - zircon_runtime/src/graphics/scene/material/bindless_material_payload_registry.rs
 ---
 
 # Runtime907 Runtime553 Bindless-Material Single Slot Lookup

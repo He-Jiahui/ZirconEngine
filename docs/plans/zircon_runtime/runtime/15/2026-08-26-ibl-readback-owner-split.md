@@ -1,24 +1,13 @@
 ---
 related_code:
-  - zircon_runtime/src/graphics/backend/render_backend/read_ibl_bake_artifact_sections.rs
-  - zircon_runtime/src/graphics/backend/render_backend/read_ibl_bake_artifact_sections/resources.rs
-  - zircon_runtime/src/graphics/backend/render_backend/read_ibl_bake_artifact_sections/batch.rs
-  - zircon_runtime/src/graphics/backend/render_backend/read_ibl_bake_artifact_sections/staging.rs
-  - zircon_runtime/src/graphics/backend/render_backend/read_ibl_bake_artifact_sections/tests.rs
+  - zircon_runtime/src/graphics/backend/read_ibl_bake_artifact_sections/resources.rs
 implementation_files:
-  - zircon_runtime/src/graphics/backend/render_backend/read_ibl_bake_artifact_sections.rs
-  - zircon_runtime/src/graphics/backend/render_backend/read_ibl_bake_artifact_sections/resources.rs
-  - zircon_runtime/src/graphics/backend/render_backend/read_ibl_bake_artifact_sections/batch.rs
-  - zircon_runtime/src/graphics/backend/render_backend/read_ibl_bake_artifact_sections/staging.rs
-  - zircon_runtime/src/graphics/backend/render_backend/read_ibl_bake_artifact_sections/tests.rs
+  - zircon_runtime/src/graphics/backend/read_ibl_bake_artifact_sections/resources.rs
 plan_sources:
   - docs/plans/engine-code-structure-convention.md
   - docs/plans/engine-code-review-findings-2026-06.md
   - docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md
 tests:
-  - zircon_runtime/src/graphics/backend/render_backend/read_ibl_bake_artifact_sections/tests.rs::ibl_readback_root_remains_a_declarative_orchestration_owner
-  - zircon_runtime/src/graphics/backend/render_backend/read_ibl_bake_artifact_sections/tests.rs::batched_cube_readback_strips_padding_in_face_then_mip_order
-  - zircon_runtime/src/graphics/backend/render_backend/read_ibl_bake_artifact_sections/tests.rs::batched_readback_preserves_pmrem_sh9_and_iem_payload_bytes
   - rustfmt --edition 2021 --check
   - git diff --check
 doc_type: milestone-detail

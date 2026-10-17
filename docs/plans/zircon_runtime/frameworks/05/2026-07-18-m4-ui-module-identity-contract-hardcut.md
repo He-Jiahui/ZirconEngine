@@ -6,7 +6,7 @@ related_code:
   - zircon_runtime/src/ui/mod.rs
   - zircon_runtime/src/ui/prelude.rs
   - zircon_runtime/src/builtin/runtime_modules/tests/registration/behavior.rs
-  - zircon_runtime/src/tests/runtime_absorption/builtin_modules/core_spine.rs
+  - zircon_runtime/src/tests/contracts/builtin_modules/core_spine.rs
 implementation_files:
   - zircon_runtime/src/core/framework/ui.rs
   - zircon_runtime/src/core/framework/ui/module_identity.rs

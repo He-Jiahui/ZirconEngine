@@ -30,7 +30,7 @@ related_code:
   - zircon_editor/src/core/editor_message/message/schema_id.rs
   - zircon_editor/src/core/editor_message/message/scene_inspection/mod.rs
   - zircon_editor/src/core/editor_message/message/scene_inspection/message.rs
-  - zircon_editor/src/core/editor_message/message/scene_inspection/selection_delta.rs
+  - zircon_editor/src/core/message/scene_inspection/selection_delta.rs
   - zircon_editor/src/core/editor_message/message/transaction.rs
   - zircon_editor/src/core/play/live_link.rs
   - zircon_editor/src/core/context/editor_context.rs
@@ -39,7 +39,7 @@ related_code:
   - zircon_editor/src/core/jobs/pump.rs
   - zircon_editor/src/ui/host/editor_event_runtime_reflection.rs
   - zircon_editor/src/ui/host/scene_inspection_publication.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/tick.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle/tick.rs
 implementation_files:
   - zircon_editor/src/core/editor_message/mod.rs
   - zircon_editor/src/core/editor_message/bus.rs
@@ -71,7 +71,7 @@ implementation_files:
   - zircon_editor/src/core/editor_message/message/schema_id.rs
   - zircon_editor/src/core/editor_message/message/scene_inspection/mod.rs
   - zircon_editor/src/core/editor_message/message/scene_inspection/message.rs
-  - zircon_editor/src/core/editor_message/message/scene_inspection/selection_delta.rs
+  - zircon_editor/src/core/message/scene_inspection/selection_delta.rs
   - zircon_editor/src/core/editor_message/message/transaction.rs
   - zircon_editor/src/core/jobs/event.rs
   - zircon_editor/src/core/jobs/pump.rs
@@ -92,8 +92,6 @@ tests:
   - zircon_editor/src/tests/editor_message/bus/request.rs
   - zircon_editor/src/tests/editor_message/refresh.rs
   - zircon_editor/src/tests/editor_message/schema_id.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_projection/scene_fragment.rs
-  - tests/acceptance/editor-architecture-plan-01-m1.md
 doc_type: module-detail
 ---
 

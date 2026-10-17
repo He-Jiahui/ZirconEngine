@@ -2,18 +2,14 @@
 related_code:
   - zircon_runtime/src/core/framework/render/advanced_lighting/material_features.rs
   - zircon_runtime/src/core/framework/render/scene_extract.rs
-  - zircon_runtime/src/graphics/scene/resources/gpu_texture/gpu_texture_resource_from_asset.rs
-  - zircon_runtime/src/graphics/scene/resources/gpu_texture/gpu_texture_resource_from_asset/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/execute/build_post_process_params/baked_lighting.rs
+  - zircon_runtime/src/graphics/post/build_post_process_params/baked_lighting.rs
   - tools/tests/test_runtime_render_legacy_naming.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/runtime_naming_boundary.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/hard_cutover_migration_smells.py
 implementation_files:
   - zircon_runtime/src/core/framework/render/advanced_lighting/material_features.rs
   - zircon_runtime/src/core/framework/render/scene_extract.rs
-  - zircon_runtime/src/graphics/scene/resources/gpu_texture/gpu_texture_resource_from_asset.rs
-  - zircon_runtime/src/graphics/scene/resources/gpu_texture/gpu_texture_resource_from_asset/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/execute/build_post_process_params/baked_lighting.rs
+  - zircon_runtime/src/graphics/post/build_post_process_params/baked_lighting.rs
   - tools/tests/test_runtime_render_legacy_naming.py
 plan_sources:
   - docs/plans/engine-code-structure-convention.md

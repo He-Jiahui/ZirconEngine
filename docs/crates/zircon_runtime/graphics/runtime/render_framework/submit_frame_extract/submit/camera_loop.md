@@ -1,106 +1,76 @@
 ---
 related_code:
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/camera_loop.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/camera_loop/tests.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/camera_loop/tests/frame.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/submit.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/present_frame_extract.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/submit_runtime_frame.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/compile_pipeline.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/target_resolution.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/light_grid_stats.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/shared_product_reports.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/resolve_history_handle.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/record_camera_history.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/update_particle_previous_state.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/update_temporal_camera_history.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/prepare_runtime_submission/prepare.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/record_submission/record.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/wgpu_render_framework/wgpu_render_framework.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/camera_history_key.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/camera_history_key.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/history.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/motion_vector_camera.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/particle_previous_sprites.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/runtime_states.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/product_reports.rs
+  - zircon_runtime/src/graphics/runtime/framework/extract/submit/camera_loop.rs
+  - zircon_runtime/src/graphics/runtime/framework/extract/submit/submit.rs
+  - zircon_runtime/src/graphics/runtime/extract/submit/present_frame_extract.rs
+  - zircon_runtime/src/graphics/runtime/extract/submit/submit_runtime_frame.rs
+  - zircon_runtime/src/graphics/runtime/extract/update_stats/light_grid_stats.rs
+  - zircon_runtime/src/graphics/extract/update_stats/shared_product_reports.rs
+  - zircon_runtime/src/graphics/runtime/extract/submit/resolve_history_handle.rs
+  - zircon_runtime/src/graphics/runtime/extract/submit/record_camera_history.rs
+  - zircon_runtime/src/graphics/extract/submit/update_particle_previous_state.rs
+  - zircon_runtime/src/graphics/extract/submit/update_temporal_camera_history.rs
+  - zircon_runtime/src/graphics/extract/prepare_runtime_submission/prepare.rs
+  - zircon_runtime/src/graphics/runtime/extract/record_submission/record.rs
+  - zircon_runtime/src/graphics/wgpu_render_framework/wgpu_render_framework.rs
+  - zircon_runtime/src/graphics/runtime/viewport_record/camera_history_key.rs
+  - zircon_runtime/src/graphics/runtime/framework/viewport_record/history.rs
+  - zircon_runtime/src/graphics/runtime/viewport_record/motion_vector_camera.rs
+  - zircon_runtime/src/graphics/runtime/viewport_record/particle_previous_sprites.rs
+  - zircon_runtime/src/graphics/runtime/framework/viewport_record/runtime_states.rs
+  - zircon_runtime/src/graphics/runtime/framework/viewport_record/product_reports.rs
   - zircon_runtime/src/graphics/types/viewport_camera_stack_attachment_policy.rs
   - zircon_runtime/src/graphics/types/viewport_camera_stack_output_policy.rs
   - zircon_runtime/src/graphics/types/viewport_render_output_target.rs
   - zircon_runtime/src/graphics/types/viewport_render_region.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/scene_clear/scene_region_clear_resources.rs
-  - zircon_runtime/src/graphics/types/viewport_render_frame_with_camera_stack_output_policy.rs
   - zircon_runtime/src/graphics/pipeline/compiled_graph_cache.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/final_target_output.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render_with_pipeline/render_frame_with_pipeline.rs
+  - zircon_runtime/src/graphics/scene/renderer/core/render/render/render.rs
+  - zircon_runtime/src/graphics/scene/core/render/render/final_target_output.rs
   - zircon_runtime/src/core/framework/render/frame_extract.rs
   - zircon_runtime/src/core/framework/render/camera_stack.rs
 implementation_files:
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/camera_loop.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/camera_loop/tests.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/camera_loop/tests/frame.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/submit.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/present_frame_extract.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/submit_runtime_frame.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/compile_pipeline.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/target_resolution.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/light_grid_stats.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/shared_product_reports.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/resolve_history_handle.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/record_camera_history.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/update_particle_previous_state.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/update_temporal_camera_history.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/prepare_runtime_submission/prepare.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/record_submission/record.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/wgpu_render_framework/wgpu_render_framework.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/camera_history_key.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/camera_history_key.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/history.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/motion_vector_camera.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/particle_previous_sprites.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/runtime_states.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/product_reports.rs
+  - zircon_runtime/src/graphics/runtime/framework/extract/submit/camera_loop.rs
+  - zircon_runtime/src/graphics/runtime/framework/extract/submit/submit.rs
+  - zircon_runtime/src/graphics/runtime/extract/submit/present_frame_extract.rs
+  - zircon_runtime/src/graphics/runtime/extract/submit/submit_runtime_frame.rs
+  - zircon_runtime/src/graphics/runtime/extract/update_stats/light_grid_stats.rs
+  - zircon_runtime/src/graphics/extract/update_stats/shared_product_reports.rs
+  - zircon_runtime/src/graphics/runtime/extract/submit/resolve_history_handle.rs
+  - zircon_runtime/src/graphics/runtime/extract/submit/record_camera_history.rs
+  - zircon_runtime/src/graphics/extract/submit/update_particle_previous_state.rs
+  - zircon_runtime/src/graphics/extract/submit/update_temporal_camera_history.rs
+  - zircon_runtime/src/graphics/extract/prepare_runtime_submission/prepare.rs
+  - zircon_runtime/src/graphics/runtime/extract/record_submission/record.rs
+  - zircon_runtime/src/graphics/wgpu_render_framework/wgpu_render_framework.rs
+  - zircon_runtime/src/graphics/runtime/viewport_record/camera_history_key.rs
+  - zircon_runtime/src/graphics/runtime/framework/viewport_record/history.rs
+  - zircon_runtime/src/graphics/runtime/viewport_record/motion_vector_camera.rs
+  - zircon_runtime/src/graphics/runtime/viewport_record/particle_previous_sprites.rs
+  - zircon_runtime/src/graphics/runtime/framework/viewport_record/runtime_states.rs
+  - zircon_runtime/src/graphics/runtime/framework/viewport_record/product_reports.rs
   - zircon_runtime/src/graphics/types/viewport_camera_stack_attachment_policy.rs
   - zircon_runtime/src/graphics/types/viewport_camera_stack_output_policy.rs
   - zircon_runtime/src/graphics/types/viewport_render_output_target.rs
   - zircon_runtime/src/graphics/types/viewport_render_region.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/scene_clear/scene_region_clear_resources.rs
-  - zircon_runtime/src/graphics/types/viewport_render_frame_with_camera_stack_output_policy.rs
   - zircon_runtime/src/graphics/pipeline/compiled_graph_cache.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/final_target_output.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render_with_pipeline/render_frame_with_pipeline.rs
+  - zircon_runtime/src/graphics/scene/renderer/core/render/render/render.rs
+  - zircon_runtime/src/graphics/scene/core/render/render/final_target_output.rs
   - zircon_runtime/src/core/framework/render/frame_extract.rs
 plan_sources:
   - docs/plans/zircon_runtime/render/09-camera-render-ordering.md
   - .codex/plans/Runtime 吸收层与 Editor_Scene 边界收束计划.md
 tests:
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/camera_loop/tests.rs::camera_loop_flattens_base_then_overlays_for_submit_order
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/camera_loop/tests.rs::camera_loop_extracts_select_each_sequence_descriptor
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/camera_loop/tests.rs::camera_loop_routes_ui_to_last_primary_stack_terminal_only
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/camera_loop/tests.rs::camera_loop_routes_ui_to_last_base_when_no_primary_base_exists
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/camera_loop/tests.rs::camera_loop_marks_stack_and_viewport_output_owners
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/camera_loop/tests.rs::viewport_terminal_camera_target_uses_last_primary_stack_terminal
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/camera_loop/tests.rs::viewport_terminal_camera_target_falls_back_to_last_base_without_primary
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/camera_loop/tests/frame.rs::camera_loop_frame_submissions_project_selected_children_and_terminal_ui
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/camera_loop/tests/frame.rs::submit_camera_loop_frame_streams_selected_children_and_restores_source_fields
-  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/camera_history_key.rs::tests::camera_history_key_distinguishes_same_entity_viewport_regions
-  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/camera_history_key.rs::tests::camera_history_key_distinguishes_base_and_overlay_slots
-  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/history.rs::tests::viewport_record_keeps_histories_per_camera_key
-  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/motion_vector_camera.rs::tests::viewport_record_keeps_motion_vector_camera_per_camera_key
-  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/particle_previous_sprites.rs::tests::viewport_record_keeps_particle_previous_sprites_per_camera_key
-  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/runtime_states.rs::tests::viewport_record_keeps_hybrid_gi_runtime_per_camera_key
-  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/runtime_states.rs::tests::viewport_record_keeps_virtual_geometry_runtime_per_camera_key
-  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/product_reports.rs::tests::viewport_record_keeps_product_reports_per_camera_key
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/update_temporal_camera_history.rs::tests::successful_non_terminal_submit_records_camera_without_advancing_viewport_index
+  - zircon_runtime/src/graphics/runtime/viewport_record/camera_history_key.rs::tests::camera_history_key_distinguishes_same_entity_viewport_regions
+  - zircon_runtime/src/graphics/runtime/viewport_record/camera_history_key.rs::tests::camera_history_key_distinguishes_base_and_overlay_slots
+  - zircon_runtime/src/graphics/runtime/framework/viewport_record/history.rs::tests::viewport_record_keeps_histories_per_camera_key
+  - zircon_runtime/src/graphics/runtime/viewport_record/motion_vector_camera.rs::tests::viewport_record_keeps_motion_vector_camera_per_camera_key
+  - zircon_runtime/src/graphics/runtime/viewport_record/particle_previous_sprites.rs::tests::viewport_record_keeps_particle_previous_sprites_per_camera_key
+  - zircon_runtime/src/graphics/runtime/framework/viewport_record/runtime_states.rs::tests::viewport_record_keeps_hybrid_gi_runtime_per_camera_key
+  - zircon_runtime/src/graphics/runtime/framework/viewport_record/runtime_states.rs::tests::viewport_record_keeps_virtual_geometry_runtime_per_camera_key
+  - zircon_runtime/src/graphics/runtime/framework/viewport_record/product_reports.rs::tests::viewport_record_keeps_product_reports_per_camera_key
+  - zircon_runtime/src/graphics/extract/submit/update_temporal_camera_history.rs::tests::successful_non_terminal_submit_records_camera_without_advancing_viewport_index
   - zircon_runtime/src/graphics/types/viewport_camera_stack_output_policy.rs::tests::final_target_output_owner_is_stack_terminal_not_viewport_terminal
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/final_target_output.rs::tests::final_target_output_reports_suppressed_texture_children_only
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_execute_output_target_writeback.rs::tests::suppressed_output_target_writeback_report_is_texture_only
+  - zircon_runtime/src/graphics/scene/core/render/render/final_target_output.rs::tests::final_target_output_reports_suppressed_texture_children_only
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product.rs::tests::render_product_diagnostics_record_camera_stack_suppressed_target_output
   - zircon_runtime/src/graphics/tests/surface_targets.rs::graphics_camera_target_texture_base_stacks_write_independent_texture_targets
   - zircon_runtime/src/graphics/tests/m4_behavior_layers.rs::texture_target_overlay_camera_converts_linear_final_product_after_composite
@@ -112,7 +82,6 @@ tests:
   - zircon_runtime/src/graphics/types/viewport_camera_stack_attachment_policy.rs::tests::policy_only_rewrites_scene_first_clear_writes_and_preserves_store
   - zircon_runtime/src/graphics/pipeline/compiled_graph_cache.rs::tests::compiled_render_pipeline_cache_key_tracks_texture_target_format_class
   - zircon_runtime/src/graphics/types/viewport_render_output_target.rs::tests::output_target_from_camera_target_retains_resolved_texture_format
-  - zircon_runtime/src/graphics/scene/scene_renderer/scene_clear/scene_region_clear_resources.rs::tests::scene_region_clear_resources_build_for_offscreen_backend
   - zircon_runtime/src/graphics/types/viewport_render_region.rs::tests::viewport_region_defaults_to_full_target_without_camera_rect
   - zircon_runtime/src/graphics/types/viewport_render_region.rs::tests::viewport_region_clamps_camera_rect_to_target
   - zircon_runtime/src/graphics/types/viewport_render_region.rs::tests::viewport_region_clamps_fully_outside_rect_to_last_in_bounds_pixel

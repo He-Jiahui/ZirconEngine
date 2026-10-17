@@ -16,140 +16,91 @@ related_code:
   - zircon_runtime/src/plugin/runtime_profile/availability_projection/generation.rs
   - zircon_runtime/src/plugin/runtime_profile/availability_report.rs
   - zircon_runtime/src/plugin/runtime_profile/descriptor.rs
-  - zircon_runtime/src/core/framework/project/project_plugin_manifest/project_plugin_feature_selection.rs
-  - zircon_runtime/src/core/framework/project/project_plugin_manifest/project_plugin_selection.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin/feature.rs
-  - zircon_runtime/src/plugin/runtime_plugin/registration_report.rs
-  - zircon_runtime/src/plugin/runtime_plugin/registration_report/plugin.rs
-  - zircon_runtime/src/plugin/runtime_plugin/registration_report/native.rs
-  - zircon_runtime/src/plugin/runtime_plugin/registration_report/status.rs
+  - zircon_runtime/src/core/project_plugin_manifest/project_plugin_selection.rs
+  - zircon_runtime/src/plugin/runtime/registration_report/plugin.rs
+  - zircon_runtime/src/plugin/runtime/registration_report/native.rs
+  - zircon_runtime/src/plugin/runtime/registration_report/status.rs
   - zircon_runtime/src/plugin/extension_registry/validation.rs
   - zircon_runtime/src/plugin/extension_registry/validation/plugin_event_catalog.rs
   - zircon_runtime/src/plugin/extension_registry/validation/plugin_option.rs
-  - zircon_runtime/src/plugin/runtime_plugin/package_validation.rs
-  - zircon_runtime/src/plugin/runtime_plugin/package_validation/shape.rs
-  - zircon_runtime/src/plugin/runtime_plugin/feature_registration_report.rs
-  - zircon_runtime/src/plugin/runtime_plugin/feature_registration_report/feature.rs
-  - zircon_runtime/src/plugin/runtime_plugin/feature_registration_report/native.rs
-  - zircon_runtime/src/plugin/runtime_plugin/feature_registration_report/project_selection.rs
-  - zircon_runtime/src/plugin/runtime_plugin/feature_registration_report/provider.rs
-  - zircon_runtime/src/plugin/runtime_plugin/feature_registration_report/status.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/access.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/contributions.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/contributions/diagnostic.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/contributions/extension.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/descriptor_contributions.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/descriptor_contributions/asset_scene.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/descriptor_contributions/component.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/descriptor_contributions/plugin_metadata.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/extension_merge.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/extension_merge/diagnostic.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/extension_merge/feature.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/extension_merge/runtime.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/extension_report.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/extension_report/report.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/extension_report/runtime.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/extension_report/status.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_capabilities.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/derived_projection.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_capabilities/feature.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_completion.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_completion/owner_selection.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_definition_collection.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_definition_collection/package.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_definitions.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_definitions/definition.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_definitions/definition_map.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_definitions/key.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_definitions/lookup.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_dependencies.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_report.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_report/block.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_report/dependency_report.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_report/diagnostic.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_blocking.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_blocking/cycle.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_resolution.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_resolution/ordered_ready_set.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_selection.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_selection/active.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_selection/partition.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_selection/pending.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_status.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_status/dependencies.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/features.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/features/context.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/project.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/project_extension_report.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/project_extension_report/feature_diagnostics.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/project_extension_report/feature_merge.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/project_extension_report/runtime_merge.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/project_manifest.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/project_manifest/completion.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/project_manifest/selection_defaults/catalog_selections.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/project_manifest/selection_defaults.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/project_manifest/selection_defaults/hydration.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/registration.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/registration/constructors.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/registration/plugin.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/registration/reports.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/render_contributions.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/render_contributions/feature.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/render_contributions/prepare.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/render_contributions/providers.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/runtime_extensions.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/runtime_feature_definitions.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/runtime_feature_definitions/conflict.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/runtime_feature_definitions/merge.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/runtime_feature_definitions/registration.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/runtime_feature_definitions/registration_match.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/package_feature_definitions.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/status.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/candidate_from_manifest.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_load_report.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/augmentation.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/augmentation/categories.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/augmentation/capabilities.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/asset_rows.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/asset_rows/model.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/asset_rows/media.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/asset_rows/pipeline.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/importer_classification.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/importer_classification/capabilities.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/importer_classification/model.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/importer_classification/media.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/importer_classification/pipeline.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/core_classification.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/core_classification/runtime.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/core_classification/runtime/services.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/core_classification/runtime/systems.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/core_classification/content.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/core_rows.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/core_rows/runtime.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/core_rows/runtime/services.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/core_rows/runtime/systems.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/core_rows/content.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/language.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/language/rows.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/language/classification.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/optional_features.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/net_features.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/net_features/rows.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/net_features/manifest.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/particles_features.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/particles_features/rows.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/particles_features/manifest.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/rendering_features.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/rendering_features/rows.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/rendering_features/manifest.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/sound_features.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/sound_features/rows.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/sound_features/manifest.rs
+  - zircon_runtime/src/plugin/runtime/catalog/contributions/diagnostic.rs
+  - zircon_runtime/src/plugin/runtime/catalog/contributions/extension.rs
+  - zircon_runtime/src/plugin/catalog/descriptor_contributions/asset_scene.rs
+  - zircon_runtime/src/plugin/runtime/catalog/descriptor_contributions/component.rs
+  - zircon_runtime/src/plugin/catalog/descriptor_contributions/plugin_metadata.rs
+  - zircon_runtime/src/plugin/runtime/catalog/extension_merge/diagnostic.rs
+  - zircon_runtime/src/plugin/runtime/catalog/extension_merge/feature.rs
+  - zircon_runtime/src/plugin/runtime/catalog/extension_merge/runtime.rs
+  - zircon_runtime/src/plugin/runtime/catalog/extension_report/report.rs
+  - zircon_runtime/src/plugin/runtime/catalog/extension_report/runtime.rs
+  - zircon_runtime/src/plugin/runtime/catalog/extension_report/status.rs
+  - zircon_runtime/src/plugin/runtime/catalog/feature_capabilities/feature.rs
+  - zircon_runtime/src/plugin/runtime/catalog/feature_completion/owner_selection.rs
+  - zircon_runtime/src/plugin/runtime/catalog/feature_definitions/definition.rs
+  - zircon_runtime/src/plugin/runtime/catalog/feature_definitions/definition_map.rs
+  - zircon_runtime/src/plugin/runtime/catalog/feature_definitions/key.rs
+  - zircon_runtime/src/plugin/runtime/catalog/feature_definitions/lookup.rs
+  - zircon_runtime/src/plugin/runtime/catalog/feature_report/block.rs
+  - zircon_runtime/src/plugin/runtime/catalog/feature_report/dependency_report.rs
+  - zircon_runtime/src/plugin/runtime/catalog/feature_report/diagnostic.rs
+  - zircon_runtime/src/plugin/runtime/catalog/feature_blocking/cycle.rs
+  - zircon_runtime/src/plugin/catalog/feature_resolution/ordered_ready_set.rs
+  - zircon_runtime/src/plugin/runtime/catalog/feature_selection/active.rs
+  - zircon_runtime/src/plugin/runtime/catalog/feature_selection/partition.rs
+  - zircon_runtime/src/plugin/runtime/catalog/feature_selection/pending.rs
+  - zircon_runtime/src/plugin/runtime/catalog/feature_status/dependencies.rs
+  - zircon_runtime/src/plugin/runtime/catalog/features/context.rs
+  - zircon_runtime/src/plugin/project_extension_report/feature_diagnostics.rs
+  - zircon_runtime/src/plugin/catalog/project_extension_report/feature_merge.rs
+  - zircon_runtime/src/plugin/catalog/project_extension_report/runtime_merge.rs
+  - zircon_runtime/src/plugin/runtime/catalog/project_manifest/completion.rs
+  - zircon_runtime/src/plugin/catalog/selection_defaults/catalog_selections.rs
+  - zircon_runtime/src/plugin/runtime/catalog/project_manifest/selection_defaults.rs
+  - zircon_runtime/src/plugin/runtime/catalog/selection_defaults/hydration.rs
+  - zircon_runtime/src/plugin/runtime/catalog/registration/constructors.rs
+  - zircon_runtime/src/plugin/runtime/catalog/registration/plugin.rs
+  - zircon_runtime/src/plugin/runtime/catalog/registration/reports.rs
+  - zircon_runtime/src/plugin/runtime/catalog/render_contributions/feature.rs
+  - zircon_runtime/src/plugin/runtime/catalog/render_contributions/prepare.rs
+  - zircon_runtime/src/plugin/runtime/catalog/render_contributions/providers.rs
+  - zircon_runtime/src/plugin/runtime/builtin_catalog/augmentation.rs
+  - zircon_runtime/src/plugin/runtime/builtin_catalog/augmentation/categories.rs
+  - zircon_runtime/src/plugin/runtime/builtin_catalog/augmentation/capabilities.rs
+  - zircon_runtime/src/plugin/runtime/builtin_catalog/asset_rows.rs
+  - zircon_runtime/src/plugin/runtime/builtin_catalog/asset_rows/model.rs
+  - zircon_runtime/src/plugin/runtime/builtin_catalog/asset_rows/media.rs
+  - zircon_runtime/src/plugin/runtime/builtin_catalog/asset_rows/pipeline.rs
+  - zircon_runtime/src/plugin/runtime/builtin_catalog/importer_classification.rs
+  - zircon_runtime/src/plugin/runtime/importer_classification/capabilities.rs
+  - zircon_runtime/src/plugin/runtime/importer_classification/model.rs
+  - zircon_runtime/src/plugin/runtime/importer_classification/media.rs
+  - zircon_runtime/src/plugin/runtime/importer_classification/pipeline.rs
+  - zircon_runtime/src/plugin/runtime/builtin_catalog/core_classification.rs
+  - zircon_runtime/src/plugin/runtime/builtin_catalog/core_classification/runtime.rs
+  - zircon_runtime/src/plugin/runtime/builtin_catalog/core_classification/content.rs
+  - zircon_runtime/src/plugin/runtime/builtin_catalog/core_rows.rs
+  - zircon_runtime/src/plugin/runtime/builtin_catalog/core_rows/runtime.rs
+  - zircon_runtime/src/plugin/runtime/builtin_catalog/core_rows/runtime/services.rs
+  - zircon_runtime/src/plugin/runtime/builtin_catalog/core_rows/runtime/systems.rs
+  - zircon_runtime/src/plugin/runtime/builtin_catalog/core_rows/content.rs
+  - zircon_runtime/src/plugin/runtime/builtin_catalog/language.rs
+  - zircon_runtime/src/plugin/runtime/builtin_catalog/language/rows.rs
+  - zircon_runtime/src/plugin/runtime/builtin_catalog/language/classification.rs
+  - zircon_runtime/src/plugin/runtime/builtin_catalog/optional_features.rs
+  - zircon_runtime/src/plugin/runtime/builtin_catalog/net_features.rs
+  - zircon_runtime/src/plugin/runtime/builtin_catalog/net_features/rows.rs
+  - zircon_runtime/src/plugin/runtime/builtin_catalog/net_features/manifest.rs
+  - zircon_runtime/src/plugin/runtime/builtin_catalog/particles_features.rs
+  - zircon_runtime/src/plugin/runtime/builtin_catalog/particles_features/rows.rs
+  - zircon_runtime/src/plugin/runtime/builtin_catalog/particles_features/manifest.rs
+  - zircon_runtime/src/plugin/runtime/builtin_catalog/rendering_features.rs
+  - zircon_runtime/src/plugin/runtime/builtin_catalog/rendering_features/rows.rs
+  - zircon_runtime/src/plugin/runtime/builtin_catalog/rendering_features/manifest.rs
+  - zircon_runtime/src/plugin/runtime/builtin_catalog/sound_features.rs
+  - zircon_runtime/src/plugin/runtime/builtin_catalog/sound_features/rows.rs
+  - zircon_runtime/src/plugin/runtime/builtin_catalog/sound_features/manifest.rs
   - zircon_runtime/src/plugin/export_build_plan/from_project_manifest.rs
-  - zircon_runtime/src/plugin/export_build_plan/from_project_manifest/feature_selection.rs
+  - zircon_runtime/src/plugin/from_project_manifest/feature_selection.rs
   - zircon_runtime/src/plugin/export_build_plan/from_project_manifest/profile.rs
   - zircon_runtime/src/plugin/export_build_plan/cargo_manifest_template.rs
   - zircon_runtime/src/plugin/export_build_plan/plugin_selection_template.rs
@@ -163,16 +114,14 @@ related_code:
   - zircon_app/src/entry/first_party_runtime_plugins.rs
   - zircon_app/src/entry/engine_entry.rs
   - zircon_app/src/entry/entry_runner/bootstrap.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/reports/editor_plugin_status.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/reports/editor_plugin_feature_selection_update_report.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/enablement/features.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/manifest_completion/native.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/package_projection/native_project_selection.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/status/builtin.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/status/native.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle.rs
-  - zircon_editor/src/ui/retained_host/app/module_plugin_actions.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/mod.rs
+  - zircon_editor/src/ui/host/exports/reports/editor_plugin_status.rs
+  - zircon_editor/src/ui/reports/editor_plugin_feature_selection_update_report.rs
+  - zircon_editor/src/ui/host/exports/enablement/features.rs
+  - zircon_editor/src/ui/host/exports/manifest_completion/native.rs
+  - zircon_editor/src/ui/host/exports/package_projection/native_project_selection.rs
+  - zircon_editor/src/ui/host/exports/status/builtin.rs
+  - zircon_editor/src/ui/host/exports/status/native.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle.rs
   - zircon_plugins/sound/plugin.toml
   - zircon_plugins/sound/features/timeline/runtime/Cargo.toml
   - zircon_plugins/sound/features/timeline/runtime/src/lib.rs
@@ -184,14 +133,6 @@ related_code:
   - zircon_plugins/net/runtime/src/package.rs
   - zircon_plugins/net/runtime/src/tests/mod.rs
   - zircon_plugins/net/features/content_download/runtime/src/feature.rs
-  - zircon_runtime/src/tests/plugin_extensions/manifest_contributions.rs
-  - zircon_runtime/src/tests/plugin_extensions/package_manifest_declarations.rs
-  - zircon_runtime/src/tests/plugin_extensions/export_build_plan.rs
-  - zircon_runtime/src/tests/plugin_extensions/runtime_plugin_catalog_features.rs
-  - zircon_runtime/src/tests/plugin_extensions/runtime_plugin_catalog_features/feature_dependency_reports.rs
-  - zircon_runtime/src/tests/plugin_extensions/extension_registry.rs
-  - zircon_runtime/src/tests/plugin_extensions/native_plugin_loader.rs
-  - zircon_runtime/src/tests/plugin_extensions/profile_maturity.rs
   - zircon_app/src/entry/tests/profile_bootstrap.rs
   - zircon_editor/src/tests/host/manager/minimal_host_contract.rs
 implementation_files:
@@ -205,133 +146,88 @@ implementation_files:
   - zircon_runtime/src/plugin/runtime_profile/availability_projection/generation.rs
   - zircon_runtime/src/plugin/runtime_profile/availability_report.rs
   - zircon_runtime/src/plugin/runtime_profile/descriptor.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin/feature.rs
-  - zircon_runtime/src/plugin/runtime_plugin/registration_report.rs
-  - zircon_runtime/src/plugin/runtime_plugin/registration_report/plugin.rs
-  - zircon_runtime/src/plugin/runtime_plugin/registration_report/native.rs
-  - zircon_runtime/src/plugin/runtime_plugin/registration_report/status.rs
+  - zircon_runtime/src/plugin/runtime/registration_report/plugin.rs
+  - zircon_runtime/src/plugin/runtime/registration_report/native.rs
+  - zircon_runtime/src/plugin/runtime/registration_report/status.rs
   - zircon_runtime/src/plugin/extension_registry/validation.rs
   - zircon_runtime/src/plugin/extension_registry/validation/plugin_event_catalog.rs
   - zircon_runtime/src/plugin/extension_registry/validation/plugin_option.rs
-  - zircon_runtime/src/plugin/runtime_plugin/package_validation.rs
-  - zircon_runtime/src/plugin/runtime_plugin/package_validation/shape.rs
-  - zircon_runtime/src/plugin/runtime_plugin/feature_registration_report.rs
-  - zircon_runtime/src/plugin/runtime_plugin/feature_registration_report/feature.rs
-  - zircon_runtime/src/plugin/runtime_plugin/feature_registration_report/native.rs
-  - zircon_runtime/src/plugin/runtime_plugin/feature_registration_report/project_selection.rs
-  - zircon_runtime/src/plugin/runtime_plugin/feature_registration_report/provider.rs
-  - zircon_runtime/src/plugin/runtime_plugin/feature_registration_report/status.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/access.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/contributions.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/contributions/diagnostic.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/contributions/extension.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/descriptor_contributions.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/descriptor_contributions/asset_scene.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/descriptor_contributions/component.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/descriptor_contributions/plugin_metadata.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/extension_merge.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/extension_merge/diagnostic.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/extension_merge/feature.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/extension_merge/runtime.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/extension_report.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/extension_report/report.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/extension_report/runtime.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/extension_report/status.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_capabilities.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/derived_projection.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_capabilities/feature.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_completion.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_completion/owner_selection.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_definition_collection.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_definition_collection/package.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_definitions.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_definitions/definition.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_definitions/definition_map.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_definitions/key.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_definitions/lookup.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_dependencies.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_report.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_report/block.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_report/dependency_report.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_report/diagnostic.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_blocking.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_blocking/cycle.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_resolution.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_resolution/ordered_ready_set.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_selection.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_selection/active.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_selection/partition.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_selection/pending.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_status.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_status/dependencies.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/features.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/features/context.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/project.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/project_extension_report.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/project_extension_report/feature_diagnostics.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/project_extension_report/feature_merge.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/project_extension_report/runtime_merge.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/project_manifest.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/project_manifest/completion.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/project_manifest/selection_defaults.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/project_manifest/selection_defaults/catalog_selections.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/project_manifest/selection_defaults/hydration.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/registration.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/registration/constructors.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/registration/plugin.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/registration/reports.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/render_contributions.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/render_contributions/feature.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/render_contributions/prepare.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/render_contributions/providers.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/runtime_extensions.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/runtime_feature_definitions.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/runtime_feature_definitions/conflict.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/runtime_feature_definitions/merge.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/runtime_feature_definitions/registration.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/runtime_feature_definitions/registration_match.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/status.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/augmentation.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/augmentation/categories.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/augmentation/capabilities.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/asset_rows.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/asset_rows/model.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/asset_rows/media.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/asset_rows/pipeline.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/importer_classification.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/importer_classification/capabilities.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/importer_classification/model.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/importer_classification/media.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/importer_classification/pipeline.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/core_classification.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/core_classification/runtime.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/core_classification/runtime/services.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/core_classification/runtime/systems.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/core_classification/content.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/core_rows.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/core_rows/runtime.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/core_rows/runtime/services.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/core_rows/runtime/systems.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/core_rows/content.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/language.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/language/rows.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/language/classification.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/optional_features.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/net_features.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/net_features/rows.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/net_features/manifest.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/particles_features.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/particles_features/rows.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/particles_features/manifest.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/rendering_features.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/rendering_features/rows.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/rendering_features/manifest.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/sound_features.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/sound_features/rows.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/sound_features/manifest.rs
+  - zircon_runtime/src/plugin/runtime/catalog/contributions/diagnostic.rs
+  - zircon_runtime/src/plugin/runtime/catalog/contributions/extension.rs
+  - zircon_runtime/src/plugin/catalog/descriptor_contributions/asset_scene.rs
+  - zircon_runtime/src/plugin/runtime/catalog/descriptor_contributions/component.rs
+  - zircon_runtime/src/plugin/catalog/descriptor_contributions/plugin_metadata.rs
+  - zircon_runtime/src/plugin/runtime/catalog/extension_merge/diagnostic.rs
+  - zircon_runtime/src/plugin/runtime/catalog/extension_merge/feature.rs
+  - zircon_runtime/src/plugin/runtime/catalog/extension_merge/runtime.rs
+  - zircon_runtime/src/plugin/runtime/catalog/extension_report/report.rs
+  - zircon_runtime/src/plugin/runtime/catalog/extension_report/runtime.rs
+  - zircon_runtime/src/plugin/runtime/catalog/extension_report/status.rs
+  - zircon_runtime/src/plugin/runtime/catalog/feature_capabilities/feature.rs
+  - zircon_runtime/src/plugin/runtime/catalog/feature_completion/owner_selection.rs
+  - zircon_runtime/src/plugin/runtime/catalog/feature_definitions/definition.rs
+  - zircon_runtime/src/plugin/runtime/catalog/feature_definitions/definition_map.rs
+  - zircon_runtime/src/plugin/runtime/catalog/feature_definitions/key.rs
+  - zircon_runtime/src/plugin/runtime/catalog/feature_definitions/lookup.rs
+  - zircon_runtime/src/plugin/runtime/catalog/feature_report/block.rs
+  - zircon_runtime/src/plugin/runtime/catalog/feature_report/dependency_report.rs
+  - zircon_runtime/src/plugin/runtime/catalog/feature_report/diagnostic.rs
+  - zircon_runtime/src/plugin/runtime/catalog/feature_blocking/cycle.rs
+  - zircon_runtime/src/plugin/catalog/feature_resolution/ordered_ready_set.rs
+  - zircon_runtime/src/plugin/runtime/catalog/feature_selection/active.rs
+  - zircon_runtime/src/plugin/runtime/catalog/feature_selection/partition.rs
+  - zircon_runtime/src/plugin/runtime/catalog/feature_selection/pending.rs
+  - zircon_runtime/src/plugin/runtime/catalog/feature_status/dependencies.rs
+  - zircon_runtime/src/plugin/runtime/catalog/features/context.rs
+  - zircon_runtime/src/plugin/project_extension_report/feature_diagnostics.rs
+  - zircon_runtime/src/plugin/catalog/project_extension_report/feature_merge.rs
+  - zircon_runtime/src/plugin/catalog/project_extension_report/runtime_merge.rs
+  - zircon_runtime/src/plugin/runtime/catalog/project_manifest/completion.rs
+  - zircon_runtime/src/plugin/runtime/catalog/project_manifest/selection_defaults.rs
+  - zircon_runtime/src/plugin/catalog/selection_defaults/catalog_selections.rs
+  - zircon_runtime/src/plugin/runtime/catalog/selection_defaults/hydration.rs
+  - zircon_runtime/src/plugin/runtime/catalog/registration/constructors.rs
+  - zircon_runtime/src/plugin/runtime/catalog/registration/plugin.rs
+  - zircon_runtime/src/plugin/runtime/catalog/registration/reports.rs
+  - zircon_runtime/src/plugin/runtime/catalog/render_contributions/feature.rs
+  - zircon_runtime/src/plugin/runtime/catalog/render_contributions/prepare.rs
+  - zircon_runtime/src/plugin/runtime/catalog/render_contributions/providers.rs
+  - zircon_runtime/src/plugin/runtime/builtin_catalog/augmentation.rs
+  - zircon_runtime/src/plugin/runtime/builtin_catalog/augmentation/categories.rs
+  - zircon_runtime/src/plugin/runtime/builtin_catalog/augmentation/capabilities.rs
+  - zircon_runtime/src/plugin/runtime/builtin_catalog/asset_rows.rs
+  - zircon_runtime/src/plugin/runtime/builtin_catalog/asset_rows/model.rs
+  - zircon_runtime/src/plugin/runtime/builtin_catalog/asset_rows/media.rs
+  - zircon_runtime/src/plugin/runtime/builtin_catalog/asset_rows/pipeline.rs
+  - zircon_runtime/src/plugin/runtime/builtin_catalog/importer_classification.rs
+  - zircon_runtime/src/plugin/runtime/importer_classification/capabilities.rs
+  - zircon_runtime/src/plugin/runtime/importer_classification/model.rs
+  - zircon_runtime/src/plugin/runtime/importer_classification/media.rs
+  - zircon_runtime/src/plugin/runtime/importer_classification/pipeline.rs
+  - zircon_runtime/src/plugin/runtime/builtin_catalog/core_classification.rs
+  - zircon_runtime/src/plugin/runtime/builtin_catalog/core_classification/runtime.rs
+  - zircon_runtime/src/plugin/runtime/builtin_catalog/core_classification/content.rs
+  - zircon_runtime/src/plugin/runtime/builtin_catalog/core_rows.rs
+  - zircon_runtime/src/plugin/runtime/builtin_catalog/core_rows/runtime.rs
+  - zircon_runtime/src/plugin/runtime/builtin_catalog/core_rows/runtime/services.rs
+  - zircon_runtime/src/plugin/runtime/builtin_catalog/core_rows/runtime/systems.rs
+  - zircon_runtime/src/plugin/runtime/builtin_catalog/core_rows/content.rs
+  - zircon_runtime/src/plugin/runtime/builtin_catalog/language.rs
+  - zircon_runtime/src/plugin/runtime/builtin_catalog/language/rows.rs
+  - zircon_runtime/src/plugin/runtime/builtin_catalog/language/classification.rs
+  - zircon_runtime/src/plugin/runtime/builtin_catalog/optional_features.rs
+  - zircon_runtime/src/plugin/runtime/builtin_catalog/net_features.rs
+  - zircon_runtime/src/plugin/runtime/builtin_catalog/net_features/rows.rs
+  - zircon_runtime/src/plugin/runtime/builtin_catalog/net_features/manifest.rs
+  - zircon_runtime/src/plugin/runtime/builtin_catalog/particles_features.rs
+  - zircon_runtime/src/plugin/runtime/builtin_catalog/particles_features/rows.rs
+  - zircon_runtime/src/plugin/runtime/builtin_catalog/particles_features/manifest.rs
+  - zircon_runtime/src/plugin/runtime/builtin_catalog/rendering_features.rs
+  - zircon_runtime/src/plugin/runtime/builtin_catalog/rendering_features/rows.rs
+  - zircon_runtime/src/plugin/runtime/builtin_catalog/rendering_features/manifest.rs
+  - zircon_runtime/src/plugin/runtime/builtin_catalog/sound_features.rs
+  - zircon_runtime/src/plugin/runtime/builtin_catalog/sound_features/rows.rs
+  - zircon_runtime/src/plugin/runtime/builtin_catalog/sound_features/manifest.rs
   - zircon_runtime/src/plugin/export_build_plan/from_project_manifest.rs
   - zircon_runtime/src/plugin/export_build_plan/platform_host_files.rs
   - zircon_runtime/src/plugin/export_build_plan/platform_host_files/browser.rs
@@ -350,8 +246,8 @@ implementation_files:
   - zircon_app/src/entry/first_party_runtime_plugins.rs
   - zircon_app/src/entry/engine_entry.rs
   - zircon_app/src/entry/entry_runner/bootstrap.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/reports/editor_plugin_status.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/enablement/features.rs
+  - zircon_editor/src/ui/host/exports/reports/editor_plugin_status.rs
+  - zircon_editor/src/ui/host/exports/enablement/features.rs
 plan_sources:
   - docs/plans/zircon_runtime/frameworks/03-optional-features-and-profile-matrix.md
   - user: 2026-05-03 optional feature bundle validation
@@ -359,18 +255,10 @@ plan_sources:
   - user: 2026-05-16 continue Bevy-style runtime profile plugin group selection completion
   - .codex/plans/ZirconEngine Bevy 级插件完成度里程碑计划.md
 tests:
-  - zircon_runtime/src/tests/plugin_extensions/manifest_contributions.rs
-  - zircon_runtime/src/tests/plugin_extensions/package_manifest_declarations.rs
-  - zircon_runtime/src/tests/plugin_extensions/plugin_workspace_shape.rs
-  - zircon_runtime/src/tests/plugin_extensions/runtime_plugin_descriptor.rs
-  - zircon_runtime/src/tests/plugin_extensions/export_build_plan.rs
-  - zircon_runtime/src/tests/plugin_extensions/extension_registry.rs
-  - zircon_runtime/src/tests/plugin_extensions/native_plugin_loader.rs
-  - zircon_runtime/src/tests/plugin_extensions/profile_maturity.rs
   - zircon_plugins/sound/features/timeline/runtime/src/lib.rs
   - zircon_plugins/sound/features/ray_reverb/runtime/src/lib.rs
   - zircon_plugins/net/runtime/src/tests/mod.rs
-  - zircon_plugins/net/features/content_download/runtime/src/tests.rs
+  - zircon_plugins/net/features/content_download/runtime/src/tests/mod.rs
   - zircon_app/src/entry/tests/profile_bootstrap.rs
   - cargo test -p zircon_app --locked --offline --jobs 1 --features "ui,first-party-runtime-plugins" profile_bootstrap -- --nocapture --test-threads=1
   - cargo test -p zircon_app --locked --jobs 1 --no-default-features --features "ui,first-party-runtime-plugins,first-party-navigation-runtime-plugin" runtime_profile_bootstrap_can_link_navigation_when_native_provider_feature_is_enabled --message-format short -- --nocapture --test-threads=1

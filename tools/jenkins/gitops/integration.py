@@ -131,7 +131,7 @@ class GitRepository:
         if env:
             merged.update(env)
         try:
-            result = subprocess.run(["git", *args], cwd=self.root, env=merged,
+            result = subprocess.run(["git", "-c", "core.fsmonitor=false", "-c", "core.hooksPath=" + os.devnull, *args], cwd=self.root, env=merged,
                                     check=check, capture_output=True, text=True)
         except (OSError, subprocess.CalledProcessError) as exc:
             stderr = getattr(exc, "stderr", "") or ""
@@ -151,7 +151,7 @@ class GitRepository:
         return file_digest(p) if p.exists() else hashlib.sha256(b"").hexdigest()
 
     def _index_entries(self) -> dict[str, tuple[str, str, int]]:
-        raw = subprocess.run(["git", "ls-files", "--stage", "-z"], cwd=self.root,
+        raw = subprocess.run(["git", "-c", "core.fsmonitor=false", "-c", "core.hooksPath=" + os.devnull, "ls-files", "--stage", "-z"], cwd=self.root,
                              check=True, capture_output=True).stdout
         entries: dict[str, tuple[str, str, int]] = {}
         for item in raw.split(b"\0"):
@@ -163,7 +163,7 @@ class GitRepository:
         return entries
 
     def _is_ancestor(self, ancestor: str, descendant: str) -> bool:
-        result = subprocess.run(["git", "merge-base", "--is-ancestor", ancestor, descendant],
+        result = subprocess.run(["git", "-c", "core.fsmonitor=false", "-c", "core.hooksPath=" + os.devnull, "merge-base", "--is-ancestor", ancestor, descendant],
                                 cwd=self.root, capture_output=True)
         return result.returncode == 0
 
@@ -200,7 +200,7 @@ class GitRepository:
 
     def _verify_manifest_tree(self, tree: str, manifest: Mapping[str, Any], source_digest: str) -> None:
         entries = self._input_entries(manifest)
-        raw = subprocess.run(["git", "ls-tree", "-r", "-t", "-z", tree],
+        raw = subprocess.run(["git", "-c", "core.fsmonitor=false", "-c", "core.hooksPath=" + os.devnull, "ls-tree", "-r", "-t", "-z", tree],
                              cwd=self.root, check=True, capture_output=True).stdout
         objects = {}
         for row in raw.split(b"\0"):
@@ -212,7 +212,7 @@ class GitRepository:
                       if not e["deleted"] and e["path"] in objects and objects[e["path"]][1] == "blob"))
         checksums = {}
         if wanted:
-            output = subprocess.run(["git", "cat-file", "--batch"], cwd=self.root,
+            output = subprocess.run(["git", "-c", "core.fsmonitor=false", "-c", "core.hooksPath=" + os.devnull, "cat-file", "--batch"], cwd=self.root,
                 input=("\n".join(wanted) + "\n").encode("ascii"), check=True, capture_output=True).stdout
             offset = 0
             for oid in wanted:
@@ -351,13 +351,13 @@ class GitRepository:
             before_oid = self._git("rev-parse", "--verify", "--quiet", f"HEAD:{path}", check=False) or None
             before = None
             if before_oid:
-                before_bytes = subprocess.run(["git", "show", f"HEAD:{path}"], cwd=self.root,
+                before_bytes = subprocess.run(["git", "-c", "core.fsmonitor=false", "-c", "core.hooksPath=" + os.devnull, "show", f"HEAD:{path}"], cwd=self.root,
                                               capture_output=True, check=True).stdout
                 before = hashlib.sha256(before_bytes).hexdigest()
             if content is None:
                 items.append(CandidatePath(path, None, before_digest=before, after_digest=None, deleted=True))
                 continue
-            oid = subprocess.run(["git", "hash-object", "-w", "--stdin"], cwd=self.root,
+            oid = subprocess.run(["git", "-c", "core.fsmonitor=false", "-c", "core.hooksPath=" + os.devnull, "hash-object", "-w", "--stdin"], cwd=self.root,
                                   input=content, capture_output=True, check=True).stdout.decode().strip()
             items.append(CandidatePath(path, oid, "100644", before, hashlib.sha256(content).hexdigest()))
         record = self.state.get("sealed_input", source_digest) if self.state else None
@@ -385,7 +385,7 @@ class GitRepository:
                 if p.deleted:
                     self._git("update-index", "--force-remove", "--", p.path, env=env)
                 else:
-                    valid = bool(p.blob_oid) and subprocess.run(["git", "cat-file", "-e", str(p.blob_oid)], cwd=self.root, capture_output=True).returncode == 0
+                    valid = bool(p.blob_oid) and subprocess.run(["git", "-c", "core.fsmonitor=false", "-c", "core.hooksPath=" + os.devnull, "cat-file", "-e", str(p.blob_oid)], cwd=self.root, capture_output=True).returncode == 0
                     if not valid:
                         raise JenkinsError("sealed_object_invalid", "Sealed blob object is missing", details={"path": p.path, "oid": p.blob_oid})
                     self._git("update-index", "--add", "--cacheinfo", p.mode, p.blob_oid, p.path, env=env)
@@ -538,7 +538,7 @@ class GitRepository:
             if p.before_digest is None:
                 file.unlink(missing_ok=True)
             else:
-                content = subprocess.run(["git", "show", f"{before_head}:{p.path}"], cwd=self.root,
+                content = subprocess.run(["git", "-c", "core.fsmonitor=false", "-c", "core.hooksPath=" + os.devnull, "show", f"{before_head}:{p.path}"], cwd=self.root,
                                          check=True, capture_output=True).stdout
                 if hashlib.sha256(content).hexdigest() != p.before_digest:
                     blocked.append(p.path)

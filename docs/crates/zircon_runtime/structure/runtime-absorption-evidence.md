@@ -1,7 +1,5 @@
 ---
 related_code:
-  - zircon_runtime/src/tests/runtime_absorption/current_source_fixture.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/evidence_ownership.rs
 plan_sources:
   - docs/plans/zircon_runtime/runtime/01-tech-stack-and-dependency-governance.md
   - docs/plans/zircon_runtime/runtime/15/2026-07-11-stable-evidence-owner-hard-cutover.md
@@ -10,9 +8,6 @@ tests:
   - runtime_15_structure_guards_use_durable_evidence_not_session_notes
   - runtime_architecture_implementation_output_is_tracked_plan_evidence
 implementation_files:
-  - zircon_runtime/src/tests/runtime_absorption/current_source_fixture.rs
-  - zircon_runtime/src/tests/runtime_absorption/mod.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/evidence_ownership.rs
 ---
 
 # Runtime absorption evidence ownership

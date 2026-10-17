@@ -3,11 +3,9 @@ related_code:
   - zircon_editor/src/core/asset
   - zircon_editor/src/core/editor_extension
   - zircon_editor/src/core/plugin/extension_materialization.rs
-  - zircon_editor/src/ui/host/editor_asset_manager
   - zircon_editor/src/ui/host/asset_editor_sessions
   - zircon_editor/src/ui/host/animation_editor_sessions
   - zircon_editor/src/ui/host/project_access.rs
-  - zircon_editor/src/ui/retained_host/app/assets
   - zircon_runtime/src/asset/project
   - zircon_runtime/src/asset/registry
 plan_sources:

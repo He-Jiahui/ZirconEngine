@@ -8,9 +8,7 @@ related_records:
   - docs/plans/astra/features/runtime/891-runtime580-cookie-context-preflight.md
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_command_palette/rows/entry.rs
 tests:
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_command_palette/rows/entry.rs
 ---
 
 # Editor948 Editor580 Command-Row Deferred Text Clone

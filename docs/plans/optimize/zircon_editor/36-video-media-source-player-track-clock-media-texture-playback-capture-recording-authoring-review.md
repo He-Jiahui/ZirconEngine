@@ -9,14 +9,10 @@ related_code:
   - zircon_plugins/sound/runtime/src/service_types
   - zircon_plugins/sound/runtime/src/timeline
   - zircon_runtime/src/core/framework/render/capture.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/capture_frame
-  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record
   - zircon_runtime/crates/zr_rhi_wgpu/src/gpu_readback_queue
   - zircon_runtime_interface/src/runtime_api/session/requests.rs
   - zircon_app/src/entry/runtime_entry_app/frame_capture.rs
   - zircon_editor/src/core/gateway
-  - zircon_editor/src/ui/retained_host/host_contract/profiling_artifacts
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback/ui_diagnostics/observability.rs
   - zircon_plugins/first_party_runtime_catalog
   - zircon_plugins/first_party_editor_catalog
 plan_sources:

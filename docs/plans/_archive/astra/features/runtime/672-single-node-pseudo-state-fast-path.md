@@ -6,10 +6,10 @@ plan_sources:
   - docs/plans/optimize/zircon_editor/01/2026-08-26-ui-architecture-audit.md
   - docs/plans/optimize/zircon_runtime/11a-runtime-ui-architecture-tree-layout-input-accessibility-review.md
 related_code:
-  - zircon_runtime/src/ui/surface/surface/pointer_component_events/state_invalidation.rs
+  - zircon_runtime/src/ui/surface/pointer_component_events/state_invalidation.rs
   - zircon_runtime/src/ui/v2/style.rs
 tests:
-  - zircon_runtime/src/ui/surface/surface/pointer_component_events/state_invalidation.rs
+  - zircon_runtime/src/ui/surface/pointer_component_events/state_invalidation.rs
   - zircon_runtime/src/ui/tests/v2_asset/style_runtime/runtime_pseudo_state.rs
 ---
 

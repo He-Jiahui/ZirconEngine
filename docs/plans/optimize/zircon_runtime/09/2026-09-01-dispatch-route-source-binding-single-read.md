@@ -9,7 +9,6 @@ implementation_files:
 tests:
   - tools/tests/test_runtime_ui_dispatch_route_sharing_pressure.py
   - tools/tests/test_runtime_ui_dispatch_route_sharing_performance_contract.py
-  - tools/tests/test_runtime_ui_dispatch_route_source_binding_single_read_performance_contract.py
 ---
 
 # Runtime09 dispatch route source binding single read

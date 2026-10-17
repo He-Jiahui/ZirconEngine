@@ -10,28 +10,18 @@ related_code:
   - zircon_plugins/hybrid_gi/plugin.toml
   - zircon_plugins/hybrid_gi/runtime/Cargo.toml
   - zircon_plugins/hybrid_gi/runtime/src
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/scene_representation
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/shaders
-  - zircon_plugins/hybrid_gi/runtime/src/render_pass_executors
+  - zircon_plugins/hybrid_gi/runtime/src/gi/renderer/shaders
   - zircon_plugins/hybrid_gi/editor/src
   - zircon_plugins/hybrid_gi/dist/src/lib.rs
   - zircon_plugins/first_party_runtime_catalog/Cargo.toml
   - zircon_plugins/first_party_runtime_catalog/src
   - zircon_app/src/entry/first_party_runtime_plugins.rs
   - zircon_app/src/entry/tests/profile_bootstrap.rs
-  - zircon_editor/src/ui/retained_host/viewport/editor_viewport_render_defaults.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload_builders/runtime_diagnostics.rs
+  - zircon_editor/src/ui/retained/viewport/editor_viewport_render_defaults.rs
   - zircon_runtime/runtime-feature-presets.toml
 tests:
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/dispatch_probe_trace_tiles/tests
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/dispatch_radiance_cache/tests.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/global_sdf/tests.rs
-  - zircon_plugins/hybrid_gi/runtime/src/render_pass_executors/resolve_trace_handoff/tests.rs
-  - zircon_plugins/hybrid_gi/runtime/src/render_pass_executors/scene_depth_handoff.rs
-  - zircon_plugins/hybrid_gi/runtime/src/render_pass_executors/trace_schedule_handoff.rs
-  - zircon_plugins/hybrid_gi/editor/src/tests.rs
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md
   - docs/plans/optimize/01-cross-report-owner-schema-abi-p0-consolidation-review.md

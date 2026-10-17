@@ -11,7 +11,6 @@ related_code:
   - zircon_runtime/src/core/framework/render/advanced_lighting/volumetric.rs
   - zircon_runtime/src/core/framework/render/advanced_lighting/mod.rs
   - zircon_runtime/src/core/framework/render/mod.rs
-  - zircon_runtime/src/core/framework/render/post_process/volume_extract.rs
 tests:
   - ./.codex/skills/zircon-dev/scripts/validate-matrix.ps1 -Package zircon_plugin_navigation_editor -SkipBuild
 resolved_at: 2026-07-15

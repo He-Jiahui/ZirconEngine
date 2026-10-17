@@ -8,7 +8,7 @@ fixing_plan: docs/plans/zircon_runtime/render/18-advanced-lighting-features.md
 origin_child_dir: docs/plans/zircon_runtime/shader/06
 fixing_child_dir: docs/plans/zircon_runtime/render/18
 related_code:
-  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_pipeline/shader_source.rs
+  - zircon_runtime/src/graphics/scene/deferred/lighting_pipeline/shader_source.rs
   - zircon_runtime/src/graphics/shader/template/module_registry.rs
   - zircon_runtime/src/graphics/shader/wgsl/zr_lightmap.wgsl
   - zircon_runtime/src/graphics/shader/wgsl/zr_irradiance_volume.wgsl

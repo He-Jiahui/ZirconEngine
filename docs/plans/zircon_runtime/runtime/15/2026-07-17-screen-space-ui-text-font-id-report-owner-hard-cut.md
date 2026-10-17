@@ -1,27 +1,17 @@
 ---
 related_code:
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/font_id_report.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/text.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/text/font_id_report.rs
   - zircon_runtime/src/text/render_state.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/graphics_dead_code/renderer_output_accessors.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy/runtime_services/plugin_bridge.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/plugin_bridge_table_reports.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_ui_text_font_id_report.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/script_vm_lock_poison.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_owners/root_inventory.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/naming_boundary_plugin_static_manifest.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/native_plugin_loader.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/runtime_plugin_catalog_features.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/runtime_plugin_lifecycle.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/runtime_plugin_package_manifest.rs
+  - zircon_runtime/src/tests/graphics_dead_code/renderer_output_accessors.rs
+  - zircon_runtime/src/tests/contracts/structure/runtime_services/plugin_bridge.rs
   - docs/crates/zircon_runtime/graphics/text.md
   - docs/crates/zircon_runtime/ui/text.md
 implementation_files:
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/font_id_report.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/text.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/text/font_id_report.rs
   - zircon_runtime/src/text/mod.rs
   - zircon_runtime/src/text/render_state.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_ui_text_font_id_report.rs
 plan_sources:
   - docs/plans/engine-code-structure-convention.md
   - docs/plans/engine-code-review-findings-2026-06.md

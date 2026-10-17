@@ -2,14 +2,11 @@
 doc_type: milestone-detail
 related_code:
   - zircon_runtime/src/scene/world/transaction/detached_entity_batch.rs
-  - zircon_runtime/src/scene/world/transaction/detached_entity_batch/restore_parent_validation.rs
 plan_sources:
   - docs/plans/optimize/zircon_runtime/62-runtime-scene-hierarchy-transform-propagation-reparent-activation-mobility-visibility-bounds-render-product-integration-review.md
   - docs/plans/zircon_runtime/runtime/08-ecs-kernel-data-alignment.md
   - docs/plans/optimize/zircon_runtime/62/2026-09-27-detached-subtree-parent-cycle-rejection.md
 tests:
-  - zircon_runtime/src/scene/world/transaction/detached_entity_batch/restore_cycle_tests.rs
-  - zircon_runtime/src/scene/world/transaction/detached_entity_batch/restore_cycle_profile.rs
 ---
 
 # Runtime62 detached restore union-cycle rejection

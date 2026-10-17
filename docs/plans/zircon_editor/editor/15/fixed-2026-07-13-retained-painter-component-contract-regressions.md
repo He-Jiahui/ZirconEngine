@@ -9,8 +9,6 @@ fixing_plan: docs/plans/zircon_editor/editor_layout/15-component-standardization
 origin_child_dir: docs/plans/zircon_editor/editor/15
 fixing_child_dir: docs/plans/zircon_editor/editor_layout/15
 related_code:
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes
-  - zircon_editor/src/ui/retained_host/host_contract/paint_theme
 tests:
   - zircon_editor test binary filter ui::retained_host::host_contract::paint_template_nodes::
 ---

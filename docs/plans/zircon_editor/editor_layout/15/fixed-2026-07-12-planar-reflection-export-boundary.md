@@ -11,8 +11,7 @@ fixing_child_dir: docs/plans/zircon_runtime/render/18
 related_code:
   - zircon_runtime/src/core/framework/render/mod.rs
   - zircon_runtime/src/core/framework/render/advanced_lighting/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/probe_buffer/mod.rs
+  - zircon_runtime/src/graphics/scene/renderer/environment/probe_buffer/mod.rs
 tests:
   - cargo test -p zircon_editor --lib --locked --no-run --jobs 1 --message-format short
 ---

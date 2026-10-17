@@ -13,7 +13,6 @@ related_code:
   - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/batching.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/geometry.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/render_pass.rs
-  - dev/UnrealEngine/Engine/Source/Runtime/SlateCore/Private/Rendering/ElementBatcher.cpp
 tests:
   - repeated guide tick row batch-count scale test
   - owner-specialized overdraw pixel test

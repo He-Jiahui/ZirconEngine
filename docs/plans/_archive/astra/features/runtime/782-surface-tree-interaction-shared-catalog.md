@@ -10,10 +10,7 @@ related_records:
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
   - zircon_runtime/src/ui/v2/surface_tree/interaction.rs
-  - zircon_runtime/src/ui/v2/surface_tree/interaction/shared_catalog_tests.rs
 tests:
-  - zircon_runtime/src/ui/v2/surface_tree/interaction/shared_catalog_tests.rs
-  - tools/tests/test_runtime_surface_tree_interaction_shared_catalog_performance_contract.py
 ---
 
 # Runtime782 · Surface-tree interaction shared catalog

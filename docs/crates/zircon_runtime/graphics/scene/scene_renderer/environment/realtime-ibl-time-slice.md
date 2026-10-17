@@ -1,27 +1,22 @@
 ---
 related_code:
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/realtime_ibl_time_slice.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/realtime_ibl_runtime.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/realtime_ibl_graph_plan.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/realtime_ibl_wgpu_recorder.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/realtime_ibl_gpu_resources.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/realtime_ibl_gpu_timestamps.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/realtime_ibl_capture_wgpu.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_shader_plan.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_graph_plan.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_compute_executor.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/ibl_bake_wgpu_dispatch/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/shaders/ibl_irradiance_sh.wgsl
+  - zircon_runtime/src/graphics/scene/environment/realtime_ibl_time_slice.rs
+  - zircon_runtime/src/graphics/scene/renderer/environment/realtime_ibl_runtime.rs
+  - zircon_runtime/src/graphics/scene/environment/realtime_ibl_graph_plan.rs
+  - zircon_runtime/src/graphics/scene/environment/realtime_ibl_wgpu_recorder.rs
+  - zircon_runtime/src/graphics/scene/environment/realtime_ibl_gpu_resources.rs
+  - zircon_runtime/src/graphics/scene/environment/realtime_ibl_gpu_timestamps.rs
+  - zircon_runtime/src/graphics/scene/environment/realtime_ibl_capture_wgpu.rs
+  - zircon_runtime/src/graphics/scene/renderer/environment/ibl_bake_shader_plan.rs
+  - zircon_runtime/src/graphics/scene/renderer/environment/ibl_bake_graph_plan.rs
+  - zircon_runtime/src/graphics/scene/environment/ibl_bake_compute_executor.rs
+  - zircon_runtime/src/graphics/scene/renderer/shaders/ibl_irradiance_sh.wgsl
 implementation_files:
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_scene/render_scene.rs
+  - zircon_runtime/src/graphics/scene/renderer/core/render/render/render.rs
 plan_sources:
   - docs/plans/zircon_runtime/shader/06-environment-ibl-and-pbr-correctness.md
   - docs/plans/zircon_runtime/render/11-environment-lighting.md
 tests:
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/realtime_ibl_time_slice/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/realtime_ibl_graph_plan/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/realtime_ibl_wgpu_recorder/tests.rs
   - zircon_runtime/tests/runtime_shader_pbr_realtime_ibl_export.rs
 ---
 

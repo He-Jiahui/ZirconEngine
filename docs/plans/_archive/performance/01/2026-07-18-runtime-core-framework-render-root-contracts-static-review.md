@@ -4,7 +4,7 @@ related_code:
   - zircon_runtime/src/core/framework/render/mod.rs
   - zircon_runtime/src/core/framework/render/scene_extract.rs
   - zircon_runtime/src/core/framework/render/virtual_geometry_debug_snapshot.rs
-  - zircon_runtime/src/core/framework/render/virtual_geometry_debug_snapshot_streams.rs
+  - zircon_runtime/src/core/render/virtual_geometry_debug_snapshot_streams.rs
   - zircon_runtime/src/core/framework/render/virtual_geometry_execution_draw.rs
   - zircon_runtime/src/scene/world/render.rs
   - zircon_editor/src/scene/viewport/render_packet.rs

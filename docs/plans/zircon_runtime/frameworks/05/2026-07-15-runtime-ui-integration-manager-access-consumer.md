@@ -1,10 +1,8 @@
 ---
 related_code:
   - zircon_runtime/src/tests/graphics_surface/runtime_ui_integration.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/access.rs
   - zircon_runtime/src/ui/public_runtime_frame.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/render_framework_trait_binding/wgpu_framework.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/wgpu_render_framework_construction/construct.rs
+  - zircon_runtime/src/graphics/render_framework_trait_binding/wgpu_framework.rs
 implementation_files:
   - zircon_runtime/src/tests/graphics_surface/runtime_ui_integration.rs
 plan_sources:

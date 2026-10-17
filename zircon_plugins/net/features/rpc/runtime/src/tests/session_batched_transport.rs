@@ -16,8 +16,8 @@ fn batched_transport_close_preserves_event_order_and_duplicates() {
     let manager = NetRpcRuntimeManager::new();
     let first_connection = NetConnectionId::new(11);
     let second_connection = NetConnectionId::new(22);
-    let first_session = manager.begin_handshake_for_connection(first_connection);
-    let second_session = manager.begin_handshake_for_connection(second_connection);
+    let first_session = manager.begin_handshake_for_connection(first_connection).unwrap();
+    let second_session = manager.begin_handshake_for_connection(second_connection).unwrap();
 
     let closed = manager.apply_transport_events([
         NetEvent::ConnectionClosed {

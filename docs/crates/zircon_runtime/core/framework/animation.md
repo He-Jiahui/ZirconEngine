@@ -36,7 +36,6 @@ related_code:
   - zircon_runtime/src/core/framework/animation/timeline.rs
   - zircon_runtime/src/core/framework/animation/track_path.rs
   - zircon_runtime/src/core/framework/animation/track_path_error.rs
-  - zircon_runtime/src/core/framework/animation/tests.rs
   - zircon_runtime/src/asset/assets/scene/animation.rs
   - zircon_runtime/src/scene/components/scene/animation.rs
   - zircon_plugins/animation/runtime/src/manager.rs
@@ -73,7 +72,6 @@ implementation_files:
   - zircon_runtime/src/core/framework/animation/tick.rs
   - zircon_runtime/src/core/framework/animation/timeline.rs
   - zircon_runtime/src/core/framework/animation/track_path.rs
-  - zircon_runtime/src/core/framework/animation/tests.rs
   - zircon_runtime/src/asset/assets/scene/animation.rs
   - zircon_runtime/src/scene/components/scene/animation.rs
   - zircon_plugins/animation/runtime/src/evaluation/pipeline/parameter_apply.rs
@@ -85,11 +83,6 @@ plan_sources:
   - .codex/plans/ZirconEngine 周边设施与插件能力完善计划.md
   - .codex/plans/ZirconEngine 独立插件补齐计划.md
 tests:
-  - zircon_runtime/src/core/framework/animation/tests.rs
-  - zircon_runtime/src/core/framework/animation/compiler/tests.rs
-  - zircon_runtime/src/core/framework/animation/compiler/sequence/tests.rs
-  - zircon_runtime/src/core/framework/animation/compiler/state_machine/tests.rs
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/animation_resource.rs::review_f5_animation_manager_uses_animation_error
   - avatar_mask_filters_exact_leaf_and_excluded_targets
   - animation_tick_contract_records_work_events_and_sanitized_delta
   - gpu_skinning_readiness_requires_enabled_gpu_resources

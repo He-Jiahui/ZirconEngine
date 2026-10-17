@@ -10,9 +10,7 @@ fixing_child_dir: docs/plans/zircon_plugins/03
 plan_link_mode: child_record_only
 related_code:
   - zircon_plugins/physics/editor/src/plugin.rs
-  - zircon_plugins/physics/editor/src/tests.rs
   - zircon_editor/src/core/editor_extension.rs
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_overlay_providers.rs
 tests:
   - physics editor provider registration and capability lifecycle tests
   - host toggle to shared viewport interaction extract product test

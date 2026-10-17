@@ -1,6 +1,5 @@
 ---
 related_code:
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context
   - zircon_runtime/src/graphics/virtual_geometry_runtime_provider/extract_output.rs
 tests:
   - current frame-context builder slice 11 of 11 Rust files reviewed, 1711 lines

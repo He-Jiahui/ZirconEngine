@@ -13,7 +13,7 @@ related_code:
   - zircon_runtime/crates/zr_rhi_wgpu/src/production/diagnostics/readback/layout.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/production/diagnostics/query.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/resource_validation.rs
-  - zircon_runtime/crates/zr_rhi_wgpu/src/production/diagnostics/readback/completion_order.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/production/readback/completion_order.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/production/diagnostics/readback/service.rs
 tests:
   - cargo build -p zircon_app --bin zircon_editor --no-default-features --features target-editor-host --locked

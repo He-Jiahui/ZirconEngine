@@ -8,10 +8,8 @@ related_records:
   - docs/plans/astra/features/editor/664-20260911-editor-ui-optimization-batch-completion.md
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/visual_assets/mui_icons/parser.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/visual_assets/mui_icons/parser/capacity_tests.rs
+  - zircon_editor/src/ui/retained/contract/paint/visual_assets/mui_icons/parser.rs
 tests:
-  - tools/tests/test_editor_mui_icon_path_capacity_performance_contract.py
 ---
 
 # Editor852 - MUI icon path capacity

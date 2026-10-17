@@ -11,9 +11,7 @@ related_records:
   - docs/plans/astra/features/runtime/706-accessibility-visibility-detached-scratch-reuse.md
 implementation_files:
   - zircon_runtime/src/ui/accessibility/accesskit.rs
-  - zircon_runtime/src/ui/accessibility/accesskit/performance_tests.rs
 tests:
-  - tools/tests/test_runtime_accesskit_tree_projection_capacity_performance_contract.py
   - tools/tests/test_runtime78_accesskit_focus_membership_performance_contract.py
 ---
 

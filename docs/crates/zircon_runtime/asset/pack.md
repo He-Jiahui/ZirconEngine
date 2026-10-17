@@ -26,7 +26,6 @@ related_code:
   - zircon_runtime/src/asset/mod.rs
   - zircon_runtime/src/asset/tests/pack.rs
   - zircon_runtime/src/asset/tests/mod.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/hot_update_application.rs
 implementation_files:
   - zircon_runtime/src/asset/pack/mod.rs
   - zircon_runtime/src/asset/pack/manifest.rs
@@ -52,7 +51,6 @@ implementation_files:
   - zircon_runtime/src/bin/zircon_export_pack/manifest.rs
   - zircon_runtime/src/bin/zircon_export_pack/run.rs
   - zircon_runtime/src/asset/tests/pack.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/hot_update_application.rs
 plan_sources:
   - docs/plans/zircon_plugins/09-export-publishing.md
   - docs/plans/zircon_plugins/07-net.md
@@ -114,7 +112,7 @@ tests:
   - native_runtime_hot_update_uses_export_load_manifest_package_set
   - native_runtime_hot_update_reports_non_runtime_manifest_entries_as_skipped
   - native_runtime_hot_update_accepts_runtime_feature_extension_modules
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/asset_tests/pack.rs::runtime_15_asset_pack_header_readers_are_panic_free
+  - zircon_runtime/src/tests/contracts/structure/test_size/asset_tests/pack.rs::runtime_15_asset_pack_header_readers_are_panic_free
 doc_type: module-detail
 ---
 

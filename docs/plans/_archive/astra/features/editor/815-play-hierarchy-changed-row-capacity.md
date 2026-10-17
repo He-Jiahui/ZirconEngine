@@ -13,7 +13,6 @@ related_records:
 implementation_files:
   - zircon_editor/src/ui/host/play_hierarchy_projection.rs
 tests:
-  - tools/tests/test_editor_play_hierarchy_changed_row_capacity_performance_contract.py
 ---
 
 # Editor815 · Play hierarchy changed-row capacity

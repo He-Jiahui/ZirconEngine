@@ -6,18 +6,18 @@ implementation_status: implemented
 validation_status: batched_validation_pending
 performance_status: product_gate_pending
 related_code:
-  - zircon_editor/src/ui/retained_host/host_contract/window/metadata.rs
-  - zircon_editor/src/ui/retained_host/host_contract/window/event_loop/events/pointer.rs
-  - zircon_editor/src/ui/retained_host/host_contract/globals/callbacks/host.rs
-  - zircon_editor/src/ui/retained_host/host_contract/globals/ui_context.rs
-  - zircon_editor/src/ui/retained_host/app/callback_wiring/host_shell/runtime.rs
-  - zircon_editor/src/ui/retained_host/app/hierarchy_pointer/input_owner.rs
-  - zircon_editor/src/ui/retained_host/app/hierarchy_pointer/events/motion.rs
-  - zircon_editor/src/ui/retained_host/app/hierarchy_pointer/events/drag.rs
+  - zircon_editor/src/ui/retained/contract/window/metadata.rs
+  - zircon_editor/src/ui/retained/contract/window/event_loop/events/pointer.rs
+  - zircon_editor/src/ui/retained/contract/globals/callbacks/host.rs
+  - zircon_editor/src/ui/retained/contract/globals/ui_context.rs
+  - zircon_editor/src/ui/retained/app/callback_wiring/host_shell/runtime.rs
+  - zircon_editor/src/ui/retained/app/hierarchy_pointer/input_owner.rs
+  - zircon_editor/src/ui/retained/app/hierarchy_pointer/events/motion.rs
+  - zircon_editor/src/ui/retained/app/hierarchy_pointer/events/drag.rs
 plan_sources:
   - docs/plans/optimize/zircon_editor/60/2026-09-27-hierarchy-drag-document-identity.md
 tests:
-  - zircon_editor/src/ui/retained_host/app/tests/hierarchy_native_capture.rs
+  - zircon_editor/src/ui/retained/app/tests/hierarchy_native_capture.rs
 ---
 
 # Editor60 hierarchy native input owner

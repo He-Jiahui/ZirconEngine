@@ -20,7 +20,8 @@ impl Default for CommandsParam {
     }
 }
 
-impl SystemParam for CommandsParam {
+// SAFETY: Registers the sole deferred-command lane and only borrows its own buffer.
+unsafe impl SystemParam for CommandsParam {
     type State = CommandsParamState;
     type Item<'world> = Commands<'world>;
 

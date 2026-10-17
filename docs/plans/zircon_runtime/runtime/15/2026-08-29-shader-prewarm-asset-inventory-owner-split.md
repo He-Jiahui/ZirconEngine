@@ -7,9 +7,8 @@ validation_status: rustfmt_static_guard_isolated_metadata_green_managed_cargo_pe
 owner: Runtime15
 related_code:
   - zircon_runtime/src/bin/zircon_shader_prewarm/manifest/asset_inventory.rs
-  - zircon_runtime/src/bin/zircon_shader_prewarm/manifest/asset_inventory/snapshot.rs
-  - zircon_runtime/src/bin/zircon_shader_prewarm/manifest/asset_inventory/traversal.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/shader_prewarm_asset_inventory.rs
+  - zircon_runtime/src/bin/manifest/asset_inventory/snapshot.rs
+  - zircon_runtime/src/bin/manifest/asset_inventory/traversal.rs
 references:
   - dev/UnrealEngine/Engine/Source/Runtime/AssetRegistry/Private/AssetDataGatherer.h
   - dev/UnrealEngine/Engine/Source/Runtime/AssetRegistry/Public/AssetRegistry/AssetRegistryState.h

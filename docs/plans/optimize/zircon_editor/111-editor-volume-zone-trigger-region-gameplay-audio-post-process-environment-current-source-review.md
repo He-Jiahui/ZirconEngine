@@ -15,7 +15,6 @@ related_code:
   - zircon_runtime/src/scene/world/render_post_process.rs
   - zircon_runtime/src/scene/world/project_io/scene_asset.rs
   - zircon_runtime/src/scene/world/property_access
-  - zircon_runtime/src/core/framework/render/post_process
   - zircon_runtime/src/core/framework/physics
   - zircon_runtime/src/core/framework/sound/components.rs
   - zircon_plugins/physics/runtime/src/backend/builtin/trigger
@@ -28,20 +27,12 @@ related_code:
   - zircon_runtime/src/core/framework/navigation/modifier.rs
   - zircon_plugins/navigation/runtime/src/manager/bake
   - zircon_plugins/navigation/editor
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/world/workbench_extension_volume_editor_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/rendering/workbench_extension_post_process_workspace.zui
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench
-  - zircon_editor/src/ui/template_runtime/builtin/workbench_extension_module_template_bindings
 tests:
-  - zircon_runtime/src/core/framework/physics/tests.rs
-  - zircon_runtime/src/core/framework/render/post_process/volume_component/tests.rs
   - zircon_runtime/src/scene/world/project_io/scene_asset.rs
   - zircon_plugins/physics/runtime/src/backend/builtin/trigger
   - zircon_plugins/sound/runtime/src/engine/source_environment/volume/filter.rs
-  - zircon_plugins/sound/editor/src/tests.rs
   - zircon_plugins/sound/editor/src/live_output/controller.rs
   - zircon_plugins/navigation/runtime/src/manager/bake/task_pool.rs
-  - zircon_plugins/navigation/editor/src/tests.rs
   - zircon_plugins/navigation/editor/src/tests/bake_panel_retained.rs
   - zircon_plugins/navigation/editor/src/tests/operation_command.rs
   - zircon_plugins/navigation/editor/src/tests/viewport_overlay_provider.rs

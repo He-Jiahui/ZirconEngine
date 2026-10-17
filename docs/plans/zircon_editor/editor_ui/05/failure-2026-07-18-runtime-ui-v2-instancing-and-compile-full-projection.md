@@ -16,7 +16,6 @@ related_code:
   - zircon_runtime/src/ui/template/build/tree_builder.rs
   - zircon_runtime/src/ui/template/asset/compiler/prototype_instancer.rs
   - zircon_runtime/src/ui/template/asset/compiler/component_instance_expander.rs
-  - dev/slint/internal/interpreter/dynamic_item_tree.rs
 tests:
   - prototype validation once-per-generation counter
   - overlapping component root linear compile test

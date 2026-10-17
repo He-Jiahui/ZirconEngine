@@ -25,13 +25,10 @@ related_code:
   - zircon_editor/assets/ui/editor/console.zui
   - zircon_editor/assets/ui/editor/host/console_body.zui
   - zircon_editor/src/ui/layouts/views/console.rs
-  - zircon_editor/src/ui/retained_host/console_output.rs
   - zircon_editor/src/core/commands
   - zircon_editor/src/core/commandlet
   - zircon_plugins
 tests:
-  - zircon_runtime/src/foundation/runtime/config_manager_tests.rs
-  - zircon_runtime/src/operation/tests.rs
   - zircon_runtime/src/operation/tests/phase_indexes.rs
   - zircon_runtime/src/operation/tests/source_guards.rs
   - zircon_editor/src/tests/editor_event/runtime/console.rs

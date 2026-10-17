@@ -4,9 +4,7 @@ status: implemented_pending_validation
 plan_sources:
   - docs/plans/optimize/zircon_runtime/02/2026-08-30-runtime547-compiled-capability-short-circuit.md
 implementation_files:
-  - zircon_runtime/src/graphics/pipeline/declarations/compiled_render_pipeline/runtime_feature_flags.rs
 tests:
-  - zircon_runtime/src/graphics/pipeline/declarations/compiled_render_pipeline/runtime_feature_flags.rs
 ---
 
 # Runtime935 Runtime547 compiled capability short circuit

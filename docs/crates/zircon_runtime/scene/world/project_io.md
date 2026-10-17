@@ -9,7 +9,6 @@ related_code:
   - zircon_runtime/src/scene/world/project_io/scene_asset.rs
   - zircon_runtime/src/scene/world/project_io/script.rs
   - zircon_runtime/src/scene/world/project_io/transform.rs
-  - zircon_runtime/src/tests/runtime_absorption/performance_hotspots.rs
   - zircon_runtime/tests/runtime_camera_core_pipeline_contract.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/performance_hotpath_boundary.py
 implementation_files:

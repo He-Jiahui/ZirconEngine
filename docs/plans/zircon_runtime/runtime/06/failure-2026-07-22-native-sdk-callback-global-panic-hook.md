@@ -11,8 +11,7 @@ plan_link_mode: child_record_only
 related_code:
   - zircon_plugins/plugin_sdk/src/native.rs
   - zircon_plugins/native_dynamic_fixture/native/src/lib.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/ffi_panic_guard.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/behavior_calls/output_sink.rs
+  - zircon_runtime/src/plugin/loader/behavior_calls/output_sink.rs
 tests:
   - cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_sdk --features native --locked -- --nocapture
   - cargo test -p zircon_runtime --lib native_plugin --locked -- --nocapture

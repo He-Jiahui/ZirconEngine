@@ -1,15 +1,7 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/host_contract/paint_theme.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_theme/tokens.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_buttons/content/metrics.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_buttons/geometry.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_segmented_control_geometry/metrics.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_fields/surface.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_fields/text.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_dropdowns/surface.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_dropdowns/text.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_icon_button/palette.rs
+  - zircon_editor/src/ui/retained/contract/paint_theme/tokens.rs
+  - zircon_editor/src/ui/retained/contract/paint/buttons/content/metrics.rs
 design_references:
   - dev/UnrealEngine/Engine/Source/Runtime/SlateCore/Public/Styling/CoreStyle.h
   - dev/UnrealEngine/Engine/Source/Runtime/SlateCore/Private/Styling/StarshipCoreStyle.cpp

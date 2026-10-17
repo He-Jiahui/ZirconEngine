@@ -10,10 +10,7 @@ related_records:
 implementation_files:
   - zircon_editor/src/core/runtime_event_consumer/registration.rs
   - zircon_editor/src/ui/sample_grid/generation.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/sample_grid.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_sample_grid.rs
 tests:
-  - zircon_editor/src/core/runtime_event_consumer/registration/optimization_batch_hx_editor607_tests.rs
 ---
 
 # Editor Registration And Sample-Grid Slice Ownership

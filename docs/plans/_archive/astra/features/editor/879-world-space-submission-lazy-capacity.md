@@ -7,10 +7,8 @@ related_records:
   - docs/plans/astra/features/editor/664-20260911-editor-ui-optimization-batch-completion.md
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
-  - zircon_editor/src/ui/retained_host/host_contract/data/world_space_submission/builder/node.rs
+  - zircon_editor/src/ui/retained/contract/data/world/builder/node.rs
 tests:
-  - zircon_editor/src/ui/retained_host/host_contract/data/world_space_submission/builder/node/capacity_tests.rs
-  - tools/tests/test_editor879_world_space_submission_capacity_performance_contract.py
 ---
 
 # Editor879 World-Space Submission Lazy Capacity

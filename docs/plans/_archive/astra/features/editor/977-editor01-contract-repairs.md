@@ -8,11 +8,7 @@ related_records:
   - docs/plans/astra/features/editor/976-editor01-cache-and-menu-index-completion.md
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
-  - zircon_editor/src/ui/template/adapter/hash_index_tests.rs
-  - zircon_editor/src/ui/retained_host/app/invalidation/root/transaction/hash_index_tests.rs
 tests:
-  - zircon_editor/src/ui/template/adapter/hash_index_tests.rs
-  - zircon_editor/src/ui/retained_host/app/invalidation/root/transaction/hash_index_tests.rs
 ---
 
 # Editor977 Editor01 lower contract repairs

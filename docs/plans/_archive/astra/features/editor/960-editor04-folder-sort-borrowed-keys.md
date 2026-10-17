@@ -1,10 +1,10 @@
 ---
 related_code:
-  - zircon_editor/src/ui/host/editor_asset_manager/manager/catalog_generation/folders.rs
+  - zircon_editor/src/ui/host/assets/manager/catalog_generation/folders.rs
 plan_sources:
   - docs/plans/optimize/zircon_editor/04/2026-09-26-folder-sort-borrowed-keys.md
 tests:
-  - zircon_editor/src/ui/host/editor_asset_manager/manager/catalog_generation/folders.rs
+  - zircon_editor/src/ui/host/assets/manager/catalog_generation/folders.rs
   - zircon_editor/src/tests/editing/asset_workspace.rs
 doc_type: milestone-detail
 status: implemented_pending_validation

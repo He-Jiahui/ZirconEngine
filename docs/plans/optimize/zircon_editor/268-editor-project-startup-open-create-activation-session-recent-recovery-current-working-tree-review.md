@@ -12,7 +12,6 @@ refreshes:
   - docs/plans/optimize/zircon_editor/172-editor-project-startup-open-create-authority-hub-handshake-session-guard-focus-recent-recovery-current-source-review.md
 related_code:
   - zircon_editor/src/core/project
-  - zircon_editor/src/core/recovery/activation_ledger
   - zircon_editor/src/core/recovery/session_guard
   - zircon_editor/src/core/recovery/project_recovery_assessment.rs
   - zircon_editor/src/core/hub_link
@@ -23,8 +22,7 @@ related_code:
   - zircon_editor/src/ui/host/project_access.rs
   - zircon_editor/src/ui/host/project_session_transition.rs
   - zircon_editor/src/ui/host/startup
-  - zircon_editor/src/ui/retained_host/app.rs
-  - zircon_editor/src/ui/retained_host/app/project_close.rs
+  - zircon_editor/src/ui/retained/app/project_close.rs
   - zircon_app/src/entry/entry_runner/editor.rs
   - zircon_app/src/entry/entry_runner/editor
   - zircon_runtime_interface/src/project

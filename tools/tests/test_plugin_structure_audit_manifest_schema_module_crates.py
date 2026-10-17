@@ -7,6 +7,35 @@ from tools.audits.plugins.manifest_schema_module_crates import (
 
 # 用插件清单夹具验证模块 crates：拒绝缺失模块工作区 crate，并拒绝模块工作区 crate 超出特性根。
 class PluginStructureAuditManifestSchemaModuleCratesTests(unittest.TestCase):
+    def test_short_feature_directories_preserve_module_ownership(self):
+        for package_id, suffix, directory in (
+            ("rendering", "subsurface_scattering", "subsurface"),
+            ("sound", "timeline_animation_track", "timeline"),
+            ("sound", "ray_traced_convolution_reverb", "ray_reverb"),
+        ):
+            for member_directory in (directory, "another_feature"):
+                with self.subTest(feature=suffix, member=member_directory):
+                    violations: list[str] = []
+                    collect_module_workspace_crate_violations_from_index(
+                        Path("zircon_plugins"),
+                        [(f"zircon_plugins/{package_id}/plugin.toml", {
+                            "id": package_id,
+                            "optional_features": [{
+                                "id": f"{package_id}.{suffix}",
+                                "modules": [module_row(crate_name="zircon_plugin_feature_runtime")],
+                            }],
+                        })],
+                        {"zircon_plugin_feature_runtime": workspace_crate(
+                            f"{package_id}/features/{member_directory}/runtime"
+                        )},
+                        violations,
+                    )
+                    if member_directory == directory:
+                        self.assertEqual(violations, [])
+                    else:
+                        self.assertEqual(len(violations), 1)
+                        self.assertIn(f"must stay under {package_id}/features/{directory}", violations[0])
+
     def test_manifest_schema_rejects_missing_module_workspace_crate(self):
         violations: list[str] = []
 

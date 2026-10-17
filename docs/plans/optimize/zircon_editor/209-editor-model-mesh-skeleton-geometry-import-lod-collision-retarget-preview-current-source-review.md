@@ -18,29 +18,23 @@ related_code:
   - zircon_editor/src/core/asset/import_flow
   - zircon_editor/src/core/asset/type_registry
   - zircon_editor/src/core/editing/paths.rs
-  - zircon_editor/src/ui/host/editor_asset_manager
-  - zircon_editor/src/ui/retained_host/app/assets/workspace.rs
-  - zircon_editor/src/ui/retained_host/app/callback_wiring/pane_surface/assets/mesh_import.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/asset/mesh_import_path.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation/specs/gameplay_animation.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation/specs/simulation_physics.rs
-  - zircon_editor/src/ui/retained_host/workbench_preview_actions/extensions.rs
+  - zircon_editor/src/ui/retained/app/assets/workspace.rs
+  - zircon_editor/src/ui/retained/app/pane_surface/assets/mesh_import.rs
+  - zircon_editor/src/ui/retained/dispatch/asset/mesh_import_path.rs
+  - zircon_editor/src/ui/retained/dispatch/workbench/specs/gameplay_animation.rs
+  - zircon_editor/src/ui/retained/dispatch/workbench/specs/simulation_physics.rs
   - zircon_editor/assets/ui/editor/asset_browser.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/animation/workbench_extension_retarget_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/simulation/workbench_extension_collision_proxy_workspace.zui
   - zircon_runtime/src/asset/assets/model
   - zircon_runtime/src/asset/assets/mesh
   - zircon_runtime/src/asset/importer/ingest
   - zircon_runtime/src/asset/importer/registry.rs
   - zircon_runtime/src/asset/project/manager/scan_and_import/source_plan.rs
   - zircon_runtime/src/asset/project/manager/durable_transaction.rs
-  - zircon_runtime/src/asset/pipeline/manager/service_contracts/asset_manager_contract.rs
+  - zircon_runtime/src/asset/manager/service_contracts/asset_manager_contract.rs
   - zircon_runtime/src/core/framework/animation
   - zircon_runtime/src/animation/manager/pose.rs
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/model_geometry_resolution.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/skinning.rs
+  - zircon_runtime/src/graphics/scene/resource_streamer/model_geometry_resolution.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/build/skinning.rs
   - zircon_runtime/src/scene/world/render.rs
   - zircon_runtime/src/core/framework/physics/mesh_asset.rs
   - zircon_plugins/animation/runtime/src/evaluation/skeleton_target_table.rs

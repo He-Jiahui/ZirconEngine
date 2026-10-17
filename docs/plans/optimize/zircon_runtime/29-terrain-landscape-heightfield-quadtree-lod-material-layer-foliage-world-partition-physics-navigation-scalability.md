@@ -5,19 +5,16 @@ related_code:
   - zircon_runtime/src/asset/assets/scene
   - zircon_runtime/src/asset/assets/project_document/scene.rs
   - zircon_runtime/src/asset/importer/ingest
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/loading/load_asset.rs
+  - zircon_runtime/src/asset/pipeline/manager/assets/loading/load_asset.rs
   - zircon_runtime/src/scene/components/scene/node.rs
   - zircon_runtime/src/scene/world/project_io
   - zircon_runtime/src/core/framework/render
   - zircon_runtime/src/graphics/feature/builtin_render_feature
-  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor
   - zircon_runtime/src/core/framework/physics
   - zircon_plugins/physics/runtime/src/backend
   - zircon_plugins/physics/runtime/src/manager
   - zircon_plugins/navigation/runtime/src/manager/bake
 tests:
-  - zircon_plugins/terrain/runtime/src/tests.rs
-  - zircon_plugins/terrain/editor/src/tests.rs
   - zircon_runtime/src/asset/tests/assets/authoring.rs
   - zircon_runtime/src/asset/tests/assets/scene/management.rs
   - zircon_runtime/src/asset/tests/project/example_vampire/manifest_scene_imports.rs

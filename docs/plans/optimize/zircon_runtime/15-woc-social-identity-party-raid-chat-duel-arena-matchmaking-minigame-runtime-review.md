@@ -3,7 +3,6 @@ related_code:
   - examples/woc/scripts/woc_game/src/main.zr
   - examples/woc/scripts/woc_game/src/world/state.zr
   - examples/woc/scripts/woc_game/src/social
-  - examples/woc/scripts/woc_game/src/social/chat_wire_state.zr
   - examples/woc/scripts/woc_game/src/social/chat_state.zr
   - examples/woc/scripts/woc_game/src/social/party_raid_state.zr
   - examples/woc/scripts/woc_game/src/social/party_frame_projection_state.zr
@@ -39,7 +38,6 @@ tests:
   - examples/woc/scripts/woc_game/woc_card_duel_snapshot_tests.zrp
   - examples/woc/scripts/woc_game/woc_card_duel_world_state_tests.zrp
   - examples/woc/native/Cargo.toml
-  - examples/woc/tools/wos158_chat_ready_runtime_static_guard.mjs
   - examples/woc/tools/wos20_ready_check_state_check.mjs
   - examples/woc/tools/wos21_arena_queue_state_check.mjs
 plan_sources:

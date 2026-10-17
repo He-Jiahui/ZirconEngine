@@ -25,16 +25,9 @@ related_code:
   - zircon_editor/src/core/editor_event/types.rs
   - zircon_editor/src/ui/binding/animation/command.rs
   - zircon_editor/src/ui/binding/asset/command.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/host_data.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_projection.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/scene_projection.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/shell_presentation.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/floating_windows.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/mod.rs
-  - zircon_editor/src/ui/retained_host/ui/apply_presentation.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/panes.rs
-  - zircon_editor/src/ui/retained_host/host_contract/window.rs
+  - zircon_editor/src/ui/retained/ui/apply_presentation.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle.rs
+  - zircon_editor/src/ui/retained/contract/data/panes.rs
   - zircon_editor/src/tests/ui/animation_editor/bootstrap_assets.rs
   - zircon_editor/src/tests/ui/boundary/template_assets
   - zircon_editor/src/tests/editor_event/animation_runtime/mod.rs
@@ -69,16 +62,9 @@ implementation_files:
   - zircon_editor/src/core/editor_event/types.rs
   - zircon_editor/src/ui/binding/animation/command.rs
   - zircon_editor/src/ui/binding/asset/command.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/host_data.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_projection.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/scene_projection.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/shell_presentation.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/floating_windows.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/mod.rs
-  - zircon_editor/src/ui/retained_host/ui/apply_presentation.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/panes.rs
-  - zircon_editor/src/ui/retained_host/host_contract/window.rs
+  - zircon_editor/src/ui/retained/ui/apply_presentation.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle.rs
+  - zircon_editor/src/ui/retained/contract/data/panes.rs
 plan_sources:
   - user: 2026-04-20 PLEASE IMPLEMENT THIS PLAN
   - .codex/plans/Physics + Full Animation Support 新计划.md
@@ -88,12 +74,10 @@ plan_sources:
 tests:
   - zircon_editor/src/tests/ui/animation_editor/bootstrap_assets.rs
   - zircon_editor/src/tests/ui/boundary/template_assets
-  - zircon_editor/src/ui/retained_host/ui/tests/host_scene_projection.rs
   - zircon_editor/src/tests/editor_event/animation_runtime/mod.rs
   - zircon_editor/src/tests/editor_event/runtime/animation_assets.rs
   - zircon_editor/src/tests/editor_event/locator_protocol_hard_cut.rs
   - zircon_editor/src/tests/workbench/reflection/action_dispatch.rs
-  - zircon_editor/src/ui/animation_editor/session/tests.rs
   - zircon_editor/src/tests/host/animation_editor.rs
   - zircon_editor/tests/integration_contracts/workbench_animation_editor_shell.rs
   - cargo test -p zircon_editor --locked tests::ui::animation_editor:: --lib --target-dir F:/cargo-targets/zircon-codex-a -- --nocapture

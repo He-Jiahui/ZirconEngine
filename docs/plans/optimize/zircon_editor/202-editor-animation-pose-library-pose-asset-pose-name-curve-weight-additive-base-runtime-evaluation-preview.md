@@ -5,15 +5,8 @@ report_id: Editor202
 review_date: 2026-08-28
 baseline_head: 67e91cc6e970e1c5fd964a289d4d674a52854462
 related_code:
-  - zircon_editor/assets/ui/editor/components/workbench/modules/core/gameplay/workbench_ability_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/animation/workbench_extension_pose_library_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/index/workbench_extension_module_workspaces.zui
-  - zircon_editor/src/ui/template_runtime/builtin/workbench_extension_module_template_bindings/gameplay_animation.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation/specs.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation/specs/gameplay_animation.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/reference_menu_actions.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback.rs
+  - zircon_editor/src/ui/retained/dispatch/workbench/specs/gameplay_animation.rs
+  - zircon_editor/src/ui/retained/dispatch/workbench/reference_menu_actions.rs
   - zircon_runtime/src/core/framework/animation/pose_source.rs
   - zircon_runtime/src/core/framework/animation/pose_bone.rs
   - zircon_runtime/src/core/framework/animation/pose_output.rs
@@ -35,20 +28,15 @@ related_code:
   - zircon_plugins/animation/runtime/src/evaluation/pose_buffer/blend.rs
   - zircon_plugins/animation/runtime/src/evaluation/pose_pool.rs
   - zircon_plugins/animation/runtime/src/evaluation/clip_evaluator/sample.rs
-  - zircon_plugins/animation/runtime/src/evaluation/clip_evaluator/animation_evaluation_error.rs
   - zircon_plugins/animation/runtime/src/evaluation/pipeline/pose_blend.rs
   - zircon_plugins/animation/runtime/src/evaluation/pipeline/pose_apply.rs
   - zircon_plugins/animation/runtime/src/evaluation/pipeline/pose_target_binding.rs
-  - zircon_plugins/animation/runtime/src/evaluation/pipeline/animation_evaluation_pipeline.rs
   - zircon_plugins/animation/runtime/src/evaluation/pipeline/tick.rs
   - zircon_plugins/animation/runtime/src/manager/pose.rs
   - zircon_runtime/src/animation/manager/pose.rs
 tests:
   - zircon_plugins/animation/runtime/tests/animation_pose_buffer_contract.rs
-  - zircon_plugins/animation/runtime/tests/animation_pose_buffer_allocation_contract.rs
   - zircon_plugins/animation/runtime/tests/animation_target_table_contract.rs
-  - zircon_plugins/animation/runtime/tests/runtime_physics_animation_tick_contract/target_resolution.rs
-  - zircon_editor/src/core/editing/animation_document/tests.rs
 plan_sources:
   - docs/plans/mvp/index.md
   - docs/plans/optimize/00-engine-wide-review.md

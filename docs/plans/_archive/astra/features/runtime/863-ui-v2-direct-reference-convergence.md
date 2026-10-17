@@ -13,7 +13,6 @@ implementation_files:
 tests:
   - zircon_runtime/src/asset/tests/assets/ui/references.rs
   - zircon_runtime/src/asset/tests/registry_index/dependency_extractors.rs
-  - tools/tests/test_runtime863_ui_v2_direct_reference_contract.py
 ---
 
 # Runtime863 UI V2 Direct Reference Convergence

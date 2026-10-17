@@ -4,7 +4,7 @@ related_code:
   - zircon_runtime/assets/fonts/ZirconDefaultComposite-subset.ttc
   - zircon_runtime/src/text/font/database.rs
   - zircon_runtime/src/text/font/composite_resolve.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/text.rs
   - zircon_runtime/tests/runtime_text_multilingual_product_framebuffer.rs
 plan_sources:
   - docs/plans/zircon_runtime/text/01-font-resource-faces-and-database.md

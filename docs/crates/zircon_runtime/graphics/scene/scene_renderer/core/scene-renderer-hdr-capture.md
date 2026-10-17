@@ -1,20 +1,16 @@
 ---
 related_code:
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render/render_frame.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_scene/render_scene.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/constants.rs
-  - zircon_runtime/src/graphics/backend/render_backend/offscreen_target_construct/construct.rs
-  - zircon_runtime/src/graphics/backend/render_backend/read_texture_rgba16float_region.rs
+  - zircon_runtime/src/graphics/scene/core/scene_renderer_render/render_frame.rs
+  - zircon_runtime/src/graphics/scene/renderer/core/constants.rs
+  - zircon_runtime/src/graphics/backend/offscreen_target_construct/construct.rs
 implementation_files:
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render/render_frame.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_scene/render_scene.rs
+  - zircon_runtime/src/graphics/scene/core/scene_renderer_render/render_frame.rs
 plan_sources:
   - user: 2026-07-11 reflection-probe scene capture and unclipped PBR environment reflection
   - docs/plans/zircon_runtime/shader/06-environment-ibl-and-pbr-correctness.md
   - docs/plans/zircon_runtime/render/11-environment-lighting.md
 tests:
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/constants.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/resource_descriptors.rs
+  - zircon_runtime/src/graphics/scene/renderer/core/constants.rs
   - cargo check -p zircon_runtime --lib --locked
 doc_type: module-detail
 ---

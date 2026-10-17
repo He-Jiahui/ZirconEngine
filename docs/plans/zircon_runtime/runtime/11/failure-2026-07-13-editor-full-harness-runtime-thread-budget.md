@@ -12,7 +12,6 @@ related_code:
   - zircon_runtime/src/core/runtime/tasks/pools.rs
   - zircon_runtime/src/core/runtime/tasks/thread_assignment.rs
   - zircon_runtime/src/asset/pipeline/worker_pool.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/construction.rs
   - zircon_runtime/src/asset/facade/event.rs
   - zircon_editor/src/tests/editor_event/support.rs
   - zircon_editor/src/tests/host/manager/support.rs

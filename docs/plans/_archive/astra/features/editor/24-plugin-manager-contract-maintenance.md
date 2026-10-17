@@ -1,14 +1,13 @@
 ---
 related_code:
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/mod.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/native_registration/manager.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/package_projection/project_selection.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/enablement/project.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/enablement/capabilities.rs
+  - zircon_editor/src/ui/host/exports/native_registration/manager.rs
+  - zircon_editor/src/ui/host/exports/package_projection/project_selection.rs
+  - zircon_editor/src/ui/host/exports/enablement/project.rs
+  - zircon_editor/src/ui/host/exports/enablement/capabilities.rs
 implementation_files:
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/native_registration/manager.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/enablement/project.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/enablement/capabilities.rs
+  - zircon_editor/src/ui/host/exports/native_registration/manager.rs
+  - zircon_editor/src/ui/host/exports/enablement/project.rs
+  - zircon_editor/src/ui/host/exports/enablement/capabilities.rs
 plan_sources:
   - docs/plans/optimize/zircon_editor/06-plugin-manager-discovery-enablement-live-reload-settings-diagnostics-review.md
   - docs/plans/optimize/zircon_editor/06/2026-08-27-borrowed-extension-view-validation.md

@@ -4,9 +4,9 @@ status: implemented_pending_validation
 plan_sources:
   - docs/plans/optimize/zircon_runtime/02/2026-08-30-editor555-identity-image-row-strides.md
 implementation_files:
-  - zircon_editor/src/ui/retained_host/host_contract/paint_primitives/image/raster/identity.rs
+  - zircon_editor/src/ui/retained/contract/paint_primitives/image/raster/identity.rs
 tests:
-  - zircon_editor/src/ui/retained_host/host_contract/paint_primitives/image/raster/identity.rs
+  - zircon_editor/src/ui/retained/contract/paint_primitives/image/raster/identity.rs
 ---
 
 # Editor971 Editor555 identity-image row strides

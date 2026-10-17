@@ -7,7 +7,6 @@ plan_sources:
 reference_sources:
   - dev/bevy/crates/bevy_reflect/derive/src/derive_data.rs
 tests:
-  - zircon_runtime/reflection_macros/src/tests.rs::macro_expansion_sources_use_single_field_and_module_item_passes
   - current-source proc-macro Cargo and generated-module compile counters pending
 doc_type: implementation-evidence
 status: static_complete_dynamic_pending

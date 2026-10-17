@@ -27,7 +27,8 @@ impl<T> DerefMut for Local<'_, T> {
     }
 }
 
-impl<T> SystemParam for LocalParam<T>
+// SAFETY: Only borrows its own state; it never accesses World.
+unsafe impl<T> SystemParam for LocalParam<T>
 where
     T: Default + Send + 'static,
 {

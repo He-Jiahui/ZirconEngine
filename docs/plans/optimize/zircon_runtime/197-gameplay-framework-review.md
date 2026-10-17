@@ -39,10 +39,8 @@ tests:
   - zircon_runtime/src/scene/tests
   - zircon_runtime/src/dynamic_api/session/tests
   - zircon_runtime/src/dynamic_api/tests
-  - zircon_runtime/src/script/vm/gameplay_host/tests.rs
   - zircon_runtime/src/script/vm/gameplay_host/tests
   - zircon_runtime/src/input/tests
-  - zircon_runtime/src/core/framework/net/tests.rs
   - zircon_app/src/entry/tests/runtime_entry_source_guards
 plan_sources:
   - docs/plans/optimize/zircon_runtime/38-gameplay-framework-game-instance-world-context-level-game-mode-game-state-local-player-controller-pawn-possession-spawn-travel-network.md

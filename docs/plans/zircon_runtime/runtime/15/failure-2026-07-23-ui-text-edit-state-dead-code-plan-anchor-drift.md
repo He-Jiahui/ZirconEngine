@@ -9,7 +9,7 @@ origin_child_dir: docs/plans/zircon_runtime/text/01
 fixing_child_dir: docs/plans/zircon_runtime/runtime/15
 plan_link_mode: child_record_only
 related_code:
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/runtime_dead_code/ui_text.rs
+  - zircon_runtime/src/tests/contracts/structure/runtime_dead_code/ui_text.rs
   - docs/plans/zircon_runtime/runtime/15/2026-07-10-priority-plan-doc-current-owner-inventory.md
   - docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md
   - docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md

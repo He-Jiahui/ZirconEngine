@@ -3,7 +3,6 @@ related_code:
   - .github/workflows/ci.yml
   - .codex/skills/zircon-dev/scripts/validate-matrix.ps1
   - .codex/skills/zircon-dev/scripts/validate-matrix.Tests.ps1
-  - .codex/skills/zircon-dev/validation/SKILL.md
   - .codex/skills/zircon-dev/validation/manual-commands.md
   - zircon_runtime/src/core/framework/project/export_profile.rs
   - zircon_runtime/src/plugin/export_build_plan/default_profile.rs
@@ -11,12 +10,10 @@ related_code:
   - zircon_runtime/src/plugin/export_build_plan/main_template.rs
   - zircon_runtime/src/plugin/export_build_plan/platform_host_files.rs
   - zircon_runtime/src/platform/capability/matrix
-  - zircon_runtime/src/tests/plugin_extensions/export_build_plan.rs
 implementation_files:
   - .github/workflows/ci.yml
   - .codex/skills/zircon-dev/scripts/validate-matrix.ps1
   - .codex/skills/zircon-dev/scripts/validate-matrix.Tests.ps1
-  - .codex/skills/zircon-dev/validation/SKILL.md
   - .codex/skills/zircon-dev/validation/manual-commands.md
   - zircon_runtime/src/core/framework/project/export_profile.rs
   - zircon_runtime/src/plugin/export_build_plan/default_profile.rs
@@ -31,7 +28,6 @@ tests:
   - .github/workflows/ci.yml
   - .codex/skills/zircon-dev/scripts/validate-matrix.Tests.ps1
   - .codex/skills/zircon-dev/scripts/validate-matrix.ps1 -SkipBuild -SkipTest -RunExportPlatformContract
-  - zircon_runtime/src/tests/plugin_extensions/export_build_plan.rs
 doc_type: workflow-detail
 ---
 

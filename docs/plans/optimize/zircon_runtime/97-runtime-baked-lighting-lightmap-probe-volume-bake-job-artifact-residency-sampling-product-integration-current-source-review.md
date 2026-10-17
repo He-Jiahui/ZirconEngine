@@ -16,19 +16,15 @@ related_code:
   - zircon_runtime/src/scene/components/scene/lighting.rs
   - zircon_runtime/src/scene/world/render/lights.rs
   - zircon_runtime/src/graphics/runtime/offline_bake
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/lightmap_binding.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/irradiance_volume
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/gpu_scene_sync.rs
+  - zircon_runtime/src/graphics/scene/renderer/environment/lightmap_binding.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/build/gpu_scene_sync.rs
   - zircon_runtime/src/graphics/shader/wgsl/zr_lightmap.wgsl
   - zircon_runtime/src/graphics/shader/wgsl/zr_irradiance_volume.wgsl
   - zircon_runtime/src/graphics/shader/wgsl/zr_template_forward.wgsl
   - zircon_runtime/src/graphics/shader/wgsl/zr_template_deferred_gbuffer.wgsl
   - zircon_plugins/rendering/features/baked_lighting
   - zircon_plugins/rendering/features/irradiance_volumes
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/rendering/workbench_extension_lighting_bake_workspace.zui
 tests:
-  - zircon_runtime/src/core/framework/render/environment/lightmap/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/lightmap_binding/tests.rs
   - zircon_runtime/src/graphics/tests/render_product_baked_lighting.rs
   - zircon_runtime/src/graphics/tests/fixtures/plan11_baked_lighting_v1.json
   - zircon_runtime/src/graphics/tests/m4_behavior_layers.rs

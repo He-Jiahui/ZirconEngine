@@ -4,16 +4,7 @@ related_code:
   - zircon_runtime/src/ui/v2/style.rs
   - zircon_runtime/src/ui/template/asset/compiler/ui_style_resolver.rs
   - zircon_runtime/src/ui/template/asset/compiler/style_apply.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mod.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_buttons.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_icon_buttons.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_dropdowns.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_rows.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_list_rows.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_state_layer.rs
   - docs/crates/zircon_editor/ui/retained_host/host_contract/paint_template_nodes/style_selector.md
-  - dev/material-ui/packages/mui-material/src/styles
 plan_sources:
   - .codex/plans/Material UI 共享组件风格收束计划.md
   - .codex/plans/Material UI 全组件样式设计与验证计划.md

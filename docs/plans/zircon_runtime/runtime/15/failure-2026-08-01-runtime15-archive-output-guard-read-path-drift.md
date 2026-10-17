@@ -9,14 +9,12 @@ origin_child_dir: docs/plans/performance/01
 fixing_child_dir: docs/plans/zircon_runtime/runtime/15
 plan_link_mode: child_record_only
 related_code:
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/facade_surface.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/animation_manager.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/runtime_dead_code/guard_layout.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/runtime_dead_code/production_scan.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/runtime_dead_code/runtime_owned.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/runtime_dead_code/runtime_ui.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/runtime_dead_code/script_host.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/runtime_dead_code/ui_text.rs
+  - zircon_runtime/src/tests/contracts/structure/runtime_dead_code/guard_layout.rs
+  - zircon_runtime/src/tests/structure/runtime_dead_code/production_scan.rs
+  - zircon_runtime/src/tests/contracts/structure/runtime_dead_code/runtime_owned.rs
+  - zircon_runtime/src/tests/contracts/structure/runtime_dead_code/runtime_ui.rs
+  - zircon_runtime/src/tests/contracts/structure/runtime_dead_code/script_host.rs
+  - zircon_runtime/src/tests/contracts/structure/runtime_dead_code/ui_text.rs
 tests:
   - python -m unittest tools.tests.test_runtime15_archive_guard_hard_cut -v
   - cargo +1.94.1 test -p zircon_runtime --lib runtime_15_ --locked --jobs 1 -- --nocapture --test-threads=1

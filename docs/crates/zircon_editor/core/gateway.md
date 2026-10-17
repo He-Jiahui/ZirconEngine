@@ -13,9 +13,9 @@ related_code:
   - zircon_editor/src/core/gateway/detached.rs
   - zircon_editor/src/core/context/editor_context.rs
   - zircon_editor/src/ui/host/editor_host_event_controller.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/tick.rs
-  - zircon_editor/src/ui/retained_host/host_contract/window/redraw.rs
-  - zircon_editor/src/ui/retained_host/host_contract/window/event_loop/lifecycle.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle/tick.rs
+  - zircon_editor/src/ui/retained/contract/window/redraw.rs
+  - zircon_editor/src/ui/retained/contract/window/event_loop/lifecycle.rs
   - zircon_app/src/entry/runtime_library/loaded_runtime.rs
   - zircon_app/src/entry/runtime_library/runtime_session.rs
   - zircon_app/src/entry/entry_runner/editor.rs
@@ -35,9 +35,9 @@ implementation_files:
   - zircon_editor/src/core/gateway/detached.rs
   - zircon_editor/src/core/context/editor_context.rs
   - zircon_editor/src/ui/host/editor_host_event_controller.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/tick.rs
-  - zircon_editor/src/ui/retained_host/host_contract/window/redraw.rs
-  - zircon_editor/src/ui/retained_host/host_contract/window/event_loop/lifecycle.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle/tick.rs
+  - zircon_editor/src/ui/retained/contract/window/redraw.rs
+  - zircon_editor/src/ui/retained/contract/window/event_loop/lifecycle.rs
   - zircon_app/src/entry/runtime_library/loaded_runtime.rs
   - zircon_app/src/entry/runtime_library/runtime_session.rs
   - zircon_app/src/entry/entry_runner/editor.rs
@@ -51,7 +51,6 @@ tests:
   - zircon_editor/src/tests/gateway/session/
   - zircon_editor/src/tests/gateway/handle.rs
   - zircon_editor/src/tests/runtime_event_consumer.rs
-  - zircon_app/src/entry/runtime_library/tests.rs
   - zircon_app/src/entry/entry_runner/editor/tests/runtime_loading.rs
 doc_type: module-detail
 ---

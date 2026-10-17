@@ -16,7 +16,7 @@ related_code:
   - zircon_runtime/src/asset/assets/scene/extensions.rs
   - zircon_runtime/src/asset/importer/ingest/asset_importer.rs
   - zircon_runtime/src/asset/importer/ingest/import_authoring_asset.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/loading/load_asset.rs
+  - zircon_runtime/src/asset/pipeline/manager/assets/loading/load_asset.rs
   - zircon_runtime/src/scene/world/project_io/scene_asset.rs
   - zircon_runtime/src/graphics/feature/builtin_render_feature/advanced_slots.rs
   - zircon_plugins/navigation/runtime/src/manager/bake/geometry.rs
@@ -24,10 +24,8 @@ related_code:
   - zircon_plugins/physics/runtime/src/backend/jolt/mesh_shape.rs
   - zircon_plugins/first_party_runtime_catalog
   - zircon_plugins/first_party_editor_catalog
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/world/workbench_extension_terrain_editor_workspace.zui
   - examples/vampire
 tests:
-  - zircon_plugins/terrain/runtime/src/tests.rs
   - zircon_runtime/src/asset/tests/assets/authoring.rs
   - zircon_runtime/src/asset/tests/project/example_vampire/manifest_scene_imports.rs
   - zircon_runtime/src/scene/tests/asset_scene

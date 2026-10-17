@@ -15,15 +15,12 @@ supersedes_currentness_of:
   - docs/plans/optimize/zircon_editor/114-editor-procedural-content-generation-rule-graph-biome-world-generation-current-source-review.md
   - docs/plans/optimize/zircon_editor/161-editor-procedural-content-generation-rule-graph-biome-world-generation-current-source-review.md
 related_code:
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/world/workbench_extension_scatter_editor_workspace.zui
   - zircon_editor/src/core/editor_authoring_extension.rs
   - zircon_editor/src/core/commands
   - zircon_editor/src/core/editing
   - zircon_editor/src/core/jobs
   - zircon_editor/src/core/editor_operation.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation/specs/world_building/prefab_and_scatter.rs
-  - zircon_editor/src/ui/template_runtime/builtin/workbench_extension_module_template_bindings/world_building.rs
+  - zircon_editor/src/ui/dispatch/specs/world_building/prefab_and_scatter.rs
   - zircon_plugins/editor_support
   - zircon_plugins/terrain
   - zircon_plugins/first_party_runtime_catalog
@@ -32,8 +29,8 @@ related_code:
   - zircon_runtime/src/asset
   - zircon_runtime/src/scene/world
   - zircon_runtime/src/graphics/scene/gpu_scene
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/gpu_scene_sync.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/core_rows/content.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/build/gpu_scene_sync.rs
+  - zircon_runtime/src/plugin/runtime/builtin_catalog/core_rows/content.rs
   - examples/woc/contracts/m3_terrain_content.json
   - examples/woc/scripts/woc_game/src/generated/contracts.zr
   - examples/woc/scripts/woc_game/src/world

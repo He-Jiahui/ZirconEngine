@@ -9,8 +9,6 @@ canonical_owner: Editor45
 refreshes:
   - docs/plans/optimize/zircon_editor/45-cinematic-sequencer-shot-track-binding-take-recorder-movie-render-queue-authoring-review.md
 related_code:
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/animation/workbench_extension_sequencer_workspace.zui
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback.rs
   - zircon_editor/src/ui/animation_editor
   - zircon_runtime_interface/src/resource/marker.rs
   - zircon_runtime/src/core/framework/animation/asset/sequence.rs

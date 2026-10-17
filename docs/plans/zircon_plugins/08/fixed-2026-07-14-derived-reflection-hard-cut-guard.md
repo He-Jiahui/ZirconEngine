@@ -9,7 +9,6 @@ fixing_plan: docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conv
 origin_child_dir: docs/plans/zircon_plugins/08
 fixing_child_dir: docs/plans/zircon_runtime/runtime/15
 related_code:
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/scene_fixed_lights.rs
   - zircon_runtime/src/scene/reflect/builtin_reflection/registration.rs
   - zircon_runtime/src/scene/reflect/derived/component_adapter.rs
 tests:

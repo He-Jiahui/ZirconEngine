@@ -9,28 +9,19 @@ refreshes:
   - docs/plans/optimize/zircon_editor/85-editor-project-operations-source-control-provider-workspace-changelist-diff-automation-validation-submission-gate-health-dashboard.md
   - docs/plans/optimize/zircon_editor/27-project-operations-source-control-changelist-diff-automation-report-submit-gates-health-dashboard-review.md
 related_code:
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/production
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/index/workbench_extension_module_workspaces.zui
-  - zircon_editor/src/ui/retained_host/workbench_preview_actions.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/module_field_edit.rs
-  - zircon_editor/src/ui/template_runtime/builtin/workbench_extension_module_template_bindings.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/workbench/module_field_edit.rs
   - zircon_editor/src/ui/layouts/views/project_overview.rs
   - zircon_editor/src/ui/workbench/snapshot/data/project_overview_snapshot.rs
   - zircon_editor/src/core/project
   - zircon_editor/src/core/commandlet
-  - zircon_editor/src/ui/retained_host/app/automation.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_actions
-  - zircon_editor/src/ui/retained_host/app/build_export_wizard_session
-  - zircon_editor/src/ui/retained_host/app/module_plugin_projection
-  - zircon_editor/src/ui/retained_host/app/module_plugin_actions
-  - zircon_editor/src/ui/host/editor_manager_plugins_export
+  - zircon_editor/src/ui/retained/app/automation.rs
+  - zircon_editor/src/ui/retained/app/build_export_actions
+  - zircon_editor/src/ui/retained/app/module_plugin_projection
   - zircon_app/src/entry/entry_runner/editor/project_automation.rs
   - zircon_runtime/src/asset/project/manifest/project_manifest.rs
 tests:
   - zircon_editor/src/core/commandlet
-  - zircon_editor/src/ui/retained_host/app/tests/retained_host_automation.rs
+  - zircon_editor/src/ui/retained/app/tests/retained_host_automation.rs
   - zircon_editor/src/ui/retained_host/app/build_export_actions
   - zircon_editor/src/ui/retained_host/app/build_export_wizard_session
   - zircon_editor/src/ui/retained_host/app/module_plugin_actions/live_host

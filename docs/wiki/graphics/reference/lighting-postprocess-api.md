@@ -1,6 +1,5 @@
 ---
 related_code:
-  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors
   - zircon_runtime/src/graphics/hybrid_gi_runtime_provider
   - zircon_runtime/src/graphics/runtime/history
 implementation_files:

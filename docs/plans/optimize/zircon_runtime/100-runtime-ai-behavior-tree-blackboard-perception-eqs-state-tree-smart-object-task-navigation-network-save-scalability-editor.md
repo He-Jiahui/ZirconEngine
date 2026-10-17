@@ -14,7 +14,6 @@ related_code:
   - zircon_plugins/ai/plugin.toml
   - zircon_plugins/first_party_runtime_catalog
   - zircon_plugins/first_party_editor_catalog
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog
   - examples/vampire
 plan_sources:
   - docs/plans/mvp/index.md

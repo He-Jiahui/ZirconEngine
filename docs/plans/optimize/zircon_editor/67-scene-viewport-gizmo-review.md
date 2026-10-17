@@ -13,24 +13,21 @@ related_code:
   - zircon_editor/src/scene/viewport/render_packet.rs
   - zircon_editor/src/core/settings
   - zircon_editor/src/ui/binding/viewport
-  - zircon_editor/src/ui/retained_host/callback_dispatch/viewport
   - zircon_editor/src/ui/workbench/state/editor_state_viewport.rs
   - zircon_editor/src/ui/workbench/model/status_bar_model.rs
   - zircon_editor/assets/ui/editor/host/scene_viewport_toolbar.zui
   - zircon_runtime/src/core/framework/render/overlay.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/overlay/passes/grid_pass.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/primitives/grid
+  - zircon_runtime/src/graphics/scene/renderer/overlay/passes/grid_pass.rs
+  - zircon_runtime/src/graphics/scene/renderer/primitives/grid
 tests:
   - zircon_editor/src/core/settings/tests/persistence.rs
   - zircon_editor/src/tests/editing/state/viewport.rs
   - zircon_editor/src/tests/editing/viewport.rs
   - zircon_editor/src/tests/host/binding_dispatch/viewport.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/viewport/toolbar_dispatch.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/viewport/typed_command.rs
-  - zircon_editor/src/tests/host/template_runtime/scene_viewport_toolbar_runtime_projection.rs
+  - zircon_editor/src/tests/host/callbacks/viewport/toolbar_dispatch.rs
+  - zircon_editor/src/tests/host/callbacks/viewport/typed_command.rs
   - zircon_editor/src/tests/ui/binding/viewport.rs
   - zircon_editor/src/tests/workbench/chrome_snapshot/viewport_settings.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/status_bar.rs
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md
   - docs/plans/optimize/01-cross-report-owner-schema-abi-p0-consolidation-review.md

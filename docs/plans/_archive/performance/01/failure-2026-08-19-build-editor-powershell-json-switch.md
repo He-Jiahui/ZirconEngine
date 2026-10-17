@@ -10,8 +10,6 @@ origin_child_dir: docs/plans/zircon_editor/editor_ui/12
 fixing_child_dir: docs/plans/performance/01
 plan_link_mode: child_record_only
 related_code:
-  - tools/build-editor.ps1
-  - tools/zircon-session.ps1
   - tools/tests/build-editor.Tests.ps1
 tests:
   - Invoke-Pester -Script tools/tests/build-editor.Tests.ps1 -PassThru

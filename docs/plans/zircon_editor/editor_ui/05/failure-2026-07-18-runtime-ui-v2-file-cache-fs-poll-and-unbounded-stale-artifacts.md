@@ -13,7 +13,6 @@ related_code:
   - zircon_runtime/src/ui/template/asset/prototype_file_cache.rs
   - zircon_runtime/src/ui/template/asset/schema/migrator.rs
   - zircon_runtime/src/ui/template/asset/schema/flat_nodes.rs
-  - dev/bevy/crates/bevy_asset/src/server/info.rs
 tests:
   - stable 1000-load zero-filesystem-call counter
   - single-leaf hot-reload dependency-delta test

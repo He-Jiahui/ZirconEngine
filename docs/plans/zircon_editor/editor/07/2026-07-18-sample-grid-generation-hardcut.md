@@ -5,12 +5,8 @@ status: implemented-validation-pending-failure-open
 session: editor07-domain-performance-failure-repairs-r3-20260718
 related_code:
   - zircon_editor/src/ui/sample_grid
-  - zircon_editor/src/ui/retained_host/host_contract/data/template_nodes/sample_grid.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/sample_grid.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_sample_grid
 tests:
   - tools/tests/test_editor07_sample_grid_generation_contract.py
-  - zircon_editor/src/ui/sample_grid/tests.rs
 ---
 
 # Sample Grid Typed Generation Hard Cut

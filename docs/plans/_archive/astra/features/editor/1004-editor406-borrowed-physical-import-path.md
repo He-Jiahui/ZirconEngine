@@ -1,11 +1,9 @@
 ---
 related_code:
   - zircon_editor/src/ui/host/asset_editor_sessions/imports/traversal.rs
-  - zircon_editor/src/ui/host/asset_editor_sessions/imports/tests.rs
 plan_sources:
   - docs/plans/optimize/zircon_editor/406/2026-09-26-borrowed-physical-import-path.md
 tests:
-  - zircon_editor/src/ui/host/asset_editor_sessions/imports/tests.rs
   - zircon_editor/src/ui/host/asset_editor_sessions/imports/traversal.rs
 doc_type: milestone-detail
 status: implemented_pending_validation

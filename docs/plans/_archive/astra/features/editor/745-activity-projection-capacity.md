@@ -12,8 +12,6 @@ implementation_files:
   - zircon_editor/src/ui/activity/decision/view.rs
   - zircon_editor/src/ui/activity/mod.rs
 tests:
-  - zircon_editor/src/ui/activity/capacity_tests.rs
-  - tools/tests/test_editor_activity_projection_capacity_performance_contract.py
 ---
 
 # Editor745 · Activity projection exact capacity

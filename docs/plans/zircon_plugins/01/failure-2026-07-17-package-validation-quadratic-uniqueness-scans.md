@@ -9,9 +9,6 @@ origin_child_dir: docs/plans/performance/01
 fixing_child_dir: docs/plans/zircon_plugins/01
 plan_link_mode: child_record_only
 related_code:
-  - zircon_runtime/src/plugin/runtime_plugin/package_validation
-  - zircon_runtime/src/plugin/runtime_plugin/module_validation
-  - zircon_runtime/src/plugin/runtime_plugin/registration_report
 tests:
   - package validation 1/100/1000 row scaling benchmark
   - package validation diagnostic byte-and-order parity matrix

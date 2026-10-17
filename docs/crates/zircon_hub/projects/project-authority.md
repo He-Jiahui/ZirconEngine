@@ -23,9 +23,7 @@ plan_sources:
   - user: 2026-07-11 Plan10 M1 slice 1.2 Hub template and Summary hard cut
   - docs/plans/zircon_editor/editor/10-project-and-asset-reference-management.md
 tests:
-  - zircon_hub/src/projects/editor_recent_sync.rs
   - zircon_hub/src/settings/hub_config.rs
-  - zircon_hub/src/tauri_app/runtime_state/project_actions/tests.rs
   - zircon_runtime_interface/src/project/tests/template_pack.rs
 doc_type: module-detail
 ---

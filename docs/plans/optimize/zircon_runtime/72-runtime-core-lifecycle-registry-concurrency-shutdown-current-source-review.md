@@ -32,7 +32,6 @@ tests:
   - zircon_runtime/src/core/runtime/tests/resolution
   - zircon_runtime/src/core/runtime/tests/plugin.rs
   - zircon_runtime/src/core/runtime/tests/weak.rs
-  - zircon_app/src/entry/runtime_library/tests.rs
   - zircon_runtime/src/dynamic_api/tests/session_lifecycle.rs
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md

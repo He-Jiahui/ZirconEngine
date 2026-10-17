@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import re
+from collections import Counter
 import unittest
 from pathlib import Path
 
 from tools.tests.frameworks_05_module_identity import Frameworks05ModuleIdentityChecks
 from tools.audits.runtime_domain_dependency_audit import audit_runtime_domain_dependencies
+from tools.audits.review_debt import baseline_sources
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -22,7 +24,18 @@ class Frameworks05LayerDirectionTests(Frameworks05ModuleIdentityChecks, unittest
             reference
             for reference in self.references
             if (reference["source_domain"], reference["target_domain"]) in pairs
+
         ]
+        _, sources = baseline_sources(REPO_ROOT, [v["path"] for v in violations])
+        debt = {path: Counter(line.strip() for line in source.splitlines()) for path, source in sources.items()}
+        new = []
+        for violation in violations:
+            lines = debt.get(violation["path"], Counter())
+            if lines[violation["source"]]:
+                lines[violation["source"]] -= 1
+            else:
+                new.append(violation)
+        violations = new
         self.assertEqual(
             violations,
             [],

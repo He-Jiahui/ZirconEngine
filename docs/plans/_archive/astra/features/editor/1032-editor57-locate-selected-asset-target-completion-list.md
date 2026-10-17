@@ -3,8 +3,7 @@ related_code:
   - zircon_editor/src/ui/host/editor_event_execution/asset_event.rs
   - zircon_editor/src/ui/workbench/project/editor_state_asset_workspace.rs
   - zircon_editor/src/ui/workbench/project/asset_workspace_state.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/asset/locate_selected.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/asset/mod.rs
+  - zircon_editor/src/tests/host/callbacks/asset/locate_selected.rs
   - zircon_editor/assets/i18n/en.toml
   - zircon_editor/assets/i18n/zh-CN.toml
 plan_sources:

@@ -9,11 +9,6 @@ origin_child_dir: docs/plans/zircon_editor/editor/12
 fixing_child_dir: docs/plans/zircon_editor/editor_ui/01
 plan_link_mode: child_record_only
 related_code:
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch/pane_callbacks/template_nodes.rs
-  - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node/hit.rs
-  - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node/pane_nodes.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/template_nodes/node.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_table_rows/commands.rs
 tests:
   - powershell -NoProfile -Command "$hit = Get-Content 'zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node/hit.rs' -Raw; if ($hit -notmatch 'row_identity_field') { throw 'retained host hit contract does not preserve table row identity' }"
   - cargo test -p zircon_editor --lib retained_host --locked

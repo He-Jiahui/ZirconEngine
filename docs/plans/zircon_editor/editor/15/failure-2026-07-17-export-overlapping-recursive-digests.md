@@ -16,24 +16,24 @@ related_code:
   - zircon_editor/src/ui/host/native_dynamic_export_preparation/artifacts.rs
   - zircon_editor/src/ui/host/native_dynamic_export_preparation/prepare.rs
   - zircon_editor/src/ui/host/native_dynamic_export_preparation/staging.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/manager.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/execution.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/execution/output_capture.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/output_tail.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/plan.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/run.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/controller.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/controller/job.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/view_model.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/panel_projection.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/panel_host_projection.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_projection.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_projection/cache.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_projection/targets.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_projection/targets/rows.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_projection/targets/rows/constructors.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_projection/targets/rows/overlays.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_wizard_session/session_state/polling.rs
+  - zircon_editor/src/ui/host/exports/export_build/manager.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/execution.rs
+  - zircon_editor/src/ui/host/exports/wizard/execution/output_capture.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/output_tail.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/plan.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/run.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/controller.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/controller/job.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/view_model.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/panel_projection.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/panel_host_projection.rs
+  - zircon_editor/src/ui/retained/app/build_export_projection.rs
+  - zircon_editor/src/ui/retained/app/build_export_projection/cache.rs
+  - zircon_editor/src/ui/retained/app/build_export_projection/targets.rs
+  - zircon_editor/src/ui/retained/app/build_export_projection/targets/rows.rs
+  - zircon_editor/src/ui/retained/app/targets/rows/constructors.rs
+  - zircon_editor/src/ui/retained/app/targets/rows/overlays.rs
+  - zircon_editor/src/ui/retained/app/wizard/session_state/polling.rs
 reference_sources:
   - dev/godot/editor/export/editor_export_platform.cpp
 tests:

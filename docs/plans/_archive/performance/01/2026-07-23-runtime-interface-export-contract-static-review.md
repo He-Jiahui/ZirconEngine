@@ -10,8 +10,6 @@ reference_sources:
   - dev/UnrealEngine/Engine/Source/Editor/UnrealEd/Private/Cooker/CookGenerationHelper.cpp
   - dev/UnrealEngine/Engine/Source/Editor/UnrealEd/Private/Cooker/CookSavePackage.cpp
 tests:
-  - zircon_runtime_interface/src/export/tests.rs
-  - zircon_editor/src/core/export/tests.rs
 doc_type: implementation-evidence
 status: static_complete_dynamic_pending
 ---

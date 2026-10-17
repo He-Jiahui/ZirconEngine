@@ -9,9 +9,7 @@ related_code:
   - zircon_runtime/src/asset/assets/shader
   - zircon_runtime/src/graphics/material
   - zircon_runtime/src/graphics/pipeline
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset
   - zircon_runtime/src/graphics/scene/resources
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache
   - zircon_plugins/material_editor
   - zircon_plugins/rendering/features/shader_graph
 plan_sources:

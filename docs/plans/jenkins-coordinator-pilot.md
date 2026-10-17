@@ -1,11 +1,7 @@
 ---
 related_code:
-  - tools/jenkins_pilot/
-  - tools/jenkins_coordinator.py
-  - tools/jenkins_tray/
   - .codex/skills/zircon-dev/scripts/validate-matrix.ps1
 implementation_files:
-  - tools/jenkins_pilot/
 plan_sources:
   - "user: 2026-10-01 implement isolated Jenkins coordinator pilot; retain formal source acceptance"
   - "user: 2026-10-02 keep the old service retired and establish independent Jenkins acceptance"

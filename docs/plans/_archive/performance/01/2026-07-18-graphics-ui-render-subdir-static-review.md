@@ -1,6 +1,5 @@
 ---
 related_code:
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_editor/editor_layout/21-gpu-submission-and-draw-pipeline.md

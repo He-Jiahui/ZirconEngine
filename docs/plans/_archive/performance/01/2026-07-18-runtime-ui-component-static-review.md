@@ -5,7 +5,6 @@ related_code:
   - zircon_runtime/src/ui/tests/component_catalog/component_state/table.rs
   - zircon_editor/src/ui/asset_editor/palette/catalog.rs
   - zircon_editor/src/ui/asset_editor/palette/native_slots.rs
-  - zircon_editor/src/ui/template_runtime/showcase_demo_state.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_editor/editor_ui/06-component-library-mui.md

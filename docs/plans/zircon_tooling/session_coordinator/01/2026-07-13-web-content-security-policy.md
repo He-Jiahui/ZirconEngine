@@ -5,7 +5,6 @@ plan_sources:
   - docs/superpowers/specs/2026-07-11-workflow-control-center-and-tray-design.md
   - docs/plans/zircon_tooling/session_coordinator/01-workflow-control-center-and-tray.md
 tests:
-  - tools/session_coordinator/tests/test_control_assets.py
 doc_type: plan-output-record
 ---
 

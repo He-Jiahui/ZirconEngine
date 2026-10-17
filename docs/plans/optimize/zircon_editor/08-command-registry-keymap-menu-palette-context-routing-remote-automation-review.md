@@ -10,7 +10,6 @@ related_code:
   - zircon_editor/src/ui/host/editor_event_dispatch.rs
   - zircon_editor/src/ui/host/editor_operation_dispatch.rs
   - zircon_editor/src/ui/binding_dispatch/editor_event_normalization.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/workbench
   - zircon_editor/src/ui/workbench/event
   - zircon_editor/src/ui/workbench/model/menu
   - zircon_plugins/plugin_sdk/src/editor_contribution.rs

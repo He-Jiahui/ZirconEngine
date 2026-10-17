@@ -10,7 +10,6 @@ fixing_child_dir: docs/plans/zircon_plugins/13
 plan_link_mode: child_record_only
 related_code:
   - zircon_runtime/src/dynamic_api/session/linked_plugins.rs
-  - zircon_runtime/src/plugin/runtime_plugin/registration_report.rs
   - zircon_runtime/src/asset/project/manager/package_assets.rs
   - zircon_runtime/src/dynamic_api/session/runtime_ui.rs
 tests:

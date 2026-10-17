@@ -14,12 +14,11 @@ related_code:
   - zircon_runtime/src/text/native_bitmap_atlas/source_cache.rs
   - zircon_runtime/src/text/font/database.rs
   - zircon_runtime/src/text/raster/policy.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/resolved_batches.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/resolved_batches/auto_route.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/prepare_report.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/tests/rendering.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/render.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/text/resolved_batches.rs
+  - zircon_runtime/src/graphics/scene/ui/text/resolved_batches/auto_route.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/text/prepare_report.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/text/tests/rendering.rs
   - zircon_runtime_interface/src/ui/surface/render/command.rs
 ---
 

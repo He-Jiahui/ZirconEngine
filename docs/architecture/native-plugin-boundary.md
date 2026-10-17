@@ -1,54 +1,20 @@
 ---
 related_code:
   - zircon_plugins/gltf_importer/dist/src/lib.rs
-  - zircon_editor/src/ui/retained_host/app/module_plugin_actions/live_host/development_watch.rs
-  - zircon_editor/src/ui/retained_host/app/module_plugin_actions/live_host/native_backend.rs
+  - zircon_editor/src/ui/retained/app/plugins/live_host/development_watch.rs
+  - zircon_editor/src/ui/retained/app/plugins/live_host/native_backend.rs
   - zircon_runtime/src/plugin/mod.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/mod.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/abi_declarations.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/ffi_panic_guard.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/host_api_adapter.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/host_callbacks.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/behavior_calls.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/bridge_method_abi.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_abi.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/plugin_load_error.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_strings.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/collect_manifests.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/discover.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/discover/authority.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/discover/tests.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/discovery_refresh/contract.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/discovery_refresh/service.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/candidate_from_manifest.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/discover_load_manifest.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/candidate_from_manifest.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/compatibility.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/registration_manifest.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/load_discovered.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/loading.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/bridge_methods.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/registration_replay.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/registration_replay/error.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/runtime_behavior.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/bridge_lifecycle.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/hot_update_application.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/hot_reload.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/lifecycle.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/reports.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests/bridge_bindings.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests/hot_update_application.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests/hot_reload_failures.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests/hot_reload_state.rs
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/native_plugin_loader.rs
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/native_plugin_loader/abi_surfaces.rs
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/native_plugin_loader/live_host.rs
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/native_plugin_loader/manifest_sources.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests/registration_replay.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests/runtime_behavior.rs
+  - zircon_runtime/src/plugin/loader/discover/authority.rs
+  - zircon_runtime/src/plugin/loader/discovery_refresh/contract.rs
+  - zircon_runtime/src/plugin/loader/discovery_refresh/service.rs
+  - zircon_runtime/src/plugin/loader/live/registration_replay/error.rs
+  - zircon_runtime/src/plugin/loader/live/tests/bridge_bindings.rs
+  - zircon_runtime/src/plugin/loader/live/tests/hot_update_application.rs
+  - zircon_runtime/src/plugin/loader/live/tests/hot_reload_failures.rs
+  - zircon_runtime/src/plugin/loader/live/tests/hot_reload_state.rs
+  - zircon_runtime/src/plugin/loader/live/tests/registration_replay.rs
+  - zircon_runtime/src/plugin/loader/live/tests/runtime_behavior.rs
   - zircon_runtime/src/plugin/export_build_plan/main_template.rs
-  - zircon_runtime/src/plugin/export_build_plan/native_plugin_load_manifest_template.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/native_plugin_public_surface.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/native_plugin_public_surface_markdown.py
@@ -57,51 +23,20 @@ related_code:
 implementation_files:
   - docs/architecture/native-plugin-boundary.md
   - zircon_plugins/gltf_importer/dist/src/lib.rs
-  - zircon_editor/src/ui/retained_host/app/module_plugin_actions/live_host/development_watch.rs
-  - zircon_editor/src/ui/retained_host/app/module_plugin_actions/live_host/native_backend.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/ffi_panic_guard.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/host_api_adapter.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/host_callbacks.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/behavior_calls.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/bridge_method_abi.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_abi.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/plugin_load_error.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_strings.rs
+  - zircon_editor/src/ui/retained/app/plugins/live_host/development_watch.rs
+  - zircon_editor/src/ui/retained/app/plugins/live_host/native_backend.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/native_plugin_public_surface.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/native_plugin_public_surface_markdown.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/plugin_surface_lifecycle_boundary.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/plugin_surface_lifecycle_markdown.py
-  - zircon_runtime/src/plugin/native_plugin_loader/compatibility.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/registration_manifest.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/collect_manifests.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/discover.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/discover/authority.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/candidate_from_manifest.rs
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/native_plugin_loader.rs
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/native_plugin_loader/abi_surfaces.rs
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/native_plugin_loader/live_host.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/load_discovered.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/loading.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/bridge_methods.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/registration_replay.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/runtime_behavior.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/bridge_lifecycle.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/hot_update_application.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/hot_reload.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/lifecycle.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/reports.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests/bridge_bindings.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests/hot_update_application.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests/hot_reload_failures.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests/hot_reload_state.rs
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/native_plugin_loader.rs
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/native_plugin_loader/abi_surfaces.rs
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/native_plugin_loader/live_host.rs
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/native_plugin_loader/manifest_sources.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests/registration_replay.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests/runtime_behavior.rs
+  - zircon_runtime/src/plugin/loader/discover/authority.rs
+  - zircon_runtime/src/plugin/loader/live/tests/bridge_bindings.rs
+  - zircon_runtime/src/plugin/loader/live/tests/hot_update_application.rs
+  - zircon_runtime/src/plugin/loader/live/tests/hot_reload_failures.rs
+  - zircon_runtime/src/plugin/loader/live/tests/hot_reload_state.rs
+  - zircon_runtime/src/plugin/loader/live/tests/registration_replay.rs
+  - zircon_runtime/src/plugin/loader/live/tests/runtime_behavior.rs
 plan_sources:
   - user: 2026-06-04 optimize Zircon Engine runtime architecture with native plugin loader isolated
   - .codex/plans/Zircon Runtime 架构渐进式 Review 与优化计划.md
@@ -122,27 +57,15 @@ tests:
   - native_plugin_public_surface M4 gate status, explicit count fields, symbol decision group, migration debt, and unclassified symbol checks
   - plugin_surface_lifecycle_boundary Runtime 06 mirror, app NativePlugin call-site count, V3-only native ABI hard-cutover, unknown ABI rejection, hot reload failure injection, export_build_plan V1/V2 zero-usage, pending validation anchors
   - runtime_06_native_loader_tests_use_isolated_plugin_native_namespace
-  - zircon_runtime/src/plugin/native_plugin_loader/compatibility.rs::engine_compat_reports_empty_comparator_with_typed_error
-  - zircon_runtime/src/plugin/native_plugin_loader/compatibility.rs::engine_compat_reports_invalid_version_component_with_typed_error
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/native_plugin_loader.rs::review_f5_native_plugin_distribution_compat_uses_typed_error
-  - zircon_runtime/src/plugin/native_plugin_loader/host_api_adapter.rs::native_host_api_adapter_reports_unknown_stage_with_typed_error
-  - zircon_runtime/src/plugin/native_plugin_loader/host_api_adapter.rs::native_host_api_adapter_utf8_error_preserves_source
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/native_plugin_loader/abi_surfaces.rs::review_f5_native_host_api_adapter_uses_typed_error
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests/hot_reload_state.rs::native_hot_reload_snapshot_save_reports_typed_status_error
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests/hot_reload_state.rs::native_live_host_rollback_plan_reports_when_previous_plugin_was_restored
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests/hot_reload_failures.rs::hot_reload_state_restore_failure_rolls_back_and_reports
+  - zircon_runtime/src/plugin/loader/live/tests/hot_reload_state.rs::native_hot_reload_snapshot_save_reports_typed_status_error
+  - zircon_runtime/src/plugin/loader/live/tests/hot_reload_state.rs::native_live_host_rollback_plan_reports_when_previous_plugin_was_restored
+  - zircon_runtime/src/plugin/loader/live/tests/hot_reload_failures.rs::hot_reload_state_restore_failure_rolls_back_and_reports
   - rustc --edition=2021 --test zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/native_plugin_loader.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests/registration_replay.rs::native_registration_replay_reports_typed_schema_error
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests/registration_replay.rs::native_registration_replay_reports_typed_duplicate_system_error
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/native_plugin_loader/live_host.rs::review_f5_native_live_host_hot_reload_uses_typed_error
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/native_plugin_loader/live_host.rs::review_f5_native_live_host_registration_replay_uses_typed_error
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests/bridge_bindings.rs::native_live_host_bridge_methods_report_typed_missing_manifest_error
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests/bridge_bindings.rs::native_live_host_bridge_methods_report_typed_missing_method_slot_error
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/native_plugin_loader/live_host.rs::review_f5_native_live_host_bridge_methods_use_typed_error
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests/runtime_behavior.rs::native_live_host_runtime_behavior_reports_typed_unloaded_error
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/native_plugin_loader/live_host.rs::review_f5_native_live_host_runtime_behavior_uses_typed_error
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests.rs::native_live_host_loading_lock_reports_typed_error
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/native_plugin_loader/live_host.rs::review_f5_native_live_host_loading_uses_typed_error
+  - zircon_runtime/src/plugin/loader/live/tests/registration_replay.rs::native_registration_replay_reports_typed_schema_error
+  - zircon_runtime/src/plugin/loader/live/tests/registration_replay.rs::native_registration_replay_reports_typed_duplicate_system_error
+  - zircon_runtime/src/plugin/loader/live/tests/bridge_bindings.rs::native_live_host_bridge_methods_report_typed_missing_manifest_error
+  - zircon_runtime/src/plugin/loader/live/tests/bridge_bindings.rs::native_live_host_bridge_methods_report_typed_missing_method_slot_error
+  - zircon_runtime/src/plugin/loader/live/tests/runtime_behavior.rs::native_live_host_runtime_behavior_reports_typed_unloaded_error
 doc_type: module-detail
 ---
 

@@ -1,9 +1,6 @@
 ---
 related_code:
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/font_asset.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/font_asset/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_upload.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_upload/tests.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/sdf_upload.rs
 focused_callers:
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/font_assets.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/atlas_resources.rs

@@ -1,9 +1,9 @@
 ---
 related_code:
   - zircon_runtime/src/runtime_diagnostics/tests/original_store_matrix.rs
-  - zircon_runtime/src/foundation/runtime/config_manager/worker/tests/config_original_matrix.rs
+  - zircon_runtime/src/foundation/runtime/worker/tests/config_original_matrix.rs
   - zircon_runtime/tests/runtime_profiling_recorder_performance.rs
-  - zircon_editor/src/ui/retained_host/app/tests/generated_bottom_pane.rs
+  - zircon_editor/src/ui/retained/app/tests/generated_bottom_pane.rs
 plan_sources:
   - docs/plans/optimize/zircon_runtime/03/2026-10-11-original-matrix-source-repair-record.md
   - docs/plans/optimize/zircon_editor/01/2026-10-11-generated-cross-window-input-repair-record.md

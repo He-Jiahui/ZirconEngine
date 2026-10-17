@@ -1,31 +1,18 @@
 ---
 related_code:
-  - zircon_runtime/src/graphics/backend/render_backend/read_ibl_bake_artifact_sections.rs
-  - zircon_runtime/src/graphics/backend/render_backend/read_ibl_bake_artifact_sections/resources.rs
-  - zircon_runtime/src/graphics/backend/render_backend/read_ibl_bake_artifact_sections/staging.rs
-  - zircon_runtime/src/graphics/backend/render_backend/read_ibl_bake_artifact_sections/pending.rs
-  - zircon_runtime/src/graphics/backend/render_backend/render_backend_diagnostics.rs
+  - zircon_runtime/src/graphics/backend/read_ibl_bake_artifact_sections/resources.rs
+  - zircon_runtime/src/graphics/backend/read_ibl_bake_artifact_sections/pending.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/production/device/diagnostics.rs
-  - zircon_runtime/src/graphics/backend/render_backend/read_texture_rgba16float_region.rs
-  - zircon_runtime/src/graphics/backend/render_backend/read_buffer_bytes.rs
-  - zircon_runtime/src/graphics/backend/render_backend/mod.rs
   - zircon_runtime/src/graphics/backend/mod.rs
-  - zircon_runtime/src/core/framework/render/environment/ibl_bake_artifact_readback.rs
+  - zircon_runtime/src/core/render/environment/ibl_bake_artifact_readback.rs
 implementation_files:
-  - zircon_runtime/src/graphics/backend/render_backend/read_ibl_bake_artifact_sections.rs
-  - zircon_runtime/src/graphics/backend/render_backend/read_ibl_bake_artifact_sections/resources.rs
-  - zircon_runtime/src/graphics/backend/render_backend/read_ibl_bake_artifact_sections/staging.rs
-  - zircon_runtime/src/graphics/backend/render_backend/read_ibl_bake_artifact_sections/pending.rs
-  - zircon_runtime/src/graphics/backend/render_backend/mod.rs
+  - zircon_runtime/src/graphics/backend/read_ibl_bake_artifact_sections/resources.rs
+  - zircon_runtime/src/graphics/backend/read_ibl_bake_artifact_sections/pending.rs
   - zircon_runtime/src/graphics/backend/mod.rs
 plan_sources:
   - docs/plans/zircon_runtime/render/11-environment-lighting.md
   - docs/plans/zircon_runtime/shader/06-environment-ibl-and-pbr-correctness.md
 tests:
-  - zircon_runtime/src/graphics/backend/render_backend/read_ibl_bake_artifact_sections.rs
-  - docs/tests/runtime/render/plan11_ibl_wgpu_artifact_sections_readback_helper_cargo_20260706.out.log
-  - docs/tests/runtime/render/plan11_ibl_wgpu_artifact_sections_readback_helper_cargo_20260706.err.log
-  - docs/tests/runtime/render/plan11_ibl_wgpu_artifact_sections_readback_helper_cargo_20260706.exit.txt
   - E:\cargo-targets\zircon-ibl-wgpu-readback-seam-0708\debug\deps\zircon_runtime-9b53a08da5f6e0e7.exe graphics::backend::render_backend::read_ibl_bake_artifact_sections::tests::readback_sections_preserve_pmrem_seams_after_wgpu_texture_roundtrip --exact --nocapture --test-threads=1
 doc_type: module-detail
 ---

@@ -10,8 +10,6 @@ related_records:
   - docs/plans/astra/features/editor/664-20260911-editor-ui-optimization-batch-completion.md
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/button_style/deferred_progress_tests.rs
-  - zircon_editor/src/ui/workbench/reflection/activity_descriptors/capacity_tests.rs
   - zircon_editor/src/core/play/live_link.rs
   - zircon_editor/src/tests/workbench/reflection/action_dispatch.rs
 ---

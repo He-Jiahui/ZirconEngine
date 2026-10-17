@@ -5,7 +5,6 @@ related_code:
   - zircon_plugins/gltf_importer/dist/src
   - zircon_plugins/native_dynamic_fixture/native/src
   - zircon_plugins/first_party_runtime_catalog/src/lib.rs
-  - zircon_runtime/src/plugin/native_plugin_loader
   - tools/audits/audit_plugin_structure.py
 plan_sources:
   - docs/plans/zircon_runtime/frameworks/04-plugin-dx-and-sdk-toolchain.md

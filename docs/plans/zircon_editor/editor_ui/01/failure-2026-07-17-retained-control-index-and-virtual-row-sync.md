@@ -9,24 +9,13 @@ origin_child_dir: docs/plans/performance/01
 fixing_child_dir: docs/plans/zircon_editor/editor_ui/01
 plan_link_mode: child_record_only
 related_code:
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/mod.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/virtual_rows.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/componentized_window.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/data_sync.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/popup_state.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/window_menu_state.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/component_property_rows.rs
-  - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node
+  - zircon_editor/src/ui/retained/dispatch/workbench/componentized_window.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/workbench/data_sync.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/workbench/popup_state.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/workbench/window_menu_state.rs
+  - zircon_editor/src/ui/retained/dispatch/workbench/component_property_rows.rs
   - zircon_runtime/src/ui/surface
-  - zircon_editor/src/ui/retained_host/host_contract/window/presentation/snapshot.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_keyboard
-  - zircon_editor/src/ui/retained_host/host_contract/native_popup_dismiss
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/move_dispatch
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/scroll_dispatch
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/routing
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/menu_geometry
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/button_dispatch
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer
+  - zircon_editor/src/ui/retained/contract/window/presentation/snapshot.rs
 reference_sources:
   - dev/bevy/crates/bevy_ui/src/layout/ui_surface.rs
   - dev/slint/internal/core/menus.rs

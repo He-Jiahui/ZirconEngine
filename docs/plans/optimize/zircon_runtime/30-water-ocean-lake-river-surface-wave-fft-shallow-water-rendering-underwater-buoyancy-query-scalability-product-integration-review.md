@@ -9,11 +9,8 @@ related_code:
   - zircon_runtime/src/core/framework/render/frame_extract.rs
   - zircon_runtime/src/core/framework/render/frame_extract/geometry.rs
   - zircon_runtime/src/core/framework/render/advanced_lighting
-  - zircon_runtime/src/core/framework/render/post_process
   - zircon_runtime/src/graphics/feature
   - zircon_runtime/src/graphics/shader
-  - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process
   - zircon_plugins/physics/runtime/src
   - zircon_plugins/navigation/runtime/src
   - zircon_plugins/first_party_runtime_catalog
@@ -22,18 +19,12 @@ related_code:
   - zircon_plugins/rendering/features/planar_reflections/runtime
   - zircon_plugins/rendering/features/post_process/runtime
 tests:
-  - zircon_runtime/src/core/framework/render/advanced_lighting/extract/tests.rs
-  - zircon_runtime/src/core/framework/render/post_process/stack/tests/screen_space_reflection.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/post_process/screen_space_reflection/tests.rs
+  - zircon_runtime/src/core/render/post/stack/tests/screen_space_reflection.rs
   - zircon_runtime/src/graphics/tests/render_product_planar_reflection.rs
   - zircon_runtime/src/graphics/tests/pipeline_compile/feature_descriptors.rs
   - zircon_runtime/src/asset/tests/assets/gltf_importer/woc_required_extensions.rs
-  - zircon_runtime/src/tests/plugin_extensions/extension_registry_bridge.rs
-  - zircon_runtime/src/tests/plugin_extensions/extension_registry_bridge/diagnostics.rs
-  - zircon_runtime/src/tests/plugin_extensions/extension_registry_bridge/lifecycle.rs
-  - zircon_plugins/rendering/features/oit/runtime/src/tests.rs
-  - zircon_plugins/rendering/features/planar_reflections/runtime/src/tests.rs
-  - zircon_plugins/physics/runtime/src/manager/tests.rs
+  - zircon_runtime/src/tests/plugins/extension_registry_bridge/diagnostics.rs
+  - zircon_runtime/src/tests/plugins/extension_registry_bridge/lifecycle.rs
   - zircon_plugins/navigation/runtime/src/tests/bake.rs
   - zircon_plugins/navigation/runtime/src/tests/crowd.rs
 plan_sources:

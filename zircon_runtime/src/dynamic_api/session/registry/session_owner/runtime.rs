@@ -187,10 +187,13 @@ impl RuntimeSessionOwner {
             #[cfg(test)]
             startup_observation,
         };
-        let startup = session_owner.owner.dispatch_scoped(|state| match state {
-            Ok(_) => Ok(()),
-            Err(error) => Err(error.status.clone()),
-        });
+        let startup = session_owner.owner.dispatch_scoped(
+            Instant::now() + OWNER_STARTUP_SHUTDOWN_WAIT,
+            |state| match state {
+                Ok(_) => Ok(()),
+                Err(error) => Err(error.status.clone()),
+            },
+        );
         crate::diagnostic_log::write_log(
             "runtime_session",
             "runtime_session_owner_bootstrap_returned",
@@ -263,10 +266,13 @@ impl RuntimeSessionOwner {
             #[cfg(test)]
             startup_observation,
         };
-        match session_owner.owner.dispatch_scoped(|state| match state {
-            Ok(_) => Ok(()),
-            Err(error) => Err(error.status.clone()),
-        }) {
+        match session_owner.owner.dispatch_scoped(
+            Instant::now() + OWNER_STARTUP_SHUTDOWN_WAIT,
+            |state| match state {
+                Ok(_) => Ok(()),
+                Err(error) => Err(error.status.clone()),
+            },
+        ) {
             Ok(Ok(())) => Ok(session_owner),
             Ok(Err(error)) => {
                 session_owner.join_failed_startup();
@@ -286,9 +292,10 @@ impl RuntimeSessionOwner {
     /// action 返回 status 的可读性前提与 dispatch 相同，上层仍须保留槽位动作 guard。
     pub(in crate::dynamic_api::session) fn dispatch_scoped<R: Send>(
         &self,
+        deadline: Instant,
         action: impl FnOnce(&mut RuntimeDynamicSession) -> Result<R, ZrStatus> + Send,
     ) -> Result<Result<R, OwnedSessionStatus>, OwnerDispatchError> {
-        self.owner.dispatch_scoped(move |state| {
+        self.owner.dispatch_scoped(deadline, move |state| {
             let session = state.as_mut().map_err(|error| error.status.clone())?;
             // SAFETY: SessionSlot 的内部动作同步返回 owner 线程的 Runtime/static 诊断，
             // 此处立即复制，不在中间调用会覆盖 TLS 的 Runtime 错误入口。

@@ -11,8 +11,7 @@ related_code:
   - zircon_runtime/src/scene/level_system.rs
   - zircon_runtime/src/scene/module
   - zircon_runtime/src/plugin/extension_registry/register/system_registration.rs
-  - zircon_runtime/src/plugin/extension_registry/register/runtime_scene_system_registration.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/host_api_adapter/ecs_registration
+  - zircon_runtime/src/plugin/loader/host_api_adapter/ecs_registration
   - zircon_plugins/animation/runtime/src/evaluation/pipeline/parameter_apply.rs
 tests:
   - zircon_runtime/src/scene/tests/ecs_identity_storage.rs

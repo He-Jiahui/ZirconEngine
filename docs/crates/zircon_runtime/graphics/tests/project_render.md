@@ -13,7 +13,6 @@ related_code:
   - examples/vampire/assets/materials/ghoul_shadow.zmaterial
   - examples/vampire/assets/materials/ghost_mist.zmaterial
   - examples/vampire/assets/materials/forest_grass_billboard.zmaterial
-  - examples/vampire/assets/models/grass_billboard_static_batch.model.toml
   - examples/vampire/assets/shaders/default_pbr/default_pbr.wgsl
   - examples/vampire/assets/shaders/default_pbr/default_pbr.zshader
   - examples/vampire/scripts/vampire_game/main.zr
@@ -33,7 +32,6 @@ implementation_files:
   - examples/vampire/assets/materials/ghoul_shadow.zmaterial
   - examples/vampire/assets/materials/ghost_mist.zmaterial
   - examples/vampire/assets/materials/forest_grass_billboard.zmaterial
-  - examples/vampire/assets/models/grass_billboard_static_batch.model.toml
   - examples/vampire/assets/shaders/default_pbr/default_pbr.wgsl
   - examples/vampire/assets/shaders/default_pbr/default_pbr.zshader
   - examples/vampire/scripts/vampire_game/main.zr

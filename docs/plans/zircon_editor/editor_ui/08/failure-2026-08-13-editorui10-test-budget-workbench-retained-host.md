@@ -12,13 +12,8 @@ fixing_child_dir: docs/plans/zircon_editor/editor_ui/08
 related_code:
   - zircon_editor/src/tests/host/binding_dispatch/
   - zircon_editor/src/tests/host/pane_presentation/
-  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_toolbar_breakpoints/mod.rs
-  - zircon_editor/src/tests/host/template_runtime/component_showcase_state/
-  - zircon_editor/src/tests/host/template_runtime/pane_body_documents/
-  - zircon_editor/src/tests/ui/boundary/workbench_projection_cutover/
   - zircon_editor/src/tests/workbench/layout/editor_layout_contracts/
   - zircon_editor/src/ui/host/play_pending_decision/tests/
-  - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node/tests
 tests:
   - python -B .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_editor_structure.py --json --repo-root E:\\Git\\ZirconEngine
   - cargo test -p zircon_editor --lib structure_convention --locked

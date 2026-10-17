@@ -1,14 +1,10 @@
 ---
 related_code:
   - zircon_editor/src/ui/sample_grid
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/sample_grid.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/template_nodes/sample_grid.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_sample_grid
 plan_sources:
   - docs/plans/zircon_editor/editor/07-domain-editors-and-graph-foundation.md
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
 tests:
-  - zircon_editor/src/ui/sample_grid/tests.rs
   - tools/tests/test_editor07_sample_grid_generation_contract.py
 doc_type: module-detail
 ---

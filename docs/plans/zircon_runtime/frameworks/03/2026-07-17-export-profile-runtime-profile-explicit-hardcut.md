@@ -5,18 +5,16 @@ related_code:
   - zircon_runtime/src/plugin/export_build_plan/from_project_manifest/profile.rs
   - zircon_runtime/src/plugin/export_build_plan/export_profile_validation.rs
   - zircon_runtime/src/plugin/export_build_plan/from_project_manifest.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_actions/profiles.rs
+  - zircon_editor/src/ui/retained/app/build_export_actions/profiles.rs
 implementation_files:
   - zircon_runtime/src/core/framework/project/export_profile.rs
   - zircon_runtime/src/plugin/export_build_plan/default_profile.rs
   - zircon_runtime/src/plugin/export_build_plan/from_project_manifest/profile.rs
   - zircon_runtime/src/plugin/export_build_plan/export_profile_validation.rs
   - zircon_runtime/src/plugin/export_build_plan/from_project_manifest.rs
-  - zircon_runtime/src/tests/plugin_extensions/export_build_plan_profile.rs
   - zircon_app/src/entry/tests/export_bootstrap.rs
   - zircon_editor/src/tests/host/manager/minimal_host_contract/native_plugins.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/pipeline_handoff_tests.rs
-  - zircon_editor/src/ui/retained_host/app/build_export_actions/profiles.rs
+  - zircon_editor/src/ui/retained/app/build_export_actions/profiles.rs
 plan_sources:
   - docs/plans/engine-code-structure-convention.md
   - docs/plans/engine-code-review-findings-2026-06.md

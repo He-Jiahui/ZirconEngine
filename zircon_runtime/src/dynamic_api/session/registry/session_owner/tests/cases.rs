@@ -166,7 +166,9 @@ fn astra_life_a4_scoped_dispatch_completes_before_borrowed_output_is_released() 
     let owner = SessionOwner::create(|| 41_u32, Arc::new(())).unwrap();
     let mut output = Vec::new();
     owner
-        .dispatch_scoped(|state| output.push(*state + 1))
+        .dispatch_scoped(Instant::now() + Duration::from_secs(1), |state| {
+            output.push(*state + 1)
+        })
         .unwrap();
     assert_eq!(output, vec![42]);
     assert_eq!(
@@ -180,12 +182,81 @@ fn astra_life_a4_scoped_dispatch_completes_before_borrowed_output_is_released() 
 fn astra_life_a4_scoped_dispatch_rejects_same_owner_reentry_and_remains_usable() {
     let owner = SessionOwner::create(|| 0_u32, Arc::new(())).unwrap();
     assert_eq!(
-        owner.dispatch_scoped(|_| owner.dispatch_scoped(|_| ())),
+        owner.dispatch_scoped(Instant::now() + Duration::from_secs(1), |_| {
+            owner.dispatch_scoped(Instant::now() + Duration::from_secs(1), |_| ())
+        }),
         Ok(Err(OwnerDispatchError::Reentrant))
     );
-    assert_eq!(owner.dispatch_scoped(|state| *state += 1), Ok(()));
+    assert_eq!(
+        owner.dispatch_scoped(Instant::now() + Duration::from_secs(1), |state| *state += 1),
+        Ok(())
+    );
     assert_eq!(
         owner.shutdown_until(Instant::now() + Duration::from_secs(1), |state| *state == 1),
+        OwnerShutdownReceipt::Joined
+    );
+}
+
+#[test]
+fn scoped_admission_timeout_releases_shutdown_lock_and_drops_unadmitted_borrow() {
+    let owner = SessionOwner::create(|| 0_u32, Arc::new(())).unwrap();
+    let (entered_tx, entered_rx) = mpsc::sync_channel(1);
+    let (release_tx, release_rx) = mpsc::sync_channel(1);
+    owner
+        .dispatch(Instant::now() + Duration::from_secs(1), move |_| {
+            entered_tx.send(()).unwrap();
+            release_rx.recv().unwrap();
+        })
+        .unwrap();
+    entered_rx.recv_timeout(Duration::from_secs(1)).unwrap();
+    for _ in 0..super::COMMAND_CAPACITY {
+        owner.dispatch(Instant::now(), |_| ()).unwrap();
+    }
+    let mut output = Vec::new();
+    let result = owner.dispatch_scoped(
+        Instant::now() + Duration::from_millis(25),
+        |_| output.push(42),
+    );
+    let shutdown_available = owner.shutdown.try_lock().is_ok();
+    release_tx.send(()).unwrap();
+    let shutdown = owner.shutdown_until(Instant::now() + Duration::from_secs(2), |_| true);
+    assert_eq!(shutdown, OwnerShutdownReceipt::Joined);
+    assert_eq!(result, Err(OwnerDispatchError::AdmissionIncomplete));
+    assert!(shutdown_available);
+    assert!(output.is_empty());
+}
+
+#[test]
+fn admitted_scoped_action_waits_for_completion_beyond_admission_deadline() {
+    let owner = SessionOwner::create(|| 41_u32, Arc::new(())).unwrap();
+    let mut output = Vec::new();
+    let (entered_tx, entered_rx) = mpsc::sync_channel(1);
+    let (release_tx, release_rx) = mpsc::sync_channel(1);
+    let (finished_tx, finished_rx) = mpsc::sync_channel(1);
+    thread::scope(|scope| {
+        let owner = &owner;
+        let output = &mut output;
+        scope.spawn(move || {
+            // An empty queue can admit immediately even with an expired deadline.
+            let result = owner.dispatch_scoped(Instant::now(), move |state| {
+                entered_tx.send(()).unwrap();
+                release_rx.recv().unwrap();
+                output.push(*state + 1);
+            });
+            finished_tx.send(result).unwrap();
+        });
+        entered_rx.recv_timeout(Duration::from_secs(1)).unwrap();
+        let completed_early = finished_rx.try_recv().is_ok();
+        release_tx.send(()).unwrap();
+        assert!(!completed_early);
+        assert_eq!(
+            finished_rx.recv_timeout(Duration::from_secs(1)).unwrap(),
+            Ok(())
+        );
+    });
+    assert_eq!(output, vec![42]);
+    assert_eq!(
+        owner.shutdown_until(Instant::now() + Duration::from_secs(1), |_| true),
         OwnerShutdownReceipt::Joined
     );
 }

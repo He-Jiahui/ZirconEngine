@@ -12,7 +12,6 @@ related_code:
   - zircon_runtime/src/foundation/module.rs
   - zircon_runtime/src/foundation/runtime/config_manager.rs
   - zircon_runtime/src/foundation/mod.rs
-  - zircon_runtime/src/foundation/tests.rs
 tests:
   - cargo +1.94.1 check -p zircon_runtime --no-default-features --features target-server --lib --locked
   - cargo +1.94.1 test -p zircon_runtime --no-default-features --features target-server --lib --locked foundation:: -- --test-threads=2

@@ -1,9 +1,8 @@
 ---
 related_code:
   - zircon_editor/src/ui/workbench/autolayout
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/recompute/shell
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/recompute/floating_projection.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench
+  - zircon_editor/src/ui/retained/app/host_lifecycle/recompute/shell
+  - zircon_editor/src/ui/retained/app/recompute/floating_projection.rs
   - zircon_editor/src/ui/workbench/reference/template_surface.rs
   - zircon_runtime/src/ui/layout
   - zircon_runtime/src/ui/surface/surface/rebuild.rs
@@ -11,7 +10,7 @@ tests:
   - zircon_editor/tests/integration_contracts/workbench_autolayout.rs
   - zircon_editor/src/tests/workbench/layout/editor_layout_contracts/breakpoints.rs
   - zircon_editor/src/tests/workbench/layout/editor_layout_contracts/geometry.rs
-  - zircon_editor/src/tests/workbench/layout/editor_layout_contracts/region_contracts.rs
+  - zircon_editor/src/tests/layout/editor_layout_contracts/region_contracts.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/performance/pending.md

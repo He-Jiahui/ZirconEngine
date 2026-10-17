@@ -49,13 +49,12 @@ an existing chat's explicit selection can still override this project default.
 The profile controls sandboxed local commands and their child processes. MCP
 servers and app tools use separate execution boundaries, so this checkout
 disables its configured RenderDoc and CUA MCP servers and default app access.
-Command networking is enabled. On 2026-10-16 the user explicitly authorized
-opening this profile for task-scoped handoff to the verified independent Jenkins
-runtime. The `.jenkins` and `.git` grants support its runtime and Git/worktree
-metadata; `.codex/state/jenkins-coordinator`, `jenkins-pilot` and `jenkins-tray`
-also have explicit write grants. The existing `.codex/outbox` grant covers scoped
-request inputs. These grants permit the filesystem operations; the task still
-determines which commands, cleanup candidates and version actions are authorized.
+Command networking is enabled. The saved Windows profile now keeps `.git`,
+`.jenkins`, workflow definitions, Jenkins executable tooling and Jenkins selection/
+authorization state read-only. Scoped request inputs belong in `.codex/outbox`.
+Jenkins itself owns its runtime, Git metadata and authorization database. A local
+profile cannot confine an already-running service; relocating that installation
+and pinning its interpreter require a separate operator change.
 
 New directory grants need existing physical directories before the Windows
 sandbox can grant access beneath a read-only parent. Permission maintenance may
@@ -70,14 +69,11 @@ Jenkins service has its own execution boundary and remains subject to its reques
 authorization, selected-driver/runtime checks, physical output checks and native
 ownership locks. The command sandbox does not confine that preexisting service.
 
-The configuration itself, hooks outside `.git`, AGENTS.md, unlisted reference
-repositories/worktrees, retired coordinator data, user directories and system
-temp have no write grant. Directory grants include all descendants, including
-Git hooks inside `.git` and worktrees inside `.jenkins`; granting writes does not
-authorize changing hooks or creating worktrees outside the user's task. A Codex
-host's own state, logs and sandbox provisioning are outside the command profile;
-this profile does not claim to confine every background write by Windows or the
-desktop host.
+The configuration, Git hooks and metadata, Jenkins executable/control state,
+AGENTS.md, unlisted reference trees, retired coordinator data, user directories
+and system temp have no write grant. The host's own state, logs and sandbox
+provisioning remain outside the command profile. The Linux review overlay does
+not activate the Windows profile; real operation probes are still required.
 
 These are project defaults, not an administrator-enforced device policy.
 Explicitly selecting another profile or supplying a command-line override

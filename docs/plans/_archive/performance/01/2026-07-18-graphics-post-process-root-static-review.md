@@ -1,9 +1,7 @@
 ---
 related_code:
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/pass_graph/execute.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/scene_post_process_resources
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/execute_graph_stage.rs
+  - zircon_runtime/src/graphics/scene/renderer/post/pass_graph/execute.rs
+  - zircon_runtime/src/graphics/scene/core/render/render/execute_graph_stage.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_runtime/render/07-postprocess-color-pipeline.md

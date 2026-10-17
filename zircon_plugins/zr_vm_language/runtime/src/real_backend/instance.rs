@@ -11,7 +11,7 @@ use zircon_runtime::script::{
 use zr_vm_rust_binding as zrvm;
 
 use super::errors::{is_optional_export_missing, map_zr_error};
-use super::lock::acquire_zr_vm_lock;
+use super::lock::{acquire_zr_vm_lock, ZrVmLockGuard};
 use super::runtime_owner::ZrVmRuntimeOwner;
 use super::values::{from_zr_return_value_for_export, to_zr_value};
 
@@ -57,7 +57,7 @@ impl ZrVmPluginInstance {
 
     fn call_optional_export(
         runtime_owner: &mut ZrVmRuntimeOwner,
-        guard: &std::sync::MutexGuard<'static, ()>,
+        guard: &ZrVmLockGuard,
         module_name: &str,
         export_name: &str,
         arguments: &[zrvm::Value],
@@ -71,7 +71,7 @@ impl ZrVmPluginInstance {
 
     fn call_entry_lifecycle_export(
         &mut self,
-        guard: &std::sync::MutexGuard<'static, ()>,
+        guard: &ZrVmLockGuard,
         export_name: &str,
         arguments: &[zrvm::Value],
     ) -> Result<Option<zrvm::Value>, VmError> {

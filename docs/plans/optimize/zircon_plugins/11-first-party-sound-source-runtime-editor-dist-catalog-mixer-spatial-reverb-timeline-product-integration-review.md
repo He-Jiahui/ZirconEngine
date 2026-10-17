@@ -18,8 +18,6 @@ related_code:
   - zircon_plugins/sound/editor/mixer_console.zui
   - zircon_plugins/sound/dist/Cargo.toml
   - zircon_plugins/sound/dist/src
-  - zircon_plugins/sound/features/ray_traced_convolution_reverb
-  - zircon_plugins/sound/features/timeline_animation_track
   - zircon_plugins/first_party_runtime_catalog/Cargo.toml
   - zircon_plugins/first_party_runtime_catalog/src/lib.rs
   - zircon_plugins/first_party_editor_catalog/Cargo.toml
@@ -28,19 +26,12 @@ related_code:
   - zircon_app/src/entry/first_party_runtime_plugins.rs
   - zircon_app/src/entry/first_party_editor_plugins.rs
   - zircon_app/src/entry/export_bootstrap.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/sound_features.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/sound_features/manifest.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/sound_features/rows.rs
+  - zircon_runtime/src/plugin/runtime/builtin_catalog/sound_features.rs
+  - zircon_runtime/src/plugin/runtime/builtin_catalog/sound_features/manifest.rs
+  - zircon_runtime/src/plugin/runtime/builtin_catalog/sound_features/rows.rs
 tests:
   - zircon_plugins/sound/runtime/src/tests
-  - zircon_plugins/sound/editor/src/tests.rs
   - zircon_plugins/sound/dist/src/lib.rs
-  - zircon_plugins/sound/features/ray_traced_convolution_reverb/runtime/src/tests.rs
-  - zircon_plugins/sound/features/ray_traced_convolution_reverb/editor/src/tests.rs
-  - zircon_plugins/sound/features/ray_traced_convolution_reverb/dist/src/lib.rs
-  - zircon_plugins/sound/features/timeline_animation_track/runtime/src/tests.rs
-  - zircon_plugins/sound/features/timeline_animation_track/editor/src/tests.rs
-  - zircon_plugins/sound/features/timeline_animation_track/dist/src/lib.rs
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md
   - docs/plans/optimize/01-cross-report-owner-schema-abi-p0-consolidation-review.md

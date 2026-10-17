@@ -1,21 +1,18 @@
 ---
 related_code:
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/depth_sampling_mode.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/post_process_pipeline.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/post_process.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/post_process_screen_space_reflection.wgsl
+  - zircon_runtime/src/graphics/scene/renderer/post/resources/depth_sampling_mode.rs
+  - zircon_runtime/src/graphics/post/create_pipeline_bundle/post_process_pipeline.rs
 implementation_files:
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/depth_sampling_mode.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/post_process_pipeline.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/post_process.wgsl
+  - zircon_runtime/src/graphics/scene/renderer/post/resources/depth_sampling_mode.rs
+  - zircon_runtime/src/graphics/post/create_pipeline_bundle/post_process_pipeline.rs
 plan_sources:
   - docs/plans/zircon_runtime/render/07-postprocess-color-pipeline.md
   - docs/plans/zircon_runtime/shader/06-environment-ibl-and-pbr-correctness.md
   - user: 2026-07-12 continue shader and material rendering verification
 tests:
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/depth_sampling_mode.rs::tests::viewport_depth_fallback_shader_removes_raw_depth_texture_sampling
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/post_process_pipeline.rs::tests::post_process_viewport_depth_fallback_shader_parses_for_gl_backends
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/post_process_pipeline.rs::tests::post_process_shader_samples_bound_scene_depth_texture
+  - zircon_runtime/src/graphics/scene/renderer/post/resources/depth_sampling_mode.rs::tests::viewport_depth_fallback_shader_removes_raw_depth_texture_sampling
+  - zircon_runtime/src/graphics/post/create_pipeline_bundle/post_process_pipeline.rs::tests::post_process_viewport_depth_fallback_shader_parses_for_gl_backends
+  - zircon_runtime/src/graphics/post/create_pipeline_bundle/post_process_pipeline.rs::tests::post_process_shader_samples_bound_scene_depth_texture
   - cargo test -p zircon_runtime --lib --locked --offline viewport_depth_fallback_shader
   - zircon_runtime lib-test binary filter: shader
 doc_type: module-detail

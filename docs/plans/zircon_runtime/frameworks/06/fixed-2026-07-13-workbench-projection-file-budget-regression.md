@@ -8,10 +8,6 @@ fixing_plan: docs/plans/zircon_editor/editor_layout/15-component-standardization
 origin_child_dir: docs/plans/zircon_runtime/frameworks/06
 fixing_child_dir: docs/plans/zircon_editor/editor_layout/15
 related_code:
-  - zircon_editor/src/ui/retained_host/ui/workbench_window_projection.rs
-  - zircon_editor/src/ui/retained_host/ui/workbench_window_projection/typed_canvas.rs
-  - zircon_editor/src/ui/retained_host/ui/workbench_window_projection/tests.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/editor_workbench_window_projection.rs
 tests:
   - tests::runtime_absorption::structure_convention::test_file_budget::editor_workbench_window_projection::runtime_15_editor_retained_host_workbench_window_projection_tests_are_child_owner
   - tests::runtime_absorption::structure_convention::

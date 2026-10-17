@@ -1,16 +1,16 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/host_page_pointer/constants.rs
-  - zircon_editor/src/ui/retained_host/host_page_pointer/host_page_pointer_item.rs
-  - zircon_editor/src/ui/retained_host/host_page_pointer/build_host_page_pointer_layout.rs
-  - zircon_editor/src/ui/retained_host/host_page_pointer/handle_click.rs
-  - zircon_editor/src/ui/retained_host/host_page_pointer/host_page_pointer_route.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/shared_pointer/host_page.rs
+  - zircon_editor/src/ui/retained/host_page_pointer/constants.rs
+  - zircon_editor/src/ui/retained/host_page_pointer/host_page_pointer_item.rs
+  - zircon_editor/src/ui/host_page_pointer/build_host_page_pointer_layout.rs
+  - zircon_editor/src/ui/retained/host_page_pointer/handle_click.rs
+  - zircon_editor/src/ui/retained/host_page_pointer/host_page_pointer_route.rs
+  - zircon_editor/src/ui/retained/dispatch/shared_pointer/host_page.rs
   - zircon_editor/src/ui/workbench/page_tabs/metrics.rs
 implementation_files:
-  - zircon_editor/src/ui/retained_host/host_page_pointer/host_page_pointer_item.rs
-  - zircon_editor/src/ui/retained_host/host_page_pointer/build_host_page_pointer_layout.rs
-  - zircon_editor/src/ui/retained_host/host_page_pointer/handle_click.rs
+  - zircon_editor/src/ui/retained/host_page_pointer/host_page_pointer_item.rs
+  - zircon_editor/src/ui/host_page_pointer/build_host_page_pointer_layout.rs
+  - zircon_editor/src/ui/retained/host_page_pointer/handle_click.rs
 plan_sources:
   - docs/plans/engine-code-review-findings-2026-06.md
   - docs/plans/zircon_editor/editor_layout/15a-page-tab-strip-overflow.md

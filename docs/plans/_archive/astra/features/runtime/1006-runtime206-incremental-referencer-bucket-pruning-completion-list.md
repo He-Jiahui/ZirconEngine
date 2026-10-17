@@ -4,7 +4,6 @@ related_code:
 plan_sources:
   - docs/plans/optimize/zircon_runtime/206/2026-09-27-incremental-referencer-bucket-pruning.md
 tests:
-  - zircon_runtime/src/asset/registry/asset_registry_index/incremental_referencer_pruning_tests.rs
 doc_type: milestone-detail
 status: implemented_pending_validation
 ---

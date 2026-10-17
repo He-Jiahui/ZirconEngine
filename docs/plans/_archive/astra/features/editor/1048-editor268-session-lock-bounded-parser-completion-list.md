@@ -12,8 +12,6 @@ implementation_files:
   - zircon_runtime_interface/src/project/session_lock/mod.rs
   - zircon_editor/src/core/recovery/session_guard/record.rs
 tests:
-  - zircon_runtime_interface/src/project/session_lock/tests.rs
-  - zircon_editor/src/core/recovery/tests.rs
 ---
 
 # Editor1048 / Editor268 bounded session-lock completion list

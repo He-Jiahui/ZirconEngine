@@ -1,7 +1,7 @@
 ---
 related_code:
-  - zircon_editor/src/ui/host/editor_host_event_controller/runtime_event_consumers.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/tick.rs
+  - zircon_editor/src/ui/editor_host_event_controller/runtime_event_consumers.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle/tick.rs
   - zircon_runtime/src/dynamic_api/session/event_mirror.rs
 related_plans:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md

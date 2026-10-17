@@ -1,8 +1,6 @@
 ---
 related_code:
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/camera_loop.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/camera_loop/tests.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/camera_loop/tests/frame.rs
+  - zircon_runtime/src/graphics/runtime/framework/extract/submit/camera_loop.rs
 tests:
   - current camera-loop slice 3 of 3 Rust files reviewed, 1372 lines
   - all 15 tests read; terminal/planar hot-path and empty-sequence regressions added

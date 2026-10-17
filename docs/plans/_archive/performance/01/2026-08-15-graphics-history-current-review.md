@@ -1,9 +1,8 @@
 ---
 related_code:
-  - zircon_runtime/src/graphics/scene/scene_renderer/history
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_history/prepare_history_textures.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/history/copy_history_textures.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/bind_history_graph_resources.rs
+  - zircon_runtime/src/graphics/scene_renderer_history/prepare_history_textures.rs
+  - zircon_runtime/src/graphics/scene/core/render/history/copy_history_textures.rs
+  - zircon_runtime/src/graphics/scene/core/render/bind_history_graph_resources.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_runtime/render/01-render-graph-rdg-alignment.md

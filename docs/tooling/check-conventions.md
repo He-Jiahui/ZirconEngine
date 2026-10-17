@@ -1,15 +1,11 @@
 ---
 related_code:
-  - tools/check_conventions.py
   - tools/audits/convention_exemptions.py
-  - tools/check-conventions.ps1
   - tools/tests/test_check_conventions.py
   - tools/tests/check_conventions/document_paths.py
   - .github/workflows/ci.yml
 implementation_files:
-  - tools/check_conventions.py
   - tools/audits/convention_exemptions.py
-  - tools/check-conventions.ps1
 plan_sources:
   - docs/plans/zircon_runtime/frameworks/06-development-conventions-and-guardrails.md
   - docs/plans/zircon_runtime/frameworks/development-conventions.md

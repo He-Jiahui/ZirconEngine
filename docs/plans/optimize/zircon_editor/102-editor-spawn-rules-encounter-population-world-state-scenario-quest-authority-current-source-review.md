@@ -10,21 +10,10 @@ refreshes:
   - docs/plans/optimize/zircon_editor/28-spawn-rules-encounter-population-world-state-scenario-quest-flag-authority-simulation-authoring-review.md
   - docs/plans/optimize/zircon_editor/86-editor-spawn-rules-encounter-population-world-state-scenario-quest-flag-authority-simulation-authoring.md
 related_code:
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/gameplay/workbench_extension_spawn_rules_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/gameplay/workbench_extension_world_state_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/index/workbench_extension_module_workspaces.zui
-  - zircon_editor/src/ui/template_runtime/builtin/workbench_extension_module_template_bindings/gameplay_state.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation/specs/gameplay_state.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback/gameplay_state.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/module_field_edit.rs
-  - zircon_editor/src/ui/retained_host/workbench_preview_actions/extensions.rs
-  - zircon_runtime/src/scene/dynamic_scene
+  - zircon_editor/src/ui/retained/dispatch/workbench/specs/gameplay_state.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/workbench/module_field_edit.rs
   - zircon_runtime/src/script/vm/gameplay_host
 tests:
-  - zircon_runtime/src/scene/dynamic_scene/scene/spawn/transaction/tests.rs
-  - zircon_runtime/src/tests/runtime_absorption/dynamic_scene.rs
-  - zircon_runtime/src/tests/runtime_absorption/dynamic_scene/asset_reload_selection_status.rs
-  - zircon_runtime/src/script/vm/gameplay_host/tests.rs
   - zircon_runtime/src/script/vm/gameplay_host/tests/spawn_transform.rs
 plan_sources:
   - docs/plans/optimize/zircon_runtime/05-scene-ecs-world-lifecycle-review.md

@@ -1,7 +1,5 @@
 ---
 related_code:
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/build_virtual_geometry_debug_snapshot.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/build_virtual_geometry_debug_snapshot
 tests:
   - current Virtual Geometry debug snapshot slice 5 of 5 Rust files reviewed, 1016 lines
   - page-size and resident-slot index source regression added

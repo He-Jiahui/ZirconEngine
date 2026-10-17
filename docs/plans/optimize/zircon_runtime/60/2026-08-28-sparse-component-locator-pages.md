@@ -11,10 +11,8 @@ plan_sources:
   - docs/plans/optimize/zircon_runtime/60-runtime-scene-ecs-entity-component-storage-archetype-query-access-change-detection-command-schedule-parallel-event.md
   - docs/plans/zircon_runtime/runtime/08/failure-2026-07-22-ecs-archetype-columnar-storage.md
 tests:
-  - zircon_runtime/src/scene/ecs/storage/component_storage/sparse/tests.rs
   - zircon_runtime/src/scene/ecs/storage/component_storage/store.rs
   - tools/tests/test_runtime_sparse_component_locator_pages_contract.py
-  - tools/benchmarks/runtime_sparse_locator_pages.rs
 doc_type: milestone-detail
 report_id: Runtime60-sparse-component-locator-pages-2026-08-28
 date: 2026-08-28

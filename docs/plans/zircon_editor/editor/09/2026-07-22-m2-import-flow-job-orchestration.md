@@ -14,7 +14,6 @@ related_code:
   - zircon_editor/src/core/asset/import_flow/submit.rs
 tests:
   - zircon_editor/tests/editor_asset_facade.rs
-  - zircon_editor/src/core/asset/import_flow/tests.rs
   - zircon_editor/src/core/asset/import_flow/tests/concurrency.rs
   - tools/tests/test_editor09_import_flow_contract.py
 ---

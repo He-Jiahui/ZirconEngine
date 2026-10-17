@@ -1,11 +1,8 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/ui/template_layout_context.rs
-  - zircon_editor/src/ui/retained_host/ui/workbench_window_projection.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/native_template_node_panes.rs
-  - zircon_editor/src/ui/retained_host/ui/apply_presentation/pane_conversion.rs
+  - zircon_editor/src/ui/retained/ui/apply_presentation/pane_conversion.rs
   - zircon_editor/src/ui/workbench/autolayout/layout_tier.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_table_rows/cells/allocation.rs
+  - zircon_editor/src/ui/retained/contract/paint/table_rows/cells/allocation.rs
 plan_sources:
   - docs/plans/zircon_editor/editor_layout/15d-composite-density-and-alignment.md
   - docs/plans/zircon_editor/editor_layout/15e-domain-breakpoint-adaptation.md

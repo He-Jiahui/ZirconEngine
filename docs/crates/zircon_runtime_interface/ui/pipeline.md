@@ -8,9 +8,6 @@ related_code:
   - zircon_runtime_interface/src/ui/pipeline/frame_report.rs
   - zircon_runtime_interface/src/ui/mod.rs
   - zircon_runtime_interface/src/tests/pipeline_contracts.rs
-  - dev/bevy/crates/bevy_ui/src/lib.rs
-  - dev/bevy/crates/bevy_ui_render/src/lib.rs
-  - dev/Fyrox/editor/src/lib.rs
 implementation_files:
   - zircon_runtime_interface/src/ui/pipeline/mod.rs
   - zircon_runtime_interface/src/ui/pipeline/stage.rs

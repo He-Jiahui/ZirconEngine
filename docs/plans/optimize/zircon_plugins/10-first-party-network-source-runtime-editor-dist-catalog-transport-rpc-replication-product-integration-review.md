@@ -17,9 +17,9 @@ related_code:
   - zircon_app/src/entry/first_party_runtime_plugins.rs
   - zircon_app/src/entry/first_party_editor_plugins.rs
   - zircon_runtime/src/core/framework/net
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/net_features.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/net_features/manifest.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/net_features/rows.rs
+  - zircon_runtime/src/plugin/runtime/builtin_catalog/net_features.rs
+  - zircon_runtime/src/plugin/runtime/builtin_catalog/net_features/manifest.rs
+  - zircon_runtime/src/plugin/runtime/builtin_catalog/net_features/rows.rs
   - examples/woc/zircon-project.toml
 tests:
   - zircon_plugins/net/runtime/src/tests

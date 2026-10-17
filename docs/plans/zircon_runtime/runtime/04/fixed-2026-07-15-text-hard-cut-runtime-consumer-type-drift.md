@@ -11,11 +11,11 @@ related_code:
   - zircon_runtime/src/text/model/shaped_run.rs
   - zircon_runtime/src/graphics/text_transport/mod.rs
   - zircon_runtime/src/ui/surface/text_shape.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render/rich_text.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render/text_advances.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/decorations.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/sdf_fallback.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/render/rich_text.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/render/text_advances.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/sdf_render/decorations.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/text/sdf_fallback.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/text.rs
 tests:
   - ./.codex/skills/zircon-dev/scripts/validate-matrix.ps1 -Package zircon_runtime -SkipBuild
   - cargo test -p zircon_runtime --test virtual_geometry_debug_snapshot_contract --locked

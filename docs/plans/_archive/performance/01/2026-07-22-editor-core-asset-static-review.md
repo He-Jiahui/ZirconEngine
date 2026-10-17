@@ -14,8 +14,6 @@ reference_sources:
   - dev/UnrealEngine/Engine/Source/Runtime/AssetRegistry/Private/AssetRegistryState.cpp
   - dev/UnrealEngine/Engine/Source/Editor/UnrealEd/Private/FileHelpers.cpp
 tests:
-  - zircon_editor/src/core/asset/dirty/tests.rs::dirty_snapshot_stores_each_external_effect_id_once
-  - zircon_editor/src/core/asset/index/tests.rs::runtime_registry_replacement_resolves_pending_paths_without_cloning_path_keys
   - zircon_editor/src/tests/editor_asset_type_registry/materialization.rs::registry_delta_path_has_no_entry_clone_or_per_delta_full_sort
   - current-source Windows Cargo and F1/F4 product traces pending
 doc_type: implementation-evidence

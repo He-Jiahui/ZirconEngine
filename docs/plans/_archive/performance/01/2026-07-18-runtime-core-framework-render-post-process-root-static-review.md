@@ -1,17 +1,5 @@
 ---
 related_code:
-  - zircon_runtime/src/core/framework/render/post_process/chain.rs
-  - zircon_runtime/src/core/framework/render/post_process/color_lut_readback.rs
-  - zircon_runtime/src/core/framework/render/post_process/color_space.rs
-  - zircon_runtime/src/core/framework/render/post_process/effect.rs
-  - zircon_runtime/src/core/framework/render/post_process/exposure_readback.rs
-  - zircon_runtime/src/core/framework/render/post_process/exposure_settings.rs
-  - zircon_runtime/src/core/framework/render/post_process/graph_resource_names.rs
-  - zircon_runtime/src/core/framework/render/post_process/mod.rs
-  - zircon_runtime/src/core/framework/render/post_process/pass_graph.rs
-  - zircon_runtime/src/core/framework/render/post_process/pass_node.rs
-  - zircon_runtime/src/core/framework/render/post_process/resolved_stack.rs
-  - zircon_runtime/src/core/framework/render/post_process/validation.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_runtime/render/01-render-graph-rdg-alignment.md

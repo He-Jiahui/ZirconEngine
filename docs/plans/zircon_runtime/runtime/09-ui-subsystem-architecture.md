@@ -15,16 +15,13 @@ related_code:
   - zircon_runtime/src/ui/surface/input
   - zircon_runtime/src/ui/surface/input/dispatch.rs
   - zircon_runtime/src/ui/surface/input/route_authority.rs
-  - zircon_runtime/src/ui/surface/pointer
-  - zircon_runtime/src/ui/surface/navigation
   - zircon_runtime/src/ui/surface/render/collection_rows/table.rs
   - zircon_runtime/src/ui/surface/property_mutation.rs
   - zircon_runtime/src/ui/surface/surface/rebuild.rs
   - zircon_runtime/src/ui/surface/surface/rebuild/incremental.rs
   - zircon_runtime/src/ui/surface/surface/property_transaction.rs
   - zircon_runtime/src/ui/surface/surface/pointer_component_events.rs
-  - zircon_runtime/src/ui/surface/surface/pointer_component_events/state_invalidation.rs
-  - zircon_runtime/src/ui/surface/surface/pointer_component_events/template_action.rs
+  - zircon_runtime/src/ui/surface/pointer_component_events/state_invalidation.rs
   - zircon_runtime/src/ui/surface/surface/default_interactions.rs
   - zircon_runtime/src/ui/tests/widget_menu_behavior.rs
   - zircon_runtime/src/ui/tests/widget_menu_behavior/control_anchored_overlays.rs

@@ -11,11 +11,10 @@ related_code:
   - zircon_runtime/src/platform/preferences/atomic_file.rs
   - zircon_app/src/entry/platform_preferences.rs
   - zircon_runtime/src/input/module/descriptor.rs
-  - zircon_runtime/src/graphics/runtime_builtin_graphics/host/module_host/module_registration/module_descriptor.rs
+  - zircon_runtime/src/graphics/host/module_registration/module_descriptor.rs
   - zircon_runtime/src/platform/config.rs
   - zircon_runtime/src/platform/capability/report.rs
   - zircon_runtime/src/builtin/runtime_modules.rs
-  - zircon_runtime/src/plugin/runtime_plugin/descriptor.rs
 implementation_files:
   - zircon_runtime/src/core/framework/platform/mod.rs
   - zircon_runtime/src/core/framework/platform/module_identity.rs

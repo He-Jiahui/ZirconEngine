@@ -12,20 +12,10 @@ related_code:
   - zircon_editor/src/ui/host/animation_editor_sessions
   - zircon_editor/src/ui/host/editor_manager_animation_editor.rs
   - zircon_editor/src/ui/host/editor_event_execution/animation_event.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_navigation/specs/gameplay_animation.rs
-  - zircon_editor/src/ui/retained_host/workbench_preview_actions/extensions.rs
-  - zircon_editor/src/ui/template_runtime/builtin/workbench_extension_module_template_bindings/gameplay_animation.rs
+  - zircon_editor/src/ui/retained/dispatch/workbench/specs/gameplay_animation.rs
   - zircon_plugins/animation/editor
   - zircon_plugins/animation_graph/editor
 tests:
-  - zircon_editor/src/core/editing/animation_document/tests.rs
-  - zircon_editor/src/ui/animation_editor/session/tests.rs
-  - zircon_editor/src/ui/animation_editor/route_loading_tests.rs
-  - zircon_editor/src/ui/timeline/tests.rs
-  - zircon_editor/src/ui/curve/tests.rs
-  - zircon_plugins/animation/editor/src/tests.rs
-  - zircon_plugins/animation_graph/editor/src/tests.rs
 plan_sources:
   - docs/plans/optimize/zircon_editor/196-editor-animation-timeline-dope-sheet-curve-editor-track-key-selection-transport-scrub-snap-clipboard-transaction-virtualization.md
   - docs/plans/optimize/zircon_editor/197-editor-animation-graph-state-machine-node-edge-parameter-condition-compiler-runtime-transition-blend-preview-transaction-persistence.md

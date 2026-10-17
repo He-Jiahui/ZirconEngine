@@ -8,7 +8,6 @@ implementation_files:
   - zircon_editor/src/ui/graph/model.rs
 tests:
   - zircon_editor/src/ui/graph/model.rs
-  - tools/tests/test_editor_graph_cycle_pending_capacity_performance_contract.py
 ---
 
 # Editor816 · Graph cycle pending capacity

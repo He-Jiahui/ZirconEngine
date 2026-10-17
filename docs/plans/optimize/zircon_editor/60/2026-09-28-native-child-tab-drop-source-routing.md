@@ -6,19 +6,18 @@ implementation_status: implemented_pending_validation
 validation_status: scoped_static_checks_passed_managed_validation_pending
 performance_status: product_gate_pending
 related_code:
-  - zircon_editor/src/ui/retained_host/app/workspace_docking/drag_drop.rs
-  - zircon_editor/src/ui/retained_host/app/workspace_docking.rs
-  - zircon_editor/src/ui/retained_host/app/callback_wiring/host_shell/drag_resize.rs
-  - zircon_editor/src/ui/retained_host/app/native_windows/store.rs
-  - zircon_editor/src/ui/retained_host/floating_window_projection.rs
-  - zircon_editor/src/ui/retained_host/shell_pointer/drag_surface.rs
-  - zircon_editor/src/ui/retained_host/app/tests/child_window_tabs.rs
+  - zircon_editor/src/ui/retained/app/workspace_docking/drag_drop.rs
+  - zircon_editor/src/ui/retained/app/workspace_docking.rs
+  - zircon_editor/src/ui/retained/app/callback_wiring/host_shell/drag_resize.rs
+  - zircon_editor/src/ui/retained/app/native_windows/store.rs
+  - zircon_editor/src/ui/retained/shell_pointer/drag_surface.rs
+  - zircon_editor/src/ui/retained/app/tests/child_window_tabs.rs
 plan_sources:
   - docs/plans/optimize/zircon_editor/60/2026-09-27-native-tab-resize-pointer-owner.md
 validation_manifest: .codex/state/session-coordinator/async-validation-batches/2026-09-28-editor60-child-drop-static-checks.json
 source_manifest: .codex/state/session-coordinator/async-validation-batches/2026-09-28-editor60-child-drop-successor-source-manifest.json
 tests:
-  - zircon_editor/src/ui/retained_host/app/tests/child_window_tabs.rs
+  - zircon_editor/src/ui/retained/app/tests/child_window_tabs.rs
 ---
 
 # Editor60 native child tab drop source routing

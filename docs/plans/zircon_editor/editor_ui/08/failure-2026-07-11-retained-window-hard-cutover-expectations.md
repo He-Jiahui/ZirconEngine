@@ -11,19 +11,10 @@ plan_link_mode: child_record_only
 related_code:
   - zircon_editor/build.rs
   - zircon_editor/Cargo.toml
-  - zircon_editor/src/ui/retained_host/mod.rs
-  - zircon_editor/src/ui/retained_host/app/native_windows.rs
-  - zircon_editor/src/ui/retained_host/host_contract/window.rs
-  - zircon_editor/src/ui/retained_host/host_contract/globals.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/host_components.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/host_root.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection/activity_rail.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/scene_projection.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/scene_projection/dock_patch.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/host_data.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/shell_presentation.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/projection_cache.rs
+  - zircon_editor/src/ui/retained/app/native_windows.rs
+  - zircon_editor/src/ui/retained/contract/data/host_components.rs
+  - zircon_editor/src/ui/retained/contract/data/host_root.rs
+  - zircon_editor/src/ui/layouts/windows/window/scene_projection/dock_patch.rs
   - zircon_editor/assets/ui/editor/workbench_activity_rail.zui
   - zircon_editor/src/tests/host/retained_window/ui_debug_reflector.rs
   - zircon_editor/src/tests/host/retained_window/ui_asset_editor.rs
@@ -38,30 +29,21 @@ related_code:
   - zircon_editor/src/tests/host/retained_window/presenter_store.rs
   - zircon_editor/src/tests/host/retained_window/platform_input_translation.rs
   - zircon_editor/src/tests/host/retained_window/native_workbench_window_menus.rs
-  - zircon_editor/src/tests/host/retained_window/native_workbench_reference/text_and_module_input.rs
-  - zircon_editor/src/tests/host/retained_window/native_workbench_reference/support.rs
-  - zircon_editor/src/tests/host/retained_window/native_workbench_reference/reference_surface.rs
+  - zircon_editor/src/tests/host/native_workbench_reference/text_and_module_input.rs
+  - zircon_editor/src/tests/host/native_workbench_reference/support.rs
+  - zircon_editor/src/tests/host/native_workbench_reference/reference_surface.rs
   - zircon_editor/src/tests/host/retained_window/native_workbench_reference/mod.rs
-  - zircon_editor/src/tests/host/retained_window/native_workbench_reference/menu_keyboard.rs
-  - zircon_editor/src/tests/host/retained_window/native_workbench_reference/dropdown_pointer.rs
-  - zircon_editor/src/tests/host/retained_window/native_workbench_reference/dropdown_keyboard.rs
+  - zircon_editor/src/tests/host/native_workbench_reference/menu_keyboard.rs
+  - zircon_editor/src/tests/host/native_workbench_reference/dropdown_pointer.rs
+  - zircon_editor/src/tests/host/native_workbench_reference/dropdown_keyboard.rs
   - zircon_editor/src/tests/host/retained_window/native_window_targets.rs
   - zircon_editor/src/tests/host/retained_window/native_viewport_image.rs
   - zircon_editor/src/tests/host/retained_window/native_template_text.rs
   - zircon_editor/src/tests/host/retained_window/native_runtime_text_painter.rs
   - zircon_editor/src/tests/host/retained_window/native_mode.rs
   - zircon_editor/src/tests/host/retained_window/native_material_painter_paper.rs
-  - zircon_editor/src/tests/host/retained_window/native_material_painter_notification_center.rs
-  - zircon_editor/src/tests/host/retained_window/native_material_painter_mui_primitives/support.rs
-  - zircon_editor/src/tests/host/retained_window/native_material_painter_mui_primitives/progress_and_overlay.rs
-  - zircon_editor/src/tests/host/retained_window/native_material_painter_mui_primitives/mui_x_foundation.rs
-  - zircon_editor/src/tests/host/retained_window/native_material_painter_mui_primitives/mui_x_chart_and_chat.rs
-  - zircon_editor/src/tests/host/retained_window/native_material_painter_mui_primitives/mod.rs
-  - zircon_editor/src/tests/host/retained_window/native_material_painter_mui_primitives/field_and_icon.rs
-  - zircon_editor/src/tests/host/retained_window/native_material_painter_mui_primitives/avatar_badge_chip.rs
-  - zircon_editor/src/tests/host/retained_window/native_material_painter_drag_overlay.rs
+  - zircon_editor/src/tests/retained_window/native_material_painter_drag_overlay.rs
   - zircon_editor/src/tests/host/retained_window/native_material_painter_dialog.rs
-  - zircon_editor/src/tests/host/retained_window/native_material_painter_command_palette.rs
   - zircon_editor/src/tests/host/retained_window/native_material_painter_alert.rs
   - zircon_editor/src/tests/host/retained_window/native_material_painter.rs
   - zircon_editor/src/tests/host/retained_window/generic_host_layout_paths.rs
@@ -71,15 +53,14 @@ related_code:
   - zircon_editor/src/tests/host/retained_window/mod.rs
   - zircon_editor/src/tests/host/retained_window/native_chrome_routing.rs
   - zircon_editor/src/tests/host/retained_window/activity_rail_template_boundary.rs
-  - zircon_editor/src/tests/host/retained_window/native_host_contract/viewport_hierarchy_menu/viewport.rs
-  - zircon_editor/src/tests/host/retained_window/native_host_contract/viewport_hierarchy_menu/tree_hover.rs
-  - zircon_editor/src/tests/host/retained_window/native_host_contract/viewport_hierarchy_menu/mod.rs
-  - zircon_editor/src/tests/host/retained_window/native_host_contract/viewport_hierarchy_menu/menu_overlay.rs
-  - zircon_editor/src/tests/host/retained_window/native_host_contract/template_input.rs
+  - zircon_editor/src/tests/host/retained_window/viewport_hierarchy_menu/viewport.rs
+  - zircon_editor/src/tests/host/viewport_hierarchy_menu/tree_hover.rs
+  - zircon_editor/src/tests/host/retained_window/viewport_hierarchy_menu/mod.rs
+  - zircon_editor/src/tests/host/viewport_hierarchy_menu/menu_overlay.rs
   - zircon_editor/src/tests/host/retained_window/native_host_contract/support.rs
   - zircon_editor/src/tests/host/retained_window/native_host_contract/mod.rs
-  - zircon_editor/src/tests/host/retained_window/native_host_contract/drag_projection.rs
-  - zircon_editor/src/tests/host/retained_window/native_host_contract/chrome_pointer.rs
+  - zircon_editor/src/tests/host/native_host_contract/drag_projection.rs
+  - zircon_editor/src/tests/host/native_host_contract/chrome_pointer.rs
 plan_sources:
   - docs/plans/zircon_editor/editor_ui/08-workbench-shell-on-runtime-ui.md
   - docs/plans/zircon_editor/editor/01-editor-kernel-and-runtime-interaction.md

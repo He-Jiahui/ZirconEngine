@@ -14,18 +14,13 @@ refreshes_currentness_of:
   - docs/plans/optimize/zircon_editor/99-editor-runtime-diagnostics-performance-timeline-console-telemetry-observability-authoring-current-source-review.md
   - docs/plans/optimize/zircon_editor/25-runtime-diagnostics-performance-timeline-console-telemetry-observability-authoring-review.md
 related_code:
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/diagnostics
   - zircon_editor/assets/ui/editor/host/runtime_diagnostics_body.zui
   - zircon_editor/assets/ui/editor/host/performance_timeline_body.zui
   - zircon_editor/src/core/gateway/session/profile.rs
   - zircon_editor/src/ui/host/editor_manager_runtime_diagnostics.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload_builders/performance_timeline.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload_builders/runtime_diagnostics.rs
-  - zircon_editor/src/ui/retained_host/app/profiling
-  - zircon_editor/src/ui/retained_host/app/runtime_diagnostics_visibility.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/panes
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/performance_timeline.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/runtime_diagnostics.rs
+  - zircon_editor/src/ui/retained/app/profiling
+  - zircon_editor/src/ui/retained/app/runtime_diagnostics_visibility.rs
+  - zircon_editor/src/ui/retained/contract/data/panes
   - zircon_runtime/src/core/runtime/diagnostics
   - zircon_runtime/src/dynamic_api/session/diagnostics.rs
   - zircon_runtime_interface/src/profiling.rs

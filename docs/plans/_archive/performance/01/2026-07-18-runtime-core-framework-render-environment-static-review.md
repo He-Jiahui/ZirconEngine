@@ -1,12 +1,10 @@
 ---
 related_code:
   - zircon_runtime/src/core/framework/render/environment
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/environment_brdf_lut.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/environment_ibl_compile_options.rs
   - zircon_runtime/src/asset/artifact/ibl_bake_artifact_cache.rs
   - zircon_runtime/src/asset/artifact/ibl_bake_artifact_runtime_dispatch.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/gpu_scene_sync.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/scene_representation/participation.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/build/gpu_scene_sync.rs
+  - zircon_plugins/hybrid_gi/runtime/src/gi/scene_representation/participation.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_runtime/render/03-gpu-scene-gpu-driven.md

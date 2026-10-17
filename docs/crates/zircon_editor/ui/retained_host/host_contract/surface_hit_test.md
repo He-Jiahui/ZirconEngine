@@ -1,41 +1,24 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/mod.rs
-  - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node.rs
-  - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node/hit.rs
-  - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node/model.rs
-  - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node/route_hit.rs
-  - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node/pane_nodes.rs
-  - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node/popup_rows.rs
-  - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node/popup_rows/action_id.rs
-  - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node/popup_rows/hit.rs
-  - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node/popup_rows/menu.rs
-  - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node/popup_rows/option.rs
-  - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node/surface_frame_builder.rs
-  - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node/surface_frame_builder/dispatch.rs
-  - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node/surface_frame_builder/node.rs
-  - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node/surface_frame_builder/surface.rs
-  - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/surface_frame.rs
-  - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node/tests
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/routing/panes.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/routing/workbench.rs
+  - zircon_editor/src/ui/retained/contract/surface_hit_test/mod.rs
+  - zircon_editor/src/ui/retained/contract/node/popup_rows/action_id.rs
+  - zircon_editor/src/ui/retained/contract/surface_hit_test/node/popup_rows/hit.rs
+  - zircon_editor/src/ui/retained/contract/node/popup_rows/option.rs
+  - zircon_editor/src/ui/retained/contract/node/surface_frame_builder/dispatch.rs
+  - zircon_editor/src/ui/retained/contract/node/surface_frame_builder/node.rs
+  - zircon_editor/src/ui/retained/contract/node/surface_frame_builder/surface.rs
+  - zircon_editor/src/ui/retained/contract/surface_hit_test/surface_frame.rs
+  - zircon_editor/src/ui/retained/contract/pointer/routing/panes.rs
+  - zircon_editor/src/ui/retained/contract/pointer/routing/workbench.rs
 implementation_files:
-  - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/mod.rs
-  - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node.rs
-  - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node/hit.rs
-  - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node/model.rs
-  - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node/route_hit.rs
-  - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node/pane_nodes.rs
-  - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node/popup_rows.rs
-  - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node/popup_rows/action_id.rs
-  - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node/popup_rows/hit.rs
-  - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node/popup_rows/menu.rs
-  - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node/popup_rows/option.rs
-  - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node/surface_frame_builder.rs
-  - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node/surface_frame_builder/dispatch.rs
-  - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node/surface_frame_builder/node.rs
-  - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node/surface_frame_builder/surface.rs
-  - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/surface_frame.rs
+  - zircon_editor/src/ui/retained/contract/surface_hit_test/mod.rs
+  - zircon_editor/src/ui/retained/contract/node/popup_rows/action_id.rs
+  - zircon_editor/src/ui/retained/contract/surface_hit_test/node/popup_rows/hit.rs
+  - zircon_editor/src/ui/retained/contract/node/popup_rows/option.rs
+  - zircon_editor/src/ui/retained/contract/node/surface_frame_builder/dispatch.rs
+  - zircon_editor/src/ui/retained/contract/node/surface_frame_builder/node.rs
+  - zircon_editor/src/ui/retained/contract/node/surface_frame_builder/surface.rs
+  - zircon_editor/src/ui/retained/contract/surface_hit_test/surface_frame.rs
 plan_sources:
   - docs/plans/zircon_editor/editor_ui/01-slate-input-dispatch-core.md
   - docs/plans/zircon_editor/editor_ui/08-workbench-shell-on-runtime-ui.md

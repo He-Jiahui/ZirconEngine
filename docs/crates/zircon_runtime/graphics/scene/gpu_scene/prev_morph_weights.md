@@ -3,27 +3,23 @@ related_code:
   - zircon_runtime/src/graphics/scene/gpu_scene/prev_morph_weights.rs
   - zircon_runtime/src/graphics/scene/gpu_scene/gpu_scene.rs
   - zircon_runtime/src/graphics/scene/gpu_scene/mod.rs
-  - zircon_runtime/src/graphics/tests/render_product_mesh_cache/morph.rs
-  - zircon_runtime/src/graphics/tests/render_product_mesh_cache/morph/skinned_velocity.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/gpu_scene_sync.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/morph_payload_upload.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_mesh_draw.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/extend_pending_draws_for_mesh_instance.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_scene/render_scene.rs
+  - zircon_runtime/src/graphics/tests/meshes/morph/skinned_velocity.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/build/gpu_scene_sync.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/build/morph_payload_upload.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/build/pending_mesh_draw.rs
+  - zircon_runtime/src/graphics/mesh/build/extend_pending_draws_for_mesh_instance.rs
+  - zircon_runtime/src/graphics/scene/renderer/core/render/render/render.rs
   - zircon_runtime/src/graphics/shader/wgsl/zr_geometry_morphed.wgsl
   - zircon_runtime/src/graphics/shader/wgsl/zr_geometry_skinned_morphed.wgsl
 implementation_files:
   - zircon_runtime/src/graphics/scene/gpu_scene/prev_morph_weights.rs
   - zircon_runtime/src/graphics/scene/gpu_scene/gpu_scene.rs
-  - zircon_runtime/src/graphics/tests/render_product_mesh_cache/morph.rs
-  - zircon_runtime/src/graphics/tests/render_product_mesh_cache/morph/skinned_velocity.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/gpu_scene_sync.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/morph_payload_upload.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_mesh_draw.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/extend_pending_draws_for_mesh_instance.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_scene/render_scene.rs
+  - zircon_runtime/src/graphics/tests/meshes/morph/skinned_velocity.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/build/gpu_scene_sync.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/build/morph_payload_upload.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/build/pending_mesh_draw.rs
+  - zircon_runtime/src/graphics/mesh/build/extend_pending_draws_for_mesh_instance.rs
+  - zircon_runtime/src/graphics/scene/renderer/core/render/render/render.rs
   - zircon_runtime/src/graphics/shader/wgsl/zr_geometry_morphed.wgsl
   - zircon_runtime/src/graphics/shader/wgsl/zr_geometry_skinned_morphed.wgsl
 plan_sources:

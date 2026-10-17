@@ -1,16 +1,13 @@
 ---
 related_code:
-  - zircon_editor/assets/ui/editor/windows/workbench_window.zui
   - zircon_editor/src/core/editor_event/workbench/menu_action.rs
   - zircon_editor/src/core/play/controller.rs
   - zircon_editor/src/ui/host/editor_event_execution/menu_action.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/popup_primitives.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/popup_state.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/run_mode_menu.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/workbench/control.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/workbench/popup_state.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/workbench/run_mode_menu.rs
+  - zircon_editor/src/ui/retained/dispatch/workbench/control.rs
 tests:
   - zircon_editor/src/tests/workbench/host_events/menu_binding.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_window_menus.rs
 doc_type: module-detail
 status: implemented-awaiting-managed-validation
 ---

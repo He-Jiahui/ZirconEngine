@@ -8,9 +8,7 @@ fixing_plan: docs/plans/zircon_runtime/frameworks/05-subsystem-decoupling-contra
 origin_child_dir: docs/plans/zircon_editor/editor/02
 fixing_child_dir: docs/plans/zircon_runtime/frameworks/05
 related_code:
-  - zircon_runtime/src/graphics/runtime/render_framework/wgpu_render_framework_construction/construct.rs
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_accessors.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/construct.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/construct.rs
   - zircon_runtime/src/graphics/tests/
 tests:
   - cargo test -p zircon_runtime --locked

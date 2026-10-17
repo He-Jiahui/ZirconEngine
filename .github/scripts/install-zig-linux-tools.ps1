@@ -1,6 +1,10 @@
 $ErrorActionPreference = 'Stop'
 
-$outputRoot = 'E:\cargo-targets\zircon-local\ci\miri-scene-ecs'
+$outputRoot = [System.IO.Path]::GetFullPath($env:ZR_CI_OUTPUT_ROOT).TrimEnd('\')
+$runPrefix = 'E:\cargo-targets\zircon-local\ci\runs\' + $env:GITHUB_RUN_ID + '-' + $env:GITHUB_RUN_ATTEMPT + '\'
+if (-not $outputRoot.StartsWith($runPrefix, [System.StringComparison]::OrdinalIgnoreCase)) {
+    throw 'Zig output must belong to this isolated CI run.'
+}
 $archiveName = 'zig-x86_64-windows-0.14.1.zip'
 $archiveUrl = 'https://ziglang.org/download/0.14.1/zig-x86_64-windows-0.14.1.zip'
 $archiveSha256 = '554f5378228923ffd558eac35e21af020c73789d87afeabf4bfd16f2e6feed2c'

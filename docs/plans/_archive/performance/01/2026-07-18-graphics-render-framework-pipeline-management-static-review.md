@@ -1,11 +1,5 @@
 ---
 related_code:
-  - zircon_runtime/src/graphics/runtime/render_framework/capability_validation
-  - zircon_runtime/src/graphics/runtime/render_framework/compile_options_for_profile
-  - zircon_runtime/src/graphics/runtime/render_framework/register_pipeline_asset
-  - zircon_runtime/src/graphics/runtime/render_framework/reload_pipeline
-  - zircon_runtime/src/graphics/runtime/render_framework/set_pipeline_asset
-  - zircon_runtime/src/graphics/runtime/render_framework/set_quality_profile
 tests:
   - current pipeline and profile management slice 14 of 14 Rust files reviewed, 1406 lines
   - reload, set-pipeline and set-profile compile-outside-state-lock source regressions added

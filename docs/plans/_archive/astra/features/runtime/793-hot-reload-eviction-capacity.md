@@ -10,8 +10,6 @@ related_records:
 implementation_files:
   - zircon_runtime/src/ui/template/asset/hot_reload_plan.rs
 tests:
-  - zircon_runtime/src/ui/template/asset/hot_reload_plan/eviction_capacity_tests.rs
-  - tools/tests/test_runtime_hot_reload_eviction_capacity_performance_contract.py
 ---
 
 # Runtime793 · Hot-reload compile-cache eviction capacity

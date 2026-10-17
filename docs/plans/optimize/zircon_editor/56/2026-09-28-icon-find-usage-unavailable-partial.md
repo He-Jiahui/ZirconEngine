@@ -4,8 +4,7 @@ status: partial_implemented_managed_validation_pending
 editor: Editor56
 plan_item: ED56-P0-02
 related_code:
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/componentized_window.rs
+  - zircon_editor/src/ui/retained/dispatch/workbench/componentized_window.rs
 tests:
   - icon_library_find_usage_click_reports_unavailable_without_fake_results
 ---

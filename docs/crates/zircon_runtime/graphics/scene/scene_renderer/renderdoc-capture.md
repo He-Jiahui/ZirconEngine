@@ -1,19 +1,14 @@
 ---
 related_code:
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render_capture.rs
-  - zircon_runtime/src/graphics/backend/render_backend/graphics_debugger_capture.rs
   - zircon_runtime/src/graphics/debug_markers.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/shadow/shaders/zr_shadow.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/post_process.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/depth_sampling_mode.rs
+  - zircon_runtime/src/graphics/scene/renderer/shadow/shaders/zr_shadow.wgsl
+  - zircon_runtime/src/graphics/scene/renderer/post/resources/depth_sampling_mode.rs
   - zircon_app/src/bin/zircon_shader_pbr_viewer/app.rs
   - zircon_app/src/bin/zircon_shader_pbr_viewer/args.rs
   - zircon_app/src/bin/zircon_shader_pbr_viewer/scene.rs
 implementation_files:
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render_capture.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/shadow/shaders/zr_shadow.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/post_process.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/depth_sampling_mode.rs
+  - zircon_runtime/src/graphics/scene/renderer/shadow/shaders/zr_shadow.wgsl
+  - zircon_runtime/src/graphics/scene/renderer/post/resources/depth_sampling_mode.rs
   - zircon_app/src/bin/zircon_shader_pbr_viewer/app.rs
   - zircon_app/src/bin/zircon_shader_pbr_viewer/args.rs
   - zircon_app/src/bin/zircon_shader_pbr_viewer/scene.rs
@@ -23,14 +18,6 @@ plan_sources:
   - docs/plans/zircon_runtime/render/11-environment-lighting.md
   - .codex/plans/Runtime 渲染风险清单与 RenderDoc 调试支持计划.md
 tests:
-  - docs/tests/runtime/shader/zircon_shader_pbr_viewer_renderdoc_vulkan_20260708_capture.rdc
-  - docs/tests/runtime/shader/zircon_shader_pbr_viewer_startup_lifetime_20260708.png
-  - docs/tests/runtime/shader/zircon_shader_pbr_viewer_dx12_direct_after_depth_load_20260710.log
-  - docs/tests/runtime/shader/zircon_shader_pbr_viewer_renderdoc_dx12_20260710.log
-  - docs/tests/runtime/shader/zircon_shader_pbr_viewer_renderdoc_dx12_20260710_capture.rdc
-  - docs/tests/runtime/shader/zircon_shader_pbr_viewer_dx12_interactive_startup_20260710.png
-  - docs/tests/runtime/shader/zircon_shader_pbr_viewer_dx12_rebuild_live_20260710.png
-  - docs/tests/runtime/shader/zircon_shader_pbr_viewer_renderdoc_dx12_rebuild_20260710_capture.rdc
 doc_type: module-detail
 ---
 

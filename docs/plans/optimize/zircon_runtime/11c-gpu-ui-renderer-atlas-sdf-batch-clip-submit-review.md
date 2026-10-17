@@ -1,6 +1,5 @@
 ---
 related_code:
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui
   - zircon_runtime/src/ui/icon_atlas
   - zircon_runtime/src/ui/surface/render
   - zircon_runtime_interface/src/ui/surface/render
@@ -8,8 +7,7 @@ related_code:
   - zircon_runtime/crates/zr_rhi/src/ui_surface
   - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface
-  - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream
-  - zircon_editor/src/ui/retained_host/host_contract/presenter/gpu
+  - zircon_editor/src/ui/retained/contract/presenter/gpu
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md
   - docs/plans/zircon_runtime/text/04-glyph-atlas-and-rasterization.md

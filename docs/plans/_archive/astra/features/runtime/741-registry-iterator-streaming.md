@@ -7,7 +7,6 @@ plan_sources:
 related_code:
   - zircon_runtime/src/dynamic_api/session/runtime_ui.rs
 tests:
-  - tools/tests/test_runtime_editor_registry_iterator_projection_performance_contract.py
 ---
 
 # Runtime Registry Iterator Streaming

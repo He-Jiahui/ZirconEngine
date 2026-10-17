@@ -10,7 +10,6 @@ related_records:
 implementation_files:
   - zircon_editor/src/ui/workbench/model/menu/extension_menu.rs
 tests:
-  - zircon_editor/src/ui/workbench/model/menu/extension_menu/operation_index_tests.rs
 ---
 
 # Editor975 Editor01 extension-menu operation index

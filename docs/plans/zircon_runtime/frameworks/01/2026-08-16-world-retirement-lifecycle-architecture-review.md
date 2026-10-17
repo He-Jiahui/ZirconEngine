@@ -14,7 +14,6 @@ related_code:
   - zircon_runtime/src/scene/level_system.rs
   - zircon_runtime/src/scene/runtime_extension/mod.rs
   - zircon_runtime/src/plugin/extension_registry/apply_to_world.rs
-  - zircon_runtime/src/plugin/extension_registry/register/runtime_scene_system_registration.rs
   - zircon_plugins/plugin_sdk/src/registration.rs
   - zircon_plugins/ai/runtime/src/manager/state.rs
   - zircon_plugins/animation/runtime/src/manager.rs

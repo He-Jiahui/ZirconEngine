@@ -12,7 +12,6 @@ implementation_files:
   - zircon_editor/src/ui/workbench/snapshot/data/transaction_history_snapshot.rs
 tests:
   - zircon_editor/src/tests/workbench/transaction_history_snapshot.rs
-  - tools/tests/test_editor_transaction_history_snapshot_binary_lookup_performance_contract.py
 ---
 
 # Editor744 · History snapshot binary top lookup

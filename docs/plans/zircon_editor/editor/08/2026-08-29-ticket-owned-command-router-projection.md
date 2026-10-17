@@ -15,12 +15,12 @@ related_code:
   - zircon_editor/src/core/plugin/materializer.rs
   - zircon_editor/src/ui/host/editor_extension_registration.rs
   - zircon_editor/src/ui/workbench/shell_state.rs
-  - zircon_editor/src/ui/retained_host/app/module_plugin_actions/host_actions/live_actions.rs
+  - zircon_editor/src/ui/retained/app/plugins/host_actions/live_actions.rs
   - zircon_editor/src/core/runtime_event_consumer/error.rs
   - zircon_editor/src/core/runtime_event_consumer/registration.rs
   - zircon_editor/src/core/runtime_event_consumer/host.rs
   - zircon_editor/src/core/runtime_event_consumer/host/contribution_lifecycle.rs
-  - zircon_editor/src/tests/editor_event/runtime/extensions_registration/overlay_lifecycle.rs
+  - zircon_editor/src/tests/runtime/extensions_registration/overlay_lifecycle.rs
   - zircon_runtime_interface/src/editor_contribution.rs
   - zircon_plugins/plugin_sdk/src/editor_contribution.rs
 reference_sources:

@@ -1,7 +1,6 @@
 ---
 related_code:
   - zircon_hub/src/tauri_app/runtime_state.rs
-  - zircon_hub/src/tauri_app/runtime_state/tests.rs
   - zircon_hub/src/tauri_app/action_id.rs
   - zircon_hub/src/tauri_app/runtime_state/action_targets.rs
   - zircon_hub/src/tauri_app/runtime_state/action_tasks.rs
@@ -31,7 +30,6 @@ related_code:
   - zircon_hub/src/state/hub_message/message.rs
   - zircon_hub/src/state/hub_message/mod.rs
   - zircon_hub/src/team/local_git.rs
-  - tools/zircon_build.py
   - zircon_hub/tauri.conf.json
   - zircon_hub/web/src/App.tsx
   - zircon_hub/web/src/tauri/hubApi.ts
@@ -66,7 +64,6 @@ related_code:
   - zircon_hub/tests/ui_workspace_split_contract.rs
 implementation_files:
   - zircon_hub/src/tauri_app/runtime_state.rs
-  - zircon_hub/src/tauri_app/runtime_state/tests.rs
   - zircon_hub/src/tauri_app/action_id.rs
   - zircon_hub/src/tauri_app/runtime_state/action_targets.rs
   - zircon_hub/src/tauri_app/runtime_state/action_tasks.rs
@@ -90,7 +87,6 @@ implementation_files:
   - zircon_hub/src/state/hub_message/id.rs
   - zircon_hub/src/state/hub_message/message.rs
   - zircon_hub/src/state/hub_message/mod.rs
-  - tools/zircon_build.py
   - zircon_hub/tauri.conf.json
   - zircon_hub/web/src/App.tsx
   - zircon_hub/web/src/tauri/hubApi.ts

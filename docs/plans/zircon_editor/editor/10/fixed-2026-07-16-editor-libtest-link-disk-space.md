@@ -10,7 +10,7 @@ fixing_child_dir: docs/plans/zircon_runtime/runtime/01
 related_code:
   - zircon_editor/src/core/project
   - zircon_editor/src/ui/host/startup
-  - zircon_editor/src/ui/retained_host/app/welcome_session
+  - zircon_editor/src/ui/retained/app/welcome_session
 plan_sources:
   - docs/plans/zircon_editor/editor/10-project-and-asset-reference-management.md
   - docs/plans/zircon_runtime/runtime/01-tech-stack-and-dependency-governance.md

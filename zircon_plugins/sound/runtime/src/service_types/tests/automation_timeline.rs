@@ -68,7 +68,7 @@ fn automation_target_projection_release_gate() {
     let unused_path_clone_bytes = BENCHMARK_APPLICATIONS_PER_SAMPLE * BENCHMARK_UNUSED_PATH_BYTES;
 
     println!(
-        "PERF_RESULT task=plugins11_automation_target_projection applications_per_sample={BENCHMARK_APPLICATIONS_PER_SAMPLE} binding_path_bytes={BENCHMARK_UNUSED_PATH_BYTES} sample_pairs={BENCHMARK_SAMPLE_PAIRS} order=alternating_legacy_first_even legacy_first_pairs=11 optimized_first_pairs=10 percentile_method=nearest_rank legacy_unused_path_clone_allocations={BENCHMARK_APPLICATIONS_PER_SAMPLE} optimized_unused_path_clone_allocations=0 legacy_unused_path_clone_bytes={unused_path_clone_bytes} optimized_unused_path_clone_bytes=0 threshold_percent=15 legacy_p50_ns={legacy_p50} legacy_p95_ns={legacy_p95} optimized_p50_ns={optimized_p50} optimized_p95_ns={optimized_p95} legacy_raw_ns={legacy_ns} optimized_raw_ns={optimized_ns}"
+        "PERF_RESULT task=plugins11_automation_target_projection applications_per_sample={BENCHMARK_APPLICATIONS_PER_SAMPLE} binding_path_bytes={BENCHMARK_UNUSED_PATH_BYTES} sample_pairs={BENCHMARK_SAMPLE_PAIRS} order=alternating_legacy_first_even legacy_first_pairs=11 optimized_first_pairs=10 percentile_method=nearest_rank legacy_unused_path_clone_allocations={BENCHMARK_APPLICATIONS_PER_SAMPLE} optimized_unused_path_clone_allocations_expected=0 legacy_unused_path_clone_bytes={unused_path_clone_bytes} optimized_unused_path_clone_bytes=0 threshold_percent=15 legacy_p50_ns={legacy_p50} legacy_p95_ns={legacy_p95} optimized_p50_ns={optimized_p50} optimized_p95_ns={optimized_p95} legacy_raw_ns={legacy_ns} optimized_raw_ns={optimized_ns}"
     );
     assert!(
         optimized_p95.saturating_mul(100) <= legacy_p95.saturating_mul(85),

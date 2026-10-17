@@ -19,7 +19,7 @@ related_code:
   - zircon_runtime/src/text/atlas/upload.rs
   - zircon_runtime/src/text/native_bitmap_atlas/storage.rs
   - zircon_runtime/src/text/native_bitmap_atlas/tests/storage.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/binding.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/atlas_texture_upload/binding.rs
 ---
 
 # Bitmap atlas整页staging与dirty union放大

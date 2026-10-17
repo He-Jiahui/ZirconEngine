@@ -2,8 +2,6 @@
 related_code:
   - zircon_plugins/sound/editor
   - zircon_plugins/sound/runtime
-  - zircon_plugins/sound/features/timeline_animation_track
-  - zircon_plugins/sound/features/ray_traced_convolution_reverb
   - zircon_plugins/audio_importer
   - zircon_plugins/asset_importers/audio
   - zircon_plugins/opus_importer
@@ -14,7 +12,6 @@ related_code:
   - zircon_editor/src/core/asset/type_registry/builtin.rs
   - zircon_editor/src/ui/host/editor_operation_dispatch.rs
   - zircon_editor/src/ui/host/editor_event_execution/asset_event.rs
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/animation/workbench_extension_sequencer_workspace.zui
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md
   - docs/plans/optimize/zircon_runtime/04-core-resource-asset-serialization-review.md

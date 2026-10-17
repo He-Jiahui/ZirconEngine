@@ -24,8 +24,6 @@ related_plugin_owner:
   - docs/plans/zircon_plugins/02/failure-2026-07-19-kira-send-frame-capture-routing.md
 related_code:
   - zircon_plugins/sound/editor
-  - zircon_plugins/sound/features/timeline_animation_track/editor
-  - zircon_plugins/sound/features/ray_traced_convolution_reverb/editor
   - zircon_plugins/first_party_editor_catalog
   - zircon_editor/src/core/asset/type_registry
   - zircon_editor/src/core/document

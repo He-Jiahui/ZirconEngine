@@ -8,7 +8,6 @@ related_code:
   - zircon_runtime/src/ui/surface/input/rich_link.rs
   - zircon_runtime/src/ui/tests/scroll_virtualization.rs
   - zircon_runtime/src/ui/text/layout_engine/tests/measure.rs
-  - zircon_runtime/src/ui/template/asset/resource_ref/resolver/hash_invalidation_tests.rs
 ---
 
 # Runtime UI 测试导入与 API 编译修复

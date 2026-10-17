@@ -10,8 +10,7 @@ related_records:
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
   - zircon_editor/src/core/settings/tests/mod.rs
-  - zircon_editor/src/scene/modes/scene_mode_registry/entry_registration_tests.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/progress.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/progress.rs
 ---
 
 # Editor899 Library-Test Import Contract Repairs

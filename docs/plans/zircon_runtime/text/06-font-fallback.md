@@ -10,16 +10,14 @@ related_code:
   - zircon_runtime/src/text/font/database.rs
   - zircon_runtime/src/text/font/shared.rs
   - zircon_runtime/src/text/font/fallback.rs
-  - zircon_runtime/src/text/font/fallback/tests.rs
   - zircon_runtime/src/text/font/coverage.rs
   - zircon_runtime/src/text/shaping/cosmic.rs
   - zircon_runtime/src/text/shaping/cosmic/font_system_cache.rs
   - zircon_runtime/src/text/shaping/fallback_spans.rs
-  - zircon_runtime/src/text/shaping/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/prepare_report.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/text.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/text/prepare_report.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/render.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/sdf_atlas.rs
   - zircon_runtime/src/text/sdf/font_bake.rs
   - zircon_runtime/tests/runtime_text_multilingual_product_framebuffer.rs
   - zircon_runtime/src/asset/assets/font.rs

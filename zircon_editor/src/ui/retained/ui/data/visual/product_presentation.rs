@@ -280,6 +280,7 @@ pub(crate) fn build_product_workbench_presentation_with_context(
     case: &ReviewCase,
     core: &CoreHandle,
     app_preflighted_build_set: &ZrRuntimeBuildSetId,
+    project_root: &Path,
 ) -> Result<ProductWorkbenchPresentation, String> {
     let snapshot_value = case
         .data
@@ -295,11 +296,11 @@ pub(crate) fn build_product_workbench_presentation_with_context(
         ));
     }
     let layout = expected.workbench_layout()?;
-    let project_root = review_project_root()?;
+    let project_root = review_project_root(project_root)?;
     if canonical_project_path(&project_root)? != expected.status.project_path {
-        return Err(format!(
-            "workbenchPresentation project path does not match {REVIEW_PROJECT_ROOT_ENV}"
-        ));
+        return Err(
+            "workbenchPresentation project path does not match the requested review project".into(),
+        );
     }
     let managed_scene_fingerprint = case
         .data
@@ -313,6 +314,7 @@ pub(crate) fn build_product_workbench_presentation_with_context(
         layout,
         core,
         app_preflighted_build_set,
+        &project_root,
     )?;
     match managed_inputs::capture(&project_root) {
         Ok(current) if current == checked_managed_scene_fingerprint => {}
@@ -681,7 +683,9 @@ pub(crate) fn normal_workbench_business_snapshot(
     filter_query: &str,
     expanded_ids: Vec<EntityId>,
 ) -> Result<NormalWorkbenchBusinessSnapshot, String> {
-    let project_root = review_project_root()?;
+    let configured = std::env::var_os(REVIEW_PROJECT_ROOT_ENV)
+        .ok_or("normal workbench evidence requires a configured review project")?;
+    let project_root = review_project_root(Path::new(&configured))?;
     let managed_scene_fingerprint = managed_inputs::capture(&project_root)?;
     let mut workbench_presentation = workbench_snapshot_from_model(
         repo_root,

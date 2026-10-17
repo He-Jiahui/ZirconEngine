@@ -10,15 +10,10 @@ related_code:
   - zircon_runtime/crates/zr_rhi_wgpu
   - zircon_runtime/src/rhi.rs
   - zircon_runtime/src/graphics/backend
-  - zircon_runtime/src/graphics/runtime/render_framework
   - zircon_runtime/src/graphics/scene/resources
-  - zircon_runtime/src/graphics/scene/scene_renderer
 tests:
   - zircon_runtime/crates/zr_rhi/src/tests
-  - zircon_runtime/crates/zr_rhi/src/ui_surface/tests.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/tests
-  - zircon_runtime/crates/zr_rhi_wgpu/src/gpu_readback_queue/tests.rs
-  - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/tests.rs
   - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/tests/native_submission.rs
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md

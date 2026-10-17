@@ -22,7 +22,6 @@ tests:
   - zircon_editor/src/tests/editing
   - zircon_editor/src/tests/ui
   - zircon_plugins/navigation/editor/src/tests/operation_command.rs
-  - zircon_plugins/neural/editor/src/tests.rs
 plan_sources:
   - docs/plans/optimize/zircon_editor/184-editor-authoring-transaction-command-history-undo-redo-merge-group-savepoint-dirty-document-scope-object-generation-async-operation.md
   - docs/plans/optimize/zircon_editor/225-editor-document-transaction-save-autosave-recovery-authoring-io-current-source-review.md

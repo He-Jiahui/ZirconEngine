@@ -1,8 +1,7 @@
 ---
 related_code:
   - zircon_editor/src/ui/workbench/autolayout
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/recompute/shell
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench
+  - zircon_editor/src/ui/retained/app/host_lifecycle/recompute/shell
   - zircon_editor/src/ui/workbench/reference/template_surface.rs
   - zircon_runtime/src/ui/layout
   - zircon_runtime/src/ui/surface/surface/rebuild.rs

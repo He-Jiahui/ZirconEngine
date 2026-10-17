@@ -10,7 +10,6 @@ fixing_child_dir: docs/plans/zircon_runtime/frameworks/03
 related_code:
   - zircon_runtime/src/asset/tests
   - zircon_runtime/src/scene/tests
-  - zircon_runtime/src/tests/plugin_extensions
   - zircon_runtime/src/tests/prelude.rs
 plan_sources:
   - docs/plans/zircon_runtime/frameworks/03-optional-features-and-profile-matrix.md

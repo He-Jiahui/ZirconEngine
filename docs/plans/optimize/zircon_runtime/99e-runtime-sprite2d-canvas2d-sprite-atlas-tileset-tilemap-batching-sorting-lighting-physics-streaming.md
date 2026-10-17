@@ -14,7 +14,7 @@ related_code:
   - zircon_runtime/src/asset/assets/imported.rs
   - zircon_runtime/src/asset/artifact/cache_payload.rs
   - zircon_runtime/src/asset/importer/ingest/import_authoring_asset.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/loading/load_asset.rs
+  - zircon_runtime/src/asset/pipeline/manager/assets/loading/load_asset.rs
   - zircon_runtime/src/core/framework/render/sprite
   - zircon_runtime/src/core/framework/render/frame_extract.rs
   - zircon_runtime/src/core/framework/render/core_pipeline
@@ -23,28 +23,20 @@ related_code:
   - zircon_runtime/src/scene/world/render.rs
   - zircon_runtime/src/scene/world/render_visibility.rs
   - zircon_runtime/src/scene/world/project_io/scene_asset.rs
-  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/sprite.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/default_core2d.rs
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_scene_resources.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/sprite
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/sprite_stage_selection.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/overlay/passes/base_scene_pass.rs
+  - zircon_runtime/src/graphics/feature/builtin/feature_descriptors/sprite.rs
+  - zircon_runtime/src/graphics/scene/core/render/render/sprite_stage_selection.rs
+  - zircon_runtime/src/graphics/scene/renderer/overlay/passes/base_scene_pass.rs
   - zircon_plugins/tilemap_2d
-  - zircon_editor/src/ui/host/editor_asset_manager/manager/sprite_atlas
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/sprite_atlas
+  - zircon_editor/src/ui/host/assets/manager/sprite_atlas
 tests:
   - zircon_runtime/src/asset/assets/sprite_atlas/validation.rs
   - zircon_runtime/src/asset/tests/assets/authoring.rs
   - zircon_runtime/src/asset/tests/assets/scene/management.rs
   - zircon_runtime/src/core/framework/render/core_pipeline/phase_queue_summary.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/sprite/build_sprite_vertices/tests.rs
   - zircon_runtime/src/graphics/tests/render_product_sprite.rs
   - zircon_runtime/src/scene/tests/render_extract.rs
   - zircon_runtime/src/scene/tests/world_basics/sprites.rs
-  - zircon_plugins/tilemap_2d/runtime/src/tests.rs
-  - zircon_plugins/tilemap_2d/editor/src/tests.rs
   - zircon_runtime/tests/frameworks_03_profile_feature_presets.rs
-  - tests/acceptance/render-product-m6a-sprite-default-2d.md
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md
   - docs/plans/optimize/01-cross-report-owner-schema-abi-p0-consolidation-review.md

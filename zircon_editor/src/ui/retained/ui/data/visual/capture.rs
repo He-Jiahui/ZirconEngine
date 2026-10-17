@@ -60,8 +60,7 @@ pub(super) fn render_with_context(
     case_value: &Value,
     case: &ReviewCase,
     directory: &Path,
-    core: &CoreHandle,
-    app_preflighted_build_set: &ZrRuntimeBuildSetId,
+    context: (&CoreHandle, &ZrRuntimeBuildSetId, &Path),
 ) -> Result<Map<String, Value>, String> {
     render_internal(
         repo,
@@ -69,7 +68,7 @@ pub(super) fn render_with_context(
         case_value,
         case,
         directory,
-        Some((core, app_preflighted_build_set)),
+        Some(context),
     )
 }
 
@@ -79,7 +78,7 @@ fn render_internal(
     case_value: &Value,
     case: &ReviewCase,
     directory: &Path,
-    product_context: Option<(&CoreHandle, &ZrRuntimeBuildSetId)>,
+    product_context: Option<(&CoreHandle, &ZrRuntimeBuildSetId, &Path)>,
 ) -> Result<Map<String, Value>, String> {
     let physical_viewport = case.physical_viewport()?;
     let font_assets = crate::ui::retained_host::host_contract::UiHostWindow::load_font_assets()
@@ -88,7 +87,7 @@ fn render_internal(
     let startup_tokens = (!has_product_presentation).then(active_editor_v2_design_tokens_snapshot);
     let identities = super::source_identity::SourceIdentityIndex::load(repo, entry, case)?;
     let product = if has_product_presentation {
-        let (core, app_preflighted_build_set) = product_context.ok_or(
+        let (core, app_preflighted_build_set, project_root) = product_context.ok_or(
             "product workbench capture requires the App-preflighted CoreHandle and runtime BuildSet",
         )?;
         Some(
@@ -99,6 +98,7 @@ fn render_internal(
                 case,
                 core,
                 app_preflighted_build_set,
+                project_root,
             )?,
         )
     } else {

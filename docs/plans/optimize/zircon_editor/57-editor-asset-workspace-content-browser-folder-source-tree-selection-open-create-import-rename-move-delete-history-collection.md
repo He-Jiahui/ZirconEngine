@@ -12,16 +12,12 @@ related_code:
   - zircon_editor/src/core/editor_event/types.rs
   - zircon_editor/src/ui/binding/asset
   - zircon_editor/src/ui/binding_dispatch/asset
-  - zircon_editor/src/ui/host/editor_asset_manager
   - zircon_editor/src/ui/host/editor_event_execution/asset_event.rs
   - zircon_editor/src/ui/host/editor_event_runtime_access/asset_access.rs
   - zircon_editor/src/ui/host/editor_operation_dispatch.rs
-  - zircon_editor/src/ui/retained_host/app/assets
-  - zircon_editor/src/ui/retained_host/app/backend_refresh.rs
-  - zircon_editor/src/ui/retained_host/app/asset_content_pointer
-  - zircon_editor/src/ui/retained_host/app/asset_drag_payload
-  - zircon_editor/src/ui/retained_host/asset_pointer
-  - zircon_editor/src/ui/retained_host/callback_dispatch/shared_pointer
+  - zircon_editor/src/ui/retained/app/backend_refresh.rs
+  - zircon_editor/src/ui/retained/app/asset_content_pointer
+  - zircon_editor/src/ui/retained/app/asset_drag_payload
   - zircon_editor/src/ui/layouts/views/asset_browser
   - zircon_editor/src/ui/workbench/project/asset_workspace_state.rs
   - zircon_editor/src/ui/workbench/snapshot/asset
@@ -30,9 +26,8 @@ tests:
   - zircon_editor/src/tests/editor_asset_type_registry
   - zircon_editor/src/tests/host/retained_asset_pointer.rs
   - zircon_editor/src/tests/host/retained_callback_dispatch
-  - zircon_editor/src/tests/host/retained_menu_pointer/asset_browser_controls_visual_screenshot.rs
   - zircon_editor/src/tests/ui/asset_browser
-  - zircon_editor/src/ui/layouts/views/asset_browser/tests.rs
+  - zircon_editor/src/ui/layouts/views/asset_browser/tests/mod.rs
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md
   - docs/plans/optimize/01-cross-report-owner-schema-abi-p0-consolidation-review.md

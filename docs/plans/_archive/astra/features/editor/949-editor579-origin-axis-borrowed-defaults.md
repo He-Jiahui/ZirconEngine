@@ -7,9 +7,9 @@ related_records:
   - docs/plans/astra/features/runtime/892-runtime579-shader-stage-preflight.md
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/popup_frame/origin.rs
+  - zircon_editor/src/ui/retained/ui/data/projection/popup_frame/origin.rs
 tests:
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/popup_frame/origin.rs
+  - zircon_editor/src/ui/retained/ui/data/projection/popup_frame/origin.rs
 ---
 
 # Editor949 Editor579 Origin-Axis Borrowed Defaults

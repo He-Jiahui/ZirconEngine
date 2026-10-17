@@ -16,7 +16,7 @@ reference_sources:
   - dev/UnrealEngine/Engine/Source/Editor/UnrealEd/Public/PlayLevel.h
   - dev/bevy/crates/bevy_tasks/src/usages.rs
 tests:
-  - zircon_editor/src/core/project/authority.rs::performance_source_guards
+  - zircon_editor/src/core/project/authority/mod.rs::performance_source_guards
   - zircon_editor/src/core/play/controller.rs::performance_source_guards
   - zircon_editor/src/core/play/plugin_activation/native.rs::performance_source_guards
   - zircon_editor/src/core/play/process_backend/mod.rs::performance_source_guards

@@ -10,10 +10,7 @@ related_records:
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
   - zircon_runtime/src/ui/component/state_reducer/collection.rs
-  - zircon_runtime/src/ui/component/state_reducer/collection/mutation_single_resolution_tests.rs
 tests:
-  - zircon_runtime/src/ui/component/state_reducer/collection/mutation_single_resolution_tests.rs
-  - tools/tests/test_runtime_collection_single_resolution_performance_contract.py
 ---
 
 # Runtime770 · Collection single state resolution

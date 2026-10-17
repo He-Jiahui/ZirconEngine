@@ -7,10 +7,7 @@ plan_sources:
   - docs/plans/optimize/zircon_editor/313/2026-09-19-listener-projection-test-wiring-repair.md
 related_code:
   - zircon_editor/src/core/editor_event/listener/projection.rs
-  - zircon_editor/src/core/editor_event/listener/projection/capacity_tests.rs
 tests:
-  - zircon_editor/src/core/editor_event/listener/projection/capacity_tests.rs
-  - tools/tests/test_editor_listener_projection_capacity_performance_contract.py
 related_records:
   - docs/plans/astra/features/editor/821-listener-projection-test-wiring.md
 ---

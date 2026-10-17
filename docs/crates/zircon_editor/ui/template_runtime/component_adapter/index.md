@@ -1,17 +1,14 @@
 ---
 related_code:
-  - zircon_editor/src/ui/template_runtime/component_adapter/mod.rs
-  - zircon_editor/src/ui/template_runtime/component_adapter/registry.rs
-  - zircon_editor/src/ui/template_runtime/component_adapter/asset_editor.rs
-  - zircon_editor/src/ui/template_runtime/component_adapter/inspector.rs
-  - zircon_editor/src/ui/template_runtime/component_adapter/reflection.rs
-  - zircon_editor/src/ui/template_runtime/component_adapter/command.rs
+  - zircon_editor/src/ui/runtime/component_adapter/registry.rs
+  - zircon_editor/src/ui/runtime/component_adapter/reflection.rs
+  - zircon_editor/src/ui/runtime/component_adapter/command.rs
   - zircon_editor/src/ui/host/editor_event_runtime_access/component_dispatch.rs
 plan_sources:
   - docs/plans/zircon_editor/editor_ui/10-code-structure-and-module-conventions.md
   - docs/plans/engine-code-structure-convention.md
 implementation_files:
-  - zircon_editor/src/ui/template_runtime/component_adapter/registry.rs
+  - zircon_editor/src/ui/runtime/component_adapter/registry.rs
 tests:
   - rustfmt --edition 2021 --check zircon_editor/src/ui/template_runtime/component_adapter/registry.rs
   - editor UI 10 component-adapter dead_code suppression scan

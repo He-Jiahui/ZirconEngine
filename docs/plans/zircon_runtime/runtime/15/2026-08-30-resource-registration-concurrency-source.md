@@ -7,7 +7,6 @@ validation_status: rustfmt_static_guard_passed_managed_cargo_pending
 owner: Runtime15
 related_code:
   - zircon_runtime/src/plugin/extension_registry/register/resource_registration.rs
-  - zircon_runtime/src/plugin/extension_registry/register/resource_registration/poison_recovery_tests.rs
 plan_sources:
   - docs/plans/engine-code-structure-convention.md
   - docs/plans/engine-code-review-findings-2026-06.md

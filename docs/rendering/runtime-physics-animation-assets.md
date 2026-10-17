@@ -78,35 +78,26 @@ related_code:
   - zircon_runtime/src/asset/project/manager/collect_files.rs
   - zircon_runtime/src/core/framework/render/frame_extract.rs
   - zircon_runtime/src/graphics/scene/gpu_scene/prev_transform.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/motion_vector_camera.rs
+  - zircon_runtime/src/graphics/runtime/viewport_record/motion_vector_camera.rs
   - zircon_runtime/src/graphics/scene/resources/gpu_mesh/gpu_mesh_vertex.rs
-  - zircon_runtime/src/graphics/scene/resources/gpu_mesh/gpu_mesh_vertex_from_mesh_vertex.rs
   - zircon_runtime/src/graphics/scene/resources/gpu_mesh/gpu_mesh_vertex_layout.rs
-  - zircon_runtime/src/graphics/scene/resources/gpu_mesh/gpu_mesh_resource_from_asset.rs
   - zircon_runtime/src/graphics/scene/resources/pipeline/pipeline_key.rs
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_load_animation_skeleton_asset.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/scene_renderer_core.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/advanced_plugin_resources/build_mesh_draws.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_construct/construct/construct.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_construct/scene_bind_group_bundle/create_scene_bind_group_bundle.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_scene/render_scene.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/build_compiled_scene_draws.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/create_mesh_draw.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/build.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/extend_pending_draws_for_mesh_instance.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_mesh_draw.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/skinning.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/skinning/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/skinning/joint_palette_storage.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_draw/mesh_draw.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_draw/is_skinned.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/prepared_queue.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/fallback_mesh_shader_source.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/shaders/fallback_mesh.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_shadow_pipeline.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/create_shadow_mesh_pipeline.rs
+  - zircon_runtime/src/graphics/scene/core/render/build_compiled_scene_draws.rs
+  - zircon_runtime/src/graphics/scene/renderer/core/render/render/render.rs
+  - zircon_runtime/src/graphics/scene/mesh/build_mesh_draws/create_mesh_draw.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/build_mesh_draws/build/build.rs
+  - zircon_runtime/src/graphics/mesh/build/extend_pending_draws_for_mesh_instance.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/build/pending_mesh_draw.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/build/skinning.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/skinning/mod.rs
+  - zircon_runtime/src/graphics/scene/mesh/skinning/joint_palette_storage.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/mesh_draw/mesh_draw.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/mesh_draw/is_skinned.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/prepared_queue.rs
+  - zircon_runtime/src/graphics/mesh/mesh_pipeline/fallback_mesh_shader_source.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/shaders/fallback_mesh.wgsl
+  - zircon_runtime/src/graphics/mesh/mesh_pipeline_cache/ensure_shadow_pipeline.rs
+  - zircon_runtime/src/graphics/mesh/mesh_pipeline/create_shadow_mesh_pipeline.rs
   - zircon_runtime/src/graphics/shader/wgsl/zr_template_shadow.wgsl
   - zircon_runtime/src/graphics/shader/wgsl/zr_template_shadow_alpha.wgsl
   - zircon_runtime/src/core/framework/render/backend_types.rs
@@ -119,7 +110,6 @@ related_code:
   - zircon_runtime/src/tests/extensions/absorption_surface.rs
   - zircon_runtime/src/tests/extensions/animation_physics_absorption.rs
   - zircon_runtime/src/tests/extensions/manager_handles.rs
-  - zircon_runtime/src/tests/runtime_absorption/builtin_modules.rs
   - zircon_runtime/src/scene/tests/asset_scene.rs
   - zircon_runtime/src/scene/tests/property_paths.rs
   - zircon_runtime/src/scene/tests/physics_animation_components.rs
@@ -129,11 +119,7 @@ related_code:
   - zircon_plugins/physics/runtime/tests/physics_manager_runtime_contract/query.rs
   - zircon_plugins/physics/runtime/tests/physics_manager_runtime_contract/step.rs
   - zircon_plugins/animation/runtime/tests/physics_tick.rs
-  - zircon_plugins/animation/runtime/tests/runtime_physics_animation_tick_contract/runtime_helpers.rs
-  - zircon_plugins/animation/runtime/tests/runtime_physics_animation_tick_contract/target_resolution.rs
-  - zircon_editor/src/ui/host/editor_asset_manager/manager/default_editor_asset_manager/catalog_snapshot.rs
-  - zircon_editor/src/ui/host/editor_asset_manager/manager/default_editor_asset_manager/asset_details.rs
-  - zircon_editor/src/ui/host/editor_asset_manager/manager/catalog_generation/record.rs
+  - zircon_editor/src/ui/host/assets/manager/catalog_generation/record.rs
   - zircon_editor/src/ui/workbench/reflection/activity_actions/inspector_actions.rs
   - zircon_editor/src/ui/workbench/reflection/route_registration/action_route.rs
   - zircon_editor/src/ui/workbench/reflection/animation_route.rs
@@ -147,16 +133,14 @@ related_code:
   - zircon_editor/src/ui/host/animation_editor_sessions/save.rs
   - zircon_editor/src/ui/host/editor_manager_animation_editor.rs
   - zircon_editor/src/scene/viewport/render_packet.rs
-  - zircon_editor/src/ui/retained_host/viewport/test_render_framework.rs
-  - zircon_editor/src/ui/retained_host/viewport/tests/fake_render_framework.rs
+  - zircon_editor/src/ui/retained/viewport/tests/fake_render_framework.rs
   - zircon_editor/assets/ui/editor/assets_activity.zui
   - zircon_editor/assets/ui/editor/asset_browser.zui
-  - zircon_editor/assets/ui/editor/workbench_menu_chrome.zui
   - zircon_editor/src/tests/host/asset_references.rs
   - zircon_editor/src/tests/host/retained_asset_pointer.rs
   - zircon_editor/src/tests/workbench/reflection/action_dispatch.rs
-  - zircon_editor/src/ui/retained_host/app/assets.rs
-  - zircon_editor/src/ui/retained_host/app/helpers.rs
+  - zircon_editor/src/ui/retained/app/assets.rs
+  - zircon_editor/src/ui/retained/app/helpers.rs
   - zircon_runtime/src/ui/tests/runtime_ui_support/runtime_ui_manager.rs
   - examples/vampire/assets/scenes/main.scene.toml
   - examples/vampire/assets/terrain/jungle_clearing.terrain.toml
@@ -237,40 +221,29 @@ implementation_files:
   - zircon_runtime/src/asset/project/manager/collect_files.rs
   - zircon_runtime/src/core/framework/render/frame_extract.rs
   - zircon_runtime/src/graphics/scene/resources/gpu_mesh/gpu_mesh_vertex.rs
-  - zircon_runtime/src/graphics/scene/resources/gpu_mesh/gpu_mesh_vertex_from_mesh_vertex.rs
   - zircon_runtime/src/graphics/scene/resources/gpu_mesh/gpu_mesh_vertex_layout.rs
-  - zircon_runtime/src/graphics/scene/resources/gpu_mesh/gpu_mesh_resource_from_asset.rs
   - zircon_runtime/src/graphics/scene/gpu_scene/prev_transform.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/motion_vector_camera.rs
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_load_animation_skeleton_asset.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/scene_renderer_core.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/advanced_plugin_resources/build_mesh_draws.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_construct/construct/construct.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_construct/scene_bind_group_bundle/create_scene_bind_group_bundle.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_scene/render_scene.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/build_compiled_scene_draws.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/create_mesh_draw.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/build.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/extend_pending_draws_for_mesh_instance.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_mesh_draw.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/skinning.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/skinning/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/skinning/joint_palette_storage.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_draw/mesh_draw.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_draw/is_skinned.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_draw/queue_profile.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_pipeline.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/fallback_mesh_shader_source.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/shaders/fallback_mesh.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_shadow_pipeline.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/create_shadow_mesh_pipeline.rs
+  - zircon_runtime/src/graphics/runtime/viewport_record/motion_vector_camera.rs
+  - zircon_runtime/src/graphics/scene/core/render/build_compiled_scene_draws.rs
+  - zircon_runtime/src/graphics/scene/renderer/core/render/render/render.rs
+  - zircon_runtime/src/graphics/scene/mesh/build_mesh_draws/create_mesh_draw.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/build_mesh_draws/build/build.rs
+  - zircon_runtime/src/graphics/mesh/build/extend_pending_draws_for_mesh_instance.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/build/pending_mesh_draw.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/build/skinning.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/skinning/mod.rs
+  - zircon_runtime/src/graphics/scene/mesh/skinning/joint_palette_storage.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/mesh_draw/mesh_draw.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/mesh_draw/is_skinned.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/mesh_draw/queue_profile.rs
+  - zircon_runtime/src/graphics/scene/mesh/mesh_pipeline_cache/ensure_pipeline.rs
+  - zircon_runtime/src/graphics/mesh/mesh_pipeline/fallback_mesh_shader_source.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/shaders/fallback_mesh.wgsl
+  - zircon_runtime/src/graphics/mesh/mesh_pipeline_cache/ensure_shadow_pipeline.rs
+  - zircon_runtime/src/graphics/mesh/mesh_pipeline/create_shadow_mesh_pipeline.rs
   - zircon_runtime/src/graphics/shader/wgsl/zr_template_shadow.wgsl
   - zircon_runtime/src/graphics/shader/wgsl/zr_template_shadow_alpha.wgsl
-  - zircon_editor/src/ui/host/editor_asset_manager/manager/default_editor_asset_manager/catalog_snapshot.rs
-  - zircon_editor/src/ui/host/editor_asset_manager/manager/default_editor_asset_manager/asset_details.rs
-  - zircon_editor/src/ui/host/editor_asset_manager/manager/catalog_generation/record.rs
+  - zircon_editor/src/ui/host/assets/manager/catalog_generation/record.rs
   - zircon_editor/src/ui/workbench/reflection/activity_actions/inspector_actions.rs
   - zircon_editor/src/ui/workbench/reflection/route_registration/action_route.rs
   - zircon_editor/src/ui/workbench/reflection/animation_route.rs
@@ -284,16 +257,14 @@ implementation_files:
   - zircon_editor/src/ui/host/animation_editor_sessions/save.rs
   - zircon_editor/src/ui/host/editor_manager_animation_editor.rs
   - zircon_editor/src/scene/viewport/render_packet.rs
-  - zircon_editor/src/ui/retained_host/viewport/test_render_framework.rs
-  - zircon_editor/src/ui/retained_host/viewport/tests/fake_render_framework.rs
+  - zircon_editor/src/ui/retained/viewport/tests/fake_render_framework.rs
   - zircon_editor/assets/ui/editor/assets_activity.zui
   - zircon_editor/assets/ui/editor/asset_browser.zui
-  - zircon_editor/assets/ui/editor/workbench_menu_chrome.zui
   - zircon_editor/src/tests/host/asset_references.rs
   - zircon_editor/src/tests/host/retained_asset_pointer.rs
   - zircon_editor/src/tests/workbench/reflection/action_dispatch.rs
-  - zircon_editor/src/ui/retained_host/app/assets.rs
-  - zircon_editor/src/ui/retained_host/app/helpers.rs
+  - zircon_editor/src/ui/retained/app/assets.rs
+  - zircon_editor/src/ui/retained/app/helpers.rs
   - zircon_runtime/src/ui/tests/runtime_ui_support/runtime_ui_manager.rs
   - examples/vampire/assets/scenes/main.scene.toml
   - examples/vampire/assets/terrain/jungle_clearing.terrain.toml
@@ -318,14 +289,11 @@ tests:
   - zircon_runtime/src/asset/tests/assets/model.rs
   - zircon_runtime/src/asset/tests/assets/physics_material.rs
   - zircon_runtime/src/asset/tests/assets/scene.rs
-  - zircon_runtime/src/core/framework/tests.rs
   - zircon_runtime/src/tests/extensions/absorption_surface.rs
   - zircon_runtime/src/tests/extensions/animation_physics_absorption.rs
   - zircon_runtime/src/tests/extensions/manager_handles.rs
-  - zircon_runtime/src/tests/runtime_absorption/builtin_modules.rs
   - zircon_runtime/src/scene/tests/asset_scene.rs
   - zircon_runtime/src/scene/tests/property_paths.rs
-  - zircon_runtime/src/tests/runtime_absorption/code_review_findings.rs
   - zircon_runtime/src/scene/tests/physics_animation_components.rs
   - cargo test -p zircon_runtime --locked --lib plugin_extensions::extension_registry --target-dir target\codex-shared-a
   - cargo test -p zircon_runtime --locked --lib extensions::animation_physics_absorption --target-dir target\codex-shared-a
@@ -356,17 +324,16 @@ tests:
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/extend_pending_draws_for_mesh_instance.rs::tests::previous_palette_morph_weights_accept_matching_active_shared_source_weights
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/extend_pending_draws_for_mesh_instance.rs::tests::previous_palette_morph_weights_reject_active_weights_without_shared_source
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/extend_pending_draws_for_mesh_instance.rs::tests::previous_palette_morph_weights_reject_changed_active_weights
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/create_mesh_draw.rs::tests::model_uniform_appends_motion_and_skinning_flags_without_moving_existing_fields
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/prepared_queue.rs::tests::prepared_queue_stats_count_cpu_morphed_gpu_skinning_source_as_dynamic_geometry
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/prepared_queue.rs::tests::prepared_queue_stats_count_gpu_skinned_motion_vectors_with_previous_palette
+  - zircon_runtime/src/graphics/scene/mesh/build_mesh_draws/create_mesh_draw.rs::tests::model_uniform_appends_motion_and_skinning_flags_without_moving_existing_fields
+  - zircon_runtime/src/graphics/scene/renderer/mesh/prepared_queue.rs::tests::prepared_queue_stats_count_cpu_morphed_gpu_skinning_source_as_dynamic_geometry
+  - zircon_runtime/src/graphics/scene/renderer/mesh/prepared_queue.rs::tests::prepared_queue_stats_count_gpu_skinned_motion_vectors_with_previous_palette
   - zircon_runtime/src/graphics/scene/gpu_scene/prev_transform.rs::tests::object_motion_history_keeps_dynamic_skinned_pose_sideband
-  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/motion_vector_camera.rs::tests::successful_submit_records_dynamic_object_history_for_next_frame
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_construct/scene_bind_group_bundle/create_scene_bind_group_bundle.rs::tests::model_bind_group_layout_reserves_skinned_joint_palette_bindings
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/fallback_mesh_shader_source.rs::tests::fallback_mesh_shader_exposes_skinning_vertex_channels
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/fallback_mesh_shader_source.rs::tests::fallback_mesh_shader_exposes_object_motion_vector_entries
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/fallback_mesh_shader_source.rs::tests::fallback_mesh_shader_executes_skinned_joint_palette_behind_draw_flag
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/shader_source.rs::tests::mesh_pipeline_shadow_template_source_uses_shadow_pass_surface_only_when_alpha_masked
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_shadow_pipeline.rs::tests::shadow_mesh_shader_key_includes_shader_variant_identity_and_source_hash
+  - zircon_runtime/src/graphics/runtime/viewport_record/motion_vector_camera.rs::tests::successful_submit_records_dynamic_object_history_for_next_frame
+  - zircon_runtime/src/graphics/mesh/mesh_pipeline/fallback_mesh_shader_source.rs::tests::fallback_mesh_shader_exposes_skinning_vertex_channels
+  - zircon_runtime/src/graphics/mesh/mesh_pipeline/fallback_mesh_shader_source.rs::tests::fallback_mesh_shader_exposes_object_motion_vector_entries
+  - zircon_runtime/src/graphics/mesh/mesh_pipeline/fallback_mesh_shader_source.rs::tests::fallback_mesh_shader_executes_skinned_joint_palette_behind_draw_flag
+  - zircon_runtime/src/graphics/scene/mesh/mesh_pipeline_cache/shader_source.rs::tests::mesh_pipeline_shadow_template_source_uses_shadow_pass_surface_only_when_alpha_masked
+  - zircon_runtime/src/graphics/mesh/mesh_pipeline_cache/ensure_shadow_pipeline.rs::tests::shadow_mesh_shader_key_includes_shader_variant_identity_and_source_hash
   - cargo test -p zircon_runtime animation_manager_samples_clip_pose_against_skeleton --locked -- --nocapture
   - cargo test -p zircon_runtime compiled_sequence_applies_mesh_renderer_morph_weight_track --locked -- --nocapture
   - cargo test -p zircon_runtime directory_project_scene_renders_non_background_frame_with_gizmo_overlay --locked -- --nocapture
@@ -380,7 +347,6 @@ tests:
   - cargo test -p zircon_runtime --locked --target-dir target/manual-physics-animation animation_manager_rejects_clip_pose_with_non_finite_channel_values --lib
   - cargo test -p zircon_editor --locked retained_asset_pointer --target-dir target/codex-asset-icon-validation-b -- --nocapture --test-threads=1
   - cargo test -p zircon_editor --locked workbench_reflection_ -- --nocapture
-  - zircon_editor/src/ui/animation_editor/session/tests.rs
   - zircon_editor/src/tests/host/animation_editor.rs
   - cargo test -p zircon_editor --lib save_sequence_session_persists_track_changes_and_clears_dirty -- --nocapture
   - cargo test -p zircon_editor --lib save_graph_session_persists_parameter_changes_and_clears_dirty -- --nocapture
@@ -426,7 +392,6 @@ tests:
   - cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_animation_runtime --tests --locked --quiet (blocked: same unrelated active scene world/ECS errors)
   - cargo test -p zircon_runtime --locked physics_animation_manifest_entries_resolve_to_builtin_runtime_domains --lib
   - tools/tests/test_animation_runtime_helpers_arc_import.py
-  - tools/tests/test_plugin_docs_current_status_animation_runtime_helper_arc_import.py
   - cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_animation_runtime --locked --all-targets --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-animation-runtime-check-0703-codex --message-format short --color never (2026-07-03 animation helper scope import: passed; existing zircon_runtime warnings only)
 doc_type: module-detail
 ---

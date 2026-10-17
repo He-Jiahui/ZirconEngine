@@ -24,18 +24,15 @@ related_code:
   - zircon_runtime/src/scene/module
   - zircon_runtime/src/ui/module.rs
   - zircon_runtime/src/script/vm/module/module_descriptor.rs
-  - zircon_runtime/src/graphics/runtime_builtin_graphics/host/module_host/module_registration
+  - zircon_runtime/src/graphics/graphics/host/module_host/module_registration
   - zircon_runtime/src/dynamic_api
   - zircon_runtime/src/runtime_diagnostics
   - zircon_editor/src/ui/host
-  - zircon_editor/src/ui/retained_host
   - zircon_plugins
 tests:
-  - zircon_runtime/src/core/manager/tests.rs
   - zircon_runtime/src/core/runtime/tests/resolution
   - zircon_runtime/src/core/runtime/tests/activation
   - zircon_runtime/src/tests/extensions/manager_handles.rs
-  - zircon_runtime/src/tests/runtime_absorption/service_registry_lifecycle.rs
   - zircon_editor/src/tests/host
 plan_sources:
   - docs/plans/mvp/index.md

@@ -3,14 +3,8 @@ related_code:
   - zircon_runtime/crates/zr_rhi/src
   - zircon_runtime/crates/zr_rhi_wgpu/src
   - zircon_runtime/src/render_graph
-  - zircon_runtime/src/graphics/backend/render_backend
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/pass_authoring.rs
   - zircon_runtime/src/graphics/pipeline/compiled_graph_cache.rs
-  - zircon_runtime/src/graphics/runtime/render_framework
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_submission_completion_journal.rs
   - zircon_runtime/src/core/framework/render/scene_submission_completion.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene
   - zircon_runtime/src/dynamic_api/session
   - zircon_app/src/entry
 plan_sources:

@@ -2,7 +2,7 @@
 related_code:
   - zircon_runtime/src/asset/project/manager/package_assets.rs
   - zircon_runtime/src/asset/project/package_asset_registry.rs
-  - zircon_editor/src/ui/host/editor_asset_manager/manager/project_sync/sync_from_project.rs
+  - zircon_editor/src/ui/host/assets/manager/project_sync/sync_from_project.rs
 implementation_files:
   - zircon_runtime/src/asset/project/manager/package_assets.rs
   - zircon_runtime/src/asset/project/package_asset_registry.rs

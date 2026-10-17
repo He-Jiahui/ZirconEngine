@@ -1,11 +1,8 @@
 ---
 related_code:
   - zircon_runtime/src/render_graph
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/pass_authoring.rs
   - zircon_runtime/src/graphics/pipeline/compiled_graph_cache.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/compile_pipeline.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/update.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/transient_resource_pool.rs
+  - zircon_runtime/src/graphics/runtime/framework/extract/update_stats/update.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/performance/02-unreal-aligned-engine-system-hard-cutover.md

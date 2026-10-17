@@ -18,9 +18,8 @@ related_code:
   - zircon_editor/src/ui/host/editor_manager_minimal_host.rs
   - zircon_editor/src/ui/host/editor_world_sync.rs
   - zircon_editor/src/ui/host/editor_event_execution/menu_action.rs
-  - zircon_editor/src/ui/retained_host/app.rs
-  - zircon_editor/src/ui/retained_host/app/startup.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle
+  - zircon_editor/src/ui/retained/app/startup.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle
   - zircon_app/src/entry/entry_runner/editor.rs
   - zircon_app/src/entry/entry_runner/editor/composition.rs
   - zircon_app/src/entry/runtime_library/runtime_session.rs
@@ -31,9 +30,6 @@ related_code:
   - zircon_runtime/src/dynamic_api/session/event_mirror.rs
   - zircon_runtime/src/dynamic_api/session/world_sync.rs
 tests:
-  - zircon_editor/src/core/gateway/session/tests.rs
-  - zircon_editor/src/core/sync/pump/tests.rs
-  - zircon_editor/src/core/sync/watch_map/tests.rs
   - zircon_editor/src/tests/gateway
   - zircon_editor/src/tests/runtime_event_consumer.rs
   - zircon_editor/src/tests/runtime_event_consumer_bounded_pump

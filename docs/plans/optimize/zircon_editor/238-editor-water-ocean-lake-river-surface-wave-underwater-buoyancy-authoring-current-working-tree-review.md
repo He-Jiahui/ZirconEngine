@@ -15,8 +15,6 @@ related_code:
   - zircon_editor/src/scene
   - zircon_editor/src/core/asset/type_registry
   - zircon_editor/src/core/editing
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/world/workbench_extension_foliage_editor_workspace.zui
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/simulation/workbench_extension_navmesh_ai_workspace.zui
   - zircon_plugins/first_party_editor_catalog/src/catalog.rs
   - zircon_plugins/prefab_tools/editor
   - zircon_plugins/terrain/editor

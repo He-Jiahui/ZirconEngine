@@ -8,10 +8,7 @@ related_records:
   - docs/plans/astra/features/editor/664-20260911-editor-ui-optimization-batch-completion.md
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/ui_asset_detail_fields/widget.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/ui_asset_detail_fields/widget/capacity_tests.rs
 tests:
-  - tools/tests/test_editor_widget_detail_row_capacity_performance_contract.py
 ---
 
 # Editor850 - widget detail-row capacity

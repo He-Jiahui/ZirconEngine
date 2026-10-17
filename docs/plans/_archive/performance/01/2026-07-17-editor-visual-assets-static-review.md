@@ -1,10 +1,5 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/visual_assets.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/visual_assets
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/visual_assets_tests
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_images.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_images
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_editor/editor/10-project-and-asset-reference-management.md

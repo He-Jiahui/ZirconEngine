@@ -2,9 +2,8 @@
 related_code:
   - zircon_editor/src/core/notifications
   - zircon_editor/src/ui/host/play_pending_decision
-  - zircon_editor/src/ui/retained_host/app/workbench_notifications.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle/tick.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/notifications.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle/tick.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/workbench/notifications.rs
 base_reports:
   - docs/plans/performance/01/2026-08-15-editor-notification-generation-projection-current-architecture-review.md
   - docs/plans/performance/01/2026-08-22-editor-notification-center-retained-row-generation-architecture-review.md

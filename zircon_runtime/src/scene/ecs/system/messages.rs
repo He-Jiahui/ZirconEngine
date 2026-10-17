@@ -71,7 +71,8 @@ where
     }
 }
 
-impl<T> SystemParam for MessageReaderParam<T>
+// SAFETY: Registers shared message access and exclusively borrows its state-local cursor.
+unsafe impl<T> SystemParam for MessageReaderParam<T>
 where
     T: Message,
 {
@@ -98,7 +99,8 @@ where
     }
 }
 
-impl<T> SystemParam for MessageWriterParam<T>
+// SAFETY: Registers the exclusive message channel grant returned by get_param.
+unsafe impl<T> SystemParam for MessageWriterParam<T>
 where
     T: Message,
 {

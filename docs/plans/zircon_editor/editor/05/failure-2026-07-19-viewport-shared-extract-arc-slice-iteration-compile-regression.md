@@ -9,7 +9,7 @@ origin_child_dir: docs/plans/zircon_editor/editor/15
 fixing_child_dir: docs/plans/zircon_editor/editor/05
 plan_link_mode: child_record_only
 related_code:
-  - zircon_editor/src/scene/viewport/pointer/candidates/precision_candidates_from_layout.rs
+  - zircon_editor/src/scene/pointer/candidates/precision_candidates_from_layout.rs
 tests:
   - cargo test -p zircon_editor --lib viewport --locked --jobs 1 --color never -- --test-threads=1
 ---

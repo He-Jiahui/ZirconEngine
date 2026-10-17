@@ -1,8 +1,7 @@
 ---
 related_code:
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/reports.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/resource_lookup.rs
+  - zircon_runtime/src/graphics/scene/renderer/execution/context/gpu/reports.rs
+  - zircon_runtime/src/graphics/scene/renderer/context/gpu/resource_lookup.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_runtime/render/01-render-graph-rdg-alignment.md

@@ -22,8 +22,6 @@ related_code:
 tests:
   - zircon_runtime/src/dynamic_api/tests
   - zircon_runtime/src/dynamic_api/session/tests
-  - zircon_runtime/src/dynamic_api/session/registry/tests.rs
-  - zircon_runtime/src/dynamic_api/shader_prewarm/tests.rs
 plan_sources:
   - docs/plans/optimize/01-cross-report-owner-schema-abi-p0-consolidation-review.md
   - docs/plans/optimize/zircon_runtime/01-core-runtime-lifecycle-registry-review.md

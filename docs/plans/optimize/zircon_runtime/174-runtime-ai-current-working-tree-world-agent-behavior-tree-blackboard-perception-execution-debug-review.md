@@ -22,11 +22,9 @@ related_code:
   - zircon_plugins/first_party_runtime_catalog
   - zircon_plugins/first_party_editor_catalog
   - zircon_app/src/entry/first_party_editor_plugins.rs
-  - zircon_editor/assets/ui/editor/components/workbench/modules/core/ai
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench
+  - zircon_editor/assets/ui/editor/workbench/modules/core/ai
 tests:
   - zircon_plugins/ai/runtime/src
-  - zircon_plugins/ai/editor/src/tests.rs
   - zircon_plugins/ai/dist/src/lib.rs
 plan_sources:
   - docs/plans/optimize/zircon_runtime/08f-ai-behavior-tree-blackboard-perception-runtime-review.md

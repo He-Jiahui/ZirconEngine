@@ -12,7 +12,7 @@ related_code:
   - zircon_plugins/navigation/editor/bake.zui
   - zircon_plugins/navigation/editor/src/operation_command/factory.rs
   - zircon_plugins/navigation/editor/src/bake_panel.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/common/dispatch.rs
+  - zircon_editor/src/ui/retained/dispatch/common/dispatch.rs
 tests:
   - powershell -NoProfile -Command "$zui = Get-Content 'zircon_plugins/navigation/editor/bake.zui' -Raw; if (($zui -match 'route = \"navigation.bake.surface\"') -and ($zui -match 'route = \"navigation.bake.clear_surface\"') -and ($zui -notmatch 'surface_entity')) { throw 'selected-surface routes have no surface_entity projection' }"
   - ./.codex/skills/zircon-dev/scripts/validate-matrix.ps1 -Package zircon_plugin_navigation_editor -SkipBuild -VerboseOutput

@@ -9,12 +9,9 @@ origin_child_dir: docs/plans/zircon_editor/editor/01
 fixing_child_dir: docs/plans/zircon_runtime/frameworks/02
 resolved_at: 2026-07-11
 related_code:
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/package_feature_definitions.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_definitions.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/access.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/project_manifest/completion.rs
+  - zircon_runtime/src/plugin/runtime/catalog/project_manifest/completion.rs
   - zircon_plugins/sound/runtime/src/lib.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/enablement/features.rs
+  - zircon_editor/src/ui/host/exports/enablement/features.rs
   - zircon_editor/src/tests/host/manager/minimal_host_contract.rs
   - zircon_editor/src/tests/host/manager/minimal_host_contract/native_plugins.rs
   - zircon_editor/src/tests/host/manager/minimal_host_contract/optional_features.rs

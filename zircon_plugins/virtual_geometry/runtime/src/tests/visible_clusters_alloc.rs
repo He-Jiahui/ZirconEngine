@@ -64,7 +64,7 @@ fn exact_capacity_draw_segment_collection_performance_contract() {
     let optimized_p95 = nearest_rank(&optimized_samples, 95).as_nanos();
 
     println!(
-        "PERF_RESULT plugins17_exact_capacity_draw_segments segments={BENCHMARK_SEGMENT_COUNT} samples={BENCHMARK_SAMPLE_COUNT} sample_pairs={BENCHMARK_SAMPLE_COUNT} sample_order=alternating percentile_method=nearest_rank legacy_final_capacity={legacy_capacity} optimized_final_capacity={optimized_capacity} legacy_growth_allocations_min=2 optimized_growth_allocations=1 legacy_p50_ns={legacy_p50} legacy_p95_ns={legacy_p95} optimized_p50_ns={optimized_p50} optimized_p95_ns={optimized_p95} legacy_ns={legacy_p50} optimized_ns={optimized_p50}"
+        "PERF_RESULT plugins17_exact_capacity_draw_segments segments={BENCHMARK_SEGMENT_COUNT} samples={BENCHMARK_SAMPLE_COUNT} sample_pairs={BENCHMARK_SAMPLE_COUNT} sample_order=alternating percentile_method=nearest_rank legacy_final_capacity={legacy_capacity} optimized_final_capacity={optimized_capacity} legacy_growth_allocations_min_expected=2 optimized_growth_allocations_expected=1 legacy_p50_ns={legacy_p50} legacy_p95_ns={legacy_p95} optimized_p50_ns={optimized_p50} optimized_p95_ns={optimized_p95} legacy_ns={legacy_p50} optimized_ns={optimized_p50}"
     );
     assert!(optimized_capacity < legacy_capacity);
     assert!(

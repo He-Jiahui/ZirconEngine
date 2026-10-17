@@ -6,9 +6,7 @@ review_date: 2026-08-20
 baseline_head: bea1acf91b909525ab1759e2c800858b0eda6528
 baseline_epoch: 335
 related_code:
-  - zircon_runtime/src/scene/dynamic_scene/asset_reload
-  - zircon_runtime/src/scene/dynamic_scene/spawn_task
-  - zircon_runtime/src/scene/dynamic_scene/scene/spawn
+  - zircon_runtime/src/scene/dynamic/scene/spawn
   - zircon_runtime/src/asset/facade/event.rs
   - zircon_runtime/src/dynamic_api/session
   - zircon_runtime/src/scene/inspection/subscription.rs
@@ -17,8 +15,7 @@ tests:
   - zircon_runtime/src/scene/tests/dynamic_scene_asset_reload.rs
   - zircon_runtime/src/scene/tests/dynamic_scene_asset_reload/byte_budgets.rs
   - zircon_runtime/src/scene/tests/dynamic_scene/scene_patch_document.rs
-  - zircon_runtime/src/scene/dynamic_scene/spawn_task/prepared.rs
-  - zircon_runtime/src/scene/dynamic_scene/scene/spawn/transaction/tests.rs
+  - zircon_runtime/src/scene/dynamic/spawn_task/prepared.rs
   - zircon_runtime/src/tests/runtime_absorption/dynamic_scene
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md

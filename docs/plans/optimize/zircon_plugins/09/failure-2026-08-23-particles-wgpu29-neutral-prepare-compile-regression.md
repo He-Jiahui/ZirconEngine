@@ -11,7 +11,6 @@ plan_link_mode: child_record_only
 related_code:
   - zircon_plugins/particles/runtime/src/render/gpu/neutral_buffers.rs
   - zircon_plugins/particles/runtime/src/render/runtime_prepare.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/neutral_graph_buffers.rs
   - zircon_runtime/src/graphics/runtime_prepare_collector.rs
 tests:
   - cargo +1.94.1 check -p zircon_plugin_particles_runtime --locked --jobs 1

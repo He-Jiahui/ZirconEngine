@@ -8,11 +8,10 @@ fixing_plan: docs/plans/zircon_runtime/render/11-environment-lighting.md
 origin_child_dir: docs/plans/zircon_editor/editor/15
 fixing_child_dir: docs/plans/zircon_runtime/render/11
 related_code:
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/lightmap_binding.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/construct.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/forward_shadow_receiver.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/mesh_pipeline_cache.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_construct/construct/construct.rs
+  - zircon_runtime/src/graphics/scene/renderer/environment/lightmap_binding.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/mesh_pipeline_cache/construct.rs
+  - zircon_runtime/src/graphics/mesh/mesh_pipeline_cache/forward_shadow_receiver.rs
+  - zircon_runtime/src/graphics/mesh/mesh_pipeline_cache/mesh_pipeline_cache.rs
 tests:
   - cargo test -p zircon_editor --locked --verbose
 resolved_at: 2026-07-13

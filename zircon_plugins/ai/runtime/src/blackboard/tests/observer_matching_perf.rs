@@ -158,7 +158,7 @@ fn reusable_blackboard_observer_matching_release_benchmark_evidence() {
     let optimized_ns = benchmark_samples_csv(&optimized_samples);
 
     println!(
-        "PERF_RESULT plugins15_reusable_blackboard_observer_matching slots={REUSE_BENCHMARK_SLOT_COUNT} observers_per_slot=1 iterations_per_sample={REUSE_BENCHMARK_ITERATIONS} samples={BENCHMARK_SAMPLE_COUNT} sample_pairs={BENCHMARK_SAMPLE_COUNT} sample_order=alternating percentile_method=nearest_rank legacy_result_vec_allocations_per_sample={REUSE_BENCHMARK_ITERATIONS} optimized_result_vec_allocations_per_sample=0 legacy_p50_ns={legacy_p50} legacy_p95_ns={legacy_p95} optimized_p50_ns={optimized_p50} optimized_p95_ns={optimized_p95} legacy_ns={legacy_ns} optimized_ns={optimized_ns}"
+        "PERF_RESULT plugins15_reusable_blackboard_observer_matching slots={REUSE_BENCHMARK_SLOT_COUNT} observers_per_slot=1 iterations_per_sample={REUSE_BENCHMARK_ITERATIONS} samples={BENCHMARK_SAMPLE_COUNT} sample_pairs={BENCHMARK_SAMPLE_COUNT} sample_order=alternating percentile_method=nearest_rank legacy_result_vec_allocations_per_sample={REUSE_BENCHMARK_ITERATIONS} optimized_result_vec_allocations_per_sample_expected=0 legacy_p50_ns={legacy_p50} legacy_p95_ns={legacy_p95} optimized_p50_ns={optimized_p50} optimized_p95_ns={optimized_p95} legacy_ns={legacy_ns} optimized_ns={optimized_ns}"
     );
     assert!(
         optimized_p95 * 5 <= legacy_p95 * 4,
@@ -208,7 +208,7 @@ fn single_pass_reusable_observer_matching_release_benchmark_evidence() {
     let optimized_ns = benchmark_samples_csv(&optimized_samples);
 
     println!(
-        "PERF_RESULT plugins15_single_pass_reusable_observer_matching changed_slots={SINGLE_PASS_BENCHMARK_SLOT_COUNT} observers_per_slot=1 iterations_per_sample={SINGLE_PASS_BENCHMARK_ITERATIONS} samples={BENCHMARK_SAMPLE_COUNT} sample_pairs={BENCHMARK_SAMPLE_COUNT} sample_order=alternating percentile_method=nearest_rank scratch_warmed=1 legacy_changed_slot_passes_per_iteration=2 optimized_changed_slot_passes_per_iteration=1 legacy_result_vec_allocations_per_sample=0 optimized_result_vec_allocations_per_sample=0 legacy_p50_ns={legacy_p50} legacy_p95_ns={legacy_p95} optimized_p50_ns={optimized_p50} optimized_p95_ns={optimized_p95} legacy_ns={legacy_ns} optimized_ns={optimized_ns}"
+        "PERF_RESULT plugins15_single_pass_reusable_observer_matching changed_slots={SINGLE_PASS_BENCHMARK_SLOT_COUNT} observers_per_slot=1 iterations_per_sample={SINGLE_PASS_BENCHMARK_ITERATIONS} samples={BENCHMARK_SAMPLE_COUNT} sample_pairs={BENCHMARK_SAMPLE_COUNT} sample_order=alternating percentile_method=nearest_rank scratch_warmed=1 legacy_changed_slot_passes_per_iteration=2 optimized_changed_slot_passes_per_iteration=1 legacy_result_vec_allocations_per_sample_expected=0 optimized_result_vec_allocations_per_sample_expected=0 legacy_p50_ns={legacy_p50} legacy_p95_ns={legacy_p95} optimized_p50_ns={optimized_p50} optimized_p95_ns={optimized_p95} legacy_ns={legacy_ns} optimized_ns={optimized_ns}"
     );
     assert!(
         optimized_p95 * 4 <= legacy_p95 * 3,

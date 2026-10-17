@@ -3,24 +3,20 @@ related_code:
   - zircon_runtime/src/core/framework/render/advanced_lighting/irradiance_volume.rs
   - zircon_runtime/src/core/framework/render/light/gpu_light.rs
   - zircon_runtime/src/graphics/feature/render_feature_descriptor
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile.rs
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_advanced_lighting.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/irradiance_volume
-  - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/light_cookie
+  - zircon_runtime/src/graphics/scene/renderer/advanced_lighting/light_cookie
   - zircon_runtime/src/graphics/shader/wgsl/zr_irradiance_volume.wgsl
   - zircon_runtime/src/graphics/shader/wgsl/zr_light_cookie.wgsl
   - zircon_plugins/rendering/features/irradiance_volumes
   - zircon_plugins/rendering/features/light_cookies
 implementation_files:
-  - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/light_cookie/frame_plan.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/light_cookie/projection.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/light_cookie/resources.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/light_cookie/blit_pipeline.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/light_cookie/executor.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/irradiance_volume/resources.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/irradiance_volume/executor.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
-  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_advanced_lighting.rs
+  - zircon_runtime/src/graphics/scene/renderer/light_cookie/frame_plan.rs
+  - zircon_runtime/src/graphics/scene/renderer/light_cookie/projection.rs
+  - zircon_runtime/src/graphics/scene/renderer/light_cookie/resources.rs
+  - zircon_runtime/src/graphics/scene/renderer/light_cookie/blit_pipeline.rs
+  - zircon_runtime/src/graphics/scene/renderer/light_cookie/executor.rs
+  - zircon_runtime/src/graphics/scene/renderer/irradiance_volume/resources.rs
+  - zircon_runtime/src/graphics/scene/renderer/irradiance_volume/executor.rs
+  - zircon_runtime/src/graphics/scene/renderer/core/render/render/render.rs
   - zircon_runtime/src/graphics/pipeline/compiled_graph_cache.rs
   - zircon_runtime/src/graphics/shader/ide_env_generation.rs
   - zircon_runtime/src/graphics/shader/template/module_registry.rs

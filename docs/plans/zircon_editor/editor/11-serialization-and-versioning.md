@@ -3,7 +3,6 @@ related_code:
   - zircon_runtime_interface/src/serialization
   - zircon_runtime/src/scene/reflect/mod.rs
   - zircon_runtime/src/scene/reflect/conversion.rs
-  - zircon_runtime/src/scene/dynamic_scene/scene/mod.rs
   - zircon_runtime/src/scene/tests/authoring_boundary.rs
   - zircon_editor/src/core/settings/io.rs
   - zircon_editor/src/ui/asset_editor/undo_stack.rs

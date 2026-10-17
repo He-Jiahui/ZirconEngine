@@ -9,8 +9,6 @@ related_records:
 implementation_files:
   - zircon_runtime/src/ui/template/asset/compiler/cache/compile_cache.rs
 tests:
-  - zircon_runtime/src/ui/template/asset/compiler/cache/compile_cache/hash_eviction_tests.rs
-  - tools/tests/test_runtime_compile_cache_hash_eviction_performance_contract.py
 ---
 
 # Runtime796 · compile-cache borrowed hash eviction

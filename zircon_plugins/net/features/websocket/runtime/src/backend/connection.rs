@@ -4,7 +4,7 @@
 use std::collections::VecDeque;
 use std::fmt;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, MutexGuard};
 
 use futures_util::stream::SplitSink;
 use futures_util::SinkExt;
@@ -33,14 +33,14 @@ pub(super) struct TungsteniteWebSocketConnection {
 #[derive(Debug, Default)]
 pub(super) struct WebSocketReaderCancellation {
     cancelled: AtomicBool,
-    pub(super) notify: Notify,
+    cancellation: Notify,
+    pub(super) capacity: Notify,
 }
 
 impl WebSocketReaderCancellation {
     pub(super) fn cancel(&self) {
         self.cancelled.store(true, Ordering::Release);
-        self.notify.notify_waiters();
-        self.notify.notify_one();
+        self.cancellation.notify_waiters();
     }
 
     pub(super) fn is_cancelled(&self) -> bool {
@@ -49,21 +49,31 @@ impl WebSocketReaderCancellation {
 
     pub(super) async fn cancelled(&self) {
         loop {
-            let notified = self.notify.notified();
+            let notified = self.cancellation.notified();
+            tokio::pin!(notified);
+            notified.as_mut().enable();
             if self.is_cancelled() {
                 return;
             }
             notified.await;
         }
     }
+
+    pub(super) fn notify_capacity(&self) {
+        self.capacity.notify_one();
+    }
+}
+
+// These locks protect only a single enum or primitive frame/event buffers, never
+// authentication or protocol admission state. A panic can leave partial events;
+// consumers still enforce bounds against the buffers' actual contents.
+pub(super) fn lock_recover<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
+    mutex.lock().unwrap_or_else(|poisoned| poisoned.into_inner())
 }
 
 impl Drop for TungsteniteWebSocketConnection {
     fn drop(&mut self) {
-        let mut state = self
-            .state
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        let mut state = lock_recover(&self.state);
         if !matches!(
             *state,
             NetConnectionState::Failed | NetConnectionState::Closed
@@ -89,19 +99,13 @@ impl fmt::Debug for WebSocketFrameSender {
 
 impl WebSocketRuntimeConnection for TungsteniteWebSocketConnection {
     fn state(&self) -> NetConnectionState {
-        *self
-            .state
-            .lock()
-            .expect("net WebSocket state mutex poisoned")
+        *lock_recover(&self.state)
     }
 
     // Publish terminal state under the reader admission lock before waking a
     // reader that may be waiting for queue capacity.
     fn set_state(&self, state: NetConnectionState) {
-        let mut current = self
-            .state
-            .lock()
-            .expect("net WebSocket state mutex poisoned");
+        let mut current = lock_recover(&self.state);
         *current = state;
         if matches!(
             state,
@@ -124,10 +128,7 @@ impl WebSocketRuntimeConnection for TungsteniteWebSocketConnection {
     }
 
     fn drain_frames(&self, max_frames: usize) -> Vec<NetWebSocketFrame> {
-        let mut inbound = self
-            .inbound
-            .lock()
-            .expect("net WebSocket inbound mutex poisoned");
+        let mut inbound = lock_recover(&self.inbound);
         let drain_count = max_frames.min(inbound.len());
         let mut frames = Vec::with_capacity(drain_count);
         let mut received_close = false;
@@ -143,12 +144,16 @@ impl WebSocketRuntimeConnection for TungsteniteWebSocketConnection {
         }
         drop(inbound);
         if drain_count != 0 {
-            self.reader_cancel.notify.notify_one();
+            self.reader_cancel.notify_capacity();
         }
         if received_close {
             self.set_state(NetConnectionState::Closed);
         }
         frames
+    }
+
+    fn notify_event_capacity(&self) {
+        self.reader_cancel.notify_capacity();
     }
 }
 
@@ -160,13 +165,14 @@ impl TungsteniteWebSocketConnection {
     ) -> (Self, TungsteniteWebSocketReadHalf) {
         let state = Arc::new(Mutex::new(NetConnectionState::Open));
         let inbound = Arc::new(Mutex::new(VecDeque::new()));
-        let outbound = spawn_writer(runtime, state.clone(), sink);
+        let reader_cancel = Arc::new(WebSocketReaderCancellation::default());
+        let outbound = spawn_writer(runtime, state.clone(), reader_cancel.clone(), sink);
         (
             Self {
                 state,
                 outbound,
                 inbound,
-                reader_cancel: Arc::new(WebSocketReaderCancellation::default()),
+                reader_cancel,
             },
             TungsteniteWebSocketReadHalf::Client(stream),
         )
@@ -179,13 +185,14 @@ impl TungsteniteWebSocketConnection {
     ) -> (Self, TungsteniteWebSocketReadHalf) {
         let state = Arc::new(Mutex::new(NetConnectionState::Open));
         let inbound = Arc::new(Mutex::new(VecDeque::new()));
-        let outbound = spawn_writer(runtime, state.clone(), sink);
+        let reader_cancel = Arc::new(WebSocketReaderCancellation::default());
+        let outbound = spawn_writer(runtime, state.clone(), reader_cancel.clone(), sink);
         (
             Self {
                 state,
                 outbound,
                 inbound,
-                reader_cancel: Arc::new(WebSocketReaderCancellation::default()),
+                reader_cancel,
             },
             TungsteniteWebSocketReadHalf::Server(stream),
         )
@@ -195,6 +202,7 @@ impl TungsteniteWebSocketConnection {
 fn spawn_writer<S>(
     runtime: &Runtime,
     state: Arc<Mutex<NetConnectionState>>,
+    reader_cancel: Arc<WebSocketReaderCancellation>,
     sink: SplitSink<WebSocketStream<S>, TungsteniteMessage>,
 ) -> WebSocketFrameSender
 where
@@ -207,13 +215,12 @@ where
         while let Some(frame) = receiver.recv().await {
             let closing = matches!(frame, NetWebSocketFrame::Close(_));
             if sink.send(frame_to_message(frame)).await.is_err() {
-                *state.lock().expect("net WebSocket state mutex poisoned") =
-                    NetConnectionState::Failed;
+                *lock_recover(&state) = NetConnectionState::Failed;
+                reader_cancel.cancel();
                 return;
             }
             if closing {
-                *state.lock().expect("net WebSocket state mutex poisoned") =
-                    NetConnectionState::Closing;
+                *lock_recover(&state) = NetConnectionState::Closing;
                 return;
             }
         }

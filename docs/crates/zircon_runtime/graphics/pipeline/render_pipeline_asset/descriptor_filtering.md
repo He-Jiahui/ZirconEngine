@@ -1,31 +1,13 @@
 ---
 related_code:
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/descriptor_filtering.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/pass_authoring.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/resource_descriptors.rs
-  - zircon_runtime/src/core/framework/render/post_process/stack.rs
-  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/post_process.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/anti_alias/fxaa.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/anti_alias/smaa.rs
+  - zircon_runtime/src/graphics/scene/renderer/anti_alias/fxaa.rs
+  - zircon_runtime/src/graphics/scene/renderer/anti_alias/smaa.rs
 implementation_files:
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/descriptor_filtering.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/pass_authoring.rs
-  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/post_process.rs
 plan_sources:
   - docs/plans/zircon_runtime/render/index.md
   - docs/plans/zircon_runtime/render/01-render-graph-rdg-alignment.md
   - user: 2026-06-17 continue Plan 01 compile.rs modularization
 tests:
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests.rs::compile_routes_bloom_extract_after_split_scene_color_passes
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests.rs::compile_declares_uber_light_list_frame_resource_for_default_stack
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests.rs::compile_declares_uber_light_list_as_external_when_clustered_lighting_is_disabled
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests.rs::compile_routes_output_transfer_through_fxaa_terminal_input
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests.rs::compile_routes_output_transfer_through_smaa_terminal_input
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests.rs::compile_preserves_compute_workload_from_feature_descriptor
   - cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-rg-descriptor-filtering-0617 --message-format short --color never
   - cargo test -p zircon_runtime --lib light_list --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-hzb-product-light-list-0618 --message-format short --color never -- --test-threads=1 --nocapture
 doc_type: module-detail

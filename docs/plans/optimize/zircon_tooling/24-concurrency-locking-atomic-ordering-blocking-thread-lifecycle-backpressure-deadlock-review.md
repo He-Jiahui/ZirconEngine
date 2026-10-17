@@ -6,14 +6,13 @@ related_code:
   - zircon_editor/src/core/plugin/manager.rs
   - zircon_editor/src/core/process.rs
   - zircon_editor/src/ui/host/editor_ui_host.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/execution.rs
+  - zircon_editor/src/ui/host/exports/export_build/wizard/execution.rs
   - zircon_hub/src/tauri_app/commands.rs
   - zircon_plugins/animation/runtime/src/evaluation/pipeline/direct_clip_worker.rs
   - zircon_plugins/net/runtime/src/runtime_state.rs
   - zircon_plugins/net/runtime/src/worker/net_worker.rs
   - zircon_plugins/plugin_sdk/src/declaration/macros.rs
   - zircon_plugins/plugin_sdk/src/native.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/runtime.rs
   - zircon_runtime/src/asset/watch/asset_watcher.rs
   - zircon_runtime/src/asset/watch/spawn.rs
   - zircon_runtime/src/core/runtime/events/topic.rs
@@ -27,7 +26,7 @@ related_code:
   - zircon_runtime/src/diagnostic_log/sink/worker.rs
   - zircon_runtime/src/foundation/runtime/config_manager/worker.rs
   - zircon_runtime/src/graphics/pipeline/async_compile.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/pipelined/queue.rs
+  - zircon_runtime/src/graphics/runtime/framework/pipelined/queue.rs
   - zircon_runtime/src/operation/service.rs
   - zircon_runtime/src/scene/inspection/artifact/cache.rs
   - zircon_runtime/src/scene/level_system.rs
@@ -36,24 +35,21 @@ related_code:
   - zircon_runtime/src/ui/component/catalog/editor_showcase.rs
 tests:
   - zircon_editor/src/tests/jobs.rs
-  - zircon_editor/src/ui/retained_host/viewport/tests/controller_submission_operation_gate.rs
+  - zircon_editor/src/ui/viewport/tests/controller_submission_operation_gate.rs
   - zircon_hub/tests/project_quick_actions_contract.rs
   - zircon_plugins/ai/runtime/src/tests/registration.rs
   - zircon_plugins/navigation/runtime/src/tests/tiled_bake_context.rs
   - zircon_plugins/net/runtime/src/tests/http_routes.rs
   - zircon_plugins/net/runtime/src/tests/websocket.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/runtime/tests.rs
   - zircon_runtime/src/asset/tests/pipeline/worker_pool/lifecycle.rs
-  - zircon_runtime/src/core/resource/manager/tests/concurrency.rs
+  - zircon_runtime/crates/zr_resource/src/manager/tests/concurrency.rs
   - zircon_runtime/src/core/runtime/tests/events/behavior.rs
   - zircon_runtime/src/core/runtime/tests/resolution/behavior.rs
   - zircon_runtime/src/diagnostic_log/sink/tests/backpressure.rs
   - zircon_runtime/src/diagnostic_log/sink/tests/lifecycle.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests/runtime_behavior.rs
+  - zircon_runtime/src/plugin/loader/live/tests/runtime_behavior.rs
   - zircon_runtime/src/tests/tasks.rs
   - zircon_runtime/tests/resource_snapshot_contract.rs
-  - zircon_runtime/tests/runtime_owned_result_v7.rs
-  - zircon_runtime_host/src/foreign_output/tests.rs
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md
   - docs/plans/optimize/01-cross-report-owner-schema-abi-p0-consolidation-review.md

@@ -20,8 +20,6 @@ related_code:
   - zircon_editor/src/core/editing/command.rs
   - zircon_editor/src/ui/workbench/snapshot/data/inspector_snapshot.rs
   - zircon_editor/src/ui/material_editor/projection.rs
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/world/workbench_extension_prefab_editor_workspace.zui
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/extension_module_feedback.rs
   - zircon_plugins/prefab_tools
   - zircon_plugins/editor_support/src/lib.rs
 plan_sources:

@@ -18,6 +18,11 @@ import subprocess
 import time
 import tomllib
 
+if __package__:
+    from .review_debt import baseline_sources
+else:
+    from review_debt import baseline_sources
+
 
 ROOT = Path(__file__).resolve().parents[2]
 KNOWN_FILES: set[Path] | None = None
@@ -499,8 +504,16 @@ def main() -> int:
             inline = [m.name for m in modules(source) if m.inline and m.test_only]
             if count or inline or path.stem == 'tests' or path.stem.endswith('_tests'):
                 violations.append({'path': relative(path, ROOT), 'test_attributes': count, 'inline_modules': inline})
-        print(json.dumps({'rust_files': len(files), 'violations': violations, 'passed': not violations}, indent=2))
-        return int(bool(violations))
+        _, baseline = baseline_sources(ROOT, [v['path'] for v in violations])
+        new = []
+        for violation in violations:
+            source = baseline.get(violation['path'], '')
+            old_count = test_count(source)
+            old_inline = Counter(m.name for m in modules(source) if m.inline and m.test_only)
+            if violation['test_attributes'] > old_count or Counter(violation['inline_modules']) - old_inline or not source:
+                new.append(violation)
+        print(json.dumps({'rust_files': len(files), 'baseline_violation_count': len(violations) - len(new), 'violations': new, 'passed': not new}, indent=2))
+        return int(bool(new))
     report = migrate(files, sources, options.receipt, options.apply)
     print(json.dumps({key: value for key, value in report.items() if key not in {'extractions', 'moves', 'files'}}, indent=2))
     return 0

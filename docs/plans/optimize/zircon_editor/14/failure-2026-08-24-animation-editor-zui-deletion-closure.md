@@ -20,7 +20,6 @@ related_code:
   - zircon_editor/src/tests/ui/boundary/template_assets/host_shells.rs
   - zircon_editor/src/ui/layouts/views/animation_editor.rs
   - zircon_editor/src/ui/layouts/views/mod.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/scene_projection.rs
   - zircon_editor/tests/integration_contracts/workbench_animation_editor_shell.rs
 tests:
   - cargo +1.94.1 test -p zircon_editor --locked --lib --release core::jobs -- --include-ignored --nocapture --test-threads=1

@@ -2,7 +2,6 @@
 status: local_candidate
 implementation_files:
   - tools/analysis/validation/validate_performance_comparison_receipt.py
-  - tools/tests/test_performance_comparison_receipt_single_report_read_performance_contract.py
 ---
 
 # Performance comparison report single-read snapshot

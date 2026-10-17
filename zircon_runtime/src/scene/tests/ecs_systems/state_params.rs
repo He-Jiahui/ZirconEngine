@@ -6,7 +6,8 @@ use crate::scene::ecs::{ChangeTickWindow, SystemParam, SystemParamAccess};
 
 struct PanickingParamConstruction;
 
-impl SystemParam for PanickingParamConstruction {
+// SAFETY: This panic probe never accesses World or returns a borrowed item.
+unsafe impl SystemParam for PanickingParamConstruction {
     type State = ();
     type Item<'world> = ();
 

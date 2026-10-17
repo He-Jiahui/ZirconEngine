@@ -10,7 +10,6 @@ related_code:
   - zircon_runtime_interface/src/ui/layout/linear_sizing.rs
   - zircon_runtime_interface/src/tests/ui_layout.rs
   - zircon_runtime_interface/src/tests/layout_engine_contracts.rs
-  - dev/bevy/crates/bevy_ui/src/layout/convert.rs
 implementation_files:
   - zircon_runtime_interface/src/ui/layout/mod.rs
   - zircon_runtime_interface/src/ui/layout/engine.rs

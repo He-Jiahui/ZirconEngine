@@ -5,15 +5,13 @@ doc_type: structural-performance-research
 status: implementation_blocked_by_m0_baseline
 coordination_owner: docs/plans/zircon_runtime/render/04
 related_code:
-  - zircon_runtime/src/graphics/scene/scene_renderer/hzb/hzb_occlusion_culler.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/hzb/bind_group_cache.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/hzb/phase_dispatch.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/hzb/shaders/hzb_occlusion_cull.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/bind_execution_owned_graph_resources.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/indirect_compaction_resources.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/indirect_draw_execution.rs
-  - dev/UnrealEngine/Engine/Source/Runtime/Renderer/Private/InstanceCulling/InstanceCullingLoadBalancer.cpp
-  - dev/UnrealEngine/Engine/Source/Runtime/Renderer/Private/InstanceCulling/InstanceCullingLoadBalancer.h
+  - zircon_runtime/src/graphics/scene/renderer/hzb/hzb_occlusion_culler.rs
+  - zircon_runtime/src/graphics/scene/renderer/hzb/bind_group_cache.rs
+  - zircon_runtime/src/graphics/scene/renderer/hzb/phase_dispatch.rs
+  - zircon_runtime/src/graphics/scene/renderer/hzb/shaders/hzb_occlusion_cull.wgsl
+  - zircon_runtime/src/graphics/core/render/bind_execution_owned_graph_resources.rs
+  - zircon_runtime/src/graphics/mesh/mesh_pass/indirect_compaction_resources.rs
+  - zircon_runtime/src/graphics/scene/mesh/mesh_pass/indirect_draw_execution.rs
 tests:
   - source and unit contracts for shared arena ranges and graph backing identity
   - coordinator-managed Windows WGPU product run, PNG, RenderDoc, and power/timing evidence

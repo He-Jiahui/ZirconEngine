@@ -13,10 +13,8 @@ tests:
   - zircon_runtime/src/ui/tests/widget_text_input_keyboard/word_shortcuts.rs
   - zircon_runtime/src/ui/tests/widget_text_input_keyboard/text_ime.rs
   - zircon_runtime/src/ui/tests/surface_dirty_domains/render_domains.rs
-  - zircon_runtime/src/ui/dispatch/input_manager/bound_text_model_updates/tests.rs
   - zircon_runtime/src/ui/tests/accessibility_text_input_actions.rs
   - zircon_runtime/src/ui/tests/accessibility/value_actions.rs
-  - zircon_runtime/src/ui/surface/input/text_state/optimization_tests.rs
 ---
 
 # Runtime82 inactive composition metadata encoding completion list

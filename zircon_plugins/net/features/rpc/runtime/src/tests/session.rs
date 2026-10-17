@@ -12,7 +12,7 @@ use crate::{
 #[test]
 fn rpc_feature_manager_completes_control_handshake_sequence() {
     let rpc = net_rpc_runtime_manager();
-    let session = rpc.begin_handshake();
+    let session = rpc.begin_handshake().unwrap();
 
     let challenge = rpc
         .process_control_message(
@@ -74,7 +74,7 @@ fn rpc_feature_manager_completes_control_handshake_sequence() {
 fn rpc_feature_manager_records_session_connection_identity_and_netspeed() {
     let rpc = net_rpc_runtime_manager();
     let connection = NetConnectionId::new(42);
-    let session = rpc.begin_handshake_for_connection(connection);
+    let session = rpc.begin_handshake_for_connection(connection).unwrap();
 
     let initial = rpc.session_info(session).unwrap();
     assert_eq!(initial.session, session);
@@ -183,7 +183,7 @@ fn rpc_feature_manager_reports_control_handshake_failures() {
             .with_required_feature(NET_RPC_FEATURE_CAPABILITY)
             .with_challenge_nonce("challenge-v2"),
     );
-    let session = rpc.begin_handshake();
+    let session = rpc.begin_handshake().unwrap();
 
     let report = rpc
         .process_control_message(
@@ -231,7 +231,7 @@ fn rpc_handshake_frame_round_trips_magic_version_capabilities_and_token() {
 #[test]
 fn handshake_version_mismatch_rejected() {
     let rpc = net_rpc_runtime_manager();
-    let session = rpc.begin_handshake();
+    let session = rpc.begin_handshake().unwrap();
     let bytes =
         NetRpcHandshakeFrame::new(2, RPC_HANDSHAKE_CAPABILITY_NET_RPC, b"token-v2".to_vec())
             .encode()

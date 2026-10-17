@@ -12,8 +12,6 @@ implementation_files:
   - zircon_plugins/ai/runtime/src/behavior_tree/random_selector_weights.rs
   - zircon_plugins/ai/runtime/src/behavior_tree/executor/support.rs
 tests:
-  - zircon_plugins/ai/runtime/src/behavior_tree/compile/random_selector_weights_tests.rs
-  - tools/tests/test_runtime_random_selector_weight_table_performance_contract.py
 ---
 
 # Runtime799 · random-selector compiled weight table

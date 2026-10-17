@@ -10,14 +10,9 @@ related_records:
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
   - zircon_editor/src/core/asset/type_registry/context_command.rs
-  - zircon_editor/src/core/asset/type_registry/context_command/optimization_tests.rs
   - zircon_editor/src/core/asset/type_registry/toolkit.rs
-  - zircon_editor/src/core/asset/type_registry/toolkit/optimization_tests.rs
   - zircon_editor/src/core/asset/type_registry/creation_template.rs
-  - zircon_editor/src/core/asset/type_registry/creation_template/optimization_tests.rs
 tests:
-  - zircon_editor/src/core/asset/type_registry/toolkit/optimization_tests.rs
-  - zircon_editor/src/core/asset/type_registry/creation_template/optimization_tests.rs
 ---
 
 # Editor04 · capability canonicalization completion list

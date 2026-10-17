@@ -1,55 +1,45 @@
 ---
 related_code:
   - zircon_editor/src/ui/host/editor_event_execution/viewport_event.rs
-  - zircon_editor/src/ui/retained_host/app/assets.rs
-  - zircon_editor/src/ui/retained_host/app/backend_refresh.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle.rs
-  - zircon_editor/src/ui/retained_host/app/invalidation.rs
-  - zircon_editor/src/ui/retained_host/app/invalidation/mask.rs
-  - zircon_editor/src/ui/retained_host/app/invalidation/mask/requirements.rs
-  - zircon_editor/src/ui/retained_host/app/invalidation/mask/summary.rs
-  - zircon_editor/src/ui/retained_host/app/invalidation/root.rs
-  - zircon_editor/src/ui/retained_host/app/invalidation/root/diagnostics.rs
-  - zircon_editor/src/ui/retained_host/app/invalidation/root/reasons.rs
-  - zircon_editor/src/ui/retained_host/app/invalidation/root/requests.rs
-  - zircon_editor/src/ui/retained_host/app/invalidation/root/tests.rs
-  - zircon_editor/src/ui/retained_host/app/ui_asset_editor.rs
-  - zircon_editor/src/ui/retained_host/app/ui_asset_editor_detail_events.rs
-  - zircon_editor/src/ui/retained_host/app/ui_asset_editor_detail_events/style.rs
-  - zircon_editor/src/ui/retained_host/event_bridge.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/common/effects.rs
-  - zircon_editor/src/ui/retained_host/drawer_resize.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/viewport/pointer_bridge.rs
+  - zircon_editor/src/ui/retained/app/assets.rs
+  - zircon_editor/src/ui/retained/app/backend_refresh.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle.rs
+  - zircon_editor/src/ui/retained/app/invalidation.rs
+  - zircon_editor/src/ui/retained/app/invalidation/mask.rs
+  - zircon_editor/src/ui/retained/app/invalidation/mask/requirements.rs
+  - zircon_editor/src/ui/retained/app/invalidation/mask/summary.rs
+  - zircon_editor/src/ui/retained/app/invalidation/root.rs
+  - zircon_editor/src/ui/retained/app/invalidation/root/diagnostics.rs
+  - zircon_editor/src/ui/retained/app/invalidation/root/reasons.rs
+  - zircon_editor/src/ui/retained/app/invalidation/root/requests.rs
+  - zircon_editor/src/ui/retained/app/ui_asset_editor.rs
+  - zircon_editor/src/ui/retained/dispatch/common/effects.rs
+  - zircon_editor/src/tests/host/callbacks/viewport/pointer_bridge.rs
   - zircon_editor/src/tests/ui/boundary/template_assets/invalidation.rs
 implementation_files:
   - zircon_editor/src/ui/host/editor_event_execution/viewport_event.rs
-  - zircon_editor/src/ui/retained_host/app/assets.rs
-  - zircon_editor/src/ui/retained_host/app/backend_refresh.rs
-  - zircon_editor/src/ui/retained_host/app/host_lifecycle.rs
-  - zircon_editor/src/ui/retained_host/app/invalidation.rs
-  - zircon_editor/src/ui/retained_host/app/invalidation/mask.rs
-  - zircon_editor/src/ui/retained_host/app/invalidation/mask/requirements.rs
-  - zircon_editor/src/ui/retained_host/app/invalidation/mask/summary.rs
-  - zircon_editor/src/ui/retained_host/app/invalidation/root.rs
-  - zircon_editor/src/ui/retained_host/app/invalidation/root/diagnostics.rs
-  - zircon_editor/src/ui/retained_host/app/invalidation/root/reasons.rs
-  - zircon_editor/src/ui/retained_host/app/invalidation/root/requests.rs
-  - zircon_editor/src/ui/retained_host/app/invalidation/root/tests.rs
-  - zircon_editor/src/ui/retained_host/app/ui_asset_editor.rs
-  - zircon_editor/src/ui/retained_host/app/ui_asset_editor_detail_events.rs
-  - zircon_editor/src/ui/retained_host/app/ui_asset_editor_detail_events/style.rs
-  - zircon_editor/src/ui/retained_host/event_bridge.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/common/effects.rs
-  - zircon_editor/src/ui/retained_host/drawer_resize.rs
+  - zircon_editor/src/ui/retained/app/assets.rs
+  - zircon_editor/src/ui/retained/app/backend_refresh.rs
+  - zircon_editor/src/ui/retained/app/host_lifecycle.rs
+  - zircon_editor/src/ui/retained/app/invalidation.rs
+  - zircon_editor/src/ui/retained/app/invalidation/mask.rs
+  - zircon_editor/src/ui/retained/app/invalidation/mask/requirements.rs
+  - zircon_editor/src/ui/retained/app/invalidation/mask/summary.rs
+  - zircon_editor/src/ui/retained/app/invalidation/root.rs
+  - zircon_editor/src/ui/retained/app/invalidation/root/diagnostics.rs
+  - zircon_editor/src/ui/retained/app/invalidation/root/reasons.rs
+  - zircon_editor/src/ui/retained/app/invalidation/root/requests.rs
+  - zircon_editor/src/ui/retained/app/ui_asset_editor.rs
+  - zircon_editor/src/ui/retained/dispatch/common/effects.rs
 plan_sources:
   - user: 2026-05-12 continue closing global dirty-domain incremental refresh gaps for the UI v2 cutover
   - .codex/plans/Zircon Editor UI Material  Fyrox  JetBrains  Unreal.md
 tests:
   - zircon_editor/src/tests/host/retained_asset_refresh/catalog_refresh.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/viewport/pointer_bridge.rs
+  - zircon_editor/src/tests/host/callbacks/viewport/pointer_bridge.rs
   - zircon_editor/src/tests/ui/boundary/template_assets/invalidation.rs
   - zircon_editor/src/tests/host/retained_event_bridge/asset_refresh_effects.rs
-  - zircon_editor/src/ui/retained_host/app/invalidation.rs
+  - zircon_editor/src/ui/retained/app/invalidation.rs
   - 2026-05-13 dirty-preview-validation: cargo test -p zircon_editor --lib asset_preview_refresh_effect_is_paint_only_without_backend_sync --jobs 1 --target-dir target\codex-ui-v2-guard (passed, 1 test)
   - 2026-05-13 dirty-preview-validation: cargo test -p zircon_editor --lib asset_details_refresh_effect_does_not_require_backend_sync --jobs 1 --target-dir target\codex-ui-v2-guard (passed, 1 test)
   - 2026-05-13 dirty-preview-validation: cargo test -p zircon_editor --lib retained_event_effects_route_dirty_domains_through_invalidation_mask --jobs 1 --target-dir target\codex-ui-v2-guard (passed, 1 test)

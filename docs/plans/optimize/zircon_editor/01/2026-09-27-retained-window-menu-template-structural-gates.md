@@ -3,7 +3,6 @@ related_code:
   - zircon_editor/src/tests/host/retained_window/native_mode.rs
   - zircon_editor/src/tests/host/retained_window/activity_rail_template_boundary.rs
   - zircon_editor/src/tests/host/retained_tab_drag/surface_contract.rs
-  - zircon_editor/src/tests/host/retained_menu_pointer/surface_contract.rs
   - zircon_editor/src/tests/ui/boundary/template_assets/runtime_fixtures.rs
   - zircon_editor/src/tests/ui/boundary/template_assets/retained_projection.rs
   - zircon_editor/src/tests/ui/boundary/template_assets/host_shells.rs
@@ -13,8 +12,6 @@ tests:
   - zircon_editor/src/tests/host/retained_window/native_mode.rs
   - zircon_editor/src/tests/host/retained_window/activity_rail_template_boundary.rs
   - zircon_editor/src/tests/host/retained_tab_drag/surface_contract.rs
-  - zircon_editor/src/tests/host/retained_menu_pointer/surface_contract.rs
-  - zircon_editor/src/tests/host/retained_menu_pointer/pointer_bridge.rs
   - zircon_editor/src/tests/ui/boundary/template_assets/runtime_fixtures.rs
   - zircon_editor/src/tests/ui/boundary/template_assets/retained_projection.rs
   - zircon_editor/src/tests/ui/boundary/template_assets/host_shells.rs

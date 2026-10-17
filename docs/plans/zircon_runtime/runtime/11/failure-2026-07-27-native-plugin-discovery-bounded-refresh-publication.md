@@ -9,13 +9,11 @@ origin_child_dir: docs/plans/zircon_editor/editor/12
 fixing_child_dir: docs/plans/zircon_runtime/runtime/11
 plan_link_mode: child_record_only
 related_code:
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/enablement/native.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/manifest_completion/native.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/native_registration/manager.rs
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/status/native.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/discover.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/discover/authority.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/load_discovered.rs
+  - zircon_editor/src/ui/host/exports/enablement/native.rs
+  - zircon_editor/src/ui/host/exports/manifest_completion/native.rs
+  - zircon_editor/src/ui/host/exports/native_registration/manager.rs
+  - zircon_editor/src/ui/host/exports/status/native.rs
+  - zircon_runtime/src/plugin/loader/discover/authority.rs
   - zircon_runtime/src/core/runtime/tasks
 tests:
   - cargo test -p zircon_runtime --lib native_plugin_loader --locked --jobs 1 -- --nocapture --test-threads=1

@@ -36,7 +36,7 @@ fn benchmark_sound_wav_channel_layout_mask_projection() {
         "direct WAV channel-layout selection must improve P95 by at least 50%: legacy={legacy_p95_ns}ns optimized={optimized_p95_ns}ns"
     );
     println!(
-        "PERF_RESULT task=plugins07_direct_wav_channel_layout sample_pairs={SAMPLE_PAIRS} order=alternating_legacy_first_even legacy_first_pairs=11 optimized_first_pairs=10 percentile_method=nearest_rank layout_checks_per_sample={LAYOUT_CHECKS_PER_SAMPLE} benchmark_channel_mask=0000063f benchmark_channel_count=8 legacy_layout_allocations_per_decode=18 optimized_layout_allocations_per_decode=2 legacy_transient_allocations_per_decode=16 optimized_transient_allocations_per_decode=0 threshold_percent=50 legacy_p95_ns={legacy_p95_ns} optimized_p95_ns={optimized_p95_ns} improvement_percent={improvement_percent} legacy_raw_ns={} optimized_raw_ns={}",
+        "PERF_RESULT task=plugins07_direct_wav_channel_layout sample_pairs={SAMPLE_PAIRS} order=alternating_legacy_first_even legacy_first_pairs=11 optimized_first_pairs=10 percentile_method=nearest_rank layout_checks_per_sample={LAYOUT_CHECKS_PER_SAMPLE} benchmark_channel_mask=0000063f benchmark_channel_count=8 legacy_layout_allocations_per_decode_expected=18 optimized_layout_allocations_per_decode_expected=2 legacy_transient_allocations_per_decode_expected=16 optimized_transient_allocations_per_decode_expected=0 threshold_percent=50 legacy_p95_ns={legacy_p95_ns} optimized_p95_ns={optimized_p95_ns} improvement_percent={improvement_percent} legacy_raw_ns={} optimized_raw_ns={}",
         raw_samples(&legacy_raw),
         raw_samples(&optimized_raw)
     );

@@ -20,17 +20,13 @@ related_editor_owners:
   - docs/plans/optimize/zircon_editor/27-project-operations-source-control-changelist-diff-automation-report-submit-gates-health-dashboard-review.md
   - docs/plans/optimize/zircon_editor/162-editor-level-variant-data-layer-level-instance-world-outliner-current-source-review.md
 related_code:
-  - zircon_editor/assets/ui/editor/components/workbench/shell/workbench_top_toolbar.zui
   - zircon_editor/src/core/commands/defaults.rs
   - zircon_editor/src/core/editing
   - zircon_editor/src/core/play/snapshot
   - zircon_editor/src/core/recovery
   - zircon_editor/src/ui/asset_editor/document_diff.rs
   - zircon_editor/src/ui/asset_editor/undo_stack.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/module_command_feedback.rs
-  - zircon_editor/src/ui/retained_host/workbench_preview_actions.rs
-  - zircon_runtime/src/scene/dynamic_scene/scene
-  - zircon_runtime/src/scene/dynamic_scene/session
+  - zircon_editor/src/ui/retained/dispatch/workbench/module_command_feedback.rs
   - zircon_runtime/src/scene/inspection
   - zircon_runtime/src/scene/level_system.rs
   - zircon_runtime_interface/src/reflect

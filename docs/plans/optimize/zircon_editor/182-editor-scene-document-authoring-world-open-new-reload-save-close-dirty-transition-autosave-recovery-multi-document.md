@@ -17,23 +17,20 @@ related_code:
   - zircon_editor/src/ui/host/editor_document_autosave.rs
   - zircon_editor/src/ui/host/editor_save_batch.rs
   - zircon_editor/src/ui/host/project_recovery_decision
-  - zircon_editor/src/ui/retained_host/app/autosave.rs
-  - zircon_editor/src/ui/retained_host/app/project_close.rs
-  - zircon_editor/src/ui/retained_host/app/native_window_close
-  - zircon_editor/src/ui/retained_host/app/close_prompt
-  - zircon_editor/src/ui/retained_host/app/assets
-  - zircon_editor/src/ui/retained_host/app/scene_picker_actions.rs
-  - zircon_editor/src/ui/retained_host/app/startup.rs
+  - zircon_editor/src/ui/retained/app/autosave.rs
+  - zircon_editor/src/ui/retained/app/project_close.rs
+  - zircon_editor/src/ui/retained/app/native_window_close
+  - zircon_editor/src/ui/retained/app/close_prompt
+  - zircon_editor/src/ui/retained/app/scene_picker_actions.rs
+  - zircon_editor/src/ui/retained/app/startup.rs
   - zircon_runtime/src/scene/world/project_io
   - zircon_runtime/src/asset/assets/scene
 tests:
-  - zircon_editor/src/core/document/lifecycle/tests.rs
-  - zircon_editor/src/core/document/scene_route_tests.rs
   - zircon_editor/src/core/project/tests/scene_document.rs
   - zircon_editor/src/tests/workbench/project/document_roundtrip.rs
   - zircon_editor/src/tests/editor_event/runtime/integration/project.rs
   - zircon_editor/src/tests/host/retained_asset_refresh/scene_reload.rs
-  - zircon_editor/src/ui/retained_host/app/tests/close_prompt.rs
+  - zircon_editor/src/ui/retained/app/tests/close_prompt.rs
   - zircon_editor/src/tests/host/raw_scene_visibility.rs
   - zircon_editor/src/tests/ui/boundary/host_cutover.rs
   - zircon_app/tests/editor_mvp_authoring.rs

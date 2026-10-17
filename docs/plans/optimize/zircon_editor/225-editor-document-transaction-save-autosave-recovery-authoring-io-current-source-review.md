@@ -25,16 +25,16 @@ related_code:
   - zircon_editor/src/ui/host/editor_save_batch.rs
   - zircon_editor/src/ui/host/editor_ui_host.rs
   - zircon_editor/src/ui/host/layout_commands.rs
-  - zircon_editor/src/ui/retained_host/app/native_window_close
-  - zircon_editor/src/ui/retained_host/app/project_close.rs
+  - zircon_editor/src/ui/retained/app/native_window_close
+  - zircon_editor/src/ui/retained/app/project_close.rs
 tests:
   - zircon_editor/src/tests/editing/transaction_engine
   - zircon_editor/src/tests/host/animation_editor.rs
   - zircon_editor/src/tests/host/manager/document_toolkit_lifecycle.rs
   - zircon_editor/src/tests/host/manager/ui_asset_workspace_watcher.rs
   - zircon_editor/src/tests/ui/animation_editor
-  - zircon_editor/src/ui/retained_host/app/tests/close_prompt.rs
-  - zircon_editor/src/ui/retained_host/app/tests/document_save.rs
+  - zircon_editor/src/ui/retained/app/tests/close_prompt.rs
+  - zircon_editor/src/ui/retained/app/tests/document_save.rs
 reference_engines:
   - dev/UnrealEngine/Engine/Source/Editor/UnrealEd/Public/FileHelpers.h
   - dev/UnrealEngine/Engine/Source/Editor/UnrealEd/Private/PackageAutoSaver.cpp

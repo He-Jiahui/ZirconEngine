@@ -1,11 +1,11 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/app/hierarchy_pointer/identity.rs
-  - zircon_editor/src/ui/retained_host/app/hierarchy_pointer/events/drag.rs
-  - zircon_editor/src/ui/retained_host/app/reference_drop_payload.rs
+  - zircon_editor/src/ui/retained/app/hierarchy_pointer/identity.rs
+  - zircon_editor/src/ui/retained/app/hierarchy_pointer/events/drag.rs
+  - zircon_editor/src/ui/retained/app/reference_drop_payload.rs
   - zircon_editor/src/core/document/lifecycle.rs
   - zircon_editor/src/ui/host/editor_manager_project.rs
-  - zircon_editor/src/ui/retained_host/app/tests/drag_sources/hierarchy_identity.rs
+  - zircon_editor/src/ui/retained/app/tests/drag_sources/hierarchy_identity.rs
 plan_sources:
   - docs/plans/optimize/zircon_editor/60/2026-09-27-hierarchy-drag-document-identity.md
   - docs/plans/optimize/zircon_editor/60/2026-09-27-hierarchy-reparent-drag-threshold.md

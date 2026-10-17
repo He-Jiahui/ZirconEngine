@@ -9,7 +9,6 @@ related_records:
 implementation_files:
   - zircon_editor/src/ui/layouts/views/view_projection/projection_composition.rs
 tests:
-  - zircon_editor/src/ui/layouts/views/view_projection/projection_composition/hash_index_tests.rs
 ---
 
 # Editor944 Editor01 Projection-Composition Hash Index

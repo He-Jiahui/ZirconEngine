@@ -4,13 +4,10 @@ related_code:
   - zircon_runtime/src/asset/assets/scene/lighting.rs
   - zircon_runtime/src/scene/world/render/lights.rs
   - zircon_runtime/src/core/framework/render/light
-  - zircon_runtime/src/graphics/scene/scene_renderer/lighting
-  - zircon_runtime/src/graphics/scene/scene_renderer/shadow
   - zircon_runtime/src/graphics/visibility/view_context/build_views.rs
-  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/clustered_lighting.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/post_process/computed_resources.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/shaders/deferred_lighting.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/shaders/fallback_mesh.wgsl
+  - zircon_runtime/src/graphics/builtin/feature_descriptors/clustered_lighting.rs
+  - zircon_runtime/src/graphics/scene/deferred/shaders/deferred_lighting.wgsl
+  - zircon_runtime/src/graphics/scene/renderer/mesh/shaders/fallback_mesh.wgsl
   - zircon_runtime/src/graphics/shader/wgsl/zr_shading_standard_pbr.wgsl
   - zircon_plugins/rendering/features/contact_shadow
 plan_sources:

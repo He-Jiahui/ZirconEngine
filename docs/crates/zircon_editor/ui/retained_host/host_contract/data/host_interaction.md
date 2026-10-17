@@ -1,22 +1,21 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/host_contract/data/host_interaction.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/host_interaction/menu.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/host_interaction/drag.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/host_interaction/text_focus.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/host_interaction/pane.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/host_interaction/resize.rs
-  - zircon_editor/src/ui/retained_host/host_contract/globals/state.rs
-  - zircon_editor/src/ui/retained_host/host_contract/globals/ui_context.rs
-  - zircon_editor/src/ui/retained_host/host_contract/window/presentation.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer.rs
+  - zircon_editor/src/ui/retained/contract/data/host_interaction.rs
+  - zircon_editor/src/ui/retained/contract/data/host_interaction/menu.rs
+  - zircon_editor/src/ui/retained/contract/data/host_interaction/drag.rs
+  - zircon_editor/src/ui/retained/contract/data/host_interaction/text_focus.rs
+  - zircon_editor/src/ui/retained/contract/data/host_interaction/pane.rs
+  - zircon_editor/src/ui/retained/contract/data/host_interaction/resize.rs
+  - zircon_editor/src/ui/retained/contract/globals/state.rs
+  - zircon_editor/src/ui/retained/contract/globals/ui_context.rs
+  - zircon_editor/src/ui/retained/contract/window/presentation.rs
 implementation_files:
-  - zircon_editor/src/ui/retained_host/host_contract/data/host_interaction.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/host_interaction/menu.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/host_interaction/drag.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/host_interaction/text_focus.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/host_interaction/pane.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/host_interaction/resize.rs
+  - zircon_editor/src/ui/retained/contract/data/host_interaction.rs
+  - zircon_editor/src/ui/retained/contract/data/host_interaction/menu.rs
+  - zircon_editor/src/ui/retained/contract/data/host_interaction/drag.rs
+  - zircon_editor/src/ui/retained/contract/data/host_interaction/text_focus.rs
+  - zircon_editor/src/ui/retained/contract/data/host_interaction/pane.rs
+  - zircon_editor/src/ui/retained/contract/data/host_interaction/resize.rs
 plan_sources:
   - docs/plans/zircon_editor/editor_ui/08-workbench-shell-on-runtime-ui.md
   - user: 2026-06-21 editor UI architecture implementation, feature first and tests deferred

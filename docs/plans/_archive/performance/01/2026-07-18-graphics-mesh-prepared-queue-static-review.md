@@ -1,9 +1,9 @@
 ---
 related_code:
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/prepared_queue.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/prepared_queue
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/build.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/build_compiled_scene_draws.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/prepared_queue.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/prepared_queue
+  - zircon_runtime/src/graphics/scene/renderer/mesh/build_mesh_draws/build/build.rs
+  - zircon_runtime/src/graphics/scene/core/render/build_compiled_scene_draws.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_runtime/render/02-mesh-draw-command-pipeline.md

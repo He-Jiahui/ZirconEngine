@@ -3,8 +3,6 @@ related_code:
   - zircon_runtime/src/scene/world/world.rs
   - zircon_runtime/src/scene/world/render.rs
   - zircon_runtime/src/scene/level_system_render_extract.rs
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_build_render_snapshot.rs
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_pointer_route.rs
   - zircon_editor/src/scene/viewport/interaction_extract
   - zircon_editor/src/ui/workbench/state/editor_state_render.rs
 primary_reference:

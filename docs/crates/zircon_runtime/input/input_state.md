@@ -37,7 +37,6 @@ related_code:
   - zircon_runtime/src/input/runtime/event_buffer/recorder.rs
   - zircon_runtime/src/input/runtime/recording.rs
   - zircon_runtime/src/input/runtime/input_state.rs
-  - zircon_runtime/src/tests/runtime_absorption/input_stack.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/input_stack_boundary.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/input_stack_markdown.py
@@ -126,7 +125,6 @@ implementation_files:
   - zircon_runtime/src/input/runtime/event_buffer/recorder.rs
   - zircon_runtime/src/input/runtime/recording.rs
   - zircon_runtime/src/input/runtime/input_state.rs
-  - zircon_runtime/src/tests/runtime_absorption/input_stack.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/input_stack_boundary.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/input_stack_markdown.py
@@ -199,10 +197,8 @@ tests:
   - zircon_runtime/src/input/tests/gamepad_bridge.rs
   - zircon_runtime/src/input/tests/recording_replay.rs
   - zircon_runtime/src/input/tests/input_manager/touch_gamepad.rs
-  - zircon_runtime/src/tests/runtime_absorption/input_stack.rs
   - zircon_runtime/src/input/runtime/default_input_manager.rs::input_manager_accessors_recover_poisoned_state_lock
   - zircon_runtime/src/input/runtime/default_input_action_manager.rs::input_action_manager_accessors_recover_poisoned_evaluator_lock
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy.rs::runtime_15_input_runtime_manager_lock_poison_recovery_guard_covers_input_state
   - zircon_runtime::tests::runtime_absorption::input_stack::runtime_12_input_stack_contracts_stay_documented_and_exported
   - zircon_runtime::tests::runtime_absorption::input_stack::runtime_12_action_mapping_keeps_ui_filtered_evaluation_path
   - zircon_runtime::tests::runtime_absorption::input_stack::runtime_12_gamepad_bridge_keeps_runtime_abi_path
@@ -221,18 +217,16 @@ tests:
   - cargo test -p zircon_runtime --lib gamepad_host_bridge_uses_runtime_gamepad_abi_constructors --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-12-input-0617 --message-format short --color never -- --nocapture --test-threads=1 (2026-06-17 Runtime 12 M2 gamepad source guard: source updated to include split event owner `session/events.rs`; rustfmt, direct `input_stack_boundary_audit`, and standalone input_stack 4/4 passed; focused Cargo timed out after 605s with no result and no residual cargo/rustc/rustdoc processes, broader gates pending)
   - cargo test -p zircon_runtime --lib cursor_host_requests_are_frame_local_and_drainable --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-12-cursor-host-0620 --message-format short --color never -- --nocapture --test-threads=1 (2026-06-20 Runtime 12 cursor host requests: source/static guards updated; package Cargo gate remains deferred with broader input/action_map/gamepad/app gates)
   - zircon_runtime/src/input/tests/boundary.rs
-  - zircon_runtime/src/dynamic_api/tests.rs
+  - zircon_runtime/src/dynamic_api/tests/mod.rs
   - zircon_runtime/src/dynamic_api/tests/input_events.rs
   - zircon_runtime/src/dynamic_api/tests/host_requests.rs
   - zircon_runtime_interface/src/tests/contracts.rs
   - zircon_runtime/src/tests/prelude.rs
-  - zircon_app/src/entry/runtime_library/tests.rs
   - zircon_app/src/entry/tests/runtime_entry_input_guards/protocol.rs
   - zircon_app/src/entry/tests/runtime_entry_input_guards/sources.rs
   - zircon_app/src/entry/tests/runtime_entry_source_guards/entry_tree.rs
   - zircon_app/src/entry/tests/mod.rs
   - tools/tests/test_runtime_input_stack_audit.py
-  - tests/acceptance/runtime-input-stack-audit-owner-sync.md
 doc_type: module-detail
 ---
 

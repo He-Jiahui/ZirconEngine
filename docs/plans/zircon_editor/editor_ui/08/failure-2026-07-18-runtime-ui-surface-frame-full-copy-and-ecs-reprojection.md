@@ -15,7 +15,7 @@ related_code:
   - zircon_runtime/src/ui/surface/ecs_projection.rs
   - zircon_runtime/src/ui/surface/surface/rebuild.rs
   - zircon_runtime_interface/src/ui/surface/frame.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/viewport_toolbar/bridge.rs
+  - zircon_editor/src/ui/retained/dispatch/templates/viewport_toolbar/bridge.rs
 tests:
   - stable-generation 1000-frame zero-payload-clone test
   - ECS dirty-delta changed-node-only test

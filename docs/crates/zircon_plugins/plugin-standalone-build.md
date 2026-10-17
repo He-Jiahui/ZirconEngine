@@ -52,27 +52,18 @@ related_code:
   - zircon_plugins/animation/dist/src/lib.rs
   - zircon_plugins/animation/runtime/src/lib.rs
   - zircon_plugins/animation/runtime/src/plugin.rs
-  - zircon_plugins/animation/runtime/src/tests.rs
   - zircon_plugins/hybrid_gi/plugin.toml
   - zircon_plugins/hybrid_gi/dist/Cargo.toml
   - zircon_plugins/hybrid_gi/dist/src/lib.rs
   - zircon_plugins/hybrid_gi/runtime/src/lib.rs
   - zircon_plugins/hybrid_gi/runtime/src/capability.rs
   - zircon_plugins/hybrid_gi/runtime/src/plugin.rs
-  - zircon_plugins/hybrid_gi/runtime/src/tests.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/prepare_frame/build_scene_prepare_frame.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/gpu_resources/execute_prepare/execute/voxel_clipmap_debug.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/scene_representation/voxel_scene_state.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_render_framework_stats.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_scene_prepare_material_fixtures.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/test_sources/hybrid_gi_scene_representation.rs
+  - zircon_plugins/hybrid_gi/runtime/src/gi/gpu/execute/voxel_clipmap_debug.rs
   - zircon_plugins/physics/plugin.toml
   - zircon_plugins/physics/dist/Cargo.toml
   - zircon_plugins/physics/dist/src/lib.rs
   - zircon_plugins/physics/runtime/src/lib.rs
   - zircon_plugins/physics/runtime/src/plugin.rs
-  - zircon_plugins/physics/runtime/src/tests.rs
   - zircon_plugins/particles/plugin.toml
   - zircon_plugins/particles/dist/Cargo.toml
   - zircon_plugins/particles/dist/src/lib.rs
@@ -98,91 +89,27 @@ related_code:
   - zircon_plugins/virtual_geometry/dist/src/lib.rs
   - zircon_plugins/virtual_geometry/runtime/src/lib.rs
   - zircon_plugins/virtual_geometry/runtime/src/plugin.rs
-  - zircon_plugins/virtual_geometry/runtime/src/tests.rs
   - zircon_plugins/virtual_geometry/runtime/src/provider.rs
-  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_imported_extract.rs
-  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_nanite_cpu.rs
-  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_render_framework_stats.rs
   - zircon_plugins/texture/runtime/src/lib.rs
   - zircon_plugins/texture/runtime/src/plugin.rs
-  - zircon_plugins/texture/runtime/src/tests.rs
-  - tools/zircon_export/cli.py
-  - tools/zircon_export/validate_stage.py
-  - tools/zircon_export/plugin_command.py
-  - tools/zircon_export/plugin_build.py
-  - tools/zircon_export/plugin_build_command.py
-  - tools/zircon_export/plugin_build_preflight.py
-  - tools/zircon_export/plugin_build_package.py
-  - tools/zircon_export/plugin_build_asset_pack.py
-  - tools/zircon_export/plugin_build_signature.py
-  - tools/zircon_export/plugin_package_source.py
-  - tools/zircon_export/plugin_package_template.py
-  - tools/zircon_export/plugin_package_identity.py
-  - tools/zircon_export/plugin_validate.py
-  - tools/zircon_export/plugin_validate_single_target.py
-  - tools/zircon_export/plugin_validate_capabilities.py
-  - tools/zircon_export/plugin_validate_default_packaging.py
-  - tools/zircon_export/plugin_validate_layout.py
-  - tools/zircon_export/plugin_validate_layout_coordinates.py
-  - tools/zircon_export/plugin_validate_layout_public_metadata.py
-  - tools/zircon_export/plugin_validate_layout_targets.py
-  - tools/zircon_export/plugin_validate_layout_roots.py
-  - tools/zircon_export/plugin_validate_manifest_classification.py
-  - tools/zircon_export/plugin_validate_manifest_shape.py
-  - tools/zircon_export/plugin_validate_package_kind.py
-  - tools/zircon_export/tests/test_plugin_validate_capabilities.py
-  - tools/zircon_export/tests/test_plugin_validate_default_packaging.py
-  - tools/zircon_export/tests/test_plugin_validate_layout.py
-  - tools/zircon_export/tests/test_plugin_validate_manifest_classification.py
-  - tools/zircon_export/tests/test_plugin_validate_manifest_shape.py
-  - tools/zircon_export/tests/test_plugin_validate_package_kind.py
-  - tools/zircon_export/plugin_validate_report.py
-  - tools/zircon_export/plugin_validate_engine_version.py
-  - tools/zircon_export/plugin_validate_distribution_contract.py
-  - tools/zircon_export/plugin_validate_distribution_descriptor_symbol.py
-  - tools/zircon_export/plugin_validate_distribution_entries.py
-  - tools/zircon_export/plugin_validate_distribution_packaging.py
-  - tools/zircon_export/plugin_validate_distribution_scalars.py
-  - tools/zircon_export/plugin_validate_distribution_engine_compat.py
-  - tools/zircon_export/plugin_validate_distribution_assets.py
-  - tools/zircon_export/plugin_validate_dist_crate.py
-  - tools/zircon_export/plugin_validate_dist_crate_dependency.py
-  - tools/zircon_export/plugin_validate_target_discovery.py
-  - tools/zircon_export/plugin_validate_distribution_modules.py
-  - tools/zircon_export/plugin_validate_distribution_module_target_modes.py
-  - tools/zircon_export/plugin_validate_modules.py
-  - tools/zircon_export/tests/test_plugin_validate_modules.py
-  - tools/zircon_export/plugin_validate_module_crates.py
-  - tools/zircon_export/plugin_validate_module_systems.py
-  - tools/zircon_export/plugin_validate_optional_features.py
-  - tools/zircon_export/plugin_validate_optional_feature_distribution.py
-  - tools/zircon_export/plugin_validate_optional_feature_dependencies.py
-  - tools/zircon_export/plugin_validate_feature_extensions.py
-  - tools/zircon_export/plugin_validate_interfaces.py
-  - tools/zircon_export/plugin_validate_interface_methods.py
-  - tools/zircon_export/plugin_validate_interface_signatures.py
-  - tools/zircon_export/plugin_validate_capability_statuses.py
-  - tools/zircon_export/plugin_validate_capability_status_targets.py
-  - tools/zircon_export/plugin_validate_capability_status_references.py
-  - tools/zircon_export/plugin_validate_common.py
-  - tools/zircon_export/plugin_validate_feature_provider.py
-  - tools/zircon_export/plugin_validate_feature_provider_projection_compare.py
-  - tools/zircon_export/plugin_validate_feature_provider_projection_optional.py
-  - tools/zircon_export/plugin_validate_feature_provider_dependencies.py
-  - tools/zircon_export/plugin_validate_feature_provider_capabilities.py
-  - tools/zircon_export/plugin_validate_feature_provider_distribution.py
-  - tools/zircon_export/plugin_validate_feature_provider_extension.py
-  - tools/zircon_export/tests/test_plugin_build.py
-  - tools/zircon_export/tests/test_plugin_validate.py
-  - tools/zircon_export/tests/test_plugin_validate_distribution_contract.py
-  - tools/zircon_export/tests/test_plugin_validate_distribution_modules.py
-  - tools/zircon_export/tests/test_plugin_validate_optional_features.py
-  - tools/zircon_export/tests/test_plugin_validate_optional_feature_distribution.py
-  - tools/zircon_export/tests/test_plugin_validate_optional_feature_dependencies.py
-  - tools/zircon_export/tests/test_plugin_validate_feature_extensions.py
-  - tools/zircon_export/tests/test_plugin_validate_feature_provider.py
-  - tools/zircon_export/tests/test_plugin_validate_report.py
-  - tools/zircon_export/tests/plugin_validate_support.py
+  - tools/export/tests/test_plugin_validate_capabilities.py
+  - tools/export/tests/test_plugin_validate_default_packaging.py
+  - tools/export/tests/test_plugin_validate_layout.py
+  - tools/export/tests/test_plugin_validate_manifest_classification.py
+  - tools/export/tests/test_plugin_validate_manifest_shape.py
+  - tools/export/tests/test_plugin_validate_package_kind.py
+  - tools/export/tests/test_plugin_validate_modules.py
+  - tools/export/tests/test_plugin_build.py
+  - tools/export/tests/test_plugin_validate.py
+  - tools/export/tests/test_plugin_validate_distribution_contract.py
+  - tools/export/tests/test_plugin_validate_distribution_modules.py
+  - tools/export/tests/test_plugin_validate_optional_features.py
+  - tools/export/tests/test_plugin_validate_optional_feature_distribution.py
+  - tools/export/tests/test_plugin_validate_optional_feature_dependencies.py
+  - tools/export/tests/test_plugin_validate_feature_extensions.py
+  - tools/export/tests/test_plugin_validate_feature_provider.py
+  - tools/export/tests/test_plugin_validate_report.py
+  - tools/export/tests/plugin_validate_support.py
   - tools/tests/test_zircon_export_cli_owner_boundaries.py
   - tools/tests/test_plugin_validate_owner_boundaries.py
   - tools/tests/test_zircon_build_plugin_carriers.py
@@ -193,7 +120,6 @@ related_code:
   - zircon_plugins/animation/runtime/Cargo.toml
   - zircon_plugins/animation/runtime/src/lib.rs
   - zircon_plugins/animation/runtime/src/plugin.rs
-  - zircon_plugins/animation/runtime/src/tests.rs
   - zircon_plugins/hybrid_gi/plugin.toml
   - zircon_plugins/hybrid_gi/dist/Cargo.toml
   - zircon_plugins/hybrid_gi/dist/src/lib.rs
@@ -201,39 +127,19 @@ related_code:
   - zircon_plugins/hybrid_gi/runtime/src/lib.rs
   - zircon_plugins/hybrid_gi/runtime/src/capability.rs
   - zircon_plugins/hybrid_gi/runtime/src/plugin.rs
-  - zircon_plugins/hybrid_gi/runtime/src/tests.rs
-  - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/scene_representation/representation.rs
+  - zircon_plugins/hybrid_gi/runtime/src/gi/scene_representation/representation.rs
   - zircon_runtime_interface/src/plugin_api.rs
   - zircon_runtime/src/plugin/export_build_plan/native_dynamic_package_plan.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/abi_declarations.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/behavior_calls.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/behavior_validation.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/behavior_validation/report.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/behavior_validation/schema.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/behavior_validation/tests.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/host_api_adapter.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/loaded_native_plugin.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/compatibility.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/candidate_from_manifest.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/load_discovered.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/mod.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/registration_manifest.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/bridge_methods.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/registration_replay.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/reports.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/runtime_behavior.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests/hot_reload_failures.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests/registration_replay.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_load_manifest.rs
+  - zircon_runtime/src/plugin/loader/behavior_validation/report.rs
+  - zircon_runtime/src/plugin/loader/behavior_validation/schema.rs
+  - zircon_runtime/src/plugin/loader/live/tests/hot_reload_failures.rs
+  - zircon_runtime/src/plugin/loader/live/tests/registration_replay.rs
   - zircon_runtime/src/plugin/package_manifest/plugin_distribution_manifest.rs
   - zircon_runtime/src/plugin/package_manifest/plugin_package_manifest.rs
   - zircon_runtime/src/plugin/package_manifest/constructors.rs
   - zircon_runtime/src/builtin/runtime_modules/ids/plugin_id.rs
   - zircon_runtime/src/builtin/runtime_modules/plugin_modules/loader.rs
   - zircon_runtime/src/builtin/runtime_modules/tests/registration/structure.rs
-  - zircon_runtime/src/tests/plugin_extensions/plugin_workspace_shape.rs
-  - zircon_runtime/src/script/vm/tests.rs
   - zircon_runtime/src/script/vm/tests/bridge_host.rs
   - zircon_runtime/src/script/vm/tests/host_exports.rs
   - zircon_runtime/src/script/vm/tests/module_surface.rs
@@ -246,9 +152,6 @@ related_code:
   - zircon_runtime/src/asset/tests/assets/gltf_primitive_fixtures/basic.rs
   - zircon_runtime/src/asset/tests/assets/gltf_primitive_fixtures/materials.rs
   - zircon_runtime/src/asset/tests/assets/gltf_primitive_fixtures/vertex_channels.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/animation_manager.rs
-  - zircon_runtime/src/core/framework/render/backend_types/tests.rs
-  - zircon_runtime/src/core/framework/render/frame_extract/tests.rs
   - zircon_runtime/src/scene/world/render_particles.rs
   - zircon_runtime/src/scene/tests/render_extract/direct_sections.rs
   - zircon_runtime/src/ui/tests/asset_mui_web_mui_x_style/agent_chat.rs
@@ -256,46 +159,13 @@ related_code:
   - zircon_runtime/src/ui/tests/asset_mui_web_mui_x_style/data_grid.rs
   - zircon_runtime/src/ui/tests/asset_mui_web_mui_x_style/date_time_pickers.rs
   - zircon_runtime/src/ui/tests/asset_mui_web_mui_x_style/tree_view.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry/support.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry/tests/postprocess_context_guards.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/processors/tests.rs
+  - zircon_runtime/src/graphics/scene/registry/tests/postprocess_context_guards.rs
   - zircon_runtime/src/graphics/tests/render_product_shadow_captures.rs
   - zircon_runtime/src/graphics/tests/visibility.rs
   - zircon_runtime/src/graphics/tests/project_render/render_quality.rs
   - zircon_runtime/src/graphics/tests/m4_behavior_layers/queue_override.rs
   - zircon_runtime/src/graphics/tests/m4_behavior_layers/transparent3d.rs
-  - zircon_runtime/src/graphics/tests/render_product_camera_targets/primary_surface.rs
-  - zircon_runtime/src/graphics/tests/render_product_camera_targets/texture_target.rs
   - zircon_runtime/src/plugin/mod.rs
-  - tools/zircon_build.py
-  - tools/zircon_export/compile_host_plan.py
-  - tools/zircon_export/compile_host_plan_command_semantics.py
-  - tools/zircon_export/native_build.py
-  - tools/zircon_export/native_signing.py
-  - tools/zircon_export/pipeline_report_validate_compile_host_schema.py
-  - tools/zircon_export/pipeline_report_validate_compile_host_semantics.py
-  - tools/zircon_export/pipeline_report_validate_compile_host_command_semantics.py
-  - tools/zircon_export/pipeline_report_native_dynamic_build_plan_schema.py
-  - tools/zircon_export/pipeline_report_native_dynamic_build_plan_commands.py
-  - tools/zircon_export/pipeline_report_native_dynamic_build_plan_package_details.py
-  - tools/zircon_export/pipeline_report_native_dynamic_payload.py
-  - tools/zircon_export/pipeline_report_native_dynamic_payload_platform_bundle.py
-  - tools/zircon_export/pipeline_report_native_dynamic_payload_platform_bundle_stage.py
-  - tools/zircon_export/pipeline_report_native_dynamic_payload_package_report.py
-  - tools/zircon_export/pipeline_report_native_dynamic_stage_payload.py
-  - tools/zircon_export/pipeline_report_native_dynamic_stage_payload_operation_audit.py
-  - tools/zircon_export/pipeline_report_native_dynamic_build_execution.py
-  - tools/zircon_export/pipeline_report_native_dynamic_package_exports.py
-  - tools/zircon_export/pipeline_report_native_dynamic_operation_audit_schema.py
-  - tools/zircon_export/pipeline_report_native_dynamic_operation_audit_schema_helpers.py
-  - tools/zircon_export/pipeline_report_native_dynamic_payload_platform_bundle.py
-  - tools/zircon_export/pipeline_report_native_dynamic_payload_bundle_evidence.py
-  - tools/zircon_export/pipeline_report_native_dynamic_payload_package_path.py
-  - tools/zircon_export/pipeline_report_native_dynamic_payload_schema.py
-  - tools/zircon_export/pipeline_report_native_dynamic_payload_file_manifest_schema.py
-  - tools/zircon_export/pipeline_report_native_dynamic_payload_materialized_packages_schema.py
-  - tools/zircon_export/pipeline_report_native_dynamic_payload_schema_helpers.py
   - tools/tests/test_zircon_export_native_dynamic_payload_owner_boundaries.py
   - tools/tests/test_zircon_export_native_dynamic_payload_platform_bundle_handoff_owner_boundaries.py
   - tools/tests/test_zircon_export_native_dynamic_payload_bundle_evidence_owner_boundaries.py
@@ -310,7 +180,6 @@ related_code:
   - tools/tests/test_zircon_export_validate_compile_host_command_semantics_owner_boundaries.py
   - tools/tests/test_zircon_export_compile_host_plan_command_semantics_owner_boundaries.py
   - tools/audits/audit_plugin_structure.py
-  - tools/plugin_structure_audits/dependency_boundary.py
   - .github/workflows/ci.yml
   - zircon_plugins/first_party_runtime_catalog/src/lib.rs
   - zircon_plugins/audio_importer/runtime/src/lib.rs
@@ -394,7 +263,6 @@ related_code:
   - zircon_plugins/native_window_hosting/editor/src/lib.rs
   - zircon_plugins/native_window_hosting/editor/src/capability.rs
   - zircon_plugins/native_window_hosting/editor/src/plugin.rs
-  - zircon_plugins/native_window_hosting/editor/src/tests.rs
   - zircon_plugins/native_window_hosting/plugin.toml
   - zircon_plugins/native_window_hosting/dist/Cargo.toml
   - zircon_plugins/native_window_hosting/dist/src/lib.rs
@@ -402,7 +270,6 @@ related_code:
   - zircon_plugins/runtime_diagnostics/editor/src/capability.rs
   - zircon_plugins/runtime_diagnostics/editor/src/extension_ids.rs
   - zircon_plugins/runtime_diagnostics/editor/src/plugin.rs
-  - zircon_plugins/runtime_diagnostics/editor/src/tests.rs
   - zircon_plugins/runtime_diagnostics/plugin.toml
   - zircon_plugins/runtime_diagnostics/dist/Cargo.toml
   - zircon_plugins/runtime_diagnostics/dist/src/lib.rs
@@ -410,7 +277,6 @@ related_code:
   - zircon_plugins/ui_asset_authoring/editor/src/capability.rs
   - zircon_plugins/ui_asset_authoring/editor/src/extension_ids.rs
   - zircon_plugins/ui_asset_authoring/editor/src/plugin.rs
-  - zircon_plugins/ui_asset_authoring/editor/src/tests.rs
   - zircon_plugins/ui_asset_authoring/plugin.toml
   - zircon_plugins/ui_asset_authoring/dist/Cargo.toml
   - zircon_plugins/ui_asset_authoring/dist/src/lib.rs
@@ -418,7 +284,6 @@ related_code:
   - zircon_plugins/material_editor/editor/src/capability.rs
   - zircon_plugins/material_editor/editor/src/extension_ids.rs
   - zircon_plugins/material_editor/editor/src/plugin.rs
-  - zircon_plugins/material_editor/editor/src/tests.rs
   - zircon_plugins/material_editor/plugin.toml
   - zircon_plugins/material_editor/dist/Cargo.toml
   - zircon_plugins/material_editor/dist/src/lib.rs
@@ -426,14 +291,12 @@ related_code:
   - zircon_plugins/animation_graph/editor/src/capability.rs
   - zircon_plugins/animation_graph/editor/src/extension_ids.rs
   - zircon_plugins/animation_graph/editor/src/plugin.rs
-  - zircon_plugins/animation_graph/editor/src/tests.rs
   - zircon_plugins/animation_graph/plugin.toml
   - zircon_plugins/animation_graph/dist/Cargo.toml
   - zircon_plugins/animation_graph/dist/src/lib.rs
   - zircon_plugins/prefab_tools/runtime/src/lib.rs
   - zircon_plugins/prefab_tools/runtime/src/capability.rs
   - zircon_plugins/prefab_tools/runtime/src/plugin.rs
-  - zircon_plugins/prefab_tools/runtime/src/tests.rs
   - zircon_plugins/prefab_tools/plugin.toml
   - zircon_plugins/prefab_tools/dist/Cargo.toml
   - zircon_plugins/prefab_tools/dist/src/lib.rs
@@ -442,11 +305,9 @@ related_code:
   - zircon_plugins/prefab_tools/editor/src/capability.rs
   - zircon_plugins/prefab_tools/editor/src/extension_ids.rs
   - zircon_plugins/prefab_tools/editor/src/plugin.rs
-  - zircon_plugins/prefab_tools/editor/src/tests.rs
   - zircon_plugins/terrain/runtime/src/lib.rs
   - zircon_plugins/terrain/runtime/src/capability.rs
   - zircon_plugins/terrain/runtime/src/plugin.rs
-  - zircon_plugins/terrain/runtime/src/tests.rs
   - zircon_plugins/terrain/plugin.toml
   - zircon_plugins/terrain/dist/Cargo.toml
   - zircon_plugins/terrain/dist/src/lib.rs
@@ -455,11 +316,9 @@ related_code:
   - zircon_plugins/terrain/editor/src/capability.rs
   - zircon_plugins/terrain/editor/src/extension_ids.rs
   - zircon_plugins/terrain/editor/src/plugin.rs
-  - zircon_plugins/terrain/editor/src/tests.rs
   - zircon_plugins/tilemap_2d/runtime/src/lib.rs
   - zircon_plugins/tilemap_2d/runtime/src/capability.rs
   - zircon_plugins/tilemap_2d/runtime/src/plugin.rs
-  - zircon_plugins/tilemap_2d/runtime/src/tests.rs
   - zircon_plugins/tilemap_2d/plugin.toml
   - zircon_plugins/tilemap_2d/dist/Cargo.toml
   - zircon_plugins/tilemap_2d/dist/src/lib.rs
@@ -468,7 +327,6 @@ related_code:
   - zircon_plugins/tilemap_2d/editor/src/capability.rs
   - zircon_plugins/tilemap_2d/editor/src/extension_ids.rs
   - zircon_plugins/tilemap_2d/editor/src/plugin.rs
-  - zircon_plugins/tilemap_2d/editor/src/tests.rs
   - zircon_plugins/particles/plugin.toml
   - zircon_plugins/particles/dist/Cargo.toml
   - zircon_plugins/particles/dist/src/lib.rs
@@ -482,22 +340,18 @@ related_code:
   - zircon_plugins/particles/editor/src/capability.rs
   - zircon_plugins/particles/editor/src/extension_ids.rs
   - zircon_plugins/particles/editor/src/plugin.rs
-  - zircon_plugins/particles/editor/src/tests.rs
   - zircon_plugins/physics/runtime/src/lib.rs
   - zircon_plugins/physics/runtime/src/capability.rs
   - zircon_plugins/physics/runtime/src/plugin.rs
-  - zircon_plugins/physics/runtime/src/tests.rs
   - zircon_plugins/physics/editor/src/lib.rs
   - zircon_plugins/physics/editor/src/capability.rs
   - zircon_plugins/physics/editor/src/extension_ids.rs
   - zircon_plugins/physics/editor/src/plugin.rs
-  - zircon_plugins/physics/editor/src/tests.rs
   - zircon_plugins/texture/runtime/src/lib.rs
   - zircon_plugins/texture/runtime/src/capability.rs
   - zircon_plugins/texture/runtime/src/manager.rs
   - zircon_plugins/texture/runtime/src/module.rs
   - zircon_plugins/texture/runtime/src/plugin.rs
-  - zircon_plugins/texture/runtime/src/tests.rs
   - zircon_plugins/texture/plugin.toml
   - zircon_plugins/texture/dist/Cargo.toml
   - zircon_plugins/texture/dist/src/lib.rs
@@ -505,12 +359,10 @@ related_code:
   - zircon_plugins/texture/editor/src/capability.rs
   - zircon_plugins/texture/editor/src/extension_ids.rs
   - zircon_plugins/texture/editor/src/plugin.rs
-  - zircon_plugins/texture/editor/src/tests.rs
   - zircon_plugins/editor_build_export_desktop/editor/src/lib.rs
   - zircon_plugins/editor_build_export_desktop/editor/src/capability.rs
   - zircon_plugins/editor_build_export_desktop/editor/src/extension_ids.rs
   - zircon_plugins/editor_build_export_desktop/editor/src/plugin.rs
-  - zircon_plugins/editor_build_export_desktop/editor/src/tests.rs
   - zircon_plugins/editor_build_export_desktop/editor/src/export_wizard.rs
   - zircon_plugins/sound/runtime/src/lib.rs
   - zircon_plugins/sound/runtime/src/capability.rs
@@ -527,32 +379,26 @@ related_code:
   - zircon_plugins/sound/editor/src/capability.rs
   - zircon_plugins/sound/editor/src/extension_ids.rs
   - zircon_plugins/sound/editor/src/plugin.rs
-  - zircon_plugins/sound/editor/src/tests.rs
   - zircon_plugins/sound/features/ray_reverb/runtime/src/lib.rs
   - zircon_plugins/sound/features/ray_reverb/runtime/src/capability.rs
   - zircon_plugins/sound/features/ray_reverb/runtime/src/plugin.rs
-  - zircon_plugins/sound/features/ray_traced_convolution_reverb/runtime/src/tests.rs
   - zircon_plugins/sound/features/ray_reverb/dist/Cargo.toml
   - zircon_plugins/sound/features/ray_reverb/dist/src/lib.rs
   - zircon_plugins/sound/features/ray_reverb/editor/src/lib.rs
   - zircon_plugins/sound/features/ray_reverb/editor/src/capability.rs
   - zircon_plugins/sound/features/ray_reverb/editor/src/plugin.rs
-  - zircon_plugins/sound/features/ray_traced_convolution_reverb/editor/src/tests.rs
   - zircon_plugins/sound/features/timeline/runtime/src/lib.rs
   - zircon_plugins/sound/features/timeline/runtime/src/capability.rs
   - zircon_plugins/sound/features/timeline/runtime/src/plugin.rs
-  - zircon_plugins/sound/features/timeline_animation_track/runtime/src/tests.rs
   - zircon_plugins/sound/features/timeline/dist/Cargo.toml
   - zircon_plugins/sound/features/timeline/dist/src/lib.rs
   - zircon_plugins/sound/features/timeline/editor/src/lib.rs
   - zircon_plugins/sound/features/timeline/editor/src/capability.rs
   - zircon_plugins/sound/features/timeline/editor/src/plugin.rs
-  - zircon_plugins/sound/features/timeline_animation_track/editor/src/tests.rs
   - zircon_plugins/timeline_sequence/editor/src/lib.rs
   - zircon_plugins/timeline_sequence/editor/src/capability.rs
   - zircon_plugins/timeline_sequence/editor/src/extension_ids.rs
   - zircon_plugins/timeline_sequence/editor/src/plugin.rs
-  - zircon_plugins/timeline_sequence/editor/src/tests.rs
   - zircon_plugins/timeline_sequence/dist/Cargo.toml
   - zircon_plugins/timeline_sequence/dist/src/lib.rs
   - zircon_plugins/editor_build_export_desktop/plugin.toml
@@ -561,7 +407,6 @@ related_code:
   - zircon_plugins/plugin_sdk_examples/plugin.toml
   - zircon_plugins/plugin_sdk_examples/editor/src/plugin.rs
   - zircon_plugins/plugin_sdk_examples/editor/src/lib.rs
-  - zircon_plugins/plugin_sdk_examples/editor/src/tests.rs
   - zircon_plugins/plugin_sdk_examples/dist/Cargo.toml
   - zircon_plugins/plugin_sdk_examples/dist/src/lib.rs
 plan_sources:

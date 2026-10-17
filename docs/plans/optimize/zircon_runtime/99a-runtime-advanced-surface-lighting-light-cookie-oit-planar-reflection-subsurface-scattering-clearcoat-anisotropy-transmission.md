@@ -9,15 +9,10 @@ related_code:
   - zircon_plugins/rendering/features/light_cookies
   - zircon_plugins/rendering/features/oit
   - zircon_plugins/rendering/features/planar_reflections
-  - zircon_plugins/rendering/features/subsurface_scattering
   - zircon_runtime/src/asset/assets/material
   - zircon_runtime/src/core/framework/render/advanced_lighting
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract
   - zircon_runtime/src/graphics/scene/resources/pipeline
-  - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting
-  - zircon_runtime/src/graphics/scene/scene_renderer/environment/probe_buffer
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh
+  - zircon_runtime/src/graphics/scene/renderer/environment/probe_buffer
   - zircon_runtime/src/graphics/shader/includes/zr_oit.wgsl
   - zircon_runtime/src/graphics/shader/includes/zr_pbr_extras_core.wgsl
   - zircon_runtime/src/graphics/shader/includes/zr_pbr_extras.wgsl
@@ -28,30 +23,11 @@ related_code:
   - zircon_runtime/src/graphics/shader/wgsl/zr_shading_standard_pbr.wgsl
   - zircon_runtime/src/graphics/shader/wgsl/zr_template_forward.wgsl
 tests:
-  - zircon_plugins/rendering/features/light_cookies/runtime/src/tests.rs
-  - zircon_plugins/rendering/features/oit/runtime/src/tests.rs
-  - zircon_plugins/rendering/features/oit/runtime/src/wgpu_product_tests.rs
-  - zircon_plugins/rendering/features/planar_reflections/runtime/src/tests.rs
-  - zircon_plugins/rendering/features/planar_reflections/runtime/src/wgpu_product_tests.rs
-  - zircon_plugins/rendering/features/subsurface_scattering/runtime/src/tests.rs
-  - zircon_plugins/rendering/features/subsurface_scattering/runtime/src/wgpu_product_tests.rs
-  - zircon_runtime/src/core/framework/render/advanced_lighting/planar/tests.rs
   - zircon_runtime/src/core/framework/render/advanced_lighting/subsurface.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/oit_buffers
   - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/planar_filter
   - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/subsurface_pass
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/camera_loop/tests.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/environment/probe_buffer/tests
-  - docs/tests/runtime/render/plan18_advanced_pbr_clearcoat_anisotropy_glass_dx12_renderdoc_20260714.rdc
-  - docs/tests/runtime/render/plan18_advanced_pbr_clearcoat_anisotropy_glass_three_spheres_wgpu_20260714.png
-  - docs/tests/runtime/render/plan18_af_m2_light_cookie_irradiance_volume_dx12_renderdoc_20260715.rdc
-  - docs/tests/runtime/render/plan18_af_m2_light_cookie_irradiance_volume_wgpu_20260715.png
-  - docs/tests/runtime/render/plan18_oit_three_crossing_transparent_planes_sorted_vs_oit_wgpu_20260712.txt
-  - docs/tests/runtime/render/plan18_oit_three_crossing_transparent_planes_sorted_vs_oit_wgpu_20260712.png
-  - docs/tests/runtime/render/plan18_planar_mirror_floor_oblique_clip_filter_wgpu_20260712.txt
-  - docs/tests/runtime/render/plan18_planar_mirror_floor_oblique_clip_filter_wgpu_20260712.png
-  - docs/tests/runtime/render/plan18_sss_skin_sphere_deferred_burley_wgpu_20260712.txt
-  - docs/tests/runtime/render/plan18_sss_skin_sphere_deferred_burley_wgpu_20260712.png
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md
   - docs/plans/optimize/01-cross-report-owner-schema-abi-p0-consolidation-review.md

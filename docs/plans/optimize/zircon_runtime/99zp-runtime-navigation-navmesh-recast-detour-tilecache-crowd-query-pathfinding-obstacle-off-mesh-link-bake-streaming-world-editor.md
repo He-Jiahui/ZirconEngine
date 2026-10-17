@@ -21,8 +21,6 @@ related_code:
   - zircon_plugins/first_party_runtime_catalog
   - zircon_plugins/first_party_editor_catalog
   - zircon_app/src/entry
-  - zircon_editor/assets/ui/editor/components/workbench/modules/extensions/simulation
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench
 plan_sources:
   - docs/plans/optimize/zircon_runtime/08d-navigation-runtime-review.md
   - docs/plans/optimize/zircon_plugins/14-first-party-navigation-source-native-runtime-editor-dist-catalog-recast-detour-crowd-tilecache-query-bake-product-integration-review.md

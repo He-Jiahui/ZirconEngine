@@ -11,7 +11,6 @@ reference_sources:
   - dev/godot/core/string/string_name.h
 tests:
   - zircon_runtime/src/builtin/runtime_modules/tests
-  - zircon_runtime/src/builtin/runtime_modules/assembly/registration_inputs/tests.rs
   - current-source Windows Cargo and plugin-scale startup traces pending
 doc_type: implementation-evidence
 status: static_complete_dynamic_pending

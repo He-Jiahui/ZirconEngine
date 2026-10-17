@@ -1,7 +1,6 @@
 ---
 related_code:
   - zircon_editor/src/lib.rs
-  - zircon_editor/src/ui/retained_host/app.rs
   - zircon_editor/src/core/editor_operation.rs
   - zircon_editor/src/core/commands/defaults.rs
   - zircon_editor/src/core/commandlet/runner.rs
@@ -19,8 +18,7 @@ related_code:
   - zircon_editor/src/ui/workbench/state/editor_state_field_updates.rs
   - zircon_editor/src/ui/workbench/state/editor_state_viewport.rs
   - zircon_editor/src/ui/binding_dispatch/inspector/apply.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/common/dispatch.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/workbench/menu_action.rs
+  - zircon_editor/src/ui/retained/dispatch/common/dispatch.rs
   - zircon_editor/src/core/commands/menu_model.rs
   - zircon_editor/src/core/commands/menu.rs
   - zircon_editor/src/ui/workbench/model/mod.rs
@@ -29,22 +27,16 @@ related_code:
   - zircon_editor/src/core/editor_extension.rs
   - zircon_editor/src/ui/host/editor_event_runtime_access/
   - zircon_editor/src/ui/host/editor_event_runtime_reflection.rs
-  - zircon_editor/src/ui/template_runtime/component_adapter/component_drawer.rs
+  - zircon_editor/src/ui/runtime/component_adapter/component_drawer.rs
   - zircon_editor/src/ui/host/editor_manager.rs
   - zircon_editor/src/ui/binding_dispatch/editor_event_normalization.rs
   - zircon_editor/src/ui/workbench/project/mod.rs
-  - zircon_editor/src/ui/host/builtin_views/activity_windows/functional_window_view_descriptors.rs
   - zircon_editor/src/ui/workbench/snapshot/mod.rs
   - zircon_editor/src/ui/workbench/snapshot/data/editor_state_snapshot_build.rs
   - zircon_editor/src/ui/workbench/snapshot/data/inspector_snapshot.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload_builders/inspector.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_projection.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/mod.rs
   - zircon_runtime/src/scene/mod.rs
   - zircon_runtime/src/scene/world/mod.rs
 implementation_files:
-  - zircon_editor/src/ui/retained_host/app.rs
   - zircon_editor/src/core/editing/command.rs
   - zircon_editor/src/core/editing/engine/history.rs
   - zircon_editor/src/core/editing/engine/transaction.rs
@@ -61,15 +53,11 @@ implementation_files:
   - zircon_editor/src/ui/host/editor_event_runtime_access/
   - zircon_editor/src/ui/host/editor_event_runtime_reflection.rs
   - zircon_editor/src/core/commands/menu.rs
-  - zircon_editor/src/ui/template_runtime/component_adapter/component_drawer.rs
+  - zircon_editor/src/ui/runtime/component_adapter/component_drawer.rs
   - zircon_editor/src/ui/workbench/project/mod.rs
   - zircon_editor/src/ui/workbench/snapshot/mod.rs
   - zircon_editor/src/ui/workbench/snapshot/data/editor_state_snapshot_build.rs
   - zircon_editor/src/ui/workbench/snapshot/data/inspector_snapshot.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload_builders/inspector.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_projection.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/mod.rs
   - zircon_runtime/src/scene/world/mod.rs
 plan_sources:
   - user: 2026-04-12 扩展 editor 命令系统到删除节点、改父子层级、重命名和 inspector 字段批量提交
@@ -86,12 +74,10 @@ tests:
   - zircon_editor/src/tests/editing/history.rs
   - zircon_editor/src/tests/editing/import.rs
   - zircon_runtime/src/scene/mod.rs
-  - zircon_editor/src/tests/host/binding_dispatch.rs
-  - zircon_editor/src/core/commandlet/tests.rs
+  - zircon_editor/src/tests/host/binding_dispatch/mod.rs
   - zircon_app/src/entry/cli/launch_args.rs
   - cargo test -p zircon_editor --lib commandlet --locked
   - cargo test -p zircon_app --locked cli
-  - zircon_runtime/src/tests/plugin_extensions/dynamic_components.rs
   - cargo test -p zircon_editor -- --nocapture
   - cargo test -p zircon_app -- --nocapture
   - cargo test -p zircon_editor --lib inspector_binding_applies_dynamic_plugin_component_fields_with_undo_history --locked --jobs 1

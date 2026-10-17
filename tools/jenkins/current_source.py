@@ -6,6 +6,8 @@ neither operation applies, compensates, or claims files in the shared checkout.
 """
 from __future__ import annotations
 
+import os
+
 import re
 import subprocess
 from pathlib import Path
@@ -68,7 +70,7 @@ def _git_selection(root: Path, paths: list[str]) -> tuple[set[str], set[str]]:
         def names(*flags):
             # A complete engine closure exceeds Windows' command-line limit.
             # Inventory is metadata only; intersect it with the explicit scope.
-            result = subprocess.run(["git", "ls-files", "-z", *flags],
+            result = subprocess.run(["git", "-c", "core.fsmonitor=false", "-c", "core.hooksPath=" + os.devnull, "ls-files", "-z", *flags],
                                     cwd=root, capture_output=True, check=True)
             inventory = {value.decode("utf-8").replace("\\", "/").casefold()
                          for value in result.stdout.split(b"\0") if value}
@@ -105,7 +107,7 @@ def _source_root(root: Path, value, worktree_id=None) -> Path:
             or source.resolve() != source or not source.is_dir()):
         raise JenkinsError("current_source_root_invalid", "Source must be the exact direct managed worktree child")
     def git_path(flag):
-        completed = subprocess.run(["git", "-C", str(source), "rev-parse",
+        completed = subprocess.run(["git", "-c", "core.fsmonitor=false", "-c", "core.hooksPath=" + os.devnull, "-C", str(source), "rev-parse",
                                     "--path-format=absolute", flag],
                                    capture_output=True, text=True, check=False)
         if completed.returncode:

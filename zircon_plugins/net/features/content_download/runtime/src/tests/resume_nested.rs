@@ -65,7 +65,7 @@ fn nested_partial_chunk_lookup_release_benchmark_evidence() {
     let optimized_p50 = percentile(&optimized_samples, 50);
     let optimized_p95 = percentile(&optimized_samples, 95);
     println!(
-        "PERF_RESULT task=plugins10_nested_partial_chunk_lookup lookups={BENCHMARK_LOOKUP_COUNT} chunk_id_bytes={} payload_bytes={} sample_pairs={BENCHMARK_SAMPLE_COUNT} order=alternating_legacy_first_even legacy_first_pairs=11 optimized_first_pairs=10 percentile_method=nearest_rank legacy_key_string_allocations_per_sample={BENCHMARK_LOOKUP_COUNT} optimized_key_string_allocations_per_sample=0 threshold_percent=25 legacy_p50_ns={legacy_p50} legacy_p95_ns={legacy_p95} optimized_p50_ns={optimized_p50} optimized_p95_ns={optimized_p95} legacy_raw_ns={} optimized_raw_ns={}",
+        "PERF_RESULT task=plugins10_nested_partial_chunk_lookup lookups={BENCHMARK_LOOKUP_COUNT} chunk_id_bytes={} payload_bytes={} sample_pairs={BENCHMARK_SAMPLE_COUNT} order=alternating_legacy_first_even legacy_first_pairs=11 optimized_first_pairs=10 percentile_method=nearest_rank legacy_key_string_allocations_per_sample={BENCHMARK_LOOKUP_COUNT} optimized_key_string_allocations_per_sample_expected=0 threshold_percent=25 legacy_p50_ns={legacy_p50} legacy_p95_ns={legacy_p95} optimized_p50_ns={optimized_p50} optimized_p95_ns={optimized_p95} legacy_raw_ns={} optimized_raw_ns={}",
         chunk_id.len(),
         payload.len(),
         raw_samples(&legacy_samples),

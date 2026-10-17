@@ -5,9 +5,7 @@ plan_sources:
   - docs/plans/optimize/zircon_runtime/632/2026-09-01-preallocated-targeted-catalog-membership.md
 related_code:
   - zircon_runtime/src/asset/project/catalog_input_generation.rs
-  - zircon_runtime/src/asset/project/catalog_input_generation/optimization_batch_iv_runtime632_tests.rs
 tests:
-  - zircon_runtime/src/asset/project/catalog_input_generation/optimization_batch_iv_runtime632_tests.rs
 ---
 
 # Targeted Catalog Membership Capacity

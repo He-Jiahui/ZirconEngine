@@ -7,9 +7,7 @@ related_records:
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
   - zircon_editor/src/ui/asset_editor/session/lifecycle/palette_catalog.rs
-  - zircon_editor/src/ui/asset_editor/session/lifecycle/palette_catalog/selection_fast_path_tests.rs
 tests:
-  - zircon_editor/src/ui/asset_editor/session/lifecycle/palette_catalog/selection_fast_path_tests.rs
 ---
 
 # Editor979 · palette selection index fast path

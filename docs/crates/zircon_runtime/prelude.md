@@ -45,7 +45,7 @@ plan_sources:
 tests:
   - zircon_runtime/src/tests/prelude.rs
   - zircon_runtime/src/tests/time.rs
-  - zircon_runtime/src/platform/tests.rs
+  - zircon_runtime/src/platform/tests/mod.rs
   - zircon_runtime/src/input/tests/boundary.rs
   - zircon_runtime/src/input/tests/input_manager.rs
   - zircon_runtime/src/tests/state.rs

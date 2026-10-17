@@ -10,8 +10,6 @@ performance_status: release_measurement_pending
 related_code:
   - zircon_runtime/src/core/runtime/tasks/timer.rs
 tests:
-  - zircon_runtime/src/core/runtime/tasks/timer/ready_bucket_reuse_tests.rs
-  - zircon_runtime/src/core/runtime/tasks/timer/astra_interval_tests.rs
 plan_sources:
   - docs/plans/optimize/zircon_runtime/158-runtime-core-events-tasks-timer-event-bus-task-graph-current-source-review.md
   - docs/plans/optimize/zircon_runtime/02-core-runtime-events-tasks-review.md

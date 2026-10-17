@@ -10,9 +10,8 @@ related_code:
   - zircon_editor/src/ui/host/editor_host_startup.rs
   - zircon_editor/src/ui/workbench/state/editor_state_play_mode.rs
   - zircon_editor/src/ui/workbench/startup/editor_state_project.rs
-  - zircon_editor/src/ui/retained_host/app/native_window_close.rs
-  - zircon_editor/src/ui/retained_host/app/welcome_session/actions/project.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_projection.rs
+  - zircon_editor/src/ui/retained/app/native_window_close.rs
+  - zircon_editor/src/ui/retained/app/welcome_session/actions/project.rs
   - zircon_app/src/entry/entry_runner/runtime.rs
   - zircon_app/src/entry/entry_runner/runtime_session_args.rs
   - zircon_app/src/bin/runtime_preview.rs

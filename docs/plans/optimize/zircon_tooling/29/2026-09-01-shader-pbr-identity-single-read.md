@@ -2,7 +2,6 @@
 status: local_candidate
 implementation_files:
   - tools/analysis/profiling/shader_pbr/zircon_shader_pbr_evidence_identity.py
-  - tools/tests/test_shader_pbr_identity_manifest_single_read_performance_contract.py
 ---
 
 # Shader PBR identity manifest single read

@@ -6,9 +6,8 @@ related_code:
   - zircon_plugins/rendering/features/volumetric_fog/runtime/src/capability.rs
   - zircon_plugins/rendering/features/volumetric_fog/runtime/src/lib.rs
   - zircon_plugins/rendering/features/volumetric_fog/runtime/src/plugin.rs
-  - zircon_plugins/rendering/features/volumetric_fog/runtime/src/tests.rs
   - zircon_plugins/rendering/features/volumetric_fog/editor/src/plugin.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/froxel/executors/mod.rs
+  - zircon_runtime/src/graphics/scene/renderer/froxel/executors/mod.rs
 implementation_files:
   - zircon_plugins/rendering/features/volumetric_fog/runtime/Cargo.toml
   - zircon_plugins/rendering/features/volumetric_fog/runtime/src/capability.rs
@@ -19,7 +18,6 @@ plan_sources:
   - docs/plans/engine-code-structure-convention.md
   - docs/plans/engine-code-review-findings-2026-06.md
 tests:
-  - zircon_plugins/rendering/features/volumetric_fog/runtime/src/tests.rs
   - tools/audits/audit_plugin_structure.py
 doc_type: module-detail
 ---

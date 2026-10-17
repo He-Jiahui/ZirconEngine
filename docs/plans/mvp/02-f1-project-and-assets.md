@@ -5,7 +5,6 @@ related_code:
   - zircon_editor/src/ui/host/startup
   - zircon_runtime/src/asset/project
   - zircon_runtime/src/asset/registry/asset_registry_index.rs
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager
   - templates/projects/renderable-empty
 related_tests:
   - zircon_app/src/entry/entry_runner/editor/tests/gui_startup.rs

@@ -19,15 +19,15 @@ related_code:
   - zircon_plugins/physics/runtime/src/backend/builtin/query_contact/filter.rs
   - zircon_plugins/physics/runtime/src/backend/builtin/query_contact/geometry.rs
   - zircon_plugins/physics/runtime/src/backend/builtin/query_contact/overlap.rs
-  - zircon_plugins/physics/runtime/src/backend/builtin/query_contact/overlap/distance.rs
-  - zircon_plugins/physics/runtime/src/backend/builtin/query_contact/overlap/pairwise.rs
-  - zircon_plugins/physics/runtime/src/backend/builtin/query_contact/overlap/proxies.rs
-  - zircon_plugins/physics/runtime/src/backend/builtin/query_contact/overlap/query.rs
+  - zircon_plugins/physics/runtime/src/backend/builtin/overlap/distance.rs
+  - zircon_plugins/physics/runtime/src/backend/builtin/overlap/pairwise.rs
+  - zircon_plugins/physics/runtime/src/backend/builtin/overlap/proxies.rs
+  - zircon_plugins/physics/runtime/src/backend/builtin/overlap/query.rs
   - zircon_plugins/physics/runtime/src/backend/builtin/query_contact/raycast.rs
   - zircon_plugins/physics/runtime/src/backend/builtin/query_contact/raycast/aabb.rs
-  - zircon_plugins/physics/runtime/src/backend/builtin/query_contact/raycast/capsule.rs
-  - zircon_plugins/physics/runtime/src/backend/builtin/query_contact/raycast/quadratic.rs
-  - zircon_plugins/physics/runtime/src/backend/builtin/query_contact/raycast/sphere.rs
+  - zircon_plugins/physics/runtime/src/backend/builtin/raycast/capsule.rs
+  - zircon_plugins/physics/runtime/src/backend/builtin/raycast/quadratic.rs
+  - zircon_plugins/physics/runtime/src/backend/builtin/raycast/sphere.rs
   - zircon_plugins/physics/runtime/src/backend/builtin/trigger.rs
   - zircon_plugins/physics/runtime/src/backend/builtin/trigger/event.rs
   - zircon_plugins/physics/runtime/src/backend/builtin/trigger/pair.rs
@@ -53,7 +53,6 @@ related_code:
   - zircon_plugins/physics/runtime/src/manager/settings.rs
   - zircon_plugins/physics/runtime/src/manager/validation.rs
   - zircon_plugins/physics/runtime/src/manager/world_sync.rs
-  - zircon_plugins/physics/runtime/src/manager/tests.rs
   - zircon_plugins/physics/runtime/src/runtime_system.rs
   - zircon_plugins/physics/runtime/src/skeletal/mod.rs
   - zircon_plugins/physics/runtime/src/skeletal/profile.rs
@@ -61,7 +60,6 @@ related_code:
   - zircon_runtime/src/core/framework/physics/skeletal_pose.rs
   - zircon_plugins/physics/editor/Cargo.toml
   - zircon_plugins/physics/editor/src/plugin.rs
-  - zircon_plugins/physics/editor/src/tests.rs
   - zircon_runtime/src/asset/assets/scene/mod.rs
   - zircon_runtime/src/core/framework/scene/physics/joint_constraint_metadata.rs
   - zircon_runtime/src/core/framework/scene/physics/joint_drive.rs
@@ -84,14 +82,10 @@ related_code:
   - zircon_runtime/src/core/framework/physics/world_step_plan.rs
   - zircon_runtime/src/core/manager/service_names.rs
   - zircon_runtime/src/core/manager/resolver.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/augmentation/capabilities.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/core_classification/runtime/services.rs
+  - zircon_runtime/src/plugin/runtime/builtin_catalog/augmentation/capabilities.rs
   - zircon_runtime/src/scene/components/scene/physics.rs
-  - zircon_runtime/src/scene/dynamic_scene/scene/mod.rs
   - zircon_runtime/src/scene/world/project_io.rs
   - zircon_runtime/src/scene/module/world_driver.rs
-  - zircon_runtime/src/tests/plugin_extensions/manifest_contributions.rs
 implementation_files:
   - zircon_plugins/physics/plugin.toml
   - zircon_plugins/physics/runtime/Cargo.toml
@@ -112,15 +106,15 @@ implementation_files:
   - zircon_plugins/physics/runtime/src/backend/builtin/query_contact/filter.rs
   - zircon_plugins/physics/runtime/src/backend/builtin/query_contact/geometry.rs
   - zircon_plugins/physics/runtime/src/backend/builtin/query_contact/overlap.rs
-  - zircon_plugins/physics/runtime/src/backend/builtin/query_contact/overlap/distance.rs
-  - zircon_plugins/physics/runtime/src/backend/builtin/query_contact/overlap/pairwise.rs
-  - zircon_plugins/physics/runtime/src/backend/builtin/query_contact/overlap/proxies.rs
-  - zircon_plugins/physics/runtime/src/backend/builtin/query_contact/overlap/query.rs
+  - zircon_plugins/physics/runtime/src/backend/builtin/overlap/distance.rs
+  - zircon_plugins/physics/runtime/src/backend/builtin/overlap/pairwise.rs
+  - zircon_plugins/physics/runtime/src/backend/builtin/overlap/proxies.rs
+  - zircon_plugins/physics/runtime/src/backend/builtin/overlap/query.rs
   - zircon_plugins/physics/runtime/src/backend/builtin/query_contact/raycast.rs
   - zircon_plugins/physics/runtime/src/backend/builtin/query_contact/raycast/aabb.rs
-  - zircon_plugins/physics/runtime/src/backend/builtin/query_contact/raycast/capsule.rs
-  - zircon_plugins/physics/runtime/src/backend/builtin/query_contact/raycast/quadratic.rs
-  - zircon_plugins/physics/runtime/src/backend/builtin/query_contact/raycast/sphere.rs
+  - zircon_plugins/physics/runtime/src/backend/builtin/raycast/capsule.rs
+  - zircon_plugins/physics/runtime/src/backend/builtin/raycast/quadratic.rs
+  - zircon_plugins/physics/runtime/src/backend/builtin/raycast/sphere.rs
   - zircon_plugins/physics/runtime/src/backend/builtin/trigger.rs
   - zircon_plugins/physics/runtime/src/backend/builtin/trigger/event.rs
   - zircon_plugins/physics/runtime/src/backend/builtin/trigger/pair.rs
@@ -151,7 +145,6 @@ implementation_files:
   - zircon_plugins/physics/runtime/src/skeletal/runtime.rs
   - zircon_plugins/physics/editor/Cargo.toml
   - zircon_plugins/physics/editor/src/plugin.rs
-  - zircon_plugins/physics/editor/src/tests.rs
   - zircon_runtime/src/asset/assets/scene/mod.rs
   - zircon_runtime/src/core/framework/scene/physics/joint_constraint_metadata.rs
   - zircon_runtime/src/core/framework/scene/physics/joint_drive.rs
@@ -170,11 +163,8 @@ implementation_files:
   - zircon_runtime/src/core/framework/physics/trigger_event.rs
   - zircon_runtime/src/core/framework/physics/trigger_event_kind.rs
   - zircon_runtime/src/core/framework/physics/world_step_plan.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/augmentation/capabilities.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/core_classification/runtime/services.rs
+  - zircon_runtime/src/plugin/runtime/builtin_catalog/augmentation/capabilities.rs
   - zircon_runtime/src/scene/components/scene/physics.rs
-  - zircon_runtime/src/scene/dynamic_scene/scene/mod.rs
   - zircon_runtime/src/scene/world/project_io.rs
 plan_sources:
   - user: 2026-07-13 书面设计通过，批准 Runtime02 注册服务 CoreWeak 拆分设计并开始实施
@@ -190,20 +180,6 @@ plan_sources:
   - .codex/plans/ZirconEngine 周边设施与插件能力完善计划.md
   - docs/superpowers/plans/2026-05-03-physics-animation-aggressive-plugin-migration.md
 tests:
-  - zircon_plugins/physics/runtime/src/manager/tests.rs::physics_manager_settings_and_clock_recover_poisoned_state_locks
-  - zircon_runtime/src/tests/runtime_absorption/service_registry_ownership.rs::registry_owned_services_store_only_weak_runtime_back_references
-  - zircon_plugins/animation/runtime/tests/runtime_physics_animation_tick_contract/state_machine_interruption.rs::pose_targets_visible_to_physics_step
-  - zircon_plugins/physics/runtime/src/skeletal/tests.rs::ragdoll_profile_spawns_expected_body_count
-  - zircon_plugins/physics/runtime/src/skeletal/tests.rs::ragdoll_profile_rejects_parent_cycles_before_scene_mutation
-  - zircon_plugins/physics/runtime/src/skeletal/tests.rs::animated_to_simulated_switch_has_no_pose_pop
-  - zircon_plugins/physics/runtime/src/skeletal/tests.rs::ragdoll_drop_golden_snapshot
-  - zircon_plugins/physics/runtime/src/skeletal/tests.rs::blended_ragdoll_writes_local_pose_with_composed_weight
-  - tests/acceptance/plugins-03-physics-manager-poison-recovery.md
-  - tests/acceptance/plugins-03-physics-backend-trait-builtin.md
-  - tests/acceptance/plugins-03-physics-system-anchors.md
-  - tests/acceptance/plugins-03-physics-jolt-backend.md
-  - tests/acceptance/plugins-03-physics-change-detection-command-buffer.md
-  - zircon_plugins/physics/runtime/src/backend/tests.rs
   - zircon_plugins/physics/runtime/src/backend/tests/builtin_contract.rs
   - zircon_plugins/physics/runtime/src/backend/tests/jolt_contract.rs
   - physics_backend_generation_rejects_destroyed_body_after_slot_reuse
@@ -224,13 +200,11 @@ tests:
   - zircon_plugins/physics/runtime/tests/physics_manager_runtime_contract/contact.rs
   - zircon_plugins/physics/runtime/tests/physics_manager_runtime_contract/query.rs
   - zircon_plugins/physics/runtime/tests/physics_manager_runtime_contract/step.rs
-  - zircon_plugins/physics/runtime/src/manager/tests.rs
   - physics_manager_settings_and_clock_recover_poisoned_state_locks
   - physics_manager_world_state_recovers_poisoned_state_locks
   - world_sync_preserves_constraint_and_skeletal_joint_metadata
   - world_project_roundtrip_preserves_physics_and_animation_components
   - backend_status_step_plan_and_physics_query_roundtrip_as_framework_dtos
-  - zircon_runtime/src/tests/plugin_extensions/manifest_contributions.rs
   - cargo test --manifest-path "zircon_plugins/Cargo.toml" -p zircon_plugin_physics_runtime --test physics_manager_runtime_contract contract::step::builtin_fixed_step_uses_live_world_records_before_node_cache_flush --locked --quiet -- --exact --nocapture
   - zircon_runtime/src/tests/extensions/animation_physics_absorption.rs
   - zircon_runtime/src/tests/extensions/manager_handles.rs

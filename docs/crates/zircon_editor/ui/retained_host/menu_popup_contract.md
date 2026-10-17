@@ -1,39 +1,30 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/menu_popup_contract.rs
-  - zircon_editor/src/ui/retained_host/popup_anchor_metrics.rs
-  - zircon_editor/src/ui/retained_host/app/helpers/geometry.rs
-  - zircon_editor/src/ui/retained_host/menu_pointer/constants.rs
-  - zircon_editor/src/ui/retained_host/menu_pointer/build_host_menu_pointer_layout.rs
-  - zircon_editor/src/ui/retained_host/menu_pointer/host_menu_pointer_layout.rs
-  - zircon_editor/src/ui/retained_host/menu_pointer/popup_layout.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/scene_projection.rs
-  - zircon_editor/src/ui/retained_host/host_contract/menu_popup_metrics.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_primitives/text_markers.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/menus/popup.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/menus/rows.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/menus/rows/text_layout.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/native_panes.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/native_panes/scrollbar.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/native_panes/scrollbar/paint.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/menu_geometry/popup/entry/root/frame.rs
+  - zircon_editor/src/ui/retained/app/helpers/geometry.rs
+  - zircon_editor/src/ui/retained/menu_pointer/constants.rs
+  - zircon_editor/src/ui/retained/menu_pointer/build_host_menu_pointer_layout.rs
+  - zircon_editor/src/ui/retained/menu_pointer/host_menu_pointer_layout.rs
+  - zircon_editor/src/ui/retained/menu_pointer/popup_layout.rs
+  - zircon_editor/src/ui/retained/contract/paint_primitives/text_markers.rs
+  - zircon_editor/src/ui/retained/contract/workbench/menus/popup.rs
+  - zircon_editor/src/ui/retained/contract/workbench/menus/rows.rs
+  - zircon_editor/src/ui/retained/contract/workbench/menus/rows/text_layout.rs
+  - zircon_editor/src/ui/retained/contract/workbench/native_panes/scrollbar.rs
+  - zircon_editor/src/ui/retained/contract/workbench/native_panes/scrollbar/paint.rs
+  - zircon_editor/src/ui/retained/contract/pointer/popup/entry/root/frame.rs
 implementation_files:
-  - zircon_editor/src/ui/retained_host/menu_popup_contract.rs
-  - zircon_editor/src/ui/retained_host/app/helpers/geometry.rs
-  - zircon_editor/src/ui/retained_host/menu_pointer/constants.rs
-  - zircon_editor/src/ui/retained_host/menu_pointer/build_host_menu_pointer_layout.rs
-  - zircon_editor/src/ui/retained_host/menu_pointer/host_menu_pointer_layout.rs
-  - zircon_editor/src/ui/retained_host/menu_pointer/popup_layout.rs
-  - zircon_editor/src/ui/layouts/windows/workbench_host_window/scene_projection.rs
-  - zircon_editor/src/ui/retained_host/host_contract/menu_popup_metrics.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_primitives/text_markers.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/menus/popup.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/menus/rows.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/menus/rows/text_layout.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/native_panes.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/native_panes/scrollbar.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/native_panes/scrollbar/paint.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/menu_geometry/popup/entry/root/frame.rs
+  - zircon_editor/src/ui/retained/app/helpers/geometry.rs
+  - zircon_editor/src/ui/retained/menu_pointer/constants.rs
+  - zircon_editor/src/ui/retained/menu_pointer/build_host_menu_pointer_layout.rs
+  - zircon_editor/src/ui/retained/menu_pointer/host_menu_pointer_layout.rs
+  - zircon_editor/src/ui/retained/menu_pointer/popup_layout.rs
+  - zircon_editor/src/ui/retained/contract/paint_primitives/text_markers.rs
+  - zircon_editor/src/ui/retained/contract/workbench/menus/popup.rs
+  - zircon_editor/src/ui/retained/contract/workbench/menus/rows.rs
+  - zircon_editor/src/ui/retained/contract/workbench/menus/rows/text_layout.rs
+  - zircon_editor/src/ui/retained/contract/workbench/native_panes/scrollbar.rs
+  - zircon_editor/src/ui/retained/contract/workbench/native_panes/scrollbar/paint.rs
+  - zircon_editor/src/ui/retained/contract/pointer/popup/entry/root/frame.rs
 plan_sources:
   - docs/plans/zircon_editor/editor_layout/15-component-standardization-from-primitives.md
   - docs/plans/zircon_editor/editor_layout/15d-composite-density-and-alignment.md

@@ -8,8 +8,8 @@ fixing_plan: docs/plans/zircon_runtime/shader/04-material-binding-and-renderer-c
 origin_child_dir: docs/plans/zircon_editor/editor/02
 fixing_child_dir: docs/plans/zircon_runtime/shader/04
 related_code:
-  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/hzb.rs
-  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/compute_workload.rs
+  - zircon_runtime/src/graphics/feature/builtin/feature_descriptors/hzb.rs
+  - zircon_runtime/src/graphics/builtin/feature_descriptors/compute_workload.rs
   - zircon_runtime/src/graphics/shader/builtin_global_shader_contracts.rs
 tests:
   - cargo test -p zircon_runtime --locked

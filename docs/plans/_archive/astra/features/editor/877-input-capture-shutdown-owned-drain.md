@@ -10,8 +10,6 @@ related_records:
 implementation_files:
   - zircon_editor/src/core/tools/input_capture.rs
 tests:
-  - zircon_editor/src/core/tools/optimization_batch_editor877_input_capture_shutdown_owned_drain_tests.rs
-  - tools/tests/test_editor877_input_capture_shutdown_owned_drain_performance_contract.py
 ---
 
 # Editor877 Input Capture Shutdown Owned Drain

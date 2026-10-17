@@ -3,7 +3,6 @@ related_code:
   - zircon_runtime/src/ui/dispatch/mod.rs
   - zircon_runtime/src/ui/dispatch/input_manager/mod.rs
   - zircon_runtime/src/ui/dispatch/input_manager/manager.rs
-  - zircon_runtime/src/ui/dispatch/input_manager/manager/tests.rs
   - zircon_runtime/src/ui/dispatch/input_manager/outcome.rs
   - zircon_runtime/src/ui/dispatch/input_manager/pointer_table.rs
   - zircon_runtime/src/ui/dispatch/input_manager/routing.rs
@@ -21,13 +20,10 @@ related_code:
   - zircon_runtime_interface/src/ui/dispatch/mod.rs
   - zircon_runtime_interface/src/ui/window/mod.rs
   - zircon_runtime/src/ui/tests/runtime_input_manager.rs
-  - zircon_runtime/src/ui/tests/runtime_input_reply_routes/keyboard_navigation_routes.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/ui_dispatch_input_manager_tests.rs
 implementation_files:
   - zircon_runtime/src/ui/dispatch/mod.rs
   - zircon_runtime/src/ui/dispatch/input_manager/mod.rs
   - zircon_runtime/src/ui/dispatch/input_manager/manager.rs
-  - zircon_runtime/src/ui/dispatch/input_manager/manager/tests.rs
   - zircon_runtime/src/ui/dispatch/input_manager/outcome.rs
   - zircon_runtime/src/ui/dispatch/input_manager/pointer_table.rs
   - zircon_runtime/src/ui/dispatch/input_manager/routing.rs
@@ -47,8 +43,6 @@ plan_sources:
   - docs/plans/zircon_editor/editor_ui/01-slate-input-dispatch-core.md
 tests:
   - zircon_runtime/src/ui/tests/runtime_input_manager.rs
-  - zircon_runtime/src/ui/dispatch/input_manager/manager/tests.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/ui_dispatch_input_manager_tests.rs
   - 2026-06-12: cargo check -p zircon_runtime_interface --lib --locked (passed)
   - 2026-06-12: cargo test -p zircon_runtime_interface --lib ui_layout_style_and_debug_packet_contracts_round_trip_with_defaults --locked --target-dir target/codex-editor-ui (passed)
   - 2026-06-12: target/codex-editor-ui-runtime/debug/deps/zircon_runtime-de6f737e1b69a0f9.exe runtime_input_manager --nocapture --test-threads=1 (passed, 3 passed)

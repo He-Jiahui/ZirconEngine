@@ -10,20 +10,15 @@ related_code:
   - zircon_plugins/rendering/features/decals/runtime/src
   - zircon_plugins/rendering/features/decals/editor/src
   - zircon_plugins/rendering/plugin.toml
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/rendering_features
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog
+  - zircon_runtime/src/plugin/runtime/builtin_catalog/rendering_features
   - zircon_runtime/src/core/framework/scene/component_type_descriptor
   - zircon_runtime/src/asset/assets/scene/entity.rs
   - zircon_runtime/src/asset/assets/material
-  - zircon_runtime/src/scene/dynamic_scene
   - zircon_runtime/src/core/framework/render/frame_extract.rs
   - zircon_runtime/src/graphics/material/mod.rs
   - zircon_runtime/src/graphics/feature/builtin_render_feature/advanced_slots.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/plugin_render_features.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution
   - zircon_runtime/src/graphics/visibility
   - zircon_runtime/src/graphics/scene/resources
-  - zircon_editor/assets/ui/editor/components/workbench/modules/core/rendering/workbench_material_workspace.zui
 plan_sources:
   - docs/plans/optimize/zircon_runtime/35-decal-projector-material-domain-dbuffer-gbuffer-forward-receiver-culling-batching-atlas-streaming-temporal-rt-scalability.md
   - docs/plans/optimize/zircon_runtime/85-runtime-asset-import-source-discovery-importer-recipe-subasset-derived-data-artifact-cook-package-incremental-build-worker-determinism.md

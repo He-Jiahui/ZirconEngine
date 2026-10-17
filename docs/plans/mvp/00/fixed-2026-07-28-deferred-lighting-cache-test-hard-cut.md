@@ -8,9 +8,8 @@ fixing_plan: docs/plans/zircon_runtime/render/05-lighting-shadows.md
 origin_child_dir: docs/plans/mvp/00
 fixing_child_dir: docs/plans/zircon_runtime/render/05
 related_code:
-  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_pipeline/tests/runtime_pipeline.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_pipeline/create.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/deferred_scene_resources/construct.rs
+  - zircon_runtime/src/graphics/scene/renderer/deferred/tests/runtime_pipeline.rs
+  - zircon_runtime/src/graphics/scene/renderer/deferred/lighting_pipeline/create.rs
 tests:
   - .\\.codex\\skills\\zircon-dev\\scripts\\validate-matrix.ps1 -Package zircon_runtime -SkipBuild -LibTests -TestFilter 'asset::tests::migration::project_commandlet::resolver_index'
 resolved_at: 2026-07-28

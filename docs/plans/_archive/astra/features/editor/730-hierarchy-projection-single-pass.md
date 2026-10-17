@@ -14,9 +14,7 @@ related_records:
   - docs/plans/astra/features/editor/731-hierarchy-index-rebuild-reuse.md
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/hierarchy_projection.rs
 tests:
-  - tools/tests/test_editor_hierarchy_projection_single_pass_contract.py
 ---
 
 # Editor hierarchy projection single-pass selection state

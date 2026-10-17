@@ -24,7 +24,6 @@ plan_sources:
 tests:
   - tools/tests/test_frameworks_05_layer_direction.py
   - zircon_runtime/src/scene/runtime_extension/mod.rs
-  - zircon_runtime/src/plugin/extension_registry/runtime_extension_registry/tests.rs
 ---
 
 # Scene Runtime Extension Plans

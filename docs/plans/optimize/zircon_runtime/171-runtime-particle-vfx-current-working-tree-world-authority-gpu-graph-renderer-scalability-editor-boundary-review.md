@@ -15,14 +15,12 @@ related_code:
   - zircon_runtime/src/scene/world/render_particles.rs
   - zircon_runtime/src/core/framework/render/frame_extract/particle.rs
   - zircon_runtime/src/graphics/particle_runtime_provider
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/bind_plugin_graph_resources.rs
+  - zircon_runtime/src/graphics/scene/core/render/bind_plugin_graph_resources.rs
   - examples/vampire/scripts/vampire_game/main.zr
 tests:
   - zircon_plugins/particles/runtime/src/tests
-  - zircon_plugins/particles/runtime/src/render/gpu/backend/test_readback.rs
   - zircon_runtime/src/scene/tests/render_extract/particles.rs
   - zircon_runtime/src/graphics/tests/render_product_particle_velocity.rs
-  - tests/acceptance/particles-gpu-readback-mailbox.md
 plan_sources:
   - docs/plans/optimize/zircon_runtime/99d-runtime-particle-vfx-system-emitter-cpu-gpu-simulation-rendering-scalability-determinism-product-integration-current-source-review.md
   - docs/plans/optimize/zircon_runtime/09a-rhi-render-graph-gpu-lifetime-review.md

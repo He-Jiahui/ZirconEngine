@@ -1,25 +1,15 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_drag_overlay.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_nodes.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/template_nodes.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/drag_overlay/mod.rs
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/feedback/workbench_drag_overlay.zui
-  - zircon_editor/src/tests/host/retained_window/native_material_painter_drag_overlay.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/drag_overlay_tests.rs
+  - zircon_editor/src/ui/retained/ui/data/projection/drag_overlay/mod.rs
+  - zircon_editor/src/tests/retained_window/native_material_painter_drag_overlay.rs
   - zircon_runtime/src/ui/surface/render/drag_overlay.rs
 implementation_files:
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_drag_overlay.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_nodes.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/template_nodes.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/drag_overlay/mod.rs
-  - zircon_editor/assets/ui/editor/components/workbench/primitives/feedback/workbench_drag_overlay.zui
+  - zircon_editor/src/ui/retained/ui/data/projection/drag_overlay/mod.rs
 plan_sources:
   - docs/plans/zircon_editor/editor_ui/06-component-library-mui.md
   - docs/plans/zircon_editor/editor_ui/index.md
 tests:
-  - zircon_editor/src/tests/host/retained_window/native_material_painter_drag_overlay.rs
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/drag_overlay_tests.rs
+  - zircon_editor/src/tests/retained_window/native_material_painter_drag_overlay.rs
   - zircon_editor/src/tests/ui/boundary/zui_asset_governance/workbench_primitives/
   - zircon_runtime/src/ui/tests/render_drag_overlay.rs
   - rustfmt --edition 2021 touched DragOverlay Workbench/native Rust files

@@ -1,7 +1,7 @@
 ---
 related_code:
   - zircon_editor/src/core/export
-  - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard
+  - zircon_editor/src/ui/host/exports/export_build/wizard
   - zircon_editor/src/ui/host/export_process_support
   - zircon_editor/src/ui/host/native_dynamic_export_preparation
 base_reports:

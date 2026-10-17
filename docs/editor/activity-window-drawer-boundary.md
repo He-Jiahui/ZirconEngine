@@ -14,24 +14,19 @@ related_code:
   - zircon_editor/src/ui/workbench/window_registry/drawer_window_instance.rs
   - zircon_editor/src/ui/workbench/window_registry/drawer_binding.rs
   - zircon_editor/src/ui/workbench/window_registry/drawer_dock_position.rs
-  - zircon_editor/src/ui/retained_host/app/workspace_docking.rs
-  - zircon_editor/src/ui/retained_host/app/native_window_close.rs
-  - zircon_editor/src/ui/retained_host/app/close_prompt.rs
+  - zircon_editor/src/ui/retained/app/workspace_docking.rs
+  - zircon_editor/src/ui/retained/app/native_window_close.rs
+  - zircon_editor/src/ui/retained/app/close_prompt.rs
   - zircon_editor/src/ui/host/window_host_manager.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/close_prompt.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_close_prompt.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/layout/drawer_toggle.rs
-  - zircon_editor/src/ui/retained_host/tab_drag/resolved_drop.rs
+  - zircon_editor/src/ui/retained/contract/data/close_prompt.rs
+  - zircon_editor/src/ui/retained/tab_drag/resolved_drop.rs
   - zircon_editor/src/ui/workbench/snapshot/data/editor_chrome_snapshot_build.rs
   - zircon_editor/src/ui/workbench/model/build/workbench_view_model_build.rs
   - zircon_editor/src/ui/workbench/autolayout/region/tool_region/presence.rs
   - zircon_editor/src/ui/workbench/view/activity_window_template_spec.rs
   - zircon_editor/src/ui/workbench/view/view_descriptor.rs
-  - zircon_editor/src/ui/template_runtime/builtin/template_documents.rs
   - zircon_editor/assets/ui/editor/host/editor_main_frame.zui
-  - zircon_editor/assets/ui/editor/components/workbench/shell/activity_drawer_window.zui
-  - zircon_editor/assets/ui/editor/windows/workbench_window.zui
+  - zircon_editor/assets/ui/editor/workbench/shell/activity_drawer_window.zui
   - zircon_editor/assets/ui/editor/windows/asset_window.zui
   - zircon_editor/assets/ui/editor/windows/ui_layout_editor_window.zui
 implementation_files:
@@ -57,25 +52,19 @@ implementation_files:
   - zircon_editor/src/ui/host/workspace_state.rs
   - zircon_editor/src/ui/host/layout_commands.rs
   - zircon_editor/src/ui/host/window_host_manager.rs
-  - zircon_editor/src/ui/retained_host/app/workspace_docking.rs
-  - zircon_editor/src/ui/retained_host/app/native_window_close.rs
-  - zircon_editor/src/ui/retained_host/app/close_prompt.rs
-  - zircon_editor/src/ui/retained_host/host_contract/data/close_prompt.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_close_prompt.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/layout/drawer_toggle.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/layout/tab_drop.rs
-  - zircon_editor/src/ui/retained_host/tab_drag/resolved_drop.rs
+  - zircon_editor/src/ui/retained/app/workspace_docking.rs
+  - zircon_editor/src/ui/retained/app/native_window_close.rs
+  - zircon_editor/src/ui/retained/app/close_prompt.rs
+  - zircon_editor/src/ui/retained/contract/data/close_prompt.rs
+  - zircon_editor/src/ui/retained/tab_drag/resolved_drop.rs
   - zircon_editor/src/ui/workbench/snapshot/data/editor_chrome_snapshot_build.rs
   - zircon_editor/src/ui/workbench/snapshot/workbench/main_page_snapshot.rs
   - zircon_editor/src/ui/workbench/model/build/workbench_view_model_build.rs
   - zircon_editor/src/ui/workbench/autolayout/region/tool_region/presence.rs
   - zircon_editor/src/ui/host/builtin_layout/hybrid_layout.rs
   - zircon_editor/src/ui/workbench/view/activity_window_template_spec.rs
-  - zircon_editor/src/ui/template_runtime/builtin/template_documents.rs
   - zircon_editor/assets/ui/editor/host/editor_main_frame.zui
-  - zircon_editor/assets/ui/editor/components/workbench/shell/activity_drawer_window.zui
-  - zircon_editor/assets/ui/editor/windows/workbench_window.zui
+  - zircon_editor/assets/ui/editor/workbench/shell/activity_drawer_window.zui
   - zircon_editor/assets/ui/editor/windows/asset_window.zui
   - zircon_editor/assets/ui/editor/windows/ui_layout_editor_window.zui
 plan_sources:
@@ -88,19 +77,12 @@ tests:
   - zircon_editor/src/tests/workbench/layout/editor_main_frame_layout.rs
   - zircon_editor/src/tests/workbench/layout/window_drawer_ownership.rs
   - zircon_editor/src/tests/workbench/registry/window_registry.rs
-  - zircon_editor/src/ui/retained_host/app/tests/close_prompt.rs
-  - zircon_editor/src/tests/host/retained_callback_dispatch/layout/tab_drop.rs
+  - zircon_editor/src/ui/retained/app/tests/close_prompt.rs
   - zircon_editor/src/tests/host/retained_drawer_header_pointer/dispatch.rs
-  - zircon_editor/src/tests/host/retained_menu_pointer/visual_screenshot.rs
   - zircon_editor/src/tests/workbench/view_model/shell_projection.rs
   - zircon_editor/src/tests/host/builtin_window_descriptors.rs
   - zircon_editor/src/tests/host/retained_window/native_window_targets.rs
-  - zircon_editor/src/tests/host/template_runtime/pane_body_documents.rs
-  - zircon_editor/tests/editor_main_frame_template.rs
   - zircon_editor/tests/integration_contracts/activity_drawer_window_template.rs
-  - zircon_editor/tests/workbench_window_template.rs
-  - zircon_editor/tests/asset_window_template.rs
-  - zircon_editor/tests/ui_layout_editor_window_template.rs
   - cargo test -p zircon_editor --lib workbench_view_model_uses_only_active_activity_window_drawers --locked --no-run (blocked 2026-04-29 by unrelated zircon_runtime Hybrid GI source-type compile errors)
   - cargo fmt --package zircon_editor -- --check
   - cargo test -p zircon_editor --lib window_registry --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never -- --nocapture

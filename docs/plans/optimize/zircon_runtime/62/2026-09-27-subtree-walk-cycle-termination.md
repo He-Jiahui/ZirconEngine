@@ -3,7 +3,6 @@ doc_type: milestone-detail
 related_code:
   - zircon_runtime/src/scene/world/derived_state.rs
   - zircon_runtime/src/scene/tests/derived_state.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/scene_derived_state.rs
   - docs/crates/zircon_runtime/scene/world/detached_entity_batch.md
 plan_sources:
   - docs/plans/optimize/zircon_runtime/62-runtime-scene-hierarchy-transform-propagation-reparent-activation-mobility-visibility-bounds-render-product-integration-review.md

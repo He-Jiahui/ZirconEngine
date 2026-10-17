@@ -1,19 +1,7 @@
 ---
 related_code:
   - zircon_runtime/src/render_graph/builder.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry.rs
-  - zircon_runtime/src/graphics/backend/render_backend/mod.rs
   - zircon_runtime/src/core/framework/render/backend_types.rs
-  - dev/UnrealEngine/Engine/Plugins/Experimental/NNERuntimeRDG/Source/NNEHlslShaders/Internal/NNEHlslShadersOperator.h
-  - dev/UnrealEngine/Engine/Plugins/Experimental/NNERuntimeRDG/Shaders/Private/NNEHlslShaders/NNEHlslShadersConv.usf
-  - dev/UnrealEngine/Engine/Plugins/Experimental/NNERuntimeRDG/Shaders/Private/NNEHlslShaders/NNEHlslShadersGemm.usf
-  - dev/UnrealEngine/Engine/Plugins/Experimental/NNERuntimeBasicCpu/Source/NNERuntimeBasicCpu/Private/NNERuntimeBasicCpuModel.h
-  - dev/Graphics/Packages/com.unity.render-pipelines.universal/Runtime/MipGen/MipGenerator.cs
-  - dev/bevy/crates/bevy_render/src/gpu_readback.rs
-  - dev/bevy/crates/bevy_render/src/render_resource/pipeline_cache.rs
-  - dev/bevy/crates/bevy_core_pipeline/src/mip_generation/mod.rs
-  - dev/learn-wgpu-zh/code/utils/src/node/compute_node.rs
-  - dev/learn-wgpu-zh/code/intermediate/compute-pipeline/src/blur_node.rs
 plan_sources:
   - .codex/plans/Zircon SRP_RHI Rendering Architecture Roadmap.md
   - .codex/plans/多插件组合可选功能规则设计.md

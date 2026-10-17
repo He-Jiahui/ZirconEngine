@@ -3,7 +3,6 @@ related_code:
   - .jenkins/deployment-spec.json
   - .jenkins/workflow-spec.json
   - .jenkins/plugins.lock
-  - tools/local_cargo.py
 implementation_files: []
 planned_implementation_roots:
   - tools/jenkins/

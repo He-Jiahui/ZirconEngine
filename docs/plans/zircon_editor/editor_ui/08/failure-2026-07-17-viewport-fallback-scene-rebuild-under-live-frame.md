@@ -9,14 +9,10 @@ origin_child_dir: docs/plans/performance/01
 fixing_child_dir: docs/plans/zircon_editor/editor_ui/08
 plan_link_mode: child_record_only
 related_code:
-  - zircon_editor/assets/ui/editor/components/workbench/shell/workbench_viewport_panel.zui
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_viewport_scene.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_viewport_scene/commands.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_viewport_scene/identity/classify/entry.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_viewport_scene_floor/grate/entry.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_viewport_scene_props/rails/rack.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/scene_layers/overlay/componentized.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_pipeline/draw.rs
+  - zircon_editor/src/ui/retained/contract/paint/identity/classify/entry.rs
+  - zircon_editor/src/ui/retained/contract/paint/scene_floor/grate/entry.rs
+  - zircon_editor/src/ui/retained/contract/paint/scene_props/rails/rack.rs
+  - zircon_editor/src/ui/retained/contract/workbench/overlay/componentized.rs
 ---
 
 # Viewport fallback scene rebuild under live frame

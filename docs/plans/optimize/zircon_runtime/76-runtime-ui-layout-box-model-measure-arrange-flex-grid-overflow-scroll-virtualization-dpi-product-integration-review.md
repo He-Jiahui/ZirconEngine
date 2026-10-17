@@ -14,12 +14,11 @@ related_code:
   - zircon_runtime/src/ui/surface/node_pool.rs
   - zircon_runtime/src/ui/surface/surface/rebuild.rs
   - zircon_runtime/src/ui/surface/surface/virtual_window.rs
-  - zircon_runtime/src/ui/surface/surface/default_interactions/table/virtualization.rs
-  - zircon_runtime/src/ui/surface/surface/default_interactions/tree_view_virtualization.rs
+  - zircon_runtime/src/ui/surface/surface/table/virtualization.rs
+  - zircon_runtime/src/ui/surface/default_interactions/tree_view_virtualization.rs
   - zircon_runtime/src/ui/component/state_reducer/windowing.rs
   - zircon_runtime/src/dynamic_api/session/runtime_ui.rs
   - zircon_editor/src/ui/workbench/autolayout
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/virtual_rows.rs
   - zircon_editor/assets/ui
   - examples/woc/assets/ui
 tests:

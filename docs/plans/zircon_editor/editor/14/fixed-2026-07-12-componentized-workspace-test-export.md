@@ -8,8 +8,7 @@ fixing_plan: docs/plans/zircon_editor/editor_ui/08-workbench-shell-on-runtime-ui
 origin_child_dir: docs/plans/zircon_editor/editor/14
 fixing_child_dir: docs/plans/zircon_editor/editor_ui/08
 related_code:
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench_renderer/scene_layers/overlay.rs
+  - zircon_editor/src/ui/retained/contract/workbench/scene_layers/overlay.rs
 tests:
   - cargo test -p zircon_editor --lib --locked --jobs 1 core::jobs::tests -- --test-threads=1 --nocapture
 resolved_at: 2026-07-12

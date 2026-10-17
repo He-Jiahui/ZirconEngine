@@ -9,7 +9,6 @@ origin_child_dir: docs/plans/zircon_editor/editor_ui/10
 fixing_child_dir: docs/plans/zircon_editor/editor/05
 plan_link_mode: child_record_only
 related_code:
-  - zircon_editor/src/scene/modes/tests.rs
   - zircon_editor/src/scene/modes/tests/registry_contract.rs
   - zircon_editor/src/scene/modes/tests/command_projection.rs
 tests:

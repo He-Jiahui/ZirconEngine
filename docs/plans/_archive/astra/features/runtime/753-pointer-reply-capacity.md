@@ -6,10 +6,7 @@ plan_sources:
   - docs/plans/optimize/zircon_runtime/77/2026-09-14-pointer-reply-capacity.md
 related_code:
   - zircon_runtime/src/ui/surface/input/pointer_reply.rs
-  - zircon_runtime/src/ui/surface/input/pointer_reply/capacity_tests.rs
 tests:
-  - zircon_runtime/src/ui/surface/input/pointer_reply/capacity_tests.rs
-  - tools/tests/test_runtime_ui_pointer_reply_capacity_performance_contract.py
 ---
 
 # Runtime77 Pointer Reply Projection Capacity

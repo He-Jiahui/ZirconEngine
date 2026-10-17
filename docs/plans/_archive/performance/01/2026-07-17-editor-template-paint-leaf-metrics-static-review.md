@@ -1,10 +1,5 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_viewport_scene_structure.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_icon_assets.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_property_axis_values.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_dropdown_metrics.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_row_metrics.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
 reference_sources:

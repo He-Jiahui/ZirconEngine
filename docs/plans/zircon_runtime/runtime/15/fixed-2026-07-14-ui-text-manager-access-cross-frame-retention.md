@@ -8,12 +8,10 @@ fixing_plan: docs/plans/zircon_runtime/frameworks/05-subsystem-decoupling-contra
 origin_child_dir: docs/plans/zircon_runtime/runtime/15
 fixing_child_dir: docs/plans/zircon_runtime/frameworks/05
 related_code:
-  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/access.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/construct.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_scene/render_scene.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/surface.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/construct.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/text.rs
+  - zircon_runtime/src/graphics/scene/renderer/ui/render.rs
+  - zircon_runtime/src/graphics/scene/renderer/execution/context/gpu/surface.rs
 tests:
   - python -m unittest tools.tests.test_frameworks_05_manager_access_lifetime -v
   - managed Windows default-feature cargo build -p zircon_runtime --locked

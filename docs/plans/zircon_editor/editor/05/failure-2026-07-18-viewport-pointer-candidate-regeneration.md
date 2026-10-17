@@ -9,8 +9,6 @@ origin_child_dir: docs/plans/performance/01
 fixing_child_dir: docs/plans/zircon_editor/editor/05
 plan_link_mode: child_record_only
 related_code:
-  - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_pointer_route.rs
-  - zircon_editor/src/scene/viewport/pointer/overlay_router/viewport_overlay_pointer_router_sync.rs
   - zircon_editor/src/scene/viewport/pointer/candidates/renderable_candidates.rs
   - zircon_editor/src/scene/viewport/pointer/candidates/projected_ring_segments.rs
   - zircon_editor/src/scene/viewport/projection.rs

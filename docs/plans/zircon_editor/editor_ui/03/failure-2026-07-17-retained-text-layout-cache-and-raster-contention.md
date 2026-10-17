@@ -9,11 +9,9 @@ origin_child_dir: docs/plans/performance/01
 fixing_child_dir: docs/plans/zircon_editor/editor_ui/03
 plan_link_mode: child_record_only
 related_code:
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text
-  - zircon_editor/src/ui/retained_host/host_contract/paint_text.rs
   - zircon_runtime/src/ui/text
   - zircon_runtime/src/text
-  - zircon_editor/src/ui/retained_host/host_contract/window/text_input
+  - zircon_editor/src/ui/retained/contract/window/text_input
 tests:
   - retained paint text layout/raster/pixel tests
   - runtime text cache and font registry tests

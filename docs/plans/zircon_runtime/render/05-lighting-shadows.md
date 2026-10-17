@@ -6,84 +6,46 @@ related_code:
   - zircon_runtime/src/core/framework/render/light/snapshots.rs
   - zircon_runtime/src/core/framework/render/light/readiness.rs
   - zircon_runtime/src/graphics/scene/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/shadow/plan.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/shadow/view_projection.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/shadow/slot.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/shadow/shaders/zr_shadow.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/shadow/shadow_map_renderer.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/lighting/light_buffer.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/lighting/light_grid_builder.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/lighting/light_grid_pass.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/lighting/shaders/zr_light_grid.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline/fallback_mesh_shader_source.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/shaders/fallback_mesh.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/shader_source.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/lighting_pipeline/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/shaders/deferred_lighting.wgsl
+  - zircon_runtime/src/graphics/scene/renderer/shadow/plan.rs
+  - zircon_runtime/src/graphics/scene/renderer/shadow/view_projection.rs
+  - zircon_runtime/src/graphics/scene/renderer/shadow/slot.rs
+  - zircon_runtime/src/graphics/scene/renderer/shadow/shaders/zr_shadow.wgsl
+  - zircon_runtime/src/graphics/scene/renderer/shadow/shadow_map_renderer.rs
+  - zircon_runtime/src/graphics/scene/renderer/lighting/light_buffer.rs
+  - zircon_runtime/src/graphics/scene/renderer/lighting/light_grid_builder.rs
+  - zircon_runtime/src/graphics/scene/renderer/lighting/light_grid_pass.rs
+  - zircon_runtime/src/graphics/scene/renderer/lighting/shaders/zr_light_grid.wgsl
+  - zircon_runtime/src/graphics/mesh/mesh_pipeline/fallback_mesh_shader_source.rs
+  - zircon_runtime/src/graphics/scene/renderer/mesh/shaders/fallback_mesh.wgsl
+  - zircon_runtime/src/graphics/scene/mesh/mesh_pipeline_cache/shader_source.rs
+  - zircon_runtime/src/graphics/scene/deferred/shaders/deferred_lighting.wgsl
   - zircon_runtime/src/asset/pipeline/manager/builtins/builtin_pbr_wgsl.rs
   - zircon_runtime/src/graphics/tests/render_product_shadows.rs
   - zircon_runtime/src/graphics/tests/render_product_shadows/many_point_lights.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_product_shadows_many_point_lights_tests.rs
   - zircon_runtime/src/graphics/tests/render_product_shadow_captures.rs
   - zircon_runtime/src/graphics/tests/render_product_shadow_captures/directional.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/render_product_shadow_captures_directional_tests.rs
   - zircon_runtime/src/graphics/tests/render_product_shadow_wide.rs
   - zircon_runtime/src/graphics/tests/pipeline_compile.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/deferred/deferred_scene_resources/mod.rs
-  - zircon_runtime/src/core/framework/render/post_process/stack.rs
   - zircon_runtime/src/core/framework/render/backend_types.rs
   - zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product.rs
-  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/clustered_lighting.rs
-  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/deferred_lighting.rs
-  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/mesh.rs
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_record.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/resource_lookup.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/gpu/post_process.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/params/post_process_params.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/execute/build_post_process_params/build.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/execute/create_bind_group/bind_group_entries.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/execute/run/execute.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/bind_group_layouts/post_process.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/construct/create_pipeline_bundle/post_process_pipeline.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/scene_runtime_feature_flags/scene_runtime_feature_flags.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/post_process.wgsl
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/runtime_features/runtime_features_from_pipeline.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile.rs
-  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/post_process.rs
-  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/shadows.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/default_deferred.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/default_forward_plus.rs
-  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/plugin_render_features.rs
-  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog/rendering_features/rows.rs
+  - zircon_runtime/src/graphics/builtin/feature_descriptors/clustered_lighting.rs
+  - zircon_runtime/src/graphics/builtin/feature_descriptors/deferred_lighting.rs
+  - zircon_runtime/src/graphics/feature/builtin/feature_descriptors/mesh.rs
+  - zircon_runtime/src/graphics/runtime/framework/extract/update_stats/base_stats.rs
+  - zircon_runtime/src/graphics/scene/renderer/context/gpu/resource_lookup.rs
+  - zircon_runtime/src/graphics/scene/renderer/post/params/post_process_params.rs
+  - zircon_runtime/src/graphics/scene/post/build_post_process_params/build.rs
+  - zircon_runtime/src/graphics/scene/post/create_bind_group/bind_group_entries.rs
+  - zircon_runtime/src/graphics/scene/renderer/post/resources/execute/run/execute.rs
+  - zircon_runtime/src/graphics/post/create_pipeline_bundle/post_process_pipeline.rs
+  - zircon_runtime/src/graphics/feature/builtin/feature_descriptors/shadows.rs
+  - zircon_runtime/src/plugin/runtime/builtin_catalog/rendering_features/rows.rs
   - zircon_plugins/Cargo.toml
   - zircon_plugins/rendering/plugin.toml
   - zircon_plugins/rendering/runtime/src/lib.rs
   - zircon_plugins/rendering/features/contact_shadow/runtime/src/lib.rs
-  - zircon_plugins/rendering/features/contact_shadow/runtime/src/wgpu_product_tests.rs
   - zircon_plugins/rendering/features/contact_shadow/runtime/src/contact_shadow.wgsl
   - zircon_plugins/rendering/features/contact_shadow/editor/src/lib.rs
-  - dev/UnrealEngine/Engine/Source/Runtime/Renderer/Private/LightGridInjection.cpp
-  - dev/UnrealEngine/Engine/Source/Runtime/Renderer/Private/LightRendering.cpp
-  - dev/UnrealEngine/Engine/Source/Runtime/Renderer/Private/ShadowSetup.cpp
-  - dev/UnrealEngine/Engine/Source/Runtime/Renderer/Private/ShadowDepthRendering.cpp
-  - dev/UnrealEngine/Engine/Source/Runtime/Renderer/Private/Shadows/ShadowSceneRenderer.cpp
-  - dev/UnrealEngine/Engine/Source/Runtime/Renderer/Private/VirtualShadowMaps/VirtualShadowMapArray.cpp
-  - dev/Graphics/Packages/com.unity.render-pipelines.universal/Runtime/ForwardLights.cs
-  - dev/Graphics/Packages/com.unity.render-pipelines.universal/Runtime/DeferredLights.cs
-  - dev/Graphics/Packages/com.unity.render-pipelines.universal/Runtime/ShadowUtils.cs
-  - dev/Graphics/Packages/com.unity.render-pipelines.universal/Runtime/Passes/MainLightShadowCasterPass.cs
-  - dev/Graphics/Packages/com.unity.render-pipelines.universal/Runtime/Passes/AdditionalLightsShadowAtlasLayout.cs
-  - dev/bevy/crates/bevy_light/src/cluster/assign.rs
-  - dev/bevy/crates/bevy_light/src/cascade.rs
-  - dev/bevy/crates/bevy_pbr/src/render/light.rs
-  - dev/bevy/crates/bevy_pbr/src/render/clustered_forward.wgsl
-  - dev/bevy/crates/bevy_pbr/src/render/shadows.wgsl
-  - dev/bevy/crates/bevy_pbr/src/render/shadow_sampling.wgsl
-  - dev/Fyrox/fyrox-impl/src/renderer/shadow/csm.rs
-  - dev/Fyrox/fyrox-impl/src/renderer/shadow/point.rs
 plan_sources:
   - .codex/plans/Hybrid GI Lumen-Style V1 三阶段计划.md
   - .codex/plans/Rendering 插件选项补齐计划.md

@@ -9,7 +9,6 @@ origin_child_dir: docs/plans/zircon_runtime/runtime/04
 fixing_child_dir: docs/plans/zircon_runtime/runtime/06
 plan_link_mode: child_record_only
 related_code:
-  - zircon_runtime/src/plugin/native_plugin_loader/native_artifact_trust.rs
 tests:
   - cargo +1.94.1 check -p zircon_runtime --no-default-features --locked --lib --tests
   - cargo +1.94.1 test -p zircon_runtime --no-default-features --locked --test native_plugin_loader_contract native_runtime_hot_update_loads_real_fixture_from_export_manifest -- --exact --nocapture

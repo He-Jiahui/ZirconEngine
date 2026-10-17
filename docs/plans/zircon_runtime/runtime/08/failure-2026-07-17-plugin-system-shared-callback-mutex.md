@@ -10,22 +10,17 @@ fixing_child_dir: docs/plans/zircon_runtime/runtime/08
 plan_link_mode: child_record_only
 related_code:
   - zircon_runtime/src/plugin/extension_registry/register/system_registration.rs
-  - zircon_runtime/src/plugin/extension_registry/register/system_registration/tests.rs
-  - zircon_runtime/src/plugin/extension_registry/register/runtime_scene_system_registration.rs
   - zircon_runtime/src/scene/ecs/system/native/function_scene_system.rs
   - zircon_runtime/src/scene/ecs/system/native/runtime_scene_system.rs
   - zircon_runtime/src/scene/ecs/system/native/into_scene_system.rs
   - zircon_runtime/src/scene/ecs/system/native/scene_system.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/registration_replay.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/lifecycle.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/loaded_native_plugin/callback.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests/callback_lease.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests/registration_replay.rs
-  - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests/registration_replay/benchmarks.rs
+  - zircon_runtime/src/plugin/loader/loaded_native_plugin/callback.rs
+  - zircon_runtime/src/plugin/loader/live/tests/callback_lease.rs
+  - zircon_runtime/src/plugin/loader/live/tests/registration_replay.rs
+  - zircon_runtime/src/plugin/loader/live/tests/registration_replay/benchmarks.rs
   - zircon_runtime/src/scene/ecs/system/mod.rs
   - zircon_runtime/src/scene/ecs/schedule_parallel_executor.rs
   - zircon_runtime/src/scene/ecs/schedule_runner/tests/worker_dispatch.rs
-  - zircon_runtime/src/tests/plugin_extensions/extension_registry_systems.rs
 tests:
   - cargo test -p zircon_runtime --lib --locked plugin::extension_registry::register::system_registration::tests::typed_scene_system_callback_state_is_private_per_world -- --exact --test-threads=1
   - cargo test -p zircon_runtime --lib --locked plugin::extension_registry::register::system_registration::tests::external_scene_system_callback_state_is_private_per_world -- --exact --test-threads=1

@@ -15,7 +15,6 @@ related_code:
   - zircon_runtime/src/core/framework/input/input_manager.rs
   - zircon_runtime/src/input/runtime/default_input_manager.rs
   - zircon_runtime/src/input/runtime/event_buffer/frame.rs
-  - tools/tests/test_plugins_09_export_host_input_coalescing.py
 tests:
   - browser 125/500/1000 Hz pointer event coalescing benchmark
   - Android multi-pointer move dispatch-count test
