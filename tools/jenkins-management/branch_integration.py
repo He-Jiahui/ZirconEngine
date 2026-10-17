@@ -22,6 +22,7 @@ import xml.etree.ElementTree as ET
 JOB = "zircon-merge-queue"
 CRON = "H/15 * * * *"
 MODE = "branch-commit-then-scheduled-merge"
+DELIVERY_SHA256 = "1ba94073123567a57563aef0d9a8f23dd3aff028c4abcd970728fbf4f8b7d4bf"
 ROOT = Path("E:/Git/ZirconEngine")
 BEGIN = "// BEGIN ZIRCON BRANCH QUEUE"
 END = "// END ZIRCON BRANCH QUEUE"
@@ -80,7 +81,7 @@ def github_json(d, root, repository, endpoint):
     token = os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN")
     if not token:
         env = {**os.environ, "GIT_TERMINAL_PROMPT": "0", "GCM_INTERACTIVE": "never"}
-        result = subprocess.run(["git", "-c", "credential.interactive=false", "credential", "fill"],
+        result = subprocess.run(["git", "-c", "core.fsmonitor=false", "-c", "core.hooksPath=" + os.devnull, "-c", "credential.interactive=false", "credential", "fill"],
             cwd=root, input=("protocol=https\nhost=github.com\npath=" + repository + ".git\n\n").encode(),
             stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env, timeout=30)
         if result.returncode == 0:
@@ -485,6 +486,18 @@ def install_entry(d, repo, client):
     return {"status": "installed", "job": "zircon-management", "actions": ["commit-branch", "check-branch-queue"]}
 
 
+def load_delivery():
+    delivery_path = Path(__file__).with_name("delivery.py")
+    delivery_bytes = delivery_path.read_bytes()
+    if hashlib.sha256(delivery_bytes).hexdigest() != DELIVERY_SHA256:
+        raise ValueError("Branch delivery implementation differs from its reviewed digest")
+    spec = importlib.util.spec_from_file_location("branch_queue_delivery", delivery_path)
+    d = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = d
+    exec(compile(delivery_bytes, str(delivery_path), "exec"), d.__dict__)
+    return d
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("command", choices=("submit", "query", "install", "install-entry", "run", "drain"))
@@ -494,10 +507,7 @@ def main(argv=None):
     parser.add_argument("--validate-only", action="store_true")
     parser.add_argument("--resume", action="store_true")
     args = parser.parse_args(argv)
-    spec = importlib.util.spec_from_file_location("branch_queue_delivery", Path(__file__).with_name("delivery.py"))
-    d = importlib.util.module_from_spec(spec)
-    sys.modules[spec.name] = d
-    spec.loader.exec_module(d)
+    d = load_delivery()
     result = None
     try:
         if args.command == "query":

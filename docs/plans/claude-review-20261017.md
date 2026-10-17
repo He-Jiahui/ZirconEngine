@@ -30,3 +30,12 @@ explicit evidence below says otherwise. No build outputs are created here.
   hostname fixture with a trusted loopback CA/leaf. Add wrong-pin/no-request
   regression and retain a successful pinned request. Fixture and source checks
   passed; compiled TLS tests are pending the Windows validation lane.
+- H3 (in-repo parts): Disable fsmonitor/hooks on Jenkins Git entry points, pin
+  the delivery import and execute the verified bytes without rereading. Narrow
+  the canonical Windows profile: Git data, Jenkins runtime/state, workflows and
+  executable helper directories are read-only. Commit the profile through the
+  index while preserving the preexisting Linux overlay. 29 focused Python tests
+  passed (four Windows-only cases skipped); 205 production Python files parsed.
+  Skipped: relocating the live Jenkins install/authorization DB, immutable
+  external bootstrap and interpreter pinning; those need operator installation
+  changes. No service configuration or runtime was modified or activated.

@@ -6,6 +6,8 @@ gates.  The immutable build request is registered only after sealing succeeds.
 """
 from __future__ import annotations
 
+import os
+
 import hashlib
 from pathlib import Path
 import subprocess
@@ -278,7 +280,7 @@ def _runtime_binding(root: Path, identity: Mapping, supplied: Mapping | None = N
 def _head(root: Path) -> str | None:
     if not (root / '.git').exists():
         return None  # A bounded source fixture has no Git database.
-    completed = subprocess.run(['git', '-C', str(root), 'rev-parse', '--verify', 'HEAD'],
+    completed = subprocess.run(['git', "-c", "core.fsmonitor=false", "-c", "core.hooksPath=" + os.devnull, '-C', str(root), 'rev-parse', '--verify', 'HEAD'],
                                capture_output=True, text=True)
     if completed.returncode:
         raise JenkinsError('git_base_unavailable', 'Patch intake cannot read the checkout HEAD')

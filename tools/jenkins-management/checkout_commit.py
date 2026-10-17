@@ -201,7 +201,7 @@ def git(repo, *args, check=True):
         if not trace_path.is_relative_to(physical(Path("E:/cargo-targets/zircon-local/reports/jenkins-commit-audit-20261017"))):
             raise ValueError("Git trace output escaped its task report root")
         environment["GIT_TRACE2_EVENT"] = trace_path.as_posix()
-    command = [str(executable), "-c", "core.quotepath=false", *args]
+    command = [str(executable), "-c", "core.fsmonitor=false", "-c", "core.hooksPath=" + os.devnull, "-c", "core.quotepath=false", *args]
     if os.name == "nt" and os.environ.get("ZR_COMMIT_NATIVE") == "1":
         result = run_native_command(command, repo, environment)
     else:

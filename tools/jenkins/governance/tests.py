@@ -329,7 +329,7 @@ class GovernanceTests(unittest.TestCase):
         self.assertEqual(1, value["registeredCount"])
         self.assertEqual(1, value["reviewCount"])
         self.assertTrue(clone.exists())
-        recipes = [{"argv": ["git", "diff", "--check"], "timeoutSeconds": 30}]
+        recipes = [{"argv": ["git", "-c", "core.fsmonitor=false", "-c", "core.hooksPath=" + os.devnull, "diff", "--check"], "timeoutSeconds": 30}]
         configured = configure(self.authority, {"repositoryId": self.repository_id, "registrationDigest": digest(self.registration),
             "operationId": "fixture-configure", "validationRecipes": recipes}, report)
         self.assertEqual(digest(recipes), configured["validationRecipesDigest"])

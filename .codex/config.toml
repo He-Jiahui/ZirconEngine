@@ -102,7 +102,11 @@ extends = ":read-only"
 'E:/Git/ZirconEngine/docs/zircon_runtime_interface' = "write"
 'E:/Git/ZirconEngine/third_party/penpot' = "write"
 'E:/Git/ZirconEngine/tools' = "write"
-'E:/Git/ZirconEngine/.github' = "write"
+# Jenkins executes these helpers with service credentials.
+'E:/Git/ZirconEngine/tools/jenkins-management' = "read"
+'E:/Git/ZirconEngine/tools/jenkins' = "read"
+'E:/Git/ZirconEngine/tools/dev' = "read"
+'E:/Git/ZirconEngine/.github' = "read"
 'E:/Git/ZirconEngine/examples/vampire' = "write"
 'E:/Git/ZirconEngine/examples/woc' = "write"
 'E:/Git/ZirconEngine/templates/projects' = "write"
@@ -201,16 +205,13 @@ extends = ":read-only"
 'E:/Git/ZirconEngine/LICENSE' = "write"
 'E:/Git/ZirconEngine/tests/test_execution_engine.py' = "write"
 
-# Authorized Jenkins task handoff and lifecycle state (user grant: 2026-10-16).
-# Agents may submit scoped inputs/commands to the verified independent Jenkins
-# runtime for authorized source preparation, builds/tests, reuse and cleanup.
-# This grant includes its Git/worktree metadata and request/tray state; it does
-# not authorize commits, pushes or deletion of unowned content by itself.
-'E:/Git/ZirconEngine/.git' = "write"
-'E:/Git/ZirconEngine/.jenkins' = "write"
-'E:/Git/ZirconEngine/.codex/state/jenkins-coordinator' = "write"
-'E:/Git/ZirconEngine/.codex/state/jenkins-pilot' = "write"
-'E:/Git/ZirconEngine/.codex/state/jenkins-tray' = "write"
+# Service-owned executable code, metadata and authorization state stay read-only.
+# Agents submit task-scoped inputs via the existing .codex/outbox write grant.
+'E:/Git/ZirconEngine/.git' = "read"
+'E:/Git/ZirconEngine/.jenkins' = "read"
+'E:/Git/ZirconEngine/.codex/state/jenkins-coordinator' = "read"
+'E:/Git/ZirconEngine/.codex/state/jenkins-pilot' = "read"
+'E:/Git/ZirconEngine/.codex/state/jenkins-tray' = "read"
 
 # Compiler products, compiler caches, scratch, exports and generated evidence.
 # Jenkins and Cargo retain physical-path validation and native ownership locks.
@@ -218,7 +219,7 @@ extends = ":read-only"
 'E:/cargo-targets/zircon-local' = "write"
 'F:/cargo-targets/zircon-local' = "write"
 
-# Control configuration, hooks outside .git, unlisted reference trees/worktrees,
+# Control configuration, hooks and Git data, unlisted reference trees/worktrees,
 # retired coordinator data, user directories and system temp have no write grant.
 # The existing Jenkins service has its own execution boundary; task-scoped
 # delegation to that verified service is explicitly authorized above.
