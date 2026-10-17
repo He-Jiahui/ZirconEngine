@@ -98,17 +98,17 @@ async fn send_http_request_once_reqwest(
         .timeout(Duration::from_millis(request.timeout_ms))
         .use_rustls_tls();
     if request.security.certificate_pinning || request.security.has_certificate_roots() {
-        let url = reqwest::Url::parse(&request.url)
-            .map_err(|error| NetError::Io(error.to_string()))?;
-        let host = url.host_str().ok_or_else(|| NetError::SecurityPolicyViolation {
-            reason: "HTTP TLS policy requires a valid request host".to_string(),
-        })?;
+        let url =
+            reqwest::Url::parse(&request.url).map_err(|error| NetError::Io(error.to_string()))?;
+        let host = url
+            .host_str()
+            .ok_or_else(|| NetError::SecurityPolicyViolation {
+                reason: "HTTP TLS policy requires a valid request host".to_string(),
+            })?;
         // Reuse the chain, hostname and pin verifier from the WebSocket path.
         // It rejects the peer before any HTTP headers or body are transmitted.
-        let config = rustls_client_config_for_websocket(
-            &request.security,
-            host.trim_matches(['[', ']']),
-        )?;
+        let config =
+            rustls_client_config_for_websocket(&request.security, host.trim_matches(['[', ']']))?;
         builder = builder.use_preconfigured_tls(config);
     }
     if request.security.certificate_pinning {

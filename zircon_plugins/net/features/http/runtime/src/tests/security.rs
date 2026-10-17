@@ -105,7 +105,9 @@ fn mismatched_pin_sends_no_http_request_bytes() {
     let url = format!("https://127.0.0.1:{}/secret", server.addr.port());
     let mut request = NetHttpRequestDescriptor::new(NetRequestId::new(40), NetHttpMethod::Post, url);
     request.timeout_ms = 2_000;
-    request.headers.push(("Authorization".to_string(), "Bearer secret".to_string()));
+    request
+        .headers
+        .push(("Authorization".to_string(), "Bearer secret".to_string()));
     request.body = b"private payload".to_vec();
     request.security = NetSecurityPolicy::production_tls()
         .with_certificate_root_der(certificate_chain_der().last().unwrap().clone())
@@ -116,7 +118,8 @@ fn mismatched_pin_sends_no_http_request_bytes() {
     // even a request, this subsequent trusted request could not succeed.
     request.security.certificate_pins.clear();
     request.security = request.security.with_certificate_pin(
-        "127.0.0.1", certificate_sha256_pin(&certificate_chain_der()[0]),
+        "127.0.0.1",
+        certificate_sha256_pin(&certificate_chain_der()[0]),
     );
     assert_eq!(net.send_http_request(request).unwrap().status_code, 200);
     server.join();
