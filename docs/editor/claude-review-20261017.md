@@ -3,6 +3,10 @@
 Branch: `fix/claude-review-20261017`. Input: John He's English review
 `editor-penpot-ue-20261017.md`.
 
+See the [latest verified batch](#latest-verified-batch-2026-10-18) for terminal
+Windows results. Earlier checkpoints retain their original source-specific
+evidence; later results supersede only the checks actually repeated.
+
 ## Critical batch
 
 C1: Record the virtual-geometry indirect counter upload before borrowing the
@@ -364,14 +368,14 @@ compliance here is not evidence of sandbox enforcement.
 | Finding | Landed source / remaining work |
 | --- | --- |
 | C1 | Borrow ordering repaired; advanced plugins retained. Windows editor closure passes. The full plugin check reaches AI's independent scene-mode migration blocker. |
-| C2 | Required hosted Windows PR check, local contract, timeouts and runner signal implemented. Editor closure passes; full plugin result is blocked on AI's scene-mode/provider migration. Independent native-test results are recorded below. |
+| C2 | Required hosted Windows PR check, local contract, timeouts and runner signal implemented. Editor closure and all three native test batches pass; the required job still fails on AI's scene-mode/provider migration. |
 | H1, H2, L3 | Backend policy, launch tooling, capture validator and diagnostics implemented. Real backend selection/window/capture acceptance pending. |
 | H3 | Runtime redraw/maintenance split and perf namespaces implemented. Continuous PIE timing/idle behavior pending. |
 | H4 | Open: dynamically owned PIE product needs a compositable shared GPU/device-lifetime contract; CPU readback remains. |
 | H5 | Shell-lock scope repaired. Open: worker-owned Starting/Stopping, progress, cancellation and <=100 ms frame-gap acceptance. |
 | H6, L5 | Command-driven popup contents/admission and project predicates implemented; unsupported Pause hidden. Rust/GUI interaction acceptance pending. |
 | H7 | Preview opt-in and truthful feedback implemented; lint passes. Real visibility/dispatch tests pending. |
-| H8 | Alt+P/Esc/Save All and effective-keymap palette/menu projection implemented. Follow-up adds F/Ctrl+Space and Q/W/E/R commands; additional authoring/navigation shortcuts remain deferred below. |
+| H8 | Alt+P/Esc/Save All and effective-keymap palette/menu projection implemented, including F/Ctrl+Space and Q/W/E/R commands. Native command/keymap regressions pass; additional authoring/navigation shortcuts remain deferred below. |
 | H9 | Plan, role contract, Annotate/export/compiler scaffold and synthetic goldens landed. No real Penpot kit/export or generated operator shell accepted. |
 | M1 | Compile/focused/staged jobs and scoped compiler cache implemented. Product/receipt publication remains blocked on retired-publisher migration. |
 | M2 | Real severity/notification counts and per-kind snap projection implemented. Rust tests/rendered spacing pending. |
@@ -1144,3 +1148,49 @@ previous executed tilemap result remains the passing run `39148406985` above.
 Fast-forward to the user's merge without changing its three Jenkins cleanup
 files. The two inventory corrections require the next coherent hosted batch;
 the duplicate run of the older source already has known failing assertions.
+
+## Latest verified batch (2026-10-18)
+
+[Run 39154755542](https://github.com/He-Jiahui/ZirconEngine/actions/runs/39154755542)
+at `31e1a4abc459d3d8eae5ae9b8c6339451da12385` completed at 19:13 UTC.
+Its Windows editor job ran for 39 minutes on `windows-2022` with Rust 1.94.1:
+
+| Check | Executed result |
+| --- | --- |
+| Source and tooling contracts | Pass |
+| Native MSVC wrapper regressions | 3 passed |
+| Complete `target-editor-host` closure | Pass |
+| Plugin workspace | Fail: exactly the two AI scene-mode API errors described above |
+| VM behavior bridge integration | 4 passed, 0 failed |
+| Editor `core::commands` | 87 passed, 0 failed, 15 ignored |
+| Tilemap duplicate-layer regression | 1 passed, 0 failed |
+
+The complete native log confirms both inventory corrections execute successfully.
+The 15 ignored command performance tests provide no performance acceptance.
+The required `editor-compile-gate` correctly remains **failed**, because AI still
+imports `ViewportToolModeDescriptor` (E0432) and calls
+`register_viewport_tool_mode` (E0599). Its real scene-mode factory and live
+mirror/world-bound overlay provider remain the C2 integration blocker; an empty
+factory or retired API compatibility shim is not a repair.
+
+PR #22 was merged externally on GitHub at 18:24 UTC as `f1ddbe5cb`. The branch
+preserves that merge and the upstream Jenkins cleanup changes. Its final main
+integration `31e1a4abc` has the same tree as the inventory repair `3664b396e`.
+The smaller follow-up is [PR #26](https://github.com/He-Jiahui/ZirconEngine/pull/26).
+Run `39154004646`, which used the older inventory assertions, also terminated
+with failure; it is superseded by the executed command results above.
+
+M1 remains blocked on independent Jenkins product/BuildSet publication and
+receipt transfer. M9's build-input regressions pass, but real Windows freshness
+and ZUI hot reload remain pending. L7's Wiki build/upload passed with zero
+annotations. O0 still requires the plugin migration plus native first-frame and
+backend evidence; O2 still requires real Penpot design files/exports and engine
+parity. O1 is partial and O3–O6 remain gated. Other open High/Medium/Low work and
+its exact Windows commands retain the dispositions recorded above.
+
+The portable CI evidence remains **24 passed, 3 Windows-only skipped**, and the
+Penpot compiler/export evidence remains **35 Node tests passed**. Reuse those
+unchanged checks; this final evidence update changes documentation only. Local
+contract commands and full native reproduction are in
+[CI validation](ci-validation.md). No Linux Cargo build or native GUI acceptance
+is claimed. The config overlay is unchanged and excluded from task commits.
