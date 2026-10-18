@@ -1,7 +1,15 @@
 use std::collections::VecDeque;
 use std::sync::{Mutex, MutexGuard};
 
-use super::{EditorLogConfig, EditorLogError, LogEntry, LogFilter, LogRecord};
+use super::{EditorLogConfig, EditorLogError, LogEntry, LogFilter, LogRecord, LogSeverity};
+
+/// Accepted records since the last clear, independent of filtering and retention eviction.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct LogSeverityCounts {
+    pub info: u64,
+    pub warning: u64,
+    pub error: u64,
+}
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct EditorLogDiagnostics {
@@ -34,6 +42,7 @@ struct LogStoreState {
     retained_bytes: usize,
     dropped_records: u64,
     records: VecDeque<LogRecord>,
+    severity_counts: LogSeverityCounts,
 }
 
 impl EditorLogStore {
@@ -69,6 +78,12 @@ impl EditorLogStore {
             .ok_or(EditorLogError::SequenceExhausted)?;
         state.next_sequence = sequence;
         let record = LogRecord::new(sequence, entry);
+        let count = match record.entry().severity() {
+            LogSeverity::Info => &mut state.severity_counts.info,
+            LogSeverity::Warning => &mut state.severity_counts.warning,
+            LogSeverity::Error => &mut state.severity_counts.error,
+        };
+        *count = count.saturating_add(1);
         state.retained_bytes += entry_bytes;
         state.records.push_back(record.clone());
         Ok(record)
@@ -81,6 +96,10 @@ impl EditorLogStore {
             .filter(|record| filter.matches(record.entry()))
             .cloned()
             .collect()
+    }
+
+    pub fn severity_counts(&self) -> LogSeverityCounts {
+        self.lock_state().severity_counts
     }
 
     pub fn snapshot_tail(&self, filter: &LogFilter, max_records: usize) -> Vec<LogRecord> {
@@ -125,6 +144,7 @@ impl EditorLogStore {
         let through_sequence = state.records.back().map(LogRecord::sequence);
         state.records.clear();
         state.retained_bytes = 0;
+        state.severity_counts = LogSeverityCounts::default();
         (cleared, through_sequence)
     }
 

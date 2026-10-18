@@ -51,6 +51,7 @@ impl EditorChromeSnapshot {
             inspector: data.inspector,
             status_line: data.status_line,
             console_output: data.console_output,
+            status_signals: data.status_signals,
             status_task_progress: data.status_task_progress,
             hovered_axis: data.hovered_axis,
             viewport_size: data.viewport_size,

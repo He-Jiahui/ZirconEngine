@@ -48,6 +48,14 @@ impl Default for ProgressNotificationCenter {
 }
 
 impl ProgressNotificationCenter {
+    pub(crate) fn active_count(&self) -> usize {
+        self.state
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .entries
+            .len()
+    }
+
     pub fn publish(
         &self,
         notification: ProgressNotification,

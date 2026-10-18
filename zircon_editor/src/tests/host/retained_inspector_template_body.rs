@@ -43,6 +43,7 @@ fn chrome_fixture() -> EditorChromeSnapshot {
         }),
         status_line: "Inspector ready".to_string(),
         console_output: "Inspector ready".into(),
+        status_signals: Default::default(),
         status_task_progress: None,
         hovered_axis: None,
         viewport_size: UVec2::new(1280, 720),

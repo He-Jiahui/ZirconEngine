@@ -40,6 +40,7 @@ fn welcome_startup_projects_into_exclusive_page_model() {
             inspector: None,
             status_line: "Welcome".to_string(),
             console_output: "Welcome".into(),
+            status_signals: Default::default(),
             status_task_progress: None,
             hovered_axis: None,
             viewport_size: UVec2::new(1280, 720),

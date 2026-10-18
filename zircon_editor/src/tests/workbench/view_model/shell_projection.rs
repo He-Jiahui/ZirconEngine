@@ -673,6 +673,7 @@ fn sample_two_activity_windows_chrome(active_window: ActivityWindowId) -> Editor
             inspector: None,
             status_line: "Ready".to_string(),
             console_output: "Ready".into(),
+            status_signals: Default::default(),
             status_task_progress: None,
             hovered_axis: None,
             viewport_size: UVec2::new(1280, 720),

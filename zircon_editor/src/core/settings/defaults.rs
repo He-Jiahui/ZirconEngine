@@ -162,6 +162,7 @@ pub fn settings_registry_with_defaults() -> SettingsRegistry {
     register_viewport_snap_enabled(
         &mut registry,
         VIEWPORT_TRANSLATE_SNAP_ENABLED_KEY,
+        true,
         presentation(
             "settings.editor.viewport.translate_snap_enabled.label",
             "settings.editor.viewport.translate_snap_enabled.description",
@@ -171,6 +172,7 @@ pub fn settings_registry_with_defaults() -> SettingsRegistry {
     register_viewport_snap_enabled(
         &mut registry,
         VIEWPORT_ROTATE_SNAP_ENABLED_KEY,
+        true,
         presentation(
             "settings.editor.viewport.rotate_snap_enabled.label",
             "settings.editor.viewport.rotate_snap_enabled.description",
@@ -180,6 +182,7 @@ pub fn settings_registry_with_defaults() -> SettingsRegistry {
     register_viewport_snap_enabled(
         &mut registry,
         VIEWPORT_SCALE_SNAP_ENABLED_KEY,
+        false,
         presentation(
             "settings.editor.viewport.scale_snap_enabled.label",
             "settings.editor.viewport.scale_snap_enabled.description",
@@ -227,17 +230,17 @@ pub fn settings_registry_with_defaults() -> SettingsRegistry {
 fn register_viewport_snap_enabled(
     registry: &mut SettingsRegistry,
     key: &str,
+    default_enabled: bool,
     presentation: SettingsPresentation,
 ) {
-    // UE BaseEditorPerProjectUserSettings.ini enables all three snap types.
-    // Reuse the existing snap settings scopes and persistence owner.
+    // Keep each snap type under the existing settings and persistence authority.
     registry
         .register(
             SettingDefinition::new(
                 SettingsKey::parse(key).expect("the built-in snap-enable key is valid"),
                 SettingsScope::Project,
                 SettingSchema::Bool,
-                SettingValue::Bool(true),
+                SettingValue::Bool(default_enabled),
                 false,
                 presentation,
             )

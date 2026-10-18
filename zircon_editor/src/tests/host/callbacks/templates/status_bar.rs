@@ -29,6 +29,7 @@ fn componentized_workbench_status_bar_syncs_chrome_and_task_progress() {
     chrome.console_output = "Saving project".into();
     chrome.scene_viewport_settings.grid_mode = GridMode::VisibleAndSnap;
     chrome.scene_viewport_settings.translate_step = 2.5;
+    chrome.status_signals.active_notifications = 2;
     chrome.status_task_progress = Some(
         StatusTaskProgressSnapshot::new("desktop_export:7", "Export desktop_windows")
             .with_detail("cargo-build - Running generated SourceTemplate Cargo build")
@@ -46,7 +47,7 @@ fn componentized_workbench_status_bar_syncs_chrome_and_task_progress() {
     );
     assert_eq!(
         control_string(&bridge, "WorkbenchStatusErrors", "text").as_deref(),
-        Some("No Errors")
+        Some("0 Errors")
     );
     assert_eq!(
         control_string(&bridge, "WorkbenchStatusWarnings", "text").as_deref(),
@@ -54,7 +55,7 @@ fn componentized_workbench_status_bar_syncs_chrome_and_task_progress() {
     );
     assert_eq!(
         control_string(&bridge, "WorkbenchStatusMessages", "text").as_deref(),
-        Some("1 Message")
+        Some("2 Messages")
     );
     assert_eq!(
         control_string(&bridge, "WorkbenchStatusGrid", "text").as_deref(),
@@ -62,17 +63,14 @@ fn componentized_workbench_status_bar_syncs_chrome_and_task_progress() {
     );
     assert_eq!(
         control_string(&bridge, "WorkbenchStatusSnap", "text").as_deref(),
-        Some("Snap: On")
+        Some("T:2.5 m R:15° S:off")
     );
     assert!(control_bool(
         &bridge,
         "WorkbenchStatusSnapToggle",
         "checked"
     ));
-    assert_eq!(
-        control_string(&bridge, "WorkbenchStatusZoom", "text").as_deref(),
-        Some("100%")
-    );
+    assert!(bridge.control_frame("WorkbenchStatusZoom").is_none());
     assert_eq!(
         control_visibility(&bridge, "WorkbenchStatusTaskProgress"),
         Some(UiVisibility::Visible)
@@ -228,7 +226,7 @@ fn componentized_workbench_status_bar_collapses_task_slot_when_idle() {
         bridge
             .control_frame("WorkbenchStatusSnap")
             .expect("snap status should stay visible"),
-        74.0,
+        160.0,
     );
     assert_compact_status_item_frame(
         bridge
@@ -248,12 +246,7 @@ fn componentized_workbench_status_bar_collapses_task_slot_when_idle() {
             .expect("target status should stay visible"),
         28.0,
     );
-    assert_compact_status_item_frame(
-        bridge
-            .control_frame("WorkbenchStatusZoom")
-            .expect("zoom status should stay visible"),
-        56.0,
-    );
+    assert!(bridge.control_frame("WorkbenchStatusZoom").is_none());
 
     let nodes = to_host_contract_workbench_window_nodes(Some(bridge.host_projection()));
     assert!(template_contract_node_optional(&nodes, "WorkbenchStatusTaskProgress").is_none());
@@ -416,11 +409,10 @@ fn expected_status_controls_after_task(surface_width: f32) -> Vec<(&'static str,
     if workbench_layout_tier_for_logical_width(surface_width) == WorkbenchLayoutTier::Wide {
         controls.extend([
             ("WorkbenchStatusGrid", 80.0),
-            ("WorkbenchStatusSnap", 74.0),
+            ("WorkbenchStatusSnap", 160.0),
             ("WorkbenchStatusSnapToggle", 28.0),
             ("WorkbenchStatusWorld", 28.0),
             ("WorkbenchStatusTarget", 28.0),
-            ("WorkbenchStatusZoom", 56.0),
         ]);
     }
     controls

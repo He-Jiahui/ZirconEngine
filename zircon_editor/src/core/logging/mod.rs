@@ -41,4 +41,4 @@ pub use service::{EditorLogEventSink, EditorLogService, LogEventDelivery, LogWri
 pub use severity::LogSeverity;
 pub use source::{LogChannel, LogSource};
 pub(crate) use store::LogTailIdentity;
-pub use store::{EditorLogDiagnostics, EditorLogStore};
+pub use store::{EditorLogDiagnostics, EditorLogStore, LogSeverityCounts};

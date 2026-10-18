@@ -100,6 +100,7 @@ impl EditorState {
             inspector,
             status_line: self.status_line.clone(),
             console_output: self.console_output(),
+            status_signals: super::StatusSignalsSnapshot::from_context(&self.context),
             status_task_progress: self.status_task_progress.clone(),
             hovered_axis: self.viewport_controller.hovered_axis(),
             viewport_size: self.viewport_controller.viewport().size,

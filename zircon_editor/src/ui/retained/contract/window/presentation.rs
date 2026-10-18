@@ -209,11 +209,13 @@ impl UiHostWindow {
         viewport: SceneViewportChromeData,
         status_grid_text: &str,
         status_snap_text: &str,
+        status_snap_enabled: bool,
     ) -> bool {
         self.state.borrow_mut().patch_scene_viewport_chrome(
             viewport,
             status_grid_text,
             status_snap_text,
+            status_snap_enabled,
         )
     }
 

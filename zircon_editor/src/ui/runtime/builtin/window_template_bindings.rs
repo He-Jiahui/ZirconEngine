@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use crate::scene::modes::SceneModeActivation;
-use crate::scene::viewport::{GridMode, TransformHandleKind};
+use crate::scene::viewport::TransformHandleKind;
 use crate::ui::binding::{
     AssetCommand, DockCommand, EditorUiBinding, EditorUiBindingPayload, EditorUiEventKind,
     SelectionCommand, ViewportCommand,
@@ -95,16 +95,16 @@ pub(super) fn workbench_window_template_bindings() -> BTreeMap<String, EditorUiB
         &mut bindings,
         "Tool",
         "ToggleSnap",
-        EditorUiBindingPayload::viewport_command(ViewportCommand::SetGridMode(
-            GridMode::VisibleAndSnap,
+        EditorUiBindingPayload::viewport_command(ViewportCommand::ToggleSnap(
+            TransformHandleKind::Move,
         )),
     );
     insert_click(
         &mut bindings,
         "Workbench",
         "ToggleSnapFromStatus",
-        EditorUiBindingPayload::viewport_command(ViewportCommand::SetGridMode(
-            GridMode::VisibleAndSnap,
+        EditorUiBindingPayload::viewport_command(ViewportCommand::ToggleSnap(
+            TransformHandleKind::Move,
         )),
     );
     insert_click(

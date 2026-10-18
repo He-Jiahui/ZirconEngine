@@ -18,6 +18,8 @@ mod project_overview_snapshot;
 mod scene_entry;
 #[path = "status_task_progress_snapshot.rs"]
 mod status_task_progress_snapshot;
+#[path = "status_signals_snapshot.rs"]
+mod status_signals_snapshot;
 #[path = "transaction_history_snapshot.rs"]
 mod transaction_history_snapshot;
 
@@ -45,4 +47,5 @@ pub(crate) use scene_entry::{
     SceneInspectionHierarchyFragment, SceneInspectionHierarchyFragmentError,
 };
 pub use status_task_progress_snapshot::{StatusTaskProgressSnapshot, StatusTaskProgressTone};
+pub use status_signals_snapshot::StatusSignalsSnapshot;
 pub use transaction_history_snapshot::{TransactionHistoryRowSnapshot, TransactionHistorySnapshot};

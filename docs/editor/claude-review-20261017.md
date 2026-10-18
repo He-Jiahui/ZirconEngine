@@ -220,3 +220,33 @@ tests. Required commands:
 & tools/dev/local-cargo.ps1 -TargetDir $t test -p zircon_editor --lib core::play --locked
 & tools/dev/local-cargo.ps1 -TargetDir $t test -p zircon_editor --lib play_mode --locked
 ```
+
+## Status and snap authority (M2)
+
+Status signals now come from context-owned log and notification services. Log
+severity totals count accepted records since the last clear, survive retention
+eviction and do not depend on console filters. Messages count pending decisions,
+live toasts and active progress notifications; a task projection alone is not a
+message. Snapshot fixtures explicitly provide empty signals.
+
+Show T/R/S enabled states and step values independently of grid visibility.
+The status magnet toggles translate snapping and reflects its checked state even
+through the incremental chrome patch. Default scale snapping is off in both the
+settings authority and its standalone value projection; existing saved overrides
+remain effective. The legacy combined grid command explicitly writes the per-kind
+settings, rather than serving as a second snap authority. Remove the fabricated
+100% zoom control and give snap values a wider status slot.
+
+Linux verification: 44 changed/new Rust files passed unexpanded AST syntax
+inspection; status ZUI TOML/node references and diff checks passed. Behavior tests
+were added for log eviction/clear, real warning emission, toast counts, per-kind
+snapping and incremental checked-state updates. Rust tests and rendered spacing
+acceptance remain pending:
+
+```powershell
+& tools/dev/local-cargo.ps1 -TargetDir $t test -p zircon_editor --lib core::logging --locked
+& tools/dev/local-cargo.ps1 -TargetDir $t test -p zircon_editor --lib core::notifications --locked
+& tools/dev/local-cargo.ps1 -TargetDir $t test -p zircon_editor --lib status_bar --locked
+& tools/dev/local-cargo.ps1 -TargetDir $t test -p zircon_editor --lib unreal_snap --locked
+& tools/dev/local-cargo.ps1 -TargetDir $t test -p zircon_editor --lib viewport_chrome --locked
+```
