@@ -5,6 +5,7 @@ fn scene_toolbar_keeps_real_operations_and_module_overflow_reachable() {
     for width in [640.0, 1280.0, 1672.0] {
         let mut bridge =
             BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(width, 720.0)).unwrap();
+        bridge.set_preview_features(true).expect("preview workspace fixture");
         bridge
             .apply_responsive_toolbar_layout(UiSize::new(width, 720.0))
             .unwrap();
@@ -55,6 +56,7 @@ fn module_toolbar_priority_uses_mounted_horizontal_scroll_row_at_all_widths() {
     for width in [640.0, 1280.0, 1672.0] {
         let size = UiSize::new(width, 720.0);
         let mut bridge = BuiltinWorkbenchWindowTemplateSurfaceBridge::new(size).unwrap();
+        bridge.set_preview_features(true).expect("preview workspace fixture");
         bridge
             .apply_workbench_module_workspace("workbench.module.effect.select")
             .unwrap();

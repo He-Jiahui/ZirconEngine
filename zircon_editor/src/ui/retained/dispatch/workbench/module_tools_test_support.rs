@@ -110,6 +110,7 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
             ),
         ] {
             let mut bridge = Self::new(UiSize::new(1672.0, 941.0)).unwrap();
+            bridge.set_preview_features(true).expect("preview workspace fixture");
             assert!(bridge
                 .dispatch_control_state("MenuSlot2", UiEventKind::Click)
                 .unwrap()

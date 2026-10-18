@@ -136,7 +136,7 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         let frame = self
             .control_string("WorkbenchRenderFrameField", "value")
             .unwrap_or_default();
-        self.set_render_string("WorkbenchStatusReady", "text", "Render graph compiled")?;
+        self.set_render_string("WorkbenchStatusReady", "text", "Not implemented (preview)")?;
         self.set_render_string("WorkbenchStatusMessages", "text", "1 Message")?;
         self.set_render_string(
             "WorkbenchRenderCenterTitle",
@@ -146,7 +146,7 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         self.set_render_string(
             "WorkbenchRenderCaptureRow",
             "value_text",
-            format!("{}   frame {}   {} compiled", platform, frame, graph.label),
+            format!("Preview inputs: {}   frame {}   {}", platform, frame, graph.label),
         )
     }
 

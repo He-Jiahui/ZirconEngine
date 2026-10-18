@@ -6,6 +6,7 @@ use super::*;
 fn pass_graph_and_compile_keep_distinct_state_domains() {
     let mut bridge = BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(900.0, 620.0))
         .expect("workbench bridge should build");
+    bridge.set_preview_features(true).expect("preview workspace fixture");
 
     assert!(bridge.control_bool("WorkbenchRenderLightingPassRow", "selected"));
     assert!(bridge.control_bool("WorkbenchRenderFrameStartRow", "selected"));
@@ -38,7 +39,7 @@ fn pass_graph_and_compile_keep_distinct_state_domains() {
         .expect("render compile should dispatch")
         .expect("render compile should bind");
     assert_eq!(
-        Some("Vulkan   frame 2048   Lighting compiled".to_string()),
+        Some("Preview inputs: Vulkan   frame 2048   Lighting".to_string()),
         bridge.control_string("WorkbenchRenderCaptureRow", "value_text")
     );
     assert_eq!(

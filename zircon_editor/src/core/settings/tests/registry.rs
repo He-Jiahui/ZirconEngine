@@ -1,5 +1,16 @@
 use super::*;
 
+#[test]
+fn preview_workspaces_require_an_explicit_user_setting() {
+    let authority = SettingsAuthority::with_defaults();
+    assert!(!authority.snapshot().show_preview_features());
+    let preview_key = key(super::super::EDITOR_SHOW_PREVIEW_FEATURES_KEY);
+    authority.set(SettingsScope::User, &preview_key, SettingValue::Bool(true)).unwrap();
+    assert!(authority.snapshot().show_preview_features());
+    authority.set(SettingsScope::User, &preview_key, SettingValue::Bool(false)).unwrap();
+    assert!(!authority.snapshot().show_preview_features());
+}
+
 #[path = "registry/persistence_service.rs"]
 mod persistence_service;
 

@@ -6,6 +6,7 @@ use super::*;
 fn context_parameter_and_simulation_keep_distinct_state_domains() {
     let mut bridge = BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(900.0, 620.0))
         .expect("workbench bridge should build");
+    bridge.set_preview_features(true).expect("preview workspace fixture");
 
     assert!(bridge.control_bool("WorkbenchVfxEmitterRow", "selected"));
     assert!(bridge.control_bool("WorkbenchVfxSpawnRow", "selected"));
@@ -35,7 +36,7 @@ fn context_parameter_and_simulation_keep_distinct_state_domains() {
         .expect("simulation should dispatch")
         .expect("simulation should bind");
     assert_eq!(
-        Some("Simulation: 250 cm / Age   Material M_Bolt_01   60 fps".to_string()),
+        Some("Preview inputs: 250 cm / Age   Material M_Bolt_01".to_string()),
         bridge.control_string("WorkbenchVfxOutputRow", "text")
     );
     assert_eq!(

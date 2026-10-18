@@ -136,131 +136,35 @@ impl WorkbenchFeedbackModule {
     }
 
     fn save_status(self) -> &'static str {
-        match self {
-            Self::Scene => "Scene saved",
-            Self::Effect => "Gameplay effect saved",
-            Self::Ability => "Ability saved",
-            Self::Tags => "Gameplay tags saved",
-            Self::Perception => "Perception profile saved",
-            Self::Material => "Material saved",
-            Self::Behavior => "Behavior tree saved",
-            Self::Render => "Render pipeline saved",
-            Self::Assets => "Asset selection saved",
-            Self::Vfx => "VFX system saved",
-            Self::Hud => "HUD layout saved",
-        }
+        "Not implemented (preview)"
     }
 
     fn save_output(self) -> &'static str {
-        match self {
-            Self::Scene => "Save: scene sample persisted",
-            Self::Effect => "Save: GE_HealthRegen sample persisted",
-            Self::Ability => "Save: GA_DashAttack sample persisted",
-            Self::Tags => "Save: gameplay tag registry persisted",
-            Self::Perception => "Save: AI perception profile persisted",
-            Self::Material => "Save: M_Rock_Cliff preview persisted",
-            Self::Behavior => "Save: BT_Enemy sample persisted",
-            Self::Render => "Save: Forward Plus renderer profile persisted",
-            Self::Assets => "Save: asset browser filters persisted",
-            Self::Vfx => "Save: P_Bolt_01 system persisted",
-            Self::Hud => "Save: Gameplay_HUD layout persisted",
-        }
+        "Not implemented (preview)"
     }
 
     fn compile_status(self) -> &'static str {
-        match self {
-            Self::Scene => "Scene command previewed",
-            Self::Effect => "Gameplay effect compile queued",
-            Self::Ability => "Ability compile queued",
-            Self::Tags => "Gameplay tags compile queued",
-            Self::Perception => "Perception query compile queued",
-            Self::Material => "Material compile queued",
-            Self::Behavior => "Behavior tree compile queued",
-            Self::Render => "Render graph compile queued",
-            Self::Assets => "Asset cook queued",
-            Self::Vfx => "VFX compile queued",
-            Self::Hud => "HUD compile queued",
-        }
+        "Not implemented (preview)"
     }
 
     fn compile_output(self) -> &'static str {
-        match self {
-            Self::Scene => "Compile: scene has no module output surface",
-            Self::Effect => "Compile Log: GE_HealthRegen compile queued",
-            Self::Ability => "Compile Log: GA_DashAttack compile queued",
-            Self::Tags => "Compile Log: gameplay tag table queued",
-            Self::Perception => "Compile Log: sight query compile queued",
-            Self::Material => "Shader Output: material compile queued",
-            Self::Behavior => "Runtime Trace: behavior tree compile queued",
-            Self::Render => "Compile Output: render graph compile queued",
-            Self::Assets => "Cook: asset build graph queued",
-            Self::Vfx => "Compile Output: E_Bolt compile queued",
-            Self::Hud => "Compile Log: widget tree compile queued",
-        }
+        "Not implemented (preview)"
     }
 
     fn diff_status(self) -> &'static str {
-        match self {
-            Self::Scene => "Scene diff prepared",
-            Self::Effect => "Gameplay effect diff prepared",
-            Self::Ability => "Ability diff prepared",
-            Self::Tags => "Gameplay tags diff prepared",
-            Self::Perception => "Perception diff prepared",
-            Self::Material => "Material diff prepared",
-            Self::Behavior => "Behavior tree diff prepared",
-            Self::Render => "Render pipeline diff prepared",
-            Self::Assets => "Asset diff prepared",
-            Self::Vfx => "VFX diff prepared",
-            Self::Hud => "HUD diff prepared",
-        }
+        "Not implemented (preview)"
     }
 
     fn diff_output(self) -> &'static str {
-        match self {
-            Self::Scene => "Diff: scene preview state compared",
-            Self::Effect => "Diff: gameplay effect modifier changes compared",
-            Self::Ability => "Diff: ability graph changes compared",
-            Self::Tags => "Diff: tag redirect changes compared",
-            Self::Perception => "Diff: perception filter changes compared",
-            Self::Material => "Diff: material graph changes compared",
-            Self::Behavior => "Diff: behavior tree branch changes compared",
-            Self::Render => "Diff: render pipeline pass changes compared",
-            Self::Assets => "Diff: asset metadata changes compared",
-            Self::Vfx => "Diff: emitter stack changes compared",
-            Self::Hud => "Diff: HUD widget hierarchy changes compared",
-        }
+        "Not implemented (preview)"
     }
 
     fn simulate_status(self) -> &'static str {
-        match self {
-            Self::Scene => "Scene preview running",
-            Self::Effect => "Gameplay effect simulation running",
-            Self::Ability => "Ability simulation running",
-            Self::Tags => "Gameplay tag validation running",
-            Self::Perception => "Perception simulation running",
-            Self::Material => "Material preview running",
-            Self::Behavior => "Behavior tree simulation running",
-            Self::Render => "Render frame preview running",
-            Self::Assets => "Asset validation running",
-            Self::Vfx => "VFX simulation running",
-            Self::Hud => "HUD preview running",
-        }
+        "Not implemented (preview)"
     }
 
     fn simulate_output(self) -> &'static str {
-        match self {
-            Self::Scene => "Preview: scene viewport sample running",
-            Self::Effect => "Simulation Output: gameplay effect preview running",
-            Self::Ability => "Simulation: ability playtest preview running",
-            Self::Tags => "Validation: gameplay tag references scanning",
-            Self::Perception => "Perception simulation tick",
-            Self::Material => "Preview Variants: material preview refreshed",
-            Self::Behavior => "Runtime Trace: behavior tree preview running",
-            Self::Render => "Frame Preview: render graph frame queued",
-            Self::Assets => "Validation: asset scan queued",
-            Self::Vfx => "Simulation: preview running at 60 fps",
-            Self::Hud => "Preview refreshed   localization warning remains",
-        }
+        "Not implemented (preview)"
     }
 }
 
@@ -274,12 +178,12 @@ fn module_command_feedback(
             active_module.output(active_module.save_output()),
         ),
         "workbench.module.browse.invoke" => ModuleCommandFeedback {
-            status_text: "Asset browser focused",
+            status_text: "Preview workspace selected",
             message_count: "1 Message",
             output: Some(output(
                 "WorkbenchAssetsOutputRow",
                 "text",
-                "Browse: focused Content/Environment/Forest",
+                "Not implemented (preview)",
             )),
         },
         "workbench.module.compile.invoke" => module_feedback(

@@ -87,6 +87,7 @@ pub(crate) struct BuiltinWorkbenchWindowTemplateSurfaceBridge {
     committed_mount_origin: (f32, f32),
     committed_presentation_scale_factor: f32,
     pub(super) asset_creation_menu: AssetCreationMenuState,
+    pub(super) preview_features_enabled: bool,
     pub(super) scene_hierarchy_projection: SceneHierarchyProjectionState,
     pub(super) scene_expanded_by_entity: BTreeMap<EntityId, bool>,
     pub(super) scene_filter_query: String,
@@ -170,6 +171,7 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
             committed_mount_origin: (mount_frame.x, mount_frame.y),
             committed_presentation_scale_factor: 1.0,
             asset_creation_menu: AssetCreationMenuState::default(),
+            preview_features_enabled: false,
             scene_hierarchy_projection: SceneHierarchyProjectionState::default(),
             scene_expanded_by_entity: BTreeMap::new(),
             scene_filter_query: String::new(),
@@ -641,6 +643,9 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         &mut self,
         action_id: &str,
     ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
+        if !self.preview_features_enabled && action_id != "workbench.module.scene.select" {
+            return self.show_unimplemented_preview();
+        }
         self.mount_workbench_module_workspace(action_id)?;
         let scene_active = action_id == "workbench.module.scene.select";
         self.set_visible("WorkbenchSceneWorkspace", true)?;
@@ -686,6 +691,9 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         &mut self,
         action_id: &str,
     ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
+        if !self.preview_features_enabled {
+            return self.show_unimplemented_preview();
+        }
         if super::extension_module_navigation::workbench_extension_workspace_document(action_id)
             .is_some()
         {

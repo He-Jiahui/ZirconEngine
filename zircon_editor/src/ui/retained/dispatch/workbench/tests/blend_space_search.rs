@@ -6,6 +6,7 @@ use super::*;
 fn search_filters_blend_assets_and_preserves_a_visible_selection() {
     let mut bridge = BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(900.0, 620.0))
         .expect("workbench bridge should build");
+    bridge.set_preview_features(true).expect("preview workspace fixture");
     bridge
         .dispatch_control_state("WorkbenchAbilityAnimationTools", UiEventKind::Click)
         .expect("Blend Space opener should dispatch")

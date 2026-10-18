@@ -7,6 +7,11 @@ use super::{HostInvalidationMask, RetainedEditorHost};
 impl RetainedEditorHost {
     pub(super) fn sync_settings_projections(&mut self) {
         let snapshot = self.runtime.context().settings().snapshot();
+        match self.workbench_window_bridge.set_preview_features(snapshot.show_preview_features()) {
+            Ok(true) => self.mark_presentation_dirty(),
+            Ok(false) => {},
+            Err(error) => self.set_status_line(error.to_string()),
+        }
         if install_editor_v2_design_tokens(snapshot.as_ref()) {
             apply_host_appearance_from_tokens(snapshot.design_tokens());
             self.ui.sync_host_paint_theme();

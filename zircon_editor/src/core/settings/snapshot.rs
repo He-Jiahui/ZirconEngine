@@ -164,9 +164,14 @@ pub struct SettingsSnapshot {
     locale: Arc<str>,
     autosave_interval: Duration,
     viewport_snap: ViewportSnapSettings,
+    show_preview_features: bool,
 }
 
 impl SettingsSnapshot {
+    pub const fn show_preview_features(&self) -> bool {
+        self.show_preview_features
+    }
+
     pub const fn generation(&self) -> u64 {
         self.generation
     }
@@ -228,6 +233,7 @@ impl SettingsSnapshot {
         let slots = &registry.built_in_slots;
         Self {
             generation: registry.revision,
+            show_preview_features: preview_features_enabled(registry),
             catalog: Arc::new(SettingsCatalog::from_registry(registry)),
             design_tokens: Arc::new(built_in_design_tokens(registry, slots.design_tokens())),
             keymap_overrides: Arc::new(built_in_keymap_overrides(
@@ -259,6 +265,7 @@ impl SettingsSnapshot {
         let slots = &registry.built_in_slots;
         let mut snapshot = Self {
             generation: registry.revision,
+            show_preview_features: preview_features_enabled(registry),
             catalog: Arc::clone(&previous.catalog),
             design_tokens: Arc::clone(&previous.design_tokens),
             keymap_overrides: Arc::clone(&previous.keymap_overrides),
@@ -385,4 +392,13 @@ fn built_in_bool(registry: &SettingsRegistry, key: &SettingsKey) -> bool {
         SettingValue::Bool(value) => *value,
         _ => unreachable!("the built-in snap enable setting has a boolean schema"),
     }
+}
+
+fn preview_features_enabled(registry: &SettingsRegistry) -> bool {
+    static KEY: std::sync::OnceLock<SettingsKey> = std::sync::OnceLock::new();
+    let key = KEY.get_or_init(|| {
+        SettingsKey::parse(super::defaults::EDITOR_SHOW_PREVIEW_FEATURES_KEY)
+            .expect("preview setting key")
+    });
+    matches!(registry.resolve(key), Ok(SettingValue::Bool(true)))
 }

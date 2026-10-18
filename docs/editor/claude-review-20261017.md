@@ -127,3 +127,31 @@ Run 30 s PIE with profiling, `ZIRCON_EDITOR_TRACE_SLOW_REDRAW=1` and
 `ZIRCON_EDITOR_TRACE_SLOW_TICK=1`: require <=1 full redraw/s, p95 <=16.7 ms,
 p99 <=33 ms. H4 additionally requires `play.preview.copy_bytes=0` on a real shared
 GPU path; H5 requires maximum Play-start frame gap <=100 ms. These are pending.
+
+## Preview capabilities and truthful feedback (H7)
+
+Add `editor.ui.show_preview_features` as a persisted User boolean, default false.
+Mock module/extension entry points and direct workspace mounts honor it;
+responsive toolbar updates preserve the gate. Opt-in navigation is marked Preview.
+Turning the setting off retires the mock workspace and restores Scene. Existing
+mock-workspace fixtures now opt in explicitly. Working local selection, menu and
+search interactions retain their behavior even where the legacy preview-ID list
+also classifies them as previews.
+
+Replace extension feedback table receipts and mock module compile/save/simulation
+claims with `Not implemented (preview)` or clearly labeled input summaries. The
+unimplemented generated-panel Pin action also reports its capability honestly.
+A source lint covers 218 canned status entries, rejecting queued/applied/compiled/
+saved without a job/receipt placeholder. New Rust behavior tests cover default
+visibility, direct admission, setting changes and opt-in badges.
+
+Linux verification: the receipt lint, localization TOML parsing, Rust unexpanded
+AST parsing and `git diff --check` pass. Rust behavior/type checking and GUI
+visibility acceptance remain pending. Required Windows tests:
+
+```powershell
+& tools/dev/local-cargo.ps1 -TargetDir $t test -p zircon_editor --lib core::settings --locked
+& tools/dev/local-cargo.ps1 -TargetDir $t test -p zircon_editor --lib preview_features --locked
+& tools/dev/local-cargo.ps1 -TargetDir $t test -p zircon_editor --lib module_workspace --locked
+& tools/dev/local-cargo.ps1 -TargetDir $t test -p zircon_editor --lib module_tools --locked
+```

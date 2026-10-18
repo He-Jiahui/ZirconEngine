@@ -6,6 +6,7 @@ use super::*;
 fn parameter_graph_and_compile_share_one_material_profile() {
     let mut bridge = BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(900.0, 620.0))
         .expect("workbench bridge should build");
+    bridge.set_preview_features(true).expect("preview workspace fixture");
 
     assert!(bridge.control_bool("WorkbenchMaterialBaseColorRow", "selected"));
     assert!(bridge.control_bool("WorkbenchMaterialNodeRow01", "selected"));
@@ -40,7 +41,7 @@ fn parameter_graph_and_compile_share_one_material_profile() {
         .expect("material compile should dispatch")
         .expect("material compile should bind");
     assert_eq!(
-        Some("Roughness compiled   Post Process / Masked   2 warnings".to_string()),
+        Some("Preview inputs: Roughness   Post Process / Masked".to_string()),
         bridge.control_string("WorkbenchMaterialOutputRow", "text")
     );
     assert_eq!(
