@@ -84,7 +84,7 @@ fn scene_shortcuts_and_drawer_honor_focus_overrides_and_unbinding() {
         .with_focused_document_kind(DocumentKind::scene());
     let keymap = EditorKeymap::default_workbench();
     for (key, code, id) in [
-        ("f", 70, "viewport.frame_selection"),
+        ("f", 70, "viewport.selection.frame"),
         ("q", 81, "viewport.tool.select"),
         ("w", 87, "viewport.tool.translate"),
         ("e", 69, "viewport.tool.rotate"),
@@ -107,18 +107,18 @@ fn scene_shortcuts_and_drawer_honor_focus_overrides_and_unbinding() {
         }
     }
     let changed = keymap.with_overrides(&overrides([
-        ("viewport.frame_selection", Some("Alt+F")),
-        ("content_drawer.toggle", None),
+        ("viewport.selection.frame", Some("Alt+F")),
+        ("view.content_drawer.toggle", None),
     ]));
     assert_eq!(changed.resolve_keyboard_input_when(
         &keyboard_event("f", 70, false, false, false, false), |_| true), None);
     assert_eq!(changed.resolve_keyboard_input_when(
         &keyboard_event("f", 70, false, false, true, false), |_| true),
-        Some("viewport.frame_selection"));
+        Some("viewport.selection.frame"));
     let drawer = keyboard_event("space", 32, true, false, false, false);
     assert_eq!(keymap.resolve_keyboard_input_when(&drawer, |candidate| {
         registry.command(candidate).unwrap().is_enabled(&scene)
-    }), Some("content_drawer.toggle"));
+    }), Some("view.content_drawer.toggle"));
     assert_eq!(changed.resolve_keyboard_input_when(&drawer, |_| true), None);
 }
 

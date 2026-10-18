@@ -7,7 +7,7 @@ use crate::scene::viewport::TransformHandleKind;
 pub(super) fn append_viewport_commands(commands: &mut Vec<EditorCommandDescriptor>) {
     for (id, chord, event) in [
         (
-            "viewport.frame_selection",
+            "viewport.selection.frame",
             "F",
             EditorViewportEvent::FrameSelection,
         ),
@@ -57,7 +57,7 @@ pub(super) fn append_viewport_commands(commands: &mut Vec<EditorCommandDescripto
         ));
     }
     commands.push(command(
-        "content_drawer.toggle",
+        "view.content_drawer.toggle",
         EditorCommandCategory::View,
         "view",
         &[],

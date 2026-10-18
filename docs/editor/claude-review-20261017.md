@@ -1097,3 +1097,32 @@ assertions can be run separately on Windows:
 ```powershell
 & tools/dev/local-cargo.ps1 -TargetDir $tests test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_tilemap_2d_editor --lib tilemap_authoring_registration_exposes_menu_items_and_payload_schemas --locked
 ```
+
+## Executed command regressions (C2/H8 follow-up)
+
+[Run 39148406985](https://github.com/He-Jiahui/ZirconEngine/actions/runs/39148406985),
+at `51376bde8`, verifies that all 13 editor test-compilation errors are repaired.
+It compiles and links the library test binary, then executes 102 command tests:
+**58 passed, 29 failed, 15 ignored**. The Windows wrapper cases, editor feature
+closure, all four VM bridge tests and the tilemap duplicate-layer test pass.
+The plugin check still reports exactly the two AI migration errors above.
+
+Twenty-eight command failures share two invalid IDs introduced by the H8
+shortcut follow-up. The canonical `EditorCommandId` owner requires at least
+three nonempty dotted segments. Use `viewport.selection.frame` and
+`view.content_drawer.toggle` in the descriptors, shipped keymap, both locale
+bundles and existing command/override regressions. The independent template
+routes already satisfy their own contract and keep their existing identities.
+
+The remaining failure is a faulty early-exit fixture: its exact match ends at the
+last document byte, so a correct matcher must visit every byte. Add an unvisited
+tail to that fixture, preserve the exact-match score and strict early-exit
+assertion, and assert the precise visited-prefix length too. The matcher and its
+metrics remain unchanged.
+
+Portable checks validate all 17 shipped keymap IDs against the owner grammar and
+both renamed locale consumers. All four changed Rust files parse, Change Guard
+reports zero findings, and 24 portable CI tests pass (three Windows cases skip).
+The repaired command batch still requires the next hosted run; the prior run's
+58 passes are not evidence that these repairs execute successfully. Its exact
+Windows reproduction remains in [CI validation](ci-validation.md).

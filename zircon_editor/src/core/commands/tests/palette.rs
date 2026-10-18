@@ -18,14 +18,13 @@ fn single_pass_fuzzy_score_preserves_exact_and_subsequence_ranking() {
 
 #[test]
 fn later_exact_match_still_overrides_an_earlier_subsequence() {
+    let document = "a gap before ab and an unvisited tail";
     let query = EditorCommandPaletteCompiledQuery::new("ab");
     let mut metrics = EditorCommandPaletteQueryMetrics::default();
 
-    assert_eq!(
-        fuzzy_score("a gap before ab", &query, &mut metrics),
-        Some(255)
-    );
-    assert!(metrics.document_byte_visits < "a gap before ab".len());
+    assert_eq!(fuzzy_score(document, &query, &mut metrics), Some(255));
+    assert_eq!(metrics.document_byte_visits, "a gap before ab".len());
+    assert!(metrics.document_byte_visits < document.len());
 }
 
 #[test]
