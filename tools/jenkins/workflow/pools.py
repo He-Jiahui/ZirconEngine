@@ -253,10 +253,7 @@ def _recover(state, preparation_key: str, destination: Path, object_root: Path |
             if _hash(target) != new:
                 raise _error("preparation_recovery_hash", "recovered object hash does not match", path=item["path"])
             item["applied"] = True
-        current = state.get("preparation_update", preparation_key)
-        state.put("preparation_update", preparation_key, {**intent, "files": intent["files"]}, expected_version=current["version"])
-    current = state.get("preparation_update", preparation_key)
-    state.put("preparation_update", preparation_key, {**intent, "status": "complete", "files": intent["files"], "recoveredAt": time.time()}, expected_version=current["version"])
+    state.put("preparation_update", preparation_key, {**intent, "status": "complete", "files": intent["files"], "recoveredAt": time.time()}, expected_version=row["version"])
     if intent.get("manifest") and intent.get("ownedFiles") is not None:
         state.put("preparation_source", preparation_key, {"executionId": intent.get("executionId"),
                    "preparationKey": preparation_key, "sourceDigest": intent.get("sourceDigest"),
@@ -335,7 +332,7 @@ def materialize_preparation(state, approved_build_root: ApprovedBuildRoot | str 
               "oldOwnedFiles": old, "ownedFiles": desired, "manifest": normalized,
               "objectRoot": str(object_root),
               "manifestDigest": hashlib.sha256(canonical_json(normalized)).hexdigest(), "createdAt": time.time()}
-    state.put("preparation_update", key, intent, expected_version=None)
+    journal = state.put("preparation_update", key, intent, expected_version=None)
     for item in files:
         target = destination / item["path"]
         if item["newHash"] is None:
@@ -343,9 +340,7 @@ def materialize_preparation(state, approved_build_root: ApprovedBuildRoot | str 
         else:
             _atomic_copy(object_root / "inputs" / "objects" / item["newHash"], target)
         item["applied"] = True
-        row = state.get("preparation_update", key)
-        state.put("preparation_update", key, {**row["payload"], "files": files}, expected_version=row["version"])
-    state.put("preparation_update", key, {**intent, "status": "complete", "files": files, "completedAt": time.time()}, expected_version=state.get("preparation_update", key)["version"])
+    state.put("preparation_update", key, {**intent, "status": "complete", "files": files, "completedAt": time.time()}, expected_version=journal["version"])
     state.put("preparation_source", key, {"executionId": execution_id, "preparationKey": key,
                "sourceDigest": source_digest, "manifest": normalized, "objectRoot": str(object_root),
                "ownedFiles": desired, "physicalPath": str(destination), "updatedAt": time.time()})

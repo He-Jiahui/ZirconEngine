@@ -39,15 +39,76 @@ class TestMainPrGate:
                 assert (f[0] / name).read_text() == "foreign work\n"
                 assert (f[1] / "owned.py").read_text() == "value = 2\n"
 
-    def test_untracked_main_file_blocks_candidate_creation(self):
+    def test_untracked_main_is_preserved_through_validation_and_real_pr_gates(self):
         with fixture.BranchQueueTests().fixture() as f:
-            (f[1] / "owned.py").write_text("value = 2\n")
-            fixture.BranchQueueTests().stage(f)
-            (f[0] / "foreign-new.txt").write_text("retain\n")
-            result = fixture.BranchQueueTests().integrate(f)
-            assert result["integrationStatus"] == "waiting"
-            assert not (f[0] / ".jenkins/worktrees/integration-queue").exists()
-            assert (f[0] / "foreign-new.txt").read_text() == "retain\n"
+            repo, root, payload, policy, _, g = f
+            (root / "owned.py").write_text("value = 2\n")
+            case = fixture.BranchQueueTests()
+            source = case.stage(f)
+            policy["integration"].update(requirePullRequest=True, pullRequestRepository="example/engine")
+            g(repo, "remote", "add", "origin", "https://github.com/example/engine.git")
+            foreign = repo / "foreign-new.txt"
+            foreign.write_bytes(b"retain\n")
+            foreign_stat = foreign.stat()
+            index = repo / ".git/index"
+            index_before, index_stat = index.read_bytes(), index.stat()
+            main_ref = repo / ".git/refs/heads/main"
+            ref_before = main_ref.read_bytes()
+            selected = d.commit.read_json(d.ROOT / ".jenkins/state/deployment/driver.json")
+            runtime = {k: selected[k] for k in ("driverDigest", "runtimeOperationId")}
+            observed = []
+            def validate(*args):
+                observed.append(args[0])
+                assert args[0] != repo
+                return d.run_validation(*args)
+            def missing_pr(*args):
+                assert len(observed) == 1, "PR observation must follow actual candidate validation"
+                return []
+            path = queue.directory(repo) / "requests/task-delivery.json"
+            with patch.object(queue, "github_json", side_effect=missing_pr) as api:
+                waiting = queue.integrate(d, repo, path, runtime=runtime,
+                    check_runtime=lambda: None, validate=validate)
+            assert api.call_count == 1
+            assert observed == [Path(waiting["candidateRoot"])]
+            assert waiting["candidateValidation"]["status"] == "passed", waiting
+            step = waiting["candidateValidation"]["steps"][0]
+            assert step["complete"] and step["native"]["rootExitCode"] == 0
+            assert waiting["candidateValidation"]["cleanup"]["status"] == "cleaned"
+            assert waiting["integrationStatus"] == "awaiting-pr", waiting
+            assert waiting["pullRequest"]["status"] == "awaiting-pr"
+            assert waiting["mainAdvanced"] is False and waiting["pushPerformed"] is False
+            assert main_ref.read_bytes() == ref_before
+            assert index.read_bytes() == index_before
+            assert foreign.read_bytes() == b"retain\n"
+            info = {"number": 12,
+                    "head": {"sha": source["sourceCommit"], "ref": source["branch"], "repo": {"full_name": "example/engine"}},
+                    "base": {"ref": "main", "repo": {"full_name": "example/engine"}}}
+            detail = {**info, "merged": True, "state": "closed", "merge_commit_sha": waiting["candidateHead"]}
+            original_git = queue.git
+            def fetch_observation(d, path, *args, **kwargs):
+                if args[0] == "fetch":
+                    return original_git(d, path, "update-ref", "refs/remotes/origin/main", waiting["candidateHead"])
+                return original_git(d, path, *args, **kwargs)
+            def must_reuse(*args):
+                raise AssertionError("The exact candidate already has native validation")
+            with patch.object(queue, "github_json", side_effect=[[info], detail]) as api, patch.object(queue, "git", side_effect=fetch_observation):
+                result = queue.integrate(d, repo, path, runtime=runtime,
+                    check_runtime=lambda: None, validate=must_reuse)
+            assert api.call_count == 2
+            assert result["validationReused"] is True
+            assert result["pullRequest"]["status"] == "merged" and result["pullRequest"]["number"] == 12
+            assert result["status"] == "committed" and result["integrationStatus"] == "waiting", result
+            assert "Main must be clean" in result["reason"]
+            assert result["mainAdvanced"] is False and result["pushPerformed"] is False
+            assert result["request"] == payload and result["sourceCommit"] == source["sourceCommit"]
+            assert main_ref.read_bytes() == ref_before
+            assert queue.text(d, repo, "rev-parse", "HEAD") == source["headBefore"]
+            assert queue.text(d, root, "rev-parse", "HEAD") == source["sourceCommit"]
+            assert index.read_bytes() == index_before
+            assert (index.stat().st_dev, index.stat().st_ino) == (index_stat.st_dev, index_stat.st_ino)
+            assert foreign.read_bytes() == b"retain\n"
+            assert (foreign.stat().st_dev, foreign.stat().st_ino, foreign.stat().st_mtime_ns) == (
+                foreign_stat.st_dev, foreign_stat.st_ino, foreign_stat.st_mtime_ns)
 
     def test_concurrent_main_edit_blocks_publication(self):
         with fixture.BranchQueueTests().fixture() as f:

@@ -156,18 +156,63 @@ class BranchQueueTests(unittest.TestCase):
             self.assertTrue(Path(result["notification"]["path"]).is_file())
             self.assertFalse(result["notification"]["recipientRead"])
 
-    def test_main_lock_blocks_candidate_creation_and_is_never_deleted(self):
+    def test_main_lock_allows_candidate_validation_but_blocks_publication(self):
         with self.fixture() as f:
-            (f[1] / "owned.py").write_text("value = 2\n")
-            self.stage(f)
-            lock = f[0] / ".git/index.lock"
-            lock.write_bytes(b"")
-            result = self.integrate(f)
+            repo, root, payload, _, _, g = f
+            (root / "owned.py").write_text("value = 2\n")
+            source = self.stage(f)
+            (repo / "dependency.py").write_text("dep = 2\n")
+            g(repo, "add", "dependency.py")
+            g(repo, "-c", "commit.gpgSign=false", "commit", "--quiet", "-m", "Advance current main")
+            main = queue.text(d, repo, "rev-parse", "HEAD")
+            main_ref = repo / ".git/refs/heads/main"
+            ref_before = main_ref.read_bytes()
+            foreign = repo / "foreign.txt"
+            foreign.write_text("foreign staged\n")
+            g(repo, "add", "foreign.txt")
+            foreign.write_text("foreign working\n")
+            index = repo / ".git/index"
+            index_before, index_stat = index.read_bytes(), index.stat()
+            lock = repo / ".git/index.lock"
+            lock.write_bytes(b"foreign index owner\n")
+            lock_before, lock_stat = lock.read_bytes(), lock.stat()
+            selected = d.commit.read_json(d.ROOT / ".jenkins/state/deployment/driver.json")
+            runtime = {k: selected[k] for k in ("driverDigest", "runtimeOperationId")}
+            observed = []
+            def validate(*args):
+                candidate = args[0]
+                observed.append(candidate)
+                self.assertNotEqual(candidate, repo)
+                self.assertNotEqual(Path(queue.index_observation(d, candidate)["path"]), lock)
+                self.assertEqual(g(candidate, "show", "HEAD:dependency.py").stdout.replace(b"\r\n", b"\n"), b"dep = 2\n")
+                self.assertEqual(g(candidate, "show", "HEAD:owned.py").stdout.replace(b"\r\n", b"\n"), b"value = 2\n")
+                self.assertEqual(g(candidate, "show", "HEAD:foreign.txt").stdout.replace(b"\r\n", b"\n"), b"base\n")
+                return d.run_validation(*args)
+            result = queue.integrate(d, repo, queue.directory(repo) / "requests/task-delivery.json",
+                runtime=runtime, check_runtime=lambda: None, validate=validate,
+                pull_request=lambda d, repo, root, record, policy: {"status": "merged", "mergeCommit": record["candidateHead"]})
+            self.assertEqual(observed, [Path(result["candidateRoot"])])
+            self.assertEqual(result["candidateValidation"]["status"], "passed", result.get("reason"))
+            step = result["candidateValidation"]["steps"][0]
+            self.assertTrue(step["complete"])
+            self.assertEqual(step["native"]["rootExitCode"], 0)
+            self.assertEqual(result["candidateValidation"]["cleanup"]["status"], "cleaned")
             self.assertEqual(result["status"], "committed")
             self.assertEqual(result["integrationStatus"], "waiting")
+            self.assertIn("index.lock requires original-owner reconciliation", result["reason"])
             self.assertTrue(result["mainIndexLock"]["exists"])
-            self.assertTrue(lock.exists())
-            self.assertFalse((f[0] / ".jenkins/worktrees/integration-queue").exists())
+            self.assertFalse(result["mainAdvanced"])
+            self.assertFalse(result["pushPerformed"])
+            self.assertEqual(result["request"], payload)
+            self.assertEqual(main_ref.read_bytes(), ref_before)
+            self.assertEqual(queue.text(d, repo, "rev-parse", "HEAD"), main)
+            self.assertEqual(queue.text(d, root, "rev-parse", "HEAD"), source["sourceCommit"])
+            self.assertEqual(index.read_bytes(), index_before)
+            self.assertEqual((index.stat().st_dev, index.stat().st_ino), (index_stat.st_dev, index_stat.st_ino))
+            self.assertEqual(lock.read_bytes(), lock_before)
+            self.assertEqual((lock.stat().st_dev, lock.stat().st_ino, lock.stat().st_mtime_ns),
+                             (lock_stat.st_dev, lock_stat.st_ino, lock_stat.st_mtime_ns))
+            self.assertEqual(foreign.read_text(), "foreign working\n")
 
     def test_later_foreign_branch_commit_is_not_implicitly_included(self):
         with self.fixture() as f:
