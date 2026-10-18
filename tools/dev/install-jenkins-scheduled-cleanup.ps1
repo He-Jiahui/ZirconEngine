@@ -161,6 +161,9 @@ $taskInstalledDocument = Read-JenkinsJobXml ([string]$taskReadback.Content)
 $taskInstalledScript = [string]$taskInstalledDocument.'flow-definition'.definition.script
 # Keep the cache result visible when a retained governance hook writes the final description.
 $taskDisplayScript = $taskInstalledScript.Replace("currentBuild.description = report.status +", "currentBuild.description = 'compiler cache ' + (env.ZIRCON_INCREMENTAL_DELETED_BYTES ?: '0') + ' logical bytes; ' + report.status +")
+if ($taskCompactionStage) {
+    $taskDisplayScript = $taskDisplayScript.Replace("currentBuild.description = 'compiler cache ' +", "currentBuild.description = 'NTFS physical ' + (env.ZIRCON_CARGO_COMPACT_ALLOCATION ?: '0') + ' bytes; compiler cache ' +")
+}
 if ($taskDisplayScript -cne $taskInstalledScript) {
     $taskInstalledDocument.'flow-definition'.definition.script = $taskDisplayScript
     $null = Invoke-WebRequest -Uri $taskConfigUrl -Method Post -Headers $taskHeaders -ContentType 'application/xml; charset=utf-8' -Body ([Text.Encoding]::UTF8.GetBytes($taskInstalledDocument.OuterXml)) -UseBasicParsing -TimeoutSec 15
@@ -171,6 +174,9 @@ if ($taskDisplayScript -cne $taskInstalledScript) {
 }
 $taskExpectedScript = ($taskPrelude + [Environment]::NewLine + $taskSource).Replace("`r`n", "`n").TrimEnd()
 if ($taskCompactionStage) { $taskExpectedScript = $taskCompactionStage.Replace("`r`n", "`n") + "`n" + $taskExpectedScript }
+if ($taskCompactionStage) {
+    $taskExpectedScript = $taskExpectedScript.Replace("currentBuild.description = 'compiler cache ' +", "currentBuild.description = 'NTFS physical ' + (env.ZIRCON_CARGO_COMPACT_ALLOCATION ?: '0') + ' bytes; compiler cache ' +")
+}
 if (-not $taskInstalledScript.Replace("`r`n", "`n").StartsWith($taskExpectedScript) -or
     ($taskPreserveGovernance -and -not $taskInstalledScript.Contains('// ZIRCON HOST GOVERNANCE AUDIT'))) {
     throw 'Scheduled cleanup installation readback differs from the reviewed source and governance stage'
