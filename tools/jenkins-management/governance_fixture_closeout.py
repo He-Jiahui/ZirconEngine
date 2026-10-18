@@ -97,7 +97,10 @@ def main():
         return 0
 
     receipt = c.verified(plan['originalReceipt'])
-    request = c.verified(plan['originalRequest'])
+    envelope = c.verified(plan['originalRequest'])
+    require(envelope['capsuleDigest'] == receipt['identity']['capsuleDigest'] and
+            envelope['driverDigest'] == receipt['identity']['driverDigest'], 'original request capsule differs')
+    request = envelope['request']
     native = c.verified(plan['originalNative'])
     c.verified(plan['originalInventory'])
     require(receipt['action'] == 'test' and receipt['identity']['sessionId'] == '01a12af6-7511-70d1-a452-61b80678eb56'
