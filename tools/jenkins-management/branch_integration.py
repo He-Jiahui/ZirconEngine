@@ -285,7 +285,7 @@ def clean_candidate(d, repo, main, record):
     if root.exists():
         known = d.commit.read_json(marker) if marker.exists() else {}
         if known.get("path") != str(root) or known.get("status") != "idle":
-            raise ValueError("Retain the existing candidate; its original native/merge result needs reconciliation")
+            raise d.commit.CommitBusy("Retain the existing candidate; its original native/merge result needs reconciliation")
         common = d.commit.physical(text(d, root, "rev-parse", "--path-format=absolute", "--git-common-dir"))
         if common != d.commit.physical(repo / ".git"):
             raise ValueError("Candidate Git identity changed")

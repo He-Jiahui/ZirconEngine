@@ -455,6 +455,61 @@ def _pool_path_index(paths):
     return result
 
 
+def _pool_update_files(old, desired):
+    """Plan one update per physical identity, retaining the desired manifest key."""
+    old_names, new_names = _pool_path_index(old), _pool_path_index(desired)
+    files = []
+    for folded in sorted(set(old_names) | set(new_names)):
+        before, after = old_names.get(folded), new_names.get(folded)
+        old_hash, new_hash = old.get(before), desired.get(after)
+        files.append({"path": after or before, "oldHash": old_hash, "newHash": new_hash,
+                      "applied": old_hash == new_hash})
+    return files
+
+
+def _pool_recovery_files(intent, version):
+    """Retain legacy entries while joining only a verified cross-version alias."""
+    from tools.jenkins.workflow import pools
+    old, desired = intent.get("oldOwnedFiles", {}), intent.get("ownedFiles")
+    if not isinstance(old, Mapping) or not isinstance(desired, Mapping):
+        raise pools._error("preparation_recovery_ambiguous", "Recovery lacks its old/new owned closure")
+    planned = _pool_update_files(old, desired)
+    original, raw = intent.get("files"), {}
+    if not isinstance(original, list):
+        raise pools._error("preparation_recovery_ambiguous", "Recovery journal files are invalid")
+    for index, item in enumerate(original):
+        if (not isinstance(item, Mapping) or not isinstance(item.get("path"), str)
+                or type(item.get("applied")) is not bool or item["path"] in raw):
+            raise pools._error("preparation_recovery_ambiguous", "Recovery journal entry is invalid")
+        raw[item["path"]] = (index, item)
+    expected = {item["path"]: item for item in planned}
+    if set(raw) == set(expected) and all(
+            item.get("oldHash") == expected[path]["oldHash"]
+            and item.get("newHash") == expected[path]["newHash"]
+            for path, (_index, item) in raw.items()):
+        _pool_path_index(raw)
+        return original, None
+    # The old planner used an exact-key union. Accept precisely that layout,
+    # never an ambiguous alias within either version or an unknown raw entry.
+    if set(raw) != set(old) | set(desired) or any(
+            item.get("oldHash") != old.get(path) or item.get("newHash") != desired.get(path)
+            for path, (_index, item) in raw.items()):
+        raise pools._error("preparation_recovery_ambiguous", "Legacy journal differs from its old/new closure")
+    groups = {}
+    for path, (index, item) in raw.items():
+        groups.setdefault(path.casefold(), []).append({"index": index, "entry": dict(item)})
+    files = []
+    for item in planned:
+        entries = groups[item["path"].casefold()]
+        if len(entries) == 1:
+            files.append(dict(entries[0]["entry"]))
+        else:
+            files.append({**item, "applied": False, "legacyEntries": entries})
+    return files, {"originalVersion": version, "originalPayloadDigest": digest(intent),
+                   "originalFilesDigest": digest(original), "originalFileCount": len(original),
+                   "caseFoldGroupCount": sum(len(entries) > 1 for entries in groups.values())}
+
+
 def _pool_inventory(destination, previous, *, approved=None, allowed_hashes=None, preserve_cache=True):
     """Keep physical scope/hash checks while returning original manifest keys."""
     from tools.jenkins.workflow import pools
@@ -517,8 +572,7 @@ def _recover_pool(state, key, destination, objects, approved):
                 "manifest": intent["manifest"], "objectRoot": intent.get("objectRoot"),
                 "ownedFiles": intent["ownedFiles"], "physicalPath": str(destination), "updatedAt": time.time()})
         return
-    files = intent.get("files", [])
-    _pool_path_index(item.get("path") for item in files)
+    files, identity_recovery = _pool_recovery_files(intent, row["version"])
     old_owned = intent.get("oldOwnedFiles", {})
     old_names = _pool_path_index(old_owned)
     desired = {item["path"]: item.get("newHash") for item in files}
@@ -526,6 +580,10 @@ def _recover_pool(state, key, destination, objects, approved):
     # This checks every actual member, directory and old/new hash before writes.
     _pool_inventory(destination, desired, allowed_hashes=permitted)
     version, updates = row["version"], 0
+    if identity_recovery is not None:
+        intent = {**intent, "files": files, "fileIdentityRecovery": identity_recovery}
+        state.put("preparation_update", key, intent, expected_version=version)
+        version += 1
     for item in files:
         target = destination / item["path"]
         observed = pools._hash(target)
@@ -687,8 +745,7 @@ def materialize_source(state, *, approved, owner, preparation_key_value, source_
                 "capturedSourceDigest": sealed["capturedSourceDigest"], "formalAcceptance": False}
     # Every previous file was checked by _inventory. Keep all paths in the
     # journal because _recover verifies them after an interrupted update.
-    files = [{"path": path, "oldHash": old.get(path), "newHash": desired.get(path),
-              "applied": old.get(path) == desired.get(path)} for path in sorted(set(old) | set(desired))]
+    files = _pool_update_files(old, desired)
     intent = {"executionId": owner, "preparationKey": key, "sourceDigest": sealed["sealedInputRef"],
               "oldSourceDigest": previous.get("sourceDigest") if previous else None,
               "status": "updating", "files": files, "oldOwnedFiles": old,
@@ -732,7 +789,8 @@ def materialize_source(state, *, approved, owner, preparation_key_value, source_
     return {"physicalPath": str(source), "reused": False, "incremental": bool(previous),
             "elapsedSeconds": time.perf_counter() - started,
             "changedFileCount": changed,
-            "preservedFileCount": sum(old.get(path) == checksum for path, checksum in desired.items()),
+            "preservedFileCount": sum(item["newHash"] is not None and item["oldHash"] == item["newHash"]
+                                      for item in files),
             "sourceDigest": sealed["sealedInputRef"], "preparationKey": key,
             "sealedInputRef": sealed["sealedInputRef"], "sourceRoot": sealed["sourceRoot"],
             "capturedSourceDigest": sealed["capturedSourceDigest"], "formalAcceptance": False}
@@ -3629,6 +3687,50 @@ def retire_unlaunched_flow_reader(management):
             "successorSubmitted": False, "formalAcceptance": False}
 
 
+def _committed_unlaunched_lineage(management, original, previous, retirement, retired):
+    """Reuse a completed reader retirement under its verified current native owner."""
+    from tools.jenkins import managed_worktree as formal
+    from tools.jenkins.deployment.drain_observations import owner_observation
+    from tools.jenkins.managed_worktree_lifetime import _pin, _pins_current
+    rp, rr, dead = retirement["payload"], retirement["payload"]["result"], retired["payload"]
+    recovery = management.state.get("unlaunched_flow_recovery", rr.get("executionId", ""))
+    proof = recovery["payload"] if recovery else {}
+    terminal = proof.get("terminalPins", [])
+    owner = proof.get("serviceOwner", {})
+    writer = {"sessionId": management.session, "principal": previous["writerPrincipal"],
+              "snapshotDigest": previous["writerAuthorizationSnapshot"], "ownedPaths": sorted(management.owned)}
+    formal._require(
+        proof.get("schemaVersion") == 1 and proof.get("kind") == "cancelled-before-native-launch-v1"
+        and proof.get("status") == "complete" and proof.get("recoveredBy") == retirement["key"]
+        and proof.get("inputDigest") == rp.get("inputDigest")
+        and proof.get("originalRuntimeOperationId") == previous["runtimeOperationId"]
+        and proof.get("worktreeWriter") == writer
+        and proof.get("currentSourceRef") == rr.get("currentSourceRef") == retired["key"]
+        and proof.get("executionId") == rr.get("executionId") == dead.get("recoveryExecutionId")
+        and proof.get("recoveryDigest") == rr.get("recoveryDigest") == dead.get("recoveryDigest")
+        == digest(rp.get("payload", {}).get("unlaunchedRecovery"))
+        and proof.get("successor") == rr.get("successor")
+        and proof.get("nativeLaunchIssued") is False and proof.get("nativeTerminationProofCreated") is False
+        and proof.get("resourceReleaseEvidence") == "durable_unlaunched"
+        and rr.get("cancelledBeforeNativeLaunch") is True
+        and dead.get("status") == "retired" and dead.get("requestStatus") == "cancelled"
+        and dead.get("acceptanceSynthesized") is False
+        and terminal == dead.get("terminalPins") and _pins_current(management.state, terminal)
+        and owner.get("operationId") == rr.get("runtimeOperationId") == management.config["runtimeOperationId"]
+        and owner.get("driverDigest") == rr.get("driverDigest") == management.config["driverDigest"],
+        "committed_worktree_reader", "The exact completed unlaunched retirement and current native owner are required")
+    owner_observation(management.manager, expected=owner)
+    pins = [_pin(recovery), *terminal]
+    return {"kind": "managed-worktree-committed-unlaunched-resume",
+            "previousRuntimeOperationId": previous["runtimeOperationId"],
+            "previousDriverDigest": previous["driverDigest"],
+            "runtimeOperationId": management.config["runtimeOperationId"],
+            "targetDriverDigest": management.config["driverDigest"], "serviceOwner": owner,
+            "originalOperationPin": _pin(original), "retirementOperationPin": _pin(retirement),
+            "readerRetirementPin": _pin(retired), "recoveryPin": _pin(recovery),
+            "nativeProofIssued": False, "additionalHoldsReleased": False, "queueReplayRequested": False}, pins
+
+
 def resume_committed_worktree(management, reference, path, existing, base, *, merge):
     """Bind a scoped committed successor to the same physical managed worktree."""
     from tools.jenkins import managed_worktree as formal
@@ -3710,10 +3812,10 @@ def resume_committed_worktree(management, reference, path, existing, base, *, me
     formal._require(binding["writerPrincipal"] == value["writerPrincipal"]
                     and binding["writerAuthorizationSnapshot"] == value["writerAuthorizationSnapshot"],
                     "committed_worktree_authority", "Successor cannot replace the original narrow authority")
-    lineage = (management.worktree_resume_lineage(value["runtimeOperationId"], original)
-               if value["runtimeOperationId"] != management.config["runtimeOperationId"] else None)
+    lineage = None
     pins = [_pin(original), _pin(existing)]
     retirement_key = successor.get("readerRetirementOperationKey")
+    retirement = retired = None
     if retirement_key is not None:
         retirement = state.get("management_operation", retirement_key)
         rp = retirement["payload"] if retirement else {}
@@ -3725,6 +3827,12 @@ def resume_committed_worktree(management, reference, path, existing, base, *, me
                         and retired["payload"].get("retiredBy") == retirement_key,
                         "committed_worktree_reader", "The explicit related reader retirement must be complete")
         pins += [_pin(retirement), _pin(retired)]
+    if value["runtimeOperationId"] != management.config["runtimeOperationId"]:
+        if retired and retired["payload"].get("retirementKind") == "cancelled-before-native-launch-v1":
+            lineage, retirement_pins = _committed_unlaunched_lineage(management, original, value, retirement, retired)
+            pins += retirement_pins
+        else:
+            lineage = management.worktree_resume_lineage(value["runtimeOperationId"], original)
 
     def verify_physical():
         common = Path(management.text(path, "rev-parse", "--path-format=absolute", "--git-common-dir"))
@@ -3772,6 +3880,9 @@ def resume_committed_worktree(management, reference, path, existing, base, *, me
         if lineage and lineage["kind"] == "managed-worktree-same-boot-resume":
             lineage = management.worktree_resume_lineage(value["runtimeOperationId"], original, reserved=True)
             pins += lineage["reviewedStatePins"]
+        elif lineage and lineage["kind"] == "managed-worktree-committed-unlaunched-resume":
+            from tools.jenkins.deployment.drain_observations import owner_observation
+            owner_observation(management.manager, expected=lineage["serviceOwner"])
         record = {**value, **binding, "requestId": management.request, "operationId": management.operation,
                   "baseHead": base, "driverDigest": management.config["driverDigest"],
                   "reusedPhysicalWorktree": True, "ownedSourceUnchangedDuringResume": True,

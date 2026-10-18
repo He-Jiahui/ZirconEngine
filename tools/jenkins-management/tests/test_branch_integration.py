@@ -128,6 +128,46 @@ class BranchQueueTests(unittest.TestCase):
             self.assertEqual(result["status"], "failed")
             self.assertNotIn("sourceCommit", result)
 
+    def test_active_candidate_keeps_other_task_waiting_without_mutation(self):
+        with self.fixture() as f:
+            repo, source_root, payload, policy, grants, g = f
+            (source_root / "owned.py").write_text("value = 2\n")
+            first = self.stage(f)
+            other_payload = {**payload, "requestId": "other-delivery", "operationId": "other-delivery"}
+            (source_root / "owned.py").write_text("value = 3\n")
+            other = self.stage((repo, source_root, other_payload, policy, grants, g))
+            main = queue.text(d, repo, "rev-parse", "HEAD")
+            candidate = repo / ".jenkins/worktrees/integration-queue"
+            g(repo, "worktree", "add", "--detach", str(candidate), first["sourceCommit"])
+            marker = queue.directory(repo) / "candidate.json"
+            d.commit.write_json(marker, {"path": str(candidate), "status": "active",
+                "operationId": payload["operationId"], "mainHead": main})
+            validation_path = repo / ".jenkins/test-output/original-validation.json"
+            validation = {"status": "waiting", "steps": [{"status": "waiting", "complete": False}]}
+            d.commit.write_json(validation_path, validation)
+            original_path = queue.directory(repo) / "requests/task-delivery.json"
+            d.commit.write_json(original_path, {**first, "integrationStatus": "validating",
+                "candidateRoot": str(candidate), "candidateHead": first["sourceCommit"],
+                "candidateValidation": validation})
+            index = Path(queue.index_observation(d, candidate)["path"]).with_name("index")
+            preserved = {path: path.read_bytes() for path in (marker, original_path, validation_path,
+                index, repo / ".git/index", source_root / "owned.py", candidate / "owned.py")}
+            observed = []
+            def validate(*args):
+                observed.append(args)
+                self.fail("Another task must not enter validation while the candidate is active")
+            result = queue.integrate(d, repo, queue.directory(repo) / "requests/other-delivery.json",
+                runtime={}, check_runtime=lambda: None, validate=validate)
+            self.assertEqual(result["integrationStatus"], "waiting", result.get("reason"))
+            self.assertIn("original native/merge result needs reconciliation", result["reason"])
+            self.assertEqual(observed, [])
+            self.assertNotIn("candidateValidation", result)
+            self.assertNotIn("candidateGit", result)
+            self.assertEqual(queue.text(d, candidate, "rev-parse", "HEAD"), first["sourceCommit"])
+            self.assertEqual(queue.text(d, source_root, "rev-parse", "HEAD"), other["sourceCommit"])
+            self.assertEqual(queue.text(d, repo, "rev-parse", "HEAD"), main)
+            self.assertEqual(preserved, {path: path.read_bytes() for path in preserved})
+
     def test_scheduled_candidate_validates_recorded_commit_then_integrates(self):
         with self.fixture() as f:
             (f[1] / "owned.py").write_text("value = 2\n")
