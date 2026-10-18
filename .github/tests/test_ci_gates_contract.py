@@ -62,6 +62,52 @@ class CiGatesContractTests(unittest.TestCase):
                     self.assertRegex(body, r"(?m)^    timeout-minutes: [1-9][0-9]*$", name)
                     self.assertRegex(body, r"(?m)^    needs: .*runner-availability", name)
 
+    def test_mvp_separates_compilation_focused_tests_and_staged_acceptance(self) -> None:
+        source = WORKFLOW_PATH.with_name("mvp-editor-windows.yml").read_text(encoding="utf-8")
+        compile_gate = job_body(source, "compile-gate")
+        focused = job_body(source, "focused-tests")
+        staged = job_body(source, "mvp-editor-windows")
+        self.assertIn("needs: compile-gate", focused)
+        self.assertIn("needs: focused-tests", staged)
+        self.assertIn("--bin zircon_editor --no-default-features --features target-editor-host --locked", compile_gate)
+        self.assertIn("--manifest-path zircon_plugins/Cargo.toml --workspace --locked", compile_gate)
+        self.assertNotIn("cargo test", compile_gate)
+        for selector in ("project_automation_", "renderable_empty_template_has_the_f2_camera_cube_and_sun_contract",
+                         "template_creation_rebuilds_regenerable_asset_state_from_source_after_deletion",
+                         "template_creation_recovers_a_corrupt_persisted_registry_from_source_metadata",
+                         "render_product_f2_persisted_basic_scene_renders_accepts_input_and_shuts_down",
+                         "editor_project_document_roundtrips_world_and_workspace",
+                         "f4_project_authoring_survives_full_application_restart"):
+            self.assertIn(selector, focused)
+            self.assertNotIn(selector, staged)
+        self.assertEqual(focused.count("test result: ok. 1 passed; 0 failed"), 6)
+        for name in ("compile-gate", "focused-tests", "mvp-editor-windows"):
+            body = job_body(source, name)
+            self.assertIn("runs-on: windows-2022", body)
+            self.assertIn("WGPU_BACKEND: dx12", body)
+            self.assertIn("persist-credentials: false", body)
+            self.assertIn("-UseMvpTargetCache -VerifyOnly", body)
+            self.assertLess(body.index("uses: actions/checkout@"), body.index("$lockHash ="))
+            self.assertLess(body.index("Require physical managed Cargo volume"), body.index("uses: actions/cache@"))
+            self.assertLess(body.index("-VerifyOnly"), body.index("uses: dtolnay/rust-toolchain@"))
+            self.assertIn("github.sha", body)
+            self.assertIn("hashFiles('Cargo.lock', 'zircon_plugins/Cargo.lock', '.cargo/config.toml')", body)
+            self.assertIn("if: always()", body)
+        # Cached compiler files are never substituted for source-bound F5 evidence.
+        for requirement in ("Build-MvpProductInputs.ps1", "Resolve-MvpProductInputManifest",
+                            "Get-MvpBuildGateRegistrySnapshot", "RequireF5Evidence",
+                            "-ProfileContractSummaryPath", "-WorkspaceSummaryPath"):
+            self.assertIn(requirement, staged)
+        self.assertIn("uses: actions/download-artifact@", staged)
+
+    def test_hosted_cache_reuse_keeps_physical_and_source_identity_checks(self) -> None:
+        helper = (REPO_ROOT / ".github/scripts/prepare-cargo-roots.ps1").read_text(encoding="utf-8")
+        for required in ("[ValidateSet('D:\\cargo-targets\\zircon-local'", "Assert-NoReparseAncestors $target",
+                         "$env:RUNNER_ENVIRONMENT -ne 'github-hosted'", "$env:ZR_CI_LOCK_HASH -notmatch '^[a-f0-9]{64}$'",
+                         "$target -ne $expectedTarget", "-Recurse -Force -Attributes ReparsePoint",
+                         "Restored MVP target cache contains a reparse point"):
+            self.assertIn(required, helper)
+
     def test_persistent_runners_are_trusted_and_run_isolated(self) -> None:
         for path in (WORKFLOW_PATH, WORKFLOW_PATH.with_name("profile-feature-contract.yml")):
             workflow = path.read_text(encoding="utf-8")

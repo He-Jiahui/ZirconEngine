@@ -660,3 +660,43 @@ PR run and an actual E0499 negative compilation probe are not claimed here.
 The review's throwaway broken-branch probe cannot be performed while staying
 exclusively on the requested branch with coherent verified pushes. O0 remains
 unaccepted pending real Windows compilation and first-frame evidence.
+
+## MVP job boundaries and cache reuse (partial M1, 2026-10-18)
+
+The MVP workflow now separates `compile-gate` (60 minutes), `focused-tests`
+(F1–F4, 90 minutes) and `mvp-editor-windows` (staged F5 acceptance, 120 minutes).
+Dependencies stop later jobs after earlier failures. All three use
+`windows-2022`, set `WGPU_BACKEND=dx12`, upload failure diagnostics and retain
+nonzero/exact-test admission. The staged job collects the preceding diagnostics.
+Targets are stable per toolchain, lockfile/config hash and job under physical
+`D:\cargo-targets\zircon-local\ci\cache`; run-bound Cargo/rustup/temp directories
+remain separate. Cache identity is resolved **after checkout**, before any Cargo
+operation. The guard checks approved roots before restore and rejects reparse
+ancestors/descendants after restore. Cache bytes are compiler reuse, never a
+passing test, product BuildSet or acceptance receipt.
+
+M1 remains **partial and blocked at product publication/receipt transfer**.
+`Build-MvpProductInputs.ps1` calls `tools/dev/zircon-session.ps1`, which exits 3
+because the local coordinator is retired, then would invoke the retired
+`validate-matrix.ps1`, which throws. No active Jenkins deployment exists here or
+on the GitHub-hosted image. Those publishers must be migrated to the independent
+source/BuildSet owner before a real built-product artifact can cross jobs. The
+current versioned F5 registry also requires source-fingerprint-bound workspace
+build/test summaries. Removing its workspace test or substituting a green CI
+status would weaken acceptance, so the existing F5 requirement remains intact.
+The trusted self-hosted CI `rust` job already owns the wave workspace test, but
+its result currently has no compatible F5 receipt handoff. Single-unification
+focused executables and cross-job product reuse remain part of that migration;
+the existing focused target/filter invocations are preserved here.
+
+Validation: **22** CI/runner tests pass. A portable check reproduces all **108**
+single-quoted Pester workflow pattern assertions successfully; actual Pester
+execution is pending Windows. SHA-256-verified actionlint 1.7.12 accepts all four
+workflows. No Rust, GPU, cache-hit timing or F5 acceptance is claimed.
+
+Draft PR #22 is open for the authorized review follow-up. Repository inspection
+then found CI, MVP and Profile workflows manually disabled. The repaired **CI**
+workflow has been enabled so the new required PR gate can execute on the next
+push. MVP/Profile activation and native acceptance remain pending their actual
+runner/publisher prerequisites. This changes workflow activation, not runner
+registration or retired-service state.

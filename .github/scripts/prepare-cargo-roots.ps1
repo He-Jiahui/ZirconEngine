@@ -1,6 +1,8 @@
 param(
     [ValidateSet('D:\cargo-targets\zircon-local', 'E:\cargo-targets\zircon-local', 'F:\cargo-targets\zircon-local')]
-    [string]$StorageRoot = 'E:\cargo-targets\zircon-local'
+    [string]$StorageRoot = 'E:\cargo-targets\zircon-local',
+    [switch]$UseMvpTargetCache,
+    [switch]$VerifyOnly
 )
 
 $ErrorActionPreference = 'Stop'
@@ -50,7 +52,7 @@ if ((Split-Path $runRoot -Parent) -ne $runPrefix -or $lane -notmatch '^[a-z0-9-]
     throw 'CI output must identify this run, attempt and unique job/matrix lane.'
 }
 Assert-NoReparseAncestors $runRoot
-if (Test-Path -LiteralPath $runRoot) {
+if (-not $VerifyOnly -and (Test-Path -LiteralPath $runRoot)) {
     throw "Refusing to reuse a prior CI output tree: $runRoot"
 }
 $fixedRoots = @{
@@ -65,7 +67,16 @@ foreach ($name in $fixedRoots.Keys) {
     Assert-NoReparseAncestors $actual
 }
 $target = Get-NormalPath $env:CARGO_TARGET_DIR
-if ($target -ne (Join-Path $runRoot 'target')) { throw 'CARGO_TARGET_DIR escaped its isolated run root' }
+$expectedTarget = Join-Path $runRoot 'target'
+if ($UseMvpTargetCache) {
+    if ($env:RUNNER_ENVIRONMENT -ne 'github-hosted' -or
+        $env:GITHUB_JOB -notin @('compile-gate', 'focused-tests', 'mvp-editor-windows') -or
+        $env:ZR_CI_LOCK_HASH -notmatch '^[a-f0-9]{64}$') {
+        throw 'MVP target reuse requires a hosted job and exact lockfile hash.'
+    }
+    $expectedTarget = Join-Path $root "ci\cache\mvp-1.94.1\$env:ZR_CI_LOCK_HASH\$env:GITHUB_JOB\target"
+}
+if ($target -ne $expectedTarget) { throw 'CARGO_TARGET_DIR escaped its isolated run root or exact MVP cache identity' }
 Assert-NoReparseAncestors $target
 if ($env:MIRI_SYSROOT) {
     if ((Get-NormalPath $env:MIRI_SYSROOT) -ne (Join-Path $runRoot 'sysroot')) {
@@ -84,8 +95,16 @@ if ($env:CARGO_BUILD_BUILD_DIR) {
 }
 if ($env:MIRI_SYSROOT) { $directories += $env:MIRI_SYSROOT }
 foreach ($directory in $directories) {
-    New-Item -ItemType Directory -Force -Path $directory | Out-Null
+    if (-not $VerifyOnly) { New-Item -ItemType Directory -Force -Path $directory | Out-Null }
+    if (-not (Test-Path -LiteralPath $directory -PathType Container)) {
+        throw "Required CI output directory is missing: $directory"
+    }
     Assert-NoReparseAncestors $directory
+}
+if ($UseMvpTargetCache -and $VerifyOnly) {
+    # Restored compiler caches must not introduce a link beneath the checked root.
+    $links = @(Get-ChildItem -LiteralPath $target -Recurse -Force -Attributes ReparsePoint)
+    if ($links.Count -ne 0) { throw 'Restored MVP target cache contains a reparse point.' }
 }
 
 Write-Output "Validated $driveRoot CI output roots; target=$target"

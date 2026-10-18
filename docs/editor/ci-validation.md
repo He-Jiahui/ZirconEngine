@@ -93,3 +93,28 @@ python -B .github/scripts/check-runner-availability.py --repository He-Jiahui/Zi
 Supply the token through the environment; do not place it in command arguments,
 source, receipts or logs. Runner registration, token provisioning and actual
 hosted/Windows run results remain separate from the source contract pass.
+
+## MVP job boundaries
+
+`MVP Editor Windows` separates `compile-gate`, `focused-tests`, and staged F5
+acceptance. The guard resolves a lockfile/config hash after checkout, restores
+only that job/toolchain's compiler target, and checks the restored tree for
+reparse points before compilation. Each job retains its own evidence artifact;
+F5 also downloads the preceding diagnostic artifacts. A compiler cache hit does
+not replace any source, product or test receipt.
+
+The existing F5 publisher still depends on retired local-coordinator entry
+points, so product publication, cross-job binary reuse and relocating the F5
+workspace-test receipt to the trusted wave job are **pending migration**. Its
+current acceptance registry remains enforced. Run the Windows source contract
+without compiling Rust:
+
+```powershell
+pwsh -NoProfile -File tools/tests/mvp_editor_windows_workflow.Tests.ps1
+```
+
+The portable CI contract also checks job dependencies, physical cache identity,
+all existing F1–F4 selectors and the retained F5 inputs. When the publisher is
+migrated, enable the MVP workflow and dispatch the authorized branch, then retain
+per-job durations, cache results and the full F5 evidence artifact. Do not accept
+a cached target or a diagnostic-only artifact as a staged product.

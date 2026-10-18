@@ -39,11 +39,11 @@ function Assert-RequiredScriptRunnerMatch {
 }
 
 Assert-WorkflowMatch '(?m)^name:\s*MVP Editor Windows\s*$' 'Workflow must have the stable MVP Windows name.'
-Assert-WorkflowMatch '(?ms)^jobs:\s*\r?\n\s*mvp-editor-windows:' 'Workflow must define the dedicated MVP Windows job.'
-Assert-WorkflowMatch 'runs-on:\s*windows-latest' 'MVP job must run on windows-latest.'
+Assert-WorkflowMatch '(?m)^  mvp-editor-windows:' 'Workflow must define the dedicated staged-product MVP Windows job.'
+Assert-WorkflowMatch 'runs-on:\s*windows-2022' 'MVP job must use the pinned Windows 2022 image.'
 Assert-WorkflowMatch 'actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09' 'MVP job must pin checkout to the reviewed upstream commit.'
 Assert-WorkflowMatch 'dtolnay/rust-toolchain@75be91dd2711b583df57c31d0873b4145c89f1d9' 'MVP job must pin the Rust 1.94.1 action branch to a reviewed commit.'
-Assert-WorkflowMatch 'Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6' 'MVP job must pin the Cargo cache action to the dereferenced upstream commit.'
+Assert-WorkflowMatch 'actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830' 'MVP jobs must pin the lockfile-scoped target cache action.'
 Assert-WorkflowMatch 'actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02' 'MVP job must pin artifact upload to the reviewed upstream commit.'
 Assert-WorkflowMatch 'MVP_RUST_TOOLCHAIN:\s*1\.94\.1' 'MVP job must declare the repository-authoritative Rust toolchain.'
 Assert-WorkflowMatch 'runner_image:\s*\$env:ImageOS/\$env:ImageVersion' 'MVP environment receipt must record the concrete hosted runner image.'
