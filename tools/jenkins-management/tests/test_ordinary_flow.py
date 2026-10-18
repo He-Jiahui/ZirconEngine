@@ -937,6 +937,95 @@ class OrdinaryFlowTests(unittest.TestCase):
             self.assertEqual(sealed["sourceManifest"],
                              state.get("sealed_input", sealed["sealedInputRef"])["payload"]["sourceManifest"])
 
+            # Actual checkout keeps complete observed control bytes, while the
+            # existing formal external gate sees only compiler-file membership.
+            from tools.jenkins import managed_worktree as formal
+            from tools.jenkins.contracts import JenkinsError
+            plan = ".codex/plans/contract.md"
+            ordinary = {"Cargo.toml": "1" * 64, "Cargo.lock": "2" * 64,
+                        ".cargo/config.toml": "3" * 64, "build.rs": "4" * 64,
+                        "path-dependency/src/lib.rs": "5" * 64, plan: "6" * 64}
+            value = {"sourceEvidencePolicy": "full-file-index-v2", "head": "b" * 40,
+                     "files": ordinary, "gitIndex": {
+                         "entries": [{"path": name, "mode": "100644", "object": "c" * 40, "stage": 0}
+                                     for name in sorted(ordinary)], "metadataSha256": "d" * 64}}
+            children, stage = {}, []
+            for ordinal in range(1, 8):
+                name, head = "vendor/dep" + str(ordinal), str(ordinal) * 40
+                (dependency / name).mkdir(parents=True)
+                child = {"head": head, "files": {"lib.rs": "7" * 64}, "diffSha256": "8" * 64}
+                child["sourceDigest"] = preparation.digest(child)
+                children[name] = child
+                value["files"][name] = {"gitlinkCommit": head, "source": child}
+                value["gitIndex"]["entries"].append(
+                    {"path": name, "mode": "160000", "object": head, "stage": 0})
+                stage.append(("160000 " + head + " 0\t" + name).encode() + b"\0")
+            value["gitIndex"]["entries"].sort(key=lambda item: (item["path"], item["stage"]))
+            observed = {**value, "sourceDigest": preparation.digest(value)}
+            management.payload = {"action": "validate", "sourceView": "checkout",
+                                  "sourceEvidencePolicy": "full-file-index-v2",
+                                  "externalRoots": [str(dependency)]}
+            management.source = lambda path, **kwargs: copy.deepcopy(
+                engine if path == repo else observed)
+            def git(path, *arguments):
+                if arguments == ("ls-files", "--stage", "-z"):
+                    return SimpleNamespace(stdout=b"".join(stage))
+                self.assertEqual(("ls-files", "--cached", "-z"), arguments)
+                names = observed["files"] if path == dependency else children[path.relative_to(dependency).as_posix()]["files"]
+                return SimpleNamespace(stdout=b"".join(name.encode() + b"\0" for name in names))
+            management.git = git
+            management.text = lambda path, *arguments: (
+                str(path) if arguments == ("rev-parse", "--show-toplevel")
+                else children[path.relative_to(dependency).as_posix()]["head"])
+            raw = copy.deepcopy(observed)
+            with self.assertRaises(JenkinsError) as rejected:
+                formal._external_capture(management, preparation, inspection=True)
+            self.assertEqual("external_control_forbidden", rejected.exception.code)
+            inputs, captures, gitlinks = formal._external_capture(
+                management, preparation.checkout_external_file_view(), inspection=True)
+            self.assertEqual(7, len(gitlinks))
+            self.assertEqual(set(preparation.source_files(raw)) - {plan}, set(inputs[0]["currentHashes"]))
+            self.assertEqual(raw, captures[0]["source"])
+            self.assertIn(plan, preparation.source_files(captures[0]["source"]))
+            with patch.object(runner, "source_helper", return_value=preparation):
+                _, captured = management.validation_source()
+            self.assertEqual(raw, captured["externalRoots"][0]["source"])
+            changed = copy.deepcopy(raw)
+            changed["files"][plan] = "9" * 64
+            changed["sourceDigest"] = preparation.digest({key: item for key, item in changed.items()
+                                                         if key != "sourceDigest"})
+            self.assertNotEqual(raw["sourceDigest"], changed["sourceDigest"])
+            self.assertEqual(preparation.checkout_external_file_view().source_files(raw),
+                             preparation.checkout_external_file_view().source_files(changed))
+            for forbidden in (".codex/config.toml", ".codex/hooks/run.py",
+                              ".jenkins/payload.json", ".opencode/config.json", "target/output"):
+                with self.subTest(forbidden=forbidden):
+                    observed = copy.deepcopy(raw)
+                    observed["files"][forbidden] = "a" * 64
+                    observed["sourceDigest"] = preparation.digest(
+                        {key: item for key, item in observed.items() if key != "sourceDigest"})
+                    with self.assertRaises(JenkinsError) as rejected:
+                        formal._external_capture(
+                            management, preparation.checkout_external_file_view(), inspection=True)
+                    self.assertEqual("external_control_forbidden", rejected.exception.code)
+            for admission in ("untracked", "executable", "unmerged"):
+                with self.subTest(planAdmission=admission):
+                    observed = copy.deepcopy(raw)
+                    entries = observed["gitIndex"]["entries"]
+                    if admission == "untracked":
+                        entries[:] = [item for item in entries if item["path"] != plan]
+                    else:
+                        entry = next(item for item in entries if item["path"] == plan)
+                        entry["mode" if admission == "executable" else "stage"] = (
+                            "100755" if admission == "executable" else 1)
+                    observed["sourceDigest"] = preparation.digest(
+                        {key: item for key, item in observed.items() if key != "sourceDigest"})
+                    with self.assertRaises(JenkinsError) as rejected:
+                        formal._external_capture(
+                            management, preparation.checkout_external_file_view(), inspection=True)
+                    self.assertEqual("external_control_forbidden", rejected.exception.code)
+            self.assertEqual(raw["files"][plan], "6" * 64)
+
     def dirty_fixture(self, root):
         repo = root / "repository"
         controls = repo / ".jenkins/state/controls"

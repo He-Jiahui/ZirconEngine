@@ -190,6 +190,34 @@ def source_files(snapshot, prefix=""):
             raise ValueError("Source file lacks its actual hash")
     return result
 
+def checkout_external_file_view():
+    """Classify tracked plan Markdown without dropping its observed source bytes."""
+    from types import SimpleNamespace
+
+    def compiler_files(snapshot):
+        checked_source_evidence(snapshot)
+
+        def select(current, prefix=""):
+            entries = (current["gitIndex"]["entries"]
+                       if current.get("sourceEvidencePolicy") == _SOURCE_EVIDENCE_V2 else [])
+            tracked = {entry["path"] for entry in entries
+                       if entry["stage"] == 0 and entry["mode"] == "100644"}
+            tracked.difference_update(entry["path"] for entry in entries if entry["stage"] != 0)
+            result = {}
+            for name, value in current["files"].items():
+                path = prefix + name
+                if isinstance(value, dict):
+                    result.update(select(value["source"], path + "/"))
+                elif not (name in tracked and isinstance(value, str)
+                          and re.fullmatch(r"\.codex/plans/[^/]+\.md", name, re.IGNORECASE)):
+                    result[path] = value
+            return result
+
+        return select(snapshot)
+
+    return SimpleNamespace(source_files=compiler_files)
+
+
 
 def preparation_key(repository_id, trusted, environment, packages, features, profile,
                     no_default_features, dependency_cache, external_names):
