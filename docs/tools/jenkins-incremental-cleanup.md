@@ -32,8 +32,8 @@ The retained registered-CAS stage stores protected and unknown digests in one ca
 
 `cargo_cache_compaction.py` 为现有定时 job 提供独立维护阶段。当前精确范围为 `E:/cargo-targets/zircon-local/win32/codex-default/build/debug/deps`；E 盘不足 80 GiB 时，对已确认的 Cargo `.rlib/.rmeta/.pdb/.o` 执行 [NTFS 原生文件压缩](https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ni-winioctl-fsctl_set_compression)。文件保留原位，可继续复用；不删除源码、依赖、调试符号或构建输出，也不设置目录的压缩继承属性。
 
-Jenkins 核验当前原生 owner 和不可变驱动后，取得既有 `.cargo-lock` 的非阻塞独占锁。每项使用禁止并发写入和删除的原始文件句柄，核对 SHA256、文件身份、长度和最后写入时间，压缩后再次验证；新文件、未知命名、硬链接、加密、稀疏、别名、活动写入和已压缩项均保留。单次最多 512 项、80 GiB 逻辑输入，达到卷剩余 80 GiB 即停止。
+Jenkins 核验当前原生 owner 和不可变驱动后，取得既有 `.cargo-lock` 的非阻塞独占锁。每项使用禁止并发写入和删除的原始文件句柄，核对 SHA256、文件身份、长度和最后写入时间，压缩后再次验证；新文件、未知命名、硬链接、加密、稀疏、别名、活动写入和已压缩项均保留。当前策略单次最多 512 项、32 GiB 逻辑输入、15 分钟；在下一项开始前检查预算，达到卷剩余 80 GiB 即停止。未处理项由后续定时流程接续，不靠杀死正在处理文件的进程控制预算。
 
-回执位于 `E:/cargo-targets/zircon-local/reports/jenkins-scheduled-cleanup/compaction/compact-<构建号>/`。原生 `FileCompressionInfo` 前后差额记录为物理分配回收量；逻辑文件大小和卷余量变化分别记录。每项意图、完成、原生进程终止与 EOF 证据保留。未确认意图不能计为成功，也不能以整盘清理完成描述单个范围。
+回执位于 `E:/cargo-targets/zircon-local/reports/jenkins-scheduled-cleanup/compaction/compact-<构建号>/`。原生 `FileStandardInfo.AllocationSize` 前后差额记录为物理分配回收量；逻辑文件大小和卷余量变化分别记录。首次 #300 使用 `FileCompressionInfo`，对未压缩输入只能作为物理回收下界，不能冒充精确分配计量。每项意图、完成、原生进程终止与 EOF 证据保留。未确认意图不能计为成功，也不能以整盘清理完成描述单个范围。构建列表单独显示 `NTFS physical`，不再用 CAS 的 0 B 覆盖实际压缩回收量。
 
 专用 `install` 入口固定代码与策略哈希，保留原有增量、CAS、治理阶段及 `H/30` 串行触发器；标准 PowerShell 重装入口也保留已安装的压缩阶段。固定的修复工作树和策略文件在迁移、重新核验与安装前不得删除。当前策略只处理 E 盘该范围；D/F 的活动构建、未知归属和未完成工作树继续独立保留。

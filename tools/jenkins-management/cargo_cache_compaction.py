@@ -82,6 +82,11 @@ class CompressionInfo(ctypes.Structure):
                 ('clusterShift', wt.BYTE), ('reserved', wt.BYTE * 3)]
 
 
+class StandardInfo(ctypes.Structure):
+    _fields_ = [('allocation', ctypes.c_int64), ('end', ctypes.c_int64),
+                ('links', wt.DWORD), ('deletePending', wt.BYTE), ('directory', wt.BYTE)]
+
+
 def api():
     k = ctypes.WinDLL('kernel32', use_last_error=True)
     k.CreateFileW.argtypes = [wt.LPCWSTR, wt.DWORD, wt.DWORD, ctypes.c_void_p,
@@ -121,15 +126,18 @@ def directory_handles(root):
 
 
 def information(k, h):
-    f, c = FileInfo(), CompressionInfo()
+    f, c, s = FileInfo(), CompressionInfo(), StandardInfo()
     if not k.GetFileInformationByHandle(h, ctypes.byref(f)):
         raise ctypes.WinError(ctypes.get_last_error())
     if not k.GetFileInformationByHandleEx(h, 8, ctypes.byref(c), ctypes.sizeof(c)):
         raise ctypes.WinError(ctypes.get_last_error())
+    if not k.GetFileInformationByHandleEx(h, 1, ctypes.byref(s), ctypes.sizeof(s)):
+        raise ctypes.WinError(ctypes.get_last_error())
     return f, {'identity': [f.volume, f.indexHigh, f.indexLow],
                'bytes': (f.sizeHigh << 32) | f.sizeLow, 'links': f.links,
                'mtimeTicks': (f.written.dwHighDateTime << 32) | f.written.dwLowDateTime,
-               'attributes': f.attributes, 'allocationBytes': c.size, 'compressionFormat': c.format}
+               'attributes': f.attributes, 'allocationBytes': s.allocation,
+               'compressionInfoBytes': c.size, 'compressionFormat': c.format}
 
 
 def file_hash(fd):
@@ -208,6 +216,8 @@ def regression(output, cache_module):
                 expected = {'bytes': len(raw), 'mtimeNs': p.stat().st_mtime_ns}
                 result = compact_file(p, expected, journal)
                 assert result['allocationReclaimedBytes'] > 0 and p.read_bytes() == raw
+                assert result['before']['allocationBytes'] >= len(raw)
+                assert result['after']['allocationBytes'] == result['after']['compressionInfoBytes']
                 tests.append('real-NTFS-compression-preserves-hash-identity-mtime')
                 try:
                     compact_file(p, expected, journal)
@@ -248,6 +258,7 @@ def regression(output, cache_module):
 
 
 def worker(plan, output, dry_run):
+    started = time.monotonic()
     cache = load_module('_cargo_compact_cache', plan['cacheModule'], plan['pins'][plan['cacheModule']])
     regression(output, cache)
     root = physical(plan['profileRoot'])
@@ -260,6 +271,8 @@ def worker(plan, output, dry_run):
               'freeBefore': shutil.disk_usage(root.anchor).free, 'allocationReclaimedBytes': 0,
               'filesCompressed': 0, 'logicalBytesProcessed': 0, 'retained': [],
               'sourceDeleted': 0, 'cacheFilesDeleted': 0, 'sourceCopies': 0, 'globalCleanupComplete': False}
+    result.update(sourceSha256=plan['pins'][str(Path(__file__).absolute())],
+                  maxSeconds=plan['maxSeconds'], budgetExhausted=False)
     receipt = output / 'receipt.json'
     save(receipt, result)
     try:
@@ -284,6 +297,10 @@ def worker(plan, output, dry_run):
             with (output / 'operations.jsonl').open('a', encoding='utf-8') as journal:
                 for row in selected:
                     if shutil.disk_usage(root.anchor).free >= plan['minimumFreeBytes']:
+                        break
+                    if time.monotonic() - started >= plan['maxSeconds']:
+                        result['budgetExhausted'] = True
+                        result['retained'].append({'reason': 'time-budget; continue with next scheduled run'})
                         break
                     if result['logicalBytesProcessed'] + row['bytes'] > plan['maxLogicalBytes']:
                         result['retained'].append({'path': row['path'], 'reason': 'logical-byte-budget'})
@@ -310,7 +327,7 @@ def worker(plan, output, dry_run):
     finally:
         result.update(freeAfter=shutil.disk_usage(root.anchor).free, finishedAt=time.time())
         result['observedFreeDelta'] = result['freeAfter'] - result['freeBefore']
-        result['spaceAccounting'] = 'Same-handle FileCompressionInfo delta; volume free delta also includes other writers'
+        result['spaceAccounting'] = 'Same-handle FileStandardInfo.AllocationSize delta; volume free delta also includes other writers'
         save(receipt, result)
 
 
@@ -380,6 +397,9 @@ zirconCargoCacheCompaction()
     if BEGIN in before or END in before:
         first, last = before.index(BEGIN), before.index(END) + len(END)
         before = before[:first] + before[last:].lstrip('\n')
+    # The build list must show physical compaction separately from 0-byte CAS GC.
+    before = before.replace("currentBuild.description = 'compiler cache ' +",
+        "currentBuild.description = 'NTFS physical ' + (env.ZIRCON_CARGO_COMPACT_ALLOCATION ?: '0') + ' bytes; compiler cache ' +")
     script.text = addon + before
     desired = ET.tostring(doc, encoding='utf-8', xml_declaration=True)
     code, current, _ = client.request(route)
@@ -417,7 +437,8 @@ def main():
     checked(__file__, args.self_sha256)
     plan = json.loads(checked(args.plan, args.plan_sha256))
     if (plan['schemaVersion'] != 1 or plan['profileRoot'] != str(PROFILE)
-            or not 1 <= plan['maxFiles'] <= 512 or not 0 < plan['maxLogicalBytes'] <= 80 * GIB):
+            or not 1 <= plan['maxFiles'] <= 512 or not 0 < plan['maxLogicalBytes'] <= 80 * GIB
+            or not 0 < plan['maxSeconds'] <= 900):
         raise ValueError('invalid bounded compaction policy')
     for path, checksum in plan['pins'].items():
         checked(path, checksum)
