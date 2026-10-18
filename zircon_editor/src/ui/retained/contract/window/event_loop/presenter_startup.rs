@@ -48,5 +48,5 @@ impl PresenterStartup {
 }
 
 #[cfg(test)]
-#[path = "tests/presenter_startup.rs"]
+#[path = "tests/startup.rs"]
 mod tests;

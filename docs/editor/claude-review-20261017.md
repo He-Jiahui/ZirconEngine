@@ -883,3 +883,23 @@ passes after repair; all **24** portable CI tests and actionlint pass (three
 Windows-only tests skipped). The next PR Wiki upload must confirm removal of the
 transitive warning. Configure/deploy execute only on their existing non-PR paths;
 no Pages deployment is performed as part of local validation.
+
+## Reachable short editor paths (source-gate follow-up)
+
+The source lane in run `39138886828` passed the convention checks, then reported
+three editor paths exceeding the 80-unit relative budget. Shorten these files
+under `zircon_editor/src/ui/retained/`, preserving the Rust module names and test
+filters with explicit mounts:
+
+| Previous path | Current path |
+| --- | --- |
+| `contract/window/event_loop/tests/presenter_startup.rs` | `contract/window/event_loop/tests/startup.rs` |
+| `dispatch/templates/workbench/graphics_degradation.rs` | `dispatch/templates/workbench/degraded.rs` |
+| `dispatch/templates/workbench/tests/graphics_degradation.rs` | `dispatch/templates/workbench/tests/degraded.rs` |
+
+Both test blobs are byte-identical; production code changes only its test path.
+The originals remain in Git at `be524b322`. The path audit now passes with zero
+new violations (nine existing baseline paths), all five path-rule tests pass,
+and all 264 Cargo targets pass test-reachability validation. Unexpanded Rust AST
+parsing and Change Guard scans pass across the 15 relocated-test owners/files
+(zero errors, warnings or suppressions). Rust test execution remains Windows-only.

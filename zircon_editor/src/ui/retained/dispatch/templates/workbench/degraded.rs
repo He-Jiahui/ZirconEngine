@@ -25,5 +25,5 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
 }
 
 #[cfg(test)]
-#[path = "tests/graphics_degradation.rs"]
+#[path = "tests/degraded.rs"]
 mod tests;
