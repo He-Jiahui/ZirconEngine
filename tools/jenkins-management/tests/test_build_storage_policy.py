@@ -241,6 +241,19 @@ class AuditTests(unittest.TestCase):
         self.assertEqual(audit.inventory.compiler_unit(Path("E:/cargo-targets/zircon-local/cache/sccache/a.bin")),
                          Path("E:/cargo-targets/zircon-local/cache/sccache"))
 
+    def test_source_modules_named_build_or_target_are_not_compiler_units(self):
+        root = Path("D:/cargo-targets/zircon-local/retained/source")
+        for relative in ("tools/cargo-zircon/src/build/mod.rs",
+                         "zircon_editor/assets/icons/build/icons.svg",
+                         "zircon_runtime/src/input/target/mod.rs"):
+            with self.subTest(relative=relative):
+                self.assertIsNone(audit.inventory.compiler_unit(root / relative))
+        target = Path("E:/cargo-targets/zircon-local/legacy/build")
+        for relative in ("debug/deps/a.rlib", "custom-ci/.fingerprint/a.json",
+                         "x86_64-pc-windows-msvc/release/a.exe", ".rustc_info.json"):
+            with self.subTest(relative=relative):
+                self.assertEqual(audit.inventory.compiler_unit(target / relative), target)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -74,7 +74,20 @@ def compiler_unit(path: Path) -> Path | None:
         if len(parts) > index + 3 and folded[index + 2] in {"target", "build"}:
             return Path(*parts[:index + 2])
     for index in range(2, len(parts) - 1):
-        if folded[index] in {"target", "build", "sccache"}:
+        if folded[index] == "sccache":
+            return Path(*parts[:index + 1])
+        if folded[index] not in {"target", "build"}:
+            continue
+        tail = folded[index + 1:]
+        # Source snapshots also contain modules and icons named build/target.
+        # Require a Cargo layout, not the directory name, before accounting it
+        # as a compiler unit. Other output remains in the general inventory.
+        profiles = {"debug", "release", "profiling", "shipping"}
+        cargo_children = {"deps", "build", "incremental", ".fingerprint", "examples"}
+        if (tail[0] in {".rustc_info.json", "cachedir.tag"}
+                or tail[0] in profiles
+                or len(tail) > 1 and tail[1] in cargo_children
+                or len(tail) > 1 and "-" in tail[0] and tail[1] in profiles):
             return Path(*parts[:index + 1])
     return None
 
