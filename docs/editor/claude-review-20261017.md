@@ -1052,18 +1052,21 @@ passes the complete Windows editor feature closure, the native wrapper cases,
 and all four VM behavior-bridge integration tests (0 failed). Its full plugin
 check reports exactly the two retired AI scene-mode API errors described above.
 The independent editor-command step reaches the editor library's test target
-and reports 11 compilation errors before executing any test.
+and reports 13 compilation errors before executing any test.
 
-Repair their six causes without removing tests or changing assertions: import
+Repair their seven causes without removing tests or weakening assertions: import
 the row-label helper and palette from their current owners; provide the model
 ticket with an activation identity from a real project using the existing
 physical-output fixture; dereference the autosave fixture's borrowed document
 name; expose the lifecycle deadline only through the existing test-only support
-module; and clone toast snapshot nodes before changing their clip frames.
+module; clone both toast snapshot node collections before changing their clip
+frames; and update the shell fixture's removed fabricated zoom assertion to the
+real translate-snap state. Its count/snap text expectations now match the
+already-implemented M2 projection (`0 Errors`, `T:1 m R:15° S:off`).
 Production API visibility is unchanged. The editor-command rerun remains
 required; a successful production editor check does not prove test compilation.
 
-All eight changed Rust files pass syntax-only parsing and Change Guard scans
+All ten changed Rust files pass syntax-only parsing and Change Guard scans
 with zero findings. The portable CI suite passes 24 tests, with three native
 wrapper cases skipped on Linux. Reproduce the command batch with the exact
 Windows command in [CI validation](ci-validation.md). The fixture and retained
@@ -1077,7 +1080,20 @@ $tests = 'D:\cargo-targets\zircon-local\claude-review-20261017-tests'
 & tools/dev/local-cargo.ps1 -TargetDir $tests test -p zircon_editor --lib optimization_batch_gy_editor580_command_row_text_preserves_culling --locked
 & tools/dev/local-cargo.ps1 -TargetDir $tests test -p zircon_editor --lib main_window_close_keeps_failed_settings_owner_and_idle_wake_after_jobs_quiesce --locked
 & tools/dev/local-cargo.ps1 -TargetDir $tests test -p zircon_editor --lib activity_toast_first_display_hidden_clipped_resize_and_retired_generation --locked
+& tools/dev/local-cargo.ps1 -TargetDir $tests test -p zircon_editor --lib activity_toast_first_display_partially_clipped_production_paint_starts_lifetime --locked
+& tools/dev/local-cargo.ps1 -TargetDir $tests test -p zircon_editor --lib workbench_view_model_projects_menu_strip_drawers_and_status --locked
 ```
 
 These additional focused commands are documented Windows follow-ups, not passing
 execution evidence. The next hosted run records the command/keymap batch.
+
+The completed run's tilemap test target also reports one stale registry API in
+its registration regression. Use `pending_command` to inspect the contributed
+descriptor before host materialization, retaining the exact menu-path and
+payload-schema assertions. No tilemap test executed in this run; the next hosted
+run must compile and execute the duplicate-layer regression. Its registration
+assertions can be run separately on Windows:
+
+```powershell
+& tools/dev/local-cargo.ps1 -TargetDir $tests test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_tilemap_2d_editor --lib tilemap_authoring_registration_exposes_menu_items_and_payload_schemas --locked
+```
