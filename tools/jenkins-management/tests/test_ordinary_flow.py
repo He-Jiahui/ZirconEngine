@@ -984,7 +984,9 @@ class OrdinaryFlowTests(unittest.TestCase):
             inputs, captures, gitlinks = formal._external_capture(
                 management, preparation.checkout_external_file_view(), inspection=True)
             self.assertEqual(7, len(gitlinks))
-            self.assertEqual(set(preparation.source_files(raw)) - {plan}, set(inputs[0]["currentHashes"]))
+            self.assertEqual(
+                {name.casefold(): checksum for name, checksum in preparation.source_files(raw).items()
+                 if name != plan}, inputs[0]["currentHashes"])
             self.assertEqual(raw, captures[0]["source"])
             self.assertIn(plan, preparation.source_files(captures[0]["source"]))
             with patch.object(runner, "source_helper", return_value=preparation):
