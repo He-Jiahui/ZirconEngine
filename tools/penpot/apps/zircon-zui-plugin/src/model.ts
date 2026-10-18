@@ -40,6 +40,9 @@ export type PluginUiMessage =
       mode: 'full' | 'leaf' | 'semantic';
     }
   | { type: 'export-zui' }
+  | { type: 'zop-load-contract'; source: string }
+  | { type: 'zop-annotate'; source: string }
+  | { type: 'zop-export'; screen: string; assetPath: string }
   | { type: 'export-canvas-png'; expectedBoardId: string }
   | { type: 'set-preview-selection'; selected: boolean }
   | { type: 'audit-preview-layout'; requestId?: string }
@@ -48,6 +51,7 @@ export type PluginUiMessage =
 
 export type PluginHostMessage =
   | { type: 'theme'; content: string }
+  | { type: 'zop-export-ready'; fileName: string; bytes: Uint8Array }
   | {
       type: 'status';
       level: 'idle' | 'working' | 'success' | 'warning' | 'error';

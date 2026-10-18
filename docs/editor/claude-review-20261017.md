@@ -155,3 +155,46 @@ visibility acceptance remain pending. Required Windows tests:
 & tools/dev/local-cargo.ps1 -TargetDir $t test -p zircon_editor --lib module_workspace --locked
 & tools/dev/local-cargo.ps1 -TargetDir $t test -p zircon_editor --lib module_tools --locked
 ```
+
+## Penpot operator contract and compiler scaffold (H9, partial O1/O2)
+
+[Plan 14](../plans/zircon_editor/editor_ui/14-penpot-operator-ui.md) records split
+visual/runtime/semantic authority, UI reference mapping, native ownership,
+milestones and acceptance budgets. It scopes the exception to plan 01 §1.3 to
+the operator shell and retains plan 13's unresolved native parity limits.
+
+Add a 17-role engineering contract and `ui::operator` registry with behavior
+tests for required/duplicate/unknown roles, command validation and designer node
+renaming. No legacy control-ID literals or source-text guard tests are used in
+this module; warnings are denied. Generated role sidecars keep the existing ZUI
+schema intact. No operator host/binder/shell-switch stub is installed.
+
+The plugin gains Annotate and ZOP Export for fresh boards, actual local library
+foundation tokens, a revision-stable Penpot PNG and a hash manifest in a
+deterministic ZIP. The new dependency-free compiler package checks semantics,
+layout/paint restrictions, i18n keys and manifest integrity; it emits native ZUI
+v2 documents, role sidecars and a provenance/output lock. Compile/verify/apply
+have bounded canonical landing paths, storage checks and ownership/hash checks
+before replacing or retiring generated files. Preview output cannot be applied.
+The managed Penpot validator now includes its tests and existing-bridge schema
+parity checks.
+
+Linux verification: **25 Node tests passed**, including determinism, golden tokens,
+ZIP CRC/hash verification by Python's standard ZIP reader, fresh-board
+normalization, role/command errors, preview exclusion, valid TOML generation,
+unsupported-feature rejection, path guards and apply ownership. All compile/export
+fixtures stay in memory; the checked-in fixture/golden is explicitly synthetic.
+Rust unexpanded AST/TOML parsing and diff checks passed. The Angular/plugin build,
+TypeScript checks, managed bridge-parity test, Rust behavior tests and real Penpot
+host exports have **not** run here (no installed Penpot dependencies).
+
+No actual Foundations/Components/Screens kit or real bundle was available or
+fabricated. SVG/component-state export, connected-library revision manifests,
+repeaters and state-expression binders remain unsupported and fail explicitly.
+No product assets were generated/applied, O2 is unaccepted, and O3–O6 stay gated
+on O0 plus real Penpot/native acceptance. Next commands:
+
+```powershell
+& tools/dev/local-cargo.ps1 -TargetDir $t test -p zircon_editor --lib ui::operator --locked
+& tools/penpot/tools/scripts/run-validation.ps1 -ArtifactRoot E:\cargo-targets\zircon-local\penpot\zop-<unique>
+```
