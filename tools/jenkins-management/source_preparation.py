@@ -3600,6 +3600,8 @@ def retire_unlaunched_flow_reader(management):
     from tools.jenkins.deployment.drain_observations import owner_observation
     from tools.jenkins.workflow.execution import ExecutionEngine, execution_lock
     recovery = management.payload.get("unlaunchedRecovery")
+    if isinstance(recovery, dict) and recovery.get("kind") == "cancelled-before-resource-admission-v1":
+        return retire_cancelled_capacity_reader(management, recovery)
     formal._require(isinstance(recovery, dict) and set(recovery) == {
         "schemaVersion", "kind", "executionId", "recipeRef", "originalIdentity", "terminalRef", "successor"}
         and recovery.get("schemaVersion") == 1 and recovery.get("kind") == "cancelled-before-native-launch-v1"
@@ -3684,6 +3686,241 @@ def retire_unlaunched_flow_reader(management):
             "executionId": eid, "readerRetired": True, "cancelledBeforeNativeLaunch": True,
             "successor": successor, "recoveryDigest": recovery_digest, "physicalWorktreeRetained": True,
             "originalRuntimeAndRecipePreserved": True, "requestRuntimeBinding": context["requestRuntimeBinding"],
+            "successorSubmitted": False, "formalAcceptance": False}
+
+
+
+def _capacity_reader_context(management, recovery, *, connection=None):
+    """Verify an existing natural cancellation before resource admission, under the execution lock."""
+    from tools.jenkins import managed_worktree as formal
+    from tools.jenkins.contracts import require_digest
+    from tools.jenkins.managed_worktree_lifetime import _pin, assert_no_writer
+    from tools.jenkins.workflow.execution import _execution_identity, canonical_build_root
+    state, eid = management.state, recovery["executionId"]
+    reference = require_digest(management.payload.get("currentSourceRef"), "currentSourceRef")
+    get = lambda domain, key: state.get(domain, key, connection=connection)
+    intent_row = get("current_source_intent", reference)
+    formal._require(intent_row and digest(intent_row["payload"]) == reference,
+                    "managed_reader_missing", "The registered immutable reader is required")
+    intent, identity = intent_row["payload"], recovery["originalIdentity"]
+    runtime, driver = management.config["runtimeOperationId"], management.config["driverDigest"]
+    root = canonical_build_root(management.payload.get("buildRoot")).path
+    record = get("management_worktree", intent.get("worktreeId", ""))
+    worktree = record["payload"] if record else {}
+    writer = state.check_authorization(management.repo_id, management.session, "implementation",
+                                       management.owned, connection=connection)
+    formal._require(intent.get("identity") == {name: value for name, value in identity.items()
+                    if name not in {"sourceInputDigest", "coverageDigest"}} and identity.get("repositoryId") == management.repo_id
+                    and intent.get("runtimeOperationId") == runtime
+                    and intent.get("worktreeId") == management.payload.get("worktreeId")
+                    and worktree.get("status") == "ready" and worktree.get("repositoryId") == management.repo_id
+                    and worktree.get("sessionId") == management.session
+                    and worktree.get("runtimeOperationId") == runtime and worktree.get("driverDigest") == driver
+                    and writer["principal"] == worktree.get("writerPrincipal")
+                    and writer["snapshotDigest"] == worktree.get("writerAuthorizationSnapshot")
+                    and sorted(writer["paths"]) == sorted(management.owned)
+                    == sorted(worktree.get("ownedPaths", [])) == sorted(intent.get("ownedPaths", [])),
+                    "managed_reader_owner_mismatch", "Retirement retains the current exact writer and reader")
+    assert_no_writer(state, intent["worktreeId"], connection=connection)
+    reader = state.check_authorization(management.repo_id, identity["sessionId"], "validation",
+                                       intent["ownedPaths"], connection=connection)
+    formal._require(reader["snapshotDigest"] == intent.get("authorizationSnapshot"),
+                    "current_source_authorization_changed", "The original scoped reader authorization changed")
+    request = state.get_request(identity["repositoryId"], identity["sessionId"], identity["requestId"],
+                                connection=connection)
+    prepare = get("current_source_preparation", reference)
+    result = prepare["payload"].get("result", {}) if prepare else {}
+    formal._require(request and request["generation"] == identity["generation"]
+                    and request.get("payloadDigest") == digest(request["payload"])
+                    and all(request["payload"].get(name) == value for name, value in identity.items())
+                    and request["payload"].get("currentSourceRef") == reference
+                    and request["payload"].get("runtimeOperationId", runtime) == runtime
+                    and prepare and prepare["payload"].get("status") == "prepared"
+                    and result.get("identity") == identity and result.get("currentSourceRef") == reference
+                    and request["payload"].get("sourcePreparationRef") == result.get("sourcePreparationRef")
+                    and request["payload"].get("authorizationSnapshot") == intent.get("authorizationSnapshot"),
+                    "unlaunched_recovery_identity", "Registered request and preparation must retain their exact payload")
+    consumer = ":".join(identity[name] for name in ("sessionId", "requestId", "attemptId"))
+    flow, execution, plan = get("workflow", consumer), get("execution", eid), get("recipe_plan", recovery["recipeRef"])
+    ep, recipe = execution["payload"] if execution else {}, plan["payload"] if plan else {}
+    key = _execution_identity(execution, eid)
+    formal._require(flow and flow["payload"].get("identity") == identity
+                    and flow["payload"].get("executionId") == eid
+                    and flow["payload"].get("recipeRef") == recovery["recipeRef"]
+                    and ep.get("recipeRef") == recovery["recipeRef"] == digest(recipe.get("recipe"))
+                    and result.get("sealedInputRef") == identity["sourceInputDigest"] == ep.get("sourceDigest")
+                    == recipe.get("sourceRef") == request["payload"].get("sealedInputRef")
+                    == flow["payload"].get("sourceDigest")
+                    and ep.get("coverageDigest") == identity["coverageDigest"] == flow["payload"].get("coverageDigest")
+                    and ep.get("driverDigest") == identity["stageImplementationDigest"] == driver
+                    == flow["payload"].get("driverDigest")
+                    and ep.get("driver") == recipe.get("driver")
+                    and ep.get("operationId") == ep.get("driver", {}).get("runtimeOperationId") == runtime
+                    and str(ep.get("generation")) == str(identity["generation"])
+                    == str(flow["payload"].get("generation")) == str(ep.get("driver", {}).get("generation"))
+                    and ep.get("preparationKey") == recipe.get("recipe", {}).get("preparationKey")
+                    and sorted(request["payload"].get("ownedPaths", [])) == sorted(intent["ownedPaths"])
+                    == sorted(flow["payload"].get("ownedPaths", []))
+                    and all(canonical_build_root(value).path == root for value in
+                            (intent.get("buildRoot"), request["payload"].get("buildRoot"), ep.get("buildRoot"),
+                             recipe.get("recipe", {}).get("buildRoot"))),
+                    "unlaunched_recovery_identity", "The original execution, recipe, root and current runtime must agree")
+    consumers = [row for row in state.list("execution_consumer", connection=connection)
+                 if row["payload"].get("executionId") == eid]
+    own = next((row for row in consumers if row["payload"].get("consumerId") == consumer), None)
+    binding = get("execution_binding", digest({"consumer": consumer, "executionKey": key}))
+    queue = get("resource_queue", eid + ":" + eid)
+    formal._require(own and binding and binding["payload"] == {"executionId": eid, "consumerId": consumer}
+                    and all(row["payload"].get("status") == "released" for row in consumers if row["key"] != own["key"])
+                    and queue and queue["payload"].get("owner") == eid
+                    and queue["payload"].get("writerKey") == ep["preparationKey"]
+                    and canonical_build_root(queue["payload"].get("buildRoot")).path == root,
+                    "managed_reader_consumer_active", "Only the exact released consumer and cancelled resource queue are eligible")
+    forbidden = ("execution_launch", "execution_host", "execution_control", "execution_scratch")
+    claims = [row for domain in ("native_job", "resource_reservation", "pool_writer_hold")
+              for row in state.list(domain, connection=connection)
+              if row["payload"].get("executionId") == eid or row["payload"].get("owner") == eid]
+    formal._require(not ep.get("reservationKey") and not claims and not any(get(domain, eid) for domain in forbidden)
+                    and not any(ep.get(name) for name in
+                                ("phaseRecords", "materialization", "taskScratch", "startedAt", "artifacts", "terminalProof")),
+                    "unlaunched_recovery_native_unproven", "Resource admission, native claims and output ownership must be absent")
+    terminal = get("request_result", digest([identity[name] for name in ("repositoryId", "sessionId", "requestId")]))
+    outcome = terminal["payload"] if terminal else {}
+    formal._require(ep.get("status") == "cancelled" and ep.get("pendingReason") == "capacity"
+                    and ep.get("cancelRequested") is True and ep.get("cancelledBeforeLaunch") is True
+                    and ep.get("refs") == 0 and ep.get("consumers") == []
+                    and own["payload"].get("status") == "released" and queue["payload"].get("status") == "cancelled"
+                    and request["status"] in {"cancelled", "failed"} and flow["payload"].get("status") in {"cancelled", "failed"}
+                    and flow["payload"].get("consumerCancelled") is True
+                    and flow["payload"].get("recovery", {}).get("status") == "complete"
+                    and flow["payload"]["recovery"].get("sourcePreserved") is True
+                    and all(outcome.get(name) == identity[name] for name in
+                            ("repositoryId", "sessionId", "requestId", "generation"))
+                    and outcome.get("status") == request["status"],
+                    "unlaunched_recovery_terminal_unproven", "Existing cancelled execution and terminal request evidence are required")
+    return {"identity": identity, "consumerId": consumer, "request": request,
+            "requestRuntimeBinding": {"source": "registered-request" if "runtimeOperationId" in request["payload"]
+                                     else "validated-current-source-intent",
+                "runtimeOperationId": runtime, "originalPayloadDigest": request["payloadDigest"],
+                "registeredPayloadHasRuntime": "runtimeOperationId" in request["payload"]},
+            # A later legitimate writer rebind must not revive a terminal old reader.
+            "requestStatus": request["status"], "flowStatus": flow["payload"]["status"],
+            "worktreeBinding": {"worktree": _pin(record), "writerPrincipal": writer["principal"],
+                                "writerAuthorizationSnapshot": writer["snapshotDigest"], "ownedPaths": management.owned},
+            "pins": [_pin(row) for row in (intent_row, prepare, flow, execution, plan, binding, queue, terminal, *consumers)]}
+
+
+def _capacity_terminal(management, recovery, context):
+    """Require both original CPS roots to finish; absence is proved by locked State, not PID guesses."""
+    import xml.etree.ElementTree as ET
+    from tools.jenkins import managed_worktree as formal
+    from tools.jenkins.workflow.execution import canonical_build_root
+    proof = _recovery_document(management, recovery["terminalRef"])
+    builds = proof.get("builds", [])
+    formal._require(proof.get("schemaVersion") == 1
+                    and proof.get("kind") == "jenkins-before-resource-admission-terminal-v1"
+                    and proof.get("originalIdentity") == context["identity"]
+                    and proof.get("executionId") == recovery["executionId"] and proof.get("recipeRef") == recovery["recipeRef"]
+                    and proof.get("currentSourceRef") == management.payload["currentSourceRef"]
+                    and proof.get("runtimeOperationId") == management.config["runtimeOperationId"]
+                    and isinstance(builds, list) and len(builds) == 2
+                    and {item.get("job") for item in builds} == {"zircon-flow", "zircon-execution"},
+                    "unlaunched_recovery_cps_unproven", "Retirement requires the exact original Flow and Execution terminals")
+    fields = {"repositoryId": "REPOSITORY_ID", "sessionId": "SESSION_ID", "requestId": "REQUEST_ID",
+              "attemptId": "ATTEMPT_ID", "generation": "GENERATION", "stageImplementationDigest": "STAGE_IMPLEMENTATION_DIGEST"}
+    common = {target: str(context["identity"][name]) for name, target in fields.items()}
+    common.update(CURRENT_SOURCE_REF=management.payload["currentSourceRef"],
+                  RUNTIME_OPERATION_ID=management.config["runtimeOperationId"])
+    for build in builds:
+        formal._require(type(build.get("number")) is int and build["number"] > 0
+                        and type(build.get("queueId")) is int and build["queueId"] > 0
+                        and build.get("building") is False and build.get("result") in {"ABORTED", "FAILURE"},
+                        "unlaunched_recovery_cps_unproven", "An original CPS root remains unresolved")
+        parameters = dict(common)
+        if build["job"] == "zircon-execution":
+            parameters.update(EXECUTION_ID=recovery["executionId"], RECIPE_REF=recovery["recipeRef"],
+                SEALED_INPUT_REF=context["identity"]["sourceInputDigest"],
+                SOURCE_INPUT_DIGEST=context["identity"]["sourceInputDigest"], COVERAGE_DIGEST=context["identity"]["coverageDigest"])
+        url = "job/" + build["job"] + "/" + str(build["number"]) + "/"
+        status, raw = management.manager._request(url + "api/json?tree=number,queueId,building,result,actions[parameters[name,value]]")
+        actual = json.loads(raw)
+        actual_parameters = {item["name"]: str(item.get("value", "")) for action in actual.get("actions", [])
+                             for item in action.get("parameters", [])}
+        formal._require(status == 200 and all(actual.get(name) == build[name] for name in
+                        ("number", "queueId", "building", "result"))
+                        and all(actual_parameters.get(name) == value for name, value in parameters.items())
+                        and canonical_build_root(actual_parameters.get("BUILD_ROOT")).path
+                            == canonical_build_root(management.payload["buildRoot"]).path,
+                        "unlaunched_recovery_cps_unproven", "Actual original build or immutable parameters changed")
+        console = _recovery_document(management, build.get("consoleRef"), json_document=False)
+        status, actual_console = management.manager._request(url + "consoleText")
+        formal._require(status == 200 and console == actual_console and b"[Pipeline] End of Pipeline" in console
+                        and console.rstrip().endswith(("Finished: " + build["result"]).encode("ascii")),
+                        "unlaunched_recovery_cps_unproven", "Original CPS console has no terminal EOF")
+        home_root = management.repo / ".jenkins/jenkins_home/jobs" / build["job"] / "builds" / str(build["number"])
+        reference = build.get("homeBuildRef", {})
+        formal._require(reference.get("path") == str(home_root / "build.xml"),
+                        "unlaunched_recovery_cps_unproven", "Home evidence must be the exact original build")
+        home = ET.fromstring(_recovery_document(management, reference, roots=[home_root], json_document=False))
+        home_parameters = {item.findtext("name"): item.findtext("value") or ""
+                           for item in home.findall("./actions/hudson.model.ParametersAction/parameters/*")}
+        formal._require(home.findtext("completed") == "true" and home.findtext("result") == build["result"]
+                        and home.findtext("queueId") == str(build["queueId"])
+                        and all(home_parameters.get(name) == value for name, value in parameters.items())
+                        and canonical_build_root(home_parameters.get("BUILD_ROOT")).path
+                            == canonical_build_root(management.payload["buildRoot"]).path,
+                        "unlaunched_recovery_cps_unproven", "Home completion or exact original parameters remain unresolved")
+    return proof
+
+
+def retire_cancelled_capacity_reader(management, recovery):
+    """Retire an already cancelled sole reader; preserve both original failures and every hold."""
+    from tools.jenkins import managed_worktree as formal
+    from tools.jenkins.contracts import require_digest
+    from tools.jenkins.deployment.drain_observations import owner_observation
+    from tools.jenkins.workflow.execution import execution_lock
+    formal._require(set(recovery) == {"schemaVersion", "kind", "phase", "executionId", "recipeRef", "originalIdentity", "terminalRef"}
+                    and recovery.get("schemaVersion") == 1 and recovery.get("kind") == "cancelled-before-resource-admission-v1"
+                    and recovery.get("phase") == "retire" and isinstance(recovery.get("executionId"), str)
+                    and re.fullmatch(r"[0-9a-f]{32}", recovery["executionId"])
+                    and isinstance(recovery.get("originalIdentity"), dict) and set(recovery["originalIdentity"]) == {
+                        "repositoryId", "sessionId", "requestId", "attemptId", "generation", "sourceInputDigest",
+                        "coverageDigest", "stageImplementationDigest"},
+                    "unlaunched_recovery_identity", "Only the fixed existing-cancellation retirement schema is supported")
+    require_digest(recovery["recipeRef"], "recipeRef")
+    eid, reference = recovery["executionId"], management.payload["currentSourceRef"]
+    owner = owner_observation(management.manager)
+    formal._require(owner["operationId"] == management.config["runtimeOperationId"]
+                    and owner["driverDigest"] == management.config["driverDigest"],
+                    "unlaunched_recovery_owner_changed", "The current native service owner is required")
+    with execution_lock(management.state, eid):
+        context = _capacity_reader_context(management, recovery)
+        _capacity_terminal(management, recovery, context)
+        with management.state.transaction() as connection:
+            context = _capacity_reader_context(management, recovery, connection=connection)
+            owner_observation(management.manager, expected=owner)
+            retirement = {"status": "retired", "currentSourceRef": reference, "worktreeId": management.payload["worktreeId"],
+                "terminalPins": context["pins"], "worktreeBindingAtRetirement": context["worktreeBinding"],
+                "requestStatus": context["requestStatus"], "workflowStatus": context["flowStatus"], "retiredBy": management.key,
+                "inputDigest": management.input_digest, "acceptanceSynthesized": False, "retirementKind": recovery["kind"],
+                "recoveryExecutionId": eid, "recoveryDigest": digest(recovery), "terminalRef": recovery["terminalRef"],
+                "requestRuntimeBinding": context["requestRuntimeBinding"], "serviceOwner": owner,
+                "cancellationEvidence": "observed-existing-execution-cancellation", "cancellationPerformed": False,
+                "nativeLaunchIssued": False, "nativeTerminationProofCreated": False, "resourceReservationReleased": False,
+                "formalAcceptance": False}
+            prior = management.state.get("managed_worktree_reader_retirement", reference, connection=connection)
+            formal._require(not prior or prior["payload"] == retirement,
+                            "managed_reader_retirement_conflict", "Original reader retirement changed")
+            if not prior:
+                management.state.put("managed_worktree_reader_retirement", reference, retirement,
+                                     expected_version=0, connection=connection)
+        owner_observation(management.manager, expected=owner)
+    return {"status": "complete", "phase": "retire", "executionId": eid, "currentSourceRef": reference,
+            "worktreeId": management.payload["worktreeId"], "readerRetired": True, "cancelledBeforeNativeLaunch": True,
+            "requestStatus": context["requestStatus"], "workflowStatus": context["flowStatus"],
+            "terminalRef": recovery["terminalRef"], "physicalWorktreeRetained": True,
+            "originalRuntimeAndRecipePreserved": True, "cancellationPerformed": False,
+            "nativeLaunchIssued": False, "nativeTerminationProofCreated": False, "resourceReservationReleased": False,
             "successorSubmitted": False, "formalAcceptance": False}
 
 

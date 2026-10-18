@@ -2471,6 +2471,7 @@ class UnlaunchedFlowRecoveryTests(unittest.TestCase):
 
     def test_old_runtime_cancellation_retires_reader_with_explicit_successor(self):
         from tools.jenkins.managed_worktree_lifetime import reader_retired
+        capacity_rows, capacity_requests = copy.deepcopy(self.state.rows), copy.deepcopy(self.state.requests)
         original = copy.deepcopy(self.state.get("execution", self.eid)["payload"])
         request = self.state.requests[("repo", "reader", "task")]
         self.assertNotIn("runtimeOperationId", request["payload"], "Use the real current-source request producer")
@@ -2505,6 +2506,105 @@ class UnlaunchedFlowRecoveryTests(unittest.TestCase):
         self.assertTrue(reader_retired(self.state, self.reference))
         self.assertEqual([], self.state.list("native_job"))
         self.assertEqual([], self.state.list("execution_launch"))
+
+        # Model recover_flow's existing cancel_request=False outcome, then retire
+        # it without another cancellation, request transition or native proof.
+        from tools.jenkins.current_source import _request
+        self.state.rows = copy.deepcopy(capacity_rows)
+        self.state.requests = copy.deepcopy(capacity_requests)
+        self.cancel.reset_mock()
+        intent = copy.deepcopy(self.state.get("current_source_intent", self.reference)["payload"])
+        prepared = copy.deepcopy(self.state.get("current_source_preparation", self.reference)["payload"]["result"])
+        intent["runtimeOperationId"] = "current"
+        intent["identity"] = {name: value for name, value in intent["identity"].items()
+                              if name not in {"sourceInputDigest", "coverageDigest"}}
+        self.assertEqual(6, len(intent["identity"]))
+        self.assertEqual(8, len(prepared["identity"]))
+        reference = preparation.digest(intent)
+        prepared.update(currentSourceRef=reference, sourcePreparationRef="current-source-" + reference)
+        del self.state.rows[("current_source_intent", self.reference)]
+        del self.state.rows[("current_source_preparation", self.reference)]
+        self.state.put("current_source_intent", reference, intent)
+        self.state.put("current_source_preparation", reference, {"status": "prepared", "result": prepared})
+        recipe_ref = self.state.get("execution", self.eid)["payload"]["recipeRef"]
+        for domain, key, changes in (
+            ("management_worktree", "wt", {"runtimeOperationId": "current", "driverDigest": "b" * 64}),
+            ("recipe_plan", recipe_ref, {"driver": {**self.binding, "runtimeOperationId": "current"}}),
+            ("execution", self.eid, {"driver": {**self.binding, "runtimeOperationId": "current"},
+                "operationId": "current", "buildRoot": "E:/cargo-targets", "status": "pending", "pendingReason": "capacity"})):
+            row = self.state.get(domain, key)
+            payload = {**row["payload"], **changes}
+            if domain == "execution":
+                del payload["reservationKey"]
+            self.state.put(domain, key, payload, expected_version=row["version"])
+        del self.state.rows[("resource_reservation", "reservation")]
+        del self.state.rows[("pool_writer_hold", self.prep)]
+        self.state.put("resource_reservation", "foreign-history", {"owner": "foreign", "status": "active"})
+        self.state.put("resource_queue", self.eid + ":" + self.eid, {"owner": self.eid,
+            "writerKey": self.prep, "buildRoot": "E:/cargo-targets", "status": "waiting"})
+        request = self.state.requests[("repo", "reader", "task")]
+        request.update(status="running", payload=_request(intent, prepared))
+        request["payloadDigest"] = preparation.digest(request["payload"])
+        registered = copy.deepcopy(request)
+        self.real_cancel.__self__.state = self.state
+        self.real_cancel(self.eid, self.consumer)
+        self.assertEqual("running", request["status"], "Natural consumer cancellation does not rewrite its request")
+        self.assertTrue(self.state.get("execution", self.eid)["payload"]["cancelledBeforeLaunch"])
+        # These are the existing failed collector rows, not outputs of retirement.
+        flow = self.state.get("workflow", self.consumer)
+        evidence = {"status": "complete", "kind": "coordinator-preparation-preserved", "sourcePreserved": True,
+                    "canonicalSourceModified": False}
+        self.state.put("workflow", self.consumer, {**flow["payload"], "status": "failed", "recovery": evidence},
+                       expected_version=flow["version"])
+        self.state.transition_request("repo", "reader", "task", 1, "running", "failed", {"recovery": evidence})
+        outcome_key = preparation.digest(["repo", "reader", "task"])
+        self.state.put("request_result", outcome_key, {"repositoryId": "repo", "sessionId": "reader", "requestId": "task",
+            "generation": 1, "status": "failed", "result": {"recovery": evidence}})
+        self.actor.payload = {"action": "retire-worktree-reader", "repositoryId": "repo", "sessionId": "writer",
+            "requestId": "retire-existing-capacity-reader", "operationId": "retire-existing-capacity-reader",
+            "driverDigest": "b" * 64, "runtimeOperationId": "current", "ownedPaths": ["owned.rs"],
+            "worktreeId": "wt", "currentSourceRef": reference, "buildRoot": "E:/cargo-targets",
+            "unlaunchedRecovery": {"schemaVersion": 1, "kind": "cancelled-before-resource-admission-v1", "phase": "retire",
+                "executionId": self.eid, "recipeRef": recipe_ref, "originalIdentity": prepared["identity"],
+                "terminalRef": {"path": "actual-two-root-terminal-proof"}}}
+        self.actor.key = preparation.digest({name: self.actor.payload[name] for name in
+                                            ("repositoryId", "sessionId", "requestId", "operationId")})
+        self.actor.input_digest = preparation.digest(self.actor.payload)
+        rows, requests = copy.deepcopy(self.state.rows), copy.deepcopy(self.state.requests)
+        # Supply only the actual HTTP/Home boundary; locked State is evaluated normally.
+        with patch.object(preparation, "_capacity_terminal") as terminal, \
+                patch.object(self.state, "transition_request", wraps=self.state.transition_request) as transition:
+            terminal.side_effect = self.error("unlaunched_recovery_cps_unproven", "Original CPS is not terminal")
+            with self.assertRaises(self.error):
+                preparation.retire_unlaunched_flow_reader(self.actor)
+            self.assertEqual(rows, self.state.rows)
+            self.assertEqual(requests, self.state.requests)
+            self.assertFalse(reader_retired(self.state, reference))
+            terminal.side_effect, terminal.return_value = None, {"kind": "observed-two-root-terminal"}
+            retired = preparation.retire_unlaunched_flow_reader(self.actor)
+            transition.assert_not_called()
+        self.cancel.assert_not_called()
+        self.assertTrue(retired["readerRetired"])
+        self.assertFalse(retired["cancellationPerformed"])
+        self.assertFalse(retired["nativeTerminationProofCreated"])
+        self.assertFalse(retired["resourceReservationReleased"])
+        self.assertFalse(retired["successorSubmitted"])
+        self.assertEqual(("failed", "failed"), (retired["requestStatus"], retired["workflowStatus"]))
+        self.assertEqual(requests, self.state.requests)
+        self.assertEqual(registered["payload"], request["payload"])
+        self.assertEqual(registered["payloadDigest"], request["payloadDigest"])
+        retirement = self.state.get("managed_worktree_reader_retirement", reference)["payload"]
+        self.assertEqual(rows, {key: value for key, value in self.state.rows.items()
+                               if key != ("managed_worktree_reader_retirement", reference)})
+        self.assertIn("request_result", {pin["domain"] for pin in retirement["terminalPins"]})
+        self.assertNotIn("management_worktree", {pin["domain"] for pin in retirement["terminalPins"]})
+        self.assertTrue(reader_retired(self.state, reference))
+        # A later legal worktree preparation/writer reservation cannot revive this old reader.
+        worktree = self.state.get("management_worktree", "wt")
+        self.state.put("management_worktree", "wt", {**worktree["payload"], "buildRoot": "D:/cargo-targets"},
+                       expected_version=worktree["version"])
+        self.state.put("managed_worktree_writer", "wt", {"status": "released", "operationKey": "later-writer"})
+        self.assertTrue(reader_retired(self.state, reference))
 
     def test_native_host_never_releases_holds_or_retires_reader(self):
         self.state.put("execution_host", self.eid, {"executionId": self.eid, "status": "running"})
