@@ -156,25 +156,7 @@ impl RetainedEditorHost {
         if let Err(error) = self.runtime.pump_plugin_lifecycle_messages() {
             self.set_status_line(error);
         }
-        self.runtime.update_scene_modes();
-        self.sync_play_preview_input_focus();
-        self.sync_simulate_preview_camera();
-        let frame_owner = self.runtime_frame_owner_key();
-        self.ui.set_runtime_frame_owner(frame_owner);
-        let frame_result = self.runtime.pump_runtime_event_consumers();
-        if let Err(error) = self.ui.complete_runtime_frame_tick(
-            frame_result,
-            frame_owner,
-            self.runtime_frame_owner_key(),
-            Instant::now(),
-        ) {
-            self.set_status_line(error.to_string());
-        }
-        self.runtime.sync_active_selection_world_domain();
-        self.sync_active_hierarchy_world();
-        self.poll_play_viewport_pick_for_native_host();
-        self.sync_active_play_inspector();
-        self.poll_play_preview_frame_for_native_host();
+        self.tick_runtime();
         if let Err(error) = self.sync_plugin_template_documents_if_changed() {
             self.set_status_line(error.to_string());
         }
@@ -210,6 +192,40 @@ impl RetainedEditorHost {
             refresh_ended,
             commit_ended,
         );
+    }
+
+    fn tick_runtime(&mut self) {
+        self.runtime.update_scene_modes();
+        self.sync_play_preview_input_focus();
+        self.sync_simulate_preview_camera();
+        let frame_owner = self.runtime_frame_owner_key();
+        self.ui.set_runtime_frame_owner(frame_owner);
+        let frame_result = self.runtime.pump_runtime_event_consumers();
+        if let Err(error) = self.ui.complete_runtime_frame_tick(
+            frame_result,
+            frame_owner,
+            self.runtime_frame_owner_key(),
+            Instant::now(),
+        ) {
+            self.set_status_line(error.to_string());
+        }
+        self.runtime.sync_active_selection_world_domain();
+        self.sync_active_hierarchy_world();
+        self.poll_play_viewport_pick_for_native_host();
+        self.sync_active_play_inspector();
+        self.poll_play_preview_frame_for_native_host();
+    }
+
+    pub(in crate::ui::retained_host::app) fn tick_runtime_only(&mut self) {
+        let _scenario = enter_ui_perf_scenario(UiPerfScenario::PlayInEditor);
+        let _timer = time_ui_perf_scenario(UiPerfScenario::PlayInEditor);
+        self.tick_runtime();
+        self.commit_pending_frame_update();
+        self.poll_viewport_image_for_native_host();
+        if let Some(error) = self.viewport.take_error() {
+            self.set_status_line(error);
+            self.recompute_if_dirty();
+        }
     }
 
     pub(in crate::ui::retained_host::app) fn commit_interactive_frame_update(&mut self) {

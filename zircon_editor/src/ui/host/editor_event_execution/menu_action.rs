@@ -299,10 +299,13 @@ pub(super) fn execute_menu_action_with_save_authorization(
             let changed = shell.state.enter_play_mode()?;
             if changed {
                 let play_kind = controller.play_sessions().preferred_kind();
-                match controller.play_sessions().request_play(
-                    PlayStartRequest::immediate(play_kind, project_root.as_deref())
-                        .with_scene_source(scene_source),
-                ) {
+                let request = PlayStartRequest::immediate(play_kind, project_root.as_deref())
+                    .with_scene_source(scene_source);
+                // Plugin/runtime startup may block; it must never own the shell mutex.
+                drop(shell);
+                let transition = controller.play_sessions().request_play(request);
+                shell = controller.shell().lock();
+                match transition {
                     Ok(transition) => {
                         if let Some(WorldDomain::Play(instance)) =
                             controller.play_sessions().attached_world_domain()
@@ -331,7 +334,10 @@ pub(super) fn execute_menu_action_with_save_authorization(
                                         source,
                                     });
                                 }
-                                if let Err(stop_error) = controller.play_sessions().request_stop() {
+                                drop(shell);
+                                let stopped = controller.play_sessions().request_stop();
+                                shell = controller.shell().lock();
+                                if let Err(stop_error) = stopped {
                                     shell.state.set_status_line(format!(
                                         "Runtime event consumer startup and play session cleanup failed; play mode remains active for retry: {stop_error}"
                                     ));
@@ -350,10 +356,10 @@ pub(super) fn execute_menu_action_with_save_authorization(
                                         detach,
                                     });
                                 }
-                                let retirement = match controller
-                                    .play_sessions()
-                                    .retire_terminal_backend()
-                                {
+                                drop(shell);
+                                let retired = controller.play_sessions().retire_terminal_backend();
+                                shell = controller.shell().lock();
+                                let retirement = match retired {
                                     Ok(retirement) => retirement,
                                     Err(stop) => {
                                         return Err(
@@ -438,7 +444,6 @@ pub(super) fn execute_menu_action_with_save_authorization(
         }
         MenuAction::ExitPlayMode => {
             let preview_manager = controller.enter_editor_manager();
-            let mut shell = controller.shell().lock();
             let trace_sequence = next_play_stop_trace_sequence();
             trace_play_stop_stage(trace_sequence, "stop_menu_entry", None, None);
             let consumer_shutdown_started =
@@ -465,7 +470,7 @@ pub(super) fn execute_menu_action_with_save_authorization(
                     Some(error.to_string())
                 }
                 RuntimeEventConsumerShutdownDisposition::RetirementDeferred { error } => {
-                    shell.state.set_status_line(format!(
+                    controller.shell().lock().state.set_status_line(format!(
                             "Runtime event consumer retirement is deferred; play mode remains active for retry: {error}"
                         ));
                     return Err(MenuActionExecutionError::RuntimeConsumerStop { source: error });
@@ -473,7 +478,9 @@ pub(super) fn execute_menu_action_with_save_authorization(
             };
             let stop_request_started =
                 trace_play_stop_stage(trace_sequence, "play_session_stop_enter", None, None);
-            let transition = match controller.play_sessions().request_stop() {
+            let stopped = controller.play_sessions().request_stop();
+            let mut shell = controller.shell().lock();
+            let transition = match stopped {
                 Ok(transition) => {
                     trace_play_stop_stage(
                         trace_sequence,
@@ -515,7 +522,10 @@ pub(super) fn execute_menu_action_with_save_authorization(
             );
             let backend_retire_started =
                 trace_play_stop_stage(trace_sequence, "backend_retire_enter", None, None);
-            let retirement = match controller.play_sessions().retire_terminal_backend() {
+            drop(shell);
+            let retired = controller.play_sessions().retire_terminal_backend();
+            shell = controller.shell().lock();
+            let retirement = match retired {
                 Ok(retirement) => {
                     trace_play_stop_stage(
                         trace_sequence,

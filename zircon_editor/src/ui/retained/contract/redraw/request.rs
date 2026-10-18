@@ -12,6 +12,7 @@ use super::HostDamageRegion;
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) enum HostRedrawRequest {
     None,
+    RuntimeTick,
     FrameUpdate {
         scenario: UiPerfScenario,
         interactive_frame_update: bool,
@@ -23,6 +24,7 @@ pub(crate) enum HostRedrawRequest {
     },
     Region {
         damage: HostDamageRegion,
+        runtime_tick: bool,
         frame_update: bool,
         interactive_frame_update: bool,
         scenario: UiPerfScenario,

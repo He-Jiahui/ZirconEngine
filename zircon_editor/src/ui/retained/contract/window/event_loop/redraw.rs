@@ -177,7 +177,9 @@ impl UiHostWindowEventLoop {
         };
         let trace_before =
             capture_trace::cursor_before(|| self.host.get_host_presentation_generation().cursor());
-        if requested_frame_update {
+        if redraw.requires_runtime_tick() {
+            self.host.request_runtime_frame_update();
+        } else if requested_frame_update {
             static FRAME_UPDATE_ENTER: Once = Once::new();
             static FRAME_UPDATE_RETURNED: Once = Once::new();
             if trace_runtime_first_redraw {

@@ -90,3 +90,40 @@ Required Windows checks: the Critical editor closure plus
 command in the local instructions with `WGPU_BACKEND` unset and then `dx12` and
 `vulkan` where available. Capture at 100%/150% DPI. O0 remains **unaccepted** until
 real compilation, first-frame and PR-gate evidence exists.
+
+## Runtime scheduling and shell-lock scope (H3, partial H5)
+
+Add an explicit runtime-tick redraw and callback. Continuous and timed runtime
+demand use it; runtime pumps, Play inspection and viewport image polls are split
+from asset/job/settings maintenance. Viewport damage merged with a runtime tick
+retains regional presentation without becoming full chrome maintenance. Real
+maintenance requests still win and include the runtime pump. Add the PlayInEditor,
+GizmoDrag, CameraFly and PlayStart profiling namespaces (the latter three need
+automation producers before budgets can be measured).
+
+Release the shell mutex around Play backend start/stop/retirement, including start
+failure rollback; preserve the existing cleanup branches. Consumer shutdown on
+Stop also runs before taking the shell lock. **This is not asynchronous startup**:
+Starting/Stopping worker ownership, cancellation and progress are still required
+for H5's <=100 ms inter-frame-gap target.
+
+H4 remains open. The current scene product path uses renderer-owned products,
+whereas Play is owned by the dynamically loaded runtime session. Its native
+surface `present_viewport` API is not a compositable product export and cannot
+simply be substituted for a Game-view image without covering chrome or violating
+device/resource ownership. No readback counter is suppressed; a versioned shared
+product/device-lifetime contract and Windows GPU tests remain necessary.
+
+Linux verification: Rust AST parsing and diff checks; no Rust type check or timing
+pass. Required Windows batch:
+
+```powershell
+& tools/dev/local-cargo.ps1 -TargetDir $t test -p zircon_editor --lib retained --locked
+& tools/dev/local-cargo.ps1 -TargetDir $t test -p zircon_editor --lib core::play --locked
+& tools/dev/local-cargo.ps1 -TargetDir $t test -p zircon_app --test editor_mvp_authoring --no-default-features --features target-editor-host f4_project_authoring_survives_full_application_restart --locked
+```
+
+Run 30 s PIE with profiling, `ZIRCON_EDITOR_TRACE_SLOW_REDRAW=1` and
+`ZIRCON_EDITOR_TRACE_SLOW_TICK=1`: require <=1 full redraw/s, p95 <=16.7 ms,
+p99 <=33 ms. H4 additionally requires `play.preview.copy_bytes=0` on a real shared
+GPU path; H5 requires maximum Play-start frame gap <=100 ms. These are pending.

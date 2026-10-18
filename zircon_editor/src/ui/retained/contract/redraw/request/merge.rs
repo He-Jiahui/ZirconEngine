@@ -2,9 +2,25 @@ use super::HostRedrawRequest;
 
 impl HostRedrawRequest {
     pub(crate) fn merge(self, next: Self) -> Self {
+        // Runtime demand must survive merging viewport damage without promoting
+        // every animated image to a whole-workbench maintenance update.
+        let runtime_tick = self.requires_runtime_tick() || next.requires_runtime_tick();
         let interactive_frame_update = self.prefers_interactive_frame_update();
         let next_interactive_frame_update = next.prefers_interactive_frame_update();
         let merged = match (self, next) {
+            (Self::RuntimeTick, Self::None | Self::RuntimeTick)
+            | (Self::None, Self::RuntimeTick) => Self::RuntimeTick,
+            (Self::RuntimeTick, current) | (current, Self::RuntimeTick) => {
+                match current {
+                    Self::Region { damage, frame_update, interactive_frame_update, scenario, .. } => Self::Region {
+                        damage, frame_update, interactive_frame_update, scenario, runtime_tick: true,
+                    },
+                    Self::Full { interactive_frame_update, scenario, .. } => Self::Full {
+                        frame_update: true, interactive_frame_update, scenario,
+                    },
+                    other => other, // Maintenance already includes the runtime pump.
+                }
+            }
             (
                 Self::FrameUpdate { .. },
                 Self::FrameUpdate {
@@ -41,6 +57,7 @@ impl HostRedrawRequest {
                 },
             ) => Self::Region {
                 damage,
+                runtime_tick,
                 frame_update: true,
                 interactive_frame_update: false,
                 scenario: if frame_update {
@@ -56,6 +73,7 @@ impl HostRedrawRequest {
             },
             (Self::Region { damage, .. }, Self::FrameUpdate { scenario, .. }) => Self::Region {
                 damage,
+                runtime_tick,
                 frame_update: true,
                 interactive_frame_update: false,
                 scenario,
@@ -119,6 +137,7 @@ impl HostRedrawRequest {
                 },
             ) => Self::Region {
                 damage: current.merge(next),
+                runtime_tick,
                 frame_update: frame_update || next_update,
                 interactive_frame_update: false,
                 scenario: if next_update { next_scenario } else { scenario },

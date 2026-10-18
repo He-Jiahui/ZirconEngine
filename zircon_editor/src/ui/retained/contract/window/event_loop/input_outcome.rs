@@ -333,6 +333,10 @@ const fn input_to_damage_counter_name(scenario: UiPerfScenario) -> &'static str 
         UiPerfScenario::AssetRefresh => "ui.asset_refresh.input_to_damage_us",
         UiPerfScenario::ViewportImage => "ui.viewport_image.input_to_damage_us",
         UiPerfScenario::ShellContent => "ui.shell_content.input_to_damage_us",
+        UiPerfScenario::PlayInEditor => "ui.play_in_editor.input_to_damage_us",
+        UiPerfScenario::GizmoDrag => "ui.gizmo_drag.input_to_damage_us",
+        UiPerfScenario::CameraFly => "ui.camera_fly.input_to_damage_us",
+        UiPerfScenario::PlayStart => "ui.play_start.input_to_damage_us",
     }
 }
 
@@ -349,6 +353,10 @@ const fn damage_to_submit_counter_name(scenario: UiPerfScenario) -> &'static str
         UiPerfScenario::AssetRefresh => "ui.asset_refresh.damage_to_submit_us",
         UiPerfScenario::ViewportImage => "ui.viewport_image.damage_to_submit_us",
         UiPerfScenario::ShellContent => "ui.shell_content.damage_to_submit_us",
+        UiPerfScenario::PlayInEditor => "ui.play_in_editor.damage_to_submit_us",
+        UiPerfScenario::GizmoDrag => "ui.gizmo_drag.damage_to_submit_us",
+        UiPerfScenario::CameraFly => "ui.camera_fly.damage_to_submit_us",
+        UiPerfScenario::PlayStart => "ui.play_start.damage_to_submit_us",
     }
 }
 

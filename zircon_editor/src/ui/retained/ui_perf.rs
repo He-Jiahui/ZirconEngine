@@ -22,6 +22,10 @@ pub(crate) enum UiPerfScenario {
     AssetRefresh,
     SessionHeartbeat,
     ViewportImage,
+    PlayInEditor,
+    GizmoDrag,
+    CameraFly,
+    PlayStart,
     ShellContent,
 }
 
@@ -622,6 +626,10 @@ fn counter_name(scenario: UiPerfScenario, counter: UiPerfCounter) -> &'static st
             counter_name_for_prefix!(counter, "ui.session_heartbeat")
         }
         UiPerfScenario::ViewportImage => counter_name_for_prefix!(counter, "ui.viewport_image"),
+        UiPerfScenario::PlayInEditor => counter_name_for_prefix!(counter, "ui.play_in_editor"),
+        UiPerfScenario::GizmoDrag => counter_name_for_prefix!(counter, "ui.gizmo_drag"),
+        UiPerfScenario::CameraFly => counter_name_for_prefix!(counter, "ui.camera_fly"),
+        UiPerfScenario::PlayStart => counter_name_for_prefix!(counter, "ui.play_start"),
         UiPerfScenario::ShellContent => counter_name_for_prefix!(counter, "ui.shell_content"),
     }
 }
