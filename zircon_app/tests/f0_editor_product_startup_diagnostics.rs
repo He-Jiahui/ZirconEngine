@@ -96,6 +96,7 @@ fn incompatible_startup_arguments_fail_before_runtime_preflight() {
 fn editor_command(scratch: &TestScratch, runtime_library: &Path) -> Command {
     let mut command = Command::new(EDITOR_EXE);
     command
+        .env("ZIRCON_EDITOR_STARTUP_DIALOG", "0")
         .env_remove(RUNTIME_LIBRARY_ENV)
         .env_remove(FIRST_FRAME_CAPTURE_ENV)
         .env_remove("ZIRCON_EDITOR_EXIT_AFTER_FIRST_FRAME")

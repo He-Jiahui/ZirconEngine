@@ -119,6 +119,7 @@ Environment:
   ZIRCON_RUNTIME_LIBRARY                Override the dynamic runtime library with a product-relative or absolute path
   ZIRCON_EDITOR_CAPTURE_FIRST_FRAME_PNG Write the first successfully presented editor frame to a PNG path; relative paths resolve from the launch directory
   ZIRCON_EDITOR_EXIT_AFTER_FIRST_FRAME  Exit after the first successfully presented editor frame
+  ZIRCON_EDITOR_STARTUP_DIALOG         Set to 0 to suppress native failure dialogs in shipping Windows GUI launches
   ZIRCON_LOG_FILTER                     Override scoped process log filters
   ZIRCON_LOG_LEVEL                      Override the minimum process log level
   WGPU_BACKEND                         Restrict GPU APIs (dx12, vulkan, metal, gl); Windows prefers DX12 then Vulkan by default

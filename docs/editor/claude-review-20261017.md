@@ -284,3 +284,27 @@ Capture normal/shared and `ZIRCON_PROFILE_FORCE_SOFTBUFFER=1` profiling builds;
 verify the banner is readable, `presenter_selected` occurs once, no upgrade
 markers occur, and readiness causes no 20 Hz idle wakes after selection. These
 startup, rendering and idle-CPU checks are pending real-host acceptance.
+
+## Shipping startup diagnostics (M11)
+
+Shipping Windows editor builds use the windows subsystem; development builds
+keep the console. Runner failures are written to the process log before flush,
+including argument failures that precede logger initialization. A native shipping
+GUI failure dialog shows the actual diagnostic/recovery text and log filename
+(or explicitly says the file is unavailable). Terminal exit classification is
+unchanged. Help, commandlets, first-frame automation and an explicit
+`ZIRCON_EDITOR_STARTUP_DIALOG=0` remain non-modal; the failure-path integration
+test sets that override.
+
+Linux verification: binary/helper/test Rust AST syntax and Cargo TOML parsing
+passed; Windows linking and the native dialog have not run. Remaining commands:
+
+```powershell
+& tools/dev/local-cargo.ps1 -TargetDir $t test -p zircon_app --bin zircon_editor --no-default-features --features target-editor-host --locked
+& tools/dev/local-cargo.ps1 -TargetDir $t test -p zircon_app --test f0_editor_product_startup_diagnostics --no-default-features --features target-editor-host --locked
+& tools/dev/local-cargo.ps1 -TargetDir $t check -p zircon_app --bin zircon_editor --no-default-features --features shipping-editor --locked
+```
+
+Stage a shipping editor, remove its runtime manifest in an isolated staged test
+copy, launch from Explorer, and verify the visible recovery/log path and original
+exit code. Do not use the native dialog as evidence of a successful startup.

@@ -1,14 +1,30 @@
+#![cfg_attr(all(windows, feature = "shipping-editor"), windows_subsystem = "windows")]
+
+#[path = "editor/startup_diagnostic.rs"]
+mod startup_diagnostic;
+
 fn main() -> std::process::ExitCode {
     use zircon_runtime::diagnostic_log::{
-        install_process_log_panic_flush, shutdown_process_log, write_log,
+        initialize_process_log, install_process_log_panic_flush, shutdown_process_log, write_error, write_log,
         DEFAULT_DIAGNOSTIC_LOG_CRASH_FLUSH_TIMEOUT, DEFAULT_DIAGNOSTIC_LOG_SHUTDOWN_TIMEOUT,
     };
 
     install_process_log_panic_flush(DEFAULT_DIAGNOSTIC_LOG_CRASH_FLUSH_TIMEOUT);
-    let result = zircon_app::EntryRunner::run_editor_with_args_terminal(std::env::args().skip(1));
+    let args: Vec<String> = std::env::args().skip(1).collect();
+    let result = zircon_app::EntryRunner::run_editor_with_args_terminal(args.iter().cloned());
+    let failure = result.as_ref().err().map(|error| {
+        // Argument parsing can fail before the entry runner installs its process log.
+        let log_path = initialize_process_log("editor");
+        let diagnostic = error.to_string();
+        write_error("editor_app", &diagnostic);
+        (diagnostic, log_path)
+    });
     write_log("editor_app", editor_process_teardown_diagnostic(&result));
     let process_log_shutdown_completed =
         shutdown_process_log(DEFAULT_DIAGNOSTIC_LOG_SHUTDOWN_TIMEOUT);
+    if let Some((diagnostic, log_path)) = failure {
+        startup_diagnostic::show_failure(&args, &diagnostic, log_path.as_deref());
+    }
     editor_process_exit_code(result, process_log_shutdown_completed)
         .exit_code()
         .into()
