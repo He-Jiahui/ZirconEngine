@@ -24,7 +24,7 @@ pub(crate) fn build_startup_state(
     }
 
     match (session.mode, project) {
-        (EditorSessionMode::Project | EditorSessionMode::Playing, Some(document)) => {
+        (EditorSessionMode::Project, Some(document)) => {
             let viewport_sessions = document
                 .editor_workspace
                 .as_ref()
@@ -81,7 +81,7 @@ pub(crate) fn build_startup_state(
             state.set_status_line(session.status_message.clone());
             Ok(state)
         }
-        (EditorSessionMode::Welcome | EditorSessionMode::Playing, _) => {
+        (EditorSessionMode::Welcome, _) => {
             editor_manager.show_welcome_page()?;
             let mut state = EditorState::welcome_with_context(
                 viewport_size,

@@ -198,3 +198,25 @@ on O0 plus real Penpot/native acceptance. Next commands:
 & tools/dev/local-cargo.ps1 -TargetDir $t test -p zircon_editor --lib ui::operator --locked
 & tools/penpot/tools/scripts/run-validation.ps1 -ArtifactRoot E:\cargo-targets\zircon-local\penpot\zop-<unique>
 ```
+
+## Controller-derived run controls (partial M8)
+
+The run toolbar now uses the same controller-derived command snapshot as command
+admission. Project navigation no longer carries a separate Playing value; old
+serialized Playing navigation values reopen as Project. The editor's restoration
+checkpoint remains responsible for restoring selection/gizmos, not runtime state.
+Building shows disabled Play; CleanupFailed keeps an enabled Retry Stop slot.
+Play without a project is visibly disabled. No Pause/Step/Eject backend is added.
+
+Linux verification: changed Rust files parse as unexpanded ASTs; diff checks pass.
+Behavior tests cover every existing controller state, no-project admission,
+legacy navigation deserialization and retained Stop visibility after cleanup
+failure. They await the Windows toolchain, along with the existing play lifecycle
+tests. Required commands:
+
+```powershell
+& tools/dev/local-cargo.ps1 -TargetDir $t test -p zircon_editor --lib toolbar_run --locked
+& tools/dev/local-cargo.ps1 -TargetDir $t test -p zircon_editor --lib core::commands --locked
+& tools/dev/local-cargo.ps1 -TargetDir $t test -p zircon_editor --lib core::play --locked
+& tools/dev/local-cargo.ps1 -TargetDir $t test -p zircon_editor --lib play_mode --locked
+```

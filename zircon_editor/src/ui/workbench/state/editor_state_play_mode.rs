@@ -1,7 +1,6 @@
 use crate::core::play::{PlayInstanceId, WorldDomain};
 use crate::scene::selection::SelectionModel;
 use crate::ui::workbench::snapshot::EditorBridgeDiagnosticsSnapshot;
-use crate::ui::workbench::startup::EditorSessionMode;
 use zircon_runtime::plugin::BridgeDiagnosticsMatrix;
 
 use super::no_project_open::no_project_open;
@@ -12,7 +11,6 @@ use super::{editor_state::EditorState, EditorStateOperationError};
 pub(crate) struct EditorPlaySession {
     selection: SelectionModel,
     gizmos_enabled: bool,
-    session_mode_before_play: EditorSessionMode,
 }
 
 impl EditorPlaySession {
@@ -20,7 +18,6 @@ impl EditorPlaySession {
         Self {
             selection: state.viewport_controller.selection().clone(),
             gizmos_enabled: state.viewport_controller.settings().gizmos_enabled,
-            session_mode_before_play: state.session_mode,
         }
     }
 }
@@ -46,7 +43,6 @@ impl EditorState {
 
             state.play_session = Some(EditorPlaySession::capture(state));
             state.viewport_controller.cancel_interaction();
-            state.session_mode = EditorSessionMode::Playing;
             state.set_status_line("Entered play mode");
             Ok(true)
         })
@@ -91,7 +87,6 @@ impl EditorState {
                 .ok_or(EditorStateOperationError::PlaySessionMissing)?;
             *state.viewport_controller.selection_mut() = session.selection;
             state.viewport_controller.settings_mut().gizmos_enabled = session.gizmos_enabled;
-            state.session_mode = session.session_mode_before_play;
             state.sync_selection_state();
             state.set_status_line("Exited play mode and restored edit state");
             Ok(true)

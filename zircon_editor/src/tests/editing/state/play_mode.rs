@@ -80,7 +80,7 @@ fn play_mode_restores_edit_world_and_history_on_exit() {
     assert!(state.is_playing());
     assert!(state.scene_viewport_settings().gizmos_enabled);
     let play_snapshot = state.snapshot();
-    assert_eq!(play_snapshot.session_mode, EditorSessionMode::Playing);
+    assert_eq!(play_snapshot.session_mode, EditorSessionMode::Project);
     assert!(!play_snapshot.can_undo);
 
     let play_edit_error = state

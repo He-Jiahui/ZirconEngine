@@ -2,13 +2,12 @@ use crate::core::commands::{CommandEvalCtx, EditorCommandRegistry, EditorKeymap}
 use crate::core::extension::{CapabilitySet, ContributionSnapshot, DocumentToolkitDescriptor};
 use crate::core::i18n::{EditorI18nService, EditorLocale};
 use crate::ui::workbench::snapshot::EditorChromeSnapshot;
-use crate::ui::workbench::startup::EditorSessionMode;
 
 use super::super::document_tabs::document_tabs_for_page;
 use super::super::drawer_ring_model::DrawerRingModel;
 use super::super::main_host_strip::{active_page_snapshot, host_strip_model};
 use super::super::menu::default_menu_bar_with_sources;
-use super::super::workbench_view_model::WorkbenchViewModel;
+use super::super::workbench_view_model::{RunControlsModel, WorkbenchViewModel};
 use super::document::build_document_workspace;
 use super::floating_windows::build_floating_windows;
 use super::status_bar::build_status_bar;
@@ -120,7 +119,7 @@ impl WorkbenchViewModel {
         let document_tabs = document_tabs_for_page(&active_page, chrome);
 
         Self {
-            is_playing: chrome.session_mode == EditorSessionMode::Playing,
+            run_controls: RunControlsModel::from_commands(command_registry, context),
             asset_creation_menu: chrome.asset_browser.creation_menu.clone(),
             keymap: keymap.clone(),
             menu_bar: default_menu_bar_with_sources(

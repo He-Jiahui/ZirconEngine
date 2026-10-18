@@ -138,7 +138,7 @@ fn exit_play_reports_stopped_runtime_when_editor_state_restore_is_blocked() {
     assert_eq!(runtime.runtime.play_sessions().mode(), PlayModeKind::Edit);
     assert_eq!(
         runtime.runtime.editor_snapshot().unwrap().session_mode,
-        EditorSessionMode::Playing
+        EditorSessionMode::Project
     );
     assert!(
         runtime

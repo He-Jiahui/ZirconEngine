@@ -107,7 +107,7 @@ fn builtin_viewport_toolbar_play_buttons_dispatch_menu_play_mode_operations() {
     );
     assert_eq!(
         harness.runtime.editor_snapshot().unwrap().session_mode,
-        crate::ui::workbench::startup::EditorSessionMode::Playing
+        crate::ui::workbench::startup::EditorSessionMode::Project
     );
     assert!(enter_effects.render_dirty);
     assert!(enter_effects.presentation_dirty);
