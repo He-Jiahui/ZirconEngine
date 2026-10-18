@@ -781,3 +781,31 @@ review baseline. Move all **15 tests** into their owning `tests/` directories,
 keeping module names, assertions and execution guards intact; no new debt baseline
 or suppression is added. Test names/counts and dedented module bytes are preserved.
 The source-separation audit now reports zero new violations (61 existing).
+
+## Pinned images and supported action inputs (L7, 2026-10-18)
+
+All hosted Linux jobs now use `ubuntu-24.04`; editor/MVP Windows jobs use
+`windows-2022`. Runtime image versions remain in the evidence logs. Upstream
+`action.yml` metadata was read at each exact revision before selecting these pins:
+
+| Action | Revision | Verified metadata |
+| --- | --- | --- |
+| `actions/setup-python` v6 | `ece7cb06caefa5fff74198d8649806c4678c61a1` | Node 24 |
+| `actions/upload-artifact` v6 | `b7c566a772e6b6bfb58ed0dc250532a479d7789f` | Node 24 |
+| `actions/download-artifact` v7 | `37930b1c2abaa49bbe596cd826c3c89aef350131` | Node 24 |
+| `actions/cache` v5 | `caa296126883cff596d87d8935842f9db880ef25` | Node 24 |
+| `dtolnay/rust-toolchain` master | `683b588c487a69d01f6c6ddf40f036ff682cc2c8` | Declares required `toolchain` input |
+
+The prior specialized Rust action hardcoded 1.94.1 and did not declare that input,
+so it could not honor the Miri nightly request either. The new pinned action
+accepts the explicit existing 1.94.1/nightly values. Checkout already uses Node 24.
+Tag names alone were insufficient: the inspected upload v5 and download v6 still
+used Node 20. Hosted runners support these revisions; future persistent runners
+need Actions Runner 2.327.1 or later, as the upstream Node-24 actions require.
+
+Validation: nine existing toolchain/dependency/standalone contracts pass; the
+CI/runner batch passes **23 portable tests**, with three Windows-only wrapper
+cases skipped locally. The 108 portable Pester workflow pattern checks and
+verified actionlint pass. The next hosted run must confirm no unexpected Rust
+input or Node migration annotation for these updated actions. No runner software
+was installed, adopted or restarted by this change.

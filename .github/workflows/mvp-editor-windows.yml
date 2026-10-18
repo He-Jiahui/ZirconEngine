@@ -19,9 +19,9 @@ env:
   MVP_PESTER_VERSION: 4.10.1
   MVP_RUST_TOOLCHAIN: 1.94.1
   MVP_CHECKOUT_ACTION_SHA: fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
-  MVP_RUST_TOOLCHAIN_ACTION_SHA: 75be91dd2711b583df57c31d0873b4145c89f1d9
-  MVP_RUST_CACHE_ACTION_SHA: 0057852bfaa89a56745cba8c7296529d2fc39830
-  MVP_UPLOAD_ARTIFACT_ACTION_SHA: ea165f8d65b6e75b540449e92b4886f43607fa02
+  MVP_RUST_TOOLCHAIN_ACTION_SHA: 683b588c487a69d01f6c6ddf40f036ff682cc2c8
+  MVP_RUST_CACHE_ACTION_SHA: caa296126883cff596d87d8935842f9db880ef25
+  MVP_UPLOAD_ARTIFACT_ACTION_SHA: b7c566a772e6b6bfb58ed0dc250532a479d7789f
 
 permissions:
   contents: read
@@ -64,7 +64,7 @@ jobs:
         run: ./.github/scripts/prepare-cargo-roots.ps1 -StorageRoot 'D:\cargo-targets\zircon-local' -UseMvpTargetCache -BootstrapTemp
 
       - name: Restore lockfile-scoped Cargo target
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25
         with:
           path: ${{ env.CARGO_TARGET_DIR }}
           key: mvp-windows-2022-rust-1.94.1-${{ github.job }}-${{ hashFiles('Cargo.lock', 'zircon_plugins/Cargo.lock', '.cargo/config.toml') }}-${{ github.sha }}
@@ -76,7 +76,7 @@ jobs:
         run: ./.github/scripts/prepare-cargo-roots.ps1 -StorageRoot 'D:\cargo-targets\zircon-local' -UseMvpTargetCache -VerifyOnly
 
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@75be91dd2711b583df57c31d0873b4145c89f1d9
+        uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8
         with:
           toolchain: ${{ env.MVP_RUST_TOOLCHAIN }}
 
@@ -111,7 +111,7 @@ jobs:
 
       - name: Upload compile-gate diagnostics
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
         with:
           name: mvp-compile-gate-evidence
           path: ${{ env.MVP_EVIDENCE_ROOT }}
@@ -152,7 +152,7 @@ jobs:
         run: ./.github/scripts/prepare-cargo-roots.ps1 -StorageRoot 'D:\cargo-targets\zircon-local' -UseMvpTargetCache -BootstrapTemp
 
       - name: Restore lockfile-scoped Cargo target
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25
         with:
           path: ${{ env.CARGO_TARGET_DIR }}
           key: mvp-windows-2022-rust-1.94.1-${{ github.job }}-${{ hashFiles('Cargo.lock', 'zircon_plugins/Cargo.lock', '.cargo/config.toml') }}-${{ github.sha }}
@@ -164,7 +164,7 @@ jobs:
         run: ./.github/scripts/prepare-cargo-roots.ps1 -StorageRoot 'D:\cargo-targets\zircon-local' -UseMvpTargetCache -VerifyOnly
 
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@75be91dd2711b583df57c31d0873b4145c89f1d9
+        uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8
         with:
           toolchain: ${{ env.MVP_RUST_TOOLCHAIN }}
 
@@ -272,7 +272,7 @@ jobs:
 
       - name: Upload focused-tests diagnostics
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
         with:
           name: mvp-focused-tests-evidence
           path: ${{ env.MVP_EVIDENCE_ROOT }}
@@ -313,7 +313,7 @@ jobs:
         run: ./.github/scripts/prepare-cargo-roots.ps1 -StorageRoot 'D:\cargo-targets\zircon-local' -UseMvpTargetCache -BootstrapTemp
 
       - name: Restore lockfile-scoped Cargo target
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25
         with:
           path: ${{ env.CARGO_TARGET_DIR }}
           key: mvp-windows-2022-rust-1.94.1-${{ github.job }}-${{ hashFiles('Cargo.lock', 'zircon_plugins/Cargo.lock', '.cargo/config.toml') }}-${{ github.sha }}
@@ -325,7 +325,7 @@ jobs:
         run: ./.github/scripts/prepare-cargo-roots.ps1 -StorageRoot 'D:\cargo-targets\zircon-local' -UseMvpTargetCache -VerifyOnly
 
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@75be91dd2711b583df57c31d0873b4145c89f1d9
+        uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8
         with:
           toolchain: ${{ env.MVP_RUST_TOOLCHAIN }}
 
@@ -351,7 +351,7 @@ jobs:
           ) | Set-Content -Encoding utf8 "$env:MVP_EVIDENCE_ROOT\environment.txt"
 
       - name: Collect preceding gate diagnostics
-        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131
         with:
           pattern: mvp-*-evidence
           path: ${{ env.MVP_EVIDENCE_ROOT }}/preceding-gates
@@ -612,7 +612,7 @@ jobs:
 
       - name: Upload MVP diagnostic evidence
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
         with:
           name: mvp-editor-windows-evidence
           path: ${{ env.MVP_EVIDENCE_ROOT }}

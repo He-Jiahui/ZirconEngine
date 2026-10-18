@@ -7,7 +7,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 RUST_TOOLCHAIN = "1.94.1"
-RUST_ACTION = "75be91dd2711b583df57c31d0873b4145c89f1d9"
+RUST_ACTION = "683b588c487a69d01f6c6ddf40f036ff682cc2c8"
 
 # 读取 CI 工作流与约定检查脚本，确认构建步骤安装并使用同名工具链。
 class Frameworks06CiToolchainContractTests(unittest.TestCase):

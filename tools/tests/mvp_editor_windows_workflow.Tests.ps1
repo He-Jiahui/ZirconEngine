@@ -42,9 +42,9 @@ Assert-WorkflowMatch '(?m)^name:\s*MVP Editor Windows\s*$' 'Workflow must have t
 Assert-WorkflowMatch '(?m)^  mvp-editor-windows:' 'Workflow must define the dedicated staged-product MVP Windows job.'
 Assert-WorkflowMatch 'runs-on:\s*windows-2022' 'MVP job must use the pinned Windows 2022 image.'
 Assert-WorkflowMatch 'actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09' 'MVP job must pin checkout to the reviewed upstream commit.'
-Assert-WorkflowMatch 'dtolnay/rust-toolchain@75be91dd2711b583df57c31d0873b4145c89f1d9' 'MVP job must pin the Rust 1.94.1 action branch to a reviewed commit.'
-Assert-WorkflowMatch 'actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830' 'MVP jobs must pin the lockfile-scoped target cache action.'
-Assert-WorkflowMatch 'actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02' 'MVP job must pin artifact upload to the reviewed upstream commit.'
+Assert-WorkflowMatch 'dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8' 'MVP job must pin the Rust toolchain action with an explicit toolchain input to a reviewed commit.'
+Assert-WorkflowMatch 'actions/cache@caa296126883cff596d87d8935842f9db880ef25' 'MVP jobs must pin the lockfile-scoped target cache action.'
+Assert-WorkflowMatch 'actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f' 'MVP job must pin artifact upload to the reviewed upstream commit.'
 Assert-WorkflowMatch 'MVP_RUST_TOOLCHAIN:\s*1\.94\.1' 'MVP job must declare the repository-authoritative Rust toolchain.'
 Assert-WorkflowMatch 'runner_image:\s*\$env:ImageOS/\$env:ImageVersion' 'MVP environment receipt must record the concrete hosted runner image.'
 Assert-WorkflowMatch 'MVP_EVIDENCE_ROOT:\s*D:\\cargo-targets\\mvp-ci-results-\$\{\{\s*github\.run_id\s*\}\}-\$\{\{\s*github\.run_attempt\s*\}\}' 'MVP diagnostics must use a source-bound approved physical artifact root.'
@@ -188,7 +188,7 @@ if ($workflow -match 'Tee-Object -FilePath test-results/f5-(?:stage|acceptance)\
 }
 
 Assert-WorkflowMatch 'WGPU adapter unavailable' 'MVP job must state a visible unavailable-adapter policy instead of accepting blank captures.'
-Assert-WorkflowMatch 'actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02' 'MVP job must upload diagnostic evidence through the pinned action.'
+Assert-WorkflowMatch 'actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f' 'MVP job must upload diagnostic evidence through the pinned action.'
 Assert-WorkflowMatch 'if:\s*always\(\)' 'MVP job must upload evidence after failures as well.'
 Assert-WorkflowMatch 'retention-days:\s*7' 'MVP job must bound evidence retention.'
 

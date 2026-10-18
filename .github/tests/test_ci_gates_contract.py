@@ -165,6 +165,26 @@ class CiGatesContractTests(unittest.TestCase):
                 else:
                     self.assertIn(toolchain, ("1.94.1", "nightly-2026-10-10"), path.name)
 
+    def test_runner_images_and_node24_actions_use_reviewed_pins(self) -> None:
+        # Checked against each pinned upstream action.yml, not inferred from tags.
+        node24 = {
+            "actions/checkout": "fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+            "actions/setup-python": "ece7cb06caefa5fff74198d8649806c4678c61a1",
+            "actions/upload-artifact": "b7c566a772e6b6bfb58ed0dc250532a479d7789f",
+            "actions/download-artifact": "37930b1c2abaa49bbe596cd826c3c89aef350131",
+            "actions/cache": "caa296126883cff596d87d8935842f9db880ef25",
+        }
+        for path in (REPO_ROOT / ".github/workflows").glob("*.yml"):
+            source = path.read_text(encoding="utf-8")
+            self.assertNotRegex(source, r"runs-on: (ubuntu|windows)-latest", path.name)
+            for action, sha in re.findall(r"uses: ([^@\s]+)@([0-9a-f]{40})", source):
+                if action in node24:
+                    self.assertEqual(sha, node24[action], action)
+                if action == "dtolnay/rust-toolchain":
+                    # The old 1.94.1 branch hardcoded its toolchain and rejected
+                    # inputs.toolchain, including the intended Miri nightly.
+                    self.assertEqual(sha, "683b588c487a69d01f6c6ddf40f036ff682cc2c8")
+
     def assert_workspace_member_fmt_gate(self, rust: str, manifest: str) -> None:
         step_name = "Check Rust formatting" if manifest == "Cargo.toml" else "Check plugin workspace formatting"
         match = re.search(
