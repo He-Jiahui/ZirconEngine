@@ -1126,3 +1126,21 @@ reports zero findings, and 24 portable CI tests pass (three Windows cases skip).
 The repaired command batch still requires the next hosted run; the prior run's
 58 passes are not evidence that these repairs execute successfully. Its exact
 Windows reproduction remains in [CI validation](ci-validation.md).
+
+[Run 39152034028](https://github.com/He-Jiahui/ZirconEngine/actions/runs/39152034028)
+at `fb26d1e66` executes the repaired batch: **85 passed, 2 failed, 15 ignored**.
+The frame/drawer command, keymap override and exact-search regressions pass.
+The remaining failures are stale exact inventory expectations: the large-keymap
+fixture still adds ten shipped bindings to its 10,000 overrides, and the palette
+fixture predates the six new viewport/drawer commands. Update them to **10,017
+signature entries, 75 registered commands and 69 visible catalog entries**,
+preserving their exact assertions and contextual-row exclusion checks.
+
+This run passes the Windows editor closure and all four VM bridge tests. Its
+plugin failure remains the same two AI API errors. GitHub's subsequent merge of
+current `main` (`36416e648`) starts run `39154004646` and automatically cancels
+the older run during tilemap; that cancellation is not a tilemap pass. The
+previous executed tilemap result remains the passing run `39148406985` above.
+Fast-forward to the user's merge without changing its three Jenkins cleanup
+files. The two inventory corrections require the next coherent hosted batch;
+the duplicate run of the older source already has known failing assertions.

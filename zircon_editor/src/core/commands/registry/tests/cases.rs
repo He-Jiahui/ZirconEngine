@@ -194,8 +194,8 @@ fn default_palette_keeps_contextual_operations_registered_without_exposing_rows(
     let locale = i18n.active_locale();
     let context = CommandEvalCtx::interactive();
 
-    assert_eq!(registry.commands().count(), 69);
-    assert_eq!(catalog.len(), 63);
+    assert_eq!(registry.commands().count(), 75);
+    assert_eq!(catalog.len(), 69);
     for id in [
         "view.editor.ui_asset.open",
         "timeline_sequence.authoring.open",
@@ -216,12 +216,12 @@ fn default_palette_keeps_contextual_operations_registered_without_exposing_rows(
         assert!(descriptor.payload_schema_id().is_none());
         assert!(!descriptor.callable_from_remote());
         assert!(catalog
-            .query_window(&i18n, &locale, &context, id, 0, 68)
+            .query_window(&i18n, &locale, &context, id, 0, 75)
             .entries()
             .all(|entry| entry.id != id));
     }
     assert!(catalog
-        .query_window(&i18n, &locale, &context, "file.project.open", 0, 68)
+        .query_window(&i18n, &locale, &context, "file.project.open", 0, 75)
         .entries()
         .any(|entry| entry.id == "file.project.open"));
     assert!(registry
