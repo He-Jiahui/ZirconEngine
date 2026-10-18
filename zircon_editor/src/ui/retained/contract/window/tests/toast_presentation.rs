@@ -269,6 +269,7 @@ fn activity_toast_first_display_hidden_clipped_resize_and_retired_generation_can
     clipped.workbench_window_nodes = model_rc(
         data.workbench_window_nodes
             .iter()
+            .cloned()
             .map(|mut node| {
                 node.has_clip_frame = true;
                 node.clip_frame = Default::default();

@@ -363,8 +363,8 @@ compliance here is not evidence of sandbox enforcement.
 
 | Finding | Landed source / remaining work |
 | --- | --- |
-| C1 | Borrow ordering repaired; advanced plugins retained. Full editor/plugin compilation and any downstream failures remain unverified. |
-| C2 | Required hosted Windows PR check, local contract, timeouts and runner signal implemented. Hosted compilation now executes; follow-up results below. |
+| C1 | Borrow ordering repaired; advanced plugins retained. Windows editor closure passes. The full plugin check reaches AI's independent scene-mode migration blocker. |
+| C2 | Required hosted Windows PR check, local contract, timeouts and runner signal implemented. Editor closure passes; full plugin result is blocked on AI's scene-mode/provider migration. Independent native-test results are recorded below. |
 | H1, H2, L3 | Backend policy, launch tooling, capture validator and diagnostics implemented. Real backend selection/window/capture acceptance pending. |
 | H3 | Runtime redraw/maintenance split and perf namespaces implemented. Continuous PIE timing/idle behavior pending. |
 | H4 | Open: dynamically owned PIE product needs a compositable shared GPU/device-lifetime contract; CPU readback remains. |
@@ -388,10 +388,10 @@ compliance here is not evidence of sandbox enforcement.
 | L2 | Pointer-origin/unknown-wheel behavior repaired; Rust regression execution pending. |
 | L4 | Existing beta pinned exactly. Stable migration and native lifecycle acceptance pending. |
 | L6 | Added actual-painter U+0020 regression coverage and traced asset-summary counts. Rust execution and current-shell 100/150% DPI captures remain pending. |
-| L7 | Hosted images, direct and transitive Pages actions pinned to Node-24 revisions; toolchain input corrected. Final hosted annotation verification pending. |
+| L7 | Hosted images and direct/transitive Pages actions pinned; toolchain input corrected. Hosted Wiki build/upload succeeds with zero annotations; Pages deploy keeps its existing non-PR admission. |
 
-Reusable local evidence: the Penpot compiler/export batch has **27 passing Node
-tests**. The final Python startup/storage batch ran **25 tests: 10 passed and 15
+Reusable local evidence: the latest Penpot compiler/export batch has **35 passing
+Node tests**. The final Python startup/storage batch ran **25 tests: 10 passed and 15
 Windows-only skipped**. Preview-feedback lint and structural TOML/AST/diff
 checks passed in the relevant batches. Rust AST inspection is syntax evidence,
 not type checking, compilation or execution.
@@ -1026,6 +1026,16 @@ Completing that migration needs a real mirror/world/viewport lifecycle contract
 and its registration, world-isolation and teardown regressions. It is unrelated
 to `.github`/build-script permission and remains an explicit integration blocker.
 
+After implementing the real binding and migrating the existing registration
+regression to the current API, validate it independently on Windows:
+
+```powershell
+$aiTarget = 'D:\cargo-targets\zircon-local\claude-review-20261017-ai'
+& tools/dev/local-cargo.ps1 -TargetDir $aiTarget check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_ai_editor --locked
+& tools/dev/local-cargo.ps1 -TargetDir $aiTarget test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_ai_editor --lib behavior_tree_editor_registers_catalog_derived_palette_and_asset_toolkit --locked
+& tools/dev/local-cargo.ps1 -TargetDir $aiTarget test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_ai_editor --lib perception_overlay --locked
+```
+
 The required job now runs three independent test batches whenever the editor
 check succeeds, even if plugin compilation fails. Cancellation and failed editor
 compilation still prevent them. Every failed compile/test still fails the job;
@@ -1034,3 +1044,40 @@ This allows real VM bridge, editor command and existing tilemap-regression
 diagnostics while the AI migration
 remains open. Local reproduction commands are unchanged; after an editor pass,
 the three test commands may be run independently of the failing plugin command.
+
+## Editor test-target compilation (C2 follow-up)
+
+[Run 39145345427](https://github.com/He-Jiahui/ZirconEngine/actions/runs/39145345427)
+passes the complete Windows editor feature closure, the native wrapper cases,
+and all four VM behavior-bridge integration tests (0 failed). Its full plugin
+check reports exactly the two retired AI scene-mode API errors described above.
+The independent editor-command step reaches the editor library's test target
+and reports 11 compilation errors before executing any test.
+
+Repair their six causes without removing tests or changing assertions: import
+the row-label helper and palette from their current owners; provide the model
+ticket with an activation identity from a real project using the existing
+physical-output fixture; dereference the autosave fixture's borrowed document
+name; expose the lifecycle deadline only through the existing test-only support
+module; and clone toast snapshot nodes before changing their clip frames.
+Production API visibility is unchanged. The editor-command rerun remains
+required; a successful production editor check does not prove test compilation.
+
+All eight changed Rust files pass syntax-only parsing and Change Guard scans
+with zero findings. The portable CI suite passes 24 tests, with three native
+wrapper cases skipped on Linux. Reproduce the command batch with the exact
+Windows command in [CI validation](ci-validation.md). The fixture and retained
+host assertions can also be exercised independently after compilation:
+
+```powershell
+$tests = 'D:\cargo-targets\zircon-local\claude-review-20261017-tests'
+& tools/dev/local-cargo.ps1 -TargetDir $tests test -p zircon_editor --lib pending_model_cancel_projects_one_warning_without_result_observation --locked
+& tools/dev/local-cargo.ps1 -TargetDir $tests test -p zircon_editor --lib diagnostic_real_ticket_acknowledges_only_its_submitted_retired_prefix --locked
+& tools/dev/local-cargo.ps1 -TargetDir $tests test -p zircon_editor --lib focused_generic_interaction_surface_uses_pressed_not_selected_surface --locked
+& tools/dev/local-cargo.ps1 -TargetDir $tests test -p zircon_editor --lib optimization_batch_gy_editor580_command_row_text_preserves_culling --locked
+& tools/dev/local-cargo.ps1 -TargetDir $tests test -p zircon_editor --lib main_window_close_keeps_failed_settings_owner_and_idle_wake_after_jobs_quiesce --locked
+& tools/dev/local-cargo.ps1 -TargetDir $tests test -p zircon_editor --lib activity_toast_first_display_hidden_clipped_resize_and_retired_generation --locked
+```
+
+These additional focused commands are documented Windows follow-ups, not passing
+execution evidence. The next hosted run records the command/keymap batch.

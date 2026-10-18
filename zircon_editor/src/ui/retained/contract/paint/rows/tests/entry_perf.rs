@@ -1,6 +1,7 @@
 use std::hint::black_box;
 use std::time::Instant;
 
+use super::super::label::push_command_row_label;
 use super::*;
 
 #[test]

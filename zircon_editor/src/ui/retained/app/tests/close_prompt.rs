@@ -885,7 +885,10 @@ fn main_window_close_keeps_failed_settings_owner_and_idle_wake_after_jobs_quiesc
     );
     assert!(!harness.root_ui.exit_requested_for_test());
     assert!(harness.host.borrow().main_window_close_blocks_session_ui());
-    assert!(harness.root_ui.lifecycle_frame_wake_deadline().is_some());
+    assert!(harness
+        .root_ui
+        .lifecycle_frame_wake_deadline_for_test()
+        .is_some());
     let status = harness.host.borrow().runtime.status_line();
     assert!(!status.is_empty());
     for _ in 0..3 {

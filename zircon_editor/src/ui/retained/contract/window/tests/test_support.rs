@@ -24,6 +24,10 @@ use crate::ui::retained_host::host_contract::globals::UiHostContext;
 use crate::ui::retained_host::primitives::CloseRequestResponse;
 
 impl UiHostWindow {
+    pub(crate) fn lifecycle_frame_wake_deadline_for_test(&self) -> Option<std::time::Instant> {
+        self.lifecycle_frame_wake_deadline()
+    }
+
     pub(crate) fn request_host_frame_for_test(&self) {
         self.request_frame_update();
     }

@@ -36,7 +36,7 @@ fn retired(jobs: &EditorJobSystem, root: &Path, names: &[&str]) -> RetiredAutosa
             .iter()
             .map(|name| {
                 AutosaveDocumentOutcome::shutdown_unavailable(
-                    AutosaveDocumentId::parse(name).unwrap(),
+                    AutosaveDocumentId::parse(*name).unwrap(),
                     AutosaveSourcePath::parse("scenes/main.zscene").unwrap(),
                 )
             })

@@ -72,7 +72,7 @@ Further layout support requires both runtime parity and compiler tests.
 
 | Milestone | Deliverable | Acceptance / present state |
 | --- | --- | --- |
-| O0 | C1/C2, H1/H2 | Repair code/startup smoke and required hosted PR gate landed. The gate executes; successful Windows compilation, first frame and backend matrix remain **pending**. |
+| O0 | C1/C2, H1/H2 | Required hosted PR gate executes and the Windows editor closure passes. Full plugin acceptance is blocked on AI's scene-mode/provider migration; native first frame and backend matrix remain **pending**. |
 | O1 | Roles, command menus, keymap, truthful status, perf namespaces | Roles/menus/keymap/status/preview gates and F/Ctrl+Space/Q/W/E/R commands implemented; broader authoring shortcuts, Rust execution and rendered acceptance **pending**. |
 | O2 | Penpot kit, Annotate, ZOP Export, compiler/goldens | Tooling scaffold and 35 Linux Node tests pass, including command-role and DTCG type admission; actual Foundations/Components files, engine-loaded fixtures and managed validation **pending**. |
 | O3 | Generated S2/S3/S6/S7, role binders, shell switch | Blocked on real O0 acceptance; no operator shell is selected or advertised as launchable. |
