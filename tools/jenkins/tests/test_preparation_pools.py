@@ -60,13 +60,34 @@ def _fixture(tmp_path: Path):
 
 
 def test_materialize_first_and_exact_reuse(tmp_path):
-    state, _root, destination, eid, key, digest, _source = _fixture(tmp_path)
-    first = pools.materialize_preparation(state, str(BUILD_ROOT), eid)
-    assert first["reused"] is False
-    assert (destination / "src/main.rs").read_bytes() == b"alpha\n"
-    again = pools.materialize_preparation(state, str(BUILD_ROOT), eid)
-    assert again["reused"] is True
+    from unittest.mock import patch
+    from tools.jenkins.source import compute_source_digest
+    state, root, destination, eid, key, digest, source = _fixture(tmp_path)
+    entries = list(state.get("sealed_input", source)["payload"]["sourceManifest"]["entries"])
+    for name, data in (("second", b"second\n"), ("third", b"third\n")):
+        value = hashlib.sha256(data).hexdigest()
+        (root / "inputs" / "objects" / value).write_bytes(data)
+        entries.append({"path": "src/" + name + ".rs", "status": "present", "objectDigest": value})
+    manifest = {"schemaVersion": 1, "entries": entries}
+    source = compute_source_digest(manifest)
+    state.put("sealed_input", source, {"sourceDigest": source, "objectRoot": str(root), "sourceManifest": manifest})
+    execution = state.get("execution", eid)
+    state.put("execution", eid, {**execution["payload"], "sealedInputRef": source}, expected_version=execution["version"])
+    writes, original_put = [], state.put
+    def record_put(domain, row_key, value, **kwargs):
+        if domain == "preparation_update" and row_key == key and kwargs.get("connection") is not None:
+            writes.append((value["status"], tuple(item["applied"] for item in value["files"])))
+        return original_put(domain, row_key, value, **kwargs)
+    with patch.object(state, "put", side_effect=record_put):
+        first = pools.materialize_preparation(state, str(BUILD_ROOT), eid)
+        assert first["reused"] is False
+        assert (destination / "src/main.rs").read_bytes() == b"alpha\n"
+        again = pools.materialize_preparation(state, str(BUILD_ROOT), eid)
+        assert again["reused"] is True
     assert state.get("preparation_source", key)["payload"]["ownedFiles"]["src/main.rs"] == digest
+    assert writes == [("updating", (False, False, False)), ("complete", (True, True, True))]
+    for entry in entries:
+        assert hashlib.sha256((destination / entry["path"]).read_bytes()).hexdigest() == entry["objectDigest"]
 
 
 def test_compatible_source_updates_owned_files_and_keeps_target(tmp_path):
@@ -116,6 +137,22 @@ def test_update_intent_recovers_only_when_all_hashes_are_known(tmp_path):
         "oldHash": digest, "newHash": digest, "applied": False}]})
     pools.materialize_preparation(state, str(BUILD_ROOT), eid)
     assert state.get("preparation_update", key)["payload"]["status"] == "complete"
+    # A durable progress bit cannot authorize an unrecognized postimage.
+    state, _root, destination, eid, key, digest, _source = _fixture(tmp_path / "applied-lie")
+    (destination / "src").mkdir(parents=True)
+    foreign = b"not either journalled hash\n"
+    (destination / "src/main.rs").write_bytes(foreign)
+    state.put("preparation_source", key, {"sourceDigest": "d" * 64,
+        "ownedFiles": {"src/main.rs": digest}, "manifest": {"entries": []}})
+    state.put("preparation_update", key, {"status": "updating", "files": [{"path": "src/main.rs",
+        "oldHash": digest, "newHash": digest, "applied": True}]})
+    previous, journal = state.get("preparation_source", key), state.get("preparation_update", key)
+    with raises(JenkinsError) as exc:
+        pools.materialize_preparation(state, str(BUILD_ROOT), eid)
+    assert exc.value.code == "preparation_recovery_ambiguous"
+    assert state.get("preparation_update", key) == journal
+    assert state.get("preparation_source", key) == previous
+    assert (destination / "src/main.rs").read_bytes() == foreign
 
 
 def test_nested_module_materializes_without_flat_directory_assumption(tmp_path):
@@ -135,30 +172,91 @@ def test_nested_module_materializes_without_flat_directory_assumption(tmp_path):
 
 
 def test_partial_update_is_completed_from_durable_intent(tmp_path):
+    from unittest.mock import patch
+    from tools.jenkins.source import compute_source_digest
+    def cas(root, data):
+        value = hashlib.sha256(data).hexdigest()
+        (root / "inputs" / "objects" / value).write_bytes(data)
+        return value
     state, root, destination, eid, key, old_digest, _source = _fixture(tmp_path)
     pools.materialize_preparation(state, str(BUILD_ROOT), eid)
     old = (destination / "src/main.rs").read_bytes()
     new = b"recovered"
-    new_digest = hashlib.sha256(new).hexdigest()
-    (root / "inputs" / "objects" / new_digest).write_bytes(new)
-    manifest = {"entries": [{"path": "src/main.rs", "status": "present", "objectDigest": new_digest}]}
-    from tools.jenkins.source import compute_source_digest
+    new_digest = cas(root, new)
+    old_owned = {"src/main.rs": old_digest}
+    for path, data in (("src/pending.rs", b"old pending"), ("src/obsolete.rs", b"delete me")):
+        old_owned[path] = cas(root, data)
+        (destination / path).write_bytes(data)
+    desired = {"src/main.rs": new_digest, "src/pending.rs": cas(root, b"new pending"),
+               "src/new.rs": cas(root, b"new file")}
+    manifest = {"entries": [{"path": path, "status": "present", "objectDigest": value}
+                            for path, value in desired.items()] +
+                           [{"path": "src/obsolete.rs", "status": "deleted"}]}
+    manifest["entries"].sort(key=lambda item: item["path"])
     source_digest = compute_source_digest(manifest)
     state.put("sealed_input", source_digest, {"sourceDigest": source_digest,
         "objectRoot": str(root), "sourceManifest": manifest})
     execution = state.get("execution", eid)
     state.put("execution", eid, {**execution["payload"], "sealedInputRef": source_digest}, expected_version=execution["version"])
     state.put("preparation_source", key, {"sourceDigest": "e" * 64,
-        "ownedFiles": {"src/main.rs": old_digest}, "manifest": {"entries": []}})
+        "ownedFiles": old_owned, "manifest": {"entries": []}})
     state.put("preparation_update", key, {"executionId": eid, "preparationKey": key,
-        "sourceDigest": source_digest, "oldOwnedFiles": {"src/main.rs": old_digest},
-        "ownedFiles": {"src/main.rs": new_digest}, "manifest": manifest,
-        "objectRoot": str(root), "status": "updating", "files": [{"path": "src/main.rs",
-            "oldHash": old_digest, "newHash": new_digest, "applied": False}]})
-    result = pools.materialize_preparation(state, str(BUILD_ROOT), eid)
+        "sourceDigest": source_digest, "oldOwnedFiles": old_owned,
+        "ownedFiles": desired, "manifest": manifest,
+        "objectRoot": str(root), "status": "updating", "files": [
+            {"path": path, "oldHash": old_owned.get(path), "newHash": desired.get(path),
+             "applied": path != "src/main.rs"} for path in sorted(set(old_owned) | set(desired))]})
+    # Copy landed before its checkpoint; the other three bits falsely claim completion.
+    (destination / "src/main.rs").write_bytes(new)
+    writes, original_put = [], state.put
+    def record_put(domain, row_key, value, **kwargs):
+        if domain == "preparation_update" and row_key == key and kwargs.get("connection") is not None:
+            writes.append(value["status"])
+        return original_put(domain, row_key, value, **kwargs)
+    with patch.object(state, "put", side_effect=record_put):
+        result = pools.materialize_preparation(state, str(BUILD_ROOT), eid)
     assert result["reused"] is True
     assert (destination / "src/main.rs").read_bytes() == new
     assert state.get("preparation_source", key)["payload"]["sourceDigest"] == source_digest
+    assert writes == ["complete"]
+    assert not (destination / "src/obsolete.rs").exists()
+    for path, value in desired.items():
+        assert hashlib.sha256((destination / path).read_bytes()).hexdigest() == value
+    assert all(item["applied"] for item in state.get("preparation_update", key)["payload"]["files"])
+
+    # A changed durable intent cannot be overwritten by either completion path.
+    for mode in ("materialize", "recover"):
+        state, root, destination, eid, key, old_digest, _source = _fixture(tmp_path / mode)
+        pools.materialize_preparation(state, str(BUILD_ROOT), eid)
+        data = b"version race"
+        value = cas(root, data)
+        manifest = {"entries": [{"path": "src/main.rs", "status": "present", "objectDigest": value}]}
+        source_digest = compute_source_digest(manifest)
+        state.put("sealed_input", source_digest, {"sourceDigest": source_digest,
+            "objectRoot": str(root), "sourceManifest": manifest})
+        execution = state.get("execution", eid)
+        state.put("execution", eid, {**execution["payload"], "sealedInputRef": source_digest}, expected_version=execution["version"])
+        if mode == "recover":
+            state.put("preparation_update", key, {"executionId": eid, "preparationKey": key,
+                "sourceDigest": source_digest, "oldOwnedFiles": {"src/main.rs": old_digest},
+                "ownedFiles": {"src/main.rs": value}, "manifest": manifest,
+                "objectRoot": str(root), "status": "updating", "files": [
+                    {"path": "src/main.rs", "oldHash": old_digest, "newHash": value, "applied": False}]})
+        previous, changed, original_copy = state.get("preparation_source", key), [], pools._atomic_copy
+        def copy_and_change(source, target):
+            original_copy(source, target)
+            if not changed:
+                journal = state.get("preparation_update", key)
+                changed.append(state.put("preparation_update", key,
+                    {**journal["payload"], "foreignMarker": mode}, expected_version=journal["version"]))
+        with patch.object(pools, "_atomic_copy", side_effect=copy_and_change):
+            with raises(JenkinsError) as exc:
+                pools.materialize_preparation(state, str(BUILD_ROOT), eid)
+        assert exc.value.code == "state_conflict"
+        assert len(changed) == 1
+        assert state.get("preparation_update", key) == changed[0]
+        assert state.get("preparation_source", key) == previous
+        assert (destination / "src/main.rs").read_bytes() == data
 
 
 def test_reparse_in_preparation_is_rejected(tmp_path):

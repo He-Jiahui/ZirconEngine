@@ -312,8 +312,10 @@ def integrate(d, repo, path, *, runtime, check_runtime, validate=None, pull_requ
     try:
         check_runtime()
         with d.commit.git_lock(repo / ".jenkins/state/locks/management-git.lock"):
-            record["mainIndexLock"] = require_index(d, repo)
-            main = require_clean_main(d, repo)
+            record["mainIndexLock"] = index_observation(d, repo)
+            if text(d, repo, "symbolic-ref", "--quiet", "--short", "HEAD") != "main":
+                raise d.commit.CommitBusy("The synchronization checkout must remain on main")
+            main = text(d, repo, "rev-parse", "--verify", "HEAD^{commit}")
             base = text(d, repo, "merge-base", main, revision)
             authored = d.changed_paths(repo, "diff", "--name-only", "-z", base, revision, "--")
             if not authored <= set(payload["paths"]):

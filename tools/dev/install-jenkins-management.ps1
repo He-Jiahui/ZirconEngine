@@ -10,6 +10,9 @@ param(
     [switch]$CheckOnly,
     [switch]$EnableCheckoutProduct,
     [switch]$EnableManagedWorktree,
+    [string]$CandidateSourceRoot,
+    [string]$CandidateSourceManifestPath,
+    [ValidatePattern('^[0-9a-f]{64}$')][string]$ExpectedCandidateSourceManifestSha256,
     [ValidatePattern('^[0-9a-f]{64}$')][string]$ReuseCapsuleSha256,
     [ValidatePattern('^[0-9a-f]{64}$')][string]$ExpectedInstalledSha256,
     [switch]$ResumePreparedInstallation,
@@ -256,6 +259,123 @@ function Invoke-PinnedActiveManagementGuard([string]$Phase) {
     }
     $script:taskPinnedGuardReceipts += $taskGuardReceipt
 }
+
+function Get-ReviewedCandidateSources {
+    if ([string]::IsNullOrEmpty($CandidateSourceRoot)) {
+        if ($CandidateSourceManifestPath -or $ExpectedCandidateSourceManifestSha256) { throw 'Candidate sources require their exact managed root' }
+        return $null
+    }
+    if ($taskReuse -or $taskPinnedActive -or -not $taskPrior -or -not $EnableManagedWorktree -or
+            -not $CandidateSourceManifestPath -or -not $ExpectedCandidateSourceManifestSha256 -or
+            $taskOldInstalled.driverDigest -cne $ExpectedDriverDigest -or
+            $taskOldInstalled.runtimeOperationId -cne $ExpectedRuntimeOperationId) {
+        throw 'Candidate overrides require a fresh idle managed installation and exact current original pins'
+    }
+    $taskCandidateRoot = Assert-Physical $CandidateSourceRoot
+    $taskCandidateManifest = Assert-Physical $CandidateSourceManifestPath
+    if ((Assert-Physical "$PSScriptRoot/../..") -cne $taskCandidateRoot) { throw 'Candidate installer must execute from its original managed WT' }
+    $taskCandidateBootstrap = @'
+import hashlib,importlib.util,json,os,sys
+from pathlib import Path
+repo,source,manifest_path,manifest_sha,installed_sha,driver,runtime,capsule_sha=sys.argv[1:]
+repo,source,manifest_path=Path(repo),Path(source),Path(manifest_path)
+def require(value,message):
+    if not value: raise ValueError(message)
+sys.path.insert(0,str(repo/'.jenkins/runtime/drivers'/driver))
+from tools.jenkins.deployment.driver import verify_driver,_plain
+verify_driver(repo/'.jenkins/runtime/drivers'/driver,expected_digest=driver)
+require(os.name=='nt' and os.environ.get('JOB_NAME')=='zircon-management-tests'
+    and os.environ.get('NODE_NAME')=='zircon-windows-agent','fixed_candidate_jenkins_job_required')
+for path in (source,manifest_path,repo/'.jenkins/state/management/installed.json'): _plain(path)
+require(source.parent==repo/'.jenkins/worktrees','registered_candidate_source_root_required')
+require(manifest_path.is_relative_to(repo/'.jenkins/state/management/reports')
+    or manifest_path.is_relative_to(Path('E:/cargo-targets/zircon-local/reports')),'candidate_manifest_root_rejected')
+raw=manifest_path.read_bytes()
+require(hashlib.sha256(raw).hexdigest()==manifest_sha,'candidate_manifest_changed')
+proof=json.loads(raw)
+require(isinstance(proof,dict) and set(proof)=={'schemaVersion','kind','repositoryId','worktreeId','sourceRoot',
+    'writerSessionId','writerPrincipal','writerAuthorizationSnapshot','ownedPaths','files','installerSha256',
+    'driverDigest','runtimeOperationId','originalInstalledSha256'}
+    and proof.get('schemaVersion')==1 and proof.get('kind')=='jenkins-management-candidate-sources-v1'
+    and proof.get('sourceRoot')==str(source) and proof.get('driverDigest')==driver
+    and proof.get('runtimeOperationId')==runtime and proof.get('originalInstalledSha256')==installed_sha,
+    'candidate_manifest_identity_invalid')
+members={'runner.py':'tools/jenkins-management/runner.py','source_preparation.py':'tools/jenkins-management/source_preparation.py'}
+require(isinstance(proof.get('files'),dict) and set(proof['files'])==set(members.values())
+    and isinstance(proof.get('ownedPaths'),list)
+    and set(members.values())|{'tools/dev/install-jenkins-management.ps1'}<=set(proof['ownedPaths']),
+    'candidate_member_scope_invalid')
+installed_raw=(repo/'.jenkins/state/management/installed.json').read_bytes()
+require(hashlib.sha256(installed_raw).hexdigest()==installed_sha,'candidate_original_install_changed')
+installed=json.loads(installed_raw)
+require(installed.get('capsuleSha256')==capsule_sha and installed.get('driverDigest')==driver
+    and installed.get('runtimeOperationId')==runtime,'candidate_original_binding_changed')
+capsule=repo/'.jenkins/runtime/management'/capsule_sha
+metadata_raw=(capsule/'capsule.json').read_bytes()
+require(hashlib.sha256(metadata_raw).hexdigest()==capsule_sha,'original_capsule_changed')
+metadata=json.loads(metadata_raw)
+trusted_helper=capsule/'source_preparation.py'
+_plain(trusted_helper)
+require(hashlib.sha256(trusted_helper.read_bytes()).hexdigest()==metadata['files']['source_preparation.py'],
+    'original_authority_helper_changed')
+spec=importlib.util.spec_from_file_location('original_candidate_authority_helper',trusted_helper)
+helper=importlib.util.module_from_spec(spec)
+spec.loader.exec_module(helper)
+from tools.jenkins.state import State
+state=helper.scoped_authorization_state(State(repo/'.jenkins/state/coordination.sqlite3'))
+with state.transaction() as connection:
+    row=state.get('management_worktree',proof['worktreeId'],connection=connection)
+    record=row['payload'] if row else {}
+    writer=state.check_authorization(proof['repositoryId'],proof['writerSessionId'],'implementation',
+        proof['ownedPaths'],connection=connection)
+    require(record.get('status')=='ready' and record.get('path')==str(source)
+        and record.get('sessionId')==proof['writerSessionId']
+        and all(record.get(name)==proof[name] for name in ('repositoryId','driverDigest','runtimeOperationId',
+            'writerPrincipal','writerAuthorizationSnapshot'))
+        and sorted(record.get('ownedPaths',[]))==sorted(proof['ownedPaths'])==sorted(writer['paths'])
+        and writer['principal']==proof['writerPrincipal'] and writer['snapshotDigest']==proof['writerAuthorizationSnapshot'],
+        'candidate_ready_writer_authority_changed')
+    from tools.jenkins.managed_worktree_lifetime import assert_no_writer
+    assert_no_writer(state,proof['worktreeId'],connection=connection)
+    gitfile=source/'.git'
+    _plain(gitfile)
+    gittext=gitfile.read_text(encoding='utf-8').strip()
+    require(gittext.startswith('gitdir: '),'real_linked_candidate_wt_required')
+    gitdir=Path(gittext[8:])
+    _plain(gitdir)
+    common=gitdir/'commondir'
+    _plain(common)
+    require(gitdir.is_absolute() and gitdir.parent==repo/'.git/worktrees'
+        and (gitdir/common.read_text(encoding='utf-8').strip()).resolve()==repo/'.git','candidate_git_owner_changed')
+    pins={**proof['files'],'tools/dev/install-jenkins-management.ps1':proof['installerSha256']}
+    for relative,checksum in pins.items():
+        require(isinstance(checksum,str) and len(checksum)==64 and all(c in '0123456789abcdef' for c in checksum),
+            'candidate_source_pin_invalid')
+        path=source/relative
+        _plain(path)
+        require(path.is_file() and hashlib.sha256(path.read_bytes()).hexdigest()==checksum,'candidate_source_changed')
+print(json.dumps({'manifestSha256':manifest_sha,'sourceRoot':str(source),'worktreeId':proof['worktreeId'],
+    'writerAuthorizationSnapshot':proof['writerAuthorizationSnapshot'],'sourcePins':pins,
+    'driverDigest':driver,'runtimeOperationId':runtime,'files':{name:str(source/relative) for name,relative in members.items()}}))
+'@
+    $taskCandidatePython = Assert-Physical "$repo/.jenkins/runtime/python/python.exe"
+    $taskCandidateOutput = & $taskCandidatePython -B -X utf8 -c $taskCandidateBootstrap $repo $taskCandidateRoot $taskCandidateManifest $ExpectedCandidateSourceManifestSha256 $ExpectedInstalledSha256 $ExpectedDriverDigest $ExpectedRuntimeOperationId $taskOldCapsuleSha256
+    if ($LASTEXITCODE -ne 0) { throw 'Jenkins candidate WT authority or source pins could not be verified' }
+    return ($taskCandidateOutput | ConvertFrom-Json)
+}
+function Get-ManagementCapsuleSource([string]$Name) {
+    if ($null -ne $taskCandidateSources -and $Name -cin @('runner.py','source_preparation.py')) {
+        return (Assert-Physical ([string]$taskCandidateSources.files.PSObject.Properties[$Name].Value))
+    }
+    return (Assert-Physical "$taskSourceRoot/$Name")
+}
+function Assert-ReviewedCandidateSources {
+    if ($null -eq $taskCandidateSources) { return }
+    $taskCandidateAgain = Get-ReviewedCandidateSources
+    if (($taskCandidateAgain | ConvertTo-Json -Depth 8 -Compress) -cne
+            ($taskCandidateSources | ConvertTo-Json -Depth 8 -Compress)) { throw 'Candidate source authority changed before installation' }
+}
+
 $repo = Assert-Physical $RepoRoot
 $taskInstallLock = $null
 try {
@@ -363,12 +483,14 @@ if ($taskPrior) {
     }
     if ($taskReuse) { $taskSourceRoot = $taskOldSourceRoot }
 }
+$taskCandidateSources = Get-ReviewedCandidateSources
+if ($null -ne $taskCandidateSources) { $taskSourceRoot = $taskOldSourceRoot }
 $files = [ordered]@{}
-$taskCapsuleNames = if ($taskReuse) { @($taskOldMetadata.files.PSObject.Properties.Name) } else { @('runner.py','source_preparation.py','zircon-management.groovy','checkout_guard.py') }
-if (-not $taskReuse -and $EnableCheckoutProduct) { $taskCapsuleNames += 'checkout_product.py' }
+$taskCapsuleNames = if ($taskReuse -or $null -ne $taskCandidateSources) { @($taskOldMetadata.files.PSObject.Properties.Name) } else { @('runner.py','source_preparation.py','zircon-management.groovy','checkout_guard.py') }
+if (-not $taskReuse -and $null -eq $taskCandidateSources -and $EnableCheckoutProduct) { $taskCapsuleNames += 'checkout_product.py' }
 if ($taskReuse -and $EnableCheckoutProduct -and 'checkout_product.py' -notin $taskCapsuleNames) { throw 'Original capsule has no fixed product capability' }
 foreach ($name in $taskCapsuleNames) {
-    $source = Assert-Physical "$taskSourceRoot/$name"
+    $source = Get-ManagementCapsuleSource $name
     $files[$name] = Hash-Bytes ([IO.File]::ReadAllBytes($source))
     if ($taskReuse -and $files[$name] -ne $taskOldMetadata.files.PSObject.Properties[$name].Value) { throw 'Original capsule file changed' }
 }
@@ -430,7 +552,7 @@ if ($taskReuse) {
         $taskManagedWorktree = $taskOldMetadata.managedWorktree
     } elseif ($EnableManagedWorktree) { throw 'Original capsule has no managed worktree capability' }
 } elseif ($EnableManagedWorktree) {
-    $taskRunnerSource = [IO.File]::ReadAllText((Assert-Physical "$taskSourceRoot/runner.py"))
+    $taskRunnerSource = [IO.File]::ReadAllText((Get-ManagementCapsuleSource 'runner.py'))
     if ($taskRunnerSource -notmatch '(?m)^MANAGED_WORKTREE_CAPABILITY = \{') { throw 'Management runner has no managed worktree capability' }
     $taskManagedWorktree = Get-ManagedWorktreeCapability
 }
@@ -472,6 +594,7 @@ if ($CheckOnly) {
     $taskCheckResult = [ordered]@{status='check-only';job='zircon-management';capsule=$capsule;capsuleSha256=$digest;
         driverDigest=$ExpectedDriverDigest;runtimeOperationId=$ExpectedRuntimeOperationId;ordinaryEntry=$ordinaryEntry;formalAcceptance=$false}
     if ($null -ne $taskManagedWorktree) { $taskCheckResult.managedWorktree = $taskManagedWorktree }
+    if ($null -ne $taskCandidateSources) { $taskCheckResult.candidateSources = $taskCandidateSources }
     if ($ExpectedPreviousCodexExe) {
         $taskCheckResult.codexExe = $codex
         $taskCheckResult.expectedPreviousCodexExe = $taskPreviousCodex
@@ -502,7 +625,8 @@ if (Test-Path -LiteralPath $capsule) {
     }
 } else {
     [void][IO.Directory]::CreateDirectory($capsule)
-    foreach ($name in $files.Keys) { [IO.File]::Copy("$taskSourceRoot/$name","$capsule/$name",$false) }
+    Assert-ReviewedCandidateSources
+    foreach ($name in $files.Keys) { [IO.File]::Copy((Get-ManagementCapsuleSource $name),"$capsule/$name",$false) }
     [IO.File]::WriteAllBytes("$capsule/capsule.json",$bytes)
 }
 $credentials = Get-Content -Raw -LiteralPath "$repo/.jenkins/state/credentials.json" | ConvertFrom-Json
@@ -589,6 +713,7 @@ Assert-ManagementJobExtensionSource $taskBranchIntegrationExtension $taskBranchI
         if ($null -eq $_.Exception.Response -or [int]$_.Exception.Response.StatusCode -ne 404) { throw }
     }
 }
+Assert-ReviewedCandidateSources
 $taskSelectedFinal = Get-Content -Raw -LiteralPath "$repo/.jenkins/state/deployment/driver.json" | ConvertFrom-Json
 $taskOperationFinal = Get-Content -Raw -LiteralPath "$repo/.jenkins/state/deployment-operation.json" | ConvertFrom-Json
 if ($taskSelectedFinal.driverDigest -ne $ExpectedDriverDigest -or $taskSelectedFinal.runtimeOperationId -ne $ExpectedRuntimeOperationId -or
@@ -673,7 +798,7 @@ if ((Hash-Bytes ([IO.File]::ReadAllBytes($taskRecordTemp))) -ne (Hash-Bytes $tas
 if ($taskPrior -and (Hash-Bytes ([IO.File]::ReadAllBytes($taskInstalledPath))) -ne $ExpectedInstalledSha256) { throw 'Original install changed before activation' }
 if (Test-Path -LiteralPath "$folder/installed.json") { [IO.File]::Replace($taskRecordTemp, "$folder/installed.json", [Management.Automation.Language.NullString]::Value) }
 else { [IO.File]::Move($taskRecordTemp, "$folder/installed.json") }
-if ($taskPinnedActive -or $null -ne $taskJobExtension -or $null -ne $taskDeliveryExtension -or $null -ne $taskBranchIntegrationExtension) {
+if ($taskPinnedActive -or $null -ne $taskJobExtension -or $null -ne $taskDeliveryExtension -or $null -ne $taskBranchIntegrationExtension -or $null -ne $taskCandidateSources) {
     $taskResult = [ordered]@{}
     foreach ($taskResultKey in $record.Keys) { $taskResult[$taskResultKey] = $record[$taskResultKey] }
     if ($taskPinnedActive) {
@@ -700,6 +825,7 @@ if ($taskPinnedActive -or $null -ne $taskJobExtension -or $null -ne $taskDeliver
         $taskResult.branchIntegrationExtension.preserved = $true
         $taskResult.combinedExtensionPrefixSha256 = Hash-Bytes ([Text.Encoding]::UTF8.GetBytes($taskCombinedExtensionPrefix))
     }
+    if ($null -ne $taskCandidateSources) { $taskResult.candidateSources = $taskCandidateSources }
     $taskResult | ConvertTo-Json -Depth 10
 } else { $record | ConvertTo-Json }
 

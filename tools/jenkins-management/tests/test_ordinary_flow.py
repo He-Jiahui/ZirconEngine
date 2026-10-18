@@ -2279,5 +2279,601 @@ class FixedEditorPreviewTests(unittest.TestCase):
                 runner.fixed_editor_preview_receipt(terminal, descriptor, pixel)
 
 
+
+
+class UnlaunchedFlowRecoveryTests(unittest.TestCase):
+    """The fixed adapter uses real cancellation/resource policy on in-memory State."""
+
+    class State(MemoryState):
+        def __init__(self):
+            super().__init__()
+            self.requests = {}
+
+        def put(self, domain, key, payload, expected_version=None, *, connection=None):
+            value = super().put(domain, key, payload, expected_version, connection=connection)
+            self.rows[(domain, key)]["domain"] = value["domain"] = domain
+            return value
+
+        def get_request(self, repository, session, request, *, connection=None):
+            return copy.deepcopy(self.requests.get((repository, session, request)))
+
+        def transition_request(self, repository, session, request, generation, before, after, evidence,
+                               *, connection=None):
+            row = self.requests[(repository, session, request)]
+            if row["generation"] != generation or row["status"] != before:
+                raise AssertionError("Original request transition changed")
+            row["status"] = after
+            return copy.deepcopy(row)
+
+    def setUp(self):
+        from tools.jenkins.contracts import JenkinsError
+        from tools.jenkins.resources import Capacity, ResourceManager
+        from tools.jenkins.workflow import execution
+        self.error, self.execution_module = JenkinsError, execution
+        self.state = state = self.State()
+        source, driver, prep = "a" * 64, "b" * 64, "c" * 64
+        recipe = {"preparationKey": prep, "buildRoot": "E:/cargo-targets"}
+        recipe_ref = preparation.digest(recipe)
+        key = execution.ExecutionKey(source, prep, recipe_ref, driver)
+        eid = preparation.digest({"identity": key.digest, "ordinal": 1})[:32]
+        identity = {"repositoryId": "repo", "sessionId": "reader", "requestId": "task",
+                    "attemptId": "task-1", "generation": 1, "sourceInputDigest": source,
+                    "coverageDigest": "d" * 64, "stageImplementationDigest": driver}
+        self.consumer = consumer = "reader:task:task-1"
+        intent = {"identity": identity, "worktreeId": "wt", "runtimeOperationId": "old",
+                  "ownedPaths": ["owned.rs"], "buildRoot": "E:/cargo-targets",
+                  "authorizationSnapshot": "e" * 64}
+        self.reference = reference = preparation.digest(intent)
+        state.put("current_source_intent", reference, intent)
+        prepared = {"identity": identity, "sealedInputRef": source,
+                    "currentSourceRef": reference, "sourcePreparationRef": "current-source-" + reference}
+        state.put("current_source_preparation", reference, {"status": "prepared", "result": prepared})
+        self.binding = binding = {"digest": driver, "generation": 1, "runtimeOperationId": "old"}
+        state.put("recipe_plan", recipe_ref, {"recipe": recipe, "sourceRef": source, "driver": binding})
+        state.put("management_worktree", "wt", {"status": "ready", "repositoryId": "repo", "sessionId": "writer",
+            "runtimeOperationId": "old", "ownedPaths": ["owned.rs"], "writerPrincipal": "synthetic-owner",
+            "writerAuthorizationSnapshot": "e" * 64, "path": "E:/fixture/wt"})
+        state.put("workflow", consumer, {"identity": identity, "repositoryId": "repo", "executionId": eid,
+            "recipeRef": recipe_ref, "sourceDigest": source, "coverageDigest": identity["coverageDigest"],
+            "driverDigest": driver, "generation": 1, "ownedPaths": ["owned.rs"], "status": "executing"})
+        state.put("execution", eid, {"executionKey": key.__dict__, "executionKeyDigest": key.digest,
+            "ordinal": 1, "sourceDigest": source, "sealedInputRef": source, "preparationKey": prep,
+            "recipeDigest": recipe_ref, "recipeRef": recipe_ref, "driverDigest": driver, "driver": binding,
+            "operationId": "old", "generation": 1, "coverageDigest": identity["coverageDigest"],
+            "status": "preparing", "consumers": [consumer], "refs": 1, "reservationKey": "reservation"})
+        state.put("execution_consumer", eid + ":" + consumer,
+                  {"executionId": eid, "consumerId": consumer, "status": "active"})
+        state.put("execution_binding", preparation.digest({"consumer": consumer, "executionKey": key.digest}),
+                  {"executionId": eid, "consumerId": consumer})
+        state.put("resource_reservation", "reservation", {"owner": eid, "status": "active"})
+        state.put("pool_writer_hold", prep, {"owner": eid, "reservationKey": "reservation", "status": "active"})
+        from tools.jenkins.current_source import _request
+        state.requests[("repo", "reader", "task")] = {"repositoryId": "repo", "sessionId": "reader",
+            "requestId": "task", "generation": 1, "status": "running", "payload": _request(intent, prepared)}
+        registered = state.requests[("repo", "reader", "task")]
+        registered["payloadDigest"] = preparation.digest(registered["payload"])
+        recovery = {"schemaVersion": 1, "kind": "cancelled-before-native-launch-v1", "executionId": eid,
+            "recipeRef": recipe_ref, "originalIdentity": identity, "terminalRef": {"path": "pinned-proof"},
+            "successor": {"originalLogicalTaskId": "task", "requestId": "task-r2", "attemptId": "task-2",
+                          "attemptOrdinal": 2, "generation": 1, "runtimeOperationId": "current"}}
+        self.actor = SimpleNamespace(state=state, repo=Path("E:/fixture"), repo_id="repo",
+            session="writer", owned=["owned.rs"], key="f" * 64, input_digest="1" * 64,
+            config={"driverDigest": driver, "runtimeOperationId": "current"}, manager=Mock(),
+            payload={"unlaunchedRecovery": recovery, "worktreeId": "wt", "currentSourceRef": reference,
+                     "buildRoot": "E:/cargo-targets"})
+        self.eid, self.prep = eid, prep
+        self.owner = {"operationId": "current", "driverDigest": driver}
+        self.proof = {"kind": "observed-terminal-original"}
+        self.locked = False
+
+        @contextmanager
+        def retained_execution_lock(_state, actual_eid):
+            self.assertEqual(eid, actual_eid)
+            self.assertFalse(self.locked, "Execution lock must never be acquired reentrantly")
+            self.locked = True
+            try:
+                yield
+            finally:
+                self.locked = False
+
+        # Use the existing Engine.cancel and ResourceManager.release_unlaunched;
+        # no fake terminal or resource release is supplied by the fixture.
+        engine = execution.ExecutionEngine.__new__(execution.ExecutionEngine)
+        engine.state, engine.repo_root = state, self.actor.repo
+        engine.approved_build_root = SimpleNamespace(path=Path("E:/cargo-targets"))
+        engine.resources = ResourceManager(state, Capacity(4, 8 * 1024**3, 32 * 1024**3))
+        self.real_cancel = engine.cancel
+        self.cancel = Mock(wraps=engine.cancel)
+        engine.cancel = self.cancel
+        self.addCleanup(patch.stopall)
+        patch.object(execution, "execution_lock", retained_execution_lock).start()
+        patch.object(execution, "canonical_build_root", return_value=engine.approved_build_root).start()
+        def cancellation_engine(authority, **_kwargs):
+            engine.state = authority
+            return engine
+        patch.object(execution, "ExecutionEngine", side_effect=cancellation_engine).start()
+        self.terminal = patch.object(preparation, "_unlaunched_terminal", return_value=(self.proof, self.owner)).start()
+        patch("tools.jenkins.deployment.drain_observations.owner_observation", return_value=self.owner).start()
+
+    def test_old_runtime_cancellation_retires_reader_with_explicit_successor(self):
+        from tools.jenkins.managed_worktree_lifetime import reader_retired
+        original = copy.deepcopy(self.state.get("execution", self.eid)["payload"])
+        request = self.state.requests[("repo", "reader", "task")]
+        self.assertNotIn("runtimeOperationId", request["payload"], "Use the real current-source request producer")
+        for explicit in ("different-runtime", None):
+            with self.subTest(explicitRuntime=explicit):
+                request["payload"]["runtimeOperationId"] = explicit
+                rows, requests = copy.deepcopy(self.state.rows), copy.deepcopy(self.state.requests)
+                with self.assertRaises(self.error):
+                    preparation.retire_unlaunched_flow_reader(self.actor)
+                self.assertEqual(rows, self.state.rows)
+                self.assertEqual(requests, self.state.requests)
+                self.cancel.assert_not_called()
+        del request["payload"]["runtimeOperationId"]
+        registered_payload, registered_digest = copy.deepcopy(request["payload"]), request["payloadDigest"]
+        result = preparation.retire_unlaunched_flow_reader(self.actor)
+        self.assertEqual(registered_payload, request["payload"])
+        self.assertEqual(registered_digest, request["payloadDigest"])
+        self.assertNotIn("runtimeOperationId", request["payload"])
+        self.assertEqual({"source": "validated-current-source-intent", "runtimeOperationId": "old",
+                          "originalPayloadDigest": registered_digest, "registeredPayloadHasRuntime": False},
+                         result["requestRuntimeBinding"])
+        self.assertTrue(result["cancelledBeforeNativeLaunch"])
+        self.assertFalse(result["successorSubmitted"])
+        self.assertEqual("task-2", result["successor"]["attemptId"])
+        self.cancel.assert_called_once_with(self.eid, self.consumer, cancel_request=True)
+        current = self.state.get("execution", self.eid)["payload"]
+        self.assertEqual("cancelled", current["status"])
+        for name in ("driver", "operationId", "recipeRef", "executionKey", "sealedInputRef"):
+            self.assertEqual(original[name], current[name])
+        self.assertEqual("durable_unlaunched",
+                         self.state.get("resource_reservation", "reservation")["payload"]["releaseEvidence"])
+        self.assertTrue(reader_retired(self.state, self.reference))
+        self.assertEqual([], self.state.list("native_job"))
+        self.assertEqual([], self.state.list("execution_launch"))
+
+    def test_native_host_never_releases_holds_or_retires_reader(self):
+        self.state.put("execution_host", self.eid, {"executionId": self.eid, "status": "running"})
+        with self.assertRaises(self.error):
+            preparation.retire_unlaunched_flow_reader(self.actor)
+        self.cancel.assert_not_called()
+        self.assertEqual("active", self.state.get("pool_writer_hold", self.prep)["payload"]["status"])
+        self.assertIsNone(self.state.get("managed_worktree_reader_retirement", self.reference))
+
+    def test_unproven_worker_or_pipeline_is_pending_before_any_cancellation(self):
+        self.terminal.side_effect = self.error("unlaunched_recovery_worker_unproven", "Original birth is unproven")
+        with self.assertRaises(self.error):
+            preparation.retire_unlaunched_flow_reader(self.actor)
+        self.cancel.assert_not_called()
+        self.assertIsNone(self.state.get("unlaunched_flow_recovery", self.eid))
+        self.assertEqual("preparing", self.state.get("execution", self.eid)["payload"]["status"])
+
+    def test_host_race_is_actual_cancel_requested_and_keeps_reader_and_holds(self):
+        def racing_cancel(*args, **kwargs):
+            self.state.put("execution_host", self.eid, {"executionId": self.eid, "status": "running"})
+            return self.real_cancel(*args, **kwargs)
+        self.cancel.side_effect = racing_cancel
+        with self.assertRaises(self.error):
+            preparation.retire_unlaunched_flow_reader(self.actor)
+        self.assertEqual("cancel_requested", self.state.get("execution", self.eid)["payload"]["status"])
+        self.assertEqual("active", self.state.get("pool_writer_hold", self.prep)["payload"]["status"])
+        self.assertIsNone(self.state.get("managed_worktree_reader_retirement", self.reference))
+
+    def test_exact_replay_does_not_cancel_or_change_lineage_again(self):
+        first = preparation.retire_unlaunched_flow_reader(self.actor)
+        rows = copy.deepcopy(self.state.rows)
+        second = preparation.retire_unlaunched_flow_reader(self.actor)
+        self.assertEqual(first, second)
+        self.assertEqual(rows, self.state.rows)
+        self.assertEqual(1, self.cancel.call_count)
+        self.actor.payload["unlaunchedRecovery"]["successor"]["attemptId"] = "task-other-2"
+        with self.assertRaises(self.error):
+            preparation.retire_unlaunched_flow_reader(self.actor)
+        self.assertEqual(rows, self.state.rows)
+        self.actor.payload["unlaunchedRecovery"]["successor"]["attemptId"] = "task-2"
+        actor = runner.Management.__new__(runner.Management)
+        actor.__dict__.update(vars(self.actor))
+        actor.action, actor.query = "retire-worktree-reader", False
+        actor.request, actor.operation = "recover-original", "recover-original-operation"
+        self.state.put("management_operation", actor.key, {"phase": "unknown",
+            "inputDigest": actor.input_digest, "payload": copy.deepcopy(actor.payload)})
+
+        @contextmanager
+        def original_management_lock(path, **_kwargs):
+            self.assertEqual("management-operation-" + actor.key + ".lock", path.name)
+            yield
+
+        with patch("tools.jenkins.state.locks.process_lock", original_management_lock), \
+                patch.object(runner, "source_helper", return_value=preparation):
+            reconciled = actor.run()
+            completed = copy.deepcopy(self.state.rows)
+            self.assertEqual(reconciled, actor.run())
+        self.assertTrue(reconciled["cancelledBeforeNativeLaunch"])
+        self.assertEqual("complete", self.state.get("management_operation", actor.key)["payload"]["phase"])
+        self.assertEqual(completed, self.state.rows)
+        self.assertEqual(1, self.cancel.call_count)
+
+    def test_legal_worktree_rebind_and_shared_hold_reuse_do_not_revive_old_reader(self):
+        from tools.jenkins.managed_worktree_lifetime import reader_retired
+        preparation.retire_unlaunched_flow_reader(self.actor)
+        worktree = self.state.get("management_worktree", "wt")
+        self.state.put("management_worktree", "wt", {**worktree["payload"], "runtimeOperationId": "current"},
+                       expected_version=worktree["version"])
+        hold = self.state.get("pool_writer_hold", self.prep)
+        self.state.put("pool_writer_hold", self.prep, {"owner": "successor-execution",
+            "reservationKey": "next-reservation", "status": "active"}, expected_version=hold["version"])
+        self.assertTrue(reader_retired(self.state, self.reference))
+        self.assertFalse(self.state.get("unlaunched_flow_recovery", self.eid)["payload"]["nativeTerminationProofCreated"])
+
+    def test_existing_retire_action_keeps_ordinary_native_dispatch(self):
+        actor = runner.Management.__new__(runner.Management)
+        actor.action, actor.payload = "retire-worktree-reader", {}
+        with patch("tools.jenkins.managed_worktree_lifetime.retire_reader", return_value={"native": True}) as native:
+            self.assertEqual({"native": True}, actor._dispatch())
+        native.assert_called_once_with(actor)
+
+
+
+
+class CommittedWorktreeSuccessorTests(unittest.TestCase):
+    """A real State CAS retains the physical tree and durable creation anchors."""
+
+    @contextmanager
+    def fixture(self):
+        from tools.jenkins.state import State
+        with tempfile.TemporaryDirectory(prefix="ordinary-committed-successor-") as temporary:
+            repo = Path(temporary) / "repository"
+            wt = repo / ".jenkins/worktrees/writer-work"
+            wt.mkdir(parents=True)
+            (repo / ".git").mkdir()
+            (wt / "owned.txt").write_bytes(b"old-owned\n")
+            (wt / "dependency.txt").write_bytes(b"old-dependency\n")
+            state = State(repo / ".jenkins/state/fixture.sqlite3")
+            auth = state.authorize_session("repo", "writer", "windows:fixture-owner", ["owned.txt"],
+                ["implementation", "validation"], {"source": "user", "task": "committed-worktree-fixture"})
+            old_head, head, driver = "a" * 40, "b" * 40, "d" * 64
+            old_source = snapshot(wt, old_head)
+            prior_payload = {"action": "create-worktree", "repositoryId": "repo", "sessionId": "writer",
+                "requestId": "original", "operationId": "create-original", "name": "work",
+                "baseHead": old_head, "ownedPaths": ["owned.txt"], "driverDigest": driver,
+                "runtimeOperationId": "old-runtime"}
+            original_key = runner.sha(runner.encoded({n: prior_payload[n] for n in
+                ("repositoryId", "sessionId", "requestId", "operationId")}))
+            old_record = {"status": "ready", "repositoryId": "repo", "sessionId": "writer",
+                "requestId": "original", "operationId": "create-original", "path": str(wt),
+                "branch": "codex/jenkins/writer/work", "baseHead": old_head, "ownedPaths": ["owned.txt"],
+                "driverDigest": driver, "runtimeOperationId": "old-runtime", "creationOperationKey": original_key,
+                "writerPrincipal": auth["principal"], "writerAuthorizationSnapshot": auth["snapshotDigest"]}
+            state.put("management_worktree", "writer-work", old_record, expected_version=0)
+            original = {"action": "create-worktree", "phase": "complete", "payload": prior_payload,
+                "inputDigest": runner.sha(runner.encoded(prior_payload)),
+                "result": {**old_record, "status": "complete", "worktreeId": "writer-work",
+                           "operationKey": original_key, "source": old_source}}
+            state.put("management_operation", original_key, original, expected_version=0)
+            # Uncommitted dependency bytes are preserved in the new full source anchor.
+            (wt / "owned.txt").write_bytes(b"committed-owned\n")
+            (wt / "dependency.txt").write_bytes(b"read-authorized-dirty-dependency\n")
+            checksum = runner.sha((wt / "owned.txt").read_bytes())
+            oid = hashlib.sha1(b"blob 16\0committed-owned\n").hexdigest()
+            controls = repo / ".jenkins/state/controls"; controls.mkdir(parents=True)
+            receipt_path = controls / "branch-owned-commit.115.response.json"
+            archive_name = "branch-owned-commit.115.receipt.json"
+            receipt = {"schemaVersion": 1, "status": "committed", "sourceRoot": str(wt),
+                "branch": old_record["branch"], "headBefore": old_head, "sourceCommit": head,
+                "request": {"sessionId": "writer", "requestId": "deliver-owned",
+                    "operationId": "owned-commit", "sourceRoot": str(wt), "paths": ["owned.txt"]},
+                "runtime": {"driverDigest": driver, "runtimeOperationId": "old-runtime"},
+                "files": {"owned.txt": checksum}, "commitPaths": ["owned.txt"],
+                "expectedGitObjects": {"owned.txt": oid}}
+            receipt_raw = runner.encoded(receipt); receipt_path.write_bytes(receipt_raw)
+            home = repo / ".jenkins/jenkins_home/jobs/zircon-management/builds/115"
+            (home / "archive").mkdir(parents=True)
+            (home / "archive" / archive_name).write_bytes(receipt_raw)
+            (home / "build.xml").write_text("<flow-build><completed>true</completed><result>SUCCESS</result></flow-build>",
+                                           encoding="utf-8")
+            build = {"number": 115, "building": False, "result": "SUCCESS",
+                "actions": [{"parameters": [{"name": k, "value": v} for k, v in {
+                    "SESSION_ID": "writer", "REQUEST_ID": "deliver-owned", "OPERATION_ID": "owned-commit",
+                    "ACTION": "commit-branch"}.items()]}],
+                "artifacts": [{"relativePath": archive_name}]}
+            retirement_key, reference = "e" * 64, "f" * 64
+            state.put("current_source_intent", reference, {"worktreeId": "writer-work", "sourceRoot": str(wt)})
+            state.put("managed_worktree_reader_retirement", reference,
+                {"status": "retired", "currentSourceRef": reference, "retiredBy": retirement_key, "terminalPins": [
+                    {"domain": "management_operation", "key": original_key, "version": 1,
+                     "payloadDigest": preparation.digest(original)}]})
+            state.put("management_operation", retirement_key, {"action": "retire-worktree-reader", "phase": "complete",
+                "result": {"status": "complete", "readerRetired": True, "worktreeId": "writer-work", "currentSourceRef": reference}})
+            state.put("current_source_intent", "9" * 64, {"worktreeId": "another-task"})
+            actor = runner.Management.__new__(runner.Management)
+            actor.repo, actor.worktrees, actor.state, actor.repo_id = repo, wt.parent, state, "repo"
+            actor.session, actor.request, actor.operation, actor.action = "writer", "successor", "create-successor", "create-worktree"
+            actor.owned = ["owned.txt"]
+            actor.config = {"managedWorktree": runner.MANAGED_WORKTREE_CAPABILITY,
+                            "driverDigest": driver, "runtimeOperationId": "current-runtime"}
+            actor.payload = {"action": actor.action, "repositoryId": "repo", "sessionId": actor.session,
+                "requestId": actor.request, "operationId": actor.operation, "worktreeId": "writer-work",
+                "name": "work", "baseHead": head, "ownedPaths": actor.owned,
+                "driverDigest": driver, "runtimeOperationId": "current-runtime",
+                "resumeFromOperationKey": original_key,
+                "committedSuccessor": {"schemaVersion": 1,
+                    "commitReceiptRef": {"path": str(receipt_path), "sha256": runner.sha(receipt_raw), "bytes": len(receipt_raw)},
+                    "readerRetirementOperationKey": retirement_key}}
+            actor.key = runner.sha(runner.encoded({n: actor.payload[n] for n in
+                ("repositoryId", "sessionId", "requestId", "operationId")}))
+            actor.input_digest = runner.sha(runner.encoded(actor.payload))
+            actor.manager = SimpleNamespace(_request=Mock(side_effect=lambda endpoint, **kw:
+                (200, runner.encoded(build)) if "/api/json" in endpoint else (200, receipt_raw)))
+            actor.worktree_resume_lineage = Mock(return_value={"kind": "verified-fixture-reboot"})
+            reads = {"head": head, "parent": old_head}
+            def text(root, *args):
+                if args == ("rev-parse", head + "^{commit}"): return head
+                if args == ("rev-parse", "--path-format=absolute", "--git-common-dir"): return str(repo / ".git")
+                if args == ("symbolic-ref", "--short", "HEAD"): return old_record["branch"]
+                if args == ("rev-parse", "HEAD"): return reads["head"]
+                if args == ("rev-parse", head + "^"): return reads["parent"]
+                raise AssertionError("Unexpected Git read: " + repr(args))
+            actor.text = text
+            def git(root, *args, **kw):
+                self.assertIn(args[0], {"diff-tree", "ls-tree"}, "Successor cannot mutate Git")
+                raw = b"owned.txt\0" if args[0] == "diff-tree" else ("100644 blob " + oid + "\towned.txt\0").encode()
+                return SimpleNamespace(stdout=raw, returncode=0)
+            actor.git = Mock(side_effect=git)
+            actor.source = Mock(side_effect=lambda root: snapshot(root, reads["head"]))
+            with patch.object(runner, "source_helper", return_value=preparation):
+                yield SimpleNamespace(actor=actor, state=state, wt=wt, old_head=old_head, head=head,
+                    original_key=original_key, old_record=old_record, original=original, reference=reference,
+                    retirement_key=retirement_key, reads=reads)
+
+    def test_committed_successor_preserves_dependencies_and_next_reboot_anchor(self):
+        with self.fixture() as f:
+            actor, state = f.actor, f.state
+            result = actor._dispatch()
+            self.assertEqual(1, actor.source.call_count, "Publish exactly the captured source, without rescanning it")
+            record = state.get("management_worktree", "writer-work")["payload"]
+            self.assertTrue(record["reusedPhysicalWorktree"])
+            self.assertEqual(f.original_key, record["previousCreationOperationKey"])
+            self.assertEqual(actor.key, record["creationOperationKey"])
+            self.assertEqual(f.head, record["baseHead"])
+            self.assertEqual((actor.request, actor.operation), (record["requestId"], record["operationId"]))
+            self.assertEqual(runner.sha(b"read-authorized-dirty-dependency\n"), result["source"]["files"]["dependency.txt"])
+            self.assertEqual(f.original, state.get("management_operation", f.original_key)["payload"])
+            result = {**result, "operationKey": actor.key}
+            state.put("management_operation", actor.key, {"phase": "complete", "action": "create-worktree",
+                "payload": copy.deepcopy(actor.payload), "inputDigest": actor.input_digest, "result": copy.deepcopy(result)})
+            previous_key = actor.key
+            actor.request, actor.operation = "next-reboot", "create-next-reboot"
+            actor.config = {**actor.config, "runtimeOperationId": "next-runtime"}
+            actor.payload = {**actor.payload, "requestId": actor.request, "operationId": actor.operation,
+                "runtimeOperationId": "next-runtime", "resumeFromOperationKey": previous_key}
+            actor.payload.pop("committedSuccessor")
+            actor.key = runner.sha(runner.encoded({n: actor.payload[n] for n in
+                ("repositoryId", "sessionId", "requestId", "operationId")}))
+            actor.input_digest = runner.sha(runner.encoded(actor.payload))
+            reference, path, resumed = actor.resume_existing_worktree("writer-work", f.wt,
+                state.get("management_worktree", "writer-work"), f.head, merge=False)
+            self.assertEqual(("writer-work", f.wt), (reference, path))
+            self.assertEqual(actor.key, resumed["creationOperationKey"])
+            self.assertEqual("next-runtime", resumed["runtimeOperationId"])
+            self.assertEqual(result, state.get("management_operation", previous_key)["payload"]["result"])
+            self.assertEqual(f.original, state.get("management_operation", f.original_key)["payload"])
+
+    def test_committed_successor_drift_is_rejected_before_capture_or_worktree_cas(self):
+        from tools.jenkins.contracts import JenkinsError
+        for drift in ("owned", "head", "parent", "receipt"):
+            with self.subTest(drift=drift), self.fixture() as f:
+                before = f.state.get("management_worktree", "writer-work")
+                if drift == "owned": (f.wt / "owned.txt").write_bytes(b"foreign-edit\n")
+                elif drift == "head": f.reads["head"] = "c" * 40
+                elif drift == "parent": f.reads["parent"] = "c" * 40
+                else: f.actor.payload["committedSuccessor"]["commitReceiptRef"]["sha256"] = "0" * 64
+                with self.assertRaises(JenkinsError):
+                    f.actor.resume_existing_worktree("writer-work", f.wt, before, f.head, merge=False)
+                self.assertEqual(before, f.state.get("management_worktree", "writer-work"))
+                f.actor.source.assert_not_called()
+
+    def test_committed_successor_waits_for_its_related_reader(self):
+        from tools.jenkins.contracts import JenkinsError
+        with self.fixture() as f:
+            before = f.state.get("management_worktree", "writer-work")
+            row = f.state.get("managed_worktree_reader_retirement", f.reference)
+            f.state.put("managed_worktree_reader_retirement", f.reference,
+                        {**row["payload"], "status": "pending"}, expected_version=row["version"])
+            with self.assertRaises(JenkinsError):
+                f.actor.resume_existing_worktree("writer-work", f.wt, before, f.head, merge=False)
+            self.assertEqual(before, f.state.get("management_worktree", "writer-work"))
+            f.actor.source.assert_not_called()
+
+
+class BranchCandidatePreparationTests(unittest.TestCase):
+    @contextmanager
+    def _candidate_fixture(self):
+        """Isolated owner/State fixtures; CAS, admission, preparation and Cargo stay real."""
+        from contextlib import ExitStack
+        import shutil
+        import subprocess
+        import tomllib
+        from tools.jenkins.resources import paths
+        from tools.jenkins.workflow import planning
+
+        actual = paths.canonical_build_root("E:/cargo-targets")
+        parent = paths.physical_path_under(actual, os.environ.get("ZR_COMMIT_TEST_ROOT", tempfile.gettempdir()),
+                                           allow_missing=False)
+        with tempfile.TemporaryDirectory(prefix="branch-input-", dir=parent) as temporary:
+            top = Path(temporary)
+            repo, external = top / "repository", top / "zr_vm"
+            repo.mkdir()
+            (external / "binding/src").mkdir(parents=True)
+            (repo / "src").mkdir()
+            (repo / ".gitignore").write_text(".jenkins/\ntarget/\n", encoding="utf-8")
+            (repo / "Cargo.toml").write_text(
+                '[package]\nname="candidate_fixture"\nversion="0.0.0"\nedition="2021"\n'
+                '[dependencies]\nvm_binding={path="../zr_vm/binding",optional=true}\n'
+                '[features]\nvm=["dep:vm_binding"]\n', encoding="utf-8")
+            (repo / "Cargo.lock").write_text(
+                'version = 3\n[[package]]\nname = "candidate_fixture"\nversion = "0.0.0"\n'
+                'dependencies = ["vm_binding"]\n[[package]]\nname = "vm_binding"\nversion = "0.0.0"\n',
+                encoding="utf-8")
+            (repo / "src/lib.rs").write_text(
+                '#[cfg(feature="vm")] pub fn value()->u8 { vm_binding::value() }\n', encoding="utf-8")
+            (external / "binding/Cargo.toml").write_text(
+                '[package]\nname="vm_binding"\nversion="0.0.0"\nedition="2021"\n', encoding="utf-8")
+            (external / "binding/src/lib.rs").write_text('pub fn value()->u8 { 7 }\n', encoding="utf-8")
+            program = str(Path(shutil.which("git")).absolute())
+            def git(root, *args):
+                return subprocess.run([program, "-c", "core.longpaths=true", "-c", "core.autocrlf=false", "-c",
+                    "core.hooksPath=" + str(top / "no-hooks"), "-C", str(root), *args],
+                    check=True, capture_output=True).stdout.decode("utf-8").strip()
+            for root in (repo, external):
+                git(root, "init", "--initial-branch=main")
+                git(root, "config", "user.name", "Synthetic branch fixture")
+                git(root, "config", "user.email", "branch-fixture@example.invalid")
+                git(root, "add", "--all")
+                git(root, "commit", "-m", "Synthetic bounded fixture")
+            head = git(repo, "rev-parse", "HEAD")
+            candidate = repo / ".jenkins/worktrees/integration-queue"
+            candidate.parent.mkdir(parents=True)
+            git(repo, "worktree", "add", "--detach", str(candidate), head)
+            request = {"operationId": "fixture-branch", "sessionId": "fixture-owner",
+                "requestId": "fixture-request", "ownerThreadId": "fixture-thread",
+                "paths": [".gitignore", "Cargo.toml", "Cargo.lock", "src/lib.rs"]}
+            runtime = {"driverDigest": "d" * 64, "runtimeOperationId": "fixture-current-runtime"}
+            config = {**runtime, "repositoryRoot": str(repo)}
+            capsule = top / ("a" * 64)
+            state = MemoryState()
+            state.put("resource_policy", "default", {"cpuBudget": 1, "memoryBudget": 4 * 1024**3,
+                "diskBudget": 8 * 1024**3, "diskReserveBytes": 0, "maxHeavyWriters": 1,
+                "allowedBuildRoots": [str(actual.path)]}, expected_version=0)
+            approved = SimpleNamespace(path=actual.path, volume_identity=actual.volume_identity,
+                                       namespace=lambda: top / "namespace")
+            helper = load("branch_fixture_local_cargo", ROOT / "tools/dev/local_cargo.py")
+            merge_report = top / "merge-proof"
+            merge_report.mkdir()
+            merge_command = [program, "-c", "core.longpaths=true", "-c", "core.autocrlf=false", "-C", str(candidate),
+                             "merge", "--no-edit", head]
+            merged = helper._run_owned_command(merge_command, candidate, dict(os.environ), merge_report, 60)
+            native_ref = runner.write_json(merge_report / "native-terminal.json", merged)
+            self.assertEqual(0, merged["rootExitCode"])
+            self.assertTrue(runner.native_terminal_proof(merged, native_ref)["complete"])
+            command_ref = runner.write_json(merge_report / "command.json",
+                {"runtime": runtime, "operationId": request["operationId"], "operationKind": "merge",
+                 "cwd": str(candidate), "command": merge_command})
+            row = {"request": request, "runtime": {**runtime, "runtimeOperationId": "fixture-original-runtime"},
+                "sourceCommit": head, "sourceRoot": str(repo), "branch": "fixture-original-branch",
+                "candidateHead": head, "mainHeadBefore": head, "candidateRoot": str(candidate),
+                "commitPaths": request["paths"], "integrationStatus": "validating",
+                "candidateGit": {"operationKind": "merge", "nativeComplete": True, "rootExitCode": 0,
+                    "reportRoot": str(merge_report), "commandRef": command_ref, "nativeTerminalRef": native_ref}}
+            record_path = repo / ".jenkins/state/management/branch-integration/requests/fixture-branch.json"
+            marker_path = record_path.parent.parent / "candidate.json"
+            runner.write_json(record_path, row)
+            runner.write_json(marker_path, {"status": "active", "operationId": request["operationId"],
+                                            "path": str(candidate), "mainHead": head})
+            runner.write_json(repo / ".jenkins/state/deployment/driver.json", runtime)
+            runner.write_json(repo / ".jenkins/state/deployment-operation.json",
+                              {"operationId": runtime["runtimeOperationId"], "state": "running"})
+            rustup = Path(os.environ.get("RUSTUP_HOME") or str(Path(os.environ["ZR_COMMIT_TEST_CARGO_PATH"]).parents[3]))
+            settings = tomllib.loads((rustup / "settings.toml").read_text(encoding="utf-8"))
+            selected = ROOT / "rust-toolchain.toml"
+            channel = (tomllib.loads(selected.read_text(encoding="utf-8"))["toolchain"]["channel"]
+                       if selected.is_file() else (os.environ.get("RUSTUP_TOOLCHAIN") or settings["default_toolchain"]))
+            host = settings.get("default_host_triple", "x86_64-pc-windows-msvc")
+            toolroot = next(path for path in (rustup / "toolchains" / channel,
+                rustup / "toolchains" / (channel + "-" + host)) if (path / "bin/cargo.exe").is_file())
+            trusted = {key + suffix: value for key in ("cargo", "rustc") for suffix, value in (
+                ("Path", str(toolroot / "bin" / (key + ".exe"))),
+                ("Sha256", runner.sha((toolroot / "bin" / (key + ".exe")).read_bytes())))}
+            for tool in ("cargo", "rustc"):
+                self.assertEqual(Path(os.environ["ZR_COMMIT_TEST_" + tool.upper() + "_PATH"]),
+                                 Path(trusted[tool + "Path"]))
+                self.assertEqual(os.environ["ZR_COMMIT_TEST_" + tool.upper() + "_SHA256"],
+                                 trusted[tool + "Sha256"])
+            environment = dict(os.environ)
+            environment["PATH"] = str(toolroot / "bin") + os.pathsep + environment.get("PATH", "")
+            original_spec = importlib.util.spec_from_file_location
+            def helper_spec(name, path, *args, **kwargs):
+                return original_spec(name, ROOT / "tools/dev/local_cargo.py" if
+                    name == "jenkins_managed_local_cargo" else path, *args, **kwargs)
+            def scratch(actor, *, environment=None, **unused):
+                path = actor.outputs() / "reports" / actor.key / "tmp"
+                if environment is not None:
+                    path.mkdir(parents=True)
+                    return {"path": str(path), "fixtureOnly": True}
+                return {"status": "retained-fixture", "removedFileCount": 0, "reclaimedBytes": 0,
+                        "receipt": None}
+            env = {"JOB_NAME": "zircon-merge-queue", "NODE_NAME": "zircon-windows-agent",
+                   "ZR_COMMIT_NATIVE": "1", "ZR_INTEGRATION_DRIVER": runtime["driverDigest"],
+                   "ZR_INTEGRATION_RUNTIME": runtime["runtimeOperationId"]}
+            with ExitStack() as stack:
+                for context in (patch.dict(os.environ, env), patch.object(runner, "boot",
+                    return_value=(config, repo, SimpleNamespace())), patch("tools.jenkins.state.State",
+                    return_value=state), patch.object(preparation, "scoped_authorization_state",
+                    side_effect=lambda supplied: supplied), patch.object(runner, "source_helper",
+                    return_value=preparation), patch.object(runner, "ensure_request_context"),
+                    patch.object(paths, "canonical_build_root", return_value=approved),
+                    patch.object(planning, "_environment_policy",
+                        side_effect=lambda *_: (dict(environment), dict(trusted), top / "fixture-environment.json")),
+                    patch.object(runner.Management, "dependency_cache",
+                        return_value={"home": str(top / "cargo-home"), "configSha256": {}}),
+                    patch.object(runner.Management, "task_tmp", scratch),
+                    patch.object(importlib.util, "spec_from_file_location", side_effect=helper_spec)):
+                    stack.enter_context(context)
+                yield {"repo": repo, "root": candidate, "state": state, "capsule": capsule,
+                    "request": request, "runtime": runtime, "config": config, "component": "b" * 64,
+                    "record": record_path, "marker": marker_path, "native": merge_report / "native-terminal.json",
+                    "recipe": {"verb": "check", "packages": ["candidate_fixture"], "features": ["vm"],
+                               "offline": True, "locked": True, "jobs": 1}}
+
+    def test_missing_candidate_sibling_uses_managed_prepared_cargo(self):
+        with self._candidate_fixture() as fixture:
+            historical = {name: fixture[name].read_bytes() for name in ("record", "marker", "native")}
+            self.assertFalse((fixture["root"].parent / "zr_vm").exists())
+            result = runner.validate_branch_candidate(fixture["capsule"], component_digest=fixture["component"],
+                root=fixture["root"], branch_request=fixture["request"], cargo_recipe=fixture["recipe"],
+                ordinal=1, runtime=fixture["runtime"])
+            self.assertEqual("passed", result["status"], result)
+            execution = Path(result["executionRoot"])
+            self.assertTrue((execution.parent / "zr_vm/binding/Cargo.toml").is_file())
+            self.assertEqual("integration-candidate",
+                fixture["state"].get("management_source", result["operationKey"])["payload"]["sourceView"])
+            capture = fixture["state"].get("management_source", result["operationKey"])["payload"]
+            self.assertEqual("full-file-index-v2", capture["source"]["sourceEvidencePolicy"])
+            self.assertEqual("full-file-index-v2", capture["externalRoots"][0]["source"]["sourceEvidencePolicy"])
+            self.assertTrue(result["capturedInputVerified"])
+            self.assertTrue(result["preparedInputsUnchanged"])
+            self.assertEqual(result["sealedInputRef"], result["preparation"]["sealedInputRef"])
+            native = runner.read_reference(result["nativeTerminal"])
+            self.assertEqual(0, native["rootExitCode"])
+            self.assertIn("--locked", native["command"])
+            self.assertIn("--offline", native["command"])
+            self.assertTrue(runner.native_terminal_proof(native, result["nativeTerminal"])["complete"])
+            self.assertTrue(fixture["state"].list("sealed_input"))
+            self.assertTrue(fixture["state"].list("preparation_source"))
+            self.assertTrue(all(row["payload"]["status"] == "released"
+                                for row in fixture["state"].list("resource_reservation")))
+            self.assertFalse(fixture["state"].list("management_worktree"))
+            self.assertEqual(historical,
+                {name: fixture[name].read_bytes() for name in ("record", "marker", "native")})
+
+    def test_changed_candidate_binding_retains_evidence_and_does_not_launch(self):
+        with self._candidate_fixture() as fixture:
+            row = json.loads(fixture["record"].read_bytes())
+            row["candidateHead"] = "0" * 40
+            fixture["record"].write_bytes(runner.encoded(row) + b"\n")
+            evidence = {name: fixture[name].read_bytes() for name in ("record", "marker", "native")}
+            with patch.object(preparation, "seal_source", wraps=preparation.seal_source) as seal, \
+                    patch.object(runner.Management, "run", wraps=runner.Management.run) as launch:
+                with self.assertRaisesRegex(ValueError, "Candidate HEAD"):
+                    runner.validate_branch_candidate(fixture["capsule"], component_digest=fixture["component"],
+                        root=fixture["root"], branch_request=fixture["request"], cargo_recipe=fixture["recipe"],
+                        ordinal=1, runtime=fixture["runtime"])
+            seal.assert_not_called()
+            launch.assert_not_called()
+            for domain in ("resource_reservation", "execution", "execution_launch", "sealed_input"):
+                self.assertFalse(fixture["state"].list(domain))
+            self.assertEqual(evidence,
+                {name: fixture[name].read_bytes() for name in ("record", "marker", "native")})
+
+
 if __name__ == "__main__":
     unittest.main()

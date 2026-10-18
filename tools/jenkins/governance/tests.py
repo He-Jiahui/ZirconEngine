@@ -912,6 +912,42 @@ if (-not $rejected) { throw 'Unsupported XML content was accepted' }
         self.assertEqual(prepared["defaultProfile"], applied["default_permissions"])
         self.assertNotIn("write", applied["permissions"][applied["default_permissions"]]["filesystem"].values())
 
+    def test_implementation_closure_keeps_library_guards_and_rejects_unknown_entries(self):
+        from tools.dev import jenkins_governance as operator
+        control = Path(__file__).resolve().parents[3]
+        selected = {path.relative_to(control).as_posix() for path in operator._implementation_closure(control)}
+        required = {
+            "tools/jenkins/governance/bootstrap.py", "tools/jenkins/governance/worker.py",
+            "tools/jenkins/governance/audit.py", "tools/jenkins/governance/inventory.py",
+            "tools/jenkins/governance/cleanup.py", "tools/jenkins/governance/paths.py",
+            "tools/jenkins/state/__init__.py", "tools/jenkins/deployment/driver.py",
+            "tools/jenkins/source/__init__.py", "tools/jenkins/processes/identity.py",
+            "tools/jenkins/processes/native.py", "tools/dev/local_cargo.py",
+            "tools/jenkins/pilot/native/windows_job_process.py", "tools/jenkins/pilot/process_evidence.py",
+        }
+        self.assertTrue(required <= selected, sorted(required - selected))
+        self.assertTrue({"tools/jenkins/frontend.py", "tools/jenkins/current_source.py",
+                         "tools/jenkins/workflow/handler.py"}.isdisjoint(selected))
+        parse = operator.ast.parse
+        worker = str(control / "tools/jenkins/governance/worker.py")
+        for statement in (
+                "from tools.dev.local_cargo import main",
+                "from tools.jenkins.source import seal_manifest",
+                "from tools.jenkins.processes import ExecutionHost",
+                "from tools.jenkins.source import *",
+                "import tools.dev.local_cargo as cargo",
+                "from tools.jenkins import processes"):
+            with self.subTest(importStatement=statement):
+                def injected(source, filename="<unknown>", **options):
+                    tree = parse(source, filename=filename, **options)
+                    if filename == worker:
+                        tree.body.extend(parse(statement).body)
+                    return tree
+                # Alter only the parser's in-memory input, never a source file.
+                with mock.patch.object(operator.ast, "parse", side_effect=injected):
+                    with self.assertRaisesRegex(ValueError, "^undeclared_governance_library_import:"):
+                        operator._implementation_closure(control)
+
     def test_bootstrap_rejects_changed_helper_before_importing_it(self):
         import base64, zlib
         bootstrap = self.root / "bootstrap-control/tools/jenkins/governance/bootstrap.py"
