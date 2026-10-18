@@ -130,6 +130,7 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
                 "workbench_bridge_state_projection"
             );
             self.apply_toolbar_run_state(model)?;
+            self.apply_command_menu_state(model)?;
             self.apply_asset_creation_menu_state(model, shell_size)?;
             self.apply_responsive_toolbar_layout(UiSize::new(
                 logical_toolbar_width,

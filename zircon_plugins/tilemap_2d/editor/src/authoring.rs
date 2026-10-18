@@ -68,11 +68,14 @@ pub fn validate_tilemap_for_editor(tilemap: &TileMapAsset) -> Vec<String> {
     }
     for layer in &tilemap.layers {
         match TilemapLayerId::try_new(layer.name.clone()) {
-            Ok(layer_id) if layer_ids.insert(layer_id) => {}
-            Ok(layer_id) => diagnostics.push(format!(
-                "duplicate tilemap layer identity `{}` is ambiguous",
-                layer_id.as_str()
-            )),
+            Ok(layer_id) => {
+                if let Some(duplicate) = layer_ids.replace(layer_id) {
+                    diagnostics.push(format!(
+                        "duplicate tilemap layer identity `{}` is ambiguous",
+                        duplicate.as_str()
+                    ));
+                }
+            }
             Err(error) => diagnostics.push(error),
         }
     }

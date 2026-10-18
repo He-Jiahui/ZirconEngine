@@ -61,8 +61,8 @@ impl UiHostWindowEventLoop {
             WindowEvent::PointerMoved { position, .. } => {
                 self.handle_pointer_moved(require_platform_input(platform_input_event), position);
             }
-            WindowEvent::PointerButton { position, .. } => {
-                self.handle_pointer_button(require_platform_input(platform_input_event), position);
+            WindowEvent::PointerButton { .. } => {
+                self.handle_pointer_button(require_platform_input(platform_input_event));
             }
             WindowEvent::PointerEntered { .. } => {
                 let platform_event = require_platform_input(platform_input_event);
@@ -129,7 +129,7 @@ impl UiHostWindowEventLoop {
         platform_event: PlatformInputTranslation,
     ) {
         self.begin_input_outcome(platform_event.sequence);
-        let (x, y) = self.last_pointer_position.unwrap_or((0.0, 0.0));
+        let (x, y) = self.last_pointer_position.take().unwrap_or((0.0, 0.0));
         if let Some(pointer) = super::platform_input::platform_pointer_cancel_input(
             platform_event.event,
             UiPoint::new(x, y),

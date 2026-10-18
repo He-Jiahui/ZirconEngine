@@ -110,7 +110,7 @@ fn retained_tick_projects_the_unified_notification_snapshot_after_backend_pollin
         .next()
         .expect("tick source should contain its production section");
     let backend_poll = production
-        .find("self.runtime.pump_runtime_event_consumers()")
+        .find("self.tick_runtime();")
         .expect("retained tick should poll the play backend");
     let lifecycle_pump = production
         .find("self.runtime.pump_plugin_lifecycle_messages()")

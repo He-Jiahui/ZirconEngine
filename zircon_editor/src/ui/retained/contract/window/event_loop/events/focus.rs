@@ -12,6 +12,7 @@ impl UiHostWindowEventLoop {
     }
 
     pub(super) fn handle_native_window_focus_lost(&mut self) {
+        self.last_pointer_position = None;
         let preview_canceled = self.host.finish_retained_pane_input(
             zircon_runtime_interface::ui::window::UiWindowEventKind::Focused { focused: false },
         );

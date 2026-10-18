@@ -107,13 +107,13 @@ impl AssetImportBackend for RegisteredBackend {
     }
 }
 
-struct ProjectFixture {
+pub(super) struct ProjectFixture {
     parent: PathBuf,
-    root: PathBuf,
+    pub(super) root: PathBuf,
 }
 
 impl ProjectFixture {
-    fn new() -> Self {
+    pub(super) fn new() -> Self {
         static NEXT: AtomicUsize = AtomicUsize::new(0);
         let executable = fs::canonicalize(std::env::current_exe().unwrap()).unwrap();
         let executable_parent = executable.parent().unwrap();

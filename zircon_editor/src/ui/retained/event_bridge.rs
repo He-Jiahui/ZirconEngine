@@ -55,6 +55,8 @@ pub(crate) struct UiHostEventEffects {
     pub reset_active_layout_preset: bool,
     pub open_command_palette_requested: bool,
     pub open_settings_window_requested: bool,
+    pub toggle_content_drawer_requested: bool,
+    pub play_started_sequence: Option<u64>,
     pub open_scene_picker_requested: bool,
     pub create_scene_picker_requested: bool,
     pub opened_view_visibility_requests: Vec<ViewInstanceId>,
@@ -151,6 +153,8 @@ impl UiHostEventEffects {
             && !self.reset_active_layout_preset
             && !self.open_command_palette_requested
             && !self.open_settings_window_requested
+            && !self.toggle_content_drawer_requested
+            && self.play_started_sequence.is_none()
             && !self.open_scene_picker_requested
             && !self.create_scene_picker_requested
             && self.opened_view_visibility_requests.is_empty()
@@ -258,6 +262,13 @@ pub(crate) fn apply_record_effects(target: &mut UiHostEventEffects, record: &Edi
             EditorEventEffect::SettingsWindowOpenRequested => {
                 target.open_settings_window_requested = true;
                 target.request_presentation();
+            }
+            EditorEventEffect::ContentDrawerToggleRequested => {
+                target.toggle_content_drawer_requested = !target.toggle_content_drawer_requested;
+                target.request_paint_only();
+            }
+            EditorEventEffect::PlaySessionStarted => {
+                target.play_started_sequence = Some(record.sequence.0);
             }
             EditorEventEffect::OpenScenePickerRequested => {
                 target.open_scene_picker_requested = true;

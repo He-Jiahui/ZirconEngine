@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 import subprocess
 import unittest
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -24,6 +24,119 @@ class CiGatesContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.workflow = WORKFLOW_PATH.read_text(encoding="utf-8")
+
+    def test_pull_requests_compile_the_editor_and_plugins_and_run_commands(self) -> None:
+        self.assertRegex(self.workflow, r"(?m)^  pull_request:\s*$")
+        gate = job_body(self.workflow, "editor-compile-gate")
+        self.assertIn("name: editor-compile-gate", gate)
+        self.assertIn("if: github.event_name == 'pull_request'", gate)
+        self.assertIn("runs-on: windows-2022", gate)
+        self.assertRegex(gate, r"(?m)^    timeout-minutes: [1-9][0-9]*$")
+        self.assertNotIn("needs:", gate)
+        self.assertNotIn("continue-on-error:", gate)
+        self.assertNotIn("secrets.", gate)
+        self.assertIn("persist-credentials: false", gate)
+        self.assertIn("id: editor_check", gate)
+        for name in ("script behavior bridge service admission", "editor commands and effective keymap", "tilemap duplicate layer admission"):
+            step = re.search(rf"(?ms)^      - name: Test {name}\n(.*?)(?=^      - |\Z)", gate).group(1)
+            self.assertIn("if: ${{ !cancelled() && steps.editor_check.outcome == 'success' }}", step)
+        for command in (
+            "cargo check -p zircon_app --bin zircon_editor --no-default-features --features target-editor-host --locked",
+            "cargo check --manifest-path zircon_plugins/Cargo.toml --workspace --locked",
+            "-RequireMatchingTests cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_zr_vm_language_runtime --test behavior_bridge --locked",
+            "-RequireMatchingTests cargo test -p zircon_editor --lib core::commands --locked",
+            "-RequireMatchingTests cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_tilemap_2d_editor --lib tilemap_paint_stroke_rejects_budget_and_duplicate_layer_identity --locked",
+        ):
+            self.assertRegex(gate, rf"(?m)^        run: ./\.github/scripts/invoke-cargo-msvc\.ps1 {re.escape(command)}$")
+        self.assertIn("-StorageRoot 'D:\\cargo-targets\\zircon-local'", gate)
+        self.assertLess(gate.index("prepare-cargo-roots.ps1"), gate.index("uses: dtolnay/rust-toolchain@"))
+        preparation = re.search(r"(?ms)^      - name: Require physical managed Cargo volume\n(.*?)(?=^      - |\Z)", gate).group(1)
+        self.assertIn("TEMP: ${{ runner.temp }}", preparation)
+        self.assertIn("TMP: ${{ runner.temp }}", preparation)
+        self.assertIn("-BootstrapTemp", preparation)
+        for variable in ("CARGO_HOME", "RUSTUP_HOME", "CARGO_TARGET_DIR", "CARGO_BUILD_BUILD_DIR", "TEMP", "TMP"):
+            self.assertRegex(gate, rf"(?m)^      {variable}: D:\\cargo-targets\\zircon-local\\ci\\runs\\.*github.run_id.*github.run_attempt.*e-0\\")
+
+    def test_self_hosted_jobs_are_bounded_and_wait_for_availability(self) -> None:
+        for path in (WORKFLOW_PATH, WORKFLOW_PATH.with_name("profile-feature-contract.yml")):
+            source = path.read_text(encoding="utf-8")
+            signal = job_body(source, "runner-availability")
+            self.assertIn("runs-on: ubuntu-24.04", signal)
+            self.assertIn("timeout-minutes: 3", signal)
+            self.assertIn("if: github.event_name == 'push'", signal)
+            self.assertIn("secrets.RUNNER_STATUS_TOKEN", signal)
+            self.assertIn("check-runner-availability.py --repository", signal)
+            for name in re.findall(r"(?m)^  ([a-z0-9-]+):$", source):
+                body = job_body(source, name)
+                if "runs-on: [self-hosted, Windows, X64]" in body:
+                    self.assertRegex(body, r"(?m)^    timeout-minutes: [1-9][0-9]*$", name)
+                    self.assertRegex(body, r"(?m)^    needs: .*runner-availability", name)
+
+    def test_mvp_separates_compilation_focused_tests_and_staged_acceptance(self) -> None:
+        source = WORKFLOW_PATH.with_name("mvp-editor-windows.yml").read_text(encoding="utf-8")
+        compile_gate = job_body(source, "compile-gate")
+        focused = job_body(source, "focused-tests")
+        staged = job_body(source, "mvp-editor-windows")
+        self.assertIn("needs: compile-gate", focused)
+        self.assertIn("needs: focused-tests", staged)
+        self.assertIn("--bin zircon_editor --no-default-features --features target-editor-host --locked", compile_gate)
+        self.assertIn("--manifest-path zircon_plugins/Cargo.toml --workspace --locked", compile_gate)
+        self.assertNotIn("cargo test", compile_gate)
+        for selector in ("project_automation_", "renderable_empty_template_has_the_f2_camera_cube_and_sun_contract",
+                         "template_creation_rebuilds_regenerable_asset_state_from_source_after_deletion",
+                         "template_creation_recovers_a_corrupt_persisted_registry_from_source_metadata",
+                         "render_product_f2_persisted_basic_scene_renders_accepts_input_and_shuts_down",
+                         "editor_project_document_roundtrips_world_and_workspace",
+                         "f4_project_authoring_survives_full_application_restart"):
+            self.assertIn(selector, focused)
+            self.assertNotIn(selector, staged)
+        self.assertEqual(focused.count("test result: ok. 1 passed; 0 failed"), 6)
+        for name in ("compile-gate", "focused-tests", "mvp-editor-windows"):
+            body = job_body(source, name)
+            self.assertIn("runs-on: windows-2022", body)
+            self.assertIn("WGPU_BACKEND: dx12", body)
+            self.assertIn("persist-credentials: false", body)
+            self.assertIn("-UseMvpTargetCache -VerifyOnly", body)
+            self.assertLess(body.index("uses: actions/checkout@"), body.index("$lockHash ="))
+            self.assertLess(body.index("Require physical managed Cargo volume"), body.index("uses: actions/cache@"))
+            self.assertLess(body.index("-VerifyOnly"), body.index("uses: dtolnay/rust-toolchain@"))
+            self.assertIn("github.sha", body)
+            self.assertIn("hashFiles('Cargo.lock', 'zircon_plugins/Cargo.lock', '.cargo/config.toml')", body)
+            self.assertIn("if: always()", body)
+        # Cached compiler files are never substituted for source-bound F5 evidence.
+        for requirement in ("Build-MvpProductInputs.ps1", "Resolve-MvpProductInputManifest",
+                            "Get-MvpBuildGateRegistrySnapshot", "RequireF5Evidence",
+                            "-ProfileContractSummaryPath", "-WorkspaceSummaryPath"):
+            self.assertIn(requirement, staged)
+        self.assertIn("uses: actions/download-artifact@", staged)
+
+    def test_hosted_cache_reuse_keeps_physical_and_source_identity_checks(self) -> None:
+        helper = (REPO_ROOT / ".github/scripts/prepare-cargo-roots.ps1").read_text(encoding="utf-8")
+        for required in ("[ValidateSet('D:\\cargo-targets\\zircon-local'", "Assert-NoReparseAncestors $target",
+                         "$env:RUNNER_ENVIRONMENT -ne 'github-hosted'", "$env:ZR_CI_LOCK_HASH -notmatch '^[a-f0-9]{64}$'",
+                         "$target -ne $expectedTarget", "-Recurse -Force -Attributes ReparsePoint",
+                         "Restored MVP target cache contains a reparse point"):
+            self.assertIn(required, helper)
+
+    def test_cargo_homes_leave_room_for_the_pinned_dependency_checkout(self) -> None:
+        # Longest blob path in zr_vm at 3c1352ecb6ddfab02752d46682cc376558d5f481.
+        # libgit2 still applies MAX_PATH when Cargo checks out this dependency.
+        dependency_path = (
+            "git/checkouts/zr_vm-91d161ef2b98ea29/3c1352e/tests/language_server/"
+            "test_lsp_numeric_loop_self_dependency_conditional_delta_negative_offset_"
+            "zero_inclusive_subtractive_semantic_query.c"
+        )
+        count = 0
+        for path in (REPO_ROOT / ".github/workflows").glob("*.yml"):
+            for home in re.findall(r"(?m)^      CARGO_HOME: (.+)$", path.read_text(encoding="utf-8")):
+                resolved = home.replace("${{ github.run_id }}", "9" * 20)
+                resolved = resolved.replace("${{ github.run_attempt }}", "999")
+                resolved = resolved.replace("${{ strategy.job-index || 0 }}", "999")
+                self.assertNotIn("${{", resolved, path.name)
+                checkout = PureWindowsPath(resolved) / dependency_path
+                self.assertLessEqual(len(str(checkout)), 259, f"{path.name}: {checkout}")
+                count += 1
+        self.assertGreater(count, 0)
 
     def test_persistent_runners_are_trusted_and_run_isolated(self) -> None:
         for path in (WORKFLOW_PATH, WORKFLOW_PATH.with_name("profile-feature-contract.yml")):
@@ -77,6 +190,31 @@ class CiGatesContractTests(unittest.TestCase):
                     self.assertIn("MVP_RUST_TOOLCHAIN: 1.94.1", source)
                 else:
                     self.assertIn(toolchain, ("1.94.1", "nightly-2026-10-10"), path.name)
+
+    def test_runner_images_and_node24_actions_use_reviewed_pins(self) -> None:
+        # Checked against each pinned upstream action.yml, not inferred from tags.
+        node24 = {
+            "actions/checkout": "fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+            "actions/setup-python": "ece7cb06caefa5fff74198d8649806c4678c61a1",
+            "actions/upload-artifact": "b7c566a772e6b6bfb58ed0dc250532a479d7789f",
+            "actions/download-artifact": "37930b1c2abaa49bbe596cd826c3c89aef350131",
+            "actions/cache": "caa296126883cff596d87d8935842f9db880ef25",
+            "actions/configure-pages": "45bfe0192ca1faeb007ade9deae92b16b8254a0d",
+            "actions/deploy-pages": "368f82528645a54fb793d4d04e342629a3f51346",
+        }
+        for path in (REPO_ROOT / ".github/workflows").glob("*.yml"):
+            source = path.read_text(encoding="utf-8")
+            self.assertNotRegex(source, r"runs-on: (ubuntu|windows)-latest", path.name)
+            for action, sha in re.findall(r"uses: ([^@\s]+)@([0-9a-f]{40})", source):
+                if action in node24:
+                    self.assertEqual(sha, node24[action], action)
+                if action == "actions/upload-pages-artifact":
+                    # Reviewed composite metadata pins Node-24 upload-artifact v7.
+                    self.assertEqual(sha, "fc324d3547104276b827a68afc52ff2a11cc49c9")
+                if action == "dtolnay/rust-toolchain":
+                    # The old 1.94.1 branch hardcoded its toolchain and rejected
+                    # inputs.toolchain, including the intended Miri nightly.
+                    self.assertEqual(sha, "683b588c487a69d01f6c6ddf40f036ff682cc2c8")
 
     def assert_workspace_member_fmt_gate(self, rust: str, manifest: str) -> None:
         step_name = "Check Rust formatting" if manifest == "Cargo.toml" else "Check plugin workspace formatting"
@@ -230,11 +368,11 @@ class CiGatesContractTests(unittest.TestCase):
         smoke = job_body(self.workflow, "render-feature-smoke")
         self.assertEqual(len(re.findall(r"(?m)^          - feature:", smoke)), 15)
         self.assertIn(
-            "CARGO_TARGET_DIR: E:\\cargo-targets\\zircon-local\\ci\\runs\\${{ github.run_id }}-${{ github.run_attempt }}\\render-feature-smoke-${{ strategy.job-index || 0 }}\\target",
+            "CARGO_TARGET_DIR: E:\\cargo-targets\\zircon-local\\ci\\runs\\${{ github.run_id }}-${{ github.run_attempt }}\\rs-${{ strategy.job-index || 0 }}\\target",
             smoke,
         )
         self.assertIn(
-            "ZIRCON_RENDERING_SMOKE_OUTPUT_DIR: E:\\cargo-targets\\zircon-local\\ci\\runs\\${{ github.run_id }}-${{ github.run_attempt }}\\render-feature-smoke-${{ strategy.job-index || 0 }}\\target\\product-frame",
+            "ZIRCON_RENDERING_SMOKE_OUTPUT_DIR: E:\\cargo-targets\\zircon-local\\ci\\runs\\${{ github.run_id }}-${{ github.run_attempt }}\\rs-${{ strategy.job-index || 0 }}\\target\\product-frame",
             smoke,
         )
         self.assertIn("-RequireMatchingTests cargo test", smoke)
@@ -399,7 +537,7 @@ class CiGatesContractTests(unittest.TestCase):
         self.assertIn("-RequireMatchingTests cargo test", smoke)
         self.assertNotIn("--exact", smoke)
         self.assertIn(
-            "ZIRCON_RENDERING_SMOKE_OUTPUT_DIR: E:\\cargo-targets\\zircon-local\\ci\\runs\\${{ github.run_id }}-${{ github.run_attempt }}\\render-feature-smoke-${{ strategy.job-index || 0 }}\\target\\product-frame",
+            "ZIRCON_RENDERING_SMOKE_OUTPUT_DIR: E:\\cargo-targets\\zircon-local\\ci\\runs\\${{ github.run_id }}-${{ github.run_attempt }}\\rs-${{ strategy.job-index || 0 }}\\target\\product-frame",
             smoke,
         )
         self.assertIn(

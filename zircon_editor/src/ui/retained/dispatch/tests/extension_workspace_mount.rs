@@ -220,6 +220,7 @@ fn particle_library_public_callbacks_admit_open_and_all_fifteen_local_actions() 
     let harness = EventRuntimeHarness::new("zircon_particle_library_public_callback_admission");
     let mut bridge =
         BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(1672.0, 941.0)).unwrap();
+    bridge.set_preview_features(true).expect("preview workspace fixture");
     dispatch_componentized_workbench_control(
         &harness.runtime,
         &mut bridge,
@@ -261,12 +262,11 @@ fn particle_library_public_callbacks_admit_open_and_all_fifteen_local_actions() 
         UiEventKind::Click,
         "workbench.extension.particle_library.compile.invoke",
     );
-    assert_eq!(
-        bridge
-            .control_string("WorkbenchExtensionParticleLibraryOutputRow", "value_text")
-            .as_deref(),
-        Some("Compile queued   4 emitters   bounds fixed")
-    );
+    let feedback = bridge
+        .control_string("WorkbenchExtensionParticleLibraryOutputRow", "value_text")
+        .expect("preview capability feedback");
+    assert!(feedback.starts_with("Not implemented (preview)"));
+    assert!(!feedback.contains("queued"));
 }
 
 #[test]
@@ -274,6 +274,7 @@ fn particle_library_public_vfx_route_loads_only_its_actual_source_and_all_author
     let _guard = env_lock().lock().unwrap_or_else(|error| error.into_inner());
     let mut bridge =
         BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(1672.0, 941.0)).unwrap();
+    bridge.set_preview_features(true).expect("preview workspace fixture");
     assert!(!bridge.has_control(CONTROL));
     open(&mut bridge);
     assert!(bridge.has_control(CONTROL));
@@ -376,12 +377,11 @@ fn particle_library_public_vfx_route_loads_only_its_actual_source_and_all_author
         )
         .unwrap()
         .expect("the existing local compile feedback must dispatch");
-    assert_eq!(
-        bridge
-            .control_string("WorkbenchExtensionParticleLibraryOutputRow", "value_text")
-            .as_deref(),
-        Some("Compile queued   4 emitters   bounds fixed")
-    );
+    let feedback = bridge
+        .control_string("WorkbenchExtensionParticleLibraryOutputRow", "value_text")
+        .expect("preview capability feedback");
+    assert!(feedback.starts_with("Not implemented (preview)"));
+    assert!(!feedback.contains("queued"));
 }
 
 #[test]
@@ -389,6 +389,7 @@ fn particle_library_return_to_core_and_scene_retires_focus_routes_and_child_stor
     let _guard = env_lock().lock().unwrap_or_else(|error| error.into_inner());
     let mut bridge =
         BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(1672.0, 941.0)).unwrap();
+    bridge.set_preview_features(true).expect("preview workspace fixture");
     let base_ids = bridge
         .surface()
         .tree

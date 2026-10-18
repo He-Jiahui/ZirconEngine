@@ -1,0 +1,12 @@
+{
+  "name": "zircon-zop-compiler",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "compile": "node src/cli.mjs compile",
+    "verify": "node src/cli.mjs verify",
+    "apply": "node src/cli.mjs apply",
+    "test": "node --test src/compiler.test.mjs src/export.test.mjs"
+  }
+}

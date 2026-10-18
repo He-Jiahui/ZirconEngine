@@ -1,6 +1,36 @@
 use super::*;
 
 #[test]
+fn viewport_commands_resolve_focus_at_execution_and_drawer_uses_a_host_intent() {
+    use crate::core::commands::{CommandEvalCtx, DocumentKind, EditorCommandRegistry};
+    use crate::core::editor_event::EditorViewportEvent;
+    use crate::scene::modes::SceneModeActivation;
+    use crate::scene::viewport::TransformHandleKind;
+    let registry = EditorCommandRegistry::default_workbench();
+    let context = CommandEvalCtx::interactive()
+        .with_project_open(true)
+        .with_focused_document_kind(DocumentKind::scene());
+    assert_eq!(
+        registry.event_for_command("viewport.selection.frame", &context).unwrap(),
+        EditorEvent::Viewport(EditorViewportEvent::ForFocusedScene {
+            event: Box::new(EditorViewportEvent::FrameSelection),
+        })
+    );
+    assert_eq!(
+        registry.event_for_command("viewport.tool.translate", &context).unwrap(),
+        EditorEvent::Viewport(EditorViewportEvent::ForFocusedScene {
+            event: Box::new(EditorViewportEvent::ActivateSceneMode {
+                mode: SceneModeActivation::Transform(TransformHandleKind::Move),
+            }),
+        })
+    );
+    assert_eq!(
+        registry.event_for_command("view.content_drawer.toggle", &context).unwrap(),
+        EditorEvent::Transient(EditorEventTransient::ToggleContentDrawer)
+    );
+}
+
+#[test]
 fn new_scene_is_project_scoped_and_uses_the_native_create_scene_command() {
     let commands = default_workbench_commands();
     let command = commands

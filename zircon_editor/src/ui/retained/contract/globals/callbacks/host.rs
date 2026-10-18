@@ -9,6 +9,7 @@ use super::types::{Callback0, Callback1, Callback2, Callback3, Callback4, Callba
 #[derive(Default)]
 pub(in crate::ui::retained_host::host_contract) struct UiHostCallbacks {
     pub(in crate::ui::retained_host::host_contract) frame_requested: Option<Callback0>,
+    pub(in crate::ui::retained_host::host_contract) runtime_frame_requested: Option<Callback0>,
     pub(in crate::ui::retained_host::host_contract) interactive_frame_requested: Option<Callback0>,
     pub(in crate::ui::retained_host::host_contract) workbench_pointer_input:
         Option<Callback2<UiPointerInputEvent, Option<WorkbenchTooltipPointerTarget>>>,

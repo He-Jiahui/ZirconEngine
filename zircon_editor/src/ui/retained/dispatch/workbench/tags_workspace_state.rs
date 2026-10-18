@@ -153,12 +153,12 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
             .unwrap_or_default();
         let (status, title, output) = match command {
             TagCommand::Add => (
-                "Tag add dialog prepared",
+                "Not implemented (preview)",
                 format!("Tag Registry / {}", profile.tag),
                 format!("Add Tag   {owner}"),
             ),
             TagCommand::Rename => (
-                "Tag rename prepared",
+                "Not implemented (preview)",
                 format!("Tag Registry / {redirect}"),
                 format!("Rename ready   {owner}"),
             ),

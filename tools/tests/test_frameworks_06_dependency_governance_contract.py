@@ -112,7 +112,7 @@ class Frameworks06DependencyGovernanceContractTests(unittest.TestCase):
             1,
         )
         self.assertIn("runs-on: [self-hosted, Windows, X64]", job)
-        self.assertIn("uses: dtolnay/rust-toolchain@75be91dd2711b583df57c31d0873b4145c89f1d9", job)
+        self.assertIn("uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8", job)
         self.assertIn(f"toolchain: {RUST_TOOLCHAIN}", job)
         self.assertIn("run: ./.github/scripts/prepare-cargo-roots.ps1", job)
         self.assertIn(

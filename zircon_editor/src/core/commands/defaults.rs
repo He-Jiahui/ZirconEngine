@@ -13,6 +13,9 @@ use super::{
     EditorKeyChord, PlayModePredicate, WhenClause,
 };
 
+#[path = "defaults/viewport.rs"]
+mod viewport;
+
 pub(super) fn default_workbench_commands() -> Vec<EditorCommandDescriptor> {
     let mut commands = Vec::with_capacity(DEFAULT_WORKBENCH_COMMAND_CAPACITY);
     commands.push(command_palette_command());
@@ -21,6 +24,7 @@ pub(super) fn default_workbench_commands() -> Vec<EditorCommandDescriptor> {
     append_selection_commands(&mut commands);
     append_runtime_commands(&mut commands);
     append_view_commands(&mut commands);
+    viewport::append_viewport_commands(&mut commands);
     append_window_commands(&mut commands);
     commands.push(migrate_assets_commandlet());
     commands.push(plugin_list_commandlet());
@@ -65,7 +69,7 @@ pub(super) fn default_workbench_commands() -> Vec<EditorCommandDescriptor> {
     commands
 }
 
-const DEFAULT_WORKBENCH_COMMAND_CAPACITY: usize = 69;
+const DEFAULT_WORKBENCH_COMMAND_CAPACITY: usize = 75;
 
 fn append_animation_asset_toolkit_open_operations(commands: &mut Vec<EditorCommandDescriptor>) {
     for operation in [
@@ -261,7 +265,7 @@ fn append_selection_commands(commands: &mut Vec<EditorCommandDescriptor>) {
             &[],
             EditorEvent::WorkbenchMenu(MenuAction::CreateNode(kind)),
             None,
-            WhenClause::Always,
+            WhenClause::ProjectOpen,
             ["scene", "node", "create"],
         ));
     }

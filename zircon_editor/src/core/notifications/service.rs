@@ -23,6 +23,16 @@ pub struct EditorNotificationService {
 }
 
 impl EditorNotificationService {
+    /// Pending decisions, live toasts and active job progress; reading does not create centers.
+    pub fn active_count(&self) -> usize {
+        let decisions = self.decisions.get().map_or(0, |center| center.pending_count());
+        let progress = self.progress.get().map_or(0, |center| center.active_count());
+        let toasts = self.toasts.get().map_or(0, |queue| {
+            queue.snapshot_at(self.toast_elapsed()).len()
+        });
+        decisions.saturating_add(progress).saturating_add(toasts)
+    }
+
     pub fn decisions(&self) -> Result<&DecisionNotificationCenter, DecisionNotificationError> {
         if let Some(decisions) = self.decisions.get() {
             return Ok(decisions);

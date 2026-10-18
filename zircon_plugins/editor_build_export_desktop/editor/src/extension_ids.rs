@@ -1,6 +1,6 @@
 pub const EXPORT_VIEW_ID: &str = "editor.build_export_desktop";
 pub const EXPORT_DRAWER_ID: &str = "editor_build_export_desktop.drawer";
-pub const EXPORT_TEMPLATE_ID: &str = zircon_editor::EXPORT_WIZARD_TEMPLATE_DOCUMENT_ID;
+pub const EXPORT_TEMPLATE_ID: &str = zircon_editor::ui::host::EXPORT_WIZARD_TEMPLATE_DOCUMENT_ID;
 pub const SOURCE_TEMPLATE_REPORT_ID: &str = "editor_build_export_desktop.source_template_report";
 pub const LIBRARY_EMBED_REPORT_ID: &str = "editor_build_export_desktop.library_embed_report";
 pub const NATIVE_DYNAMIC_REPORT_ID: &str = "editor_build_export_desktop.native_dynamic_report";

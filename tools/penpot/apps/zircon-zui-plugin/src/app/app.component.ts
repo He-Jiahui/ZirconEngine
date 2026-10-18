@@ -10,6 +10,7 @@ import type {
   PluginUiMessage,
 } from '../model';
 import type { RenderedLayoutAudit } from '../penpot-render-layout';
+import { parseRoleContract } from '../../../zircon-zop-compiler/src/contract.mjs';
 
 interface StatusState {
   level: 'idle' | 'working' | 'success' | 'warning' | 'error';
@@ -28,6 +29,11 @@ interface StatusState {
     </header>
 
     <main>
+      <nav role="tablist" aria-label="Authoring path">
+        <button role="tab" type="button" [attr.aria-selected]="activeTab() === 'bridge'" (click)="activeTab.set('bridge')">ZUI round trip</button>
+        <button role="tab" type="button" [attr.aria-selected]="activeTab() === 'annotate'" (click)="activeTab.set('annotate')">Annotate</button>
+      </nav>
+      <div class="bridge-tab" [hidden]="activeTab() !== 'bridge'">
       <section class="command-row" aria-label="ZUI asset commands">
         <input
           #fileInput
@@ -70,9 +76,26 @@ interface StatusState {
           <button type="button" [disabled]="busy()" (click)="clearFontResources()">清除</button>
         }
       </section>
+      </div>
+      <section [hidden]="activeTab() !== 'annotate'" aria-label="Operator annotations">
+        <p class="body-s">Load the reviewed role contract, then annotate a selected layer. ZOP Export reads fresh Penpot boards and active editor.* library tokens.</p>
+        <input #zopContractInput class="visually-hidden" type="file" accept=".toml,text/plain" (change)="loadZopContract($event)" />
+        <button type="button" [disabled]="busy()" (click)="zopContractInput.click()">Load roles.contract.toml</button>
+        <label for="zop-binding">Role binding JSON</label>
+        <textarea #zopBinding id="zop-binding" rows="6" spellcheck="false">{{ '{}' }}</textarea>
+        <button type="button" [disabled]="busy() || !zopContractLoaded()" (click)="annotateOperator(zopBinding.value)">Apply annotation</button>
+        <label for="zop-screen">Screen</label>
+        <select #zopScreen id="zop-screen">
+          <option value="project">Project Browser</option>
+          <option value="level">Level Editor</option>
+          <option value="settings">Settings</option>
+        </select>
+        <button type="button" [disabled]="busy() || !zopContractLoaded()" (click)="exportOperator(zopScreen.value)">ZOP Export</button>
+      </section>
 
       <section
         class="selection-band"
+        [hidden]="activeTab() !== 'bridge'"
         [class.ready]="canExport()"
         [attr.data-selected-board-id]="selectedBoardId()"
         [attr.data-canvas-png-board-id]="canvasPngBoardId()"
@@ -145,7 +168,7 @@ interface StatusState {
     <footer class="body-s">
       <strong>ZUI v2</strong>
       <span class="separator" aria-hidden="true"></span>
-      <span>dev.zircon.zui</span>
+      <span>{{ activeTab() === 'annotate' ? 'dev.zircon.zop' : 'dev.zircon.zui' }}</span>
     </footer>
   `,
   styleUrl: './app.component.css',
@@ -180,6 +203,8 @@ export class AppComponent {
   readonly layoutAuditRequestId = signal<string | null>(null);
   readonly reviewCase = signal<LayoutReviewCaseMessage | null>(null);
   readonly fontResourceName = signal<string | null>(null);
+  readonly activeTab = signal<'bridge' | 'annotate'>('bridge');
+  readonly zopContractLoaded = signal(false);
   private fontResources?: PenpotFontResourceManifest;
 
   constructor() {
@@ -217,6 +242,35 @@ export class AppComponent {
   clearFontResources(): void {
     this.fontResources = undefined;
     this.fontResourceName.set(null);
+  }
+
+  loadZopContract(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file) return;
+    this.busy.set(true);
+    this.zopContractLoaded.set(false);
+    void file.text().then(source => {
+      parseRoleContract(source);
+      this.sendMessage({ type: 'zop-load-contract', source });
+      this.zopContractLoaded.set(true);
+    }).catch((error: unknown) => {
+      this.busy.set(false);
+      this.status.set({ level: 'error', message: error instanceof Error ? error.message : String(error) });
+    });
+  }
+
+  annotateOperator(source: string): void {
+    this.busy.set(true);
+    this.sendMessage({ type: 'zop-annotate', source });
+  }
+
+  exportOperator(screen: string): void {
+    const names: Record<string, string> = { project: 'project_browser', level: 'level_editor', settings: 'settings_window' };
+    if (!names[screen]) return;
+    this.busy.set(true);
+    this.sendMessage({ type: 'zop-export', screen, assetPath: `shell/${names[screen]}.zui` });
   }
 
   loadFontResources(event: Event): void {
@@ -284,6 +338,19 @@ export class AppComponent {
   }
 
   private handleMessage(message: PluginHostMessage): void {
+    if (message.type === 'zop-export-ready') {
+      const bytes = new Uint8Array(message.bytes);
+      const url = URL.createObjectURL(new Blob([bytes.buffer as ArrayBuffer], { type: 'application/zip' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = message.fileName;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      deferDownloadUrlRevocation(url);
+      this.busy.set(false);
+      return;
+    }
     if (message.type === 'theme') {
       this.theme.set(message.content);
       return;

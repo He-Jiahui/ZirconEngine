@@ -25,18 +25,13 @@ pub(in crate::ui::retained_host::host_contract) fn create_host_chrome_presenter(
             }
             let size = descriptor.clamped_size();
             if let Some(runtime_factory) = runtime_factory {
-                if runtime_factory.poll_ready().unwrap_or(false) {
-                    if let Ok(surface) = runtime_factory.create(descriptor) {
-                        return Ok((
-                            Box::new(GpuChromePresenter::new_with_native_target(
-                                surface,
-                                size,
-                                descriptor.target,
-                            )),
-                            true,
-                        ));
-                    }
-                }
+                // The window startup owner has already bounded and resolved readiness.
+                // Propagate creation errors so fallback reports the actual cause.
+                let surface = runtime_factory.create(descriptor)?;
+                return Ok((
+                    Box::new(GpuChromePresenter::new_with_native_target(surface, size, descriptor.target)),
+                    true,
+                ));
             }
             let surface = create_default_ui_surface_presenter(descriptor)?;
             Ok((
@@ -53,22 +48,4 @@ pub(in crate::ui::retained_host::host_contract) fn create_host_chrome_presenter(
             false,
         )),
     }
-}
-
-pub(in crate::ui::retained_host::host_contract) fn create_runtime_host_chrome_presenter(
-    window: Arc<dyn Window>,
-    runtime_factory: &dyn RuntimeUiSurfacePresenterFactory,
-) -> HostPresenterResult<Box<dyn HostChromePresenter>> {
-    let mut descriptor =
-        UiSurfaceDescriptor::from_winit_window("editor-host-chrome", window.as_ref())?;
-    if profile_capture_enabled() {
-        descriptor = descriptor.with_gpu_timing();
-    }
-    let size = descriptor.clamped_size();
-    let surface = runtime_factory.create(descriptor)?;
-    Ok(Box::new(GpuChromePresenter::new_with_native_target(
-        surface,
-        size,
-        descriptor.target,
-    )))
 }

@@ -21,15 +21,14 @@ use zircon_plugin_sdk::{authoring_plugin, EditorPluginDeclaration};
 
 use crate::capability::{AI_AUTHORING_CAPABILITY, EDITOR_CAPABILITIES, PLUGIN_ID};
 use crate::extension_ids::{
-    AI_BEHAVIOR_TREE_ASSET_TYPE, AI_BEHAVIOR_TREE_COMPILE_OPERATION,
+    AI_BEHAVIOR_DEBUG_CONSUMER_ID, AI_BEHAVIOR_TREE_ASSET_TYPE, AI_BEHAVIOR_TREE_COMPILE_OPERATION,
     AI_BEHAVIOR_TREE_IMPORT_OPERATION, AI_BEHAVIOR_TREE_OPEN_OPERATION,
     AI_BEHAVIOR_TREE_PALETTE_ID, AI_BEHAVIOR_TREE_TEMPLATE_ID, AI_BEHAVIOR_TREE_VALIDATE_OPERATION,
-    AI_BEHAVIOR_TREE_VIEW_ID,
+    AI_BEHAVIOR_TREE_VIEW_ID, AI_BT_NODE_RESULT_CONSUMER_ID,
 };
 use crate::overlay::register_ai_perception_overlay;
 use crate::runtime_mirror::{
-    ai_runtime_event_consumers, AiBtNodeResultMirror, AiPieMirror, AI_BEHAVIOR_DEBUG_CONSUMER_ID,
-    AI_BT_NODE_RESULT_CONSUMER_ID,
+    ai_runtime_event_consumers, AiBtNodeResultMirror, AiPieMirror,
 };
 
 authoring_plugin! {

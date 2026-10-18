@@ -166,7 +166,7 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         let stacking = self
             .control_string("WorkbenchEffectStackField", "value")
             .unwrap_or_default();
-        self.set_effect_string("WorkbenchStatusReady", "text", "Gameplay effect applied")?;
+        self.set_effect_string("WorkbenchStatusReady", "text", "Not implemented (preview)")?;
         self.set_effect_string("WorkbenchStatusMessages", "text", "1 Message")?;
         self.set_effect_string("WorkbenchEffectCenterTitle", "text", effect_name.clone())?;
         self.set_effect_string(
@@ -177,7 +177,7 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         self.set_effect_string(
             "WorkbenchEffectOutputRow",
             "text",
-            format!("Applied {effect_name}   {policy}   {stacking}"),
+            format!("Preview inputs: {effect_name}   {policy}   {stacking}"),
         )
     }
 

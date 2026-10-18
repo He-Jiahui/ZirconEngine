@@ -68,10 +68,9 @@ impl UiHostWindowEventLoop {
     pub(super) fn handle_pointer_button(
         &mut self,
         platform_event: PlatformInputTranslation,
-        fallback_position: PhysicalPosition<f64>,
     ) {
         self.begin_input_outcome(platform_event.sequence);
-        let Some(mut pointer) = platform_pointer_input(platform_event.event) else {
+        let Some(pointer) = platform_pointer_input(platform_event.event) else {
             self.reject_input_outcome();
             return;
         };
@@ -84,18 +83,7 @@ impl UiHostWindowEventLoop {
             return;
         };
         let point = pointer.event.point;
-        let x = if point.x == 0.0 && point.y == 0.0 {
-            fallback_position.x as f32
-        } else {
-            point.x
-        };
-        let y = if point.x == 0.0 && point.y == 0.0 {
-            fallback_position.y as f32
-        } else {
-            point.y
-        };
-        pointer.event.point.x = x;
-        pointer.event.point.y = y;
+        let (x, y) = (point.x, point.y);
         let button = pointer.event.button;
         let pointer_id = pointer.metadata.pointer_id.unwrap_or_default();
         let modifiers = pointer.metadata.modifiers;
@@ -132,7 +120,11 @@ impl UiHostWindowEventLoop {
                 self.reject_input_outcome();
                 return;
             }
-            let (x, y) = self.last_pointer_position.unwrap_or((0.0, 0.0));
+            let Some((x, y)) = self.last_pointer_position else {
+                // Native wheel events carry no position. Wait for a real move/button position.
+                self.reject_input_outcome();
+                return;
+            };
             let scroll_delta = pointer.event.scroll_delta;
             pointer.event.point.x = x;
             pointer.event.point.y = y;
@@ -187,12 +179,18 @@ impl crate::ui::retained_host::host_contract::window::UiHostWindow {
         match kind {
             UiPointerEventKind::Move => event_loop.handle_pointer_moved(translated, fallback),
             UiPointerEventKind::Down | UiPointerEventKind::Up => {
-                event_loop.handle_pointer_button(translated, fallback)
+                event_loop.handle_pointer_button(translated)
             }
             UiPointerEventKind::Scroll => {
+                // This normalized test entry explicitly supplies a known cursor position.
+                event_loop.last_pointer_position = Some((point.x, point.y));
                 event_loop.handle_mouse_wheel(translated, MouseScrollDelta::LineDelta(0.0, 0.0))
             }
             _ => panic!("this driver accepts normalized platform pointer input"),
         }
     }
 }
+
+#[cfg(test)]
+#[path = "../tests/pointer.rs"]
+mod tests;

@@ -370,7 +370,6 @@ impl ConsoleOutputPaintMetadata {
         let nodes_per_line = self.nodes_per_line;
         let complete_line_end =
             line_start + ((line_end - line_start) / nodes_per_line).saturating_mul(nodes_per_line);
-        let materialized_line_count = self.materialized_line_count.max(1);
         let virtualized = self.is_virtualized();
         self.visible_logical_line_range(scroll_px)
             .flat_map(move |logical_index| {

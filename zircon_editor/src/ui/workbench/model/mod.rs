@@ -54,7 +54,7 @@ pub use pane_empty_state_model::PaneEmptyStateModel;
 pub use pane_tab_model::PaneTabModel;
 pub use status_bar_model::StatusBarModel;
 pub use tool_window_stack_model::ToolWindowStackModel;
-pub use workbench_view_model::WorkbenchViewModel;
+pub use workbench_view_model::{RunControlsModel, WorkbenchViewModel};
 
 #[cfg(test)]
 /// 测试简化构造仍走宿主评估投影，防止菜单测试另造命令可用性规则。

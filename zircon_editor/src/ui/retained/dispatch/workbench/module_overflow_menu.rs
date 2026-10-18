@@ -120,6 +120,7 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         items.extend(
             navigation
                 .iter()
+                .filter(|_| self.preview_features_enabled)
                 .map(|command| command.menu_item_value(self)),
         );
         self.mutate_control_property(
@@ -135,6 +136,7 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
     ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
         let commands = OVERFLOW_COMMANDS
             .iter()
+            .filter(|_| self.preview_features_enabled)
             .filter(|command| self.control_frame(command.source_control_id).is_none())
             .collect::<Vec<_>>();
         let items = commands
@@ -155,6 +157,9 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         control_id: &str,
         menu_action_id: &str,
     ) -> Result<Option<EditorUiBinding>, BuiltinHostWindowTemplateBridgeError> {
+        if !self.preview_features_enabled {
+            return Ok(None);
+        }
         if control_id != WORKBENCH_MODULE_OVERFLOW_MENU_CONTROL_ID
             && control_id != UNREAL_WINDOW_MODULE_MENU_CONTROL_ID
         {
@@ -287,8 +292,8 @@ impl OverflowCommand {
             "WorkbenchModuleAssets" => "editor.workbench.module.assets",
             "WorkbenchModuleVfx" => "editor.workbench.module.vfx",
             "WorkbenchModuleHud" => "editor.workbench.module.hud",
-            _ => return format!("{}|{}", self.label, flags.join(",")),
+            _ => return format!("{} (Preview)|{}", self.label, flags.join(",")),
         };
-        format!("{}|{}", bridge.i18n.translate(key), flags.join(","))
+        format!("{} (Preview)|{}", bridge.i18n.translate(key), flags.join(","))
     }
 }

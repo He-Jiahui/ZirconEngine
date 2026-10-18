@@ -233,6 +233,10 @@ impl EditorLogService {
         self.store.snapshot(filter)
     }
 
+    pub fn severity_counts(&self) -> super::LogSeverityCounts {
+        self.store.severity_counts()
+    }
+
     pub fn snapshot_tail(&self, filter: &LogFilter, max_records: usize) -> Vec<LogRecord> {
         self.store.snapshot_tail(filter, max_records)
     }

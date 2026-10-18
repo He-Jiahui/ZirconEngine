@@ -19,6 +19,18 @@ use super::{
 };
 
 #[test]
+fn play_start_notice_requires_a_new_committed_live_runtime() {
+    use crate::core::editor_event::EditorEventEffect;
+    for mode in [PlayModeKind::Edit, PlayModeKind::Building, PlayModeKind::CleanupFailed] {
+        assert!(!super::play_start_effects(true, mode).contains(&EditorEventEffect::PlaySessionStarted));
+    }
+    assert!(!super::play_start_effects(false, PlayModeKind::Playing)
+        .contains(&EditorEventEffect::PlaySessionStarted));
+    assert!(super::play_start_effects(true, PlayModeKind::Playing)
+        .contains(&EditorEventEffect::PlaySessionStarted));
+}
+
+#[test]
 fn stop_menu_detaches_play_gateway_with_menu_owned_shell_guard() {
     let (completed, result) = mpsc::channel();
     let worker = std::thread::spawn(move || {

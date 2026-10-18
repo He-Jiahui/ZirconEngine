@@ -31,6 +31,8 @@ mod platform_input;
 mod pointer_move_mailbox;
 #[path = "event_loop/profile_capture.rs"]
 mod profile_capture;
+#[path = "event_loop/presenter_startup.rs"]
+mod presenter_startup;
 #[path = "event_loop/redraw.rs"]
 mod redraw;
 
@@ -54,8 +56,8 @@ pub(in crate::ui::retained_host::host_contract) struct UiHostWindowEventLoop {
     surface_present_retry_attempt: u8,
     pending_presenter_resize: Option<(u32, u32)>,
     native_minimum_surface_size: Option<(u32, u32)>,
-    runtime_presenter_upgrade_attempted: bool,
-    runtime_presenter_upgrade_poll_deadline: Option<Instant>,
+    native_surfaces_available: bool,
+    presenter_startup: presenter_startup::PresenterStartup,
     ime_allowed: bool,
     current_modifiers: ModifiersState,
     next_input_sequence: u64,
@@ -87,8 +89,8 @@ impl UiHostWindowEventLoop {
             surface_present_retry_attempt: 0,
             pending_presenter_resize: None,
             native_minimum_surface_size: None,
-            runtime_presenter_upgrade_attempted: false,
-            runtime_presenter_upgrade_poll_deadline: None,
+            native_surfaces_available: false,
+            presenter_startup: presenter_startup::PresenterStartup::default(),
             ime_allowed: false,
             current_modifiers: ModifiersState::empty(),
             next_input_sequence: 1,

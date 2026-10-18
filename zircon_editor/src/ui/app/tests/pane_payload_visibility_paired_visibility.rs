@@ -199,7 +199,7 @@ fn pane_tab(id: &str, content_kind: ViewContentKind, active: bool) -> PaneTabMod
 
 fn model_with_tabs(document_tabs: Vec<DocumentTabModel>) -> WorkbenchViewModel {
     WorkbenchViewModel {
-        is_playing: false,
+        run_controls: Default::default(),
         asset_creation_menu: Default::default(),
         keymap: EditorKeymap::default_workbench(),
         menu_bar: MenuBarModel { menus: Vec::new() },

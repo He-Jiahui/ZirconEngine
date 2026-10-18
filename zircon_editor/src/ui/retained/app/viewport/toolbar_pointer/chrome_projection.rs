@@ -12,6 +12,7 @@ impl RetainedEditorHost {
             viewport.clone(),
             grid_text.as_str(),
             snap_text.as_str(),
+            settings.translate_snap_enabled,
         );
         if root_changed {
             let damage = self

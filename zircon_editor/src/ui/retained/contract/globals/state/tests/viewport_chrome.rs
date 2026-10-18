@@ -47,6 +47,11 @@ fn scene_chrome_patch_preserves_geometry_and_unrelated_rows() {
             text: "stable".to_string(),
             ..TemplatePaneNodeData::default()
         },
+        TemplatePaneNodeData {
+            control_id: STATUS_SNAP_TOGGLE_CONTROL_ID.to_string(),
+            checked: false,
+            ..TemplatePaneNodeData::default()
+        },
     ]);
     let mut state = HostContractState::new(
         crate::ui::retained_host::primitives::PhysicalSize::new(1280, 720),
@@ -58,7 +63,7 @@ fn scene_chrome_patch_preserves_geometry_and_unrelated_rows() {
         ..SceneViewportChromeData::default()
     };
 
-    assert!(state.patch_scene_viewport_chrome(viewport, "Grid: 1 m", "Snap: On"));
+    assert!(state.patch_scene_viewport_chrome(viewport, "Grid: 1 m", "T:1 m R:15° S:off", true));
 
     let patched = &state.host_presentation;
     assert_eq!(
@@ -88,6 +93,7 @@ fn scene_chrome_patch_preserves_geometry_and_unrelated_rows() {
     assert!(patched
         .workbench_window_nodes
         .shares_row_with(&original_nodes, 1));
+    assert!(patched.workbench_window_nodes.get(2).unwrap().checked);
 }
 
 #[test]
@@ -117,6 +123,7 @@ fn stable_scene_chrome_patch_keeps_the_retained_presentation() {
         SceneViewportChromeData::default(),
         "Grid: Off",
         "Snap: Off",
+        false,
     ));
     assert!(Arc::ptr_eq(&retained, &state.host_presentation));
 }

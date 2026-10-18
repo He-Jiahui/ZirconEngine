@@ -21,8 +21,7 @@ fn behavior_callback_cache_only_clones_a_missing_key() {
     let package = package("cache");
     let slot = manager.load_package(package).unwrap();
     register_same_node(&manager, slot, 1);
-    let bridge = VmScriptBehaviorBridge::new();
-    bridge.bind_manager(&manager);
+    let bridge = VmBehaviorCallbackCache::default();
     let callback = ScriptBehaviorCallbackRef::parse("cache::shared.task").unwrap();
     let first = bridge.resolve_callback(&manager, &callback).unwrap();
     let refreshed = VmCallbackHandle {
@@ -47,8 +46,7 @@ fn provider_qualified_callback_selects_slot_and_refreshes_generation() {
     let second_slot = manager.load_package(second_package).unwrap();
     register_same_node(&manager, first_slot, 1);
     register_same_node(&manager, second_slot, 1);
-    let bridge = VmScriptBehaviorBridge::new();
-    bridge.bind_manager(&manager);
+    let bridge = VmBehaviorCallbackCache::default();
 
     let first_ref = ScriptBehaviorCallbackRef::parse("first::shared.task").unwrap();
     let second_ref = ScriptBehaviorCallbackRef::parse("second::shared.task").unwrap();
@@ -69,8 +67,7 @@ fn duplicate_active_package_names_are_rejected_as_ambiguous() {
     let manager = VmPluginManager::mock();
     manager.load_package(package("duplicate")).unwrap();
     manager.load_package(package("duplicate")).unwrap();
-    let bridge = VmScriptBehaviorBridge::new();
-    bridge.bind_manager(&manager);
+    let bridge = VmBehaviorCallbackCache::default();
 
     let error = bridge
         .resolve_callback(

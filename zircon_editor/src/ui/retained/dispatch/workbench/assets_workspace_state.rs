@@ -191,12 +191,12 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
             .rsplit('/')
             .find(|segment| !segment.is_empty())
             .unwrap_or(path.as_str());
-        self.set_asset_string("WorkbenchStatusReady", "text", "Asset import queued")?;
+        self.set_asset_string("WorkbenchStatusReady", "text", "Not implemented (preview)")?;
         self.set_asset_string("WorkbenchStatusMessages", "text", "1 Message")?;
         self.set_asset_string(
             "WorkbenchAssetsOutputRow",
             "text",
-            format!("Import: {asset_name}   {asset_type} / {owner}"),
+            format!("Preview inputs: {asset_name}   {asset_type} / {owner}"),
         )
     }
 

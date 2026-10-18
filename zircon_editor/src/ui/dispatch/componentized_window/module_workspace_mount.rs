@@ -68,6 +68,9 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         &mut self,
         action_id: &str,
     ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
+        if !self.preview_features_enabled && action_id != "workbench.module.scene.select" {
+            return self.show_unimplemented_preview();
+        }
         if self
             .module_workspace
             .as_ref()

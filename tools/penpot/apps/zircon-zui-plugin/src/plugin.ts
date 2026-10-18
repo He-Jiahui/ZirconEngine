@@ -107,6 +107,8 @@ import {
   writeExportShapeGuard,
 } from './penpot-export-guard';
 import { originalZuiSource } from './bridge/zui-source-export';
+import { annotateSelection, installZopContract } from './zop/annotate';
+import { exportZop } from './zop/export';
 
 const UI_SIZE = { width: 420, height: 520 };
 // Large composite pages can require several Penpot layout passes after their
@@ -151,6 +153,25 @@ penpot.on('selectionchange', () => {
 penpot.on('finish', () => authoringLayout.dispose());
 
 penpot.ui.onMessage<PluginUiMessage>((message) => {
+  if (message.type === 'zop-load-contract' || message.type === 'zop-annotate') {
+    try {
+      const result = message.type === 'zop-load-contract'
+        ? `${installZopContract(message.source)} operator roles loaded`
+        : `Annotated ${annotateSelection(penpot.selection, message.source)}`;
+      sendMessage({ type: 'status', level: 'success', message: result });
+    } catch (error) {
+      sendMessage({ type: 'status', level: 'error', message: errorMessage(error) });
+    }
+    return;
+  }
+  if (message.type === 'zop-export') {
+    sendMessage({ type: 'status', level: 'working', message: 'Exporting operator board and Penpot reference PNG' });
+    void exportZop(message.screen, message.assetPath).then(result => {
+      sendMessage({ type: 'zop-export-ready', ...result });
+      sendMessage({ type: 'status', level: 'success', message: result.fileName });
+    }).catch(error => sendMessage({ type: 'status', level: 'error', message: errorMessage(error) }));
+    return;
+  }
   if (message.type === 'ready' || message.type === 'inspect-selection') {
     authoringLayout.bindSelection();
     sendMessage({ type: 'theme', content: penpot.theme });

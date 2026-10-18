@@ -4,6 +4,19 @@ use crate::ui::workbench::layout::ActivityDrawerSlot;
 use crate::ui::workbench::view::ViewInstanceId;
 
 #[test]
+fn merged_drawer_toggles_preserve_parity_and_require_host_dispatch() {
+    let mut target = UiHostEventEffects::default();
+    let mut toggle = UiHostEventEffects::default();
+    toggle.toggle_content_drawer_requested = true;
+    toggle.request_paint_only();
+    merge_effects(&mut target, toggle.clone());
+    assert!(target.toggle_content_drawer_requested);
+    assert!(!target.is_viewport_resize_recompute_compatible());
+    merge_effects(&mut target, toggle);
+    assert!(!target.toggle_content_drawer_requested);
+}
+
+#[test]
 fn merging_opened_view_visibility_keeps_each_actual_instance_request() {
     let mut target = UiHostEventEffects::default();
     target

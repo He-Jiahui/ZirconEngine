@@ -187,6 +187,7 @@ impl UiHostContext<'_> {
         frame_requested,
         ()
     );
+    callback_methods!(ui_callbacks, on_runtime_frame_requested, invoke_runtime_frame_requested, runtime_frame_requested, ());
     callback_methods!(
         ui_callbacks,
         on_interactive_frame_requested,

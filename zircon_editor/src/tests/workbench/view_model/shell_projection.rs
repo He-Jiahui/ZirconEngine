@@ -90,12 +90,12 @@ fn workbench_view_model_projects_menu_strip_drawers_and_status() {
         .contains_key(&ActivityDrawerSlot::LeftTop));
     assert_eq!(model.status_bar.primary_text, "Editor booted");
     assert_eq!(model.status_bar.viewport_label, "1280 x 720");
-    assert_eq!(model.status_bar.error_text, "No Errors");
+    assert_eq!(model.status_bar.error_text, "0 Errors");
     assert_eq!(model.status_bar.warning_text, "0 Warnings");
     assert_eq!(model.status_bar.message_text, "0 Messages");
     assert_eq!(model.status_bar.grid_text, "Grid: 1 m");
-    assert_eq!(model.status_bar.snap_text, "Snap: Off");
-    assert_eq!(model.status_bar.zoom_text, "100%");
+    assert_eq!(model.status_bar.snap_text, "T:1 m R:15° S:off");
+    assert!(model.status_bar.snap_enabled);
     assert!(model.status_bar.task_progress.is_none());
     let save_project_binding = model
         .menu_bar
@@ -673,6 +673,7 @@ fn sample_two_activity_windows_chrome(active_window: ActivityWindowId) -> Editor
             inspector: None,
             status_line: "Ready".to_string(),
             console_output: "Ready".into(),
+            status_signals: Default::default(),
             status_task_progress: None,
             hovered_axis: None,
             viewport_size: UVec2::new(1280, 720),

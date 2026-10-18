@@ -10,6 +10,7 @@ use super::{
 
 pub const EDITOR_DESIGN_TOKENS_KEY: &str = "editor.appearance.design_tokens";
 pub const EDITOR_KEYMAP_OVERRIDES_KEY: &str = "editor.commands.keymap_overrides";
+pub const EDITOR_SHOW_PREVIEW_FEATURES_KEY: &str = "editor.ui.show_preview_features";
 pub const EDITOR_COMMAND_PALETTE_MRU_KEY: &str = "editor.commands.palette_mru";
 pub const EDITOR_LOCALE_KEY: &str = "editor.language.locale";
 pub const EDITOR_AUTOSAVE_INTERVAL_SECS_KEY: &str = "editor.autosave.interval_secs";
@@ -34,6 +35,23 @@ const VIEWPORT_SCALE_STEP_INCREMENT: f64 = 0.01;
 /// definitions through this registry rather than creating another persistence path.
 pub fn settings_registry_with_defaults() -> SettingsRegistry {
     let mut registry = SettingsRegistry::default();
+    registry
+        .register(
+            SettingDefinition::new(
+                SettingsKey::parse(EDITOR_SHOW_PREVIEW_FEATURES_KEY).expect("preview key"),
+                SettingsScope::User,
+                SettingSchema::Bool,
+                SettingValue::Bool(false),
+                false,
+                presentation(
+                    "settings.editor.ui.show_preview_features.label",
+                    "settings.editor.ui.show_preview_features.description",
+                    &["settings.category.editor"],
+                ),
+            )
+            .expect("preview setting"),
+        )
+        .expect("unique preview setting");
     registry
         .register(
             SettingDefinition::new(
@@ -144,6 +162,7 @@ pub fn settings_registry_with_defaults() -> SettingsRegistry {
     register_viewport_snap_enabled(
         &mut registry,
         VIEWPORT_TRANSLATE_SNAP_ENABLED_KEY,
+        true,
         presentation(
             "settings.editor.viewport.translate_snap_enabled.label",
             "settings.editor.viewport.translate_snap_enabled.description",
@@ -153,6 +172,7 @@ pub fn settings_registry_with_defaults() -> SettingsRegistry {
     register_viewport_snap_enabled(
         &mut registry,
         VIEWPORT_ROTATE_SNAP_ENABLED_KEY,
+        true,
         presentation(
             "settings.editor.viewport.rotate_snap_enabled.label",
             "settings.editor.viewport.rotate_snap_enabled.description",
@@ -162,6 +182,7 @@ pub fn settings_registry_with_defaults() -> SettingsRegistry {
     register_viewport_snap_enabled(
         &mut registry,
         VIEWPORT_SCALE_SNAP_ENABLED_KEY,
+        false,
         presentation(
             "settings.editor.viewport.scale_snap_enabled.label",
             "settings.editor.viewport.scale_snap_enabled.description",
@@ -209,17 +230,17 @@ pub fn settings_registry_with_defaults() -> SettingsRegistry {
 fn register_viewport_snap_enabled(
     registry: &mut SettingsRegistry,
     key: &str,
+    default_enabled: bool,
     presentation: SettingsPresentation,
 ) {
-    // UE BaseEditorPerProjectUserSettings.ini enables all three snap types.
-    // Reuse the existing snap settings scopes and persistence owner.
+    // Keep each snap type under the existing settings and persistence authority.
     registry
         .register(
             SettingDefinition::new(
                 SettingsKey::parse(key).expect("the built-in snap-enable key is valid"),
                 SettingsScope::Project,
                 SettingSchema::Bool,
-                SettingValue::Bool(true),
+                SettingValue::Bool(default_enabled),
                 false,
                 presentation,
             )

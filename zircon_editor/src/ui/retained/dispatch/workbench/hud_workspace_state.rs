@@ -128,7 +128,7 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         let locale = self
             .control_string("WorkbenchHudLocaleField", "value")
             .unwrap_or_default();
-        self.set_hud_string("WorkbenchStatusReady", "text", "HUD preview refreshed")?;
+        self.set_hud_string("WorkbenchStatusReady", "text", "Not implemented (preview)")?;
         self.set_hud_string("WorkbenchStatusMessages", "text", "1 Message")?;
         self.set_hud_string(
             "WorkbenchHudCenterTitle",

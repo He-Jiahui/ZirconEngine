@@ -113,12 +113,12 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         let state = self
             .control_string("WorkbenchBehaviorStateField", "value")
             .unwrap_or_default();
-        self.set_behavior_string("WorkbenchStatusReady", "text", "Behavior tree validated")?;
+        self.set_behavior_string("WorkbenchStatusReady", "text", "Not implemented (preview)")?;
         self.set_behavior_string("WorkbenchStatusMessages", "text", "1 Message")?;
         self.set_behavior_string(
             "WorkbenchBehaviorOutputRow",
             "text",
-            format!("Validated {blackboard} / {controller}   {state}"),
+            format!("Preview inputs: {blackboard} / {controller}   {state}"),
         )
     }
 

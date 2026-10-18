@@ -32,6 +32,7 @@ fn chrome_fixture() -> EditorChromeSnapshot {
         inspector: None,
         status_line: "Console ready".to_string(),
         console_output: "Console ready".into(),
+        status_signals: Default::default(),
         status_task_progress: None,
         hovered_axis: None,
         viewport_size: UVec2::new(1280, 720),

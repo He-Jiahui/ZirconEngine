@@ -25,6 +25,8 @@ pub mod host;
 pub(crate) mod layouts;
 #[path = "material_editor/mod.rs"]
 pub mod material_editor;
+#[path = "operator/mod.rs"]
+pub mod operator;
 #[path = "preview_scene/mod.rs"]
 pub mod preview_scene;
 #[path = "reflection/mod.rs"]

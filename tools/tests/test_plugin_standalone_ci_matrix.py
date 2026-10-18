@@ -31,7 +31,7 @@ class PluginStandaloneCiMatrixTests(unittest.TestCase):
         )
         job_block = standalone_validate_ci_job_block(workflow_text)
 
-        self.assertIn("uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065", job_block)
+        self.assertIn("uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1", job_block)
         self.assertIn("python-version: '3.11'", job_block)
         self.assertIn(
             "python -m tools.export plugin validate --all --repo-root . --json",

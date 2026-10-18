@@ -6,6 +6,7 @@ use super::*;
 fn source_search_selection_and_rename_keep_distinct_state_domains() {
     let mut bridge = BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(900.0, 620.0))
         .expect("workbench bridge should build");
+    bridge.set_preview_features(true).expect("preview workspace fixture");
 
     assert!(bridge.control_bool("WorkbenchTagsSourceRow", "selected"));
     assert!(bridge.control_bool("WorkbenchTagsAbilityActivateRow", "selected"));

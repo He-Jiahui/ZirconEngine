@@ -50,7 +50,7 @@ fn play_mode_menu_operations_use_plugin_activation_and_record_operation_identity
     );
     assert_eq!(
         runtime.runtime.editor_snapshot().unwrap().session_mode,
-        crate::ui::workbench::startup::EditorSessionMode::Playing
+        crate::ui::workbench::startup::EditorSessionMode::Project
     );
 
     let exit_record = runtime

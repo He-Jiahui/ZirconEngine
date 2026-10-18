@@ -40,6 +40,7 @@ fn default_scene_navigation_keeps_the_unreal_tree_without_module_retention() {
     let _guard = env_lock().lock().unwrap_or_else(|error| error.into_inner());
     let mut bridge =
         BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(1672.0, 941.0)).unwrap();
+    bridge.set_preview_features(true).expect("preview workspace fixture");
     let nodes = bridge.surface().tree.nodes.len();
     let slots = bridge.surface().tree.layout_slots().len();
     for (_, control) in MODULES {
@@ -57,6 +58,7 @@ fn module_switches_reuse_ids_and_preserve_unreal_geometry_and_style() {
     let _guard = env_lock().lock().unwrap_or_else(|error| error.into_inner());
     let mut bridge =
         BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(1672.0, 941.0)).unwrap();
+    bridge.set_preview_features(true).expect("preview workspace fixture");
     let baseline_frames = bridge.frames();
     let base_ids = bridge
         .surface()
@@ -179,6 +181,7 @@ fn failed_child_mount_preserves_the_live_module_and_input_state() {
     let _guard = env_lock().lock().unwrap_or_else(|error| error.into_inner());
     let mut bridge =
         BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(1672.0, 941.0)).unwrap();
+    bridge.set_preview_features(true).expect("preview workspace fixture");
     select(&mut bridge, "menu.item.ability");
     let before = bridge.surface().clone();
     let before_projection = bridge.host_projection().clone();
@@ -222,6 +225,7 @@ fn returning_to_scene_retires_module_focus_and_routes() {
     let _guard = env_lock().lock().unwrap_or_else(|error| error.into_inner());
     let mut bridge =
         BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(1672.0, 941.0)).unwrap();
+    bridge.set_preview_features(true).expect("preview workspace fixture");
     let base_ids = bridge
         .surface()
         .tree
@@ -280,6 +284,7 @@ fn stale_public_child_mount_rejects_actual_live_property_and_focus_updates() {
     for change_focus in [false, true] {
         let mut bridge =
             BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(1672.0, 941.0)).unwrap();
+        bridge.set_preview_features(true).expect("preview workspace fixture");
         select(&mut bridge, "menu.item.effect");
         let parent = bridge.control_node_id("UnrealSceneViewViewport").unwrap();
         let (mut staged, _, proof) =
@@ -347,6 +352,7 @@ fn module_tools_trigger_invocation_proof_rejects_forged_sources_and_paths() {
     let _guard = env_lock().lock().unwrap_or_else(|error| error.into_inner());
     let mut bridge =
         BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(1672.0, 941.0)).unwrap();
+    bridge.set_preview_features(true).expect("preview workspace fixture");
     for (item, menu) in [
         ("menu.item.assets", "WorkbenchAssetsWorldToolsMenu"),
         ("menu.item.assets", "WorkbenchAssetsGameplayToolsMenu"),

@@ -1,4 +1,5 @@
 use super::*;
+use crate::ui::retained_host::paint_theme::PALETTE;
 
 #[test]
 fn focused_generic_interaction_surface_uses_pressed_not_selected_surface() {

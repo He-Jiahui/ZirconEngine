@@ -29,6 +29,7 @@ impl PreviewEditorData {
             inspector: self.inspector.map(super::PreviewInspector::into_snapshot),
             status_line: self.status_line,
             console_output,
+            status_signals: Default::default(),
             status_task_progress: None,
             hovered_axis: self
                 .hovered_axis

@@ -7,6 +7,19 @@ use crate::ui::retained_host::HostInvalidationMask;
 use super::support::record_with_event_and_effects;
 
 #[test]
+fn committed_play_start_retains_the_record_sequence_for_a_unique_graphics_warning() {
+    let mut effects = UiHostEventEffects::default();
+    let mut record = record_with_event_and_effects(
+        EditorEvent::WorkbenchMenu(MenuAction::EnterPlayMode),
+        vec![EditorEventEffect::PlaySessionStarted],
+    );
+    record.sequence = crate::core::editor_event::EditorEventSequence::new(42);
+    apply_record_effects(&mut effects, &record);
+    assert_eq!(effects.play_started_sequence, Some(42));
+    assert!(!effects.is_viewport_resize_recompute_compatible());
+}
+
+#[test]
 fn save_and_import_records_queue_typed_toasts_for_retained_host() {
     let mut effects = UiHostEventEffects::default();
     apply_record_effects(

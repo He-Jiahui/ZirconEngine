@@ -10,64 +10,75 @@ on:
 env:
   CARGO_TERM_COLOR: always
   RUST_BACKTRACE: 1
-  CARGO_TARGET_DIR: D:\cargo-targets\mvp-ci-${{ github.run_id }}-${{ github.run_attempt }}\target
+  RUSTC_WRAPPER: ''
+  RUSTC_WORKSPACE_WRAPPER: ''
+  CARGO_BUILD_BUILD_DIR: ''
   MVP_EVIDENCE_ROOT: D:\cargo-targets\mvp-ci-results-${{ github.run_id }}-${{ github.run_attempt }}
   MVP_POWERSHELL_VERSION: 7.4.19
   MVP_POWERSHELL_SHA256: CD62AD6D8174CC6FB85B335A0058444BC934FE27C39FA97FE342134286D28AF9
   MVP_PESTER_VERSION: 4.10.1
   MVP_RUST_TOOLCHAIN: 1.94.1
   MVP_CHECKOUT_ACTION_SHA: fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
-  MVP_RUST_TOOLCHAIN_ACTION_SHA: 75be91dd2711b583df57c31d0873b4145c89f1d9
-  MVP_RUST_CACHE_ACTION_SHA: 6323deb102c322ba6fcbdcafc7e3dddab59af2b6
-  MVP_UPLOAD_ARTIFACT_ACTION_SHA: ea165f8d65b6e75b540449e92b4886f43607fa02
+  MVP_RUST_TOOLCHAIN_ACTION_SHA: 683b588c487a69d01f6c6ddf40f036ff682cc2c8
+  MVP_RUST_CACHE_ACTION_SHA: caa296126883cff596d87d8935842f9db880ef25
+  MVP_UPLOAD_ARTIFACT_ACTION_SHA: b7c566a772e6b6bfb58ed0dc250532a479d7789f
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  mvp-editor-windows:
-    name: MVP editor/runtime smoke
-    runs-on: windows-latest
-    timeout-minutes: 120
+  compile-gate:
+    name: MVP editor and plugin compilation
+    runs-on: windows-2022
+    timeout-minutes: 60
+    env:
+      ZR_CI_OUTPUT_ROOT: D:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\mc-0
+      CARGO_HOME: D:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\mc-0\c
+      RUSTUP_HOME: D:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\mc-0\rustup
+      TEMP: D:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\mc-0\tmp
+      TMP: D:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\mc-0\tmp
+      WGPU_BACKEND: dx12
 
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+        with:
+          persist-credentials: false
+
+      - name: Resolve lockfile-scoped Cargo target
+        shell: pwsh
+        run: |
+          $lockHash = '${{ hashFiles('Cargo.lock', 'zircon_plugins/Cargo.lock', '.cargo/config.toml') }}'
+          if ($lockHash -notmatch '^[a-f0-9]{64}$') { throw 'Missing Cargo cache input identity.' }
+          "ZR_CI_LOCK_HASH=$lockHash" | Add-Content -LiteralPath $env:GITHUB_ENV -Encoding utf8
+          "CARGO_TARGET_DIR=D:\cargo-targets\zircon-local\ci\cache\mvp-1.94.1\$lockHash\$env:GITHUB_JOB\target" | Add-Content -LiteralPath $env:GITHUB_ENV -Encoding utf8
 
       - name: Require physical managed Cargo volume
+        env:
+          TEMP: ${{ runner.temp }}
+          TMP: ${{ runner.temp }}
         shell: pwsh
-        run: |
-          $drive = [IO.DriveInfo]::new('D:\')
-          if (-not $drive.IsReady -or $drive.DriveType -ne [IO.DriveType]::Fixed) {
-            throw 'This image needs a physical D: drive for the approved Cargo storage policy.'
-          }
-          $substitutions = & subst.exe
-          if ($LASTEXITCODE -ne 0 -or ($substitutions -match '(?im)^D:\\:\s*=>')) { throw 'D: must not be a SUBST alias.' }
-          foreach ($path in @('D:\cargo-targets', (Split-Path $env:CARGO_TARGET_DIR -Parent), $env:CARGO_TARGET_DIR)) {
-            if ((Test-Path -LiteralPath $path) -and ((Get-Item -LiteralPath $path -Force).Attributes -band [IO.FileAttributes]::ReparsePoint)) {
-              throw "Managed output contains a reparse point: $path"
-            }
-          }
-          New-Item -ItemType Directory -Force -Path $env:CARGO_TARGET_DIR | Out-Null
-          $runRoot = Split-Path $env:CARGO_TARGET_DIR -Parent
-          foreach ($entry in @{ CARGO_HOME = 'cargo-home'; RUSTUP_HOME = 'rustup'; TEMP = 'tmp'; TMP = 'tmp' }.GetEnumerator()) {
-            $path = Join-Path $runRoot $entry.Value
-            New-Item -ItemType Directory -Force -Path $path | Out-Null
-            "$($entry.Key)=$path" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          }
+        run: ./.github/scripts/prepare-cargo-roots.ps1 -StorageRoot 'D:\cargo-targets\zircon-local' -UseMvpTargetCache -BootstrapTemp
+
+      - name: Restore lockfile-scoped Cargo target
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25
+        with:
+          path: ${{ env.CARGO_TARGET_DIR }}
+          key: mvp-windows-2022-rust-1.94.1-${{ github.job }}-${{ hashFiles('Cargo.lock', 'zircon_plugins/Cargo.lock', '.cargo/config.toml') }}-${{ github.sha }}
+          restore-keys: |
+            mvp-windows-2022-rust-1.94.1-${{ github.job }}-${{ hashFiles('Cargo.lock', 'zircon_plugins/Cargo.lock', '.cargo/config.toml') }}-
+
+      - name: Verify restored physical Cargo roots
+        shell: pwsh
+        run: ./.github/scripts/prepare-cargo-roots.ps1 -StorageRoot 'D:\cargo-targets\zircon-local' -UseMvpTargetCache -VerifyOnly
 
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@75be91dd2711b583df57c31d0873b4145c89f1d9
+        uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8
         with:
           toolchain: ${{ env.MVP_RUST_TOOLCHAIN }}
-
-      - name: Cache cargo registry
-        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6
-
-      - name: Verify managed Cargo output root
-        shell: pwsh
-        run: |
-          $managedTargetRoot = "D:\cargo-targets\mvp-ci-$env:GITHUB_RUN_ID-$env:GITHUB_RUN_ATTEMPT\target"
-          if ($env:CARGO_TARGET_DIR -ne $managedTargetRoot) {
-            throw "MVP Windows builds require CARGO_TARGET_DIR=$managedTargetRoot; got '$env:CARGO_TARGET_DIR'."
-          }
-          New-Item -ItemType Directory -Force -Path $env:CARGO_TARGET_DIR | Out-Null
 
       - name: Prepare MVP diagnostic evidence directory
         shell: pwsh
@@ -90,46 +101,93 @@ jobs:
             "cargo: $(& cargo -V | Out-String)"
           ) | Set-Content -Encoding utf8 "$env:MVP_EVIDENCE_ROOT\environment.txt"
 
-      - name: Prepare pinned MVP control-plane runtime
+      - name: Compile the complete editor feature closure
+        shell: pwsh
+        run: ./.github/scripts/invoke-cargo-msvc.ps1 cargo check -p zircon_app --bin zircon_editor --no-default-features --features target-editor-host --locked
+
+      - name: Compile the plugin workspace
+        shell: pwsh
+        run: ./.github/scripts/invoke-cargo-msvc.ps1 cargo check --manifest-path zircon_plugins/Cargo.toml --workspace --locked
+
+      - name: Upload compile-gate diagnostics
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        with:
+          name: mvp-compile-gate-evidence
+          path: ${{ env.MVP_EVIDENCE_ROOT }}
+          if-no-files-found: error
+          retention-days: 7
+
+  focused-tests:
+    name: MVP F1-F4 focused tests
+    needs: compile-gate
+    runs-on: windows-2022
+    timeout-minutes: 90
+    env:
+      ZR_CI_OUTPUT_ROOT: D:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\mt-0
+      CARGO_HOME: D:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\mt-0\c
+      RUSTUP_HOME: D:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\mt-0\rustup
+      TEMP: D:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\mt-0\tmp
+      TMP: D:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\mt-0\tmp
+      WGPU_BACKEND: dx12
+
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+        with:
+          persist-credentials: false
+
+      - name: Resolve lockfile-scoped Cargo target
         shell: pwsh
         run: |
-          $ErrorActionPreference = 'Stop'
-          $runtimeRoot = Join-Path 'D:\cargo-targets' "mvp-tool-runtime-$env:GITHUB_RUN_ID-$env:GITHUB_RUN_ATTEMPT"
-          $powerShellRoot = Join-Path $runtimeRoot "pwsh-$env:MVP_POWERSHELL_VERSION"
-          $pesterModuleRoot = Join-Path $runtimeRoot 'psmodules'
-          $archivePath = Join-Path $runtimeRoot "PowerShell-$env:MVP_POWERSHELL_VERSION-win-x64.zip"
-          $archiveUri = "https://github.com/PowerShell/PowerShell/releases/download/v$env:MVP_POWERSHELL_VERSION/PowerShell-$env:MVP_POWERSHELL_VERSION-win-x64.zip"
-          New-Item -ItemType Directory -Force -Path $runtimeRoot, $powerShellRoot, $pesterModuleRoot | Out-Null
-          Invoke-WebRequest -Uri $archiveUri -OutFile $archivePath
-          $archiveSha256 = (Get-FileHash -LiteralPath $archivePath -Algorithm SHA256).Hash
-          if (-not [string]::Equals($archiveSha256, $env:MVP_POWERSHELL_SHA256, [StringComparison]::OrdinalIgnoreCase)) {
-            throw "Pinned PowerShell archive digest mismatch: expected=$env:MVP_POWERSHELL_SHA256 actual=$archiveSha256."
+          $lockHash = '${{ hashFiles('Cargo.lock', 'zircon_plugins/Cargo.lock', '.cargo/config.toml') }}'
+          if ($lockHash -notmatch '^[a-f0-9]{64}$') { throw 'Missing Cargo cache input identity.' }
+          "ZR_CI_LOCK_HASH=$lockHash" | Add-Content -LiteralPath $env:GITHUB_ENV -Encoding utf8
+          "CARGO_TARGET_DIR=D:\cargo-targets\zircon-local\ci\cache\mvp-1.94.1\$lockHash\$env:GITHUB_JOB\target" | Add-Content -LiteralPath $env:GITHUB_ENV -Encoding utf8
+
+      - name: Require physical managed Cargo volume
+        env:
+          TEMP: ${{ runner.temp }}
+          TMP: ${{ runner.temp }}
+        shell: pwsh
+        run: ./.github/scripts/prepare-cargo-roots.ps1 -StorageRoot 'D:\cargo-targets\zircon-local' -UseMvpTargetCache -BootstrapTemp
+
+      - name: Restore lockfile-scoped Cargo target
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25
+        with:
+          path: ${{ env.CARGO_TARGET_DIR }}
+          key: mvp-windows-2022-rust-1.94.1-${{ github.job }}-${{ hashFiles('Cargo.lock', 'zircon_plugins/Cargo.lock', '.cargo/config.toml') }}-${{ github.sha }}
+          restore-keys: |
+            mvp-windows-2022-rust-1.94.1-${{ github.job }}-${{ hashFiles('Cargo.lock', 'zircon_plugins/Cargo.lock', '.cargo/config.toml') }}-
+
+      - name: Verify restored physical Cargo roots
+        shell: pwsh
+        run: ./.github/scripts/prepare-cargo-roots.ps1 -StorageRoot 'D:\cargo-targets\zircon-local' -UseMvpTargetCache -VerifyOnly
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8
+        with:
+          toolchain: ${{ env.MVP_RUST_TOOLCHAIN }}
+
+      - name: Prepare MVP diagnostic evidence directory
+        shell: pwsh
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:ImageOS) -or [string]::IsNullOrWhiteSpace($env:ImageVersion)) {
+            throw 'GitHub hosted runner image identity is unavailable.'
           }
-          Expand-Archive -LiteralPath $archivePath -DestinationPath $powerShellRoot
-          $pinnedPwsh = Join-Path $powerShellRoot 'pwsh.exe'
-          if (-not (Test-Path -LiteralPath $pinnedPwsh -PathType Leaf)) {
-            throw "Pinned PowerShell executable is missing after extraction: $pinnedPwsh"
+          if ($env:MVP_EVIDENCE_ROOT -notmatch '^D:\\cargo-targets\\mvp-ci-results-[0-9]+-[0-9]+$') {
+            throw "MVP evidence root must be a run-bound D:\cargo-targets path; got '$env:MVP_EVIDENCE_ROOT'."
           }
-          Save-Module -Name Pester -RequiredVersion $env:MVP_PESTER_VERSION -Path $pesterModuleRoot -Repository PSGallery -Force -ErrorAction Stop
-          $env:MVP_PESTER_MODULE_ROOT = $pesterModuleRoot
-          & $pinnedPwsh -NoProfile -NonInteractive -Command @'
-          $ErrorActionPreference = 'Stop'
-          if ($PSVersionTable.PSVersion.ToString() -ne $env:MVP_POWERSHELL_VERSION) {
-            throw "Pinned PowerShell version mismatch: expected=$env:MVP_POWERSHELL_VERSION actual=$($PSVersionTable.PSVersion)."
-          }
-          Import-Module (Join-Path $env:MVP_PESTER_MODULE_ROOT "Pester\$env:MVP_PESTER_VERSION\Pester.psd1") -Force -ErrorAction Stop
-          if ((Get-Module Pester).Version.ToString() -ne $env:MVP_PESTER_VERSION) {
-            throw "Pinned Pester version mismatch: expected=$env:MVP_PESTER_VERSION actual=$((Get-Module Pester).Version)."
-          }
-          '@
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          "MVP_PINNED_PWSH=$pinnedPwsh" | Add-Content -LiteralPath $env:GITHUB_ENV -Encoding utf8
-          "MVP_PESTER_MODULE_ROOT=$pesterModuleRoot" | Add-Content -LiteralPath $env:GITHUB_ENV -Encoding utf8
+          New-Item -ItemType Directory -Force -Path $env:MVP_EVIDENCE_ROOT | Out-Null
           @(
-            "control_plane_pwsh: $env:MVP_POWERSHELL_VERSION",
-            "control_plane_pwsh_archive_sha256: $archiveSha256",
-            "control_plane_pester: $env:MVP_PESTER_VERSION"
-          ) | Add-Content -LiteralPath "$env:MVP_EVIDENCE_ROOT\environment.txt" -Encoding utf8
+            "runner_image: $env:ImageOS/$env:ImageVersion",
+            "rust_toolchain_policy: $env:MVP_RUST_TOOLCHAIN",
+            "checkout_action_sha: $env:MVP_CHECKOUT_ACTION_SHA",
+            "rust_toolchain_action_sha: $env:MVP_RUST_TOOLCHAIN_ACTION_SHA",
+            "rust_cache_action_sha: $env:MVP_RUST_CACHE_ACTION_SHA",
+            "upload_artifact_action_sha: $env:MVP_UPLOAD_ARTIFACT_ACTION_SHA",
+            "rustc: $(& rustc -Vv | Out-String)",
+            "cargo: $(& cargo -V | Out-String)"
+          ) | Set-Content -Encoding utf8 "$env:MVP_EVIDENCE_ROOT\environment.txt"
 
       - name: Test project-scoped editor automation CLI contract
         shell: pwsh
@@ -211,6 +269,133 @@ jobs:
             Write-Error 'F4 exact gate did not execute exactly one passing test.'
             exit 1
           }
+
+      - name: Upload focused-tests diagnostics
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        with:
+          name: mvp-focused-tests-evidence
+          path: ${{ env.MVP_EVIDENCE_ROOT }}
+          if-no-files-found: error
+          retention-days: 7
+
+  mvp-editor-windows:
+    name: MVP staged product and F5 acceptance
+    needs: focused-tests
+    runs-on: windows-2022
+    timeout-minutes: 120
+    env:
+      ZR_CI_OUTPUT_ROOT: D:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\ms-0
+      CARGO_HOME: D:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\ms-0\c
+      RUSTUP_HOME: D:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\ms-0\rustup
+      TEMP: D:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\ms-0\tmp
+      TMP: D:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\ms-0\tmp
+      WGPU_BACKEND: dx12
+
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+        with:
+          persist-credentials: false
+
+      - name: Resolve lockfile-scoped Cargo target
+        shell: pwsh
+        run: |
+          $lockHash = '${{ hashFiles('Cargo.lock', 'zircon_plugins/Cargo.lock', '.cargo/config.toml') }}'
+          if ($lockHash -notmatch '^[a-f0-9]{64}$') { throw 'Missing Cargo cache input identity.' }
+          "ZR_CI_LOCK_HASH=$lockHash" | Add-Content -LiteralPath $env:GITHUB_ENV -Encoding utf8
+          "CARGO_TARGET_DIR=D:\cargo-targets\zircon-local\ci\cache\mvp-1.94.1\$lockHash\$env:GITHUB_JOB\target" | Add-Content -LiteralPath $env:GITHUB_ENV -Encoding utf8
+
+      - name: Require physical managed Cargo volume
+        env:
+          TEMP: ${{ runner.temp }}
+          TMP: ${{ runner.temp }}
+        shell: pwsh
+        run: ./.github/scripts/prepare-cargo-roots.ps1 -StorageRoot 'D:\cargo-targets\zircon-local' -UseMvpTargetCache -BootstrapTemp
+
+      - name: Restore lockfile-scoped Cargo target
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25
+        with:
+          path: ${{ env.CARGO_TARGET_DIR }}
+          key: mvp-windows-2022-rust-1.94.1-${{ github.job }}-${{ hashFiles('Cargo.lock', 'zircon_plugins/Cargo.lock', '.cargo/config.toml') }}-${{ github.sha }}
+          restore-keys: |
+            mvp-windows-2022-rust-1.94.1-${{ github.job }}-${{ hashFiles('Cargo.lock', 'zircon_plugins/Cargo.lock', '.cargo/config.toml') }}-
+
+      - name: Verify restored physical Cargo roots
+        shell: pwsh
+        run: ./.github/scripts/prepare-cargo-roots.ps1 -StorageRoot 'D:\cargo-targets\zircon-local' -UseMvpTargetCache -VerifyOnly
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8
+        with:
+          toolchain: ${{ env.MVP_RUST_TOOLCHAIN }}
+
+      - name: Prepare MVP diagnostic evidence directory
+        shell: pwsh
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:ImageOS) -or [string]::IsNullOrWhiteSpace($env:ImageVersion)) {
+            throw 'GitHub hosted runner image identity is unavailable.'
+          }
+          if ($env:MVP_EVIDENCE_ROOT -notmatch '^D:\\cargo-targets\\mvp-ci-results-[0-9]+-[0-9]+$') {
+            throw "MVP evidence root must be a run-bound D:\cargo-targets path; got '$env:MVP_EVIDENCE_ROOT'."
+          }
+          New-Item -ItemType Directory -Force -Path $env:MVP_EVIDENCE_ROOT | Out-Null
+          @(
+            "runner_image: $env:ImageOS/$env:ImageVersion",
+            "rust_toolchain_policy: $env:MVP_RUST_TOOLCHAIN",
+            "checkout_action_sha: $env:MVP_CHECKOUT_ACTION_SHA",
+            "rust_toolchain_action_sha: $env:MVP_RUST_TOOLCHAIN_ACTION_SHA",
+            "rust_cache_action_sha: $env:MVP_RUST_CACHE_ACTION_SHA",
+            "upload_artifact_action_sha: $env:MVP_UPLOAD_ARTIFACT_ACTION_SHA",
+            "rustc: $(& rustc -Vv | Out-String)",
+            "cargo: $(& cargo -V | Out-String)"
+          ) | Set-Content -Encoding utf8 "$env:MVP_EVIDENCE_ROOT\environment.txt"
+
+      - name: Collect preceding gate diagnostics
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131
+        with:
+          pattern: mvp-*-evidence
+          path: ${{ env.MVP_EVIDENCE_ROOT }}/preceding-gates
+
+      - name: Prepare pinned MVP control-plane runtime
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $runtimeRoot = Join-Path 'D:\cargo-targets' "mvp-tool-runtime-$env:GITHUB_RUN_ID-$env:GITHUB_RUN_ATTEMPT"
+          $powerShellRoot = Join-Path $runtimeRoot "pwsh-$env:MVP_POWERSHELL_VERSION"
+          $pesterModuleRoot = Join-Path $runtimeRoot 'psmodules'
+          $archivePath = Join-Path $runtimeRoot "PowerShell-$env:MVP_POWERSHELL_VERSION-win-x64.zip"
+          $archiveUri = "https://github.com/PowerShell/PowerShell/releases/download/v$env:MVP_POWERSHELL_VERSION/PowerShell-$env:MVP_POWERSHELL_VERSION-win-x64.zip"
+          New-Item -ItemType Directory -Force -Path $runtimeRoot, $powerShellRoot, $pesterModuleRoot | Out-Null
+          Invoke-WebRequest -Uri $archiveUri -OutFile $archivePath
+          $archiveSha256 = (Get-FileHash -LiteralPath $archivePath -Algorithm SHA256).Hash
+          if (-not [string]::Equals($archiveSha256, $env:MVP_POWERSHELL_SHA256, [StringComparison]::OrdinalIgnoreCase)) {
+            throw "Pinned PowerShell archive digest mismatch: expected=$env:MVP_POWERSHELL_SHA256 actual=$archiveSha256."
+          }
+          Expand-Archive -LiteralPath $archivePath -DestinationPath $powerShellRoot
+          $pinnedPwsh = Join-Path $powerShellRoot 'pwsh.exe'
+          if (-not (Test-Path -LiteralPath $pinnedPwsh -PathType Leaf)) {
+            throw "Pinned PowerShell executable is missing after extraction: $pinnedPwsh"
+          }
+          Save-Module -Name Pester -RequiredVersion $env:MVP_PESTER_VERSION -Path $pesterModuleRoot -Repository PSGallery -Force -ErrorAction Stop
+          $env:MVP_PESTER_MODULE_ROOT = $pesterModuleRoot
+          & $pinnedPwsh -NoProfile -NonInteractive -Command @'
+          $ErrorActionPreference = 'Stop'
+          if ($PSVersionTable.PSVersion.ToString() -ne $env:MVP_POWERSHELL_VERSION) {
+            throw "Pinned PowerShell version mismatch: expected=$env:MVP_POWERSHELL_VERSION actual=$($PSVersionTable.PSVersion)."
+          }
+          Import-Module (Join-Path $env:MVP_PESTER_MODULE_ROOT "Pester\$env:MVP_PESTER_VERSION\Pester.psd1") -Force -ErrorAction Stop
+          if ((Get-Module Pester).Version.ToString() -ne $env:MVP_PESTER_VERSION) {
+            throw "Pinned Pester version mismatch: expected=$env:MVP_PESTER_VERSION actual=$((Get-Module Pester).Version)."
+          }
+          '@
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          "MVP_PINNED_PWSH=$pinnedPwsh" | Add-Content -LiteralPath $env:GITHUB_ENV -Encoding utf8
+          "MVP_PESTER_MODULE_ROOT=$pesterModuleRoot" | Add-Content -LiteralPath $env:GITHUB_ENV -Encoding utf8
+          @(
+            "control_plane_pwsh: $env:MVP_POWERSHELL_VERSION",
+            "control_plane_pwsh_archive_sha256: $archiveSha256",
+            "control_plane_pester: $env:MVP_PESTER_VERSION"
+          ) | Add-Content -LiteralPath "$env:MVP_EVIDENCE_ROOT\environment.txt" -Encoding utf8
 
       - name: Run canonical F5 profile and workspace gates
         shell: pwsh
@@ -427,7 +612,7 @@ jobs:
 
       - name: Upload MVP diagnostic evidence
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
         with:
           name: mvp-editor-windows-evidence
           path: ${{ env.MVP_EVIDENCE_ROOT }}

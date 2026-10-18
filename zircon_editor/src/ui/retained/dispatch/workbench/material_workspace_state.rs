@@ -105,7 +105,7 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         let preview = self
             .control_string("WorkbenchMaterialPreviewField", "value")
             .unwrap_or_default();
-        self.set_material_string("WorkbenchStatusReady", "text", "Material compile complete")?;
+        self.set_material_string("WorkbenchStatusReady", "text", "Not implemented (preview)")?;
         self.set_material_string("WorkbenchStatusMessages", "text", "1 Message")?;
         self.set_material_string(
             "WorkbenchMaterialCenterTitle",
@@ -116,7 +116,7 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
             "WorkbenchMaterialOutputRow",
             "text",
             format!(
-                "{} compiled   {} / {}   2 warnings",
+                "Preview inputs: {}   {} / {}",
                 profile.label, domain, blend
             ),
         )

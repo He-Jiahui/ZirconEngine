@@ -56,6 +56,7 @@ fn compact_details_drawer_overrides_wide_minimum_only_when_open() {
 fn compact_module_details_drawer_is_reachable_without_reducing_regular_center_budget() {
     let mut regular = BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(900.0, 620.0))
         .expect("regular workbench should build");
+    regular.set_preview_features(true).expect("preview workspace fixture");
     assert!(regular
         .control_frame("WorkbenchModuleDetailsDrawerToggle")
         .is_some());
@@ -98,15 +99,17 @@ fn compact_module_details_drawer_is_reachable_without_reducing_regular_center_bu
         .control_frame("WorkbenchModuleDetailsDrawerToggle")
         .is_some());
 
-    let wide = BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(1672.0, 941.0))
+    let mut wide = BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(1672.0, 941.0))
         .expect("wide workbench should build");
+    wide.set_preview_features(true).expect("preview workspace fixture");
     assert!(wide.control_frame("WorkbenchEffectRightPanel").is_some());
     assert!(wide
         .control_frame("WorkbenchModuleDetailsDrawerToggle")
         .is_none());
 
-    let ultra = BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(420.0, 520.0))
+    let mut ultra = BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(420.0, 520.0))
         .expect("ultra workbench should build");
+    ultra.set_preview_features(true).expect("preview workspace fixture");
     assert!(ultra.control_frame("WorkbenchEffectRightPanel").is_none());
     assert!(ultra
         .control_frame("WorkbenchModuleDetailsDrawerToggle")

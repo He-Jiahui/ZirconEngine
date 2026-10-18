@@ -10,6 +10,8 @@ use crate::ui::workbench::autolayout::WorkbenchChromeMetrics;
 use crate::ui::workbench::fixture::default_preview_fixture;
 use crate::ui::workbench::model::WorkbenchViewModel;
 use crate::ui::workbench::startup::EditorSessionMode;
+use crate::core::commands::CommandEvalCtx;
+use crate::core::editor_message::PlayStateKind;
 use zircon_runtime_interface::ui::style::ButtonColor;
 use zircon_runtime_interface::ui::tree::UiVisibility;
 
@@ -50,8 +52,11 @@ fn toolbar_run_control_tracks_the_editor_play_session() {
         &EditorUiBindingPayload::editor_command("runtime.play_mode.enter")
     );
 
-    chrome.session_mode = EditorSessionMode::Playing;
-    let playing_model = WorkbenchViewModel::build(&registry, &chrome);
+    // Navigation remains Project. The live play controller supplies run state.
+    let context = CommandEvalCtx::interactive()
+        .with_project_open(true)
+        .with_play_state(PlayStateKind::Playing);
+    let playing_model = WorkbenchViewModel::build_with_context(&registry, &chrome, &context);
     bridge
         .recompute_layout_with_workbench_model(shell_size, &playing_model, &metrics)
         .expect("playing workbench should recompute");
@@ -81,6 +86,14 @@ fn toolbar_run_control_tracks_the_editor_play_session() {
         stop_binding.payload(),
         &EditorUiBindingPayload::editor_command("runtime.play_mode.exit")
     );
+
+    let cleanup = context.with_play_state(PlayStateKind::CleanupFailed);
+    let cleanup_model = WorkbenchViewModel::build_with_context(&registry, &chrome, &cleanup);
+    bridge
+        .recompute_layout_with_workbench_model(shell_size, &cleanup_model, &metrics)
+        .expect("failed cleanup must retain the Stop slot for retry");
+    assert_eq!(control_visibility(&bridge, "WorkbenchRunStop"), Some(UiVisibility::Visible));
+    assert_eq!(control_visibility(&bridge, "WorkbenchRunPlay"), Some(UiVisibility::Collapsed));
 }
 
 #[test]

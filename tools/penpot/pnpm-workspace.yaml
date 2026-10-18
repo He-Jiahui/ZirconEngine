@@ -1,5 +1,6 @@
 packages:
   - 'apps/zircon-zui-plugin'
+  - 'apps/zircon-zop-compiler'
   - '../../third_party/penpot/plugins/libs/*'
 allowBuilds:
   '@parcel/watcher': false

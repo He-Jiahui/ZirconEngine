@@ -6,6 +6,7 @@ use super::*;
 fn agent_selection_and_simulation_share_one_profile_projection() {
     let mut bridge = BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(900.0, 620.0))
         .expect("workbench bridge should build");
+    bridge.set_preview_features(true).expect("preview workspace fixture");
 
     assert!(bridge.control_bool("WorkbenchPerceptionGuardRow", "selected"));
     assert_eq!(

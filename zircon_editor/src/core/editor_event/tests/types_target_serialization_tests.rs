@@ -32,3 +32,13 @@ fn targeted_viewport_events_roundtrip_without_erasing_the_leaf_id() {
     .expect("targeted viewport event deserializes");
     assert_eq!(decoded, event);
 }
+
+#[test]
+fn focused_scene_command_preserves_its_intent_and_chrome_classification() {
+    let event = EditorViewportEvent::ForFocusedScene {
+        event: Box::new(EditorViewportEvent::SetDisplayMode { mode: DisplayMode::WireOnly }),
+    };
+    assert!(event.changes_chrome_projection());
+    assert_eq!(serde_json::from_value::<EditorViewportEvent>(
+        serde_json::to_value(&event).unwrap()).unwrap(), event);
+}

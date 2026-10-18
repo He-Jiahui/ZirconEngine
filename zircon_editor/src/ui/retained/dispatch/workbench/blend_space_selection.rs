@@ -180,8 +180,8 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
                     .control_string("WorkbenchExtensionBlendSpacePreviewAsset", "value")
                     .unwrap_or_else(|| "Selected sample".to_string());
                 (
-                    "Blend space preview queued",
-                    format!("Preview queued   {asset_name}   {sample_name}"),
+                    "Not implemented (preview)",
+                    format!("Preview inputs: {asset_name}   {sample_name}"),
                 )
             }
             "workbench.extension.blend_space.apply.invoke" => {
@@ -189,8 +189,8 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
                     .control_string("WorkbenchExtensionBlendSpaceInterpolationDropdown", "value")
                     .unwrap_or_else(|| "Triangulated".to_string());
                 (
-                    "Blend space apply queued",
-                    format!("Apply queued   {asset_name}   8 samples   {interpolation}"),
+                    "Not implemented (preview)",
+                    format!("Preview inputs: {asset_name}   8 samples   {interpolation}"),
                 )
             }
             _ => return Ok(false),
