@@ -60,6 +60,8 @@ $env:CARGO_INCREMENTAL = '0'
 & .github/scripts/prepare-cargo-roots.ps1 -StorageRoot 'D:\cargo-targets\zircon-local'
 & rustup toolchain install 1.94.1 --profile minimal
 if ($LASTEXITCODE -ne 0) { throw 'Rust toolchain installation failed' }
+python -B .github/tests/test_msvc_wrapper_arguments.py
+if ($LASTEXITCODE -ne 0) { throw 'MSVC wrapper regression failed' }
 & .github/scripts/invoke-cargo-msvc.ps1 cargo +1.94.1 check -p zircon_app --bin zircon_editor --no-default-features --features target-editor-host --locked
 if ($LASTEXITCODE -ne 0) { throw 'Editor closure check failed' }
 & .github/scripts/invoke-cargo-msvc.ps1 cargo +1.94.1 check --manifest-path zircon_plugins/Cargo.toml --workspace --locked
@@ -71,6 +73,10 @@ if ($LASTEXITCODE -ne 0) { throw 'Editor command tests failed' }
 This is independent command evidence. It supplies neither Jenkins acceptance nor
 GUI/first-frame acceptance. Use [the launch guide](run-editor-locally.md) for
 source-bound product startup and capture.
+
+The wrapper regression uses a Python child to verify native argument forwarding
+and non-vacuous test admission without compiling. Its three cases require
+Windows and the VS environment; Linux discovery skips them explicitly.
 
 ## Hosted run and persistent runners
 

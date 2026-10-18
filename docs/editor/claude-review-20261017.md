@@ -903,3 +903,20 @@ new violations (nine existing baseline paths), all five path-rule tests pass,
 and all 264 Cargo targets pass test-reachability validation. Unexpanded Rust AST
 parsing and Change Guard scans pass across the 15 relocated-test owners/files
 (zero errors, warnings or suppressions). Rust test execution remains Windows-only.
+
+## First real editor diagnostic (C1/C2/H8 follow-up)
+
+After the checkout-path repair, run `39138886828` compiled the full dependency
+graph and reached `zircon_editor` within six minutes. It failed with E0599 at
+`core/commands/defaults/viewport.rs:25`: the new translate command referenced a
+nonexistent `TransformHandleKind::Translate` variant. Route it to the existing
+`Move` handle family. Extend the existing registry-event behavior test to require
+that command to dispatch `ActivateSceneMode(Transform(Move))` through focused-scene
+routing. No alternate handle type or compatibility alias is introduced.
+
+This is an actual hosted negative compile result: the required PR check fails
+on a Rust error instead of silently skipping editor compilation. The next run
+must complete editor/plugin checks and command tests to establish positive C2
+acceptance. Original E0499 throwaway-branch injection remains outside the user's
+single-branch constraint. Local Rust AST parsing and static guard checks cover
+this repair; actual command-test execution remains pending the hosted rerun.

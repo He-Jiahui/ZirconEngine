@@ -22,7 +22,7 @@ pub(super) fn append_viewport_commands(commands: &mut Vec<EditorCommandDescripto
             "viewport.tool.translate",
             "W",
             EditorViewportEvent::ActivateSceneMode {
-                mode: SceneModeActivation::Transform(TransformHandleKind::Translate),
+                mode: SceneModeActivation::Transform(TransformHandleKind::Move),
             },
         ),
         (

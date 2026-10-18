@@ -4,6 +4,8 @@ use super::*;
 fn viewport_commands_resolve_focus_at_execution_and_drawer_uses_a_host_intent() {
     use crate::core::commands::{CommandEvalCtx, DocumentKind, EditorCommandRegistry};
     use crate::core::editor_event::EditorViewportEvent;
+    use crate::scene::modes::SceneModeActivation;
+    use crate::scene::viewport::TransformHandleKind;
     let registry = EditorCommandRegistry::default_workbench();
     let context = CommandEvalCtx::interactive()
         .with_project_open(true)
@@ -12,6 +14,14 @@ fn viewport_commands_resolve_focus_at_execution_and_drawer_uses_a_host_intent() 
         registry.event_for_command("viewport.frame_selection", &context).unwrap(),
         EditorEvent::Viewport(EditorViewportEvent::ForFocusedScene {
             event: Box::new(EditorViewportEvent::FrameSelection),
+        })
+    );
+    assert_eq!(
+        registry.event_for_command("viewport.tool.translate", &context).unwrap(),
+        EditorEvent::Viewport(EditorViewportEvent::ForFocusedScene {
+            event: Box::new(EditorViewportEvent::ActivateSceneMode {
+                mode: SceneModeActivation::Transform(TransformHandleKind::Move),
+            }),
         })
     );
     assert_eq!(
