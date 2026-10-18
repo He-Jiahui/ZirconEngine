@@ -326,6 +326,16 @@ repo,source,manifest_path,manifest_sha,installed_sha,driver,runtime,capsule_sha=
 repo,source,manifest_path=Path(repo),Path(source),Path(manifest_path)
 def require(value,message):
     if not value: raise ValueError(message)
+def candidate_members(proof):
+    allowed={'runner.py':'tools/jenkins-management/runner.py','source_preparation.py':'tools/jenkins-management/source_preparation.py'}
+    files,scopes=proof.get('files'),proof.get('ownedPaths')
+    require(isinstance(files,dict) and 1<=len(files)<=2 and set(files)<=set(allowed.values())
+        and isinstance(scopes,list) and all(isinstance(scope,str) and scope for scope in scopes),
+        'candidate_member_scope_invalid')
+    required=set(files)|{'tools/dev/install-jenkins-management.ps1'}
+    require(all(any(name.casefold()==scope.casefold() or name.casefold().startswith(scope.rstrip('/').casefold()+'/')
+        for scope in scopes) for name in required),'candidate_member_scope_invalid')
+    return {name:relative for name,relative in allowed.items() if relative in files}
 sys.path.insert(0,str(repo/'.jenkins/runtime/drivers'/driver))
 from tools.jenkins.deployment.driver import verify_driver,_plain
 verify_driver(repo/'.jenkins/runtime/drivers'/driver,expected_digest=driver)
@@ -345,11 +355,7 @@ require(isinstance(proof,dict) and set(proof)=={'schemaVersion','kind','reposito
     and proof.get('sourceRoot')==str(source) and proof.get('driverDigest')==driver
     and proof.get('runtimeOperationId')==runtime and proof.get('originalInstalledSha256')==installed_sha,
     'candidate_manifest_identity_invalid')
-members={'runner.py':'tools/jenkins-management/runner.py','source_preparation.py':'tools/jenkins-management/source_preparation.py'}
-require(isinstance(proof.get('files'),dict) and set(proof['files'])==set(members.values())
-    and isinstance(proof.get('ownedPaths'),list)
-    and set(members.values())|{'tools/dev/install-jenkins-management.ps1'}<=set(proof['ownedPaths']),
-    'candidate_member_scope_invalid')
+members=candidate_members(proof)
 installed_raw=(repo/'.jenkins/state/management/installed.json').read_bytes()
 require(hashlib.sha256(installed_raw).hexdigest()==installed_sha,'candidate_original_install_changed')
 installed=json.loads(installed_raw)
@@ -409,7 +415,7 @@ print(json.dumps({'manifestSha256':manifest_sha,'sourceRoot':str(source),'worktr
     return ($taskCandidateOutput | ConvertFrom-Json)
 }
 function Get-ManagementCapsuleSource([string]$Name) {
-    if ($null -ne $taskCandidateSources -and $Name -cin @('runner.py','source_preparation.py')) {
+    if ($null -ne $taskCandidateSources -and $null -ne $taskCandidateSources.files.PSObject.Properties[$Name]) {
         return (Assert-Physical ([string]$taskCandidateSources.files.PSObject.Properties[$Name].Value))
     }
     return (Assert-Physical "$taskSourceRoot/$Name")
