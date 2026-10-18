@@ -19,3 +19,7 @@ python -B tools/jenkins-management/incremental_cache_cleanup.py install
 回执分别记录逻辑删除字节、最后一个硬链接移除时的分配字节和卷空间变化，并明确列出空目录、保护会话和范围是否完成。并发写入会影响卷空间变化；逻辑大小不能当作实际回收量。单个范围成功不表示整盘已清理，未覆盖或未知归属继续待处理。
 
 `zircon-management-tests` 的缓存回归覆盖活动锁、硬链接、未知内容、预算、文件变化、预演、D/E/F 范围、空目录、保留会话和安装保留行为。维护工具回归不代表产品验收。
+
+## Standard installation
+
+`install-jenkins-scheduled-cleanup.ps1` calls the cleanup module's read-only `render` command. It verifies the returned entry path, module and template hashes, resolved placeholders and nonempty scope before submitting job XML. Direct incremental-stage updates and full standard installations therefore consume the same renderer. The renderer neither connects to Jenkins nor deletes files; execution still requires the scheduled job and its native runtime binding. Standard reinstallation retains its existing governance reattachment and readback gates.

@@ -1,6 +1,6 @@
 // BEGIN ZIRCON INCREMENTAL CACHE CLEANUP
 node('zircon-windows-agent') {
-    timeout(time: 15, unit: 'MINUTES') {
+    timeout(time: 45, unit: 'MINUTES') {
         def cacheRunId = 'incremental-' + env.BUILD_NUMBER
         long totalCacheDeleted = 0L
         dir('E:/Git/ZirconEngine/.jenkins/agent/workspace/zircon-scheduled-cleanup') {

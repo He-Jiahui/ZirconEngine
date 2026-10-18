@@ -249,13 +249,8 @@ def clean(cache, output, *, dry_run=False, max_bytes=32 * GIB, minimum_age=600, 
     return result
 
 
-def install(repo, client):
-    route = "/job/zircon-scheduled-cleanup/config.xml"
-    code, original, _ = client.request(route)
-    if code != 200:
-        raise ValueError("Cannot read the existing scheduled cleanup")
-    tree = ET.fromstring(original)
-    script = tree.find("definition/script")
+def render_stage(repo):
+    """Render exact implementation pins without connecting to Jenkins or writing files."""
     source_directory = physical(Path(__file__).parent)
     addon = (source_directory / "incremental-cache-cleanup.groovy").read_text(encoding="utf-8")
     pins = {"entry": physical(Path(__file__)), "helper": physical(source_directory / "checkout_commit.py"),
@@ -270,6 +265,22 @@ def install(repo, client):
         addon = addon.replace("@" + key + "@", value)
     if re.search(r"@[A-Z_]+@", addon):
         raise ValueError("Unresolved cleanup implementation pin")
+    return {"script": addon, "implementationSource": str(source_directory),
+            "scope": [{"key": key, "path": str(path), "triggerFreeBytes": threshold}
+                      for key, (path, threshold) in CACHE_POLICIES.items()],
+            "sourcePins": {key: {"path": str(path), "sha256": replacements[key.upper() + "_SHA"]}
+                           for key, path in pins.items()}}
+
+
+def install(repo, client):
+    route = "/job/zircon-scheduled-cleanup/config.xml"
+    code, original, _ = client.request(route)
+    if code != 200:
+        raise ValueError("Cannot read the existing scheduled cleanup")
+    tree = ET.fromstring(original)
+    script = tree.find("definition/script")
+    rendered = render_stage(repo)
+    addon = rendered["script"]
     previous = script.text or ""
     if BEGIN in previous:
         first, tail = previous.split(BEGIN, 1)
@@ -284,22 +295,22 @@ def install(repo, client):
     if code != 200 or ET.fromstring(client.request(route)[1]).findtext("definition/script") != script.text:
         raise ValueError("Scheduled cache-cleanup installation failed")
     return {"status": "installed", "job": "zircon-scheduled-cleanup", "schedule": "H/30 * * * *",
-            "scope": [{"key": key, "path": str(path), "triggerFreeBytes": threshold}
-                      for key, (path, threshold) in CACHE_POLICIES.items()], "maxBytesPerNamespacePerRun": 32 * GIB,
-            "existingWorkflowPreserved": True, "implementationSource": str(source_directory),
-            "sourcePins": {key: {"path": str(path), "sha256": replacements[key.upper() + "_SHA"]}
-                           for key, path in pins.items()}}
+            "scope": rendered["scope"], "maxBytesPerNamespacePerRun": 32 * GIB,
+            "existingWorkflowPreserved": True, "implementationSource": rendered["implementationSource"],
+            "sourcePins": rendered["sourcePins"]}
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("command", choices=("install", "run"))
+    parser.add_argument("command", choices=("install", "run", "render"))
     parser.add_argument("--run-id")
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--cache-key", choices=tuple(CACHE_POLICIES), default="shared-e")
     args = parser.parse_args()
     if args.command == "install":
         result = install(REPO, transport(REPO))
+    elif args.command == "render":
+        result = render_stage(REPO)
     else:
         if os.environ.get("JOB_NAME") != "zircon-scheduled-cleanup" or os.environ.get("NODE_NAME") != "zircon-windows-agent":
             raise ValueError("Cache deletion requires the existing Jenkins scheduled job and fixed agent")
