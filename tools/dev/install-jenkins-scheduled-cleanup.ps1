@@ -122,6 +122,7 @@ $taskJob = 'zircon-scheduled-cleanup'
 $taskConfigUrl = $taskBase + '/job/' + $taskJob + '/config.xml'
 $taskExists = $true
 $taskPreserveGovernance = $false
+$taskCompactionStage = ''
 try {
     $taskPrevious = Invoke-WebRequest -Uri $taskConfigUrl -Method Get -Headers $taskHeaders -UseBasicParsing -TimeoutSec 15
 } catch {
@@ -130,7 +131,16 @@ try {
 }
 if ($taskExists) {
     $taskPreviousDocument = Read-JenkinsJobXml ([string]$taskPrevious.Content)
-    $taskPreserveGovernance = ([string]$taskPreviousDocument.'flow-definition'.definition.script).Contains('// ZIRCON HOST GOVERNANCE AUDIT')
+    $taskPreviousScript = [string]$taskPreviousDocument.'flow-definition'.definition.script
+    $taskPreserveGovernance = $taskPreviousScript.Contains('// ZIRCON HOST GOVERNANCE AUDIT')
+    if ($taskPreviousScript.Contains('// BEGIN ZIRCON CARGO CACHE COMPACTION')) {
+        $taskCompactionMatches = [regex]::Matches($taskPreviousScript, '(?s)// BEGIN ZIRCON CARGO CACHE COMPACTION\r?\n.*?// END ZIRCON CARGO CACHE COMPACTION\r?\n?')
+        if ($taskCompactionMatches.Count -ne 1) { throw 'Existing Cargo compaction stage is incomplete or duplicated' }
+        $taskCompactionStage = $taskCompactionMatches[0].Value.TrimEnd("`r", "`n")
+        $taskDesiredDocument = Read-JenkinsJobXml $taskXml
+        $taskDesiredDocument.'flow-definition'.definition.script = $taskCompactionStage + [Environment]::NewLine + [string]$taskDesiredDocument.'flow-definition'.definition.script
+        $taskXml = $taskDesiredDocument.OuterXml
+    }
     $taskCurrent = Invoke-WebRequest -Uri $taskConfigUrl -Method Get -Headers $taskHeaders -UseBasicParsing -TimeoutSec 15
     if ([string]$taskCurrent.Content -cne [string]$taskPrevious.Content) { throw 'Scheduled cleanup changed during installation review' }
 }
@@ -160,6 +170,7 @@ if ($taskDisplayScript -cne $taskInstalledScript) {
     if ($taskInstalledScript -cne $taskDisplayScript) { throw 'Scheduled cleanup description readback differs' }
 }
 $taskExpectedScript = ($taskPrelude + [Environment]::NewLine + $taskSource).Replace("`r`n", "`n").TrimEnd()
+if ($taskCompactionStage) { $taskExpectedScript = $taskCompactionStage.Replace("`r`n", "`n") + "`n" + $taskExpectedScript }
 if (-not $taskInstalledScript.Replace("`r`n", "`n").StartsWith($taskExpectedScript) -or
     ($taskPreserveGovernance -and -not $taskInstalledScript.Contains('// ZIRCON HOST GOVERNANCE AUDIT'))) {
     throw 'Scheduled cleanup installation readback differs from the reviewed source and governance stage'
@@ -175,6 +186,7 @@ if (-not $taskInstalledScript.Replace("`r`n", "`n").StartsWith($taskExpectedScri
     incrementalCacheImplementationSha256 = $taskCacheModuleDigest
     incrementalCacheTemplateSha256 = $taskCacheTemplateDigest
     governanceStagePreserved = $taskPreserveGovernance; readbackVerified = $true
+    cargoCompactionStagePreserved = [bool]$taskCompactionStage
     runtimeBinding = 'same reviewed driver; fresh native owners per new run; exact runtime fence thereafter'
     runtimeBindingImplementationSha256 = $taskEnvironment.ZIRCON_CLEANUP_BINDING_SHA256
 } | ConvertTo-Json -Depth 4

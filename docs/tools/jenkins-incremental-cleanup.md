@@ -25,3 +25,15 @@ python -B tools/jenkins-management/incremental_cache_cleanup.py install
 `install-jenkins-scheduled-cleanup.ps1` calls the cleanup module's read-only `render` command. It verifies the returned entry path, module and template hashes, resolved placeholders and nonempty scope before submitting job XML. Direct incremental-stage updates and full standard installations therefore consume the same renderer. The renderer neither connects to Jenkins nor deletes files; execution still requires the scheduled job and its native runtime binding. Standard reinstallation retains its existing governance reattachment and readback gates.
 
 The retained registered-CAS stage stores protected and unknown digests in one case-insensitive hash set before scanning objects. This preserves its protection and byte/object budgets while avoiding one full protection-list scan per object. The source selector is exercised in Jenkins against a private fixture with 30,001 protected entries, unknown content and bounded selection; it never deletes fixture or production objects.
+
+## 共享依赖缓存的物理空间回收
+
+增量目录清空后，`build/debug/deps` 内的完整依赖、元数据和调试符号仍可能占用数十 GiB。增量缓存或 CAS 阶段回收 0 B 不能证明它们已经处理。
+
+`cargo_cache_compaction.py` 为现有定时 job 提供独立维护阶段。当前精确范围为 `E:/cargo-targets/zircon-local/win32/codex-default/build/debug/deps`；E 盘不足 80 GiB 时，对已确认的 Cargo `.rlib/.rmeta/.pdb/.o` 执行 [NTFS 原生文件压缩](https://learn.microsoft.com/en-us/windows/win32/api/winioctl/ni-winioctl-fsctl_set_compression)。文件保留原位，可继续复用；不删除源码、依赖、调试符号或构建输出，也不设置目录的压缩继承属性。
+
+Jenkins 核验当前原生 owner 和不可变驱动后，取得既有 `.cargo-lock` 的非阻塞独占锁。每项使用禁止并发写入和删除的原始文件句柄，核对 SHA256、文件身份、长度和最后写入时间，压缩后再次验证；新文件、未知命名、硬链接、加密、稀疏、别名、活动写入和已压缩项均保留。单次最多 512 项、80 GiB 逻辑输入，达到卷剩余 80 GiB 即停止。
+
+回执位于 `E:/cargo-targets/zircon-local/reports/jenkins-scheduled-cleanup/compaction/compact-<构建号>/`。原生 `FileCompressionInfo` 前后差额记录为物理分配回收量；逻辑文件大小和卷余量变化分别记录。每项意图、完成、原生进程终止与 EOF 证据保留。未确认意图不能计为成功，也不能以整盘清理完成描述单个范围。
+
+专用 `install` 入口固定代码与策略哈希，保留原有增量、CAS、治理阶段及 `H/30` 串行触发器；标准 PowerShell 重装入口也保留已安装的压缩阶段。固定的修复工作树和策略文件在迁移、重新核验与安装前不得删除。当前策略只处理 E 盘该范围；D/F 的活动构建、未知归属和未完成工作树继续独立保留。
