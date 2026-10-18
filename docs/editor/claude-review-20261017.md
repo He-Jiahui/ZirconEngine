@@ -1002,3 +1002,35 @@ passes the repaired wizard/texture consumers and exposes one later missing impor
 in the native window-hosting editor plugin. Import `ExportPackagingStrategy`
 from its existing neutral framework owner. No package, ABI or runtime behavior
 changes; the next hosted run remains required for the full plugin/test result.
+
+## AI scene-mode migration and independent diagnostics (C2 follow-up)
+
+[Run 39143683340](https://github.com/He-Jiahui/ZirconEngine/actions/runs/39143683340)
+reaches AI and tilemap editor packages. Import the AI consumer IDs directly from
+their existing `extension_ids` owner. Replace tilemap's move from a pattern guard
+with one owned `BTreeSet::replace` in the successful match arm; duplicate IDs
+retain the same diagnostic without another string clone. The existing
+`tilemap_paint_stroke_rejects_budget_and_duplicate_layer_identity` regression
+already covers this behavior.
+
+C2's positive full-workspace result remains **blocked by AI's incomplete
+scene-mode migration**. `ai/editor/src/overlay.rs` still references removed
+`ViewportToolModeDescriptor`/`register_viewport_tool_mode`. The current owner
+requires a `SceneModeRegistration` with an executable factory, and validates
+that a referenced overlay provider is also registered. This plugin currently
+provides neither that factory nor a world-bound provider connected to its live
+`AiPieMirror`. A descriptor rename or an empty/pass-through factory would hide
+the missing behavior. The existing overlay helper requires an explicit
+`WorldHandle`; the current scene-mode context carries selection/settings only.
+Completing that migration needs a real mirror/world/viewport lifecycle contract
+and its registration, world-isolation and teardown regressions. It is unrelated
+to `.github`/build-script permission and remains an explicit integration blocker.
+
+The required job now runs three independent test batches whenever the editor
+check succeeds, even if plugin compilation fails. Cancellation and failed editor
+compilation still prevent them. Every failed compile/test still fails the job;
+no assertion, source guard, feature, package or error-admission check is removed.
+This allows real VM bridge, editor command and existing tilemap-regression
+diagnostics while the AI migration
+remains open. Local reproduction commands are unchanged; after an editor pass,
+the three test commands may be run independently of the failing plugin command.

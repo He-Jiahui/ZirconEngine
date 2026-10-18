@@ -3,9 +3,14 @@
 `CI / editor-compile-gate` runs on every pull request targeting `main` or `master`
 using the GitHub-hosted `windows-2022` image. It checks the full
 `target-editor-host` closure and plugin workspace, then executes the VM behavior
-bridge lifecycle regression and editor `core::commands` tests. The test wrapper
+bridge lifecycle regression, editor `core::commands` tests and tilemap duplicate
+layer regression. The test wrapper
 rejects zero matching or zero passing tests. Its timeout is 60 minutes. It needs
 no repository secret or GPU.
+
+All three test batches still execute after a successful editor check when plugin
+compilation fails, collecting independent diagnostics in the same run. Every
+failed step still fails the required job; there is no `continue-on-error`.
 
 All Cargo, rustup, build and temporary directories are under a fresh
 `D:\cargo-targets\zircon-local\ci\runs\<run>-<attempt>\e-0`.
@@ -71,6 +76,8 @@ if ($LASTEXITCODE -ne 0) { throw 'Plugin workspace check failed' }
 if ($LASTEXITCODE -ne 0) { throw 'Script behavior bridge lifecycle tests failed' }
 & .github/scripts/invoke-cargo-msvc.ps1 -RequireMatchingTests cargo +1.94.1 test -p zircon_editor --lib core::commands --locked
 if ($LASTEXITCODE -ne 0) { throw 'Editor command tests failed' }
+& .github/scripts/invoke-cargo-msvc.ps1 -RequireMatchingTests cargo +1.94.1 test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_tilemap_2d_editor --lib tilemap_paint_stroke_rejects_budget_and_duplicate_layer_identity --locked
+if ($LASTEXITCODE -ne 0) { throw 'Tilemap duplicate layer regression failed' }
 ```
 
 This is independent command evidence. It supplies neither Jenkins acceptance nor
