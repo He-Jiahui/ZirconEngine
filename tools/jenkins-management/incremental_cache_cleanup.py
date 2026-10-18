@@ -8,6 +8,7 @@ from __future__ import annotations
 import argparse
 from contextlib import contextmanager
 import ctypes
+import hashlib
 from ctypes import wintypes
 import json
 import os
@@ -28,10 +29,33 @@ REPORTS = Path("E:/cargo-targets/zircon-local/reports/jenkins-scheduled-cleanup/
 BEGIN = "// BEGIN ZIRCON INCREMENTAL CACHE CLEANUP"
 END = "// END ZIRCON INCREMENTAL CACHE CLEANUP"
 GIB = 2 ** 30
+# Exact namespaces audited for the user-requested D/E/F cleanup on 2026-10-18.
+# Only Rust incremental sessions are eligible; these are not whole build/source roots.
 CACHE_POLICIES = {
-    "shared-e": (CACHE, 80 * GIB),
-    "legacy-d-integration": (Path("D:/cargo-targets/zircon-local/win32/2e35cdd9399f5e89889e/build/debug/incremental"), 40 * GIB),
-    "legacy-d-editor": (Path("D:/cargo-targets/zircon-local/win32/engine-audit-editor102-testbuild-20261007-r4/build/debug/incremental"), 40 * GIB),
+    'shared-e': (Path('E:/cargo-targets/zircon-local/win32/codex-default/build/debug/incremental'), 80 * GIB),
+    'legacy-d-integration': (Path('D:/cargo-targets/zircon-local/win32/2e35cdd9399f5e89889e/build/debug/incremental'), 80 * GIB),
+    'legacy-d-editor': (Path('D:/cargo-targets/zircon-local/win32/engine-audit-editor102-testbuild-20261007-r4/build/debug/incremental'), 80 * GIB),
+    'audited-d-1': (Path('D:/cargo-targets/zircon-local/dependency-fix/wasm/build/wasm32-unknown-unknown/debug/incremental'), 80 * GIB),
+    'audited-d-2': (Path('D:/cargo-targets/zircon-local/dependency-fix/wasm/build/debug/incremental'), 80 * GIB),
+    'audited-d-5': (Path('D:/cargo-targets/zircon-local/dependency-fix/font-probe/build/debug/incremental'), 80 * GIB),
+    'audited-d-6': (Path('D:/cargo-targets/zircon-local/dependency-fix/codec-probe/build/debug/incremental'), 80 * GIB),
+    'audited-d-7': (Path('D:/cargo-targets/zircon-local/windows/runtime-editor-app-20261004-v1/debug/build/debug/incremental'), 80 * GIB),
+    'audited-d-8': (Path('D:/cargo-targets/zircon-local/windows/m1-runtime-tests-20261004-r4/build/debug/incremental'), 80 * GIB),
+    'audited-d-9': (Path('D:/cargo-targets/zircon-local/windows/build/debug/incremental'), 80 * GIB),
+    'dependency-d-native': (Path('D:/cargo-targets/zircon-local/dependency-fix/native/build/debug/incremental'), 80 * GIB),
+    'dependency-d-plugins': (Path('D:/cargo-targets/zircon-local/dependency-fix/plugins/build/debug/incremental'), 80 * GIB),
+    'audited-e-15': (Path('E:/cargo-targets/zircon-local/m/x86_64-unknown-linux-gnu/debug/incremental'), 80 * GIB),
+    'audited-e-16': (Path('E:/cargo-targets/zircon-local/m/x86_64-pc-windows-msvc/debug/incremental'), 80 * GIB),
+    'audited-e-17': (Path('E:/cargo-targets/zircon-local/m/debug/incremental'), 80 * GIB),
+    'audited-e-19': (Path('E:/cargo-targets/zircon-local/win32/miri-windows-20261010/build/debug/incremental'), 80 * GIB),
+    'audited-e-20': (Path('E:/cargo-targets/zircon-local/win32/codex-default-wasm/build/wasm32-unknown-unknown/debug/incremental'), 80 * GIB),
+    'audited-e-21': (Path('E:/cargo-targets/zircon-local/win32/codex-default-wasm/build/debug/incremental'), 80 * GIB),
+    'audited-e-22': (Path('E:/cargo-targets/zircon-local/win32/codex-default/build/x86_64-unknown-linux-gnu/debug/incremental'), 80 * GIB),
+    'audited-f-12': (Path('F:/cargo-targets/zircon-local/penpot-workbench/01a0f04d-current/retained-native-runtime-incremental-r273/build/debug/incremental'), 80 * GIB),
+    'audited-f-13': (Path('F:/cargo-targets/zircon-local/penpot-workbench/01a0f04d-current/retained-finished-native-runtime-and-old-product-deps-r290/build/debug/incremental'), 80 * GIB),
+    'audited-f-14': (Path('F:/cargo-targets/zircon-local/penpot-workbench/01a0f04d-current/retained-finished-native-runtime-and-old-editor-incremental-r342/build/debug/incremental'), 80 * GIB),
+    'audited-f-10': (Path('F:/cargo-targets/zircon-local/penpot-workbench/01a0f04d-current/unreal-current-native-product-r392/product/targets/runtime/build/debug/incremental'), 80 * GIB),
+    'audited-f-11': (Path('F:/cargo-targets/zircon-local/penpot-workbench/01a0f04d-current/unreal-current-native-product-r392/product/targets/build/debug/incremental'), 80 * GIB),
 }
 
 
@@ -150,6 +174,8 @@ def clean(cache, output, *, dry_run=False, max_bytes=32 * GIB, minimum_age=600, 
               "maxBytes": max_bytes, "triggerFreeBytes": trigger_free, "minimumAgeSeconds": minimum_age,
               "logicalDeletedBytes": 0, "unlinkedAllocationBytes": 0, "deletedFiles": 0,
               "selectedBytes": 0, "sessions": [], "errors": [], "startedAt": time.time(),
+              "scope": "allowlisted-rust-incremental-sessions-only",
+              "selectionAttempted": False, "discoveredSessions": None, "globalCleanupComplete": False,
               "freeBefore": shutil.disk_usage(cache.anchor).free, "actualFreedBytes": None}
     write_json(output / "receipt.json", result)
     try:
@@ -161,6 +187,7 @@ def clean(cache, output, *, dry_run=False, max_bytes=32 * GIB, minimum_age=600, 
             sessions = sorted((p for unit in cache.iterdir() if unit.is_dir() and not unit.is_junction()
                                for p in unit.iterdir() if p.is_dir() and not p.is_junction()),
                               key=lambda p: p.stat().st_mtime)
+            result.update(selectionAttempted=True, discoveredSessions=len(sessions))
             with (output / "deletions.jsonl").open("a", encoding="utf-8") as journal:
                 for session in sessions:
                     row = {"path": str(session), "status": "protected"}
@@ -205,11 +232,14 @@ def clean(cache, output, *, dry_run=False, max_bytes=32 * GIB, minimum_age=600, 
                         if not isinstance(error, CacheBusy):
                             result["errors"].append({"path": str(session), "reason": str(error)})
                     write_json(output / "receipt.json", result)
-            result["status"] = "partial" if result["errors"] else "complete"
+            result["status"] = "partial" if result["errors"] else ("complete" if sessions else "cache-empty")
     except BaseException as error:
         result.update(status="failed", failure=str(error))
         raise
     finally:
+        result["retainedSessions"] = sum(row["status"] != "deleted" for row in result["sessions"])
+        result["namespaceCleanupComplete"] = (result["status"] in {"complete", "cache-empty", "cache-absent"}
+                                               and not result["retainedSessions"])
         result.update(freeAfter=shutil.disk_usage(cache.anchor).free, finishedAt=time.time())
         result["observedFreeDelta"] = result["freeAfter"] - result["freeBefore"]
         result["spaceAccounting"] = "native unlink allocation is separate from volume delta, which includes concurrent writes"
@@ -226,7 +256,20 @@ def install(repo, client):
         raise ValueError("Cannot read the existing scheduled cleanup")
     tree = ET.fromstring(original)
     script = tree.find("definition/script")
-    addon = (repo / "tools/jenkins-management/incremental-cache-cleanup.groovy").read_text(encoding="utf-8")
+    source_directory = physical(Path(__file__).parent)
+    addon = (source_directory / "incremental-cache-cleanup.groovy").read_text(encoding="utf-8")
+    pins = {"entry": physical(Path(__file__)), "helper": physical(source_directory / "checkout_commit.py"),
+            "runtime": physical(repo / "tools/dev/jenkins_cleanup_runtime.py"),
+            "python": physical(repo / ".jenkins/runtime/python/python.exe")}
+    replacements = {"CACHE_KEYS": "[" + ", ".join(repr(key) for key in CACHE_POLICIES) + "]",
+                    "DRIVER": json.loads((repo / ".jenkins/state/deployment/driver.json").read_bytes())["driverDigest"]}
+    for key, path in pins.items():
+        replacements[key.upper()] = path.as_posix()
+        replacements[key.upper() + "_SHA"] = hashlib.sha256(path.read_bytes()).hexdigest()
+    for key, value in replacements.items():
+        addon = addon.replace("@" + key + "@", value)
+    if re.search(r"@[A-Z_]+@", addon):
+        raise ValueError("Unresolved cleanup implementation pin")
     previous = script.text or ""
     if BEGIN in previous:
         first, tail = previous.split(BEGIN, 1)
@@ -243,7 +286,9 @@ def install(repo, client):
     return {"status": "installed", "job": "zircon-scheduled-cleanup", "schedule": "H/30 * * * *",
             "scope": [{"key": key, "path": str(path), "triggerFreeBytes": threshold}
                       for key, (path, threshold) in CACHE_POLICIES.items()], "maxBytesPerNamespacePerRun": 32 * GIB,
-            "existingWorkflowPreserved": True}
+            "existingWorkflowPreserved": True, "implementationSource": str(source_directory),
+            "sourcePins": {key: {"path": str(path), "sha256": replacements[key.upper() + "_SHA"]}
+                           for key, path in pins.items()}}
 
 
 def main():

@@ -137,8 +137,44 @@ class IncrementalCacheCleanupTests(unittest.TestCase):
         tree = ET.fromstring(client.raw)
         script = tree.findtext("definition/script")
         self.assertEqual(script.count(cleanup.BEGIN), 1)
+        self.assertNotIn("@CACHE_KEYS@", script)
+        self.assertNotIn("@ENTRY_SHA@", script)
+        self.assertIn("incremental-runtime-binding.json", script)
+        for key in cleanup.CACHE_POLICIES:
+            self.assertIn(repr(key), script)
         self.assertTrue(script.endswith("existingCasAndGovernance()"))
         self.assertEqual(tree.findtext("properties/cron"), "H/30 * * * *")
+
+    def test_scope_covers_audited_def_caches_without_authorizing_source_or_dependency_roots(self):
+        paths = [path for path, _ in cleanup.CACHE_POLICIES.values()]
+        self.assertEqual({"D:", "E:", "F:"}, {path.drive for path in paths})
+        self.assertEqual(len(paths), len(set(paths)))
+        self.assertGreaterEqual(len(paths), 20)
+        for path, threshold in cleanup.CACHE_POLICIES.values():
+            self.assertEqual(path.parts[1], "cargo-targets")
+            self.assertEqual(path.name, "incremental")
+            self.assertNotIn("cargo-home", path.parts)
+            self.assertEqual(threshold, 80 * cleanup.GIB)
+
+    def test_empty_namespace_is_explicit_and_never_claims_whole_volume_cleanup(self):
+        with self.fixture() as directory:
+            root = Path(directory)
+            (root / "cache").mkdir()
+            result = self.clean(root)
+            self.assertEqual(result["status"], "cache-empty")
+            self.assertEqual(result["discoveredSessions"], 0)
+            self.assertTrue(result["namespaceCleanupComplete"])
+            self.assertFalse(result["globalCleanupComplete"])
+
+    def test_busy_cache_reports_retention_instead_of_claiming_namespace_cleanup_complete(self):
+        with self.fixture() as directory:
+            root = Path(directory)
+            session, lock = self.session(root)
+            with cleanup.session_lock(lock):
+                result = self.clean(root)
+            self.assertEqual(result["retainedSessions"], 1)
+            self.assertFalse(result["namespaceCleanupComplete"])
+            self.assertTrue(session.exists())
 
     def test_production_cli_refuses_local_deletion(self):
         with patch.dict(os.environ, {"JOB_NAME": "", "NODE_NAME": ""}), patch.object(
