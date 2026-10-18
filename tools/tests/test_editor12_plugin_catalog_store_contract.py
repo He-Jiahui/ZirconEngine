@@ -101,8 +101,8 @@ class EditorPluginCatalogStoreContractTests(unittest.TestCase):
     def test_core_manager_owns_store_and_ui_delegates_snapshot_reads(self) -> None:
         core_manager = self.source(CORE, "manager.rs")
         manager = self.source(HOST, "editor_manager.rs")
-        exports = self.source(HOST, "editor_manager_plugins_export/mod.rs")
-        status = self.source(HOST, "editor_manager_plugins_export/status/builtin.rs")
+        exports = self.source(HOST, "exports/mod.rs")
+        status = self.source(HOST, "exports/status/builtin.rs")
 
         self.assertIn("pub struct EditorPluginManager", core_manager)
         self.assertIn("catalog_store: EditorPluginCatalogStore", core_manager)

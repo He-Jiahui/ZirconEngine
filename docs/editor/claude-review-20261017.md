@@ -809,3 +809,10 @@ cases skipped locally. The 108 portable Pester workflow pattern checks and
 verified actionlint pass. The next hosted run must confirm no unexpected Rust
 input or Node migration annotation for these updated actions. No runner software
 was installed, adopted or restarted by this change.
+
+The four stale-path failures observed during M9's broader legacy checks are now
+repaired by pointing the existing assertions at their current owners (`exports`
+and `plugin/loader`, including `loader/live`). No assertion or production contract
+was removed. Both complete legacy modules plus the M9 regressions now pass:
+**21 Python tests**. This restores static contract coverage; it is not Rust/native
+execution evidence.
