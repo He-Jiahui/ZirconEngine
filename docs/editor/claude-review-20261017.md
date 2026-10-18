@@ -308,3 +308,20 @@ passed; Windows linking and the native dialog have not run. Remaining commands:
 Stage a shipping editor, remove its runtime manifest in an isolated staged test
 copy, launch from Explorer, and verify the visible recovery/log path and original
 exit code. Do not use the native dialog as evidence of a successful startup.
+
+## Pointer origin and wheel routing (L2)
+
+Normalized button coordinates are authoritative, including `(0,0)`. Native wheel
+events without a known cursor position are rejected instead of being delivered
+to the top-left control. Cursor leave and focus loss clear the cached position.
+The synthetic normalized-pointer test entry explicitly seeds the position supplied
+by its caller; native wheel handling still requires a real move/button position.
+
+Linux verification: four Rust files passed unexpanded AST syntax checks, the test
+module path resolves, and diff checks passed. Added behavior tests exercise an
+origin click after a different previous position, wheel-before-move rejection,
+known-position wheel routing, and wheel rejection after focus loss. Execute:
+
+```powershell
+& tools/dev/local-cargo.ps1 -TargetDir $t test -p zircon_editor --lib event_loop::events::pointer --locked
+```
