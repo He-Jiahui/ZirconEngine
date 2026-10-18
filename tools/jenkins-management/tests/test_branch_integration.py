@@ -25,14 +25,14 @@ queue = load("branch_queue_tests", "branch_integration.py")
 
 class BranchQueueTests(unittest.TestCase):
     @contextmanager
-    def fixture(self):
+    def fixture(self, owned_name="owned.py"):
         with tempfile.TemporaryDirectory(prefix="branch-queue-", dir=os.environ["ZR_COMMIT_TEST_ROOT"]) as name, patch.dict(os.environ, {"ZR_COMMIT_NATIVE": "0"}):
             repo = Path(name)
             g = lambda root, *args: queue.git(d, root, *args)
             g(repo, "init", "--quiet", "-b", "main")
             g(repo, "config", "user.name", "Jenkins queue test")
             g(repo, "config", "user.email", "jenkins-queue@localhost")
-            for filename, content in {"owned.py": "value = 1\n", "foreign.txt": "base\n", "dependency.py": "dep = 1\n", ".gitignore": ".jenkins/\n"}.items():
+            for filename, content in {owned_name: "value = 1\n", "foreign.txt": "base\n", "dependency.py": "dep = 1\n", ".gitignore": ".jenkins/\n"}.items():
                 (repo / filename).write_text(content, encoding="utf-8")
             config = repo / ".codex/config.toml"
             config.parent.mkdir()
@@ -46,12 +46,12 @@ class BranchQueueTests(unittest.TestCase):
             with closing(sqlite3.connect(database)) as connection:
                 connection.execute("CREATE TABLE records(domain TEXT,key TEXT,payload TEXT)")
                 connection.execute("INSERT INTO records VALUES(?,?,?)", ("management_worktree", "task-source",
-                    json.dumps({"path": str(root), "sessionId": "original-session", "status": "ready", "branch": "codex/jenkins/task/source", "ownedPaths": ["owned.py"]})))
+                    json.dumps({"path": str(root), "sessionId": "original-session", "status": "ready", "branch": "codex/jenkins/task/source", "ownedPaths": [owned_name.casefold()]})))
                 connection.commit()
             payload = {"action": "deliver-task", "sessionId": "original-session", "requestId": "task-delivery", "operationId": "task-delivery",
                        "ownerThreadId": "owner-thread", "sourceRoot": str(root), "message": "Implement task",
-                       "paths": ["owned.py"], "dependencies": ["dependency.py"],
-                       "validation": [{"kind": "python-static", "paths": ["owned.py"]}]}
+                       "paths": [owned_name], "dependencies": ["dependency.py"],
+                       "validation": [{"kind": "python-static", "paths": [owned_name]}]}
             policy = {"authorization": {"source": "user", "instruction": "Commit own branch first, then scheduled validation/main integration"}, "integration": {"mode": queue.MODE}}
             with patch.object(d, "policy_for", return_value=policy), patch.object(d, "OUTPUT", repo / ".jenkins/test-output"):
                 yield repo, root, payload, policy, {str(repo): "write"}, g
@@ -68,6 +68,26 @@ class BranchQueueTests(unittest.TestCase):
         return queue.integrate(d, fixture[0], queue.directory(fixture[0]) / "requests/task-delivery.json",
                                runtime={}, check_runtime=lambda: None, validate=validate or self.validation,
                                pull_request=lambda d, repo, root, record, policy: {"status": "merged", "mergeCommit": record["candidateHead"]})
+
+    def test_casefolded_worktree_scope_preserves_actual_git_filename(self):
+        with self.fixture("Owned.py") as f:
+            repo, root, payload, policy, grants, g = f
+            (root / "Owned.py").write_text("value = 2\n")
+            result = self.stage(f)
+            self.assertEqual(result["status"], "committed", result.get("reason"))
+            self.assertEqual(g(root, "show", "HEAD:Owned.py").stdout.replace(b"\r\n", b"\n"), b"value = 2\n")
+            self.assertEqual(result["request"]["paths"], ["Owned.py"])
+
+    def test_casefolded_scope_rejects_sibling_prefix(self):
+        with self.fixture("Owned.py") as f:
+            repo, root, payload, policy, grants, g = f
+            payload["paths"] = ["Owned.py.foreign.py"]
+            (root / "Owned.py.foreign.py").write_text("foreign = True\n")
+            before = queue.text(d, root, "rev-parse", "HEAD")
+            result = self.stage(f)
+            self.assertEqual(result["status"], "failed")
+            self.assertIn("exceeds its original worktree ownership", result["reason"])
+            self.assertEqual(queue.text(d, root, "rev-parse", "HEAD"), before)
 
     def test_branch_commits_before_validation_preserves_foreign_staging_and_main(self):
         with self.fixture() as f:
