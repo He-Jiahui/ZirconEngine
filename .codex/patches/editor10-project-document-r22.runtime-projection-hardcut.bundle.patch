@@ -1,0 +1,65 @@
+diff --git a/zircon_editor/src/ui/workbench/project/editor_project_document_load.rs b/zircon_editor/src/ui/workbench/project/editor_project_document_load.rs
+--- a/zircon_editor/src/ui/workbench/project/editor_project_document_load.rs
++++ b/zircon_editor/src/ui/workbench/project/editor_project_document_load.rs
+@@ -1,5 +1,7 @@
+-use zircon_runtime::asset::{project::ProjectManager, ProjectInfo};
+-use zircon_runtime::scene::world::SceneProjectError;
+-use zircon_runtime::scene::Scene;
++use zircon_runtime::asset::{
++    project::{ProjectCatalogInputGeneration, ProjectManifest},
++    ProjectInfo,
++};
++use zircon_runtime::scene::Scene;
+ 
+ use crate::core::settings::{
+@@ -12,25 +14,24 @@ use super::editor_workspace_persistence::load_editor_workspace_with_diagnostics;
+ impl EditorProjectDocument {
+-    pub fn load_from_project(project: &ProjectManager) -> Result<Self, SceneProjectError> {
+-        Self::load_from_activated_project(project, ProjectInfo::from_project(project))
+-    }
+-
+-    pub(crate) fn load_from_activated_project(
+-        project: &ProjectManager,
++    /// Builds document state from one staged Runtime04 projection before publication.
++    pub(crate) fn prepare_from_runtime_projection(
++        catalog_inputs: &ProjectCatalogInputGeneration,
+         project_info: ProjectInfo,
+-    ) -> Result<Self, SceneProjectError> {
+-        let root = project.paths().root().to_path_buf();
++        manifest: ProjectManifest,
++        world: Scene,
++    ) -> Self {
++        let root = catalog_inputs.project_root().to_path_buf();
+         let (editor_workspace, workspace_restore_diagnostics) =
+             load_editor_workspace_with_diagnostics(&root);
+         let project_settings = load_project_settings_state(&root);
+ 
+-        Ok(Self {
++        Self {
+             root_path: root,
+-            manifest: project.manifest().clone(),
++            manifest,
+             project_info,
+             project_settings,
+-            world: Scene::load_scene_from_uri(project, &project.manifest().default_scene)?,
++            world,
+             editor_workspace,
+             workspace_restore_diagnostics,
+-        })
++        }
+     }
+ }
+@@ -61,1 +62,13 @@ fn load_project_settings_state(root: &std::path::Path) -> ProjectSettingsLoadState {
+ }
++
++#[cfg(test)]
++mod tests {
++    #[test]
++    fn document_preparation_requires_runtime_projection_not_a_project_manager() {
++        let source = include_str!("editor_project_document_load.rs");
++        let production = source.split("#[cfg(test)]").next().unwrap();
++
++        assert!(production.contains("prepare_from_runtime_projection"));
++        assert!(!production.contains("ProjectManager"));
++    }
++}

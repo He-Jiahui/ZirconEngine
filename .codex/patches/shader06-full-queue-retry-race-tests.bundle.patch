@@ -1,0 +1,263 @@
+diff --git a/zircon_runtime/src/graphics/pipeline/async_compile.rs b/zircon_runtime/src/graphics/pipeline/async_compile.rs
+index 817402de4..926bae56c 100644
+--- a/zircon_runtime/src/graphics/pipeline/async_compile.rs
++++ b/zircon_runtime/src/graphics/pipeline/async_compile.rs
+@@ -4,6 +4,9 @@ use std::panic::{catch_unwind, AssertUnwindSafe};
+ use std::sync::mpsc::{channel, sync_channel, Receiver, SyncSender, TryRecvError, TrySendError};
+ use std::thread::JoinHandle;
+ 
++#[cfg(test)]
++use std::sync::{mpsc::Sender, Arc, Mutex};
++
+ type PipelineCompileJob<R> = Box<dyn FnOnce() -> R + Send + 'static>;
+ 
+ struct PipelineCompileRequest<K, R> {
+@@ -16,6 +19,12 @@ struct PipelineCompileCompletion<K, R> {
+     result: Result<R, PipelineAsyncCompileError>,
+ }
+ 
++#[cfg(test)]
++struct PipelineAsyncFullQueueRetryHook {
++    full_observed: SyncSender<()>,
++    resume: Receiver<()>,
++}
++
+ #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+ pub(crate) enum PipelinePlaceholderPolicy {
+     #[default]
+@@ -56,6 +65,10 @@ pub(crate) struct PipelineAsyncCompiler<K, R> {
+     worker: Option<JoinHandle<()>>,
+     #[cfg(test)]
+     target_sync_wait_observer: Option<SyncSender<()>>,
++    #[cfg(test)]
++    full_queue_retry_hook: Option<PipelineAsyncFullQueueRetryHook>,
++    #[cfg(test)]
++    completion_observer: Arc<Mutex<Option<Sender<()>>>>,
+ }
+ 
+ impl<K, R> PipelineAsyncCompiler<K, R>
+@@ -67,6 +80,10 @@ where
+         let max_in_flight = max_in_flight.max(1);
+         let (request_sender, request_receiver) = sync_channel(max_in_flight);
+         let (completion_sender, completion_receiver) = channel();
++        #[cfg(test)]
++        let completion_observer = Arc::new(Mutex::new(None));
++        #[cfg(test)]
++        let worker_completion_observer = Arc::clone(&completion_observer);
+         let worker = std::thread::Builder::new()
+             .name(format!("zircon-{worker_name}"))
+             .spawn(move || {
+@@ -82,6 +99,12 @@ where
+                     {
+                         break;
+                     }
++                    #[cfg(test)]
++                    if let Ok(mut observer) = worker_completion_observer.lock() {
++                        if let Some(observer) = observer.take() {
++                            let _ = observer.send(());
++                        }
++                    }
+                 }
+             })?;
+         Ok(Self {
+@@ -92,6 +115,10 @@ where
+             worker: Some(worker),
+             #[cfg(test)]
+             target_sync_wait_observer: None,
++            #[cfg(test)]
++            full_queue_retry_hook: None,
++            #[cfg(test)]
++            completion_observer,
+         })
+     }
+ 
+@@ -214,6 +241,34 @@ where
+         self.target_sync_wait_observer = Some(observer);
+     }
+ 
++    #[cfg(test)]
++    pub(crate) fn set_full_queue_retry_hook(
++        &mut self,
++        full_observed: SyncSender<()>,
++        resume: Receiver<()>,
++    ) {
++        self.full_queue_retry_hook = Some(PipelineAsyncFullQueueRetryHook {
++            full_observed,
++            resume,
++        });
++    }
++
++    #[cfg(test)]
++    pub(crate) fn wait_for_full_queue_retry_hook(&mut self) {
++        let Some(hook) = self.full_queue_retry_hook.take() else {
++            return;
++        };
++        let _ = hook.full_observed.send(());
++        let _ = hook.resume.recv();
++    }
++
++    #[cfg(test)]
++    pub(crate) fn set_completion_observer(&mut self, observer: Sender<()>) {
++        if let Ok(mut completion_observer) = self.completion_observer.lock() {
++            *completion_observer = Some(observer);
++        }
++    }
++
+     pub(crate) fn pending_count(&self) -> usize {
+         self.pending.len()
+     }
+diff --git a/zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_pipeline.rs b/zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_pipeline.rs
+index 58c20bf2a..afec4d5b7 100644
+--- a/zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_pipeline.rs
++++ b/zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_pipeline.rs
+@@ -267,7 +267,15 @@ impl MeshPipelineCache {
+                 .as_mut()
+                 .expect("async pipeline compiler checked above")
+                 .try_queue(variant_id, queue_async_pipeline());
+-            if matches!(queue_result, PipelineAsyncQueueResult::Full) && !allow_synchronous_fallback {
++            if matches!(queue_result, PipelineAsyncQueueResult::Full) && !allow_synchronous_fallback
++            {
++                #[cfg(test)]
++                self.async_base_pipeline_compiler
++                    .as_mut()
++                    .expect(
++                        "async pipeline compiler remains available for the full-queue test hook",
++                    )
++                    .wait_for_full_queue_retry_hook();
+                 // A completion can arrive after this frame's initial drain and reclaim a slot.
+                 self.drain_ready_base_pipelines();
+                 if self.mesh_variant_pipelines.contains_key(&variant_id) {
+diff --git a/zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_pipeline/tests.rs b/zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_pipeline/tests.rs
+index e8902aea2..fa24416fe 100644
+--- a/zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_pipeline/tests.rs
++++ b/zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_pipeline/tests.rs
+@@ -573,7 +573,10 @@ fn runtime_environment_only_pbr_base_queue_reports_an_async_budget_that_remains_
+                 .async_base_pipeline_compiler
+                 .as_mut()
+                 .expect("the async compiler should remain available while its budget is filled")
+-                .try_queue(queued_id, || Err("test-only queued predecessor".to_string())),
++                .try_queue(
++                    queued_id,
++                    || Err("test-only queued predecessor".to_string()),
++                ),
+             PipelineAsyncQueueResult::Queued
+         );
+     }
+@@ -648,6 +651,117 @@ fn runtime_environment_only_pbr_base_queue_reports_an_async_budget_that_remains_
+     );
+ }
+ 
++#[test]
++fn runtime_environment_only_pbr_base_queue_recovers_when_a_completion_arrives_after_full() {
++    let backend = RenderBackend::new_offscreen()
++        .expect("offscreen backend required for environment-only PBR Base queue recovery");
++    let RenderBackend { device, queue, .. } = backend;
++    let texture_layout = test_texture_bind_group_layout(&device);
++    let mut streamer = ResourceStreamer::new_for_test(
++        Arc::new(ProjectAssetManager::default()),
++        &device,
++        &queue,
++        &texture_layout,
++    );
++    let scene_layout = test_scene_bind_group_layout(&device);
++    let material_layout = test_standard_material_bind_group_layout(&device);
++    let gpu_scene = test_gpu_scene(&device);
++    let mut cache = MeshPipelineCache::new(
++        &device,
++        &queue,
++        wgpu::TextureFormat::Bgra8UnormSrgb,
++        &scene_layout,
++        &material_layout,
++        gpu_scene.scene_bind_group_layout(),
++    );
++    let (blocker_started, wait_for_blocker_start) = std::sync::mpsc::sync_channel(0);
++    let (release_blocker, wait_for_blocker_release) = std::sync::mpsc::sync_channel(0);
++    let blocker_id = MeshPipelineVariantId::new(u32::MAX);
++    assert_eq!(
++        cache
++            .async_base_pipeline_compiler
++            .as_mut()
++            .expect("the test backend should create its async pipeline worker")
++            .try_queue(blocker_id, move || {
++                blocker_started
++                    .send(())
++                    .expect("test should still observe the blocked worker");
++                wait_for_blocker_release
++                    .recv()
++                    .expect("test should release the blocked worker");
++                Err("test-only blocked predecessor".to_string())
++            }),
++        PipelineAsyncQueueResult::Queued
++    );
++    wait_for_blocker_start
++        .recv()
++        .expect("the predecessor should block the async compiler before filling its budget");
++    let mut blocker_release_guard = AsyncWorkerReleaseGuard {
++        release: Some(release_blocker.clone()),
++    };
++    for offset in 1..MAX_ASYNC_BASE_PIPELINES_IN_FLIGHT {
++        let queued_id = MeshPipelineVariantId::new(u32::MAX - offset as u32);
++        assert_eq!(
++            cache
++                .async_base_pipeline_compiler
++                .as_mut()
++                .expect("the async compiler should remain available while its budget is filled")
++                .try_queue(queued_id, || Err("test-only queued predecessor".to_string())),
++            PipelineAsyncQueueResult::Queued
++        );
++    }
++    let (full_observed, wait_for_full) = std::sync::mpsc::sync_channel(0);
++    let (resume_retry, wait_for_resume) = std::sync::mpsc::sync_channel(0);
++    let (completion_observed, wait_for_completion) = std::sync::mpsc::channel();
++    cache
++        .async_base_pipeline_compiler
++        .as_mut()
++        .expect("the async compiler must install the deterministic full-queue retry hook")
++        .set_full_queue_retry_hook(full_observed, wait_for_resume);
++    cache
++        .async_base_pipeline_compiler
++        .as_mut()
++        .expect("the async compiler must observe the blocker completion")
++        .set_completion_observer(completion_observed);
++    let controller = std::thread::spawn(move || {
++        wait_for_full
++            .recv()
++            .expect("the environment variant must observe the first Full result");
++        release_blocker
++            .send(())
++            .expect("the blocked predecessor must still be waiting for its release");
++        wait_for_completion
++            .recv()
++            .expect("the predecessor completion must be enqueued before retrying");
++        resume_retry
++            .send(())
++            .expect("the environment variant must still be waiting to drain and retry");
++    });
++    cache
++        .pipeline_variant_registry
++        .enable_environment_only_pbr_base_profile();
++    cache.set_async_pipeline_compile_enabled(true);
++
++    let queue_report = cache
++        .queue_environment_only_pbr_base_pipeline(&device, &mut streamer)
++        .expect("a completion after Full must recover the nonblocking environment queue");
++    controller
++        .join()
++        .expect("the deterministic full-queue recovery controller must complete");
++    blocker_release_guard.release = None;
++
++    assert!(!queue_report.pipeline_ready());
++    let prewarm = cache
++        .prewarm_environment_only_pbr_base_pipeline(&device, &mut streamer)
++        .expect(
++            "the retry must queue the environment variant instead of recording a terminal failure",
++        );
++    assert!(prewarm.pipeline_ready());
++    assert!(cache
++        .environment_only_pbr_base_pipeline_ready()
++        .expect("the recovered environment variant must not retain a full-queue failure"));
++}
++
+ #[test]
+ fn runtime_environment_only_provider_fallback_resolves_generic_base_without_async_placeholder() {
+     let backend = RenderBackend::new_offscreen()

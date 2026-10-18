@@ -1,0 +1,203 @@
+diff --git a/zircon_editor/src/core/project/project_activation/service.rs b/zircon_editor/src/core/project/project_activation/service.rs
+--- a/zircon_editor/src/core/project/project_activation/service.rs
++++ b/zircon_editor/src/core/project/project_activation/service.rs
+@@ -1,3 +1,4 @@
+-use std::sync::{Arc, Mutex, MutexGuard};
++use std::sync::atomic::{AtomicU64, Ordering};
++use std::sync::{Arc, Mutex, MutexGuard};
+ 
+ use thiserror::Error;
+@@ -107,8 +108,65 @@ impl ProjectActivationArtifact {
+     }
+ }
+ 
+-#[derive(Debug)]
+-pub enum ProjectActivationPrepared {
+-    Activated(ProjectActivationArtifact),
++/// One staged backend commit that becomes externally visible only through a bound ready token.
++pub(crate) trait ProjectActivationCommit: Send {
++    fn commit(self: Box<Self>) -> Result<(), ProjectActivationTaskError>;
++}
++
++struct ProjectActivationCommitLease {
++    generation: ProjectActivationGeneration,
++    latest_generation: Arc<AtomicU64>,
++    gate: Arc<Mutex<()>>,
++}
++
++/// A prepared immutable artifact paired with a one-shot Runtime/Editor commit action.
++///
++/// The backend constructs this before publication. `ProjectActivationService::poll` attaches the
++/// generation lease; only then may `commit` publish. Dropping a ready token discards the backend
++/// action, which releases its staged Runtime04 and staged filesystem capabilities.
++pub struct ProjectActivationReady {
++    artifact: ProjectActivationArtifact,
++    commit: Box<dyn ProjectActivationCommit>,
++    lease: Option<ProjectActivationCommitLease>,
++}
++
++impl ProjectActivationReady {
++    pub(crate) fn new(
++        artifact: ProjectActivationArtifact,
++        commit: Box<dyn ProjectActivationCommit>,
++    ) -> Self {
++        Self {
++            artifact,
++            commit,
++            lease: None,
++        }
++    }
++
++    fn bind(mut self, lease: ProjectActivationCommitLease) -> Self {
++        self.lease = Some(lease);
++        self
++    }
++
++    /// Commits exactly once if this remains the newest activation at the gate linearization point.
++    pub(crate) fn commit(self) -> Result<ProjectActivationArtifact, ProjectActivationCommitError> {
++        let lease = self.lease.as_ref().ok_or(ProjectActivationCommitError::Unbound)?;
++        let _gate = lease
++            .gate
++            .lock()
++            .unwrap_or_else(|poisoned| poisoned.into_inner());
++        if lease.latest_generation.load(Ordering::Acquire) != lease.generation.0 {
++            return Err(ProjectActivationCommitError::Superseded {
++                generation: lease.generation,
++            });
++        }
++        self.commit
++            .commit()
++            .map_err(ProjectActivationCommitError::Task)?;
++        Ok(self.artifact)
++    }
++}
++
++pub enum ProjectActivationPrepared {
++    Ready(ProjectActivationReady),
+     Stale(PreparedProjectOpenStale),
+ }
+@@ -141,5 +200,15 @@ pub enum ProjectActivationTaskError {
+     Runtime(#[source] CoreError),
+ }
+ 
++#[derive(Debug, Error)]
++pub enum ProjectActivationCommitError {
++    #[error("project activation ready token was not issued by its service")]
++    Unbound,
++    #[error("project activation generation {generation:?} was superseded before commit")]
++    Superseded { generation: ProjectActivationGeneration },
++    #[error("project activation commit failed: {0}")]
++    Task(#[source] ProjectActivationTaskError),
++}
++
+ #[derive(Debug, Error)]
+ pub enum ProjectActivationSubmitError {
+@@ -187,7 +256,11 @@ impl EditorJob for ProjectActivationJob {
+     }
+ }
+ 
+-struct PendingProjectActivation {
++enum CurrentProjectActivation {
++    Pending(PendingProjectActivation),
++}
++
++struct PendingProjectActivation {
+     generation: ProjectActivationGeneration,
+     ticket: JobTicket<ProjectActivationPrepared>,
+ }
+@@ -194,5 +267,5 @@ struct PendingProjectActivation {
+ #[derive(Default)]
+ struct ProjectActivationState {
+     next_generation: u64,
+-    latest: Option<PendingProjectActivation>,
++    latest: Option<CurrentProjectActivation>,
+ }
+@@ -200,4 +273,6 @@ pub struct ProjectActivationService {
+     jobs: EditorJobSystem,
+     backend: Arc<dyn ProjectActivationBackend>,
+     state: Arc<Mutex<ProjectActivationState>>,
++    latest_generation: Arc<AtomicU64>,
++    commit_gate: Arc<Mutex<()>>,
+ }
+@@ -210,5 +285,7 @@ impl ProjectActivationService {
+             jobs,
+             backend,
+             state: Arc::new(Mutex::new(ProjectActivationState::default())),
++            latest_generation: Arc::new(AtomicU64::new(0)),
++            commit_gate: Arc::new(Mutex::new(())),
+         }
+     }
+@@ -222,11 +299,24 @@ impl ProjectActivationService {
+                 backend: Arc::clone(&self.backend),
+             },
+         )?;
++        let _commit_gate = self
++            .commit_gate
++            .lock()
++            .unwrap_or_else(|poisoned| poisoned.into_inner());
+         let replaced = {
+             let mut state = self.lock_state();
+             state.next_generation = state.next_generation.saturating_add(1);
+             let generation = ProjectActivationGeneration(state.next_generation);
+-            let replaced = state.latest.replace(PendingProjectActivation { generation, ticket });
++            self.latest_generation.store(generation.0, Ordering::Release);
++            let replaced = state
++                .latest
++                .replace(CurrentProjectActivation::Pending(PendingProjectActivation {
++                    generation,
++                    ticket,
++                }));
++            let replaced = replaced.map(|current| match current {
++                CurrentProjectActivation::Pending(pending) => pending.ticket.id(),
++            });
+-            (generation, replaced.map(|pending| pending.ticket.id()))
++            (generation, replaced)
+         };
+         if let Some(job) = replaced.1 {
+@@ -250,9 +340,19 @@ impl ProjectActivationService {
+     /// cancelled and dropped before any runtime generation becomes externally visible.
+     pub fn poll(&self) -> Option<ProjectActivationOutcome> {
+         let mut state = self.lock_state();
+-        let pending = state.latest.as_ref()?;
++        let CurrentProjectActivation::Pending(pending) = state.latest.as_ref()?;
+         let result = pending.ticket.try_take()?;
+         let generation = pending.generation;
+         state.latest.take();
++        let result = result.map(|prepared| match prepared {
++            ProjectActivationPrepared::Ready(ready) => {
++                ProjectActivationPrepared::Ready(ready.bind(ProjectActivationCommitLease {
++                    generation,
++                    latest_generation: Arc::clone(&self.latest_generation),
++                    gate: Arc::clone(&self.commit_gate),
++                }))
++            }
++            ProjectActivationPrepared::Stale(reason) => ProjectActivationPrepared::Stale(reason),
++        });
+         Some(ProjectActivationOutcome { generation, result })
+     }
+@@ -261,12 +361,22 @@ impl ProjectActivationService {
+     /// Cancels the only installable staged ticket before any runtime generation becomes visible.
+     pub fn cancel_latest(&self) -> bool {
+-        let pending = self.lock_state().latest.take();
+-        pending.is_some_and(|pending| self.jobs.cancel(pending.ticket.id()))
++        let _commit_gate = self
++            .commit_gate
++            .lock()
++            .unwrap_or_else(|poisoned| poisoned.into_inner());
++        let pending = self.lock_state().latest.take();
++        self.latest_generation.fetch_add(1, Ordering::AcqRel);
++        match pending {
++            Some(CurrentProjectActivation::Pending(pending)) => self.jobs.cancel(pending.ticket.id()),
++            None => false,
++        }
+     }
+ 
+     pub fn pending_generation(&self) -> Option<ProjectActivationGeneration> {
+         self.lock_state()
+             .latest
+             .as_ref()
+-            .map(|pending| pending.generation)
++            .map(|current| match current {
++                CurrentProjectActivation::Pending(pending) => pending.generation,
++            })
+     }

@@ -1,0 +1,169 @@
+diff --git a/zircon_editor/src/ui/host/active_project_snapshot.rs b/zircon_editor/src/ui/host/active_project_snapshot.rs
+new file mode 100644
+--- /dev/null
++++ b/zircon_editor/src/ui/host/active_project_snapshot.rs
+@@ -0,0 +1,48 @@
++use std::path::{Path, PathBuf};
++
++use zircon_runtime::asset::project::ProjectManager;
++use zircon_runtime::asset::{AssetImportError, AssetUri};
++
++use super::editor_error::EditorError;
++use super::editor_ui_host::EditorUiHost;
++
++impl EditorUiHost {
++    /// Returns a clone of the already activated generation; it never opens a project.
++    pub(super) fn current_project_snapshot(&self) -> Result<Option<ProjectManager>, EditorError> {
++        Ok(self.asset_manager()?.current_project_snapshot())
++    }
++}
++
++pub(crate) fn resolve_existing_project_asset_path(
++    project: &ProjectManager,
++    asset_id: &str,
++) -> Result<PathBuf, EditorError> {
++    let uri = AssetUri::parse(asset_id)?;
++    Ok(project.source_path_for_uri(&uri)?)
++}
++
++pub(crate) fn resolve_project_asset_write_path(
++    project: &ProjectManager,
++    asset_id: &str,
++) -> Result<PathBuf, EditorError> {
++    let uri = AssetUri::parse(asset_id)?;
++    Ok(project.existing_or_primary_project_source_path_for_uri(&uri)?)
++}
++
++pub(crate) fn project_asset_id_for_source_path(
++    project: &ProjectManager,
++    source_path: &Path,
++) -> Result<Option<String>, EditorError> {
++    match project.project_uri_for_source_path(source_path) {
++        Ok(uri) => Ok(Some(uri.to_string())),
++        Err(AssetImportError::SourceOutsideProjectAssetRoots { .. }) => Ok(None),
++        Err(error) => Err(error.into()),
++    }
++}
++
++pub(crate) fn normalize_ui_asset_asset_id(asset_id: &str) -> &str {
++    asset_id
++        .split_once('#')
++        .map(|(path, _)| path)
++        .unwrap_or(asset_id)
++}
+diff --git a/zircon_editor/src/ui/host/mod.rs b/zircon_editor/src/ui/host/mod.rs
+--- a/zircon_editor/src/ui/host/mod.rs
++++ b/zircon_editor/src/ui/host/mod.rs
+@@ -1,6 +1,7 @@
+ //! Editor UI host ownership and orchestration surfaces.
+ 
++pub(crate) mod active_project_snapshot;
+ pub(crate) mod animation_editor_sessions;
+ pub(crate) mod asset_editor_sessions;
+ mod builtin_layout;
+ mod builtin_views;
+diff --git a/zircon_editor/src/ui/host/project_access.rs b/zircon_editor/src/ui/host/project_access.rs
+--- a/zircon_editor/src/ui/host/project_access.rs
++++ b/zircon_editor/src/ui/host/project_access.rs
+@@ -1,5 +1,4 @@
+ use std::path::{Path, PathBuf};
+ use std::sync::Arc;
+ 
+-use zircon_runtime::asset::project::ProjectManager;
+ use zircon_runtime::asset::{asset_manager_handle, AssetManager};
+@@ -6,4 +5,4 @@
+-use zircon_runtime::asset::{AssetImportError, AssetUri};
++use zircon_runtime::asset::AssetUri;
+ use zircon_runtime::core::framework::foundation::ConfigManager;
+ use zircon_runtime::core::manager::{resolve_manager_service, ManagerResolver};
+ use zircon_runtime::diagnostic_log::write_log;
+@@ -10,9 +9,13 @@
+ use zircon_runtime::scene::LevelMetadata;
+ 
+-use crate::core::project::ProjectAuthority;
++use crate::core::project::{ProjectActivation, ProjectAuthority};
+ use crate::ui::host::editor_asset_manager::{editor_asset_manager_handle, EditorAssetManager};
+ use crate::ui::workbench::project::EditorProjectDocument;
+ 
+ use super::editor_error::EditorError;
+ use super::editor_ui_host::EditorUiHost;
++pub(crate) use super::active_project_snapshot::{
++    normalize_ui_asset_asset_id, project_asset_id_for_source_path,
++    resolve_existing_project_asset_path, resolve_project_asset_write_path,
++};
+ 
+@@ -20,17 +23,17 @@ impl EditorUiHost {
+     pub(super) fn open_project(
+         &self,
+         path: impl AsRef<Path>,
+     ) -> Result<EditorProjectDocument, EditorError> {
+-        let opened = ProjectAuthority::default().open_project(&path)?;
+-        self.open_prepared_project(opened.into_project())
++        let activation = ProjectAuthority::default().open_project(&path)?;
++        self.activate_project(activation)
+     }
+ 
+-    pub(super) fn open_prepared_project(
++    pub(super) fn activate_project(
+         &self,
+-        project: ProjectManager,
++        activation: ProjectActivation,
+     ) -> Result<EditorProjectDocument, EditorError> {
+         let asset_manager = self.asset_manager()?;
+-        let project_info = asset_manager.open_prepared_project(project)?;
++        let project_info = activation.activate(asset_manager.as_ref())?;
+         let project = asset_manager.current_project_snapshot().ok_or_else(|| {
+             EditorError::Project("runtime did not retain the opened project generation".to_string())
+         })?;
+@@ -189,19 +190,8 @@ impl EditorUiHost {
+             })
+     }
+ 
+-    pub(super) fn current_project_snapshot(&self) -> Result<Option<ProjectManager>, EditorError> {
+-        Ok(self.asset_manager()?.current_project_snapshot())
+-    }
+ }
+ 
+-pub(crate) fn resolve_existing_project_asset_path(
+-    project: &ProjectManager,
+-    asset_id: &str,
+-) -> Result<PathBuf, EditorError> {
+-    let uri = AssetUri::parse(asset_id)?;
+-    Ok(project.source_path_for_uri(&uri)?)
+-}
+-
+ pub(crate) fn project_open_is_degraded(
+     registry_asset_count: usize,
+     registry_ready_asset_count: usize,
+@@ -310,31 +297,5 @@ fn finish_committed_project_close<Deactivate, DeactivateError, Watch, WatchError>(
+     Some(closed_root)
+ }
+ 
+-pub(crate) fn resolve_project_asset_write_path(
+-    project: &ProjectManager,
+-    asset_id: &str,
+-) -> Result<PathBuf, EditorError> {
+-    let uri = AssetUri::parse(asset_id)?;
+-    Ok(project.existing_or_primary_project_source_path_for_uri(&uri)?)
+-}
+-
+-pub(crate) fn project_asset_id_for_source_path(
+-    project: &ProjectManager,
+-    source_path: &Path,
+-) -> Result<Option<String>, EditorError> {
+-    match project.project_uri_for_source_path(source_path) {
+-        Ok(uri) => Ok(Some(uri.to_string())),
+-        Err(AssetImportError::SourceOutsideProjectAssetRoots { .. }) => Ok(None),
+-        Err(error) => Err(error.into()),
+-    }
+-}
+-
+-pub(crate) fn normalize_ui_asset_asset_id(asset_id: &str) -> &str {
+-    asset_id
+-        .split_once('#')
+-        .map(|(path, _)| path)
+-        .unwrap_or(asset_id)
+-}
+-
+ #[cfg(test)]
+ mod tests {

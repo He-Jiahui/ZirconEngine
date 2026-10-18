@@ -1,0 +1,42 @@
+diff --git a/docs/plans/zircon_runtime/shader/06/2026-08-09-m8-canonical-ibl-recipe-and-performance-plan.md b/docs/plans/zircon_runtime/shader/06/2026-08-09-m8-canonical-ibl-recipe-and-performance-plan.md
+--- a/docs/plans/zircon_runtime/shader/06/2026-08-09-m8-canonical-ibl-recipe-and-performance-plan.md
++++ b/docs/plans/zircon_runtime/shader/06/2026-08-09-m8-canonical-ibl-recipe-and-performance-plan.md
+@@ -522,10 +522,38 @@ The 2026-08-10 IEM structure audit establishes the next CPU optimization gate:
+ - Implemented: the caller-owned parallel path now submits the planned 48
+   output-row tiles, while the serial and parallel results are compared as full
+   cubes. Rustfmt parsing and scoped diff integrity passed after the coordinator
+   applied the source patch. Managed target-machine CPU/WPR measurement remains
+   pending; do not infer a wall-time speedup from task count alone, especially
+   on low-core hosts.
+ 
++### 2026-08-14 Structural Performance Review
++
++- Current viewer startup decodes the complete HDR pixel payload before the
++  importer can determine that its persisted `.zcube` and `.zribl` are current.
++  A cache hit therefore still pays the pixel decode and exposure scan.
++- cmft splits PMREM by mip and face, while cmftStudio runs its filter as a
++  background job and publishes a completed result before recreating GPU
++  buffers. Zircon retains its headless, atomic asset-derived producer instead
++  of importing a UI-thread model into the asset pipeline.
++- The next structural optimization is a header-only canonical request probe
++  followed by validated complete-bundle restore. A missing exposure sidecar
++  returns to the established pixel-decode-and-stage path; it does not weaken
++  cache identity, PMREM/IEM recipe semantics, or corrupt-artifact recovery.
++
++### 2026-08-14 Viewer Warm-Cache Preparation
++
++- Prepared, not accepted: the importer derives its canonical request from HDRI
++  header dimensions and source bytes before pixel decoding, then restores only
++  a complete current `.zcube` plus asset-derived `.zribl` environment.
++- The viewer retains cold-path exposure exactly through a versioned sidecar
++  named beside the source `.zcube`; a missing or malformed sidecar forces the
++  established decode-and-stage fallback. Pixel decode is never skipped unless
++  the restored environment and exposure both validate.
++- M8 remains `in_progress`. This forward work has static patch-application and
++  whitespace evidence only; coordinator integration, Rust/WGPU compilation,
++  target-machine timings, screenshot verification, and RenderDoc replay remain
++  pending.
++
+ WPR (`C:\Windows\System32\wpr.exe`), WPA, and RenderDoc are installed, but no
+ current-source viewer executable exists in the approved `E:` output roots. A
+ new profile must wait for the current managed build rather than profiling a

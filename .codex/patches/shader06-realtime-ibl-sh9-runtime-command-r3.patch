@@ -1,0 +1,39 @@
+diff --git a/zircon_runtime/src/graphics/scene/scene_renderer/environment/realtime_ibl_wgpu_recorder.rs b/zircon_runtime/src/graphics/scene/scene_renderer/environment/realtime_ibl_wgpu_recorder.rs
+--- a/zircon_runtime/src/graphics/scene/scene_renderer/environment/realtime_ibl_wgpu_recorder.rs
++++ b/zircon_runtime/src/graphics/scene/scene_renderer/environment/realtime_ibl_wgpu_recorder.rs
+@@ -1,15 +1,17 @@
+-use crate::core::framework::render::IblBakeArtifactContents;
+-use crate::core::framework::render::{IblBakeArtifactRequest, ProceduralSkyParams};
++use crate::core::framework::render::{
++    IblBakeArtifactContents, IblBakeArtifactDescriptor, IblBakeArtifactRequest,
++    ProceduralSkyParams,
++};
+ use crate::render_graph::RenderGraphComputeDispatchExtent;
+ 
+-use super::ibl_bake_shader_plan::IblBakeComputeKernelKind;
++use super::ibl_bake_shader_plan::ibl_bake_irradiance_sh9_kernel_plan;
+ use super::ibl_bake_wgpu_binding::{
+     create_ibl_bake_wgpu_bind_group, create_ibl_bake_wgpu_params_buffer,
+     IblBakeWgpuOutputBindingResource,
+ };
+ use super::ibl_bake_wgpu_command_plan::{
+-    ibl_bake_wgpu_command_plan_for_request, ibl_bake_wgpu_prefilter_command_for_slice,
+-    IblBakeWgpuCommandPlan,
++    ibl_bake_wgpu_prefilter_command_for_slice, ibl_bake_wgpu_command_plan_for_runtime_kernel,
++    IblBakeWgpuCommandPlan,
+ };
+ use super::ibl_bake_wgpu_dispatch::encode_ibl_bake_wgpu_compute_dispatch;
+ use super::ibl_bake_wgpu_pipeline_cache::IblBakeWgpuPipelineCache;
+@@ -186,7 +188,7 @@
+ fn sh9_command(request: &IblBakeArtifactRequest) -> Result<IblBakeWgpuCommandPlan, String> {
+-    let plan = ibl_bake_wgpu_command_plan_for_request(request);
+-    plan.commands
+-        .into_iter()
+-        .find(|command| command.kind == IblBakeComputeKernelKind::IrradianceSh9)
+-        .ok_or_else(|| "realtime IBL request did not produce an SH9 command".to_string())
++    Ok(ibl_bake_wgpu_command_plan_for_runtime_kernel(
++        request,
++        IblBakeArtifactDescriptor::current_for_runtime_cache_request(request),
++        ibl_bake_irradiance_sh9_kernel_plan(request),
++    ))
+ }

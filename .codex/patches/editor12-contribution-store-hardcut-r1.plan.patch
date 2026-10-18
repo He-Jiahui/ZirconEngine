@@ -1,0 +1,12 @@
+diff --git a/docs/plans/zircon_editor/editor/12/failure-2026-07-17-editor-plugin-catalog-rebuild-and-deep-copy.md b/docs/plans/zircon_editor/editor/12/failure-2026-07-17-editor-plugin-catalog-rebuild-and-deep-copy.md
+--- a/docs/plans/zircon_editor/editor/12/failure-2026-07-17-editor-plugin-catalog-rebuild-and-deep-copy.md
++++ b/docs/plans/zircon_editor/editor/12/failure-2026-07-17-editor-plugin-catalog-rebuild-and-deep-copy.md
+@@ -269,1 +269,7 @@
+ - 验收矩阵：plugins/contributions/history `0/1/100/1K/10K`、messages `0/1/64/4,096`、callback `0/1/16ms/10s`、batches `1/100`、dependency depth `1/1K/100K`、threads `1/16`、reload/unload/error/stale completion。记录catalog/manager/projection/extension builds、clone bytes、callback/mutation lock wait+hold、queue/audit bytes+age、stack/RSS和F0/F4 p95；当前尚无上述动态证据。
++
++### 2026-08-02 contribution-store hard-cut reconciliation
++
++- 状态：`resolving_failure / forward_handoff`；本条仅完成当前源码的边界审计与前向迁移合同，不构成实现、受管 Cargo、独立复审、scale evidence、`fixed-*` 回传或 commit。
++- 完成项目：确认新 `core::extension::ContributionBatch/ContributionStore/ContributionSnapshot` 已提供按 source/ticket 的有序 immutable 投影，但 `plugin::{descriptor,registration,extension_materialization,extension_catalog_report}` 仍以 `EditorExtensionRegistry` 为注册、物化和公开 report 的实际 owner；`EditorPluginManagerSnapshot::from_parts` 对每个 manager generation 无条件调用 `build_active_extensions`，会从 active registration 重建旧 registry。`ContributionBatch` 和 `ContributionError` 也仍反向依赖 legacy descriptor/error，因而不能将新 Store 当作已完成的 hard cut。
++- 前向修复合同：在精确源码 lease 下，将插件注册 payload 收束为 `ContributionBatch`，由每个 plugin source 的一次 Store transaction 生成并持久化 `ContributionTicket`；catalog/manager read model 仅发布 `Arc<ContributionSnapshot>`（或由它借用编译出的 active projection），不再发布或重建 `EditorExtensionRegistry`。active projection 缓存键必须是 `{catalog_generation, active_set_generation}`，非结构 lifecycle event 不得重建 descriptor/asset registry；disable/reload/error 在 manager successor publish 前精确 revoke ticket，失败候选保持 last-good snapshot。迁移 descriptor 与 typed error 至新的 contribution leaf 后删除 `core/editor_extension`，不保留 re-export、alias、dual-write 或 UI-local cache。
++- 验收：新增 registration-to-ticket、revoke-before-publish、旧 reader Arc、同 active set cache hit、active set successor miss、1/100/1000 plugin build/clone counter 回归；静态 guard 禁止 plugin/manager/UI 再 import `EditorExtensionRegistry`，并继续单独完成 2026-08-01 InspectorCustomization guard drift。所有静态结果之后仍须以当前 immutable manifest 执行受管 Cargo、独立复审和 scale evidence，才允许 fixed return。

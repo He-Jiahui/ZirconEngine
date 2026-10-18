@@ -1,0 +1,13 @@
+diff --git a/zircon_runtime/tests/runtime_shader_pbr_realtime_ibl_export.rs b/zircon_runtime/tests/runtime_shader_pbr_realtime_ibl_export.rs
+--- a/zircon_runtime/tests/runtime_shader_pbr_realtime_ibl_export.rs
++++ b/zircon_runtime/tests/runtime_shader_pbr_realtime_ibl_export.rs
+@@ -832,8 +832,6 @@ fn assert_realtime_binding_cache_metrics(reports: &[RealtimeIblGpuTimingReport]
+         "each product realtime IBL operation must report coherent binding-cache counters: {reports:?}"
+     );
+     assert!(
+-        reports
+-            .iter()
+-            .any(|report| report.binding_cache_misses > 0),
++        reports.iter().any(|report| report.binding_cache_misses > 0),
+         "the product run must include cold binding-template construction: {reports:?}"
+     );

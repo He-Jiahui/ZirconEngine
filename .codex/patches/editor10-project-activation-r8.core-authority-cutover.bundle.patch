@@ -1,0 +1,168 @@
+diff --git a/zircon_editor/src/core/project/authority.rs b/zircon_editor/src/core/project/authority.rs
+--- a/zircon_editor/src/core/project/authority.rs
++++ b/zircon_editor/src/core/project/authority.rs
+@@ -2,6 +2,6 @@ use std::path::{Path, PathBuf};
+ use std::sync::atomic::{AtomicU64, Ordering};
+ 
+-use zircon_runtime::asset::project::{ProjectManager, ProjectManifest, ProjectPaths};
++use zircon_runtime::asset::project::{ProjectManifest, ProjectPaths};
+ use zircon_runtime_interface::project::{
+     ProjectManifestSummary, RenderedProjectTemplate, render_project_template,
+ };
+@@ -11,5 +11,5 @@ use super::filesystem::{
+ };
+ use super::{
+-    CreatedProject, NewProjectDraft, OpenedProject, ProjectAuthorityError, ProjectProbe,
+-    RecentProjectEntry, RecentProjectValidation, StoredRecentProjectEntry, StoredStartupSession,
++    CreatedProject, NewProjectDraft, ProjectActivation, ProjectAuthorityError, ProjectProbe,
++    RecentProjectEntry, RecentProjectValidation, StoredRecentProjectEntry, StoredStartupSession,
+ };
+@@ -124,8 +124,8 @@ impl ProjectAuthority {
+                     return Err(error);
+                 }
+             };
+-            let project = match ProjectManager::open(&root) {
+-                Ok(project) => project,
++            let activation = match ProjectActivation::open(&root) {
++                Ok(activation) => activation,
+                 Err(source) => {
+                     rollback_committed_project(
+                         &staging,
+@@ -139,6 +139,6 @@ impl ProjectAuthority {
+             if let Err(error) = finalize_empty_target_backup(target, &backup, replaced_empty_target)
+             {
+-                drop(project);
++                drop(activation);
+                 rollback_committed_project(
+                     &staging,
+                     target,
+@@ -149,11 +149,11 @@ impl ProjectAuthority {
+                 )?;
+                 return Err(error);
+             }
+-            let summary = project.manifest().summary();
++            let summary = activation.summary().clone();
+             Ok(CreatedProject {
+                 root,
+                 summary,
+-                project,
++                activation,
+             })
+         })();
+ 
+@@ -174,8 +174,8 @@ impl ProjectAuthority {
+     pub fn open_project(
+         &self,
+         path: impl AsRef<Path>,
+-    ) -> Result<OpenedProject, ProjectAuthorityError> {
++    ) -> Result<ProjectActivation, ProjectAuthorityError> {
+         let root = self.resolve_existing_project_root(path)?;
+-        Ok(OpenedProject::new(ProjectManager::open(root)?))
++        ProjectActivation::open(&root)
+     }
+ 
+     pub fn probe_project(
+diff --git a/zircon_editor/src/core/project/created_project.rs b/zircon_editor/src/core/project/created_project.rs
+--- a/zircon_editor/src/core/project/created_project.rs
++++ b/zircon_editor/src/core/project/created_project.rs
+@@ -1,24 +1,35 @@
+ use std::path::PathBuf;
+ 
+-use zircon_runtime::asset::project::ProjectManager;
++#[cfg(test)]
++use zircon_runtime::asset::project::ProjectManager;
+ use zircon_runtime_interface::project::ProjectManifestSummary;
+ 
+-#[derive(Clone, Debug)]
++use super::ProjectActivation;
++
++#[derive(Debug)]
+ pub struct CreatedProject {
+     pub root: PathBuf,
+     pub summary: ProjectManifestSummary,
+-    // The creation transaction establishes this first project generation. Callers transfer it
+-    // into the host instead of reopening the just-committed manifest from disk.
+-    project: ProjectManager,
++    activation: ProjectActivation,
+ }
+ 
+ impl CreatedProject {
+-    pub fn project(&self) -> &ProjectManager {
+-        &self.project
++    pub fn activation(&self) -> &ProjectActivation {
++        &self.activation
+     }
+ 
+-    pub fn into_project(self) -> ProjectManager {
+-        self.project
++    pub fn into_activation(self) -> ProjectActivation {
++        self.activation
++    }
++
++    #[cfg(test)]
++    pub fn project(&self) -> ProjectManager {
++        ProjectManager::open(&self.root).expect("created project test fixture should reopen")
++    }
++
++    #[cfg(test)]
++    pub fn into_project(self) -> ProjectManager {
++        ProjectManager::open(&self.root).expect("created project test fixture should reopen")
+     }
+ }
+ 
+diff --git a/zircon_editor/src/core/project/mod.rs b/zircon_editor/src/core/project/mod.rs
+--- a/zircon_editor/src/core/project/mod.rs
++++ b/zircon_editor/src/core/project/mod.rs
+@@ -4,6 +4,6 @@ mod error;
+ mod filesystem;
+ mod new_project_draft;
+ mod new_project_template;
+-mod opened_project;
++mod project_activation;
+ mod project_probe;
+ mod recent_project_entry;
+@@ -18,5 +18,5 @@ pub use error::ProjectAuthorityError;
+ pub use new_project_draft::NewProjectDraft;
+ pub use new_project_template::NewProjectTemplate;
+-pub use opened_project::OpenedProject;
++pub use project_activation::ProjectActivation;
+ pub use project_probe::ProjectProbe;
+ pub use recent_project_entry::RecentProjectEntry;
+diff --git a/zircon_editor/src/core/project/opened_project.rs b/zircon_editor/src/core/project/opened_project.rs
+deleted file mode 100644
+--- a/zircon_editor/src/core/project/opened_project.rs
++++ /dev/null
+@@ -1,33 +0,0 @@
+-use std::path::Path;
+-
+-use zircon_runtime::asset::project::ProjectManager;
+-use zircon_runtime_interface::project::ProjectManifestSummary;
+-
+-#[derive(Clone, Debug)]
+-pub struct OpenedProject {
+-    project: ProjectManager,
+-    summary: ProjectManifestSummary,
+-}
+-
+-impl OpenedProject {
+-    pub(super) fn new(project: ProjectManager) -> Self {
+-        let summary = project.manifest().summary();
+-        Self { project, summary }
+-    }
+-
+-    pub fn root(&self) -> &Path {
+-        self.project.paths().root()
+-    }
+-
+-    pub fn summary(&self) -> &ProjectManifestSummary {
+-        &self.summary
+-    }
+-
+-    pub fn project(&self) -> &ProjectManager {
+-        &self.project
+-    }
+-
+-    pub fn into_project(self) -> ProjectManager {
+-        self.project
+-    }
+-}

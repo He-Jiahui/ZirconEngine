@@ -1,0 +1,66 @@
+diff --git a/zircon_editor/src/core/project/authority.rs b/zircon_editor/src/core/project/authority.rs
+--- a/zircon_editor/src/core/project/authority.rs
++++ b/zircon_editor/src/core/project/authority.rs
+@@ -112,20 +112,33 @@ impl ProjectAuthority {
+-            let project = match ProjectManager::open(target) {
++            let root = match canonical_project_root(target) {
++                Ok(root) => root,
++                Err(error) => {
++                    rollback_committed_project(
++                        &staging,
++                        target,
++                        &backup,
++                        replaced_empty_target,
++                        |from, to| fs::rename(from, to),
++                    )?;
++                    return Err(error);
++                }
++            };
++            let project = match ProjectManager::open(&root) {
+                 Ok(project) => project,
+                 Err(source) => {
+                     rollback_committed_project(
+                         &staging,
+                         target,
+                         &backup,
+                         replaced_empty_target,
+                         |from, to| fs::rename(from, to),
+                     )?;
+                     return Err(source.into());
+                 }
+             };
+             remove_empty_target_backup(&backup, replaced_empty_target);
+             let summary = project.manifest().summary();
+             Ok(CreatedProject {
+-                root: target.to_path_buf(),
++                root,
+                 summary,
+                 project,
+             })
+diff --git a/zircon_editor/src/core/project/tests/template_creation.rs b/zircon_editor/src/core/project/tests/template_creation.rs
+--- a/zircon_editor/src/core/project/tests/template_creation.rs
++++ b/zircon_editor/src/core/project/tests/template_creation.rs
+@@ -57,3 +57,23 @@ fn template_creation_copies_pack_rewrites_manifest_and_opens() {
+ }
+ 
++#[test]
++fn template_creation_returns_the_canonical_published_root() {
++    let location = temp_root("canonical-created-root");
++    let project_name = "Canonical Root";
++    let draft = NewProjectDraft {
++        project_name: project_name.to_string(),
++        location: location.join(".").to_string_lossy().into_owned(),
++        template: NewProjectTemplate::RenderableEmpty,
++    };
++
++    let created = ProjectAuthority::default().create_project(&draft).unwrap();
++    let expected_root = fs::canonicalize(location.join(project_name)).unwrap();
++
++    assert_eq!(created.root, expected_root);
++    assert_eq!(created.project().paths().root(), expected_root.as_path());
++
++    drop(created);
++    fs::remove_dir_all(location).unwrap();
++}
++
+ #[test]

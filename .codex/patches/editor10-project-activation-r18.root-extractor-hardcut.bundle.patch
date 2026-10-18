@@ -1,0 +1,28 @@
+diff --git a/zircon_editor/src/core/project/project_activation.rs b/zircon_editor/src/core/project/project_activation.rs
+--- a/zircon_editor/src/core/project/project_activation.rs
++++ b/zircon_editor/src/core/project/project_activation.rs
+@@ -82,7 +82,3 @@ impl ProjectActivation {
+-    pub fn root(&self) -> &Path {
+-        self.prepared.root()
+-    }
+-
+     pub fn summary(&self) -> &ProjectManifestSummary {
+         &self.summary
+     }
+@@ -126,5 +121,6 @@ mod tests {
+         assert!(production.contains("prepare_project_activation"));
+         assert!(!production.contains("open_prepared_project"));
+         assert!(!production.contains("ProjectManager"));
++        assert!(!production.contains("fn root("));
+     }
+ }
+diff --git a/zircon_editor/src/core/project/project_activation/service.rs b/zircon_editor/src/core/project/project_activation/service.rs
+--- a/zircon_editor/src/core/project/project_activation/service.rs
++++ b/zircon_editor/src/core/project/project_activation/service.rs
+@@ -333,5 +333,5 @@ impl ProjectActivationBackend for BlockingBackend {
+             let ProjectActivationIntent::Open(activation) = intent else {
+                 panic!("test backend accepts only prepared project opens");
+             };
+-            let root_path = activation.root().to_string_lossy().into_owned();
++            let root_path = format!("activation:{}", activation.summary().name);
+             let project_name = activation.summary().name.clone();

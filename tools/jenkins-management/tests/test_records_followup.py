@@ -11,7 +11,7 @@ sys.path.insert(0, str(Path(__file__).absolute().parents[1]))
 import records_followup as followup
 queue = followup.queue
 
-from test_records_queue import InstallCase
+from test_records_queue import InstallCase, RecordsTransportCase
 
 
 class FollowupTests(unittest.TestCase):
@@ -62,28 +62,24 @@ class FollowupTests(unittest.TestCase):
                 followup.validate(context, inventory, original)
 
     def test_unknown_delivery_is_never_submitted_again(self):
-        original, inventory, context = self.inputs()
-        api=Mock();api.record.return_value={'payload': original}
-        manager=Mock();manager.base_url='http://127.0.0.1:18080'
-        manager._request.return_value=(200,b'{"crumbRequestField":"crumb","crumb":"test"}')
-        manager._request_with_headers.side_effect=TimeoutError('lost acknowledgement')
-        context['manager']=manager
-        installed={'driverDigest':'6'*64,'runtimeOperationId':'same-runtime'}
-        files={}
-        def read(path):return (json.loads(files[str(path)]) if str(path) in files else copy.deepcopy(inventory)),{}
-        def save(path,raw):
-            if str(path) in files:self.assertEqual(files[str(path)],raw)
-            files[str(path)]=raw
-        with patch.object(followup,'binding',return_value=(api,context,installed)), \
-             patch.object(queue,'read_json',side_effect=read), patch.object(queue,'write_once',side_effect=save), \
-             patch.object(Path,'exists',new=lambda p:str(p) in files), patch.object(queue,'plain',side_effect=Path), \
-             patch('tools.jenkins.state.locks.process_lock',return_value=nullcontext()), \
-             patch('tools.jenkins.state.atomic.atomic_json',side_effect=lambda p,v:files.__setitem__(str(p),queue.encoded(v))):
-            first=followup.submit(context['repo'],Path('metadata.json'))
-            second=followup.submit(context['repo'],Path('metadata.json'))
-        self.assertEqual(first,second)
-        self.assertEqual(first['phase'],'delivery_unknown')
-        manager._request_with_headers.assert_called_once()
+        original, inventory, _ = self.inputs()
+        with RecordsTransportCase(queue, inventory, followup=followup, original=original) as case:
+            first = followup.submit(case.repo, case.inventory)
+            self.assertEqual(queue.sys.path[0], str(case.driver_root))
+            second = followup.submit(case.repo, case.inventory)
+            self.assertEqual(first, second)
+            self.assertEqual(first['phase'], 'delivery_unknown')
+            self.assertEqual(len(case.posts), 1)
+            endpoint, parameters = case.posts[0]
+            self.assertEqual(endpoint, '/job/zircon-records-followup/buildWithParameters')
+            self.assertEqual(parameters, {'FOLLOWUP_DIGEST': [first['followupDigest']],
+                                          'TASK_ID': ['original'], 'MODE': ['attach']})
+            self.assertEqual(first['originalIdentity'], original['originalIdentity'])
+            case.api.capability.assert_not_called()
+            with self.assertRaisesRegex(PermissionError, 'OpenProcess'):
+                followup.work(case.repo, 'original', first['followupDigest'])
+            case.api.capability.assert_called_once_with(case.repo)
+
 
 
 class FollowupRuntimeRebindTests(unittest.TestCase):

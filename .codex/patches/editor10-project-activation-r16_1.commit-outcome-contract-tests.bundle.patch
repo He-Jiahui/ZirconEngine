@@ -1,0 +1,35 @@
+diff --git a/zircon_editor/src/core/project/project_activation/service.rs b/zircon_editor/src/core/project/project_activation/service.rs
+--- a/zircon_editor/src/core/project/project_activation/service.rs
++++ b/zircon_editor/src/core/project/project_activation/service.rs
+@@ -319,4 +376,4 @@ mod tests {
+     impl ProjectActivationCommit for NoopCommit {
+-        fn commit(self: Box<Self>) -> Result<(), ProjectActivationTaskError> {
+-            Ok(())
++        fn commit(self: Box<Self>) -> Result<Option<super::ProjectActivationCleanupWarning>, ProjectActivationTaskError> {
++            Ok(None)
+         }
+@@ -381,5 +438,10 @@ fn replacement_discards_a_cancelled_staged_generation_and_only_polls_the_succes
+         assert_eq!(outcome.generation(), second_generation);
+         let artifact = match outcome.into_result().unwrap() {
+-            ProjectActivationPrepared::Ready(ready) => ready.commit().unwrap(),
++            ProjectActivationPrepared::Ready(ready) => match ready.commit().unwrap() {
++                super::ProjectActivationCommitOutcome::Activated(artifact) => artifact,
++                super::ProjectActivationCommitOutcome::ActivatedWithCleanupWarning { .. } => {
++                    panic!("open activation must not report creation cleanup")
++                }
++            },
+             ProjectActivationPrepared::Stale(reason) => panic!("expected activation, got {reason}"),
+         };
+@@ -423,6 +485,11 @@ fn newer_submission_supersedes_a_polled_ready_token_before_runtime_commit() {
+             ProjectActivationPrepared::Ready(ready) => ready,
+             ProjectActivationPrepared::Stale(reason) => panic!("expected ready token, got {reason}"),
+         };
+-        let artifact = second_ready.commit().unwrap();
++        let artifact = match second_ready.commit().unwrap() {
++            super::ProjectActivationCommitOutcome::Activated(artifact) => artifact,
++            super::ProjectActivationCommitOutcome::ActivatedWithCleanupWarning { .. } => {
++                panic!("open activation must not report creation cleanup")
++            }
++        };
+         assert_eq!(artifact.report().name, "polled-second");
+         assert_eq!(backend.calls.load(Ordering::SeqCst), 2);

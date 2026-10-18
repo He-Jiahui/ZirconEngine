@@ -1,0 +1,20 @@
+diff --git a/docs/plans/zircon_editor/editor/03/failure-2026-07-22-transaction-selection-history-wide-snapshot.md b/docs/plans/zircon_editor/editor/03/failure-2026-07-22-transaction-selection-history-wide-snapshot.md
+--- a/docs/plans/zircon_editor/editor/03/failure-2026-07-22-transaction-selection-history-wide-snapshot.md
++++ b/docs/plans/zircon_editor/editor/03/failure-2026-07-22-transaction-selection-history-wide-snapshot.md
+@@ -68,3 +68,9 @@ Open state: `undo/redo compact event metadata、operation-group key与Create re
+ ## 产出记录与时间
+ 
+ - 2026-07-22：状态`open`。静态复核完成并登记PERF-MVP-549；局部源码守卫/rustfmt/diff通过，但不得据此声明Editor03动态验收或迁入performance `review.md`。
++
++- 2026-08-02：状态`forward_fix_bundle_ready`。在保持既有 typed immutable selection
++  handle、compact/paged history 与 Editor02 lifecycle-stream 边界不变的前提下，准备
++  `journal_transaction` 锁外投影 bundle：operation gate 持有期间从 engine state 临时移出
++  HistoryStore，执行 command JSON journal payload 与 selection vector projection 后以 Drop
++  恢复；缺失 history 返回既有 `TransactionNotFound`，冲突恢复将 engine 标记 faulted 而不
++  panic。实现按 `transaction/journal_projection.rs` leaf 拆分以满足 production file-size
++  约束。基础 bundle `A88512840B59BAEF64FFCD750D5BC860D3513D32CDAD77AB82CC56A536B573EC`
++  与复审修正 overlay `F685572F955B9323218612E6C674B2425349047393D87C27F4080DA2652BD198`
++  必须依次应用：后者保存 restoration conflict 中的两个 HistoryStore，并新增 reentry、
++  UnsupportedCommand 与 panic unwind 后可继续查询/journal 的行为测试。r1 已通过
++  `git apply --check --whitespace=error`，r2 已通过 Git patch 解析；待 exact-scope owner
++  落码、受管 Cargo、规模/F4 证据与复审复验后方可 fixed return。

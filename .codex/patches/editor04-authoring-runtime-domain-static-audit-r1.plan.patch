@@ -1,0 +1,8 @@
+diff --git a/docs/plans/zircon_editor/editor/04/failure-2026-07-29-authoring-runtime-gateway-ownership-conflation.md b/docs/plans/zircon_editor/editor/04/failure-2026-07-29-authoring-runtime-gateway-ownership-conflation.md
+--- a/docs/plans/zircon_editor/editor/04/failure-2026-07-29-authoring-runtime-gateway-ownership-conflation.md
++++ b/docs/plans/zircon_editor/editor/04/failure-2026-07-29-authoring-runtime-gateway-ownership-conflation.md
+@@ -68,3 +68,4 @@ Open state：`architecture handoff pending`。Editor01 只完成 `core/ -> ui` 静态单向守卫；当前工作树仍有 UI raw runtime inventory，且无 immutable Cargo、独立 review 或 Editor04 domain-routing acceptance。Editor04 在 typed dual-domain routing、focused regressions、managed validation、review 和 fixed return 完成前，不得把本交接关闭。
+ | 时间 | 状态 | 完成项目与证据 |
+ | --- | --- | --- |
+ | 2026-07-29 CST | `OPEN / architecture handoff` | Editor01 M2.4 清点发现 `set_runtime_gateway` 覆盖 context gateway、SessionGateway 依法拒绝 borrowed-world access，而 UI edit state 仍直接持有 `LevelSystem`。该三点构成 authoring/runtime ownership 冲突；未修改 Editor04 生产代码、未启动 Cargo。交给 Editor04 的 Edit/Play 双域 gateway 与 attach lifecycle owner 处理。 |
++| 2026-08-02 CST | `OPEN / static domain-route audit` | 当前源码静态确认 `set_runtime_gateway` 已无定义/调用；`EditorAuthoringWorld` 经稳定 edit gateway 承担 UI 的 borrowed-world access，`PlayDomainLink` 以 `WorldDomain::{Edit, Play(PlayInstanceId)}` 隔离可替换 play transport，`SessionGateway::with_world(_mut)` 的 `RequiresSerializedAccess` 回归与 attach/detach 后 edit selection/undo 保持回归均已存在。审计同时发现 `EditorHostEventController::gateway_for` 除测试外尚无场景/UI consumer，故不得把 API 存在当作完整域路由验收；继续保持 OPEN，补齐真实 play-domain consumer、重复 attach/错误 detach 边界测试，并由 immutable managed Cargo + 独立二次审查决定 fixed return。 |

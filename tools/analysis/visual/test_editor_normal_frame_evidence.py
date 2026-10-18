@@ -393,4 +393,110 @@ class CanonicalCasePublicationValidation(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     validate_case_publication(bound_profile, bound_case)
 
+
+    def case_with_current_publications(self):
+        hold, readback, profile, case = self.case_and_held_frame()
+        seed = case['data']['normal_window_evidence']
+        normal = profile['normal_window_evidence']
+        token = {'schema': 'dev.zircon.editor.host-paint-token-input', 'version': 1,
+                 'authority': 'host-paint-theme-snapshot', 'observed': True,
+                 'themeGeneration': 27, 'settingsGeneration': None, 'scaleFactor': 1.25,
+                 'tokens': {'surface': [0.1, 0.1, 0.1, 1]}}
+        inventory = {'schema': 'dev.zircon.editor.normal-arranged-inventory', 'version': 1,
+                     'authority': 'normal-retained-runtime-surfaces', 'observed': True,
+                     'inventoryAudit': {'complete': True, 'surfaceCount': 1},
+                     'presentationCursor': copy.deepcopy(seed['presentationCursor']),
+                     'presentedFrameCount': seed['presentedFrameCount'],
+                     'complete': False, 'pending': ['mounted-pane-source-style-overlay-closure'],
+                     'surfaces': [{'id': 'main', 'presentedFrameCount': 2, 'observed': True}]}
+        seed['designTokenInput'] = copy.deepcopy(token)
+        normal['paintEvidence'] = {'designTokenInput': copy.deepcopy(token)}
+        seed['arrangedInventoryPublication'] = copy.deepcopy(inventory)
+        normal['arrangedInventoryPublication'] = copy.deepcopy(inventory)
+        normal['arrangedInventoryPublication']['presentedFrameCount'] = normal['presentedFrameCount']
+        return hold, readback, profile, case
+
+    def test_current_publications_allow_later_matching_frame_and_keep_pending(self):
+        _, _, profile, case = self.case_with_current_publications()
+        original_profile, original_case = copy.deepcopy(profile), copy.deepcopy(case)
+        validate_case_publication(profile, case)
+        self.assertEqual(profile, original_profile)
+        self.assertEqual(case, original_case)
+        inventory = case['data']['normal_window_evidence']['arrangedInventoryPublication']
+        self.assertIs(inventory['complete'], False)
+        self.assertEqual(inventory['pending'], ['mounted-pane-source-style-overlay-closure'])
+
+    def test_current_publications_preserve_presence_and_paired_null(self):
+        _, _, profile, case = self.case_with_current_publications()
+        for key in ('designTokenInput', 'arrangedInventoryPublication'):
+            for missing in ('seed', 'actual'):
+                changed_profile, changed_case = copy.deepcopy(profile), copy.deepcopy(case)
+                seed = changed_case['data']['normal_window_evidence']
+                actual = changed_profile['normal_window_evidence']
+                owner = actual['paintEvidence'] if key == 'designTokenInput' else actual
+                (seed if missing == 'seed' else owner).pop(key)
+                with self.subTest(key=key, missing=missing), self.assertRaisesRegex(ValueError, 'presence differs'):
+                    validate_case_publication(changed_profile, changed_case)
+            paired_profile, paired_case = copy.deepcopy(profile), copy.deepcopy(case)
+            paired_case['data']['normal_window_evidence'][key] = None
+            actual = paired_profile['normal_window_evidence']
+            owner = actual['paintEvidence'] if key == 'designTokenInput' else actual
+            owner[key] = None
+            validate_case_publication(paired_profile, paired_case)
+            with self.assertRaises(ValueError):
+                validate_case_publication(profile, paired_case)
+
+    def test_token_input_matches_full_typed_payload_from_paint_owner(self):
+        _, _, profile, case = self.case_with_current_publications()
+        for key, value in (('settingsGeneration', 0), ('themeGeneration', True),
+                           ('observed', 1), ('tokens', {'surface': [0.1, 0.1, 0.1, True]})):
+            changed = copy.deepcopy(profile)
+            changed['normal_window_evidence']['paintEvidence']['designTokenInput'][key] = value
+            with self.subTest(key=key), self.assertRaises(ValueError):
+                validate_case_publication(changed, case)
+        changed = copy.deepcopy(profile)
+        changed['normal_window_evidence']['designTokenInput'] = changed['normal_window_evidence']['paintEvidence'].pop('designTokenInput')
+        with self.assertRaisesRegex(ValueError, 'presence differs'):
+            validate_case_publication(changed, case)
+
+    def test_inventory_requires_each_own_safe_frame_count_and_cursor(self):
+        _, _, profile, case = self.case_with_current_publications()
+        for side in ('seed', 'actual'):
+            for count in (0, -1, True, 4.0, 2**53, 8):
+                changed_profile, changed_case = copy.deepcopy(profile), copy.deepcopy(case)
+                owner = (changed_case['data'] if side == 'seed' else changed_profile)['normal_window_evidence']
+                owner['arrangedInventoryPublication']['presentedFrameCount'] = count
+                with self.subTest(side=side, count=count), self.assertRaises(ValueError):
+                    validate_case_publication(changed_profile, changed_case)
+            for key in case['data']['normal_window_evidence']['presentationCursor']:
+                changed_profile, changed_case = copy.deepcopy(profile), copy.deepcopy(case)
+                owner = (changed_case['data'] if side == 'seed' else changed_profile)['normal_window_evidence']
+                owner['arrangedInventoryPublication']['presentationCursor'][key] = True
+                with self.subTest(side=side, counter=key), self.assertRaises(ValueError):
+                    validate_case_publication(changed_profile, changed_case)
+
+    def test_inventory_exempts_only_top_frame_count_and_preserves_unknown_rows(self):
+        _, _, profile, case = self.case_with_current_publications()
+        for key, value in (('complete', 0), ('pending', []), ('surfaces', []), ('unknown', True)):
+            changed = copy.deepcopy(profile)
+            changed['normal_window_evidence']['arrangedInventoryPublication'][key] = value
+            with self.subTest(key=key), self.assertRaises(ValueError):
+                validate_case_publication(changed, case)
+        changed = copy.deepcopy(profile)
+        changed['normal_window_evidence']['arrangedInventoryPublication']['surfaces'][0]['presentedFrameCount'] = 3
+        with self.assertRaises(ValueError):
+            validate_case_publication(changed, case)
+
+    def test_current_fields_cannot_bypass_canonical_seed_shape(self):
+        for key in ('designTokenInput', 'arrangedInventoryPublication'):
+            with self.subTest(key=key), self.assertRaises(ValueError):
+                validate_case_publication({}, {'data': {'normal_window_evidence': {key: None}}})
+        _, _, profile, case = self.case_with_current_publications()
+        seed = case['data']['normal_window_evidence']
+        for key in ('presentationCursor', 'presentedFrameCount', 'viewportToolbarPublication',
+                    'designTokenInput', 'arrangedInventoryPublication'):
+            seed.pop(key)
+        seed['workbenchStatePublication'].pop('presentedFrameCount')
+        validate_case_publication(profile, case)
+
 if __name__=='__main__':unittest.main()

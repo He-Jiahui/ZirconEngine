@@ -1,0 +1,25 @@
+diff --git a/zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_construct/new_with_icon_source.rs b/zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_construct/new_with_icon_source.rs
+--- a/zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_construct/new_with_icon_source.rs
++++ b/zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_construct/new_with_icon_source.rs
+@@ -148,11 +148,10 @@ impl SceneRendererCore {
+-        let environment_only_pbr_base_prewarm = if startup_options
+-            .requires_environment_only_pbr_base_prewarm()
+-        {
+-            Some(
+-                core.mesh_pipelines
+-                    .prewarm_environment_only_pbr_base_pipeline(&backend.device, &mut streamer)?
+-                    .into(),
+-            )
+-        } else {
+-            None
+-        };
++        let environment_only_pbr_base_prewarm =
++            if startup_options.requires_environment_only_pbr_base_prewarm() {
++                Some(
++                    core.mesh_pipelines
++                        .prewarm_environment_only_pbr_base_pipeline(&backend.device, &mut streamer)?
++                        .into(),
++                )
++            } else {
++                None
++            };

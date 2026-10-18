@@ -1,0 +1,36 @@
+diff --git a/zircon_runtime/src/asset/pipeline/manager/service_contracts/asset_manager_contract.rs b/zircon_runtime/src/asset/pipeline/manager/service_contracts/asset_manager_contract.rs
+--- a/zircon_runtime/src/asset/pipeline/manager/service_contracts/asset_manager_contract.rs
++++ b/zircon_runtime/src/asset/pipeline/manager/service_contracts/asset_manager_contract.rs
+@@ -61,3 +61,4 @@ impl AssetManagerContract for ProjectAssetManager {
+     fn current_project_snapshot(&self) -> Option<ProjectManager> {
++        let _generation = self.project_generation_read();
+         self.project_read().as_ref().cloned()
+     }
+@@ -65,6 +66,7 @@ impl AssetManagerContract for ProjectAssetManager {
+         &self,
+         uri: &AssetUri,
+     ) -> Result<Option<std::path::PathBuf>, AssetImportError> {
++        let _generation = self.project_generation_read();
+         let project = self.project_read();
+         let Some(project) = project.as_ref() else {
+             return Ok(None);
+@@ -86,3 +88,4 @@ impl AssetManagerContract for ProjectAssetManager {
+     fn current_project_asset_uris(&self) -> Vec<AssetUri> {
++        let _generation = self.project_generation_read();
+         let project = self.project_read();
+         let Some(project) = project.as_ref() else {
+@@ -98,3 +101,4 @@ impl AssetManagerContract for ProjectAssetManager {
+     fn current_project(&self) -> Option<ProjectInfo> {
++        let _generation = self.project_generation_read();
+         self.project_read().as_ref().map(build_project_info)
+     }
+@@ -102,3 +106,4 @@ impl AssetManagerContract for ProjectAssetManager {
+     fn asset_status(&self, uri: &str) -> Option<AssetStatusRecord> {
++        let _generation = self.project_generation_read();
+         let uri = AssetUri::parse(uri).ok()?;
+         let project = self.project_read();
+@@ -112,3 +117,4 @@ impl AssetManagerContract for ProjectAssetManager {
+     fn list_assets(&self) -> Vec<AssetStatusRecord> {
++        let _generation = self.project_generation_read();
+         let project = self.project_read();
+         let Some(project) = project.as_ref() else {

@@ -1,0 +1,16 @@
+diff --git a/zircon_runtime/tests/runtime_shader_pbr_realtime_ibl_export.rs b/zircon_runtime/tests/runtime_shader_pbr_realtime_ibl_export.rs
+--- a/zircon_runtime/tests/runtime_shader_pbr_realtime_ibl_export.rs
++++ b/zircon_runtime/tests/runtime_shader_pbr_realtime_ibl_export.rs
+@@ -40,9 +40,9 @@ const REALTIME_GENERATION_TICKET_FRAME_COUNT: usize = 21;
+ const REALTIME_GENERATION_TICKET_COUNT: usize = 3;
+ const RENDERDOC_CAPTURE_FINAL_SH9_SLICE_ENV: &str = "ZR_RENDERDOC_CAPTURE_REALTIME_IBL_FINAL_SH9";
+ const OUTPUT_NAME: &str =
+-    "runtime_shader_pbr_realtime_ibl_generation_ticket_8x8_reflection_20260819.png";
++    "runtime_shader_pbr_realtime_ibl_generation_ticket_8x8_reflection_20260823_p1_2.png";
+ const TIMING_REPORT_NAME: &str =
+-    "runtime_shader_pbr_realtime_ibl_generation_ticket_8x8_timing_20260819.txt";
++    "runtime_shader_pbr_realtime_ibl_generation_ticket_8x8_timing_20260823_p1_2.txt";
+ const GPU_TIMING_REPORT_NAME: &str =
+-    "runtime_shader_pbr_realtime_ibl_generation_ticket_8x8_gpu_timing_20260819.txt";
++    "runtime_shader_pbr_realtime_ibl_generation_ticket_8x8_gpu_timing_20260823_p1_2.txt";
+ const MULTI_VIEW_OUTPUT_SIZE: UVec2 = UVec2::new(800, 600);

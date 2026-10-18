@@ -1,0 +1,49 @@
+diff --git a/zircon_runtime_interface/src/tests/mod.rs b/zircon_runtime_interface/src/tests/mod.rs
+--- a/zircon_runtime_interface/src/tests/mod.rs
++++ b/zircon_runtime_interface/src/tests/mod.rs
+@@ -12,6 +12,7 @@ mod input_response_contracts;
+ mod layout_engine_contracts;
+ mod pipeline_contracts;
+ mod plugin_api_contracts;
++mod runtime_editor_overlay;
+ mod reflect_contracts;
+ mod render_contracts;
+ mod resource_contracts;
+diff --git a/zircon_runtime_interface/src/tests/runtime_editor_overlay.rs b/zircon_runtime_interface/src/tests/runtime_editor_overlay.rs
+new file mode 100644
+--- /dev/null
++++ b/zircon_runtime_interface/src/tests/runtime_editor_overlay.rs
+@@ -0,0 +1,33 @@
++use zircon_runtime_interface::{
++    ZrRuntimeApiV4, ZrRuntimeEditorOverlayRequestV1, ZrRuntimeHighlightSetV1,
++    ZrRuntimeViewportHandle, ZIRCON_RUNTIME_ABI_VERSION_V1, ZIRCON_RUNTIME_API_VERSION_V4,
++};
++
++#[test]
++fn editor_overlay_request_round_trips_ordered_highlights_without_authoring_state() {
++    let request = ZrRuntimeEditorOverlayRequestV1::new(
++        ZIRCON_RUNTIME_ABI_VERSION_V1,
++        ZrRuntimeViewportHandle::new(7),
++        41,
++        ZrRuntimeHighlightSetV1::new(vec![9, 3, 27], true, Some([1.0, 0.92, 0.55, 0.18])),
++    );
++
++    let encoded = serde_json::to_vec(&request).expect("encode editor overlay request");
++    let decoded: ZrRuntimeEditorOverlayRequestV1 =
++        serde_json::from_slice(&encoded).expect("decode editor overlay request");
++
++    assert_eq!(decoded, request);
++    assert_eq!(decoded.viewport, ZrRuntimeViewportHandle::new(7));
++    assert_eq!(decoded.generation, 41);
++    assert_eq!(decoded.highlight_set.entities, vec![9, 3, 27]);
++    assert!(decoded.highlight_set.outline);
++    assert_eq!(decoded.highlight_set.tint_rgba, Some([1.0, 0.92, 0.55, 0.18]));
++}
++
++#[test]
++fn runtime_api_v4_exposes_overlay_submission_without_a_v3_tail_extension() {
++    let api = ZrRuntimeApiV4::empty();
++
++    assert_eq!(api.abi_version, ZIRCON_RUNTIME_API_VERSION_V4);
++    assert!(api.submit_editor_overlay.is_none());
++}

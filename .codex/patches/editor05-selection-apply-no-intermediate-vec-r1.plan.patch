@@ -1,0 +1,16 @@
+diff --git a/docs/plans/zircon_editor/editor/05/failure-2026-07-31-scene-mode-input-ownership-hardcut.md b/docs/plans/zircon_editor/editor/05/failure-2026-07-31-scene-mode-input-ownership-hardcut.md
+--- a/docs/plans/zircon_editor/editor/05/failure-2026-07-31-scene-mode-input-ownership-hardcut.md
++++ b/docs/plans/zircon_editor/editor/05/failure-2026-07-31-scene-mode-input-ownership-hardcut.md
+@@ -18,6 +18,9 @@ related_code:
+   - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_handle_input.rs
+   - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_handle_interaction.rs
+   - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_pointer_route.rs
++  - zircon_editor/src/scene/selection/domain_selection.rs
++  - zircon_editor/src/scene/selection/selection_model.rs
++  - zircon_editor/src/scene/selection/tests.rs
+ tests:
+   - zircon_editor scene-mode input routing and lifecycle tests
+   - zircon_editor viewport selection and transform-mode behavior tests
+@@ -76,1 +79,2 @@
+ | 2026-08-01 | 独立复审整改批次 3 | implementation_complete / rereview_pending | 本轮复审发现旧 descriptor 编译残留、cache 测试签名、factory 双调用、input overlay invalidation、默认模式断言、provider/consumer 半提交、插件 callback panic 与无效 overlay owner 风险；均已前向修复并补 host/stack/pointer 生命周期回归。Editor02 consumer 原子性另记对应 failure；最终分级与 managed gate 待回传。 |
++| 2026-08-02 | M1.2 SelectionModel Replace 单权威容器前向修复 | implementation_complete / owner_apply_pending | `apply_active(Replace)` 当前先构造 `Vec` 再构造权威 `IndexSet`。修复包改为单次构造 `IndexSet` 时记录最后输入实体，保留重复输入的 primary 语义；新增重复输入行为测试与三段性能契约守卫，覆盖方法标记前、dispatch/projection 与标记后，拒绝任意中间 `Vec`。包：`.codex/patches/editor05-selection-apply-no-intermediate-vec-r1.bundle.patch`，SHA-256 `8551FD07125DE0CFC12EB724FCCD29CE9B219C4639EBB03376D50D4ED6F50A6C`；严格 apply/whitespace 与最终独立复审 `Critical/Important/Minor=0/0/0` 通过，受管 Rust 验证待精确范围 owner 执行。 |

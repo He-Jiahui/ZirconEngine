@@ -1,0 +1,32 @@
+diff --git a/zircon_runtime/src/graphics/scene/scene_renderer/environment/realtime_ibl_graph_plan/tests.rs b/zircon_runtime/src/graphics/scene/scene_renderer/environment/realtime_ibl_graph_plan/tests.rs
+--- a/zircon_runtime/src/graphics/scene/scene_renderer/environment/realtime_ibl_graph_plan/tests.rs
++++ b/zircon_runtime/src/graphics/scene/scene_renderer/environment/realtime_ibl_graph_plan/tests.rs
+@@ -75,19 +75,13 @@ fn capture_ticket_materializes_only_the_live_work_slot_source_mip() {
+     for resource in plan.ready.resources() {
+         assert!(graph.resource_lifetime_by_name(&resource.name).is_none());
+     }
+-    assert!(
+-        graph
+-            .resource_lifetime_by_name(&plan.work.source.storage_mips[0].name)
+-            .is_some_and(|lifetime| lifetime.kind == RenderGraphResourceKind::External)
+-    );
+-    assert!(
+-        graph
+-            .resource_lifetime_by_name(&plan.work.pmrem.storage_mips[0].name)
+-            .is_none()
+-    );
+-    assert!(
+-        graph
+-            .resource_lifetime_by_name(&plan.work.sh9.name)
+-            .is_none()
+-    );
++    assert!(graph
++        .resource_lifetime_by_name(&plan.work.source.storage_mips[0].name)
++        .is_some_and(|lifetime| lifetime.kind == RenderGraphResourceKind::External));
++    assert!(graph
++        .resource_lifetime_by_name(&plan.work.pmrem.storage_mips[0].name)
++        .is_none());
++    assert!(graph
++        .resource_lifetime_by_name(&plan.work.sh9.name)
++        .is_none());
+ }

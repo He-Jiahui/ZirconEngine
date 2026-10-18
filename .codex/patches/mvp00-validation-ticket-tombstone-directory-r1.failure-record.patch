@@ -1,0 +1,14 @@
+diff --git a/docs/plans/mvp/00/failure-2026-08-03-validation-ticket-deletion-manifest.md b/docs/plans/mvp/00/failure-2026-08-03-validation-ticket-deletion-manifest.md
+--- a/docs/plans/mvp/00/failure-2026-08-03-validation-ticket-deletion-manifest.md
++++ b/docs/plans/mvp/00/failure-2026-08-03-validation-ticket-deletion-manifest.md
+@@ -64,6 +64,10 @@ Open state: `deletion_tombstone_implemented_managed_acceptance_pending`.
+ - immutable source manifest `d7e44074e0c10dd09e26c1f11943ce258cdfc5baa977dc74445fbb7f205661e9`
+   已提交 managed focused ticket `00dfbdb27a9e4e85935a5f85a7c4f462`；仅有 queued receipt，尚无
+   terminal GREEN。Runtime15 的 1,865 路径 manifest（1,858 个删除墓碑、7 个存活验证输入，SHA-256 `856cec84...`）还依赖 Coordinator01 的
+   [large-manifest CLI transport](../../zircon_tooling/session_coordinator/01/failure-2026-08-03-validation-ticket-large-manifest-cli-transport.md)；
+   在 tombstone 协议被 coordinator wakeup 加载且 stdin transport fixed return 前无法提交完整
+   lib-test ticket，因此 failure 保持 `open`，不宣称 fixed/accepted。
++- 2026-08-03 二次审查发现 `ValidationTicketWorker::_manifest_drift` 将目录与不存在路径同样
++ 视为 `None`：删除墓碑在 materialized copy 中被目录重新占用时会错误进入运行阶段。前向修复必须
++ 令 tombstone 只匹配不存在的路径，并以 focused regression 断言该目录重现与文件重现同样终结为
++  `snapshot_stale`；在该修复及其受管验证完成前，本 failure 继续保持 `open`。

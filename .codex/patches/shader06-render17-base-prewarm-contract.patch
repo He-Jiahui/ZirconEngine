@@ -1,0 +1,120 @@
+diff --git a/zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer/scene_renderer.rs b/zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer/scene_renderer.rs
+--- a/zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer/scene_renderer.rs
++++ b/zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer/scene_renderer.rs
+@@ -92,5 +92,5 @@ impl SceneRendererStartupOptions {
+     }
+ 
+-    /// The environment-only viewer owns a synchronous warmup for its first GBuffer PSO.
+-    pub(in crate::graphics::scene::scene_renderer::core) const fn requires_environment_only_pbr_gbuffer_prewarm(
++    /// The environment-only viewer owns a synchronous warmup for its first Base PSO.
++    pub(in crate::graphics::scene::scene_renderer::core) const fn requires_environment_only_pbr_base_prewarm(
+         self,
+@@ -110,6 +110,6 @@ pub struct SceneRendererStartupReport {
+         SceneRendererCoreStartupReport,
+     pub(in crate::graphics::scene::scene_renderer::core) resource_streamer_initialization: Duration,
+-    pub(in crate::graphics::scene::scene_renderer::core) environment_only_pbr_gbuffer_prewarm:
++    pub(in crate::graphics::scene::scene_renderer::core) environment_only_pbr_base_prewarm:
+         Option<Duration>,
+ }
+ 
+@@ -159,7 +159,7 @@ impl SceneRendererStartupReport {
+     }
+ 
+-    /// The startup cost paid to prepare the exact environment-only PBR GBuffer PSO.
+-    pub const fn environment_only_pbr_gbuffer_prewarm(self) -> Option<Duration> {
+-        self.environment_only_pbr_gbuffer_prewarm
++    /// The startup cost paid to prepare the exact environment-only PBR Base PSO.
++    pub const fn environment_only_pbr_base_prewarm(self) -> Option<Duration> {
++        self.environment_only_pbr_base_prewarm
+     }
+ }
+@@ -241,17 +241,17 @@ mod tests {
+     use super::SceneRendererStartupOptions;
+ 
+     #[test]
+-    fn environment_only_pbr_profile_is_the_only_startup_profile_that_prewarm_gbuffer() {
++    fn environment_only_pbr_profile_is_the_only_startup_profile_that_prewarm_base() {
+         assert!(
+-            !SceneRendererStartupOptions::default().requires_environment_only_pbr_gbuffer_prewarm()
++            !SceneRendererStartupOptions::default().requires_environment_only_pbr_base_prewarm()
+         );
+         assert!(
+             !SceneRendererStartupOptions::standard_pbr_preview()
+-                .requires_environment_only_pbr_gbuffer_prewarm()
++                .requires_environment_only_pbr_base_prewarm()
+         );
+         assert!(
+             SceneRendererStartupOptions::environment_only_pbr_preview()
+-                .requires_environment_only_pbr_gbuffer_prewarm()
++                .requires_environment_only_pbr_base_prewarm()
+         );
+     }
+ }
+diff --git a/zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_construct/new_with_icon_source.rs b/zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_construct/new_with_icon_source.rs
+--- a/zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_construct/new_with_icon_source.rs
++++ b/zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_construct/new_with_icon_source.rs
+@@ -145,13 +145,13 @@ impl SceneRenderer {
+             plugin_shading_models,
+         )?;
+         let resource_streamer_initialization = resource_streamer_started.elapsed();
+-        let environment_only_pbr_gbuffer_prewarm = if startup_options
+-            .requires_environment_only_pbr_gbuffer_prewarm()
++        let environment_only_pbr_base_prewarm = if startup_options
++            .requires_environment_only_pbr_base_prewarm()
+         {
+             Some(
+                 core.mesh_pipelines
+-                    .prewarm_environment_only_pbr_gbuffer_pipeline(&backend.device, &mut streamer)?
++                    .prewarm_environment_only_pbr_base_pipeline(&backend.device, &mut streamer)?
+                     .elapsed(),
+             )
+         } else {
+             None
+@@ -188,9 +188,9 @@ impl SceneRenderer {
+             SceneRendererStartupReport {
+                 backend_initialization,
+                 core_initialization,
+                 core_startup,
+                 resource_streamer_initialization,
+-                environment_only_pbr_gbuffer_prewarm,
++                environment_only_pbr_base_prewarm,
+             },
+         ))
+     }
+diff --git a/zircon_app/src/bin/zircon_shader_pbr_viewer/scene.rs b/zircon_app/src/bin/zircon_shader_pbr_viewer/scene.rs
+--- a/zircon_app/src/bin/zircon_shader_pbr_viewer/scene.rs
++++ b/zircon_app/src/bin/zircon_shader_pbr_viewer/scene.rs
+@@ -189,8 +189,8 @@ impl PbrMirrorScene {
+         let environment = EnvironmentExtract::source_cubemap(environment);
+         let preview = PreviewEnvironmentExtract::from_environment(&environment, true, Vec4::ZERO);
+         let core_startup = renderer_startup_report.core_startup();
+-        let environment_only_pbr_gbuffer_prewarm =
+-            renderer_startup_report.environment_only_pbr_gbuffer_prewarm();
++        let environment_only_pbr_base_prewarm =
++            renderer_startup_report.environment_only_pbr_base_prewarm();
+         let scene = Self {
+             _project_root: project_root,
+             world: Some(world),
+@@ -205,7 +205,7 @@ impl PbrMirrorScene {
+             _asset_runtime: Some(asset_runtime),
+         };
+         println!(
+-            "PBR viewer startup timing: hdr_decode={hdri_decode_elapsed:.2?}, project_assets={project_assets_elapsed:.2?} ({project_assets_cache}), runtime_bootstrap={runtime_bootstrap_elapsed:.2?}, project_open={project_open_elapsed:.2?}, world_load={world_load_elapsed:.2?}, renderer_init={renderer_init_elapsed:.2?} (backend={:.2?}, core={:.2?} [setup={:.2?}, mesh_environment={:.2?}, shadows={:.2?}, deferred={:.2?} [lighting_pipelines={:.2?} [lighting_source_assembly={:.2?}, pipeline_foundation={:.2?}, standard_pso={:.2?}], fallback_resources={:.2?}], scene_effects={:.2?} [particles={:.2?}, sprites={:.2?}, hzb={:.2?}, post_process={:.2?}], overlay_ui={:.2?}], streamer={:.2?}, gbuffer_prewarm={environment_only_pbr_gbuffer_prewarm:?}), ibl_restore={ibl_restore_elapsed:.2?}, total={:.2?}",
++            "PBR viewer startup timing: hdr_decode={hdri_decode_elapsed:.2?}, project_assets={project_assets_elapsed:.2?} ({project_assets_cache}), runtime_bootstrap={runtime_bootstrap_elapsed:.2?}, project_open={project_open_elapsed:.2?}, world_load={world_load_elapsed:.2?}, renderer_init={renderer_init_elapsed:.2?} (backend={:.2?}, core={:.2?} [setup={:.2?}, mesh_environment={:.2?}, shadows={:.2?}, deferred={:.2?} [lighting_pipelines={:.2?} [lighting_source_assembly={:.2?}, pipeline_foundation={:.2?}, standard_pso={:.2?}], fallback_resources={:.2?}], scene_effects={:.2?} [particles={:.2?}, sprites={:.2?}, hzb={:.2?}, post_process={:.2?}], overlay_ui={:.2?}], streamer={:.2?}, base_prewarm={environment_only_pbr_base_prewarm:?}), ibl_restore={ibl_restore_elapsed:.2?}, total={:.2?}",
+             renderer_startup_report.backend_initialization(),
+             renderer_startup_report.core_initialization(),
+             core_startup.setup(),
+@@ -618,11 +618,11 @@ mod tests {
+         for expected in [
+             "lighting_source_assembly={:.2?}",
+             "pipeline_foundation={:.2?}",
+             "standard_pso={:.2?}",
+-            "gbuffer_prewarm={environment_only_pbr_gbuffer_prewarm:?}",
++            "base_prewarm={environment_only_pbr_base_prewarm:?}",
+             "core_startup.deferred_lighting_shader_source_assembly()",
+             "core_startup.deferred_lighting_pipeline_foundation()",
+             "core_startup.deferred_lighting_standard_pipeline()",
+-            "renderer_startup_report.environment_only_pbr_gbuffer_prewarm()",
++            "renderer_startup_report.environment_only_pbr_base_prewarm()",
+         ] {
+             assert!(

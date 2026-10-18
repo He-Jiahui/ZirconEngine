@@ -1,0 +1,39 @@
+diff --git a/tools/session_coordinator/tests/test_validation_ticket_deletions.py b/tools/session_coordinator/tests/test_validation_ticket_deletions.py
+--- a/tools/session_coordinator/tests/test_validation_ticket_deletions.py
++++ b/tools/session_coordinator/tests/test_validation_ticket_deletions.py
+@@ -97,6 +97,35 @@ class ValidationTicketDeletionTests(unittest.TestCase):
+         self.assertEqual("materialized_copy", payload["evidence"]["phase"])
+         self.assertEqual([deleted_path], payload["evidence"]["driftPaths"])
+ 
++    def test_reappearing_directory_in_materialized_copy_is_snapshot_stale(self) -> None:
++        deleted_path = "zircon_runtime/src/core/framework/error.rs"
++        receipt = self._submit("materialized-copy-directory-race", {deleted_path: None})
++        self.worker.tick()
++        copy = next(iter(self.workspace_copy.records.values()))
++        reappeared_directory = copy.source_root / deleted_path
++        reappeared_directory.mkdir(parents=True)
++        copy.status = "materialized"
++
++        result = self.worker.tick()
++
++        self.assertEqual(1, result["snapshot_stale"])
++        self.assertEqual(
++            "snapshot_stale", self.service.get(receipt.ticket.ticket_id).status
++        )
++        with self.database.connect() as connection:
++            payload = json.loads(
++                connection.execute(
++                    """
++                    SELECT payload_json FROM validation_ticket_events
++                    WHERE ticket_id=? AND event_type='validation.ticket_status_changed'
++                    ORDER BY event_id DESC LIMIT 1
++                    """,
++                    (receipt.ticket.ticket_id,),
++                ).fetchone()[0]
++            )
++        self.assertEqual("materialized_copy", payload["evidence"]["phase"])
++        self.assertEqual([deleted_path], payload["evidence"]["driftPaths"])
++
+     def _submit(self, request_id: str, source_manifest: dict[str, str | None]):
+         return self.service.submit(
+             session_id="primary",

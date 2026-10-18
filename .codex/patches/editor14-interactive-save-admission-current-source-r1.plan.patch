@@ -1,0 +1,21 @@
+diff --git a/docs/plans/zircon_editor/editor/14/failure-2026-08-01-interactive-save-batch-admission-lane.md b/docs/plans/zircon_editor/editor/14/failure-2026-08-01-interactive-save-batch-admission-lane.md
+--- a/docs/plans/zircon_editor/editor/14/failure-2026-08-01-interactive-save-batch-admission-lane.md
++++ b/docs/plans/zircon_editor/editor/14/failure-2026-08-01-interactive-save-batch-admission-lane.md
+@@ -74,3 +74,17 @@ Open state: `Editor06 DocumentToolkit 单文档 hook 已物化，但 canonical
+ - 2026-08-01：状态 `open_handoff_recorded`。完成当前源码与 Editor09/14 PERF-MVP-602 计划对账，确认
+   `JobCategory` 无 interactive save 类别、非 Thumbnail/Export 类别默认无界；已将最低层 bounded admission、
+   resource mutex、cancel/completion/shutdown 责任交接 Editor14，未增加同步 fallback、第二 job owner 或兼容 API。
++
++- 2026-08-02：状态 `partial_current_source_reconciled`。当前 `core/jobs` 已前向落地
++  `JobCategory::InteractiveSave`、有限默认 quota、settings key、全局 pending entries/estimated
++  bytes/oldest-age admission，以及 `EditorJobSpec::with_mutex_group`；原记录中“类别不存在/默认无界”
++  的观察不再适用，不能据此重复实现 job queue。failure 继续 open：尚无 typed interactive-save
++  adapter 将 `document + dirty generation + estimated bytes` 作为唯一轻量 intent 提交；尚无 canonical
++  document resource mutex key，也没有 ticket 获准后才通过 DocumentToolkit 解析 payload、将 completion
++  按 generation compare-and-mark 回流到 Editor09 的闭环。
++
++  后续实现必须在 Editor14 job owner 增加该 adapter 与 admission tests，并由 Editor06/09 在各自 owner
++  路径接入执行期 payload/dirty result；不得在 retained host 或 toolkit 创建第二队列、预序列化 payload，
++  或把 `InteractiveSave` 重定向为 `Misc`。最低验证需覆盖同文档串行、不同文档有预算并行、merged/superseded
++  intent、cancel 在 payload 前、stale generation completion、entries/bytes/age 拒绝与 shutdown；随后才可
++  重跑 save-all/close-prompt 上行矩阵并回传 fixed。

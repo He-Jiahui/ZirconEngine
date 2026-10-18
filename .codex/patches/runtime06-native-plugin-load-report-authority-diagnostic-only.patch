@@ -1,0 +1,83 @@
+diff --git a/zircon_runtime/src/plugin/native_plugin_loader/discover/authority.rs b/zircon_runtime/src/plugin/native_plugin_loader/discover/authority.rs
+--- a/zircon_runtime/src/plugin/native_plugin_loader/discover/authority.rs
++++ b/zircon_runtime/src/plugin/native_plugin_loader/discover/authority.rs
+@@ -170,7 +170,7 @@ impl NativePluginDiscoveryAuthority {
+                 let mut report = self.report_from_snapshot(snapshot);
+                 if let Some(failure) = self.refresh.last_failure_for(&root, &input) {
+-                    report.diagnostics.push(format!(
++                    report.push_diagnostic(format!(
+                         "native plugin discovery refresh generation {} failed after the published snapshot: {failure}",
+                         ticket.generation()
+                     ));
+                 }
+@@ -255,10 +255,6 @@ impl NativePluginDiscoveryAuthority {
+     ) -> NativePluginLoadReport {
+         let Some(root) = self.cached_root_identity(path) else {
+-            return NativePluginLoadReport {
+-                diagnostics: vec![
+-                    "native plugin discovery cannot synchronously establish a root from its collector I/O lane"
+-                        .to_owned(),
+-                ],
+-                ..NativePluginLoadReport::default()
+-            };
++            return NativePluginLoadReport::diagnostic_only(
++                "native plugin discovery cannot synchronously establish a root from its collector I/O lane",
++            );
+         };
+@@ -265,12 +261,8 @@ impl NativePluginDiscoveryAuthority {
+         if let Some(snapshot) = self.refresh.snapshot_for(&root, input) {
+             return self.report_from_snapshot(snapshot);
+         }
+-        NativePluginLoadReport {
+-            diagnostics: vec![
+-                "native plugin discovery cannot synchronously wait from its collector I/O lane"
+-                    .to_owned(),
+-            ],
+-            ..NativePluginLoadReport::default()
+-        }
++        NativePluginLoadReport::diagnostic_only(
++            "native plugin discovery cannot synchronously wait from its collector I/O lane",
++        )
+     }
+ 
+@@ -310,11 +302,10 @@ impl NativePluginDiscoveryAuthority {
+     fn report_from_snapshot(
+         &self,
+         snapshot: std::sync::Arc<NativePluginDiscoverySnapshot>,
+     ) -> NativePluginLoadReport {
+-        NativePluginLoadReport {
+-            discovered: snapshot.candidates().to_vec(),
+-            diagnostics: snapshot.diagnostics().to_vec(),
+-            ..NativePluginLoadReport::default()
+-        }
++        NativePluginLoadReport::from_discovery(
++            snapshot.candidates().to_vec(),
++            snapshot.diagnostics().to_vec(),
++        )
+     }
+ 
+@@ -356,8 +347,5 @@ impl NativePluginDiscoveryAuthority {
+                 }),
+         };
+-        NativePluginLoadReport {
+-            diagnostics: vec![diagnostic],
+-            ..NativePluginLoadReport::default()
+-        }
++        NativePluginLoadReport::diagnostic_only(diagnostic)
+     }
+ }
+diff --git a/zircon_runtime/src/plugin/native_plugin_loader/native_plugin_load_report.rs b/zircon_runtime/src/plugin/native_plugin_loader/native_plugin_load_report.rs
+--- a/zircon_runtime/src/plugin/native_plugin_loader/native_plugin_load_report.rs
++++ b/zircon_runtime/src/plugin/native_plugin_loader/native_plugin_load_report.rs
+@@ -15,8 +15,8 @@ use super::{LoadedNativePlugin, NativePluginCandidate};
+ #[derive(Default)]
+ pub struct NativePluginLoadReport {
+-    pub(in crate::plugin::native_plugin_loader) discovered: Vec<NativePluginCandidate>,
+-    pub(in crate::plugin::native_plugin_loader) loaded: Vec<LoadedNativePlugin>,
+-    pub(in crate::plugin::native_plugin_loader) diagnostics: Vec<String>,
++    discovered: Vec<NativePluginCandidate>,
++    loaded: Vec<LoadedNativePlugin>,
++    diagnostics: Vec<String>,
+     pub(super) projection: OnceLock<NativePluginLoadProjection>,
+ }
+ 

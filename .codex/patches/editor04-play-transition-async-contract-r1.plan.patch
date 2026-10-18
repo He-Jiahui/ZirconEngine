@@ -1,0 +1,9 @@
+diff --git a/docs/plans/zircon_editor/editor/04/failure-2026-07-22-play-snapshot-transition-main-thread-stall.md b/docs/plans/zircon_editor/editor/04/failure-2026-07-22-play-snapshot-transition-main-thread-stall.md
+--- a/docs/plans/zircon_editor/editor/04/failure-2026-07-22-play-snapshot-transition-main-thread-stall.md
++++ b/docs/plans/zircon_editor/editor/04/failure-2026-07-22-play-snapshot-transition-main-thread-stall.md
+@@ -59,4 +59,5 @@ Open state: `等待generation snapshot ticket、锁外foreign transition与规模产品验收；局部源码守卫/rustfmt/diff不构成fixed return`。
+ ## 产出记录与时间
+ 
+ - 2026-07-22：状态`open`，由逐文件性能审查登记并链接PERF-MVP-550/553。
+ - 2026-07-27：状态`resolving_failure`；复现并定位菜单→`from_world`→`ProcessPlayBackend::start`→controller transition 的同步调用链。复用 Runtime11 已开放的 shared-I/O failure 作为最低层依赖；移除无效来源 workflow 元数据后 `failure import` 请求 `3a40489181dc473fa80988d24d9a55e1` 对本记录返回 `matchingDiagnostics=[]`。未创建私有 worker、未声明 Cargo 或产品验收通过。
++- 2026-08-02：状态`resolving_failure`；冻结私有 tokenized `Starting`/`Stopping`、Runtime11 immutable artifact ticket 与锁外 foreign work 的前向修复边界，稳定 mode 消息协议不扩容；待 Editor04/Runtime11 live lease 后实现并执行 source-bound 验证；无 fixed claim。

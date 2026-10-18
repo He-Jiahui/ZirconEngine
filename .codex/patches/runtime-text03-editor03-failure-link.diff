@@ -1,0 +1,8 @@
+diff --git a/docs/plans/zircon_editor/editor/03-command-transaction-and-undo.md b/docs/plans/zircon_editor/editor/03-command-transaction-and-undo.md
+--- a/docs/plans/zircon_editor/editor/03-command-transaction-and-undo.md
++++ b/docs/plans/zircon_editor/editor/03-command-transaction-and-undo.md
+@@ -242,3 +242,4 @@ status: in_progress
+ - Navigation M6 插件 operation factory/runtime wiring：`待修复（open）`；[failure 交接](03/failure-2026-07-13-plugin-operation-factory-runtime-wiring.md)。
+ - fixed 已修复：[editing-operation-owner-structure-guard-drift](09/fixed-2026-07-14-editing-operation-owner-structure-guard-drift.md)
+ - fixed 已修复：[runtime-operation-phase-terminal-matcher](../../zircon_runtime/shader/06/fixed-2026-07-15-runtime-operation-phase-terminal-matcher.md)
++- Text03 runtime operation FFI sibling visibility：`待修复（open）`；[failure 交接](03/failure-2026-07-15-runtime-operation-ffi-sibling-visibility.md)。

@@ -274,8 +274,7 @@ impl RetainedEditorHost {
                         self.begin_close_prompt_plan(close.approval.clone());
                         close.phase = MainWindowClosePhase::WaitingDecision;
                         self.set_status_line(
-                            "Changes were updated before closing; review Save, Discard, or Cancel."
-                                .into(),
+                            "Changes were updated before closing; review Save, Discard, or Cancel.",
                         );
                         return Ok(());
                     }

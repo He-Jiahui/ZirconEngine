@@ -1,0 +1,52 @@
+diff --git a/docs/plans/zircon_editor/editor_layout/03/failure-2026-08-03-project-activation-welcome-dismiss-transaction.md b/docs/plans/zircon_editor/editor_layout/03/failure-2026-08-03-project-activation-welcome-dismiss-transaction.md
+new file mode 100644
+--- /dev/null
++++ b/docs/plans/zircon_editor/editor_layout/03/failure-2026-08-03-project-activation-welcome-dismiss-transaction.md
+@@ -0,0 +1,47 @@
++---
++handoff_kind: failure
++status: open
++created_at: 2026-08-03
++summary_slug: project-activation-welcome-dismiss-transaction
++origin_plan: docs/plans/zircon_editor/editor/10-project-and-asset-reference-management.md
++fixing_plan: docs/plans/zircon_editor/editor_layout/03-jetbrains-docking-workbench.md
++origin_child_dir: docs/plans/zircon_editor/editor/10
++fixing_child_dir: docs/plans/zircon_editor/editor_layout/03
++plan_link_mode: child_record_only
++related_code:
++  - zircon_editor/src/ui/host/startup/create_or_open.rs
++  - zircon_editor/src/ui/host/startup/welcome_page.rs
++  - zircon_editor/src/ui/workbench/layout
++tests:
++  - welcome dismiss layout failure restores view/page predecessor
++  - prepared dismissal remains no-op when activation ticket becomes stale
++  - successful dismissal activates workbench exactly once
++---
++
++# EditorLayout03: project activation 的 welcome dismiss 必须是原子 layout transaction
++
++## 失败现象
++
++`EditorUiHost::dismiss_welcome_page` 先调用 `close_view(WELCOME_INSTANCE_ID)`，随后调用可失败的 `apply_layout_command(ActivateMainPage(Workbench))`。在 project activation 的 runtime/catalog/document/watcher/plugin/session 已成功后，第二步失败会留下 Welcome 已关闭、Workbench 未激活的半 UI 状态；调用方无法以 `close_project` 恢复 predecessor。
++
++## 修复合同
++
++EditorLayout03 提供仅限 project activation 的 move-only prepared dismissal capability。prepare 在 mutation 前解析 Welcome instance、Workbench target、layout/version witness 和可恢复 predecessor；ready token 仅在所有其它 activation preflight 完成后 consume。commit 要么一次性完成 detach + Workbench activation，要么在任何 command/registry/layout error 后恢复原 instance attachment、active page 与 layout revision；stale/cancel Drop 不修改 UI。成功后 capability 不再持有 project manager、root、document 或 runtime authority。
++
++Editor10/retained host 只消费已准备 capability，不能直接调用 `close_view`、`apply_layout_command` 或把 layout error 忽略为成功。纯内存 document lifecycle/message publish 可在该 transaction 成功后执行；任何可失败 UI registry/layout I/O 或 command 必须位于同一 capability 内。
++
++## 验收
++
++- Workbench activation failure、view detach failure 和 registry corruption 都恢复 welcome instance、active page、layout revision，且 runtime/project predecessor 不受 `close_project` 影响。
++- prepare 后 ticket stale/cancel 不调用 layout mutation；成功路径只关闭一次 welcome、只激活一次 Workbench。
++- 与 Runtime04/Editor09/Editor12/Runtime02/Shader05 activation failure 的联合序列测试，以及 managed Rust 验证和独立二次审查。
++
++## 禁止方案
++
++- 不得在 project activation 后吞掉 `dismiss_welcome_page` 错误。
++- 不得以先关闭视图、后失败页面切换或 `close_project` 作为补偿。
++
++## 产出记录与时间
++
++- 2026-08-03 12:42 +08:00 | failure handoff | 从 Editor10 project-activation post-commit 审计发现 direct welcome dismiss 非原子；尚未导入正式计划、未修改生产源码。
++- 2026-08-03 12:42 +08:00 | 状态 | open，等待 EditorLayout03 在 exact manifest 下实现并完成受管验证与独立二次审查。

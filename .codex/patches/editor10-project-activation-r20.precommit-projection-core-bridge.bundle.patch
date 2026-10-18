@@ -1,0 +1,29 @@
+diff --git a/zircon_editor/src/core/project/project_activation.rs b/zircon_editor/src/core/project/project_activation.rs
+--- a/zircon_editor/src/core/project/project_activation.rs
++++ b/zircon_editor/src/core/project/project_activation.rs
+@@ -2,7 +2,8 @@ use std::path::Path;
+ 
+ use zircon_runtime::asset::project::PreparedProjectOpen;
+ use zircon_runtime::asset::{
+-    AssetManager, ProjectInfo, RuntimePreparedProjectActivation,
++    AssetManager, ProjectInfo, RuntimePreparedProjectActivation,
++    RuntimePreparedProjectProjection,
+ };
+ use zircon_runtime::core::framework::project::ProjectPluginManifest;
+ use zircon_runtime::core::CoreError;
+@@ -29,6 +30,15 @@ impl ProjectActivationRuntime {
+         self.runtime.project_info()
+     }
+ 
++    /// Prepares immutable Editor-core inputs without exposing a manager or consuming commit.
++    pub(crate) fn prepare_editor_projection(
++        self,
++    ) -> Result<(Self, RuntimePreparedProjectProjection), CoreError> {
++        let Self { summary, runtime } = self;
++        let (runtime, projection) = runtime.prepare_editor_projection()?;
++        Ok((Self { summary, runtime }, projection))
++    }
++
+     pub(crate) fn commit(self) -> Result<ProjectInfo, CoreError> {
+         self.runtime.commit()
+     }

@@ -1,0 +1,15 @@
+diff --git a/zircon_runtime/src/asset/pipeline/manager/project_asset_manager/activation_transaction.rs b/zircon_runtime/src/asset/pipeline/manager/project_asset_manager/activation_transaction.rs
+--- a/zircon_runtime/src/asset/pipeline/manager/project_asset_manager/activation_transaction.rs
++++ b/zircon_runtime/src/asset/pipeline/manager/project_asset_manager/activation_transaction.rs
+@@ -198,4 +229,11 @@ mod tests {
+     use super::ProjectAssetManager;
+ 
++    #[test]
++    fn prepared_projection_is_send_and_static_for_editor_background_work() {
++        assert_send_static::<super::RuntimePreparedProjectProjection>();
++    }
++
++    fn assert_send_static<T: Send + 'static>() {}
++
+     #[test]
+     fn prepared_activation_keeps_last_good_project_and_suppresses_changes_until_commit() {

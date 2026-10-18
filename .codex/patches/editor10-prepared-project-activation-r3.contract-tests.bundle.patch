@@ -1,0 +1,121 @@
+diff --git a/zircon_runtime/src/dynamic_api/tests/session_profiles.rs b/zircon_runtime/src/dynamic_api/tests/session_profiles.rs
+--- a/zircon_runtime/src/dynamic_api/tests/session_profiles.rs
++++ b/zircon_runtime/src/dynamic_api/tests/session_profiles.rs
+@@ -122,7 +122,7 @@ fn project_sessions_open_assets_before_loading_default_level() {
+ }
+ 
+ #[test]
+-fn project_session_startup_reuses_one_prepared_project_manager_snapshot() {
++fn project_session_startup_consumes_one_witness_backed_prepared_project_capability() {
+     let construction_source = include_str!("../session/construction.rs");
+     let project_source = include_str!("../session/project.rs");
+     let scene_source = include_str!("../../scene/module/mod.rs");
+@@ -133,6 +133,15 @@ fn project_session_startup_reuses_one_prepared_project_manager_snapshot() {
+     let open_project_assets_source = project_source
+         .split("pub(super) fn open_project_assets")
+         .nth(1)
+         .and_then(|source| source.split("pub(super) fn load_default_level").next())
+         .expect("prepared project asset-open owner should remain explicit");
++    let prepared_owner_source = project_source
++        .split("pub(super) struct RuntimePreparedProject")
++        .nth(1)
++        .and_then(|source| source.split("#[cfg(test)]").next())
++        .expect("prepared project capability owner should remain explicit");
++    let dynamic_runtime_source = project_source
++        .split("#[cfg(test)]")
++        .next()
++        .expect("dynamic project production source should remain explicit");
+ 
+@@ -153,23 +163,42 @@ fn project_session_startup_reuses_one_prepared_project_manager_snapshot() {
+         1,
+         "session construction must prepare the project exactly once"
+     );
+     assert!(project_source.contains("struct RuntimePreparedProject"));
+-    assert!(project_source.contains(".open_prepared_project(project)"));
++    assert!(project_source.contains("PreparedProjectOpen"));
++    assert!(
++        !dynamic_runtime_source.contains("ProjectManager"),
++        "dynamic project production code must transfer only the sealed prepared capability"
++    );
++    assert!(
++        !prepared_owner_source.contains("ProjectManager"),
++        "the prepared capability owner must not retain a bare project manager"
++    );
++    assert!(
++        !prepared_owner_source.contains("current_project_manager()"),
++        "the prepared capability owner must not reacquire a bare manager after activation"
++    );
++    assert!(
++        !project_source.contains(".open_prepared_project(project)"),
++        "dynamic startup must transfer the sealed prepared capability without extracting its manager"
++    );
+     assert!(open_project_assets_source.contains("asset_manager_handle(core)"));
+     assert!(!open_project_assets_source.contains("project_asset_manager_handle(core)"));
+     assert!(
+         !construction_source.contains("RuntimeProjectConfig::load_plugin_manifest")
+             && !construction_source.contains(".load_manifest()"),
+         "startup consumers must reuse the prepared manifest instead of reopening it"
+     );
+     assert!(
+         asset_contract_source.contains("fn open_prepared_project(")
++            && asset_contract_source.contains("PreparedProjectOpen")
++            && !asset_contract_source.contains("ProjectManager")
+             && asset_contract_source.contains("fn current_project_snapshot("),
+-        "prepared activation and deadlock-safe current-project snapshots belong to the abstract AssetManager service"
++        "prepared activation must consume the sealed capability while deadlock-safe current-project snapshots remain AssetManager operations"
+     );
+     assert!(
+-        asset_manager_source.contains("open_prepared_project(project)"),
+-        "the normal path-based AssetManager entry must delegate to the same prepared owner"
++        asset_manager_source.contains("PreparedProjectOpen")
++            && !asset_manager_source.contains("open_prepared_project(project)"),
++        "the normal path-based AssetManager entry must build and delegate the same sealed prepared owner"
+     );
+     assert!(
+         scene_source.contains("current_project_snapshot()")
+diff --git a/zircon_editor/src/tests/host/asset_manager_boundary/mod.rs b/zircon_editor/src/tests/host/asset_manager_boundary/mod.rs
+--- a/zircon_editor/src/tests/host/asset_manager_boundary/mod.rs
++++ b/zircon_editor/src/tests/host/asset_manager_boundary/mod.rs
+@@ -281,3 +281,39 @@ fn editor_host_uses_canonical_resource_event() {
+         );
+     }
+ }
++
++#[test]
++fn project_activation_hard_cut_keeps_runtime_manager_and_io_out_of_ui_callbacks() {
++    let project_access_source = include_str!("../../../ui/host/project_access.rs");
++    let startup_source = include_str!("../../../ui/host/startup/create_or_open.rs");
++    let host_startup_source = include_str!("../../../ui/host/editor_host_startup.rs");
++    let editor_manager_source = include_str!("../../../ui/host/editor_manager_project.rs");
++    let run_config_source = include_str!("../../../ui/retained_host/run_config.rs");
++    let constructors_source = include_str!(
++        "../../../ui/retained_host/app/host_lifecycle/startup/constructors.rs"
++    );
++    let retained_workspace_source =
++        include_str!("../../../ui/retained_host/app/assets/workspace.rs");
++
++    for source in [
++        project_access_source,
++        startup_source,
++        host_startup_source,
++        editor_manager_source,
++        run_config_source,
++        constructors_source,
++    ] {
++        assert!(
++            !source.contains("ProjectManager"),
++            "UI host project activation must consume an editor-core activation artifact, not a runtime manager"
++        );
++        assert!(
++            !source.contains("open_prepared_project("),
++            "UI host project activation must not own runtime prepared-project consumption"
++        );
++    }
++
++    for forbidden in ["ProjectManager::open", "scan_and_import"] {
++        assert!(
++            !retained_workspace_source.contains(forbidden),
++            "retained asset callbacks must obtain active-generation transactions instead of `{forbidden}`"
++        );
++    }
++}

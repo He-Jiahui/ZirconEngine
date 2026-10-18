@@ -1,0 +1,162 @@
+diff --git a/zircon_editor/src/core/editing/engine/transaction.rs b/zircon_editor/src/core/editing/engine/transaction.rs
+--- a/zircon_editor/src/core/editing/engine/transaction.rs
++++ b/zircon_editor/src/core/editing/engine/transaction.rs
+@@ -8,12 +8,12 @@ use crate::core::editor_message::DocumentId;
+ use super::{
+     CommandBox, CommandEffect, DetachedTransactionEventSink, EditCommand, EditCommandError,
+     EditContext, HistoryContextId, HistoryDetailPage, HistoryPageCursor, HistoryStatus,
+     HistoryStore, MergeOutcome, SelectionSnapshot, TransactionEvent, TransactionEventDelivery,
+-    TransactionEventKind, TransactionEventSink, TransactionId, TransactionJournal,
+-    TransactionJournalError, TransactionRecord,
++    TransactionEventKind, TransactionEventSink, TransactionId, TransactionRecord,
+ };
+ 
+ mod dirty_batch;
+ mod exclusive_transition;
++mod journal_projection;
+ mod operation_group;
+ mod save_token;
+@@ -323,22 +323,1 @@ impl EditorTransactionEngine {
+-    pub fn journal_transaction(
+-        &self,
+-        history: HistoryContextId,
+-        transaction: TransactionId,
+-    ) -> Result<TransactionJournal, TransactionJournalError> {
+-        self.flush_operation_group()
+-            .map_err(TransactionJournalError::from)?;
+-        self.start_operation("serialize transaction journal")
+-            .map_err(TransactionJournalError::from)?;
+-        let mut state = self.lock_state();
+-        let journal = match state.histories.get(&history) {
+-            Some(store) => store.journal(history, transaction),
+-            None => Err(TransactionJournalError::TransactionNotFound {
+-                history,
+-                transaction,
+-            }),
+-        };
+-        self.clear_operation_locked(&mut state);
+-        journal
+-    }
+-
+     /// Returns the monotonic generation used to guard a save for one history context.
+diff --git a/zircon_editor/src/core/editing/engine/transaction/journal_projection.rs b/zircon_editor/src/core/editing/engine/transaction/journal_projection.rs
+new file mode 100644
+--- /dev/null
++++ b/zircon_editor/src/core/editing/engine/transaction/journal_projection.rs
+@@ -0,0 +1,110 @@
++use std::collections::btree_map::Entry;
++
++use super::{
++    EditCommandError, EditorTransactionEngine, HistoryContextId, HistoryStore, TransactionId,
++    TransactionJournal, TransactionJournalError,
++};
++
++/// Owns a history while an explicit journal projection runs outside the engine state lock.
++struct JournalHistoryLease<'engine> {
++    engine: &'engine EditorTransactionEngine,
++    history: HistoryContextId,
++    store: Option<HistoryStore>,
++}
++
++impl<'engine> JournalHistoryLease<'engine> {
++    fn take(
++        engine: &'engine EditorTransactionEngine,
++        history: HistoryContextId,
++        transaction: TransactionId,
++    ) -> Result<Self, TransactionJournalError> {
++        let store = {
++            let mut state = engine.lock_state();
++            state.histories.remove(&history).ok_or(
++                TransactionJournalError::TransactionNotFound {
++                    history,
++                    transaction,
++                },
++            )?
++        };
++        Ok(Self {
++            engine,
++            history,
++            store: Some(store),
++        })
++    }
++
++    fn project(
++        &self,
++        transaction: TransactionId,
++    ) -> Result<TransactionJournal, TransactionJournalError> {
++        let Some(store) = self.store.as_ref() else {
++            return Err(TransactionJournalError::Engine {
++                source: EditCommandError::InvariantViolation {
++                    invariant: "journal history lease retains a history store until restoration",
++                },
++            });
++        };
++        store.journal(self.history, transaction)
++    }
++}
++
++impl Drop for JournalHistoryLease<'_> {
++    fn drop(&mut self) {
++        let Some(store) = self.store.take() else {
++            return;
++        };
++        let mut state = self.engine.lock_state();
++        match state.histories.entry(self.history) {
++            Entry::Vacant(entry) => {
++                entry.insert(store);
++            }
++            Entry::Occupied(_) => {
++                state.faulted = true;
++                state.drop_error = Some(EditCommandError::InvariantViolation {
++                    invariant: "journal history lease must restore into a vacant history slot",
++                });
++            }
++        }
++        self.engine.clear_operation_locked(&mut state);
++    }
++}
++
++impl EditorTransactionEngine {
++    pub fn journal_transaction(
++        &self,
++        history: HistoryContextId,
++        transaction: TransactionId,
++    ) -> Result<TransactionJournal, TransactionJournalError> {
++        self.flush_operation_group()
++            .map_err(TransactionJournalError::from)?;
++        self.start_operation("serialize transaction journal")
++            .map_err(TransactionJournalError::from)?;
++        let lease = match JournalHistoryLease::take(self, history, transaction) {
++            Ok(lease) => lease,
++            Err(error) => {
++                self.clear_operation();
++                return Err(error);
++            }
++        };
++
++        // The operation gate remains held, but journal payload work never holds engine state.
++        let journal = lease.project(transaction);
++        drop(lease);
++        journal
++    }
++}
++
++#[cfg(test)]
++mod tests {
++    #[test]
++    fn journal_projection_detaches_history_before_payload_projection() {
++        let source = include_str!("journal_projection.rs");
++        let method = source
++            .split("pub fn journal_transaction")
++            .nth(1)
++            .and_then(|body| body.split("#[cfg(test)]").next())
++            .expect("journal transaction implementation must stay available");
++
++        assert!(method.contains("JournalHistoryLease::take(self, history, transaction)"));
++        assert!(method.contains("lease.project(transaction)"));
++        assert!(method.contains("drop(lease)"));
++        assert!(!method.contains("self.lock_state()"));
++        assert!(source.contains("state.histories.remove(&history)"));
++        assert!(source.contains("state.histories.entry(self.history)"));
++    }
++}

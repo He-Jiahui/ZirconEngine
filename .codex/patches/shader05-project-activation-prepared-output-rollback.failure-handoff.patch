@@ -1,0 +1,53 @@
+diff --git a/docs/plans/zircon_runtime/shader/05/failure-2026-08-03-shader-ide-prepared-output-activation-rollback.md b/docs/plans/zircon_runtime/shader/05/failure-2026-08-03-shader-ide-prepared-output-activation-rollback.md
+new file mode 100644
+--- /dev/null
++++ b/docs/plans/zircon_runtime/shader/05/failure-2026-08-03-shader-ide-prepared-output-activation-rollback.md
+@@ -0,0 +1,48 @@
++---
++handoff_kind: failure
++status: open
++created_at: 2026-08-03
++summary_slug: shader-ide-prepared-output-activation-rollback
++origin_plan: docs/plans/zircon_runtime/runtime/04-asset-pipeline-alignment.md
++fixing_plan: docs/plans/zircon_runtime/shader/05-ide-and-authoring-dx.md
++origin_child_dir: docs/plans/zircon_runtime/runtime/04
++fixing_child_dir: docs/plans/zircon_runtime/shader/05
++plan_link_mode: child_record_only
++related_code:
++  - zircon_runtime/src/graphics/shader/ide_env_generation.rs
++  - zircon_runtime/src/graphics/shader/ide_env_generation/tests.rs
++  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/activation_transaction.rs
++tests:
++  - prepared shader output publish/rollback retains prior cache after later activation rejection
++  - failed staging write leaves target cache untouched
++  - ready-shader success publishes once and no-ready-shader skips output
++---
++
++# Shader05: project activation 的 shader IDE 输出须可暂存和回滚
++
++## 来源与失败
++
++Runtime04 prepared activation 需要在 commit 前完成 shader IDE 环境的全部可失败工作。直接调用 `write_shader_ide_env_for_project(project, None, ...)` 不满足该约束：函数会在实际 `<project>/.zircon-cache/shader_ide/` 创建目录、逐文件写入并删除 stale 文件。随后 catalog、plugin、runtime commit 或 ticket freshness 失败时，candidate Drop 无法恢复旧 cache，造成被拒绝 activation 的外部状态泄漏。
++
++## 修复合同
++
++Shader05 必须提供 move-only `PreparedShaderIdeEnvironment`（名称可按模块规范调整）：prepare 仅在同 cache volume 的唯一 staging sibling 生成、Naga 验证并保留 target/backup witness；它不替换 live shader IDE cache。成功路径只能由 Runtime04 ready-token 在所有其它 fallible editor/plugin/catalog prepare 完成后 consume，一次性 publish staging；若 publish 后 Runtime04 commit 或 token freshness 失败，capability 必须恢复先前 target 并清理 staging/backup。成功 Runtime commit 后 finalize cleanup 可返回 typed warning，但不得把已安装 generation 回滚。
++
++生成输入必须来自 staged `ProjectManager`，且 capability 不得泄露 manager、root accessor 或 mutable registry。普通 CLI/增量 import 可保留显式 direct-write API；project activation 必须硬切到 prepared route，禁止 post-commit fallback。
++
++## 验收
++
++- existing cache -> prepare -> later plugin/catalog rejection：字节与路径集合保持原样，staging/backup 清理。
++- staging encode/write/validation failure：target cache 完全不变；no-ready-shader 不创建或替换 target。
++- successful ready-shader activation：只 publish 一次，module map、stub、preview、stale-file removal 与 report 正确；commit 后 cleanup warning 不回滚 runtime generation。
++- stale/cancel 在 publish 前和 publish 后、runtime commit failure、Windows locked target/rename failure 均保留 predecessor，并通过 managed Rust 验证与独立二次审查。
++
++## 禁止方案
++
++- 不得在 `prepare_editor_projection` 直接写入最终 cache 目录。
++- 不得以忽略 cache 泄漏、post-commit 重写或 `close_project` 作为补偿。
++
++## 产出记录与时间
++
++- 2026-08-03 12:05 +08:00 | failure handoff | Editor10/Runtime04 架构复核发现 direct shader IDE writer 非事务性；r6_3 未导入草案已废弃，不得应用。
++- 2026-08-03 12:05 +08:00 | 状态 | open，等待 Shader05 在 exact manifest 下实现 staging/publish/rollback capability；未修改正式源码、未运行受管验证。

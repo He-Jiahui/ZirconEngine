@@ -1,0 +1,30 @@
+diff --git a/zircon_runtime/src/dynamic_api/session/operation.rs b/zircon_runtime/src/dynamic_api/session/operation.rs
+--- a/zircon_runtime/src/dynamic_api/session/operation.rs
++++ b/zircon_runtime/src/dynamic_api/session/operation.rs
+@@ -12,7 +12,7 @@ use super::with_session;
+ 
+ const RUNTIME_OPERATION_BUFFER_OWNER_TOKEN: u64 = 0x5a52_4f50_4552_0001;
+ 
+-pub(super) unsafe fn submit_operation(
++pub(crate) unsafe fn submit_operation(
+     session: ZrRuntimeSessionHandle,
+     request_json: ZrByteSlice,
+     out_handle: *mut ZrRuntimeOperationHandle,
+@@ -43,7 +43,7 @@ pub(super) unsafe fn submit_operation(
+     })
+ }
+ 
+-pub(super) unsafe fn poll_operation(
++pub(crate) unsafe fn poll_operation(
+     session: ZrRuntimeSessionHandle,
+     handle: ZrRuntimeOperationHandle,
+     out_progress: *mut ZrOwnedByteBuffer,
+@@ -65,7 +65,7 @@ pub(super) unsafe fn poll_operation(
+     })
+ }
+ 
+-pub(super) unsafe fn harvest_operation(
++pub(crate) unsafe fn harvest_operation(
+     session: ZrRuntimeSessionHandle,
+     handle: ZrRuntimeOperationHandle,
+     out_result: *mut ZrOwnedByteBuffer,

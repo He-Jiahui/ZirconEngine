@@ -1,0 +1,8 @@
+diff --git a/docs/plans/zircon_editor/editor/10/failure-2026-08-02-scene-open-create-project-authority-route-missing.md b/docs/plans/zircon_editor/editor/10/failure-2026-08-02-scene-open-create-project-authority-route-missing.md
+--- a/docs/plans/zircon_editor/editor/10/failure-2026-08-02-scene-open-create-project-authority-route-missing.md
++++ b/docs/plans/zircon_editor/editor/10/failure-2026-08-02-scene-open-create-project-authority-route-missing.md
+@@ -80,2 +80,4 @@ Open state: `待修复`; no pass is claimed. Editor10 必须先完成 ProjectAuthority 的 typed scene
+ |---|---|---|
+ | 2026-08-02 CST | `OPEN / 已路由` | 已实读可达 `MenuAction::OpenScene | CreateScene` 分支：只写未接线状态文本并返回 `changed: false`，无 project/document request。按最低共享 owner 路由 Editor10 ProjectAuthority；未修改菜单、场景或文档生产代码，未运行 Cargo。 |
++| 2026-08-02 CST | `OPEN / picker 全量快照偏差已路由` | 当前未跟踪的 `scene_picker_session.rs` 在 `ScenePickerSession::new` 将全部 scene catalog entries clone 为 owning `Vec<ScenePickerEntry>`，与 12 项有界投影目标矛盾。对应 owner 必须保留 immutable catalog generation，只在 query/window 阶段为至多 12 个可见项目创建 command payload，并以 catalog asset index 作为稳定 command identity；submission 接收 bridge 当前 query/window offset，canonical 解析该 ID 并证明 index 位于当前规范化可见窗口后，才按该快照索引验证 Scene/res://*.scene.toml。补齐 1/1k/10k scene 的窗口/提交/失效 ticket，及“有效但当前窗口外 index 必须拒绝”回归。不得恢复全量 picker cache 或在 UI 中复制第二 asset registry。 |
++| 2026-08-03 CST | `OPEN / picker 有界投影二次静态审查` | r3/r4/r5/r9 全链 `git apply --check --whitespace=error` 通过；二次静态审查确认 picker 仅持有 immutable catalog `Arc`，两组 `UiValue` 投影各至多 12 项，catalog asset index command 经规范 ID、当前 query/window 与完整 `AssetUri` 解析三重校验，且既有 r3/r4 覆盖 stale ticket 和假取消。`C/I/M=0/0/0` 仅表示当前候选静态审查；未写入未租约源码、未运行 Cargo，仍待注册 owner 应用后受管验证。 |

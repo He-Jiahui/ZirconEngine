@@ -1,0 +1,194 @@
+diff --git a/zircon_editor/src/ui/retained_host/callback_dispatch/workbench/control.rs b/zircon_editor/src/ui/retained_host/callback_dispatch/workbench/control.rs
+--- a/zircon_editor/src/ui/retained_host/callback_dispatch/workbench/control.rs
++++ b/zircon_editor/src/ui/retained_host/callback_dispatch/workbench/control.rs
+@@ -212,7 +212,7 @@ pub(crate) fn dispatch_componentized_workbench_popup_cancelled(
+     bridge: &mut BuiltinWorkbenchWindowTemplateSurfaceBridge,
+     control_id: &str,
+     action_id: &str,
+-) -> Option<Result<UiHostEventEffects, String>> {
++) -> Option<Result<(UiHostEventEffects, bool), String>> {
+     if action_id != WORKBENCH_POPUP_CANCEL_ACTION_ID {
+         return None;
+     }
+@@ -224,5 +224,5 @@ pub(crate) fn dispatch_componentized_workbench_popup_cancelled(
+     if closed {
+         effects.request_paint_only();
+     }
+-    Some(Ok(effects))
++    Some(Ok((effects, closed)))
+ }
+diff --git a/zircon_editor/src/ui/retained_host/app/pane_surface_actions/workbench_surface/control.rs b/zircon_editor/src/ui/retained_host/app/pane_surface_actions/workbench_surface/control.rs
+--- a/zircon_editor/src/ui/retained_host/app/pane_surface_actions/workbench_surface/control.rs
++++ b/zircon_editor/src/ui/retained_host/app/pane_surface_actions/workbench_surface/control.rs
+@@ -27,13 +27,10 @@ impl RetainedEditorHost {
+             control_id,
+             action_id,
+         ) {
+-            if result.is_ok()
+-                && control_id == callback_dispatch::WORKBENCH_COMMAND_PALETTE_CONTROL_ID
+-                && action_id == WORKBENCH_POPUP_CANCEL_ACTION_ID
+-            {
++            if scene_picker_ticket_was_cancelled(control_id, action_id, &result) {
+                 self.scene_picker_session = None;
+             }
+-            return Some(result);
++            return Some(result.map(|(effects, _closed)| effects));
+         }
+         if !has_workbench_binding && !action_id.is_empty() {
+             if let Some(result) =
+@@ -69,3 +66,37 @@ impl RetainedEditorHost {
+         })
+     }
+ }
++
++fn scene_picker_ticket_was_cancelled(
++    control_id: &str,
++    action_id: &str,
++    cancellation: &Result<(UiHostEventEffects, bool), String>,
++) -> bool {
++    control_id == callback_dispatch::WORKBENCH_COMMAND_PALETTE_CONTROL_ID
++        && action_id == WORKBENCH_POPUP_CANCEL_ACTION_ID
++        && matches!(cancellation, Ok((_, true)))
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++
++    #[test]
++    fn scene_picker_ticket_clear_requires_a_closed_popup() {
++        assert!(scene_picker_ticket_was_cancelled(
++            callback_dispatch::WORKBENCH_COMMAND_PALETTE_CONTROL_ID,
++            WORKBENCH_POPUP_CANCEL_ACTION_ID,
++            &Ok((UiHostEventEffects::default(), true)),
++        ));
++        assert!(!scene_picker_ticket_was_cancelled(
++            callback_dispatch::WORKBENCH_COMMAND_PALETTE_CONTROL_ID,
++            WORKBENCH_POPUP_CANCEL_ACTION_ID,
++            &Ok((UiHostEventEffects::default(), false)),
++        ));
++        assert!(!scene_picker_ticket_was_cancelled(
++            callback_dispatch::WORKBENCH_COMMAND_PALETTE_CONTROL_ID,
++            WORKBENCH_POPUP_CANCEL_ACTION_ID,
++            &Err("bridge failure".to_string()),
++        ));
++    }
++}
+diff --git a/zircon_editor/src/ui/retained_host/app/tests/componentized_workbench.rs b/zircon_editor/src/ui/retained_host/app/tests/componentized_workbench.rs
+--- a/zircon_editor/src/ui/retained_host/app/tests/componentized_workbench.rs
++++ b/zircon_editor/src/ui/retained_host/app/tests/componentized_workbench.rs
+@@ -1,7 +1,10 @@
+-use super::*;
++use super::super::scene_picker_session::ScenePickerMode;
++use super::*;
+ use crate::core::editor_event::{EditorEventTransient, EditorViewportEvent, SelectionHostEvent};
++use crate::core::project::{NewProjectDraft, NewProjectTemplate, ProjectAuthority};
+ use crate::scene::modes::SceneModeActivation;
+ use crate::scene::viewport::TransformHandleKind;
++use crate::ui::retained_host::workbench_popup_actions::WORKBENCH_POPUP_CANCEL_ACTION_ID;
+ use crate::ui::template_runtime::builtin::WORKBENCH_WINDOW_DOCUMENT_ID;
+ use zircon_runtime_interface::ui::{
+     binding::UiEventKind,
+@@ -229,3 +232,51 @@ fn closing_project_dismisses_the_workbench_command_palette() {
+ 
+     assert!(!host.workbench_window_bridge.command_palette_open());
+ }
++
++#[test]
++fn nonclosing_popup_cancel_keeps_the_scene_picker_ticket() {
++    let _guard = lock_env();
++    let harness = ChildWindowHostHarness::new("zircon_retained_scene_picker_nonclosing_cancel");
++    let project_root = unique_temp_path("zircon_retained_scene_picker_nonclosing_cancel_project")
++        .with_extension("");
++    let project_name = project_root
++        .file_name()
++        .and_then(|name| name.to_str())
++        .expect("temporary project root must have a UTF-8 name")
++        .to_string();
++    let location = project_root
++        .parent()
++        .expect("temporary project root must have a parent")
++        .to_string_lossy()
++        .into_owned();
++    let created = ProjectAuthority::default()
++        .create_project(&NewProjectDraft {
++            project_name,
++            location,
++            template: NewProjectTemplate::RenderableEmpty,
++        })
++        .expect("scene picker test project should be created");
++    assert_eq!(created.root, project_root);
++    drop(created);
++
++    {
++        let mut host = harness.host.borrow_mut();
++        host.editor_manager
++            .open_project(&project_root)
++            .expect("scene picker test project should open");
++        host.open_workbench_scene_picker(ScenePickerMode::Open);
++        assert!(host.scene_picker_session.is_some());
++        host.workbench_window_bridge
++            .close_popup("WorkbenchCommandPalette")
++            .expect("test setup should close the scene picker popup");
++
++        let cancellation = host.dispatch_componentized_workbench_surface_control(
++            "WorkbenchCommandPalette",
++            WORKBENCH_POPUP_CANCEL_ACTION_ID,
++        );
++        assert!(matches!(cancellation, Some(Ok(_))));
++        assert!(host.scene_picker_session.is_some());
++    }
++
++    let _ = std::fs::remove_dir_all(project_root);
++}
+diff --git a/zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_projection/popup_projection.rs b/zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_projection/popup_projection.rs
+--- a/zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_projection/popup_projection.rs
++++ b/zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_projection/popup_projection.rs
+@@ -179,13 +179,14 @@ fn componentized_workbench_popup_cancel_closes_dropdown_without_value_dispatch()
+         "popup_open"
+     ));
+ 
+-    let effects = dispatch_componentized_workbench_popup_cancelled(
++    let (effects, closed) = dispatch_componentized_workbench_popup_cancelled(
+         &mut bridge,
+         "WorkbenchInputDropdown",
+         WORKBENCH_POPUP_CANCEL_ACTION_ID,
+     )
+     .expect("popup cancel action should be routed")
+     .expect("popup cancel should close the dropdown");
++    assert!(closed);
+ 
+     assert!(!control_bool(
+         &bridge,
+@@ -216,13 +217,14 @@ fn componentized_workbench_popup_cancel_closes_dropdown_without_value_dispatch()
+     assert!(!next.hovered);
+     assert!(!next.pressed);
+ 
+-    let no_effects = dispatch_componentized_workbench_popup_cancelled(
++    let (no_effects, closed) = dispatch_componentized_workbench_popup_cancelled(
+         &mut bridge,
+         "WorkbenchInputDropdown",
+         WORKBENCH_POPUP_CANCEL_ACTION_ID,
+     )
+     .expect("popup cancel action should still be routed when closed")
+     .expect("closed dropdown cancel should be a no-op");
++    assert!(!closed);
+     assert_eq!(no_effects, UiHostEventEffects::default());
+ }
+ 
+@@ -287,13 +289,14 @@ fn componentized_workbench_popup_cancel_closes_menu_without_selecting_item() {
+ 
+     assert!(control_bool(&bridge, "WorkbenchPopupMenu", "popup_open"));
+ 
+-    let effects = dispatch_componentized_workbench_popup_cancelled(
++    let (effects, closed) = dispatch_componentized_workbench_popup_cancelled(
+         &mut bridge,
+         "WorkbenchPopupMenu",
+         WORKBENCH_POPUP_CANCEL_ACTION_ID,
+     )
+     .expect("popup cancel action should be routed")
+     .expect("popup cancel should close the menu");
++    assert!(closed);
+ 
+     assert!(!control_bool(&bridge, "WorkbenchPopupMenu", "popup_open"));
+     assert!(!control_bool(&bridge, "WorkbenchPopupMenu", "focused"));

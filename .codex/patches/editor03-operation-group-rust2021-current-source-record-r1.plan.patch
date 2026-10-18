@@ -1,0 +1,8 @@
+diff --git a/docs/plans/zircon_editor/editor/03/failure-2026-07-23-rust-2021-let-chain-operation-group-parse-regression.md b/docs/plans/zircon_editor/editor/03/failure-2026-07-23-rust-2021-let-chain-operation-group-parse-regression.md
+--- a/docs/plans/zircon_editor/editor/03/failure-2026-07-23-rust-2021-let-chain-operation-group-parse-regression.md
++++ b/docs/plans/zircon_editor/editor/03/failure-2026-07-23-rust-2021-let-chain-operation-group-parse-regression.md
+@@ -55,3 +55,4 @@ Open state: `待 Editor03 完成 edition-2021 语法修复、rollback 回归、mod
+ ## 产出记录与时间
+ 
+ - 2026-07-23 | Editor17 module formatting discovery | `open / routed-to-editor03` | `rustfmt zircon_editor/src/core/mod.rs` reports `let chains are only allowed in Rust 2024 or later` at `operation_group.rs:154`; no Cargo job was started and no Settings validation claim is made.
++- 2026-08-02 | Editor03 operation-group current-source syntax audit | `open / source-static-green / Cargo-and-independent-review-pending` | Workspace `edition = "2021"`; `rustfmt --edition 2021 --check zircon_editor/src/core/editing/engine/transaction/operation_group.rs` exited 0. The Rust-2024 let-chain is absent, the nested cleanup branch retains `RollbackFailed` precedence, and no crate-edition change is present. This is static evidence only; no managed Cargo or independent review is claimed, so the failure remains open.

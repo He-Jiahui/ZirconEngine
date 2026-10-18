@@ -1,0 +1,44 @@
+diff --git a/tools/tests/test_editor12_plugin_manager_contract.py b/tools/tests/test_editor12_plugin_manager_contract.py
+--- a/tools/tests/test_editor12_plugin_manager_contract.py
++++ b/tools/tests/test_editor12_plugin_manager_contract.py
+@@ -868,4 +868,4 @@ class EditorPluginManagerContractTests(unittest.TestCase):
+-    def test_extension_registry_keeps_contribution_descriptor_models_in_a_leaf_owner(self) -> None:
++    def test_contribution_descriptor_models_stay_in_leaf_owners(self) -> None:
+         extension = EDITOR_EXTENSION.read_text(encoding="utf-8")
+         descriptors = (
+             EDITOR_EXTENSION.parent
+@@ -876,15 +876,21 @@ class EditorPluginManagerContractTests(unittest.TestCase):
+             / "contribution_descriptors.rs"
+         ).read_text(encoding="utf-8")
++        inspector = (
++            EDITOR_EXTENSION.parent / "extension" / "inspector.rs"
++        ).read_text(encoding="utf-8")
+ 
+         self.assertIn("mod contribution_descriptors;", extension)
+         self.assertIn("pub use contribution_descriptors::{", extension)
+         self.assertNotIn("pub struct DrawerDescriptor", extension)
+         self.assertNotIn("pub struct AssetImporterDescriptor", extension)
+         self.assertIn("pub struct DrawerDescriptor", descriptors)
+         self.assertIn("pub struct EditorMenuItemDescriptor", descriptors)
+-        self.assertIn("pub struct ComponentDrawerDescriptor", descriptors)
++        self.assertNotIn("ComponentDrawerDescriptor", descriptors)
+         self.assertIn("pub struct AssetImporterDescriptor", descriptors)
+         self.assertIn("fn validate_asset_importer", descriptors)
++        self.assertIn("pub struct InspectorCustomizationDescriptor", inspector)
++        self.assertIn("pub fn register_inspector_customization", extension)
++        self.assertIn("register_inspector_customization", extension)
+ 
+     def test_dynamic_control_updates_clear_stale_table_selection(self) -> None:
+         action_registry = (
+diff --git a/docs/plans/zircon_editor/editor/12/failure-2026-08-01-plugin-manager-inspector-customization-guard-drift.md b/docs/plans/zircon_editor/editor/12/failure-2026-08-01-plugin-manager-inspector-customization-guard-drift.md
+--- a/docs/plans/zircon_editor/editor/12/failure-2026-08-01-plugin-manager-inspector-customization-guard-drift.md
++++ b/docs/plans/zircon_editor/editor/12/failure-2026-08-01-plugin-manager-inspector-customization-guard-drift.md
+@@ -71,2 +71,8 @@ Open state: `待 Editor12 将 plugin-manager descriptor guard 前向迁至 InspectorCustomization
+ - 2026-08-01：状态 `open_handoff_recorded`。发现 Editor12 静态守卫要求已删除的
+   `ComponentDrawerDescriptor`；已路由为新的 canonical inspector owner 断言，要求前向修复。
++
++- 2026-08-02：状态 `resolving_failure / handoff_prepared`。当前 guard 仍直接断言
++  legacy `ComponentDrawerDescriptor`；已准备最小前向修复：保留 Drawer/menu/importer 的 leaf-owner
++  断言，明确拒绝 retired symbol，断言 `core/extension/inspector.rs` 的
++  `InspectorCustomizationDescriptor` 和 registry 的 `register_inspector_customization` 接线。
++  尚未取得此测试/plan 的精确 lease，未修改共享源码、未运行验证，不能记为 `fixed-*`。

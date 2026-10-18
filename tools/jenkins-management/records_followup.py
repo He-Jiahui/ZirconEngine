@@ -27,8 +27,9 @@ def root_for(context):
     return context["repo"] / ".jenkins/state/records-queue/followups"
 
 
-def binding(repo):
-    api, context, original = queue.binding(repo)
+def binding(repo, *, transport_only=False):
+    api, context, original = (queue.binding(repo, transport_only=True) if transport_only
+                              else queue.binding(repo))
     installed, _ = queue.read_json(root_for(context) / "installed.json")
     queue.require(installed["job"] == JOB and all(installed[k] == original[k]
                   for k in ("repositoryRoot", "driverDigest", "runtimeOperationId")),
@@ -36,6 +37,9 @@ def binding(repo):
     for name, expected in installed["sources"].items():
         queue.require(queue.fingerprint(HERE / name)[0]["sha256"] == expected,
                       "Pinned supplementary intake source changed")
+    if transport_only:
+        queue.verify_transport_job(context, installed, "records_followup.py", "zircon-records-followup.groovy",
+                                   ("FOLLOWUP_DIGEST", "TASK_ID", "MODE"))
     return api, context, installed
 
 
@@ -136,7 +140,7 @@ def install(repo, *, upgrade_from=None, expected_job_script_sha256=None, rebind_
 
 
 def submit(repo, inventory_file):
-    api, context, installed = binding(repo)
+    api, context, installed = binding(repo, transport_only=True)
     inventory, _ = queue.read_json(inventory_file)
     task_id = inventory["tasks"][0]["taskId"]
     original = api.record(context["repo"], "records_queue_task", task_id)
