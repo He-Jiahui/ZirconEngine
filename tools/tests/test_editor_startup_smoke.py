@@ -43,8 +43,12 @@ class StartupSmokeTests(unittest.TestCase):
     def test_launch_records_only_a_verified_first_frame_as_passed(self):
         self.run_case('success')
 
+    def test_standalone_gpu_is_recorded_without_claiming_shared_presentation(self):
+        self.run_case('standalone')
+
     def test_failure_timeout_missing_frame_or_software_never_claim_success(self):
-        for mode in ['exit', 'timeout', 'missing', 'blank', 'software', 'no-backend']:
+        for mode in ['exit', 'timeout', 'missing', 'blank', 'software', 'no-backend',
+                     'forced-software', 'missing-presenter', 'repeated-presenter']:
             with self.subTest(mode=mode):
                 self.run_case(mode)
 
@@ -72,6 +76,14 @@ class StartupSmokeTests(unittest.TestCase):
                         Path(kwargs['env']['ZIRCON_EDITOR_CAPTURE_FIRST_FRAME_PNG']).write_bytes(png_bytes(blank=mode == 'blank'))
                     if mode != 'no-backend':
                         kwargs['stderr'].write(b'gpu_backend=dx12 adapter="test" device_type=Cpu\n')
+                    if mode != 'missing-presenter':
+                        backend = 'softbuffer' if mode == 'forced-software' else 'gpu'
+                        shared = 'false' if mode in ['standalone', 'forced-software'] else 'true'
+                        marker = (f'[zircon_editor] startup_boundary marker=presenter_selected '
+                                  f'presenter_backend={backend} runtime_shared={shared}\n').encode()
+                        kwargs['stderr'].write(marker)
+                        if mode == 'repeated-presenter':
+                            kwargs['stderr'].write(marker)
                     if mode == 'software':
                         kwargs['stderr'].write(b'falling back to softbuffer')
                     if mode == 'exit':
@@ -80,15 +92,18 @@ class StartupSmokeTests(unittest.TestCase):
 
             with patch('tools.build.build_editor.output_path', side_effect=lambda path: path), \
                     patch('tools.build.editor_startup_smoke.subprocess.run', side_effect=launch):
-                if mode == 'success':
+                if mode in ['success', 'standalone']:
                     result = run_startup_smoke(staging, evidence, {'WGPU_BACKEND': 'dx12'}, timeout_seconds=3)
                     self.assertTrue(result['first_frame_verified'])
+                    self.assertEqual(result['presenter_backend'], 'gpu')
+                    self.assertEqual(result['runtime_shared'], mode == 'success')
                 else:
                     with self.assertRaises(ValueError):
                         run_startup_smoke(staging, evidence, {'WGPU_BACKEND': 'dx12'}, timeout_seconds=3)
             receipt = json.loads((evidence / 'startup-smoke-receipt.json').read_text())
-            self.assertEqual(receipt['status'], 'passed' if mode == 'success' else 'failed')
-            self.assertEqual(receipt['first_frame_verified'], mode == 'success')
+            succeeded = mode in ['success', 'standalone']
+            self.assertEqual(receipt['status'], 'passed' if succeeded else 'failed')
+            self.assertEqual(receipt['first_frame_verified'], succeeded)
             self.assertEqual(len(calls), 2)
 
 

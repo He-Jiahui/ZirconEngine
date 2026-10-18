@@ -5,6 +5,7 @@ import hashlib
 import json
 import math
 from pathlib import Path
+import re
 import subprocess
 
 from tools.analysis.visual.zircon_pbr_visual_oracle import decode_rgba_png
@@ -82,8 +83,17 @@ def run_startup_smoke(staging: Path, evidence: Path, environment: dict[str, str]
             raise ValueError('Editor first frame has no selected GPU backend diagnostic')
         if 'falling back to softbuffer' in log:
             raise ValueError('Editor first frame used the software presenter; GPU startup is unverified')
+        selections = re.findall(
+            r'^\[zircon_editor\] startup_boundary marker=presenter_selected '
+            r'presenter_backend=(\S+) runtime_shared=(true|false)\s*$', log, re.MULTILINE)
+        if len(selections) != 1:
+            raise ValueError('Editor first frame requires exactly one final presenter selection')
+        presenter_backend, runtime_shared = selections[0]
+        if presenter_backend != 'gpu':
+            raise ValueError(f'Editor first frame used {presenter_backend}; GPU startup is unverified')
         receipt.update(status='passed', first_frame_verified=True,
-                       first_frame=inspect_first_frame(capture))
+                       first_frame=inspect_first_frame(capture),
+                       presenter_backend=presenter_backend, runtime_shared=runtime_shared == 'true')
     except (OSError, ValueError, RuntimeError, subprocess.TimeoutExpired) as error:
         receipt['error'] = str(error)
         raise ValueError(f'Editor startup smoke failed: {error}') from error

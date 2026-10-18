@@ -325,3 +325,17 @@ known-position wheel routing, and wheel rejection after focus loss. Execute:
 ```powershell
 & tools/dev/local-cargo.ps1 -TargetDir $t test -p zircon_editor --lib event_loop::events::pointer --locked
 ```
+
+## First-frame presenter evidence follow-up (H2, M3/M4)
+
+The smoke now requires exactly one final `presenter_selected` startup marker and
+requires its backend to be GPU. A runtime GPU adapter diagnostic alone cannot
+prove that the window used GPU presentation: forced softbuffer can coexist with
+that diagnostic. Missing/repeated selections and forced software presentation
+fail even without a fallback warning. The receipt records the final backend and
+whether it actually shared the runtime device; standalone GPU startup does not
+claim shared presentation or zero PIE copies.
+
+Linux verification: focused Python startup-smoke behavior tests passed, including
+forced software, missing/repeated selection, standalone GPU and failed receipts.
+These are mocked launches; the real Windows first-frame gate remains pending.
