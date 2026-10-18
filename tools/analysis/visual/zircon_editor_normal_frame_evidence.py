@@ -118,7 +118,8 @@ def validate_case_publication(profile: dict, review_case: dict) -> None:
     bound_normal = data.get("normal_window_evidence") or {}
     bound = bound_normal.get("workbenchStatePublication")
     full_case = any(key in bound_normal for key in
-                    ("presentationCursor", "presentedFrameCount", "viewportToolbarPublication"))
+                    ("presentationCursor", "presentedFrameCount", "viewportToolbarPublication",
+                     "designTokenInput", "arrangedInventoryPublication"))
     if bound is None and not full_case:
         return  # Static cases retain unknown business authority.
     expected_normal_fields = {"workbenchStatePublication"}
@@ -126,6 +127,9 @@ def validate_case_publication(profile: dict, review_case: dict) -> None:
         expected_normal_fields.update(("presentationCursor", "presentedFrameCount", "viewportToolbarPublication"))
         if "semanticNodes" in bound_normal:
             expected_normal_fields.add("semanticNodes")
+        expected_normal_fields.update(
+            key for key in ("designTokenInput", "arrangedInventoryPublication")
+            if key in bound_normal)
     if "focusPublication" in bound_normal:
         expected_normal_fields.add("focusPublication")
     require(set(bound_normal) == expected_normal_fields,
@@ -193,6 +197,53 @@ def validate_case_publication(profile: dict, review_case: dict) -> None:
         require(("semanticNodes" in bound_normal) == ("semanticNodes" in normal) and
                 json_identity_equal(bound_normal.get("semanticNodes"), normal.get("semanticNodes")),
                 "Actual semantic nodes changed after case preparation")
+        # Bind observations from the seed and the held normal present without
+        # promoting a paired null or a pending inventory into readiness.
+        paint_for_token_input = normal.get("paintEvidence")
+        for publication_key, publication_owner in (
+            ("designTokenInput", paint_for_token_input),
+            ("arrangedInventoryPublication", normal),
+        ):
+            seed_has_publication = publication_key in bound_normal
+            actual_has_publication = (
+                isinstance(publication_owner, dict)
+                and publication_key in publication_owner
+            )
+            require(seed_has_publication == actual_has_publication,
+                    f"{publication_key} presence differs between seed and actual")
+            if not seed_has_publication:
+                continue
+            seed_publication = bound_normal[publication_key]
+            actual_publication = publication_owner[publication_key]
+            if publication_key == "designTokenInput" or (
+                seed_publication is None and actual_publication is None
+            ):
+                require(json_identity_equal(seed_publication, actual_publication),
+                        f"{publication_key} differs between seed and actual")
+                continue
+            require(isinstance(seed_publication, dict)
+                    and isinstance(actual_publication, dict),
+                    "Arranged inventory must be an object or paired null")
+            for inventory, outer in (
+                (seed_publication, bound_normal),
+                (actual_publication, normal),
+            ):
+                inventory_count = inventory.get("presentedFrameCount")
+                outer_count = outer.get("presentedFrameCount")
+                require(all(type(value) is int and 0 < value <= 2**53 - 1
+                            for value in (inventory_count, outer_count)),
+                        "Arranged inventory requires safe positive frame counts")
+                require(inventory_count == outer_count,
+                        "Arranged inventory frame count differs from its normal frame")
+                require(json_identity_equal(inventory.get("presentationCursor"),
+                                            outer.get("presentationCursor")),
+                        "Arranged inventory cursor differs from its normal frame")
+            require(json_identity_equal(
+                {key: value for key, value in seed_publication.items()
+                 if key != "presentedFrameCount"},
+                {key: value for key, value in actual_publication.items()
+                 if key != "presentedFrameCount"}),
+                "Arranged inventory changed after case preparation")
     require(("focusPublication" in bound_normal) == ("focusPublication" in normal) and
             json_identity_equal(bound_normal.get("focusPublication"), normal.get("focusPublication")),
             "Actual focus changed after case preparation; unknown is not known unfocused")

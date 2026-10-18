@@ -1,0 +1,91 @@
+diff --git a/zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer/scene_renderer.rs b/zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer/scene_renderer.rs
+--- a/zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer/scene_renderer.rs
++++ b/zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer/scene_renderer.rs
+@@ -7,7 +7,9 @@ use super::super::scene_renderer_core::SceneRendererCore;
+ use crate::graphics::backend::{GpuPassTimer, GpuTimerFrameResult, OffscreenTarget, RenderBackend};
+ use crate::graphics::scene::resources::ResourceStreamer;
+ use crate::graphics::scene::scene_renderer::history::SceneFrameHistoryTextures;
+-use crate::graphics::scene::scene_renderer::mesh::PreparedMeshQueueStats;
++use crate::graphics::scene::scene_renderer::mesh::{
++    EnvironmentOnlyPbrBasePipelinePrewarmReport, PreparedMeshQueueStats,
++};
+ use crate::graphics::scene::scene_renderer::sprite::PreparedSpriteQueueStats;
+ 
+ use super::super::super::graph_execution::{
+@@ -109,8 +111,48 @@ pub struct SceneRendererStartupReport {
+         SceneRendererCoreStartupReport,
+     pub(in crate::graphics::scene::scene_renderer::core) resource_streamer_initialization: Duration,
+     pub(in crate::graphics::scene::scene_renderer::core) environment_only_pbr_base_prewarm:
+-        Option<Duration>,
++        Option<SceneRendererEnvironmentOnlyPbrBasePrewarmReport>,
+ }
+ 
++/// Component timings for the environment-only viewer's synchronous Base PSO warmup.
++#[derive(Clone, Copy, Debug, PartialEq, Eq)]
++pub struct SceneRendererEnvironmentOnlyPbrBasePrewarmReport {
++    cache_hit: bool,
++    shader_source_resolution: Duration,
++    pipeline_creation: Duration,
++    elapsed: Duration,
++}
++
++impl From<EnvironmentOnlyPbrBasePipelinePrewarmReport>
++    for SceneRendererEnvironmentOnlyPbrBasePrewarmReport
++{
++    fn from(report: EnvironmentOnlyPbrBasePipelinePrewarmReport) -> Self {
++        Self {
++            cache_hit: report.cache_hit(),
++            shader_source_resolution: report.shader_source_resolution(),
++            pipeline_creation: report.pipeline_creation(),
++            elapsed: report.elapsed(),
++        }
++    }
++}
++
++impl SceneRendererEnvironmentOnlyPbrBasePrewarmReport {
++    pub const fn cache_hit(self) -> bool {
++        self.cache_hit
++    }
++
++    pub const fn shader_source_resolution(self) -> Duration {
++        self.shader_source_resolution
++    }
++
++    pub const fn pipeline_creation(self) -> Duration {
++        self.pipeline_creation
++    }
++
++    pub const fn elapsed(self) -> Duration {
++        self.elapsed
++    }
++}
++
+ #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+ pub struct SceneRendererCoreStartupReport {
+@@ -159,7 +201,9 @@ impl SceneRendererStartupReport {
+     }
+ 
+     /// The startup cost paid to prepare the exact environment-only PBR Base PSO.
+-    pub const fn environment_only_pbr_base_prewarm(self) -> Option<Duration> {
++    pub const fn environment_only_pbr_base_prewarm(
++        self,
++    ) -> Option<SceneRendererEnvironmentOnlyPbrBasePrewarmReport> {
+         self.environment_only_pbr_base_prewarm
+     }
+ }
+diff --git a/zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_construct/new_with_icon_source.rs b/zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_construct/new_with_icon_source.rs
+--- a/zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_construct/new_with_icon_source.rs
++++ b/zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_construct/new_with_icon_source.rs
+@@ -148,11 +148,11 @@ impl SceneRendererCore {
+         let environment_only_pbr_base_prewarm = if startup_options
+             .requires_environment_only_pbr_base_prewarm()
+         {
+             Some(
+                 core.mesh_pipelines
+                     .prewarm_environment_only_pbr_base_pipeline(&backend.device, &mut streamer)?
+-                    .elapsed(),
++                    .into(),
+             )
+         } else {
+             None
+         };

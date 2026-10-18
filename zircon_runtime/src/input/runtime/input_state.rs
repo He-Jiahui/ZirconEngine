@@ -15,8 +15,8 @@ use crate::core::framework::input::QueuedGamepadRumbleRequest;
 use crate::input::{
     ButtonInputState, CursorGrabMode, CursorHostRequest, FileDragDropEvent, GamepadAxis,
     GamepadAxisState, GamepadAxisTransition, GamepadButton, GamepadButtonValueState, GamepadId,
-    ImeDeleteSurrounding, ImeHostRequest, ImePreedit, InputButton,
-    MouseScrollUnit, MouseWheelEvent, TouchPoint, WindowStatusEvent,
+    ImeDeleteSurrounding, ImeHostRequest, ImePreedit, InputButton, MouseScrollUnit,
+    MouseWheelEvent, TouchPoint, WindowStatusEvent,
 };
 
 use super::event_buffer::{FrameEventBuffer, InputEventRecorder};

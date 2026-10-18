@@ -1,0 +1,22 @@
+diff --git a/zircon_editor/src/core/project/tests/mod.rs b/zircon_editor/src/core/project/tests/mod.rs
+--- a/zircon_editor/src/core/project/tests/mod.rs
++++ b/zircon_editor/src/core/project/tests/mod.rs
+@@ -1,5 +1,6 @@
+ mod boundary;
+ mod directory_transaction;
++mod project_activation;
+ mod recent_projects;
+ mod scene_document;
+ mod template_creation;
+diff --git a/zircon_editor/src/core/project/tests/project_activation.rs b/zircon_editor/src/core/project/tests/project_activation.rs
+new file mode 100644
+--- /dev/null
++++ b/zircon_editor/src/core/project/tests/project_activation.rs
+@@ -0,0 +1,7 @@
++#[test]
++fn activation_is_sealed_around_the_runtime_prepared_capability() {
++    let source = include_str!("../project_activation.rs");
++    assert!(source.contains("PreparedProjectOpen"));
++    assert!(source.contains("open_prepared_project"));
++    assert!(!source.contains("ProjectManager"));
++}

@@ -1,3 +1,8 @@
+//! Tatweel 局部准入与拒绝编码的人工成形夹具。
+//!
+//! 直接构造单行、字形与字体标识，不调用真实后端或解析字体数据库。
+//! 用例核对稳定编码，以及成功、混合源簇、异面和缺失字形的指定路径；不证明真实字体或全部拒绝分支。
+
 use std::sync::Arc;
 
 use crate::core::framework::text::TextDirection;
@@ -75,6 +80,10 @@ fn rejects_missing_glyph_even_when_width_grew() {
     );
 }
 
+/// 为各拒绝分支构造固定的三簇 RTL 单行。
+///
+/// 三个数组按同序配对；`ranges` 填入候选的源与视觉字节范围，不从字符或真实字体推导。
+/// 返回拥有 `Arc` 成形数据的测量行，宽度固定为 30、每个字形 advance 固定为 10；这些是夹具设定。
 fn measured_candidate(
     faces: [FontFaceId; 3],
     glyph_ids: [u32; 3],

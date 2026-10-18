@@ -5,7 +5,7 @@ use super::{LaneInner, LaneState};
 use crate::core::runtime::tasks::bounded_keyed_io::{
     BoundedKeyedIoDiagnostics, BoundedKeyedIoShutdownReport,
 };
-use crate::core::runtime::tasks::JobHandle;
+use crate::core::runtime::tasks::{JobHandle, TaskState};
 
 /// 关闭后的可查询所有权凭证；超时等待后仍可查看积压并重试等待。
 /// 丢弃 guard 会无期限等待通道内的工作和任务句柄，调用方需先解除可能阻塞的外部依赖。
@@ -16,6 +16,29 @@ pub struct BoundedKeyedIoShutdownGuard {
 impl BoundedKeyedIoShutdownGuard {
     pub fn is_complete(&self) -> bool {
         shutdown_complete(&self.lane.lock())
+    }
+
+    /// Borrows the shutdown result without waiting or releasing its ownership.
+    ///
+    /// A terminal worker failure remains an error after its handle has been reaped.
+    /// Entry and fence outcomes still belong to their individual tickets.
+    pub fn poll_result(&self) -> Option<Result<BoundedKeyedIoShutdownReport, TaskState>> {
+        let state = self.lane.lock();
+        if !shutdown_complete(&state) {
+            return None;
+        }
+        // Failed must win even when Cancelled was retained from an earlier worker.
+        for failure in [TaskState::Failed, TaskState::Cancelled] {
+            if state.worker_terminal_failure == Some(failure)
+                || state
+                    .active_handles
+                    .iter()
+                    .any(|handle| handle.terminal_state() == Some(failure))
+            {
+                return Some(Err(failure));
+            }
+        }
+        Some(Ok(report_for_state(&state)))
     }
 
     /// Waits for every shutdown-pinned entry and its worker handle to finish.
@@ -54,13 +77,17 @@ impl BoundedKeyedIoShutdownGuard {
     }
 
     pub fn report(&self) -> BoundedKeyedIoShutdownReport {
-        let state = self.lane.lock();
-        BoundedKeyedIoShutdownReport {
-            complete: shutdown_complete(&state),
-            incomplete_entries: state.reserved_entries,
-            failed: state.failed,
-            cancelled: state.cancelled,
-            diagnostics: diagnostics_for_state(&state),
+        report_for_state(&self.lane.lock())
+    }
+
+    fn wait_quiescent(&self) {
+        let mut state = self.lane.lock();
+        while !shutdown_complete(&state) {
+            state = self
+                .lane
+                .changed
+                .wait(state)
+                .unwrap_or_else(|poisoned| poisoned.into_inner());
         }
     }
 
@@ -71,7 +98,18 @@ impl BoundedKeyedIoShutdownGuard {
 
 impl Drop for BoundedKeyedIoShutdownGuard {
     fn drop(&mut self) {
-        self.wait();
+        // Drop keeps the wait obligation, but must not rethrow a worker panic.
+        self.wait_quiescent();
+    }
+}
+
+fn report_for_state(state: &LaneState) -> BoundedKeyedIoShutdownReport {
+    BoundedKeyedIoShutdownReport {
+        complete: shutdown_complete(state),
+        incomplete_entries: state.reserved_entries,
+        failed: state.failed,
+        cancelled: state.cancelled,
+        diagnostics: diagnostics_for_state(state),
     }
 }
 

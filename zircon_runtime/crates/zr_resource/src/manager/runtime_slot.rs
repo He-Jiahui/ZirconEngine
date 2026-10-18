@@ -1,5 +1,5 @@
-use std::sync::Arc;
 use crate::{lease::ResourceLeaseIdentity, ResourceActiveVersionKey, RuntimeResourceState};
+use std::sync::Arc;
 
 #[derive(Debug)]
 pub(super) struct PreparedResourceReservation {

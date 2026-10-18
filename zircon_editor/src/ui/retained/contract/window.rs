@@ -26,8 +26,6 @@ mod failure;
 mod first_present;
 #[path = "window/focus_observer.rs"]
 mod focus_observer;
-#[path = "window/toast_presentation.rs"]
-pub(super) mod toast_presentation;
 #[path = "window/handle.rs"]
 mod handle;
 #[path = "window/hierarchy_pointer_route.rs"]
@@ -47,6 +45,8 @@ mod retained_pane_input;
 mod test_support;
 #[path = "window/text_input.rs"]
 mod text_input;
+#[path = "window/toast_presentation.rs"]
+pub(super) mod toast_presentation;
 
 pub(crate) use first_present::FirstPresentNotificationError;
 pub(crate) use focus_observer::NativeWindowFocusObserverError;

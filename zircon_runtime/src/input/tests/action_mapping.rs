@@ -1,6 +1,7 @@
 use crate::core::framework::input::InputManager;
 use crate::core::manager::ManagerResolver;
 use crate::core::CoreRuntime;
+use crate::engine_module::EngineModule;
 
 use crate::input::{
     module_descriptor_with_config, DefaultInputManager, GamepadAxis, GamepadAxisInput,
@@ -178,14 +179,16 @@ fn gamepad_axis_binding_reports_continuous_action_value() {
 
     input.begin_frame();
     input.submit_event(InputEvent::ButtonPressed(modifier.clone()));
-    input.submit_event(InputEvent::GamepadConnection(crate::input::GamepadConnectionInfo {
-        gamepad: pad,
-        generation: std::num::NonZeroU64::MIN,
-        connected: true,
-        name: None,
-        vendor_id: None,
-        product_id: None,
-    }));
+    input.submit_event(InputEvent::GamepadConnection(
+        crate::input::GamepadConnectionInfo {
+            gamepad: pad,
+            generation: std::num::NonZeroU64::MIN,
+            connected: true,
+            name: None,
+            vendor_id: None,
+            product_id: None,
+        },
+    ));
     input.submit_event(InputEvent::GamepadAxis {
         generation: std::num::NonZeroU64::MIN,
         gamepad: pad,
@@ -273,14 +276,16 @@ fn consumed_gamepad_axis_does_not_activate_gameplay_action() {
     let input = DefaultInputManager::default();
 
     input.begin_frame();
-    input.submit_event(InputEvent::GamepadConnection(crate::input::GamepadConnectionInfo {
-        gamepad: pad,
-        generation: std::num::NonZeroU64::MIN,
-        connected: true,
-        name: None,
-        vendor_id: None,
-        product_id: None,
-    }));
+    input.submit_event(InputEvent::GamepadConnection(
+        crate::input::GamepadConnectionInfo {
+            gamepad: pad,
+            generation: std::num::NonZeroU64::MIN,
+            connected: true,
+            name: None,
+            vendor_id: None,
+            product_id: None,
+        },
+    ));
     input.submit_event(InputEvent::GamepadAxis {
         generation: std::num::NonZeroU64::MIN,
         gamepad: pad,
@@ -370,7 +375,8 @@ fn input_config_builds_action_evaluator_from_serialized_action_map() {
     assert!(!disabled_state.just_activated("gameplay.confirm"));
 }
 
-// BUG: [CR-INPUT-0003] 此测试仅注册输入模块，未注册其平台依赖，激活会先因缺失依赖失败；证据：module/descriptor.rs 的平台依赖与 CoreRuntime 完整模块图校验。
+// BUG: [CR-INPUT-0003] Dependency registration is repaired below; keep this marker
+// until the batched runtime test and public change guard accept the actual source.
 #[test]
 fn input_action_manager_resolves_from_runtime_module_descriptor() {
     let activate = InputButton::Key("Enter".to_string());
@@ -381,6 +387,12 @@ fn input_action_manager_resolves_from_runtime_module_descriptor() {
     map.bind(InputBinding::button("gameplay.confirm", activate.clone()));
 
     let runtime = CoreRuntime::new();
+    runtime
+        .register_module(crate::core::runtime::TasksModule.descriptor())
+        .expect("register tasks module");
+    runtime
+        .register_module(crate::platform::module_descriptor())
+        .expect("register platform module");
     runtime
         .register_module(module_descriptor_with_config(
             InputConfig::default()

@@ -1,0 +1,39 @@
+diff --git a/zircon_editor/src/core/project/project_activation/runtime_backend.rs b/zircon_editor/src/core/project/project_activation/runtime_backend.rs
+--- a/zircon_editor/src/core/project/project_activation/runtime_backend.rs
++++ b/zircon_editor/src/core/project/project_activation/runtime_backend.rs
+@@ -3,6 +3,6 @@ use std::sync::Arc;
+ use zircon_runtime::asset::AssetManager;
+ 
+-use crate::core::jobs::JobContext;
++use crate::core::jobs::{EditorJobSystem, JobContext};
+ 
+ use super::super::staged_creation::PublishedProjectCreation;
+ use super::super::{NewProjectDraft, ProjectAuthority};
+@@ -9,7 +9,8 @@ use super::{
+     ProjectActivation, ProjectActivationBackend, ProjectActivationCleanupWarning,
+     ProjectActivationCommit, ProjectActivationIntent, ProjectActivationPrepared,
+     ProjectActivationReady, ProjectActivationRuntime, ProjectActivationTaskError,
+-};
++    ProjectActivationService,
++};
+ 
+ /// The only production backend permitted to pair Editor10 activation with a staged Runtime04
+ /// replacement generation. Retained-host code receives neither the runtime token nor the
+@@ -31,6 +31,17 @@ impl RuntimeProjectActivationBackend {
+     }
+ }
+ 
++impl ProjectActivationService {
++    /// Constructs the only production activation service; UI receives this service, never the
++    /// backend, Runtime04 handle, filesystem staging capability, or an activation root path.
++    pub(crate) fn with_runtime_backend(
++        jobs: EditorJobSystem,
++        asset_manager: Arc<dyn AssetManager>,
++    ) -> Self {
++        Self::with_backend(jobs, Arc::new(RuntimeProjectActivationBackend::new(asset_manager)))
++    }
++}
++
+ impl ProjectActivationBackend for RuntimeProjectActivationBackend {
+     fn prepare(
+         &self,

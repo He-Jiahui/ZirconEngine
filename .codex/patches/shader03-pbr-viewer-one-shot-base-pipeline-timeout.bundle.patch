@@ -1,0 +1,155 @@
+diff --git a/zircon_app/src/bin/zircon_shader_pbr_viewer/app.rs b/zircon_app/src/bin/zircon_shader_pbr_viewer/app.rs
+index b44113e02..3478f2a95 100644
+--- a/zircon_app/src/bin/zircon_shader_pbr_viewer/app.rs
++++ b/zircon_app/src/bin/zircon_shader_pbr_viewer/app.rs
+@@ -32,6 +32,7 @@ const LOAD_STATUS_REFRESH_INTERVAL: Duration = Duration::from_secs(1);
+ // Keeps the first pending recheck responsive while avoiding continuous full-frame presents.
+ const BASE_PIPELINE_RECHECK_INTERVAL: Duration = Duration::from_millis(16);
+ const BASE_PIPELINE_RECHECK_MAX_INTERVAL: Duration = Duration::from_millis(250);
++const ONE_SHOT_BASE_PIPELINE_WAIT_TIMEOUT: Duration = Duration::from_secs(45);
+ const PBR_VIEWER_RENDER_PROFILE: &str = "environment_only_pbr_preview";
+ 
+ pub(crate) struct PbrMirrorViewerApp {
+@@ -64,6 +65,7 @@ pub(crate) struct PbrMirrorViewerApp {
+     redraw_requested: bool,
+     base_pipeline_recheck_at: Option<Instant>,
+     base_pipeline_recheck_attempt: u32,
++    one_shot_base_pipeline_wait_started_at: Option<Instant>,
+     ready_title_dirty: bool,
+ }
+ 
+@@ -105,6 +107,7 @@ impl PbrMirrorViewerApp {
+             redraw_requested: false,
+             base_pipeline_recheck_at: None,
+             base_pipeline_recheck_attempt: 0,
++            one_shot_base_pipeline_wait_started_at: None,
+             ready_title_dirty: false,
+         }
+     }
+@@ -165,6 +168,8 @@ impl PbrMirrorViewerApp {
+             return;
+         }
+ 
++        self.reset_base_pipeline_recheck();
++
+         let hdri_path = self.hdri_path.clone();
+         let face_size = self.face_size;
+         let pmrem_face_size = self.pmrem_face_size;
+@@ -309,6 +314,14 @@ impl PbrMirrorViewerApp {
+     fn reset_base_pipeline_recheck(&mut self) {
+         self.base_pipeline_recheck_at = None;
+         self.base_pipeline_recheck_attempt = 0;
++        self.one_shot_base_pipeline_wait_started_at = None;
++    }
++
++    fn one_shot_base_pipeline_wait_has_expired(&mut self, now: Instant) -> bool {
++        let started_at = *self
++            .one_shot_base_pipeline_wait_started_at
++            .get_or_insert(now);
++        one_shot_base_pipeline_wait_is_expired(started_at, now)
+     }
+ 
+     fn schedule_base_pipeline_recheck(&mut self, event_loop: &dyn ActiveEventLoop) {
+@@ -395,6 +408,14 @@ impl PbrMirrorViewerApp {
+             && !environment_only_base_pipeline_ready;
+         let write_screenshot = screenshot_requested && environment_only_base_pipeline_ready;
+         if defer_one_shot_until_base_pipeline_ready {
++            if self.one_shot_base_pipeline_wait_has_expired(Instant::now()) {
++                eprintln!(
++                    "environment-only PBR Base pipeline startup timed out after {ONE_SHOT_BASE_PIPELINE_WAIT_TIMEOUT:?}"
++                );
++                self.reset_base_pipeline_recheck();
++                event_loop.exit();
++                return;
++            }
+             self.schedule_base_pipeline_recheck(event_loop);
+             return;
+         }
+@@ -750,6 +771,14 @@ fn base_pipeline_recheck_is_due(deadline: Instant, now: Instant) -> bool {
+     now >= deadline
+ }
+ 
++fn one_shot_base_pipeline_wait_deadline(started_at: Instant) -> Instant {
++    started_at + ONE_SHOT_BASE_PIPELINE_WAIT_TIMEOUT
++}
++
++fn one_shot_base_pipeline_wait_is_expired(started_at: Instant, now: Instant) -> bool {
++    now >= one_shot_base_pipeline_wait_deadline(started_at)
++}
++
+ fn consume_ready_title_update(ready_title_dirty: &mut bool) -> bool {
+     if !*ready_title_dirty {
+         return false;
+diff --git a/zircon_app/src/bin/zircon_shader_pbr_viewer/app_tests.rs b/zircon_app/src/bin/zircon_shader_pbr_viewer/app_tests.rs
+index 43cd37b43..1ffa0cd5f 100644
+--- a/zircon_app/src/bin/zircon_shader_pbr_viewer/app_tests.rs
++++ b/zircon_app/src/bin/zircon_shader_pbr_viewer/app_tests.rs
+@@ -5,8 +5,10 @@ use zircon_runtime::asset::importer::EnvironmentIblSourceStagingStatus;
+ use super::{
+     base_pipeline_recheck_deadline, base_pipeline_recheck_interval, base_pipeline_recheck_is_due,
+     consume_ready_title_update, load_status_refresh_deadline, load_status_refresh_is_due,
+-    loading_window_title, ready_window_title, request_redraw_transition,
+-    BASE_PIPELINE_RECHECK_INTERVAL, OrbitCamera, PbrMirrorSceneIblLoadReport,
++    loading_window_title, one_shot_base_pipeline_wait_deadline,
++    one_shot_base_pipeline_wait_is_expired, ready_window_title, request_redraw_transition,
++    OrbitCamera, PbrMirrorSceneIblLoadReport, BASE_PIPELINE_RECHECK_INTERVAL,
++    ONE_SHOT_BASE_PIPELINE_WAIT_TIMEOUT,
+ };
+ 
+ const APP_SOURCE: &str = include_str!("app.rs");
+@@ -19,6 +21,14 @@ fn ensure_window_source() -> &'static str {
+         .expect("viewer app should retain an ensure_window owner")
+ }
+ 
++fn start_scene_load_source() -> &'static str {
++    APP_SOURCE
++        .split("fn start_scene_load(")
++        .nth(1)
++        .and_then(|source| source.split("fn finish_scene_load(").next())
++        .expect("viewer app should retain a scene-load start owner")
++}
++
+ fn resize_source() -> &'static str {
+     APP_SOURCE
+         .split("fn resize(")
+@@ -219,6 +229,20 @@ fn pending_base_pipeline_rechecks_back_off_before_the_bounded_ceiling() {
+     );
+ }
+ 
++#[test]
++fn one_shot_base_pipeline_wait_has_a_shared_bounded_deadline() {
++    let started = std::time::Instant::now();
++    let deadline = one_shot_base_pipeline_wait_deadline(started);
++
++    assert_eq!(ONE_SHOT_BASE_PIPELINE_WAIT_TIMEOUT, Duration::from_secs(45));
++    assert_eq!(deadline, started + ONE_SHOT_BASE_PIPELINE_WAIT_TIMEOUT);
++    assert!(!one_shot_base_pipeline_wait_is_expired(
++        started,
++        deadline - Duration::from_nanos(1)
++    ));
++    assert!(one_shot_base_pipeline_wait_is_expired(started, deadline));
++}
++
+ #[test]
+ fn base_pipeline_recheck_backoff_resets_after_readiness_or_load_failure() {
+     let render = render_source();
+@@ -227,6 +251,7 @@ fn base_pipeline_recheck_backoff_resets_after_readiness_or_load_failure() {
+         "if environment_only_base_pipeline_ready {",
+         "self.reset_base_pipeline_recheck();",
+     ]);
++    assert!(start_scene_load_source().contains("self.reset_base_pipeline_recheck();"));
+     assert!(scene_load_failure_source().contains("self.reset_base_pipeline_recheck();"));
+ }
+ 
+@@ -518,6 +543,11 @@ fn one_shot_evidence_waits_for_the_async_base_pipeline_without_blocking_the_even
+         "scene.environment_only_base_pipeline_ready()",
+         "let defer_one_shot_until_base_pipeline_ready = needs_environment_only_base_pipeline",
+         "if defer_one_shot_until_base_pipeline_ready {",
++        "if self.one_shot_base_pipeline_wait_has_expired(Instant::now()) {",
++        "environment-only PBR Base pipeline startup timed out",
++        "self.reset_base_pipeline_recheck();",
++        "event_loop.exit();",
++        "return;",
+         "self.schedule_base_pipeline_recheck(event_loop);",
+         "return;",
+         "let screenshot_input = write_screenshot.then(|| {",

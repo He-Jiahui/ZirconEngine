@@ -1,0 +1,106 @@
+diff --git a/zircon_runtime/src/graphics/scene/scene_renderer/environment/realtime_ibl_gpu_timestamps.rs b/zircon_runtime/src/graphics/scene/scene_renderer/environment/realtime_ibl_gpu_timestamps.rs
+--- a/zircon_runtime/src/graphics/scene/scene_renderer/environment/realtime_ibl_gpu_timestamps.rs
++++ b/zircon_runtime/src/graphics/scene/scene_renderer/environment/realtime_ibl_gpu_timestamps.rs
+@@ -15,4 +15,10 @@ pub struct RealtimeIblGpuTimingReport {
+     pub operation_label: String,
+     pub pass_count: usize,
+     pub dispatch_count: usize,
++    pub binding_cache_hits: usize,
++    pub binding_cache_misses: usize,
++    pub params_buffer_creations: usize,
++    pub bind_group_creations: usize,
++    pub binding_cache_resets: usize,
++    pub binding_creation_micros: u64,
+     pub scheduled_workgroups: u64,
+@@ -135,4 +141,10 @@ pub(in crate::graphics) struct RealtimeIblGpuTimingMetadata {
+     pub operation_label: String,
+     pub pass_count: usize,
+     pub dispatch_count: usize,
++    pub binding_cache_hits: usize,
++    pub binding_cache_misses: usize,
++    pub params_buffer_creations: usize,
++    pub bind_group_creations: usize,
++    pub binding_cache_resets: usize,
++    pub binding_creation_micros: u64,
+     pub scheduled_workgroups: u64,
+@@ -157,4 +169,10 @@ impl RealtimeIblGpuTimingMetadata {
+             operation_label: self.operation_label,
+             pass_count: self.pass_count,
+             dispatch_count: self.dispatch_count,
++            binding_cache_hits: self.binding_cache_hits,
++            binding_cache_misses: self.binding_cache_misses,
++            params_buffer_creations: self.params_buffer_creations,
++            bind_group_creations: self.bind_group_creations,
++            binding_cache_resets: self.binding_cache_resets,
++            binding_creation_micros: self.binding_creation_micros,
+             scheduled_workgroups: self.scheduled_workgroups,
+diff --git a/zircon_runtime/src/graphics/scene/scene_renderer/environment/realtime_ibl_runtime.rs b/zircon_runtime/src/graphics/scene/scene_renderer/environment/realtime_ibl_runtime.rs
+--- a/zircon_runtime/src/graphics/scene/scene_renderer/environment/realtime_ibl_runtime.rs
++++ b/zircon_runtime/src/graphics/scene/scene_renderer/environment/realtime_ibl_runtime.rs
+@@ -210,4 +210,10 @@ impl RealtimeIblRuntime {
+                     operation_label: operation_label(batch.operations()),
+                     pass_count: result.report.pass_count,
+                     dispatch_count: result.report.dispatch_count,
++                    binding_cache_hits: result.report.binding_cache_hits,
++                    binding_cache_misses: result.report.binding_cache_misses,
++                    params_buffer_creations: result.report.params_buffer_creations,
++                    bind_group_creations: result.report.bind_group_creations,
++                    binding_cache_resets: result.report.binding_cache_resets,
++                    binding_creation_micros: result.report.binding_creation_micros,
+                     scheduled_workgroups,
+diff --git a/zircon_runtime/tests/runtime_shader_pbr_realtime_ibl_export.rs b/zircon_runtime/tests/runtime_shader_pbr_realtime_ibl_export.rs
+--- a/zircon_runtime/tests/runtime_shader_pbr_realtime_ibl_export.rs
++++ b/zircon_runtime/tests/runtime_shader_pbr_realtime_ibl_export.rs
+@@ -298,5 +298,6 @@ fn export_procedural_realtime_ibl_pbr_matrix_png() {
+         .take_realtime_ibl_gpu_timing_reports()
+         .expect("drain compiled realtime IBL GPU timing reports");
+     assert_realtime_gpu_timings(&gpu_timings);
++    assert_realtime_binding_cache_metrics(&gpu_timings);
+ 
+     let output = shader_test_output_dir().join(OUTPUT_NAME);
+@@ -820,6 +821,24 @@ fn assert_realtime_gpu_timings(reports: &[RealtimeIblGpuTimingReport]) {
+     );
+ }
+ 
++fn assert_realtime_binding_cache_metrics(reports: &[RealtimeIblGpuTimingReport]) {
++    assert!(
++        reports.iter().all(|report| {
++            report.params_buffer_creations == report.binding_cache_misses
++                && report.bind_group_creations == report.binding_cache_misses
++                && report.binding_cache_hits + report.binding_cache_misses <= 1
++                && report.binding_cache_resets <= 1
++        }),
++        "each product realtime IBL operation must report coherent binding-cache counters: {reports:?}"
++    );
++    assert!(
++        reports
++            .iter()
++            .any(|report| report.binding_cache_misses > 0),
++        "the product run must include cold binding-template construction: {reports:?}"
++    );
++}
++
+ fn gpu_timing_report(reports: &[RealtimeIblGpuTimingReport]) -> String {
+     let average_millis = reports
+         .iter()
+@@ -834,8 +858,8 @@ fn gpu_timing_report(reports: &[RealtimeIblGpuTimingReport]) -> String {
+     let samples = reports
+         .iter()
+         .map(|report| {
+             format!(
+-                "frame_{:02}_gpu_ms={:.6} generation={} recipe={} state={} work_slot={} passes={} dispatches={} scheduled_workgroups={} completed_workgroups={} terminal_reason={} operation={}",
++                "frame_{:02}_gpu_ms={:.6} generation={} recipe={} state={} work_slot={} passes={} dispatches={} binding_cache_hits={} binding_cache_misses={} params_buffer_creations={} bind_group_creations={} binding_cache_resets={} binding_creation_micros={} scheduled_workgroups={} completed_workgroups={} terminal_reason={} operation={}",
+                 report.frame_number,
+                 report.elapsed_gpu_nanoseconds / 1_000_000.0,
+                 report.generation,
+@@ -844,4 +868,10 @@ fn gpu_timing_report(reports: &[RealtimeIblGpuTimingReport]) -> String {
+                 report.work_slot,
+                 report.pass_count,
+                 report.dispatch_count,
++                report.binding_cache_hits,
++                report.binding_cache_misses,
++                report.params_buffer_creations,
++                report.bind_group_creations,
++                report.binding_cache_resets,
++                report.binding_creation_micros,
+                 report.scheduled_workgroups,

@@ -3,9 +3,7 @@ use std::convert::TryFrom;
 use std::hint::black_box;
 use std::time::Instant;
 
-use crate::core::extension::{
-    FieldEditorContainer, FieldEditorInstance, FieldEditorKind,
-};
+use crate::core::extension::{FieldEditorContainer, FieldEditorInstance, FieldEditorKind};
 use zircon_runtime_interface::reflect::{
     ReflectEditorHint, ReflectFieldId, ReflectFieldInfo, ReflectFieldValue, ReflectedValue,
 };
@@ -128,14 +126,7 @@ fn reflected_projection_uses_first_duplicate_and_stable_name_ties() {
     assert_eq!(
         rows,
         vec![
-            expected(
-                "alpha",
-                "Alpha",
-                "1",
-                "f32",
-                true,
-                FieldEditorKind::Numeric,
-            ),
+            expected("alpha", "Alpha", "1", "f32", true, FieldEditorKind::Numeric,),
             expected(
                 "tie",
                 "Second Schema",
@@ -169,7 +160,10 @@ fn reflected_projection_preserves_drafts_read_only_and_value_formatting() {
         value(&empty, ReflectedValue::Null),
         value(&label, ReflectedValue::String("stored".to_string())),
         value(&precise, ReflectedValue::Scalar(0.125)),
-        value(&layers, ReflectedValue::List(vec![ReflectedValue::Bool(true)])),
+        value(
+            &layers,
+            ReflectedValue::List(vec![ReflectedValue::Bool(true)]),
+        ),
     ];
     let drafts = BTreeMap::from([
         (format!("{COMPONENT}.precise"), "0.123456789".to_string()),
@@ -186,14 +180,7 @@ fn reflected_projection_preserves_drafts_read_only_and_value_formatting() {
     assert_eq!(
         rows,
         vec![
-            expected(
-                "empty",
-                "Empty",
-                "",
-                "Null",
-                false,
-                FieldEditorKind::Auto,
-            ),
+            expected("empty", "Empty", "", "Null", false, FieldEditorKind::Auto,),
             expected(
                 "label",
                 "Label",
@@ -281,7 +268,10 @@ fn benchmark_input(count: usize) -> ProjectionInput {
         let mut descriptor = field(&name, &name, "f32");
         descriptor.display_name = format!("Field {index:05}");
         descriptor.editable = index % 7 != 0;
-        returned.push(value(&descriptor, ReflectedValue::Scalar(index as f32 * 0.125)));
+        returned.push(value(
+            &descriptor,
+            ReflectedValue::Scalar(index as f32 * 0.125),
+        ));
         if index % 13 == 0 {
             drafts.insert(format!("{COMPONENT}.{name}"), format!("{index}.0625"));
         }
@@ -324,8 +314,7 @@ fn timed_projection(
         black_box(&input.drafts),
         black_box(editors),
     ));
-    let elapsed = u64::try_from(started.elapsed().as_nanos())
-        .expect("elapsed nanoseconds fit u64");
+    let elapsed = u64::try_from(started.elapsed().as_nanos()).expect("elapsed nanoseconds fit u64");
     // Output remains alive until both calls finish. Equality, checksum and both
     // output drops happen after timing; alternating AB/BA balances that lifetime.
     (elapsed, output)
@@ -401,8 +390,7 @@ fn reflected_projection_linear_join_p95_1_100_10000() {
     let source_identity = std::env::var("ZIRCON_EDITOR05_SOURCE_IDENTITY")
         .expect("owner actual preseal source canonical is required");
     assert!(
-        source_identity.len() == 64
-            && source_identity.bytes().all(|byte| byte.is_ascii_hexdigit())
+        source_identity.len() == 64 && source_identity.bytes().all(|byte| byte.is_ascii_hexdigit())
     );
     let config_identity = std::env::var("ZIRCON_EDITOR05_CONFIG_IDENTITY")
         .expect("owner actual compiler/config seal identity is required");
@@ -425,58 +413,64 @@ fn reflected_projection_linear_join_p95_1_100_10000() {
             assert_eq!(baseline, optimized, "scale={count} pair={pair}");
             assert_eq!(optimized.len(), count);
             let output_checksum = checksum(&optimized);
-            println!("{}", serde_json::json!({
-                "producer": "editor05-reflected-projection-v1",
-                "measurement": "property_projection_only",
-                "source_identity": &source_identity,
-                "config_identity": &config_identity,
-                "package": env!("CARGO_PKG_NAME"),
-                "package_version": env!("CARGO_PKG_VERSION"),
-                "module": module_path!(),
-                "os": std::env::consts::OS,
-                "arch": std::env::consts::ARCH,
-                "pointer_bits": usize::BITS,
-                "debug_assertions": cfg!(debug_assertions),
-                "scale": count,
-                "seed": SEED,
-                "shuffle_seed": SEED ^ count as u64,
-                "pair": pair,
-                "order": if baseline_first { "AB" } else { "BA" },
-                "warmup_pairs_excluded": WARMUP_PAIRS,
-                "schema_field_count": input.schema.len(),
-                "returned_field_count": input.returned.len(),
-                "row_count": optimized.len(),
-                "baseline_ns": baseline_ns,
-                "optimized_ns": optimized_ns,
-                "semantic_checksum_fnv1a64": format!("{output_checksum:016x}"),
-                "semantic_equal": true,
-                "timer_boundary": "call_inputs_output_black_box; equality_checksum_drops_outside; both_outputs_live_until_pair_complete"
-            }));
+            println!(
+                "{}",
+                serde_json::json!({
+                    "producer": "editor05-reflected-projection-v1",
+                    "measurement": "property_projection_only",
+                    "source_identity": &source_identity,
+                    "config_identity": &config_identity,
+                    "package": env!("CARGO_PKG_NAME"),
+                    "package_version": env!("CARGO_PKG_VERSION"),
+                    "module": module_path!(),
+                    "os": std::env::consts::OS,
+                    "arch": std::env::consts::ARCH,
+                    "pointer_bits": usize::BITS,
+                    "debug_assertions": cfg!(debug_assertions),
+                    "scale": count,
+                    "seed": SEED,
+                    "shuffle_seed": SEED ^ count as u64,
+                    "pair": pair,
+                    "order": if baseline_first { "AB" } else { "BA" },
+                    "warmup_pairs_excluded": WARMUP_PAIRS,
+                    "schema_field_count": input.schema.len(),
+                    "returned_field_count": input.returned.len(),
+                    "row_count": optimized.len(),
+                    "baseline_ns": baseline_ns,
+                    "optimized_ns": optimized_ns,
+                    "semantic_checksum_fnv1a64": format!("{output_checksum:016x}"),
+                    "semantic_equal": true,
+                    "timer_boundary": "call_inputs_output_black_box; equality_checksum_drops_outside; both_outputs_live_until_pair_complete"
+                })
+            );
             baseline_samples.push(baseline_ns);
             optimized_samples.push(optimized_ns);
             drop((baseline, optimized));
         }
         let baseline_p95_ns = p95(&baseline_samples);
         let optimized_p95_ns = p95(&optimized_samples);
-        println!("{}", serde_json::json!({
-            "producer": "editor05-reflected-projection-v1",
-            "measurement": "property_projection_only",
-            "source_identity": &source_identity,
-            "config_identity": &config_identity,
-            "scale": count,
-            "measured_pairs": MEASURED_PAIRS,
-            "ab_pairs": 16,
-            "ba_pairs": 15,
-            "quantile": "per_algorithm_per_scale_nearest_rank",
-            "p95_zero_based_index": 29,
-            "baseline_p95_ns": baseline_p95_ns,
-            "optimized_p95_ns": optimized_p95_ns,
-            "primary_gate_applies": count == 10_000,
-            "absolute_budget_ns": null,
-            "rss_budget_bytes": null,
-            "excluded": ["scene_read", "schema_admission", "world_lock", "full_snapshot", "GUI"],
-            "drop_timing": "outside_each_call_and_after_both_pair_outputs"
-        }));
+        println!(
+            "{}",
+            serde_json::json!({
+                "producer": "editor05-reflected-projection-v1",
+                "measurement": "property_projection_only",
+                "source_identity": &source_identity,
+                "config_identity": &config_identity,
+                "scale": count,
+                "measured_pairs": MEASURED_PAIRS,
+                "ab_pairs": 16,
+                "ba_pairs": 15,
+                "quantile": "per_algorithm_per_scale_nearest_rank",
+                "p95_zero_based_index": 29,
+                "baseline_p95_ns": baseline_p95_ns,
+                "optimized_p95_ns": optimized_p95_ns,
+                "primary_gate_applies": count == 10_000,
+                "absolute_budget_ns": null,
+                "rss_budget_bytes": null,
+                "excluded": ["scene_read", "schema_admission", "world_lock", "full_snapshot", "GUI"],
+                "drop_timing": "outside_each_call_and_after_both_pair_outputs"
+            })
+        );
         if count == 10_000 {
             assert!(
                 u128::from(optimized_p95_ns) * 100 <= u128::from(baseline_p95_ns) * 50,

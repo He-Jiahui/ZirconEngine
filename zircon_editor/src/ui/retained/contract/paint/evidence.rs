@@ -8,6 +8,7 @@ use std::sync::{Mutex, OnceLock};
 use serde_json::{json, Value};
 use zircon_runtime_interface::runtime_build_set::ZrRuntimeDigestV1;
 
+use super::super::paint_theme::active_host_paint_token_input;
 use super::render_commands::{HostPaintCommand, HostPaintCommandKind, PaintNodeIdentity};
 
 #[derive(Clone)]
@@ -39,6 +40,7 @@ struct Capture {
     repo: Option<PathBuf>,
     dpi: f32,
     allow_absolute_media: bool,
+    design_token_input: Option<Value>,
     styles: BTreeMap<(String, String, String), StyleValues>,
     media: BTreeMap<(String, String, String, String), Value>,
     issues: Vec<String>,
@@ -63,6 +65,7 @@ impl PaintEvidenceScope {
         CAPTURE.with_borrow_mut(|capture| {
             if let Some(capture) = capture {
                 capture.allow_absolute_media = true;
+                capture.design_token_input = active_host_paint_token_input();
             }
         });
         Ok(scope)
@@ -200,6 +203,7 @@ impl PaintEvidenceScope {
             "schema": "dev.zircon.editor.paint-evidence",
             "version": 1,
             "coordinateSpace": "physical-pixels",
+            "designTokenInput": capture.design_token_input,
             "styles": styles,
             "nativeHierarchyDraws": capture.native_hierarchy_draws,
             "assetAudit": {"complete": asset_complete, "resources": resources},

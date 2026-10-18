@@ -25,6 +25,10 @@ impl DocumentAutosavePayload {
         &self.source_path
     }
 
+    pub(crate) fn retained_capacity(&self) -> usize {
+        self.bytes.capacity()
+    }
+
     pub fn into_bytes(self) -> Vec<u8> {
         self.bytes
     }

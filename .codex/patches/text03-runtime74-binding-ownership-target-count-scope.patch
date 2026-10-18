@@ -1,0 +1,19 @@
+diff --git a/zircon_runtime/src/ui/tests/asset_surface_index/binding_ownership_performance.rs b/zircon_runtime/src/ui/tests/asset_surface_index/binding_ownership_performance.rs
+--- a/zircon_runtime/src/ui/tests/asset_surface_index/binding_ownership_performance.rs
++++ b/zircon_runtime/src/ui/tests/asset_surface_index/binding_ownership_performance.rs
+@@ -7,6 +7,8 @@ use crate::ui::template::compile_binding_program;
+ use zircon_runtime_interface::ui::binding::UiEventKind;
+ use zircon_runtime_interface::ui::template::{UiBindingRef, UiTemplateNode};
+ 
++const TARGET_BINDING_COUNT: usize = 16;
++
+ #[test]
+ #[ignore = "release-only compiled binding ownership lookup performance evidence"]
+ fn compiled_binding_ownership_lookup_p95_beats_program_scan() {
+@@ -14,7 +16,6 @@ fn compiled_binding_ownership_lookup_p95_beats_program_scan() {
+     const TARGET_ASSET: &str = "res://ui/widgets/target.zui";
+     const OTHER_ASSET: &str = "res://ui/widgets/other.zui";
+     const BINDING_COUNT: usize = 4_096;
+-    const TARGET_BINDING_COUNT: usize = 16;
+     const LOOKUPS_PER_SAMPLE: usize = 128;
+     const SAMPLE_PAIRS: usize = 21;

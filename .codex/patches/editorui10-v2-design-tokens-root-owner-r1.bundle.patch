@@ -1,0 +1,143 @@
+diff --git a/zircon_editor/src/ui/v2_design_tokens.rs b/zircon_editor/src/ui/v2_design_tokens.rs
+deleted file mode 100644
+--- a/zircon_editor/src/ui/v2_design_tokens.rs
++++ /dev/null
+@@ -1,40 +0,0 @@
+-//! Editor-only preparation of cached V2 documents before style resolution.
+-//!
+-//! `UiV2PrototypeStoreFileCache` owns immutable, reusable source documents.
+-//! Copying at this boundary keeps the editor's token namespace out of generic
+-//! runtime/game surfaces while still making it available to every editor V2
+-//! style resolver.
+-
+-use std::sync::{OnceLock, RwLock};
+-
+-use zircon_runtime::ui::v2::UiV2StyleResolver;
+-use zircon_runtime_interface::ui::{design_tokens::EditorDesignTokens, v2::UiV2AssetDocument};
+-
+-pub(crate) fn prepare_editor_v2_document(source: &UiV2AssetDocument) -> UiV2AssetDocument {
+-    let mut document = source.clone();
+-    let tokens = match active_editor_v2_design_tokens().read() {
+-        Ok(tokens) => tokens,
+-        Err(poisoned) => poisoned.into_inner(),
+-    };
+-    UiV2StyleResolver::register_editor_design_tokens(&mut document, &tokens);
+-    document
+-}
+-
+-pub(crate) fn install_editor_v2_design_tokens(tokens: &EditorDesignTokens) {
+-    match active_editor_v2_design_tokens().write() {
+-        Ok(mut active) => *active = tokens.clone(),
+-        Err(poisoned) => *poisoned.into_inner() = tokens.clone(),
+-    }
+-}
+-
+-pub(crate) fn active_editor_v2_design_tokens_snapshot() -> EditorDesignTokens {
+-    match active_editor_v2_design_tokens().read() {
+-        Ok(tokens) => tokens.clone(),
+-        Err(poisoned) => poisoned.into_inner().clone(),
+-    }
+-}
+-
+-fn active_editor_v2_design_tokens() -> &'static RwLock<EditorDesignTokens> {
+-    static TOKENS: OnceLock<RwLock<EditorDesignTokens>> = OnceLock::new();
+-    TOKENS.get_or_init(|| RwLock::new(EditorDesignTokens::workbench_dark()))
+-}
+diff --git a/zircon_editor/src/ui/v2_design_tokens/mod.rs b/zircon_editor/src/ui/v2_design_tokens/mod.rs
+new file mode 100644
+--- /dev/null
++++ b/zircon_editor/src/ui/v2_design_tokens/mod.rs
+@@ -0,0 +1,7 @@
++//! Editor-only V2 document preparation and active design-token ownership.
++
++mod document;
++mod tokens;
++
++pub(crate) use document::prepare_editor_v2_document;
++pub(crate) use tokens::{active_editor_v2_design_tokens_snapshot, install_editor_v2_design_tokens};
+diff --git a/zircon_editor/src/ui/v2_design_tokens/document.rs b/zircon_editor/src/ui/v2_design_tokens/document.rs
+new file mode 100644
+--- /dev/null
++++ b/zircon_editor/src/ui/v2_design_tokens/document.rs
+@@ -0,0 +1,19 @@
++//! Editor-only preparation of cached V2 documents before style resolution.
++//!
++//! `UiV2PrototypeStoreFileCache` owns immutable, reusable source documents.
++//! Copying at this boundary keeps the editor's token namespace out of generic
++//! runtime/game surfaces while still making it available to every editor V2
++//! style resolver.
++
++use zircon_runtime::ui::v2::UiV2StyleResolver;
++use zircon_runtime_interface::ui::v2::UiV2AssetDocument;
++
++use super::tokens;
++
++pub(crate) fn prepare_editor_v2_document(source: &UiV2AssetDocument) -> UiV2AssetDocument {
++    let mut document = source.clone();
++    tokens::with_active_editor_v2_design_tokens(|tokens| {
++        UiV2StyleResolver::register_editor_design_tokens(&mut document, tokens);
++    });
++    document
++}
+diff --git a/zircon_editor/src/ui/v2_design_tokens/tokens.rs b/zircon_editor/src/ui/v2_design_tokens/tokens.rs
+new file mode 100644
+--- /dev/null
++++ b/zircon_editor/src/ui/v2_design_tokens/tokens.rs
+@@ -0,0 +1,29 @@
++use std::sync::{OnceLock, RwLock};
++
++use zircon_runtime_interface::ui::design_tokens::EditorDesignTokens;
++
++pub(super) fn with_active_editor_v2_design_tokens<T>(
++    map: impl FnOnce(&EditorDesignTokens) -> T,
++) -> T {
++    let tokens = match active_editor_v2_design_tokens().read() {
++        Ok(tokens) => tokens,
++        Err(poisoned) => poisoned.into_inner(),
++    };
++    map(&tokens)
++}
++
++pub(crate) fn install_editor_v2_design_tokens(tokens: &EditorDesignTokens) {
++    match active_editor_v2_design_tokens().write() {
++        Ok(mut active) => *active = tokens.clone(),
++        Err(poisoned) => *poisoned.into_inner() = tokens.clone(),
++    }
++}
++
++pub(crate) fn active_editor_v2_design_tokens_snapshot() -> EditorDesignTokens {
++    with_active_editor_v2_design_tokens(|tokens| tokens.clone())
++}
++
++fn active_editor_v2_design_tokens() -> &'static RwLock<EditorDesignTokens> {
++    static TOKENS: OnceLock<RwLock<EditorDesignTokens>> = OnceLock::new();
++    TOKENS.get_or_init(|| RwLock::new(EditorDesignTokens::workbench_dark()))
++}
+diff --git a/zircon_editor/src/tests/structure_convention/mod.rs b/zircon_editor/src/tests/structure_convention/mod.rs
+--- a/zircon_editor/src/tests/structure_convention/mod.rs
++++ b/zircon_editor/src/tests/structure_convention/mod.rs
+@@ -10,10 +10,19 @@ static EDITOR_STRUCTURE_AUDIT: OnceLock<Value> = OnceLock::new();
+ fn editor_ui_10_module_convention_audit_report_has_expected_shape() {
+     let report = editor_structure_audit();
+     let gate = &report["module_convention_gate"];
+-    assert!(
+-        gate["m1_gate_status"] == "migration-debt-present"
+-            || gate["m1_gate_status"] == "classified-and-clear",
+-        "unexpected editor module convention gate status: {gate:#?}"
+-    );
++    assert_eq!(
++        gate["m1_gate_status"],
++        "classified-and-clear",
++        "editor module convention gate must not retain migration debt: {gate:#?}"
++    );
++    assert_eq!(
++        gate["migration_debt_count"],
++        0,
++        "editor module convention gate must report zero migration debt: {gate:#?}"
++    );
++    assert_eq!(
++        gate["ui_module_owner_boundary_violation_count"], 0,
++        "ui root modules must be folder-backed owners: {gate:#?}"
++    );
+     assert!(
+         gate["migration_debt_count"].is_u64(),

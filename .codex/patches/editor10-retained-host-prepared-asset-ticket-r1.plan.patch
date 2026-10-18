@@ -1,0 +1,6 @@
+diff --git a/docs/plans/zircon_editor/editor/10/failure-2026-07-17-project-open-repeated-manager-scan.md b/docs/plans/zircon_editor/editor/10/failure-2026-07-17-project-open-repeated-manager-scan.md
+--- a/docs/plans/zircon_editor/editor/10/failure-2026-07-17-project-open-repeated-manager-scan.md
++++ b/docs/plans/zircon_editor/editor/10/failure-2026-07-17-project-open-repeated-manager-scan.md
+@@ -69,1 +69,2 @@
++| Editor10 M1 / Runtime04+11 | retained-host prepared scene/model transaction ticket | `open-当前源违例已定界-待最低共享层前向修复` | 2026-08-03 | `app/assets/workspace.rs` 当前仍在 default-scene event 中 `ProjectManager::open + scan_and_import + Scene::load_scene_from_uri`，并在模型按钮 UI callback 中 stage source、逐模型/派生动画/默认材质调用 `import_asset`。不得在 Editor 增设 manager/cache；Runtime04 必须从 active project generation 发布 generation-bound prepared default-scene/model transaction ticket，Runtime11 负责 staging/parse/derive/I/O 与一次原子 publish，Editor10 host 只提交/消费 terminal typed result 后安装 world 或资源 handle。回归覆盖 stale generation/reload failure/compound animation 0/1/100/1k、default-scene open/scan=0、模型按钮 transaction/scan/parse<=1、UI filesystem I/O=0、last-good/rollback/derived stable identity 不变。 |
+ ## 修复结果与回传

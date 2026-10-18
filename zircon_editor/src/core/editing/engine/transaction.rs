@@ -37,6 +37,7 @@ pub use dirty_batch::{
 pub use engine_state::{EditorTransactionEngine, MergeMode};
 pub(crate) use exclusive_transition::ExclusiveTransition;
 pub use observation::HistoryDecisionToken;
+pub(crate) use operation_gate::SceneCloseAdmission;
 pub use operation_group::OperationTransactionResult;
 pub use scope::TransactionScope;
 

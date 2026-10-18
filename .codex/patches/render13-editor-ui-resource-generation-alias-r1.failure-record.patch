@@ -1,0 +1,13 @@
+diff --git a/docs/plans/zircon_runtime/render/13/failure-2026-07-17-editor-ui-command-payload-duplication.md b/docs/plans/zircon_runtime/render/13/failure-2026-07-17-editor-ui-command-payload-duplication.md
+--- a/docs/plans/zircon_runtime/render/13/failure-2026-07-17-editor-ui-command-payload-duplication.md
++++ b/docs/plans/zircon_runtime/render/13/failure-2026-07-17-editor-ui-command-payload-duplication.md
+@@ -80,3 +80,9 @@
+ ## 修复结果与回传
+ 
+ Open state: `待 Render13 + EditorUI08 建立handle/generation/upload-on-change契约并完成动态验收`。
++
++## 产出记录与时间
++
++| 时间 | 状态 | 完成项目与证据 |
++|---|---|---|
++| 2026-08-03 CST | `OPEN / resource generation key alias and source-availability contract drift` | 当前 `chrome_command_stream/stream/image_resources.rs` 以 `resource_key` 为唯一资源表键，并在同 key 多 generation 时保留最大 generation；`replay/commands/images.rs` 仅按 key 读取资源，未校验 command 的 `resource_generation`，因此旧命令可能采样新 generation。现有 test 正构造 generation 4/5 并断言只保留 5，未覆盖旧命令 replay 隔离；同文件 test 还构造了 payload 当前未声明的 `resource_source_available` 字段。Render13 必须以 `(resource_key, generation)` 解析 CPU/GPU/software replay，或在发布前以同一 generation 原子重写全部引用命令；补 stale-replay、device-loss/reload、resident/unresident 和无 bytes copy 回归。不得由 Editor10/EditorUI08 添加兼容字段或第二份像素缓存。 |

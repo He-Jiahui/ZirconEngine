@@ -20,25 +20,41 @@ impl GamepadProducer {
         let generation = match self.connections.get(&gamepad) {
             None => NonZeroU64::MIN,
             Some(&(generation, true)) => generation,
-            Some(&(generation, false)) => generation.get().checked_add(1)
+            Some(&(generation, false)) => generation
+                .get()
+                .checked_add(1)
                 .and_then(NonZeroU64::new)
                 .ok_or("runtime_gamepad_generation_exhausted")?,
         };
         self.connections.insert(gamepad, (generation, true));
-        Ok(CapturedGamepadStamp { gamepad, generation })
+        Ok(CapturedGamepadStamp {
+            gamepad,
+            generation,
+        })
     }
 
     pub(super) fn disconnect(&mut self, gamepad: u64) -> CapturedGamepadStamp {
-        let generation = self.connections.get(&gamepad)
-            .map(|(generation, _)| *generation).unwrap_or(NonZeroU64::MIN);
+        let generation = self
+            .connections
+            .get(&gamepad)
+            .map(|(generation, _)| *generation)
+            .unwrap_or(NonZeroU64::MIN);
         self.connections.insert(gamepad, (generation, false));
-        CapturedGamepadStamp { gamepad, generation }
+        CapturedGamepadStamp {
+            gamepad,
+            generation,
+        }
     }
 
     pub(super) fn capture_sample(&self, gamepad: u64) -> Option<CapturedGamepadStamp> {
-        self.connections.get(&gamepad).and_then(|&(generation, connected)| {
-            connected.then_some(CapturedGamepadStamp { gamepad, generation })
-        })
+        self.connections
+            .get(&gamepad)
+            .and_then(|&(generation, connected)| {
+                connected.then_some(CapturedGamepadStamp {
+                    gamepad,
+                    generation,
+                })
+            })
     }
 
     pub(super) fn is_connected(&self, gamepad: u64) -> bool {
@@ -62,8 +78,14 @@ mod tests {
         let second = producer.connect(4).unwrap();
         assert!(second.generation > first.generation);
         let delayed_payload = ZrRuntimeGamepadGenerationV2::encode_sample(captured.generation);
-        assert_eq!(ZrRuntimeGamepadGenerationV2::decode_sample(&delayed_payload), Ok(first.generation));
-        assert_ne!(captured.generation, producer.capture_sample(4).unwrap().generation);
+        assert_eq!(
+            ZrRuntimeGamepadGenerationV2::decode_sample(&delayed_payload),
+            Ok(first.generation)
+        );
+        assert_ne!(
+            captured.generation,
+            producer.capture_sample(4).unwrap().generation
+        );
     }
 
     #[test]
@@ -86,7 +108,10 @@ mod tests {
         let mut producer = GamepadProducer::default();
         let max = NonZeroU64::new(u64::MAX).unwrap();
         producer.connections.insert(7, (max, false));
-        assert_eq!(producer.connect(7), Err("runtime_gamepad_generation_exhausted"));
+        assert_eq!(
+            producer.connect(7),
+            Err("runtime_gamepad_generation_exhausted")
+        );
         assert_eq!(producer.connections.get(&7), Some(&(max, false)));
         assert_eq!(producer.capture_sample(7), None);
     }

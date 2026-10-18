@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var channel = %import("combat/nythraxis_channel_state");
+
+console.printLine("woc-nythraxis-channel-state-test");
+var result = channel.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

@@ -191,10 +191,15 @@ fn render_scene_reference_delta_creates_generation_bound_all_lod_and_bootstrap_t
         };
         assert_eq!(ticket.asset_revision(), row.revision);
         if ticket.resource().kind() == ResourceKind::Model {
-            let super::contract::RenderAssetResidencySourceIdentity::ActiveResident { key, .. } = ticket.source_identity() else {
+            let super::contract::RenderAssetResidencySourceIdentity::ActiveResident { key, .. } =
+                ticket.source_identity()
+            else {
                 panic!("resident model must use its active publication identity");
             };
-            assert_eq!(projection.active().key(ticket.resource().id()).as_ref(), Some(key));
+            assert_eq!(
+                projection.active().key(ticket.resource().id()).as_ref(),
+                Some(key)
+            );
         } else {
             assert_eq!(
                 ticket.readiness_identity(),

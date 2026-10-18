@@ -1,0 +1,112 @@
+diff --git a/zircon_editor/src/core/play/pending_edits/queue.rs b/zircon_editor/src/core/play/pending_edits/queue.rs
+--- a/zircon_editor/src/core/play/pending_edits/queue.rs
++++ b/zircon_editor/src/core/play/pending_edits/queue.rs
+@@ -1,5 +1,6 @@
+ use std::collections::VecDeque;
+ use std::fmt::{Display, Formatter};
++use std::io::{self, ErrorKind, Write};
+ use std::time::{Duration, Instant};
+ 
+ use crate::core::editing::operation::{DeferredOperationInvocation, PendingEditRetention};
+@@ -11,6 +12,61 @@ const DEFAULT_MAX_ENTRIES: usize = 4_096;
+ const DEFAULT_MAX_PAYLOAD_BYTES: usize = 4 * 1024 * 1024;
+ const DEFAULT_MAX_OLDEST_AGE: Duration = Duration::from_secs(30 * 60);
+ 
++struct PayloadByteCounter {
++    byte_limit: usize,
++    bytes: usize,
++    exceeded: bool,
++}
++
++impl PayloadByteCounter {
++    fn new(byte_limit: usize) -> Self {
++        Self {
++            byte_limit,
++            bytes: 0,
++            exceeded: false,
++        }
++    }
++}
++
++impl Write for PayloadByteCounter {
++    fn write(&mut self, buffer: &[u8]) -> io::Result<usize> {
++        if self.exceeded {
++            return Err(io::Error::new(
++                ErrorKind::WriteZero,
++                "pending edit payload byte limit reached",
++            ));
++        }
++
++        let remaining = self.byte_limit.saturating_sub(self.bytes);
++        let written = remaining.min(buffer.len());
++        self.bytes += written;
++        if written < buffer.len() {
++            self.exceeded = true;
++        }
++        Ok(written)
++    }
++
++    fn flush(&mut self) -> io::Result<()> {
++        Ok(())
++    }
++}
++
++/// Measures one serialized invocation without materializing a second payload buffer.
++///
++/// `None` is an early cutoff after `byte_limit` bytes, so `byte_limit + 1` is a sound lower
++/// bound for the rejected payload while its remaining JSON stays unvisited.
++fn serialized_payload_bytes(
++    invocation: &EditorOperationInvocation,
++    byte_limit: usize,
++) -> Result<Option<usize>, PendingEditQueueError> {
++    let mut counter = PayloadByteCounter::new(byte_limit);
++    match serde_json::to_writer(&mut counter, invocation) {
++        Ok(()) => Ok(Some(counter.bytes)),
++        Err(_) if counter.exceeded => Ok(None),
++        Err(error) => Err(PendingEditQueueError::PayloadEncoding(error.to_string())),
++    }
++}
++
+ #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+ pub struct PendingEditQueueLimits {
+     pub max_entries: usize,
+@@ -131,19 +187,28 @@ impl PendingEditQueue {
+         target: PlayEditTarget,
+         deferred: DeferredOperationInvocation,
+     ) -> Result<PendingEditEnqueueReport, PendingEditQueueError> {
+-        let payload_bytes = serde_json::to_vec(deferred.invocation())
+-            .map_err(|error| PendingEditQueueError::PayloadEncoding(error.to_string()))?
+-            .len();
+         let retention = deferred.retention().clone();
++        let payload_bytes = match serialized_payload_bytes(
++            deferred.invocation(),
++            self.limits.max_payload_bytes,
++        )? {
++            Some(bytes) => bytes,
++            None => {
++                return Err(PendingEditQueueError::PayloadLimitExceeded {
++                    requested_bytes: self.limits.max_payload_bytes.saturating_add(1),
++                    max_payload_bytes: self.limits.max_payload_bytes,
++                });
++            }
++        };
+         let now = Instant::now();
+         let mut state = self.lock_state();
+         self.reject_expired_queue(&state, now)?;
+         if payload_bytes > self.limits.max_payload_bytes {
+             return Err(PendingEditQueueError::PayloadLimitExceeded {
+                 requested_bytes: payload_bytes,
+                 max_payload_bytes: self.limits.max_payload_bytes,
+             });
+         }
+ 
+         if retention.is_latest() {
+             if let Some(location) = state.find_cohort(target, deferred.invocation(), &retention) {
+@@ -557,6 +622,6 @@ impl Display for PendingEditQueueError {
+             } => write!(
+                 formatter,
+-                "pending edit payload requires {requested_bytes} bytes but the queue limit is {max_payload_bytes}"
++                "pending edit payload requires at least {requested_bytes} bytes but the queue limit is {max_payload_bytes}"
+             ),
+             Self::RetentionPayloadLimitExceeded {
+                 requested_bytes,

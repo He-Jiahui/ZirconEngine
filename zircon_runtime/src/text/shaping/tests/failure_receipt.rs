@@ -7,6 +7,7 @@ use crate::text::FontFaceId;
 
 use super::*;
 
+// 用人工错误核对值的保留及方向策略；没有加载字体或执行替代后端。
 #[test]
 fn backend_failure_receipt_retains_stable_face_range_and_policy() {
     let face = FontFaceId(7);
@@ -30,6 +31,7 @@ fn backend_failure_receipt_retains_stable_face_range_and_policy() {
     assert!(!vertical.allows_alternate_backend());
 }
 
+// 只覆盖此处的 Bidi 与源预算夹具，不据测试名推及全部字形不变量。
 #[test]
 fn invariant_and_budget_failures_are_terminal() {
     let bidi = DirectShapeError::from(BidiInvariantError::InvalidLineRange { start: 9, end: 4 });
@@ -72,6 +74,7 @@ fn invariant_and_budget_failures_are_terminal() {
     assert!(!budget_receipt.allows_alternate_backend());
 }
 
+// 核对项目化错误同时保留通用错误与类型化能力原因。
 #[test]
 fn missing_primary_face_keeps_a_typed_font_resolution_receipt() {
     let failure = TextShapingFailure::from(FallbackItemizationError::PrimaryFaceUnavailable);
@@ -91,6 +94,7 @@ fn missing_primary_face_keeps_a_typed_font_resolution_receipt() {
     assert_eq!(receipt.face, None);
 }
 
+// 单次延期入口的计数快照，不验证所有终态与延期组合。
 #[test]
 fn deferred_receipts_do_not_increment_terminal_diagnostics() {
     let mut diagnostics = TextShapingDiagnosticsReport::default();
@@ -104,6 +108,7 @@ fn deferred_receipts_do_not_increment_terminal_diagnostics() {
     assert_eq!(diagnostics.backend_routes.terminal_run_count, 0);
 }
 
+// 本例只记录一次，证明请求工作量被合并，不证明重复调用会去重。
 #[test]
 fn deferred_failure_merges_request_work_once() {
     let mut request = TextShapingRequestDiagnostics::EMPTY;
@@ -123,6 +128,7 @@ fn deferred_failure_merges_request_work_once() {
     assert_eq!(diagnostics.failures.deferred_count, 1);
 }
 
+// 数组计数与标签接口的值断言不构成运行时分配测量。
 #[test]
 fn failure_report_counts_by_stable_code_without_allocating_labels() {
     let mut report = TextShapingFailureReport::default();
@@ -145,6 +151,7 @@ fn failure_report_counts_by_stable_code_without_allocating_labels() {
     assert_eq!(report.last_failure, Some(receipt));
 }
 
+// 在当前固定错误码集合中核对标签，不承诺未来版本的标签全集恒定。
 #[test]
 fn stable_failure_code_labels_are_unique_and_low_cardinality() {
     let mut labels = TextShapingFailureCode::ALL.map(TextShapingFailureCode::as_str);

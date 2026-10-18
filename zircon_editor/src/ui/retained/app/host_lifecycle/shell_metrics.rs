@@ -66,6 +66,16 @@ impl RetainedEditorHost {
         self.ui
             .set_host_refresh_invalidation_diagnostics(self.invalidation.diagnostics_snapshot());
     }
+
+    pub(in crate::ui::retained_host::app) fn publish_normal_arranged_inventory_after_commit(&self) {
+        if std::env::var_os("ZIRCON_EDITOR_WORKBENCH_REVIEW_PROJECT_ROOT").is_some() {
+            let inventory = crate::ui::template_runtime::NormalPresentInventory::new(vec![
+                self.template_bridge.normal_arranged_inventory(),
+                self.workbench_window_bridge.normal_arranged_inventory(),
+            ]);
+            self.ui.set_normal_arranged_inventory(Some(inventory));
+        }
+    }
 }
 
 #[cfg(test)]

@@ -1,0 +1,39 @@
+diff --git a/zircon_editor/src/core/project/project_activation/service.rs b/zircon_editor/src/core/project/project_activation/service.rs
+--- a/zircon_editor/src/core/project/project_activation/service.rs
++++ b/zircon_editor/src/core/project/project_activation/service.rs
+@@ -430,4 +430,35 @@ fn newer_submission_supersedes_a_polled_ready_token_before_runtime_commit() {
+     }
+ 
++    #[test]
++    fn cancellation_after_poll_still_supersedes_the_ready_token() {
++        let (first_started_tx, first_started_rx) = mpsc::channel();
++        let (release_first_tx, release_first_rx) = mpsc::channel();
++        let backend = std::sync::Arc::new(BlockingBackend {
++            first_started: first_started_tx,
++            release_first: release_first_rx,
++            calls: AtomicUsize::new(0),
++        });
++        let service = ProjectActivationService::with_backend(test_job_system(), backend.clone());
++        let (activation, root) = fixture_activation("cancelled-ready");
++
++        let generation = service.submit(ProjectActivationIntent::Open(activation)).unwrap();
++        first_started_rx.recv_timeout(Duration::from_secs(2)).unwrap();
++        release_first_tx.send(()).unwrap();
++        let ready = match wait_for_outcome(&service).into_result().unwrap() {
++            ProjectActivationPrepared::Ready(ready) => ready,
++            ProjectActivationPrepared::Stale(reason) => panic!("expected ready token, got {reason}"),
++        };
++
++        assert!(!service.cancel_latest());
++        assert!(matches!(
++            ready.commit(),
++            Err(super::ProjectActivationCommitError::Superseded { generation: rejected })
++                if rejected == generation
++        ));
++        assert_eq!(backend.calls.load(Ordering::SeqCst), 1);
++
++        let _ = fs::remove_dir_all(root);
++    }
++
+     #[test]
+     fn activation_artifact_exposes_no_project_manager_or_ui_host() {

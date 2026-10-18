@@ -29,7 +29,7 @@ fn compile_virtual_geometry_pipeline(
                 .with_capability_enabled(RenderFeatureCapabilityRequirement::VirtualGeometry)
                 .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
                 .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
-                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
+                .with_feature_disabled(BuiltinRenderFeature::Temporal)
                 .with_feature_disabled(BuiltinRenderFeature::Bloom)
                 .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
                 .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)

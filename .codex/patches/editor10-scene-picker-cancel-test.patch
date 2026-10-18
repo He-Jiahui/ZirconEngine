@@ -1,0 +1,66 @@
+diff --git a/zircon_editor/src/ui/retained_host/app/tests/command_palette.rs b/zircon_editor/src/ui/retained_host/app/tests/command_palette.rs
+--- a/zircon_editor/src/ui/retained_host/app/tests/command_palette.rs
++++ b/zircon_editor/src/ui/retained_host/app/tests/command_palette.rs
+@@ -1,4 +1,8 @@
+ use super::support::*;
++use crate::core::project::{NewProjectDraft, NewProjectTemplate, ProjectAuthority};
++use crate::ui::retained_host::workbench_popup_actions::WORKBENCH_POPUP_CANCEL_ACTION_ID;
++
++use super::super::scene_picker_session::ScenePickerMode;
+ 
+ #[test]
+ fn native_unhandled_ctrl_shift_p_opens_workbench_command_palette() {
+@@ -90,3 +94,51 @@ fn native_command_palette_enter_commits_focused_workbench_command() {
+         vec![EditorEvent::WorkbenchMenu(MenuAction::OpenProject)]
+     );
+ }
++
++#[test]
++fn cancelling_scene_picker_discards_its_project_ticket() {
++    let _guard = lock_env();
++    let harness = ChildWindowHostHarness::new("zircon_retained_scene_picker_cancel");
++    let project_root = unique_temp_path("zircon_retained_scene_picker_cancel_project")
++        .with_extension("");
++    let project_name = project_root
++        .file_name()
++        .and_then(|name| name.to_str())
++        .expect("temporary project root must have a UTF-8 name")
++        .to_string();
++    let location = project_root
++        .parent()
++        .expect("temporary project root must have a parent")
++        .to_string_lossy()
++        .into_owned();
++    let created = ProjectAuthority::default()
++        .create_project(&NewProjectDraft {
++            project_name,
++            location,
++            template: NewProjectTemplate::RenderableEmpty,
++        })
++        .expect("scene picker test project should be created");
++    assert_eq!(created.root, project_root);
++    drop(created);
++
++    {
++        let mut host = harness.host.borrow_mut();
++        host.editor_manager
++            .open_project(&project_root)
++            .expect("scene picker test project should open");
++        host.open_workbench_scene_picker(ScenePickerMode::Open);
++        assert!(host.scene_picker_session.is_some());
++        host.open_workbench_command_palette();
++        assert!(host.scene_picker_session.is_none());
++
++        host.open_workbench_scene_picker(ScenePickerMode::Open);
++        assert!(host.scene_picker_session.is_some());
++
++        let cancelled = host.dispatch_componentized_workbench_surface_control(
++            "WorkbenchCommandPalette",
++            WORKBENCH_POPUP_CANCEL_ACTION_ID,
++        );
++        assert!(matches!(cancelled, Some(Ok(_))));
++        assert!(host.scene_picker_session.is_none());
++    }
++
++    let _ = std::fs::remove_dir_all(project_root);
++}

@@ -33,6 +33,17 @@ use crate::ui::retained_host::primitives::ModelRc;
 pub(in crate::ui::retained_host::host_contract) use self::snapshot::host_presentation_from_state;
 
 impl UiHostWindow {
+    pub(crate) fn set_normal_arranged_inventory(
+        &self,
+        inventory: Option<crate::ui::template_runtime::NormalPresentInventory>,
+    ) {
+        let mut state = self.state.borrow_mut();
+        let cursor = state.presentation_generation().cursor();
+        // Capture metadata does not advance any visual generation.
+        Arc::make_mut(&mut state.host_presentation).normal_arranged_inventory =
+            inventory.map(|inventory| (cursor, Arc::new(inventory)));
+    }
+
     pub(crate) fn set_prepared_viewport_toolbar_publication(
         &self,
         snapshot: Option<(

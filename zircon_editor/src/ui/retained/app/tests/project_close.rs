@@ -40,7 +40,7 @@ fn close_enters_durable_closing_and_retires_focus_before_quiescing_consumers() {
         .find("self.cancel_pending_asset_deletion()")
         .expect("asset quiescence");
     let manager_close = close
-        .find("self.editor_manager.commit_project_close(&operation)")
+        .find("manager.commit_project_close(&operation)")
         .expect("manager close result");
 
     assert!(begin < focus_sync);
@@ -81,17 +81,43 @@ fn retry_after_committed_runtime_close_still_repairs_the_welcome_surface() {
 fn project_close_runs_play_teardown_before_releasing_the_project_session() {
     let source = include_str!("../project_close.rs");
     let close = source
-        .split("fn commit_project_close(&mut self)")
+        .split("fn commit_project_close(")
         .nth(1)
         .expect("project-close commit implementation");
+    let entry = close
+        .split("fn quiesce_project_close(")
+        .next()
+        .expect("project-close entry body");
+    let quiesce_call = entry
+        .find("self.quiesce_project_close()?")
+        .expect("project close must finish quiescing before committing");
+    let commit_call = entry
+        .find("self.commit_quiesced_project_close(operation, None, None, false)")
+        .expect("project close must delegate the quiesced operation");
+    assert!(quiesce_call < commit_call);
+
     let play_shutdown = close
         .find("shutdown_play_session_for_project_close()")
         .expect("project close must retire Play before project release");
     let project_commit = close
         .find(".commit_project_close(&operation)")
         .expect("project close must commit the manager release");
+    let committed = close
+        .split("fn commit_quiesced_project_close(")
+        .nth(1)
+        .expect("quiesced project-close implementation")
+        .split("fn finish_quiesced_project_close(")
+        .next()
+        .expect("quiesced project-close body");
+    let manager_commit = committed
+        .find("manager.commit_project_close(&operation)")
+        .expect("quiesced close must commit the manager");
+    let finish_call = committed
+        .find("self.finish_quiesced_project_close(&operation)")
+        .expect("project close must finish the owned Session");
 
     assert!(play_shutdown < project_commit);
+    assert!(manager_commit < finish_call);
     assert!(close.contains("is_ready_for_project_close()"));
     assert!(close.contains("pending_edit_decision_prompt()"));
 }

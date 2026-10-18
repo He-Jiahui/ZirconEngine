@@ -8,7 +8,10 @@ impl RetainedEditorHost {
     pub(super) fn sync_settings_projections(&mut self) {
         let snapshot = self.runtime.context().settings().snapshot();
         if install_editor_v2_design_tokens(snapshot.as_ref()) {
-            apply_host_appearance_from_tokens(snapshot.design_tokens());
+            apply_host_appearance_from_tokens(
+                snapshot.design_tokens_handle(),
+                Some(snapshot.generation()),
+            );
             self.ui.sync_host_paint_theme();
             self.mark_presentation_dirty();
         }

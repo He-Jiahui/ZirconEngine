@@ -1,0 +1,22 @@
+diff --git a/zircon_editor/src/core/project/staged_creation.rs b/zircon_editor/src/core/project/staged_creation.rs
+--- a/zircon_editor/src/core/project/staged_creation.rs
++++ b/zircon_editor/src/core/project/staged_creation.rs
+@@ -108,5 +108,9 @@ impl ProjectCreationFinalize {
+     pub(super) fn cleanup_warning(&self) -> Option<&ProjectCreationCleanupWarning> {
+         self.cleanup_warning.as_ref()
+     }
++    pub(super) fn into_cleanup_warning(self) -> Option<ProjectCreationCleanupWarning> {
++        self.cleanup_warning
++    }
++
+ }
+ 
+@@ -126,4 +130,8 @@ impl ProjectCreationCleanupWarning {
+     pub(super) fn error(&self) -> &ProjectAuthorityError {
+         &self.error
+     }
++
++    pub(super) fn into_parts(self) -> (PathBuf, PathBuf, ProjectAuthorityError) {
++        (self.target, self.backup, self.error)
++    }
+ }

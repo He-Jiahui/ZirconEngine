@@ -1,0 +1,455 @@
+diff --git a/zircon_runtime/src/asset/project/mod.rs b/zircon_runtime/src/asset/project/mod.rs
+--- a/zircon_runtime/src/asset/project/mod.rs
++++ b/zircon_runtime/src/asset/project/mod.rs
+@@ -3,8 +3,9 @@ mod manager;
+ mod manifest;
+ mod meta;
+ mod meta_preview_state;
+ mod package_asset_registry;
+ mod paths;
++mod prepared_open;
+ mod script_manifest;
+ mod shader_resource_records;
+ 
+@@ -15,6 +16,7 @@ pub use catalog_input_generation::{
+ };
+ pub(crate) use manager::mint_meta_for_migration;
+ pub use manager::ProjectManager;
+ pub use manifest::{ProjectManifest, ProjectManifestError};
++pub use prepared_open::{PreparedProjectOpen, PreparedProjectOpenStale, ProjectRootWitness};
+ pub use meta::{
+     AssetMetaDocument, AssetMetaEntry, AssetMetaError, AssetMetaResult, AssetSourceUnit,
+     PreviewState,
+diff --git a/zircon_runtime/src/asset/project/prepared_open.rs b/zircon_runtime/src/asset/project/prepared_open.rs
+new file mode 100644
+--- /dev/null
++++ b/zircon_runtime/src/asset/project/prepared_open.rs
+@@ -0,0 +1,428 @@
++use std::fs;
++use std::path::{Path, PathBuf};
++
++use thiserror::Error;
++
++use crate::asset::AssetImportError;
++
++use super::{ProjectManager, ProjectManifest};
++
++/// Immutable filesystem and manifest identity captured before project activation.
++///
++/// Only [`PreparedProjectOpen`] constructs this witness. Consumers must revalidate the
++/// witness immediately before an activation transaction rather than reopening a project root.
++#[derive(Debug)]
++pub struct ProjectRootWitness {
++    root: PathBuf,
++    identity: ProjectRootIdentity,
++    manifest: ProjectManifest,
++    manifest_identity: ProjectManifestIdentity,
++}
++
++impl ProjectRootWitness {
++    fn capture(root: PathBuf, manifest: ProjectManifest) -> Result<Self, AssetImportError> {
++        let manifest_identity = ProjectManifestIdentity::capture(&root, &manifest)?;
++        Ok(Self {
++            identity: ProjectRootIdentity::from_path(&root)?,
++            manifest_identity,
++            root,
++            manifest,
++        })
++    }
++
++    pub fn root(&self) -> &Path {
++        &self.root
++    }
++
++    pub fn manifest(&self) -> &ProjectManifest {
++        &self.manifest
++    }
++
++    pub fn revalidate(&self) -> Result<(), PreparedProjectOpenStale> {
++        let canonical_root = fs::canonicalize(&self.root).map_err(|source| {
++            PreparedProjectOpenStale::RecanonicalizeRoot {
++                root: self.root.clone(),
++                source,
++            }
++        })?;
++        let identity = ProjectRootIdentity::from_path(&canonical_root).map_err(|source| {
++            PreparedProjectOpenStale::RecanonicalizeRoot {
++                root: self.root.clone(),
++                source,
++            }
++        })?;
++        if canonical_root != self.root || identity != self.identity {
++            return Err(PreparedProjectOpenStale::RootReplaced {
++                expected_root: self.root.clone(),
++                actual_root: canonical_root,
++            });
++        }
++
++        self.manifest_identity.revalidate(&self.manifest)
++    }
++}
++
++/// Exact manifest identity carried by a prepared activation capability.
++///
++/// The parsed manifest is the semantic revision consumed by the prepared manager, while the
++/// document and canonical target reject whitespace-only rewrites and reparse-target swaps that
++/// would otherwise silently activate a manager prepared from a different file instance.
++#[derive(Debug)]
++struct ProjectManifestIdentity {
++    configured_path: PathBuf,
++    canonical_path: PathBuf,
++    document: Box<str>,
++    format_version: u32,
++    library_version: u32,
++}
++
++impl ProjectManifestIdentity {
++    fn capture(root: &Path, manifest: &ProjectManifest) -> Result<Self, AssetImportError> {
++        let configured_path = root.join("zircon-project.toml");
++        let canonical_path = fs::canonicalize(&configured_path)?;
++        let document = fs::read_to_string(&canonical_path)?;
++        let loaded = ProjectManifest::from_toml_str(&document)?;
++        if loaded.value != *manifest {
++            return Err(AssetImportError::Parse(
++                "project manifest changed while preparing activation".to_string(),
++            ));
++        }
++        Ok(Self {
++            configured_path,
++            canonical_path,
++            document: document.into_boxed_str(),
++            format_version: manifest.format_version,
++            library_version: manifest.library_version,
++        })
++    }
++
++    fn revalidate(
++        &self,
++        captured: &ProjectManifest,
++    ) -> Result<(), PreparedProjectOpenStale> {
++        let canonical_path = fs::canonicalize(&self.configured_path).map_err(|source| {
++            PreparedProjectOpenStale::ManifestCanonicalize {
++                manifest_path: self.configured_path.clone(),
++                source,
++            }
++        })?;
++        if canonical_path != self.canonical_path {
++            return Err(PreparedProjectOpenStale::ManifestTargetChanged {
++                manifest_path: self.configured_path.clone(),
++                expected_target: self.canonical_path.clone(),
++                actual_target: canonical_path,
++            });
++        }
++
++        let document = fs::read_to_string(&self.canonical_path).map_err(|source| {
++            PreparedProjectOpenStale::ManifestRead {
++                manifest_path: self.configured_path.clone(),
++                source,
++            }
++        })?;
++        if document == self.document.as_ref() {
++            return Ok(());
++        }
++        let current = ProjectManifest::from_toml_str(&document)
++            .map_err(|source| PreparedProjectOpenStale::ManifestLoad {
++                manifest_path: self.configured_path.clone(),
++                source,
++            })?
++            .value;
++        if current.format_version != self.format_version
++            || current.library_version != self.library_version
++        {
++            return Err(PreparedProjectOpenStale::ManifestRevisionChanged {
++                manifest_path: self.configured_path.clone(),
++                expected_format_version: self.format_version,
++                actual_format_version: current.format_version,
++                expected_library_version: self.library_version,
++                actual_library_version: current.library_version,
++            });
++        }
++        if current != *captured {
++            return Err(PreparedProjectOpenStale::ManifestChanged {
++                manifest_path: self.configured_path.clone(),
++            });
++        }
++        Err(PreparedProjectOpenStale::ManifestBytesChanged {
++            manifest_path: self.configured_path.clone(),
++        })
++    }
++}
++
++#[cfg(windows)]
++#[derive(Debug, PartialEq, Eq)]
++struct ProjectRootIdentity {
++    volume_serial_number: Option<u32>,
++    file_index: Option<u64>,
++}
++
++#[cfg(windows)]
++impl ProjectRootIdentity {
++    fn from_path(path: &Path) -> std::io::Result<Self> {
++        use std::os::windows::fs::MetadataExt;
++
++        let metadata = fs::metadata(path)?;
++        Ok(Self {
++            volume_serial_number: metadata.volume_serial_number(),
++            file_index: metadata.file_index(),
++        })
++    }
++}
++
++#[cfg(unix)]
++#[derive(Debug, PartialEq, Eq)]
++struct ProjectRootIdentity {
++    device: u64,
++    inode: u64,
++}
++
++#[cfg(unix)]
++impl ProjectRootIdentity {
++    fn from_path(path: &Path) -> std::io::Result<Self> {
++        use std::os::unix::fs::MetadataExt;
++
++        let metadata = fs::metadata(path)?;
++        Ok(Self {
++            device: metadata.dev(),
++            inode: metadata.ino(),
++        })
++    }
++}
++
++#[cfg(not(any(unix, windows)))]
++#[derive(Debug, PartialEq, Eq)]
++struct ProjectRootIdentity {
++    creation_time: Option<std::time::SystemTime>,
++}
++
++#[cfg(not(any(unix, windows)))]
++impl ProjectRootIdentity {
++    fn from_path(path: &Path) -> std::io::Result<Self> {
++        Ok(Self {
++            creation_time: fs::metadata(path)?.created().ok(),
++        })
++    }
++}
++
++/// A move-only runtime project capability prepared before activation.
++///
++/// The capability owns the only pre-activation `ProjectManager` together with the filesystem
++/// witness that proves the parsed project is still current. It deliberately offers no public
++/// manager accessor, so Editor, dynamic startup, and asset activation cannot fork project truth.
++#[derive(Debug)]
++pub struct PreparedProjectOpen {
++    witness: ProjectRootWitness,
++    project: ProjectManager,
++}
++
++impl PreparedProjectOpen {
++    pub fn open(root: impl AsRef<Path>) -> Result<Self, AssetImportError> {
++        let requested_root = root.as_ref().to_path_buf();
++        let canonical_root = fs::canonicalize(&requested_root).map_err(|source| {
++            AssetImportError::CanonicalProjectRoot {
++                path: requested_root,
++                source,
++            }
++        })?;
++        let project = ProjectManager::open(&canonical_root)?;
++        let witness = ProjectRootWitness::capture(canonical_root, project.manifest().clone())?;
++        Ok(Self { witness, project })
++    }
++
++    pub fn root(&self) -> &Path {
++        self.witness.root()
++    }
++
++    pub fn manifest(&self) -> &ProjectManifest {
++        self.witness.manifest()
++    }
++
++    pub fn revalidate(&self) -> Result<(), PreparedProjectOpenStale> {
++        self.witness.revalidate()
++    }
++
++    pub(crate) fn into_parts(self) -> (ProjectRootWitness, ProjectManager) {
++        (self.witness, self.project)
++    }
++}
++
++#[derive(Debug, Error)]
++pub enum PreparedProjectOpenStale {
++    #[error("prepared project root {root} can no longer be canonicalized: {source}")]
++    RecanonicalizeRoot {
++        root: PathBuf,
++        #[source]
++        source: std::io::Error,
++    },
++    #[error(
++        "prepared project root changed from {expected_root} to canonical target {actual_root}"
++    )]
++    RootReplaced {
++        expected_root: PathBuf,
++        actual_root: PathBuf,
++    },
++    #[error("prepared project manifest {manifest_path} can no longer be canonicalized: {source}")]
++    ManifestCanonicalize {
++        manifest_path: PathBuf,
++        #[source]
++        source: std::io::Error,
++    },
++    #[error(
++        "prepared project manifest target {manifest_path} changed from {expected_target} to {actual_target}"
++    )]
++    ManifestTargetChanged {
++        manifest_path: PathBuf,
++        expected_target: PathBuf,
++        actual_target: PathBuf,
++    },
++    #[error("prepared project manifest {manifest_path} could not be read: {source}")]
++    ManifestRead {
++        manifest_path: PathBuf,
++        #[source]
++        source: std::io::Error,
++    },
++    #[error("prepared project manifest {manifest_path} can no longer be loaded: {source}")]
++    ManifestLoad {
++        manifest_path: PathBuf,
++        #[source]
++        source: super::ProjectManifestError,
++    },
++    #[error("prepared project manifest {manifest_path} revision changed before activation")]
++    ManifestRevisionChanged {
++        manifest_path: PathBuf,
++        expected_format_version: u32,
++        actual_format_version: u32,
++        expected_library_version: u32,
++        actual_library_version: u32,
++    },
++    #[error("prepared project manifest {manifest_path} changed before activation")]
++    ManifestChanged { manifest_path: PathBuf },
++    #[error("prepared project manifest {manifest_path} bytes changed before activation")]
++    ManifestBytesChanged { manifest_path: PathBuf },
++}
++
++#[cfg(test)]
++mod tests {
++    use std::time::{SystemTime, UNIX_EPOCH};
++
++    use crate::asset::project::ProjectManager;
++    use crate::asset::{AssetImportError, AssetUri};
++
++    use super::{PreparedProjectOpen, PreparedProjectOpenStale, ProjectManifest};
++
++    #[test]
++    fn prepared_project_open_rejects_a_manifest_rewrite_before_activation() {
++        let unique = SystemTime::now()
++            .duration_since(UNIX_EPOCH)
++            .unwrap()
++            .as_nanos();
++        let root = std::env::temp_dir().join(format!(
++            "zircon_prepared_project_open_{}_{}",
++            std::process::id(),
++            unique
++        ));
++        std::fs::create_dir_all(&root).unwrap();
++        let manifest_path = root.join("zircon-project.toml");
++        ProjectManifest::new(
++            "Prepared Project One",
++            AssetUri::parse("res://scenes/one.scene.toml").unwrap(),
++            1,
++        )
++        .save(&manifest_path)
++        .unwrap();
++
++        let prepared = PreparedProjectOpen::open(&root).unwrap();
++        ProjectManifest::new(
++            "Prepared Project Two",
++            AssetUri::parse("res://scenes/two.scene.toml").unwrap(),
++            2,
++        )
++        .save(&manifest_path)
++        .unwrap();
++
++        assert!(matches!(
++            prepared.revalidate(),
++            Err(PreparedProjectOpenStale::ManifestRevisionChanged { .. })
++        ));
++
++        drop(prepared);
++        let _ = std::fs::remove_dir_all(root);
++    }
++
++    #[test]
++    fn prepared_project_open_rejects_a_byte_only_manifest_rewrite_before_activation() {
++        let unique = SystemTime::now()
++            .duration_since(UNIX_EPOCH)
++            .unwrap()
++            .as_nanos();
++        let root = std::env::temp_dir().join(format!(
++            "zircon_prepared_project_manifest_bytes_{}_{}",
++            std::process::id(),
++            unique
++        ));
++        std::fs::create_dir_all(&root).unwrap();
++        let manifest_path = root.join("zircon-project.toml");
++        ProjectManifest::new(
++            "Prepared Project Bytes",
++            AssetUri::parse("res://scenes/one.scene.toml").unwrap(),
++            1,
++        )
++        .save(&manifest_path)
++        .unwrap();
++
++        let prepared = PreparedProjectOpen::open(&root).unwrap();
++        let original = std::fs::read_to_string(&manifest_path).unwrap();
++        std::fs::write(&manifest_path, format!("\n{original}")).unwrap();
++
++        assert!(matches!(
++            prepared.revalidate(),
++            Err(PreparedProjectOpenStale::ManifestBytesChanged { .. })
++        ));
++
++        drop(prepared);
++        let _ = std::fs::remove_dir_all(root);
++    }
++
++    #[test]
++    fn witness_capture_rejects_a_manifest_changed_after_manager_open() {
++        let unique = SystemTime::now()
++            .duration_since(UNIX_EPOCH)
++            .unwrap()
++            .as_nanos();
++        let root = std::env::temp_dir().join(format!(
++            "zircon_prepared_project_capture_race_{}_{}",
++            std::process::id(),
++            unique
++        ));
++        std::fs::create_dir_all(&root).unwrap();
++        let manifest_path = root.join("zircon-project.toml");
++        ProjectManifest::new(
++            "Prepared Project Capture One",
++            AssetUri::parse("res://scenes/one.scene.toml").unwrap(),
++            1,
++        )
++        .save(&manifest_path)
++        .unwrap();
++
++        let project = ProjectManager::open(&root).unwrap();
++        ProjectManifest::new(
++            "Prepared Project Capture Two",
++            AssetUri::parse("res://scenes/two.scene.toml").unwrap(),
++            2,
++        )
++        .save(&manifest_path)
++        .unwrap();
++
++        let canonical_root = std::fs::canonicalize(&root).unwrap();
++        assert!(matches!(
++            super::ProjectRootWitness::capture(canonical_root, project.manifest().clone()),
++            Err(AssetImportError::Parse(message))
++                if message == "project manifest changed while preparing activation"
++        ));
++
++        drop(project);
++        let _ = std::fs::remove_dir_all(root);
++    }
++}

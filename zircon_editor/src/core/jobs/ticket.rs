@@ -1,8 +1,10 @@
 //! 提供任务结果的一次消费及显式截止等待，供主循环轮询和关闭流程使用；丢弃票据不取消工作，并发等待期间另一调用可能暂时无法取得结果接收权。
 use std::fmt;
 use std::sync::mpsc::{Receiver, RecvTimeoutError, TryRecvError};
-use std::sync::{Mutex, MutexGuard};
+use std::sync::{Arc, Mutex, MutexGuard};
+
 use std::time::Instant;
+use zircon_runtime::core::runtime::tasks::{JobHandle, TaskState};
 
 use super::{JobError, JobId};
 
@@ -10,6 +12,7 @@ use super::{JobError, JobId};
 pub struct JobTicket<T> {
     id: JobId,
     result: Mutex<Option<Receiver<Result<T, JobError>>>>,
+    execution: Option<Arc<JobExecution>>,
 }
 
 impl<T> JobTicket<T> {
@@ -17,7 +20,35 @@ impl<T> JobTicket<T> {
         Self {
             id,
             result: Mutex::new(Some(result)),
+            execution: None,
         }
+    }
+
+    pub(super) fn new_owned(
+        id: JobId,
+        result: Receiver<Result<T, JobError>>,
+        execution: Arc<JobExecution>,
+    ) -> Self {
+        Self {
+            id,
+            result: Mutex::new(Some(result)),
+            execution: Some(execution),
+        }
+    }
+
+    /// Unlike result availability, this includes runtime task and observer completion.
+    pub(crate) fn is_terminal(&self) -> bool {
+        self.execution
+            .as_ref()
+            .is_some_and(|execution| execution.terminal_result().is_some())
+    }
+
+    pub(crate) fn try_take_terminal(&self) -> Option<Result<T, JobError>> {
+        let terminal = self.execution.as_ref()?.terminal_result()?;
+        if let Err(error) = terminal {
+            return self.lock_result().take().map(|_| Err(error));
+        }
+        self.try_take()
     }
 
     pub fn id(&self) -> JobId {
@@ -79,6 +110,71 @@ impl<T> fmt::Debug for JobTicket<T> {
             .debug_struct("JobTicket")
             .field("id", &self.id)
             .finish_non_exhaustive()
+    }
+}
+
+pub(super) struct JobExecution {
+    state: Mutex<JobExecutionState>,
+}
+
+pub(super) enum JobExecutionState {
+    AwaitingSchedule,
+    Running(JobHandle),
+    CompletedWithoutTask,
+    SubmissionFailed(String),
+}
+
+impl JobExecution {
+    pub(super) fn new() -> Self {
+        Self {
+            state: Mutex::new(JobExecutionState::AwaitingSchedule),
+        }
+    }
+
+    pub(super) fn lock(&self) -> MutexGuard<'_, JobExecutionState> {
+        self.state
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
+
+    pub(super) fn bind_cleanup(&self, handle: &JobHandle) {
+        let mut state = self.lock();
+        if matches!(*state, JobExecutionState::AwaitingSchedule) {
+            *state = JobExecutionState::Running(handle.clone());
+        }
+    }
+
+    pub(super) fn fail_submission(&self, message: &str) {
+        let mut state = self.lock();
+        if matches!(*state, JobExecutionState::AwaitingSchedule) {
+            *state = JobExecutionState::SubmissionFailed(message.to_owned());
+        }
+    }
+
+    pub(super) fn complete_without_task(&self) {
+        let mut state = self.lock();
+        if matches!(*state, JobExecutionState::AwaitingSchedule) {
+            *state = JobExecutionState::CompletedWithoutTask;
+        }
+    }
+
+    pub(super) fn terminal_result(&self) -> Option<Result<(), JobError>> {
+        match &*self.lock() {
+            JobExecutionState::AwaitingSchedule => None,
+            JobExecutionState::Running(handle) => {
+                handle.terminal_state().map(|state| match state {
+                    TaskState::Completed => Ok(()),
+                    TaskState::Cancelled => Err(JobError::Cancelled),
+                    _ => Err(JobError::Panicked(
+                        "editor job runtime task failed before terminal completion".to_string(),
+                    )),
+                })
+            }
+            JobExecutionState::CompletedWithoutTask => Some(Ok(())),
+            JobExecutionState::SubmissionFailed(message) => {
+                Some(Err(JobError::Panicked(message.clone())))
+            }
+        }
     }
 }
 

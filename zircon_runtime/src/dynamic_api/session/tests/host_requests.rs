@@ -72,8 +72,8 @@ fn encoded_rumble_page_keeps_enqueue_generation_after_reconnect() {
     use std::num::NonZeroU64;
 
     use crate::core::framework::input::{
-        GamepadConnectionInfo, GamepadId, GamepadRumbleIntensity, GamepadRumbleRequest,
-        InputEvent, InputManager,
+        GamepadConnectionInfo, GamepadId, GamepadRumbleIntensity, GamepadRumbleRequest, InputEvent,
+        InputManager,
     };
     use crate::input::DefaultInputManager;
     use zircon_runtime_interface::ZrRuntimeGamepadRumbleRequestKindV1;
@@ -131,10 +131,16 @@ fn encoded_rumble_page_keeps_enqueue_generation_after_reconnect() {
     }
     assert_eq!(
         kinds,
-        vec![ZrRuntimeGamepadRumbleRequestKindV1::Add, ZrRuntimeGamepadRumbleRequestKindV1::Stop],
+        vec![
+            ZrRuntimeGamepadRumbleRequestKindV1::Add,
+            ZrRuntimeGamepadRumbleRequestKindV1::Stop
+        ],
     );
     let next = input.drain_gamepad_rumble_requests();
     assert_eq!(next.len(), 1);
-    assert_eq!(super::runtime_gamepad_rumble_request(next[0]).generation, second);
+    assert_eq!(
+        super::runtime_gamepad_rumble_request(next[0]).generation,
+        second
+    );
     assert!(input.drain_gamepad_rumble_requests().is_empty());
 }

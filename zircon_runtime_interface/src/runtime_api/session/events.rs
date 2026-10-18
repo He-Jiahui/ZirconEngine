@@ -676,27 +676,70 @@ impl ZrRuntimeEventV1 {
 
     /// V2 payload borrowing lasts through synchronous dispatch. V1 constructors keep V1 kinds.
     pub const fn gamepad_connection_v2(
-        abi_version: u32, viewport: ZrRuntimeViewportHandle, gamepad_id: u64,
-        state: u32, vendor_id: u32, product_id: u32, payload: ZrByteSlice,
+        abi_version: u32,
+        viewport: ZrRuntimeViewportHandle,
+        gamepad_id: u64,
+        state: u32,
+        vendor_id: u32,
+        product_id: u32,
+        payload: ZrByteSlice,
     ) -> Self {
-        Self { state, pointer_id: gamepad_id, key_code: vendor_id, scan_code: product_id, payload,
-            ..Self::new(abi_version, super::ZR_RUNTIME_EVENT_KIND_GAMEPAD_CONNECTION_V2, viewport) }
+        Self {
+            state,
+            pointer_id: gamepad_id,
+            key_code: vendor_id,
+            scan_code: product_id,
+            payload,
+            ..Self::new(
+                abi_version,
+                super::ZR_RUNTIME_EVENT_KIND_GAMEPAD_CONNECTION_V2,
+                viewport,
+            )
+        }
     }
 
     pub const fn gamepad_button_v2(
-        abi_version: u32, viewport: ZrRuntimeViewportHandle, gamepad_id: u64,
-        button: u32, state: u32, value: f32, payload: ZrByteSlice,
+        abi_version: u32,
+        viewport: ZrRuntimeViewportHandle,
+        gamepad_id: u64,
+        button: u32,
+        state: u32,
+        value: f32,
+        payload: ZrByteSlice,
     ) -> Self {
-        Self { button, state, delta: value, pointer_id: gamepad_id, payload,
-            ..Self::new(abi_version, super::ZR_RUNTIME_EVENT_KIND_GAMEPAD_BUTTON_V2, viewport) }
+        Self {
+            button,
+            state,
+            delta: value,
+            pointer_id: gamepad_id,
+            payload,
+            ..Self::new(
+                abi_version,
+                super::ZR_RUNTIME_EVENT_KIND_GAMEPAD_BUTTON_V2,
+                viewport,
+            )
+        }
     }
 
     pub const fn gamepad_axis_v2(
-        abi_version: u32, viewport: ZrRuntimeViewportHandle, gamepad_id: u64,
-        axis: u32, value: f32, payload: ZrByteSlice,
+        abi_version: u32,
+        viewport: ZrRuntimeViewportHandle,
+        gamepad_id: u64,
+        axis: u32,
+        value: f32,
+        payload: ZrByteSlice,
     ) -> Self {
-        Self { button: axis, delta: value, pointer_id: gamepad_id, payload,
-            ..Self::new(abi_version, super::ZR_RUNTIME_EVENT_KIND_GAMEPAD_AXIS_V2, viewport) }
+        Self {
+            button: axis,
+            delta: value,
+            pointer_id: gamepad_id,
+            payload,
+            ..Self::new(
+                abi_version,
+                super::ZR_RUNTIME_EVENT_KIND_GAMEPAD_AXIS_V2,
+                viewport,
+            )
+        }
     }
 
     pub const fn gamepad_axis(

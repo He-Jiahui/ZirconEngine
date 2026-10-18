@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var resourcePrecision = %import("combat/resource_precision_state");
+
+console.printLine("woc-resource-precision-state-test");
+var result = resourcePrecision.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

@@ -3,7 +3,7 @@ use crate::core::editing::engine::retention::{
     RetentionContractError, RootRetentionV1,
 };
 use std::collections::{BTreeMap, BTreeSet, HashMap};
-use std::sync::{Arc, Condvar, Mutex};
+use std::sync::{Arc, Condvar, Mutex, Weak};
 use zircon_runtime_interface::retained_memory::FreshHashStorageV1;
 
 use super::{
@@ -51,6 +51,7 @@ pub(super) struct EngineState {
     pub(super) applied_command_revision: u64,
     pub(super) history_capacity: usize,
     pub(super) operation: Option<&'static str>,
+    pub(super) close_admission: Weak<()>,
     // A failed recovery freezes mutation while retaining the active/history recovery state.
     pub(super) faulted: bool,
     pub(super) drop_error: Option<EditCommandError>,
@@ -117,7 +118,7 @@ impl EditorTransactionEngine {
         )?;
         baseline.array::<(u64, HistoryContextId)>(4096)?;
         baseline.btree::<HistoryContextId, u64>(1)?;
-        baseline.add(24)?; // save-token lineage Arc allocation
+        baseline.add(48)?; // save-token lineage and one owned close-admission Arc allocation
         let retention_metadata =
             RootRetentionV1::metadata(&retention_domain, baseline.bytes().get())?;
         Ok(Self {
@@ -133,6 +134,7 @@ impl EditorTransactionEngine {
                 applied_command_revision: 0,
                 history_capacity,
                 operation: None,
+                close_admission: Weak::new(),
                 faulted: false,
                 drop_error: None,
                 history_storage_v1,
@@ -187,7 +189,7 @@ impl EditorTransactionEngine {
         &self,
         inspect: impl FnOnce(&T) -> R,
     ) -> Result<Option<R>, EditCommandError> {
-        self.start_operation("inspect edit context")?;
+        self.start_read_operation("inspect edit context")?;
         {
             let mut state = self.lock_state();
             if !state.active.is_empty() {
@@ -243,7 +245,7 @@ impl EditorTransactionEngine {
             std::mem::align_of::<EngineState>(),
         )?;
         m.array::<(u64, HistoryContextId)>(4096)?;
-        m.add(24)?;
+        m.add(48)?;
         m.add(storage.allocation::<(HistoryContextId, HistoryStore)>()?)?;
         m.btree::<HistoryContextId, u64>(state.history_generations.len().saturating_add(1))?;
         m.array::<ActiveTransaction>(active_capacity)?;

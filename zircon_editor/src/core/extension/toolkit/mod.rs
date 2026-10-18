@@ -28,6 +28,7 @@ pub use document_toolkit::{DocumentAutosavePayload, DocumentToolkit, ToolkitSave
 pub use edit_lease::DocumentEditLease;
 pub use instance_id::{ToolkitInstanceId, ToolkitInstanceIdError};
 pub use layout::{ToolkitArea, ToolkitAreaSlot, ToolkitLayout, ToolkitLayoutError};
+pub(crate) use registry::DocumentCloseAdmission;
 pub use registry::DocumentToolkitRegistry;
 pub use registry_error::ToolkitRegistryError;
 pub use save::{

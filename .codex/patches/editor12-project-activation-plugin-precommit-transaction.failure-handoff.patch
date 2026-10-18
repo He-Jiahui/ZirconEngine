@@ -1,0 +1,68 @@
+diff --git a/docs/plans/zircon_editor/editor/12/failure-2026-08-03-project-activation-plugin-precommit-transaction.md b/docs/plans/zircon_editor/editor/12/failure-2026-08-03-project-activation-plugin-precommit-transaction.md
+new file mode 100644
+--- /dev/null
++++ b/docs/plans/zircon_editor/editor/12/failure-2026-08-03-project-activation-plugin-precommit-transaction.md
+@@ -0,0 +1,59 @@
++---
++handoff_kind: failure
++status: open
++created_at: 2026-08-03
++summary_slug: project-activation-plugin-precommit-transaction
++origin_plan: docs/plans/zircon_editor/editor/10-project-and-asset-reference-management.md
++fixing_plan: docs/plans/zircon_editor/editor/12-plugin-management.md
++origin_child_dir: docs/plans/zircon_editor/editor/10
++fixing_child_dir: docs/plans/zircon_editor/editor/12
++plan_link_mode: child_record_only
++related_code:
++  - zircon_editor/src/ui/host/editor_manager_project.rs
++  - zircon_editor/src/ui/host/editor_manager_plugins_export/manifest_completion/native.rs
++  - zircon_editor/src/core/plugin
++tests:
++  - project activation plugin preflight failure preserves runtime and active plugin projections
++  - prepared project plugin activation installs exactly once without runtime rollback
++  - cargo test -p zircon_editor --lib --locked
++---
++
++# Editor12: project activation plugin work occurs after Runtime04 publication
++
++## 来源执行者
++
++- 来源计划：`docs/plans/zircon_editor/editor/10-project-and-asset-reference-management.md`
++- 来源执行切片：M1 prepared project activation / pre-commit Editor install artifact.
++- 修复责任计划：`docs/plans/zircon_editor/editor/12-plugin-management.md`
++- 交接原因：project-native discovery、manifest completion、registration report publication and plugin-manager application are owned by Editor12; Editor10 only supplies the staged project generation and immutable manifest projection.
++
++## 失败现象与复现证据
++
++`EditorManager::open_project` first calls `host.open_project`, which commits Runtime04 and builds the document/catalog/watcher surface. Only afterwards it calls `apply_project_plugin_manifest_or_close`.
++
++That function performs native plugin discovery from `<project>/zircon_plugins`, computes the completed project plugin manifest, publishes native registration reports, applies the manager manifest, and publishes status. Any failure calls `host.close_project` as a surrogate rollback.
++
++Closing the newly committed project cannot restore the predecessor Runtime04 generation, prior editor asset projection, watcher, document, or previous plugin snapshot. The failure therefore creates a visible half-activation even though the plugin precondition failed.
++
++## 最低共享层根因
++
++Editor12 exposes discovery/completion only through `EditorManager` methods that mix fallible filesystem work with active plugin-manager mutation. It has no move-only prepared project-plugin capability and no infallible install transition that can join Editor10's latest-ready activation gate.
++
++## 架构修复验收
++
++- Prepare native discovery, completed `ProjectManifest`, registration reports, and status from the immutable staged manifest/root before Runtime04 commit; preparation must not mutate active plugin state.
++- Return a move-only prepared plugin activation that the same latest-ready token owns with catalog, watcher, document, and session preparations.
++- Make the final plugin install one serialized, in-memory, no-failure replacement, or validate all failure conditions before Runtime04 commit and preserve the previous plugin projection on rejection.
++- Prove discovery, manifest-completion, registration, and plugin-manager rejection each leave the prior Runtime04 and plugin projections unchanged; prove a successful install occurs once.
++
++## 禁止临时方案
++
++- Do not call `close_project`, clear active plugins, or best-effort unregister as rollback after a failed project plugin action.
++- Do not rediscover `<project>/zircon_plugins` from a retained-host install callback or reintroduce a root extractor on `ProjectActivation`.
++- Do not leave native reports published before manifest validation, or add a compatibility path that applies plugins outside the ready-token transaction.
++
++## 修复结果与回传
++
++Open state: `待 Editor12 建立 project-plugin preflight/install transaction；Editor10 不得以 close_project 伪回滚。`
++
++## 产出记录与时间
++
++| 时间 | 状态 | 完成项目与证据 |
++|---|---|---|
++| 2026-08-03 CST | `OPEN / 前向交接候选` | 已实读 `editor_manager_project.rs`：Runtime04 project open 后才进行 native discovery/registration/manifest apply，失败时调用 close；该顺序不能恢复 predecessor。未修改正式插件或计划文件，未运行 Cargo。 |

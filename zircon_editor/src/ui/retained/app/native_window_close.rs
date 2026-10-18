@@ -12,6 +12,11 @@ mod prompt_actions;
 
 impl RetainedEditorHost {
     pub(super) fn native_main_window_close_requested(&mut self) -> CloseRequestResponse {
+        if self.main_window_close_requested() && !self.main_window_close_waiting_decision() {
+            self.ui
+                .set_lifecycle_frame_update(Some(std::time::Instant::now()));
+            return CloseRequestResponse::KeepWindowShown;
+        }
         self.retire_hierarchy_drag_with_reason(HierarchyTerminalReason::WindowClose);
         if self.document_save_blocks_native_close() {
             return CloseRequestResponse::KeepWindowShown;
@@ -56,13 +61,24 @@ impl RetainedEditorHost {
             self.begin_close_prompt_plan(prompt);
             return CloseRequestResponse::KeepWindowShown;
         }
-        CloseRequestResponse::HideWindow
+        self.begin_owned_main_window_close(
+            super::close_prompt::PendingClosePrompt::new(
+                ClosePromptTarget::MainWindow,
+                Vec::new(),
+                Vec::new(),
+            ),
+            false,
+        );
+        CloseRequestResponse::KeepWindowShown
     }
 
     pub(super) fn native_floating_window_close_requested(
         &mut self,
         window_id: &MainPageId,
     ) -> CloseRequestResponse {
+        if self.main_window_close_blocks_session_ui() {
+            return CloseRequestResponse::KeepWindowShown;
+        }
         self.cancel_hierarchy_drag_for_window(
             &Some(window_id.clone()),
             HierarchyTerminalReason::WindowClose,

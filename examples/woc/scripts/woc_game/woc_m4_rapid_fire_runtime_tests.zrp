@@ -1,0 +1,2 @@
+backend = "zr_vm:project"
+entry = "src/world/rapid_fire_runtime_test_main.zr"

@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var fearDr = %import("combat/fear_dr_state");
+
+console.printLine("m4-fear-dr-state-test");
+var result = fearDr.contractTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

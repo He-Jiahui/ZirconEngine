@@ -234,7 +234,10 @@ pub fn render_feature_descriptor() -> RenderFeatureDescriptor {
         ],
     )
     .with_capability_requirement(RenderFeatureCapabilityRequirement::VirtualGeometry);
-    use zircon_runtime::graphics::{RenderFeatureResourceAccess, RenderFeatureResourceDescriptor};
+    use zircon_runtime::graphics::{
+        RenderFeatureResourceAccess, RenderFeatureResourceDescriptor,
+        RenderFeatureResourceWriteMode,
+    };
     use zircon_runtime::render_graph::{
         RenderGraphBufferRange, RenderGraphResourceAccessIntent, RenderGraphResourceAccessMetadata,
         RenderGraphResourceAccessRange, RenderGraphShaderStages,
@@ -303,10 +306,16 @@ pub fn render_feature_descriptor() -> RenderFeatureDescriptor {
         "virtual-geometry-terminal-execution",
         QueueLane::AsyncCompute,
     )
-    .with_executor_id("virtual-geometry.indirect-args");
+    .with_executor_id("virtual-geometry.indirect-args")
+    .with_compute_workload(RenderGraphComputeWorkload::fixed(
+        "virtual-geometry-terminal",
+        [1, 1, 1],
+        [1, 1, 1],
+    ));
     terminal.flags.allow_culling = false;
     for mut read in outputs.iter().cloned() {
         read.access = RenderFeatureResourceAccess::Read;
+        read.write_mode = RenderFeatureResourceWriteMode::Attachment;
         read.access_metadata.as_mut().unwrap().intent =
             RenderGraphResourceAccessIntent::StorageBufferRead {
                 stages: RenderGraphShaderStages::COMPUTE,
@@ -377,6 +386,7 @@ pub fn render_feature_descriptor() -> RenderFeatureDescriptor {
     feature.stage_passes.push(terminal);
     let mut indirect = outputs[0].clone();
     indirect.access = RenderFeatureResourceAccess::Read;
+    indirect.write_mode = RenderFeatureResourceWriteMode::Attachment;
     indirect.access_metadata.as_mut().unwrap().intent = RenderGraphResourceAccessIntent::Indirect;
     feature.with_ordered_buffer_replay(
         vec![

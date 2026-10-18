@@ -44,9 +44,7 @@ pub(in crate::graphics::scene::scene_renderer) struct RenderGraphImportedFinalTa
 #[derive(Default, Debug)]
 pub struct RenderGraphExecutionResources {
     pub(in crate::graphics::scene::scene_renderer) virtual_geometry_indexed_plan: Option<
-        std::sync::Arc<
-            crate::graphics::scene::scene_renderer::mesh::VirtualGeometryIndexedPlan,
-        >,
+        std::sync::Arc<crate::graphics::scene::scene_renderer::mesh::VirtualGeometryIndexedPlan>,
     >,
     device_epoch: Option<RenderPassDeviceEpoch>,
     imported_texture_views: BTreeMap<String, wgpu::TextureView>,

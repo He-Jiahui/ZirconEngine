@@ -35,8 +35,11 @@ pub(super) fn present_redraw(
     let (present_result, toast_confirmation, awaiting_toast) =
         super::super::super::toast_presentation::present_with_toast_confirmation(
             event_loop_state.host.state.as_ptr() as usize,
-            presenter.as_mut(), presentation, presentation_cursor,
-            damage_region.clone(), invalidation,
+            presenter.as_mut(),
+            presentation,
+            presentation_cursor,
+            damage_region.clone(),
+            invalidation,
             event_loop_state.host.window().is_visible(),
         );
     match present_result {

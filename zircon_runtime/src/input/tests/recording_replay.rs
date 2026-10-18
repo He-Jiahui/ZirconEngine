@@ -252,19 +252,21 @@ fn input_replay_applies_focus_loss_as_a_release_transaction() {
 
 #[test]
 fn gamepad_replay_preserves_generation_and_rejects_missing_connection_history() {
-    use std::num::NonZeroU64;
     use crate::input::GamepadConnectionInfo;
+    use std::num::NonZeroU64;
 
     let gamepad = GamepadId(73);
     let generation = NonZeroU64::new(7).unwrap();
-    let connection = |connected| InputEvent::GamepadConnection(GamepadConnectionInfo {
-        gamepad,
-        generation,
-        connected,
-        name: None,
-        vendor_id: None,
-        product_id: None,
-    });
+    let connection = |connected| {
+        InputEvent::GamepadConnection(GamepadConnectionInfo {
+            gamepad,
+            generation,
+            connected,
+            name: None,
+            vendor_id: None,
+            product_id: None,
+        })
+    };
     let sample = InputEvent::GamepadAxis {
         gamepad,
         generation,
@@ -272,9 +274,8 @@ fn gamepad_replay_preserves_generation_and_rejects_missing_connection_history() 
         value: 1.0,
     };
     let events = vec![connection(true), sample.clone()];
-    let recording = InputRecording::from_frames(vec![
-        InputRecordingFrame::from_events(12, events.clone()),
-    ]);
+    let recording =
+        InputRecording::from_frames(vec![InputRecordingFrame::from_events(12, events.clone())]);
     let fresh = DefaultInputManager::default();
     fresh.set_event_recording_config(InputEventRecordingConfig::enabled(16));
     let replay = recording.replay_cursor().replay_next_frame(&fresh).unwrap();
@@ -282,16 +283,22 @@ fn gamepad_replay_preserves_generation_and_rejects_missing_connection_history() 
     assert_eq!(replay.snapshot.gamepad_axes.len(), 1);
     assert_eq!(fresh.drain_events(), events);
     assert_eq!(
-        fresh.drain_event_records().into_iter().map(|record| record.event).collect::<Vec<_>>(),
+        fresh
+            .drain_event_records()
+            .into_iter()
+            .map(|record| record.event)
+            .collect::<Vec<_>>(),
         events,
     );
 
     // A cursor preserves recorded stamps; a sample-only fragment is not self-contained.
-    let fragment = InputRecording::from_frames(vec![
-        InputRecordingFrame::from_events(13, [sample.clone()]),
-    ]);
+    let fragment =
+        InputRecording::from_frames(vec![InputRecordingFrame::from_events(13, [sample.clone()])]);
     let missing_history = DefaultInputManager::default();
-    let fragment_result = fragment.replay_cursor().replay_next_frame(&missing_history).unwrap();
+    let fragment_result = fragment
+        .replay_cursor()
+        .replay_next_frame(&missing_history)
+        .unwrap();
     assert_eq!(fragment_result.event_count, 1); // attempted record count, not admission count
     assert!(fragment_result.snapshot.gamepad_axes.is_empty());
     assert!(missing_history.drain_events().is_empty());
@@ -314,7 +321,10 @@ fn gamepad_replay_preserves_generation_and_rejects_missing_connection_history() 
 
     let serialized = serde_json::to_value(&sample).unwrap();
     let mut missing_generation = serialized.clone();
-    missing_generation["GamepadAxis"].as_object_mut().unwrap().remove("generation");
+    missing_generation["GamepadAxis"]
+        .as_object_mut()
+        .unwrap()
+        .remove("generation");
     assert!(serde_json::from_value::<InputEvent>(missing_generation).is_err());
     let mut zero_generation = serialized;
     zero_generation["GamepadAxis"]["generation"] = serde_json::json!(0);

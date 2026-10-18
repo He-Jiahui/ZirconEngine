@@ -1,5 +1,9 @@
+//! 词边界视图的固定示例：身份保存、完整词前缀与导航查询。
+//! 这些断言不验证指定身份与实际分词版本的一致性，也未覆盖非法或超长字节偏移。
+
 use super::*;
 
+// 只验证传入身份原样保留，不把身份变化解释成切换了分词数据。
 #[test]
 fn map_retains_the_unicode_snapshot_identity() {
     let current = compiled_unicode_data_snapshot_id();
@@ -11,6 +15,7 @@ fn map_retains_the_unicode_snapshot_identity() {
     );
 }
 
+// 连字符与撇号示例区分完整词边界和简单空白切分。
 #[test]
 fn completed_prefix_uses_unicode_words_instead_of_whitespace_tokens() {
     let hyphenated = WordBoundaryMap::new("alpha-beta");
@@ -21,6 +26,7 @@ fn completed_prefix_uses_unicode_words_instead_of_whitespace_tokens() {
     assert_eq!(apostrophe.completed_prefix_end(8), 8);
 }
 
+// 此夹具验证无空格中文输入的一个已拟合字节前缀。
 #[test]
 fn completed_prefix_supports_text_without_spaces() {
     let text = "中文文本";
@@ -32,6 +38,7 @@ fn completed_prefix_supports_text_without_spaces() {
     );
 }
 
+// 导航示例验证严格前后关系和词内命中，未覆盖词尾相等或共享端点的选择。
 #[test]
 fn navigation_queries_share_the_same_word_ranges() {
     let map = WordBoundaryMap::new("alpha-beta");

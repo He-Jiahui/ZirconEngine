@@ -410,15 +410,26 @@ impl ProjectRecoveryDecisionCoordinator {
                     "retry" => RecoveryFailureChoice::Retry,
                     "keep_files" => RecoveryFailureChoice::KeepFiles,
                     "defer" => RecoveryFailureChoice::Defer,
-                    option => return Err(ProjectRecoveryDecisionError::UnexpectedReceiptOption {
-                        option: option.to_string(),
-                    }),
+                    option => {
+                        return Err(ProjectRecoveryDecisionError::UnexpectedReceiptOption {
+                            option: option.to_string(),
+                        })
+                    }
                 };
                 review.pending_ticket = None;
                 review.resolved = Some((attempt, ticket.clone()));
-                return Ok(Some(RecoveryFailureChoiceReceipt { attempt, ticket, choice }));
+                return Ok(Some(RecoveryFailureChoiceReceipt {
+                    attempt,
+                    ticket,
+                    choice,
+                }));
             }
-            if expired && !center.pending_snapshot().iter().any(|s| s.ticket() == &ticket) {
+            if expired
+                && !center
+                    .pending_snapshot()
+                    .iter()
+                    .any(|s| s.ticket() == &ticket)
+            {
                 // A missing receipt is uncertainty, never permission to settle the attempt.
                 review.pending_ticket = None;
             }

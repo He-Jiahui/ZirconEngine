@@ -539,10 +539,11 @@ fn root_hide_close_cancels_drawer_resize_without_persisting_transient_extent() {
         .contains_key(&ShellRegionId::Left));
     assert_eq!(
         harness.root_ui.dispatch_native_close_request_for_test(),
-        crate::ui::retained_host::primitives::CloseRequestResponse::HideWindow
+        crate::ui::retained_host::primitives::CloseRequestResponse::KeepWindowShown
     );
 
-    assert!(!harness.root_ui.window().is_visible());
+    assert!(harness.root_ui.window().is_visible());
+    assert!(!harness.root_ui.exit_requested_for_test());
     assert!(
         !host_context(&harness.root_ui)
             .get_resize_state()
@@ -571,18 +572,12 @@ fn root_hide_close_cancels_drawer_resize_without_persisting_transient_extent() {
         .root_ui
         .dispatch_native_primary_release_for_test(x + 40.0, y);
     assert!(harness.delta_events_since(baseline).is_empty());
-    harness
-        .root_ui
-        .show()
-        .expect("root host can reopen for a new gesture");
-    harness.root_ui.dispatch_native_primary_press_for_test(x, y);
-    assert!(
-        host_context(&harness.root_ui)
-            .get_resize_state()
-            .resize_active
-    );
-    assert!(harness.host.borrow().active_drawer_resize.is_some());
-    harness.root_ui.dispatch_native_focus_lost_for_test();
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(5);
+    while !harness.root_ui.exit_requested_for_test() && std::time::Instant::now() < deadline {
+        harness.host.borrow_mut().tick();
+        std::thread::yield_now();
+    }
+    assert!(harness.root_ui.exit_requested_for_test());
     assert!(harness.delta_events_since(baseline).is_empty());
 }
 

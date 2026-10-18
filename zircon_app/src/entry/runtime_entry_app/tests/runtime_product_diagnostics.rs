@@ -6,7 +6,8 @@ use zircon_runtime_interface::{
 use super::{
     product_frame_diagnostic, runtime_diagnostics_response_received,
     runtime_diagnostics_unavailable_error, validate_first_frame_product_snapshot_with_input_probe,
-    validate_mvp_input_probe_evidence, validate_product_snapshot_for_policy, RuntimeProductProofPolicy,
+    validate_mvp_input_probe_evidence, validate_product_snapshot_for_policy,
+    RuntimeProductProofPolicy,
 };
 
 #[test]
@@ -203,7 +204,9 @@ fn mvp_input_probe_evidence_requires_every_requested_input_class() {
 #[test]
 fn general_project_diagnostics_require_backend_device_and_positive_limits() {
     let policy = RuntimeProductProofPolicy::GeneralProject;
-    assert!(validate_product_snapshot_for_policy(&general_project_snapshot(), policy, false).is_ok());
+    assert!(
+        validate_product_snapshot_for_policy(&general_project_snapshot(), policy, false).is_ok()
+    );
     let mut missing_backend = general_project_snapshot();
     missing_backend.render_backend_name = None;
     let mut missing_device = general_project_snapshot();
@@ -217,7 +220,10 @@ fn general_project_diagnostics_require_backend_device_and_positive_limits() {
         (zero_limit, "device.max_bind_groups"),
     ] {
         let error = validate_product_snapshot_for_policy(&snapshot, policy, false).unwrap_err();
-        assert!(error.contains(&format!("field={field}")), "unexpected diagnostic: {error}");
+        assert!(
+            error.contains(&format!("field={field}")),
+            "unexpected diagnostic: {error}"
+        );
     }
 }
 

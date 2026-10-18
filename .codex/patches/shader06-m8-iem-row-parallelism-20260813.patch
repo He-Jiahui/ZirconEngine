@@ -1,0 +1,178 @@
+diff --git a/zircon_runtime/src/core/framework/render/environment/source_irradiance_cubemap.rs b/zircon_runtime/src/core/framework/render/environment/source_irradiance_cubemap.rs
+--- a/zircon_runtime/src/core/framework/render/environment/source_irradiance_cubemap.rs
++++ b/zircon_runtime/src/core/framework/render/environment/source_irradiance_cubemap.rs
+@@ -11,52 +11,55 @@ use std::sync::Arc;
+ pub use super::ibl_bake_recipe::CANONICAL_IBL_BAKE_IRRADIANCE_CUBE_FACE_SIZE as SOURCE_CUBEMAP_IRRADIANCE_CUBE_FACE_SIZE;
+ 
++const IRRADIANCE_CUBE_ROWS_PER_TASK: u32 = 4;
++
+ struct IrradianceCubeFaceOutput<'a> {
+     face: CubemapFace,
++    first_row: u32,
+     texels: &'a mut [[Real; 3]],
+ }
+ 
+ trait IrradianceCubeFaceExecutor {
+     fn convolve_faces<F>(
+         &self,
+         face_outputs: &mut [IrradianceCubeFaceOutput<'_>],
+         convolve_face: &F,
+     ) where
+-        F: Fn(CubemapFace, &mut [[Real; 3]]) + Send + Sync;
++        F: Fn(CubemapFace, u32, &mut [[Real; 3]]) + Send + Sync;
+ }
+ 
+ struct SerialIrradianceCubeFaceExecutor;
+ 
+ impl IrradianceCubeFaceExecutor for SerialIrradianceCubeFaceExecutor {
+     fn convolve_faces<F>(
+         &self,
+         face_outputs: &mut [IrradianceCubeFaceOutput<'_>],
+         convolve_face: &F,
+     ) where
+-        F: Fn(CubemapFace, &mut [[Real; 3]]) + Send + Sync,
++        F: Fn(CubemapFace, u32, &mut [[Real; 3]]) + Send + Sync,
+     {
+         for output in face_outputs {
+-            convolve_face(output.face, output.texels);
++            convolve_face(output.face, output.first_row, output.texels);
+         }
+     }
+ }
+ 
+ struct ParallelIrradianceCubeFaceExecutor<'a, E>(&'a E);
+ 
+ impl<E> IrradianceCubeFaceExecutor for ParallelIrradianceCubeFaceExecutor<'_, E>
+ where
+     E: ParallelSliceExecutor,
+ {
+     fn convolve_faces<F>(
+         &self,
+         face_outputs: &mut [IrradianceCubeFaceOutput<'_>],
+         convolve_face: &F,
+     ) where
+-        F: Fn(CubemapFace, &mut [[Real; 3]]) + Send + Sync,
++        F: Fn(CubemapFace, u32, &mut [[Real; 3]]) + Send + Sync,
+     {
+         self.0.parallel_for(face_outputs, 1, |outputs| {
+             for output in outputs {
+-                convolve_face(output.face, output.texels);
++                convolve_face(output.face, output.first_row, output.texels);
+             }
+         });
+     }
+ }
+@@ -132,7 +135,7 @@ pub fn build_source_cubemap_irradiance_cube(
+     )
+ }
+ 
+-/// Convolves six independent irradiance faces through the caller-owned task executor.
++/// Convolves independent irradiance output-row tiles through the caller-owned task executor.
+ pub fn build_source_cubemap_irradiance_cube_with_parallel_executor<E>(
+     cubemap: &SourceCubemapMipChain,
+     parallel_executor: &E,
+@@ -155,20 +158,36 @@ fn build_source_cubemap_irradiance_cube_with_face_executor(
+     let source_mip =
+         source_cubemap_irradiance_mip_level(cubemap.source_face_size(), cubemap.source_mip_count());
+ 
+     let face_sample_count = face_size as usize * face_size as usize;
++    let face_output_rows = face_size.div_ceil(IRRADIANCE_CUBE_ROWS_PER_TASK) as usize;
+     let mut face_texels = texels.chunks_exact_mut(face_sample_count);
+-    let mut face_outputs = CubemapFace::ALL.map(|face| IrradianceCubeFaceOutput {
+-        face,
+-        texels: face_texels
+-            .next()
+-            .expect("irradiance cube storage must contain every cubemap face"),
+-    });
+-    face_executor.convolve_faces(&mut face_outputs, &|face, output_texels| {
+-        for y in 0..face_size {
+-            for x in 0..face_size {
++    let mut face_outputs =
++        Vec::with_capacity(CubemapFace::ALL.len() * face_output_rows);
++    for face in CubemapFace::ALL {
++        let face_texels = face_texels
++            .next()
++            .expect("irradiance cube storage must contain every cubemap face");
++        for (row_chunk_index, texels) in face_texels
++            .chunks_mut(face_size as usize * IRRADIANCE_CUBE_ROWS_PER_TASK as usize)
++            .enumerate()
++        {
++            face_outputs.push(IrradianceCubeFaceOutput {
++                face,
++                first_row: row_chunk_index as u32 * IRRADIANCE_CUBE_ROWS_PER_TASK,
++                texels,
++            });
++        }
++    }
++    face_executor.convolve_faces(&mut face_outputs, &|face, first_row, output_texels| {
++        for (row_offset, output_row) in output_texels
++            .chunks_exact_mut(face_size as usize)
++            .enumerate()
++        {
++            let y = first_row + row_offset as u32;
++            for (x, output_texel) in output_row.iter_mut().enumerate() {
+-                let normal = cubemap_texel_direction(face, x, y, face_size);
++                let normal = cubemap_texel_direction(face, x as u32, y, face_size);
+-                output_texels[y as usize * face_size as usize + x as usize] =
++                *output_texel =
+                     convolve_source_cubemap_cosine(cubemap, source_mip, normal);
+             }
+         }
+     });
+@@ -320,13 +339,21 @@ mod tests {
+     #[derive(Default)]
+-    struct CountingParallelSliceExecutor(std::sync::atomic::AtomicUsize);
++    struct CountingParallelSliceExecutor {
++        dispatches: std::sync::atomic::AtomicUsize,
++        work_items: std::sync::atomic::AtomicUsize,
++    }
+ 
+     impl ParallelSliceExecutor for CountingParallelSliceExecutor {
+         fn parallel_for<T, F>(&self, items: &mut [T], chunk_size: usize, task: F)
+         where
+             T: Send,
+             F: Fn(&mut [T]) + Send + Sync,
+         {
+-            self.0.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
++            self.dispatches
++                .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
++            self.work_items.fetch_add(
++                items.len().div_ceil(chunk_size.max(1)),
++                std::sync::atomic::Ordering::Relaxed,
++            );
+             for chunk in items.chunks_mut(chunk_size.max(1)) {
+                 task(chunk);
+             }
+@@ -344,20 +371,29 @@ mod tests {
+     }
+ 
+     #[test]
+-    fn parallel_irradiance_cube_matches_serial_output_and_uses_caller_executor() {
++    fn parallel_irradiance_cube_matches_serial_output_and_tiles_face_rows_for_executor() {
+         let source = build_source_cubemap_from_equirect(4, |u, v| {
+             [u, v, (u * 0.75 + v * 0.25).fract(), 1.0]
+         });
+         let serial = build_source_cubemap_irradiance_cube(&source);
+         let executor = CountingParallelSliceExecutor::default();
+         let parallel =
+             build_source_cubemap_irradiance_cube_with_parallel_executor(&source, &executor);
+ 
+         assert_eq!(parallel, serial);
+         assert_eq!(
+-            executor.0.load(std::sync::atomic::Ordering::Relaxed),
++            executor
++                .dispatches
++                .load(std::sync::atomic::Ordering::Relaxed),
+             1,
+-            "IEM convolution must dispatch its six independent final face outputs together"
++            "IEM convolution must submit all independent output rows through one caller-owned executor dispatch"
++        );
++        assert_eq!(
++            executor
++                .work_items
++                .load(std::sync::atomic::Ordering::Relaxed),
++            48,
++            "32x32 IEM output must use four-row tiles so a direct convolution can use more than six worker tasks"
+         );
+     }
+ }

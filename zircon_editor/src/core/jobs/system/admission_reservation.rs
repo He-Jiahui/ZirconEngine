@@ -1,4 +1,4 @@
-use std::sync::mpsc;
+use std::sync::{mpsc, Arc};
 
 use super::pending::PendingJob;
 use super::pending_task::{LatestPendingTask, PendingTask};
@@ -72,11 +72,13 @@ impl EditorJobBatchAdmissionReservation {
             {
                 state.register(id);
                 self.jobs.inner.progress.register(id, &spec);
-                state.enqueue_pending(PendingJob::new(id, spec, task, cancel_task, admitted_at));
+                let pending = PendingJob::new(id, spec, task, cancel_task, admitted_at);
+                let execution = Arc::clone(&pending.execution);
+                state.enqueue_pending(pending);
                 self.jobs
                     .inner
                     .enqueue_progress_observer_event(ProgressObserverEvent::Admitted(id));
-                tickets.push(JobTicket::new(id, receiver));
+                tickets.push(JobTicket::new_owned(id, receiver, execution));
             }
             tickets
         };

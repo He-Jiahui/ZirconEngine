@@ -16,7 +16,10 @@ fn runtime_session_args_require_explicit_f2_product_proof() {
         args.extend(proof.into_iter().map(str::to_owned));
         let parsed = parse_runtime_session_startup_args(args).unwrap();
 
-        assert_eq!(parsed.product_proof_policy, RuntimeProductProofPolicy::F2LitMesh);
+        assert_eq!(
+            parsed.product_proof_policy,
+            RuntimeProductProofPolicy::F2LitMesh
+        );
         assert!(parsed.remaining_args.is_empty());
     }
 }
@@ -38,7 +41,9 @@ fn runtime_session_args_reject_missing_unknown_and_duplicate_product_proofs() {
         ],
     ] {
         let error = parse_runtime_session_startup_args(args).unwrap_err();
-        assert!(error.to_string().contains("argument=--runtime-product-proof"));
+        assert!(error
+            .to_string()
+            .contains("argument=--runtime-product-proof"));
     }
 }
 
@@ -51,7 +56,9 @@ fn runtime_session_args_reject_f2_without_project_before_nonpresenting_profiles(
         ])
         .unwrap_err();
 
-        assert!(error.to_string().contains("cause=F2 runtime product proof requires --project"));
+        assert!(error
+            .to_string()
+            .contains("cause=F2 runtime product proof requires --project"));
     }
 }
 
@@ -65,9 +72,9 @@ fn runtime_session_args_reject_f2_with_nonpresenting_profiles() {
         ])
         .unwrap_err();
 
-        assert!(error.to_string().contains(
-            "cause=F2 runtime product proof requires a profile with a primary window"
-        ));
+        assert!(error
+            .to_string()
+            .contains("cause=F2 runtime product proof requires a profile with a primary window"));
     }
 }
 
@@ -89,7 +96,10 @@ fn runtime_session_args_default_to_runtime_profile() {
     let parsed = parse_runtime_session_startup_args(["--log-level=debug".to_string()]).unwrap();
 
     assert_eq!(parsed.profile, RuntimeSessionProfile::Runtime);
-    assert_eq!(parsed.product_proof_policy, RuntimeProductProofPolicy::Disabled);
+    assert_eq!(
+        parsed.product_proof_policy,
+        RuntimeProductProofPolicy::Disabled
+    );
     assert_eq!(parsed.profile.as_bytes(), b"runtime");
     assert_eq!(parsed.project_root, None);
     assert_eq!(parsed.play_scene, None);
@@ -176,7 +186,10 @@ fn runtime_session_args_strip_space_separated_project_root() {
         parsed.project_root.as_deref(),
         Some(std::path::Path::new("examples/vampire"))
     );
-    assert_eq!(parsed.product_proof_policy, RuntimeProductProofPolicy::GeneralProject);
+    assert_eq!(
+        parsed.product_proof_policy,
+        RuntimeProductProofPolicy::GeneralProject
+    );
     assert!(parsed.remaining_args.is_empty());
 }
 

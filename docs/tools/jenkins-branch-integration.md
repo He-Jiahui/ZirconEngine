@@ -1,18 +1,20 @@
 # Jenkins 分支提交与统一定时合并
 
-2026-10-17 用户再次明确：**共享 main 工作区必须纯净；任务必须在 Jenkins worktree 分支提交，合入最新主干内容后验证，再通过 PR 合并主干，最后快进同步本地 main**。任意会话均可提交 Jenkins，无需逐会话审批。所有常规 Git 写操作、候选准备、验证和清理由 Jenkins 执行。本次用户另行要求的本地主干基线提交是过渡例外，不授权今后继续在 main 开发或批量提交。
+2026-10-17 用户最新要求：**降低 Jenkins 验证要求，让所有会话自由提交；先提交，错误交回原会话自行修正。** 普通提交、定时集成的验证统一采用 `validationMode=advisory`：配方可省略，检查失败如实记录但不阻断分支提交或 PR 集成。不要求逐文件哈希、完整编译、formal acceptance 或旧管理包验收。Jenkins 在线且原任务文件归属明确即可提交，不需逐会话审批。
+
+任务仍在所属 Jenkins worktree 分支提交，主干通过真实 PR 快进同步。提交只包含明确列出的文件；保留其他会话的改动、活动 Git 锁和真实合并冲突。这些 Git 执行条件用于防止覆盖源码。普通分支提交不要求共享 main 纯净，只有主干同步需要 main 纯净。
 
 main 仅用于同步和只读检查。开始交付、准备候选、同步前后均检查主干分支、index.lock、未结束 Git 操作，以及暂存、工作区和未跟踪文件。任何脏内容均保留并交回原 owner；不得用 stash、reset、clean、忽略新增源码或自动提交外来内容来制造纯净状态。任务实现从一开始就在所属 worktree 中进行；权限仍由现有 canonical 路径及工作树 ownedPaths 约束。
 
 ## 归属与顺序
 
-1. `zircon-management / commit-branch` 核验当前不可变实现、运行代次、真实 controller/agent、原工作树 ready 身份和精确归属文件。先通过 `git rev-parse --absolute-git-dir` 找到该工作树真实的 `index.lock`，有锁则先对账原 owner、进程身份及原生终止记录。锁的年龄、空内容或一次没有打开句柄均不能单独证明可释放。
-2. Jenkins 仅提交本任务逐项列出的文件到原工作树分支。保留其他暂存和未提交内容；不等待编译，不检查或提交整树 dirty。记录原父提交、文件哈希、真实 commit SHA 及原请求；无法确认的初始化删除、外来改动、非 ready 或未完成 merge 保持阻塞。
+1. `zircon-management / commit-branch` 使用当前在线 Jenkins 实例、原任务工作树和精确归属文件。普通交付不扫描完整驱动哈希，不要求旧 capsule 与当前运行代次一致，原工作树不因驱动更新而失去提交资格。通过 `git rev-parse --absolute-git-dir` 找到实际 `index.lock`；保留仍需原 owner 处理的锁。
+2. Jenkins 使用原生 Git 仅提交本任务逐项列出的文件到原分支，保留其他暂存和未提交内容。提交前不执行验证、逐文件哈希或整树检查，也不等待 main 的其他会话完成工作。记录父提交、实际 commit SHA 和原请求；操作中断后按 Git 提交及操作标记恢复原结果。
 3. 分支 commit 成功后，在 `.jenkins/state/management/branch-integration/requests/<operationId>.json` 登记不可变提交、owner session、验证配方、依赖和预期缺失路径。此时 `status=committed, integrationStatus=pending`；它不是产品验证通过或 main 已合并。
 4. 唯一 `zircon-merge-queue` 每 15 分钟运行（`H/15 * * * *`），禁用并发构建，串行处理最多 8 个待处理任务。使用记录的 commit，而不是分支最新 HEAD。核验该提交相对 main 的功能范围；由 Jenkins 复用一个独立受管候选工作树，合入最新 main，验证实际候选。
-5. 验证需要真实 Windows Job 终止、退出码、stdout/stderr EOF、输入和 HEAD 一致。保留该实际候选的验证回执；验证失败不得进入 PR 合并。任务分支发布及 PR 创建、审核、合并走已授权的正常远端分支流程，禁止直接推送 main。当前本地队列不执行远端 push 或 PR 写操作；缺少此远端执行能力或授权时，准确保留待办，不改走本地直接合并。
-6. 队列通过 GitHub API 查找同仓库、同任务分支、精确 sourceCommit、目标 main 的 PR，再独立读取其真实 merged 状态。没有匹配 PR 或 PR 尚未合并时，状态为 `awaiting-pr`，本地 main 不动。只有 PR 实际合并提交可从 origin/main 到达、是本地 main 的后代，并且 Git tree 与已验证候选完全一致，才能快进本地 main。PR 合并结果改变、远端观察失败、本地主干尚未同步到远端或任一工作区变脏时保留原请求及证据，重新对账或验证；本地候选验证通过不再直接发布 main。
-7. 失败或冲突保留 commit、证据和原请求，并在 `.jenkins/records` 生成带 `ownerThreadId` 的精确修复交接。写入收件箱不等于原聊天已读；可用 Codex 正式接口通知时另记录其回执。修复后提交新的明确变更，沿原合并记录对账，不能以新身份重放未知操作。
+5. `validation` 可省略或为空，回执记为 `skipped`，不宣称测试通过。提供检查时保留真实结果；失败设置 `repairRequired=true` 并交回原会话，同时继续 PR 集成。等待真实检查进程退出后才能复用该候选目录。相同失败结果在等待 PR 时可以复用，避免每轮重跑。任务分支发布、PR 创建和合并继续使用已有远端授权；队列本身不增加远端写权限。
+6. 队列查找同仓库、同任务分支、精确 sourceCommit、目标 main 的真实 PR。PR 尚未合并时保留 `awaiting-pr`；合并后从 origin/main 取得真实合并提交，在本地 main 可快进且纯净时同步。建议性验证不要求 PR 结果 tree 与本地候选一致，也不要求检查全部通过。直接推送或重写 main 仍不属于此入口。
+7. 检查失败保留 commit、日志和原请求，并在 `.jenkins/records` 生成带 `ownerThreadId`、`repairRequired`、`repairOf` 的修复待办。原会话读取后自行修正并立即提交，无需再次请用户批准或等待检查转绿。可在新请求携带 `repairsOperationId` 说明修复来源。写入收件箱不等于原聊天被唤醒或已经读取；没有正式聊天投递回执时不得宣称自动唤醒成功。交付不明的旧操作仍按原操作查询，不能重复提交。
 
 原任务工作树不会由该队列自动删除。Jenkins 后续维护必须先核对已交付提交、原生终止、未知源码和其他活动内容，再按精确计划清理。编译产物、临时目录和缓存仅在获准的 `E:/cargo-targets`；保留可复用构建和失败证据。每日 Codex 巡检与此 Jenkins 合并定时流程是两个职责。
 
@@ -38,7 +40,7 @@ python -B -X utf8 tools/dev/jenkins_branch_queue.py query --operation-id task-co
 }
 ```
 
-`paths` 必须属于原工作树的 ownedPaths，并匹配 canonical 写权限；目录和通配符不作为提交范围。适当验证仍由任务负责，静态检查不能代替 Rust 编译、测试或产品验收。配方支持 `pytest`、`python-static`、`skills`、`cargo`，沿用已有公开参数约束。
+`paths` 必须属于原工作树的 ownedPaths，并匹配 canonical 写权限；目录和通配符不作为提交范围。`dependencies` 和 `validation` 可省略。可选配方支持 `pytest`、`python-static`、`skills`、`cargo`，沿用已有公开参数约束。提交成功只说明 Git 已保存变更；测试失败仍为失败，产品和发布验收按实际证据表述。
 
 相同输入重复提交只返回原回执。已知 `waiting/failed` 在确认原 Jenkins 构建真正终止后才可 `submit --resume`；分支已经 commit 时不能重复提交或把其后改动混进旧请求。部署前的 `deliveries`、历史 `allowCommit:false`、失败 fixture 和旧 runtime 回执保持原样，不由新队列改写为成功。
 

@@ -127,7 +127,7 @@ fn queued_editor_is_refused_when_shutdown_closes_admission_at_build_handoff() {
     assert_eq!(editor_records[0].process_id, None);
     drop(session);
     reaper
-        .shutdown_and_join(std::time::Duration::from_secs(1))
+        .shutdown_and_join_until(std::time::Instant::now() + std::time::Duration::from_secs(1))
         .unwrap();
     fs::remove_dir_all(temp).unwrap();
 }

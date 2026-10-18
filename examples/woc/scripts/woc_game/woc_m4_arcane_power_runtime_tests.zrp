@@ -1,0 +1,2 @@
+backend = "zr_vm:project"
+entry = "src/world/arcane_power_runtime_test_main.zr"

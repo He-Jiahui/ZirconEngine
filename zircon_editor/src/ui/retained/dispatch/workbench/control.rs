@@ -75,7 +75,9 @@ fn dispatch_componentized_workbench_binding_for_control(
     binding: EditorUiBinding,
 ) -> Result<UiHostEventEffects, String> {
     if let EditorUiBindingPayload::MenuAction { action_id } = binding.payload() {
-        if let Some(result) = bridge.dispatch_inspector_component_add(runtime, source_control_id, action_id) {
+        if let Some(result) =
+            bridge.dispatch_inspector_component_add(runtime, source_control_id, action_id)
+        {
             return result;
         }
         if action_id == "workbench.content_drawer.sync_selection" {
@@ -166,7 +168,8 @@ pub(crate) fn dispatch_componentized_workbench_option_selected(
     control_id: &str,
     option_id: &str,
 ) -> Result<UiHostEventEffects, String> {
-    if let Some(result) = bridge.select_inspector_component_add_type(runtime, control_id, option_id) {
+    if let Some(result) = bridge.select_inspector_component_add_type(runtime, control_id, option_id)
+    {
         return result;
     }
     if bridge.is_pending_activity_decision_option(control_id, option_id) {

@@ -70,7 +70,10 @@ impl RetainedEditorHost {
             return;
         }
         if let Some((id, token)) = self.workbench_window_bridge.dismissed_activity_toast() {
-            self.runtime.context().notifications().dismiss_toast(&id, token);
+            self.runtime
+                .context()
+                .notifications()
+                .dismiss_toast(&id, token);
         }
         let (pending_decisions, toasts, progress) = {
             let context = self.runtime.context();

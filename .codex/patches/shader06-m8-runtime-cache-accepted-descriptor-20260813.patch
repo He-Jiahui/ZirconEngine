@@ -1,0 +1,109 @@
+diff --git a/zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/environment_ibl_compile_options.rs b/zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/environment_ibl_compile_options.rs
+--- a/zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/environment_ibl_compile_options.rs
++++ b/zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/environment_ibl_compile_options.rs
+@@ -1,8 +1,9 @@
+ use std::sync::{Arc, Mutex};
+ 
+ use crate::asset::artifact::resolve_ibl_bake_artifact_runtime_dispatch;
+ use crate::asset::pipeline::manager::ProjectAssetManager;
+ use crate::core::framework::render::{
+-    IblBakeArtifactContents, RenderFrameExtract, RenderFrameworkError,
++    IblBakeArtifactContents, IblBakeArtifactDescriptor, IblBakeArtifactProducer,
++    IblBakeArtifactRequest, RenderFrameExtract, RenderFrameworkError,
+     source_cubemap_environment_with_bake_artifact,
+ };
+@@ -48,6 +49,6 @@ pub(super) fn resolve_and_rehydrate_environment_ibl_cache(
+     if environment
+         .accepted_bake_artifact_descriptor()
+-        .is_some_and(|descriptor| descriptor.is_current_for(&request))
++        .is_some_and(|descriptor| accepted_bake_artifact_is_current(descriptor, &request))
+     {
+         hydration_cache
+             .lock()
+@@ -82,6 +83,18 @@ pub(super) fn resolve_and_rehydrate_environment_ibl_cache(
+     Ok(Some(EnvironmentIblCacheResolution::Hydrated))
+ }
+ 
++fn accepted_bake_artifact_is_current(
++    descriptor: IblBakeArtifactDescriptor,
++    request: &IblBakeArtifactRequest,
++) -> bool {
++    match descriptor.producer() {
++        IblBakeArtifactProducer::AssetImporterCpu => descriptor.is_current_for(request),
++        IblBakeArtifactProducer::RendererGpuRuntime => {
++            descriptor.is_current_runtime_cache_for(request)
++        }
++    }
++}
++
+ pub(super) fn compile_options_with_environment_ibl_bake_request(
+     extract: &RenderFrameExtract,
+     options: RenderPipelineCompileOptions,
+@@ -202,6 +215,67 @@ mod tests {
+         assert_eq!(hydrated.irradiance_cube(), Some(&irradiance_cube));
+     }
+ 
++    #[test]
++    fn accepted_runtime_cache_artifact_stays_hydrated_after_memo_eviction() {
++        let root = unique_temp_project_root("ibl-compile-options-runtime-accepted");
++        let manager = project_asset_manager_with_root(&root);
++        let hydration_cache = Arc::new(Mutex::<EnvironmentIblHydrationCache>::default());
++        let mut extract = extract_with_source_cubemap();
++        let request = extract
++            .environment
++            .source_cubemap_ibl_bake_request(IblBakeArtifactContents::PMREM_SH9)
++            .expect("source cubemap request");
++        let store = IblBakeArtifactCacheStore::new(
++            manager
++                .current_project_manager()
++                .expect("project")
++                .paths()
++                .cache_root(),
++        );
++        store
++            .write_runtime_cache(&blob_for_request(&request))
++            .expect("runtime cache seed should write");
++        resolve_and_rehydrate_environment_ibl_cache(&manager, &hydration_cache, &mut extract)
++            .expect("runtime cache hit should hydrate the environment");
++        let hydrated_environment = extract
++            .environment
++            .skybox
++            .source_cubemap_environment()
++            .expect("runtime cache hydration should retain the environment")
++            .clone();
++        assert_eq!(
++            hydrated_environment
++                .accepted_bake_artifact_descriptor()
++                .expect("runtime cache hydration should retain descriptor provenance")
++                .producer(),
++            crate::core::framework::render::IblBakeArtifactProducer::RendererGpuRuntime,
++        );
++
++        let mut evicted_extract = extract_with_source_cubemap();
++        evicted_extract.environment.skybox.source_cubemap = Some(hydrated_environment);
++        let evicted_hydration_cache = Arc::new(Mutex::<EnvironmentIblHydrationCache>::default());
++        let resolution = resolve_and_rehydrate_environment_ibl_cache(
++            &ProjectAssetManager::default(),
++            &evicted_hydration_cache,
++            &mut evicted_extract,
++        )
++        .expect("accepted runtime cache payload should not require a cache-store lookup");
++
++        let options = compile_options_with_environment_ibl_bake_request(
++            &evicted_extract,
++            RenderPipelineCompileOptions::default(),
++            resolution.as_ref(),
++        )
++        .expect("accepted runtime cache payload should keep bake out of graph");
++
++        assert!(options.environment_ibl_bake_request().is_none());
++        assert!(matches!(
++            resolution,
++            Some(super::EnvironmentIblCacheResolution::Hydrated)
++        ));
++        let _ = fs::remove_dir_all(root);
++    }
++
+     #[test]
+     fn pending_runtime_bake_keeps_repeated_cache_miss_out_of_graph_key() {
+         let root = unique_temp_project_root("ibl-compile-options-pending");

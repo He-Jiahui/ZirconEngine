@@ -1,0 +1,9 @@
+var math = %import("zr.zircon.math");
+
+pub roundValue(value: float): float {
+    return math.round(value);
+}
+
+pub main(): int {
+    return 1;
+}

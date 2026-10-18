@@ -1,0 +1,491 @@
+var math = %import("zr.zircon.math");
+var container = %import("zr.container");
+var world = %import("world/state");
+var inventoryRules = %import("progression/m5_inventory_rules");
+var catalog = %import("generated/m5_content_catalog");
+
+var MAX_U16: uint = <uint>65535;
+
+jsonBool(value: bool): string {
+    return value ? "true" : "false";
+}
+
+jsonFloat(value: float): string {
+    // `value - value` is non-zero for infinities and NaN for NaN.
+    if (value != value || value - value != 0.0) {
+        throw "WOC client presentation cannot encode a non-finite float";
+    }
+    return <string>value;
+}
+
+jsonInt(value: int): string {
+    return <string>value;
+}
+
+jsonUint(value: uint): string {
+    return <string>value;
+}
+
+jsonU16(value: uint, field: string): string {
+    if (value > MAX_U16) {
+        throw "WOC client presentation field exceeds u16: " + field;
+    }
+    return jsonUint(value);
+}
+
+jsonLevel(value: int): string {
+    if (value < 1 || value > <int>MAX_U16) {
+        throw "WOC client presentation level is outside u16";
+    }
+    return jsonInt(value);
+}
+
+entityJson(state: world.WorldState, index: int): string {
+    var id = <uint>state.entityIds[index];
+    var generation = <uint>state.entityGenerations[index];
+    if (id == <uint>0 || generation > <uint>4294967295) {
+        throw "WOC client presentation entity reference is invalid";
+    }
+    return "{\"id\":" + jsonUint(id) + ",\"generation\":" + jsonUint(generation) + "}";
+}
+
+entityIndexById(state: world.WorldState, entityId: uint): int {
+    var index = 0;
+    while (index < state.entityIds.length) {
+        if (<uint>state.entityIds[index] == entityId) {
+            return index;
+        }
+        index = index + 1;
+    }
+    return -1;
+}
+
+templateId(state: world.WorldState, index: int): string {
+    var kind = <uint>state.entityKinds[index];
+    var template = <uint>state.entityTemplates[index];
+    var catalogIndex = <int>template - 1;
+    if (kind == <uint>2 && catalogIndex >= 0 && catalogIndex < catalog.count("mob")) {
+        return catalog.text("mob", catalogIndex, "id");
+    }
+    if (kind == <uint>3 && catalogIndex >= 0 && catalogIndex < catalog.count("npc")) {
+        return catalog.text("npc", catalogIndex, "id");
+    }
+    return "woc_entity_" + jsonUint(kind) + "_" + jsonUint(template);
+}
+
+offlineNameCharacter(value: uint): string {
+    // WOS stores this validated offline name as ASCII bytes, so preserve the
+    // authored identity instead of deriving display text from the host.
+    if (value == <uint>32) { return " "; }
+    if (value == <uint>39) { return "'"; }
+    if (value == <uint>45) { return "-"; }
+    if (value == <uint>65) { return "A"; }
+    if (value == <uint>66) { return "B"; }
+    if (value == <uint>67) { return "C"; }
+    if (value == <uint>68) { return "D"; }
+    if (value == <uint>69) { return "E"; }
+    if (value == <uint>70) { return "F"; }
+    if (value == <uint>71) { return "G"; }
+    if (value == <uint>72) { return "H"; }
+    if (value == <uint>73) { return "I"; }
+    if (value == <uint>74) { return "J"; }
+    if (value == <uint>75) { return "K"; }
+    if (value == <uint>76) { return "L"; }
+    if (value == <uint>77) { return "M"; }
+    if (value == <uint>78) { return "N"; }
+    if (value == <uint>79) { return "O"; }
+    if (value == <uint>80) { return "P"; }
+    if (value == <uint>81) { return "Q"; }
+    if (value == <uint>82) { return "R"; }
+    if (value == <uint>83) { return "S"; }
+    if (value == <uint>84) { return "T"; }
+    if (value == <uint>85) { return "U"; }
+    if (value == <uint>86) { return "V"; }
+    if (value == <uint>87) { return "W"; }
+    if (value == <uint>88) { return "X"; }
+    if (value == <uint>89) { return "Y"; }
+    if (value == <uint>90) { return "Z"; }
+    if (value == <uint>97) { return "a"; }
+    if (value == <uint>98) { return "b"; }
+    if (value == <uint>99) { return "c"; }
+    if (value == <uint>100) { return "d"; }
+    if (value == <uint>101) { return "e"; }
+    if (value == <uint>102) { return "f"; }
+    if (value == <uint>103) { return "g"; }
+    if (value == <uint>104) { return "h"; }
+    if (value == <uint>105) { return "i"; }
+    if (value == <uint>106) { return "j"; }
+    if (value == <uint>107) { return "k"; }
+    if (value == <uint>108) { return "l"; }
+    if (value == <uint>109) { return "m"; }
+    if (value == <uint>110) { return "n"; }
+    if (value == <uint>111) { return "o"; }
+    if (value == <uint>112) { return "p"; }
+    if (value == <uint>113) { return "q"; }
+    if (value == <uint>114) { return "r"; }
+    if (value == <uint>115) { return "s"; }
+    if (value == <uint>116) { return "t"; }
+    if (value == <uint>117) { return "u"; }
+    if (value == <uint>118) { return "v"; }
+    if (value == <uint>119) { return "w"; }
+    if (value == <uint>120) { return "x"; }
+    if (value == <uint>121) { return "y"; }
+    if (value == <uint>122) { return "z"; }
+    throw "WOC client presentation player name contains an invalid byte";
+}
+
+offlinePlayerName(state: world.WorldState): string {
+    if (state.offlinePlayerName.length < 2 || state.offlinePlayerName.length > 16) {
+        throw "WOC client presentation player name length is invalid";
+    }
+    var output = "";
+    for (var byte in state.offlinePlayerName) {
+        output = output + offlineNameCharacter(<uint>byte);
+    }
+    return output;
+}
+
+displayName(state: world.WorldState, index: int, viewerIndex: int): string {
+    if (index == viewerIndex) {
+        return offlinePlayerName(state);
+    }
+    return templateId(state, index) + "_" + jsonUint(<uint>state.entityIds[index]);
+}
+
+itemIdForCode(code: uint): string {
+    var itemIndex = inventoryRules.itemIndexFromCode(code);
+    if (itemIndex < 0) {
+        throw "WOC client presentation item code is invalid";
+    }
+    return catalog.text("item", itemIndex, "id");
+}
+
+optionalItemJson(code: uint): string {
+    return code == <uint>0 ? "null" : "\"" + itemIdForCode(code) + "\"";
+}
+
+horizontalSpeed(state: world.WorldState, index: int): float {
+    var x = <float>state.entityVelocityX[index];
+    var z = <float>state.entityVelocityZ[index];
+    var speed = math.sqrt(x * x + z * z);
+    if (speed != speed || speed < 0.0) {
+        throw "WOC client presentation horizontal speed is invalid";
+    }
+    return speed;
+}
+
+absorbForEntity(state: world.WorldState, entityId: uint): float {
+    var total = 0.0;
+    var index = 0;
+    while (index < state.offlineAbsorbTargetIds.length) {
+        if (<uint>state.offlineAbsorbTargetIds[index] == entityId &&
+            <float>state.offlineAbsorbRemaining[index] > 0.0) {
+            var amount = <int>state.offlineAbsorbAmounts[index];
+            if (amount < 0) {
+                throw "WOC client presentation absorb amount is invalid";
+            }
+            total = total + <float>amount;
+        }
+        index = index + 1;
+    }
+    return total;
+}
+
+resourceJson(state: world.WorldState, index: int): string {
+    var kind = <uint>state.entityResourceKinds[index];
+    if (kind == <uint>0) {
+        return "null";
+    }
+    var name = "";
+    if (kind == <uint>1) {
+        name = "mana";
+    } else if (kind == <uint>2) {
+        name = "rage";
+    } else if (kind == <uint>3) {
+        name = "energy";
+    } else {
+        throw "WOC client presentation resource kind is invalid";
+    }
+    var current = <float>state.entityResources[index];
+    var maximum = <float>state.entityMaxResources[index];
+    if (current < 0.0 || maximum <= 0.0) {
+        throw "WOC client presentation resource meter is invalid";
+    }
+    return "{\"kind\":\"" + name + "\",\"meter\":{\"current\":" +
+        jsonFloat(current) + ",\"maximum\":" + jsonFloat(maximum) + "}}";
+}
+
+castJson(state: world.WorldState, index: int): string {
+    var ability = <uint>state.entityCastingAbility[index];
+    if (ability == <uint>0) {
+        return "null";
+    }
+    var remaining = <float>state.entityCastRemaining[index];
+    var total = <float>state.entityCastTotal[index];
+    if (remaining < 0.0 || total <= 0.0) {
+        throw "WOC client presentation cast is invalid";
+    }
+    return "{\"ability_id\":\"woc_ability_" + jsonUint(ability) +
+        "\",\"remaining\":" + jsonFloat(remaining) + ",\"total\":" +
+        jsonFloat(total) + ",\"channeling\":" +
+        jsonBool(<uint>state.entityCastingFlags[index] != <uint>0) + "}";
+}
+
+actorJson(state: world.WorldState, index: int): string {
+    var speed = horizontalSpeed(state, index);
+    var moving = speed > 0.001;
+    var skin = <uint>state.entitySkinIndices[index];
+    if (skin > MAX_U16) {
+        throw "WOC client presentation skin variant exceeds u16";
+    }
+    var weaponSkin = <uint>state.entityWeaponSkinCodes[index];
+    var weaponSkinJson = weaponSkin == <uint>0 ? "null" :
+        "\"woc_weapon_skin_" + jsonUint(weaponSkin) + "\"";
+    return "{\"entity\":" + entityJson(state, index) +
+        ",\"template_id\":\"" + templateId(state, index) +
+        "\",\"transform\":{\"translation\":{\"x\":" +
+        jsonFloat(<float>state.entityX[index]) + ",\"y\":" +
+        jsonFloat(<float>state.entityY[index]) + ",\"z\":" +
+        jsonFloat(<float>state.entityZ[index]) + "},\"facing_radians\":" +
+        jsonFloat(<float>state.entityFacing[index]) + "},\"animation\":{\"horizontal_speed\":" +
+        jsonFloat(speed) + ",\"moving\":" + jsonBool(moving) +
+        ",\"running\":" + jsonBool(moving && <float>state.entityMoveSpeed[index] >= 6.0) +
+        ",\"airborne\":" + jsonBool(!<bool>state.entityOnGround[index] ||
+            <bool>state.entityJumping[index]) + ",\"backwards\":" +
+        jsonBool(<bool>state.entityMovementBack[index]) +
+        ",\"reverse_backpedal\":false,\"dead\":" +
+        jsonBool(<bool>state.entityDead[index]) + ",\"casting\":" +
+        jsonBool(<uint>state.entityCastingAbility[index] != <uint>0 &&
+            <float>state.entityCastRemaining[index] > 0.0) +
+        ",\"spinning\":" + jsonBool(<bool>state.entityMovementTurnLeft[index] ||
+            <bool>state.entityMovementTurnRight[index]) +
+        ",\"swimming\":false,\"sitting\":" +
+        jsonBool(<bool>state.entitySitting[index]) +
+        "},\"appearance\":{\"skin_variant\":" + jsonU16(skin, "skin_variant") +
+        ",\"mainhand_item_id\":" + optionalItemJson(<uint>state.entityM5MainhandItemCodes[index]) +
+        ",\"offhand_item_id\":null,\"weapon_skin_id\":" + weaponSkinJson +
+        ",\"weapon_stowed\":" + jsonBool(<bool>state.entityWeaponStowed[index]) + "}}";
+}
+
+unitJson(state: world.WorldState, index: int, viewerIndex: int): string {
+    var hp = <int>state.entityHp[index];
+    var maxHp = <int>state.entityMaxHp[index];
+    if (hp < 0 || maxHp <= 0) {
+        throw "WOC client presentation health meter is invalid";
+    }
+    var title = <uint>state.entityActiveTitleDeedCodes[index];
+    var titleJson = title == <uint>0 ? "null" :
+        "\"woc_deed_" + jsonUint(title) + "\"";
+    return "{\"entity\":" + entityJson(state, index) +
+        ",\"display_name\":\"" + displayName(state, index, viewerIndex) +
+        "\",\"title_id\":" + titleJson + ",\"level\":" +
+        jsonLevel(<int>state.entityLevels[index]) +
+        ",\"health\":{\"current\":" + jsonInt(hp) +
+        ",\"maximum\":" + jsonInt(maxHp) + "},\"resource\":" +
+        resourceJson(state, index) + ",\"absorb\":" +
+        jsonFloat(absorbForEntity(state, <uint>state.entityIds[index])) +
+        ",\"dead\":" + jsonBool(<bool>state.entityDead[index]) +
+        ",\"hostile\":" + jsonBool(<bool>state.entityHostile[index]) +
+        ",\"elite\":false,\"boss\":false,\"cast\":" + castJson(state, index) + "}";
+}
+
+inventoryJson(state: world.WorldState, playerIndex: int): string {
+    var backpackSlots = inventoryRules.backpackSlots();
+    var capacity = world.m5InventoryCapacity(state, playerIndex);
+    if (backpackSlots < 1 || capacity < backpackSlots || capacity > <int>MAX_U16) {
+        throw "WOC client presentation inventory capacity is invalid";
+    }
+    var copper = <int>state.entityInventoryCopper[playerIndex];
+    if (copper < 0) {
+        throw "WOC client presentation inventory copper is invalid";
+    }
+    var output = "{\"backpack_slots\":" + jsonInt(backpackSlots) +
+        ",\"capacity\":" + jsonInt(capacity) + ",\"copper\":" +
+        jsonInt(copper) + ",\"bags\":[";
+    var socket = 0;
+    while (socket < inventoryRules.bagSockets()) {
+        if (socket > 0) {
+            output = output + ",";
+        }
+        var code = <uint>state.entityInventoryBagCodes[
+            playerIndex * inventoryRules.bagSockets() + socket
+        ];
+        if (code == <uint>0) {
+            output = output + "null";
+        } else {
+            var slots = inventoryRules.bagSlotsForCode(code);
+            if (slots < 1 || slots > <int>MAX_U16) {
+                throw "WOC client presentation bag slots are invalid";
+            }
+            output = output + "{\"item_id\":\"" + itemIdForCode(code) +
+                "\",\"slots\":" + jsonInt(slots) + "}";
+        }
+        socket = socket + 1;
+    }
+    output = output + "],\"items\":[";
+    var start = <int><uint>state.entityInventoryStackOffsets[playerIndex];
+    var end = <int><uint>state.entityInventoryStackOffsets[playerIndex + 1];
+    var stackIndex = start;
+    while (stackIndex < end) {
+        if (stackIndex > start) {
+            output = output + ",";
+        }
+        var localIndex = stackIndex - start;
+        var count = <int>state.entityInventoryStackCounts[stackIndex];
+        var hint = <int>state.entityInventoryStackManualSlots[stackIndex];
+        if (localIndex > <int>MAX_U16 || count < 1 || hint < -1 || hint > <int>MAX_U16) {
+            throw "WOC client presentation inventory stack is invalid";
+        }
+        var hintJson = hint < 0 ? "null" : jsonInt(hint);
+        output = output + "{\"inventory_index\":" + jsonInt(localIndex) +
+            ",\"cell_hint\":" + hintJson + ",\"item_id\":\"" +
+            itemIdForCode(<uint>state.entityInventoryStackItemCodes[stackIndex]) +
+            "\",\"count\":" + jsonInt(count) +
+            ",\"instance_id\":null,\"soulbound\":false}";
+        stackIndex = stackIndex + 1;
+    }
+    return output + "]}";
+}
+
+questStateName(value: uint): string {
+    if (value == <uint>1) {
+        return "active";
+    }
+    if (value == <uint>2) {
+        return "ready";
+    }
+    throw "WOC client presentation quest state is not active";
+}
+
+appendTrackedQuest(
+    output: string, state: world.WorldState, questIndex: int, status: uint,
+    current: uint, order: int
+): string {
+    var required = <uint>catalog.metric("quest", questIndex, "objectiveCount");
+    if (status != <uint>1 && status != <uint>2 || current > required || order < 1 ||
+        order > <int>MAX_U16) {
+        throw "WOC client presentation tracked quest is invalid";
+    }
+    return output + "{\"quest_id\":\"" + catalog.text("quest", questIndex, "id") +
+        "\",\"acceptance_order\":" + jsonInt(order) + ",\"state\":\"" +
+        questStateName(status) + "\",\"objectives\":[{\"objective_index\":0,\"current\":" +
+        jsonUint(current) + ",\"required\":" + jsonUint(required) + "}]}";
+}
+
+appendQuestLogEntry(
+    output: string, state: world.WorldState, questIndex: int, status: uint,
+    current: uint, order: int
+): string {
+    var required = <uint>catalog.metric("quest", questIndex, "objectiveCount");
+    if (status != <uint>1 && status != <uint>2 || current > required || order < 1 ||
+        order > <int>MAX_U16) {
+        throw "WOC client presentation quest log is invalid";
+    }
+    return output + "{\"quest_id\":\"" + catalog.text("quest", questIndex, "id") +
+        "\",\"acceptance_order\":" + jsonInt(order) + ",\"state\":\"" +
+        questStateName(status) + "\",\"suggested_players\":null,\"objectives\":[{\"objective_index\":0,\"current\":" +
+        jsonUint(current) + ",\"required\":" + jsonUint(required) +
+        "}],\"xp_reward\":" + jsonUint(<uint>catalog.metric("quest", questIndex, "xpReward")) +
+        ",\"copper_reward\":" + jsonUint(<uint>catalog.metric("quest", questIndex, "copperReward")) +
+        ",\"reward_item_id\":null,\"turn_in_npc_id\":\"" +
+        catalog.text("quest", questIndex, "turnInNpcId") + "\"}";
+}
+
+pub encode(state: world.WorldState): string {
+    if (!state.offlineSessionActive) {
+        throw "WOC client presentation requires an offline committed world";
+    }
+    var playerIndex = -1;
+    var index = 0;
+    var actors = "[";
+    var previousId: uint = <uint>0;
+    var previousGeneration: uint = <uint>0;
+    while (index < state.entityIds.length) {
+        var id = <uint>state.entityIds[index];
+        var generation = <uint>state.entityGenerations[index];
+        if (index > 0 && (id < previousId ||
+            (id == previousId && generation <= previousGeneration))) {
+            throw "WOC client presentation actor order is invalid";
+        }
+        if (index > 0) {
+            actors = actors + ",";
+        }
+        actors = actors + actorJson(state, index);
+        if (playerIndex < 0 && <uint>state.entityKinds[index] == <uint>1) {
+            playerIndex = index;
+        }
+        previousId = id;
+        previousGeneration = generation;
+        index = index + 1;
+    }
+    if (playerIndex < 0) {
+        throw "WOC client presentation has no player viewer";
+    }
+    actors = actors + "]";
+
+    var targetId = <uint>state.entityTargetIds[playerIndex];
+    var targetIndex = targetId == <uint>0 ? -1 : entityIndexById(state, targetId);
+    if (targetId != <uint>0 && targetIndex < 0) {
+        throw "WOC client presentation player target is missing";
+    }
+    var targetJson = targetIndex < 0 ? "null" : unitJson(state, targetIndex, playerIndex);
+    var targetOfTargetJson = "null";
+    if (targetIndex >= 0) {
+        var targetOfTargetId = <uint>state.entityTargetIds[targetIndex];
+        if (targetOfTargetId != <uint>0) {
+            var targetOfTargetIndex = entityIndexById(state, targetOfTargetId);
+            if (targetOfTargetIndex < 0) {
+                throw "WOC client presentation target-of-target is missing";
+            }
+            targetOfTargetJson = unitJson(state, targetOfTargetIndex, playerIndex);
+        }
+    }
+
+    var tracked = "[";
+    var questLog = "[";
+    var questOrder = 1;
+    var firstQuest = true;
+    var wolves = <uint>state.offlineQuestWolvesState;
+    if (wolves == <uint>1 || wolves == <uint>2) {
+        tracked = appendTrackedQuest(
+            tracked, state, 1, wolves, <uint>state.offlineQuestWolvesObjectiveCount, questOrder
+        );
+        questLog = appendQuestLogEntry(
+            questLog, state, 1, wolves, <uint>state.offlineQuestWolvesObjectiveCount, questOrder
+        );
+        firstQuest = false;
+        questOrder = questOrder + 1;
+    }
+    var boars = <uint>state.offlineQuestBoarsState;
+    if (boars == <uint>1 || boars == <uint>2) {
+        if (!firstQuest) {
+            tracked = tracked + ",";
+            questLog = questLog + ",";
+        }
+        tracked = appendTrackedQuest(
+            tracked, state, 0, boars, <uint>state.offlineQuestBoarsObjectiveCount, questOrder
+        );
+        questLog = appendQuestLogEntry(
+            questLog, state, 0, boars, <uint>state.offlineQuestBoarsObjectiveCount, questOrder
+        );
+    }
+    tracked = tracked + "]";
+    questLog = questLog + "]";
+    var completed = 0;
+    if (wolves == <uint>3) { completed = completed + 1; }
+    if (boars == <uint>3) { completed = completed + 1; }
+
+    return "{\"schema_version\":2,\"world\":{\"viewer\":" +
+        entityJson(state, playerIndex) + ",\"actors\":" + actors +
+        "},\"hud\":{\"player\":" + unitJson(state, playerIndex, playerIndex) +
+        ",\"target\":" + targetJson + ",\"target_of_target\":" +
+        targetOfTargetJson + ",\"combo_points\":0,\"actions\":[],\"tracked_quests\":" +
+        tracked + "},\"windows\":{\"inventory\":" + inventoryJson(state, playerIndex) +
+        ",\"quest_log\":{\"completed_count\":" + jsonInt(completed) +
+        ",\"quests\":" + questLog + "}}}";
+}
+
+pub encodeBytes(state: world.WorldState): container.Array<uint> {
+    // Keep the host boundary on the byte ABI; string reads are size-limited.
+    return encode(state).toArray();
+}

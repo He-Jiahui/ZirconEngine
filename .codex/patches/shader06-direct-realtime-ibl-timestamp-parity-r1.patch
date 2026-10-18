@@ -1,0 +1,24 @@
+diff --git a/zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_scene/render_scene.rs b/zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_scene/render_scene.rs
+--- a/zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_scene/render_scene.rs
++++ b/zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_scene/render_scene.rs
+@@ -57,9 +57,9 @@ impl SceneRendererCore {
+         } else if let Some(timer) = gpu_pass_timer.as_deref_mut() {
+             let _ = timer.defer_frame(frame_generation);
+         }
+-        let realtime_ibl_gpu_timing_enabled = readback_ready && gpu_pass_timer.is_some();
++        let realtime_ibl_gpu_timing_enabled = self.realtime_ibl.gpu_timestamps_supported();
+         let realtime_ibl_scope = (readback_ready && realtime_ibl_prepared.is_some())
+             .then(|| {
+                 gpu_pass_timer
+                     .as_deref_mut()
+                     .and_then(|timer| timer.begin_pass(&mut encoder, DIRECT_REALTIME_IBL_GPU_PASS))
+@@ -446,8 +446,8 @@ mod tests {
+         assert!(source.contains("timer.defer_frame(frame_generation)"));
+         assert!(source.contains("self.readback_queue.abort_frame(readback_frame_index);"));
+         assert!(source.contains(
+-            "let realtime_ibl_gpu_timing_enabled = readback_ready && gpu_pass_timer.is_some();"
++            "let realtime_ibl_gpu_timing_enabled = self.realtime_ibl.gpu_timestamps_supported();"
+         ));
+         assert!(source.contains(
+             "let realtime_ibl_scope = (readback_ready && realtime_ibl_prepared.is_some())"
+         ));

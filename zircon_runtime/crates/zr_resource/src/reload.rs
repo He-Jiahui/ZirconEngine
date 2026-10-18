@@ -1,6 +1,8 @@
 //! Complete importer-source publication protocol; candidate errors and active residents are separate.
+use crate::{
+    ResourceActiveGeneration, ResourceActiveVersionKey, ResourceData, ResourceId, ResourceRecord,
+};
 use std::sync::Arc;
-use crate::{ResourceActiveGeneration, ResourceActiveVersionKey, ResourceData, ResourceId, ResourceRecord};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ResourceSourceOutcome {
@@ -43,16 +45,39 @@ impl ResourceSourcePublication {
         affected.push(owner);
         affected.sort_unstable();
         affected.dedup();
-        let expected_active = affected.into_iter().map(|id| (id, active.key(id))).collect();
-        Self { owner, previous_members, members, outcome, expected_active }
+        let expected_active = affected
+            .into_iter()
+            .map(|id| (id, active.key(id)))
+            .collect();
+        Self {
+            owner,
+            previous_members,
+            members,
+            outcome,
+            expected_active,
+        }
     }
 
     pub fn recapture(&self, active: &ResourceActiveGeneration) -> Self {
-        Self::capture(self.owner, self.previous_members.clone(), self.members.clone(), self.outcome, active)
+        Self::capture(
+            self.owner,
+            self.previous_members.clone(),
+            self.members.clone(),
+            self.outcome,
+            active,
+        )
     }
 
-    pub fn owner(&self) -> ResourceId { self.owner }
-    pub fn outcome(&self) -> ResourceSourceOutcome { self.outcome }
-    pub fn members(&self) -> &[ResourceSourceMember] { &self.members }
-    pub fn previous_members(&self) -> &[ResourceId] { &self.previous_members }
+    pub fn owner(&self) -> ResourceId {
+        self.owner
+    }
+    pub fn outcome(&self) -> ResourceSourceOutcome {
+        self.outcome
+    }
+    pub fn members(&self) -> &[ResourceSourceMember] {
+        &self.members
+    }
+    pub fn previous_members(&self) -> &[ResourceId] {
+        &self.previous_members
+    }
 }

@@ -1,3 +1,5 @@
+//! 以 ASCII 空格与 NBSP 样例核对裁剪后的借用内容、源起点和尾部字节数。
+
 use super::{trailing_wrap_space_byte_len, trim_leading_wrap_spaces};
 
 #[test]

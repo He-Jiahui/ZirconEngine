@@ -13,8 +13,10 @@ pub(super) struct RenderSceneGeometryReplayState {
     removed_resources: HashSet<UntypedResourceHandle>,
     resync_required: bool,
     observed_active: Option<std::sync::Arc<crate::core::resource::ResourceActiveGeneration>>,
-    pending_active: HashMap<UntypedResourceHandle, Option<crate::core::resource::ResourceActiveVersionKey>>,
-    applied_active: HashMap<UntypedResourceHandle, Option<crate::core::resource::ResourceActiveVersionKey>>,
+    pending_active:
+        HashMap<UntypedResourceHandle, Option<crate::core::resource::ResourceActiveVersionKey>>,
+    applied_active:
+        HashMap<UntypedResourceHandle, Option<crate::core::resource::ResourceActiveVersionKey>>,
     // A replacement cursor is required before a disconnect resync can be acknowledged.
     reconnect_required: bool,
 }
@@ -45,22 +47,33 @@ impl RenderSceneGeometryReplayState {
         is_relevant: impl Fn(UntypedResourceHandle) -> bool,
     ) {
         if let Some(previous) = self.observed_active.as_ref() {
-            if std::sync::Arc::ptr_eq(previous, active) { return; }
+            if std::sync::Arc::ptr_eq(previous, active) {
+                return;
+            }
             if let Some(changed) = active.changed_since(previous) {
                 for id in changed {
                     let row = active.row(id).or_else(|| previous.row(id));
-                    let Some(row) = row else { continue; };
+                    let Some(row) = row else {
+                        continue;
+                    };
                     let resource = UntypedResourceHandle::new(id, row.record.kind);
-                    if !is_relevant(resource) { continue; }
+                    if !is_relevant(resource) {
+                        continue;
+                    }
                     let key = active.key(id);
                     if self.pending_active.get(&resource) == Some(&key)
-                        || (self.pending_active.get(&resource).is_none() && self.applied_active.get(&resource) == Some(&key))
-                    { continue; }
+                        || (self.pending_active.get(&resource).is_none()
+                            && self.applied_active.get(&resource) == Some(&key))
+                    {
+                        continue;
+                    }
                     self.pending_active.insert(resource, key);
                     // Active identity changes must bypass catalog-revision deduplication.
                     self.pending_revisions.insert(resource, row.record.revision);
                 }
-            } else { self.resync_required = true; }
+            } else {
+                self.resync_required = true;
+            }
         }
         self.observed_active = Some(std::sync::Arc::clone(active));
     }
@@ -145,9 +158,12 @@ impl RenderSceneGeometryReplayState {
             .retain(|resource, _| is_relevant(*resource));
         self.applied_revisions
             .retain(|resource, _| is_relevant(*resource));
-        self.pending_active.retain(|resource, _| is_relevant(*resource));
-        self.applied_active.retain(|resource, _| is_relevant(*resource));
-        self.removed_resources.retain(|resource| is_relevant(*resource));
+        self.pending_active
+            .retain(|resource, _| is_relevant(*resource));
+        self.applied_active
+            .retain(|resource, _| is_relevant(*resource));
+        self.removed_resources
+            .retain(|resource| is_relevant(*resource));
     }
 
     #[cfg(test)]
@@ -173,10 +189,10 @@ impl RenderSceneGeometryReplayState {
             return;
         }
         let resource = UntypedResourceHandle::new(event.id, event.resource_kind);
-        let recreated = event.kind == ResourceEventKind::Added
-            && self.removed_resources.remove(&resource);
-        let first_removal = event.kind == ResourceEventKind::Removed
-            && self.removed_resources.insert(resource);
+        let recreated =
+            event.kind == ResourceEventKind::Added && self.removed_resources.remove(&resource);
+        let first_removal =
+            event.kind == ResourceEventKind::Removed && self.removed_resources.insert(resource);
         if recreated || first_removal {
             // A committed removal cannot suppress a fresh cold Added event whose content
             // revision is equal or smaller. Only the ordered Removed -> Added edge resets

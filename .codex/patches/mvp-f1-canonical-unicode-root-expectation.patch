@@ -1,0 +1,14 @@
+diff --git a/zircon_editor/src/core/project/tests/template_creation.rs b/zircon_editor/src/core/project/tests/template_creation.rs
+--- a/zircon_editor/src/core/project/tests/template_creation.rs
++++ b/zircon_editor/src/core/project/tests/template_creation.rs
+@@ -114,6 +114,9 @@ fn template_creation_reopens_from_a_space_and_non_ascii_parent_path() {
+     };
+ 
+     let created = ProjectAuthority::default().create_project(&draft).unwrap();
+-    assert_eq!(created.root, location.join("Path Safe Project"));
++    assert_eq!(
++        created.root,
++        fs::canonicalize(location.join("Path Safe Project")).unwrap()
++    );
+ 
+     let mut reopened = ProjectManager::open(&created.root).unwrap();

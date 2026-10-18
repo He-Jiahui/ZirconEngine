@@ -1,0 +1,35 @@
+diff --git a/zircon_editor/src/ui/host/startup/create_or_open.rs b/zircon_editor/src/ui/host/startup/create_or_open.rs
+--- a/zircon_editor/src/ui/host/startup/create_or_open.rs
++++ b/zircon_editor/src/ui/host/startup/create_or_open.rs
+@@ -1,8 +1,7 @@
+-use crate::core::project::{NewProjectDraft, ProjectAuthority};
+-use crate::ui::host::project_access::project_open_is_degraded;
++use crate::core::project::{NewProjectDraft, ProjectActivation, ProjectAuthority};
++use crate::ui::host::project_access::project_open_is_degraded;
+ use crate::ui::workbench::project::EditorProjectDocument;
+ use crate::ui::workbench::startup::{EditorSessionMode, EditorStartupSessionDocument};
+-use zircon_runtime::asset::project::ProjectManager;
+ 
+ use super::super::editor_error::EditorError;
+ use super::super::editor_ui_host::EditorUiHost;
+@@ -18,7 +17,7 @@ impl EditorUiHost {
+-    pub(crate) fn open_prepared_project_and_remember(
++    pub(crate) fn activate_project_and_remember(
+         &self,
+-        project: ProjectManager,
++        activation: ProjectActivation,
+     ) -> Result<EditorStartupSessionDocument, EditorError> {
+-        let document = self.open_prepared_project(project)?;
++        let document = self.activate_project(activation)?;
+         self.remember_prepared_project(document)
+     }
+@@ -46,7 +45,7 @@ impl EditorUiHost {
+     pub fn create_project_and_open(
+         &self,
+         draft: NewProjectDraft,
+     ) -> Result<EditorStartupSessionDocument, EditorError> {
+         let created = ProjectAuthority::default().create_project(&draft)?;
+-        self.open_prepared_project_and_remember(created.into_project())
++        self.activate_project_and_remember(created.into_activation())
+     }
+ }

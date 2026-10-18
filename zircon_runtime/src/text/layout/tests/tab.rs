@@ -169,7 +169,7 @@ fn legacy_tab_aligned_width(
 }
 
 /// 借用已构造输入，先预热，再为两条路径各收集规定数量的纳秒样本。
-/// 每对交替执行先后；循环、闭包调用与计时开销仍参与测量。
+/// 每对交替执行先后；被测遍历、闭包调用与计时开销仍参与测量。
 fn paired_width_samples(
     text: &str,
     advances: &[f32],

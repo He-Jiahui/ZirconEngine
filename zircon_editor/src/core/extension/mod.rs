@@ -34,4 +34,6 @@ pub use toolkit::{
     ToolkitInstanceId, ToolkitInstanceIdError, ToolkitLayout, ToolkitLayoutError,
     ToolkitRegistryError, ToolkitSaveFailure,
 };
-pub(crate) use toolkit::{DocumentSourceWritePublication, DocumentSourceWriteReceipt};
+pub(crate) use toolkit::{
+    DocumentCloseAdmission, DocumentSourceWritePublication, DocumentSourceWriteReceipt,
+};

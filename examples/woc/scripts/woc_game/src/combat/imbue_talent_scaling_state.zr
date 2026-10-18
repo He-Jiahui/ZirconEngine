@@ -1,0 +1,133 @@
+// Resolves source talent scaling for imbue aura values at application time.
+// WorldState owns aura replacement, snapshot lifetime, attacks and Judgement.
+var catalog = %import("generated/talent_modifier_catalog");
+var modifiers = %import("progression/talent_modifier_state");
+
+pub class ImbueValues {
+    pub var bonus: int;
+    pub var judgementMinimum: int;
+    pub var judgementMaximum: int;
+
+    pub @constructor() {
+        this.bonus = 0;
+        this.judgementMinimum = 0;
+        this.judgementMaximum = 0;
+    }
+}
+
+roundPositive(value: float): int {
+    return <int>(value + 0.5);
+}
+
+damageMultiplier(
+    talentState: modifiers.TalentModifierState, school: string, abilityId: string
+): float {
+    var globalField = school == "physical" ? "meleeDmgPct" : "spellDmgPct";
+    return 1.0 + modifiers.globalField(talentState, globalField) +
+        modifiers.abilityField(talentState, abilityId, "dmgPct");
+}
+
+pub resolveImbue(
+    baseBonus: int,
+    baseJudgementMinimum: int,
+    baseJudgementMaximum: int,
+    hasJudgement: bool,
+    school: string,
+    talentState: modifiers.TalentModifierState,
+    abilityId: string
+): ImbueValues {
+    var resolved = new ImbueValues();
+    var multiplier = damageMultiplier(talentState, school, abilityId);
+    var flat = modifiers.abilityField(talentState, abilityId, "flatDmg");
+    resolved.bonus = roundPositive(<float>baseBonus * multiplier + flat);
+    if (hasJudgement) {
+        resolved.judgementMinimum = roundPositive(
+            <float>baseJudgementMinimum * multiplier + flat
+        );
+        resolved.judgementMaximum = roundPositive(
+            <float>baseJudgementMaximum * multiplier + flat
+        );
+    }
+    return resolved;
+}
+
+setGlobal(talentState: modifiers.TalentModifierState, name: string, value: float): void {
+    var index = 0;
+    while (index < talentState.globals.length) {
+        if (catalog.globalFieldName(index) == name) {
+            talentState.globals[index] = value;
+            return;
+        }
+        index = index + 1;
+    }
+    throw "woc imbue talent global field is absent";
+}
+
+setAbilityNumber(
+    talentState: modifiers.TalentModifierState,
+    abilityId: string,
+    name: string,
+    value: float
+): void {
+    var ability = 0;
+    while (ability < talentState.abilityIds.length &&
+        <string>talentState.abilityIds[ability] != abilityId) {
+        ability = ability + 1;
+    }
+    if (ability == talentState.abilityIds.length) {
+        talentState.abilityIds.add(abilityId);
+        talentState.abilityDottedIds.add("");
+        talentState.abilityCastWhileMoving.add(false);
+        talentState.abilityPushbackImmune.add(false);
+        talentState.abilityNestedEffectCounts.add(0);
+        var newField = 0;
+        while (newField < catalog.abilityNumberFieldCount()) {
+            talentState.abilityNumbers.add(0.0);
+            newField = newField + 1;
+        }
+    }
+    var field = 0;
+    while (field < catalog.abilityNumberFieldCount()) {
+        if (catalog.abilityNumberFieldName(field) == name) {
+            talentState.abilityNumbers[ability * catalog.abilityNumberFieldCount() + field] = value;
+            return;
+        }
+        field = field + 1;
+    }
+    throw "woc imbue talent ability field is absent";
+}
+
+pub contractTest(): int {
+    var identity = new modifiers.TalentModifierState();
+    var rawSeal = resolveImbue(7, 18, 28, true, "holy", identity, "seal_of_righteousness");
+    var rawFlametongue = resolveImbue(
+        13, 0, 0, false, "fire", identity, "flametongue_weapon"
+    );
+    if (rawSeal.bonus != 7 || rawSeal.judgementMinimum != 18 ||
+        rawSeal.judgementMaximum != 28 || rawFlametongue.bonus != 13 ||
+        rawFlametongue.judgementMinimum != 0 || rawFlametongue.judgementMaximum != 0) {
+        return -1;
+    }
+
+    var mixed = new modifiers.TalentModifierState();
+    setGlobal(mixed, "meleeDmgPct", 0.4);
+    setGlobal(mixed, "spellDmgPct", 0.2);
+    setAbilityNumber(mixed, "seal_of_righteousness", "dmgPct", 0.15);
+    setAbilityNumber(mixed, "seal_of_righteousness", "flatDmg", 2.0);
+    var spell = resolveImbue(7, 18, 28, true, "holy", mixed, "seal_of_righteousness");
+    var physical = resolveImbue(7, 18, 28, true, "physical", mixed, "seal_of_righteousness");
+    if (spell.bonus != 11 || spell.judgementMinimum != 26 ||
+        spell.judgementMaximum != 40 || physical.bonus != 13 ||
+        physical.judgementMinimum != 30 || physical.judgementMaximum != 45) {
+        return -2;
+    }
+
+    var rounding = new modifiers.TalentModifierState();
+    setGlobal(rounding, "spellDmgPct", 0.25);
+    setAbilityNumber(rounding, "frostbrand_weapon", "flatDmg", 0.5);
+    var frostbrand = resolveImbue(
+        13, 0, 0, false, "frost", rounding, "frostbrand_weapon"
+    );
+    return frostbrand.bonus == 17 && frostbrand.judgementMinimum == 0 &&
+        frostbrand.judgementMaximum == 0 ? 1 : -3;
+}

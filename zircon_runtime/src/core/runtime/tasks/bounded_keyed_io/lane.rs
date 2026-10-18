@@ -85,6 +85,7 @@ impl BoundedKeyedIoLane {
                     active: None,
                     queue: VecDeque::new(),
                     active_handles: Vec::new(),
+                    worker_terminal_failure: None,
                     submitted: 0,
                     completed: 0,
                     failed: 0,
@@ -477,9 +478,7 @@ impl LaneInner {
             let Some(lane) = weak_lane.upgrade() else {
                 return;
             };
-            lane.lock()
-                .active_handles
-                .retain(|handle| !handle.is_complete());
+            lane.lock().reap_terminal_handles();
             lane.changed.notify_all();
         });
     }
@@ -547,7 +546,7 @@ impl LaneInner {
         let mut state = self.lock();
         if !front_is_runnable(&state) {
             state.pump_active = false;
-            state.active_handles.retain(|handle| !handle.is_complete());
+            state.reap_terminal_handles();
             drop(state);
             self.changed.notify_all();
             return None;

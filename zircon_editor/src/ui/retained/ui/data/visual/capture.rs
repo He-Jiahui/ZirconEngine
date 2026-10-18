@@ -1,5 +1,6 @@
 use std::collections::BTreeMap;
 use std::path::Path;
+use std::sync::Arc;
 
 use serde_json::{json, Map, Value};
 use zircon_runtime_interface::ui::layout::UiSize;
@@ -117,7 +118,7 @@ fn render_internal(
     }
     // Match the product host boundary: layout stays logical, while retained nodes and
     // theme metrics cross into physical pixels exactly once before native painting.
-    apply_host_appearance_from_tokens(&tokens);
+    apply_host_appearance_from_tokens(Arc::clone(&tokens), None);
     apply_host_paint_scale_factor(case.dpi as f32);
     let physical_theme = capture_host_paint_theme_snapshot();
     apply_host_paint_scale_factor(1.0);

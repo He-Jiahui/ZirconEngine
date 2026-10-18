@@ -1,0 +1,2 @@
+backend = "zr_vm:project"
+entry = "src/world/next_cast_modifier_state_test_main.zr"

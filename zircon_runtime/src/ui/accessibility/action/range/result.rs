@@ -66,8 +66,8 @@ fn finish_accepted_adjust_value(
     result
 }
 
-// BUG: [CR-UI-COMP-0003] 滑块步进未变化时仍输出 property_changed，导致诊断与 Unchanged 绑定报告矛盾。
-// 证据：上层仅在 UiPropertyMutationStatus::Unchanged 时调用此函数；应记录未变化而非改值。
+// 已修复 [CR-UI-COMP-0003]：边界步进保持 Unchanged，仅记录未变化诊断。
+// 原上下界回归已验证：不发布 ValueChanged，也不产生属性失效。
 fn finish_unchanged_adjust_value(
     target: UiNodeId,
     result: UiInputDispatchResult,

@@ -1,5 +1,10 @@
+//! 检查源字节身份、合法本地区间及规范等价输入的区分。
+//!
+//! 夹取异常区间和真实后端成形不在这些局部断言的范围内。
+
 use super::ShapingTextView;
 
+/// 分解序列按原字节返回，字节长度亦保持。
 #[test]
 fn source_preserving_view_keeps_decomposed_source_bytes_unchanged() {
     let source = "a\u{0304}\u{0301}b";
@@ -9,6 +14,7 @@ fn source_preserving_view_keeps_decomposed_source_bytes_unchanged() {
     assert_eq!(view.shaping_text().len(), source.len());
 }
 
+/// 合法非空区间与末尾空区间保持原本的源偏移。
 #[test]
 fn source_preserving_view_maps_shaping_offsets_to_original_source_offsets() {
     let source = "a\u{0304}\u{0301}b";
@@ -21,6 +27,7 @@ fn source_preserving_view_maps_shaping_offsets_to_original_source_offsets() {
     );
 }
 
+/// 规范等价的两种表示仍各自保留不同字节与自身全区间。
 #[test]
 fn source_preserving_view_keeps_canonical_equivalents_as_distinct_source_bytes() {
     let composed = "\u{00E9}";

@@ -1,0 +1,2 @@
+backend = "zr_vm:project"
+entry = "src/world/chain_heal_authoritative_runtime_test_main.zr"

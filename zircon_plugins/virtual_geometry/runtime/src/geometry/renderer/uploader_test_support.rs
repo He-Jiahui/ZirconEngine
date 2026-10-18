@@ -18,6 +18,7 @@ struct State {
     resources: Option<(RuntimePrepareDeviceEpoch, VirtualGeometryGpuResources)>,
     readback: Option<VirtualGeometryGpuReadbackFuture>,
     device: Option<wgpu::Device>,
+    completed: Option<VirtualGeometryGpuReadback>,
 }
 
 /// Test-only bridge for the legacy uploader contract. Inputs stay plugin-owned and all results
@@ -39,25 +40,51 @@ impl VirtualGeometryUploaderTestCollector {
             .prepare = prepare;
     }
 
-    pub(crate) fn take_readback(&self) -> Result<VirtualGeometryGpuReadback, GraphicsError> {
+    /// Completes both uploader readbacks once and retains their independent completed DTO.
+    pub(crate) fn completed_readback(
+        &self,
+    ) -> Result<Option<VirtualGeometryGpuReadback>, GraphicsError> {
         let mut state = self
             .state
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner());
-        let device = state
-            .device
-            .as_ref()
-            .expect("uploader collector has recorded a GPU submission");
+        if let Some(readback) = &state.completed {
+            return Ok(Some(readback.clone()));
+        }
+        if state.readback.is_none() {
+            return Ok(None);
+        }
+        let device = state.device.as_ref().ok_or_else(|| {
+            GraphicsError::BufferMap("uploader pending readback has no device".into())
+        })?;
         device
             .poll(wgpu::PollType::wait_indefinitely())
             .map_err(|error| GraphicsError::BufferMap(error.to_string()))?;
+        if !state
+            .readback
+            .as_ref()
+            .is_some_and(VirtualGeometryGpuReadbackFuture::is_ready)
+        {
+            return Err(GraphicsError::BufferMap(
+                "uploader page-table and completion readbacks are not ready".into(),
+            ));
+        }
         let readback = state
             .readback
             .take()
-            .expect("uploader collector registered GPU readback requests");
-        readback
+            .expect("verified actual uploader readback")
             .try_collect()
-            .expect("GPU completion and page-table readbacks are ready")
+            .ok_or_else(|| {
+                GraphicsError::BufferMap("uploader readback readiness changed".into())
+            })??;
+        state.completed = Some(readback.clone());
+        Ok(Some(readback))
+    }
+
+    pub(crate) fn take_readback(&self) -> Result<VirtualGeometryGpuReadback, GraphicsError> {
+        self.completed_readback()?.ok_or_else(|| {
+            GraphicsError::BufferMap("no uploader prepare submission completed".into())
+        })
     }
 
     /// Takes the completed GPU readback once, preserving the exact plugin-owned bytes for
@@ -81,6 +108,7 @@ impl RuntimePrepareCollector for VirtualGeometryUploaderTestCollector {
             .state
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner());
+        state.completed = None;
         let Some(prepare) = state.prepare.take() else {
             state.readback = None;
             state.device = None;

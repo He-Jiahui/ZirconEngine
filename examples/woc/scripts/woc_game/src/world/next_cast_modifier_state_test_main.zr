@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var state = %import("world/state");
+
+console.printLine("next-cast-modifier-world-state-test");
+var result = state.nextCastModifierPersistenceStateTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

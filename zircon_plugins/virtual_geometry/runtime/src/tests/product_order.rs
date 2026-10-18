@@ -5,7 +5,7 @@
 
 use std::{
     fs,
-    path::PathBuf,
+    path::{Path, PathBuf},
     sync::Arc,
     time::{SystemTime, UNIX_EPOCH},
 };
@@ -26,7 +26,8 @@ use zircon_runtime::core::framework::render::{
 use zircon_runtime::core::math::{Transform, UVec2, Vec3, Vec4};
 use zircon_runtime::core::resource::{MaterialMarker, ModelMarker, ResourceHandle};
 use zircon_runtime::scene::components::{default_render_layer_mask, Mobility};
-use zircon_runtime_interface::project::RelPath;
+use zircon_runtime_interface::project::{AssetRef, PersistedAssetReference, RelPath};
+use zircon_runtime_interface::resource::ResourceScheme;
 
 use super::virtual_geometry_render_framework_stats as render_fixture;
 use crate::test_support::render_feature_fixtures::{
@@ -214,7 +215,18 @@ fn virtual_geometry_unified_indirect_keeps_lineage_depth_in_gpu_submission_and_i
             .find(|segment| {
                 segment.original_index == authority[7]
                     && segment.entity as u32 == authority[1]
-                    && segment.cluster_id == authority[4]
+                    && result.debug.selected_clusters.iter().any(|selected| {
+                        let end = segment
+                            .cluster_start_ordinal
+                            .checked_add(segment.cluster_span_count)
+                            .expect("execution segment cluster span must not overflow");
+                        selected.instance_index == segment.instance_index
+                            && selected.entity == segment.entity
+                            && selected.page_id == segment.page_id
+                            && selected.cluster_id == authority[4]
+                            && (segment.cluster_start_ordinal..end)
+                                .contains(&selected.cluster_ordinal)
+                    })
             })
             .expect("GPU authority must retain its source execution segment");
         assert_eq!(authority[12], segment.lineage_depth);
@@ -765,7 +777,17 @@ fn write_material(path: PathBuf, name: &str, shader_uri: &str, texture_uri: &str
         texture_slots: Default::default(),
         validation_diagnostics: Vec::new(),
     };
-    fs::write(path, toml::to_string_pretty(&material).unwrap()).unwrap();
+    let project_root = fixture_project_root(&path);
+    let document = material
+        .to_project_toml_string(|reference| {
+            Ok(persisted_reference_for_fixture(
+                &project_root,
+                &path,
+                reference,
+            ))
+        })
+        .unwrap();
+    fs::write(path, document).unwrap();
 }
 
 fn asset_reference(uri: &str) -> AssetReference {
@@ -777,5 +799,58 @@ fn resource_handle<T>(manager: &ProjectAssetManager, uri: &str) -> ResourceHandl
         manager
             .resolve_asset_id(&AssetUri::parse(uri).unwrap())
             .unwrap_or_else(|| panic!("missing resource {uri}")),
+    )
+}
+
+fn fixture_project_root(source_path: &Path) -> PathBuf {
+    source_path
+        .ancestors()
+        .find(|candidate| candidate.join("zircon-project.toml").is_file())
+        .expect("asset fixture must live below a project manifest")
+        .to_path_buf()
+}
+
+// 夹具只把 res:// 路径映射到唯一资源根的持久化 hint；多根歧义必须显式失败。
+fn persisted_reference_for_fixture(
+    project_root: &Path,
+    source_path: &Path,
+    reference: &AssetReference,
+) -> PersistedAssetReference {
+    if reference.locator.scheme() == ResourceScheme::Builtin {
+        return PersistedAssetReference::builtin(reference.locator.clone());
+    }
+    assert_eq!(reference.locator.scheme(), ResourceScheme::Res);
+
+    let manifest = ProjectManifest::load(project_root.join("zircon-project.toml")).unwrap();
+    let roots = manifest
+        .asset_roots
+        .iter()
+        .filter(|root| {
+            root.join_to(project_root)
+                .join(reference.locator.path())
+                .is_file()
+        })
+        .collect::<Vec<_>>();
+    let root = match roots.as_slice() {
+        [root] => *root,
+        [] => manifest
+            .asset_roots
+            .iter()
+            .find(|root| source_path.starts_with(root.join_to(project_root)))
+            .expect("asset fixture source must live below a manifest asset root"),
+        _ => panic!(
+            "asset fixture reference {} resolves through multiple project asset roots",
+            reference.locator
+        ),
+    };
+    let path_hint =
+        RelPath::parse(format!("{}/{}", root.as_str(), reference.locator.path())).unwrap();
+    PersistedAssetReference::project(
+        AssetRef::try_new(
+            reference.uuid,
+            path_hint,
+            reference.locator.label().map(str::to_owned),
+        )
+        .unwrap(),
     )
 }

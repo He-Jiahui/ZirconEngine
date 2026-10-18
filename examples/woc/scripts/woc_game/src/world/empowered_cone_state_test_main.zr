@@ -1,0 +1,7 @@
+var console = %import("zr.system.console");
+var state = %import("world/state");
+
+console.printLine("empowered-cone-world-state-test");
+var result = state.glacialFrontCommandStateTest();
+console.printLine(result);
+return result == 1 ? 0 : result;

@@ -1,11 +1,9 @@
 use std::collections::{HashMap, HashSet};
 
-use crate::core::resource::{
-    ResourceKind, ResourceProjectionSnapshot, UntypedResourceHandle,
-};
+use super::contract::RenderAssetResidencySourceIdentity;
+use crate::core::resource::{ResourceKind, ResourceProjectionSnapshot, UntypedResourceHandle};
 use crate::graphics::scene::render_scene::RenderSceneResourceReferenceDelta;
 use zr_rhi::{SubmissionStatus, SubmissionTicket};
-use super::contract::RenderAssetResidencySourceIdentity;
 
 use super::gpu_residency::{
     RenderAssetGpuResidencyLimits, RenderAssetGpuResidencyState,
@@ -268,8 +266,7 @@ impl RenderAssetResidencyManager {
                 continue;
             };
             stats.catalog_lookup_count = stats.catalog_lookup_count.saturating_add(1);
-            let seed =
-                resolve_ticket_seed(resource, projection, device, demand_generation)?;
+            let seed = resolve_ticket_seed(resource, projection, device, demand_generation)?;
             if entry
                 .pending
                 .as_ref()
@@ -657,7 +654,8 @@ fn resolve_ticket_seed(
         if let Some(active) = projection.active().row(resource.id()) {
             if active.record.kind != resource.kind() {
                 return Err(RenderAssetResidencyAdmissionError::CatalogKindMismatch {
-                    resource, catalog_kind: active.record.kind,
+                    resource,
+                    catalog_kind: active.record.kind,
                 });
             }
             let mut dependencies = Vec::new();
@@ -665,15 +663,18 @@ fn resolve_ticket_seed(
             let mut pending = active.record.dependency_ids.clone();
             let mut seen = HashSet::new();
             while let Some(id) = pending.pop() {
-                if id == resource.id() || !seen.insert(id) { continue; }
+                if id == resource.id() || !seen.insert(id) {
+                    continue;
+                }
                 if let Some(row) = projection.active().row(id).filter(|row| {
                     matches!(row.record.kind, ResourceKind::Model | ResourceKind::Mesh)
                 }) {
                     dependencies.push((id, Some(row.key.clone())));
                     pending.extend(row.record.dependency_ids.iter().copied());
-                } else if management.row_by_id(id).is_some_and(|row| {
-                    matches!(row.kind, ResourceKind::Model | ResourceKind::Mesh)
-                }) {
+                } else if management
+                    .row_by_id(id)
+                    .is_some_and(|row| matches!(row.kind, ResourceKind::Model | ResourceKind::Mesh))
+                {
                     dependencies.push((id, None));
                 } else {
                     // Keep readiness closure identity for material/data/shader dependencies.
@@ -682,13 +683,20 @@ fn resolve_ticket_seed(
             }
             dependencies.sort_by_key(|(id, _)| *id);
             candidate_dependencies.sort_by_key(|(id, _)| *id);
-            let policy = policy_for_resource_kind(resource.kind()).expect("geometry residency policy");
+            let policy =
+                policy_for_resource_kind(resource.kind()).expect("geometry residency policy");
             return Ok(RenderAssetResidencyTicketSeed {
-                resource, asset_revision: active.record.revision,
+                resource,
+                asset_revision: active.record.revision,
                 source_identity: RenderAssetResidencySourceIdentity::ActiveResident {
-                    key: active.key.clone(), dependencies, candidate_dependencies,
+                    key: active.key.clone(),
+                    dependencies,
+                    candidate_dependencies,
                 },
-                demand_generation, device, scope: policy.scope, route: policy.route,
+                demand_generation,
+                device,
+                scope: policy.scope,
+                route: policy.route,
             });
         }
     }

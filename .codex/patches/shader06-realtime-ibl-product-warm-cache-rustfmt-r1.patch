@@ -1,0 +1,14 @@
+diff --git a/zircon_runtime/tests/runtime_shader_pbr_realtime_ibl_export.rs b/zircon_runtime/tests/runtime_shader_pbr_realtime_ibl_export.rs
+--- a/zircon_runtime/tests/runtime_shader_pbr_realtime_ibl_export.rs
++++ b/zircon_runtime/tests/runtime_shader_pbr_realtime_ibl_export.rs
+@@ -299,8 +299,5 @@ fn export_procedural_realtime_ibl_pbr_matrix_png() {
+         .source_revision
+         .wrapping_add(1);
+-    warm_snapshot.preview = PreviewEnvironmentExtract::from_environment(
+-        &warm_snapshot.environment,
+-        true,
+-        Vec4::ZERO,
+-    );
++    warm_snapshot.preview =
++        PreviewEnvironmentExtract::from_environment(&warm_snapshot.environment, true, Vec4::ZERO);
+     let mut warm_ticket_millis = Vec::with_capacity(REALTIME_GENERATION_TICKET_FRAME_COUNT);

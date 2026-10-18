@@ -1,0 +1,75 @@
+diff --git a/zircon_editor/src/ui/host/editor_asset_manager/manager/catalog_generation/tests.rs b/zircon_editor/src/ui/host/editor_asset_manager/manager/catalog_generation/tests.rs
+index e693a03fc..ee8dbf3d8 100644
+--- a/zircon_editor/src/ui/host/editor_asset_manager/manager/catalog_generation/tests.rs
++++ b/zircon_editor/src/ui/host/editor_asset_manager/manager/catalog_generation/tests.rs
+@@ -29,7 +29,15 @@ fn asset(uuid: &str, locator: &str, preview_state: PreviewState) -> EditorAsset
+     }
+ }
+ 
++fn asset_with_kind(
++    uuid: &str,
++    locator: &str,
++    kind: ResourceKind,
++) -> EditorAssetCatalogRecord {
++    EditorAssetCatalogRecord { kind, ..asset(uuid, locator, PreviewState::Ready) }
++}
++
+ #[test]
+ fn stable_catalog_queries_share_the_same_generation_allocation() {
+     let manager = DefaultEditorAssetManager::new();
+     let first = manager.catalog_snapshot_record();
+@@ -62,7 +70,54 @@ fn preview_update_replaces_only_the_matching_generation_row() {
+     assert_eq!(current.assets[1].preview_state, PreviewState::Dirty);
+ }
+ 
++#[test]
++fn scene_asset_indexes_rebuild_when_an_incremental_asset_replacement_changes_kind() {
++    let current = Arc::new(EditorAssetCatalogGeneration::from_snapshot_record(
++        EditorAssetCatalogSnapshotRecord {
++            catalog_revision: 8,
++            assets: vec![
++                asset_with_kind(
++                    "texture",
++                    "res://textures/sky.png",
++                    ResourceKind::Texture,
++                ),
++                asset_with_kind(
++                    "scene-main",
++                    "res://levels/main.scene.toml",
++                    ResourceKind::Scene,
++                ),
++                asset_with_kind(
++                    "material",
++                    "res://materials/ground.material.toml",
++                    ResourceKind::Material,
++                ),
++                asset_with_kind(
++                    "scene-menu",
++                    "res://levels/menu.scene.toml",
++                    ResourceKind::Scene,
++                ),
++            ],
++            ..EditorAssetCatalogSnapshotRecord::default()
++        },
++        30,
++    ));
++
++    assert_eq!(current.scene_asset_indexes(), &[1, 3]);
++
++    let next = update_asset_in_catalog_generation(
++        &current,
++        asset_with_kind(
++            "scene-main",
++            "res://levels/main.scene.toml",
++            ResourceKind::Texture,
++        ),
++        31,
++    );
++
++    assert_eq!(next.scene_asset_indexes(), &[3]);
++}
++
+ #[test]
+ fn ten_thousand_asset_preview_update_preserves_9999_row_allocations_and_indexes() {
+     let assets = (0..10_000)
+         .map(|index| {

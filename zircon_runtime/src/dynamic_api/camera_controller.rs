@@ -96,6 +96,10 @@ impl RuntimeCameraController {
         self.drag = None;
     }
 
+    pub(super) fn cancel_drag(&mut self) {
+        self.drag = None;
+    }
+
     pub(super) fn middle_pressed(&mut self, position: Vec2) {
         self.drag = Some(DragState::Pan { last: position });
     }

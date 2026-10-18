@@ -81,6 +81,17 @@ driver and runtime generation for lifecycle operations.
 
 ## Standing task delivery authority
 
+The latest 2026-10-17 user instruction makes all ordinary Jenkins task validation
+**optional and advisory**. Any session may commit its own scoped files immediately,
+without a validation recipe, source-hash reconciliation, full compilation, formal
+acceptance, historical capsule acceptance or a clean shared main. Native Git
+preserves task scope, active locks, foreign changes and merge conflicts. Failed
+checks remain failures and create original-owner repair handoffs; they do not
+block commits or PR integration. The owner fixes and commits corrections without
+another approval. Read the current delivery contract and executable policy;
+older validation-before-commit or mandatory-green instructions below are historical.
+Do not claim a stored inbox handoff has awakened or been read by the original chat.
+
 The user's latest 2026-10-17 order is **check the task worktree's index.lock,
 commit its exact files to its own branch immediately, then enqueue integration**.
 Keep the shared `main` checkout clean; implementation belongs in a Jenkins-managed

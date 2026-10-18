@@ -1,0 +1,32 @@
+var container = %import("zr.container");
+
+class Counter {
+    pub var value: int;
+    pub @constructor() { this.value = 0; }
+}
+
+var counter = new Counter();
+
+pub bump(): int {
+    counter.value = counter.value + 1;
+    return counter.value;
+}
+
+pub save(): container.Array<uint> {
+    var state = new container.Array<uint>();
+    state.add(<uint>87);
+    state.add(<uint>79);
+    state.add(<uint>83);
+    state.add(<uint>50);
+    state.add(<uint>118);
+    state.add(<uint>0);
+    state.add(<uint>counter.value);
+    return state;
+}
+
+pub restore(state: container.Array<uint>): int {
+    if (state.length == 0) { counter.value = 0; return 0; }
+    if (state.length != 7) { throw "invalid fixture world state"; }
+    counter.value = <int>state[6];
+    return 0;
+}

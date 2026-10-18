@@ -31,7 +31,9 @@ pub(super) fn request_runtime_product_snapshot(
             "runtime_product_frame_diagnostics_unavailable reason=profile_control_not_supported"
                 .to_owned(),
         ),
-        Err(error) => Err(format!("runtime_product_frame_diagnostics_failed error={error}")),
+        Err(error) => Err(format!(
+            "runtime_product_frame_diagnostics_failed error={error}"
+        )),
     }
 }
 

@@ -18,11 +18,11 @@ use crate::core::math::Real;
 use crate::core::{CoreError, CoreHandle, FrameTimeSnapshot};
 use crate::scene::world_publication::{WorldPublicationOwner, WorldPublicationSource};
 use crate::scene::world_time::{
-    FixedInterpolationContext, WorldFixedStep, WorldFixedStepError, WorldTimeAdvanceError,
-    WorldReplacementCheckpoint, WorldReplacementCommit, WorldReplacementError,
-    WorldReplacementExpectation, WorldReplacementIdentity, WorldReplacementReason,
-    WorldReplacementReceipt, WorldReplacementRejected, WorldReplacementRequest,
-    WorldReplacementTimePolicy, WorldTimeControlError, WorldTimeController, WorldTimeSnapshot,
+    FixedInterpolationContext, WorldFixedStep, WorldFixedStepError, WorldReplacementCheckpoint,
+    WorldReplacementCommit, WorldReplacementError, WorldReplacementExpectation,
+    WorldReplacementIdentity, WorldReplacementReason, WorldReplacementReceipt,
+    WorldReplacementRejected, WorldReplacementRequest, WorldReplacementTimePolicy,
+    WorldTimeAdvanceError, WorldTimeControlError, WorldTimeController, WorldTimeSnapshot,
 };
 use crate::scene::{
     dynamic_scene::{CompiledSceneSpawn, DynamicScene, DynamicSceneError},
@@ -215,10 +215,8 @@ impl LevelSystem {
     pub(crate) fn begin_world_frame(
         &self,
         outer: FrameTimeSnapshot,
-    ) -> Result<
-        (WorldTimeSnapshot, u64, crate::scene::ecs::ScheduleExecution),
-        WorldTimeAdvanceError,
-    > {
+    ) -> Result<(WorldTimeSnapshot, u64, crate::scene::ecs::ScheduleExecution), WorldTimeAdvanceError>
+    {
         let mut world = self.lock_world();
         let time = {
             let mut controller = lock_poison_recovered(&self.world_time);
@@ -631,12 +629,16 @@ impl LevelSystem {
                 let old_debt = before.fixed_time().overstep();
                 let new_debt = after.fixed_time().overstep();
                 let (preserved_debt, discarded_debt, restored_debt) = match time_policy {
-                    WorldReplacementTimePolicy::Preserve => {
-                        (old_debt, std::time::Duration::ZERO, std::time::Duration::ZERO)
-                    }
-                    WorldReplacementTimePolicy::Reset => {
-                        (std::time::Duration::ZERO, old_debt, std::time::Duration::ZERO)
-                    }
+                    WorldReplacementTimePolicy::Preserve => (
+                        old_debt,
+                        std::time::Duration::ZERO,
+                        std::time::Duration::ZERO,
+                    ),
+                    WorldReplacementTimePolicy::Reset => (
+                        std::time::Duration::ZERO,
+                        old_debt,
+                        std::time::Duration::ZERO,
+                    ),
                     WorldReplacementTimePolicy::Restore => {
                         (std::time::Duration::ZERO, old_debt, new_debt)
                     }

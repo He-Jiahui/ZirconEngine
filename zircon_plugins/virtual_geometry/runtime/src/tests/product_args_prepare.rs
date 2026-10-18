@@ -148,10 +148,12 @@ fn observe_with_instances(
         .expect("public WGPU frame")
         .rgba;
     let observation = Observation {
-        debug: (*debug).clone(),
+        debug: debug.clone(),
         rgba,
-        indirect_draw_count: stats.last_virtual_geometry_indirect_draw_count,
-        execution_segment_count: stats.last_virtual_geometry_execution_segment_count,
+        indirect_draw_count: u32::try_from(stats.last_virtual_geometry_indirect_draw_count)
+            .expect("observed virtual geometry indirect_draw_count must fit its GPU counter"),
+        execution_segment_count: u32::try_from(stats.last_virtual_geometry_execution_segment_count)
+            .expect("observed virtual geometry execution_segment_count must fit its GPU counter"),
     };
     framework.destroy_viewport(viewport).unwrap();
     observation

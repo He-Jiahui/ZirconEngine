@@ -908,6 +908,7 @@ fn incomplete_or_private_remote_paths_cannot_be_applied() {
         &root,
         guid,
         &StagedSnapshot {
+            project_root: root.canonicalize().unwrap(),
             stage_id: STAGE.into(),
             organization_id: ORGANIZATION.into(),
             project_id: PROJECT.into(),

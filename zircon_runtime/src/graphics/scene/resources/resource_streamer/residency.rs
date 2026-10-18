@@ -2,9 +2,7 @@ use web_time::Instant;
 
 use crate::asset::artifact::RenderArtifactIoPriority;
 use crate::core::framework::render::{RenderFrameExtract, RenderWorldSnapshotHandle};
-use crate::core::resource::{
-    ResourceKind,
-};
+use crate::core::resource::ResourceKind;
 use crate::graphics::backend::RenderBackend;
 use crate::graphics::scene::render_scene::{
     RenderSceneComponentProjectionCommit, RenderSceneComponentProjectionError,
@@ -197,11 +195,18 @@ impl ResourceStreamer {
                 .expect("world geometry replay cursor was inserted")
                 .install_receiver(receiver);
         }
-        let active = self.asset_manager()?.resource_manager().projection_snapshot();
-        self.geometry_replays.get_mut(&world).expect("world geometry replay cursor was inserted")
+        let active = self
+            .asset_manager()?
+            .resource_manager()
+            .projection_snapshot();
+        self.geometry_replays
+            .get_mut(&world)
+            .expect("world geometry replay cursor was inserted")
             .observe_active(active.active(), |resource| {
                 projector.has_geometry_dependency(resource)
-                    || artifact_geometry_resources.as_ref().is_some_and(|resources| resources.contains(&resource))
+                    || artifact_geometry_resources
+                        .as_ref()
+                        .is_some_and(|resources| resources.contains(&resource))
                     || (artifact_may_reference_supplemental_geometry
                         && matches!(resource.kind(), ResourceKind::Mesh | ResourceKind::Model))
             });
@@ -238,27 +243,45 @@ impl ResourceStreamer {
                 .then_some(frame.geometry.scene_changes.as_deref())
                 .flatten(),
         );
-        let required_resources = artifact_geometry_resources.iter().flatten().copied()
-            .chain(selection.required_resources().iter().copied()).collect::<std::collections::HashSet<_>>();
+        let required_resources = artifact_geometry_resources
+            .iter()
+            .flatten()
+            .copied()
+            .chain(selection.required_resources().iter().copied())
+            .collect::<std::collections::HashSet<_>>();
         // Cold Ready candidates keep their demand route; loading precedes the active capture.
         self.ensure_cold_projection_geometry(required_resources.iter().copied())?;
         let asset_manager = self.asset_manager()?;
         let projection = asset_manager.resource_manager().projection_snapshot();
         // Stage every affected resource against this one active generation. Nothing enters
         // the live geometry cache or projector until the complete group is still current.
-        let known_geometry = required_resources.iter().copied().filter(|resource| {
-            projector.has_geometry_dependency(*resource) || match resource.kind() {
-                ResourceKind::Model => self.models.contains_key(&resource.id()),
-                ResourceKind::Mesh => self.meshes.contains_key(&resource.id()),
-                _ => false,
-            }
-        }).collect::<std::collections::HashSet<_>>();
-        let staged = match self.stage_projection_geometry(&backend.device, required_resources, &projection, &known_geometry) {
+        let known_geometry = required_resources
+            .iter()
+            .copied()
+            .filter(|resource| {
+                projector.has_geometry_dependency(*resource)
+                    || match resource.kind() {
+                        ResourceKind::Model => self.models.contains_key(&resource.id()),
+                        ResourceKind::Mesh => self.meshes.contains_key(&resource.id()),
+                        _ => false,
+                    }
+            })
+            .collect::<std::collections::HashSet<_>>();
+        let staged = match self.stage_projection_geometry(
+            &backend.device,
+            required_resources,
+            &projection,
+            &known_geometry,
+        ) {
             Ok(staged) => staged,
-            Err(crate::core::resource::ResourceActiveSnapshotError::Stale
-                | crate::core::resource::ResourceActiveSnapshotError::KindConflict) => return Ok(None),
+            Err(
+                crate::core::resource::ResourceActiveSnapshotError::Stale
+                | crate::core::resource::ResourceActiveSnapshotError::KindConflict,
+            ) => return Ok(None),
         };
-        if !staged.matches(&asset_manager.resource_manager().projection_snapshot()) { return Ok(None); }
+        if !staged.matches(&asset_manager.resource_manager().projection_snapshot()) {
+            return Ok(None);
+        }
         let profile = backend.device_profile();
         let device = RenderAssetDeviceEpoch::new(profile.device_id(), profile.generation());
         let Self {
@@ -269,42 +292,48 @@ impl ResourceStreamer {
             ..
         } = self;
         let mut resolver = PreparedRenderSceneGeometryResolver::with_stage(models, meshes, &staged);
-        let result = projector
-            .project_frame_with_resource_geometry_retirements_staging(
-                frame,
-                &selection,
-                &staged.retired,
-                &mut resolver,
-                |deltas| {
-                    // This is the admission linearization check after CPU/GPU staging.
-                    // A concurrent later generation is replayed by the active journal.
-                    if !staged.matches(&asset_manager.resource_manager().projection_snapshot()) {
-                        return Err(FrameGeometryStagingError::Stale);
-                    }
-                    let mutation = render_asset_residency.apply_scene_reference_deltas(
-                        deltas,
-                        &projection,
-                        device,
-                        demand_generation,
-                    ).map_err(FrameGeometryStagingError::Residency)?;
-                    render_asset_residency_work_queue.retain_mutation(&mutation);
-                    Ok(mutation)
-                },
-            );
+        let result = projector.project_frame_with_resource_geometry_retirements_staging(
+            frame,
+            &selection,
+            &staged.retired,
+            &mut resolver,
+            |deltas| {
+                // This is the admission linearization check after CPU/GPU staging.
+                // A concurrent later generation is replayed by the active journal.
+                if !staged.matches(&asset_manager.resource_manager().projection_snapshot()) {
+                    return Err(FrameGeometryStagingError::Stale);
+                }
+                let mutation = render_asset_residency
+                    .apply_scene_reference_deltas(deltas, &projection, device, demand_generation)
+                    .map_err(FrameGeometryStagingError::Residency)?;
+                render_asset_residency_work_queue.retain_mutation(&mutation);
+                Ok(mutation)
+            },
+        );
         let result = match result {
             Ok(result) => result,
-            Err(RenderSceneComponentProjectionTransactionError::Staging(FrameGeometryStagingError::Stale)) => return Ok(None),
-            Err(RenderSceneComponentProjectionTransactionError::Staging(FrameGeometryStagingError::Residency(error))) =>
-                return Err(RenderSceneFrameAdmissionError::Residency(error)),
-            Err(RenderSceneComponentProjectionTransactionError::Projection(error)) =>
-                return Err(RenderSceneFrameAdmissionError::Projection(error)),
+            Err(RenderSceneComponentProjectionTransactionError::Staging(
+                FrameGeometryStagingError::Stale,
+            )) => return Ok(None),
+            Err(RenderSceneComponentProjectionTransactionError::Staging(
+                FrameGeometryStagingError::Residency(error),
+            )) => return Err(RenderSceneFrameAdmissionError::Residency(error)),
+            Err(RenderSceneComponentProjectionTransactionError::Projection(error)) => {
+                return Err(RenderSceneFrameAdmissionError::Projection(error))
+            }
         };
         drop(resolver);
-        if result.is_none() { return Ok(None); }
+        if result.is_none() {
+            return Ok(None);
+        }
         for resource in &staged.retired {
             match resource.kind() {
-                ResourceKind::Model => { models.remove(&resource.id()); }
-                ResourceKind::Mesh => { meshes.remove(&resource.id()); }
+                ResourceKind::Model => {
+                    models.remove(&resource.id());
+                }
+                ResourceKind::Mesh => {
+                    meshes.remove(&resource.id());
+                }
                 _ => {}
             }
         }
@@ -420,12 +449,7 @@ impl ResourceStreamer {
         let released = registry
             .release_world_with_staging(world, |deltas| {
                 let mutation = render_asset_residency
-                    .apply_scene_reference_deltas(
-                        deltas,
-                        &projection,
-                        device,
-                        demand_generation,
-                    )
+                    .apply_scene_reference_deltas(deltas, &projection, device, demand_generation)
                     .map_err(RenderSceneWorldReleaseError::Residency)?;
                 render_asset_residency_work_queue.retain_mutation(&mutation);
                 Ok::<_, RenderSceneWorldReleaseError>(mutation)

@@ -1,0 +1,20 @@
+diff --git a/zircon_app/Cargo.toml b/zircon_app/Cargo.toml
+--- a/zircon_app/Cargo.toml
++++ b/zircon_app/Cargo.toml
+@@ -118,7 +118,8 @@ target-client = [
+     "net-contracts",
+     "physics-contracts",
+     "sound-contracts",
+     "animation",
++    "first-party-runtime-plugins",
+     "diagnostic-log",
+     "dynamic-api",
+     "graphics",
+@@ -136,6 +137,7 @@ target-editor-host = [
+ target-editor-host = [
+     "zircon_runtime/target-editor-host",
++    "first-party-runtime-plugins",
+     "first-party-advanced-render-runtime-plugins",
+     "first-party-navigation-runtime-plugin",
+     "first-party-navigation-editor-plugin",
+     "first-party-neural-editor-plugin",

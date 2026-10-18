@@ -287,7 +287,7 @@ pub(super) fn execute_node_cluster_cull(
         .and_then(|data| data.prepared_cpu_frame.clone());
     // The prepared CPU uploads are separate from candidate shader/readback outputs.
     // The encoded startup dispatch retains its launch and output GPU resources.
-    let _prepared_uploads = prepared_cpu_frame.as_ref().map(|frame| {
+    let prepared_uploads = prepared_cpu_frame.as_ref().map(|frame| {
         let mut native = gpu.native_context();
         super::materialize_prepared_cull(&mut native, &frame.inspection)
     });
@@ -389,7 +389,7 @@ pub(super) fn execute_node_cluster_cull(
     let cull_input_buffer = factory.create_buffer_init(&wgpu::util::BufferInitDescriptor {
         label: Some("zircon-virtual-geometry-cull-input"),
         contents: bytemuck::cast_slice(&cull_input_words),
-        usage: wgpu::BufferUsages::STORAGE,
+        usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_SRC,
     });
     let candidate_buffer = factory.create_buffer_init(&wgpu::util::BufferInitDescriptor {
         label: Some("zircon-virtual-geometry-cluster-candidates"),
@@ -462,6 +462,11 @@ pub(super) fn execute_node_cluster_cull(
     drop(pass);
     drop(pipeline_cache);
     drop(native);
+    let mut sections = vec![(0, cull_input_buffer.clone(), 0..cull_input_buffer.size())];
+    if let Some(prepared) = &prepared_uploads {
+        sections.extend(prepared.native_inspection_sections()?);
+    }
+    register_native_inspection(gpu, sections)?;
     gpu.record_compute_dispatch(
         NODE_CULL_PASS_NAME,
         NODE_CULL_EXECUTOR_ID,
@@ -1195,3 +1200,135 @@ fn binding_word_capacity(binding: &wgpu::BufferBinding<'_>) -> usize {
 #[cfg(test)]
 #[path = "gpu/tests/cases.rs"]
 mod tests;
+
+/// The decoder captures physical layouts, never the CPU inspection values.
+fn register_native_inspection(
+    gpu: &RenderPassGpuExecutionContext<'_>,
+    sections: Vec<(u32, wgpu::Buffer, std::ops::Range<u64>)>,
+) -> Result<(), String> {
+    use zircon_runtime::core::framework::render::*;
+    let mut layouts = Vec::with_capacity(sections.len());
+    let mut total = 0_u64;
+    for (id, _, range) in &sections {
+        let bytes = range
+            .end
+            .checked_sub(range.start)
+            .ok_or("reversed startup section")?;
+        let end = total
+            .checked_add(bytes)
+            .ok_or("startup section length overflow")?;
+        layouts.push((*id, total, end));
+        total = end;
+    }
+    // The map callback owns these exact source buffers until cancellation or decoding.
+    let leases = sections.clone();
+    gpu.register_virtual_geometry_native_inspection(sections, Box::new(move |mapped, outputs| {
+        let _keepalive = &leases;
+        if u64::try_from(mapped.len()).map_err(|_| "startup map length overflow")? != total {
+            return Err("startup mapped allocation length mismatch".into());
+        }
+        let mut words = std::collections::BTreeMap::new();
+        for (id, start, end) in layouts {
+            let start = usize::try_from(start).map_err(|_| "startup start overflow")?;
+            let end = usize::try_from(end).map_err(|_| "startup end overflow")?;
+            let raw = mapped.get(start..end).ok_or("startup section exceeds mapped allocation")?;
+            if raw.len() % 4 != 0 { return Err("startup section is not word aligned".into()); }
+            let stream = raw.chunks_exact(4)
+                .map(|b| u32::from_le_bytes([b[0], b[1], b[2], b[3]])).collect::<Vec<_>>();
+            if words.insert(id, stream).is_some() { return Err("duplicate startup schema section".into()); }
+        }
+        let cull_words = words.remove(&0).ok_or("actual cull-input section is absent")?;
+        if cull_words.len() != RenderVirtualGeometryCullInputSnapshot::GPU_WORD_COUNT
+            || cull_words[13] > 3 || (cull_words[11] != u32::MAX && cull_words[11] > u8::MAX as u32)
+            || cull_words[12] & !15 != 0 {
+            return Err("invalid native cull-input schema".into());
+        }
+        let cull_input = RenderVirtualGeometryCullInputSnapshot::from_packed_words(&cull_words)
+            .ok_or("invalid native cull-input record")?;
+        fn fixed<T>(words: Option<Vec<u32>>, stride: usize, decode: impl Fn(&[u32]) -> Option<T>)
+            -> Result<Option<T>, String> {
+            words.map(|words| {
+                if words.len() != stride { return Err("native fixed startup section length mismatch".into()); }
+                decode(&words).ok_or_else(|| "native fixed startup record is invalid".into())
+            }).transpose()
+        }
+        fn rows<T>(words: Option<Vec<u32>>, stride: usize, mip: Option<usize>,
+            decode: impl Fn(&[u32]) -> Option<T>) -> Result<Vec<T>, String> {
+            let Some(words) = words else { return Ok(Vec::new()); };
+            if words.len() % stride != 0 { return Err("native startup row stride mismatch".into()); }
+            words.chunks_exact(stride).map(|row| {
+                if mip.is_some_and(|index| row[index] != u32::MAX && row[index] > u8::MAX as u32) {
+                    return Err("native startup forced mip exceeds its ABI".into());
+                }
+                decode(row).ok_or_else(|| "native startup row is invalid".into())
+            }).collect()
+        }
+        let global_state = fixed(words.remove(&1),
+            RenderVirtualGeometryNodeAndClusterCullGlobalStateSnapshot::GPU_WORD_COUNT,
+            RenderVirtualGeometryNodeAndClusterCullGlobalStateSnapshot::from_packed_words)?;
+        let dispatch_setup = fixed(words.remove(&2),
+            RenderVirtualGeometryNodeAndClusterCullDispatchSetupSnapshot::GPU_WORD_COUNT,
+            RenderVirtualGeometryNodeAndClusterCullDispatchSetupSnapshot::from_packed_words)?;
+        let launch_worklist = words.remove(&3).map(|words| {
+            let value = RenderVirtualGeometryNodeAndClusterCullLaunchWorklistSnapshot::from_packed_words(&words)
+                .ok_or("native launch-worklist record is invalid")?;
+            if value.packed_words().len() != words.len() {
+                return Err("native launch-worklist trailing or missing rows".to_owned());
+            }
+            Ok(value)
+        }).transpose()?;
+        let instance_seeds = rows(words.remove(&4),
+            RenderVirtualGeometryNodeAndClusterCullInstanceSeed::GPU_WORD_COUNT, None,
+            RenderVirtualGeometryNodeAndClusterCullInstanceSeed::from_packed_words)?;
+        let instance_work_items = rows(words.remove(&5),
+            RenderVirtualGeometryNodeAndClusterCullInstanceWorkItem::GPU_WORD_COUNT, Some(9),
+            RenderVirtualGeometryNodeAndClusterCullInstanceWorkItem::from_packed_words)?;
+        let cluster_work_items = rows(words.remove(&6),
+            RenderVirtualGeometryNodeAndClusterCullClusterWorkItem::GPU_WORD_COUNT, Some(7),
+            RenderVirtualGeometryNodeAndClusterCullClusterWorkItem::from_packed_words)?;
+        let hierarchy_child_ids = words.remove(&7).unwrap_or_default();
+        let child_work_items = rows(words.remove(&8),
+            RenderVirtualGeometryNodeAndClusterCullChildWorkItem::GPU_WORD_COUNT, Some(10),
+            RenderVirtualGeometryNodeAndClusterCullChildWorkItem::from_packed_words)?;
+        let traversal_records = rows(words.remove(&9),
+            RenderVirtualGeometryNodeAndClusterCullTraversalRecord::GPU_WORD_COUNT, Some(14),
+            RenderVirtualGeometryNodeAndClusterCullTraversalRecord::from_packed_words)?;
+        let page_request_ids = words.remove(&10).unwrap_or_default();
+        if !words.is_empty() { return Err("unknown native startup schema section".into()); }
+        if let Some(global) = &global_state {
+            if global.cull_input != cull_input {
+                return Err("actual native global state and cull input disagree".into());
+            }
+        }
+        if let Some(launch) = &launch_worklist {
+            if Some(&launch.global_state) != global_state.as_ref()
+                || Some(launch.dispatch_setup) != dispatch_setup
+                || launch.instance_seeds != instance_seeds {
+                return Err("actual native startup sections disagree with the launch-worklist".into());
+            }
+        }
+        if let Some(setup) = &dispatch_setup {
+            if usize::try_from(setup.instance_seed_count).map_err(|_| "startup count overflow")?
+                != instance_seeds.len() || instance_work_items.len() != instance_seeds.len() {
+                return Err("actual startup compute count disagrees with the uploaded launch count".into());
+            }
+        }
+        let startup = global_state.is_some().then_some(RenderVirtualGeometryNativeStartupReadback {
+            global_state, dispatch_setup, launch_worklist, instance_seeds, instance_work_items,
+            cluster_work_items, hierarchy_child_ids, child_work_items, traversal_records, page_request_ids,
+        });
+        // This branch follows actual, validated terminal GPU row counts after both passes completed.
+        let selected_cluster_source = if outputs.selected_clusters.is_empty() {
+            RenderVirtualGeometrySelectedClusterSource::RenderPathClearOnly
+        } else { RenderVirtualGeometrySelectedClusterSource::RenderPathExecutionSelections };
+        let hardware_rasterization_source = if outputs.hardware_rasterization_records.is_empty() {
+            RenderVirtualGeometryHardwareRasterizationSource::RenderPathClearOnly
+        } else { RenderVirtualGeometryHardwareRasterizationSource::RenderPathExecutionSelections };
+        let visbuffer64_source = if outputs.visbuffer64_entries.is_empty() {
+            RenderVirtualGeometryVisBuffer64Source::RenderPathClearOnly
+        } else { RenderVirtualGeometryVisBuffer64Source::RenderPathExecutionSelections };
+        Ok(RenderVirtualGeometryNativeReadbackInspection {
+            cull_input, startup, selected_cluster_source, hardware_rasterization_source, visbuffer64_source,
+        })
+    }))
+}

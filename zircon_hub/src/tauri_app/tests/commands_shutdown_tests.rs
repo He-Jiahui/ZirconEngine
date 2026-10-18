@@ -68,16 +68,20 @@ fn queued_pre_ready_terminal_projects_after_launch_task_finishes() {
     assert!(inbox.pending_receipts().is_empty());
     let held = session.lock().unwrap();
     assert!(
-        held.config.action_history.iter().any(|record| {
-            record.process_id == Some(913)
-                && record.detail
-                    == crate::state::HubMessage::with_params(
-                        crate::state::HubMessageId::Process(
-                            crate::state::ProcessMessageId::EditorProcessStoppedBeforeReady,
-                        ),
-                        ["913".to_string()],
-                    )
-        }),
+        HubConfig::load(temp.join("hub.toml"))
+            .unwrap()
+            .action_history
+            .iter()
+            .any(|record| {
+                record.process_id == Some(913)
+                    && record.detail
+                        == crate::state::HubMessage::with_params(
+                            crate::state::HubMessageId::Process(
+                                crate::state::ProcessMessageId::EditorProcessStoppedBeforeReady,
+                            ),
+                            ["913".to_string()],
+                        )
+            }),
         "task {task_id} terminal must survive task completion before projection"
     );
     drop(held);

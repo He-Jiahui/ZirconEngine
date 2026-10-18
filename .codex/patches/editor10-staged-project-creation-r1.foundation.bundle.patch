@@ -1,0 +1,486 @@
+diff --git a/zircon_editor/src/core/project/mod.rs b/zircon_editor/src/core/project/mod.rs
+--- a/zircon_editor/src/core/project/mod.rs
++++ b/zircon_editor/src/core/project/mod.rs
+@@ -8,6 +8,7 @@ mod project_probe;
+ mod recent_project_entry;
+ mod recent_project_validation;
+ mod scene_document;
++mod staged_creation;
+ mod stored_recent_project_entry;
+ mod stored_startup_session;
+ 
+diff --git a/zircon_editor/src/core/project/authority.rs b/zircon_editor/src/core/project/authority.rs
+--- a/zircon_editor/src/core/project/authority.rs
++++ b/zircon_editor/src/core/project/authority.rs
+@@ -10,6 +10,7 @@ use zircon_runtime_interface::project::{
+ use super::filesystem::{
+     canonical_project_root, validate_canonical_existing_project_root, validate_creation_target,
+ };
++use super::staged_creation::StagedProjectCreation;
+ use super::{
+     CreatedProject, NewProjectDraft, OpenedProject, ProjectAuthorityError, ProjectProbe,
+     RecentProjectEntry, RecentProjectValidation, StoredRecentProjectEntry, StoredStartupSession,
+@@ -43,13 +44,26 @@ impl ProjectAuthority {
+     pub fn create_project(
+         &self,
+         draft: &NewProjectDraft,
+     ) -> Result<CreatedProject, ProjectAuthorityError> {
+         let target = draft.validate_for_creation()?;
+         let rendered = render_project_template(draft.template.pack_id(), &draft.project_name)?;
+         self.create_rendered_project(&target, rendered)
+     }
+
++    /// Stages a new project for the common Runtime04/Editor10 activation transaction.
++    ///
++    /// The returned capability is not a project open and cannot reach retained-host UI. Its
++    /// published form remains rollbackable until the later runtime generation commit succeeds.
++    pub(super) fn stage_project_creation(
++        &self,
++        draft: &NewProjectDraft,
++    ) -> Result<StagedProjectCreation, ProjectAuthorityError> {
++        let target = draft.validate_for_creation()?;
++        let rendered = render_project_template(draft.template.pack_id(), &draft.project_name)?;
++        StagedProjectCreation::stage(&target, rendered)
++    }
++
+     pub(crate) fn create_rendered_project(
+         &self,
+         target: &Path,
+         rendered: RenderedProjectTemplate,
+diff --git a/zircon_editor/src/core/project/staged_creation.rs b/zircon_editor/src/core/project/staged_creation.rs
+new file mode 100644
+--- /dev/null
++++ b/zircon_editor/src/core/project/staged_creation.rs
+@@ -0,0 +1,253 @@
++use std::fs;
++use std::path::{Path, PathBuf};
++use std::sync::atomic::{AtomicU64, Ordering};
++
++use zircon_runtime::asset::project::{ProjectManifest, ProjectPaths};
++use zircon_runtime_interface::project::{ProjectManifestSummary, RenderedProjectTemplate};
++
++use super::authority::{
++    cleanup_failed_transaction_staging, commit_staged_directory, finalize_empty_target_backup,
++    rollback_committed_project,
++};
++use super::filesystem::validate_creation_target;
++use super::ProjectAuthorityError;
++
++static NEXT_STAGED_CREATION_TRANSACTION: AtomicU64 = AtomicU64::new(1);
++
++/// A rendered project directory that is valid on disk but has not been made visible at its target.
++///
++/// It carries the sole cleanup authority for the staging directory. The UI never receives this
++/// capability: the activation backend publishes it only long enough to prepare a runtime project
++/// generation, then either rolls it back or finishes the directory transaction.
++pub(super) struct StagedProjectCreation {
++    target: PathBuf,
++    staging: PathBuf,
++    backup: PathBuf,
++    replace_empty_target: bool,
++    summary: ProjectManifestSummary,
++    cleanup_on_drop: bool,
++}
++
++/// A target directory published for runtime preparation but still recoverable on failure.
++pub(super) struct PublishedProjectCreation {
++    target: PathBuf,
++    staging: PathBuf,
++    backup: PathBuf,
++    replace_empty_target: bool,
++    summary: ProjectManifestSummary,
++    rollback_on_drop: bool,
++}
++
++/// Terminal filesystem outcome for a runtime-committed new-project activation.
++pub(super) struct ProjectCreationFinalize {
++    summary: ProjectManifestSummary,
++    cleanup_warning: Option<ProjectCreationCleanupWarning>,
++}
++
++/// Recoverable evidence that only the predecessor backup cleanup failed after commit.
++pub(super) struct ProjectCreationCleanupWarning {
++    target: PathBuf,
++    backup: PathBuf,
++    error: ProjectAuthorityError,
++}
++
++impl ProjectCreationFinalize {
++    pub(super) fn summary(&self) -> &ProjectManifestSummary {
++        &self.summary
++    }
++
++    pub(super) fn cleanup_warning(&self) -> Option<&ProjectCreationCleanupWarning> {
++        self.cleanup_warning.as_ref()
++    }
++}
++
++impl ProjectCreationCleanupWarning {
++    pub(super) fn target(&self) -> &Path {
++        &self.target
++    }
++
++    pub(super) fn backup(&self) -> &Path {
++        &self.backup
++    }
++
++    pub(super) fn error(&self) -> &ProjectAuthorityError {
++        &self.error
++    }
++}
++
++impl StagedProjectCreation {
++    /// Materializes and validates a template without making the requested project root visible.
++    pub(super) fn stage(
++        target: &Path,
++        rendered: RenderedProjectTemplate,
++    ) -> Result<Self, ProjectAuthorityError> {
++        validate_creation_target(target)?;
++        let parent = target
++            .parent()
++            .ok_or_else(|| ProjectAuthorityError::ProjectMissing {
++                path: target.to_path_buf(),
++            })?;
++        fs::create_dir_all(parent)
++            .map_err(|source| ProjectAuthorityError::io("create project parent", parent, source))?;
++        let transaction = NEXT_STAGED_CREATION_TRANSACTION.fetch_add(1, Ordering::Relaxed);
++        let stem = target
++            .file_name()
++            .and_then(|name| name.to_str())
++            .unwrap_or("project");
++        let staging = parent.join(format!(
++            ".{stem}.zircon-activation-staging-{}-{transaction}",
++            std::process::id()
++        ));
++        let backup = parent.join(format!(
++            ".{stem}.zircon-activation-backup-{}-{transaction}",
++            std::process::id()
++        ));
++        let replace_empty_target = target.exists();
++        let RenderedProjectTemplate { entries, .. } = rendered;
++        let mut summary = None;
++        let mut staging_created = false;
++        let result = (|| {
++            fs::create_dir(&staging).map_err(|source| {
++                ProjectAuthorityError::io("create project staging directory", &staging, source)
++            })?;
++            staging_created = true;
++            for entry in entries {
++                let destination = entry.path.join_to(&staging);
++                if let Some(parent) = destination.parent() {
++                    fs::create_dir_all(parent).map_err(|source| {
++                        ProjectAuthorityError::io("create template directory", parent, source)
++                    })?;
++                }
++                fs::write(&destination, entry.bytes).map_err(|source| {
++                    ProjectAuthorityError::io("write template entry", &destination, source)
++                })?;
++            }
++            let paths = ProjectPaths::from_root(&staging).map_err(|source| {
++                ProjectAuthorityError::io("resolve staging project paths", &staging, source)
++            })?;
++            paths.ensure_derived_layout().map_err(|source| {
++                ProjectAuthorityError::io("create staging derived layout", &staging, source)
++            })?;
++            let manifest_path = staging.join("zircon-project.toml");
++            let manifest = ProjectManifest::load(&manifest_path)?;
++            manifest.save(&manifest_path)?;
++            summary = Some(manifest.summary());
++            Ok(())
++        })();
++        if let Err(error) = result {
++            cleanup_failed_transaction_staging(&staging, false, staging_created);
++            return Err(error);
++        }
++        let summary = summary.ok_or_else(|| ProjectAuthorityError::ProjectMissing {
++            path: target.to_path_buf(),
++        })?;
++        Ok(Self {
++            target: target.to_path_buf(),
++            staging,
++            backup,
++            replace_empty_target,
++            summary,
++            cleanup_on_drop: true,
++        })
++    }
++
++    /// Makes the directory available to runtime preparation while retaining rollback ownership.
++    pub(super) fn publish(mut self) -> Result<PublishedProjectCreation, ProjectAuthorityError> {
++        let result = commit_staged_directory(
++            &self.staging,
++            &self.target,
++            &self.backup,
++            self.replace_empty_target,
++            fs::rename,
++        );
++        if let Err(error) = result {
++            let preserve = matches!(&error, ProjectAuthorityError::CommitRollbackFailed { .. });
++            self.cleanup_on_drop = !preserve;
++            cleanup_failed_transaction_staging(&self.staging, preserve, true);
++            return Err(error);
++        }
++        Ok(PublishedProjectCreation {
++            target: self.target.clone(),
++            staging: self.staging.clone(),
++            backup: self.backup.clone(),
++            replace_empty_target: self.replace_empty_target,
++            summary: self.summary.clone(),
++            rollback_on_drop: true,
++        })
++    }
++}
++
++impl Drop for StagedProjectCreation {
++    fn drop(&mut self) {
++        if self.cleanup_on_drop {
++            cleanup_failed_transaction_staging(&self.staging, false, true);
++        }
++    }
++}
++
++impl PublishedProjectCreation {
++    pub(super) fn root(&self) -> &Path {
++        &self.target
++    }
++
++    pub(super) fn summary(&self) -> &ProjectManifestSummary {
++        &self.summary
++    }
++
++    /// Restores the exact pre-creation directory state after a later runtime preparation failure.
++    pub(super) fn rollback(mut self) -> Result<(), ProjectAuthorityError> {
++        self.rollback_on_drop = false;
++        let result = rollback_committed_project(
++            &self.staging,
++            &self.target,
++            &self.backup,
++            self.replace_empty_target,
++            fs::rename,
++        );
++        let preserve = matches!(&result, Err(ProjectAuthorityError::PostCommitRollbackFailed { .. }));
++        cleanup_failed_transaction_staging(&self.staging, preserve, true);
++        result
++    }
++
++    /// Completes the filesystem transaction after the consuming authority has committed.
++    ///
++    /// A cleanup error cannot roll back an already committed runtime generation. The caller must
++    /// surface it as recoverable cleanup evidence rather than closing the active project.
++    pub(super) fn finalize(mut self) -> ProjectCreationFinalize {
++        // Runtime committed before this call. A backup-cleanup failure must remain recoverable
++        // evidence and must not trigger Drop's pre-commit directory rollback.
++        self.rollback_on_drop = false;
++        let cleanup_warning = finalize_empty_target_backup(
++            &self.target,
++            &self.backup,
++            self.replace_empty_target,
++        )
++        .err()
++        .map(|error| ProjectCreationCleanupWarning {
++            target: self.target.clone(),
++            backup: self.backup.clone(),
++            error,
++        });
++        ProjectCreationFinalize {
++            summary: self.summary.clone(),
++            cleanup_warning,
++        }
++    }
++}
++
++impl Drop for PublishedProjectCreation {
++    fn drop(&mut self) {
++        if !self.rollback_on_drop {
++            return;
++        }
++        let result = rollback_committed_project(
++            &self.staging,
++            &self.target,
++            &self.backup,
++            self.replace_empty_target,
++            fs::rename,
++        );
++        let preserve = matches!(&result, Err(ProjectAuthorityError::PostCommitRollbackFailed { .. }));
++        cleanup_failed_transaction_staging(&self.staging, preserve, true);
++    }
++}
+diff --git a/zircon_editor/src/core/project/tests/mod.rs b/zircon_editor/src/core/project/tests/mod.rs
+--- a/zircon_editor/src/core/project/tests/mod.rs
++++ b/zircon_editor/src/core/project/tests/mod.rs
+@@ -2,5 +2,6 @@ mod directory_transaction;
+ mod recent_projects;
+ mod scene_document;
++mod staged_creation;
+ mod template_creation;
+ 
+ use std::path::PathBuf;
+diff --git a/zircon_editor/src/core/project/tests/staged_creation.rs b/zircon_editor/src/core/project/tests/staged_creation.rs
+new file mode 100644
+--- /dev/null
++++ b/zircon_editor/src/core/project/tests/staged_creation.rs
+@@ -0,0 +1,164 @@
++use std::fs;
++
++use zircon_runtime_interface::project::{render_project_template, ProjectTemplateId};
++
++use super::super::staged_creation::StagedProjectCreation;
++use super::super::{NewProjectDraft, NewProjectTemplate, ProjectAuthority};
++use super::temp_root;
++
++#[test]
++fn staged_creation_keeps_target_hidden_until_publish_and_removes_it_on_rollback() {
++    let location = temp_root("staged-creation-hidden-target");
++    let target = location.join("Created");
++    let rendered = render_project_template(ProjectTemplateId::RenderableEmpty, "Created").unwrap();
++
++    let staged = StagedProjectCreation::stage(&target, rendered).unwrap();
++    assert!(!target.exists(), "staging must not publish the target directory");
++
++    let published = staged.publish().unwrap();
++    assert_eq!(published.root(), target.as_path());
++    assert!(target.join("zircon-project.toml").is_file());
++    assert_eq!(published.summary().name, "Created");
++
++    published.rollback().unwrap();
++    assert!(!target.exists());
++    assert_eq!(transaction_entries(&location), Vec::<String>::new());
++    fs::remove_dir_all(location).unwrap();
++}
++
++#[test]
++fn authority_stages_a_new_project_without_publishing_it() {
++    let location = temp_root("staged-creation-authority-entry");
++    let draft = NewProjectDraft {
++        project_name: "Created".to_string(),
++        location: location.to_string_lossy().into_owned(),
++        template: NewProjectTemplate::RenderableEmpty,
++    };
++
++    let staged = ProjectAuthority.stage_project_creation(&draft).unwrap();
++    let target = location.join("Created");
++    assert!(!target.exists());
++    drop(staged);
++
++    assert_eq!(transaction_entries(&location), Vec::<String>::new());
++    fs::remove_dir_all(location).unwrap();
++}
++
++#[test]
++fn staged_creation_uses_the_validated_manifest_summary() {
++    let location = temp_root("staged-creation-manifest-summary");
++    let target = location.join("Created");
++    let mut rendered =
++        render_project_template(ProjectTemplateId::RenderableEmpty, "Validated Name").unwrap();
++    rendered.summary.name = "Stale Rendered Summary".to_string();
++
++    let published = StagedProjectCreation::stage(&target, rendered)
++        .unwrap()
++        .publish()
++        .unwrap();
++    assert_eq!(published.summary().name, "Validated Name");
++
++    published.rollback().unwrap();
++    assert!(!target.exists());
++    fs::remove_dir_all(location).unwrap();
++}
++
++#[test]
++fn finalization_reports_backup_cleanup_as_warning_without_rolling_back_target() {
++    let location = temp_root("staged-creation-finalize-warning");
++    let target = location.join("Created");
++    fs::create_dir(&target).unwrap();
++    let rendered = render_project_template(ProjectTemplateId::RenderableEmpty, "Created").unwrap();
++
++    let published = StagedProjectCreation::stage(&target, rendered)
++        .unwrap()
++        .publish()
++        .unwrap();
++    let backup = transaction_path(&location, "zircon-activation-backup");
++    fs::write(backup.join("foreign.txt"), b"not ours").unwrap();
++
++    let finalized = published.finalize();
++    assert_eq!(finalized.summary().name, "Created");
++    let warning = finalized.cleanup_warning().expect("backup cleanup must be reported");
++    assert_eq!(warning.target(), target.as_path());
++    assert_eq!(warning.backup(), backup.as_path());
++    assert!(warning.error().to_string().contains("must be empty"));
++    assert!(target.join("zircon-project.toml").is_file());
++
++    fs::remove_dir_all(&target).unwrap();
++    fs::remove_dir_all(backup).unwrap();
++    fs::remove_dir_all(location).unwrap();
++}
++
++#[test]
++fn dropping_staged_creation_removes_the_hidden_directory() {
++    let location = temp_root("staged-creation-drop-staged");
++    let target = location.join("Created");
++    let rendered = render_project_template(ProjectTemplateId::RenderableEmpty, "Created").unwrap();
++
++    let staged = StagedProjectCreation::stage(&target, rendered).unwrap();
++    assert_eq!(transaction_entries(&location).len(), 1);
++    drop(staged);
++
++    assert!(!target.exists());
++    assert_eq!(transaction_entries(&location), Vec::<String>::new());
++    fs::remove_dir_all(location).unwrap();
++}
++
++#[test]
++fn dropping_published_creation_restores_the_original_empty_target() {
++    let location = temp_root("staged-creation-drop-published");
++    let target = location.join("Created");
++    fs::create_dir(&target).unwrap();
++    let rendered = render_project_template(ProjectTemplateId::RenderableEmpty, "Created").unwrap();
++
++    let published = StagedProjectCreation::stage(&target, rendered)
++        .unwrap()
++        .publish()
++        .unwrap();
++    assert!(target.join("zircon-project.toml").is_file());
++    drop(published);
++
++    assert!(target.is_dir());
++    assert_eq!(fs::read_dir(&target).unwrap().count(), 0);
++    assert_eq!(transaction_entries(&location), Vec::<String>::new());
++    fs::remove_dir_all(location).unwrap();
++}
++
++#[test]
++fn staged_creation_rollback_restores_an_original_empty_target() {
++    let location = temp_root("staged-creation-restore-empty-target");
++    let target = location.join("Created");
++    fs::create_dir(&target).unwrap();
++    let rendered = render_project_template(ProjectTemplateId::RenderableEmpty, "Created").unwrap();
++
++    let published = StagedProjectCreation::stage(&target, rendered)
++        .unwrap()
++        .publish()
++        .unwrap();
++    assert!(target.join("zircon-project.toml").is_file());
++
++    published.rollback().unwrap();
++    assert!(target.is_dir());
++    assert_eq!(fs::read_dir(&target).unwrap().count(), 0);
++    assert_eq!(transaction_entries(&location), Vec::<String>::new());
++    fs::remove_dir_all(location).unwrap();
++}
++
++fn transaction_entries(root: &std::path::Path) -> Vec<String> {
++    let mut entries = fs::read_dir(root)
++        .unwrap()
++        .map(|entry| entry.unwrap().file_name().to_string_lossy().into_owned())
++        .filter(|name| name.contains("zircon-activation-staging") || name.contains("zircon-activation-backup"))
++        .collect::<Vec<_>>();
++    entries.sort();
++    entries
++}
++
++fn transaction_path(root: &std::path::Path, marker: &str) -> std::path::PathBuf {
++    fs::read_dir(root)
++        .unwrap()
++        .map(|entry| entry.unwrap().path())
++        .find(|path| path.file_name().is_some_and(|name| name.to_string_lossy().contains(marker)))
++        .expect("transaction path must exist")
++}

@@ -1,0 +1,163 @@
+diff --git a/zircon_editor/src/core/project/project_activation.rs b/zircon_editor/src/core/project/project_activation.rs
+--- a/zircon_editor/src/core/project/project_activation.rs
++++ b/zircon_editor/src/core/project/project_activation.rs
+@@ -1,12 +1,17 @@
+ mod service;
++mod runtime_backend;
+ 
+ pub use service::{
+     ProjectActivationArtifact, ProjectActivationGeneration, ProjectActivationIntent,
+     ProjectActivationOutcome, ProjectActivationPrepared, ProjectActivationReport,
+     ProjectActivationService, ProjectActivationSubmitError, ProjectActivationTaskError,
+ };
+ 
+-pub(crate) use service::ProjectActivationBackend;
++pub(crate) use runtime_backend::RuntimeProjectActivationBackend;
++pub(crate) use service::{
++    ProjectActivationBackend, ProjectActivationCleanupWarning, ProjectActivationCommit,
++    ProjectActivationReady,
++};
+ 
+ use std::path::Path;
+ 
+diff --git a/zircon_editor/src/core/project/project_activation/runtime_backend.rs b/zircon_editor/src/core/project/project_activation/runtime_backend.rs
+new file mode 100644
+--- /dev/null
++++ b/zircon_editor/src/core/project/project_activation/runtime_backend.rs
+@@ -0,0 +1,136 @@
++use std::sync::Arc;
++
++use zircon_runtime::asset::AssetManager;
++
++use crate::core::jobs::JobContext;
++
++use super::super::staged_creation::PublishedProjectCreation;
++use super::super::{NewProjectDraft, ProjectAuthority};
++use super::{
++    ProjectActivation, ProjectActivationBackend, ProjectActivationCleanupWarning,
++    ProjectActivationCommit, ProjectActivationIntent, ProjectActivationPrepared,
++    ProjectActivationReady, ProjectActivationRuntime, ProjectActivationTaskError,
++};
++
++/// The only production backend permitted to pair Editor10 activation with a staged Runtime04
++/// replacement generation. Retained-host code receives neither the runtime token nor the
++/// published directory capability.
++pub(crate) struct RuntimeProjectActivationBackend {
++    authority: ProjectAuthority,
++    asset_manager: Arc<dyn AssetManager>,
++}
++
++impl RuntimeProjectActivationBackend {
++    pub(crate) fn new(asset_manager: Arc<dyn AssetManager>) -> Self {
++        Self {
++            authority: ProjectAuthority,
++            asset_manager,
++        }
++    }
++
++    fn prepare_open(
++        &self,
++        activation: ProjectActivation,
++    ) -> Result<ProjectActivationPrepared, ProjectActivationTaskError> {
++        let runtime = activation
++            .prepare_runtime(self.asset_manager.as_ref())
++            .map_err(ProjectActivationTaskError::Runtime)?;
++        Ok(ProjectActivationPrepared::Ready(ProjectActivationReady::new(
++            super::ProjectActivationArtifact::new(
++                runtime.summary().clone(),
++                runtime.project_info().clone(),
++            ),
++            Box::new(RuntimeActivationCommit { runtime }),
++        )))
++    }
++
++    fn prepare_create(
++        &self,
++        draft: NewProjectDraft,
++    ) -> Result<ProjectActivationPrepared, ProjectActivationTaskError> {
++        let staged = self
++            .authority
++            .stage_project_creation(&draft)
++            .map_err(ProjectActivationTaskError::Create)?;
++        let published = staged.publish().map_err(ProjectActivationTaskError::Create)?;
++        let activation = ProjectActivation::open(published.root())
++            .map_err(ProjectActivationTaskError::Create)?;
++        let runtime = activation
++            .prepare_runtime(self.asset_manager.as_ref())
++            .map_err(ProjectActivationTaskError::Runtime)?;
++        Ok(ProjectActivationPrepared::Ready(ProjectActivationReady::new(
++            super::ProjectActivationArtifact::new(
++                runtime.summary().clone(),
++                runtime.project_info().clone(),
++            ),
++            Box::new(CreatedRuntimeActivationCommit { runtime, published }),
++        )))
++    }
++}
++
++impl ProjectActivationBackend for RuntimeProjectActivationBackend {
++    fn prepare(
++        &self,
++        intent: ProjectActivationIntent,
++        _context: &JobContext,
++    ) -> Result<ProjectActivationPrepared, ProjectActivationTaskError> {
++        match intent {
++            ProjectActivationIntent::Open(activation) => self.prepare_open(activation),
++            ProjectActivationIntent::Create(draft) => self.prepare_create(draft),
++        }
++    }
++}
++
++struct RuntimeActivationCommit {
++    runtime: ProjectActivationRuntime,
++}
++
++impl ProjectActivationCommit for RuntimeActivationCommit {
++    fn commit(
++        self: Box<Self>,
++    ) -> Result<Option<ProjectActivationCleanupWarning>, ProjectActivationTaskError> {
++        self.runtime
++            .commit()
++            .map_err(ProjectActivationTaskError::Runtime)?;
++        Ok(None)
++    }
++}
++
++struct CreatedRuntimeActivationCommit {
++    runtime: ProjectActivationRuntime,
++    published: PublishedProjectCreation,
++}
++
++impl ProjectActivationCommit for CreatedRuntimeActivationCommit {
++    fn commit(
++        self: Box<Self>,
++    ) -> Result<Option<ProjectActivationCleanupWarning>, ProjectActivationTaskError> {
++        let Self { runtime, published } = *self;
++        runtime
++            .commit()
++            .map_err(ProjectActivationTaskError::Runtime)?;
++        Ok(published
++            .finalize()
++            .into_cleanup_warning()
++            .map(|warning| {
++                let (target, backup, error) = warning.into_parts();
++                ProjectActivationCleanupWarning::new(target, backup, error)
++            }))
++    }
++}
++
++#[cfg(test)]
++mod tests {
++    #[test]
++    fn runtime_backend_has_no_legacy_one_step_open_or_ui_route() {
++        let source = include_str!("runtime_backend.rs");
++        let production = source.split("#[cfg(test)]").next().unwrap();
++
++        assert!(production.contains("stage_project_creation"));
++        assert!(production.contains("prepare_runtime"));
++        assert!(!production.contains("open_prepared_project"));
++        assert!(!production.contains(".create_project("));
++        assert!(!production.contains("EditorUiHost"));
++        assert!(!production.contains("ProjectManager"));
++    }
++}

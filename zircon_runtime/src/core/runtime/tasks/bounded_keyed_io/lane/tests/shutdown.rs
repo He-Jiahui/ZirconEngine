@@ -1,4 +1,10 @@
 use std::hint::black_box;
+use std::panic::{catch_unwind, AssertUnwindSafe};
+use std::sync::mpsc;
+
+use crate::core::runtime::tasks::{
+    BoundedKeyedIoLane, BoundedKeyedIoLimits, JobScheduler, TaskPool, TaskPoolDescriptor,
+};
 
 use super::*;
 
@@ -109,4 +115,106 @@ fn measure_age_scan(mut scan: impl FnMut() -> Duration) -> Duration {
 fn percentile_95(samples: &mut [Duration]) -> Duration {
     samples.sort_unstable();
     samples[(samples.len() * 95).div_ceil(100).saturating_sub(1)]
+}
+
+#[test]
+fn shutdown_poll_waits_for_real_worker_terminal_state() {
+    let scheduler = shutdown_poll_scheduler();
+    let lane = BoundedKeyedIoLane::new(BoundedKeyedIoLimits::new(1, 1), scheduler.clone());
+    let (started_sender, started_receiver) = mpsc::channel();
+    let (release_sender, release_receiver) = mpsc::channel();
+    let handle = scheduler.schedule(move || {
+        started_sender.send(()).unwrap();
+        release_receiver.recv().unwrap();
+    });
+    let guard = lane.shutdown();
+    // Declared after the guard so assertion unwinding releases the worker first.
+    let mut release = ShutdownPollRelease(Some(release_sender));
+    pin_shutdown_poll_worker(&guard, &handle);
+    started_receiver
+        .recv_timeout(Duration::from_secs(5))
+        .expect("real worker must start");
+
+    assert!(guard.poll_result().is_none());
+    release.release();
+    wait_for_shutdown_poll_worker(&handle);
+    let report = guard
+        .poll_result()
+        .expect("terminal worker")
+        .expect("worker succeeded");
+    assert!(report.complete);
+    assert!(matches!(guard.poll_result(), Some(Ok(_))));
+}
+
+#[test]
+fn shutdown_poll_retains_worker_failure_after_handle_reaping() {
+    let scheduler = shutdown_poll_scheduler();
+    let lane = BoundedKeyedIoLane::new(BoundedKeyedIoLimits::new(1, 1), scheduler.clone());
+    let handle = scheduler.schedule(|| panic!("shutdown poll worker failure"));
+    let guard = lane.shutdown();
+    pin_shutdown_poll_worker(&guard, &handle);
+    wait_for_shutdown_poll_worker(&handle);
+    assert_eq!(handle.terminal_state(), Some(TaskState::Failed));
+    {
+        let mut state = guard.lane.lock();
+        state.reap_terminal_handles();
+        assert!(state.active_handles.is_empty());
+    }
+    for _ in 0..2 {
+        assert!(matches!(guard.poll_result(), Some(Err(TaskState::Failed))));
+    }
+    assert!(catch_unwind(AssertUnwindSafe(|| drop(guard))).is_ok());
+}
+
+#[test]
+fn shutdown_explicit_wait_preserves_panic_without_drop_rethrowing() {
+    let scheduler = shutdown_poll_scheduler();
+    let lane = BoundedKeyedIoLane::new(BoundedKeyedIoLimits::new(1, 1), scheduler.clone());
+    let handle = scheduler.schedule(|| panic!("explicit shutdown wait failure"));
+    let guard = lane.shutdown();
+    pin_shutdown_poll_worker(&guard, &handle);
+    wait_for_shutdown_poll_worker(&handle);
+    assert!(catch_unwind(AssertUnwindSafe(|| guard.wait())).is_err());
+    assert!(catch_unwind(AssertUnwindSafe(|| drop(guard))).is_ok());
+}
+
+fn shutdown_poll_scheduler() -> JobScheduler {
+    JobScheduler::from_pool(TaskPool::new(
+        TaskPoolDescriptor::compute().with_worker_threads(1),
+    ))
+}
+
+fn pin_shutdown_poll_worker(guard: &BoundedKeyedIoShutdownGuard, handle: &JobHandle) {
+    guard.lane.lock().active_handles.push(handle.clone());
+    let weak_lane = Arc::downgrade(&guard.lane);
+    handle.on_terminal(move || {
+        if let Some(lane) = weak_lane.upgrade() {
+            let _state = lane.lock();
+            lane.changed.notify_all();
+        }
+    });
+}
+
+fn wait_for_shutdown_poll_worker(handle: &JobHandle) {
+    let deadline = Instant::now() + Duration::from_secs(5);
+    while !handle.is_complete() {
+        assert!(Instant::now() < deadline, "real worker did not terminalize");
+        std::thread::sleep(Duration::from_millis(1));
+    }
+}
+
+struct ShutdownPollRelease(Option<mpsc::Sender<()>>);
+
+impl ShutdownPollRelease {
+    fn release(&mut self) {
+        self.0.take().expect("release once").send(()).unwrap();
+    }
+}
+
+impl Drop for ShutdownPollRelease {
+    fn drop(&mut self) {
+        if let Some(sender) = self.0.take() {
+            let _ = sender.send(());
+        }
+    }
 }

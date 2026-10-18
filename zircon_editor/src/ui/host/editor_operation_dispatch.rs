@@ -257,11 +257,17 @@ impl EditorHostEventController {
                 binding_path,
             );
         };
-        if invocation.operation_id.as_str() == crate::core::editing::command::ADD_COMPONENT_OPERATION {
+        if invocation.operation_id.as_str()
+            == crate::core::editing::command::ADD_COMPONENT_OPERATION
+        {
             if let Err(error) = self.preflight_inspector_component_add(&invocation) {
                 return self.record_operation_control_failure(
-                    event_source, invocation.operation_id, error.into(),
-                    invocation.arguments, invocation.operation_group, binding_path,
+                    event_source,
+                    invocation.operation_id,
+                    error.into(),
+                    invocation.arguments,
+                    invocation.operation_group,
+                    binding_path,
                 );
             }
         }

@@ -1,0 +1,21 @@
+diff --git a/docs/plans/zircon_runtime/runtime/02/failure-2026-07-18-config-manager-synchronous-full-file-rewrite.md b/docs/plans/zircon_runtime/runtime/02/failure-2026-07-18-config-manager-synchronous-full-file-rewrite.md
+--- a/docs/plans/zircon_runtime/runtime/02/failure-2026-07-18-config-manager-synchronous-full-file-rewrite.md
++++ b/docs/plans/zircon_runtime/runtime/02/failure-2026-07-18-config-manager-synchronous-full-file-rewrite.md
+@@ -20,7 +20,9 @@ related_code:
+   - zircon_runtime/src/foundation/runtime/config_manager/writer.rs
+   - zircon_runtime/src/foundation/persistence/atomic_file.rs
+   - zircon_runtime/src/foundation/runtime/config_manager_tests.rs
+   - zircon_runtime/src/core/runtime/config_store.rs
++  - zircon_editor/src/ui/host/startup/create_or_open.rs
++  - zircon_editor/src/ui/host/startup/persistence.rs
+ ---
+ 
+ # Config manager synchronous full-file rewrite
+@@ -81,0 +82,7 @@ Open state: `主架构、两轮review修复、round 3独立复核、精确rustfmt与scoped diff-check已完成。受管Cargo聚焦reservation 77cf6cb7e95b4972aadc39d6a1356d1f等待执行；其sourceManifest为空，只能作shared-current诊断。最终source-bound聚焦/完整门禁、failure fixed return与里程碑提交尚未完成，因此本Failure仍为open`。
++
++## 产出记录与时间
++
++- 2026-08-03 12:24 +08:00 | failure 补充 / Editor10 activation | `remember_prepared_project` 在 Runtime04 project commit 后调用 `ConfigManager::set_value` 写 `editor.startup.session`。即时 Core mutation 或 manager unavailable 失败都会令 active project、catalog/document/watcher 已更换而 recent-session 未更新；既有 async persistence 也不能由 host 的 `close_project` 补偿。
++- 2026-08-03 12:24 +08:00 | Runtime02 合同 | 提供 move-only prepared config mutation：在 activation commit 前解析/编码 new session、捕获 old value 和 generation witness；ready token consume 时 publish，若后续 runtime commit/freshness 失败则 restore old in-memory value 并安排其 persistence。成功 commit 后持久化失败必须以 typed recovery warning/dirty report 保留，不得回滚 runtime generation。
++- 2026-08-03 12:24 +08:00 | 验收 | 覆盖 encode/manager-unavailable preflight、publish 前 stale、publish 后 runtime failure restore、new-project/open predecessor session、async persistence failure/retry 与 shutdown/restart。Editor10 必须只携带 prepared mutation；禁止 runtime commit 后直接 `set_value`、重读 session 或调用 `close_project`。
++- 2026-08-03 12:24 +08:00 | 状态 | open。此补充尚未导入正式记录、未改动生产源码、未运行受管验证或独立二次审查。

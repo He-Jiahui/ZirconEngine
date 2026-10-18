@@ -23,7 +23,10 @@ impl ResourceManager {
             if active.record.kind != TMarker::KIND {
                 return None;
             }
-            let record_state = authority.registry.get(handle.id()).map(|record| record.state);
+            let record_state = authority
+                .registry
+                .get(handle.id())
+                .map(|record| record.state);
             let payload = authority.payloads.get(&handle.id())?.clone();
             let payload = Arc::downcast::<TData>(payload.into_any_arc()).ok()?;
             let slot = authority.runtime.get_mut(&handle.id())?;
@@ -50,22 +53,32 @@ impl ResourceManager {
         let retired = {
             let mut authority = self.lock_authority_write();
             let preserve_last_good = authority.registry.get(id).is_some_and(|record| {
-                matches!(record.state, ResourceState::Reloading | ResourceState::Error)
+                matches!(
+                    record.state,
+                    ResourceState::Reloading | ResourceState::Error
+                )
             });
-            let Some(slot) = authority.runtime.get_mut(&id) else { return; };
-            if !Arc::ptr_eq(&slot.lease_identity, &lease_identity) { return; }
+            let Some(slot) = authority.runtime.get_mut(&id) else {
+                return;
+            };
+            if !Arc::ptr_eq(&slot.lease_identity, &lease_identity) {
+                return;
+            }
             drop(lease_identity);
-            if Arc::strong_count(&slot.lease_identity) != 1 { return; }
+            if Arc::strong_count(&slot.lease_identity) != 1 {
+                return;
+            }
             if let Some(reservation) = &mut slot.prepared {
                 reservation.deferred_last_release = true;
                 return;
             }
-            if preserve_last_good || slot.retain_last_good { return; }
+            if preserve_last_good || slot.retain_last_good {
+                return;
+            }
             slot.state = RuntimeResourceState::Unloaded;
             let retired = authority.payloads.remove(&id);
-            authority.active = crate::ResourceActiveGeneration::updated(
-                &authority.active, vec![(id, None)], &[],
-            );
+            authority.active =
+                crate::ResourceActiveGeneration::updated(&authority.active, vec![(id, None)], &[]);
             authority.refresh_readiness_many([id]);
             retired
         };

@@ -1,0 +1,58 @@
+diff --git a/zircon_editor/src/core/play/pending_edits/tests.rs b/zircon_editor/src/core/play/pending_edits/tests.rs
+--- a/zircon_editor/src/core/play/pending_edits/tests.rs
++++ b/zircon_editor/src/core/play/pending_edits/tests.rs
+@@ -191,5 +191,54 @@ fn bounded_retention_rejects_excess_payload_without_dropping_retained_work() {
+     assert!(queue.is_empty());
+ }
+ 
++#[test]
++fn admission_stops_payload_measurement_at_the_global_byte_limit() {
++    let queue = PendingEditQueue::new(PendingEditQueueLimits {
++        max_entries: 4,
++        max_payload_bytes: 16,
++        max_oldest_age: Duration::from_secs(60),
++    });
++    let oversized = invocation("payload").with_arguments(serde_json::json!({
++        "value": "x".repeat(1_024),
++    }));
++
++    assert_eq!(
++        queue.enqueue(
++            PlayEditTarget::EditWorkspace,
++            deferred(oversized, PendingEditRetention::Lossless),
++        ),
++        Err(PendingEditQueueError::PayloadLimitExceeded {
++            requested_bytes: 17,
++            max_payload_bytes: 16,
++        })
++    );
++    assert!(queue.is_empty());
++}
++
++#[test]
++fn global_payload_limit_wins_when_bounded_retention_is_also_exceeded() {
++    let queue = PendingEditQueue::new(PendingEditQueueLimits {
++        max_entries: 4,
++        max_payload_bytes: 16,
++        max_oldest_age: Duration::from_secs(60),
++    });
++    let policy = PendingEditRetention::bounded(2, 8, Duration::from_secs(5)).unwrap();
++    let oversized = invocation("payload").with_arguments(serde_json::json!({
++        "value": "x".repeat(1_024),
++    }));
++
++    assert_eq!(
++        queue.enqueue(
++            PlayEditTarget::EditWorkspace,
++            deferred(oversized, policy),
++        ),
++        Err(PendingEditQueueError::PayloadLimitExceeded {
++            requested_bytes: 17,
++            max_payload_bytes: 16,
++        })
++    );
++    assert!(queue.is_empty());
++}
++
+ #[test]
+ fn bounded_retention_rejects_new_work_after_its_own_age_limit() {

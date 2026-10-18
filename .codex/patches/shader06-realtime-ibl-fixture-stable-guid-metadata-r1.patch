@@ -1,0 +1,70 @@
+diff --git a/zircon_runtime/tests/runtime_shader_pbr_hdri_export/scene_fixtures.rs b/zircon_runtime/tests/runtime_shader_pbr_hdri_export/scene_fixtures.rs
+--- a/zircon_runtime/tests/runtime_shader_pbr_hdri_export/scene_fixtures.rs
++++ b/zircon_runtime/tests/runtime_shader_pbr_hdri_export/scene_fixtures.rs
+@@ -1,10 +1,11 @@
+ use std::fs;
+-use std::path::PathBuf;
++use std::path::{Path, PathBuf};
+ 
+ use zircon_runtime::asset::assets::{
+     AlphaMode, MaterialAsset, SceneAsset, SceneCameraAsset, SceneDirectionalLightAsset,
+     SceneEntityAsset, SceneMeshInstanceAsset, SceneMobilityAsset, TransformAsset,
+ };
++use zircon_runtime::asset::project::AssetMetaDocument;
+ use zircon_runtime::asset::{
+-    AssetReference, AssetUri, MeshVertex, ModelAsset, ModelPrimitiveAsset,
++    AssetKind, AssetReference, AssetUri, MeshVertex, ModelAsset, ModelPrimitiveAsset,
+ };
+@@ -223,15 +224,52 @@ pub(super) fn write_pbr_matrix_material(path: PathBuf, metallic: f32, smoothness
+         material
+             .to_project_toml_string(persist_fixture_reference)
+             .unwrap(),
+     )
+     .unwrap();
+ }
+ 
++fn write_pbr_matrix_asset_metadata(asset_root: &Path) {
++    write_fixture_asset_metadata(
++        asset_root.join("models/pbr_matrix_sphere.model.toml"),
++        "res://models/pbr_matrix_sphere.model.toml",
++        AssetKind::Model,
++    );
++    for row in 0..super::PBR_MATRIX_DIMENSION {
++        for column in 0..super::PBR_MATRIX_DIMENSION {
++            let uri = format!("res://materials/pbr_matrix_r{row}_c{column}.zmaterial");
++            write_fixture_asset_metadata(
++                asset_root.join(format!("materials/pbr_matrix_r{row}_c{column}.zmaterial")),
++                &uri,
++                AssetKind::Material,
++            );
++        }
++    }
++}
++
++fn write_fixture_asset_metadata(source_path: PathBuf, uri: &str, asset_kind: AssetKind) {
++    let reference = super::asset_reference(uri);
++    let file_name = source_path
++        .file_name()
++        .and_then(|name| name.to_str())
++        .expect("fixture asset source file name");
++    let meta_path = source_path.with_file_name(format!("{file_name}.zmeta"));
++    AssetMetaDocument::new(reference.uuid, reference.locator, asset_kind)
++        .save(meta_path)
++        .expect("write fixture asset metadata");
++}
++
+ pub(super) fn write_pbr_matrix_scene(path: PathBuf) {
+     if let Some(parent) = path.parent() {
+         fs::create_dir_all(parent).unwrap();
+     }
+ 
+     let mut entities =
+         Vec::with_capacity(super::PBR_MATRIX_DIMENSION * super::PBR_MATRIX_DIMENSION + 2);
++    // The serialized scene carries stable locator UUIDs before the first import. Seed matching
++    // sidecars for its external assets so the fixture follows the normal project authoring flow.
++    let asset_root = path
++        .parent()
++        .and_then(Path::parent)
++        .expect("PBR matrix scene must reside under the fixture asset root");
++    write_pbr_matrix_asset_metadata(asset_root);
+     entities.push(camera_entity(

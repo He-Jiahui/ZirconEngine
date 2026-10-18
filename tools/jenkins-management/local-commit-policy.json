@@ -4,8 +4,8 @@
   "repositoryRoot": "E:/Git/ZirconEngine",
   "authorization": {
     "source": "user",
-    "instruction": "主干工作区必须纯净；Jenkins 任务在 worktree 分支提交，合入最新主干后验证，通过 PR 合并主干，再快进同步本地主干。本次用户另行授权一次本地主干基线提交。",
-    "scope": "Any session uses its Jenkins task worktree; the scheduled queue validates the merged candidate and synchronizes clean local main only from a verified merged GitHub PR"
+    "instruction": "2026-10-17：降低 Jenkins 验证要求，会话自由提交；先提交，验证作为非阻断反馈，错误交回原会话自行修正。任务继续在所属分支提交，主干通过 PR 同步。",
+    "scope": "Any session may commit its scoped task files immediately; optional validation reports failures for owner repair and does not gate commits or PR integration"
   },
   "requireSessionGrant": false,
   "requireSourceDigest": false,
@@ -21,7 +21,12 @@
     "enabled": true,
     "sessions": "any",
     "targetBranch": "main",
-    "validationRequired": true,
+    "validationRequired": false,
+    "validationMode": "advisory",
+    "blockCommitOnDirtyMain": false,
+    "requireExpectedFileHashes": false,
+    "requireRuntimeAcceptance": false,
+    "repairOnValidationFailure": true,
     "requireCleanMain": true,
     "requirePullRequest": true,
     "pullRequestRepository": "He-Jiahui/ZirconEngine",

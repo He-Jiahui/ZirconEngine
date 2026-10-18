@@ -128,7 +128,7 @@ impl AutosaveJobAdapter {
         let plan = if is_final {
             self.scheduler.plan_final_window(
                 documents,
-                admission_window.remaining_entries(),
+                admission_window.remaining_entries().min(1),
                 self.next_document_after.as_ref(),
             )
         } else {
@@ -240,7 +240,7 @@ impl AutosaveJobAdapter {
             let Some(ticket) = self.tickets.pop_front() else {
                 break;
             };
-            match ticket.ticket.try_take() {
+            match ticket.ticket.try_take_terminal() {
                 Some(result) => {
                     let outcome = AutosaveDocumentOutcome::from_ticket_result(
                         ticket.document,

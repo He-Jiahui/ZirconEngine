@@ -155,6 +155,7 @@ pub(in crate::ui::retained_host::app::host_lifecycle::startup) fn construct_star
         active_drawer_resize: None,
         project_close_coordinator: ProjectCloseCoordinator::default(),
         pending_close_prompt: None,
+        main_window_close: None,
         pending_document_save_all: false,
         queued_document_save_all: false,
         scene_picker_session: None,

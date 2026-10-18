@@ -107,7 +107,6 @@ impl StagedResources {
         debug_assert!(previous.is_none());
         &mut self.entries[index]
     }
-
 }
 
 /// 已预检但尚未发布的资源批次，并持有发布串行锁；项目导入可在磁盘批次提交后再发布内存状态。
@@ -131,13 +130,19 @@ impl PreparedResourceMutation<'_> {
         let receipt = {
             let mut authority = self.manager.lock_authority_write();
             apply_staged(
-                &mut authority, &staged, self.events.len(),
-                &self.reservation_token, &self.reserved, &mut retired,
+                &mut authority,
+                &staged,
+                self.events.len(),
+                &self.reservation_token,
+                &self.reserved,
+                &mut retired,
             )
         };
         self.reserved.clear();
         self.manager.events.publish_permitted(
-            self.event_publish_permit.take().expect("prepared event permit"),
+            self.event_publish_permit
+                .take()
+                .expect("prepared event permit"),
             std::mem::take(&mut self.events),
         );
         drop(self.commit_serial.take());
@@ -155,7 +160,10 @@ impl Drop for PreparedResourceMutation<'_> {
         if !self.reserved.is_empty() {
             let mut authority = self.manager.lock_authority_write();
             clear_reservations(
-                &mut authority, &self.reservation_token, &self.reserved, &mut retired,
+                &mut authority,
+                &self.reservation_token,
+                &self.reserved,
+                &mut retired,
             );
         }
         let staged = self.staged.take();
@@ -190,11 +198,16 @@ impl ResourceManager {
             let mut authority = self.lock_authority_write();
             // Lease release can evict between read preflight and reservation installation.
             validate_expected_active(&authority, &staged.expected_active)?;
-            let reserved = staged.entries.iter().filter_map(|entry| {
-                authority.active.key(entry.id).map(|key| (entry.id, key))
-            }).collect::<Vec<_>>();
+            let reserved = staged
+                .entries
+                .iter()
+                .filter_map(|entry| authority.active.key(entry.id).map(|key| (entry.id, key)))
+                .collect::<Vec<_>>();
             for (id, key) in &reserved {
-                let slot = authority.runtime.get_mut(id).expect("an active payload has a slot");
+                let slot = authority
+                    .runtime
+                    .get_mut(id)
+                    .expect("an active payload has a slot");
                 slot.prepared = Some(super::runtime_slot::PreparedResourceReservation {
                     token: Arc::clone(&reservation_token),
                     key: key.clone(),
@@ -229,11 +242,17 @@ fn preflight(
                 expand_source_publication(authority, publication, &mut expanded)?;
             }
             ResourceMutationOperation::ReconcileSources(candidate_ids) => {
-                let candidate_ids = candidate_ids.iter().copied().collect::<std::collections::HashSet<_>>();
+                let candidate_ids = candidate_ids
+                    .iter()
+                    .copied()
+                    .collect::<std::collections::HashSet<_>>();
                 for (owner, _) in authority.active.sources() {
                     if !candidate_ids.contains(&owner) {
                         let publication = crate::ResourceSourcePublication::capture(
-                            owner, Vec::new(), Vec::new(), crate::ResourceSourceOutcome::Removed,
+                            owner,
+                            Vec::new(),
+                            Vec::new(),
+                            crate::ResourceSourceOutcome::Removed,
                             &authority.active,
                         );
                         expand_source_publication(authority, &publication, &mut expanded)?;
@@ -251,7 +270,10 @@ fn preflight(
 
     for operation in expanded {
         match operation {
-            ResourceMutationOperation::PublishSource(_) | ResourceMutationOperation::ReconcileSources(_) => unreachable!("source operations expanded"),
+            ResourceMutationOperation::PublishSource(_)
+            | ResourceMutationOperation::ReconcileSources(_) => {
+                unreachable!("source operations expanded")
+            }
             ResourceMutationOperation::UpsertLazy(mut record) => {
                 validate_upsert(registry, &staged, &locators, &record)?;
                 let previous = upsert_baseline_record(registry, &staged, record.id);
@@ -452,26 +474,44 @@ fn preflight(
     }
     // Both full-GC entry points declare candidate membership. A failed root may have no
     // catalog children, but its explicit source-unit active members remain last-good.
-    if operations.iter().any(|operation| matches!(operation, ResourceMutationOperation::ReconcileSources(_))) {
-        let handled = operations.iter().filter_map(|operation| match operation {
-            ResourceMutationOperation::PublishSource(publication) => Some(publication.owner),
-            _ => None,
-        }).chain(reconciled.iter().map(|publication| publication.owner))
+    if operations
+        .iter()
+        .any(|operation| matches!(operation, ResourceMutationOperation::ReconcileSources(_)))
+    {
+        let handled = operations
+            .iter()
+            .filter_map(|operation| match operation {
+                ResourceMutationOperation::PublishSource(publication) => Some(publication.owner),
+                _ => None,
+            })
+            .chain(reconciled.iter().map(|publication| publication.owner))
             .collect::<std::collections::HashSet<_>>();
         for (owner, members) in authority.active.sources() {
             // The complete source outcome already owns removal/retention. In particular,
             // generic candidate GC must not resurrect retired or successfully omitted members.
-            if handled.contains(&owner) { continue; }
-            if effective_record(registry, &staged, owner).is_some_and(|record| record.state == ResourceState::Error)
-                || members.iter().any(|id| authority.runtime.get(id).is_some_and(|slot| slot.retain_last_good))
+            if handled.contains(&owner) {
+                continue;
+            }
+            if effective_record(registry, &staged, owner)
+                .is_some_and(|record| record.state == ResourceState::Error)
+                || members.iter().any(|id| {
+                    authority
+                        .runtime
+                        .get(id)
+                        .is_some_and(|slot| slot.retain_last_good)
+                })
             {
                 for id in members {
-                    if authority.active.row(*id).is_some_and(|row| matches!(row.record.kind, ResourceKind::Model | ResourceKind::Mesh)) {
+                    if authority.active.row(*id).is_some_and(|row| {
+                        matches!(row.record.kind, ResourceKind::Model | ResourceKind::Mesh)
+                    }) {
                         let entry = staged_entry(&mut staged, registry, *id);
                         entry.payload = PayloadMutation::Keep;
                         entry.retain_last_good = Some(true);
                         entry.runtime_state = Some(RuntimeResourceState::Error);
-                        staged.expected_active.push((*id, authority.active.key(*id)));
+                        staged
+                            .expected_active
+                            .push((*id, authority.active.key(*id)));
                     }
                 }
             }
@@ -493,7 +533,10 @@ fn validate_expected_active(
 }
 
 fn source_error(owner: ResourceId, id: ResourceId) -> ResourceRegistryError {
-    ResourceRegistryError::InvalidSourcePublication { owner: owner.to_string(), id: id.to_string() }
+    ResourceRegistryError::InvalidSourcePublication {
+        owner: owner.to_string(),
+        id: id.to_string(),
+    }
 }
 
 fn expand_source_publication(
@@ -509,18 +552,26 @@ fn expand_source_publication(
     let mut ids = std::collections::HashSet::new();
     for member in &publication.members {
         let id = member.record.id;
-        if matches!(publication.outcome, ResourceSourceOutcome::CompleteSuccess | ResourceSourceOutcome::Unchanged)
-            && member.record.state != ResourceState::Ready
+        if matches!(
+            publication.outcome,
+            ResourceSourceOutcome::CompleteSuccess | ResourceSourceOutcome::Unchanged
+        ) && member.record.state != ResourceState::Ready
         {
             return Err(source_error(publication.owner, id));
         }
-        if !ids.insert(id) || authority.active.source_owner(id).is_some_and(|owner| owner != publication.owner) {
+        if !ids.insert(id)
+            || authority
+                .active
+                .source_owner(id)
+                .is_some_and(|owner| owner != publication.owner)
+        {
             return Err(source_error(publication.owner, id));
         }
         if let Some(active) = authority.active.row(id) {
             if active.record.kind != member.record.kind {
                 return Err(ResourceRegistryError::KindConflict {
-                    id: id.to_string(), current_kind: active.record.kind,
+                    id: id.to_string(),
+                    current_kind: active.record.kind,
                     requested_kind: member.record.kind,
                 });
             }
@@ -537,7 +588,8 @@ fn expand_source_publication(
         if publication.outcome == ResourceSourceOutcome::Removed || !ids.contains(&id) {
             if let Some(record) = authority.registry.get(id) {
                 operations.push(ResourceMutationOperation::Remove {
-                    locator: record.primary_locator.clone(), expected_kind: None,
+                    locator: record.primary_locator.clone(),
+                    expected_kind: None,
                 });
             }
         }
@@ -547,7 +599,8 @@ fn expand_source_publication(
             if let Some(payload) = &member.payload {
                 if !matches!(member.record.kind, ResourceKind::Model | ResourceKind::Mesh) {
                     operations.push(ResourceMutationOperation::UpsertReady {
-                        record: member.record.clone(), payload: Arc::clone(payload),
+                        record: member.record.clone(),
+                        payload: Arc::clone(payload),
                         recover_from_error: true,
                     });
                     continue;
@@ -565,8 +618,14 @@ fn apply_source_overlay(
     publication: &crate::ResourceSourcePublication,
 ) -> ResourceResult<()> {
     use crate::ResourceSourceOutcome;
-    staged.expected_active.extend(publication.expected_active.iter().cloned());
-    let mut members = publication.members.iter().map(|member| member.record.id).collect::<Vec<_>>();
+    staged
+        .expected_active
+        .extend(publication.expected_active.iter().cloned());
+    let mut members = publication
+        .members
+        .iter()
+        .map(|member| member.record.id)
+        .collect::<Vec<_>>();
     let mut previous = publication.previous_members.clone();
     previous.extend_from_slice(authority.active.source_members(publication.owner));
     previous.sort_unstable();
@@ -575,7 +634,9 @@ fn apply_source_overlay(
         ResourceSourceOutcome::Failed => {
             members.extend(previous.iter().copied());
             for id in &previous {
-                if authority.active.row(*id).is_some_and(|row| matches!(row.record.kind, ResourceKind::Model | ResourceKind::Mesh)) {
+                if authority.active.row(*id).is_some_and(|row| {
+                    matches!(row.record.kind, ResourceKind::Model | ResourceKind::Mesh)
+                }) {
                     let entry = staged_entry(staged, &authority.registry, *id);
                     entry.payload = PayloadMutation::Keep;
                     entry.retain_last_good = Some(true);
@@ -585,7 +646,9 @@ fn apply_source_overlay(
         }
         ResourceSourceOutcome::CompleteSuccess | ResourceSourceOutcome::Unchanged => {
             for member in &publication.members {
-                if !matches!(member.record.kind, ResourceKind::Model | ResourceKind::Mesh) { continue; }
+                if !matches!(member.record.kind, ResourceKind::Model | ResourceKind::Mesh) {
+                    continue;
+                }
                 let entry = staged_entry(staged, &authority.registry, member.record.id);
                 entry.retain_last_good = Some(false);
                 if let Some(active) = authority.active.row(member.record.id) {
@@ -593,7 +656,8 @@ fn apply_source_overlay(
                         entry.payload = PayloadMutation::Replace(Arc::clone(payload));
                         entry.runtime_state = Some(RuntimeResourceState::Loaded);
                     } else if entry.record.as_ref().is_some_and(|record| {
-                        record.state == ResourceState::Ready && record.revision == active.record.revision
+                        record.state == ResourceState::Ready
+                            && record.revision == active.record.revision
                     }) {
                         entry.payload = PayloadMutation::Keep;
                         entry.runtime_state = Some(RuntimeResourceState::Loaded);
@@ -634,21 +698,34 @@ fn clear_reservations(
 ) {
     let mut removed = Vec::new();
     for (id, key) in reserved {
-        if authority.active.key(*id).as_ref() != Some(key) { continue; }
+        if authority.active.key(*id).as_ref() != Some(key) {
+            continue;
+        }
         let preserve = authority.registry.get(*id).is_some_and(|record| {
-            matches!(record.state, ResourceState::Reloading | ResourceState::Error)
+            matches!(
+                record.state,
+                ResourceState::Reloading | ResourceState::Error
+            )
         });
-        let Some(slot) = authority.runtime.get_mut(id) else { continue; };
+        let Some(slot) = authority.runtime.get_mut(id) else {
+            continue;
+        };
         let matches = slot.prepared.as_ref().is_some_and(|reservation| {
             Arc::ptr_eq(&reservation.token, token) && reservation.key == *key
         });
-        if !matches { continue; }
+        if !matches {
+            continue;
+        }
         let reservation = slot.prepared.take().expect("matching reservation");
-        if reservation.deferred_last_release && Arc::strong_count(&slot.lease_identity) == 1
-            && !slot.retain_last_good && !preserve
+        if reservation.deferred_last_release
+            && Arc::strong_count(&slot.lease_identity) == 1
+            && !slot.retain_last_good
+            && !preserve
         {
             slot.state = RuntimeResourceState::Unloaded;
-            if let Some(payload) = authority.payloads.remove(id) { retired.push(payload); }
+            if let Some(payload) = authority.payloads.remove(id) {
+                retired.push(payload);
+            }
             removed.push((*id, None));
         }
     }
@@ -780,8 +857,16 @@ fn apply_staged(
         }
     }
     authority.management.apply_delta(
-        staged.entries.iter().filter(|entry| entry.before.is_some() && entry.record.is_none()).map(|entry| entry.id),
-        staged.entries.iter().filter(|entry| entry.before != entry.record).filter_map(|entry| entry.record.as_ref()),
+        staged
+            .entries
+            .iter()
+            .filter(|entry| entry.before.is_some() && entry.record.is_none())
+            .map(|entry| entry.id),
+        staged
+            .entries
+            .iter()
+            .filter(|entry| entry.before != entry.record)
+            .filter_map(|entry| entry.record.as_ref()),
     );
     let mut active_updates = Vec::new();
     for entry in &staged.entries {
@@ -789,44 +874,80 @@ fn apply_staged(
         let remove = matches!(entry.payload, PayloadMutation::Remove)
             || (entry.record.is_none() && entry.retain_last_good != Some(true));
         if remove {
-            if let Some(payload) = authority.payloads.remove(&id) { retired.push(payload); }
-            if authority.active.row(id).is_some() { active_updates.push((id, None)); }
+            if let Some(payload) = authority.payloads.remove(&id) {
+                retired.push(payload);
+            }
+            if authority.active.row(id).is_some() {
+                active_updates.push((id, None));
+            }
             if entry.record.is_none() {
                 authority.runtime.remove(&id);
             } else {
-                authority.runtime.insert(id, ResourceRuntimeSlot {
-                    state: entry.runtime_state.unwrap_or(RuntimeResourceState::Unloaded),
-                    ..ResourceRuntimeSlot::default()
-                });
+                authority.runtime.insert(
+                    id,
+                    ResourceRuntimeSlot {
+                        state: entry
+                            .runtime_state
+                            .unwrap_or(RuntimeResourceState::Unloaded),
+                        ..ResourceRuntimeSlot::default()
+                    },
+                );
             }
             continue;
         }
         match &entry.payload {
             PayloadMutation::Replace(payload) => {
-                let record = entry.record.as_ref().expect("an installed payload has a record");
-                if let Some(previous) = authority.payloads.insert(id, Arc::clone(payload)) { retired.push(previous); }
-                active_updates.push((id, Some(Arc::new(crate::ResourceActiveRow {
-                    record: Arc::new(record.clone()),
-                    key: crate::ResourceActiveVersionKey::new(id),
-                }))));
-                authority.runtime.insert(id, ResourceRuntimeSlot {
-                    state: entry.runtime_state.unwrap_or(RuntimeResourceState::Loaded),
-                    ..ResourceRuntimeSlot::default()
-                });
+                let record = entry
+                    .record
+                    .as_ref()
+                    .expect("an installed payload has a record");
+                if let Some(previous) = authority.payloads.insert(id, Arc::clone(payload)) {
+                    retired.push(previous);
+                }
+                active_updates.push((
+                    id,
+                    Some(Arc::new(crate::ResourceActiveRow {
+                        record: Arc::new(record.clone()),
+                        key: crate::ResourceActiveVersionKey::new(id),
+                    })),
+                ));
+                authority.runtime.insert(
+                    id,
+                    ResourceRuntimeSlot {
+                        state: entry.runtime_state.unwrap_or(RuntimeResourceState::Loaded),
+                        ..ResourceRuntimeSlot::default()
+                    },
+                );
             }
             PayloadMutation::Keep => {
                 if let Some(slot) = authority.runtime.get_mut(&id) {
-                    if let Some(retain) = entry.retain_last_good { slot.retain_last_good = retain; }
-                    if let Some(state) = entry.runtime_state { slot.state = state; }
+                    if let Some(retain) = entry.retain_last_good {
+                        slot.retain_last_good = retain;
+                    }
+                    if let Some(state) = entry.runtime_state {
+                        slot.state = state;
+                    }
                 } else if let Some(state) = entry.runtime_state {
-                    authority.runtime.insert(id, ResourceRuntimeSlot { state, ..ResourceRuntimeSlot::default() });
+                    authority.runtime.insert(
+                        id,
+                        ResourceRuntimeSlot {
+                            state,
+                            ..ResourceRuntimeSlot::default()
+                        },
+                    );
                 }
                 if entry.retain_last_good != Some(true) {
-                    if let (Some(record), Some(active)) = (&entry.record, authority.active.row(id)) {
-                        if record.state == ResourceState::Ready && record != active.record.as_ref() {
-                            active_updates.push((id, Some(Arc::new(crate::ResourceActiveRow {
-                                record: Arc::new(record.clone()), key: active.key.clone(),
-                            }))));
+                    if let (Some(record), Some(active)) = (&entry.record, authority.active.row(id))
+                    {
+                        if record.state == ResourceState::Ready && record != active.record.as_ref()
+                        {
+                            active_updates.push((
+                                id,
+                                Some(Arc::new(crate::ResourceActiveRow {
+                                    record: Arc::new(record.clone()),
+                                    key: active.key.clone(),
+                                })),
+                            ));
                         }
                     }
                 }
@@ -835,7 +956,9 @@ fn apply_staged(
         }
     }
     authority.active = crate::ResourceActiveGeneration::updated(
-        &authority.active, active_updates, &staged.source_updates,
+        &authority.active,
+        active_updates,
+        &staged.source_updates,
     );
     // Retention is installed before a last external release deferred by this reservation.
     clear_reservations(authority, token, reserved, retired);

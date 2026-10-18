@@ -1,0 +1,13 @@
+diff --git a/zircon_runtime/src/core/framework/render/environment/source_irradiance_cubemap.rs b/zircon_runtime/src/core/framework/render/environment/source_irradiance_cubemap.rs
+--- a/zircon_runtime/src/core/framework/render/environment/source_irradiance_cubemap.rs
++++ b/zircon_runtime/src/core/framework/render/environment/source_irradiance_cubemap.rs
+@@ -160,8 +160,7 @@ fn build_source_cubemap_irradiance_cube_with_face_executor(
+     let face_sample_count = face_size as usize * face_size as usize;
+     let face_output_rows = face_size.div_ceil(IRRADIANCE_CUBE_ROWS_PER_TASK) as usize;
+     let mut face_texels = texels.chunks_exact_mut(face_sample_count);
+-    let mut face_outputs =
+-        Vec::with_capacity(CubemapFace::ALL.len() * face_output_rows);
++    let mut face_outputs = Vec::with_capacity(CubemapFace::ALL.len() * face_output_rows);
+     for face in CubemapFace::ALL {
+         let face_texels = face_texels
+             .next()

@@ -1,0 +1,105 @@
+diff --git a/zircon_runtime/tests/runtime_shader_pbr_hdri_export.rs b/zircon_runtime/tests/runtime_shader_pbr_hdri_export.rs
+--- a/zircon_runtime/tests/runtime_shader_pbr_hdri_export.rs
++++ b/zircon_runtime/tests/runtime_shader_pbr_hdri_export.rs
+@@ -86,5 +86,9 @@ const LEGACY_GRID_OFFSET_SAMPLES: [i32; 6] = [-17, -11, -7, 7, 11, 17];
+ const PMREM_MIP_DIAGNOSTIC_TILE_SIZE: u32 = 96;
+ const SHADER_TEST_OUTPUT_DIR_OVERRIDE_ENV: &str = "ZIRCON_SHADER_TEST_OUTPUT_DIR";
+ const PMREM_MIP_DIAGNOSTIC_OUTPUT_NAME_OVERRIDE_ENV: &str =
+     "ZIRCON_PMREM_MIP_DIAGNOSTIC_OUTPUT_NAME";
++const PBR_TEXTURED_HDRI_OUTPUT_NAME_OVERRIDE_ENV: &str =
++    "ZIRCON_PBR_TEXTURED_HDRI_OUTPUT_NAME";
++const PBR_TEXTURED_HDRI_OUTPUT_NAME_PREFIX: &str =
++    "runtime_shader_pbr_real_hdri_lakes_ambientcg_metal009_texture_maps_";
+ 
+@@ -200,6 +204,10 @@ fn export_runtime_shader_pbr_real_hdri_textured_material_png_with_metal009() {
+         },
+     );
+-    let output = runtime_shader_pbr_real_hdri_output_path(PBR_TEXTURED_HDRI_OUTPUT_NAME);
++    let output_name = pbr_textured_hdri_output_name_from_override(
++        std::env::var(PBR_TEXTURED_HDRI_OUTPUT_NAME_OVERRIDE_ENV).ok(),
++    )
++    .unwrap_or_else(|error| panic!("invalid real HDRI textured material output name: {error}"));
++    let output = runtime_shader_pbr_real_hdri_output_path(&output_name);
+ 
+     save_viewport_frame_png(
+         &frame,
+@@ -383,10 +391,22 @@ fn save_viewport_frame_png(
+     output: &Path,
+     context: &str,
+ ) {
+-    ImageBuffer::<Rgba<u8>, _>::from_raw(frame.width, frame.height, frame.rgba.clone())
+-        .expect("rendered real HDRI PBR frame should match output image dimensions")
+-        .save_with_format(output, ImageFormat::Png)
+-        .unwrap_or_else(|error| panic!("write {context}: {error}"));
++    let image = ImageBuffer::<Rgba<u8>, _>::from_raw(frame.width, frame.height, frame.rgba.clone())
++        .expect("rendered real HDRI PBR frame should match output image dimensions");
++    let mut output_file = fs::OpenOptions::new()
++        .write(true)
++        .create_new(true)
++        .open(output)
++        .unwrap_or_else(|error| panic!("claim immutable {context} path: {error}"));
++    image::DynamicImage::ImageRgba8(image)
++        .write_to(&mut output_file, ImageFormat::Png)
++        .unwrap_or_else(|error| panic!("write {context}: {error}"));
++    output_file
++        .flush()
++        .unwrap_or_else(|error| panic!("flush {context}: {error}"));
++    output_file
++        .sync_all()
++        .unwrap_or_else(|error| panic!("sync {context}: {error}"));
+ }
+ 
+ fn polyhaven_lakes_source_cubemap_environment(
+@@ -713,6 +733,52 @@ fn pmrem_mip_diagnostic_output_path() -> PathBuf {
+     runtime_shader_pbr_real_hdri_output_path(&output_name)
+ }
+ 
++fn pbr_textured_hdri_output_name_from_override(
++    override_name: Option<String>,
++) -> Result<String, String> {
++    let output_name = override_name.unwrap_or_else(|| PBR_TEXTURED_HDRI_OUTPUT_NAME.to_owned());
++    if output_name.is_empty()
++        || output_name.contains('/')
++        || output_name.contains('\\')
++        || !output_name.starts_with(PBR_TEXTURED_HDRI_OUTPUT_NAME_PREFIX)
++        || !output_name.ends_with(".png")
++    {
++        return Err(format!(
++            "{PBR_TEXTURED_HDRI_OUTPUT_NAME_OVERRIDE_ENV} must be an immutable real HDRI textured material PNG file name: {output_name}"
++        ));
++    }
++    Ok(output_name)
++}
++
++#[test]
++fn pbr_textured_hdri_output_name_requires_a_new_shader_archive_png() {
++    assert_eq!(
++        pbr_textured_hdri_output_name_from_override(None)
++            .expect("the legacy textured HDRI output name remains readable"),
++        PBR_TEXTURED_HDRI_OUTPUT_NAME
++    );
++    assert_eq!(
++        pbr_textured_hdri_output_name_from_override(Some(
++            "runtime_shader_pbr_real_hdri_lakes_ambientcg_metal009_texture_maps_20260823.png"
++                .to_owned(),
++        ))
++        .expect("a date-suffixed textured HDRI evidence file is valid"),
++        "runtime_shader_pbr_real_hdri_lakes_ambientcg_metal009_texture_maps_20260823.png"
++    );
++    assert!(pbr_textured_hdri_output_name_from_override(Some(
++        "runtime_shader_pbr_real_hdri_lakes_ambientcg_metal009_texture_maps_20260823.jpg"
++            .to_owned(),
++    ))
++    .expect_err("non-PNG outputs must be rejected")
++    .contains(PBR_TEXTURED_HDRI_OUTPUT_NAME_OVERRIDE_ENV));
++    assert!(pbr_textured_hdri_output_name_from_override(Some(
++        "..\\runtime_shader_pbr_real_hdri_lakes_ambientcg_metal009_texture_maps_20260823.png"
++            .to_owned(),
++    ))
++    .expect_err("path-bearing output names must be rejected")
++    .contains(PBR_TEXTURED_HDRI_OUTPUT_NAME_OVERRIDE_ENV));
++}
++
+ #[test]
+ fn pmrem_mip_diagnostic_output_name_requires_a_new_shader_archive_png() {
+     assert_eq!(

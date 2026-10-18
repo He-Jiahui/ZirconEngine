@@ -1,0 +1,24 @@
+// A fixed spell impact carries a damage amount already resolved at the primary
+// hit. `critical` remains part of the impact because source dealDamage applies
+// critical-only target effects at arrival; it must never cause another roll.
+pub class FixedSpellImpact {
+    pub var damage: int;
+    pub var critical: bool;
+
+    pub @constructor() {
+        this.damage = 0;
+        this.critical = false;
+    }
+}
+
+pub resolve(damage: int, critical: bool): FixedSpellImpact {
+    var impact = new FixedSpellImpact();
+    if (damage <= 0) { return impact; }
+    impact.damage = damage;
+    impact.critical = critical;
+    return impact;
+}
+
+pub isValid(impact: FixedSpellImpact): bool {
+    return impact.damage > 0;
+}

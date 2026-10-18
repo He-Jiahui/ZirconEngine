@@ -63,7 +63,10 @@ pub use quota_settings::{
     EDITOR_JOB_EXPORT_QUOTA_KEY, EDITOR_JOB_INTERACTIVE_SAVE_QUOTA_KEY, EDITOR_JOB_PLAY_QUOTA_KEY,
     EDITOR_JOB_THUMBNAIL_QUOTA_KEY,
 };
-pub use shutdown::UnfinishedEditorJob;
+pub use shutdown::{
+    EditorJobShutdownFailure, EditorJobShutdownProgress, EditorJobShutdownState,
+    UnfinishedEditorJob,
+};
 pub use spec::EditorJobSpec;
 pub use system::{EditorJobAdmissionWindow, EditorJobBatchAdmissionReservation, EditorJobSystem};
 pub use ticket::JobTicket;

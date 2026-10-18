@@ -8,7 +8,7 @@ use zircon_runtime::core::runtime::tasks::{
     BoundedKeyedIoDiagnostics, BoundedKeyedIoFailure, BoundedKeyedIoFence, BoundedKeyedIoLane,
     BoundedKeyedIoLimits, BoundedKeyedIoShutdownGuard, BoundedKeyedIoShutdownReport,
     BoundedKeyedIoTerminal, BoundedKeyedIoTicket, BoundedKeyedIoWaitResult,
-    BoundedKeyedIoWorkDeadline, JobScheduler,
+    BoundedKeyedIoWorkDeadline, JobScheduler, TaskState,
 };
 
 use super::io::SettingsPersistenceWriteDisposition;
@@ -252,6 +252,29 @@ impl fmt::Display for SettingsPersistenceShutdownError {
 
 impl std::error::Error for SettingsPersistenceShutdownError {}
 
+/// A borrowed shutdown poll distinguishes worker failure from fence failure.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum SettingsPersistenceShutdownPollFailure {
+    WorkerTerminal(TaskState),
+    Fence(SettingsPersistenceShutdownError),
+}
+
+impl fmt::Display for SettingsPersistenceShutdownPollFailure {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::WorkerTerminal(terminal) => {
+                write!(
+                    formatter,
+                    "settings persistence worker did not succeed: {terminal:?}"
+                )
+            }
+            Self::Fence(error) => fmt::Display::fmt(error, formatter),
+        }
+    }
+}
+
+impl std::error::Error for SettingsPersistenceShutdownPollFailure {}
+
 /// A typed save ticket. Its terminal state, cancellation, and fences are owned by Runtime11.
 #[derive(Clone, Debug)]
 pub struct SettingsPersistenceTicket {
@@ -325,6 +348,35 @@ pub struct SettingsPersistenceShutdown {
 }
 
 impl SettingsPersistenceShutdown {
+    /// Reports quiescence only; use poll_result to distinguish successful shutdown.
+    pub fn is_complete(&self) -> bool {
+        self.guard.is_complete()
+    }
+
+    /// Observes both the real worker terminal result and the closing fence.
+    /// Pending and failed results keep this owner available to the caller.
+    pub fn poll_result(
+        &self,
+    ) -> Option<Result<BoundedKeyedIoShutdownReport, SettingsPersistenceShutdownPollFailure>> {
+        let report = match self.guard.poll_result()? {
+            Ok(report) => report,
+            Err(terminal) => {
+                return Some(Err(SettingsPersistenceShutdownPollFailure::WorkerTerminal(
+                    terminal,
+                )));
+            }
+        };
+        Some(match self.fence.ticket().terminal() {
+            Some(BoundedKeyedIoTerminal::Succeeded) => Ok(report),
+            Some(terminal) => Err(SettingsPersistenceShutdownPollFailure::Fence(
+                SettingsPersistenceShutdownError::FenceTerminal(terminal),
+            )),
+            None => Err(SettingsPersistenceShutdownPollFailure::Fence(
+                SettingsPersistenceShutdownError::FenceNotTerminal,
+            )),
+        })
+    }
+
     /// Waits for the fence and returns only a successful persistence shutdown.
     pub fn finish(self) -> Result<BoundedKeyedIoShutdownReport, SettingsPersistenceShutdownError> {
         self.guard.wait();

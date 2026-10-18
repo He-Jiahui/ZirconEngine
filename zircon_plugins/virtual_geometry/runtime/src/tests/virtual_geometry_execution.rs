@@ -1,7 +1,9 @@
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
+use zircon_runtime_interface::project::{AssetRef, PersistedAssetReference, RelPath};
+use zircon_runtime_interface::resource::ResourceScheme;
 
 use crate::test_support::render_feature_fixtures::{
     pluginized_wgpu_render_framework_with_gpu_test_collector,
@@ -41,7 +43,7 @@ fn compile_virtual_geometry_deferred_pipeline(
                 .with_capability_enabled(RenderFeatureCapabilityRequirement::VirtualGeometry)
                 .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
                 .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
-                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
+                .with_feature_disabled(BuiltinRenderFeature::Temporal)
                 .with_feature_disabled(BuiltinRenderFeature::Bloom)
                 .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
                 .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
@@ -157,7 +159,7 @@ fn gpu_execution_segment_authority(
 fn virtual_geometry_submission_records_survive_with_execution_args_and_gpu_authority_only() {
     let root = unique_temp_project_root("graphics_virtual_geometry_execution_args_authority");
     let paths = ProjectPaths::from_root(&root).unwrap();
-    paths.ensure_layout().unwrap();
+    paths.ensure_layout(&[RelPath::project_assets()]).unwrap();
     ProjectManifest::new(
         "GraphicsVirtualGeometryExecutionArgsAuthority",
         AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
@@ -167,17 +169,28 @@ fn virtual_geometry_submission_records_survive_with_execution_args_and_gpu_autho
     .unwrap();
 
     write_flat_color_wgsl(
-        paths.assets_root().join("shaders").join("flat_color.wgsl"),
+        paths
+            .asset_root(&RelPath::project_assets())
+            .join("shaders")
+            .join("flat_color.wgsl"),
         [1.0, 1.0, 1.0],
     );
     write_solid_png(
-        paths.assets_root().join("textures").join("white.png"),
+        paths
+            .asset_root(&RelPath::project_assets())
+            .join("textures")
+            .join("white.png"),
         [255, 255, 255, 255],
     );
-    write_quad_obj(paths.assets_root().join("models").join("quad.obj"));
+    write_quad_obj(
+        paths
+            .asset_root(&RelPath::project_assets())
+            .join("models")
+            .join("quad.obj"),
+    );
     write_material(
         paths
-            .assets_root()
+            .asset_root(&RelPath::project_assets())
             .join("materials")
             .join("transparent_red.zmaterial"),
         "ExecutionArgsTransparentRed",
@@ -188,7 +201,7 @@ fn virtual_geometry_submission_records_survive_with_execution_args_and_gpu_autho
     );
     write_material(
         paths
-            .assets_root()
+            .asset_root(&RelPath::project_assets())
             .join("materials")
             .join("opaque_white.zmaterial"),
         "ExecutionArgsOpaqueWhite",
@@ -259,7 +272,7 @@ fn virtual_geometry_submission_records_survive_with_execution_args_and_shared_su
     let root =
         unique_temp_project_root("graphics_virtual_geometry_execution_args_submission_tokens");
     let paths = ProjectPaths::from_root(&root).unwrap();
-    paths.ensure_layout().unwrap();
+    paths.ensure_layout(&[RelPath::project_assets()]).unwrap();
     ProjectManifest::new(
         "GraphicsVirtualGeometryExecutionArgsSubmissionTokens",
         AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
@@ -269,17 +282,28 @@ fn virtual_geometry_submission_records_survive_with_execution_args_and_shared_su
     .unwrap();
 
     write_flat_color_wgsl(
-        paths.assets_root().join("shaders").join("flat_color.wgsl"),
+        paths
+            .asset_root(&RelPath::project_assets())
+            .join("shaders")
+            .join("flat_color.wgsl"),
         [1.0, 1.0, 1.0],
     );
     write_solid_png(
-        paths.assets_root().join("textures").join("white.png"),
+        paths
+            .asset_root(&RelPath::project_assets())
+            .join("textures")
+            .join("white.png"),
         [255, 255, 255, 255],
     );
-    write_quad_obj(paths.assets_root().join("models").join("quad.obj"));
+    write_quad_obj(
+        paths
+            .asset_root(&RelPath::project_assets())
+            .join("models")
+            .join("quad.obj"),
+    );
     write_material(
         paths
-            .assets_root()
+            .asset_root(&RelPath::project_assets())
             .join("materials")
             .join("transparent_red.zmaterial"),
         "ExecutionArgsTokensTransparentRed",
@@ -290,7 +314,7 @@ fn virtual_geometry_submission_records_survive_with_execution_args_and_shared_su
     );
     write_material(
         paths
-            .assets_root()
+            .asset_root(&RelPath::project_assets())
             .join("materials")
             .join("opaque_white.zmaterial"),
         "ExecutionArgsTokensOpaqueWhite",
@@ -356,7 +380,7 @@ fn virtual_geometry_submission_records_survive_with_execution_args_and_shared_su
 fn virtual_geometry_submission_records_survive_with_execution_authority_buffer_only() {
     let root = unique_temp_project_root("graphics_virtual_geometry_execution_authority_only");
     let paths = ProjectPaths::from_root(&root).unwrap();
-    paths.ensure_layout().unwrap();
+    paths.ensure_layout(&[RelPath::project_assets()]).unwrap();
     ProjectManifest::new(
         "GraphicsVirtualGeometryExecutionAuthorityOnly",
         AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
@@ -366,17 +390,28 @@ fn virtual_geometry_submission_records_survive_with_execution_authority_buffer_o
     .unwrap();
 
     write_flat_color_wgsl(
-        paths.assets_root().join("shaders").join("flat_color.wgsl"),
+        paths
+            .asset_root(&RelPath::project_assets())
+            .join("shaders")
+            .join("flat_color.wgsl"),
         [1.0, 1.0, 1.0],
     );
     write_solid_png(
-        paths.assets_root().join("textures").join("white.png"),
+        paths
+            .asset_root(&RelPath::project_assets())
+            .join("textures")
+            .join("white.png"),
         [255, 255, 255, 255],
     );
-    write_quad_obj(paths.assets_root().join("models").join("quad.obj"));
+    write_quad_obj(
+        paths
+            .asset_root(&RelPath::project_assets())
+            .join("models")
+            .join("quad.obj"),
+    );
     write_material(
         paths
-            .assets_root()
+            .asset_root(&RelPath::project_assets())
             .join("materials")
             .join("transparent_red.zmaterial"),
         "ExecutionAuthorityOnlyTransparentRed",
@@ -387,7 +422,7 @@ fn virtual_geometry_submission_records_survive_with_execution_authority_buffer_o
     );
     write_material(
         paths
-            .assets_root()
+            .asset_root(&RelPath::project_assets())
             .join("materials")
             .join("opaque_white.zmaterial"),
         "ExecutionAuthorityOnlyOpaqueWhite",
@@ -459,7 +494,7 @@ fn virtual_geometry_submission_records_survive_with_execution_submission_tokens_
     let root =
         unique_temp_project_root("graphics_virtual_geometry_execution_submission_tokens_only");
     let paths = ProjectPaths::from_root(&root).unwrap();
-    paths.ensure_layout().unwrap();
+    paths.ensure_layout(&[RelPath::project_assets()]).unwrap();
     ProjectManifest::new(
         "GraphicsVirtualGeometryExecutionSubmissionTokensOnly",
         AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
@@ -469,17 +504,28 @@ fn virtual_geometry_submission_records_survive_with_execution_submission_tokens_
     .unwrap();
 
     write_flat_color_wgsl(
-        paths.assets_root().join("shaders").join("flat_color.wgsl"),
+        paths
+            .asset_root(&RelPath::project_assets())
+            .join("shaders")
+            .join("flat_color.wgsl"),
         [1.0, 1.0, 1.0],
     );
     write_solid_png(
-        paths.assets_root().join("textures").join("white.png"),
+        paths
+            .asset_root(&RelPath::project_assets())
+            .join("textures")
+            .join("white.png"),
         [255, 255, 255, 255],
     );
-    write_quad_obj(paths.assets_root().join("models").join("quad.obj"));
+    write_quad_obj(
+        paths
+            .asset_root(&RelPath::project_assets())
+            .join("models")
+            .join("quad.obj"),
+    );
     write_material(
         paths
-            .assets_root()
+            .asset_root(&RelPath::project_assets())
             .join("materials")
             .join("transparent_red.zmaterial"),
         "ExecutionSubmissionTokensTransparentRed",
@@ -490,7 +536,7 @@ fn virtual_geometry_submission_records_survive_with_execution_submission_tokens_
     );
     write_material(
         paths
-            .assets_root()
+            .asset_root(&RelPath::project_assets())
             .join("materials")
             .join("opaque_white.zmaterial"),
         "ExecutionSubmissionTokensOpaqueWhite",
@@ -558,7 +604,7 @@ fn virtual_geometry_execution_draw_ref_indices_default_to_execution_args_without
 ) {
     let root = unique_temp_project_root("graphics_virtual_geometry_execution_args_default");
     let paths = ProjectPaths::from_root(&root).unwrap();
-    paths.ensure_layout().unwrap();
+    paths.ensure_layout(&[RelPath::project_assets()]).unwrap();
     ProjectManifest::new(
         "GraphicsVirtualGeometryExecutionArgsDefault",
         AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
@@ -568,17 +614,28 @@ fn virtual_geometry_execution_draw_ref_indices_default_to_execution_args_without
     .unwrap();
 
     write_flat_color_wgsl(
-        paths.assets_root().join("shaders").join("flat_color.wgsl"),
+        paths
+            .asset_root(&RelPath::project_assets())
+            .join("shaders")
+            .join("flat_color.wgsl"),
         [1.0, 1.0, 1.0],
     );
     write_solid_png(
-        paths.assets_root().join("textures").join("white.png"),
+        paths
+            .asset_root(&RelPath::project_assets())
+            .join("textures")
+            .join("white.png"),
         [255, 255, 255, 255],
     );
-    write_quad_obj(paths.assets_root().join("models").join("quad.obj"));
+    write_quad_obj(
+        paths
+            .asset_root(&RelPath::project_assets())
+            .join("models")
+            .join("quad.obj"),
+    );
     write_material(
         paths
-            .assets_root()
+            .asset_root(&RelPath::project_assets())
             .join("materials")
             .join("transparent_red.zmaterial"),
         "ExecutionArgsDefaultTransparentRed",
@@ -589,7 +646,7 @@ fn virtual_geometry_execution_draw_ref_indices_default_to_execution_args_without
     );
     write_material(
         paths
-            .assets_root()
+            .asset_root(&RelPath::project_assets())
             .join("materials")
             .join("opaque_white.zmaterial"),
         "ExecutionArgsDefaultOpaqueWhite",
@@ -654,7 +711,7 @@ fn virtual_geometry_execution_records_default_to_execution_args_and_authority_wi
 ) {
     let root = unique_temp_project_root("graphics_virtual_geometry_execution_records_default");
     let paths = ProjectPaths::from_root(&root).unwrap();
-    paths.ensure_layout().unwrap();
+    paths.ensure_layout(&[RelPath::project_assets()]).unwrap();
     ProjectManifest::new(
         "GraphicsVirtualGeometryExecutionRecordsDefault",
         AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
@@ -664,17 +721,28 @@ fn virtual_geometry_execution_records_default_to_execution_args_and_authority_wi
     .unwrap();
 
     write_flat_color_wgsl(
-        paths.assets_root().join("shaders").join("flat_color.wgsl"),
+        paths
+            .asset_root(&RelPath::project_assets())
+            .join("shaders")
+            .join("flat_color.wgsl"),
         [1.0, 1.0, 1.0],
     );
     write_solid_png(
-        paths.assets_root().join("textures").join("white.png"),
+        paths
+            .asset_root(&RelPath::project_assets())
+            .join("textures")
+            .join("white.png"),
         [255, 255, 255, 255],
     );
-    write_quad_obj(paths.assets_root().join("models").join("quad.obj"));
+    write_quad_obj(
+        paths
+            .asset_root(&RelPath::project_assets())
+            .join("models")
+            .join("quad.obj"),
+    );
     write_material(
         paths
-            .assets_root()
+            .asset_root(&RelPath::project_assets())
             .join("materials")
             .join("transparent_red.zmaterial"),
         "ExecutionRecordsDefaultTransparentRed",
@@ -685,7 +753,7 @@ fn virtual_geometry_execution_records_default_to_execution_args_and_authority_wi
     );
     write_material(
         paths
-            .assets_root()
+            .asset_root(&RelPath::project_assets())
             .join("materials")
             .join("opaque_white.zmaterial"),
         "ExecutionRecordsDefaultOpaqueWhite",
@@ -1066,7 +1134,17 @@ fn write_material(
         texture_slots: Default::default(),
         validation_diagnostics: Vec::new(),
     };
-    fs::write(path, toml::to_string_pretty(&material).unwrap()).unwrap();
+    let project_root = fixture_project_root(&path);
+    let document = material
+        .to_project_toml_string(|reference| {
+            Ok(persisted_reference_for_fixture(
+                &project_root,
+                &path,
+                reference,
+            ))
+        })
+        .unwrap();
+    fs::write(path, document).unwrap();
 }
 
 fn asset_reference(uri: &str) -> AssetReference {
@@ -1086,7 +1164,7 @@ fn virtual_geometry_deferred_execution_source_tracks_actual_scene_pass_submissio
     let root =
         unique_temp_project_root("graphics_virtual_geometry_deferred_execution_source_order");
     let paths = ProjectPaths::from_root(&root).unwrap();
-    paths.ensure_layout().unwrap();
+    paths.ensure_layout(&[RelPath::project_assets()]).unwrap();
     ProjectManifest::new(
         "GraphicsVirtualGeometryDeferredExecutionSourceOrder",
         AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
@@ -1096,17 +1174,28 @@ fn virtual_geometry_deferred_execution_source_tracks_actual_scene_pass_submissio
     .unwrap();
 
     write_flat_color_wgsl(
-        paths.assets_root().join("shaders").join("flat_color.wgsl"),
+        paths
+            .asset_root(&RelPath::project_assets())
+            .join("shaders")
+            .join("flat_color.wgsl"),
         [1.0, 1.0, 1.0],
     );
     write_solid_png(
-        paths.assets_root().join("textures").join("white.png"),
+        paths
+            .asset_root(&RelPath::project_assets())
+            .join("textures")
+            .join("white.png"),
         [255, 255, 255, 255],
     );
-    write_quad_obj(paths.assets_root().join("models").join("quad.obj"));
+    write_quad_obj(
+        paths
+            .asset_root(&RelPath::project_assets())
+            .join("models")
+            .join("quad.obj"),
+    );
     write_material(
         paths
-            .assets_root()
+            .asset_root(&RelPath::project_assets())
             .join("materials")
             .join("transparent_red.zmaterial"),
         "DeferredTransparentRed",
@@ -1117,7 +1206,7 @@ fn virtual_geometry_deferred_execution_source_tracks_actual_scene_pass_submissio
     );
     write_material(
         paths
-            .assets_root()
+            .asset_root(&RelPath::project_assets())
             .join("materials")
             .join("opaque_white.zmaterial"),
         "DeferredOpaqueWhite",
@@ -1181,7 +1270,7 @@ fn virtual_geometry_deferred_execution_records_survive_without_shared_indirect_b
     let root =
         unique_temp_project_root("graphics_virtual_geometry_deferred_execution_records_only");
     let paths = ProjectPaths::from_root(&root).unwrap();
-    paths.ensure_layout().unwrap();
+    paths.ensure_layout(&[RelPath::project_assets()]).unwrap();
     ProjectManifest::new(
         "GraphicsVirtualGeometryDeferredExecutionRecordsOnly",
         AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
@@ -1191,17 +1280,28 @@ fn virtual_geometry_deferred_execution_records_survive_without_shared_indirect_b
     .unwrap();
 
     write_flat_color_wgsl(
-        paths.assets_root().join("shaders").join("flat_color.wgsl"),
+        paths
+            .asset_root(&RelPath::project_assets())
+            .join("shaders")
+            .join("flat_color.wgsl"),
         [1.0, 1.0, 1.0],
     );
     write_solid_png(
-        paths.assets_root().join("textures").join("white.png"),
+        paths
+            .asset_root(&RelPath::project_assets())
+            .join("textures")
+            .join("white.png"),
         [255, 255, 255, 255],
     );
-    write_quad_obj(paths.assets_root().join("models").join("quad.obj"));
+    write_quad_obj(
+        paths
+            .asset_root(&RelPath::project_assets())
+            .join("models")
+            .join("quad.obj"),
+    );
     write_material(
         paths
-            .assets_root()
+            .asset_root(&RelPath::project_assets())
             .join("materials")
             .join("transparent_red.zmaterial"),
         "DeferredRecordsTransparentRed",
@@ -1212,7 +1312,7 @@ fn virtual_geometry_deferred_execution_records_survive_without_shared_indirect_b
     );
     write_material(
         paths
-            .assets_root()
+            .asset_root(&RelPath::project_assets())
             .join("materials")
             .join("opaque_white.zmaterial"),
         "DeferredRecordsOpaqueWhite",
@@ -1270,7 +1370,7 @@ fn virtual_geometry_execution_segments_survive_without_shared_segment_and_draw_r
     let root =
         unique_temp_project_root("graphics_virtual_geometry_execution_segments_records_only");
     let paths = ProjectPaths::from_root(&root).unwrap();
-    paths.ensure_layout().unwrap();
+    paths.ensure_layout(&[RelPath::project_assets()]).unwrap();
     ProjectManifest::new(
         "GraphicsVirtualGeometryExecutionSegmentsRecordsOnly",
         AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
@@ -1280,17 +1380,28 @@ fn virtual_geometry_execution_segments_survive_without_shared_segment_and_draw_r
     .unwrap();
 
     write_flat_color_wgsl(
-        paths.assets_root().join("shaders").join("flat_color.wgsl"),
+        paths
+            .asset_root(&RelPath::project_assets())
+            .join("shaders")
+            .join("flat_color.wgsl"),
         [1.0, 1.0, 1.0],
     );
     write_solid_png(
-        paths.assets_root().join("textures").join("white.png"),
+        paths
+            .asset_root(&RelPath::project_assets())
+            .join("textures")
+            .join("white.png"),
         [255, 255, 255, 255],
     );
-    write_quad_obj(paths.assets_root().join("models").join("quad.obj"));
+    write_quad_obj(
+        paths
+            .asset_root(&RelPath::project_assets())
+            .join("models")
+            .join("quad.obj"),
+    );
     write_material(
         paths
-            .assets_root()
+            .asset_root(&RelPath::project_assets())
             .join("materials")
             .join("transparent_red.zmaterial"),
         "ExecutionSegmentsTransparentRed",
@@ -1301,7 +1412,7 @@ fn virtual_geometry_execution_segments_survive_without_shared_segment_and_draw_r
     );
     write_material(
         paths
-            .assets_root()
+            .asset_root(&RelPath::project_assets())
             .join("materials")
             .join("opaque_white.zmaterial"),
         "ExecutionSegmentsOpaqueWhite",
@@ -1363,7 +1474,7 @@ fn virtual_geometry_execution_records_recover_draw_ref_indices_when_execution_in
     let root =
         unique_temp_project_root("graphics_virtual_geometry_execution_records_recover_indices");
     let paths = ProjectPaths::from_root(&root).unwrap();
-    paths.ensure_layout().unwrap();
+    paths.ensure_layout(&[RelPath::project_assets()]).unwrap();
     ProjectManifest::new(
         "GraphicsVirtualGeometryExecutionRecordsRecoverIndices",
         AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
@@ -1373,17 +1484,28 @@ fn virtual_geometry_execution_records_recover_draw_ref_indices_when_execution_in
     .unwrap();
 
     write_flat_color_wgsl(
-        paths.assets_root().join("shaders").join("flat_color.wgsl"),
+        paths
+            .asset_root(&RelPath::project_assets())
+            .join("shaders")
+            .join("flat_color.wgsl"),
         [1.0, 1.0, 1.0],
     );
     write_solid_png(
-        paths.assets_root().join("textures").join("white.png"),
+        paths
+            .asset_root(&RelPath::project_assets())
+            .join("textures")
+            .join("white.png"),
         [255, 255, 255, 255],
     );
-    write_quad_obj(paths.assets_root().join("models").join("quad.obj"));
+    write_quad_obj(
+        paths
+            .asset_root(&RelPath::project_assets())
+            .join("models")
+            .join("quad.obj"),
+    );
     write_material(
         paths
-            .assets_root()
+            .asset_root(&RelPath::project_assets())
             .join("materials")
             .join("transparent_red.zmaterial"),
         "ExecutionRecordsTransparentRed",
@@ -1394,7 +1516,7 @@ fn virtual_geometry_execution_records_recover_draw_ref_indices_when_execution_in
     );
     write_material(
         paths
-            .assets_root()
+            .asset_root(&RelPath::project_assets())
             .join("materials")
             .join("opaque_white.zmaterial"),
         "ExecutionRecordsOpaqueWhite",
@@ -1456,7 +1578,7 @@ fn virtual_geometry_submission_records_survive_with_execution_indices_and_gpu_au
     let root =
         unique_temp_project_root("graphics_virtual_geometry_gpu_authority_submission_records");
     let paths = ProjectPaths::from_root(&root).unwrap();
-    paths.ensure_layout().unwrap();
+    paths.ensure_layout(&[RelPath::project_assets()]).unwrap();
     ProjectManifest::new(
         "GraphicsVirtualGeometryGpuAuthoritySubmissionRecords",
         AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
@@ -1466,17 +1588,28 @@ fn virtual_geometry_submission_records_survive_with_execution_indices_and_gpu_au
     .unwrap();
 
     write_flat_color_wgsl(
-        paths.assets_root().join("shaders").join("flat_color.wgsl"),
+        paths
+            .asset_root(&RelPath::project_assets())
+            .join("shaders")
+            .join("flat_color.wgsl"),
         [1.0, 1.0, 1.0],
     );
     write_solid_png(
-        paths.assets_root().join("textures").join("white.png"),
+        paths
+            .asset_root(&RelPath::project_assets())
+            .join("textures")
+            .join("white.png"),
         [255, 255, 255, 255],
     );
-    write_quad_obj(paths.assets_root().join("models").join("quad.obj"));
+    write_quad_obj(
+        paths
+            .asset_root(&RelPath::project_assets())
+            .join("models")
+            .join("quad.obj"),
+    );
     write_material(
         paths
-            .assets_root()
+            .asset_root(&RelPath::project_assets())
             .join("materials")
             .join("transparent_red.zmaterial"),
         "GpuAuthorityTransparentRed",
@@ -1487,7 +1620,7 @@ fn virtual_geometry_submission_records_survive_with_execution_indices_and_gpu_au
     );
     write_material(
         paths
-            .assets_root()
+            .asset_root(&RelPath::project_assets())
             .join("materials")
             .join("opaque_white.zmaterial"),
         "GpuAuthorityOpaqueWhite",
@@ -1546,7 +1679,7 @@ fn virtual_geometry_shared_indirect_segments_preserve_instance_index_for_submiss
         "graphics_virtual_geometry_shared_indirect_segments_with_instances",
     );
     let paths = ProjectPaths::from_root(&root).unwrap();
-    paths.ensure_layout().unwrap();
+    paths.ensure_layout(&[RelPath::project_assets()]).unwrap();
     ProjectManifest::new(
         "GraphicsVirtualGeometrySharedIndirectSegmentsWithInstances",
         AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
@@ -1556,17 +1689,28 @@ fn virtual_geometry_shared_indirect_segments_preserve_instance_index_for_submiss
     .unwrap();
 
     write_flat_color_wgsl(
-        paths.assets_root().join("shaders").join("flat_color.wgsl"),
+        paths
+            .asset_root(&RelPath::project_assets())
+            .join("shaders")
+            .join("flat_color.wgsl"),
         [1.0, 1.0, 1.0],
     );
     write_solid_png(
-        paths.assets_root().join("textures").join("white.png"),
+        paths
+            .asset_root(&RelPath::project_assets())
+            .join("textures")
+            .join("white.png"),
         [255, 255, 255, 255],
     );
-    write_quad_obj(paths.assets_root().join("models").join("quad.obj"));
+    write_quad_obj(
+        paths
+            .asset_root(&RelPath::project_assets())
+            .join("models")
+            .join("quad.obj"),
+    );
     write_material(
         paths
-            .assets_root()
+            .asset_root(&RelPath::project_assets())
             .join("materials")
             .join("white.zmaterial"),
         "SharedSegmentsInstanceIndexWhite",
@@ -1629,7 +1773,7 @@ fn virtual_geometry_execution_records_survive_with_execution_indices_and_gpu_aut
     let root =
         unique_temp_project_root("graphics_virtual_geometry_gpu_authority_execution_records");
     let paths = ProjectPaths::from_root(&root).unwrap();
-    paths.ensure_layout().unwrap();
+    paths.ensure_layout(&[RelPath::project_assets()]).unwrap();
     ProjectManifest::new(
         "GraphicsVirtualGeometryGpuAuthorityExecutionRecords",
         AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
@@ -1639,17 +1783,28 @@ fn virtual_geometry_execution_records_survive_with_execution_indices_and_gpu_aut
     .unwrap();
 
     write_flat_color_wgsl(
-        paths.assets_root().join("shaders").join("flat_color.wgsl"),
+        paths
+            .asset_root(&RelPath::project_assets())
+            .join("shaders")
+            .join("flat_color.wgsl"),
         [1.0, 1.0, 1.0],
     );
     write_solid_png(
-        paths.assets_root().join("textures").join("white.png"),
+        paths
+            .asset_root(&RelPath::project_assets())
+            .join("textures")
+            .join("white.png"),
         [255, 255, 255, 255],
     );
-    write_quad_obj(paths.assets_root().join("models").join("quad.obj"));
+    write_quad_obj(
+        paths
+            .asset_root(&RelPath::project_assets())
+            .join("models")
+            .join("quad.obj"),
+    );
     write_material(
         paths
-            .assets_root()
+            .asset_root(&RelPath::project_assets())
             .join("materials")
             .join("transparent_red.zmaterial"),
         "GpuAuthorityExecTransparentRed",
@@ -1660,7 +1815,7 @@ fn virtual_geometry_execution_records_survive_with_execution_indices_and_gpu_aut
     );
     write_material(
         paths
-            .assets_root()
+            .asset_root(&RelPath::project_assets())
             .join("materials")
             .join("opaque_white.zmaterial"),
         "GpuAuthorityExecOpaqueWhite",
@@ -1719,7 +1874,7 @@ fn virtual_geometry_execution_segments_survive_with_execution_indices_and_gpu_au
     let root =
         unique_temp_project_root("graphics_virtual_geometry_gpu_authority_execution_segments");
     let paths = ProjectPaths::from_root(&root).unwrap();
-    paths.ensure_layout().unwrap();
+    paths.ensure_layout(&[RelPath::project_assets()]).unwrap();
     ProjectManifest::new(
         "GraphicsVirtualGeometryGpuAuthorityExecutionSegments",
         AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
@@ -1729,17 +1884,28 @@ fn virtual_geometry_execution_segments_survive_with_execution_indices_and_gpu_au
     .unwrap();
 
     write_flat_color_wgsl(
-        paths.assets_root().join("shaders").join("flat_color.wgsl"),
+        paths
+            .asset_root(&RelPath::project_assets())
+            .join("shaders")
+            .join("flat_color.wgsl"),
         [1.0, 1.0, 1.0],
     );
     write_solid_png(
-        paths.assets_root().join("textures").join("white.png"),
+        paths
+            .asset_root(&RelPath::project_assets())
+            .join("textures")
+            .join("white.png"),
         [255, 255, 255, 255],
     );
-    write_quad_obj(paths.assets_root().join("models").join("quad.obj"));
+    write_quad_obj(
+        paths
+            .asset_root(&RelPath::project_assets())
+            .join("models")
+            .join("quad.obj"),
+    );
     write_material(
         paths
-            .assets_root()
+            .asset_root(&RelPath::project_assets())
             .join("materials")
             .join("transparent_red.zmaterial"),
         "GpuAuthoritySegTransparentRed",
@@ -1750,7 +1916,7 @@ fn virtual_geometry_execution_segments_survive_with_execution_indices_and_gpu_au
     );
     write_material(
         paths
-            .assets_root()
+            .asset_root(&RelPath::project_assets())
             .join("materials")
             .join("opaque_white.zmaterial"),
         "GpuAuthoritySegOpaqueWhite",
@@ -1817,7 +1983,7 @@ fn compile_virtual_geometry_forward_plus_pipeline(
                 .with_capability_enabled(RenderFeatureCapabilityRequirement::VirtualGeometry)
                 .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
                 .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
-                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
+                .with_feature_disabled(BuiltinRenderFeature::Temporal)
                 .with_feature_disabled(BuiltinRenderFeature::Bloom)
                 .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
                 .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
@@ -1834,7 +2000,7 @@ fn virtual_geometry_renderer_submission_records_keep_draw_level_tokens_without_g
     let root =
         unique_temp_project_root("graphics_virtual_geometry_submission_record_tokens_direct");
     let paths = ProjectPaths::from_root(&root).unwrap();
-    paths.ensure_layout().unwrap();
+    paths.ensure_layout(&[RelPath::project_assets()]).unwrap();
     ProjectManifest::new(
         "GraphicsVirtualGeometrySubmissionRecordTokensDirect",
         AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
@@ -1844,22 +2010,28 @@ fn virtual_geometry_renderer_submission_records_keep_draw_level_tokens_without_g
     .unwrap();
 
     write_unified_flat_color_wgsl(
-        paths.assets_root().join("shaders").join("flat_green.wgsl"),
+        paths
+            .asset_root(&RelPath::project_assets())
+            .join("shaders")
+            .join("flat_green.wgsl"),
         [0.08, 0.95, 0.08],
     );
     write_unified_solid_png(
-        paths.assets_root().join("textures").join("white.png"),
+        paths
+            .asset_root(&RelPath::project_assets())
+            .join("textures")
+            .join("white.png"),
         [255, 255, 255, 255],
     );
     write_two_primitive_gltf(
         paths
-            .assets_root()
+            .asset_root(&RelPath::project_assets())
             .join("models")
             .join("double_triangle.gltf"),
     );
     write_unified_material(
         paths
-            .assets_root()
+            .asset_root(&RelPath::project_assets())
             .join("materials")
             .join("flat_green.zmaterial"),
         "res://shaders/flat_green.wgsl",
@@ -1945,7 +2117,7 @@ fn virtual_geometry_renderer_submission_records_fall_back_to_gpu_generated_indir
     let root =
         unique_temp_project_root("graphics_virtual_geometry_submission_record_tokens_args_only");
     let paths = ProjectPaths::from_root(&root).unwrap();
-    paths.ensure_layout().unwrap();
+    paths.ensure_layout(&[RelPath::project_assets()]).unwrap();
     ProjectManifest::new(
         "GraphicsVirtualGeometrySubmissionRecordTokensArgsOnly",
         AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
@@ -1955,22 +2127,28 @@ fn virtual_geometry_renderer_submission_records_fall_back_to_gpu_generated_indir
     .unwrap();
 
     write_unified_flat_color_wgsl(
-        paths.assets_root().join("shaders").join("flat_green.wgsl"),
+        paths
+            .asset_root(&RelPath::project_assets())
+            .join("shaders")
+            .join("flat_green.wgsl"),
         [0.08, 0.95, 0.08],
     );
     write_unified_solid_png(
-        paths.assets_root().join("textures").join("white.png"),
+        paths
+            .asset_root(&RelPath::project_assets())
+            .join("textures")
+            .join("white.png"),
         [255, 255, 255, 255],
     );
     write_two_primitive_gltf(
         paths
-            .assets_root()
+            .asset_root(&RelPath::project_assets())
             .join("models")
             .join("double_triangle.gltf"),
     );
     write_unified_material(
         paths
-            .assets_root()
+            .asset_root(&RelPath::project_assets())
             .join("materials")
             .join("flat_green.zmaterial"),
         "res://shaders/flat_green.wgsl",
@@ -2057,7 +2235,7 @@ fn virtual_geometry_unified_indirect_reconstructs_submission_records_from_gpu_au
     let root =
         unique_temp_project_root("graphics_virtual_geometry_gpu_authority_submission_records");
     let paths = ProjectPaths::from_root(&root).unwrap();
-    paths.ensure_layout().unwrap();
+    paths.ensure_layout(&[RelPath::project_assets()]).unwrap();
     ProjectManifest::new(
         "GraphicsVirtualGeometryGpuAuthoritySubmissionRecords",
         AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
@@ -2067,22 +2245,28 @@ fn virtual_geometry_unified_indirect_reconstructs_submission_records_from_gpu_au
     .unwrap();
 
     write_unified_flat_color_wgsl(
-        paths.assets_root().join("shaders").join("flat_green.wgsl"),
+        paths
+            .asset_root(&RelPath::project_assets())
+            .join("shaders")
+            .join("flat_green.wgsl"),
         [0.08, 0.95, 0.08],
     );
     write_unified_solid_png(
-        paths.assets_root().join("textures").join("white.png"),
+        paths
+            .asset_root(&RelPath::project_assets())
+            .join("textures")
+            .join("white.png"),
         [255, 255, 255, 255],
     );
     write_two_primitive_gltf(
         paths
-            .assets_root()
+            .asset_root(&RelPath::project_assets())
             .join("models")
             .join("double_triangle.gltf"),
     );
     write_unified_material(
         paths
-            .assets_root()
+            .asset_root(&RelPath::project_assets())
             .join("materials")
             .join("flat_green.zmaterial"),
         "res://shaders/flat_green.wgsl",
@@ -2169,7 +2353,7 @@ fn virtual_geometry_unified_indirect_keeps_pending_request_frontier_rank_in_gpu_
 ) {
     let root = unique_temp_project_root("graphics_virtual_geometry_frontier_rank_indirect");
     let paths = ProjectPaths::from_root(&root).unwrap();
-    paths.ensure_layout().unwrap();
+    paths.ensure_layout(&[RelPath::project_assets()]).unwrap();
     ProjectManifest::new(
         "GraphicsVirtualGeometryFrontierRankIndirect",
         AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
@@ -2179,17 +2363,28 @@ fn virtual_geometry_unified_indirect_keeps_pending_request_frontier_rank_in_gpu_
     .unwrap();
 
     write_unified_flat_color_wgsl(
-        paths.assets_root().join("shaders").join("flat_green.wgsl"),
+        paths
+            .asset_root(&RelPath::project_assets())
+            .join("shaders")
+            .join("flat_green.wgsl"),
         [0.08, 0.95, 0.08],
     );
     write_unified_solid_png(
-        paths.assets_root().join("textures").join("white.png"),
+        paths
+            .asset_root(&RelPath::project_assets())
+            .join("textures")
+            .join("white.png"),
         [255, 255, 255, 255],
     );
-    write_tiled_quad_obj(paths.assets_root().join("models").join("tiled_quad.obj"));
+    write_tiled_quad_obj(
+        paths
+            .asset_root(&RelPath::project_assets())
+            .join("models")
+            .join("tiled_quad.obj"),
+    );
     write_unified_material(
         paths
-            .assets_root()
+            .asset_root(&RelPath::project_assets())
             .join("materials")
             .join("flat_green.zmaterial"),
         "res://shaders/flat_green.wgsl",
@@ -2376,7 +2571,7 @@ fn compile_virtual_geometry_pipeline(extract: &RenderFrameExtract) -> CompiledRe
                 .with_capability_enabled(RenderFeatureCapabilityRequirement::VirtualGeometry)
                 .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
                 .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
-                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
+                .with_feature_disabled(BuiltinRenderFeature::Temporal)
                 .with_feature_disabled(BuiltinRenderFeature::Bloom)
                 .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
                 .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
@@ -2687,7 +2882,17 @@ fn write_unified_material(path: PathBuf, shader_uri: &str, texture_uri: &str) {
         texture_slots: Default::default(),
         validation_diagnostics: Vec::new(),
     };
-    fs::write(path, material.to_toml_string().unwrap()).unwrap();
+    let project_root = fixture_project_root(&path);
+    let document = material
+        .to_project_toml_string(|reference| {
+            Ok(persisted_reference_for_fixture(
+                &project_root,
+                &path,
+                reference,
+            ))
+        })
+        .unwrap();
+    fs::write(path, document).unwrap();
 }
 
 fn enable_unified_virtual_geometry_cook(path: &std::path::Path) {
@@ -2703,4 +2908,57 @@ fn enable_unified_virtual_geometry_cook(path: &std::path::Path) {
     let mut sidecar_name = file_name.to_os_string();
     sidecar_name.push(".zmeta");
     metadata.save(path.with_file_name(sidecar_name)).unwrap();
+}
+
+fn fixture_project_root(source_path: &Path) -> PathBuf {
+    source_path
+        .ancestors()
+        .find(|candidate| candidate.join("zircon-project.toml").is_file())
+        .expect("asset fixture must live below a project manifest")
+        .to_path_buf()
+}
+
+// 夹具只把 res:// 路径映射到唯一资源根的持久化 hint；多根歧义必须显式失败。
+fn persisted_reference_for_fixture(
+    project_root: &Path,
+    source_path: &Path,
+    reference: &AssetReference,
+) -> PersistedAssetReference {
+    if reference.locator.scheme() == ResourceScheme::Builtin {
+        return PersistedAssetReference::builtin(reference.locator.clone());
+    }
+    assert_eq!(reference.locator.scheme(), ResourceScheme::Res);
+
+    let manifest = ProjectManifest::load(project_root.join("zircon-project.toml")).unwrap();
+    let roots = manifest
+        .asset_roots
+        .iter()
+        .filter(|root| {
+            root.join_to(project_root)
+                .join(reference.locator.path())
+                .is_file()
+        })
+        .collect::<Vec<_>>();
+    let root = match roots.as_slice() {
+        [root] => *root,
+        [] => manifest
+            .asset_roots
+            .iter()
+            .find(|root| source_path.starts_with(root.join_to(project_root)))
+            .expect("asset fixture source must live below a manifest asset root"),
+        _ => panic!(
+            "asset fixture reference {} resolves through multiple project asset roots",
+            reference.locator
+        ),
+    };
+    let path_hint =
+        RelPath::parse(format!("{}/{}", root.as_str(), reference.locator.path())).unwrap();
+    PersistedAssetReference::project(
+        AssetRef::try_new(
+            reference.uuid,
+            path_hint,
+            reference.locator.label().map(str::to_owned),
+        )
+        .unwrap(),
+    )
 }

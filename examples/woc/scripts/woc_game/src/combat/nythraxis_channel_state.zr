@@ -1,0 +1,124 @@
+// Source-pinned behavior for Malric's scripted Shadow channel. WorldState owns
+// persistence and entity scans; this module owns selection and tick semantics.
+pub class ChannelTickResult {
+    pub var nextTimer: float;
+    pub var nextRamp: float;
+    pub var healAmount: int;
+    pub var appliedHeal: bool;
+
+    pub @constructor(
+        nextTimer: float, nextRamp: float, healAmount: int, appliedHeal: bool
+    ) {
+        this.nextTimer = nextTimer;
+        this.nextRamp = nextRamp;
+        this.healAmount = healAmount;
+        this.appliedHeal = appliedHeal;
+    }
+}
+
+pub tickSeconds(): float { return 0.05; }
+pub protecteeRadius(): float { return 45.0; }
+pub healerStandoff(): float { return 6.0; }
+pub channelEvery(): float { return 4.0; }
+pub channelBaseHeal(): float { return 320.0; }
+pub channelRampAdd(): float { return 240.0; }
+pub channelMaximumHeal(): float { return 1440.0; }
+
+pub protecteeIsEligible(
+    isMob: bool,
+    alive: bool,
+    isPet: bool,
+    sameFaction: bool,
+    isSelf: bool,
+    distance: float
+): bool {
+    return isMob && alive && !isPet && sameFaction && !isSelf &&
+        distance <= protecteeRadius();
+}
+
+pub candidateWins(currentPresent: bool, currentMaximum: int, candidateMaximum: int): bool {
+    return !currentPresent || candidateMaximum > currentMaximum;
+}
+
+pub canHoldChannel(
+    protecteePresent: bool, distance: float, silenced: bool, shadowLockedOut: bool
+): bool {
+    return protecteePresent && distance <= healerStandoff() && !silenced &&
+        !shadowLockedOut;
+}
+
+roundedPositive(value: float): int {
+    if (value < 0.0) { throw "Nythraxis channel heal is invalid"; }
+    return <int>(value + 0.5);
+}
+
+// The boss-mechanics tick resets cadence and ramp on interruption. An
+// uninterrupted elapsed interval grows ramp even if the chosen protectee is
+// already full, exactly as the source advances channelRamp after the heal gate.
+pub resolveTick(
+    timer: float,
+    ramp: float,
+    protecteePresent: bool,
+    protecteeWounded: bool,
+    interrupted: bool,
+    mechanicHealMultiplier: float
+): ChannelTickResult {
+    if (timer < 0.0 || ramp < 0.0 || mechanicHealMultiplier <= 0.0) {
+        throw "Nythraxis channel state is invalid";
+    }
+    if (interrupted) {
+        return new ChannelTickResult(channelEvery(), 0.0, 0, false);
+    }
+    var nextTimer = timer - tickSeconds();
+    if (nextTimer > 0.0) {
+        return new ChannelTickResult(nextTimer, ramp, 0, false);
+    }
+    var amount = channelBaseHeal() + ramp;
+    if (amount > channelMaximumHeal()) { amount = channelMaximumHeal(); }
+    var applied = protecteePresent && protecteeWounded;
+    var nextRamp = ramp + channelRampAdd();
+    var rampCap = channelMaximumHeal() - channelBaseHeal();
+    if (nextRamp > rampCap) { nextRamp = rampCap; }
+    return new ChannelTickResult(
+        channelEvery(),
+        nextRamp,
+        applied ? roundedPositive(amount * mechanicHealMultiplier) : 0,
+        applied
+    );
+}
+
+pub contractTest(): int {
+    if (tickSeconds() != 0.05 || protecteeRadius() != 45.0 ||
+        healerStandoff() != 6.0 || channelEvery() != 4.0 ||
+        channelBaseHeal() != 320.0 || channelRampAdd() != 240.0 ||
+        channelMaximumHeal() != 1440.0) {
+        return -1;
+    }
+    if (!protecteeIsEligible(true, true, false, true, false, 45.0) ||
+        protecteeIsEligible(true, true, false, true, false, 45.1) ||
+        protecteeIsEligible(true, true, true, true, false, 4.0) ||
+        protecteeIsEligible(true, true, false, true, true, 4.0) ||
+        !candidateWins(false, 0, 100) || candidateWins(true, 100, 100) ||
+        !candidateWins(true, 100, 101)) {
+        return -2;
+    }
+    if (!canHoldChannel(true, 6.0, false, false) ||
+        canHoldChannel(true, 6.01, false, false) ||
+        canHoldChannel(true, 4.0, true, false) ||
+        canHoldChannel(true, 4.0, false, true)) {
+        return -3;
+    }
+    var first = resolveTick(0.05, 0.0, true, true, false, 1.6);
+    var second = resolveTick(0.05, first.nextRamp, true, true, false, 1.6);
+    var full = resolveTick(0.05, second.nextRamp, true, false, false, 1.6);
+    var interrupted = resolveTick(3.0, 720.0, true, true, true, 1.6);
+    if (!first.appliedHeal || first.healAmount != 512 || first.nextTimer != 4.0 ||
+        first.nextRamp != 240.0 || !second.appliedHeal || second.healAmount != 896 ||
+        second.nextRamp != 480.0 || full.appliedHeal || full.healAmount != 0 ||
+        full.nextRamp != 720.0 || interrupted.appliedHeal || interrupted.healAmount != 0 ||
+        interrupted.nextTimer != 4.0 || interrupted.nextRamp != 0.0) {
+        return -4;
+    }
+    var capped = resolveTick(0.05, 1120.0, true, true, false, 1.6);
+    return capped.healAmount == 2304 && capped.nextRamp == 1120.0 ? 1 : -5;
+}

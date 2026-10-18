@@ -81,7 +81,10 @@ pub struct SceneRenderer {
         SceneRendererAdvancedPluginOutputs,
     #[cfg(feature = "test-support")]
     pub(in crate::graphics::scene::scene_renderer::core) last_virtual_geometry_readback_for_test:
-        Option<RenderVirtualGeometryReadbackOutputs>,
+        Option<(
+            RenderVirtualGeometryReadbackOutputs,
+            Option<crate::core::framework::render::RenderVirtualGeometryNativeReadbackInspection>,
+        )>,
     #[cfg(feature = "test-support")]
     pub(in crate::graphics::scene::scene_renderer::core) last_virtual_geometry_completion_for_test:
         Option<VirtualGeometryGpuCompletion>,

@@ -41,7 +41,11 @@ impl EditorAssetImportFlow {
         match submission {
             Ok(ticket) => {
                 diagnostics.arm();
-                Ok(EditorModelImportTicket::new(ticket, source_path, activation_identity))
+                Ok(EditorModelImportTicket::new(
+                    ticket,
+                    source_path,
+                    activation_identity,
+                ))
             }
             Err(error) => {
                 let detail = error.to_string();

@@ -708,23 +708,29 @@ fn failed_scene_tick_keeps_ui_timer_pending_for_successful_retry() {
 
 #[test]
 fn gamepad_generation_admission_gates_published_runtime_ui_navigation_and_analog() {
-    use std::num::NonZeroU64;
     use crate::core::framework::input::{GamepadId, InputEventRecordingConfig};
+    use std::num::NonZeroU64;
     use zircon_runtime_interface::{
-        ZrByteSlice, ZrRuntimeEventV1, ZrRuntimeGamepadGenerationV2,
-        ZrRuntimeViewportHandle, ZrStatusCode, ZIRCON_RUNTIME_ABI_VERSION_V1,
-        ZR_RUNTIME_BUTTON_STATE_PRESSED_V1, ZR_RUNTIME_GAMEPAD_AXIS_LEFT_STICK_X_V1,
-        ZR_RUNTIME_GAMEPAD_BUTTON_DPAD_DOWN_V1, ZR_RUNTIME_GAMEPAD_CONNECTION_CONNECTED_V1,
-        ZR_RUNTIME_GAMEPAD_CONNECTION_DISCONNECTED_V1,
+        ZrByteSlice, ZrRuntimeEventV1, ZrRuntimeGamepadGenerationV2, ZrRuntimeViewportHandle,
+        ZrStatusCode, ZIRCON_RUNTIME_ABI_VERSION_V1, ZR_RUNTIME_BUTTON_STATE_PRESSED_V1,
+        ZR_RUNTIME_GAMEPAD_AXIS_LEFT_STICK_X_V1, ZR_RUNTIME_GAMEPAD_BUTTON_DPAD_DOWN_V1,
+        ZR_RUNTIME_GAMEPAD_CONNECTION_CONNECTED_V1, ZR_RUNTIME_GAMEPAD_CONNECTION_DISCONNECTED_V1,
     };
 
     fn arm_pending_tooltip(session: &mut RuntimeDynamicSession, node: UiNodeId) {
         let timestamp = session.runtime_ui.next_input_metadata().timestamp;
         let runtime_surface = &mut session.runtime_ui.surfaces[0];
         runtime_surface.input.arm_tooltip_candidate(
-            &mut runtime_surface.surface, timestamp, node, "gamepad.admission.tooltip", 60_000,
+            &mut runtime_surface.surface,
+            timestamp,
+            node,
+            "gamepad.admission.tooltip",
+            60_000,
         );
-        assert!(session.runtime_ui.next_input_timer_delay_at(timestamp).is_some());
+        assert!(session
+            .runtime_ui
+            .next_input_timer_delay_at(timestamp)
+            .is_some());
     }
 
     let mut session = RuntimeDynamicSession::new(RuntimeDynamicSessionProfile::Headless, None)
@@ -738,44 +744,90 @@ fn gamepad_generation_admission_gates_published_runtime_ui_navigation_and_analog
     let viewport_size = session.camera_controller.viewport_size();
     session.runtime_ui.render_submission(viewport_size).unwrap();
     assert_eq!(session.runtime_ui.navigation_surface, Some(0));
-    assert_eq!(session.runtime_ui.surfaces[0].surface.focus.focused, Some(node));
+    assert_eq!(
+        session.runtime_ui.surfaces[0].surface.focus.focused,
+        Some(node)
+    );
     let viewport = ZrRuntimeViewportHandle::new(1);
     let gamepad = 83;
     let g1 = ZrRuntimeGamepadGenerationV2::encode_sample(NonZeroU64::MIN);
     let g2 = ZrRuntimeGamepadGenerationV2::encode_sample(NonZeroU64::new(2).unwrap());
-    let payload = |bytes: &[u8]| ZrByteSlice { data: bytes.as_ptr(), len: bytes.len() };
-    let connection = |bytes: &[u8], state| ZrRuntimeEventV1::gamepad_connection_v2(
-        ZIRCON_RUNTIME_ABI_VERSION_V1, viewport, gamepad, state, 0, 0, payload(bytes),
-    );
-    let navigation = |bytes: &[u8]| ZrRuntimeEventV1::gamepad_button_v2(
-        ZIRCON_RUNTIME_ABI_VERSION_V1, viewport, gamepad,
-        ZR_RUNTIME_GAMEPAD_BUTTON_DPAD_DOWN_V1, ZR_RUNTIME_BUTTON_STATE_PRESSED_V1,
-        1.0, payload(bytes),
-    );
-    let analog = |bytes: &[u8]| ZrRuntimeEventV1::gamepad_axis_v2(
-        ZIRCON_RUNTIME_ABI_VERSION_V1, viewport, gamepad,
-        ZR_RUNTIME_GAMEPAD_AXIS_LEFT_STICK_X_V1, 1.0, payload(bytes),
-    );
+    let payload = |bytes: &[u8]| ZrByteSlice {
+        data: bytes.as_ptr(),
+        len: bytes.len(),
+    };
+    let connection = |bytes: &[u8], state| {
+        ZrRuntimeEventV1::gamepad_connection_v2(
+            ZIRCON_RUNTIME_ABI_VERSION_V1,
+            viewport,
+            gamepad,
+            state,
+            0,
+            0,
+            payload(bytes),
+        )
+    };
+    let navigation = |bytes: &[u8]| {
+        ZrRuntimeEventV1::gamepad_button_v2(
+            ZIRCON_RUNTIME_ABI_VERSION_V1,
+            viewport,
+            gamepad,
+            ZR_RUNTIME_GAMEPAD_BUTTON_DPAD_DOWN_V1,
+            ZR_RUNTIME_BUTTON_STATE_PRESSED_V1,
+            1.0,
+            payload(bytes),
+        )
+    };
+    let analog = |bytes: &[u8]| {
+        ZrRuntimeEventV1::gamepad_axis_v2(
+            ZIRCON_RUNTIME_ABI_VERSION_V1,
+            viewport,
+            gamepad,
+            ZR_RUNTIME_GAMEPAD_AXIS_LEFT_STICK_X_V1,
+            1.0,
+            payload(bytes),
+        )
+    };
 
-    assert_eq!(session.handle_event(connection(&g1, ZR_RUNTIME_GAMEPAD_CONNECTION_CONNECTED_V1))
-        .status_code(), ZrStatusCode::Ok);
+    assert_eq!(
+        session
+            .handle_event(connection(&g1, ZR_RUNTIME_GAMEPAD_CONNECTION_CONNECTED_V1))
+            .status_code(),
+        ZrStatusCode::Ok
+    );
     arm_pending_tooltip(&mut session, node);
     let before_navigation = session.runtime_ui.input_sequence;
-    assert_eq!(session.handle_event(navigation(&g1)).status_code(), ZrStatusCode::Ok);
+    assert_eq!(
+        session.handle_event(navigation(&g1)).status_code(),
+        ZrStatusCode::Ok
+    );
     assert_eq!(session.runtime_ui.input_sequence, before_navigation + 1);
     assert!(session.runtime_ui.next_input_timer_delay().is_none());
-    assert_eq!(session.runtime_ui.surfaces[0].surface.focus.focused, Some(node));
+    assert_eq!(
+        session.runtime_ui.surfaces[0].surface.focus.focused,
+        Some(node)
+    );
 
     // Analog is observed through the actual UiInputManager activity/tooltip contract.
     // This makes no claim that UI receives the manager's filtered axis value.
     arm_pending_tooltip(&mut session, node);
     let before_analog = session.runtime_ui.input_sequence;
-    assert_eq!(session.handle_event(analog(&g1)).status_code(), ZrStatusCode::Ok);
+    assert_eq!(
+        session.handle_event(analog(&g1)).status_code(),
+        ZrStatusCode::Ok
+    );
     assert_eq!(session.runtime_ui.input_sequence, before_analog + 1);
     assert!(session.runtime_ui.next_input_timer_delay().is_none());
 
-    assert_eq!(session.handle_event(connection(&g1, ZR_RUNTIME_GAMEPAD_CONNECTION_DISCONNECTED_V1))
-        .status_code(), ZrStatusCode::Ok);
+    assert_eq!(
+        session
+            .handle_event(connection(
+                &g1,
+                ZR_RUNTIME_GAMEPAD_CONNECTION_DISCONNECTED_V1
+            ))
+            .status_code(),
+        ZrStatusCode::Ok
+    );
     {
         let input = session.resolve_input_manager().unwrap();
         input.set_event_recording_config(InputEventRecordingConfig::enabled(32));
@@ -788,7 +840,10 @@ fn gamepad_generation_admission_gates_published_runtime_ui_navigation_and_analog
     for event in [navigation(&g1), analog(&g1)] {
         assert_eq!(session.handle_event(event).status_code(), ZrStatusCode::Ok);
         assert_eq!(session.runtime_ui.input_sequence, before_rejected);
-        assert_eq!(session.runtime_ui.surfaces[0].surface.focus.focused, focus_before);
+        assert_eq!(
+            session.runtime_ui.surfaces[0].surface.focus.focused,
+            focus_before
+        );
         assert!(session.runtime_ui.next_input_timer_delay().is_some());
     }
     {
@@ -797,24 +852,379 @@ fn gamepad_generation_admission_gates_published_runtime_ui_navigation_and_analog
         assert!(input.drain_events().is_empty());
         assert!(input.drain_event_records().is_empty());
     }
-    assert_eq!(session.handle_event(connection(&g2, ZR_RUNTIME_GAMEPAD_CONNECTION_CONNECTED_V1))
-        .status_code(), ZrStatusCode::Ok);
+    assert_eq!(
+        session
+            .handle_event(connection(&g2, ZR_RUNTIME_GAMEPAD_CONNECTION_CONNECTED_V1))
+            .status_code(),
+        ZrStatusCode::Ok
+    );
     for event in [navigation(&g1), analog(&g1)] {
         assert_eq!(session.handle_event(event).status_code(), ZrStatusCode::Ok);
         assert_eq!(session.runtime_ui.input_sequence, before_rejected);
         assert!(session.runtime_ui.next_input_timer_delay().is_some());
     }
     let legacy = ZrRuntimeEventV1::gamepad_axis(
-        ZIRCON_RUNTIME_ABI_VERSION_V1, viewport, gamepad,
-        ZR_RUNTIME_GAMEPAD_AXIS_LEFT_STICK_X_V1, 1.0,
+        ZIRCON_RUNTIME_ABI_VERSION_V1,
+        viewport,
+        gamepad,
+        ZR_RUNTIME_GAMEPAD_AXIS_LEFT_STICK_X_V1,
+        1.0,
     );
-    assert_eq!(session.handle_event(legacy).status_code(), ZrStatusCode::InvalidArgument);
+    assert_eq!(
+        session.handle_event(legacy).status_code(),
+        ZrStatusCode::InvalidArgument
+    );
     assert_eq!(session.runtime_ui.input_sequence, before_rejected);
     assert!(session.runtime_ui.next_input_timer_delay().is_some());
 
-    assert_eq!(session.handle_event(analog(&g2)).status_code(), ZrStatusCode::Ok);
+    assert_eq!(
+        session.handle_event(analog(&g2)).status_code(),
+        ZrStatusCode::Ok
+    );
     assert_eq!(session.runtime_ui.input_sequence, before_rejected + 1);
     assert!(session.runtime_ui.next_input_timer_delay().is_none());
-    assert_eq!(session.resolve_input_manager().unwrap().frame_snapshot()
-        .connected_gamepads, vec![GamepadId(gamepad)]);
+    assert_eq!(
+        session
+            .resolve_input_manager()
+            .unwrap()
+            .frame_snapshot()
+            .connected_gamepads,
+        vec![GamepadId(gamepad)]
+    );
+}
+
+fn runtime220_owned_pointer_surface(tree_id: &str, node: UiNodeId) -> RuntimeUiSurface {
+    let mut runtime_surface =
+        test_pointer_runtime_surface(tree_id, node, UiFrame::new(0.0, 0.0, 100.0, 40.0));
+    runtime_surface
+        .surface
+        .tree
+        .node_mut(node)
+        .unwrap()
+        .state_flags = UiStateFlags {
+        visible: true,
+        enabled: true,
+        clickable: true,
+        hoverable: true,
+        focusable: true,
+        ..UiStateFlags::default()
+    };
+    runtime_surface.surface.rebuild();
+    runtime_surface.surface.focus_node(node).unwrap();
+    runtime_surface.surface.capture_pointer(node).unwrap();
+    runtime_surface
+}
+
+#[test]
+fn runtime220_focus_loss_and_gap_retire_ui_capture_and_block_ui_first_text_ime() {
+    use super::super::ime_composition_route::RuntimeImeCompositionRouteError;
+    use crate::core::framework::input::{InputBatchRejection, InputButton, InputEvent};
+    use crate::input::{
+        InputIngressAdmission, InputIngressLimits, InputIngressPhase, InputIngressRejection,
+    };
+    use zircon_runtime_interface::{
+        ZrRuntimeEventV1, ZrRuntimeImeCompositionContextV2, ZrRuntimeImeCompositionNegotiation,
+        ZrRuntimeImeCompositionOperationV2, ZrRuntimeImeCompositionV2,
+        ZrRuntimeImePreeditClauseAvailabilityV2, ZrRuntimeViewportHandle, ZrStatusCode,
+        ZIRCON_RUNTIME_ABI_VERSION_V1, ZR_RUNTIME_BUTTON_STATE_PRESSED_V1,
+        ZR_RUNTIME_EVENT_KIND_IME_V1, ZR_RUNTIME_EVENT_KIND_KEYBOARD_V1,
+        ZR_RUNTIME_EVENT_KIND_LIFECYCLE_V1, ZR_RUNTIME_IME_COMPOSITION_V2_CAPABILITY,
+        ZR_RUNTIME_IME_COMPOSITION_V2_EVENT_STATE, ZR_RUNTIME_KEY_ACTION_TEXT_V1,
+        ZR_RUNTIME_LIFECYCLE_STATE_BACKGROUND_V1, ZR_RUNTIME_MOUSE_BUTTON_LEFT_V1,
+    };
+
+    let mut session =
+        RuntimeDynamicSession::new(RuntimeDynamicSessionProfile::Headless, None).unwrap();
+    let node = UiNodeId::new(920);
+    session.runtime_ui.surfaces =
+        vec![runtime220_owned_pointer_surface("runtime220.capture", node)];
+    session.runtime_ui.rebuild_focus_index();
+    let viewport = session.camera_controller.viewport_size();
+    session.runtime_ui.render_submission(viewport).unwrap();
+    let press = ZrRuntimeEventV1::mouse_button(
+        ZIRCON_RUNTIME_ABI_VERSION_V1,
+        ZrRuntimeViewportHandle::new(1),
+        ZR_RUNTIME_MOUSE_BUTTON_LEFT_V1,
+        ZR_RUNTIME_BUTTON_STATE_PRESSED_V1,
+        20.0,
+        20.0,
+    );
+    assert_eq!(session.handle_event(press).status_code(), ZrStatusCode::Ok);
+    assert_eq!(
+        session.runtime_ui.surfaces[0].surface.focus.captured,
+        Some(node)
+    );
+    assert!(matches!(
+        session
+            .submit_input_event_with_admission(InputEvent::CursorMoved {
+                x: f32::NAN,
+                y: 0.0
+            })
+            .unwrap(),
+        InputIngressAdmission::Rejected(InputIngressRejection::Batch(
+            InputBatchRejection::NonFinite { .. }
+        ))
+    ));
+    assert_eq!(
+        session.runtime_ui.surfaces[0].surface.focus.captured,
+        Some(node),
+        "ordinary rejected input cannot retire a live capture"
+    );
+
+    let preedit = |composition| {
+        ZrRuntimeImeCompositionV2 {
+            operation: ZrRuntimeImeCompositionOperationV2::Preedit,
+            context: ZrRuntimeImeCompositionContextV2 {
+                window_generation: 1,
+                focus_generation: 1,
+                composition_generation: composition,
+            },
+            text: "preedit".to_string(),
+            cursor_range: None,
+            clauses: Vec::new(),
+            clause_availability: ZrRuntimeImePreeditClauseAvailabilityV2::Unavailable,
+        }
+        .encode()
+        .unwrap()
+    };
+    session.ime_composition_route.reconfigure(
+        ZrRuntimeImeCompositionNegotiation::from_peer(
+            8,
+            [ZR_RUNTIME_IME_COMPOSITION_V2_CAPABILITY],
+        ),
+        1,
+    );
+    let first_preedit = preedit(1);
+    let mut ime = press;
+    ime.kind = ZR_RUNTIME_EVENT_KIND_IME_V1;
+    ime.state = ZR_RUNTIME_IME_COMPOSITION_V2_EVENT_STATE;
+    ime.payload.data = first_preedit.as_ptr();
+    ime.payload.len = first_preedit.len();
+    assert_eq!(session.handle_event(ime).status_code(), ZrStatusCode::Ok);
+    let mut background = press;
+    background.kind = ZR_RUNTIME_EVENT_KIND_LIFECYCLE_V1;
+    background.state = ZR_RUNTIME_LIFECYCLE_STATE_BACKGROUND_V1;
+    assert_eq!(
+        session.handle_event(background).status_code(),
+        ZrStatusCode::Ok
+    );
+    assert_eq!(session.runtime_ui.surfaces[0].surface.focus.captured, None);
+    assert_eq!(session.runtime_ui.surfaces[0].surface.focus.focused, None);
+    assert_eq!(
+        session
+            .ime_composition_route
+            .consume(&first_preedit, UiInputEventMetadata::default()),
+        Err(RuntimeImeCompositionRouteError::StaleGeneration),
+    );
+
+    session.runtime_ui.surfaces[0]
+        .surface
+        .focus_node(node)
+        .unwrap();
+    session.runtime_ui.surfaces[0]
+        .surface
+        .capture_pointer(node)
+        .unwrap();
+    assert_eq!(session.handle_event(press).status_code(), ZrStatusCode::Ok);
+    let used = session
+        .resolve_input_driver()
+        .unwrap()
+        .health()
+        .frame_events;
+    for _ in used..InputIngressLimits::default().events_per_frame {
+        assert!(session.submit_input_event(InputEvent::CursorEntered));
+    }
+    session.resolve_input_manager().unwrap().drain_events();
+    assert!(!session.submit_input_event(InputEvent::ButtonReleased(InputButton::MouseLeft)));
+    assert_eq!(
+        session.resolve_input_driver().unwrap().health().phase,
+        InputIngressPhase::Gap
+    );
+    assert_eq!(
+        session.resolve_input_manager().unwrap().drain_events(),
+        vec![InputEvent::FocusLost]
+    );
+    assert_eq!(session.runtime_ui.surfaces[0].surface.focus.captured, None);
+    assert_eq!(session.runtime_ui.surfaces[0].surface.focus.focused, None);
+    assert!(session.input_ingress_gap);
+
+    // Clearing a physical frame is not an attachment transition.
+    session.resolve_input_manager().unwrap().begin_frame();
+    let sequence = session.runtime_ui.input_sequence;
+    let text = b"late text";
+    let mut keyboard = press;
+    keyboard.kind = ZR_RUNTIME_EVENT_KIND_KEYBOARD_V1;
+    keyboard.button = ZR_RUNTIME_KEY_ACTION_TEXT_V1;
+    keyboard.payload.data = text.as_ptr();
+    keyboard.payload.len = text.len();
+    assert_eq!(
+        session.handle_event(keyboard).status_code(),
+        ZrStatusCode::Ok
+    );
+    let second_preedit = preedit(2);
+    ime.payload.data = second_preedit.as_ptr();
+    ime.payload.len = second_preedit.len();
+    assert_eq!(session.handle_event(ime).status_code(), ZrStatusCode::Ok);
+    assert_eq!(session.handle_event(press).status_code(), ZrStatusCode::Ok);
+    assert_eq!(
+        session.runtime_ui.input_sequence, sequence,
+        "UI-first text and IME must stop before metadata/routing after a real Gap"
+    );
+    assert!(session
+        .resolve_input_manager()
+        .unwrap()
+        .drain_events()
+        .is_empty());
+    assert_eq!(session.runtime_ui.surfaces[0].surface.focus.captured, None);
+}
+
+#[test]
+fn runtime220_failed_ui_terminalization_retains_host_release_until_detached_retry() {
+    use crate::core::framework::input::InputEvent;
+    use crate::input::InputIngressPhase;
+    use zircon_runtime_interface::ui::dispatch::{UiDispatchHostRequestKind, UiPointerLockPolicy};
+    use zircon_runtime_interface::ui::tree::UiTreeError;
+    use zircon_runtime_interface::{
+        ZrRuntimeEventV1, ZrRuntimeViewportHandle, ZrStatusCode, ZIRCON_RUNTIME_ABI_VERSION_V1,
+        ZR_RUNTIME_BUTTON_STATE_PRESSED_V1, ZR_RUNTIME_EVENT_KIND_KEYBOARD_V1,
+        ZR_RUNTIME_KEY_ACTION_TEXT_V1, ZR_RUNTIME_MOUSE_BUTTON_LEFT_V1,
+    };
+
+    let node = UiNodeId::new(930);
+    let missing = UiNodeId::new(931);
+    let mut runtime_surface = runtime220_owned_pointer_surface("runtime220.retry", node);
+    runtime_surface.surface.input.high_precision_owner = Some(node);
+    runtime_surface.surface.input.pointer_lock_owner = Some(node);
+    runtime_surface.surface.input.pointer_lock_policy = Some(UiPointerLockPolicy::RawDelta);
+    runtime_surface.surface.focus.hovered = vec![missing];
+    let error = runtime_surface
+        .input
+        .cancel_input(
+            &mut runtime_surface.surface,
+            UiInputEventMetadata::default(),
+        )
+        .unwrap_err();
+    assert!(matches!(error, UiTreeError::MissingNode(id) if id == missing));
+    assert_eq!(runtime_surface.surface.focus.captured, None);
+    assert_eq!(
+        runtime_surface.surface.input.high_precision_owner,
+        Some(node)
+    );
+    assert_eq!(runtime_surface.surface.input.pointer_lock_owner, Some(node));
+    runtime_surface.surface.tree.insert_root(
+        UiTreeNode::new(missing, UiNodePath::new("repaired.hover"))
+            .with_frame(UiFrame::new(120.0, 0.0, 10.0, 10.0)),
+    );
+    let result = runtime_surface
+        .input
+        .cancel_input(
+            &mut runtime_surface.surface,
+            UiInputEventMetadata::default(),
+        )
+        .unwrap();
+    assert_eq!(result.host_requests.iter().filter(|row| matches!(
+        &row.request, UiDispatchHostRequestKind::HighPrecisionPointer { target, enabled: false }
+            if *target == node
+    )).count(), 1);
+    assert_eq!(
+        result
+            .host_requests
+            .iter()
+            .filter(|row| matches!(
+                &row.request,
+                UiDispatchHostRequestKind::PointerUnlock {
+                    policy: UiPointerLockPolicy::RawDelta
+                }
+            ))
+            .count(),
+        1
+    );
+    assert_eq!(runtime_surface.surface.input.high_precision_owner, None);
+    assert_eq!(runtime_surface.surface.input.pointer_lock_owner, None);
+    let repeated = runtime_surface
+        .input
+        .cancel_input(
+            &mut runtime_surface.surface,
+            UiInputEventMetadata::default(),
+        )
+        .unwrap();
+    assert!(!repeated.host_requests.iter().any(|row| matches!(
+        &row.request,
+        UiDispatchHostRequestKind::HighPrecisionPointer { enabled: false, .. }
+            | UiDispatchHostRequestKind::PointerUnlock { .. }
+    )));
+
+    let mut session =
+        RuntimeDynamicSession::new(RuntimeDynamicSessionProfile::Headless, None).unwrap();
+    let mut owned = runtime220_owned_pointer_surface("runtime220.detach-retry", node);
+    owned.surface.input.high_precision_owner = Some(node);
+    owned.surface.input.pointer_lock_owner = Some(node);
+    owned.surface.input.pointer_lock_policy = Some(UiPointerLockPolicy::RawDelta);
+    owned.surface.focus.hovered = vec![missing];
+    session.runtime_ui.surfaces = vec![owned];
+    assert!(session.submit_input_event(InputEvent::CursorEntered));
+    assert!(session.detach_input_ingress().is_err());
+    assert_eq!(
+        session.resolve_input_driver().unwrap().health().phase,
+        InputIngressPhase::Detached
+    );
+    assert!(session.input_ingress_detached);
+    assert!(session.input_consumer_reset_pending);
+    assert_eq!(session.runtime_ui.surfaces[0].surface.focus.captured, None);
+    let mut requests = Vec::new();
+    session
+        .runtime_ui
+        .drain_ui_host_requests_into(&mut requests);
+    assert!(
+        requests.is_empty(),
+        "an incomplete cancellation has not delivered host releases"
+    );
+    session.runtime_ui.surfaces[0].surface.tree.insert_root(
+        UiTreeNode::new(missing, UiNodePath::new("repaired.detach"))
+            .with_frame(UiFrame::new(120.0, 0.0, 10.0, 10.0)),
+    );
+    let text = b"cannot reacquire";
+    let mut keyboard = ZrRuntimeEventV1::mouse_button(
+        ZIRCON_RUNTIME_ABI_VERSION_V1,
+        ZrRuntimeViewportHandle::new(1),
+        ZR_RUNTIME_MOUSE_BUTTON_LEFT_V1,
+        ZR_RUNTIME_BUTTON_STATE_PRESSED_V1,
+        20.0,
+        20.0,
+    );
+    keyboard.kind = ZR_RUNTIME_EVENT_KIND_KEYBOARD_V1;
+    keyboard.button = ZR_RUNTIME_KEY_ACTION_TEXT_V1;
+    keyboard.payload.data = text.as_ptr();
+    keyboard.payload.len = text.len();
+    let before_retry = session.runtime_ui.input_sequence;
+    assert_eq!(
+        session.handle_event(keyboard).status_code(),
+        ZrStatusCode::Ok
+    );
+    assert!(!session.input_consumer_reset_pending);
+    assert!(session.input_ingress_detached);
+    assert_eq!(
+        session.runtime_ui.input_sequence,
+        before_retry + 1,
+        "the pending cancel runs, but detached UI-first text cannot route"
+    );
+    session
+        .runtime_ui
+        .drain_ui_host_requests_into(&mut requests);
+    assert_eq!(
+        requests.len(),
+        3,
+        "transient dismissal and two owned host releases"
+    );
+    let sequence = session.runtime_ui.input_sequence;
+    assert_eq!(
+        session.handle_event(keyboard).status_code(),
+        ZrStatusCode::Ok
+    );
+    assert_eq!(session.runtime_ui.input_sequence, sequence);
+    requests.clear();
+    session
+        .runtime_ui
+        .drain_ui_host_requests_into(&mut requests);
+    assert!(requests.is_empty());
 }

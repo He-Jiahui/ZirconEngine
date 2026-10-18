@@ -1,0 +1,234 @@
+diff --git a/zircon_runtime/src/asset/pipeline/manager/project_asset_manager/mod.rs b/zircon_runtime/src/asset/pipeline/manager/project_asset_manager/mod.rs
+--- a/zircon_runtime/src/asset/pipeline/manager/project_asset_manager/mod.rs
++++ b/zircon_runtime/src/asset/pipeline/manager/project_asset_manager/mod.rs
+@@ -1,4 +1,5 @@
+ mod access;
++mod activation_transaction;
+ mod close_project;
+ mod construction;
+ mod debug;
+diff --git a/zircon_runtime/src/asset/pipeline/manager/project_asset_manager/activation_transaction.rs b/zircon_runtime/src/asset/pipeline/manager/project_asset_manager/activation_transaction.rs
+new file mode 100644
+--- /dev/null
++++ b/zircon_runtime/src/asset/pipeline/manager/project_asset_manager/activation_transaction.rs
+@@ -0,0 +1,220 @@
++use crate::asset::project::{PreparedProjectOpen, ProjectManager, ProjectRootWitness};
++use crate::asset::watch::{AssetChange, AssetChangeKind};
++use crate::asset::ProjectInfo;
++use crate::core::resource::ResourceRecord;
++use crate::core::CoreError;
++
++use super::super::errors::asset_error_message;
++use super::super::records::build_project_info;
++use super::super::resource_sync::{clear_removed_project_resources, project_locators};
++use super::runtime::{PreparedProjectResourceSync, PreparedProjectWatchers};
++use super::ProjectAssetManager;
++
++/// A fully prepared replacement generation that has not yet changed runtime authority.
++///
++/// This type is intentionally visible only to the asset-manager implementation. Dropping it
++/// closes its pending watcher handles without changing the active project, resource index, or
++/// change stream. `commit_project_activation` is its only consuming authority transition.
++pub(in crate::asset::pipeline::manager) struct PreparedProjectActivation {
++    witness: ProjectRootWitness,
++    project: ProjectManager,
++    imported: Vec<ResourceRecord>,
++    resources: PreparedProjectResourceSync,
++    watchers: PreparedProjectWatchers,
++    info: ProjectInfo,
++    preparation_epoch: u64,
++}
++
++impl ProjectAssetManager {
++    /// Builds a candidate project generation outside the generation write fence.
++    ///
++    /// Importer registration, scanning, resource indexing, and watcher creation may perform I/O.
++    /// None of those operations mutates the active generation. A superseded or stale candidate is
++    /// therefore discarded by drop and leaves the last committed project untouched.
++    pub(in crate::asset::pipeline::manager) fn prepare_project_activation(
++        &self,
++        prepared: PreparedProjectOpen,
++    ) -> Result<PreparedProjectActivation, CoreError> {
++        let (witness, mut project) = prepared.into_parts();
++        witness
++            .revalidate()
++            .map_err(|stale| asset_error_message(stale.to_string()))?;
++
++        let preparation_epoch = self.begin_project_preparation();
++        let installed_importers = self.importer_registry_read().clone();
++        project
++            .register_asset_importers_from_registry(&installed_importers)
++            .map_err(super::super::errors::asset_error)?;
++        project.set_environment_ibl_parallel_executor(self.worker_task_pool.clone());
++        let watchers = self.prepare_project_watchers(&project)?;
++        let imported = project.scan_and_import().map_err(super::super::errors::asset_error)?;
++        let resources = self.prepare_project_resource_sync(&project)?;
++        let info = build_project_info(&project);
++
++        Ok(PreparedProjectActivation {
++            witness,
++            project,
++            imported,
++            resources,
++            watchers,
++            info,
++            preparation_epoch,
++        })
++    }
++
++    /// Commits one fully prepared candidate as the new authoritative project generation.
++    ///
++    /// Every fallible operation, including the last filesystem witness check, completes before
++    /// resource removal, source-index replacement, watcher activation, and publication. Once the
++    /// short commit region begins, the remaining operations are in-memory swaps only.
++    pub(in crate::asset::pipeline::manager) fn commit_project_activation(
++        &self,
++        prepared: PreparedProjectActivation,
++    ) -> Result<ProjectInfo, CoreError> {
++        let generation = self.project_generation_write();
++        if !self.is_latest_project_preparation(prepared.preparation_epoch) {
++            return Err(asset_error_message(
++                "project activation was superseded by a newer preparation",
++            ));
++        }
++        prepared
++            .witness
++            .revalidate()
++            .map_err(|stale| asset_error_message(stale.to_string()))?;
++
++        let PreparedProjectActivation {
++            project,
++            imported,
++            resources,
++            watchers,
++            info,
++            ..
++        } = prepared;
++        let previous_locators = self
++            .project_read()
++            .as_ref()
++            .map(project_locators)
++            .unwrap_or_default();
++        let (retired_watchers, watcher_activation) = {
++            let mut active_project = self.project_write();
++            clear_removed_project_resources(&self.resource_manager(), &previous_locators, &project);
++            self.commit_project_resource_sync(resources);
++            *active_project = Some(project);
++            self.activate_project_watchers(watchers)
++        };
++        self.broadcast(
++            imported
++                .into_iter()
++                .map(|metadata| {
++                    AssetChange::new(
++                        AssetChangeKind::Added,
++                        metadata.primary_locator().clone(),
++                        None,
++                    )
++                })
++                .collect(),
++        );
++        drop(generation);
++        drop(retired_watchers);
++        self.drain_project_watcher_events(watcher_activation);
++        Ok(info)
++    }
++}
++
++#[cfg(test)]
++mod tests {
++    use std::fs;
++    use std::time::{SystemTime, UNIX_EPOCH};
++
++    use crate::asset::project::{PreparedProjectOpen, ProjectManifest};
++    use crate::asset::{AssetManager, AssetUri};
++
++    use super::ProjectAssetManager;
++
++    #[test]
++    fn prepared_activation_keeps_last_good_project_and_suppresses_changes_until_commit() {
++        let first_root = project_root("staged activation first", "Staged Activation First");
++        let second_root = project_root("staged activation second", "Staged Activation Second");
++        let manager = ProjectAssetManager::default();
++        let changes = AssetManager::subscribe_asset_changes(&manager);
++        AssetManager::open_project(&manager, first_root.to_string_lossy().as_ref()).unwrap();
++        while changes.try_recv().is_ok() {}
++
++        let activation = manager
++            .prepare_project_activation(PreparedProjectOpen::open(&second_root).unwrap())
++            .unwrap();
++        assert_eq!(
++            AssetManager::current_project_snapshot(&manager)
++                .unwrap()
++                .manifest()
++                .name,
++            "Staged Activation First"
++        );
++        assert!(changes.try_recv().is_err());
++
++        let committed = manager.commit_project_activation(activation).unwrap();
++        assert_eq!(committed.name, "Staged Activation Second");
++        assert_eq!(
++            AssetManager::current_project_snapshot(&manager)
++                .unwrap()
++                .manifest()
++                .name,
++            "Staged Activation Second"
++        );
++
++        drop(manager);
++        let _ = fs::remove_dir_all(first_root);
++        let _ = fs::remove_dir_all(second_root);
++    }
++
++    #[test]
++    fn superseded_prepared_activation_preserves_last_good_project_without_publication() {
++        let first_root = project_root("superseded activation first", "Superseded First");
++        let second_root = project_root("superseded activation second", "Superseded Second");
++        let manager = ProjectAssetManager::default();
++        let changes = AssetManager::subscribe_asset_changes(&manager);
++        AssetManager::open_project(&manager, first_root.to_string_lossy().as_ref()).unwrap();
++        while changes.try_recv().is_ok() {}
++
++        let activation = manager
++            .prepare_project_activation(PreparedProjectOpen::open(&second_root).unwrap())
++            .unwrap();
++        manager.begin_project_preparation();
++        let error = manager.commit_project_activation(activation).unwrap_err();
++
++        assert!(error.to_string().contains("superseded"));
++        assert_eq!(
++            AssetManager::current_project_snapshot(&manager)
++                .unwrap()
++                .manifest()
++                .name,
++            "Superseded First"
++        );
++        assert!(changes.try_recv().is_err());
++
++        drop(manager);
++        let _ = fs::remove_dir_all(first_root);
++        let _ = fs::remove_dir_all(second_root);
++    }
++
++    fn project_root(case: &str, name: &str) -> std::path::PathBuf {
++        let unique = SystemTime::now()
++            .duration_since(UNIX_EPOCH)
++            .unwrap()
++            .as_nanos();
++        let root = std::env::temp_dir().join(format!(
++            "zircon_runtime_{case}_{}_{}",
++            std::process::id(),
++            unique
++        ));
++        fs::create_dir_all(root.join("assets")).unwrap();
++        ProjectManifest::new(
++            name,
++            AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
++            1,
++        )
++        .save(root.join("zircon-project.toml"))
++        .unwrap();
++        root
++    }
++}

@@ -1,0 +1,120 @@
+// Resolves source talent modifiers for drain-tick endpoints before their
+// channel projectile is queued. WorldState owns snapshots and settlement.
+var catalog = %import("generated/talent_modifier_catalog");
+var modifiers = %import("progression/talent_modifier_state");
+
+pub class DrainTickRange {
+    pub var minimum: int;
+    pub var maximum: int;
+
+    pub @constructor() {
+        this.minimum = 0;
+        this.maximum = 0;
+    }
+}
+
+roundPositive(value: float): int {
+    return <int>(value + 0.5);
+}
+
+pub resolveDrainTickRange(
+    baseMinimum: int,
+    baseMaximum: int,
+    school: string,
+    talentState: modifiers.TalentModifierState,
+    abilityId: string
+): DrainTickRange {
+    var range = new DrainTickRange();
+    var globalField = school == "physical" ? "meleeDmgPct" : "spellDmgPct";
+    var multiplier = 1.0 + modifiers.globalField(talentState, globalField) +
+        modifiers.abilityField(talentState, abilityId, "dmgPct");
+    range.minimum = roundPositive(<float>baseMinimum * multiplier);
+    range.maximum = roundPositive(<float>baseMaximum * multiplier);
+    return range;
+}
+
+pub drainTickRangeSnapshotMatches(
+    expectedMinimum: int,
+    expectedMaximum: int,
+    minimum: float,
+    maximum: float
+): bool {
+    return expectedMinimum >= 0 && expectedMaximum >= expectedMinimum &&
+        minimum == <float>expectedMinimum && maximum == <float>expectedMaximum;
+}
+
+setGlobal(talentState: modifiers.TalentModifierState, name: string, value: float): void {
+    var index = 0;
+    while (index < talentState.globals.length) {
+        if (catalog.globalFieldName(index) == name) {
+            talentState.globals[index] = value;
+            return;
+        }
+        index = index + 1;
+    }
+    throw "woc drain-tick talent global field is absent";
+}
+
+setAbilityNumber(
+    talentState: modifiers.TalentModifierState,
+    abilityId: string,
+    name: string,
+    value: float
+): void {
+    var ability = 0;
+    while (ability < talentState.abilityIds.length &&
+        <string>talentState.abilityIds[ability] != abilityId) {
+        ability = ability + 1;
+    }
+    if (ability == talentState.abilityIds.length) {
+        talentState.abilityIds.add(abilityId);
+        talentState.abilityDottedIds.add("");
+        talentState.abilityCastWhileMoving.add(false);
+        talentState.abilityPushbackImmune.add(false);
+        talentState.abilityNestedEffectCounts.add(0);
+        var newField = 0;
+        while (newField < catalog.abilityNumberFieldCount()) {
+            talentState.abilityNumbers.add(0.0);
+            newField = newField + 1;
+        }
+    }
+    var field = 0;
+    while (field < catalog.abilityNumberFieldCount()) {
+        if (catalog.abilityNumberFieldName(field) == name) {
+            talentState.abilityNumbers[ability * catalog.abilityNumberFieldCount() + field] = value;
+            return;
+        }
+        field = field + 1;
+    }
+    throw "woc drain-tick talent ability field is absent";
+}
+
+pub contractTest(): int {
+    var identity = new modifiers.TalentModifierState();
+    var untouched = resolveDrainTickRange(12, 17, "shadow", identity, "mind_flay");
+    if (untouched.minimum != 12 || untouched.maximum != 17) return -1;
+
+    var mixed = new modifiers.TalentModifierState();
+    setGlobal(mixed, "meleeDmgPct", 0.2);
+    setGlobal(mixed, "spellDmgPct", 0.1);
+    setGlobal(mixed, "dotDmgPct", 0.4);
+    setAbilityNumber(mixed, "drain_life", "dmgPct", 0.15);
+    setAbilityNumber(mixed, "drain_life", "flatDmg", 9.0);
+    var physical = resolveDrainTickRange(31, 41, "physical", mixed, "drain_life");
+    var spell = resolveDrainTickRange(31, 41, "shadow", mixed, "drain_life");
+    if (physical.minimum != 42 || physical.maximum != 55 ||
+        spell.minimum != 39 || spell.maximum != 51) {
+        return -2;
+    }
+
+    var rounded = new modifiers.TalentModifierState();
+    setAbilityNumber(rounded, "mind_flay", "dmgPct", 0.15);
+    var endpoints = resolveDrainTickRange(47, 58, "shadow", rounded, "mind_flay");
+    var endpointFirst = roundPositive(<float>endpoints.minimum +
+        0.5 * <float>(endpoints.maximum - endpoints.minimum));
+    var postRoll = roundPositive((47.0 + 0.5 * (58.0 - 47.0)) * 1.15);
+    return endpoints.minimum == 54 && endpoints.maximum == 67 &&
+        endpointFirst == 61 && postRoll == 60 &&
+        drainTickRangeSnapshotMatches(54, 67, 54.0, 67.0) &&
+        !drainTickRangeSnapshotMatches(54, 67, 55.0, 67.0) ? 1 : -3;
+}

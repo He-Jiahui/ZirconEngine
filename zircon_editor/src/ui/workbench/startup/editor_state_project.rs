@@ -158,39 +158,58 @@ impl EditorState {
         welcome: WelcomePaneSnapshot,
     ) -> Result<(), EditorStateOperationError> {
         self.with_exclusive_scene_transition("clear editor project", move |state, transition| {
-            if let Some(history_context) = state.active_scene_history_context() {
-                transition.clear_history_and_context::<CoreEditContext>(
-                    history_context,
-                    "CoreEditContext",
-                    |context| {
-                        context.clear_scene()?;
-                        state
-                            .world
-                            .clear()
-                            .map_err(|error| EditCommandError::ExternalEffect {
-                                source: Box::new(error),
-                            })
-                    },
-                )?;
-            } else {
-                state
-                    .world
-                    .clear()
-                    .map_err(|error| EditCommandError::ExternalEffect {
-                        source: Box::new(error),
-                    })?;
-            }
-            state.clear_scene_document_binding();
-            state.project_path.clear();
-            state.context.settings_mutations().clear_project()?;
-            state.session_mode = EditorSessionMode::Welcome;
-            state.project_open = false;
-            state.welcome = welcome;
-            *state.viewport_controller.selection_mut() = Default::default();
-            state.viewport_controller.reset_from_scene(None);
-            state.sync_selection_state();
-            Ok(())
+            state.clear_project_reserved(welcome, transition)
         })
+    }
+
+    pub(crate) fn clear_project_for_main_window_close(
+        &mut self,
+        welcome: WelcomePaneSnapshot,
+        admission: &crate::core::editing::engine::SceneCloseAdmission,
+    ) -> Result<(), EditorStateOperationError> {
+        let context = self.context.clone();
+        let mut transition = context
+            .transactions()
+            .begin_exclusive_close_transition("clear closing editor project", admission)?;
+        self.cancel_interactive_transform()?;
+        self.clear_project_reserved(welcome, &mut transition)
+    }
+
+    fn clear_project_reserved(
+        &mut self,
+        welcome: WelcomePaneSnapshot,
+        transition: &mut ExclusiveTransition<'_>,
+    ) -> Result<(), EditorStateOperationError> {
+        if let Some(history_context) = self.active_scene_history_context() {
+            transition.clear_history_and_context::<CoreEditContext>(
+                history_context,
+                "CoreEditContext",
+                |context| {
+                    context.clear_scene()?;
+                    self.world
+                        .clear()
+                        .map_err(|error| EditCommandError::ExternalEffect {
+                            source: Box::new(error),
+                        })
+                },
+            )?;
+        } else {
+            self.world
+                .clear()
+                .map_err(|error| EditCommandError::ExternalEffect {
+                    source: Box::new(error),
+                })?;
+        }
+        self.clear_scene_document_binding();
+        self.project_path.clear();
+        self.context.settings_mutations().clear_project()?;
+        self.session_mode = EditorSessionMode::Welcome;
+        self.project_open = false;
+        self.welcome = welcome;
+        *self.viewport_controller.selection_mut() = Default::default();
+        self.viewport_controller.reset_from_scene(None);
+        self.sync_selection_state();
+        Ok(())
     }
 
     pub(crate) fn with_exclusive_scene_transition<R>(

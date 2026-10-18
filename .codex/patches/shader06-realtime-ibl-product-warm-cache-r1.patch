@@ -1,0 +1,151 @@
+diff --git a/zircon_runtime/tests/runtime_shader_pbr_realtime_ibl_export.rs b/zircon_runtime/tests/runtime_shader_pbr_realtime_ibl_export.rs
+--- a/zircon_runtime/tests/runtime_shader_pbr_realtime_ibl_export.rs
++++ b/zircon_runtime/tests/runtime_shader_pbr_realtime_ibl_export.rs
+@@ -39,2 +39,3 @@ const PBR_MATRIX_SPHERE_SCALE: f32 = 0.21;
+ const REALTIME_GENERATION_TICKET_FRAME_COUNT: usize = 21;
++const REALTIME_GENERATION_TICKET_COUNT: usize = 3;
+ const RENDERDOC_CAPTURE_FINAL_SH9_SLICE_ENV: &str = "ZR_RENDERDOC_CAPTURE_REALTIME_IBL_FINAL_SH9";
+@@ -291,3 +292,42 @@ fn export_procedural_realtime_ibl_pbr_matrix_png() {
+     }
+-    submit_compiled_realtime_ibl_frame(&framework, viewport, updated_snapshot);
++
++    let mut warm_snapshot = updated_snapshot;
++    warm_snapshot.environment.skybox.procedural.source_revision = warm_snapshot
++        .environment
++        .skybox
++        .procedural
++        .source_revision
++        .wrapping_add(1);
++    warm_snapshot.preview = PreviewEnvironmentExtract::from_environment(
++        &warm_snapshot.environment,
++        true,
++        Vec4::ZERO,
++    );
++    let mut warm_ticket_millis = Vec::with_capacity(REALTIME_GENERATION_TICKET_FRAME_COUNT);
++    for slice_index in 0..REALTIME_GENERATION_TICKET_FRAME_COUNT {
++        let capture_this_slice =
++            capture_final_sh9_slice && slice_index + 1 == REALTIME_GENERATION_TICKET_FRAME_COUNT;
++        if capture_this_slice {
++            framework
++                .request_graphics_debugger_capture(viewport)
++                .expect("request RenderDoc capture for final SH9 warm slice");
++        }
++        let started = Instant::now();
++        submit_compiled_realtime_ibl_frame(&framework, viewport, warm_snapshot.clone());
++        if capture_this_slice {
++            let capture_status = framework
++                .query_graphics_debugger_status()
++                .expect("query final SH9 RenderDoc capture status");
++            assert!(
++                !capture_status.capture_pending,
++                "final SH9 RenderDoc capture must complete in its requested frame"
++            );
++            assert_eq!(
++                capture_status.last_error, None,
++                "final SH9 RenderDoc capture must complete without a debugger error"
++            );
++        }
++        warm_ticket_millis.push(started.elapsed().as_secs_f64() * 1000.0);
++    }
++    submit_compiled_realtime_ibl_frame(&framework, viewport, warm_snapshot);
+     let final_frame = capture_compiled_viewport_frame(&framework, viewport);
+@@ -309,3 +349,3 @@ fn export_procedural_realtime_ibl_pbr_matrix_png() {
+         &timing_output,
+-        timing_report(&initial_ticket_millis, &slice_millis),
++        timing_report(&initial_ticket_millis, &slice_millis, &warm_ticket_millis),
+     )
+@@ -734,3 +774,7 @@ fn average_luma_band(frame: &ViewportFrame, start_y: u32, end_y: u32) -> f64 {
+ 
+-fn timing_report(initial_ticket_millis: &[f64], update_ticket_millis: &[f64]) -> String {
++fn timing_report(
++    initial_ticket_millis: &[f64],
++    update_ticket_millis: &[f64],
++    warm_ticket_millis: &[f64],
++) -> String {
+     let initial_average =
+@@ -744,2 +788,5 @@ fn timing_report(initial_ticket_millis: &[f64], update_ticket_millis: &[f64]) ->
+     let update_maximum = update_ticket_millis.iter().copied().fold(0.0_f64, f64::max);
++    let warm_average =
++        warm_ticket_millis.iter().sum::<f64>() / warm_ticket_millis.len().max(1) as f64;
++    let warm_maximum = warm_ticket_millis.iter().copied().fold(0.0_f64, f64::max);
+     let initial_slices = initial_ticket_millis
+@@ -756,6 +803,13 @@ fn timing_report(initial_ticket_millis: &[f64], update_ticket_millis: &[f64]) ->
+         .join("\n");
++    let warm_slices = warm_ticket_millis
++        .iter()
++        .enumerate()
++        .map(|(index, millis)| format!("warm_ticket_frame_{index:02}_cpu_ms={millis:.3}"))
++        .collect::<Vec<_>>()
++        .join("\n");
+     format!(
+-        "initial_ticket_frame_count={}\ninitial_ticket_average_cpu_ms={initial_average:.3}\ninitial_ticket_max_cpu_ms={initial_maximum:.3}\nupdate_ticket_frame_count={}\nupdate_ticket_average_cpu_ms={update_average:.3}\nupdate_ticket_max_cpu_ms={update_maximum:.3}\n{initial_slices}\n{update_slices}\n",
++        "initial_ticket_frame_count={}\ninitial_ticket_average_cpu_ms={initial_average:.3}\ninitial_ticket_max_cpu_ms={initial_maximum:.3}\nupdate_ticket_frame_count={}\nupdate_ticket_average_cpu_ms={update_average:.3}\nupdate_ticket_max_cpu_ms={update_maximum:.3}\nwarm_ticket_frame_count={}\nwarm_ticket_average_cpu_ms={warm_average:.3}\nwarm_ticket_max_cpu_ms={warm_maximum:.3}\n{initial_slices}\n{update_slices}\n{warm_slices}\n",
+         initial_ticket_millis.len(),
+         update_ticket_millis.len(),
++        warm_ticket_millis.len(),
+     )
+@@ -766,4 +820,4 @@ fn assert_realtime_gpu_timings(reports: &[RealtimeIblGpuTimingReport]) {
+         reports.len(),
+-        REALTIME_GENERATION_TICKET_FRAME_COUNT * 2,
+-        "each initial and updated ticket frame must produce one GPU timestamp"
++        REALTIME_GENERATION_TICKET_FRAME_COUNT * REALTIME_GENERATION_TICKET_COUNT,
++        "each cold and warm ticket frame must produce one GPU timestamp"
+     );
+@@ -802,3 +856,3 @@ fn assert_realtime_gpu_timings(reports: &[RealtimeIblGpuTimingReport]) {
+             .count(),
+-        2,
++        REALTIME_GENERATION_TICKET_COUNT,
+         "each complete ticket must timestamp its terminal SH9 operation"
+@@ -810,3 +864,3 @@ fn assert_realtime_gpu_timings(reports: &[RealtimeIblGpuTimingReport]) {
+             .count(),
+-        2,
++        REALTIME_GENERATION_TICKET_COUNT,
+         "only each terminal SH9 operation may publish a ticket"
+@@ -818,4 +872,4 @@ fn assert_realtime_gpu_timings(reports: &[RealtimeIblGpuTimingReport]) {
+     assert!(
+-        generations.len() >= 2,
+-        "initial and updated environments must publish distinct generation timings: {reports:?}"
++        generations.len() >= REALTIME_GENERATION_TICKET_COUNT,
++        "initial, updated, and warm environments must publish distinct generation timings: {reports:?}"
+     );
+@@ -837,2 +891,40 @@ fn assert_realtime_binding_cache_metrics(reports: &[RealtimeIblGpuTimingReport])
+     );
++    let warm_generation = reports
++        .iter()
++        .map(|report| report.generation)
++        .max()
++        .expect("the product run must report a warm-cache generation");
++    let warm_reports = reports
++        .iter()
++        .filter(|report| report.generation == warm_generation)
++        .collect::<Vec<_>>();
++    assert_eq!(
++        warm_reports.len(),
++        REALTIME_GENERATION_TICKET_FRAME_COUNT,
++        "the third generation must contain one complete realtime IBL ticket: {warm_reports:?}"
++    );
++    assert!(
++        warm_reports
++            .iter()
++            .all(|report| report.binding_cache_resets == 0),
++        "a same-layout warm generation must not reset binding templates: {warm_reports:?}"
++    );
++    let warm_binding_reports = warm_reports
++        .iter()
++        .filter(|report| report.binding_cache_hits + report.binding_cache_misses == 1)
++        .collect::<Vec<_>>();
++    assert_eq!(
++        warm_binding_reports.len(),
++        11,
++        "a default ticket must issue ten PMREM and one SH9 binding command: {warm_binding_reports:?}"
++    );
++    assert!(
++        warm_binding_reports.iter().all(|report| {
++            report.binding_cache_hits == 1
++                && report.binding_cache_misses == 0
++                && report.params_buffer_creations == 0
++                && report.bind_group_creations == 0
++        }),
++        "the third same-layout ticket must reuse its B-slot binding templates: {warm_binding_reports:?}"
++    );
+ }

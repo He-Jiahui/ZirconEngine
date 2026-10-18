@@ -278,18 +278,38 @@ pub(super) fn workbench_window_template_bindings() -> BTreeMap<String, EditorUiB
         EditorUiBindingPayload::menu_action("workbench.inspector.search.commit"),
     );
     for (control, action) in [
-        ("ComponentAddConfirm", "confirm"), ("ComponentAddCancel", "cancel"),
-        ("ComponentAddPrevious", "previous"), ("ComponentAddNext", "next"),
+        ("ComponentAddConfirm", "confirm"),
+        ("ComponentAddCancel", "cancel"),
+        ("ComponentAddPrevious", "previous"),
+        ("ComponentAddNext", "next"),
     ] {
-        insert_click(&mut bindings, "Inspector", control,
-            EditorUiBindingPayload::menu_action(format!("workbench.inspector.component_add.{action}")));
+        insert_click(
+            &mut bindings,
+            "Inspector",
+            control,
+            EditorUiBindingPayload::menu_action(format!(
+                "workbench.inspector.component_add.{action}"
+            )),
+        );
     }
-    insert_click(&mut bindings, "Inspector", "ComponentAddType",
-        EditorUiBindingPayload::menu_action("workbench.inspector.component_add.type.open"));
-    insert_change(&mut bindings, "Inspector", "ComponentAddValuesEdit",
-        EditorUiBindingPayload::menu_action("workbench.inspector.component_add.values.edit"));
-    insert_submit(&mut bindings, "Inspector", "ComponentAddValuesCommit",
-        EditorUiBindingPayload::menu_action("workbench.inspector.component_add.values.commit"));
+    insert_click(
+        &mut bindings,
+        "Inspector",
+        "ComponentAddType",
+        EditorUiBindingPayload::menu_action("workbench.inspector.component_add.type.open"),
+    );
+    insert_change(
+        &mut bindings,
+        "Inspector",
+        "ComponentAddValuesEdit",
+        EditorUiBindingPayload::menu_action("workbench.inspector.component_add.values.edit"),
+    );
+    insert_submit(
+        &mut bindings,
+        "Inspector",
+        "ComponentAddValuesCommit",
+        EditorUiBindingPayload::menu_action("workbench.inspector.component_add.values.commit"),
+    );
     insert_inspector_transform_axis_bindings(&mut bindings);
     insert_change(
         &mut bindings,

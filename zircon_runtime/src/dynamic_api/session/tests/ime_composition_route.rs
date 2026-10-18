@@ -324,3 +324,48 @@ fn same_window_cancel_tombstone_survives_reconfigure_retry() {
         .consume(&preedit(112, 6, 3), UiInputEventMetadata::default())
         .is_ok());
 }
+
+#[test]
+fn runtime220_cancel_active_retires_delayed_ime_callbacks_without_reusing_generation() {
+    let negotiation = ZrRuntimeImeCompositionNegotiation::from_peer(
+        8,
+        [ZR_RUNTIME_IME_COMPOSITION_V2_CAPABILITY],
+    );
+    let mut route = route(121);
+    route.reconfigure_with_candidate_rect(
+        negotiation,
+        121,
+        ZrRuntimeImeCandidateRectV2::window_relative(3, 5, 0, 18),
+    );
+    assert!(route
+        .consume(&preedit(121, 2, 3), UiInputEventMetadata::default())
+        .is_ok());
+    route.cancel_active();
+    route.cancel_active();
+    assert_eq!(route.candidate_rect_for_window_generation(121), None);
+    assert_eq!(
+        route.consume(&preedit(121, 2, 3), UiInputEventMetadata::default()),
+        Err(RuntimeImeCompositionRouteError::StaleGeneration),
+    );
+    let late_commit = ZrRuntimeImeCompositionV2 {
+        operation: ZrRuntimeImeCompositionOperationV2::Commit,
+        context: ZrRuntimeImeCompositionContextV2 {
+            window_generation: 121,
+            focus_generation: 2,
+            composition_generation: 3,
+        },
+        text: "late".to_string(),
+        cursor_range: None,
+        clauses: Vec::new(),
+        clause_availability: ZrRuntimeImePreeditClauseAvailabilityV2::Unavailable,
+    }
+    .encode()
+    .unwrap();
+    assert_eq!(
+        route.consume(&late_commit, UiInputEventMetadata::default()),
+        Err(RuntimeImeCompositionRouteError::StaleGeneration),
+    );
+    assert!(route
+        .consume(&preedit(121, 2, 4), UiInputEventMetadata::default())
+        .is_ok());
+}

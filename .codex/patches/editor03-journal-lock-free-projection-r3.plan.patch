@@ -1,0 +1,17 @@
+diff --git a/docs/plans/zircon_editor/editor/03/failure-2026-07-22-transaction-selection-history-wide-snapshot.md b/docs/plans/zircon_editor/editor/03/failure-2026-07-22-transaction-selection-history-wide-snapshot.md
+--- a/docs/plans/zircon_editor/editor/03/failure-2026-07-22-transaction-selection-history-wide-snapshot.md
++++ b/docs/plans/zircon_editor/editor/03/failure-2026-07-22-transaction-selection-history-wide-snapshot.md
+@@ -68,3 +68,10 @@ Open state: `undo/redo compact event metadata、operation-group key与Create re
+ ## 产出记录与时间
+ 
+ - 2026-07-22：状态`open`。静态复核完成并登记PERF-MVP-549；局部源码守卫/rustfmt/diff通过，但不得据此声明Editor03动态验收或迁入performance `review.md`。
++
++- 2026-08-02：状态`forward_fix_bundle_ready`。已准备 self-contained
++  `journal_transaction` 锁外投影实现包
++  `762A16B378257E1F98CDDD690994D78C087D8294D6196F6426EF50558D4BC5E1`：
++  operation gate 持有期间临时移出 HistoryStore，command JSON journal payload 与 selection
++  projection 不持有 engine state 锁；Drop 恢复 history，冲突时保留 lease store 与 displaced
++  store 并令 engine faulted。实现拆分为 `transaction/journal_projection.rs`，符合 leaf-owner
++  与 production file-size 约束；测试覆盖锁外重入、UnsupportedCommand、panic unwind、恢复冲突。
++  bundle 已通过 `git apply --check --whitespace=error`；待 exact-scope owner 落码、受管 Cargo、
++  规模/F4 证据及独立复审后方可 fixed return。

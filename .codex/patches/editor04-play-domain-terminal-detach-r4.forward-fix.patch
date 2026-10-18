@@ -1,0 +1,62 @@
+diff --git a/zircon_editor/src/core/play/error.rs b/zircon_editor/src/core/play/error.rs
+--- a/zircon_editor/src/core/play/error.rs
++++ b/zircon_editor/src/core/play/error.rs
+@@ -20,6 +20,7 @@ pub enum PlaySessionError {
+     },
+     BackendStop(String),
+     BackendPoll(String),
++    PlayDomainDetach(String),
+ }
+ 
+ impl Display for PlaySessionError {
+@@ -55,6 +56,9 @@ impl Display for PlaySessionError {
+             Self::BackendPoll(message) => {
+                 write!(formatter, "failed to poll play backend: {message}")
+             }
++            Self::PlayDomainDetach(message) => {
++                write!(formatter, "failed to detach the play-domain gateway: {message}")
++            }
+         }
+     }
+ }
+diff --git a/zircon_editor/src/core/play/controller.rs b/zircon_editor/src/core/play/controller.rs
+--- a/zircon_editor/src/core/play/controller.rs
++++ b/zircon_editor/src/core/play/controller.rs
+@@ -247,4 +247,5 @@ impl PlaySessionController {
+             PlayMode::Building { .. } => {
++                self.detach_attached_play_domain()?;
+                 self.replace_mode(PlayMode::Edit);
+                 Ok(PlayTransitionReport::changed(
+                     PlayModeKind::Edit,
+@@ -258,6 +259,7 @@ impl PlaySessionController {
+             PlayMode::Playing { .. } => {
+                 let backend = self.backend();
+                 let backend_report = backend.stop().map_err(PlaySessionError::BackendStop)?;
++                self.detach_attached_play_domain()?;
+                 let activation = self.plugin_activation();
+                 let report = activation
+                     .deactivate()
+@@ -299,6 +300,7 @@ impl PlaySessionController {
+                 exit_code,
+                 diagnostics,
+             } => {
++                self.detach_attached_play_domain()?;
+                 let activation = self.plugin_activation();
+                 let report = activation
+                     .deactivate()
+@@ -364,6 +366,15 @@ impl PlaySessionController {
+         self.edit_protection.discard_pending()
+     }
+ 
++    fn detach_attached_play_domain(&self) -> Result<(), PlaySessionError> {
++        let Some(WorldDomain::Play(instance)) = self.play_domain.attached_domain() else {
++            return Ok(());
++        };
++        self.play_domain
++            .detach(instance)
++            .map_err(|error| PlaySessionError::PlayDomainDetach(error.to_string()))
++    }
++
+     fn activate_and_enter_playing(
+         &self,
+         request: PlayStartRequest,

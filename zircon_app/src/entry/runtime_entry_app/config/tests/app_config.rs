@@ -80,7 +80,10 @@ fn runtime_entry_app_config_keeps_product_proof_policy_explicit() {
         RuntimeProductProofPolicy::Disabled,
     );
 
-    for policy in [RuntimeProductProofPolicy::GeneralProject, RuntimeProductProofPolicy::F2LitMesh] {
+    for policy in [
+        RuntimeProductProofPolicy::GeneralProject,
+        RuntimeProductProofPolicy::F2LitMesh,
+    ] {
         let config = RuntimeEntryAppConfig::default().with_product_proof_policy(policy);
         assert_eq!(config.product_proof_policy(), policy);
     }

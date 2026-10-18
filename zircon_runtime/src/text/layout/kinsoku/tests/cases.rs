@@ -1,5 +1,11 @@
+//! 用人工构造的同源字节范围验证局部合并与细分许可。
+//!
+//! 这些夹具不经过生产成形入口，也不证明完整排版规范、任意无效范围或断行后缀传播。
+
 use super::*;
 
+// 直接按给定范围切片；夹具负责提供有序且落在 UTF-8 边界上的端点。
+// 两类范围使用同一输入基准，不代替生产侧映射构造与校验。
 fn test_chunk(text: &str, start: usize, end: usize) -> LineBreakChunk<'_> {
     LineBreakChunk {
         text: &text[start..end],

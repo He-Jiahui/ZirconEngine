@@ -36,6 +36,22 @@ use super::project_session_close::{
 };
 
 impl EditorManager {
+    pub(crate) fn try_document_close_admission(
+        &self,
+    ) -> Result<crate::core::extension::DocumentCloseAdmission, EditorError> {
+        Ok(self.host.document_toolkits.try_close_admission()?)
+    }
+
+    /// Called only after this close's captures and every editor task terminalize.
+    pub(crate) fn clear_documents_for_main_window_close(
+        &self,
+        documents: &crate::core::extension::DocumentCloseAdmission,
+        scene: &crate::core::editing::engine::SceneCloseAdmission,
+    ) -> Result<(), EditorError> {
+        self.host
+            .clear_documents_for_main_window_close(documents, scene)
+    }
+
     pub fn project_reference_diagnostics(
         &self,
     ) -> Result<zircon_runtime::asset::project::ProjectReferenceDiagnosticsSnapshot, EditorError>
@@ -84,6 +100,22 @@ impl EditorManager {
         let preflight = self.preflight_existing_project_launch(&intent, path.as_ref())?;
         let admission = self.session_admission_request(&intent)?;
         self.open_project_document_with_admission(preflight, &admission)
+    }
+
+    /// The close decision belongs to one exact admitted activation, including None.
+    pub(crate) fn begin_project_close_for_activation(
+        &self,
+        expected: Option<&ProjectCloseOperation>,
+    ) -> Result<Option<ProjectCloseOperation>, EditorError> {
+        let _transition = self.begin_project_session_transition()?;
+        if self.project_close_activation_identity().as_ref() != expected {
+            return Err(EditorError::Project(
+                "project activation changed during the close decision".into(),
+            ));
+        }
+        self.ensure_project_recovery_is_settled()?;
+        self.begin_project_close_operation()
+            .map_err(|error| EditorError::Project(error.to_string()))
     }
 
     pub(crate) fn begin_project_close(&self) -> Result<Option<ProjectCloseOperation>, EditorError> {

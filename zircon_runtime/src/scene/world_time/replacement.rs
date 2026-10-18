@@ -123,7 +123,11 @@ impl WorldReplacementRequest {
     }
 
     pub fn reset(world: World, policy: TimePolicy, paused: bool) -> Self {
-        Self::Reset { world, policy, paused }
+        Self::Reset {
+            world,
+            policy,
+            paused,
+        }
     }
 
     pub fn restore(checkpoint: WorldReplacementCheckpoint) -> Self {
@@ -177,7 +181,10 @@ impl fmt::Debug for WorldReplacementRequest {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("WorldReplacementRequest")
             .field("time_policy", &self.time_policy())
-            .field("incoming_world_generation", &self.incoming_world().world_generation())
+            .field(
+                "incoming_world_generation",
+                &self.incoming_world().world_generation(),
+            )
             .finish_non_exhaustive()
     }
 }

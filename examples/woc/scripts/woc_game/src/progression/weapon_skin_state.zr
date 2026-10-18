@@ -1,0 +1,168 @@
+var container = %import("zr.container");
+var contract = %import("generated/weapon_skin_contract");
+var craftItemState = %import("progression/craft_item_state");
+
+pub ownershipStateIsValid(owned: container.Array<bool>): bool {
+    return owned.length == contract.weaponSkinCount();
+}
+
+pub loadoutStateIsValid(
+    owned: container.Array<bool>, loadoutCodes: container.Array<uint>
+): bool {
+    if (!ownershipStateIsValid(owned) ||
+        loadoutCodes.length != contract.weaponSkinTypeCount()) {
+        return false;
+    }
+    var typeIndex = 0;
+    while (typeIndex < loadoutCodes.length) {
+        var skinCode = <uint>loadoutCodes[typeIndex];
+        if (skinCode != <uint>0) {
+            var skinIndex = <int>skinCode - 1;
+            if (skinIndex < 0 || skinIndex >= contract.weaponSkinCount() ||
+                <uint>contract.weaponSkinTypeCode(skinIndex) != <uint>(typeIndex + 1) ||
+                !<bool>owned[skinIndex]) {
+                return false;
+            }
+        }
+        typeIndex = typeIndex + 1;
+    }
+    return true;
+}
+
+pub payloadShapeIsValid(
+    payloadOffset: uint,
+    payloadLength: uint,
+    payloadBytes: container.Array<uint>
+): bool {
+    if (payloadOffset > <uint>payloadBytes.length ||
+        payloadLength > <uint>payloadBytes.length - payloadOffset ||
+        payloadLength < <uint>2) {
+        return false;
+    }
+    var mode = <uint>payloadBytes[<int>payloadOffset];
+    if (mode == <uint>0) {
+        var typeCode = <uint>payloadBytes[<int>(payloadOffset + <uint>1)];
+        return payloadLength == <uint>2 && typeCode >= <uint>1 &&
+            typeCode <= <uint>contract.weaponSkinTypeCount();
+    }
+    if (mode != <uint>1 || payloadLength < <uint>5) { return false; }
+    var skinLength = readU32(payloadOffset + <uint>1, payloadBytes);
+    if (skinLength > <uint>256 || payloadLength != skinLength + <uint>5) {
+        return false;
+    }
+    var skinStart = payloadOffset + <uint>5;
+    return craftItemState.utf8RangeValid(
+        payloadBytes, skinStart, skinStart + skinLength
+    );
+}
+
+pub skinIndexFromPayload(
+    payloadOffset: uint,
+    payloadLength: uint,
+    payloadBytes: container.Array<uint>
+): int {
+    if (!payloadShapeIsValid(payloadOffset, payloadLength, payloadBytes) ||
+        <uint>payloadBytes[<int>payloadOffset] != <uint>1) {
+        return -1;
+    }
+    var skinLength = payloadLength - <uint>5;
+    var skinIndex = 0;
+    while (skinIndex < contract.weaponSkinCount()) {
+        if (<uint>contract.weaponSkinIdUtf8Length(skinIndex) == skinLength) {
+            var matches = true;
+            var byteIndex = 0;
+            while (byteIndex < <int>skinLength && matches) {
+                if (<uint>payloadBytes[
+                        <int>(payloadOffset + <uint>5 + <uint>byteIndex)
+                    ] != contract.weaponSkinIdUtf8Byte(skinIndex, byteIndex)) {
+                    matches = false;
+                }
+                byteIndex = byteIndex + 1;
+            }
+            if (matches) { return skinIndex; }
+        }
+        skinIndex = skinIndex + 1;
+    }
+    return -1;
+}
+
+pub detachTypeCodeFromPayload(
+    payloadOffset: uint,
+    payloadLength: uint,
+    payloadBytes: container.Array<uint>
+): uint {
+    if (!payloadShapeIsValid(payloadOffset, payloadLength, payloadBytes) ||
+        <uint>payloadBytes[<int>payloadOffset] != <uint>0) {
+        return <uint>0;
+    }
+    return <uint>payloadBytes[<int>(payloadOffset + <uint>1)];
+}
+
+pub typeMatchesPlayer(
+    isHunter: bool, hasMainhand: bool, mainhandTypeCode: uint, skinTypeCode: uint
+): bool {
+    if (!hasMainhand) { return false; }
+    if (isHunter) {
+        return skinTypeCode == <uint>7 || skinTypeCode == <uint>8;
+    }
+    return mainhandTypeCode != <uint>0 && mainhandTypeCode == skinTypeCode;
+}
+
+pub activeSkinCode(
+    isHunter: bool,
+    hasMainhand: bool,
+    mainhandTypeCode: uint,
+    loadoutCodes: container.Array<uint>
+): uint {
+    if (!hasMainhand || loadoutCodes.length != contract.weaponSkinTypeCount()) {
+        return <uint>0;
+    }
+    if (isHunter) {
+        var crossbowCode = <uint>loadoutCodes[7];
+        if (crossbowCode != <uint>0) { return crossbowCode; }
+        return <uint>loadoutCodes[6];
+    }
+    if (mainhandTypeCode < <uint>1 ||
+        mainhandTypeCode > <uint>contract.weaponSkinTypeCount()) {
+        return <uint>0;
+    }
+    return <uint>loadoutCodes[<int>mainhandTypeCode - 1];
+}
+
+readU32(offset: uint, bytes: container.Array<uint>): uint {
+    return <uint>bytes[<int>offset] +
+        <uint>bytes[<int>(offset + <uint>1)] * <uint>256 +
+        <uint>bytes[<int>(offset + <uint>2)] * <uint>65536 +
+        <uint>bytes[<int>(offset + <uint>3)] * <uint>16777216;
+}
+
+pub contractTest(): int {
+    var owned = new container.Array<bool>();
+    var ownedIndex = 0;
+    while (ownedIndex < contract.weaponSkinCount()) {
+        owned.add(false);
+        ownedIndex = ownedIndex + 1;
+    }
+    var loadout = new container.Array<uint>();
+    var typeIndex = 0;
+    while (typeIndex < contract.weaponSkinTypeCount()) {
+        loadout.add(<uint>0);
+        typeIndex = typeIndex + 1;
+    }
+    owned[0] = true;
+    loadout[0] = <uint>1;
+    if (!loadoutStateIsValid(owned, loadout) ||
+        activeSkinCode(false, true, <uint>1, loadout) != <uint>1 ||
+        typeMatchesPlayer(false, true, <uint>2, <uint>1)) {
+        return -1;
+    }
+    loadout[0] = <uint>0;
+    owned[6] = true;
+    owned[13] = true;
+    loadout[6] = <uint>7;
+    loadout[7] = <uint>14;
+    return loadoutStateIsValid(owned, loadout) &&
+        typeMatchesPlayer(true, true, <uint>0, <uint>7) &&
+        activeSkinCode(true, true, <uint>0, loadout) == <uint>14 &&
+        activeSkinCode(true, false, <uint>0, loadout) == <uint>0 ? 1 : -2;
+}

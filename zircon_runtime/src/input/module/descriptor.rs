@@ -113,21 +113,8 @@ pub fn module_descriptor_with_config(config: InputConfig) -> ModuleDescriptor {
         qualified_name(INPUT_MODULE_NAME, ServiceKind::Driver, "InputDriver"),
         StartupMode::Immediate,
         Vec::new(),
-        // 在 Core 请求初始化输入驱动时创建新的驱动服务对象。
-        //
-        // # 参数
-        // `_` 是调用方传入并被忽略的 `&CoreWeak`；闭包不升级、解析或保存这个弱句柄，也没有捕获配置。
-        //
-        // # 返回
-        // 返回 `Ok(Arc::new(InputDriver) as ServiceObject)`；InputDriver 为零字段身份值，本闭包没有主动返回 CoreError 的分支。
-        //
-        // # 使用时机与生命周期
-        // factory 只把此闭包装入共享的 Fn；每次实际调用分配新的 Arc 服务对象，返回对象不借用弱句柄。
-        // Core 保存服务对象并控制调用与卸载；创建标记值不启动平台事件循环或设备轮询。
-        //
-        // # 参考
-        // 参见 [`InputDriver`]、[`ServiceObject`] 与 [`crate::engine_module::factory`]。
-        factory(|_| Ok(Arc::new(InputDriver) as ServiceObject)),
+        // Per-Core Session ingress admission; the manager owns physical state.
+        factory(|_| Ok(Arc::new(InputDriver::default()) as ServiceObject)),
     ))
     .with_manager(ManagerDescriptor::new(
         qualified_name(INPUT_MODULE_NAME, ServiceKind::Manager, "InputManager"),

@@ -1,0 +1,7 @@
+{
+  "name": "woc-m4-overload-spell-resolution-tests",
+  "entry": "world/overload_spell_resolution_test_main",
+  "entry_symbol": "main",
+  "artifacts": ["zr"],
+  "output": "../../.local/woc_m4_overload_spell_resolution_tests"
+}

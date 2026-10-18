@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "status": "retired",
+  "retiredAt": "2026-10-02T07:19:48.379193+00:00",
+  "reason": "User-authorized retirement, including repository integration requirements",
+  "dataPolicy": "preserve original data and source; archive for future Jenkins migration",
+  "jenkinsMigration": "pending",
+  "documentation": "docs/cli-and-tooling/coordinator-retirement.md"
+}

@@ -13,9 +13,10 @@ use std::num::NonZeroU64;
 use crate::core::framework::channel::ChannelReceiver;
 
 use super::{
-    ButtonInputState, CursorHostRequest, GamepadId, GamepadRumbleRequest, ImeHostRequest, InputButton,
-    InputEvent, InputEventQueueStatus, InputEventRecord, InputEventRecordingConfig,
-    InputEventRecordingStatus, InputFrameSnapshot, InputSnapshot, MouseWheelEvent,
+    ButtonInputState, CursorHostRequest, GamepadId, GamepadRumbleRequest, ImeHostRequest,
+    InputBatchLimits, InputBatchRejection, InputBatchSize, InputButton, InputEvent,
+    InputEventQueueStatus, InputEventRecord, InputEventRecordingConfig, InputEventRecordingStatus,
+    InputFrameSnapshot, InputSnapshot, MouseWheelEvent,
 };
 
 /// Result of atomically admitting an event into input state and its retained event streams.
@@ -31,13 +32,32 @@ pub enum InputEventAdmission {
 /// A gamepad rejection never changes samples, edges, frame events or recording buffers.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum GamepadInputRejection {
-    GenerationRequired { gamepad: GamepadId },
+    GenerationRequired {
+        gamepad: GamepadId,
+    },
     /// Rumble intents can only bind to a currently observed, open connection.
-    RumbleTargetUnavailable { gamepad: GamepadId },
-    ConnectionNotObserved { gamepad: GamepadId, submitted: NonZeroU64 },
-    StaleGeneration { gamepad: GamepadId, submitted: NonZeroU64, current: NonZeroU64 },
-    FutureGeneration { gamepad: GamepadId, submitted: NonZeroU64, current: NonZeroU64 },
-    ConnectionClosed { gamepad: GamepadId, submitted: NonZeroU64, current: NonZeroU64 },
+    RumbleTargetUnavailable {
+        gamepad: GamepadId,
+    },
+    ConnectionNotObserved {
+        gamepad: GamepadId,
+        submitted: NonZeroU64,
+    },
+    StaleGeneration {
+        gamepad: GamepadId,
+        submitted: NonZeroU64,
+        current: NonZeroU64,
+    },
+    FutureGeneration {
+        gamepad: GamepadId,
+        submitted: NonZeroU64,
+        current: NonZeroU64,
+    },
+    ConnectionClosed {
+        gamepad: GamepadId,
+        submitted: NonZeroU64,
+        current: NonZeroU64,
+    },
 }
 
 /// A rumble intent bound to the connection observed atomically at enqueue time.
@@ -54,7 +74,10 @@ pub struct QueuedGamepadRumbleRequest {
 impl QueuedGamepadRumbleRequest {
     /// Construct only while the input owner admits this intent against its open connection.
     pub const fn new(request: GamepadRumbleRequest, generation: NonZeroU64) -> Self {
-        Self { request, generation }
+        Self {
+            request,
+            generation,
+        }
     }
 
     pub const fn request(&self) -> GamepadRumbleRequest {
@@ -128,6 +151,17 @@ pub trait InputManager: Send + Sync {
     /// frame-event or recording mutation. Generic unstamped gamepad button events reject.
     /// Closed generations remain fenced across frames, drains and focus loss.
     fn submit_event_with_admission(&self, event: InputEvent) -> InputEventAdmission;
+
+    /// Preflights the entire owned batch under the same lock as physical state.
+    /// On rejection, physical state, frame events and event recording are unchanged.
+    /// Count and allocated Vec/String capacity, finite values and ordered device
+    /// qualification must all pass before any member is applied. There is no
+    /// default per-event fallback because it could publish a partial batch.
+    fn submit_batch_with_admission(
+        &self,
+        events: Vec<InputEvent>,
+        limits: InputBatchLimits,
+    ) -> Result<InputBatchSize, InputBatchRejection>;
     /// 取得指针位置、持续按下按钮和兼容纵向滚动量的基本快照。
     ///
     /// # 使用时机与职责

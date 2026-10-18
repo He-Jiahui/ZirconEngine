@@ -1,0 +1,8 @@
+diff --git a/docs/plans/zircon_editor/editor/10/failure-2026-08-02-scene-open-create-project-authority-route-missing.md b/docs/plans/zircon_editor/editor/10/failure-2026-08-02-scene-open-create-project-authority-route-missing.md
+--- a/docs/plans/zircon_editor/editor/10/failure-2026-08-02-scene-open-create-project-authority-route-missing.md
++++ b/docs/plans/zircon_editor/editor/10/failure-2026-08-02-scene-open-create-project-authority-route-missing.md
+@@ -66,3 +66,4 @@ open/create 合同与 document authority 接线；随后 Editor08 才能将菜单/命令投影替换为真实 request
+ | 时间 | 状态 | 完成项目与证据 |
+ |---|---|---|
+ | 2026-08-02 CST | `OPEN / 已路由` | 已实读可达 `MenuAction::OpenScene | CreateScene` 分支：只写未接线状态文本并返回 `changed: false`，无 project/document request。按最低共享 owner 路由 Editor10 ProjectAuthority；未修改菜单、场景或文档生产代码，未运行 Cargo。 |
++| 2026-08-02 CST | `OPEN / 二次审查更新` | 独立二次审查初始 `C/I/M=0/3/0` 的三项生产问题均已前向修复：host 经 `EditorManager::create_runtime_level` 安装 `LevelSystem`，成功 popup cancel 清除 `scene_picker_session`，picker 对 catalog 做大小写不敏感统计与 12 项有界投影而不再为每条 locator/全部匹配项分配。补齐 host cancel 与 manager stale-ticket 回归后，保留 `OPEN` 并执行受管验证。 |

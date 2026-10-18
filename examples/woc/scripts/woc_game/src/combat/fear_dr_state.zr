@@ -1,0 +1,84 @@
+// Current-head fear diminishing returns are target-owned. Only hostile player
+// pairs consume the fixed-duration ladder; all other pairs preserve the effect
+// duration and must not create a DR row.
+pub class FearDrResolution {
+    pub var shouldStore: bool;
+    pub var duration: float;
+    pub var nextStage: int;
+    pub var resetAt: float;
+
+    pub @constructor(
+        shouldStore: bool, duration: float, nextStage: int, resetAt: float
+    ) {
+        this.shouldStore = shouldStore;
+        this.duration = duration;
+        this.nextStage = nextStage;
+        this.resetAt = resetAt;
+    }
+}
+
+pub fearResetSeconds(): float { return 60.0; }
+
+pub appliesToPair(sourceIsPlayer: bool, targetIsPlayer: bool, hostile: bool): bool {
+    return sourceIsPlayer && targetIsPlayer && hostile;
+}
+
+// Mirrors Sim.diminishedCrowdControlDuration's fear branch exactly. The
+// supplied effect duration is intentionally ignored for a player-vs-player
+// fear: current-head returns 8/4/2/1 seconds, with later stages staying at 1.
+pub resolve(
+    sourceIsPlayer: bool,
+    targetIsPlayer: bool,
+    hostile: bool,
+    storedStage: int,
+    storedResetAt: float,
+    now: float,
+    duration: float
+): FearDrResolution {
+    if (storedStage < 0 || storedResetAt < 0.0 || now < 0.0 || duration < 0.0) {
+        throw "fear DR input is invalid";
+    }
+    if (!appliesToPair(sourceIsPlayer, targetIsPlayer, hostile)) {
+        return new FearDrResolution(false, duration, storedStage, storedResetAt);
+    }
+    var stage = storedResetAt > now ? storedStage : 0;
+    var resolvedDuration = 1.0;
+    if (stage == 0) {
+        resolvedDuration = 8.0;
+    } else if (stage == 1) {
+        resolvedDuration = 4.0;
+    } else if (stage == 2) {
+        resolvedDuration = 2.0;
+    }
+    return new FearDrResolution(true, resolvedDuration, stage + 1, now + fearResetSeconds());
+}
+
+pub contractTest(): int {
+    var npc = resolve(true, false, true, 4, 90.0, 30.0, 1.5);
+    if (npc.shouldStore || npc.duration != 1.5 || npc.nextStage != 4 ||
+        npc.resetAt != 90.0) {
+        return -1;
+    }
+    var friendly = resolve(true, true, false, 2, 90.0, 30.0, 3.0);
+    if (friendly.shouldStore || friendly.duration != 3.0 || !appliesToPair(true, true, true) ||
+        appliesToPair(false, true, true)) {
+        return -2;
+    }
+    var first = resolve(true, true, true, 0, 0.0, 10.0, 1.0);
+    var second = resolve(true, true, true, first.nextStage, first.resetAt, 20.0, 1.5);
+    var third = resolve(true, true, true, second.nextStage, second.resetAt, 30.0, 2.0);
+    var fourth = resolve(true, true, true, third.nextStage, third.resetAt, 40.0, 3.0);
+    var later = resolve(true, true, true, fourth.nextStage, fourth.resetAt, 50.0, 3.0);
+    if (!first.shouldStore || first.duration != 8.0 || first.nextStage != 1 ||
+        first.resetAt != 70.0 || second.duration != 4.0 || second.nextStage != 2 ||
+        second.resetAt != 80.0 || third.duration != 2.0 || third.nextStage != 3 ||
+        fourth.duration != 1.0 || fourth.nextStage != 4 || later.duration != 1.0 ||
+        later.nextStage != 5) {
+        return -3;
+    }
+    var expired = resolve(true, true, true, 5, 70.0, 70.0, 2.0);
+    if (expired.duration != 8.0 || expired.nextStage != 1 || expired.resetAt != 130.0) {
+        return -4;
+    }
+    return 1;
+}

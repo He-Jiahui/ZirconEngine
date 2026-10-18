@@ -444,37 +444,41 @@ fn execute_source(gpu: &mut RenderPassGpuExecutionContext<'_>) -> Result<(), Str
     let device_epoch = gpu
         .device_epoch()
         .ok_or_else(|| "virtual geometry indirect pass requires a device epoch".to_string())?;
-    let mut native = gpu.native_context();
-    let factory = &native;
-    let source = factory.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-        label: Some("zircon-virtual-geometry-indirect-source"),
-        contents: bytemuck::cast_slice(&source_words),
-        usage: wgpu::BufferUsages::STORAGE,
-    });
-    let mut cache = PIPELINE
-        .get_or_init(|| Mutex::new(None))
-        .lock()
-        .map_err(|_| "virtual geometry indirect pipeline cache is poisoned".to_string())?;
-    if cache
-        .as_ref()
-        .is_none_or(|(epoch, _)| *epoch != device_epoch)
-    {
-        *cache = Some((device_epoch, create_pipeline(factory)));
-    }
-    let pipeline = &cache.as_ref().expect("pipeline initialized").1;
-    let bind_group = factory.create_bind_group(&wgpu::BindGroupDescriptor {
-        label: Some("zircon-virtual-geometry-indirect-bind-group"),
-        layout: &pipeline.get_bind_group_layout(0),
-        entries: &[
-            buffer_entry(0, &visible_buffer, visible_offset, visible_size),
-            wgpu::BindGroupEntry {
-                binding: 1,
-                resource: source.as_entire_binding(),
-            },
-            buffer_entry(2, &args_buffer, args_offset, args_size),
-            buffer_entry(3, &authority_buffer, authority_offset, authority_size),
-        ],
-    });
+    // Keep the source lease and pipeline lock while ending the factory capability borrow.
+    let (_source, cache, bind_group) = {
+        let native = gpu.native_context();
+        let factory = &native;
+        let source = factory.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("zircon-virtual-geometry-indirect-source"),
+            contents: bytemuck::cast_slice(&source_words),
+            usage: wgpu::BufferUsages::STORAGE,
+        });
+        let mut cache = PIPELINE
+            .get_or_init(|| Mutex::new(None))
+            .lock()
+            .map_err(|_| "virtual geometry indirect pipeline cache is poisoned".to_string())?;
+        if cache
+            .as_ref()
+            .is_none_or(|(epoch, _)| *epoch != device_epoch)
+        {
+            *cache = Some((device_epoch, create_pipeline(factory)));
+        }
+        let pipeline = &cache.as_ref().expect("pipeline initialized").1;
+        let bind_group = factory.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: Some("zircon-virtual-geometry-indirect-bind-group"),
+            layout: &pipeline.get_bind_group_layout(0),
+            entries: &[
+                buffer_entry(0, &visible_buffer, visible_offset, visible_size),
+                wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: source.as_entire_binding(),
+                },
+                buffer_entry(2, &args_buffer, args_offset, args_size),
+                buffer_entry(3, &authority_buffer, authority_offset, authority_size),
+            ],
+        });
+        (source, cache, bind_group)
+    };
     gpu.buffer_upload_recorder().write_buffer(
         &args_buffer,
         args_offset,
@@ -482,18 +486,21 @@ fn execute_source(gpu: &mut RenderPassGpuExecutionContext<'_>) -> Result<(), Str
     );
     let groups = u32::try_from(records.len().div_ceil(WORKGROUP_SIZE as usize).max(1))
         .map_err(|_| "virtual geometry indirect dispatch count exceeds u32".to_string())?;
-    let mut pass = native
-        .encoder
-        .begin_compute_pass(&wgpu::ComputePassDescriptor {
-            label: Some("zircon-virtual-geometry-indirect-args"),
-            timestamp_writes: None,
-        });
-    pass.set_pipeline(pipeline);
-    pass.set_bind_group(0, &bind_group, &[]);
-    pass.dispatch_workgroups(groups, 1, 1);
-    drop(pass);
+    let pipeline = &cache.as_ref().expect("pipeline initialized").1;
+    {
+        let native = gpu.native_context();
+        let mut pass = native
+            .encoder
+            .begin_compute_pass(&wgpu::ComputePassDescriptor {
+                label: Some("zircon-virtual-geometry-indirect-args"),
+                timestamp_writes: None,
+            });
+        pass.set_pipeline(pipeline);
+        pass.set_bind_group(0, &bind_group, &[]);
+        pass.dispatch_workgroups(groups, 1, 1);
+        drop(pass);
+    }
     drop(cache);
-    drop(native);
     gpu.record_compute_dispatch(
         PASS_NAME,
         EXECUTOR_ID,
@@ -1628,6 +1635,26 @@ fn record_terminal_completion(
         }
         sources.push((binding.buffer.clone(), binding.offset, binding.size, bytes));
     }
+    let original_source_count = sources.len();
+    let inspection = gpu.take_virtual_geometry_native_inspection()?;
+    let mut inspection_bytes = 0_u64;
+    if let Some((sections, _)) = &inspection {
+        for (_, buffer, range) in sections {
+            let size = range
+                .end
+                .checked_sub(range.start)
+                .ok_or("reversed native inspection range")?;
+            inspection_bytes = inspection_bytes
+                .checked_add(size)
+                .ok_or("native inspection length overflow")?;
+            sources.push((
+                buffer.clone(),
+                range.start,
+                std::num::NonZeroU64::new(size),
+                size,
+            ));
+        }
+    }
     let mut ranges = Vec::with_capacity(sources.len());
     let mut bytes = 0u64;
     for (_, _, _, size) in &sources {
@@ -1657,7 +1684,18 @@ fn record_terminal_completion(
         }
         staging
     };
-    gpu.enqueue_reserved_virtual_geometry_readback(
+    let inspection_start = bytes
+        .checked_sub(inspection_bytes)
+        .ok_or("native inspection range underflow")?;
+    let inspection_decoder = inspection.map(|(sections, decode)| {
+        Box::new(move |mapped: &[u8], outputs: &zircon_runtime::core::framework::render::RenderVirtualGeometryReadbackOutputs| {
+            let _keepalive = &sections;
+            let start = usize::try_from(inspection_start).map_err(|_| "native inspection offset overflow")?;
+            decode(mapped.get(start..).ok_or("native inspection exceeds full mapped staging")?, outputs)
+        }) as Box<dyn FnOnce(&[u8], &zircon_runtime::core::framework::render::RenderVirtualGeometryReadbackOutputs)
+            -> Result<zircon_runtime::core::framework::render::RenderVirtualGeometryNativeReadbackInspection, String> + Send>
+    });
+    gpu.enqueue_reserved_virtual_geometry_readback_with_inspection(
         reservation,
         staging,
         0..bytes,
@@ -1674,7 +1712,7 @@ fn record_terminal_completion(
                 );
             }
             let mut streams = Vec::new();
-            for &(start, end) in &ranges {
+            for &(start, end) in &ranges[..original_source_count] {
                 let start = usize::try_from(start).map_err(|_| "native range overflow")?;
                 let end = usize::try_from(end).map_err(|_| "native range overflow")?;
                 let raw = mapped
@@ -1820,6 +1858,7 @@ fn record_terminal_completion(
                 .extend_from_slice(&streams[9][1..1 + requested]);
             Ok(outputs)
         }),
+        inspection_decoder,
     )?;
     // Capture physical native sources only after enqueueing their own real
     // completion packet. Missing historical dedicated buffers remain absent.

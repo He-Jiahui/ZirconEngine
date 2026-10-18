@@ -1,0 +1,125 @@
+diff --git a/zircon_editor/src/ui/retained_host/app/tests/command_palette.rs b/zircon_editor/src/ui/retained_host/app/tests/command_palette.rs
+--- a/zircon_editor/src/ui/retained_host/app/tests/command_palette.rs
++++ b/zircon_editor/src/ui/retained_host/app/tests/command_palette.rs
+@@ -1,4 +1,8 @@
+ use super::support::*;
++use crate::core::project::{NewProjectDraft, NewProjectTemplate, ProjectAuthority};
++use crate::ui::retained_host::workbench_popup_actions::WORKBENCH_POPUP_CANCEL_ACTION_ID;
++
++use super::super::scene_picker_session::ScenePickerMode;
+ 
+ #[test]
+ fn native_unhandled_ctrl_shift_p_opens_workbench_command_palette() {
+@@ -90,3 +94,53 @@ fn native_command_palette_enter_commits_focused_workbench_command() {
+         vec![EditorEvent::WorkbenchMenu(MenuAction::OpenProject)]
+     );
+ }
++
++#[test]
++fn cancelling_scene_picker_discards_its_project_ticket() {
++    let _guard = lock_env();
++    let harness = ChildWindowHostHarness::new("zircon_retained_scene_picker_cancel");
++    let project_root =
++        unique_temp_path("zircon_retained_scene_picker_cancel_project").with_extension("");
++    let project_name = project_root
++        .file_name()
++        .and_then(|name| name.to_str())
++        .expect("temporary project root must have a UTF-8 name")
++        .to_string();
++    let location = project_root
++        .parent()
++        .expect("temporary project root must have a parent")
++        .to_string_lossy()
++        .into_owned();
++    let created = ProjectAuthority::default()
++        .create_project(&NewProjectDraft {
++            project_name,
++            location,
++            template: NewProjectTemplate::RenderableEmpty,
++        })
++        .expect("scene picker test project should be created");
++    assert_eq!(created.root, project_root);
++    drop(created);
++
++    {
++        let mut host = harness.host.borrow_mut();
++        host.editor_manager
++            .open_project(&project_root)
++            .expect("scene picker test project should open");
++        host.open_workbench_scene_picker(ScenePickerMode::Open);
++        assert!(host.scene_picker_session.is_some());
++        host.open_workbench_command_palette();
++        assert!(host.scene_picker_session.is_none());
++
++        host.open_workbench_scene_picker(ScenePickerMode::Open);
++        assert!(host.scene_picker_session.is_some());
++
++        let cancelled = host.dispatch_componentized_workbench_surface_control(
++            "WorkbenchCommandPalette",
++            WORKBENCH_POPUP_CANCEL_ACTION_ID,
++        );
++        assert!(matches!(cancelled, Some(Ok(_))));
++        assert!(host.scene_picker_session.is_none());
++    }
++
++    let _ = std::fs::remove_dir_all(project_root);
++}
+diff --git a/zircon_editor/src/tests/host/asset_references.rs b/zircon_editor/src/tests/host/asset_references.rs
+--- a/zircon_editor/src/tests/host/asset_references.rs
++++ b/zircon_editor/src/tests/host/asset_references.rs
+@@ -26,5 +26,5 @@ use crate::core::document::AuthoringSceneInstaller;
+ use crate::core::project::{
+-    NewProjectDraft, NewProjectTemplate, ProjectAuthority, SceneCreateRequest,
++    NewProjectDraft, NewProjectTemplate, ProjectAuthority, SceneCreateRequest, SceneOpenRequest,
+ };
+ use crate::tests::support::env_lock;
+ use crate::ui::host::EditorManager;
+@@ -145,5 +145,48 @@ fn create_scene_document_refreshes_editor_assets_before_document_publication() {
+     let _ = fs::remove_dir_all(project_root);
+ }
+ 
++#[test]
++fn reactivating_project_rejects_a_stale_scene_picker_ticket_before_installation() {
++    let _guard = env_lock().lock().unwrap();
++    let config_path = unique_temp_path("zircon_editor_stale_scene_picker_ticket");
++    let project_root = unique_temp_dir("zircon_editor_stale_scene_picker_ticket_project");
++    let runtime = editor_runtime_with_config_path(&config_path);
++    let manager = runtime
++        .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
++        .unwrap();
++    let created = ProjectAuthority::default()
++        .create_project(&NewProjectDraft {
++            project_name: "Stale Scene Picker".to_string(),
++            location: project_root.to_string_lossy().into_owned(),
++            template: NewProjectTemplate::RenderableEmpty,
++        })
++        .unwrap();
++    let root = created.root.clone();
++    drop(created);
++
++    manager.open_project(&root).unwrap();
++    let stale_ticket = manager.scene_picker_ticket().unwrap();
++    manager.close_project().unwrap();
++    manager.open_project(&root).unwrap();
++
++    let mut installer = AcceptingSceneInstaller;
++    let error = manager
++        .open_scene_document(
++            stale_ticket,
++            SceneOpenRequest::new(AssetUri::parse("res://scenes/main.scene.toml").unwrap()),
++            &mut installer,
++        )
++        .unwrap_err();
++    assert!(
++        error.to_string().contains("stale session"),
++        "old picker ticket was accepted after project reactivation: {error}"
++    );
++
++    manager.close_project().unwrap();
++    std::env::remove_var("ZIRCON_CONFIG_PATH");
++    let _ = fs::remove_file(config_path);
++    let _ = fs::remove_dir_all(project_root);
++}
++
+ #[test]
+ fn editor_asset_manager_tracks_scene_animation_and_physics_references() {

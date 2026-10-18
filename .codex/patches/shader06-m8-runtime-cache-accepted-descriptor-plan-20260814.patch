@@ -1,0 +1,33 @@
+diff --git a/docs/plans/zircon_runtime/shader/06/2026-08-09-m8-canonical-ibl-recipe-and-performance-plan.md b/docs/plans/zircon_runtime/shader/06/2026-08-09-m8-canonical-ibl-recipe-and-performance-plan.md
+--- a/docs/plans/zircon_runtime/shader/06/2026-08-09-m8-canonical-ibl-recipe-and-performance-plan.md
++++ b/docs/plans/zircon_runtime/shader/06/2026-08-09-m8-canonical-ibl-recipe-and-performance-plan.md
+@@ -526,5 +526,29 @@ granularity. `source_irradiance_cubemap.rs` formerly gave the caller-owned
+   on low-core hosts.
+ 
++### 2026-08-14 Runtime-Cache Accepted-Descriptor Repair
++
++The shared frame-resolution refactor separates artifact rehydration, pending
++runtime-bake reservation, and graph-key selection. Its accepted-descriptor
++fast path must use the same producer-aware currentness rule as payload
++hydration: CPU asset-derived descriptors use `is_current_for`, while GPU
++runtime-cache descriptors use `is_current_runtime_cache_for`. Treating every
++accepted descriptor as CPU-only would make a valid GPU result fall through to
++`RuntimeBakeUnavailable` after the four-entry memo is evicted, despite the
++already-hydrated environment retaining its complete immutable payload.
++
++- Implemented in the isolated rebased patch
++  `shader06-m8-runtime-cache-accepted-descriptor-rebased-20260814.patch`:
++  producer-aware accepted-descriptor validation preserves a current GPU
++  runtime-cache result without a memo or a cache-store lookup and keeps the
++  runtime bake graph out of the compile options.
++- The focused regression seeds a GPU-provenance runtime cache, hydrates it,
++  replaces the memo with an empty cache and the asset manager with its default
++  no-store state, then requires `Hydrated` with no bake request. The prior
++  CPU-only predicate returns `RuntimeBakeUnavailable` at that point.
++- Second independent review reported `Critical 0 / Important 0 / Minor 0`.
++  The patch applies cleanly over the shared resolver refactor. Managed Windows
++  Rust/WGPU validation remains pending; this entry does not claim acceptance.
++
+ WPR (`C:\Windows\System32\wpr.exe`), WPA, and RenderDoc are installed, but no
+ current-source viewer executable exists in the approved `E:` output roots. A
+ new profile must wait for the current managed build rather than profiling a

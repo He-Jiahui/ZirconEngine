@@ -1,0 +1,59 @@
+diff --git a/zircon_editor/src/tests/host/asset_references.rs b/zircon_editor/src/tests/host/asset_references.rs
+--- a/zircon_editor/src/tests/host/asset_references.rs
++++ b/zircon_editor/src/tests/host/asset_references.rs
+@@ -26,5 +26,5 @@ use crate::core::document::AuthoringSceneInstaller;
+ use crate::core::project::{
+-    NewProjectDraft, NewProjectTemplate, ProjectAuthority, SceneCreateRequest,
++    NewProjectDraft, NewProjectTemplate, ProjectAuthority, SceneCreateRequest, SceneOpenRequest,
+ };
+ use crate::tests::support::env_lock;
+ use crate::ui::host::EditorManager;
+@@ -145,5 +145,48 @@ fn create_scene_document_refreshes_editor_assets_before_document_publication() {
+     let _ = fs::remove_dir_all(project_root);
+ }
+ 
++#[test]
++fn reactivating_project_rejects_a_stale_scene_picker_ticket_before_installation() {
++    let _guard = env_lock().lock().unwrap();
++    let config_path = unique_temp_path("zircon_editor_stale_scene_picker_ticket");
++    let project_root = unique_temp_dir("zircon_editor_stale_scene_picker_ticket_project");
++    let runtime = editor_runtime_with_config_path(&config_path);
++    let manager = runtime
++        .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
++        .unwrap();
++    let created = ProjectAuthority::default()
++        .create_project(&NewProjectDraft {
++            project_name: "Stale Scene Picker".to_string(),
++            location: project_root.to_string_lossy().into_owned(),
++            template: NewProjectTemplate::RenderableEmpty,
++        })
++        .unwrap();
++    let root = created.root.clone();
++    drop(created);
++
++    manager.open_project(&root).unwrap();
++    let stale_ticket = manager.scene_picker_ticket().unwrap();
++    manager.close_project().unwrap();
++    manager.open_project(&root).unwrap();
++
++    let mut installer = AcceptingSceneInstaller;
++    let error = manager
++        .open_scene_document(
++            stale_ticket,
++            SceneOpenRequest::new(AssetUri::parse("res://scenes/main.scene.toml").unwrap()),
++            &mut installer,
++        )
++        .unwrap_err();
++    assert!(
++        error.to_string().contains("stale session"),
++        "old picker ticket was accepted after project reactivation: {error}"
++    );
++
++    manager.close_project().unwrap();
++    std::env::remove_var("ZIRCON_CONFIG_PATH");
++    let _ = fs::remove_file(config_path);
++    let _ = fs::remove_dir_all(project_root);
++}
++
+ #[test]
+ fn editor_asset_manager_tracks_scene_animation_and_physics_references() {

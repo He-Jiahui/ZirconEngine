@@ -1,0 +1,6 @@
+{
+  "name": "woc_protocol_binary_random_access_tests",
+  "source": "src",
+  "binary": "bin-protocol-binary-random-access-tests",
+  "entry": "protocol/binary_random_access_test_main"
+}

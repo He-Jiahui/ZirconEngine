@@ -155,3 +155,15 @@ docs/ui-and-layout/**/*.png
 /docs/plans/source-comments/**/*.json
 /docs/plans/source-comments/**/*.jsonl
 /docs/**/*-post-validation.json
+
+# Local historical runtime data and generated fixtures stay in place for review.
+# Canonical sources, plans and incremental patches remain visible to Git.
+/.codex/artifacts/
+/.codex/test-tmp/
+/.codex/session-coordination.db
+/.codex/session-coordinator.sqlite3
+/.codex/interface03-prepare-status.json
+/.codex/tmp-layout-ownership.json
+/.codex/tmp_requests.py
+/tools/tests/jenkins-entry-test-*/
+/rename-old.txt

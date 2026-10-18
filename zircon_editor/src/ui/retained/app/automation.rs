@@ -91,7 +91,10 @@ pub fn run_retained_host_automation(
         retained_host.runtime.set_play_backend(play_backend);
     }
     let settings_snapshot = retained_host.runtime.context().settings().snapshot();
-    apply_host_appearance_from_tokens(settings_snapshot.design_tokens());
+    apply_host_appearance_from_tokens(
+        settings_snapshot.design_tokens_handle(),
+        Some(settings_snapshot.generation()),
+    );
     install_editor_v2_design_tokens(settings_snapshot.as_ref());
     for registration in editor_plugin_registrations {
         retained_host

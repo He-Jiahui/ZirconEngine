@@ -75,6 +75,12 @@ fn child_window_harness_reuses_the_manager_context_for_the_authoring_world() {
 }
 
 impl ChildWindowHostHarness {
+    pub(super) fn activate_scene_for_editor09_close_fixture(&self) {
+        self._core
+            .activate_module(zircon_runtime::core::framework::scene::SCENE_MODULE_NAME)
+            .expect("activate the scene module used by the real project fixture");
+    }
+
     pub(super) fn new(prefix: &str) -> Self {
         Self::with_config_path(unique_temp_path(prefix), true)
     }

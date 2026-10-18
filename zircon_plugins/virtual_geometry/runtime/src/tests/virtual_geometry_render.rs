@@ -1,9 +1,11 @@
 use std::{
     fs,
-    path::PathBuf,
+    path::{Path, PathBuf},
     sync::Arc,
     time::{SystemTime, UNIX_EPOCH},
 };
+use zircon_runtime_interface::project::{AssetRef, PersistedAssetReference, RelPath};
+use zircon_runtime_interface::resource::ResourceScheme;
 
 use image::{ImageBuffer, ImageFormat, Rgba};
 use zircon_runtime::asset::assets::{AlphaMode, MaterialAsset};
@@ -852,7 +854,7 @@ fn virtual_geometry_prepare_cluster_raster_output_is_stable_when_same_segment_pr
 ) {
     let root = unique_temp_graphics_root("graphics_virtual_geometry_multi_primitive_order");
     let paths = ProjectPaths::from_root(&root).unwrap();
-    paths.ensure_layout().unwrap();
+    paths.ensure_layout(&[RelPath::project_assets()]).unwrap();
     ProjectManifest::new(
         "GraphicsVirtualGeometryMultiPrimitiveOrder",
         AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
@@ -862,30 +864,36 @@ fn virtual_geometry_prepare_cluster_raster_output_is_stable_when_same_segment_pr
     .unwrap();
 
     write_flat_color_wgsl(
-        paths.assets_root().join("shaders").join("flat_green.wgsl"),
+        paths
+            .asset_root(&RelPath::project_assets())
+            .join("shaders")
+            .join("flat_green.wgsl"),
         [0.08, 0.95, 0.08],
     );
     write_solid_png(
-        paths.assets_root().join("textures").join("white.png"),
+        paths
+            .asset_root(&RelPath::project_assets())
+            .join("textures")
+            .join("white.png"),
         [255, 255, 255, 255],
     );
     write_double_quad_gltf(
         paths
-            .assets_root()
+            .asset_root(&RelPath::project_assets())
             .join("models")
             .join("double_quad_lr.gltf"),
         false,
     );
     write_double_quad_gltf(
         paths
-            .assets_root()
+            .asset_root(&RelPath::project_assets())
             .join("models")
             .join("double_quad_rl.gltf"),
         true,
     );
     write_material(
         paths
-            .assets_root()
+            .asset_root(&RelPath::project_assets())
             .join("materials")
             .join("flat_green.zmaterial"),
         "res://shaders/flat_green.wgsl",
@@ -968,7 +976,7 @@ fn virtual_geometry_prepare_cluster_raster_output_is_stable_when_same_segment_pr
 ) {
     let root = unique_temp_graphics_root("graphics_virtual_geometry_multi_primitive_uv_order");
     let paths = ProjectPaths::from_root(&root).unwrap();
-    paths.ensure_layout().unwrap();
+    paths.ensure_layout(&[RelPath::project_assets()]).unwrap();
     ProjectManifest::new(
         "GraphicsVirtualGeometryMultiPrimitiveUvOrder",
         AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
@@ -979,32 +987,35 @@ fn virtual_geometry_prepare_cluster_raster_output_is_stable_when_same_segment_pr
 
     write_textured_color_wgsl(
         paths
-            .assets_root()
+            .asset_root(&RelPath::project_assets())
             .join("shaders")
             .join("textured_color.wgsl"),
     );
     write_split_color_png(
-        paths.assets_root().join("textures").join("split_rg.png"),
+        paths
+            .asset_root(&RelPath::project_assets())
+            .join("textures")
+            .join("split_rg.png"),
         [255, 32, 32, 255],
         [32, 32, 255, 255],
     );
     write_overlapping_uv_gltf(
         paths
-            .assets_root()
+            .asset_root(&RelPath::project_assets())
             .join("models")
             .join("overlap_uv_lr.gltf"),
         false,
     );
     write_overlapping_uv_gltf(
         paths
-            .assets_root()
+            .asset_root(&RelPath::project_assets())
             .join("models")
             .join("overlap_uv_rl.gltf"),
         true,
     );
     write_material_with_base_color_and_alpha_mode(
         paths
-            .assets_root()
+            .asset_root(&RelPath::project_assets())
             .join("materials")
             .join("textured_blend.zmaterial"),
         "res://shaders/textured_color.wgsl",
@@ -1095,7 +1106,7 @@ fn compile_virtual_geometry_pipeline(extract: &RenderFrameExtract) -> CompiledRe
                 .with_capability_enabled(RenderFeatureCapabilityRequirement::VirtualGeometry)
                 .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
                 .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
-                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
+                .with_feature_disabled(BuiltinRenderFeature::Temporal)
                 .with_feature_disabled(BuiltinRenderFeature::Bloom)
                 .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
                 .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
@@ -1516,7 +1527,17 @@ fn write_material_with_base_color_and_alpha_mode(
         texture_slots: Default::default(),
         validation_diagnostics: Vec::new(),
     };
-    fs::write(path, material.to_toml_string().unwrap()).unwrap();
+    let project_root = fixture_project_root(&path);
+    let document = material
+        .to_project_toml_string(|reference| {
+            Ok(persisted_reference_for_fixture(
+                &project_root,
+                &path,
+                reference,
+            ))
+        })
+        .unwrap();
+    fs::write(path, document).unwrap();
 }
 
 fn asset_reference(uri: &str) -> AssetReference {
@@ -1525,4 +1546,57 @@ fn asset_reference(uri: &str) -> AssetReference {
 
 struct ActualCapturedVirtualGeometryFrame {
     rgba: Vec<u8>,
+}
+
+fn fixture_project_root(source_path: &Path) -> PathBuf {
+    source_path
+        .ancestors()
+        .find(|candidate| candidate.join("zircon-project.toml").is_file())
+        .expect("asset fixture must live below a project manifest")
+        .to_path_buf()
+}
+
+// 夹具只把 res:// 路径映射到唯一资源根的持久化 hint；多根歧义必须显式失败。
+fn persisted_reference_for_fixture(
+    project_root: &Path,
+    source_path: &Path,
+    reference: &AssetReference,
+) -> PersistedAssetReference {
+    if reference.locator.scheme() == ResourceScheme::Builtin {
+        return PersistedAssetReference::builtin(reference.locator.clone());
+    }
+    assert_eq!(reference.locator.scheme(), ResourceScheme::Res);
+
+    let manifest = ProjectManifest::load(project_root.join("zircon-project.toml")).unwrap();
+    let roots = manifest
+        .asset_roots
+        .iter()
+        .filter(|root| {
+            root.join_to(project_root)
+                .join(reference.locator.path())
+                .is_file()
+        })
+        .collect::<Vec<_>>();
+    let root = match roots.as_slice() {
+        [root] => *root,
+        [] => manifest
+            .asset_roots
+            .iter()
+            .find(|root| source_path.starts_with(root.join_to(project_root)))
+            .expect("asset fixture source must live below a manifest asset root"),
+        _ => panic!(
+            "asset fixture reference {} resolves through multiple project asset roots",
+            reference.locator
+        ),
+    };
+    let path_hint =
+        RelPath::parse(format!("{}/{}", root.as_str(), reference.locator.path())).unwrap();
+    PersistedAssetReference::project(
+        AssetRef::try_new(
+            reference.uuid,
+            path_hint,
+            reference.locator.label().map(str::to_owned),
+        )
+        .unwrap(),
+    )
 }
