@@ -346,10 +346,16 @@ require(isinstance(proof,dict) and set(proof)=={'schemaVersion','kind','reposito
     and proof.get('runtimeOperationId')==runtime and proof.get('originalInstalledSha256')==installed_sha,
     'candidate_manifest_identity_invalid')
 members={'runner.py':'tools/jenkins-management/runner.py','source_preparation.py':'tools/jenkins-management/source_preparation.py'}
-require(isinstance(proof.get('files'),dict) and set(proof['files'])==set(members.values())
-    and isinstance(proof.get('ownedPaths'),list)
-    and set(members.values())|{'tools/dev/install-jenkins-management.ps1'}<=set(proof['ownedPaths']),
+require(isinstance(proof.get('files'),dict) and isinstance(proof.get('ownedPaths'),list),
     'candidate_member_scope_invalid')
+if set(proof['files'])=={'tools/jenkins-management/zircon-management.groovy'}:
+    members={'zircon-management.groovy':'tools/jenkins-management/zircon-management.groovy'}
+    require(set(proof['ownedPaths'])==set(members.values())|{'tools/dev/install-jenkins-management.ps1'},
+        'candidate_member_scope_invalid')
+else:
+    require(set(proof['files'])==set(members.values())
+        and set(members.values())|{'tools/dev/install-jenkins-management.ps1'}<=set(proof['ownedPaths']),
+        'candidate_member_scope_invalid')
 installed_raw=(repo/'.jenkins/state/management/installed.json').read_bytes()
 require(hashlib.sha256(installed_raw).hexdigest()==installed_sha,'candidate_original_install_changed')
 installed=json.loads(installed_raw)
@@ -409,7 +415,8 @@ print(json.dumps({'manifestSha256':manifest_sha,'sourceRoot':str(source),'worktr
     return ($taskCandidateOutput | ConvertFrom-Json)
 }
 function Get-ManagementCapsuleSource([string]$Name) {
-    if ($null -ne $taskCandidateSources -and $Name -cin @('runner.py','source_preparation.py')) {
+    if ($null -ne $taskCandidateSources -and
+            $null -ne $taskCandidateSources.files.PSObject.Properties[$Name]) {
         return (Assert-Physical ([string]$taskCandidateSources.files.PSObject.Properties[$Name].Value))
     }
     return (Assert-Physical "$taskSourceRoot/$Name")
@@ -623,7 +630,7 @@ if ($CodexExe -notmatch '^[A-Za-z]:[\\/]') { throw 'Current Codex must be an abs
 $codex = Assert-Physical $CodexExe
 if (!(Test-Path -LiteralPath $python -PathType Leaf) -or !(Test-Path -LiteralPath $codex -PathType Leaf)) { throw 'Managed Python or official Codex sandbox executable missing' }
 $taskPreviousCodex = Resolve-PreviousCodexBinding $codex $ExpectedPreviousCodexExe $ExpectedPreviousJobConfigSha256 $taskPrior
-$pipeline = [IO.File]::ReadAllText((Assert-Physical "$taskSourceRoot/zircon-management.groovy")).Replace(([string][char]13 + [char]10), [string][char]10)
+$pipeline = [IO.File]::ReadAllText((Get-ManagementCapsuleSource 'zircon-management.groovy')).Replace(([string][char]13 + [char]10), [string][char]10)
 $taskPipelineTemplate = $pipeline
 $tokens = @{AGENT='zircon-windows-agent';REPOSITORY=$repo;PYTHON=$python;CODEX=$codex;
     CAPSULE=$capsule;DRIVER=$ExpectedDriverDigest;RUNTIME=$ExpectedRuntimeOperationId}
