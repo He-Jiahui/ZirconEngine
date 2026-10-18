@@ -1,0 +1,83 @@
+diff --git a/zircon_app/src/bin/zircon_shader_pbr_viewer/app.rs b/zircon_app/src/bin/zircon_shader_pbr_viewer/app.rs
+--- a/zircon_app/src/bin/zircon_shader_pbr_viewer/app.rs
++++ b/zircon_app/src/bin/zircon_shader_pbr_viewer/app.rs
+@@ -392,7 +392,17 @@ impl PbrMirrorViewerApp {
+                 return;
+             };
+             match scene.environment_only_base_pipeline_ready() {
+-                Ok(ready) => ready,
++                Ok(true) => true,
++                Ok(false) => {
++                    if let Err(error) = scene.retry_environment_only_base_pipeline_admission() {
++                        eprintln!(
++                            "environment-only PBR Base pipeline admission retry failed: {error}"
++                        );
++                        event_loop.exit();
++                        return;
++                    }
++                    false
++                }
+                 Err(error) => {
+                     eprintln!("environment-only PBR Base pipeline startup failed: {error}");
+                     event_loop.exit();
+diff --git a/zircon_app/src/bin/zircon_shader_pbr_viewer/scene.rs b/zircon_app/src/bin/zircon_shader_pbr_viewer/scene.rs
+--- a/zircon_app/src/bin/zircon_shader_pbr_viewer/scene.rs
++++ b/zircon_app/src/bin/zircon_shader_pbr_viewer/scene.rs
+@@ -497,6 +497,17 @@ impl PbrMirrorScene {
+             .environment_only_pbr_base_pipeline_ready()?)
+     }
+ 
++    /// Retries nonblocking Base-PSO admission after the bounded worker frees capacity.
++    pub(crate) fn retry_environment_only_base_pipeline_admission(
++        &mut self,
++    ) -> Result<(), Box<dyn Error>> {
++        self.renderer
++            .as_mut()
++            .ok_or("PBR mirror scene renderer has already shut down")?
++            .retry_environment_only_pbr_base_pipeline_admission()?;
++        Ok(())
++    }
++
+     pub(crate) fn request_next_frame_timing_report(&mut self) {
+         self.frame_timing_report_requested = true;
+         self.renderer
+@@ -741,6 +752,15 @@ mod tests {
+         );
+     }
+ 
++    #[test]
++    fn viewer_exposes_nonblocking_base_pipeline_admission_retry() {
++        assert_source_order(&[
++            "pub(crate) fn environment_only_base_pipeline_ready(",
++            "pub(crate) fn retry_environment_only_base_pipeline_admission(",
++            ".retry_environment_only_pbr_base_pipeline_admission()?;",
++        ]);
++    }
++
+     #[test]
+     fn viewer_exposes_first_frame_extract_renderer_call_and_readback_timing() {
+         let source = production_source();
+diff --git a/zircon_app/src/bin/zircon_shader_pbr_viewer/app_tests.rs b/zircon_app/src/bin/zircon_shader_pbr_viewer/app_tests.rs
+--- a/zircon_app/src/bin/zircon_shader_pbr_viewer/app_tests.rs
++++ b/zircon_app/src/bin/zircon_shader_pbr_viewer/app_tests.rs
+@@ -555,6 +555,20 @@ fn one_shot_evidence_waits_for_the_async_base_pipeline_without_blocking_the_eve
+     );
+ }
+ 
++#[test]
++fn pending_base_pipeline_retries_admission_before_scheduling_the_next_recheck() {
++    let render = render_source();
++
++    assert_source_order(&[
++        "match scene.environment_only_base_pipeline_ready() {",
++        "Ok(false) => {",
++        "scene.retry_environment_only_base_pipeline_admission()",
++        "environment-only PBR Base pipeline admission retry failed",
++        "false",
++        "let defer_one_shot_until_base_pipeline_ready = needs_environment_only_base_pipeline",
++    ]);
++}
++
+ #[test]
+ fn interactive_presentation_rechecks_a_pending_base_pipeline_after_presenting() {
+     let render = render_source();

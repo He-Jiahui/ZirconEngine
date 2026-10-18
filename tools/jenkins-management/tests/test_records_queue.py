@@ -56,37 +56,34 @@ class IntakeTests(unittest.TestCase):
                 write.assert_not_called()
 
     def test_lost_acknowledgement_never_causes_second_submission(self):
-        value = self.inventory()
-        files = {}
-        api = Mock()
-        api.record.return_value = None
-        manager = Mock()
-        manager._request.return_value = (200, b'{"crumbRequestField":"crumb","crumb":"test"}')
-        manager._request_with_headers.side_effect = TimeoutError('lost acknowledgement')
-        context = {'repo': Path('E:/Git/ZirconEngine'), 'manager': manager}
-        installed = {'driverDigest': '1' * 64, 'runtimeOperationId': 'original-runtime'}
-        def read(path):
-            return (json.loads(files[str(path)]) if str(path) in files else value), {}
-        def save(path, raw):
-            if str(path) in files:
-                self.assertEqual(files[str(path)], raw)
-            files[str(path)] = raw
-        def atomic(path, record):
-            files[str(path)] = queue.encoded(record) + b'\n'
-        with patch.object(queue, 'binding', return_value=(api, context, installed)), \
-             patch.object(queue, 'read_json', side_effect=read), \
-             patch.object(queue, 'write_once', side_effect=save), \
-             patch.object(Path, 'exists', side_effect=lambda: False):
-            # Replace only this client's existence observation with the memory ledger.
-            with patch.object(Path, 'exists', new=lambda path: str(path) in files), \
-                 patch.object(queue, 'plain', side_effect=Path), \
-                 patch('tools.jenkins.state.atomic.atomic_json', side_effect=atomic), \
-                 patch('tools.jenkins.state.locks.process_lock', return_value=nullcontext()):
-                first = queue.submit(context['repo'], Path('inventory.json'))
-                second = queue.submit(context['repo'], Path('inventory.json'))
-        self.assertEqual(first['receipts'][0]['phase'], 'delivery_unknown')
-        self.assertEqual(first, second)
-        manager._request_with_headers.assert_called_once()
+        for lose_ack in (False, True):
+            with self.subTest(lose_ack=lose_ack), RecordsTransportCase(
+                    queue, self.inventory(), lose_ack=lose_ack) as case:
+                first = queue.submit(case.repo, case.inventory)
+                self.assertEqual(queue.sys.path[0], str(case.driver_root))
+                second = queue.submit(case.repo, case.inventory)
+                self.assertEqual(first['receipts'][0]['phase'], 'delivery_unknown' if lose_ack else 'queued')
+                self.assertEqual(first, second)
+                self.assertEqual(len(case.posts), 1)
+                endpoint, parameters = case.posts[0]
+                self.assertEqual(endpoint, '/job/zircon-records/buildWithParameters')
+                self.assertEqual(parameters, {'INVENTORY_DIGEST': [first['inventoryDigest']],
+                                              'TASK_ID': ['one'], 'MODE': ['task']})
+                case.api.record.return_value = {'payload': {'taskId': 'one', 'pendingRequirements': []}}
+                with patch('builtins.print') as output:
+                    self.assertEqual(queue.main(['query', '--repo-root', str(case.repo), '--task-id', 'one']), 0)
+                self.assertEqual(json.loads(output.call_args.args[0])['payload']['taskId'], 'one')
+                self.assertEqual(len(case.posts), 1)
+                case.api.capability.assert_not_called()
+                old = case.raw[str(case.driver_member)]
+                case.raw[str(case.driver_member)] = b'changed'
+                with self.assertRaisesRegex(ValueError, 'Pinned driver'):
+                    queue.binding(case.repo, transport_only=True)
+                case.raw[str(case.driver_member)] = old
+                self.assertEqual(len(case.posts), 1)
+                with self.assertRaisesRegex(PermissionError, 'OpenProcess'):
+                    queue.work(case.repo, 'one', first['inventoryDigest'], case.repo / 'unused-output.json')
+                case.api.capability.assert_called_once_with(case.repo)
 
     def cleanup_case(self, deleted=True):
         root = Path('E:/Git/ZirconEngine/.jenkins/state/records-queue')
@@ -134,6 +131,166 @@ class IntakeTests(unittest.TestCase):
             self.assertEqual(result['deletedBytes'], 7)
             write.assert_called_once()
             execute.assert_not_called()
+
+
+class RecordsTransportCase:
+    """Memory evidence and real loopback HTTP; no native owner or filesystem writes."""
+    def __init__(self, q, inventory, *, followup=None, original=None, lose_ack=True):
+        from http.server import BaseHTTPRequestHandler, HTTPServer
+        self.q, self.subject = q, followup or q
+        self.repo = Path('E:/Git/ZirconEngine')
+        self.raw, self.posts, self.lose_ack = {}, [], lose_ack
+        self.api = Mock(CAPABILITY={'enabled': True, 'actions': ['validate'],
+                                   'formalAcceptance': False, 'm8Accepted': False},
+                        CLIENT_SOURCES=frozenset({'tools/dev/local_cargo.py', 'tools/dev/local-cargo.ps1',
+                            'tools/dev/dev-fast-build.ps1', 'tools/dev/submit-jenkins-management.ps1',
+                            'tools/jenkins/frontend.py', 'tools/jenkins-management/entry.py'}))
+        self.api.capability.side_effect = PermissionError('OpenProcess host ERROR_ACCESS_DENIED')
+        self.api.record.return_value = {'payload': original} if original else None
+        self.api.document.side_effect = self.document
+        manifest = {'schemaVersion': 1, 'files': {'tools/jenkins/member.py':
+                    {'bytes': 6, 'sha256': q.sha(b'driver')}}}
+        driver_digest = q.sha(q.encoded(manifest))
+        driver = self.repo / '.jenkins/runtime/drivers' / driver_digest
+        self.driver_root = driver
+        self.driver_member = driver / 'tools/jenkins/member.py'
+        self.raw[str(self.driver_member)] = b'driver'
+        self.put(driver / 'driver-manifest.json', manifest)
+        template = "def codex = '@@CODEX@@'\ndef capsule = '@@CAPSULE@@'\ndef runtime = '@@RUNTIME@@'\n"
+        members = {'runner.py': b'runner', 'source_preparation.py': b'prepare',
+                   'zircon-management.groovy': template.encode()}
+        config = {'schemaVersion': 1, 'repositoryRoot': str(self.repo), 'driverDigest': driver_digest,
+                  'runtimeOperationId': 'start-current', 'agentLabel': 'zircon-windows-agent',
+                  'ordinaryEntry': self.api.CAPABILITY, 'managedWorktree': None,
+                  'files': {k: q.sha(v) for k, v in members.items()},
+                  'clientSources': {k: '3' * 64 for k in self.api.CLIENT_SOURCES}}
+        checksum = q.sha(q.encoded(config))
+        capsule = self.repo / '.jenkins/runtime/management' / checksum
+        for name, raw in members.items():
+            self.raw[str(capsule / name)] = raw
+        self.put(capsule / 'capsule.json', config)
+        self.put(self.repo / '.jenkins/state/management/installed.json',
+                 {'schemaVersion': 1, 'job': 'zircon-management', 'capsule': str(capsule),
+                  'capsuleSha256': checksum, 'formalAcceptance': False,
+                  **{k: config[k] for k in ('driverDigest', 'runtimeOperationId', 'ordinaryEntry', 'managedWorktree')}})
+        self.put(self.repo / '.jenkins/state/deployment/driver.json',
+                 {'root': str(driver), 'driverDigest': driver_digest, 'runtimeOperationId': 'start-current'})
+        self.put(self.repo / '.jenkins/state/deployment-operation.json',
+                 {'operationId': 'start-current', 'generation': 'start-current', 'state': 'running'})
+        self.put(self.repo / '.jenkins/state/credentials.json',
+                 {'authenticationMode': 'api-token', 'username': 'fixture', 'apiToken': 'fixture'})
+        self.jobs = {}
+        script = template.replace('@@CODEX@@', 'E:/fixture/codex.exe').replace(
+            '@@CAPSULE@@', str(capsule).replace('\\', '/')).replace('@@RUNTIME@@', 'start-current')
+        self.jobs['/job/zircon-management/config.xml'] = self.xml(script,
+            ('SESSION_ID', 'REQUEST_ID', 'OPERATION_ID', 'ACTION', 'INPUT_JSON',
+             'EXPECTED_DRIVER_DIGEST', 'RUNTIME_OPERATION_ID', 'QUERY_ONLY'))
+        for subject in ([q, followup] if followup else [q]):
+            name = 'records_queue.py' if subject is q else 'records_followup.py'
+            template_name = 'zircon-records.groovy' if subject is q else 'zircon-records-followup.groovy'
+            text = "def repo = '@@REPO@@'\ndef script = '@@SCRIPT@@'\ndef sha = '@@SOURCE_SHA@@'\n"
+            raw = {n: ('fixture-' + n).encode() for n in subject.SOURCES}
+            raw[template_name] = text.encode()
+            for n, data in raw.items():
+                self.raw[str(subject.HERE / n)] = data
+            installed = {'job': subject.JOB, 'repositoryRoot': str(self.repo),
+                         'driverDigest': driver_digest, 'runtimeOperationId': 'start-current',
+                         'sources': {n: q.sha(data) for n, data in raw.items()}}
+            location = self.repo / '.jenkins/state/records-queue'
+            if subject is not q:
+                location /= 'followups'
+            self.put(location / 'installed.json', installed)
+            for key, value in {'REPO': str(self.repo), 'SCRIPT': str(subject.HERE / name),
+                               'SOURCE_SHA': installed['sources'][name]}.items():
+                text = text.replace('@@' + key + '@@', value.replace('\\', '/'))
+            names = ('INVENTORY_DIGEST', 'TASK_ID', 'MODE') if subject is q else ('FOLLOWUP_DIGEST', 'TASK_ID', 'MODE')
+            self.jobs['/job/' + subject.JOB + '/config.xml'] = self.xml(text, names)
+        case = self
+
+        class Handler(BaseHTTPRequestHandler):
+            def log_message(self, *args):
+                pass
+
+            def do_GET(self):
+                raw = (b'{"crumbRequestField":"crumb","crumb":"fixture"}'
+                       if self.path == '/crumbIssuer/api/json' else case.jobs[self.path])
+                self.send_response(200)
+                self.send_header('Content-Length', str(len(raw)))
+                self.end_headers()
+                self.wfile.write(raw)
+
+            def do_POST(self):
+                from urllib.parse import parse_qs
+                raw = self.rfile.read(int(self.headers['Content-Length']))
+                case.posts.append((self.path, parse_qs(raw.decode())))
+                if case.lose_ack:
+                    self.close_connection = True
+                    return
+                self.send_response(201)
+                self.send_header('Location', 'http://127.0.0.1:' + str(case.server.server_port) + '/queue/item/17/')
+                self.send_header('Content-Length', '0')
+                self.end_headers()
+
+        self.server = HTTPServer(('127.0.0.1', 0), Handler)
+        self.put(self.repo / '.jenkins/deployment-spec.json',
+                 {'controller': {'listenAddress': '127.0.0.1', 'httpPort': self.server.server_port}})
+        self.inventory = self.repo / '.jenkins/state/records-queue/fixture-inventory.json'
+        self.put(self.inventory, inventory)
+
+    def xml(self, script, parameters):
+        return ("<flow-definition><properties><hudson.model.ParametersDefinitionProperty><parameterDefinitions>" +
+                ''.join('<p><name>' + n + '</name></p>' for n in parameters) +
+                "</parameterDefinitions></hudson.model.ParametersDefinitionProperty></properties>"
+                "<definition class='org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition'><script>" +
+                self.q.escape(script) + "</script><sandbox>true</sandbox></definition>"
+                "<disabled>false</disabled></flow-definition>").encode()
+
+    def put(self, path, value):
+        self.raw[str(path)] = self.q.encoded(value)
+
+    def document(self, path):
+        raw = self.raw[str(path)]
+        return json.loads(raw), raw
+
+    def fingerprint(self, path):
+        raw = self.raw[str(path)]
+        return {'path': str(path), 'sha256': self.q.sha(raw), 'bytes': len(raw), 'mtimeNs': 0}, raw
+
+    def save(self, path, raw):
+        if str(path) in self.raw and self.raw[str(path)] != raw:
+            raise AssertionError('Immutable evidence changed')
+        self.raw[str(path)] = raw
+
+    def __enter__(self):
+        from threading import Thread
+        import tools.jenkins.state.atomic
+        import tools.jenkins.state.locks
+        self.thread = Thread(target=self.server.serve_forever, daemon=True)
+        self.thread.start()
+        self.stack = ExitStack()
+        self.stack.enter_context(patch.object(self.q.sys, 'path', list(self.q.sys.path)))
+        self.stack.enter_context(patch.object(self.q, 'entry', return_value=self.api))
+        self.stack.enter_context(patch.object(self.q, 'plain', side_effect=Path))
+        self.stack.enter_context(patch.object(self.q, 'fingerprint', side_effect=self.fingerprint))
+        self.stack.enter_context(patch.object(self.q, 'write_once', side_effect=self.save))
+        self.stack.enter_context(patch.object(Path, 'exists', new=lambda p: str(p) in self.raw))
+        self.stack.enter_context(patch.object(Path, 'read_bytes', new=lambda p: self.raw[str(p)]))
+        self.stack.enter_context(patch.object(Path, 'read_text',
+            new=lambda p, **kw: self.raw[str(p)].decode(kw.get('encoding') or 'utf-8')))
+        self.stack.enter_context(patch('tools.jenkins.state.atomic.atomic_json',
+            side_effect=lambda p, value: self.put(p, value)))
+        self.stack.enter_context(patch('tools.jenkins.state.locks.process_lock', return_value=nullcontext()))
+        return self
+
+    def __exit__(self, *args):
+        try:
+            self.stack.close()
+        finally:
+            self.server.shutdown()
+            self.thread.join(5)
+            self.server.server_close()
+            if self.thread.is_alive():
+                raise AssertionError('Fixture HTTP reader did not terminate')
 
 
 class InstallCase:

@@ -1,0 +1,196 @@
+// Scalar adapter for the authoritative craft_item world reducer. The full
+// crafting transaction remains the source policy oracle; this module exposes
+// only immutable recipe facts and byte validation so WorldState retains all
+// mutable inventory, currency, RNG and persistence ownership.
+var container = %import("zr.container");
+var parity = %import("generated/professions_craft_parity_contract");
+var inventory = %import("progression/m5_inventory_rules");
+var experience = %import("progression/profession_action_xp");
+var transaction = %import("generated/crafting_transaction_contract");
+
+pub malformedPayloadCode(): int { return -1; }
+pub unknownRecipeCode(): int { return 0; }
+pub minorHealingPotionRecipeCode(): int { return 1; }
+pub ritualVestmentsRecipeCode(): int { return 2; }
+
+pub recipeIdUtf8Length(recipeIndex: int): int {
+    return parity.recipeIdUtf8Length(recipeIndex);
+}
+
+pub recipeIdUtf8Byte(recipeIndex: int, byteIndex: int): uint {
+    return parity.recipeIdUtf8Byte(recipeIndex, byteIndex);
+}
+
+pub reasonSuccess(): uint { return <uint>0; }
+pub reasonUnknownRecipe(): uint { return <uint>1; }
+pub reasonInsufficientMaterials(): uint { return <uint>5; }
+pub reasonThrottled(): uint { return <uint>6; }
+// The retained M5 item catalog cannot yet persist signed rolled instances.
+// Keep this internal reason distinct from every source denial until that
+// infrastructure owner closes the instance-ledger boundary.
+pub reasonUnsupportedInstanceOutput(): uint { return <uint>7; }
+
+pub throttleWindowMicros(): uint {
+    return <uint>(transaction.throttleWindowSeconds(true) * 1000000.0);
+}
+
+pub throttleMaximum(): uint {
+    return <uint>transaction.throttleMaxPerWindow(true);
+}
+
+pub goldFeeCopper(recipeCode: int): int {
+    if (recipeCode != minorHealingPotionRecipeCode()) return 0;
+    var scaled = parity.recipeBudget0(true) * transaction.goldSinkCopperPerBudget(true);
+    var whole = <int>scaled;
+    return <float>whole < scaled ? whole + 1 : whole;
+}
+
+pub reagentCount(recipeCode: int): int {
+    return recipeCode == minorHealingPotionRecipeCode() ? parity.recipeReagentCount0(true) : 0;
+}
+
+pub reagentItemCode(recipeCode: int, reagentIndex: int): uint {
+    if (recipeCode != minorHealingPotionRecipeCode()) return <uint>0;
+    if (reagentIndex == 0) return inventory.itemCodeForId(parity.recipe0ReagentId0(true));
+    if (reagentIndex == 1) return inventory.itemCodeForId(parity.recipe0ReagentId1(true));
+    return <uint>0;
+}
+
+pub reagentAmount(recipeCode: int, reagentIndex: int): int {
+    if (recipeCode != minorHealingPotionRecipeCode()) return 0;
+    if (reagentIndex == 0) return parity.recipe0ReagentAmount0(true);
+    if (reagentIndex == 1) return parity.recipe0ReagentAmount1(true);
+    return 0;
+}
+
+pub resultItemCode(recipeCode: int): uint {
+    return recipeCode == minorHealingPotionRecipeCode() ?
+        inventory.itemCodeForId(parity.recipeResultItem0(true)) : <uint>0;
+}
+
+pub resultCount(recipeCode: int): uint {
+    return recipeCode == minorHealingPotionRecipeCode() ?
+        <uint>parity.recipeResultCount0(true) : <uint>0;
+}
+
+pub resultQualityCode(recipeCode: int): uint {
+    return recipeCode == minorHealingPotionRecipeCode() ? <uint>1 : <uint>0;
+}
+
+pub craftSkillGain(recipeCode: int): uint {
+    return recipeCode == minorHealingPotionRecipeCode() ?
+        <uint>transaction.craftSkillGain(true) : <uint>0;
+}
+
+pub craftExperience(recipeCode: int, playerLevel: int): int {
+    return recipeCode == minorHealingPotionRecipeCode() ?
+        experience.craftActionXp(parity.recipeLevel0(true), playerLevel) : 0;
+}
+
+utf8Continuation(value: uint): bool {
+    return value >= <uint>128 && value <= <uint>191;
+}
+
+pub utf8RangeValid(bytes: container.Array<uint>, start: uint, end: uint): bool {
+    if (start > end || end > <uint>bytes.length) return false;
+    var cursor = start;
+    while (cursor < end) {
+        var first = <uint>bytes[<int>cursor];
+        if (first <= <uint>127) {
+            cursor = cursor + <uint>1;
+            continue;
+        }
+        if (first >= <uint>194 && first <= <uint>223) {
+            if (end - cursor < <uint>2 ||
+                !utf8Continuation(<uint>bytes[<int>(cursor + <uint>1)])) return false;
+            cursor = cursor + <uint>2;
+            continue;
+        }
+        if (first >= <uint>224 && first <= <uint>239) {
+            if (end - cursor < <uint>3) return false;
+            var second = <uint>bytes[<int>(cursor + <uint>1)];
+            var third = <uint>bytes[<int>(cursor + <uint>2)];
+            if (!utf8Continuation(second) || !utf8Continuation(third) ||
+                (first == <uint>224 && second < <uint>160) ||
+                (first == <uint>237 && second > <uint>159)) return false;
+            cursor = cursor + <uint>3;
+            continue;
+        }
+        if (first >= <uint>240 && first <= <uint>244) {
+            if (end - cursor < <uint>4) return false;
+            var secondFour = <uint>bytes[<int>(cursor + <uint>1)];
+            if (!utf8Continuation(secondFour) ||
+                !utf8Continuation(<uint>bytes[<int>(cursor + <uint>2)]) ||
+                !utf8Continuation(<uint>bytes[<int>(cursor + <uint>3)]) ||
+                (first == <uint>240 && secondFour < <uint>144) ||
+                (first == <uint>244 && secondFour > <uint>143)) return false;
+            cursor = cursor + <uint>4;
+            continue;
+        }
+        return false;
+    }
+    return true;
+}
+
+recipeMatches(
+    recipeIndex: int, bytes: container.Array<uint>, start: uint, length: uint
+): bool {
+    if (length != <uint>parity.recipeIdUtf8Length(recipeIndex)) return false;
+    var index: uint = <uint>0;
+    while (index < length) {
+        if (<uint>bytes[<int>(start + index)] !=
+            parity.recipeIdUtf8Byte(recipeIndex, <int>index)) return false;
+        index = index + <uint>1;
+    }
+    return true;
+}
+
+pub recipeCodeFromBytes(recipeBytes: container.Array<uint>): int {
+    var length = <uint>recipeBytes.length;
+    if (length > <uint>256 || !utf8RangeValid(recipeBytes, <uint>0, length)) {
+        return malformedPayloadCode();
+    }
+    if (recipeMatches(0, recipeBytes, <uint>0, length)) return minorHealingPotionRecipeCode();
+    if (recipeMatches(1, recipeBytes, <uint>0, length)) return ritualVestmentsRecipeCode();
+    return unknownRecipeCode();
+}
+
+pub recipeCodeFromPayload(
+    payloadOffset: uint, payloadLength: uint, payloadBytes: container.Array<uint>
+): int {
+    if (payloadLength < <uint>4 || payloadOffset > <uint>payloadBytes.length ||
+        payloadLength > <uint>payloadBytes.length - payloadOffset) return malformedPayloadCode();
+    var declared = <uint>payloadBytes[<int>payloadOffset] +
+        <uint>payloadBytes[<int>(payloadOffset + <uint>1)] * <uint>256 +
+        <uint>payloadBytes[<int>(payloadOffset + <uint>2)] * <uint>65536 +
+        <uint>payloadBytes[<int>(payloadOffset + <uint>3)] * <uint>16777216;
+    if (declared > <uint>256 || declared != payloadLength - <uint>4) {
+        return malformedPayloadCode();
+    }
+    var start = payloadOffset + <uint>4;
+    var end = start + declared;
+    if (!utf8RangeValid(payloadBytes, start, end)) return malformedPayloadCode();
+    if (recipeMatches(0, payloadBytes, start, declared)) return minorHealingPotionRecipeCode();
+    if (recipeMatches(1, payloadBytes, start, declared)) return ritualVestmentsRecipeCode();
+    return unknownRecipeCode();
+}
+
+pub contractTest(): int {
+    var payload = new container.Array<uint>();
+    var length = <uint>parity.recipeIdUtf8Length(0);
+    payload.add(length); payload.add(<uint>0); payload.add(<uint>0); payload.add(<uint>0);
+    var index = 0;
+    while (index < <int>length) {
+        payload.add(parity.recipeIdUtf8Byte(0, index));
+        index = index + 1;
+    }
+    if (recipeCodeFromPayload(<uint>0, <uint>payload.length, payload) != 1 ||
+        reagentItemCode(1, 0) != <uint>37 || reagentItemCode(1, 1) != <uint>38 ||
+        resultItemCode(1) != <uint>9 || goldFeeCopper(1) != 2 ||
+        craftSkillGain(1) != <uint>1 || craftExperience(1, 1) != 24 ||
+        throttleWindowMicros() != <uint>60000000 || throttleMaximum() != <uint>10) return -1;
+    var malformed = new container.Array<uint>();
+    malformed.add(<uint>2); malformed.add(<uint>0); malformed.add(<uint>0); malformed.add(<uint>0);
+    malformed.add(<uint>192); malformed.add(<uint>128);
+    return recipeCodeFromPayload(<uint>0, <uint>6, malformed) == -1 ? 1 : -2;
+}

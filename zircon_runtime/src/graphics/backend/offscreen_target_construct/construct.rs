@@ -70,19 +70,24 @@ impl OffscreenTarget {
             GBUFFER_EMISSIVE_FORMAT,
             wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::TEXTURE_BINDING,
         );
+        let sss_diagnostic_gbuffer_usage =
+            wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::TEXTURE_BINDING;
+        #[cfg(test)]
+        let sss_diagnostic_gbuffer_usage =
+            sss_diagnostic_gbuffer_usage | wgpu::TextureUsages::COPY_SRC;
         let gbuffer_material = create_texture_bundle(
             device,
             "zircon-offscreen-gbuffer-material",
             render_size,
             GBUFFER_MATERIAL_FORMAT,
-            wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::TEXTURE_BINDING,
+            sss_diagnostic_gbuffer_usage,
         );
         let normal = create_texture_bundle(
             device,
             "zircon-offscreen-normal",
             render_size,
             NORMAL_FORMAT,
-            wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::TEXTURE_BINDING,
+            sss_diagnostic_gbuffer_usage,
         );
         let ambient_occlusion = create_texture_bundle(
             device,

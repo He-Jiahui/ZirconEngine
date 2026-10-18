@@ -2,6 +2,8 @@
 mod metrics;
 #[path = "paint_theme/model.rs"]
 mod model;
+#[path = "paint_theme/normal_tokens.rs"]
+mod normal_tokens;
 #[path = "paint_theme/palette_projection.rs"]
 mod palette_projection;
 #[path = "paint_theme/tokens.rs"]
@@ -23,11 +25,73 @@ pub(crate) struct HostPaintThemeSnapshot {
     scale_factor: f32,
     palette: model::HostMaterialPalette,
     text_preferences: Arc<typography::HostTextPreferences>,
+    token_input: Option<normal_tokens::HostPaintTokenInput>,
 }
 
 impl HostPaintThemeSnapshot {
     pub(crate) fn generation(&self) -> u64 {
         self.generation
+    }
+
+    fn from_tokens(
+        tokens: Arc<EditorDesignTokens>,
+        settings_generation: Option<u64>,
+        generation: u64,
+        scale_factor: f32,
+    ) -> Self {
+        let base_metrics = metrics::project_host_metrics(&tokens);
+        Self {
+            generation,
+            base_metrics,
+            metrics: base_metrics.at_scale(scale_factor),
+            scale_factor,
+            palette: palette_projection::project_host_palette(&tokens),
+            text_preferences: Arc::new(typography::project_host_text_preferences(&tokens)),
+            token_input: Some(normal_tokens::HostPaintTokenInput {
+                tokens,
+                settings_generation,
+            }),
+        }
+    }
+
+    fn with_metrics(&self, base_metrics: metrics::HostControlMetrics) -> Self {
+        Self {
+            generation: self.generation.saturating_add(1),
+            base_metrics,
+            metrics: base_metrics.at_scale(self.scale_factor),
+            token_input: None,
+            ..self.clone()
+        }
+    }
+
+    fn with_palette(&self, palette: model::HostMaterialPalette) -> Self {
+        Self {
+            generation: self.generation.saturating_add(1),
+            palette,
+            token_input: None,
+            ..self.clone()
+        }
+    }
+
+    fn with_text_preferences(
+        &self,
+        text_preferences: Arc<typography::HostTextPreferences>,
+    ) -> Self {
+        Self {
+            generation: self.generation.saturating_add(1),
+            text_preferences,
+            token_input: None,
+            ..self.clone()
+        }
+    }
+
+    fn at_scale(&self, scale_factor: f32) -> Self {
+        Self {
+            generation: self.generation.saturating_add(1),
+            metrics: self.base_metrics.at_scale(scale_factor),
+            scale_factor,
+            ..self.clone()
+        }
     }
 }
 
@@ -47,19 +111,17 @@ impl Drop for HostPaintThemeScope {
     }
 }
 
-pub(crate) fn apply_host_appearance_from_tokens(tokens: &EditorDesignTokens) {
-    let base_metrics = metrics::project_host_metrics(tokens);
-    let palette = palette_projection::project_host_palette(tokens);
-    let text_preferences = Arc::new(typography::project_host_text_preferences(tokens));
+pub(crate) fn apply_host_appearance_from_tokens(
+    tokens: Arc<EditorDesignTokens>,
+    settings_generation: Option<u64>,
+) {
     host_paint_theme_authority().rcu(move |current| {
-        Arc::new(HostPaintThemeSnapshot {
-            generation: current.generation.saturating_add(1),
-            base_metrics,
-            metrics: base_metrics.at_scale(current.scale_factor),
-            scale_factor: current.scale_factor,
-            palette,
-            text_preferences: Arc::clone(&text_preferences),
-        })
+        Arc::new(HostPaintThemeSnapshot::from_tokens(
+            Arc::clone(&tokens),
+            settings_generation,
+            current.generation.saturating_add(1),
+            current.scale_factor,
+        ))
     });
 }
 
@@ -71,15 +133,12 @@ pub(crate) fn capture_host_paint_theme_snapshot() -> Arc<HostPaintThemeSnapshot>
 pub(crate) fn host_paint_theme_snapshot_from_tokens_for_test(
     tokens: &EditorDesignTokens,
 ) -> Arc<HostPaintThemeSnapshot> {
-    let base_metrics = metrics::project_host_metrics(tokens);
-    Arc::new(HostPaintThemeSnapshot {
-        generation: 0,
-        base_metrics,
-        metrics: base_metrics,
-        scale_factor: 1.0,
-        palette: palette_projection::project_host_palette(tokens),
-        text_preferences: Arc::new(typography::project_host_text_preferences(tokens)),
-    })
+    Arc::new(HostPaintThemeSnapshot::from_tokens(
+        Arc::new(tokens.clone()),
+        None,
+        0,
+        1.0,
+    ))
 }
 
 pub(crate) fn enter_host_paint_theme_scope(
@@ -90,43 +149,17 @@ pub(crate) fn enter_host_paint_theme_scope(
 }
 
 fn replace_host_metrics(base_metrics: metrics::HostControlMetrics) {
-    host_paint_theme_authority().rcu(move |current| {
-        Arc::new(HostPaintThemeSnapshot {
-            generation: current.generation.saturating_add(1),
-            base_metrics,
-            metrics: base_metrics.at_scale(current.scale_factor),
-            scale_factor: current.scale_factor,
-            palette: current.palette,
-            text_preferences: Arc::clone(&current.text_preferences),
-        })
-    });
+    host_paint_theme_authority().rcu(move |current| Arc::new(current.with_metrics(base_metrics)));
 }
 
 fn replace_host_palette(palette: model::HostMaterialPalette) {
-    host_paint_theme_authority().rcu(move |current| {
-        Arc::new(HostPaintThemeSnapshot {
-            generation: current.generation.saturating_add(1),
-            base_metrics: current.base_metrics,
-            metrics: current.metrics,
-            scale_factor: current.scale_factor,
-            palette,
-            text_preferences: Arc::clone(&current.text_preferences),
-        })
-    });
+    host_paint_theme_authority().rcu(move |current| Arc::new(current.with_palette(palette)));
 }
 
 fn replace_host_text_preferences(text_preferences: typography::HostTextPreferences) {
     let text_preferences = Arc::new(text_preferences);
-    host_paint_theme_authority().rcu(move |current| {
-        Arc::new(HostPaintThemeSnapshot {
-            generation: current.generation.saturating_add(1),
-            base_metrics: current.base_metrics,
-            metrics: current.metrics,
-            scale_factor: current.scale_factor,
-            palette: current.palette,
-            text_preferences: Arc::clone(&text_preferences),
-        })
-    });
+    host_paint_theme_authority()
+        .rcu(move |current| Arc::new(current.with_text_preferences(Arc::clone(&text_preferences))));
 }
 
 fn host_metrics_for_read() -> metrics::HostControlMetrics {
@@ -168,14 +201,7 @@ pub(crate) fn apply_host_paint_scale_factor(scale_factor: f32) {
         if (current.scale_factor - scale_factor).abs() <= f32::EPSILON {
             return Arc::clone(current);
         }
-        Arc::new(HostPaintThemeSnapshot {
-            generation: current.generation.saturating_add(1),
-            base_metrics: current.base_metrics,
-            metrics: current.base_metrics.at_scale(scale_factor),
-            scale_factor,
-            palette: current.palette,
-            text_preferences: Arc::clone(&current.text_preferences),
-        })
+        Arc::new(current.at_scale(scale_factor))
     });
 }
 
@@ -207,9 +233,12 @@ fn host_paint_theme_authority() -> &'static ArcSwap<HostPaintThemeSnapshot> {
             scale_factor: 1.0,
             palette: palette_projection::DEFAULT_HOST_PALETTE,
             text_preferences: Arc::new(typography::HostTextPreferences::default()),
+            token_input: None,
         })
     })
 }
+
+pub(crate) use normal_tokens::active_host_paint_token_input;
 
 pub(crate) use metrics::apply_host_metrics_from_tokens;
 // Pointer hit testing consumes the same retained-host density metrics as the

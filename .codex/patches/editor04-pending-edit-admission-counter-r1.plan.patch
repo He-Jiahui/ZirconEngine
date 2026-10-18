@@ -1,0 +1,9 @@
+diff --git a/docs/plans/zircon_editor/editor/04/failure-2026-07-22-play-pending-edit-unbounded-queue.md b/docs/plans/zircon_editor/editor/04/failure-2026-07-22-play-pending-edit-unbounded-queue.md
+--- a/docs/plans/zircon_editor/editor/04/failure-2026-07-22-play-pending-edit-unbounded-queue.md
++++ b/docs/plans/zircon_editor/editor/04/failure-2026-07-22-play-pending-edit-unbounded-queue.md
+@@ -59,4 +59,5 @@ Open state: `typed retention、entry+bytes+age 预算、paged decision 与 budgeted apply 正在
+ | 日期 | 切片 | 状态 | 完成项目与验证证据 |
+ | --- | --- | --- | --- |
+ | 2026-07-22 | Performance01 P0 / PERF-MVP-551 | open | 逐文件性能审查登记；要求由 Editor04 处理 retention、队列预算、分页决策和预算化 apply。 |
+ | 2026-07-27 | Editor04 pending-edit retention recovery | resolving_failure | 已取得 12 个精确源码租约；当前源码以 `Arc` 持有 invocation，显式 lossless/latest/bounded retention，entries/bytes/oldest-age 入队预算，紧凑分页游标、预算化 apply、失败唯一重试 authority 与紧凑 discard 均已实现。补充了两页游标前进、绕过构造器的空 cohort 边界拒绝，以及 oldest-age 拒绝新入队但保留已有 intent 的行为测试；`rustfmt --check`、`git diff --check` 与 `python tools/tests/test_editor04_play_edit_protection_contract.py`（4/4）通过。source-bound `validation-copy materialize-cargo` 使用固定 `zr_vm` commit `503fb72163cd20ddf32a38f8a330083712f5d648`，请求 `0fe3733c4fa14ae6b48fc68947e2b9b6` 已完成但因 1.68 MiB 响应 tombstone 未返回 source-copy job ID；未启动或接受 Cargo 结果。 |
++| 2026-08-02 | Editor04 pending-edit admission byte counter | resolving_failure | 静态审读发现 `enqueue` 仅为测量 bytes 调用 `serde_json::to_vec`，会临时复制完整 JSON payload。冻结无分配、可提前截止的 streaming counter 与 typed queue invariant 前向修复；待 live lease 后实现并执行 source-bound 验证，无 fixed claim。 |

@@ -603,23 +603,36 @@ impl World {
     }
 
     pub(in crate::scene::world) fn ensure_dynamic_component_presence_id(
-        &mut self, component_type_id: &str,
+        &mut self,
+        component_type_id: &str,
     ) -> SceneResult<ComponentId> {
-        let id = self.component_registry.dynamic_component_id(component_type_id);
-        self.component_storage.preflight_insert::<DynamicComponentPresence>(id, StorageType::SparseSet)?;
-        self.component_registry.bind_dynamic_retention_provider_v1::<DynamicComponentPresence>(
-            id, Self::measure_dynamic_component_presence_retention_v1,
-        ).expect("dynamic presence id must preserve its typed retained owner");
+        let id = self
+            .component_registry
+            .dynamic_component_id(component_type_id);
+        self.component_storage
+            .preflight_insert::<DynamicComponentPresence>(id, StorageType::SparseSet)?;
+        self.component_registry
+            .bind_dynamic_retention_provider_v1::<DynamicComponentPresence>(
+                id,
+                Self::measure_dynamic_component_presence_retention_v1,
+            )
+            .expect("dynamic presence id must preserve its typed retained owner");
         Ok(id)
     }
 
     fn measure_dynamic_component_presence_retention_v1(
-        &self, entity: EntityId, id: ComponentId,
+        &self,
+        entity: EntityId,
+        id: ComponentId,
         meter: &mut zircon_runtime_interface::retained_memory::RetainedBoundBuilderV1,
     ) -> Result<(), zircon_runtime_interface::retained_memory::RetentionContractError> {
         use zircon_runtime_interface::retained_memory::RetentionContractError;
-        let internal = self.internal_entity(entity).ok_or(RetentionContractError::Stale)?;
-        let presence = self.component_storage.get::<DynamicComponentPresence>(id, internal)
+        let internal = self
+            .internal_entity(entity)
+            .ok_or(RetentionContractError::Stale)?;
+        let presence = self
+            .component_storage
+            .get::<DynamicComponentPresence>(id, internal)
             .ok_or(RetentionContractError::Stale)?;
         meter.owned(presence)
     }
@@ -637,13 +650,21 @@ impl World {
         }
         let component_id = self.ensure_dynamic_component_presence_id(component_type_id)?;
         if let Some(internal) = self.internal_entity(entity) {
-            if self.component_storage.get::<DynamicComponentPresence>(component_id, internal).is_some() {
+            if self
+                .component_storage
+                .get::<DynamicComponentPresence>(component_id, internal)
+                .is_some()
+            {
                 // A field/value replacement belongs to the existing instance.
                 return Ok(());
             }
         }
         let mut row = self.begin_component_row(entity);
-        self.stage_component_row_value_with_id(&mut row, component_id, DynamicComponentPresence::default());
+        self.stage_component_row_value_with_id(
+            &mut row,
+            component_id,
+            DynamicComponentPresence::default(),
+        );
         if self.commit_component_row(entity, row, false) {
             self.bump_lifecycle_visibility_revision();
         }

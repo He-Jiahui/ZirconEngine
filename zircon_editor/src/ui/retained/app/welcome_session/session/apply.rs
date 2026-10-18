@@ -1,6 +1,22 @@
 use super::super::super::*;
 
 impl RetainedEditorHost {
+    /// Runtime/project retirement has committed; this path never rolls back or reopens it.
+    pub(in crate::ui::retained_host::app) fn apply_main_window_closed_session(
+        &mut self,
+        session: EditorStartupSessionDocument,
+        admission: &crate::core::editing::engine::SceneCloseAdmission,
+    ) -> Result<(), String> {
+        self.clear_welcome_project_probe();
+        self.runtime
+            .clear_project_for_main_window_close(session.welcome_pane_snapshot(false), admission)
+            .map_err(|error| error.to_string())?;
+        self.sync_hub_focus_binding()?;
+        self.set_status_line(session.status_message.clone());
+        self.startup_session = session;
+        Ok(())
+    }
+
     pub(in crate::ui::retained_host::app) fn apply_startup_session(
         &mut self,
         session: EditorStartupSessionDocument,

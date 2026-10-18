@@ -96,11 +96,16 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
     /// Resolve its token from the last service projection, never from the new current ID.
     pub(crate) fn dismissed_activity_toast(&self) -> Option<(String, u64)> {
         let id = self.control_string(WORKBENCH_TOAST_CONTROL_ID, EXPIRED_TOAST_ID)?;
-        if id.is_empty() { return None; }
+        if id.is_empty() {
+            return None;
+        }
         self.control_string_array(WORKBENCH_TOAST_CONTROL_ID, "toast_delivery_instances")
-            .iter().find_map(|entry| {
+            .iter()
+            .find_map(|entry| {
                 let (entry_id, token) = entry.rsplit_once('|')?;
-                if entry_id != id { return None; }
+                if entry_id != id {
+                    return None;
+                }
                 let token = token.parse::<u64>().ok().filter(|token| *token != 0)?;
                 Some((id.clone(), token))
             })
@@ -108,8 +113,10 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
 
     #[cfg(test)]
     pub(crate) fn activity_toast_timer_state_for_test(&self) -> (Option<i64>, bool) {
-        (self.control_integer(WORKBENCH_TOAST_CONTROL_ID, AUTO_HIDE_DURATION_MS),
-            self.control_bool(WORKBENCH_TOAST_CONTROL_ID, "awaiting_first_presentation"))
+        (
+            self.control_integer(WORKBENCH_TOAST_CONTROL_ID, AUTO_HIDE_DURATION_MS),
+            self.control_bool(WORKBENCH_TOAST_CONTROL_ID, "awaiting_first_presentation"),
+        )
     }
 
     fn sync_toast_queue(
@@ -121,9 +128,14 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
             .take(MAX_TOAST_QUEUE)
             .map(activity_toast_queue_entry)
             .collect::<Vec<_>>();
-        let delivery_instances = notifications.iter().take(MAX_TOAST_QUEUE)
-            .filter_map(|notification| notification.delivery_token()
-                .map(|token| format!("{}|{token}", notification.id())))
+        let delivery_instances = notifications
+            .iter()
+            .take(MAX_TOAST_QUEUE)
+            .filter_map(|notification| {
+                notification
+                    .delivery_token()
+                    .map(|token| format!("{}|{token}", notification.id()))
+            })
             .collect::<Vec<_>>();
         let queue_length = queue.len() as i64;
         let visible = !notifications.is_empty();
@@ -135,7 +147,10 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
                     notification.message().to_string(),
                     toast_severity_name(notification.severity()).to_string(),
                     toast_auto_hide_millis(notification),
-                    notification.delivery_token().map(|token| token.to_string()).unwrap_or_default(),
+                    notification
+                        .delivery_token()
+                        .map(|token| token.to_string())
+                        .unwrap_or_default(),
                     notification.awaiting_presentation(),
                 )
             })
@@ -162,9 +177,12 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
                 .control_string(WORKBENCH_TOAST_CONTROL_ID, CURRENT_TOAST_ID)
                 .as_deref()
                 != Some(id.as_str())
-            || self.control_string(WORKBENCH_TOAST_CONTROL_ID, "toast_delivery_token")
-                .as_deref() != Some(delivery_token.as_str())
-            || self.control_bool(WORKBENCH_TOAST_CONTROL_ID, "awaiting_first_presentation") != awaiting
+            || self
+                .control_string(WORKBENCH_TOAST_CONTROL_ID, "toast_delivery_token")
+                .as_deref()
+                != Some(delivery_token.as_str())
+            || self.control_bool(WORKBENCH_TOAST_CONTROL_ID, "awaiting_first_presentation")
+                != awaiting
             || self.control_string_array(WORKBENCH_TOAST_CONTROL_ID, "toast_delivery_instances")
                 != delivery_instances
             || !toast_queue_semantically_equal(&existing_queue, &queue);
@@ -253,12 +271,26 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
             AUTO_HIDE_DURATION_MS,
             UiValue::Int(duration_ms),
         )?;
-        self.mutate_control_property(WORKBENCH_TOAST_CONTROL_ID, "toast_delivery_token",
-            UiValue::String(delivery_token))?;
-        self.mutate_control_property(WORKBENCH_TOAST_CONTROL_ID, "awaiting_first_presentation",
-            UiValue::Bool(awaiting))?;
-        self.mutate_control_property(WORKBENCH_TOAST_CONTROL_ID, "toast_delivery_instances",
-            UiValue::Array(delivery_instances.into_iter().map(UiValue::String).collect()))?;
+        self.mutate_control_property(
+            WORKBENCH_TOAST_CONTROL_ID,
+            "toast_delivery_token",
+            UiValue::String(delivery_token),
+        )?;
+        self.mutate_control_property(
+            WORKBENCH_TOAST_CONTROL_ID,
+            "awaiting_first_presentation",
+            UiValue::Bool(awaiting),
+        )?;
+        self.mutate_control_property(
+            WORKBENCH_TOAST_CONTROL_ID,
+            "toast_delivery_instances",
+            UiValue::Array(
+                delivery_instances
+                    .into_iter()
+                    .map(UiValue::String)
+                    .collect(),
+            ),
+        )?;
         Ok(true)
     }
 
@@ -547,7 +579,9 @@ fn pipe_value(value: &str) -> String {
 mod pipe_value_single_buffer_tests;
 
 fn toast_auto_hide_millis(notification: &ActivityToastView) -> i64 {
-    if notification.awaiting_presentation() { 0 } else {
+    if notification.awaiting_presentation() {
+        0
+    } else {
         duration_millis(notification.remaining_lifetime())
     }
 }

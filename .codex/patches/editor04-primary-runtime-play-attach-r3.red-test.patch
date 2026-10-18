@@ -1,0 +1,21 @@
+diff --git a/zircon_editor/src/ui/retained_host/app/host_lifecycle/startup/with_viewport.rs b/zircon_editor/src/ui/retained_host/app/host_lifecycle/startup/with_viewport.rs
+--- a/zircon_editor/src/ui/retained_host/app/host_lifecycle/startup/with_viewport.rs
++++ b/zircon_editor/src/ui/retained_host/app/host_lifecycle/startup/with_viewport.rs
+@@ -63,3 +63,16 @@ impl RetainedEditorHost {
+         Ok(host)
+     }
+ }
++
++#[cfg(test)]
++mod tests {
++    #[test]
++    fn host_startup_does_not_attach_the_primary_runtime_gateway_as_a_play_domain() {
++        let source = include_str!("with_viewport.rs");
++        let product_source = source
++            .split("#[cfg(test)]")
++            .next()
++            .expect("product startup source should precede its tests");
++
++        assert!(!product_source.contains(".attach_play_gateway("));
++    }
++}

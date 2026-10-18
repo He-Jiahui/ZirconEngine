@@ -14,13 +14,20 @@ impl ResourceStreamer {
         let resource_manager = asset_manager.resource_manager();
         let projection = resource_manager.projection_snapshot();
         let active = projection.active().row(id)?;
-        let handle = crate::core::resource::ResourceHandle::<crate::core::resource::ModelMarker>::new(id);
+        let handle =
+            crate::core::resource::ResourceHandle::<crate::core::resource::ModelMarker>::new(id);
         load_model_asset_with_cache(
-            self.models.get(&id).filter(|prepared| prepared.source_key == active.key)
+            self.models
+                .get(&id)
+                .filter(|prepared| prepared.source_key == active.key)
                 .map(|prepared| (&prepared.asset, prepared.source_revision)),
             Some(active.record.revision),
-            || resource_manager.snapshot_expected::<_, ModelAsset>(handle, &active.key)
-                .ok().map(|snapshot| Arc::clone(snapshot.resource())),
+            || {
+                resource_manager
+                    .snapshot_expected::<_, ModelAsset>(handle, &active.key)
+                    .ok()
+                    .map(|snapshot| Arc::clone(snapshot.resource()))
+            },
         )
     }
 }

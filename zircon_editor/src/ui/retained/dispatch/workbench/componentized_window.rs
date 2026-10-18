@@ -274,6 +274,18 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         &self.template_surface.host_projection
     }
 
+    pub(crate) fn normal_arranged_inventory(
+        &self,
+    ) -> crate::ui::template_runtime::NormalSurfaceInventory {
+        crate::ui::template_runtime::capture_normal_surface_inventory(
+            "workbench-window",
+            &self.template_surface.host_projection,
+            &self.template_surface.surface,
+            self.layout_frames().mount_frame,
+            self.presentation_scale_factor,
+        )
+    }
+
     pub(crate) fn pending_host_projection_patch_nodes(
         &self,
     ) -> Option<Vec<crate::ui::template_runtime::RetainedUiHostNodeModel>> {

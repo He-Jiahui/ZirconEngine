@@ -8,10 +8,10 @@ mod controller;
 mod fixed_step;
 #[path = "interpolation.rs"]
 mod interpolation;
-#[path = "snapshot.rs"]
-mod snapshot;
 #[path = "replacement.rs"]
 mod replacement;
+#[path = "snapshot.rs"]
+mod snapshot;
 
 // Public World-time observation and configuration surface.
 pub use controller::{
@@ -28,6 +28,6 @@ pub use replacement::{
 
 // Transaction capabilities stay inside the scene scheduler boundary.
 pub(crate) use controller::WorldTimeController;
-pub(crate) use replacement::WorldReplacementTimeDisposition;
 pub(crate) use fixed_step::{WorldFixedStep, WorldFixedStepError};
+pub(crate) use replacement::WorldReplacementTimeDisposition;
 pub(crate) use snapshot::WorldTimeSnapshot;

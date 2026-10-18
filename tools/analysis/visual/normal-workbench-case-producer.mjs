@@ -159,6 +159,13 @@ async function main() {
   stableEvidence.viewportToolbarPublication = evidence.viewportToolbarPublication;
   // Missing focus remains unknown. Do not turn absent observations into known unfocused state.
   if (Object.hasOwn(evidence, 'focusPublication')) stableEvidence.focusPublication = evidence.focusPublication;
+  // Keep the exact observations from this successful present in the hashed case.
+  if (record(evidence.paintEvidence) && Object.hasOwn(evidence.paintEvidence, 'designTokenInput')) {
+    stableEvidence.designTokenInput = evidence.paintEvidence.designTokenInput;
+  }
+  if (Object.hasOwn(evidence, 'arrangedInventoryPublication')) {
+    stableEvidence.arrangedInventoryPublication = evidence.arrangedInventoryPublication;
+  }
   const inputSources = await sourceInputs(repo);
   const dependencies = new contracts.LayoutDependencies();
   await dependencies.load(repo, inputSources.filter((item) => item.path.endsWith('.zui')).map((item) => item.path));

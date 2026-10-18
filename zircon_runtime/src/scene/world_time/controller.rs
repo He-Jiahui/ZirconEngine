@@ -634,15 +634,15 @@ mod replacement_policy_tests {
                 },
                 true,
             ),
-            Err(WorldReplacementError::PolicyGenerationExhausted {
-                current: u64::MAX,
-            })
+            Err(WorldReplacementError::PolicyGenerationExhausted { current: u64::MAX })
         ));
         assert_eq!(controller.state(), before);
 
         let mut clock = before.virtual_time();
         let unchanged = clock;
-        assert!(clock.try_rebase_clock_domain_epoch_after(u64::MAX).is_none());
+        assert!(clock
+            .try_rebase_clock_domain_epoch_after(u64::MAX)
+            .is_none());
         assert_eq!(clock, unchanged);
     }
 
@@ -652,26 +652,44 @@ mod replacement_policy_tests {
         live.virtual_time.set_clock_domain_source_generation(9);
         live.fixed_time.set_clock_domain_source_generation(9);
         live.last_outer_frame_index = Some(27);
-        live.virtual_time.try_rebase_clock_domain_epoch_after(2).unwrap();
-        live.fixed_time.try_rebase_clock_domain_epoch_after(4).unwrap();
+        live.virtual_time
+            .try_rebase_clock_domain_epoch_after(2)
+            .unwrap();
+        live.fixed_time
+            .try_rebase_clock_domain_epoch_after(4)
+            .unwrap();
         let mut checkpoint = live.state();
-        checkpoint.virtual_time.set_clock_domain_source_generation(3);
+        checkpoint
+            .virtual_time
+            .set_clock_domain_source_generation(3);
         checkpoint.fixed_time.set_clock_domain_source_generation(3);
         checkpoint.last_outer_frame_index = Some(11);
-        checkpoint.virtual_time.try_rebase_clock_domain_epoch_after(12).unwrap();
-        checkpoint.fixed_time.try_rebase_clock_domain_epoch_after(14).unwrap();
+        checkpoint
+            .virtual_time
+            .try_rebase_clock_domain_epoch_after(12)
+            .unwrap();
+        checkpoint
+            .fixed_time
+            .try_rebase_clock_domain_epoch_after(14)
+            .unwrap();
         let before = live.state();
         let prepared = live
-            .prepare_world_replacement(
-                WorldReplacementTimeDisposition::Restore(checkpoint),
-                true,
-            )
+            .prepare_world_replacement(WorldReplacementTimeDisposition::Restore(checkpoint), true)
             .unwrap();
         assert_eq!(live.state(), before);
         let after = prepared.after();
         assert_eq!(after.last_outer_frame_index(), Some(27));
-        assert_eq!(after.virtual_time().clock_domain_stamp().source_generation(), 9);
-        assert_eq!(after.fixed_time().clock_domain_stamp().source_generation(), 9);
+        assert_eq!(
+            after
+                .virtual_time()
+                .clock_domain_stamp()
+                .source_generation(),
+            9
+        );
+        assert_eq!(
+            after.fixed_time().clock_domain_stamp().source_generation(),
+            9
+        );
         assert_eq!(after.virtual_time().clock_domain_stamp().epoch(), 14);
         assert_eq!(after.fixed_time().clock_domain_stamp().epoch(), 16);
         assert_eq!(after.virtual_time().delta(), Duration::ZERO);

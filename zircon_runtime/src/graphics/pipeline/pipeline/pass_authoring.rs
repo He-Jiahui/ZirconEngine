@@ -196,6 +196,22 @@ fn author_graph_passes(
     let mut execution_pass_metadata = Vec::new();
     let mut produced_resource_versions =
         BTreeMap::<ResourceVersionKey, RenderGraphResourceVersionToken>::new();
+    let mut replay_pass_names = BTreeSet::new();
+    for descriptor in descriptors {
+        for (ids, initial, terminal, _, _) in descriptor.ordered_buffer_replays() {
+            replay_pass_names.insert(initial);
+            replay_pass_names.insert(terminal);
+            for target in descriptors
+                .iter()
+                .flat_map(|feature| feature.stage_passes.iter())
+            {
+                if ids.iter().any(|id| id == target.executor_id.as_str()) {
+                    replay_pass_names.insert(target.pass_name.as_str());
+                }
+            }
+        }
+    }
+    let mut authored_replay_pass_ids = BTreeMap::<String, RenderPassId>::new();
     for pass_descriptor in ordered_render_feature_passes(stages, descriptors)? {
         if pass_descriptor.flags.has_side_effects && pass_descriptor.resources.is_empty() {
             return Err(format!(
@@ -209,6 +225,16 @@ fn author_graph_passes(
             pass_descriptor.queue,
             Some(pass_descriptor.executor_id.as_str().to_string()),
         );
+        if replay_pass_names.contains(pass_descriptor.pass_name.as_str())
+            && authored_replay_pass_ids
+                .insert(pass_descriptor.pass_name.clone(), pass)
+                .is_some()
+        {
+            return Err(format!(
+                "ordered buffer replay pass '{}' is not unique",
+                pass_descriptor.pass_name
+            ));
+        }
         execution_pass_metadata.push(RenderGraphExecutionPassMetadata::new(
             pass,
             pass_descriptor.stage,
@@ -249,6 +275,48 @@ fn author_graph_passes(
         if let Some(compute_pass) = &pass_descriptor.compute_pass {
             graph
                 .set_compute_pass_metadata(pass, compute_pass.graph_metadata())
+                .map_err(|error| error.to_string())?;
+        }
+    }
+
+    let all = descriptors
+        .iter()
+        .flat_map(|descriptor| descriptor.stage_passes.iter())
+        .collect::<Vec<_>>();
+    for descriptor in descriptors {
+        for (ids, initial, terminal, _, _) in descriptor.ordered_buffer_replays() {
+            let mut targets = all
+                .iter()
+                .enumerate()
+                .filter(|(_, pass)| ids.iter().any(|id| id == pass.executor_id.as_str()))
+                .map(|(ordinal, pass)| {
+                    let stage = stages
+                        .iter()
+                        .position(|candidate| *candidate == pass.stage)
+                        .ok_or_else(|| {
+                            "ordered buffer replay target stage is absent".to_string()
+                        })?;
+                    Ok((stage, ordinal, pass.pass_name.as_str()))
+                })
+                .collect::<Result<Vec<_>, String>>()?;
+            targets.sort_by_key(|(stage, ordinal, _)| (*stage, *ordinal));
+            let mut previous = *authored_replay_pass_ids
+                .get(initial)
+                .ok_or_else(|| "ordered buffer replay initial pass is absent".to_string())?;
+            for (_, _, name) in targets {
+                let current = *authored_replay_pass_ids
+                    .get(name)
+                    .ok_or_else(|| "ordered buffer replay target pass is absent".to_string())?;
+                graph
+                    .add_dependency(previous, current)
+                    .map_err(|error| error.to_string())?;
+                previous = current;
+            }
+            let terminal = *authored_replay_pass_ids
+                .get(terminal)
+                .ok_or_else(|| "ordered buffer replay terminal pass is absent".to_string())?;
+            graph
+                .add_dependency(previous, terminal)
                 .map_err(|error| error.to_string())?;
         }
     }

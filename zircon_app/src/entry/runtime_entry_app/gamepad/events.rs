@@ -4,9 +4,9 @@
 use gilrs::{Axis, Button};
 use zircon_runtime_interface::{
     ZrByteSlice, ZrRuntimeEventV1, ZrRuntimeGamepadGenerationV2, ZrRuntimeViewportHandle,
-    ZIRCON_RUNTIME_ABI_VERSION_V1,
-    ZR_RUNTIME_BUTTON_STATE_PRESSED_V1, ZR_RUNTIME_BUTTON_STATE_RELEASED_V1,
-    ZR_RUNTIME_GAMEPAD_CONNECTION_CONNECTED_V1, ZR_RUNTIME_GAMEPAD_CONNECTION_DISCONNECTED_V1,
+    ZIRCON_RUNTIME_ABI_VERSION_V1, ZR_RUNTIME_BUTTON_STATE_PRESSED_V1,
+    ZR_RUNTIME_BUTTON_STATE_RELEASED_V1, ZR_RUNTIME_GAMEPAD_CONNECTION_CONNECTED_V1,
+    ZR_RUNTIME_GAMEPAD_CONNECTION_DISCONNECTED_V1,
 };
 
 use super::codes::{axis_code, button_code};
@@ -29,7 +29,9 @@ pub(super) fn send_connection(
         ZR_RUNTIME_GAMEPAD_CONNECTION_DISCONNECTED_V1
     };
     let payload = ZrRuntimeGamepadGenerationV2::encode_connection(stamp.generation, Some(name))
-        .map_err(|error| RuntimeLibraryError::new(format!("encode gamepad V2 connection: {error:?}")))?;
+        .map_err(|error| {
+            RuntimeLibraryError::new(format!("encode gamepad V2 connection: {error:?}"))
+        })?;
     let event = ZrRuntimeEventV1::gamepad_connection_v2(
         ZIRCON_RUNTIME_ABI_VERSION_V1,
         viewport,

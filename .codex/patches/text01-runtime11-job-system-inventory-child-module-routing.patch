@@ -1,0 +1,15 @@
+diff --git a/zircon_runtime/src/tests/runtime_absorption/job_system/inventory.rs b/zircon_runtime/src/tests/runtime_absorption/job_system/inventory.rs
+--- a/zircon_runtime/src/tests/runtime_absorption/job_system/inventory.rs
++++ b/zircon_runtime/src/tests/runtime_absorption/job_system/inventory.rs
+@@ -1,5 +1,8 @@
+-mod audit;
+-mod behavior;
+-mod task_model;
++#[path = "inventory/audit.rs"]
++mod audit;
++#[path = "inventory/behavior.rs"]
++mod behavior;
++#[path = "inventory/task_model.rs"]
++mod task_model;
+ 
+ pub(super) const JOB_SYSTEM_MODULE_MAX_LINES: usize = 500;

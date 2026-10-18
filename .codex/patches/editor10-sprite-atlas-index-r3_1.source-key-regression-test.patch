@@ -1,0 +1,38 @@
+diff --git a/zircon_editor/src/ui/host/editor_asset_manager/sprite_atlas_index.rs b/zircon_editor/src/ui/host/editor_asset_manager/sprite_atlas_index.rs
+--- a/zircon_editor/src/ui/host/editor_asset_manager/sprite_atlas_index.rs
++++ b/zircon_editor/src/ui/host/editor_asset_manager/sprite_atlas_index.rs
+@@ -520,1 +520,34 @@
++    #[test]
++    fn index_resolves_all_paint_keys_for_a_source_backed_entry() {
++        let root = unique_temp_root("atlas_index_source_backed_image_key");
++        let atlas_directory = root.join(ATLAS_CACHE_DIR);
++        fs::create_dir_all(&atlas_directory).unwrap();
++        let manifest_path = write_atlas(&atlas_directory, "icons", &["search"]);
++        let document = fs::read_to_string(&manifest_path).unwrap();
++        let mut atlas: SpriteAtlasAsset = toml::from_str(&document).unwrap();
++        atlas.entries[0].source = Some(AssetUri::parse("res://ui/search.png").unwrap());
++        fs::write(&manifest_path, toml::to_string_pretty(&atlas).unwrap()).unwrap();
++
++        let index = build_index_from_directory(&atlas_directory, 64, 10_000, 4 * 1024 * 1024);
++        let template_icon_entry = index
++            .entry_for_paint_key("template-icon:search")
++            .expect("template icon key is published");
++        let icon_entry = index
++            .entry_for_paint_key("icon:search")
++            .expect("icon key is published");
++        let template_image_entry = index
++            .entry_for_paint_key("template-image:res://ui/search.png")
++            .expect("source-backed template image key is published");
++        let image_entry = index
++            .entry_for_paint_key("image:res://ui/search.png")
++            .expect("source-backed image key is published");
++
++        assert_eq!(image_entry.resource_key.as_ref(), "lib://editor-sprite-atlases/icons.png");
++        assert_eq!((image_entry.width, image_entry.height), (1, 1));
++        assert_eq!(template_icon_entry, icon_entry);
++        assert_eq!(icon_entry, template_image_entry);
++        assert_eq!(image_entry, template_image_entry);
++        let _ = fs::remove_dir_all(root);
++    }
++
+     fn write_atlas(directory: &std::path::Path, stem: &str, names: &[&str]) -> std::path::PathBuf {

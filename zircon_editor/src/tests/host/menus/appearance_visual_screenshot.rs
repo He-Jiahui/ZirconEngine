@@ -1,5 +1,6 @@
 // 构造全局外观偏好组件并捕获像素证据，约束字段、分段选择和列表行的绘制。
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
 use crate::ui::layouts::common::model_rc;
 use crate::ui::retained_host::primitives::SharedString;
@@ -51,14 +52,14 @@ struct ScopedHostAppearance;
 
 impl ScopedHostAppearance {
     fn install(tokens: &EditorDesignTokens) -> Self {
-        apply_host_appearance_from_tokens(tokens);
+        apply_host_appearance_from_tokens(Arc::new(tokens.clone()), None);
         Self
     }
 }
 
 impl Drop for ScopedHostAppearance {
     fn drop(&mut self) {
-        apply_host_appearance_from_tokens(&EditorDesignTokens::workbench_dark());
+        apply_host_appearance_from_tokens(Arc::new(EditorDesignTokens::workbench_dark()), None);
     }
 }
 

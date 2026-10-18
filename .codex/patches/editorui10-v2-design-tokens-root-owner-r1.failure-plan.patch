@@ -1,0 +1,73 @@
+diff --git a/docs/plans/zircon_editor/editor_ui/10/failure-2026-08-02-v2-design-tokens-root-owner-boundary.md b/docs/plans/zircon_editor/editor_ui/10/failure-2026-08-02-v2-design-tokens-root-owner-boundary.md
+new file mode 100644
+--- /dev/null
++++ b/docs/plans/zircon_editor/editor_ui/10/failure-2026-08-02-v2-design-tokens-root-owner-boundary.md
+@@ -0,0 +1,68 @@
++---
++handoff_kind: failure
++status: open
++created_at: 2026-08-02
++summary_slug: v2-design-tokens-root-owner-boundary
++origin_plan: docs/plans/zircon_editor/editor_ui/10-code-structure-and-module-conventions.md
++fixing_plan: docs/plans/zircon_editor/editor_ui/10-code-structure-and-module-conventions.md
++origin_child_dir: docs/plans/zircon_editor/editor_ui/10
++fixing_child_dir: docs/plans/zircon_editor/editor_ui/10
++plan_link_mode: child_record_only
++failure_scope: local
++related_code:
++  - zircon_editor/src/ui/v2_design_tokens.rs
++  - zircon_editor/src/ui/v2_design_tokens/mod.rs
++  - zircon_editor/src/ui/v2_design_tokens/document.rs
++  - zircon_editor/src/ui/v2_design_tokens/tokens.rs
++  - zircon_editor/src/tests/structure_convention/mod.rs
++tests:
++  - python .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_editor_structure.py --json
++  - cargo test -p zircon_editor --lib structure_convention --locked
++---
++
++# Editor UI 10: V2 design tokens 根 owner 边界漂移
++
++## 来源执行者
++
++- 来源计划：`docs/plans/zircon_editor/editor_ui/10-code-structure-and-module-conventions.md`
++- 来源执行切片：M1 `ui/` root owner hard cutover
++- 修复责任计划：`docs/plans/zircon_editor/editor_ui/10-code-structure-and-module-conventions.md`
++- 交接原因：`ui/v2_design_tokens.rs` 是当前 editor structure audit 唯一 root owner debt；该模块仅可作为 folder-backed owner 存在，不得为小文件保留例外。
++
++## 失败现象与复现证据
++
++2026-08-02 current-source 执行
++`python .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_editor_structure.py --json`
++返回 `m1_gate_status = migration-debt-present`、`migration_debt_count = 1`，唯一
++`ui_module_owner_boundary_violations` 是
++`zircon_editor/src/ui/v2_design_tokens.rs`。其余 oversized production、production dead-code、banned name、duplicate test tree 均为零。
++
++## 最低共享层根因
++
++`ui/mod.rs` 已将 `v2_design_tokens` 作为稳定 editor-private module identity，但实现仍直接位于
++`ui/` 根单文件。该布局绕过 M1 的 folder-backed owner 规则，且将 document projection、active token
++store、poison recovery 聚在一个无子域 owner 的文件中。
++
++## 架构修复验收
++
++- 删除 `ui/v2_design_tokens.rs`，由 `ui/v2_design_tokens/mod.rs` 接管同一 Rust module identity；不得留下 re-export、shim 或第二 owner。
++- `document.rs` 只复制 V2 document 并在 active-token read scope 内调用 resolver；不得把 token snapshot clone 引入每次 document preparation。
++- `tokens.rs` 唯一拥有 `OnceLock<RwLock<EditorDesignTokens>>`、install、snapshot 和 poison recovery；不得回流 process-global token state。
++- `structure_convention` guard 必须要求 `classified-and-clear`、migration debt=0 与 ui root violation=0。
++- 受管 `structure_convention` Cargo 与独立复审完成前不得返回 fixed。
++
++## 禁止临时方案
++
++- 不得为 `v2_design_tokens.rs` 添加 audit allowlist、例外或 compatibility facade。
++- 不得将 token store 复制到 retained host、template runtime 或 generic runtime surface。
++- 不得以每次 clone `EditorDesignTokens` 规避 read guard，或将 poisoned lock 改为 unwrap/expect。
++
++## 修复结果与回传
++
++Open state: `forward_fix_bundle_ready / owner_apply_pending`。模块硬切实现包已准备，但尚未由精确范围 owner 应用，未运行 Cargo，故 failure 保持 open。
++
++## 产出记录与时间
++
++| 日期 | 切片 | 状态 | 完成项目与证据 |
++| --- | --- | --- | --- |
++| 2026-08-02 | M1 V2 design-token folder owner hard cut | forward_fix_bundle_ready / owner_apply_pending | current-source audit 精确报告 1 个 UI root owner violation：`ui/v2_design_tokens.rs`。实现包 `.codex/patches/editorui10-v2-design-tokens-root-owner-r1.bundle.patch`（SHA-256 `DA6E8D581F67444BCA3816552009355E89DB86F256C9234B47E844F22D83FD1B`）删除旧根文件，新增 `mod.rs`、`document.rs`、`tokens.rs`，并将 structure guard 收紧为 zero-debt；严格 `git apply --check --whitespace=error` 与隔离 Rust 2021 可见性编译均已通过。初次审查后修正 crate-private re-export 可见性，最终哈希的二次独立复审 Critical/Important/Minor = `0/0/0`；受管 Cargo 未执行。 |

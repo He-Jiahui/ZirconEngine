@@ -142,6 +142,7 @@ pub use asset_editor_sessions::{
 };
 pub(crate) use builtin_layout::builtin_hybrid_layout;
 pub use editor_capabilities::EditorCapabilitySnapshot;
+pub(crate) use editor_document_autosave::CloseAutosavePayloadBudget;
 pub use editor_error::{
     AnimationEditorDocumentLoadDiagnostic, AnimationEditorTargetDiagnostic,
     AnimationEditorTargetKind, AnimationEditorTargetUnavailableReason, EditorError,
@@ -236,4 +237,6 @@ pub(crate) use editor_ui_host::save_completion_tests::{
     register_completion_toolkit, CompletionAction,
 };
 
-pub use editor_manager_plugins_export::{PluginEnablementAdmission, PluginEnablementRecoveryCommand};
+pub use editor_manager_plugins_export::{
+    PluginEnablementAdmission, PluginEnablementRecoveryCommand,
+};

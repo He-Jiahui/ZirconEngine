@@ -9,7 +9,7 @@ use super::progress::{AUTOMATIC_PROGRESS_SOURCE_ID, MAX_PROGRESS_NOTIFICATIONS};
 use super::{
     DecisionCenterConfig, DecisionNotificationCenter, DecisionNotificationError, NotificationId,
     NotificationSource, ProgressNotification, ProgressNotificationCenter, ToastCenterConfig,
-    ToastNotification, ToastDeliveryQueue, ToastDeliverySnapshot, ToastNotificationError,
+    ToastDeliveryQueue, ToastDeliverySnapshot, ToastNotification, ToastNotificationError,
 };
 
 /// Context-owned notification authority. Leaf consumers resolve immutable receipts;
@@ -84,15 +84,20 @@ impl EditorNotificationService {
         (now, self.toasts().snapshot_at(now))
     }
 
-    pub(crate) fn acknowledge_toast_presented(&self, id: &str, token: u64)
-        -> Result<bool, ToastNotificationError>
-    {
+    pub(crate) fn acknowledge_toast_presented(
+        &self,
+        id: &str,
+        token: u64,
+    ) -> Result<bool, ToastNotificationError> {
         let id = NotificationId::parse(id)?;
-        self.toasts().acknowledge_at(&id, token, self.toast_elapsed())
+        self.toasts()
+            .acknowledge_at(&id, token, self.toast_elapsed())
     }
 
     pub(crate) fn dismiss_toast(&self, id: &str, token: u64) -> bool {
-        NotificationId::parse(id).ok().is_some_and(|id| self.toasts().dismiss(&id, token))
+        NotificationId::parse(id)
+            .ok()
+            .is_some_and(|id| self.toasts().dismiss(&id, token))
     }
 
     fn toast_elapsed(&self) -> Duration {

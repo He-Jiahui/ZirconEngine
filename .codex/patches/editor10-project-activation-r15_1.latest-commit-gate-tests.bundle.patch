@@ -1,0 +1,74 @@
+diff --git a/zircon_editor/src/core/project/project_activation/service.rs b/zircon_editor/src/core/project/project_activation/service.rs
+--- a/zircon_editor/src/core/project/project_activation/service.rs
++++ b/zircon_editor/src/core/project/project_activation/service.rs
+@@ -293,7 +293,7 @@ mod tests {
+     use super::{
+         ProjectActivation, ProjectActivationArtifact, ProjectActivationBackend,
+-        ProjectActivationIntent, ProjectActivationPrepared, ProjectActivationService,
+-        ProjectActivationTaskError,
++        ProjectActivationCommit, ProjectActivationIntent, ProjectActivationPrepared,
++        ProjectActivationReady, ProjectActivationService, ProjectActivationTaskError,
+     };
+ 
+     struct BlockingBackend {
+@@ -302,6 +302,14 @@ mod tests {
+         calls: AtomicUsize,
+     }
+ 
++    struct NoopCommit;
++
++    impl ProjectActivationCommit for NoopCommit {
++        fn commit(self: Box<Self>) -> Result<(), ProjectActivationTaskError> {
++            Ok(())
++        }
++    }
++
+     impl ProjectActivationBackend for BlockingBackend {
+         fn prepare(
+             &self,
+@@ -320,15 +330,18 @@ impl ProjectActivationBackend for BlockingBackend {
+-            Ok(ProjectActivationPrepared::Activated(ProjectActivationArtifact::new(
+-                activation.summary().clone(),
+-                ProjectInfo {
+-                    root_path,
+-                    name: project_name,
+-                    default_scene_uri: "res://scenes/main.scene.toml".to_string(),
+-                    library_version: 1,
+-                    asset_count: 0,
+-                    ready_asset_count: 0,
+-                    failed_asset_count: 0,
+-                    registry_diagnostic_count: 0,
+-                },
+-            )))
++            Ok(ProjectActivationPrepared::Ready(ProjectActivationReady::new(
++                ProjectActivationArtifact::new(
++                    activation.summary().clone(),
++                    ProjectInfo {
++                        root_path,
++                        name: project_name,
++                        default_scene_uri: "res://scenes/main.scene.toml".to_string(),
++                        library_version: 1,
++                        asset_count: 0,
++                        ready_asset_count: 0,
++                        failed_asset_count: 0,
++                        registry_diagnostic_count: 0,
++                    },
++                ),
++                Box::new(NoopCommit),
++            )))
+         }
+ 
+@@ -356,6 +369,6 @@ fn replacement_discards_a_cancelled_staged_generation_and_only_polls_the_succes
+         let outcome = wait_for_outcome(&service);
+         assert_eq!(outcome.generation(), second_generation);
+         let artifact = match outcome.into_result().unwrap() {
+-            ProjectActivationPrepared::Activated(artifact) => artifact,
++            ProjectActivationPrepared::Ready(ready) => ready.commit().unwrap(),
+             ProjectActivationPrepared::Stale(reason) => panic!("expected activation, got {reason}"),
+         };
+@@ -376,4 +389,5 @@ fn activation_artifact_exposes_no_project_manager_or_ui_host() {
+         assert!(!production.contains("root_path"));
+         assert_send_static::<ProjectActivationArtifact>();
+         assert_send_static::<ProjectActivationPrepared>();
++        assert_send_static::<ProjectActivationReady>();
+     }

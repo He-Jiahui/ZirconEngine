@@ -1,0 +1,49 @@
+diff --git a/zircon_editor/src/core/project/project_activation/service.rs b/zircon_editor/src/core/project/project_activation/service.rs
+--- a/zircon_editor/src/core/project/project_activation/service.rs
++++ b/zircon_editor/src/core/project/project_activation/service.rs
+@@ -387,4 +387,45 @@ fn replacement_discards_a_cancelled_staged_generation_and_only_polls_the_succes
+     }
+ 
++    #[test]
++    fn newer_submission_supersedes_a_polled_ready_token_before_runtime_commit() {
++        let (first_started_tx, first_started_rx) = mpsc::channel();
++        let (release_first_tx, release_first_rx) = mpsc::channel();
++        let backend = std::sync::Arc::new(BlockingBackend {
++            first_started: first_started_tx,
++            release_first: release_first_rx,
++            calls: AtomicUsize::new(0),
++        });
++        let service = ProjectActivationService::with_backend(test_job_system(), backend.clone());
++        let (first, first_root) = fixture_activation("polled-first");
++        let (second, second_root) = fixture_activation("polled-second");
++
++        let first_generation = service.submit(ProjectActivationIntent::Open(first)).unwrap();
++        first_started_rx.recv_timeout(Duration::from_secs(2)).unwrap();
++        release_first_tx.send(()).unwrap();
++
++        let first_ready = match wait_for_outcome(&service).into_result().unwrap() {
++            ProjectActivationPrepared::Ready(ready) => ready,
++            ProjectActivationPrepared::Stale(reason) => panic!("expected ready token, got {reason}"),
++        };
++        let second_generation = service.submit(ProjectActivationIntent::Open(second)).unwrap();
++        assert!(second_generation.get() > first_generation.get());
++        assert!(matches!(
++            first_ready.commit(),
++            Err(super::ProjectActivationCommitError::Superseded { generation })
++                if generation == first_generation
++        ));
++
++        let second_ready = match wait_for_outcome(&service).into_result().unwrap() {
++            ProjectActivationPrepared::Ready(ready) => ready,
++            ProjectActivationPrepared::Stale(reason) => panic!("expected ready token, got {reason}"),
++        };
++        let artifact = second_ready.commit().unwrap();
++        assert_eq!(artifact.report().name, "polled-second");
++        assert_eq!(backend.calls.load(Ordering::SeqCst), 2);
++
++        let _ = fs::remove_dir_all(first_root);
++        let _ = fs::remove_dir_all(second_root);
++    }
++
+     #[test]
+     fn activation_artifact_exposes_no_project_manager_or_ui_host() {

@@ -1,0 +1,7 @@
+var state = %import("world/state");
+
+pub main(): int {
+    var cancellation = state.arcanePowerAuraCancellationStateTest();
+    if (cancellation != 1) { return cancellation; }
+    return state.arcaneExplosionCommandStateTest();
+}

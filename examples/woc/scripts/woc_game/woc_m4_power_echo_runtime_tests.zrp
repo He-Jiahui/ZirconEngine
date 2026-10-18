@@ -1,0 +1,2 @@
+backend = "zr_vm:project"
+entry = "src/world/power_echo_runtime_test_main.zr"

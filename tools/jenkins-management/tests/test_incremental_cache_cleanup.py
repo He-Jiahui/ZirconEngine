@@ -1,11 +1,12 @@
 """Real Windows lock/deletion regressions for the fixed Rust cache policy."""
 import importlib.util
 import io
-from contextlib import redirect_stderr
+from contextlib import redirect_stderr, redirect_stdout
 import json
 import os
 from pathlib import Path
 import sys
+import subprocess
 import tempfile
 import time
 import unittest
@@ -137,8 +138,97 @@ class IncrementalCacheCleanupTests(unittest.TestCase):
         tree = ET.fromstring(client.raw)
         script = tree.findtext("definition/script")
         self.assertEqual(script.count(cleanup.BEGIN), 1)
+        self.assertNotIn("@CACHE_KEYS@", script)
+        self.assertNotIn("@ENTRY_SHA@", script)
+        self.assertIn("incremental-runtime-binding.json", script)
+        for key in cleanup.CACHE_POLICIES:
+            self.assertIn(repr(key), script)
         self.assertTrue(script.endswith("existingCasAndGovernance()"))
         self.assertEqual(tree.findtext("properties/cron"), "H/30 * * * *")
+
+    def test_scope_covers_audited_def_caches_without_authorizing_source_or_dependency_roots(self):
+        paths = [path for path, _ in cleanup.CACHE_POLICIES.values()]
+        self.assertEqual({"D:", "E:", "F:"}, {path.drive for path in paths})
+        self.assertEqual(len(paths), len(set(paths)))
+        self.assertGreaterEqual(len(paths), 20)
+        for path, threshold in cleanup.CACHE_POLICIES.values():
+            self.assertEqual(path.parts[1], "cargo-targets")
+            self.assertEqual(path.name, "incremental")
+            self.assertNotIn("cargo-home", path.parts)
+            self.assertEqual(threshold, 80 * cleanup.GIB)
+
+    def test_empty_namespace_is_explicit_and_never_claims_whole_volume_cleanup(self):
+        with self.fixture() as directory:
+            root = Path(directory)
+            (root / "cache").mkdir()
+            result = self.clean(root)
+            self.assertEqual(result["status"], "cache-empty")
+            self.assertEqual(result["discoveredSessions"], 0)
+            self.assertTrue(result["namespaceCleanupComplete"])
+            self.assertFalse(result["globalCleanupComplete"])
+
+    def test_busy_cache_reports_retention_instead_of_claiming_namespace_cleanup_complete(self):
+        with self.fixture() as directory:
+            root = Path(directory)
+            session, lock = self.session(root)
+            with cleanup.session_lock(lock):
+                result = self.clean(root)
+            self.assertEqual(result["retainedSessions"], 1)
+            self.assertFalse(result["namespaceCleanupComplete"])
+            self.assertTrue(session.exists())
+
+    def test_render_cli_is_read_only_and_exports_the_same_resolved_stage_as_install(self):
+        stream = io.StringIO()
+        with patch.object(cleanup, "transport", side_effect=AssertionError("render connected to Jenkins")), patch.object(
+                sys, "argv", ["cleanup", "render"]), redirect_stdout(stream):
+            cleanup.main()
+        rendered = json.loads(stream.getvalue())
+        self.assertEqual(len(rendered["scope"]), len(cleanup.CACHE_POLICIES))
+        self.assertEqual(rendered["sourcePins"]["entry"]["path"], str(Path(cleanup.__file__).absolute()))
+        self.assertIn("incremental-runtime-binding.json", rendered["script"])
+        self.assertNotRegex(rendered["script"], r"@[A-Z_]+@")
+        self.assertEqual(rendered, cleanup.render_stage(cleanup.REPO))
+
+    def test_standard_powershell_installer_parses_and_uses_resolved_renderer(self):
+        installer = Path(__file__).parents[3] / "tools/dev/install-jenkins-scheduled-cleanup.ps1"
+        command = "$tokens=$null; $errors=$null; [void][System.Management.Automation.Language.Parser]::ParseFile('" + str(
+            installer).replace("'", "''") + "',[ref]$tokens,[ref]$errors); if($errors.Count){$errors | Out-String | Write-Error; exit 1}"
+        result = subprocess.run(["C:/Windows/System32/WindowsPowerShell/v1.0/powershell.exe", "-NoProfile",
+                                 "-NonInteractive", "-Command", command], capture_output=True, timeout=30)
+        self.assertEqual(result.returncode, 0, result.stderr.decode("utf8", "replace"))
+        source = installer.read_text(encoding="utf-8-sig")
+        self.assertIn("$taskCacheModulePath render", source)
+        self.assertIn("$taskCacheRender.sourcePins.entry.sha256", source)
+        self.assertNotIn("(Get-Content -LiteralPath $taskCacheSourcePath -Raw) +", source)
+
+    def test_real_cas_selector_preserves_large_protected_and_unknown_sets_and_budgets(self):
+        source = (Path(__file__).parents[1] / "zircon-scheduled-cleanup.groovy").read_text()
+        start = source.index("script: '''", source.index("def selectCandidates")) + len("script: '''")
+        selector = source[start:source.index("'''))", start)].replace(chr(92) * 2, chr(92))
+        with self.fixture() as directory:
+            root = Path(directory)
+            objects = root / "objects"
+            objects.mkdir()
+            protected = [format(value, "064x") for value in range(1, 30001)]
+            protected.append("AB" * 32)
+            for name in protected[29000:30000] + ["ab" * 32, "cd" * 32, "e" * 64, "f" * 64, "unknown-source.rs"]:
+                (objects / name).write_bytes(b"obj" if name != "f" * 64 else b"four")
+            selection = root / "selection.json"
+            selection.write_text(json.dumps({"buildRoot": str(Path("E:/cargo-targets")), "protectedDigests": protected,
+                "unknownDigests": ["cd" * 32], "maxObjects": 1, "maxBytes": 3}), encoding="utf8")
+            object_line = "$objects = Join-Path $selection.buildRoot 'zircon-local/zircon-jenkins/artifacts/artifacts/objects'"
+            self.assertEqual(selector.count(object_line), 1)
+            # Inject only the object locator: all selection, alias and digest guards remain the production script.
+            selector = selector.replace(object_line, "$objects = '" + objects.as_posix().replace("'", "''") + "'")
+            script = root / "selector.ps1"
+            script.write_text(selector, encoding="utf8")
+            result = subprocess.run(["C:/Windows/System32/WindowsPowerShell/v1.0/powershell.exe", "-NoProfile",
+                "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", str(script)],
+                env=dict(os.environ, ZIRCON_CLEANUP_SELECTION=str(selection)), capture_output=True, timeout=45)
+            self.assertEqual(result.returncode, 0, result.stderr.decode("utf8", "replace"))
+            self.assertEqual(json.loads(result.stdout.decode("utf-8-sig")),
+                {"digests": ["e" * 64], "plannedBytes": 3, "candidateCount": 1})
+            self.assertEqual(len(list(objects.iterdir())), 1005)
 
     def test_production_cli_refuses_local_deletion(self):
         with patch.dict(os.environ, {"JOB_NAME": "", "NODE_NAME": ""}), patch.object(

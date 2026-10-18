@@ -1,0 +1,57 @@
+diff --git a/docs/plans/zircon_runtime/shader/03/failure-2026-08-03-pbr-viewer-one-shot-base-pipeline-timeout.md b/docs/plans/zircon_runtime/shader/03/failure-2026-08-03-pbr-viewer-one-shot-base-pipeline-timeout.md
+new file mode 100644
+--- /dev/null
++++ b/docs/plans/zircon_runtime/shader/03/failure-2026-08-03-pbr-viewer-one-shot-base-pipeline-timeout.md
+@@ -0,0 +1,45 @@
++---
++handoff_kind: failure
++status: open
++created_at: 2026-08-03
++summary_slug: pbr-viewer-one-shot-base-pipeline-timeout
++origin_plan: docs/plans/zircon_runtime/shader/06-environment-ibl-and-pbr-correctness.md
++fixing_plan: docs/plans/zircon_runtime/shader/03-module-imports-and-cross-references.md
++origin_child_dir: docs/plans/zircon_runtime/shader/06
++fixing_child_dir: docs/plans/zircon_runtime/shader/03
++plan_link_mode: child_record_only
++related_code:
++  - zircon_app/src/bin/zircon_shader_pbr_viewer/app.rs
++  - zircon_app/src/bin/zircon_shader_pbr_viewer/app_tests.rs
++tests:
++  - cargo test -p zircon_app --bin zircon_shader_pbr_viewer one_shot_base_pipeline --locked
++---
++
++# Shader03: PBR viewer one-shot Base pipeline wait is unbounded
++
++## Source executor
++
++- Origin plan: `docs/plans/zircon_runtime/shader/06-environment-ibl-and-pbr-correctness.md`
++- Origin slice: M6 environment-only PBR performance forward repair and independent second review.
++- Fixing plan: `docs/plans/zircon_runtime/shader/03-module-imports-and-cross-references.md`
++- Handoff reason: Shader03 owns the active `zircon_shader_pbr_viewer` source and tests. Shader06 must not edit its active owner without a transfer.
++
++## Failure and reproduction evidence
++
++- Independent review found that `render_and_present` treats a one-shot screenshot or RenderDoc capture with `environment_only_base_pipeline_ready() == Ok(false)` as a retry: it schedules `WaitUntil` and returns.
++- The retry interval is backoff-capped at 250 ms, but the total one-shot wait is unbounded. A queued or already-pending worker job that never completes can therefore keep a screenshot/capture process alive indefinitely.
++- The Shader06 forward repair turns a full async budget into a terminal `GraphicsError`, but it cannot terminate the queued/already-pending state because that policy belongs to the viewer event loop.
++
++## Lowest shared cause
++
++The viewer has retry-delay state only. It has no deadline owned by the shared one-shot screenshot/RenderDoc gate, and therefore has no terminal transition for a non-completing Base pipeline.
++
++## Architectural acceptance
++
++- Track one bounded deadline for the shared one-shot Base-pipeline gate; it must cover both screenshot and RenderDoc capture and report a clear terminal timeout error.
++- Reset the deadline and retry state on readiness, scene-load failure, and a fresh load, so successful interactive rendering never inherits a stale timeout.
++- Preserve the nonblocking event loop and the existing `SkipDraw` policy; do not restore synchronous PSO creation or continuous redraw polling.
++- Add focused unit/source-contract coverage for timeout, readiness reset, failure reset, and the shared screenshot/RenderDoc gate.
++- Rerun the managed Windows one-shot screenshot and RenderDoc capture gates after the focused test passes.
++
++## Forbidden temporary workarounds
++
++- Do not increase the retry interval, hide the timeout, or silently emit an empty screenshot/capture.
++- Do not introduce a synchronous pipeline fallback, a per-call-site timeout, or duplicate screenshot/RenderDoc readiness state.
++
++## Resolution
++
++Open state: `awaiting Shader03 forward repair`; no focused test, managed validation, screenshot, or RenderDoc pass is claimed.

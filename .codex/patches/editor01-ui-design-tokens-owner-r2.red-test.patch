@@ -1,0 +1,73 @@
+diff --git a/zircon_editor/src/tests/ui/boundary/host_cutover.rs b/zircon_editor/src/tests/ui/boundary/host_cutover.rs
+--- a/zircon_editor/src/tests/ui/boundary/host_cutover.rs
++++ b/zircon_editor/src/tests/ui/boundary/host_cutover.rs
+@@ -468,7 +468,69 @@ fn document_toolkit_registry_owns_domain_save_and_close_lifecycle() {
+     assert!(host.contains("DocumentToolkitRegistry<EditorUiHost>"));
+     assert!(host.contains("fn save_document_toolkit("));
+     assert!(ui_asset_save.contains("self.save_document_toolkit(instance_id"));
+     assert!(animation_save.contains("self.save_document_toolkit(instance_id"));
+     assert!(layout_commands.contains("self.begin_document_close(instance_id)?"));
+     assert!(workspace.contains("self.clear_document_toolkits()?"));
+ }
++
++#[test]
++fn shared_ui_design_token_owner_replaces_the_ui_root_module() {
++    fn collect_production_ui_sources(root: &std::path::Path, sources: &mut Vec<std::path::PathBuf>) {
++        for entry in std::fs::read_dir(root).expect("production UI directory") {
++            let entry = entry.expect("production UI entry");
++            let path = entry.path();
++            if path.is_dir() {
++                if path.file_name().is_some_and(|name| name == "tests") {
++                    continue;
++                }
++                collect_production_ui_sources(&path, sources);
++                continue;
++            }
++
++            let file_name = path.file_name().and_then(|name| name.to_str()).unwrap_or_default();
++            if path.extension().is_some_and(|extension| extension == "rs")
++                && file_name != "tests.rs"
++                && !file_name.ends_with("_tests.rs")
++            {
++                sources.push(path);
++            }
++        }
++    }
++
++    let crate_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
++    let ui_root = crate_root.join("ui");
++    let owner = ui_root.join("design_tokens").join("mod.rs");
++
++    assert!(
++        !ui_root.join("v2_design_tokens.rs").exists(),
++        "expected V2 design-token preparation to leave the ui root"
++    );
++    assert!(owner.exists(), "expected shared UI design-token owner");
++
++    let ui_mod = std::fs::read_to_string(ui_root.join("mod.rs")).expect("ui mod");
++    assert!(
++        !ui_mod.contains("v2_design_tokens"),
++        "ui root must not restore a V2 design-token compatibility path"
++    );
++    assert!(ui_mod.contains("pub(crate) mod design_tokens;"));
++
++    let owner_source = std::fs::read_to_string(&owner).expect("design-token owner");
++    for required in [
++        "prepare_editor_v2_document",
++        "install_editor_v2_design_tokens",
++        "active_editor_v2_design_tokens_snapshot",
++    ] {
++        assert!(owner_source.contains(required), "expected shared owner to define `{required}`");
++    }
++
++    let mut production_sources = Vec::new();
++    collect_production_ui_sources(&ui_root, &mut production_sources);
++    for path in production_sources {
++        let source = std::fs::read_to_string(&path).expect("production UI source");
++        assert!(
++            !source.contains("crate::ui::v2_design_tokens"),
++            "legacy UI-root design-token import survives in {}",
++            path.display()
++        );
++    }
++}

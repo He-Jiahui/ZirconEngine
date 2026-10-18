@@ -24,9 +24,7 @@ use super::resource_publication::PreparedWatchProjectResourceSync;
 use super::source_write_watch_echo::TransactionWatchEchoes;
 use super::ProjectAssetManager;
 use crate::asset::watch::{AssetChange, AssetWatchBatch, AssetWatchError, AssetWatcher};
-use crate::core::resource::{
-    ResourceManagerAssemblyExt, ResourceMutationBatch, ResourceScheme,
-};
+use crate::core::resource::{ResourceManagerAssemblyExt, ResourceMutationBatch, ResourceScheme};
 
 pub(in crate::asset::pipeline::manager) struct PreparedProjectWatchers {
     watchers: Vec<AssetWatcher>,
@@ -154,9 +152,13 @@ impl ProjectWatcherActivation {
         }
     }
 
-    fn retire(&self) { self.retire_retry(None); }
+    fn retire(&self) {
+        self.retire_retry(None);
+    }
 
-    fn try_retire(&self) -> bool { self.try_retire_until(Instant::now()) }
+    fn try_retire(&self) -> bool {
+        self.try_retire_until(Instant::now())
+    }
 
     fn try_retire_until(&self, deadline: Instant) -> bool {
         self.retire_retry(Some(deadline))
@@ -626,8 +628,14 @@ impl ProjectAssetManager {
     }
 
     pub(super) fn process_watch_batch_in_generation(&self, batch: AssetWatchBatch) {
-        let activation = self.watcher_activation.lock().unwrap_or_else(|p| p.into_inner()).clone();
-        let ingress = activation.as_ref().map(|activation| Arc::clone(&activation.lock_state().ingress_epoch));
+        let activation = self
+            .watcher_activation
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .clone();
+        let ingress = activation
+            .as_ref()
+            .map(|activation| Arc::clone(&activation.lock_state().ingress_epoch));
         let epoch = activation.as_deref().zip(ingress.as_ref());
         if let Some(work) = self.prepare_watch_retry_work(batch, epoch) {
             if let (Some(activation), Some(ingress)) = (activation, ingress) {
@@ -637,29 +645,42 @@ impl ProjectAssetManager {
     }
 
     pub(super) fn process_watch_retry_work(
-        &self, work: WatchRetryWork,
-        activation: &ProjectWatcherActivation, ingress: &Arc<()>,
+        &self,
+        work: WatchRetryWork,
+        activation: &ProjectWatcherActivation,
+        ingress: &Arc<()>,
     ) -> Option<WatchRetryWork> {
         match work {
-            WatchRetryWork::Prepared(work) => self.commit_watch_preparation(work, Some((activation, ingress))),
-            WatchRetryWork::Reprepare(batch) => self.prepare_watch_retry_work(batch, Some((activation, ingress))),
+            WatchRetryWork::Prepared(work) => {
+                self.commit_watch_preparation(work, Some((activation, ingress)))
+            }
+            WatchRetryWork::Reprepare(batch) => {
+                self.prepare_watch_retry_work(batch, Some((activation, ingress)))
+            }
         }
     }
 
     fn prepare_watch_retry_work(
-        &self, batch: AssetWatchBatch,
+        &self,
+        batch: AssetWatchBatch,
         epoch: Option<(&ProjectWatcherActivation, &Arc<()>)>,
     ) -> Option<WatchRetryWork> {
         let work = self.prepare_watch_publication(batch)?;
         self.commit_watch_preparation(work, epoch)
     }
 
-    fn prepare_watch_publication(&self, batch: AssetWatchBatch) -> Option<DeferredWatchPublication> {
+    fn prepare_watch_publication(
+        &self,
+        batch: AssetWatchBatch,
+    ) -> Option<DeferredWatchPublication> {
         self.record_asset_watch_batch(&batch);
         let changes = self.lock_transaction_watch_echoes().filter(batch.changes);
-        if changes.is_empty() && !batch.requires_reconciliation { return None; }
+        if changes.is_empty() && !batch.requires_reconciliation {
+            return None;
+        }
         let batch = AssetWatchBatch {
-            changes, requires_reconciliation: batch.requires_reconciliation,
+            changes,
+            requires_reconciliation: batch.requires_reconciliation,
             diagnostics: Default::default(),
         };
         let previous_project = {
@@ -667,8 +688,10 @@ impl ProjectAssetManager {
             self.project_read().as_ref()?.clone()
         };
         let project_root = previous_project.paths().root().to_path_buf();
-        let watch_error_root = previous_project.primary_project_asset_root()
-            .unwrap_or_else(|_| previous_project.paths().root()).to_path_buf();
+        let watch_error_root = previous_project
+            .primary_project_asset_root()
+            .unwrap_or_else(|_| previous_project.paths().root())
+            .to_path_buf();
         let expected_generation = previous_project.catalog_input_generation().sequence();
         let activation = previous_project.activation_identity().clone();
         let expected_preparation_epoch = self.current_project_preparation_epoch();
@@ -677,11 +700,14 @@ impl ProjectAssetManager {
         let use_incremental = !batch.requires_reconciliation
             && ProjectManager::watch_changes_use_incremental_path(&batch.changes);
         let preparation = (|| {
-            let _project_generation = crate::asset::project::lock_project_generation(&project_root)?;
+            let _project_generation =
+                crate::asset::project::lock_project_generation(&project_root)?;
             let _refresh = self.lock_watch_refresh();
             let started = Instant::now();
             let result = candidate.prepare_watch_file_generation_with_geometry_demand(
-                &batch.changes, use_incremental, Some(&geometry_demand),
+                &batch.changes,
+                use_incremental,
+                Some(&geometry_demand),
             );
             self.record_asset_watch_scan(started.elapsed());
             result
@@ -690,52 +716,82 @@ impl ProjectAssetManager {
             Ok(result) => result,
             Err(error) => {
                 self.record_asset_watch_failure();
-                self.broadcast_watch_error(AssetWatchError::from_message(watch_error_root, error.to_string()));
+                self.broadcast_watch_error(AssetWatchError::from_message(
+                    watch_error_root,
+                    error.to_string(),
+                ));
                 return None;
             }
         };
         let sources = files.take_sources(&geometry_demand);
         // The primary source manifest owns auxiliary-buffer events as well as direct events.
-        let previous_source_records = sources.iter().flat_map(|source| source.previous_members.iter())
-            .filter_map(|id| previous_project.registry().get(*id).cloned()).collect::<Vec<_>>();
+        let previous_source_records = sources
+            .iter()
+            .flat_map(|source| source.previous_members.iter())
+            .filter_map(|id| previous_project.registry().get(*id).cloned())
+            .collect::<Vec<_>>();
         let sync = if use_incremental {
             Ok(PreparedWatchProjectResourceSync::Incremental(
-                self.prepare_incremental_project_resource_sync(&candidate, &previous_source_records, updated_records),
+                self.prepare_incremental_project_resource_sync(
+                    &candidate,
+                    &previous_source_records,
+                    updated_records,
+                ),
             ))
         } else {
-            self.prepare_project_resource_sync(&candidate).map(PreparedWatchProjectResourceSync::Reconciliation)
+            self.prepare_project_resource_sync(&candidate)
+                .map(PreparedWatchProjectResourceSync::Reconciliation)
         };
         let sync = match sync {
             Ok(sync) => sync,
             Err(error) => {
                 self.record_asset_watch_failure();
-                self.broadcast_watch_error(AssetWatchError::from_message(watch_error_root, error.to_string()));
+                self.broadcast_watch_error(AssetWatchError::from_message(
+                    watch_error_root,
+                    error.to_string(),
+                ));
                 return None;
             }
         };
         Some(DeferredWatchPublication {
-            batch, previous_project, candidate: Some(candidate), files: Some(files), sources, geometry_demand,
-            sync: Some(sync), expected_generation, expected_preparation_epoch, activation,
-            project_root, watch_error_root,
+            batch,
+            previous_project,
+            candidate: Some(candidate),
+            files: Some(files),
+            sources,
+            geometry_demand,
+            sync: Some(sync),
+            expected_generation,
+            expected_preparation_epoch,
+            activation,
+            project_root,
+            watch_error_root,
         })
     }
 
     fn commit_watch_preparation(
-        &self, mut work: DeferredWatchPublication,
+        &self,
+        mut work: DeferredWatchPublication,
         epoch: Option<(&ProjectWatcherActivation, &Arc<()>)>,
     ) -> Option<WatchRetryWork> {
-        let project_generation = match crate::asset::project::lock_project_generation(&work.project_root) {
-            Ok(guard) => guard,
-            Err(error) => {
-                self.record_asset_watch_failure();
-                self.broadcast_watch_error(AssetWatchError::from_message(work.watch_error_root, error.to_string()));
-                return None;
-            }
-        };
+        let project_generation =
+            match crate::asset::project::lock_project_generation(&work.project_root) {
+                Ok(guard) => guard,
+                Err(error) => {
+                    self.record_asset_watch_failure();
+                    self.broadcast_watch_error(AssetWatchError::from_message(
+                        work.watch_error_root,
+                        error.to_string(),
+                    ));
+                    return None;
+                }
+            };
         let refresh = self.lock_watch_refresh();
         for _ in 0..WATCH_GENERATION_RETRY_LIMIT {
             let projection = self.resource_manager.projection_snapshot();
-            if work.sources.iter().any(|source| source.requires_geometry_reprepare(&work.geometry_demand, projection.active())) {
+            if work.sources.iter().any(|source| {
+                source.requires_geometry_reprepare(&work.geometry_demand, projection.active())
+            }) {
                 // A cold member became resident after preparation. Its output was intentionally
                 // released, so recapture must re-import rather than retry this incomplete output.
                 self.record_asset_watch_superseded_generation();
@@ -749,15 +805,22 @@ impl ProjectAssetManager {
             if matches!(sync, PreparedWatchProjectResourceSync::Reconciliation(_)) {
                 batch = super::super::resource_sync::reconcile_project_resources(
                     batch,
-                    &super::super::resource_sync::project_resource_identities(&work.previous_project),
+                    &super::super::resource_sync::project_resource_identities(
+                        &work.previous_project,
+                    ),
                     candidate,
                 );
             }
-            batch = self.build_watch_resource_batch(sync, &work.sources, projection.active(), batch);
+            batch =
+                self.build_watch_resource_batch(sync, &work.sources, projection.active(), batch);
             let generation = self.project_generation_write();
             let mut project = self.project_write();
-            let Some(current) = project.as_ref() else { return None; };
-            if current.activation_identity() != &work.activation || current.paths().root() != work.project_root {
+            let Some(current) = project.as_ref() else {
+                return None;
+            };
+            if current.activation_identity() != &work.activation
+                || current.paths().root() != work.project_root
+            {
                 return None;
             }
             if current.catalog_input_generation().sequence() != work.expected_generation
@@ -772,7 +835,9 @@ impl ProjectAssetManager {
             }
             if let Some((activation, ingress)) = epoch {
                 let state = activation.lock_state();
-                if state.lifecycle == ProjectWatcherLifecycle::Retired { return None; }
+                if state.lifecycle == ProjectWatcherLifecycle::Retired {
+                    return None;
+                }
                 if !Arc::ptr_eq(&state.ingress_epoch, ingress) {
                     // A new event owns the latest FS preparation; the previous owned candidate
                     // must not be replayed after it. Carry only event responsibility forward.
@@ -784,7 +849,9 @@ impl ProjectAssetManager {
             }
             let resource = match self.resource_manager.prepare_commit(batch) {
                 Ok(resource) => resource,
-                Err(crate::core::resource::ResourceRegistryError::ActiveVersionConflict { .. }) => {
+                Err(crate::core::resource::ResourceRegistryError::ActiveVersionConflict {
+                    ..
+                }) => {
                     drop(project);
                     drop(generation);
                     self.record_asset_watch_superseded_generation();
@@ -794,11 +861,19 @@ impl ProjectAssetManager {
                     drop(project);
                     drop(generation);
                     self.record_asset_watch_failure();
-                    self.broadcast_watch_error(AssetWatchError::from_message(work.watch_error_root, error.to_string()));
+                    self.broadcast_watch_error(AssetWatchError::from_message(
+                        work.watch_error_root,
+                        error.to_string(),
+                    ));
                     return None;
                 }
             };
-            let outcome = match work.files.take().expect("one file generation commits once").commit() {
+            let outcome = match work
+                .files
+                .take()
+                .expect("one file generation commits once")
+                .commit()
+            {
                 Ok(outcome) => outcome,
                 Err(error) => {
                     // Dropping the prepared resource reservation publishes nothing.
@@ -806,28 +881,44 @@ impl ProjectAssetManager {
                     drop(project);
                     drop(generation);
                     self.record_asset_watch_failure();
-                    self.broadcast_watch_error(AssetWatchError::from_message(work.watch_error_root, error.to_string()));
+                    self.broadcast_watch_error(AssetWatchError::from_message(
+                        work.watch_error_root,
+                        error.to_string(),
+                    ));
                     return None;
                 }
             };
             let incremental_count = match work.sync.as_ref().expect("uncommitted paths") {
-                PreparedWatchProjectResourceSync::Incremental(sync) => Some(sync.record_updates.len()),
+                PreparedWatchProjectResourceSync::Incremental(sync) => {
+                    Some(sync.record_updates.len())
+                }
                 _ => None,
             };
-            self.install_watch_resource_paths(work.sync.take().expect("one source-path installation"));
+            self.install_watch_resource_paths(
+                work.sync.take().expect("one source-path installation"),
+            );
             *project = work.candidate.take();
             drop(project);
             resource.commit();
-            if let Some(count) = incremental_count { self.record_asset_watch_incremental_resource_sync(count); }
+            if let Some(count) = incremental_count {
+                self.record_asset_watch_incremental_resource_sync(count);
+            }
             self.record_asset_watch_commit();
             drop(refresh);
             drop(project_generation);
-            let published_changes = work.batch.changes.into_iter()
-                .map(|change| AssetChange::new(change.kind, change.uri, change.previous_uri)).collect();
+            let published_changes = work
+                .batch
+                .changes
+                .into_iter()
+                .map(|change| AssetChange::new(change.kind, change.uri, change.previous_uri))
+                .collect();
             self.publish_project_generation(generation, published_changes);
             if let Err(error) = outcome.ensure_durable() {
                 self.record_asset_watch_failure();
-                self.broadcast_watch_error(AssetWatchError::from_message(work.watch_error_root, error.to_string()));
+                self.broadcast_watch_error(AssetWatchError::from_message(
+                    work.watch_error_root,
+                    error.to_string(),
+                ));
             }
             return None;
         }

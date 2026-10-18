@@ -1,0 +1,133 @@
+diff --git a/zircon_runtime/src/dynamic_api/session/error.rs b/zircon_runtime/src/dynamic_api/session/error.rs
+--- a/zircon_runtime/src/dynamic_api/session/error.rs
++++ b/zircon_runtime/src/dynamic_api/session/error.rs
+@@ -91,35 +91,35 @@ pub(super) enum RuntimeProjectError {
+         #[source]
+         source: CoreError,
+     },
+     #[error(
+-        "runtime project {} already transferred its prepared ProjectManager to AssetModule",
++        "runtime project {} already transferred its prepared activation to AssetModule",
+         root.display()
+     )]
+-    PreparedProjectManagerTransferred { root: PathBuf },
++    PreparedProjectTransferred { root: PathBuf },
+     #[error(
+         "failed to load default scene {scene} from project {}: {source}",
+         root.display()
+     )]
+     LoadDefaultScene {
+         root: PathBuf,
+         scene: String,
+         #[source]
+         source: CoreError,
+     },
+     #[error(
+         "runtime project {} requires ProjectAssetManager for scene asset reloads but it is unavailable: {source}",
+         root.display()
+     )]
+     ResolveProjectAssetManager {
+         root: PathBuf,
+         #[source]
+         source: CoreError,
+     },
+     #[error(
+-        "runtime project {} has no active ProjectManager for scene asset reloads",
++        "runtime project {} has no active project snapshot for scene asset reloads",
+         root.display()
+     )]
+-    MissingActiveProjectManager { root: PathBuf },
++    MissingActiveProject { root: PathBuf },
+     #[error("failed to read runtime navmesh {}: {source}", path.display())]
+     ReadNavmesh {
+         path: PathBuf,
+diff --git a/zircon_runtime/src/dynamic_api/session/project.rs b/zircon_runtime/src/dynamic_api/session/project.rs
+--- a/zircon_runtime/src/dynamic_api/session/project.rs
++++ b/zircon_runtime/src/dynamic_api/session/project.rs
+@@ -3,9 +3,10 @@ use std::path::{Path, PathBuf};
+ 
+ use zircon_runtime_interface::ZrByteSlice;
+ 
+-use crate::asset::project::ProjectManifest;
+-use crate::asset::project::{ProjectManager, ProjectScriptManifest};
+-use crate::asset::{asset_manager_handle, project_asset_manager_handle, ProjectInfo};
++use crate::asset::project::{PreparedProjectOpen, ProjectManifest, ProjectScriptManifest};
++use crate::asset::{
++    asset_manager_handle, project_asset_manager_handle, AssetManager, ProjectInfo,
++};
+ use crate::core::framework::navigation::NavMeshAsset;
+ use crate::core::framework::project::ProjectPluginManifest;
+ use crate::core::manager::{navigation_manager_handle, resolve_manager_service};
+@@ -47,28 +48,28 @@ impl RuntimeProjectConfig {
+     pub(super) fn root_display(&self) -> String {
+         self.root.to_string_lossy().into_owned()
+     }
+ 
+     pub(super) fn prepare(self) -> RuntimeProjectResult<RuntimePreparedProject> {
+-        let project = ProjectManager::open(&self.root).map_err(|source| {
++        let prepared = PreparedProjectOpen::open(&self.root).map_err(|source| {
+             RuntimeProjectError::OpenProject {
+                 root: self.root.clone(),
+                 source,
+             }
+         })?;
+-        let root = project.paths().root().to_path_buf();
+-        let manifest = RuntimeLoadedProjectManifest::from(project.manifest());
++        let root = prepared.root().to_path_buf();
++        let manifest = RuntimeLoadedProjectManifest::from(prepared.manifest());
+         Ok(RuntimePreparedProject {
+-            root,
++            root,
+             manifest,
+-            project: Some(project),
++            prepared: Some(prepared),
+         })
+     }
+ }
+ 
+ pub(super) struct RuntimePreparedProject {
+     root: PathBuf,
+     manifest: RuntimeLoadedProjectManifest,
+-    project: Option<ProjectManager>,
++    prepared: Option<PreparedProjectOpen>,
+ }
+ 
+ pub(super) fn project_opened_log(info: &ProjectInfo) -> String {
+@@ -100,16 +101,16 @@ impl RuntimePreparedProject {
+         let asset_manager = asset_manager_handle(core)
+             .and_then(|handle| resolve_manager_service(core, handle))
+             .map_err(|source| RuntimeProjectError::ResolveAssetManager {
+                 root: self.root.clone(),
+                 source,
+             })?;
+-        let project = self.project.take().ok_or_else(|| {
+-            RuntimeProjectError::PreparedProjectManagerTransferred {
++        let prepared = self.prepared.take().ok_or_else(|| {
++            RuntimeProjectError::PreparedProjectTransferred {
+                 root: self.root.clone(),
+             }
+         })?;
+         asset_manager
+-            .open_prepared_project(project)
++            .open_prepared_project(prepared)
+             .map_err(|source| RuntimeProjectError::OpenProjectAssets {
+                 root: self.root.clone(),
+                 source,
+@@ -145,15 +146,15 @@ impl RuntimePreparedProject {
+         let asset_manager = project_asset_manager_handle(core)
+             .and_then(|handle| resolve_manager_service(core, handle))
+             .map_err(|source| RuntimeProjectError::ResolveProjectAssetManager {
+                 root: self.root.clone(),
+                 source,
+             })?;
+-        let project = asset_manager.current_project_manager().ok_or_else(|| {
+-            RuntimeProjectError::MissingActiveProjectManager {
++        let project = AssetManager::current_project_snapshot(asset_manager.as_ref()).ok_or_else(|| {
++            RuntimeProjectError::MissingActiveProject {
+                 root: self.root.clone(),
+             }
+         })?;
+         Ok(DynamicSceneAssetReloadQueue::from_project_asset_manager(
+             project,
+             asset_manager.as_ref(),
+         ))

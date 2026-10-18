@@ -1,0 +1,52 @@
+diff --git a/zircon_editor/src/core/project/project_activation.rs b/zircon_editor/src/core/project/project_activation.rs
+new file mode 100644
+--- /dev/null
++++ b/zircon_editor/src/core/project/project_activation.rs
+@@ -0,0 +1,47 @@
++use std::path::Path;
++
++use zircon_runtime::asset::project::PreparedProjectOpen;
++use zircon_runtime::asset::{AssetManager, ProjectInfo};
++use zircon_runtime::core::framework::project::ProjectPluginManifest;
++use zircon_runtime::core::CoreError;
++use zircon_runtime_interface::project::ProjectManifestSummary;
++
++use super::ProjectAuthorityError;
++
++/// Move-only project activation capability owned by editor-core until runtime activation commits.
++#[derive(Debug)]
++pub struct ProjectActivation {
++    prepared: PreparedProjectOpen,
++    summary: ProjectManifestSummary,
++}
++
++impl ProjectActivation {
++    pub(crate) fn open(root: &Path) -> Result<Self, ProjectAuthorityError> {
++        let prepared = PreparedProjectOpen::open(root)?;
++        Ok(Self::from_prepared(prepared))
++    }
++
++    pub(crate) fn from_prepared(prepared: PreparedProjectOpen) -> Self {
++        let summary = prepared.manifest().summary();
++        Self { prepared, summary }
++    }
++
++    pub fn root(&self) -> &Path {
++        self.prepared.root()
++    }
++
++    pub fn summary(&self) -> &ProjectManifestSummary {
++        &self.summary
++    }
++
++    pub fn plugin_manifest(&self) -> &ProjectPluginManifest {
++        &self.prepared.manifest().plugins
++    }
++
++    pub(crate) fn activate(
++        self,
++        asset_manager: &dyn AssetManager,
++    ) -> Result<ProjectInfo, CoreError> {
++        asset_manager.open_prepared_project(self.prepared)
++    }
++}

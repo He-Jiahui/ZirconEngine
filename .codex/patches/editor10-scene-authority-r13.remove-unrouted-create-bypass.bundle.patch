@@ -1,0 +1,34 @@
+diff --git a/zircon_editor/src/core/project/scene_document.rs b/zircon_editor/src/core/project/scene_document.rs
+--- a/zircon_editor/src/core/project/scene_document.rs
++++ b/zircon_editor/src/core/project/scene_document.rs
+@@ -173,30 +173,4 @@ impl ProjectAuthority {
+         })
+     }
+ 
+-    /// Creates an empty scene at a project-owned URI. Existing sources are never overwritten.
+-    pub fn create_scene(
+-        &self,
+-        project: &mut ProjectManager,
+-        request: SceneCreateRequest,
+-    ) -> Result<ProjectSceneDocument, ProjectAuthorityError> {
+-        let mut creation = self.prepare_scene_creation(project, request)?;
+-        creation.publish_and_discard_staging()?;
+-        if let Err(catalog) = project.scan_and_import() {
+-            return match creation.rollback() {
+-                Ok(()) => match project.scan_and_import() {
+-                    Ok(()) => Err(ProjectAuthorityError::SceneCatalog { source: catalog }),
+-                    Err(reconcile) => {
+-                        Err(ProjectAuthorityError::SceneCatalogReconcile { catalog, reconcile })
+-                    }
+-                },
+-                Err(rollback) => Err(ProjectAuthorityError::SceneCatalogRollback {
+-                    catalog,
+-                    rollback: Box::new(rollback),
+-                }),
+-            };
+-        }
+-        let document = creation.finish();
+-        Ok(document)
+-    }
+-
+     pub(crate) fn prepare_scene_creation(

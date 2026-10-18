@@ -25,9 +25,10 @@ if ($taskSelected.root -ne $taskDriverRoot -or $taskSelected.steps -ne $taskStep
 }
 $taskSourcePath = Join-Path $taskRepo 'tools/jenkins-management/zircon-scheduled-cleanup.groovy'
 $taskCacheSourcePath = Join-Path $taskRepo 'tools/jenkins-management/incremental-cache-cleanup.groovy'
+$taskCacheModulePath = Join-Path $taskRepo 'tools/jenkins-management/incremental_cache_cleanup.py'
 $taskBindingPath = Join-Path $taskRepo 'tools/dev/jenkins_cleanup_runtime.py'
 $taskPythonPath = Join-Path $taskRepo '.jenkins/runtime/python/python.exe'
-foreach ($taskInput in @($taskSourcePath, $taskCacheSourcePath, $taskBindingPath, $taskPythonPath, $taskSteps, $taskLauncher)) {
+foreach ($taskInput in @($taskSourcePath, $taskCacheSourcePath, $taskCacheModulePath, $taskBindingPath, $taskPythonPath, $taskSteps, $taskLauncher)) {
     if (-not (Test-Path -LiteralPath $taskInput -PathType Leaf)) { throw 'Scheduled cleanup implementation is missing' }
     $taskCursor = $taskInput
     while ($taskCursor) {
@@ -43,7 +44,20 @@ foreach ($taskBinding in @(@{name = 'pipeline/steps.groovy'; path = $taskSteps},
     }
 }
 $taskSource = Get-Content -LiteralPath $taskSourcePath -Raw
-$taskSource = (Get-Content -LiteralPath $taskCacheSourcePath -Raw) + [Environment]::NewLine + $taskSource
+$taskCacheModuleDigest = (Get-FileHash -LiteralPath $taskCacheModulePath -Algorithm SHA256).Hash.ToLowerInvariant()
+$taskCacheTemplateDigest = (Get-FileHash -LiteralPath $taskCacheSourcePath -Algorithm SHA256).Hash.ToLowerInvariant()
+$taskCacheRenderLines = & $taskPythonPath -B -X utf8 $taskCacheModulePath render
+if ($LASTEXITCODE -ne 0) { throw 'Cannot render the reviewed incremental cleanup stage' }
+$taskCacheRender = ($taskCacheRenderLines -join [Environment]::NewLine) | ConvertFrom-Json
+if ((Get-FileHash -LiteralPath $taskCacheModulePath -Algorithm SHA256).Hash.ToLowerInvariant() -ne $taskCacheModuleDigest -or
+    (Get-FileHash -LiteralPath $taskCacheSourcePath -Algorithm SHA256).Hash.ToLowerInvariant() -ne $taskCacheTemplateDigest -or
+    [IO.Path]::GetFullPath([string]$taskCacheRender.sourcePins.entry.path) -ne [IO.Path]::GetFullPath($taskCacheModulePath) -or
+    $taskCacheRender.sourcePins.entry.sha256 -ne $taskCacheModuleDigest -or
+    -not ([string]$taskCacheRender.script).Contains('// BEGIN ZIRCON INCREMENTAL CACHE CLEANUP') -or
+    ([string]$taskCacheRender.script) -match '@[A-Z_]+@' -or @($taskCacheRender.scope).Count -eq 0) {
+    throw 'Rendered incremental cleanup source, scope or implementation pin differs'
+}
+$taskSource = [string]$taskCacheRender.script + [Environment]::NewLine + $taskSource
 $taskSourceDigest = (Get-FileHash -LiteralPath $taskSourcePath -Algorithm SHA256).Hash.ToLowerInvariant()
 $taskEnvironment = [ordered]@{
     ZIRCON_REPO_ROOT = $taskRepo
@@ -156,7 +170,10 @@ if (-not $taskInstalledScript.Replace("`r`n", "`n").StartsWith($taskExpectedScri
     runtimeOperationId = $ExpectedRuntimeOperationId; maintenanceSession = $SessionId
     maxObjectsPerRun = 64; maxBytesPerRun = 268435456; controllerRestartRequired = $false
     incrementalCacheMaxBytesPerRun = 34359738368L; incrementalCacheTriggerFreeBytes = 85899345920L
-    incrementalDCacheTriggerFreeBytes = 42949672960L
+    incrementalDCacheTriggerFreeBytes = 85899345920L
+    incrementalCacheScopeCount = @($taskCacheRender.scope).Count
+    incrementalCacheImplementationSha256 = $taskCacheModuleDigest
+    incrementalCacheTemplateSha256 = $taskCacheTemplateDigest
     governanceStagePreserved = $taskPreserveGovernance; readbackVerified = $true
     runtimeBinding = 'same reviewed driver; fresh native owners per new run; exact runtime fence thereafter'
     runtimeBindingImplementationSha256 = $taskEnvironment.ZIRCON_CLEANUP_BINDING_SHA256

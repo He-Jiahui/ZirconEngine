@@ -8,6 +8,9 @@ pub(super) fn wire_host_shell_drag_resize_callbacks(
     let weak = Rc::downgrade(host);
     host_shell.on_floating_window_header_pointer_clicked(move |x, y| {
         if let Some(host) = weak.upgrade() {
+            if host.borrow().main_window_close_blocks_session_ui() {
+                return;
+            }
             host.borrow_mut()
                 .floating_window_header_pointer_clicked(x, y);
         }
@@ -17,6 +20,9 @@ pub(super) fn wire_host_shell_drag_resize_callbacks(
     let weak = Rc::downgrade(host);
     host_shell.on_host_drag_pointer_event(move |kind, x, y| {
         if let Some(host) = weak.upgrade() {
+            if host.borrow().main_window_close_blocks_session_ui() {
+                return;
+            }
             host.borrow_mut()
                 .host_drag_pointer_event(drag_source_window_id.as_ref(), kind, x, y);
         }
@@ -25,6 +31,9 @@ pub(super) fn wire_host_shell_drag_resize_callbacks(
     let weak = Rc::downgrade(host);
     host_shell.on_host_resize_pointer_event(move |kind, x, y| {
         if let Some(host) = weak.upgrade() {
+            if host.borrow().main_window_close_blocks_session_ui() {
+                return;
+            }
             host.borrow_mut().host_resize_pointer_event(
                 resize_source_window_id.as_ref(),
                 kind,

@@ -467,6 +467,36 @@ impl EditorUiHost {
         ))
     }
 
+    pub(super) fn clear_documents_for_main_window_close(
+        &self,
+        documents: &crate::core::extension::DocumentCloseAdmission,
+        scene: &crate::core::editing::engine::SceneCloseAdmission,
+    ) -> Result<(), EditorError> {
+        let clear = self.document_toolkits.begin_clear_for_close(documents)?;
+        let mut transition = self
+            .transactions
+            .begin_exclusive_close_transition("clear closing document histories", scene)
+            .map_err(|error| EditorError::Project(error.to_string()))?;
+        for descriptor in self.document_toolkits.snapshot().descriptors() {
+            let document = descriptor.document_id();
+            transition
+                .clear_history_and_context::<CoreEditContext>(
+                    crate::core::editing::engine::HistoryContextId::Document(document),
+                    "CoreEditContext",
+                    |context| {
+                        context.animation_documents_mut().detach(document);
+                        Ok(())
+                    },
+                )
+                .map_err(|error| EditorError::Project(error.to_string()))?;
+        }
+        for descriptor in clear.commit()? {
+            self.dirty_documents
+                .unregister_document(descriptor.document_id())?;
+        }
+        Ok(())
+    }
+
     pub(super) fn clear_document_toolkits_if_clean(&self) -> Result<(), EditorError> {
         let clear = self.document_toolkits.begin_clear()?;
         for descriptor in self.document_toolkits.snapshot().descriptors() {

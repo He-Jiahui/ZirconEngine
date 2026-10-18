@@ -105,7 +105,9 @@ impl BaseScenePass {
         transmission_scene_color_view: Option<&wgpu::TextureView>,
         attachment_ops: RenderGraphAttachmentOps,
         depth_attachment_ops: RenderGraphAttachmentOps,
-        indexed_journal: Option<&mut Vec<crate::graphics::scene::scene_renderer::mesh::VirtualGeometryIndexedRunRef>>,
+        indexed_journal: Option<
+            &mut Vec<crate::graphics::scene::scene_renderer::mesh::VirtualGeometryIndexedRunRef>,
+        >,
     ) -> MeshDrawReplayStats
     where
         I: IntoIterator<Item = MeshDrawCommandStream<'a>>,
@@ -206,7 +208,9 @@ impl BaseScenePass {
         attachment_ops: RenderGraphAttachmentOps,
         depth_attachment_ops: RenderGraphAttachmentOps,
         provided_forward_receiver_bind_group: Option<&wgpu::BindGroup>,
-        indexed_journal: Option<&mut Vec<crate::graphics::scene::scene_renderer::mesh::VirtualGeometryIndexedRunRef>>,
+        indexed_journal: Option<
+            &mut Vec<crate::graphics::scene::scene_renderer::mesh::VirtualGeometryIndexedRunRef>,
+        >,
     ) -> MeshDrawReplayStats
     where
         I: IntoIterator<Item = MeshDrawCommandStream<'a>>,
@@ -405,7 +409,9 @@ impl BaseScenePass {
         transmission_scene_color_view: Option<&wgpu::TextureView>,
         attachment_ops: RenderGraphAttachmentOps,
         depth_attachment_ops: RenderGraphAttachmentOps,
-        indexed_journal: Option<&mut Vec<crate::graphics::scene::scene_renderer::mesh::VirtualGeometryIndexedRunRef>>,
+        indexed_journal: Option<
+            &mut Vec<crate::graphics::scene::scene_renderer::mesh::VirtualGeometryIndexedRunRef>,
+        >,
     ) -> MeshDrawReplayStats {
         if wire_only_load_store_can_skip(
             frame.overlays().display_mode,

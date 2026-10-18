@@ -1,0 +1,125 @@
+diff --git a/zircon_editor/src/scene/selection/domain_selection.rs b/zircon_editor/src/scene/selection/domain_selection.rs
+--- a/zircon_editor/src/scene/selection/domain_selection.rs
++++ b/zircon_editor/src/scene/selection/domain_selection.rs
+@@ -30,6 +30,22 @@ impl DomainSelection {
+         self.apply(items, primary)
+     }
+ 
++    pub(super) fn replace_with_last_input_primary<I>(&mut self, items: I) -> bool
++    where
++        I: IntoIterator<Item = EntityId>,
++    {
++        // Selection replacement projection begins.
++        let mut primary = None;
++        let mut selected = IndexSet::new();
++        for entity in items {
++            primary = Some(entity);
++            selected.insert(entity);
++        }
++        let changed = self.apply(selected, primary);
++        // Selection replacement projection ends.
++        changed
++    }
++
+     pub(super) fn select_only(&mut self, entity: EntityId) -> bool {
+         self.replace([entity], Some(entity))
+     }
+diff --git a/zircon_editor/src/scene/selection/selection_model.rs b/zircon_editor/src/scene/selection/selection_model.rs
+--- a/zircon_editor/src/scene/selection/selection_model.rs
++++ b/zircon_editor/src/scene/selection/selection_model.rs
+@@ -97,15 +97,15 @@ impl SelectionModel {
+     where
+         I: IntoIterator<Item = EntityId>,
+     {
+-        let items = items.into_iter().collect::<Vec<_>>();
++        // Selection mutation dispatch begins.
+         match mutation {
+-            SelectionMutation::Replace => {
+-                let primary = items.last().copied();
+-                self.replace_active(items, primary)
+-            }
++            SelectionMutation::Replace => self.mutate(self.active_domain, |selection| {
++                selection.replace_with_last_input_primary(items)
++            }),
+             SelectionMutation::Extend => self.extend_active(items),
+             SelectionMutation::Toggle => items.into_iter().fold(false, |changed, entity| {
+                 self.toggle_active(entity) || changed
+             }),
+         }
++        // Selection mutation dispatch ends.
+     }
+diff --git a/zircon_editor/src/scene/selection/tests.rs b/zircon_editor/src/scene/selection/tests.rs
+--- a/zircon_editor/src/scene/selection/tests.rs
++++ b/zircon_editor/src/scene/selection/tests.rs
+@@ -60,6 +60,10 @@ fn active_selection_mutation_applies_replace_extend_and_toggle_semantics() {
+     assert_eq!(active_items(&selection), [10, 20]);
+     assert_eq!(selection.active_primary(), Some(20));
+ 
++    assert!(selection.apply_active([10, 20, 10], SelectionMutation::Replace));
++    assert_eq!(active_items(&selection), [10, 20]);
++    assert_eq!(selection.active_primary(), Some(10));
++
+     assert!(selection.apply_active([30, 10], SelectionMutation::Extend));
+     assert_eq!(active_items(&selection), [10, 20, 30]);
+     assert_eq!(selection.active_primary(), Some(30));
+@@ -95,6 +95,60 @@ fn incremental_selection_mutations_do_not_clone_the_entire_set() {
+     assert!(!source.contains("self.items.clone()"));
+ }
+ 
++#[test]
++fn replace_mutation_uses_one_authoritative_selection_container() {
++    let model_source = include_str!("selection_model.rs");
++    let dispatch_prefix = source_between(
++        model_source,
++        "pub fn apply_active",
++        "Selection mutation dispatch begins.",
++    );
++    let dispatch = source_between(
++        model_source,
++        "Selection mutation dispatch begins.",
++        "Selection mutation dispatch ends.",
++    );
++    let dispatch_suffix = source_between(
++        model_source,
++        "Selection mutation dispatch ends.",
++        "pub fn clear",
++    );
++    let domain_source = include_str!("domain_selection.rs");
++    let replacement_prefix = source_between(
++        domain_source,
++        "fn replace_with_last_input_primary",
++        "Selection replacement projection begins.",
++    );
++    let replacement = source_between(
++        domain_source,
++        "Selection replacement projection begins.",
++        "Selection replacement projection ends.",
++    );
++    let replacement_suffix = source_between(
++        domain_source,
++        "Selection replacement projection ends.",
++        "fn select_only",
++    );
++
++    assert!(dispatch.contains("selection.replace_with_last_input_primary(items)"));
++    assert!(!dispatch_prefix.contains("Vec"));
++    assert!(!dispatch.contains("Vec"));
++    assert!(!dispatch_suffix.contains("Vec"));
++    assert!(!replacement_prefix.contains("Vec"));
++    assert!(!replacement.contains("Vec"));
++    assert!(!replacement_suffix.contains("Vec"));
++}
++
++fn source_between<'a>(source: &'a str, start: &str, end: &str) -> &'a str {
++    source
++        .split_once(start)
++        .expect("selection source must retain the start marker")
++        .1
++        .split_once(end)
++        .expect("selection source must retain the end marker")
++        .0
++}
++
+ fn ordered_items(selection: &SelectionModel, domain: WorldDomain) -> Vec<u64> {
+     selection.items(domain).iter().copied().collect()
+ }

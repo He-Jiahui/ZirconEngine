@@ -9,6 +9,7 @@ use super::{
     resolve_physical_line_visual_order, shape_horizontal_physical_line_fragment_with_provider,
 };
 
+// 混合方向样例只核对局部簇层级和排列，不替代完整布局方向验收。
 #[test]
 fn physical_fragment_resolves_one_post_wrap_visual_cluster_order() {
     let text = "abc אבג";
@@ -20,6 +21,7 @@ fn physical_fragment_resolves_one_post_wrap_visual_cluster_order() {
     assert_eq!(order.visual_indices, vec![0, 1, 2, 3, 6, 5, 4]);
 }
 
+// 本地文本与绝对源范围分开传入，核对塑形回执保留调用方坐标。
 #[test]
 fn physical_fragment_keeps_the_callers_absolute_source_range() {
     let mut provider = DirectTextShapeRunProvider::default();
@@ -48,6 +50,7 @@ fn physical_fragment_keeps_the_callers_absolute_source_range() {
     );
 }
 
+// 重新投影同一 Arc，核对共享身份及几何一致；不度量分配或塑形调用次数。
 #[test]
 fn horizontal_geometry_keeps_one_shaped_run_for_metrics_and_advances() {
     let mut provider = DirectTextShapeRunProvider::default();

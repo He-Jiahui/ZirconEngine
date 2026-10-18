@@ -1,0 +1,49 @@
+diff --git a/zircon_editor/src/ui/host/asset_editor_sessions/watcher/service.rs b/zircon_editor/src/ui/host/asset_editor_sessions/watcher/service.rs
+--- a/zircon_editor/src/ui/host/asset_editor_sessions/watcher/service.rs
++++ b/zircon_editor/src/ui/host/asset_editor_sessions/watcher/service.rs
+@@ -3,7 +3,6 @@ use std::path::PathBuf;
+ use std::time::{Duration, Instant};
+ 
+ use notify::{RecommendedWatcher, RecursiveMode, Watcher};
+-use zircon_runtime::asset::project::ProjectManager;
+ 
+ use super::budget::{UiAssetWatchBudget, UiAssetWatchPollAllowance};
+ use super::diagnostics::{UiAssetWorkspaceWatchDiagnostics, UiAssetWorkspaceWatchPollReport};
+@@ -29,10 +28,10 @@ pub(crate) struct UiAssetWorkspaceWatcher {
+ }
+ 
+ impl UiAssetWorkspaceWatcher {
+-    pub(crate) fn start(project: &ProjectManager) -> Result<Self, EditorError> {
++    /// Creates the watcher before its paired runtime generation is published.
++    pub(crate) fn prepare_from_asset_roots(asset_roots: Vec<PathBuf>) -> Result<Self, EditorError> {
+         let budget = UiAssetWatchBudget::try_new(4_096, 256, Duration::from_millis(2))
+             .map_err(|error| EditorError::UiAsset(error.to_string()))?;
+-        let asset_roots = project.project_asset_roots().to_vec();
+         let ingress = UiAssetWatchIngressHandle::new(budget.max_pending_paths);
+         let mut watchers = Vec::with_capacity(asset_roots.len());
+         for asset_root in &asset_roots {
+diff --git a/zircon_editor/src/ui/host/asset_editor_sessions/watcher/tests.rs b/zircon_editor/src/ui/host/asset_editor_sessions/watcher/tests.rs
+--- a/zircon_editor/src/ui/host/asset_editor_sessions/watcher/tests.rs
++++ b/zircon_editor/src/ui/host/asset_editor_sessions/watcher/tests.rs
+@@ -269,7 +269,7 @@ fn watcher_reports_a_res_uri_for_an_event_created_in_the_second_manifest_root() {
+     ];
+     manifest.save(paths.manifest_path()).unwrap();
+     let project = ProjectManager::open(&project_root).unwrap();
+-    let mut watcher = UiAssetWorkspaceWatcher::start(&project).unwrap();
++    let mut watcher = UiAssetWorkspaceWatcher::prepare_from_asset_roots(project.project_asset_roots().to_vec()).unwrap();
+     let changed = project_root.join("shared-assets/ui/second-root.zui");
+     fs::create_dir_all(changed.parent().unwrap()).unwrap();
+     fs::write(&changed, "version = 2").unwrap();
+@@ -291,3 +291,12 @@ fn watcher_reports_a_res_uri_for_an_event_created_in_the_second_manifest_root() {
+     drop(watcher);
+     let _ = fs::remove_dir_all(project_root);
+ }
++
++#[test]
++fn production_watcher_requires_a_prepared_root_snapshot_not_a_project_manager() {
++    let source = include_str!("service.rs");
++    let production = source.split("#[cfg(test)]").next().unwrap();
++
++    assert!(production.contains("prepare_from_asset_roots"));
++    assert!(!production.contains("ProjectManager"));
++}

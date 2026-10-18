@@ -10,15 +10,11 @@ use zircon_runtime_interface::{
 #[test]
 fn ordinary_project_present_completion_keeps_general_diagnostics_without_f2_content() {
     let args = parse_runtime_session_startup_args(["--project=fixture"]).unwrap();
-    let capture = ProjectPaths::resolve_path(
-        "E:/cargo-targets/zircon-local/reports/runtime-first-frame.png",
-    )
-    .unwrap();
-    let config = runtime_entry_app_config_for_startup_args(
-        &args,
-        NonZeroU64::new(2),
-        Some(capture),
-    );
+    let capture =
+        ProjectPaths::resolve_path("E:/cargo-targets/zircon-local/reports/runtime-first-frame.png")
+            .unwrap();
+    let config =
+        runtime_entry_app_config_for_startup_args(&args, NonZeroU64::new(2), Some(capture));
     let mut emitted = false;
     let mut count = 0;
     let mut logs = Vec::new();
@@ -34,7 +30,10 @@ fn ordinary_project_present_completion_keeps_general_diagnostics_without_f2_cont
     )
     .unwrap();
 
-    assert_eq!(config.product_proof_policy(), RuntimeProductProofPolicy::GeneralProject);
+    assert_eq!(
+        config.product_proof_policy(),
+        RuntimeProductProofPolicy::GeneralProject
+    );
     assert!(config.first_frame_capture_path().is_some());
     assert!(emitted);
     assert_eq!(count, 1);
@@ -56,7 +55,10 @@ fn ordinary_project_present_completion_keeps_general_diagnostics_without_f2_cont
     .unwrap();
 
     assert_eq!(count, 2);
-    assert_eq!(exit.as_deref(), Some("runtime_presented_frame_limit_reached limit=2 count=2"));
+    assert_eq!(
+        exit.as_deref(),
+        Some("runtime_presented_frame_limit_reached limit=2 count=2")
+    );
 }
 
 #[test]
@@ -135,21 +137,37 @@ fn invalid_f2_configuration_is_rejected_before_runtime_loading() {
             "cause=F2 runtime product proof requires --project",
         ),
         (
-            vec!["--runtime-session-profile=headless", "--runtime-product-proof=f2-lit-mesh"],
+            vec![
+                "--runtime-session-profile=headless",
+                "--runtime-product-proof=f2-lit-mesh",
+            ],
             "cause=F2 runtime product proof requires --project",
         ),
         (
-            vec!["--project=fixture", "--runtime-session-profile=minimal", "--runtime-product-proof=f2-lit-mesh"],
+            vec![
+                "--project=fixture",
+                "--runtime-session-profile=minimal",
+                "--runtime-product-proof=f2-lit-mesh",
+            ],
             "cause=F2 runtime product proof requires a profile with a primary window",
         ),
         (
-            vec!["--project=fixture", "--runtime-session-profile=headless", "--runtime-product-proof=f2-lit-mesh"],
+            vec![
+                "--project=fixture",
+                "--runtime-session-profile=headless",
+                "--runtime-product-proof=f2-lit-mesh",
+            ],
             "cause=F2 runtime product proof requires a profile with a primary window",
         ),
     ] {
         let error = EntryRunner::run_runtime_with_args(args).unwrap_err();
-        assert!(error.to_string().contains("argument=--runtime-product-proof"));
-        assert!(error.to_string().contains(cause), "unexpected startup error: {error}");
+        assert!(error
+            .to_string()
+            .contains("argument=--runtime-product-proof"));
+        assert!(
+            error.to_string().contains(cause),
+            "unexpected startup error: {error}"
+        );
     }
 }
 
@@ -182,11 +200,17 @@ fn product_completion_snapshot(lit_mesh: bool) -> RuntimeDiagnosticsSnapshot {
         "render.material.fallback_count",
         "render.material.validation_error_count",
     ] {
-        snapshot.diagnostic_series.push(RuntimeDiagnosticSeriesSnapshot {
-            path: path.to_owned(),
-            current: Some(if lit_mesh && !path.starts_with("render.material.") { 1.0 } else { 0.0 }),
-            ..RuntimeDiagnosticSeriesSnapshot::default()
-        });
+        snapshot
+            .diagnostic_series
+            .push(RuntimeDiagnosticSeriesSnapshot {
+                path: path.to_owned(),
+                current: Some(if lit_mesh && !path.starts_with("render.material.") {
+                    1.0
+                } else {
+                    0.0
+                }),
+                ..RuntimeDiagnosticSeriesSnapshot::default()
+            });
     }
     if lit_mesh {
         snapshot.input = RuntimeInputDiagnosticsSnapshot {

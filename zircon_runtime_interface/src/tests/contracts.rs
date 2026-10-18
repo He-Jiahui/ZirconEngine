@@ -3009,19 +3009,19 @@ fn binding_missing_value_policy_round_trips_every_explicit_outcome() {
 
 #[test]
 fn runtime_host_request_batch_serializes_generation_bound_rumble_v2() {
-    use std::num::NonZeroU64;
     use crate::ZrRuntimeGamepadRumbleRequestV2;
+    use std::num::NonZeroU64;
 
     let generation = NonZeroU64::new(u64::MAX).unwrap();
     let batch = ZrRuntimeHostRequestBatchV1::new(
         ZIRCON_RUNTIME_ABI_VERSION_V1,
         vec![
-            ZrRuntimeHostRequestV1::gamepad_rumble_v2(
-                ZrRuntimeGamepadRumbleRequestV2::add(7, generation, 0.5, 1.0, 125),
-            ),
-            ZrRuntimeHostRequestV1::gamepad_rumble_v2(
-                ZrRuntimeGamepadRumbleRequestV2::stop(7, generation),
-            ),
+            ZrRuntimeHostRequestV1::gamepad_rumble_v2(ZrRuntimeGamepadRumbleRequestV2::add(
+                7, generation, 0.5, 1.0, 125,
+            )),
+            ZrRuntimeHostRequestV1::gamepad_rumble_v2(ZrRuntimeGamepadRumbleRequestV2::stop(
+                7, generation,
+            )),
         ],
     );
     let decoded: ZrRuntimeHostRequestBatchV1 = ui_input_round_trip(&batch);
@@ -3029,19 +3029,23 @@ fn runtime_host_request_batch_serializes_generation_bound_rumble_v2() {
     let json = serde_json::to_value(&batch).unwrap();
     for request in json["requests"].as_array().unwrap() {
         assert!(request.get("GamepadRumble").is_none());
-        assert_eq!(request["GamepadRumbleV2"]["generation"].as_u64(), Some(u64::MAX));
+        assert_eq!(
+            request["GamepadRumbleV2"]["generation"].as_u64(),
+            Some(u64::MAX)
+        );
     }
 }
 
 #[test]
 fn runtime_gamepad_rumble_v2_rejects_missing_or_invalid_generation() {
-    use std::num::NonZeroU64;
     use crate::ZrRuntimeGamepadRumbleRequestV2;
+    use std::num::NonZeroU64;
 
     let valid = serde_json::to_value(ZrRuntimeGamepadRumbleRequestV2::stop(
         7,
         NonZeroU64::new(1).unwrap(),
-    )).unwrap();
+    ))
+    .unwrap();
     let mut missing = valid.clone();
     missing.as_object_mut().unwrap().remove("generation");
     let mut invalid = vec![missing];
@@ -3056,7 +3060,9 @@ fn runtime_gamepad_rumble_v2_rejects_missing_or_invalid_generation() {
         invalid.push(request);
     }
     for request in invalid {
-        assert!(serde_json::from_value::<ZrRuntimeGamepadRumbleRequestV2>(request.clone()).is_err());
+        assert!(
+            serde_json::from_value::<ZrRuntimeGamepadRumbleRequestV2>(request.clone()).is_err()
+        );
         let batch = serde_json::json!({
             "abi_version": ZIRCON_RUNTIME_ABI_VERSION_V1,
             "requests": [{"GamepadRumbleV2": request}],

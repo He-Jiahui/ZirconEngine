@@ -29,7 +29,9 @@ enum ModelImportCloseResumePreflight {
 impl ModelImportCloseResumePreflight {
     fn from_error(error: &RetainedProjectCloseError) -> Option<Self> {
         match error {
-            RetainedProjectCloseError::PendingDocumentSave { .. } => Some(Self::PendingDocumentSave),
+            RetainedProjectCloseError::PendingDocumentSave { .. } => {
+                Some(Self::PendingDocumentSave)
+            }
             RetainedProjectCloseError::QueuedDocumentSaveAll => Some(Self::QueuedDocumentSaveAll),
             _ => None,
         }
@@ -76,10 +78,17 @@ impl ModelImportSettlement {
     }
 
     pub(super) fn run_scene_apply<F>(
-        &mut self, blocked: String, panicked: String, apply: F,
+        &mut self,
+        blocked: String,
+        panicked: String,
+        apply: F,
     ) -> Result<bool, String>
-    where F: FnOnce() -> Result<bool, String> {
-        if !self.begin_scene_apply() { return Err(blocked); }
+    where
+        F: FnOnce() -> Result<bool, String>,
+    {
+        if !self.begin_scene_apply() {
+            return Err(blocked);
+        }
         let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(apply))
             .unwrap_or_else(|_| Err(panicked));
         if let Err(error) = &result {
@@ -97,14 +106,17 @@ impl ModelImportSettlement {
     fn message_key(&self) -> &'static str {
         match self.phase {
             ModelImportSettlementPhase::ProjectionPending
-            | ModelImportSettlementPhase::ProjectionRetryRequired =>
-                "editor.asset.model_import.projection_pending",
+            | ModelImportSettlementPhase::ProjectionRetryRequired => {
+                "editor.asset.model_import.projection_pending"
+            }
             ModelImportSettlementPhase::Superseded => "editor.asset.model_import.superseded",
-            ModelImportSettlementPhase::CloseRetryRequired =>
-                "editor.asset.model_import.close_pending",
+            ModelImportSettlementPhase::CloseRetryRequired => {
+                "editor.asset.model_import.close_pending"
+            }
             ModelImportSettlementPhase::RepairRequired
-            | ModelImportSettlementPhase::CloseRepairRequired =>
-                "editor.asset.model_import.repair_required",
+            | ModelImportSettlementPhase::CloseRepairRequired => {
+                "editor.asset.model_import.repair_required"
+            }
         }
     }
 }
@@ -149,27 +161,41 @@ impl RetainedEditorHost {
         &mut self,
         source: std::path::PathBuf,
     ) -> Result<(), String> {
-        if self.pending_asset_deletion.is_some() || self.pending_asset_relocation.is_some()
+        if self.pending_asset_deletion.is_some()
+            || self.pending_asset_relocation.is_some()
             || self.pending_model_import.is_some()
         {
             return Err(self.model_import_text("editor.asset.model_import.busy"));
         }
-        let identity = self.editor_manager.enter().map_err(|error| error.to_string())?
+        let identity = self
+            .editor_manager
+            .enter()
+            .map_err(|error| error.to_string())?
             .active_scene_identity_for_session()
             .ok_or_else(|| self.model_import_text("editor.asset.model_import.no_scene"))?;
-        let ticket = self.editor_asset_manager_at_use_point()
+        let ticket = self
+            .editor_asset_manager_at_use_point()
             .map_err(|error| error.to_string())?
-            .submit_model_import(source.clone()).map_err(|error| error.to_string())?;
-        let display_path = ProjectPaths::display_path(&source).to_string_lossy().into_owned();
+            .submit_model_import(source.clone())
+            .map_err(|error| error.to_string())?;
+        let display_path = ProjectPaths::display_path(&source)
+            .to_string_lossy()
+            .into_owned();
         self.pending_model_import = Some(PendingModelImport {
-            ticket, display_path, identity, close_requested: false, close_attempted: false,
+            ticket,
+            display_path,
+            identity,
+            close_requested: false,
+            close_attempted: false,
             settlement: None,
         });
         Ok(())
     }
 
     pub(in crate::ui::retained_host::app) fn cancel_pending_model_import(&mut self) -> bool {
-        let Some(mut pending) = self.pending_model_import.take() else { return true; };
+        let Some(mut pending) = self.pending_model_import.take() else {
+            return true;
+        };
         if !pending.close_requested {
             pending.close_requested = true;
             pending.close_attempted = false;
@@ -184,7 +210,9 @@ impl RetainedEditorHost {
     }
 
     pub(in crate::ui::retained_host::app) fn poll_model_import(&mut self) {
-        let Some(mut pending) = self.pending_model_import.take() else { return; };
+        let Some(mut pending) = self.pending_model_import.take() else {
+            return;
+        };
         if pending.settlement.is_none() {
             let Some(result) = pending.ticket.try_take() else {
                 self.pending_model_import = Some(pending);
@@ -210,7 +238,9 @@ impl RetainedEditorHost {
         match self.model_import_origin_is_current(&pending) {
             Ok(true) => {}
             Ok(false) => {
-                let already_superseded = pending.settlement.as_ref()
+                let already_superseded = pending
+                    .settlement
+                    .as_ref()
                     .is_some_and(|s| s.phase == ModelImportSettlementPhase::Superseded);
                 if !already_superseded {
                     self.dismiss_model_import_decision(&mut pending);
@@ -235,8 +265,11 @@ impl RetainedEditorHost {
                 s.close_may_have_started = true;
                 stale_close_decision = s.close_resume_preflight.take().is_some();
                 if !matches!(close_phase, ProjectCloseCoordinatorPhase::Quiescing)
-                    && !matches!(s.phase, ModelImportSettlementPhase::Superseded
-                        | ModelImportSettlementPhase::CloseRepairRequired)
+                    && !matches!(
+                        s.phase,
+                        ModelImportSettlementPhase::Superseded
+                            | ModelImportSettlementPhase::CloseRepairRequired
+                    )
                 {
                     s.phase = ModelImportSettlementPhase::CloseRepairRequired;
                     stale_close_decision = true;
@@ -245,7 +278,9 @@ impl RetainedEditorHost {
         }
         if stale_close_decision {
             self.dismiss_model_import_decision(&mut pending);
-            if let Some(s) = pending.settlement.as_mut() { s.decision_attempted = false; }
+            if let Some(s) = pending.settlement.as_mut() {
+                s.decision_attempted = false;
+            }
         }
         let resume_allowed = self.model_import_close_resume_allowed(&pending);
         let action = self.model_import_decision(&pending);
@@ -255,23 +290,28 @@ impl RetainedEditorHost {
             match (action.as_str(), phase) {
                 ("keep", _) => return, // explicit acknowledgement; durable evidence remains on disk
                 ("retry", Some(ModelImportSettlementPhase::ProjectionRetryRequired))
-                    if !pending.close_requested => {
-                        if let Some(s) = pending.settlement.as_mut() {
-                            s.phase = ModelImportSettlementPhase::ProjectionPending;
-                        }
+                    if !pending.close_requested =>
+                {
+                    if let Some(s) = pending.settlement.as_mut() {
+                        s.phase = ModelImportSettlementPhase::ProjectionPending;
                     }
+                }
                 ("retry", Some(ModelImportSettlementPhase::CloseRetryRequired))
-                    if pending.close_requested => pending.close_attempted = false,
+                    if pending.close_requested =>
+                {
+                    pending.close_attempted = false
+                }
                 ("resume", Some(ModelImportSettlementPhase::CloseRetryRequired))
-                    if resume_allowed => {
-                        pending.close_requested = false;
-                        pending.close_attempted = false;
-                        if let Some(s) = pending.settlement.as_mut() {
-                            s.phase = s.resume_phase;
-                            s.close_resume_preflight = None;
-                            s.decision_attempted = false;
-                        }
+                    if resume_allowed =>
+                {
+                    pending.close_requested = false;
+                    pending.close_attempted = false;
+                    if let Some(s) = pending.settlement.as_mut() {
+                        s.phase = s.resume_phase;
+                        s.close_resume_preflight = None;
+                        s.decision_attempted = false;
                     }
+                }
                 _ => {} // default, cancel, unknown and stale options never start work
             }
         }
@@ -284,8 +324,8 @@ impl RetainedEditorHost {
                     s.resume_phase = s.phase;
                 }
             }
-            let began_in_decision = self.project_close_coordinator.phase()
-                == ProjectCloseCoordinatorPhase::Decision;
+            let began_in_decision =
+                self.project_close_coordinator.phase() == ProjectCloseCoordinatorPhase::Decision;
             match self.commit_project_close() {
                 Ok(()) => {
                     self.dismiss_model_import_decision(&mut pending);
@@ -294,27 +334,45 @@ impl RetainedEditorHost {
                 Err(error) => {
                     // Only Decision/Quiescing can enter the existing close continuation.
                     // Terminal close phases require their existing repair owner.
-                    let retryable = matches!(self.project_close_coordinator.phase(),
-                        ProjectCloseCoordinatorPhase::Decision | ProjectCloseCoordinatorPhase::Quiescing);
+                    let retryable = matches!(
+                        self.project_close_coordinator.phase(),
+                        ProjectCloseCoordinatorPhase::Decision
+                            | ProjectCloseCoordinatorPhase::Quiescing
+                    );
                     let preflight = ModelImportCloseResumePreflight::from_error(&error);
                     let still_decision = self.project_close_coordinator.phase()
                         == ProjectCloseCoordinatorPhase::Decision;
                     if let Some(s) = pending.settlement.as_mut() {
-                        let safe_preflight = began_in_decision && still_decision
-                            && preflight.is_some() && !s.close_may_have_started;
+                        let safe_preflight = began_in_decision
+                            && still_decision
+                            && preflight.is_some()
+                            && !s.close_may_have_started;
                         s.close_may_have_started |= !safe_preflight;
                         s.close_resume_preflight = if safe_preflight { preflight } else { None };
-                        s.fail(if retryable { ModelImportSettlementPhase::CloseRetryRequired }
-                            else { ModelImportSettlementPhase::CloseRepairRequired }, error.to_string());
+                        s.fail(
+                            if retryable {
+                                ModelImportSettlementPhase::CloseRetryRequired
+                            } else {
+                                ModelImportSettlementPhase::CloseRepairRequired
+                            },
+                            error.to_string(),
+                        );
                     }
                 }
             }
         } else if !pending.close_requested
             && phase == Some(ModelImportSettlementPhase::ProjectionPending)
         {
-            let has_receipt = pending.settlement.as_ref().is_some_and(|s| s.receipt.is_some());
+            let has_receipt = pending
+                .settlement
+                .as_ref()
+                .is_some_and(|s| s.receipt.is_some());
             if !has_receipt {
-                let error = pending.settlement.as_ref().map(|s| s.error.clone()).unwrap_or_default();
+                let error = pending
+                    .settlement
+                    .as_ref()
+                    .map(|s| s.error.clone())
+                    .unwrap_or_default();
                 self.report_model_import_worker_failure(error);
                 return;
             }
@@ -351,21 +409,30 @@ impl RetainedEditorHost {
     fn model_import_close_resume_allowed(&self, pending: &PendingModelImport) -> bool {
         pending.close_requested
             && self.project_close_coordinator.phase() == ProjectCloseCoordinatorPhase::Decision
-            && pending.settlement.as_ref().is_some_and(|s|
+            && pending.settlement.as_ref().is_some_and(|s| {
                 s.phase == ModelImportSettlementPhase::CloseRetryRequired
-                    && !s.close_may_have_started && s.close_resume_preflight.is_some())
+                    && !s.close_may_have_started
+                    && s.close_resume_preflight.is_some()
+            })
     }
 
     fn model_import_scene_admission_is_open(&self, pending: &PendingModelImport) -> bool {
         !pending.close_requested
             && self.project_close_coordinator.phase() == ProjectCloseCoordinatorPhase::Decision
-            && pending.settlement.as_ref().is_some_and(|s| !s.close_may_have_started)
+            && pending
+                .settlement
+                .as_ref()
+                .is_some_and(|s| !s.close_may_have_started)
     }
 
     fn model_import_origin_is_current(&self, pending: &PendingModelImport) -> Result<bool, String> {
-        let access = self.asset_runtime_access.project_asset_manager()
+        let access = self
+            .asset_runtime_access
+            .project_asset_manager()
             .map_err(|error| error.to_string())?;
-        let Some(snapshot) = access.current_project_generation_snapshot() else { return Ok(false); };
+        let Some(snapshot) = access.current_project_generation_snapshot() else {
+            return Ok(false);
+        };
         let (project, _) = snapshot.into_parts();
         if project.activation_identity() != pending.ticket.project_activation_identity() {
             return Ok(false);
@@ -373,21 +440,31 @@ impl RetainedEditorHost {
         if pending.close_requested {
             return Ok(true);
         }
-        let identity = self.editor_manager.enter().map_err(|error| error.to_string())?
+        let identity = self
+            .editor_manager
+            .enter()
+            .map_err(|error| error.to_string())?
             .active_scene_identity_for_session();
         Ok(identity.as_ref() == Some(&pending.identity))
     }
 
-    fn try_settle_model_import(&mut self, pending: &mut PendingModelImport)
-        -> ModelImportProjectionAttempt
-    {
+    fn try_settle_model_import(
+        &mut self,
+        pending: &mut PendingModelImport,
+    ) -> ModelImportProjectionAttempt {
         use ModelImportProjectionAttempt as Attempt;
         if !self.model_import_scene_admission_is_open(pending) {
-            return Attempt::Repair(self.model_import_text("editor.asset.model_import.repair_required"));
+            return Attempt::Repair(
+                self.model_import_text("editor.asset.model_import.repair_required"),
+            );
         }
         let receipt = match pending.settlement.as_ref().and_then(|s| s.receipt.clone()) {
             Some(receipt) => receipt,
-            None => return Attempt::Repair(self.model_import_text("editor.asset.model_import.repair_required")),
+            None => {
+                return Attempt::Repair(
+                    self.model_import_text("editor.asset.model_import.repair_required"),
+                )
+            }
         };
         let editor_assets = match self.editor_asset_manager_at_use_point() {
             Ok(manager) => manager,
@@ -397,15 +474,23 @@ impl RetainedEditorHost {
         if let Err(error) = editor_assets.refresh_from_runtime_project() {
             return Attempt::Retry(error.to_string());
         }
-        let published = match editor_assets.model_import_projection(
-            pending.ticket.project_activation_identity(), &receipt)
+        let published = match editor_assets
+            .model_import_projection(pending.ticket.project_activation_identity(), &receipt)
         {
-            EditorModelImportProjection::Published { generation_sequence } => generation_sequence,
-            EditorModelImportProjection::AwaitingPublication =>
-                return Attempt::Retry(self.model_import_text("editor.asset.model_import.projection_not_published")),
+            EditorModelImportProjection::Published {
+                generation_sequence,
+            } => generation_sequence,
+            EditorModelImportProjection::AwaitingPublication => {
+                return Attempt::Retry(
+                    self.model_import_text("editor.asset.model_import.projection_not_published"),
+                )
+            }
             EditorModelImportProjection::Superseded => return Attempt::Superseded,
-            EditorModelImportProjection::Unsupported =>
-                return Attempt::Repair(self.model_import_text("editor.asset.model_import.unsupported_projection")),
+            EditorModelImportProjection::Unsupported => {
+                return Attempt::Repair(
+                    self.model_import_text("editor.asset.model_import.unsupported_projection"),
+                )
+            }
         };
         drop(editor_assets);
         let project_assets = match self.asset_runtime_access.project_asset_manager() {
@@ -425,7 +510,9 @@ impl RetainedEditorHost {
             return Attempt::Superseded;
         }
         if project.catalog_input_generation().sequence() != published {
-            return Attempt::Retry(self.model_import_text("editor.asset.model_import.generation_changed"));
+            return Attempt::Retry(
+                self.model_import_text("editor.asset.model_import.generation_changed"),
+            );
         }
         let resources = match self.resolve_resource_manager() {
             Ok(manager) => manager,
@@ -460,17 +547,24 @@ impl RetainedEditorHost {
             settlement.run_scene_apply(
                 self.model_import_text("editor.asset.model_import.repair_required"),
                 self.model_import_text("editor.asset.model_import.scene_apply_panicked"),
-                || self.runtime.import_mesh_asset(model, material, display_path)
-                    .map_err(|error| error.to_string()),
+                || {
+                    self.runtime
+                        .import_mesh_asset(model, material, display_path)
+                        .map_err(|error| error.to_string())
+                },
             )
         });
         match result {
-            ProjectGenerationCommitOutcome::Superseded { .. } =>
-                Attempt::Retry(self.model_import_text("editor.asset.model_import.generation_changed")),
+            ProjectGenerationCommitOutcome::Superseded { .. } => Attempt::Retry(
+                self.model_import_text("editor.asset.model_import.generation_changed"),
+            ),
             ProjectGenerationCommitOutcome::Committed(Err(error)) => Attempt::Repair(error),
             ProjectGenerationCommitOutcome::Committed(Ok(changed)) => {
-                if changed { self.mark_render_and_presentation_dirty(); }
-                else { self.invalidate_host(HostInvalidationMask::PRESENTATION_DATA); }
+                if changed {
+                    self.mark_render_and_presentation_dirty();
+                } else {
+                    self.invalidate_host(HostInvalidationMask::PRESENTATION_DATA);
+                }
                 Attempt::Inserted
             }
         }
@@ -486,9 +580,15 @@ impl RetainedEditorHost {
     fn model_import_decision(&self, pending: &PendingModelImport) -> Option<String> {
         let ticket = pending.settlement.as_ref()?.decision.as_ref()?;
         let center = self.runtime.context().notifications().decisions().ok()?;
-        center.snapshot().into_iter().find(|snapshot| snapshot.ticket() == ticket)
-            .and_then(|snapshot| snapshot.resolved()
-                .map(|receipt| receipt.option_id().as_str().to_owned()))
+        center
+            .snapshot()
+            .into_iter()
+            .find(|snapshot| snapshot.ticket() == ticket)
+            .and_then(|snapshot| {
+                snapshot
+                    .resolved()
+                    .map(|receipt| receipt.option_id().as_str().to_owned())
+            })
     }
 
     fn dismiss_model_import_decision(&mut self, pending: &mut PendingModelImport) {
@@ -502,8 +602,12 @@ impl RetainedEditorHost {
 
     fn publish_model_import_decision(&mut self, pending: &mut PendingModelImport) {
         let resume_allowed = self.model_import_close_resume_allowed(pending);
-        let Some(s) = pending.settlement.as_mut() else { return; };
-        if s.decision.is_some() || s.decision_attempted { return; }
+        let Some(s) = pending.settlement.as_mut() else {
+            return;
+        };
+        if s.decision.is_some() || s.decision_attempted {
+            return;
+        }
         s.decision_attempted = true; // capacity/service/expiry never causes a tick retry
         let Some(sequence) = s.decision_sequence.checked_add(1) else {
             self.set_status_line(s.error.clone());
@@ -513,48 +617,85 @@ impl RetainedEditorHost {
         let publish = || -> Result<DecisionTicket, String> {
             let mut options = Vec::new();
             let retry = match s.phase {
-                ModelImportSettlementPhase::ProjectionRetryRequired =>
-                    Some("editor.asset.model_import.retry_projection"),
-                ModelImportSettlementPhase::CloseRetryRequired =>
-                    Some("editor.asset.model_import.retry_close"),
+                ModelImportSettlementPhase::ProjectionRetryRequired => {
+                    Some("editor.asset.model_import.retry_projection")
+                }
+                ModelImportSettlementPhase::CloseRetryRequired => {
+                    Some("editor.asset.model_import.retry_close")
+                }
                 _ => None,
             };
             if let Some(label) = retry {
-                options.push(DecisionOption::new(DecisionOptionId::parse("retry")
-                    .map_err(|error| error.to_string())?, label).map_err(|error| error.to_string())?);
+                options.push(
+                    DecisionOption::new(
+                        DecisionOptionId::parse("retry").map_err(|error| error.to_string())?,
+                        label,
+                    )
+                    .map_err(|error| error.to_string())?,
+                );
             }
             if resume_allowed {
-                options.push(DecisionOption::new(DecisionOptionId::parse("resume")
-                    .map_err(|error| error.to_string())?, "editor.asset.model_import.resume")
-                    .map_err(|error| error.to_string())?);
+                options.push(
+                    DecisionOption::new(
+                        DecisionOptionId::parse("resume").map_err(|error| error.to_string())?,
+                        "editor.asset.model_import.resume",
+                    )
+                    .map_err(|error| error.to_string())?,
+                );
             }
             let keep = DecisionOptionId::parse("keep").map_err(|error| error.to_string())?;
             let defer = DecisionOptionId::parse("defer").map_err(|error| error.to_string())?;
-            options.push(DecisionOption::new(keep, "editor.asset.model_import.keep")
-                .map_err(|error| error.to_string())?);
-            options.push(DecisionOption::new(defer.clone(), "editor.asset.model_import.defer")
-                .map_err(|error| error.to_string())?);
+            options.push(
+                DecisionOption::new(keep, "editor.asset.model_import.keep")
+                    .map_err(|error| error.to_string())?,
+            );
+            options.push(
+                DecisionOption::new(defer.clone(), "editor.asset.model_import.defer")
+                    .map_err(|error| error.to_string())?,
+            );
             let mut subject = String::new();
             for ch in pending.display_path.chars() {
-                if subject.len() + ch.len_utf8() > MAX_DECISION_DISPLAY_SUBJECT_BYTES { break; }
+                if subject.len() + ch.len_utf8() > MAX_DECISION_DISPLAY_SUBJECT_BYTES {
+                    break;
+                }
                 subject.push(ch);
             }
             let notification = DecisionNotification::new(
-                NotificationId::parse(format!("editor.asset.model_import.{}.{}",
-                    pending.ticket.id().value(), sequence)).map_err(|error| error.to_string())?,
+                NotificationId::parse(format!(
+                    "editor.asset.model_import.{}.{}",
+                    pending.ticket.id().value(),
+                    sequence
+                ))
+                .map_err(|error| error.to_string())?,
                 NotificationSource::builtin("editor.assets").map_err(|error| error.to_string())?,
-                "editor.asset.model_import.review.title", s.message_key(), options)
+                "editor.asset.model_import.review.title",
+                s.message_key(),
+                options,
+            )
+            .map_err(|error| error.to_string())?
+            .with_default_option(defer.clone())
+            .map_err(|error| error.to_string())?
+            .with_cancel_option(defer)
+            .map_err(|error| error.to_string())?
+            .with_display_subject(subject)
+            .map_err(|error| error.to_string())?;
+            self.runtime
+                .context()
+                .notifications()
+                .decisions()
                 .map_err(|error| error.to_string())?
-                .with_default_option(defer.clone()).map_err(|error| error.to_string())?
-                .with_cancel_option(defer).map_err(|error| error.to_string())?
-                .with_display_subject(subject).map_err(|error| error.to_string())?;
-            self.runtime.context().notifications().decisions().map_err(|error| error.to_string())?
-                .publish(notification).map_err(|error| error.to_string())
+                .publish(notification)
+                .map_err(|error| error.to_string())
         };
         match publish() {
-            Ok(ticket) => { s.decision = Some(ticket); self.refresh_activity_notification_presentation(); }
+            Ok(ticket) => {
+                s.decision = Some(ticket);
+                self.refresh_activity_notification_presentation();
+            }
             Err(error) => self.set_status_line(error),
         }
-        if !s.error.is_empty() { self.set_status_line(s.error.clone()); }
+        if !s.error.is_empty() {
+            self.set_status_line(s.error.clone());
+        }
     }
 }

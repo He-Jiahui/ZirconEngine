@@ -1,0 +1,181 @@
+diff --git a/zircon_editor/src/ui/v2_design_tokens.rs b/zircon_editor/src/ui/v2_design_tokens.rs
+deleted file mode 100644
+--- a/zircon_editor/src/ui/v2_design_tokens.rs
++++ /dev/null
+@@ -1,40 +0,0 @@
+-//! Editor-only preparation of cached V2 documents before style resolution.
+-//!
+-//! `UiV2PrototypeStoreFileCache` owns immutable, reusable source documents.
+-//! Copying at this boundary keeps the editor's token namespace out of generic
+-//! runtime/game surfaces while still making it available to every editor V2
+-//! style resolver.
+-
+-use std::sync::{OnceLock, RwLock};
+-
+-use zircon_runtime::ui::v2::UiV2StyleResolver;
+-use zircon_runtime_interface::ui::{design_tokens::EditorDesignTokens, v2::UiV2AssetDocument};
+-
+-pub(crate) fn prepare_editor_v2_document(source: &UiV2AssetDocument) -> UiV2AssetDocument {
+-    let mut document = source.clone();
+-    let tokens = match active_editor_v2_design_tokens().read() {
+-        Ok(tokens) => tokens,
+-        Err(poisoned) => poisoned.into_inner(),
+-    };
+-    UiV2StyleResolver::register_editor_design_tokens(&mut document, &tokens);
+-    document
+-}
+-
+-pub(crate) fn install_editor_v2_design_tokens(tokens: &EditorDesignTokens) {
+-    match active_editor_v2_design_tokens().write() {
+-        Ok(mut active) => *active = tokens.clone(),
+-        Err(poisoned) => *poisoned.into_inner() = tokens.clone(),
+-    }
+-}
+-
+-pub(crate) fn active_editor_v2_design_tokens_snapshot() -> EditorDesignTokens {
+-    match active_editor_v2_design_tokens().read() {
+-        Ok(tokens) => tokens.clone(),
+-        Err(poisoned) => poisoned.into_inner().clone(),
+-    }
+-}
+-
+-fn active_editor_v2_design_tokens() -> &'static RwLock<EditorDesignTokens> {
+-    static TOKENS: OnceLock<RwLock<EditorDesignTokens>> = OnceLock::new();
+-    TOKENS.get_or_init(|| RwLock::new(EditorDesignTokens::workbench_dark()))
+-}
+diff --git a/zircon_editor/src/ui/design_tokens/mod.rs b/zircon_editor/src/ui/design_tokens/mod.rs
+new file mode 100644
+--- /dev/null
++++ b/zircon_editor/src/ui/design_tokens/mod.rs
+@@ -0,0 +1,40 @@
++//! Shared editor-only V2 design-token preparation before style resolution.
++//!
++//! `UiV2PrototypeStoreFileCache` owns immutable, reusable source documents.
++//! This owner is deliberately below asset editors, layouts, template runtime,
++//! and retained hosting so every V2 style resolver can share the active editor
++//! token namespace without introducing a UI-subsystem dependency cycle.
++
++use std::sync::{OnceLock, RwLock};
++
++use zircon_runtime::ui::v2::UiV2StyleResolver;
++use zircon_runtime_interface::ui::{design_tokens::EditorDesignTokens, v2::UiV2AssetDocument};
++
++pub(crate) fn prepare_editor_v2_document(source: &UiV2AssetDocument) -> UiV2AssetDocument {
++    let mut document = source.clone();
++    let tokens = match active_editor_v2_design_tokens().read() {
++        Ok(tokens) => tokens,
++        Err(poisoned) => poisoned.into_inner(),
++    };
++    UiV2StyleResolver::register_editor_design_tokens(&mut document, &tokens);
++    document
++}
++
++pub(crate) fn install_editor_v2_design_tokens(tokens: &EditorDesignTokens) {
++    match active_editor_v2_design_tokens().write() {
++        Ok(mut active) => *active = tokens.clone(),
++        Err(poisoned) => *poisoned.into_inner() = tokens.clone(),
++    }
++}
++
++pub(crate) fn active_editor_v2_design_tokens_snapshot() -> EditorDesignTokens {
++    match active_editor_v2_design_tokens().read() {
++        Ok(tokens) => tokens.clone(),
++        Err(poisoned) => poisoned.into_inner().clone(),
++    }
++}
++
++fn active_editor_v2_design_tokens() -> &'static RwLock<EditorDesignTokens> {
++    static TOKENS: OnceLock<RwLock<EditorDesignTokens>> = OnceLock::new();
++    TOKENS.get_or_init(|| RwLock::new(EditorDesignTokens::workbench_dark()))
++}
+diff --git a/zircon_editor/src/ui/mod.rs b/zircon_editor/src/ui/mod.rs
+--- a/zircon_editor/src/ui/mod.rs
++++ b/zircon_editor/src/ui/mod.rs
+@@ -9,5 +9,6 @@ pub mod binding_dispatch;
+ pub(crate) mod component_registry;
+ pub mod control;
++pub(crate) mod design_tokens;
+ pub mod host;
+ pub(crate) mod layouts;
+ pub mod material_editor;
+@@ -17,7 +18,6 @@ pub mod retained_host;
+ pub(crate) mod sample_grid;
+ pub(crate) mod template;
+ pub mod template_runtime;
+-pub(crate) mod v2_design_tokens;
+ pub(crate) mod widgets;
+ pub mod workbench;
+ 
+diff --git a/zircon_editor/src/ui/asset_editor/node_projection.rs b/zircon_editor/src/ui/asset_editor/node_projection.rs
+--- a/zircon_editor/src/ui/asset_editor/node_projection.rs
++++ b/zircon_editor/src/ui/asset_editor/node_projection.rs
+@@ -4,7 +4,7 @@ use std::sync::{Arc, Mutex, OnceLock};
+ 
+ use crate::ui::layouts::common::model_rc;
+ use crate::ui::retained_host::primitives::SharedString;
+-use crate::ui::v2_design_tokens::prepare_editor_v2_document;
++use crate::ui::design_tokens::prepare_editor_v2_document;
+ use thiserror::Error;
+ use toml::Value;
+ use zircon_runtime::asset::runtime_asset_path_with_dev_asset_root;
+diff --git a/zircon_editor/src/ui/asset_editor/preview/preview_host.rs b/zircon_editor/src/ui/asset_editor/preview/preview_host.rs
+--- a/zircon_editor/src/ui/asset_editor/preview/preview_host.rs
++++ b/zircon_editor/src/ui/asset_editor/preview/preview_host.rs
+@@ -6,7 +6,7 @@ use zircon_runtime_interface::ui::{event_ui::UiTreeId, layout::UiSize};
+ 
+ use crate::ui::asset_editor::session::UiAssetEditorSessionError;
+ use crate::ui::template::EditorTemplateRuntimeService;
+-use crate::ui::v2_design_tokens::prepare_editor_v2_document;
++use crate::ui::design_tokens::prepare_editor_v2_document;
+ 
+ #[derive(Clone, Debug, PartialEq)]
+ pub struct UiAssetPreviewHost {
+diff --git a/zircon_editor/src/ui/layouts/views/view_projection.rs b/zircon_editor/src/ui/layouts/views/view_projection.rs
+--- a/zircon_editor/src/ui/layouts/views/view_projection.rs
++++ b/zircon_editor/src/ui/layouts/views/view_projection.rs
+@@ -4,7 +4,7 @@ use std::sync::{Mutex, OnceLock};
+ 
+ use crate::ui::layouts::common::model_rc;
+ use crate::ui::retained_host::primitives::SharedString;
+-use crate::ui::v2_design_tokens::prepare_editor_v2_document;
++use crate::ui::design_tokens::prepare_editor_v2_document;
+ use thiserror::Error;
+ use toml::Value;
+ use zircon_runtime::asset::runtime_asset_path_with_dev_asset_root;
+diff --git a/zircon_editor/src/ui/template_runtime/runtime/runtime_host.rs b/zircon_editor/src/ui/template_runtime/runtime/runtime_host.rs
+--- a/zircon_editor/src/ui/template_runtime/runtime/runtime_host.rs
++++ b/zircon_editor/src/ui/template_runtime/runtime/runtime_host.rs
+@@ -30,7 +30,7 @@ use crate::ui::template_runtime::{
+     RetainedUiProjection, UiComponentShowcaseDemoError, UiComponentShowcaseDemoEventInput,
+     UiComponentShowcaseDemoState,
+ };
+-use crate::ui::v2_design_tokens::prepare_editor_v2_document;
++use crate::ui::design_tokens::prepare_editor_v2_document;
+ 
+ use super::{
+     build_session::{
+diff --git a/zircon_editor/src/ui/retained_host/app.rs b/zircon_editor/src/ui/retained_host/app.rs
+--- a/zircon_editor/src/ui/retained_host/app.rs
++++ b/zircon_editor/src/ui/retained_host/app.rs
+@@ -49,8 +49,8 @@ use crate::ui::host::module::EDITOR_MANAGER_NAME;
+ use crate::ui::host::resource_access::resolve_ready_handle;
+ use crate::ui::retained_host::ui_perf::UiPerfScenario;
+ use crate::ui::template_runtime::{EditorUiHostRuntime, EditorUiHostRuntimeError};
+-use crate::ui::v2_design_tokens::install_editor_v2_design_tokens;
++use crate::ui::design_tokens::install_editor_v2_design_tokens;
+ use crate::ui::workbench::autolayout::{
+     ResolutionScaleMode, ShellRegionId, ShellSizePx, WorkbenchChromeMetrics,
+     WorkbenchShellGeometry,
+ };
+diff --git a/zircon_editor/src/ui/retained_host/app/host_lifecycle/recompute/shell/builder.rs b/zircon_editor/src/ui/retained_host/app/host_lifecycle/recompute/shell/builder.rs
+--- a/zircon_editor/src/ui/retained_host/app/host_lifecycle/recompute/shell/builder.rs
++++ b/zircon_editor/src/ui/retained_host/app/host_lifecycle/recompute/shell/builder.rs
+@@ -95,7 +95,7 @@ mod tests {
+ 
+ impl RetainedEditorHost {
+     fn shell_token_region_defaults(&mut self) -> &BTreeMap<ShellRegionId, f32> {
+-        let tokens = crate::ui::v2_design_tokens::active_editor_v2_design_tokens_snapshot();
++        let tokens = crate::ui::design_tokens::active_editor_v2_design_tokens_snapshot();
+         let refresh_required = match self.shell_token_region_defaults.as_ref() {
+             Some((cached_tokens, _)) => cached_tokens != &tokens,
+             None => true,

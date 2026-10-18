@@ -1,0 +1,66 @@
+diff --git a/zircon_editor/src/ui/workbench/project/editor_project_document_load.rs b/zircon_editor/src/ui/workbench/project/editor_project_document_load.rs
+--- a/zircon_editor/src/ui/workbench/project/editor_project_document_load.rs
++++ b/zircon_editor/src/ui/workbench/project/editor_project_document_load.rs
+@@ -2,13 +2,17 @@ use zircon_runtime::asset::{project::ProjectManager, ProjectInfo};
+ use zircon_runtime::scene::world::SceneProjectError;
+ use zircon_runtime::scene::Scene;
+ 
+-use crate::core::settings::{SettingsAuthority, SettingsStore};
++use crate::core::settings::SettingsAuthority;
++
++#[cfg(test)]
++use crate::core::settings::SettingsStore;
+ 
+ use super::editor_project_document::{EditorProjectDocument, ProjectSettingsLoadState};
+ use super::editor_workspace_persistence::load_editor_workspace_with_diagnostics;
+ 
+ impl EditorProjectDocument {
+-    pub fn load_from_project(project: &ProjectManager) -> Result<Self, SceneProjectError> {
++    #[cfg(test)]
++    pub(crate) fn load_from_project(project: &ProjectManager) -> Result<Self, SceneProjectError> {
+         let root = project.paths().root();
+         let authority = SettingsAuthority::with_defaults();
+         let store = SettingsStore::from_roots(root, Some(root));
+diff --git a/tools/tests/test_editor10_project_document_settings_authority_contract.py b/tools/tests/test_editor10_project_document_settings_authority_contract.py
+new file mode 100644
+--- /dev/null
++++ b/tools/tests/test_editor10_project_document_settings_authority_contract.py
+@@ -0,0 +1,38 @@
++from pathlib import Path
++import unittest
++
++
++ROOT = Path(__file__).resolve().parents[2]
++DOCUMENT_LOAD = (
++    ROOT
++    / "zircon_editor"
++    / "src"
++    / "ui"
++    / "workbench"
++    / "project"
++    / "editor_project_document_load.rs"
++)
++PROJECT_ACCESS = ROOT / "zircon_editor" / "src" / "ui" / "host" / "project_access.rs"
++
++
++class ProjectDocumentSettingsAuthorityContractTests(unittest.TestCase):
++    def test_direct_loader_is_test_only_and_not_a_public_production_api(self) -> None:
++        source = DOCUMENT_LOAD.read_text(encoding="utf-8")
++
++        self.assertNotIn("pub fn load_from_project(", source)
++        self.assertIn(
++            "#[cfg(test)]\\n    pub(crate) fn load_from_project(", source
++        )
++        self.assertIn(
++            "#[cfg(test)]\\nuse crate::core::settings::SettingsStore;", source
++        )
++
++    def test_project_host_uses_the_activated_context_authority(self) -> None:
++        host = PROJECT_ACCESS.read_text(encoding="utf-8")
++
++        self.assertIn("EditorProjectDocument::load_from_activated_project(", host)
++        self.assertIn("self.settings.as_ref()", host)
++
++
++if __name__ == "__main__":
++    unittest.main()

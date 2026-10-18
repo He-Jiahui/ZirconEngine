@@ -1,0 +1,10 @@
+var console = %import("zr.system.console");
+var binary = %import("protocol/binary");
+
+console.printLine("protocol-binary-random-access-test");
+var result = binary.selfTest();
+console.printLine(result);
+if (result != 1) {
+    return result;
+}
+return 0;

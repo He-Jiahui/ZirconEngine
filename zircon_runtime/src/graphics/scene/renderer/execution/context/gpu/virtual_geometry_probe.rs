@@ -323,6 +323,7 @@ impl NativeProbe {
             range,
             credit,
             native_probe: None,
+            inspection_decoder: None,
             decoder: Box::new(move |bytes| {
                 let _ = &keepalive;
                 Ok(bytes.to_vec())
@@ -352,6 +353,7 @@ impl NativeProbe {
 impl VirtualGeometryReadyReadback {
     pub(in crate::graphics) fn into_native_probe_handle(mut self) -> Option<Self> {
         drop(std::mem::take(&mut self.outputs));
+        drop(self.inspection.take());
         drop(self._credit.take());
         self.native_probe.as_ref()?;
         Some(self)
@@ -359,6 +361,7 @@ impl VirtualGeometryReadyReadback {
     pub(in crate::graphics) fn clone_native_probe_handle(&self) -> Option<Self> {
         Some(Self {
             outputs: Default::default(),
+            inspection: None,
             _credit: None,
             native_probe: Some(Arc::clone(self.native_probe.as_ref()?)),
         })

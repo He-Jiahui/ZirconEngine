@@ -285,6 +285,27 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
         range: std::ops::Range<u64>,
         decoder: VirtualGeometryReadbackDecoder,
     ) -> Result<(), String> {
+        self.enqueue_reserved_virtual_geometry_readback_with_inspection(
+            reservation,
+            staging,
+            range,
+            decoder,
+            None,
+        )
+    }
+
+    pub fn enqueue_reserved_virtual_geometry_readback_with_inspection(
+        &mut self,
+        reservation: VirtualGeometryReadbackReservation,
+        staging: wgpu::Buffer,
+        range: std::ops::Range<u64>,
+        decoder: VirtualGeometryReadbackDecoder,
+        inspection_decoder: Option<
+            VirtualGeometryNativeInspectionDecoder<
+                crate::core::framework::render::RenderVirtualGeometryReadbackOutputs,
+            >,
+        >,
+    ) -> Result<(), String> {
         let Some(scope) = self.frame.virtual_geometry_readback_scope.as_ref() else {
             return Err("virtual geometry readback frame scope is absent".to_string());
         };
@@ -308,6 +329,7 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
                 staging,
                 range,
                 decoder,
+                inspection_decoder,
                 credit: reservation.credit,
                 native_probe: None,
             });
@@ -318,6 +340,103 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
         &mut self,
     ) -> Vec<VirtualGeometryNativeReadbackPacket> {
         std::mem::take(&mut self.virtual_geometry_readbacks)
+    }
+
+    /// Retains current-frame physical inputs until the single terminal map consumes them.
+    pub fn register_virtual_geometry_native_inspection(
+        &self,
+        sections: VirtualGeometryNativeInspectionSections,
+        decoder: VirtualGeometryNativeInspectionDecoder<
+            crate::core::framework::render::RenderVirtualGeometryReadbackOutputs,
+        >,
+    ) -> Result<(), String> {
+        let scope = self
+            .frame
+            .virtual_geometry_readback_scope
+            .as_ref()
+            .ok_or("virtual geometry inspection frame scope is absent")?;
+        let epoch = self
+            .device_epoch()
+            .ok_or("virtual geometry inspection device epoch is absent")?;
+        if sections.is_empty() || sections.len() > 12 {
+            return Err("virtual geometry inspection section count is invalid".into());
+        }
+        let mut previous = None;
+        let mut bytes = 0_u64;
+        for (id, buffer, range) in &sections {
+            let length = range
+                .end
+                .checked_sub(range.start)
+                .ok_or("virtual geometry inspection section range is reversed")?;
+            if *id > 11
+                || previous.is_some_and(|value| value >= *id)
+                || length == 0
+                || range.start % wgpu::COPY_BUFFER_ALIGNMENT != 0
+                || length % wgpu::COPY_BUFFER_ALIGNMENT != 0
+                || range.end > buffer.size()
+                || !buffer.usage().contains(wgpu::BufferUsages::COPY_SRC)
+            {
+                return Err(
+                    "virtual geometry inspection section identity, range or usage is invalid"
+                        .into(),
+                );
+            }
+            previous = Some(*id);
+            bytes = bytes
+                .checked_add(length)
+                .ok_or("virtual geometry inspection physical length overflow")?;
+        }
+        if sections[0].0 != 0 || bytes > VirtualGeometryReadbackBudget::LIMIT_BYTES {
+            return Err("virtual geometry inspection lacks its bounded cull-input section".into());
+        }
+        let mut slot = scope
+            .inspection
+            .lock()
+            .map_err(|_| "virtual geometry inspection slot lock is poisoned")?;
+        if !matches!(*slot, VirtualGeometryInspectionState::Empty) {
+            return Err("virtual geometry inspection was already recorded or consumed".into());
+        }
+        *slot = VirtualGeometryInspectionState::Pending(RecordedVirtualGeometryInspection {
+            epoch,
+            sections,
+            decoder,
+        });
+        Ok(())
+    }
+
+    /// Takes the physical section leases once, preserving the producer epoch and frame scope.
+    pub fn take_virtual_geometry_native_inspection(
+        &self,
+    ) -> Result<
+        Option<(
+            VirtualGeometryNativeInspectionSections,
+            VirtualGeometryNativeInspectionDecoder<
+                crate::core::framework::render::RenderVirtualGeometryReadbackOutputs,
+            >,
+        )>,
+        String,
+    > {
+        let scope = self
+            .frame
+            .virtual_geometry_readback_scope
+            .as_ref()
+            .ok_or("virtual geometry inspection frame scope is absent")?;
+        let mut slot = scope
+            .inspection
+            .lock()
+            .map_err(|_| "virtual geometry inspection slot lock is poisoned")?;
+        match std::mem::replace(&mut *slot, VirtualGeometryInspectionState::Consumed) {
+            VirtualGeometryInspectionState::Empty => Ok(None),
+            VirtualGeometryInspectionState::Consumed => {
+                Err("virtual geometry inspection was consumed more than once".into())
+            }
+            VirtualGeometryInspectionState::Pending(recorded) => {
+                if self.device_epoch() != Some(recorded.epoch) {
+                    return Err("virtual geometry inspection producer device epoch changed".into());
+                }
+                Ok(Some((recorded.sections, recorded.decoder)))
+            }
+        }
     }
 
     pub fn virtual_geometry_execution_data(
@@ -780,8 +899,46 @@ impl VirtualGeometryReadbackBudget {
             frame_generation,
             budget: std::sync::Arc::clone(self),
             slots,
+            inspection: std::sync::Arc::new(std::sync::Mutex::new(
+                VirtualGeometryInspectionState::Empty,
+            )),
         })
     }
+}
+
+/// Physical source sections retain their native buffer leases until terminal mapping completes.
+pub type VirtualGeometryNativeInspectionSections = Vec<(u32, wgpu::Buffer, std::ops::Range<u64>)>;
+pub type VirtualGeometryNativeInspectionDecoder<T> = Box<
+    dyn FnOnce(
+            &[u8],
+            &T,
+        ) -> Result<
+            crate::core::framework::render::RenderVirtualGeometryNativeReadbackInspection,
+            String,
+        > + Send
+        + 'static,
+>;
+
+struct RecordedVirtualGeometryInspection {
+    epoch: RenderPassDeviceEpoch,
+    sections: VirtualGeometryNativeInspectionSections,
+    decoder: VirtualGeometryNativeInspectionDecoder<
+        crate::core::framework::render::RenderVirtualGeometryReadbackOutputs,
+    >,
+}
+impl std::fmt::Debug for RecordedVirtualGeometryInspection {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("RecordedVirtualGeometryInspection")
+            .field("epoch", &self.epoch)
+            .field("section_count", &self.sections.len())
+            .finish_non_exhaustive()
+    }
+}
+#[derive(Debug)]
+enum VirtualGeometryInspectionState {
+    Empty,
+    Pending(RecordedVirtualGeometryInspection),
+    Consumed,
 }
 
 #[derive(Clone, Debug)]
@@ -792,6 +949,7 @@ pub(in crate::graphics) struct VirtualGeometryReadbackScope {
     pub(in crate::graphics) frame_generation: u64,
     budget: std::sync::Arc<VirtualGeometryReadbackBudget>,
     slots: std::sync::Arc<std::sync::atomic::AtomicUsize>,
+    inspection: std::sync::Arc<std::sync::Mutex<VirtualGeometryInspectionState>>,
 }
 
 #[derive(Debug)]
@@ -832,11 +990,14 @@ pub(in crate::graphics) struct NativeReadbackPacket<T> {
     staging: wgpu::Buffer,
     range: std::ops::Range<u64>,
     decoder: NativeReadbackDecoder<T>,
+    inspection_decoder: Option<VirtualGeometryNativeInspectionDecoder<T>>,
     credit: VirtualGeometryReadbackCredit,
     native_probe: Option<std::sync::Arc<virtual_geometry_probe::NativeProbe>>,
 }
 pub(in crate::graphics) struct NativeReadyReadback<T> {
     pub(in crate::graphics) outputs: T,
+    pub(in crate::graphics) inspection:
+        Option<crate::core::framework::render::RenderVirtualGeometryNativeReadbackInspection>,
     _credit: Option<VirtualGeometryReadbackCredit>,
     native_probe: Option<std::sync::Arc<virtual_geometry_probe::NativeProbe>>,
 }
@@ -871,6 +1032,7 @@ impl<T: Send + 'static> NativeReadbackPacket<T> {
             staging,
             range,
             decoder,
+            inspection_decoder,
             credit,
             native_probe,
             ..
@@ -883,11 +1045,17 @@ impl<T: Send + 'static> NativeReadbackPacket<T> {
                 let delivery = match mapped {
                     Ok(()) if !cancelled.load(Ordering::Acquire) => {
                         let view = callback_buffer.slice(range).get_mapped_range();
-                        let decoded = decoder(&view);
+                        let decoded = decoder(&view).and_then(|outputs| {
+                            let inspection = inspection_decoder
+                                .map(|decode| decode(&view, &outputs))
+                                .transpose()?;
+                            Ok((outputs, inspection))
+                        });
                         drop(view);
                         callback_buffer.unmap();
-                        decoded.map(|outputs| NativeReadyReadback {
+                        decoded.map(|(outputs, inspection)| NativeReadyReadback {
                             outputs,
+                            inspection,
                             _credit: Some(credit),
                             native_probe,
                         })
@@ -1017,6 +1185,7 @@ mod virtual_geometry_native_readback_tests {
             range: 0..16,
             credit,
             native_probe: None,
+            inspection_decoder: None,
             decoder: Box::new(move |_| {
                 decoded_callback.fetch_add(1, Ordering::SeqCst);
                 Ok(Default::default())
@@ -1078,6 +1247,7 @@ mod virtual_geometry_native_readback_tests {
         assert!(make_scope(4).try_acquire_credit(16).is_none());
         let ready = VirtualGeometryReadyReadback {
             outputs: Default::default(),
+            inspection: None,
             _credit: Some(first),
             native_probe: None,
         };

@@ -1,0 +1,12 @@
+diff --git a/zircon_runtime/tests/runtime_shader_pbr_hdri_export.rs b/zircon_runtime/tests/runtime_shader_pbr_hdri_export.rs
+--- a/zircon_runtime/tests/runtime_shader_pbr_hdri_export.rs
++++ b/zircon_runtime/tests/runtime_shader_pbr_hdri_export.rs
+@@ -87,7 +87,6 @@ const PMREM_MIP_DIAGNOSTIC_TILE_SIZE: u32 = 96;
+ const SHADER_TEST_OUTPUT_DIR_OVERRIDE_ENV: &str = "ZIRCON_SHADER_TEST_OUTPUT_DIR";
+ const PMREM_MIP_DIAGNOSTIC_OUTPUT_NAME_OVERRIDE_ENV: &str =
+     "ZIRCON_PMREM_MIP_DIAGNOSTIC_OUTPUT_NAME";
+-const PBR_TEXTURED_HDRI_OUTPUT_NAME_OVERRIDE_ENV: &str =
+-    "ZIRCON_PBR_TEXTURED_HDRI_OUTPUT_NAME";
++const PBR_TEXTURED_HDRI_OUTPUT_NAME_OVERRIDE_ENV: &str = "ZIRCON_PBR_TEXTURED_HDRI_OUTPUT_NAME";
+ const PBR_TEXTURED_HDRI_OUTPUT_NAME_PREFIX: &str =
+     "runtime_shader_pbr_real_hdri_lakes_ambientcg_metal009_texture_maps_";

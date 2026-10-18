@@ -1,0 +1,76 @@
+// Resolves the source's talent pass over a HoT total before the aura profile
+// divides it into ticks. Profile modules own tick subdivision and spell power.
+var catalog = %import("generated/talent_modifier_catalog");
+var modifiers = %import("progression/talent_modifier_state");
+
+roundPositive(value: float): int {
+    return <int>(value + 0.5);
+}
+
+pub resolveHotTotal(
+    baseTotal: int,
+    talentState: modifiers.TalentModifierState,
+    abilityId: string
+): int {
+    var healMult = 1.0 + modifiers.globalField(talentState, "healPct") +
+        modifiers.abilityField(talentState, abilityId, "dmgPct");
+    var hotMult = 1.0 + modifiers.globalField(talentState, "hotHealPct");
+    var flat = modifiers.abilityField(talentState, abilityId, "flatDmg");
+    return roundPositive(<float>baseTotal * healMult * hotMult + flat);
+}
+
+setGlobal(talentState: modifiers.TalentModifierState, name: string, value: float): void {
+    var index = 0;
+    while (index < talentState.globals.length) {
+        if (catalog.globalFieldName(index) == name) {
+            talentState.globals[index] = value;
+            return;
+        }
+        index = index + 1;
+    }
+    throw "woc hot talent global field is absent";
+}
+
+setAbilityNumber(
+    talentState: modifiers.TalentModifierState,
+    abilityId: string,
+    name: string,
+    value: float
+): void {
+    var ability = 0;
+    while (ability < talentState.abilityIds.length &&
+        <string>talentState.abilityIds[ability] != abilityId) {
+        ability = ability + 1;
+    }
+    if (ability == talentState.abilityIds.length) {
+        talentState.abilityIds.add(abilityId);
+        talentState.abilityDottedIds.add("");
+        talentState.abilityCastWhileMoving.add(false);
+        talentState.abilityPushbackImmune.add(false);
+        talentState.abilityNestedEffectCounts.add(0);
+        var newField = 0;
+        while (newField < catalog.abilityNumberFieldCount()) {
+            talentState.abilityNumbers.add(0.0);
+            newField = newField + 1;
+        }
+    }
+    var field = 0;
+    while (field < catalog.abilityNumberFieldCount()) {
+        if (catalog.abilityNumberFieldName(field) == name) {
+            talentState.abilityNumbers[ability * catalog.abilityNumberFieldCount() + field] = value;
+            return;
+        }
+        field = field + 1;
+    }
+    throw "woc hot talent ability field is absent";
+}
+
+pub contractTest(): int {
+    var talentState = new modifiers.TalentModifierState();
+    if (resolveHotTotal(116, talentState, "rejuvenation") != 116) return -1;
+    setGlobal(talentState, "healPct", 0.2);
+    setGlobal(talentState, "hotHealPct", 0.25);
+    setAbilityNumber(talentState, "rejuvenation", "dmgPct", 0.2);
+    setAbilityNumber(talentState, "rejuvenation", "flatDmg", 2.0);
+    return resolveHotTotal(116, talentState, "rejuvenation") == 176 ? 1 : -2;
+}

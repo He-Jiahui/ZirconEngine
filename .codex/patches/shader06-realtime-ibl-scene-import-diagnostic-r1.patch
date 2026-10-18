@@ -1,0 +1,26 @@
+diff --git a/zircon_runtime/tests/runtime_shader_pbr_realtime_ibl_export.rs b/zircon_runtime/tests/runtime_shader_pbr_realtime_ibl_export.rs
+--- a/zircon_runtime/tests/runtime_shader_pbr_realtime_ibl_export.rs
++++ b/zircon_runtime/tests/runtime_shader_pbr_realtime_ibl_export.rs
+@@ -19,2 +19,3 @@
+ use zircon_runtime::core::math::{Transform, UVec2, Vec3, Vec4};
++use zircon_runtime::core::resource::ResourceState;
+ use zircon_runtime::graphics::{RealtimeIblGpuTimingReport, ViewportFrame, WgpuRenderFramework};
+@@ -207,7 +207,17 @@ fn export_procedural_realtime_ibl_pbr_matrix_png() {
+     asset_manager
+         .open_project(root.to_string_lossy().as_ref())
+         .unwrap();
+     let mut project = ProjectManager::open(&root).unwrap();
+-    project.scan_and_import().unwrap();
++    let imported = project.scan_and_import().unwrap();
++    let scene_record = imported
++        .iter()
++        .find(|record| record.primary_locator() == &scene_uri)
++        .expect("realtime IBL matrix scene must be discovered during import");
++    assert_eq!(
++        scene_record.state,
++        ResourceState::Ready,
++        "realtime IBL matrix scene must publish an artifact: {:#?}",
++        scene_record.diagnostics
++    );
+     let world =
+         zircon_runtime::scene::world::World::load_scene_from_uri(&project, &scene_uri).unwrap();

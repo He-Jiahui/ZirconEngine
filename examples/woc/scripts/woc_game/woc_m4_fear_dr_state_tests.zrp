@@ -1,0 +1,6 @@
+{
+  "name": "woc_m4_fear_dr_state_tests",
+  "source": "src",
+  "binary": "bin-m4-fear-dr-state-tests",
+  "entry": "combat/fear_dr_state_test_main"
+}

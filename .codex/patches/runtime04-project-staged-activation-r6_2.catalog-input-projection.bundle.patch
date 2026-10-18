@@ -1,0 +1,56 @@
+diff --git a/zircon_runtime/src/asset/pipeline/manager/project_asset_manager/activation_transaction.rs b/zircon_runtime/src/asset/pipeline/manager/project_asset_manager/activation_transaction.rs
+--- a/zircon_runtime/src/asset/pipeline/manager/project_asset_manager/activation_transaction.rs
++++ b/zircon_runtime/src/asset/pipeline/manager/project_asset_manager/activation_transaction.rs
+@@ -1,4 +1,5 @@
+ use crate::asset::project::{
+-    PreparedProjectOpen, ProjectManager, ProjectManifest, ProjectRootWitness,
++    PreparedProjectOpen, ProjectCatalogInputGeneration, ProjectManager, ProjectManifest,
++    ProjectRootWitness,
+ };
+ use crate::asset::watch::{AssetChange, AssetChangeKind};
+@@ -11,5 +12,6 @@ use crate::scene::Scene;
+ use crate::scene::Scene;
+ use std::path::PathBuf;
++use std::sync::Arc;
+ use super::super::resource_sync::{clear_removed_project_resources, project_locators};
+ use super::runtime::{PreparedProjectResourceSync, PreparedProjectWatchers};
+ use super::ProjectAssetManager;
+@@ -82,5 +84,6 @@ pub struct RuntimePreparedProjectProjection {
+     project_info: ProjectInfo,
+     manifest: ProjectManifest,
+     asset_roots: Vec<PathBuf>,
++    catalog_input_generation: Arc<ProjectCatalogInputGeneration>,
+     default_scene: Scene,
+ }
+@@ -99,7 +102,12 @@ impl RuntimePreparedProjectProjection {
+     pub fn asset_roots(&self) -> &[PathBuf] {
+         &self.asset_roots
+     }
+ 
++    /// Immutable catalog inputs captured by the same prepared runtime generation.
++    pub fn catalog_input_generation(&self) -> Arc<ProjectCatalogInputGeneration> {
++        Arc::clone(&self.catalog_input_generation)
++    }
++
+     pub fn default_scene(&self) -> &Scene {
+         &self.default_scene
+     }
+@@ -106,8 +114,9 @@ impl RuntimePreparedProjectProjection {
+-    pub fn into_parts(self) -> (ProjectInfo, ProjectManifest, Vec<PathBuf>, Scene) {
++    pub fn into_parts(self) -> (ProjectInfo, ProjectManifest, Vec<PathBuf>, Arc<ProjectCatalogInputGeneration>, Scene) {
+         (
+             self.project_info,
+             self.manifest,
+             self.asset_roots,
++            self.catalog_input_generation,
+             self.default_scene,
+         )
+     }
+@@ -143,6 +152,7 @@ impl RuntimePreparedProjectActivation {
+             project_info: self.prepared.info.clone(),
+             manifest,
+             asset_roots: self.prepared.project.project_asset_roots().to_vec(),
++            catalog_input_generation: self.prepared.project.catalog_input_generation(),
+             default_scene,
+         };
+         Ok((self, projection))

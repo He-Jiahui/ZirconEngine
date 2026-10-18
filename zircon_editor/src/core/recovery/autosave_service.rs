@@ -3,7 +3,9 @@ use std::path::{Path, PathBuf};
 use std::sync::{Mutex, MutexGuard};
 use std::time::{Duration, Instant};
 
-use crate::core::jobs::{EditorJobSystem, UnfinishedEditorJob};
+use crate::core::jobs::{EditorJobShutdownState, EditorJobSystem, UnfinishedEditorJob};
+
+use super::FinalAutosaveDrain;
 
 use super::{
     AutosaveAdmissionError, AutosaveCompletion, AutosaveDiagnosticStore, AutosaveDocumentId,
@@ -80,6 +82,8 @@ pub(crate) struct EditorAutosaveService {
 
 pub(super) struct EditorAutosaveState {
     policy: AutosavePolicy,
+    pub(super) closing: bool,
+    pub(super) final_shutdown: Option<FinalAutosaveDrain>,
     pub(super) active: Option<ActiveAutosaveProject>,
     pub(super) retired: VecDeque<RetiredAutosaveProject>,
 }
@@ -103,6 +107,8 @@ impl EditorAutosaveService {
             jobs,
             state: Mutex::new(EditorAutosaveState {
                 policy,
+                closing: false,
+                final_shutdown: None,
                 active: None,
                 retired: VecDeque::new(),
             }),
@@ -112,7 +118,7 @@ impl EditorAutosaveService {
     /// Hot-applies a settings-validated cadence to the active project scheduler.
     pub(crate) fn update_policy(&self, policy: AutosavePolicy) {
         let mut state = self.lock_state();
-        if state.policy == policy {
+        if state.closing || state.policy == policy {
             return;
         }
         state.policy = policy;
@@ -132,6 +138,9 @@ impl EditorAutosaveService {
     pub(crate) fn poll_project(&self, project_root: Option<&Path>) -> EditorAutosavePoll {
         let instant = Instant::now();
         let mut state = self.lock_state();
+        if state.closing {
+            return EditorAutosavePoll::default();
+        }
         state.synchronize_project(&self.jobs, project_root, instant);
         let mut diagnostic_persistence_issues = state.pump_retired(instant);
         let Some(active) = state.active.as_mut() else {
@@ -162,6 +171,9 @@ impl EditorAutosaveService {
         request_for: impl FnMut(&AutosaveDocumentId) -> Option<AutosaveDocumentRequest>,
     ) -> Result<bool, AutosaveAdmissionError> {
         let mut state = self.lock_state();
+        if state.closing {
+            return Err(AutosaveAdmissionError::ShuttingDown);
+        }
         let Some(active) = state.active.as_mut() else {
             return Ok(false);
         };
@@ -172,6 +184,9 @@ impl EditorAutosaveService {
 
     pub(crate) fn preflight_schedule(&self, now: Duration) -> Result<bool, AutosaveAdmissionError> {
         let state = self.lock_state();
+        if state.closing {
+            return Err(AutosaveAdmissionError::ShuttingDown);
+        }
         let Some(active) = state.active.as_ref() else {
             return Ok(false);
         };
@@ -180,6 +195,7 @@ impl EditorAutosaveService {
 
     pub(crate) fn begin_shutdown(&self) {
         let mut state = self.lock_state();
+        state.closing = true;
         if let Some(active) = state.active.as_mut() {
             active.adapter.begin_shutdown();
         }
@@ -192,8 +208,52 @@ impl EditorAutosaveService {
         self.begin_shutdown();
         let unfinished = self.jobs.shutdown(deadline);
         let mut state = self.lock_state();
-        state.active = None;
-        state.retired.clear();
+        let instant = Instant::now();
+        let mut active_diagnostics = VecDeque::new();
+        if let Some(active) = state.active.as_mut() {
+            let now = instant.saturating_duration_since(active.project_started_at);
+            let mut completion = active.adapter.pump_completed_with_budget(now, usize::MAX);
+            persist_fallback_diagnostics(&active.project_root, completion.outcomes_mut());
+            active_diagnostics.extend(
+                completion
+                    .outcomes()
+                    .iter()
+                    .filter(|outcome| !outcome.diagnostic_persisted())
+                    .cloned(),
+            );
+        }
+        if !active_diagnostics.is_empty() {
+            if let Some(active) = state.active.take() {
+                state.retired.push_back(RetiredAutosaveProject {
+                    project_root: active.project_root,
+                    project_started_at: active.project_started_at,
+                    adapter: active.adapter,
+                    fallback_diagnostics: active_diagnostics,
+                });
+            }
+        }
+        for retired in &mut state.retired {
+            let now = instant.saturating_duration_since(retired.project_started_at);
+            let completion = retired.adapter.pump_completed_with_budget(now, usize::MAX);
+            retired.fallback_diagnostics.extend(
+                completion
+                    .outcomes()
+                    .iter()
+                    .filter(|outcome| !outcome.diagnostic_persisted())
+                    .cloned(),
+            );
+            retired.persist_fallback_diagnostics();
+        }
+        if self.jobs.shutdown_progress().state() == EditorJobShutdownState::Quiescent {
+            if state
+                .active
+                .as_ref()
+                .is_some_and(|active| active.adapter.is_drained())
+            {
+                state.active = None;
+            }
+            state.retired.retain(|retired| !retired.is_finished());
+        }
         unfinished
     }
 
@@ -211,6 +271,9 @@ impl EditorAutosaveState {
         project_root: Option<&Path>,
         now: Instant,
     ) {
+        if self.closing {
+            return;
+        }
         if matches!(
             (self.active.as_ref(), project_root),
             (Some(active), Some(project_root)) if active.project_root.as_path() == project_root
@@ -277,7 +340,7 @@ impl EditorAutosaveState {
 }
 
 impl RetiredAutosaveProject {
-    fn is_finished(&self) -> bool {
+    pub(super) fn is_finished(&self) -> bool {
         self.adapter.is_drained() && self.fallback_diagnostics.is_empty()
     }
 

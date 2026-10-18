@@ -95,15 +95,140 @@ def entry():
     return module
 
 
-def binding(repo):
+def transport_context(repo, api):
+    """Verify the HTTP receiver without importing or observing its native owner."""
+    import base64
+    import urllib.error
+    import urllib.request
+    import xml.etree.ElementTree as ET
+
+    repo = plain(repo)
+    installed, original = api.document(repo / ".jenkins/state/management/installed.json")
+    checksum = installed.get("capsuleSha256")
+    require(isinstance(checksum, str) and SHA.fullmatch(checksum), "Invalid installed capsule hash")
+    capsule = plain(installed["capsule"])
+    require(capsule == repo / ".jenkins/runtime/management" / checksum, "Capsule escaped its runtime")
+    config, raw = api.document(capsule / "capsule.json")
+    require(sha(raw) == checksum and plain(config["repositoryRoot"]) == repo
+            and installed.get("job") == "zircon-management"
+            and config.get("schemaVersion") == installed.get("schemaVersion") == 1
+            and installed.get("formalAcceptance") is False, "Installed management binding changed")
+    for key in ("driverDigest", "runtimeOperationId", "ordinaryEntry", "managedWorktree"):
+        require(config.get(key) == installed.get(key), "Installed runtime binding changed")
+    require(config.get("ordinaryEntry") == api.CAPABILITY, "Ordinary entry capability differs")
+    legacy = {"runner.py", "source_preparation.py", "zircon-management.groovy"}
+    require(set(config["files"]) in (legacy, legacy | {"checkout_guard.py"},
+            legacy | {"checkout_guard.py", "checkout_product.py"}), "Capsule code inventory differs")
+    for name, expected in config["files"].items():
+        require(isinstance(expected, str) and SHA.fullmatch(expected)
+                and sha(plain(capsule / name).read_bytes()) == expected, "Pinned capsule source changed")
+    # Client source hashes identify the installed version. Native boot owns their
+    # admission; transport does not require mutable canonical files to be identical.
+    require(set(config["clientSources"]) == api.CLIENT_SOURCES
+            and all(isinstance(v, str) and SHA.fullmatch(v)
+                    for v in config["clientSources"].values()), "Client version inventory differs")
+    selected, _ = api.document(repo / ".jenkins/state/deployment/driver.json")
+    driver = plain(repo / ".jenkins/runtime/drivers" / config["driverDigest"])
+    require(plain(selected["root"]) == driver and all(selected[k] == config[k]
+            for k in ("driverDigest", "runtimeOperationId")), "Selected runtime changed")
+    manifest, _ = api.document(driver / "driver-manifest.json")
+    require(sha(encoded({k: manifest[k] for k in ("schemaVersion", "files")}))
+            == config["driverDigest"], "Driver manifest changed")
+    for name, fact in manifest["files"].items():
+        require(isinstance(name, str) and name and "\\" not in name and ":" not in name
+                and all(p not in {"", ".", ".."} for p in name.split("/")), "Driver member escaped its root")
+        data = plain(driver / name).read_bytes()
+        require(len(data) == fact["bytes"] and sha(data) == fact["sha256"], "Pinned driver source changed")
+    runtime, _ = api.document(repo / ".jenkins/state/deployment-operation.json")
+    require(runtime.get("operationId") == runtime.get("generation") == config["runtimeOperationId"]
+            and runtime.get("state") == "running", "Selected runtime is pending")
+    spec, _ = api.document(repo / ".jenkins/deployment-spec.json")
+    controller = spec["controller"]
+    require(controller["listenAddress"] == "127.0.0.1" and type(controller["httpPort"]) is int
+            and 1 <= controller["httpPort"] <= 65535, "Loopback HTTP binding differs")
+    credentials, _ = api.document(repo / ".jenkins/state/credentials.json")
+    token = credentials.get("apiToken") or credentials.get("password")
+    require(credentials.get("authenticationMode") == "api-token"
+            and credentials.get("username") and token, "API credentials unavailable")
+    authorization = "Basic " + base64.b64encode(
+        (str(credentials["username"]) + ":" + str(token)).encode()).decode("ascii")
+
+    class Direct(urllib.request.HTTPRedirectHandler):
+        def redirect_request(self, *args, **kwargs):
+            return None
+
+    class Transport:
+        base_url = "http://127.0.0.1:" + str(controller["httpPort"])
+        opener = urllib.request.build_opener(urllib.request.ProxyHandler({}), Direct())
+
+        def _request_with_headers(self, path, *, method="GET", data=None, headers=None, timeout=30):
+            request = urllib.request.Request(self.base_url + "/" + path, data=data, method=method,
+                headers={"Authorization": authorization, "Accept": "application/json", **(headers or {})})
+            try:
+                response = self.opener.open(request, timeout=min(timeout, 30))
+            except urllib.error.HTTPError as error:
+                response = error
+            with response:
+                body = response.read(8 * 1024**2 + 1)
+                require(len(body) <= 8 * 1024**2, "HTTP response exceeds the input bound")
+                return response.status, body, dict(response.headers.items())
+
+        def _request(self, path, **kwargs):
+            status, body, _ = self._request_with_headers(path, **kwargs)
+            return status, body
+
+    manager = Transport()
+    status, raw = manager._request("job/zircon-management/config.xml")
+    require(status == 200, "Management HTTP receiver unavailable")
+    job = ET.fromstring(raw)
+    script = job_script(raw)
+    require(job.findtext("./disabled") == "false", "Management HTTP receiver is disabled")
+    codex = re.findall(r"(?m)^def codex = '([A-Za-z]:/[^'\r\n\"]+)'$", script)
+    require(len(codex) == 1, "Pinned management launcher differs")
+    template = plain(capsule / "zircon-management.groovy").read_text(encoding="utf-8-sig").replace("\r\n", "\n")
+    values = {"AGENT": config["agentLabel"], "REPOSITORY": str(repo),
+              "PYTHON": str(repo / ".jenkins/runtime/python/python.exe"), "CODEX": codex[0],
+              "CAPSULE": str(capsule), "DRIVER": config["driverDigest"], "RUNTIME": config["runtimeOperationId"]}
+    for key, value in values.items():
+        template = template.replace("@@" + key + "@@", value.replace("\\", "/").replace("'", "\\'"))
+    require("@@" not in template and script.replace("\r\n", "\n").count(template) == 1,
+            "Management HTTP receiver differs from its pinned capsule")
+    require({v.findtext("name") for v in job.findall(
+        "./properties/hudson.model.ParametersDefinitionProperty/parameterDefinitions/*")} ==
+        {"SESSION_ID", "REQUEST_ID", "OPERATION_ID", "ACTION", "INPUT_JSON",
+         "EXPECTED_DRIVER_DIGEST", "RUNTIME_OPERATION_ID", "QUERY_ONLY"}, "Management parameters differ")
+    require(plain(repo / ".jenkins/state/management/installed.json").read_bytes() == original,
+            "Installed capability changed during observation")
+    # The standalone CLI needs the verified driver for pure atomic/lock imports.
+    sys.path.insert(0, str(driver))
+    return {"repo": repo, "installed": installed, "config": config, "manager": manager}
+
+
+def verify_transport_job(context, installed, script_name, template_name, parameters):
+    """Bind the original Records parameter protocol to its actual HTTP job."""
+    import xml.etree.ElementTree as ET
+    status, raw = context["manager"]._request("job/" + installed["job"] + "/config.xml")
+    require(status == 200 and job_script(raw) == render_job_source(
+        context, installed, script_name, template_name), "Pinned Records HTTP receiver differs")
+    job = ET.fromstring(raw)
+    require(job.findtext("./disabled") == "false" and
+            {v.findtext("name") for v in job.findall(
+                "./properties/hudson.model.ParametersDefinitionProperty/parameterDefinitions/*")} == set(parameters),
+            "Records HTTP receiver is disabled or its parameters differ")
+
+
+def binding(repo, *, transport_only=False):
     api = entry()
-    context = api.capability(repo)
+    context = transport_context(repo, api) if transport_only else api.capability(repo)
     installed, _ = read_json(Path(repo) / ".jenkins/state/records-queue/installed.json")
     require(installed["job"] == JOB and installed["driverDigest"] == context["config"]["driverDigest"]
             and installed["runtimeOperationId"] == context["config"]["runtimeOperationId"],
             "Records intake is bound to another formal runtime")
     for name, expected in installed["sources"].items():
         require(sha(plain(HERE / name).read_bytes()) == expected, "Pinned records entry source changed")
+    if transport_only:
+        verify_transport_job(context, installed, "records_queue.py", "zircon-records.groovy",
+                             ("INVENTORY_DIGEST", "TASK_ID", "MODE"))
     return api, context, installed
 
 
@@ -428,7 +553,7 @@ def install(repo, *, upgrade_from=None, expected_job_script_sha256=None, rebind_
 
 
 def submit(repo, inventory_file, *, mode="task", reconcile=False):
-    api, context, installed = binding(repo)
+    api, context, installed = binding(repo, transport_only=True)
     inventory, pin = read_json(inventory_file)
     validate_inventory(repo, inventory)
     digest = sha(encoded(inventory))
@@ -683,7 +808,7 @@ def main(argv=None):
                             installed["sources"]["records_cleanup.ps1"]], check=True)
             result = {"status": "passed", "nativeGuardVerified": True, "formalAcceptance": False}
         else:
-            api, context, _ = binding(args.repo_root)
+            api, context, _ = binding(args.repo_root, transport_only=True)
             result = task_outcome_view(context, api.record(context["repo"], "records_queue_task", args.task_id))
         print(encoded(result).decode())
         if args.command == "work" and not result.get("done"):

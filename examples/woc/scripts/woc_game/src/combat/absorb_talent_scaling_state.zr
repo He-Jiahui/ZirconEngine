@@ -1,0 +1,73 @@
+// Resolves source talent scaling for absorb amounts at application time.
+// WorldState owns target admission, queue replacement, depletion and expiry.
+var catalog = %import("generated/talent_modifier_catalog");
+var modifiers = %import("progression/talent_modifier_state");
+
+roundPositive(value: float): int { return <int>(value + 0.5); }
+
+pub resolveAbsorbAmount(
+    baseAmount: int, talentState: modifiers.TalentModifierState, abilityId: string
+): int {
+    var healMultiplier = 1.0 + modifiers.globalField(talentState, "healPct") +
+        modifiers.abilityField(talentState, abilityId, "dmgPct");
+    var absorbMultiplier = 1.0 + modifiers.globalField(talentState, "absorbPct");
+    var flat = modifiers.abilityField(talentState, abilityId, "flatDmg");
+    return roundPositive(<float>baseAmount * healMultiplier * absorbMultiplier + flat);
+}
+
+setGlobal(talentState: modifiers.TalentModifierState, name: string, value: float): void {
+    var index = 0;
+    while (index < talentState.globals.length) {
+        if (catalog.globalFieldName(index) == name) {
+            talentState.globals[index] = value;
+            return;
+        }
+        index = index + 1;
+    }
+    throw "woc absorb talent global field is absent";
+}
+
+setAbilityNumber(
+    talentState: modifiers.TalentModifierState, abilityId: string, name: string, value: float
+): void {
+    var ability = 0;
+    while (ability < talentState.abilityIds.length &&
+        <string>talentState.abilityIds[ability] != abilityId) {
+        ability = ability + 1;
+    }
+    if (ability == talentState.abilityIds.length) {
+        talentState.abilityIds.add(abilityId);
+        talentState.abilityDottedIds.add("");
+        talentState.abilityCastWhileMoving.add(false);
+        talentState.abilityPushbackImmune.add(false);
+        talentState.abilityNestedEffectCounts.add(0);
+        var newField = 0;
+        while (newField < catalog.abilityNumberFieldCount()) {
+            talentState.abilityNumbers.add(0.0);
+            newField = newField + 1;
+        }
+    }
+    var field = 0;
+    while (field < catalog.abilityNumberFieldCount()) {
+        if (catalog.abilityNumberFieldName(field) == name) {
+            talentState.abilityNumbers[
+                ability * catalog.abilityNumberFieldCount() + field
+            ] = value;
+            return;
+        }
+        field = field + 1;
+    }
+    throw "woc absorb talent ability field is absent";
+}
+
+pub contractTest(): int {
+    var identity = new modifiers.TalentModifierState();
+    if (resolveAbsorbAmount(90, identity, "power_word_shield") != 90) return -1;
+    var mixed = new modifiers.TalentModifierState();
+    setGlobal(mixed, "healPct", 0.2);
+    setGlobal(mixed, "absorbPct", 0.25);
+    setAbilityNumber(mixed, "power_word_shield", "dmgPct", 0.15);
+    setAbilityNumber(mixed, "power_word_shield", "flatDmg", 2.0);
+    // Source applies both multipliers before the one final endpoint rounding.
+    return resolveAbsorbAmount(90, mixed, "power_word_shield") == 154 ? 1 : -2;
+}

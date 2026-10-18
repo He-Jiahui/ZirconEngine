@@ -98,11 +98,11 @@ impl EditorCommandRegistry {
     }
 
     pub fn default_workbench() -> Self {
-        let mut registry = Self::new(default_workbench_commands())
-            .expect("default editor command ids are unique");
-        let operation = EditorOperationPath::parse(
-            crate::core::editing::command::ADD_COMPONENT_OPERATION,
-        ).expect("builtin component creation operation is valid");
+        let mut registry =
+            Self::new(default_workbench_commands()).expect("default editor command ids are unique");
+        let operation =
+            EditorOperationPath::parse(crate::core::editing::command::ADD_COMPONENT_OPERATION)
+                .expect("builtin component creation operation is valid");
         let registration = OperationCommandFactoryRegistration::new(
             operation.clone(),
             "Add component",

@@ -7,6 +7,9 @@ pub(super) fn wire_host_shell_menu_callbacks(
     let weak = Rc::downgrade(host);
     host_shell.on_menu_pointer_clicked(move |x, y| {
         if let Some(host) = weak.upgrade() {
+            if host.borrow().main_window_close_blocks_session_ui() {
+                return;
+            }
             host.borrow_mut().menu_pointer_clicked(x, y);
         }
     });
@@ -14,6 +17,9 @@ pub(super) fn wire_host_shell_menu_callbacks(
     let weak = Rc::downgrade(host);
     host_shell.on_menu_pointer_moved(move |x, y| {
         if let Some(host) = weak.upgrade() {
+            if host.borrow().main_window_close_blocks_session_ui() {
+                return;
+            }
             host.borrow_mut().menu_pointer_moved(x, y);
         }
     });
@@ -21,6 +27,9 @@ pub(super) fn wire_host_shell_menu_callbacks(
     let weak = Rc::downgrade(host);
     host_shell.on_menu_pointer_scrolled(move |x, y, delta| {
         if let Some(host) = weak.upgrade() {
+            if host.borrow().main_window_close_blocks_session_ui() {
+                return;
+            }
             host.borrow_mut().menu_pointer_scrolled(x, y, delta);
         }
     });
@@ -28,6 +37,9 @@ pub(super) fn wire_host_shell_menu_callbacks(
     let weak = Rc::downgrade(host);
     host_shell.on_activity_rail_pointer_clicked(move |side, x, y| {
         if let Some(host) = weak.upgrade() {
+            if host.borrow().main_window_close_blocks_session_ui() {
+                return;
+            }
             host.borrow_mut()
                 .activity_rail_pointer_clicked(side.as_str(), x, y);
         }

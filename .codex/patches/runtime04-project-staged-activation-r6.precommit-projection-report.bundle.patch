@@ -1,0 +1,130 @@
+diff --git a/zircon_runtime/src/asset/mod.rs b/zircon_runtime/src/asset/mod.rs
+--- a/zircon_runtime/src/asset/mod.rs
++++ b/zircon_runtime/src/asset/mod.rs
+@@ -158,7 +158,7 @@ pub use management::{
+ pub use pipeline::manager::{
+     AssetIoDriver, AssetManager, AssetPipelineInfo, AssetStatusRecord, ProjectAssetManager,
+     ProjectAssetManagerAccess, ProjectInfo, asset_manager_handle, project_asset_manager_handle,
+-    RuntimePreparedProjectActivation,
++    RuntimePreparedProjectActivation, RuntimePreparedProjectProjection,
+ };
+ pub use pipeline::types::MeshVertex;
+ #[allow(unused_imports)]
+diff --git a/zircon_runtime/src/asset/pipeline/manager/project_asset_manager/activation_transaction.rs b/zircon_runtime/src/asset/pipeline/manager/project_asset_manager/activation_transaction.rs
+--- a/zircon_runtime/src/asset/pipeline/manager/project_asset_manager/activation_transaction.rs
++++ b/zircon_runtime/src/asset/pipeline/manager/project_asset_manager/activation_transaction.rs
+@@ -1,4 +1,6 @@
+-use crate::asset::project::{PreparedProjectOpen, ProjectManager, ProjectRootWitness};
++use crate::asset::project::{
++    PreparedProjectOpen, ProjectManager, ProjectManifest, ProjectRootWitness,
++};
+ use crate::asset::watch::{AssetChange, AssetChangeKind};
+ use crate::asset::ProjectInfo;
+ use crate::core::resource::ResourceRecord;
+@@ -8,6 +9,8 @@ use crate::core::CoreError;
+ 
+ use super::super::errors::asset_error_message;
+ use super::super::records::build_project_info;
++use crate::scene::Scene;
++use std::path::PathBuf;
+ use super::super::resource_sync::{clear_removed_project_resources, project_locators};
+ use super::runtime::{PreparedProjectResourceSync, PreparedProjectWatchers};
+ use super::ProjectAssetManager;
+@@ -67,6 +70,47 @@ pub struct RuntimePreparedProjectActivation {
+     prepared: PreparedProjectActivation,
+ }
+ 
++/// Immutable project data prepared against an uncommitted Runtime04 generation.
++///
++/// It intentionally contains no `ProjectManager`, watcher, resource-sync, or commit authority.
++/// Editor-core may build document and session projections from this data while the paired handle
++/// remains the sole authority capable of publishing the runtime generation.
++#[derive(Clone, Debug)]
++pub struct RuntimePreparedProjectProjection {
++    project_info: ProjectInfo,
++    manifest: ProjectManifest,
++    asset_roots: Vec<PathBuf>,
++    default_scene: Scene,
++}
++
++impl RuntimePreparedProjectProjection {
++    pub fn project_info(&self) -> &ProjectInfo {
++        &self.project_info
++    }
++
++    pub fn manifest(&self) -> &ProjectManifest {
++        &self.manifest
++    }
++
++    /// Already-validated project asset roots for pre-commit Editor projections.
++    pub fn asset_roots(&self) -> &[PathBuf] {
++        &self.asset_roots
++    }
++
++    pub fn default_scene(&self) -> &Scene {
++        &self.default_scene
++    }
++
++    pub fn into_parts(self) -> (ProjectInfo, ProjectManifest, Vec<PathBuf>, Scene) {
++        (
++            self.project_info,
++            self.manifest,
++            self.asset_roots,
++            self.default_scene,
++        )
++    }
++}
++
+ impl RuntimePreparedProjectActivation {
+     pub(in crate::asset::pipeline::manager) fn prepare(
+         manager: ProjectAssetManager,
+@@ -82,6 +134,38 @@ impl RuntimePreparedProjectActivation {
+         &self.prepared.info
+     }
+ 
++    /// Loads immutable document projection data while the replacement generation is still staged.
++    ///
++    /// The handle is returned intact so callers cannot inspect a prepared project without keeping
++    /// its eventual commit/drop authority. A stale witness or scene error drops the candidate and
++    /// leaves the previously active runtime generation untouched.
++    pub fn prepare_editor_projection(
++        self,
++    ) -> Result<(Self, RuntimePreparedProjectProjection), CoreError> {
++        self.prepared
++            .witness
++            .revalidate()
++            .map_err(|stale| asset_error_message(stale.to_string()))?;
++        let manifest = self.prepared.project.manifest().clone();
++        let default_scene = Scene::load_scene_from_uri(
++            &self.prepared.project,
++            &manifest.default_scene,
++        )
++        .map_err(|source| {
++            CoreError::Initialization(
++                "RuntimePreparedProjectProjection default scene".to_string(),
++                source.to_string(),
++            )
++        })?;
++        let projection = RuntimePreparedProjectProjection {
++            project_info: self.prepared.info.clone(),
++            manifest,
++            asset_roots: self.prepared.project.project_asset_roots().to_vec(),
++            default_scene,
++        };
++        Ok((self, projection))
++    }
++
+     /// Publishes this generation exactly once through the manager that prepared it.
+     pub fn commit(self) -> Result<ProjectInfo, CoreError> {
+         self.manager.commit_project_activation(self.prepared)
+diff --git a/zircon_runtime/src/asset/pipeline/manager/project_asset_manager/mod.rs b/zircon_runtime/src/asset/pipeline/manager/project_asset_manager/mod.rs
+--- a/zircon_runtime/src/asset/pipeline/manager/project_asset_manager/mod.rs
++++ b/zircon_runtime/src/asset/pipeline/manager/project_asset_manager/mod.rs
+@@ -12,6 +12,6 @@ mod watch_diagnostics;
+ 
+ pub use access::ProjectAssetManagerAccess;
+-pub use activation_transaction::RuntimePreparedProjectActivation;
++pub use activation_transaction::{RuntimePreparedProjectActivation, RuntimePreparedProjectProjection};
+ pub use handle::project_asset_manager_handle;
+ pub use project_asset_manager::ProjectAssetManager;
+ pub use watch_diagnostics::ProjectAssetWatchDiagnostics;

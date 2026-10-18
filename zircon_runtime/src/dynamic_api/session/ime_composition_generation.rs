@@ -25,6 +25,11 @@ impl RuntimeImeCompositionGenerationGate {
         self.window_generation
     }
 
+    pub(super) fn cancel_active(&mut self) {
+        // Keep the retired context high-water marks so late callbacks cannot reopen it.
+        self.active = false;
+    }
+
     /// Accepts the first update in a new generation and subsequent updates for the active one.
     /// Equal generations after commit/cancel are stale replays and are rejected.
     pub(super) fn begin_or_update(&mut self, context: ZrRuntimeImeCompositionContextV2) -> bool {

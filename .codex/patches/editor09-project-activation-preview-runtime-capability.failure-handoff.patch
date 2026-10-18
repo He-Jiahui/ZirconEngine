@@ -1,0 +1,12 @@
+diff --git a/docs/plans/zircon_editor/editor/09/failure-2026-07-17-editor-asset-catalog-full-rebuild-and-preview-lock.md b/docs/plans/zircon_editor/editor/09/failure-2026-07-17-editor-asset-catalog-full-rebuild-and-preview-lock.md
+--- a/docs/plans/zircon_editor/editor/09/failure-2026-07-17-editor-asset-catalog-full-rebuild-and-preview-lock.md
++++ b/docs/plans/zircon_editor/editor/09/failure-2026-07-17-editor-asset-catalog-full-rebuild-and-preview-lock.md
+@@ -85,0 +86,8 @@
++
++## 产出记录与时间
++
++- 2026-08-03 11:32 +08:00 | failure 补充 / 前向交接 | Editor10 的 project activation 原子安装要求 editor catalog 在 Runtime04 ready token 返回后不再保留 `ProjectManager`。当前 `EditorAssetState::project` 仅由 `PreviewRefreshJob` clone，并在 worker 调用 `generate_preview_artifact(&ProjectManager, ...)`；这迫使 host 继续持有可变 manager，或先 runtime commit 再重建 editor state，二者都破坏 staged activation 的失败原子性。Runtime04 prepared projection 候选已提供 immutable `Arc<ProjectCatalogInputGeneration>` 与 asset roots，但不应由 Editor10 伪造 preview authority。
++- 2026-08-03 11:32 +08:00 | Editor09 修复范围 | 将 preview worker 的 manager 依赖替换为 runtime-owned、move-only 的 preview capability/route，由 ready token 在 commit 前创建并在成功安装时转移。`EditorAssetState` 只能保存 immutable catalog generation、preview cache、scheduler 与 opaque runtime route；禁止保存 `ProjectManager`、在 UI 侧 reopen project，或把 manager 复制进 background job。
++- 2026-08-03 11:32 +08:00 | 原子性约束 | capability 创建、preview cache prepare、catalog projection 和 watcher prepare 都必须在 Runtime04 commit 前完成。任一 prepare、plugin preflight 或 preview route 失败时，前一 runtime project 与 editor catalog/preview state 不变；成功 commit 后只允许无失败内存安装。现有 generation/token、cancel、stale-publish 与 preview-state CAS 语义必须保留。
++- 2026-08-03 11:32 +08:00 | 验收待办 | 增加 source guard（preview production path 不导入或存储 `ProjectManager`）、prepared preview route 的 worker success/error/cancel/stale generation 测试、precommit route 创建失败保持 predecessor 的 rollback 测试，以及 project activation 一次生成 catalog/preview projection 的计数测试。需在 Runtime04 catalog-input/preview-state failure 返回后执行受管 Cargo 验证和独立二次审查。
++- 2026-08-03 11:32 +08:00 | 状态 | open。此记录是同一 Editor09 failure 的前向补充；尚未导入正式计划、未修改生产源码、未运行受管验证。

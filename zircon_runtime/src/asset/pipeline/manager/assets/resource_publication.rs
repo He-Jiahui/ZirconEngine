@@ -62,7 +62,10 @@ pub(super) enum PreparedWatchProjectResourceSync {
 
 enum PreparedProjectResource {
     Record(ResourceRecord),
-    Ready(ResourceRecord, std::sync::Arc<dyn crate::core::resource::ResourceData>),
+    Ready(
+        ResourceRecord,
+        std::sync::Arc<dyn crate::core::resource::ResourceData>,
+    ),
 }
 
 fn append_prepared_resources(
@@ -90,29 +93,46 @@ impl ProjectAssetManager {
         active: &crate::core::resource::ResourceActiveGeneration,
         mut batch: ResourceMutationBatch,
     ) -> ResourceMutationBatch {
-        let managed = sources.iter().flat_map(|source| {
-            source.previous_members.iter().copied()
-                .chain(source.members.iter().map(|member| member.record.id))
-                .chain(active.source_members(source.owner).iter().copied())
-        }).collect::<HashSet<_>>();
+        let managed = sources
+            .iter()
+            .flat_map(|source| {
+                source
+                    .previous_members
+                    .iter()
+                    .copied()
+                    .chain(source.members.iter().map(|member| member.record.id))
+                    .chain(active.source_members(source.owner).iter().copied())
+            })
+            .collect::<HashSet<_>>();
         match prepared {
             PreparedWatchProjectResourceSync::Reconciliation(prepared) => {
                 for resource in &prepared.resources {
                     batch = match resource {
-                        PreparedProjectResource::Record(record) if !managed.contains(&record.id) => {
+                        PreparedProjectResource::Record(record)
+                            if !managed.contains(&record.id) =>
+                        {
                             batch.upsert_lazy(record.clone())
                         }
-                        PreparedProjectResource::Ready(record, payload) if !managed.contains(&record.id) => {
-                            batch.upsert_imported_erased(record.clone(), std::sync::Arc::clone(payload))
+                        PreparedProjectResource::Ready(record, payload)
+                            if !managed.contains(&record.id) =>
+                        {
+                            batch.upsert_imported_erased(
+                                record.clone(),
+                                std::sync::Arc::clone(payload),
+                            )
                         }
                         _ => batch,
                     };
                 }
             }
             PreparedWatchProjectResourceSync::Incremental(prepared) => {
-                for locator in &prepared.removed_locators { batch = batch.remove(locator.clone()); }
+                for locator in &prepared.removed_locators {
+                    batch = batch.remove(locator.clone());
+                }
                 for record in &prepared.record_updates {
-                    if !managed.contains(&record.id) { batch = batch.upsert_lazy(record.clone()); }
+                    if !managed.contains(&record.id) {
+                        batch = batch.upsert_lazy(record.clone());
+                    }
                 }
             }
         }
@@ -131,12 +151,18 @@ impl ProjectAssetManager {
                 let mut paths = self.project_source_paths_write();
                 for uri in prepared.source_path_removals {
                     let empty = paths.get_mut(&uri.scheme()).is_some_and(|items| {
-                        items.remove(uri.path()); items.is_empty()
+                        items.remove(uri.path());
+                        items.is_empty()
                     });
-                    if empty { paths.remove(&uri.scheme()); }
+                    if empty {
+                        paths.remove(&uri.scheme());
+                    }
                 }
                 for (uri, path) in prepared.source_path_updates {
-                    paths.entry(uri.scheme()).or_default().insert(uri.path().to_string(), path);
+                    paths
+                        .entry(uri.scheme())
+                        .or_default()
+                        .insert(uri.path().to_string(), path);
                 }
             }
         }
@@ -149,7 +175,9 @@ impl ProjectAssetManager {
         let _phase = ProjectGenerationPhase::ResourceProjection.enter();
         PreparedProjectSourceDeletionResourceSync {
             source_uri: deletion.source().clone(),
-            source_owner: deletion.removed_records().iter()
+            source_owner: deletion
+                .removed_records()
+                .iter()
                 .find(|record| record.primary_locator().label().is_none())
                 .map(ResourceRecord::id),
             removed_locators: deletion
@@ -172,10 +200,14 @@ impl ProjectAssetManager {
         }
         if let Some(owner) = prepared.source_owner {
             let projection = self.resource_manager.projection_snapshot();
-            batch = batch.publish_source(crate::core::resource::ResourceSourcePublication::capture(
-                owner, Vec::new(), Vec::new(), crate::core::resource::ResourceSourceOutcome::Removed,
-                projection.active(),
-            ));
+            batch =
+                batch.publish_source(crate::core::resource::ResourceSourcePublication::capture(
+                    owner,
+                    Vec::new(),
+                    Vec::new(),
+                    crate::core::resource::ResourceSourceOutcome::Removed,
+                    projection.active(),
+                ));
         }
         self.commit_resource_batch_after_dependencies(batch, || {
             let outcome = commit_files()?;
@@ -424,7 +456,9 @@ impl ProjectAssetManager {
             .collect::<std::collections::HashSet<_>>();
         let resources = ready_payloads
             .into_iter()
-            .map(|(metadata, payload)| PreparedProjectResource::Ready(metadata, payload.into_resource_data()))
+            .map(|(metadata, payload)| {
+                PreparedProjectResource::Ready(metadata, payload.into_resource_data())
+            })
             .collect();
         let record_updates = affected
             .iter()
@@ -514,7 +548,9 @@ impl ProjectAssetManager {
             removed_locators,
             resources: ready_payloads
                 .into_iter()
-                .map(|(metadata, payload)| PreparedProjectResource::Ready(metadata, payload.into_resource_data()))
+                .map(|(metadata, payload)| {
+                    PreparedProjectResource::Ready(metadata, payload.into_resource_data())
+                })
                 .collect(),
             record_updates,
         }

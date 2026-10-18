@@ -170,6 +170,8 @@ mod inspector;
 mod invalidation;
 #[path = "app/job_progress.rs"]
 mod job_progress;
+#[path = "app/main_window_close.rs"]
+mod main_window_close;
 #[path = "app/menu_pointer.rs"]
 mod menu_pointer;
 #[path = "app/plugins.rs"]
@@ -376,7 +378,10 @@ pub fn run_editor_with_config(
         retained_host.runtime.set_play_backend(play_backend);
     }
     let settings_snapshot = retained_host.runtime.context().settings().snapshot();
-    apply_host_appearance_from_tokens(settings_snapshot.design_tokens());
+    apply_host_appearance_from_tokens(
+        settings_snapshot.design_tokens_handle(),
+        Some(settings_snapshot.generation()),
+    );
     apply_host_paint_scale_factor(
         ResolutionContext::from_physical_size_with_scale_mode(
             retained_host.shell_size,
@@ -414,9 +419,12 @@ pub fn run_editor_with_config(
     let host = Rc::new(RefCell::new(retained_host));
     let notification_context = host.borrow().runtime.context().clone();
     ui.on_toast_presented(move |id, token| {
-        notification_context.notifications().acknowledge_toast_presented(id, token)
+        notification_context
+            .notifications()
+            .acknowledge_toast_presented(id, token)
             .unwrap_or(false)
-    }).map_err(|error| hub_startup_reporter.report_failure(std::io::Error::other(error)))?;
+    })
+    .map_err(|error| hub_startup_reporter.report_failure(std::io::Error::other(error)))?;
     wire_callbacks(&ui, &host, None);
     let host_weak = Rc::downgrade(&host);
     ui.window().on_close_requested(move || {
@@ -505,7 +513,20 @@ pub fn run_editor_with_config(
             host_window_diagnostics,
         );
     }
+    let normal_close_complete = host.borrow().main_window_close_complete();
     host.borrow_mut().shutdown_runtime_session();
+    if normal_close_complete {
+        if let Some(error) = ui.take_fatal_failure() {
+            return Err(hub_startup_reporter
+                .report_failure_with_code(HubEditorStartupFailureCodeV1::HostWindow, error)
+                .into());
+        }
+        run_result.map_err(|error| {
+            hub_startup_reporter
+                .report_failure_with_code(HubEditorStartupFailureCodeV1::HostWindow, error)
+        })?;
+        return Ok(());
+    }
     let (final_autosave_requests, final_autosave_preparation_error) = match {
         let retained_host = host.borrow();
         retained_host.final_autosave_requests()
@@ -816,6 +837,7 @@ struct RetainedEditorHost {
     active_drawer_resize: Option<ActiveDrawerResize>,
     project_close_coordinator: crate::ui::host::ProjectCloseCoordinator,
     pending_close_prompt: Option<close_prompt::PendingClosePrompt>,
+    main_window_close: Option<main_window_close::OwnedMainWindowClose>,
     pending_document_save_all: bool,
     queued_document_save_all: bool,
     scene_picker_session: Option<scene_picker_session::ScenePickerSession>,

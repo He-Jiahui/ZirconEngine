@@ -78,8 +78,8 @@ fn host_request_batch_encodes_runtime_ime_requests() {
 /// # 参考
 /// [ZrRuntimeHostRequestBatchV1]、[ZrRuntimeHostRequestV1]、[zircon_runtime_interface::ZrRuntimeGamepadRumbleRequestV2]、[ZrRuntimeGamepadRumbleRequestKindV1]、[runtime_gamepad_rumble_request]、[encode_host_request_batch]、[host_request_batch_from_bytes]
 fn host_request_batch_encodes_gamepad_rumble_requests() {
-    use std::num::NonZeroU64;
     use crate::core::framework::input::QueuedGamepadRumbleRequest;
+    use std::num::NonZeroU64;
     use zircon_runtime_interface::ZrRuntimeGamepadRumbleRequestV2;
 
     let generation = NonZeroU64::new(3).unwrap();
@@ -97,7 +97,10 @@ fn host_request_batch_encodes_gamepad_rumble_requests() {
                 ),
             )),
             ZrRuntimeHostRequestV1::gamepad_rumble_v2(runtime_gamepad_rumble_request(
-                QueuedGamepadRumbleRequest::new(GamepadRumbleRequest::stop(GamepadId(7)), generation),
+                QueuedGamepadRumbleRequest::new(
+                    GamepadRumbleRequest::stop(GamepadId(7)),
+                    generation,
+                ),
             )),
         ],
     );

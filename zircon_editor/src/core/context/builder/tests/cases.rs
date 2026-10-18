@@ -563,9 +563,7 @@ fn log_service_reports_not_configured_until_a_matching_log_subscriber_is_present
     let emit = |message: &'static str| {
         context
             .logs()
-            .emit(
-                LogEntry::new(LogSource::editor(), LogSeverity::Info, message, 7, None).unwrap(),
-            )
+            .emit(LogEntry::new(LogSource::editor(), LogSeverity::Info, message, 7, None).unwrap())
             .unwrap()
     };
 
@@ -650,7 +648,10 @@ fn log_service_reports_not_configured_until_a_matching_log_subscriber_is_present
     assert!(subscribed.record().sequence() < unsubscribed.record().sequence());
 
     let after = context.logs().diagnostics();
-    assert_eq!(after.resync_required_records, before.resync_required_records);
+    assert_eq!(
+        after.resync_required_records,
+        before.resync_required_records
+    );
     assert_eq!(after.event_resyncs, before.event_resyncs);
     assert_eq!(after.failed_event_resyncs, before.failed_event_resyncs);
 }

@@ -15,7 +15,11 @@ fn replacement_world(nodes: usize) -> World {
 }
 
 fn replacement_node_ids(world: &World) -> Vec<EntityId> {
-    world.node_records().into_iter().map(|node| node.id).collect()
+    world
+        .node_records()
+        .into_iter()
+        .map(|node| node.id)
+        .collect()
 }
 
 fn replacement_level(id: u64, world: World, policy: TimePolicy) -> LevelSystem {
@@ -24,7 +28,9 @@ fn replacement_level(id: u64, world: World, policy: TimePolicy) -> LevelSystem {
         Arc::new(Mutex::new(world)),
         LevelMetadata::default(),
     );
-    level.initialize_time_policy(policy).expect("valid fixture policy");
+    level
+        .initialize_time_policy(policy)
+        .expect("valid fixture policy");
     level
 }
 
@@ -164,9 +170,15 @@ fn reset_and_restore_rebase_domains_without_rewinding_the_live_outer_frame() {
     ))
     .into_parts();
     let reset = reset_receipt.after();
-    assert_eq!(reset_receipt.time_policy(), WorldReplacementTimePolicy::Reset);
+    assert_eq!(
+        reset_receipt.time_policy(),
+        WorldReplacementTimePolicy::Reset
+    );
     assert_eq!(reset_receipt.before(), saved_time);
-    assert_eq!(reset_receipt.discarded_debt(), saved_time.fixed_time().overstep());
+    assert_eq!(
+        reset_receipt.discarded_debt(),
+        saved_time.fixed_time().overstep()
+    );
     assert_eq!(saved.time(), saved_time);
     assert_eq!(saved.identity(), reset_receipt.previous());
     assert_eq!(replacement_node_ids(saved.world()), original_ids);
@@ -181,8 +193,14 @@ fn reset_and_restore_rebase_domains_without_rewinding_the_live_outer_frame() {
     assert_eq!(reset.fixed_time().timestep(), Duration::from_millis(8));
     assert_eq!(reset.virtual_time().relative_speed_f64(), 0.5);
     assert!(!reset.virtual_time().is_paused());
-    assert_eq!(reset.last_outer_frame_index(), saved_time.last_outer_frame_index());
-    assert_eq!(reset.policy_generation(), saved_time.policy_generation() + 1);
+    assert_eq!(
+        reset.last_outer_frame_index(),
+        saved_time.last_outer_frame_index()
+    );
+    assert_eq!(
+        reset.policy_generation(),
+        saved_time.policy_generation() + 1
+    );
     assert_eq!(
         reset.virtual_time().clock_domain_stamp().epoch(),
         saved_time.virtual_time().clock_domain_stamp().epoch() + 1,
@@ -192,18 +210,30 @@ fn reset_and_restore_rebase_domains_without_rewinding_the_live_outer_frame() {
         saved_time.fixed_time().clock_domain_stamp().epoch() + 1,
     );
     assert_eq!(
-        reset.virtual_time().clock_domain_stamp().source_generation(),
-        saved_time.virtual_time().clock_domain_stamp().source_generation(),
+        reset
+            .virtual_time()
+            .clock_domain_stamp()
+            .source_generation(),
+        saved_time
+            .virtual_time()
+            .clock_domain_stamp()
+            .source_generation(),
     );
     assert_eq!(
         reset.fixed_time().clock_domain_stamp().source_generation(),
-        saved_time.fixed_time().clock_domain_stamp().source_generation(),
+        saved_time
+            .fixed_time()
+            .clock_domain_stamp()
+            .source_generation(),
     );
 
     let live_outer = outer.advance_time_by(Duration::from_millis(40), 0);
     level.advance_world_time(live_outer).unwrap();
     let live_time = level.world_time();
-    assert_ne!(live_time.last_outer_frame_index(), saved_time.last_outer_frame_index());
+    assert_ne!(
+        live_time.last_outer_frame_index(),
+        saved_time.last_outer_frame_index()
+    );
     let saved_identity = saved.identity();
     let expected = level.capture_world_replacement_expectation();
     let (restore_receipt, retired_reset_world) =
@@ -214,45 +244,93 @@ fn reset_and_restore_rebase_domains_without_rewinding_the_live_outer_frame() {
         ))
         .into_parts();
     let restored = restore_receipt.after();
-    assert_eq!(restore_receipt.time_policy(), WorldReplacementTimePolicy::Restore);
+    assert_eq!(
+        restore_receipt.time_policy(),
+        WorldReplacementTimePolicy::Restore
+    );
     assert_eq!(restore_receipt.restored_checkpoint(), Some(saved_identity));
     assert_eq!(restore_receipt.before(), live_time);
-    assert_eq!(restore_receipt.restored_debt(), saved_time.fixed_time().overstep());
+    assert_eq!(
+        restore_receipt.restored_debt(),
+        saved_time.fixed_time().overstep()
+    );
     assert_eq!(retired_reset_world.time(), live_time);
     assert_eq!(retired_reset_world.identity(), restore_receipt.previous());
     assert_eq!(replacement_node_ids(retired_reset_world.world()), reset_ids);
     assert_eq!(level.with_world(replacement_node_ids), original_ids);
     assert_eq!(restored, level.world_time());
-    assert_eq!(restored.virtual_time().elapsed(), saved_time.virtual_time().elapsed());
-    assert_eq!(restored.virtual_time().frame_index(), saved_time.virtual_time().frame_index());
+    assert_eq!(
+        restored.virtual_time().elapsed(),
+        saved_time.virtual_time().elapsed()
+    );
+    assert_eq!(
+        restored.virtual_time().frame_index(),
+        saved_time.virtual_time().frame_index()
+    );
     assert_eq!(restored.virtual_time().delta(), Duration::ZERO);
-    assert_eq!(restored.virtual_time().is_paused(), saved_time.virtual_time().is_paused());
+    assert_eq!(
+        restored.virtual_time().is_paused(),
+        saved_time.virtual_time().is_paused()
+    );
     assert_eq!(
         restored.virtual_time().relative_speed_f64(),
         saved_time.virtual_time().relative_speed_f64(),
     );
-    assert_eq!(restored.virtual_time().max_delta(), saved_time.virtual_time().max_delta());
-    assert_eq!(restored.fixed_time().elapsed(), saved_time.fixed_time().elapsed());
-    assert_eq!(restored.fixed_time().frame_index(), saved_time.fixed_time().frame_index());
+    assert_eq!(
+        restored.virtual_time().max_delta(),
+        saved_time.virtual_time().max_delta()
+    );
+    assert_eq!(
+        restored.fixed_time().elapsed(),
+        saved_time.fixed_time().elapsed()
+    );
+    assert_eq!(
+        restored.fixed_time().frame_index(),
+        saved_time.fixed_time().frame_index()
+    );
     assert_eq!(restored.fixed_time().delta(), Duration::ZERO);
-    assert_eq!(restored.fixed_time().timestep(), saved_time.fixed_time().timestep());
-    assert_eq!(restored.fixed_time().overstep(), saved_time.fixed_time().overstep());
-    assert_eq!(restored.last_outer_frame_index(), live_time.last_outer_frame_index());
-    assert_eq!(restored.policy_generation(), live_time.policy_generation() + 1);
+    assert_eq!(
+        restored.fixed_time().timestep(),
+        saved_time.fixed_time().timestep()
+    );
+    assert_eq!(
+        restored.fixed_time().overstep(),
+        saved_time.fixed_time().overstep()
+    );
+    assert_eq!(
+        restored.last_outer_frame_index(),
+        live_time.last_outer_frame_index()
+    );
+    assert_eq!(
+        restored.policy_generation(),
+        live_time.policy_generation() + 1
+    );
     let restored_virtual_stamp = restored.virtual_time().clock_domain_stamp();
     let restored_fixed_stamp = restored.fixed_time().clock_domain_stamp();
     let live_virtual_stamp = live_time.virtual_time().clock_domain_stamp();
     let live_fixed_stamp = live_time.fixed_time().clock_domain_stamp();
     assert_eq!(
         restored_virtual_stamp.epoch(),
-        live_virtual_stamp.epoch().max(saved_time.virtual_time().clock_domain_stamp().epoch()) + 1,
+        live_virtual_stamp
+            .epoch()
+            .max(saved_time.virtual_time().clock_domain_stamp().epoch())
+            + 1,
     );
     assert_eq!(
         restored_fixed_stamp.epoch(),
-        live_fixed_stamp.epoch().max(saved_time.fixed_time().clock_domain_stamp().epoch()) + 1,
+        live_fixed_stamp
+            .epoch()
+            .max(saved_time.fixed_time().clock_domain_stamp().epoch())
+            + 1,
     );
-    assert_eq!(restored_virtual_stamp.source_generation(), live_virtual_stamp.source_generation());
-    assert_eq!(restored_fixed_stamp.source_generation(), live_fixed_stamp.source_generation());
+    assert_eq!(
+        restored_virtual_stamp.source_generation(),
+        live_virtual_stamp.source_generation()
+    );
+    assert_eq!(
+        restored_fixed_stamp.source_generation(),
+        live_fixed_stamp.source_generation()
+    );
     assert_eq!(restored_virtual_stamp.id(), live_virtual_stamp.id());
     assert_eq!(restored_fixed_stamp.id(), live_fixed_stamp.id());
     assert_eq!(restored_virtual_stamp.unit(), live_virtual_stamp.unit());
@@ -280,7 +358,10 @@ fn rejected_owner_stale_and_invalid_requests_are_failure_atomic_and_retryable() 
         WorldReplacementRequest::preserve(incoming),
         WorldReplacementReason::ExplicitHostRequest,
     ));
-    assert!(matches!(rejected.error(), WorldReplacementError::TargetOwnerChanged));
+    assert!(matches!(
+        rejected.error(),
+        WorldReplacementError::TargetOwnerChanged
+    ));
     assert_eq!(replacement_observed(&b), before_b);
     let (_, request) = rejected.into_parts();
     let (_, checkpoint_a) = replacement_committed(a.replace_world_with_time_policy(
@@ -302,7 +383,10 @@ fn rejected_owner_stale_and_invalid_requests_are_failure_atomic_and_retryable() 
         WorldReplacementRequest::restore(checkpoint_a),
         WorldReplacementReason::CheckpointRestore,
     ));
-    assert!(matches!(rejected.error(), WorldReplacementError::CheckpointOwnerChanged));
+    assert!(matches!(
+        rejected.error(),
+        WorldReplacementError::CheckpointOwnerChanged
+    ));
     assert_eq!(replacement_observed(&a), before_a);
     assert_eq!(replacement_observed(&b), before_b);
     let (_, request) = rejected.into_parts();
@@ -331,7 +415,10 @@ fn rejected_owner_stale_and_invalid_requests_are_failure_atomic_and_retryable() 
         WorldReplacementRequest::preserve(incoming),
         WorldReplacementReason::ExplicitHostRequest,
     ));
-    assert!(matches!(rejected.error(), WorldReplacementError::TargetChanged { .. }));
+    assert!(matches!(
+        rejected.error(),
+        WorldReplacementError::TargetChanged { .. }
+    ));
     assert_eq!(replacement_observed(&b), before_b);
     let (_, request) = rejected.into_parts();
     let expected_b = b.capture_world_replacement_expectation();
@@ -350,7 +437,10 @@ fn rejected_owner_stale_and_invalid_requests_are_failure_atomic_and_retryable() 
         WorldReplacementRequest::reset(replacement_world(6), invalid, false),
         WorldReplacementReason::ExplicitHostRequest,
     ));
-    assert!(matches!(rejected.error(), WorldReplacementError::InvalidTimePolicy(_)));
+    assert!(matches!(
+        rejected.error(),
+        WorldReplacementError::InvalidTimePolicy(_)
+    ));
     assert_eq!(replacement_observed(&b), before_b);
     let (_, original_request) = rejected.into_parts();
     // The returned owned request remains invalid and is not consumed on retry.
@@ -359,7 +449,10 @@ fn rejected_owner_stale_and_invalid_requests_are_failure_atomic_and_retryable() 
         original_request,
         WorldReplacementReason::ExplicitHostRequest,
     ));
-    assert!(matches!(rejected.error(), WorldReplacementError::InvalidTimePolicy(_)));
+    assert!(matches!(
+        rejected.error(),
+        WorldReplacementError::InvalidTimePolicy(_)
+    ));
     assert_eq!(replacement_observed(&b), before_b);
     let (_, _still_owned_request) = rejected.into_parts();
 }
@@ -382,7 +475,10 @@ fn quiet_rejections_preserve_the_request_and_original_fixed_step_transactions() 
         WorldReplacementRequest::reset(incoming, TimePolicy::default(), false),
         WorldReplacementReason::ExplicitHostRequest,
     ));
-    assert!(matches!(rejected.error(), WorldReplacementError::FixedStepActive { .. }));
+    assert!(matches!(
+        rejected.error(),
+        WorldReplacementError::FixedStepActive { .. }
+    ));
     assert_eq!(replacement_observed(&level), before);
     let (_, request) = rejected.into_parts();
     level.commit_fixed_step(generation, &first).unwrap();
@@ -414,7 +510,9 @@ fn quiet_rejections_preserve_the_request_and_original_fixed_step_transactions() 
 #[test]
 fn epoch_and_incoming_generation_overflow_return_the_original_request() {
     let saturated = replacement_level(6, replacement_world(1), replacement_policy());
-    saturated.world_replacement_epoch.store(u64::MAX, Ordering::Release);
+    saturated
+        .world_replacement_epoch
+        .store(u64::MAX, Ordering::Release);
     let expected = saturated.capture_world_replacement_expectation();
     let before = replacement_observed(&saturated);
     let incoming = replacement_world(2);
@@ -493,14 +591,29 @@ fn frame_begin_keeps_time_and_schedule_owner_paired_across_a_real_reset() {
     ));
     let receipt = commit.receipt();
     assert_eq!(generation, receipt.previous().world_generation());
-    assert_eq!(snapshot.virtual_elapsed(), receipt.before().virtual_time().elapsed());
-    assert_eq!(snapshot.virtual_delta(), receipt.before().virtual_time().delta());
-    assert_eq!(Some(snapshot.outer_frame_index()), receipt.before().last_outer_frame_index());
+    assert_eq!(
+        snapshot.virtual_elapsed(),
+        receipt.before().virtual_time().elapsed()
+    );
+    assert_eq!(
+        snapshot.virtual_delta(),
+        receipt.before().virtual_time().delta()
+    );
+    assert_eq!(
+        Some(snapshot.outer_frame_index()),
+        receipt.before().last_outer_frame_index()
+    );
     assert!(!sequential.with_world(|world| execution.is_bound_to(world)));
-    assert!(sequential.with_world_mut_if_schedule_execution(&execution, |_| ()).is_none());
+    assert!(sequential
+        .with_world_mut_if_schedule_execution(&execution, |_| ())
+        .is_none());
 
     let outer = CoreRuntime::new();
-    let level = Arc::new(replacement_level(9, replacement_world(1), replacement_policy()));
+    let level = Arc::new(replacement_level(
+        9,
+        replacement_world(1),
+        replacement_policy(),
+    ));
     level
         .advance_world_time(outer.advance_time_by(Duration::from_millis(7), 0))
         .unwrap();
@@ -544,9 +657,18 @@ fn frame_begin_keeps_time_and_schedule_owner_paired_across_a_real_reset() {
     );
     if generation == receipt.previous().world_generation() {
         // Frame first: time, generation and execution retire together.
-        assert_eq!(snapshot.virtual_elapsed(), receipt.before().virtual_time().elapsed());
-        assert_eq!(snapshot.virtual_delta(), receipt.before().virtual_time().delta());
-        assert_eq!(Some(snapshot.outer_frame_index()), receipt.before().last_outer_frame_index());
+        assert_eq!(
+            snapshot.virtual_elapsed(),
+            receipt.before().virtual_time().elapsed()
+        );
+        assert_eq!(
+            snapshot.virtual_delta(),
+            receipt.before().virtual_time().delta()
+        );
+        assert_eq!(
+            Some(snapshot.outer_frame_index()),
+            receipt.before().last_outer_frame_index()
+        );
         assert_eq!(live, receipt.after());
         assert!(!level.with_world(|world| execution.is_bound_to(world)));
     } else {
@@ -554,7 +676,10 @@ fn frame_begin_keeps_time_and_schedule_owner_paired_across_a_real_reset() {
         assert_eq!(generation, receipt.current().world_generation());
         assert_eq!(snapshot.virtual_elapsed(), live.virtual_time().elapsed());
         assert_eq!(snapshot.virtual_delta(), live.virtual_time().delta());
-        assert_eq!(Some(snapshot.outer_frame_index()), live.last_outer_frame_index());
+        assert_eq!(
+            Some(snapshot.outer_frame_index()),
+            live.last_outer_frame_index()
+        );
         assert!(live.virtual_time().elapsed() > receipt.after().virtual_time().elapsed());
         assert!(level.with_world(|world| execution.is_bound_to(world)));
     }

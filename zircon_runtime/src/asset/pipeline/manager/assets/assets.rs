@@ -61,7 +61,8 @@ pub(in crate::asset::pipeline::manager) struct ProjectWatcherActivationState {
     pub(in crate::asset::pipeline::manager) errors: VecDeque<AssetWatchError>,
     pub(in crate::asset::pipeline::manager) worker_scheduled: bool,
     pub(in crate::asset::pipeline::manager) ingress_epoch: Arc<()>,
-    pub(in crate::asset::pipeline::manager) retry_timer: Option<Arc<super::watch_retry::WatchRetryTimer>>,
+    pub(in crate::asset::pipeline::manager) retry_timer:
+        Option<Arc<super::watch_retry::WatchRetryTimer>>,
     pub(in crate::asset::pipeline::manager) retry_work: Option<super::runtime::WatchRetryWork>,
     pub(in crate::asset::pipeline::manager) retry_ready: bool,
 }

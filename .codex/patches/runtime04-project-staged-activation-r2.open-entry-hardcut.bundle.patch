@@ -1,0 +1,83 @@
+diff --git a/zircon_runtime/src/asset/pipeline/manager/project_asset_manager/open_project.rs b/zircon_runtime/src/asset/pipeline/manager/project_asset_manager/open_project.rs
+--- a/zircon_runtime/src/asset/pipeline/manager/project_asset_manager/open_project.rs
++++ b/zircon_runtime/src/asset/pipeline/manager/project_asset_manager/open_project.rs
+@@ -1,10 +1,6 @@
+ use crate::asset::ProjectInfo;
+ use crate::asset::project::PreparedProjectOpen;
+-use crate::asset::watch::{AssetChange, AssetChangeKind};
+ use crate::core::CoreError;
+ 
+-use super::super::errors::{asset_error, asset_error_message};
+-use super::super::records::build_project_info;
+-use super::super::resource_sync::{clear_removed_project_resources, project_locators};
+ use super::ProjectAssetManager;
+ 
+@@ -12,63 +8,12 @@ impl ProjectAssetManager {
+-    /// Activates an already parsed project as the authoritative runtime asset project.
++    /// Commits an already prepared project through the staged activation transaction.
+     ///
+-    /// Runtime session construction uses this entry after reading the manifest once for plugin
+-    /// selection. The path-based [`crate::asset::AssetManager::open_project`] entry delegates here
+-    /// as well so both startup routes share importer registration, scanning, resource sync, watcher
+-    /// replacement, and change publication semantics.
++    /// The public entry owns no duplicate scan, resource-sync, watcher, or publication path. Its
++    /// only authority transition is `PreparedProjectActivation`'s private prepare-then-commit flow.
+     pub(crate) fn open_prepared_project(
+         &self,
+         prepared: PreparedProjectOpen,
+     ) -> Result<ProjectInfo, CoreError> {
+-        let (witness, mut project) = prepared.into_parts();
+-        witness
+-            .revalidate()
+-            .map_err(|stale| asset_error_message(stale.to_string()))?;
+-        let preparation_epoch = self.begin_project_preparation();
+-        let installed_importers = self.importer_registry_read().clone();
+-        project
+-            .register_asset_importers_from_registry(&installed_importers)
+-            .map_err(asset_error)?;
+-        project.set_environment_ibl_parallel_executor(self.worker_task_pool.clone());
+-        let prepared_watchers = self.prepare_project_watchers(&project)?;
+-        let imported = project.scan_and_import().map_err(asset_error)?;
+-        let prepared_resources = self.prepare_project_resource_sync(&project)?;
+-        let info = build_project_info(&project);
+-        let _generation = self.project_generation_write();
+-        if !self.is_latest_project_preparation(preparation_epoch) {
+-            return Err(asset_error_message(
+-                "project activation was superseded by a newer preparation",
+-            ));
+-        }
+-        witness
+-            .revalidate()
+-            .map_err(|stale| asset_error_message(stale.to_string()))?;
+-        let previous_locators = self
+-            .project_read()
+-            .as_ref()
+-            .map(project_locators)
+-            .unwrap_or_default();
+-        let (retired_watchers, watcher_activation) = {
+-            let mut active_project = self.project_write();
+-            clear_removed_project_resources(&self.resource_manager(), &previous_locators, &project);
+-            self.commit_project_resource_sync(prepared_resources);
+-            *active_project = Some(project);
+-            self.activate_project_watchers(prepared_watchers)
+-        };
+-        self.broadcast(
+-            imported
+-                .into_iter()
+-                .map(|metadata| {
+-                    AssetChange::new(
+-                        AssetChangeKind::Added,
+-                        metadata.primary_locator().clone(),
+-                        None,
+-                    )
+-                })
+-                .collect(),
+-        );
+-        drop(_generation);
+-        drop(retired_watchers);
+-        self.drain_project_watcher_events(watcher_activation);
+-        Ok(info)
++        let activation = self.prepare_project_activation(prepared)?;
++        self.commit_project_activation(activation)
+     }
+ }

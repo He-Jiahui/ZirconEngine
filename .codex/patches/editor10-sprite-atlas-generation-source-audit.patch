@@ -1,0 +1,13 @@
+diff --git a/docs/plans/zircon_editor/editor/10/failure-2026-07-17-editor-sprite-atlas-paint-time-io.md b/docs/plans/zircon_editor/editor/10/failure-2026-07-17-editor-sprite-atlas-paint-time-io.md
+--- a/docs/plans/zircon_editor/editor/10/failure-2026-07-17-editor-sprite-atlas-paint-time-io.md
++++ b/docs/plans/zircon_editor/editor/10/failure-2026-07-17-editor-sprite-atlas-paint-time-io.md
+@@ -55,3 +55,9 @@ PERF-MVP-181的41文件审查确认普通visual assets也在cache hit前重建alias/source/MUI candidate并逐path `exists()`；SVG tree hit前stat source，retained preview复制/hash整图，MUI fallback从`dev/material-ui`读取JS。Editor10的asset registry必须覆盖普通icon/image/MUI导入与canonical resource generation，而不只处理atlas manifest。
+ ## 修复结果与回传
+ 
+ 完成后在本目录写`fixed-*`或return记录并附current-source Windows Cargo、focused tests和规模counter；此前保持open。
++
++## 产出记录与时间
++
++| 时间 | 状态 | 完成项目与证据 |
++|---|---|---|
++| 2026-08-02 CST | `OPEN / 当前源码根因复核与独立审查整改` | 已实读：每次 visual caller 都先构造 candidate `Vec<PathBuf>`；visual-pixel cache 命中会 clone `HostPaintImagePixels` 及 RGBA，miss 才由 `resolve_editor_sprite_atlas_image` 枚举 `.zircon/cache/editor-sprite-atlases`、按派生 manifest path 查询 64 项缓存、查找 entry 后解码整张 PNG 至 64 项/64MiB RGBA cache，且首个 manifest 缺 entry 即提前返回。`EditorAssetCatalogGeneration` 无 atlas 或普通 project image/SVG 的 resource generation/handle，`EditorAssetProjectSourceGeneration` 也不枚举 cache root；Editor-static/MUI 须由独立 packaged provider 供给，不能假设 project watcher 覆盖。正确修复须在同一 asset-refresh transaction 内由已验证的 atlas builder result 加 source dependency revision 发布 atlas projection；持久 cache TOML/PNG 只可作有界恢复验证，不得当作 watcher source。同时发布普通 project image/SVG 的 revisioned resource projection，以消除 `image_candidates`/`first_existing_path` paint probe 并覆盖 update/delete/tint identity。向两条 paint conversion 显式传只读资源快照，并令 `HostPaintAtlasImage` 与普通 `HostPaintImagePixels` 都使用 Render13-issued resource handle；softbuffer replay 与 GPU upload 必须从 Render13 同一 registry 按 resource revision 解析，禁止 cache hit、recording 或 command extraction 逐视觉项复制 atlas 或 ordinary RGBA bytes。不得在 paint 层补 PathBuf/RGBA cache 或以 cache stat 失效。相关生产路径已有外部未提交改动，未直接写入；待 owner 以精确租约实现并执行 focused/current-source gate。 |

@@ -123,6 +123,13 @@ impl<P: UiSurfacePresenter> GpuChromePresenter<P> {
                 {
                     evidence["presentedFrameCount"] = profile["presentedFrameCount"].clone();
                     evidence["presentationCursor"] = serde_json::json!(presentation_cursor);
+                    if let Some(mut inventory) = presentation
+                        .normal_inventory_for_present(presentation_cursor, result.is_ok())
+                    {
+                        inventory["presentationCursor"] = serde_json::json!(presentation_cursor);
+                        inventory["presentedFrameCount"] = profile["presentedFrameCount"].clone();
+                        evidence["arrangedInventoryPublication"] = inventory;
+                    }
                     if let Some((stamp, business)) = presentation.normal_workbench_business.as_ref()
                     {
                         if stamp.same_business_generation(presentation_cursor) {

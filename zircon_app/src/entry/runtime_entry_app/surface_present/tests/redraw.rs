@@ -1,12 +1,10 @@
 use std::num::NonZeroU64;
 
+use crate::entry::runtime_entry_app::{RuntimeEntryApp, RuntimeProductProofPolicy};
 use zircon_runtime::asset::project::ProjectPaths;
 use zircon_runtime_interface::ZrRuntimeViewportSizeV1;
-use crate::entry::runtime_entry_app::{RuntimeEntryApp, RuntimeProductProofPolicy};
 
-use super::{
-    presented_frame_exit_diagnostic, should_capture_first_presented_frame,
-};
+use super::{presented_frame_exit_diagnostic, should_capture_first_presented_frame};
 
 #[test]
 fn first_frame_exit_emits_a_presented_frame_diagnostic() {

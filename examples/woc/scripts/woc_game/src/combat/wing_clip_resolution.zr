@@ -1,0 +1,35 @@
+var spellScaling = %import("combat/spell_scaling");
+var mobSwing = %import("combat/mob_swing_state");
+
+// Fettering Slash is a physical direct-damage effect, not a weapon strike.
+// Keep its source ordered range sample and physical critical sample outside the
+// state reducer so the world layer only owns command admission and side effects.
+pub resolveDirectDamage(
+    minimum: float,
+    maximum: float,
+    attackPower: float,
+    castTime: float,
+    critical: bool,
+    criticalDamageBonus: float,
+    targetArmor: float,
+    casterLevel: int,
+    rangeRandomUnit: float
+): int {
+    var damage = minimum + rangeRandomUnit * (maximum - minimum) +
+        <float>spellScaling.directHitBonus(attackPower, "physical", false, castTime, false);
+    if (critical) { damage = damage * (2.0 + criticalDamageBonus); }
+    damage = damage * (1.0 - mobSwing.armorReductionFromArmor(targetArmor, casterLevel, true));
+    var rounded = <int>(damage + 0.5);
+    return rounded > 0 ? rounded : 0;
+}
+
+pub contractTest(): int {
+    if (resolveDirectDamage(3.0, 5.0, 0.0, 0.0, false, 0.0, 0.0, 10, 0.0) != 3 ||
+        resolveDirectDamage(3.0, 5.0, 0.0, 0.0, false, 0.0, 0.0, 10, 1.0) != 5 ||
+        resolveDirectDamage(3.0, 5.0, 300.0, 0.0, false, 0.0, 0.0, 10, 0.0) != 22 ||
+        resolveDirectDamage(3.0, 5.0, 300.0, 0.0, true, 0.0, 0.0, 10, 0.0) != 44 ||
+        resolveDirectDamage(3.0, 3.0, 0.0, 0.0, false, 0.0, 100000.0, 10, 0.0) != 1) {
+        return -1;
+    }
+    return 1;
+}

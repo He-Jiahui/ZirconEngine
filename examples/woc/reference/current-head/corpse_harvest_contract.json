@@ -1,0 +1,269 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/corpse_harvest_contract_codegen.mjs",
+  "source_sha256": {
+    "src/sim/content/professions.ts": "d2d8567ab607693ab59a19d145187d0bad8b153c209c85b8f3cce5eed6277c3b",
+    "src/sim/professions/gathering.ts": "e25b174f9b9d1b7e5e223795fbe345b20ccf6f56b34d2fdd2f2e5e04da62f67c",
+    "src/sim/interaction.ts": "37f0ba348e82cfa7a6e12e3a76fbb26a5ae3e9952594e3f8bf62ef3ef540b9fa"
+  },
+  "tags": [
+    "hide",
+    "fang",
+    "claw",
+    "tusk",
+    "venomSac",
+    "silk",
+    "gills",
+    "horn"
+  ],
+  "component_items": {
+    "hide": "boar_hide",
+    "fang": "wolf_fang",
+    "silk": "webwood_silk",
+    "venomSac": "widow_venom_sac"
+  },
+  "max_components_per_mob": 3,
+  "mobs": [
+    {
+      "id": "forest_wolf",
+      "component_tags": [
+        "hide",
+        "fang"
+      ]
+    },
+    {
+      "id": "old_greyjaw",
+      "component_tags": [
+        "hide",
+        "fang",
+        "claw"
+      ]
+    },
+    {
+      "id": "wild_boar",
+      "component_tags": [
+        "hide",
+        "tusk"
+      ]
+    },
+    {
+      "id": "mogger",
+      "component_tags": []
+    },
+    {
+      "id": "webwood_spider",
+      "component_tags": [
+        "venomSac",
+        "silk"
+      ]
+    },
+    {
+      "id": "mudfin_murloc",
+      "component_tags": [
+        "gills",
+        "hide"
+      ]
+    },
+    {
+      "id": "tunnel_rat",
+      "component_tags": []
+    },
+    {
+      "id": "vale_bandit",
+      "component_tags": []
+    },
+    {
+      "id": "gorrak",
+      "component_tags": []
+    },
+    {
+      "id": "restless_bones",
+      "component_tags": []
+    },
+    {
+      "id": "captain_verlan",
+      "component_tags": []
+    },
+    {
+      "id": "mire_prowler",
+      "component_tags": [
+        "hide",
+        "claw"
+      ]
+    },
+    {
+      "id": "deepfen_murloc",
+      "component_tags": [
+        "gills",
+        "hide"
+      ]
+    },
+    {
+      "id": "mirejaw_the_ravenous",
+      "component_tags": []
+    },
+    {
+      "id": "mire_widow",
+      "component_tags": [
+        "venomSac",
+        "hide"
+      ]
+    },
+    {
+      "id": "mirefen_broodmother",
+      "component_tags": []
+    },
+    {
+      "id": "drowned_dead",
+      "component_tags": []
+    },
+    {
+      "id": "sloomtooth_the_drowned",
+      "component_tags": []
+    },
+    {
+      "id": "fen_troll",
+      "component_tags": [
+        "claw",
+        "tusk"
+      ]
+    },
+    {
+      "id": "grubjaw",
+      "component_tags": []
+    },
+    {
+      "id": "gravecaller_cultist",
+      "component_tags": []
+    },
+    {
+      "id": "gravecaller_summoner",
+      "component_tags": []
+    },
+    {
+      "id": "gravecaller_mender",
+      "component_tags": []
+    },
+    {
+      "id": "sister_nhalia",
+      "component_tags": []
+    },
+    {
+      "id": "deacon_voss",
+      "component_tags": []
+    },
+    {
+      "id": "bog_bloat",
+      "component_tags": []
+    },
+    {
+      "id": "training_dummy",
+      "component_tags": []
+    },
+    {
+      "id": "ridge_stalker",
+      "component_tags": [
+        "hide",
+        "claw"
+      ]
+    },
+    {
+      "id": "old_cragmaw",
+      "component_tags": [
+        "hide",
+        "fang",
+        "claw"
+      ]
+    },
+    {
+      "id": "deeprock_kobold",
+      "component_tags": []
+    },
+    {
+      "id": "ironvein_foreman",
+      "component_tags": []
+    },
+    {
+      "id": "thornpeak_ogre",
+      "component_tags": []
+    },
+    {
+      "id": "ogre_crusher",
+      "component_tags": []
+    },
+    {
+      "id": "warlord_drogmar",
+      "component_tags": []
+    },
+    {
+      "id": "brutok_skullsmasher",
+      "component_tags": []
+    },
+    {
+      "id": "stormcrag_elemental",
+      "component_tags": []
+    },
+    {
+      "id": "shardlord_kazzix",
+      "component_tags": []
+    },
+    {
+      "id": "wyrmcult_zealot",
+      "component_tags": []
+    },
+    {
+      "id": "wyrmcult_necromancer",
+      "component_tags": []
+    },
+    {
+      "id": "boneclad_revenant",
+      "component_tags": []
+    },
+    {
+      "id": "marrowlord_varkas",
+      "component_tags": []
+    },
+    {
+      "id": "voskar_emberwing",
+      "component_tags": []
+    },
+    {
+      "id": "glimmermere_wader",
+      "component_tags": [
+        "gills",
+        "hide"
+      ]
+    },
+    {
+      "id": "drowned_votary",
+      "component_tags": []
+    },
+    {
+      "id": "sethrael_palecoil",
+      "component_tags": [
+        "hide",
+        "claw",
+        "horn"
+      ]
+    },
+    {
+      "id": "wraithbinder_maldrec",
+      "component_tags": []
+    },
+    {
+      "id": "grix_the_tunnelking",
+      "component_tags": []
+    }
+  ],
+  "tier_weights": [
+    40,
+    30,
+    15,
+    10,
+    4,
+    1
+  ],
+  "rarity_baseline": 40,
+  "catalog_sha256": "ecf9a6ab55e0c0a29ae1d62617f3f7a63faf0e78ff35573a31fd336c213f7455"
+}

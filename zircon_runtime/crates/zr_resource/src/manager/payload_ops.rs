@@ -68,7 +68,10 @@ impl ResourceManager {
         TData: ResourceData,
     {
         let authority = self.lock_authority_read();
-        let record = if matches!(TMarker::KIND, crate::ResourceKind::Model | crate::ResourceKind::Mesh) {
+        let record = if matches!(
+            TMarker::KIND,
+            crate::ResourceKind::Model | crate::ResourceKind::Mesh
+        ) {
             authority.active.row(handle.id())?.record.as_ref().clone()
         } else {
             // Nongeometry callers retain their existing current-catalog snapshot contract.
@@ -93,15 +96,23 @@ impl ResourceManager {
     {
         use crate::ResourceActiveSnapshotError;
         let authority = self.lock_authority_read();
-        let row = authority.active.row(handle.id()).ok_or(ResourceActiveSnapshotError::Stale)?;
-        if &row.key != expected { return Err(ResourceActiveSnapshotError::Stale); }
+        let row = authority
+            .active
+            .row(handle.id())
+            .ok_or(ResourceActiveSnapshotError::Stale)?;
+        if &row.key != expected {
+            return Err(ResourceActiveSnapshotError::Stale);
+        }
         if row.record.kind != TMarker::KIND {
             return Err(ResourceActiveSnapshotError::KindConflict);
         }
-        let payload = authority.payloads.get(&handle.id()).ok_or(ResourceActiveSnapshotError::Stale)?.clone();
+        let payload = authority
+            .payloads
+            .get(&handle.id())
+            .ok_or(ResourceActiveSnapshotError::Stale)?
+            .clone();
         let resource = Arc::downcast::<TData>(payload.into_any_arc())
             .map_err(|_| ResourceActiveSnapshotError::KindConflict)?;
         Ok(ResourceSnapshot::new(row.record.as_ref().clone(), resource))
     }
-
 }

@@ -183,3 +183,98 @@ fn remove_temporary_root(root: &Path) {
     assert!(root.starts_with(std::env::temp_dir()));
     fs::remove_dir_all(root).unwrap();
 }
+
+#[test]
+fn shutdown_poll_keeps_owner_while_real_fence_is_pending() {
+    let scheduler = JobScheduler::from_pool(TaskPool::new(
+        TaskPoolDescriptor::compute().with_worker_threads(1),
+    ));
+    let service = SettingsPersistenceService::new(
+        Arc::new(SettingsAuthority::with_defaults()),
+        scheduler.clone(),
+    );
+    let (started_sender, started_receiver) = mpsc::channel();
+    let (release_sender, release_receiver) = mpsc::channel();
+    scheduler.schedule(move || {
+        started_sender.send(()).unwrap();
+        release_receiver.recv().unwrap();
+    });
+    let release = SettingsShutdownPollRelease(Some(release_sender));
+    started_receiver
+        .recv_timeout(Duration::from_secs(5))
+        .expect("the sole worker holds the fence queue");
+    let shutdown = service.flush_then_shutdown().expect("close fence admitted");
+    // Releasing the gate must precede dropping a pending shutdown on unwind.
+    let mut release = release;
+    assert!(shutdown.poll_result().is_none());
+    assert!(!shutdown.is_complete());
+
+    release.release();
+    wait_for_settings_shutdown_poll(&shutdown);
+    for _ in 0..2 {
+        assert!(matches!(shutdown.poll_result(), Some(Ok(_))));
+    }
+    assert!(shutdown.finish().expect("successful close fence").complete);
+}
+
+#[test]
+fn shutdown_poll_reports_real_failed_fence_without_consuming_owner() {
+    let service = SettingsPersistenceService::new(
+        Arc::new(SettingsAuthority::with_defaults()),
+        crate::core::jobs::test_job_scheduler(),
+    );
+    let fence = service
+        .lane
+        .submit_fence(
+            0,
+            BoundedKeyedIoWorkDeadline::none(),
+            Box::new(|| Err(BoundedKeyedIoFailure::new("shutdown_poll_fence_failed"))),
+        )
+        .expect("failing fence admitted");
+    let shutdown = SettingsPersistenceShutdown {
+        fence,
+        guard: service.shutdown(),
+    };
+    wait_for_settings_shutdown_poll(&shutdown);
+    for _ in 0..2 {
+        assert!(matches!(
+            shutdown.poll_result(),
+            Some(Err(SettingsPersistenceShutdownPollFailure::Fence(
+                SettingsPersistenceShutdownError::FenceTerminal(BoundedKeyedIoTerminal::Failed(_))
+            )))
+        ));
+    }
+    assert!(matches!(
+        shutdown.finish(),
+        Err(SettingsPersistenceShutdownError::FenceTerminal(
+            BoundedKeyedIoTerminal::Failed(_)
+        ))
+    ));
+}
+
+fn wait_for_settings_shutdown_poll(shutdown: &SettingsPersistenceShutdown) {
+    let deadline = Instant::now() + Duration::from_secs(5);
+    while !shutdown.is_complete() {
+        assert!(
+            Instant::now() < deadline,
+            "real persistence worker did not quiesce"
+        );
+        std::thread::sleep(Duration::from_millis(1));
+    }
+}
+
+struct SettingsShutdownPollRelease(Option<mpsc::Sender<()>>);
+
+impl SettingsShutdownPollRelease {
+    fn release(&mut self) {
+        self.0.take().expect("release once").send(()).unwrap();
+    }
+}
+
+impl Drop for SettingsShutdownPollRelease {
+    fn drop(&mut self) {
+        if let Some(sender) = self.0.take() {
+            let _ = sender.send(());
+        }
+    }
+}

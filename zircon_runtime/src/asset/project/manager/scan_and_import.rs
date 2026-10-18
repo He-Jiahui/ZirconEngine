@@ -65,18 +65,26 @@ impl WatchSourceCandidate {
     ) -> bool {
         self.outcome == crate::core::resource::ResourceSourceOutcome::CompleteSuccess
             && self.members.iter().any(|member| {
-                matches!(member.record.kind, crate::core::resource::ResourceKind::Model | crate::core::resource::ResourceKind::Mesh)
-                    && member.payload.is_none()
+                matches!(
+                    member.record.kind,
+                    crate::core::resource::ResourceKind::Model
+                        | crate::core::resource::ResourceKind::Mesh
+                ) && member.payload.is_none()
                     && demand.row(member.record.id).is_none()
                     && active.row(member.record.id).is_some()
             })
     }
 
     pub(crate) fn publication(
-        &self, active: &crate::core::resource::ResourceActiveGeneration,
+        &self,
+        active: &crate::core::resource::ResourceActiveGeneration,
     ) -> crate::core::resource::ResourceSourcePublication {
         crate::core::resource::ResourceSourcePublication::capture(
-            self.owner, self.previous_members.clone(), self.members.clone(), self.outcome, active,
+            self.owner,
+            self.previous_members.clone(),
+            self.members.clone(),
+            self.outcome,
+            active,
         )
     }
 }
@@ -88,12 +96,17 @@ pub(crate) enum PreparedWatchFileGeneration {
 
 impl PreparedWatchFileGeneration {
     pub(crate) fn take_sources(
-        &mut self, geometry_demand: &crate::core::resource::ResourceActiveGeneration,
+        &mut self,
+        geometry_demand: &crate::core::resource::ResourceActiveGeneration,
     ) -> Vec<WatchSourceCandidate> {
         match self {
             Self::Full(prepared) => std::mem::take(&mut prepared.watch_sources),
-            Self::Targeted(PreparedTargetedWatchChanges::Source(prepared)) => vec![prepared.take_watch_source(geometry_demand)],
-            Self::Targeted(PreparedTargetedWatchChanges::Removal(prepared)) => std::mem::take(&mut prepared.watch_sources),
+            Self::Targeted(PreparedTargetedWatchChanges::Source(prepared)) => {
+                vec![prepared.take_watch_source(geometry_demand)]
+            }
+            Self::Targeted(PreparedTargetedWatchChanges::Removal(prepared)) => {
+                std::mem::take(&mut prepared.watch_sources)
+            }
         }
     }
 
@@ -277,11 +290,17 @@ impl ProjectManager {
             .iter()
             .map(|entry| AssetId::from_asset_uuid(entry.uuid()))
             .collect::<HashSet<_>>();
-        let owner = removed_entries.iter().find(|entry| entry.path().label().is_none())
+        let owner = removed_entries
+            .iter()
+            .find(|entry| entry.path().label().is_none())
             .map(|entry| AssetId::from_asset_uuid(entry.uuid()))
-            .ok_or_else(|| AssetImportError::Parse("removed source has no explicit root member".into()))?;
+            .ok_or_else(|| {
+                AssetImportError::Parse("removed source has no explicit root member".into())
+            })?;
         let watch_sources = vec![WatchSourceCandidate {
-            owner, previous_members: removed_ids.iter().copied().collect(), members: Vec::new(),
+            owner,
+            previous_members: removed_ids.iter().copied().collect(),
+            members: Vec::new(),
             outcome: crate::core::resource::ResourceSourceOutcome::Removed,
         }];
         let mut registry = self.registry.begin_staging();

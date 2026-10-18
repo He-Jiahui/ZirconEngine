@@ -1,6 +1,4 @@
-use crate::core::resource::{
-    UntypedResourceHandle,
-};
+use crate::core::resource::UntypedResourceHandle;
 
 use super::{
     release_active, release_pending, resolve_ticket_seed, PendingResidency,
@@ -161,13 +159,8 @@ impl RenderAssetResidencyManager {
                     });
                 }
             }
-            let seed = resolve_ticket_seed(
-                resource,
-                projection,
-                replacement,
-                demand_generation,
-            )
-            .map_err(RenderAssetDeviceRecoveryError::Admission)?;
+            let seed = resolve_ticket_seed(resource, projection, replacement, demand_generation)
+                .map_err(RenderAssetDeviceRecoveryError::Admission)?;
             seeds.push((resource, seed));
         }
 

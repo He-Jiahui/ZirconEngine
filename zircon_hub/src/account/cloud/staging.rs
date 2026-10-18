@@ -1225,7 +1225,7 @@ fn prune_unadmitted_upload_snapshots_with_budget(
         }
 
         let marker_path = directory.join(UPLOAD_MARKER);
-        let header = match read_upload_marker_header(&root, &marker_path, &mut budget) {
+        let header = match read_upload_marker_header(&root, &marker_path, budget) {
             Ok(header) => header,
             Err("hub_cloud_sync_stage_missing") => {
                 if AnchoredDirectory::remove_empty_directory_path_if_empty(&directory)
@@ -1282,7 +1282,7 @@ fn prune_unadmitted_upload_snapshots_with_budget(
             continue;
         }
 
-        discard_upload_directory_with_budget(&directory, Some(&marker_bytes), &mut budget)?;
+        discard_upload_directory_with_budget(&directory, Some(&marker_bytes), budget)?;
         removed = removed.saturating_add(1);
     }
     Ok(removed)

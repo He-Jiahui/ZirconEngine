@@ -25,9 +25,17 @@ pub struct AutosaveSnapshot {
     pub(super) source_path: AutosaveSourcePath,
     pub(super) provenance: AutosaveSnapshotProvenance,
     pub(super) bytes: Vec<u8>,
+    // Declared after bytes: payload storage is released before its accounting lease.
+    retained_payload_owner: Option<Arc<dyn Send + Sync>>,
 }
 
 impl AutosaveSnapshot {
+    /// Close-only exclusive payload ownership survives source capture through the physical write.
+    pub(crate) fn with_retained_payload_owner(mut self, owner: Arc<dyn Send + Sync>) -> Self {
+        self.retained_payload_owner = Some(owner);
+        self
+    }
+
     pub fn new(
         sequence: u64,
         extension: AutosaveExtension,
@@ -41,6 +49,7 @@ impl AutosaveSnapshot {
             source_path,
             provenance,
             bytes,
+            retained_payload_owner: None,
         }
     }
 }
@@ -83,6 +92,11 @@ impl AutosaveDocumentRequest {
             source,
             estimated_pending_bytes: 1,
         }
+    }
+
+    pub(crate) fn with_estimated_pending_bytes(mut self, bytes: usize) -> Self {
+        self.estimated_pending_bytes = bytes.max(std::mem::size_of::<Self>());
+        self
     }
 
     pub(crate) fn document(&self) -> &AutosaveDocumentId {

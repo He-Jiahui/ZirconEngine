@@ -46,7 +46,9 @@ pub use autosave_diagnostics::{
     AutosaveDiagnosticReport, AutosaveDiagnosticStore,
 };
 pub(crate) use autosave_service::{EditorAutosavePoll, EditorAutosaveService};
-pub(crate) use autosave_shutdown::AutosaveShutdownReport;
+pub(crate) use autosave_shutdown::{
+    AutosaveShutdownReport, FinalAutosaveDrain, FinalAutosaveFailure,
+};
 pub use document_journal::{
     DocumentJournalAppend, DocumentJournalCoordinator, DocumentJournalCoordinatorError,
 };

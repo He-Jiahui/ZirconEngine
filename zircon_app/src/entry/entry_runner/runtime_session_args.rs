@@ -199,7 +199,10 @@ where
                 value.to_owned()
             } else {
                 args.next().ok_or_else(|| {
-                    runtime_product_proof_argument_error("<missing>", "missing runtime product proof")
+                    runtime_product_proof_argument_error(
+                        "<missing>",
+                        "missing runtime product proof",
+                    )
                 })?
             };
             requested_product_proof = Some(match value.trim() {

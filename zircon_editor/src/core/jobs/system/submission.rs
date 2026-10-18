@@ -1,4 +1,4 @@
-use std::sync::mpsc;
+use std::sync::{mpsc, Arc};
 use std::time::Instant;
 
 use super::pending::PendingJob;
@@ -52,7 +52,7 @@ impl EditorJobSystem {
             let _ = cancel_sender.send(Err(JobError::Cancelled));
         });
 
-        let id = {
+        let (id, execution) = {
             let mut state = self.inner.lock_state();
             state.ensure_accepting_submissions()?;
             let admitted_at = Instant::now();
@@ -74,20 +74,24 @@ impl EditorJobSystem {
             let id = state.allocate_id();
             state.register(id);
             self.inner.progress.register(id, &spec);
-            state.enqueue_pending(PendingJob::new(
+            let pending = PendingJob::new(
                 id,
                 spec,
                 task.take().expect("pending task exists before admission"),
                 cancel_task,
                 admitted_at,
-            ));
+            );
+            let execution = Arc::clone(&pending.execution);
+            state.enqueue_pending(pending);
             self.inner
                 .enqueue_progress_observer_event(ProgressObserverEvent::Admitted(id));
-            id
+            (id, execution)
         };
         self.inner.deliver_progress_observer_events();
         self.inner.promote();
-        Ok(EditorJobAdmission::Accepted(JobTicket::new(id, receiver)))
+        Ok(EditorJobAdmission::Accepted(JobTicket::new_owned(
+            id, receiver, execution,
+        )))
     }
 
     /// Admits an all-or-nothing group of unkeyed jobs through the one queue.
@@ -150,10 +154,12 @@ impl EditorJobSystem {
                 let id = state.allocate_id();
                 state.register(id);
                 self.inner.progress.register(id, &spec);
-                state.enqueue_pending(PendingJob::new(id, spec, task, cancel_task, admitted_at));
+                let pending = PendingJob::new(id, spec, task, cancel_task, admitted_at);
+                let execution = Arc::clone(&pending.execution);
+                state.enqueue_pending(pending);
                 self.inner
                     .enqueue_progress_observer_event(ProgressObserverEvent::Admitted(id));
-                tickets.push(JobTicket::new(id, receiver));
+                tickets.push(JobTicket::new_owned(id, receiver, execution));
             }
             tickets
         };

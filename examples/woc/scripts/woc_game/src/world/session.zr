@@ -1,0 +1,56 @@
+var container = %import("zr.container");
+var binary = %import("protocol/binary");
+var world = %import("world/state");
+var clientPresentation = %import("world/client_presentation");
+
+// Empty state is the bootstrap authority before the first committed tick.
+var committedState = new container.Array<uint>();
+
+copyBytes(source: container.Array<uint>): container.Array<uint> {
+    var result = new container.Array<uint>();
+    for (var byte in source) {
+        result.add(<uint>byte);
+    }
+    return result;
+}
+
+requireCommittedState(source: container.Array<uint>): void {
+    if (source.length != committedState.length) {
+        throw "woc tick state does not match the retained session";
+    }
+    var index = 0;
+    while (index < source.length) {
+        if (<uint>source[index] != <uint>committedState[index]) {
+            throw "woc tick state does not match the retained session";
+        }
+        index = index + 1;
+    }
+}
+
+pub saveState(): container.Array<uint> {
+    return copyBytes(committedState);
+}
+
+pub restoreState(source: container.Array<uint>): void {
+    var candidate = new container.Array<uint>();
+    if (source.length != 0) {
+        candidate = world.worldStateCodecRoundtrip(source);
+    }
+    committedState = candidate;
+}
+
+pub fixedTick(inputBytes: container.Array<uint>): container.Array<uint> {
+    var input = binary.decodeFixedTickInput(inputBytes);
+    requireCommittedState(input.committedState);
+    var result = world.evaluateFixedTick(input);
+    // Publish only after simulation and complete output encoding succeed.
+    committedState = result.state;
+    return result.payload;
+}
+
+pub presentationProjection(): container.Array<uint> {
+    if (committedState.length == 0) {
+        throw "woc client presentation requires committed state";
+    }
+    return clientPresentation.encodeBytes(world.decodeClientPresentationState(committedState));
+}

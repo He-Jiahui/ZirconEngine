@@ -1,0 +1,13 @@
+diff --git a/docs/plans/zircon_editor/editor/10/failure-2026-07-17-editor-sprite-atlas-paint-time-io.md b/docs/plans/zircon_editor/editor/10/failure-2026-07-17-editor-sprite-atlas-paint-time-io.md
+--- a/docs/plans/zircon_editor/editor/10/failure-2026-07-17-editor-sprite-atlas-paint-time-io.md
++++ b/docs/plans/zircon_editor/editor/10/failure-2026-07-17-editor-sprite-atlas-paint-time-io.md
+@@ -55,3 +55,8 @@
+ ## 修复结果与回传
+ 
+ 完成后在本目录写`fixed-*`或return记录并附current-source Windows Cargo、focused tests和规模counter；此前保持open。
++
++## 产出记录与时间
++
++| 时间 | 状态 | 完成项目与证据 |
++|---|---|---|
++| 2026-08-03 CST | `OPEN / paint-time atlas I/O 当前源边界已收束` | 实读确认 `paint_template_nodes/sprite_atlas` 的 paint resolver 仍以 `Path` 扫描 `.zircon/cache/editor-sprite-atlases`、逐 manifest `read_to_string`、首次无匹配即提前返回，并在 host 侧 `image::open` 解码/保存 RGBA；asset refresh 仅清全局 cache。前向硬切职责为：Editor10 在 `EditorAssetManager` catalog generation 内发布有界 immutable `source_key -> {resource key, dimensions, UV, generation}` lookup，并仅在 refresh/change 时枚举/解析 manifest；Render13 持有 decode/upload 与有界 resident pixel/GPU handle，按 generation 退役；EditorUI08/host paint 仅消费该 typed atlas ref，禁止接收 manifest 或文件路径。补齐多 manifest 后候选命中、删除/坏 manifest/hot reload、1/100/10k stable read/write/decode=0 和跨 Render13 单次 decode/upload 对拍；不恢复 UI 私有 filesystem cache 或第二像素权威。 |

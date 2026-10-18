@@ -6,6 +6,55 @@ use crate::core::recovery::{
 };
 
 impl RetainedEditorHost {
+    /// Retains only close-bound identities and admission capabilities. The
+    /// actual payload, source digest and disk write stay on one worker window.
+    pub(in crate::ui::retained_host::app) fn final_autosave_requests_for_main_window(
+        &self,
+        operation: Option<&crate::ui::host::ProjectCloseOperation>,
+        scene: &crate::core::editing::engine::SceneCloseAdmission,
+        documents: &crate::core::extension::DocumentCloseAdmission,
+        dirty: &[close_prompt::DirtyCloseView],
+        payloads: Arc<crate::ui::host::CloseAutosavePayloadBudget>,
+    ) -> Result<Vec<AutosaveDocumentRequest>, String> {
+        if dirty.is_empty() {
+            return Ok(Vec::new());
+        }
+        let operation = operation.ok_or_else(|| {
+            "Dirty documents have no matching admitted project close.".to_string()
+        })?;
+        let manager = self
+            .editor_manager
+            .enter()
+            .map_err(|error| error.to_string())?;
+        manager
+            .validate_project_close_operation(
+                operation,
+                crate::core::recovery::ProjectSessionEffect::DirtyDocuments,
+            )
+            .map_err(|error| error.to_string())?;
+        dirty
+            .iter()
+            .map(|document| {
+                let identity = manager
+                    .autosave_document_identity(document.document_id, operation.project_root())
+                    .map_err(|error| error.to_string())?;
+                manager
+                    .closing_autosave_document_request(
+                        self.editor_manager.clone(),
+                        document.document_id,
+                        document.instance_id.clone(),
+                        document.close_revision,
+                        identity,
+                        operation.clone(),
+                        scene.clone(),
+                        documents.clone(),
+                        Arc::clone(&payloads),
+                    )
+                    .map_err(|error| error.to_string())
+            })
+            .collect()
+    }
+
     /// Captures only document-bound autosave admission requests for the final
     /// shutdown drain. Serialization remains deferred to the recovery worker.
     pub(in crate::ui::retained_host::app) fn final_autosave_requests(

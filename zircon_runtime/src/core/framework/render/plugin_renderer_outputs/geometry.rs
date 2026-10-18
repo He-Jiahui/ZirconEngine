@@ -7,6 +7,39 @@ use super::super::{
     RenderVirtualGeometryVisBuffer64Entry,
 };
 
+/// Inspection delivered only by the completed native terminal staging map.
+/// Input and policy sections are uploaded-input evidence; instance work items are compute output.
+#[derive(Clone, Debug, PartialEq)]
+pub struct RenderVirtualGeometryNativeReadbackInspection {
+    pub cull_input: super::super::RenderVirtualGeometryCullInputSnapshot,
+    pub startup: Option<RenderVirtualGeometryNativeStartupReadback>,
+    pub selected_cluster_source: super::super::RenderVirtualGeometrySelectedClusterSource,
+    pub hardware_rasterization_source:
+        super::super::RenderVirtualGeometryHardwareRasterizationSource,
+    pub visbuffer64_source: super::super::RenderVirtualGeometryVisBuffer64Source,
+}
+
+/// Fixed-layout startup buffers copied from the actual current-frame native resources.
+#[derive(Clone, Debug, PartialEq)]
+pub struct RenderVirtualGeometryNativeStartupReadback {
+    pub global_state:
+        Option<super::super::RenderVirtualGeometryNodeAndClusterCullGlobalStateSnapshot>,
+    pub dispatch_setup:
+        Option<super::super::RenderVirtualGeometryNodeAndClusterCullDispatchSetupSnapshot>,
+    pub launch_worklist:
+        Option<super::super::RenderVirtualGeometryNodeAndClusterCullLaunchWorklistSnapshot>,
+    pub instance_seeds: Vec<super::super::RenderVirtualGeometryNodeAndClusterCullInstanceSeed>,
+    pub instance_work_items:
+        Vec<super::super::RenderVirtualGeometryNodeAndClusterCullInstanceWorkItem>,
+    pub cluster_work_items:
+        Vec<super::super::RenderVirtualGeometryNodeAndClusterCullClusterWorkItem>,
+    pub hierarchy_child_ids: Vec<u32>,
+    pub child_work_items: Vec<super::super::RenderVirtualGeometryNodeAndClusterCullChildWorkItem>,
+    pub traversal_records:
+        Vec<super::super::RenderVirtualGeometryNodeAndClusterCullTraversalRecord>,
+    pub page_request_ids: Vec<u32>,
+}
+
 /// 虚拟几何 provider 的页驻留、选择和剔除读回；提交端将请求 ID 与 GPU 完成信息分路处理。
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct RenderVirtualGeometryReadbackOutputs {

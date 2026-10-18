@@ -717,8 +717,150 @@ def reconcile_prepared_external_capture(captured, original, *, legacy_sealed=Fal
         "exactHeadDiffFilesAndNestedGitlinks": True, "originalEvidencePreserved": True}
 
 
+class _BranchCandidate:
+    """Private native queue binding; never a public worktree or sourceView."""
+
+    def __init__(self, repo, root, request, runtime, component_digest):
+        self.repo, self.path = plain(repo), plain(root)
+        self.request = json.loads(encoded(request))
+        self.runtime = dict(runtime)
+        if set(self.runtime) != {"driverDigest", "runtimeOperationId"}:
+            raise ValueError("Branch preparation needs the exact current runtime binding")
+        if (self.path != self.repo / ".jenkins/worktrees/integration-queue"
+                or not re.fullmatch(r"[0-9a-f]{64}", component_digest)):
+            raise ValueError("Branch preparation requires the one native queue candidate")
+        operation = identifier(request["operationId"])
+        self.record_path = self.repo / ".jenkins/state/management/branch-integration/requests" / (operation + ".json")
+        self.marker_path = self.record_path.parent.parent / "candidate.json"
+        record = json.loads(plain(self.record_path).read_bytes())
+        self.binding = {
+            "requestDigest": sha(encoded(request)), "operationId": operation,
+            "sessionId": request["sessionId"], "requestId": request["requestId"],
+            "ownerThreadId": request.get("ownerThreadId"), "ownedPaths": request["paths"],
+            "sourceCommit": record.get("sourceCommit"), "sourceRoot": record.get("sourceRoot"),
+            "branch": record.get("branch"), "candidateHead": record.get("candidateHead"),
+            "mainHeadBefore": record.get("mainHeadBefore"),
+            "originalRuntime": record.get("runtime"), "runtime": self.runtime,
+            "componentDigest": component_digest,
+        }
+        self.before = None
+
+    def verify(self, management):
+        if (os.name != "nt" or os.environ.get("JOB_NAME") != "zircon-merge-queue"
+                or os.environ.get("NODE_NAME") != "zircon-windows-agent"
+                or os.environ.get("ZR_COMMIT_NATIVE") != "1"
+                or any(os.environ.get("ZR_INTEGRATION_" + suffix) != self.runtime[field]
+                       for field, suffix in (("driverDigest", "DRIVER"), ("runtimeOperationId", "RUNTIME")))):
+            raise ValueError("Prepared branch input requires the real runtime-bound merge job")
+        if (management.repo != self.repo or management.session != self.binding["sessionId"]
+                or management.owned != self.binding["ownedPaths"]
+                or any(management.config[field] != self.runtime[field] for field in self.runtime)):
+            raise ValueError("Branch candidate owner, scope or current runtime changed")
+        selected = json.loads(plain(self.repo / ".jenkins/state/deployment/driver.json").read_bytes())
+        operation = json.loads(plain(self.repo / ".jenkins/state/deployment-operation.json").read_bytes())
+        if (any(selected.get(field) != self.runtime[field] for field in self.runtime)
+                or operation.get("operationId") != self.runtime["runtimeOperationId"]
+                or operation.get("state") != "running"):
+            raise ValueError("Branch preparation runtime is transitioning")
+        record = json.loads(plain(self.record_path).read_bytes())
+        marker = json.loads(plain(self.marker_path).read_bytes())
+        commit_paths = record.get("commitPaths", [])
+        owned_paths = self.binding["ownedPaths"]
+        committed_casefold = {name.casefold() for name in commit_paths}
+        owned_casefold = {name.casefold() for name in owned_paths}
+        expected = {name: self.binding[name] for name in ("sourceCommit", "sourceRoot", "branch", "candidateHead", "mainHeadBefore")}
+        if (record.get("request") != self.request or record.get("runtime") != self.binding["originalRuntime"]
+                or any(record.get(name) != value for name, value in expected.items())
+                or record.get("integrationStatus") != "validating"
+                or plain(record.get("candidateRoot", "")) != self.path
+                or marker.get("status") != "active" or marker.get("operationId") != self.binding["operationId"]
+                or marker.get("mainHead") != self.binding["mainHeadBefore"]
+                or plain(marker.get("path", "")) != self.path
+                or len(committed_casefold) != len(commit_paths)
+                or len(owned_casefold) != len(owned_paths)
+                or not committed_casefold <= owned_casefold):
+            raise ValueError("Original branch queue candidate binding changed")
+        native = record.get("candidateGit", {})
+        command_ref = native.get("commandRef")
+        if (native.get("operationKind") != "merge" or native.get("nativeComplete") is not True
+                or native.get("rootExitCode") != 0 or not isinstance(command_ref, dict)):
+            raise ValueError("Candidate merge lacks its original completed native evidence")
+        command = read_reference({key: command_ref[key] for key in ("path", "sha256")},
+                                 expected_path=plain(native["reportRoot"]) / "command.json")
+        terminal_ref = native.get("nativeTerminalRef")
+        terminal = read_reference({key: terminal_ref[key] for key in ("path", "sha256")},
+                                  expected_path=plain(native["reportRoot"]) / "native-terminal.json")
+        if (command.get("runtime") != self.runtime or command.get("operationId") != self.binding["operationId"]
+                or command.get("operationKind") != "merge" or plain(command.get("cwd", "")) != self.path
+                or command.get("command", [])[-1:] != [self.binding["sourceCommit"]]
+                or terminal.get("command") != command.get("command")
+                or terminal.get("rootExitCode") != 0
+                or native_terminal_proof(terminal, terminal_ref)["complete"] is not True):
+            raise ValueError("Candidate merge proof differs from the current native queue binding")
+        if (management.text(self.path, "rev-parse", "HEAD") != self.binding["candidateHead"]
+                or plain(management.text(self.path, "rev-parse", "--path-format=absolute", "--git-common-dir"))
+                   != plain(self.repo / ".git")
+                or management.text(self.path, "status", "--porcelain=v1", "--untracked-files=all")):
+            raise ValueError("Candidate HEAD, common repository or source bytes changed")
+        return self.path
+
+
+def validate_branch_candidate(capsule, *, component_digest, root, branch_request, cargo_recipe, ordinal, runtime):
+    """Use the existing managed preparation/execution lifecycle for a queue-owned candidate."""
+    recipe_fields = {"verb", "packages", "features", "profile", "offline", "noDefaultFeatures", "allFeatures",
+                     "locked", "jobs", "lib", "tests", "noRun", "testThreads", "testFilter", "bins",
+                     "allTests", "harnessFilters", "exact", "ignored", "nocapture"}
+    if not isinstance(cargo_recipe, dict) or set(cargo_recipe) - recipe_fields:
+        raise ValueError("Only the existing bounded Cargo recipe belongs to branch preparation")
+    config, repo, manager = boot(capsule)
+    from tools.jenkins.source import repository_id
+    from tools.jenkins.workflow.planning import _environment_policy
+
+    candidate = _BranchCandidate(repo, root, branch_request, runtime, component_digest)
+    fixed = {"action": "validate", "repositoryId": repository_id(repo),
+        "sessionId": branch_request["sessionId"], "requestId": branch_request["requestId"],
+        "operationId": "branch-input-" + sha(encoded({
+            "operation": branch_request["operationId"], "head": candidate.binding["candidateHead"],
+            "ordinal": ordinal, "recipe": cargo_recipe, "runtime": runtime,
+            "capsule": Path(capsule).name, "component": component_digest}))[:48],
+        "driverDigest": config["driverDigest"], "runtimeOperationId": config["runtimeOperationId"],
+        "ownedPaths": list(branch_request["paths"]), "externalRoots": [str(repo.parent / "zr_vm")],
+        "buildRoot": "E:/cargo-targets", "sourceEvidencePolicy": "full-file-index-v2", **cargo_recipe}
+    # Observation retains the original authorization and performs no local request registration.
+    probe = Management(config, repo, manager, {**fixed, "observationOnly": True}, branch_candidate=candidate)
+    candidate.verify(probe)
+    if not plain(repo.parent / "zr_vm").is_dir():
+        return {"status": "waiting", "reasonCode": "external_source_unavailable",
+                "preparationStarted": False, "compileStarted": False, "formalAcceptance": False}
+    _root, before = probe.validation_with_cache()
+    environment, trusted, _policy_file = _environment_policy(probe.state, repo)
+    for tool in ("cargo", "rustc"):
+        if sha(plain(trusted[tool + "Path"]).read_bytes()) != trusted[tool + "Sha256"]:
+            raise ValueError("Trusted compiler executable changed")
+    identity = {"schemaVersion": 1, "backend": "managed-prepared-branch-v1",
+        "capsuleSha256": Path(capsule).name, "componentDigest": component_digest,
+        "candidateHead": candidate.binding["candidateHead"], "runtime": runtime,
+        "capturedSourceDigest": before["sourceDigest"], "engineSourceDigest": before["source"]["sourceDigest"],
+        "externalSources": [{"path": item["path"], "sourceDigest": item["source"]["sourceDigest"]}
+                           for item in before["externalRoots"]],
+        "dependencyCacheDigest": sha(encoded(before["dependencyCache"])),
+        "toolchainDigest": sha(encoded(trusted)), "environmentDigest": sha(encoded(environment)),
+        "recipeDigest": sha(encoded(cargo_recipe)), "ordinal": ordinal}
+    identity_digest = sha(encoded(identity))
+    payload = {**fixed, "operationId": "branch-validation-" + identity_digest[:48],
+               "expectedSourceDigest": before["sourceDigest"]}
+    candidate.before = before
+    actor = Management(config, repo, manager, payload, branch_candidate=candidate)
+    result = actor.run()
+    return {**result, "candidatePreparationIdentity": identity,
+            "candidatePreparationIdentityDigest": identity_digest,
+            "sealedInputRef": result.get("preparation", {}).get("sealedInputRef"),
+            "branchCandidateBinding": candidate.binding}
+
+
 class Management:
-    def __init__(self, config, repo, manager, payload):
+    def __init__(self, config, repo, manager, payload, *, branch_candidate=None):
+        self._branch_candidate = branch_candidate
         from tools.jenkins.state import State
         from tools.jenkins.source import repository_id
         self.config, self.repo, self.manager, self.payload = config, repo, manager, payload
@@ -748,8 +890,13 @@ class Management:
         self.owned = payload.get("ownedPaths", [])
         if not isinstance(self.owned, list) or not self.owned or any(not isinstance(p, str) for p in self.owned):
             raise ValueError("ownedPaths must be an explicit path list")
-        ensure_request_context(config, repo, manager, payload, state=self.state)
+        if branch_candidate is None:
+            ensure_request_context(config, repo, manager, payload, state=self.state)
+        elif self.action != "validate" or not isinstance(branch_candidate, _BranchCandidate):
+            raise ValueError("Only the private native branch candidate retains its scoped writer")
         self.state.check_authorization(self.repo_id, self.session, AUTH[self.action], self.owned)
+        if branch_candidate is not None:
+            branch_candidate.verify(self)
         self.key = sha(encoded({"repositoryId": self.repo_id, "sessionId": self.session,
                                "requestId": self.request, "operationId": self.operation}))
         self.worktrees = plain(repo / ".jenkins/worktrees")
@@ -759,8 +906,9 @@ class Management:
     def git_command(self, root, *args):
         binding = getattr(self, "_checkout_git_binding", None)
         program = binding["path"] if binding is not None else "git"
+        checkout = ["-c", "checkout.workers=4"] if args[:2] == ("worktree", "add") else []
         return [program, "-c", "core.longpaths=true", "-c", "core.hooksPath=" + str(Path(__file__).parent / "no-hooks"),
-                "-c", "core.autocrlf=false", "-C", str(root), *args]
+                "-c", "core.autocrlf=false", *checkout, "-C", str(root), *args]
 
     def git(self, root, *args, check=True):
         from tools.jenkins.pilot.native.process_supervisor import ProcessSupervisor
@@ -785,7 +933,7 @@ class Management:
                 env={**os.environ, "GIT_TERMINAL_PROMPT": "0", "GIT_OPTIONAL_LOCKS": "0"},
                 owner=(getattr(self, "key", "management-git"), "git", 0, 0))
             try:
-                code = process.wait(timeout=1800 if args[:2] == ("worktree", "add") else 600)
+                code = process.wait(timeout=3600 if args[:2] == ("worktree", "add") else 600)
             except subprocess.TimeoutExpired:
                 process.terminate(reason="management_git_timeout")
                 process.wait(timeout=8)
@@ -898,6 +1046,9 @@ class Management:
         return source
 
     def validation_root(self, *, payload=None):
+        candidate = getattr(self, "_branch_candidate", None)
+        if candidate is not None:
+            return candidate.verify(self)
         payload = self.payload if payload is None else payload
         view = payload.get("sourceView", "worktree")
         if view == "worktree":
@@ -908,7 +1059,8 @@ class Management:
 
     def validation_source(self, *, payload=None, observation_errors=None):
         payload = self.payload if payload is None else payload
-        view = payload.get("sourceView", "worktree")
+        candidate = getattr(self, "_branch_candidate", None)
+        view = "integration-candidate" if candidate is not None else payload.get("sourceView", "worktree")
         root = self.validation_root(payload=payload)
         requested = payload.get("externalRoots", [])
         canonical = plain(self.repo.parent / "zr_vm")
@@ -950,11 +1102,13 @@ class Management:
                 if (not dependency.is_dir()
                         or plain(self.text(dependency, "rev-parse", "--show-toplevel")) != dependency):
                     raise ValueError("External input must be its actual physical Git root")
-                if view == "checkout" and "externalGitlinks" not in payload:
+                if view in {"checkout", "integration-candidate"} and "externalGitlinks" not in payload:
                     from tools.jenkins import managed_worktree as formal
                     # Bind omitted Gitlinks to the complete observed external input.
                     _, captures, _ = formal._external_capture(
-                        self, source_helper(), inspection=True, payload=payload)
+                        self, source_helper().checkout_external_file_view()
+                        if view == "checkout" else source_helper(),
+                        inspection=True, payload=payload)
                     external.extend(captures)
                 else:
                     external_payload = payload
@@ -978,6 +1132,8 @@ class Management:
         value = {"sourceView": view, "sourceRoot": str(root),
                  "source": engine if engine is not None else self.source(root, payload=payload),
                  "externalRoots": external}
+        if candidate is not None:
+            value["branchCandidate"] = candidate.binding
         if external_compatibility:
             value["externalCompatibility"] = external_compatibility
         if prepared_context is not None:
@@ -1510,6 +1666,10 @@ class Management:
     def resume_existing_worktree(self, reference, path, existing, base, *, merge):
         """Rebind verified unchanged WT metadata; never rewrite its original result."""
         from tools.jenkins.managed_worktree_lifetime import writer_hold
+        if "committedSuccessor" in self.payload:
+            if self.config.get("managedWorktree") != MANAGED_WORKTREE_CAPABILITY:
+                raise ValueError("Managed committed source preparation is not installed")
+            return source_helper().resume_committed_worktree(self, reference, path, existing, base, merge=merge)
         value = existing["payload"]
         key = self.payload.get("resumeFromOperationKey")
         branch = "codex/jenkins/" + self.session + "/" + self.payload["name"]
@@ -5010,6 +5170,11 @@ class Management:
             raise
 
     def validation_with_cache(self, *, payload=None):
+        candidate = getattr(self, "_branch_candidate", None)
+        if candidate is not None and candidate.before is not None:
+            root, before = candidate.verify(self), candidate.before
+            self.verify_declared_inputs(before, self.payload if payload is None else payload)
+            return root, before
         root, source = self.validation_source(payload=payload)
         value = {**{k: v for k, v in source.items() if k != "sourceDigest"},
                  "dependencyCache": self.dependency_cache(payload=payload)}
@@ -5279,6 +5444,8 @@ class Management:
     def dispatch(self):
         if self.config.get("managedWorktree") == MANAGED_WORKTREE_CAPABILITY:
             from tools.jenkins.managed_worktree import MUTATIONS, writer_hold
+            if self.action == "apply-patch":
+                self.patch_input(self.payload["patchReference"], self.payload["beforeHashes"])
             if (self.action == "prepare-worktree" and "resumePreparationFromOperationKey" in self.payload):
                 with source_helper().materialized_preparation_recovery_hold(self):
                     return self._dispatch()
@@ -5357,13 +5524,17 @@ class Management:
             helper = source_helper()
             return helper.managed_inspect_worktree(self, preparation_helper=helper)
         if self.action == "retire-worktree-reader":
+            if "unlaunchedRecovery" in self.payload:
+                return source_helper().retire_unlaunched_flow_reader(self)
             from tools.jenkins.managed_worktree_lifetime import retire_reader
             return retire_reader(self)
         if self.action == "create-branch":
             return self.create_branch()
         if self.action == "create-worktree":
             ref, _path, value = self.new_worktree()
-            return {**value, "status": "complete", "worktreeId": ref, "source": self.source(_path)}
+            source = getattr(self, "_committed_successor_source", None)
+            return {**value, "status": "complete", "worktreeId": ref,
+                    "source": self.source(_path) if source is None else source}
         if self.action == "prepare-merge":
             return self.prepare_merge()
         if self.action == "apply-patch":
@@ -5415,7 +5586,11 @@ class Management:
                 if row["payload"]["phase"] == "complete":
                     return previous
                 if (row["payload"]["phase"] != "waiting"
-                        and not ("batch" in self.payload and self.batch_recovery_ready())):
+                        and not ("batch" in self.payload and self.batch_recovery_ready())
+                        and not (self.action == "retire-worktree-reader"
+                                 and isinstance(self.payload.get("unlaunchedRecovery"), dict)
+                                 and self.payload["unlaunchedRecovery"].get("schemaVersion") == 1
+                                 and self.payload["unlaunchedRecovery"].get("kind") == "cancelled-before-native-launch-v1")):
                     return {"status": "unknown", "reasonCode": "original_operation_requires_reconciliation",
                             "operation": row["payload"], "formalAcceptance": False}
             record = {**(row["payload"] if row else {}), "requestId": self.request, "operationId": self.operation,

@@ -1,3 +1,5 @@
+//! 用固定 advance 样例核对空行、普通阈值与无穷宽度的累计判定。
+
 use super::should_wrap_before_accumulated;
 
 #[test]

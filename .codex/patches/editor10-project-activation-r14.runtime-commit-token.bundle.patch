@@ -1,0 +1,141 @@
+diff --git a/zircon_editor/src/core/project/project_activation.rs b/zircon_editor/src/core/project/project_activation.rs
+--- a/zircon_editor/src/core/project/project_activation.rs
++++ b/zircon_editor/src/core/project/project_activation.rs
+@@ -1,47 +1,90 @@
+-use std::path::Path;
+-
+-use zircon_runtime::asset::project::PreparedProjectOpen;
+-use zircon_runtime::asset::{AssetManager, ProjectInfo};
+-use zircon_runtime::core::framework::project::ProjectPluginManifest;
+-use zircon_runtime::core::CoreError;
+-use zircon_runtime_interface::project::ProjectManifestSummary;
+-
+-use super::ProjectAuthorityError;
+-
+-/// Move-only project activation capability owned by editor-core until runtime activation commits.
+-#[derive(Debug)]
+-pub struct ProjectActivation {
+-    prepared: PreparedProjectOpen,
+-    summary: ProjectManifestSummary,
+-}
+-
+-impl ProjectActivation {
+-    pub(crate) fn open(root: &Path) -> Result<Self, ProjectAuthorityError> {
+-        let prepared = PreparedProjectOpen::open(root)?;
+-        Ok(Self::from_prepared(prepared))
+-    }
+-
+-    pub(crate) fn from_prepared(prepared: PreparedProjectOpen) -> Self {
+-        let summary = prepared.manifest().summary();
+-        Self { prepared, summary }
+-    }
+-
+-    pub fn root(&self) -> &Path {
+-        self.prepared.root()
+-    }
+-
+-    pub fn summary(&self) -> &ProjectManifestSummary {
+-        &self.summary
+-    }
+-
+-    pub fn plugin_manifest(&self) -> &ProjectPluginManifest {
+-        &self.prepared.manifest().plugins
+-    }
+-
+-    pub(crate) fn activate(
+-        self,
+-        asset_manager: &dyn AssetManager,
+-    ) -> Result<ProjectInfo, CoreError> {
+-        asset_manager.open_prepared_project(self.prepared)
+-    }
+-}
++use std::path::Path;
++
++use zircon_runtime::asset::project::PreparedProjectOpen;
++use zircon_runtime::asset::{
++    AssetManager, ProjectInfo, RuntimePreparedProjectActivation,
++};
++use zircon_runtime::core::framework::project::ProjectPluginManifest;
++use zircon_runtime::core::CoreError;
++use zircon_runtime_interface::project::ProjectManifestSummary;
++
++use super::ProjectAuthorityError;
++
++/// Core-owned prepared runtime generation paired with the activation's immutable summary.
++///
++/// This token is neither a project manager nor a root capability. Only the project-activation
++/// service may retain it between background preparation and the one consuming runtime commit.
++pub(crate) struct ProjectActivationRuntime {
++    summary: ProjectManifestSummary,
++    runtime: RuntimePreparedProjectActivation,
++}
++
++impl ProjectActivationRuntime {
++    pub(crate) fn summary(&self) -> &ProjectManifestSummary {
++        &self.summary
++    }
++
++    pub(crate) fn project_info(&self) -> &ProjectInfo {
++        self.runtime.project_info()
++    }
++
++    pub(crate) fn commit(self) -> Result<ProjectInfo, CoreError> {
++        self.runtime.commit()
++    }
++}
++
++/// Move-only project activation capability owned by editor-core until runtime activation commits.
++#[derive(Debug)]
++pub struct ProjectActivation {
++    prepared: PreparedProjectOpen,
++    summary: ProjectManifestSummary,
++}
++
++impl ProjectActivation {
++    pub(crate) fn open(root: &Path) -> Result<Self, ProjectAuthorityError> {
++        let prepared = PreparedProjectOpen::open(root)?;
++        Ok(Self::from_prepared(prepared))
++    }
++
++    pub(crate) fn from_prepared(prepared: PreparedProjectOpen) -> Self {
++        let summary = prepared.manifest().summary();
++        Self { prepared, summary }
++    }
++
++    pub fn root(&self) -> &Path {
++        self.prepared.root()
++    }
++
++    pub fn summary(&self) -> &ProjectManifestSummary {
++        &self.summary
++    }
++
++    pub fn plugin_manifest(&self) -> &ProjectPluginManifest {
++        &self.prepared.manifest().plugins
++    }
++
++    /// Produces an opaque runtime candidate without replacing the active generation.
++    pub(crate) fn prepare_runtime(
++        self,
++        asset_manager: &dyn AssetManager,
++    ) -> Result<ProjectActivationRuntime, CoreError> {
++        let runtime = asset_manager.prepare_project_activation(self.prepared)?;
++        Ok(ProjectActivationRuntime {
++            summary: self.summary,
++            runtime,
++        })
++    }
++}
++
++#[cfg(test)]
++mod tests {
++    #[test]
++    fn activation_hard_cuts_the_one_step_runtime_open_route() {
++        let source = include_str!("project_activation.rs");
++        let production = source.split("#[cfg(test)]").next().unwrap();
++
++        assert!(production.contains("prepare_project_activation"));
++        assert!(!production.contains("open_prepared_project"));
++        assert!(!production.contains("ProjectManager"));
++    }
++}

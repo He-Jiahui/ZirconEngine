@@ -180,22 +180,37 @@ fn gamepad_v1_ingress_and_malformed_v2_fail_closed() {
     let viewport = ZrRuntimeViewportHandle::new(1);
     let old = [
         ZrRuntimeEventV1::gamepad_connection_with_ids(
-            ZIRCON_RUNTIME_ABI_VERSION_V1, viewport, 4,
-            ZR_RUNTIME_GAMEPAD_CONNECTION_CONNECTED_V1, 0, 0, ZrByteSlice::empty(),
+            ZIRCON_RUNTIME_ABI_VERSION_V1,
+            viewport,
+            4,
+            ZR_RUNTIME_GAMEPAD_CONNECTION_CONNECTED_V1,
+            0,
+            0,
+            ZrByteSlice::empty(),
         ),
         ZrRuntimeEventV1::gamepad_button(
-            ZIRCON_RUNTIME_ABI_VERSION_V1, viewport, 4,
-            ZR_RUNTIME_GAMEPAD_BUTTON_SOUTH_V1, ZR_RUNTIME_BUTTON_STATE_PRESSED_V1, 1.0,
+            ZIRCON_RUNTIME_ABI_VERSION_V1,
+            viewport,
+            4,
+            ZR_RUNTIME_GAMEPAD_BUTTON_SOUTH_V1,
+            ZR_RUNTIME_BUTTON_STATE_PRESSED_V1,
+            1.0,
         ),
         ZrRuntimeEventV1::gamepad_axis(
-            ZIRCON_RUNTIME_ABI_VERSION_V1, viewport, 4,
-            ZR_RUNTIME_GAMEPAD_AXIS_LEFT_STICK_X_V1, 1.0,
+            ZIRCON_RUNTIME_ABI_VERSION_V1,
+            viewport,
+            4,
+            ZR_RUNTIME_GAMEPAD_AXIS_LEFT_STICK_X_V1,
+            1.0,
         ),
     ];
     for event in old {
         let status = unsafe { handle_event(session, event) };
         assert_eq!(status.status_code(), ZrStatusCode::InvalidArgument);
-        assert_eq!(status_message(status), "runtime gamepad events require generation V2");
+        assert_eq!(
+            status_message(status),
+            "runtime gamepad events require generation V2"
+        );
     }
 
     let header = ZrRuntimeGamepadGenerationV2::encode_sample(NonZeroU64::MIN);
@@ -204,33 +219,60 @@ fn gamepad_v1_ingress_and_malformed_v2_fail_closed() {
     let mut trailing = header.to_vec();
     trailing.push(0);
     for payload in [&header[..15], &zero[..], &trailing[..]] {
-        let payload = ZrByteSlice { data: payload.as_ptr(), len: payload.len() };
+        let payload = ZrByteSlice {
+            data: payload.as_ptr(),
+            len: payload.len(),
+        };
         for event in [
             ZrRuntimeEventV1::gamepad_button_v2(
-                ZIRCON_RUNTIME_ABI_VERSION_V1, viewport, 4,
-                ZR_RUNTIME_GAMEPAD_BUTTON_SOUTH_V1, ZR_RUNTIME_BUTTON_STATE_PRESSED_V1, 1.0,
+                ZIRCON_RUNTIME_ABI_VERSION_V1,
+                viewport,
+                4,
+                ZR_RUNTIME_GAMEPAD_BUTTON_SOUTH_V1,
+                ZR_RUNTIME_BUTTON_STATE_PRESSED_V1,
+                1.0,
                 payload,
             ),
             ZrRuntimeEventV1::gamepad_axis_v2(
-                ZIRCON_RUNTIME_ABI_VERSION_V1, viewport, 4,
-                ZR_RUNTIME_GAMEPAD_AXIS_LEFT_STICK_X_V1, 1.0, payload,
+                ZIRCON_RUNTIME_ABI_VERSION_V1,
+                viewport,
+                4,
+                ZR_RUNTIME_GAMEPAD_AXIS_LEFT_STICK_X_V1,
+                1.0,
+                payload,
             ),
         ] {
             let status = unsafe { handle_event(session, event) };
             assert_eq!(status.status_code(), ZrStatusCode::InvalidArgument);
-            assert_eq!(status_message(status), "invalid runtime gamepad generation V2 payload");
+            assert_eq!(
+                status_message(status),
+                "invalid runtime gamepad generation V2 payload"
+            );
         }
     }
     let mut invalid_name = header.to_vec();
     invalid_name.push(0xff);
     let status = unsafe {
-        handle_event(session, ZrRuntimeEventV1::gamepad_connection_v2(
-            ZIRCON_RUNTIME_ABI_VERSION_V1, viewport, 4,
-            ZR_RUNTIME_GAMEPAD_CONNECTION_CONNECTED_V1, 0, 0,
-            ZrByteSlice { data: invalid_name.as_ptr(), len: invalid_name.len() },
-        ))
+        handle_event(
+            session,
+            ZrRuntimeEventV1::gamepad_connection_v2(
+                ZIRCON_RUNTIME_ABI_VERSION_V1,
+                viewport,
+                4,
+                ZR_RUNTIME_GAMEPAD_CONNECTION_CONNECTED_V1,
+                0,
+                0,
+                ZrByteSlice {
+                    data: invalid_name.as_ptr(),
+                    len: invalid_name.len(),
+                },
+            ),
+        )
     };
     assert_eq!(status.status_code(), ZrStatusCode::InvalidArgument);
-    assert_eq!(status_message(status), "invalid runtime gamepad generation V2 payload");
+    assert_eq!(
+        status_message(status),
+        "invalid runtime gamepad generation V2 payload"
+    );
     destroy_test_session(api, session);
 }

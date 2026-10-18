@@ -1,0 +1,330 @@
+diff --git a/zircon_editor/src/ui/host/editor_manager_project.rs b/zircon_editor/src/ui/host/editor_manager_project.rs
+--- a/zircon_editor/src/ui/host/editor_manager_project.rs
++++ b/zircon_editor/src/ui/host/editor_manager_project.rs
+@@ -3,5 +3,5 @@ use std::path::Path;
+ use std::sync::Arc;
+ 
+-use zircon_runtime::asset::project::{ProjectManager, ProjectManifest};
++use zircon_runtime::asset::project::ProjectManifest;
+ use zircon_runtime::asset::{AssetManager, AssetUri};
+ use zircon_runtime::plugin::native::NativePluginLoader;
+@@ -13,5 +13,5 @@ use crate::core::document::{
+ use crate::core::editor_message::{
+     DocumentMessage, EditorMessage, EditorMessagePayload, EditorTopic, SharedEditorMessageBus,
+ };
+-use crate::core::project::{SceneCreateRequest, SceneOpenRequest};
++use crate::core::project::{ProjectActivation, SceneCreateRequest, SceneOpenRequest};
+ use crate::ui::workbench::project::EditorProjectDocument;
+@@ -61,8 +61,8 @@ impl EditorManager {
+-    pub(crate) fn open_prepared_project_and_remember(
++    pub(crate) fn activate_project_and_remember(
+         &self,
+-        project: ProjectManager,
++        activation: ProjectActivation,
+     ) -> Result<crate::ui::workbench::startup::EditorStartupSessionDocument, EditorError> {
+-        let session = self.host.open_prepared_project_and_remember(project)?;
++        let session = self.host.activate_project_and_remember(activation)?;
+         self.publish_document_startup_session(&session)?;
+         Ok(session)
+     }
+diff --git a/zircon_editor/src/ui/host/editor_host_startup.rs b/zircon_editor/src/ui/host/editor_host_startup.rs
+--- a/zircon_editor/src/ui/host/editor_host_startup.rs
++++ b/zircon_editor/src/ui/host/editor_host_startup.rs
+@@ -1,13 +1,12 @@
+ use std::error::Error;
+ use std::sync::Arc;
+ 
+-use zircon_runtime::asset::project::ProjectManager;
+ use zircon_runtime_interface::math::UVec2;
+ 
+ use crate::core::gui_startup_request::EditorGuiStartupRequest;
+-use crate::core::project::NewProjectDraft;
++use crate::core::project::{NewProjectDraft, ProjectActivation};
+ use crate::ui::retained_host::build_startup_state;
+ use crate::ui::workbench::startup::{EditorSessionMode, EditorStartupSessionDocument};
+ use crate::ui::workbench::state::EditorState;
+ 
+ use super::{EditorError, EditorHostEventController, EditorManager};
+@@ -22,17 +21,17 @@ impl EditorHostStartupSession {
+         startup_request: Option<EditorGuiStartupRequest>,
+         viewport_size: UVec2,
+     ) -> Result<Self, Box<dyn Error>> {
+-        Self::open_with_prepared_project(editor_manager, startup_request, None, viewport_size)
++        Self::open_with_project_activation(editor_manager, startup_request, None, viewport_size)
+     }
+ 
+-    pub fn open_with_prepared_project(
++    pub fn open_with_project_activation(
+         editor_manager: Arc<EditorManager>,
+         startup_request: Option<EditorGuiStartupRequest>,
+-        prepared_project: Option<ProjectManager>,
++        project_activation: Option<ProjectActivation>,
+         viewport_size: UVec2,
+     ) -> Result<Self, Box<dyn Error>> {
+-        let startup_session = match prepared_project {
+-            Some(project) => editor_manager.open_prepared_project_and_remember(project)?,
++        let startup_session = match project_activation {
++            Some(activation) => editor_manager.activate_project_and_remember(activation)?,
+             None => resolve_editor_startup_session(editor_manager.as_ref(), startup_request)?,
+         };
+         let state = build_startup_state(editor_manager.as_ref(), &startup_session, viewport_size)?;
+diff --git a/zircon_editor/src/ui/retained_host/run_config.rs b/zircon_editor/src/ui/retained_host/run_config.rs
+--- a/zircon_editor/src/ui/retained_host/run_config.rs
++++ b/zircon_editor/src/ui/retained_host/run_config.rs
+@@ -1,12 +1,12 @@
+ use crate::core::gui_startup_request::EditorGuiStartupRequest;
+ use crate::core::plugin::EditorPluginRegistrationReport;
++use crate::core::project::ProjectActivation;
+ use std::path::PathBuf;
+-use zircon_runtime::asset::project::ProjectManager;
+ 
+-#[derive(Clone, Debug, Default)]
++#[derive(Debug, Default)]
+ pub struct EditorHostRunConfig {
+     startup_request: Option<EditorGuiStartupRequest>,
+-    startup_project: Option<ProjectManager>,
++    startup_activation: Option<ProjectActivation>,
+     exit_after_first_presented_frame: bool,
+     first_presented_frame_capture_path: Option<PathBuf>,
+     editor_plugin_registrations: Vec<EditorPluginRegistrationReport>,
+@@ -23,8 +23,8 @@ impl EditorHostRunConfig {
+     }
+ 
+     /// Transfers a project generation prepared by the application entry into the host.
+-    pub fn with_prepared_project(mut self, project: Option<ProjectManager>) -> Self {
+-        self.startup_project = project;
++    pub fn with_project_activation(mut self, activation: Option<ProjectActivation>) -> Self {
++        self.startup_activation = activation;
+         self
+     }
+ 
+@@ -66,14 +66,14 @@ impl EditorHostRunConfig {
+     pub(crate) fn into_parts(
+         self,
+     ) -> (
+         Option<EditorGuiStartupRequest>,
+-        Option<ProjectManager>,
++        Option<ProjectActivation>,
+         Option<PathBuf>,
+         Vec<EditorPluginRegistrationReport>,
+     ) {
+         (
+             self.startup_request,
+-            self.startup_project,
++            self.startup_activation,
+             self.first_presented_frame_capture_path,
+             self.editor_plugin_registrations,
+         )
+@@ -144,10 +144,12 @@ mod tests {
+     }
+ 
+     #[test]
+-    fn prepared_project_startup_does_not_reopen_a_path() {
++    fn project_activation_startup_does_not_reopen_a_path() {
+         let startup_source = include_str!("../host/editor_host_startup.rs");
+ 
+-        assert!(startup_source.contains("prepared_project"));
+-        assert!(startup_source.contains("open_prepared_project_and_remember"));
++        assert!(startup_source.contains("ProjectActivation"));
++        assert!(startup_source.contains("activate_project_and_remember"));
++        assert!(!startup_source.contains("ProjectManager"));
++        assert!(!startup_source.contains("open_prepared_project"));
+     }
+ }
+diff --git a/zircon_editor/src/ui/retained_host/app/host_lifecycle/startup/constructors.rs b/zircon_editor/src/ui/retained_host/app/host_lifecycle/startup/constructors.rs
+--- a/zircon_editor/src/ui/retained_host/app/host_lifecycle/startup/constructors.rs
++++ b/zircon_editor/src/ui/retained_host/app/host_lifecycle/startup/constructors.rs
+@@ -1,14 +1,14 @@
+ use super::*;
+ use crate::core::gui_startup_request::EditorGuiStartupRequest;
+-use zircon_runtime::asset::project::ProjectManager;
++use crate::core::project::ProjectActivation;
+ 
+ impl RetainedEditorHost {
+     pub(in crate::ui::retained_host::app) fn new(
+         core: CoreHandle,
+         runtime_gateway: SharedEditorRuntimeGateway,
+         ui: UiHostWindow,
+         startup_request: Option<EditorGuiStartupRequest>,
+-        prepared_project: Option<ProjectManager>,
++        project_activation: Option<ProjectActivation>,
+     ) -> Result<Self, Box<dyn Error>> {
+         zircon_runtime::profile_scope!("editor", "retained_host", "new");
+         let viewport = {
+@@ -20,8 +20,8 @@ impl RetainedEditorHost {
+             runtime_gateway,
+             ui,
+             viewport,
+             startup_request,
+-            prepared_project,
++            project_activation,
+         )
+     }
+ 
+diff --git a/zircon_editor/src/ui/retained_host/app/host_lifecycle/startup/with_viewport.rs b/zircon_editor/src/ui/retained_host/app/host_lifecycle/startup/with_viewport.rs
+--- a/zircon_editor/src/ui/retained_host/app/host_lifecycle/startup/with_viewport.rs
++++ b/zircon_editor/src/ui/retained_host/app/host_lifecycle/startup/with_viewport.rs
+@@ -1,8 +1,8 @@
+ use super::resources::resolve_startup_managers;
+ use super::state::{StartupHostConstruction, construct_startup_host};
+ use super::template_bridges::create_startup_template_bridges;
+ use super::*;
+ use crate::core::gui_startup_request::EditorGuiStartupRequest;
+-use zircon_runtime::asset::project::ProjectManager;
++use crate::core::project::ProjectActivation;
+ 
+ mod finalize;
+@@ -19,17 +19,17 @@ impl RetainedEditorHost {
+         ui: UiHostWindow,
+         viewport: RetainedViewportController,
+         startup_request: Option<EditorGuiStartupRequest>,
+-        prepared_project: Option<ProjectManager>,
++        project_activation: Option<ProjectActivation>,
+     ) -> Result<Self, Box<dyn Error>> {
+         zircon_runtime::profile_scope!("editor", "retained_host", "new_with_viewport");
+         #[cfg(not(feature = "profiling"))]
+         let _ = &runtime_gateway;
+
+         let startup_managers = resolve_startup_managers(&core)?;
+         let viewport_size = UVec2::new(1280, 720);
+         let startup_session_state = resolve_startup_session_state(
+             startup_managers.editor_manager.clone(),
+             startup_request,
+-            prepared_project,
++            project_activation,
+             viewport_size,
+         );
+         let startup_session_state = startup_session_state?;
+diff --git a/zircon_editor/src/ui/retained_host/app/host_lifecycle/startup/with_viewport/session_state.rs b/zircon_editor/src/ui/retained_host/app/host_lifecycle/startup/with_viewport/session_state.rs
+--- a/zircon_editor/src/ui/retained_host/app/host_lifecycle/startup/with_viewport/session_state.rs
++++ b/zircon_editor/src/ui/retained_host/app/host_lifecycle/startup/with_viewport/session_state.rs
+@@ -1,19 +1,19 @@
+ use std::error::Error;
+ use std::sync::Arc;
+ 
+ use super::super::super::super::*;
+ #[cfg(test)]
+ use super::super::session::resolve_startup_state;
+ use crate::core::gui_startup_request::EditorGuiStartupRequest;
++use crate::core::project::ProjectActivation;
+ use crate::ui::host::EditorHostStartupSession;
+ #[cfg(test)]
+ use crate::ui::host::resolve_editor_startup_session;
+-use zircon_runtime::asset::project::ProjectManager;
+ 
+ pub(super) type StartupSessionState = EditorHostStartupSession;
+ 
+ pub(super) fn resolve_startup_session_state(
+     editor_manager: Arc<EditorManager>,
+     startup_request: Option<EditorGuiStartupRequest>,
+-    prepared_project: Option<ProjectManager>,
++    project_activation: Option<ProjectActivation>,
+     viewport_size: UVec2,
+@@ -20,8 +20,8 @@ pub(super) fn resolve_startup_session_state(
+     #[cfg(not(test))]
+     {
+-        return EditorHostStartupSession::open_with_prepared_project(
++        return EditorHostStartupSession::open_with_project_activation(
+             editor_manager,
+             startup_request,
+-            prepared_project,
++            project_activation,
+             viewport_size,
+         );
+@@ -30,8 +30,8 @@ pub(super) fn resolve_startup_session_state(
+     #[cfg(test)]
+     {
+-        let startup_session = match prepared_project {
+-            Some(project) => editor_manager.open_prepared_project_and_remember(project)?,
++        let startup_session = match project_activation {
++            Some(activation) => editor_manager.activate_project_and_remember(activation)?,
+             None => resolve_editor_startup_session(editor_manager.as_ref(), startup_request)?,
+         };
+         let state =
+             resolve_startup_state(editor_manager.as_ref(), &startup_session, viewport_size)?;
+diff --git a/zircon_editor/src/ui/retained_host/app.rs b/zircon_editor/src/ui/retained_host/app.rs
+--- a/zircon_editor/src/ui/retained_host/app.rs
++++ b/zircon_editor/src/ui/retained_host/app.rs
+@@ -6,7 +6,7 @@ use std::rc::{Rc, Weak};
+ use std::sync::Arc;
+ 
+ use zircon_runtime::asset::pipeline::manager::AssetManager;
+-use zircon_runtime::asset::project::{ProjectManager, ProjectPaths};
++use zircon_runtime::asset::project::ProjectPaths;
+ use zircon_runtime::asset::watch::AssetChange;
+ use zircon_runtime::core::CoreHandle;
+ use zircon_runtime::core::framework::asset::ResourceManager;
+@@ -208,18 +208,18 @@ pub fn run_editor_with_config(
+     let (
+         startup_request,
+-        prepared_project,
++        project_activation,
+         first_presented_frame_capture_path,
+         editor_plugin_registrations,
+     ) = config.into_parts();
+     let product_frame_evidence_requested = first_presented_frame_capture_path.is_some();
+     let ui = UiHostWindow::new()?;
+     ui.set_exit_after_first_presented_frame(exit_after_first_presented_frame);
+     ui.set_first_presented_frame_capture_path(first_presented_frame_capture_path);
+     let mut retained_host = RetainedEditorHost::new(
+         core,
+         runtime_gateway,
+         ui.clone_strong(),
+         startup_request,
+-        prepared_project,
++        project_activation,
+     )?;
+     for registration in editor_plugin_registrations {
+diff --git a/zircon_editor/src/ui/retained_host/app/assets/workspace.rs b/zircon_editor/src/ui/retained_host/app/assets/workspace.rs
+--- a/zircon_editor/src/ui/retained_host/app/assets/workspace.rs
++++ b/zircon_editor/src/ui/retained_host/app/assets/workspace.rs
+@@ -5,22 +5,18 @@ impl RetainedEditorHost {
+         let asset_manager = self
+             .asset_manager_at_use_point()
+             .map_err(|error| error.to_string())?;
+-        let project_info = asset_manager
+-            .current_project()
++        let project = asset_manager
++            .current_project_snapshot()
+             .ok_or_else(|| "no directory project is currently open".to_string())?;
+-        let mut project =
+-            ProjectManager::open(&project_info.root_path).map_err(|error| error.to_string())?;
+-        project
+-            .scan_and_import()
+-            .map_err(|error| error.to_string())?;
+-        let scene_uri = ResourceLocator::parse(&project_info.default_scene_uri)
++        let scene_uri = ResourceLocator::parse(&project.manifest().default_scene.to_string())
+             .map_err(|error| error.to_string())?;
+         let world =
+             Scene::load_scene_from_uri(&project, &scene_uri).map_err(|error| error.to_string())?;
+         let level = self
+             .editor_manager
+             .create_runtime_level(world)
+             .map_err(|error| error.to_string())?;
+-        self.runtime.replace_world(level, project_info.root_path)?;
++        self.runtime
++            .replace_world(level, project.paths().root().to_path_buf())?;
+         Ok(())
+     }
+@@ -32,18 +27,16 @@ impl RetainedEditorHost {
+         let asset_manager = self
+             .asset_manager_at_use_point()
+             .map_err(|error| error.to_string())?;
+         let project = asset_manager
+-            .current_project()
++            .current_project_snapshot()
+             .ok_or_else(|| "Open a project before importing models".to_string())?;
+         let source = canonical_model_source_path(&chrome.mesh_import_path)?;
+-        let project_manager =
+-            ProjectManager::open(&project.root_path).map_err(|error| error.to_string())?;
+-        let (model_uri, display_path) = stage_model_source(&project_manager, &source)?;
++        let (model_uri, display_path) = stage_model_source(&project, &source)?;
+ 
+         asset_manager
+             .import_asset(&model_uri.to_string())
+             .map_err(|error| error.to_string())?;
+         for derived_uri in derive_animation_assets_from_model_source(
+-            &project_manager,
++            &project,
+             std::path::Path::new(&display_path),
+         )? {

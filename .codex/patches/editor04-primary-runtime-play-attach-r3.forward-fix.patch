@@ -1,0 +1,13 @@
+diff --git a/zircon_editor/src/ui/retained_host/app/host_lifecycle/startup/with_viewport.rs b/zircon_editor/src/ui/retained_host/app/host_lifecycle/startup/with_viewport.rs
+--- a/zircon_editor/src/ui/retained_host/app/host_lifecycle/startup/with_viewport.rs
++++ b/zircon_editor/src/ui/retained_host/app/host_lifecycle/startup/with_viewport.rs
+@@ -42,9 +42,6 @@ impl RetainedEditorHost {
+         let shell_scale_factor = resolve_startup_shell_scale_factor(&ui);
+         let template_bridges = create_startup_template_bridges(shell_size)?;
+         let runtime_backend = create_startup_runtime_backend(runtime);
+-        runtime_backend
+-            .runtime
+-            .attach_play_gateway(runtime_gateway.clone())?;
+ 
+         let mut host = construct_startup_host(StartupHostConstruction {
+             ui,

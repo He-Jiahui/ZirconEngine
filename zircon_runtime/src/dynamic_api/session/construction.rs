@@ -399,6 +399,25 @@ pub(super) fn build(
         Ok((runtime_ui, ui_extract_cache))
     })();
     let (runtime_ui, ui_extract_cache) = construction_cleanup.check(ui_resources)?;
+    // Claim only after the other fallible resources are ready. The Session owns
+    // this exact capability until physical teardown, not a lookup of "current".
+    let input_attachment = construction_cleanup.check((|| {
+        let driver = core
+            .resolve_driver::<crate::input::InputDriver>(crate::input::INPUT_DRIVER_NAME)
+            .map_err(|source| RuntimeDynamicSessionError::CoreStep {
+                step: "resolve input ingress",
+                source,
+            })?;
+        driver
+            .claim_attachment()
+            .map_err(|reason| RuntimeDynamicSessionError::CoreStep {
+                step: "claim input ingress attachment",
+                source: CoreError::Initialization(
+                    crate::input::INPUT_MODULE_NAME.to_owned(),
+                    reason.to_string(),
+                ),
+            })
+    })())?;
     let frame_clock_activation_rebase = rebase_frame_clock_after_session_activation(&runtime);
     write_log(
         "runtime_session",
@@ -427,6 +446,10 @@ pub(super) fn build(
         ui_extract_cache: Some(ui_extract_cache),
         cursor: Vec2::ZERO,
         input_manager,
+        input_attachment,
+        input_ingress_detached: false,
+        input_ingress_gap: false,
+        input_consumer_reset_pending: false,
         input_diagnostics: Default::default(),
         pending_host_request_output: None,
         host_request_output_commit_count: 0,

@@ -20,6 +20,7 @@ pub use self::hybrid_gi::{
 };
 pub use self::particles::RenderParticleGpuReadbackOutputs;
 pub use self::virtual_geometry::{
+    RenderVirtualGeometryNativeReadbackInspection, RenderVirtualGeometryNativeStartupReadback,
     RenderVirtualGeometryNodeClusterCullReadbackOutputs, RenderVirtualGeometryPageAssignmentRecord,
     RenderVirtualGeometryPageReplacementRecord, RenderVirtualGeometryReadbackOutputs,
 };

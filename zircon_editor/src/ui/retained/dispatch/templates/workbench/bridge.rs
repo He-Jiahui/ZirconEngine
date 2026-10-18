@@ -117,6 +117,18 @@ impl BuiltinHostWindowTemplateBridge {
         &self.host_projection
     }
 
+    pub(crate) fn normal_arranged_inventory(
+        &self,
+    ) -> crate::ui::template_runtime::NormalSurfaceInventory {
+        crate::ui::template_runtime::capture_normal_surface_inventory(
+            "host-shell",
+            &self.host_projection,
+            &self.host_surface,
+            None,
+            self.presentation_scale_factor,
+        )
+    }
+
     pub(crate) fn presentation_scale_factor(&self) -> f32 {
         self.presentation_scale_factor
     }

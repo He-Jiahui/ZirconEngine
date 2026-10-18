@@ -8,7 +8,7 @@ use crate::core::jobs::JobId;
 use crate::core::logging::{LogJump, LogRecord, LogSeverity, LogSource};
 use crate::core::notifications::{
     present_progress, present_toast, LocalizedProgressNotification, LocalizedToastNotification,
-    ProgressNotificationSnapshot, ToastNotificationSnapshot, ToastSeverity, ToastDeliverySnapshot,
+    ProgressNotificationSnapshot, ToastDeliverySnapshot, ToastNotificationSnapshot, ToastSeverity,
 };
 
 use super::slot::ActivityDrawerSlotPreference;
@@ -68,8 +68,12 @@ impl ActivityToastView {
     pub(crate) const fn remaining_lifetime(&self) -> Duration {
         self.remaining_lifetime
     }
-    pub(crate) const fn delivery_token(&self) -> Option<u64> { self.delivery_token }
-    pub(crate) const fn awaiting_presentation(&self) -> bool { self.awaiting_presentation }
+    pub(crate) const fn delivery_token(&self) -> Option<u64> {
+        self.delivery_token
+    }
+    pub(crate) const fn awaiting_presentation(&self) -> bool {
+        self.awaiting_presentation
+    }
 }
 
 /// Supports the unchanged publish-timed center as well as service delivery snapshots.
@@ -87,8 +91,12 @@ impl ActivityToastSnapshot for ToastDeliverySnapshot {
         let locale = i18n.active_locale();
         ActivityToastView {
             id: notification.id().as_str().to_owned(),
-            title: i18n.translate_for_locale(&locale, notification.title_key()).to_string(),
-            message: i18n.translate_for_locale(&locale, notification.message_key()).to_string(),
+            title: i18n
+                .translate_for_locale(&locale, notification.title_key())
+                .to_string(),
+            message: i18n
+                .translate_for_locale(&locale, notification.message_key())
+                .to_string(),
             severity: notification.severity(),
             expires_at: self.expires_at(),
             remaining_lifetime: self.remaining_lifetime_at(now),

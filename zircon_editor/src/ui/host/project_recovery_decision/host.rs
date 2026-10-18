@@ -9,10 +9,10 @@ use crate::core::recovery::{RestoreExecutionReport, RestoreStartup};
 
 use super::super::editor_error::EditorError;
 use super::super::editor_manager::EditorManager;
-use super::RecoveryExecutionCompletion;
 use super::service::{
     RecoveryCompletionDisposition, RecoveryOwnerAdmission, RecoveryUnresolvedSummary,
 };
+use super::RecoveryExecutionCompletion;
 
 const RECOVERY_TOAST_SOURCE: &str = "editor.recovery";
 const RECOVERY_SUCCESS_TOAST_LIFETIME: Duration = Duration::from_secs(5);
@@ -37,12 +37,15 @@ impl EditorManager {
             .decisions()
             .map_err(project_recovery_error)?;
         // The caller already owns the non-reentrant project transition guard.
-        let session = self.project_session_guard.lock()
+        let session = self
+            .project_session_guard
+            .lock()
             .map_err(|_| project_recovery_error("project session owner lock is poisoned"))?;
-        let guard = session.as_ref()
-            .ok_or_else(|| project_recovery_error("project recovery requires an owned Ready session"))?;
-        let admission = RecoveryOwnerAdmission::from_guard(guard)
-            .map_err(project_recovery_error)?;
+        let guard = session.as_ref().ok_or_else(|| {
+            project_recovery_error("project recovery requires an owned Ready session")
+        })?;
+        let admission =
+            RecoveryOwnerAdmission::from_guard(guard).map_err(project_recovery_error)?;
         self.project_recovery
             .begin(center, project_root, startup, &admission)
             .map(|_| ())
@@ -59,14 +62,20 @@ impl EditorManager {
         let completion = {
             // Tick does not hold this guard. Begin and Close use their already-held entry instead.
             let _transition = self.begin_project_session_transition()?;
-            let center = self.context().notifications().decisions()
+            let center = self
+                .context()
+                .notifications()
+                .decisions()
                 .map_err(project_recovery_error)?;
-            let session = self.project_session_guard.lock()
+            let session = self
+                .project_session_guard
+                .lock()
                 .map_err(|_| project_recovery_error("project session owner lock is poisoned"))?;
-            let guard = session.as_ref()
-                .ok_or_else(|| project_recovery_error("project recovery requires an owned Ready session"))?;
-            let admission = RecoveryOwnerAdmission::from_guard(guard)
-                .map_err(project_recovery_error)?;
+            let guard = session.as_ref().ok_or_else(|| {
+                project_recovery_error("project recovery requires an owned Ready session")
+            })?;
+            let admission =
+                RecoveryOwnerAdmission::from_guard(guard).map_err(project_recovery_error)?;
             self.project_recovery
                 .pump(center, self.context().jobs(), &admission)
                 .map_err(project_recovery_error)?
@@ -113,7 +122,8 @@ impl EditorManager {
                 Ok(_) => {}
             }
         }
-        let (id_suffix, severity, title_key, message_key, lifetime) = match completion.disposition() {
+        let (id_suffix, severity, title_key, message_key, lifetime) = match completion.disposition()
+        {
             RecoveryCompletionDisposition::Completed => (
                 "completed",
                 ToastSeverity::Success,

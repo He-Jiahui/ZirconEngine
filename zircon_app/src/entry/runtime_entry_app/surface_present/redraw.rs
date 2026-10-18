@@ -8,7 +8,8 @@ use zircon_runtime_interface::{RuntimeDiagnosticsSnapshot, ZrRuntimeViewportSize
 
 use super::super::mvp_input_probe::mvp_input_probe_enabled;
 use super::super::runtime_product_diagnostics::{
-    product_frame_diagnostic, request_runtime_product_snapshot, validate_product_snapshot_for_policy,
+    product_frame_diagnostic, request_runtime_product_snapshot,
+    validate_product_snapshot_for_policy,
 };
 use super::super::{RuntimeEntryApp, RuntimeProductProofPolicy};
 

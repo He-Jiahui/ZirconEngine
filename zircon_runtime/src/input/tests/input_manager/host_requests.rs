@@ -137,9 +137,9 @@ fn gamepad_rumble_rejects_unobserved_and_closed_targets_without_retention() {
         for request in requests {
             assert_eq!(
                 input.submit_event_with_admission(InputEvent::GamepadRumbleRequest(request)),
-                InputEventAdmission::Rejected(
-                    GamepadInputRejection::RumbleTargetUnavailable { gamepad },
-                ),
+                InputEventAdmission::Rejected(GamepadInputRejection::RumbleTargetUnavailable {
+                    gamepad
+                },),
             );
         }
         assert!(input.frame_snapshot().gamepad_rumble_requests.is_empty());
@@ -162,7 +162,10 @@ fn gamepad_rumble_queue_retains_enqueue_generations_across_reconnects() {
     input.submit_event(rumble_connection_event(gamepad, first, true));
     input.submit_event(InputEvent::GamepadRumbleRequest(add));
     input.submit_event(InputEvent::GamepadRumbleRequest(stop));
-    assert_eq!(input.frame_snapshot().gamepad_rumble_requests, vec![add, stop]);
+    assert_eq!(
+        input.frame_snapshot().gamepad_rumble_requests,
+        vec![add, stop]
+    );
     input.begin_frame();
     // Same-generation connect is idempotent and cannot discard the accepted FIFO prefix.
     input.submit_event(rumble_connection_event(gamepad, first, true));
@@ -171,7 +174,10 @@ fn gamepad_rumble_queue_retains_enqueue_generations_across_reconnects() {
     input.submit_event(rumble_connection_event(other, first, true));
     input.submit_event(InputEvent::GamepadRumbleRequest(add));
     input.submit_event(InputEvent::GamepadRumbleRequest(other_stop));
-    assert_eq!(input.frame_snapshot().gamepad_rumble_requests, vec![add, other_stop]);
+    assert_eq!(
+        input.frame_snapshot().gamepad_rumble_requests,
+        vec![add, other_stop]
+    );
     assert_eq!(
         input.drain_gamepad_rumble_requests(),
         vec![

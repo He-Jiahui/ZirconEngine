@@ -1,0 +1,142 @@
+diff --git a/zircon_editor/src/ui/host/editor_asset_manager/manager/project_sync/mod.rs b/zircon_editor/src/ui/host/editor_asset_manager/manager/project_sync/mod.rs
+--- a/zircon_editor/src/ui/host/editor_asset_manager/manager/project_sync/mod.rs
++++ b/zircon_editor/src/ui/host/editor_asset_manager/manager/project_sync/mod.rs
+@@ -1,5 +1,8 @@
+ mod display_name_for_path;
+ mod meta_path_for_source;
++mod prepared_catalog;
+ mod preview_source_mtime;
+ pub(super) mod source_generation;
+ mod sync_from_project;
++
++pub(super) use prepared_catalog::PreparedEditorAssetCatalog;
+diff --git a/zircon_editor/src/ui/host/editor_asset_manager/manager/project_sync/prepared_catalog.rs b/zircon_editor/src/ui/host/editor_asset_manager/manager/project_sync/prepared_catalog.rs
+new file mode 100644
+--- /dev/null
++++ b/zircon_editor/src/ui/host/editor_asset_manager/manager/project_sync/prepared_catalog.rs
+@@ -0,0 +1,125 @@
++use std::collections::HashMap;
++use std::path::PathBuf;
++use std::sync::Arc;
++
++use zircon_runtime::asset::importer::AssetImportError;
++use zircon_runtime::asset::project::{ProjectCatalogInputGeneration, ProjectPaths, PreviewState};
++use zircon_runtime::asset::{AssetUri, AssetUuid};
++
++use super::display_name_for_path::display_name_for_path;
++use super::source_generation::EditorAssetProjectSourceGeneration;
++use crate::ui::host::editor_asset_manager::{
++    AssetCatalogRecord, PreviewArtifactKey, PreviewCache, PreviewScheduler, ReferenceGraph,
++};
++
++/// All fallible catalog preparation for one uncommitted Runtime04 generation.
++///
++/// The value owns no project manager and makes no active editor-state mutation. Dropping it only
++/// releases prepared cache state, so a failed or superseded activation preserves the predecessor.
++pub(super) struct PreparedEditorAssetCatalog {
++    pub(super) catalog_inputs: Arc<ProjectCatalogInputGeneration>,
++    pub(super) assets_root: PathBuf,
++    pub(super) cache_root: PathBuf,
++    pub(super) source_generation: Arc<EditorAssetProjectSourceGeneration>,
++    pub(super) catalog_by_uuid: HashMap<AssetUuid, AssetCatalogRecord>,
++    pub(super) uuid_by_locator: HashMap<AssetUri, AssetUuid>,
++    pub(super) reference_graph: ReferenceGraph,
++    pub(super) preview_cache: PreviewCache,
++    pub(super) preview_scheduler: PreviewScheduler,
++}
++
++impl PreparedEditorAssetCatalog {
++    pub(super) fn prepare(
++        catalog_inputs: Arc<ProjectCatalogInputGeneration>,
++    ) -> Result<Self, AssetImportError> {
++        let assets_root = catalog_inputs
++            .package_assets()
++            .primary_project_root()?
++            .to_path_buf();
++        let cache_root = ProjectPaths::from_root(catalog_inputs.project_root())?
++            .cache_root()
++            .to_path_buf();
++        let preview_cache = PreviewCache::new(&cache_root)?;
++        let source_generation = Arc::new(EditorAssetProjectSourceGeneration::capture(
++            &catalog_inputs,
++        ));
++        let mut catalog_by_uuid = HashMap::new();
++        let mut uuid_by_locator = HashMap::new();
++        let mut preview_scheduler = PreviewScheduler::default();
++
++        for input in catalog_inputs.records() {
++            let resource = input.resource();
++            let locator = resource.primary_locator.clone();
++            let meta = input.meta().clone();
++            let preview_state = meta.preview_state;
++            let source_path = input.source_path();
++            let preview_artifact_path = preview_cache.path_for(&PreviewArtifactKey::thumbnail(
++                meta.uuid,
++                &resource.source_hash,
++            ));
++            let file_name = source_path
++                .file_name()
++                .and_then(|name| name.to_str())
++                .unwrap_or_default()
++                .to_string();
++            let extension = source_path
++                .extension()
++                .and_then(|name| name.to_str())
++                .unwrap_or_default()
++                .to_ascii_lowercase();
++            let record = AssetCatalogRecord {
++                asset_uuid: meta.uuid,
++                asset_id: resource.id(),
++                locator: locator.clone(),
++                kind: resource.kind,
++                display_name: display_name_for_path(source_path, &locator),
++                file_name,
++                extension,
++                meta_path: input.meta_path().to_path_buf(),
++                meta,
++                source_mtime_unix_ms: input.source_mtime_unix_ms(),
++                source_hash: resource.source_hash.clone(),
++                preview_state,
++                preview_artifact_path,
++                dirty: preview_state == PreviewState::Dirty,
++                diagnostics: resource
++                    .diagnostics
++                    .iter()
++                    .map(|diagnostic| diagnostic.message.clone())
++                    .collect(),
++                direct_references: input.direct_references().to_vec(),
++            };
++            if record.dirty {
++                preview_scheduler.mark_dirty(record.asset_uuid);
++            }
++            uuid_by_locator.insert(locator, record.asset_uuid);
++            catalog_by_uuid.insert(record.asset_uuid, record);
++        }
++
++        let reference_graph = ReferenceGraph::rebuild(catalog_by_uuid.values());
++        Ok(Self {
++            catalog_inputs,
++            assets_root,
++            cache_root,
++            source_generation,
++            catalog_by_uuid,
++            uuid_by_locator,
++            reference_graph,
++            preview_cache,
++            preview_scheduler,
++        })
++    }
++}
++
++#[cfg(test)]
++mod tests {
++    #[test]
++    fn prepared_catalog_has_no_project_manager_or_post_commit_source_io() {
++        let source = include_str!("prepared_catalog.rs");
++
++        assert!(source.contains("ProjectCatalogInputGeneration"));
++        assert!(!source.contains("ProjectManager"));
++        assert!(!source.contains("load_artifact_by_id"));
++        assert!(!source.contains("AssetMetaDocument::load"));
++    }
++}

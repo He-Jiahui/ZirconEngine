@@ -397,7 +397,19 @@ fn swift_string_escape(value: &str) -> String {
 }
 
 fn javascript_string_escape(value: &str) -> String {
-    value.replace('\\', "\\\\").replace('\'', "\\'")
+    let mut escaped = String::with_capacity(value.len());
+    for character in value.chars() {
+        match character {
+            '\\' => escaped.push_str("\\\\"),
+            '\'' => escaped.push_str("\\'"),
+            '\r' => escaped.push_str("\\r"),
+            '\n' => escaped.push_str("\\n"),
+            '\u{2028}' => escaped.push_str("\\u2028"),
+            '\u{2029}' => escaped.push_str("\\u2029"),
+            other => escaped.push(other),
+        }
+    }
+    escaped
 }
 
 fn json_string_escape(value: &str) -> String {

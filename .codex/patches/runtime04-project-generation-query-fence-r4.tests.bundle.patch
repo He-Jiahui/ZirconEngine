@@ -1,0 +1,41 @@
+diff --git a/zircon_runtime/src/asset/pipeline/manager/service_contracts/mod.rs b/zircon_runtime/src/asset/pipeline/manager/service_contracts/mod.rs
+--- a/zircon_runtime/src/asset/pipeline/manager/service_contracts/mod.rs
++++ b/zircon_runtime/src/asset/pipeline/manager/service_contracts/mod.rs
+@@ -1,2 +1,4 @@
+ mod asset_manager_contract;
++#[cfg(test)]
++mod asset_manager_contract_generation_fence_tests;
+ mod resource_manager_contract;
+diff --git a/zircon_runtime/src/asset/pipeline/manager/service_contracts/asset_manager_contract_generation_fence_tests.rs b/zircon_runtime/src/asset/pipeline/manager/service_contracts/asset_manager_contract_generation_fence_tests.rs
+new file mode 100644
+--- /dev/null
++++ b/zircon_runtime/src/asset/pipeline/manager/service_contracts/asset_manager_contract_generation_fence_tests.rs
+@@ -0,0 +1,28 @@
++use std::sync::Arc;
++use std::thread;
++use std::time::Duration;
++
++use crate::asset::AssetManager;
++
++use super::super::project_asset_manager::ProjectAssetManager;
++
++#[test]
++fn project_snapshot_query_waits_for_generation_commit() {
++    let manager = Arc::new(ProjectAssetManager::default());
++    let generation = manager.project_generation_write();
++    let (started_sender, started_receiver) = std::sync::mpsc::channel();
++    let (completed_sender, completed_receiver) = std::sync::mpsc::channel();
++    let reader_manager = Arc::clone(&manager);
++    let reader = thread::spawn(move || {
++        started_sender.send(()).unwrap();
++        completed_sender
++            .send(AssetManager::current_project_snapshot(reader_manager.as_ref()).is_none())
++            .unwrap();
++    });
++
++    started_receiver.recv_timeout(Duration::from_secs(1)).unwrap();
++    assert!(completed_receiver.recv_timeout(Duration::from_millis(25)).is_err());
++    drop(generation);
++    assert!(completed_receiver.recv_timeout(Duration::from_secs(1)).unwrap());
++    reader.join().unwrap();
++}

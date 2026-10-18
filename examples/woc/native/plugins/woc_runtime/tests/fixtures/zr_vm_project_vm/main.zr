@@ -1,0 +1,63 @@
+var container = %import("zr.container");
+var binary = %import("protocol/binary");
+var retained = %import("retained");
+var active = false;
+var invalidProjection = false;
+
+pub stateSchema(): string { return __WOC_SCHEMA__; }
+pub stateEncoding(): string { return "vm-state-bytes-v1"; }
+pub activate(): int { active = true; return 0; }
+pub deactivate(): int { active = false; return 0; }
+
+pub saveState(): container.Array<uint> {
+    var state = retained.save();
+    retained.bump();
+    return state;
+}
+
+pub restoreState(state: container.Array<uint>): int {
+    retained.restore(state);
+    if (state.length > 6 && <uint>state[6] == <uint>254) {
+        throw "restore failed after mutating retained heap";
+    }
+    return 0;
+}
+
+pub fixedTick(bytes: container.Array<uint>): container.Array<uint> {
+    if (!active) { throw "inactive"; }
+    var input = binary.decodeFixedTickInput(bytes);
+    var committed = retained.save();
+    if (input.committedState.length != committed.length) { throw "committed state differs"; }
+    var index = 0;
+    while (index < committed.length) {
+        if (<uint>input.committedState[index] != <uint>committed[index]) { throw "committed state differs"; }
+        index = index + 1;
+    }
+    retained.bump();
+    if (input.tick == <uint>100) {
+        while (true) { retained.bump(); }
+    }
+    var state = retained.save();
+    if (input.tick == <uint>101) {
+        state.add(<uint>256);
+        return state;
+    }
+    if (input.tick == <uint>102) {
+        throw "tick failed after mutating retained heap";
+    }
+    if (input.tick == <uint>103) {
+        invalidProjection = true;
+    }
+    var hash: uint = <uint>2166136261;
+    for (var byte in state) {
+        hash = ((hash ^ <uint>byte) * <uint>16777619) & <uint>4294967295;
+    }
+    return binary.encodeWorldSnapshot(input, state, hash);
+}
+
+pub presentationProjection(): container.Array<uint> {
+    if (invalidProjection) {
+        return "{\"schema_version\":2}".toArray();
+    }
+    return "{\"schema_version\":2,\"world\":{\"viewer\":{\"id\":1,\"generation\":1},\"actors\":[{\"entity\":{\"id\":1,\"generation\":1},\"template_id\":\"fixture_player\",\"transform\":{\"translation\":{\"x\":0.0,\"y\":0.0,\"z\":0.0},\"facing_radians\":0.0},\"animation\":{\"horizontal_speed\":0.0,\"moving\":false,\"running\":false,\"airborne\":false,\"backwards\":false,\"reverse_backpedal\":false,\"dead\":false,\"casting\":false,\"spinning\":false,\"swimming\":false,\"sitting\":false},\"appearance\":{\"skin_variant\":0,\"mainhand_item_id\":null,\"offhand_item_id\":null,\"weapon_skin_id\":null,\"weapon_stowed\":false}}]},\"hud\":{\"player\":{\"entity\":{\"id\":1,\"generation\":1},\"display_name\":\"fixture\",\"title_id\":null,\"level\":1,\"health\":{\"current\":100.0,\"maximum\":100.0},\"resource\":null,\"absorb\":0.0,\"dead\":false,\"hostile\":false,\"elite\":false,\"boss\":false,\"cast\":null},\"target\":null,\"target_of_target\":null,\"combo_points\":0,\"actions\":[],\"tracked_quests\":[]},\"windows\":{\"inventory\":{\"backpack_slots\":16,\"capacity\":16,\"copper\":0,\"bags\":[null,null,null,null],\"items\":[]},\"quest_log\":{\"completed_count\":0,\"quests\":[]}}}".toArray();
+}

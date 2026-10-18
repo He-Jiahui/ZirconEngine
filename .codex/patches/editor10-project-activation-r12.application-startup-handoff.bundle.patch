@@ -1,0 +1,193 @@
+diff --git a/zircon_app/src/entry/entry_runner/editor.rs b/zircon_app/src/entry/entry_runner/editor.rs
+--- a/zircon_app/src/entry/entry_runner/editor.rs
++++ b/zircon_app/src/entry/entry_runner/editor.rs
+@@ -12,18 +12,16 @@ use serde_json::Value;
+ use zircon_editor::{
+     core::editor_operation::{
+         EditorOperationControlRequest, EditorOperationInvocation, EditorOperationPath,
+         EditorOperationSource,
+     },
+-    core::project::ProjectAuthority,
++    core::project::{ProjectActivation, ProjectAuthority},
+     run_editor_with_config,
+     ui::host::{EditorHostEventController, EditorManager},
+     ui::workbench::state::EditorState,
+     EditorGuiStartupRequest, EditorHostRunConfig, EditorPluginRegistrationReport,
+     RuntimeCapabilities, SessionProfileKind, EDITOR_MANAGER_NAME,
+ };
+-#[cfg(feature = "target-editor-host")]
+-use zircon_runtime::asset::project::ProjectManager;
+ #[cfg(feature = "target-editor-host")]
+ use zircon_runtime::core::math::UVec2;
+ #[cfg(feature = "target-editor-host")]
+ use zircon_runtime::plugin::RuntimePluginRegistrationReport;
+@@ -169,8 +167,8 @@ impl EntryRunner {
+             let EditorStartupPreparation {
+                 entry_config,
+                 startup_request,
+-                prepared_project,
++                project_activation,
+                 editor_plugin_registrations,
+                 runtime_plugin_registrations,
+                 runtime_capabilities,
+             } = prepared_startup;
+@@ -200,9 +198,9 @@ impl EntryRunner {
+-            let native_editor_plugin_registrations = prepared_project
++            let native_editor_plugin_registrations = project_activation
+                 .as_ref()
+-                .map(|project| {
++                .map(|activation| {
+                     editor_manager.selected_native_editor_plugin_registration_reports(
+-                        project.paths().root(),
+-                        &project.manifest().plugins,
++                        activation.root(),
++                        activation.plugin_manifest(),
+                     )
+                 })
+                 .unwrap_or_default();
+@@ -259,7 +257,7 @@ impl EntryRunner {
+                     editor_exit_after_first_frame_enabled(),
+                     first_frame_capture_path,
+                 )
+-                .with_prepared_project(prepared_project)
++                .with_project_activation(project_activation)
+                 .with_editor_plugin_registrations(editor_plugin_registrations)
+                 .with_editor_plugin_registrations(native_editor_plugin_registrations);
+                 run_editor_with_config(core, runtime_gateway, host_config)
+@@ -385,10 +383,10 @@ fn editor_first_frame_capture_path_from_value(
+ struct EditorStartupPreparation {
+     entry_config: EntryConfig,
+     startup_request: Option<EditorGuiStartupRequest>,
+-    prepared_project: Option<ProjectManager>,
++    project_activation: Option<ProjectActivation>,
+     editor_plugin_registrations: Vec<EditorPluginRegistrationReport>,
+     runtime_plugin_registrations: Vec<RuntimePluginRegistrationReport>,
+     runtime_capabilities: RuntimeCapabilities,
+     #[cfg(test)]
+     startup_metrics: EditorStartupPreparationMetrics,
+ }
+@@ -433,12 +431,12 @@ fn prepare_editor_startup(
+-    let (startup_request, prepared_project) = match startup_request {
++    let (startup_request, project_activation) = match startup_request {
+         Some(EditorGuiStartupRequest::CreateProject(draft)) => {
+             let created = ProjectAuthority::default().create_project(&draft)?;
+             let request = EditorGuiStartupRequest::open_project(created.root.clone());
+-            (Some(request), Some(created.into_project()))
++            (Some(request), Some(created.into_activation()))
+         }
+         Some(EditorGuiStartupRequest::OpenProject { project_path }) => {
+-            let (request, project) = prepare_open_project(project_path)?;
+-            (Some(request), Some(project))
++            let (request, activation) = prepare_open_project(project_path)?;
++            (Some(request), Some(activation))
+         }
+         request => (request, None),
+     };
+@@ -445,5 +443,5 @@ fn prepare_editor_startup(
+-    let entry_config = match prepared_project.as_ref() {
++    let entry_config = match project_activation.as_ref() {
+         Some(project) => EntryConfig::new(EntryProfile::Editor)
+-            .with_project_plugins(project.manifest().plugins.clone()),
++            .with_project_plugins(project.plugin_manifest().clone()),
+         None => EntryConfig::new(EntryProfile::Editor),
+     };
+@@ -456,7 +454,7 @@ fn prepare_editor_startup(
+-    let runtime_plugin_registrations = match prepared_project.as_ref() {
++    let runtime_plugin_registrations = match project_activation.as_ref() {
+         Some(project) => first_party_runtime_plugin_registrations_for_manifest_with_render_profile(
+             entry_config.target_mode,
+-            &project.manifest().plugins,
++            project.plugin_manifest(),
+             &entry_config.render_profile,
+         ),
+         None => first_party_runtime_plugin_registrations_for_config(&entry_config),
+@@ -478,7 +476,7 @@ fn prepare_editor_startup(
+     Ok(EditorStartupPreparation {
+         entry_config,
+         startup_request,
+-        prepared_project,
++        project_activation,
+         editor_plugin_registrations,
+         runtime_plugin_registrations,
+         runtime_capabilities,
+@@ -533,11 +531,11 @@ fn project_plugin_manifest_clone_heap_bytes(
+ #[cfg(feature = "target-editor-host")]
+ fn prepare_open_project(
+     project_root: std::path::PathBuf,
+-) -> Result<(EditorGuiStartupRequest, ProjectManager), Box<dyn Error>> {
+-    let opened = ProjectAuthority::default().open_project(project_root)?;
+-    let root = opened.root().to_path_buf();
++) -> Result<(EditorGuiStartupRequest, ProjectActivation), Box<dyn Error>> {
++    let activation = ProjectAuthority::default().open_project(project_root)?;
++    let root = activation.root().to_path_buf();
+     Ok((
+         EditorGuiStartupRequest::open_project(root),
+-        opened.into_project(),
++        activation,
+     ))
+ }
+diff --git a/zircon_app/src/entry/entry_runner/editor/composition.rs b/zircon_app/src/entry/entry_runner/editor/composition.rs
+--- a/zircon_app/src/entry/entry_runner/editor/composition.rs
++++ b/zircon_app/src/entry/entry_runner/editor/composition.rs
+@@ -29,12 +29,12 @@ impl EditorApplicationComposition {
+         let EditorStartupPreparation {
+             entry_config,
+             startup_request,
+-            prepared_project,
++            project_activation,
+             editor_plugin_registrations,
+             runtime_plugin_registrations,
+             runtime_capabilities,
+         } = prepare_editor_gui_startup(Some(startup_request))?;
+-        let prepared_project = prepared_project.ok_or_else(|| {
++        let project_activation = project_activation.ok_or_else(|| {
+             std::io::Error::other("project composition preparation did not open its project")
+         })?;
+         let core = EntryRunner::bootstrap_with_runtime_plugin_registrations(
+@@ -53,9 +53,9 @@ impl EditorApplicationComposition {
+         let host_result: Result<_, Box<dyn Error>> = (|| {
+             let runtime_gateway = runtime_session.editor_gateway(runtime_capabilities)?;
+-            let host = EditorHostStartupSession::open_with_prepared_project(
++            let host = EditorHostStartupSession::open_with_project_activation(
+                 manager,
+                 startup_request,
+-                Some(prepared_project),
++                Some(project_activation),
+                 UVec2::new(1280, 720),
+             )?;
+             host.controller().attach_play_gateway(runtime_gateway)?;
+diff --git a/zircon_app/src/entry/entry_runner/editor/tests/gui_startup.rs b/zircon_app/src/entry/entry_runner/editor/tests/gui_startup.rs
+--- a/zircon_app/src/entry/entry_runner/editor/tests/gui_startup.rs
++++ b/zircon_app/src/entry/entry_runner/editor/tests/gui_startup.rs
+@@ -172,7 +172,7 @@ fn create_startup_request_is_materialized_before_runtime_session_startup() {
+         Some(EditorGuiStartupRequest::open_project(&project_root))
+     );
+     assert_eq!(
+-        prepared.prepared_project.as_ref().unwrap().paths().root(),
++        prepared.project_activation.as_ref().unwrap().root(),
+         project_root.as_path()
+     );
+     assert!(project_root.join("zircon-project.toml").is_file());
+@@ -315,17 +315,19 @@ fn editor_startup_keeps_one_prepared_project_generation_and_bounded_manifest_copies() {
+ }
+ 
+ #[test]
+-fn editor_gui_startup_injects_selected_native_registrations_from_the_prepared_project() {
++fn editor_gui_startup_injects_selected_native_registrations_from_the_activation() {
+     let source = include_str!("../../editor.rs");
+ 
+     assert_eq!(
+         source
+             .matches("selected_native_editor_plugin_registration_reports(")
+             .count(),
+         1,
+-        "a prepared GUI project must produce one native registration projection"
++        "an activation capability must produce one native registration projection"
+     );
+-    assert!(source.contains("prepared_project.as_ref()"));
++    assert!(source.contains("project_activation.as_ref()"));
++    assert!(source.contains("activation.plugin_manifest()"));
++    assert!(!source.contains("ProjectManager"));
+     assert!(source.contains("set_editor_capabilities_enabled(&native_editor_capabilities, true)"));
+     assert_eq!(
+         source.matches(".with_editor_plugin_registrations(").count(),

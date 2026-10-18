@@ -1,0 +1,440 @@
+diff --git a/zircon_editor/src/core/project/project_activation.rs b/zircon_editor/src/core/project/project_activation.rs
+--- a/zircon_editor/src/core/project/project_activation.rs
++++ b/zircon_editor/src/core/project/project_activation.rs
+@@ -1,3 +1,13 @@
++mod service;
++
++pub use service::{
++    ProjectActivationArtifact, ProjectActivationGeneration, ProjectActivationIntent,
++    ProjectActivationOutcome, ProjectActivationPrepared, ProjectActivationReport,
++    ProjectActivationService, ProjectActivationSubmitError, ProjectActivationTaskError,
++};
++
++pub(crate) use service::ProjectActivationBackend;
++
+ use std::path::Path;
+ 
+ use zircon_runtime::asset::project::PreparedProjectOpen;
+diff --git a/zircon_editor/src/core/project/project_activation/service.rs b/zircon_editor/src/core/project/project_activation/service.rs
+new file mode 100644
+--- /dev/null
++++ b/zircon_editor/src/core/project/project_activation/service.rs
+@@ -0,0 +1,418 @@
++use std::sync::{Arc, Mutex, MutexGuard};
++
++use thiserror::Error;
++use zircon_runtime::asset::project::PreparedProjectOpenStale;
++use zircon_runtime::asset::ProjectInfo;
++use zircon_runtime::core::CoreError;
++use zircon_runtime_interface::project::ProjectManifestSummary;
++
++use crate::core::jobs::{
++    EditorJob, EditorJobSpec, EditorJobSystem, JobCategory, JobContext, JobError, JobId,
++    JobPriority, JobSubmitError, JobTicket, MutexGroup, MutexGroupError,
++};
++
++use super::{NewProjectDraft, ProjectActivation, ProjectAuthorityError};
++
++const PROJECT_ACTIVATION_JOB_LABEL: &str = "Activate project";
++const PROJECT_ACTIVATION_MUTEX_GROUP: &str = "project_activation";
++const PROJECT_ACTIVATION_PENDING_BYTES: usize = 8 * 1024;
++
++/// Move-only work submitted by the project activation owner.
++///
++/// `Create` is handed intact to the staged backend so its directory commit and runtime activation
++/// can share one transaction; there is no UI-only create-and-open route.
++#[derive(Debug)]
++pub enum ProjectActivationIntent {
++    Open(ProjectActivation),
++    Create(NewProjectDraft),
++}
++
++/// Immutable worker result. It intentionally contains no runtime project handle, UI host,
++/// watcher, plugin manager, or mutable presentation state.
++#[derive(Clone, Debug, PartialEq, Eq)]
++pub struct ProjectActivationReport {
++    name: String,
++    default_scene_uri: String,
++    library_version: u32,
++    asset_count: usize,
++    ready_asset_count: usize,
++    failed_asset_count: usize,
++    registry_diagnostic_count: usize,
++}
++
++impl From<ProjectInfo> for ProjectActivationReport {
++    fn from(project_info: ProjectInfo) -> Self {
++        Self {
++            name: project_info.name,
++            default_scene_uri: project_info.default_scene_uri,
++            library_version: project_info.library_version,
++            asset_count: project_info.asset_count,
++            ready_asset_count: project_info.ready_asset_count,
++            failed_asset_count: project_info.failed_asset_count,
++            registry_diagnostic_count: project_info.registry_diagnostic_count,
++        }
++    }
++}
++
++impl ProjectActivationReport {
++    pub fn name(&self) -> &str {
++        &self.name
++    }
++
++    pub fn default_scene_uri(&self) -> &str {
++        &self.default_scene_uri
++    }
++
++    pub fn library_version(&self) -> u32 {
++        self.library_version
++    }
++
++    pub fn asset_count(&self) -> usize {
++        self.asset_count
++    }
++
++    pub fn ready_asset_count(&self) -> usize {
++        self.ready_asset_count
++    }
++
++    pub fn failed_asset_count(&self) -> usize {
++        self.failed_asset_count
++    }
++
++    pub fn registry_diagnostic_count(&self) -> usize {
++        self.registry_diagnostic_count
++    }
++}
++
++#[derive(Clone, Debug)]
++pub struct ProjectActivationArtifact {
++    summary: ProjectManifestSummary,
++    report: ProjectActivationReport,
++}
++
++impl ProjectActivationArtifact {
++    pub(crate) fn new(summary: ProjectManifestSummary, project_info: ProjectInfo) -> Self {
++        Self {
++            summary,
++            report: project_info.into(),
++        }
++    }
++
++    pub fn summary(&self) -> &ProjectManifestSummary {
++        &self.summary
++    }
++
++    pub fn report(&self) -> &ProjectActivationReport {
++        &self.report
++    }
++}
++
++#[derive(Debug)]
++pub enum ProjectActivationPrepared {
++    Activated(ProjectActivationArtifact),
++    Stale(PreparedProjectOpenStale),
++}
++
++#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
++pub struct ProjectActivationGeneration(u64);
++
++impl ProjectActivationGeneration {
++    pub fn get(self) -> u64 {
++        self.0
++    }
++}
++
++#[derive(Debug)]
++pub struct ProjectActivationOutcome {
++    generation: ProjectActivationGeneration,
++    result: Result<ProjectActivationPrepared, JobError>,
++}
++
++impl ProjectActivationOutcome {
++    pub fn generation(&self) -> ProjectActivationGeneration {
++        self.generation
++    }
++
++    pub fn into_result(self) -> Result<ProjectActivationPrepared, JobError> {
++        self.result
++    }
++}
++
++#[derive(Debug, Error)]
++pub enum ProjectActivationTaskError {
++    #[error("project creation failed: {0}")]
++    Create(#[source] ProjectAuthorityError),
++    #[error("runtime project activation preparation failed: {0}")]
++    Runtime(#[source] CoreError),
++}
++
++#[derive(Debug, Error)]
++pub enum ProjectActivationSubmitError {
++    #[error("project activation mutex configuration failed: {0}")]
++    Mutex(#[from] MutexGroupError),
++    #[error("project activation job submission failed: {0}")]
++    Job(#[from] JobSubmitError),
++}
++
++pub(crate) trait ProjectActivationBackend: Send + Sync {
++    /// Builds only a staged, externally invisible artifact. It must not replace the active
++    /// runtime project, publish asset changes, or dispatch watchers; final commit belongs to the
++    /// later joint Editor/Runtime install transaction.
++    fn prepare(
++        &self,
++        intent: ProjectActivationIntent,
++        context: &JobContext,
++    ) -> Result<ProjectActivationPrepared, ProjectActivationTaskError>;
++}
++
++struct ProjectActivationJob {
++    intent: ProjectActivationIntent,
++    backend: Arc<dyn ProjectActivationBackend>,
++}
++
++impl EditorJob for ProjectActivationJob {
++    type Output = ProjectActivationPrepared;
++
++    fn run(self, context: JobContext) -> Result<Self::Output, JobError> {
++        context.check_cancelled()?;
++        context.report_progress(0, 1, "Preparing project activation");
++        let artifact = self
++            .backend
++            .prepare(self.intent, &context)
++            .map_err(JobError::failed)?;
++        context.check_cancelled()?;
++        context.report_progress(1, 1, "Prepared project activation artifact");
++        Ok(artifact)
++    }
++}
++
++struct PendingProjectActivation {
++    generation: ProjectActivationGeneration,
++    ticket: JobTicket<ProjectActivationPrepared>,
++}
++
++#[derive(Default)]
++struct ProjectActivationState {
++    next_generation: u64,
++    latest: Option<PendingProjectActivation>,
++}
++
++/// Core-owned latest-wins preparation queue. Retained host submits and polls this service but
++/// cannot execute filesystem or runtime activation work itself. Its production backend is only
++/// constructible after the runtime staged prepare/commit/rollback transaction is available.
++#[derive(Clone)]
++pub struct ProjectActivationService {
++    jobs: EditorJobSystem,
++    backend: Arc<dyn ProjectActivationBackend>,
++    state: Arc<Mutex<ProjectActivationState>>,
++}
++
++impl ProjectActivationService {
++    pub(crate) fn with_backend(
++        jobs: EditorJobSystem,
++        backend: Arc<dyn ProjectActivationBackend>,
++    ) -> Self {
++        Self {
++            jobs,
++            backend,
++            state: Arc::new(Mutex::new(ProjectActivationState::default())),
++        }
++    }
++
++    pub fn submit(
++        &self,
++        intent: ProjectActivationIntent,
++    ) -> Result<ProjectActivationGeneration, ProjectActivationSubmitError> {
++        let mutex_group = MutexGroup::parse(PROJECT_ACTIVATION_MUTEX_GROUP)?;
++        let ticket = self.jobs.submit(
++            EditorJobSpec::new(PROJECT_ACTIVATION_JOB_LABEL, JobCategory::Index)
++                .with_priority(JobPriority::Interactive)
++                .with_mutex_group(mutex_group)
++                .with_estimated_bytes(PROJECT_ACTIVATION_PENDING_BYTES),
++            ProjectActivationJob {
++                intent,
++                backend: Arc::clone(&self.backend),
++            },
++        )?;
++        let replaced = {
++            let mut state = self.lock_state();
++            state.next_generation = state.next_generation.saturating_add(1);
++            let generation = ProjectActivationGeneration(state.next_generation);
++            let replaced = state.latest.replace(PendingProjectActivation { generation, ticket });
++            (generation, replaced.map(|pending| pending.ticket.id()))
++        };
++        if let Some(job) = replaced.1 {
++            self.jobs.cancel(job);
++        }
++        Ok(replaced.0)
++    }
++
++    /// Returns only the current generation's terminal staged result. A superseded ticket is
++    /// cancelled and dropped before any runtime generation becomes externally visible.
++    pub fn poll(&self) -> Option<ProjectActivationOutcome> {
++        let mut state = self.lock_state();
++        let pending = state.latest.as_ref()?;
++        let result = pending.ticket.try_take()?;
++        let generation = pending.generation;
++        state.latest.take();
++        Some(ProjectActivationOutcome { generation, result })
++    }
++
++    /// Cancels the only installable staged ticket before any runtime generation becomes visible.
++    pub fn cancel_latest(&self) -> bool {
++        let pending = self.lock_state().latest.take();
++        pending.is_some_and(|pending| self.jobs.cancel(pending.ticket.id()))
++    }
++
++    pub fn pending_generation(&self) -> Option<ProjectActivationGeneration> {
++        self.lock_state()
++            .latest
++            .as_ref()
++            .map(|pending| pending.generation)
++    }
++
++    fn lock_state(&self) -> MutexGuard<'_, ProjectActivationState> {
++        self.state
++            .lock()
++            .unwrap_or_else(|poisoned| poisoned.into_inner())
++    }
++}
++
++#[cfg(test)]
++mod tests {
++    use std::fs;
++    use std::sync::atomic::{AtomicUsize, Ordering};
++    use std::sync::mpsc::{self, Receiver, Sender};
++    use std::time::{Duration, SystemTime, UNIX_EPOCH};
++
++    use zircon_runtime::asset::project::ProjectManifest;
++    use zircon_runtime::asset::{AssetUri, ProjectInfo};
++
++    use crate::core::jobs::{test_job_system, JobContext};
++
++    use super::{
++        ProjectActivation, ProjectActivationArtifact, ProjectActivationBackend,
++        ProjectActivationIntent, ProjectActivationPrepared, ProjectActivationService,
++        ProjectActivationTaskError,
++    };
++
++    struct BlockingBackend {
++        first_started: Sender<()>,
++        release_first: Receiver<()>,
++        calls: AtomicUsize,
++    }
++
++    impl ProjectActivationBackend for BlockingBackend {
++        fn prepare(
++            &self,
++            intent: ProjectActivationIntent,
++            _context: &JobContext,
++        ) -> Result<ProjectActivationPrepared, ProjectActivationTaskError> {
++            let ProjectActivationIntent::Open(activation) = intent else {
++                panic!("test backend accepts only prepared project opens");
++            };
++            let root_path = activation.root().to_string_lossy().into_owned();
++            let project_name = activation.summary().name.clone();
++            if self.calls.fetch_add(1, Ordering::SeqCst) == 0 {
++                let _ = self.first_started.send(());
++                let _ = self.release_first.recv_timeout(Duration::from_secs(2));
++            }
++            Ok(ProjectActivationPrepared::Activated(ProjectActivationArtifact::new(
++                activation.summary().clone(),
++                ProjectInfo {
++                    root_path,
++                    name: project_name,
++                    default_scene_uri: "res://scenes/main.scene.toml".to_string(),
++                    library_version: 1,
++                    asset_count: 0,
++                    ready_asset_count: 0,
++                    failed_asset_count: 0,
++                    registry_diagnostic_count: 0,
++                },
++            )))
++        }
++
++    }
++
++    #[test]
++    fn replacement_discards_a_cancelled_staged_generation_and_only_polls_the_successor() {
++        let (first_started_tx, first_started_rx) = mpsc::channel();
++        let (release_first_tx, release_first_rx) = mpsc::channel();
++        let backend = std::sync::Arc::new(BlockingBackend {
++            first_started: first_started_tx,
++            release_first: release_first_rx,
++            calls: AtomicUsize::new(0),
++        });
++        let service = ProjectActivationService::with_backend(test_job_system(), backend.clone());
++        let (first, first_root) = fixture_activation("first");
++        let (second, second_root) = fixture_activation("second");
++
++        let first_generation = service.submit(ProjectActivationIntent::Open(first)).unwrap();
++        first_started_rx.recv_timeout(Duration::from_secs(2)).unwrap();
++        let second_generation = service.submit(ProjectActivationIntent::Open(second)).unwrap();
++        assert!(second_generation.get() > first_generation.get());
++        release_first_tx.send(()).unwrap();
++
++        let outcome = wait_for_outcome(&service);
++        assert_eq!(outcome.generation(), second_generation);
++        let artifact = match outcome.into_result().unwrap() {
++            ProjectActivationPrepared::Activated(artifact) => artifact,
++            ProjectActivationPrepared::Stale(reason) => panic!("expected activation, got {reason}"),
++        };
++        assert_eq!(artifact.report().name, "second");
++        assert_eq!(backend.calls.load(Ordering::SeqCst), 2);
++
++        let _ = fs::remove_dir_all(first_root);
++        let _ = fs::remove_dir_all(second_root);
++    }
++
++    #[test]
++    fn activation_artifact_exposes_no_project_manager_or_ui_host() {
++        let source = include_str!("service.rs");
++        let project_manager = ["Project", "Manager"].concat();
++        let editor_ui_host = ["Editor", "UiHost"].concat();
++        let production = source.split("#[cfg(test)]").next().unwrap();
++        assert!(!source.contains(&project_manager));
++        assert!(!source.contains(&editor_ui_host));
++        assert!(!production.contains("root_path"));
++        assert_send_static::<ProjectActivationArtifact>();
++        assert_send_static::<ProjectActivationPrepared>();
++    }
++
++    fn assert_send_static<T: Send + 'static>() {}
++
++    fn fixture_activation(name: &str) -> (ProjectActivation, std::path::PathBuf) {
++        let nonce = SystemTime::now()
++            .duration_since(UNIX_EPOCH)
++            .unwrap()
++            .as_nanos();
++        let root = std::env::temp_dir().join(format!(
++            "zircon_project_activation_service_{name}_{}_{}",
++            std::process::id(),
++            nonce
++        ));
++        fs::create_dir_all(root.join("assets")).unwrap();
++        ProjectManifest::new(
++            name,
++            AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
++            1,
++        )
++        .save(root.join("zircon-project.toml"))
++        .unwrap();
++        let activation = ProjectActivation::open(&root).unwrap();
++        (activation, root)
++    }
++
++    fn wait_for_outcome(
++        service: &ProjectActivationService,
++    ) -> super::ProjectActivationOutcome {
++        let deadline = std::time::Instant::now() + Duration::from_secs(2);
++        loop {
++            if let Some(outcome) = service.poll() {
++                return outcome;
++            }
++            assert!(std::time::Instant::now() < deadline, "activation did not finish");
++            std::thread::yield_now();
++        }
++    }
++}

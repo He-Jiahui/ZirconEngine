@@ -1,0 +1,47 @@
+// Source-compatible Warrior ability-Rage multiplier. Persistent aura lookup and
+// fractional resource storage remain owned by the WOS113 world-state migration.
+pub recklessnessRageGeneration(): float { return 0.5; }
+pub battleStanceRageGeneration(): float { return 0.1; }
+
+pub abilityRageMultiplier(
+    abilityRagePct: float,
+    rageGenerationAuraValue: float,
+    recklessCount: int,
+    battleStanceCount: int
+): float {
+    var auraMultiplier = 1.0 + rageGenerationAuraValue;
+    if (recklessCount > 0) {
+        auraMultiplier = auraMultiplier +
+            recklessnessRageGeneration() * <float>recklessCount;
+    }
+    if (battleStanceCount > 0) {
+        auraMultiplier = auraMultiplier +
+            battleStanceRageGeneration() * <float>battleStanceCount;
+    }
+    return (1.0 + abilityRagePct) * auraMultiplier;
+}
+
+pub pummelReward(
+    baseReward: float,
+    abilityRagePct: float,
+    rageGenerationAuraValue: float,
+    recklessCount: int,
+    battleStanceCount: int
+): float {
+    return baseReward * abilityRageMultiplier(
+        abilityRagePct, rageGenerationAuraValue, recklessCount, battleStanceCount
+    );
+}
+
+pub contractTest(): int {
+    if (recklessnessRageGeneration() != 0.5 ||
+        battleStanceRageGeneration() != 0.1 ||
+        abilityRageMultiplier(0.15, 0.0, 0, 0) != 1.15 ||
+        pummelReward(10.0, 0.15, 0.0, 0, 0) != 11.5) {
+        return -1;
+    }
+    var stacked = abilityRageMultiplier(0.15, 0.2, 1, 1);
+    var reward = pummelReward(10.0, 0.15, 0.2, 1, 1);
+    return stacked > 2.069 && stacked < 2.071 && reward > 20.69 && reward < 20.71 ?
+        1 : -2;
+}

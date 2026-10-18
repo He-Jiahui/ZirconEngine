@@ -80,6 +80,33 @@ def runtime_files(repo):
 
 
 def runtime_context(repo):
+    if advisory_validation(commit.load_policy(repo)):
+        # Ordinary Git delivery needs a live selected Jenkins endpoint, not
+        # whole-driver hashes, historical capsule acceptance or product gates.
+        selected = commit.read_json(repo / ".jenkins/state/deployment/driver.json")
+        operation = commit.read_json(repo / ".jenkins/state/deployment-operation.json")
+        config = {k: selected[k] for k in ("driverDigest", "runtimeOperationId")}
+        if operation.get("operationId") != config["runtimeOperationId"] or operation.get("state") != "running":
+            raise commit.CommitBusy("Jenkins runtime is transitioning; retain this task for retry")
+        driver = commit.physical(repo / ".jenkins/runtime/drivers" / config["driverDigest"])
+        if not driver.is_dir():
+            raise ValueError("Selected Jenkins runtime implementation is unavailable")
+        for name in tuple(sys.modules):
+            if name == "tools" or name.startswith("tools."):
+                del sys.modules[name]
+        sys.path.insert(0, str(driver))
+        from tools.jenkins.deployment.driver import driver_environment
+        os.environ.update(driver_environment({"root": str(driver), "driverDigest": config["driverDigest"]},
+                                            repo / ".jenkins/runtime/python/python.exe", repo))
+        client = commit.transport(repo)
+        status, raw, _ = client.request("/api/json?tree=quietingDown")
+        if status != 200 or json.loads(raw).get("quietingDown") is not False:
+            raise commit.CommitBusy("Jenkins is unavailable or draining; retain this task for retry")
+        status, raw, _ = client.request("/computer/api/json?tree=computer[displayName,offline]")
+        if status != 200 or not any(c.get("displayName") == "zircon-windows-agent" and c.get("offline") is False
+                                    for c in json.loads(raw).get("computer", [])):
+            raise commit.CommitBusy("Jenkins agent is offline; retain this task for retry")
+        return {"config": config, "advisory": True}
     installed, config, driver = runtime_files(repo)
     for name in tuple(sys.modules):
         if name == "tools" or name.startswith("tools."):
@@ -106,16 +133,21 @@ def runtime_context(repo):
     return {"installed": installed, "config": config, "manager": manager, "owner": owner}
 
 
+def advisory_validation(policy):
+    return policy.get("integration", {}).get("validationMode") == "advisory"
+
+
 def policy_for(repo):
     policy = commit.load_policy(repo)
     rules = policy.get("integration", {})
     if (rules.get("enabled") is not True or rules.get("sessions") != "any"
-            or rules.get("targetBranch") != "main" or rules.get("validationRequired") is not True
+            or rules.get("targetBranch") != "main"
+            or not (advisory_validation(policy) or rules.get("validationRequired") is True)
             or rules.get("requireCleanMain") is not True or rules.get("requirePullRequest") is not True
             or rules.get("executor") != "zircon-management"
             or any(rules.get(k) is not False for k in ("requireSeparateCommitApproval",
                 "requireSeparateMergeApproval", "requireWholeWorkspaceAcceptance"))):
-        raise ValueError("Standing validated main integration is not enabled")
+        raise ValueError("Standing task delivery is not enabled")
     return policy
 
 
@@ -154,9 +186,11 @@ def validate_request(repo, payload, policy, grants):
     message = payload.get("message")
     if not isinstance(message, str) or not message.strip() or len(message) > 4096 or "\0" in message:
         raise ValueError("A bounded commit message is required")
-    steps = payload.get("validation")
-    if not isinstance(steps, list) or not 1 <= len(steps) <= 16:
-        raise ValueError("One to sixteen scoped validation steps are required")
+    steps = payload.get("validation", [])
+    minimum = 0 if advisory_validation(policy) else 1
+    if not isinstance(steps, list) or not minimum <= len(steps) <= 16:
+        raise ValueError("Optional validation accepts up to sixteen steps" if minimum == 0
+                         else "One to sixteen scoped validation steps are required")
     for step in steps:
         if not isinstance(step, dict) or step.get("kind") not in {"pytest", "python-static", "cargo", "skills"}:
             raise ValueError("Supported validation recipes: pytest, python-static, cargo, skills")
@@ -269,6 +303,10 @@ def vsdev_command(command, destination):
 
 def run_validation(root, payload, names, output, runtime):
     """Run actual commands in retained Windows Jobs and retain their EOF proof."""
+    if not payload.get("validation"):
+        return {"status": "skipped", "head": text(root, "rev-parse", "HEAD"),
+                "files": files(root, names), "steps": [], "runtime": runtime,
+                "formalAcceptance": False, "reason": "No optional validation was requested"}
     cargo = module("delivery_native_command", ROOT / "tools/dev/local_cargo.py")
     checks = module("delivery_native_checks", ROOT / "tools/jenkins-management/run_checks.py")
     output = commit.physical(output)
@@ -565,10 +603,11 @@ def main(argv=None):
                                 or operation.get("operationId") != config["runtimeOperationId"]
                                 or operation.get("state") != "running"):
                             raise ValueError("Selected Jenkins runtime changed during validation")
-                        from tools.jenkins.deployment.drain_observations import owner_observation, quiet_observation
-                        owner_observation(context["manager"], expected=context["owner"])
-                        if quiet_observation(context["manager"]):
-                            raise ValueError("Jenkins runtime admission is draining")
+                        if not context.get("advisory"):
+                            from tools.jenkins.deployment.drain_observations import owner_observation, quiet_observation
+                            owner_observation(context["manager"], expected=context["owner"])
+                            if quiet_observation(context["manager"]):
+                                raise ValueError("Jenkins runtime admission is draining")
                     with commit.git_lock(ROOT / ".jenkins/state/locks" / ("delivery-" + payload["operationId"] + ".lock")):
                         result = execute(ROOT, payload, runtime={k: config[k] for k in ("driverDigest", "runtimeOperationId")},
                                          check_runtime=check_runtime)

@@ -1,0 +1,2 @@
+backend = "zr_vm:project"
+entry = "src/world/fire_mage_hot_streak_runtime_test_main.zr"

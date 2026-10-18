@@ -1,10 +1,73 @@
-use std::sync::MutexGuard;
+use std::sync::{Arc, MutexGuard};
 
 use super::{EditCommandError, EditContext, EditorTransactionEngine, EngineState, TransactionId};
 
+/// A close attempt owns mutation admission until capture tasks and teardown finish.
+#[derive(Clone, Debug)]
+pub(crate) struct SceneCloseAdmission {
+    pub(super) identity: Arc<()>,
+}
+
 impl EditorTransactionEngine {
+    pub(crate) fn validate_close_admission(
+        &self,
+        admission: &SceneCloseAdmission,
+    ) -> Result<(), EditCommandError> {
+        let state = self.lock_state();
+        if !state
+            .close_admission
+            .upgrade()
+            .is_some_and(|identity| Arc::ptr_eq(&identity, &admission.identity))
+        {
+            return Err(EditCommandError::EngineBusy {
+                active: "a different main-window close attempt",
+                requested: "capture closing document",
+            });
+        }
+        Ok(())
+    }
+
     pub(super) fn start_operation(&self, requested: &'static str) -> Result<(), EditCommandError> {
+        self.start_admitted_operation(requested, None, false)
+    }
+
+    pub(super) fn start_read_operation(
+        &self,
+        requested: &'static str,
+    ) -> Result<(), EditCommandError> {
+        self.start_admitted_operation(requested, None, true)
+    }
+
+    pub(super) fn start_close_operation(
+        &self,
+        requested: &'static str,
+        admission: &SceneCloseAdmission,
+    ) -> Result<(), EditCommandError> {
+        self.start_admitted_operation(requested, Some(admission), false)
+    }
+
+    fn start_admitted_operation(
+        &self,
+        requested: &'static str,
+        admission: Option<&SceneCloseAdmission>,
+        read_only: bool,
+    ) -> Result<(), EditCommandError> {
         let mut state = self.lock_state();
+        if let Some(identity) = state.close_admission.upgrade() {
+            if !read_only
+                && !admission.is_some_and(|admission| Arc::ptr_eq(&identity, &admission.identity))
+            {
+                return Err(EditCommandError::EngineBusy {
+                    active: "main-window close",
+                    requested,
+                });
+            }
+        } else if admission.is_some() {
+            return Err(EditCommandError::EngineBusy {
+                active: "retired main-window close",
+                requested,
+            });
+        }
         if state.faulted {
             return Err(EditCommandError::EngineFaulted {
                 operation: requested,

@@ -1,0 +1,37 @@
+diff --git a/zircon_runtime/src/graphics/scene/scene_renderer/mesh/shaders/fallback_mesh.wgsl b/zircon_runtime/src/graphics/scene/scene_renderer/mesh/shaders/fallback_mesh.wgsl
+--- a/zircon_runtime/src/graphics/scene/scene_renderer/mesh/shaders/fallback_mesh.wgsl
++++ b/zircon_runtime/src/graphics/scene/scene_renderer/mesh/shaders/fallback_mesh.wgsl
+@@ -419,11 +419,11 @@ fn sampled_material(input: VertexOutput) -> SampledMaterial {
+     let albedo = sampled_base_color(input);
+     let metallic_roughness = textureSampleBias(metallic_roughness_tex, metallic_roughness_sampler, metallic_roughness_uv, scene.camera_world_position.w);
+     let metallic = clamp(material_properties.data0.x * metallic_roughness.b, 0.0, 1.0);
+-    var roughness = material_properties.data0.y;
+-    if (roughness <= 0.0) {
+-        roughness = 1.0;
+-    }
+-    roughness = clamp(roughness * metallic_roughness.g, ZR_STANDARD_MATERIAL_MIN_ROUGHNESS, 1.0);
++    let roughness = clamp(
++        material_properties.data0.y * metallic_roughness.g,
++        ZR_STANDARD_MATERIAL_MIN_ROUGHNESS,
++        1.0,
++    );
+     let occlusion_sample = textureSampleBias(occlusion_tex, occlusion_sampler, occlusion_uv, scene.camera_world_position.w).r;
+     let occlusion = clamp(
+         mix(1.0, occlusion_sample, clamp(material_properties.data0.z, 0.0, 1.0)),
+diff --git a/zircon_runtime/src/graphics/shader/template/tests/environment_specular_occlusion.rs b/zircon_runtime/src/graphics/shader/template/tests/environment_specular_occlusion.rs
+--- a/zircon_runtime/src/graphics/shader/template/tests/environment_specular_occlusion.rs
++++ b/zircon_runtime/src/graphics/shader/template/tests/environment_specular_occlusion.rs
+@@ -109,2 +109,13 @@ fn fallback_mesh_uses_the_same_gltf_occlusion_strength_contract() {
+     assert!(!fallback.contains("if (occlusion <= 0.0)"));
+ }
++
++#[test]
++fn fallback_mesh_keeps_zero_gltf_roughness_at_the_pbr_minimum() {
++    let fallback = include_str!("../../../scene/scene_renderer/mesh/shaders/fallback_mesh.wgsl");
++
++    assert!(fallback.contains(
++        "let roughness = clamp(\n        material_properties.data0.y * metallic_roughness.g,\n        ZR_STANDARD_MATERIAL_MIN_ROUGHNESS,\n        1.0,\n    );"
++    ));
++    assert!(!fallback.contains("if (roughness <= 0.0)"));
++    assert!(!fallback.contains("roughness = 1.0;"));
++}

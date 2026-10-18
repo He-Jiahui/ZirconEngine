@@ -35,7 +35,7 @@ pub(super) struct RenderBackend {
 }
 
 impl RenderBackend {
-    pub(super) fn new_offscreen() -> Result<Self, GraphicsError> {
+    pub(super) fn new_offscreen() -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
         let instance = wgpu::Instance::default();
         let adapter = pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
             power_preference: wgpu::PowerPreference::HighPerformance,

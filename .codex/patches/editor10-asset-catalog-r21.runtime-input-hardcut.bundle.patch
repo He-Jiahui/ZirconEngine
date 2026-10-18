@@ -1,0 +1,55 @@
+diff --git a/zircon_editor/src/ui/host/editor_asset_manager/manager/project_sync/source_generation.rs b/zircon_editor/src/ui/host/editor_asset_manager/manager/project_sync/source_generation.rs
+--- a/zircon_editor/src/ui/host/editor_asset_manager/manager/project_sync/source_generation.rs
++++ b/zircon_editor/src/ui/host/editor_asset_manager/manager/project_sync/source_generation.rs
+@@ -1,5 +1,7 @@
+ use std::collections::HashMap;
+ use std::path::{Path, PathBuf};
+ 
+-use zircon_runtime::asset::project::{PackageAssetRegistry, ProjectManager, ProjectManifest};
++use zircon_runtime::asset::project::{
++    PackageAssetRegistry, ProjectCatalogInputGeneration, ProjectManifest,
++};
+ use zircon_runtime::core::resource::{ResourceId, ResourceRecord};
+@@ -27,10 +28,10 @@ impl EditorAssetProjectSourceGeneration {
+     pub(in crate::ui::host::editor_asset_manager::manager) fn capture(
+-        project: &ProjectManager,
++        catalog_inputs: &ProjectCatalogInputGeneration,
+     ) -> Self {
+         Self::from_records(
+-            project.paths().root(),
+-            project.manifest().clone(),
+-            project.package_assets().clone(),
+-            project.registry().values().cloned(),
++            catalog_inputs.project_root(),
++            catalog_inputs.manifest().clone(),
++            catalog_inputs.package_assets().clone(),
++            catalog_inputs.records().map(|record| record.resource().clone()),
+         )
+     }
+diff --git a/zircon_editor/src/ui/host/editor_asset_manager/manager/project_sync/sync_from_project.rs b/zircon_editor/src/ui/host/editor_asset_manager/manager/project_sync/sync_from_project.rs
+--- a/zircon_editor/src/ui/host/editor_asset_manager/manager/project_sync/sync_from_project.rs
++++ b/zircon_editor/src/ui/host/editor_asset_manager/manager/project_sync/sync_from_project.rs
+@@ -35,5 +35,5 @@ impl DefaultEditorAssetManager {
+         };
+         let pending_source_generation =
+-            std::sync::Arc::new(EditorAssetProjectSourceGeneration::capture(&project));
++            std::sync::Arc::new(EditorAssetProjectSourceGeneration::capture(&project.catalog_input_generation()));
+         let (mut expected_generation, expected_source_generation) = {
+             let state = self.state.read().expect("editor asset state lock poisoned");
+diff --git a/zircon_editor/src/ui/host/editor_asset_manager/manager/project_sync/source_generation.rs b/zircon_editor/src/ui/host/editor_asset_manager/manager/project_sync/source_generation.rs
+--- a/zircon_editor/src/ui/host/editor_asset_manager/manager/project_sync/source_generation.rs
++++ b/zircon_editor/src/ui/host/editor_asset_manager/manager/project_sync/source_generation.rs
+@@ -117,4 +118,13 @@ mod tests {
+     use super::EditorAssetProjectSourceGeneration;
+ 
++    #[test]
++    fn source_generation_requires_catalog_input_not_a_project_manager() {
++        let source = include_str!("source_generation.rs");
++        let production = source.split("#[cfg(test)]").next().unwrap();
++
++        assert!(production.contains("ProjectCatalogInputGeneration"));
++        assert!(!production.contains("ProjectManager"));
++    }
++
+     #[test]
+     fn source_generation_classifies_added_modified_removed_and_renamed() {

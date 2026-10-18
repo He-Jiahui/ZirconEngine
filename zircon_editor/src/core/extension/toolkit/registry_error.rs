@@ -6,6 +6,12 @@ use super::ToolkitInstanceId;
 
 #[derive(Clone, Debug, Error, PartialEq, Eq)]
 pub enum ToolkitRegistryError {
+    #[error("main-window close owns document mutation admission")]
+    HostClosing,
+    #[error("close admission is waiting for document operations {documents:?}")]
+    CloseAdmissionPending { documents: Vec<DocumentId> },
+    #[error("the document close admission belongs to a retired or different close attempt")]
+    CloseAdmissionInvalid,
     #[error("document {document:?} already has an open toolkit")]
     DocumentAlreadyRegistered { document: DocumentId },
     #[error("toolkit instance {instance:?} is already registered")]

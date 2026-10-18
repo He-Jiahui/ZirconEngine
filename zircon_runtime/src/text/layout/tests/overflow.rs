@@ -1,3 +1,7 @@
+//! 用固定字素宽度核对完整词前缀与 Middle 的后缀优先选择。
+//!
+//! 这些合成样例不执行成形、绘制或性能测量，也未覆盖零拟合、Start/End 和尾部空白裁剪。
+
 use super::{retained_grapheme_counts, EllipsisPlacement};
 use unicode_segmentation::UnicodeSegmentation;
 

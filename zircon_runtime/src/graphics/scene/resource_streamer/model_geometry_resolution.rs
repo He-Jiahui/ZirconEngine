@@ -34,7 +34,10 @@ pub(super) struct ResolvedModelGeometry {
     pub(super) local_bounds: RenderMeshBounds,
     pub(super) deformation: PreparedGeometryDeformation,
     pub(super) dependency_states: Vec<ModelMeshDependencyState>,
-    pub(super) dependency_keys: Vec<(ResourceId, Option<crate::core::resource::ResourceActiveVersionKey>)>,
+    pub(super) dependency_keys: Vec<(
+        ResourceId,
+        Option<crate::core::resource::ResourceActiveVersionKey>,
+    )>,
 }
 
 /// Resolve all external meshes against one captured active projection. A captured resident
@@ -44,8 +47,9 @@ pub(super) fn resolve_model_geometry(
     model: &ModelAsset,
     projection: &crate::core::resource::ResourceProjectionSnapshot,
 ) -> Result<ResolvedModelGeometry, crate::core::resource::ResourceActiveSnapshotError> {
-    use crate::core::resource::{MeshMarker, ResourceHandle, ResourceActiveSnapshotError};
-    let mut mesh_assets = HashMap::<&crate::asset::AssetUri, Option<std::sync::Arc<MeshAsset>>>::new();
+    use crate::core::resource::{MeshMarker, ResourceActiveSnapshotError, ResourceHandle};
+    let mut mesh_assets =
+        HashMap::<&crate::asset::AssetUri, Option<std::sync::Arc<MeshAsset>>>::new();
     let mut dependency_states = Vec::new();
     let mut dependency_keys = Vec::new();
     let mut deformation = PreparedGeometryDeformation::default();
@@ -63,16 +67,26 @@ pub(super) fn resolve_model_geometry(
             }
             dependency_states.push(state);
             let mesh = if let Some(id) = projection.active().id_for_locator(&reference.locator) {
-                let row = projection.active().row(id).expect("active locator has a row");
-                let snapshot = asset_manager.resource_manager().snapshot_expected::<_, MeshAsset>(
-                    ResourceHandle::<MeshMarker>::new(id), &row.key,
-                )?;
+                let row = projection
+                    .active()
+                    .row(id)
+                    .expect("active locator has a row");
+                let snapshot = asset_manager
+                    .resource_manager()
+                    .snapshot_expected::<_, MeshAsset>(
+                        ResourceHandle::<MeshMarker>::new(id),
+                        &row.key,
+                    )?;
                 Some(std::sync::Arc::clone(snapshot.resource()))
-            } else { None };
+            } else {
+                None
+            };
             mesh_assets.insert(&reference.locator, mesh);
         }
         if let Some(mesh) = mesh_assets.get(&reference.locator).and_then(Option::as_ref) {
-            let resolved = mesh.to_model_primitive().map_err(|_| ResourceActiveSnapshotError::KindConflict)?;
+            let resolved = mesh
+                .to_model_primitive()
+                .map_err(|_| ResourceActiveSnapshotError::KindConflict)?;
             deformation.include_mesh_asset(mesh);
             primitives.push(resolved);
         } else {
@@ -82,25 +96,53 @@ pub(super) fn resolve_model_geometry(
         }
     }
     let local_bounds = RenderMeshBounds::from_positions(
-        primitives.iter().flat_map(|primitive| primitive.vertices.iter().map(|vertex| vertex.position)),
+        primitives
+            .iter()
+            .flat_map(|primitive| primitive.vertices.iter().map(|vertex| vertex.position)),
     );
-    Ok(ResolvedModelGeometry { primitives, local_bounds, deformation, dependency_states, dependency_keys })
+    Ok(ResolvedModelGeometry {
+        primitives,
+        local_bounds,
+        deformation,
+        dependency_states,
+        dependency_keys,
+    })
 }
 
 /// Cold dependency loading precedes the captured projection used to stage geometry.
 pub(super) fn ensure_cold_model_meshes(
-    asset_manager: &ProjectAssetManager, model: &ModelAsset,
+    asset_manager: &ProjectAssetManager,
+    model: &ModelAsset,
 ) -> Result<(), crate::graphics::types::GraphicsError> {
-    for reference in model.primitives.iter().filter_map(|primitive| primitive.mesh.as_ref()) {
+    for reference in model
+        .primitives
+        .iter()
+        .filter_map(|primitive| primitive.mesh.as_ref())
+    {
         let projection = asset_manager.resource_manager().projection_snapshot();
-        if projection.active().id_for_locator(&reference.locator).is_some() { continue; }
-        let Some(row) = projection.management().row_by_locator(&reference.locator.to_string()) else { continue; };
-        if row.kind != crate::core::resource::ResourceKind::Mesh { continue; }
-        let ready = projection.readiness().row_identity(row.id).is_some_and(|identity| {
-            identity.row().record.state == ResourceState::Ready
-        });
+        if projection
+            .active()
+            .id_for_locator(&reference.locator)
+            .is_some()
+        {
+            continue;
+        }
+        let Some(row) = projection
+            .management()
+            .row_by_locator(&reference.locator.to_string())
+        else {
+            continue;
+        };
+        if row.kind != crate::core::resource::ResourceKind::Mesh {
+            continue;
+        }
+        let ready = projection
+            .readiness()
+            .row_identity(row.id)
+            .is_some_and(|identity| identity.row().record.state == ResourceState::Ready);
         if ready {
-            asset_manager.ensure_resident(row.id)
+            asset_manager
+                .ensure_resident(row.id)
                 .map_err(|error| crate::graphics::types::GraphicsError::Asset(error.to_string()))?;
         }
     }
@@ -111,7 +153,10 @@ pub(super) fn model_dependencies_are_current(
     asset_manager: &ProjectAssetManager,
     dependencies: &[ModelMeshDependencyState],
 ) -> bool {
-    dependency_states_match(&asset_manager.resource_manager().projection_snapshot(), dependencies)
+    dependency_states_match(
+        &asset_manager.resource_manager().projection_snapshot(),
+        dependencies,
+    )
 }
 
 pub(super) fn dependency_states_match(
@@ -154,13 +199,20 @@ fn dependency_state(
     reference: &AssetReference,
 ) -> ModelMeshDependencyState {
     if let Some(id) = projection.active().id_for_locator(&reference.locator) {
-        let row = projection.active().row(id).expect("active locator has a row");
+        let row = projection
+            .active()
+            .row(id)
+            .expect("active locator has a row");
         return ModelMeshDependencyState {
-            locator: reference.locator.clone(), resource_id: Some(id),
-            revision: Some(row.record.revision), state: Some(row.record.state),
+            locator: reference.locator.clone(),
+            resource_id: Some(id),
+            revision: Some(row.record.revision),
+            state: Some(row.record.state),
         };
     }
-    let identity = projection.management().row_by_locator(&reference.locator.to_string())
+    let identity = projection
+        .management()
+        .row_by_locator(&reference.locator.to_string())
         .and_then(|row| projection.readiness().row_identity(row.id));
     let record = identity.as_ref().map(|identity| &identity.row().record);
     ModelMeshDependencyState {

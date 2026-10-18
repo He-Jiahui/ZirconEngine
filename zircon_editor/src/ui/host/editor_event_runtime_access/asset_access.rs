@@ -191,6 +191,19 @@ impl EditorHostEventController {
         Ok(())
     }
 
+    pub(crate) fn clear_project_for_main_window_close(
+        &self,
+        welcome: WelcomePaneSnapshot,
+        admission: &crate::core::editing::engine::SceneCloseAdmission,
+    ) -> Result<(), EditorStateOperationError> {
+        self.shell()
+            .lock()
+            .state
+            .clear_project_for_main_window_close(welcome, admission)?;
+        self.publish_scene_inspection_resync();
+        Ok(())
+    }
+
     pub fn import_mesh_asset(
         &self,
         model: ResourceHandle<ModelMarker>,

@@ -78,6 +78,12 @@ impl RetainedEditorHost {
         zircon_runtime::profile_frame!("editor", "retained_host_tick");
         zircon_runtime::profile_scope!("editor", "retained_host", "tick");
         self.pump_editor_job_events();
+        self.poll_owned_main_window_close();
+        let close_deadline = self.main_window_close_poll_deadline();
+        self.ui.set_lifecycle_frame_update(close_deadline);
+        if self.main_window_close_blocks_session_ui() {
+            return;
+        }
         let plugin_watch_deadline = match self.poll_module_plugin_development_watches() {
             Ok(deadline) => deadline,
             Err(error) => {
@@ -125,6 +131,7 @@ impl RetainedEditorHost {
             self.set_status_line(message);
         }
         let lifecycle_deadline = [
+            close_deadline,
             plugin_watch_deadline,
             match self
                 .editor_manager
@@ -229,6 +236,11 @@ impl RetainedEditorHost {
     }
 
     pub(in crate::ui::retained_host::app) fn commit_interactive_frame_update(&mut self) {
+        if self.main_window_close_blocks_session_ui() {
+            self.ui
+                .set_lifecycle_frame_update(self.main_window_close_poll_deadline());
+            return;
+        }
         zircon_runtime::profile_scope!(
             "editor",
             "retained_host",
@@ -244,6 +256,11 @@ impl RetainedEditorHost {
     }
 
     fn commit_pending_frame_update(&mut self) {
+        if self.main_window_close_blocks_session_ui() {
+            self.ui
+                .set_lifecycle_frame_update(self.main_window_close_poll_deadline());
+            return;
+        }
         let trace_started = slow_tick_trace_enabled().then(Instant::now);
         let frame_scenario = self.pending_ui_perf_scenario.take();
         let _frame_scenario_guard = frame_scenario.map(enter_ui_perf_scenario);
@@ -299,6 +316,9 @@ impl RetainedEditorHost {
     }
 
     pub(in crate::ui::retained_host::app) fn refresh_ui(&mut self) {
+        if self.main_window_close_blocks_session_ui() {
+            return;
+        }
         self.recompute_if_dirty();
     }
 

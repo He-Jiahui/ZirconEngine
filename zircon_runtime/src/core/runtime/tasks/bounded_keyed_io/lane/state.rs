@@ -7,7 +7,7 @@ use super::super::{
     GlobalAdmissionEpoch,
 };
 use super::BoundedKeyedIoLimits;
-use crate::core::runtime::tasks::{JobHandle, JobScheduler, TaskTimerSubscription};
+use crate::core::runtime::tasks::{JobHandle, JobScheduler, TaskState, TaskTimerSubscription};
 
 pub(super) type TerminalObserver =
     Arc<dyn Fn(super::BoundedKeyedIoTerminal) + Send + Sync + 'static>;
@@ -37,6 +37,7 @@ pub(super) struct LaneState {
     pub(super) active: Option<ActiveEntry>,
     pub(super) queue: VecDeque<WorkEntry>,
     pub(super) active_handles: Vec<JobHandle>,
+    pub(super) worker_terminal_failure: Option<TaskState>,
     pub(super) submitted: u64,
     pub(super) completed: u64,
     pub(super) failed: u64,
@@ -83,6 +84,27 @@ pub(super) struct FencePrerequisite {
 pub(super) struct TerminalNotification {
     pub(super) observer: Option<TerminalObserver>,
     pub(super) terminal: super::BoundedKeyedIoTerminal,
+}
+
+impl LaneState {
+    pub(super) fn reap_terminal_handles(&mut self) {
+        let failure = &mut self.worker_terminal_failure;
+        self.active_handles
+            .retain(|handle| match handle.terminal_state() {
+                None => true,
+                Some(TaskState::Failed) => {
+                    *failure = Some(TaskState::Failed);
+                    false
+                }
+                Some(TaskState::Cancelled) => {
+                    if failure.is_none() {
+                        *failure = Some(TaskState::Cancelled);
+                    }
+                    false
+                }
+                Some(_) => false,
+            });
+    }
 }
 
 impl LaneInner {

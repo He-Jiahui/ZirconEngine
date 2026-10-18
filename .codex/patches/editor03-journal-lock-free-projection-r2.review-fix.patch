@@ -1,0 +1,329 @@
+diff --git a/zircon_editor/src/core/editing/engine/transaction.rs b/zircon_editor/src/core/editing/engine/transaction.rs
+--- a/zircon_editor/src/core/editing/engine/transaction.rs
++++ b/zircon_editor/src/core/editing/engine/transaction.rs
+@@ -57,6 +57,7 @@ struct EngineState {
+     // The context is taken out while client code runs so no engine lock crosses a callback.
+     context: Option<Box<dyn EditContext>>,
+     histories: BTreeMap<HistoryContextId, HistoryStore>,
++    recovery_histories: BTreeMap<HistoryContextId, Vec<HistoryStore>>,
+     history_generations: BTreeMap<HistoryContextId, u64>,
+     history_dirty: dirty_batch::HistoryDirtyJournal,
+     active: Vec<ActiveTransaction>,
+@@ -108,6 +109,7 @@ impl EditorTransactionEngine {
+             state: Mutex::new(EngineState {
+                 context: Some(Box::new(context)),
+                 histories: BTreeMap::new(),
++                recovery_histories: BTreeMap::new(),
+                 history_generations: BTreeMap::new(),
+                 history_dirty: dirty_batch::HistoryDirtyJournal::default(),
+                 active: Vec::new(),
+diff --git a/zircon_editor/src/core/editing/engine/transaction/journal_projection.rs b/zircon_editor/src/core/editing/engine/transaction/journal_projection.rs
+--- a/zircon_editor/src/core/editing/engine/transaction/journal_projection.rs
++++ b/zircon_editor/src/core/editing/engine/transaction/journal_projection.rs
+@@ -62,8 +62,10 @@ impl Drop for JournalHistoryLease<'_> {
+         match state.histories.entry(self.history) {
+             Entry::Vacant(entry) => {
+                 entry.insert(store);
+             }
+-            Entry::Occupied(_) => {
++            Entry::Occupied(mut entry) => {
++                let displaced = entry.insert(store);
++                state.recovery_histories.entry(self.history).or_default().push(displaced);
+                 state.faulted = true;
+                 state.drop_error = Some(EditCommandError::InvariantViolation {
+                     invariant: "journal history lease must restore into a vacant history slot",
+@@ -93,19 +94,103 @@ impl EditorTransactionEngine {
+ #[cfg(test)]
+ mod tests {
++    use std::any::Any;
++
++    use crate::core::editing::engine::EditContext;
++    use crate::core::editing::selection::SelectionSnapshot;
++    use crate::core::gateway::EditorRuntimeGatewayHandle;
++
++    use super::*;
++
++    struct JournalProjectionContext {
++        gateway: EditorRuntimeGatewayHandle,
++    }
++
++    impl Default for JournalProjectionContext {
++        fn default() -> Self {
++            Self {
++                gateway: EditorRuntimeGatewayHandle::detached(),
++            }
++        }
++    }
++
++    impl EditContext for JournalProjectionContext {
++        fn runtime_gateway(&self) -> &EditorRuntimeGatewayHandle {
++            &self.gateway
++        }
++
++        fn selection_snapshot(&self) -> SelectionSnapshot {
++            SelectionSnapshot::default()
++        }
++
++        fn restore_selection(
++            &mut self,
++            _snapshot: &SelectionSnapshot,
++        ) -> Result<(), EditCommandError> {
++            Ok(())
++        }
++
++        fn as_any(&self) -> &dyn Any {
++            self
++        }
++
++        fn as_any_mut(&mut self) -> &mut dyn Any {
++            self
++        }
++    }
++
+     #[test]
+-    fn journal_projection_detaches_history_before_payload_projection() {
+-        let source = include_str!("journal_projection.rs");
+-        let method = source
+-            .split("pub fn journal_transaction")
+-            .nth(1)
+-            .and_then(|body| body.split("#[cfg(test)]").next())
+-            .expect("journal transaction implementation must stay available");
+-
+-        assert!(method.contains("JournalHistoryLease::take(self, history, transaction)"));
+-        assert!(method.contains("lease.project(transaction)"));
+-        assert!(method.contains("drop(lease)"));
+-        assert!(!method.contains("self.lock_state()"));
+-        assert!(source.contains("state.histories.remove(&history)"));
+-        assert!(source.contains("state.histories.entry(self.history)"));
++    fn restoration_conflict_keeps_both_history_stores_for_recovery() {
++        let engine = EditorTransactionEngine::new(JournalProjectionContext::default());
++        {
++            let mut state = engine.lock_state();
++            state
++                .histories
++                .insert(HistoryContextId::Global, HistoryStore::new(2).unwrap());
++        }
++        engine.start_operation("test journal restoration conflict").unwrap();
++        let lease = JournalHistoryLease::take(
++            &engine,
++            HistoryContextId::Global,
++            TransactionId::from_sequence(1),
++        )
++        .unwrap();
++        {
++            let mut state = engine.lock_state();
++            state
++                .histories
++                .insert(HistoryContextId::Global, HistoryStore::new(1).unwrap());
++        }
++        drop(lease);
++
++        let state = engine.lock_state();
++        assert!(state.histories.contains_key(&HistoryContextId::Global));
++        assert_eq!(
++            state
++                .recovery_histories
++                .get(&HistoryContextId::Global)
++                .map(Vec::len),
++            Some(1)
++        );
++        assert!(state.faulted);
++        assert!(state.operation.is_none());
++        drop(state);
++        assert!(matches!(
++            engine.take_drop_error(),
++            Some(EditCommandError::InvariantViolation { .. })
++        ));
+     }
+ }
+diff --git a/zircon_editor/src/tests/editing/transaction_engine/mod.rs b/zircon_editor/src/tests/editing/transaction_engine/mod.rs
+--- a/zircon_editor/src/tests/editing/transaction_engine/mod.rs
++++ b/zircon_editor/src/tests/editing/transaction_engine/mod.rs
+@@ -6,6 +6,7 @@ mod fixture;
+ mod history;
+ mod journal;
+ mod journal_scene_commands;
++mod journal_projection;
+ mod locking;
+ mod operation_group;
+ mod recovery;
+diff --git a/zircon_editor/src/tests/editing/transaction_engine/journal_projection.rs b/zircon_editor/src/tests/editing/transaction_engine/journal_projection.rs
+new file mode 100644
+--- /dev/null
++++ b/zircon_editor/src/tests/editing/transaction_engine/journal_projection.rs
+@@ -0,0 +1,157 @@
++use std::any::Any;
++use std::panic::{AssertUnwindSafe, catch_unwind};
++use std::sync::atomic::{AtomicBool, Ordering};
++use std::sync::{Arc, Weak};
++
++use serde_json::json;
++
++use crate::core::editing::engine::{
++    CommandExecutionError, CommandJournalPayload, EditCommand, EditCommandError, EditContext,
++    EditorTransactionEngine, HistoryContextId, MergeOutcome,
++};
++
++use super::fixture::FixtureContext;
++
++#[test]
++fn journal_projection_runs_payload_outside_the_state_lock_and_releases_the_operation_gate() {
++    let engine = Arc::new(EditorTransactionEngine::new(FixtureContext::default()));
++    let observed_busy = Arc::new(AtomicBool::new(false));
++    let mut scope = engine
++        .begin("reentrant journal", HistoryContextId::Global)
++        .unwrap();
++    scope
++        .push(ReentrantJournalCommand {
++            engine: Arc::downgrade(&engine),
++            observed_busy: Arc::clone(&observed_busy),
++        })
++        .unwrap();
++    let transaction = scope.commit().unwrap();
++
++    let journal = engine
++        .journal_transaction(HistoryContextId::Global, transaction)
++        .unwrap();
++    assert_eq!(journal.transaction(), transaction);
++    assert!(observed_busy.load(Ordering::SeqCst));
++    assert!(engine.history_status(HistoryContextId::Global).is_ok());
++    assert_eq!(
++        engine
++            .journal_transaction(HistoryContextId::Global, transaction)
++            .unwrap(),
++        journal
++    );
++}
++
++#[test]
++fn journal_projection_restores_history_and_releases_operation_after_panic() {
++    let engine = EditorTransactionEngine::new(FixtureContext::default());
++    let mut scope = engine
++        .begin("panic journal", HistoryContextId::Global)
++        .unwrap();
++    scope.push(PanicOnceJournalCommand::new()).unwrap();
++    let transaction = scope.commit().unwrap();
++
++    assert!(catch_unwind(AssertUnwindSafe(|| {
++        let _ = engine.journal_transaction(HistoryContextId::Global, transaction);
++    }))
++    .is_err());
++    assert!(engine.history_status(HistoryContextId::Global).is_ok());
++    assert_eq!(
++        engine
++            .journal_transaction(HistoryContextId::Global, transaction)
++            .unwrap()
++            .transaction(),
++        transaction
++    );
++}
++
++struct ReentrantJournalCommand {
++    engine: Weak<EditorTransactionEngine>,
++    observed_busy: Arc<AtomicBool>,
++}
++
++impl EditCommand for ReentrantJournalCommand {
++    fn label(&self) -> &str {
++        "reentrant journal"
++    }
++
++    fn apply(&mut self, _context: &mut dyn EditContext) -> Result<(), CommandExecutionError> {
++        Ok(())
++    }
++
++    fn revert(&mut self, _context: &mut dyn EditContext) -> Result<(), CommandExecutionError> {
++        Ok(())
++    }
++
++    fn try_merge(&mut self, _next: &dyn EditCommand) -> MergeOutcome {
++        MergeOutcome::Reject
++    }
++
++    fn journal_payload(
++        &self,
++    ) -> Result<CommandJournalPayload, crate::core::editing::engine::CommandJournalUnavailable>
++    {
++        let engine = self.engine.upgrade().ok_or_else(|| {
++            crate::core::editing::engine::CommandJournalUnavailable::new(self.label())
++        })?;
++        self.observed_busy.store(
++            matches!(
++                engine.history_status(HistoryContextId::Global),
++                Err(EditCommandError::EngineBusy { .. })
++            ),
++            Ordering::SeqCst,
++        );
++        Ok(CommandJournalPayload::new(
++            "test.reentrant_journal",
++            1,
++            json!({ "reentrant": true }),
++        ))
++    }
++
++    fn as_any(&self) -> &dyn Any {
++        self
++    }
++}
++
++struct PanicOnceJournalCommand {
++    should_panic: AtomicBool,
++}
++
++impl PanicOnceJournalCommand {
++    fn new() -> Self {
++        Self {
++            should_panic: AtomicBool::new(true),
++        }
++    }
++}
++
++impl EditCommand for PanicOnceJournalCommand {
++    fn label(&self) -> &str {
++        "panic once journal"
++    }
++
++    fn apply(&mut self, _context: &mut dyn EditContext) -> Result<(), CommandExecutionError> {
++        Ok(())
++    }
++
++    fn revert(&mut self, _context: &mut dyn EditContext) -> Result<(), CommandExecutionError> {
++        Ok(())
++    }
++
++    fn journal_payload(
++        &self,
++    ) -> Result<CommandJournalPayload, crate::core::editing::engine::CommandJournalUnavailable>
++    {
++        if self.should_panic.swap(false, Ordering::SeqCst) {
++            panic!("journal projection panic test");
++        }
++        Ok(CommandJournalPayload::new(
++            "test.panic_once_journal",
++            1,
++            json!({ "recovered": true }),
++        ))
++    }
++
++    fn as_any(&self) -> &dyn Any {
++        self
++    }
++}
+diff --git a/zircon_editor/src/tests/editing/transaction_engine/journal.rs b/zircon_editor/src/tests/editing/transaction_engine/journal.rs
+--- a/zircon_editor/src/tests/editing/transaction_engine/journal.rs
++++ b/zircon_editor/src/tests/editing/transaction_engine/journal.rs
+@@ -109,6 +109,14 @@ fn transaction_journal_rejects_unsupported_commands_with_typed_context() {
+         } if actual_transaction == transaction && label == "unsupported journal"
+     ));
++    assert!(engine.history_status(HistoryContextId::Global).is_ok());
++    assert!(matches!(
++        engine
++            .journal_transaction(HistoryContextId::Global, transaction)
++            .unwrap_err(),
++        TransactionJournalError::UnsupportedCommand {
++            transaction: actual_transaction,
++            command_index: 0,
++            ..
++        } if actual_transaction == transaction
++    ));
+ }

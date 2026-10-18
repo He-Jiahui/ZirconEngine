@@ -68,8 +68,9 @@ pub use page::SettingsPageDescriptor;
 pub use persistence::{
     SettingsFileGeneration, SettingsPersistenceLimits, SettingsPersistenceRequest,
     SettingsPersistenceRetryError, SettingsPersistenceService, SettingsPersistenceShutdown,
-    SettingsPersistenceShutdownError, SettingsPersistenceSubmitError, SettingsPersistenceTerminal,
-    SettingsPersistenceTicket, SettingsPersistenceWaitResult,
+    SettingsPersistenceShutdownError, SettingsPersistenceShutdownPollFailure,
+    SettingsPersistenceSubmitError, SettingsPersistenceTerminal, SettingsPersistenceTicket,
+    SettingsPersistenceWaitResult,
 };
 pub use registry::{SettingsError, SettingsRegistry};
 pub use scope::SettingsScope;

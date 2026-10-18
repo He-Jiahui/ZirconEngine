@@ -1,0 +1,7 @@
+var state = %import("world/state");
+
+pub main(): int {
+    var result = state.hotTalentRuntimeStateTest();
+    if (result != 1) { throw "woc hot talent runtime state test failed"; }
+    return result;
+}

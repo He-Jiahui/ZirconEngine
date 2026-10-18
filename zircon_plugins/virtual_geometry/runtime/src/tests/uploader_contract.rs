@@ -145,7 +145,7 @@ fn virtual_geometry_gpu_uploader_deduplicates_against_three_word_completion_reco
 
     renderer
         .render_frame_with_pipeline(
-            &ViewportRenderFrame::from_extract(extract, viewport_size)
+            ViewportRenderFrame::from_extract(extract, viewport_size)
                 .with_virtual_geometry_prepare(Some(VirtualGeometryPrepareFrame {
                     visible_entities: Vec::new(),
                     visible_clusters: Vec::new(),
@@ -201,7 +201,7 @@ fn virtual_geometry_gpu_uploader_saturates_streaming_plus_reclaimable_byte_budge
 
     renderer
         .render_frame_with_pipeline(
-            &ViewportRenderFrame::from_extract(extract, viewport_size)
+            ViewportRenderFrame::from_extract(extract, viewport_size)
                 .with_virtual_geometry_prepare(Some(VirtualGeometryPrepareFrame {
                     visible_entities: Vec::new(),
                     visible_clusters: Vec::new(),
@@ -249,7 +249,7 @@ fn virtual_geometry_gpu_uploader_readback_merges_gpu_completed_assignments_into_
 
     renderer
         .render_frame_with_pipeline(
-            &ViewportRenderFrame::from_extract(extract, viewport_size)
+            ViewportRenderFrame::from_extract(extract, viewport_size)
                 .with_virtual_geometry_prepare(Some(VirtualGeometryPrepareFrame {
                     visible_entities: Vec::new(),
                     visible_clusters: Vec::new(),
@@ -299,7 +299,7 @@ fn virtual_geometry_gpu_uploader_readback_reports_actual_recycled_page_for_impli
 
     renderer
         .render_frame_with_pipeline(
-            &ViewportRenderFrame::from_extract(extract, viewport_size)
+            ViewportRenderFrame::from_extract(extract, viewport_size)
                 .with_virtual_geometry_prepare(Some(VirtualGeometryPrepareFrame {
                     visible_entities: Vec::new(),
                     visible_clusters: Vec::new(),
@@ -353,7 +353,7 @@ fn virtual_geometry_gpu_uploader_readback_respects_budget_without_evictable_page
 
     renderer
         .render_frame_with_pipeline(
-            &ViewportRenderFrame::from_extract(extract, viewport_size)
+            ViewportRenderFrame::from_extract(extract, viewport_size)
                 .with_virtual_geometry_prepare(Some(VirtualGeometryPrepareFrame {
                     visible_entities: Vec::new(),
                     visible_clusters: Vec::new(),

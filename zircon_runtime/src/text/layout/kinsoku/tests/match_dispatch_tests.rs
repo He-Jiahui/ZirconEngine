@@ -1,8 +1,14 @@
+//! 固定集合成员、边界辅助函数及原始源码结构的回归夹具。
+//!
+//! 原文检查约束当前实现形状，不代表执行了编译后的性能测试。
+//! 忽略基准须显式选择运行；忽略原因文字本身不限制编译配置。
+
 use std::hint::black_box;
 use std::time::Instant;
 
 use super::is_forbidden_line_start;
 
+// 候选为循环的 ASCII 非成员；探测次数是该夹具的工作量，不是处理器指令计数。
 const CANDIDATE_COUNT: usize = 4_096;
 const SAMPLE_COUNT: usize = 17;
 const LEGACY_FORBIDDEN_LINE_START: &[char] = &[
@@ -31,6 +37,7 @@ fn optimization_batch_20260826bl_kinsoku_match_dispatch_preserves_membership() {
 }
 
 #[test]
+// 以下原文切域只约束分类实现的结构，不能替代分类结果或真实排版测量。
 fn optimization_batch_20260826bl_kinsoku_match_dispatch_eliminates_table_scans() {
     const SOURCE: &str = include_str!("../../kinsoku.rs");
     let dispatch = SOURCE
@@ -137,6 +144,8 @@ fn optimization_batch_20260911bl_boundary_helpers_do_not_count_full_chunks() {
     }
 }
 
+// 布局、字体与候选构造均不在此计时范围；这里只比较固定非成员输入的分类遍历。
+// 每侧先预热一次，再交替采集十七组样本；实际运行结果仍受构建配置与机器环境影响。
 #[test]
 #[ignore = "release-only performance evidence"]
 fn optimization_batch_20260826bl_kinsoku_match_dispatch_p95() {
@@ -164,6 +173,7 @@ fn optimization_batch_20260826bl_kinsoku_match_dispatch_p95() {
     );
 }
 
+/// 逐候选执行表查询的对照操作，返回被分类为禁行首字符的数量。
 fn legacy_frame(candidates: &[char]) -> usize {
     candidates
         .iter()
@@ -172,6 +182,7 @@ fn legacy_frame(candidates: &[char]) -> usize {
         .count()
 }
 
+/// 对同一候选切片调用生产分类器；返回计数用于与对照操作核对。
 fn optimized_frame(candidates: &[char]) -> usize {
     candidates
         .iter()
@@ -180,6 +191,8 @@ fn optimized_frame(candidates: &[char]) -> usize {
         .count()
 }
 
+/// 预热后交替两侧采样顺序，返回两组拥有的耗时样本；闭包借用仅持续本次采样调用。
+/// 样本容器和候选由计时操作之外准备，容器追加也不计入单次操作时段。
 fn benchmark_paired_samples<const N: usize>(
     mut legacy: impl FnMut() -> usize,
     mut optimized: impl FnMut() -> usize,
@@ -200,18 +213,22 @@ fn benchmark_paired_samples<const N: usize>(
     (legacy_samples, optimized_samples)
 }
 
+/// 记录操作、结果屏障与时钟读取构成的时段，返回纳秒数；调用方随后才追加样本。
 fn measure(operation: &mut impl FnMut() -> usize) -> u128 {
     let started = Instant::now();
     black_box(operation());
     started.elapsed().as_nanos()
 }
 
+/// 复制并排序样本，按下取整的序号选取顺序统计量，不做插值。
+/// 调用方须提供非空样本和有效百分位；本夹具只传十七个样本及五十、九十五。
 fn percentile(samples: &[u128], percentile: usize) -> u128 {
     let mut sorted = samples.to_vec();
     sorted.sort_unstable();
     sorted[(sorted.len() - 1) * percentile / 100]
 }
 
+/// 在采样结束后格式化诊断输出，字符串分配不属于前面的分类操作时段。
 fn join_samples(samples: &[u128]) -> String {
     samples
         .iter()

@@ -1,0 +1,7 @@
+var state = %import("world/state");
+
+pub main(): int {
+    var result = state.naturesFuryRuntimeStateTest();
+    if (result != 1) { throw "woc Nature's Fury runtime state test failed"; }
+    return result;
+}

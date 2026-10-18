@@ -1,10 +1,10 @@
 //! 获准执行 Runtime 帧时，排空一批有界手柄事件并维护连接与效果状态。
 //! 预算耗尽保留后续帧需求，分发失败通过产品诊断退出。
 
+use crate::entry::runtime_library::RuntimeLibraryError;
 use gilrs::EventType;
 use winit::event_loop::ActiveEventLoop;
 use zircon_runtime::diagnostic_log::write_warn;
-use crate::entry::runtime_library::RuntimeLibraryError;
 
 #[path = "polling/drain_budget.rs"]
 mod drain_budget;
@@ -55,12 +55,20 @@ impl RuntimeEntryApp {
                 let result = match event.event {
                     EventType::Connected => {
                         let pad = gamepads.gamepad(event.id);
-                        producer.connect(runtime_gamepad_id)
+                        producer
+                            .connect(runtime_gamepad_id)
                             .map_err(RuntimeLibraryError::new)
-                            .and_then(|stamp| send_connection(
-                                session, viewport, stamp, true,
-                                pad.name(), pad.vendor_id(), pad.product_id(),
-                            ))
+                            .and_then(|stamp| {
+                                send_connection(
+                                    session,
+                                    viewport,
+                                    stamp,
+                                    true,
+                                    pad.name(),
+                                    pad.vendor_id(),
+                                    pad.product_id(),
+                                )
+                            })
                     }
                     EventType::Disconnected => {
                         disconnected_gamepads.push(runtime_gamepad_id);
@@ -152,12 +160,20 @@ impl RuntimeEntryApp {
         };
         let mut dispatch_error = None;
         for (id, pad) in gamepads.gamepads() {
-            let result = producer.connect(gamepad_id(id))
+            let result = producer
+                .connect(gamepad_id(id))
                 .map_err(RuntimeLibraryError::new)
-                .and_then(|stamp| send_connection(
-                    session, viewport, stamp, true,
-                    pad.name(), pad.vendor_id(), pad.product_id(),
-                ));
+                .and_then(|stamp| {
+                    send_connection(
+                        session,
+                        viewport,
+                        stamp,
+                        true,
+                        pad.name(),
+                        pad.vendor_id(),
+                        pad.product_id(),
+                    )
+                });
             if let Err(error) = result {
                 dispatch_error = Some(error);
                 break;

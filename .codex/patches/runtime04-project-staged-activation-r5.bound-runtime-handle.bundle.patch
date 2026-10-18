@@ -1,0 +1,148 @@
+diff --git a/zircon_runtime/src/asset/mod.rs b/zircon_runtime/src/asset/mod.rs
+--- a/zircon_runtime/src/asset/mod.rs
++++ b/zircon_runtime/src/asset/mod.rs
+@@ -158,6 +158,7 @@ pub use management::{
+ pub use pipeline::manager::{
+     AssetIoDriver, AssetManager, AssetPipelineInfo, AssetStatusRecord, ProjectAssetManager,
+     ProjectAssetManagerAccess, ProjectInfo, asset_manager_handle, project_asset_manager_handle,
++    RuntimePreparedProjectActivation,
+ };
+ pub use pipeline::types::MeshVertex;
+ #[allow(unused_imports)]
+diff --git a/zircon_runtime/src/asset/pipeline/manager/asset_manager/asset_manager.rs b/zircon_runtime/src/asset/pipeline/manager/asset_manager/asset_manager.rs
+--- a/zircon_runtime/src/asset/pipeline/manager/asset_manager/asset_manager.rs
++++ b/zircon_runtime/src/asset/pipeline/manager/asset_manager/asset_manager.rs
+@@ -5,7 +5,7 @@ use crate::asset::project::{PreparedProjectOpen, ProjectManager};
+ use crate::asset::watch::{AssetChange, AssetWatchError};
+ use crate::asset::{
+     AssetImportError, AssetImporterCapabilityReport, AssetImporterHandler, AssetPipelineInfo,
+-    AssetStatusRecord, AssetUri, ProjectInfo,
++    AssetStatusRecord, AssetUri, ProjectInfo, RuntimePreparedProjectActivation,
+ };
+ use std::path::PathBuf;
+ use std::sync::Arc;
+@@ -22,5 +22,9 @@ pub trait AssetManager: Send + Sync {
+     ) -> Result<AssetImporterCapabilityReport, AssetImportError>;
+     fn open_project(&self, root_path: &str) -> Result<ProjectInfo, CoreError>;
++    fn prepare_project_activation(
++        &self,
++        project: PreparedProjectOpen,
++    ) -> Result<RuntimePreparedProjectActivation, CoreError>;
+     fn open_prepared_project(&self, project: PreparedProjectOpen) -> Result<ProjectInfo, CoreError>;
+     /// Retires the active project generation.
+     ///
+diff --git a/zircon_runtime/src/asset/pipeline/manager/project_asset_manager/activation_transaction.rs b/zircon_runtime/src/asset/pipeline/manager/project_asset_manager/activation_transaction.rs
+--- a/zircon_runtime/src/asset/pipeline/manager/project_asset_manager/activation_transaction.rs
++++ b/zircon_runtime/src/asset/pipeline/manager/project_asset_manager/activation_transaction.rs
+@@ -24,7 +24,10 @@ use super::runtime::{PreparedProjectResourceSync, PreparedProjectWatchers};
+ use super::ProjectAssetManager;
+ 
+ /// A fully prepared replacement generation that has not yet changed runtime authority.
++///
++/// It is wrapped in [`RuntimePreparedProjectActivation`] before it crosses the runtime service
++/// boundary, so no caller can commit it through another manager instance.
+ ///
+ /// This type is intentionally visible only to the asset-manager implementation. Dropping it
+ /// closes its pending watcher handles without changing the active project, resource index, or
+ /// change stream. `commit_project_activation` is its only consuming authority transition.
+@@ -38,6 +38,37 @@ pub(in crate::asset::pipeline::manager) struct PreparedProjectActivation {
+     preparation_epoch: u64,
+ }
+ 
++/// Opaque, self-bound replacement generation prepared by one runtime asset manager.
++///
++/// The handle owns both the manager clone and private candidate. It has no manager accessor and
++/// `commit(self)` invokes the captured manager, preventing a prepared generation from being
++/// committed through a different runtime service. Dropping it closes pending watchers and keeps
++/// the active project, resources, source index, and public change stream unchanged.
++pub struct RuntimePreparedProjectActivation {
++    manager: ProjectAssetManager,
++    prepared: PreparedProjectActivation,
++}
++
++impl RuntimePreparedProjectActivation {
++    pub(in crate::asset::pipeline::manager) fn prepare(
++        manager: ProjectAssetManager,
++        project: PreparedProjectOpen,
++    ) -> Result<Self, CoreError> {
++        let prepared = manager.prepare_project_activation(project)?;
++        Ok(Self { manager, prepared })
++    }
++
++    /// Returns immutable report data for Editor-core artifact preparation before commit.
++    pub fn project_info(&self) -> &ProjectInfo {
++        &self.prepared.info
++    }
++
++    /// Publishes this generation exactly once through the manager that prepared it.
++    pub fn commit(self) -> Result<ProjectInfo, CoreError> {
++        self.manager.commit_project_activation(self.prepared)
++    }
++}
++
+ impl ProjectAssetManager {
+     /// Builds a candidate project generation outside the generation write fence.
+     ///
+@@ -196,3 +196,34 @@ mod tests {
+     }
+ 
++    #[test]
++    fn bound_activation_handle_drops_without_changing_the_active_project() {
++        let first_root = project_root("bound handle first", "Bound Handle First");
++        let second_root = project_root("bound handle second", "Bound Handle Second");
++        let manager = ProjectAssetManager::default();
++        let changes = AssetManager::subscribe_asset_changes(&manager);
++        AssetManager::open_project(&manager, first_root.to_string_lossy().as_ref()).unwrap();
++        while changes.try_recv().is_ok() {}
++
++        let activation = AssetManager::prepare_project_activation(
++            &manager,
++            PreparedProjectOpen::open(&second_root).unwrap(),
++        )
++        .unwrap();
++        assert_eq!(activation.project_info().name, "Bound Handle Second");
++        drop(activation);
++
++        assert_eq!(
++            AssetManager::current_project_snapshot(&manager)
++                .unwrap()
++                .manifest()
++                .name,
++            "Bound Handle First"
++        );
++        assert!(changes.try_recv().is_err());
++
++        drop(manager);
++        let _ = fs::remove_dir_all(first_root);
++        let _ = fs::remove_dir_all(second_root);
++    }
++
+     fn project_root(case: &str, name: &str) -> std::path::PathBuf {
+diff --git a/zircon_runtime/src/asset/pipeline/manager/project_asset_manager/mod.rs b/zircon_runtime/src/asset/pipeline/manager/project_asset_manager/mod.rs
+--- a/zircon_runtime/src/asset/pipeline/manager/project_asset_manager/mod.rs
++++ b/zircon_runtime/src/asset/pipeline/manager/project_asset_manager/mod.rs
+@@ -12,6 +12,7 @@ mod watch_diagnostics;
+ mod watch_dispatch;
+ 
+ pub use access::ProjectAssetManagerAccess;
++pub use activation_transaction::RuntimePreparedProjectActivation;
+ pub use handle::project_asset_manager_handle;
+ pub use project_asset_manager::ProjectAssetManager;
+ pub use watch_diagnostics::ProjectAssetWatchDiagnostics;
+diff --git a/zircon_runtime/src/asset/pipeline/manager/service_contracts/asset_manager_contract.rs b/zircon_runtime/src/asset/pipeline/manager/service_contracts/asset_manager_contract.rs
+--- a/zircon_runtime/src/asset/pipeline/manager/service_contracts/asset_manager_contract.rs
++++ b/zircon_runtime/src/asset/pipeline/manager/service_contracts/asset_manager_contract.rs
+@@ -49,6 +49,13 @@ impl AssetManagerContract for ProjectAssetManager {
+         self.open_prepared_project(project)
+     }
+ 
++    fn prepare_project_activation(
++        &self,
++        project: PreparedProjectOpen,
++    ) -> Result<crate::asset::RuntimePreparedProjectActivation, CoreError> {
++        crate::asset::RuntimePreparedProjectActivation::prepare(self.clone(), project)
++    }
++
+     fn open_prepared_project(&self, project: PreparedProjectOpen) -> Result<ProjectInfo, CoreError> {
+         ProjectAssetManager::open_prepared_project(self, project)
+     }

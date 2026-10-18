@@ -1,0 +1,6 @@
+diff --git a/docs/plans/zircon_editor/editor/03/failure-2026-07-29-transaction-journal-contract-unimplemented.md b/docs/plans/zircon_editor/editor/03/failure-2026-07-29-transaction-journal-contract-unimplemented.md
+--- a/docs/plans/zircon_editor/editor/03/failure-2026-07-29-transaction-journal-contract-unimplemented.md
++++ b/docs/plans/zircon_editor/editor/03/failure-2026-07-29-transaction-journal-contract-unimplemented.md
+@@ -83,1 +83,2 @@
+ - 2026-07-29 16:27 +08:00：状态`open-外部验证物化失败已记录`。r1 copy `3265199b4cd04fe8afae40dee3fb2970` 在 external-source closure planning 终止，未产生任何 Cargo 结论；随后 reader boundary 修正使 r1 源码过期，转由 r2 current-source manifest 继续，不创建重复 Coordinator01 failure。
++- 2026-08-02 16:39 +08:00：状态`forward_fix_bundle_ready / owner_apply_pending`。journal projection 前向修复将 `HistoryStore` 在 operation gate 下短暂移出 engine state，再于 state mutex 外完成 payload 投影；Drop 恢复历史并在 slot 冲突时保留两份 store、置 fault/error、清理 gate。补齐 reentry、Unsupported 与 panic-unwind 恢复测试，且独立二次审查 `Critical/Important/Minor=0/0/0`。实现包 `.codex/patches/editor03-journal-lock-free-projection-r3.bundle.patch`，SHA-256 `762A16B378257E1F98CDDD690994D78C087D8294D6196F6426EF50558D4BC5E1`；严格 apply/whitespace 通过。production command payload、Plan11/17 消费和受管 current-source Cargo 仍 open，禁止 fixed return。

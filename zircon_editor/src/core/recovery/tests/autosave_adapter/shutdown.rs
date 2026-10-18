@@ -155,3 +155,222 @@ fn service_drains_all_final_windows_when_admission_allows_one_document() {
     assert!(root.join(".zircon/autosave/scene_bravo/1.zscene").is_file());
     remove_temporary_root(&root);
 }
+
+struct Editor09GateSnapshot {
+    captures: AtomicUsize,
+    started: mpsc::Sender<()>,
+    release: std::sync::Mutex<mpsc::Receiver<()>>,
+}
+
+impl AutosaveSnapshotSource for Editor09GateSnapshot {
+    fn source_path(&self) -> AutosaveSourcePath {
+        recovery_source_path("scenes/main.zscene")
+    }
+
+    fn capture(&self, _: &AutosaveDocumentId) -> Result<AutosaveSnapshot, JobError> {
+        self.captures.fetch_add(1, Ordering::AcqRel);
+        self.started.send(()).unwrap();
+        self.release
+            .lock()
+            .unwrap()
+            .recv_timeout(Duration::from_secs(5))
+            .unwrap();
+        Ok(AutosaveSnapshot::new(
+            1,
+            extension("zscene"),
+            self.source_path(),
+            AutosaveSnapshotProvenance::capture(0, AutosaveSourceDigest::missing()),
+            b"owned final-close fixture".to_vec(),
+        ))
+    }
+}
+
+fn editor09_poll_until(
+    service: &EditorAutosaveService,
+    drain: &mut crate::core::recovery::FinalAutosaveDrain,
+    mut ready: impl FnMut(&crate::core::recovery::FinalAutosaveDrain) -> bool,
+) {
+    let deadline = Instant::now() + Duration::from_secs(5);
+    loop {
+        service.poll_final_autosave(drain);
+        if ready(drain) {
+            return;
+        }
+        assert!(
+            Instant::now() < deadline,
+            "final autosave did not become terminal"
+        );
+        thread::yield_now();
+    }
+}
+
+#[test]
+fn discard_drain_retains_old_real_task_and_does_not_create_a_final_save() {
+    use crate::core::jobs::EditorJobShutdownState;
+    let root = crate::core::recovery::autosave_shutdown::final_autosave_test_root("discard");
+    let jobs = test_job_system_with_limits(EditorJobLimits::resolved(1, []));
+    let service = EditorAutosaveService::new(
+        jobs.clone(),
+        AutosavePolicy::new(Duration::from_secs(10)).unwrap(),
+    );
+    service.poll_project(Some(&root));
+    let document = document_id("scene_discard");
+    let (started_tx, started_rx) = mpsc::channel();
+    let (release_tx, release_rx) = mpsc::channel();
+    let source = Arc::new(Editor09GateSnapshot {
+        captures: AtomicUsize::new(0),
+        started: started_tx,
+        release: std::sync::Mutex::new(release_rx),
+    });
+    assert!(service
+        .schedule(
+            Duration::from_secs(10),
+            &[AutosaveDocumentState::from_dirty_for_test(
+                document.clone(),
+                true
+            )],
+            |_| 1,
+            |_| Some(AutosaveDocumentRequest::new(
+                document.clone(),
+                AutosaveJobPolicy::for_save_mutex(
+                    MutexGroup::parse("save_editor09_discard").unwrap()
+                ),
+                source.clone(),
+            )),
+        )
+        .unwrap());
+    started_rx.recv_timeout(Duration::from_secs(5)).unwrap();
+
+    let mut drain =
+        service.begin_final_autosave(Some(&root), None, Instant::now() + Duration::from_secs(5));
+    service.poll_final_autosave(&mut drain);
+    assert!(!drain.is_complete());
+    assert!(!drain.ready_to_shutdown_jobs());
+    assert_eq!(
+        jobs.shutdown_progress().state(),
+        EditorJobShutdownState::NotRequested
+    );
+    assert_eq!(source.captures.load(Ordering::Acquire), 1);
+    assert!(!service.release_drained_shutdown_adapters());
+    release_tx.send(()).unwrap();
+    editor09_poll_until(&service, &mut drain, |drain| drain.is_complete());
+    assert!(drain.succeeded());
+    assert_eq!(source.captures.load(Ordering::Acquire), 1);
+    assert_eq!(drain.report().outcomes().len(), 1);
+    assert_eq!(
+        jobs.shutdown_progress().state(),
+        EditorJobShutdownState::NotRequested
+    );
+
+    jobs.request_shutdown();
+    let deadline = Instant::now() + Duration::from_secs(5);
+    while jobs.shutdown_progress().state() != EditorJobShutdownState::Quiescent {
+        assert!(Instant::now() < deadline);
+        thread::yield_now();
+    }
+    assert!(service.release_drained_shutdown_adapters());
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn failed_final_write_keeps_recovery_owner_and_never_seals_shared_jobs() {
+    use crate::core::jobs::EditorJobShutdownState;
+    use crate::core::recovery::FinalAutosaveFailure;
+    let root = crate::core::recovery::autosave_shutdown::final_autosave_test_root("failed");
+    let jobs = test_job_system_with_limits(EditorJobLimits::resolved(1, []));
+    let service = EditorAutosaveService::new(
+        jobs.clone(),
+        AutosavePolicy::new(Duration::from_secs(10)).unwrap(),
+    );
+    service.poll_project(Some(&root));
+    let document = document_id("scene_final_failed");
+    let source = Arc::new(CountingSnapshotSource::failure());
+    let request = AutosaveDocumentRequest::new(
+        document.clone(),
+        AutosaveJobPolicy::for_save_mutex(MutexGroup::parse("save_editor09_failed").unwrap()),
+        source.clone(),
+    );
+    let mut drain = service.begin_final_autosave(
+        Some(&root),
+        Some(vec![request]),
+        Instant::now() + Duration::from_secs(5),
+    );
+    editor09_poll_until(&service, &mut drain, |drain| drain.is_complete());
+    assert!(matches!(
+        drain.failure(),
+        Some(FinalAutosaveFailure::DocumentFailed { .. })
+    ));
+    assert!(!drain.succeeded());
+    assert!(!drain.ready_to_shutdown_jobs());
+    assert_eq!(drain.remaining_documents(), 1);
+    assert_eq!(source.capture_count(), 1);
+    let mut same =
+        service.begin_final_autosave(Some(&root), None, Instant::now() + Duration::from_secs(5));
+    service.poll_final_autosave(&mut same);
+    assert_eq!(same.remaining_documents(), 1);
+    assert_eq!(source.capture_count(), 1);
+    assert!(!service.release_drained_shutdown_adapters());
+    assert_eq!(
+        jobs.shutdown_progress().state(),
+        EditorJobShutdownState::NotRequested
+    );
+    assert!(jobs.pending_admission_window().is_ok());
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn final_deadline_keeps_an_unfinished_real_adapter_owned() {
+    use crate::core::jobs::EditorJobShutdownState;
+    use crate::core::recovery::FinalAutosaveFailure;
+    let root = crate::core::recovery::autosave_shutdown::final_autosave_test_root("deadline");
+    let jobs = test_job_system_with_limits(EditorJobLimits::resolved(1, []));
+    let service = EditorAutosaveService::new(
+        jobs.clone(),
+        AutosavePolicy::new(Duration::from_secs(10)).unwrap(),
+    );
+    service.poll_project(Some(&root));
+    let (started_tx, started_rx) = mpsc::channel();
+    let (release_tx, release_rx) = mpsc::channel();
+    let source = Arc::new(Editor09GateSnapshot {
+        captures: AtomicUsize::new(0),
+        started: started_tx,
+        release: std::sync::Mutex::new(release_rx),
+    });
+    let document = document_id("scene_deadline");
+    assert!(service
+        .schedule(
+            Duration::from_secs(10),
+            &[AutosaveDocumentState::from_dirty_for_test(
+                document.clone(),
+                true
+            )],
+            |_| 1,
+            |_| Some(AutosaveDocumentRequest::new(
+                document.clone(),
+                AutosaveJobPolicy::for_save_mutex(
+                    MutexGroup::parse("save_editor09_deadline").unwrap(),
+                ),
+                source.clone(),
+            )),
+        )
+        .unwrap());
+    started_rx.recv_timeout(Duration::from_secs(5)).unwrap();
+    let mut drain = service.begin_final_autosave(Some(&root), None, Instant::now());
+    service.poll_final_autosave(&mut drain);
+    assert!(matches!(
+        drain.failure(),
+        Some(FinalAutosaveFailure::DeadlineExceeded)
+    ));
+    assert!(!drain.is_complete());
+    assert!(!drain.ready_to_shutdown_jobs());
+    assert!(!service.release_drained_shutdown_adapters());
+    assert_eq!(
+        jobs.shutdown_progress().state(),
+        EditorJobShutdownState::NotRequested
+    );
+    release_tx.send(()).unwrap();
+    editor09_poll_until(&service, &mut drain, |drain| drain.is_complete());
+    assert!(!drain.succeeded());
+    assert_eq!(source.captures.load(Ordering::Acquire), 1);
+    std::fs::remove_dir_all(root).unwrap();
+}

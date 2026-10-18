@@ -16,10 +16,15 @@ pub struct ResourceActiveVersionKey {
 
 impl ResourceActiveVersionKey {
     pub(crate) fn new(id: ResourceId) -> Self {
-        Self { id, identity: Arc::new(()) }
+        Self {
+            id,
+            identity: Arc::new(()),
+        }
     }
 
-    pub fn id(&self) -> ResourceId { self.id }
+    pub fn id(&self) -> ResourceId {
+        self.id
+    }
 }
 
 impl PartialEq for ResourceActiveVersionKey {
@@ -57,7 +62,10 @@ pub struct ResourceActiveGeneration {
 }
 
 fn empty_shards<K, V>() -> Arc<[Arc<HashMap<K, V>>]> {
-    (0..SHARDS).map(|_| Arc::new(HashMap::new())).collect::<Vec<_>>().into()
+    (0..SHARDS)
+        .map(|_| Arc::new(HashMap::new()))
+        .collect::<Vec<_>>()
+        .into()
 }
 
 fn shard(value: &impl Hash) -> usize {
@@ -93,11 +101,16 @@ impl ResourceActiveGeneration {
     }
 
     pub fn source_members(&self, source: ResourceId) -> &[ResourceId] {
-        self.sources[shard(&source)].get(&source).map(AsRef::as_ref).unwrap_or(&[])
+        self.sources[shard(&source)]
+            .get(&source)
+            .map(AsRef::as_ref)
+            .unwrap_or(&[])
     }
 
     pub fn sources(&self) -> impl Iterator<Item = (ResourceId, &[ResourceId])> {
-        self.sources.iter().flat_map(|shard| shard.iter().map(|(id, members)| (*id, members.as_ref())))
+        self.sources
+            .iter()
+            .flat_map(|shard| shard.iter().map(|(id, members)| (*id, members.as_ref())))
     }
 
     pub fn source_owner(&self, id: ResourceId) -> Option<ResourceId> {
@@ -106,7 +119,9 @@ impl ResourceActiveGeneration {
 
     /// A bounded metadata journal; callers fall back to their bounded resync on a gap.
     pub fn changed_since(&self, previous: &Self) -> Option<Vec<ResourceId>> {
-        if Arc::ptr_eq(&self.identity, &previous.identity) { return Some(Vec::new()); }
+        if Arc::ptr_eq(&self.identity, &previous.identity) {
+            return Some(Vec::new());
+        }
         let mut ids = Vec::new();
         for (before, changed) in self.changes.iter().rev() {
             ids.extend(changed.iter().copied());
@@ -126,12 +141,19 @@ impl ResourceActiveGeneration {
         updates: Vec<(ResourceId, Option<Arc<ResourceActiveRow>>)>,
         sources: &[(ResourceId, Vec<ResourceId>)],
     ) -> Arc<Self> {
-        if updates.is_empty() && sources.iter().all(|(owner, members)| current.source_members(*owner) == members.as_slice()) {
+        if updates.is_empty()
+            && sources
+                .iter()
+                .all(|(owner, members)| current.source_members(*owner) == members.as_slice())
+        {
             return Arc::clone(current);
         }
-        let changed_ids: Arc<[ResourceId]> = updates.iter().map(|(id, _)| *id).collect::<Vec<_>>().into();
+        let changed_ids: Arc<[ResourceId]> =
+            updates.iter().map(|(id, _)| *id).collect::<Vec<_>>().into();
         let mut changes = current.changes.as_ref().clone();
-        if changes.len() == SHARDS { changes.pop_front(); }
+        if changes.len() == SHARDS {
+            changes.pop_front();
+        }
         changes.push_back((Arc::clone(&current.identity), changed_ids));
         let mut rows = current.rows.to_vec();
         let mut locators = current.locators.to_vec();
@@ -171,9 +193,12 @@ impl ResourceActiveGeneration {
             }
         }
         Arc::new(Self {
-            rows: rows.into(), locators: locators.into(),
-            sources: source_shards.into(), owners: owners.into(),
-            identity: Arc::new(()), changes: Arc::new(changes),
+            rows: rows.into(),
+            locators: locators.into(),
+            sources: source_shards.into(),
+            owners: owners.into(),
+            identity: Arc::new(()),
+            changes: Arc::new(changes),
         })
     }
 }

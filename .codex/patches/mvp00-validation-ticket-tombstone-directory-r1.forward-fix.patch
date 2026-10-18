@@ -1,0 +1,67 @@
+diff --git a/tools/session_coordinator/tests/test_validation_ticket_deletions.py b/tools/session_coordinator/tests/test_validation_ticket_deletions.py
+--- a/tools/session_coordinator/tests/test_validation_ticket_deletions.py
++++ b/tools/session_coordinator/tests/test_validation_ticket_deletions.py
+@@ -97,6 +97,35 @@ class ValidationTicketDeletionTests(unittest.TestCase):
+         self.assertEqual("materialized_copy", payload["evidence"]["phase"])
+         self.assertEqual([deleted_path], payload["evidence"]["driftPaths"])
+ 
++    def test_reappearing_directory_in_materialized_copy_is_snapshot_stale(self) -> None:
++        deleted_path = "zircon_runtime/src/core/framework/error.rs"
++        receipt = self._submit("materialized-copy-directory-race", {deleted_path: None})
++        self.worker.tick()
++        copy = next(iter(self.workspace_copy.records.values()))
++        reappeared_directory = copy.source_root / deleted_path
++        reappeared_directory.mkdir(parents=True)
++        copy.status = "materialized"
++
++        result = self.worker.tick()
++
++        self.assertEqual(1, result["snapshot_stale"])
++        self.assertEqual(
++            "snapshot_stale", self.service.get(receipt.ticket.ticket_id).status
++        )
++        with self.database.connect() as connection:
++            payload = json.loads(
++                connection.execute(
++                    """
++                    SELECT payload_json FROM validation_ticket_events
++                    WHERE ticket_id=? AND event_type='validation.ticket_status_changed'
++                    ORDER BY event_id DESC LIMIT 1
++                    """,
++                    (receipt.ticket.ticket_id,),
++                ).fetchone()[0]
++            )
++        self.assertEqual("materialized_copy", payload["evidence"]["phase"])
++        self.assertEqual([deleted_path], payload["evidence"]["driftPaths"])
++
+     def _submit(self, request_id: str, source_manifest: dict[str, str | None]):
+         return self.service.submit(
+             session_id="primary",
+diff --git a/tools/session_coordinator/validation_ticket_worker.py b/tools/session_coordinator/validation_ticket_worker.py
+--- a/tools/session_coordinator/validation_ticket_worker.py
++++ b/tools/session_coordinator/validation_ticket_worker.py
+@@ -3,6 +3,7 @@
+ from __future__ import annotations
+ 
+ import hashlib
++import os
+ from collections.abc import Callable, Mapping
+ from pathlib import Path
+ from typing import Protocol
+@@ -251,9 +252,14 @@ class ValidationTicketWorker:
+     ) -> list[str]:
+         drift: list[str] = []
+         for relative, expected in manifest.items():
+             source = root / relative
+-            actual = hashlib.sha256(source.read_bytes()).hexdigest() if source.is_file() else None
+-            if actual != expected:
++            if expected is None:
++                # A tombstone matches only an absent directory entry, including a dangling link.
++                drifted = os.path.lexists(source)
++            else:
++                actual = hashlib.sha256(source.read_bytes()).hexdigest() if source.is_file() else None
++                drifted = actual != expected
++            if drifted:
+                 drift.append(relative)
+                 if len(drift) == 64:
+                     break

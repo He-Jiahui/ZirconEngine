@@ -1,0 +1,60 @@
+diff --git a/zircon_runtime/tests/runtime_shader_pbr_hdri_export.rs b/zircon_runtime/tests/runtime_shader_pbr_hdri_export.rs
+--- a/zircon_runtime/tests/runtime_shader_pbr_hdri_export.rs
++++ b/zircon_runtime/tests/runtime_shader_pbr_hdri_export.rs
+@@ -88,5 +88,6 @@ const PMREM_MIP_DIAGNOSTIC_OUTPUT_NAME_OVERRIDE_ENV: &str =
+     "ZIRCON_PMREM_MIP_DIAGNOSTIC_OUTPUT_NAME";
+ const PBR_TEXTURED_HDRI_OUTPUT_NAME_OVERRIDE_ENV: &str = "ZIRCON_PBR_TEXTURED_HDRI_OUTPUT_NAME";
++const HDRI_EXPORT_RENDERDOC_CAPTURE_ENV: &str = "ZR_RENDERDOC_CAPTURE_PBR_HDRI_EXPORT";
+ const PBR_TEXTURED_HDRI_OUTPUT_NAME_PREFIX: &str =
+     "runtime_shader_pbr_real_hdri_lakes_ambientcg_metal009_texture_maps_";
+ 
+@@ -104,6 +105,16 @@ fn shader_hdri_export_submits_and_captures_through_the_framework() {
+     assert!(!source.contains(concat!("render_scene_color", "_hdr")));
+ }
+ 
++#[test]
++fn shader_hdri_export_has_an_explicit_opt_in_renderdoc_frame_capture() {
++    let source = include_str!("runtime_shader_pbr_hdri_export.rs");
++
++    assert!(source.contains(HDRI_EXPORT_RENDERDOC_CAPTURE_ENV));
++    assert!(source.contains(concat!("request_graphics_debugger_", "capture(viewport)")));
++    assert!(source.contains(concat!("query_graphics_debugger_", "status()")));
++    assert!(source.contains("HDRI RenderDoc capture must complete in its requested frame"));
++}
++
+ #[test]
+ fn runtime_shader_pbr_real_hdri_1k_pmrem_mip_diagnostic_png_matches_blur_metrics() {
+     let output = runtime_shader_pbr_real_hdri_output_path(
+@@ -365,6 +376,13 @@ fn submit_frame_extract_and_capture(
+     viewport: RenderViewportHandle,
+     snapshot: RenderSceneSnapshot,
+ ) -> ViewportFrame {
++    let capture_requested = std::env::var_os(HDRI_EXPORT_RENDERDOC_CAPTURE_ENV).is_some();
++    if capture_requested {
++        framework
++            .request_graphics_debugger_capture(viewport)
++            .expect("request RenderDoc capture for real HDRI PBR export");
++    }
++
+     framework
+         .submit_frame_extract(
+             viewport,
+@@ -372,4 +390,17 @@ fn submit_frame_extract_and_capture(
+         )
+         .expect("submit compiled Shader06 product frame");
++    if capture_requested {
++        let capture_status = framework
++            .query_graphics_debugger_status()
++            .expect("query real HDRI PBR RenderDoc capture status");
++        assert!(
++            !capture_status.capture_pending,
++            "HDRI RenderDoc capture must complete in its requested frame"
++        );
++        assert_eq!(
++            capture_status.last_error, None,
++            "HDRI RenderDoc capture must complete without a debugger error"
++        );
++    }
+     let captured = framework
+         .capture_frame(viewport)
+         .expect("capture compiled Shader06 product frame")

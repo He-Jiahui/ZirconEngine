@@ -1,0 +1,179 @@
+// Source-bounded chat admission shared by the authoritative command reducer.
+// WOS158 currently routes only /ready and /readycheck; every other nonempty
+// valid message still consumes the source Sim token bucket before the retained
+// chat/event layers deliberately no-op.
+var container = %import("zr.container");
+var utf8 = %import("progression/craft_item_state");
+
+pub malformedRoute(): int { return -1; }
+pub emptyRoute(): int { return 0; }
+pub unhandledRoute(): int { return 1; }
+pub readyRoute(): int { return 2; }
+
+pub maximumUtf8Bytes(): uint { return <uint>1020; }
+pub maximumUtf16CodeUnits(): uint { return <uint>255; }
+pub bucketCapacity(): float { return 8.0; }
+pub refillPerSecond(): float { return 2.0; }
+
+utf8WidthAt(bytes: container.Array<uint>, index: uint): uint {
+    var first = <uint>bytes[<int>index];
+    if (first <= <uint>127) return <uint>1;
+    if (first <= <uint>223) return <uint>2;
+    if (first <= <uint>239) return <uint>3;
+    return <uint>4;
+}
+
+utf8CodePointAt(bytes: container.Array<uint>, index: uint): uint {
+    var first = <uint>bytes[<int>index];
+    if (first <= <uint>127) return first;
+    var second = <uint>bytes[<int>(index + <uint>1)] - <uint>128;
+    if (first <= <uint>223) return (first - <uint>192) * <uint>64 + second;
+    var third = <uint>bytes[<int>(index + <uint>2)] - <uint>128;
+    if (first <= <uint>239) {
+        return (first - <uint>224) * <uint>4096 + second * <uint>64 + third;
+    }
+    var fourth = <uint>bytes[<int>(index + <uint>3)] - <uint>128;
+    return (first - <uint>240) * <uint>262144 + second * <uint>4096 +
+        third * <uint>64 + fourth;
+}
+
+ecmaWhitespace(value: uint): bool {
+    return value == <uint>9 || value == <uint>10 || value == <uint>11 ||
+        value == <uint>12 || value == <uint>13 || value == <uint>32 ||
+        value == <uint>160 || value == <uint>5760 ||
+        (value >= <uint>8192 && value <= <uint>8202) ||
+        value == <uint>8232 || value == <uint>8233 || value == <uint>8239 ||
+        value == <uint>8287 || value == <uint>12288 || value == <uint>65279;
+}
+
+asciiLower(value: uint): uint {
+    return value >= <uint>65 && value <= <uint>90 ? value + <uint>32 : value;
+}
+
+utf16Units(bytes: container.Array<uint>, start: uint, end: uint): uint {
+    var cursor = start;
+    var units: uint = <uint>0;
+    while (cursor < end) {
+        var first = <uint>bytes[<int>cursor];
+        if (first <= <uint>127) cursor = cursor + <uint>1;
+        else if (first <= <uint>223) cursor = cursor + <uint>2;
+        else if (first <= <uint>239) cursor = cursor + <uint>3;
+        else {
+            cursor = cursor + <uint>4;
+            units = units + <uint>1;
+        }
+        units = units + <uint>1;
+    }
+    return units;
+}
+
+readyLiteralByte(index: int, longForm: bool): uint {
+    if (index == 0) return <uint>47;
+    if (index == 1) return <uint>114;
+    if (index == 2) return <uint>101;
+    if (index == 3) return <uint>97;
+    if (index == 4) return <uint>100;
+    if (index == 5) return <uint>121;
+    if (!longForm) return <uint>0;
+    if (index == 6) return <uint>99;
+    if (index == 7) return <uint>104;
+    if (index == 8) return <uint>101;
+    if (index == 9) return <uint>99;
+    if (index == 10) return <uint>107;
+    return <uint>0;
+}
+
+matchesReady(bytes: container.Array<uint>, start: uint, end: uint): bool {
+    var length = end - start;
+    var longForm = length == <uint>11;
+    if (length != <uint>6 && !longForm) return false;
+    var index: uint = <uint>0;
+    while (index < length) {
+        if (asciiLower(<uint>bytes[<int>(start + index)]) !=
+            readyLiteralByte(<int>index, longForm)) return false;
+        index = index + <uint>1;
+    }
+    return true;
+}
+
+pub routeFromPayload(
+    payloadOffset: uint, payloadLength: uint, payloadBytes: container.Array<uint>
+): int {
+    if (payloadLength < <uint>4 || payloadOffset > <uint>payloadBytes.length ||
+        payloadLength > <uint>payloadBytes.length - payloadOffset) return malformedRoute();
+    var declared = <uint>payloadBytes[<int>payloadOffset] +
+        <uint>payloadBytes[<int>(payloadOffset + <uint>1)] * <uint>256 +
+        <uint>payloadBytes[<int>(payloadOffset + <uint>2)] * <uint>65536 +
+        <uint>payloadBytes[<int>(payloadOffset + <uint>3)] * <uint>16777216;
+    if (declared > maximumUtf8Bytes() || declared != payloadLength - <uint>4) {
+        return malformedRoute();
+    }
+    var start = payloadOffset + <uint>4;
+    var end = start + declared;
+    if (!utf8.utf8RangeValid(payloadBytes, start, end) ||
+        utf16Units(payloadBytes, start, end) > maximumUtf16CodeUnits()) {
+        return malformedRoute();
+    }
+    while (start < end && ecmaWhitespace(utf8CodePointAt(payloadBytes, start))) {
+        start = start + utf8WidthAt(payloadBytes, start);
+    }
+    while (end > start) {
+        var trailing = end - <uint>1;
+        var trailingByte = <uint>payloadBytes[<int>trailing];
+        while (trailing > start && trailingByte >= <uint>128 && trailingByte <= <uint>191) {
+            trailing = trailing - <uint>1;
+            trailingByte = <uint>payloadBytes[<int>trailing];
+        }
+        if (!ecmaWhitespace(utf8CodePointAt(payloadBytes, trailing))) break;
+        end = trailing;
+    }
+    if (start == end) return emptyRoute();
+    return matchesReady(payloadBytes, start, end) ? readyRoute() : unhandledRoute();
+}
+
+pub tokenStateIsValid(present: bool, tokens: float, atMicros: uint, nowMicros: uint): bool {
+    if (!present) return tokens == 0.0 && atMicros == <uint>0;
+    return tokens == tokens && tokens >= 0.0 && tokens <= bucketCapacity() &&
+        atMicros <= nowMicros;
+}
+
+pub refilledTokens(present: bool, tokens: float, atMicros: uint, nowMicros: uint): float {
+    if (!present) return bucketCapacity();
+    if (!tokenStateIsValid(true, tokens, atMicros, nowMicros)) return -1.0;
+    var elapsedSeconds = <float>(nowMicros - atMicros) / 1000000.0;
+    var refilled = tokens + elapsedSeconds * refillPerSecond();
+    return refilled > bucketCapacity() ? bucketCapacity() : refilled;
+}
+
+pub contractTest(): int {
+    var ready = new container.Array<uint>();
+    ready.add(<uint>14); ready.add(<uint>0); ready.add(<uint>0); ready.add(<uint>0);
+    ready.add(<uint>32); ready.add(<uint>47); ready.add(<uint>82); ready.add(<uint>69);
+    ready.add(<uint>65); ready.add(<uint>68); ready.add(<uint>89); ready.add(<uint>99);
+    ready.add(<uint>104); ready.add(<uint>101); ready.add(<uint>99); ready.add(<uint>107);
+    ready.add(<uint>32); ready.add(<uint>32);
+    if (routeFromPayload(<uint>0, <uint>ready.length, ready) != readyRoute() ||
+        refilledTokens(false, 0.0, <uint>0, <uint>100) != 8.0 ||
+        refilledTokens(true, 3.0, <uint>0, <uint>500000) != 4.0) return -1;
+    var unicodeReady = new container.Array<uint>();
+    unicodeReady.add(<uint>15); unicodeReady.add(<uint>0);
+    unicodeReady.add(<uint>0); unicodeReady.add(<uint>0);
+    unicodeReady.add(<uint>194); unicodeReady.add(<uint>160);
+    unicodeReady.add(<uint>47); unicodeReady.add(<uint>82); unicodeReady.add(<uint>69);
+    unicodeReady.add(<uint>65); unicodeReady.add(<uint>68); unicodeReady.add(<uint>89);
+    unicodeReady.add(<uint>99); unicodeReady.add(<uint>104); unicodeReady.add(<uint>101);
+    unicodeReady.add(<uint>99); unicodeReady.add(<uint>107);
+    unicodeReady.add(<uint>194); unicodeReady.add(<uint>160);
+    if (routeFromPayload(<uint>0, <uint>unicodeReady.length, unicodeReady) != readyRoute()) {
+        return -2;
+    }
+    var astral = new container.Array<uint>();
+    astral.add(<uint>0); astral.add(<uint>2); astral.add(<uint>0); astral.add(<uint>0);
+    var index = 0;
+    while (index < 128) {
+        astral.add(<uint>240); astral.add(<uint>159);
+        astral.add(<uint>152); astral.add(<uint>128);
+        index = index + 1;
+    }
+    return routeFromPayload(<uint>0, <uint>astral.length, astral) == malformedRoute() ? 1 : -3;
+}

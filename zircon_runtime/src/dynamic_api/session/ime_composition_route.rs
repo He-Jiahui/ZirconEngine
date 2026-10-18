@@ -42,6 +42,11 @@ pub(super) struct RuntimeImeCompositionRoute {
 }
 
 impl RuntimeImeCompositionRoute {
+    pub(super) fn cancel_active(&mut self) {
+        self.generation.cancel_active();
+        self.candidate_rect = None;
+    }
+
     pub(super) fn legacy(window_generation: u64) -> Self {
         Self::new(
             ZrRuntimeImeCompositionNegotiation::legacy(),

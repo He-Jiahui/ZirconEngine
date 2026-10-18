@@ -109,13 +109,16 @@ while ($cursor) {
     }
     $cursor = [IO.Path]::GetDirectoryName($cursor)
 }
-$protected = @($selection.protectedDigests) + @($selection.unknownDigests)
+$protected = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
+foreach ($digest in (@($selection.protectedDigests) + @($selection.unknownDigests))) {
+    [void]$protected.Add([string]$digest)
+}
 $chosen = @()
 [long]$bytes = 0
 if (Test-Path -LiteralPath $objects -PathType Container) {
     foreach ($file in @(Get-ChildItem -LiteralPath $objects -File -Force | Sort-Object Name)) {
         if ($file.Attributes -band [IO.FileAttributes]::ReparsePoint) { continue }
-        if ($file.Name -cnotmatch '^[0-9a-f]{64}$' -or $file.Name -in $protected) { continue }
+        if ($file.Name -cnotmatch '^[0-9a-f]{64}$' -or $protected.Contains([string]$file.Name)) { continue }
         if ($chosen.Count -ge $selection.maxObjects -or $bytes + $file.Length -gt $selection.maxBytes) { continue }
         $chosen += $file.Name
         $bytes += $file.Length

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Zircon UI Layout Reference"
+  short_description: "Route UI layouts through ReactBits patterns"
+  default_prompt: "Use $zr-ui-layout-reference to map this Zircon UI layout to the approved ReactBits references and local visual contracts."

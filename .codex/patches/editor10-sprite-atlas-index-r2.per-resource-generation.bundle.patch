@@ -1,0 +1,425 @@
+diff --git a/zircon_editor/src/ui/host/editor_asset_manager/sprite_atlas_index.rs b/zircon_editor/src/ui/host/editor_asset_manager/sprite_atlas_index.rs
+--- a/zircon_editor/src/ui/host/editor_asset_manager/sprite_atlas_index.rs
++++ b/zircon_editor/src/ui/host/editor_asset_manager/sprite_atlas_index.rs
+@@ -4,5 +4,6 @@ use std::io::{BufReader, Read};
+ use std::path::{Path, PathBuf};
+ use std::sync::Arc;
++use std::time::UNIX_EPOCH;
+ 
+ use zircon_runtime::asset::project::ProjectManager;
+ use zircon_runtime::asset::{SpriteAtlasAsset, validate_sprite_atlas_asset};
+@@ -22,6 +23,7 @@ const ENTRY_METADATA_OVERHEAD_BYTES: usize = 64;
+ #[derive(Clone, Debug, PartialEq)]
+ pub struct EditorSpriteAtlasEntry {
+     pub resource_key: Arc<str>,
++    pub resource_generation: u64,
+     pub width: u32,
+     pub height: u32,
+     pub uv_min: [f32; 2],
+@@ -35,10 +37,52 @@ pub struct SpriteAtlasIndexDiagnostics {
+     pub omitted_entry_count: usize,
+ }
+ 
+-#[derive(Clone, Debug, Default)]
++#[derive(Clone, Copy, Debug, PartialEq, Eq)]
++struct AtlasResourceFingerprint {
++    byte_len: u64,
++    modified_nanos: Option<u128>,
++    width: u32,
++    height: u32,
++}
++
++impl AtlasResourceFingerprint {
++    fn matches_previous(self, current: Self) -> bool {
++        self.modified_nanos.is_some() && self == current
++    }
++}
++
++#[derive(Clone, Copy, Debug, PartialEq, Eq)]
++struct AtlasResourceGeneration {
++    fingerprint: AtlasResourceFingerprint,
++    generation: u64,
++}
++
++#[derive(Clone, Debug)]
+ pub struct EditorSpriteAtlasIndex {
+     entries_by_name: Arc<BTreeMap<String, EditorSpriteAtlasEntry>>,
+     diagnostics: SpriteAtlasIndexDiagnostics,
++    resource_generations: Arc<BTreeMap<Arc<str>, AtlasResourceGeneration>>,
++    next_resource_generation: u64,
++}
++
++impl Default for EditorSpriteAtlasIndex {
++    fn default() -> Self {
++        Self {
++            entries_by_name: Arc::new(BTreeMap::new()),
++            diagnostics: SpriteAtlasIndexDiagnostics::default(),
++            resource_generations: Arc::new(BTreeMap::new()),
++            next_resource_generation: 1,
++        }
++    }
++}
++
++impl EditorSpriteAtlasIndex {
++    fn empty_after(previous: &Self) -> Self {
++        Self {
++            next_resource_generation: previous.next_resource_generation.max(1),
++            ..Self::default()
++        }
++    }
+ }
+ 
+ impl EditorSpriteAtlasIndex {
+@@ -44,3 +72,3 @@ impl EditorSpriteAtlasIndex {
+     pub fn entry_for_paint_key(&self, source_key: &str) -> Option<&EditorSpriteAtlasEntry> {
+-        self.entries_by_name.get(paint_entry_name(source_key)?)
++        self.entries_by_name.get(source_key)
+     }
+@@ -52,14 +80,18 @@ impl EditorSpriteAtlasIndex {
+     }
+ }
+ 
+-pub(crate) fn build_editor_sprite_atlas_index(project: &ProjectManager) -> EditorSpriteAtlasIndex {
+-    build_index_from_directory(
++pub(crate) fn build_editor_sprite_atlas_index(
++    project: &ProjectManager,
++    previous: &EditorSpriteAtlasIndex,
++) -> EditorSpriteAtlasIndex {
++    build_index_from_directory_after(
+         &project.paths().cache_root().join(ATLAS_CACHE_DIR),
+         MAX_ATLAS_MANIFESTS,
+         MAX_ATLAS_ENTRIES,
+         MAX_ATLAS_METADATA_BYTES,
++        previous,
+     )
+ }
+ 
+ fn build_index_from_directory(
+     atlas_directory: &Path,
+@@ -67,9 +117,25 @@ fn build_index_from_directory(
+     max_manifests: usize,
+     max_entries: usize,
+     max_metadata_bytes: usize,
++) -> EditorSpriteAtlasIndex {
++    build_index_from_directory_after(
++        atlas_directory,
++        max_manifests,
++        max_entries,
++        max_metadata_bytes,
++        &EditorSpriteAtlasIndex::default(),
++    )
++}
++
++fn build_index_from_directory_after(
++    atlas_directory: &Path,
++    max_manifests: usize,
++    max_entries: usize,
++    max_metadata_bytes: usize,
++    previous: &EditorSpriteAtlasIndex,
+ ) -> EditorSpriteAtlasIndex {
+     let Ok(directory_entries) = fs::read_dir(atlas_directory) else {
+-        return EditorSpriteAtlasIndex::default();
++        return EditorSpriteAtlasIndex::empty_after(previous);
+     };
+     let mut manifest_paths = BTreeSet::new();
+     for entry in directory_entries.flatten() {
+@@ -88,6 +150,8 @@ fn build_index_from_directory(
+ 
+     let mut entries_by_name = BTreeMap::new();
+     let mut diagnostics = SpriteAtlasIndexDiagnostics::default();
++    let mut resource_generations = BTreeMap::new();
++    let mut next_resource_generation = previous.next_resource_generation.max(1);
+     for manifest_path in manifest_paths {
+         let Some(atlas) = load_valid_atlas(&manifest_path) else {
+             diagnostics.rejected_manifest_count += 1;
+@@ -97,36 +161,47 @@ fn build_index_from_directory(
+             diagnostics.rejected_manifest_count += 1;
+             continue;
+         };
+-        if !texture_path.is_file() {
++        let Some(fingerprint) = atlas_resource_fingerprint(&texture_path, &atlas) else {
+             diagnostics.rejected_manifest_count += 1;
+             continue;
+         }
+         diagnostics.manifest_count += 1;
+         let resource_key: Arc<str> = Arc::from(atlas.atlas_texture.to_string());
++        let resource_generation = resource_generation_for(
++            &mut resource_generations,
++            &mut next_resource_generation,
++            previous,
++            Arc::clone(&resource_key),
++            fingerprint,
++        );
+         for entry in atlas.entries {
+-            if entries_by_name.contains_key(&entry.name) {
+-                continue;
+-            }
+-            let entry_bytes = entry
+-                .name
+-                .len()
++            let atlas_entry = EditorSpriteAtlasEntry {
++                resource_key: Arc::clone(&resource_key),
++                resource_generation,
++                width: atlas.width,
++                height: atlas.height,
++                uv_min: entry.uv_rect.min,
++                uv_max: entry.uv_rect.max,
++            };
++            let mut retained_entry = false;
++            for paint_key in paint_keys_for_entry(&entry) {
++                if entries_by_name.contains_key(&paint_key) {
++                    continue;
++                }
++                let entry_bytes = paint_key
++                    .len()
+                 .saturating_add(resource_key.len())
+                 .saturating_add(ENTRY_METADATA_OVERHEAD_BYTES);
+-            if entries_by_name.len() >= max_entries
+-                || diagnostics.metadata_bytes.saturating_add(entry_bytes) > max_metadata_bytes
+-            {
+-                diagnostics.omitted_entry_count += 1;
+-                continue;
+-            }
+-            diagnostics.metadata_bytes = diagnostics.metadata_bytes.saturating_add(entry_bytes);
+-            entries_by_name.insert(
+-                entry.name,
+-                EditorSpriteAtlasEntry {
+-                    resource_key: Arc::clone(&resource_key),
+-                    width: atlas.width,
+-                    height: atlas.height,
+-                    uv_min: entry.uv_rect.min,
+-                    uv_max: entry.uv_rect.max,
+-                },
+-            );
++                if entries_by_name.len() >= max_entries
++                    || diagnostics.metadata_bytes.saturating_add(entry_bytes) > max_metadata_bytes
++                {
++                    continue;
++                }
++                diagnostics.metadata_bytes = diagnostics.metadata_bytes.saturating_add(entry_bytes);
++                entries_by_name.insert(paint_key, atlas_entry.clone());
++                retained_entry = true;
++            }
++            if !retained_entry {
++                diagnostics.omitted_entry_count += 1;
++            }
+         }
+@@ -136,9 +208,62 @@ fn build_index_from_directory(
+     EditorSpriteAtlasIndex {
+         entries_by_name: Arc::new(entries_by_name),
+         diagnostics,
++        resource_generations: Arc::new(resource_generations),
++        next_resource_generation,
+     }
+ }
+ 
++fn atlas_resource_fingerprint(
++    texture_path: &Path,
++    atlas: &SpriteAtlasAsset,
++) -> Option<AtlasResourceFingerprint> {
++    let metadata = fs::metadata(texture_path).ok()?;
++    if !metadata.is_file() {
++        return None;
++    }
++    let modified_nanos = metadata
++        .modified()
++        .ok()
++        .and_then(|modified| modified.duration_since(UNIX_EPOCH).ok())
++        .map(|elapsed| elapsed.as_nanos());
++    Some(AtlasResourceFingerprint {
++        byte_len: metadata.len(),
++        modified_nanos,
++        width: atlas.width,
++        height: atlas.height,
++    })
++}
++
++fn resource_generation_for(
++    current: &mut BTreeMap<Arc<str>, AtlasResourceGeneration>,
++    next_generation: &mut u64,
++    previous: &EditorSpriteAtlasIndex,
++    resource_key: Arc<str>,
++    fingerprint: AtlasResourceFingerprint,
++) -> u64 {
++    if let Some(existing) = current.get(&resource_key) {
++        return existing.generation;
++    }
++    let generation = previous
++        .resource_generations
++        .get(&resource_key)
++        .filter(|previous| previous.fingerprint.matches_previous(fingerprint))
++        .map(|previous| previous.generation)
++        .unwrap_or_else(|| {
++            let allocated = (*next_generation).max(1);
++            *next_generation = allocated.saturating_add(1).max(1);
++            allocated
++        });
++    current.insert(
++        resource_key,
++        AtlasResourceGeneration {
++            fingerprint,
++            generation,
++        },
++    );
++    generation
++}
++
+ fn load_valid_atlas(path: &Path) -> Option<SpriteAtlasAsset> {
+     let document = read_bounded_manifest_document(path)?;
+     let atlas = toml::from_str::<SpriteAtlasAsset>(&document).ok()?;
+@@ -173,8 +244,12 @@ fn atlas_texture_path(manifest_path: &Path, atlas: &SpriteAtlasAsset) -> Option<PathBuf> {
+-fn paint_entry_name(source_key: &str) -> Option<&str> {
+-    source_key
+-        .strip_prefix("template-image:")
+-        .or_else(|| source_key.strip_prefix("template-icon:"))
+-        .or_else(|| source_key.strip_prefix("image:"))
+-        .or_else(|| source_key.strip_prefix("icon:"))
+-        .filter(|name| !name.is_empty())
++fn paint_keys_for_entry(entry: &zircon_runtime::asset::SpriteAtlasEntry) -> Vec<String> {
++    let mut keys = vec![
++        format!("template-icon:{}", entry.name),
++        format!("icon:{}", entry.name),
++    ];
++    if let Some(source) = &entry.source {
++        let source = source.to_string();
++        keys.push(format!("template-image:{source}"));
++        keys.push(format!("image:{source}"));
++    }
++    keys
+ }
+@@ -255,6 +370,8 @@ mod tests {
+ 
+     use super::{ATLAS_CACHE_DIR, build_index_from_directory};
+ 
++    use super::build_index_from_directory_after;
++
+     #[test]
+     fn index_continues_past_a_manifest_without_the_requested_entry() {
+         let root = unique_temp_root("atlas_index_later_candidate");
+@@ -384,6 +502,86 @@ mod tests {
+         let _ = fs::remove_dir_all(root);
+     }
+ 
++    #[test]
++    fn unchanged_atlas_resource_reuses_its_generation_in_the_next_snapshot() {
++        let root = unique_temp_root("atlas_index_generation_reuse");
++        let atlas_directory = root.join(ATLAS_CACHE_DIR);
++        fs::create_dir_all(&atlas_directory).unwrap();
++        write_atlas(&atlas_directory, "icons", &["search"]);
++
++        let first = build_index_from_directory(&atlas_directory, 64, 10_000, 4 * 1024 * 1024);
++        let next = build_index_from_directory_after(
++            &atlas_directory,
++            64,
++            10_000,
++            4 * 1024 * 1024,
++            &first,
++        );
++
++        let first_generation = first
++            .entry_for_paint_key("template-icon:search")
++            .expect("first atlas entry")
++            .resource_generation;
++        let next_generation = next
++            .entry_for_paint_key("template-icon:search")
++            .expect("next atlas entry")
++            .resource_generation;
++        assert_eq!(first_generation, next_generation);
++        let _ = fs::remove_dir_all(root);
++    }
++
++    #[test]
++    fn changed_or_recreated_atlas_texture_gets_a_new_resource_generation() {
++        let root = unique_temp_root("atlas_index_generation_change");
++        let atlas_directory = root.join(ATLAS_CACHE_DIR);
++        fs::create_dir_all(&atlas_directory).unwrap();
++        let manifest_path = write_atlas(&atlas_directory, "icons", &["search"]);
++        let first = build_index_from_directory(&atlas_directory, 64, 10_000, 4 * 1024 * 1024);
++        let first_generation = first
++            .entry_for_paint_key("template-icon:search")
++            .expect("first atlas entry")
++            .resource_generation;
++
++        fs::write(manifest_path.with_extension("png"), [0u8, 1u8]).unwrap();
++        let changed = build_index_from_directory_after(
++            &atlas_directory,
++            64,
++            10_000,
++            4 * 1024 * 1024,
++            &first,
++        );
++        let changed_generation = changed
++            .entry_for_paint_key("template-icon:search")
++            .expect("changed atlas entry")
++            .resource_generation;
++        assert_ne!(first_generation, changed_generation);
++
++        fs::remove_file(manifest_path.with_extension("toml")).unwrap();
++        let deleted = build_index_from_directory_after(
++            &atlas_directory,
++            64,
++            10_000,
++            4 * 1024 * 1024,
++            &changed,
++        );
++        write_atlas(&atlas_directory, "icons", &["search"]);
++        let recreated = build_index_from_directory_after(
++            &atlas_directory,
++            64,
++            10_000,
++            4 * 1024 * 1024,
++            &deleted,
++        );
++        assert_ne!(
++            changed_generation,
++            recreated
++                .entry_for_paint_key("template-icon:search")
++                .expect("recreated atlas entry")
++                .resource_generation
++        );
++        let _ = fs::remove_dir_all(root);
++    }
++
+     fn write_atlas(directory: &std::path::Path, stem: &str, names: &[&str]) -> std::path::PathBuf {
+         let entries = names
+             .iter()
+diff --git a/zircon_editor/src/ui/host/editor_asset_manager/manager/catalog_generation/build.rs b/zircon_editor/src/ui/host/editor_asset_manager/manager/catalog_generation/build.rs
+--- a/zircon_editor/src/ui/host/editor_asset_manager/manager/catalog_generation/build.rs
++++ b/zircon_editor/src/ui/host/editor_asset_manager/manager/catalog_generation/build.rs
+@@ -9,6 +9,7 @@ use super::details::build_details_generation;
+ use super::folders::build_folder_records;
+ use crate::ui::host::editor_asset_manager::{
+     build_editor_sprite_atlas_index, AssetCatalogRecord, EditorAssetCatalogGeneration,
++    EditorSpriteAtlasIndex,
+     ReferenceGraph,
+ };
+ 
+@@ -17,6 +18,7 @@ pub(in crate::ui::host::editor_asset_manager::manager) fn build_catalog_generation(
+     catalog_by_uuid: &HashMap<AssetUuid, AssetCatalogRecord>,
+     uuid_by_locator: &HashMap<AssetUri, AssetUuid>,
+     reference_graph: &ReferenceGraph,
++    previous_sprite_atlas_index: &EditorSpriteAtlasIndex,
+ ) -> Arc<EditorAssetCatalogGeneration> {
+     let mut records = catalog_by_uuid.values().collect::<Vec<_>>();
+     records.sort_by(|left, right| left.locator.cmp(&right.locator));
+@@ -37,7 +39,8 @@ pub(in crate::ui::host::editor_asset_manager::manager) fn build_catalog_generation(
+         })
+         .collect::<Vec<_>>();
+-    let sprite_atlas_index = build_editor_sprite_atlas_index(project);
++    let sprite_atlas_index =
++        build_editor_sprite_atlas_index(project, previous_sprite_atlas_index);
+ 
+     Arc::new(EditorAssetCatalogGeneration::from_parts(
+         project.manifest().name.clone(),
+         project.paths().root().to_string_lossy().into_owned(),
+diff --git a/zircon_editor/src/ui/host/editor_asset_manager/manager/project_sync/sync_from_project.rs b/zircon_editor/src/ui/host/editor_asset_manager/manager/project_sync/sync_from_project.rs
+--- a/zircon_editor/src/ui/host/editor_asset_manager/manager/project_sync/sync_from_project.rs
++++ b/zircon_editor/src/ui/host/editor_asset_manager/manager/project_sync/sync_from_project.rs
+@@ -164,6 +164,7 @@ impl DefaultEditorAssetManager {
+                 &catalog_by_uuid,
+                 &uuid_by_locator,
+                 &reference_graph,
++                expected_generation.sprite_atlas_index.as_ref(),
+             );
+             let _publish_guard = self
+                 .publish_gate

@@ -24,7 +24,10 @@ impl PartialEq for DynamicComponentCreationId {
 impl Eq for DynamicComponentCreationId {}
 
 impl RetainedOwnerV1 for DynamicComponentCreationId {
-    fn retained_bound_v1(&self, meter: &mut RetainedBoundBuilderV1) -> Result<(), RetentionContractError> {
+    fn retained_bound_v1(
+        &self,
+        meter: &mut RetainedBoundBuilderV1,
+    ) -> Result<(), RetentionContractError> {
         self.0.retained_bound_v1(meter)
     }
 }
@@ -33,7 +36,9 @@ unsafe impl ImmutableRetainedOwnerV1 for DynamicComponentCreationId {}
 
 impl DynamicComponentCreationId {
     /// Pure quote for a future fresh token. No Arc is allocated by this proof.
-    pub fn allocation_bound_v1(meter: &mut RetainedBoundBuilderV1) -> Result<(), RetentionContractError> {
+    pub fn allocation_bound_v1(
+        meter: &mut RetainedBoundBuilderV1,
+    ) -> Result<(), RetentionContractError> {
         meter.arc_payload(&())
     }
 }

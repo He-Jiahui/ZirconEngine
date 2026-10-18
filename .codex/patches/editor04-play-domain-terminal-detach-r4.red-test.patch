@@ -1,0 +1,80 @@
+diff --git a/zircon_editor/src/core/play/tests.rs b/zircon_editor/src/core/play/tests.rs
+--- a/zircon_editor/src/core/play/tests.rs
++++ b/zircon_editor/src/core/play/tests.rs
+@@ -191,4 +191,76 @@ fn host_play_attachment_preserves_edit_selection_and_undo_history() {
+     assert!(!authoring_level.with_world(|world| world.contains_entity(created)));
+ }
+ 
++#[test]
++fn request_stop_detaches_the_attached_play_domain() {
++    let controller = PlaySessionController::new();
++    controller
++        .request_play(PlayStartRequest::immediate(PlayKind::Play, None))
++        .expect("the controller should enter play before it owns a play-domain link");
++    let instance = controller
++        .attach_play_gateway(Arc::new(session_gateway(3)))
++        .expect("a serialized secondary session should attach to the active play lifecycle");
++
++    controller
++        .request_stop()
++        .expect("a clean stop should terminate the play lifecycle");
++
++    assert_eq!(controller.attached_world_domain(), None);
++    assert!(controller.play_gateway(instance).is_none());
++}
++
++#[test]
++fn request_stop_cancels_the_building_play_domain_link() {
++    let controller = PlaySessionController::new();
++    controller
++        .request_play(PlayStartRequest::after_build(PlayKind::Play, None))
++        .expect("the controller should enter building before it owns a play-domain link");
++    let instance = controller
++        .attach_play_gateway(Arc::new(session_gateway(4)))
++        .expect("a serialized secondary session should attach to the building play lifecycle");
++
++    controller
++        .request_stop()
++        .expect("stopping a build should cancel its play lifecycle");
++
++    assert_eq!(controller.mode(), PlayModeKind::Edit);
++    assert_eq!(controller.attached_world_domain(), None);
++    assert!(controller.play_gateway(instance).is_none());
++}
++
++#[test]
++fn terminal_backend_exit_detaches_the_attached_play_domain() {
++    let controller = PlaySessionController::new();
++    controller.set_play_backend(Arc::new(OrderedBackend {
++        calls: Arc::new(Mutex::new(Vec::new())),
++        start_error: None,
++        poll_exit_code: Some(Some(101)),
++    }));
++    controller
++        .request_play(PlayStartRequest::immediate(PlayKind::Play, None))
++        .expect("the controller should enter play before it owns a play-domain link");
++    let instance = controller
++        .attach_play_gateway(Arc::new(session_gateway(5)))
++        .expect("a serialized secondary session should attach to the active play lifecycle");
++
++    controller
++        .poll_backend()
++        .expect("a terminal backend poll should finish the play lifecycle");
++
++    assert_eq!(controller.attached_world_domain(), None);
++    assert!(controller.play_gateway(instance).is_none());
++}
++
++fn session_gateway(session: u64) -> SessionGateway {
++    unsafe {
++        SessionGateway::new(
++            Arc::new(()),
++            ZrRuntimeApiV3::empty(),
++            ZrRuntimeSessionHandle::new(session),
++            RuntimeCapabilities::editor_default(),
++        )
++    }
++    .expect("a valid session handle should construct a serialized gateway")
++}
++
+ impl PluginBridgeActivation for FailingDeactivateActivation {

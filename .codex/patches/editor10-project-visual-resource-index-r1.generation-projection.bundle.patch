@@ -1,0 +1,286 @@
+diff --git a/zircon_editor/src/ui/host/editor_asset_manager/mod.rs b/zircon_editor/src/ui/host/editor_asset_manager/mod.rs
+--- a/zircon_editor/src/ui/host/editor_asset_manager/mod.rs
++++ b/zircon_editor/src/ui/host/editor_asset_manager/mod.rs
+@@ -6,15 +6,21 @@ mod handle;
+ mod manager;
+ mod preview;
++mod project_visual_resource_index;
+ mod records;
+ mod reference_graph;
+ 
+ pub use api::EditorAssetManager;
+ pub use catalog::AssetCatalogRecord;
+ pub(crate) use change_stream::EditorAssetChangeHub;
+ pub use change_stream::{EditorAssetChangeDelivery, EditorAssetChangeSubscription};
+ pub use generation::{EditorAssetCatalogGeneration, EditorAssetDetailsGeneration};
+ pub use handle::editor_asset_manager_handle;
+ pub use manager::DefaultEditorAssetManager;
+ pub(crate) use preview::PreviewJobToken;
+ pub use preview::{PreviewArtifactKey, PreviewCache, PreviewScheduler};
++pub(crate) use project_visual_resource_index::build_project_visual_resource_index;
++pub use project_visual_resource_index::{
++    EditorProjectVisualResourceEntry, EditorProjectVisualResourceIndex,
++    ProjectVisualResourceIndexDiagnostics,
++};
+ pub use records::{
+diff --git a/zircon_editor/src/ui/host/editor_asset_manager/project_visual_resource_index.rs b/zircon_editor/src/ui/host/editor_asset_manager/project_visual_resource_index.rs
+new file mode 100644
+--- /dev/null
++++ b/zircon_editor/src/ui/host/editor_asset_manager/project_visual_resource_index.rs
+@@ -0,0 +1,198 @@
++use std::collections::BTreeMap;
++use std::sync::Arc;
++
++use zircon_runtime::asset::AssetKind;
++
++use super::AssetCatalogRecord;
++
++const MAX_PROJECT_VISUAL_RESOURCE_ENTRIES: usize = 10_000;
++const MAX_PROJECT_VISUAL_RESOURCE_METADATA_BYTES: usize = 4 * 1024 * 1024;
++const ENTRY_METADATA_OVERHEAD_BYTES: usize = 48;
++
++/// Immutable identity-only projection for project textures used by retained-host paint.
++///
++/// This owner publishes canonical source identity and source revision only. It deliberately
++/// does not read files, decode pixels, or retain texture bytes: the Render13 resource registry
++/// owns the CPU/GPU payload lifecycle for this identity and revision.
++#[derive(Clone, Debug, PartialEq, Eq)]
++pub struct EditorProjectVisualResourceEntry {
++    pub resource_key: Arc<str>,
++    pub resource_revision: Arc<str>,
++}
++
++#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
++pub struct ProjectVisualResourceIndexDiagnostics {
++    pub source_count: usize,
++    pub entry_count: usize,
++    pub metadata_bytes: usize,
++    pub omitted_entry_count: usize,
++}
++
++#[derive(Clone, Debug, Default)]
++pub struct EditorProjectVisualResourceIndex {
++    entries_by_paint_key: Arc<BTreeMap<String, EditorProjectVisualResourceEntry>>,
++    diagnostics: ProjectVisualResourceIndexDiagnostics,
++}
++
++impl EditorProjectVisualResourceIndex {
++    pub fn entry_for_paint_key(
++        &self,
++        paint_key: &str,
++    ) -> Option<&EditorProjectVisualResourceEntry> {
++        self.entries_by_paint_key.get(paint_key)
++    }
++
++    pub fn diagnostics(&self) -> ProjectVisualResourceIndexDiagnostics {
++        self.diagnostics
++    }
++}
++
++pub(crate) fn build_project_visual_resource_index<'a>(
++    records: impl IntoIterator<Item = &'a AssetCatalogRecord>,
++) -> EditorProjectVisualResourceIndex {
++    let mut inputs = records
++        .into_iter()
++        .filter_map(ProjectVisualResourceInput::from_catalog_record)
++        .collect::<Vec<_>>();
++    inputs.sort_by(|left, right| {
++        left.locator
++            .cmp(&right.locator)
++            .then_with(|| left.uuid.cmp(&right.uuid))
++    });
++    build_index_from_inputs(
++        &inputs,
++        MAX_PROJECT_VISUAL_RESOURCE_ENTRIES,
++        MAX_PROJECT_VISUAL_RESOURCE_METADATA_BYTES,
++    )
++}
++
++#[derive(Clone, Debug, PartialEq, Eq)]
++struct ProjectVisualResourceInput {
++    uuid: String,
++    locator: String,
++    source_revision: String,
++}
++
++impl ProjectVisualResourceInput {
++    fn from_catalog_record(record: &AssetCatalogRecord) -> Option<Self> {
++        (record.kind == AssetKind::Texture && !record.source_hash.is_empty()).then(|| Self {
++            uuid: record.asset_uuid.to_string(),
++            locator: record.locator.to_string(),
++            source_revision: record.source_hash.clone(),
++        })
++    }
++}
++
++fn build_index_from_inputs(
++    inputs: &[ProjectVisualResourceInput],
++    max_entries: usize,
++    max_metadata_bytes: usize,
++) -> EditorProjectVisualResourceIndex {
++    let mut entries_by_paint_key = BTreeMap::new();
++    let mut diagnostics = ProjectVisualResourceIndexDiagnostics {
++        source_count: inputs.len(),
++        ..ProjectVisualResourceIndexDiagnostics::default()
++    };
++
++    for input in inputs {
++        let resource_key: Arc<str> = Arc::from(format!("project-texture:{}", input.locator));
++        let resource_revision: Arc<str> = Arc::from(input.source_revision.as_str());
++        for paint_key in [
++            format!("image:{}", input.locator),
++            format!("template-image:{}", input.locator),
++        ] {
++            if entries_by_paint_key.contains_key(&paint_key) {
++                continue;
++            }
++            let entry_bytes = paint_key
++                .len()
++                .saturating_add(resource_key.len())
++                .saturating_add(resource_revision.len())
++                .saturating_add(ENTRY_METADATA_OVERHEAD_BYTES);
++            if entries_by_paint_key.len() >= max_entries
++                || diagnostics.metadata_bytes.saturating_add(entry_bytes) > max_metadata_bytes
++            {
++                diagnostics.omitted_entry_count += 1;
++                continue;
++            }
++            diagnostics.metadata_bytes = diagnostics.metadata_bytes.saturating_add(entry_bytes);
++            entries_by_paint_key.insert(
++                paint_key,
++                EditorProjectVisualResourceEntry {
++                    resource_key: Arc::clone(&resource_key),
++                    resource_revision: Arc::clone(&resource_revision),
++                },
++            );
++        }
++    }
++
++    diagnostics.entry_count = entries_by_paint_key.len();
++    EditorProjectVisualResourceIndex {
++        entries_by_paint_key: Arc::new(entries_by_paint_key),
++        diagnostics,
++    }
++}
++
++#[cfg(test)]
++mod tests {
++    use super::{ProjectVisualResourceInput, build_index_from_inputs};
++
++    #[test]
++    fn index_publishes_canonical_image_and_template_keys() {
++        let index = build_index_from_inputs(
++            &[input("res://ui/toolbar/search.png", "digest-a")],
++            10_000,
++            4 * 1024 * 1024,
++        );
++
++        let image = index
++            .entry_for_paint_key("image:res://ui/toolbar/search.png")
++            .expect("canonical image key");
++        let template = index
++            .entry_for_paint_key("template-image:res://ui/toolbar/search.png")
++            .expect("canonical template key");
++        assert_eq!(image.resource_key.as_ref(), "project-texture:res://ui/toolbar/search.png");
++        assert_eq!(image.resource_revision.as_ref(), "digest-a");
++        assert_eq!(image, template);
++    }
++
++    #[test]
++    fn next_generation_reclaims_removed_project_resource_entries() {
++        let populated = build_index_from_inputs(
++            &[input("res://ui/toolbar/search.png", "digest-a")],
++            10_000,
++            4 * 1024 * 1024,
++        );
++        let removed = build_index_from_inputs(&[], 10_000, 4 * 1024 * 1024);
++
++        assert!(populated
++            .entry_for_paint_key("image:res://ui/toolbar/search.png")
++            .is_some());
++        assert!(removed
++            .entry_for_paint_key("image:res://ui/toolbar/search.png")
++            .is_none());
++    }
++
++    #[test]
++    fn index_enforces_entry_and_metadata_bounds() {
++        let inputs = [
++            input("res://ui/a.png", "digest-a"),
++            input("res://ui/b.png", "digest-b"),
++        ];
++        let entry_bound = build_index_from_inputs(&inputs, 2, usize::MAX);
++        let metadata_bound = build_index_from_inputs(&inputs, 10_000, 1);
++
++        assert_eq!(entry_bound.diagnostics().entry_count, 2);
++        assert_eq!(entry_bound.diagnostics().omitted_entry_count, 2);
++        assert_eq!(metadata_bound.diagnostics().entry_count, 0);
++        assert_eq!(metadata_bound.diagnostics().omitted_entry_count, 4);
++    }
++
++    fn input(locator: &str, source_revision: &str) -> ProjectVisualResourceInput {
++        ProjectVisualResourceInput {
++            uuid: locator.to_string(),
++            locator: locator.to_string(),
++            source_revision: source_revision.to_string(),
++        }
++    }
++}
+diff --git a/zircon_editor/src/ui/host/editor_asset_manager/generation.rs b/zircon_editor/src/ui/host/editor_asset_manager/generation.rs
+--- a/zircon_editor/src/ui/host/editor_asset_manager/generation.rs
++++ b/zircon_editor/src/ui/host/editor_asset_manager/generation.rs
+@@ -6,3 +6,4 @@ use super::{
+     EditorAssetCatalogRecord, EditorAssetCatalogSnapshotRecord, EditorAssetDetailsRecord,
+     EditorAssetFolderRecord, EditorAssetReferenceRecord, EditorAssetSubassetRecord,
++    EditorProjectVisualResourceIndex,
+ };
+@@ -58,4 +59,5 @@ pub struct EditorAssetCatalogGeneration {
+     pub publish_epoch: u64,
+     pub folders: Arc<[EditorAssetFolderRecord]>,
+     pub assets: Arc<[Arc<EditorAssetCatalogRecord>]>,
++    pub project_visual_resources: EditorProjectVisualResourceIndex,
+     asset_index_by_uuid: Arc<HashMap<String, usize>>,
+@@ -92,4 +94,5 @@ impl EditorAssetCatalogGeneration {
+             snapshot.folders,
+             assets,
+             details,
++            EditorProjectVisualResourceIndex::default(),
+         )
+@@ -109,4 +112,5 @@ impl EditorAssetCatalogGeneration {
+         folders: Vec<EditorAssetFolderRecord>,
+         assets: Vec<Arc<EditorAssetCatalogRecord>>,
+         details_by_asset_index: Vec<Option<Arc<EditorAssetDetailsGeneration>>>,
++        project_visual_resources: EditorProjectVisualResourceIndex,
+     ) -> Self {
+@@ -140,3 +144,4 @@ impl EditorAssetCatalogGeneration {
+             folder_index_by_id: Arc::new(folder_index_by_id),
+             details_by_asset_index: details_by_asset_index.into(),
++            project_visual_resources,
+         }
+@@ -194,3 +199,4 @@ impl EditorAssetCatalogGeneration {
+             folder_index_by_id: Arc::clone(&self.folder_index_by_id),
+             details_by_asset_index: details.into(),
++            project_visual_resources: self.project_visual_resources.clone(),
+         })
+diff --git a/zircon_editor/src/ui/host/editor_asset_manager/manager/catalog_generation/build.rs b/zircon_editor/src/ui/host/editor_asset_manager/manager/catalog_generation/build.rs
+--- a/zircon_editor/src/ui/host/editor_asset_manager/manager/catalog_generation/build.rs
++++ b/zircon_editor/src/ui/host/editor_asset_manager/manager/catalog_generation/build.rs
+@@ -8,4 +8,5 @@ use super::details::build_details_generation;
+ use super::folders::build_folder_records;
+ use crate::ui::host::editor_asset_manager::{
+-    AssetCatalogRecord, EditorAssetCatalogGeneration, ReferenceGraph,
++    build_project_visual_resource_index, AssetCatalogRecord, EditorAssetCatalogGeneration,
++    ReferenceGraph,
+ };
+@@ -45,4 +46,5 @@ pub(in crate::ui::host::editor_asset_manager::manager) fn build_catalog_generat
+         })
+         .collect::<Vec<_>>();
++    let project_visual_resources = build_project_visual_resource_index(catalog_by_uuid.values());
+ 
+     Arc::new(EditorAssetCatalogGeneration::from_parts(
+@@ -57,4 +59,5 @@ pub(in crate::ui::host::editor_asset_manager::manager) fn build_catalog_generat
+         build_folder_records(catalog_by_uuid),
+         assets,
+         details,
++        project_visual_resources,
+     ))

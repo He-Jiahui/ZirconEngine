@@ -1,0 +1,114 @@
+{
+  "schema_version": 1,
+  "entrypoints": [
+    "examples/woc/zircon-project.toml",
+    "examples/woc/scripts/woc_game/woc_game.zrp",
+    "examples/woc/scripts/woc_game/src/main.zr",
+    "examples/woc/native/Cargo.toml",
+    "examples/woc/native/apps/woc_bot/Cargo.toml",
+    "examples/woc/native/apps/woc_client/Cargo.toml",
+    "examples/woc/native/apps/woc_server/Cargo.toml",
+    "examples/woc/native/crates/woc_protocol/src/lib.rs",
+    "examples/woc/native/plugins/woc_runtime/src/lib.rs"
+  ],
+  "build_inputs": [
+    "examples/woc/native/Cargo.lock",
+    "examples/woc/native/plugins/woc_runtime/Cargo.toml"
+  ],
+  "product_sources": [
+    "examples/woc/native/crates/woc_protocol/src/challenge_payload.rs",
+    "examples/woc/native/crates/woc_protocol/src/corpse_harvest_contract.rs",
+    "examples/woc/native/crates/woc_protocol/src/corpse_harvest_payload.rs",
+    "examples/woc/native/crates/woc_protocol/src/emote_payload.rs",
+    "examples/woc/native/crates/woc_protocol/src/inventory_move_payload.rs",
+    "examples/woc/native/crates/woc_protocol/src/save_loadout_payload.rs",
+    "examples/woc/native/crates/woc_protocol/src/telemetry_payload.rs",
+    "examples/woc/native/crates/woc_protocol/src/town_focus_payload.rs",
+    "examples/woc/native/crates/woc_protocol/src/weapon_skin_contract.rs",
+    "examples/woc/native/crates/woc_protocol/src/weapon_skin_payload.rs",
+    "examples/woc/native/plugins/woc_runtime/src/engine_host.rs",
+    "examples/woc/native/plugins/woc_runtime/src/transaction.rs",
+    "examples/woc/native/plugins/woc_runtime/src/zr_vm_project_vm/codec.rs",
+    "examples/woc/native/plugins/woc_runtime/src/zr_vm_project_vm/exports.rs",
+    "examples/woc/native/plugins/woc_runtime/src/zr_vm_project_vm/mod.rs",
+    "examples/woc/scripts/woc_game/src/combat/absorb_talent_scaling_state.zr",
+    "examples/woc/scripts/woc_game/src/combat/aoe_talent_scaling_state.zr",
+    "examples/woc/scripts/woc_game/src/combat/chain_heal_state.zr",
+    "examples/woc/scripts/woc_game/src/combat/direct_damage_talent_scaling_state.zr",
+    "examples/woc/scripts/woc_game/src/combat/direct_heal_talent_scaling_state.zr",
+    "examples/woc/scripts/woc_game/src/combat/dot_talent_scaling_state.zr",
+    "examples/woc/scripts/woc_game/src/combat/drain_tick_talent_scaling_state.zr",
+    "examples/woc/scripts/woc_game/src/combat/fear_dr_state.zr",
+    "examples/woc/scripts/woc_game/src/combat/feral_charge_state.zr",
+    "examples/woc/scripts/woc_game/src/combat/fixed_spell_impact_state.zr",
+    "examples/woc/scripts/woc_game/src/combat/flat_buff_talent_scaling_state.zr",
+    "examples/woc/scripts/woc_game/src/combat/gain_resource_talent_scaling_state.zr",
+    "examples/woc/scripts/woc_game/src/combat/hot_talent_scaling_state.zr",
+    "examples/woc/scripts/woc_game/src/combat/imbue_talent_scaling_state.zr",
+    "examples/woc/scripts/woc_game/src/combat/judgement_talent_scaling_state.zr",
+    "examples/woc/scripts/woc_game/src/combat/life_tap_talent_scaling_state.zr",
+    "examples/woc/scripts/woc_game/src/combat/next_cast_modifier_state.zr",
+    "examples/woc/scripts/woc_game/src/combat/physical_talent_scaling_state.zr",
+    "examples/woc/scripts/woc_game/src/combat/rage_generation_state.zr",
+    "examples/woc/scripts/woc_game/src/combat/resource_precision_state.zr",
+    "examples/woc/scripts/woc_game/src/combat/wing_clip_resolution.zr",
+    "examples/woc/scripts/woc_game/src/generated/corpse_harvest_contract.zr",
+    "examples/woc/scripts/woc_game/src/generated/deed_title_contract.zr",
+    "examples/woc/scripts/woc_game/src/generated/weapon_skin_contract.zr",
+    "examples/woc/scripts/woc_game/src/kernel/lifecycle_state_tests.zr",
+    "examples/woc/scripts/woc_game/src/progression/craft_item_state.zr",
+    "examples/woc/scripts/woc_game/src/progression/deed_title_state.zr",
+    "examples/woc/scripts/woc_game/src/progression/harvest_node_state.zr",
+    "examples/woc/scripts/woc_game/src/progression/town_focus_wire_state.zr",
+    "examples/woc/scripts/woc_game/src/progression/weapon_skin_state.zr",
+    "examples/woc/scripts/woc_game/src/social/chat_wire_state.zr",
+    "examples/woc/scripts/woc_game/src/world/client_presentation.zr",
+    "examples/woc/scripts/woc_game/src/world/fixed_tick_result.zr",
+    "examples/woc/scripts/woc_game/src/world/session.zr"
+  ],
+  "test_sources": [
+    "examples/woc/native/apps/woc_server/tests/product.rs",
+    "examples/woc/native/plugins/woc_runtime/tests/fixtures/zr_vm_project_vm/main.zr",
+    "examples/woc/native/plugins/woc_runtime/tests/fixtures/zr_vm_project_vm/retained.zr",
+    "examples/woc/native/plugins/woc_runtime/tests/zr_vm_project_vm.rs",
+    "tools/tests/test_woc_source_closure.py"
+  ],
+  "producers": [
+    "examples/woc/tools/corpse_harvest_contract_codegen.mjs",
+    "examples/woc/tools/deed_title_contract_codegen.mjs",
+    "examples/woc/tools/m8_scene_codegen.mjs",
+    "examples/woc/tools/weapon_skin_contract_codegen.mjs"
+  ],
+  "references": [
+    "examples/woc/reference/current-head/corpse_harvest_contract.json",
+    "examples/woc/reference/current-head/deed_title_contract.json",
+    "examples/woc/reference/current-head/source_manifest.json",
+    "examples/woc/reference/current-head/weapon_skin_contract.json"
+  ],
+  "generated_dependencies": [
+    {
+      "producer": "examples/woc/tools/corpse_harvest_contract_codegen.mjs",
+      "inputs": [
+        "examples/woc/reference/current-head/source_manifest.json",
+        "examples/woc/contracts/m5_camp_mob_loot.json"
+      ],
+      "outputs": [
+        "examples/woc/reference/current-head/corpse_harvest_contract.json",
+        "examples/woc/scripts/woc_game/src/generated/corpse_harvest_contract.zr",
+        "examples/woc/native/crates/woc_protocol/src/corpse_harvest_contract.rs"
+      ]
+    },
+    {
+      "producer": "examples/woc/tools/m8_scene_codegen.mjs",
+      "inputs": [
+        "examples/woc/contracts/m8_eastbrook_scene.json",
+        "examples/woc/contracts/m8_assets.json"
+      ],
+      "outputs": [
+        "examples/woc/assets/scenes/eastbrook_mvp.scene.toml",
+        "examples/woc/assets/models/eastbrook_ground.model.toml",
+        "examples/woc/contracts/m8_eastbrook_scene.generated.json"
+      ]
+    }
+  ]
+}
