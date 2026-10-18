@@ -336,6 +336,55 @@ class BranchIntegrationInstallerExtensionTests(unittest.TestCase):
             "branch-api-drift", "branch-resume-wrong-archive",
         )
 
+        import importlib.util
+        from unittest.mock import Mock, patch
+        spec = importlib.util.spec_from_file_location("branch_entry_reuse_test", ROOT / "tools/jenkins-management/branch_integration.py")
+        branch = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(branch)
+        endpoint = "/job/zircon-management/config.xml"
+        core = "node('zircon-windows-agent') { /* --capsule retained */ }\n"
+        installed_script = prefix + core
+        doc = branch.ET.fromstring("<flow-definition><description>foreign</description><properties/><definition><script/></definition></flow-definition>")
+        doc.find("definition/script").text = installed_script
+        raw = branch.ET.tostring(doc, encoding="utf-8")
+        client = Mock()
+        client.request.return_value = (200, raw, {})
+        with patch.object(Path, "read_text", side_effect=AssertionError("Reuse must not read the mutable template")):
+            result = branch.install_entry(None, ROOT, client, reuse_existing=True)
+        self.assertEqual("installed", result["status"])
+        self.assertTrue(result["reused"])
+        client.request.assert_called_once_with(endpoint)
+
+        for damaged in (branch.BEGIN + core, branch.END + branch.BEGIN + core,
+                        branch.BEGIN + branch.BEGIN + branch.END + core):
+            doc.find("definition/script").text = damaged
+            client = Mock()
+            client.request.return_value = (200, branch.ET.tostring(doc, encoding="utf-8"), {})
+            with self.assertRaisesRegex(ValueError, "markers"):
+                branch.install_entry(None, ROOT, client, reuse_existing=True)
+            client.request.assert_called_once_with(endpoint)
+
+        template = branch.BEGIN + "\n// explicit maintenance template\n" + branch.END + "\n"
+        for old_script, reuse in ((installed_script, False), (core, True)):
+            doc.find("definition/script").text = old_script
+            before = branch.ET.tostring(doc, encoding="utf-8")
+            suffix = old_script
+            if branch.BEGIN in suffix:
+                start, end = suffix.index(branch.BEGIN), suffix.index(branch.END) + len(branch.END)
+                suffix = suffix[:start] + suffix[end:].lstrip("\r\n")
+            expected = template.rstrip() + "\n\n" + suffix
+            doc.find("definition/script").text = expected
+            after = branch.ET.tostring(doc, encoding="utf-8")
+            client = Mock()
+            client.request.side_effect = [(200, before, {}), (200, b"", {}), (200, after, {})]
+            with patch.object(Path, "read_text", return_value=template):
+                result = branch.install_entry(None, ROOT, client, reuse_existing=reuse)
+            self.assertEqual("installed", result["status"])
+            self.assertEqual(3, client.request.call_count)
+            posted = client.request.call_args_list[1]
+            self.assertEqual("POST", posted.kwargs["method"])
+            self.assertEqual(expected, branch.ET.fromstring(posted.kwargs["data"]).findtext("definition/script"))
+
 
 if __name__ == "__main__":
     unittest.main()
