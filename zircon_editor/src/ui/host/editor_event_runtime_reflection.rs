@@ -332,6 +332,7 @@ fn invalidation_mask_for_effects(effects: &[EditorEventEffect]) -> EditorViewInv
             | EditorEventEffect::CommandPaletteOpenRequested
             | EditorEventEffect::SettingsWindowOpenRequested
             | EditorEventEffect::ContentDrawerToggleRequested
+            | EditorEventEffect::PlaySessionStarted
             | EditorEventEffect::OpenScenePickerRequested
             | EditorEventEffect::CreateScenePickerRequested
             | EditorEventEffect::OpenedViewVisibilityRequested { .. } => {

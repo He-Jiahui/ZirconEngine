@@ -439,7 +439,7 @@ pub(super) fn execute_menu_action_with_save_authorization(
             }
             Ok(ExecutionOutcome {
                 changed,
-                effects: scene_effects(),
+                effects: play_start_effects(changed, controller.play_sessions().mode()),
             })
         }
         MenuAction::ExitPlayMode => {
@@ -818,3 +818,12 @@ fn trace_play_stop_stage(
 #[cfg(test)]
 #[path = "tests/menu_action.rs"]
 mod tests;
+
+// Report only a successful start with a live backend, after consumer/domain commit.
+fn play_start_effects(changed: bool, mode: PlayModeKind) -> Vec<EditorEventEffect> {
+    let mut effects = scene_effects();
+    if changed && mode.has_active_runtime() {
+        effects.push(EditorEventEffect::PlaySessionStarted);
+    }
+    effects
+}

@@ -16,6 +16,9 @@ impl RetainedEditorHost {
             }
         }
         let mut activity_toasts_published = false;
+        if let Some(sequence) = effects.play_started_sequence {
+            activity_toasts_published |= self.warn_degraded_play_start(sequence);
+        }
         if !effects.toast_notifications.is_empty() {
             activity_toasts_published |= self.enqueue_activity_toasts(&effects.toast_notifications);
         }

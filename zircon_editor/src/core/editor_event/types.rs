@@ -448,6 +448,7 @@ pub enum EditorEventEffect {
     CommandPaletteOpenRequested,
     SettingsWindowOpenRequested,
     ContentDrawerToggleRequested,
+    PlaySessionStarted,
     OpenScenePickerRequested,
     CreateScenePickerRequested,
     /// Explicitly opened view identity; the UI host decides whether its current

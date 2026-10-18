@@ -16,6 +16,9 @@ pub(crate) fn merge_effects(target: &mut UiHostEventEffects, source: UiHostEvent
     target.open_command_palette_requested |= source.open_command_palette_requested;
     target.open_settings_window_requested |= source.open_settings_window_requested;
     target.toggle_content_drawer_requested ^= source.toggle_content_drawer_requested;
+    if source.play_started_sequence.is_some() {
+        target.play_started_sequence = source.play_started_sequence;
+    }
     target.open_scene_picker_requested |= source.open_scene_picker_requested;
     target.create_scene_picker_requested |= source.create_scene_picker_requested;
     target

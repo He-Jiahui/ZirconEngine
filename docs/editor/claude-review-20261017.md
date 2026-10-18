@@ -374,7 +374,7 @@ compliance here is not evidence of sandbox enforcement.
 | H9 | Plan, role contract, Annotate/export/compiler scaffold and synthetic goldens landed. No real Penpot kit/export or generated operator shell accepted. |
 | M2 | Real severity/notification counts and per-kind snap projection implemented. Rust tests/rendered spacing pending. |
 | M3 | Bounded readiness and immutable startup presenter selection implemented. Real driver latency/idle/presenter tests pending. |
-| M4 | Degradation warning/banner/counters implemented. Inline adapter projection and per-Play-start notification remain open. |
+| M4 | Degradation warning/banner/counters and per-Play-start warning implemented. Inline adapter projection remains deferred below. |
 | M5, M6, M7 | Q/W/E/R commands added. Open: fly/Alt navigation, broader authoring/reflection/asset-drop verbs, and main-window docking integration. |
 | M8 | Controller-derived run admission/state implemented. Pause/Step/Eject and asynchronous state UI remain open. |
 | M9 | Deferred at the report's `zircon_editor/build.rs` authorization checkpoint. |
@@ -487,3 +487,34 @@ No real Penpot document/bundle or installed Angular/TypeScript dependencies are
 present. O2 therefore remains unaccepted: Node fixtures prove the supported
 compiler subset only. The Windows managed validator and Rust `ui::operator`
 commands above remain required, followed by actual kit export and engine loading.
+
+## Degraded Play notification (M4, 2026-10-18)
+
+Successful UI Play/Simulate startup emits a committed-start effect only after the
+live backend and consumer/selection setup complete. The retained host uses the
+existing graphics degradation reason to write a warning to stderr and the editor
+log, and to publish a warning toast. Its identity includes the event sequence,
+so an earlier live warning cannot suppress a later Play start. The persistent
+banner retains the full diagnostic; long Unicode toast text is bounded safely.
+Normal graphics, unchanged requests and non-live states produce no start warning.
+
+Added tests cover start-effect admission, event-sequence propagation, unique notice
+identities, normal/degraded paths and long Unicode diagnostics. Changed Rust AST,
+locale TOML and whitespace checks passed on Linux; behavior execution is pending:
+
+```powershell
+& tools/dev/local-cargo.ps1 -TargetDir $t test -p zircon_editor --lib play_graphics_warning --locked
+& tools/dev/local-cargo.ps1 -TargetDir $t test -p zircon_editor --lib play_start_notice --locked
+& tools/dev/local-cargo.ps1 -TargetDir $t test -p zircon_editor --lib workbench_notifications --locked
+```
+
+Force `ZIRCON_PROFILE_FORCE_SOFTBUFFER=1` in a profiling build and start/stop Play
+twice before the first toast expires. Each successful start must have a warning
+log and a distinct notice; the banner must remain. Repeat normal shared startup
+and require no degradation notice. These native checks remain pending.
+
+Inline adapter/backend projection is deferred: the host's presenter factory and
+Editor gateway have no cheap immutable selected-device summary. Profiling RPC is
+not an always-on UI adapter authority, and standalone chrome can select a different
+device from Runtime. Runtime logs keep the actual adapter evidence; a proper UI
+summary must identify both devices without guessing from the requested backend.
