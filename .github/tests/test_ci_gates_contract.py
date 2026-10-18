@@ -39,6 +39,7 @@ class CiGatesContractTests(unittest.TestCase):
         for command in (
             "cargo check -p zircon_app --bin zircon_editor --no-default-features --features target-editor-host --locked",
             "cargo check --manifest-path zircon_plugins/Cargo.toml --workspace --locked",
+            "-RequireMatchingTests cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_zr_vm_language_runtime --test behavior_bridge --locked",
             "-RequireMatchingTests cargo test -p zircon_editor --lib core::commands --locked",
         ):
             self.assertRegex(gate, rf"(?m)^        run: ./\.github/scripts/invoke-cargo-msvc\.ps1 {re.escape(command)}$")

@@ -2,9 +2,10 @@
 
 `CI / editor-compile-gate` runs on every pull request targeting `main` or `master`
 using the GitHub-hosted `windows-2022` image. It checks the full
-`target-editor-host` closure and plugin workspace, then executes the editor
-`core::commands` tests. The test wrapper rejects zero matching or zero passing
-tests. Its timeout is 60 minutes. It needs no repository secret or GPU.
+`target-editor-host` closure and plugin workspace, then executes the VM behavior
+bridge lifecycle regression and editor `core::commands` tests. The test wrapper
+rejects zero matching or zero passing tests. Its timeout is 60 minutes. It needs
+no repository secret or GPU.
 
 All Cargo, rustup, build and temporary directories are under a fresh
 `D:\cargo-targets\zircon-local\ci\runs\<run>-<attempt>\e-0`.
@@ -66,6 +67,8 @@ if ($LASTEXITCODE -ne 0) { throw 'MSVC wrapper regression failed' }
 if ($LASTEXITCODE -ne 0) { throw 'Editor closure check failed' }
 & .github/scripts/invoke-cargo-msvc.ps1 cargo +1.94.1 check --manifest-path zircon_plugins/Cargo.toml --workspace --locked
 if ($LASTEXITCODE -ne 0) { throw 'Plugin workspace check failed' }
+& .github/scripts/invoke-cargo-msvc.ps1 -RequireMatchingTests cargo +1.94.1 test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_zr_vm_language_runtime --test behavior_bridge --locked
+if ($LASTEXITCODE -ne 0) { throw 'Script behavior bridge lifecycle tests failed' }
 & .github/scripts/invoke-cargo-msvc.ps1 -RequireMatchingTests cargo +1.94.1 test -p zircon_editor --lib core::commands --locked
 if ($LASTEXITCODE -ne 0) { throw 'Editor command tests failed' }
 ```

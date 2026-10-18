@@ -1,10 +1,11 @@
 //! 行为树桥接把包限定的脚本节点引用解析为回调句柄；缓存随管理器代际刷新，使树节点调用已激活脚本而非旧实例。
 use std::collections::BTreeMap;
-use std::sync::{Arc, Mutex, MutexGuard, Weak};
+use std::sync::{Arc, Mutex, MutexGuard};
 
 use crate::core::framework::script::{
     ScriptBehaviorBridge, ScriptBehaviorCallbackRef, ScriptHostError, ScriptHostValue,
 };
+use crate::core::runtime::ServiceHandle;
 
 use super::{VmCallbackHandle, VmPluginManager};
 
@@ -12,7 +13,16 @@ use super::{VmCallbackHandle, VmPluginManager};
 /// `script.behavior.v1`.
 #[derive(Default)]
 pub struct VmScriptBehaviorBridge {
-    manager: Mutex<Weak<VmPluginManager>>,
+    manager: Mutex<Option<Arc<BoundVmManager>>>,
+}
+
+struct BoundVmManager {
+    handle: ServiceHandle<VmPluginManager>,
+    callbacks: VmBehaviorCallbackCache,
+}
+
+#[derive(Default)]
+struct VmBehaviorCallbackCache {
     callbacks: Mutex<BTreeMap<ScriptBehaviorCallbackRef, VmCallbackHandle>>,
 }
 
@@ -21,20 +31,33 @@ impl VmScriptBehaviorBridge {
         Self::default()
     }
 
-    /// Binds the active script manager without extending its lifecycle.
-    pub fn bind_manager(&self, manager: &Arc<VmPluginManager>) {
-        let next = Arc::downgrade(manager);
-        let changed = {
-            let mut current = self.lock_manager();
-            let changed = !current.ptr_eq(&next);
-            *current = next;
-            changed
-        };
-        if changed {
-            self.lock_callbacks().clear();
+    /// Binds an exact runtime registration without retaining the service or a call admission.
+    pub fn bind_manager(&self, handle: ServiceHandle<VmPluginManager>) {
+        let mut current = self.lock_manager();
+        if current.as_ref().is_some_and(|bound| bound.handle == handle) {
+            return;
         }
+        // An in-flight invocation keeps its own cache when a new registration binds.
+        *current = Some(Arc::new(BoundVmManager {
+            handle,
+            callbacks: VmBehaviorCallbackCache::default(),
+        }));
     }
 
+    fn manager(&self) -> Result<Arc<BoundVmManager>, ScriptHostError> {
+        self.lock_manager().clone().ok_or_else(|| {
+            ScriptHostError::new("script behavior bridge is not bound to an active VM manager")
+        })
+    }
+
+    fn lock_manager(&self) -> MutexGuard<'_, Option<Arc<BoundVmManager>>> {
+        self.manager
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
+}
+
+impl VmBehaviorCallbackCache {
     fn cache_callback(
         &self,
         callback: &ScriptBehaviorCallbackRef,
@@ -47,12 +70,6 @@ impl VmScriptBehaviorBridge {
         }
         callbacks.insert(callback.clone(), handle);
         true
-    }
-
-    fn manager(&self) -> Result<Arc<VmPluginManager>, ScriptHostError> {
-        self.lock_manager().upgrade().ok_or_else(|| {
-            ScriptHostError::new("script behavior bridge is not bound to an active VM manager")
-        })
     }
 
     fn resolve_callback(
@@ -94,12 +111,6 @@ impl VmScriptBehaviorBridge {
         Ok(registration.callback)
     }
 
-    fn lock_manager(&self) -> MutexGuard<'_, Weak<VmPluginManager>> {
-        self.manager
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner())
-    }
-
     fn lock_callbacks(
         &self,
     ) -> MutexGuard<'_, BTreeMap<ScriptBehaviorCallbackRef, VmCallbackHandle>> {
@@ -115,14 +126,18 @@ impl ScriptBehaviorBridge for VmScriptBehaviorBridge {
         callback: &ScriptBehaviorCallbackRef,
         arguments: &[ScriptHostValue],
     ) -> Result<Option<ScriptHostValue>, ScriptHostError> {
-        let manager = self.manager()?;
-        let mut handle = self.resolve_callback(&manager, callback)?;
+        let binding = self.manager()?;
+        let manager = binding
+            .handle
+            .enter()
+            .map_err(|error| ScriptHostError::new(error.to_string()))?;
+        let mut handle = binding.callbacks.resolve_callback(&manager, callback)?;
         let resolved_handle = handle;
         let result = manager
             .invoke_callback(&mut handle, arguments)
             .map_err(|error| ScriptHostError::new(error.to_string()));
         if result.is_ok() && handle != resolved_handle {
-            self.cache_callback(callback, handle);
+            binding.callbacks.cache_callback(callback, handle);
         }
         result
     }

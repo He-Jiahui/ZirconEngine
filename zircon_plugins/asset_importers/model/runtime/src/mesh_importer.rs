@@ -73,7 +73,7 @@ fn import_stl(context: &AssetImportContext) -> Result<AssetImportOutcome, AssetI
             .file_stem()
             .and_then(|stem| stem.to_str()),
         &source_hint,
-        virtual_geometry_request,
+        &virtual_geometry_request,
         context.mesh_sdf_cook_request()?.settings(),
     )?;
 
@@ -157,7 +157,7 @@ fn import_ply(context: &AssetImportContext) -> Result<AssetImportOutcome, AssetI
             .file_stem()
             .and_then(|stem| stem.to_str()),
         &source_hint,
-        virtual_geometry_request,
+        &virtual_geometry_request,
         context.mesh_sdf_cook_request()?.settings(),
     )?;
 

@@ -947,3 +947,35 @@ Broad warning/clippy burn-down is not complete. Run `39139659508` has already
 passed Source and tooling contracts; its Wiki build/upload also succeeds with
 **zero annotations**, removing the transitive Node-20 warning. Configure/deploy
 retain their non-PR admission and remain source-reviewed rather than executed.
+
+## Plugin compile adapters and service admission (C2 follow-up)
+
+[Run 39139659508](https://github.com/He-Jiahui/ZirconEngine/actions/runs/39139659508)
+passed the complete Windows editor feature closure in 3m54s. Its plugin check
+then exposed two missing borrows of virtual-geometry cook requests and a stale
+VM behavior-bridge adapter expecting an `Arc` from manager resolution. Borrow
+the existing requests and bind the bridge through `ServiceHandle<VmPluginManager>`.
+Core remains the lifecycle authority: each invocation enters the exact runtime
+registration and retains its call guard until the callback returns. The idle
+bridge retains neither the runtime, the manager nor a call admission.
+
+Service-handle equality compares the owning runtime and full registration
+identity, following the existing manager-service-handle precedent. An unchanged
+binding preserves its cache. Each changed binding owns a fresh cache, so a
+concurrent old invocation cannot populate the new registration's cache. The
+plugin's frame system resolves the durable handle instead of retaining a guard.
+The existing private cache tests retain their assertions against the cache owner.
+
+Four public integration regressions cover unbound invocation, deactivation and
+reactivation with an external manager Arc still alive, idle ownership release,
+and cache isolation between otherwise matching registrations in different
+runtimes. The PR gate runs this bounded integration target after the plugin
+check; [local reproduction](ci-validation.md) includes the exact Windows command.
+No VM repository or process is changed. Hosted execution of these regressions
+and the editor command tests remains pending the next coherent push.
+
+Local checks: all 24 portable CI tests pass (three Windows wrapper cases skip),
+actionlint and whitespace checks pass, and all six changed Rust files parse with
+zero Change Guard findings. All 265 Cargo targets are reachable; test separation
+and source-path audits report no new violations. These static checks do not
+establish Rust compilation or lifecycle execution.

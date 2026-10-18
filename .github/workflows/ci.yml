@@ -80,6 +80,9 @@ jobs:
       - name: Compile the plugin workspace
         shell: pwsh
         run: ./.github/scripts/invoke-cargo-msvc.ps1 cargo check --manifest-path zircon_plugins/Cargo.toml --workspace --locked
+      - name: Test script behavior bridge service admission
+        shell: pwsh
+        run: ./.github/scripts/invoke-cargo-msvc.ps1 -RequireMatchingTests cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_zr_vm_language_runtime --test behavior_bridge --locked
       - name: Test editor commands and effective keymap
         shell: pwsh
         run: ./.github/scripts/invoke-cargo-msvc.ps1 -RequireMatchingTests cargo test -p zircon_editor --lib core::commands --locked
