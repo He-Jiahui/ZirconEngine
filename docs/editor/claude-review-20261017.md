@@ -32,3 +32,32 @@ $t = 'E:\cargo-targets\zircon-local\claude-review-20261017'
 & tools/dev/local-cargo.ps1 -TargetDir $t check --manifest-path zircon_plugins/Cargo.toml --workspace --all-targets --locked
 & tools/dev/local-cargo.ps1 -TargetDir $t test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_virtual_geometry_runtime indirect --locked
 ```
+
+## Commands and popup menus (H8, H6, L5)
+
+The shipped keymap now uses Alt+P/Esc and includes Save All. A regression test
+compares every descriptor default to the shipped preset and checks predicate-aware
+conflicts. The palette's cached search catalog now uses the effective keymap,
+including overrides and explicit unbinding. Existing workbench menu projection
+already applied effective shortcuts; that behavior is retained.
+
+Legacy shell popup contents are projected from that menu model using ordered
+command IDs in `unreal/menus.contract.toml`. Dispatch enters the command boundary
+and rechecks enablement. Add exposes all seven implemented node constructors,
+which now require a project. Empty, unsupported popups and the dead Pause button
+are hidden. Pause/Step and additional authoring/navigation shortcuts remain pending;
+no unsupported command is advertised as working.
+
+Linux checks: default-keymap TOML consistency, popup/trigger contract consistency,
+`git diff --check`, and Rust **unexpanded AST parsing only** using the installed
+compiler (`RUSTC_BOOTSTRAP=1 rustc --edition=2021 -Zunpretty=ast-tree <file>`).
+AST output is discarded; no compilation products are created. Rust type checking
+and the added behavior tests have not run on this host.
+
+Required focused Windows tests, in addition to the Critical batch:
+
+```powershell
+& tools/dev/local-cargo.ps1 -TargetDir $t test -p zircon_editor --lib core::commands --locked
+& tools/dev/local-cargo.ps1 -TargetDir $t test -p zircon_editor --lib main_menu_items --locked
+& tools/dev/local-cargo.ps1 -TargetDir $t test -p zircon_editor --lib command_palette --locked
+```

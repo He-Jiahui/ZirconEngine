@@ -22,6 +22,20 @@ use crate::core::settings::{
 use super::{EditorKeyChord, EditorKeymap};
 
 #[test]
+fn shipped_keymap_matches_every_descriptor_default_and_has_no_conflicts() {
+    let registry = crate::core::commands::EditorCommandRegistry::default_workbench();
+    let keymap = EditorKeymap::default_workbench();
+    for command in registry.commands() {
+        if let Some(default) = command.default_chord() {
+            assert_eq!(keymap.chord_for_command(command.id().as_str()), Some(default),
+                "default shortcut drift for {}", command.id());
+        }
+    }
+    assert!(keymap.conflicts_with_when(|id| registry.command(id)
+        .map(|command| command.effective_when())).is_empty());
+}
+
+#[test]
 fn user_and_session_keymap_overrides_resolve_through_settings_registry() {
     let key = SettingsKey::parse(EDITOR_KEYMAP_OVERRIDES_KEY).unwrap();
     let mut settings = settings_registry_with_defaults();

@@ -9,6 +9,30 @@ use crate::core::commands::{
 use crate::core::editor_operation::EditorOperationPath;
 use crate::core::i18n::{EditorI18nService, EditorLocale, EditorLocalizationBundle};
 
+#[test]
+fn palette_search_and_display_follow_overrides_and_unbinding() {
+    use crate::core::commands::EditorKeymap;
+    use crate::core::settings::EditorKeymapOverrides;
+    let registry = EditorCommandRegistry::default_workbench();
+    let overrides = EditorKeymapOverrides::new(BTreeMap::from([
+        (EditorOperationPath::parse("runtime.play_mode.enter").unwrap(),
+            Some("Ctrl+Alt+P".parse().unwrap())),
+        (EditorOperationPath::parse("file.project.save").unwrap(), None),
+    ]));
+    let keymap = EditorKeymap::default_workbench().with_overrides(&overrides);
+    let catalog = registry.command_palette_catalog_with_keymap(&keymap);
+    assert!(std::sync::Arc::ptr_eq(&catalog,
+        &registry.command_palette_catalog_with_keymap(&keymap)));
+    let i18n = EditorI18nService::default();
+    let locale = i18n.active_locale();
+    let context = CommandEvalCtx::interactive().with_project_open(true);
+    let window = catalog.query_window(&i18n, &locale, &context, "Ctrl+Alt+P", 0, 10);
+    let play = window.entries().find(|entry| entry.id == "runtime.play_mode.enter").unwrap();
+    assert_eq!(play.shortcut, "Ctrl+Alt+P");
+    let all = catalog.query_window(&i18n, &locale, &context, "", 0, 100);
+    assert!(all.entries().find(|entry| entry.id == "file.project.save").unwrap().shortcut.is_empty());
+}
+
 fn command(id: &str, label: &str, shortcut: Option<&str>) -> EditorCommandDescriptor {
     let bundle = EditorLocalizationBundle::from_locale_maps(
         "fixture.palette.shortcut",

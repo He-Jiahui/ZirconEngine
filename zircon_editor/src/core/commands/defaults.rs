@@ -261,7 +261,7 @@ fn append_selection_commands(commands: &mut Vec<EditorCommandDescriptor>) {
             &[],
             EditorEvent::WorkbenchMenu(MenuAction::CreateNode(kind)),
             None,
-            WhenClause::Always,
+            WhenClause::ProjectOpen,
             ["scene", "node", "create"],
         ));
     }

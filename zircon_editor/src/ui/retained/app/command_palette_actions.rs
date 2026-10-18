@@ -28,9 +28,16 @@ impl RetainedEditorHost {
                 return;
             }
         };
+        let keymap = match self.editor_manager.enter() {
+            Ok(manager) => manager.keymap(),
+            Err(error) => {
+                self.set_status_line(error.to_string());
+                return;
+            }
+        };
         let catalog = {
             let commands = self.runtime.commands().lock();
-            commands.command_palette_catalog()
+            commands.command_palette_catalog_with_keymap(&keymap)
         };
         let i18n = self.runtime.context().i18n();
         let locale = i18n.active_locale();
@@ -75,9 +82,13 @@ impl RetainedEditorHost {
             Ok(mru) => mru,
             Err(error) => return Some(Err(error.to_string())),
         };
+        let keymap = match self.editor_manager.enter() {
+            Ok(manager) => manager.keymap(),
+            Err(error) => return Some(Err(error.to_string())),
+        };
         let catalog = {
             let commands = self.runtime.commands().lock();
-            commands.command_palette_catalog()
+            commands.command_palette_catalog_with_keymap(&keymap)
         };
         let i18n = self.runtime.context().i18n();
         let locale = i18n.active_locale();
@@ -144,9 +155,13 @@ impl RetainedEditorHost {
             Ok(mru) => mru,
             Err(error) => return Some(Err(error.to_string())),
         };
+        let keymap = match self.editor_manager.enter() {
+            Ok(manager) => manager.keymap(),
+            Err(error) => return Some(Err(error.to_string())),
+        };
         let catalog = {
             let commands = self.runtime.commands().lock();
-            commands.command_palette_catalog()
+            commands.command_palette_catalog_with_keymap(&keymap)
         };
         if catalog.generation() != catalog_generation {
             return Some(Ok(UiHostEventEffects::default()));
