@@ -1,3 +1,7 @@
+//! 父模块的段落分块和禁则、词尾规则夹具。
+//!
+//! 手工字形夹具隔离边界整理逻辑；它们不替代真实 RTL 成形或完整错误分支验证。
+
 use std::sync::Arc;
 
 use super::{line_break_chunks, line_break_chunks_with_provider, word_smart_line_break_chunks};
@@ -329,6 +333,8 @@ fn word_smart_line_break_chunks_keep_cjk_closing_delimiter_after_punctuation_wit
     );
 }
 
+/// 记录请求后仍委派给直接 provider 的测试适配器。
+/// 计数和范围先更新，委派返回 Deferred/Failed 也不撤销已记录请求。
 #[derive(Default)]
 struct CountingShapeRunProvider {
     direct: DirectTextShapeRunProvider,
@@ -336,10 +342,12 @@ struct CountingShapeRunProvider {
     requested_ranges: Vec<TextRange>,
 }
 
+/// 忽略请求参数并返回同一 Arc run 的合成 provider，仅用于局部边界夹具。
 struct FixedShapeRunProvider {
     shaped: Arc<ShapedGlyphRun>,
 }
 
+// 复用固定结果以隔离分块逻辑；这里不检查请求文本与合成 run 的身份一致性。
 impl TextShapeRunProvider for FixedShapeRunProvider {
     fn shape_horizontal_range_with_kerning(
         &mut self,
@@ -353,6 +361,7 @@ impl TextShapeRunProvider for FixedShapeRunProvider {
     }
 }
 
+/// 生成带软断点的 RTL 簇首字形，供测试手动排列视觉顺序。
 fn break_glyph(range: std::ops::Range<usize>) -> ShapedGlyph {
     ShapedGlyph {
         glyph_id: 1,
@@ -384,6 +393,7 @@ fn break_glyph(range: std::ops::Range<usize>) -> ShapedGlyph {
     }
 }
 
+/// 生成无断点的簇首并保留给定范围，以单独触发非断点字形的局部范围检查。
 fn plain_glyph(range: std::ops::Range<usize>) -> ShapedGlyph {
     ShapedGlyph {
         cluster_flags: crate::text::ShapedGlyphClusterFlags {
@@ -394,6 +404,7 @@ fn plain_glyph(range: std::ops::Range<usize>) -> ShapedGlyph {
     }
 }
 
+// 先记录再委派，断言观察请求次数和范围，不等同于缓存命中或实际后端执行次数。
 impl TextShapeRunProvider for CountingShapeRunProvider {
     fn shape_horizontal_range_with_kerning(
         &mut self,

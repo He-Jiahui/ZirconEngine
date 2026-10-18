@@ -93,7 +93,6 @@ impl DefaultEditorAssetManager {
         }
     }
 
-
     pub(super) fn model_import_projection_record(
         &self,
         activation: &zircon_runtime::asset::project::ProjectActivationIdentity,
@@ -111,7 +110,9 @@ impl DefaultEditorAssetManager {
         let Some(index) = state.asset_index.as_ref() else {
             return Projection::AwaitingPublication;
         };
-        let index = index.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+        let index = index
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
         if index.project_activation_identity() != Some(activation) {
             return Projection::AwaitingPublication;
         }
@@ -129,7 +130,9 @@ impl DefaultEditorAssetManager {
         }) {
             return Projection::Superseded;
         }
-        Projection::Published { generation_sequence: input.sequence() }
+        Projection::Published {
+            generation_sequence: input.sequence(),
+        }
     }
 
     pub fn refresh_from_runtime_project(&self) -> Result<(), CoreError> {

@@ -181,20 +181,20 @@ fn temporary_root(label: &str) -> PathBuf {
     ))
 }
 
-
-use std::time::{Duration, Instant};
-use crate::core::jobs::{test_job_system, EditorJobSystem};
-use crate::core::notifications::{
-    DecisionCenterConfig, DecisionNotification, DecisionNotificationCenter, DecisionNotificationError,
-    DecisionOption, DecisionOptionId, DecisionTicket, NotificationId, NotificationSource,
-};
 use super::{
     ProjectRecoveryDecisionService, ProjectRecoveryDecisionServiceError,
     RecoveryCompletionDisposition, RecoveryExecutionCompletion, RecoveryOwnerAdmission,
 };
+use crate::core::jobs::{test_job_system, EditorJobSystem};
+use crate::core::notifications::{
+    DecisionCenterConfig, DecisionNotification, DecisionNotificationCenter,
+    DecisionNotificationError, DecisionOption, DecisionOptionId, DecisionTicket, NotificationId,
+    NotificationSource,
+};
 use crate::ui::host::project_recovery_decision::coordinator::{
     RecoveryFailureChoice, RecoveryFailureChoiceReceipt,
 };
+use std::time::{Duration, Instant};
 
 struct RecoveryDecisionFixture {
     root: PathBuf,
@@ -209,7 +209,10 @@ struct RecoveryDecisionFixture {
 
 impl RecoveryDecisionFixture {
     fn new(label: &str) -> Self {
-        Self::with_center(label, DecisionNotificationCenter::new(Default::default()).unwrap())
+        Self::with_center(
+            label,
+            DecisionNotificationCenter::new(Default::default()).unwrap(),
+        )
     }
 
     fn with_center(label: &str, center: DecisionNotificationCenter) -> Self {
@@ -217,8 +220,16 @@ impl RecoveryDecisionFixture {
         let (guard, inspection) = ready_recovery_test_guard(&requested_root);
         let root = guard.project_root().to_path_buf();
         fs::create_dir_all(root.join("assets")).unwrap();
-        fs::write(root.join("assets/retry_scene.zscene"), b"authoritative retry").unwrap();
-        fs::write(root.join("assets/operator_scene.zscene"), b"authoritative operator").unwrap();
+        fs::write(
+            root.join("assets/retry_scene.zscene"),
+            b"authoritative retry",
+        )
+        .unwrap();
+        fs::write(
+            root.join("assets/operator_scene.zscene"),
+            b"authoritative operator",
+        )
+        .unwrap();
         fs::write(root.join("outside.zscene"), b"operator recovery evidence").unwrap();
         let retry_document = AutosaveDocumentId::parse("retry_scene").unwrap();
         let operator_document = AutosaveDocumentId::parse("operator_scene").unwrap();
@@ -227,21 +238,32 @@ impl RecoveryDecisionFixture {
             inspection,
             [
                 RestoreCandidate::new(
-                    retry_document.clone(), root.join("assets/retry_scene.zscene"),
-                    retry_snapshot.clone(), RestoreFreshness::SnapshotAheadOfSource,
+                    retry_document.clone(),
+                    root.join("assets/retry_scene.zscene"),
+                    retry_snapshot.clone(),
+                    RestoreFreshness::SnapshotAheadOfSource,
                 ),
                 RestoreCandidate::new(
-                    operator_document.clone(), root.join("assets/operator_scene.zscene"),
-                    root.join("outside.zscene"), RestoreFreshness::SnapshotAheadOfSource,
+                    operator_document.clone(),
+                    root.join("assets/operator_scene.zscene"),
+                    root.join("outside.zscene"),
+                    RestoreFreshness::SnapshotAheadOfSource,
                 ),
             ],
-        ).unwrap();
+        )
+        .unwrap();
         let service = ProjectRecoveryDecisionService::default();
         let admission = RecoveryOwnerAdmission::from_guard(&guard).unwrap();
         service.begin(&center, &root, startup, &admission).unwrap();
         Self {
-            root, guard: Some(guard), service, center, jobs: test_job_system(),
-            retry_document, operator_document, retry_snapshot,
+            root,
+            guard: Some(guard),
+            service,
+            center,
+            jobs: test_job_system(),
+            retry_document,
+            operator_document,
+            retry_snapshot,
         }
     }
 
@@ -252,7 +274,8 @@ impl RecoveryDecisionFixture {
     fn pump(
         &self,
     ) -> Result<Option<RecoveryExecutionCompletion>, ProjectRecoveryDecisionServiceError> {
-        self.service.pump(&self.center, &self.jobs, &self.admission())
+        self.service
+            .pump(&self.center, &self.jobs, &self.admission())
     }
 
     fn run_initial_failure(&self) -> RecoveryExecutionCompletion {
@@ -265,7 +288,10 @@ impl RecoveryDecisionFixture {
             assert!(self.pump().unwrap().is_none());
         }
         let terminal = self.await_terminal();
-        assert_eq!(terminal.result().unwrap().as_ref().unwrap().failure_count(), 2);
+        assert_eq!(
+            terminal.result().unwrap().as_ref().unwrap().failure_count(),
+            2
+        );
         assert_eq!(terminal.unresolved().total, 2);
         assert!(self.service.is_active());
         terminal
@@ -277,7 +303,10 @@ impl RecoveryDecisionFixture {
             if let Some(terminal) = self.service.poll_completion().unwrap() {
                 return terminal;
             }
-            assert!(Instant::now() < deadline, "real recovery worker must reach a terminal");
+            assert!(
+                Instant::now() < deadline,
+                "real recovery worker must reach a terminal"
+            );
             std::thread::yield_now();
         }
     }
@@ -294,9 +323,13 @@ impl RecoveryDecisionFixture {
     }
 
     fn try_resolve(
-        &self, ticket: &DecisionTicket, option: &str,
+        &self,
+        ticket: &DecisionTicket,
+        option: &str,
     ) -> Result<(), DecisionNotificationError> {
-        self.center.resolve(ticket, &DecisionOptionId::parse(option).unwrap()).map(|_| ())
+        self.center
+            .resolve(ticket, &DecisionOptionId::parse(option).unwrap())
+            .map(|_| ())
     }
 
     fn cancel(&self, ticket: &DecisionTicket) {
@@ -310,13 +343,18 @@ impl RecoveryDecisionFixture {
 
     fn evidence_bytes(&self) -> Vec<(PathBuf, Vec<u8>)> {
         [
-            "assets/retry_scene.zscene", "assets/operator_scene.zscene", "outside.zscene",
+            "assets/retry_scene.zscene",
+            "assets/operator_scene.zscene",
+            "outside.zscene",
             ".zircon/autosave/retry_scene/1.zscene",
-        ].iter().map(|path| {
+        ]
+        .iter()
+        .map(|path| {
             let path = self.root.join(path);
             let bytes = fs::read(&path).unwrap();
             (path, bytes)
-        }).collect()
+        })
+        .collect()
     }
 }
 
@@ -330,7 +368,10 @@ impl Drop for RecoveryDecisionFixture {
         // Shutdown happens after terminal collection, never as a successful worker barrier.
         let unfinished = self.jobs.shutdown(Instant::now() + Duration::from_secs(10));
         if !std::thread::panicking() {
-            assert!(unfinished.is_empty(), "fixture must not retain its own recovery job");
+            assert!(
+                unfinished.is_empty(),
+                "fixture must not retain its own recovery job"
+            );
         }
         drop(self.guard.take());
         let _ = fs::remove_dir_all(&self.root);
@@ -345,24 +386,31 @@ fn test_unrelated_decision(id: &str) -> DecisionNotification {
         "editor.recovery.review.message",
         vec![
             DecisionOption::new(
-                DecisionOptionId::parse("keep_files").unwrap(), "editor.recovery.review.keep_files",
-            ).unwrap(),
+                DecisionOptionId::parse("keep_files").unwrap(),
+                "editor.recovery.review.keep_files",
+            )
+            .unwrap(),
             DecisionOption::new(
-                DecisionOptionId::parse("defer").unwrap(), "editor.recovery.review.defer",
-            ).unwrap(),
+                DecisionOptionId::parse("defer").unwrap(),
+                "editor.recovery.review.defer",
+            )
+            .unwrap(),
         ],
-    ).unwrap()
+    )
+    .unwrap()
 }
 
 fn ready_recovery_test_guard(root: &Path) -> (SessionGuard, SessionLockInspection) {
     let operation = ProjectActivationOperationIdGenerator::new(ProjectLaunchInstanceId::new())
-        .allocate().expect("fixture operation");
+        .allocate()
+        .expect("fixture operation");
     let request = SessionAdmissionRequest::new(
         operation,
         ProjectSessionPrincipalV1::Welcome,
         ZrRuntimeBuildSetId::parse(
             "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
-        ).unwrap(),
+        )
+        .unwrap(),
     );
     let mut guard = match SessionGuard::claim(root, &request).unwrap() {
         SessionGuardAdmission::Acquired(guard) => guard,
@@ -375,12 +423,14 @@ fn ready_recovery_test_guard(root: &Path) -> (SessionGuard, SessionLockInspectio
     (guard, inspection)
 }
 
-
 #[test]
 fn retry_decision_runs_only_safe_documents_and_preserves_unresolved_operator_failures() {
     let fixture = RecoveryDecisionFixture::new("recovery-retry-through-worker");
     let first = fixture.run_initial_failure();
-    assert_eq!(first.disposition(), RecoveryCompletionDisposition::Incomplete);
+    assert_eq!(
+        first.disposition(),
+        RecoveryCompletionDisposition::Incomplete
+    );
     assert_eq!(first.unresolved().total, 2);
     assert_eq!(first.unresolved().retryable, 1);
     fixture.write_retry_snapshot();
@@ -394,7 +444,10 @@ fn retry_decision_runs_only_safe_documents_and_preserves_unresolved_operator_fai
     assert_eq!(report.success_count(), 1);
     assert!(!report.has_failures());
     // This worker succeeded, but the flow still contains the earlier permanent failure.
-    assert_eq!(retried.disposition(), RecoveryCompletionDisposition::Incomplete);
+    assert_eq!(
+        retried.disposition(),
+        RecoveryCompletionDisposition::Incomplete
+    );
     assert_eq!(retried.unresolved().total, 1);
     assert_eq!(retried.unresolved().retryable, 0);
     assert_eq!(retried.unresolved().operator_required, 1);
@@ -413,15 +466,31 @@ fn keep_files_decision_settles_only_the_attempt_without_deleting_recovery_eviden
     let evidence = fixture.evidence_bytes();
     let ticket = fixture.failure_ticket();
     fixture.resolve(&ticket, "keep_files");
-    let kept = fixture.pump().unwrap().expect("explicit settlement completion");
-    assert_eq!(kept.disposition(), RecoveryCompletionDisposition::EvidenceKept);
+    let kept = fixture
+        .pump()
+        .unwrap()
+        .expect("explicit settlement completion");
+    assert_eq!(
+        kept.disposition(),
+        RecoveryCompletionDisposition::EvidenceKept
+    );
     assert!(kept.result().is_none());
     assert_eq!(kept.unresolved().total, 2);
     assert_eq!(fixture.evidence_bytes(), evidence);
     assert!(!fixture.service.is_active());
     assert!(!fixture.service.request_review_if_active());
     assert!(fixture.center.pending_snapshot().is_empty());
-    assert_eq!(fixture.service.lock_execution().failed.as_ref().unwrap().documents.len(), 2);
+    assert_eq!(
+        fixture
+            .service
+            .lock_execution()
+            .failed
+            .as_ref()
+            .unwrap()
+            .documents
+            .len(),
+        2
+    );
     assert!(fixture.pump().unwrap().is_none());
     assert_eq!(fixture.evidence_bytes(), evidence);
 }
@@ -444,7 +513,10 @@ fn deferred_failure_is_republished_only_after_a_close_review_request() {
     assert_ne!(new, old);
     assert!(fixture.try_resolve(&old, "keep_files").is_err());
     fixture.resolve(&new, "keep_files");
-    fixture.pump().unwrap().expect("the new ticket settles the same attempt");
+    fixture
+        .pump()
+        .unwrap()
+        .expect("the new ticket settles the same attempt");
     assert!(!fixture.service.is_active());
 }
 
@@ -479,9 +551,7 @@ fn duplicate_or_old_tickets_cannot_repeat_retry_or_acknowledge_a_new_attempt() {
     let operation = fixture.service.lock_operation_gate();
     let mut state = fixture.service.lock_execution();
     assert!(matches!(
-        ProjectRecoveryDecisionService::apply_failure_choice_locked(
-            &mut state, &admission, &stale,
-        ),
+        ProjectRecoveryDecisionService::apply_failure_choice_locked(&mut state, &admission, &stale,),
         Err(ProjectRecoveryDecisionServiceError::StaleFailureDecision)
     ));
     assert!(!state.failed_acknowledged);
@@ -518,7 +588,9 @@ fn lost_or_replaced_ready_ownership_rejects_failure_actions_without_consuming_ev
     let other = RecoveryDecisionFixture::new("recovery-unrelated-ready-owner");
     let admission = other.admission();
     assert!(matches!(
-        fixture.service.pump(&fixture.center, &fixture.jobs, &admission),
+        fixture
+            .service
+            .pump(&fixture.center, &fixture.jobs, &admission),
         Err(ProjectRecoveryDecisionServiceError::SessionChanged)
     ));
     assert!(fixture.service.is_active());
@@ -532,7 +604,9 @@ fn lost_or_replaced_ready_ownership_rejects_failure_actions_without_consuming_ev
     assert_eq!(current.stamp.project_root, old_stamp.project_root);
     assert_ne!(current.stamp.generation, old_stamp.generation);
     assert!(matches!(
-        fixture.service.pump(&fixture.center, &fixture.jobs, &current),
+        fixture
+            .service
+            .pump(&fixture.center, &fixture.jobs, &current),
         Err(ProjectRecoveryDecisionServiceError::SessionChanged)
     ));
     assert!(fixture.service.is_active());
@@ -552,13 +626,23 @@ fn failure_actions_are_rejected_while_retry_is_queued_or_running() {
         let _operation = fixture.service.lock_operation_gate();
         let mut state = fixture.service.lock_execution();
         let summary = state.failed.as_ref().unwrap().unresolved_summary();
-        let receipt = fixture.service.coordinator.pump_failure_review(
-            &mut state.review, &fixture.center, initial.job(),
-            summary.total, summary.retryable,
-        ).unwrap().expect("real center receipt");
+        let receipt = fixture
+            .service
+            .coordinator
+            .pump_failure_review(
+                &mut state.review,
+                &fixture.center,
+                initial.job(),
+                summary.total,
+                summary.retryable,
+            )
+            .unwrap()
+            .expect("real center receipt");
         assert!(ProjectRecoveryDecisionService::apply_failure_choice_locked(
             &mut state, &admission, &receipt,
-        ).unwrap().is_none());
+        )
+        .unwrap()
+        .is_none());
         assert!(state.pending.is_some() && state.in_flight.is_none());
         assert!(matches!(
             ProjectRecoveryDecisionService::apply_failure_choice_locked(
@@ -590,10 +674,13 @@ fn failure_actions_are_rejected_while_retry_is_queued_or_running() {
 fn expired_or_capacity_blocked_failure_review_never_releases_the_close_fence() {
     let fixture = RecoveryDecisionFixture::with_center(
         "recovery-review-receipt-window",
-        DecisionNotificationCenter::new(DecisionCenterConfig::new(1, 1).unwrap()).unwrap()
+        DecisionNotificationCenter::new(DecisionCenterConfig::new(1, 1).unwrap()).unwrap(),
     );
     fixture.run_initial_failure();
-    let blocker = fixture.center.publish(test_unrelated_decision("recovery.review.blocker")).unwrap();
+    let blocker = fixture
+        .center
+        .publish(test_unrelated_decision("recovery.review.blocker"))
+        .unwrap();
     assert!(fixture.pump().unwrap().is_none());
     assert!(fixture.service.is_active());
     assert_eq!(fixture.center.pending_snapshot().len(), 1);
@@ -601,7 +688,10 @@ fn expired_or_capacity_blocked_failure_review_never_releases_the_close_fence() {
     fixture.resolve(&blocker, "defer");
     let old = fixture.failure_ticket();
     fixture.resolve(&old, "keep_files");
-    let eviction = fixture.center.publish(test_unrelated_decision("recovery.review.eviction")).unwrap();
+    let eviction = fixture
+        .center
+        .publish(test_unrelated_decision("recovery.review.eviction"))
+        .unwrap();
     fixture.resolve(&eviction, "defer");
     // The exact Keep receipt is now outside the retained window. Never guess its outcome.
     assert!(fixture.pump().unwrap().is_none());
@@ -611,6 +701,9 @@ fn expired_or_capacity_blocked_failure_review_never_releases_the_close_fence() {
     assert!(!fixture.service.lock_execution().failed_acknowledged);
     fixture.resolve(&new, "keep_files");
     let kept = fixture.pump().unwrap().expect("fresh explicit receipt");
-    assert_eq!(kept.disposition(), RecoveryCompletionDisposition::EvidenceKept);
+    assert_eq!(
+        kept.disposition(),
+        RecoveryCompletionDisposition::EvidenceKept
+    );
     assert!(!fixture.service.is_active());
 }

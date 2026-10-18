@@ -151,7 +151,7 @@ def native_processes():
     return module
 
 
-def run_native_command(command, repo, environment, timeout=120):
+def run_native_command(command, repo, environment, timeout=600):
     """Wait for the complete owned tree and close it on timeout or interruption."""
     native = native_processes()
     process, handle = native.create_atomic_kill_on_close_process(tuple(command), cwd=repo, env=environment)

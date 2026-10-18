@@ -8,6 +8,20 @@ use super::super::editor_manager::EditorManager;
 use super::{ProjectCloseError, ProjectCloseOperation, ProjectCloseReceipt};
 
 impl EditorManager {
+    /// Captures the real admission identity without changing its lifecycle.
+    pub(crate) fn project_close_activation_identity(&self) -> Option<ProjectCloseOperation> {
+        let guard = self
+            .project_session_guard
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        guard.as_ref().map(|guard| {
+            ProjectCloseOperation::new(
+                guard.project_root().to_path_buf(),
+                guard.record().operation_id(),
+            )
+        })
+    }
+
     /// Persists the non-ready close phase and returns the only capability accepted by teardown.
     pub(in crate::ui::host) fn begin_project_close_operation(
         &self,
@@ -252,7 +266,7 @@ impl EditorManager {
             })
     }
 
-    fn validate_project_close_operation(
+    pub(crate) fn validate_project_close_operation(
         &self,
         operation: &ProjectCloseOperation,
         effect: ProjectSessionEffect,

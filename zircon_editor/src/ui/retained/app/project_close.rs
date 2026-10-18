@@ -45,6 +45,8 @@ impl std::fmt::Display for ProjectClosePlayShutdownBlocker {
 
 #[derive(Debug, Error)]
 pub(in crate::ui::retained_host::app) enum RetainedProjectCloseError {
+    #[error("The main window is already closing; this project close must wait.")]
+    MainWindowCloseOwned,
     #[error("Project close is waiting for {owner} to reach a terminal save state.")]
     PendingDocumentSave { owner: DirtyDocumentSaveOwner },
     #[error("Project close is waiting for the queued Save All request to finish.")]
@@ -245,6 +247,35 @@ impl RetainedEditorHost {
     pub(in crate::ui::retained_host::app) fn commit_project_close(
         &mut self,
     ) -> Result<(), RetainedProjectCloseError> {
+        if self.main_window_close_requested() && !self.main_window_close_complete() {
+            return Err(RetainedProjectCloseError::MainWindowCloseOwned);
+        }
+        let Some(operation) = self.quiesce_project_close()? else {
+            let welcome = welcome_session_after_project_close(self.startup_session.clone(), None);
+            return self
+                .apply_startup_session(welcome)
+                .map_err(|message| RetainedProjectCloseError::WelcomeWorkspace { message });
+        };
+        self.commit_quiesced_project_close(operation, None, None, false)
+    }
+
+    pub(in crate::ui::retained_host::app) fn quiesce_project_close(
+        &mut self,
+    ) -> Result<Option<ProjectCloseOperation>, RetainedProjectCloseError> {
+        self.quiesce_project_close_with_activation(None)
+    }
+
+    pub(in crate::ui::retained_host::app) fn quiesce_project_close_for_main_window(
+        &mut self,
+        expected: Option<ProjectCloseOperation>,
+    ) -> Result<Option<ProjectCloseOperation>, RetainedProjectCloseError> {
+        self.quiesce_project_close_with_activation(Some(expected))
+    }
+
+    fn quiesce_project_close_with_activation(
+        &mut self,
+        expected: Option<Option<ProjectCloseOperation>>,
+    ) -> Result<Option<ProjectCloseOperation>, RetainedProjectCloseError> {
         if let Some(owner) = self
             .editor_manager
             .enter()
@@ -266,14 +297,15 @@ impl RetainedEditorHost {
                     .enter()
                     .map_err(crate::ui::host::EditorError::from)
                     .map_err(|source| self.project_close_manager_admission_failure(source))
-                    .and_then(|manager| manager.begin_project_close())
+                    .and_then(|manager| match expected.as_ref() {
+                        Some(expected) => {
+                            manager.begin_project_close_for_activation(expected.as_ref())
+                        }
+                        None => manager.begin_project_close(),
+                    })
                     .map_err(|source| RetainedProjectCloseError::Manager { source })?
                 else {
-                    let welcome =
-                        welcome_session_after_project_close(self.startup_session.clone(), None);
-                    return self.apply_startup_session(welcome).map_err(|message| {
-                        RetainedProjectCloseError::WelcomeWorkspace { message }
-                    });
+                    return Ok(None);
                 };
                 self.project_close_coordinator
                     .begin_quiescing(operation.clone())
@@ -362,7 +394,7 @@ impl RetainedEditorHost {
                     })?;
                 return Err(self.project_close_failure(&operation, source));
             }
-            ProjectCloseCoordinatorPhase::Closed => return Ok(()),
+            ProjectCloseCoordinatorPhase::Closed => return Ok(None),
         };
 
         if let Err(source) = self
@@ -487,9 +519,26 @@ impl RetainedEditorHost {
             return Err(self.project_close_failure(&operation, source));
         }
 
+        Ok(Some(operation))
+    }
+
+    pub(in crate::ui::retained_host::app) fn commit_quiesced_project_close(
+        &mut self,
+        operation: ProjectCloseOperation,
+        scene: Option<&crate::core::editing::engine::SceneCloseAdmission>,
+        documents: Option<&crate::core::extension::DocumentCloseAdmission>,
+        retain_session: bool,
+    ) -> Result<(), RetainedProjectCloseError> {
         self.project_close_coordinator
             .begin_committing(&operation)
             .map_err(|source| RetainedProjectCloseError::Coordinator { source })?;
+        if let (Some(documents), Some(scene)) = (documents, scene) {
+            self.editor_manager
+                .enter()
+                .map_err(crate::ui::host::EditorError::from)
+                .and_then(|manager| manager.clear_documents_for_main_window_close(documents, scene))
+                .map_err(|source| RetainedProjectCloseError::Manager { source })?;
+        }
         let committed = match self
             .editor_manager
             .enter()
@@ -526,7 +575,12 @@ impl RetainedEditorHost {
         {
             return Err(self.project_close_failure(&operation, source));
         }
-        if let Err(message) = self.apply_startup_session(welcome_session) {
+        let workspace_result = if let Some(scene) = scene {
+            self.apply_main_window_closed_session(welcome_session, scene)
+        } else {
+            self.apply_startup_session(welcome_session)
+        };
+        if let Err(message) = workspace_result {
             let source = self
                 .editor_manager
                 .enter()
@@ -561,20 +615,30 @@ impl RetainedEditorHost {
         {
             return Err(self.project_close_failure(&operation, source));
         }
+        if retain_session {
+            return Ok(());
+        }
+        self.finish_quiesced_project_close(&operation)
+    }
+
+    pub(in crate::ui::retained_host::app) fn finish_quiesced_project_close(
+        &mut self,
+        operation: &ProjectCloseOperation,
+    ) -> Result<(), RetainedProjectCloseError> {
         if let Err(source) = self
             .editor_manager
             .enter()
             .map_err(crate::ui::host::EditorError::from)
             .map_err(|source| {
-                let _ = self.project_close_coordinator.require_recovery(&operation);
+                let _ = self.project_close_coordinator.require_recovery(operation);
                 RetainedProjectCloseError::Manager { source }
             })
-            .map(|manager| manager.finalize_project_close(&operation))?
+            .map(|manager| manager.finalize_project_close(operation))?
         {
-            return Err(self.project_close_failure(&operation, source));
+            return Err(self.project_close_failure(operation, source));
         }
         self.project_close_coordinator
-            .finish_closed(&operation)
+            .finish_closed(operation)
             .map_err(|source| RetainedProjectCloseError::Coordinator { source })?;
         Ok(())
     }

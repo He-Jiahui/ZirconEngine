@@ -1,0 +1,7 @@
+{
+  "name": "woc-m4-spell-aura-convergence-tests",
+  "entry": "world/spell_aura_convergence_test_main",
+  "entry_symbol": "main",
+  "artifacts": ["zr"],
+  "output": "../../.local/woc_m4_spell_aura_convergence_tests"
+}

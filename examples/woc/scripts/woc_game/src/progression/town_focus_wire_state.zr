@@ -1,0 +1,270 @@
+// Byte-preserving adapter for arbitrary source Record<string, number> focus keys.
+// The VM currently cannot decode dynamic UTF-8 bytes to string, so this module
+// mirrors town_focus_state over the canonical wire representation.
+var container = %import("zr.container");
+var contract = %import("generated/town_focus_contract");
+
+pub class WireFocusAllocation {
+    pub var componentBytes: container.Array<uint>;
+    pub var componentOffsets: container.Array<uint>;
+    pub var points: container.Array<int>;
+
+    pub @constructor() {
+        this.componentBytes = new container.Array<uint>();
+        this.componentOffsets = new container.Array<uint>();
+        this.componentOffsets.add(<uint>0);
+        this.points = new container.Array<int>();
+    }
+}
+
+pub class WireSetTownFocusResult {
+    // 0 success, 1 not in town, 2 invalid allocation, 3 over budget.
+    pub var ok: bool;
+    pub var reason: int;
+    pub var allocation: WireFocusAllocation;
+
+    pub @constructor() {
+        this.ok = false;
+        this.reason = 0;
+        this.allocation = new WireFocusAllocation();
+    }
+}
+
+entryBoundsValid(allocation: WireFocusAllocation, index: int): bool {
+    if (index < 0 || index >= allocation.points.length ||
+        allocation.componentOffsets.length != allocation.points.length + 1) {
+        return false;
+    }
+    var start = <uint>allocation.componentOffsets[index];
+    var end = <uint>allocation.componentOffsets[index + 1];
+    return start <= end && end <= <uint>allocation.componentBytes.length;
+}
+
+entriesEqual(allocation: WireFocusAllocation, left: int, right: int): bool {
+    if (!entryBoundsValid(allocation, left) || !entryBoundsValid(allocation, right)) {
+        return false;
+    }
+    var leftStart = <uint>allocation.componentOffsets[left];
+    var leftEnd = <uint>allocation.componentOffsets[left + 1];
+    var rightStart = <uint>allocation.componentOffsets[right];
+    var rightEnd = <uint>allocation.componentOffsets[right + 1];
+    if (leftEnd - leftStart != rightEnd - rightStart) return false;
+    var offset: uint = <uint>0;
+    while (leftStart + offset < leftEnd) {
+        if (<uint>allocation.componentBytes[<int>(leftStart + offset)] !=
+            <uint>allocation.componentBytes[<int>(rightStart + offset)]) {
+            return false;
+        }
+        offset = offset + <uint>1;
+    }
+    return true;
+}
+
+pub allocationShapeValid(allocation: WireFocusAllocation): bool {
+    if (allocation.componentOffsets.length != allocation.points.length + 1 ||
+        allocation.componentOffsets.length <= 0 ||
+        <uint>allocation.componentOffsets[0] != <uint>0 ||
+        <uint>allocation.componentOffsets[allocation.componentOffsets.length - 1] !=
+            <uint>allocation.componentBytes.length) {
+        return false;
+    }
+    var index = 0;
+    while (index < allocation.points.length) {
+        if (!entryBoundsValid(allocation, index)) return false;
+        var other = index + 1;
+        while (other < allocation.points.length) {
+            if (entriesEqual(allocation, index, other)) return false;
+            other = other + 1;
+        }
+        index = index + 1;
+    }
+    return true;
+}
+
+continuationByte(value: uint): bool {
+    return value >= <uint>128 && value <= <uint>191;
+}
+
+entryUtf8Valid(allocation: WireFocusAllocation, index: int): bool {
+    if (!entryBoundsValid(allocation, index)) return false;
+    var cursor = <uint>allocation.componentOffsets[index];
+    var end = <uint>allocation.componentOffsets[index + 1];
+    if (cursor == end || end - cursor > <uint>256) return false;
+    while (cursor < end) {
+        var first = <uint>allocation.componentBytes[<int>cursor];
+        if (first <= <uint>127) {
+            cursor = cursor + <uint>1;
+        } else if (first >= <uint>194 && first <= <uint>223) {
+            if (end - cursor < <uint>2 ||
+                !continuationByte(<uint>allocation.componentBytes[<int>(cursor + <uint>1)])) {
+                return false;
+            }
+            cursor = cursor + <uint>2;
+        } else if (first >= <uint>224 && first <= <uint>239) {
+            if (end - cursor < <uint>3) return false;
+            var second = <uint>allocation.componentBytes[<int>(cursor + <uint>1)];
+            var third = <uint>allocation.componentBytes[<int>(cursor + <uint>2)];
+            if (!continuationByte(third) ||
+                (first == <uint>224 && (second < <uint>160 || second > <uint>191)) ||
+                (first == <uint>237 && (second < <uint>128 || second > <uint>159)) ||
+                (first != <uint>224 && first != <uint>237 && !continuationByte(second))) {
+                return false;
+            }
+            cursor = cursor + <uint>3;
+        } else if (first >= <uint>240 && first <= <uint>244) {
+            if (end - cursor < <uint>4) return false;
+            var second4 = <uint>allocation.componentBytes[<int>(cursor + <uint>1)];
+            var third4 = <uint>allocation.componentBytes[<int>(cursor + <uint>2)];
+            var fourth4 = <uint>allocation.componentBytes[<int>(cursor + <uint>3)];
+            if (!continuationByte(third4) || !continuationByte(fourth4) ||
+                (first == <uint>240 && (second4 < <uint>144 || second4 > <uint>191)) ||
+                (first == <uint>244 && (second4 < <uint>128 || second4 > <uint>143)) ||
+                (first != <uint>240 && first != <uint>244 && !continuationByte(second4))) {
+                return false;
+            }
+            cursor = cursor + <uint>4;
+        } else {
+            return false;
+        }
+    }
+    return true;
+}
+
+requestedAllocationValid(allocation: WireFocusAllocation): bool {
+    if (!allocationShapeValid(allocation)) return false;
+    var index = 0;
+    while (index < allocation.points.length) {
+        if (!entryUtf8Valid(allocation, index) || <int>allocation.points[index] < 0) {
+            return false;
+        }
+        index = index + 1;
+    }
+    return true;
+}
+
+allocationTotal(allocation: WireFocusAllocation): int {
+    var total = 0;
+    var budget = contract.focusPointBudget();
+    var index = 0;
+    while (index < allocation.points.length) {
+        var value = <int>allocation.points[index];
+        if (value > 0) {
+            if (value > budget - total) return budget + 1;
+            total = total + value;
+        }
+        index = index + 1;
+    }
+    return total;
+}
+
+pub storedAllocationValid(allocation: WireFocusAllocation): bool {
+    if (!requestedAllocationValid(allocation) ||
+        allocationTotal(allocation) > contract.focusPointBudget()) {
+        return false;
+    }
+    var index = 0;
+    while (index < allocation.points.length) {
+        if (<int>allocation.points[index] <= 0) return false;
+        index = index + 1;
+    }
+    return true;
+}
+
+copyPositiveEntries(requested: WireFocusAllocation): WireFocusAllocation {
+    var result = new WireFocusAllocation();
+    var index = 0;
+    while (index < requested.points.length) {
+        var points = <int>requested.points[index];
+        if (points > 0) {
+            var cursor = <uint>requested.componentOffsets[index];
+            var end = <uint>requested.componentOffsets[index + 1];
+            while (cursor < end) {
+                result.componentBytes.add(<uint>requested.componentBytes[<int>cursor]);
+                cursor = cursor + <uint>1;
+            }
+            result.componentOffsets.add(<uint>result.componentBytes.length);
+            result.points.add(points);
+        }
+        index = index + 1;
+    }
+    return result;
+}
+
+pub setTownFocus(
+    previous: WireFocusAllocation, requested: WireFocusAllocation, isInTown: bool
+): WireSetTownFocusResult {
+    if (!storedAllocationValid(previous)) {
+        throw "stored town focus wire allocation is invalid";
+    }
+    var result = new WireSetTownFocusResult();
+    if (!isInTown) {
+        result.reason = 1;
+        result.allocation = previous;
+        return result;
+    }
+    if (!requestedAllocationValid(requested)) {
+        result.reason = 2;
+        result.allocation = previous;
+        return result;
+    }
+    if (allocationTotal(requested) > contract.focusPointBudget()) {
+        result.reason = 3;
+        result.allocation = previous;
+        return result;
+    }
+    result.ok = true;
+    result.allocation = copyPositiveEntries(requested);
+    return result;
+}
+
+pub addEntry(
+    allocation: WireFocusAllocation, bytes: container.Array<uint>, points: int
+): void {
+    var index = 0;
+    while (index < bytes.length) {
+        allocation.componentBytes.add(<uint>bytes[index]);
+        index = index + 1;
+    }
+    allocation.componentOffsets.add(<uint>allocation.componentBytes.length);
+    allocation.points.add(points);
+}
+
+pub contractTest(): int {
+    var hide = new container.Array<uint>();
+    hide.add(<uint>104); hide.add(<uint>105); hide.add(<uint>100); hide.add(<uint>101);
+    var ore = new container.Array<uint>();
+    ore.add(<uint>111); ore.add(<uint>114); ore.add(<uint>101);
+    var empty = new WireFocusAllocation();
+    if (!storedAllocationValid(empty)) return -1;
+    var request = new WireFocusAllocation();
+    addEntry(request, hide, 6);
+    addEntry(request, ore, 4);
+    var accepted = setTownFocus(empty, request, true);
+    if (!accepted.ok || accepted.reason != 0 || accepted.allocation.points.length != 2 ||
+        <int>accepted.allocation.points[0] != 6 ||
+        <uint>accepted.allocation.componentBytes[0] != <uint>104) return -2;
+    if (setTownFocus(accepted.allocation, request, false).reason != 1) return -3;
+    var zero = new WireFocusAllocation();
+    addEntry(zero, hide, 0);
+    var cleared = setTownFocus(accepted.allocation, zero, true);
+    if (!cleared.ok || cleared.allocation.points.length != 0 ||
+        !storedAllocationValid(cleared.allocation)) return -4;
+    var duplicate = new WireFocusAllocation();
+    addEntry(duplicate, hide, 1); addEntry(duplicate, hide, 1);
+    if (setTownFocus(empty, duplicate, true).reason != 2) return -5;
+    var negative = new WireFocusAllocation();
+    addEntry(negative, ore, -1);
+    if (setTownFocus(empty, negative, true).reason != 2) return -6;
+    var invalidUtf8Bytes = new container.Array<uint>();
+    invalidUtf8Bytes.add(<uint>192); invalidUtf8Bytes.add(<uint>128);
+    var invalidUtf8 = new WireFocusAllocation();
+    addEntry(invalidUtf8, invalidUtf8Bytes, 1);
+    if (setTownFocus(empty, invalidUtf8, true).reason != 2) return -7;
+    var over = new WireFocusAllocation();
+    addEntry(over, ore, 11);
+    if (setTownFocus(empty, over, true).reason != 3) return -8;
+    var huge = new WireFocusAllocation();
+    addEntry(huge, hide, 2147483647);
+    addEntry(huge, ore, 2147483647);
+    return setTownFocus(empty, huge, true).reason == 3 ? 1 : -9;
+}

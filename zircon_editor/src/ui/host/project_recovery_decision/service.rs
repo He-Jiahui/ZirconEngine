@@ -43,8 +43,10 @@ impl<'guard> RecoveryOwnerAdmission<'guard> {
         if record.lifecycle() != ProjectSessionAdmissionLifecycleV1::Ready {
             return Err(ProjectRecoveryDecisionServiceError::SessionNotReady);
         }
-        let generation = record.session_generation()
-            .ok_or(ProjectRecoveryDecisionServiceError::SessionNotReady)?.get();
+        let generation = record
+            .session_generation()
+            .ok_or(ProjectRecoveryDecisionServiceError::SessionNotReady)?
+            .get();
         Ok(Self {
             _guard: guard,
             stamp: RecoverySessionStamp {
@@ -135,22 +137,30 @@ pub(crate) struct RecoveryExecutionCompletion {
 }
 
 impl RecoveryExecutionCompletion {
-    pub(super) const fn job(&self) -> JobId { self.job }
+    pub(super) const fn job(&self) -> JobId {
+        self.job
+    }
 
     pub(super) fn result(&self) -> Option<&Result<RestoreExecutionReport, JobError>> {
         self.result.as_ref()
     }
 
-    pub(super) const fn unresolved(&self) -> RecoveryUnresolvedSummary { self.unresolved }
+    pub(super) const fn unresolved(&self) -> RecoveryUnresolvedSummary {
+        self.unresolved
+    }
 
-    pub(super) const fn disposition(&self) -> RecoveryCompletionDisposition { self.disposition }
+    pub(super) const fn disposition(&self) -> RecoveryCompletionDisposition {
+        self.disposition
+    }
 }
 
 impl FailedRecoveryExecution {
     fn unresolved_summary(&self) -> RecoveryUnresolvedSummary {
-        let retryable = self.documents.values().filter(|document| {
-            document.retryability == RestoreExecutionRetryability::Retryable
-        }).count();
+        let retryable = self
+            .documents
+            .values()
+            .filter(|document| document.retryability == RestoreExecutionRetryability::Retryable)
+            .count();
         RecoveryUnresolvedSummary {
             total: self.documents.len(),
             retryable,
@@ -216,18 +226,24 @@ impl ProjectRecoveryDecisionService {
             return Ok(None);
         }
         if execution.failed.is_some() && !execution.failed_acknowledged {
-            let attempt = execution.failed_attempt
+            let attempt = execution
+                .failed_attempt
                 .ok_or(ProjectRecoveryDecisionServiceError::MissingFailedExecution)?;
-            let summary = execution.failed.as_ref()
+            let summary = execution
+                .failed
+                .as_ref()
                 .ok_or(ProjectRecoveryDecisionServiceError::NoFailedExecution)?
                 .unresolved_summary();
             let receipt = self.coordinator.pump_failure_review(
-                &mut execution.review, center, attempt, summary.total, summary.retryable,
+                &mut execution.review,
+                center,
+                attempt,
+                summary.total,
+                summary.retryable,
             )?;
             if let Some(receipt) = receipt {
-                let completion = Self::apply_failure_choice_locked(
-                    &mut execution, admission, &receipt,
-                )?;
+                let completion =
+                    Self::apply_failure_choice_locked(&mut execution, admission, &receipt)?;
                 let submit = execution.pending.is_some();
                 drop(execution);
                 if submit {
@@ -260,8 +276,10 @@ impl ProjectRecoveryDecisionService {
     pub(super) fn request_review_if_active(&self) -> bool {
         let _operation = self.lock_operation_gate();
         let mut execution = self.lock_execution();
-        if execution.failed.is_some() && !execution.failed_acknowledged
-            && execution.pending.is_none() && execution.in_flight.is_none()
+        if execution.failed.is_some()
+            && !execution.failed_acknowledged
+            && execution.pending.is_none()
+            && execution.in_flight.is_none()
         {
             execution.review.request_review();
         }
@@ -295,7 +313,9 @@ impl ProjectRecoveryDecisionService {
         {
             return Err(ProjectRecoveryDecisionServiceError::StaleFailureDecision);
         }
-        let summary = execution.failed.as_ref()
+        let summary = execution
+            .failed
+            .as_ref()
             .ok_or(ProjectRecoveryDecisionServiceError::NoFailedExecution)?
             .unresolved_summary();
         match receipt.choice {
@@ -326,9 +346,12 @@ impl ProjectRecoveryDecisionService {
     fn retry_failed(
         execution: &mut RecoveryExecutionState,
     ) -> Result<(), ProjectRecoveryDecisionServiceError> {
-        let failed = execution.failed.as_ref()
+        let failed = execution
+            .failed
+            .as_ref()
             .ok_or(ProjectRecoveryDecisionServiceError::NoFailedExecution)?;
-        let work = failed.retry_work()?
+        let work = failed
+            .retry_work()?
             .ok_or(ProjectRecoveryDecisionServiceError::NoRetryableDocuments)?;
         execution.pending = Some(QueuedRecoveryWork {
             work: Arc::new(work),
@@ -351,12 +374,13 @@ impl ProjectRecoveryDecisionService {
         let job = in_flight.ticket.id();
         match in_flight.attempt {
             RecoveryExecutionAttempt::Initial => {
-                execution.failed = FailedRecoveryExecution::from_initial_result(
-                    in_flight.work, &result,
-                )?;
+                execution.failed =
+                    FailedRecoveryExecution::from_initial_result(in_flight.work, &result)?;
             }
             RecoveryExecutionAttempt::Retry => {
-                let failed = execution.failed.as_mut()
+                let failed = execution
+                    .failed
+                    .as_mut()
                     .ok_or(ProjectRecoveryDecisionServiceError::MissingFailedExecution)?;
                 failed.apply_retry_result(&in_flight.work, &result);
                 if failed.documents.is_empty() {
@@ -367,8 +391,11 @@ impl ProjectRecoveryDecisionService {
         execution.failed_attempt = execution.failed.as_ref().map(|_| job);
         execution.failed_acknowledged = false;
         execution.review = RecoveryFailureReview::default();
-        let summary = execution.failed.as_ref()
-            .map(FailedRecoveryExecution::unresolved_summary).unwrap_or_default();
+        let summary = execution
+            .failed
+            .as_ref()
+            .map(FailedRecoveryExecution::unresolved_summary)
+            .unwrap_or_default();
         let disposition = if summary.total == 0 && result.is_ok() {
             RecoveryCompletionDisposition::Completed
         } else {
@@ -386,13 +413,18 @@ impl ProjectRecoveryDecisionService {
         &self,
         jobs: &EditorJobSystem,
     ) -> Result<(), ProjectRecoveryDecisionServiceError> {
-        let queued = self.lock_execution().pending.take()
+        let queued = self
+            .lock_execution()
+            .pending
+            .take()
             .ok_or(ProjectRecoveryDecisionServiceError::MissingPendingWork)?;
         let spec = RecoveryRestoreJob::spec(queued.work.as_ref());
         match jobs.submit(spec, RecoveryRestoreJob::new(Arc::clone(&queued.work))) {
             Ok(ticket) => {
                 self.lock_execution().in_flight = Some(InFlightRecoveryWork {
-                    work: queued.work, attempt: queued.attempt, ticket,
+                    work: queued.work,
+                    attempt: queued.attempt,
+                    ticket,
                 });
             }
             Err(error) => {
@@ -405,19 +437,23 @@ impl ProjectRecoveryDecisionService {
 
     fn execution_is_active(&self) -> bool {
         let execution = self.lock_execution();
-        execution.pending.is_some() || execution.in_flight.is_some()
+        execution.pending.is_some()
+            || execution.in_flight.is_some()
             || (execution.failed.is_some() && !execution.failed_acknowledged)
     }
 
     fn lock_operation_gate(&self) -> std::sync::MutexGuard<'_, ()> {
-        self.operation_gate.lock().unwrap_or_else(|poisoned| poisoned.into_inner())
+        self.operation_gate
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
     }
 
     fn lock_execution(&self) -> std::sync::MutexGuard<'_, RecoveryExecutionState> {
-        self.execution.lock().unwrap_or_else(|poisoned| poisoned.into_inner())
+        self.execution
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
     }
 }
-
 
 impl FailedRecoveryExecution {
     fn from_initial_result(

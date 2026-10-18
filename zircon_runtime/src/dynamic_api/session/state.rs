@@ -13,7 +13,7 @@ use zircon_runtime_interface::{
 
 use crate::builtin::RuntimeModuleCompositionIdentity;
 use crate::core::framework::channel::ChannelWakeCallback;
-use crate::core::framework::input::{InputEvent, InputEventAdmission, InputManager};
+use crate::core::framework::input::{InputEvent, InputManager};
 use crate::core::framework::render::{RenderFrameTiming, RenderViewportSurfaceDescriptor};
 use crate::core::framework::time::ProductTimePolicy;
 use crate::core::manager::{resolve_manager_service, ManagerServiceHandle};
@@ -22,6 +22,10 @@ use crate::core::{CoreRuntime, FrameClockRebaseReceipt, ServiceCallGuard, TaskGr
 use crate::diagnostic_log::{
     write_diagnostic_store_current_snapshot, write_log, write_log_lazy, DiagnosticStoreLogSchedule,
     DynamicProcessLogLease,
+};
+use crate::input::{
+    InputAttachment, InputDriver, InputIngressAdmission, InputIngressRejection, INPUT_DRIVER_NAME,
+    INPUT_MODULE_NAME,
 };
 use crate::operation::RuntimeOperationService;
 use crate::plugin::{
@@ -125,6 +129,10 @@ pub(super) struct RuntimeDynamicSession {
     pub(super) ui_extract_cache: Option<RuntimeUiExtractCache>,
     pub(super) cursor: Vec2,
     pub(super) input_manager: ManagerServiceHandle<dyn InputManager>,
+    pub(super) input_attachment: InputAttachment,
+    pub(super) input_ingress_detached: bool,
+    pub(super) input_ingress_gap: bool,
+    pub(super) input_consumer_reset_pending: bool,
     pub(super) input_diagnostics: RuntimeInputDiagnostics,
     pub(super) pending_host_request_output: Option<ZrRuntimeHostRequestBatchV1>,
     pub(super) host_request_output_commit_count: usize,
@@ -192,6 +200,12 @@ impl RuntimeDynamicSession {
     }
 
     pub(super) fn shutdown_before_library_unload_until(&mut self, deadline: Instant) -> bool {
+        if let Err(error) = self.detach_input_ingress() {
+            write_log_lazy("runtime_session", || {
+                format!("runtime_input_detach_incomplete error={error}")
+            });
+            return false;
+        }
         let event_mirrors_shutdown = self.shutdown_plugin_event_subscriptions_until(deadline);
         if !event_mirrors_shutdown {
             return false;
@@ -289,12 +303,29 @@ impl RuntimeDynamicSession {
             let core = self.runtime.handle();
             self.operations.tick(&core, &self.level);
         }
-        self.resolve_input_manager()
-            .map_err(|source| RuntimeDynamicSessionError::CoreStep {
-                step: "resolve input for frame",
-                source,
-            })?
-            .begin_frame();
+        {
+            let manager = self.resolve_input_manager().map_err(|source| {
+                RuntimeDynamicSessionError::CoreStep {
+                    step: "resolve input for frame",
+                    source,
+                }
+            })?;
+            let driver = self.resolve_input_driver().map_err(|source| {
+                RuntimeDynamicSessionError::CoreStep {
+                    step: "resolve input ingress for frame",
+                    source,
+                }
+            })?;
+            driver
+                .begin_frame(&*manager, &self.input_attachment)
+                .map_err(|reason| RuntimeDynamicSessionError::CoreStep {
+                    step: "begin input ingress frame",
+                    source: crate::core::CoreError::Initialization(
+                        INPUT_MODULE_NAME.to_owned(),
+                        reason.to_string(),
+                    ),
+                })?;
+        }
         {
             crate::profile_scope!("runtime", "frame", "runtime_ui_input_timer_update");
             self.runtime_ui
@@ -550,25 +581,62 @@ impl RuntimeDynamicSession {
         resolve_manager_service(&self.runtime.handle(), self.input_manager.clone())
     }
 
-    pub(super) fn submit_input_event_with_admission(
+    pub(super) fn resolve_input_driver(
         &self,
-        event: InputEvent,
-    ) -> Result<InputEventAdmission, crate::core::CoreError> {
-        let input_manager = self.resolve_input_manager()?;
-        let admission = input_manager.submit_event_with_admission(event);
-        if let InputEventAdmission::Rejected(reason) = admission {
+    ) -> Result<ServiceCallGuard<InputDriver>, crate::core::CoreError> {
+        self.runtime
+            .handle()
+            .resolve_driver::<InputDriver>(INPUT_DRIVER_NAME)
+    }
+
+    pub(super) fn submit_input_batch_with_admission(
+        &mut self,
+        events: Vec<InputEvent>,
+    ) -> Result<InputIngressAdmission, crate::core::CoreError> {
+        let received_at = Instant::now();
+        self.finish_input_consumer_reset()?;
+        if self.input_ingress_detached {
+            return Ok(InputIngressAdmission::Rejected(
+                InputIngressRejection::Detached,
+            ));
+        }
+        let focus_lost = events
+            .iter()
+            .any(|event| matches!(event, InputEvent::FocusLost));
+        let admission = {
+            let manager = self.resolve_input_manager()?;
+            let driver = self.resolve_input_driver()?;
+            driver.submit_batch(&*manager, &self.input_attachment, events, received_at)
+        };
+        if matches!(
+            admission,
+            InputIngressAdmission::Rejected(InputIngressRejection::FrameCapacity { .. })
+        ) {
+            self.input_ingress_gap = true;
+            self.input_consumer_reset_pending = true;
+        } else if focus_lost && matches!(admission, InputIngressAdmission::Accepted(_)) {
+            self.input_consumer_reset_pending = true;
+        }
+        self.finish_input_consumer_reset()?;
+        if let InputIngressAdmission::Rejected(reason) = admission {
             write_log_lazy("runtime_session", || {
-                format!("runtime_gamepad_event_rejected reason={reason:?}")
+                format!("runtime_input_ingress_rejected reason={reason:?}")
             });
         }
-        // The service guard and manager state lock end before any UI dispatch.
         Ok(admission)
     }
 
-    pub(super) fn submit_input_event(&self, event: InputEvent) -> bool {
-        match self.submit_input_event_with_admission(event) {
-            Ok(InputEventAdmission::Accepted) => true,
-            Ok(InputEventAdmission::Rejected(_)) => false,
+    pub(super) fn submit_input_event_with_admission(
+        &mut self,
+        event: InputEvent,
+    ) -> Result<InputIngressAdmission, crate::core::CoreError> {
+        self.submit_input_batch_with_admission(vec![event])
+    }
+
+    pub(super) fn submit_input_batch(&mut self, events: Vec<InputEvent>) -> bool {
+        match self.submit_input_batch_with_admission(events) {
+            Ok(InputIngressAdmission::Accepted(_)) => true,
+            Ok(InputIngressAdmission::Rejected(_)) => false,
             Err(error) => {
                 write_log_lazy("runtime_session", || {
                     format!("runtime_input_event_dropped_for_stale_manager error={error}")
@@ -576,6 +644,46 @@ impl RuntimeDynamicSession {
                 false
             }
         }
+    }
+
+    pub(super) fn submit_input_event(&mut self, event: InputEvent) -> bool {
+        self.submit_input_batch(vec![event])
+    }
+
+    pub(super) fn finish_input_consumer_reset(&mut self) -> Result<(), crate::core::CoreError> {
+        if !self.input_consumer_reset_pending {
+            return Ok(());
+        }
+        self.camera_controller.cancel_drag();
+        self.ime_composition_route.cancel_active();
+        self.runtime_ui.cancel_input().map_err(|error| {
+            crate::core::CoreError::Initialization(INPUT_MODULE_NAME.to_owned(), error.to_string())
+        })?;
+        self.input_consumer_reset_pending = false;
+        Ok(())
+    }
+
+    pub(super) fn detach_input_ingress(&mut self) -> Result<(), crate::core::CoreError> {
+        self.finish_input_consumer_reset()?;
+        if self.input_ingress_detached {
+            return Ok(());
+        }
+        {
+            let manager = self.resolve_input_manager()?;
+            let driver = self.resolve_input_driver()?;
+            driver
+                .detach(&*manager, &self.input_attachment)
+                .map_err(|reason| {
+                    crate::core::CoreError::Initialization(
+                        INPUT_MODULE_NAME.to_owned(),
+                        reason.to_string(),
+                    )
+                })?;
+        }
+        self.input_ingress_detached = true;
+        self.input_consumer_reset_pending = true;
+        self.finish_input_consumer_reset()?;
+        Ok(())
     }
 
     pub(super) fn record_submitted_pointer_move(&mut self) {

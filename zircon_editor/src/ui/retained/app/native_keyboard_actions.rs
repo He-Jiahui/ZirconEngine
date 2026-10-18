@@ -235,6 +235,7 @@ impl RetainedEditorHost {
             self.workbench_window_bridge.layout_frames().mount_frame,
             self.workbench_window_bridge.presentation_scale_factor(),
         );
+        self.publish_normal_arranged_inventory_after_commit();
     }
 
     fn sync_content_drawer_native_focus_state(&mut self) {

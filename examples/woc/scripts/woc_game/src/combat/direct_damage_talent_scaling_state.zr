@@ -1,0 +1,126 @@
+// Resolves the source talent pass over hostile direct-damage range endpoints.
+// WorldState retains launch timing, persistence, RNG, spell power and impacts.
+var catalog = %import("generated/talent_modifier_catalog");
+var modifiers = %import("progression/talent_modifier_state");
+
+pub class DirectDamageRange {
+    pub var minimum: int;
+    pub var maximum: int;
+
+    pub @constructor() {
+        this.minimum = 0;
+        this.maximum = 0;
+    }
+}
+
+roundPositive(value: float): int {
+    return <int>(value + 0.5);
+}
+
+pub resolveDirectDamageRange(
+    baseMinimum: int,
+    baseMaximum: int,
+    school: string,
+    talentState: modifiers.TalentModifierState,
+    abilityId: string
+): DirectDamageRange {
+    var range = new DirectDamageRange();
+    var globalField = school == "physical" ? "meleeDmgPct" : "spellDmgPct";
+    var multiplier = 1.0 + modifiers.globalField(talentState, globalField) +
+        modifiers.abilityField(talentState, abilityId, "dmgPct");
+    var flat = modifiers.abilityField(talentState, abilityId, "flatDmg");
+    range.minimum = roundPositive(<float>baseMinimum * multiplier + flat);
+    range.maximum = roundPositive(<float>baseMaximum * multiplier + flat);
+    return range;
+}
+
+// WorldState persists the launch allocation beside a projectile and recomputes
+// these exact endpoints during restore. The range itself remains the combat
+// payload and must never be accepted merely because it is numerically bounded.
+pub directDamageRangeSnapshotMatches(
+    expectedMinimum: int,
+    expectedMaximum: int,
+    minimum: int,
+    maximum: int
+): bool {
+    return expectedMinimum >= 0 && expectedMaximum >= expectedMinimum &&
+        minimum == expectedMinimum && maximum == expectedMaximum;
+}
+
+setGlobal(talentState: modifiers.TalentModifierState, name: string, value: float): void {
+    var index = 0;
+    while (index < talentState.globals.length) {
+        if (catalog.globalFieldName(index) == name) {
+            talentState.globals[index] = value;
+            return;
+        }
+        index = index + 1;
+    }
+    throw "woc direct-damage talent global field is absent";
+}
+
+setAbilityNumber(
+    talentState: modifiers.TalentModifierState,
+    abilityId: string,
+    name: string,
+    value: float
+): void {
+    var ability = 0;
+    while (ability < talentState.abilityIds.length &&
+        <string>talentState.abilityIds[ability] != abilityId) {
+        ability = ability + 1;
+    }
+    if (ability == talentState.abilityIds.length) {
+        talentState.abilityIds.add(abilityId);
+        talentState.abilityDottedIds.add("");
+        talentState.abilityCastWhileMoving.add(false);
+        talentState.abilityPushbackImmune.add(false);
+        talentState.abilityNestedEffectCounts.add(0);
+        var newField = 0;
+        while (newField < catalog.abilityNumberFieldCount()) {
+            talentState.abilityNumbers.add(0.0);
+            newField = newField + 1;
+        }
+    }
+    var field = 0;
+    while (field < catalog.abilityNumberFieldCount()) {
+        if (catalog.abilityNumberFieldName(field) == name) {
+            talentState.abilityNumbers[ability * catalog.abilityNumberFieldCount() + field] = value;
+            return;
+        }
+        field = field + 1;
+    }
+    throw "woc direct-damage talent ability field is absent";
+}
+
+pub contractTest(): int {
+    var identityState = new modifiers.TalentModifierState();
+    var identity = resolveDirectDamageRange(31, 41, "physical", identityState, "strike");
+    if (identity.minimum != 31 || identity.maximum != 41) return -1;
+
+    var mixed = new modifiers.TalentModifierState();
+    setGlobal(mixed, "meleeDmgPct", 0.2);
+    setGlobal(mixed, "spellDmgPct", 0.1);
+    setAbilityNumber(mixed, "spell", "dmgPct", 0.2);
+    setAbilityNumber(mixed, "spell", "flatDmg", 2.0);
+    var physical = resolveDirectDamageRange(31, 41, "physical", mixed, "spell");
+    var spell = resolveDirectDamageRange(31, 41, "fire", mixed, "spell");
+    if (physical.minimum != 45 || physical.maximum != 59 ||
+        spell.minimum != 42 || spell.maximum != 55) {
+        return -2;
+    }
+
+    var rounded = new modifiers.TalentModifierState();
+    setAbilityNumber(rounded, "bolt", "dmgPct", 0.15);
+    setAbilityNumber(rounded, "bolt", "flatDmg", 2.0);
+    var endpoints = resolveDirectDamageRange(47, 58, "shadow", rounded, "bolt");
+    var endpointFirst = roundPositive(<float>endpoints.minimum +
+        0.5 * <float>(endpoints.maximum - endpoints.minimum));
+    var postRoll = roundPositive((47.0 + 0.5 * (58.0 - 47.0)) * 1.15 + 2.0);
+    if (endpoints.minimum != 56 || endpoints.maximum != 69 ||
+        endpointFirst != 63 || postRoll != 62) {
+        return -3;
+    }
+    return directDamageRangeSnapshotMatches(56, 69, 56, 69) &&
+        !directDamageRangeSnapshotMatches(56, 69, 57, 69) ? 1 : -4;
+}

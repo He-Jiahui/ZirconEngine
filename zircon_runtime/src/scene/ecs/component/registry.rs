@@ -169,22 +169,35 @@ impl ComponentRegistry {
     /// The World owns dynamic-marker construction and supplies an id-aware
     /// borrow. Erased detached rows still use the same concrete T provider.
     pub(in crate::scene) fn bind_dynamic_retention_provider_v1<T: Component>(
-        &mut self, id: ComponentId,
+        &mut self,
+        id: ComponentId,
         measure_world: fn(
-            &crate::scene::World, crate::scene::EntityId, ComponentId,
+            &crate::scene::World,
+            crate::scene::EntityId,
+            ComponentId,
             &mut RetainedBoundBuilderV1,
         ) -> Result<(), RetentionContractError>,
     ) -> Result<(), RetentionContractError> {
         let descriptor = self.descriptor(id).ok_or(RetentionContractError::Stale)?;
-        if !matches!(&descriptor.source, ComponentDescriptorSource::DynamicPlugin { .. })
-            || descriptor.storage_type != T::STORAGE_TYPE
+        if !matches!(
+            &descriptor.source,
+            ComponentDescriptorSource::DynamicPlugin { .. }
+        ) || descriptor.storage_type != T::STORAGE_TYPE
         {
-            return Err(RetentionContractError::Provider { reason: "dynamic retained owner descriptor mismatch" });
+            return Err(RetentionContractError::Provider {
+                reason: "dynamic retained owner descriptor mismatch",
+            });
         }
         let mut provider = ComponentRetentionProviderV1::of::<T>();
         provider.measure_world = measure_world;
-        if self.retention_providers.get(&id).is_some_and(|existing| existing != &provider) {
-            return Err(RetentionContractError::Provider { reason: "dynamic retained owner type changed" });
+        if self
+            .retention_providers
+            .get(&id)
+            .is_some_and(|existing| existing != &provider)
+        {
+            return Err(RetentionContractError::Provider {
+                reason: "dynamic retained owner type changed",
+            });
         }
         self.retention_providers.insert(id, provider);
         Ok(())

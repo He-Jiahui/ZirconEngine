@@ -1,0 +1,4 @@
+# Pinned worker transport dependencies. Runtime imports remain lazy so object
+# and process unit tests can run without installing network packages.
+aiohttp==3.14.3
+cryptography==47.0.0

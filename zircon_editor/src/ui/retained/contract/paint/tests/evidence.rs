@@ -106,3 +106,35 @@ fn painted_placeholder_without_file_backed_pixels_keeps_media_audit_pending() {
         json!(["image resource deferred-image was painted without ready file-backed pixels"])
     );
 }
+
+#[test]
+fn normal_paint_evidence_freezes_the_theme_at_capture_begin() {
+    use crate::ui::retained_host::host_contract::paint_theme::{
+        enter_host_paint_theme_scope, host_paint_theme_snapshot_from_tokens_for_test,
+    };
+    use zircon_runtime_interface::ui::design_tokens::EditorDesignTokens;
+
+    let mut first = EditorDesignTokens::workbench_dark();
+    first.id = "paint-input-at-begin".into();
+    let first = host_paint_theme_snapshot_from_tokens_for_test(&first);
+    let _first = enter_host_paint_theme_scope(first);
+    let repo = std::env::current_dir().unwrap();
+    let evidence = PaintEvidenceScope::begin_for_normal_present(&repo).unwrap();
+    let mut second = EditorDesignTokens::workbench_dark();
+    second.id = "later-theme".into();
+    let second = host_paint_theme_snapshot_from_tokens_for_test(&second);
+    let _second = enter_host_paint_theme_scope(second);
+    let observed = evidence.finish().unwrap();
+    assert_eq!(
+        observed["designTokenInput"]["tokens"]["id"],
+        "paint-input-at-begin"
+    );
+    assert!(observed["designTokenInput"]["settingsGeneration"].is_null());
+}
+
+#[test]
+fn normal_paint_evidence_without_a_frame_theme_keeps_token_input_unobserved() {
+    let repo = std::env::current_dir().unwrap();
+    let evidence = PaintEvidenceScope::begin_for_normal_present(&repo).unwrap();
+    assert!(evidence.finish().unwrap()["designTokenInput"].is_null());
+}

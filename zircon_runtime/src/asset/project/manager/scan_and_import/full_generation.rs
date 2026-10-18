@@ -207,7 +207,12 @@ impl ProjectManager {
             let config_hash = build_identity.action_key().to_string();
             let root_asset_id = AssetId::from_asset_uuid(meta.uuid);
             let previous_members = std::iter::once(AssetId::from_asset_uuid(previous_meta.uuid))
-                .chain(previous_meta.entries.iter().map(|entry| AssetId::from_asset_uuid(entry.uuid)))
+                .chain(
+                    previous_meta
+                        .entries
+                        .iter()
+                        .map(|entry| AssetId::from_asset_uuid(entry.uuid)),
+                )
                 .collect::<Vec<_>>();
             let import_context =
                 AssetImportContext::new(file.clone(), uri.clone(), source_bytes, import_settings)
@@ -269,11 +274,16 @@ impl ProjectManager {
                     ),
                 );
                 watch_sources.push(super::WatchSourceCandidate {
-                    owner: root_asset_id, previous_members,
+                    owner: root_asset_id,
+                    previous_members,
                     outcome: crate::core::resource::ResourceSourceOutcome::Unchanged,
-                    members: metadata.iter().map(|record| crate::core::resource::ResourceSourceMember {
-                        record: record.clone(), payload: None,
-                    }).collect(),
+                    members: metadata
+                        .iter()
+                        .map(|record| crate::core::resource::ResourceSourceMember {
+                            record: record.clone(),
+                            payload: None,
+                        })
+                        .collect(),
                 });
                 for record in metadata {
                     let asset_id = record.id();
@@ -385,13 +395,23 @@ impl ProjectManager {
                 ),
             );
             watch_sources.push(super::WatchSourceCandidate {
-                owner: root_asset_id, previous_members,
-                outcome: if metadata.iter().any(|record| record.state == ResourceState::Error) {
+                owner: root_asset_id,
+                previous_members,
+                outcome: if metadata
+                    .iter()
+                    .any(|record| record.state == ResourceState::Error)
+                {
                     crate::core::resource::ResourceSourceOutcome::Failed
-                } else { crate::core::resource::ResourceSourceOutcome::CompleteSuccess },
-                members: metadata.iter().map(|record| crate::core::resource::ResourceSourceMember {
-                    record: record.clone(), payload: ready_geometry.remove(&record.id),
-                }).collect(),
+                } else {
+                    crate::core::resource::ResourceSourceOutcome::CompleteSuccess
+                },
+                members: metadata
+                    .iter()
+                    .map(|record| crate::core::resource::ResourceSourceMember {
+                        record: record.clone(),
+                        payload: ready_geometry.remove(&record.id),
+                    })
+                    .collect(),
             });
             for record in metadata {
                 let asset_id = record.id();
@@ -476,9 +496,15 @@ impl ProjectManager {
 
         for source in &mut watch_sources {
             for member in &mut source.members {
-                if let Some(record) = registry.get(member.record.id) { member.record = record.clone(); }
+                if let Some(record) = registry.get(member.record.id) {
+                    member.record = record.clone();
+                }
             }
-            if source.members.iter().any(|member| member.record.state == ResourceState::Error) {
+            if source
+                .members
+                .iter()
+                .any(|member| member.record.state == ResourceState::Error)
+            {
                 source.outcome = crate::core::resource::ResourceSourceOutcome::Failed;
             }
         }

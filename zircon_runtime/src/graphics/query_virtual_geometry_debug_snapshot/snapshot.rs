@@ -188,6 +188,18 @@ impl WgpuRenderFramework {
             .test_support_last_virtual_geometry_readback_outputs())
     }
 
+    pub fn test_support_last_virtual_geometry_native_inspection(
+        &self,
+    ) -> Result<
+        Option<crate::core::framework::render::RenderVirtualGeometryNativeReadbackInspection>,
+        RenderFrameworkError,
+    > {
+        let state = self.lock_state();
+        Ok(state
+            .renderer
+            .test_support_last_virtual_geometry_native_inspection())
+    }
+
     pub fn test_support_last_virtual_geometry_gpu_completion(
         &self,
     ) -> Result<Option<crate::graphics::VirtualGeometryGpuCompletion>, RenderFrameworkError> {

@@ -1,7 +1,9 @@
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
+use zircon_runtime_interface::project::{AssetRef, PersistedAssetReference, RelPath};
+use zircon_runtime_interface::resource::ResourceScheme;
 
 use image::{ImageBuffer, ImageFormat, Rgba};
 use zircon_runtime::asset::assets::{AlphaMode, MaterialAsset};
@@ -40,7 +42,7 @@ use zircon_runtime::graphics::{
 fn renderer_execution_stats_follow_actual_virtual_geometry_cluster_states() {
     let root = unique_temp_project_root("graphics_virtual_geometry_execution_renderer_stats");
     let paths = ProjectPaths::from_root(&root).unwrap();
-    paths.ensure_layout().unwrap();
+    paths.ensure_layout(&[RelPath::project_assets()]).unwrap();
     ProjectManifest::new(
         "GraphicsVirtualGeometryExecutionRendererStats",
         AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
@@ -50,17 +52,28 @@ fn renderer_execution_stats_follow_actual_virtual_geometry_cluster_states() {
     .unwrap();
 
     write_flat_color_wgsl(
-        paths.assets_root().join("shaders").join("flat_green.wgsl"),
+        paths
+            .asset_root(&RelPath::project_assets())
+            .join("shaders")
+            .join("flat_green.wgsl"),
         [0.08, 0.95, 0.08],
     );
     write_solid_png(
-        paths.assets_root().join("textures").join("white.png"),
+        paths
+            .asset_root(&RelPath::project_assets())
+            .join("textures")
+            .join("white.png"),
         [255, 255, 255, 255],
     );
-    write_quad_obj(paths.assets_root().join("models").join("quad.obj"));
+    write_quad_obj(
+        paths
+            .asset_root(&RelPath::project_assets())
+            .join("models")
+            .join("quad.obj"),
+    );
     write_material(
         paths
-            .assets_root()
+            .asset_root(&RelPath::project_assets())
             .join("materials")
             .join("flat_green.zmaterial"),
         "res://shaders/flat_green.wgsl",
@@ -94,7 +107,7 @@ fn renderer_execution_stats_follow_actual_virtual_geometry_cluster_states() {
                 .with_capability_enabled(RenderFeatureCapabilityRequirement::VirtualGeometry)
                 .with_feature_disabled(BuiltinRenderFeature::ClusteredLighting)
                 .with_feature_disabled(BuiltinRenderFeature::ScreenSpaceAmbientOcclusion)
-                .with_feature_disabled(BuiltinRenderFeature::HistoryResolve)
+                .with_feature_disabled(BuiltinRenderFeature::Temporal)
                 .with_feature_disabled(BuiltinRenderFeature::Bloom)
                 .with_feature_disabled(BuiltinRenderFeature::ColorGrading)
                 .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)
@@ -216,7 +229,7 @@ fn renderer_execution_stats_follow_actual_virtual_geometry_cluster_states() {
 fn render_framework_stats_expose_actual_virtual_geometry_execution_compaction() {
     let root = unique_temp_project_root("graphics_virtual_geometry_execution_server_stats");
     let paths = ProjectPaths::from_root(&root).unwrap();
-    paths.ensure_layout().unwrap();
+    paths.ensure_layout(&[RelPath::project_assets()]).unwrap();
     ProjectManifest::new(
         "GraphicsVirtualGeometryExecutionServerStats",
         AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
@@ -226,22 +239,28 @@ fn render_framework_stats_expose_actual_virtual_geometry_execution_compaction() 
     .unwrap();
 
     write_flat_color_wgsl(
-        paths.assets_root().join("shaders").join("flat_green.wgsl"),
+        paths
+            .asset_root(&RelPath::project_assets())
+            .join("shaders")
+            .join("flat_green.wgsl"),
         [0.08, 0.95, 0.08],
     );
     write_solid_png(
-        paths.assets_root().join("textures").join("white.png"),
+        paths
+            .asset_root(&RelPath::project_assets())
+            .join("textures")
+            .join("white.png"),
         [255, 255, 255, 255],
     );
     write_two_primitive_gltf(
         paths
-            .assets_root()
+            .asset_root(&RelPath::project_assets())
             .join("models")
             .join("double_triangle.gltf"),
     );
     write_material(
         paths
-            .assets_root()
+            .asset_root(&RelPath::project_assets())
             .join("materials")
             .join("flat_green.zmaterial"),
         "res://shaders/flat_green.wgsl",
@@ -485,7 +504,10 @@ fn build_single_entity_extract(
             directional_lights: Vec::new(),
             point_lights: Vec::new(),
             spot_lights: Vec::new(),
+            ambient_lights: Vec::new(),
+            rect_lights: Vec::new(),
         },
+        environment: Default::default(),
         overlays: RenderOverlayExtract {
             display_mode: DisplayMode::Shaded,
             ..RenderOverlayExtract::default()
@@ -713,7 +735,17 @@ fn write_material(path: PathBuf, shader_uri: &str, texture_uri: &str) {
         texture_slots: Default::default(),
         validation_diagnostics: Vec::new(),
     };
-    fs::write(path, toml::to_string_pretty(&material).unwrap()).unwrap();
+    let project_root = fixture_project_root(&path);
+    let document = material
+        .to_project_toml_string(|reference| {
+            Ok(persisted_reference_for_fixture(
+                &project_root,
+                &path,
+                reference,
+            ))
+        })
+        .unwrap();
+    fs::write(path, document).unwrap();
 }
 
 fn asset_reference(uri: &str) -> AssetReference {
@@ -725,5 +757,58 @@ fn resource_handle<T>(asset_manager: &ProjectAssetManager, uri: &str) -> Resourc
         asset_manager
             .resolve_asset_id(&AssetUri::parse(uri).unwrap())
             .unwrap_or_else(|| panic!("missing resource id for {uri}")),
+    )
+}
+
+fn fixture_project_root(source_path: &Path) -> PathBuf {
+    source_path
+        .ancestors()
+        .find(|candidate| candidate.join("zircon-project.toml").is_file())
+        .expect("asset fixture must live below a project manifest")
+        .to_path_buf()
+}
+
+// 夹具只把 res:// 路径映射到唯一资源根的持久化 hint；多根歧义必须显式失败。
+fn persisted_reference_for_fixture(
+    project_root: &Path,
+    source_path: &Path,
+    reference: &AssetReference,
+) -> PersistedAssetReference {
+    if reference.locator.scheme() == ResourceScheme::Builtin {
+        return PersistedAssetReference::builtin(reference.locator.clone());
+    }
+    assert_eq!(reference.locator.scheme(), ResourceScheme::Res);
+
+    let manifest = ProjectManifest::load(project_root.join("zircon-project.toml")).unwrap();
+    let roots = manifest
+        .asset_roots
+        .iter()
+        .filter(|root| {
+            root.join_to(project_root)
+                .join(reference.locator.path())
+                .is_file()
+        })
+        .collect::<Vec<_>>();
+    let root = match roots.as_slice() {
+        [root] => *root,
+        [] => manifest
+            .asset_roots
+            .iter()
+            .find(|root| source_path.starts_with(root.join_to(project_root)))
+            .expect("asset fixture source must live below a manifest asset root"),
+        _ => panic!(
+            "asset fixture reference {} resolves through multiple project asset roots",
+            reference.locator
+        ),
+    };
+    let path_hint =
+        RelPath::parse(format!("{}/{}", root.as_str(), reference.locator.path())).unwrap();
+    PersistedAssetReference::project(
+        AssetRef::try_new(
+            reference.uuid,
+            path_hint,
+            reference.locator.label().map(str::to_owned),
+        )
+        .unwrap(),
     )
 }

@@ -30,6 +30,12 @@ use crate::graphics::{
     WgpuRenderFramework, SSS_RECOMBINE_EXECUTOR_ID, SSS_SCATTER_EXECUTOR_ID, SSS_SETUP_EXECUTOR_ID,
 };
 
+use crate::graphics::{
+    RenderPassExecutionContext, RenderPassExecutor, RenderPassExecutorRegistration,
+    RenderPassGpuExecutionContext, RenderPassGpuResourceFactory, RenderPassRecordingPolicy,
+};
+use crate::render_graph::RenderGraphResourceAccessKind;
+
 const PRODUCT_SIZE: UVec2 = UVec2::new(640, 360);
 const DEFERRED_PIPELINE_HANDLE: RenderPipelineHandle = RenderPipelineHandle::new(2);
 const PRODUCT_IMAGE_NAME: &str = "plan18_sss_skin_sphere_deferred_burley_wgpu_20260712.png";
@@ -142,6 +148,358 @@ fn export_render_product_sss_skin_sphere_png() {
     assert!(report_path.is_file());
 }
 
+// Diagnostic copies belong to the original enabled frame, not an extra rendering pass.
+const SSS_NATIVE_STAGING_LIMIT: u64 = 16 * 1024 * 1024;
+type SssNativeMailbox = Arc<std::sync::Mutex<Option<SssNativeSnapshot>>>;
+
+#[derive(Clone, Copy, Debug)]
+struct SssNativePlane {
+    offset: u64,
+    byte_len: u64,
+    row_pitch: u32,
+    width: u32,
+    height: u32,
+    bytes_per_pixel: u32,
+    format: wgpu::TextureFormat,
+}
+
+impl SssNativePlane {
+    fn for_texture(texture: &wgpu::Texture, offset: u64) -> Result<Self, String> {
+        let format = texture.format();
+        let bytes_per_pixel = match format {
+            wgpu::TextureFormat::Rgba8Unorm | wgpu::TextureFormat::Rgba8UnormSrgb => 4,
+            wgpu::TextureFormat::Rgba16Float => 8,
+            other => return Err(format!("unsupported actual GBuffer format {other:?}")),
+        };
+        let size = texture.size();
+        if texture.dimension() != wgpu::TextureDimension::D2
+            || texture.sample_count() != 1
+            || size.depth_or_array_layers != 1
+            || size.width == 0
+            || size.height == 0
+            || !texture.usage().contains(wgpu::TextureUsages::COPY_SRC)
+        {
+            return Err(format!(
+                "GBuffer copy facts: format={format:?} size={size:?} samples={} usage={:?}",
+                texture.sample_count(),
+                texture.usage()
+            ));
+        }
+        let unpadded = u64::from(size.width)
+            .checked_mul(u64::from(bytes_per_pixel))
+            .ok_or("GBuffer row overflow")?;
+        let row_pitch = u32::try_from(sss_native_align(unpadded, 256)?)
+            .map_err(|_| "GBuffer row exceeds u32")?;
+        let byte_len = u64::from(row_pitch)
+            .checked_mul(u64::from(size.height))
+            .ok_or("GBuffer plane overflow")?;
+        Ok(Self {
+            offset,
+            byte_len,
+            row_pitch,
+            width: size.width,
+            height: size.height,
+            bytes_per_pixel,
+            format,
+        })
+    }
+
+    fn copy(
+        &self,
+        texture: &wgpu::Texture,
+        staging: &wgpu::Buffer,
+        encoder: &mut wgpu::CommandEncoder,
+    ) {
+        encoder.copy_texture_to_buffer(
+            texture.as_image_copy(),
+            wgpu::TexelCopyBufferInfo {
+                buffer: staging,
+                layout: wgpu::TexelCopyBufferLayout {
+                    offset: self.offset,
+                    bytes_per_row: Some(self.row_pitch),
+                    rows_per_image: Some(self.height),
+                },
+            },
+            wgpu::Extent3d {
+                width: self.width,
+                height: self.height,
+                depth_or_array_layers: 1,
+            },
+        );
+    }
+
+    fn alpha_bytes(&self, mapped: &[u8]) -> Result<Vec<u8>, String> {
+        let start = usize::try_from(self.offset).map_err(|_| "plane offset exceeds usize")?;
+        let end =
+            usize::try_from(self.offset + self.byte_len).map_err(|_| "plane end exceeds usize")?;
+        let source = mapped
+            .get(start..end)
+            .ok_or("mapped GBuffer plane truncated")?;
+        let row_bytes = usize::try_from(u64::from(self.width) * u64::from(self.bytes_per_pixel))
+            .map_err(|_| "row exceeds usize")?;
+        let mut packed = Vec::with_capacity(row_bytes * self.height as usize);
+        for row in source.chunks_exact(self.row_pitch as usize) {
+            packed.extend_from_slice(&row[..row_bytes]);
+        }
+        match self.format {
+            wgpu::TextureFormat::Rgba8Unorm | wgpu::TextureFormat::Rgba8UnormSrgb => {
+                Ok(packed.chunks_exact(4).map(|pixel| pixel[3]).collect())
+            }
+            wgpu::TextureFormat::Rgba16Float => {
+                crate::core::framework::render::decode_rgba16f_texels(&packed)
+                    .into_iter()
+                    .map(|pixel| {
+                        let alpha = pixel[3];
+                        if !alpha.is_finite() {
+                            return Err("non-finite GBuffer alpha".to_string());
+                        }
+                        Ok((alpha * 255.0).round().clamp(0.0, 255.0) as u8)
+                    })
+                    .collect()
+            }
+            _ => Err("unsupported recorded GBuffer format".to_string()),
+        }
+    }
+}
+
+struct SssNativeSnapshot {
+    staging: wgpu::Buffer,
+    waiter: Box<dyn FnOnce() -> Result<(), String> + Send>,
+    planes: [SssNativePlane; 2],
+    metadata_offset: u64,
+    staging_bytes: u64,
+    device_epoch: String,
+}
+
+struct SssNativeDiagnosticExecutor {
+    inner: Arc<dyn RenderPassExecutor>,
+    mailbox: SssNativeMailbox,
+}
+
+impl RenderPassExecutor for SssNativeDiagnosticExecutor {
+    fn execute(&self, context: &mut RenderPassExecutionContext<'_>) -> Result<(), String> {
+        self.inner.execute(context)?;
+        let diagnostic = context.require_gpu().and_then(sss_native_record_snapshot);
+        match diagnostic {
+            Ok(snapshot) => match self.mailbox.lock() {
+                Ok(mut slot) if slot.is_none() => *slot = Some(snapshot),
+                _ => eprintln!(
+                    "SSS_NATIVE_READBACK unavailable: duplicate/poisoned per-frame mailbox"
+                ),
+            },
+            Err(error) => eprintln!("SSS_NATIVE_READBACK unavailable: {error}"),
+        }
+        Ok(())
+    }
+
+    fn required_device_features(&self) -> &[zr_rhi::RenderDeviceFeature] {
+        self.inner.required_device_features()
+    }
+
+    fn recording_policy(&self) -> RenderPassRecordingPolicy {
+        self.inner.recording_policy()
+    }
+}
+
+fn sss_native_align(value: u64, alignment: u64) -> Result<u64, String> {
+    value
+        .checked_add(alignment - 1)
+        .map(|sum| sum / alignment * alignment)
+        .ok_or_else(|| "diagnostic alignment overflow".to_string())
+}
+
+fn sss_native_buffer_source(
+    gpu: &RenderPassGpuExecutionContext<'_>,
+    name: &str,
+    relative_offset: u64,
+    byte_len: u64,
+) -> Result<(wgpu::Buffer, u64), String> {
+    let binding = gpu.require_buffer_binding(name, RenderGraphResourceAccessKind::Read)?;
+    let available = binding
+        .size
+        .map(|size| size.get())
+        .unwrap_or_else(|| binding.buffer.size().saturating_sub(binding.offset));
+    let relative_end = relative_offset
+        .checked_add(byte_len)
+        .ok_or("diagnostic binding overflow")?;
+    let source_offset = binding
+        .offset
+        .checked_add(relative_offset)
+        .ok_or("diagnostic offset overflow")?;
+    if relative_end > available
+        || source_offset
+            .checked_add(byte_len)
+            .is_none_or(|end| end > binding.buffer.size())
+        || source_offset % 16 != 0
+        || byte_len % 16 != 0
+        || !binding
+            .buffer
+            .usage()
+            .contains(wgpu::BufferUsages::COPY_SRC)
+    {
+        return Err(format!("invalid actual diagnostic source {name}: offset={source_offset} bytes={byte_len} available={available} usage={:?}", binding.buffer.usage()));
+    }
+    Ok((binding.buffer.clone(), source_offset))
+}
+
+fn sss_native_record_snapshot(
+    gpu: &mut RenderPassGpuExecutionContext<'_>,
+) -> Result<SssNativeSnapshot, String> {
+    use crate::core::framework::render::PostProcessGraphResourceNames as Names;
+    let material = gpu
+        .require_texture_view(Names::GBUFFER_MATERIAL, RenderGraphResourceAccessKind::Read)?
+        .texture()
+        .clone();
+    let normal = gpu
+        .require_texture_view(Names::GBUFFER_NORMAL, RenderGraphResourceAccessKind::Read)?
+        .texture()
+        .clone();
+    let material_plane = SssNativePlane::for_texture(&material, 0)?;
+    let normal_plane =
+        SssNativePlane::for_texture(&normal, sss_native_align(material_plane.byte_len, 256)?)?;
+    if (material_plane.width, material_plane.height) != (normal_plane.width, normal_plane.height) {
+        return Err("actual GBuffer extents differ".to_string());
+    }
+    let metadata_offset = sss_native_align(
+        normal_plane
+            .offset
+            .checked_add(normal_plane.byte_len)
+            .ok_or("diagnostic planes overflow")?,
+        16,
+    )?;
+    let staging_bytes = metadata_offset
+        .checked_add(64)
+        .ok_or("diagnostic metadata overflow")?;
+    if staging_bytes > SSS_NATIVE_STAGING_LIMIT {
+        return Err(format!("diagnostic staging {staging_bytes} exceeds 16 MiB"));
+    }
+    let params = sss_native_buffer_source(gpu, Names::SSS_PARAMS, 0, 16)?;
+    let profile7 = sss_native_buffer_source(gpu, Names::SSS_PROFILES, 7 * 32, 32)?;
+    let indirect = sss_native_buffer_source(gpu, Names::SSS_INDIRECT_ARGS, 0, 16)?;
+    let device_epoch = format!("{:?}", gpu.device_epoch());
+    let native = gpu.native_context();
+    let staging = native.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+        label: Some("sss-original-frame-native-diagnostic"),
+        contents: &vec![0; staging_bytes as usize],
+        usage: wgpu::BufferUsages::MAP_READ | wgpu::BufferUsages::COPY_DST,
+    });
+    material_plane.copy(&material, &staging, native.encoder);
+    normal_plane.copy(&normal, &staging, native.encoder);
+    native
+        .encoder
+        .copy_buffer_to_buffer(&params.0, params.1, &staging, metadata_offset, 16);
+    native.encoder.copy_buffer_to_buffer(
+        &profile7.0,
+        profile7.1,
+        &staging,
+        metadata_offset + 16,
+        32,
+    );
+    native.encoder.copy_buffer_to_buffer(
+        &indirect.0,
+        indirect.1,
+        &staging,
+        metadata_offset + 48,
+        16,
+    );
+    let waiter = Box::new(native.readback_completion_waiter());
+    Ok(SssNativeSnapshot {
+        staging,
+        waiter,
+        planes: [material_plane, normal_plane],
+        metadata_offset,
+        staging_bytes,
+        device_epoch,
+    })
+}
+
+fn sss_native_wrap_scatter(
+    executors: &mut [RenderPassExecutorRegistration],
+    mailbox: &SssNativeMailbox,
+) {
+    for registration in executors {
+        if registration.executor_id.as_str() == SSS_SCATTER_EXECUTOR_ID {
+            registration.executor = Arc::new(SssNativeDiagnosticExecutor {
+                inner: Arc::clone(&registration.executor),
+                mailbox: Arc::clone(mailbox),
+            });
+        }
+    }
+}
+
+fn sss_native_report(mailbox: &SssNativeMailbox, generation: u64) {
+    let snapshot = match mailbox.lock() {
+        Ok(mut slot) => slot.take(),
+        Err(_) => {
+            eprintln!("SSS_NATIVE_READBACK unavailable: poisoned mailbox");
+            return;
+        }
+    };
+    let Some(snapshot) = snapshot else {
+        eprintln!(
+            "SSS_NATIVE_READBACK unavailable: no executed scatter snapshot generation={generation}"
+        );
+        return;
+    };
+    let SssNativeSnapshot {
+        staging,
+        waiter,
+        planes,
+        metadata_offset,
+        staging_bytes,
+        device_epoch,
+    } = snapshot;
+    // Mapping is requested only after the original submission/capture, never while encoding.
+    let (sender, receiver) = std::sync::mpsc::channel();
+    staging
+        .slice(..)
+        .map_async(wgpu::MapMode::Read, move |result| {
+            let _ = sender.send(result);
+        });
+    let terminal = waiter().and_then(|_| {
+        receiver
+            .try_recv()
+            .map_err(|error| format!("native map callback not terminal: {error}"))?
+            .map_err(|error| format!("native map failed: {error}"))
+    });
+    if let Err(error) = terminal {
+        staging.unmap();
+        eprintln!("SSS_NATIVE_READBACK unavailable: {error}");
+        return;
+    }
+    let mapped = staging.slice(..).get_mapped_range();
+    let report = (|| -> Result<(), String> {
+        let material = planes[0].alpha_bytes(&mapped)?;
+        let normal = planes[1].alpha_bytes(&mapped)?;
+        if material.len() != normal.len() {
+            return Err("decoded alpha counts differ".to_string());
+        }
+        let mut histogram = std::collections::BTreeMap::<(u8, u8), u64>::new();
+        for (model, profile) in material.into_iter().zip(normal) {
+            *histogram.entry((model & 0x7f, profile)).or_default() += 1;
+        }
+        let base = metadata_offset as usize;
+        let metadata = mapped
+            .get(base..base + 64)
+            .ok_or("mapped metadata truncated")?;
+        let words: Vec<u32> = metadata
+            .chunks_exact(4)
+            .map(|word| u32::from_le_bytes([word[0], word[1], word[2], word[3]]))
+            .collect();
+        let profile7: Vec<f32> = words[4..12]
+            .iter()
+            .map(|word| f32::from_bits(*word))
+            .collect();
+        eprintln!("SSS_NATIVE_READBACK generation={generation} epoch={device_epoch} staging_bytes={staging_bytes} planes={planes:?} params_wh_count_mask={:?} profile7_radius_scale_falloff_id={profile7:?} indirect_xyz={:?} model_profile_pixels={histogram:?}", &words[..4], &words[12..15]);
+        Ok(())
+    })();
+    drop(mapped);
+    staging.unmap();
+    if let Err(error) = report {
+        eprintln!("SSS_NATIVE_READBACK unavailable: {error}");
+    }
+}
+
 fn render_skin_sphere(mode: ProductSssMode) -> ProductRender {
     let asset_manager = Arc::new(ProjectAssetManager::default());
     let model = register_skin_sphere_model(&asset_manager);
@@ -155,11 +513,15 @@ fn render_skin_sphere(mode: ProductSssMode) -> ProductRender {
         .then(subsurface_render_feature_descriptor)
         .into_iter()
         .collect::<Vec<_>>();
-    let executors = if registered_sss {
+    let mut executors = if registered_sss {
         subsurface_render_pass_executor_registrations()
     } else {
         Vec::new()
     };
+    let native_mailbox = Arc::new(std::sync::Mutex::new(None));
+    if mode == ProductSssMode::Enabled {
+        sss_native_wrap_scatter(&mut executors, &native_mailbox);
+    }
     let framework =
         WgpuRenderFramework::new_for_test_with_plugin_render_extensions_and_shading_models(
             asset_manager,
@@ -193,6 +555,14 @@ fn render_skin_sphere(mode: ProductSssMode) -> ProductRender {
         .capture_frame(viewport)
         .expect("SSS product capture should succeed")
         .expect("SSS product viewport should expose a frame");
+    if mode == ProductSssMode::Enabled {
+        sss_native_report(&native_mailbox, frame.generation);
+    } else {
+        eprintln!(
+            "SSS_NATIVE_READBACK absent: mode={mode:?} generation={}",
+            frame.generation
+        );
+    }
     let stats = framework
         .query_stats()
         .expect("SSS product stats should exist");
@@ -286,20 +656,32 @@ fn register_skin_material(
     let id = ResourceId::from_locator(&uri);
     let builtin_shader_uri = AssetUri::parse("builtin://shader/pbr.wgsl").unwrap();
     let shader_reference = if subsurface {
-        // Surface shaders own the shading-model declaration. Keep the real builtin PBR
-        // surface and layout, with the model registered by this SSS product fixture.
+        // The builtin shader carries a small fallback surface. A project shader must
+        // use the standard material surface to read the same roughness and profile uniforms.
         let mut shader = asset_manager
             .load_shader_asset_by_uri(&builtin_shader_uri)
             .expect("SSS fixture should load the builtin PBR surface shader");
         let shader_uri = AssetUri::parse("res://shaders/plan18-skin-subsurface.zshader").unwrap();
         let shader_id = ResourceId::from_locator(&shader_uri);
+        let surface =
+            crate::graphics::shader::template::standard_material_surface_source_for_features(
+                crate::core::framework::render::ShaderFeatureBits::default(),
+                0.0,
+            );
+        let surface_source = surface.source.replacen(
+            &format!("fn {}(", surface.entry_point),
+            "fn zr_material_surface(",
+            1,
+        );
+        shader.source = surface_source.clone();
+        shader.wgsl_source = surface_source;
         shader.uri = shader_uri.clone();
         shader.shading_model = Some("custom:subsurface".to_string());
         asset_manager
             .assets::<ShaderAsset>()
             .insert(
                 ResourceRecord::new(shader_id, ResourceKind::Shader, shader_uri.clone())
-                    .with_source_hash("plan18-skin-subsurface-shader-v1"),
+                    .with_source_hash("plan18-skin-subsurface-shader-v2"),
                 shader,
             )
             .expect("SSS surface shader should register");

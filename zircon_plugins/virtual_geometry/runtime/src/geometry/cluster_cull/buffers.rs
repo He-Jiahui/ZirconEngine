@@ -170,6 +170,82 @@ pub(crate) fn materialize_prepared_cull(
 }
 
 impl MaterializedPreparedCull {
+    /// Returns leases to the actual uploaded policy and computed startup buffers.
+    /// Schema IDs are stable within the current-frame inspection envelope only.
+    pub(crate) fn native_inspection_sections(
+        &self,
+    ) -> Result<Vec<(u32, wgpu::Buffer, std::ops::Range<u64>)>, String> {
+        use zircon_runtime::core::framework::render::*;
+        let words = [
+            self.inspection.global_state.as_ref().map_or(0, |_| {
+                RenderVirtualGeometryNodeAndClusterCullGlobalStateSnapshot::GPU_WORD_COUNT
+            }),
+            self.inspection.dispatch_setup.as_ref().map_or(0, |_| {
+                RenderVirtualGeometryNodeAndClusterCullDispatchSetupSnapshot::GPU_WORD_COUNT
+            }),
+            self.inspection
+                .launch_worklist
+                .as_ref()
+                .map_or(0, |worklist| worklist.packed_words().len()),
+            self.inspection
+                .instance_seeds
+                .len()
+                .checked_mul(RenderVirtualGeometryNodeAndClusterCullInstanceSeed::GPU_WORD_COUNT)
+                .ok_or("seed schema length overflow")?,
+            self.inspection
+                .instance_work_items
+                .len()
+                .checked_mul(
+                    RenderVirtualGeometryNodeAndClusterCullInstanceWorkItem::GPU_WORD_COUNT,
+                )
+                .ok_or("instance schema length overflow")?,
+            self.inspection
+                .cluster_work_items
+                .len()
+                .checked_mul(RenderVirtualGeometryNodeAndClusterCullClusterWorkItem::GPU_WORD_COUNT)
+                .ok_or("cluster schema length overflow")?,
+            self.inspection.hierarchy_child_ids.len(),
+            self.inspection
+                .child_work_items
+                .len()
+                .checked_mul(RenderVirtualGeometryNodeAndClusterCullChildWorkItem::GPU_WORD_COUNT)
+                .ok_or("child schema length overflow")?,
+            self.inspection
+                .traversal_records
+                .len()
+                .checked_mul(RenderVirtualGeometryNodeAndClusterCullTraversalRecord::GPU_WORD_COUNT)
+                .ok_or("traversal schema length overflow")?,
+            self.inspection.page_request_ids.len(),
+        ];
+        let buffers = [
+            (1, &self.buffer),
+            (2, &self.dispatch_setup_buffer),
+            (3, &self.launch_worklist_buffer),
+            (4, &self.instance_seed_buffer),
+            (5, &self.instance_work_item_buffer),
+            (6, &self.cluster_work_item_buffer),
+            (7, &self.hierarchy_child_id_buffer),
+            (8, &self.child_work_item_buffer),
+            (9, &self.traversal_record_buffer),
+            (10, &self.page_request_buffer),
+        ];
+        let mut sections = Vec::new();
+        for ((id, buffer), word_count) in buffers.into_iter().zip(words) {
+            let expected = u64::try_from(word_count)
+                .map_err(|_| "native schema does not fit u64")?
+                .checked_mul(4)
+                .ok_or("native schema byte length overflow")?;
+            match (buffer, expected) {
+                (None, 0) => {}
+                (Some(buffer), size) if size != 0 && buffer.size() == size => {
+                    sections.push((id, buffer.as_ref().clone(), 0..size));
+                }
+                _ => return Err("materialized startup buffer is absent or disagrees with its actual upload schema".into()),
+            }
+        }
+        Ok(sections)
+    }
+
     pub(super) fn into_pass_output(
         self,
     ) -> super::output::VirtualGeometryNodeAndClusterCullPassOutput {

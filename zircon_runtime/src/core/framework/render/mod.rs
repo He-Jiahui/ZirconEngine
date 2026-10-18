@@ -368,6 +368,7 @@ pub use plugin_renderer_outputs::{
     RenderHybridGiVoxelCellRecord, RenderHybridGiVoxelCellSampleRecord,
     RenderHybridGiVoxelClipmapRecord, RenderHybridGiVoxelOccupancyMaskRecord,
     RenderParticleGpuReadbackOutputs, RenderPluginRendererOutputs,
+    RenderVirtualGeometryNativeReadbackInspection, RenderVirtualGeometryNativeStartupReadback,
     RenderVirtualGeometryNodeClusterCullReadbackOutputs, RenderVirtualGeometryPageAssignmentRecord,
     RenderVirtualGeometryPageReplacementRecord, RenderVirtualGeometryReadbackOutputs,
     RENDER_HYBRID_GI_PROBE_TRACE_DIAGNOSTIC_WORD_COUNT,

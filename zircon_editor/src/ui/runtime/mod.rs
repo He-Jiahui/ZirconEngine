@@ -8,6 +8,8 @@ mod harness;
 mod host_nodes;
 #[path = "model.rs"]
 mod model;
+#[path = "normal_surface_inventory.rs"]
+mod normal_surface_inventory;
 #[path = "retained_adapter.rs"]
 mod retained_adapter;
 #[path = "runtime/mod.rs"]
@@ -24,6 +26,9 @@ pub use host_nodes::{
 };
 pub(crate) use model::RetainedUiProjectionSurfaceMetadataIndex;
 pub use model::{RetainedUiBindingProjection, RetainedUiNodeProjection, RetainedUiProjection};
+pub(crate) use normal_surface_inventory::{
+    capture_normal_surface_inventory, NormalPresentInventory, NormalSurfaceInventory,
+};
 pub use retained_adapter::{
     RetainedUiHostAdapter, RetainedUiHostComponentKind, RetainedUiHostNodeModel,
     RetainedUiHostProjection, RetainedUiHostRouteProjection, RetainedUiHostValue,

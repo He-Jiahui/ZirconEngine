@@ -1,4 +1,8 @@
+use std::panic::{catch_unwind, AssertUnwindSafe};
 use std::sync::{Arc, MutexGuard};
+
+use crate::core::jobs::ticket::JobExecutionState;
+use crate::core::jobs::EditorJobShutdownFailure;
 
 use super::construction::CompletionBarrierGuard;
 use super::pending::PendingJob;
@@ -18,6 +22,10 @@ impl EditorJobSystemInner {
         }
         let _completion = CompletionBarrierGuard::new(Arc::clone(self));
 
+        let executions = pending
+            .iter()
+            .map(|pending| Arc::clone(&pending.execution))
+            .collect::<Vec<_>>();
         let mut cancelled_ids = Vec::with_capacity(pending.len());
         for pending in pending {
             let id = pending.id;
@@ -39,6 +47,9 @@ impl EditorJobSystemInner {
         }
         drop(state);
         self.deliver_progress_observer_events();
+        for execution in executions {
+            execution.complete_without_task();
+        }
         self.state_changed.notify_all();
     }
 
@@ -73,6 +84,7 @@ impl EditorJobSystemInner {
             };
             let (pending, dependencies) = dispatch;
             let id = pending.id;
+            let execution = Arc::clone(&pending.execution);
             let PendingDispatchMetadata {
                 label,
                 category,
@@ -90,18 +102,51 @@ impl EditorJobSystemInner {
             drop(pending.cancel_task);
             let task = pending.task;
             let inner = Arc::clone(self);
-            let handle = self.scheduler.schedule_after(&dependencies, move || {
-                let _completion = CompletionGuard::new(inner, id, category);
-                events.emit(JobEventKind::Started);
-                task.run(context);
-            });
-            let mut state = self.lock_state();
-            // Completion can win the race to this lock after `schedule_after`
-            // returns. The state helpers preserve a terminal record instead
-            // of reinstalling its handle or mutex tail.
-            state.store_scheduled_handle(id, handle.clone());
-            if let Some(mutex_group) = mutex_group {
-                state.update_mutex_group_tail(mutex_group, id, handle);
+            let task_execution = Arc::clone(&execution);
+            let mut execution_state = execution.lock();
+            let scheduled = catch_unwind(AssertUnwindSafe(|| {
+                self.scheduler.schedule_after(&dependencies, move || {
+                    let installed = matches!(*task_execution.lock(), JobExecutionState::Running(_));
+                    if !installed {
+                        return;
+                    }
+                    let _completion = CompletionGuard::new(inner, id, category);
+                    events.emit(JobEventKind::Started);
+                    task.run(context);
+                })
+            }));
+            match scheduled {
+                Ok(handle) => {
+                    *execution_state = JobExecutionState::Running(handle.clone());
+                    drop(execution_state);
+                    let mut state = self.lock_state();
+                    state.store_scheduled_handle(id, handle.clone());
+                    if let Some(mutex_group) = mutex_group {
+                        state.update_mutex_group_tail(mutex_group, id, handle);
+                    }
+                }
+                Err(payload) => {
+                    let message = if let Some(message) = payload.downcast_ref::<&str>() {
+                        (*message).to_owned()
+                    } else if let Some(message) = payload.downcast_ref::<String>() {
+                        message.clone()
+                    } else {
+                        "editor job runtime submission panicked".to_owned()
+                    };
+                    *execution_state = JobExecutionState::SubmissionFailed(message.clone());
+                    drop(execution_state);
+                    let mut state = self.lock_state();
+                    state.mark_finished(id, category);
+                    state.record_shutdown_cleanup_failure(
+                        EditorJobShutdownFailure::JobSubmissionPanicked { job: id, message },
+                    );
+                    self.progress.complete(id);
+                    self.enqueue_progress_observer_event(ProgressObserverEvent::Finished(id));
+                    drop(state);
+                    // The promotion mutex is still held. The next event pump delivers
+                    // observers outside it; sticky failure prevents false quiescence.
+                    self.state_changed.notify_all();
+                }
             }
         }
     }

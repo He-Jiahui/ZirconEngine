@@ -141,7 +141,7 @@ fn tab_interval_exact_width(style: &TextStyle, space_width: f32) -> f64 {
     f64::from(space_width.max(MIN_TAB_ADVANCE)) * f64::from(resolved_tab_size(style))
 }
 
-/// 有限制表大小夹到最小值，非有限值使用 [`TextStyle`] 的默认值。
+/// 有限的制表大小夹到最小值，非有限值使用 [`TextStyle`] 的默认值。
 /// 仅返回本次计算使用的值，不回写样式字段。
 fn resolved_tab_size(style: &TextStyle) -> f32 {
     if style.tab_size.is_finite() {

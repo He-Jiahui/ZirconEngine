@@ -29,7 +29,11 @@ impl<'prepared> PreparedRenderSceneGeometryResolver<'prepared> {
         models: &'prepared HashMap<ResourceId, PreparedModel>,
         meshes: &'prepared HashMap<ResourceId, PreparedMesh>,
     ) -> Self {
-        Self { models, meshes, staged: None }
+        Self {
+            models,
+            meshes,
+            staged: None,
+        }
     }
 }
 
@@ -151,17 +155,37 @@ impl PreparedRenderSceneGeometryResolver<'_> {
         meshes: &'a HashMap<ResourceId, PreparedMesh>,
         staged: &'a StagedRenderSceneGeometry,
     ) -> PreparedRenderSceneGeometryResolver<'a> {
-        PreparedRenderSceneGeometryResolver { models, meshes, staged: Some(staged) }
+        PreparedRenderSceneGeometryResolver {
+            models,
+            meshes,
+            staged: Some(staged),
+        }
     }
 
     fn model(&self, id: ResourceId) -> Option<&PreparedModel> {
-        if self.staged.is_some_and(|staged| staged.retired.contains(&UntypedResourceHandle::new(id, ResourceKind::Model))) { return None; }
-        self.staged.and_then(|staged| staged.models.get(&id)).or_else(|| self.models.get(&id))
+        if self.staged.is_some_and(|staged| {
+            staged
+                .retired
+                .contains(&UntypedResourceHandle::new(id, ResourceKind::Model))
+        }) {
+            return None;
+        }
+        self.staged
+            .and_then(|staged| staged.models.get(&id))
+            .or_else(|| self.models.get(&id))
     }
 
     fn mesh(&self, id: ResourceId) -> Option<&PreparedMesh> {
-        if self.staged.is_some_and(|staged| staged.retired.contains(&UntypedResourceHandle::new(id, ResourceKind::Mesh))) { return None; }
-        self.staged.and_then(|staged| staged.meshes.get(&id)).or_else(|| self.meshes.get(&id))
+        if self.staged.is_some_and(|staged| {
+            staged
+                .retired
+                .contains(&UntypedResourceHandle::new(id, ResourceKind::Mesh))
+        }) {
+            return None;
+        }
+        self.staged
+            .and_then(|staged| staged.meshes.get(&id))
+            .or_else(|| self.meshes.get(&id))
     }
 
     fn resolve_level(
@@ -261,23 +285,37 @@ pub(super) struct StagedRenderSceneGeometry {
     pub(super) models: HashMap<ResourceId, PreparedModel>,
     pub(super) meshes: HashMap<ResourceId, PreparedMesh>,
     pub(super) retired: HashSet<UntypedResourceHandle>,
-    expected: Vec<(ResourceId, Option<crate::core::resource::ResourceActiveVersionKey>)>,
+    expected: Vec<(
+        ResourceId,
+        Option<crate::core::resource::ResourceActiveVersionKey>,
+    )>,
     dependencies: Vec<super::model_geometry_resolution::ModelMeshDependencyState>,
 }
 
 impl StagedRenderSceneGeometry {
-    pub(super) fn matches(&self, projection: &crate::core::resource::ResourceProjectionSnapshot) -> bool {
-        self.expected.iter().all(|(id, key)| projection.active().key(*id).as_ref() == key.as_ref())
-            && self.retired.iter().all(|resource| projection_geometry_is_absent(projection, resource.id()))
-            && super::model_geometry_resolution::dependency_states_match(projection, &self.dependencies)
+    pub(super) fn matches(
+        &self,
+        projection: &crate::core::resource::ResourceProjectionSnapshot,
+    ) -> bool {
+        self.expected
+            .iter()
+            .all(|(id, key)| projection.active().key(*id).as_ref() == key.as_ref())
+            && self
+                .retired
+                .iter()
+                .all(|resource| projection_geometry_is_absent(projection, resource.id()))
+            && super::model_geometry_resolution::dependency_states_match(
+                projection,
+                &self.dependencies,
+            )
     }
 }
-
 
 /// True removal requires the paired authority to have neither a cold candidate nor a retained
 /// source member. A None active key alone also describes cold/lazily unloaded resources.
 pub(super) fn projection_geometry_is_absent(
-    projection: &crate::core::resource::ResourceProjectionSnapshot, id: ResourceId,
+    projection: &crate::core::resource::ResourceProjectionSnapshot,
+    id: ResourceId,
 ) -> bool {
     projection.active().row(id).is_none()
         && projection.management().row_by_id(id).is_none()
@@ -287,28 +325,47 @@ pub(super) fn projection_geometry_is_absent(
 
 impl ResourceStreamer {
     pub(super) fn ensure_cold_projection_geometry(
-        &self, resources: impl IntoIterator<Item = UntypedResourceHandle>,
+        &self,
+        resources: impl IntoIterator<Item = UntypedResourceHandle>,
     ) -> Result<(), GraphicsError> {
         let assets = self.asset_manager()?;
         let mut seen = HashSet::new();
         for resource in resources {
-            if !seen.insert(resource) || !matches!(resource.kind(), ResourceKind::Model | ResourceKind::Mesh) { continue; }
+            if !seen.insert(resource)
+                || !matches!(resource.kind(), ResourceKind::Model | ResourceKind::Mesh)
+            {
+                continue;
+            }
             let projection = assets.resource_manager().projection_snapshot();
             if projection.active().row(resource.id()).is_none() {
-                let ready = projection.readiness().row_identity(resource.id()).is_some_and(|identity| {
-                    identity.row().record.kind == resource.kind()
-                        && identity.row().record.state == crate::core::resource::ResourceState::Ready
-                });
-                if ready { assets.ensure_resident(resource.id()).map_err(|error| GraphicsError::Asset(error.to_string()))?; }
+                let ready = projection
+                    .readiness()
+                    .row_identity(resource.id())
+                    .is_some_and(|identity| {
+                        identity.row().record.kind == resource.kind()
+                            && identity.row().record.state
+                                == crate::core::resource::ResourceState::Ready
+                    });
+                if ready {
+                    assets
+                        .ensure_resident(resource.id())
+                        .map_err(|error| GraphicsError::Asset(error.to_string()))?;
+                }
             }
             if resource.kind() == ResourceKind::Model {
                 let projection = assets.resource_manager().projection_snapshot();
                 if let Some(row) = projection.active().row(resource.id()) {
-                    let snapshot = assets.resource_manager().snapshot_expected::<_, crate::asset::ModelAsset>(
-                        ResourceHandle::<ModelMarker>::new(resource.id()), &row.key,
-                    );
+                    let snapshot = assets
+                        .resource_manager()
+                        .snapshot_expected::<_, crate::asset::ModelAsset>(
+                            ResourceHandle::<ModelMarker>::new(resource.id()),
+                            &row.key,
+                        );
                     if let Ok(snapshot) = snapshot {
-                        super::model_geometry_resolution::ensure_cold_model_meshes(&assets, snapshot.resource())?;
+                        super::model_geometry_resolution::ensure_cold_model_meshes(
+                            &assets,
+                            snapshot.resource(),
+                        )?;
                     }
                 }
             }
@@ -317,35 +374,86 @@ impl ResourceStreamer {
     }
 
     pub(super) fn stage_projection_geometry(
-        &self, device: &wgpu::Device,
+        &self,
+        device: &wgpu::Device,
         resources: impl IntoIterator<Item = UntypedResourceHandle>,
         projection: &crate::core::resource::ResourceProjectionSnapshot,
         known_geometry: &HashSet<UntypedResourceHandle>,
     ) -> Result<StagedRenderSceneGeometry, crate::core::resource::ResourceActiveSnapshotError> {
         let resources = resources.into_iter().collect::<HashSet<_>>();
-        let retired = resources.iter().copied().filter(|resource| known_geometry.contains(resource)
-            && projection_geometry_is_absent(projection, resource.id())).collect::<HashSet<_>>();
-        let mut staged = StagedRenderSceneGeometry { models: HashMap::new(), meshes: HashMap::new(), retired, expected: Vec::new(), dependencies: Vec::new() };
-        staged.expected.extend(staged.retired.iter().map(|resource| (resource.id(), None)));
-        let mut meshes = resources.iter().filter(|resource| resource.kind() == ResourceKind::Mesh)
-            .map(|resource| resource.id()).collect::<HashSet<_>>();
-        for resource in resources.iter().filter(|resource| resource.kind() == ResourceKind::Model) {
+        let retired = resources
+            .iter()
+            .copied()
+            .filter(|resource| {
+                known_geometry.contains(resource)
+                    && projection_geometry_is_absent(projection, resource.id())
+            })
+            .collect::<HashSet<_>>();
+        let mut staged = StagedRenderSceneGeometry {
+            models: HashMap::new(),
+            meshes: HashMap::new(),
+            retired,
+            expected: Vec::new(),
+            dependencies: Vec::new(),
+        };
+        staged
+            .expected
+            .extend(staged.retired.iter().map(|resource| (resource.id(), None)));
+        let mut meshes = resources
+            .iter()
+            .filter(|resource| resource.kind() == ResourceKind::Mesh)
+            .map(|resource| resource.id())
+            .collect::<HashSet<_>>();
+        for resource in resources
+            .iter()
+            .filter(|resource| resource.kind() == ResourceKind::Model)
+        {
             let id = resource.id();
-            if staged.retired.contains(resource) { continue; }
-            if let Some(prepared) = self.stage_model(device, id, projection)? { staged.models.insert(id, prepared); }
-            let prepared = staged.models.get(&id).or_else(|| self.models.get(&id))
+            if staged.retired.contains(resource) {
+                continue;
+            }
+            if let Some(prepared) = self.stage_model(device, id, projection)? {
+                staged.models.insert(id, prepared);
+            }
+            let prepared = staged
+                .models
+                .get(&id)
+                .or_else(|| self.models.get(&id))
                 .ok_or(crate::core::resource::ResourceActiveSnapshotError::Stale)?;
-            staged.expected.push((id, Some(prepared.source_key.clone())));
-            staged.expected.extend(prepared.mesh_dependency_keys.iter().cloned());
-            staged.dependencies.extend(prepared.mesh_dependency_states.iter().cloned());
-            meshes.extend(prepared.mesh_dependency_keys.iter().filter_map(|(id, key)| key.as_ref().map(|_| *id)));
+            staged
+                .expected
+                .push((id, Some(prepared.source_key.clone())));
+            staged
+                .expected
+                .extend(prepared.mesh_dependency_keys.iter().cloned());
+            staged
+                .dependencies
+                .extend(prepared.mesh_dependency_states.iter().cloned());
+            meshes.extend(
+                prepared
+                    .mesh_dependency_keys
+                    .iter()
+                    .filter_map(|(id, key)| key.as_ref().map(|_| *id)),
+            );
         }
         for id in meshes {
-            if staged.retired.contains(&UntypedResourceHandle::new(id, ResourceKind::Mesh)) { continue; }
-            if let Some(prepared) = self.stage_mesh(device, id, projection)? { staged.meshes.insert(id, prepared); }
-            let prepared = staged.meshes.get(&id).or_else(|| self.meshes.get(&id))
+            if staged
+                .retired
+                .contains(&UntypedResourceHandle::new(id, ResourceKind::Mesh))
+            {
+                continue;
+            }
+            if let Some(prepared) = self.stage_mesh(device, id, projection)? {
+                staged.meshes.insert(id, prepared);
+            }
+            let prepared = staged
+                .meshes
+                .get(&id)
+                .or_else(|| self.meshes.get(&id))
                 .ok_or(crate::core::resource::ResourceActiveSnapshotError::Stale)?;
-            staged.expected.push((id, Some(prepared.source_key.clone())));
+            staged
+                .expected
+                .push((id, Some(prepared.source_key.clone())));
         }
         Ok(staged)
     }

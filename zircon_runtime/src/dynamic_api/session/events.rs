@@ -4,8 +4,6 @@ use zircon_runtime_interface::ui::dispatch::{
 use zircon_runtime_interface::ui::layout::UiPoint;
 use zircon_runtime_interface::ui::surface::{UiPointerButton, UiPointerEventKind};
 use zircon_runtime_interface::{
-    ZR_RUNTIME_EVENT_KIND_GAMEPAD_CONNECTION_V2, ZR_RUNTIME_EVENT_KIND_GAMEPAD_BUTTON_V2,
-    ZR_RUNTIME_EVENT_KIND_GAMEPAD_AXIS_V2,
     ui::accessibility::UiAccessibilityActionRequest, ZrRuntimeClipboardResultV1,
     ZrRuntimeEditorTransformWriteV1, ZrRuntimeEventV1, ZrRuntimeViewportCameraV1, ZrStatus,
     ZR_RUNTIME_ACCESSIBILITY_ACTION_REQUEST_LIMIT_V1, ZR_RUNTIME_BUTTON_STATE_PRESSED_V1,
@@ -14,22 +12,23 @@ use zircon_runtime_interface::{
     ZR_RUNTIME_EVENT_KIND_CLIPBOARD_RESULT_V1, ZR_RUNTIME_EVENT_KIND_CURSOR_ENTERED_V1,
     ZR_RUNTIME_EVENT_KIND_CURSOR_LEFT_V1, ZR_RUNTIME_EVENT_KIND_EDITOR_TRANSFORM_WRITE_V1,
     ZR_RUNTIME_EVENT_KIND_FILE_DRAG_DROP_V1, ZR_RUNTIME_EVENT_KIND_GAMEPAD_AXIS_V1,
-    ZR_RUNTIME_EVENT_KIND_GAMEPAD_BUTTON_V1, ZR_RUNTIME_EVENT_KIND_GAMEPAD_CONNECTION_V1,
-    ZR_RUNTIME_EVENT_KIND_IME_V1, ZR_RUNTIME_EVENT_KIND_KEYBOARD_V1,
-    ZR_RUNTIME_EVENT_KIND_LIFECYCLE_V1, ZR_RUNTIME_EVENT_KIND_MOUSE_BUTTON_V1,
-    ZR_RUNTIME_EVENT_KIND_MOUSE_MOTION_V1, ZR_RUNTIME_EVENT_KIND_MOUSE_WHEEL_V1,
-    ZR_RUNTIME_EVENT_KIND_POINTER_MOVED_V1, ZR_RUNTIME_EVENT_KIND_TOUCH_V1,
-    ZR_RUNTIME_EVENT_KIND_VIEWPORT_CAMERA_V1, ZR_RUNTIME_EVENT_KIND_VIEWPORT_RESIZED_V1,
-    ZR_RUNTIME_EVENT_KIND_WINDOW_STATUS_V1, ZR_RUNTIME_EVENT_PAYLOAD_MAX_ENCODED_BYTES_V1,
-    ZR_RUNTIME_FILE_DRAG_CANCELLED_V1, ZR_RUNTIME_FILE_DRAG_DROPPED_V1,
-    ZR_RUNTIME_FILE_DRAG_HOVERED_V1, ZR_RUNTIME_IME_COMPOSITION_V2_EVENT_STATE,
-    ZR_RUNTIME_LIFECYCLE_STATE_BACKGROUND_V1, ZR_RUNTIME_LIFECYCLE_STATE_FOREGROUND_V1,
-    ZR_RUNTIME_LIFECYCLE_STATE_RESUMED_V1, ZR_RUNTIME_LIFECYCLE_STATE_SUSPENDED_V1,
-    ZR_RUNTIME_MOUSE_BUTTON_LEFT_V1, ZR_RUNTIME_MOUSE_BUTTON_MIDDLE_V1,
-    ZR_RUNTIME_MOUSE_BUTTON_RIGHT_V1, ZR_RUNTIME_MOUSE_WHEEL_COORDS_PRESENT_V1,
-    ZR_RUNTIME_TOUCH_PHASE_CANCELLED_V1, ZR_RUNTIME_TOUCH_PHASE_ENDED_V1,
-    ZR_RUNTIME_TOUCH_PHASE_MOVED_V1, ZR_RUNTIME_TOUCH_PHASE_STARTED_V1,
-    ZR_RUNTIME_VIEWPORT_CAMERA_REQUEST_LIMIT_V1,
+    ZR_RUNTIME_EVENT_KIND_GAMEPAD_AXIS_V2, ZR_RUNTIME_EVENT_KIND_GAMEPAD_BUTTON_V1,
+    ZR_RUNTIME_EVENT_KIND_GAMEPAD_BUTTON_V2, ZR_RUNTIME_EVENT_KIND_GAMEPAD_CONNECTION_V1,
+    ZR_RUNTIME_EVENT_KIND_GAMEPAD_CONNECTION_V2, ZR_RUNTIME_EVENT_KIND_IME_V1,
+    ZR_RUNTIME_EVENT_KIND_KEYBOARD_V1, ZR_RUNTIME_EVENT_KIND_LIFECYCLE_V1,
+    ZR_RUNTIME_EVENT_KIND_MOUSE_BUTTON_V1, ZR_RUNTIME_EVENT_KIND_MOUSE_MOTION_V1,
+    ZR_RUNTIME_EVENT_KIND_MOUSE_WHEEL_V1, ZR_RUNTIME_EVENT_KIND_POINTER_MOVED_V1,
+    ZR_RUNTIME_EVENT_KIND_TOUCH_V1, ZR_RUNTIME_EVENT_KIND_VIEWPORT_CAMERA_V1,
+    ZR_RUNTIME_EVENT_KIND_VIEWPORT_RESIZED_V1, ZR_RUNTIME_EVENT_KIND_WINDOW_STATUS_V1,
+    ZR_RUNTIME_EVENT_PAYLOAD_MAX_ENCODED_BYTES_V1, ZR_RUNTIME_FILE_DRAG_CANCELLED_V1,
+    ZR_RUNTIME_FILE_DRAG_DROPPED_V1, ZR_RUNTIME_FILE_DRAG_HOVERED_V1,
+    ZR_RUNTIME_IME_COMPOSITION_V2_EVENT_STATE, ZR_RUNTIME_LIFECYCLE_STATE_BACKGROUND_V1,
+    ZR_RUNTIME_LIFECYCLE_STATE_FOREGROUND_V1, ZR_RUNTIME_LIFECYCLE_STATE_RESUMED_V1,
+    ZR_RUNTIME_LIFECYCLE_STATE_SUSPENDED_V1, ZR_RUNTIME_MOUSE_BUTTON_LEFT_V1,
+    ZR_RUNTIME_MOUSE_BUTTON_MIDDLE_V1, ZR_RUNTIME_MOUSE_BUTTON_RIGHT_V1,
+    ZR_RUNTIME_MOUSE_WHEEL_COORDS_PRESENT_V1, ZR_RUNTIME_TOUCH_PHASE_CANCELLED_V1,
+    ZR_RUNTIME_TOUCH_PHASE_ENDED_V1, ZR_RUNTIME_TOUCH_PHASE_MOVED_V1,
+    ZR_RUNTIME_TOUCH_PHASE_STARTED_V1, ZR_RUNTIME_VIEWPORT_CAMERA_REQUEST_LIMIT_V1,
     ZR_RUNTIME_WINDOW_STATUS_BACKEND_SCALE_FACTOR_CHANGED_V1,
     ZR_RUNTIME_WINDOW_STATUS_CLOSE_REQUESTED_V1, ZR_RUNTIME_WINDOW_STATUS_DESTROYED_V1,
     ZR_RUNTIME_WINDOW_STATUS_MOVED_V1, ZR_RUNTIME_WINDOW_STATUS_OCCLUDED_V1,
@@ -77,6 +76,9 @@ impl RuntimeDynamicSession {
     }
 
     pub(super) fn handle_event(&mut self, event: ZrRuntimeEventV1) -> ZrStatus {
+        if let Err(error) = self.finish_input_consumer_reset() {
+            return error_status(error);
+        }
         if event.viewport != DEFAULT_VIEWPORT {
             return not_found(b"runtime viewport not found");
         }
@@ -92,6 +94,16 @@ impl RuntimeDynamicSession {
                 return error_status(error);
             }
         }
+        if (self.input_ingress_gap || self.input_ingress_detached)
+            && !matches!(
+                event.kind,
+                ZR_RUNTIME_EVENT_KIND_VIEWPORT_RESIZED_V1
+                    | ZR_RUNTIME_EVENT_KIND_LIFECYCLE_V1
+                    | ZR_RUNTIME_EVENT_KIND_WINDOW_STATUS_V1
+            )
+        {
+            return ZrStatus::ok();
+        }
         match event.kind {
             ZR_RUNTIME_EVENT_KIND_VIEWPORT_RESIZED_V1 => {
                 self.resize_viewport(crate::core::math::UVec2::new(
@@ -106,14 +118,18 @@ impl RuntimeDynamicSession {
                 self.handle_editor_transform_write(event)
             }
             ZR_RUNTIME_EVENT_KIND_POINTER_MOVED_V1 => {
+                if !event.x.is_finite() || !event.y.is_finite() {
+                    return invalid_argument(b"invalid runtime pointer position");
+                }
                 let cursor = Vec2::new(event.x, event.y);
-                self.cursor = cursor;
-                if self.submit_input_event(InputEvent::CursorMoved {
+                if !self.submit_input_event(InputEvent::CursorMoved {
                     x: cursor.x,
                     y: cursor.y,
                 }) {
-                    self.record_submitted_pointer_move();
+                    return ZrStatus::ok();
                 }
+                self.cursor = cursor;
+                self.record_submitted_pointer_move();
                 match self.dispatch_runtime_ui_pointer(
                     UiPointerEventKind::Move,
                     None,
@@ -139,10 +155,12 @@ impl RuntimeDynamicSession {
             ZR_RUNTIME_EVENT_KIND_MOUSE_BUTTON_V1 => self.handle_mouse_button(event),
             ZR_RUNTIME_EVENT_KIND_MOUSE_WHEEL_V1 => self.handle_mouse_wheel(event),
             ZR_RUNTIME_EVENT_KIND_MOUSE_MOTION_V1 => {
-                self.submit_input_event(InputEvent::MouseMotion {
+                if !self.submit_input_event(InputEvent::MouseMotion {
                     delta_x: event.x,
                     delta_y: event.y,
-                });
+                }) {
+                    return ZrStatus::ok();
+                }
                 match self.dispatch_runtime_ui_event(|metadata| {
                     UiInputEvent::MouseMotion(UiMouseMotionInputEvent {
                         metadata,
@@ -307,7 +325,10 @@ impl RuntimeDynamicSession {
     }
 
     fn handle_mouse_button(&mut self, event: ZrRuntimeEventV1) -> ZrStatus {
-        self.cursor = Vec2::new(event.x, event.y);
+        if !event.x.is_finite() || !event.y.is_finite() {
+            return invalid_argument(b"invalid runtime mouse position");
+        }
+        let cursor = Vec2::new(event.x, event.y);
         let Some(button) = input_button(event.button) else {
             return invalid_argument(b"unknown runtime mouse button");
         };
@@ -315,7 +336,10 @@ impl RuntimeDynamicSession {
             ZR_RUNTIME_BUTTON_STATE_PRESSED_V1 => {
                 if self.submit_input_event(InputEvent::ButtonPressed(button)) {
                     self.record_submitted_mouse_button_press();
+                } else {
+                    return ZrStatus::ok();
                 }
+                self.cursor = cursor;
                 match self.dispatch_runtime_ui_pointer(
                     UiPointerEventKind::Down,
                     ui_pointer_button(event.button),
@@ -332,7 +356,10 @@ impl RuntimeDynamicSession {
             ZR_RUNTIME_BUTTON_STATE_RELEASED_V1 => {
                 if self.submit_input_event(InputEvent::ButtonReleased(button)) {
                     self.record_submitted_mouse_button_release();
+                } else {
+                    return ZrStatus::ok();
                 }
+                self.cursor = cursor;
                 match self.dispatch_runtime_ui_pointer(
                     UiPointerEventKind::Up,
                     ui_pointer_button(event.button),
@@ -357,7 +384,9 @@ impl RuntimeDynamicSession {
             Err(status) => return status,
         };
         let Some(unit) = unit else {
-            self.submit_input_event(InputEvent::WheelScrolled { delta: event.delta });
+            if !self.submit_input_event(InputEvent::WheelScrolled { delta: event.delta }) {
+                return ZrStatus::ok();
+            }
             match self.dispatch_runtime_ui_pointer(
                 UiPointerEventKind::Scroll,
                 None,
@@ -384,7 +413,9 @@ impl RuntimeDynamicSession {
             return invalid_argument(b"invalid runtime mouse wheel delta");
         }
         let wheel = MouseWheelEvent::new(unit, delta_x, delta_y);
-        self.submit_input_event(InputEvent::MouseWheel(wheel));
+        if !self.submit_input_event(InputEvent::MouseWheel(wheel)) {
+            return ZrStatus::ok();
+        }
         match self.dispatch_runtime_ui_pointer(
             UiPointerEventKind::Scroll,
             None,
@@ -414,6 +445,9 @@ impl RuntimeDynamicSession {
     }
 
     fn handle_touch(&mut self, event: ZrRuntimeEventV1) -> ZrStatus {
+        if !event.x.is_finite() || !event.y.is_finite() {
+            return invalid_argument(b"invalid runtime touch position");
+        }
         let cursor = Vec2::new(event.x, event.y);
         let Some(phase) = touch_phase(event.state) else {
             return invalid_argument(b"unknown runtime touch phase");
@@ -433,17 +467,21 @@ impl RuntimeDynamicSession {
             }
             _ => unreachable!("touch phase was validated before dispatch"),
         };
+        if !self.submit_input_batch(vec![
+            InputEvent::CursorMoved {
+                x: cursor.x,
+                y: cursor.y,
+            },
+            InputEvent::Touch {
+                id: event.pointer_id,
+                phase,
+                x: cursor.x,
+                y: cursor.y,
+            },
+        ]) {
+            return ZrStatus::ok();
+        }
         self.cursor = cursor;
-        self.submit_input_event(InputEvent::CursorMoved {
-            x: cursor.x,
-            y: cursor.y,
-        });
-        self.submit_input_event(InputEvent::Touch {
-            id: event.pointer_id,
-            phase,
-            x: cursor.x,
-            y: cursor.y,
-        });
         match self.dispatch_runtime_ui_pointer(
             kind,
             button,

@@ -154,22 +154,32 @@ fn simulate_camera_event_overrides_render_extract_without_mutating_the_play_worl
 
 #[test]
 fn checked_gamepad_session_admission_returns_the_manager_generation_rejection() {
-    use std::num::NonZeroU64;
     use crate::core::framework::input::{
-        GamepadAxis, GamepadConnectionInfo, GamepadId, GamepadInputRejection,
-        InputEvent, InputEventAdmission, InputEventRecordingConfig,
+        GamepadAxis, GamepadConnectionInfo, GamepadId, GamepadInputRejection, InputBatchRejection,
+        InputEvent, InputEventRecordingConfig,
     };
+    use crate::input::{InputIngressAdmission, InputIngressRejection};
+    use std::num::NonZeroU64;
 
-    let session = RuntimeDynamicSession::new(RuntimeDynamicSessionProfile::Headless, None)
+    let mut session = RuntimeDynamicSession::new(RuntimeDynamicSessionProfile::Headless, None)
         .expect("headless session");
     let gamepad = GamepadId(97);
     let generation = NonZeroU64::new(3).unwrap();
-    assert_eq!(session.submit_input_event_with_admission(
-        InputEvent::GamepadConnection(GamepadConnectionInfo {
-            gamepad, generation, connected: false,
-            name: None, vendor_id: None, product_id: None,
-        }),
-    ).unwrap(), InputEventAdmission::Accepted);
+    assert!(matches!(
+        session
+            .submit_input_event_with_admission(InputEvent::GamepadConnection(
+                GamepadConnectionInfo {
+                    gamepad,
+                    generation,
+                    connected: false,
+                    name: None,
+                    vendor_id: None,
+                    product_id: None,
+                }
+            ),)
+            .unwrap(),
+        InputIngressAdmission::Accepted(_)
+    ));
     {
         let input = session.resolve_input_manager().unwrap();
         input.set_event_recording_config(InputEventRecordingConfig::enabled(8));
@@ -177,13 +187,25 @@ fn checked_gamepad_session_admission_returns_the_manager_generation_rejection() 
         input.drain_events();
     }
     let sample = InputEvent::GamepadAxis {
-        gamepad, generation, axis: GamepadAxis::LeftStickX, value: 1.0,
+        gamepad,
+        generation,
+        axis: GamepadAxis::LeftStickX,
+        value: 1.0,
     };
     assert_eq!(
-        session.submit_input_event_with_admission(sample.clone()).unwrap(),
-        InputEventAdmission::Rejected(GamepadInputRejection::ConnectionClosed {
-            gamepad, submitted: generation, current: generation,
-        }),
+        session
+            .submit_input_event_with_admission(sample.clone())
+            .unwrap(),
+        InputIngressAdmission::Rejected(InputIngressRejection::Batch(
+            InputBatchRejection::Gamepad {
+                event_index: 0,
+                reason: GamepadInputRejection::ConnectionClosed {
+                    gamepad,
+                    submitted: generation,
+                    current: generation,
+                },
+            },
+        )),
     );
     assert!(!session.submit_input_event(sample));
     let input = session.resolve_input_manager().unwrap();

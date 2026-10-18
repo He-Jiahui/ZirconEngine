@@ -2,8 +2,6 @@
 
 #[path = "active_generation.rs"]
 mod active_generation;
-#[path = "reload.rs"]
-mod reload;
 #[path = "data.rs"]
 mod data;
 #[path = "error.rs"]
@@ -12,6 +10,8 @@ mod error;
 mod event_stream;
 #[path = "io/mod.rs"]
 pub mod io;
+#[path = "reload.rs"]
+mod reload;
 
 #[doc(hidden)]
 #[path = "assembly.rs"]
@@ -36,8 +36,10 @@ mod snapshot;
 #[path = "tests/test_profile.rs"]
 mod test_profile;
 
-pub use active_generation::{ResourceActiveGeneration, ResourceActiveRow, ResourceActiveSnapshotError, ResourceActiveVersionKey};
-pub use reload::{ResourceSourceMember, ResourceSourceOutcome, ResourceSourcePublication};
+pub use active_generation::{
+    ResourceActiveGeneration, ResourceActiveRow, ResourceActiveSnapshotError,
+    ResourceActiveVersionKey,
+};
 pub use data::ResourceData;
 pub use error::{ResourceRegistryError, ResourceResult};
 pub use event_stream::{
@@ -66,6 +68,7 @@ pub use readiness_generation::{
     ResourceReadinessState,
 };
 pub use registry::ResourceRegistry;
+pub use reload::{ResourceSourceMember, ResourceSourceOutcome, ResourceSourcePublication};
 pub use runtime::{Resource, ResourceRuntimeInfo, RuntimeResourceState};
 pub use snapshot::ResourceSnapshot;
 

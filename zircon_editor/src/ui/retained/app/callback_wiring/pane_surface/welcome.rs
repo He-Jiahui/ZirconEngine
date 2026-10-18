@@ -9,6 +9,9 @@ pub(super) fn wire_welcome_recent_callbacks(
     let weak = Rc::downgrade(host);
     pane_surface_host.on_welcome_recent_pointer_clicked(move |x, y, width, height| {
         if let Some(host) = weak.upgrade() {
+            if host.borrow().main_window_close_blocks_session_ui() {
+                return;
+            }
             host.borrow_mut()
                 .welcome_recent_pointer_clicked(x, y, width, height);
         }
@@ -17,6 +20,9 @@ pub(super) fn wire_welcome_recent_callbacks(
     let weak = Rc::downgrade(host);
     pane_surface_host.on_welcome_recent_pointer_moved(move |x, y, width, height| {
         if let Some(host) = weak.upgrade() {
+            if host.borrow().main_window_close_blocks_session_ui() {
+                return;
+            }
             host.borrow_mut()
                 .welcome_recent_pointer_moved(x, y, width, height);
         }
@@ -25,6 +31,9 @@ pub(super) fn wire_welcome_recent_callbacks(
     let weak = Rc::downgrade(host);
     pane_surface_host.on_welcome_recent_pointer_scrolled(move |x, y, delta, width, height| {
         if let Some(host) = weak.upgrade() {
+            if host.borrow().main_window_close_blocks_session_ui() {
+                return;
+            }
             host.borrow_mut()
                 .welcome_recent_pointer_scrolled(x, y, delta, width, height);
         }
@@ -40,6 +49,9 @@ pub(super) fn wire_welcome_control_callbacks(
     pane_surface_host.on_welcome_control_changed(
         move |control_id: SharedString, value: SharedString| {
             if let Some(host) = weak.upgrade() {
+                if host.borrow().main_window_close_blocks_session_ui() {
+                    return;
+                }
                 host.borrow_mut().dispatch_welcome_surface_control(
                     control_id.as_str(),
                     UiEventKind::Change,
@@ -52,6 +64,9 @@ pub(super) fn wire_welcome_control_callbacks(
     let weak = Rc::downgrade(host);
     pane_surface_host.on_welcome_control_clicked(move |control_id: SharedString| {
         if let Some(host) = weak.upgrade() {
+            if host.borrow().main_window_close_blocks_session_ui() {
+                return;
+            }
             host.borrow_mut().dispatch_welcome_surface_control(
                 control_id.as_str(),
                 UiEventKind::Click,

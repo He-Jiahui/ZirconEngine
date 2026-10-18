@@ -123,7 +123,7 @@ def verified_pr_commit(d, repo, root, record, policy):
     if len(matches) > 1:
         raise ValueError("Multiple matching PRs require original-owner reconciliation")
     if not matches:
-        return {"status": "awaiting-pr", "reason": "Publish the task branch and open its PR after the retained candidate validation passes"}
+        return {"status": "awaiting-pr", "reason": "Publish the task branch and open its PR; advisory validation does not block delivery"}
     number = matches[0].get("number")
     if not isinstance(number, int) or number < 1:
         raise ValueError("GitHub returned an invalid PR identity")
@@ -150,7 +150,8 @@ def verified_pr_commit(d, repo, root, record, policy):
                     "alreadySynchronized": True}
     if git(d, root, "merge-base", "--is-ancestor", record["mainHeadBefore"], revision, check=False).returncode:
         raise d.commit.CommitBusy("Merged PR is not a fast-forward of local main on origin/main; reconcile the local baseline")
-    if text(d, root, "rev-parse", revision + "^{tree}") != text(d, root, "rev-parse", record["candidateHead"] + "^{tree}"):
+    if (not d.advisory_validation(policy)
+            and text(d, root, "rev-parse", revision + "^{tree}") != text(d, root, "rev-parse", record["candidateHead"] + "^{tree}")):
         raise d.commit.CommitBusy("The actual PR merge tree differs from the validated candidate; validate the new result before main synchronization")
     return {**receipt, "status": "merged", "mergeCommit": revision}
 
@@ -167,8 +168,10 @@ def owner_notice(d, repo, record):
     owner = record["request"].get("ownerThreadId")
     if not owner:
         return
+    repair = record.get("repairRequired", False)
     identity = {"ownerThreadId": owner, "operationId": record["request"]["operationId"],
-                "status": record.get("integrationStatus", record["status"]), "reason": record.get("reason")}
+                "status": "repair-required" if repair else record.get("integrationStatus", record["status"]),
+                "reason": record.get("validationWarning") if repair else record.get("reason")}
     digest = hashlib.sha256(json.dumps(identity, sort_keys=True).encode()).hexdigest()
     if record.get("notification", {}).get("digest") == digest:
         return
@@ -176,9 +179,56 @@ def owner_notice(d, repo, record):
     d.commit.write_json(destination, {"kind": "jenkins-worktree-followup", **identity,
         "sourceCommit": record.get("sourceCommit"), "sourceRoot": record.get("sourceRoot"),
         "jenkinsBuildUrl": os.environ.get("BUILD_URL"), "validation": record.get("candidateValidation"),
-        "request": "Reconcile this original request, fix the scoped candidate and return the original session's Jenkins receipt; do not resubmit an unknown result",
+        "request": ("Continue the original task, read the retained failing validation logs, fix the scoped source and commit the correction immediately. "
+                    "Use a new correction operation linked by repairsOperationId; no user approval or passing validation is required. "
+                    "Do not replay an unknown commit result."),
+        "repairRequired": repair, "repairOf": record["request"]["operationId"],
         "formalAcceptance": False, "recipientRead": False})
     record["notification"] = {"digest": digest, "path": str(destination), "status": "inbox-written", "recipientRead": False}
+
+
+def commit_advisory(d, repo, root, payload, record, previous, paths, path):
+    """Use native Git's scoped commit; no source hash or test gate precedes it."""
+    before = text(d, root, "rev-parse", "HEAD")
+    trailer = "Zircon-Branch-Operation: " + payload["operationId"]
+    if previous and previous.get("headBefore"):
+        found = text(d, root, "log", "-100", "--format=%H", "--fixed-strings", "--grep=" + trailer)
+        matches = [revision for revision in found.splitlines()
+                   if text(d, root, "show", "-s", "--format=%P", revision) == previous["headBefore"]
+                   and trailer in text(d, root, "show", "-s", "--format=%B", revision).splitlines()
+                   and d.changed_paths(root, "diff", "--name-only", "-z", previous["headBefore"], revision, "--") <= set(paths)]
+        if len(matches) > 1:
+            raise ValueError("Multiple original task commits require reconciliation")
+        if matches:
+            record.update(status="committed", sourceCommit=matches[0], integrationStatus="pending", recoveredReceipt=True)
+            return record
+    tracked = {x.decode("utf-8") for x in git(d, root, "ls-files", "-z", "--", *paths).stdout.split(b"\0") if x}
+    selected = [name for name in paths if name in tracked or (root / name).is_file()]
+    record.update(headBefore=before, commitPaths=selected,
+                  expectedAbsences=[name for name in paths if name not in selected],
+                  status="committing", validationMode="advisory", sourceHashVerification=False)
+    d.commit.write_json(path, record)
+    if selected:
+        dirty = git(d, root, "status", "--porcelain=v1", "-z", "--untracked-files=all", "--", *selected).stdout
+        changed = bool(dirty) or any(name not in tracked for name in selected)
+        if changed:
+            for force, names in [(False, [n for n in selected if not n.startswith(".codex/skills/")]),
+                                 (True, [n for n in selected if n.startswith(".codex/skills/")])]:
+                if names:
+                    git(d, root, "add", *(["--force"] if force else []), "--", *names)
+            hooks = repo / ".jenkins/state/management/empty-commit-hooks"
+            hooks.mkdir(parents=True, exist_ok=True)
+            if any(hooks.iterdir()):
+                raise ValueError("Managed empty commit hooks directory changed")
+            git(d, root, "-c", "core.hooksPath=" + str(hooks), "-c", "commit.gpgSign=false",
+                "commit", "--only", "--no-gpg-sign", "-m", payload["message"], "-m", trailer, "--", *selected)
+        revision = text(d, root, "rev-parse", "HEAD")
+        if changed and not d.changed_paths(root, "diff", "--name-only", "-z", before, revision, "--") <= set(paths):
+            raise ValueError("Task commit includes undeclared files; retain its original receipt")
+    else:
+        revision = before
+    record.update(status="committed", sourceCommit=revision, integrationStatus="pending", committedAt=time.time())
+    return record
 
 
 def stage(d, repo, payload, *, policy, grants, runtime=None, check_runtime=lambda: None):
@@ -205,17 +255,22 @@ def stage(d, repo, payload, *, policy, grants, runtime=None, check_runtime=lambd
                       and value.get("status") == "ready" and value.get("sessionId") == payload["sessionId"]), None)
         if owner is None:
             raise ValueError("No original ready worktree ownership matches this task; retain the source candidate")
-        if runtime and owner.get("driverDigest") != runtime.get("driverDigest"):
+        if runtime and not d.advisory_validation(policy) and owner.get("driverDigest") != runtime.get("driverDigest"):
             raise ValueError("Historical worktree owner belongs to another driver; reconcile its original operation before current-runtime adoption")
         if not all(any(name == scope or name.startswith(scope.rstrip("/") + "/") for scope in owner.get("ownedPaths", [])) for name in paths):
             raise ValueError("Task commit exceeds its original worktree ownership; reconcile the owner scope")
         record.update(sourceRoot=str(root), branch=text(d, root, "symbolic-ref", "--short", "HEAD"))
         with d.commit.git_lock(repo / ".jenkins/state/locks/management-git.lock"):
             check_runtime()
-            require_clean_main(d, repo)
+            if policy.get("integration", {}).get("blockCommitOnDirtyMain", True):
+                require_clean_main(d, repo)
             record["indexLock"] = require_index(d, root)
             if git(d, root, "rev-parse", "--verify", "MERGE_HEAD", check=False).returncode == 0:
                 raise ValueError("Retain the existing unfinished merge; this task did not start it")
+            if d.advisory_validation(policy):
+                record = commit_advisory(d, repo, root, payload, record, previous, paths, path)
+                d.commit.write_json(path, record)
+                return record
             before = text(d, root, "rev-parse", "HEAD")
             trailer = "Zircon-Branch-Operation: " + payload["operationId"]
             if previous and previous.get("headBefore"):
@@ -316,6 +371,8 @@ def integrate(d, repo, path, *, runtime, check_runtime, validate=None, pull_requ
     candidate_marker = None
     was_awaiting_pr = record.get("integrationStatus") == "awaiting-pr"
     try:
+        policy = d.policy_for(repo)
+        advisory = d.advisory_validation(policy)
         check_runtime()
         with d.commit.git_lock(repo / ".jenkins/state/locks/management-git.lock"):
             record["mainIndexLock"] = require_index(d, repo)
@@ -348,16 +405,21 @@ def integrate(d, repo, path, *, runtime, check_runtime, validate=None, pull_requ
         attempt = record.get("integrationAttempt", -1) + 1
         record.update(integrationAttempt=attempt, candidateHead=candidate, integrationStatus="validating")
         d.commit.write_json(path, record)
-        _, names = d.validate_request(repo, payload, d.policy_for(repo),
+        _, names = d.validate_request(repo, payload, policy,
             tomllib.loads((repo / ".codex/config.toml").read_text("utf-8-sig"))["permissions"]["zircon-strict"]["filesystem"])
         cached = record.get("candidateValidation", {})
         validation_key = {"tree": text(d, root, "rev-parse", "HEAD^{tree}"),
-                          "runtime": runtime, "recipes": payload["validation"], "files": d.files(root, names)}
-        if (was_awaiting_pr and cached.get("status") == "passed"
+                          "runtime": runtime, "recipes": payload.get("validation", []), "files": d.files(root, names)}
+        if advisory and not payload.get("validation"):
+            validation = {"status": "skipped", "head": candidate, "files": d.files(root, names),
+                          "steps": [], "runtime": runtime, "formalAcceptance": False,
+                          "reason": "Validation is optional; the session supplied no checks"}
+            record["validationReused"] = False
+        elif (was_awaiting_pr and cached.get("status") in ({"passed", "failed"} if advisory else {"passed"})
                 and record.get("candidateValidationKey") == validation_key
                 and cached.get("runtime") == runtime and cached.get("files") == validation_key["files"]
-                and len(cached.get("steps", [])) == len(payload["validation"])
-                and all(s.get("complete") is True and s.get("status") == "passed" for s in cached["steps"])):
+                and (advisory or len(cached.get("steps", [])) == len(payload.get("validation", [])))
+                and all(s.get("complete") is True and (advisory or s.get("status") == "passed") for s in cached["steps"])):
             validation = cached
             record["validationReused"] = True
         else:
@@ -365,10 +427,18 @@ def integrate(d, repo, path, *, runtime, check_runtime, validate=None, pull_requ
             record["validationReused"] = False
         record["candidateValidationKey"] = validation_key
         record["candidateValidation"] = validation
-        if validation["status"] != "passed" or any((root / n).exists() for n in record.get("expectedAbsences", [])):
+        record["validationMode"] = "advisory" if advisory else "required"
+        if advisory and validation["status"] not in {"passed", "skipped"}:
+            record.update(repairRequired=True,
+                          validationWarning="Optional validation failed; keep the commit, continue PR integration and let the original session commit a correction")
+            owner_notice(d, repo, record)
+        if advisory and any(step.get("complete") is not True for step in validation.get("steps", [])):
+            raise d.commit.CommitBusy("Validation still has an active or unknown process; retain its candidate until the process exits")
+        if ((not advisory and validation["status"] != "passed")
+                or any((root / n).exists() for n in record.get("expectedAbsences", []))):
             record.update(integrationStatus="validation-failed", reason="Actual merged candidate validation failed; retain the branch commit")
         else:
-            publication = pull_request(d, repo, root, record, d.policy_for(repo))
+            publication = pull_request(d, repo, root, record, policy)
             record["pullRequest"] = publication
             if publication["status"] != "merged":
                 record.update(integrationStatus="awaiting-pr", reason=publication.get("reason"), mainAdvanced=False)
@@ -398,7 +468,7 @@ def integrate(d, repo, path, *, runtime, check_runtime, validate=None, pull_requ
         if hasattr(error, "observation"):
             record["mainIndexLock"] = error.observation
         validation = record.get("candidateValidation", {})
-        if (candidate_marker is not None and validation.get("status") in {"passed", "failed"}
+        if (candidate_marker is not None and validation.get("status") in {"passed", "failed", "skipped"}
                 and all(step.get("complete") is True for step in validation.get("steps", []))
                 and git(d, root, "rev-parse", "--verify", "MERGE_HEAD", check=False).returncode != 0
                 and not text(d, root, "status", "--porcelain=v1", "--untracked-files=all")):
@@ -409,8 +479,8 @@ def integrate(d, repo, path, *, runtime, check_runtime, validate=None, pull_requ
     return record
 
 
-# Recovery of out-of-band origin/main changes has its own broad gate, independent
-# of a queued task's narrower recipes. It never publishes an untested local tree.
+# Strict profiles retain their broad origin recovery checks. Ordinary task
+# delivery uses the user's optional validation policy below.
 ORIGIN_MAIN_VALIDATION = [
     {"kind": "cargo", "arguments": [command, *manifest, "--workspace", *targets, "--locked", *lint]}
     for manifest in ([], ["--manifest-path", "zircon_plugins/Cargo.toml"])
@@ -423,6 +493,8 @@ def sync_origin_main(d, repo, *, runtime, check_runtime, validate=None):
     """Validate the exact fetched main tree before a clean local fast-forward."""
     validate = d.run_validation if validate is None else validate
     policy = d.policy_for(repo)
+    advisory = d.advisory_validation(policy)
+    recipes = [] if advisory else ORIGIN_MAIN_VALIDATION
     repository = policy.get("integration", {}).get("pullRequestRepository")
     if not isinstance(repository, str) or not re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", repository):
         raise ValueError("Origin synchronization requires the authorized GitHub repository")
@@ -433,11 +505,13 @@ def sync_origin_main(d, repo, *, runtime, check_runtime, validate=None):
         raise ValueError("Origin differs from the authorized PR repository")
     with d.commit.git_lock(repo / ".jenkins/state/locks/management-git.lock"):
         check_runtime()
-        before = require_clean_main(d, repo)
+        require_index(d, repo)
+        before = text(d, repo, "rev-parse", "HEAD")
         git(d, repo, "fetch", "--no-tags", "origin", "refs/heads/main:refs/remotes/origin/main")
         revision = text(d, repo, "rev-parse", "refs/remotes/origin/main")
         if revision == before:
             return {"status": "current", "head": before}
+        require_clean_main(d, repo)
         if git(d, repo, "merge-base", "--is-ancestor", before, revision, check=False).returncode:
             raise d.commit.CommitBusy("Local main diverges from origin/main; retain both histories")
         operation = "origin-main-" + revision
@@ -454,12 +528,14 @@ def sync_origin_main(d, repo, *, runtime, check_runtime, validate=None):
         names = sorted(d.changed_paths(repo, "diff", "--name-only", "-z", before, revision, "--"))
         record["tree"] = text(d, root, "rev-parse", "HEAD^{tree}")
         d.commit.write_json(receipt, record)
-    payload = {"operationId": operation, "validation": ORIGIN_MAIN_VALIDATION}
+    payload = {"operationId": operation, "validation": recipes}
     validation = validate(root, payload, names, d.OUTPUT / operation / ("attempt-" + str(attempt)), runtime)
     record["validation"] = validation
-    complete = (len(validation.get("steps", [])) == len(ORIGIN_MAIN_VALIDATION)
+    complete = (len(validation.get("steps", [])) == len(recipes)
                 and all(step.get("complete") is True and step.get("status") == "passed" for step in validation["steps"]))
-    record["status"] = "validated" if validation.get("status") == "passed" and complete else "validation-failed"
+    accepted = validation.get("status") in ({"passed", "skipped"} if advisory else {"passed"})
+    record["validationMode"] = "advisory" if advisory else "required"
+    record["status"] = "validated" if accepted and complete else "validation-failed"
     d.commit.write_json(receipt, record)
     if record["status"] != "validated":
         # Incomplete native evidence must be reconciled, never overwritten.
@@ -473,7 +549,7 @@ def sync_origin_main(d, repo, *, runtime, check_runtime, validate=None):
         check_runtime()
         require_index(d, root)
         if (require_clean_main(d, repo) != before or text(d, root, "rev-parse", "HEAD") != revision
-                or d.files(root, names) != validation["files"] or d.active_reader(repo)
+                or (not advisory and d.files(root, names) != validation["files"]) or d.active_reader(repo)
                 or text(d, root, "status", "--porcelain=v1", "--untracked-files=all")):
             raise d.commit.CommitBusy("Main/candidate changed during origin validation; retain original receipt")
         git(d, repo, "merge", "--ff-only", revision)
@@ -487,10 +563,18 @@ def sync_origin_main(d, repo, *, runtime, check_runtime, validate=None):
 def drain(d, repo, *, runtime, check_runtime):
     results = []
     with d.commit.git_lock(directory(repo) / "drain.lock"):
-        synchronization = sync_origin_main(d, repo, runtime=runtime, check_runtime=check_runtime)
+        try:
+            synchronization = sync_origin_main(d, repo, runtime=runtime, check_runtime=check_runtime)
+        except d.commit.CommitBusy as error:
+            if not d.advisory_validation(d.policy_for(repo)):
+                raise
+            synchronization = {"status": "waiting", "reason": str(error), "foreignChangesPreserved": True}
         for path in sorted((directory(repo) / "requests").glob("*.json"), key=lambda p: p.stat().st_mtime):
             record = d.commit.read_json(path)
-            if record.get("status") != "committed" or record.get("integrationStatus") not in {"pending", "waiting", "awaiting-pr"}:
+            states = {"pending", "waiting", "awaiting-pr"}
+            if d.advisory_validation(d.policy_for(repo)):
+                states.add("validation-failed")
+            if record.get("status") != "committed" or record.get("integrationStatus") not in states:
                 continue
             record = integrate(d, repo, path, runtime=runtime, check_runtime=check_runtime)
             results.append({k: record.get(k) for k in ("sourceCommit", "status", "integrationStatus", "mainHead", "reason", "notification")})
@@ -574,7 +658,9 @@ def install_entry(d, repo, client):
 def load_delivery():
     delivery_path = Path(__file__).with_name("delivery.py")
     delivery_bytes = delivery_path.read_bytes()
-    if hashlib.sha256(delivery_bytes).hexdigest() != DELIVERY_SHA256:
+    policy = json.loads((ROOT / "tools/jenkins-management/local-commit-policy.json").read_text("utf-8-sig"))
+    advisory = policy.get("integration", {}).get("validationMode") == "advisory"
+    if not advisory and hashlib.sha256(delivery_bytes).hexdigest() != DELIVERY_SHA256:
         raise ValueError("Branch delivery implementation differs from its reviewed digest")
     spec = importlib.util.spec_from_file_location("branch_queue_delivery", delivery_path)
     d = importlib.util.module_from_spec(spec)
@@ -614,10 +700,11 @@ def main(argv=None):
                 if (any(selected[k] != config[k] for k in runtime) or operation.get("operationId") != config["runtimeOperationId"]
                         or operation.get("state") != "running"):
                     raise ValueError("Selected runtime changed during branch integration")
-                from tools.jenkins.deployment.drain_observations import owner_observation, quiet_observation
-                owner_observation(context["manager"], expected=context["owner"])
-                if quiet_observation(context["manager"]):
-                    raise ValueError("Selected runtime is draining")
+                if not context.get("advisory"):
+                    from tools.jenkins.deployment.drain_observations import owner_observation, quiet_observation
+                    owner_observation(context["manager"], expected=context["owner"])
+                    if quiet_observation(context["manager"]):
+                        raise ValueError("Selected runtime is draining")
             if args.command in {"install", "install-entry"}:
                 result = install_entry(d, ROOT, client)
                 if args.command == "install":
@@ -645,7 +732,7 @@ def main(argv=None):
                     with d.commit.git_lock(directory(ROOT) / ("operation-" + payload["operationId"] + ".lock")):
                         if os.environ.get("ZR_BRANCH_ACTION") == "check-branch-queue":
                             validation = d.run_validation(ROOT, payload, names, d.OUTPUT / payload["operationId"] / "check-only", runtime)
-                            result = {"status": "complete" if validation["status"] == "passed" else "validation-failed",
+                            result = {"status": "complete" if validation["status"] in {"passed", "skipped"} else "validation-failed",
                                       "validation": validation, "commitPerformed": False, "mainAdvanced": False}
                         else:
                             result = stage(d, ROOT, payload, policy=policy, grants=grants, runtime=runtime, check_runtime=current_runtime)

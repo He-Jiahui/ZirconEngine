@@ -1,7 +1,7 @@
 use std::collections::{BTreeMap, HashSet};
 use std::io;
 use std::path::Path;
-use std::sync::{Arc, Mutex, MutexGuard};
+use std::sync::{Arc, Mutex, MutexGuard, Weak};
 
 use crate::core::editor_message::DocumentId;
 
@@ -11,6 +11,12 @@ use super::{
     DocumentSaveReport, DocumentToolkit, DocumentToolkitDescriptor, DocumentToolkitSnapshot,
     SaveCtx, SaveError, SaveReason, ToolkitInstanceId, ToolkitRegistryError,
 };
+
+/// The exact close attempt owns the document mutation fence, including worker captures.
+#[derive(Clone, Debug)]
+pub(crate) struct DocumentCloseAdmission {
+    identity: Arc<()>,
+}
 
 pub struct DocumentToolkitRegistry<Host> {
     state: Mutex<RegistryState<Host>>,
@@ -22,6 +28,7 @@ struct RegistryState<Host> {
     by_instance: BTreeMap<ToolkitInstanceId, DocumentId>,
     last_document_id: u64,
     snapshot: DocumentToolkitSnapshot,
+    close_admission: Weak<()>,
 }
 
 struct RegistryEntry<Host> {
@@ -65,6 +72,7 @@ impl<Host> Default for RegistryState<Host> {
             by_instance: BTreeMap::new(),
             last_document_id: 0,
             snapshot: DocumentToolkitSnapshot::new(0, Vec::new()),
+            close_admission: Weak::new(),
         }
     }
 }
@@ -98,6 +106,50 @@ impl<Host> Default for DocumentToolkitRegistry<Host> {
 }
 
 impl<Host> DocumentToolkitRegistry<Host> {
+    pub(crate) fn try_close_admission(
+        &self,
+    ) -> Result<DocumentCloseAdmission, ToolkitRegistryError> {
+        let mut state = self.lock_state();
+        if state.close_admission.upgrade().is_some() {
+            return Err(ToolkitRegistryError::HostClosing);
+        }
+        let busy = state
+            .by_document
+            .iter()
+            .filter_map(|(document, entry)| {
+                (entry.active_edits != 0 || entry.active_saves != 0 || entry.closing)
+                    .then_some(*document)
+            })
+            .collect::<Vec<_>>();
+        if !busy.is_empty() {
+            return Err(ToolkitRegistryError::CloseAdmissionPending { documents: busy });
+        }
+        let identity = Arc::new(());
+        state.close_admission = Arc::downgrade(&identity);
+        Ok(DocumentCloseAdmission { identity })
+    }
+
+    pub(crate) fn validate_close_admission(
+        &self,
+        admission: &DocumentCloseAdmission,
+    ) -> Result<(), ToolkitRegistryError> {
+        Self::check_close_admission(&self.lock_state(), Some(admission))
+    }
+
+    fn check_close_admission(
+        state: &RegistryState<Host>,
+        admission: Option<&DocumentCloseAdmission>,
+    ) -> Result<(), ToolkitRegistryError> {
+        match (state.close_admission.upgrade(), admission) {
+            (None, None) => Ok(()),
+            (Some(identity), Some(admission)) if Arc::ptr_eq(&identity, &admission.identity) => {
+                Ok(())
+            }
+            (Some(_), None) => Err(ToolkitRegistryError::HostClosing),
+            _ => Err(ToolkitRegistryError::CloseAdmissionInvalid),
+        }
+    }
+
     pub(crate) fn with_source_write<T>(
         &self,
         project_root: &Path,
@@ -127,6 +179,7 @@ impl<Host> DocumentToolkitRegistry<Host> {
         let instance = descriptor.instance_id().clone();
         validate_menu_items(&descriptor)?;
         let mut state = self.lock_state();
+        Self::check_close_admission(&state, None)?;
         if state.by_document.contains_key(&document) {
             return Err(ToolkitRegistryError::DocumentAlreadyRegistered { document });
         }
@@ -167,6 +220,7 @@ impl<Host> DocumentToolkitRegistry<Host> {
         instance: &ToolkitInstanceId,
     ) -> Result<Option<DocumentCloseLease<'_, Host>>, ToolkitRegistryError> {
         let mut state = self.lock_state();
+        Self::check_close_admission(&state, None)?;
         let Some(document) = state.by_instance.get(instance).copied() else {
             return Ok(None);
         };
@@ -202,7 +256,22 @@ impl<Host> DocumentToolkitRegistry<Host> {
     }
 
     pub fn begin_clear(&self) -> Result<DocumentClearLease<'_, Host>, ToolkitRegistryError> {
+        self.begin_clear_admitted(None)
+    }
+
+    pub(crate) fn begin_clear_for_close(
+        &self,
+        admission: &DocumentCloseAdmission,
+    ) -> Result<DocumentClearLease<'_, Host>, ToolkitRegistryError> {
+        self.begin_clear_admitted(Some(admission))
+    }
+
+    fn begin_clear_admitted(
+        &self,
+        admission: Option<&DocumentCloseAdmission>,
+    ) -> Result<DocumentClearLease<'_, Host>, ToolkitRegistryError> {
         let mut state = self.lock_state();
+        Self::check_close_admission(&state, admission)?;
         if state.by_document.is_empty() {
             return Ok(DocumentClearLease::new(self, Vec::new()));
         }
@@ -300,6 +369,7 @@ impl<Host> DocumentToolkitRegistry<Host> {
         instance: &ToolkitInstanceId,
     ) -> Result<DocumentEditLease<'_, Host>, ToolkitRegistryError> {
         let mut state = self.lock_state();
+        Self::check_close_admission(&state, None)?;
         let document = state.by_instance.get(instance).copied().ok_or_else(|| {
             ToolkitRegistryError::EditInstanceNotRegistered {
                 instance: instance.clone(),
@@ -403,6 +473,18 @@ impl<Host> DocumentToolkitRegistry<Host> {
             .map_err(|source| SaveError::AutosaveHookFailed { document, source })
     }
 
+    pub(crate) fn capture_autosave_for_close(
+        &self,
+        document: DocumentId,
+        host: &Host,
+        admission: &DocumentCloseAdmission,
+    ) -> Result<DocumentAutosavePayload, SaveError> {
+        let (toolkit, _instance, _lease) = self.begin_save_admitted(document, Some(admission))?;
+        toolkit
+            .capture_autosave(host)
+            .map_err(|source| SaveError::AutosaveHookFailed { document, source })
+    }
+
     pub fn autosave_source_path(
         &self,
         document: DocumentId,
@@ -441,7 +523,24 @@ impl<Host> DocumentToolkitRegistry<Host> {
         ),
         SaveError,
     > {
+        self.begin_save_admitted(document, None)
+    }
+
+    fn begin_save_admitted(
+        &self,
+        document: DocumentId,
+        admission: Option<&DocumentCloseAdmission>,
+    ) -> Result<
+        (
+            Arc<dyn DocumentToolkit<Host>>,
+            ToolkitInstanceId,
+            SaveLease<'_, Host>,
+        ),
+        SaveError,
+    > {
         let mut state = self.lock_state();
+        Self::check_close_admission(&state, admission)
+            .map_err(|_| SaveError::DocumentClosing { document })?;
         let entry = state
             .by_document
             .get_mut(&document)

@@ -1,6 +1,8 @@
 use std::num::NonZeroU64;
 
-use crate::core::resource::{ResourceActiveVersionKey, ResourceId, ResourceReadinessRowIdentity, UntypedResourceHandle};
+use crate::core::resource::{
+    ResourceActiveVersionKey, ResourceId, ResourceReadinessRowIdentity, UntypedResourceHandle,
+};
 use zr_rhi::{DeviceGeneration, DeviceId, SubmissionStatus, SubmissionTicket};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]

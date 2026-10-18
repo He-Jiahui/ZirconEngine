@@ -1,0 +1,5 @@
+var rageGeneration = %import("combat/rage_generation_state");
+
+pub main(): int {
+    return rageGeneration.contractTest();
+}

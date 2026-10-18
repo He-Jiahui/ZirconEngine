@@ -31,7 +31,7 @@ pub(crate) struct TextShapingWorkBudget {
 /// 累计调用方登记的完整同步请求，不持有输入内容。
 ///
 /// # 字段与生命周期
-/// 两类请求计数互斥递增，累计字节数采用饱和加法；最大字节数保留单次请求的最大值。
+/// 每次登记只归入其中一类请求计数，累计字节数采用饱和加法；最大字节数保留单次请求的最大值。
 /// 重置由持有者以默认值替换；最大输入字节数不表示峰值驻留内存。
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub(crate) struct TextShapingWorkReport {

@@ -129,11 +129,16 @@ impl EditCommandCodec for SetReflectedSceneFieldCodec {
 struct AddDynamicComponentCodec;
 
 impl EditCommandCodec for AddDynamicComponentCodec {
-    fn command_type(&self) -> &str { "zircon.editor.scene.add_dynamic_component" }
-    fn schema_version(&self) -> u16 { SCHEMA_VERSION }
+    fn command_type(&self) -> &str {
+        "zircon.editor.scene.add_dynamic_component"
+    }
+    fn schema_version(&self) -> u16 {
+        SCHEMA_VERSION
+    }
     fn decode(&self, payload: &serde_json::Value) -> Result<CommandBox, JournalCodecDecodeError> {
         let payload = decode_payload::<crate::core::editing::command::AddComponentPayload>(
-            payload, self.command_type(),
+            payload,
+            self.command_type(),
         )?;
         crate::core::editing::command::AddDynamicComponentCommand::from_journal(payload)
             .map(|command| Box::new(command) as CommandBox)

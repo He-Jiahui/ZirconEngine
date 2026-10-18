@@ -64,7 +64,10 @@ impl World {
     /// Borrows source signatures; this quotation creates no rows or instance tokens.
     /// Persistent ECS tables/indices remain owned by World, outside history retention.
     pub fn dynamic_component_creation_peak_v1(
-        &self, targets: &[EntityId], value: &serde_json::Value, type_path: &str,
+        &self,
+        targets: &[EntityId],
+        value: &serde_json::Value,
+        type_path: &str,
         meter: &mut zircon_runtime_interface::retained_memory::RetainedBoundBuilderV1,
     ) -> Result<(), zircon_runtime_interface::retained_memory::RetentionContractError> {
         use zircon_runtime_interface::retained_memory::{RetainedOwnerV1, RetentionContractError};
@@ -72,11 +75,16 @@ impl World {
         for &entity in targets {
             value.retained_bound_v1(meter)?;
             meter.array::<u8>(type_path.len())?;
-            let (archetype, _) = self.archetype_location_for_entity(entity)
+            let (archetype, _) = self
+                .archetype_location_for_entity(entity)
                 .ok_or(RetentionContractError::Stale)?;
-            let signature = self.archetype_index.signature(archetype)
+            let signature = self
+                .archetype_index
+                .signature(archetype)
                 .ok_or(RetentionContractError::Stale)?;
-            let components = signature.table_components().len()
+            let components = signature
+                .table_components()
+                .len()
                 .checked_add(signature.sparse_set_components().len())
                 .and_then(|len| len.checked_add(4))
                 .and_then(|len| len.checked_mul(8))

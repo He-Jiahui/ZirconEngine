@@ -1,0 +1,1128 @@
+{
+  "schema_version": 2,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/deed_title_contract_codegen.mjs",
+  "source_blobs": {
+    "src/sim/content/deeds.ts": "5f908bdf2b98a8ed3765a39a876217d1f5930097664495e8b8f70754ecfcd8f8",
+    "src/sim/deeds.ts": "fa6da11c042bf0c59ef50fbe5c9726a282a34fa8d3d12267c4133587c28f2bec",
+    "server/game.ts": "d5f0d0f715037ef4b79594925c64b1d0e676ed5ccebe24605f6ed16bcfc41556"
+  },
+  "deeds": [
+    {
+      "id": "prog_first_steps",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "prog_finding_your_feet",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "prog_double_digits",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "prog_the_long_middle",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "prog_level_cap",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "prog_well_rested",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "prog_talented",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "prog_specialized",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "prog_deep_roots",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "prog_full_build",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "prog_veteran",
+      "title_reward": true,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "prog_champion",
+      "title_reward": true,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "prog_paragon",
+      "title_reward": true,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "prog_mythic",
+      "title_reward": true,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "prog_eternal",
+      "title_reward": true,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "prog_prestige",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "prog_prestige_5",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "prog_prestige_10",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "prog_first_harvest",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "prog_mining_100",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "prog_logging_100",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "prog_herbalism_100",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "prog_master_gatherer",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "prog_first_craft",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "prog_craft_specialist",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "prog_around_the_ring",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "cmb_first_blood",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "cmb_slayer",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "cmb_legion_of_one",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "cmb_heavy_hitter",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "cmb_critical_eye",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "cmb_giantslayer",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "cmb_first_fall",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "dgn_hollow_crypt",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "dgn_sunken_bastion",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "dgn_drowned_temple",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "dgn_gravewyrm_sanctum",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "dgn_hollow_crypt_heroic",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "dgn_sunken_bastion_heroic",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "dgn_drowned_temple_heroic",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "dgn_gravewyrm_sanctum_heroic",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "dgn_nythraxis",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "dgn_nythraxis_heroic",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "dgn_thornpeak_rounds",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "dgn_deepward",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "dgn_mark_circuit",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "dgn_boss_clears_50",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "dgn_morthen_flawless",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "dgn_morthen_trio",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "dgn_olen_arc",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "dgn_vael_thralls",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "dgn_ysolei_moonspawn",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "dgn_ysolei_flawless",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "dgn_velkhar_bonewalkers",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "dgn_korzul_flawless",
+      "title_reward": true,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "dgn_sanctum_speed",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "dgn_nythraxis_gravebreaker",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "dgn_nythraxis_wardens",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "dgn_nythraxis_deathless",
+      "title_reward": true,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "cmb_thunzharr",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "cmb_thunzharr_unbroken",
+      "title_reward": true,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "cmb_thunzharr_ten",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "dlv_reliquary",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "dlv_reliquary_heroic",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "dlv_litany",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "dlv_litany_heroic",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "dlv_lore_journal",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "dlv_companion_max",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "dlv_companions_both",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "dlv_clears_50",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "dlv_solo_heroic",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "dlv_tumbler_premium",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "dlv_rite_flawless",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "dlv_varric_ringers",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "dlv_nhalia_bells",
+      "title_reward": true,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "chr_vale_chapter_i",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "chr_vale_chapter_ii",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "chr_vale_chapter_iii",
+      "title_reward": true,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "chr_vale_gatherer",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "chr_vale_first_cast",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "chr_vale_packbreaker",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "chr_vale_cup_debut",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "chr_vale_rares",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "chr_marsh_chapter_i",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "chr_marsh_chapter_ii",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "chr_marsh_chapter_iii",
+      "title_reward": true,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "chr_marsh_gatherer",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "chr_marsh_unburst",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "chr_marsh_hush_the_mending",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "chr_marsh_rares",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "chr_peaks_chapter_i",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "chr_peaks_chapter_ii",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "chr_peaks_chapter_iii",
+      "title_reward": true,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "chr_peaks_sparring",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "chr_peaks_glimmer_cast",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "chr_peaks_moongate",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "chr_peaks_waking_witness",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "chr_peaks_rares",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "col_discovery_25",
+      "title_reward": false,
+      "item_discovery_trigger": {
+        "kind": "items_discovered_count",
+        "amount": 25
+      }
+    },
+    {
+      "id": "col_discovery_75",
+      "title_reward": false,
+      "item_discovery_trigger": {
+        "kind": "items_discovered_count",
+        "amount": 75
+      }
+    },
+    {
+      "id": "col_discovery_150",
+      "title_reward": true,
+      "item_discovery_trigger": {
+        "kind": "items_discovered_count",
+        "amount": 150
+      }
+    },
+    {
+      "id": "col_discovery_250",
+      "title_reward": false,
+      "item_discovery_trigger": {
+        "kind": "items_discovered_count",
+        "amount": 250
+      }
+    },
+    {
+      "id": "col_first_rare",
+      "title_reward": false,
+      "item_discovery_trigger": {
+        "kind": "quality",
+        "values": [
+          "rare"
+        ]
+      }
+    },
+    {
+      "id": "col_first_epic",
+      "title_reward": false,
+      "item_discovery_trigger": {
+        "kind": "quality",
+        "values": [
+          "epic"
+        ]
+      }
+    },
+    {
+      "id": "col_first_legendary",
+      "title_reward": false,
+      "item_discovery_trigger": {
+        "kind": "quality",
+        "values": [
+          "legendary"
+        ]
+      }
+    },
+    {
+      "id": "col_set_vale_arcanist",
+      "title_reward": false,
+      "item_discovery_trigger": {
+        "kind": "collect_items",
+        "values": [
+          "woven_robe",
+          "acolytes_circlet",
+          "silk_sash"
+        ]
+      }
+    },
+    {
+      "id": "col_set_boundstone_vanguard",
+      "title_reward": false,
+      "item_discovery_trigger": {
+        "kind": "collect_items",
+        "values": [
+          "boundstone_helm",
+          "boundstone_girdle",
+          "gravewyrm_gauntlets"
+        ]
+      }
+    },
+    {
+      "id": "col_set_greyjaw_stalker",
+      "title_reward": false,
+      "item_discovery_trigger": {
+        "kind": "collect_items",
+        "values": [
+          "shadow_jerkin",
+          "greyjaw_hide_boots",
+          "trail_leggings"
+        ]
+      }
+    },
+    {
+      "id": "col_set_deathlord",
+      "title_reward": false,
+      "item_discovery_trigger": {
+        "kind": "collect_items",
+        "values": [
+          "deathlord_warplate",
+          "deathlord_legguards",
+          "deathlord_sabatons",
+          "deathlords_dread_visage"
+        ]
+      }
+    },
+    {
+      "id": "col_set_wyrmshadow",
+      "title_reward": false,
+      "item_discovery_trigger": {
+        "kind": "collect_items",
+        "values": [
+          "wyrmshadow_harness",
+          "wyrmshadow_treads",
+          "wyrmshadow_legguards",
+          "wyrmshadow_talongrips"
+        ]
+      }
+    },
+    {
+      "id": "col_set_necromancers",
+      "title_reward": false,
+      "item_discovery_trigger": {
+        "kind": "collect_items",
+        "values": [
+          "necromancers_starshroud",
+          "necromancers_soulsteps",
+          "necromancers_legwraps",
+          "necromancers_soulspire_mantle"
+        ]
+      }
+    },
+    {
+      "id": "col_set_crownforged",
+      "title_reward": false,
+      "item_discovery_trigger": {
+        "kind": "collect_items",
+        "values": [
+          "crownforged_gauntlets",
+          "crownforged_girdle",
+          "crownforged_dreadhelm",
+          "crownforged_warspaulders"
+        ]
+      }
+    },
+    {
+      "id": "col_set_nighttalon",
+      "title_reward": false,
+      "item_discovery_trigger": {
+        "kind": "collect_items",
+        "values": [
+          "nighttalon_grips",
+          "nighttalon_waistband",
+          "nighttalon_crown",
+          "nighttalon_shoulderguards"
+        ]
+      }
+    },
+    {
+      "id": "col_set_soulflame",
+      "title_reward": false,
+      "item_discovery_trigger": {
+        "kind": "collect_items",
+        "values": [
+          "soulflame_gloves",
+          "soulflame_cord",
+          "soulflame_cowl",
+          "soulflame_mantle"
+        ]
+      }
+    },
+    {
+      "id": "col_set_stormcallers",
+      "title_reward": false,
+      "item_discovery_trigger": {
+        "kind": "collect_items",
+        "values": [
+          "stormcallers_handguards",
+          "stormcallers_waistguard",
+          "stormcallers_crown",
+          "stormcallers_spaulders"
+        ]
+      }
+    },
+    {
+      "id": "col_seven_regalia",
+      "title_reward": true,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "col_true_colors",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "col_all_slots",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "col_quartermaster_buyout",
+      "title_reward": false,
+      "item_discovery_trigger": {
+        "kind": "collect_items",
+        "values": [
+          "seal_of_the_nine_oaths",
+          "nielas_coldlight_band",
+          "sutils_gambit",
+          "oath_of_the_round_table",
+          "zyzzs_deathless_signet",
+          "architects_cornerstone",
+          "yumis_keepsake_locket",
+          "zense_meridian",
+          "swiftfang_talisman",
+          "medallion_of_endless_profit"
+        ]
+      }
+    },
+    {
+      "id": "col_glimmerfin",
+      "title_reward": false,
+      "item_discovery_trigger": {
+        "kind": "collect_items",
+        "values": [
+          "glimmerfin_koi"
+        ]
+      }
+    },
+    {
+      "id": "col_full_creel",
+      "title_reward": false,
+      "item_discovery_trigger": {
+        "kind": "collect_items",
+        "values": [
+          "raw_mirror_trout",
+          "raw_river_perch",
+          "raw_marsh_pike",
+          "raw_bog_eel",
+          "raw_frostgill_trout",
+          "raw_stonescale_carp"
+        ]
+      }
+    },
+    {
+      "id": "col_junk_drawer",
+      "title_reward": false,
+      "item_discovery_trigger": {
+        "kind": "poor_items_discovered_count",
+        "amount": 10
+      }
+    },
+    {
+      "id": "pvp_arena_first_match",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "pvp_arena_first_win",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "pvp_arena_1v1_1600",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "pvp_arena_1v1_1750",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "pvp_arena_1v1_1900",
+      "title_reward": true,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "pvp_arena_2v2_1600",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "pvp_arena_2v2_1750",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "pvp_arena_2v2_1900",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "pvp_duel_first_win",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "pvp_duel_grace",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "pvp_vcup_first_match",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "pvp_vcup_first_win",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "pvp_vcup_wins_10",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "pvp_vcup_wins_25",
+      "title_reward": true,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "pvp_vcup_first_goal",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "pvp_vcup_hat_trick",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "pvp_vcup_golden_goal",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "pvp_vcup_first_save",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "pvp_vcup_clean_sheet",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "pvp_vcup_guild_win",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "pvp_fiesta_first_bout",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "pvp_fiesta_first_win",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "pvp_fiesta_double",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "pvp_fiesta_shutdown",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "pvp_fiesta_full_build",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "pvp_fiesta_powerups",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "pvp_fiesta_five_kills",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "soc_first_party",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "soc_full_house",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "soc_guild_joined",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "soc_guild_founded",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "soc_first_trade",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "soc_first_sale",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "soc_steady_custom",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "soc_market_magnate",
+      "title_reward": true,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "soc_by_ravens_wing",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "soc_room_for_more",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "soc_gilded_strongbox",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "soc_meet_bursar",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "soc_pocket_money",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "soc_heavy_purse",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "soc_wyrms_hoard",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "soc_civic_duty",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "exp_long_road_north",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "exp_vale_wayfarer",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "exp_marsh_wayfarer",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "exp_peaks_wayfarer",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "exp_world_traveler",
+      "title_reward": true,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "exp_something_shiny",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "exp_first_ore",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "exp_first_timber",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "exp_first_herb",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "feat_era_cap",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "feat_book_complete",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "feat_brightwood_relic",
+      "title_reward": false,
+      "item_discovery_trigger": {
+        "kind": "collect_items",
+        "values": [
+          "bramblehide_jerkin",
+          "monarch_crown_helm"
+        ]
+      }
+    },
+    {
+      "id": "hid_saul_footnote",
+      "title_reward": true,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "hid_gilded_tour",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "hid_fall_death",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "hid_keepers_toll_twice",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "hid_roll_hundred",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "hid_yumi_cheer",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "hid_bountiful_coffer",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "hid_companion_save",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "hid_codfather",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "prog_crown_below",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "prog_mere_at_rest",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "prog_callused_hands",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "prog_tools_of_the_trade",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "dgn_nythraxis_crypt",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "chr_marsh_first_cast",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    },
+    {
+      "id": "pvp_card_duel_first_win",
+      "title_reward": false,
+      "item_discovery_trigger": null
+    }
+  ],
+  "title_deed_count": 19,
+  "semantics": {
+    "order": "DEED_ORDER is the append-only Object.keys(DEEDS) source order and persisted codes are one-based indexes into that order",
+    "select": "a non-null deed id changes both persisted and entity title projections only when the deed is earned and its reward kind is title",
+    "clear": "a null deed id clears both title projections unconditionally",
+    "invalid": "unknown, unearned, rewardless and non-title deed ids are silent no-ops",
+    "migration": "an absent or stale persisted title is normalized to no active title",
+    "item_discovery": "first acquisition evaluates source triggers that directly read itemsDiscovered or its static quality projection"
+  }
+}

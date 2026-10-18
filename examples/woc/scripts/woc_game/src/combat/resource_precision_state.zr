@@ -1,0 +1,71 @@
+// WOS113's resource owner. The world codec keeps its historical integer rows,
+// while this module defines the exact values and all precision-sensitive rules.
+pub class ExactResourceState {
+    pub var current: float;
+    pub var maximum: float;
+
+    pub @constructor(current: float, maximum: float) {
+        if (current < 0.0 || maximum < 0.0 || current > maximum) {
+            throw "exact resource state is invalid";
+        }
+        this.current = current;
+        this.maximum = maximum;
+    }
+}
+
+pub isIntegral(value: float): bool {
+    return value >= 0.0 && <float><int>value == value;
+}
+
+pub isValid(current: float, maximum: float): bool {
+    return current >= 0.0 && maximum >= 0.0 && current <= maximum;
+}
+
+pub fromLegacy(current: int, maximum: int): ExactResourceState {
+    if (current < 0 || maximum < 0 || current > maximum) {
+        throw "legacy resource state is invalid";
+    }
+    return new ExactResourceState(<float>current, <float>maximum);
+}
+
+pub canEncodeHistorical(
+    exact: ExactResourceState, legacyCurrent: int, legacyMaximum: int
+): bool {
+    return isIntegral(exact.current) && isIntegral(exact.maximum) &&
+        legacyCurrent == <int>exact.current && legacyMaximum == <int>exact.maximum;
+}
+
+pub canSpend(exact: ExactResourceState, cost: float): bool {
+    if (cost < 0.0) { throw "exact resource cost is invalid"; }
+    return exact.current >= cost;
+}
+
+pub spend(exact: ExactResourceState, cost: float): ExactResourceState {
+    if (!canSpend(exact, cost)) { throw "exact resource spend is invalid"; }
+    return new ExactResourceState(exact.current - cost, exact.maximum);
+}
+
+pub cappedAdd(exact: ExactResourceState, amount: float): ExactResourceState {
+    if (amount < 0.0) { throw "exact resource gain is invalid"; }
+    var next = exact.current + amount;
+    if (next > exact.maximum) { next = exact.maximum; }
+    return new ExactResourceState(next, exact.maximum);
+}
+
+pub contractTest(): int {
+    var legacy = fromLegacy(10, 100);
+    if (!isValid(10.0, 100.0) || isValid(100.1, 100.0) ||
+        !canEncodeHistorical(legacy, 10, 100) || !canSpend(legacy, 10.0) ||
+        canSpend(legacy, 10.1)) {
+        return -1;
+    }
+    var fractional = cappedAdd(legacy, 1.5);
+    if (fractional.current != 11.5 || fractional.maximum != 100.0 ||
+        canEncodeHistorical(fractional, 11, 100)) {
+        return -2;
+    }
+    var spent = spend(fractional, 0.5);
+    var capped = cappedAdd(spent, 200.0);
+    return spent.current == 11.0 && capped.current == 100.0 &&
+        capped.maximum == 100.0 && isIntegral(spent.current) ? 1 : -3;
+}

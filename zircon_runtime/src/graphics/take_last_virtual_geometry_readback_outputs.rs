@@ -30,8 +30,11 @@ impl SceneRenderer {
     pub(crate) fn record_completed_virtual_geometry_native_readback_for_test(
         &mut self,
         outputs: &RenderVirtualGeometryReadbackOutputs,
+        inspection: Option<
+            &crate::core::framework::render::RenderVirtualGeometryNativeReadbackInspection,
+        >,
     ) {
-        self.last_virtual_geometry_readback_for_test = Some(outputs.clone());
+        self.last_virtual_geometry_readback_for_test = Some((outputs.clone(), inspection.cloned()));
         self.last_virtual_geometry_completion_for_test =
             VirtualGeometryGpuCompletion::from_readback_outputs(outputs.clone());
     }
@@ -60,7 +63,18 @@ impl SceneRenderer {
     pub fn test_support_last_virtual_geometry_readback_outputs(
         &self,
     ) -> Option<RenderVirtualGeometryReadbackOutputs> {
-        self.last_virtual_geometry_readback_for_test.clone()
+        self.last_virtual_geometry_readback_for_test
+            .as_ref()
+            .map(|(outputs, _)| outputs.clone())
+    }
+
+    #[cfg(feature = "test-support")]
+    pub fn test_support_last_virtual_geometry_native_inspection(
+        &self,
+    ) -> Option<crate::core::framework::render::RenderVirtualGeometryNativeReadbackInspection> {
+        self.last_virtual_geometry_readback_for_test
+            .as_ref()
+            .and_then(|(_, inspection)| inspection.clone())
     }
 
     #[cfg(feature = "test-support")]

@@ -1,0 +1,6 @@
+{
+  "name": "woc_m4_next_cast_modifier_state_tests",
+  "source": "src",
+  "binary": "bin-m4-next-cast-modifier-state-tests",
+  "entry": "combat/next_cast_modifier_state_test_main"
+}

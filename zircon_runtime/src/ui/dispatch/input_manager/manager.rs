@@ -230,6 +230,73 @@ impl UiInputManager {
     }
 
     /// 窗口事件直接走表面窗口入口；普通输入才走本管理器的完整指针与计时处理。
+    pub(crate) fn cancel_input(
+        &mut self,
+        surface: &mut UiSurface,
+        metadata: UiInputEventMetadata,
+    ) -> Result<UiInputDispatchResult, UiTreeError> {
+        use zircon_runtime_interface::ui::{
+            dispatch::{UiDispatchHostRequest, UiDispatchHostRequestKind},
+            window::{UiWindowEvent, UiWindowEventMetadata},
+        };
+
+        let high_precision_owner = surface.input.high_precision_owner;
+        let pointer_lock_owner = surface.input.pointer_lock_owner;
+        let pointer_lock_policy = surface.input.pointer_lock_policy;
+        surface.clear_focus();
+        self.pointers.clear();
+        self.timers.cancel_interaction_timers();
+        let window_metadata = UiWindowEventMetadata {
+            timestamp: metadata.timestamp,
+            sequence: metadata.sequence,
+            synthetic: true,
+            ..UiWindowEventMetadata::default()
+        };
+        let mut result = match self.dispatch_window_input_pump_event(
+            surface,
+            UiWindowInputPumpEvent::Window(UiWindowEvent::window_focused(window_metadata, false)),
+        ) {
+            Ok(result) => result,
+            Err(error) => {
+                // Keep undelivered host-release ownership across a fallible hover clear.
+                // Capture, presses and drags stay retired; the Session blocks new input.
+                surface.input.high_precision_owner = high_precision_owner;
+                surface.input.pointer_lock_owner = pointer_lock_owner;
+                surface.input.pointer_lock_policy = pointer_lock_policy;
+                return Err(error);
+            }
+        };
+        surface.input.high_precision_owner = None;
+        surface.input.pointer_lock_owner = None;
+        surface.input.pointer_lock_policy = None;
+        if let Some(target) = high_precision_owner {
+            if !result.host_requests.iter().any(|row| matches!(
+                &row.request,
+                UiDispatchHostRequestKind::HighPrecisionPointer { target: owner, enabled: false }
+                    if *owner == target
+            )) {
+                result.host_requests.push(UiDispatchHostRequest {
+                    effect_index: result.applied_effects.len(),
+                    request: UiDispatchHostRequestKind::HighPrecisionPointer { target, enabled: false },
+                    reason: "runtime input ownership ended".to_string(),
+                });
+            }
+        }
+        if let Some(policy) = pointer_lock_owner.and(pointer_lock_policy) {
+            if !result.host_requests.iter().any(|row| matches!(
+                &row.request,
+                UiDispatchHostRequestKind::PointerUnlock { policy: existing } if *existing == policy
+            )) {
+                result.host_requests.push(UiDispatchHostRequest {
+                    effect_index: result.applied_effects.len(),
+                    request: UiDispatchHostRequestKind::PointerUnlock { policy },
+                    reason: "runtime input ownership ended".to_string(),
+                });
+            }
+        }
+        Ok(result)
+    }
+
     pub fn dispatch_window_input_pump_event(
         &mut self,
         surface: &mut UiSurface,

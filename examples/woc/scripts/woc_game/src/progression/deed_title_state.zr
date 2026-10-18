@@ -1,0 +1,40 @@
+var contract = %import("generated/deed_title_contract");
+
+pub deedCount(): int { return contract.deedCount(); }
+
+pub titleDeedCount(): int { return contract.titleDeedCount(); }
+
+pub deedCodeForId(id: string): uint { return contract.deedCodeForId(id); }
+
+pub deedCodeIsTitle(code: uint): bool { return contract.deedCodeIsTitle(code); }
+
+pub deedIdUtf8Length(index: int): int { return contract.deedIdUtf8Length(index); }
+
+pub deedIdUtf8Byte(index: int, byteIndex: int): uint {
+    return contract.deedIdUtf8Byte(index, byteIndex);
+}
+
+pub titleSelectionResult(current: uint, requested: uint, earned: bool): uint {
+    if (requested == <uint>0) return <uint>0;
+    if (earned && deedCodeIsTitle(requested)) return requested;
+    return current;
+}
+
+pub contractTest(): int {
+    var veteran = deedCodeForId("prog_veteran");
+    var champion = deedCodeForId("prog_champion");
+    var firstSteps = deedCodeForId("prog_first_steps");
+    if (deedCount() != 193 || titleDeedCount() != 19 ||
+        veteran == <uint>0 || champion == <uint>0 || firstSteps == <uint>0 ||
+        !deedCodeIsTitle(veteran) || !deedCodeIsTitle(champion) ||
+        deedCodeIsTitle(firstSteps)) {
+        return -1;
+    }
+    if (titleSelectionResult(<uint>0, veteran, true) != veteran ||
+        titleSelectionResult(veteran, champion, false) != veteran ||
+        titleSelectionResult(veteran, firstSteps, true) != veteran ||
+        titleSelectionResult(veteran, <uint>0, false) != <uint>0) {
+        return -2;
+    }
+    return 1;
+}

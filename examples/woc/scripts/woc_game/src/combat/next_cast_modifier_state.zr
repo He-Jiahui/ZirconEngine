@@ -1,0 +1,89 @@
+// Canonical rules for one-shot cast modifiers. WorldState owns persistence;
+// this module owns modifier shape, scope matching, and consumption semantics.
+var container = %import("zr.container");
+
+pub freeCostKind(): uint { return <uint>1; }
+pub instantKind(): uint { return <uint>2; }
+pub cheapCostKind(): uint { return <uint>3; }
+
+pub supportedKind(kindCode: uint): bool {
+    return kindCode == freeCostKind() || kindCode == instantKind() ||
+        kindCode == cheapCostKind();
+}
+
+pub validModifier(
+    identityCode: uint, kindCode: uint, remaining: float, value: float
+): bool {
+    if (identityCode == <uint>0 || identityCode > <uint>65535 ||
+        !supportedKind(kindCode) || remaining <= 0.0 || value < 0.0) {
+        return false;
+    }
+    if (kindCode == cheapCostKind()) return value > 0.0 && value < 1.0;
+    return value == 0.0;
+}
+
+// A zero-length partition is intentionally global. Nonempty scope partitions
+// are strictly ascending known-ability codes, which makes snapshots canonical.
+pub canonicalTargets(
+    codes: container.Array<uint>, start: int, end: int
+): bool {
+    if (start < 0 || end < start || end > codes.length) return false;
+    var prior: uint = <uint>0;
+    var index = start;
+    while (index < end) {
+        var code = <uint>codes[index];
+        if (code == <uint>0 || code <= prior) return false;
+        prior = code;
+        index = index + 1;
+    }
+    return true;
+}
+
+pub appliesToAbility(
+    codes: container.Array<uint>, start: int, end: int, abilityCode: uint
+): bool {
+    if (abilityCode == <uint>0 || !canonicalTargets(codes, start, end)) {
+        return false;
+    }
+    if (start == end) return true;
+    var index = start;
+    while (index < end) {
+        var code = <uint>codes[index];
+        if (code == abilityCode) return true;
+        if (code > abilityCode) return false;
+        index = index + 1;
+    }
+    return false;
+}
+
+// All current kinds represent a next eligible cast. A successful consuming
+// cast removes the complete modifier even when its scope names several spells.
+pub consumesOnSuccessfulCast(kindCode: uint): bool {
+    return supportedKind(kindCode);
+}
+
+pub contractTest(): int {
+    if (!validModifier(<uint>1, freeCostKind(), 12.0, 0.0) ||
+        !validModifier(<uint>2, instantKind(), 12.0, 0.0) ||
+        !validModifier(<uint>3, cheapCostKind(), 12.0, 0.5) ||
+        validModifier(<uint>0, freeCostKind(), 12.0, 0.0) ||
+        validModifier(<uint>4, cheapCostKind(), 12.0, 1.0)) {
+        return -1;
+    }
+    var scoped = new container.Array<uint>();
+    scoped.add(<uint>67);
+    scoped.add(<uint>144);
+    if (!canonicalTargets(scoped, 0, scoped.length) ||
+        !appliesToAbility(scoped, 0, scoped.length, <uint>67) ||
+        appliesToAbility(scoped, 0, scoped.length, <uint>68) ||
+        !appliesToAbility(scoped, 0, 0, <uint>68)) {
+        return -2;
+    }
+    scoped.add(<uint>144);
+    if (canonicalTargets(scoped, 0, scoped.length) ||
+        !consumesOnSuccessfulCast(instantKind()) ||
+        consumesOnSuccessfulCast(<uint>0)) {
+        return -3;
+    }
+    return 1;
+}

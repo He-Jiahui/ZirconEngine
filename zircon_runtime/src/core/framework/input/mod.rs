@@ -23,6 +23,8 @@ mod input_action_manager;
 mod input_action_map;
 #[path = "input_action_state.rs"]
 mod input_action_state;
+#[path = "input_batch.rs"]
+mod input_batch;
 #[path = "input_binding.rs"]
 mod input_binding;
 #[path = "input_button.rs"]
@@ -71,6 +73,7 @@ pub use input_action_context::InputActionContext;
 pub use input_action_manager::InputActionManager;
 pub use input_action_map::InputActionMap;
 pub use input_action_state::InputActionState;
+pub use input_batch::{InputBatchLimits, InputBatchRejection, InputBatchSize};
 pub use input_binding::{InputAxisBinding, InputAxisDirection, InputBinding};
 pub use input_button::InputButton;
 pub use input_event::InputEvent;

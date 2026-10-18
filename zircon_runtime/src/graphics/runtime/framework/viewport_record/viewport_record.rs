@@ -222,6 +222,7 @@ impl ViewportRecord {
                         #[cfg(feature = "test-support")]
                         renderer.record_completed_virtual_geometry_native_readback_for_test(
                             &ready.outputs,
+                            ready.inspection.as_ref(),
                         );
                         pending.ready = Some(ready);
                         true
@@ -261,6 +262,7 @@ impl ViewportRecord {
             let Some(runtime) = self.virtual_geometry_runtimes.get_mut(&pending.history) else {
                 continue;
             };
+            drop(ready.inspection.take());
             let mut outputs = std::mem::take(&mut ready.outputs);
             let requests = outputs.take_node_and_cluster_cull_page_request_ids();
             // A completed clear-only payload is still a real completion envelope.

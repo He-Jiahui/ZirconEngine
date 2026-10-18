@@ -14,12 +14,37 @@ pub(crate) struct ExclusiveTransition<'engine> {
 }
 
 impl EditorTransactionEngine {
+    /// Never waits for an existing operation. The caller retains its host and polls again.
+    pub(crate) fn try_close_admission(
+        &self,
+    ) -> Result<super::operation_gate::SceneCloseAdmission, EditCommandError> {
+        let _transition = self.begin_exclusive_transition("fence main-window close")?;
+        let identity = std::sync::Arc::new(());
+        self.lock_state().close_admission = std::sync::Arc::downgrade(&identity);
+        Ok(super::operation_gate::SceneCloseAdmission { identity })
+    }
+
+    pub(crate) fn begin_exclusive_close_transition(
+        &self,
+        operation: &'static str,
+        admission: &super::operation_gate::SceneCloseAdmission,
+    ) -> Result<ExclusiveTransition<'_>, EditCommandError> {
+        self.start_close_operation(operation, admission)?;
+        let mut transition = ExclusiveTransition {
+            engine: self,
+            not_send: PhantomData,
+            deferred_event: None,
+        };
+        transition.flush_pending_group()?;
+        Ok(transition)
+    }
+
     /// Starts admission before finalizing a group, retaining the gate through replacement.
     pub(crate) fn begin_exclusive_transition(
         &self,
         operation: &'static str,
     ) -> Result<ExclusiveTransition<'_>, EditCommandError> {
-        self.start_observation(operation)?;
+        self.start_operation(operation)?;
         let mut transition = ExclusiveTransition {
             engine: self,
             not_send: PhantomData,
@@ -39,7 +64,7 @@ impl EditorTransactionEngine {
         expected_context: &'static str,
         prepare: impl FnOnce(&T, &super::EditWorldRoute) -> Result<(), EditCommandError>,
     ) -> Result<ExclusiveTransition<'_>, EditCommandError> {
-        self.start_observation(operation)?;
+        self.start_operation(operation)?;
         let mut transition = ExclusiveTransition {
             engine: self,
             not_send: PhantomData,

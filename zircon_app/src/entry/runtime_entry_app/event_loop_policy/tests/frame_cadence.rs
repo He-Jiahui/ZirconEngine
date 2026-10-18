@@ -267,10 +267,25 @@ fn headless_early_wake_does_not_pump_or_move_fixed_deadline() {
 fn low_power_late_wakes_preserve_periodic_phase_across_visibility_modes() {
     let start = Instant::now();
     for (policy, focused, occluded, interval) in [
-        (EventLoopPolicy::Game, false, false, UNFOCUSED_GAME_FRAME_INTERVAL),
+        (
+            EventLoopPolicy::Game,
+            false,
+            false,
+            UNFOCUSED_GAME_FRAME_INTERVAL,
+        ),
         (EventLoopPolicy::Game, true, true, BACKGROUND_FRAME_INTERVAL),
-        (EventLoopPolicy::Mobile, true, false, MOBILE_FOREGROUND_FRAME_INTERVAL),
-        (EventLoopPolicy::Mobile, false, false, BACKGROUND_FRAME_INTERVAL),
+        (
+            EventLoopPolicy::Mobile,
+            true,
+            false,
+            MOBILE_FOREGROUND_FRAME_INTERVAL,
+        ),
+        (
+            EventLoopPolicy::Mobile,
+            false,
+            false,
+            BACKGROUND_FRAME_INTERVAL,
+        ),
     ] {
         let mut cadence =
             RuntimeFrameCadence::new_at_with_window_state(policy, focused, occluded, start);
@@ -363,7 +378,10 @@ fn cadence_mode_changes_rebase_but_unchanged_visibility_preserves_phase() {
     assert!(game.set_window_occluded_at(true, occluded_at));
     let background_deadline = occluded_at + BACKGROUND_FRAME_INTERVAL;
     assert!(game.set_window_focused_at(true, occluded_at + Duration::from_millis(10)));
-    assert_eq!(game.control_flow(), ControlFlow::WaitUntil(background_deadline));
+    assert_eq!(
+        game.control_flow(),
+        ControlFlow::WaitUntil(background_deadline)
+    );
     assert!(game.set_window_occluded_at(false, occluded_at + Duration::from_millis(20)));
     assert_eq!(game.control_flow(), ControlFlow::Poll);
 
@@ -401,7 +419,10 @@ fn latest_representable_instant(start: Instant) -> Instant {
             high = middle - 1;
         }
     }
-    assert!(low < u64::MAX, "the native Instant range must have a finite checked boundary");
+    assert!(
+        low < u64::MAX,
+        "the native Instant range must have a finite checked boundary"
+    );
     let last_second = start.checked_add(Duration::from_secs(low)).unwrap();
     let mut low_nanos = 0_u32;
     let mut high_nanos = 999_999_999_u32;
@@ -428,10 +449,25 @@ fn unrepresentable_periodic_deadlines_wait_without_busy_pumping() {
     let start = Instant::now();
     let edge = latest_representable_instant(start);
     for (policy, focused, occluded, interval) in [
-        (EventLoopPolicy::Headless, true, false, HEADLESS_FRAME_INTERVAL),
-        (EventLoopPolicy::Game, false, false, UNFOCUSED_GAME_FRAME_INTERVAL),
+        (
+            EventLoopPolicy::Headless,
+            true,
+            false,
+            HEADLESS_FRAME_INTERVAL,
+        ),
+        (
+            EventLoopPolicy::Game,
+            false,
+            false,
+            UNFOCUSED_GAME_FRAME_INTERVAL,
+        ),
         (EventLoopPolicy::Game, true, true, BACKGROUND_FRAME_INTERVAL),
-        (EventLoopPolicy::Mobile, true, false, MOBILE_FOREGROUND_FRAME_INTERVAL),
+        (
+            EventLoopPolicy::Mobile,
+            true,
+            false,
+            MOBILE_FOREGROUND_FRAME_INTERVAL,
+        ),
     ] {
         let mut cadence =
             RuntimeFrameCadence::new_at_with_window_state(policy, focused, occluded, edge);
@@ -483,7 +519,10 @@ fn low_power_none_deadline_accepts_work_and_recovers_on_mode_rebase() {
     };
     let delay = Duration::from_millis(5);
     assert!(!cadence.apply_runtime_demand(start, RuntimeFrameDemand::After(delay)));
-    assert_eq!(cadence.control_flow(), ControlFlow::WaitUntil(start + delay));
+    assert_eq!(
+        cadence.control_flow(),
+        ControlFlow::WaitUntil(start + delay)
+    );
     assert!(cadence.take_frame_request(start + delay));
 
     cadence.mode = RuntimeFrameCadenceMode::LowPower {

@@ -84,6 +84,8 @@ impl RuntimeDynamicSession {
             } else {
                 self.record_submitted_keyboard_release();
             }
+        } else {
+            return ZrStatus::ok();
         }
         if let Some((logical_key, text)) = ui_payload {
             match self.dispatch_runtime_ui_event(|metadata| {

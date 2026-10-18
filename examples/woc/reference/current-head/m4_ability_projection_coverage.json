@@ -1,0 +1,4722 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/m4_ability_projection_coverage_codegen.mjs",
+  "known_ability_catalog_sha256": "20e25cc3b59c328621f65eebc41cc89d77cf24ef401fc523c0cf076ba60c0ce9",
+  "m4_ability_catalog_sha256": "f4349aa828b6e6a1400b7889f76bf23421145f65326c2148d2cb519cdb00b230",
+  "scope_note": "Projection and source effect-shape status only; not_m4_projected does not assert that an ability is unimplemented elsewhere in WOC.",
+  "totals": {
+    "current_known_abilities": 308,
+    "m4_projected_abilities": 117,
+    "not_m4_projected_abilities": 191
+  },
+  "entries": [
+    {
+      "code": 1,
+      "id": "adrenaline_rush",
+      "class_id": "rogue",
+      "learn_level": 20,
+      "school": "physical",
+      "m4_projection": "m4_projected",
+      "m4_index": 96,
+      "m4_scenarios": [],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.adrenaline_rush",
+      "source_effect_types": [
+        "gainResource"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 2,
+      "id": "aimed_shot",
+      "class_id": "hunter",
+      "learn_level": 11,
+      "school": "physical",
+      "m4_projection": "m4_projected",
+      "m4_index": 107,
+      "m4_scenarios": [],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.aimed_shot",
+      "source_effect_types": [
+        "directDamage"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 3,
+      "id": "ambush",
+      "class_id": "rogue",
+      "learn_level": 5,
+      "school": "physical",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "weaponStrike"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 4,
+      "id": "arcane_explosion",
+      "class_id": "mage",
+      "learn_level": 7,
+      "school": "arcane",
+      "m4_projection": "m4_projected",
+      "m4_index": 11,
+      "m4_scenarios": [
+        "c4b_effect_dispatch"
+      ],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.arcane_explosion",
+      "source_effect_types": [
+        "aoeDamage"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 5,
+      "id": "arcane_intellect",
+      "class_id": "mage",
+      "learn_level": 3,
+      "school": "arcane",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "buffTarget"
+      ],
+      "m4_effect_shape_status": "new_m4_effect_shape_required"
+    },
+    {
+      "code": 6,
+      "id": "arcane_missiles",
+      "class_id": "mage",
+      "learn_level": 5,
+      "school": "arcane",
+      "m4_projection": "m4_projected",
+      "m4_index": 89,
+      "m4_scenarios": [],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.arcane_missiles",
+      "source_effect_types": [
+        "directDamage"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 7,
+      "id": "arcane_power",
+      "class_id": "mage",
+      "learn_level": 5,
+      "school": "arcane",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "selfBuff",
+        "selfBuff"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 8,
+      "id": "arcane_shot",
+      "class_id": "hunter",
+      "learn_level": 5,
+      "school": "arcane",
+      "m4_projection": "m4_projected",
+      "m4_index": 109,
+      "m4_scenarios": [],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.arcane_shot",
+      "source_effect_types": [
+        "directDamage"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 9,
+      "id": "arcane_surge",
+      "class_id": "mage",
+      "learn_level": 5,
+      "school": "arcane",
+      "m4_projection": "m4_projected",
+      "m4_index": 88,
+      "m4_scenarios": [],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.arcane_surge",
+      "source_effect_types": [
+        "directDamage"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 10,
+      "id": "aspect_of_the_cheetah",
+      "class_id": "hunter",
+      "learn_level": 14,
+      "school": "nature",
+      "m4_projection": "m4_projected",
+      "m4_index": 103,
+      "m4_scenarios": [],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.aspect_of_the_cheetah",
+      "source_effect_types": [
+        "selfBuff"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 11,
+      "id": "aspect_of_the_hawk",
+      "class_id": "hunter",
+      "learn_level": 4,
+      "school": "nature",
+      "m4_projection": "m4_projected",
+      "m4_index": 101,
+      "m4_scenarios": [],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.aspect_of_the_hawk",
+      "source_effect_types": [
+        "selfBuff"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 12,
+      "id": "aspect_of_the_monkey",
+      "class_id": "hunter",
+      "learn_level": 5,
+      "school": "nature",
+      "m4_projection": "m4_projected",
+      "m4_index": 102,
+      "m4_scenarios": [],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.aspect_of_the_monkey",
+      "source_effect_types": [
+        "selfBuff"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 13,
+      "id": "aspect_of_the_wild",
+      "class_id": "hunter",
+      "learn_level": 10,
+      "school": "nature",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "aoeAllyAttackPower",
+        "aoeAllyHaste"
+      ],
+      "m4_effect_shape_status": "new_m4_effect_shape_required"
+    },
+    {
+      "code": 14,
+      "id": "aura_surge",
+      "class_id": "paladin",
+      "learn_level": 20,
+      "school": "holy",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "chainDamage",
+        "silence"
+      ],
+      "m4_effect_shape_status": "new_m4_effect_shape_required"
+    },
+    {
+      "code": 15,
+      "id": "avatar",
+      "class_id": "warrior",
+      "learn_level": 17,
+      "school": "physical",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "breakControl",
+        "selfBuff"
+      ],
+      "m4_effect_shape_status": "new_m4_effect_shape_required"
+    },
+    {
+      "code": 16,
+      "id": "avenging_wrath",
+      "class_id": "paladin",
+      "learn_level": 10,
+      "school": "holy",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "selfBuff",
+        "selfBuff"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 17,
+      "id": "backstab",
+      "class_id": "rogue",
+      "learn_level": 4,
+      "school": "physical",
+      "m4_projection": "m4_projected",
+      "m4_index": 21,
+      "m4_scenarios": [],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.backstab",
+      "source_effect_types": [
+        "weaponStrike"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 18,
+      "id": "barkskin",
+      "class_id": "druid",
+      "learn_level": 16,
+      "school": "nature",
+      "m4_projection": "m4_projected",
+      "m4_index": 70,
+      "m4_scenarios": [],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.barkskin",
+      "source_effect_types": [
+        "selfBuff"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 19,
+      "id": "bash",
+      "class_id": "druid",
+      "learn_level": 8,
+      "school": "physical",
+      "m4_projection": "m4_projected",
+      "m4_index": 73,
+      "m4_scenarios": [],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.bash",
+      "source_effect_types": [
+        "stun"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 20,
+      "id": "battle_shout",
+      "class_id": "warrior",
+      "learn_level": 1,
+      "school": "physical",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "buffTarget"
+      ],
+      "m4_effect_shape_status": "new_m4_effect_shape_required"
+    },
+    {
+      "code": 21,
+      "id": "battle_stance",
+      "class_id": "warrior",
+      "learn_level": 1,
+      "school": "physical",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "selfBuff"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 22,
+      "id": "bear_charge",
+      "class_id": "druid",
+      "learn_level": 10,
+      "school": "physical",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "charge",
+        "stun"
+      ],
+      "m4_effect_shape_status": "new_m4_effect_shape_required"
+    },
+    {
+      "code": 23,
+      "id": "bear_form",
+      "class_id": "druid",
+      "learn_level": 8,
+      "school": "physical",
+      "m4_projection": "m4_projected",
+      "m4_index": 17,
+      "m4_scenarios": [
+        "c4b_effect_dispatch"
+      ],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.bear_form",
+      "source_effect_types": [
+        "selfBuff"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 24,
+      "id": "berserk",
+      "class_id": "druid",
+      "learn_level": 10,
+      "school": "physical",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "selfBuff"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 25,
+      "id": "berserker_rage",
+      "class_id": "warrior",
+      "learn_level": 10,
+      "school": "physical",
+      "m4_projection": "m4_projected",
+      "m4_index": 97,
+      "m4_scenarios": [],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.berserker_rage",
+      "source_effect_types": [
+        "gainResource"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 26,
+      "id": "berserker_stance",
+      "class_id": "warrior",
+      "learn_level": 5,
+      "school": "physical",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "selfBuff"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 27,
+      "id": "bestial_wrath",
+      "class_id": "hunter",
+      "learn_level": 10,
+      "school": "nature",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "selfBuff",
+        "petBuff"
+      ],
+      "m4_effect_shape_status": "new_m4_effect_shape_required"
+    },
+    {
+      "code": 28,
+      "id": "blade_flurry",
+      "class_id": "rogue",
+      "learn_level": 10,
+      "school": "physical",
+      "m4_projection": "m4_projected",
+      "m4_index": 105,
+      "m4_scenarios": [],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.blade_flurry",
+      "source_effect_types": [
+        "selfBuff"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 29,
+      "id": "bladestorm",
+      "class_id": "warrior",
+      "learn_level": 20,
+      "school": "physical",
+      "m4_projection": "m4_projected",
+      "m4_index": 113,
+      "m4_scenarios": [],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.bladestorm",
+      "source_effect_types": [
+        "aoeDamage"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 30,
+      "id": "blazing_barrier",
+      "class_id": "mage",
+      "learn_level": 5,
+      "school": "fire",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "absorb"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 31,
+      "id": "blessing_of_might",
+      "class_id": "paladin",
+      "learn_level": 4,
+      "school": "holy",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "buffTarget"
+      ],
+      "m4_effect_shape_status": "new_m4_effect_shape_required"
+    },
+    {
+      "code": 32,
+      "id": "blind",
+      "class_id": "rogue",
+      "learn_level": 20,
+      "school": "physical",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "incapacitate"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 33,
+      "id": "blink",
+      "class_id": "mage",
+      "learn_level": 5,
+      "school": "arcane",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "blinkForward"
+      ],
+      "m4_effect_shape_status": "new_m4_effect_shape_required"
+    },
+    {
+      "code": 34,
+      "id": "blizzard",
+      "class_id": "mage",
+      "learn_level": 10,
+      "school": "frost",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "groundAoE"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 35,
+      "id": "bloodlust",
+      "class_id": "shaman",
+      "learn_level": 10,
+      "school": "nature",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "aoeAllyHaste"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 36,
+      "id": "bloodrage",
+      "class_id": "warrior",
+      "learn_level": 6,
+      "school": "physical",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "selfDamagePctMax",
+        "gainResource"
+      ],
+      "m4_effect_shape_status": "new_m4_effect_shape_required"
+    },
+    {
+      "code": 37,
+      "id": "bloodthirst",
+      "class_id": "warrior",
+      "learn_level": 5,
+      "school": "physical",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "weaponStrike",
+        "selfHealPctMax",
+        "gainResource",
+        "enrageChance"
+      ],
+      "m4_effect_shape_status": "new_m4_effect_shape_required"
+    },
+    {
+      "code": 38,
+      "id": "brain_freeze",
+      "class_id": "mage",
+      "learn_level": 5,
+      "school": "frost",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [],
+      "m4_effect_shape_status": "no_active_effect"
+    },
+    {
+      "code": 39,
+      "id": "breachmaker",
+      "class_id": "warrior",
+      "learn_level": 12,
+      "school": "physical",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "weaponStrike",
+        "debuffTargetSource"
+      ],
+      "m4_effect_shape_status": "new_m4_effect_shape_required"
+    },
+    {
+      "code": 40,
+      "id": "cat_form",
+      "class_id": "druid",
+      "learn_level": 5,
+      "school": "physical",
+      "m4_projection": "m4_projected",
+      "m4_index": 18,
+      "m4_scenarios": [
+        "c4b_effect_dispatch"
+      ],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.cat_form",
+      "source_effect_types": [
+        "selfBuff"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 41,
+      "id": "chain_heal",
+      "class_id": "shaman",
+      "learn_level": 10,
+      "school": "nature",
+      "m4_projection": "m4_projected",
+      "m4_index": 93,
+      "m4_scenarios": [],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.chain_heal",
+      "source_effect_types": [
+        "chainHeal"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 42,
+      "id": "chain_lightning",
+      "class_id": "shaman",
+      "learn_level": 10,
+      "school": "nature",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "aoeDamage"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 43,
+      "id": "chaos_bolt",
+      "class_id": "warlock",
+      "learn_level": 10,
+      "school": "fire",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "directDamage"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 44,
+      "id": "charge",
+      "class_id": "warrior",
+      "learn_level": 3,
+      "school": "physical",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "charge",
+        "stun"
+      ],
+      "m4_effect_shape_status": "new_m4_effect_shape_required"
+    },
+    {
+      "code": 45,
+      "id": "cheap_shot",
+      "class_id": "rogue",
+      "learn_level": 8,
+      "school": "physical",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "directDamage",
+        "stun"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 46,
+      "id": "claw",
+      "class_id": "druid",
+      "learn_level": 5,
+      "school": "physical",
+      "m4_projection": "m4_projected",
+      "m4_index": 66,
+      "m4_scenarios": [],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.claw",
+      "source_effect_types": [
+        "weaponStrike"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 47,
+      "id": "cleansing_verdict",
+      "class_id": "paladin",
+      "learn_level": 8,
+      "school": "holy",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "dispel",
+        "heal"
+      ],
+      "m4_effect_shape_status": "new_m4_effect_shape_required"
+    },
+    {
+      "code": 48,
+      "id": "cleave",
+      "class_id": "warrior",
+      "learn_level": 14,
+      "school": "physical",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "aoeDamage"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 49,
+      "id": "cleaving_blows",
+      "class_id": "warrior",
+      "learn_level": 5,
+      "school": "physical",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [],
+      "m4_effect_shape_status": "no_active_effect"
+    },
+    {
+      "code": 50,
+      "id": "cloak_of_shadows",
+      "class_id": "rogue",
+      "learn_level": 10,
+      "school": "physical",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "absorb"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 51,
+      "id": "cold_blood",
+      "class_id": "rogue",
+      "learn_level": 10,
+      "school": "physical",
+      "m4_projection": "m4_projected",
+      "m4_index": 104,
+      "m4_scenarios": [],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.cold_blood",
+      "source_effect_types": [
+        "selfBuff"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 52,
+      "id": "cold_snap",
+      "class_id": "mage",
+      "learn_level": 17,
+      "school": "frost",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "clearCooldowns"
+      ],
+      "m4_effect_shape_status": "new_m4_effect_shape_required"
+    },
+    {
+      "code": 53,
+      "id": "collective_reversal",
+      "class_id": "mage",
+      "learn_level": 8,
+      "school": "arcane",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "massResurrectGroup"
+      ],
+      "m4_effect_shape_status": "new_m4_effect_shape_required"
+    },
+    {
+      "code": 54,
+      "id": "combustion",
+      "class_id": "mage",
+      "learn_level": 12,
+      "school": "fire",
+      "m4_projection": "m4_projected",
+      "m4_index": 52,
+      "m4_scenarios": [],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.combustion",
+      "source_effect_types": [
+        "selfBuff"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 55,
+      "id": "concussive_shot",
+      "class_id": "hunter",
+      "learn_level": 8,
+      "school": "physical",
+      "m4_projection": "m4_projected",
+      "m4_index": 111,
+      "m4_scenarios": [],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.concussive_shot",
+      "source_effect_types": [
+        "directDamage",
+        "slow"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 56,
+      "id": "cone_of_cold",
+      "class_id": "mage",
+      "learn_level": 10,
+      "school": "frost",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "aoeDamage"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 57,
+      "id": "conflagrate",
+      "class_id": "warlock",
+      "learn_level": 10,
+      "school": "fire",
+      "m4_projection": "m4_projected",
+      "m4_index": 54,
+      "m4_scenarios": [],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.conflagrate",
+      "source_effect_types": [
+        "consumeAura"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 58,
+      "id": "conjure_food",
+      "class_id": "mage",
+      "learn_level": 5,
+      "school": "arcane",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [],
+      "m4_effect_shape_status": "no_active_effect"
+    },
+    {
+      "code": 59,
+      "id": "conjure_water",
+      "class_id": "mage",
+      "learn_level": 4,
+      "school": "arcane",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [],
+      "m4_effect_shape_status": "no_active_effect"
+    },
+    {
+      "code": 60,
+      "id": "consecration",
+      "class_id": "paladin",
+      "learn_level": 8,
+      "school": "holy",
+      "m4_projection": "m4_projected",
+      "m4_index": 5,
+      "m4_scenarios": [
+        "c3_aura_runner",
+        "c4b_effect_dispatch",
+        "paladin_consecration"
+      ],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.consecration",
+      "source_effect_types": [
+        "groundAoE"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 61,
+      "id": "corruption",
+      "class_id": "warlock",
+      "learn_level": 4,
+      "school": "shadow",
+      "m4_projection": "m4_projected",
+      "m4_index": 43,
+      "m4_scenarios": [],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.corruption",
+      "source_effect_types": [
+        "dot"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 62,
+      "id": "counter_shot",
+      "class_id": "hunter",
+      "learn_level": 10,
+      "school": "physical",
+      "m4_projection": "m4_projected",
+      "m4_index": 112,
+      "m4_scenarios": [],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.counter_shot",
+      "source_effect_types": [
+        "interrupt"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 63,
+      "id": "counterspell",
+      "class_id": "mage",
+      "learn_level": 5,
+      "school": "physical",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "interrupt"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 64,
+      "id": "crippling_poison",
+      "class_id": "rogue",
+      "learn_level": 12,
+      "school": "nature",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "directDamage",
+        "slow"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 65,
+      "id": "crusader_strike",
+      "class_id": "paladin",
+      "learn_level": 10,
+      "school": "holy",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "weaponStrike"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 66,
+      "id": "curse_of_agony",
+      "class_id": "warlock",
+      "learn_level": 8,
+      "school": "shadow",
+      "m4_projection": "m4_projected",
+      "m4_index": 45,
+      "m4_scenarios": [],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.curse_of_agony",
+      "source_effect_types": [
+        "dot"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 67,
+      "id": "curse_of_exhaustion",
+      "class_id": "warlock",
+      "learn_level": 10,
+      "school": "shadow",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "slow"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 68,
+      "id": "dash",
+      "class_id": "druid",
+      "learn_level": 18,
+      "school": "physical",
+      "m4_projection": "m4_projected",
+      "m4_index": 76,
+      "m4_scenarios": [],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.dash",
+      "source_effect_types": [
+        "selfBuff"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 69,
+      "id": "deadly_poison",
+      "class_id": "rogue",
+      "learn_level": 14,
+      "school": "nature",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "imbue"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 70,
+      "id": "death_coil",
+      "class_id": "warlock",
+      "learn_level": 10,
+      "school": "shadow",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "directDamage",
+        "incapacitate"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 71,
+      "id": "deep_freeze",
+      "class_id": "mage",
+      "learn_level": 5,
+      "school": "frost",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "directDamage",
+        "stun"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 72,
+      "id": "deep_wounds",
+      "class_id": "warrior",
+      "learn_level": 9,
+      "school": "physical",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [],
+      "m4_effect_shape_status": "no_active_effect"
+    },
+    {
+      "code": 73,
+      "id": "defensive_stance",
+      "class_id": "warrior",
+      "learn_level": 5,
+      "school": "physical",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "selfBuff"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 74,
+      "id": "defiant_bellow",
+      "class_id": "warrior",
+      "learn_level": 12,
+      "school": "physical",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "aoeTaunt"
+      ],
+      "m4_effect_shape_status": "new_m4_effect_shape_required"
+    },
+    {
+      "code": 75,
+      "id": "demon_skin",
+      "class_id": "warlock",
+      "learn_level": 1,
+      "school": "shadow",
+      "m4_projection": "m4_projected",
+      "m4_index": 48,
+      "m4_scenarios": [],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.demon_skin",
+      "source_effect_types": [
+        "selfBuff"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 76,
+      "id": "demoralizing_roar",
+      "class_id": "druid",
+      "learn_level": 10,
+      "school": "physical",
+      "m4_projection": "m4_projected",
+      "m4_index": 63,
+      "m4_scenarios": [],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.demoralizing_roar",
+      "source_effect_types": [
+        "aoeAttackPower"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 77,
+      "id": "demoralizing_shout",
+      "class_id": "warrior",
+      "learn_level": 12,
+      "school": "physical",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "aoeAttackPower"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 78,
+      "id": "desperate_prayer",
+      "class_id": "priest",
+      "learn_level": 10,
+      "school": "holy",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "heal"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 79,
+      "id": "deterrence",
+      "class_id": "hunter",
+      "learn_level": 10,
+      "school": "physical",
+      "m4_projection": "m4_projected",
+      "m4_index": 115,
+      "m4_scenarios": [],
+      "m4_source_owner": "src/sim/content/talent_abilities_v2_a.ts#TALENT_ABILITIES_V2_A.deterrence",
+      "source_effect_types": [
+        "selfBuff",
+        "selfBuff"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 80,
+      "id": "devotion_aura",
+      "class_id": "paladin",
+      "learn_level": 1,
+      "school": "holy",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "buffTarget"
+      ],
+      "m4_effect_shape_status": "new_m4_effect_shape_required"
+    },
+    {
+      "code": 81,
+      "id": "diabolical_twinstrike",
+      "class_id": "warrior",
+      "learn_level": 5,
+      "school": "physical",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [],
+      "m4_effect_shape_status": "no_active_effect"
+    },
+    {
+      "code": 82,
+      "id": "die_by_sword",
+      "class_id": "warrior",
+      "learn_level": 8,
+      "school": "physical",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "selfBuff"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 83,
+      "id": "dismiss_pet",
+      "class_id": "hunter",
+      "learn_level": 10,
+      "school": "nature",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "dismissPet"
+      ],
+      "m4_effect_shape_status": "new_m4_effect_shape_required"
+    },
+    {
+      "code": 84,
+      "id": "divine_protection",
+      "class_id": "paladin",
+      "learn_level": 6,
+      "school": "holy",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "absorb"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 85,
+      "id": "divine_shield",
+      "class_id": "paladin",
+      "learn_level": 10,
+      "school": "holy",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "absorb"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 86,
+      "id": "dragons_breath",
+      "class_id": "mage",
+      "learn_level": 14,
+      "school": "fire",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "empoweredCone"
+      ],
+      "m4_effect_shape_status": "new_m4_effect_shape_required"
+    },
+    {
+      "code": 87,
+      "id": "drain_life",
+      "class_id": "warlock",
+      "learn_level": 10,
+      "school": "shadow",
+      "m4_projection": "m4_projected",
+      "m4_index": 7,
+      "m4_scenarios": [
+        "c4a_casting_lifecycle"
+      ],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.drain_life",
+      "source_effect_types": [
+        "drainTick"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 88,
+      "id": "earth_shock",
+      "class_id": "shaman",
+      "learn_level": 4,
+      "school": "nature",
+      "m4_projection": "m4_projected",
+      "m4_index": 34,
+      "m4_scenarios": [],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.earth_shock",
+      "source_effect_types": [
+        "directDamage"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 89,
+      "id": "earthbind",
+      "class_id": "shaman",
+      "learn_level": 10,
+      "school": "nature",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "aoeRoot"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 90,
+      "id": "earthquake",
+      "class_id": "shaman",
+      "learn_level": 18,
+      "school": "nature",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "groundAoE"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 91,
+      "id": "elemental_mastery",
+      "class_id": "shaman",
+      "learn_level": 10,
+      "school": "nature",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "selfBuff"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 92,
+      "id": "emboldening_roar",
+      "class_id": "warrior",
+      "learn_level": 16,
+      "school": "physical",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "aoeAllySureCrit"
+      ],
+      "m4_effect_shape_status": "new_m4_effect_shape_required"
+    },
+    {
+      "code": 93,
+      "id": "enrage",
+      "class_id": "druid",
+      "learn_level": 16,
+      "school": "physical",
+      "m4_projection": "m4_projected",
+      "m4_index": 72,
+      "m4_scenarios": [],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.enrage",
+      "source_effect_types": [
+        "gainResource"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 94,
+      "id": "enrage_passive",
+      "class_id": "warrior",
+      "learn_level": 5,
+      "school": "physical",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [],
+      "m4_effect_shape_status": "no_active_effect"
+    },
+    {
+      "code": 95,
+      "id": "entangling_roots",
+      "class_id": "druid",
+      "learn_level": 8,
+      "school": "nature",
+      "m4_projection": "m4_projected",
+      "m4_index": 60,
+      "m4_scenarios": [],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.entangling_roots",
+      "source_effect_types": [
+        "root"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 96,
+      "id": "evasion",
+      "class_id": "rogue",
+      "learn_level": 8,
+      "school": "physical",
+      "m4_projection": "m4_projected",
+      "m4_index": 99,
+      "m4_scenarios": [],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.evasion",
+      "source_effect_types": [
+        "selfBuff"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 97,
+      "id": "eviscerate",
+      "class_id": "rogue",
+      "learn_level": 1,
+      "school": "physical",
+      "m4_projection": "m4_projected",
+      "m4_index": 12,
+      "m4_scenarios": [
+        "c4b_effect_dispatch"
+      ],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.eviscerate",
+      "source_effect_types": [
+        "finisherDamage"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 98,
+      "id": "evocation",
+      "class_id": "mage",
+      "learn_level": 5,
+      "school": "arcane",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "gainResource",
+        "selfBuff"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 99,
+      "id": "execute",
+      "class_id": "warrior",
+      "learn_level": 12,
+      "school": "physical",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "directDamage"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 100,
+      "id": "exorcism",
+      "class_id": "paladin",
+      "learn_level": 5,
+      "school": "holy",
+      "m4_projection": "m4_projected",
+      "m4_index": 98,
+      "m4_scenarios": [],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.exorcism",
+      "source_effect_types": [
+        "directDamage"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 101,
+      "id": "expose_armor",
+      "class_id": "rogue",
+      "learn_level": 14,
+      "school": "physical",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "sunder"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 102,
+      "id": "faerie_fire",
+      "class_id": "druid",
+      "learn_level": 18,
+      "school": "nature",
+      "m4_projection": "m4_projected",
+      "m4_index": 74,
+      "m4_scenarios": [],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.faerie_fire",
+      "source_effect_types": [
+        "faerieFire"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 103,
+      "id": "faultline",
+      "class_id": "warrior",
+      "learn_level": 14,
+      "school": "physical",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "aoeDamage"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 104,
+      "id": "fear",
+      "class_id": "warlock",
+      "learn_level": 14,
+      "school": "shadow",
+      "m4_projection": "m4_projected",
+      "m4_index": 8,
+      "m4_scenarios": [
+        "c4b_effect_dispatch"
+      ],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.fear",
+      "source_effect_types": [
+        "incapacitate"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 105,
+      "id": "feral_charge",
+      "class_id": "druid",
+      "learn_level": 10,
+      "school": "physical",
+      "m4_projection": "m4_projected",
+      "m4_index": 94,
+      "m4_scenarios": [],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.feral_charge",
+      "source_effect_types": [
+        "feralCharge"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 106,
+      "id": "ferocious_bite",
+      "class_id": "druid",
+      "learn_level": 14,
+      "school": "physical",
+      "m4_projection": "m4_projected",
+      "m4_index": 67,
+      "m4_scenarios": [],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.ferocious_bite",
+      "source_effect_types": [
+        "finisherDamage"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 107,
+      "id": "fingers_of_frost",
+      "class_id": "mage",
+      "learn_level": 5,
+      "school": "frost",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [],
+      "m4_effect_shape_status": "no_active_effect"
+    },
+    {
+      "code": 108,
+      "id": "fire_blast",
+      "class_id": "mage",
+      "learn_level": 5,
+      "school": "fire",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "directDamage"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 109,
+      "id": "fireball",
+      "class_id": "mage",
+      "learn_level": 1,
+      "school": "fire",
+      "m4_projection": "m4_projected",
+      "m4_index": 1,
+      "m4_scenarios": [
+        "c4a_casting_lifecycle",
+        "hit_rating_heroic_geared",
+        "hit_rating_heroic_ungeared",
+        "solo_mage"
+      ],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.fireball",
+      "source_effect_types": [
+        "directDamage",
+        "dot"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 110,
+      "id": "fireball_form",
+      "class_id": "mage",
+      "learn_level": 11,
+      "school": "fire",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "selfBuff"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 111,
+      "id": "flame_shock",
+      "class_id": "shaman",
+      "learn_level": 8,
+      "school": "fire",
+      "m4_projection": "m4_projected",
+      "m4_index": 36,
+      "m4_scenarios": [],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.flame_shock",
+      "source_effect_types": [
+        "directDamage",
+        "dot"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 112,
+      "id": "flamestrike",
+      "class_id": "mage",
+      "learn_level": 12,
+      "school": "fire",
+      "m4_projection": "m4_projected",
+      "m4_index": 51,
+      "m4_scenarios": [],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.flamestrike",
+      "source_effect_types": [
+        "aoeDamage"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 113,
+      "id": "flametongue_weapon",
+      "class_id": "shaman",
+      "learn_level": 5,
+      "school": "fire",
+      "m4_projection": "m4_projected",
+      "m4_index": 37,
+      "m4_scenarios": [],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.flametongue_weapon",
+      "source_effect_types": [
+        "imbue"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 114,
+      "id": "flash_heal",
+      "class_id": "priest",
+      "learn_level": 20,
+      "school": "holy",
+      "m4_projection": "m4_projected",
+      "m4_index": 30,
+      "m4_scenarios": [],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.flash_heal",
+      "source_effect_types": [
+        "heal"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 115,
+      "id": "flash_of_light",
+      "class_id": "paladin",
+      "learn_level": 12,
+      "school": "holy",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "heal"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 116,
+      "id": "flurry",
+      "class_id": "mage",
+      "learn_level": 8,
+      "school": "frost",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "directDamage",
+        "directDamage",
+        "directDamage"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 117,
+      "id": "frenzied_regeneration",
+      "class_id": "druid",
+      "learn_level": 10,
+      "school": "nature",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "hot"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 118,
+      "id": "frost_armor",
+      "class_id": "mage",
+      "learn_level": 1,
+      "school": "frost",
+      "m4_projection": "m4_projected",
+      "m4_index": 100,
+      "m4_scenarios": [],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.frost_armor",
+      "source_effect_types": [
+        "selfBuff"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 119,
+      "id": "frost_nova",
+      "class_id": "mage",
+      "learn_level": 5,
+      "school": "frost",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "aoeRoot"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 120,
+      "id": "frost_shock",
+      "class_id": "shaman",
+      "learn_level": 8,
+      "school": "frost",
+      "m4_projection": "m4_projected",
+      "m4_index": 35,
+      "m4_scenarios": [],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.frost_shock",
+      "source_effect_types": [
+        "directDamage",
+        "slow"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 121,
+      "id": "frost_trap",
+      "class_id": "hunter",
+      "learn_level": 10,
+      "school": "frost",
+      "m4_projection": "m4_projected",
+      "m4_index": 116,
+      "m4_scenarios": [],
+      "m4_source_owner": "src/sim/content/talent_abilities_v2_a.ts#TALENT_ABILITIES_V2_A.frost_trap",
+      "source_effect_types": [
+        "aoeRoot"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 122,
+      "id": "frostbolt",
+      "class_id": "mage",
+      "learn_level": 4,
+      "school": "frost",
+      "m4_projection": "m4_projected",
+      "m4_index": 2,
+      "m4_scenarios": [
+        "solo_mage"
+      ],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.frostbolt",
+      "source_effect_types": [
+        "directDamage",
+        "slow"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 123,
+      "id": "frostbrand_weapon",
+      "class_id": "shaman",
+      "learn_level": 5,
+      "school": "frost",
+      "m4_projection": "m4_projected",
+      "m4_index": 38,
+      "m4_scenarios": [],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.frostbrand_weapon",
+      "source_effect_types": [
+        "imbue"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 124,
+      "id": "frozen_orb",
+      "class_id": "mage",
+      "learn_level": 12,
+      "school": "frost",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "frozenOrb"
+      ],
+      "m4_effect_shape_status": "new_m4_effect_shape_required"
+    },
+    {
+      "code": 125,
+      "id": "furious_mending",
+      "class_id": "warrior",
+      "learn_level": 10,
+      "school": "physical",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "selfBuff"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 126,
+      "id": "garrote",
+      "class_id": "rogue",
+      "learn_level": 1,
+      "school": "physical",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "directDamage",
+        "dot"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 127,
+      "id": "ghost_wolf",
+      "class_id": "shaman",
+      "learn_level": 16,
+      "school": "nature",
+      "m4_projection": "m4_projected",
+      "m4_index": 39,
+      "m4_scenarios": [],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.ghost_wolf",
+      "source_effect_types": [
+        "selfBuff"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 128,
+      "id": "ghostly_strike",
+      "class_id": "rogue",
+      "learn_level": 10,
+      "school": "physical",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "weaponStrike",
+        "selfBuff"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 129,
+      "id": "glacial_front",
+      "class_id": "mage",
+      "learn_level": 17,
+      "school": "frost",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "empoweredCone"
+      ],
+      "m4_effect_shape_status": "new_m4_effect_shape_required"
+    },
+    {
+      "code": 130,
+      "id": "glacial_spike",
+      "class_id": "mage",
+      "learn_level": 16,
+      "school": "frost",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "directDamage",
+        "root"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 131,
+      "id": "gouge",
+      "class_id": "rogue",
+      "learn_level": 6,
+      "school": "physical",
+      "m4_projection": "m4_projected",
+      "m4_index": 22,
+      "m4_scenarios": [],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.gouge",
+      "source_effect_types": [
+        "directDamage",
+        "incapacitate"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 132,
+      "id": "greater_invisibility",
+      "class_id": "mage",
+      "learn_level": 8,
+      "school": "arcane",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "greaterInvisibility"
+      ],
+      "m4_effect_shape_status": "new_m4_effect_shape_required"
+    },
+    {
+      "code": 133,
+      "id": "growl",
+      "class_id": "druid",
+      "learn_level": 10,
+      "school": "physical",
+      "m4_projection": "m4_projected",
+      "m4_index": 62,
+      "m4_scenarios": [],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.growl",
+      "source_effect_types": [
+        "taunt"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 134,
+      "id": "hammer_of_justice",
+      "class_id": "paladin",
+      "learn_level": 8,
+      "school": "holy",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "stun"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 135,
+      "id": "hammer_of_wrath",
+      "class_id": "paladin",
+      "learn_level": 10,
+      "school": "holy",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "directDamage"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 136,
+      "id": "hamstring",
+      "class_id": "warrior",
+      "learn_level": 5,
+      "school": "physical",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "directDamage",
+        "slow"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 137,
+      "id": "heal",
+      "class_id": "priest",
+      "learn_level": 14,
+      "school": "holy",
+      "m4_projection": "m4_projected",
+      "m4_index": 29,
+      "m4_scenarios": [],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.heal",
+      "source_effect_types": [
+        "heal"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 138,
+      "id": "healing_stream",
+      "class_id": "shaman",
+      "learn_level": 10,
+      "school": "nature",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "hot"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 139,
+      "id": "healing_touch",
+      "class_id": "druid",
+      "learn_level": 1,
+      "school": "nature",
+      "m4_projection": "m4_projected",
+      "m4_index": 58,
+      "m4_scenarios": [],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.healing_touch",
+      "source_effect_types": [
+        "heal"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 140,
+      "id": "healing_wave",
+      "class_id": "shaman",
+      "learn_level": 1,
+      "school": "nature",
+      "m4_projection": "m4_projected",
+      "m4_index": 33,
+      "m4_scenarios": [],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.healing_wave",
+      "source_effect_types": [
+        "heal"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 141,
+      "id": "hemorrhage",
+      "class_id": "rogue",
+      "learn_level": 10,
+      "school": "physical",
+      "m4_projection": "m4_projected",
+      "m4_index": 106,
+      "m4_scenarios": [],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.hemorrhage",
+      "source_effect_types": [
+        "weaponStrike",
+        "dot",
+        "applyDebuff"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 142,
+      "id": "heroic_leap",
+      "class_id": "warrior",
+      "learn_level": 6,
+      "school": "physical",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "repositionToAim"
+      ],
+      "m4_effect_shape_status": "new_m4_effect_shape_required"
+    },
+    {
+      "code": 143,
+      "id": "heroic_strike",
+      "class_id": "warrior",
+      "learn_level": 1,
+      "school": "physical",
+      "m4_projection": "m4_projected",
+      "m4_index": 0,
+      "m4_scenarios": [
+        "c5_auto_attack",
+        "solo_warrior"
+      ],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.heroic_strike",
+      "source_effect_types": [
+        "weaponDamage"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 144,
+      "id": "hibernate",
+      "class_id": "druid",
+      "learn_level": 18,
+      "school": "nature",
+      "m4_projection": "m4_projected",
+      "m4_index": 75,
+      "m4_scenarios": [],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.hibernate",
+      "source_effect_types": [
+        "incapacitate"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 145,
+      "id": "holy_light",
+      "class_id": "paladin",
+      "learn_level": 1,
+      "school": "holy",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "heal"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 146,
+      "id": "holy_nova",
+      "class_id": "priest",
+      "learn_level": 10,
+      "school": "holy",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "aoeHeal",
+        "aoeDamage"
+      ],
+      "m4_effect_shape_status": "new_m4_effect_shape_required"
+    },
+    {
+      "code": 147,
+      "id": "holy_shield",
+      "class_id": "paladin",
+      "learn_level": 10,
+      "school": "holy",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "directDamage",
+        "chainDamage"
+      ],
+      "m4_effect_shape_status": "new_m4_effect_shape_required"
+    },
+    {
+      "code": 148,
+      "id": "holy_shock",
+      "class_id": "paladin",
+      "learn_level": 10,
+      "school": "holy",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "heal",
+        "directDamage"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 149,
+      "id": "holy_taunt",
+      "class_id": "paladin",
+      "learn_level": 10,
+      "school": "holy",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "taunt"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 150,
+      "id": "holy_wrath",
+      "class_id": "paladin",
+      "learn_level": 10,
+      "school": "holy",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "aoeDamage"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 151,
+      "id": "hot_streak",
+      "class_id": "mage",
+      "learn_level": 5,
+      "school": "fire",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [],
+      "m4_effect_shape_status": "no_active_effect"
+    },
+    {
+      "code": 152,
+      "id": "howl_of_terror",
+      "class_id": "warlock",
+      "learn_level": 10,
+      "school": "shadow",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "aoeFear"
+      ],
+      "m4_effect_shape_status": "new_m4_effect_shape_required"
+    },
+    {
+      "code": 153,
+      "id": "hurricane",
+      "class_id": "druid",
+      "learn_level": 18,
+      "school": "nature",
+      "m4_projection": "m4_projected",
+      "m4_index": 81,
+      "m4_scenarios": [],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.hurricane",
+      "source_effect_types": [
+        "aoeDamage"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 154,
+      "id": "ice_barrier",
+      "class_id": "mage",
+      "learn_level": 5,
+      "school": "frost",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "absorb"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 155,
+      "id": "ice_block",
+      "class_id": "mage",
+      "learn_level": 12,
+      "school": "frost",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "cleanseSelf",
+        "selfBuff"
+      ],
+      "m4_effect_shape_status": "new_m4_effect_shape_required"
+    },
+    {
+      "code": 156,
+      "id": "ice_floes",
+      "class_id": "mage",
+      "learn_level": 5,
+      "school": "frost",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "selfBuff"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 157,
+      "id": "ice_lance",
+      "class_id": "mage",
+      "learn_level": 5,
+      "school": "frost",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "directDamage"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 158,
+      "id": "icy_veins",
+      "class_id": "mage",
+      "learn_level": 12,
+      "school": "frost",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "selfBuff",
+        "selfBuff"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 159,
+      "id": "ignition",
+      "class_id": "mage",
+      "learn_level": 5,
+      "school": "fire",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [],
+      "m4_effect_shape_status": "no_active_effect"
+    },
+    {
+      "code": 160,
+      "id": "immolate",
+      "class_id": "warlock",
+      "learn_level": 1,
+      "school": "fire",
+      "m4_projection": "m4_projected",
+      "m4_index": 42,
+      "m4_scenarios": [],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.immolate",
+      "source_effect_types": [
+        "directDamage",
+        "dot"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 161,
+      "id": "inner_focus",
+      "class_id": "priest",
+      "learn_level": 10,
+      "school": "holy",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "selfBuff"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 162,
+      "id": "innervate",
+      "class_id": "druid",
+      "learn_level": 10,
+      "school": "nature",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "selfBuff"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 163,
+      "id": "insect_swarm",
+      "class_id": "druid",
+      "learn_level": 20,
+      "school": "nature",
+      "m4_projection": "m4_projected",
+      "m4_index": 78,
+      "m4_scenarios": [],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.insect_swarm",
+      "source_effect_types": [
+        "dot"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 164,
+      "id": "instant_poison",
+      "class_id": "rogue",
+      "learn_level": 14,
+      "school": "nature",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "imbue"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 165,
+      "id": "intimidating_shout",
+      "class_id": "warrior",
+      "learn_level": 14,
+      "school": "physical",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "aoeFear"
+      ],
+      "m4_effect_shape_status": "new_m4_effect_shape_required"
+    },
+    {
+      "code": 166,
+      "id": "iron_resolve",
+      "class_id": "warrior",
+      "learn_level": 14,
+      "school": "physical",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "absorbSpentResource"
+      ],
+      "m4_effect_shape_status": "new_m4_effect_shape_required"
+    },
+    {
+      "code": 167,
+      "id": "judgement",
+      "class_id": "paladin",
+      "learn_level": 4,
+      "school": "holy",
+      "m4_projection": "m4_projected",
+      "m4_index": 15,
+      "m4_scenarios": [
+        "c4b_effect_dispatch"
+      ],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.judgement",
+      "source_effect_types": [
+        "judgement"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 168,
+      "id": "kick",
+      "class_id": "rogue",
+      "learn_level": 10,
+      "school": "physical",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "interrupt"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 169,
+      "id": "kidney_shot",
+      "class_id": "rogue",
+      "learn_level": 8,
+      "school": "physical",
+      "m4_projection": "m4_projected",
+      "m4_index": 13,
+      "m4_scenarios": [
+        "c4b_effect_dispatch"
+      ],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.kidney_shot",
+      "source_effect_types": [
+        "finisherStun"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 170,
+      "id": "lay_on_hands",
+      "class_id": "paladin",
+      "learn_level": 10,
+      "school": "holy",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "heal"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 171,
+      "id": "lesser_heal",
+      "class_id": "priest",
+      "learn_level": 1,
+      "school": "holy",
+      "m4_projection": "m4_projected",
+      "m4_index": 6,
+      "m4_scenarios": [
+        "c4a_casting_lifecycle"
+      ],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.lesser_heal",
+      "source_effect_types": [
+        "heal"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 172,
+      "id": "life_tap",
+      "class_id": "warlock",
+      "learn_level": 6,
+      "school": "shadow",
+      "m4_projection": "m4_projected",
+      "m4_index": 44,
+      "m4_scenarios": [],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.life_tap",
+      "source_effect_types": [
+        "lifeTap"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 173,
+      "id": "lightning_bolt",
+      "class_id": "shaman",
+      "learn_level": 1,
+      "school": "nature",
+      "m4_projection": "m4_projected",
+      "m4_index": 32,
+      "m4_scenarios": [],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.lightning_bolt",
+      "source_effect_types": [
+        "directDamage"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 174,
+      "id": "lightning_shield",
+      "class_id": "shaman",
+      "learn_level": 5,
+      "school": "nature",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "selfBuff"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 175,
+      "id": "mark_of_the_wild",
+      "class_id": "druid",
+      "learn_level": 1,
+      "school": "nature",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "buffTarget"
+      ],
+      "m4_effect_shape_status": "new_m4_effect_shape_required"
+    },
+    {
+      "code": 176,
+      "id": "mass_barrier",
+      "class_id": "mage",
+      "learn_level": 17,
+      "school": "frost",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "aoeAllyAbsorb"
+      ],
+      "m4_effect_shape_status": "new_m4_effect_shape_required"
+    },
+    {
+      "code": 177,
+      "id": "maul",
+      "class_id": "druid",
+      "learn_level": 10,
+      "school": "physical",
+      "m4_projection": "m4_projected",
+      "m4_index": 61,
+      "m4_scenarios": [],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.maul",
+      "source_effect_types": [
+        "weaponDamage"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 178,
+      "id": "measured_fury",
+      "class_id": "warrior",
+      "learn_level": 5,
+      "school": "physical",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [],
+      "m4_effect_shape_status": "no_active_effect"
+    },
+    {
+      "code": 179,
+      "id": "mend_pet",
+      "class_id": "hunter",
+      "learn_level": 10,
+      "school": "nature",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "hot"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 180,
+      "id": "metamorphosis",
+      "class_id": "warlock",
+      "learn_level": 10,
+      "school": "shadow",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "selfBuff",
+        "selfBuff",
+        "selfBuff",
+        "petBuff",
+        "petBuff"
+      ],
+      "m4_effect_shape_status": "new_m4_effect_shape_required"
+    },
+    {
+      "code": 181,
+      "id": "meteor",
+      "class_id": "mage",
+      "learn_level": 16,
+      "school": "fire",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "groundAoE"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 182,
+      "id": "mind_blast",
+      "class_id": "priest",
+      "learn_level": 5,
+      "school": "shadow",
+      "m4_projection": "m4_projected",
+      "m4_index": 28,
+      "m4_scenarios": [],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.mind_blast",
+      "source_effect_types": [
+        "directDamage"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 183,
+      "id": "mind_flay",
+      "class_id": "priest",
+      "learn_level": 14,
+      "school": "shadow",
+      "m4_projection": "m4_projected",
+      "m4_index": 31,
+      "m4_scenarios": [],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.mind_flay",
+      "source_effect_types": [
+        "drainTick"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 184,
+      "id": "mind_sear",
+      "class_id": "priest",
+      "learn_level": 10,
+      "school": "shadow",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "aoeDamage"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 185,
+      "id": "mongoose_bite",
+      "class_id": "hunter",
+      "learn_level": 10,
+      "school": "physical",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "weaponStrike"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 186,
+      "id": "moonfire",
+      "class_id": "druid",
+      "learn_level": 4,
+      "school": "arcane",
+      "m4_projection": "m4_projected",
+      "m4_index": 16,
+      "m4_scenarios": [
+        "c4b_effect_dispatch"
+      ],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.moonfire",
+      "source_effect_types": [
+        "directDamage",
+        "dot"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 187,
+      "id": "moonkin_form",
+      "class_id": "druid",
+      "learn_level": 10,
+      "school": "arcane",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "selfBuff"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 188,
+      "id": "mortal_strike",
+      "class_id": "warrior",
+      "learn_level": 5,
+      "school": "physical",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "weaponStrike",
+        "buffTarget",
+        "dot"
+      ],
+      "m4_effect_shape_status": "new_m4_effect_shape_required"
+    },
+    {
+      "code": 189,
+      "id": "multi_shot",
+      "class_id": "hunter",
+      "learn_level": 10,
+      "school": "physical",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "aoeDamage"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 190,
+      "id": "overload",
+      "class_id": "mage",
+      "learn_level": 14,
+      "school": "arcane",
+      "m4_projection": "m4_projected",
+      "m4_index": 53,
+      "m4_scenarios": [],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.overload",
+      "source_effect_types": [
+        "selfBuff"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 191,
+      "id": "overpower",
+      "class_id": "warrior",
+      "learn_level": 2,
+      "school": "physical",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "weaponStrike",
+        "selfBuff"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 192,
+      "id": "perfect_moment",
+      "class_id": "mage",
+      "learn_level": 10,
+      "school": "arcane",
+      "m4_projection": "m4_projected",
+      "m4_index": 90,
+      "m4_scenarios": [],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.perfect_moment",
+      "source_effect_types": [
+        "perfectMoment"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 193,
+      "id": "piercing_howl",
+      "class_id": "warrior",
+      "learn_level": 11,
+      "school": "physical",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "aoeSlow"
+      ],
+      "m4_effect_shape_status": "new_m4_effect_shape_required"
+    },
+    {
+      "code": 194,
+      "id": "polymorph",
+      "class_id": "mage",
+      "learn_level": 7,
+      "school": "arcane",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "polymorph"
+      ],
+      "m4_effect_shape_status": "new_m4_effect_shape_required"
+    },
+    {
+      "code": 195,
+      "id": "pounce",
+      "class_id": "druid",
+      "learn_level": 18,
+      "school": "physical",
+      "m4_projection": "m4_projected",
+      "m4_index": 77,
+      "m4_scenarios": [],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.pounce",
+      "source_effect_types": [
+        "stun"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 196,
+      "id": "power_echo",
+      "class_id": "mage",
+      "learn_level": 14,
+      "school": "arcane",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "selfBuff"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 197,
+      "id": "power_infusion",
+      "class_id": "priest",
+      "learn_level": 10,
+      "school": "holy",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "buffTarget"
+      ],
+      "m4_effect_shape_status": "new_m4_effect_shape_required"
+    },
+    {
+      "code": 198,
+      "id": "power_word_fortitude",
+      "class_id": "priest",
+      "learn_level": 1,
+      "school": "holy",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "buffTarget"
+      ],
+      "m4_effect_shape_status": "new_m4_effect_shape_required"
+    },
+    {
+      "code": 199,
+      "id": "power_word_shield",
+      "class_id": "priest",
+      "learn_level": 6,
+      "school": "holy",
+      "m4_projection": "m4_projected",
+      "m4_index": 26,
+      "m4_scenarios": [],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.power_word_shield",
+      "source_effect_types": [
+        "absorb"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 200,
+      "id": "prayer_of_healing",
+      "class_id": "priest",
+      "learn_level": 10,
+      "school": "holy",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "aoeHeal"
+      ],
+      "m4_effect_shape_status": "new_m4_effect_shape_required"
+    },
+    {
+      "code": 201,
+      "id": "preparation",
+      "class_id": "rogue",
+      "learn_level": 10,
+      "school": "physical",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "clearCooldowns"
+      ],
+      "m4_effect_shape_status": "new_m4_effect_shape_required"
+    },
+    {
+      "code": 202,
+      "id": "presence_of_mind",
+      "class_id": "mage",
+      "learn_level": 5,
+      "school": "arcane",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "selfBuff"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 203,
+      "id": "primal_reflexes",
+      "class_id": "druid",
+      "learn_level": 20,
+      "school": "nature",
+      "m4_projection": "m4_projected",
+      "m4_index": 71,
+      "m4_scenarios": [],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.primal_reflexes",
+      "source_effect_types": [
+        "selfBuff"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 204,
+      "id": "prowl",
+      "class_id": "druid",
+      "learn_level": 5,
+      "school": "physical",
+      "m4_projection": "m4_projected",
+      "m4_index": 64,
+      "m4_scenarios": [],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.prowl",
+      "source_effect_types": [
+        "selfBuff"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 205,
+      "id": "psychic_scream",
+      "class_id": "priest",
+      "learn_level": 10,
+      "school": "shadow",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "aoeFear"
+      ],
+      "m4_effect_shape_status": "new_m4_effect_shape_required"
+    },
+    {
+      "code": 206,
+      "id": "pummel",
+      "class_id": "warrior",
+      "learn_level": 8,
+      "school": "physical",
+      "m4_projection": "m4_projected",
+      "m4_index": 95,
+      "m4_scenarios": [],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.pummel",
+      "source_effect_types": [
+        "interrupt"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 207,
+      "id": "pyroblast",
+      "class_id": "mage",
+      "learn_level": 5,
+      "school": "fire",
+      "m4_projection": "m4_projected",
+      "m4_index": 50,
+      "m4_scenarios": [],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.pyroblast",
+      "source_effect_types": [
+        "directDamage",
+        "dot"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 208,
+      "id": "raging_gale",
+      "class_id": "warrior",
+      "learn_level": 7,
+      "school": "physical",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "weaponStrike",
+        "weaponStrike",
+        "gainResource"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 209,
+      "id": "rain_of_fire",
+      "class_id": "warlock",
+      "learn_level": 18,
+      "school": "fire",
+      "m4_projection": "m4_projected",
+      "m4_index": 49,
+      "m4_scenarios": [],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.rain_of_fire",
+      "source_effect_types": [
+        "aoeDamage"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 210,
+      "id": "raised_guard",
+      "class_id": "warrior",
+      "learn_level": 8,
+      "school": "physical",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "selfBuff"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 211,
+      "id": "rake",
+      "class_id": "druid",
+      "learn_level": 5,
+      "school": "physical",
+      "m4_projection": "m4_projected",
+      "m4_index": 65,
+      "m4_scenarios": [],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.rake",
+      "source_effect_types": [
+        "weaponStrike",
+        "dot"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 212,
+      "id": "rallying_cry",
+      "class_id": "warrior",
+      "learn_level": 18,
+      "school": "physical",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "aoeAllyMaxHp"
+      ],
+      "m4_effect_shape_status": "new_m4_effect_shape_required"
+    },
+    {
+      "code": 213,
+      "id": "rapid_fire",
+      "class_id": "hunter",
+      "learn_level": 20,
+      "school": "physical",
+      "m4_projection": "m4_projected",
+      "m4_index": 108,
+      "m4_scenarios": [],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.rapid_fire",
+      "source_effect_types": [
+        "selfBuff"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 214,
+      "id": "raptor_strike",
+      "class_id": "hunter",
+      "learn_level": 1,
+      "school": "physical",
+      "m4_projection": "m4_projected",
+      "m4_index": 20,
+      "m4_scenarios": [
+        "c5_auto_attack"
+      ],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.raptor_strike",
+      "source_effect_types": [
+        "weaponDamage"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 215,
+      "id": "rebuke",
+      "class_id": "paladin",
+      "learn_level": 10,
+      "school": "physical",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "interrupt"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 216,
+      "id": "recklessness",
+      "class_id": "warrior",
+      "learn_level": 17,
+      "school": "physical",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "selfBuff"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 217,
+      "id": "red_harvest",
+      "class_id": "warrior",
+      "learn_level": 10,
+      "school": "physical",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "weaponStrike",
+        "weaponStrike",
+        "weaponStrike",
+        "enrageChance"
+      ],
+      "m4_effect_shape_status": "new_m4_effect_shape_required"
+    },
+    {
+      "code": 218,
+      "id": "regrowth",
+      "class_id": "druid",
+      "learn_level": 14,
+      "school": "nature",
+      "m4_projection": "m4_projected",
+      "m4_index": 69,
+      "m4_scenarios": [],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.regrowth",
+      "source_effect_types": [
+        "heal",
+        "hot"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 219,
+      "id": "rejuvenation",
+      "class_id": "druid",
+      "learn_level": 4,
+      "school": "nature",
+      "m4_projection": "m4_projected",
+      "m4_index": 19,
+      "m4_scenarios": [
+        "c4b_effect_dispatch"
+      ],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.rejuvenation",
+      "source_effect_types": [
+        "hot"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 220,
+      "id": "renew",
+      "class_id": "priest",
+      "learn_level": 8,
+      "school": "holy",
+      "m4_projection": "m4_projected",
+      "m4_index": 25,
+      "m4_scenarios": [],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.renew",
+      "source_effect_types": [
+        "hot"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 221,
+      "id": "retribution_aura",
+      "class_id": "paladin",
+      "learn_level": 16,
+      "school": "holy",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "selfBuff"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 222,
+      "id": "revenge",
+      "class_id": "warrior",
+      "learn_level": 7,
+      "school": "physical",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "aoeDamage"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 223,
+      "id": "revive_pet",
+      "class_id": "hunter",
+      "learn_level": 10,
+      "school": "nature",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "hot"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 224,
+      "id": "righteous_fury",
+      "class_id": "paladin",
+      "learn_level": 16,
+      "school": "holy",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "selfBuff"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 225,
+      "id": "rings_of_frost",
+      "class_id": "mage",
+      "learn_level": 11,
+      "school": "frost",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "aoeRoot"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 226,
+      "id": "rip",
+      "class_id": "druid",
+      "learn_level": 14,
+      "school": "physical",
+      "m4_projection": "m4_projected",
+      "m4_index": 80,
+      "m4_scenarios": [],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.rip",
+      "source_effect_types": [
+        "dot"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 227,
+      "id": "rockbiter_weapon",
+      "class_id": "shaman",
+      "learn_level": 1,
+      "school": "nature",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "imbue"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 228,
+      "id": "rune_of_power",
+      "class_id": "mage",
+      "learn_level": 20,
+      "school": "arcane",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "groundAoE"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 229,
+      "id": "rupture",
+      "class_id": "rogue",
+      "learn_level": 14,
+      "school": "physical",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "dot"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 230,
+      "id": "sacred_bulwark",
+      "class_id": "paladin",
+      "learn_level": 20,
+      "school": "holy",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "selfBuff"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 231,
+      "id": "sanguine_aura",
+      "class_id": "warrior",
+      "learn_level": 20,
+      "school": "physical",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "partyMeleeBuff"
+      ],
+      "m4_effect_shape_status": "new_m4_effect_shape_required"
+    },
+    {
+      "code": 232,
+      "id": "sap",
+      "class_id": "rogue",
+      "learn_level": 10,
+      "school": "physical",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "incapacitate"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 233,
+      "id": "scorch",
+      "class_id": "mage",
+      "learn_level": 10,
+      "school": "fire",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "directDamage",
+        "selfBuff"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 234,
+      "id": "seal_of_righteousness",
+      "class_id": "paladin",
+      "learn_level": 1,
+      "school": "holy",
+      "m4_projection": "m4_projected",
+      "m4_index": 14,
+      "m4_scenarios": [
+        "c4b_effect_dispatch"
+      ],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.seal_of_righteousness",
+      "source_effect_types": [
+        "imbue"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 235,
+      "id": "searing_pain",
+      "class_id": "warlock",
+      "learn_level": 14,
+      "school": "fire",
+      "m4_projection": "m4_projected",
+      "m4_index": 46,
+      "m4_scenarios": [],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.searing_pain",
+      "source_effect_types": [
+        "directDamage"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 236,
+      "id": "seasoned_soldier",
+      "class_id": "warrior",
+      "learn_level": 5,
+      "school": "physical",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [],
+      "m4_effect_shape_status": "no_active_effect"
+    },
+    {
+      "code": 237,
+      "id": "serpent_sting",
+      "class_id": "hunter",
+      "learn_level": 4,
+      "school": "nature",
+      "m4_projection": "m4_projected",
+      "m4_index": 23,
+      "m4_scenarios": [],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.serpent_sting",
+      "source_effect_types": [
+        "dot"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 238,
+      "id": "shadow_bolt",
+      "class_id": "warlock",
+      "learn_level": 1,
+      "school": "shadow",
+      "m4_projection": "m4_projected",
+      "m4_index": 41,
+      "m4_scenarios": [],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.shadow_bolt",
+      "source_effect_types": [
+        "directDamage"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 239,
+      "id": "shadow_word_pain",
+      "class_id": "priest",
+      "learn_level": 4,
+      "school": "shadow",
+      "m4_projection": "m4_projected",
+      "m4_index": 24,
+      "m4_scenarios": [],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.shadow_word_pain",
+      "source_effect_types": [
+        "dot"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 240,
+      "id": "shadowburn",
+      "class_id": "warlock",
+      "learn_level": 14,
+      "school": "shadow",
+      "m4_projection": "m4_projected",
+      "m4_index": 47,
+      "m4_scenarios": [],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.shadowburn",
+      "source_effect_types": [
+        "directDamage"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 241,
+      "id": "shadowform",
+      "class_id": "priest",
+      "learn_level": 10,
+      "school": "shadow",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "selfBuff"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 242,
+      "id": "shadowstep",
+      "class_id": "rogue",
+      "learn_level": 10,
+      "school": "physical",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "blinkForward"
+      ],
+      "m4_effect_shape_status": "new_m4_effect_shape_required"
+    },
+    {
+      "code": 243,
+      "id": "shatter",
+      "class_id": "mage",
+      "learn_level": 10,
+      "school": "frost",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [],
+      "m4_effect_shape_status": "no_active_effect"
+    },
+    {
+      "code": 244,
+      "id": "shield_slam",
+      "class_id": "warrior",
+      "learn_level": 5,
+      "school": "physical",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "weaponStrike",
+        "gainResource"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 245,
+      "id": "silence",
+      "class_id": "priest",
+      "learn_level": 10,
+      "school": "shadow",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "silence"
+      ],
+      "m4_effect_shape_status": "new_m4_effect_shape_required"
+    },
+    {
+      "code": 246,
+      "id": "sinister_strike",
+      "class_id": "rogue",
+      "learn_level": 1,
+      "school": "physical",
+      "m4_projection": "m4_projected",
+      "m4_index": 3,
+      "m4_scenarios": [
+        "c4b_effect_dispatch",
+        "solo_rogue"
+      ],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.sinister_strike",
+      "source_effect_types": [
+        "weaponStrike"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 247,
+      "id": "siphon_life",
+      "class_id": "warlock",
+      "learn_level": 10,
+      "school": "shadow",
+      "m4_projection": "m4_projected",
+      "m4_index": 55,
+      "m4_scenarios": [],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.siphon_life",
+      "source_effect_types": [
+        "dot"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 248,
+      "id": "skull_bash",
+      "class_id": "druid",
+      "learn_level": 10,
+      "school": "physical",
+      "m4_projection": "m4_projected",
+      "m4_index": 82,
+      "m4_scenarios": [],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.skull_bash",
+      "source_effect_types": [
+        "interrupt"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 249,
+      "id": "slam",
+      "class_id": "warrior",
+      "learn_level": 5,
+      "school": "physical",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "weaponStrike",
+        "gainResource"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 250,
+      "id": "slice_and_dice",
+      "class_id": "rogue",
+      "learn_level": 10,
+      "school": "physical",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "finisherHaste"
+      ],
+      "m4_effect_shape_status": "new_m4_effect_shape_required"
+    },
+    {
+      "code": 251,
+      "id": "smite",
+      "class_id": "priest",
+      "learn_level": 1,
+      "school": "holy",
+      "m4_projection": "m4_projected",
+      "m4_index": 27,
+      "m4_scenarios": [],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.smite",
+      "source_effect_types": [
+        "directDamage"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 252,
+      "id": "smoke_screen",
+      "class_id": "rogue",
+      "learn_level": 8,
+      "school": "physical",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "selfBuff"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 253,
+      "id": "spell_lock",
+      "class_id": "warlock",
+      "learn_level": 10,
+      "school": "physical",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "interrupt"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 254,
+      "id": "spellsteal",
+      "class_id": "mage",
+      "learn_level": 8,
+      "school": "arcane",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "dispel"
+      ],
+      "m4_effect_shape_status": "new_m4_effect_shape_required"
+    },
+    {
+      "code": 255,
+      "id": "sport_boot",
+      "class_id": "warrior",
+      "learn_level": 1,
+      "school": "physical",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "ballKick"
+      ],
+      "m4_effect_shape_status": "new_m4_effect_shape_required"
+    },
+    {
+      "code": 256,
+      "id": "sport_dive",
+      "class_id": "warrior",
+      "learn_level": 1,
+      "school": "physical",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "sportDash"
+      ],
+      "m4_effect_shape_status": "new_m4_effect_shape_required"
+    },
+    {
+      "code": 257,
+      "id": "sport_feint",
+      "class_id": "warrior",
+      "learn_level": 1,
+      "school": "physical",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "sportDash"
+      ],
+      "m4_effect_shape_status": "new_m4_effect_shape_required"
+    },
+    {
+      "code": 258,
+      "id": "sport_hoof",
+      "class_id": "warrior",
+      "learn_level": 1,
+      "school": "physical",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "ballKick"
+      ],
+      "m4_effect_shape_status": "new_m4_effect_shape_required"
+    },
+    {
+      "code": 259,
+      "id": "sport_kick",
+      "class_id": "warrior",
+      "learn_level": 1,
+      "school": "physical",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "ballKick"
+      ],
+      "m4_effect_shape_status": "new_m4_effect_shape_required"
+    },
+    {
+      "code": 260,
+      "id": "sport_pass",
+      "class_id": "warrior",
+      "learn_level": 1,
+      "school": "physical",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "ballPass"
+      ],
+      "m4_effect_shape_status": "new_m4_effect_shape_required"
+    },
+    {
+      "code": 261,
+      "id": "sport_punt",
+      "class_id": "warrior",
+      "learn_level": 1,
+      "school": "physical",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "ballKick"
+      ],
+      "m4_effect_shape_status": "new_m4_effect_shape_required"
+    },
+    {
+      "code": 262,
+      "id": "sport_second_wind",
+      "class_id": "warrior",
+      "learn_level": 1,
+      "school": "physical",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "selfBuff"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 263,
+      "id": "sport_shoot",
+      "class_id": "warrior",
+      "learn_level": 1,
+      "school": "physical",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "ballShoot"
+      ],
+      "m4_effect_shape_status": "new_m4_effect_shape_required"
+    },
+    {
+      "code": 264,
+      "id": "sport_shoulder",
+      "class_id": "warrior",
+      "learn_level": 1,
+      "school": "physical",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "stun",
+        "sportShove"
+      ],
+      "m4_effect_shape_status": "new_m4_effect_shape_required"
+    },
+    {
+      "code": 265,
+      "id": "sprint",
+      "class_id": "rogue",
+      "learn_level": 10,
+      "school": "physical",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "selfBuff"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 266,
+      "id": "starfire",
+      "class_id": "druid",
+      "learn_level": 14,
+      "school": "arcane",
+      "m4_projection": "m4_projected",
+      "m4_index": 59,
+      "m4_scenarios": [],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.starfire",
+      "source_effect_types": [
+        "directDamage"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 267,
+      "id": "startle_shot",
+      "class_id": "hunter",
+      "learn_level": 8,
+      "school": "physical",
+      "m4_projection": "m4_projected",
+      "m4_index": 114,
+      "m4_scenarios": [],
+      "m4_source_owner": "src/sim/content/talent_abilities_v2_a.ts#TALENT_ABILITIES_V2_A.startle_shot",
+      "source_effect_types": [
+        "incapacitate"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 268,
+      "id": "stealth",
+      "class_id": "rogue",
+      "learn_level": 2,
+      "school": "physical",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "selfBuff"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 269,
+      "id": "storm_bolt",
+      "class_id": "warrior",
+      "learn_level": 11,
+      "school": "physical",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "directDamage",
+        "stun"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 270,
+      "id": "stormstrike",
+      "class_id": "shaman",
+      "learn_level": 20,
+      "school": "physical",
+      "m4_projection": "m4_projected",
+      "m4_index": 40,
+      "m4_scenarios": [],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.stormstrike",
+      "source_effect_types": [
+        "weaponStrike"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 271,
+      "id": "sudden_death",
+      "class_id": "warrior",
+      "learn_level": 5,
+      "school": "physical",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [],
+      "m4_effect_shape_status": "no_active_effect"
+    },
+    {
+      "code": 272,
+      "id": "summon_doomguard",
+      "class_id": "warlock",
+      "learn_level": 20,
+      "school": "shadow",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "summonDemon"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 273,
+      "id": "summon_felguard",
+      "class_id": "warlock",
+      "learn_level": 16,
+      "school": "shadow",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "summonDemon"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 274,
+      "id": "summon_felhunter",
+      "class_id": "warlock",
+      "learn_level": 14,
+      "school": "shadow",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "summonDemon"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 275,
+      "id": "summon_imp",
+      "class_id": "warlock",
+      "learn_level": 1,
+      "school": "shadow",
+      "m4_projection": "m4_projected",
+      "m4_index": 9,
+      "m4_scenarios": [
+        "c4b_effect_dispatch"
+      ],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.summon_imp",
+      "source_effect_types": [
+        "summonDemon"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 276,
+      "id": "summon_infernal",
+      "class_id": "warlock",
+      "learn_level": 18,
+      "school": "fire",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "summonDemon"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 277,
+      "id": "summon_succubus",
+      "class_id": "warlock",
+      "learn_level": 12,
+      "school": "shadow",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "summonDemon"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 278,
+      "id": "summon_voidwalker",
+      "class_id": "warlock",
+      "learn_level": 8,
+      "school": "shadow",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "summonDemon"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 279,
+      "id": "summon_water_elemental",
+      "class_id": "mage",
+      "learn_level": 12,
+      "school": "frost",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "summonDemon"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 280,
+      "id": "sunder_armor",
+      "class_id": "warrior",
+      "learn_level": 5,
+      "school": "physical",
+      "m4_projection": "m4_projected",
+      "m4_index": 10,
+      "m4_scenarios": [
+        "c4b_effect_dispatch"
+      ],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.sunder_armor",
+      "source_effect_types": [
+        "sunder"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 281,
+      "id": "sweeping_strikes",
+      "class_id": "warrior",
+      "learn_level": 18,
+      "school": "physical",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "selfBuff"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 282,
+      "id": "swiftmend",
+      "class_id": "druid",
+      "learn_level": 10,
+      "school": "nature",
+      "m4_projection": "m4_projected",
+      "m4_index": 56,
+      "m4_scenarios": [],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.swiftmend",
+      "source_effect_types": [
+        "consumeAura"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 283,
+      "id": "swipe",
+      "class_id": "druid",
+      "learn_level": 16,
+      "school": "physical",
+      "m4_projection": "m4_projected",
+      "m4_index": 68,
+      "m4_scenarios": [],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.swipe",
+      "source_effect_types": [
+        "aoeDamage"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 284,
+      "id": "tame_beast",
+      "class_id": "hunter",
+      "learn_level": 10,
+      "school": "nature",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "tamePet"
+      ],
+      "m4_effect_shape_status": "new_m4_effect_shape_required"
+    },
+    {
+      "code": 285,
+      "id": "taunt",
+      "class_id": "warrior",
+      "learn_level": 5,
+      "school": "physical",
+      "m4_projection": "m4_projected",
+      "m4_index": 4,
+      "m4_scenarios": [
+        "affix_mob"
+      ],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.taunt",
+      "source_effect_types": [
+        "taunt"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 286,
+      "id": "temporal_acceleration",
+      "class_id": "mage",
+      "learn_level": 20,
+      "school": "arcane",
+      "m4_projection": "m4_projected",
+      "m4_index": 92,
+      "m4_scenarios": [],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.temporal_acceleration",
+      "source_effect_types": [
+        "aoeAllyHaste"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 287,
+      "id": "temporal_barrier",
+      "class_id": "mage",
+      "learn_level": 5,
+      "school": "arcane",
+      "m4_projection": "m4_projected",
+      "m4_index": 87,
+      "m4_scenarios": [],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.temporal_barrier",
+      "source_effect_types": [
+        "absorb"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 288,
+      "id": "temporal_cascade",
+      "class_id": "mage",
+      "learn_level": 12,
+      "school": "arcane",
+      "m4_projection": "m4_projected",
+      "m4_index": 85,
+      "m4_scenarios": [],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.temporal_cascade",
+      "source_effect_types": [
+        "massTemporalEcho"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 289,
+      "id": "temporal_echo",
+      "class_id": "mage",
+      "learn_level": 8,
+      "school": "arcane",
+      "m4_projection": "m4_projected",
+      "m4_index": 84,
+      "m4_scenarios": [],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.temporal_echo",
+      "source_effect_types": [
+        "heal",
+        "temporalEcho"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 290,
+      "id": "temporal_hourglass",
+      "class_id": "mage",
+      "learn_level": 14,
+      "school": "arcane",
+      "m4_projection": "m4_projected",
+      "m4_index": 91,
+      "m4_scenarios": [],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.temporal_hourglass",
+      "source_effect_types": [
+        "temporalHourglass"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 291,
+      "id": "temporal_mend",
+      "class_id": "mage",
+      "learn_level": 5,
+      "school": "arcane",
+      "m4_projection": "m4_projected",
+      "m4_index": 83,
+      "m4_scenarios": [],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.temporal_mend",
+      "source_effect_types": [
+        "heal"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 292,
+      "id": "temporal_reversal",
+      "class_id": "mage",
+      "learn_level": 16,
+      "school": "arcane",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "resurrectAlly"
+      ],
+      "m4_effect_shape_status": "new_m4_effect_shape_required"
+    },
+    {
+      "code": 293,
+      "id": "temporal_rewind",
+      "class_id": "mage",
+      "learn_level": 14,
+      "school": "arcane",
+      "m4_projection": "m4_projected",
+      "m4_index": 86,
+      "m4_scenarios": [],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.temporal_rewind",
+      "source_effect_types": [
+        "rewind"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 294,
+      "id": "thorns",
+      "class_id": "druid",
+      "learn_level": 6,
+      "school": "nature",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "buffTarget"
+      ],
+      "m4_effect_shape_status": "new_m4_effect_shape_required"
+    },
+    {
+      "code": 295,
+      "id": "thunder_clap",
+      "class_id": "warrior",
+      "learn_level": 5,
+      "school": "physical",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "aoeDamage",
+        "aoeAttackSpeed"
+      ],
+      "m4_effect_shape_status": "new_m4_effect_shape_required"
+    },
+    {
+      "code": 296,
+      "id": "tigers_fury",
+      "class_id": "druid",
+      "learn_level": 20,
+      "school": "physical",
+      "m4_projection": "m4_projected",
+      "m4_index": 79,
+      "m4_scenarios": [],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.tigers_fury",
+      "source_effect_types": [
+        "selfBuff"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 297,
+      "id": "tranquility",
+      "class_id": "druid",
+      "learn_level": 10,
+      "school": "nature",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "aoeHeal"
+      ],
+      "m4_effect_shape_status": "new_m4_effect_shape_required"
+    },
+    {
+      "code": 298,
+      "id": "travel_form",
+      "class_id": "druid",
+      "learn_level": 11,
+      "school": "nature",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "selfBuff"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 299,
+      "id": "trueshot_aura",
+      "class_id": "hunter",
+      "learn_level": 10,
+      "school": "nature",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "aoeAllyAttackPower"
+      ],
+      "m4_effect_shape_status": "new_m4_effect_shape_required"
+    },
+    {
+      "code": 300,
+      "id": "typhoon",
+      "class_id": "druid",
+      "learn_level": 8,
+      "school": "nature",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "aoeKnockback"
+      ],
+      "m4_effect_shape_status": "new_m4_effect_shape_required"
+    },
+    {
+      "code": 301,
+      "id": "vanish",
+      "class_id": "rogue",
+      "learn_level": 18,
+      "school": "physical",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "selfBuff"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 302,
+      "id": "victory_rush",
+      "class_id": "warrior",
+      "learn_level": 8,
+      "school": "physical",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "weaponStrike",
+        "selfHealPctMax"
+      ],
+      "m4_effect_shape_status": "new_m4_effect_shape_required"
+    },
+    {
+      "code": 303,
+      "id": "voidfeast",
+      "class_id": "warlock",
+      "learn_level": 8,
+      "school": "shadow",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "dispel"
+      ],
+      "m4_effect_shape_status": "new_m4_effect_shape_required"
+    },
+    {
+      "code": 304,
+      "id": "volley",
+      "class_id": "hunter",
+      "learn_level": 11,
+      "school": "physical",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "aoeDamage"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 305,
+      "id": "whirlwind",
+      "class_id": "warrior",
+      "learn_level": 10,
+      "school": "physical",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "aoeDamage",
+        "selfBuff"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    },
+    {
+      "code": 306,
+      "id": "wing_clip",
+      "class_id": "hunter",
+      "learn_level": 10,
+      "school": "physical",
+      "m4_projection": "m4_projected",
+      "m4_index": 110,
+      "m4_scenarios": [],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.wing_clip",
+      "source_effect_types": [
+        "directDamage",
+        "slow"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 307,
+      "id": "wrath",
+      "class_id": "druid",
+      "learn_level": 1,
+      "school": "nature",
+      "m4_projection": "m4_projected",
+      "m4_index": 57,
+      "m4_scenarios": [],
+      "m4_source_owner": "src/sim/content/classes.ts#ABILITIES.wrath",
+      "source_effect_types": [
+        "directDamage"
+      ],
+      "m4_effect_shape_status": "m4_projected"
+    },
+    {
+      "code": 308,
+      "id": "wyvern_sting",
+      "class_id": "hunter",
+      "learn_level": 10,
+      "school": "nature",
+      "m4_projection": "not_m4_projected",
+      "m4_index": null,
+      "m4_scenarios": [],
+      "m4_source_owner": null,
+      "source_effect_types": [
+        "incapacitate"
+      ],
+      "m4_effect_shape_status": "existing_m4_effect_shapes"
+    }
+  ]
+}

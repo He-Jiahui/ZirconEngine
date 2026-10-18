@@ -945,11 +945,8 @@ fn apply_ordered_buffer_replays(
             target.resources.push(read);
             let mut write = journal.clone();
             write.access = RenderFeatureResourceAccess::Write;
-            write.input_version = Some(RenderFeatureResourceVersion::new(
-                &write.name,
-                write.kind,
-                &previous,
-            ));
+            // Storage writers are ordered with explicit graph dependencies.
+            write.input_version = None;
             target.resources.push(write);
             previous = name;
         }

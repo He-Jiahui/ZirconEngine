@@ -38,6 +38,6 @@ pub use progress::{
 };
 pub use service::EditorNotificationService;
 pub use toast::{
-    ToastCenterConfig, ToastNotification, ToastNotificationCenter, ToastNotificationError,
-    ToastNotificationSnapshot, ToastSeverity, ToastDeliveryQueue, ToastDeliverySnapshot,
+    ToastCenterConfig, ToastDeliveryQueue, ToastDeliverySnapshot, ToastNotification,
+    ToastNotificationCenter, ToastNotificationError, ToastNotificationSnapshot, ToastSeverity,
 };

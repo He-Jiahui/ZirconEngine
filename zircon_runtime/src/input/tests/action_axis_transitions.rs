@@ -20,14 +20,16 @@ fn gamepad_axis_action_reports_deadzone_transition_edges() {
     let input = DefaultInputManager::default();
 
     input.begin_frame();
-    input.submit_event(InputEvent::GamepadConnection(crate::input::GamepadConnectionInfo {
-        gamepad: gamepad,
-        generation: std::num::NonZeroU64::MIN,
-        connected: true,
-        name: None,
-        vendor_id: None,
-        product_id: None,
-    }));
+    input.submit_event(InputEvent::GamepadConnection(
+        crate::input::GamepadConnectionInfo {
+            gamepad: gamepad,
+            generation: std::num::NonZeroU64::MIN,
+            connected: true,
+            name: None,
+            vendor_id: None,
+            product_id: None,
+        },
+    ));
     input.submit_event(InputEvent::GamepadAxis {
         generation: std::num::NonZeroU64::MIN,
         gamepad,
@@ -86,14 +88,16 @@ fn gamepad_disconnect_deactivates_axis_action() {
     let input = DefaultInputManager::default();
 
     input.begin_frame();
-    input.submit_event(InputEvent::GamepadConnection(crate::input::GamepadConnectionInfo {
-        gamepad: gamepad,
-        generation: std::num::NonZeroU64::MIN,
-        connected: true,
-        name: None,
-        vendor_id: None,
-        product_id: None,
-    }));
+    input.submit_event(InputEvent::GamepadConnection(
+        crate::input::GamepadConnectionInfo {
+            gamepad: gamepad,
+            generation: std::num::NonZeroU64::MIN,
+            connected: true,
+            name: None,
+            vendor_id: None,
+            product_id: None,
+        },
+    ));
     input.submit_event(InputEvent::GamepadAxis {
         generation: std::num::NonZeroU64::MIN,
         gamepad,

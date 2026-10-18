@@ -22,6 +22,11 @@ impl RetainedEditorHost {
             return;
         }
         if action == "cancel" {
+            if matches!(&prompt.target, close_prompt::ClosePromptTarget::MainWindow)
+                && !self.cancel_owned_main_window_close_decision()
+            {
+                return;
+            }
             self.clear_close_prompt(&prompt.target);
             self.pending_close_prompt = None;
             return;

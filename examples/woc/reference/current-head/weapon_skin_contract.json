@@ -1,0 +1,691 @@
+{
+  "schema_version": 1,
+  "source_commit": "5ef9f7cb21cd8875b6d2c49701015dfcd78de35a",
+  "generated_by": "examples/woc/tools/weapon_skin_contract_codegen.mjs",
+  "source_blobs": {
+    "src/sim/content/weapon_skins.ts": "229e3c4cff95d32ef53ceb88c8b8040ae4ec1b3b53f8337e06e41c15ac71042b",
+    "src/sim/content/weapon_skin_rules.ts": "96e8c0d7f609f1625f3ae23e27a78c9b09730ecec95f972f3b22147e7ff20506",
+    "src/sim/sim.ts": "fa0965112495b10ac2d793e672927de569666f9b3c938282eedc08b303cd6b03",
+    "server/game.ts": "d5f0d0f715037ef4b79594925c64b1d0e676ed5ccebe24605f6ed16bcfc41556"
+  },
+  "weapon_skin_types": [
+    "sword",
+    "axe",
+    "mace",
+    "dagger",
+    "staff",
+    "wand",
+    "bow",
+    "crossbow"
+  ],
+  "weapon_skins": [
+    {
+      "id": "guildmark_arming_sword",
+      "collection": "guildmark",
+      "rarity": "uncommon",
+      "weapon_type": "sword",
+      "model": "guildmark_arming_sword",
+      "season": 1,
+      "badge": null,
+      "handling": null
+    },
+    {
+      "id": "brasscap_axe",
+      "collection": "guildmark",
+      "rarity": "uncommon",
+      "weapon_type": "axe",
+      "model": "brasscap_hatchet",
+      "season": 1,
+      "badge": null,
+      "handling": null
+    },
+    {
+      "id": "tempered_flanged_mace",
+      "collection": "guildmark",
+      "rarity": "uncommon",
+      "weapon_type": "mace",
+      "model": "tempered_flanged_mace",
+      "season": 1,
+      "badge": null,
+      "handling": null
+    },
+    {
+      "id": "guildmark_dirk",
+      "collection": "guildmark",
+      "rarity": "uncommon",
+      "weapon_type": "dagger",
+      "model": "guildmark_dirk",
+      "season": 1,
+      "badge": null,
+      "handling": null
+    },
+    {
+      "id": "brasscrown_staff",
+      "collection": "guildmark",
+      "rarity": "uncommon",
+      "weapon_type": "staff",
+      "model": "brasscrown_walking_staff",
+      "season": 1,
+      "badge": null,
+      "handling": null
+    },
+    {
+      "id": "lacquered_wand",
+      "collection": "guildmark",
+      "rarity": "uncommon",
+      "weapon_type": "wand",
+      "model": "lacquered_rod",
+      "season": 1,
+      "badge": null,
+      "handling": null
+    },
+    {
+      "id": "fletcher_s_guild_bow",
+      "collection": "guildmark",
+      "rarity": "uncommon",
+      "weapon_type": "bow",
+      "model": "fletcher_s_guild_bow",
+      "season": 1,
+      "badge": null,
+      "handling": null
+    },
+    {
+      "id": "cinderbrand_sword",
+      "collection": "emberwrought",
+      "rarity": "rare",
+      "weapon_type": "sword",
+      "model": "cinderbrand",
+      "season": 1,
+      "badge": null,
+      "handling": null
+    },
+    {
+      "id": "emberbite_axe",
+      "collection": "emberwrought",
+      "rarity": "rare",
+      "weapon_type": "axe",
+      "model": "emberbite",
+      "season": 1,
+      "badge": null,
+      "handling": null
+    },
+    {
+      "id": "smoulderfall_mace",
+      "collection": "emberwrought",
+      "rarity": "rare",
+      "weapon_type": "mace",
+      "model": "smoulderfall",
+      "season": 1,
+      "badge": null,
+      "handling": null
+    },
+    {
+      "id": "ashspark_dagger",
+      "collection": "emberwrought",
+      "rarity": "rare",
+      "weapon_type": "dagger",
+      "model": "ashspark_shiv",
+      "season": 1,
+      "badge": null,
+      "handling": null
+    },
+    {
+      "id": "forgeheart_staff",
+      "collection": "emberwrought",
+      "rarity": "rare",
+      "weapon_type": "staff",
+      "model": "forgeheart_stave",
+      "season": 1,
+      "badge": null,
+      "handling": null
+    },
+    {
+      "id": "emberwrought_wand",
+      "collection": "emberwrought",
+      "rarity": "rare",
+      "weapon_type": "wand",
+      "model": "emberwrought_wand",
+      "season": 1,
+      "badge": null,
+      "handling": null
+    },
+    {
+      "id": "cinderlatch_crossbow",
+      "collection": "emberwrought",
+      "rarity": "rare",
+      "weapon_type": "crossbow",
+      "model": "cinderlatch",
+      "season": 1,
+      "badge": null,
+      "handling": null
+    },
+    {
+      "id": "ice_fang_sword",
+      "collection": "hoarfrost",
+      "rarity": "epic",
+      "weapon_type": "sword",
+      "model": "ice_fang",
+      "season": 1,
+      "badge": "flagship",
+      "handling": null
+    },
+    {
+      "id": "glaciersplit_axe",
+      "collection": "hoarfrost",
+      "rarity": "epic",
+      "weapon_type": "axe",
+      "model": "glaciersplit",
+      "season": 1,
+      "badge": null,
+      "handling": null
+    },
+    {
+      "id": "rimecrusher_mace",
+      "collection": "hoarfrost",
+      "rarity": "epic",
+      "weapon_type": "mace",
+      "model": "rimecrusher",
+      "season": 1,
+      "badge": null,
+      "handling": null
+    },
+    {
+      "id": "frostbite_dagger",
+      "collection": "hoarfrost",
+      "rarity": "epic",
+      "weapon_type": "dagger",
+      "model": "frostbite",
+      "season": 1,
+      "badge": null,
+      "handling": null
+    },
+    {
+      "id": "hoarfrost_vigil_staff",
+      "collection": "hoarfrost",
+      "rarity": "epic",
+      "weapon_type": "staff",
+      "model": "hoarfrost_vigil",
+      "season": 1,
+      "badge": null,
+      "handling": null
+    },
+    {
+      "id": "everwinter_wand",
+      "collection": "hoarfrost",
+      "rarity": "epic",
+      "weapon_type": "wand",
+      "model": "shard_of_everwinter",
+      "season": 1,
+      "badge": null,
+      "handling": null
+    },
+    {
+      "id": "winterbite",
+      "collection": "hoarfrost",
+      "rarity": "epic",
+      "weapon_type": "bow",
+      "model": "winterbite",
+      "season": 1,
+      "badge": null,
+      "handling": null
+    },
+    {
+      "id": "solheim_sword",
+      "collection": "fallen_star",
+      "rarity": "legendary",
+      "weapon_type": "sword",
+      "model": "solheim_last_light_of_the_dawn",
+      "season": 1,
+      "badge": "hero",
+      "handling": null
+    },
+    {
+      "id": "skyrender_axe",
+      "collection": "fallen_star",
+      "rarity": "legendary",
+      "weapon_type": "axe",
+      "model": "skyrender_the_firmament_s_wound",
+      "season": 1,
+      "badge": null,
+      "handling": null
+    },
+    {
+      "id": "starfall_mace",
+      "collection": "fallen_star",
+      "rarity": "legendary",
+      "weapon_type": "mace",
+      "model": "starfall_judgment_of_the_heavens",
+      "season": 1,
+      "badge": null,
+      "handling": null
+    },
+    {
+      "id": "astravyr_dagger",
+      "collection": "fallen_star",
+      "rarity": "legendary",
+      "weapon_type": "dagger",
+      "model": "astravyr_fang_of_the_fallen_star",
+      "season": 1,
+      "badge": null,
+      "handling": null
+    },
+    {
+      "id": "cosmarch_staff",
+      "collection": "fallen_star",
+      "rarity": "legendary",
+      "weapon_type": "staff",
+      "model": "cosmarch_spire_of_the_endless_void",
+      "season": 1,
+      "badge": null,
+      "handling": null
+    },
+    {
+      "id": "emberwish_wand",
+      "collection": "fallen_star",
+      "rarity": "legendary",
+      "weapon_type": "wand",
+      "model": "emberwish_mote_of_the_dying_sun",
+      "season": 1,
+      "badge": null,
+      "handling": null
+    },
+    {
+      "id": "encore_bow",
+      "collection": "fallen_star",
+      "rarity": "legendary",
+      "weapon_type": "bow",
+      "model": "encore_the_second_falling_star",
+      "season": 1,
+      "badge": null,
+      "handling": "crossbow"
+    },
+    {
+      "id": "meteorlatch_crossbow",
+      "collection": "fallen_star",
+      "rarity": "legendary",
+      "weapon_type": "crossbow",
+      "model": "meteorlatch_the_sky_s_last_judgment",
+      "season": 1,
+      "badge": null,
+      "handling": null
+    }
+  ],
+  "item_weapon_types": [
+    {
+      "item_id": "worn_sword",
+      "weapon_type": "sword"
+    },
+    {
+      "item_id": "redbrook_blade",
+      "weapon_type": "sword"
+    },
+    {
+      "item_id": "valeborn_spellblade",
+      "weapon_type": "sword"
+    },
+    {
+      "item_id": "eastbrook_arming_sword",
+      "weapon_type": "sword"
+    },
+    {
+      "item_id": "eastbrook_greatsword",
+      "weapon_type": "sword"
+    },
+    {
+      "item_id": "gravecaller_blade",
+      "weapon_type": "sword"
+    },
+    {
+      "item_id": "verlans_oathblade",
+      "weapon_type": "sword"
+    },
+    {
+      "item_id": "maldrecs_soulbinder",
+      "weapon_type": "sword"
+    },
+    {
+      "item_id": "crossroads_saber",
+      "weapon_type": "sword"
+    },
+    {
+      "item_id": "mistcallers_edge",
+      "weapon_type": "sword"
+    },
+    {
+      "item_id": "zealotsbane_blade",
+      "weapon_type": "sword"
+    },
+    {
+      "item_id": "emberfang_warblade",
+      "weapon_type": "sword"
+    },
+    {
+      "item_id": "wyrmfang_greatblade",
+      "weapon_type": "sword"
+    },
+    {
+      "item_id": "kingsbane_last_oath",
+      "weapon_type": "sword"
+    },
+    {
+      "item_id": "highwatch_warblade",
+      "weapon_type": "sword"
+    },
+    {
+      "item_id": "highwatch_greatsword",
+      "weapon_type": "sword"
+    },
+    {
+      "item_id": "moonscale_saber",
+      "weapon_type": "sword"
+    },
+    {
+      "item_id": "deathless_greatblade",
+      "weapon_type": "sword"
+    },
+    {
+      "item_id": "final_argument_greatblade",
+      "weapon_type": "sword"
+    },
+    {
+      "item_id": "bonewrought_greatsword",
+      "weapon_type": "sword"
+    },
+    {
+      "item_id": "direfang_greatblade",
+      "weapon_type": "sword"
+    },
+    {
+      "item_id": "rusty_dagger",
+      "weapon_type": "dagger"
+    },
+    {
+      "item_id": "keen_dirk",
+      "weapon_type": "dagger"
+    },
+    {
+      "item_id": "moggers_shiv",
+      "weapon_type": "dagger"
+    },
+    {
+      "item_id": "vale_carving_knife",
+      "weapon_type": "dagger"
+    },
+    {
+      "item_id": "widowfang_dirk",
+      "weapon_type": "dagger"
+    },
+    {
+      "item_id": "gravewardens_shiv",
+      "weapon_type": "dagger"
+    },
+    {
+      "item_id": "caravan_warden_dirk",
+      "weapon_type": "dagger"
+    },
+    {
+      "item_id": "mistbinder_kris",
+      "weapon_type": "dagger"
+    },
+    {
+      "item_id": "mirejaw_biteblade",
+      "weapon_type": "dagger"
+    },
+    {
+      "item_id": "sloomtooth_tidefang",
+      "weapon_type": "dagger"
+    },
+    {
+      "item_id": "nhalias_dirgeblade",
+      "weapon_type": "dagger"
+    },
+    {
+      "item_id": "riptide_dirk",
+      "weapon_type": "dagger"
+    },
+    {
+      "item_id": "mirefen_skinner",
+      "weapon_type": "dagger"
+    },
+    {
+      "item_id": "cultist_flayer",
+      "weapon_type": "dagger"
+    },
+    {
+      "item_id": "ironvein_pickblade",
+      "weapon_type": "dagger"
+    },
+    {
+      "item_id": "skullsplitter_dirk",
+      "weapon_type": "dagger"
+    },
+    {
+      "item_id": "gutripper_shiv",
+      "weapon_type": "dagger"
+    },
+    {
+      "item_id": "fang_of_korzul",
+      "weapon_type": "dagger"
+    },
+    {
+      "item_id": "icevein_dirk",
+      "weapon_type": "dagger"
+    },
+    {
+      "item_id": "tideglass_dirk",
+      "weapon_type": "dagger"
+    },
+    {
+      "item_id": "drownedmoon_kris",
+      "weapon_type": "dagger"
+    },
+    {
+      "item_id": "mirejaw_fang_knife",
+      "weapon_type": "dagger"
+    },
+    {
+      "item_id": "drowned_choir_fang",
+      "weapon_type": "dagger"
+    },
+    {
+      "item_id": "mistcallers_fang",
+      "weapon_type": "dagger"
+    },
+    {
+      "item_id": "first_blood_razor",
+      "weapon_type": "dagger"
+    },
+    {
+      "item_id": "training_mace",
+      "weapon_type": "mace"
+    },
+    {
+      "item_id": "bristleback_maul",
+      "weapon_type": "mace"
+    },
+    {
+      "item_id": "moggers_copper_cudgel",
+      "weapon_type": "mace"
+    },
+    {
+      "item_id": "bronzework_mace",
+      "weapon_type": "mace"
+    },
+    {
+      "item_id": "voss_sanctified_mace",
+      "weapon_type": "mace"
+    },
+    {
+      "item_id": "bogiron_mace",
+      "weapon_type": "mace"
+    },
+    {
+      "item_id": "brutoks_maul",
+      "weapon_type": "mace"
+    },
+    {
+      "item_id": "crag_warden_cudgel",
+      "weapon_type": "mace"
+    },
+    {
+      "item_id": "drownedmoon_maul",
+      "weapon_type": "mace"
+    },
+    {
+      "item_id": "nhalias_bell_maul",
+      "weapon_type": "mace"
+    },
+    {
+      "item_id": "rusty_hatchet",
+      "weapon_type": "axe"
+    },
+    {
+      "item_id": "gorraks_cruel_chopper",
+      "weapon_type": "axe"
+    },
+    {
+      "item_id": "tunnelkings_spade",
+      "weapon_type": "axe"
+    },
+    {
+      "item_id": "gorraks_cleaver",
+      "weapon_type": "axe"
+    },
+    {
+      "item_id": "tradesman_hatchet",
+      "weapon_type": "axe"
+    },
+    {
+      "item_id": "deacons_cleaver",
+      "weapon_type": "axe"
+    },
+    {
+      "item_id": "drogmars_skullcleaver",
+      "weapon_type": "axe"
+    },
+    {
+      "item_id": "gravewyrm_cleaver",
+      "weapon_type": "axe"
+    },
+    {
+      "item_id": "gnarled_staff",
+      "weapon_type": "staff"
+    },
+    {
+      "item_id": "apprentice_staff",
+      "weapon_type": "staff"
+    },
+    {
+      "item_id": "hickory_shortstaff",
+      "weapon_type": "staff"
+    },
+    {
+      "item_id": "gravecaller_staff",
+      "weapon_type": "staff"
+    },
+    {
+      "item_id": "hollow_vigil_staff",
+      "weapon_type": "staff"
+    },
+    {
+      "item_id": "drovers_staff",
+      "weapon_type": "staff"
+    },
+    {
+      "item_id": "staff_of_drowned_prayers",
+      "weapon_type": "staff"
+    },
+    {
+      "item_id": "mirejaw_oracle_staff",
+      "weapon_type": "staff"
+    },
+    {
+      "item_id": "vaels_mist_staff",
+      "weapon_type": "staff"
+    },
+    {
+      "item_id": "fenreed_staff",
+      "weapon_type": "staff"
+    },
+    {
+      "item_id": "emberwood_staff",
+      "weapon_type": "staff"
+    },
+    {
+      "item_id": "ironvein_lantern_staff",
+      "weapon_type": "staff"
+    },
+    {
+      "item_id": "ogre_bonecharm_staff",
+      "weapon_type": "staff"
+    },
+    {
+      "item_id": "staff_of_velkhar",
+      "weapon_type": "staff"
+    },
+    {
+      "item_id": "staff_of_the_gravewyrm",
+      "weapon_type": "staff"
+    },
+    {
+      "item_id": "deathless_heartwood",
+      "weapon_type": "staff"
+    },
+    {
+      "item_id": "craghorn_staff",
+      "weapon_type": "staff"
+    },
+    {
+      "item_id": "lunar_tide_greatstaff",
+      "weapon_type": "staff"
+    },
+    {
+      "item_id": "emberglass_warstaff",
+      "weapon_type": "staff"
+    },
+    {
+      "item_id": "drowned_tide_scepter",
+      "weapon_type": "wand"
+    },
+    {
+      "item_id": "palecoil_rod",
+      "weapon_type": "wand"
+    },
+    {
+      "item_id": "drownedmoon_scepter",
+      "weapon_type": "wand"
+    },
+    {
+      "item_id": "corpse_candle_focus",
+      "weapon_type": "wand"
+    },
+    {
+      "item_id": "nhalias_litany_rod",
+      "weapon_type": "wand"
+    },
+    {
+      "item_id": "scepter_of_the_deathless_court",
+      "weapon_type": "wand"
+    },
+    {
+      "item_id": "stormcallers_focus",
+      "weapon_type": "wand"
+    },
+    {
+      "item_id": "tidereaver_gaff",
+      "weapon_type": "polearm"
+    },
+    {
+      "item_id": "fen_reaver_glaive",
+      "weapon_type": "polearm"
+    }
+  ],
+  "semantics": {
+    "ownership": "applying requires the account weaponSkinIds set to contain the known skin id",
+    "apply": "the generated skin weapon type must match the requesting player current displayed mainhand type",
+    "detach": "null skin plus one canonical weapon type removes only an existing entry of that type",
+    "hunter": "hunter resolves crossbow before bow and applying either removes the other loadout entry",
+    "account_scope": "a successful change replaces the account loadout and re-resolves every live character on that account",
+    "rng": "weapon skin changes consume no simulation RNG"
+  }
+}

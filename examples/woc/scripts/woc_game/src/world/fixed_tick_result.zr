@@ -1,0 +1,11 @@
+var container = %import("zr.container");
+
+pub class FixedTickResult {
+    pub var state: container.Array<uint>;
+    pub var payload: container.Array<uint>;
+
+    pub @constructor(state: container.Array<uint>, payload: container.Array<uint>) {
+        this.state = state;
+        this.payload = payload;
+    }
+}

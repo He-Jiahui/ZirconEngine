@@ -4,10 +4,6 @@
 #[path = "io/mod.rs"]
 pub mod io;
 
-pub use zr_resource::{
-    ResourceActiveGeneration, ResourceActiveRow, ResourceActiveSnapshotError, ResourceActiveVersionKey,
-    ResourceSourceMember, ResourceSourceOutcome, ResourceSourcePublication,
-};
 pub use zr_resource::ResourceData;
 pub use zr_resource::ResourceLease;
 #[cfg(feature = "profiling")]
@@ -26,6 +22,11 @@ pub use zr_resource::{
     STABLE_UUID_ALGORITHM_VERSION,
 };
 pub use zr_resource::{Resource, ResourceRuntimeInfo, RuntimeResourceState};
+pub use zr_resource::{
+    ResourceActiveGeneration, ResourceActiveRow, ResourceActiveSnapshotError,
+    ResourceActiveVersionKey, ResourceSourceMember, ResourceSourceOutcome,
+    ResourceSourcePublication,
+};
 pub use zr_resource::{
     ResourceDiagnostic, ResourceDiagnosticSeverity, ResourceEvent, ResourceEventKind,
     ResourceHandle, ResourceRecord, ResourceState, UntypedResourceHandle,

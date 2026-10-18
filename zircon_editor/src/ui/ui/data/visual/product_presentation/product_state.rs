@@ -156,7 +156,10 @@ impl ProductWorkbenchLocaleOverlay {
                 .map_err(|error| error.to_string())?;
         }
         let snapshot = self.settings.snapshot();
-        apply_host_appearance_from_tokens(snapshot.design_tokens());
+        apply_host_appearance_from_tokens(
+            snapshot.design_tokens_handle(),
+            Some(snapshot.generation()),
+        );
         install_editor_v2_design_tokens(snapshot.as_ref());
         self.previous_session_value = None;
         self.restored = true;
@@ -231,7 +234,10 @@ pub(super) fn materialize_product_workbench(
     let manager = manager_handle.enter().map_err(|error| error.to_string())?;
     manager.configure_project_runtime_build_set(Some(app_preflighted_build_set.clone()));
     let settings_snapshot = manager.context().settings().snapshot();
-    apply_host_appearance_from_tokens(settings_snapshot.design_tokens());
+    apply_host_appearance_from_tokens(
+        settings_snapshot.design_tokens_handle(),
+        Some(settings_snapshot.generation()),
+    );
     install_editor_v2_design_tokens(settings_snapshot.as_ref());
     let project_root = review_project_root(project_root)?;
     let mut locale_overlay = ProductWorkbenchLocaleOverlay::install(&manager, locale)?;

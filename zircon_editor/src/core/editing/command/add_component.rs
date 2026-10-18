@@ -11,9 +11,7 @@ use crate::core::editing::operation::{
 use crate::core::editor_operation::EditorOperationInvocation;
 use crate::core::gateway::GatewaySessionIdentity;
 use crate::core::play::WorldDomain;
-use zircon_runtime::scene::world::{
-    DynamicComponentCreationId, DynamicComponentCreationSpec,
-};
+use zircon_runtime::scene::world::{DynamicComponentCreationId, DynamicComponentCreationSpec};
 use zircon_runtime_interface::retained_memory::*;
 
 pub(crate) const ADD_COMPONENT_OPERATION: &str = "inspector.component.add";
@@ -68,7 +66,9 @@ zircon_runtime_interface::impl_retained_owner_v1!(AddComponentScope { gateway, t
 impl AddComponentScope {
     pub(crate) fn validate(&self, core: &CoreEditContext) -> Result<(), EditCommandError> {
         if !matches!(self.history, HistoryContextId::Document(_)) {
-            return Err(invalid("component creation must use the committed scene document history"));
+            return Err(invalid(
+                "component creation must use the committed scene document history",
+            ));
         }
         validate_gateway(core, &self.gateway)?;
         let selected = core.scene_selection()?;
@@ -81,7 +81,9 @@ impl AddComponentScope {
         core.with_scene(|scene| {
             if scene.world_generation() != self.world_generation {
                 Err(invalid("component creation world changed"))
-            } else { Ok(()) }
+            } else {
+                Ok(())
+            }
         })?
     }
 }
@@ -106,19 +108,22 @@ pub(crate) struct AddComponentRequest {
     pub(crate) component: DynamicComponentCreationSpec,
 }
 impl AddComponentRequest {
-    pub(crate) fn from_invocation(invocation: &EditorOperationInvocation)
-        -> Result<Self, OperationCommandFactoryError>
-    {
+    pub(crate) fn from_invocation(
+        invocation: &EditorOperationInvocation,
+    ) -> Result<Self, OperationCommandFactoryError> {
         serde_json::from_value(invocation.arguments.clone()).map_err(|error| {
             OperationCommandFactoryError::InvalidArguments {
-                operation: invocation.operation_id.clone(), reason: error.to_string(),
+                operation: invocation.operation_id.clone(),
+                reason: error.to_string(),
             }
         })
     }
     pub(crate) fn validate(&self, core: &CoreEditContext) -> Result<(), EditCommandError> {
         self.scope.validate(core)?;
-        core.with_scene(|scene| scene.validate_dynamic_component_creation(&self.scope.targets, &self.component))?
-            .map_err(creation_error)
+        core.with_scene(|scene| {
+            scene.validate_dynamic_component_creation(&self.scope.targets, &self.component)
+        })?
+        .map_err(creation_error)
     }
 }
 zircon_runtime_interface::impl_retained_owner_v1!(AddComponentRequest { scope, component });
@@ -133,9 +138,10 @@ zircon_runtime_interface::impl_retained_owner_v1!(AddComponentPayload { targets,
 
 pub(crate) struct AddDynamicComponentFactory;
 impl OperationCommandFactory for AddDynamicComponentFactory {
-    fn create(&self, invocation: &EditorOperationInvocation)
-        -> Result<OperationCommand, OperationCommandFactoryError>
-    {
+    fn create(
+        &self,
+        invocation: &EditorOperationInvocation,
+    ) -> Result<OperationCommand, OperationCommandFactoryError> {
         let request = AddComponentRequest::from_invocation(invocation)?;
         if !matches!(request.scope.history, HistoryContextId::Document(_))
             || request.scope.targets.is_empty()
@@ -146,7 +152,10 @@ impl OperationCommandFactory for AddDynamicComponentFactory {
             });
         }
         let history = request.scope.history;
-        Ok(OperationCommand::new(Box::new(AddDynamicComponentCommand::new(request)), history))
+        Ok(OperationCommand::new(
+            Box::new(AddDynamicComponentCommand::new(request)),
+            history,
+        ))
     }
 }
 
@@ -159,54 +168,97 @@ pub(crate) struct AddDynamicComponentCommand {
     prepared_revision: Option<u64>,
 }
 zircon_runtime_interface::impl_retained_owner_v1!(AddDynamicComponentCommand {
-    payload, initial_scope, bound_gateway, receipts
+    payload,
+    initial_scope,
+    bound_gateway,
+    receipts
 });
 
 impl AddDynamicComponentCommand {
     pub(crate) fn new(request: AddComponentRequest) -> Self {
         Self {
-            payload: AddComponentPayload { targets: request.scope.targets.clone(), component: request.component },
+            payload: AddComponentPayload {
+                targets: request.scope.targets.clone(),
+                component: request.component,
+            },
             bound_gateway: Some(request.scope.gateway.clone()),
             initial_scope: Some(request.scope),
-            receipts: Vec::new(), replay: false, prepared_revision: None,
+            receipts: Vec::new(),
+            replay: false,
+            prepared_revision: None,
         }
     }
     pub(crate) fn from_journal(payload: AddComponentPayload) -> Result<Self, EditCommandError> {
-        if payload.targets.is_empty() || payload.targets.iter().enumerate()
-            .any(|(i, target)| payload.targets[..i].contains(target))
+        if payload.targets.is_empty()
+            || payload
+                .targets
+                .iter()
+                .enumerate()
+                .any(|(i, target)| payload.targets[..i].contains(target))
         {
-            return Err(invalid("component creation journal targets must be nonempty and distinct"));
+            return Err(invalid(
+                "component creation journal targets must be nonempty and distinct",
+            ));
         }
         Ok(Self {
-            payload, initial_scope: None, bound_gateway: None, receipts: Vec::new(),
-            replay: true, prepared_revision: None,
+            payload,
+            initial_scope: None,
+            bound_gateway: None,
+            receipts: Vec::new(),
+            replay: true,
+            prepared_revision: None,
         })
     }
 
-    fn validate(&self, core: &CoreEditContext, phase: RetentionPhaseV1) -> Result<(), EditCommandError> {
-        if let Some(gateway) = &self.bound_gateway { validate_gateway(core, gateway)?; }
+    fn validate(
+        &self,
+        core: &CoreEditContext,
+        phase: RetentionPhaseV1,
+    ) -> Result<(), EditCommandError> {
+        if let Some(gateway) = &self.bound_gateway {
+            validate_gateway(core, gateway)?;
+        }
         if !matches!(phase, RetentionPhaseV1::Undo | RetentionPhaseV1::Rollback) {
-            if let Some(scope) = &self.initial_scope { scope.validate(core)?; }
+            if let Some(scope) = &self.initial_scope {
+                scope.validate(core)?;
+            }
         }
         core.with_scene(|scene| {
             if matches!(phase, RetentionPhaseV1::Undo | RetentionPhaseV1::Rollback) {
-                scene.validate_created_dynamic_components(&self.payload.targets, &self.payload.component, &self.receipts)
+                scene.validate_created_dynamic_components(
+                    &self.payload.targets,
+                    &self.payload.component,
+                    &self.receipts,
+                )
             } else if self.replay {
-                scene.validate_dynamic_component_creation_replay(&self.payload.targets, &self.payload.component)
+                scene.validate_dynamic_component_creation_replay(
+                    &self.payload.targets,
+                    &self.payload.component,
+                )
             } else {
-                scene.validate_dynamic_component_creation(&self.payload.targets, &self.payload.component)
+                scene.validate_dynamic_component_creation(
+                    &self.payload.targets,
+                    &self.payload.component,
+                )
             }
-        })?.map_err(creation_error)
+        })?
+        .map_err(creation_error)
     }
 }
 
 impl EditCommand for AddDynamicComponentCommand {
     fn retention_plan_v1(
-        &self, context: &dyn EditContext, phase: RetentionPhaseV1,
-        model: RetainedAccountingModelV1, limit: u64,
+        &self,
+        context: &dyn EditContext,
+        phase: RetentionPhaseV1,
+        model: RetainedAccountingModelV1,
+        limit: u64,
     ) -> Result<CommandRetentionPlanV1, EditCommandError> {
-        let core = context.as_any().downcast_ref::<CoreEditContext>()
-            .ok_or(EditCommandError::ContextTypeMismatch { expected: "CoreEditContext" })?;
+        let core = context.as_any().downcast_ref::<CoreEditContext>().ok_or(
+            EditCommandError::ContextTypeMismatch {
+                expected: "CoreEditContext",
+            },
+        )?;
         self.validate(core, phase)?;
         let mut plan = CommandRetentionPlanV1::for_owner(self, context, phase, model, limit)?;
         plan.owner_revision = Some(core.with_scene(|scene| scene.world_generation())?);
@@ -221,7 +273,10 @@ impl EditCommand for AddDynamicComponentCommand {
             plan.add_retained(future.bytes().get())?;
             if self.bound_gateway.is_none() {
                 let route = core.capture_world_route(WorldDomain::Edit)?;
-                if let Some(project) = route.gateway_identity().and_then(|identity| identity.project()) {
+                if let Some(project) = route
+                    .gateway_identity()
+                    .and_then(|identity| identity.project())
+                {
                     future.array::<u8>(project.len())?;
                     plan.add_retained(project.len() as u64)?;
                 }
@@ -230,50 +285,69 @@ impl EditCommand for AddDynamicComponentCommand {
         // Removal and compensation may also clone archetype signatures. Admit
         // the same conservative staged-row peak for every phase before mutation.
         let mut scratch = RetainedBoundBuilderV1::with_limit(model, RetainedBytesV1::new(limit));
-        core.with_scene(|scene| scene.dynamic_component_creation_peak_v1(
-            &self.payload.targets, &self.payload.component.value,
-            &self.payload.component.type_path, &mut scratch,
-        ))??;
+        core.with_scene(|scene| {
+            scene.dynamic_component_creation_peak_v1(
+                &self.payload.targets,
+                &self.payload.component.value,
+                &self.payload.component.type_path,
+                &mut scratch,
+            )
+        })??;
         plan.add_peak(scratch.bytes().get())?;
         plan.add_peak(plan.retained_bytes)?;
         Ok(plan)
     }
 
     fn prepare_retention_v1(
-        &mut self, context: &mut dyn EditContext, phase: RetentionPhaseV1,
+        &mut self,
+        context: &mut dyn EditContext,
+        phase: RetentionPhaseV1,
         permit: &mut RetentionMaterializationV1,
     ) -> Result<(), CommandExecutionError> {
         permit.consume(self, phase).map_err(unchanged)?;
         let core = core_context(context)?;
         self.validate(core, phase).map_err(unchanged)?;
-        let revision = core.with_scene(|scene| scene.world_generation()).map_err(unchanged)?;
+        let revision = core
+            .with_scene(|scene| scene.world_generation())
+            .map_err(unchanged)?;
         if permit.plan().owner_revision != Some(revision) {
             return Err(unchanged(RetentionContractError::Stale.into()));
         }
         if self.bound_gateway.is_none() {
-            let route = core.capture_world_route(WorldDomain::Edit).map_err(unchanged)?;
-            let identity = route.gateway_identity().ok_or_else(|| unchanged(invalid("component creation needs a runtime world route")))?;
+            let route = core
+                .capture_world_route(WorldDomain::Edit)
+                .map_err(unchanged)?;
+            let identity = route.gateway_identity().ok_or_else(|| {
+                unchanged(invalid("component creation needs a runtime world route"))
+            })?;
             self.bound_gateway = Some(GatewayStamp::capture(identity));
         }
         if self.replay && !matches!(phase, RetentionPhaseV1::Undo | RetentionPhaseV1::Rollback) {
-            self.payload.component.schema_generation = core.with_scene(|scene| {
-                scene.component_type_schema_generation(&self.payload.component.type_path)
-            }).map_err(unchanged)?;
+            self.payload.component.schema_generation = core
+                .with_scene(|scene| {
+                    scene.component_type_schema_generation(&self.payload.component.type_path)
+                })
+                .map_err(unchanged)?;
         }
         self.prepared_revision = Some(revision);
         permit.check_prepared(self).map_err(unchanged)
     }
 
-    fn label(&self) -> &str { "Add dynamic component" }
+    fn label(&self) -> &str {
+        "Add dynamic component"
+    }
 
     fn apply(&mut self, context: &mut dyn EditContext) -> Result<(), CommandExecutionError> {
         let core = core_context(context)?;
-        self.validate(core, RetentionPhaseV1::Apply).map_err(unchanged)?;
+        self.validate(core, RetentionPhaseV1::Apply)
+            .map_err(unchanged)?;
         let completion = execute_scene_write(core, |scene| {
             if self.prepared_revision != Some(scene.world_generation()) {
                 return Err(RetentionContractError::Stale.into());
             }
-            scene.create_dynamic_components(&self.payload.targets, &self.payload.component).map_err(creation_error)
+            scene
+                .create_dynamic_components(&self.payload.targets, &self.payload.component)
+                .map_err(creation_error)
         })?;
         let (receipts, error) = match completion {
             SceneWriteCompletion::Completed(receipts) => (receipts, None),
@@ -283,22 +357,32 @@ impl EditCommand for AddDynamicComponentCommand {
         self.initial_scope = None;
         self.replay = false;
         self.prepared_revision = None;
-        if let Some(error) = error { return Err(applied(error)); }
+        if let Some(error) = error {
+            return Err(applied(error));
+        }
         Ok(())
     }
 
     fn revert(&mut self, context: &mut dyn EditContext) -> Result<(), CommandExecutionError> {
         let core = core_context(context)?;
-        self.validate(core, RetentionPhaseV1::Undo).map_err(unchanged)?;
+        self.validate(core, RetentionPhaseV1::Undo)
+            .map_err(unchanged)?;
         match execute_scene_write(core, |scene| {
             if self.prepared_revision != Some(scene.world_generation()) {
                 return Err(RetentionContractError::Stale.into());
             }
-            scene.remove_created_dynamic_components(&self.payload.targets, &self.payload.component, &self.receipts)
+            scene
+                .remove_created_dynamic_components(
+                    &self.payload.targets,
+                    &self.payload.component,
+                    &self.receipts,
+                )
                 .map_err(creation_error)
         })? {
             SceneWriteCompletion::Completed(()) => {}
-            SceneWriteCompletion::AppliedThenGatewayFailed { error, .. } => return Err(applied(error)),
+            SceneWriteCompletion::AppliedThenGatewayFailed { error, .. } => {
+                return Err(applied(error))
+            }
         }
         self.prepared_revision = None;
         Ok(())
@@ -307,21 +391,35 @@ impl EditCommand for AddDynamicComponentCommand {
     fn journal_payload(&self) -> Result<CommandJournalPayload, CommandJournalUnavailable> {
         journal_payload(JOURNAL_TYPE, &self.payload)
     }
-    fn as_any(&self) -> &dyn Any { self }
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
 }
 
-fn validate_gateway(core: &CoreEditContext, expected: &GatewayStamp) -> Result<(), EditCommandError> {
+fn validate_gateway(
+    core: &CoreEditContext,
+    expected: &GatewayStamp,
+) -> Result<(), EditCommandError> {
     let route = core.capture_world_route(WorldDomain::Edit)?;
-    if !route.gateway_identity().is_some_and(|identity| expected.matches(identity)) {
-        return Err(EditCommandError::WorldRouteStale { world_domain: WorldDomain::Edit });
+    if !route
+        .gateway_identity()
+        .is_some_and(|identity| expected.matches(identity))
+    {
+        return Err(EditCommandError::WorldRouteStale {
+            world_domain: WorldDomain::Edit,
+        });
     }
     Ok(())
 }
 fn invalid(invariant: &'static str) -> EditCommandError {
     EditCommandError::InvariantViolation { invariant }
 }
-fn creation_error(error: zircon_runtime::scene::world::DynamicComponentCreationError) -> EditCommandError {
-    EditCommandError::ReflectError { source: Box::new(error) }
+fn creation_error(
+    error: zircon_runtime::scene::world::DynamicComponentCreationError,
+) -> EditCommandError {
+    EditCommandError::ReflectError {
+        source: Box::new(error),
+    }
 }
 
 #[cfg(test)]

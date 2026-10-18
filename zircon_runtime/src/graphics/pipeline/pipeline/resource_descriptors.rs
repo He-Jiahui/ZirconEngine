@@ -279,6 +279,17 @@ pub(super) fn builtin_buffer_desc_for(
         }
         _ => BufferUsage::STORAGE | BufferUsage::COPY_SRC | BufferUsage::COPY_DST,
     };
+    #[cfg(test)]
+    let usage = if matches!(
+        name,
+        PostProcessGraphResourceNames::SSS_PARAMS
+            | PostProcessGraphResourceNames::SSS_PROFILES
+            | PostProcessGraphResourceNames::SSS_INDIRECT_ARGS
+    ) {
+        usage | BufferUsage::COPY_SRC
+    } else {
+        usage
+    };
     Ok(Some(BufferDesc::new(name, size_bytes, usage)))
 }
 

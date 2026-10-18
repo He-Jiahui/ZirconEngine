@@ -190,48 +190,81 @@ fn nearest_rank_percentile(samples: &[u128], percentile: usize) -> u128 {
 // A real timer wake reaches the existing worker item admission without requiring another FS event.
 #[test]
 fn m6_watch_retry_wakes_without_ingress_and_cancels_on_retire() {
-    use std::time::Duration;
     use super::super::runtime::WatchRetryWork;
+    use std::time::Duration;
     let manager = ProjectAssetManager::default();
-    let activation = Arc::new(ProjectWatcherActivation { state: Mutex::new(state()) });
+    let activation = Arc::new(ProjectWatcherActivation {
+        state: Mutex::new(state()),
+    });
     {
         let mut state = activation.lock_state();
         state.lifecycle = ProjectWatcherLifecycle::Active;
         // Model an already-running worker: the timer marks work ready, never schedules a second one.
         state.worker_scheduled = true;
     }
-    activation.defer_watch_work(&manager, WatchRetryWork::Reprepare(AssetWatchBatch {
-        changes: vec![change(101)], ..AssetWatchBatch::default()
-    }));
-    let first_timer = activation.lock_state().retry_timer.clone().expect("one timer");
+    activation.defer_watch_work(
+        &manager,
+        WatchRetryWork::Reprepare(AssetWatchBatch {
+            changes: vec![change(101)],
+            ..AssetWatchBatch::default()
+        }),
+    );
+    let first_timer = activation
+        .lock_state()
+        .retry_timer
+        .clone()
+        .expect("one timer");
     let deadline = Instant::now() + Duration::from_secs(2);
     while !activation.lock_state().retry_ready {
-        assert!(Instant::now() < deadline, "timer must wake with no new ingress");
+        assert!(
+            Instant::now() < deadline,
+            "timer must wake with no new ingress"
+        );
         std::thread::yield_now();
     }
     assert!(activation.lock_state().worker_scheduled);
-    let (mut work, errors, _) = activation.take_worker_item().expect("busy worker receives delayed work");
+    let (mut work, errors, _) = activation
+        .take_worker_item()
+        .expect("busy worker receives delayed work");
     assert!(errors.is_empty());
     assert_eq!(work.take_batch().changes[0].uri, change(101).uri);
     assert!(activation.lock_state().retry_work.is_none());
     assert!(first_timer.join(true));
 
     // A new ingress merges the deferred event responsibility and cancels the old owned candidate.
-    activation.defer_watch_work(&manager, WatchRetryWork::Reprepare(AssetWatchBatch {
-        changes: vec![change(202)], ..AssetWatchBatch::default()
-    }));
-    activation.enqueue_batch(&manager, AssetWatchBatch {
-        changes: vec![change(303)], ..AssetWatchBatch::default()
-    });
+    activation.defer_watch_work(
+        &manager,
+        WatchRetryWork::Reprepare(AssetWatchBatch {
+            changes: vec![change(202)],
+            ..AssetWatchBatch::default()
+        }),
+    );
+    activation.enqueue_batch(
+        &manager,
+        AssetWatchBatch {
+            changes: vec![change(303)],
+            ..AssetWatchBatch::default()
+        },
+    );
     let (batch, _) = activation.take_work().unwrap();
-    assert!(batch.changes.iter().any(|event| event.uri == change(202).uri));
-    assert!(batch.changes.iter().any(|event| event.uri == change(303).uri));
+    assert!(batch
+        .changes
+        .iter()
+        .any(|event| event.uri == change(202).uri));
+    assert!(batch
+        .changes
+        .iter()
+        .any(|event| event.uri == change(303).uri));
     assert!(activation.lock_state().retry_timer.is_none());
     assert!(!activation.lock_state().retry_ready);
     activation.lock_state().worker_scheduled = true;
-    activation.defer_watch_work(&manager, WatchRetryWork::Reprepare(AssetWatchBatch {
-        changes: vec![change(404)], ..AssetWatchBatch::default()
-    }));
+    activation.defer_watch_work(
+        &manager,
+        WatchRetryWork::Reprepare(AssetWatchBatch {
+            changes: vec![change(404)],
+            ..AssetWatchBatch::default()
+        }),
+    );
     // A deadline retire may keep an unjoined handle. Ordinary retire owns the final join.
     let _ = activation.retire_retry(Some(Instant::now()));
     assert!(activation.retire_retry(None));

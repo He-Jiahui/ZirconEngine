@@ -1,0 +1,5 @@
+var state = %import("world/state");
+
+pub main(): int {
+    return state.blazingBarrierRuntimeStateTest();
+}

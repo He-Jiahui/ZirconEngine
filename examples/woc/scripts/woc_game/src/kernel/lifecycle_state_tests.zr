@@ -1,0 +1,40 @@
+var container = %import("zr.container");
+var session = %import("world/session");
+var world = %import("world/state");
+
+sameBytes(left: container.Array<uint>, right: container.Array<uint>): bool {
+    if (left.length != right.length) {
+        return false;
+    }
+    var index = 0;
+    while (index < left.length) {
+        if (<uint>left[index] != <uint>right[index]) {
+            return false;
+        }
+        index = index + 1;
+    }
+    return true;
+}
+
+pub selfTest(): int {
+    var initial = session.saveState();
+    var canonical = world.worldStateCodecEncode(118);
+    session.restoreState(canonical);
+    canonical[0] = <uint>0;
+    var saved = session.saveState();
+    if (<uint>saved[0] != <uint>87) {
+        return -1;
+    }
+    saved[0] = <uint>0;
+    var retained = session.saveState();
+    if (<uint>retained[0] != <uint>87) {
+        return -2;
+    }
+    var legacy = world.worldStateCodecEncode(117);
+    session.restoreState(legacy);
+    if (!sameBytes(session.saveState(), retained)) {
+        return -3;
+    }
+    session.restoreState(initial);
+    return 1;
+}

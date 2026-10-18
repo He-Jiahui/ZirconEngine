@@ -12,6 +12,7 @@ use zircon_runtime::asset::pipeline::manager::{
 };
 use zircon_runtime::asset::project::{ProjectManifest, ProjectPaths};
 use zircon_runtime::asset::AssetUri;
+use zircon_runtime::core::framework::render as native;
 use zircon_runtime::core::framework::render::RenderVirtualGeometryDebugSnapshot;
 use zircon_runtime::core::framework::render::{
     RenderFramework, RenderFrameworkError, RenderQualityProfile, RenderViewportDescriptor,
@@ -38,6 +39,7 @@ const TEST_ASSET_SERVICE_NAME: &str = "VirtualGeometryTestAssetRuntime.Manager.P
 
 pub(crate) struct PluginizedWgpuRenderFrameworkFixture {
     framework: WgpuRenderFramework,
+    latest_viewport: Option<native::RenderViewportHandle>,
     _asset_runtime: CoreRuntime,
     uploader_collector: Option<Arc<VirtualGeometryUploaderTestCollector>>,
     visible_cluster_readback: NodeClusterCullReadback,
@@ -241,6 +243,385 @@ impl PluginizedWgpuRenderFrameworkFixture {
         self.has_native_probe_source(9)
     }
 
+    fn native_outputs(&self) -> Result<native::RenderVirtualGeometryReadbackOutputs, String> {
+        self.latest_viewport
+            .ok_or("no current virtual geometry frame has submitted")?;
+        self.framework
+            .test_support_last_virtual_geometry_readback_outputs()
+            .map_err(|error| error.to_string())?
+            .ok_or_else(|| "current virtual geometry terminal native map did not complete".into())
+    }
+
+    fn native_inspection(
+        &self,
+    ) -> Result<native::RenderVirtualGeometryNativeReadbackInspection, String> {
+        self.latest_viewport
+            .ok_or("no current virtual geometry frame has submitted")?;
+        self.framework
+            .test_support_last_virtual_geometry_native_inspection()
+            .map_err(|error| error.to_string())?
+            .ok_or_else(|| "current virtual geometry startup native map did not complete".into())
+    }
+
+    /// Uploader completion remains independent from the terminal render-path map.
+    /// Both actual completions are required before attaching the mapped render-path bytes.
+    pub(crate) fn take_last_virtual_geometry_gpu_readback(
+        &self,
+    ) -> Option<crate::virtual_geometry::VirtualGeometryGpuReadback> {
+        let collector = self.uploader_collector.as_ref()?;
+        let mut readback = collector
+            .completed_readback()
+            .expect("actual uploader page-table and completion maps must succeed")?;
+        let outputs = self
+            .native_outputs()
+            .expect("actual terminal map must complete");
+        let inspection = self
+            .native_inspection()
+            .expect("actual native provenance must complete");
+        let hardware_count = u32::try_from(outputs.hardware_rasterization_records.len())
+            .expect("native hardware row count fits its ABI");
+        let selected_count = u32::try_from(outputs.selected_clusters.len())
+            .expect("native selected row count fits its ABI");
+        let visbuffer_count = u32::try_from(outputs.visbuffer64_entries.len())
+            .expect("native VisBuffer64 row count fits its ABI");
+        readback.replace_render_path_readback(
+            hardware_count,
+            inspection.hardware_rasterization_source,
+            outputs.hardware_rasterization_records,
+            selected_count,
+            inspection.selected_cluster_source,
+            outputs.selected_clusters,
+            visbuffer_count,
+            inspection.visbuffer64_source,
+            native::RenderVirtualGeometryVisBuffer64Entry::CLEAR_VALUE,
+            outputs.visbuffer64_entries,
+        );
+        readback.replace_node_cluster_cull_readback(outputs.node_cluster_cull);
+        Some(readback)
+    }
+
+    pub(crate) fn read_last_virtual_geometry_selected_clusters(
+        &self,
+    ) -> Result<Vec<native::RenderVirtualGeometrySelectedCluster>, String> {
+        Ok(self.native_outputs()?.selected_clusters)
+    }
+
+    pub(crate) fn read_last_virtual_geometry_hardware_rasterization_records(
+        &self,
+    ) -> Result<Vec<native::RenderVirtualGeometryHardwareRasterizationRecord>, String> {
+        Ok(self.native_outputs()?.hardware_rasterization_records)
+    }
+
+    pub(crate) fn read_last_virtual_geometry_node_and_cluster_cull_page_requests(
+        &self,
+    ) -> Result<Vec<u32>, String> {
+        Ok(self.native_outputs()?.node_cluster_cull.page_request_ids)
+    }
+
+    pub(crate) fn read_last_virtual_geometry_visbuffer64_words(
+        &self,
+    ) -> Result<(u64, Vec<u64>), String> {
+        Ok((
+            native::RenderVirtualGeometryVisBuffer64Entry::CLEAR_VALUE,
+            self.native_outputs()?
+                .visbuffer64_entries
+                .into_iter()
+                .map(|entry| entry.packed_value)
+                .collect(),
+        ))
+    }
+
+    pub(crate) fn read_last_virtual_geometry_cluster_selection_input_source(
+        &self,
+    ) -> native::RenderVirtualGeometryClusterSelectionInputSource {
+        self.native_inspection()
+            .expect("actual mapped cull input")
+            .cull_input
+            .cluster_selection_input_source
+    }
+
+    pub(crate) fn read_last_virtual_geometry_node_and_cluster_cull_source(
+        &self,
+    ) -> native::RenderVirtualGeometryNodeAndClusterCullSource {
+        {
+            self.native_inspection()
+                .expect("actual encoded cull pass and mapped input");
+            native::RenderVirtualGeometryNodeAndClusterCullSource::RenderPathCullInput
+        }
+    }
+
+    pub(crate) fn read_last_virtual_geometry_selected_cluster_source(
+        &self,
+    ) -> native::RenderVirtualGeometrySelectedClusterSource {
+        self.native_inspection()
+            .expect("actual mapped terminal provenance")
+            .selected_cluster_source
+    }
+
+    pub(crate) fn read_last_virtual_geometry_hardware_rasterization_source(
+        &self,
+    ) -> native::RenderVirtualGeometryHardwareRasterizationSource {
+        self.native_inspection()
+            .expect("actual mapped terminal provenance")
+            .hardware_rasterization_source
+    }
+
+    pub(crate) fn read_last_virtual_geometry_visbuffer64_source(
+        &self,
+    ) -> native::RenderVirtualGeometryVisBuffer64Source {
+        self.native_inspection()
+            .expect("actual mapped terminal provenance")
+            .visbuffer64_source
+    }
+
+    pub(crate) fn last_virtual_geometry_hardware_rasterization_record_count(&self) -> u32 {
+        u32::try_from(
+            self.native_outputs()
+                .expect("actual mapped hardware output")
+                .hardware_rasterization_records
+                .len(),
+        )
+        .expect("bounded native row count")
+    }
+
+    pub(crate) fn last_virtual_geometry_node_and_cluster_cull_page_request_count(&self) -> u32 {
+        u32::try_from(
+            self.native_outputs()
+                .expect("actual mapped page requests")
+                .node_cluster_cull
+                .page_request_ids
+                .len(),
+        )
+        .expect("bounded native page count")
+    }
+
+    pub(crate) fn last_virtual_geometry_node_and_cluster_cull_record_count(&self) -> u32 {
+        {
+            self.native_inspection()
+                .expect("actual encoded cull pass and mapped input");
+            1
+        }
+    }
+
+    pub(crate) fn read_last_virtual_geometry_cull_input_snapshot(
+        &self,
+    ) -> Result<Option<native::RenderVirtualGeometryCullInputSnapshot>, String> {
+        Ok(Some(self.native_inspection()?.cull_input))
+    }
+
+    pub(crate) fn read_last_virtual_geometry_node_and_cluster_cull_input_snapshot(
+        &self,
+    ) -> Result<Option<native::RenderVirtualGeometryCullInputSnapshot>, String> {
+        Ok(Some(self.native_inspection()?.cull_input))
+    }
+
+    pub(crate) fn read_last_virtual_geometry_node_and_cluster_cull_global_state_snapshot(
+        &self,
+    ) -> Result<Option<native::RenderVirtualGeometryNodeAndClusterCullGlobalStateSnapshot>, String>
+    {
+        Ok(self
+            .native_inspection()?
+            .startup
+            .and_then(|startup| startup.global_state))
+    }
+
+    pub(crate) fn read_last_virtual_geometry_node_and_cluster_cull_dispatch_setup_snapshot(
+        &self,
+    ) -> Result<Option<native::RenderVirtualGeometryNodeAndClusterCullDispatchSetupSnapshot>, String>
+    {
+        Ok(self
+            .native_inspection()?
+            .startup
+            .and_then(|startup| startup.dispatch_setup))
+    }
+
+    pub(crate) fn read_last_virtual_geometry_node_and_cluster_cull_launch_worklist_snapshot(
+        &self,
+    ) -> Result<Option<native::RenderVirtualGeometryNodeAndClusterCullLaunchWorklistSnapshot>, String>
+    {
+        Ok(self
+            .native_inspection()?
+            .startup
+            .and_then(|startup| startup.launch_worklist))
+    }
+
+    pub(crate) fn read_last_virtual_geometry_node_and_cluster_cull_instance_seeds(
+        &self,
+    ) -> Result<Vec<native::RenderVirtualGeometryNodeAndClusterCullInstanceSeed>, String> {
+        Ok(self
+            .native_inspection()?
+            .startup
+            .ok_or("native startup buffers were not recorded")?
+            .instance_seeds)
+    }
+
+    pub(crate) fn read_last_virtual_geometry_node_and_cluster_cull_instance_work_items(
+        &self,
+    ) -> Result<Vec<native::RenderVirtualGeometryNodeAndClusterCullInstanceWorkItem>, String> {
+        Ok(self
+            .native_inspection()?
+            .startup
+            .ok_or("native startup buffers were not recorded")?
+            .instance_work_items)
+    }
+
+    pub(crate) fn read_last_virtual_geometry_node_and_cluster_cull_hierarchy_child_ids(
+        &self,
+    ) -> Result<Vec<u32>, String> {
+        Ok(self
+            .native_inspection()?
+            .startup
+            .ok_or("native startup buffers were not recorded")?
+            .hierarchy_child_ids)
+    }
+
+    pub(crate) fn read_last_virtual_geometry_node_and_cluster_cull_cluster_work_items(
+        &self,
+    ) -> Result<
+        Vec<crate::virtual_geometry::VirtualGeometryNodeAndClusterCullClusterWorkItem>,
+        String,
+    > {
+        Ok(self
+            .native_inspection()?
+            .startup
+            .ok_or("native startup buffers were not recorded")?
+            .cluster_work_items
+            .into_iter()
+            .map(
+                |row| crate::virtual_geometry::VirtualGeometryNodeAndClusterCullClusterWorkItem {
+                    instance_index: row.instance_index,
+                    entity: row.entity,
+                    cluster_array_index: row.cluster_array_index,
+                    hierarchy_node_id: row.hierarchy_node_id,
+                    cluster_budget: row.cluster_budget,
+                    page_budget: row.page_budget,
+                    forced_mip: row.forced_mip,
+                },
+            )
+            .collect())
+    }
+
+    pub(crate) fn read_last_virtual_geometry_node_and_cluster_cull_child_work_items(
+        &self,
+    ) -> Result<Vec<crate::virtual_geometry::VirtualGeometryNodeAndClusterCullChildWorkItem>, String>
+    {
+        Ok(self
+            .native_inspection()?
+            .startup
+            .ok_or("native startup buffers were not recorded")?
+            .child_work_items
+            .into_iter()
+            .map(
+                |row| crate::virtual_geometry::VirtualGeometryNodeAndClusterCullChildWorkItem {
+                    instance_index: row.instance_index,
+                    entity: row.entity,
+                    parent_cluster_array_index: row.parent_cluster_array_index,
+                    parent_hierarchy_node_id: row.parent_hierarchy_node_id,
+                    child_node_id: row.child_node_id,
+                    child_table_index: row.child_table_index,
+                    traversal_index: row.traversal_index,
+                    cluster_budget: row.cluster_budget,
+                    page_budget: row.page_budget,
+                    forced_mip: row.forced_mip,
+                },
+            )
+            .collect())
+    }
+
+    pub(crate) fn read_last_virtual_geometry_node_and_cluster_cull_traversal_records(
+        &self,
+    ) -> Result<
+        Vec<crate::virtual_geometry::VirtualGeometryNodeAndClusterCullTraversalRecord>,
+        String,
+    > {
+        Ok(self.native_inspection()?.startup.ok_or("native startup buffers were not recorded")?.traversal_records
+            .into_iter().map(|row| crate::virtual_geometry::VirtualGeometryNodeAndClusterCullTraversalRecord {
+                op: match row.op {
+                    native::RenderVirtualGeometryNodeAndClusterCullTraversalOp::VisitNode => crate::virtual_geometry::VirtualGeometryNodeAndClusterCullTraversalOp::VisitNode,
+                    native::RenderVirtualGeometryNodeAndClusterCullTraversalOp::StoreCluster => crate::virtual_geometry::VirtualGeometryNodeAndClusterCullTraversalOp::StoreCluster,
+                    native::RenderVirtualGeometryNodeAndClusterCullTraversalOp::EnqueueChild => crate::virtual_geometry::VirtualGeometryNodeAndClusterCullTraversalOp::EnqueueChild,
+                },
+                child_source: match row.child_source {
+                    native::RenderVirtualGeometryNodeAndClusterCullTraversalChildSource::None => crate::virtual_geometry::VirtualGeometryNodeAndClusterCullTraversalChildSource::None,
+                    native::RenderVirtualGeometryNodeAndClusterCullTraversalChildSource::FixedFanout => crate::virtual_geometry::VirtualGeometryNodeAndClusterCullTraversalChildSource::FixedFanout,
+                    native::RenderVirtualGeometryNodeAndClusterCullTraversalChildSource::AuthoredHierarchy => crate::virtual_geometry::VirtualGeometryNodeAndClusterCullTraversalChildSource::AuthoredHierarchy,
+                },
+                instance_index: row.instance_index,
+                entity: row.entity,
+                cluster_array_index: row.cluster_array_index,
+                hierarchy_node_id: row.hierarchy_node_id,
+                node_cluster_start: row.node_cluster_start,
+                node_cluster_count: row.node_cluster_count,
+                child_base: row.child_base,
+                child_count: row.child_count,
+                traversal_index: row.traversal_index,
+                cluster_budget: row.cluster_budget,
+                page_budget: row.page_budget,
+                forced_mip: row.forced_mip,
+            }).collect())
+    }
+
+    pub(crate) fn read_last_virtual_geometry_gpu_readback_visbuffer64(
+        &self,
+    ) -> Option<(u64, Vec<native::RenderVirtualGeometryVisBuffer64Entry>)> {
+        self.take_last_virtual_geometry_gpu_readback()
+            .map(|readback| {
+                (
+                    readback.visbuffer64_clear_value(),
+                    readback.visbuffer64_entries().to_vec(),
+                )
+            })
+    }
+
+    pub(crate) fn read_last_virtual_geometry_gpu_readback_visbuffer64_source(
+        &self,
+    ) -> Option<native::RenderVirtualGeometryVisBuffer64Source> {
+        self.take_last_virtual_geometry_gpu_readback()
+            .map(|readback| readback.visbuffer64_source())
+    }
+
+    pub(crate) fn read_last_virtual_geometry_gpu_readback_visbuffer64_entry_count(
+        &self,
+    ) -> Option<u32> {
+        self.take_last_virtual_geometry_gpu_readback()
+            .map(|readback| readback.visbuffer64_entry_count())
+    }
+
+    pub(crate) fn read_last_virtual_geometry_gpu_readback_hardware_rasterization_source(
+        &self,
+    ) -> Option<native::RenderVirtualGeometryHardwareRasterizationSource> {
+        self.take_last_virtual_geometry_gpu_readback()
+            .map(|readback| readback.hardware_rasterization_source())
+    }
+
+    pub(crate) fn read_last_virtual_geometry_gpu_readback_hardware_rasterization_record_count(
+        &self,
+    ) -> Option<u32> {
+        self.take_last_virtual_geometry_gpu_readback()
+            .map(|readback| readback.hardware_rasterization_record_count())
+    }
+
+    pub(crate) fn read_last_virtual_geometry_gpu_readback_selected_clusters(
+        &self,
+    ) -> Option<Vec<native::RenderVirtualGeometrySelectedCluster>> {
+        self.take_last_virtual_geometry_gpu_readback()
+            .map(|readback| readback.selected_clusters().to_vec())
+    }
+
+    pub(crate) fn read_last_virtual_geometry_gpu_readback_selected_cluster_source(
+        &self,
+    ) -> Option<native::RenderVirtualGeometrySelectedClusterSource> {
+        self.take_last_virtual_geometry_gpu_readback()
+            .map(|readback| readback.selected_cluster_source())
+    }
+
+    pub(crate) fn read_last_virtual_geometry_gpu_readback_selected_cluster_count(
+        &self,
+    ) -> Option<u32> {
+        self.take_last_virtual_geometry_gpu_readback()
+            .map(|readback| readback.selected_cluster_count())
+    }
+
     pub(crate) fn framework(&self) -> &WgpuRenderFramework {
         &self.framework
     }
@@ -291,7 +672,7 @@ impl PluginizedWgpuRenderFrameworkFixture {
         prepare: Option<crate::virtual_geometry::VirtualGeometryPrepareFrame>,
     ) -> Result<Option<RenderVirtualGeometryDebugSnapshot>, RenderFrameworkError> {
         self.uploader_collector().set_prepare_option(prepare);
-        let viewport = self.create_viewport(RenderViewportDescriptor::new(viewport_size))?;
+        let viewport = self.create_viewport(RenderViewportDescriptor::new(viewport_size.into()))?;
         self.set_quality_profile(
             viewport,
             RenderQualityProfile::new("virtual-geometry-test-frame")
@@ -311,6 +692,7 @@ impl PluginizedWgpuRenderFrameworkFixture {
         self.latest_indirect_gpu_words = None;
         self.latest_native_probe = None;
         self.legacy_cpu_submission_projections = [None, None];
+        self.latest_viewport = Some(viewport);
         let submitted = self
             .framework
             .test_support_submit_virtual_geometry_frame(viewport, extract);
@@ -356,7 +738,7 @@ impl PluginizedWgpuRenderFrameworkFixture {
     ) -> Result<Option<RenderVirtualGeometryDebugSnapshot>, RenderFrameworkError> {
         let inputs = execution_inputs(prepare.clone(), selections);
         self.uploader_collector().set_prepare_option(prepare);
-        let viewport = self.create_viewport(RenderViewportDescriptor::new(viewport_size))?;
+        let viewport = self.create_viewport(RenderViewportDescriptor::new(viewport_size.into()))?;
         self.set_quality_profile(
             viewport,
             RenderQualityProfile::new("virtual-geometry-compiled-test-frame")
@@ -376,6 +758,7 @@ impl PluginizedWgpuRenderFrameworkFixture {
         self.latest_indirect_gpu_words = None;
         self.latest_native_probe = None;
         self.legacy_cpu_submission_projections = [None, None];
+        self.latest_viewport = Some(viewport);
         let submitted = self
             .framework
             .test_support_submit_compiled_virtual_geometry_frame_with_inputs(
@@ -415,7 +798,7 @@ impl PluginizedWgpuRenderFrameworkFixture {
         let inputs = execution_inputs(prepare.clone(), None);
         self.uploader_collector().set_prepare_option(prepare);
         let viewport = self
-            .create_viewport(RenderViewportDescriptor::new(viewport_size))
+            .create_viewport(RenderViewportDescriptor::new(viewport_size.into()))
             .map_err(|error| error.to_string())?;
         self.set_quality_profile(
             viewport,
@@ -437,6 +820,7 @@ impl PluginizedWgpuRenderFrameworkFixture {
         self.latest_indirect_gpu_words = None;
         self.latest_native_probe = None;
         self.legacy_cpu_submission_projections = [None, None];
+        self.latest_viewport = Some(viewport);
         let snapshot = self
             .framework
             .test_support_submit_compiled_virtual_geometry_frame_with_inputs(
@@ -488,7 +872,7 @@ impl PluginizedWgpuRenderFrameworkFixture {
         String,
     > {
         let viewport = self
-            .create_viewport(RenderViewportDescriptor::new(viewport_size))
+            .create_viewport(RenderViewportDescriptor::new(viewport_size.into()))
             .map_err(|error| error.to_string())?;
         self.set_quality_profile(
             viewport,
@@ -511,6 +895,7 @@ impl PluginizedWgpuRenderFrameworkFixture {
         self.latest_indirect_gpu_words = None;
         self.latest_native_probe = None;
         self.legacy_cpu_submission_projections = [None, None];
+        self.latest_viewport = Some(viewport);
         let first_inputs = execution_inputs(first.1.clone(), None);
         self.uploader_collector().set_prepare_option(first.1);
         let first_snapshot = self
@@ -707,7 +1092,10 @@ pub(crate) fn pluginized_wgpu_render_framework_with_uploader_collector(
 pub(crate) fn pluginized_wgpu_render_framework_with_gpu_test_collector(
     asset_manager: Arc<ProjectAssetManager>,
 ) -> PluginizedWgpuRenderFrameworkFixture {
-    pluginized_wgpu_render_framework_with_existing_project_and_gpu_test_collector(asset_manager)
+    pluginized_wgpu_render_framework_with_asset_manager_and_uploader_collector(
+        asset_manager,
+        Some(Arc::new(VirtualGeometryUploaderTestCollector::default())),
+    )
 }
 
 pub(crate) fn pluginized_wgpu_render_framework_with_existing_project_and_gpu_test_collector(
@@ -736,10 +1124,7 @@ fn pluginized_wgpu_render_framework_with_collector_and_project_policy(
     uploader_collector: Option<Arc<VirtualGeometryUploaderTestCollector>>,
     initialize_active_project: bool,
 ) -> PluginizedWgpuRenderFrameworkFixture {
-    if initialize_active_project
-        && uploader_collector.is_some()
-        && asset_manager.current_project_snapshot().is_none()
-    {
+    if initialize_active_project && asset_manager.current_project_snapshot().is_none() {
         open_uploader_active_project(&asset_manager);
     }
     let asset_runtime = CoreRuntime::new();
@@ -797,6 +1182,7 @@ fn pluginized_wgpu_render_framework_with_collector_and_project_policy(
     .unwrap();
     PluginizedWgpuRenderFrameworkFixture {
         framework,
+        latest_viewport: None,
         _asset_runtime: asset_runtime,
         uploader_collector,
         visible_cluster_readback,
@@ -818,6 +1204,7 @@ fn open_uploader_active_project(manager: &ProjectAssetManager) {
         .to_str()
         .expect("registered fixture root is UTF-8")
         .replace('\\', "/");
+    let requested = requested.trim_end_matches('/');
     let resolved = std::fs::canonicalize(&output)
         .expect("resolve registered virtual geometry fixture root")
         .to_str()
@@ -825,8 +1212,8 @@ fn open_uploader_active_project(manager: &ProjectAssetManager) {
         .replace('\\', "/");
     let resolved = resolved.strip_prefix("//?/").unwrap_or(&resolved);
     assert!(
-        resolved.eq_ignore_ascii_case(&requested),
-        "virtual geometry fixture root must retain its physical E drive path"
+        resolved.eq_ignore_ascii_case(requested),
+        "virtual geometry fixture root must retain its registered physical path"
     );
 
     let project_root = output.join(format!(
@@ -863,29 +1250,48 @@ fn assert_physical_fixture_root(output: &Path) {
         .to_str()
         .expect("fixture path is UTF-8")
         .replace('\\', "/");
+    let text = text.trim_end_matches('/');
     let bytes = text.as_bytes();
+    let expected = std::path::PathBuf::from(
+        std::env::var_os("ZIRCON_RENDERING_SMOKE_OUTPUT_DIR")
+            .expect("registered virtual geometry fixture root is required"),
+    );
+    let expected_text = expected
+        .to_str()
+        .expect("registered fixture root is UTF-8")
+        .replace('\\', "/");
+    let expected_text = expected_text.trim_end_matches('/');
     assert!(
-        output.is_absolute()
-            && bytes.len() > 3
-            && bytes[0].eq_ignore_ascii_case(&b'E')
+        output.is_absolute() && expected.is_absolute() && text.eq_ignore_ascii_case(expected_text),
+        "TEMP must equal the explicitly registered rendering fixture root"
+    );
+    assert!(
+        bytes.len() > 3
+            && [b'D', b'E', b'F']
+                .iter()
+                .any(|drive| bytes[0].eq_ignore_ascii_case(drive))
             && bytes[1..3] == *b":/",
-        "virtual geometry fixtures must stay on the registered physical E drive"
+        "virtual geometry fixtures require a registered physical D/E/F drive root"
     );
     let segments = text[3..].split('/').collect::<Vec<_>>();
     assert!(
-        segments.len() == 5
-            && segments[0].eq_ignore_ascii_case("cargo-targets")
-            && segments[1].eq_ignore_ascii_case("zircon-local")
-            && segments[2].eq_ignore_ascii_case("reports")
-            && !segments[3].is_empty()
-            && segments[4].eq_ignore_ascii_case("fixtures"),
-        "virtual geometry fixture temp root must be the current managed task reports/<task>/fixtures directory"
-    );
-    assert!(
-        segments.into_iter().all(|segment| {
-            !segment.is_empty() && segment != "." && segment != ".." && !segment.contains(':')
+        segments.iter().all(|segment| {
+            !segment.is_empty() && *segment != "." && *segment != ".." && !segment.contains(':')
         }),
         "virtual geometry fixture path must not contain aliases"
+    );
+    let reports_layout = segments.len() == 5
+        && segments[2].eq_ignore_ascii_case("reports")
+        && segments[4].eq_ignore_ascii_case("fixtures");
+    let build_layout = segments.len() == 7
+        && segments[2].eq_ignore_ascii_case("win32")
+        && segments[4].eq_ignore_ascii_case("build")
+        && segments[5].eq_ignore_ascii_case("fixtures");
+    assert!(
+        (reports_layout || build_layout)
+            && segments[0].eq_ignore_ascii_case("cargo-targets")
+            && segments[1].eq_ignore_ascii_case("zircon-local"),
+        "fixture root must use the registered task reports or build fixture layout"
     );
     for ancestor in output.ancestors() {
         match std::fs::symlink_metadata(ancestor) {
@@ -966,6 +1372,7 @@ impl PluginizedWgpuRenderFrameworkFixture {
         self.latest_indirect_gpu_words = None;
         self.latest_native_probe = None;
         self.legacy_cpu_submission_projections = [None, None];
+        self.latest_viewport = Some(viewport);
         let submitted = self
             .framework
             .test_support_submit_compiled_virtual_geometry_frame_with_inputs(

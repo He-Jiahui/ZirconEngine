@@ -1,0 +1,43 @@
+// Source-compatible primitives for Feral Charge's form-dependent resource
+// effect. WorldState owns admission, persistence, and fixed-tick ordering.
+pub resourceTickModulo(): uint { return <uint>40; }
+pub feralInstinctDuration(): float { return 10.0; }
+pub baseEnergyRegen(): int { return 20; }
+pub bearRageGrant(): int { return 50; }
+
+// The source multiplies the base Energy tick by (1 + aura.value), where the
+// Feral Instinct aura has value one. No random or player stat input applies.
+pub energyRegenAmount(feralInstinctActive: bool): int {
+    return feralInstinctActive ? baseEnergyRegen() * 2 : baseEnergyRegen();
+}
+
+pub addCappedResource(resource: float, maximum: float, amount: float): float {
+    if (maximum <= 0.0) { return 0.0; }
+    var next = resource + amount;
+    if (next < 0.0) { return 0.0; }
+    return next > maximum ? maximum : next;
+}
+
+pub remainingAfterFixedTick(remaining: float): float {
+    if (remaining <= 0.05) { return 0.0; }
+    return remaining - 0.05;
+}
+
+pub contractTest(): int {
+    if (resourceTickModulo() != <uint>40 || feralInstinctDuration() != 10.0 ||
+        baseEnergyRegen() != 20 || bearRageGrant() != 50 ||
+        energyRegenAmount(false) != 20 || energyRegenAmount(true) != 40) {
+        return -1;
+    }
+    if (addCappedResource(60, 100, 40) != 100 ||
+        addCappedResource(90, 100, bearRageGrant()) != 100 ||
+        addCappedResource(0, 0, 20) != 0) {
+        return -2;
+    }
+    if (addCappedResource(11.5, 100.0, 10.0) != 21.5 ||
+        addCappedResource(95.5, 100.0, 10.0) != 100.0) {
+        return -3;
+    }
+    return remainingAfterFixedTick(0.05) == 0.0 &&
+        remainingAfterFixedTick(0.10) == 0.05 ? 1 : -4;
+}

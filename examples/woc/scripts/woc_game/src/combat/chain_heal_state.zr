@@ -1,0 +1,54 @@
+// Source Chain Heal selection is a stable ladder: injured fraction, distance,
+// then entity id. WorldState owns scanning and supplies only these primitives.
+pub betterCandidate(
+    candidateHp: int,
+    candidateMaxHp: int,
+    candidateDistanceSquared: float,
+    candidateId: uint,
+    bestPresent: bool,
+    bestHp: int,
+    bestMaxHp: int,
+    bestDistanceSquared: float,
+    bestId: uint
+): bool {
+    if (!bestPresent) { return true; }
+    var candidateFraction = candidateMaxHp > 0 ?
+        <float>candidateHp / <float>candidateMaxHp : 1.0;
+    var bestFraction = bestMaxHp > 0 ?
+        <float>bestHp / <float>bestMaxHp : 1.0;
+    if (candidateFraction != bestFraction) { return candidateFraction < bestFraction; }
+    if (candidateDistanceSquared != bestDistanceSquared) {
+        return candidateDistanceSquared < bestDistanceSquared;
+    }
+    return candidateId < bestId;
+}
+
+// The source rounds every reached hop independently and never permits zero.
+pub hopAmount(baseAmount: float, falloff: float, hop: int): int {
+    var amount = baseAmount;
+    var step = 0;
+    while (step < hop) {
+        amount = amount * falloff;
+        step = step + 1;
+    }
+    var rounded = <int>(amount + 0.5);
+    return rounded < 1 ? 1 : rounded;
+}
+
+pub contractTest(): int {
+    if (!betterCandidate(50, 100, 4.0, <uint>7, false, 0, 0, 0.0, <uint>0)) {
+        return -1;
+    }
+    if (!betterCandidate(40, 100, 9.0, <uint>9, true, 50, 100, 1.0, <uint>1)) {
+        return -2;
+    }
+    if (!betterCandidate(50, 100, 1.0, <uint>7, true, 50, 100, 1.0, <uint>8)) {
+        return -3;
+    }
+    if (betterCandidate(50, 100, 2.0, <uint>7, true, 50, 100, 1.0, <uint>8)) {
+        return -4;
+    }
+    return hopAmount(145.0, 0.5, 0) == 145 &&
+        hopAmount(145.0, 0.5, 1) == 73 &&
+        hopAmount(145.0, 0.5, 2) == 36 ? 1 : -5;
+}

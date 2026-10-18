@@ -84,7 +84,11 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_to
         );
     }
     crate::ui::retained_host::host_contract::window::toast_presentation::record_toast_paint(
-        node, rect, clip, opacity, commands.len() > command_start,
+        node,
+        rect,
+        clip,
+        opacity,
+        commands.len() > command_start,
     );
 }
 

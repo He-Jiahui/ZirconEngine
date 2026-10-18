@@ -2,11 +2,14 @@ use std::collections::{BTreeMap, BTreeSet, HashMap};
 
 use zircon_runtime::core::runtime::tasks::JobHandle;
 
+use std::sync::Arc;
 use std::time::Instant;
 
+use super::super::ticket::JobExecution;
+
 use super::super::{
-    EditorJobAdmissionSnapshot, EditorJobLimits, EditorJobSpec, JobCategory, JobId, JobSubmitError,
-    MutexGroup,
+    EditorJobAdmissionSnapshot, EditorJobLimits, EditorJobShutdownFailure, EditorJobSpec,
+    JobCategory, JobId, JobSubmitError, MutexGroup,
 };
 use super::admission_ledger::PendingAdmissionReservation;
 use super::pending::{PendingJob, PendingJobQueue};
@@ -26,7 +29,10 @@ pub(super) struct EditorJobSystemState {
     next_admission_reservation: u64,
     next_terminal_order: u64,
     closed: bool,
+    shutdown_cleanup: Option<JobHandle>,
+    shutdown_cleanup_failure: Option<EditorJobShutdownFailure>,
     records: HashMap<JobId, EditorJobRecord>,
+    execution_owners: HashMap<JobId, Arc<JobExecution>>,
     terminal_records: BTreeSet<(u64, JobId)>,
     terminal_orders: HashMap<JobId, u64>,
     evictable_terminal_records: BTreeSet<(u64, JobId)>,
@@ -74,6 +80,62 @@ impl EditorJobSystemState {
         } else {
             Ok(())
         }
+    }
+
+    pub(super) fn shutdown_requested(&self) -> bool {
+        self.closed
+    }
+
+    pub(super) fn shutdown_cleanup(&self) -> Option<&JobHandle> {
+        self.shutdown_cleanup.as_ref()
+    }
+
+    pub(super) fn shutdown_cleanup_failure(&self) -> Option<&EditorJobShutdownFailure> {
+        self.shutdown_cleanup_failure.as_ref()
+    }
+
+    pub(super) fn install_shutdown_cleanup(&mut self, cleanup: JobHandle) {
+        assert!(self.closed && self.shutdown_cleanup.is_none());
+        self.shutdown_cleanup = Some(cleanup);
+    }
+
+    pub(super) fn record_shutdown_cleanup_failure(&mut self, failure: EditorJobShutdownFailure) {
+        if self.shutdown_cleanup_failure.is_none() {
+            self.shutdown_cleanup_failure = Some(failure);
+        }
+    }
+
+    pub(super) fn reap_execution_owners(&mut self) {
+        let mut first_failure = None;
+        self.execution_owners
+            .retain(|id, execution| match execution.terminal_result() {
+                None => true,
+                Some(Ok(())) => false,
+                Some(Err(error)) => {
+                    if first_failure.is_none() {
+                        first_failure = Some(EditorJobShutdownFailure::JobTaskFailed {
+                            job: *id,
+                            message: error.to_string(),
+                        });
+                    }
+                    false
+                }
+            });
+        if let Some(failure) = first_failure {
+            self.record_shutdown_cleanup_failure(failure);
+        }
+    }
+
+    pub(super) fn owned_tasks_pending(&self) -> bool {
+        !self.execution_owners.is_empty()
+    }
+
+    pub(super) fn shutdown_cleanup_may_run(&self) -> bool {
+        self.closed
+            && self
+                .shutdown_cleanup
+                .as_ref()
+                .map_or(false, |cleanup| !cleanup.is_complete())
     }
 
     pub(super) fn begin_shutdown(&mut self) -> Vec<PendingJob> {
@@ -277,6 +339,8 @@ impl EditorJobSystemState {
     }
 
     pub(super) fn mark_started(&mut self, pending: &PendingJob) {
+        self.execution_owners
+            .insert(pending.id, Arc::clone(&pending.execution));
         *self
             .running_by_category
             .entry(pending.spec.category)

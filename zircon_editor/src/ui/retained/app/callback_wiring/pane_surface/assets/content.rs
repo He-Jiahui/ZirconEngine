@@ -41,6 +41,9 @@ pub(super) fn wire_asset_content_callbacks(
     pane_surface_host.on_asset_content_pointer_moved(
         move |surface_mode: SharedString, x, y, width, height| {
             if let Some(host) = weak.upgrade() {
+                if host.borrow().main_window_close_blocks_session_ui() {
+                    return;
+                }
                 let mut host = host.borrow_mut();
                 host.asset_content_pointer_moved(surface_mode.as_str(), x, y, width, height);
             }

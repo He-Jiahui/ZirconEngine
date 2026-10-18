@@ -17,13 +17,20 @@ impl ResourceMutationBatch {
     }
 
     pub fn publish_source(mut self, publication: crate::ResourceSourcePublication) -> Self {
-        self.operations.push(ResourceMutationOperation::PublishSource(publication));
+        self.operations
+            .push(ResourceMutationOperation::PublishSource(publication));
         self
     }
 
     /// Full candidate membership distinguishes failed source orphans from actual source deletion.
-    pub fn reconcile_sources(mut self, candidate_ids: impl IntoIterator<Item = ResourceId>) -> Self {
-        self.operations.push(ResourceMutationOperation::ReconcileSources(candidate_ids.into_iter().collect()));
+    pub fn reconcile_sources(
+        mut self,
+        candidate_ids: impl IntoIterator<Item = ResourceId>,
+    ) -> Self {
+        self.operations
+            .push(ResourceMutationOperation::ReconcileSources(
+                candidate_ids.into_iter().collect(),
+            ));
         self
     }
 

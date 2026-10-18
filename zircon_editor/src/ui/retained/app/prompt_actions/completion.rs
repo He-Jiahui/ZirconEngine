@@ -22,7 +22,7 @@ impl RetainedEditorHost {
                     self.set_status_line(error.to_string());
                 }
             }
-            ClosePromptTarget::MainWindow => self.ui.request_exit(),
+            ClosePromptTarget::MainWindow => self.begin_owned_main_window_close(prompt, false),
             ClosePromptTarget::FloatingWindow(window_id) => {
                 let permit = prompt
                     .into_floating_close_permit()
@@ -66,7 +66,12 @@ impl RetainedEditorHost {
             return;
         }
         self.clear_close_prompt(&prompt.target);
-        self.finish_prompted_close(prompt);
+        if matches!(prompt.target, ClosePromptTarget::MainWindow) {
+            self.pending_close_prompt = None;
+            self.begin_owned_main_window_close(prompt, true);
+        } else {
+            self.finish_prompted_close(prompt);
+        }
     }
 
     pub(in crate::ui::retained_host::app) fn poll_prompted_close_save(&mut self) {

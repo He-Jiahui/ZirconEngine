@@ -1,6 +1,13 @@
+//! 词尾策略在人工构造块上的局部契约测试。
+//!
+//! 用确定的字节范围检查选定标点类别、拆并结果及折行许可，并检查不连续和不等长映射。
+//! 这些 fixture 不请求真实成形后端，也不证明完整 RTL、最终换行或全部异常映射行为。
+
 use super::*;
 use crate::text::TextRange;
 
+/// 构造两套范围相同、允许字素折行且无强制断点/后缀的局部测试块。
+/// `start..end` 是同一 `text` 内合法的 UTF-8 字节范围；返回值只借用该输入。
 fn test_chunk(text: &str, start: usize, end: usize) -> LineBreakChunk<'_> {
     LineBreakChunk {
         text: &text[start..end],

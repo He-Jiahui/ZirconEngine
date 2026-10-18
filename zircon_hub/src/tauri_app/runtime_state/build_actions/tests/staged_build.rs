@@ -157,6 +157,7 @@ fn write_fixture(staged_engine_dir: &Path, source_dir: &Path, profile: &str) {
             identity_for(staged_engine_dir, runtime_name),
         ],
         capabilities: BTreeSet::new(),
+        trusted_host: None,
     };
     runtime_manifest.build_set_id = runtime_manifest.derived_build_set_id().unwrap();
     let runtime_manifest_name = format!("{runtime_library_name}.manifest.json");
@@ -202,11 +203,11 @@ fn identity_for(staged_engine_dir: &Path, name: &str) -> ZrRuntimeArtifactIdenti
     .unwrap()
 }
 
-fn artifact_entry(
+fn artifact_entry<'a>(
     staged_engine_dir: &Path,
-    target_path: &str,
-    logical_artifact: &str,
-) -> TestStagingArtifact {
+    target_path: &'a str,
+    logical_artifact: &'a str,
+) -> TestStagingArtifact<'a> {
     TestStagingArtifact {
         logical_artifact,
         source: TestStagingSource {

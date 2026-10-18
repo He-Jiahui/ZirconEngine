@@ -1,0 +1,10 @@
+var state = %import("world/state");
+var package = %import("main");
+
+pub worldStateIdentity(): string {
+    return package.stateSchema();
+}
+
+pub main(): int {
+    return state.deathlessWillRuntimeStateTest();
+}

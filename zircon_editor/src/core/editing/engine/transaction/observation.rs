@@ -9,7 +9,7 @@ impl EditorTransactionEngine {
         &self,
         requested: &'static str,
     ) -> Result<(), super::EditCommandError> {
-        self.start_operation(requested)?;
+        self.start_read_operation(requested)?;
         let mut state = self.lock_state();
         if let Some(group) = state
             .operation_group

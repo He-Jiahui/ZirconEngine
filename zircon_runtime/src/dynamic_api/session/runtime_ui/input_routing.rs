@@ -19,6 +19,33 @@ use super::{
 };
 
 impl RuntimeUiSurfaceSet {
+    pub(in crate::dynamic_api::session) fn cancel_input(&mut self) -> Result<(), UiTreeError> {
+        let mut failure = None;
+        for surface_index in 0..self.surfaces.len() {
+            let metadata = self.next_input_metadata();
+            let result = {
+                let runtime_surface = &mut self.surfaces[surface_index];
+                runtime_surface
+                    .input
+                    .cancel_input(&mut runtime_surface.surface, metadata)
+            };
+            match result {
+                Ok(result) => self.record_dispatch_outputs(surface_index, &result),
+                Err(error) if failure.is_none() => failure = Some(error),
+                Err(_) => {}
+            }
+        }
+        self.pointer_capture_surfaces.clear();
+        self.pointer_positions.clear();
+        self.focused_surfaces.clear();
+        self.focused_surface = None;
+        self.navigation_surface = None;
+        match failure {
+            Some(error) => Err(error),
+            None => Ok(()),
+        }
+    }
+
     pub(in crate::dynamic_api::session) fn next_input_timer_delay(&self) -> Option<Duration> {
         self.next_input_timer_delay_at(self.input_clock.now())
     }

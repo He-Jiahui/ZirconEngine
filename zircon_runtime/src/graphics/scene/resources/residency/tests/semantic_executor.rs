@@ -183,7 +183,10 @@ fn semantic_executor_capacity_is_atomic_and_cancel_drops_manifest_ticket() {
         first_ticket.resource(),
         first_ticket.asset_revision(),
         super::super::contract::RenderAssetResidencySourceIdentity::CandidateReadiness(
-            replacement_resources.readiness_generation().row_identity(first.id()).expect("replacement row")
+            replacement_resources
+                .readiness_generation()
+                .row_identity(first.id())
+                .expect("replacement row"),
         ),
         first_ticket.demand_generation(),
         first_ticket.device(),

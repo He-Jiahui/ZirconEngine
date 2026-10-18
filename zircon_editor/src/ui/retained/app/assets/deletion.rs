@@ -10,6 +10,20 @@ pub(in crate::ui::retained_host::app) struct PendingAssetDeletion {
     close_requested: bool,
 }
 
+#[cfg(test)]
+impl crate::ui::retained_host::app::RetainedEditorHost {
+    pub(in crate::ui::retained_host::app) fn install_pending_asset_deletion_for_editor09_close_test(
+        &mut self,
+        ticket: EditorAssetDeletionTicket,
+    ) {
+        assert!(self.pending_asset_deletion.is_none());
+        self.pending_asset_deletion = Some(PendingAssetDeletion {
+            ticket,
+            close_requested: false,
+        });
+    }
+}
+
 impl RetainedEditorHost {
     pub(in crate::ui::retained_host::app) fn request_asset_deletion(
         &mut self,

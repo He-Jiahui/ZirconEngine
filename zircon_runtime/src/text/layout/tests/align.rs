@@ -1,3 +1,5 @@
+//! 阿拉伯连写候选与已物化 tatweel 的回归夹具；偏移均相对于各自输入的 UTF-8 文本。
+
 use super::*;
 
 #[test]
@@ -5,6 +7,7 @@ fn arabic_kashida_offsets_follow_each_joining_pair() {
     assert_eq!(arabic_kashida_insertion_offsets("سلام"), vec![2, 4]);
 }
 
+// 合并标记、ZWJ 和 ZWNJ 用例区分字素延续与连接阻断，偏移仍沿用原文本坐标。
 #[test]
 fn arabic_kashida_offsets_keep_combining_marks_with_their_base_grapheme() {
     assert_eq!(arabic_kashida_insertion_offsets("سَلَام"), vec![4, 8]);
@@ -30,6 +33,7 @@ fn arabic_kashida_does_not_admit_other_joining_scripts() {
     assert!(arabic_kashida_insertion_offsets("\u{10acd}\u{10acd}").is_empty());
 }
 
+// 这里核对候选序号桶中点的选择结果，不测量扫描耗时或分配次数。
 #[test]
 fn bounded_arabic_kashida_offsets_sample_long_lines_without_collecting_every_pair() {
     assert_eq!(
@@ -43,6 +47,7 @@ fn bounded_arabic_kashida_offsets_allow_no_insertions() {
     assert!(arabic_kashida_insertion_offsets_bounded("سلام", 0).is_empty());
 }
 
+// 本调整函数不生成阿拉伯延展字形；只有已经物化的 tatweel 才提供对应的拉伸项。
 #[test]
 fn arabic_justify_requires_a_materialized_tatweel_for_extra_advance() {
     assert!(justify_line_advances("سلام", &[10.0; 4], 40.0, 41.0).is_none());

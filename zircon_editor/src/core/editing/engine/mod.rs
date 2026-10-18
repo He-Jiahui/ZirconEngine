@@ -42,9 +42,9 @@ pub use journal::{
     TransactionJournalReadError, TransactionJournalReplayer, TransactionJournalValidationError,
 };
 pub use routing::resolve_history_context;
-pub(crate) use transaction::ExclusiveTransition;
 pub use transaction::{
     EditorTransactionEngine, HistoryDecisionToken, HistoryDirtyBatch, HistoryDirtyBatchKind,
     HistoryDirtyCursor, HistoryDirtyState, MergeMode, OperationTransactionResult, TransactionScope,
     MAX_HISTORY_DETAIL_PAGE_SIZE,
 };
+pub(crate) use transaction::{ExclusiveTransition, SceneCloseAdmission};

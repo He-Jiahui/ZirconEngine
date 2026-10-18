@@ -1,5 +1,8 @@
 use std::collections::{BTreeMap, BTreeSet};
+use std::sync::Arc;
 use std::time::Instant;
+
+use super::super::ticket::JobExecution;
 
 use super::super::{
     EditorJobAdmissionKey, EditorJobAdmissionLimits, EditorJobAdmissionRequest,
@@ -27,6 +30,7 @@ pub(super) struct PendingJob {
     pub(super) spec: EditorJobSpec,
     pub(super) task: Box<dyn PendingTask>,
     pub(super) cancel_task: PendingCancelTask,
+    pub(super) execution: Arc<JobExecution>,
     admitted_at: Instant,
     estimated_bytes: usize,
 }
@@ -45,6 +49,7 @@ impl PendingJob {
             spec,
             task,
             cancel_task,
+            execution: Arc::new(JobExecution::new()),
             admitted_at,
             estimated_bytes,
         }

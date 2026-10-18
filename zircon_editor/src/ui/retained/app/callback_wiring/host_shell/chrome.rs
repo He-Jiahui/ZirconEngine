@@ -7,6 +7,9 @@ pub(super) fn wire_host_shell_chrome_callbacks(
     let weak = Rc::downgrade(host);
     host_shell.on_host_page_pointer_clicked(move |tab_index, close| {
         if let Some(host) = weak.upgrade() {
+            if host.borrow().main_window_close_blocks_session_ui() {
+                return;
+            }
             host.borrow_mut()
                 .host_page_pointer_clicked(tab_index, close);
         }
@@ -16,6 +19,9 @@ pub(super) fn wire_host_shell_chrome_callbacks(
     host_shell.on_document_tab_pointer_clicked(
         move |surface_key, tab_index, tab_x, tab_width, point_x, point_y| {
             if let Some(host) = weak.upgrade() {
+                if host.borrow().main_window_close_blocks_session_ui() {
+                    return;
+                }
                 host.borrow_mut().document_tab_pointer_clicked(
                     surface_key.as_str(),
                     tab_index,
@@ -32,6 +38,9 @@ pub(super) fn wire_host_shell_chrome_callbacks(
     host_shell.on_document_tab_close_pointer_clicked(
         move |surface_key, tab_index, tab_x, tab_width, point_x, point_y| {
             if let Some(host) = weak.upgrade() {
+                if host.borrow().main_window_close_blocks_session_ui() {
+                    return;
+                }
                 host.borrow_mut().document_tab_close_pointer_clicked(
                     surface_key.as_str(),
                     tab_index,
@@ -48,6 +57,9 @@ pub(super) fn wire_host_shell_chrome_callbacks(
     host_shell.on_drawer_header_pointer_clicked(
         move |surface_key, tab_index, tab_x, tab_width, point_x, point_y| {
             if let Some(host) = weak.upgrade() {
+                if host.borrow().main_window_close_blocks_session_ui() {
+                    return;
+                }
                 host.borrow_mut().drawer_header_pointer_clicked(
                     surface_key.as_str(),
                     tab_index,

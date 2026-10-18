@@ -63,3 +63,48 @@ fn one_deadline_waiter_does_not_hold_the_ticket_lock_until_its_deadline() {
     sender.send(Ok::<_, JobError>(13_u32)).unwrap();
     assert_eq!(waiter.join().unwrap(), Some(Ok(13)));
 }
+
+#[test]
+fn owned_ticket_does_not_consume_ready_result_before_real_runtime_terminal() {
+    use super::{JobExecution, JobExecutionState};
+    use crate::core::jobs::test_job_scheduler;
+    let execution = Arc::new(JobExecution::new());
+    let (sender, receiver) = mpsc::channel();
+    let (started_tx, started_rx) = mpsc::channel();
+    let (release_tx, release_rx) = mpsc::channel();
+    let handle = test_job_scheduler().schedule(move || {
+        sender.send(Ok::<_, JobError>(29_u32)).unwrap();
+        started_tx.send(()).unwrap();
+        release_rx.recv_timeout(Duration::from_secs(5)).unwrap();
+    });
+    *execution.lock() = JobExecutionState::Running(handle.clone());
+    let ticket = JobTicket::new_owned(JobId::new(29), receiver, execution);
+    started_rx.recv_timeout(Duration::from_secs(5)).unwrap();
+    assert!(!handle.is_complete());
+    assert!(!ticket.is_terminal());
+    assert_eq!(ticket.try_take_terminal(), None);
+    release_tx.send(()).unwrap();
+    let deadline = Instant::now() + Duration::from_secs(5);
+    while !ticket.is_terminal() {
+        assert!(Instant::now() < deadline);
+        std::thread::yield_now();
+    }
+    assert_eq!(ticket.try_take_terminal(), Some(Ok(29)));
+    assert_eq!(ticket.try_take_terminal(), None);
+}
+
+#[test]
+fn submission_failure_has_one_typed_terminal_without_a_published_result() {
+    use super::JobExecution;
+    let execution = Arc::new(JobExecution::new());
+    let (_sender, receiver) = mpsc::channel::<Result<(), JobError>>();
+    let ticket = JobTicket::new_owned(JobId::new(30), receiver, Arc::clone(&execution));
+    assert!(!ticket.is_terminal());
+    execution.fail_submission("real admission did not install a task");
+    assert!(ticket.is_terminal());
+    assert!(matches!(
+        ticket.try_take_terminal(),
+        Some(Err(JobError::Panicked(_)))
+    ));
+    assert_eq!(ticket.try_take_terminal(), None);
+}

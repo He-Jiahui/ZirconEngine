@@ -85,6 +85,14 @@ struct UiToastTimerExpiration {
 }
 
 impl UiInputTimerState {
+    pub(crate) fn cancel_interaction_timers(&mut self) {
+        self.submenu_hover_expirations.clear();
+        self.tooltip_expirations.clear();
+        self.tooltip_intro = None;
+        self.double_click_candidate = None;
+        // Content typeahead and notification lifetimes retain their own expiration.
+    }
+
     /// 返回最近显式记录的时间戳；尚未记录时为 `None`。
     pub fn last_tick(&self) -> Option<UiInputTimestamp> {
         self.last_tick

@@ -1,0 +1,153 @@
+// Resolves source talent scaling for physical weapon and finisher effects.
+// WorldState remains owner of selection timing, hit tables and settlement.
+var catalog = %import("generated/talent_modifier_catalog");
+var modifiers = %import("progression/talent_modifier_state");
+
+pub class WeaponStrikeValues {
+    pub var bonus: int;
+    pub var weaponMultiplier: float;
+
+    pub @constructor() {
+        this.bonus = 0;
+        this.weaponMultiplier = 1.0;
+    }
+}
+
+pub class FinisherValues {
+    pub var base: int;
+    pub var perCombo: int;
+
+    pub @constructor() {
+        this.base = 0;
+        this.perCombo = 0;
+    }
+}
+
+roundPositive(value: float): int {
+    return <int>(value + 0.5);
+}
+
+physicalMultiplier(talentState: modifiers.TalentModifierState, abilityId: string): float {
+    return 1.0 + modifiers.globalField(talentState, "meleeDmgPct") +
+        modifiers.abilityField(talentState, abilityId, "dmgPct");
+}
+
+physicalFlat(talentState: modifiers.TalentModifierState, abilityId: string): float {
+    return modifiers.abilityField(talentState, abilityId, "flatDmg");
+}
+
+pub resolveWeaponDamageBonus(
+    baseBonus: int,
+    talentState: modifiers.TalentModifierState,
+    abilityId: string
+): int {
+    return roundPositive(<float>baseBonus * physicalMultiplier(talentState, abilityId) +
+        physicalFlat(talentState, abilityId));
+}
+
+pub resolveWeaponStrike(
+    baseBonus: int,
+    authoredWeaponMultiplier: float,
+    talentState: modifiers.TalentModifierState,
+    abilityId: string
+): WeaponStrikeValues {
+    var resolved = new WeaponStrikeValues();
+    var multiplier = physicalMultiplier(talentState, abilityId);
+    resolved.bonus = roundPositive(<float>baseBonus * multiplier +
+        physicalFlat(talentState, abilityId));
+    resolved.weaponMultiplier = authoredWeaponMultiplier * multiplier;
+    return resolved;
+}
+
+pub resolveFinisher(
+    base: int,
+    perCombo: int,
+    talentState: modifiers.TalentModifierState,
+    abilityId: string
+): FinisherValues {
+    var resolved = new FinisherValues();
+    var multiplier = physicalMultiplier(talentState, abilityId);
+    resolved.base = roundPositive(<float>base * multiplier +
+        physicalFlat(talentState, abilityId));
+    resolved.perCombo = roundPositive(<float>perCombo * multiplier);
+    return resolved;
+}
+
+setGlobal(talentState: modifiers.TalentModifierState, name: string, value: float): void {
+    var index = 0;
+    while (index < talentState.globals.length) {
+        if (catalog.globalFieldName(index) == name) {
+            talentState.globals[index] = value;
+            return;
+        }
+        index = index + 1;
+    }
+    throw "woc physical talent global field is absent";
+}
+
+setAbilityNumber(
+    talentState: modifiers.TalentModifierState,
+    abilityId: string,
+    name: string,
+    value: float
+): void {
+    var ability = 0;
+    while (ability < talentState.abilityIds.length &&
+        <string>talentState.abilityIds[ability] != abilityId) {
+        ability = ability + 1;
+    }
+    if (ability == talentState.abilityIds.length) {
+        talentState.abilityIds.add(abilityId);
+        talentState.abilityDottedIds.add("");
+        talentState.abilityCastWhileMoving.add(false);
+        talentState.abilityPushbackImmune.add(false);
+        talentState.abilityNestedEffectCounts.add(0);
+        var newField = 0;
+        while (newField < catalog.abilityNumberFieldCount()) {
+            talentState.abilityNumbers.add(0.0);
+            newField = newField + 1;
+        }
+    }
+    var field = 0;
+    while (field < catalog.abilityNumberFieldCount()) {
+        if (catalog.abilityNumberFieldName(field) == name) {
+            talentState.abilityNumbers[ability * catalog.abilityNumberFieldCount() + field] = value;
+            return;
+        }
+        field = field + 1;
+    }
+    throw "woc physical talent ability field is absent";
+}
+
+pub contractTest(): int {
+    var identity = new modifiers.TalentModifierState();
+    var rawStrike = resolveWeaponStrike(11, 1.5, identity, "backstab");
+    var rawFinisher = resolveFinisher(4, 7, identity, "eviscerate");
+    if (resolveWeaponDamageBonus(11, identity, "heroic_strike") != 11 ||
+        rawStrike.bonus != 11 || rawStrike.weaponMultiplier != 1.5 ||
+        rawFinisher.base != 4 || rawFinisher.perCombo != 7) {
+        return -1;
+    }
+
+    var mixed = new modifiers.TalentModifierState();
+    setGlobal(mixed, "meleeDmgPct", 0.2);
+    setGlobal(mixed, "spellDmgPct", 0.8);
+    setGlobal(mixed, "dotDmgPct", 0.4);
+    setAbilityNumber(mixed, "backstab", "dmgPct", 0.15);
+    setAbilityNumber(mixed, "backstab", "flatDmg", 2.0);
+    var strike = resolveWeaponStrike(31, 1.5, mixed, "backstab");
+    var damageBonus = resolveWeaponDamageBonus(31, mixed, "backstab");
+    var finisher = resolveFinisher(31, 11, mixed, "backstab");
+    if (damageBonus != 44 || strike.bonus != 44 ||
+        strike.weaponMultiplier < 2.024 || strike.weaponMultiplier > 2.026 || finisher.base != 44 ||
+        finisher.perCombo != 15) {
+        return -2;
+    }
+
+    var ordering = new modifiers.TalentModifierState();
+    setAbilityNumber(ordering, "eviscerate", "dmgPct", 0.15);
+    var split = resolveFinisher(1, 1, ordering, "eviscerate");
+    var reversed = roundPositive((1.0 + 1.0 * 3.0) * 1.15);
+    return split.base == 1 && split.perCombo == 1 &&
+        split.base + split.perCombo * 3 == 4 && reversed == 5 ? 1 : -3;
+}

@@ -1,0 +1,6 @@
+{
+  "source": "src",
+  "binary": "bin",
+  "entry": "world/direct_damage_talent_runtime_test_main",
+  "backend": "zr_vm:project"
+}

@@ -84,9 +84,14 @@ impl World {
                 .get_mut(&entity)
                 .expect("dynamic projection value must belong to a registered world entity");
             for type_id in type_ids {
-                let component_id = self.ensure_dynamic_component_presence_id(&type_id)
+                let component_id = self
+                    .ensure_dynamic_component_presence_id(&type_id)
                     .expect("projection rebuild must preserve its dynamic presence storage type");
-                self.stage_component_row_value_with_id(row, component_id, DynamicComponentPresence::default());
+                self.stage_component_row_value_with_id(
+                    row,
+                    component_id,
+                    DynamicComponentPresence::default(),
+                );
             }
         }
 

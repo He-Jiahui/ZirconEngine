@@ -195,7 +195,15 @@ class DeploymentManager:
 
     def _start_locked(self, lock: Path, *, recovery_driver: dict | None = None, execution_activation=None,
                       owned_keeper_start=None, lost_owner_recovery=None, recovery_keeper_start=None,
-                      owned_upgrade_start=None) -> dict:
+                      owned_upgrade_start=None, independent_service_start=None) -> dict:
+        if independent_service_start is not None:
+            from .independent_service import IndependentServiceStart
+            if (type(independent_service_start) is not IndependentServiceStart
+                    or any(value is not None for value in (recovery_driver, execution_activation,
+                        owned_keeper_start, lost_owner_recovery, recovery_keeper_start, owned_upgrade_start))):
+                raise JenkinsError("independent_service_invalid", "Independent service authority cannot be combined")
+            independent_creation_flags = independent_service_start.creation_flags()
+            independent_service_start.consume(self)
         if sum(value is not None for value in (execution_activation, owned_keeper_start, recovery_keeper_start)) > 1:
             raise JenkinsError("execution_activation_invalid", "Lifecycle start authorities cannot be combined")
         if lost_owner_recovery is not None and owned_upgrade_start is not None:
@@ -213,7 +221,7 @@ class DeploymentManager:
                 raise JenkinsError("formal_lost_owner_unproven", "An issued recovery keeper capability is required")
             recovery_keeper_start.consume(self, owned_upgrade_start if owned_upgrade_start is not None else lost_owner_recovery)
         start_directive = None
-        if execution_activation is None and recovery_keeper_start is None:
+        if execution_activation is None and recovery_keeper_start is None and independent_service_start is None:
             from .execution_activation import assert_activation_start_allowed
             start_directive = (assert_activation_start_allowed(self) if owned_keeper_start is None
                                else assert_activation_start_allowed(self, owned_keeper_start=owned_keeper_start))
@@ -259,7 +267,11 @@ class DeploymentManager:
                 if not has_terminal_lifecycle_proofs(old, host_record, str(self.paths.home.absolute()), host_observation):
                     raise JenkinsError("deployment_termination_unproven", "Lifecycle supervisor departure is unproven",
                                        retryable=True)
-            if lost_owner_recovery is not None:
+            if independent_service_start is not None:
+                evidence = independent_service_start.revalidate(self)
+                independent_service_start.archive_predecessor(old, host_record, evidence)
+                self._write({**old, "state": "interrupted", "deploymentRecoveryEvidence": evidence})
+            elif lost_owner_recovery is not None:
                 # This records interrupted management ownership. It never
                 # substitutes for execution EOF or a native terminal receipt.
                 evidence = lost_owner_recovery.revalidate(self)
@@ -365,6 +377,8 @@ class DeploymentManager:
         replace_file(pending_driver, driver_record_path)
         args = [python, launcher, "__lifecycle-host", "--spec", str(self.spec.path),
                 "--java", str(self.java), "--war", str(self.war), "--operation-id", operation_id]
+        if independent_service_start is not None:
+            args = independent_service_start.host_command(operation_id, selected)
         env = dict(os.environ, **driver_env, PYTHONPATH=str(self.paths.repo), JENKINS_HOME=str(self.paths.home))
         if control_plane_only:
             env["ZIRCON_JENKINS_RECOVERY_CONTROL_ONLY"] = "1"
@@ -376,15 +390,21 @@ class DeploymentManager:
         try:
             if recovery_transaction is not None:
                 recovery_transaction.before_spawn(args, selected)
+            if independent_service_start is not None:
+                independent_service_start.before_spawn(operation_id, args, selected)
             process = subprocess.Popen(args, cwd=str(self.paths.repo), env=env,
                                        stdin=subprocess.DEVNULL, stdout=log_handle,
                                        stderr=subprocess.STDOUT,
-                                       creationflags=(_supervisor_creation_flags() if owned_keeper_start is None
+                                       creationflags=(independent_creation_flags
+                                                      if independent_service_start is not None else
+                                                      _supervisor_creation_flags() if owned_keeper_start is None
                                                       and recovery_keeper_start is None else
                                                       (owned_keeper_start or recovery_keeper_start).creation_flags()))
             # Retain the child immediately. Identity/Job validation can fail;
             # that failure must not erase the original spawn or close its log.
             _LIVE_JOBS[process.pid] = (process, log_handle)
+            if independent_service_start is not None:
+                independent_service_start.created(process.pid)
             if recovery_transaction is not None:
                 recovery_transaction.created(process.pid)
             host_identity = current_identity(process.pid, executable=sys.executable, command_line=tuple(args))
@@ -400,6 +420,8 @@ class DeploymentManager:
             if start_directive is not None:
                 operation["executionActivationRecoveryReceipt"] = dict(start_directive["recoveryReceipt"])
             self._write(operation)
+            if independent_service_start is not None:
+                independent_service_start.created(process.pid, host_identity.to_dict())
             if recovery_transaction is not None:
                 recovery_transaction.created(process.pid, host_identity.to_dict())
             if owned_keeper_start is not None:
@@ -407,6 +429,8 @@ class DeploymentManager:
             if recovery_keeper_start is not None:
                 recovery_keeper_start.record_spawn(process.pid)
         except Exception as error:
+            if independent_service_start is not None:
+                independent_service_start.unknown(error)
             if recovery_transaction is not None:
                 recovery_transaction.unknown(error)
             if process is None:

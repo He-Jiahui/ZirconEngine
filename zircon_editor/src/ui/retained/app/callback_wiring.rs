@@ -12,6 +12,9 @@ fn dispatch_with_callback_source(
     callback: impl FnOnce(&mut RetainedEditorHost),
 ) {
     if let Some(host) = weak.upgrade() {
+        if host.borrow().main_window_close_blocks_session_ui() {
+            return;
+        }
         let source_window_id = resolve_callback_source_window_id(&source_ui);
         host.borrow_mut()
             .with_callback_source_window(source_window_id, callback);

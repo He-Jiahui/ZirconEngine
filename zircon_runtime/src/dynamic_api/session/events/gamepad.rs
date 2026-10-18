@@ -12,21 +12,25 @@ use zircon_runtime_interface::{
     ZR_RUNTIME_GAMEPAD_CONNECTION_DISCONNECTED_V1,
 };
 
-use crate::core::framework::input::{GamepadConnectionInfo, GamepadId, InputEvent, InputEventAdmission};
+use crate::core::framework::input::{GamepadConnectionInfo, GamepadId, InputEvent};
 
 use super::super::input_events::{gamepad_axis, gamepad_button, nonzero_u16};
+use crate::input::InputIngressAdmission;
+
 use super::super::status::{error_status, invalid_argument};
 use super::super::RuntimeDynamicSession;
 use super::event_payload;
 
 impl RuntimeDynamicSession {
-    fn gamepad_event_admitted(&self, event: InputEvent) -> Result<bool, ZrStatus> {
+    fn gamepad_event_admitted(&mut self, event: InputEvent) -> Result<bool, ZrStatus> {
         match self.submit_input_event_with_admission(event) {
-            Ok(InputEventAdmission::Accepted) => Ok(true),
+            Ok(InputIngressAdmission::Accepted(_)) => Ok(true),
             // The common helper diagnoses a delayed valid envelope, which is a safe no-op.
             // It never enters the independent UI branch or becomes a fatal App ABI failure.
-            Ok(InputEventAdmission::Rejected(_)) => Ok(false),
-            Err(error) => Err(error_status(format!("admit runtime gamepad input: {error}"))),
+            Ok(InputIngressAdmission::Rejected(_)) => Ok(false),
+            Err(error) => Err(error_status(format!(
+                "admit runtime gamepad input: {error}"
+            ))),
         }
     }
 

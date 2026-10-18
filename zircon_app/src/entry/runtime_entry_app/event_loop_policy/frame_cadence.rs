@@ -269,20 +269,18 @@ impl RuntimeFrameCadence {
                 let runtime_deadline_due = self
                     .runtime_deadline
                     .is_some_and(|runtime_deadline| now >= runtime_deadline);
-                let periodic_deadline_due =
-                    next_deadline.is_some_and(|deadline| now >= deadline);
+                let periodic_deadline_due = next_deadline.is_some_and(|deadline| now >= deadline);
                 if explicitly_requested || runtime_deadline_due || periodic_deadline_due {
                     if runtime_deadline_due {
                         self.runtime_deadline = None;
                     }
-                    *next_deadline = if let Some(previous) =
-                        next_deadline.filter(|deadline| now >= *deadline)
-                    {
-                        Self::next_periodic_deadline(previous, *interval, now)
-                    } else {
-                        // Early explicit/runtime work keeps the existing inactivity rebase.
-                        now.checked_add(*interval)
-                    };
+                    *next_deadline =
+                        if let Some(previous) = next_deadline.filter(|deadline| now >= *deadline) {
+                            Self::next_periodic_deadline(previous, *interval, now)
+                        } else {
+                            // Early explicit/runtime work keeps the existing inactivity rebase.
+                            now.checked_add(*interval)
+                        };
                     true
                 } else {
                     false
@@ -332,7 +330,9 @@ impl RuntimeFrameCadence {
             RuntimeFrameCadenceMode::LowPower { .. } if self.frame_requested => ControlFlow::Poll,
             RuntimeFrameCadenceMode::LowPower { next_deadline, .. } => {
                 match (self.runtime_deadline, next_deadline) {
-                    (Some(runtime), Some(periodic)) => ControlFlow::WaitUntil(runtime.min(periodic)),
+                    (Some(runtime), Some(periodic)) => {
+                        ControlFlow::WaitUntil(runtime.min(periodic))
+                    }
                     (Some(deadline), None) | (None, Some(deadline)) => {
                         ControlFlow::WaitUntil(deadline)
                     }

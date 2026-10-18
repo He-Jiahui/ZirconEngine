@@ -1,0 +1,101 @@
+// Resolves the source talent pass over direct-heal range endpoints. WorldState
+// retains range RNG, crit, absorbs and threat after this pure calculation.
+var catalog = %import("generated/talent_modifier_catalog");
+var modifiers = %import("progression/talent_modifier_state");
+
+pub class DirectHealRange {
+    pub var minimum: int;
+    pub var maximum: int;
+
+    pub @constructor() {
+        this.minimum = 0;
+        this.maximum = 0;
+    }
+}
+
+roundPositive(value: float): int {
+    return <int>(value + 0.5);
+}
+
+pub resolveDirectHealRange(
+    baseMinimum: int,
+    baseMaximum: int,
+    talentState: modifiers.TalentModifierState,
+    abilityId: string
+): DirectHealRange {
+    var range = new DirectHealRange();
+    var multiplier = 1.0 + modifiers.globalField(talentState, "healPct") +
+        modifiers.abilityField(talentState, abilityId, "dmgPct");
+    var flat = modifiers.abilityField(talentState, abilityId, "flatDmg");
+    range.minimum = roundPositive(<float>baseMinimum * multiplier + flat);
+    range.maximum = roundPositive(<float>baseMaximum * multiplier + flat);
+    return range;
+}
+
+setGlobal(talentState: modifiers.TalentModifierState, name: string, value: float): void {
+    var index = 0;
+    while (index < talentState.globals.length) {
+        if (catalog.globalFieldName(index) == name) {
+            talentState.globals[index] = value;
+            return;
+        }
+        index = index + 1;
+    }
+    throw "woc direct-heal talent global field is absent";
+}
+
+setAbilityNumber(
+    talentState: modifiers.TalentModifierState,
+    abilityId: string,
+    name: string,
+    value: float
+): void {
+    var ability = 0;
+    while (ability < talentState.abilityIds.length &&
+        <string>talentState.abilityIds[ability] != abilityId) {
+        ability = ability + 1;
+    }
+    if (ability == talentState.abilityIds.length) {
+        talentState.abilityIds.add(abilityId);
+        talentState.abilityDottedIds.add("");
+        talentState.abilityCastWhileMoving.add(false);
+        talentState.abilityPushbackImmune.add(false);
+        talentState.abilityNestedEffectCounts.add(0);
+        var newField = 0;
+        while (newField < catalog.abilityNumberFieldCount()) {
+            talentState.abilityNumbers.add(0.0);
+            newField = newField + 1;
+        }
+    }
+    var field = 0;
+    while (field < catalog.abilityNumberFieldCount()) {
+        if (catalog.abilityNumberFieldName(field) == name) {
+            talentState.abilityNumbers[ability * catalog.abilityNumberFieldCount() + field] = value;
+            return;
+        }
+        field = field + 1;
+    }
+    throw "woc direct-heal talent ability field is absent";
+}
+
+pub contractTest(): int {
+    var talentState = new modifiers.TalentModifierState();
+    var identity = resolveDirectHealRange(230, 270, talentState, "heal");
+    if (identity.minimum != 230 || identity.maximum != 270) return -1;
+    setGlobal(talentState, "healPct", 0.2);
+    var holy = resolveDirectHealRange(230, 270, talentState, "heal");
+    if (holy.minimum != 276 || holy.maximum != 324) return -2;
+    setAbilityNumber(talentState, "heal", "dmgPct", 0.2);
+    setAbilityNumber(talentState, "heal", "flatDmg", 2.0);
+    var combined = resolveDirectHealRange(230, 270, talentState, "heal");
+    if (combined.minimum != 324 || combined.maximum != 380) return -3;
+    var rounded = new modifiers.TalentModifierState();
+    setAbilityNumber(rounded, "lesser_heal", "dmgPct", 0.15);
+    setAbilityNumber(rounded, "lesser_heal", "flatDmg", 2.0);
+    var endpoints = resolveDirectHealRange(47, 58, rounded, "lesser_heal");
+    var endpointFirst = roundPositive(<float>endpoints.minimum +
+        0.5 * <float>(endpoints.maximum - endpoints.minimum));
+    var postRoll = roundPositive((47.0 + 0.5 * (58.0 - 47.0)) * 1.15 + 2.0);
+    return endpoints.minimum == 56 && endpoints.maximum == 69 &&
+        endpointFirst == 63 && postRoll == 62 ? 1 : -4;
+}

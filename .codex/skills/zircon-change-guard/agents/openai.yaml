@@ -1,0 +1,4 @@
+interface:
+  display_name: "Zircon Change Guard"
+  short_description: "Static patch checks before a Zircon Jenkins handoff"
+  default_prompt: "Use $zircon-change-guard to check this scoped ZirconEngine patch against its final checkout and report findings before Jenkins handoff."

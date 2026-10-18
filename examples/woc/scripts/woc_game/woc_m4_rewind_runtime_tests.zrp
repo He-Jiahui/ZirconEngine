@@ -1,0 +1,6 @@
+{
+  "source": "src",
+  "binary": "bin",
+  "entry": "world/rewind_runtime_test_main",
+  "backend": "zr_vm:project"
+}
