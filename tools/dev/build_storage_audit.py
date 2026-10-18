@@ -157,6 +157,25 @@ def profile_observations(roots, errors):
     return observations
 
 
+def unit_observation_complete(row, path):
+    """Keep unrelated links from invalidating an otherwise fully counted pool."""
+    if row.get("complete") is True:
+        return True
+    if row.get("scanTimedOut"):
+        return False
+    gaps = list(row.get("reparsePoints", []))
+    for error in row.get("errors", []):
+        if error.get("type") == "ScanBudgetExceeded" or not error.get("path"):
+            return False
+        gaps.append(error["path"])
+    if not gaps:
+        return False
+    identity = key(path)
+    return all(isinstance(gap, str) and gap and not (
+        identity == key(gap) or identity.startswith(key(gap) + "/")
+        or key(gap).startswith(identity + "/")) for gap in gaps)
+
+
 def audit(repo, scan, previous=None):
     """Consume the existing disjoint deep inventory, without a second file walk."""
     previous = previous or {}
@@ -182,7 +201,7 @@ def audit(repo, scan, previous=None):
                 "incrementalBytes": 0, "symbolBytes": 0, "complete": True})
             for name in ("logicalBytes", "files", "incrementalBytes", "symbolBytes"):
                 unit[name] += counts[name]
-            unit["complete"] &= row.get("complete") is True
+            unit["complete"] &= unit_observation_complete(row, path)
         if row.get("complete") is not True:
             errors.append({"subject": row["path"], "error": "InventoryIncomplete"})
     manifest_paths = sorted({p for row in rows for p in row.get("manifestPaths", [])})

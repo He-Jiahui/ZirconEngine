@@ -232,6 +232,21 @@ class AuditTests(unittest.TestCase):
         if os.name == "nt":
             self.assertFalse(result["hardlinkCountComplete"])
 
+    def test_unrelated_links_preserve_pool_baselines_but_affected_or_timed_out_units_do_not(self):
+        for extra, valid in (
+                ({"reparsePoints": ["E:/cargo-targets/zircon-local/penpot/node_modules/a"]}, True),
+                ({"errors": [{"path": self.unit + "-other/a", "type": "PermissionError"}]}, True),
+                ({"reparsePoints": [self.unit + "/target/debug/a"]}, False),
+                ({"reparsePoints": ["E:/cargo-targets/zircon-local/management"]}, False),
+                ({"scanTimedOut": True, "reparsePoints": ["E:/elsewhere"]}, False)):
+            with self.subTest(extra=extra):
+                scan = self.scan(100, complete=False)
+                scan["outputItems"][0].update(extra)
+                result = audit.audit(self.repo, scan)
+                self.assertFalse(result["complete"])
+                self.assertEqual(result["units"][0]["complete"], valid)
+                self.assertEqual(audit.key(self.unit) in result["baseline"], valid)
+
     def test_compiler_accounting_uses_one_pool_and_excludes_source(self):
         root = Path("E:/cargo-targets/zircon-local/management/pools/identity")
         self.assertEqual(audit.inventory.compiler_unit(root / "target/debug/deps/a.rlib"), root)
