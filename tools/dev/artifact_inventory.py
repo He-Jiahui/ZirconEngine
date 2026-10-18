@@ -116,7 +116,7 @@ def classify(path: Path, repo: Path) -> str:
     return "legacy-task-output-unclaimed"
 
 
-def tree_fact(path: Path, *, inspect_source: bool = False) -> dict:
+def tree_fact(path: Path, *, inspect_source: bool = False, deadline: float | None = None) -> dict:
     """Count logical bytes without following links; report incomplete observations."""
     fact = {"path": str(path), "files": 0, "directories": 0, "logicalBytes": 0,
             "hardlinkedFiles": 0, "reparsePoints": [], "errors": [],
@@ -125,6 +125,11 @@ def tree_fact(path: Path, *, inspect_source: bool = False) -> dict:
     latest = 0.0
     stack = [path]
     while stack:
+        if deadline is not None and time.monotonic() >= deadline:
+            fact["errors"].append({"path": str(path), "type": "ScanBudgetExceeded"})
+            fact["scanTimedOut"] = True
+            fact["unvisitedEntriesLowerBound"] = len(stack)
+            break
         current = stack.pop()
         try:
             info = current.lstat()
@@ -204,8 +209,11 @@ def process_matches(path: Path, rows: list[dict]) -> list[dict]:
     return matched
 
 
-def scan(repo: Path, scopes: list[Path] | None = None) -> dict:
+def scan(repo: Path, scopes: list[Path] | None = None, *, max_seconds: float = 900) -> dict:
     start = time.monotonic()
+    if not 0 < max_seconds <= 3600:
+        raise ValueError("Inventory budget must be between zero and 3600 seconds")
+    deadline = start + max_seconds
     config, grants, config_hash = load_grants(repo)
     observation = process_observation()
     rows = []
@@ -226,7 +234,8 @@ def scan(repo: Path, scopes: list[Path] | None = None) -> dict:
         if root.exists():
             try:
                 physical_literal(root)
-                row.update(tree_fact(root, inspect_source=row["category"] in {"handoff-evidence", "session-evidence", "state-evidence"}))
+                print(f"Inventorying {root}", file=sys.stderr, flush=True)
+                row.update(tree_fact(root, inspect_source=row["category"] in {"handoff-evidence", "session-evidence", "state-evidence"}, deadline=deadline))
                 row["kind"] = "directory" if root.is_dir() else "file"
             except (OSError, ValueError) as error:
                 row["scanError"] = str(error)
@@ -249,7 +258,8 @@ def scan(repo: Path, scopes: list[Path] | None = None) -> dict:
         for child in children:
             if scopes and not any(child == scope or child.is_relative_to(scope) or scope.is_relative_to(child) for scope in scopes):
                 continue
-            row = tree_fact(child, inspect_source=True)
+            print(f"Classifying {child}", file=sys.stderr, flush=True)
+            row = tree_fact(child, inspect_source=True, deadline=deadline)
             row["category"] = classify(child, repo)
             row["processReferences"] = process_matches(child, observation["rows"])
             row["cleanupDisposition"] = "preserve-owner-review-required"
@@ -265,6 +275,8 @@ def scan(repo: Path, scopes: list[Path] | None = None) -> dict:
             disks.append({"drive": drive, "error": type(error).__name__})
     facts = [row for row in rows if row.get("exists")]
     return {"schemaVersion": 1, "observedAtUtc": utc_now(), "repository": str(repo),
+            "complete": all(row.get("complete") is True for row in facts + output_items),
+            "scanBudgetSeconds": max_seconds, "timedOut": any(row.get("scanTimedOut") for row in facts + output_items),
             "configSha256": config_hash, "profile": config.get("default_permissions", "zircon-strict"),
             "inventoryScopeSource": ("permissions.zircon-strict.filesystem (audit scope only)"
                 if config.get("default_permissions") == ":danger-full-access" else "selected permission profile"),

@@ -188,6 +188,17 @@ class AuditTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "read budget"):
             audit.read_metadata(path)
 
+    def test_expired_directory_budget_cannot_report_zero_as_a_complete_scan(self):
+        path = self.repo / "retained-output"
+        path.mkdir()
+        (path / "preserved.txt").write_bytes(b"retained")
+        result = audit.inventory.tree_fact(path, deadline=-1)
+        self.assertFalse(result["complete"])
+        self.assertTrue(result["scanTimedOut"])
+        self.assertEqual(result["errors"][0]["type"], "ScanBudgetExceeded")
+        self.assertGreater(result["unvisitedEntriesLowerBound"], 0)
+        self.assertEqual((path / "preserved.txt").read_bytes(), b"retained")
+
     def test_compiler_accounting_uses_one_pool_and_excludes_source(self):
         root = Path("E:/cargo-targets/zircon-local/management/pools/identity")
         self.assertEqual(audit.inventory.compiler_unit(root / "target/debug/deps/a.rlib"), root)
