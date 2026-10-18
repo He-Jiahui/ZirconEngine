@@ -526,10 +526,84 @@ class OrdinaryFlowTests(unittest.TestCase):
                 self.assertFalse((source / "crate").exists())
                 self.assertEqual(original_times, (untouched.stat().st_mtime_ns, sibling.stat().st_mtime_ns))
                 self.assertEqual(2, preparation.verify_source(deleted, source, approved)["fileCount"])
+                # A case-only external rename changes identity, never its physical bytes.
+                case_only = copy.deepcopy(deleted)
+                case_external = case_only["external"][0]
+                case_external["manifest"]["entries"][0]["path"] = "binding/CARGO.toml"
+                case_external["sourceDigest"] = preparation.digest(case_external["manifest"])
+                sibling_identity = (sibling.stat().st_dev, sibling.stat().st_ino)
+                with patch.object(pools, "_atomic_copy", side_effect=AssertionError("Unchanged bytes were copied")), \
+                        patch.object(Path, "unlink", side_effect=AssertionError("Case-only input was deleted")):
+                    fifth = invoke("fifth", case_only)
+                self.assertEqual((fifth["changedFileCount"], fifth["preservedFileCount"]), (0, 2))
+                self.assertEqual(original_times, (untouched.stat().st_mtime_ns, sibling.stat().st_mtime_ns))
+                self.assertEqual(sibling_identity, (sibling.stat().st_dev, sibling.stat().st_ino))
+                self.assertEqual(2, preparation.verify_source(case_only, source, approved)["fileCount"])
+                old = state.get("preparation_source", "shared-preparation")["payload"]
+                self.assertIn("zr_vm/binding/CARGO.toml", old["ownedFiles"])
+                self.assertNotIn("zr_vm/binding/Cargo.toml", old["ownedFiles"])
+                ambiguous = {**old["ownedFiles"],
+                             "zr_vm/binding/Cargo.toml": old["ownedFiles"]["zr_vm/binding/CARGO.toml"]}
+                for before, after in ((ambiguous, {}), ({}, ambiguous)):
+                    with self.assertRaisesRegex(RuntimeError, "identities collide"):
+                        preparation._pool_update_files(before, after)
+
+                # Recreate an old partial journal: both case entries are false,
+                # and a different copy finished before its false bit was checkpointed.
+                from tools.jenkins.source.external_inputs import flattened
+                legacy_manifest = copy.deepcopy(case_only)
+                copied_bytes = b"[workspace]\n# copy completed before checkpoint\n"
+                legacy_manifest["entries"][1] = entry("Cargo.toml", copied_bytes)
+                external = legacy_manifest["external"][0]
+                external["manifest"]["entries"][0]["path"] = "binding/Cargo.toml"
+                external["sourceDigest"] = preparation.digest(external["manifest"])
+                normalized, desired = pools._manifest(flattened(legacy_manifest), namespace, approved)
+                legacy_files = [{"path": name, "oldHash": old["ownedFiles"].get(name),
+                                 "newHash": desired.get(name),
+                                 "applied": old["ownedFiles"].get(name) == desired.get(name)}
+                                for name in sorted(set(old["ownedFiles"]) | set(desired))]
+                legacy = {"executionId": "interrupted-case-update", "preparationKey": "shared-preparation",
+                          "sourceDigest": preparation.digest(legacy_manifest),
+                          "oldSourceDigest": old["sourceDigest"], "status": "updating",
+                          "files": legacy_files, "oldOwnedFiles": old["ownedFiles"], "ownedFiles": desired,
+                          "manifest": normalized, "manifestDigest": preparation.digest(normalized),
+                          "objectRoot": str(namespace), "createdAt": 1234.0}
+                prior = state.get("preparation_update", "shared-preparation")
+                original = state.put("preparation_update", "shared-preparation", legacy,
+                                     expected_version=prior["version"])
+                untouched.write_bytes(b"neither old nor new\n")
+                with self.assertRaisesRegex(RuntimeError, "unrecognised hash"):
+                    preparation._recover_pool(state, "shared-preparation", source.parent, namespace, approved)
+                self.assertEqual(original, state.get("preparation_update", "shared-preparation"))
+                untouched.write_bytes(copied_bytes)
+                with patch.object(pools, "_atomic_copy", side_effect=AssertionError("Checkpoint lag caused a second copy")), \
+                        patch.object(Path, "unlink", side_effect=AssertionError("Recovery deleted a case alias")):
+                    sixth = invoke("sixth", legacy_manifest)
+                self.assertTrue(sixth["reused"])
+                journal = state.get("preparation_update", "shared-preparation")["payload"]
+                self.assertEqual(journal["status"], "complete")
+                self.assertEqual(journal["ownedFiles"], desired)
+                self.assertEqual(journal["manifestDigest"], legacy["manifestDigest"])
+                evidence = journal["fileIdentityRecovery"]
+                self.assertEqual(evidence["originalVersion"], original["version"])
+                self.assertEqual(evidence["originalPayloadDigest"], preparation.digest(legacy))
+                self.assertEqual(evidence["originalFilesDigest"], preparation.digest(legacy_files))
+                self.assertEqual(evidence["caseFoldGroupCount"], 1)
+                recovered_alias = next(item for item in journal["files"]
+                                       if item["path"] == "zr_vm/binding/Cargo.toml")
+                self.assertEqual(recovered_alias["legacyEntries"],
+                    [{"index": index, "entry": item} for index, item in enumerate(legacy_files)
+                     if item["path"].casefold() == recovered_alias["path"].casefold()])
+                self.assertTrue(all(item["applied"] for item in journal["files"]))
+                self.assertTrue(all(not item["entry"]["applied"] for item in recovered_alias["legacyEntries"]))
+                self.assertEqual(sibling_identity, (sibling.stat().st_dev, sibling.stat().st_ino))
+                self.assertEqual(original_times[1], sibling.stat().st_mtime_ns)
+                self.assertEqual(copied_bytes, untouched.read_bytes())
+                self.assertEqual(2, preparation.verify_source(legacy_manifest, source, approved)["fileCount"])
                 # Unexpected files are retained and block acceptance.
                 (source / "foreign.rs").write_bytes(b"foreign\n")
                 with self.assertRaises(ValueError):
-                    preparation.verify_source(deleted, source, approved)
+                    preparation.verify_source(legacy_manifest, source, approved)
                 self.assertTrue((source / "foreign.rs").is_file())
 
     def test_materialization_rejects_corrupt_objects_and_invalid_closure_manifests(self):
@@ -2628,7 +2702,53 @@ class CommittedWorktreeSuccessorTests(unittest.TestCase):
     def test_committed_successor_preserves_dependencies_and_next_reboot_anchor(self):
         with self.fixture() as f:
             actor, state = f.actor, f.state
-            result = actor._dispatch()
+            # The current independent S4U owner is not the historical keeper runtime.
+            from tools.jenkins.deployment import drain_observations
+            retirement = state.get("management_operation", f.retirement_key)
+            retired = state.get("managed_worktree_reader_retirement", f.reference)
+            native_owner = {"operationId": "current-runtime", "driverDigest": actor.config["driverDigest"]}
+            recovery_request = {"schemaVersion": 1, "kind": "cancelled-before-native-launch-v1",
+                "executionId": "1" * 32, "recipeRef": "2" * 64, "originalIdentity": {"requestId": "product"},
+                "terminalRef": {"path": "fixture-terminal", "sha256": "3" * 64},
+                "successor": {"originalLogicalTaskId": "product", "requestId": "product-attempt2",
+                              "runtimeOperationId": "current-runtime"}}
+            recovery_digest = preparation.digest(recovery_request)
+            retire_payload = {"unlaunchedRecovery": recovery_request}
+            retire_digest = preparation.digest(retire_payload)
+            proof = {"schemaVersion": 1, "kind": recovery_request["kind"], "status": "complete",
+                "executionId": recovery_request["executionId"], "currentSourceRef": f.reference,
+                "originalRuntimeOperationId": "old-runtime", "recoveredBy": f.retirement_key,
+                "inputDigest": retire_digest, "recoveryDigest": recovery_digest,
+                "successor": recovery_request["successor"], "serviceOwner": native_owner,
+                "nativeLaunchIssued": False, "nativeTerminationProofCreated": False,
+                "resourceReleaseEvidence": "durable_unlaunched", "terminalPins": retired["payload"]["terminalPins"],
+                "worktreeWriter": {"sessionId": actor.session, "principal": f.old_record["writerPrincipal"],
+                    "snapshotDigest": f.old_record["writerAuthorizationSnapshot"], "ownedPaths": actor.owned}}
+            state.put("unlaunched_flow_recovery", recovery_request["executionId"], proof, expected_version=0)
+            state.put("management_operation", f.retirement_key,
+                {**retirement["payload"], "payload": retire_payload, "inputDigest": retire_digest,
+                 "result": {**retirement["payload"]["result"], "cancelledBeforeNativeLaunch": True,
+                    "executionId": recovery_request["executionId"], "recoveryDigest": recovery_digest,
+                    "successor": recovery_request["successor"], "runtimeOperationId": native_owner["operationId"],
+                    "driverDigest": native_owner["driverDigest"]}},
+                expected_version=retirement["version"])
+            state.put("managed_worktree_reader_retirement", f.reference,
+                {**retired["payload"], "retirementKind": recovery_request["kind"], "requestStatus": "cancelled",
+                 "acceptanceSynthesized": False, "recoveryExecutionId": recovery_request["executionId"],
+                 "recoveryDigest": recovery_digest}, expected_version=retired["version"])
+            preserved = {domain: state.list(domain) for domain in (
+                "unlaunched_flow_recovery", "managed_worktree_reader_retirement", "management_operation")}
+            actor.worktree_resume_lineage.side_effect = AssertionError("Historical keeper cannot represent current S4U")
+            def observe(manager, *, expected):
+                self.assertIs(manager, actor.manager)
+                self.assertEqual(native_owner, expected)
+                return expected
+            with patch.object(drain_observations, "owner_observation", side_effect=observe) as owner:
+                result = actor._dispatch()
+            self.assertEqual(2, owner.call_count, "Verify the actual owner before and after source capture")
+            actor.worktree_resume_lineage.assert_not_called()
+            self.assertEqual(preserved, {domain: state.list(domain) for domain in preserved})
+            actor.worktree_resume_lineage.side_effect = None
             self.assertEqual(1, actor.source.call_count, "Publish exactly the captured source, without rescanning it")
             record = state.get("management_worktree", "writer-work")["payload"]
             self.assertTrue(record["reusedPhysicalWorktree"])
@@ -2657,6 +2777,8 @@ class CommittedWorktreeSuccessorTests(unittest.TestCase):
             self.assertEqual("next-runtime", resumed["runtimeOperationId"])
             self.assertEqual(result, state.get("management_operation", previous_key)["payload"]["result"])
             self.assertEqual(f.original, state.get("management_operation", f.original_key)["payload"])
+            self.assertEqual(1, actor.worktree_resume_lineage.call_count,
+                             "Ordinary next-runtime metadata resume retains its original keeper path")
 
     def test_committed_successor_drift_is_rejected_before_capture_or_worktree_cas(self):
         from tools.jenkins.contracts import JenkinsError
