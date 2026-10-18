@@ -44,6 +44,10 @@ class CiGatesContractTests(unittest.TestCase):
             self.assertRegex(gate, rf"(?m)^        run: ./\.github/scripts/invoke-cargo-msvc\.ps1 {re.escape(command)}$")
         self.assertIn("-StorageRoot 'D:\\cargo-targets\\zircon-local'", gate)
         self.assertLess(gate.index("prepare-cargo-roots.ps1"), gate.index("uses: dtolnay/rust-toolchain@"))
+        preparation = re.search(r"(?ms)^      - name: Require physical managed Cargo volume\n(.*?)(?=^      - |\Z)", gate).group(1)
+        self.assertIn("TEMP: ${{ runner.temp }}", preparation)
+        self.assertIn("TMP: ${{ runner.temp }}", preparation)
+        self.assertIn("-BootstrapTemp", preparation)
         for variable in ("CARGO_HOME", "RUSTUP_HOME", "CARGO_TARGET_DIR", "CARGO_BUILD_BUILD_DIR", "TEMP", "TMP"):
             self.assertRegex(gate, rf"(?m)^      {variable}: D:\\cargo-targets\\zircon-local\\ci\\runs\\.*github.run_id.*github.run_attempt.*editor-compile-gate-0\\")
 

@@ -733,3 +733,32 @@ TOML/PBM and a catalog `plugin.toml` in turn and require invalidation. Test targ
 that embed a ZUI may rebuild themselves; the non-test editor library is the M9
 contract. Use the staged preview from the launch guide to verify actual ZUI hot
 reload; no build/GUI execution is claimed on this Linux host.
+
+## First hosted execution and source-gate repair (C2 follow-up)
+
+[CI run 39137233487](https://github.com/He-Jiahui/ZirconEngine/actions/runs/39137233487)
+executed `editor-compile-gate` for about 46 seconds, rather than skipping it.
+It failed at the existing-output guard before Rust installation. The job launched
+PowerShell with its not-yet-initialized managed TEMP/TMP; startup created the
+fresh run directory before the script's ownership check. Preparation now starts
+PowerShell in `runner.temp`, verifies that bootstrap identity, and changes only
+TEMP/TMP to the checked run root inside the script. All compilation still uses
+approved physical storage. Existing output is still rejected and reported,
+never deleted, adopted or silently reused. A new workflow contract covers this
+startup ordering. Subsequent hosted execution remains the behavioral verification.
+
+The same run exposed three generated R111 receipts force-added by the merged
+main change despite the repository's existing generated-audit ignore policy.
+Remove those paths from the source index, retaining their exact working files
+in the ignored original locations and retaining their originals in Git history
+at `53758e174`. No receipt bytes or retired runtime data are deleted. No Markdown
+references target those JSON files. Their retained identities are:
+
+| File under `docs/plans/source-comments/reviews` | Bytes | SHA-256 |
+| --- | ---: | --- |
+| `r111.json` | 75,425 | `d118b7aaab2805814d5a033a2854ed6e0c1e77fb0c5f8aed288b8e76115664cd` |
+| `r111-main.json` | 22,458 | `8fd2e90335bfe14bb48791b470b7d3d3a47156495fea4d04292a5858b262050f` |
+| `r111-post-validation.json` | 354,278 | `3f47a5ab6af074f49db73fe804039f9811fb37f71183087306648f16de405f8b` |
+
+The existing tracked-file ignore assertion remains unchanged. The config overlay,
+Claude PID 1372178 and Codex PID 100961 remain outside this repair.

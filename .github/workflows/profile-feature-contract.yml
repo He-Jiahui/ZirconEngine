@@ -87,8 +87,11 @@ jobs:
           persist-credentials: false
 
       - name: Prepare physical output roots
+        env:
+          TEMP: ${{ runner.temp }}
+          TMP: ${{ runner.temp }}
         shell: pwsh
-        run: ./.github/scripts/prepare-cargo-roots.ps1
+        run: ./.github/scripts/prepare-cargo-roots.ps1 -BootstrapTemp
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@75be91dd2711b583df57c31d0873b4145c89f1d9

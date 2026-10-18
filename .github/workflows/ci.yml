@@ -56,8 +56,11 @@ jobs:
         with:
           persist-credentials: false
       - name: Require physical managed Cargo volume
+        env:
+          TEMP: ${{ runner.temp }}
+          TMP: ${{ runner.temp }}
         shell: pwsh
-        run: ./.github/scripts/prepare-cargo-roots.ps1 -StorageRoot 'D:\cargo-targets\zircon-local'
+        run: ./.github/scripts/prepare-cargo-roots.ps1 -StorageRoot 'D:\cargo-targets\zircon-local' -BootstrapTemp
       - name: Install pinned Rust toolchain
         uses: dtolnay/rust-toolchain@75be91dd2711b583df57c31d0873b4145c89f1d9
         with:
@@ -97,6 +100,9 @@ jobs:
         run: |
           python -B .github/tests/test_ci_gates_contract.py
           python -B .github/tests/test_runner_availability.py
+
+      - name: Test editor build input boundaries
+        run: python -B -m unittest tools.tests.test_editor_build_inputs -v
 
       - name: Test Cargo test-reachability guard
         run: python -m unittest tools.tests.test_validate_cargo_test_reachability -v
@@ -146,8 +152,11 @@ jobs:
         with:
           persist-credentials: false
       - name: Prepare physical output roots
+        env:
+          TEMP: ${{ runner.temp }}
+          TMP: ${{ runner.temp }}
         shell: pwsh
-        run: ./.github/scripts/prepare-cargo-roots.ps1
+        run: ./.github/scripts/prepare-cargo-roots.ps1 -BootstrapTemp
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
         with:
           python-version: '3.11'
@@ -196,8 +205,11 @@ jobs:
           persist-credentials: false
 
       - name: Prepare physical output roots
+        env:
+          TEMP: ${{ runner.temp }}
+          TMP: ${{ runner.temp }}
         shell: pwsh
-        run: ./.github/scripts/prepare-cargo-roots.ps1
+        run: ./.github/scripts/prepare-cargo-roots.ps1 -BootstrapTemp
 
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
         with:
@@ -264,8 +276,11 @@ jobs:
           persist-credentials: false
 
       - name: Prepare physical output roots
+        env:
+          TEMP: ${{ runner.temp }}
+          TMP: ${{ runner.temp }}
         shell: pwsh
-        run: ./.github/scripts/prepare-cargo-roots.ps1
+        run: ./.github/scripts/prepare-cargo-roots.ps1 -BootstrapTemp
 
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
         with:
@@ -321,8 +336,11 @@ jobs:
           persist-credentials: false
 
       - name: Prepare physical output roots
+        env:
+          TEMP: ${{ runner.temp }}
+          TMP: ${{ runner.temp }}
         shell: pwsh
-        run: ./.github/scripts/prepare-cargo-roots.ps1
+        run: ./.github/scripts/prepare-cargo-roots.ps1 -BootstrapTemp
 
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
         with:
@@ -367,8 +385,11 @@ jobs:
           python-version: '3.11'
 
       - name: Prepare physical output roots
+        env:
+          TEMP: ${{ runner.temp }}
+          TMP: ${{ runner.temp }}
         shell: pwsh
-        run: ./.github/scripts/prepare-cargo-roots.ps1
+        run: ./.github/scripts/prepare-cargo-roots.ps1 -BootstrapTemp
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@75be91dd2711b583df57c31d0873b4145c89f1d9
@@ -503,8 +524,11 @@ jobs:
         with:
           python-version: '3.11'
       - name: Prepare physical output roots
+        env:
+          TEMP: ${{ runner.temp }}
+          TMP: ${{ runner.temp }}
         shell: pwsh
-        run: ./.github/scripts/prepare-cargo-roots.ps1
+        run: ./.github/scripts/prepare-cargo-roots.ps1 -BootstrapTemp
       - name: Install pinned Zig Linux C/C++ cross tools
         shell: pwsh
         run: ./.github/scripts/install-zig-linux-tools.ps1
@@ -638,8 +662,11 @@ jobs:
         with:
           python-version: '3.11'
       - name: Prepare physical output roots
+        env:
+          TEMP: ${{ runner.temp }}
+          TMP: ${{ runner.temp }}
         shell: pwsh
-        run: ./.github/scripts/prepare-cargo-roots.ps1
+        run: ./.github/scripts/prepare-cargo-roots.ps1 -BootstrapTemp
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@75be91dd2711b583df57c31d0873b4145c89f1d9
         with:
@@ -787,8 +814,11 @@ jobs:
           python-version: '3.11'
 
       - name: Prepare physical output roots
+        env:
+          TEMP: ${{ runner.temp }}
+          TMP: ${{ runner.temp }}
         shell: pwsh
-        run: ./.github/scripts/prepare-cargo-roots.ps1
+        run: ./.github/scripts/prepare-cargo-roots.ps1 -BootstrapTemp
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@75be91dd2711b583df57c31d0873b4145c89f1d9
@@ -834,8 +864,11 @@ jobs:
           python-version: '3.11'
 
       - name: Prepare physical output roots
+        env:
+          TEMP: ${{ runner.temp }}
+          TMP: ${{ runner.temp }}
         shell: pwsh
-        run: ./.github/scripts/prepare-cargo-roots.ps1
+        run: ./.github/scripts/prepare-cargo-roots.ps1 -BootstrapTemp
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@75be91dd2711b583df57c31d0873b4145c89f1d9

@@ -57,8 +57,11 @@ jobs:
           "CARGO_TARGET_DIR=D:\cargo-targets\zircon-local\ci\cache\mvp-1.94.1\$lockHash\$env:GITHUB_JOB\target" | Add-Content -LiteralPath $env:GITHUB_ENV -Encoding utf8
 
       - name: Require physical managed Cargo volume
+        env:
+          TEMP: ${{ runner.temp }}
+          TMP: ${{ runner.temp }}
         shell: pwsh
-        run: ./.github/scripts/prepare-cargo-roots.ps1 -StorageRoot 'D:\cargo-targets\zircon-local' -UseMvpTargetCache
+        run: ./.github/scripts/prepare-cargo-roots.ps1 -StorageRoot 'D:\cargo-targets\zircon-local' -UseMvpTargetCache -BootstrapTemp
 
       - name: Restore lockfile-scoped Cargo target
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
@@ -142,8 +145,11 @@ jobs:
           "CARGO_TARGET_DIR=D:\cargo-targets\zircon-local\ci\cache\mvp-1.94.1\$lockHash\$env:GITHUB_JOB\target" | Add-Content -LiteralPath $env:GITHUB_ENV -Encoding utf8
 
       - name: Require physical managed Cargo volume
+        env:
+          TEMP: ${{ runner.temp }}
+          TMP: ${{ runner.temp }}
         shell: pwsh
-        run: ./.github/scripts/prepare-cargo-roots.ps1 -StorageRoot 'D:\cargo-targets\zircon-local' -UseMvpTargetCache
+        run: ./.github/scripts/prepare-cargo-roots.ps1 -StorageRoot 'D:\cargo-targets\zircon-local' -UseMvpTargetCache -BootstrapTemp
 
       - name: Restore lockfile-scoped Cargo target
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
@@ -300,8 +306,11 @@ jobs:
           "CARGO_TARGET_DIR=D:\cargo-targets\zircon-local\ci\cache\mvp-1.94.1\$lockHash\$env:GITHUB_JOB\target" | Add-Content -LiteralPath $env:GITHUB_ENV -Encoding utf8
 
       - name: Require physical managed Cargo volume
+        env:
+          TEMP: ${{ runner.temp }}
+          TMP: ${{ runner.temp }}
         shell: pwsh
-        run: ./.github/scripts/prepare-cargo-roots.ps1 -StorageRoot 'D:\cargo-targets\zircon-local' -UseMvpTargetCache
+        run: ./.github/scripts/prepare-cargo-roots.ps1 -StorageRoot 'D:\cargo-targets\zircon-local' -UseMvpTargetCache -BootstrapTemp
 
       - name: Restore lockfile-scoped Cargo target
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830

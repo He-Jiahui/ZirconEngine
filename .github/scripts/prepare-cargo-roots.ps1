@@ -2,7 +2,8 @@ param(
     [ValidateSet('D:\cargo-targets\zircon-local', 'E:\cargo-targets\zircon-local', 'F:\cargo-targets\zircon-local')]
     [string]$StorageRoot = 'E:\cargo-targets\zircon-local',
     [switch]$UseMvpTargetCache,
-    [switch]$VerifyOnly
+    [switch]$VerifyOnly,
+    [switch]$BootstrapTemp
 )
 
 $ErrorActionPreference = 'Stop'
@@ -53,6 +54,7 @@ if ((Split-Path $runRoot -Parent) -ne $runPrefix -or $lane -notmatch '^[a-z0-9-]
 }
 Assert-NoReparseAncestors $runRoot
 if (-not $VerifyOnly -and (Test-Path -LiteralPath $runRoot)) {
+    Get-ChildItem -LiteralPath $runRoot -Force | Select-Object Name, Attributes | Out-String | Write-Output
     throw "Refusing to reuse a prior CI output tree: $runRoot"
 }
 $fixedRoots = @{
@@ -63,6 +65,16 @@ $fixedRoots = @{
 }
 foreach ($name in $fixedRoots.Keys) {
     $actual = Get-NormalPath ([Environment]::GetEnvironmentVariable($name))
+    if ($BootstrapTemp -and $name -in @('TEMP', 'TMP')) {
+        if ($VerifyOnly -or $env:GITHUB_ACTIONS -ne 'true' -or
+            $actual -ne (Get-NormalPath $env:RUNNER_TEMP)) {
+            throw 'Bootstrap temporary paths must use the Actions runner temp directory.'
+        }
+        # pwsh initializes its temporary directory before executing this file.
+        # Start it in runner.temp, then switch to the validated fresh run root.
+        $actual = $fixedRoots[$name]
+        [Environment]::SetEnvironmentVariable($name, $actual)
+    }
     if ($actual -ne $fixedRoots[$name]) { throw "$name escaped its isolated run root" }
     Assert-NoReparseAncestors $actual
 }

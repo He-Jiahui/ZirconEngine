@@ -13,6 +13,11 @@ toolchain installation. Missing approved physical storage is a failure, with no
 fallback directory. The image name is pinned; its concrete image version and
 compiler identity are printed in the job log.
 
+The preparation shell starts with `runner.temp` for TEMP/TMP so PowerShell startup
+cannot pre-create the managed run directory. `-BootstrapTemp` verifies that
+identity and switches the script to the checked run paths. Subsequent commands
+use the job's managed TEMP/TMP. The fresh-tree check remains enforced.
+
 ## Portable contract checks
 
 From the repository root on Linux or Windows (Python 3.11+):
