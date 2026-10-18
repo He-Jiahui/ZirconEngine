@@ -375,7 +375,9 @@ compliance here is not evidence of sandbox enforcement.
 | M2 | Real severity/notification counts and per-kind snap projection implemented. Rust tests/rendered spacing pending. |
 | M3 | Bounded readiness and immutable startup presenter selection implemented. Real driver latency/idle/presenter tests pending. |
 | M4 | Degradation warning/banner/counters and per-Play-start warning implemented. Inline adapter projection remains deferred below. |
-| M5, M6, M7 | Q/W/E/R commands added. Open: fly/Alt navigation, broader authoring/reflection/asset-drop verbs, and main-window docking integration. |
+| M5 | Q/W/E/R commands added. Fly/Alt navigation and speed controls explicitly deferred below. |
+| M6 | Clipboard/duplicate/visibility/lock, asset placement and generalized Details explicitly deferred below; hierarchy-local rename remains. |
+| M7 | Main-window docking migration explicitly deferred to O3 after O0 acceptance. |
 | M8 | Controller-derived run admission/state implemented. Pause/Step/Eject and asynchronous state UI remain open. |
 | M9 | Deferred at the report's `zircon_editor/build.rs` authorization checkpoint. |
 | M10 | New operator tests use behavior, and obsolete presenter guards were removed. Startup happy-path tooling exists; Rust tests, real automation and CI wiring are pending. |
@@ -383,12 +385,11 @@ compliance here is not evidence of sandbox enforcement.
 | L1 | New operator module denies warnings; some touched unused bindings removed. Broad warning/clippy debt remains. |
 | L2 | Pointer-origin/unknown-wheel behavior repaired; Rust regression execution pending. |
 | L4 | Existing beta pinned exactly. Stable migration and native lifecycle acceptance pending. |
-| L6 | Open: current-shell 100/150% DPI captures, text-spacing rendering regression and asset-summary investigation. |
+| L6 | Added actual-painter U+0020 regression coverage and traced asset-summary counts. Rust execution and current-shell 100/150% DPI captures remain pending. |
 
-Reusable local evidence: the Penpot compiler/export batch has **25 passing Node
-tests**. The original Python startup/storage batch had **9 passes and 15
-Windows-only skips**; after the final presenter-evidence change, all **5 focused
-startup-smoke tests pass**. Preview-feedback lint and structural TOML/AST/diff
+Reusable local evidence: the Penpot compiler/export batch has **27 passing Node
+tests**. The final Python startup/storage batch ran **25 tests: 10 passed and 15
+Windows-only skipped**. Preview-feedback lint and structural TOML/AST/diff
 checks passed in the relevant batches. Rust AST inspection is syntax evidence,
 not type checking, compilation or execution.
 
@@ -431,7 +432,7 @@ treat AST parsing as a compile pass. In addition to the Critical Windows batch:
 
 ```powershell
 & tools/dev/local-cargo.ps1 -TargetDir $t test -p zircon_editor --lib core::commands --locked
-& tools/dev/local-cargo.ps1 -TargetDir $t test -p zircon_editor --lib types_target_serialization_tests --locked
+& tools/dev/local-cargo.ps1 -TargetDir $t test -p zircon_editor --lib target_serialization_tests --locked
 & tools/dev/local-cargo.ps1 -TargetDir $t test -p zircon_editor --lib editor_event_execution::viewport_event --locked
 & tools/dev/local-cargo.ps1 -TargetDir $t test -p zircon_editor --lib event_bridge --locked
 & tools/dev/local-cargo.ps1 -TargetDir $t test -p zircon_editor --lib dispatch::common::effects --locked
@@ -518,3 +519,112 @@ Editor gateway have no cheap immutable selected-device summary. Profiling RPC is
 not an always-on UI adapter authority, and standalone chrome can select a different
 device from Runtime. Runtime logs keep the actual adapter evidence; a proper UI
 summary must identify both devices without guessing from the requested backend.
+
+## Remaining Medium/Low dispositions (2026-10-18)
+
+These are explicit deferrals, not completed features or additional permission
+requests. Protected CI/build-gate work remains C2/M1/L7/M9 as recorded above.
+
+- **M5:** defer held-key fly, Alt navigation and camera speed. `ViewportInput`
+  currently has pointer/resize events only; Scene Modes run before camera input,
+  and the Game view has a separate runtime keyboard/focus path. A coherent change
+  must route key down/up/modifiers to the correct Scene, clear held state on
+  capture/focus loss, tick movement with elapsed time, and preserve SIE and
+  text-field routing. It needs executable controller/focus tests and the real
+  CameraFly timing scenario, unavailable on this host. The registered Q/W/E/R
+  tools are the landed subset; no unused fly-input variants or speed UI are added.
+- **M6:** defer the remaining authoring expansion. `EditorIntent` supports
+  create/delete/rename/reparent/transform/inspector edits, but has no clipboard,
+  duplicate or visibility/lock operations. Duplication and asset placement need
+  stable node/component identity and resource-reference remapping, atomic history
+  replay and selection restoration. Generalized Details also needs reflected
+  property writes, defaults and multi-selection transactions. The existing
+  hierarchy rename draft lifecycle remains available. Adding menu bindings alone
+  would advertise missing executors; land each real operation with executable
+  undo/redo tests and L1/L2 automation before exposing it.
+- **M7:** defer the main-window migration to O3. The legacy `main_band`/`right_dock`
+  is still a fixed template; existing `WorkbenchLayout` tab/split/persistence
+  machinery does not make those panes movable by itself. It needs role-bound
+  panel identities, drag/floating ownership and persisted-layout restoration in
+  the generated shell. O0 is unaccepted and no real Penpot bundle is available,
+  so a parallel handwritten operator shell would bypass the agreed migration.
+- **M8:** the controller-derived admission/projection repair is landed; Pause,
+  Step, Eject/Possess and asynchronous state UI stay deferred with H5's lifecycle
+  and runtime time/possession contracts.
+- **M10:** new operator tests exercise parsed contracts and command state; there
+  are **zero Rust-source `include_str!` guards** under `ui/operator`. Preserve
+  legacy guards until their code is actually replaced. The first-frame smoke
+  exists, but real GUI editing automation and its MVP-lane run are deferred:
+  this host cannot launch the Windows product, and lane wiring is protected.
+- **L1:** `ui/operator` denies warnings and the previously identified unused
+  bindings were removed. Broad warning burn-down stays deferred until current
+  Rust 1.94.1 diagnostics are available; the old warning totals are not a current
+  baseline. Do not suppress warnings or remove apparently unused feature-gated
+  code without checking the supported feature closure.
+- **L2–L5:** source repairs remain as recorded above. Rust/native acceptance,
+  especially a future winit stable migration, remains pending.
+
+Windows follow-up for M5/M6/M7/L1, after the Critical batch:
+
+```powershell
+& tools/dev/local-cargo.ps1 -TargetDir $t test -p zircon_editor --lib scene::viewport::controller --locked
+& tools/dev/local-cargo.ps1 -TargetDir $t test -p zircon_editor --lib editing --locked
+& tools/dev/local-cargo.ps1 -TargetDir $t test -p zircon_editor --lib ui::workbench::layout --locked
+& tools/dev/local-cargo.ps1 -TargetDir $t test -p zircon_editor --lib ui::operator --locked
+& tools/dev/local-cargo.ps1 -TargetDir $t clippy -p zircon_editor --lib --locked -- -D warnings
+```
+
+Passing existing tests would establish a baseline, not acceptance of the deferred
+features. After implementing them, run the review's CameraFly and L1–L4 scenarios;
+drag Details below the viewport, restart and verify layout persistence.
+
+## Text spacing and asset-summary investigation (L6, 2026-10-18)
+
+The new `retained_text_label_preserves_u0020_advance_in_painted_pixels` regression
+uses the actual retained painter and in-memory RGBA frames at 100%/150% label
+sizes. It checks that one and two U+0020 spaces move the following glyph by their
+measured advances without moving the first glyph. It does not export a synthetic
+frame as current-shell evidence. Both changed Rust files passed AST parsing and
+Change Guard content scan with no findings; the Rust test has **not executed**.
+
+The old literal `4 assets in ui` is absent from the current asset browser. The
+current `asset_browser.rs` catalog summary uses the visible folder/asset counts.
+Its selected-folder header instead uses `selected_folder_breadcrumb` and the
+catalog's recursive asset count. `AssetWorkspaceState::build_snapshot` filters
+the visible list independently, so the folder total need not equal a filtered
+list or the number of materialized tiles. Existing breadcrumb behavior tests
+cover the catalog count and parent-chain precedence. This trace does not reproduce
+or establish the cause of the historical screenshot mismatch; keep the visual
+count check pending rather than change a count authority speculatively.
+
+```powershell
+& tools/dev/local-cargo.ps1 -TargetDir $t test -p zircon_editor --lib retained_text_label_preserves_u0020 --locked
+& tools/dev/local-cargo.ps1 -TargetDir $t test -p zircon_editor --lib selected_folder_breadcrumb --locked
+```
+
+Current-shell captures remain deferred to a real Windows GPU/DPI host. After the
+staged preview in [the launch guide](run-editor-locally.md), use the existing
+source-bound visual runner. Populate `$visualArgs` from the actual managed build
+and prepared normal-frame case inputs: `BundleDirectory`, `ProjectRoot`,
+`ExpectedEditorSha256`, `ExpectedRuntimeSha256`, `ExpectedSourceSha256`,
+`NormalFrameCaseProducerConfiguration` and `NormalFrameContractConfiguration`.
+The expected source hash must be captured **before** that build. Run each command
+on a display at its corresponding real Windows scale, using fresh output paths:
+
+```powershell
+& tools/analysis/visual/capture-editor-ui-visual.ps1 @visualArgs -DpiProfile '100' -OutputDirectory 'E:\cargo-targets\zircon-local\claude-review-20261017-dpi100'
+& tools/analysis/visual/capture-editor-ui-visual.ps1 @visualArgs -DpiProfile '150' -OutputDirectory 'E:\cargo-targets\zircon-local\claude-review-20261017-dpi150'
+```
+
+Review spacing, hierarchy overlap/truncation and unfiltered/filtered folder counts
+against the published snapshot; retain source/binary hashes and pixel-association
+receipts with dated PNGs. No new screenshots, Rust execution, O0 acceptance or
+Penpot milestone acceptance are claimed by this Linux follow-up.
+
+Final scoped static review: Change Guard `scan` passed on all **24 changed Rust
+files since the main merge**, including the new test, with zero errors, warnings
+or suppressions. This content/reachability scan omits write-grant validation;
+the Linux config stub has no `zircon-strict` profile, so it cannot supply a full
+agent patch-mode permission check. Documentation links/fences/finding coverage
+and `git diff --check` also passed. The original stash and idle PID 100961 remain
+preserved.
