@@ -142,6 +142,15 @@ members = [
 ]
 resolver = "2"
 
+# Dependency workspace profiles do not apply to this independent workspace.
+[profile.dev]
+debug = 0
+incremental = false
+
+[profile.test]
+debug = 0
+incremental = false
+
 [profile.profiling]
 inherits = "release"
 debug = true

@@ -11,6 +11,15 @@ members = [
 ]
 resolver = "2"
 
+# Dependency workspace profiles do not apply to this independent workspace.
+[profile.dev]
+debug = 0
+incremental = false
+
+[profile.test]
+debug = 0
+incremental = false
+
 [workspace.package]
 version = "0.1.0"
 edition = "2021"
