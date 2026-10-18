@@ -27,8 +27,9 @@ $taskSourcePath = Join-Path $taskRepo 'tools/jenkins-management/zircon-scheduled
 $taskCacheSourcePath = Join-Path $taskRepo 'tools/jenkins-management/incremental-cache-cleanup.groovy'
 $taskCacheModulePath = Join-Path $taskRepo 'tools/jenkins-management/incremental_cache_cleanup.py'
 $taskBindingPath = Join-Path $taskRepo 'tools/dev/jenkins_cleanup_runtime.py'
+$taskControlPath = Join-Path $taskRepo 'tools/jenkins-management/scheduled_control.py'
 $taskPythonPath = Join-Path $taskRepo '.jenkins/runtime/python/python.exe'
-foreach ($taskInput in @($taskSourcePath, $taskCacheSourcePath, $taskCacheModulePath, $taskBindingPath, $taskPythonPath, $taskSteps, $taskLauncher)) {
+foreach ($taskInput in @($taskSourcePath, $taskCacheSourcePath, $taskCacheModulePath, $taskBindingPath, $taskControlPath, $taskPythonPath, $taskSteps, $taskLauncher)) {
     if (-not (Test-Path -LiteralPath $taskInput -PathType Leaf)) { throw 'Scheduled cleanup implementation is missing' }
     $taskCursor = $taskInput
     while ($taskCursor) {
@@ -58,6 +59,37 @@ if ((Get-FileHash -LiteralPath $taskCacheModulePath -Algorithm SHA256).Hash.ToLo
     throw 'Rendered incremental cleanup source, scope or implementation pin differs'
 }
 $taskSource = [string]$taskCacheRender.script + [Environment]::NewLine + $taskSource
+$taskControlDigest = (Get-FileHash -LiteralPath $taskControlPath -Algorithm SHA256).Hash.ToLowerInvariant()
+$taskControlLines = & $taskPythonPath -B -X utf8 $taskControlPath render --driver $ExpectedDriverDigest --runtime $ExpectedRuntimeOperationId
+if ($LASTEXITCODE -ne 0) { throw 'Cannot render scheduled control dependency plan' }
+$taskControlRender = ($taskControlLines -join [Environment]::NewLine) | ConvertFrom-Json
+if ((Get-FileHash -LiteralPath $taskControlPath -Algorithm SHA256).Hash.ToLowerInvariant() -ne $taskControlDigest -or
+    [string]$taskControlRender.sha256 -notmatch '^[0-9a-f]{64}$') { throw 'Scheduled control source/plan changed' }
+$taskControlPlanRoot = 'E:/cargo-targets/zircon-local/reports/jenkins-scheduled-cleanup/control-plans'
+$taskControlCursor = $taskControlPlanRoot
+while ($taskControlCursor) {
+    if ((Test-Path -LiteralPath $taskControlCursor) -and
+        ((Get-Item -LiteralPath $taskControlCursor -Force).Attributes -band [IO.FileAttributes]::ReparsePoint)) {
+        throw 'Scheduled control plan path contains an alias'
+    }
+    $taskControlCursor = [IO.Path]::GetDirectoryName($taskControlCursor)
+}
+[void][IO.Directory]::CreateDirectory($taskControlPlanRoot)
+$taskControlPlan = Join-Path $taskControlPlanRoot ([string]$taskControlRender.sha256 + '.json')
+$taskControlLedger = $taskControlPlan + '.artifacts.json'
+if (-not (Test-Path -LiteralPath $taskControlLedger)) {
+    [IO.File]::WriteAllText($taskControlLedger, (ConvertTo-Json -Depth 8 -InputObject @{
+        owner = $SessionId; status = 'retained-deployment-dependency'; path = $taskControlPlan;
+        source = $taskControlPath; sourceSha256 = $taskControlDigest;
+        retention = 'Keep while current timer references this plan; preserve original native/response receipts'
+    }), [Text.UTF8Encoding]::new($false))
+}
+if (-not (Test-Path -LiteralPath $taskControlPlan)) {
+    [IO.File]::WriteAllText($taskControlPlan, [string]$taskControlRender.planJson, [Text.UTF8Encoding]::new($false))
+}
+if ((Get-FileHash -LiteralPath $taskControlPlan -Algorithm SHA256).Hash.ToLowerInvariant() -ne [string]$taskControlRender.sha256) {
+    throw 'Original scheduled control plan bytes differ'
+}
 $taskSourceDigest = (Get-FileHash -LiteralPath $taskSourcePath -Algorithm SHA256).Hash.ToLowerInvariant()
 $taskEnvironment = [ordered]@{
     ZIRCON_REPO_ROOT = $taskRepo
@@ -71,6 +103,10 @@ $taskEnvironment = [ordered]@{
     ZIRCON_AGENT_LABEL = 'zircon-windows-agent'
     ZIRCON_CLEANUP_BINDING_SHA256 = (Get-FileHash -LiteralPath $taskBindingPath -Algorithm SHA256).Hash.ToLowerInvariant()
     ZIRCON_CLEANUP_PYTHON_SHA256 = (Get-FileHash -LiteralPath $taskPythonPath -Algorithm SHA256).Hash.ToLowerInvariant()
+    ZIRCON_SCHEDULED_CONTROL_ENTRY = $taskControlPath
+    ZIRCON_SCHEDULED_CONTROL_SHA256 = $taskControlDigest
+    ZIRCON_SCHEDULED_CONTROL_PLAN = $taskControlPlan
+    ZIRCON_SCHEDULED_CONTROL_PLAN_SHA256 = [string]$taskControlRender.sha256
     PYTHONDONTWRITEBYTECODE = '1'
 }
 # Repository identity matches the default CLI: contracts.digest(casefolded absolute root).
