@@ -388,7 +388,7 @@ compliance here is not evidence of sandbox enforcement.
 | L2 | Pointer-origin/unknown-wheel behavior repaired; Rust regression execution pending. |
 | L4 | Existing beta pinned exactly. Stable migration and native lifecycle acceptance pending. |
 | L6 | Added actual-painter U+0020 regression coverage and traced asset-summary counts. Rust execution and current-shell 100/150% DPI captures remain pending. |
-| L7 | Hosted images and direct Node-24 actions pinned; toolchain input corrected. A transitive Pages upload warning exposed by hosted execution is being repaired below. |
+| L7 | Hosted images, direct and transitive Pages actions pinned to Node-24 revisions; toolchain input corrected. Final hosted annotation verification pending. |
 
 Reusable local evidence: the Penpot compiler/export batch has **27 passing Node
 tests**. The final Python startup/storage batch ran **25 tests: 10 passed and 15
@@ -863,3 +863,23 @@ This advances O2's compiler contract. Actual Penpot Foundations/Components files
 engine-schema loading, plugin type checking/build and native design parity remain
 pending. O0 is unaccepted; O3–O6 remain gated. No synthetic fixture is product
 design evidence.
+
+## Transitive Pages action runtime (L7 follow-up)
+
+The Wiki build at `0298168d2` still emitted a Node-20 migration warning because
+`upload-pages-artifact` v4 internally pinned the old uploader. Reviewing only
+direct JavaScript actions was insufficient. Read upstream metadata at these
+exact revisions and update the Pages family together:
+
+| Action | Revision | Metadata |
+| --- | --- | --- |
+| configure-pages v6 | `45bfe0192ca1faeb007ade9deae92b16b8254a0d` | Node 24 |
+| upload-pages-artifact v5 | `fc324d3547104276b827a68afc52ff2a11cc49c9` | Composite pins upload-artifact v7 `bbbca2ddaa5d8feaa63e36b76fdaad77386f024f` (Node 24) |
+| deploy-pages v5.0.1 | `368f82528645a54fb793d4d04e342629a3f51346` | Node 24 |
+
+Existing artifact names, inputs, permissions and deployment admission remain
+unchanged. The extended reviewed-pin regression fails on the old actions and
+passes after repair; all **24** portable CI tests and actionlint pass (three
+Windows-only tests skipped). The next PR Wiki upload must confirm removal of the
+transitive warning. Configure/deploy execute only on their existing non-PR paths;
+no Pages deployment is performed as part of local validation.

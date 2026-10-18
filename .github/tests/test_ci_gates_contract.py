@@ -193,6 +193,8 @@ class CiGatesContractTests(unittest.TestCase):
             "actions/upload-artifact": "b7c566a772e6b6bfb58ed0dc250532a479d7789f",
             "actions/download-artifact": "37930b1c2abaa49bbe596cd826c3c89aef350131",
             "actions/cache": "caa296126883cff596d87d8935842f9db880ef25",
+            "actions/configure-pages": "45bfe0192ca1faeb007ade9deae92b16b8254a0d",
+            "actions/deploy-pages": "368f82528645a54fb793d4d04e342629a3f51346",
         }
         for path in (REPO_ROOT / ".github/workflows").glob("*.yml"):
             source = path.read_text(encoding="utf-8")
@@ -200,6 +202,9 @@ class CiGatesContractTests(unittest.TestCase):
             for action, sha in re.findall(r"uses: ([^@\s]+)@([0-9a-f]{40})", source):
                 if action in node24:
                     self.assertEqual(sha, node24[action], action)
+                if action == "actions/upload-pages-artifact":
+                    # Reviewed composite metadata pins Node-24 upload-artifact v7.
+                    self.assertEqual(sha, "fc324d3547104276b827a68afc52ff2a11cc49c9")
                 if action == "dtolnay/rust-toolchain":
                     # The old 1.94.1 branch hardcoded its toolchain and rejected
                     # inputs.toolchain, including the intended Miri nightly.
