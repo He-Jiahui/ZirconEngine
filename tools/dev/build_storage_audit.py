@@ -162,6 +162,17 @@ def audit(repo, scan, previous=None):
     previous = previous or {}
     errors, writers, units, requests = [], [], {}, []
     rows = scan.get("outputItems", []) if scan else []
+    # The inventory already prunes overlapping grants. Reuse its compiler-root
+    # pass so a later control-tree timeout cannot hide earlier valid pool facts
+    # or require a second traversal merely to establish the growth baseline.
+    compiler_rows = []
+    for row in scan.get("inventory", []) if scan else []:
+        parts = Path(row["path"]).parts
+        if len(parts) >= 2 and parts[0].rstrip("\\/").casefold() in {"d:", "e:", "f:"} and parts[1].casefold() == "cargo-targets":
+            if row.get("exists"):
+                compiler_rows.append(row)
+    if compiler_rows:
+        rows = compiler_rows
     complete = bool(scan) and scan.get("complete") is not False and not scan.get("scopes") and all(row.get("complete") is True for row in rows)
     if not complete:
         errors.append({"subject": "deep-inventory", "error": "InventoryIncompleteOrScoped"})

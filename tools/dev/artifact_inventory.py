@@ -225,6 +225,9 @@ def scan(repo: Path, scopes: list[Path] | None = None, *, max_seconds: float = 9
         roots = sorted(set(scopes), key=str)
     else:
         roots = declared_roots
+    # Compiler growth is the daily decision input. A large Jenkins worktree
+    # archive must not consume the entire budget before those roots are observed.
+    roots = sorted(roots, key=lambda root: ("cargo-targets" not in [p.casefold() for p in root.parts], str(root)))
     # Avoid double counting narrower grants already covered by a directory grant.
     for root in roots:
         if any(root != other and root.is_relative_to(other) and other.is_dir() for other in roots):

@@ -199,6 +199,20 @@ class AuditTests(unittest.TestCase):
         self.assertGreater(result["unvisitedEntriesLowerBound"], 0)
         self.assertEqual((path / "preserved.txt").read_bytes(), b"retained")
 
+    def test_compiler_first_pass_is_not_double_counted_or_lost_to_later_timeout(self):
+        scan = self.scan(100)
+        scan["inventory"] = [{**scan["outputItems"][0], "exists": True,
+            "path": "E:/cargo-targets/zircon-local"},
+            {"path": str(self.repo), "exists": True, "complete": False}]
+        scan["complete"] = False
+        scan["outputItems"][0] = {**scan["outputItems"][0], "complete": False,
+            "buildUnits": {self.unit: {"logicalBytes": 3, "files": 1, "incrementalBytes": 0, "symbolBytes": 0}}}
+        result = audit.audit(self.repo, scan)
+        self.assertFalse(result["complete"])
+        self.assertEqual(result["units"][0]["logicalBytes"], 100)
+        self.assertTrue(result["units"][0]["complete"])
+        self.assertEqual(result["baseline"][audit.key(self.unit)]["logicalBytes"], 100)
+
     def test_compiler_accounting_uses_one_pool_and_excludes_source(self):
         root = Path("E:/cargo-targets/zircon-local/management/pools/identity")
         self.assertEqual(audit.inventory.compiler_unit(root / "target/debug/deps/a.rlib"), root)
