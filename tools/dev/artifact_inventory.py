@@ -119,20 +119,23 @@ def classify(path: Path, repo: Path) -> str:
 def tree_fact(path: Path, *, inspect_source: bool = False, deadline: float | None = None) -> dict:
     """Count logical bytes without following links; report incomplete observations."""
     fact = {"path": str(path), "files": 0, "directories": 0, "logicalBytes": 0,
-            "hardlinkedFiles": 0, "reparsePoints": [], "errors": [],
+            "hardlinkedFiles": 0, "hardlinkCountComplete": True, "reparsePoints": [], "errors": [],
             "sourceFiles": 0, "sourceSamples": [], "nestedOutputs": [],
             "sourceTreeMarkers": [], "manifestPaths": [], "buildUnits": {}, "latestWriteUtc": None}
     latest = 0.0
-    stack = [path]
+    stack = [(path, None)]
     while stack:
         if deadline is not None and time.monotonic() >= deadline:
             fact["errors"].append({"path": str(path), "type": "ScanBudgetExceeded"})
             fact["scanTimedOut"] = True
             fact["unvisitedEntriesLowerBound"] = len(stack)
             break
-        current = stack.pop()
+        current, cached_info = stack.pop()
         try:
-            info = current.lstat()
+            # Windows directory enumeration already carries file size and time.
+            # Refresh directories before descending so a replaced junction is
+            # never traversed using stale cached directory attributes.
+            info = current.lstat() if cached_info is None or stat.S_ISDIR(cached_info.st_mode) else cached_info
             if linked(info):
                 fact["reparsePoints"].append(str(current))
                 continue
@@ -152,11 +155,19 @@ def tree_fact(path: Path, *, inspect_source: bool = False, deadline: float | Non
                     except OSError as error:
                         fact["errors"].append({"path": str(source_directory), "type": type(error).__name__})
                 with os.scandir(current) as entries:
-                    stack.extend(Path(entry.path) for entry in entries)
+                    for entry in entries:
+                        try:
+                            stack.append((Path(entry.path), entry.stat(follow_symlinks=False)))
+                        except OSError as error:
+                            fact["errors"].append({"path": entry.path, "type": type(error).__name__})
             elif stat.S_ISREG(info.st_mode):
                 fact["files"] += 1
                 fact["logicalBytes"] += info.st_size
                 fact["hardlinkedFiles"] += info.st_nlink > 1
+                # DirEntry.stat on Windows does not supply link counts. Keep
+                # this evidence gap explicit; logical bytes never authorize GC.
+                if os.name == "nt" and cached_info is not None:
+                    fact["hardlinkCountComplete"] = False
                 unit = compiler_unit(current)
                 if unit is not None:
                     usage = fact["buildUnits"].setdefault(str(unit), {"logicalBytes": 0, "files": 0,
@@ -298,6 +309,7 @@ def scan(repo: Path, scopes: list[Path] | None = None, *, max_seconds: float = 9
             "configuredNetworkEnabled": config.get("permissions", {}).get(config.get("default_permissions", "zircon-strict"), {}).get("network", {}).get("enabled"),
             "limitations": ["Live filesystem observation, not an atomic snapshot.",
                             "Logical bytes are not uniquely allocated or reclaimable bytes.",
+                            "Windows enumeration does not inspect per-file hardlink counts; see hardlinkCountComplete.",
                             "Process command-line references cannot prove absence of users or open handles.",
                             "Missing manifests do not prove that a directory is abandoned.",
                             "Source markers identify review candidates, not ownership or deletion authorization."]}

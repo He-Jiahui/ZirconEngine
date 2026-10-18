@@ -213,6 +213,25 @@ class AuditTests(unittest.TestCase):
         self.assertTrue(result["units"][0]["complete"])
         self.assertEqual(result["baseline"][audit.key(self.unit)]["logicalBytes"], 100)
 
+    def test_directory_enumeration_counts_logical_bytes_and_keeps_hardlink_gap_explicit(self):
+        path = self.repo / "shared-files"
+        path.mkdir()
+        first = path / "first.bin"
+        first.write_bytes(b"owned")
+        os.link(first, path / "second.bin")
+        actual_lstat = Path.lstat
+        def directory_only(value, *args, **kwargs):
+            if value.suffix == ".bin":
+                raise AssertionError("Logical-byte inventory must not reopen every file")
+            return actual_lstat(value, *args, **kwargs)
+        with patch.object(Path, "lstat", directory_only):
+            result = audit.inventory.tree_fact(path)
+        self.assertTrue(result["complete"])
+        self.assertEqual(result["files"], 2)
+        self.assertEqual(result["logicalBytes"], 10)
+        if os.name == "nt":
+            self.assertFalse(result["hardlinkCountComplete"])
+
     def test_compiler_accounting_uses_one_pool_and_excludes_source(self):
         root = Path("E:/cargo-targets/zircon-local/management/pools/identity")
         self.assertEqual(audit.inventory.compiler_unit(root / "target/debug/deps/a.rlib"), root)
