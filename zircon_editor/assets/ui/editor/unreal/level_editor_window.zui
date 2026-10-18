@@ -38,6 +38,7 @@ children = [
   { node = "menu_bar", slot = { layout = { linear_size = { rule = "Auto", shrink_value = 0.0 } } } },
   { node = "project_context", slot = { layout = { linear_size = { rule = "Auto", shrink_value = 0.0 } } } },
   { node = "toolbar", slot = { layout = { linear_size = { rule = "Auto", shrink_value = 0.0 } } } },
+  { node = "graphics_degradation", slot = { layout = { linear_size = { rule = "Auto", shrink_value = 0.0 } } } },
   { node = "main_band", slot = { layout = { linear_size = { rule = "Stretch", value = 1.0 } } } },
   { node = "bottom_activity_dock", slot = { layout = { linear_size = { rule = "Auto", shrink_value = 0.0 } } } },
   { node = "status_bar", slot = { layout = { linear_size = { rule = "Auto", shrink_value = 0.0 } } } },
@@ -61,6 +62,12 @@ component = "UnrealLevelEditorToolbar"
 control_id = "WorkbenchWindowTopToolbarRegion"
 classes = ["unreal-editor-toolbar"]
 layout = { width = { stretch = "Stretch" }, height = { stretch = "Fixed" } }
+
+[nodes.graphics_degradation]
+component = "Label"
+control_id = "WorkbenchGraphicsDegradation"
+props = { visibility = "collapsed", visible = false, text = "", tooltip = "", component_variant = "semantic_status_signal", text_tone = "warning", background_color = "$editor.surface.1", font_family = "$editor.typography.ui.family", font_size = "$editor.typography.caption.size", line_height_ratio = "$editor.typography.line_height", layout_padding_left = "$editor.density.gap.regular", layout_padding_right = "$editor.density.gap.regular", overflow = "elide", input_interactive = false, input_clickable = false, input_hoverable = true, input_focusable = false }
+layout = { clip = true, width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
 
 [nodes.menu_bar]
 component = "UnrealLevelEditorMenus"

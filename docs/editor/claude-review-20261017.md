@@ -250,3 +250,37 @@ acceptance remain pending:
 & tools/dev/local-cargo.ps1 -TargetDir $t test -p zircon_editor --lib unreal_snap --locked
 & tools/dev/local-cargo.ps1 -TargetDir $t test -p zircon_editor --lib viewport_chrome --locked
 ```
+
+## Stable presenter startup and degradation notice (M3, partial M4)
+
+The native event-loop owner now resolves runtime presenter readiness before
+creating the window/surface. Poll at 50 ms for at most 2 s (40 polls); use the
+shared presenter when ready, otherwise select standalone once for this window.
+The event loop remains nonblocking during readiness and removes the readiness
+wake deadline after selection. Delete the post-startup surface replacement and
+its obsolete source-guard tests. Surface creation itself still runs on the
+window thread; its driver latency needs Windows measurement.
+
+Creation errors retain their actual cause through shared → standalone GPU →
+softbuffer fallback. Both CPU viewport capture and software presentation now
+produce warning diagnostics, fallback counters and a persistent non-modal banner
+in the legacy shell. The banner explicitly warns about viewport/PIE performance;
+its tooltip preserves the full diagnostic. Adapter selection details remain in
+the runtime log, rather than being fabricated by the UI host. Per-Play-start
+toast/log notification and inline adapter-name projection remain M4 debt.
+
+Linux verification: 14 changed/new Rust files passed unexpanded AST syntax
+inspection, banner ZUI TOML/node references and diff checks passed. Added behavior
+tests cover the timeout/poll cap, no wakes after selection, burst input, immutable
+selection, and persistent banner projection. They require Windows execution:
+
+```powershell
+& tools/dev/local-cargo.ps1 -TargetDir $t test -p zircon_editor --lib presenter_startup --locked
+& tools/dev/local-cargo.ps1 -TargetDir $t test -p zircon_editor --lib graphics_degradation --locked
+& tools/dev/local-cargo.ps1 -TargetDir $t test -p zircon_editor --lib contract::window --locked
+```
+
+Capture normal/shared and `ZIRCON_PROFILE_FORCE_SOFTBUFFER=1` profiling builds;
+verify the banner is readable, `presenter_selected` occurs once, no upgrade
+markers occur, and readiness causes no 20 Hz idle wakes after selection. These
+startup, rendering and idle-CPU checks are pending real-host acceptance.

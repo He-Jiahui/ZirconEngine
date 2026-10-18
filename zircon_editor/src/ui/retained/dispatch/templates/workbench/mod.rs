@@ -52,6 +52,8 @@ mod generated_bottom_panel_lifecycle;
 mod generated_bottom_panel_navigation;
 #[path = "host_projection.rs"]
 mod host_projection;
+#[path = "graphics_degradation.rs"]
+mod graphics_degradation;
 #[path = "hud_editor_menu.rs"]
 mod hud_editor_menu;
 #[path = "../../workbench/hud_workspace_state.rs"]
