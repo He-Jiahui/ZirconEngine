@@ -2828,9 +2828,20 @@ class BranchCandidatePreparationTests(unittest.TestCase):
         with self._candidate_fixture() as fixture:
             historical = {name: fixture[name].read_bytes() for name in ("record", "marker", "native")}
             self.assertFalse((fixture["root"].parent / "zr_vm").exists())
-            result = runner.validate_branch_candidate(fixture["capsule"], component_digest=fixture["component"],
-                root=fixture["root"], branch_request=fixture["request"], cargo_recipe=fixture["recipe"],
-                ordinal=1, runtime=fixture["runtime"])
+            from tools.jenkins.source import repository_id
+            def ordinary_context(config, repo, manager, payload, **kwargs):
+                if payload.get("observationOnly") is not True:
+                    raise ValueError("This identity already belongs to another local context")
+            with patch.object(runner, "ensure_request_context", side_effect=ordinary_context) as ordinary_admission, \
+                    patch.object(fixture["state"], "check_authorization",
+                                 wraps=fixture["state"].check_authorization) as authorization:
+                result = runner.validate_branch_candidate(fixture["capsule"], component_digest=fixture["component"],
+                    root=fixture["root"], branch_request=fixture["request"], cargo_recipe=fixture["recipe"],
+                    ordinal=1, runtime=fixture["runtime"])
+            ordinary_admission.assert_not_called()
+            authorization.assert_any_call(repository_id(fixture["repo"]), fixture["request"]["sessionId"],
+                                          runner.AUTH["validate"], fixture["request"]["paths"])
+            self.assertGreaterEqual(authorization.call_count, 2)
             self.assertEqual("passed", result["status"], result)
             execution = Path(result["executionRoot"])
             self.assertTrue((execution.parent / "zr_vm/binding/Cargo.toml").is_file())
