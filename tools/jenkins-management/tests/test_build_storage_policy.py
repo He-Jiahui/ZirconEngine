@@ -114,6 +114,16 @@ class AuditTests(unittest.TestCase):
         self.assertEqual(after["units"][0]["logicalDeltaBytes"], 20)
         self.assertFalse(after["units"][0]["wasteProvenByGrowth"])
 
+    def test_changed_accounting_retains_old_evidence_without_false_growth_or_gc(self):
+        old = {audit.key(self.unit): {"path": self.unit, "logicalBytes": 10,
+            "incrementalBytes": 0, "symbolBytes": 0}}
+        first = audit.audit(self.repo, self.scan(100), {"baseline": old})
+        self.assertIsNone(first["units"][0]["logicalDeltaBytes"])
+        self.assertEqual(first["priorAccountingBaselines"]["legacy"], old)
+        second = audit.audit(self.repo, self.scan(120), first)
+        self.assertEqual(second["units"][0]["logicalDeltaBytes"], 20)
+        self.assertEqual(second["priorAccountingBaselines"], first["priorAccountingBaselines"])
+
     def test_unknown_growth_stays_pending_and_unchanged_runs_are_quiet(self):
         before = audit.audit(self.repo, self.scan(0))
         grown = audit.audit(self.repo, self.scan(2 * 1024**3), before)

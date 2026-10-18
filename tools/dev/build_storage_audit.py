@@ -238,7 +238,16 @@ def audit(repo, scan, previous=None):
                 "evidence": str(path), "sha256": checksum})
     except (OSError, ValueError, TypeError) as error:
         errors.append({"subject": str(directory), "error": type(error).__name__})
-    baseline = dict(previous.get("baseline", {}))
+    accounting_version = 2
+    prior_accounting = dict(previous.get("priorAccountingBaselines", {}))
+    if previous.get("baselineAccountingVersion") == accounting_version:
+        baseline = dict(previous.get("baseline", {}))
+    else:
+        # A corrected classifier changes what the same path counts. Preserve
+        # the old observations without presenting that change as growth or GC.
+        baseline = {}
+        if previous.get("baseline"):
+            prior_accounting[str(previous.get("baselineAccountingVersion", "legacy"))] = previous["baseline"]
     observations = []
     for identity, unit in sorted(units.items()):
         before = baseline.get(identity)
@@ -299,7 +308,9 @@ def audit(repo, scan, previous=None):
         if errors or old["code"] == "build_growth_owner_unknown" and key(old["subject"]) not in attributed:
             current.setdefault(old["id"], old)
     return {"schemaVersion": 1, "complete": complete and not errors, "units": observations,
-        "baseline": baseline, "profiles": profiles, "errors": errors, "findings": sorted(current.values(), key=lambda x: x["id"]),
+        "baseline": baseline, "baselineAccountingVersion": accounting_version,
+        "priorAccountingBaselines": prior_accounting,
+        "profiles": profiles, "errors": errors, "findings": sorted(current.values(), key=lambda x: x["id"]),
         "remediationOwner": "Jenkins; exact original request/worktree/session and reviewed patch required",
         "duplicatePools": "Not inferred from names, timestamps or crate names; full compatibility evidence required",
         "logicalBytesAreReclaimable": False, "automaticCleanup": False, "reclaimedBytes": 0}
