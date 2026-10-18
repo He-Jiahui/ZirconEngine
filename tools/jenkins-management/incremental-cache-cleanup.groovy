@@ -2,16 +2,34 @@
 node('zircon-windows-agent') {
     timeout(time: 15, unit: 'MINUTES') {
         def cacheRunId = 'incremental-' + env.BUILD_NUMBER
-        def dry = params.DRY_RUN == true ? ' --dry-run' : ''
         long totalCacheDeleted = 0L
         dir('E:/Git/ZirconEngine/.jenkins/agent/workspace/zircon-scheduled-cleanup') {
-          for (String cacheKey : ['shared-e', 'legacy-d-integration', 'legacy-d-editor']) {
+          def nativeBinding = powershell(returnStdout: true, label: 'Verify real current cleanup owner before cache deletion', script: '''
+$ErrorActionPreference = 'Stop'
+if ((Get-FileHash -LiteralPath '@RUNTIME@' -Algorithm SHA256).Hash.ToLowerInvariant() -ne '@RUNTIME_SHA@') { throw 'Cleanup native binding changed' }
+if ((Get-FileHash -LiteralPath '@PYTHON@' -Algorithm SHA256).Hash.ToLowerInvariant() -ne '@PYTHON_SHA@') { throw 'Cleanup interpreter changed' }
+& '@PYTHON@' -B -X utf8 '@RUNTIME@' --repo-root 'E:/Git/ZirconEngine' --expected-driver-digest '@DRIVER@'
+if ($LASTEXITCODE -ne 0) { throw 'Current Jenkins owner identity is unverified; no cache deletion' }
+''')
+          writeFile(file: 'incremental-runtime-binding.json', text: nativeBinding, encoding: 'UTF-8')
+          archiveArtifacts(artifacts: 'incremental-runtime-binding.json', fingerprint: false)
+          for (String cacheKey : @CACHE_KEYS@) {
             def suffix = cacheKey == 'shared-e' ? '' : '-' + cacheKey
             def cacheReport = 'E:/cargo-targets/zircon-local/reports/jenkins-scheduled-cleanup/incremental/' + cacheRunId + suffix
-            def status = bat(returnStatus: true, label: 'Discard unlocked Rust incremental sessions under disk pressure',
-                script: '@echo off\r\n"E:/Git/ZirconEngine/.jenkins/runtime/python/python.exe" -B -X utf8 ' +
-                '"E:/Git/ZirconEngine/tools/jenkins-management/incremental_cache_cleanup.py" run --run-id "' +
-                cacheRunId + '" --cache-key "' + cacheKey + '"' + dry + '\r\nexit /b %ERRORLEVEL%')
+            def status
+            withEnv(['ZIRCON_CACHE_RUN_ID=' + cacheRunId, 'ZIRCON_CACHE_KEY=' + cacheKey,
+                     'ZIRCON_CACHE_DRY_RUN=' + (params.DRY_RUN == true ? '1' : '0')]) {
+              status = powershell(returnStatus: true, label: 'Discard unlocked Rust incremental sessions: ' + cacheKey,
+                script: '''
+$ErrorActionPreference = 'Stop'
+if ((Get-FileHash -LiteralPath '@ENTRY@' -Algorithm SHA256).Hash.ToLowerInvariant() -ne '@ENTRY_SHA@') { throw 'Cleanup implementation changed; preserve caches' }
+if ((Get-FileHash -LiteralPath '@HELPER@' -Algorithm SHA256).Hash.ToLowerInvariant() -ne '@HELPER_SHA@') { throw 'Cleanup helper changed; preserve caches' }
+$cacheArguments = @('run', '--run-id', $env:ZIRCON_CACHE_RUN_ID, '--cache-key', $env:ZIRCON_CACHE_KEY)
+if ($env:ZIRCON_CACHE_DRY_RUN -eq '1') { $cacheArguments += '--dry-run' }
+& '@PYTHON@' -B -X utf8 '@ENTRY@' @cacheArguments
+exit $LASTEXITCODE
+''')
+            }
             for (String name : ['receipt.json', 'artifacts.json']) {
                 if (fileExists(cacheReport + '/' + name)) {
                     def archived = 'incremental-' + cacheKey + '-' + name
@@ -25,9 +43,9 @@ node('zircon-windows-agent') {
             env.ZIRCON_INCREMENTAL_DELETED_BYTES = totalCacheDeleted.toString()
             env.ZIRCON_INCREMENTAL_RECEIPT = cacheReport + '/receipt.json'
             if (cacheSummary.status == 'partial') currentBuild.result = 'UNSTABLE'
-            echo('Rust incremental cache: deleted ' + cacheSummary.logicalDeletedBytes +
+            echo('Rust incremental ' + cacheKey + ': ' + cacheSummary.status + '; deleted ' + cacheSummary.logicalDeletedBytes +
                 ' logical bytes; unlinked allocation ' + cacheSummary.unlinkedAllocationBytes +
-                ' bytes; receipt ' + env.ZIRCON_INCREMENTAL_RECEIPT)
+                '; retained sessions ' + cacheSummary.retainedSessions + '; receipt ' + env.ZIRCON_INCREMENTAL_RECEIPT)
           }
         }
     }
