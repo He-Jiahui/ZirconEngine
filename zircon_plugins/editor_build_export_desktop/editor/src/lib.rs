@@ -46,7 +46,7 @@ pub use plugin::{
     EditorBuildExportDesktopPlugin, EDITOR_BUILD_EXPORT_DESKTOP_DIST_CRATE_NAME,
     EDITOR_BUILD_EXPORT_DESKTOP_DIST_EDITOR_ENTRY,
 };
-pub use zircon_editor::{
+pub use zircon_editor::ui::host::{
     apply_export_wizard_panel_template_state, execute_export_wizard_pipeline,
     execute_export_wizard_stage, export_wizard_panel_action_call,
     export_wizard_panel_action_for_control, export_wizard_panel_binding_entries,
@@ -66,7 +66,7 @@ pub use zircon_editor::{
     ExportWizardStageMissingInputs, ExportWizardStagePlannedArtifacts, ExportWizardStageViewRow,
     ProcessCommandRunner,
 };
-pub use zircon_editor::{
+pub use zircon_editor::ui::host::{
     ExportStageProgressKind, ExportWizardProgressState, ExportWizardStageArtifactPath,
     ExportWizardStageProgressSnapshot, ExportWizardStreamEvent, DESKTOP_EXPORT_ARTIFACT_PATHS_SLOT,
     DESKTOP_EXPORT_CANCEL_BINDING_ID, DESKTOP_EXPORT_CANCEL_BUTTON,

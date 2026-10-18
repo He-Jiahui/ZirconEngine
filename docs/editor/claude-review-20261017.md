@@ -979,3 +979,20 @@ actionlint and whitespace checks pass, and all six changed Rust files parse with
 zero Change Guard findings. All 265 Cargo targets are reachable; test separation
 and source-path audits report no new violations. These static checks do not
 establish Rust compilation or lifecycle execution.
+
+## Export-plugin paths and pinned const support (C2 follow-up)
+
+[Run 39141400685](https://github.com/He-Jiahui/ZirconEngine/actions/runs/39141400685)
+passes the editor closure again and reaches later plugins. The desktop export
+plugin still imports its wizard APIs from the former editor crate root. Update
+its three consumers/re-export groups to their existing `zircon_editor::ui::host`
+owner, preserving the plugin's public exports. Two texture-importer mip helpers
+also use `Ord::max` in a const function, unsupported by the pinned Rust 1.94.1.
+Replace that expression with the equivalent zero-extent branch, retaining const
+evaluation, the oversized-shift guard and the one-texel minimum.
+
+The current `main` Jenkins source-preparation fix is merged unchanged into this
+task branch; only its two original tooling files enter through that merge. The
+VM checkout/processes and the dirty Linux config overlay remain untouched.
+Plugin compilation and both native test batches still require the next hosted
+run. No passing C2 result is inferred from successful editor compilation alone.
