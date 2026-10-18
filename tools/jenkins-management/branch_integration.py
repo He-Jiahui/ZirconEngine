@@ -629,7 +629,7 @@ def install(d, repo, client, runtime):
     return result
 
 
-def install_entry(d, repo, client):
+def install_entry(d, repo, client, *, reuse_existing=False):
     endpoint = "/job/zircon-management/config.xml"
     status, raw, _ = client.request(endpoint)
     if status != 200:
@@ -639,7 +639,12 @@ def install_entry(d, repo, client):
     if script is None or "--capsule" not in script.text or "zircon-windows-agent" not in script.text:
         raise ValueError("Management core identity changed")
     old = script.text
-    if BEGIN in old:
+    if BEGIN in old or END in old:
+        if old.count(BEGIN) != 1 or old.count(END) != 1 or old.index(BEGIN) >= old.index(END):
+            raise ValueError("Branch entry markers are incomplete or ambiguous")
+        if reuse_existing:
+            return {"status": "installed", "job": "zircon-management",
+                    "actions": ["commit-branch", "check-branch-queue"], "reused": True}
         start, end = old.index(BEGIN), old.index(END) + len(END)
         old = old[:start] + old[end:].lstrip("\r\n")
     script.text = (repo / "tools/jenkins-management/branch-integration.groovy").read_text("utf-8-sig").rstrip() + "\n\n" + old
@@ -761,7 +766,7 @@ def main(argv=None):
                                 status, raw, _ = client.request("/job/zircon-management/" + str(build) + "/api/json?tree=building")
                                 if status != 200 or json.loads(raw).get("building") is not False:
                                     raise ValueError("Original branch job is not proven terminal")
-                            install_entry(d, ROOT, client)
+                            install_entry(d, ROOT, client, reuse_existing=True)
                             result = {"status": "submitting", "request": payload, "submittedAt": time.time()}
                             d.commit.write_json(marker, result)
                             fields = {"ACTION": action, "SESSION_ID": payload["sessionId"], "REQUEST_ID": payload["requestId"],
