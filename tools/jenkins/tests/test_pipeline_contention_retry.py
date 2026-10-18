@@ -626,10 +626,17 @@ for (def branchCase in branchCases) {
 }
 println 'PASS canonical branch Git waiting, original request, executor release and bounded retry'
 '''
-        completed = subprocess.run(
-            [str(java), "-cp", classpath, "groovy.ui.GroovyMain", "-e", GROOVY_HARNESS + branch_harness, str(root)],
-            cwd=root, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=180,
-        )
+        import tempfile
+        temporary_root = Path(os.environ["TEMP"]).resolve()
+        self.assertIn(temporary_root.drive.upper(), ("D:", "E:", "F:"))
+        self.assertEqual("cargo-targets", temporary_root.parts[1].casefold())
+        with tempfile.TemporaryDirectory(prefix="branch-waiting-groovy-", dir=temporary_root) as temporary:
+            harness_path = Path(temporary) / "contention.groovy"
+            harness_path.write_bytes((GROOVY_HARNESS + branch_harness).encode("utf-8"))
+            completed = subprocess.run(
+                [str(java), "-cp", classpath, "groovy.ui.GroovyMain", str(harness_path), str(root)],
+                cwd=root, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=180,
+            )
         self.assertEqual(0, completed.returncode, completed.stdout + completed.stderr)
         self.assertIn("PASS canonical Pipeline contention", completed.stdout)
         self.assertIn("PASS canonical branch Git waiting", completed.stdout)
