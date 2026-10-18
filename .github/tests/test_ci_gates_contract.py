@@ -25,6 +25,43 @@ class CiGatesContractTests(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.workflow = WORKFLOW_PATH.read_text(encoding="utf-8")
 
+    def test_pull_requests_compile_the_editor_and_plugins_and_run_commands(self) -> None:
+        self.assertRegex(self.workflow, r"(?m)^  pull_request:\s*$")
+        gate = job_body(self.workflow, "editor-compile-gate")
+        self.assertIn("name: editor-compile-gate", gate)
+        self.assertIn("if: github.event_name == 'pull_request'", gate)
+        self.assertIn("runs-on: windows-2022", gate)
+        self.assertRegex(gate, r"(?m)^    timeout-minutes: [1-9][0-9]*$")
+        self.assertNotIn("needs:", gate)
+        self.assertNotIn("continue-on-error:", gate)
+        self.assertNotIn("secrets.", gate)
+        self.assertIn("persist-credentials: false", gate)
+        for command in (
+            "cargo check -p zircon_app --bin zircon_editor --no-default-features --features target-editor-host --locked",
+            "cargo check --manifest-path zircon_plugins/Cargo.toml --workspace --locked",
+            "-RequireMatchingTests cargo test -p zircon_editor --lib core::commands --locked",
+        ):
+            self.assertRegex(gate, rf"(?m)^        run: ./\.github/scripts/invoke-cargo-msvc\.ps1 {re.escape(command)}$")
+        self.assertIn("-StorageRoot 'D:\\cargo-targets\\zircon-local'", gate)
+        self.assertLess(gate.index("prepare-cargo-roots.ps1"), gate.index("uses: dtolnay/rust-toolchain@"))
+        for variable in ("CARGO_HOME", "RUSTUP_HOME", "CARGO_TARGET_DIR", "CARGO_BUILD_BUILD_DIR", "TEMP", "TMP"):
+            self.assertRegex(gate, rf"(?m)^      {variable}: D:\\cargo-targets\\zircon-local\\ci\\runs\\.*github.run_id.*github.run_attempt.*editor-compile-gate-0\\")
+
+    def test_self_hosted_jobs_are_bounded_and_wait_for_availability(self) -> None:
+        for path in (WORKFLOW_PATH, WORKFLOW_PATH.with_name("profile-feature-contract.yml")):
+            source = path.read_text(encoding="utf-8")
+            signal = job_body(source, "runner-availability")
+            self.assertIn("runs-on: ubuntu-24.04", signal)
+            self.assertIn("timeout-minutes: 3", signal)
+            self.assertIn("if: github.event_name == 'push'", signal)
+            self.assertIn("secrets.RUNNER_STATUS_TOKEN", signal)
+            self.assertIn("check-runner-availability.py --repository", signal)
+            for name in re.findall(r"(?m)^  ([a-z0-9-]+):$", source):
+                body = job_body(source, name)
+                if "runs-on: [self-hosted, Windows, X64]" in body:
+                    self.assertRegex(body, r"(?m)^    timeout-minutes: [1-9][0-9]*$", name)
+                    self.assertRegex(body, r"(?m)^    needs: .*runner-availability", name)
+
     def test_persistent_runners_are_trusted_and_run_isolated(self) -> None:
         for path in (WORKFLOW_PATH, WORKFLOW_PATH.with_name("profile-feature-contract.yml")):
             workflow = path.read_text(encoding="utf-8")

@@ -18,11 +18,27 @@ env:
   RUST_BACKTRACE: 1
 
 jobs:
+  runner-availability:
+    name: Self-hosted Windows runner availability
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+        with:
+          persist-credentials: false
+      - name: Require an online Windows X64 runner
+        env:
+          RUNNER_STATUS_TOKEN: ${{ secrets.RUNNER_STATUS_TOKEN }}
+        run: python3 -B .github/scripts/check-runner-availability.py --repository "${{ github.repository }}"
+
   profile-feature-contract:
     name: Profile feature contract (${{ matrix.label }})
     # Persistent runners execute only trusted branch pushes.
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    needs: runner-availability
     runs-on: [self-hosted, Windows, X64]
+    timeout-minutes: 120
     env:
       ZR_CI_OUTPUT_ROOT: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\profile-feature-contract-${{ strategy.job-index || 0 }}
       CARGO_HOME: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\profile-feature-contract-${{ strategy.job-index || 0 }}\cargo-home

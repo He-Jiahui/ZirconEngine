@@ -18,6 +18,66 @@ env:
   RUST_BACKTRACE: 1
 
 jobs:
+  runner-availability:
+    name: Self-hosted Windows runner availability
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+        with:
+          persist-credentials: false
+      - name: Require an online Windows X64 runner
+        env:
+          RUNNER_STATUS_TOKEN: ${{ secrets.RUNNER_STATUS_TOKEN }}
+        run: python3 -B .github/scripts/check-runner-availability.py --repository "${{ github.repository }}"
+
+  editor-compile-gate:
+    name: editor-compile-gate
+    if: github.event_name == 'pull_request'
+    runs-on: windows-2022
+    timeout-minutes: 60
+    env:
+      ZR_CI_OUTPUT_ROOT: D:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\editor-compile-gate-0
+      CARGO_HOME: D:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\editor-compile-gate-0\cargo-home
+      RUSTUP_HOME: D:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\editor-compile-gate-0\rustup
+      CARGO_TARGET_DIR: D:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\editor-compile-gate-0\target
+      CARGO_BUILD_BUILD_DIR: D:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\editor-compile-gate-0\build
+      TEMP: D:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\editor-compile-gate-0\tmp
+      TMP: D:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\editor-compile-gate-0\tmp
+      RUSTC_WRAPPER: ''
+      RUSTC_WORKSPACE_WRAPPER: ''
+      CARGO_INCREMENTAL: '0'
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+        env:
+          TEMP: ${{ runner.temp }}
+          TMP: ${{ runner.temp }}
+        with:
+          persist-credentials: false
+      - name: Require physical managed Cargo volume
+        shell: pwsh
+        run: ./.github/scripts/prepare-cargo-roots.ps1 -StorageRoot 'D:\cargo-targets\zircon-local'
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@75be91dd2711b583df57c31d0873b4145c89f1d9
+        with:
+          toolchain: 1.94.1
+      - name: Record hosted runner and compiler
+        shell: pwsh
+        run: |
+          "runner_image: $env:ImageOS/$env:ImageVersion"
+          rustc -Vv
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Compile the complete editor feature closure
+        shell: pwsh
+        run: ./.github/scripts/invoke-cargo-msvc.ps1 cargo check -p zircon_app --bin zircon_editor --no-default-features --features target-editor-host --locked
+      - name: Compile the plugin workspace
+        shell: pwsh
+        run: ./.github/scripts/invoke-cargo-msvc.ps1 cargo check --manifest-path zircon_plugins/Cargo.toml --workspace --locked
+      - name: Test editor commands and effective keymap
+        shell: pwsh
+        run: ./.github/scripts/invoke-cargo-msvc.ps1 -RequireMatchingTests cargo test -p zircon_editor --lib core::commands --locked
+
   source-contracts:
     name: Source and tooling contracts
     runs-on: ubuntu-latest
@@ -34,7 +94,9 @@ jobs:
         run: python -B -m unittest tools.tests.test_check_conventions tools.tests.test_frameworks_06_ci_toolchain_contract -v
 
       - name: Test CI gate wiring
-        run: python -B .github/tests/test_ci_gates_contract.py
+        run: |
+          python -B .github/tests/test_ci_gates_contract.py
+          python -B .github/tests/test_runner_availability.py
 
       - name: Test Cargo test-reachability guard
         run: python -m unittest tools.tests.test_validate_cargo_test_reachability -v
@@ -65,7 +127,9 @@ jobs:
     # CI outputs must pass the physical E: root and reparse-point guard.
     # Persistent runners execute only trusted branch pushes.
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    needs: runner-availability
     runs-on: [self-hosted, Windows, X64]
+    timeout-minutes: 120
     env:
       ZR_CI_OUTPUT_ROOT: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\portable-runtime-core-${{ strategy.job-index || 0 }}
       CARGO_HOME: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\portable-runtime-core-${{ strategy.job-index || 0 }}\cargo-home
@@ -102,7 +166,9 @@ jobs:
     name: Dependency governance (${{ matrix.manifest }})
     # Persistent runners execute only trusted branch pushes.
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    needs: runner-availability
     runs-on: [self-hosted, Windows, X64]
+    timeout-minutes: 120
     env:
       ZR_CI_OUTPUT_ROOT: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\dependency-governance-${{ strategy.job-index || 0 }}
       CARGO_HOME: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\dependency-governance-${{ strategy.job-index || 0 }}\cargo-home
@@ -172,12 +238,13 @@ jobs:
 
   runtime-profile-feature-matrix:
     name: Runtime profile feature (${{ matrix.profile }})
-    needs: runtime-profile-feature-matrix-plan
+    needs: [runner-availability, runtime-profile-feature-matrix-plan]
     # Compile on the Windows runner because the physical E: cargo root is required.
     # Linux-host ABI/system dependency behavior remains outside this lane's coverage.
     # Persistent runners execute only trusted branch pushes.
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
     runs-on: [self-hosted, Windows, X64]
+    timeout-minutes: 120
     env:
       ZR_CI_OUTPUT_ROOT: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\runtime-profile-feature-matrix-${{ strategy.job-index || 0 }}
       CARGO_HOME: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\runtime-profile-feature-matrix-${{ strategy.job-index || 0 }}\cargo-home
@@ -219,7 +286,9 @@ jobs:
     # Linux-host ABI/system dependency behavior remains outside this lane's coverage.
     # Persistent runners execute only trusted branch pushes.
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    needs: runner-availability
     runs-on: [self-hosted, Windows, X64]
+    timeout-minutes: 120
     env:
       ZR_CI_OUTPUT_ROOT: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\runtime-domain-feature-matrix-${{ strategy.job-index || 0 }}
       CARGO_HOME: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\runtime-domain-feature-matrix-${{ strategy.job-index || 0 }}\cargo-home
@@ -274,7 +343,9 @@ jobs:
     # It does not claim Linux-host ABI/system dependency coverage.
     # Persistent runners execute only trusted branch pushes.
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    needs: runner-availability
     runs-on: [self-hosted, Windows, X64]
+    timeout-minutes: 120
     env:
       ZR_CI_OUTPUT_ROOT: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\rust-${{ strategy.job-index || 0 }}
       CARGO_HOME: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\rust-${{ strategy.job-index || 0 }}\cargo-home
@@ -404,7 +475,9 @@ jobs:
     name: Scene ECS storage and query (Miri)
     # Persistent runners execute only trusted branch pushes.
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    needs: runner-availability
     runs-on: [self-hosted, Windows, X64]
+    timeout-minutes: 120
     env:
       ZR_CI_OUTPUT_ROOT: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\scene-ecs-miri-${{ strategy.job-index || 0 }}
       CARGO_HOME: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\scene-ecs-miri-${{ strategy.job-index || 0 }}\cargo-home
@@ -464,7 +537,9 @@ jobs:
     name: Rendering feature graph and frame smoke (${{ matrix.feature }})
     # Persistent runners execute only trusted branch pushes.
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    needs: runner-availability
     runs-on: [self-hosted, Windows, X64]
+    timeout-minutes: 120
     env:
       ZR_CI_OUTPUT_ROOT: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\render-feature-smoke-${{ strategy.job-index || 0 }}
       CARGO_HOME: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\render-feature-smoke-${{ strategy.job-index || 0 }}\cargo-home
@@ -603,7 +678,9 @@ jobs:
     name: Plugin standalone dist (${{ matrix.plugin_id }})
     # Persistent runners execute only trusted branch pushes.
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    needs: runner-availability
     runs-on: [self-hosted, Windows, X64]
+    timeout-minutes: 120
     env:
       ZR_CI_OUTPUT_ROOT: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\plugin-standalone-dist-${{ strategy.job-index || 0 }}
       CARGO_HOME: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\plugin-standalone-dist-${{ strategy.job-index || 0 }}\cargo-home
@@ -730,7 +807,9 @@ jobs:
     name: Export platform contract (${{ matrix.export-platform }})
     # Persistent runners execute only trusted branch pushes.
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    needs: runner-availability
     runs-on: [self-hosted, Windows, X64]
+    timeout-minutes: 120
     env:
       ZR_CI_OUTPUT_ROOT: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\export-platform-contract-${{ strategy.job-index || 0 }}
       CARGO_HOME: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\export-platform-contract-${{ strategy.job-index || 0 }}\cargo-home

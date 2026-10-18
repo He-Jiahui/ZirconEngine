@@ -1,6 +1,12 @@
+param(
+    [ValidateSet('D:\cargo-targets\zircon-local', 'E:\cargo-targets\zircon-local', 'F:\cargo-targets\zircon-local')]
+    [string]$StorageRoot = 'E:\cargo-targets\zircon-local'
+)
+
 $ErrorActionPreference = 'Stop'
 
-$root = 'E:\cargo-targets\zircon-local'
+$root = $StorageRoot
+$driveRoot = $root.Substring(0, 3)
 
 function Get-NormalPath([string]$Value) {
     if ([string]::IsNullOrWhiteSpace($Value) -or $Value.Contains('..')) {
@@ -15,7 +21,7 @@ function Assert-NoReparseAncestors([string]$Value) {
         throw "Output path is outside the required physical root: $full"
     }
 
-    $current = 'E:\'
+    $current = $driveRoot
     foreach ($segment in $full.Substring(3).Split('\')) {
         if ([string]::IsNullOrWhiteSpace($segment)) { continue }
         $current = Join-Path $current $segment
@@ -28,13 +34,13 @@ function Assert-NoReparseAncestors([string]$Value) {
     }
 }
 
-$drive = [System.IO.DriveInfo]::new('E:\')
+$drive = [System.IO.DriveInfo]::new($driveRoot)
 if (-not $drive.IsReady -or $drive.DriveType -ne [System.IO.DriveType]::Fixed) {
-    throw 'The required E: output volume is not a ready fixed drive.'
+    throw "The required $driveRoot output volume is not a ready fixed drive."
 }
 $substitutions = & subst.exe 2>$null
-if ($LASTEXITCODE -ne 0 -or ($substitutions -match '(?im)^E:\\:\s*=>')) {
-    throw 'The E: output root is unavailable or aliases another path through SUBST.'
+if ($LASTEXITCODE -ne 0 -or ($substitutions -match ('(?im)^' + [regex]::Escape($driveRoot) + ':\s*=>'))) {
+    throw "The $driveRoot output root is unavailable or aliases another path through SUBST."
 }
 
 $runRoot = Get-NormalPath $env:ZR_CI_OUTPUT_ROOT
@@ -69,10 +75,17 @@ if ($env:MIRI_SYSROOT) {
 }
 
 $directories = @($fixedRoots.CARGO_HOME, $fixedRoots.RUSTUP_HOME, $fixedRoots.TEMP, $target)
+if ($env:CARGO_BUILD_BUILD_DIR) {
+    if ((Get-NormalPath $env:CARGO_BUILD_BUILD_DIR) -ne (Join-Path $runRoot 'build')) {
+        throw 'CARGO_BUILD_BUILD_DIR escaped its isolated run root'
+    }
+    Assert-NoReparseAncestors $env:CARGO_BUILD_BUILD_DIR
+    $directories += $env:CARGO_BUILD_BUILD_DIR
+}
 if ($env:MIRI_SYSROOT) { $directories += $env:MIRI_SYSROOT }
 foreach ($directory in $directories) {
     New-Item -ItemType Directory -Force -Path $directory | Out-Null
     Assert-NoReparseAncestors $directory
 }
 
-Write-Output "Validated E: CI output roots; target=$target"
+Write-Output "Validated $driveRoot CI output roots; target=$target"

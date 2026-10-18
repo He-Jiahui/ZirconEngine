@@ -14,9 +14,10 @@ This preserves the existing editor feature closure and project/plugin support.
 Acceptance must check that complete closure and the plugin workspace, rather
 than hiding failures by removing dependencies.
 
-C2 is deferred: `.github/**` is read-only under the project write policy. No
-workflow, branch-protection or permission changes are made by this task. The
-review's PR editor compile gate remains required external work.
+C2's original permission deferral was superseded by John He's explicit
+2026-10-18 authorization. The hosted PR gate, runner signal, timeouts and branch
+protection are implemented; see the C2 follow-up below for evidence and remaining
+native acceptance.
 
 Linux verification: `git diff --check`; Rust parser/format inspection when
 available. This host has Rust 1.85.1 (project: 1.94.1), no physical Windows
@@ -363,7 +364,7 @@ compliance here is not evidence of sandbox enforcement.
 | Finding | Landed source / remaining work |
 | --- | --- |
 | C1 | Borrow ordering repaired; advanced plugins retained. Full editor/plugin compilation and any downstream failures remain unverified. |
-| C2, M1, L7 | Deferred at the report's `.github/**` permission checkpoint; compile-gate/workflow/protection/CI hygiene work remains external. |
+| C2, M1, L7 | Original permission checkpoint superseded by the 2026-10-18 authorization; see the authorized follow-ups below. |
 | H1, H2, L3 | Backend policy, launch tooling, capture validator and diagnostics implemented. Real backend selection/window/capture acceptance pending. |
 | H3 | Runtime redraw/maintenance split and perf namespaces implemented. Continuous PIE timing/idle behavior pending. |
 | H4 | Open: dynamically owned PIE product needs a compositable shared GPU/device-lifetime contract; CPU readback remains. |
@@ -466,10 +467,10 @@ Ctrl+Shift+Z remains the existing rebindable redo default; no second command or
 hardcoded Ctrl+Y path is introduced. F2's existing hierarchy-local rename remains
 available; migrating it requires preserving its draft/commit/cancel lifecycle.
 
-C2 remains permission-deferred, including PR workflow, branch protection and runner
-changes. No `.github/**`, protected build/CI gate or `tools/dev/**` changes were
-made. O0 is unaccepted, so O3–O6 remain gated; this command batch advances O1 source
-only, pending its Rust and native checks.
+At this earlier command batch, C2 was still permission-deferred and no protected
+CI paths were edited. The later authorized C2 follow-up supersedes that checkpoint.
+O0 is unaccepted, so O3–O6 remain gated; the command batch advances O1 source only,
+pending its Rust and native checks.
 
 ## Penpot compiler follow-up (H9, 2026-10-18)
 
@@ -523,7 +524,8 @@ summary must identify both devices without guessing from the requested backend.
 ## Remaining Medium/Low dispositions (2026-10-18)
 
 These are explicit deferrals, not completed features or additional permission
-requests. Protected CI/build-gate work remains C2/M1/L7/M9 as recorded above.
+requests. The later authorized follow-ups supersede the C2/M1/L7/M9 permission
+deferrals.
 
 - **M5:** defer held-key fly, Alt navigation and camera speed. `ViewportInput`
   currently has pointer/resize events only; Scene Modes run before camera input,
@@ -628,3 +630,33 @@ the Linux config stub has no `zircon-strict` profile, so it cannot supply a full
 agent patch-mode permission check. Documentation links/fences/finding coverage
 and `git diff --check` also passed. The original stash and idle PID 100961 remain
 preserved.
+
+## Authorized PR compile gate (C2, 2026-10-18)
+
+John He explicitly authorized `.github/**` and the related protected CI/build
+findings, incremental commits and pushes on this branch. No allowlist or Linux
+config-stub change is included. `editor-compile-gate` now runs on PRs using
+GitHub-hosted `windows-2022`, with approved physical D: roots, Rust 1.94.1, a
+60-minute timeout and the exact locked editor/plugin checks plus command tests
+from C2. The existing wrapper rejects vacuous filtered test passes.
+
+Every persistent Windows job in CI and Profile Feature Contract now has a
+120-minute timeout and depends on a three-minute hosted runner-availability
+probe. Its inventory handling is behavior-tested, including pagination and
+missing credentials. Repository API inspection found **zero registered runners**
+and **no repository secrets**. Provisioning a managed Windows X64 runner and a
+fine-grained `RUNNER_STATUS_TOKEN` with Administration:read remains operator work;
+missing either now yields a visible failure before persistent jobs are queued.
+
+The GitHub protection API accepted and read back an up-to-date-branch requirement
+for the `editor-compile-gate` check, bound to GitHub Actions app 15368, on `main`.
+No review-count, deployment or administrator-enforcement requirement was added.
+
+Local validation: all **20** `.github/tests` tests and the existing focused
+CI/toolchain contract pass; `git diff --check` passes. The portable commands,
+full Windows reproduction, hosted inspection and runner setup are documented in
+[Editor CI validation](ci-validation.md). Rust compilation, the positive hosted
+PR run and an actual E0499 negative compilation probe are not claimed here.
+The review's throwaway broken-branch probe cannot be performed while staying
+exclusively on the requested branch with coherent verified pushes. O0 remains
+unaccepted pending real Windows compilation and first-frame evidence.
