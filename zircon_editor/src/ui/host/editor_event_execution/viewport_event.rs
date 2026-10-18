@@ -10,7 +10,10 @@ pub(super) fn execute_viewport_event(
     controller: &EditorHostEventController,
     event: &EditorViewportEvent,
 ) -> Result<ExecutionOutcome, EditorViewportStateError> {
-    let manager = if matches!(event, EditorViewportEvent::ForView { .. }) {
+    let manager = if matches!(
+        event,
+        EditorViewportEvent::ForView { .. } | EditorViewportEvent::ForFocusedScene { .. }
+    ) {
         Some(
             controller
                 .editor_manager_handle()
@@ -22,6 +25,25 @@ pub(super) fn execute_viewport_event(
     };
     let mut shell = controller.shell().lock();
     let (target_view, event) = match event {
+        EditorViewportEvent::ForFocusedScene { event } => {
+            let manager = manager
+                .as_ref()
+                .expect("focused Scene command requires the manager");
+            let view_id = focused_scene_view(
+                manager.current_focused_view(),
+                &manager.view_instance_ids_for_descriptor_key("editor.scene"),
+            )
+            .ok_or(EditorViewportStateError::NoFocusedScene)?;
+            if shell
+                .state
+                .viewport_controller
+                .session_if_live(&view_id)
+                .is_none()
+            {
+                return Err(EditorViewportStateError::StaleViewportView { view_id });
+            }
+            (Some(view_id), event.as_ref())
+        }
         EditorViewportEvent::ForView { view_id, event } => {
             // The event wire carries the core nominal ID while the Workbench manager retains its
             // own UI nominal ID. Keep the manager lookup on the UI side and the viewport registry
@@ -44,7 +66,7 @@ pub(super) fn execute_viewport_event(
                     view_id: view_id.clone(),
                 });
             }
-            (Some(view_id), event.as_ref())
+            (Some(view_id.clone()), event.as_ref())
         }
         _ => (None, event),
     };
@@ -118,11 +140,14 @@ pub(super) fn execute_viewport_event(
                 view_id: view_id.clone(),
             });
         }
+        EditorViewportEvent::ForFocusedScene { .. } => {
+            return Err(EditorViewportStateError::NoFocusedScene);
+        }
     };
     let feedback = match target_view {
         Some(view_id) => shell
             .state
-            .apply_viewport_command_for_view(view_id, &command)?,
+            .apply_viewport_command_for_view(&view_id, &command)?,
         None => shell.state.apply_viewport_command(&command)?,
     };
     let structural_viewport_change = structural_viewport_event(event, &feedback);
@@ -141,6 +166,15 @@ pub(super) fn execute_viewport_event(
             chrome_projection_change,
         ),
     })
+}
+
+fn focused_scene_view(
+    focused: Option<crate::ui::workbench::view::ViewInstanceId>,
+    scene_views: &[crate::ui::workbench::view::ViewInstanceId],
+) -> Option<crate::core::editor_event::ViewInstanceId> {
+    let focused = focused?;
+    scene_views.contains(&focused)
+        .then(|| crate::core::editor_event::ViewInstanceId::new(focused.0))
 }
 
 fn structural_viewport_event(event: &EditorViewportEvent, feedback: &ViewportFeedback) -> bool {

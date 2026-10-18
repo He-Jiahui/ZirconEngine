@@ -87,6 +87,9 @@ pub(crate) fn execute_event(
                 EditorEventTransient::OpenSettingsWindow => {
                     vec![EditorEventEffect::SettingsWindowOpenRequested]
                 }
+                EditorEventTransient::ToggleContentDrawer => {
+                    vec![EditorEventEffect::ContentDrawerToggleRequested]
+                }
                 _ => vec![
                     EditorEventEffect::PresentationChanged,
                     EditorEventEffect::ReflectionChanged,

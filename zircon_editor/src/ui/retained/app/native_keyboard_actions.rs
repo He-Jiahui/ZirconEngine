@@ -1,10 +1,7 @@
 use super::hierarchy_pointer::HierarchyTerminalReason;
 use super::*;
-use crate::core::editor_event::{
-    EditorEventSource, EditorViewportEvent, ViewInstanceId as CoreViewInstanceId,
-};
+use crate::core::editor_event::EditorEventSource;
 use crate::ui::retained_host::event_bridge::apply_record_effects;
-use crate::ui::workbench::view::ViewInstanceId as UiViewInstanceId;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::OnceLock;
 use std::time::Instant;
@@ -56,38 +53,6 @@ impl RetainedEditorHost {
         if self.dispatch_module_plugin_details_keyboard(&keyboard) {
             return;
         }
-        if is_plain_frame_selection_pressed(&keyboard) {
-            match self.focused_scene_frame_selection_event() {
-                Ok(Some(event)) => {
-                    match callback_dispatch::dispatch_viewport_event(&self.runtime, event) {
-                        Ok(effects) => self.apply_dispatch_effects(effects),
-                        Err(error) => self.set_status_line(error),
-                    }
-                }
-                Ok(None) => {}
-                Err(error) => self.set_status_line(error),
-            }
-            // Bare F is the Scene shortcut. Missing/non-Scene focus never falls
-            // through to a global command targeting the shared controller.
-            return;
-        }
-        if keyboard.metadata.modifiers.control
-            && !keyboard.metadata.modifiers.alt
-            && !keyboard.metadata.modifiers.shift
-            && (keyboard.logical_key.eq_ignore_ascii_case("space")
-                || keyboard.logical_key == " "
-                || keyboard.key_code == 32)
-        {
-            match self.workbench_window_bridge.toggle_content_drawer() {
-                Ok(()) => {
-                    let mut effects = UiHostEventEffects::default();
-                    effects.request_paint_only();
-                    self.apply_dispatch_effects(effects);
-                }
-                Err(error) => self.set_status_line(error.to_string()),
-            }
-            return;
-        }
         if self.try_begin_hierarchy_rename_from_keyboard(&keyboard) {
             return;
         }
@@ -98,17 +63,6 @@ impl RetainedEditorHost {
             return;
         }
         self.dispatch_native_editor_keymap_command(&keyboard);
-    }
-
-    fn focused_scene_frame_selection_event(&self) -> Result<Option<EditorViewportEvent>, String> {
-        let manager = self
-            .editor_manager
-            .enter()
-            .map_err(|error| error.to_string())?;
-        Ok(frame_selection_event_for_scene_focus(
-            manager.current_focused_view(),
-            &manager.view_instance_ids_for_descriptor_key("editor.scene"),
-        ))
     }
 
     fn focused_game_stop_shortcut_matches(
@@ -175,30 +129,6 @@ impl RetainedEditorHost {
             Err(error) => self.set_status_line(error),
         }
     }
-}
-
-fn is_plain_frame_selection_pressed(keyboard: &UiKeyboardInputEvent) -> bool {
-    let modifiers = &keyboard.metadata.modifiers;
-    keyboard.state == UiKeyboardInputState::Pressed
-        && !modifiers.control
-        && !modifiers.alt
-        && !modifiers.shift
-        && !modifiers.super_key
-        && (keyboard.logical_key.eq_ignore_ascii_case("f") || keyboard.key_code == 70)
-}
-
-fn frame_selection_event_for_scene_focus(
-    focused: Option<UiViewInstanceId>,
-    scene_views: &[UiViewInstanceId],
-) -> Option<EditorViewportEvent> {
-    let focused = focused?;
-    if !scene_views.contains(&focused) {
-        return None;
-    }
-    Some(EditorViewportEvent::ForView {
-        view_id: CoreViewInstanceId::new(focused.0),
-        event: Box::new(EditorViewportEvent::FrameSelection),
-    })
 }
 
 fn is_escape_pressed(keyboard: &UiKeyboardInputEvent) -> bool {
@@ -311,93 +241,5 @@ impl RetainedEditorHost {
         }
         self.workbench_window_bridge
             .content_drawer_native_focus_open = open;
-    }
-}
-
-#[cfg(test)]
-mod focused_scene_frame_selection_tests {
-    use super::*;
-
-    fn f_pressed() -> UiKeyboardInputEvent {
-        UiKeyboardInputEvent {
-            metadata: Default::default(),
-            state: UiKeyboardInputState::Pressed,
-            key_code: 70,
-            scan_code: None,
-            physical_key: "KeyF".into(),
-            logical_key: "f".into(),
-            text: Some("f".into()),
-        }
-    }
-
-    #[test]
-    fn native_plain_f_respects_the_unmodified_pressed_chord() {
-        let keyboard = f_pressed();
-        assert!(is_plain_frame_selection_pressed(&keyboard));
-        let mut caps_lock = keyboard.clone();
-        caps_lock.logical_key = "F".into();
-        caps_lock.metadata.modifiers.caps_lock = true;
-        assert!(is_plain_frame_selection_pressed(&caps_lock));
-        for modifiers in [
-            zircon_runtime_interface::ui::dispatch::UiInputModifiers {
-                shift: true,
-                ..Default::default()
-            },
-            zircon_runtime_interface::ui::dispatch::UiInputModifiers {
-                control: true,
-                ..Default::default()
-            },
-            zircon_runtime_interface::ui::dispatch::UiInputModifiers {
-                alt: true,
-                ..Default::default()
-            },
-            zircon_runtime_interface::ui::dispatch::UiInputModifiers {
-                super_key: true,
-                ..Default::default()
-            },
-        ] {
-            let mut modified = keyboard.clone();
-            modified.metadata.modifiers = modifiers;
-            assert!(!is_plain_frame_selection_pressed(&modified));
-        }
-        for state in [
-            UiKeyboardInputState::Released,
-            UiKeyboardInputState::Repeated,
-        ] {
-            let mut released = keyboard.clone();
-            released.state = state;
-            assert!(!is_plain_frame_selection_pressed(&released));
-        }
-        let mut another_key = keyboard;
-        another_key.logical_key = "g".into();
-        another_key.key_code = 71;
-        assert!(!is_plain_frame_selection_pressed(&another_key));
-    }
-
-    #[test]
-    fn native_frame_selection_targets_only_the_focused_scene_in_multiple_view_layouts() {
-        let first = UiViewInstanceId::new("scene#first");
-        let second = UiViewInstanceId::new("scene#second");
-        let scenes = [first.clone(), second.clone()];
-        for focused in [first, second] {
-            let event = frame_selection_event_for_scene_focus(Some(focused.clone()), &scenes)
-                .expect("the focused Scene owns the command");
-            let EditorViewportEvent::ForView { view_id, event } = event else {
-                panic!("F must never dispatch a shared/default viewport command");
-            };
-            assert_eq!(view_id, CoreViewInstanceId::new(focused.0));
-            assert!(matches!(
-                event.as_ref(),
-                EditorViewportEvent::FrameSelection
-            ));
-        }
-        for focused in [
-            None,
-            Some(UiViewInstanceId::new("game#focused")),
-            Some(UiViewInstanceId::new("scene#closed")),
-        ] {
-            assert!(frame_selection_event_for_scene_focus(focused, &scenes).is_none());
-        }
-        assert!(frame_selection_event_for_scene_focus(Some(scenes[0].clone()), &[]).is_none());
     }
 }

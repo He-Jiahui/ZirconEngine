@@ -370,12 +370,12 @@ compliance here is not evidence of sandbox enforcement.
 | H5 | Shell-lock scope repaired. Open: worker-owned Starting/Stopping, progress, cancellation and <=100 ms frame-gap acceptance. |
 | H6, L5 | Command-driven popup contents/admission and project predicates implemented; unsupported Pause hidden. Rust/GUI interaction acceptance pending. |
 | H7 | Preview opt-in and truthful feedback implemented; lint passes. Real visibility/dispatch tests pending. |
-| H8 | Alt+P/Esc/Save All and effective-keymap palette/menu projection implemented. F/Ctrl+Space command migration and the additional authoring/navigation shortcuts remain open. |
+| H8 | Alt+P/Esc/Save All and effective-keymap palette/menu projection implemented. Follow-up adds F/Ctrl+Space and Q/W/E/R commands; additional authoring/navigation shortcuts remain deferred below. |
 | H9 | Plan, role contract, Annotate/export/compiler scaffold and synthetic goldens landed. No real Penpot kit/export or generated operator shell accepted. |
 | M2 | Real severity/notification counts and per-kind snap projection implemented. Rust tests/rendered spacing pending. |
 | M3 | Bounded readiness and immutable startup presenter selection implemented. Real driver latency/idle/presenter tests pending. |
 | M4 | Degradation warning/banner/counters implemented. Inline adapter projection and per-Play-start notification remain open. |
-| M5, M6, M7 | Open: fly/Alt navigation, broader authoring/reflection/asset-drop verbs, and main-window docking integration. |
+| M5, M6, M7 | Q/W/E/R commands added. Open: fly/Alt navigation, broader authoring/reflection/asset-drop verbs, and main-window docking integration. |
 | M8 | Controller-derived run admission/state implemented. Pause/Step/Eject and asynchronous state UI remain open. |
 | M9 | Deferred at the report's `zircon_editor/build.rs` authorization checkpoint. |
 | M10 | New operator tests use behavior, and obsolete presenter guards were removed. Startup happy-path tooling exists; Rust tests, real automation and CI wiring are pending. |
@@ -397,3 +397,75 @@ Windows commands are recorded above, and the staged preview/capture command is
 in [the local launch guide](run-editor-locally.md). Compile, successful native
 startup, continuous-runtime/PIE jank budgets and real operator UI parity remain
 required acceptance work; this closeout does not mark those goals complete.
+
+## Main merge and command follow-up (2026-10-18)
+
+Merge `5f8a8ca92` combines the branch's counter reset before the native borrow
+with main's scoped factory/encoder borrows. It retains the source buffer, bind
+group and pipeline cache guard through dispatch, then releases the native borrow
+before recording the dispatch. `.codex/config.toml` has no change relative to the
+first parent. The working overlay still matches `stash@{0}`; the stash is retained.
+
+H8 / partial M5: Frame Selection (F), Content Drawer (Ctrl+Space), and Select /
+Translate / Rotate / Scale (Q/W/E/R) now use registered commands and the effective
+keymap. Remove the two native shortcut bypasses. Scene commands require a project
+and Scene document focus; their event resolves the focused live Scene leaf at
+execution, preserving multiple-view ownership and rejecting stale/missing targets.
+The drawer uses a transient host intent, including effect coalescing and focus
+restoration. Both shipped locales include the command and menu labels.
+
+Added behavior tests cover descriptor/event mapping, keymap overrides/unbinding,
+focus/no-project/headless admission, multiple Scene targets, event serialization
+and drawer-toggle parity. Linux verification: changed Rust files passed unexpanded
+AST parsing; changed TOML parsed; `git diff --check` passed. The startup/storage
+Python batch ran **25 tests: 10 passed, 15 Windows-only skipped**:
+
+```sh
+TMPDIR=/workspace/ZirconEngine/tools/tests python3 -B -m unittest tools.tests.test_editor_startup_smoke tools.tests.test_build_editor_storage_mode_contract -q
+```
+
+Rust compilation/tests remain unexecuted: installed Rust is 1.85.1 against the
+project's 1.94.1; this host has neither physical D/E/F cargo-targets storage nor
+an activated Jenkins coordinator. Do not create Linux lookalike output roots or
+treat AST parsing as a compile pass. In addition to the Critical Windows batch:
+
+```powershell
+& tools/dev/local-cargo.ps1 -TargetDir $t test -p zircon_editor --lib core::commands --locked
+& tools/dev/local-cargo.ps1 -TargetDir $t test -p zircon_editor --lib types_target_serialization_tests --locked
+& tools/dev/local-cargo.ps1 -TargetDir $t test -p zircon_editor --lib editor_event_execution::viewport_event --locked
+& tools/dev/local-cargo.ps1 -TargetDir $t test -p zircon_editor --lib event_bridge --locked
+& tools/dev/local-cargo.ps1 -TargetDir $t test -p zircon_editor --lib dispatch::common::effects --locked
+```
+
+Native acceptance: rebind/unbind F and Ctrl+Space, focus each of two Scene views,
+exercise Q/W/E/R, type those letters in text fields, and verify the focused Game
+receives its gameplay keys while Esc stops Play. Menu/palette shortcuts must show
+the overrides. These checks remain pending.
+
+H4 remains explicitly deferred: the App-owned dynamically loaded Play session
+exports CPU frames and a native surface, not a texture lease compositable on the
+chrome device. A repair needs a versioned shared-device/product lease covering
+submission, resize, device loss and session retirement across the ABI, plus real
+GPU tests. The existing Scene renderer's product handles cannot safely stand in
+for those leases. CPU capture and its counters remain truthful.
+
+H5 remains explicitly deferred: `request_play` currently combines activation,
+edit protection, backend start, gateway attachment and rollback under its transition
+gate. The UI subsequently attaches consumers and the selection domain. Moving the
+whole call to a thread would publish Playing before UI completion, race Stop and
+shutdown, and leave cancellation/retirement unspecified. A complete change needs
+Starting/Stopping ownership, a cancel/completion generation, UI-thread commit and
+all rollback tests before native frame-gap acceptance. Shell-lock release remains
+landed; no asynchronous-start claim is made. M8 Pause/Step/Eject depends on that
+lifecycle and an authoritative runtime stepping/possession contract.
+
+H8's Space tool cycling, Ctrl+D/F2 authoring commands, G/F11/End and additional redo
+binding remain deferred until their focused-view or undoable executors exist.
+Ctrl+Shift+Z remains the existing rebindable redo default; no second command or
+hardcoded Ctrl+Y path is introduced. F2's existing hierarchy-local rename remains
+available; migrating it requires preserving its draft/commit/cancel lifecycle.
+
+C2 remains permission-deferred, including PR workflow, branch protection and runner
+changes. No `.github/**`, protected build/CI gate or `tools/dev/**` changes were
+made. O0 is unaccepted, so O3–O6 remain gated; this command batch advances O1 source
+only, pending its Rust and native checks.

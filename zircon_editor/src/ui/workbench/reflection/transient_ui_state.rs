@@ -56,7 +56,9 @@ impl EditorTransientUiState {
             EditorEventTransient::EndViewDrag => {
                 self.dragging_view = None;
             }
-            EditorEventTransient::OpenCommandPalette | EditorEventTransient::OpenSettingsWindow => {
+            EditorEventTransient::OpenCommandPalette
+            | EditorEventTransient::OpenSettingsWindow
+            | EditorEventTransient::ToggleContentDrawer => {
             }
         }
     }

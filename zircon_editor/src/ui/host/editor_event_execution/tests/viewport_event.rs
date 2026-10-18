@@ -6,6 +6,23 @@ use crate::core::editor_event::{EditorEventEffect, EditorViewportEvent};
 use crate::scene::viewport::{GridMode, ViewportFeedback};
 
 #[test]
+fn focused_commands_target_only_the_actual_scene_leaf() {
+    use crate::ui::workbench::view::ViewInstanceId;
+    let first = ViewInstanceId::new("scene#first");
+    let second = ViewInstanceId::new("scene#second");
+    let scenes = [first.clone(), second.clone()];
+    for focused in [first, second] {
+        assert_eq!(super::focused_scene_view(Some(focused.clone()), &scenes),
+            Some(crate::core::editor_event::ViewInstanceId::new(focused.0)));
+    }
+    for focused in [None, Some(ViewInstanceId::new("game#focused")),
+        Some(ViewInstanceId::new("scene#closed"))] {
+        assert!(super::focused_scene_view(focused, &scenes).is_none());
+    }
+    assert!(super::focused_scene_view(Some(scenes[0].clone()), &[]).is_none());
+}
+
+#[test]
 fn viewport_effects_capacity_preserves_empty_and_ordered_effects() {
     let empty = viewport_effects(
         &EditorViewportEvent::CancelInteraction,

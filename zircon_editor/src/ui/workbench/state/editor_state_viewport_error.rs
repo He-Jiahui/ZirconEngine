@@ -254,6 +254,8 @@ impl PartialEq for EditorStateOperationError {
 #[derive(Debug, Error, PartialEq)]
 /// 画布错误保留world访问、输入路由、控制器和事务恢复的边界。
 pub enum EditorViewportStateError {
+    #[error("viewport command requires a focused live Scene view")]
+    NoFocusedScene,
     #[error(transparent)]
     CoreService(#[from] zircon_runtime::core::CoreError),
     #[error(transparent)]

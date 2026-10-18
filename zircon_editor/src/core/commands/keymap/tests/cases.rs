@@ -76,6 +76,53 @@ fn user_and_session_keymap_overrides_resolve_through_settings_registry() {
 }
 
 #[test]
+fn scene_shortcuts_and_drawer_honor_focus_overrides_and_unbinding() {
+    use crate::core::commands::{CommandEvalCtx, DocumentKind, EditorCommandRegistry};
+    let registry = EditorCommandRegistry::default_workbench();
+    let scene = CommandEvalCtx::interactive()
+        .with_project_open(true)
+        .with_focused_document_kind(DocumentKind::scene());
+    let keymap = EditorKeymap::default_workbench();
+    for (key, code, id) in [
+        ("f", 70, "viewport.frame_selection"),
+        ("q", 81, "viewport.tool.select"),
+        ("w", 87, "viewport.tool.translate"),
+        ("e", 69, "viewport.tool.rotate"),
+        ("r", 82, "viewport.tool.scale"),
+    ] {
+        let input = keyboard_event(key, code, false, false, false, false);
+        assert_eq!(keymap.resolve_keyboard_input_when(&input, |candidate| {
+            registry.command(candidate).unwrap().is_enabled(&scene)
+        }), Some(id));
+        for context in [
+            CommandEvalCtx::interactive().with_project_open(true),
+            CommandEvalCtx::interactive().with_focused_document_kind(DocumentKind::scene()),
+            CommandEvalCtx::interactive().with_project_open(true)
+                .with_focused_document_kind(DocumentKind::material()),
+            CommandEvalCtx::headless(std::iter::empty::<String>()),
+        ] {
+            assert_eq!(keymap.resolve_keyboard_input_when(&input, |candidate| {
+                registry.command(candidate).unwrap().is_enabled(&context)
+            }), None);
+        }
+    }
+    let changed = keymap.with_overrides(&overrides([
+        ("viewport.frame_selection", Some("Alt+F")),
+        ("content_drawer.toggle", None),
+    ]));
+    assert_eq!(changed.resolve_keyboard_input_when(
+        &keyboard_event("f", 70, false, false, false, false), |_| true), None);
+    assert_eq!(changed.resolve_keyboard_input_when(
+        &keyboard_event("f", 70, false, false, true, false), |_| true),
+        Some("viewport.frame_selection"));
+    let drawer = keyboard_event("space", 32, true, false, false, false);
+    assert_eq!(keymap.resolve_keyboard_input_when(&drawer, |candidate| {
+        registry.command(candidate).unwrap().is_enabled(&scene)
+    }), Some("content_drawer.toggle"));
+    assert_eq!(changed.resolve_keyboard_input_when(&drawer, |_| true), None);
+}
+
+#[test]
 fn keymap_reports_conflicts_after_a_settings_override() {
     let effective = EditorKeymap::default_workbench()
         .with_overrides(&overrides([("file.project.open", Some("Ctrl+S"))]));

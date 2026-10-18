@@ -1,6 +1,26 @@
 use super::*;
 
 #[test]
+fn viewport_commands_resolve_focus_at_execution_and_drawer_uses_a_host_intent() {
+    use crate::core::commands::{CommandEvalCtx, DocumentKind, EditorCommandRegistry};
+    use crate::core::editor_event::EditorViewportEvent;
+    let registry = EditorCommandRegistry::default_workbench();
+    let context = CommandEvalCtx::interactive()
+        .with_project_open(true)
+        .with_focused_document_kind(DocumentKind::scene());
+    assert_eq!(
+        registry.event_for_command("viewport.frame_selection", &context).unwrap(),
+        EditorEvent::Viewport(EditorViewportEvent::ForFocusedScene {
+            event: Box::new(EditorViewportEvent::FrameSelection),
+        })
+    );
+    assert_eq!(
+        registry.event_for_command("content_drawer.toggle", &context).unwrap(),
+        EditorEvent::Transient(EditorEventTransient::ToggleContentDrawer)
+    );
+}
+
+#[test]
 fn new_scene_is_project_scoped_and_uses_the_native_create_scene_command() {
     let commands = default_workbench_commands();
     let command = commands

@@ -331,6 +331,7 @@ fn invalidation_mask_for_effects(effects: &[EditorEventEffect]) -> EditorViewInv
             | EditorEventEffect::AssetDeletionRequested { .. }
             | EditorEventEffect::CommandPaletteOpenRequested
             | EditorEventEffect::SettingsWindowOpenRequested
+            | EditorEventEffect::ContentDrawerToggleRequested
             | EditorEventEffect::OpenScenePickerRequested
             | EditorEventEffect::CreateScenePickerRequested
             | EditorEventEffect::OpenedViewVisibilityRequested { .. } => {
