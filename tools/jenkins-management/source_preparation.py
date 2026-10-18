@@ -217,6 +217,25 @@ def checkout_external_file_view():
 
     return SimpleNamespace(source_files=compiler_files)
 
+def _managed_external_plan_paths(index):
+    entries = index["entries"]
+    plans = {entry["path"] for entry in entries
+             if entry["stage"] == 0 and entry["mode"] == "100644"
+             and re.fullmatch(r"\.codex/plans/[^/]+\.md", entry["path"], re.IGNORECASE)}
+    plans.difference_update(entry["path"] for entry in entries if entry["stage"] != 0)
+    return plans
+
+
+def _managed_external_compiler_files(snapshot):
+    """Keep full evidence while classifying only root tracked regular plans."""
+    checked_source_evidence(snapshot)
+    files = source_files(snapshot)
+    plans = (_managed_external_plan_paths(snapshot["gitIndex"])
+             if snapshot.get("sourceEvidencePolicy") == _SOURCE_EVIDENCE_V2 else set())
+    return {name: checksum for name, checksum in files.items()
+            if not (name in plans and isinstance(checksum, str))}
+
+
 
 
 def preparation_key(repository_id, trusted, environment, packages, features, profile,
@@ -239,9 +258,10 @@ def preparation_key(repository_id, trusted, environment, packages, features, pro
     })
 
 
-def verify_sealed_capture(captured, manifest):
+def verify_sealed_capture(captured, manifest, *, managed_external=False):
     """Bind every sealed byte, deletion and base to the exact declared capture."""
-    expected = {path.casefold(): checksum for path, checksum in source_files(captured).items()}
+    files = _managed_external_compiler_files(captured) if managed_external else source_files(captured)
+    expected = {path.casefold(): checksum for path, checksum in files.items()}
     entries = manifest["entries"]
     actual = {}
     for entry in entries:
@@ -1418,16 +1438,12 @@ class _ManagedCapturedExternal:
     def source(self, root, *, payload=None):
         from tools.jenkins import managed_worktree as formal
         payload = self.payload if payload is None else payload
-        names = self.git(root, "ls-files", "--cached", "--others", "--exclude-standard", "-z").stdout
-        names = list(dict.fromkeys(name.decode("utf-8", "strict") for name in names.split(b"\0") if name))
-        head, gitlinks = self.text(root, "rev-parse", "HEAD"), {}
-        if root == self.repo.parent / "zr_vm":
-            stage = self.git(root, "ls-files", "--stage", "-z").stdout
-            indexed = {}
-            for row in stage.split(b"\0"):
-                if row.startswith(b"160000 "):
-                    fields, name = row.split(b"\t", 1)
-                    indexed[name.decode("utf-8", "strict")] = fields.decode("ascii").split()[1]
+        before = full_file_index_metadata(self, root)
+        names, head, gitlinks = before["names"], before["head"], {}
+        canonical = root == self.repo.parent / "zr_vm"
+        if canonical:
+            indexed = {entry["path"]: entry["object"] for entry in before["gitIndex"]["entries"]
+                       if entry["mode"] == "160000"}
             requested = payload.get("externalGitlinks")
             formal._require(isinstance(requested, dict) and set(requested) == set(indexed)
                             and all(isinstance(value, dict) and value.get("indexCommit") == indexed[name]
@@ -1443,16 +1459,16 @@ class _ManagedCapturedExternal:
                                 "Registered external Gitlink HEAD changed")
                 gitlinks[name] = {"gitlinkCommit": indexed[name], "source": captured}
         ordinary = [name for name in names if name not in gitlinks]
+        plans = _managed_external_plan_paths(before["gitIndex"]) if canonical else set()
         formal._require(not any(_managed_relative(name).split("/", 1)[0].casefold()
-                                in {".git", ".codex", ".jenkins", ".opencode", "target"} for name in ordinary),
+                                in {".git", ".codex", ".jenkins", ".opencode", "target"}
+                                for name in ordinary if name not in plans),
                         "external_control_forbidden", "External checkout controls are not compiler inputs")
-        files, metadata = _managed_capture_files(root, ordinary, self.object_root, "external-capture")
+        folded, metadata = _managed_capture_files(root, ordinary, self.object_root, "external-capture")
         self.metadata[str(root)] = metadata
+        files = {name: folded[name.casefold()] for name in ordinary}
         files.update(gitlinks)
-        value = {"head": head, "files": files, "diffSha256": source_diff_digest(self, root)}
-        formal._require(self.text(root, "rev-parse", "HEAD") == head, "external_capture_changed",
-                        "External Git base changed while its tuple was captured")
-        return {**value, "sourceDigest": digest(value)}
+        return finish_full_file_index(self, root, files, before)
 
     def flattened_metadata(self, root, source, prefix=""):
         result = {}
@@ -1484,7 +1500,7 @@ def _managed_sealed_inventory(management, record, inputs, inspection_payload):
     owned = _managed_owned_hashes(inspection_payload, record["ownedPaths"])
     formal._require(owned is None or all(hashes.get(path) == checksum for path, checksum in owned.items()),
                     "managed_owned_source_changed", "Sealed owned bytes differ from their original request")
-    objects = {}
+    objects, raw_objects = {}, set()
 
     def checked_manifest(value, expected, root, base, *, product=False):
         keys = {"schemaVersion", "repositoryId", "baseHead", "entries", "external", "declaredDependencies"}
@@ -1574,16 +1590,17 @@ def _managed_sealed_inventory(management, record, inputs, inspection_payload):
                         "external_scope_invalid", "Sealed untracked membership is not its exact canonical subset")
         source = capture["source"]
         checked_capture(source)
+        raw_objects.update(checksum for checksum in source_files(source).values() if checksum is not None)
         formal._require(source["head"] == value["baseHead"]
                         and source["sourceDigest"] == digest({key: item for key, item in source.items() if key != "sourceDigest"})
-                        and {name.casefold(): checksum for name, checksum in source_files(source).items()} == expected,
+                        and {name.casefold(): checksum for name, checksum in _managed_external_compiler_files(source).items()} == expected,
                         "external_capture_changed", "Sealed external snapshot differs from its original captured hashes")
         checked_manifest(frozen["manifest"], expected, expected_root, value["baseHead"])
         formal._require(digest(frozen["manifest"]) == frozen.get("sourceDigest"),
                         "external_capture_changed", "Sealed dependency manifest digest differs")
     formal._require(inputs.get("externalGitlinks") == captured_gitlinks,
                     "external_capture_changed", "Sealed dependency snapshot differs from its registered Gitlinks")
-    names = ["inputs/objects/" + checksum for checksum in sorted(objects)]
+    names = ["inputs/objects/" + checksum for checksum in sorted(set(objects) | raw_objects)]
     observed = _managed_checksums(object_root, names, "sealed-inventory-objects")
     formal._require(all(observed[name] == name.rsplit("/", 1)[1] for name in names),
                     "managed_source_object_changed", "A sealed source object is absent or corrupt")
@@ -1708,6 +1725,7 @@ def managed_inspect_worktree(management, *, preparation_helper):
     """Capsule-owned input inspection; preserve the service reader receipt contract."""
 
     from tools.jenkins import managed_worktree as formal
+    from types import SimpleNamespace
     _require, digest, _plain = formal._require, formal.digest, formal._plain
     canonical_build_root = formal.canonical_build_root
     compiler_controls, require_product_inputs = formal.compiler_controls, formal.require_product_inputs
@@ -1747,7 +1765,8 @@ def managed_inspect_worktree(management, *, preparation_helper):
     compiler_controls(controls, hashes, record["ownedPaths"], managed=True)
     require_product_inputs(hashes, controls)
     capture = _ManagedCapturedExternal(management, object_root)
-    external, external_captures, gitlinks = _external_capture(capture, preparation_helper, inspection=True)
+    external, external_captures, gitlinks = _external_capture(
+        capture, SimpleNamespace(source_files=_managed_external_compiler_files), inspection=True)
     if "externalGitlinks" in management.payload:
         _require(isinstance(management.payload["externalGitlinks"], dict)
                  and management.payload["externalGitlinks"] == gitlinks,
@@ -1758,7 +1777,7 @@ def managed_inspect_worktree(management, *, preparation_helper):
         root, source = Path(captured_external["path"]), captured_external["source"]
         manifest = _managed_captured_manifest(root, source["head"], value["currentHashes"],
                                              capture.flattened_metadata(root, source))
-        preparation_helper.verify_sealed_capture(source, manifest)
+        preparation_helper.verify_sealed_capture(source, manifest, managed_external=True)
         frozen_external.append({"kind": KIND, "name": "zr_vm", "repositoryRoot": str(root),
                                 "manifest": manifest, "sourceDigest": digest(manifest)})
     source_manifest = _managed_captured_manifest(management.repo, record["baseHead"], hashes, metadata,
