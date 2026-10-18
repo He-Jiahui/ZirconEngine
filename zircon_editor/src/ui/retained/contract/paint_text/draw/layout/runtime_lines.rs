@@ -91,6 +91,7 @@ fn runtime_text_lines(
             artifact_line: resolved_text_glyph_artifact_line(&layout, line_index),
         })
         .collect::<Vec<_>>();
+    #[cfg(feature = "profiling")]
     let artifact_line_count = lines
         .iter()
         .filter(|line| line.artifact_line.is_some())

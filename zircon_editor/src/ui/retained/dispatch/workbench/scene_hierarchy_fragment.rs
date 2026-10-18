@@ -433,6 +433,7 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         else {
             return Ok(SceneHierarchyFragmentApply::ResyncRequired);
         };
+        #[cfg(feature = "profiling")]
         let selected_entity_count = selected_entities.len();
         if !changed_controls.is_empty() {
             self.template_surface

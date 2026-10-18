@@ -559,12 +559,13 @@ deferrals.
   are **zero Rust-source `include_str!` guards** under `ui/operator`. Preserve
   legacy guards until their code is actually replaced. The first-frame smoke
   exists, but real GUI editing automation and its MVP-lane run are deferred:
-  this host cannot launch the Windows product, and lane wiring is protected.
-- **L1:** `ui/operator` denies warnings and the previously identified unused
-  bindings were removed. Broad warning burn-down stays deferred until current
-  Rust 1.94.1 diagnostics are available; the old warning totals are not a current
-  baseline. Do not suppress warnings or remove apparently unused feature-gated
-  code without checking the supported feature closure.
+  this host cannot launch the Windows product, and the F5 lane still depends on
+  the retired product publisher and missing source-bound receipts described in M1.
+- **L1:** `ui/operator` denies warnings. Hosted Rust 1.94.1 diagnostics now provide
+  a current baseline (316 editor warnings in run `39138886828`); the focused
+  follow-up below removes unused logic and gates profiling-only bindings. Broad
+  warning/clippy burn-down and profiling execution remain open. No warning
+  suppression or removal of supported feature code is used.
 - **L2–L5:** source repairs remain as recorded above. Rust/native acceptance,
   especially a future winit stable migration, remains pending.
 
@@ -920,3 +921,29 @@ must complete editor/plugin checks and command tests to establish positive C2
 acceptance. Original E0499 throwaway-branch injection remains outside the user's
 single-branch constraint. Local Rust AST parsing and static guard checks cover
 this repair; actual command-test execution remains pending the hosted rerun.
+
+## Scoped warning repair (L1 follow-up)
+
+Use the hosted Rust 1.94.1 diagnostics rather than the review's older warning
+totals. Remove two unused pure calculations (`row_x`, `materialized_line_count`)
+and the unused decision-center parameter from its private executor/caller.
+Seven profiling-only locals now use `cfg(feature = "profiling")`, matching their
+only consumers inside `profile_counter!`. Editor's `profiling-tracy` feature
+implies `profiling`, so that backend retains the bindings too. Counter identities
+and rendering, selection, layout and decision behavior are unchanged.
+
+Rust AST parsing and Change Guard scans pass for all seven touched files, with
+zero findings; whitespace checks pass. No tests were added for removed pure
+calculations. Default compilation is covered by the PR gate; feature-enabled
+compilation still requires Windows:
+
+```powershell
+$t = 'D:\cargo-targets\zircon-local\claude-review-20261017-l1'
+& tools/dev/local-cargo.ps1 -TargetDir $t check -p zircon_editor --lib --features profiling --locked
+& tools/dev/local-cargo.ps1 -TargetDir "$t-tracy" check -p zircon_editor --lib --features profiling-tracy --locked
+```
+
+Broad warning/clippy burn-down is not complete. Run `39139659508` has already
+passed Source and tooling contracts; its Wiki build/upload also succeeds with
+**zero annotations**, removing the transitive Node-20 warning. Configure/deploy
+retain their non-PR admission and remain source-reviewed rather than executed.

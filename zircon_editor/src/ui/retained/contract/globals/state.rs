@@ -407,7 +407,9 @@ impl HostContractState {
             );
             return false;
         };
+        #[cfg(feature = "profiling")]
         let replacement_count = patch.replacement_count();
+        #[cfg(feature = "profiling")]
         let rebind_node_count = model_replacements
             .iter()
             .map(|(_, next)| next.row_count())
@@ -487,7 +489,9 @@ impl HostContractState {
             );
             return false;
         };
+        #[cfg(feature = "profiling")]
         let pane_replacement_count = patch.pane_replacement_count();
+        #[cfg(feature = "profiling")]
         let workbench_changed_row_count = patch
             .workbench_nodes()
             .map_or(0, |(_, changed_rows)| changed_rows.len());
