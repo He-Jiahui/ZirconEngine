@@ -515,12 +515,124 @@ println 'PASS actual cleanup scope parser'
                 classpath = str(libraries[-1])
         if not java.is_file() or not classpath:
             self.skipTest("Local Jenkins Java/Groovy runtime unavailable; behavioral acceptance remains pending")
+        branch_harness = r'''
+def branchParameters = [ACTION: 'commit-branch', SESSION_ID: 'branch-session',
+    REQUEST_ID: 'branch-request', OPERATION_ID: 'branch-operation',
+    EXPECTED_DRIVER_DIGEST: 'd' * 64, RUNTIME_OPERATION_ID: 'runtime-test',
+    QUERY_ONLY: 'false', INPUT_JSON: JsonOutput.toJson([action: 'deliver-task',
+        sessionId: 'branch-session', requestId: 'branch-request', operationId: 'branch-operation',
+        sourceRoot: 'E:/Git/ZirconEngine/.jenkins/worktrees/branch-session-w',
+        paths: ['owned.py'], dependencies: [], targetBranch: 'main', message: 'Scoped task'])]
+def branchWaiting = [exitCode: 1, response: [status: 'waiting',
+    reason: 'Another management operation owns Git; continue the same request']]
+def branchCases = [
+    [plan: [branchWaiting, branchWaiting, [exitCode: 0, response: [status: 'committed']]],
+     attempts: 3, sleeps: [5, 5], terminal: 'committed'],
+    [plan: [[exitCode: 1, response: [status: 'failed', reason: 'real failure']]],
+     attempts: 1, sleeps: [], terminal: 'failed', failure: 'Scoped branch operation did not complete'],
+    [plan: Collections.nCopies(120, branchWaiting), attempts: 120,
+     sleeps: Collections.nCopies(119, 5), terminal: 'waiting',
+     failure: 'Branch operation is still waiting'],
+    [plan: [branchWaiting, [exitCode: 1, missingResponse: true]],
+     attempts: 2, sleeps: [5], terminal: 'waiting', archivedAttempts: 1,
+     failure: 'No branch receipt; reconcile this original request']
+]
+for (def branchCase in branchCases) {
+    def branchFixture = new PipelineFixture(root, branchCase.plan)
+    def environment = branchFixture.binding.getVariable('env')
+    environment.ZIRCON_AGENT_LABEL = 'zircon-windows-agent'
+    environment.BUILD_NUMBER = 'branch-build'
+    branchFixture.binding.setVariable('params', new LinkedHashMap(branchParameters))
+    def archives = []
+    def responses = [:]
+    def responseLookups = []
+    branchFixture.binding.setVariable('dir', { path, Closure body ->
+        assert branchFixture.nodeDepth == 1
+        assert path == 'E:/Git/ZirconEngine/.jenkins/agent/workspace/zircon-management'
+        body()
+    })
+    branchFixture.binding.setVariable('withEnv', { List values, Closure body ->
+        assert branchFixture.nodeDepth == 1
+        assert values*.toString() == ['INPUT_JSON=', 'ZR_BRANCH_ACTION=commit-branch',
+            'ZR_BRANCH_SESSIONID=branch-session', 'ZR_BRANCH_REQUESTID=branch-request',
+            'ZR_BRANCH_OPERATIONID=branch-operation', 'ZR_BRANCH_DRIVER=' + ('d' * 64),
+            'ZR_BRANCH_RUNTIME=runtime-test']
+        body()
+    })
+    branchFixture.binding.setVariable('bat', { Map options ->
+        assert branchFixture.nodeDepth == 1 && options.returnStatus == true
+        assert options.script.contains('E:/Git/ZirconEngine/tools/jenkins-management/branch_integration.py')
+        assert options.script.contains('--output-file')
+        assert branchFixture.position < branchFixture.plan.size()
+        branchFixture.calls << new JsonSlurper().parseText(branchFixture.writes.last().text)
+        branchFixture.current = branchFixture.plan[branchFixture.position++]
+        def output = options.script =~ /--output-file "([^"]+)"/
+        assert output.find()
+        def outputPath = output.group(1)
+        assert outputPath == "E:/Git/ZirconEngine/.jenkins/state/controls/branch-branch-operation.branch-build.poll-${branchFixture.position - 1}.response.json"
+        if (!branchFixture.current.missingResponse) {
+            responses[outputPath] = JsonOutput.toJson(branchFixture.current.response)
+        }
+        branchFixture.current.exitCode
+    })
+    branchFixture.binding.setVariable('fileExists', { path ->
+        assert branchFixture.nodeDepth == 1 && path.endsWith('.response.json')
+        responseLookups << path.toString()
+        responses.containsKey(path.toString())
+    })
+    branchFixture.binding.setVariable('readFile', { Map options ->
+        assert branchFixture.nodeDepth == 1 && options.file.endsWith('.response.json')
+        assert responses.containsKey(options.file.toString())
+        responses[options.file.toString()]
+    })
+    branchFixture.binding.setVariable('parseJson', { String response ->
+        new JsonSlurper().parseText(response)
+    })
+    branchFixture.binding.setVariable('archiveArtifacts', { Map options ->
+        assert branchFixture.nodeDepth == 1 && options.fingerprint == false
+        def receiptBase = 'branch-branch-operation.branch-build'
+        def pollReceipt = receiptBase + '.poll-' + (branchFixture.position - 1) + '.receipt.json'
+        assert options.artifacts.toString() == receiptBase + '.receipt.json,' + pollReceipt
+        def canonicalWrite = branchFixture.writes.findAll {
+            it.file.toString() == receiptBase + '.receipt.json'
+        }.last()
+        def pollWrite = branchFixture.writes.findAll { it.file.toString() == pollReceipt }.last()
+        assert pollWrite.text == canonicalWrite.text
+        archives << new JsonSlurper().parseText(pollWrite.text)
+    })
+    def failure = null
+    try {
+        branchFixture.freshScript(new File(root, 'tools/jenkins-management/branch-integration.groovy'),
+            'canonical_branch_integration.groovy').run()
+    } catch (IllegalStateException error) {
+        failure = error
+    }
+    assert branchCase.failure ? failure?.message?.contains(branchCase.failure) : failure == null
+    assert branchFixture.position == branchCase.attempts
+    assert branchFixture.labels.size() == branchCase.attempts && branchFixture.nodeDepth == 0
+    assert branchFixture.sleeps == branchCase.sleeps
+    assert branchFixture.calls.every { it == new JsonSlurper().parseText(branchParameters.INPUT_JSON) }
+    assert branchFixture.binding.getVariable('params') == branchParameters
+    def archivedAttempts = branchCase.get('archivedAttempts', branchCase.attempts)
+    assert archives.size() == archivedAttempts && archives.last().status == branchCase.terminal
+    assert responses.size() == archivedAttempts
+    assert responseLookups == (0..<branchCase.attempts).collect {
+        "E:/Git/ZirconEngine/.jenkins/state/controls/branch-branch-operation.branch-build.poll-${it}.response.json".toString()
+    }
+    if (branchCase.plan.last().missingResponse) {
+        assert responses.containsKey(responseLookups.first())
+        assert !responses.containsKey(responseLookups.last())
+    }
+}
+println 'PASS canonical branch Git waiting, original request, executor release and bounded retry'
+'''
         completed = subprocess.run(
-            [str(java), "-cp", classpath, "groovy.ui.GroovyMain", "-e", GROOVY_HARNESS, str(root)],
+            [str(java), "-cp", classpath, "groovy.ui.GroovyMain", "-e", GROOVY_HARNESS + branch_harness, str(root)],
             cwd=root, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=180,
         )
         self.assertEqual(0, completed.returncode, completed.stdout + completed.stderr)
         self.assertIn("PASS canonical Pipeline contention", completed.stdout)
+        self.assertIn("PASS canonical branch Git waiting", completed.stdout)
 
 
     def test_prepared_flow_pipeline_repairs_only_the_proved_dispatch_mismatch(self):
