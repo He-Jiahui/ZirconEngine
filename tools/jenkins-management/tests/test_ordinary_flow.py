@@ -2948,6 +2948,13 @@ class BranchCandidatePreparationTests(unittest.TestCase):
 
     def test_missing_candidate_sibling_uses_managed_prepared_cargo(self):
         with self._candidate_fixture() as fixture:
+            row = json.loads(fixture["record"].read_bytes())
+            fixture["request"].pop("ownerThreadId")
+            fixture["request"]["paths"] = [
+                name.upper() if name == "src/lib.rs" else name
+                for name in fixture["request"]["paths"]]
+            row["request"] = fixture["request"]
+            fixture["record"].write_bytes(runner.encoded(row) + b"\n")
             historical = {name: fixture[name].read_bytes() for name in ("record", "marker", "native")}
             self.assertFalse((fixture["root"].parent / "zr_vm").exists())
             from tools.jenkins.source import repository_id
@@ -2965,6 +2972,9 @@ class BranchCandidatePreparationTests(unittest.TestCase):
                                           runner.AUTH["validate"], fixture["request"]["paths"])
             self.assertGreaterEqual(authorization.call_count, 2)
             self.assertEqual("passed", result["status"], result)
+            self.assertIsNone(result["branchCandidateBinding"]["ownerThreadId"])
+            self.assertEqual(fixture["request"]["paths"],
+                             result["branchCandidateBinding"]["ownedPaths"])
             execution = Path(result["executionRoot"])
             self.assertTrue((execution.parent / "zr_vm/binding/Cargo.toml").is_file())
             self.assertEqual("integration-candidate",
@@ -2990,7 +3000,35 @@ class BranchCandidatePreparationTests(unittest.TestCase):
 
     def test_changed_candidate_binding_retains_evidence_and_does_not_launch(self):
         with self._candidate_fixture() as fixture:
-            row = json.loads(fixture["record"].read_bytes())
+            original = json.loads(fixture["record"].read_bytes())
+            scope = list(fixture["request"]["paths"])
+            invalid = [
+                (["src/foreign.rs"], scope),
+                ([*original["commitPaths"], "SRC/lib.rs"], scope),
+                (original["commitPaths"], [*scope, "SRC/lib.rs"]),
+            ]
+            for committed, owned in invalid:
+                with self.subTest(committed=committed, owned=owned):
+                    fixture["request"]["paths"] = list(owned)
+                    row = {**original, "request": fixture["request"],
+                           "commitPaths": list(committed)}
+                    fixture["record"].write_bytes(runner.encoded(row) + b"\n")
+                    evidence = {name: fixture[name].read_bytes()
+                                for name in ("record", "marker", "native")}
+                    with patch.object(preparation, "seal_source", wraps=preparation.seal_source) as seal, \
+                            patch.object(runner.Management, "run", wraps=runner.Management.run) as launch:
+                        with self.assertRaisesRegex(ValueError, "Original branch queue candidate binding changed"):
+                            runner.validate_branch_candidate(fixture["capsule"], component_digest=fixture["component"],
+                                root=fixture["root"], branch_request=fixture["request"], cargo_recipe=fixture["recipe"],
+                                ordinal=1, runtime=fixture["runtime"])
+                    seal.assert_not_called()
+                    launch.assert_not_called()
+                    for domain in ("resource_reservation", "execution", "execution_launch", "sealed_input"):
+                        self.assertFalse(fixture["state"].list(domain))
+                    self.assertEqual(evidence,
+                        {name: fixture[name].read_bytes() for name in ("record", "marker", "native")})
+            fixture["request"]["paths"] = scope
+            row = {**original, "request": fixture["request"]}
             row["candidateHead"] = "0" * 40
             fixture["record"].write_bytes(runner.encoded(row) + b"\n")
             evidence = {name: fixture[name].read_bytes() for name in ("record", "marker", "native")}

@@ -736,7 +736,7 @@ class _BranchCandidate:
         self.binding = {
             "requestDigest": sha(encoded(request)), "operationId": operation,
             "sessionId": request["sessionId"], "requestId": request["requestId"],
-            "ownerThreadId": request["ownerThreadId"], "ownedPaths": request["paths"],
+            "ownerThreadId": request.get("ownerThreadId"), "ownedPaths": request["paths"],
             "sourceCommit": record.get("sourceCommit"), "sourceRoot": record.get("sourceRoot"),
             "branch": record.get("branch"), "candidateHead": record.get("candidateHead"),
             "mainHeadBefore": record.get("mainHeadBefore"),
@@ -764,6 +764,10 @@ class _BranchCandidate:
             raise ValueError("Branch preparation runtime is transitioning")
         record = json.loads(plain(self.record_path).read_bytes())
         marker = json.loads(plain(self.marker_path).read_bytes())
+        commit_paths = record.get("commitPaths", [])
+        owned_paths = self.binding["ownedPaths"]
+        committed_casefold = {name.casefold() for name in commit_paths}
+        owned_casefold = {name.casefold() for name in owned_paths}
         expected = {name: self.binding[name] for name in ("sourceCommit", "sourceRoot", "branch", "candidateHead", "mainHeadBefore")}
         if (record.get("request") != self.request or record.get("runtime") != self.binding["originalRuntime"]
                 or any(record.get(name) != value for name, value in expected.items())
@@ -772,7 +776,9 @@ class _BranchCandidate:
                 or marker.get("status") != "active" or marker.get("operationId") != self.binding["operationId"]
                 or marker.get("mainHead") != self.binding["mainHeadBefore"]
                 or plain(marker.get("path", "")) != self.path
-                or not set(record.get("commitPaths", [])) <= set(self.binding["ownedPaths"])):
+                or len(committed_casefold) != len(commit_paths)
+                or len(owned_casefold) != len(owned_paths)
+                or not committed_casefold <= owned_casefold):
             raise ValueError("Original branch queue candidate binding changed")
         native = record.get("candidateGit", {})
         command_ref = native.get("commandRef")
@@ -5436,6 +5442,8 @@ class Management:
     def dispatch(self):
         if self.config.get("managedWorktree") == MANAGED_WORKTREE_CAPABILITY:
             from tools.jenkins.managed_worktree import MUTATIONS, writer_hold
+            if self.action == "apply-patch":
+                self.patch_input(self.payload["patchReference"], self.payload["beforeHashes"])
             if (self.action == "prepare-worktree" and "resumePreparationFromOperationKey" in self.payload):
                 with source_helper().materialized_preparation_recovery_hold(self):
                     return self._dispatch()
