@@ -996,3 +996,9 @@ task branch; only its two original tooling files enter through that merge. The
 VM checkout/processes and the dirty Linux config overlay remain untouched.
 Plugin compilation and both native test batches still require the next hosted
 run. No passing C2 result is inferred from successful editor compilation alone.
+
+[Run 39142540494](https://github.com/He-Jiahui/ZirconEngine/actions/runs/39142540494)
+passes the repaired wizard/texture consumers and exposes one later missing import
+in the native window-hosting editor plugin. Import `ExportPackagingStrategy`
+from its existing neutral framework owner. No package, ABI or runtime behavior
+changes; the next hosted run remains required for the full plugin/test result.
