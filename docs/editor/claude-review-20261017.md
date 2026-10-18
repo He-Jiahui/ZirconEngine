@@ -762,3 +762,22 @@ references target those JSON files. Their retained identities are:
 
 The existing tracked-file ignore assertion remains unchanged. The config overlay,
 Claude PID 1372178 and Codex PID 100961 remain outside this repair.
+
+## Native forwarding and test layout (C2/M10 follow-up)
+
+[Run 39137609630](https://github.com/He-Jiahui/ZirconEngine/actions/runs/39137609630)
+passed the physical-root/bootstrap guard and Rust installation. Compilation then
+failed before Cargo ran: advanced PowerShell parameter binding interpreted
+Cargo's `-p` as an ambiguous `ProgressAction`/`PipelineVariable` abbreviation.
+The MSVC wrapper now consumes only its two leading wrapper options and forwards
+all remaining native arguments without advanced binding. A Windows regression
+executes the real wrapper with Python as the child, tests spaces/`-p`/`--`, checks
+non-vacuous filter admission and rejects zero matches; no compiler is invoked by
+that regression. It runs before the real editor check. Linux skips its three
+Windows-only cases; hosted execution is required.
+
+The source lane also exposed five misplaced test modules introduced since the
+review baseline. Move all **15 tests** into their owning `tests/` directories,
+keeping module names, assertions and execution guards intact; no new debt baseline
+or suppression is added. Test names/counts and dedented module bytes are preserved.
+The source-separation audit now reports zero new violations (61 existing).

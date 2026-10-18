@@ -71,6 +71,9 @@ jobs:
           "runner_image: $env:ImageOS/$env:ImageVersion"
           rustc -Vv
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Test MSVC wrapper native argument forwarding
+        shell: pwsh
+        run: python -B .github/tests/test_msvc_wrapper_arguments.py
       - name: Compile the complete editor feature closure
         shell: pwsh
         run: ./.github/scripts/invoke-cargo-msvc.ps1 cargo check -p zircon_app --bin zircon_editor --no-default-features --features target-editor-host --locked

@@ -1,16 +1,29 @@
-param(
-    [switch]$RequireMatchingTests,
-    [string]$VsDevCmdPath = '',
-    [Parameter(Mandatory = $true, Position = 0)]
-    [string]$Executable,
-    [Parameter(ValueFromRemainingArguments = $true)]
-    [string[]]$ExecutableArguments
-)
-
 $ErrorActionPreference = 'Stop'
-if ($ExecutableArguments.Count -eq 0) {
+
+# Intentionally avoid advanced parameter binding: it consumes native options
+# such as Cargo's -p as PowerShell common-parameter abbreviations.
+[string[]]$commandArguments = @($args)
+$RequireMatchingTests = $false
+$VsDevCmdPath = ''
+$commandIndex = 0
+while ($commandIndex -lt $commandArguments.Count) {
+    if ($commandArguments[$commandIndex] -eq '-RequireMatchingTests') {
+        $RequireMatchingTests = $true
+        $commandIndex++
+    } elseif ($commandArguments[$commandIndex] -eq '-VsDevCmdPath') {
+        $commandIndex++
+        if ($commandIndex -ge $commandArguments.Count) { throw '-VsDevCmdPath requires a path.' }
+        $VsDevCmdPath = $commandArguments[$commandIndex]
+        $commandIndex++
+    } else {
+        break
+    }
+}
+if ($commandArguments.Count - $commandIndex -lt 2) {
     throw 'Pass command arguments after the executable.'
 }
+$Executable = $commandArguments[$commandIndex]
+[string[]]$ExecutableArguments = $commandArguments[($commandIndex + 1)..($commandArguments.Count - 1)]
 
 if ([string]::IsNullOrWhiteSpace($VsDevCmdPath)) {
     $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
