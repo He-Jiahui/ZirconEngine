@@ -74,7 +74,7 @@ def compiler_unit(path: Path) -> Path | None:
         if len(parts) > index + 3 and folded[index + 2] in {"target", "build"}:
             return Path(*parts[:index + 2])
     for index in range(2, len(parts) - 1):
-        if folded[index] in {"target", "build"}:
+        if folded[index] in {"target", "build", "sccache"}:
             return Path(*parts[:index + 1])
     return None
 

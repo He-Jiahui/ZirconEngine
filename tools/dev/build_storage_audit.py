@@ -30,7 +30,10 @@ def read_metadata(path):
     first = path.stat()
     if first.st_size > MAX_METADATA_BYTES:
         raise ValueError("metadata exceeds read budget")
-    raw = path.read_bytes()
+    with path.open("rb") as stream:
+        raw = stream.read(MAX_METADATA_BYTES + 1)
+    if len(raw) > MAX_METADATA_BYTES:
+        raise ValueError("metadata grew beyond read budget")
     last = path.stat()
     if (first.st_mtime_ns, first.st_size) != (last.st_mtime_ns, last.st_size):
         raise ValueError("metadata changed during read")
@@ -128,14 +131,20 @@ def profile_observations(roots, errors):
                 if (first.st_mtime_ns, first.st_size) != (last.st_mtime_ns, last.st_size):
                     raise ValueError("source changed during read")
                 profiles = tomllib.loads(raw.decode("utf-8-sig")).get("profile", {})
+                if not isinstance(profiles, dict):
+                    raise ValueError("invalid Cargo profile table")
                 for name in ("dev", "test"):
                     profile = profiles.get(name, {})
+                    if not isinstance(profile, dict) or not isinstance(profile.get("package", {}), dict):
+                        raise ValueError("invalid Cargo profile override table")
                     problems = []
                     if profile.get("incremental", True) is not False:
                         problems.append("incremental-enabled")
                     if profile.get("debug", 2) not in (0, False, "none"):
                         problems.append("debug-symbols-enabled")
                     for package, override in {**profile.get("package", {}), "build-override": profile.get("build-override", {})}.items():
+                        if not isinstance(override, dict):
+                            raise ValueError("invalid Cargo package profile override")
                         if override.get("incremental") is True or override.get("debug", 0) not in (0, False, "none"):
                             problems.append("package-override:" + package)
                     observations.append({"path": str(path), "profile": name, "violations": problems,
@@ -191,6 +200,8 @@ def audit(repo, scan, previous=None):
         for path in paths:
             value, checksum = read_metadata(path)
             request = value.get("request", {})
+            if not isinstance(request, dict):
+                raise ValueError("invalid original request metadata")
             requests.append({"sessionId": request.get("sessionId"), "ownerThreadId": request.get("ownerThreadId"),
                 "sourceRoot": request.get("sourceRoot"), "operationId": request.get("operationId"),
                 "sourceCommit": value.get("sourceCommit"), "status": value.get("status"),
@@ -249,7 +260,12 @@ def audit(repo, scan, previous=None):
     # Growth notifications stay pending until owner evidence appears; lack of new
     # growth the next day is not a resolution. Partial observations close nothing.
     attributed = {key(unit["path"]) for unit in observations if unit["complete"] and unit["writerCandidates"]}
+    observed_profiles = {key(p["path"] + ":" + p["profile"]) for p in profiles}
     for old in previous.get("findings", []):
+        if old["code"] == "build_profile_violation" and key(old["subject"]) in observed_profiles:
+            # A stable, exact source observation may resolve its own finding even
+            # when an unrelated old output directory remains unreadable.
+            continue
         if errors or old["code"] == "build_growth_owner_unknown" and key(old["subject"]) not in attributed:
             current.setdefault(old["id"], old)
     return {"schemaVersion": 1, "complete": complete and not errors, "units": observations,

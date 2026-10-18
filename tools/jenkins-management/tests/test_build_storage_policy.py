@@ -164,12 +164,38 @@ class AuditTests(unittest.TestCase):
         self.assertTrue(all(len(row["sourceSha256"]) == 64 for row in values))
         self.assertIn("package-override:zircon_runtime", values[0]["violations"])
 
+    def test_invalid_request_preserves_pending_evidence(self):
+        (self.requests / "bad.json").write_text('{"request": []}')
+        previous = {"findings": [{"id": "build_scope_violation:original", "code": "build_scope_violation",
+            "subject": "original", "message": "pending", "severity": "review"}]}
+        result = audit.audit(self.repo, self.scan(1), previous)
+        self.assertFalse(result["complete"])
+        self.assertTrue(any(f["id"] == "build_scope_violation:original" for f in result["findings"]))
+
+    def test_verified_profile_fix_resolves_itself_during_unrelated_scan_failure(self):
+        profile = {"path": str(self.repo / "Cargo.toml"), "profile": "dev", "violations": []}
+        subject = profile["path"] + ":dev"
+        old = {"id": "build_profile_violation:" + audit.key(subject), "code": "build_profile_violation",
+               "subject": subject, "message": "pending", "severity": "review"}
+        with patch.object(audit, "profile_observations", return_value=[profile]):
+            result = audit.audit(self.repo, self.scan(1, complete=False), {"findings": [old]})
+        self.assertFalse(result["complete"])
+        self.assertNotIn(old["id"], {f["id"] for f in result["findings"]})
+
+    def test_metadata_read_budget_is_enforced(self):
+        path = self.repo / "large.json"
+        path.write_bytes(b" " * (audit.MAX_METADATA_BYTES + 1))
+        with self.assertRaisesRegex(ValueError, "read budget"):
+            audit.read_metadata(path)
+
     def test_compiler_accounting_uses_one_pool_and_excludes_source(self):
         root = Path("E:/cargo-targets/zircon-local/management/pools/identity")
         self.assertEqual(audit.inventory.compiler_unit(root / "target/debug/deps/a.rlib"), root)
         self.assertEqual(audit.inventory.compiler_unit(root / "build/debug/incremental/a.bin"), root)
         self.assertIsNone(audit.inventory.compiler_unit(Path("E:/Git/ZirconEngine/zircon_runtime/build/helper.py")))
         self.assertIsNone(audit.inventory.compiler_unit(Path("E:/nested/cargo-targets/target/a.rlib")))
+        self.assertEqual(audit.inventory.compiler_unit(Path("E:/cargo-targets/zircon-local/cache/sccache/a.bin")),
+                         Path("E:/cargo-targets/zircon-local/cache/sccache"))
 
 
 if __name__ == "__main__":
