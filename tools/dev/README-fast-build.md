@@ -31,8 +31,8 @@ CMD 入口和常用检查、构建快捷命令也放在本目录。
 主工作区、插件工作区和 WOC 独立工作区的日常 dev/test 均采用 `debug=0`、
 `incremental=false`，包括 Runtime、Editor 和 App，不再为大模块默认保留增量缓存。
 这是磁盘优先的取舍：修改这些模块后的重编译可能变慢，已匹配的 Cargo 依赖产物仍可复用。
-完整符号使用显式的 profiling 或 shipping-symbols 诊断/交付配置；如需增量诊断，
-须在 Jenkins 请求中登记 `CARGO_INCREMENTAL=1` 的原因、输出归属与保留期限。
+完整符号使用显式的 profiling 或 shipping-symbols 诊断/交付配置。普通请求统一
+关闭增量和 dev/test 符号；特殊诊断需另交需求、空间预算与保留条件，不自动启用。
 不得通过环境变量、包级 profile 覆盖或新 target 目录静默恢复高占用默认值。
 
 每次验证只选受影响的 package、必要 features 和目标，关闭默认 features；禁止全量构建。
