@@ -968,14 +968,22 @@ class OrdinaryFlowTests(unittest.TestCase):
             management.source = lambda path, **kwargs: copy.deepcopy(
                 engine if path == repo else observed)
             def git(path, *arguments):
-                if arguments == ("ls-files", "--stage", "-z"):
-                    return SimpleNamespace(stdout=b"".join(stage))
-                self.assertEqual(("ls-files", "--cached", "-z"), arguments)
-                names = observed["files"] if path == dependency else children[path.relative_to(dependency).as_posix()]["files"]
+                source = observed if path == dependency else children[path.relative_to(dependency).as_posix()]
+                names = source["files"]
+                if arguments in {("ls-files", "--stage", "-z"), ("ls-files", "--stage", "--debug", "-z")}:
+                    entries = (source["gitIndex"]["entries"] if "gitIndex" in source else
+                               [{"path": name, "mode": "100644", "object": "c" * 40, "stage": 0}
+                                for name in sorted(names)])
+                    return SimpleNamespace(stdout=b"".join(
+                        (item["mode"] + " " + item["object"] + " " + str(item["stage"])
+                         + "\t" + item["path"]).encode() + b"\0" for item in entries))
+                self.assertIn(arguments, {("ls-files", "--cached", "-z"),
+                                          ("ls-files", "--cached", "--others", "--exclude-standard", "-z")})
                 return SimpleNamespace(stdout=b"".join(name.encode() + b"\0" for name in names))
             management.git = git
             management.text = lambda path, *arguments: (
                 str(path) if arguments == ("rev-parse", "--show-toplevel")
+                else observed["head"] if path == dependency
                 else children[path.relative_to(dependency).as_posix()]["head"])
             raw = copy.deepcopy(observed)
             with self.assertRaises(JenkinsError) as rejected:
@@ -999,6 +1007,56 @@ class OrdinaryFlowTests(unittest.TestCase):
             self.assertNotEqual(raw["sourceDigest"], changed["sourceDigest"])
             self.assertEqual(preparation.checkout_external_file_view().source_files(raw),
                              preparation.checkout_external_file_view().source_files(changed))
+
+            # Exercise the WT capturer and immutable inventory, not just its view.
+            from tools.jenkins.source.external_inputs import KIND
+            for name in preparation.source_files(raw):
+                physical = dependency / name
+                physical.parent.mkdir(parents=True, exist_ok=True)
+                physical.write_bytes(("managed input " + name + "\n").encode())
+            managed = preparation._ManagedCapturedExternal(management, namespace)
+            managed_inputs, managed_captures, managed_gitlinks = formal._external_capture(
+                managed, SimpleNamespace(source_files=preparation._managed_external_compiler_files),
+                inspection=True)
+            managed_source = managed_captures[0]["source"]
+            self.assertEqual("full-file-index-v2", managed_source["sourceEvidencePolicy"])
+            self.assertEqual(raw["gitIndex"]["entries"], managed_source["gitIndex"]["entries"])
+            self.assertEqual(7, len(managed_gitlinks))
+            self.assertEqual(
+                {name.casefold(): checksum for name, checksum in preparation.source_files(managed_source).items()
+                 if name != plan}, managed_inputs[0]["currentHashes"])
+            plan_bytes = (dependency / plan).read_bytes()
+            self.assertEqual(runner.sha(plan_bytes), managed_source["files"][plan])
+            plan_object = namespace / "inputs/objects" / managed_source["files"][plan]
+            self.assertEqual(plan_bytes, plan_object.read_bytes())
+            engine_hashes, engine_metadata = preparation._managed_capture_files(
+                repo, engine["files"], namespace, "test-managed-engine")
+            with patch.object(formal, "_git_base_tree", return_value={}):
+                dependency_manifest = preparation._managed_captured_manifest(
+                    dependency, managed_source["head"], managed_inputs[0]["currentHashes"],
+                    managed.flattened_metadata(dependency, managed_source))
+                preparation.verify_sealed_capture(managed_source, dependency_manifest, managed_external=True)
+                frozen = {"kind": KIND, "name": "zr_vm", "repositoryRoot": str(dependency),
+                          "manifest": dependency_manifest, "sourceDigest": preparation.digest(dependency_manifest)}
+                product_manifest = preparation._managed_captured_manifest(
+                    repo, engine["head"], engine_hashes, engine_metadata, external=[frozen], product=True)
+            inputs = {"currentHashes": engine_hashes, "externalInputs": managed_inputs,
+                      "externalRoots": [str(dependency)], "externalGitlinks": managed_gitlinks,
+                      "sealedSource": {"kind": preparation._MANAGED_SEALED_INVENTORY,
+                          "objectRoot": str(namespace), "sourceManifest": product_manifest,
+                          "sourceDigest": preparation.digest(product_manifest), "externalCapture": managed_captures}}
+            record = {"ownedPaths": ["owned.rs"], "baseHead": engine["head"]}
+            with patch.object(management, "build_root", return_value=root), \
+                    patch.object(formal, "canonical_build_root", return_value=approved):
+                preparation._managed_sealed_inventory(management, record, inputs, {})
+                plan_object.write_bytes(b"corrupt observed plan object")
+                try:
+                    with self.assertRaises(JenkinsError) as rejected:
+                        preparation._managed_sealed_inventory(management, record, inputs, {})
+                    self.assertEqual("managed_source_object_changed", rejected.exception.code)
+                finally:
+                    plan_object.write_bytes(plan_bytes)
+
             for forbidden in (".codex/config.toml", ".codex/hooks/run.py",
                               ".jenkins/payload.json", ".opencode/config.json", "target/output"):
                 with self.subTest(forbidden=forbidden):
@@ -1009,6 +1067,9 @@ class OrdinaryFlowTests(unittest.TestCase):
                     with self.assertRaises(JenkinsError) as rejected:
                         formal._external_capture(
                             management, preparation.checkout_external_file_view(), inspection=True)
+                    self.assertEqual("external_control_forbidden", rejected.exception.code)
+                    with self.assertRaises(JenkinsError) as rejected:
+                        managed.source(dependency, payload={**management.payload, "externalGitlinks": managed_gitlinks})
                     self.assertEqual("external_control_forbidden", rejected.exception.code)
             for admission in ("untracked", "executable", "unmerged"):
                 with self.subTest(planAdmission=admission):
@@ -1025,6 +1086,9 @@ class OrdinaryFlowTests(unittest.TestCase):
                     with self.assertRaises(JenkinsError) as rejected:
                         formal._external_capture(
                             management, preparation.checkout_external_file_view(), inspection=True)
+                    self.assertEqual("external_control_forbidden", rejected.exception.code)
+                    with self.assertRaises(JenkinsError) as rejected:
+                        managed.source(dependency, payload={**management.payload, "externalGitlinks": managed_gitlinks})
                     self.assertEqual("external_control_forbidden", rejected.exception.code)
             self.assertEqual(raw["files"][plan], "6" * 64)
 
