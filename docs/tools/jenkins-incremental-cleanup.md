@@ -23,3 +23,5 @@ python -B tools/jenkins-management/incremental_cache_cleanup.py install
 ## Standard installation
 
 `install-jenkins-scheduled-cleanup.ps1` calls the cleanup module's read-only `render` command. It verifies the returned entry path, module and template hashes, resolved placeholders and nonempty scope before submitting job XML. Direct incremental-stage updates and full standard installations therefore consume the same renderer. The renderer neither connects to Jenkins nor deletes files; execution still requires the scheduled job and its native runtime binding. Standard reinstallation retains its existing governance reattachment and readback gates.
+
+The retained registered-CAS stage stores protected and unknown digests in one case-insensitive hash set before scanning objects. This preserves its protection and byte/object budgets while avoiding one full protection-list scan per object. The source selector is exercised in Jenkins against a private fixture with 30,001 protected entries, unknown content and bounded selection; it never deletes fixture or production objects.

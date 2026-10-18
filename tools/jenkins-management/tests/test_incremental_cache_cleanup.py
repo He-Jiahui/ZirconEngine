@@ -201,6 +201,35 @@ class IncrementalCacheCleanupTests(unittest.TestCase):
         self.assertIn("$taskCacheRender.sourcePins.entry.sha256", source)
         self.assertNotIn("(Get-Content -LiteralPath $taskCacheSourcePath -Raw) +", source)
 
+    def test_real_cas_selector_preserves_large_protected_and_unknown_sets_and_budgets(self):
+        source = (Path(__file__).parents[1] / "zircon-scheduled-cleanup.groovy").read_text()
+        start = source.index("script: '''", source.index("def selectCandidates")) + len("script: '''")
+        selector = source[start:source.index("'''))", start)].replace(chr(92) * 2, chr(92))
+        with self.fixture() as directory:
+            root = Path(directory)
+            objects = root / "objects"
+            objects.mkdir()
+            protected = [format(value, "064x") for value in range(1, 30001)]
+            protected.append("AB" * 32)
+            for name in protected[29000:30000] + ["ab" * 32, "cd" * 32, "e" * 64, "f" * 64, "unknown-source.rs"]:
+                (objects / name).write_bytes(b"obj" if name != "f" * 64 else b"four")
+            selection = root / "selection.json"
+            selection.write_text(json.dumps({"buildRoot": str(Path("E:/cargo-targets")), "protectedDigests": protected,
+                "unknownDigests": ["cd" * 32], "maxObjects": 1, "maxBytes": 3}), encoding="utf8")
+            object_line = "$objects = Join-Path $selection.buildRoot 'zircon-local/zircon-jenkins/artifacts/artifacts/objects'"
+            self.assertEqual(selector.count(object_line), 1)
+            # Inject only the object locator: all selection, alias and digest guards remain the production script.
+            selector = selector.replace(object_line, "$objects = '" + objects.as_posix().replace("'", "''") + "'")
+            script = root / "selector.ps1"
+            script.write_text(selector, encoding="utf8")
+            result = subprocess.run(["C:/Windows/System32/WindowsPowerShell/v1.0/powershell.exe", "-NoProfile",
+                "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", str(script)],
+                env=dict(os.environ, ZIRCON_CLEANUP_SELECTION=str(selection)), capture_output=True, timeout=45)
+            self.assertEqual(result.returncode, 0, result.stderr.decode("utf8", "replace"))
+            self.assertEqual(json.loads(result.stdout.decode("utf-8-sig")),
+                {"digests": ["e" * 64], "plannedBytes": 3, "candidateCount": 1})
+            self.assertEqual(len(list(objects.iterdir())), 1005)
+
     def test_production_cli_refuses_local_deletion(self):
         with patch.dict(os.environ, {"JOB_NAME": "", "NODE_NAME": ""}), patch.object(
                 sys, "argv", ["cleanup", "run", "--run-id", "incremental-1"]):
