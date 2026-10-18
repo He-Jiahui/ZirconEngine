@@ -1106,7 +1106,9 @@ class Management:
                     from tools.jenkins import managed_worktree as formal
                     # Bind omitted Gitlinks to the complete observed external input.
                     _, captures, _ = formal._external_capture(
-                        self, source_helper(), inspection=True, payload=payload)
+                        self, source_helper().checkout_external_file_view()
+                        if view == "checkout" else source_helper(),
+                        inspection=True, payload=payload)
                     external.extend(captures)
                 else:
                     external_payload = payload
