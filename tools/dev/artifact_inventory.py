@@ -57,8 +57,26 @@ def load_grants(repo: Path) -> tuple[dict, dict[str, str], str]:
         value = config["permissions"][profile]
         inherited = resolve(value["extends"]) if value.get("extends") else {}
         return {**inherited, **value.get("filesystem", {})}
-    grants = resolve(name)
+    # Full Access has no filesystem table. Retain the project's explicit audit
+    # scope without changing permissions or pretending this is sandbox enforcement.
+    scope = "zircon-strict" if name == ":danger-full-access" else name
+    grants = resolve(scope)
     return config, grants, hashlib.sha256(raw).hexdigest()
+
+
+def compiler_unit(path: Path) -> Path | None:
+    parts = path.parts
+    if len(parts) < 4 or parts[0].rstrip("\\/").casefold() not in {"d:", "e:", "f:"} or parts[1].casefold() != "cargo-targets":
+        return None
+    folded = [part.casefold() for part in parts]
+    if "pools" in folded:
+        index = folded.index("pools")
+        if len(parts) > index + 3 and folded[index + 2] in {"target", "build"}:
+            return Path(*parts[:index + 2])
+    for index in range(2, len(parts) - 1):
+        if folded[index] in {"target", "build"}:
+            return Path(*parts[:index + 1])
+    return None
 
 
 def writable(path: Path, grants: dict[str, str]) -> bool:
@@ -103,7 +121,7 @@ def tree_fact(path: Path, *, inspect_source: bool = False) -> dict:
     fact = {"path": str(path), "files": 0, "directories": 0, "logicalBytes": 0,
             "hardlinkedFiles": 0, "reparsePoints": [], "errors": [],
             "sourceFiles": 0, "sourceSamples": [], "nestedOutputs": [],
-            "sourceTreeMarkers": [], "manifestPaths": [], "latestWriteUtc": None}
+            "sourceTreeMarkers": [], "manifestPaths": [], "buildUnits": {}, "latestWriteUtc": None}
     latest = 0.0
     stack = [path]
     while stack:
@@ -134,6 +152,16 @@ def tree_fact(path: Path, *, inspect_source: bool = False) -> dict:
                 fact["files"] += 1
                 fact["logicalBytes"] += info.st_size
                 fact["hardlinkedFiles"] += info.st_nlink > 1
+                unit = compiler_unit(current)
+                if unit is not None:
+                    usage = fact["buildUnits"].setdefault(str(unit), {"logicalBytes": 0, "files": 0,
+                        "incrementalBytes": 0, "symbolBytes": 0})
+                    usage["logicalBytes"] += info.st_size
+                    usage["files"] += 1
+                    if "incremental" in [part.casefold() for part in current.relative_to(unit).parts]:
+                        usage["incrementalBytes"] += info.st_size
+                    elif current.suffix.casefold() in {".pdb", ".dwp", ".dwo", ".dsym"}:
+                        usage["symbolBytes"] += info.st_size
                 if inspect_source and current.suffix.lower() in SOURCE_EXTENSIONS:
                     fact["sourceFiles"] += 1
                     if len(fact["sourceSamples"]) < 8:
@@ -238,6 +266,8 @@ def scan(repo: Path, scopes: list[Path] | None = None) -> dict:
     facts = [row for row in rows if row.get("exists")]
     return {"schemaVersion": 1, "observedAtUtc": utc_now(), "repository": str(repo),
             "configSha256": config_hash, "profile": config.get("default_permissions", "zircon-strict"),
+            "inventoryScopeSource": ("permissions.zircon-strict.filesystem (audit scope only)"
+                if config.get("default_permissions") == ":danger-full-access" else "selected permission profile"),
             "declaredWriteGrants": [value for value, mode in grants.items() if mode == "write"],
             "declaredWriteGrantCount": len(declared_roots), "scopes": [str(scope) for scope in scopes or []],
             "inventory": rows, "outputItems": output_items,
