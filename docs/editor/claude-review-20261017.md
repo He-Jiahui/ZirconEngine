@@ -700,3 +700,36 @@ workflow has been enabled so the new required PR gate can execute on the next
 push. MVP/Profile activation and native acceptance remain pending their actual
 runner/publisher prerequisites. This changes workflow activation, not runner
 registration or retired-service state.
+
+## Build-script inputs (M9, 2026-10-18)
+
+`zircon_editor/build.rs` no longer recursively tracks `assets` or the plugin
+source tree. It tracks the six production-embedded TOML resources, the two
+explicit gizmo PBMs, plugin catalog manifests and `zircon_plugins/Cargo.toml`
+for package membership. Every current top-level plugin-manifest owner is
+represented in that workspace. Add/remove catalog packages through that membership
+manifest; metadata changes continue to invalidate their individual inputs. Runtime
+ZUI loading and the existing asset watcher keep visual edits out of this generator.
+
+All three new invalidation regressions failed on the prior build script and pass
+with the repair. The focused existing generated-catalog and role-admission
+contracts also pass (**5 focused Python tests** total). Rust unexpanded AST parsing,
+Change Guard scan (zero findings) and whitespace checks pass. Two broader legacy
+source-contract modules exposed four preexisting stale-path errors outside these
+focused build checks; these are recorded separately rather than counted as passes.
+Actual Cargo freshness/hot reload remains pending Windows:
+
+```powershell
+$t = 'D:\cargo-targets\zircon-local\claude-review-20261017-m9'
+& tools/dev/local-cargo.ps1 -TargetDir $t build -p zircon_editor --lib --locked -v
+if ($LASTEXITCODE -ne 0) { throw 'Initial editor build failed' }
+(Get-Item zircon_editor/assets/ui/editor/unreal/level_editor_window.zui).LastWriteTimeUtc = [DateTime]::UtcNow
+& tools/dev/local-cargo.ps1 -TargetDir $t build -p zircon_editor --lib --locked -v
+if ($LASTEXITCODE -ne 0) { throw 'Freshness check failed' }
+```
+
+Require `Fresh zircon_editor` after the ZUI timestamp change. Touch an embedded
+TOML/PBM and a catalog `plugin.toml` in turn and require invalidation. Test targets
+that embed a ZUI may rebuild themselves; the non-test editor library is the M9
+contract. Use the staged preview from the launch guide to verify actual ZUI hot
+reload; no build/GUI execution is claimed on this Linux host.

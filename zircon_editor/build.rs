@@ -1,25 +1,18 @@
 fn main() {
-    emit_rerun_if_changed_recursive("assets").expect("track editor asset resources recursively");
+    // ZUI documents load and hot reload at runtime. Only embedded resources and
+    // generator inputs invalidate this script; watching a directory is recursive.
+    for input in [
+        "assets/i18n/en.toml",
+        "assets/i18n/zh-CN.toml",
+        "assets/ui/editor/keymap/default.keymap.toml",
+        "assets/ui/editor/components/catalog.toml",
+        "assets/ui/editor/unreal/menus.contract.toml",
+        "assets/ui/operator/contract/roles.contract.toml",
+    ] {
+        println!("cargo:rerun-if-changed={input}");
+    }
     write_viewport_gizmo_icon_manifest().expect("generate viewport gizmo icon manifest");
     write_editor_plugin_catalog_manifest().expect("generate editor plugin catalog manifest");
-}
-
-fn emit_rerun_if_changed_recursive(root: &str) -> Result<(), Box<dyn std::error::Error>> {
-    visit_rerun_if_changed(&std::path::PathBuf::from(root))
-}
-
-fn visit_rerun_if_changed(path: &std::path::Path) -> Result<(), Box<dyn std::error::Error>> {
-    println!("cargo:rerun-if-changed={}", path.display());
-    if !path.is_dir() {
-        return Ok(());
-    }
-
-    let mut entries = std::fs::read_dir(path)?.collect::<Result<Vec<_>, _>>()?;
-    entries.sort_by_key(|entry| entry.path());
-    for entry in entries {
-        visit_rerun_if_changed(&entry.path())?;
-    }
-    Ok(())
 }
 
 fn write_viewport_gizmo_icon_manifest() -> Result<(), Box<dyn std::error::Error>> {
@@ -34,7 +27,6 @@ fn write_viewport_gizmo_icon_manifest() -> Result<(), Box<dyn std::error::Error>
         ("DirectionalLight", "directional_light.pbm"),
     ];
 
-    println!("cargo:rerun-if-changed=assets/viewport_gizmos");
     for (_, filename) in icons {
         println!("cargo:rerun-if-changed=assets/viewport_gizmos/{filename}");
     }
@@ -62,7 +54,12 @@ fn write_editor_plugin_catalog_manifest() -> Result<(), Box<dyn std::error::Erro
         .parent()
         .ok_or("editor crate should have repository parent")?
         .join("zircon_plugins");
-    println!("cargo:rerun-if-changed={}", plugins_root.display());
+    // Adding/removing plugin packages changes workspace membership. Individual
+    // plugin metadata remains an input, without tracking every plugin source file.
+    println!(
+        "cargo:rerun-if-changed={}",
+        plugins_root.join("Cargo.toml").display()
+    );
 
     let mut entries = Vec::new();
     let mut plugin_dirs = fs::read_dir(&plugins_root)?.collect::<Result<Vec<_>, _>>()?;
