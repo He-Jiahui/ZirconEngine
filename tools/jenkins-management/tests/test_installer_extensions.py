@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import base64
+import gzip
 import hashlib
 import json
 from pathlib import Path
@@ -19,13 +20,13 @@ OLD_CORE = "// pinned old core\n"
 NEW_CORE = "// pinned new core\n"
 
 
-def _command(cases, raw, delivery_raw, branch_raw=b""):
+def _command(cases, raw, delivery_raw, branch_raw=b"", *, compressed=False):
     path = base64.b64encode(str(INSTALLER).encode()).decode()
     payload = base64.b64encode(json.dumps(cases, separators=(",", ":")).encode()).decode()
     addon = base64.b64encode(raw).decode()
     delivery_addon = base64.b64encode(delivery_raw).decode()
     branch_addon = base64.b64encode(branch_raw).decode()
-    return r"""
+    command = r"""
 $ErrorActionPreference = 'Stop'
 if ($PSVersionTable.PSEdition -ne 'Desktop') { throw 'Windows PowerShell Desktop is required' }
 $path = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('__PATH__'))
@@ -151,6 +152,18 @@ foreach ($case in $cases) {
 }
 [Console]::Out.WriteLine('ZR_INSTALLER_EXTENSION_RESULTS:' + (ConvertTo-Json -InputObject @($rows.ToArray()) -Depth 5 -Compress))
 """.replace("__PATH__", path).replace("__ADDON__", addon).replace("__DELIVERY__", delivery_addon).replace("__BRANCH__", branch_addon).replace("__CASES__", payload)
+    if not compressed:
+        return command
+    compressed_payload = base64.b64encode(gzip.compress(command.encode("utf-8"), mtime=0)).decode("ascii")
+    return r"""
+$ErrorActionPreference = 'Stop'
+$bytes = [Convert]::FromBase64String('__GZIP__')
+$stream = [IO.MemoryStream]::new($bytes)
+$gzip = [IO.Compression.GZipStream]::new($stream, [IO.Compression.CompressionMode]::Decompress)
+$reader = [IO.StreamReader]::new($gzip, [Text.Encoding]::UTF8)
+try { & ([ScriptBlock]::Create($reader.ReadToEnd())) }
+finally { $reader.Dispose(); $gzip.Dispose(); $stream.Dispose() }
+""".replace("__GZIP__", compressed_payload)
 
 
 class InstallerExtensionTests(unittest.TestCase):
@@ -244,7 +257,7 @@ class InstallerExtensionTests(unittest.TestCase):
         powershell = shutil.which("powershell.exe") or shutil.which("powershell")
         if powershell is None:
             raise RuntimeError("Windows PowerShell Desktop is required; this is not a passing skip")
-        command = _command(cases, raw, delivery_raw, branch_raw)
+        command = _command(cases, raw, delivery_raw, branch_raw, compressed=True)
         if len(command) > 24000:
             raise RuntimeError("Installer extension fixture exceeded the bounded native command")
         completed = subprocess.run(
