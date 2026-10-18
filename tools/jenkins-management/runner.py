@@ -884,8 +884,13 @@ class Management:
         self.owned = payload.get("ownedPaths", [])
         if not isinstance(self.owned, list) or not self.owned or any(not isinstance(p, str) for p in self.owned):
             raise ValueError("ownedPaths must be an explicit path list")
-        ensure_request_context(config, repo, manager, payload, state=self.state)
+        if branch_candidate is None:
+            ensure_request_context(config, repo, manager, payload, state=self.state)
+        elif self.action != "validate" or not isinstance(branch_candidate, _BranchCandidate):
+            raise ValueError("Only the private native branch candidate retains its scoped writer")
         self.state.check_authorization(self.repo_id, self.session, AUTH[self.action], self.owned)
+        if branch_candidate is not None:
+            branch_candidate.verify(self)
         self.key = sha(encoded({"repositoryId": self.repo_id, "sessionId": self.session,
                                "requestId": self.request, "operationId": self.operation}))
         self.worktrees = plain(repo / ".jenkins/worktrees")

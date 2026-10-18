@@ -26,7 +26,8 @@ param(
     [ValidatePattern('^[0-9a-f]{64}$')][string]$ExpectedPinnedActiveGuardSha256,
     [ValidatePattern('^[0-9a-f]{64}$')][string]$ExpectedCheckoutCommitAddonSha256,
     [ValidatePattern('^[0-9a-f]{64}$')][string]$ExpectedDeliveryAddonSha256,
-    [ValidatePattern('^[0-9a-f]{64}$')][string]$ExpectedBranchIntegrationAddonSha256
+    [ValidatePattern('^[0-9a-f]{64}$')][string]$ExpectedBranchIntegrationAddonSha256,
+    [ValidatePattern('^[0-9a-f]{64}$')][string]$ExpectedRetainedPrefixSha256
 )
 $ErrorActionPreference = 'Stop'
 function Assert-Physical([string]$Path) {
@@ -233,6 +234,50 @@ function Assert-ManagementJobExtensionSource([object]$Extension, [string]$Prefix
         throw 'Checkout commit addon changed during installation'
     }
 }
+function Get-ManagementJobRetainedPrefix {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory=$true)][AllowEmptyString()][string]$ApiScript,
+        [Parameter(Mandatory=$true)][AllowEmptyString()][string]$HomeScript,
+        [Parameter(Mandatory=$true)][string]$BareCore,
+        [Parameter(Mandatory=$true)][ValidatePattern('^[0-9a-f]{64}$')][string]$ExpectedSha256
+    )
+    if ($ApiScript -cne $HomeScript) { throw 'Management API and Home scripts differ' }
+    $taskCoreOffset = $ApiScript.Length - $BareCore.Length
+    if ($taskCoreOffset -lt 0 -or -not $ApiScript.EndsWith($BareCore, [StringComparison]::Ordinal) -or
+            $ApiScript.IndexOf($BareCore, [StringComparison]::Ordinal) -ne $taskCoreOffset -or
+            $ApiScript.LastIndexOf($BareCore, [StringComparison]::Ordinal) -ne $taskCoreOffset) {
+        throw 'Management script must end in its unique pinned capsule core'
+    }
+    $taskPrefix = $ApiScript.Substring(0, $taskCoreOffset)
+    if ((Hash-Bytes ([Text.Encoding]::UTF8.GetBytes($taskPrefix))) -cne $ExpectedSha256) {
+        throw 'Observed management prefix differs from its reviewed hash'
+    }
+    return $taskPrefix
+}
+function Set-ManagementJobPipeline {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory=$true)][string]$XmlText,
+        [Parameter(Mandatory=$true)][AllowEmptyString()][string]$Pipeline
+    )
+    $taskOpen = '<script>'
+    $taskClose = '</script>'
+    $taskStart = $XmlText.IndexOf($taskOpen, [StringComparison]::Ordinal)
+    $taskEnd = $XmlText.IndexOf($taskClose, [StringComparison]::Ordinal)
+    if ($taskStart -lt 0 -or $taskEnd -lt $taskStart + $taskOpen.Length -or
+            $XmlText.LastIndexOf($taskOpen, [StringComparison]::Ordinal) -ne $taskStart -or
+            $XmlText.LastIndexOf($taskClose, [StringComparison]::Ordinal) -ne $taskEnd) {
+        throw 'Management configuration needs its one literal script element'
+    }
+    $taskEscaped = [Security.SecurityElement]::Escape($Pipeline).Replace("`r", '&#xd;')
+    $taskXml = $XmlText.Substring(0, $taskStart + $taskOpen.Length) + $taskEscaped + $XmlText.Substring($taskEnd)
+    [xml]$taskParsed = ($taskXml -replace '^\s*<\?xml[^?]*\?>', '')
+    if ([string]$taskParsed.'flow-definition'.definition.script -cne $Pipeline) {
+        throw 'Management script did not survive exact XML encoding'
+    }
+    return $taskXml
+}
 function Invoke-PinnedActiveManagementGuard([string]$Phase) {
     $taskGuardPath = Assert-Physical "$repo/tools/jenkins-management/install_guard.py"
     if ((Hash-Bytes ([IO.File]::ReadAllBytes($taskGuardPath))) -cne $ExpectedPinnedActiveGuardSha256) {
@@ -407,6 +452,14 @@ $taskPinnedNames = @('PinnedActiveBuildProofPath','ExpectedPinnedActiveBuildProo
 $taskPinnedCount = @($taskPinnedNames | Where-Object { $PSBoundParameters.ContainsKey($_) }).Count
 if ($taskPinnedCount -ne 0 -and $taskPinnedCount -ne $taskPinnedNames.Count) { throw 'Pinned-active proof path and both operator/proof hashes must be paired' }
 $taskPinnedActive = $taskPinnedCount -eq $taskPinnedNames.Count
+$taskRetainedPrefixMode = $PSBoundParameters.ContainsKey('ExpectedRetainedPrefixSha256')
+if ($taskRetainedPrefixMode -and (-not $taskPrior -or $taskPinnedActive -or
+        [string]::IsNullOrEmpty($ExpectedPreviousJobConfigSha256) -or
+        $PSBoundParameters.ContainsKey('ExpectedCheckoutCommitAddonSha256') -or
+        $PSBoundParameters.ContainsKey('ExpectedDeliveryAddonSha256') -or
+        $PSBoundParameters.ContainsKey('ExpectedBranchIntegrationAddonSha256'))) {
+    throw 'Reviewed prefix preservation requires an original config pin and the ordinary idle gate'
+}
 $script:taskPinnedGuardReceipts = @()
 if ($taskPinnedActive) {
     if (-not $taskPrior -or $taskReuse -or [string]::IsNullOrEmpty($ExpectedPreviousJobConfigSha256) -or
@@ -580,6 +633,46 @@ foreach ($key in $tokens.Keys) {
     $pipeline = $pipeline.Replace("@@$key@@", $value)
 }
 if ($pipeline -match '@@[A-Z]+@@') { throw 'Unresolved capsule marker' }
+$taskBarePipeline = $pipeline
+$taskRetainedPrefix = $null
+if ($taskRetainedPrefixMode) {
+    if ($taskOldInstalled.driverDigest -cne $ExpectedDriverDigest -or
+            $taskOldInstalled.runtimeOperationId -cne $ExpectedRuntimeOperationId) {
+        throw 'Retained management prefixes require the exact current original runtime'
+    }
+    $taskRetainedOldCore = [IO.File]::ReadAllText((Assert-Physical "$taskOldSourceRoot/zircon-management.groovy")).Replace(([string][char]13 + [char]10), [string][char]10)
+    $taskRetainedOldTokens = @{AGENT='zircon-windows-agent';REPOSITORY=$repo;PYTHON=$python;CODEX=$taskPreviousCodex;
+        CAPSULE=$taskOldSourceRoot;DRIVER=$taskOldInstalled.driverDigest;RUNTIME=$taskOldInstalled.runtimeOperationId}
+    foreach ($taskKey in $taskRetainedOldTokens.Keys) {
+        $taskOldValue = $taskRetainedOldTokens[$taskKey].Replace('\','/').Replace("'","\'")
+        $taskRetainedOldCore = $taskRetainedOldCore.Replace("@@$taskKey@@", $taskOldValue)
+    }
+    $taskRetainedCredentials = Get-Content -Raw -LiteralPath "$repo/.jenkins/state/credentials.json" | ConvertFrom-Json
+    $taskRetainedToken = if ($taskRetainedCredentials.apiToken) { $taskRetainedCredentials.apiToken } else { $taskRetainedCredentials.password }
+    if ($taskRetainedCredentials.authenticationMode -cne 'api-token' -or
+            -not $taskRetainedCredentials.username -or -not $taskRetainedToken) { throw 'Managed API token credentials required' }
+    $taskRetainedAuth = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes("$($taskRetainedCredentials.username):$taskRetainedToken"))
+    $taskRetainedResponse = Invoke-WebRequest -Uri ($BaseUrl.TrimEnd('/') + '/job/zircon-management/config.xml') -Headers @{Authorization="Basic $taskRetainedAuth"} -UseBasicParsing -TimeoutSec 15
+    $taskRetainedApiBytes = [Text.Encoding]::UTF8.GetBytes($taskRetainedResponse.Content)
+    $taskRetainedHomeBytes = [IO.File]::ReadAllBytes((Assert-Physical "$repo/.jenkins/jenkins_home/jobs/zircon-management/config.xml"))
+    [xml]$taskRetainedApiJob = ($taskRetainedResponse.Content -replace '^\s*<\?xml[^?]*\?>', '')
+    [xml]$taskRetainedHomeJob = ([Text.Encoding]::UTF8.GetString($taskRetainedHomeBytes) -replace '^\s*<\?xml[^?]*\?>', '')
+    $taskRetainedObservedCore = if ($ResumePreparedInstallation) { $taskBarePipeline } else { $taskRetainedOldCore }
+    $taskCombinedExtensionPrefix = Get-ManagementJobRetainedPrefix -ApiScript ([string]$taskRetainedApiJob.'flow-definition'.definition.script) -HomeScript ([string]$taskRetainedHomeJob.'flow-definition'.definition.script) -BareCore $taskRetainedObservedCore -ExpectedSha256 $ExpectedRetainedPrefixSha256
+    $taskRetainedOriginalBytes = if ($ResumePreparedInstallation) {
+        [IO.File]::ReadAllBytes((Assert-Physical "$repo/.jenkins/state/management/install-history/$ExpectedInstalledSha256.config.xml"))
+    } else { $taskRetainedApiBytes }
+    Assert-PreviousManagementConfig $taskRetainedOriginalBytes $ExpectedPreviousJobConfigSha256
+    [xml]$taskRetainedOriginalJob = ([Text.Encoding]::UTF8.GetString($taskRetainedOriginalBytes) -replace '^\s*<\?xml[^?]*\?>', '')
+    Assert-ManagementJob $taskRetainedOriginalJob ($taskCombinedExtensionPrefix + $taskRetainedOldCore) $taskOldInstalled.driverDigest $taskOldInstalled.runtimeOperationId
+    Assert-ManagementJob $taskRetainedApiJob ($taskCombinedExtensionPrefix + $taskRetainedObservedCore) $ExpectedDriverDigest $ExpectedRuntimeOperationId
+    Assert-ManagementJob $taskRetainedHomeJob ($taskCombinedExtensionPrefix + $taskRetainedObservedCore) $ExpectedDriverDigest $ExpectedRuntimeOperationId
+    $taskRetainedPrefix = [ordered]@{mode='observed-prefix-v1';prefixSha256=$ExpectedRetainedPrefixSha256;
+        prefixBytes=[Text.Encoding]::UTF8.GetByteCount($taskCombinedExtensionPrefix);
+        originalConfigSha256=$ExpectedPreviousJobConfigSha256;oldCoreSha256=(Hash-Bytes ([Text.Encoding]::UTF8.GetBytes($taskRetainedOldCore)));
+        apiSha256=(Hash-Bytes $taskRetainedApiBytes);homeSha256=(Hash-Bytes $taskRetainedHomeBytes);
+        apiHomeScriptEqual=$true;liveVerified=$true;preserved=$false}
+}
 $pipeline = Join-ManagementJobExtension -Core $pipeline -Prefix $taskCombinedExtensionPrefix
 $parameters = ''
 foreach ($name in @('SESSION_ID','REQUEST_ID','OPERATION_ID','ACTION','INPUT_JSON','EXPECTED_DRIVER_DIGEST','RUNTIME_OPERATION_ID')) {
@@ -589,7 +682,8 @@ foreach ($name in @('SESSION_ID','REQUEST_ID','OPERATION_ID','ACTION','INPUT_JSO
 $parameters += '<hudson.model.BooleanParameterDefinition><name>QUERY_ONLY</name><defaultValue>false</defaultValue></hudson.model.BooleanParameterDefinition>'
 $script = [Security.SecurityElement]::Escape($pipeline)
 $xml = "<?xml version='1.0' encoding='UTF-8'?><flow-definition><description>Bounded Jenkins management MVP; no M8 acceptance</description><properties><hudson.model.ParametersDefinitionProperty><parameterDefinitions>$parameters</parameterDefinitions></hudson.model.ParametersDefinitionProperty></properties><definition class='org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition' plugin='workflow-cps'><script>$script</script><sandbox>true</sandbox></definition><triggers/><disabled>false</disabled></flow-definition>"
-[xml]$parsed = $xml
+if ($taskRetainedPrefixMode) { $xml = Set-ManagementJobPipeline -XmlText $taskRetainedResponse.Content -Pipeline $pipeline }
+[xml]$parsed = ($xml -replace '^\s*<\?xml[^?]*\?>', '')
 if ($CheckOnly) {
     $taskCheckResult = [ordered]@{status='check-only';job='zircon-management';capsule=$capsule;capsuleSha256=$digest;
         driverDigest=$ExpectedDriverDigest;runtimeOperationId=$ExpectedRuntimeOperationId;ordinaryEntry=$ordinaryEntry;formalAcceptance=$false}
@@ -606,6 +700,7 @@ if ($CheckOnly) {
             proofSha256=$ExpectedPinnedActiveBuildProofSha256;operatorSource=$taskGuardSource;
             operatorSha256=$ExpectedPinnedActiveGuardSha256;liveVerified=$false}
     }
+    if ($taskRetainedPrefixMode) { $taskCheckResult.retainedPrefix = $taskRetainedPrefix; $taskCheckResult.previousJobConfigVerified = $true }
     if ($null -ne $taskJobExtension) { $taskCheckResult.jobExtension = $taskJobExtension }
     if ($null -ne $taskDeliveryExtension) {
         $taskCheckResult.deliveryExtension = $taskDeliveryExtension
@@ -737,6 +832,13 @@ if ($taskPrior) {
     $taskPriorDriver = if ($taskPostedAlready) { $ExpectedDriverDigest } else { $taskOldInstalled.driverDigest }
     $taskPriorRuntime = if ($taskPostedAlready) { $ExpectedRuntimeOperationId } else { $taskOldInstalled.runtimeOperationId }
     Assert-ManagementJob $taskFinalJob $taskExpectedPriorPipeline $taskPriorDriver $taskPriorRuntime
+    if ($taskRetainedPrefixMode) {
+        [xml]$taskFinalHomeJob = ([Text.Encoding]::UTF8.GetString([IO.File]::ReadAllBytes((Assert-Physical "$repo/.jenkins/jenkins_home/jobs/zircon-management/config.xml"))) -replace '^\s*<\?xml[^?]*\?>', '')
+        $taskFinalBareCore = if ($taskPostedAlready) { $taskBarePipeline } else { $taskRetainedOldCore }
+        $taskFinalPrefix = Get-ManagementJobRetainedPrefix -ApiScript ([string]$taskFinalJob.'flow-definition'.definition.script) -HomeScript ([string]$taskFinalHomeJob.'flow-definition'.definition.script) -BareCore $taskFinalBareCore -ExpectedSha256 $ExpectedRetainedPrefixSha256
+        if ($taskFinalPrefix -cne $taskCombinedExtensionPrefix) { throw 'Retained management prefix changed before POST' }
+        Assert-ManagementJob $taskFinalHomeJob $taskExpectedPriorPipeline $taskPriorDriver $taskPriorRuntime
+    }
     # Resumed POSTs expose the new job; only the archive proves their original.
     # Fresh updates must still observe the exact reviewed old response bytes.
     $taskFinalPreviousConfigBytes = if ($taskPostedAlready) {
@@ -777,6 +879,15 @@ try {
 $taskUpdatedResponse = Invoke-WebRequest -Uri $uri -Headers $headers -UseBasicParsing -TimeoutSec 15
 [xml]$taskUpdatedJob = ($taskUpdatedResponse.Content -replace '^\s*<\?xml[^?]*\?>', '')
 Assert-ManagementJob $taskUpdatedJob $pipeline $ExpectedDriverDigest $ExpectedRuntimeOperationId
+if ($taskRetainedPrefixMode) {
+    [xml]$taskUpdatedHomeJob = ([Text.Encoding]::UTF8.GetString([IO.File]::ReadAllBytes((Assert-Physical "$repo/.jenkins/jenkins_home/jobs/zircon-management/config.xml"))) -replace '^\s*<\?xml[^?]*\?>', '')
+    $taskUpdatedPrefix = Get-ManagementJobRetainedPrefix -ApiScript ([string]$taskUpdatedJob.'flow-definition'.definition.script) -HomeScript ([string]$taskUpdatedHomeJob.'flow-definition'.definition.script) -BareCore $taskBarePipeline -ExpectedSha256 $ExpectedRetainedPrefixSha256
+    if ($taskUpdatedPrefix -cne $taskCombinedExtensionPrefix) { throw 'Retained management prefix changed after POST' }
+    Assert-ManagementJob $taskUpdatedHomeJob $pipeline $ExpectedDriverDigest $ExpectedRuntimeOperationId
+    $taskRetainedPrefix.preserved = $true
+    $taskRetainedPrefix["apiAfterSha256"] = Hash-Bytes ([Text.Encoding]::UTF8.GetBytes($taskUpdatedResponse.Content))
+    $taskRetainedPrefix["homeAfterSha256"] = Hash-Bytes ([IO.File]::ReadAllBytes((Assert-Physical "$repo/.jenkins/jenkins_home/jobs/zircon-management/config.xml")))
+}
 Assert-ManagementJobExtensionSource $taskJobExtension $taskJobExtensionPrefix
 Assert-ManagementJobExtensionSource $taskDeliveryExtension $taskDeliveryExtensionPrefix -Kind 'delivery'
 Assert-ManagementJobExtensionSource $taskBranchIntegrationExtension $taskBranchIntegrationExtensionPrefix -Kind 'branch-integration'
@@ -798,7 +909,7 @@ if ((Hash-Bytes ([IO.File]::ReadAllBytes($taskRecordTemp))) -ne (Hash-Bytes $tas
 if ($taskPrior -and (Hash-Bytes ([IO.File]::ReadAllBytes($taskInstalledPath))) -ne $ExpectedInstalledSha256) { throw 'Original install changed before activation' }
 if (Test-Path -LiteralPath "$folder/installed.json") { [IO.File]::Replace($taskRecordTemp, "$folder/installed.json", [Management.Automation.Language.NullString]::Value) }
 else { [IO.File]::Move($taskRecordTemp, "$folder/installed.json") }
-if ($taskPinnedActive -or $null -ne $taskJobExtension -or $null -ne $taskDeliveryExtension -or $null -ne $taskBranchIntegrationExtension -or $null -ne $taskCandidateSources) {
+if ($taskPinnedActive -or $taskRetainedPrefixMode -or $null -ne $taskJobExtension -or $null -ne $taskDeliveryExtension -or $null -ne $taskBranchIntegrationExtension -or $null -ne $taskCandidateSources) {
     $taskResult = [ordered]@{}
     foreach ($taskResultKey in $record.Keys) { $taskResult[$taskResultKey] = $record[$taskResultKey] }
     if ($taskPinnedActive) {
@@ -825,6 +936,7 @@ if ($taskPinnedActive -or $null -ne $taskJobExtension -or $null -ne $taskDeliver
         $taskResult.branchIntegrationExtension.preserved = $true
         $taskResult.combinedExtensionPrefixSha256 = Hash-Bytes ([Text.Encoding]::UTF8.GetBytes($taskCombinedExtensionPrefix))
     }
+    if ($taskRetainedPrefixMode) { $taskResult.retainedPrefix = $taskRetainedPrefix }
     if ($null -ne $taskCandidateSources) { $taskResult.candidateSources = $taskCandidateSources }
     $taskResult | ConvertTo-Json -Depth 10
 } else { $record | ConvertTo-Json }

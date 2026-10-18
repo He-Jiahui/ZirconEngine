@@ -336,6 +336,100 @@ class BranchIntegrationInstallerExtensionTests(unittest.TestCase):
             "branch-api-drift", "branch-resume-wrong-archive",
         )
 
+        retained = {
+            "prefix": ("// BEGIN USER SYNC CLEAN CHECKOUT 20261018\n"
+                       "// Preserve <opaque> & quoted \"value\" and 'value'\n"
+                       "// END USER SYNC CLEAN CHECKOUT 20261018\n\n"
+                       "// BEGIN ZIRCON REMOTE MAIN SYNC\n// existing remote route\n// END ZIRCON REMOTE MAIN SYNC\n\n"
+                       "// BEGIN ZIRCON OLD BRANCH CLEANUP\n// existing cleanup route\n// END ZIRCON OLD BRANCH CLEANUP\n\n"
+                       "// BEGIN ZIRCON BRANCH QUEUE\n"
+                       "def existingBranch = 'E:/Git/ZirconEngine/.jenkins/runtime/branch-integration/"
+                       "5abace38210c7aadd34624f6ad8f6f6f20e8fdaaea1a87c6e0aab192b09b38d7/branch_integration.py'\n"
+                       "// END ZIRCON BRANCH QUEUE\n\n"
+                       "// BEGIN ZIRCON VALIDATED DELIVERY\n// retained delivery\n// END ZIRCON VALIDATED DELIVERY\n\n"
+                       "// BEGIN ZIRCON SCOPED CHECKOUT COMMIT\n// retained checkout\n// END ZIRCON SCOPED CHECKOUT COMMIT\n\n"),
+            "oldCore": OLD_CORE, "newCore": NEW_CORE,
+        }
+        retained["prefixSha256"] = hashlib.sha256(retained["prefix"].encode()).hexdigest()
+        payload = base64.b64encode(json.dumps(retained, separators=(",", ":")).encode()).decode()
+        command = _command([], b"", b"")
+        old_names = "$names = @('Hash-Bytes','Get-ManagementJobExtensionPrefix','Join-ManagementJobExtension','Assert-ManagementJob')"
+        new_names = old_names[:-1] + ",'Get-ManagementJobRetainedPrefix','Set-ManagementJobPipeline')"
+        self.assertEqual(1, command.count(old_names))
+        command = command.replace(old_names, new_names, 1)
+        marker = "[Console]::Out.WriteLine('ZR_INSTALLER_EXTENSION_RESULTS:' + (ConvertTo-Json -InputObject @($rows.ToArray()) -Depth 5 -Compress))"
+        self.assertEqual(1, command.count(marker))
+        command = command.replace(marker, "", 1) + r"""
+$inputCase = ConvertFrom-Json ([Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('__RETAINED__')))
+$oldPipeline = [string]$inputCase.prefix + [string]$inputCase.oldCore
+$newPipeline = [string]$inputCase.prefix + [string]$inputCase.newCore
+$api = New-ExtensionCaseJob $oldPipeline
+$retainedHome = New-ExtensionCaseJob $oldPipeline
+$observed = Get-ManagementJobRetainedPrefix -ApiScript ([string]$api.'flow-definition'.definition.script) -HomeScript ([string]$retainedHome.'flow-definition'.definition.script) -BareCore ([string]$inputCase.oldCore) -ExpectedSha256 ([string]$inputCase.prefixSha256)
+if ($observed -cne [string]$inputCase.prefix) { throw 'The complete prefix was not retained' }
+$beforeXml = '<!-- preserve non-script bytes -->' + $api.OuterXml
+$afterXml = Set-ManagementJobPipeline -XmlText $beforeXml -Pipeline $newPipeline
+[xml]$after = $afterXml
+Assert-ManagementJob $api $oldPipeline 'driver-fixture' 'runtime-fixture'
+Assert-ManagementJob $retainedHome $oldPipeline 'driver-fixture' 'runtime-fixture'
+Assert-ManagementJob $after $newPipeline 'driver-fixture' 'runtime-fixture'
+$beforeShell = [regex]::Replace($beforeXml, '(?s)(<script>).*?(</script>)', '$1__SCRIPT__$2')
+$afterShell = [regex]::Replace($afterXml, '(?s)(<script>).*?(</script>)', '$1__SCRIPT__$2')
+if ($beforeShell -cne $afterShell) { throw 'The non-script configuration changed' }
+$again = Get-ManagementJobRetainedPrefix -ApiScript ([string]$after.'flow-definition'.definition.script) -HomeScript ([string]$after.'flow-definition'.definition.script) -BareCore ([string]$inputCase.newCore) -ExpectedSha256 ([string]$inputCase.prefixSha256)
+if ($again -cne $observed) { throw 'The new core changed the original prefix' }
+$rejected = New-Object 'System.Collections.Generic.List[string]'
+function Assert-RetainedCaseRejected([string]$Id, [scriptblock]$Case) {
+    $failed = $false
+    try { $null = & $Case } catch { $failed = $true }
+    if (-not $failed) { throw ('Accepted invalid retained-prefix case: ' + $Id) }
+    $rejected.Add($Id)
+}
+Assert-RetainedCaseRejected 'prefix-drift' {
+    Get-ManagementJobRetainedPrefix -ApiScript ('// drift' + $oldPipeline) -HomeScript ('// drift' + $oldPipeline) -BareCore ([string]$inputCase.oldCore) -ExpectedSha256 ([string]$inputCase.prefixSha256)
+}
+Assert-RetainedCaseRejected 'wrong-prefix-pin' {
+    Get-ManagementJobRetainedPrefix -ApiScript $oldPipeline -HomeScript $oldPipeline -BareCore ([string]$inputCase.oldCore) -ExpectedSha256 ('0' * 64)
+}
+Assert-RetainedCaseRejected 'api-home-drift' {
+    Get-ManagementJobRetainedPrefix -ApiScript $oldPipeline -HomeScript ($oldPipeline + '// drift') -BareCore ([string]$inputCase.oldCore) -ExpectedSha256 ([string]$inputCase.prefixSha256)
+}
+Assert-RetainedCaseRejected 'missing-core' {
+    Get-ManagementJobRetainedPrefix -ApiScript ([string]$inputCase.prefix) -HomeScript ([string]$inputCase.prefix) -BareCore ([string]$inputCase.oldCore) -ExpectedSha256 ([string]$inputCase.prefixSha256)
+}
+Assert-RetainedCaseRejected 'duplicate-core' {
+    Get-ManagementJobRetainedPrefix -ApiScript ($oldPipeline + [string]$inputCase.oldCore) -HomeScript ($oldPipeline + [string]$inputCase.oldCore) -BareCore ([string]$inputCase.oldCore) -ExpectedSha256 ([string]$inputCase.prefixSha256)
+}
+Assert-RetainedCaseRejected 'core-is-not-suffix' {
+    Get-ManagementJobRetainedPrefix -ApiScript ($oldPipeline + '// suffix') -HomeScript ($oldPipeline + '// suffix') -BareCore ([string]$inputCase.oldCore) -ExpectedSha256 ([string]$inputCase.prefixSha256)
+}
+Assert-RetainedCaseRejected 'duplicate-script-element' {
+    Set-ManagementJobPipeline -XmlText ($beforeXml + '<script>foreign</script>') -Pipeline $newPipeline
+}
+[Console]::Out.WriteLine('ZR_RETAINED_PREFIX_RESULTS:' + (ConvertTo-Json -Depth 5 -Compress ([ordered]@{status='passed';prefix=$observed;nonScriptBytesEqual=$true;rejected=@($rejected.ToArray())})))
+""".replace("__RETAINED__", payload)
+        powershell = shutil.which("powershell.exe") or shutil.which("powershell")
+        self.assertIsNotNone(powershell, "Windows PowerShell Desktop is required")
+        self.assertLessEqual(len(command), 24000)
+        completed = subprocess.run(
+            [powershell, "-NoLogo", "-NoProfile", "-NonInteractive", "-Command", command],
+            capture_output=True, text=True, encoding="utf-8", errors="replace",
+            timeout=120, check=False,
+        )
+        self.assertEqual(0, completed.returncode, completed.stderr)
+        lines = completed.stdout.splitlines()
+        self.assertEqual(1, len(lines), completed.stdout)
+        self.assertTrue(lines[0].startswith("ZR_RETAINED_PREFIX_RESULTS:"), completed.stdout)
+        actual = json.loads(lines[0][len("ZR_RETAINED_PREFIX_RESULTS:"):])
+        self.assertEqual("passed", actual["status"])
+        self.assertEqual(retained["prefix"], actual["prefix"])
+        self.assertTrue(actual["nonScriptBytesEqual"])
+        self.assertEqual(
+            ["prefix-drift", "wrong-prefix-pin", "api-home-drift", "missing-core",
+             "duplicate-core", "core-is-not-suffix", "duplicate-script-element"],
+            actual["rejected"],
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
