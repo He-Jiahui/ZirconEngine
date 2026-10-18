@@ -7,11 +7,17 @@ using the GitHub-hosted `windows-2022` image. It checks the full
 tests. Its timeout is 60 minutes. It needs no repository secret or GPU.
 
 All Cargo, rustup, build and temporary directories are under a fresh
-`D:\cargo-targets\zircon-local\ci\runs\<run>-<attempt>\editor-compile-gate-0`.
+`D:\cargo-targets\zircon-local\ci\runs\<run>-<attempt>\e-0`.
 The physical-volume, SUBST, ancestor reparse and previous-output checks run before
 toolchain installation. Missing approved physical storage is a failure, with no
 fallback directory. The image name is pinned; its concrete image version and
 compiler identity are printed in the job log.
+
+The short `e-0` lane and `c` Cargo-home leaf leave room for the pinned VM
+dependency's 137-character relative paths under Windows libgit2's path limit.
+Other Windows jobs use unique short lanes too; job/check names are unchanged.
+The portable contract budgets every Cargo checkout for a 20-digit run ID,
+three-digit attempt and three-digit matrix index without using path aliases.
 
 The preparation shell starts with `runner.temp` for TEMP/TMP so PowerShell startup
 cannot pre-create the managed run directory. `-BootstrapTemp` verifies that
@@ -41,8 +47,8 @@ to that process. Pick a new numeric run identity for each attempt:
 ```powershell
 $env:GITHUB_RUN_ID = [DateTimeOffset]::UtcNow.ToUnixTimeSeconds().ToString()
 $env:GITHUB_RUN_ATTEMPT = '1'
-$env:ZR_CI_OUTPUT_ROOT = "D:\cargo-targets\zircon-local\ci\runs\$env:GITHUB_RUN_ID-$env:GITHUB_RUN_ATTEMPT\editor-compile-gate-0"
-$env:CARGO_HOME = Join-Path $env:ZR_CI_OUTPUT_ROOT 'cargo-home'
+$env:ZR_CI_OUTPUT_ROOT = "D:\cargo-targets\zircon-local\ci\runs\$env:GITHUB_RUN_ID-$env:GITHUB_RUN_ATTEMPT\e-0"
+$env:CARGO_HOME = Join-Path $env:ZR_CI_OUTPUT_ROOT 'c'
 $env:RUSTUP_HOME = Join-Path $env:ZR_CI_OUTPUT_ROOT 'rustup'
 $env:CARGO_TARGET_DIR = Join-Path $env:ZR_CI_OUTPUT_ROOT 'target'
 $env:CARGO_BUILD_BUILD_DIR = Join-Path $env:ZR_CI_OUTPUT_ROOT 'build'

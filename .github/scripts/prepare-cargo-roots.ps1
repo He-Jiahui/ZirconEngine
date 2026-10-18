@@ -58,7 +58,7 @@ if (-not $VerifyOnly -and (Test-Path -LiteralPath $runRoot)) {
     throw "Refusing to reuse a prior CI output tree: $runRoot"
 }
 $fixedRoots = @{
-    CARGO_HOME = Join-Path $runRoot 'cargo-home'
+    CARGO_HOME = Join-Path $runRoot 'c'
     RUSTUP_HOME = Join-Path $runRoot 'rustup'
     TEMP = Join-Path $runRoot 'tmp'
     TMP = Join-Path $runRoot 'tmp'

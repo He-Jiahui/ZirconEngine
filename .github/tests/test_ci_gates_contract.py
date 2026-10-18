@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 import subprocess
 import unittest
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -49,7 +49,7 @@ class CiGatesContractTests(unittest.TestCase):
         self.assertIn("TMP: ${{ runner.temp }}", preparation)
         self.assertIn("-BootstrapTemp", preparation)
         for variable in ("CARGO_HOME", "RUSTUP_HOME", "CARGO_TARGET_DIR", "CARGO_BUILD_BUILD_DIR", "TEMP", "TMP"):
-            self.assertRegex(gate, rf"(?m)^      {variable}: D:\\cargo-targets\\zircon-local\\ci\\runs\\.*github.run_id.*github.run_attempt.*editor-compile-gate-0\\")
+            self.assertRegex(gate, rf"(?m)^      {variable}: D:\\cargo-targets\\zircon-local\\ci\\runs\\.*github.run_id.*github.run_attempt.*e-0\\")
 
     def test_self_hosted_jobs_are_bounded_and_wait_for_availability(self) -> None:
         for path in (WORKFLOW_PATH, WORKFLOW_PATH.with_name("profile-feature-contract.yml")):
@@ -111,6 +111,26 @@ class CiGatesContractTests(unittest.TestCase):
                          "$target -ne $expectedTarget", "-Recurse -Force -Attributes ReparsePoint",
                          "Restored MVP target cache contains a reparse point"):
             self.assertIn(required, helper)
+
+    def test_cargo_homes_leave_room_for_the_pinned_dependency_checkout(self) -> None:
+        # Longest blob path in zr_vm at 3c1352ecb6ddfab02752d46682cc376558d5f481.
+        # libgit2 still applies MAX_PATH when Cargo checks out this dependency.
+        dependency_path = (
+            "git/checkouts/zr_vm-91d161ef2b98ea29/3c1352e/tests/language_server/"
+            "test_lsp_numeric_loop_self_dependency_conditional_delta_negative_offset_"
+            "zero_inclusive_subtractive_semantic_query.c"
+        )
+        count = 0
+        for path in (REPO_ROOT / ".github/workflows").glob("*.yml"):
+            for home in re.findall(r"(?m)^      CARGO_HOME: (.+)$", path.read_text(encoding="utf-8")):
+                resolved = home.replace("${{ github.run_id }}", "9" * 20)
+                resolved = resolved.replace("${{ github.run_attempt }}", "999")
+                resolved = resolved.replace("${{ strategy.job-index || 0 }}", "999")
+                self.assertNotIn("${{", resolved, path.name)
+                checkout = PureWindowsPath(resolved) / dependency_path
+                self.assertLessEqual(len(str(checkout)), 259, f"{path.name}: {checkout}")
+                count += 1
+        self.assertGreater(count, 0)
 
     def test_persistent_runners_are_trusted_and_run_isolated(self) -> None:
         for path in (WORKFLOW_PATH, WORKFLOW_PATH.with_name("profile-feature-contract.yml")):
@@ -337,11 +357,11 @@ class CiGatesContractTests(unittest.TestCase):
         smoke = job_body(self.workflow, "render-feature-smoke")
         self.assertEqual(len(re.findall(r"(?m)^          - feature:", smoke)), 15)
         self.assertIn(
-            "CARGO_TARGET_DIR: E:\\cargo-targets\\zircon-local\\ci\\runs\\${{ github.run_id }}-${{ github.run_attempt }}\\render-feature-smoke-${{ strategy.job-index || 0 }}\\target",
+            "CARGO_TARGET_DIR: E:\\cargo-targets\\zircon-local\\ci\\runs\\${{ github.run_id }}-${{ github.run_attempt }}\\rs-${{ strategy.job-index || 0 }}\\target",
             smoke,
         )
         self.assertIn(
-            "ZIRCON_RENDERING_SMOKE_OUTPUT_DIR: E:\\cargo-targets\\zircon-local\\ci\\runs\\${{ github.run_id }}-${{ github.run_attempt }}\\render-feature-smoke-${{ strategy.job-index || 0 }}\\target\\product-frame",
+            "ZIRCON_RENDERING_SMOKE_OUTPUT_DIR: E:\\cargo-targets\\zircon-local\\ci\\runs\\${{ github.run_id }}-${{ github.run_attempt }}\\rs-${{ strategy.job-index || 0 }}\\target\\product-frame",
             smoke,
         )
         self.assertIn("-RequireMatchingTests cargo test", smoke)
@@ -506,7 +526,7 @@ class CiGatesContractTests(unittest.TestCase):
         self.assertIn("-RequireMatchingTests cargo test", smoke)
         self.assertNotIn("--exact", smoke)
         self.assertIn(
-            "ZIRCON_RENDERING_SMOKE_OUTPUT_DIR: E:\\cargo-targets\\zircon-local\\ci\\runs\\${{ github.run_id }}-${{ github.run_attempt }}\\render-feature-smoke-${{ strategy.job-index || 0 }}\\target\\product-frame",
+            "ZIRCON_RENDERING_SMOKE_OUTPUT_DIR: E:\\cargo-targets\\zircon-local\\ci\\runs\\${{ github.run_id }}-${{ github.run_attempt }}\\rs-${{ strategy.job-index || 0 }}\\target\\product-frame",
             smoke,
         )
         self.assertIn(

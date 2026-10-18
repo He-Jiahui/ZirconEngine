@@ -38,13 +38,13 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 60
     env:
-      ZR_CI_OUTPUT_ROOT: D:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\editor-compile-gate-0
-      CARGO_HOME: D:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\editor-compile-gate-0\cargo-home
-      RUSTUP_HOME: D:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\editor-compile-gate-0\rustup
-      CARGO_TARGET_DIR: D:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\editor-compile-gate-0\target
-      CARGO_BUILD_BUILD_DIR: D:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\editor-compile-gate-0\build
-      TEMP: D:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\editor-compile-gate-0\tmp
-      TMP: D:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\editor-compile-gate-0\tmp
+      ZR_CI_OUTPUT_ROOT: D:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\e-0
+      CARGO_HOME: D:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\e-0\c
+      RUSTUP_HOME: D:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\e-0\rustup
+      CARGO_TARGET_DIR: D:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\e-0\target
+      CARGO_BUILD_BUILD_DIR: D:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\e-0\build
+      TEMP: D:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\e-0\tmp
+      TMP: D:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\e-0\tmp
       RUSTC_WRAPPER: ''
       RUSTC_WORKSPACE_WRAPPER: ''
       CARGO_INCREMENTAL: '0'
@@ -140,12 +140,12 @@ jobs:
     runs-on: [self-hosted, Windows, X64]
     timeout-minutes: 120
     env:
-      ZR_CI_OUTPUT_ROOT: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\portable-runtime-core-${{ strategy.job-index || 0 }}
-      CARGO_HOME: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\portable-runtime-core-${{ strategy.job-index || 0 }}\cargo-home
-      RUSTUP_HOME: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\portable-runtime-core-${{ strategy.job-index || 0 }}\rustup
-      TEMP: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\portable-runtime-core-${{ strategy.job-index || 0 }}\tmp
-      TMP: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\portable-runtime-core-${{ strategy.job-index || 0 }}\tmp
-      CARGO_TARGET_DIR: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\portable-runtime-core-${{ strategy.job-index || 0 }}\target
+      ZR_CI_OUTPUT_ROOT: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\pc-${{ strategy.job-index || 0 }}
+      CARGO_HOME: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\pc-${{ strategy.job-index || 0 }}\c
+      RUSTUP_HOME: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\pc-${{ strategy.job-index || 0 }}\rustup
+      TEMP: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\pc-${{ strategy.job-index || 0 }}\tmp
+      TMP: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\pc-${{ strategy.job-index || 0 }}\tmp
+      CARGO_TARGET_DIR: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\pc-${{ strategy.job-index || 0 }}\target
       PYTHONDONTWRITEBYTECODE: '1'
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
@@ -182,12 +182,12 @@ jobs:
     runs-on: [self-hosted, Windows, X64]
     timeout-minutes: 120
     env:
-      ZR_CI_OUTPUT_ROOT: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\dependency-governance-${{ strategy.job-index || 0 }}
-      CARGO_HOME: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\dependency-governance-${{ strategy.job-index || 0 }}\cargo-home
-      RUSTUP_HOME: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\dependency-governance-${{ strategy.job-index || 0 }}\rustup
-      TEMP: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\dependency-governance-${{ strategy.job-index || 0 }}\tmp
-      TMP: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\dependency-governance-${{ strategy.job-index || 0 }}\tmp
-      CARGO_TARGET_DIR: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\dependency-governance-${{ strategy.job-index || 0 }}\target
+      ZR_CI_OUTPUT_ROOT: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\dg-${{ strategy.job-index || 0 }}
+      CARGO_HOME: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\dg-${{ strategy.job-index || 0 }}\c
+      RUSTUP_HOME: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\dg-${{ strategy.job-index || 0 }}\rustup
+      TEMP: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\dg-${{ strategy.job-index || 0 }}\tmp
+      TMP: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\dg-${{ strategy.job-index || 0 }}\tmp
+      CARGO_TARGET_DIR: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\dg-${{ strategy.job-index || 0 }}\target
     strategy:
       fail-fast: false
       matrix:
@@ -261,12 +261,12 @@ jobs:
     runs-on: [self-hosted, Windows, X64]
     timeout-minutes: 120
     env:
-      ZR_CI_OUTPUT_ROOT: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\runtime-profile-feature-matrix-${{ strategy.job-index || 0 }}
-      CARGO_HOME: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\runtime-profile-feature-matrix-${{ strategy.job-index || 0 }}\cargo-home
-      RUSTUP_HOME: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\runtime-profile-feature-matrix-${{ strategy.job-index || 0 }}\rustup
-      TEMP: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\runtime-profile-feature-matrix-${{ strategy.job-index || 0 }}\tmp
-      TMP: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\runtime-profile-feature-matrix-${{ strategy.job-index || 0 }}\tmp
-      CARGO_TARGET_DIR: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\runtime-profile-feature-matrix-${{ strategy.job-index || 0 }}\target
+      ZR_CI_OUTPUT_ROOT: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\pf-${{ strategy.job-index || 0 }}
+      CARGO_HOME: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\pf-${{ strategy.job-index || 0 }}\c
+      RUSTUP_HOME: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\pf-${{ strategy.job-index || 0 }}\rustup
+      TEMP: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\pf-${{ strategy.job-index || 0 }}\tmp
+      TMP: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\pf-${{ strategy.job-index || 0 }}\tmp
+      CARGO_TARGET_DIR: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\pf-${{ strategy.job-index || 0 }}\target
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.runtime-profile-feature-matrix-plan.outputs.matrix) }}
@@ -308,12 +308,12 @@ jobs:
     runs-on: [self-hosted, Windows, X64]
     timeout-minutes: 120
     env:
-      ZR_CI_OUTPUT_ROOT: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\runtime-domain-feature-matrix-${{ strategy.job-index || 0 }}
-      CARGO_HOME: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\runtime-domain-feature-matrix-${{ strategy.job-index || 0 }}\cargo-home
-      RUSTUP_HOME: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\runtime-domain-feature-matrix-${{ strategy.job-index || 0 }}\rustup
-      TEMP: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\runtime-domain-feature-matrix-${{ strategy.job-index || 0 }}\tmp
-      TMP: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\runtime-domain-feature-matrix-${{ strategy.job-index || 0 }}\tmp
-      CARGO_TARGET_DIR: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\runtime-domain-feature-matrix-${{ strategy.job-index || 0 }}\target
+      ZR_CI_OUTPUT_ROOT: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\df-${{ strategy.job-index || 0 }}
+      CARGO_HOME: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\df-${{ strategy.job-index || 0 }}\c
+      RUSTUP_HOME: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\df-${{ strategy.job-index || 0 }}\rustup
+      TEMP: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\df-${{ strategy.job-index || 0 }}\tmp
+      TMP: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\df-${{ strategy.job-index || 0 }}\tmp
+      CARGO_TARGET_DIR: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\df-${{ strategy.job-index || 0 }}\target
     strategy:
       fail-fast: false
       matrix:
@@ -368,12 +368,12 @@ jobs:
     runs-on: [self-hosted, Windows, X64]
     timeout-minutes: 120
     env:
-      ZR_CI_OUTPUT_ROOT: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\rust-${{ strategy.job-index || 0 }}
-      CARGO_HOME: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\rust-${{ strategy.job-index || 0 }}\cargo-home
-      RUSTUP_HOME: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\rust-${{ strategy.job-index || 0 }}\rustup
-      TEMP: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\rust-${{ strategy.job-index || 0 }}\tmp
-      TMP: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\rust-${{ strategy.job-index || 0 }}\tmp
-      CARGO_TARGET_DIR: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\rust-${{ strategy.job-index || 0 }}\target
+      ZR_CI_OUTPUT_ROOT: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\r-${{ strategy.job-index || 0 }}
+      CARGO_HOME: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\r-${{ strategy.job-index || 0 }}\c
+      RUSTUP_HOME: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\r-${{ strategy.job-index || 0 }}\rustup
+      TEMP: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\r-${{ strategy.job-index || 0 }}\tmp
+      TMP: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\r-${{ strategy.job-index || 0 }}\tmp
+      CARGO_TARGET_DIR: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\r-${{ strategy.job-index || 0 }}\target
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
         env:
@@ -503,15 +503,15 @@ jobs:
     runs-on: [self-hosted, Windows, X64]
     timeout-minutes: 120
     env:
-      ZR_CI_OUTPUT_ROOT: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\scene-ecs-miri-${{ strategy.job-index || 0 }}
-      CARGO_HOME: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\scene-ecs-miri-${{ strategy.job-index || 0 }}\cargo-home
-      RUSTUP_HOME: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\scene-ecs-miri-${{ strategy.job-index || 0 }}\rustup
-      TEMP: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\scene-ecs-miri-${{ strategy.job-index || 0 }}\tmp
-      TMP: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\scene-ecs-miri-${{ strategy.job-index || 0 }}\tmp
-      CARGO_TARGET_DIR: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\scene-ecs-miri-${{ strategy.job-index || 0 }}\target
-      MIRI_SYSROOT: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\scene-ecs-miri-${{ strategy.job-index || 0 }}\sysroot
-      ZIG_LOCAL_CACHE_DIR: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\scene-ecs-miri-${{ strategy.job-index || 0 }}\zig-cache\local
-      ZIG_GLOBAL_CACHE_DIR: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\scene-ecs-miri-${{ strategy.job-index || 0 }}\zig-cache\global
+      ZR_CI_OUTPUT_ROOT: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\mi-${{ strategy.job-index || 0 }}
+      CARGO_HOME: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\mi-${{ strategy.job-index || 0 }}\c
+      RUSTUP_HOME: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\mi-${{ strategy.job-index || 0 }}\rustup
+      TEMP: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\mi-${{ strategy.job-index || 0 }}\tmp
+      TMP: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\mi-${{ strategy.job-index || 0 }}\tmp
+      CARGO_TARGET_DIR: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\mi-${{ strategy.job-index || 0 }}\target
+      MIRI_SYSROOT: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\mi-${{ strategy.job-index || 0 }}\sysroot
+      ZIG_LOCAL_CACHE_DIR: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\mi-${{ strategy.job-index || 0 }}\zig-cache\local
+      ZIG_GLOBAL_CACHE_DIR: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\mi-${{ strategy.job-index || 0 }}\zig-cache\global
       CC_x86_64_unknown_linux_gnu: ${{ github.workspace }}\.github\scripts\zig-cc-x86_64-unknown-linux-gnu.cmd
       CXX_x86_64_unknown_linux_gnu: ${{ github.workspace }}\.github\scripts\zig-cxx-x86_64-unknown-linux-gnu.cmd
       AR_x86_64_unknown_linux_gnu: ${{ github.workspace }}\.github\scripts\zig-ar-x86_64-unknown-linux-gnu.cmd
@@ -568,13 +568,13 @@ jobs:
     runs-on: [self-hosted, Windows, X64]
     timeout-minutes: 120
     env:
-      ZR_CI_OUTPUT_ROOT: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\render-feature-smoke-${{ strategy.job-index || 0 }}
-      CARGO_HOME: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\render-feature-smoke-${{ strategy.job-index || 0 }}\cargo-home
-      RUSTUP_HOME: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\render-feature-smoke-${{ strategy.job-index || 0 }}\rustup
-      TEMP: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\render-feature-smoke-${{ strategy.job-index || 0 }}\tmp
-      TMP: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\render-feature-smoke-${{ strategy.job-index || 0 }}\tmp
-      CARGO_TARGET_DIR: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\render-feature-smoke-${{ strategy.job-index || 0 }}\target
-      ZIRCON_RENDERING_SMOKE_OUTPUT_DIR: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\render-feature-smoke-${{ strategy.job-index || 0 }}\target\product-frame
+      ZR_CI_OUTPUT_ROOT: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\rs-${{ strategy.job-index || 0 }}
+      CARGO_HOME: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\rs-${{ strategy.job-index || 0 }}\c
+      RUSTUP_HOME: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\rs-${{ strategy.job-index || 0 }}\rustup
+      TEMP: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\rs-${{ strategy.job-index || 0 }}\tmp
+      TMP: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\rs-${{ strategy.job-index || 0 }}\tmp
+      CARGO_TARGET_DIR: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\rs-${{ strategy.job-index || 0 }}\target
+      ZIRCON_RENDERING_SMOKE_OUTPUT_DIR: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\rs-${{ strategy.job-index || 0 }}\target\product-frame
     strategy:
       fail-fast: false
       matrix:
@@ -712,12 +712,12 @@ jobs:
     runs-on: [self-hosted, Windows, X64]
     timeout-minutes: 120
     env:
-      ZR_CI_OUTPUT_ROOT: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\plugin-standalone-dist-${{ strategy.job-index || 0 }}
-      CARGO_HOME: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\plugin-standalone-dist-${{ strategy.job-index || 0 }}\cargo-home
-      RUSTUP_HOME: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\plugin-standalone-dist-${{ strategy.job-index || 0 }}\rustup
-      TEMP: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\plugin-standalone-dist-${{ strategy.job-index || 0 }}\tmp
-      TMP: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\plugin-standalone-dist-${{ strategy.job-index || 0 }}\tmp
-      CARGO_TARGET_DIR: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\plugin-standalone-dist-${{ strategy.job-index || 0 }}\target
+      ZR_CI_OUTPUT_ROOT: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\ps-${{ strategy.job-index || 0 }}
+      CARGO_HOME: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\ps-${{ strategy.job-index || 0 }}\c
+      RUSTUP_HOME: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\ps-${{ strategy.job-index || 0 }}\rustup
+      TEMP: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\ps-${{ strategy.job-index || 0 }}\tmp
+      TMP: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\ps-${{ strategy.job-index || 0 }}\tmp
+      CARGO_TARGET_DIR: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\ps-${{ strategy.job-index || 0 }}\target
     strategy:
       fail-fast: false
       matrix:
@@ -844,12 +844,12 @@ jobs:
     runs-on: [self-hosted, Windows, X64]
     timeout-minutes: 120
     env:
-      ZR_CI_OUTPUT_ROOT: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\export-platform-contract-${{ strategy.job-index || 0 }}
-      CARGO_HOME: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\export-platform-contract-${{ strategy.job-index || 0 }}\cargo-home
-      RUSTUP_HOME: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\export-platform-contract-${{ strategy.job-index || 0 }}\rustup
-      TEMP: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\export-platform-contract-${{ strategy.job-index || 0 }}\tmp
-      TMP: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\export-platform-contract-${{ strategy.job-index || 0 }}\tmp
-      CARGO_TARGET_DIR: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\export-platform-contract-${{ strategy.job-index || 0 }}\target
+      ZR_CI_OUTPUT_ROOT: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\ep-${{ strategy.job-index || 0 }}
+      CARGO_HOME: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\ep-${{ strategy.job-index || 0 }}\c
+      RUSTUP_HOME: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\ep-${{ strategy.job-index || 0 }}\rustup
+      TEMP: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\ep-${{ strategy.job-index || 0 }}\tmp
+      TMP: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\ep-${{ strategy.job-index || 0 }}\tmp
+      CARGO_TARGET_DIR: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\ep-${{ strategy.job-index || 0 }}\target
     strategy:
       fail-fast: false
       matrix:

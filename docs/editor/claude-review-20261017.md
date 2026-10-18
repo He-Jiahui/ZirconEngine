@@ -816,3 +816,25 @@ and `plugin/loader`, including `loader/live`). No assertion or production contra
 was removed. Both complete legacy modules plus the M9 regressions now pass:
 **21 Python tests**. This restores static contract coverage; it is not Rust/native
 execution evidence.
+
+## Windows dependency path budget (C2 follow-up)
+
+[Run 39138138010](https://github.com/He-Jiahui/ZirconEngine/actions/runs/39138138010)
+passed root preparation, toolchain installation and all three real Windows MSVC
+wrapper regressions. Cargo then failed checking out the pinned VM dependency:
+its managed checkout path exceeded Windows libgit2's path limit. Read-only tree
+inspection at the pinned revision found a longest relative file path of 137
+characters. Windows jobs now use short, unique lane names and a `c` Cargo-home
+leaf under the same physical roots, preserving run/attempt/matrix isolation.
+The new path-budget regression failed before the change and passes afterward,
+including 20-digit run IDs and three-digit attempts/matrix indices. Job/check
+names, root checks and source dependencies are unchanged.
+
+The same run exposed concrete input-module identity references in dynamic-session
+construction and state. Use the existing neutral `core::framework::input` owner
+for error module names; input-driver ownership and attachment behavior are unchanged.
+Portable CI tests pass **24 tests**, with three Windows-only cases skipped;
+all **28** layer-direction tests, Rust AST parsing, Change Guard scans (zero
+findings), actionlint and whitespace checks pass. Updated exact local Windows reproduction
+commands are in [Editor CI validation](ci-validation.md). Hosted compilation is
+still pending the next run.

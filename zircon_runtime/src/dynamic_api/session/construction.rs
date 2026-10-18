@@ -1,3 +1,4 @@
+use crate::core::framework::input::INPUT_MODULE_NAME;
 use crate::core::framework::render::{
     RenderProfileBundle, RenderSubmissionConfig, RENDER_PROFILE_CONFIG_KEY,
 };
@@ -413,7 +414,7 @@ pub(super) fn build(
             .map_err(|reason| RuntimeDynamicSessionError::CoreStep {
                 step: "claim input ingress attachment",
                 source: CoreError::Initialization(
-                    crate::input::INPUT_MODULE_NAME.to_owned(),
+                    INPUT_MODULE_NAME.to_owned(),
                     reason.to_string(),
                 ),
             })

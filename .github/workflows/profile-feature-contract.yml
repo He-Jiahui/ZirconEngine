@@ -40,12 +40,12 @@ jobs:
     runs-on: [self-hosted, Windows, X64]
     timeout-minutes: 120
     env:
-      ZR_CI_OUTPUT_ROOT: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\profile-feature-contract-${{ strategy.job-index || 0 }}
-      CARGO_HOME: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\profile-feature-contract-${{ strategy.job-index || 0 }}\cargo-home
-      RUSTUP_HOME: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\profile-feature-contract-${{ strategy.job-index || 0 }}\rustup
-      TEMP: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\profile-feature-contract-${{ strategy.job-index || 0 }}\tmp
-      TMP: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\profile-feature-contract-${{ strategy.job-index || 0 }}\tmp
-      CARGO_TARGET_DIR: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\profile-feature-contract-${{ strategy.job-index || 0 }}\target
+      ZR_CI_OUTPUT_ROOT: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\fc-${{ strategy.job-index || 0 }}
+      CARGO_HOME: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\fc-${{ strategy.job-index || 0 }}\c
+      RUSTUP_HOME: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\fc-${{ strategy.job-index || 0 }}\rustup
+      TEMP: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\fc-${{ strategy.job-index || 0 }}\tmp
+      TMP: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\fc-${{ strategy.job-index || 0 }}\tmp
+      CARGO_TARGET_DIR: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\fc-${{ strategy.job-index || 0 }}\target
     strategy:
       fail-fast: false
       matrix:

@@ -36,11 +36,11 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 60
     env:
-      ZR_CI_OUTPUT_ROOT: D:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\mvp-compile-gate-0
-      CARGO_HOME: D:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\mvp-compile-gate-0\cargo-home
-      RUSTUP_HOME: D:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\mvp-compile-gate-0\rustup
-      TEMP: D:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\mvp-compile-gate-0\tmp
-      TMP: D:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\mvp-compile-gate-0\tmp
+      ZR_CI_OUTPUT_ROOT: D:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\mc-0
+      CARGO_HOME: D:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\mc-0\c
+      RUSTUP_HOME: D:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\mc-0\rustup
+      TEMP: D:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\mc-0\tmp
+      TMP: D:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\mc-0\tmp
       WGPU_BACKEND: dx12
 
     steps:
@@ -124,11 +124,11 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 90
     env:
-      ZR_CI_OUTPUT_ROOT: D:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\mvp-focused-tests-0
-      CARGO_HOME: D:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\mvp-focused-tests-0\cargo-home
-      RUSTUP_HOME: D:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\mvp-focused-tests-0\rustup
-      TEMP: D:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\mvp-focused-tests-0\tmp
-      TMP: D:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\mvp-focused-tests-0\tmp
+      ZR_CI_OUTPUT_ROOT: D:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\mt-0
+      CARGO_HOME: D:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\mt-0\c
+      RUSTUP_HOME: D:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\mt-0\rustup
+      TEMP: D:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\mt-0\tmp
+      TMP: D:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\mt-0\tmp
       WGPU_BACKEND: dx12
 
     steps:
@@ -285,11 +285,11 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 120
     env:
-      ZR_CI_OUTPUT_ROOT: D:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\mvp-mvp-editor-windows-0
-      CARGO_HOME: D:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\mvp-mvp-editor-windows-0\cargo-home
-      RUSTUP_HOME: D:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\mvp-mvp-editor-windows-0\rustup
-      TEMP: D:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\mvp-mvp-editor-windows-0\tmp
-      TMP: D:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\mvp-mvp-editor-windows-0\tmp
+      ZR_CI_OUTPUT_ROOT: D:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\ms-0
+      CARGO_HOME: D:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\ms-0\c
+      RUSTUP_HOME: D:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\ms-0\rustup
+      TEMP: D:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\ms-0\tmp
+      TMP: D:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\ms-0\tmp
       WGPU_BACKEND: dx12
 
     steps:
