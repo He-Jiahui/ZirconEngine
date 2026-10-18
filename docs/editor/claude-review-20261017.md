@@ -364,7 +364,7 @@ compliance here is not evidence of sandbox enforcement.
 | Finding | Landed source / remaining work |
 | --- | --- |
 | C1 | Borrow ordering repaired; advanced plugins retained. Full editor/plugin compilation and any downstream failures remain unverified. |
-| C2, M1, L7 | Original permission checkpoint superseded by the 2026-10-18 authorization; see the authorized follow-ups below. |
+| C2 | Required hosted Windows PR check, local contract, timeouts and runner signal implemented. Hosted compilation now executes; follow-up results below. |
 | H1, H2, L3 | Backend policy, launch tooling, capture validator and diagnostics implemented. Real backend selection/window/capture acceptance pending. |
 | H3 | Runtime redraw/maintenance split and perf namespaces implemented. Continuous PIE timing/idle behavior pending. |
 | H4 | Open: dynamically owned PIE product needs a compositable shared GPU/device-lifetime contract; CPU readback remains. |
@@ -373,6 +373,7 @@ compliance here is not evidence of sandbox enforcement.
 | H7 | Preview opt-in and truthful feedback implemented; lint passes. Real visibility/dispatch tests pending. |
 | H8 | Alt+P/Esc/Save All and effective-keymap palette/menu projection implemented. Follow-up adds F/Ctrl+Space and Q/W/E/R commands; additional authoring/navigation shortcuts remain deferred below. |
 | H9 | Plan, role contract, Annotate/export/compiler scaffold and synthetic goldens landed. No real Penpot kit/export or generated operator shell accepted. |
+| M1 | Compile/focused/staged jobs and scoped compiler cache implemented. Product/receipt publication remains blocked on retired-publisher migration. |
 | M2 | Real severity/notification counts and per-kind snap projection implemented. Rust tests/rendered spacing pending. |
 | M3 | Bounded readiness and immutable startup presenter selection implemented. Real driver latency/idle/presenter tests pending. |
 | M4 | Degradation warning/banner/counters and per-Play-start warning implemented. Inline adapter projection remains deferred below. |
@@ -380,13 +381,14 @@ compliance here is not evidence of sandbox enforcement.
 | M6 | Clipboard/duplicate/visibility/lock, asset placement and generalized Details explicitly deferred below; hierarchy-local rename remains. |
 | M7 | Main-window docking migration explicitly deferred to O3 after O0 acceptance. |
 | M8 | Controller-derived run admission/state implemented. Pause/Step/Eject and asynchronous state UI remain open. |
-| M9 | Deferred at the report's `zircon_editor/build.rs` authorization checkpoint. |
+| M9 | Explicit embedded/catalog build inputs implemented. Real Windows freshness and ZUI hot reload checks pending. |
 | M10 | New operator tests use behavior, and obsolete presenter guards were removed. Startup happy-path tooling exists; Rust tests, real automation and CI wiring are pending. |
 | M11 | Shipping subsystem/log/dialog source implemented. Windows linking and Explorer failure-path acceptance pending. |
 | L1 | New operator module denies warnings; some touched unused bindings removed. Broad warning/clippy debt remains. |
 | L2 | Pointer-origin/unknown-wheel behavior repaired; Rust regression execution pending. |
 | L4 | Existing beta pinned exactly. Stable migration and native lifecycle acceptance pending. |
 | L6 | Added actual-painter U+0020 regression coverage and traced asset-summary counts. Rust execution and current-shell 100/150% DPI captures remain pending. |
+| L7 | Hosted images and direct Node-24 actions pinned; toolchain input corrected. A transitive Pages upload warning exposed by hosted execution is being repaired below. |
 
 Reusable local evidence: the Penpot compiler/export batch has **27 passing Node
 tests**. The final Python startup/storage batch ran **25 tests: 10 passed and 15
@@ -838,3 +840,26 @@ all **28** layer-direction tests, Rust AST parsing, Change Guard scans (zero
 findings), actionlint and whitespace checks pass. Updated exact local Windows reproduction
 commands are in [Editor CI validation](ci-validation.md). Hosted compilation is
 still pending the next run.
+
+## Typed design-token admission (H9/O2 follow-up)
+
+The compiler previously checked only token existence. It silently accepted a color
+as a font size/family or a dimension as a font weight, and inherited JavaScript
+property names could bypass its supported-binding lookup. Preserve DTCG types
+internally, including inherited group types, and validate each property before
+emitting its token reference. Fill/stroke require color, font family requires
+fontFamily, font size accepts number/px dimension, and font weight requires number.
+Serialized theme values and existing golden bytes are unchanged.
+
+Six new rejection regressions failed before the repair and pass afterward; two
+positive cases cover both font-size representations, inherited color types and
+all supported token bindings. All **35** compiler/export Node tests pass:
+
+```sh
+node --test tools/penpot/apps/zircon-zop-compiler/src/compiler.test.mjs tools/penpot/apps/zircon-zop-compiler/src/export.test.mjs
+```
+
+This advances O2's compiler contract. Actual Penpot Foundations/Components files,
+engine-schema loading, plugin type checking/build and native design parity remain
+pending. O0 is unaccepted; O3–O6 remain gated. No synthetic fixture is product
+design evidence.

@@ -112,6 +112,57 @@ for source in documents:
   assert.equal(parsed.status, 0, parsed.stderr || String(parsed.error));
 });
 
+for (const [property, token] of [
+  ['fill', { $type: 'number', $value: 14 }],
+  ['strokeColor', { $type: 'fontFamily', $value: 'Inter' }],
+  ['fontFamilies', { $type: 'color', $value: '#151515' }],
+  ['fontSizes', { $type: 'color', $value: '#151515' }],
+  ['fontWeight', { $type: 'dimension', $value: { value: 400, unit: 'px' } }],
+]) {
+  test(`compiler rejects an incompatible DTCG type for ${property}`, async () => {
+    const screen = screenFixture();
+    screen.root.children[1].tokens = { [property]: 'editor.invalid' };
+    const bundle = await fixtureBundle(screen, { editor: { invalid: token } });
+    assert.throws(() => compileBundle(bundle, source), error =>
+      /DTCG type/.test(error.message) && error.message.includes('editor.invalid')
+        && error.message.includes('shell/project_browser.zui/root/open'));
+  });
+}
+
+for (const sizeType of ['number', 'dimension']) {
+  test(`typed token bindings preserve inherited types and ${sizeType} font sizes`, async () => {
+    const screen = screenFixture();
+    screen.root.tokens = { fill: 'editor.color.base' };
+    const label = node('title', 'Label', {}, { kind: 'leaf', width: { mode: 'hug' }, height: { mode: 'hug' } });
+    label.tokens = { fill: 'editor.color.base', strokeColor: 'editor.color.base',
+      fontFamilies: 'editor.family', fontSizes: 'editor.size', fontWeight: 'editor.weight' };
+    screen.root.children.push(label);
+    const designTokens = { editor: {
+      color: { $type: 'color', base: { $value: '#151515' } },
+      family: { $type: 'fontFamily', $value: 'Inter' },
+      size: { $type: sizeType, $value: sizeType === 'number' ? 14 : { value: 14, unit: 'px' } },
+      weight: { $type: 'number', $value: 400 },
+    } };
+    const generated = compileBundle(await fixtureBundle(screen, designTokens), source);
+    const props = generated.documents['shell/project_browser.zui'].nodes.n_title.props;
+    assert.equal(props.foreground_color, '$editor.color.base');
+    assert.equal(props.border_color, '$editor.color.base');
+    assert.equal(props.font_family, '$editor.family');
+    assert.equal(props.font_size, '$editor.size');
+    assert.equal(props.font_weight, '$editor.weight');
+    assert.deepEqual(generated.documents['theme/zop_tokens.zui'].tokens, {
+      'editor.color.base': '#151515', 'editor.family': 'Inter', 'editor.size': 14, 'editor.weight': 400,
+    });
+  });
+}
+
+test('token binding names cannot resolve through Object.prototype', async () => {
+  const screen = screenFixture();
+  screen.root.tokens = { toString: 'editor.surface.base' };
+  const bundle = await fixtureBundle(screen);
+  assert.throws(() => compileBundle(bundle, source), /unsupported or missing token binding/);
+});
+
 test('apply preserves handwritten files, refuses modified/unowned output and retires only old owned output', async () => {
   const generated = compileBundle(await fixtureBundle(), source).files;
   const handwritten = new TextEncoder().encode(source);

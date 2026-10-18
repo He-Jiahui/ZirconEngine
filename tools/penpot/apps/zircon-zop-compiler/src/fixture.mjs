@@ -22,9 +22,9 @@ export function screenFixture() {
   return { screen: 'project', asset_path: 'shell/project_browser.zui', root };
 }
 
-export async function fixtureBundle(screen = screenFixture()) {
+export async function fixtureBundle(screen = screenFixture(), designTokens = tokens) {
   const encode = object => new TextEncoder().encode(stableJson(object) + '\n');
-  const result = await createBundle({ 'screens/project.json': encode(screen), 'tokens.dtcg.json': encode(tokens) },
+  const result = await createBundle({ 'screens/project.json': encode(screen), 'tokens.dtcg.json': encode(designTokens) },
     [{ id: 'synthetic-fixture', revision: 1 }], async bytes => sha256(bytes));
   return result;
 }

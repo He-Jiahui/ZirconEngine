@@ -21,6 +21,11 @@ An edit during export invalidates the capture. Connected-library revision export
 SVG icons, repeaters, state expressions and the full component/state kit remain
 later work; this version rejects unsupported input instead of approximating it.
 
+Token bindings must match the DTCG type: fill/stroke colors use `color`, font
+families use `fontFamily`, font sizes use `number` or a `px` dimension, and font
+weights use `number`. Inherited group types are supported. Type mismatches fail
+compilation with the board/node path and token name before any output is applied.
+
 Land a reviewed, extracted export at `bundle/**`, replacing its placeholder note.
 Keep its manifest and hashes intact. Build/verify/apply with the editor closed:
 
