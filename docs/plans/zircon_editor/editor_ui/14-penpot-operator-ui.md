@@ -70,7 +70,7 @@ Further layout support requires both runtime parity and compiler tests.
 | Milestone | Deliverable | Acceptance / present state |
 | --- | --- | --- |
 | O0 | C1/C2, H1/H2 | Repair code and startup smoke landed; Windows compilation, first frame, backend matrix and PR gate **pending**. |
-| O1 | Roles, command menus, keymap, truthful status, perf namespaces | Role validation/menus/keymap/preview feedback implemented; Rust execution and full status projection **pending**. |
+| O1 | Roles, command menus, keymap, truthful status, perf namespaces | Role validation/menus/keymap/status signals/preview feedback implemented; shortcut completion, Rust execution and rendered acceptance **pending**. |
 | O2 | Penpot kit, Annotate, ZOP Export, compiler/goldens | Tooling scaffold only; actual Foundations/Components files, engine-loaded fixtures and managed validation **pending**. |
 | O3 | Generated S2/S3/S6/S7, role binders, shell switch | Blocked on real O0 acceptance; no operator shell is selected or advertised as launchable. |
 | O4 | Content/log/PIE, async Play, shared GPU product, authoring verbs | Pending contracts, automation and timing evidence. |

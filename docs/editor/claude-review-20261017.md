@@ -339,3 +339,61 @@ claim shared presentation or zero PIE copies.
 Linux verification: focused Python startup-smoke behavior tests passed, including
 forced software, missing/repeated selection, standalone GPU and failed receipts.
 These are mocked launches; the real Windows first-frame gate remains pending.
+
+## Windowing version boundary (L4)
+
+Pin the existing `winit` dependency exactly to `=0.31.0-beta.2`. Both workspace
+lockfiles already resolve that version, so no dependency update or windowing API
+migration is included. TOML parsing and manifest/lockfile agreement passed.
+
+The future stable upgrade is a separate window-lifecycle batch: check the editor
+feature closure, run `contract::window` tests, and verify initial creation,
+resize/minimize/restore, focus, pointer origin/wheel, keyboard/IME and 100/150% DPI
+on the real Windows host. Capture a first frame using the preview command after
+that upgrade. No beta-to-stable migration or native acceptance is claimed here.
+
+## Closeout and remaining acceptance
+
+The source batches are committed and published on `fix/claude-review-20261017`.
+The pre-existing dirty Linux `.codex/config.toml` overlay is preserved byte for
+byte and excluded from every commit. No compiler output was created on this
+Linux host. Its permission profile is disabled; repository write-policy
+compliance here is not evidence of sandbox enforcement.
+
+| Finding | Landed source / remaining work |
+| --- | --- |
+| C1 | Borrow ordering repaired; advanced plugins retained. Full editor/plugin compilation and any downstream failures remain unverified. |
+| C2, M1, L7 | Deferred at the report's `.github/**` permission checkpoint; compile-gate/workflow/protection/CI hygiene work remains external. |
+| H1, H2, L3 | Backend policy, launch tooling, capture validator and diagnostics implemented. Real backend selection/window/capture acceptance pending. |
+| H3 | Runtime redraw/maintenance split and perf namespaces implemented. Continuous PIE timing/idle behavior pending. |
+| H4 | Open: dynamically owned PIE product needs a compositable shared GPU/device-lifetime contract; CPU readback remains. |
+| H5 | Shell-lock scope repaired. Open: worker-owned Starting/Stopping, progress, cancellation and <=100 ms frame-gap acceptance. |
+| H6, L5 | Command-driven popup contents/admission and project predicates implemented; unsupported Pause hidden. Rust/GUI interaction acceptance pending. |
+| H7 | Preview opt-in and truthful feedback implemented; lint passes. Real visibility/dispatch tests pending. |
+| H8 | Alt+P/Esc/Save All and effective-keymap palette/menu projection implemented. F/Ctrl+Space command migration and the additional authoring/navigation shortcuts remain open. |
+| H9 | Plan, role contract, Annotate/export/compiler scaffold and synthetic goldens landed. No real Penpot kit/export or generated operator shell accepted. |
+| M2 | Real severity/notification counts and per-kind snap projection implemented. Rust tests/rendered spacing pending. |
+| M3 | Bounded readiness and immutable startup presenter selection implemented. Real driver latency/idle/presenter tests pending. |
+| M4 | Degradation warning/banner/counters implemented. Inline adapter projection and per-Play-start notification remain open. |
+| M5, M6, M7 | Open: fly/Alt navigation, broader authoring/reflection/asset-drop verbs, and main-window docking integration. |
+| M8 | Controller-derived run admission/state implemented. Pause/Step/Eject and asynchronous state UI remain open. |
+| M9 | Deferred at the report's `zircon_editor/build.rs` authorization checkpoint. |
+| M10 | New operator tests use behavior, and obsolete presenter guards were removed. Startup happy-path tooling exists; Rust tests, real automation and CI wiring are pending. |
+| M11 | Shipping subsystem/log/dialog source implemented. Windows linking and Explorer failure-path acceptance pending. |
+| L1 | New operator module denies warnings; some touched unused bindings removed. Broad warning/clippy debt remains. |
+| L2 | Pointer-origin/unknown-wheel behavior repaired; Rust regression execution pending. |
+| L4 | Existing beta pinned exactly. Stable migration and native lifecycle acceptance pending. |
+| L6 | Open: current-shell 100/150% DPI captures, text-spacing rendering regression and asset-summary investigation. |
+
+Reusable local evidence: the Penpot compiler/export batch has **25 passing Node
+tests**. The original Python startup/storage batch had **9 passes and 15
+Windows-only skips**; after the final presenter-evidence change, all **5 focused
+startup-smoke tests pass**. Preview-feedback lint and structural TOML/AST/diff
+checks passed in the relevant batches. Rust AST inspection is syntax evidence,
+not type checking, compilation or execution.
+
+O0 and O2 are **unaccepted**. O1 is partial; O3–O6 remain gated. The exact scoped
+Windows commands are recorded above, and the staged preview/capture command is
+in [the local launch guide](run-editor-locally.md). Compile, successful native
+startup, continuous-runtime/PIE jank budgets and real operator UI parity remain
+required acceptance work; this closeout does not mark those goals complete.
