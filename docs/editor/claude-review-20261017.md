@@ -469,3 +469,21 @@ C2 remains permission-deferred, including PR workflow, branch protection and run
 changes. No `.github/**`, protected build/CI gate or `tools/dev/**` changes were
 made. O0 is unaccepted, so O3–O6 remain gated; this command batch advances O1 source
 only, pending its Rust and native checks.
+
+## Penpot compiler follow-up (H9, 2026-10-18)
+
+The compiler previously accepted a command role on a Label/Panel, emitted a Click
+event, then disabled input on the same node. It now rejects such an annotation
+with the board path; supported command controls remain Button/IconButton. Both
+new regressions failed before the fix and pass afterward. The full in-memory
+compiler/export batch now passes **27 Node tests**, including the existing golden,
+determinism, ZIP integrity, fresh-board and apply-ownership checks:
+
+```sh
+node --test --test-reporter=spec tools/penpot/apps/zircon-zop-compiler/src/compiler.test.mjs tools/penpot/apps/zircon-zop-compiler/src/export.test.mjs
+```
+
+No real Penpot document/bundle or installed Angular/TypeScript dependencies are
+present. O2 therefore remains unaccepted: Node fixtures prove the supported
+compiler subset only. The Windows managed validator and Rust `ui::operator`
+commands above remain required, followed by actual kit export and engine loading.

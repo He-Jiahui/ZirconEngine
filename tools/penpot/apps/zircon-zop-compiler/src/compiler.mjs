@@ -75,6 +75,8 @@ function compileScreen(screen, contract, translations, includePreview, tokens) {
     assert(COMPONENTS.has(component), nodePath, `unsupported component ${component}`);
     if (node.component_ref) assert(/^zop\/[A-Za-z]+(?:\/md)?$/.test(node.component_ref), nodePath, 'nonlibrary or unsupported component instance');
     if (INTERACTIVE.has(component)) assert(binding.role && binding.command, nodePath, 'interactive component needs role and command');
+    // A command event on an input-disabled visual compiles into an unreachable action.
+    assert(!binding.command || INTERACTIVE.has(component), nodePath, 'command role requires an interactive Button or IconButton');
     const props = {};
     assert(typeof node.visible === 'boolean', nodePath, 'visibility must be explicit');
     if (!node.visible) Object.assign(props, { visible: false, visibility: 'collapsed' });

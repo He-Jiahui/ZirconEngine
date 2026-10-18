@@ -62,6 +62,17 @@ for (const [name, mutate, message] of [
   });
 }
 
+for (const component of ['Label', 'Panel']) {
+  test(`command roles reject noninteractive ${component} nodes`, async () => {
+    const screen = screenFixture();
+    screen.root.children[1].component = component;
+    const bundle = await fixtureBundle(screen);
+    assert.throws(() => compileBundle(bundle, source), error =>
+      /command role requires an interactive/.test(error.message)
+        && error.message.includes('shell/project_browser.zui'));
+  });
+}
+
 test('preview nodes are excluded by default; a required role cannot hide behind preview', async () => {
   const screen = screenFixture();
   const preview = node('sample', 'Label', { preview: true }, { kind: 'leaf', width: { mode: 'hug' }, height: { mode: 'hug' } });
