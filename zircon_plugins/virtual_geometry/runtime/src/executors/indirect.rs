@@ -444,7 +444,13 @@ fn execute_source(gpu: &mut RenderPassGpuExecutionContext<'_>) -> Result<(), Str
     let device_epoch = gpu
         .device_epoch()
         .ok_or_else(|| "virtual geometry indirect pass requires a device epoch".to_string())?;
-    let mut native = gpu.native_context();
+    // Record uploads before borrowing the native encoder for the dispatch.
+    gpu.buffer_upload_recorder().write_buffer(
+        &args_buffer,
+        args_offset,
+        bytemuck::bytes_of(&0_u32),
+    );
+    let native = gpu.native_context();
     let factory = &native;
     let source = factory.create_buffer_init(&wgpu::util::BufferInitDescriptor {
         label: Some("zircon-virtual-geometry-indirect-source"),
@@ -475,11 +481,6 @@ fn execute_source(gpu: &mut RenderPassGpuExecutionContext<'_>) -> Result<(), Str
             buffer_entry(3, &authority_buffer, authority_offset, authority_size),
         ],
     });
-    gpu.buffer_upload_recorder().write_buffer(
-        &args_buffer,
-        args_offset,
-        bytemuck::bytes_of(&0_u32),
-    );
     let groups = u32::try_from(records.len().div_ceil(WORKGROUP_SIZE as usize).max(1))
         .map_err(|_| "virtual geometry indirect dispatch count exceeds u32".to_string())?;
     let mut pass = native
