@@ -121,6 +121,7 @@ Environment:
   ZIRCON_EDITOR_EXIT_AFTER_FIRST_FRAME  Exit after the first successfully presented editor frame
   ZIRCON_LOG_FILTER                     Override scoped process log filters
   ZIRCON_LOG_LEVEL                      Override the minimum process log level
+  WGPU_BACKEND                         Restrict GPU APIs (dx12, vulkan, metal, gl); Windows prefers DX12 then Vulkan by default
 
 Options:
   -h, --help                            Print this help without loading the editor host
@@ -203,7 +204,6 @@ impl EntryRunner {
                     }
                     EditorLaunchRoute::Gui(intent) => intent.into_parts(),
                 };
-            configure_windows_editor_gpu_backend();
             let first_frame_capture_path = editor_first_frame_capture_path()?;
             let requested_startup = editor_host_startup_request(gui_startup_request.as_ref());
             let runtime_preflight = LoadedRuntime::preflight_default().map_err(|error| {
@@ -395,20 +395,6 @@ impl EntryRunner {
         }
     }
 }
-
-#[cfg(all(feature = "target-editor-host", windows))]
-fn configure_windows_editor_gpu_backend() {
-    // The editor and its loaded runtime each create a WGPU instance. Restrict the
-    // default to one backend so their shared presenter cannot select different APIs.
-    // An explicit user selection remains authoritative.
-    if env::var_os("WGPU_BACKEND").is_none() {
-        env::set_var("WGPU_BACKEND", "vulkan");
-        eprintln!("[zircon_editor] gpu_backend_default=vulkan");
-    }
-}
-
-#[cfg(all(feature = "target-editor-host", not(windows)))]
-fn configure_windows_editor_gpu_backend() {}
 
 #[cfg(feature = "target-editor-host")]
 fn editor_host_run_config_with_first_frame_exit(

@@ -61,3 +61,32 @@ Required focused Windows tests, in addition to the Critical batch:
 & tools/dev/local-cargo.ps1 -TargetDir $t test -p zircon_editor --lib main_menu_items --locked
 & tools/dev/local-cargo.ps1 -TargetDir $t test -p zircon_editor --lib command_palette --locked
 ```
+
+## Startup batch (H1, H2, L3)
+
+Remove the app's late process-environment mutation. Backend selection belongs to
+Runtime: enumerate adapters once per device startup, prefer qualified DX12 then
+Vulkan on Windows, and retain an explicit `WGPU_BACKEND` restriction. The shared
+chrome presenter reuses the runtime's device; this change does not extend the
+dynamic-session ABI. Log the selected API/adapter/type and declare the override
+in help and the MVP child-environment allowlist. Standalone chrome device choice
+and real shared-presenter startup still require Windows acceptance.
+
+`build_editor.py` now performs a bounded RenderableEmpty GUI launch after its help
+precheck, validates the captured RGBA PNG (usable dimensions, luma deviation > 8),
+and rejects software fallback or a missing backend diagnostic. A failed startup
+keeps a failed smoke receipt and logs. No package success receipt is issued.
+The explicit-Python preview launcher and [local instructions](run-editor-locally.md)
+retain the BuildSet boundary and approved output-path checks.
+
+Linux verification: `TMPDIR=/workspace/ZirconEngine/tools/tests python3 -B -m unittest
+tools.tests.test_editor_startup_smoke tools.tests.test_build_editor_storage_mode_contract
+-q`: **24 tests, 9 passed, 15 Windows packaging tests skipped**. These exercise
+image validation, launch arguments/environment and failure receipts with mocked
+processes, not a real window. Rust AST parsing and `git diff --check` passed.
+
+Required Windows checks: the Critical editor closure plus
+`test -p zircon_runtime --lib select_adapter --locked`, followed by the preview
+command in the local instructions with `WGPU_BACKEND` unset and then `dx12` and
+`vulkan` where available. Capture at 100%/150% DPI. O0 remains **unaccepted** until
+real compilation, first-frame and PR-gate evidence exists.

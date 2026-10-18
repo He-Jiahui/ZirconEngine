@@ -21,6 +21,7 @@ $script:MvpProcessHostEnvironmentNames = @(
     'WINDIR'
 )
 $script:MvpProcessDeclaredEnvironmentNames = @(
+    'WGPU_BACKEND',
     'ZIRCON_ASSET_ROOT',
     'ZIRCON_EDITOR_CAPTURE_FIRST_FRAME_PNG',
     'ZIRCON_EDITOR_EXIT_AFTER_FIRST_FRAME',

@@ -563,12 +563,11 @@ def main(argv: list[str] | None = None) -> int:
                                      source_files=before, crt_directory=args.crt_directory,
                                      shell=shell, environment=environment)
         identity = package['build_set']
+        smoke = None
         if not args.skip_smoke_test:
-            completed = subprocess.run([str(staging / 'zircon_editor.exe'), '--help'], cwd=staging,
-                                       env=environment, capture_output=True, check=False,
-                                       creationflags=subprocess.CREATE_NO_WINDOW)
-            if completed.returncode or b'Usage: zircon_editor' not in completed.stdout + completed.stderr:
-                raise ValueError('Editor --help smoke check failed')
+            from tools.build.editor_startup_smoke import run_startup_smoke
+            smoke = run_startup_smoke(staging, evidence, environment,
+                                      creationflags=subprocess.CREATE_NO_WINDOW)
         if source_inventory(source) != before:
             raise ValueError('Source changed; bundle publication rejected')
         shipping = None
@@ -588,6 +587,7 @@ def main(argv: list[str] | None = None) -> int:
                    'dependency_closure': dependencies, 'official_crt': package['official_crt'],
                    'output_closure': published, 'package_bytes': sum(row['size'] for row in published['files']),
                    'compiler_cache_enabled': False, 'smoke_tested': not args.skip_smoke_test,
+                   'startup_smoke': smoke,
                    'completed_publication': True, 'full_build_acceptance': False, 'native_ui_acceptance': False}
         if shipping:
             receipt.update(archive=shipping['archive'], product_size_report=str(report_path),
