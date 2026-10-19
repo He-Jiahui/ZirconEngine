@@ -85,18 +85,14 @@ impl ResourceStreamer {
         if payload.revision() != revision {
             return None;
         }
-        let payload_bytes = match &payload.payload {
-            crate::asset::TexturePayload::Rgba8 => payload.rgba.len(),
-            crate::asset::TexturePayload::Container { bytes, .. } => bytes.len(),
-        };
-        crate::profile_counter!("render", "texture_cpu_payload_clone_bytes", payload_bytes);
+        crate::profile_counter!("render", "texture_cpu_payload_clone_bytes", 0);
         let resource = {
             crate::profile_scope!("render", "texture", "rebuild_resident_mips");
             GpuTextureResource::rebuild_resident_mips(
                 &backend.device,
                 texture_layout,
                 task.texture,
-                (*payload).clone(),
+                Arc::clone(payload.resource()),
                 previous.as_ref(),
                 previous_range,
                 task.wanted_mips.clone(),

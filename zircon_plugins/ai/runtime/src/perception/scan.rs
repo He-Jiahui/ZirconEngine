@@ -321,21 +321,20 @@ fn stimulus(source: &SourceSample, sense: AiPerceptionSense) -> AiPerceptionStim
 }
 
 fn collect_perception_samples(world: &World) -> (Vec<ReceiverSample>, Vec<SourceSample>) {
-    let nodes = world.node_records();
     let mut receivers = Vec::new();
     let mut sources = Vec::new();
-    for node in nodes {
-        let receiver = perception_receiver(world, node.id);
-        let source = perception_source(world, node.id);
+    for entity in world.stable_entity_ids() {
+        let receiver = perception_receiver(world, entity);
+        let source = perception_source(world, entity);
         if receiver.is_none() && source.is_none() {
             continue;
         }
-        let Some(transform) = world.world_transform(node.id) else {
+        let Some(transform) = world.world_transform(entity) else {
             continue;
         };
         if let Some(config) = receiver {
             receivers.push(ReceiverSample {
-                entity: node.id,
+                entity: entity,
                 position: transform.translation,
                 forward: transform.forward().normalize_or_zero(),
                 config,
@@ -343,12 +342,14 @@ fn collect_perception_samples(world: &World) -> (Vec<ReceiverSample>, Vec<Source
         }
         if let Some(config) = source {
             sources.push(SourceSample {
-                entity: node.id,
+                entity: entity,
                 position: transform.translation,
                 config,
             });
         }
     }
+    receivers.sort_by_key(|sample| sample.entity);
+    sources.sort_by_key(|sample| sample.entity);
     (receivers, sources)
 }
 

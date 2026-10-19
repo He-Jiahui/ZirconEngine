@@ -99,7 +99,7 @@ impl World {
         true
     }
 
-    pub(super) fn stable_entity_ids(&self) -> super::StableWorldEntityIter<'_> {
+    pub fn stable_entity_ids(&self) -> impl Iterator<Item = EntityId> + '_ {
         self.stable_query_order.entities()
     }
 

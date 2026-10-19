@@ -1,4 +1,4 @@
-use crate::component_json::parse_component;
+use crate::component_json::cached_agent_descriptor;
 use crate::off_mesh_connections::{count_off_mesh_bridges, count_off_mesh_links};
 use crate::runtime_obstacles::{
     collect_runtime_obstacles, distance_xz, find_path_with_runtime_obstacles, RuntimeObstacle,
@@ -6,7 +6,6 @@ use crate::runtime_obstacles::{
 use zircon_runtime::core::framework::navigation::{
     NavAgentTickReport, NavMeshAgentDescriptor, NavPathQuery, NavPathStatus,
     NavigationAgentDebugState, NavigationDebugCapture, NavigationError,
-    NAV_MESH_AGENT_COMPONENT_TYPE,
 };
 use zircon_runtime::core::math::{Real, Transform, Vec3};
 use zircon_runtime::scene::World;
@@ -297,14 +296,12 @@ fn publish_traversal_event(
 }
 
 fn collect_agents(world: &World) -> Vec<(u64, NavMeshAgentDescriptor)> {
-    world
-        .node_records()
-        .into_iter()
-        .filter_map(|node| {
-            let value = world.dynamic_component(node.id, NAV_MESH_AGENT_COMPONENT_TYPE)?;
-            Some((node.id, parse_component::<NavMeshAgentDescriptor>(value)))
-        })
-        .collect()
+    let mut agents = world
+        .stable_entity_ids()
+        .filter_map(|entity| Some((entity, cached_agent_descriptor(world, entity)?)))
+        .collect::<Vec<_>>();
+    agents.sort_by_key(|(entity, _)| *entity);
+    agents
 }
 
 fn agent_positions(

@@ -28,7 +28,7 @@ mod lights;
 const SCENE_CLEAR_COLOR: Vec4 = Vec4::new(0.09, 0.11, 0.14, 1.0);
 
 impl World {
-    pub(crate) fn render_world_snapshot_handle(&self) -> RenderWorldSnapshotHandle {
+    pub fn render_world_snapshot_handle(&self) -> RenderWorldSnapshotHandle {
         RenderWorldSnapshotHandle::new(self.render_dirty_entity_journal().world().raw())
     }
 
