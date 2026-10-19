@@ -132,12 +132,6 @@ impl RetainedEditorHost {
             shell_content_requires_hierarchy_filter(target.content_kind)
                 .then(|| self.filtered_hierarchy_entries(&chrome.scene_entries))
                 .flatten();
-        let filtered_chrome = filtered_hierarchy_entries.map(|scene_entries| {
-            let mut chrome = chrome.clone();
-            chrome.scene_entries = scene_entries;
-            chrome
-        });
-        let chrome = filtered_chrome.as_ref().unwrap_or(chrome);
         let has_component_showcase_runtime =
             shell_content_requires_component_runtime(target.content_kind)
                 && self.prepare_component_showcase_runtime_for_presentation(model);
@@ -147,30 +141,35 @@ impl RetainedEditorHost {
             self.builtin_template_runtime.as_ref()
         };
         let hierarchy_filter_query = self.hierarchy_filter_query.clone();
-        Ok(patch_shell_content_presentation_from_state(
-            &self.ui,
-            target,
-            model,
-            chrome,
-            geometry,
-            &pane_payloads.preset_names,
-            self.active_layout_preset.as_deref(),
-            &pane_payloads.ui_asset_panes,
-            &pane_payloads.animation_panes,
-            &pane_payloads.runtime_diagnostics,
-            &pane_payloads.module_plugins,
-            &pane_payloads.build_export,
-            &pane_payloads.template_v2_data,
-            componentized_workbench_layout_frames,
-            crate::ui::retained_host::ui::PaneRuntimeContext {
-                template: Some(pane_template_runtime),
-                generated: Some(self.builtin_template_runtime.as_ref()),
+        crate::ui::layouts::windows::workbench_host_window::with_hierarchy_entries(
+            filtered_hierarchy_entries,
+            || {
+                Ok(patch_shell_content_presentation_from_state(
+                    &self.ui,
+                    target,
+                    model,
+                    chrome,
+                    geometry,
+                    &pane_payloads.preset_names,
+                    self.active_layout_preset.as_deref(),
+                    &pane_payloads.ui_asset_panes,
+                    &pane_payloads.animation_panes,
+                    &pane_payloads.runtime_diagnostics,
+                    &pane_payloads.module_plugins,
+                    &pane_payloads.build_export,
+                    &pane_payloads.template_v2_data,
+                    componentized_workbench_layout_frames,
+                    crate::ui::retained_host::ui::PaneRuntimeContext {
+                        template: Some(pane_template_runtime),
+                        generated: Some(self.builtin_template_runtime.as_ref()),
+                    },
+                    &hierarchy_filter_query,
+                    &mut self.host_chrome_projection_cache,
+                    &mut self.console_pane_projection_cache,
+                    &mut self.module_plugins_pane_projection_cache,
+                ))
             },
-            &hierarchy_filter_query,
-            &mut self.host_chrome_projection_cache,
-            &mut self.console_pane_projection_cache,
-            &mut self.module_plugins_pane_projection_cache,
-        ))
+        )
     }
 
     pub(super) fn apply_workbench_projection_presentation(
@@ -333,12 +332,6 @@ impl RetainedEditorHost {
     {
         zircon_runtime::profile_scope!("editor", "retained_host", "recompute_apply_presentation");
         let filtered_hierarchy_entries = self.filtered_hierarchy_entries(&chrome.scene_entries);
-        let filtered_chrome = filtered_hierarchy_entries.map(|scene_entries| {
-            let mut chrome = chrome.clone();
-            chrome.scene_entries = scene_entries;
-            chrome
-        });
-        let chrome = filtered_chrome.as_ref().unwrap_or(chrome);
         let has_component_showcase_runtime =
             self.prepare_component_showcase_runtime_for_presentation(model);
         let pane_template_runtime = if has_component_showcase_runtime {
@@ -347,33 +340,38 @@ impl RetainedEditorHost {
             self.builtin_template_runtime.as_ref()
         };
         let hierarchy_filter_query = self.hierarchy_filter_query.clone();
-        apply_presentation_with_template_v2_data(
-            &self.ui,
-            model,
-            chrome,
-            geometry,
-            &pane_payloads.preset_names,
-            self.active_layout_preset.as_deref(),
-            &pane_payloads.ui_asset_panes,
-            &pane_payloads.animation_panes,
-            Some(&pane_payloads.runtime_diagnostics),
-            &pane_payloads.module_plugins,
-            &pane_payloads.build_export,
-            &pane_payloads.template_v2_data,
-            Some(self.template_bridge.host_projection()),
-            Some(self.workbench_window_bridge.host_projection()),
-            componentized_workbench_layout_frames,
-            floating_window_projection_bundle,
-            crate::ui::retained_host::ui::PaneRuntimeContext {
-                template: Some(pane_template_runtime),
-                generated: Some(self.builtin_template_runtime.as_ref()),
+        crate::ui::layouts::windows::workbench_host_window::with_hierarchy_entries(
+            filtered_hierarchy_entries,
+            || {
+                apply_presentation_with_template_v2_data(
+                    &self.ui,
+                    model,
+                    chrome,
+                    geometry,
+                    &pane_payloads.preset_names,
+                    self.active_layout_preset.as_deref(),
+                    &pane_payloads.ui_asset_panes,
+                    &pane_payloads.animation_panes,
+                    Some(&pane_payloads.runtime_diagnostics),
+                    &pane_payloads.module_plugins,
+                    &pane_payloads.build_export,
+                    &pane_payloads.template_v2_data,
+                    Some(self.template_bridge.host_projection()),
+                    Some(self.workbench_window_bridge.host_projection()),
+                    componentized_workbench_layout_frames,
+                    floating_window_projection_bundle,
+                    crate::ui::retained_host::ui::PaneRuntimeContext {
+                        template: Some(pane_template_runtime),
+                        generated: Some(self.builtin_template_runtime.as_ref()),
+                    },
+                    self.template_bridge.presentation_scale_factor(),
+                    &hierarchy_filter_query,
+                    &mut self.host_chrome_projection_cache,
+                    &mut self.console_pane_projection_cache,
+                    &mut self.module_plugins_pane_projection_cache,
+                    reuse_shell_layout,
+                )
             },
-            self.template_bridge.presentation_scale_factor(),
-            &hierarchy_filter_query,
-            &mut self.host_chrome_projection_cache,
-            &mut self.console_pane_projection_cache,
-            &mut self.module_plugins_pane_projection_cache,
-            reuse_shell_layout,
         )
     }
 }

@@ -16,6 +16,9 @@ mod document_leaves;
 mod floating_windows;
 #[path = "frame_rect.rs"]
 mod frame_rect;
+#[path = "hierarchy_projection.rs"]
+mod hierarchy_projection;
+pub(crate) use hierarchy_projection::with_hierarchy_entries;
 #[path = "host_data.rs"]
 mod host_data;
 #[path = "pane_payload.rs"]
