@@ -31,6 +31,7 @@ fn cached_image_commands_keep_the_resolved_source_path() {
     let path = Arc::new(std::path::PathBuf::from("resolved/actual-source.png"));
     let image = HostPaintImagePixels {
         resource_key: "test:cached".into(),
+        source_resource_key: None,
         source_path: Some(path.clone()),
         width: 1,
         height: 1,

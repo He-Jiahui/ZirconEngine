@@ -11,8 +11,9 @@ fn image(alpha: u8, atlas: Option<HostPaintAtlasImage>) -> HostPaintImagePixels 
         pixel[3] = alpha;
     }
     HostPaintImagePixels {
+        source_resource_key: None,
         source_path: None,
-        resource_key: "avatar-source".to_owned(),
+        resource_key: ("avatar-source".to_owned()).into(),
         width: 8,
         height: 8,
         rgba: rgba.into(),
@@ -48,7 +49,7 @@ fn rounded_avatar_mask_uses_fractional_coverage_and_preserves_source_alpha() {
 #[test]
 fn rounded_avatar_mask_invalidates_the_unmasked_atlas_fast_path() {
     let atlas = HostPaintAtlasImage {
-        resource_key: "avatar-atlas".to_owned(),
+        resource_key: ("avatar-atlas".to_owned()).into(),
         resource_generation: 7,
         width: 64,
         height: 64,

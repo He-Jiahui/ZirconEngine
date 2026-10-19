@@ -9,7 +9,7 @@ const MAX_AVATAR_MASK_CACHE_BYTES: usize = 16 * 1024 * 1024;
 #[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 // 遮罩缓存按源资源、像素尺寸和精确半径位模式区分结果；重复绘制时复用遮罩像素。
 pub(super) struct AvatarMaskCacheKey {
-    resource_key: String,
+    resource_key: std::sync::Arc<str>,
     width: u32,
     height: u32,
     radius_bits: u32,

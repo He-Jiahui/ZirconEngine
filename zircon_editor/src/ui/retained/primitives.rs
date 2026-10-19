@@ -121,6 +121,7 @@ pub(crate) struct Image {
     width: u32,
     height: u32,
     content_fingerprint: u64,
+    resource_key: Arc<str>,
 }
 
 pub(crate) struct ImagePixelProductRef<'a> {
@@ -128,17 +129,12 @@ pub(crate) struct ImagePixelProductRef<'a> {
     pub(crate) width: u32,
     pub(crate) height: u32,
     pub(crate) content_fingerprint: u64,
+    pub(crate) resource_key: &'a Arc<str>,
 }
 
 impl Image {
     pub(crate) fn from_rgba8(buffer: SharedPixelBuffer<Rgba8Pixel>) -> Self {
-        let rgba: Arc<[u8]> = buffer.rgba.into();
-        Self {
-            content_fingerprint: image_content_fingerprint(buffer.width, buffer.height, &rgba),
-            rgba,
-            width: buffer.width,
-            height: buffer.height,
-        }
+        Self::from_rgba_vec(buffer.rgba, buffer.width, buffer.height)
     }
 
     pub(crate) fn load_from_path(path: &Path) -> Result<Self, image::ImageError> {
@@ -172,6 +168,7 @@ impl Image {
             width: self.width,
             height: self.height,
             content_fingerprint: self.content_fingerprint,
+            resource_key: &self.resource_key,
         })
     }
 
@@ -209,8 +206,12 @@ impl Image {
 
     fn from_rgba_vec(rgba: Vec<u8>, width: u32, height: u32) -> Self {
         let rgba: Arc<[u8]> = rgba.into();
+        let content_fingerprint = image_content_fingerprint(width, height, &rgba);
+        let resource_key =
+            format!("retained-image:{width}x{height}:{content_fingerprint:016x}").into();
         Self {
-            content_fingerprint: image_content_fingerprint(width, height, &rgba),
+            content_fingerprint,
+            resource_key,
             rgba,
             width,
             height,

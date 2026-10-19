@@ -170,8 +170,9 @@ fn cache_hits_share_the_raster_payload_instead_of_copying_rgba() {
         "icon:save",
         [PathBuf::from("assets/icons/save.svg")],
         Some(HostPaintImagePixels {
+            source_resource_key: None,
             source_path: None,
-            resource_key: "icon:save".to_string(),
+            resource_key: ("icon:save".to_string()).into(),
             width: 1,
             height: 1,
             rgba: vec![1, 2, 3, 255].into(),
@@ -183,6 +184,7 @@ fn cache_hits_share_the_raster_payload_instead_of_copying_rgba() {
     let second = cache.get("icon:save").flatten().expect("second cache hit");
 
     assert_eq!(first.rgba.as_ptr(), second.rgba.as_ptr());
+    assert!(Arc::ptr_eq(&first.resource_key, &second.resource_key));
     assert_eq!(cache.lru_order.len(), cache.entries.len());
 }
 
@@ -359,4 +361,24 @@ fn unique_test_source(label: &str) -> PathBuf {
         "zircon-visual-asset-cache-{label}-{}-{sequence}.svg",
         std::process::id()
     ))
+}
+
+#[test]
+fn borrowed_variant_lookup_preserves_negative_entries_and_distinguishes_tints() {
+    let mut cache = VisualAssetCache::default();
+    let variant = super::VisualAssetVariant {
+        target: None,
+        tint: Some([1, 2, 3, 4]),
+    };
+    cache.insert("base:intrinsic:tint:01020304".into(), "base", [], None);
+    assert!(matches!(cache.get_variant("base", variant), Some(None)));
+    assert!(cache
+        .get_variant(
+            "base",
+            super::VisualAssetVariant {
+                tint: None,
+                ..variant
+            }
+        )
+        .is_none());
 }

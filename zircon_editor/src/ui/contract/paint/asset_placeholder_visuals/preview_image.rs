@@ -41,15 +41,11 @@ pub(super) fn push_thumbnail_preview_image_command(
         return true;
     }
 
-    commands.push(HostPaintCommand::image_pixels(
+    commands.push(HostPaintCommand::from_image_pixels(
         preview_rect,
         Some(clip.clone()),
         order,
-        image.resource_key,
-        image.width,
-        image.height,
-        image.rgba,
-        image.atlas,
+        image,
         opacity,
     ));
     true

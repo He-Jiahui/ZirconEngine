@@ -64,7 +64,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn resolve
         resolved.height,
     )?;
     Some(HostPaintAtlasImage {
-        resource_key: resolved.resource_key,
+        resource_key: (resolved.resource_key).into(),
         resource_generation: decoded.generation,
         width: resolved.width,
         height: resolved.height,

@@ -4,7 +4,9 @@ use super::super::super::paint_frame::HostPaintAtlasImage;
 
 #[derive(Clone)]
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) struct HostPaintImagePixels {
-    pub(in crate::ui::retained_host::host_contract::paint_template_nodes) resource_key: String,
+    pub(in crate::ui::retained_host::host_contract::paint_template_nodes) resource_key: Arc<str>,
+    pub(in crate::ui::retained_host::host_contract::paint_template_nodes) source_resource_key:
+        Option<Arc<str>>,
     pub(in crate::ui::retained_host::host_contract::paint_template_nodes) source_path:
         Option<Arc<std::path::PathBuf>>,
     pub(in crate::ui::retained_host::host_contract::paint_template_nodes) width: u32,
@@ -17,7 +19,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) struct Hos
 impl HostPaintImagePixels {
     pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn with_resource_key(
         mut self,
-        resource_key: impl Into<String>,
+        resource_key: impl Into<Arc<str>>,
     ) -> Self {
         self.resource_key = resource_key.into();
         self

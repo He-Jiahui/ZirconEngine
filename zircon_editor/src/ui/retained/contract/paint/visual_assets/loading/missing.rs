@@ -41,8 +41,9 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn missing
     }
 
     let image = HostPaintImagePixels {
+        source_resource_key: None,
         source_path: None,
-        resource_key: cache_key.clone(),
+        resource_key: (cache_key.clone()).into(),
         width: target.width,
         height: target.height,
         rgba: rgba.into(),

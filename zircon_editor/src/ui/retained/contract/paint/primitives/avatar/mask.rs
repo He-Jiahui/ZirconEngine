@@ -37,7 +37,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn apply_r
     image.resource_key = format!(
         "mui-avatar-mask:{}x{}:{:.3}:{}",
         image.width, image.height, mask_radius, image.resource_key
-    );
+    )
+    .into();
 }
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn rounded_alpha_mask_radius(

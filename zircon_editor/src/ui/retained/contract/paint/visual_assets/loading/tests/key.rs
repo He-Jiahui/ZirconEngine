@@ -39,3 +39,22 @@ fn raster_cache_key_separates_size_and_tint_without_a_candidate_path() {
     assert!(!small.contains(".svg"));
     assert!(!small.contains("generation"));
 }
+
+#[test]
+fn structured_variant_matches_the_external_string_key_without_formatting_on_hits() {
+    for target in [
+        None,
+        Some(RasterTargetSize {
+            width: 16,
+            height: 32,
+        }),
+    ] {
+        for tint in [None, Some([1, 127, 254, 255])] {
+            let key = image_pixels_cache_key("source:with:colons", target, tint);
+            let variant =
+                super::VisualAssetVariant::from_cache_key(&key, "source:with:colons").unwrap();
+            assert_eq!(variant.target, target);
+            assert_eq!(variant.tint, tint);
+        }
+    }
+}
