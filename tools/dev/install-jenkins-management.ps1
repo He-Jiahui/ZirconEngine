@@ -448,6 +448,20 @@ if type(anchor_clients) is not bool: raise ValueError('candidate_client_anchor_i
 repo,source,manifest_path=Path(repo),Path(source),Path(manifest_path)
 def require(value,message):
     if not value: raise ValueError(message)
+def candidate_members(proof):
+    allowed={'runner.py':'tools/jenkins-management/runner.py','source_preparation.py':'tools/jenkins-management/source_preparation.py'}
+    files,scopes=proof.get('files'),proof.get('ownedPaths')
+    require(isinstance(files,dict) and isinstance(scopes,list)
+        and all(isinstance(scope,str) and scope for scope in scopes),'candidate_member_scope_invalid')
+    groovy='tools/jenkins-management/zircon-management.groovy'
+    if set(files)=={groovy}:
+        require(set(scopes)=={groovy,'tools/dev/install-jenkins-management.ps1'},'candidate_member_scope_invalid')
+        return {'zircon-management.groovy':groovy}
+    require(1<=len(files)<=2 and set(files)<=set(allowed.values()),'candidate_member_scope_invalid')
+    required=set(files)|{'tools/dev/install-jenkins-management.ps1'}
+    require(all(any(name.casefold()==scope.casefold() or name.casefold().startswith(scope.rstrip('/').casefold()+'/')
+        for scope in scopes)for name in required),'candidate_member_scope_invalid')
+    return {name:relative for name,relative in allowed.items()if relative in files}
 sys.path.insert(0,str(repo/'.jenkins/runtime/drivers'/driver))
 from tools.jenkins.deployment.driver import verify_driver,_plain
 verify_driver(repo/'.jenkins/runtime/drivers'/driver,expected_digest=driver)
@@ -551,9 +565,6 @@ require(isinstance(proof,dict) and set(proof)==proof_fields
     and proof.get('sourceRoot')==str(source) and proof.get('driverDigest')==driver
     and proof.get('runtimeOperationId')==runtime and proof.get('originalInstalledSha256')==installed_sha,
     'candidate_manifest_identity_invalid')
-members={'runner.py':'tools/jenkins-management/runner.py','source_preparation.py':'tools/jenkins-management/source_preparation.py'}
-require(isinstance(proof.get('files'),dict) and isinstance(proof.get('ownedPaths'),list),
-    'candidate_member_scope_invalid')
 member_paths=json.loads(member_paths_json)
 if member_paths:
     allowed={'runner.py':'tools/jenkins-management/runner.py',
@@ -568,14 +579,8 @@ if member_paths:
     require(set(proof['files'])==set(member_paths)
         and set(member_paths)|{'tools/dev/install-jenkins-management.ps1'}<=set(proof['ownedPaths']),
         'candidate_member_scope_invalid')
-elif set(proof['files'])=={'tools/jenkins-management/zircon-management.groovy'}:
-    members={'zircon-management.groovy':'tools/jenkins-management/zircon-management.groovy'}
-    require(set(proof['ownedPaths'])==set(members.values())|{'tools/dev/install-jenkins-management.ps1'},
-        'candidate_member_scope_invalid')
 else:
-    require(set(proof['files'])==set(members.values())
-        and set(members.values())|{'tools/dev/install-jenkins-management.ps1'}<=set(proof['ownedPaths']),
-        'candidate_member_scope_invalid')
+    members=candidate_members(proof)
 client_names={'tools/dev/local_cargo.py','tools/dev/local-cargo.ps1','tools/dev/dev-fast-build.ps1',
     'tools/dev/submit-jenkins-management.ps1','tools/jenkins/frontend.py','tools/jenkins-management/entry.py'}
 client_pins=proof.get('candidateClientSources',{})
