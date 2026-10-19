@@ -23,7 +23,7 @@ impl RenderPassExecutor for PlanarReflectionFilterExecutor {
     fn execute(&self, context: &mut RenderPassExecutionContext<'_>) -> Result<(), String> {
         validate_context(context)?;
         let pass_name = context.pass_name.clone();
-        let executor_id = context.executor_id.as_str().to_string();
+        let executor_id = crate::graphics::RenderReportLabel::new(context.executor_id.as_str());
         let gpu = context.require_gpu()?;
         let device_epoch = gpu.device_epoch().ok_or_else(|| {
             "planar filter requires a materialized device epoch before pipeline recording"
@@ -94,7 +94,7 @@ impl RenderPassExecutor for PlanarReflectionFilterExecutor {
                 PLANAR_FILTER_WORKGROUP_SIZE,
                 [dispatch[0], dispatch[1], 1],
                 if index == 0 { report.uploaded_bytes } else { 0 },
-                vec![PLANAR_REFLECTION_TEXTURE_RESOURCE.to_string()],
+                vec![PLANAR_REFLECTION_TEXTURE_RESOURCE.into()],
             );
         }
         Ok(())

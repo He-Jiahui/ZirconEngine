@@ -41,7 +41,7 @@ fn record_complete_ao_work() -> RenderGraphExecutionRecord {
             "zircon-ssao-pipeline",
             [8, 8, 1],
             [20, 12, 1],
-            vec![PostProcessGraphResourceNames::AMBIENT_OCCLUSION_RAW.to_string()],
+            vec![PostProcessGraphResourceNames::AMBIENT_OCCLUSION_RAW.into()],
         )
         .with_pipeline_resolution(ready_pipeline_resolution("ambient-occlusion.evaluate", 41)),
     );
@@ -67,7 +67,7 @@ fn record_complete_ao_work() -> RenderGraphExecutionRecord {
             "zircon-ssao-spatial-denoise-pipeline",
             [8, 8, 1],
             [20, 12, 1],
-            vec![PostProcessGraphResourceNames::AMBIENT_OCCLUSION.to_string()],
+            vec![PostProcessGraphResourceNames::AMBIENT_OCCLUSION.into()],
         )
         .with_pipeline_resolution(ready_pipeline_resolution(
             "ambient-occlusion.spatial-denoise",
@@ -220,7 +220,7 @@ fn half_resolution_ao_receipt_requires_the_bilateral_upsample_stage() {
         .expect("spatial output access");
     spatial_output.name = PostProcessGraphResourceNames::AMBIENT_OCCLUSION_SPATIAL.to_string();
     record.compute_dispatches[1].storage_write_resources =
-        vec![PostProcessGraphResourceNames::AMBIENT_OCCLUSION_SPATIAL.to_string()];
+        vec![PostProcessGraphResourceNames::AMBIENT_OCCLUSION_SPATIAL.into()];
     record.push_executed_pass_with_resources(
         "ssao-bilateral-upsample",
         "compute.generic",
@@ -243,7 +243,7 @@ fn half_resolution_ao_receipt_requires_the_bilateral_upsample_stage() {
             "zircon-ssao-bilateral-upsample-pipeline",
             [8, 8, 1],
             [40, 24, 1],
-            vec![PostProcessGraphResourceNames::AMBIENT_OCCLUSION.to_string()],
+            vec![PostProcessGraphResourceNames::AMBIENT_OCCLUSION.into()],
         )
         .with_pipeline_resolution(ready_pipeline_resolution(
             "ambient-occlusion.bilateral-upsample",

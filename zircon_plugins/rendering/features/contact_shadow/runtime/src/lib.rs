@@ -88,7 +88,8 @@ impl RenderPassExecutor for ContactShadowRenderPassExecutor {
         validate_context(context)?;
 
         let pass_name = context.pass_name.clone();
-        let executor_id = context.executor_id.as_str().to_string();
+        let executor_id =
+            zircon_runtime::graphics::RenderReportLabel::new(context.executor_id.as_str());
         let gpu = context.require_gpu()?;
         let Some(device_epoch) = gpu.device_epoch() else {
             return Err(
@@ -189,7 +190,7 @@ impl RenderPassExecutor for ContactShadowRenderPassExecutor {
             CONTACT_SHADOW_PIPELINE_LABEL,
             CONTACT_SHADOW_WORKGROUP_SIZE,
             dispatch_groups,
-            vec![PostProcessGraphResourceNames::CONTACT_SHADOW_OCCLUSION.to_string()],
+            vec![PostProcessGraphResourceNames::CONTACT_SHADOW_OCCLUSION.into()],
         );
         Ok(())
     }

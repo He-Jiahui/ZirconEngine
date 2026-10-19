@@ -280,7 +280,7 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
                 COLOR_LUT_BAKE_PIPELINE_LABEL,
                 color_lut_bake_workgroup_size(),
                 color_lut_bake_dispatch_groups(),
-                vec![color_lut_resource_name.to_string()],
+                vec![color_lut_resource_name.into()],
             )
             .with_resource_accesses(color_lut_bake_dispatch_resource_accesses(
                 color_lut_resource_name,

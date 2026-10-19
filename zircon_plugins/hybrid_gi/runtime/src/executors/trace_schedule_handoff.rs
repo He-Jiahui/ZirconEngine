@@ -17,7 +17,8 @@ pub(super) fn record_trace_schedule_handoff(
     context: &mut RenderPassExecutionContext<'_>,
 ) -> Result<(), String> {
     let pass_name = context.pass_name.clone();
-    let executor_id = context.executor_id.as_str().to_string();
+    let executor_id =
+        zircon_runtime::graphics::RenderReportLabel::new(context.executor_id.as_str());
     let gpu = context.require_gpu()?;
     let device_epoch = gpu.device_epoch();
     let hybrid_gi_scene_buffer = gpu.require_buffer_binding(
@@ -48,7 +49,7 @@ pub(super) fn record_trace_schedule_handoff(
         HYBRID_GI_TRACE_SCHEDULE_PIPELINE_LABEL,
         HYBRID_GI_TRACE_SCHEDULE_WORKGROUP_SIZE,
         HYBRID_GI_TRACE_SCHEDULE_DISPATCH_GROUPS,
-        vec![HYBRID_GI_TRACE_RESOURCE.to_string()],
+        vec![HYBRID_GI_TRACE_RESOURCE.into()],
     );
     Ok(())
 }

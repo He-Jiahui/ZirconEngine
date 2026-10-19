@@ -167,11 +167,11 @@ fn ibl_bake_compute_dispatch_record(
 
     Ok(RenderGraphComputeDispatchRecord::new(
         context.pass_name.clone(),
-        context.executor_id.as_str().to_string(),
+        context.executor_id.as_str(),
         pipeline_label,
         IBL_BAKE_WORKGROUP_SIZE,
         dispatch_groups,
-        vec![output_resource_name.to_string()],
+        vec![output_resource_name.into()],
     )
     .with_resource_accesses(context.resources.clone()))
 }

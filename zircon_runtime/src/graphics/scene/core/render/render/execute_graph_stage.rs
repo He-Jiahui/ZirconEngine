@@ -841,7 +841,7 @@ fn execute_graph_pass(
     }
     let context =
         RenderPassExecutionContext::with_declared_graph_metadata_dependencies_and_resources(
-            pass.name.clone(),
+            pass.name.as_str(),
             executor_id.clone(),
             pass.queue,
             pass.declared_queue,

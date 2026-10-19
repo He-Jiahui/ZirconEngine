@@ -59,7 +59,8 @@ pub(super) fn record_scene_depth_handoff(
     context: &mut RenderPassExecutionContext<'_>,
 ) -> Result<(), String> {
     let pass_name = context.pass_name.clone();
-    let executor_id = context.executor_id.as_str().to_string();
+    let executor_id =
+        zircon_runtime::graphics::RenderReportLabel::new(context.executor_id.as_str());
     let gpu = context.require_gpu()?;
     let device_epoch = gpu.device_epoch();
     let scene_depth_desc =
@@ -116,7 +117,7 @@ pub(super) fn record_scene_depth_handoff(
         HYBRID_GI_SCENE_DEPTH_HANDOFF_PIPELINE_LABEL,
         HYBRID_GI_SCENE_DEPTH_HANDOFF_WORKGROUP_SIZE,
         HYBRID_GI_SCENE_DEPTH_HANDOFF_DISPATCH_GROUPS,
-        vec![HYBRID_GI_SCENE_RESOURCE.to_string()],
+        vec![HYBRID_GI_SCENE_RESOURCE.into()],
     );
     Ok(())
 }

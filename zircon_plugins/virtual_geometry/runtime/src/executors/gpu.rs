@@ -474,10 +474,10 @@ pub(super) fn execute_node_cluster_cull(
         [WORKGROUP_SIZE, 1, 1],
         [NODE_CULL_DISPATCH_GROUPS, 1, 1],
         vec![
-            VISIBLE_CLUSTERS.to_string(),
-            VISIBLE_CANDIDATES.to_string(),
-            NONRESIDENT_PAGE_REQUESTS.to_string(),
-            VISBUFFER64.to_string(),
+            VISIBLE_CLUSTERS.into(),
+            VISIBLE_CANDIDATES.into(),
+            NONRESIDENT_PAGE_REQUESTS.into(),
+            VISBUFFER64.into(),
         ],
     );
     Ok(())

@@ -338,7 +338,7 @@ fn direct_dispatch(
 }
 
 struct StorageWriteResources {
-    resources: Vec<String>,
+    resources: Vec<crate::graphics::RenderReportLabel>,
 }
 
 fn storage_write_resources(metadata: &RenderGraphComputePassMetadata) -> StorageWriteResources {
@@ -350,7 +350,7 @@ fn storage_write_resources(metadata: &RenderGraphComputePassMetadata) -> Storage
         ) {
             continue;
         }
-        resources.push(binding.resource.clone());
+        resources.push(binding.resource.as_str().into());
     }
     StorageWriteResources { resources }
 }

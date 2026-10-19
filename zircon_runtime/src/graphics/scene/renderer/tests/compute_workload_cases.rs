@@ -39,7 +39,7 @@ fn execution_record_tracks_compute_dispatch_metadata() {
         "zircon-ssao-pipeline",
         [8, 8, 1],
         [40, 30, 1],
-        vec!["ambient-occlusion".to_string()],
+        vec!["ambient-occlusion".into()],
     ));
     record.push_compute_dispatch(
         RenderGraphComputeDispatchRecord::new(
@@ -48,7 +48,7 @@ fn execution_record_tracks_compute_dispatch_metadata() {
             "zircon-cluster-pipeline",
             [8, 8, 1],
             [5, 4, 1],
-            vec!["light-list".to_string()],
+            vec!["light-list".into()],
         )
         .with_resource_accesses(vec![RenderGraphPassResourceAccess {
             name: "light-list".to_string(),
@@ -135,7 +135,7 @@ fn execution_record_audits_planned_compute_workloads_against_dispatches() {
         "zircon-ssao-pipeline",
         [8, 8, 1],
         [40, 30, 1],
-        vec!["ambient-occlusion".to_string()],
+        vec!["ambient-occlusion".into()],
     );
     let unexpected = RenderGraphComputeDispatchRecord::new(
         "unexpected-compute",
@@ -185,7 +185,7 @@ fn execution_record_audits_planned_compute_workloads_against_dispatches() {
             "zircon-hzb-build-pipeline",
             [8, 8, 1],
             [128, 128, 1],
-            vec!["hzb-furthest".to_string()],
+            vec!["hzb-furthest".into()],
         )],
     );
     record.audit_compute_workload(
@@ -202,7 +202,7 @@ fn execution_record_audits_planned_compute_workloads_against_dispatches() {
             "zircon-hzb-occlusion-cull-pipeline",
             [64, 1, 1],
             [3, 1, 1],
-            vec!["mesh.indirect-args".to_string()],
+            vec!["mesh.indirect-args".into()],
         )],
     );
     record.audit_compute_workload(
@@ -421,7 +421,7 @@ fn execution_record_accepts_gpu_generated_indirect_group_count_without_cpu_readb
         "sss.scatter.burley",
         [8, 8, 1],
         [0, 1, 1],
-        vec!["sss-scattered".to_string()],
+        vec!["sss-scattered".into()],
     )
     .with_gpu_indirect_dispatch_groups();
 

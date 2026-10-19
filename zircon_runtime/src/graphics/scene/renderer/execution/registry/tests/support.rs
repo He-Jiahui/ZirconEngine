@@ -195,7 +195,7 @@ pub(super) struct ContextMutatingExecutor;
 
 impl RenderPassExecutor for ContextMutatingExecutor {
     fn execute(&self, context: &mut RenderPassExecutionContext<'_>) -> Result<(), String> {
-        context.pass_name.push_str(":executed");
+        context.pass_name = format!("{}:executed", context.pass_name).into();
         Ok(())
     }
 }

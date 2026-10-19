@@ -70,7 +70,7 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
                 EXPOSURE_HISTOGRAM_PIPELINE_LABEL,
                 exposure_histogram_workgroup_size(),
                 exposure_histogram_dispatch_groups(scene_linear_size),
-                vec![histogram_resource_name.to_string()],
+                vec![histogram_resource_name.into()],
             ));
         Ok(())
     }
@@ -134,7 +134,7 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
                 EXPOSURE_RESOLVE_PIPELINE_LABEL,
                 exposure_resolve_workgroup_size(),
                 exposure_resolve_dispatch_groups(),
-                vec![current_resource_name.to_string()],
+                vec![current_resource_name.into()],
             ));
         self.record_history_write(SceneHistoryDomain::Exposure);
         Ok(())
@@ -214,10 +214,10 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
                     workgroup_size,
                     dispatch_groups,
                     vec![
-                        light_grid_params_resource_name.to_string(),
-                        light_zbins_resource_name.to_string(),
-                        light_tile_masks_resource_name.to_string(),
-                        light_list_resource_name.to_string(),
+                        light_grid_params_resource_name.into(),
+                        light_zbins_resource_name.into(),
+                        light_tile_masks_resource_name.into(),
+                        light_list_resource_name.into(),
                     ],
                 ));
         }
@@ -305,7 +305,7 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
                 HZB_BUILD_PIPELINE_LABEL,
                 workgroup_size,
                 dispatch_groups,
-                vec![hzb_resource_name.to_string()],
+                vec![hzb_resource_name.into()],
             ));
         self.record_history_write(SceneHistoryDomain::HzbFurthest);
         Ok(())

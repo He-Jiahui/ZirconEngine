@@ -4,11 +4,12 @@ use std::fmt;
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 /// 编译 pass 与运行时注册表共用的 executor 身份。
 /// 图编译只存此身份，提交前必须能在当前注册表中找到对应实现。
-pub struct RenderPassExecutorId(String);
+pub struct RenderPassExecutorId(crate::graphics::RenderReportLabel);
 
 impl RenderPassExecutorId {
     pub fn new(value: impl Into<String>) -> Self {
-        Self(value.into())
+        let value: String = value.into();
+        Self(crate::graphics::RenderReportLabel::new(value))
     }
 
     pub fn as_str(&self) -> &str {

@@ -519,7 +519,7 @@ fn execute_source(gpu: &mut RenderPassGpuExecutionContext<'_>) -> Result<(), Str
         PIPELINE_LABEL,
         [WORKGROUP_SIZE, 1, 1],
         [groups, 1, 1],
-        vec![INDIRECT_ARGS.to_string(), INDIRECT_AUTHORITY.to_string()],
+        vec![INDIRECT_ARGS.into(), INDIRECT_AUTHORITY.into()],
     );
     encode_author_segments(gpu, &author_segments)?;
     Ok(())
