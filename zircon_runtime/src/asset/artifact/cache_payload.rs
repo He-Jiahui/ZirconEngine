@@ -27,6 +27,8 @@ mod mesh;
 mod model;
 #[path = "cache_payload/scene.rs"]
 mod scene;
+#[path = "cache_payload/texture_ref.rs"]
+mod texture_ref;
 #[path = "cache_payload/toml_value.rs"]
 mod toml_value;
 #[path = "cache_payload/ui.rs"]
@@ -45,13 +47,18 @@ use ui::{ArtifactCacheUiAssetDocument, ArtifactCacheUiV2AssetDocument};
 /// Every field must serialize, even when optional, because bincode is not a
 /// self-describing map format and skipped fields shift the remaining bytes.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub(super) enum ArtifactCacheAsset<ModelPayload = ArtifactCacheModelAsset> {
+pub(super) enum ArtifactCacheAsset<
+    ModelPayload = ArtifactCacheModelAsset,
+    TextureData = ArtifactCacheTextureAsset,
+    SoundData = SoundAsset,
+    MeshData = ArtifactCacheMeshAsset,
+> {
     Data(ArtifactCacheDataAsset),
-    Texture(ArtifactCacheTextureAsset),
+    Texture(TextureData),
     Shader(ArtifactCacheShaderAsset),
     Material(ArtifactCacheMaterialAsset),
     MaterialGraph(MaterialGraphAsset),
-    Sound(SoundAsset),
+    Sound(SoundData),
     Font(ArtifactCacheFontAsset),
     PhysicsMaterial(ArtifactCachePhysicsMaterialAsset),
     NavMesh(NavMeshAsset),
@@ -63,7 +70,7 @@ pub(super) enum ArtifactCacheAsset<ModelPayload = ArtifactCacheModelAsset> {
     Prefab(ArtifactCachePrefabAsset),
     Scene(ArtifactCacheSceneAsset),
     Model(ModelPayload),
-    Mesh(ArtifactCacheMeshAsset),
+    Mesh(MeshData),
     AnimationSkeleton(AnimationSkeletonAsset),
     AnimationClip(AnimationClipAsset),
     AnimationSequence(AnimationSequenceAsset),
@@ -79,24 +86,29 @@ pub(super) enum ArtifactCacheAsset<ModelPayload = ArtifactCacheModelAsset> {
     UiV2Style(ArtifactCacheUiV2AssetDocument),
 }
 
-impl<ModelPayload> ArtifactCacheAsset<ModelPayload> {
+impl<ModelPayload, TextureData, SoundData, MeshData>
+    ArtifactCacheAsset<ModelPayload, TextureData, SoundData, MeshData>
+{
     /// 在 ArtifactStore 写入前把编辑格式转换为顺序式缓存载荷，并拒绝无效纹理元数据。
     fn from_imported_with_model<'a>(
         asset: &'a ImportedAsset,
         model: impl FnOnce(&'a ModelAsset) -> ModelPayload,
+        texture: impl FnOnce(&'a TextureAsset) -> TextureData,
+        sound: impl FnOnce(&'a SoundAsset) -> SoundData,
+        mesh: impl FnOnce(&'a crate::asset::MeshAsset) -> MeshData,
     ) -> Result<Self, AssetCodecError> {
         Ok(match asset {
             ImportedAsset::Data(asset) => Self::Data(ArtifactCacheDataAsset::from(asset)),
             ImportedAsset::Texture(asset) => {
                 validate_artifact_cache_texture_metadata(asset)?;
-                Self::Texture(ArtifactCacheTextureAsset::from(asset))
+                Self::Texture(texture(asset))
             }
             ImportedAsset::Shader(asset) => Self::Shader(ArtifactCacheShaderAsset::from(asset)),
             ImportedAsset::Material(asset) => {
                 Self::Material(ArtifactCacheMaterialAsset::from(asset))
             }
             ImportedAsset::MaterialGraph(asset) => Self::MaterialGraph(asset.clone()),
-            ImportedAsset::Sound(asset) => Self::Sound(asset.clone()),
+            ImportedAsset::Sound(asset) => Self::Sound(sound(asset)),
             ImportedAsset::Font(asset) => Self::Font(ArtifactCacheFontAsset::from(asset)),
             ImportedAsset::PhysicsMaterial(asset) => {
                 Self::PhysicsMaterial(ArtifactCachePhysicsMaterialAsset::from(asset))
@@ -127,7 +139,7 @@ impl<ModelPayload> ArtifactCacheAsset<ModelPayload> {
                 Self::Scene(ArtifactCacheSceneAsset::from(asset))
             }
             ImportedAsset::Model(asset) => Self::Model(model(asset)),
-            ImportedAsset::Mesh(asset) => Self::Mesh(ArtifactCacheMeshAsset::from(asset)),
+            ImportedAsset::Mesh(asset) => Self::Mesh(mesh(asset)),
             ImportedAsset::AnimationSkeleton(asset) => Self::AnimationSkeleton(asset.clone()),
             ImportedAsset::AnimationClip(asset) => Self::AnimationClip(asset.clone()),
             ImportedAsset::AnimationSequence(asset) => Self::AnimationSequence(asset.clone()),
@@ -162,13 +174,25 @@ impl<ModelPayload> ArtifactCacheAsset<ModelPayload> {
 pub(super) fn from_imported_for_write(
     asset: &ImportedAsset,
 ) -> Result<impl Serialize + '_, AssetCodecError> {
-    ArtifactCacheAsset::from_imported_with_model(asset, model::ArtifactCacheModelAssetRef::new)
+    ArtifactCacheAsset::from_imported_with_model(
+        asset,
+        model::ArtifactCacheModelAssetRef::new,
+        texture_ref::ArtifactCacheTextureAssetRef::new,
+        |sound| sound,
+        mesh::ArtifactCacheMeshAssetRef::new,
+    )
 }
 
 impl ArtifactCacheAsset {
     #[cfg(test)]
     pub(super) fn from_imported(asset: &ImportedAsset) -> Result<Self, AssetCodecError> {
-        Self::from_imported_with_model(asset, ArtifactCacheModelAsset::from)
+        Self::from_imported_with_model(
+            asset,
+            ArtifactCacheModelAsset::from,
+            ArtifactCacheTextureAsset::from,
+            SoundAsset::clone,
+            ArtifactCacheMeshAsset::from,
+        )
     }
 
     /// 在库工件读出后恢复运行时资产；转换失败必须作为缓存损坏传播，不能默默使用部分数据。

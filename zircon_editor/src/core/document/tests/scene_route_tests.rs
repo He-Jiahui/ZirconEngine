@@ -80,7 +80,7 @@ impl AuthoringSceneInstaller for FailingInstaller {
 
     fn install_scene(
         &mut self,
-        _document: &crate::core::project::ProjectSceneDocument,
+        _document: &mut crate::core::project::ProjectSceneDocument,
     ) -> Result<(), Self::Error> {
         Err("authoring world rejected scene")
     }
@@ -95,7 +95,7 @@ impl AuthoringSceneInstaller for DirtySceneBlockingInstaller {
 
     fn install_scene(
         &mut self,
-        _document: &crate::core::project::ProjectSceneDocument,
+        _document: &mut crate::core::project::ProjectSceneDocument,
     ) -> Result<(), Self::Error> {
         self.install_count += 1;
         Ok(())
@@ -111,7 +111,7 @@ impl AuthoringSceneInstaller for RecordingInstaller {
 
     fn install_scene(
         &mut self,
-        _document: &crate::core::project::ProjectSceneDocument,
+        _document: &mut crate::core::project::ProjectSceneDocument,
     ) -> Result<(), Self::Error> {
         self.installed_scene_count += 1;
         Ok(())
@@ -209,7 +209,7 @@ fn scene_route_reserves_lifecycle_before_installing_and_commits_afterward() {
 
     assert!(
         source.contains("prepare_scene_activation_while_routed")
-            && install.contains("installer.install_scene(&document)")
+            && install.contains("installer.install_scene(&mut document)")
             && install.contains("commit_scene_activation_while_routed(reservation, Some(document.source_revision().clone()))"),
         "scene route must reserve lifecycle identity before replacing the authoring world and only commit it after installation"
     );

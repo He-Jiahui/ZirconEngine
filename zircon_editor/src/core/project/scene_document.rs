@@ -72,6 +72,10 @@ impl ProjectSceneDocument {
         &self.world
     }
 
+    pub(crate) fn take_world(&mut self) -> Scene {
+        std::mem::replace(&mut self.world, Scene::empty())
+    }
+
     pub(crate) fn into_world(self) -> Scene {
         self.world
     }
@@ -91,6 +95,12 @@ impl PreparedSceneCreation {
         self.document
             .as_ref()
             .expect("prepared scene document must remain available until finish")
+    }
+
+    pub(crate) fn document_mut(&mut self) -> &mut ProjectSceneDocument {
+        self.document
+            .as_mut()
+            .expect("prepared document remains available until finish")
     }
 
     fn publish(&mut self) -> Result<(), ProjectAuthorityError> {

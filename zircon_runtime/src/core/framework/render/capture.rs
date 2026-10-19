@@ -110,7 +110,7 @@ impl RenderCaptureReport {
 pub struct CapturedFrame {
     pub width: u32,
     pub height: u32,
-    pub rgba: Vec<u8>,
+    pub rgba: Arc<[u8]>,
     pub generation: u64,
     pub capture_report: RenderCaptureReport,
     pub graph_dump: Option<Arc<str>>,
@@ -211,7 +211,7 @@ impl CapturedFrame {
         Self {
             width,
             height,
-            rgba,
+            rgba: rgba.into(),
             generation,
             capture_report,
             graph_dump: graph_dump.map(Arc::from),

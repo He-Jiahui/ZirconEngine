@@ -90,7 +90,7 @@ fn export_runtime_shader_probe_blend_boundary_png() {
 
     let output = shader_test_output_dir()
         .join("runtime_shader_pbr_reflection_probe_blend_boundary_20260710.png");
-    ImageBuffer::<Rgba<u8>, _>::from_raw(frame.width, frame.height, frame.rgba.clone())
+    ImageBuffer::<Rgba<u8>, _>::from_raw(frame.width, frame.height, frame.rgba.to_vec())
         .expect("probe blend frame dimensions")
         .save_with_format(output, ImageFormat::Png)
         .expect("write reflection-probe blend screenshot");

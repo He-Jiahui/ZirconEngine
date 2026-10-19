@@ -134,7 +134,7 @@ impl HostViewportImageData {
             resource_generation: 0,
             width,
             height,
-            rgba: Some(frame.rgba.into()),
+            rgba: Some(frame.rgba),
             play_frame_identity: None,
             overlay: None,
         };

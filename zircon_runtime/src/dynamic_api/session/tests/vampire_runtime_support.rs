@@ -382,7 +382,7 @@ pub(super) fn capture_vampire_frame_for_env(session: &mut RuntimeDynamicSession,
             vampire_capture_viewport_size(),
         ))
         .unwrap();
-    let rgba = frame.rgba.as_slice();
+    let rgba = frame.rgba.as_ref();
     export_vampire_capture_frame_if_requested(env_var, rgba, frame.width, frame.height);
 }
 

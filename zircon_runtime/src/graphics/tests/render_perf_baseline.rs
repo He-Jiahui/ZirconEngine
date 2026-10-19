@@ -40,7 +40,7 @@ struct SubmissionModeFrame {
     config: RenderSubmissionConfig,
     width: u32,
     height: u32,
-    rgba: Vec<u8>,
+    rgba: std::sync::Arc<[u8]>,
 }
 
 struct ParallelRecordingProductFrame {
