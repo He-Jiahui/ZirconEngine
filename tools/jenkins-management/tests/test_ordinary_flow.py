@@ -816,7 +816,7 @@ class OrdinaryFlowTests(unittest.TestCase):
 
     def test_admission_verifies_every_engine_byte_before_external_capture_or_preparation(self):
         validator = runner.Management.__new__(runner.Management)
-        base = {"verb": "check", "packages": ["scoped-package"]}
+        base = {"verb": "check", "packages": ["scoped-package"], "noDefaultFeatures": True, "lib": True}
         for fields in ({"externalCapturePolicy": "jenkins-admission"},
                        {"expectedEngineSourceDigest": "e" * 64},
                        {"externalCapturePolicy": "client", "expectedEngineSourceDigest": "e" * 64},
@@ -1537,7 +1537,7 @@ class OrdinaryFlowTests(unittest.TestCase):
             "c" * 40, {"vendor/unity": {"gitlinkCommit": "b" * 40, "source": changed_child}})
         management = runner.Management.__new__(runner.Management)
         management.state, management.key = MemoryState(), "6" * 64
-        management.payload = {"verb": "check", "packages": ["zr_math"],
+        management.payload = {"verb": "check", "packages": ["zr_math"], "noDefaultFeatures": True, "lib": True,
                               "expectedSourceDigest": declared["sourceDigest"]}
         management.validation_source = Mock(return_value=(Path(view["sourceRoot"]), current))
         management.dependency_cache = Mock(return_value=cache)
@@ -1593,13 +1593,13 @@ class OrdinaryFlowTests(unittest.TestCase):
             tool = root / "cargo.exe"
             tool.write_bytes(b"synthetic trusted executable")
             recipes = [
-                {"name": "check", "ordinal": 1, "cargoArguments": ["check", "-p", "zr_math", "--locked", "--offline"],
+                {"name": "check", "ordinal": 1, "cargoArguments": ["check", "-p", "zr_math", "--lib", "--no-default-features", "--locked", "--offline"],
                  "ownedNativeTimeoutSeconds": 7200},
                 {"name": "compile-tests", "ordinal": 2,
-                 "cargoArguments": ["test", "-p", "zr_math", "--no-run", "--locked", "--offline"],
+                 "cargoArguments": ["test", "-p", "zr_math", "--lib", "--no-default-features", "--no-run", "--locked", "--offline"],
                  "ownedNativeTimeoutSeconds": 7200},
                 {"name": "run-tests", "ordinal": 3,
-                 "cargoArguments": ["test", "-p", "zr_math", "--lib", "--locked", "--offline"],
+                 "cargoArguments": ["test", "-p", "zr_math", "--lib", "--no-default-features", "--locked", "--offline"],
                  "ownedNativeTimeoutSeconds": 10800, "minimumExpectedMatchedTests": 2,
                  "requiredNamedFixtureTests": ["fixture::first", "fixture::second"],
                  "requiredTestBinaries": ["synthetic_binary"]},
@@ -1776,24 +1776,31 @@ class OrdinaryFlowTests(unittest.TestCase):
             "batch": {"schemaVersion": 1, "sharedSingleBatchRequired": True,
                       "contractRef": {"path": str(path), "sha256": runner.sha(raw)},
                       "recipes": copy.deepcopy(original["semanticCommands"])}}
-        batch = actor.validation_batch()
-        self.assertEqual(original["semanticCommands"], batch["coverage"]["recipes"])
-        self.assertEqual(15, len(batch["recipes"]))
-        self.assertEqual(16, batch["coverage"]["producerContract"]["totalProducerIdentities"])
-        self.assertEqual(111600, sum(value["ownedNativeTimeoutSeconds"] for value in batch["coverage"]["recipes"]))
-        self.assertTrue(batch["recipes"][0]["lib"] and batch["recipes"][0]["bins"] and batch["recipes"][0]["allTests"])
-        self.assertTrue(batch["recipes"][8]["ignored"] and batch["recipes"][8]["nocapture"])
-        self.assertGreater(len(batch["recipes"][1]["harnessFilters"]), 1)
-        self.assertTrue(batch["recipes"][9]["exact"])
-        actor.payload = {"verb": "check", "packages": ["zr_math"]}
+        # Retain historical argv decoding, but deny obsolete broad recipes at admission.
+        with self.assertRaisesRegex((ValueError, entry.EntryError), "build_scope_policy|Compact builds require"):
+            actor.validation_batch()
+        legacy = [entry.parse_cargo(command["cargoArguments"], enforce_policy=False)
+                  for command in original["semanticCommands"]]
+        self.assertEqual(15, len(legacy))
+        self.assertTrue(legacy[0]["lib"] and legacy[0]["bins"] and legacy[0]["allTests"])
+        self.assertTrue(legacy[8]["ignored"] and legacy[8]["nocapture"])
+        self.assertGreater(len(legacy[1]["harnessFilters"]), 1)
+        self.assertTrue(legacy[9]["exact"])
+        with self._batch_fixture() as fixture:
+            scoped = fixture["actor"].validation_batch()
+            self.assertEqual(fixture["recipes"], scoped["coverage"]["recipes"])
+            self.assertEqual(3, len(scoped["recipes"]))
+            self.assertTrue(all(recipe["noDefaultFeatures"] for recipe in scoped["recipes"]))
+            self.assertTrue(scoped["recipes"][1]["lib"] and scoped["recipes"][1]["noRun"])
+        actor.payload = {"verb": "check", "packages": ["zr_math"], "noDefaultFeatures": True, "lib": True}
         single = actor.validation_recipe()
         expected = {"verb": "check", "profile": "dev", "packages": ["zr_math"], "features": [], "tests": [],
-            "testFilter": None, "jobs": 1, "testThreads": 1, "offline": False, "noDefaultFeatures": False,
-            "lib": False, "noRun": False, "allFeatures": False, "locked": True,
-            "command": ["check", "--jobs", "1", "--message-format=json", "--locked", "--package", "zr_math"]}
+            "testFilter": None, "jobs": 1, "testThreads": 1, "offline": False, "noDefaultFeatures": True,
+            "lib": True, "noRun": False, "allFeatures": False, "locked": True,
+            "command": ["check", "--jobs", "1", "--message-format=json", "--locked", "--no-default-features", "--lib", "--package", "zr_math"]}
         self.assertEqual(expected, single)
         self.assertEqual(runner.sha(runner.encoded(expected)), runner.sha(runner.encoded(single)))
-        self.assertNotIn("harnessFilters", entry.parse_cargo(["check", "-p", "zr_math"]))
+        self.assertNotIn("harnessFilters", entry.parse_cargo(["check", "-p", "zr_math", "--lib", "--no-default-features"]))
 
     def test_batch_shared_capture_seal_pool_and_native_sequence_retains_actual_each_step(self):
         with self._batch_fixture() as f:
@@ -1888,7 +1895,7 @@ class OrdinaryFlowTests(unittest.TestCase):
         key = "1" * 64
         original = {**{k: v for k, v in actor.payload.items() if k != "batch"},
                     "requestId": "donor-request", "operationId": "donor-operation",
-                    "verb": "test", "packages": ["zr_math"], "lib": True,
+                    "verb": "test", "packages": ["zr_math"], "lib": True, "noDefaultFeatures": True,
                     "expectedSourceDigest": before["sourceDigest"]}
         target = actor.outputs() / "pools" / ("c" * 64) / "target"
         execution_root = target.parent / "inputs/source"
@@ -1965,7 +1972,7 @@ class OrdinaryFlowTests(unittest.TestCase):
             self.assertEqual(reuse, probe.validation_batch()["reuseValidation"])
             self.assertFalse(hasattr(probe, "state"))
             single = runner.Management.__new__(runner.Management)
-            single.payload = {"verb": "check", "packages": ["zr_math"], "reuseValidation": reuse}
+            single.payload = {"verb": "check", "packages": ["zr_math"], "lib": True, "noDefaultFeatures": True, "reuseValidation": reuse}
             with self.assertRaises(ValueError):
                 single.validation_recipe()
             result = f["actor"].run()
@@ -3448,6 +3455,9 @@ class BranchCandidatePreparationTests(unittest.TestCase):
                 encoding="utf-8")
             (repo / "src/lib.rs").write_text(
                 '#[cfg(feature="vm")] pub fn value()->u8 { vm_binding::value() }\n', encoding="utf-8")
+            helper_path = repo / "tools/dev/local_cargo.py"
+            helper_path.parent.mkdir(parents=True)
+            helper_path.write_bytes(b"synthetic pinned helper; canonical implementation loaded at native boundary")
             (external / "binding/Cargo.toml").write_text(
                 '[package]\nname="vm_binding"\nversion="0.0.0"\nedition="2021"\n', encoding="utf-8")
             (external / "binding/src/lib.rs").write_text('pub fn value()->u8 { 7 }\n', encoding="utf-8")
@@ -3470,7 +3480,8 @@ class BranchCandidatePreparationTests(unittest.TestCase):
                 "requestId": "fixture-request", "ownerThreadId": "fixture-thread",
                 "paths": [".gitignore", "Cargo.toml", "Cargo.lock", "src/lib.rs"]}
             runtime = {"driverDigest": "d" * 64, "runtimeOperationId": "fixture-current-runtime"}
-            config = {**runtime, "repositoryRoot": str(repo)}
+            config = {**runtime, "repositoryRoot": str(repo),
+                      "clientSources": {"tools/dev/local_cargo.py": runner.sha(helper_path.read_bytes())}}
             capsule = top / ("a" * 64)
             state = MemoryState()
             state.put("resource_policy", "default", {"cpuBudget": 1, "memoryBudget": 4 * 1024**3,
@@ -3553,7 +3564,7 @@ class BranchCandidatePreparationTests(unittest.TestCase):
                 yield {"repo": repo, "root": candidate, "state": state, "capsule": capsule,
                     "request": request, "runtime": runtime, "config": config, "component": "b" * 64,
                     "record": record_path, "marker": marker_path, "native": merge_report / "native-terminal.json",
-                    "recipe": {"verb": "check", "packages": ["candidate_fixture"], "features": ["vm"],
+                    "recipe": {"verb": "check", "packages": ["candidate_fixture"], "features": ["vm"], "lib": True, "noDefaultFeatures": True,
                                "offline": True, "locked": True, "jobs": 1}}
 
     def test_missing_candidate_sibling_uses_managed_prepared_cargo(self):

@@ -48,10 +48,10 @@ class CiGatesContractTests(unittest.TestCase):
             self.assertIn("if: ${{ !cancelled() && steps.editor_check.outcome == 'success' }}", step)
         for command in (
             "cargo check -p zircon_app --bin zircon_editor --no-default-features --features target-editor-host --locked",
-            "cargo check --manifest-path zircon_plugins/Cargo.toml --workspace --locked",
-            "-RequireMatchingTests cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_zr_vm_language_runtime --test behavior_bridge --locked",
-            "-RequireMatchingTests cargo test -p zircon_editor --lib core::commands --locked",
-            "-RequireMatchingTests cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_tilemap_2d_editor --lib tilemap_paint_stroke_rejects_budget_and_duplicate_layer_identity --locked",
+            "cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_zr_vm_language_runtime -p zircon_plugin_tilemap_2d_editor --no-default-features --locked",
+            "-RequireMatchingTests cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_zr_vm_language_runtime --test behavior_bridge --no-default-features --locked",
+            "-RequireMatchingTests cargo test -p zircon_editor --lib core::commands --no-default-features --locked",
+            "-RequireMatchingTests cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_tilemap_2d_editor --lib tilemap_paint_stroke_rejects_budget_and_duplicate_layer_identity --no-default-features --locked",
         ):
             self.assertRegex(gate, rf"(?m)^        run: ./\.github/scripts/invoke-cargo-msvc\.ps1 {re.escape(command)}$")
         self.assertIn("-StorageRoot 'D:\\cargo-targets\\zircon-local'", gate)

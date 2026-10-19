@@ -243,6 +243,9 @@ class IncrementalCacheCleanupTests(unittest.TestCase):
         source = (Path(__file__).parents[1] / "zircon-scheduled-cleanup.groovy").read_text()
         start = source.index("script: '''", source.index("def selectCandidates")) + len("script: '''")
         selector = source[start:source.index("'''))", start)].replace(chr(92) * 2, chr(92))
+        self.assertIn("select --plan $env:ZIRCON_SCHEDULED_CONTROL_PLAN", selector)
+        self.assertIn("Get-FileHash", selector)
+        import scheduled_control
         with self.fixture() as directory:
             root = Path(directory)
             objects = root / "objects"
@@ -251,21 +254,20 @@ class IncrementalCacheCleanupTests(unittest.TestCase):
             protected.append("AB" * 32)
             for name in protected[29000:30000] + ["ab" * 32, "cd" * 32, "e" * 64, "f" * 64, "unknown-source.rs"]:
                 (objects / name).write_bytes(b"obj" if name != "f" * 64 else b"four")
-            selection = root / "selection.json"
-            selection.write_text(json.dumps({"buildRoot": str(Path("E:/cargo-targets")), "protectedDigests": protected,
-                "unknownDigests": ["cd" * 32], "maxObjects": 1, "maxBytes": 3}), encoding="utf8")
-            object_line = "$objects = Join-Path $selection.buildRoot 'zircon-local/zircon-jenkins/artifacts/artifacts/objects'"
-            self.assertEqual(selector.count(object_line), 1)
-            # Inject only the object locator: all selection, alias and digest guards remain the production script.
-            selector = selector.replace(object_line, "$objects = '" + objects.as_posix().replace("'", "''") + "'")
-            script = root / "selector.ps1"
-            script.write_text(selector, encoding="utf8")
-            result = subprocess.run(["C:/Windows/System32/WindowsPowerShell/v1.0/powershell.exe", "-NoProfile",
-                "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", str(script)],
-                env=dict(os.environ, ZIRCON_CLEANUP_SELECTION=str(selection)), capture_output=True, timeout=45)
-            self.assertEqual(result.returncode, 0, result.stderr.decode("utf8", "replace"))
-            self.assertEqual(json.loads(result.stdout.decode("utf-8-sig")),
-                {"digests": ["e" * 64], "plannedBytes": 3, "candidateCount": 1})
+            build_root = str(Path("E:/cargo-targets"))
+            inventory = {"buildRoot": build_root, "protectedDigests": protected, "unknownDigests": ["cd" * 32]}
+            expected_locator = Path(build_root) / "zircon-local/zircon-jenkins/artifacts/artifacts/objects"
+            def object_locator(path):
+                self.assertEqual(expected_locator, path)
+                return objects
+            # Inject only the locator; execute the production selector and its digest/budget guards.
+            with patch.object(scheduled_control, "physical", side_effect=object_locator):
+                self.assertEqual(scheduled_control.select(inventory, build_root, 1, 3),
+                                 {"digests": ["e" * 64], "plannedBytes": 3, "candidateCount": 1})
+                self.assertEqual(scheduled_control.select(inventory, build_root, 0, 3)["candidateCount"], 0)
+                self.assertEqual(scheduled_control.select(inventory, build_root, 1, 2)["candidateCount"], 0)
+            with self.assertRaisesRegex(ValueError, "inventory root/digest lists"):
+                scheduled_control.select({"buildRoot": build_root}, build_root, 1, 3)
             self.assertEqual(len(list(objects.iterdir())), 1005)
 
     def test_production_cli_refuses_local_deletion(self):

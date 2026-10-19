@@ -4,9 +4,9 @@ use crate::core::jobs::{
     EditorJobProgressSource, EditorJobSystem, JobId, MutexGroup,
 };
 use crate::core::recovery::{
-    AutosaveExtension, AutosaveJobAdapter, AutosaveJobPolicy, AutosavePolicy,
-    AutosaveScheduler, AutosaveSnapshot, AutosaveSnapshotProvenance, AutosaveSnapshotSource,
-    AutosaveSourceDigest, AutosaveSourcePath, AutosaveStore,
+    AutosaveExtension, AutosaveJobAdapter, AutosaveJobPolicy, AutosavePolicy, AutosaveScheduler,
+    AutosaveSnapshot, AutosaveSnapshotProvenance, AutosaveSnapshotSource, AutosaveSourceDigest,
+    AutosaveSourcePath, AutosaveStore,
 };
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::{mpsc, Weak};
@@ -21,8 +21,7 @@ struct OwnedFinalAutosaveFixture {
 
 impl OwnedFinalAutosaveFixture {
     fn checked_directory(path: &Path) -> std::fs::Metadata {
-        let metadata =
-            std::fs::symlink_metadata(path).expect("owned fixture directory metadata");
+        let metadata = std::fs::symlink_metadata(path).expect("owned fixture directory metadata");
         assert!(metadata.is_dir() && !metadata.file_type().is_symlink());
         #[cfg(windows)]
         {
