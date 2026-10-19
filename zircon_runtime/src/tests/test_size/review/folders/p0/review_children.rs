@@ -18,9 +18,9 @@ pub(super) fn assert_p0_review_children_are_folder_backed(sources: &CodeReviewFi
         &sources.p0_lock_poison,
         &[
             "fn review_f2_scene_eventbus_locks_recover_after_poison",
-            "runtime_15_f2_lock_poison_recovery_guard_core_min_cargo_passed_full_sweep_pending",
+            "fixed_history_archive_source as history",
             "level_system_accessors_recover_poisoned_state_locks",
-            "scene/EventBus poison-safe lock recovery complete",
+            "f2_row.ends_with(\"| Runtime 15 + Runtime 07 / review closed |\")",
         ],
     );
     assert_contains_all(
@@ -37,9 +37,9 @@ pub(super) fn assert_p0_review_children_are_folder_backed(sources: &CodeReviewFi
         "P0 native fixture child owns D-S8/D3/D13 fixture review guards",
         &sources.p0_native_fixture,
         &[
-            "#[path = \"native_fixture/importer_manifest.rs\"]",
+            "#[path = \"../native_fixture/importer_manifest.rs\"]",
             "mod importer_manifest;",
-            "#[path = \"native_fixture/sdk_macro_manifest.rs\"]",
+            "#[path = \"../native_fixture/sdk_macro_manifest.rs\"]",
             "mod sdk_macro_manifest;",
         ],
     );

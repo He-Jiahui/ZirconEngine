@@ -71,3 +71,228 @@ pub(super) fn p0_direct_assertion_child_source_blob() -> String {
     }
     blob
 }
+
+pub(super) fn assert_guard_graph_part() {
+    super::super::source_inventory::assert_guard_owner_contract(
+        "tests/structure/test_size/review/folders/assertions.rs",
+        &[
+            (
+                "child_ownership",
+                "#[path = \"../../../../test_size/review/folders/assertions/child_ownership.rs\"]",
+            ),
+            (
+                "delegation",
+                "#[path = \"../../../../test_size/review/folders/assertions/delegation.rs\"]",
+            ),
+            ("f12", "#[path = \"assertions/f12.rs\"]"),
+            ("f8", "#[path = \"assertions/f8.rs\"]"),
+            ("p0", "#[path = \"assertions/p0.rs\"]"),
+            ("render", "#[path = \"assertions/render.rs\"]"),
+            (
+                "root_parent",
+                "#[path = \"../../../../test_size/review/folders/assertions/root_parent.rs\"]",
+            ),
+        ],
+    );
+    super::super::source_inventory::assert_guard_owner_contract(
+        "tests/structure/test_size/review/folders/assertions/f8.rs",
+        &[
+            ("budgets", "#[path = \"../f8/budgets.rs\"]"),
+            ("delegation", "#[path = \"../f8/delegation.rs\"]"),
+            ("parent_mounts", "#[path = \"../f8/parent_mounts.rs\"]"),
+            (
+                "review_children",
+                "#[path = \"../../../../../test_size/review/folders/f8/review_children.rs\"]",
+            ),
+        ],
+    );
+    super::super::source_inventory::assert_guard_owner_contract(
+        "tests/structure/test_size/review/folders/assertions/p0.rs",
+        &[
+            ("budgets", "#[path = \"../p0/budgets.rs\"]"),
+            ("delegation", "#[path = \"../p0/delegation.rs\"]"),
+            ("parent_mounts", "#[path = \"../p0/parent_mounts.rs\"]"),
+            (
+                "review_children",
+                "#[path = \"../../../../../test_size/review/folders/p0/review_children.rs\"]",
+            ),
+        ],
+    );
+    super::super::source_inventory::assert_guard_owner_contract(
+        "tests/structure/test_size/review/folders/assertions/render.rs",
+        &[
+            ("budgets", "#[path = \"../render/budgets.rs\"]"),
+            ("delegation", "#[path = \"../render/delegation.rs\"]"),
+            (
+                "review_guard",
+                "#[path = \"../../../../../test_size/review/folders/render/review_guard.rs\"]",
+            ),
+        ],
+    );
+    super::super::source_inventory::assert_guard_owner_contract(
+        "tests/test_size/review/folders/root_parent/backflow.rs",
+        &[],
+    );
+    super::super::source_inventory::assert_guard_owner_contract(
+        "tests/structure/test_size/review/folders/sources/budgets.rs",
+        &[],
+    );
+    super::super::source_inventory::assert_guard_owner_contract(
+        "tests/test_size/review/late_api_cleanup_child_owners.rs",
+        &[
+            (
+                "budgets",
+                "#[path = \"late_api_cleanup_owners/budgets.rs\"]",
+            ),
+            (
+                "delegation",
+                "#[path = \"late_api_cleanup_owners/delegation.rs\"]",
+            ),
+            (
+                "root_child_rows",
+                "#[path = \"../../review/late_api_cleanup_owners/root_child_rows.rs\"]",
+            ),
+            (
+                "root_inventory",
+                "#[path = \"../../review/late_api_cleanup_owners/root_inventory.rs\"]",
+            ),
+            (
+                "root_paths",
+                "#[path = \"late_api_cleanup_owners/root_paths.rs\"]",
+            ),
+            (
+                "root_sources",
+                "#[path = \"../../review/late_api_cleanup_owners/root_sources.rs\"]",
+            ),
+            (
+                "route_ownership",
+                "#[path = \"../../review/late_api_cleanup_owners/route_ownership.rs\"]",
+            ),
+        ],
+    );
+    super::super::source_inventory::assert_guard_owner_contract(
+        "tests/review/late_api_cleanup_owners/root_sources.rs",
+        &[],
+    );
+    super::super::source_inventory::assert_guard_owner_contract(
+        "tests/test_size/review/importers/source_inventory.rs",
+        &[
+            (
+                "budgets",
+                "#[path = \"../../../structure/test_size/review/importers/sources/budgets.rs\"]",
+            ),
+            ("delegation", "#[path = \"sources/delegation.rs\"]"),
+            (
+                "paths",
+                "#[path = \"../../../structure/test_size/review/importers/sources/paths.rs\"]",
+            ),
+            (
+                "reads",
+                "#[path = \"../../../structure/test_size/review/importers/sources/reads.rs\"]",
+            ),
+        ],
+    );
+    super::super::source_inventory::assert_guard_owner_contract(
+        "tests/structure/test_size/review/importers/sources/reads.rs",
+        &[],
+    );
+    super::super::source_inventory::assert_guard_owner_contract(
+        "tests/review/importers/structure/d13_sdk/parent_mounts.rs",
+        &[
+            (
+                "child_ownership",
+                "#[path = \"../../../d13_sdk/parent_mounts/child_ownership.rs\"]",
+            ),
+            (
+                "delegation",
+                "#[path = \"../../../structure/d13_sdk/parent_mounts/delegation.rs\"]",
+            ),
+            (
+                "folder_backed",
+                "#[path = \"../../../structure/d13_sdk/parent_mounts/folder_backed.rs\"]",
+            ),
+            (
+                "review_mounts",
+                "#[path = \"../../../structure/d13_sdk/parent_mounts/review_mounts.rs\"]",
+            ),
+        ],
+    );
+    super::super::source_inventory::assert_guard_owner_contract(
+        "tests/review/importers/structure/d13_sdk/review_children.rs",
+        &[],
+    );
+    super::super::source_inventory::assert_guard_owner_contract(
+        "tests/review/importers/structure/review_mounts/paths.rs",
+        &[],
+    );
+    super::super::source_inventory::assert_guard_owner_contract(
+        "tests/structure/test_size/review/errors/source_inventory.rs",
+        &[
+            ("budgets", "#[path = \"sources/budgets.rs\"]"),
+            (
+                "child_inventory",
+                "#[path = \"../../../../test_size/review/errors/sources/child_inventory.rs\"]",
+            ),
+            (
+                "child_sources",
+                "#[path = \"../../../../test_size/review/errors/sources/child_sources.rs\"]",
+            ),
+            ("delegation", "#[path = \"sources/delegation.rs\"]"),
+            ("metadata", "#[path = \"sources/metadata.rs\"]"),
+            ("paths", "#[path = \"sources/paths.rs\"]"),
+            ("reads", "#[path = \"sources/reads.rs\"]"),
+            (
+                "source_helper_ownership",
+                "#[path = \"../../../../review/errors/sources/source_helper_ownership.rs\"]",
+            ),
+        ],
+    );
+    super::super::source_inventory::assert_guard_owner_contract(
+        "tests/structure/test_size/review/errors/sources/reads.rs",
+        &[],
+    );
+    super::super::source_inventory::assert_guard_owner_contract(
+        "tests/review/errors/convergence_mounts/asset_parents.rs",
+        &[],
+    );
+    super::super::source_inventory::assert_guard_owner_contract(
+        "tests/review/errors/convergence_mounts/root_paths.rs",
+        &[],
+    );
+    super::super::source_inventory::assert_guard_owner_contract(
+        "tests/review/errors/structure/convergence_mounts/top_level.rs",
+        &[],
+    );
+    super::super::source_inventory::assert_guard_owner_contract(
+        "tests/review/errors/structure/parent_backflow/guard_body.rs",
+        &[],
+    );
+    super::super::source_inventory::assert_guard_owner_contract(
+        "tests/review/errors/structure/parent_backflow/sources.rs",
+        &[],
+    );
+    super::super::source_inventory::assert_guard_owner_contract(
+        "tests/structure/test_size/review/errors/structure/loader.rs",
+        &[
+            ("budgets", "#[path = \"../../../../../test_size/review/errors/structure/loader/budgets.rs\"]"),
+            ("child_inventory", "#[path = \"../../../../../review/errors/structure/loader/child_inventory.rs\"]"),
+            ("delegation", "#[path = \"../../../../../test_size/review/errors/structure/loader/delegation.rs\"]"),
+            ("metadata", "#[path = \"../../../../../test_size/review/errors/structure/loader/metadata.rs\"]"),
+            ("routes", "#[path = \"../../../../../test_size/review/errors/structure/loader/routes.rs\"]"),
+            ("source_helper_ownership", "#[path = \"../../../../../review/errors/loader/source_helper_ownership.rs\"]"),
+            ("sources", "#[path = \"../../../../../test_size/review/errors/structure/loader/sources.rs\"]"),
+        ],
+    );
+    super::super::source_inventory::assert_guard_owner_contract(
+        "tests/review/errors/structure/loader/routes/abi_surfaces.rs",
+        &[],
+    );
+    super::super::source_inventory::assert_guard_owner_contract(
+        "tests/review/errors/loader/routes/manifest_sources.rs",
+        &[],
+    );
+    super::super::source_inventory::assert_guard_owner_contract(
+        "tests/review/errors/structure/loader/routes/top_level.rs",
+        &[],
+    );
+}

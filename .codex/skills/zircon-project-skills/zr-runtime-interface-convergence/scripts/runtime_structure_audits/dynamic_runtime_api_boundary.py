@@ -3,6 +3,9 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
+from runtime_structure_audits.dynamic_runtime_api_archive_inventory import (
+    HistoricalArchiveReader,
+)
 from runtime_structure_audits.dynamic_runtime_api_abi_inventory import (
     EXPECTED_FUNCTION_TABLES,
     EXPECTED_SOURCE_FILE_COUNT,
@@ -94,11 +97,21 @@ def _field_names(source: str, struct_name: str) -> list[str]:
     return fields
 
 
-def _missing_anchors(root: Path, anchors: tuple[tuple[str, str], ...]) -> list[dict[str, str]]:
+def _missing_anchors(
+    root: Path,
+    anchors: tuple[tuple[str, str], ...],
+    *,
+    history: HistoricalArchiveReader | None = None,
+) -> list[dict[str, str]]:
+    history = HistoricalArchiveReader() if history is None else history
     missing: list[dict[str, str]] = []
     for relative_path, snippet in anchors:
-        path = root / relative_path
-        if not path.exists() or snippet not in _read_text(path):
+        if relative_path in history.identities:
+            source = history.read(relative_path)
+        else:
+            path = root / relative_path
+            source = _read_text(path) if path.exists() else None
+        if source is None or snippet not in source:
             missing.append({"path": relative_path, "snippet": snippet})
     return missing
 
@@ -225,33 +238,40 @@ def _ffi_wrapper_report(root: Path) -> dict[str, object]:
     }
 
 
-def dynamic_runtime_api_boundary_audit(root: Path) -> dict[str, object]:
+def dynamic_runtime_api_boundary_audit(
+    root: Path, *, archive_root: Path | None = None
+) -> dict[str, object]:
+    history = HistoricalArchiveReader(archive_root)
+
+    def missing_anchors(anchors: tuple[tuple[str, str], ...]) -> list[dict[str, str]]:
+        return _missing_anchors(root, anchors, history=history)
+
     source_files = _existing_files(root, SOURCE_FILES)
     function_tables = _function_table_report(root)
     ffi_wrappers = _ffi_wrapper_report(root)
     legacy_runtime_api_hits = _legacy_runtime_api_hits(root)
 
-    missing_headless_lifecycle_anchors = _missing_anchors(root, HEADLESS_LIFECYCLE_ANCHORS)
-    missing_ffi_panic_anchors = _missing_anchors(root, FFI_PANIC_ANCHORS)
-    missing_loader_failure_anchors = _missing_anchors(root, LOADER_FAILURE_ANCHORS)
-    missing_behavior_test_anchors = _missing_anchors(root, BEHAVIOR_TEST_ANCHORS)
-    missing_runtime_diagnostics_anchors = _missing_anchors(root, RUNTIME_DIAGNOSTICS_ANCHORS)
-    missing_scene_asset_reload_diagnostic_path_anchors = _missing_anchors(
-        root, SCENE_ASSET_RELOAD_DIAGNOSTIC_PATH_ANCHORS
+    missing_headless_lifecycle_anchors = missing_anchors(HEADLESS_LIFECYCLE_ANCHORS)
+    missing_ffi_panic_anchors = missing_anchors(FFI_PANIC_ANCHORS)
+    missing_loader_failure_anchors = missing_anchors(LOADER_FAILURE_ANCHORS)
+    missing_behavior_test_anchors = missing_anchors(BEHAVIOR_TEST_ANCHORS)
+    missing_runtime_diagnostics_anchors = missing_anchors(RUNTIME_DIAGNOSTICS_ANCHORS)
+    missing_scene_asset_reload_diagnostic_path_anchors = missing_anchors(
+        SCENE_ASSET_RELOAD_DIAGNOSTIC_PATH_ANCHORS
     )
-    missing_ui_pending_gate_anchors = _missing_anchors(root, UI_PENDING_GATE_ANCHORS)
-    missing_ui_contract_single_source_anchors = _missing_anchors(
-        root, UI_CONTRACT_SINGLE_SOURCE_ANCHORS
+    missing_ui_pending_gate_anchors = missing_anchors(UI_PENDING_GATE_ANCHORS)
+    missing_ui_contract_single_source_anchors = missing_anchors(
+        UI_CONTRACT_SINGLE_SOURCE_ANCHORS
     )
-    missing_ui_v2_contract_sync_anchors = _missing_anchors(
-        root, UI_V2_CONTRACT_SYNC_ANCHORS
+    missing_ui_v2_contract_sync_anchors = missing_anchors(
+        UI_V2_CONTRACT_SYNC_ANCHORS
     )
     ui_contract_duplicate_public_types = _public_ui_type_duplicates(root)
-    missing_host_request_payload_anchors = _missing_anchors(
-        root, HOST_REQUEST_PAYLOAD_ANCHORS
+    missing_host_request_payload_anchors = missing_anchors(
+        HOST_REQUEST_PAYLOAD_ANCHORS
     )
-    missing_cargo_gate_anchors = _missing_anchors(root, CARGO_GATE_ANCHORS)
-    missing_doc_anchors = _missing_anchors(root, DOC_ANCHORS)
+    missing_cargo_gate_anchors = missing_anchors(CARGO_GATE_ANCHORS)
+    missing_doc_anchors = missing_anchors(DOC_ANCHORS)
     mirror_docs_guard_present = (
         MIRROR_DOCS_GUARD
         in _read_text(
@@ -309,6 +329,7 @@ def dynamic_runtime_api_boundary_audit(root: Path) -> dict[str, object]:
         risks.append("Runtime 10 mirror-doc aggregate guard is missing.")
 
     return {
+        "historical_archive_readback": list(history.records.values()),
         "source_files": source_files,
         "expected_source_file_count": EXPECTED_SOURCE_FILE_COUNT,
         "missing_source_files": _missing_files(root, SOURCE_FILES),

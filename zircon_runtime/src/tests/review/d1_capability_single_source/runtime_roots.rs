@@ -113,6 +113,18 @@ pub(super) fn assert_runtime_capability_roots_use_single_source() {
         15,
         "D1 capability single-source guard should cover every first-party trait-backed runtime root"
     );
+    let macros = include_str!("../../../../../zircon_plugins/plugin_sdk/src/declaration/macros.rs");
+    for required in [
+        "$visibility const $first_capability_constant: &str = $first_capability;",
+        "$visibility const $capability_constant: &str = $capability;",
+        "&[$first_capability_constant $(, $capability_constant)*]",
+        "$crate::PluginDeclaration::new(",
+    ] {
+        assert!(
+            macros.contains(required),
+            "SDK capability single source missing {required}"
+        );
+    }
     for (root, capability_source, lib_source, plugin_source, manifest_source) in
         D1_RUNTIME_CAPABILITY_ROOTS
     {
@@ -122,12 +134,13 @@ pub(super) fn assert_runtime_capability_roots_use_single_source() {
             "{root} runtime capability.rs should own the runtime capability slice"
         );
         assert!(
-            capability_source
-                .lines()
-                .any(|line| line.trim_start().starts_with("pub const ")
-                    && line.contains("CAPABILITY")
-                    && line.contains(": &str")),
-            "{root} runtime capability.rs should own named capability constants"
+            capability_source.contains("zircon_plugin_sdk::declare_plugin!")
+                && capability_source.contains("capabilities: [")
+                && capability_source
+                    .lines()
+                    .any(|line| line.contains("_CAPABILITY = \"")
+                        && line.contains("=> runtime_registration")),
+            "{root} capability owner must declare named constants through the SDK macro"
         );
         assert!(
             lib_source.contains("mod capability;"),

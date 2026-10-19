@@ -51,10 +51,31 @@ fn review_f5_native_plugin_entry_abi_uses_typed_error() {
         load_discovered.contains("fn load_requested_entry(")
             && load_discovered.contains("PluginModuleKind::Runtime")
             && load_discovered.contains("PluginModuleKind::Editor")
-            && load_discovered.contains("report.diagnostics.push(error.to_string());")
+            && load_discovered.contains("report.push_diagnostic(error.to_string());")
             && load_discovered.contains("return;"),
         "a requested entry failure should reject the library after recording its typed diagnostic"
     );
+    let rejection = load_discovered
+        .find("if runtime_entry_failed || editor_entry_failed {")
+        .expect("a failed requested entry must reject the library");
+    let publication = load_discovered
+        .find("report.push_loaded(LoadedNativePlugin")
+        .expect("successful entries publish one admitted library");
+    for role in ["runtime", "editor"] {
+        let check = format!("let {role}_entry_failed = {role}_entry.is_err();");
+        assert!(
+            load_discovered
+                .find(&check)
+                .expect("typed entry result check")
+                < rejection
+        );
+    }
+    assert!(rejection < publication);
+    let rejected_body = load_discovered[rejection..publication]
+        .split_once('{')
+        .expect("requested-entry rejection branch")
+        .1;
+    assert!(rejected_body.trim_start().starts_with("return;"));
     for source in [runtime_abi, sdk_native] {
         assert!(
             source.contains("ZIRCON_NATIVE_PLUGIN_ENTRY_REPORT_LAYOUT_EPOCH: u32 = 5")

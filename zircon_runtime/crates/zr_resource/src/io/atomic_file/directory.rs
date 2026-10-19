@@ -85,8 +85,7 @@ fn cleanup_unconfirmed_directory_after_error(directory: &Path, error: io::Error)
 
 fn sync_created_directory_with_fault(path: &Path, fault: AtomicWriteFault) -> io::Result<()> {
     if fault == AtomicWriteFault::CreatedDirectorySync {
-        return Err(io::Error::new(
-            io::ErrorKind::Other,
+        return Err(io::Error::other(
             "injected atomic file created-directory sync failure",
         ));
     }
@@ -106,8 +105,7 @@ pub(super) fn sync_parent_directory_with_fault(
     fault: AtomicWriteFault,
 ) -> io::Result<()> {
     if fault == AtomicWriteFault::ParentSync {
-        return Err(io::Error::new(
-            io::ErrorKind::Other,
+        return Err(io::Error::other(
             "injected atomic file parent-directory sync failure",
         ));
     }

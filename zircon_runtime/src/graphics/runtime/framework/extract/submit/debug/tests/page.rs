@@ -84,3 +84,132 @@ fn optimization_batch_20260830cu_runtime_unique_entity_hash_count_p95() {
         "hash unique-count P95 {optimized_p95} ns exceeded 70% of tree unique-count {legacy_p95} ns"
     );
 }
+
+fn sparse_debug_domain(
+    raw_count: usize,
+) -> crate::core::framework::render::RenderVirtualGeometryExtract {
+    use crate::core::framework::render::{
+        RenderVirtualGeometryCluster, RenderVirtualGeometryExtract,
+        RenderVirtualGeometryHierarchyNode, RenderVirtualGeometryInstance,
+        RenderVirtualGeometryPage,
+    };
+    let mut clusters = vec![RenderVirtualGeometryCluster::default(); raw_count];
+    for (index, id, page) in [(0, 20, 200), (1, 30, 300), (70, 70, 200), (71, 71, 300)] {
+        clusters[index] = RenderVirtualGeometryCluster {
+            entity: 5,
+            cluster_id: id,
+            page_id: page,
+            ..Default::default()
+        };
+    }
+    clusters[1].hierarchy_node_id = Some(72);
+    RenderVirtualGeometryExtract {
+        clusters,
+        instances: vec![RenderVirtualGeometryInstance {
+            entity: 5,
+            cluster_count: 2,
+            page_count: 2,
+            ..Default::default()
+        }],
+        pages: vec![
+            RenderVirtualGeometryPage {
+                page_id: 200,
+                ..Default::default()
+            },
+            RenderVirtualGeometryPage {
+                page_id: 300,
+                ..Default::default()
+            },
+        ],
+        hierarchy_nodes: vec![
+            RenderVirtualGeometryHierarchyNode {
+                node_id: 72,
+                child_count: 1,
+                cluster_start: 1,
+                cluster_count: 1,
+                ..Default::default()
+            },
+            RenderVirtualGeometryHierarchyNode {
+                node_id: 7,
+                cluster_start: 70,
+                cluster_count: 2,
+                ..Default::default()
+            },
+        ],
+        hierarchy_child_ids: vec![7],
+        ..Default::default()
+    }
+}
+
+#[test]
+fn sparse_debug_catalog_preserves_raw_census_and_normal_candidate_ordinals() {
+    use std::collections::BTreeSet;
+    for raw_count in [72, 91] {
+        let extract = sparse_debug_domain(raw_count);
+        let plan = crate::graphics::VisibilityVirtualGeometryPageUploadPlan::default();
+        let snapshot =
+            super::build_cull_input_snapshot(&extract, &plan, 0, 0, &BTreeSet::new()).unwrap();
+        assert_eq!(snapshot.cluster_count, raw_count as u32);
+        assert_eq!(snapshot.visible_cluster_count, raw_count as u32);
+        assert_eq!(snapshot.visible_entity_count, 1);
+        let (catalog, provenance) = super::super::build_lossless_candidate_catalog(
+            &extract,
+            &BTreeSet::from([200]),
+            &BTreeSet::from([300]),
+            &BTreeSet::new(),
+        )
+        .unwrap();
+        assert_eq!(
+            catalog
+                .iter()
+                .map(|row| (row.cluster_id, row.cluster_ordinal))
+                .collect::<Vec<_>>(),
+            vec![(20, 0), (30, 1)]
+        );
+        assert_eq!(provenance, vec![(0, 0, 2), (0, 1, 2)]);
+        assert_eq!(
+            extract
+                .checked_active_cluster_rows(&BTreeSet::new())
+                .unwrap()
+                .len(),
+            4
+        );
+        assert_eq!(extract.clusters.len(), raw_count);
+    }
+}
+
+#[test]
+fn sparse_debug_legacy_catalog_uses_real_visible_entities_and_rejects_invalid_domains() {
+    use std::collections::BTreeSet;
+    let mut extract = sparse_debug_domain(72);
+    extract.clusters[8].entity = 7;
+    extract.clusters[8].cluster_id = 80;
+    extract.clusters[9].entity = 8;
+    extract.clusters[9].cluster_id = 90;
+    let visible = BTreeSet::from([7]);
+    let plan = crate::graphics::VisibilityVirtualGeometryPageUploadPlan::default();
+    let snapshot = super::build_cull_input_snapshot(&extract, &plan, 0, 0, &visible).unwrap();
+    assert_eq!(snapshot.visible_entity_count, 2);
+    assert_eq!(snapshot.visible_cluster_count, 72);
+    let (catalog, provenance) = super::super::build_lossless_candidate_catalog(
+        &extract,
+        &BTreeSet::new(),
+        &BTreeSet::new(),
+        &visible,
+    )
+    .unwrap();
+    assert_eq!(
+        catalog.iter().map(|row| row.entity).collect::<Vec<_>>(),
+        vec![5, 5, 7]
+    );
+    assert_eq!(provenance, vec![(0, 0, 2), (0, 1, 2), (u32::MAX, 8, 1)]);
+    extract.hierarchy_nodes[1].cluster_count = 3;
+    assert!(super::build_cull_input_snapshot(&extract, &plan, 0, 0, &visible).is_err());
+    assert!(super::super::build_lossless_candidate_catalog(
+        &extract,
+        &BTreeSet::new(),
+        &BTreeSet::new(),
+        &visible,
+    )
+    .is_none());
+}

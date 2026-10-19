@@ -26,7 +26,7 @@ pub use channel::{
     AnimationInterpolationAsset,
 };
 pub use clip::{AnimationClipAsset, AnimationClipBoneTrackAsset, AnimationEventTrackAsset};
-pub use error::{AnimationAssetError, AnimationAssetResult};
+pub use error::{AnimationAssetError, AnimationAssetResult, AnimationSkeletonHierarchyError};
 pub use graph::{AnimationGraphAsset, AnimationGraphNodeAsset, AnimationGraphParameterAsset};
 pub use sequence::{
     AnimationSequenceAsset, AnimationSequenceBindingAsset, AnimationSequenceTrackAsset,

@@ -143,7 +143,10 @@ pub(crate) fn set_bound_source_gain<B: Backend>(
 ) -> Result<(), SoundError> {
     kira.ensure_provider_not_retiring()?;
     if let Some(playback) = voice.kira_playback {
-        kira.set_volume(playback, if voice.descriptor.muted { 0.0 } else { gain })?;
+        kira.set_volume(
+            playback,
+            voice.environment_output_gain(gain, voice.descriptor.muted)?,
+        )?;
     }
     voice.descriptor.gain = gain;
     Ok(())
@@ -169,10 +172,44 @@ pub(crate) fn mute_bound_source<B: Backend>(
 ) -> Result<(), SoundError> {
     kira.ensure_provider_not_retiring()?;
     if let Some(playback) = voice.kira_playback {
-        kira.set_volume(playback, if muted { 0.0 } else { voice.descriptor.gain })?;
+        kira.set_volume(
+            playback,
+            voice.environment_output_gain(voice.descriptor.gain, muted)?,
+        )?;
     }
     voice.descriptor.muted = muted;
     Ok(())
+}
+
+impl SourceVoice {
+    pub(crate) fn environment_output_gain(
+        &self,
+        user_gain: f32,
+        muted: bool,
+    ) -> Result<f32, SoundError> {
+        let gain = if muted {
+            0.0
+        } else {
+            user_gain * self.environment_gain
+        };
+        ensure_finite_value("source output gain", gain)?;
+        Ok(gain)
+    }
+
+    pub(crate) fn apply_environment<B: Backend>(
+        &self,
+        kira: &mut KiraEngine<B>,
+    ) -> Result<(), SoundError> {
+        kira.ensure_provider_not_retiring()?;
+        if let Some(playback) = self.kira_playback.filter(|id| kira.contains_playback(*id)) {
+            kira.set_volume(
+                playback,
+                self.environment_output_gain(self.descriptor.gain, self.descriptor.muted)?,
+            )?;
+            kira.set_panning(playback, self.environment_pan)?;
+        }
+        Ok(())
+    }
 }
 
 fn update_bound_source(

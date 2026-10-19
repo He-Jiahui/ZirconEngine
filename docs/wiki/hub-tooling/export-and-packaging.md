@@ -13,7 +13,7 @@ implementation_files:
   - tools/cargo/src/build/receipt
 plan_sources:
   - user: 2026-09-09 构建 ZirconEngine 详细 Wiki 文档集合
-  - docs/plans/mvp/index.md
+  - docs/testing-and-validation/mvp-acceptance-index.md
 tests:
   - zircon_hub/src/projects/package.rs
   - zircon_hub/src/projects/device_install.rs

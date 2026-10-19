@@ -35,6 +35,7 @@ pub(super) fn evaluate_integration_task(
     let started = !context.instance.node_mut(tree, node_index).is_active;
     let request = BehaviorIntegrationTaskContext {
         node_id: node.id(),
+        semantics: node.semantics(),
         parameters: node.parameters(),
         entity: context.entity,
         delta_seconds: context.delta_seconds,

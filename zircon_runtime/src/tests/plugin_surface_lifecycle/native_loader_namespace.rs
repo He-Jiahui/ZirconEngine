@@ -8,6 +8,37 @@ use super::support::{files_containing, native_root_import_leak_files};
 #[test]
 fn runtime_06_plugin_root_does_not_forward_native_loader_for_tests() {
     let plugin_root = include_str!("../../plugin/mod.rs");
+    assert!(plugin_root.contains("#[path = \"loader/mod.rs\"]"));
+    assert!(plugin_root
+        .lines()
+        .any(|line| line == "mod native_plugin_loader;"));
+    let loader = include_str!("../../plugin/loader/loader.rs");
+    assert!(loader.contains("pub struct NativePluginLoader;"));
+    let flat = include_str!("../../plugin/native.rs");
+    assert!(!flat.contains("NativePluginLoader"));
+    assert!(flat.contains("NativePluginLoadReport"));
+    let discovery = include_str!("../../plugin/native/discovery.rs");
+    let exports = discovery
+        .strip_prefix("pub use super::super::native_plugin_loader::{")
+        .and_then(|body| body.trim_end().strip_suffix("};"))
+        .expect("discovery must route directly through the private loader owner");
+    let symbols = exports.split(',').map(str::trim).collect::<BTreeSet<_>>();
+    for symbol in [
+        "discover_native_plugins",
+        "discover_native_plugins_from_load_manifest",
+        "load_discovered_native_plugins_with_authority",
+        "request_native_plugin_discovery_refresh",
+        "refresh_native_plugin_discovery_manifest",
+        "NativePluginDiscoveryRefreshTicket",
+        "NativePluginDiscoveryRefreshError",
+        "NativePluginDiscoverySnapshot",
+    ] {
+        assert!(
+            symbols.contains(symbol),
+            "missing public discovery route: {symbol}"
+        );
+    }
+    assert!(!symbols.contains("NativePluginLoader"));
 
     assert!(
         !plugin_root.contains("native_plugin_loader::NativePluginLoader"),
@@ -18,10 +49,7 @@ fn runtime_06_plugin_root_does_not_forward_native_loader_for_tests() {
 #[test]
 fn runtime_06_native_loader_tests_use_isolated_plugin_native_namespace() {
     let runtime_root = Path::new(env!("CARGO_MANIFEST_DIR"));
-    let plugin_extension_tests = runtime_root
-        .join("src")
-        .join("tests")
-        .join("plugin_extensions");
+    let plugin_extension_tests = runtime_root.join("src").join("tests").join("plugins");
 
     let native_loader_test_files =
         files_containing(&plugin_extension_tests, NATIVE_LOADER_TEST_PATTERNS);
@@ -33,7 +61,7 @@ fn runtime_06_native_loader_tests_use_isolated_plugin_native_namespace() {
     ]);
     assert_eq!(
         native_loader_test_files, expected_native_loader_test_files,
-        "native loader test files should stay isolated under plugin_extensions and mirror Runtime 06 M2.2"
+        "native loader test files should stay isolated under plugins and mirror Runtime 06 M2.2"
     );
 
     let namespace_import_files = files_containing(

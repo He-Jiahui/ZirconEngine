@@ -259,7 +259,9 @@ fn skin_vertex(
     let source_tangent =
         Vec3::from_array([vertex.tangent[0], vertex.tangent[1], vertex.tangent[2]]);
     let mut skinned_position = Vec3::ZERO;
-    let mut skinned_normal = Vec3::ZERO;
+    let mut blended_x = Vec3::ZERO;
+    let mut blended_y = Vec3::ZERO;
+    let mut blended_z = Vec3::ZERO;
     let mut skinned_tangent = Vec3::ZERO;
     for slot in 0..4 {
         let weight = joint_weights[slot];
@@ -271,8 +273,9 @@ fn skin_vertex(
         };
         let normalized_weight = weight / weight_sum;
         skinned_position += joint_matrix.transform_point3(source_position) * normalized_weight;
-        // BUG: [CR-SCENE-MESH-0002] 非均匀骨骼缩放时法线直接乘关节矩阵会偏离变形切面；单关节 diag(2,1) 使原正交法线与切线点积由 0 变为 1.5。
-        skinned_normal += joint_matrix.transform_vector3(source_normal) * normalized_weight;
+        blended_x += joint_matrix.x_axis.truncate() * normalized_weight;
+        blended_y += joint_matrix.y_axis.truncate() * normalized_weight;
+        blended_z += joint_matrix.z_axis.truncate() * normalized_weight;
         skinned_tangent += joint_matrix.transform_vector3(source_tangent) * normalized_weight;
     }
 
@@ -289,7 +292,7 @@ fn skin_vertex(
     let tangent_xyz = tangent.to_array();
     crate::asset::MeshVertex {
         position: skinned_position.to_array(),
-        normal: skinned_normal.normalize_or_zero().to_array(),
+        normal: blended_skin_normal(blended_x, blended_y, blended_z, source_normal).to_array(),
         tangent: [
             tangent_xyz[0],
             tangent_xyz[1],
@@ -298,6 +301,35 @@ fn skin_vertex(
         ],
         ..vertex
     }
+}
+
+// Cofactors give the direction of inverse-transpose(A) without dividing by a
+// potentially tiny determinant. Scale both operands first to keep all products finite.
+// A singular or unrepresentable direction has no reliable normal and becomes zero.
+fn blended_skin_normal(x: Vec3, y: Vec3, z: Vec3, normal: Vec3) -> Vec3 {
+    if !x.is_finite() || !y.is_finite() || !z.is_finite() || !normal.is_finite() {
+        return Vec3::ZERO;
+    }
+    let scale = x.abs().max(y.abs()).max(z.abs()).max_element();
+    let normal_scale = normal.abs().max_element();
+    if scale <= 0.0 || normal_scale <= 0.0 {
+        return Vec3::ZERO;
+    }
+    let x = x / scale;
+    let y = y / scale;
+    let z = z / scale;
+    let determinant = x.dot(y.cross(z));
+    if determinant == 0.0 || !determinant.is_finite() {
+        return Vec3::ZERO;
+    }
+    let normal = normal / normal_scale;
+    let cofactor_normal = (y.cross(z) * normal.x + z.cross(x) * normal.y + x.cross(y) * normal.z)
+        * determinant.signum();
+    let direction_scale = cofactor_normal.abs().max_element();
+    if direction_scale <= 0.0 || !direction_scale.is_finite() {
+        return Vec3::ZERO;
+    }
+    (cofactor_normal / direction_scale).normalize_or_zero()
 }
 
 #[cfg(test)]

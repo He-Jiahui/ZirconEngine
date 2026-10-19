@@ -19,6 +19,12 @@ mod resource;
 
 pub(super) use resource::WgpuUiImageResource;
 
+struct ImageCacheAdmission<'a> {
+    cache_key: &'a str,
+    generation: u64,
+    required_bytes: u64,
+}
+
 const MAX_UI_IMAGE_CACHE_ENTRIES: usize = 256;
 const MAX_UI_IMAGE_CACHE_BYTES: u64 = 64 * 1024 * 1024;
 
@@ -203,7 +209,7 @@ impl WgpuUiImageCache {
             let mut invalidate_size_mismatch = false;
             if let Some(resource) = self.get_mut(cache_key, image_generation) {
                 let resource_size_matches = image_metadata
-                    .map_or(true, |(width, height, _)| resource.size == (width, height));
+                    .is_none_or(|(width, height, _)| resource.size == (width, height));
                 if resource_size_matches
                     && !image_upload_needs_write(
                         Some(image_generation),
@@ -223,7 +229,7 @@ impl WgpuUiImageCache {
                 shared_images
                     .resolve(cache_key, image_generation)
                     .filter(|image| {
-                        image_metadata.map_or(true, |(width, height, _)| {
+                        image_metadata.is_none_or(|(width, height, _)| {
                             image.width == width && image.height == height
                         })
                     })
@@ -444,9 +450,11 @@ impl WgpuUiImageCache {
         }
         let cached_size = cached.map(|(size, _)| size);
         if !self.admit(
-            cache_key,
-            generation,
-            layout.expected_len as u64,
+            ImageCacheAdmission {
+                cache_key,
+                generation,
+                required_bytes: layout.expected_len as u64,
+            },
             active_sources,
             cached_size.is_none(),
             entry_saturated_at_count,
@@ -488,14 +496,17 @@ impl WgpuUiImageCache {
 
     fn admit(
         &mut self,
-        cache_key: &str,
-        generation: u64,
-        required_bytes: u64,
+        request: ImageCacheAdmission<'_>,
         active_sources: &[ImageUploadSource],
         new_key: bool,
         entry_saturated_at_count: &mut Option<usize>,
         stats: &mut WgpuUiImageResourceStats,
     ) -> bool {
+        let ImageCacheAdmission {
+            cache_key,
+            generation,
+            required_bytes,
+        } = request;
         if new_key && *entry_saturated_at_count == Some(self.entry_count()) {
             stats.cache_admission_reject_count =
                 stats.cache_admission_reject_count.saturating_add(1);

@@ -100,6 +100,16 @@ impl<B: Backend> KiraEngine<B> {
         Ok(())
     }
 
+    pub(crate) fn set_panning(
+        &mut self,
+        playback: SoundPlaybackId,
+        pan: f32,
+    ) -> Result<(), SoundError> {
+        self.playback_mut(playback)?
+            .set_panning(pan, Tween::default());
+        Ok(())
+    }
+
     pub(crate) fn set_playback_rate(
         &mut self,
         playback: SoundPlaybackId,

@@ -74,7 +74,13 @@ pub(super) fn probe_environment_ibl_warm_cache(
     let probe_started = Instant::now();
     let current = {
         let _phase = EnvironmentIblStagingPhase::CacheProbe.enter();
-        store.current_bundle_manifest_matches(&request, source_image)?
+        if store.current_bundle_manifest_matches(&request, source_image)? {
+            true
+        } else {
+            store
+                .admit_bundle_for_staging(&request, source_image)?
+                .is_current()
+        }
     };
     timing.cache_probe = probe_started.elapsed();
     if !current {

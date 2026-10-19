@@ -25,9 +25,9 @@ pub(super) const EXPECTED_RUNTIME_06_SOURCE_FILES: &[&str] = &[
 pub(super) const EXPECTED_RUNTIME_06_MIRROR_DOCS: &[&str] = &[
     "../docs/plans/zircon_runtime/runtime/06-plugin-surface-and-lifecycle.md",
     "../docs/plans/zircon_runtime/runtime/index.md",
-    "../docs/engine-architecture/native-plugin-boundary.md",
-    "../docs/engine-architecture/runtime-interface-convergence.md",
-    "../docs/engine-architecture/runtime-architecture-review-m0.md",
+    "../docs/architecture/native-plugin-boundary.md",
+    "../docs/architecture/runtime-interface-convergence.md",
+    "../docs/architecture/runtime-architecture-review-m0.md",
 ];
 
 pub(super) const V1_V2_PATTERNS: &[&str] = &[

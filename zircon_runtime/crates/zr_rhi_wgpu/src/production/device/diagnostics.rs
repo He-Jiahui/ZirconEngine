@@ -149,6 +149,14 @@ impl WgpuRenderDevice {
             .admit_texture(source, region, layout)?)
     }
 
+    /// Reports the native diagnostic buffer copy/map path implemented by this device.
+    ///
+    /// This does not advertise readback through the neutral command ABI. Admission still
+    /// checks device health, source ranges and bounded diagnostic quotas.
+    pub fn native_buffer_readback_supported(&self) -> bool {
+        true
+    }
+
     /// Admits one transitional native buffer range owned by this product device generation.
     /// The source clone remains in the bounded batch until the scene-qualified map terminates.
     pub fn enqueue_native_diagnostic_buffer_readback(
@@ -913,8 +921,8 @@ fn ensure_diagnostic_readback_range(
             actual: desc.usage,
         });
     }
-    let copy_alignment = u64::from(wgpu::COPY_BUFFER_ALIGNMENT);
-    if size == 0 || offset % copy_alignment != 0 || size % copy_alignment != 0 {
+    let copy_alignment = wgpu::COPY_BUFFER_ALIGNMENT;
+    if size == 0 || !offset.is_multiple_of(copy_alignment) || !size.is_multiple_of(copy_alignment) {
         return Err(RhiError::InvalidCopy {
             reason:
                 "diagnostic buffer readback requires non-zero WGPU copy-aligned offset and size"
@@ -941,8 +949,8 @@ fn ensure_native_diagnostic_readback_range(
             reason: "native diagnostic buffer source requires COPY_SRC usage".to_string(),
         });
     }
-    let copy_alignment = u64::from(wgpu::COPY_BUFFER_ALIGNMENT);
-    if size == 0 || offset % copy_alignment != 0 || size % copy_alignment != 0 {
+    let copy_alignment = wgpu::COPY_BUFFER_ALIGNMENT;
+    if size == 0 || !offset.is_multiple_of(copy_alignment) || !size.is_multiple_of(copy_alignment) {
         return Err(RhiError::InvalidCopy {
             reason: "native diagnostic buffer readback requires non-zero WGPU copy-aligned offset and size"
                 .to_string(),

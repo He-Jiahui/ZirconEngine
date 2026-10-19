@@ -1,11 +1,11 @@
 use std::collections::{HashMap, HashSet};
 
 use zircon_runtime::core::framework::render::{
-    render_mesh_stable_instance_key, RenderVirtualGeometryCluster,
-    RenderVirtualGeometryDebugSnapshot, RenderVirtualGeometryExecutionSegment,
-    RenderVirtualGeometryExtract, RenderVirtualGeometrySelectedCluster,
-    RenderVirtualGeometrySelectedClusterSource, RenderVirtualGeometryVisBuffer64Entry,
-    RenderVirtualGeometryVisBuffer64Source, RenderVirtualGeometryVisBufferMark,
+    RenderVirtualGeometryCluster, RenderVirtualGeometryDebugSnapshot,
+    RenderVirtualGeometryExecutionSegment, RenderVirtualGeometryExtract,
+    RenderVirtualGeometrySelectedCluster, RenderVirtualGeometrySelectedClusterSource,
+    RenderVirtualGeometryVisBuffer64Entry, RenderVirtualGeometryVisBuffer64Source,
+    RenderVirtualGeometryVisBufferMark,
 };
 
 pub(super) fn rebuild_selected_clusters_from_execution_segments(
@@ -206,43 +206,27 @@ impl SnapshotRebuildIndex {
             );
         let mut instance_index_by_cluster = HashMap::with_capacity(extract.clusters.len());
 
-        if extract.instances.is_empty() {
-            for &cluster in &extract.clusters {
-                let stable_instance_key = render_mesh_stable_instance_key(cluster.entity, 0);
-                if !requested_stable_instance_keys.contains(&stable_instance_key) {
-                    continue;
-                }
-                clusters_by_stable_instance_key
-                    .entry(stable_instance_key)
-                    .or_default()
-                    .push(cluster);
-            }
-        } else {
-            for (instance_index, instance) in extract.instances.iter().enumerate() {
-                let stable_instance_key = instance.stable_instance_key_or_legacy();
-                if !requested_stable_instance_keys.contains(&stable_instance_key) {
-                    continue;
-                }
-                let start = instance.cluster_offset as usize;
-                let end = start.saturating_add(instance.cluster_count as usize);
-                let Some(clusters) = extract.clusters.get(start..end) else {
+        for &key in &requested_stable_instance_keys {
+            for segment in execution_segments
+                .iter()
+                .filter(|segment| segment.stable_instance_key_or_legacy() == key)
+            {
+                let Ok(indices) =
+                    extract.cluster_row_indices(segment.entity, key, segment.instance_index)
+                else {
                     continue;
                 };
-                clusters_by_stable_instance_key
-                    .entry(stable_instance_key)
-                    .or_default()
-                    .extend_from_slice(clusters);
-
-                if snapshot.instances.is_empty() {
-                    continue;
-                }
-                let Ok(instance_index) = u32::try_from(instance_index) else {
-                    continue;
-                };
-                for cluster in clusters {
-                    instance_index_by_cluster
-                        .entry((stable_instance_key, cluster.cluster_id))
-                        .or_insert(instance_index);
+                let clusters = clusters_by_stable_instance_key.entry(key).or_default();
+                for index in indices {
+                    let cluster = extract.clusters[index];
+                    clusters.push(cluster);
+                    if !snapshot.instances.is_empty() {
+                        if let Some(instance_index) = segment.instance_index {
+                            instance_index_by_cluster
+                                .entry((key, cluster.cluster_id))
+                                .or_insert(instance_index);
+                        }
+                    }
                 }
             }
         }

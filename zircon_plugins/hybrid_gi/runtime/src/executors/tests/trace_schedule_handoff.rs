@@ -236,11 +236,14 @@ fn run_trace_schedule_shader(
     scene_words: &[u32],
     hzb_view: &wgpu::TextureView,
 ) -> Vec<u32> {
-    let scene = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-        label: Some("hybrid-gi-trace-schedule-test-scene"),
-        contents: bytemuck::cast_slice(scene_words),
-        usage: wgpu::BufferUsages::STORAGE,
-    });
+    let scene = DeviceExt::create_buffer_init(
+        device,
+        &wgpu::util::BufferInitDescriptor {
+            label: Some("hybrid-gi-trace-schedule-test-scene"),
+            contents: bytemuck::cast_slice(scene_words),
+            usage: wgpu::BufferUsages::STORAGE,
+        },
+    );
     let trace = device.create_buffer(&wgpu::BufferDescriptor {
         label: Some("hybrid-gi-trace-schedule-test-trace"),
         size: TRACE_WORD_COUNT as u64 * std::mem::size_of::<u32>() as u64,
@@ -397,4 +400,239 @@ fn read_u32_words(device: &wgpu::Device, buffer: &wgpu::Buffer, word_count: usiz
     drop(mapped);
     buffer.unmap();
     words
+}
+
+#[test]
+fn trace_schedule_shader_uses_coarser_valid_voxel_when_finer_cell_is_unavailable() {
+    let (device, queue) = test_device().expect("clipmap fallback regression requires a real GPU");
+    let start_depth_q24 = quantize_depth_q24(0.25);
+    let target_depth_q24 = quantize_depth_q24(0.75);
+    let hit_depth = 0.25 + (0.75 - 0.25) * (4.0 / 7.0);
+    let (_hzb_texture, hzb_view) = test_main_scene_hzb(&device, &queue, hit_depth);
+    let coarse = [
+        6,
+        0.0_f32.to_bits(),
+        0.0_f32.to_bits(),
+        0.0_f32.to_bits(),
+        2.0_f32.to_bits(),
+        4,
+    ];
+    let fine = [
+        5,
+        0.0_f32.to_bits(),
+        0.0_f32.to_bits(),
+        0.0_f32.to_bits(),
+        1.0_f32.to_bits(),
+        4,
+    ];
+    const FINE_RADIANCE: u32 = 0xff20_80e0;
+    let mut control = test_scene_words(start_depth_q24, target_depth_q24);
+    control[296] = 1;
+    control[297] = 1;
+    control[430..436].copy_from_slice(&coarse);
+    control[454..458].copy_from_slice(&[6, 42, VOXEL_RADIANCE_RGBA8, 1]);
+
+    let read = |label: &str, scene: &[u32], expected: u32| {
+        let words = run_trace_schedule_shader(&device, &queue, scene, &hzb_view);
+        eprintln!(
+            "clipmap-fallback {label}: radiance={:#010x} flags={:#010x} support={:#010x}",
+            words[64], words[67], words[70],
+        );
+        assert_eq!(words[0], TRACE_SCHEDULE_MAGIC, "{label}");
+        assert_eq!(words[64], expected, "{label}");
+        assert_ne!(words[67] & (1 << 8), 0, "{label}: actual HZB hit");
+        assert_eq!(words[67] & (1 << 10), 0, "{label}: no surface cache");
+        assert_ne!(words[67] & (1 << 11), 0, "{label}: voxel fallback");
+        assert_ne!(words[67] & (1 << 12), 0, "{label}: valid radiance");
+        assert_ne!(words[70], 0, "{label}: actual cell support");
+        words
+    };
+    let coarse_words = read("coarse-control", &control, VOXEL_RADIANCE_RGBA8);
+
+    let mut layered = control.clone();
+    layered[296] = 2;
+    layered[430..436].copy_from_slice(&fine);
+    layered[436..442].copy_from_slice(&coarse);
+    let absent_words = read("fine-cell-absent", &layered, VOXEL_RADIANCE_RGBA8);
+    assert_eq!(absent_words[70], coarse_words[70]);
+
+    let mut unoccupied = layered.clone();
+    unoccupied[297] = 2;
+    unoccupied[458..462].copy_from_slice(&[5, 62, FINE_RADIANCE, 0]);
+    let unoccupied_words = read("fine-cell-unoccupied", &unoccupied, VOXEL_RADIANCE_RGBA8);
+    assert_eq!(unoccupied_words[70], coarse_words[70]);
+
+    let mut transparent = unoccupied.clone();
+    transparent[460] = FINE_RADIANCE & 0x00ff_ffff;
+    transparent[461] = 1;
+    let transparent_words = read("fine-cell-transparent", &transparent, VOXEL_RADIANCE_RGBA8);
+    assert_eq!(transparent_words[70], coarse_words[70]);
+
+    let mut valid_fine = transparent;
+    valid_fine[460] = FINE_RADIANCE;
+    read("valid-fine-wins", &valid_fine, FINE_RADIANCE);
+
+    let mut changed_coarse = layered;
+    changed_coarse[457] = 2;
+    let changed_words = read(
+        "coarse-occupancy-changed",
+        &changed_coarse,
+        VOXEL_RADIANCE_RGBA8,
+    );
+    assert_ne!(
+        changed_words[70] & 1023,
+        coarse_words[70] & 1023,
+        "fallback support must describe the coarse cell actually sampled",
+    );
+}
+
+fn run_trace_schedule_shader_bounded(
+    device: &wgpu::Device,
+    queue: &wgpu::Queue,
+    scene_words: &[u32],
+    hzb_view: &wgpu::TextureView,
+    deadline: std::time::Instant,
+) -> Vec<u32> {
+    let scene = DeviceExt::create_buffer_init(
+        device,
+        &wgpu::util::BufferInitDescriptor {
+            label: Some("hybrid-gi-trace-schedule-test-scene"),
+            contents: bytemuck::cast_slice(scene_words),
+            usage: wgpu::BufferUsages::STORAGE,
+        },
+    );
+    let trace = device.create_buffer(&wgpu::BufferDescriptor {
+        label: Some("hybrid-gi-trace-schedule-test-trace"),
+        size: TRACE_WORD_COUNT as u64 * std::mem::size_of::<u32>() as u64,
+        usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_SRC,
+        mapped_at_creation: false,
+    });
+    let readback = device.create_buffer(&wgpu::BufferDescriptor {
+        label: Some("hybrid-gi-trace-schedule-test-readback"),
+        size: TRACE_WORD_COUNT as u64 * std::mem::size_of::<u32>() as u64,
+        usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
+        mapped_at_creation: false,
+    });
+    let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+        label: Some("hybrid-gi-trace-schedule-test"),
+    });
+    let bind_group_layout = create_trace_schedule_handoff_bind_group_layout(device);
+    let pipeline = create_trace_schedule_handoff_pipeline(device, &bind_group_layout);
+    let bind_group = create_trace_schedule_handoff_bind_group(
+        device,
+        &bind_group_layout,
+        scene.as_entire_buffer_binding(),
+        trace.as_entire_buffer_binding(),
+        hzb_view,
+    );
+    {
+        let mut pass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
+            label: Some("hybrid-gi-trace-schedule-test-compute"),
+            timestamp_writes: None,
+        });
+        pass.set_pipeline(&pipeline);
+        pass.set_bind_group(0, &bind_group, &[]);
+        pass.dispatch_workgroups(1, 1, 1);
+    }
+    encoder.copy_buffer_to_buffer(
+        &trace,
+        0,
+        &readback,
+        0,
+        TRACE_WORD_COUNT as u64 * std::mem::size_of::<u32>() as u64,
+    );
+    queue.submit([encoder.finish()]);
+    read_trace_words_bounded(device, &readback, TRACE_WORD_COUNT, deadline)
+}
+
+fn read_trace_words_bounded(
+    device: &wgpu::Device,
+    buffer: &wgpu::Buffer,
+    count: usize,
+    deadline: std::time::Instant,
+) -> Vec<u32> {
+    let slice = buffer.slice(..(count * 4) as u64);
+    let (tx, rx) = mpsc::channel();
+    slice.map_async(wgpu::MapMode::Read, move |result| {
+        tx.send(result).ok();
+    });
+    loop {
+        assert!(
+            std::time::Instant::now() < deadline,
+            "shared native trace deadline exceeded"
+        );
+        device
+            .poll(wgpu::PollType::Poll)
+            .expect("native trace poll");
+        match rx.try_recv() {
+            Ok(result) => {
+                result.expect("native trace map");
+                break;
+            }
+            Err(mpsc::TryRecvError::Empty) => std::thread::yield_now(),
+            Err(error) => panic!("native trace map callback disconnected: {error}"),
+        }
+    }
+    let mapped = slice.get_mapped_range();
+    let words = bytemuck::cast_slice(&mapped).to_vec();
+    drop(mapped);
+    buffer.unmap();
+    words
+}
+
+#[test]
+fn trace_schedule_native_packet_keeps_later_clipmap_radiance_under_first_layer_saturation() {
+    use super::super::scene_trace_input_packet::{
+        scene_trace_input_packet, SCENE_TRACE_INPUT_WORD_OFFSET,
+    };
+    use zircon_runtime::core::framework::render::{
+        RenderHybridGiScenePrepareReadbackOutputs, RenderHybridGiVoxelCellSampleRecord,
+        RenderHybridGiVoxelClipmapRecord,
+    };
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(30);
+    let (device, queue) =
+        test_device().expect("fair packet GPU regression requires a real adapter");
+    let hit_depth = 0.25 + (0.75 - 0.25) * (4.0 / 7.0);
+    let (_hzb, view) = test_main_scene_hzb(&device, &queue, hit_depth);
+    let mut output = RenderHybridGiScenePrepareReadbackOutputs::default();
+    output.voxel_clipmaps = vec![
+        RenderHybridGiVoxelClipmapRecord {
+            clipmap_id: 5,
+            center_x_bits: 1000.0_f32.to_bits(),
+            half_extent_bits: 1.0_f32.to_bits(),
+            ..Default::default()
+        },
+        RenderHybridGiVoxelClipmapRecord {
+            clipmap_id: 6,
+            half_extent_bits: 2.0_f32.to_bits(),
+            ..Default::default()
+        },
+    ];
+    output.voxel_cell_samples = (0..64)
+        .map(|cell_id| RenderHybridGiVoxelCellSampleRecord {
+            clipmap_id: 5,
+            cell_id,
+            rgba8: [240, 20, 10, 255],
+        })
+        .collect();
+    output
+        .voxel_cell_samples
+        .push(RenderHybridGiVoxelCellSampleRecord {
+            clipmap_id: 6,
+            cell_id: 42,
+            rgba8: [12, 36, 72, 255],
+        });
+    for expected in [[12, 36, 72, 255], [96, 48, 24, 255]] {
+        output.voxel_cell_samples.last_mut().unwrap().rgba8 = expected;
+        let packet = scene_trace_input_packet(&output);
+        assert_eq!(&packet[2..4], &[2, 64]);
+        let mut scene = test_scene_words(quantize_depth_q24(0.25), quantize_depth_q24(0.75));
+        scene[SCENE_TRACE_INPUT_WORD_OFFSET..].copy_from_slice(&packet);
+        let words = run_trace_schedule_shader_bounded(&device, &queue, &scene, &view, deadline);
+        assert_eq!(words[0], TRACE_SCHEDULE_MAGIC);
+        assert_eq!(words[64], u32::from_le_bytes(expected));
+        assert_ne!(words[67] & (1 << 8), 0, "actual HZB hit");
+        assert_ne!(words[67] & (1 << 11), 0, "actual later-layer voxel lookup");
+        assert_ne!(words[70], 0, "actual selected cell support");
+    }
 }

@@ -89,12 +89,12 @@ pub(in crate::dynamic_api) use event_mirror::{
 };
 pub(super) use ffi::cancel_viewport_pick;
 pub(super) use ffi::{
-    bind_viewport_surface, capture_accessibility_tree, capture_frame, configure_app_session,
-    create_session, destroy_session, drain_host_requests, drain_plugin_events,
-    drain_world_invalidations, handle_event, poll_viewport_pick, present_viewport, profile_control,
-    query_world, release_allocation, request_viewport_pick, submit_highlight_set,
-    subscribe_plugin_event, tick_frame, unbind_viewport_surface, unsubscribe_plugin_event,
-    unwatch_world, watch_world,
+    bind_viewport_surface, bind_viewport_surface_v2, capture_accessibility_tree, capture_frame,
+    configure_app_session, create_session, destroy_session, drain_host_requests,
+    drain_plugin_events, drain_world_invalidations, handle_event, poll_viewport_pick,
+    present_viewport, profile_control, query_world, release_allocation, request_viewport_pick,
+    submit_highlight_set, subscribe_plugin_event, tick_frame, unbind_viewport_surface,
+    unsubscribe_plugin_event, unwatch_world, watch_world,
 };
 pub(super) use host_requests::{
     runtime_cursor_host_request, runtime_gamepad_rumble_request, runtime_ime_host_request,

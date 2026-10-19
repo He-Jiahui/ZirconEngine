@@ -27,12 +27,13 @@ fn product_publication_error_keeps_scene_and_copy_identity_at_framework_boundary
     )
     .expect("scene receipt");
     let error = render_framework_backend_error(GraphicsError::FrameProductPublicationFailed {
-        receipt: receipt.clone(),
+        receipt: Box::new(receipt.clone()),
         product_submission: Some(ticket(41)),
         source: Box::new(GraphicsError::SurfaceStatus("copy validation")),
     });
 
     assert_eq!(error.frame_submission_receipt(), Some(&receipt));
+    assert_eq!(error.clone(), error);
     assert_eq!(error.product_submission(), Some(ticket(41)));
 }
 

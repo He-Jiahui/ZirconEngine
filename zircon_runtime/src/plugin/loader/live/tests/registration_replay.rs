@@ -809,3 +809,160 @@ fn native_registration_replay_interleaved_reloaded_bridge_method(
         ZrStatus::new(ZrStatusCode::InvalidArgument, ZrByteSlice::empty())
     }
 }
+
+#[test]
+fn native_registration_replay_propagates_bridge_error_status_and_restores_system() {
+    use zircon_runtime_interface::{ZrByteSlice, ZrStatus, ZrStatusCode};
+
+    fn error_status(_call: NativeBridgeCall) -> ZrStatus {
+        ZrStatus::new(ZrStatusCode::Error, ZrByteSlice::empty())
+    }
+
+    fn invalid_argument_status(_call: NativeBridgeCall) -> ZrStatus {
+        ZrStatus::new(ZrStatusCode::InvalidArgument, ZrByteSlice::empty())
+    }
+
+    fn unknown_status(_call: NativeBridgeCall) -> ZrStatus {
+        ZrStatus {
+            code: u32::MAX,
+            diagnostics: ZrByteSlice::empty(),
+        }
+    }
+
+    let cases: [(fn(NativeBridgeCall) -> ZrStatus, u32, &str); 3] = [
+        (error_status, 1, "Error"),
+        (invalid_argument_status, 3, "InvalidArgument"),
+        (unknown_status, u32::MAX, "Error"),
+    ];
+
+    for (method, raw_code, normalized_code) in cases {
+        let mut plugin = native_live_host_dist_system_plugin();
+        let entry = plugin
+            .runtime_entry_report
+            .as_mut()
+            .expect("system fixture must expose its actual entry report");
+        entry.bridge_method_bindings.clear();
+        entry
+            .bridge_method_bindings
+            .push(NativeBridgeMethodBinding::new(
+                <dyn NativeLiveHostBridge as PluginInterface>::INTERFACE_ID,
+                "sample_count",
+                NativeBridgeMethodFn::from_rust(method),
+            ));
+
+        let host = NativePluginLiveHost::default();
+        let mut load_report = NativePluginLoadReport::default();
+        load_report.push_loaded(plugin);
+        host.load_reported_plugins(load_report, PluginModuleKind::Runtime)
+            .expect("actual bridge binding must load");
+
+        let lifecycle = native_live_host_bridge_lifecycle_state(false);
+        let mut registry = RuntimeExtensionRegistry::default();
+        let replay = host
+            .replay_runtime_registration_manifests_via_bridge(&mut registry, &lifecycle)
+            .expect("actual registration manifest must replay");
+        assert!(replay.is_clean());
+        assert_eq!(replay.registered_systems.len(), 1);
+        assert_eq!(
+            replay.registered_systems[0].system_id,
+            "physics.runtime_tick"
+        );
+
+        let mut world = World::default();
+        registry
+            .apply_to_world(&mut world)
+            .expect("replayed system must compile into the actual World");
+
+        let expected = format!(
+            "native plugin physics system physics.runtime_tick bridge call failed: {normalized_code} (raw status {raw_code})"
+        );
+        for _ in 0..2 {
+            let failure = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                world.run_native_scene_system("physics.runtime_tick")
+            }))
+            .expect_err("a real bridge error must fail the system invocation");
+            let message = failure
+                .downcast_ref::<String>()
+                .map(String::as_str)
+                .or_else(|| failure.downcast_ref::<&str>().copied())
+                .expect("bridge failure must expose its system and status");
+            assert_eq!(message, expected);
+            assert!(
+                world
+                    .schedule()
+                    .native_systems_for_stage(SystemStage::Update)
+                    .any(|system| system.id() == "physics.runtime_tick"),
+                "failed executable must be restored before failure propagates"
+            );
+        }
+    }
+}
+
+#[test]
+fn native_registration_replay_propagates_caught_bridge_method_panic() {
+    use zircon_runtime_interface::ZrStatus;
+
+    fn panicking_method(_call: NativeBridgeCall) -> ZrStatus {
+        panic!("intentional replay bridge method panic");
+    }
+
+    let mut plugin = native_live_host_dist_system_plugin();
+    let entry = plugin
+        .runtime_entry_report
+        .as_mut()
+        .expect("system fixture must expose its actual entry report");
+    entry.bridge_method_bindings.clear();
+    entry
+        .bridge_method_bindings
+        .push(NativeBridgeMethodBinding::new(
+            <dyn NativeLiveHostBridge as PluginInterface>::INTERFACE_ID,
+            "sample_count",
+            NativeBridgeMethodFn::from_rust(panicking_method),
+        ));
+
+    let host = NativePluginLiveHost::default();
+    let mut load_report = NativePluginLoadReport::default();
+    load_report.push_loaded(plugin);
+    host.load_reported_plugins(load_report, PluginModuleKind::Runtime)
+        .expect("actual bridge binding must load");
+
+    let lifecycle = native_live_host_bridge_lifecycle_state(false);
+    let mut registry = RuntimeExtensionRegistry::default();
+    let replay = host
+        .replay_runtime_registration_manifests_via_bridge(&mut registry, &lifecycle)
+        .expect("actual registration manifest must replay");
+    assert!(replay.is_clean());
+    assert_eq!(replay.registered_systems.len(), 1);
+    assert_eq!(
+        replay.registered_systems[0].system_id,
+        "physics.runtime_tick"
+    );
+
+    let mut world = World::default();
+    registry
+        .apply_to_world(&mut world)
+        .expect("replayed system must compile into the actual World");
+
+    for _ in 0..2 {
+        let failure = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            world.run_native_scene_system("physics.runtime_tick")
+        }))
+        .expect_err("the bridge's caught Panic status must fail system execution");
+        let message = failure
+            .downcast_ref::<String>()
+            .map(String::as_str)
+            .or_else(|| failure.downcast_ref::<&str>().copied())
+            .expect("bridge failure must expose its system and status");
+        assert_eq!(
+            message,
+            "native plugin physics system physics.runtime_tick bridge call failed: Panic (raw status 6)"
+        );
+        assert!(
+            world
+                .schedule()
+                .native_systems_for_stage(SystemStage::Update)
+                .any(|system| system.id() == "physics.runtime_tick"),
+            "failed executable must be restored before failure propagates"
+        );
+    }
+}

@@ -356,3 +356,372 @@ fn scene_prepare_mesh(node_id: u64, translation: Vec3, tint: Vec4) -> RenderMesh
         },
     }
 }
+
+#[test]
+fn provider_probe_history_requires_complete_scene_and_world_provenance() {
+    use zircon_runtime::core::framework::render::{
+        RenderHybridGiDebugView, RenderWorldSnapshotHandle,
+    };
+    fn prepare(
+        state: &mut PluginHybridGiRuntimeState,
+        extract: Option<&RenderHybridGiExtract>,
+        meshes: &[RenderMeshSnapshot],
+        world: Option<RenderWorldSnapshotHandle>,
+        invalidated: bool,
+    ) -> RenderHybridGiPreparedFrame {
+        let mut input = HybridGiRuntimePrepareInput::new(
+            extract,
+            meshes,
+            &[],
+            &[],
+            &[],
+            None,
+            false,
+            None,
+            100,
+        )
+        .with_view_state(None, invalidated);
+        if let Some(world) = world {
+            input = input.with_source_world(world);
+        }
+        state
+            .prepare_frame(input)
+            .prepared_frame()
+            .cloned()
+            .unwrap_or_default()
+    }
+    fn seed(state: &mut PluginHybridGiRuntimeState) {
+        state.update_after_render(HybridGiRuntimeFeedback::new(
+            Some(RuntimeHybridGiGpuCompletion::new(
+                vec![],
+                vec![0],
+                vec![],
+                vec![(0, [13, 29, 47])],
+                vec![(0, [97, 53, 19])],
+                None,
+            )),
+            None,
+        ));
+    }
+    let extract = scene_prepare_extract();
+    let base = scene_prepare_mesh(11, Vec3::ZERO, Vec4::ONE);
+    let world = RenderWorldSnapshotHandle::new(71).with_generation(5);
+    let mut state = PluginHybridGiRuntimeState::default();
+    let first = prepare(
+        &mut state,
+        Some(&extract),
+        &[base.clone()],
+        Some(world),
+        false,
+    );
+    assert_ne!(first.radiance_cache_instance_id, 0);
+    seed(&mut state);
+    let stable = prepare(
+        &mut state,
+        Some(&extract),
+        &[base.clone()],
+        Some(world.with_generation(6)),
+        false,
+    );
+    assert_eq!(
+        stable.radiance_cache_instance_id,
+        first.radiance_cache_instance_id
+    );
+    assert_eq!(
+        stable.probe_rt_lighting_rgb[0].rt_lighting_rgb,
+        [97, 53, 19]
+    );
+    assert_eq!(
+        state.state.build_resolve_runtime().probe_rt_lighting_rgb(0),
+        Some([97, 53, 19])
+    );
+    for (label, changed_world, invalidate) in [
+        (
+            "different-world",
+            Some(RenderWorldSnapshotHandle::new(72).with_generation(6)),
+            false,
+        ),
+        ("generation-rollback", Some(world.with_generation(4)), false),
+        ("unknown-world", None, false),
+        (
+            "offline-zero",
+            Some(RenderWorldSnapshotHandle::new(0)),
+            false,
+        ),
+        (
+            "explicit-invalidation",
+            Some(world.with_generation(7)),
+            true,
+        ),
+    ] {
+        let mut state = PluginHybridGiRuntimeState::default();
+        let before = prepare(
+            &mut state,
+            Some(&extract),
+            &[base.clone()],
+            Some(world),
+            false,
+        );
+        seed(&mut state);
+        let after = prepare(
+            &mut state,
+            Some(&extract),
+            &[base.clone()],
+            changed_world,
+            invalidate,
+        );
+        assert_ne!(
+            after.radiance_cache_instance_id, before.radiance_cache_instance_id,
+            "{label}"
+        );
+        assert_ne!(after.radiance_cache_instance_id, 0, "{label}");
+        assert!(after.probe_rt_lighting_rgb.is_empty(), "{label}");
+    }
+    let mut variants = Vec::new();
+    let mut v = base.clone();
+    v.model = ResourceHandle::new(ResourceId::from_stable_label("different-model"));
+    variants.push(v);
+    let mut v = base.clone();
+    v.mesh = Some(ResourceHandle::new(ResourceId::from_stable_label(
+        "different-mesh",
+    )));
+    variants.push(v);
+    let mut v = base.clone();
+    v.material = ResourceHandle::new(ResourceId::from_stable_label("different-material"));
+    variants.push(v);
+    let mut v = base.clone();
+    v.static_state.geometry_revision += 1;
+    variants.push(v);
+    let mut v = base.clone();
+    v.static_state.material_revision += 1;
+    variants.push(v);
+    let mut v = base.clone();
+    v.transform.translation.x += 0.25;
+    variants.push(v);
+    let mut v = base.clone();
+    v.transform_revision = v.transform_revision.wrapping_add(1);
+    variants.push(v);
+    let mut v = base.clone();
+    v.morph_weights.push(0.5);
+    variants.push(v);
+    let mut v = base.clone();
+    v.mesh_lod = Some(zircon_runtime::core::framework::render::RenderMeshLodSelection::new(1, 4.0));
+    variants.push(v);
+    let mut v = base.clone();
+    v.tint.x = 0.25;
+    variants.push(v);
+    let mut v = base.clone();
+    v.common.is_static = false;
+    variants.push(v);
+    let mut v = base.clone();
+    v.mobility = Mobility::Dynamic;
+    variants.push(v);
+    let mut v = base.clone();
+    v.stable_instance_key += 1;
+    variants.push(v);
+    let mut v = base.clone();
+    v.node_id += 1;
+    variants.push(v);
+    let mut v = base.clone();
+    v.transform.translation.x = f32::NAN;
+    variants.push(v);
+    for (index, changed) in variants.into_iter().enumerate() {
+        let mut state = PluginHybridGiRuntimeState::default();
+        let before = prepare(
+            &mut state,
+            Some(&extract),
+            &[base.clone()],
+            Some(world),
+            false,
+        );
+        seed(&mut state);
+        let after = prepare(
+            &mut state,
+            Some(&extract),
+            &[changed],
+            Some(world.with_generation(6)),
+            false,
+        );
+        assert_ne!(
+            before.radiance_cache_instance_id, after.radiance_cache_instance_id,
+            "mesh variant {index}"
+        );
+        assert!(
+            after.probe_rt_lighting_rgb.is_empty(),
+            "mesh variant {index}"
+        );
+    }
+    let mut changed = extract.clone();
+    changed.debug_view = RenderHybridGiDebugView::SurfaceCache;
+    seed(&mut state);
+    let changed_settings = prepare(
+        &mut state,
+        Some(&changed),
+        &[base.clone()],
+        Some(world.with_generation(7)),
+        false,
+    );
+    assert_ne!(
+        stable.radiance_cache_instance_id,
+        changed_settings.radiance_cache_instance_id
+    );
+    assert!(changed_settings.probe_rt_lighting_rgb.is_empty());
+    seed(&mut state);
+    let disabled = prepare(
+        &mut state,
+        None,
+        &[base.clone()],
+        Some(world.with_generation(8)),
+        false,
+    );
+    assert!(disabled.is_empty());
+    let restarted = prepare(
+        &mut state,
+        Some(&extract),
+        &[base.clone()],
+        Some(world.with_generation(9)),
+        false,
+    );
+    assert_ne!(
+        restarted.radiance_cache_instance_id,
+        changed_settings.radiance_cache_instance_id
+    );
+    assert!(restarted.probe_rt_lighting_rgb.is_empty());
+    seed(&mut state);
+    state.state.register_extract(Some(&extract));
+    assert_eq!(
+        state.state.build_resolve_runtime().probe_rt_lighting_rgb(0),
+        None
+    );
+}
+
+#[test]
+fn scene_probe_history_compares_all_lights_and_the_complete_baked_contract() {
+    use zircon_runtime::core::framework::render::{
+        LightmapAtlasDescriptor, LightmapAtlasFormat, LightmapConsumeContract,
+        LightmapInstanceSlot, RenderDirectionalLightSnapshot, RenderHybridGiMode,
+        RenderPointLightSnapshot, RenderSpotLightSnapshot,
+    };
+    let mesh = scene_prepare_mesh(11, Vec3::ZERO, Vec4::ONE);
+    let mut extract = scene_prepare_extract();
+    extract.mode = RenderHybridGiMode::BakedStaticDynamic;
+    let directional = RenderDirectionalLightSnapshot {
+        node_id: 1,
+        light_id: 1,
+        layer_mask: RenderLayerSet::from_scene_schema_v1_mask(u32::MAX),
+        direction: Vec3::NEG_Y,
+        color: Vec3::ONE,
+        intensity: 1.0,
+        mobility: Mobility::Static,
+        shadow: None,
+    };
+    let point = RenderPointLightSnapshot {
+        node_id: 2,
+        light_id: 2,
+        layer_mask: directional.layer_mask.clone(),
+        position: Vec3::ONE,
+        color: Vec3::ONE,
+        intensity: 1.0,
+        range: 4.0,
+        mobility: Mobility::Static,
+        shadow: None,
+    };
+    let spot = RenderSpotLightSnapshot {
+        node_id: 3,
+        light_id: 3,
+        layer_mask: directional.layer_mask.clone(),
+        position: Vec3::ONE,
+        direction: Vec3::NEG_Y,
+        color: Vec3::ONE,
+        intensity: 1.0,
+        range: 4.0,
+        inner_angle_radians: 0.25,
+        outer_angle_radians: 0.5,
+        mobility: Mobility::Static,
+        shadow: None,
+    };
+    let contract = |generation, atlas, page_size, uv| {
+        LightmapConsumeContract::new(
+            generation,
+            ResourceId::from_stable_label(atlas),
+            LightmapAtlasDescriptor {
+                page_size,
+                page_count: 1,
+                format: LightmapAtlasFormat::Rgba16Float,
+            },
+            vec![(
+                mesh.stable_instance_key,
+                LightmapInstanceSlot {
+                    atlas_page: 0,
+                    uv_rect: uv,
+                },
+            )],
+        )
+    };
+    let baked = contract(7, "baked-history-atlas", 4, Vec4::new(1.0, 1.0, 0.0, 0.0));
+    for variant in 0..9 {
+        let mut state = HybridGiRuntimeState::default();
+        state.register_scene_extract(
+            Some(&extract),
+            &[mesh.clone()],
+            &[directional.clone()],
+            &[point.clone()],
+            &[spot.clone()],
+            Some(&baked),
+            true,
+        );
+        state.complete_gpu_updates([0], [], &[(0, [13, 29, 47])], &[(0, [97, 53, 19])], &[]);
+        assert!(state.register_scene_extract_with_view_state(
+            Some(&extract),
+            &[mesh.clone()],
+            &[directional.clone()],
+            &[point.clone()],
+            &[spot.clone()],
+            Some(&baked),
+            true,
+            None,
+            false
+        ));
+        assert_eq!(
+            state.build_resolve_runtime().probe_rt_lighting_rgb(0),
+            Some([97, 53, 19])
+        );
+        let mut d = directional.clone();
+        let mut p = point.clone();
+        let mut s = spot.clone();
+        let mut b = baked.clone();
+        let mut grid = true;
+        let mut settings = extract.clone();
+        match variant {
+            0 => d.color.x = 0.25,
+            1 => p.range = 8.0,
+            2 => s.outer_angle_radians = 0.75,
+            3 => b = contract(8, "baked-history-atlas", 4, Vec4::new(1.0, 1.0, 0.0, 0.0)),
+            4 => b = contract(7, "different-baked-atlas", 4, Vec4::new(1.0, 1.0, 0.0, 0.0)),
+            5 => b = contract(7, "baked-history-atlas", 8, Vec4::new(1.0, 1.0, 0.0, 0.0)),
+            6 => b = contract(7, "baked-history-atlas", 4, Vec4::new(0.5, 0.5, 0.0, 0.0)),
+            7 => grid = false,
+            8 => settings.trace_budget += 1,
+            _ => unreachable!(),
+        }
+        assert!(
+            !state.register_scene_extract_with_view_state(
+                Some(&settings),
+                &[mesh.clone()],
+                &[d],
+                &[p],
+                &[s],
+                Some(&b),
+                grid,
+                None,
+                false
+            ),
+            "source variant {variant}"
+        );
+        assert_eq!(
+            state.build_resolve_runtime().probe_rt_lighting_rgb(0),
+            None,
+            "source variant {variant}"
+        );
+    }
+}

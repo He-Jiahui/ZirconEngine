@@ -698,3 +698,308 @@ fn readback_u32s(device: &wgpu::Device, buffer: &wgpu::Buffer, word_count: usize
     buffer.unmap();
     data
 }
+
+#[test]
+fn probe_gpu_rgb_survives_compatible_scene_registration_and_reaches_next_projection() {
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(30);
+    let (device, queue) = test_device().expect("probe history regression requires a real GPU");
+    let params_buffer = create_probe_trace_tile_dispatch_params_buffer(
+        &device,
+        1,
+        0,
+        1,
+        ProbeTraceTileSurfaceCacheParams {
+            texture_available: 1,
+            atlas_width: 1,
+            atlas_height: 1,
+            atlas_columns: 1,
+            tile_extent: 1,
+        },
+        0,
+    );
+    let resident_probe_buffer = create_storage_buffer(
+        &device,
+        "zircon-hybrid-gi-trace-probe-tiles-surface-cache-test-resident-probe",
+        &[resident_probe_input(0)],
+    );
+    let pending_probe_buffer = create_storage_buffer(
+        &device,
+        "zircon-hybrid-gi-trace-probe-tiles-surface-cache-test-pending-probe",
+        &[GpuPendingProbeInput::zeroed()],
+    );
+    let probe_trace_tile_buffer = create_storage_buffer(
+        &device,
+        "zircon-hybrid-gi-trace-probe-tiles-surface-cache-test-tile-schedule",
+        &[0_u32, 0, 0, 12],
+    );
+    let trace_lighting_buffer = create_trace_lighting_buffer(&device, 3);
+    let readback_buffer = create_readback_buffer(&device, 3);
+    let scene_prepare_descriptor_buffer = create_zeroed_scene_prepare_descriptor_buffer(&device);
+    let (_atlas_texture, atlas_view) = create_test_surface_cache_texture(
+        &device,
+        &queue,
+        "zircon-hybrid-gi-trace-probe-tiles-surface-cache-test-atlas",
+        [200, 80, 20, 255],
+    );
+    let (_depth_texture, depth_view) = create_test_surface_cache_texture(
+        &device,
+        &queue,
+        "zircon-hybrid-gi-trace-probe-tiles-surface-cache-test-depth",
+        [128, 128, 128, 255],
+    );
+    let bind_group_layout = create_probe_trace_tile_dispatch_bind_group_layout(&device);
+    let pipeline = create_probe_trace_tile_dispatch_pipeline(&device, &bind_group_layout);
+    let bind_group = create_probe_trace_tile_dispatch_bind_group(
+        &device,
+        &bind_group_layout,
+        &params_buffer,
+        &resident_probe_buffer,
+        &pending_probe_buffer,
+        &probe_trace_tile_buffer,
+        &trace_lighting_buffer,
+        &atlas_view,
+        &depth_view,
+        &scene_prepare_descriptor_buffer,
+    );
+
+    let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+        label: Some("zircon-hybrid-gi-trace-probe-tiles-surface-cache-test-encoder"),
+    });
+    encode_probe_trace_tile_dispatch(&mut encoder, &pipeline, &bind_group, 1);
+    encoder.copy_buffer_to_buffer(
+        &trace_lighting_buffer,
+        0,
+        &readback_buffer,
+        0,
+        (3 * std::mem::size_of::<u32>()) as u64,
+    );
+    queue.submit(std::iter::once(encoder.finish()));
+
+    let words = read_history_words_bounded(&device, &readback_buffer, 3, deadline);
+    assert_eq!(words[0], 1);
+    assert_eq!(words[1], 0);
+    assert_eq!(
+        words[2],
+        pack_rgb8([150, 60, 15]),
+        "expected trace_probe_tiles.wgsl to use surface-cache atlas/depth textureLoad"
+    );
+
+    use zircon_runtime::core::framework::render::{
+        RenderHybridGiExtract, RenderMeshSnapshot, RenderMeshStaticState, RendererCommon,
+    };
+    use zircon_runtime::core::framework::scene::Mobility;
+    use zircon_runtime::core::math::{Transform, Vec3, Vec4};
+    use zircon_runtime::core::resource::{ResourceHandle, ResourceId};
+    let rgb = [
+        (words[2] & 255) as u8,
+        ((words[2] >> 8) & 255) as u8,
+        ((words[2] >> 16) & 255) as u8,
+    ];
+    let extract = RenderHybridGiExtract {
+        enabled: true,
+        trace_budget: 1,
+        card_budget: 1,
+        voxel_budget: 1,
+        ..Default::default()
+    };
+    let mesh = RenderMeshSnapshot {
+        node_id: 17,
+        stable_instance_key: 170,
+        transform_revision: 1,
+        transform: Transform::default(),
+        model: ResourceHandle::new(ResourceId::from_stable_label("native-history-model")),
+        mesh: None,
+        material: ResourceHandle::new(ResourceId::from_stable_label("native-history-material")),
+        mesh_lod: None,
+        morph_weights: vec![],
+        tint: Vec4::ONE,
+        mobility: Mobility::Static,
+        static_state: RenderMeshStaticState::new(true, 1, 1),
+        common: RendererCommon::default(),
+    };
+    let mut state = crate::hybrid_gi::HybridGiRuntimeState::default();
+    state.register_scene_extract(Some(&extract), &[mesh.clone()], &[], &[], &[], None, false);
+    state.complete_gpu_updates([0], [], &[], &[(0, rgb)], &[]);
+    assert!(state.register_scene_extract_with_view_state(
+        Some(&extract),
+        &[mesh.clone()],
+        &[],
+        &[],
+        &[],
+        None,
+        false,
+        Some(Vec3::ZERO),
+        false
+    ));
+    assert_eq!(
+        state.build_resolve_runtime().probe_rt_lighting_rgb(0),
+        Some(rgb)
+    );
+    let prepare = state.build_prepare_frame();
+    assert!(!prepare.resident_probes.is_empty());
+    let mut changed = mesh.clone();
+    changed.static_state.material_revision += 1;
+    assert!(!state.register_scene_extract_with_view_state(
+        Some(&extract),
+        &[changed],
+        &[],
+        &[],
+        &[],
+        None,
+        false,
+        None,
+        false
+    ));
+    assert_eq!(state.build_resolve_runtime().probe_rt_lighting_rgb(0), None);
+    state.register_scene_extract(Some(&extract), &[mesh.clone()], &[], &[], &[], None, false);
+    state.complete_gpu_updates([0], [], &[], &[(0, rgb)], &[]);
+    assert!(!state.register_scene_extract_with_view_state(
+        Some(&extract),
+        &[mesh],
+        &[],
+        &[],
+        &[],
+        None,
+        false,
+        None,
+        true
+    ));
+    assert_eq!(state.build_resolve_runtime().probe_rt_lighting_rgb(0), None);
+}
+
+fn read_history_words_bounded(
+    device: &wgpu::Device,
+    buffer: &wgpu::Buffer,
+    count: usize,
+    deadline: std::time::Instant,
+) -> Vec<u32> {
+    let slice = buffer.slice(..(count * 4) as u64);
+    let (tx, rx) = mpsc::channel();
+    slice.map_async(wgpu::MapMode::Read, move |result| {
+        tx.send(result).ok();
+    });
+    loop {
+        assert!(
+            std::time::Instant::now() < deadline,
+            "native HGI deadline exceeded"
+        );
+        device.poll(wgpu::PollType::Poll).expect("native HGI poll");
+        match rx.try_recv() {
+            Ok(result) => {
+                result.expect("native HGI map");
+                break;
+            }
+            Err(mpsc::TryRecvError::Empty) => std::thread::yield_now(),
+            Err(error) => panic!("native HGI map callback disconnected: {error}"),
+        }
+    }
+    let mapped = slice.get_mapped_range();
+    let words = bytemuck::cast_slice(&mapped).to_vec();
+    drop(mapped);
+    buffer.unmap();
+    words
+}
+
+#[test]
+fn scene_prepare_native_snapshot_projects_actual_metadata_and_gpu_samples() {
+    use crate::hybrid_gi::renderer::{
+        HybridGiGpuResources, HybridGiMaterialCaptureSeed, HybridGiMaterialCaptureSource,
+        HybridGiMaterialCaptureTextureKey,
+    };
+    use crate::hybrid_gi::types::{
+        HybridGiPrepareSurfaceCachePageContent, HybridGiPrepareVoxelClipmap,
+    };
+    use zircon_runtime::core::framework::render::RenderHybridGiScenePrepareReadbackOutputs;
+    use zircon_runtime::core::math::{Vec3, Vec4};
+    use zircon_runtime::core::resource::ResourceId;
+    struct PersistedSource;
+    impl HybridGiMaterialCaptureSource for PersistedSource {
+        fn material_capture_seed(&self, _: &ResourceId) -> Option<HybridGiMaterialCaptureSeed> {
+            None
+        }
+        fn sample_texture_rgba(
+            &self,
+            _: Option<HybridGiMaterialCaptureTextureKey>,
+            _: [f32; 2],
+        ) -> Option<Vec4> {
+            None
+        }
+    }
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(30);
+    let (device, queue) = test_device().expect("metadata regression requires a real GPU");
+    let gpu = HybridGiGpuResources::new(&device);
+    let mut input =
+        super::super::hybrid_gi_prepare_execution_inputs::HybridGiPrepareExecutionInputs::default();
+    input
+        .scene_surface_cache_page_contents
+        .push(HybridGiPrepareSurfaceCachePageContent {
+            page_id: 71,
+            owner_card_id: 17,
+            atlas_slot_id: 3,
+            capture_slot_id: 2,
+            bounds_center: Vec3::new(-2.0, 3.0, 4.0),
+            bounds_radius: 0.75,
+            atlas_sample_rgba: [13, 29, 47, 255],
+            capture_sample_rgba: [5, 9, 17, 255],
+        });
+    input
+        .scene_voxel_clipmaps
+        .push(HybridGiPrepareVoxelClipmap {
+            clipmap_id: 9,
+            center: Vec3::new(1.0, 2.0, 3.0),
+            half_extent: 8.0,
+        });
+    let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor::default());
+    let buffers = super::super::create_buffers::create_buffers(
+        &gpu,
+        &device,
+        &mut encoder,
+        &PersistedSource,
+        &input,
+        Some(1),
+    );
+    let mut resources = buffers
+        .scene_prepare_resources
+        .expect("actual source resource factory output");
+    let atlas_readback_buffers = resources
+        .atlas_slot_sample_buffers
+        .iter()
+        .map(|(slot, buffer)| {
+            let staging = device.create_buffer(&wgpu::BufferDescriptor {
+                label: Some("zircon-hybrid-gi-scene-prepare-atlas-test-readback"),
+                size: 4,
+                usage: wgpu::BufferUsages::MAP_READ | wgpu::BufferUsages::COPY_DST,
+                mapped_at_creation: false,
+            });
+            encoder.copy_buffer_to_buffer(buffer, 0, &staging, 0, 4);
+            (*slot, staging)
+        })
+        .collect::<Vec<_>>();
+    queue.submit([encoder.finish()]);
+    let atlas = atlas_readback_buffers
+        .iter()
+        .map(|(slot, buffer)| {
+            let word = read_history_words_bounded(&device, buffer, 1, deadline)[0];
+            (*slot, word.to_le_bytes())
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(atlas, vec![(3, [13, 29, 47, 255])]);
+    resources
+        .snapshot
+        .store_texture_slot_rgba_samples(atlas, vec![]);
+    let neutral = RenderHybridGiScenePrepareReadbackOutputs::from(resources.snapshot);
+    assert_eq!(neutral.surface_cache_pages.len(), 1);
+    let page = neutral.surface_cache_pages[0];
+    assert_eq!(
+        (page.page_id, page.owner_card_id, page.atlas_slot_id),
+        (71, 17, 3)
+    );
+    assert_eq!(page.bounds_center_x_bits, (-2.0_f32).to_bits());
+    assert_eq!(page.bounds_radius_bits, 0.75_f32.to_bits());
+    assert_eq!(page.radiance_rgba8, [13, 29, 47, 255]);
+    assert_eq!(neutral.voxel_clipmaps[0].clipmap_id, 9);
+    assert_eq!(
+        neutral.voxel_clipmaps[0].half_extent_bits,
+        8.0_f32.to_bits()
+    );
+}

@@ -5,7 +5,9 @@ use crate::graphics::scene::scene_renderer::mesh::mesh_pass::{
     MeshDrawCommandReplayer, MeshDrawCommandStream, MeshDrawReplayStats, MeshPassPipelineKind,
     MeshSceneDataBindHandle,
 };
-use crate::graphics::scene::scene_renderer::mesh::MeshPipelineCache;
+use crate::graphics::scene::scene_renderer::mesh::{
+    MeshPipelineCache, VirtualGeometryIndexedRunRef,
+};
 use crate::graphics::types::ViewportRenderRegion;
 use crate::render_graph::RenderGraphAttachmentOps;
 
@@ -33,6 +35,7 @@ impl DeferredSceneResources {
         emissive_attachment_ops: RenderGraphAttachmentOps,
         render_region: ViewportRenderRegion,
         mesh_draw_commands: I,
+        indexed_journal: Option<&mut Vec<VirtualGeometryIndexedRunRef>>,
     ) -> MeshDrawReplayStats
     where
         I: IntoIterator<Item = MeshDrawCommandStream<'a>>,
@@ -146,6 +149,10 @@ impl DeferredSceneResources {
                 replayer.bind_geometry_if_needed(pass, command);
                 true
             });
+        }
+        drop(pass);
+        if let Some(journal) = indexed_journal {
+            journal.extend(replayer.take_issued_indexed_runs());
         }
         replayer.stats()
     }

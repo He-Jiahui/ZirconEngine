@@ -31,7 +31,8 @@ impl RetainedOwnerV1 for DynamicComponentCreationId {
         self.0.retained_bound_v1(meter)
     }
 }
-// The token's payload is immutable and allocation-free; aliases cannot grow it.
+// SAFETY: Arc<()> has an immutable, fixed-size payload; clones share the same
+// allocation, and no alias can grow the retained owner graph.
 unsafe impl ImmutableRetainedOwnerV1 for DynamicComponentCreationId {}
 
 impl DynamicComponentCreationId {

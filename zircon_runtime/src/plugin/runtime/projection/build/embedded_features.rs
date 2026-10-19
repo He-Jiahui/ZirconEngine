@@ -1,5 +1,6 @@
 use std::collections::HashSet;
 
+use crate::plugin::runtime_plugin::embedded_feature_provider_identity::runtime_plugin_package_feature_provider_package_id;
 use crate::plugin::{PluginFeatureBundleManifest, PluginPackageManifest};
 
 use super::super::duplicate_identity::DuplicateIdentity;
@@ -7,7 +8,7 @@ use super::super::duplicate_occurrence::{DuplicateOccurrence, EmbeddedFeatureKin
 use super::index_identity;
 
 /// 统一索引两类内嵌特性，供特性校验借用包视图，避免逐特性重建重复集合。
-/// 提供者身份按特性与提供包组合去重，缺省提供包沿用宿主包。
+/// 提供者身份与目录发布共用规则，按特性与有效提供包组合去重。
 pub(super) fn index_embedded_features<'a>(
     manifest: &'a PluginPackageManifest,
     seen: &mut HashSet<DuplicateIdentity<'a>>,
@@ -25,10 +26,8 @@ pub(super) fn index_embedded_features<'a>(
         ),
     ] {
         for (feature_index, feature) in features.iter().enumerate() {
-            let provider = feature
-                .provider_package_id
-                .as_deref()
-                .unwrap_or(manifest.id.as_str());
+            let provider =
+                runtime_plugin_package_feature_provider_package_id(manifest, feature, kind);
             index_identity(
                 seen,
                 duplicates,

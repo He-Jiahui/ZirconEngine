@@ -75,7 +75,7 @@ pub(crate) fn package_lock_state(
     Ok(ProjectPackageLockState::Present {
         schema_version:
             zircon_runtime_interface::project::PROJECT_PACKAGE_LOCK_STATE_SCHEMA_VERSION_V1,
-        lock,
+        lock: Box::new(lock),
         digest,
     })
 }

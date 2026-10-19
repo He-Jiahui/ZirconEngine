@@ -2,22 +2,14 @@ use std::collections::BTreeSet;
 use std::path::Path;
 
 use super::inventory::{
-    BEHAVIOR_TEST_ANCHORS, BOUNDED_STREAM_IO_CAPTURE_ANCHORS, BOUNDED_STREAM_IO_LANE_ANCHORS,
-    BOUNDED_STREAM_IO_STATE_ANCHORS, BOUNDED_STREAM_IO_WORKER_ANCHORS, CALLBACK_DISPATCHER_ANCHORS,
-    DIAGNOSTIC_ANCHORS, ENGINE_TASK_GRAPH_ANCHORS, EXPECTED_DIRECT_RAYON_PATHS,
-    EXPECTED_JOB_SYSTEM_MODULES, FORBIDDEN_LEGACY_DIAGNOSTIC_ANCHORS,
-    FORBIDDEN_SCHEDULE_EXECUTOR_RAYON_ANCHORS, JOB_HANDLE_ANCHORS, JOB_SCHEDULER_ANCHORS,
-    JOB_SCHEDULER_PENDING_ANCHORS, JOB_SCHEDULER_TEST_ANCHORS, JOB_SYSTEM_MODULE_MAX_LINES,
-    MIRROR_DOC_ANCHORS, PARALLEL_FOR_ANCHORS, REPORT_ANCHORS, RETAINED_BYTE_BUDGET_ANCHORS,
-    SCHEDULE_EXECUTOR_ANCHORS, TASKS_MOD_DECLARATIONS, TASKS_MOD_PUBLIC_ANCHORS,
-    TASK_CANCELLATION_POLICY_ANCHORS, TASK_DESCRIPTOR_ANCHORS, TASK_DIAGNOSTIC_JOURNAL_ANCHORS,
-    TASK_DIAGNOSTIC_OBSERVATION_ANCHORS, TASK_GRAPH_ADMISSION_ANCHORS,
-    TASK_GRAPH_CANCELLATION_ANCHORS, TASK_GRAPH_HANDLE_ANCHORS, TASK_GRAPH_LEASE_ANCHORS,
-    TASK_GRAPH_SCOPE_ANCHORS, TASK_ID_ANCHORS, TASK_NODE_ANCHORS, TASK_POOL_DESCRIPTOR_ANCHORS,
-    TASK_POOL_KIND_ANCHORS, TASK_POOL_SUBMISSION_ANCHORS, TASK_STATE_ANCHORS, TASK_STATUS_ANCHORS,
-    TIMER_ANCHORS,
+    BEHAVIOR_TEST_ANCHORS, EXPECTED_DIRECT_RAYON_PATHS, EXPECTED_JOB_SYSTEM_MODULES,
+    FORBIDDEN_SCHEDULE_EXECUTOR_RAYON_ANCHORS, JOB_SYSTEM_MODULE_MAX_LINES, MIRROR_DOC_ANCHORS,
+    SCHEDULE_EXECUTOR_ANCHORS,
 };
 use super::source_helpers::{collect_direct_rayon_paths, line_count};
+
+#[path = "owner_contracts.rs"]
+mod owner_contracts;
 
 #[test]
 fn runtime_11_job_system_mirror_docs_match_structure_audit_counts() {
@@ -41,194 +33,7 @@ fn runtime_11_job_system_mirror_docs_match_structure_audit_counts() {
         );
     }
 
-    let tasks_mod = include_str!("../../../core/runtime/tasks/mod.rs");
-    assert_contains_all(
-        "core/runtime/tasks/mod.rs declarations",
-        tasks_mod,
-        TASKS_MOD_DECLARATIONS,
-    );
-    assert_contains_all(
-        "core/runtime/tasks/mod.rs public surface",
-        tasks_mod,
-        TASKS_MOD_PUBLIC_ANCHORS,
-    );
-
-    let callback_dispatcher = include_str!("../../../core/runtime/tasks/callback_dispatcher.rs");
-    assert_contains_all(
-        "TaskCallbackDispatcher",
-        callback_dispatcher,
-        CALLBACK_DISPATCHER_ANCHORS,
-    );
-
-    let diagnostic_observation =
-        include_str!("../../../core/runtime/tasks/diagnostic_observation/mod.rs");
-    assert_contains_all(
-        "TaskDiagnostic observation contract",
-        diagnostic_observation,
-        TASK_DIAGNOSTIC_OBSERVATION_ANCHORS,
-    );
-    let diagnostic_journal =
-        include_str!("../../../core/runtime/tasks/diagnostic_observation/journal.rs");
-    assert_contains_all(
-        "TaskDiagnostic bounded journal",
-        diagnostic_journal,
-        TASK_DIAGNOSTIC_JOURNAL_ANCHORS,
-    );
-
-    let bounded_stream_io_lane =
-        include_str!("../../../core/runtime/tasks/bounded_stream_io/lane.rs");
-    assert_contains_all(
-        "bounded stream I/O lane",
-        bounded_stream_io_lane,
-        BOUNDED_STREAM_IO_LANE_ANCHORS,
-    );
-    let bounded_stream_io_capture =
-        include_str!("../../../core/runtime/tasks/bounded_stream_io/capture.rs");
-    assert_contains_all(
-        "bounded stream I/O capture",
-        bounded_stream_io_capture,
-        BOUNDED_STREAM_IO_CAPTURE_ANCHORS,
-    );
-    let bounded_stream_io_state =
-        include_str!("../../../core/runtime/tasks/bounded_stream_io/state.rs");
-    assert_contains_all(
-        "bounded stream I/O state",
-        bounded_stream_io_state,
-        BOUNDED_STREAM_IO_STATE_ANCHORS,
-    );
-    let bounded_stream_io_worker =
-        include_str!("../../../core/runtime/tasks/bounded_stream_io/worker.rs");
-    assert_contains_all(
-        "bounded stream I/O worker",
-        bounded_stream_io_worker,
-        BOUNDED_STREAM_IO_WORKER_ANCHORS,
-    );
-
-    let job_scheduler = include_str!("../../../core/runtime/tasks/job_scheduler.rs");
-    assert_contains_all("JobScheduler", job_scheduler, JOB_SCHEDULER_ANCHORS);
-    let job_scheduler_pending =
-        include_str!("../../../core/runtime/tasks/job_scheduler/pending.rs");
-    assert_contains_all(
-        "JobScheduler pending dependency owner",
-        job_scheduler_pending,
-        JOB_SCHEDULER_PENDING_ANCHORS,
-    );
-    let job_scheduler_tests =
-        include_str!("../../../core/runtime/tasks/job_scheduler/tests/cases.rs");
-    assert_contains_all(
-        "JobScheduler tests",
-        job_scheduler_tests,
-        JOB_SCHEDULER_TEST_ANCHORS,
-    );
-
-    let job_handle = include_str!("../../../core/runtime/tasks/job_handle.rs");
-    assert_contains_all("JobHandle", job_handle, JOB_HANDLE_ANCHORS);
-    let task_node = include_str!("../../../core/runtime/tasks/job_handle/task_node.rs");
-    assert_contains_all("TaskNode", task_node, TASK_NODE_ANCHORS);
-
-    let parallel_for = include_str!("../../../core/runtime/tasks/parallel_for.rs");
-    assert_contains_all("parallel_for primitive", parallel_for, PARALLEL_FOR_ANCHORS);
-
-    let task_pool = include_str!("../../../core/runtime/tasks/pool.rs");
-    assert_contains_all(
-        "TaskPool submission authority",
-        task_pool,
-        TASK_POOL_SUBMISSION_ANCHORS,
-    );
-
-    let diagnostics = include_str!("../../../core/runtime/tasks/diagnostics.rs");
-    assert_contains_all("JobSystem diagnostics", diagnostics, DIAGNOSTIC_ANCHORS);
-
-    let report = include_str!("../../../core/runtime/tasks/report.rs");
-    assert_contains_all("JobSystem report", report, REPORT_ANCHORS);
-
-    let retained_byte_budget = include_str!("../../../core/runtime/tasks/retained_byte_budget.rs");
-    assert_contains_all(
-        "retained byte budget",
-        retained_byte_budget,
-        RETAINED_BYTE_BUDGET_ANCHORS,
-    );
-
-    let timer = include_str!("../../../core/runtime/tasks/timer.rs");
-    assert_contains_all("TaskTimer", timer, TIMER_ANCHORS);
-
-    let task_graph = include_str!("../../../core/runtime/tasks/task_graph/engine_task_graph.rs");
-    assert_contains_all("EngineTaskGraph", task_graph, ENGINE_TASK_GRAPH_ANCHORS);
-    let task_graph_lease = include_str!("../../../core/runtime/tasks/task_graph/lease.rs");
-    assert_contains_all(
-        "TaskGraphClientLease",
-        task_graph_lease,
-        TASK_GRAPH_LEASE_ANCHORS,
-    );
-    let task_graph_cancellation =
-        include_str!("../../../core/runtime/tasks/task_graph/scope/cancellation.rs");
-    assert_contains_all(
-        "TaskCancellationToken",
-        task_graph_cancellation,
-        TASK_GRAPH_CANCELLATION_ANCHORS,
-    );
-    let task_graph_admission =
-        include_str!("../../../core/runtime/tasks/task_graph/scope/task_admission.rs");
-    assert_contains_all(
-        "TaskGraph admission",
-        task_graph_admission,
-        TASK_GRAPH_ADMISSION_ANCHORS,
-    );
-    let task_graph_scope = include_str!("../../../core/runtime/tasks/task_graph/scope.rs");
-    assert_contains_all("TaskGraphScope", task_graph_scope, TASK_GRAPH_SCOPE_ANCHORS);
-    let task_graph_handle = include_str!("../../../core/runtime/tasks/task_graph/task_handle.rs");
-    assert_contains_all("TaskHandle", task_graph_handle, TASK_GRAPH_HANDLE_ANCHORS);
-
-    assert_contains_all(
-        "TaskCancellationPolicy",
-        include_str!("../../../core/runtime/tasks/task_cancellation_policy.rs"),
-        TASK_CANCELLATION_POLICY_ANCHORS,
-    );
-    assert_contains_all(
-        "TaskDescriptor",
-        include_str!("../../../core/runtime/tasks/task_descriptor.rs"),
-        TASK_DESCRIPTOR_ANCHORS,
-    );
-    assert_contains_all(
-        "TaskId",
-        include_str!("../../../core/runtime/tasks/task_id.rs"),
-        TASK_ID_ANCHORS,
-    );
-    assert_contains_all(
-        "TaskPoolDescriptor",
-        include_str!("../../../core/runtime/tasks/task_pool_descriptor.rs"),
-        TASK_POOL_DESCRIPTOR_ANCHORS,
-    );
-    assert_contains_all(
-        "TaskPoolKind",
-        include_str!("../../../core/runtime/tasks/task_pool_kind.rs"),
-        TASK_POOL_KIND_ANCHORS,
-    );
-    assert_contains_all(
-        "TaskState",
-        include_str!("../../../core/runtime/tasks/task_state.rs"),
-        TASK_STATE_ANCHORS,
-    );
-    assert_contains_all(
-        "TaskStatus",
-        include_str!("../../../core/runtime/tasks/task_status.rs"),
-        TASK_STATUS_ANCHORS,
-    );
-
-    for legacy_anchor in FORBIDDEN_LEGACY_DIAGNOSTIC_ANCHORS {
-        for (owner_name, owner_source) in [
-            ("tasks mod", tasks_mod),
-            ("JobScheduler", job_scheduler),
-            ("JobHandle", job_handle),
-            ("JobSystem diagnostics", diagnostics),
-            ("JobSystem report", report),
-        ] {
-            assert!(
-                !owner_source.contains(legacy_anchor),
-                "{owner_name} must not retain retired task diagnostic anchor `{legacy_anchor}`"
-            );
-        }
-    }
+    let (job_scheduler_tests, task_graph) = owner_contracts::assert_task_owner_contracts();
 
     let tasks_tests = include_str!("../../tasks.rs");
     let task_diagnostics_tests = include_str!("../../tasks/diagnostics.rs");
@@ -252,9 +57,23 @@ fn runtime_11_job_system_mirror_docs_match_structure_audit_counts() {
         include_str!("../../../core/runtime/tasks/bounded_stream_io/tests/cases.rs");
     let retained_byte_budget_tests =
         include_str!("../../../core/runtime/tasks/retained_byte_budget/tests/cases.rs");
-    let dynamic_scene_spawn_tests = include_str!("../../../scene/dynamic/spawn_task/loader.rs");
-    let level_manager_project_io_tests =
+    let dynamic_scene_spawn = include_str!("../../../scene/dynamic/spawn_task/loader.rs");
+    assert!(dynamic_scene_spawn.contains("#[path = \"tests/loader.rs\"]"));
+    assert!(dynamic_scene_spawn.contains("mod tests;"));
+    let dynamic_scene_spawn_tests =
+        include_str!("../../../scene/dynamic/spawn_task/tests/loader.rs");
+    let level_manager_project_io =
         include_str!("../../../scene/module/level_manager_project_io.rs");
+    assert!(level_manager_project_io
+        .replace("\r\n", "\n")
+        .contains("#[cfg(test)]\n#[path = \"tests/level_manager_project_io.rs\"]\nmod tests;"));
+    let level_manager_project_io_tests =
+        include_str!("../../../scene/module/tests/level_manager_project_io.rs");
+    assert!(level_manager_project_io_tests.contains(
+        "#[test]\nfn standalone_level_manager_rejects_artifact_io_without_an_implicit_process_owner()"
+    ));
+    assert!(level_manager_project_io_tests
+        .contains("assert!(matches!(error, SceneProjectError::RuntimeUnavailable));"));
     assert_sources_contain_all(
         "Runtime 11 task behavior tests",
         &[
@@ -311,16 +130,6 @@ fn runtime_11_job_system_mirror_docs_match_structure_audit_counts() {
             include_str!("../../../../../docs/crates/zircon_runtime/core/job_system.md"),
         ),
         (
-            "Runtime 11 plan",
-            include_str!(
-                "../../../../../docs/plans/zircon_runtime/runtime/11-job-system-task-model.md"
-            ),
-        ),
-        (
-            "runtime index",
-            include_str!("../../../../../docs/plans/zircon_runtime/runtime/index.md"),
-        ),
-        (
             "M0 review",
             include_str!("../../../../../docs/architecture/runtime-architecture-review-m0.md"),
         ),
@@ -333,6 +142,94 @@ fn runtime_11_job_system_mirror_docs_match_structure_audit_counts() {
     for (doc_name, doc_source) in mirror_docs {
         assert_contains_all(doc_name, doc_source, MIRROR_DOC_ANCHORS);
     }
+    let python_inventory = include_str!("../../../../../.codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/job_system_anchor_inventory.py");
+    let python_behavior = python_inventory
+        .split_once("JOB_SYSTEM_BEHAVIOR_TEST_ANCHORS = (")
+        .expect("current Python behavior inventory must retain its typed owner")
+        .1
+        .split_once("\n)")
+        .expect("the Python behavior inventory must be delimited")
+        .0;
+    let python_anchors: Vec<_> = python_behavior
+        .lines()
+        .filter_map(|line| {
+            line.trim()
+                .strip_prefix('"')
+                .and_then(|line| line.strip_suffix("\","))
+        })
+        .collect();
+    assert_eq!(python_anchors.len(), 77);
+    assert_eq!(
+        python_anchors
+            .iter()
+            .copied()
+            .collect::<BTreeSet<_>>()
+            .len(),
+        77
+    );
+    assert_eq!(BEHAVIOR_TEST_ANCHORS.len(), 74);
+    for anchor in BEHAVIOR_TEST_ANCHORS {
+        assert!(python_anchors.contains(anchor), "{anchor}");
+    }
+    let additional_python_anchors = [
+        "canonical_wait_all_observes_every_terminal_before_propagating_failure",
+        "direct_submit_after_propagates_dependency_failure_without_running_user_work",
+        "direct_submit_after_reuses_graph_owner_without_scheduler_injection",
+    ];
+    for anchor in additional_python_anchors {
+        assert!(python_anchors.contains(&anchor), "{anchor}");
+        assert!(!BEHAVIOR_TEST_ANCHORS.contains(&anchor), "{anchor}");
+    }
+    assert_sources_contain_all(
+        "additional Python inventory regressions in the mounted scope owners",
+        &[
+            task_graph_scope_tests,
+            task_graph_scope_dependency_scale_tests,
+        ],
+        &additional_python_anchors,
+    );
+    let worklist = include_str!(
+        "../../../../../docs/testing-and-validation/runtime-task-validation-worklist.md"
+    );
+    assert_contains_all(
+        "task lifecycle worklist",
+        worklist,
+        &[
+            "EngineTaskGraph owns budgeted Io/AsyncCompute/Compute pools",
+            "TaskGraphScope owns admission, scope drain and close/join",
+            "removed default/process_io constructors must not return",
+            "worker-join and power acceptance remains pending",
+            "runtime_11_job_system_mirror_docs_match_structure_audit_counts",
+            "../crates/zircon_runtime/core/job_system.md",
+        ],
+    );
+    let index = include_str!(
+        "../../../../../docs/crates/zircon_runtime/structure/runtime-absorption-evidence.md"
+    );
+    assert_contains_all(
+        "runtime index navigation",
+        index,
+        &[
+            "| 11 | Explicit task pool/lifecycle, scope, stream and result budgets |",
+            "not a fresh whole-engine result",
+            "runtime_11_job_system_mirror_docs_match_structure_audit_counts",
+            "../core/job_system.md",
+        ],
+    );
+    let historical = crate::tests::runtime_absorption::structure_convention::fixed_history_archive_source(
+        "docs/plans/zircon_runtime/runtime/11/2026-07-09-job-system-task-model-output-records.md"
+    );
+    assert_contains_all(
+        "fixed Runtime 11 history",
+        historical,
+        &[
+            "job_system_boundary",
+            "behavior_test_anchor_count = 12",
+            "behavior_test_anchor_count = 13",
+            "runtime_11_job_system_mirror_docs_match_structure_audit_counts",
+            "cargo_pending",
+        ],
+    );
 }
 
 fn assert_contains_all(label: &str, source: &str, required: &[&str]) {

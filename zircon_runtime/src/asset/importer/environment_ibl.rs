@@ -8,16 +8,14 @@ use super::{
     TextureSourceImageMetadata,
 };
 use crate::asset::artifact::{
-    IblBakeArtifactAssetDerivedRead, IblSourceCubemapStagingError, IblSourceCubemapStagingRead,
-    IblSourceCubemapStagingStore, IblSourceImageIdentity,
+    BundleAdmission, IblSourceCubemapStagingError, IblSourceCubemapStagingStore,
+    IblSourceImageIdentity, VerifiedSourceProof,
 };
 use crate::asset::assets::ZcubeSourceCubemap;
 use crate::asset::AssetUri;
 use crate::core::framework::render::{
     build_source_cubemap_irradiance_cube,
     build_source_cubemap_irradiance_cube_with_parallel_executor,
-    rebuild_source_cubemap_from_source_mips_with_pmrem_layout_and_parallel_executor_and_timing,
-    rebuild_source_cubemap_from_source_mips_with_pmrem_layout_and_timing,
     source_cubemap_face_size_from_equirect_height, source_cubemap_irradiance_mip_level,
     source_cubemap_mip_count, source_cubemap_mip_size, IblBakeArtifactContents,
     IblBakeArtifactRequest, IblBakeKey, SourceCubemapBuildTiming, SourceCubemapIrradianceCube,
@@ -102,12 +100,18 @@ impl PreparedEnvironmentIblSourceStaging {
             writes,
             mut report,
         } = self;
+        let published = !writes.is_empty();
         let commit_started = Instant::now();
         {
             let _phase = EnvironmentIblStagingPhase::BundleCommit.enter();
             store
                 .commit_prepared_bundle_writes(writes)
                 .map_err(EnvironmentIblSourceStagingError::Stage)?;
+        }
+        if published {
+            if let Some(request) = report.request() {
+                store.seed_committed_bundle_admission(request)?;
+            }
         }
         report.add_bundle_commit(commit_started.elapsed());
         report.record_profile_observation();
@@ -242,16 +246,6 @@ pub(crate) fn prepare_environment_ibl_source(
                 |u, v| sample_equirect_bilinear(image, u, v),
             )
         },
-        |face_size, mip_count, source_texels, pmrem_face_size, pmrem_mip_count| {
-            rebuild_source_cubemap_from_source_mips_with_pmrem_layout_and_timing(
-                face_size,
-                mip_count,
-                source_texels,
-                pmrem_face_size,
-                pmrem_mip_count,
-                SourceCubemapPrefilterQuality::Normal,
-            )
-        },
         build_source_cubemap_irradiance_cube,
     )
 }
@@ -371,17 +365,6 @@ where
                 |u, v| sample_equirect_bilinear(image, u, v),
             )
         },
-        |face_size, mip_count, source_texels, pmrem_face_size, pmrem_mip_count| {
-            rebuild_source_cubemap_from_source_mips_with_pmrem_layout_and_parallel_executor_and_timing(
-                face_size,
-                mip_count,
-                source_texels,
-                pmrem_face_size,
-                pmrem_mip_count,
-                SourceCubemapPrefilterQuality::Normal,
-                parallel_executor,
-            )
-        },
         |cubemap| {
             build_source_cubemap_irradiance_cube_with_parallel_executor(
                 cubemap,
@@ -404,13 +387,6 @@ fn prepare_environment_ibl_source_with_builder(
     build_cubemap: impl FnOnce(
         &DecodedTextureImageRgba32F,
         u32,
-        u32,
-        u32,
-    ) -> (SourceCubemapMipChain, SourceCubemapBuildTiming),
-    rebuild_cubemap: impl FnOnce(
-        u32,
-        u32,
-        Vec<[f32; 4]>,
         u32,
         u32,
     ) -> (SourceCubemapMipChain, SourceCubemapBuildTiming),
@@ -437,7 +413,7 @@ fn prepare_environment_ibl_source_with_builder(
         let _phase = EnvironmentIblStagingPhase::SourceIdentity.enter();
         environment_ibl_request_for_source_image(context, source_image)?
     };
-    // BUG: [CR-ASSET-IMPORT-0001] warm probe 已计入一次请求标识耗时，冷路径在此覆盖而非累加，导致报告及 profiling 低报该阶段总耗时。
+    // 保留 warm probe 已累计的请求标识耗时，并将冷路径本次请求构造耗时饱和累加。
     timing.source_identity = timing
         .source_identity
         .saturating_add(identity_started.elapsed());
@@ -449,7 +425,6 @@ fn prepare_environment_ibl_source_with_builder(
         });
     };
     let face_size = request.source_face_size();
-    let source_mip_count = request.source_mip_count();
     let pmrem_face_size = request.pmrem_face_size();
     let pmrem_mip_count = request.pmrem_mip_count();
     let required_contents = request.required_contents();
@@ -489,7 +464,7 @@ fn prepare_environment_ibl_source_with_builder(
     timing.cache_probe = timing
         .cache_probe
         .saturating_add(cache_probe_started.elapsed());
-    let staged_source = match staged_bundle {
+    let (source_was_reused, source_proof) = match staged_bundle {
         EnvironmentIblStagedBundleState::Current => {
             let output = EnvironmentIblSourceStagingOutput::from_reused_paths(
                 &source_zcube_path,
@@ -508,25 +483,17 @@ fn prepare_environment_ibl_source_with_builder(
                 ),
             });
         }
-        EnvironmentIblStagedBundleState::SourceOnly(source) => Some(source),
-        EnvironmentIblStagedBundleState::Missing => None,
+        EnvironmentIblStagedBundleState::SourceOnly(_, proof) => (true, Some(proof)),
+        EnvironmentIblStagedBundleState::Missing => (false, None),
     };
 
-    let source_was_reused = staged_source.is_some();
     let cubemap_started = Instant::now();
     let (cubemap, cubemap_timing) = {
         let _phase = EnvironmentIblStagingPhase::CubemapBuild.enter();
-        if let Some(source) = staged_source {
-            rebuild_cubemap(
-                source.face_size(),
-                source.mip_count(),
-                source.into_texels(),
-                pmrem_face_size,
-                pmrem_mip_count,
-            )
-        } else {
-            build_cubemap(&image, face_size, pmrem_face_size, pmrem_mip_count)
-        }
+        // Rebuild equirectangular derived data from the same original-precision image
+        // as a cold import. The verified source proof still prevents rewriting the
+        // intact .zcube; its RGBA16F texels are lossy inputs for reproducing this bake.
+        build_cubemap(&image, face_size, pmrem_face_size, pmrem_mip_count)
     };
     timing.cubemap_build = cubemap_started.elapsed();
     timing.equirect_projection = cubemap_timing.equirect_projection();
@@ -560,6 +527,7 @@ fn prepare_environment_ibl_source_with_builder(
             &cubemap,
             irradiance_cube.as_ref(),
             source_was_reused,
+            source_proof,
             source_image,
             parallel_work_items,
         )?
@@ -588,7 +556,7 @@ enum EnvironmentIblBundleProbeState {
 
 enum EnvironmentIblStagedBundleState {
     Current,
-    SourceOnly(ZcubeSourceCubemap),
+    SourceOnly(ZcubeSourceCubemap, VerifiedSourceProof),
     Missing,
 }
 
@@ -599,6 +567,7 @@ fn prepare_environment_ibl_staged_outputs(
     cubemap: &SourceCubemapMipChain,
     irradiance_cube: Option<&SourceCubemapIrradianceCube>,
     source_was_reused: bool,
+    source_proof: Option<VerifiedSourceProof>,
     source_image: IblSourceImageIdentity,
     parallel_work_items: EnvironmentIblSourceStagingParallelWorkItems,
 ) -> Result<
@@ -613,8 +582,14 @@ fn prepare_environment_ibl_staged_outputs(
             .prepare_source_cubemap_asset_derived_artifact(request, cubemap, irradiance_cube)
             .map_err(EnvironmentIblSourceStagingError::WriteAssetDerived)?;
         let (path, bytes, asset_derived) = asset_derived.into_parts();
-        let manifest =
-            store.prepare_bundle_manifest_for_existing_source(request, source_image, &bytes)?;
+        let proof =
+            source_proof.ok_or(IblSourceCubemapStagingError::BundleReadChangedDuringPublication)?;
+        let manifest = store.prepare_bundle_manifest_for_existing_source(
+            request,
+            source_image,
+            &bytes,
+            proof,
+        )?;
         let output = EnvironmentIblSourceStagingOutput::from_reused_source_and_written_asset(
             &store.source_cubemap_path(request),
             asset_derived.encoded_len(),
@@ -676,28 +651,16 @@ fn irradiance_cube_source_sample_visits_for_layout(
 fn staged_bundle_state(
     store: &IblSourceCubemapStagingStore,
     request: &IblBakeArtifactRequest,
-    uri: &AssetUri,
+    _uri: &AssetUri,
     source_image: IblSourceImageIdentity,
 ) -> Result<EnvironmentIblStagedBundleState, EnvironmentIblSourceStagingError> {
-    let source = match store.read_source_cubemap_zcube(request, uri.clone()) {
-        Ok(IblSourceCubemapStagingRead::Hit(source)) => source,
-        Ok(IblSourceCubemapStagingRead::Missing)
-        | Err(IblSourceCubemapStagingError::DecodeZcube { .. }) => {
-            return Ok(EnvironmentIblStagedBundleState::Missing);
-        }
-        Err(error) => return Err(EnvironmentIblSourceStagingError::Stage(error)),
-    };
-    let derived = store
-        .asset_derived_store()
-        .read_asset_derived_artifact(request)
-        .map_err(EnvironmentIblSourceStagingError::ReadAssetDerived)?;
     Ok(
-        if matches!(derived, IblBakeArtifactAssetDerivedRead::Hit(_))
-            && store.current_bundle_manifest_matches(request, source_image)?
-        {
-            EnvironmentIblStagedBundleState::Current
-        } else {
-            EnvironmentIblStagedBundleState::SourceOnly(source)
+        match store.admit_bundle_for_staging(request, source_image)? {
+            BundleAdmission::Current => EnvironmentIblStagedBundleState::Current,
+            BundleAdmission::VerifiedSourceOnly(source, proof) => {
+                EnvironmentIblStagedBundleState::SourceOnly(source, proof)
+            }
+            BundleAdmission::Missing => EnvironmentIblStagedBundleState::Missing,
         },
     )
 }

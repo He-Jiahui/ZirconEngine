@@ -107,13 +107,13 @@ impl AssetImportBackend for RegisteredBackend {
     }
 }
 
-struct ProjectFixture {
+pub(super) struct ProjectFixture {
     parent: PathBuf,
     root: PathBuf,
 }
 
 impl ProjectFixture {
-    fn new() -> Self {
+    pub(super) fn new() -> Self {
         static NEXT: AtomicUsize = AtomicUsize::new(0);
         let executable = fs::canonicalize(std::env::current_exe().unwrap()).unwrap();
         let executable_parent = executable.parent().unwrap();
@@ -154,6 +154,10 @@ impl ProjectFixture {
             }
         }
         panic!("no exclusive fixture directory available");
+    }
+
+    pub(super) fn open_project(&self) -> zircon_runtime::asset::project::ProjectManager {
+        zircon_runtime::asset::project::ProjectManager::open(&self.root).unwrap()
     }
 
     fn paths(&self) -> ProjectPaths {

@@ -2,8 +2,9 @@ use std::sync::{Arc, Barrier};
 
 use zr_rhi::{
     BufferDesc, BufferUsage, DeviceGeneration, DiagnosticReadbackAdmission,
-    DiagnosticReadbackBudget, DiagnosticReadbackTerminal, GpuMemoryBudget, RenderDeviceProfile,
-    RenderDeviceQueueTopology, RenderDeviceRequestPolicy, RenderQueueClass, SubmissionLimits,
+    DiagnosticReadbackBudget, DiagnosticReadbackTerminal, GpuMemoryBudget, RenderDeviceBudgets,
+    RenderDeviceProfile, RenderDeviceQueueTopology, RenderDeviceRequestPolicy, RenderQueueClass,
+    SubmissionLimits,
 };
 
 use super::super::WgpuRenderDeviceContext;
@@ -257,9 +258,11 @@ fn production_test_device() -> WgpuRenderDevice {
         request.feature_negotiation().clone(),
         wgpu_device_limits(&native_device.limits()),
         RenderDeviceQueueTopology::single_serialized_queue(),
-        GpuMemoryBudget::reference_1080p_mid(),
-        SubmissionLimits::default(),
-        DiagnosticReadbackBudget::default(),
+        RenderDeviceBudgets {
+            memory_budget: GpuMemoryBudget::reference_1080p_mid(),
+            submission_limits: SubmissionLimits::default(),
+            diagnostic_readback_budget: DiagnosticReadbackBudget::default(),
+        },
     );
     WgpuRenderDevice::new(
         WgpuRenderDeviceContext::new(instance, adapter, native_device, queue),

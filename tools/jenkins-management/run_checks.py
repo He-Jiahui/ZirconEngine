@@ -31,6 +31,23 @@ SOURCE_NAMES = (
     "tools/jenkins-management/entry.py",
     "tools/jenkins-management/run_checks.py",
 )
+BUILD_REUSE_SOURCES = (
+    "Cargo.toml", "zircon_plugins/Cargo.toml", "examples/woc/native/Cargo.toml",
+    "tools/dev/dev-module-build.ps1", "tools/dev/README-fast-build.md",
+    "tools/jenkins-management/incremental_cache_cleanup.py",
+    "tools/jenkins-management/tests/test_incremental_cache_cleanup.py",
+    "tools/jenkins-management/tests/test_build_reuse.py",
+    "tools/jenkins/workflow/planning.py", "tools/jenkins/tests/test_recipe_planning.py",
+    "tools/jenkins/pilot/managed_cargo.py", "tools/jenkins/pilot/tests/test_managed_cargo.py",
+)
+BUILD_REUSE_TESTS = (
+    "tools/jenkins-management/tests/test_build_reuse.py",
+    "tools/jenkins-management/tests/test_incremental_cache_cleanup.py",
+    "tools/jenkins-management/tests/test_ordinary_flow.py::OrdinaryFlowTests::test_preparation_identity_shares_cargo_graphs_and_separates_toolchains",
+    "tools/jenkins-management/tests/test_ordinary_flow.py::OrdinaryFlowTests::test_shared_pool_updates_only_changed_bytes_and_preserves_sibling_mtimes",
+    "tools/jenkins/tests/test_recipe_planning.py",
+    "tools/jenkins/pilot/tests/test_managed_cargo.py::ManagedCargoTests::test_no_inherited_cache_or_compiler_wrapper",
+)
 
 
 def digest(data: bytes) -> str:
@@ -173,7 +190,7 @@ def remove_registered_trees(output: Path, names: tuple[str, ...], manifest_bytes
 
 
 def verify_pins(repo: Path, expected_driver: str, expected_runtime: str,
-                source_hashes: dict[str, str]) -> str:
+                source_hashes: dict[str, str], *, client_paths: dict | None = None) -> str:
     selected = read_json(repo / ".jenkins/state/deployment/driver.json")
     operation = read_json(repo / ".jenkins/state/deployment-operation.json")
     if (selected.get("driverDigest") != expected_driver
@@ -239,8 +256,21 @@ def verify_pins(repo: Path, expected_driver: str, expected_runtime: str,
         "tools/jenkins-management/entry.py",
     }
     if (not isinstance(clients, dict) or set(clients) != required_clients
-            or any(clients[name] != source_hashes[name] for name in required_clients)):
+            or any(not isinstance(v, str) or not SHA256.fullmatch(v) for v in clients.values())
+            or ("clientRoot" not in config
+                and any(clients[name] != source_hashes[name] for name in required_clients))):
         raise ValueError("native_helper_capsule_pin_mismatch")
+    if "clientRoot" in config:
+        spec = importlib.util.spec_from_file_location("native_checks_client_selector", capsule / "runner.py")
+        runner = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(runner)
+        paths = {name: runner.client_path(config, repo, name, capsule=capsule) for name in clients}
+        if any(stable_hash(paths[name]) != expected_hash for name, expected_hash in clients.items()):
+            raise ValueError("native_helper_capsule_client_mismatch")
+    else:
+        paths = {name: repo / name for name in clients}
+    if client_paths is not None:
+        client_paths.update(paths)
     return capsule_digest
 
 
@@ -292,7 +322,7 @@ def compact_summary(run_id: str, repo: Path, output: Path, driver: str,
                     junit_present: bool = False) -> dict:
     return {
         "schemaVersion": 1,
-        "taskId": "jenkins-parallel-activation-20261011",
+        "taskId": "build-footprint-20261018" if run_id.startswith("build-reuse-") else "jenkins-parallel-activation-20261011",
         "runId": run_id,
         "status": status,
         "formalAcceptance": False,
@@ -318,7 +348,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--expected-runtime", required=True)
     parser.add_argument("--run-id", required=True)
     parser.add_argument("--repo-root", required=True)
-    parser.add_argument("--suite", choices=("ordinary", "workflow-routing"), default="ordinary")
+    parser.add_argument("--suite", choices=("ordinary", "workflow-routing", "build-reuse"), default="ordinary")
     args = parser.parse_args(argv)
 
     output: Path | None = None
@@ -342,14 +372,21 @@ def main(argv: list[str] | None = None) -> int:
         routing_sources = ("tools/jenkins-management/test_job.py",
                            "tools/jenkins-management/tests/test_test_job.py",
                            "tools/jenkins-management/zircon-management-tests.groovy") if args.suite == "workflow-routing" else ()
-        source_names = (*SOURCE_NAMES, *routing_sources, driver_manifest_name)
+        build_reuse_sources = BUILD_REUSE_SOURCES if args.suite == "build-reuse" else ()
+        source_names = (*SOURCE_NAMES, *routing_sources, *build_reuse_sources, driver_manifest_name)
         source_before = {name: stable_hash(repo / Path(name)) for name in source_names}
-        capsule_digest = verify_pins(repo, args.expected_driver, args.expected_runtime, source_before)
+        client_paths = {}
+        capsule_digest = verify_pins(repo, args.expected_driver, args.expected_runtime, source_before,
+                                     client_paths=client_paths)
+        # Record the actual immutable clients separately from mutable test sources.
+        extra_clients = tuple(str(path) for name, path in sorted(client_paths.items()) if path != repo / name)
+        source_names = (*source_names, *extra_clients)
+        source_before.update({name: stable_hash(Path(name)) for name in extra_clients})
 
         from tools.jenkins.deployment.driver import driver_environment
 
         local_cargo_spec = importlib.util.spec_from_file_location(
-            "zircon_jenkins_local_cargo", repo / "tools/dev/local_cargo.py",
+            "zircon_jenkins_local_cargo", client_paths["tools/dev/local_cargo.py"],
         )
         if local_cargo_spec is None or local_cargo_spec.loader is None:
             raise ValueError("native_helper_load_failed")
@@ -359,7 +396,9 @@ def main(argv: list[str] | None = None) -> int:
         _run_owned_command = local_cargo._run_owned_command
         validate_output_path = local_cargo.validate_output_path
 
-        output = OUTPUT_BASE / args.run_id
+        output_base = (Path("E:/cargo-targets/zircon-local/reports/build-footprint-20261018")
+                       if args.suite == "build-reuse" else OUTPUT_BASE)
+        output = output_base / args.run_id
         output = validate_output_path(output)
         physical(output, must_exist=False)
         if output.exists():
@@ -369,6 +408,9 @@ def main(argv: list[str] | None = None) -> int:
         test_files = [str(test_file)]
         if args.suite == "workflow-routing":
             test_files = [str(repo / "tools/jenkins-management/tests/test_test_job.py")]
+        elif args.suite == "build-reuse":
+            test_files = [str(repo / name.split("::", 1)[0]) + ("::" + name.split("::", 1)[1] if "::" in name else "")
+                          for name in BUILD_REUSE_TESTS]
         python = repo / ".jenkins/runtime/python/python.exe"
         basetemp = output / "basetemp"
         temp = output / "temp"
@@ -382,7 +424,7 @@ def main(argv: list[str] | None = None) -> int:
         # Register every owned output and input before creating temp trees or starting pytest.
         registry = {
             "schemaVersion": 1,
-            "taskId": "jenkins-parallel-activation-20261011",
+            "taskId": "build-footprint-20261018" if args.suite == "build-reuse" else "jenkins-parallel-activation-20261011",
             "owner": "jenkins-management-ordinary-flow-regression",
             "runId": args.run_id,
             "testSuite": args.suite,
@@ -398,7 +440,8 @@ def main(argv: list[str] | None = None) -> int:
                 "native-terminal.json", "source-hashes.json", "pytest.ini",
                 "pytest-junit.xml", "cleanup-plan.json", "cleanup.json", "summary.json",
             )],
-            "outputDirectories": [str(basetemp), str(temp), str(cache)],
+            "outputDirectories": [str(basetemp), str(temp), str(cache)] +
+                                 ([str(output / "fixtures")] if args.suite == "build-reuse" else []),
             "retention": "retain native and test receipts; remove only registered temp trees after native EOF proof",
             "formalAcceptance": False,
         }
@@ -442,6 +485,15 @@ def main(argv: list[str] | None = None) -> int:
             "ZIRCON_RUNTIME_OPERATION_ID": args.expected_runtime,
             "JENKINS_PYTHON": str(python),
         })
+        if args.suite == "build-reuse":
+            fixtures = output / "fixtures"
+            fixtures.mkdir(exist_ok=False)
+            environment["ZR_COMMIT_TEST_ROOT"] = str(fixtures)
+            # This suite verifies the edited implementation. Native launching
+            # still uses the selected driver's verified helper in this parent.
+            # A regular ``tools`` package in the immutable driver otherwise
+            # shadows the edited namespace package, even after prepending repo.
+            environment["PYTHONPATH"] = os.pathsep.join((str(repo), str(repo / ".jenkins/runtime/test-deps")))
         stage = "pytest_native_run"
         native = _run_owned_command(command, repo, environment, output, timeout=900)
         complete = native_complete(native, command, repo)
@@ -461,7 +513,8 @@ def main(argv: list[str] | None = None) -> int:
         cleanup_status = "pending"
         if complete and hashes_match:
             try:
-                remove_registered_trees(output, ("basetemp", "temp", "cache"), manifest_bytes)
+                trees = ("basetemp", "temp", "cache", "fixtures") if args.suite == "build-reuse" else ("basetemp", "temp", "cache")
+                remove_registered_trees(output, trees, manifest_bytes)
                 cleanup_status = "cleaned"
             except Exception:
                 cleanup_status = "pending"

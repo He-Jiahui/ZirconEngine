@@ -46,7 +46,7 @@ This policy has priority for `zirconEngine` planning, implementation, validation
 ## Testing Stage
 
 - At each milestone boundary, enter the testing stage before calling the milestone complete.
-- Run the declared compile/build checks and unit tests as one batched scope selected by `docs/plans/milestone-validation-policy.md`, then debug and correct failures.
+- Run the declared compile/build checks and unit tests as one batched scope selected by `docs/testing-and-validation/milestone-validation-policy.md`, then debug and correct failures.
 - If an upper-layer test fails, diagnose the lowest shared support layer first, fix it, and rerun validation upward.
 - Record what was tested, what failed, what was fixed, and what remains accepted or open in one concise evidence record per accepted milestone.
 

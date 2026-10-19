@@ -82,7 +82,7 @@ pub(super) fn assert_camera_loop_uses_shared_sources(sources: &SubmitContextSour
         "let source_extract = extract;",
         "for submission in submissions",
         "source_extract.for_camera_submission(submission.camera)",
-        "submit_selected_camera(\n            &submission_extract,",
+        "submit_selected_camera(&submission_extract, selected_ui, submission.output_policy)?;",
     ] {
         assert!(
             camera_loop.contains(required_camera_loop_anchor),
@@ -141,7 +141,8 @@ pub(super) fn assert_camera_loop_uses_shared_sources(sources: &SubmitContextSour
         "source_state.restore_for_submission(&mut frame);",
         "select_frame_camera_for_submission(&mut frame, submission.camera);",
         "terminal_ui.take()",
-        "submit_selected_frame(\n            &mut frame,",
+        "frame.ui = if submission.receives_terminal_ui {",
+        "submit_selected_frame(&mut frame, submission.output_policy)?;",
         "fn select_frame_camera_for_submission(",
         "frame.select_camera_descriptor(camera);",
         "extract: Arc<RenderFrameExtract>",

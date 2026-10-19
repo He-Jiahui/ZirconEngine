@@ -17,11 +17,11 @@ pub(super) fn assert_f8_review_children_are_folder_backed(sources: &CodeReviewFi
         "F8 descriptor builder child mounts builder and fixture migration leaf owners",
         &sources.f8_descriptor_builder,
         &[
-            "#[path = \"descriptor_builder/first_party_descriptors.rs\"]",
+            "#[path = \"../descriptor_builder/first_party_descriptors.rs\"]",
             "mod first_party_descriptors;",
-            "#[path = \"descriptor_builder/scaffold.rs\"]",
+            "#[path = \"../../contracts/review/descriptor_builder/scaffold.rs\"]",
             "mod scaffold;",
-            "#[path = \"descriptor_builder/test_fixtures.rs\"]",
+            "#[path = \"../../contracts/review/descriptor_builder/test_fixtures.rs\"]",
             "mod test_fixtures;",
         ],
     );
@@ -50,11 +50,11 @@ pub(super) fn assert_f8_review_children_are_folder_backed(sources: &CodeReviewFi
         "F8 descriptor privacy child mounts private-field and constructor leaf owners",
         &sources.f8_descriptor_privacy,
         &[
-            "#[path = \"descriptor_privacy/constructor_retirement.rs\"]",
+            "#[path = \"../descriptor_privacy/constructor_retirement.rs\"]",
             "mod constructor_retirement;",
-            "#[path = \"descriptor_privacy/private_fields.rs\"]",
+            "#[path = \"../../contracts/review/descriptor_privacy/private_fields.rs\"]",
             "mod private_fields;",
-            "#[path = \"descriptor_privacy/status_mirrors.rs\"]",
+            "#[path = \"../../contracts/review/descriptor_privacy/status_mirrors.rs\"]",
             "mod status_mirrors;",
         ],
     );

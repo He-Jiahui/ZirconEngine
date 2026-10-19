@@ -16,6 +16,8 @@ concurrency:
 env:
   CARGO_TERM_COLOR: always
   RUST_BACKTRACE: 1
+  # Explicit read-only archive input; external CI provisioning remains required.
+  CI_DOCS_HISTORY_ARCHIVE_ROOT: ${{ vars.ZIRCON_DOCS_HISTORY_ARCHIVE_ROOT }}
 
 jobs:
   source-contracts:
@@ -64,9 +66,12 @@ jobs:
     name: Portable runtime core (Wasm)
     # CI outputs must pass the physical E: root and reparse-point guard.
     # Persistent runners execute only trusted branch pushes.
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') && needs.runtime-profile-feature-matrix-plan.outputs.has_portable == 'true'
     runs-on: [self-hosted, Windows, X64]
+    needs: runtime-profile-feature-matrix-plan
     env:
+      CI_SCOPE_BASE: ${{ needs.runtime-profile-feature-matrix-plan.outputs.base }}
+      CI_SCOPE_HEAD: ${{ needs.runtime-profile-feature-matrix-plan.outputs.head }}
       ZR_CI_OUTPUT_ROOT: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\portable-runtime-core-${{ strategy.job-index || 0 }}
       CARGO_HOME: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\portable-runtime-core-${{ strategy.job-index || 0 }}\cargo-home
       RUSTUP_HOME: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\portable-runtime-core-${{ strategy.job-index || 0 }}\rustup
@@ -81,6 +86,7 @@ jobs:
           TMP: ${{ runner.temp }}
         with:
           persist-credentials: false
+          fetch-depth: 0
       - name: Prepare physical output roots
         shell: pwsh
         run: ./.github/scripts/prepare-cargo-roots.ps1
@@ -96,7 +102,8 @@ jobs:
         run: python -B tools/audits/check_runtime_dependency_boundaries.py --text
       - name: Compile portable core for the real Wasm target
         shell: pwsh
-        run: ./.github/scripts/invoke-cargo-msvc.ps1 cargo check -p zircon_runtime --lib --no-default-features --features core-min --target wasm32-unknown-unknown --locked
+        run: python -B .github/scripts/ci-scope.py run --base "$env:CI_SCOPE_BASE" --head "$env:CI_SCOPE_HEAD" --recipe portable-core
+
 
   dependency-governance:
     name: Dependency governance (${{ matrix.manifest }})
@@ -154,31 +161,51 @@ jobs:
         run: ./.github/scripts/invoke-cargo-msvc.ps1 "$env:CARGO_TARGET_DIR\cargo-deny\bin\cargo-deny.exe" --manifest-path "${{ matrix.manifest }}" --all-features check advisories bans licenses sources
 
   runtime-profile-feature-matrix-plan:
-    name: Runtime profile feature matrix plan
+    name: Affected owner recipe plan
     runs-on: ubuntu-latest
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      CI_SCOPE_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+      CI_SCOPE_HEAD: ${{ github.sha }}
     outputs:
-      matrix: ${{ steps.profile-matrix.outputs.matrix }}
+      base: ${{ steps.scope.outputs.base }}
+      head: ${{ steps.scope.outputs.head }}
+      profile: ${{ steps.scope.outputs.profile }}
+      domain: ${{ steps.scope.outputs.domain }}
+      dist: ${{ steps.scope.outputs.dist }}
+      render: ${{ steps.scope.outputs.render }}
+      export: ${{ steps.scope.outputs.export }}
+      has_profile: ${{ steps.scope.outputs.has_profile }}
+      has_domain: ${{ steps.scope.outputs.has_domain }}
+      has_dist: ${{ steps.scope.outputs.has_dist }}
+      has_render: ${{ steps.scope.outputs.has_render }}
+      has_export: ${{ steps.scope.outputs.has_export }}
+      has_miri: ${{ steps.scope.outputs.has_miri }}
+      has_portable: ${{ steps.scope.outputs.has_portable }}
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
-
-      - name: Install Python
-        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
         with:
           python-version: '3.11'
-
-      - name: Export canonical runtime profile matrix
-        id: profile-matrix
-        run: echo "matrix=$(python tools/analysis/validation/runtime-profile-feature-presets.py matrix)" >> "$GITHUB_OUTPUT"
+      - name: Resolve real changed owners; refuse unknown impact
+        id: scope
+        run: python -B .github/scripts/ci-scope.py plan --base "$CI_SCOPE_BASE" --head "$CI_SCOPE_HEAD" --github-output
 
   runtime-profile-feature-matrix:
-    name: Runtime profile feature (${{ matrix.profile }})
-    needs: runtime-profile-feature-matrix-plan
+    name: Affected profile contract (${{ matrix.recipe }})
     # Compile on the Windows runner because the physical E: cargo root is required.
     # Linux-host ABI/system dependency behavior remains outside this lane's coverage.
     # Persistent runners execute only trusted branch pushes.
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') && needs.runtime-profile-feature-matrix-plan.outputs.has_profile == 'true'
     runs-on: [self-hosted, Windows, X64]
+    needs: runtime-profile-feature-matrix-plan
     env:
+      CI_RECIPE: ${{ matrix.recipe }}
+      CI_SCOPE_BASE: ${{ needs.runtime-profile-feature-matrix-plan.outputs.base }}
+      CI_SCOPE_HEAD: ${{ needs.runtime-profile-feature-matrix-plan.outputs.head }}
       ZR_CI_OUTPUT_ROOT: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\runtime-profile-feature-matrix-${{ strategy.job-index || 0 }}
       CARGO_HOME: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\runtime-profile-feature-matrix-${{ strategy.job-index || 0 }}\cargo-home
       RUSTUP_HOME: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\runtime-profile-feature-matrix-${{ strategy.job-index || 0 }}\rustup
@@ -187,7 +214,7 @@ jobs:
       CARGO_TARGET_DIR: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\runtime-profile-feature-matrix-${{ strategy.job-index || 0 }}\target
     strategy:
       fail-fast: false
-      matrix: ${{ fromJSON(needs.runtime-profile-feature-matrix-plan.outputs.matrix) }}
+      matrix: ${{ fromJSON(needs.runtime-profile-feature-matrix-plan.outputs.profile) }}
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
         env:
@@ -195,6 +222,7 @@ jobs:
           TMP: ${{ runner.temp }}
         with:
           persist-credentials: false
+          fetch-depth: 0
 
       - name: Prepare physical output roots
         shell: pwsh
@@ -211,16 +239,21 @@ jobs:
 
       - name: Check application profile preset
         shell: pwsh
-        run: ./.github/scripts/invoke-cargo-msvc.ps1 cargo check -p zircon_app --lib --no-default-features --features "${{ matrix.cargo_feature }}" --locked --verbose
+        run: python -B .github/scripts/ci-scope.py run --base "$env:CI_SCOPE_BASE" --head "$env:CI_SCOPE_HEAD" --recipe "$env:CI_RECIPE"
+
 
   runtime-domain-feature-matrix:
-    name: Runtime additive domain (${{ matrix.feature }})
+    name: Affected domain contract (${{ matrix.recipe }})
     # Compile on the Windows runner because the physical E: cargo root is required.
     # Linux-host ABI/system dependency behavior remains outside this lane's coverage.
     # Persistent runners execute only trusted branch pushes.
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') && needs.runtime-profile-feature-matrix-plan.outputs.has_domain == 'true'
     runs-on: [self-hosted, Windows, X64]
+    needs: runtime-profile-feature-matrix-plan
     env:
+      CI_RECIPE: ${{ matrix.recipe }}
+      CI_SCOPE_BASE: ${{ needs.runtime-profile-feature-matrix-plan.outputs.base }}
+      CI_SCOPE_HEAD: ${{ needs.runtime-profile-feature-matrix-plan.outputs.head }}
       ZR_CI_OUTPUT_ROOT: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\runtime-domain-feature-matrix-${{ strategy.job-index || 0 }}
       CARGO_HOME: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\runtime-domain-feature-matrix-${{ strategy.job-index || 0 }}\cargo-home
       RUSTUP_HOME: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\runtime-domain-feature-matrix-${{ strategy.job-index || 0 }}\rustup
@@ -229,20 +262,7 @@ jobs:
       CARGO_TARGET_DIR: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\runtime-domain-feature-matrix-${{ strategy.job-index || 0 }}\target
     strategy:
       fail-fast: false
-      matrix:
-        feature:
-          - ai-contracts
-          - animation
-          - diagnostic-log
-          - dynamic-api
-          - graphics
-          - navigation
-          - net-contracts
-          - physics-contracts
-          - script
-          - sound-contracts
-          - text
-          - ui
+      matrix: ${{ fromJSON(needs.runtime-profile-feature-matrix-plan.outputs.domain) }}
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
         env:
@@ -250,6 +270,7 @@ jobs:
           TMP: ${{ runner.temp }}
         with:
           persist-credentials: false
+          fetch-depth: 0
 
       - name: Prepare physical output roots
         shell: pwsh
@@ -266,16 +287,20 @@ jobs:
 
       - name: Check additive runtime domain
         shell: pwsh
-        run: ./.github/scripts/invoke-cargo-msvc.ps1 cargo check -p zircon_runtime --lib --no-default-features --features "core-min,${{ matrix.feature }}" --locked --verbose
+        run: python -B .github/scripts/ci-scope.py run --base "$env:CI_SCOPE_BASE" --head "$env:CI_SCOPE_HEAD" --recipe "$env:CI_RECIPE"
+
 
   rust:
     name: Rust build & test
-    # This Windows lane preserves the workspace gate on the physical E: cargo root.
+    # Metadata enumerates all members for formatting only; compilation consumes affected recipes.
     # It does not claim Linux-host ABI/system dependency coverage.
     # Persistent runners execute only trusted branch pushes.
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
     runs-on: [self-hosted, Windows, X64]
+    needs: runtime-profile-feature-matrix-plan
     env:
+      CI_SCOPE_BASE: ${{ needs.runtime-profile-feature-matrix-plan.outputs.base }}
+      CI_SCOPE_HEAD: ${{ needs.runtime-profile-feature-matrix-plan.outputs.head }}
       ZR_CI_OUTPUT_ROOT: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\rust-${{ strategy.job-index || 0 }}
       CARGO_HOME: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\rust-${{ strategy.job-index || 0 }}\cargo-home
       RUSTUP_HOME: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\rust-${{ strategy.job-index || 0 }}\rustup
@@ -289,6 +314,7 @@ jobs:
           TMP: ${{ runner.temp }}
         with:
           persist-credentials: false
+          fetch-depth: 0
 
       - name: Install Python
         uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
@@ -305,9 +331,7 @@ jobs:
           toolchain: 1.94.1
           components: rustfmt, clippy
 
-      - name: Check runtime structure conventions
-        shell: pwsh
-        run: ./.github/scripts/invoke-cargo-msvc.ps1 cargo +1.94.1 test -p zircon_runtime --lib structure_convention --locked
+
 
       - name: Check Rust formatting
         shell: pwsh
@@ -335,29 +359,10 @@ jobs:
           & ./.github/scripts/invoke-cargo-msvc.ps1 @fmtArguments
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-      - name: Build workspace
-        shell: pwsh
-        run: ./.github/scripts/invoke-cargo-msvc.ps1 cargo build --workspace --locked --verbose
-
-      - name: Run unit tests
-        shell: pwsh
-        run: ./.github/scripts/invoke-cargo-msvc.ps1 cargo test --workspace --locked --verbose
-
-      - name: Run Clippy with warnings denied
-        shell: pwsh
-        run: ./.github/scripts/invoke-cargo-msvc.ps1 cargo clippy --workspace --all-targets --locked -- -D warnings
-
-      - name: Check plugin workspace
-        shell: pwsh
-        run: ./.github/scripts/invoke-cargo-msvc.ps1 cargo check --manifest-path zircon_plugins/Cargo.toml --workspace --locked --all-targets --verbose
-
       - name: Fetch pinned plugin dependencies
         shell: pwsh
         run: ./.github/scripts/invoke-cargo-msvc.ps1 cargo fetch --manifest-path zircon_plugins/Cargo.toml --locked
 
-      - name: Build plugin workspace
-        shell: pwsh
-        run: ./.github/scripts/invoke-cargo-msvc.ps1 cargo build --manifest-path zircon_plugins/Cargo.toml --workspace --locked --verbose
 
       - name: Check plugin workspace formatting
         shell: pwsh
@@ -385,27 +390,26 @@ jobs:
           & ./.github/scripts/invoke-cargo-msvc.ps1 @fmtArguments
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-      - name: Run plugin workspace Clippy with warnings denied
-        shell: pwsh
-        run: ./.github/scripts/invoke-cargo-msvc.ps1 cargo clippy --manifest-path zircon_plugins/Cargo.toml --workspace --all-targets --locked -- -D warnings
-
       - name: Guard plugin Cargo test reachability
         run: python tools/audits/validate_cargo_test_reachability.py --manifest-path zircon_plugins/Cargo.toml --json
 
-      - name: Check Rust plugin declarations, artifacts, and catalog wiring
-        shell: pwsh
-        run: ./.github/scripts/invoke-cargo-msvc.ps1 cargo run --locked -p cargo-zircon -- plugin check --root . --artifact-root "$env:CARGO_TARGET_DIR\debug"
+      # Dist recipes fail closed: the legacy artifact CLI has no per-plugin selector.
+      # Standalone manifest validation is retained; it is not native artifact acceptance.
 
-      - name: Run plugin workspace tests
+
+      - name: Test and lint affected owner libraries
         shell: pwsh
-        run: ./.github/scripts/invoke-cargo-msvc.ps1 cargo test --manifest-path zircon_plugins/Cargo.toml --workspace --locked --verbose
+        run: python -B .github/scripts/ci-scope.py run --base "$env:CI_SCOPE_BASE" --head "$env:CI_SCOPE_HEAD" --group rust
 
   scene-ecs-miri:
     name: Scene ECS storage and query (Miri)
     # Persistent runners execute only trusted branch pushes.
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') && needs.runtime-profile-feature-matrix-plan.outputs.has_miri == 'true'
     runs-on: [self-hosted, Windows, X64]
+    needs: runtime-profile-feature-matrix-plan
     env:
+      CI_SCOPE_BASE: ${{ needs.runtime-profile-feature-matrix-plan.outputs.base }}
+      CI_SCOPE_HEAD: ${{ needs.runtime-profile-feature-matrix-plan.outputs.head }}
       ZR_CI_OUTPUT_ROOT: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\scene-ecs-miri-${{ strategy.job-index || 0 }}
       CARGO_HOME: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\scene-ecs-miri-${{ strategy.job-index || 0 }}\cargo-home
       RUSTUP_HOME: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\scene-ecs-miri-${{ strategy.job-index || 0 }}\rustup
@@ -426,6 +430,7 @@ jobs:
           TMP: ${{ runner.temp }}
         with:
           persist-credentials: false
+          fetch-depth: 0
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
         with:
           python-version: '3.11'
@@ -461,11 +466,15 @@ jobs:
         run: ./.github/scripts/invoke-cargo-msvc.ps1 -RequireMatchingTests cargo +nightly-2026-10-10 miri test --target x86_64-unknown-linux-gnu -p zircon_runtime --lib --no-default-features --features native-host --locked scene::tests::ecs_query_many::unsafe_custom_mutable_query_preserves_real_borrows_and_change_ticks
 
   render-feature-smoke:
-    name: Rendering feature graph and frame smoke (${{ matrix.feature }})
+    name: Affected render contract (${{ matrix.recipe }})
     # Persistent runners execute only trusted branch pushes.
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') && needs.runtime-profile-feature-matrix-plan.outputs.has_render == 'true'
     runs-on: [self-hosted, Windows, X64]
+    needs: runtime-profile-feature-matrix-plan
     env:
+      CI_RECIPE: ${{ matrix.recipe }}
+      CI_SCOPE_BASE: ${{ needs.runtime-profile-feature-matrix-plan.outputs.base }}
+      CI_SCOPE_HEAD: ${{ needs.runtime-profile-feature-matrix-plan.outputs.head }}
       ZR_CI_OUTPUT_ROOT: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\render-feature-smoke-${{ strategy.job-index || 0 }}
       CARGO_HOME: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\render-feature-smoke-${{ strategy.job-index || 0 }}\cargo-home
       RUSTUP_HOME: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\render-feature-smoke-${{ strategy.job-index || 0 }}\rustup
@@ -475,83 +484,7 @@ jobs:
       ZIRCON_RENDERING_SMOKE_OUTPUT_DIR: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\render-feature-smoke-${{ strategy.job-index || 0 }}\target\product-frame
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - feature: baked_lighting
-            manifest: zircon_plugins/Cargo.toml
-            package: zircon_plugin_rendering_baked_lighting_runtime
-            args: --lib
-            filter: baked_lighting_feature_executes_in_nonempty_wgpu_product_frame
-          - feature: decals
-            manifest: zircon_plugins/Cargo.toml
-            package: zircon_plugin_rendering_decals_runtime
-            args: --lib
-            filter: decals_feature_executes_in_nonempty_wgpu_product_frame
-          - feature: contact_shadow
-            manifest: zircon_plugins/Cargo.toml
-            package: zircon_plugin_rendering_contact_shadow_runtime
-            args: --lib
-            filter: contact_shadow_wgpu_product_capture_darkens_
-          - feature: irradiance_volumes
-            manifest: Cargo.toml
-            package: zircon_runtime
-            args: --lib --no-default-features --features graphics
-            filter: render_product_af_m2_cookie_and_volume_execute_and_change_wgpu_frame
-          - feature: light_cookies
-            manifest: Cargo.toml
-            package: zircon_runtime
-            args: --lib --no-default-features --features graphics
-            filter: render_product_af_m2_cookie_and_volume_execute_and_change_wgpu_frame
-          - feature: oit
-            manifest: Cargo.toml
-            package: zircon_runtime
-            args: --lib --no-default-features --features graphics
-            filter: render_product_advanced_lighting_oit_three_crossing_planes_differs_from_sorted
-          - feature: planar_reflections
-            manifest: Cargo.toml
-            package: zircon_runtime
-            args: --lib --no-default-features --features graphics
-            filter: render_product_planar_reflection_changes_mirror_floor_through_camera_loop
-          - feature: post_process
-            manifest: Cargo.toml
-            package: zircon_runtime
-            args: --lib --no-default-features --features graphics
-            filter: render_product_post_uber_light_effects_change_final_frame
-          - feature: reflection_probes
-            manifest: Cargo.toml
-            package: zircon_runtime
-            args: --lib --no-default-features --features graphics
-            filter: render_product_probe_feature_off_falls_back_to_skybox
-          - feature: ssao
-            manifest: Cargo.toml
-            package: zircon_runtime
-            args: --lib --no-default-features --features graphics
-            filter: ssao_product_default_is_fail_closed_and_preserves_scene_output
-          - feature: subsurface_scattering
-            manifest: Cargo.toml
-            package: zircon_runtime
-            args: --lib --no-default-features --features graphics
-            filter: render_product_sss_skin_sphere_executes_burley_indirect_pipeline
-          - feature: ray_tracing_policy
-            manifest: zircon_plugins/Cargo.toml
-            package: zircon_plugin_rendering_ray_tracing_policy_runtime
-            args: --lib
-            filter: ray_tracing_policy_reports_backend_gates_and_keeps_a_real_product_frame
-          - feature: shader_graph
-            manifest: zircon_plugins/Cargo.toml
-            package: zircon_plugin_rendering_shader_graph_runtime
-            args: --lib
-            filter: shader_graph_feature_executes_a_real_product_frame
-          - feature: vfx_graph
-            manifest: zircon_plugins/Cargo.toml
-            package: zircon_plugin_rendering_vfx_graph_runtime
-            args: --lib
-            filter: vfx_graph_feature_executes_a_real_product_frame
-          - feature: volumetric_fog
-            manifest: zircon_plugins/Cargo.toml
-            package: zircon_plugin_rendering_volumetric_fog_runtime
-            args: --lib
-            filter: smoke_volumetric_fog_executes_a_product_frame
+      matrix: ${{ fromJSON(needs.runtime-profile-feature-matrix-plan.outputs.render) }}
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
         env:
@@ -559,6 +492,7 @@ jobs:
           TMP: ${{ runner.temp }}
         with:
           persist-credentials: false
+          fetch-depth: 0
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
         with:
           python-version: '3.11'
@@ -569,21 +503,9 @@ jobs:
         uses: dtolnay/rust-toolchain@75be91dd2711b583df57c31d0873b4145c89f1d9
         with:
           toolchain: 1.94.1
-      - name: Compile feature graph and execute product-frame smoke
+      - name: Compile feature graph and execute product-frame smoke with nonzero test admission
         shell: pwsh
-        run: ./.github/scripts/invoke-cargo-msvc.ps1 -RequireMatchingTests cargo test --manifest-path "${{ matrix.manifest }}" -p ${{ matrix.package }} ${{ matrix.args }} ${{ matrix.filter }} --locked
-      - name: Check irradiance-volume feature wrapper
-        if: matrix.feature == 'irradiance_volumes'
-        shell: pwsh
-        run: ./.github/scripts/invoke-cargo-msvc.ps1 -RequireMatchingTests cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_rendering_irradiance_volumes_runtime --lib irradiance_volume_feature_is_optional_and_registers_binding_executor --locked
-      - name: Check light-cookie feature wrapper
-        if: matrix.feature == 'light_cookies'
-        shell: pwsh
-        run: ./.github/scripts/invoke-cargo-msvc.ps1 -RequireMatchingTests cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_rendering_light_cookies_runtime --lib light_cookie_feature_is_optional_and_registers_atlas_executor --locked
-      - name: Check subsurface-scattering feature wrapper
-        if: matrix.feature == 'subsurface_scattering'
-        shell: pwsh
-        run: ./.github/scripts/invoke-cargo-msvc.ps1 -RequireMatchingTests cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_rendering_subsurface_scattering_runtime --lib sss_feature_registers_three_passes_executors_and_shading_model --locked
+        run: python -B .github/scripts/ci-scope.py run --base "$env:CI_SCOPE_BASE" --head "$env:CI_SCOPE_HEAD" --recipe "$env:CI_RECIPE"
 
   plugin-standalone-validate:
     name: Plugin standalone validate all
@@ -600,11 +522,15 @@ jobs:
         run: python -m tools.export plugin validate --all --repo-root . --json
 
   plugin-standalone-dist:
-    name: Plugin standalone dist (${{ matrix.plugin_id }})
+    name: Affected dist contract (${{ matrix.recipe }})
     # Persistent runners execute only trusted branch pushes.
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') && needs.runtime-profile-feature-matrix-plan.outputs.has_dist == 'true'
     runs-on: [self-hosted, Windows, X64]
+    needs: runtime-profile-feature-matrix-plan
     env:
+      CI_RECIPE: ${{ matrix.recipe }}
+      CI_SCOPE_BASE: ${{ needs.runtime-profile-feature-matrix-plan.outputs.base }}
+      CI_SCOPE_HEAD: ${{ needs.runtime-profile-feature-matrix-plan.outputs.head }}
       ZR_CI_OUTPUT_ROOT: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\plugin-standalone-dist-${{ strategy.job-index || 0 }}
       CARGO_HOME: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\plugin-standalone-dist-${{ strategy.job-index || 0 }}\cargo-home
       RUSTUP_HOME: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\plugin-standalone-dist-${{ strategy.job-index || 0 }}\rustup
@@ -613,90 +539,7 @@ jobs:
       CARGO_TARGET_DIR: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\plugin-standalone-dist-${{ strategy.job-index || 0 }}\target
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - plugin_id: native_dynamic_fixture
-            package: zircon_plugin_native_dynamic_fixture_native
-          - plugin_id: ai
-            package: zircon_plugin_ai_dist
-          - plugin_id: animation
-            package: zircon_plugin_animation_dist
-          - plugin_id: animation_graph
-            package: zircon_plugin_animation_graph_dist
-          - plugin_id: rendering
-            package: zircon_plugin_rendering_dist
-          - plugin_id: hybrid_gi
-            package: zircon_plugin_hybrid_gi_dist
-          - plugin_id: virtual_geometry
-            package: zircon_plugin_virtual_geometry_dist
-          - plugin_id: solari
-            package: zircon_plugin_solari_dist
-          - plugin_id: physics
-            package: zircon_plugin_physics_dist
-          - plugin_id: sound
-            package: zircon_plugin_sound_dist
-          - plugin_id: sound_ray_traced_convolution_reverb
-            package: zircon_plugin_sound_ray_traced_convolution_dist
-          - plugin_id: sound_timeline_animation_track
-            package: zircon_plugin_sound_timeline_animation_dist
-          - plugin_id: runtime_diagnostics
-            package: zircon_plugin_runtime_diagnostics_dist
-          - plugin_id: ui_asset_authoring
-            package: zircon_plugin_ui_asset_authoring_dist
-          - plugin_id: material_editor
-            package: zircon_plugin_material_editor_dist
-          - plugin_id: timeline_sequence
-            package: zircon_plugin_timeline_sequence_dist
-          - plugin_id: native_window_hosting
-            package: zircon_plugin_native_window_hosting_dist
-          - plugin_id: editor_build_export_desktop
-            package: zircon_plugin_editor_build_export_desktop_dist
-          - plugin_id: editor_contribution_fixture
-            package: zircon_plugin_editor_contribution_fixture_native
-          - plugin_id: plugin_sdk_examples
-            package: zircon_plugin_sdk_examples_dist
-          - plugin_id: texture
-            package: zircon_plugin_texture_dist
-          - plugin_id: net
-            package: zircon_plugin_net_dist
-          - plugin_id: neural
-            package: zircon_plugin_neural_dist
-          - plugin_id: asset_importer.data
-            package: zircon_plugin_asset_importer_data_dist
-          - plugin_id: asset_importer.audio
-            package: zircon_plugin_asset_importer_audio_dist
-          - plugin_id: asset_importer.model
-            package: zircon_plugin_asset_importer_model_dist
-          - plugin_id: asset_importer.shader
-            package: zircon_plugin_asset_importer_shader_dist
-          - plugin_id: asset_importer.texture
-            package: zircon_plugin_asset_importer_texture_dist
-          - plugin_id: gltf_importer
-            package: zircon_plugin_gltf_importer_dist
-          - plugin_id: audio_importer
-            package: zircon_plugin_audio_importer_dist
-          - plugin_id: opus_importer
-            package: zircon_plugin_opus_importer_dist
-          - plugin_id: shader_wgsl_importer
-            package: zircon_plugin_shader_wgsl_importer_dist
-          - plugin_id: ui_document_importer
-            package: zircon_plugin_ui_document_importer_dist
-          - plugin_id: obj_importer
-            package: zircon_plugin_obj_importer_dist
-          - plugin_id: texture_importer
-            package: zircon_plugin_texture_importer_dist
-          - plugin_id: particles
-            package: zircon_plugin_particles_dist
-          - plugin_id: navigation
-            package: zircon_plugin_navigation_dist
-          - plugin_id: zr_vm_language
-            package: zircon_plugin_zr_vm_language_dist
-          - plugin_id: terrain
-            package: zircon_plugin_terrain_dist
-          - plugin_id: tilemap_2d
-            package: zircon_plugin_tilemap_2d_dist
-          - plugin_id: prefab_tools
-            package: zircon_plugin_prefab_tools_dist
+      matrix: ${{ fromJSON(needs.runtime-profile-feature-matrix-plan.outputs.dist) }}
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
         env:
@@ -704,6 +547,7 @@ jobs:
           TMP: ${{ runner.temp }}
         with:
           persist-credentials: false
+          fetch-depth: 0
 
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
         with:
@@ -718,20 +562,20 @@ jobs:
         with:
           toolchain: 1.94.1
 
-      - name: Check standalone dist package
+      - name: Scoped dist admission and artifact acceptance gate
         shell: pwsh
-        run: ./.github/scripts/invoke-cargo-msvc.ps1 cargo check --manifest-path zircon_plugins/Cargo.toml -p ${{ matrix.package }} --no-default-features --features dist --locked --verbose
-
-      - name: Build standalone dist package
-        shell: pwsh
-        run: ./.github/scripts/invoke-cargo-msvc.ps1 cargo build --manifest-path zircon_plugins/Cargo.toml -p ${{ matrix.package }} --no-default-features --features dist --locked --verbose
+        run: python -B .github/scripts/ci-scope.py run --base "$env:CI_SCOPE_BASE" --head "$env:CI_SCOPE_HEAD" --recipe "$env:CI_RECIPE"
 
   export-platform-contract:
-    name: Export platform contract (${{ matrix.export-platform }})
+    name: Affected export contract (${{ matrix.recipe }})
     # Persistent runners execute only trusted branch pushes.
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') && needs.runtime-profile-feature-matrix-plan.outputs.has_export == 'true'
     runs-on: [self-hosted, Windows, X64]
+    needs: runtime-profile-feature-matrix-plan
     env:
+      CI_RECIPE: ${{ matrix.recipe }}
+      CI_SCOPE_BASE: ${{ needs.runtime-profile-feature-matrix-plan.outputs.base }}
+      CI_SCOPE_HEAD: ${{ needs.runtime-profile-feature-matrix-plan.outputs.head }}
       ZR_CI_OUTPUT_ROOT: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\export-platform-contract-${{ strategy.job-index || 0 }}
       CARGO_HOME: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\export-platform-contract-${{ strategy.job-index || 0 }}\cargo-home
       RUSTUP_HOME: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\export-platform-contract-${{ strategy.job-index || 0 }}\rustup
@@ -740,8 +584,7 @@ jobs:
       CARGO_TARGET_DIR: E:\cargo-targets\zircon-local\ci\runs\${{ github.run_id }}-${{ github.run_attempt }}\export-platform-contract-${{ strategy.job-index || 0 }}\target
     strategy:
       fail-fast: false
-      matrix:
-        export-platform: [windows, linux, macos, android, ios, web_gpu, wasm, headless]
+      matrix: ${{ fromJSON(needs.runtime-profile-feature-matrix-plan.outputs.export) }}
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
         env:
@@ -749,6 +592,7 @@ jobs:
           TMP: ${{ runner.temp }}
         with:
           persist-credentials: false
+          fetch-depth: 0
 
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
         with:
@@ -763,8 +607,6 @@ jobs:
         with:
           toolchain: 1.94.1
 
-      - name: Check export policy for ${{ matrix.export-platform }}
-        env:
-          ZR_EXPORT_CONTRACT_PLATFORM: ${{ matrix.export-platform }}
+      - name: Check selected export policy contract
         shell: pwsh
-        run: ./.github/scripts/invoke-cargo-msvc.ps1 cargo test -p zircon_runtime platform_target_policy_matches_host_resource_and_plugin_strategy --locked --verbose
+        run: python -B .github/scripts/ci-scope.py run --base "$env:CI_SCOPE_BASE" --head "$env:CI_SCOPE_HEAD" --recipe "$env:CI_RECIPE"

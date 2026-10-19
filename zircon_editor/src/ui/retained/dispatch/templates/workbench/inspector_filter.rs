@@ -20,6 +20,9 @@ const INSPECTOR_TRANSFORM: &str = "WorkbenchInspectorTransform";
 const INSPECTOR_COMPONENT: &str = "WorkbenchInspectorMesh";
 const ADD_COMPONENT: &str = "WorkbenchAddComponent";
 const FILTER_EMPTY: &str = "WorkbenchInspectorFilterEmpty";
+const INSPECTOR_NAME_AREA: &str = "UnrealDetailsNameArea";
+const INSPECTOR_SELECTION_HINT: &str = "UnrealDetailsSelectionHint";
+const INSPECTOR_CONTENT: &str = "RightDrawerContentRoot";
 
 const METADATA_TERMS: &[&str] = &["metadata", "render", "layer", "mask"];
 const TRANSFORM_TERMS: &[&str] = &["transform", "position", "rotation", "scale", "translation"];
@@ -115,6 +118,10 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
             && !component_visible;
 
         self.mutate_control_property(FILTER_CONTROL, "disabled", UiValue::Bool(!has_selection))?;
+        self.set_visible(INSPECTOR_SELECTION_HINT, !has_selection)?;
+        self.set_visible(INSPECTOR_NAME_AREA, has_selection)?;
+        self.set_visible(FILTER_CONTROL, has_selection)?;
+        self.set_visible(INSPECTOR_CONTENT, has_selection)?;
         self.set_visible(INSPECTOR_METADATA, metadata_visible)?;
         self.set_visible(INSPECTOR_TRANSFORM, transform_visible)?;
         self.set_visible(INSPECTOR_COMPONENT, component_visible)?;

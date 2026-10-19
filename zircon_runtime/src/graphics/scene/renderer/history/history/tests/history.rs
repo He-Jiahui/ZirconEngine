@@ -162,3 +162,58 @@ fn exposure_history_reset_uses_frame_upload_transaction_without_raw_queue() {
     assert!(accept < ledger);
     assert!(scene_submit < commit);
 }
+
+#[test]
+fn gi_history_physical_descriptor_matches_primary_render_extent_after_resize() {
+    let Ok(backend) = RenderBackend::new_offscreen() else {
+        return;
+    };
+    let requirements = SceneFrameHistoryRequirements::new(true, true, false, false, false, None);
+    let taa_extent = UVec2::new(1352, 912);
+    let render_extent = UVec2::new(904, 608);
+    let (mut history, _) = SceneFrameHistoryTextures::new_with_requirements_and_initialization(
+        &backend.device,
+        taa_extent,
+        render_extent,
+        requirements,
+    );
+    let taa_identity = history.taa_scene_color_current_identity().unwrap();
+    for texture in [
+        history.global_illumination_texture().unwrap(),
+        history
+            .global_illumination_temporal_metadata_texture()
+            .unwrap(),
+    ] {
+        assert_eq!((texture.width(), texture.height()), (904, 608));
+    }
+    let desc = history.global_illumination_desc("gi-history-test").unwrap();
+    assert_eq!((desc.width, desc.height), (904, 608));
+    assert_eq!(
+        history.taa_scene_color_previous_texture().unwrap().width(),
+        1352
+    );
+
+    let (changes, _) = history.reconcile_with_requirements_and_initialization(
+        &backend.device,
+        taa_extent,
+        UVec2::new(888, 600),
+        requirements,
+    );
+    assert!(changes.changed(super::SceneHistoryDomain::HybridGlobalIllumination));
+    assert!(!changes.changed(super::SceneHistoryDomain::TaaSceneColor));
+    assert_eq!(
+        history.taa_scene_color_current_identity(),
+        Some(taa_identity)
+    );
+    for texture in [
+        history.global_illumination_texture().unwrap(),
+        history
+            .global_illumination_temporal_metadata_texture()
+            .unwrap(),
+    ] {
+        assert_eq!((texture.width(), texture.height()), (888, 600));
+    }
+    let desc = history.global_illumination_desc("gi-history-test").unwrap();
+    assert_eq!((desc.width, desc.height), (888, 600));
+    println!("GI_HISTORY_PRIMARY_EXTENT_GPU_VALIDATED");
+}

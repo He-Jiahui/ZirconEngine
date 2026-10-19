@@ -1,4 +1,5 @@
 //! 动态会话的二进制接口、宿主请求和诊断路由需与共享契约同步。通过源码文本核对父子路由、状态镜像和文件预算。
+use crate::tests::runtime_absorption::structure_convention::fixed_history_archive_source as history;
 const SLICE: &str = "Runtime 15 M3 dynamic API session shared data folder-backed split";
 const STATUS: &str =
     "runtime_15_dynamic_api_session_shared_data_folder_backed_static_passed_cargo_deferred";
@@ -43,7 +44,7 @@ fn runtime_15_dynamic_api_session_shared_data_is_folder_backed() {
             r#"#[path = "shared/docs.rs"]"#,
             r#"#[path = "shared/host_requests.rs"]"#,
             r#"#[path = "shared/slices.rs"]"#,
-            r#"#[path = "shared/source_inventory.rs"]"#,
+            r#"#[path = "../shared/source_inventory.rs"]"#,
             r#"#[path = "shared/split_layout.rs"]"#,
         ],
     );
@@ -134,11 +135,11 @@ fn runtime_15_dynamic_api_session_shared_data_is_folder_backed() {
     }
 
     for source in [
-        include_str!("../../../../../../docs/plans/zircon_runtime/runtime/10/2026-07-09-dynamic-api-and-interface-convergence-output-records.md"),
-        crate::tests::runtime_absorption::current_source_fixture::RUNTIME_ARCHITECTURE_IMPLEMENTATION_OUTPUT,
-        include_str!("../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md"),
-        include_str!("../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md"),
-        include_str!("../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"),
+        history("docs/plans/zircon_runtime/runtime/10/2026-07-09-dynamic-api-and-interface-convergence-output-records.md"),
+        crate::tests::runtime_absorption::current_source_fixture::runtime_architecture_implementation_output(),
+        history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md"),
+        history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md"),
+        history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"),
         include_str!("../../../../../../docs/crates/zircon_runtime/structure/module-convention.md"),
     ] {
         assert_contains_all("dynamic API shared data status mirror", source, &[
@@ -149,9 +150,7 @@ fn runtime_15_dynamic_api_session_shared_data_is_folder_backed() {
         ]);
     }
 
-    let frameworks = include_str!(
-        "../../../../../../docs/plans/zircon_runtime/frameworks/02/2026-07-09-module-kernel-and-lifecycle-unification-output-records.md"
-    );
+    let frameworks = history("docs/plans/zircon_runtime/frameworks/02/2026-07-09-module-kernel-and-lifecycle-unification-output-records.md");
     assert_contains_all(
         "frameworks plan records dynamic API shared data split",
         frameworks,

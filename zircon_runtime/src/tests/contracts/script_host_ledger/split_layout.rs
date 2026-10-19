@@ -74,18 +74,17 @@ fn runtime_15_script_host_ledger_guard_is_folder_backed() {
         );
     }
 
-    #[rustfmt::skip]
-    let numbered_records = concat!(
-        include_str!("../../../../../docs/plans/zircon_runtime/runtime/13/2026-07-09-script-binding-and-reflection-output-records.md"),
-        include_str!("../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md"),
-        include_str!("../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md"),
-        include_str!("../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"),
-        include_str!("../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md"),
-        include_str!("../../../../../docs/plans/zircon_runtime/frameworks/02/2026-07-09-module-kernel-and-lifecycle-unification-output-records.md")
-    );
+    let numbered_records = [
+        crate::tests::runtime_absorption::structure_convention::fixed_history_archive_source("docs/plans/zircon_runtime/runtime/13/2026-07-09-script-binding-and-reflection-output-records.md"),
+        crate::tests::runtime_absorption::structure_convention::fixed_history_archive_source("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md"),
+        crate::tests::runtime_absorption::structure_convention::fixed_history_archive_source("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md"),
+        crate::tests::runtime_absorption::structure_convention::fixed_history_archive_source("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"),
+        crate::tests::runtime_absorption::structure_convention::fixed_history_archive_source("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md"),
+        crate::tests::runtime_absorption::structure_convention::fixed_history_archive_source("docs/plans/zircon_runtime/frameworks/02/2026-07-09-module-kernel-and-lifecycle-unification-output-records.md"),
+    ].concat();
     assert_contains_all(
         "numbered output records",
-        numbered_records,
+        &numbered_records,
         &[SLICE, STATUS, GUARD, CHILD_PATHS[5], FRAMEWORKS_STATUS],
     );
     for (label, source) in [(

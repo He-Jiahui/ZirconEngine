@@ -18,9 +18,7 @@ pub(crate) struct ResolvedBodyMass {
     pub inertia_multiplier: Real,
 }
 
-// BUG: [CR-PHYSICS-BACKEND-0001] 有效有限输入仍可让派生质量或密度溢出：Box half_extents=[1e10;3] 的体积约 8e30 有限，density=1e10 也通过校验，但 volume*density 为 +Inf。
-// Builtin 将该质量存入 BodyRecord，后续 step 把 body 标为 inactive。Jolt 会把派生密度交给 JoltC，本文不推断其原生结果。
-// 证据：validation.rs、zircon_runtime scene mass_properties.rs::is_valid、builtin/runtime.rs::create_body、builtin/step.rs::integrate_body_sync_state；关联 PHY4-P1-013。
+// Both authored inputs and derived values must be valid before either backend consumes them.
 pub(crate) fn resolve_body_mass(
     shape: &PhysicsColliderShape,
     authored_mass: Real,
@@ -45,6 +43,11 @@ pub(crate) fn resolve_body_mass(
             (authored_mass, authored_mass / volume, inertia_tensor)
         }
     };
+    if !mass.is_finite() || mass <= 0.0 || !density.is_finite() || density <= 0.0 {
+        return Err(invalid_mass(
+            "derived mass and density must be finite and positive",
+        ));
+    }
     let inertia_multiplier = match inertia_tensor {
         None => 1.0,
         Some(requested) => explicit_inertia_multiplier(shape, mass, requested)?,

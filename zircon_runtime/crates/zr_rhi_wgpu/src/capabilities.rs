@@ -31,7 +31,7 @@ pub fn wgpu_backend_caps(
         .with_storage_buffers(true)
         .with_fragment_writable_storage(supports_fragment_writable_storage)
         .with_max_storage_buffers_per_shader_stage(limits.max_storage_buffers_per_shader_stage)
-        .with_max_storage_buffer_binding_size(u64::from(limits.max_storage_buffer_binding_size))
+        .with_max_storage_buffer_binding_size(limits.max_storage_buffer_binding_size)
         .with_indirect_draw(supports_indirect_execution)
         // Both fixed-count forms require adapter indirect-execution support; the optional
         // feature is only required for the GPU-written count-buffer overload.

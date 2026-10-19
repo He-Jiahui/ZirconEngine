@@ -1,5 +1,22 @@
 import unittest
+import sys
 from pathlib import Path
+
+_AUDIT_SCRIPTS = (
+    Path(__file__).resolve().parents[2]
+    / ".codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts"
+)
+sys.path.insert(0, str(_AUDIT_SCRIPTS))
+from runtime_structure_audits.dynamic_runtime_api_archive_inventory import (
+    HistoricalArchiveReader,
+)
+
+_HISTORICAL_IDENTITIES = {
+    'docs/plans/_archive/astra/optimize/01/2026-09-12-ai-behavior-budget-admission.md': (
+        5109,
+        '959151b68829bc95298cd2a5567cb4968fe2ae0a6d6ee53c01c0bef0ec7fbdd6',
+    ),
+}
 
 
 class AiBehaviorTreeBudgetAdmissionContractTests(unittest.TestCase):
@@ -10,7 +27,7 @@ class AiBehaviorTreeBudgetAdmissionContractTests(unittest.TestCase):
         self.executor = root / "zircon_plugins/ai/runtime/src/behavior_tree/executor.rs"
         self.support = root / "zircon_plugins/ai/runtime/src/behavior_tree/executor/support.rs"
         self.tests = root / "zircon_plugins/ai/runtime/src/tests/behavior_tree_execution.rs"
-        self.plan = root / "docs/plans/astra/optimize/01/2026-09-12-ai-behavior-budget-admission.md"
+        self.plan = 'docs/plans/_archive/astra/optimize/01/2026-09-12-ai-behavior-budget-admission.md'
 
     def test_executor_has_private_node_and_depth_budgets_with_per_tick_counters(self) -> None:
         source = self.executor.read_text(encoding="utf-8")
@@ -87,7 +104,9 @@ class AiBehaviorTreeBudgetAdmissionContractTests(unittest.TestCase):
 
     def test_regressions_cover_depth_node_and_under_budget_repeatability(self) -> None:
         tests = self.tests.read_text(encoding="utf-8")
-        plan = self.plan.read_text(encoding="utf-8")
+        history = HistoricalArchiveReader(identities=_HISTORICAL_IDENTITIES)
+        plan = history.read(self.plan)
+        self.assertIsNotNone(plan, history.records)
 
         for test_name in (
             "fn behavior_tree_depth_budget_returns_deterministic_blocked_result()",

@@ -5,27 +5,22 @@ use super::inventory::{
 
 pub(super) fn assert_runtime_03_sources_and_anchors(runtime_root: &std::path::Path) {
     assert_eq!(EXPECTED_RUNTIME_03_BEHAVIOR_TEST_ANCHORS.len(), 14);
-    assert_expected_files_exist(runtime_root);
+    for (role, files) in [
+        ("source", EXPECTED_RUNTIME_03_SOURCE_FILES),
+        ("guard", EXPECTED_RUNTIME_03_GUARD_FILES),
+    ] {
+        for file in files {
+            assert!(
+                runtime_root.join(file).exists(),
+                "Runtime 03 {role} owner `{file}` is missing; update schedule_frame_loop_boundary before changing its owner coverage"
+            );
+        }
+    }
     assert_system_stage_contract();
     assert_dynamic_session_time_handoff();
     assert_world_driver_has_no_second_time_advance();
     assert_schedule_runner_contract();
     assert_behavior_test_anchors();
-}
-
-fn assert_expected_files_exist(runtime_root: &std::path::Path) {
-    for source_file in EXPECTED_RUNTIME_03_SOURCE_FILES {
-        assert!(
-            runtime_root.join(source_file).exists(),
-            "Runtime 03 source owner `{source_file}` is missing; update schedule_frame_loop_boundary before changing the schedule/frame-loop surface"
-        );
-    }
-    for guard_file in EXPECTED_RUNTIME_03_GUARD_FILES {
-        assert!(
-            runtime_root.join(guard_file).exists(),
-            "Runtime 03 guard owner `{guard_file}` is missing; update schedule_frame_loop_boundary before changing guard coverage"
-        );
-    }
 }
 
 fn assert_system_stage_contract() {

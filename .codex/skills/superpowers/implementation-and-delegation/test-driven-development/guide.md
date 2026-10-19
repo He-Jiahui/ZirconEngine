@@ -7,7 +7,7 @@ Use a failing behavioral test to guide a feature or regression fix when that tes
 - Implement the smallest coherent change, then run the affected checks at the repository's validation boundary.
 - Refactor with the relevant evidence still valid; re-run affected checks when behavior, contracts, or dependencies change.
 
-[ZirconEngine validation cadence](../../../../../docs/plans/milestone-validation-policy.md) controls when Cargo runs. Writing a test does not require an immediate build after each slice.
+[ZirconEngine validation cadence](../../../../../docs/testing-and-validation/milestone-validation-policy.md) controls when Cargo runs. Writing a test does not require an immediate build after each slice.
 
 Do not delete useful implementation solely because it preceded its test. Verify that the test can detect the defect through a focused reproduction or a safe isolated comparison when needed. Documentation, mechanical edits, and other reversible low-impact changes may use structural checks without new unit tests or an exception approval.
 

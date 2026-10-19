@@ -22,23 +22,47 @@ const LISTING_PROSE_GUARD_PATH: &str = "priority_plan_docs/guard_tests/inventory
 #[test]
 fn runtime_15_priority_plan_docs_guard_inventory_uses_child_row_data_sources() {
     assert_priority_plan_doc_guard_row_data_sources_are_child_owned();
-
-    let _runtime_15_plan =
-        read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
-    let _runtime_index = runtime_index_with_output_archive_source();
-    let _structure_plan = read_repo("docs/plans/engine-code-structure-convention.md");
-    let _review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
-    let _module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
 }
 
 #[test]
 fn runtime_15_priority_plan_docs_listing_prose_names_full_inventory() {
-    let _runtime_15_plan =
-        read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
-    let _runtime_index = runtime_index_with_output_archive_source();
-    let _structure_plan = read_repo("docs/plans/engine-code-structure-convention.md");
-    let _review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
-    let _module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
+    for path in [
+        "docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md",
+        "docs/plans/zircon_runtime/runtime/index.md",
+        "docs/plans/engine-code-structure-convention.md",
+        "docs/plans/engine-code-review-findings-2026-06.md",
+        "docs/crates/zircon_runtime/structure/module-convention.md",
+    ] {
+        assert_listing_prose_has_no_stale_inventory_terms(path, &read_repo(path));
+    }
+    for (label, source) in independent_listing_mirror_sources() {
+        assert_listing_prose_has_no_stale_inventory_terms(label, &source);
+        assert_contains_all(
+            label,
+            &source,
+            &[
+                LISTING_PROSE_SLICE,
+                LISTING_PROSE_STATUS,
+                LISTING_PROSE_GUARD,
+                "full priority-plan-doc guard inventory",
+                FRONTMATTER_UNIQUENESS_GUARD_PATH,
+                INVENTORY_SYNC_GUARD_PATH,
+                LISTING_PROSE_GUARD_PATH,
+            ],
+        );
+    }
+}
+
+pub(super) fn independent_listing_mirror_sources() -> [(&'static str, String); 5] {
+    let history =
+        crate::tests::runtime_absorption::structure_convention::fixed_history_archive_source;
+    [
+        ("current Runtime 15", read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md")),
+        ("current module convention", read_repo("docs/crates/zircon_runtime/structure/module-convention.md")),
+        ("fixed historical runtime index", history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md").to_owned()),
+        ("fixed historical structure mirror", history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md").to_owned()),
+        ("fixed historical review mirror", history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md").to_owned()),
+    ]
 }
 
 fn assert_listing_prose_has_no_stale_inventory_terms(label: &str, source: &str) {

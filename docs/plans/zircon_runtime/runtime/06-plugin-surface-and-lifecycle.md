@@ -304,3 +304,24 @@ factory 的窄 panic 边界：只捕获资源值生成阶段，尚未写入 `Wor
 factory。该策略不吞任意 scene callback，也不引入第二套缓存或锁。源码与静态
 回归已完成，Runtime06/15 managed Cargo、reload/quiescence、性能与功耗证据仍
 待协调器准入，故本记录不关闭 Runtime06。
+
+
+## Current Runtime 06 Reviewed Source Inventory (2026-10-18)
+
+This row supersedes earlier current-tree 68/7, 74/8, and 86/3 snapshots for source inventory only; dated historical measurements above remain historical evidence. The Runtime 06 plan permits reviewed inventory synchronization while native implementation stays behind `zircon_runtime::plugin::native`, with no native root re-export or compatibility shim.
+
+The six explicitly reviewed `NativePluginProjectActivationCleanupReceipt`, `NativePluginProjectActivationRequest`, `NativePluginProjectActivationResult`, `NativePluginProjectActivationSelection`, `NativePluginProjectActivationSelectionResult`, and `NativePluginProjectActivationSelectionStatus` types belong to the existing native live-host runtime classification. Their owner is `zircon_runtime/src/plugin/loader/live/loading.rs`, mounted through `loader/live.rs` and re-exported through `loader/mod.rs` and `plugin/native.rs`. They carry required/optional selection, staged activation, bridge registration, commit/rollback, and retained-cleanup receipts; they do not add a new ABI version or a seventh classification group.
+
+The complete App `NativePlugin` consumer inventory is four production files and one mounted test file:
+
+- `zircon_app/src/entry/export_bootstrap.rs`
+- `zircon_app/src/entry/product_composition/composition.rs`
+- `zircon_app/src/entry/product_composition/ownership.rs`
+- `zircon_app/src/entry/product_composition/request.rs`
+- `zircon_app/src/entry/tests/profile_bootstrap.rs`
+
+`ownership.rs` retains the real native host with product runtime ownership; `profile_bootstrap.rs` validates package authority, manifest/library identity, target, and behavior health. Both are real mounted consumers and remain in the count.
+
+The exact reviewed contract for `plugin_surface_lifecycle_boundary` and `native_plugin_public_surface` is `expected_source_file_count = 20`, `expected_doc_file_count = 5`, `root_reexport_count = 0`, `native_namespace_reexport_count = 92`, native root re-export 0/0, native namespace re-export 92/92, M4 gate `classified-and-clear`, debt groups 0/0, native namespace symbol groups 6/6, unclassified native root symbols 0/0, unclassified native namespace symbols 0/0, root public native re-export locations 0/0, public native namespace re-export locations 2/2, app NativePlugin current call-site files: 5, native loader V1/V2 implementation files 0/0, `zircon_plugins` V1/V2 usage files 0/0, export_build_plan V1/V2 usage 0/0, unknown ABI rejection, hot reload failure injection, native loader test files 4/4, native test namespace import files 3/3, native test root import leaks 0/0, fallback lifecycle failure tests 4/4, `runtime_06_vm_lifecycle_fallback_failure_tests_are_folder_backed`, `runtime_06_native_loader_tests_use_isolated_plugin_native_namespace`, `mirror_docs_guard_present = true`, and `runtime_06_plugin_surface_lifecycle_mirror_docs_match_structure_audit_counts`. The required audit result remains `risks = []`; this source synchronization is not a recorded execution of that gate.
+
+The VM inventory reads the mounted `zircon_runtime/src/script/vm/tests/cases.rs`; native test scans read `zircon_runtime/src/tests/plugins` and retain their exact four-file/three-import and zero-root-leak gates. The `runtime_06_plugin_surface_lifecycle_gate_stays_visible_until_plugin_validation` remains open across script::vm/vampire_project_session/plugin/native_plugin/app/plugins and runtime real-backend validation. This inventory review does not establish native loading, activation transaction, rollback, browser/rendering, or milestone acceptance; those require separate terminal evidence.

@@ -38,6 +38,7 @@ pub struct RuntimePluginCatalogProjectionMetrics {
     pub indexed_string_bytes: usize,
 }
 
+#[cfg(test)]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub(super) struct RuntimePluginCatalogProjectionStats {
     pub(super) projection_builds: usize,

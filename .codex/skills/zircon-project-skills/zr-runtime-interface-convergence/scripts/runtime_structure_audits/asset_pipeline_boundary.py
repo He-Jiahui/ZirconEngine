@@ -73,6 +73,7 @@ def asset_pipeline_boundary_audit(root: Path) -> dict[str, object]:
     handle = root / "zircon_runtime/src/asset/facade/handle.rs"
     assets = root / "zircon_runtime/src/asset/facade/assets.rs"
     load_state = root / "zircon_runtime/src/asset/facade/load_state.rs"
+    load_state_tests = root / "zircon_runtime/src/asset/facade/tests/load_state.rs"
     facade_manager = root / "zircon_runtime/src/asset/facade/manager.rs"
     resource_record = root / "zircon_runtime_interface/src/resource/resource_record.rs"
     registry_ops = root / "zircon_runtime/crates/zr_resource/src/manager/registry_ops.rs"
@@ -121,14 +122,14 @@ def asset_pipeline_boundary_audit(root: Path) -> dict[str, object]:
     )
     runtime_index = root / "docs/plans/zircon_runtime/runtime/index.md"
     asset_docs = (
-        root / "docs/zircon_runtime/asset/facade.md",
-        root / "docs/zircon_runtime/asset/worker_pool.md",
-        root / "docs/zircon_runtime/asset/watcher.md",
-        root / "docs/zircon_runtime/asset/artifact.md",
-        root / "docs/zircon_runtime/core/resource.md",
+        root / "docs/crates/zircon_runtime/asset/facade.md",
+        root / "docs/crates/zircon_runtime/asset/worker_pool.md",
+        root / "docs/crates/zircon_runtime/asset/watcher.md",
+        root / "docs/crates/zircon_runtime/asset/artifact.md",
+        root / "docs/crates/zircon_runtime/core/resource.md",
     )
-    review = root / "docs/engine-architecture/runtime-architecture-review-m0.md"
-    convergence = root / "docs/engine-architecture/runtime-interface-convergence.md"
+    review = root / "docs/architecture/runtime-architecture-review-m0.md"
+    convergence = root / "docs/architecture/runtime-interface-convergence.md"
 
     handle_state_sources = tuple(
         _read_text(path)
@@ -181,7 +182,9 @@ def asset_pipeline_boundary_audit(root: Path) -> dict[str, object]:
         _read_text(root / file_name)
         for file_name in RUNTIME_04_GUARD_FILES
         if (root / file_name).exists()
-    ) + ((_read_text(load_state),) if load_state.exists() else tuple())
+    ) + tuple(
+        _read_text(path) for path in (load_state, load_state_tests) if path.exists()
+    )
     artifact_store_roundtrip_sources = tuple(
         _read_text(root / file_name)
         for file_name in RUNTIME_04_ARTIFACT_STORE_ROUNDTRIP_FILES
@@ -201,10 +204,12 @@ def asset_pipeline_boundary_audit(root: Path) -> dict[str, object]:
             "zircon_runtime/src/asset/tests/assets/artifact_store.rs",
             "zircon_runtime/src/asset/tests/assets/artifact_store/bounded_read.rs",
             "zircon_runtime/src/asset/tests/assets/artifact_store/lazy_residency.rs",
-            "zircon_runtime/crates/zr_resource/src/tests.rs",
+            "zircon_runtime/crates/zr_resource/src/tests/cases.rs",
         )
         if (root / file_name).exists()
-    ) + artifact_store_roundtrip_sources + ((_read_text(load_state),) if load_state.exists() else tuple())
+    ) + artifact_store_roundtrip_sources + tuple(
+        _read_text(path) for path in (load_state, load_state_tests) if path.exists()
+    )
     doc_sources = tuple(
         _read_text(path)
         for path in (

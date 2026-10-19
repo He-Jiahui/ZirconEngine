@@ -71,6 +71,8 @@ impl ArtifactCacheUiV2AssetDocument {
 
     pub(super) fn into_view_asset(self) -> Result<UiV2ViewAsset, AssetCodecError> {
         UiV2ViewAsset::from_toml_str(&self.document_toml).map_err(|source| {
+            #[cfg(feature = "native-host")]
+            let source = source.into();
             AssetCodecError::UiV2Document {
                 context: "deserialize .zui view document cache",
                 source,
@@ -80,6 +82,8 @@ impl ArtifactCacheUiV2AssetDocument {
 
     pub(super) fn into_component_asset(self) -> Result<UiV2ComponentAsset, AssetCodecError> {
         UiV2ComponentAsset::from_toml_str(&self.document_toml).map_err(|source| {
+            #[cfg(feature = "native-host")]
+            let source = source.into();
             AssetCodecError::UiV2Document {
                 context: "deserialize .zui component document cache",
                 source,
@@ -89,6 +93,8 @@ impl ArtifactCacheUiV2AssetDocument {
 
     pub(super) fn into_style_asset(self) -> Result<UiV2StyleAsset, AssetCodecError> {
         UiV2StyleAsset::from_toml_str(&self.document_toml).map_err(|source| {
+            #[cfg(feature = "native-host")]
+            let source = source.into();
             AssetCodecError::UiV2Document {
                 context: "deserialize .zui style document cache",
                 source,

@@ -535,3 +535,171 @@ fn ui_v2_virtual_list_window_uses_visible_range_and_overscan() {
     assert_eq!(window.first_visible, 0);
     assert_eq!(window.last_visible_exclusive, 8);
 }
+
+#[test]
+fn ui_v2_scroll_only_child_routes_scroll_without_click_or_focus() {
+    use std::sync::{
+        atomic::{AtomicUsize, Ordering},
+        Arc,
+    };
+    use zircon_runtime_interface::ui::{
+        binding::UiEventKind,
+        dispatch::{UiPointerDispatchEffect, UiPointerEvent},
+        layout::{UiPoint, UiSize},
+        surface::{UiPointerButton, UiPointerEventKind},
+    };
+
+    for explicit_opt_out in [false, true] {
+        let source = r#"
+[asset]
+kind = "view"
+id = "runtime.ui.scroll.v2"
+version = 2
+[root]
+node = "root"
+[nodes.root]
+component = "VerticalBox"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, container = { kind = "VerticalBox" } }
+children = [{ node = "scroll" }, { node = "visual" }, { node = "click" }]
+[nodes.scroll]
+component = "Container"
+control_id = "ScrollOnly"
+props = { HOVER_OVERRIDE }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "Demo/Scroll", event = "Scroll", route = "Demo.Scroll" }]
+[nodes.visual]
+component = "Container"
+control_id = "VisualOnly"
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+[nodes.click]
+component = "Container"
+control_id = "ClickOnly"
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "Demo/Click", event = "Click", route = "Demo.Click" }]
+"#.replace("HOVER_OVERRIDE", if explicit_opt_out { "input_hoverable = false" } else { "" });
+        let document = UiV2AssetLoader::load_toml_str(&source).unwrap();
+        let compiled = UiV2DocumentCompiler::compile(&document).unwrap();
+        let mut surface = UiV2SurfaceBuilder::build_surface_from_compiled_document(
+            UiTreeId::new("runtime.ui.scroll.v2"),
+            &document,
+            &compiled,
+        )
+        .unwrap();
+
+        surface.compute_layout(UiSize::new(128.0, 128.0)).unwrap();
+        let child = surface
+            .tree
+            .nodes
+            .values()
+            .find(|node| {
+                node.template_metadata
+                    .as_ref()
+                    .and_then(|metadata| metadata.control_id.as_deref())
+                    == Some("ScrollOnly")
+            })
+            .unwrap()
+            .node_id;
+        let visual = surface
+            .tree
+            .nodes
+            .values()
+            .find(|node| {
+                node.template_metadata
+                    .as_ref()
+                    .and_then(|metadata| metadata.control_id.as_deref())
+                    == Some("VisualOnly")
+            })
+            .unwrap()
+            .node_id;
+        let click = surface
+            .tree
+            .nodes
+            .values()
+            .find(|node| {
+                node.template_metadata
+                    .as_ref()
+                    .and_then(|metadata| metadata.control_id.as_deref())
+                    == Some("ClickOnly")
+            })
+            .unwrap()
+            .node_id;
+        let node = surface.tree.node(child).unwrap();
+        assert_eq!(
+            node.parent,
+            Some(surface.tree.roots[0]),
+            "regression requires a nonroot child"
+        );
+        assert_eq!(node.input_policy, UiInputPolicy::Receive);
+        assert_eq!(node.state_flags.hoverable, !explicit_opt_out);
+        assert_eq!(node.supports_pointer(), !explicit_opt_out);
+        assert!(!node.state_flags.clickable);
+        assert!(!node.state_flags.focusable);
+        assert!(!surface.tree.node(visual).unwrap().supports_pointer());
+        let click_flags = &surface.tree.node(click).unwrap().state_flags;
+        assert!(click_flags.clickable && click_flags.hoverable && click_flags.focusable);
+        let bindings = &node.template_metadata.as_ref().unwrap().bindings;
+        assert_eq!(bindings.len(), 1);
+        assert_eq!(bindings[0].event, UiEventKind::Scroll);
+        let frame = surface.arranged_tree.get(child).unwrap().frame;
+        assert!(frame.width > 2.0 && frame.height > 2.0);
+        let point = UiPoint::new(frame.x + 1.0, frame.y + 1.0);
+        let calls = Arc::new(AtomicUsize::new(0));
+        let observed = Arc::clone(&calls);
+        let mut dispatcher = crate::ui::dispatch::UiPointerDispatcher::default();
+        dispatcher.register(child, UiPointerEventKind::Scroll, move |context| {
+            assert_eq!(context.node_id, child);
+            assert_eq!(context.route.scroll_delta, 48.0);
+            observed.fetch_add(1, Ordering::SeqCst);
+            UiPointerDispatchEffect::Handled
+        });
+        let scrolled = surface
+            .dispatch_pointer_event(
+                &dispatcher,
+                UiPointerEvent::new(UiPointerEventKind::Scroll, point).with_scroll_delta(48.0),
+            )
+            .unwrap();
+        if explicit_opt_out {
+            assert_ne!(scrolled.route.target, Some(child));
+            assert_eq!(scrolled.handled_by, None);
+            assert_eq!(calls.load(Ordering::SeqCst), 0);
+        } else {
+            assert_eq!(scrolled.route.target, Some(child));
+            assert_eq!(scrolled.handled_by, Some(child));
+            assert_eq!(calls.load(Ordering::SeqCst), 1);
+        }
+        for kind in [UiPointerEventKind::Down, UiPointerEventKind::Up] {
+            let result = surface
+                .dispatch_pointer_event(
+                    &dispatcher,
+                    UiPointerEvent::new(kind, point).with_button(UiPointerButton::Primary),
+                )
+                .unwrap();
+            assert_eq!(result.route.click_target, None);
+            assert_eq!(result.focus_changed_to, None);
+            assert!(!result.component_events.iter().any(|event| {
+                matches!(event.event_kind, UiEventKind::Click | UiEventKind::Focus)
+            }));
+            assert_eq!(surface.focus.focused, None);
+        }
+        assert_eq!(calls.load(Ordering::SeqCst), usize::from(!explicit_opt_out));
+        let visual_calls = Arc::new(AtomicUsize::new(0));
+        let observed = Arc::clone(&visual_calls);
+        dispatcher.register(visual, UiPointerEventKind::Scroll, move |_| {
+            observed.fetch_add(1, Ordering::SeqCst);
+            UiPointerDispatchEffect::Handled
+        });
+        let frame = surface.arranged_tree.get(visual).unwrap().frame;
+        let result = surface
+            .dispatch_pointer_event(
+                &dispatcher,
+                UiPointerEvent::new(
+                    UiPointerEventKind::Scroll,
+                    UiPoint::new(frame.x + 1.0, frame.y + 1.0),
+                )
+                .with_scroll_delta(48.0),
+            )
+            .unwrap();
+        assert_ne!(result.route.target, Some(visual));
+        assert_eq!(visual_calls.load(Ordering::SeqCst), 0);
+    }
+}

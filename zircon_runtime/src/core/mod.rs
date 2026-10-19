@@ -1,5 +1,10 @@
 //! Core runtime, lifecycle management, service registry, and shared runtime primitives.
 
+#[path = "error_source.rs"]
+mod error_source;
+
+pub use error_source::TypedErrorSource;
+
 #[path = "runtime/mod.rs"]
 pub mod runtime;
 

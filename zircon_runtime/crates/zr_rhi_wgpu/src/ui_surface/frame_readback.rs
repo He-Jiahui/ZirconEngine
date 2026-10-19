@@ -84,9 +84,7 @@ impl WgpuUiSurfaceRenderer {
         draw_list: &UiSurfaceDrawList,
         encoder: &mut wgpu::CommandEncoder,
     ) -> Option<crate::WgpuNativeDiagnosticReadbackFrame> {
-        let Some(pending) = self.frame_readback.as_ref() else {
-            return None;
-        };
+        let pending = self.frame_readback.as_ref()?;
         if pending.failure.is_some() || pending.id.is_some() {
             return None;
         }
@@ -277,9 +275,9 @@ impl WgpuUiSurfaceRenderer {
             let expected = u64::from(pending.request.physical_size.0)
                 * u64::from(pending.request.physical_size.1)
                 * 4;
-            if !bytes
+            if bytes
                 .as_ref()
-                .is_some_and(|bytes| bytes.len() as u64 == expected)
+                .is_none_or(|bytes| bytes.len() as u64 != expected)
             {
                 pending.failure = Some("normal readback payload extent invalid".into());
             }

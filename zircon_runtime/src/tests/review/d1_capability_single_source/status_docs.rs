@@ -1,10 +1,11 @@
 //! 代码审查回归护栏核对已迁移接口、错误边界、插件入口及镜像状态。对照源文件与文档的当前锚点，记录尚待运行验证的结构约束。
 use super::support::assert_contains_all;
+use crate::tests::runtime_absorption::structure_convention::fixed_history_archive_source as history;
 
 pub(super) fn assert_d1_status_docs_are_synced() {
-    let review_findings = concat!(
-        include_str!("../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"),
-        include_str!("../../../../../docs/plans/engine-code-review-findings-2026-06.md")
+    let review_findings = crate::runtime_test_history_concat!(
+        history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"),
+        include_str!("../../../../../docs/architecture/runtime-architecture-review-m0.md")
     );
     let d1_row = review_findings
         .lines()

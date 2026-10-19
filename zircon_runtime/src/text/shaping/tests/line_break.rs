@@ -1,9 +1,14 @@
+//! 核对机会表的范围投影、来源回执及请求身份保留。
+//!
+//! 人工机会表隔离边界规则；源码拼写检查单独读取主文件全文，不能证明运行时性能。
+
 use super::{ClusterLineBreakFlags, LineBreakKind, LineBreakOpportunity, LineBreakOpportunityMap};
 use crate::text::{
     compiled_unicode_data_snapshot_id, LineBreakTailoringProfile, ShapedGlyphLineBreakOpportunity,
     ShapedGlyphLineBreakReceipt,
 };
 
+/// 构造带已分析规则的期望值，使“没有机会”与未知默认回执可在断言中区分。
 const fn unicode_default_receipt(
     opportunity: ShapedGlyphLineBreakOpportunity,
 ) -> ShapedGlyphLineBreakReceipt {
@@ -13,6 +18,7 @@ const fn unicode_default_receipt(
     }
 }
 
+// 用排序后的人工机会分别覆盖软末端、强制末端和跳过前段；不依赖实际文本提供方分词。
 #[test]
 fn cluster_flags_only_visit_the_cluster_opportunity_window() {
     let map = LineBreakOpportunityMap {
@@ -60,6 +66,7 @@ fn cluster_flags_only_visit_the_cluster_opportunity_window() {
     );
 }
 
+// 无机会的范围仍来自一次有效分析，回执应保留规则身份，而非退回未知默认值。
 #[test]
 fn cluster_without_an_opportunity_still_records_the_analysis_profile() {
     let map = LineBreakOpportunityMap::new("alpha beta");
@@ -70,6 +77,8 @@ fn cluster_without_an_opportunity_still_records_the_analysis_profile() {
     );
 }
 
+// 全文读取包含注释，随后删除所有空白；这里只约束一种被禁用的源码拼写，
+// 没有测量查询耗时、分配或实际访问次数。
 #[test]
 fn cluster_flags_do_not_restore_a_full_opportunity_fold() {
     let source = include_str!("../line_break.rs");
@@ -81,6 +90,7 @@ fn cluster_flags_do_not_restore_a_full_opportunity_fold() {
     assert!(!compact.contains(concat!("self.opportunities.iter()", ".fold")));
 }
 
+// 改变测试身份而保持相同文本，只核对传入身份被保留，不据此推断运行时数据表切换。
 #[test]
 fn line_break_analysis_retains_request_unicode_snapshot() {
     let current = compiled_unicode_data_snapshot_id();

@@ -1,7 +1,9 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use super::pointer_hits::sorted_hits_by_pointer;
-use super::{HitRecord, HitTarget, PointerHits, PointerId, RayMap};
+use super::{
+    HitRecord, HitTarget, PickingDomain, PickingPointerKey, PointerHits, PointerId, RayMap,
+};
 
 #[cfg(test)]
 #[path = "report/tests/single_pass_tests.rs"]
@@ -36,7 +38,7 @@ impl PickingPipelineReport {
     pub(super) fn from_ray_map_outputs_and_sorted_hits(
         ray_map: &RayMap,
         outputs: &[PointerHits],
-        sorted_hits_by_pointer: &BTreeMap<PointerId, Vec<HitRecord>>,
+        sorted_hits_by_pointer: &BTreeMap<PickingPointerKey, Vec<HitRecord>>,
     ) -> Self {
         let ray_count_by_pointer = ray_count_by_pointer(ray_map);
         let output_counts_by_pointer = output_counts_by_pointer(outputs);
@@ -47,7 +49,7 @@ impl PickingPipelineReport {
                     .get(&pointer)
                     .copied()
                     .unwrap_or_default();
-                PickingPointerPipelineReport::from_pointer(
+                PickingPointerPipelineReport::from_key(
                     pointer,
                     *ray_count_by_pointer.get(&pointer).unwrap_or(&0),
                     sorted_hits_by_pointer
@@ -67,11 +69,17 @@ impl PickingPipelineReport {
         let blocked_pointer_count = pointers
             .iter()
             .filter(|pointer| pointer.blocking_target.is_some())
-            .count();
+            .map(|row| row.pointer)
+            .collect::<BTreeSet<_>>()
+            .len();
 
         Self {
             ray_count: ray_map.len(),
-            pointer_count: pointers.len(),
+            pointer_count: pointers
+                .iter()
+                .map(|row| row.pointer)
+                .collect::<BTreeSet<_>>()
+                .len(),
             backend_output_count: outputs.len(),
             raw_hit_count: outputs.iter().map(|output| output.hits.len()).sum(),
             hovered_hit_count,
@@ -81,9 +89,17 @@ impl PickingPipelineReport {
     }
 
     pub fn pointer(&self, pointer: PointerId) -> Option<&PickingPointerPipelineReport> {
+        let mut rows = self.pointers.iter().filter(|row| row.pointer == pointer);
+        let row = rows.next()?;
+        rows.next().is_none().then_some(row)
+    }
+    pub fn pointer_in_domain(
+        &self,
+        key: PickingPointerKey,
+    ) -> Option<&PickingPointerPipelineReport> {
         self.pointers
             .iter()
-            .find(|pointer_report| pointer_report.pointer == pointer)
+            .find(|row| row.pointer == key.pointer && row.domain == key.domain)
     }
 }
 
@@ -91,6 +107,7 @@ impl PickingPipelineReport {
 /// 单个指针的射线、后端输出和排序命中摘要；悬停统计在首个阻挡目标处停止。
 pub struct PickingPointerPipelineReport {
     pub pointer: PointerId,
+    pub domain: PickingDomain,
     pub ray_count: usize,
     pub backend_output_count: usize,
     pub raw_hit_count: usize,
@@ -102,6 +119,24 @@ pub struct PickingPointerPipelineReport {
 }
 
 impl PickingPointerPipelineReport {
+    fn from_key(
+        key: PickingPointerKey,
+        ray_count: usize,
+        sorted_hits: &[HitRecord],
+        backend_output_count: usize,
+        raw_hit_count: usize,
+    ) -> Self {
+        let mut row = Self::from_pointer(
+            key.pointer,
+            ray_count,
+            sorted_hits,
+            backend_output_count,
+            raw_hit_count,
+        );
+        row.domain = key.domain;
+        row
+    }
+
     fn from_pointer(
         pointer: PointerId,
         ray_count: usize,
@@ -113,6 +148,7 @@ impl PickingPointerPipelineReport {
 
         Self {
             pointer,
+            domain: PickingDomain::Legacy,
             ray_count,
             backend_output_count,
             raw_hit_count,
@@ -151,20 +187,22 @@ fn summarize_pointer_hits(sorted_hits: &[HitRecord]) -> PointerHitSummary {
     summary
 }
 
-fn output_counts_by_pointer(outputs: &[PointerHits]) -> BTreeMap<PointerId, (usize, usize)> {
+fn output_counts_by_pointer(
+    outputs: &[PointerHits],
+) -> BTreeMap<PickingPointerKey, (usize, usize)> {
     let mut counts = BTreeMap::new();
     for output in outputs {
-        let (backend_output_count, raw_hit_count) = counts.entry(output.pointer).or_default();
+        let (backend_output_count, raw_hit_count) = counts.entry(output.key()).or_default();
         *backend_output_count += 1;
         *raw_hit_count += output.hits.len();
     }
     counts
 }
 
-fn report_pointer_ids(
-    ray_count_by_pointer: &BTreeMap<PointerId, usize>,
-    output_counts_by_pointer: &BTreeMap<PointerId, (usize, usize)>,
-) -> BTreeSet<PointerId> {
+fn report_pointer_ids<K: Ord + Copy>(
+    ray_count_by_pointer: &BTreeMap<K, usize>,
+    output_counts_by_pointer: &BTreeMap<K, (usize, usize)>,
+) -> BTreeSet<K> {
     ray_count_by_pointer
         .keys()
         .chain(output_counts_by_pointer.keys())
@@ -172,10 +210,15 @@ fn report_pointer_ids(
         .collect()
 }
 
-fn ray_count_by_pointer(ray_map: &RayMap) -> BTreeMap<PointerId, usize> {
+fn ray_count_by_pointer(ray_map: &RayMap) -> BTreeMap<PickingPointerKey, usize> {
     let mut counts = BTreeMap::new();
     for (ray_id, _) in ray_map.iter() {
-        *counts.entry(ray_id.pointer).or_insert(0) += 1;
+        *counts
+            .entry(PickingPointerKey::in_viewport(
+                ray_id.pointer,
+                ray_id.viewport,
+            ))
+            .or_insert(0) += 1;
     }
     counts
 }

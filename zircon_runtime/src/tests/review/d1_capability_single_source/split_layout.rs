@@ -25,18 +25,18 @@ fn runtime_15_plugin_importer_d1_capability_guard_is_folder_backed() {
     let split_layout = include_str!("split_layout.rs");
     let docs = [
         include_str!(
-            "../../../../../docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md"
+            "../../../../../docs/crates/zircon_runtime/structure/module-convention.md"
         ),
-        include_str!("../../../../../docs/plans/zircon_runtime/runtime/index.md"),
+        include_str!("../../../../../docs/crates/zircon_runtime/structure/runtime-absorption-evidence.md"),
         include_str!(
-            "../../../../../docs/plans/zircon_runtime/frameworks/02-module-kernel-and-lifecycle-unification.md"
+            "../../../../../docs/crates/zircon_runtime/core/modules.md"
         ),
-        include_str!("../../../../../docs/plans/engine-code-structure-convention.md"),
+        include_str!("../../../../../docs/testing-and-validation/development-conventions.md"),
         include_str!(
-            "../../../../../docs/plans/engine-code-review-findings-2026-06.md"
+            "../../../../../docs/architecture/runtime-architecture-review-m0.md"
         ),
         include_str!("../../../../../docs/crates/zircon_runtime/structure/module-convention.md"),
-        crate::tests::runtime_absorption::current_source_fixture::RUNTIME_ARCHITECTURE_IMPLEMENTATION_OUTPUT,
+        crate::tests::runtime_absorption::current_source_fixture::runtime_architecture_implementation_output(),
     ]
     .join("\n");
 

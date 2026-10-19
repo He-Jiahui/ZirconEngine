@@ -212,14 +212,14 @@ impl ComponentStorage {
 
     /// # Safety
     /// Authorize the selected value/tick row without conflicting live access.
-    /// Keep allocation, layout and entity membership fixed for every returned
-    /// reference's complete lifetime; shared ownership proves no uniqueness.
+    /// Keep allocation, layout and entity membership fixed while projected pointers
+    /// or derived references remain in use; shared ownership proves no uniqueness.
     pub(crate) unsafe fn get_mut_at_tick_unchecked<T>(
         &self,
         component_id: ComponentId,
         entity: InternalEntity,
         tick: ChangeTick,
-    ) -> Option<&mut T>
+    ) -> Option<*mut T>
     where
         T: Send + Sync + 'static,
     {
@@ -230,13 +230,13 @@ impl ComponentStorage {
 
     /// # Safety
     /// Authorize the selected value/tick row without conflicting live access.
-    /// Keep allocation, layout and entity membership fixed for every returned
-    /// reference's complete lifetime; shared ownership proves no uniqueness.
+    /// Keep allocation, layout and entity membership fixed while projected pointers
+    /// or derived references remain in use; shared ownership proves no uniqueness.
     pub(crate) unsafe fn get_mut_with_ticks_unchecked<T>(
         &self,
         component_id: ComponentId,
         entity: InternalEntity,
-    ) -> Option<(&mut T, &mut ComponentTicks)>
+    ) -> Option<(*mut T, *mut ComponentTicks)>
     where
         T: Send + Sync + 'static,
     {

@@ -32,12 +32,15 @@ fn core_spine_and_root_surface_docs_stay_in_sync() {
 
     for required_doc_anchor in [
         "Current Public Root Surface",
-        "21 public module declarations",
+        "current root raw public declarations 24/24; distinct namespaces 22/22; native target-client public modules 21/21",
+        "24 public module declarations",
+        "22 distinct public namespaces",
+        "127-line ceiling",
         "two public `pub use` sites",
         "M3 Alias Cutover",
         "crate-visible graphics alias debt 0/0",
         "root_surface_guard_static_passed",
-        "`rhi_wgpu` is now a crate-private backend owner",
+        "separate `zr_rhi_wgpu` crate",
         "builtin facade cutover",
     ] {
         assert!(
@@ -50,13 +53,15 @@ fn core_spine_and_root_surface_docs_stay_in_sync() {
 #[test]
 fn root_surface_m1_gate_matches_runtime_14_module_family_seats() {
     for required_m1_anchor in [
-        "public_module_count = 21",
-        "module_decision_count = 21",
+        "public_module_count = 24",
+        "current root raw public declarations 24/24; distinct namespaces 22/22; native target-client public modules 21/21",
+        "module_decision_count = 24",
         "unclassified_public_module_count = 0",
         "root_surface_migration_debt_count = 0",
         "crate_visible_graphics_reexport_count = 0",
         "`runtime-module-entry`: `animation`, `asset`, `diagnostic_log`, `foundation`, `input`, `navigation`, `operation`, `platform`, `scene`, `script`, `text`, `ui`",
         "`namespace-entry`: `builtin`, `plugin`",
+        "Browser is a classified target-host-entry",
         "M1 gate status `classified-and-clear`",
         "`rhi_wgpu` backend root public exposure is removed",
         "builtin root facade exposure is removed",
@@ -99,10 +104,11 @@ fn root_surface_m1_gate_matches_runtime_14_module_family_seats() {
 fn root_surface_interface_convergence_mirror_uses_current_audit_counts() {
     for required_convergence_anchor in [
         "The runtime crate root should remain a narrow module entry surface.",
-        "21 public modules",
+        "current root raw public declarations 24/24; distinct namespaces 22/22; native target-client public modules 21/21",
+        "21 public modules in the native target-client profile",
         "2 public `pub use` locations",
         "0 crate-visible graphics re-export symbols",
-        "`rhi_wgpu` is crate-private backend owner",
+        "the concrete WGPU backend remains behind runtime graphics/RHI imports",
         "builtin facade cutover",
         "M1 gate status `classified-and-clear`",
         "runtime root public modules 21/21",

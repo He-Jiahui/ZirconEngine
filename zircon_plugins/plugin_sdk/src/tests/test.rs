@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use zircon_runtime::core::runtime::ServiceObject;
 use zircon_runtime::core::{ManagerDescriptor, ServiceKind, StartupMode};
 use zircon_runtime::engine_module::{factory, qualified_name};
@@ -144,7 +146,7 @@ struct ManagedConfigFixture {
 
 impl ManagedConfigFixture {
     fn new(label: &str) -> Self {
-        use zircon_runtime::asset::ProjectPaths;
+        use zircon_runtime::asset::project::ProjectPaths;
         static NEXT_FIXTURE: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(1);
         let approved = ProjectPaths::resolve_existing("E:/cargo-targets/zircon-local")
             .expect("the managed E drive fixture root must already exist");
@@ -193,9 +195,10 @@ impl ManagedConfigFixture {
 impl Drop for ManagedConfigFixture {
     fn drop(&mut self) {
         // The declaring scope/wrapper closes all runtimes, handles and worker owners first.
-        let current =
-            zircon_runtime::asset::ProjectPaths::resolve_identity(self.root.operation_path())
-                .unwrap();
+        let current = zircon_runtime::asset::project::ProjectPaths::resolve_identity(
+            self.root.operation_path(),
+        )
+        .unwrap();
         assert_eq!(
             current, self.root,
             "cleanup must retain this fixture's physical identity"

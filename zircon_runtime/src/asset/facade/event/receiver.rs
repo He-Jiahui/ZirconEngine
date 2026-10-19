@@ -45,7 +45,7 @@ impl<TAsset: Asset> AssetEventReceiver<TAsset> {
 
     pub fn recv(&self) -> Result<AssetEvent<TAsset>, ResourceEventRecvError> {
         loop {
-            let event = self.receiver.recv()?;
+            let event = self.receiver.recv_envelope()?;
             if let Some(event) = AssetEvent::from_resource_event(event) {
                 return Ok(event);
             }
@@ -59,7 +59,7 @@ impl<TAsset: Asset> AssetEventReceiver<TAsset> {
         let started = Instant::now();
         loop {
             let remaining = timeout.saturating_sub(started.elapsed());
-            let event = self.receiver.recv_timeout(remaining)?;
+            let event = self.receiver.recv_envelope_timeout(remaining)?;
             if let Some(event) = AssetEvent::from_resource_event(event) {
                 return Ok(event);
             }
@@ -71,7 +71,7 @@ impl<TAsset: Asset> AssetEventReceiver<TAsset> {
 
     pub fn try_recv(&self) -> Result<AssetEvent<TAsset>, ResourceEventTryRecvError> {
         loop {
-            let event = self.receiver.try_recv()?;
+            let event = self.receiver.try_recv_envelope()?;
             if let Some(event) = AssetEvent::from_resource_event(event) {
                 return Ok(event);
             }
@@ -79,8 +79,8 @@ impl<TAsset: Asset> AssetEventReceiver<TAsset> {
     }
 
     pub(crate) fn try_recv_one(&self) -> Result<AssetEventPoll<TAsset>, ResourceEventTryRecvError> {
-        let resource_event = self.receiver.try_recv()?;
-        let approximate_bytes = approximate_event_bytes(&resource_event);
+        let resource_event = self.receiver.try_recv_envelope()?;
+        let approximate_bytes = approximate_event_bytes(resource_event.event());
         Ok(match AssetEvent::from_resource_event(resource_event) {
             Some(event) => AssetEventPoll::Relevant {
                 event,

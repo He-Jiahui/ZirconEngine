@@ -12,7 +12,7 @@ plan_sources:
 tests:
   - tools/jenkins_pilot/tests/
   - tools/session_coordinator/tests/
-  - docs/plans/milestone-validation-policy.md
+  - docs/testing-and-validation/milestone-validation-policy.md
 doc_type: workflow-detail
 ---
 

@@ -3,6 +3,35 @@ from tools.tests.rust_test_files import read_rust_test_file
 from pathlib import Path
 import unittest
 
+import sys as _history_sys
+from pathlib import Path as _HistoryPath
+_HISTORY_REPO_ROOT = _HistoryPath(__file__).resolve().parents[2]
+_history_sys.path.insert(0, str(_HISTORY_REPO_ROOT / '.codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts'))
+from runtime_structure_audits.dynamic_runtime_api_archive_inventory import HistoricalArchiveReader as _ContractHistoryReader
+_HISTORY_PATHS = {'docs/plans/optimize/zircon_runtime/60/2026-08-28-sparse-component-locator-pages.md': 'versions/reconciliation-515/3600b9c918ffaaf3058e6e5be76a410aa942d5d803f4ab809a5e17dfcde7581a/docs/plans/optimize/zircon_runtime/60/2026-08-28-sparse-component-locator-pages.md', 'docs/plans/zircon_runtime/runtime/08/failure-2026-07-22-ecs-archetype-columnar-storage.md': 'docs/plans/zircon_runtime/runtime/08/failure-2026-07-22-ecs-archetype-columnar-storage.md'}
+_HISTORY_IDENTITIES = {'versions/reconciliation-515/3600b9c918ffaaf3058e6e5be76a410aa942d5d803f4ab809a5e17dfcde7581a/docs/plans/optimize/zircon_runtime/60/2026-08-28-sparse-component-locator-pages.md': (8811, '3600b9c918ffaaf3058e6e5be76a410aa942d5d803f4ab809a5e17dfcde7581a'), 'docs/plans/zircon_runtime/runtime/08/failure-2026-07-22-ecs-archetype-columnar-storage.md': (15729, 'fb19d9900dde0b1ce0048df537e096d5baf0db31d5a6fe98e7a2978a078000f3')}
+_CURRENT_POLICY_INPUTS = ('docs/crates/zircon_runtime/scene/ecs.md', 'docs/testing-and-validation/runtime-ecs-validation-worklist.md')
+
+def _read_contract_input(path, *args, **kwargs):
+    candidate = _HistoryPath(path)
+    try:
+        relative = candidate.absolute().relative_to(_HISTORY_REPO_ROOT).as_posix()
+    except ValueError:
+        relative = None
+    key = _HISTORY_PATHS.get(relative)
+    if key is None:
+        if relative and relative.startswith('docs/plans/') and relative not in _CURRENT_POLICY_INPUTS:
+            raise AssertionError('Unregistered current/history contract input: ' + relative)
+        return candidate.read_text(*args, **kwargs)
+    if args or kwargs.get('encoding', 'utf-8').lower() not in ('utf-8', 'utf8') or kwargs.get('errors') not in (None, 'strict') or set(kwargs) - {'encoding', 'errors'}:
+        raise AssertionError('Historical evidence requires strict UTF-8')
+    reader = _ContractHistoryReader(identities=_HISTORY_IDENTITIES)
+    text = reader.read(key)
+    if text is None:
+        raise AssertionError(reader.records)
+    return text
+
+
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SPARSE_SOURCE = (
@@ -21,17 +50,17 @@ COMPONENT_STORAGE_SOURCE = (
 )
 STATUS = "runtime_08_60_sparse_component_locator_source_complete_cargo_product_profile_pending"
 STATUS_DOCS = (
-    "docs/plans/zircon_runtime/runtime/08-ecs-kernel-data-alignment.md",
+    'docs/testing-and-validation/runtime-ecs-validation-worklist.md',
     "docs/plans/zircon_runtime/runtime/08/failure-2026-07-22-ecs-archetype-columnar-storage.md",
-    "docs/plans/optimize/zircon_runtime/60-runtime-scene-ecs-entity-component-storage-archetype-query-access-change-detection-command-schedule-parallel-event.md",
+    'docs/crates/zircon_runtime/scene/ecs.md',
     "docs/plans/optimize/zircon_runtime/60/2026-08-28-sparse-component-locator-pages.md",
 )
 
 
 class RuntimeSparseComponentLocatorPagesContractTests(unittest.TestCase):
     def test_sparse_locator_is_bounded_and_page_backed(self) -> None:
-        source = SPARSE_SOURCE.read_text(encoding="utf-8")
-        locator = LOCATOR_SOURCE.read_text(encoding="utf-8")
+        source = _read_contract_input(SPARSE_SOURCE, encoding="utf-8")
+        locator = _read_contract_input(LOCATOR_SOURCE, encoding="utf-8")
 
         for anchor in (
             '#[path = "sparse/locator.rs"]',
@@ -71,8 +100,8 @@ class RuntimeSparseComponentLocatorPagesContractTests(unittest.TestCase):
             self.assertNotIn(retired, combined_source)
 
     def test_sparse_locator_behavior_regressions_are_mounted(self) -> None:
-        source = SPARSE_SOURCE.read_text(encoding="utf-8")
-        tests = SPARSE_TESTS.read_text(encoding="utf-8")
+        source = _read_contract_input(SPARSE_SOURCE, encoding="utf-8")
+        tests = _read_contract_input(SPARSE_TESTS, encoding="utf-8")
 
         self.assertIn("#[path = \"sparse/tests/cases.rs\"]", source)
         for anchor in (
@@ -96,9 +125,9 @@ class RuntimeSparseComponentLocatorPagesContractTests(unittest.TestCase):
             self.assertIn(anchor, tests)
 
     def test_locator_memory_diagnostics_aggregate_through_component_storage(self) -> None:
-        sparse = SPARSE_SOURCE.read_text(encoding="utf-8")
-        locator = LOCATOR_SOURCE.read_text(encoding="utf-8")
-        storage = COMPONENT_STORAGE_SOURCE.read_text(encoding="utf-8")
+        sparse = _read_contract_input(SPARSE_SOURCE, encoding="utf-8")
+        locator = _read_contract_input(LOCATOR_SOURCE, encoding="utf-8")
+        storage = _read_contract_input(COMPONENT_STORAGE_SOURCE, encoding="utf-8")
 
         for anchor in (
             "struct SparseLocatorDiagnostics",
@@ -121,7 +150,7 @@ class RuntimeSparseComponentLocatorPagesContractTests(unittest.TestCase):
 
     def test_sparse_locator_status_is_mirrored_by_canonical_plans(self) -> None:
         for relative_path in STATUS_DOCS:
-            source = (REPO_ROOT / relative_path).read_text(encoding="utf-8")
+            source = _read_contract_input(REPO_ROOT / relative_path, encoding="utf-8")
             self.assertIn(STATUS, source, relative_path)
 
 

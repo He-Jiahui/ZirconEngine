@@ -3,7 +3,7 @@
 use serde::{Deserialize, Deserializer, Serialize};
 
 use super::binary::{decode_binary_asset, encode_binary_asset, AnimationBinaryAssetKind};
-use super::error::{AnimationAssetError, AnimationAssetResult};
+use super::error::{AnimationAssetError, AnimationAssetResult, AnimationSkeletonHierarchyError};
 use crate::core::math::Real;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -62,7 +62,7 @@ impl<'a> From<&'a AnimationSkeletonAsset> for AnimationSkeletonAssetRef<'a> {
 }
 
 impl AnimationSkeletonAsset {
-    fn validate_hierarchy(&self) -> Result<(), String> {
+    fn validate_hierarchy(&self) -> Result<(), AnimationSkeletonHierarchyError> {
         let mut state = vec![0_u8; self.bones.len()];
         for start in 0..self.bones.len() {
             if state[start] == 2 {
@@ -72,7 +72,11 @@ impl AnimationSkeletonAsset {
             let mut current = start;
             loop {
                 match state[current] {
-                    1 => return Err(format!("bone parent cycle reaches index {current}")),
+                    1 => {
+                        return Err(AnimationSkeletonHierarchyError::ParentCycle {
+                            bone_index: current,
+                        });
+                    }
                     2 => break,
                     _ => {}
                 }
@@ -84,8 +88,10 @@ impl AnimationSkeletonAsset {
                 current = usize::try_from(parent)
                     .ok()
                     .filter(|&parent| parent < self.bones.len())
-                    .ok_or_else(|| {
-                        format!("bone index {current} has out-of-range parent index {parent}")
+                    .ok_or(AnimationSkeletonHierarchyError::ParentOutOfBounds {
+                        bone_index: current,
+                        parent_index: parent,
+                        bone_count: self.bones.len(),
                     })?;
             }
             for index in path {

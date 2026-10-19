@@ -116,3 +116,25 @@ impl RuntimePlugin for InvalidModulePlugin {
         registry.register_module(self.module.clone())
     }
 }
+
+#[test]
+fn runtime_named_module_revokes_with_the_exact_declared_owner() {
+    let mut registry = RuntimeExtensionRegistry::default();
+    registry
+        .register_module(ModuleDescriptor::new("client.runtime", "Client module"))
+        .unwrap();
+    registry
+        .register_module(ModuleDescriptor::new("other.runtime", "Other module"))
+        .unwrap();
+    let owner = registry.intern_plugin_module("client.runtime").unwrap();
+    let other = registry.intern_plugin_module("other.runtime").unwrap();
+    assert_eq!(registry.ownership_for(owner).modules.len(), 1);
+    assert_eq!(registry.ownership_for(other).modules.len(), 1);
+    let removed = registry.revoke_owner_registrations(owner);
+    assert_eq!(removed.modules.len(), 1);
+    assert!(registry.ownership_for(owner).is_empty());
+    assert_eq!(registry.modules().len(), 1);
+    assert_eq!(registry.modules()[0].name, "other.runtime");
+    assert_eq!(registry.ownership_for(other).modules.len(), 1);
+    assert!(registry.revoke_owner_registrations(owner).is_empty());
+}

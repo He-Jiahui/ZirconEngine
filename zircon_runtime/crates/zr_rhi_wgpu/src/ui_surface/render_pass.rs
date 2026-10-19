@@ -599,7 +599,7 @@ fn damage_scissor(
         .max(0.0)
         .min(surface_height)
         .ceil();
-    (right > left && bottom > top).then(|| {
+    (right > left && bottom > top).then_some({
         (
             left as u32,
             top as u32,

@@ -148,3 +148,126 @@ fn typed_asset_events_preserve_rename_reload_and_remove_order() {
     assert!(matches!(removed, AssetEvent::Removed { .. }));
     assert!(texture_events.try_recv().is_err());
 }
+
+fn concrete_identity_icon() -> crate::asset::UiIconAsset {
+    crate::asset::UiIconAsset {
+        source: crate::asset::UiIconSource {
+            kind: crate::asset::UiIconSourceKind::Svg,
+            text: Some("<svg/>".into()),
+            uri: None,
+        },
+        default_size: 16.0,
+        semantic_id: "test.identity".into(),
+    }
+}
+
+#[test]
+fn same_marker_contains_tracks_declared_payload_type_after_last_lease_release() {
+    use crate::asset::{ImportedAsset, UiIconAsset, UiStyleAsset, UiThemeAsset};
+    let manager = ResourceManager::new();
+    let texture = record("res://identity/texture", ResourceKind::Texture);
+    let icon = record("res://identity/icon", ResourceKind::Texture);
+    let style = record("res://identity/style", ResourceKind::UiStyle);
+    let theme = record("res://identity/theme", ResourceKind::UiStyle);
+    let style_asset = UiStyleAsset::from_toml_str(
+        r#"
+[asset]
+kind = "style"
+id = "test.identity.style"
+version = 3
+[imports]
+widgets = []
+styles = []
+[tokens]
+[components]
+[[stylesheets]]
+id = "identity"
+[[stylesheets.rules]]
+selector = "Button"
+set = { self = { text = "Identity" } }
+"#,
+    )
+    .unwrap();
+    let theme_asset = UiThemeAsset {
+        document: Default::default(),
+    };
+    assert_ne!(
+        ImportedAsset::UiStyle(style_asset.clone()).payload_type(),
+        ImportedAsset::UiTheme(theme_asset.clone()).payload_type()
+    );
+    assert_ne!(
+        ImportedAsset::Texture(texture_asset("res://identity/texture")).payload_type(),
+        ImportedAsset::UiIcon(concrete_identity_icon()).payload_type()
+    );
+    manager
+        .register_ready(texture.clone(), texture_asset("res://identity/texture"))
+        .unwrap();
+    manager
+        .register_ready(icon.clone(), concrete_identity_icon())
+        .unwrap();
+    manager.register_ready(style.clone(), style_asset).unwrap();
+    manager.register_ready(theme.clone(), theme_asset).unwrap();
+    let textures = Assets::<TextureAsset>::new(manager.clone());
+    let icons = Assets::<UiIconAsset>::new(manager.clone());
+    let styles = Assets::<UiStyleAsset>::new(manager.clone());
+    let themes = Assets::<UiThemeAsset>::new(manager.clone());
+    assert!(textures.contains(Handle::new(texture.id)));
+    assert!(!textures.contains(Handle::new(icon.id)));
+    assert!(icons.contains(Handle::new(icon.id)));
+    assert!(!icons.contains(Handle::new(texture.id)));
+    assert!(styles.contains(Handle::new(style.id)));
+    assert!(!styles.contains(Handle::new(theme.id)));
+    assert!(themes.contains(Handle::new(theme.id)));
+    assert!(!themes.contains(Handle::new(style.id)));
+    let retained_snapshot = manager.registry().clone();
+    let lease = icons.acquire(Handle::new(icon.id)).unwrap();
+    drop(lease);
+    assert_eq!(manager.ref_count(icon.id), Some(0));
+    assert!(icons.get(Handle::new(icon.id)).is_none());
+    assert!(icons.contains(Handle::new(icon.id)));
+    assert!(!textures.contains(Handle::new(icon.id)));
+    manager.remove_by_locator(&icon.primary_locator).unwrap();
+    assert!(!icons.contains(Handle::new(icon.id)));
+    assert!(retained_snapshot.contains_payload::<UiIconAsset>(icon.id));
+}
+
+#[test]
+fn same_marker_events_keep_published_type_through_remove_and_id_reuse() {
+    use crate::asset::UiIconAsset;
+    let manager = ResourceManager::new();
+    let textures = Assets::<TextureAsset>::new(manager.clone());
+    let icons = Assets::<UiIconAsset>::new(manager.clone());
+    let texture_events = textures.subscribe_events();
+    let icon_events = icons.subscribe_events();
+    let original = record("res://identity/reused", ResourceKind::Texture);
+    manager
+        .register_ready(original.clone(), texture_asset("res://identity/reused"))
+        .unwrap();
+    assert!(matches!(
+        texture_events.try_recv().unwrap(),
+        AssetEvent::Added { .. }
+    ));
+    assert!(icon_events.try_recv().is_err());
+    manager.start_reload(original.id, Vec::new()).unwrap();
+    manager
+        .remove_by_locator(&original.primary_locator)
+        .unwrap();
+    // Do not consume the old events until the ID belongs to another concrete payload.
+    manager
+        .register_ready(original.clone(), concrete_identity_icon())
+        .unwrap();
+    assert!(matches!(
+        texture_events.try_recv().unwrap(),
+        AssetEvent::Modified { .. }
+    ));
+    let removed = texture_events.try_recv().unwrap();
+    assert!(matches!(removed, AssetEvent::Removed { .. }));
+    assert_eq!(removed.handle().id(), original.id);
+    assert!(texture_events.try_recv().is_err());
+    let added = icon_events.try_recv().unwrap();
+    assert!(matches!(added, AssetEvent::Added { .. }));
+    assert_eq!(added.handle().id(), original.id);
+    assert!(icon_events.try_recv().is_err());
+    assert!(icons.contains(Handle::new(original.id)));
+    assert!(!textures.contains(Handle::new(original.id)));
+}

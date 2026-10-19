@@ -1,4 +1,4 @@
-//! 全局增益直接传给 Kira 主轨并保存配置；空间比例只保存为默认配置，当前 Kira 声源路径尚未读取它。
+//! 全局增益与默认空间比例在控制线程同步配置、源投影和现有 Kira 句柄。
 use zircon_runtime::core::framework::sound::{SoundError, SoundMixBlock};
 
 use crate::automation::values::ensure_finite_value;
@@ -41,8 +41,29 @@ impl DefaultSoundManager {
                 "default spatial scale must be non-negative".to_string(),
             ));
         }
-        lock_recover(&self.config).default_spatial_scale = scale;
+        let mut config = lock_recover(&self.config);
+        let mut state = lock_recover(&self.state);
+        state.kira.ensure_provider_not_retiring()?;
+        let previous_scale = state.default_spatial_scale;
+        state.default_spatial_scale = scale;
+        if let Err(error) = state.refresh_source_environments() {
+            state.default_spatial_scale = previous_scale;
+            return Err(error);
+        }
+        config.default_spatial_scale = scale;
         Ok(())
+    }
+
+    #[cfg(test)]
+    pub(crate) fn source_environment_snapshot_for_test(
+        &self,
+        source: zircon_runtime::core::framework::sound::SoundSourceId,
+    ) -> (f32, Option<crate::engine::SourceVoice>) {
+        let state = lock_recover(&self.state);
+        (
+            state.default_spatial_scale,
+            state.sources.get(&source).cloned(),
+        )
     }
 
     pub(super) fn render_mix_impl(&self, _frames: usize) -> Result<SoundMixBlock, SoundError> {

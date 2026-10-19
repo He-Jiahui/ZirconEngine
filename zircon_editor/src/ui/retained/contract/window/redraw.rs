@@ -191,9 +191,7 @@ impl UiHostWindow {
         self.state.borrow().maintenance_frame_wake_deadline
     }
 
-    pub(in crate::ui::retained_host::host_contract) fn lifecycle_frame_wake_deadline(
-        &self,
-    ) -> Option<Instant> {
+    pub(in crate::ui::retained_host) fn lifecycle_frame_wake_deadline(&self) -> Option<Instant> {
         self.state.borrow().lifecycle_frame_wake_deadline
     }
 

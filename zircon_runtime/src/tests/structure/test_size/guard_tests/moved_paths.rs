@@ -25,23 +25,42 @@ const MOVED_MIRROR_GUARD_PATH: &str = "priority_plan_docs/guard_tests/moved_path
 
 #[test]
 fn runtime_15_priority_plan_docs_moved_guard_paths_stay_current() {
-    let _runtime_15_plan =
-        read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
-    let _runtime_index = runtime_index_with_output_archive_source();
-    let _structure_plan = read_repo("docs/plans/engine-code-structure-convention.md");
-    let _review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
-    let _module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
+    for (label, source) in super::inventory_sync::independent_listing_mirror_sources() {
+        assert_contains_all(label, &source, MOVED_PRIORITY_PLAN_DOC_GUARD_PATHS);
+    }
+    let mut current_names = std::collections::BTreeSet::new();
+    for entry in PRIORITY_PLAN_DOC_GUARDS {
+        let (path, name) = entry
+            .split_once("::")
+            .expect("current guard file::fn identity");
+        assert!(current_names.insert(name), "duplicate current guard {name}");
+        let relative = path
+            .strip_prefix("zircon_runtime/src/")
+            .expect("runtime guard owner");
+        let source = read_runtime_src(relative);
+        assert!(
+            source.contains(&format!("#[test]\nfn {name}(")),
+            "current mounted owner {path} must define actual test {name}"
+        );
+    }
+    let mut historical_names = std::collections::BTreeSet::new();
+    for entry in MOVED_PRIORITY_PLAN_DOC_GUARD_PATHS {
+        let (_, name) = entry
+            .split_once("::")
+            .expect("historical guard file::fn identity");
+        assert!(
+            historical_names.insert(name),
+            "duplicate historical guard {name}"
+        );
+    }
+    assert_eq!(
+        current_names, historical_names,
+        "all thirteen moved guards retain their actual test identities"
+    );
 }
 
 #[test]
 fn runtime_15_priority_plan_docs_moved_mirror_names_full_inventory() {
-    let _runtime_15_plan =
-        read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
-    let _runtime_index = runtime_index_with_output_archive_source();
-    let _structure_plan = read_repo("docs/plans/engine-code-structure-convention.md");
-    let _review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
-    let _module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
-
     let current_owner_archive = priority_plan_doc_current_owner_archive_source();
     assert_moved_mirror_windows_name_full_inventory(
         "priority-plan-doc current-owner archive",

@@ -6,6 +6,10 @@ use crate::{ResourceData, ResourceDiagnostic, ResourceId, ResourceLocator, Resou
 #[derive(Clone, Debug)]
 pub(crate) enum ResourceMutationOperation {
     UpsertLazy(ResourceRecord),
+    DeclarePayloadType {
+        record: ResourceRecord,
+        payload_type: crate::ResourcePayloadType,
+    },
     PublishSource(crate::ResourceSourcePublication),
     ReconcileSources(Vec<ResourceId>),
     UpsertReady {

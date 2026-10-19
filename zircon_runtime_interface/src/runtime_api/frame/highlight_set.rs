@@ -63,7 +63,7 @@ impl ZrRuntimeEntityIdSliceV1 {
         }
         let max_elements = isize::MAX as usize / core::mem::size_of::<u64>();
         if self.data.is_null()
-            || (self.data as usize) % core::mem::align_of::<u64>() != 0
+            || !(self.data as usize).is_multiple_of(core::mem::align_of::<u64>())
             || self.len > max_elements
         {
             return None;

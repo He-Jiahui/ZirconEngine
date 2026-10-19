@@ -1,6 +1,8 @@
 use std::sync::Arc;
 
-use crate::test_support::render_feature_fixtures::virtual_geometry_render_feature_descriptor;
+use crate::test_support::render_feature_fixtures::{
+    virtual_geometry_render_feature_descriptor, CookedWorldSource,
+};
 use zircon_runtime::asset::pipeline::manager::ProjectAssetManager;
 use zircon_runtime::core::framework::render::{
     RenderVirtualGeometryCluster, RenderVirtualGeometryClusterSelectionInputSource,
@@ -791,7 +793,6 @@ fn render_seed_backed_execution_frame(
     u64,
 ) {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let mut renderer = virtual_geometry_scene_renderer(asset_manager);
     let viewport_size = UVec2::new(96, 64);
     let world = World::new();
     let mesh = world
@@ -800,8 +801,10 @@ fn render_seed_backed_execution_frame(
         .find(|node| node.mesh.is_some())
         .map(|node| node.id)
         .expect("default world should contain a renderable mesh");
-    let mut extract = world.to_render_frame_extract();
-    extract.apply_viewport_size(viewport_size);
+    let source = CookedWorldSource::new(&asset_manager, world, mesh, 2);
+    let mut renderer =
+        virtual_geometry_scene_renderer(asset_manager).with_cooked_world_source(source);
+    let mut extract = renderer.build_cooked_world_extract(viewport_size);
     extract.view.camera.transform = Transform::from_translation(Vec3::new(3.0, 4.0, 5.0));
     extract.geometry.virtual_geometry = Some(RenderVirtualGeometryExtract {
         cluster_budget,
@@ -857,7 +860,6 @@ fn render_seed_backed_frontier_rank_execution_frame(
     u64,
 ) {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let mut renderer = virtual_geometry_scene_renderer(asset_manager);
     let viewport_size = UVec2::new(96, 64);
     let world = World::new();
     let mesh = world
@@ -866,8 +868,10 @@ fn render_seed_backed_frontier_rank_execution_frame(
         .find(|node| node.mesh.is_some())
         .map(|node| node.id)
         .expect("default world should contain a renderable mesh");
-    let mut extract = world.to_render_frame_extract();
-    extract.apply_viewport_size(viewport_size);
+    let source = CookedWorldSource::new(&asset_manager, world, mesh, 4);
+    let mut renderer =
+        virtual_geometry_scene_renderer(asset_manager).with_cooked_world_source(source);
+    let mut extract = renderer.build_cooked_world_extract(viewport_size);
     extract.view.camera.transform = Transform::from_translation(Vec3::new(3.0, 4.0, 5.0));
     extract.geometry.virtual_geometry = Some(RenderVirtualGeometryExtract {
         cluster_budget,
@@ -890,7 +894,7 @@ fn render_seed_backed_frontier_rank_execution_frame(
             cluster_offset: 0,
             cluster_count: 4,
             page_offset: 0,
-            page_count: 4,
+            page_count: 3,
             mesh_name: Some("SeedDrivenFrontierRankExecutionSelectionTestMesh".to_string()),
             source_hint: Some("unit-test".to_string()),
         }],
@@ -925,7 +929,6 @@ fn render_seed_backed_parent_fallback_execution_frame(
     u64,
 ) {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let mut renderer = virtual_geometry_scene_renderer(asset_manager);
     let viewport_size = UVec2::new(96, 64);
     let world = World::new();
     let mesh = world
@@ -934,8 +937,10 @@ fn render_seed_backed_parent_fallback_execution_frame(
         .find(|node| node.mesh.is_some())
         .map(|node| node.id)
         .expect("default world should contain a renderable mesh");
-    let mut extract = world.to_render_frame_extract();
-    extract.apply_viewport_size(viewport_size);
+    let source = CookedWorldSource::new(&asset_manager, world, mesh, 3);
+    let mut renderer =
+        virtual_geometry_scene_renderer(asset_manager).with_cooked_world_source(source);
+    let mut extract = renderer.build_cooked_world_extract(viewport_size);
     extract.view.camera.transform = Transform::from_translation(Vec3::new(3.0, 4.0, 5.0));
     extract.geometry.virtual_geometry = Some(RenderVirtualGeometryExtract {
         cluster_budget,
@@ -994,7 +999,6 @@ fn render_seed_backed_duplicate_parent_fallback_execution_frame(
     u64,
 ) {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let mut renderer = virtual_geometry_scene_renderer(asset_manager);
     let viewport_size = UVec2::new(96, 64);
     let world = World::new();
     let mesh = world
@@ -1003,8 +1007,10 @@ fn render_seed_backed_duplicate_parent_fallback_execution_frame(
         .find(|node| node.mesh.is_some())
         .map(|node| node.id)
         .expect("default world should contain a renderable mesh");
-    let mut extract = world.to_render_frame_extract();
-    extract.apply_viewport_size(viewport_size);
+    let source = CookedWorldSource::new(&asset_manager, world, mesh, 3);
+    let mut renderer =
+        virtual_geometry_scene_renderer(asset_manager).with_cooked_world_source(source);
+    let mut extract = renderer.build_cooked_world_extract(viewport_size);
     extract.view.camera.transform = Transform::from_translation(Vec3::new(3.0, 4.0, 5.0));
     extract.geometry.virtual_geometry = Some(RenderVirtualGeometryExtract {
         cluster_budget,
@@ -1063,7 +1069,6 @@ fn render_seed_backed_budget_order_execution_frame(
     u64,
 ) {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let mut renderer = virtual_geometry_scene_renderer(asset_manager);
     let viewport_size = UVec2::new(96, 64);
     let world = World::new();
     let mesh = world
@@ -1072,8 +1077,10 @@ fn render_seed_backed_budget_order_execution_frame(
         .find(|node| node.mesh.is_some())
         .map(|node| node.id)
         .expect("default world should contain a renderable mesh");
-    let mut extract = world.to_render_frame_extract();
-    extract.apply_viewport_size(viewport_size);
+    let source = CookedWorldSource::new(&asset_manager, world, mesh, 2);
+    let mut renderer =
+        virtual_geometry_scene_renderer(asset_manager).with_cooked_world_source(source);
+    let mut extract = renderer.build_cooked_world_extract(viewport_size);
     extract.view.camera.transform = Transform::from_translation(Vec3::new(3.0, 4.0, 5.0));
     extract.geometry.virtual_geometry = Some(RenderVirtualGeometryExtract {
         cluster_budget,
@@ -1094,7 +1101,7 @@ fn render_seed_backed_budget_order_execution_frame(
             cluster_offset: 0,
             cluster_count: 2,
             page_offset: 0,
-            page_count: 2,
+            page_count: 0,
             mesh_name: Some("SeedDrivenBudgetOrderExecutionSelectionTestMesh".to_string()),
             source_hint: Some("unit-test".to_string()),
         }],
@@ -1129,7 +1136,6 @@ fn render_seed_backed_subset_execution_frame(
     u64,
 ) {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let mut renderer = virtual_geometry_scene_renderer(asset_manager);
     let viewport_size = UVec2::new(96, 64);
     let world = World::new();
     let mesh = world
@@ -1138,8 +1144,10 @@ fn render_seed_backed_subset_execution_frame(
         .find(|node| node.mesh.is_some())
         .map(|node| node.id)
         .expect("default world should contain a renderable mesh");
-    let mut extract = world.to_render_frame_extract();
-    extract.apply_viewport_size(viewport_size);
+    let source = CookedWorldSource::new(&asset_manager, world, mesh, 2);
+    let mut renderer =
+        virtual_geometry_scene_renderer(asset_manager).with_cooked_world_source(source);
+    let mut extract = renderer.build_cooked_world_extract(viewport_size);
     extract.view.camera.transform = Transform::from_translation(Vec3::new(3.0, 4.0, 5.0));
     extract.geometry.virtual_geometry = Some(RenderVirtualGeometryExtract {
         cluster_budget,
@@ -1195,7 +1203,6 @@ fn render_seed_backed_hierarchical_execution_frame(
     u64,
 ) {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let mut renderer = virtual_geometry_scene_renderer(asset_manager);
     let viewport_size = UVec2::new(96, 64);
     let world = World::new();
     let mesh = world
@@ -1204,8 +1211,10 @@ fn render_seed_backed_hierarchical_execution_frame(
         .find(|node| node.mesh.is_some())
         .map(|node| node.id)
         .expect("default world should contain a renderable mesh");
-    let mut extract = world.to_render_frame_extract();
-    extract.apply_viewport_size(viewport_size);
+    let source = CookedWorldSource::new(&asset_manager, world, mesh, 3);
+    let mut renderer =
+        virtual_geometry_scene_renderer(asset_manager).with_cooked_world_source(source);
+    let mut extract = renderer.build_cooked_world_extract(viewport_size);
     extract.view.camera.transform = Transform::from_translation(Vec3::new(3.0, 4.0, 5.0));
     extract.geometry.virtual_geometry = Some(RenderVirtualGeometryExtract {
         cluster_budget,
@@ -1227,7 +1236,7 @@ fn render_seed_backed_hierarchical_execution_frame(
             cluster_offset: 0,
             cluster_count: 3,
             page_offset: 0,
-            page_count: 3,
+            page_count: 2,
             mesh_name: Some("SeedDrivenHierarchicalExecutionSelectionTestMesh".to_string()),
             source_hint: Some("unit-test".to_string()),
         }],

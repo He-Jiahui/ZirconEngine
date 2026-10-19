@@ -211,6 +211,19 @@ pub struct VirtualGeometryIndexedSourceAdmission {
     cluster_ids: Vec<(u32, u32)>,
     authored_execution_key: Option<u64>,
     resident_payload_indices: Option<Vec<usize>>,
+    authored_rows: Option<Vec<AuthoredIndexedRowBinding>>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) struct AuthoredIndexedRowBinding {
+    pub(crate) instance_index: Option<u32>,
+    pub(crate) stable_instance_key: u64,
+    pub(crate) author_array_index: u32,
+    pub(crate) local_page_id: u32,
+    pub(crate) local_cluster_id: u32,
+    pub(crate) local_range_index: u32,
+    pub(crate) payload_index: usize,
+    pub(crate) payload_range_index: usize,
 }
 impl VirtualGeometryIndexedSourceAdmission {
     pub fn new(
@@ -226,22 +239,82 @@ impl VirtualGeometryIndexedSourceAdmission {
             cluster_ids,
             authored_execution_key: None,
             resident_payload_indices: None,
+            authored_rows: None,
         }
     }
     pub fn stable_instance_key(&self) -> u64 {
         self.stable_instance_key
     }
-    pub(crate) fn with_authored_execution_binding(
+    pub(crate) fn has_authored_execution_binding(&self) -> bool {
+        self.authored_execution_key.is_some() && self.authored_rows.is_some()
+    }
+    pub(crate) fn with_authored_rows(
         mut self,
         execution_key: u64,
-        resident_payload_indices: Vec<usize>,
+        rows: Vec<AuthoredIndexedRowBinding>,
     ) -> Self {
         self.authored_execution_key = Some(execution_key);
-        self.resident_payload_indices = Some(resident_payload_indices);
+        self.resident_payload_indices = Some(rows.iter().map(|row| row.payload_index).collect());
+        self.authored_rows = Some(rows);
         self
     }
-    pub(crate) fn has_authored_execution_binding(&self) -> bool {
-        self.authored_execution_key.is_some() && self.resident_payload_indices.is_some()
+    pub(crate) fn authored_rows(&self) -> Option<&[AuthoredIndexedRowBinding]> {
+        self.authored_rows.as_deref()
+    }
+    pub(crate) fn authored_run_for_row(
+        &self,
+        row: &VirtualGeometryIndexedSourceRow,
+    ) -> Result<&VirtualGeometryIndexedTopologyRun, String> {
+        let matches = self
+            .authored_rows
+            .as_deref()
+            .ok_or("source has no authored binding")?
+            .iter()
+            .filter(|binding| {
+                binding.instance_index == row.identity.instance_index
+                    && binding.stable_instance_key == row.identity.stable_instance_key
+                    && binding.author_array_index == row.author_array_index
+                    && binding.payload_index == row.page_index
+                    && binding.payload_range_index == row.range_index
+            })
+            .collect::<Vec<_>>();
+        if matches.len() != 1 {
+            return Err("source row has no unique actual authored binding".into());
+        }
+        let binding = matches[0];
+        let pages = self
+            .page_ids
+            .iter()
+            .filter(|(local, _)| *local == binding.local_page_id)
+            .collect::<Vec<_>>();
+        let clusters = self
+            .cluster_ids
+            .iter()
+            .filter(|(local, _)| *local == binding.local_cluster_id)
+            .collect::<Vec<_>>();
+        if pages.len() != 1
+            || clusters.len() != 1
+            || pages[0].1 != row.identity.page_id
+            || clusters[0].1 != row.cluster_id
+        {
+            return Err(
+                "authored binding disagrees with its original local-to-authored topology map"
+                    .into(),
+            );
+        }
+        let runs = self.primitive.indexed_topology().map_err(str::to_owned)?;
+        let runs = runs
+            .iter()
+            .filter(|run| {
+                run.page_id == binding.local_page_id
+                    && run.cluster_id == binding.local_cluster_id
+                    && run.range_index == binding.local_range_index
+            })
+            .collect::<Vec<_>>();
+        if runs.len() != 1 {
+            return Err("authored binding lost its admitted original range".into());
+        }
+        Ok(runs[0])
     }
     pub(crate) fn execution_stable_instance_key(&self) -> u64 {
         self.authored_execution_key
@@ -377,6 +450,7 @@ pub struct VirtualGeometryIndexedSourceRow {
     range_index: usize,
     lineage_depth: u32,
     frontier_rank: u32,
+    authored_topology_binding: bool,
 }
 impl VirtualGeometryIndexedSourceRow {
     pub fn identity(
@@ -389,11 +463,11 @@ impl VirtualGeometryIndexedSourceRow {
         draw_ref_index: u32,
         draw_ref_rank: u32,
     ) -> Result<Self, String> {
-        if self.identity.instance_index.is_some()
+        if !self.authored_topology_binding
             || self.identity.submission_index.is_none()
             || draw_ref_rank > u32::from(u16::MAX)
         {
-            return Err("authored draw reference is not a checked legacy submission".into());
+            return Err("authored draw reference has no checked topology binding".into());
         }
         self.identity.draw_ref_index = draw_ref_index;
         self.identity.draw_ref_rank = Some(draw_ref_rank);
@@ -401,6 +475,9 @@ impl VirtualGeometryIndexedSourceRow {
     }
     pub fn source_row(&self) -> u32 {
         self.source_row
+    }
+    pub fn has_authored_topology_binding(&self) -> bool {
+        self.authored_topology_binding
     }
     pub fn candidate_index(&self) -> u32 {
         self.candidate_index
@@ -439,6 +516,38 @@ pub fn virtual_geometry_indexed_source_rows(
     if data.selected_clusters.len() != data.candidate_author_indices.len() {
         return Err("candidate raw provenance is incomplete".into());
     }
+    if let Some(bindings) = &data.indexed_candidate_payload_ranges {
+        let mut seen = std::collections::BTreeSet::new();
+        for &(candidate, page, range) in bindings {
+            let selected = data
+                .selected_clusters
+                .get(candidate as usize)
+                .ok_or("bound candidate is absent")?;
+            let payload = data
+                .resident_page_payloads
+                .get(page)
+                .ok_or("bound payload is absent")?;
+            let physical = payload
+                .cluster_ranges
+                .get(range)
+                .ok_or("bound payload range is absent")?;
+            if !seen.insert((candidate, page, range))
+                || payload.page_id != selected.page_id
+                || physical.cluster_id != selected.cluster_id
+                || physical.vertex_count == 0
+            {
+                return Err("bound physical range differs from its original candidate".into());
+            }
+            let end = physical
+                .vertex_start
+                .checked_add(physical.vertex_count)
+                .ok_or("bound vertex end overflow")?;
+            payload
+                .vertices
+                .get(physical.vertex_start as usize..end as usize)
+                .ok_or("bound vertex range exceeds physical payload")?;
+        }
+    }
     let mut rows = Vec::new();
     for segment in data
         .execution_segments
@@ -446,38 +555,9 @@ pub fn virtual_geometry_indexed_source_rows(
         .filter(|segment| segment.state == RenderVirtualGeometryExecutionState::Resident)
     {
         let instance_index = segment.instance_index.unwrap_or(u32::MAX);
-        let (raw_start, raw_end) = if let Some(index) = segment.instance_index {
-            let instance = data
-                .instances
-                .get(usize::try_from(index).map_err(|_| "instance index overflow")?)
-                .ok_or("resident source instance index exceeds the actual instance table")?;
-            if instance.entity != segment.entity
-                || instance.stable_instance_key_or_legacy() != segment.stable_instance_key
-            {
-                return Err("resident source identity does not match its actual instance".into());
-            }
-            (
-                instance.cluster_offset,
-                instance
-                    .cluster_offset
-                    .checked_add(instance.cluster_count)
-                    .ok_or("raw instance span overflow")?,
-            )
-        } else {
-            if !data.instances.is_empty()
-                || crate::core::framework::render::render_mesh_stable_instance_key(
-                    segment.entity,
-                    0,
-                ) != segment.stable_instance_key
-            {
-                return Err("instance-less source is not the original legacy identity".into());
-            }
-            (
-                0,
-                u32::try_from(data.author_cluster_catalog.len())
-                    .map_err(|_| "raw catalog length overflow")?,
-            )
-        };
+        let raw_domain = crate::core::framework::render::RenderVirtualGeometryExtract::checked_cluster_row_indices(
+            &data.instances, &data.author_cluster_catalog, segment.entity,
+            segment.stable_instance_key, segment.instance_index).map_err(str::to_owned)?;
         let end = segment
             .cluster_start_ordinal
             .checked_add(segment.cluster_span_count)
@@ -491,15 +571,15 @@ pub fn virtual_geometry_indexed_source_rows(
             if author_instance != instance_index {
                 continue;
             }
-            if raw_index < raw_start || raw_index >= raw_end {
-                return Err("candidate raw index lies outside its instance".into());
-            }
             let raw = data
                 .author_cluster_catalog
                 .get(usize::try_from(raw_index).map_err(|_| "raw index overflow")?)
                 .ok_or("candidate raw cluster row is absent")?;
             if selected.entity != segment.entity {
                 continue;
+            }
+            if !raw_domain.contains(&(raw_index as usize)) {
+                return Err("candidate raw index lies outside its instance".into());
             }
             if selected.instance_index != segment.instance_index
                 || raw.entity != selected.entity
@@ -522,47 +602,63 @@ pub fn virtual_geometry_indexed_source_rows(
             {
                 continue;
             }
-            for (page_index, page) in data
-                .resident_page_payloads
-                .iter()
-                .enumerate()
-                .filter(|(_, page)| page.page_id == segment.page_id)
-            {
-                for (range_index, range) in page
-                    .cluster_ranges
+            let physical_ranges = match &data.indexed_candidate_payload_ranges {
+                Some(bindings) => bindings
+                    .iter()
+                    .filter(|(candidate, _, _)| *candidate as usize == candidate_index)
+                    .map(|&(_, page, range)| (page, range))
+                    .collect::<Vec<_>>(),
+                None => data
+                    .resident_page_payloads
                     .iter()
                     .enumerate()
-                    .filter(|(_, range)| range.cluster_id == selected.cluster_id)
-                {
-                    let start = range.vertex_start as usize;
-                    let end = start
-                        .checked_add(range.vertex_count as usize)
-                        .ok_or("resident source vertex range overflow")?;
-                    if range.vertex_count == 0 {
-                        continue;
-                    }
-                    page.vertices
-                        .get(start..end)
-                        .ok_or("resident source range exceeds actual page vertices")?;
-                    if rows.len() == 4096 {
-                        return Err("resident source exceeds the declared 4096-row ABI".into());
-                    }
-                    rows.push(VirtualGeometryIndexedSourceRow {
-                        identity: RenderVirtualGeometryExecutionIdentity::from_segment(segment),
-                        source_row: u32::try_from(rows.len())
-                            .map_err(|_| "source row exceeds u32")?,
-                        candidate_index: u32::try_from(candidate_index)
-                            .map_err(|_| "candidate index exceeds u32")?,
-                        cluster_id: selected.cluster_id,
-                        cluster_ordinal: ordinal,
-                        author_array_index: raw_index,
-                        normal_cluster_total: total,
-                        page_index,
-                        range_index,
-                        lineage_depth: segment.lineage_depth,
-                        frontier_rank: segment.frontier_rank,
-                    });
+                    .filter(|(_, page)| page.page_id == segment.page_id)
+                    .flat_map(|(page_index, page)| {
+                        page.cluster_ranges
+                            .iter()
+                            .enumerate()
+                            .filter(move |(_, range)| range.cluster_id == selected.cluster_id)
+                            .map(move |(range_index, _)| (page_index, range_index))
+                    })
+                    .collect(),
+            };
+            for (page_index, range_index) in physical_ranges {
+                let page = data
+                    .resident_page_payloads
+                    .get(page_index)
+                    .ok_or("physical page is absent")?;
+                let range = page
+                    .cluster_ranges
+                    .get(range_index)
+                    .ok_or("physical range is absent")?;
+                let start = range.vertex_start as usize;
+                let end = start
+                    .checked_add(range.vertex_count as usize)
+                    .ok_or("resident source vertex range overflow")?;
+                if range.vertex_count == 0 {
+                    continue;
                 }
+                page.vertices
+                    .get(start..end)
+                    .ok_or("resident source range exceeds actual page vertices")?;
+                if rows.len() == 4096 {
+                    return Err("resident source exceeds the declared 4096-row ABI".into());
+                }
+                rows.push(VirtualGeometryIndexedSourceRow {
+                    identity: RenderVirtualGeometryExecutionIdentity::from_segment(segment),
+                    source_row: u32::try_from(rows.len()).map_err(|_| "source row exceeds u32")?,
+                    candidate_index: u32::try_from(candidate_index)
+                        .map_err(|_| "candidate index exceeds u32")?,
+                    cluster_id: selected.cluster_id,
+                    cluster_ordinal: ordinal,
+                    author_array_index: raw_index,
+                    normal_cluster_total: total,
+                    page_index,
+                    range_index,
+                    lineage_depth: segment.lineage_depth,
+                    frontier_rank: segment.frontier_rank,
+                    authored_topology_binding: data.indexed_candidate_payload_ranges.is_some(),
+                });
             }
         }
     }
@@ -601,5 +697,26 @@ impl VirtualGeometryIndexedAuthorRun {
     }
     pub fn gpu_scene_instance(&self) -> u32 {
         self.gpu_scene_instance
+    }
+}
+
+#[cfg(test)]
+mod authored_physical_binding_tests {
+    use super::virtual_geometry_indexed_source_rows;
+    use crate::core::framework::render::RenderVirtualGeometryExecutionData;
+
+    #[test]
+    fn explicit_empty_physical_bindings_remain_empty_and_invalid_bindings_fail() {
+        let mut data = RenderVirtualGeometryExecutionData::default();
+        assert!(data.indexed_candidate_payload_ranges.is_none());
+        data.indexed_candidate_payload_ranges = Some(Vec::new());
+        assert!(virtual_geometry_indexed_source_rows(&data)
+            .unwrap()
+            .is_empty());
+        // Malformed physical ownership must fail even when no resident segment
+        // would consume it; it cannot silently select the automatic path.
+        data.indexed_candidate_payload_ranges = Some(vec![(0, 0, 0)]);
+        assert!(virtual_geometry_indexed_source_rows(&data).is_err());
+        assert_eq!(data.indexed_candidate_payload_ranges, Some(vec![(0, 0, 0)]));
     }
 }

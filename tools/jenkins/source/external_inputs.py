@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from pathlib import Path, PurePosixPath
-from typing import Mapping
+from typing import Callable, Mapping
 
 from ..contracts import JenkinsError, digest, file_digest, require_digest
 
@@ -125,7 +125,9 @@ def materialize(manifest: Mapping, objects: Path, source: Path) -> None:
         materialize_manifest(value["manifest"], objects, source.parent / value["name"])
 
 
-def verify_prepared(manifest: Mapping, source: Path, approved) -> None:
+def verify_prepared(manifest: Mapping, source: Path, approved, *,
+                    checkpoint: Callable[[], None] | None = None,
+                    checksum: Callable[[Path], str] | None = None) -> None:
     from ..resources import physical_path_under
     values = sources(manifest)
     if not values:
@@ -137,8 +139,12 @@ def verify_prepared(manifest: Mapping, source: Path, approved) -> None:
         expected = {entry["path"]: entry["sha256"] for entry in value["manifest"]["entries"] if entry["status"] == "present"}
         actual = {}
         for path in root.rglob("*"):
+            if checkpoint is not None:
+                checkpoint()
             physical_path_under(approved, path, allow_missing=False)
             if path.is_file():
-                actual[path.relative_to(root).as_posix()] = file_digest(path)
+                actual[path.relative_to(root).as_posix()] = (checksum or file_digest)(path)
+        if checkpoint is not None:
+            checkpoint()
         if actual != expected:
             raise JenkinsError("external_prepared_mismatch", "Prepared sibling dependency differs from its complete sealed closure")

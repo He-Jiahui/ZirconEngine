@@ -12,13 +12,20 @@ mod review_children;
 #[path = "../../../../review/importers/structure/review_mounts/sources.rs"]
 mod sources;
 
-pub(super) const PLUGIN_IMPORTER_DX_STRUCTURE_ASSERTIONS_CHILD: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_owners/structure_assertions.rs";
-pub(super) const PLUGIN_IMPORTER_DX_REVIEW_MOUNTS_CHILD: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_owners/structure/review_mounts.rs";
-pub(super) const PLUGIN_IMPORTER_DX_REVIEW_MOUNTS_PATHS_CHILD: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_owners/structure/review_mounts/paths.rs";
-pub(super) const PLUGIN_IMPORTER_DX_REVIEW_MOUNTS_SOURCES_CHILD: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_owners/structure/review_mounts/sources.rs";
-pub(super) const PLUGIN_IMPORTER_DX_REVIEW_MOUNTS_PARENT_MOUNTS_CHILD: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_owners/structure/review_mounts/parent_mounts.rs";
-pub(super) const PLUGIN_IMPORTER_DX_REVIEW_MOUNTS_REVIEW_CHILDREN_CHILD: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_owners/structure/review_mounts/review_children.rs";
-pub(super) const PLUGIN_IMPORTER_DX_REVIEW_MOUNTS_BUDGETS_CHILD: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_owners/structure/review_mounts/budgets.rs";
+pub(super) const PLUGIN_IMPORTER_DX_STRUCTURE_ASSERTIONS_CHILD: &str =
+    "tests/test_size/review/importers/structure_assertions.rs";
+pub(super) const PLUGIN_IMPORTER_DX_REVIEW_MOUNTS_CHILD: &str =
+    "tests/test_size/review/importers/structure/review_mounts.rs";
+pub(super) const PLUGIN_IMPORTER_DX_REVIEW_MOUNTS_PATHS_CHILD: &str =
+    "tests/review/importers/structure/review_mounts/paths.rs";
+pub(super) const PLUGIN_IMPORTER_DX_REVIEW_MOUNTS_SOURCES_CHILD: &str =
+    "tests/review/importers/structure/review_mounts/sources.rs";
+pub(super) const PLUGIN_IMPORTER_DX_REVIEW_MOUNTS_PARENT_MOUNTS_CHILD: &str =
+    "tests/review/structure/review_mounts/parent_mounts.rs";
+pub(super) const PLUGIN_IMPORTER_DX_REVIEW_MOUNTS_REVIEW_CHILDREN_CHILD: &str =
+    "tests/review/structure/review_mounts/review_children.rs";
+pub(super) const PLUGIN_IMPORTER_DX_REVIEW_MOUNTS_BUDGETS_CHILD: &str =
+    "tests/review/importers/structure/review_mounts/budgets.rs";
 pub(super) const PLUGIN_IMPORTER_DX_REVIEW_MOUNTS_FOLDER_BACKED_SLICE: &str =
     "Runtime 15 M3 plugin-importer DX review mounts guard folder-backed split";
 pub(super) const PLUGIN_IMPORTER_DX_REVIEW_MOUNTS_FOLDER_BACKED_STATUS: &str =

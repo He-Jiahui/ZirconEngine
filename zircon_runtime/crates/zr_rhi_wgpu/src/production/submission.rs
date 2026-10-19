@@ -5,16 +5,22 @@ use web_time::Instant;
 use zr_rhi::{
     DeviceGeneration, DeviceId, GpuMemoryBudget, GpuMemoryClass, RenderQueueClass, RhiError,
     RhiGraphExecutionReceipt, SubmissionHistory, SubmissionLimits, SubmissionPollReceipt,
-    SubmissionStatus, SubmissionTicket, TextureCopyRegion,
+    SubmissionStatus, SubmissionTicket,
 };
 
 use crate::ui_surface::WgpuUiImageInFlightPins;
 
-use super::buffer_upload_batch::{WgpuBufferUpload, WgpuBufferUploadBatch};
+#[cfg(test)]
+use super::buffer_upload_batch::WgpuBufferUpload;
+use super::buffer_upload_batch::WgpuBufferUploadBatch;
 use super::resource_upload_batch::WgpuResourceUploadBatch;
 use super::submission_metrics::{WgpuSubmissionMetrics, WgpuSubmissionMetricsSnapshot};
 use super::translate::wgpu_texture_copy_aspect;
-use super::upload_batch::{WgpuTextureUpload, WgpuTextureUploadBatch};
+#[cfg(test)]
+use super::upload_batch::WgpuTextureUpload;
+use super::upload_batch::WgpuTextureUploadBatch;
+#[cfg(test)]
+use zr_rhi::TextureCopyRegion;
 
 #[path = "submission/queued_work.rs"]
 mod queued_work;
@@ -249,6 +255,7 @@ impl WgpuSubmissionService {
     /// The service retains the native buffer reference and payload until a
     /// later flush, so logical destruction can invalidate the public handle
     /// without invalidating accepted GPU work.
+    #[cfg(test)]
     pub(crate) fn commit_upload(
         &self,
         ticket: SubmissionTicket,
@@ -278,6 +285,7 @@ impl WgpuSubmissionService {
     /// Publishes a staged texture upload for a previously accepted ticket.
     /// The payload and texture stay owned by this submission service until it
     /// reaches the native queue, preserving the same lifecycle as buffers.
+    #[cfg(test)]
     pub(crate) fn commit_texture_upload(
         &self,
         ticket: SubmissionTicket,

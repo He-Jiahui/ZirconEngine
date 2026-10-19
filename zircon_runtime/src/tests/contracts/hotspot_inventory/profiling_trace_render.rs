@@ -17,23 +17,15 @@ fn assert_profiling_build_tooling(sources: &HotspotInventorySources) {
         "./tools/dev/dev-fast-build.ps1 -Profile client -Action check",
         "profiling_build_tooling_static_passed_cargo_deferred_active_lanes",
     ] {
+        let historical_source = match required_profiling_build_anchor {
+            "profiling_build_tooling_static_passed_cargo_deferred_active_lanes" => {
+                sources.runtime_07_archive
+            }
+            _ => sources.runtime_07_fixed_plan,
+        };
         assert!(
-            sources
-                .runtime_07_plan
-                .contains(required_profiling_build_anchor)
-                || sources
-                    .runtime_index
-                    .contains(required_profiling_build_anchor)
-                || sources
-                    .hotspot_doc
-                    .contains(required_profiling_build_anchor)
-                || sources
-                    .build_tool_doc
-                    .contains(required_profiling_build_anchor)
-                || sources
-                    .profiling_doc
-                    .contains(required_profiling_build_anchor),
-            "Runtime 07 profiling build tooling should retain `{required_profiling_build_anchor}`"
+            historical_source.contains(required_profiling_build_anchor),
+            "fixed Runtime 07 profiling evidence should retain `{required_profiling_build_anchor}`"
         );
     }
 
@@ -52,7 +44,7 @@ fn assert_profiling_build_tooling(sources: &HotspotInventorySources) {
     }
 
     for required_runtime_feature_anchor in [
-        "profiling = []",
+        "profiling = [\"zr_resource/profiling\"]",
         "profiling-chrome = [\"profiling\"]",
         "profiling-tracy = [\"profiling\", \"dep:tracing-subscriber\", \"dep:tracing-tracy\"]",
         "profiling-memory = [\"profiling\"]",
@@ -65,38 +57,98 @@ fn assert_profiling_build_tooling(sources: &HotspotInventorySources) {
         );
     }
 
-    for required_zircon_build_anchor in [
-        "MODES = (\"debug\", \"release\", \"profiling\")",
-        "TARGET_FEATURES = (\"target-client\", \"target-server\", \"target-editor-host\")",
-        "def feature_arg_for_target(self, target_feature: str) -> str:",
-        "parser.add_argument(",
-        "--runtime-features",
-        "--mode profiling is not supported for the hub/Tauri target.",
-        "command.extend([\"--profile\", \"profiling\"])",
-        "python tools/build/zircon_build.py --targets runtime --out E:\\builds\\zircon-smoke --mode profiling --runtime-features target-client,profiling,profiling-tracy --dry-run",
+    let arguments = include_str!("../../../../../tools/build/zircon_build_arguments.py");
+    let config = include_str!("../../../../../tools/build/zircon_build_config.py");
+    for (owner, required) in [
+        (
+            sources.zircon_build,
+            "from .zircon_build_arguments import (",
+        ),
+        (
+            sources.zircon_build,
+            "from .zircon_build_config import BuildConfig",
+        ),
+        (sources.zircon_build, "args = parse_args(argv)"),
+        (
+            arguments,
+            "MODES = (\"debug\", \"release\", \"profiling\", \"shipping\", \"shipping-symbols\")",
+        ),
+        (arguments, "parser.add_argument("),
+        (arguments, "--runtime-features"),
+        (
+            config,
+            "TARGET_FEATURES = (\"target-client\", \"target-server\", \"target-editor-host\")",
+        ),
+        (
+            config,
+            "def feature_arg_for_target(self, target_feature: str) -> str:",
+        ),
+        (config, "if self.mode == \"profiling\":"),
+        (config, "return \"profiling\""),
+        (
+            config,
+            "if self.mode in {\"shipping\", \"shipping-symbols\"}:",
+        ),
+        (config, "return self.mode"),
+        (
+            sources.zircon_build,
+            "--mode profiling is not supported for the hub/Tauri target.",
+        ),
+        (
+            sources.zircon_build,
+            "command.extend([\"--profile\", \"profiling\"])",
+        ),
     ] {
         assert!(
-            sources.zircon_build.contains(required_zircon_build_anchor)
-                || sources.build_tool_doc.contains(required_zircon_build_anchor),
-            "tools/build/zircon_build.py profiling path should retain `{required_zircon_build_anchor}`"
+            owner.contains(required),
+            "current profiling owner must retain {required}"
         );
     }
-
-    for required_dev_fast_build_anchor in [
-        "[ValidateSet(\"debug\", \"release\", \"profiling\")]",
-        "[string]$CargoProfile = \"debug\"",
-        "$CargoProfile -eq \"profiling\"",
-        "$args.Add(\"--profile\")",
-        "$args.Add(\"profiling\")",
-        "./tools/dev/dev-fast-build.ps1 -Profile client -Action check -Package zircon_runtime -CargoProfile profiling -FeatureOverride \"target-client profiling profiling-tracy\"",
+    for required in [
+        "[ValidateSet('debug', 'release', 'profiling')][string]$CargoProfile = 'debug'",
+        "$CargoProfile -eq 'profiling'",
+        "throw 'A requested option has no ordinary Jenkins validate recipe; no local fallback is available.'",
+        "$taskArguments = @('-B', '-X', 'utf8', $taskEntry, 'cargo', '--repo-root', $taskRepo)",
+        "& $taskPython @taskArguments",
+        "exit 2",
+    ] {
+        assert!(sources.dev_fast_build.contains(required), "Jenkins wrapper policy: {required}");
+    }
+    let rejection = sources
+        .dev_fast_build
+        .find("$CargoProfile -eq 'profiling'")
+        .expect("profiling reject condition");
+    let pending = sources.dev_fast_build[rejection..]
+        .find("throw 'A requested option has no ordinary Jenkins validate recipe; no local fallback is available.'")
+        .expect("explicit missing-recipe rejection") + rejection;
+    let submission = sources
+        .dev_fast_build
+        .find("& $taskPython @taskArguments")
+        .expect("ordinary Jenkins submission");
+    assert!(rejection < pending && pending < submission);
+    assert!(!sources.dev_fast_build.contains("$args.Add(\"--profile\")"));
+    assert!(!sources.dev_fast_build.contains("$args.Add(\"profiling\")"));
+    let historical_command = "./tools/dev/dev-fast-build.ps1 -Profile client -Action check -Package zircon_runtime -CargoProfile profiling -FeatureOverride \"target-client profiling profiling-tracy\"";
+    assert!(sources.runtime_07_archive.contains(historical_command));
+    for required in [
+        "ordinary Jenkins profiling recipe: pending",
+        "formal profiling profile build: pending",
+        "historical command identities are not executable admission",
     ] {
         assert!(
-            sources
-                .dev_fast_build
-                .contains(required_dev_fast_build_anchor)
-                || sources.build_tool_doc.contains(required_dev_fast_build_anchor)
-                || sources.profiling_doc.contains(required_dev_fast_build_anchor),
-            "tools/dev/dev-fast-build.ps1 profiling path should retain `{required_dev_fast_build_anchor}`"
+            sources.runtime_07_plan.contains(required),
+            "profiling pending/identity: {required}"
+        );
+    }
+    let retired_example = "python tools/build/zircon_build.py --targets runtime --out E:\\builds\\zircon-smoke --mode profiling --runtime-features target-client,profiling,profiling-tracy --dry-run";
+    for current in [
+        sources.zircon_build,
+        sources.build_tool_doc,
+        sources.runtime_07_plan,
+    ] {
+        assert!(
+            !current.contains(retired_example),
+            "retired non-physical output example must not be recommended"
         );
     }
 }

@@ -33,7 +33,7 @@
     "name": "zircon-windows-agent",
     "label": "zircon-windows",
     "transport": "websocket-inbound",
-    "executors": 2,
+    "executors": 4,
     "remoteRoot": "E:\\Git\\ZirconEngine\\.jenkins\\agent",
     "controllerRunsCompiler": false,
     "workDir": "E:\\Git\\ZirconEngine\\.jenkins\\agent\\remoting",

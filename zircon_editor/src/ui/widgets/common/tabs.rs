@@ -71,7 +71,7 @@ pub(crate) fn drawer_slot_key(slot: ActivityDrawerSlot) -> &'static str {
 }
 
 fn host_tab_icon(page: &HostPageTabModel) -> &'static str {
-    if page.title == "Workbench" {
+    if page.id == crate::ui::workbench::layout::MainPageId::workbench() {
         "scene"
     } else if page.title.contains("Prefab") {
         "prefab"

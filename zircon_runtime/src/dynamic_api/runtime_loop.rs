@@ -170,7 +170,7 @@ impl RuntimeRenderBridge {
         crate::profile_scope!("runtime", "render_bridge", "bind_surface");
         let render_framework = self.resolve_render_framework()?;
         let size = UVec2::new(descriptor.size.x.max(1), descriptor.size.y.max(1));
-        let descriptor = RenderViewportSurfaceDescriptor::new(size, descriptor.target);
+        let descriptor = RenderViewportSurfaceDescriptor { size, ..descriptor };
         let viewport = self.ensure_viewport_for_surface_rebind(size, &*render_framework)?;
         render_framework.bind_viewport_surface(viewport, descriptor)?;
         self.viewport = Some(ActiveViewport {

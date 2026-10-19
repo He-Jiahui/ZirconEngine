@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from runtime_structure_audits.dynamic_runtime_api_archive_inventory import (
+    RUNTIME_10_DYNAMIC_API_OUTPUT_ARCHIVE,
     RUNTIME_15_RUNTIME_INDEX_OUTPUT_ARCHIVE,
 )
 
@@ -51,31 +52,31 @@ BEHAVIOR_TEST_ANCHORS = (
         "invalid_viewport_pick_request_never_allocates_a_ticket",
     ),
     (
-        "zircon_editor/src/core/gateway/session/tests.rs",
+        "zircon_editor/src/core/gateway/session/tests/cases.rs",
         "session_gateway_preserves_exact_viewport_pick_request_identity",
     ),
     (
-        "zircon_app/src/entry/runtime_library/tests.rs",
+        "zircon_app/src/entry/runtime_library/tests/cases.rs",
         "runtime_api_pointer_rejects_null_from_entry_symbol",
     ),
     (
-        "zircon_app/src/entry/runtime_library/tests.rs",
+        "zircon_app/src/entry/runtime_library/tests/cases.rs",
         "runtime_api_pointer_rejects_version_mismatch_before_session_creation",
     ),
     (
-        "zircon_app/src/entry/runtime_library/tests.rs",
+        "zircon_app/src/entry/runtime_library/tests/cases.rs",
         "runtime_api_pointer_names_every_missing_required_function",
     ),
     (
-        "zircon_app/src/entry/runtime_library/tests.rs",
+        "zircon_app/src/entry/runtime_library/tests/cases.rs",
         "runtime_library_loader_reports_missing_entry_symbol_source_path",
     ),
     (
-        "zircon_app/src/entry/runtime_library/tests.rs",
+        "zircon_app/src/entry/runtime_library/tests/cases.rs",
         "runtime_library_loader_reports_missing_entry_symbol_from_dynamic_library",
     ),
     (
-        "zircon_app/src/entry/runtime_library/tests.rs",
+        "zircon_app/src/entry/runtime_library/tests/cases.rs",
         "runtime_session_create_reports_first_call_failure_context",
     ),
     (
@@ -114,11 +115,11 @@ CARGO_GATE_ANCHORS = (
         "cargo test -p zircon_app --locked",
     ),
     (
-        "docs/zircon_runtime/dynamic_api/session.md",
+        "docs/crates/zircon_runtime/dynamic_api/session.md",
         "cargo test -p zircon_runtime --lib dynamic_api --locked --jobs 1 --message-format short",
     ),
     (
-        "docs/engine-architecture/runtime-interface-cdylib-loader.md",
+        "docs/architecture/runtime-interface-cdylib-loader.md",
         "Full `cargo test -p zircon_app --locked` remains pending",
     ),
 )
@@ -127,23 +128,23 @@ MIRROR_DOCS_GUARD = "runtime_10_dynamic_runtime_api_mirror_docs_match_structure_
 
 DOC_ANCHORS = (
     (
-        "docs/engine-architecture/runtime-interface-convergence.md",
+        "docs/architecture/runtime-interface-convergence.md",
         "dynamic_runtime_api_boundary",
     ),
     (
-        "docs/engine-architecture/runtime-interface-cdylib-loader.md",
+        "docs/architecture/runtime-interface-cdylib-loader.md",
         "dynamic_runtime_api_boundary",
     ),
     (
-        "docs/engine-architecture/runtime-interface-cdylib-loader.md",
+        "docs/architecture/runtime-interface-cdylib-loader.md",
         "host_request_payload_anchors = 38/38",
     ),
     (
-        "docs/engine-architecture/runtime-architecture-review-m0.md",
+        "docs/architecture/runtime-architecture-review-m0.md",
         "dynamic_runtime_api_boundary",
     ),
     (
-        "docs/engine-architecture/runtime-architecture-review-m0.md",
+        "docs/architecture/runtime-architecture-review-m0.md",
         "host_request_payload_anchors = 38/38",
     ),
     (
@@ -151,7 +152,7 @@ DOC_ANCHORS = (
         "dynamic_runtime_api_boundary",
     ),
     (
-        "docs/plans/zircon_runtime/runtime/10/2026-07-09-dynamic-api-and-interface-convergence-output-records.md",
+        RUNTIME_10_DYNAMIC_API_OUTPUT_ARCHIVE,
         "host_request_payload_anchors = 38/38",
     ),
     (
@@ -162,13 +163,13 @@ DOC_ANCHORS = (
         RUNTIME_15_RUNTIME_INDEX_OUTPUT_ARCHIVE,
         "host_request_payload_anchors = 38/38",
     ),
-    ("docs/zircon_runtime/dynamic_api/session.md", "dynamic_runtime_api_boundary"),
+    ("docs/crates/zircon_runtime/dynamic_api/session.md", "dynamic_runtime_api_boundary"),
     (
-        "docs/zircon_runtime/dynamic_api/session.md",
+        "docs/crates/zircon_runtime/dynamic_api/session.md",
         "host_request_payload_anchors = 38/38",
     ),
     (
-        "docs/engine-architecture/runtime-interface-convergence.md",
+        "docs/architecture/runtime-interface-convergence.md",
         "host_request_payload_anchors = 38/38",
     ),
     (

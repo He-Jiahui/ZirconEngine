@@ -1,7 +1,8 @@
-import { resolveLayoutCatalogPath } from './zui-layout-paths';
+import { assertLayoutCurrentRoots, layoutCurrentSourcePath, layoutCurrentOutputPath, type LayoutCurrentContext, resolveLayoutCatalogPath } from './zui-layout-paths';
 import { createHash } from 'node:crypto';
 import { createReadStream, existsSync, realpathSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
+import { requireApprovedPenpotArtifactFile } from './zui-layout-artifact-path';
 import { resolve, relative, isAbsolute, dirname, basename } from 'node:path';
 import { parse } from 'smol-toml';
 import { chromium } from 'playwright';
@@ -557,7 +558,16 @@ export async function verifyCurrentFiles(
   repoRoot: string,
   catalogRoot: string,
   accepted: boolean,
+  context?: LayoutCurrentContext,
+  captureIntegrity: 'legacy' | 'strict-capture' = 'legacy',
 ): Promise<void> {
+  if (captureIntegrity === 'strict-capture' && !context)
+    throw new Error('Strict capture integrity requires explicit current context');
+  if (context) assertLayoutCurrentRoots(context, repoRoot, catalogRoot);
+  const sourcePath = (path: string): string => context
+    ? layoutCurrentSourcePath(context, path) : containedPath(repoRoot, path);
+  const outputPath = (path: string): string => context
+    ? layoutCurrentOutputPath(context, path) : containedPath(catalogRoot, path);
   await verifyWorkbenchManagedInputCases(entry.cases ?? []);
   const verified = new Map<string, string>();
   const check = async (
@@ -566,7 +576,17 @@ export async function verifyCurrentFiles(
     hash: string,
   ): Promise<void> => {
     if (!validHash(hash)) throw new Error(`Invalid file fingerprint: ${path}`);
-    const absolute = containedPath(root, path);
+    const absolute = context && root === repoRoot ? sourcePath(path)
+      : context && root === catalogRoot ? outputPath(path)
+      : context ? resolve(root, path) : containedPath(root, path);
+    if (context && root !== repoRoot && root !== catalogRoot) {
+      const suffix = relative(root, absolute);
+      if (isAbsolute(suffix) || suffix === '..' || /^\.\.[/\\]/.test(suffix))
+        throw new Error(`Path escapes root: ${path}`);
+      const physicalSuffix = relative(realpathSync(root), realpathSync(absolute));
+      if (isAbsolute(physicalSuffix) || physicalSuffix === '..' || /^\.\.[/\\]/.test(physicalSuffix))
+        throw new Error(`Path physically escapes root: ${path}`);
+    }
     const actual = verified.get(absolute) ?? (await fileSha256(absolute));
     if (actual !== hash)
       throw new Error(`File changed after validation: ${path}`);
@@ -620,7 +640,7 @@ export async function verifyCurrentFiles(
   for (const dependency of entry.dependencyFingerprints ?? []) {
     if (!accepted && dependency.sha256 === 'missing') {
       try {
-        await readFile(containedPath(repoRoot, dependency.sourcePath));
+        await readFile(sourcePath(dependency.sourcePath));
       } catch (error) {
         if ((error as NodeJS.ErrnoException).code === 'ENOENT') continue;
         throw error;
@@ -636,6 +656,34 @@ export async function verifyCurrentFiles(
     entry.dependencySha256
   )
     throw new Error('Dependency fingerprint differs');
+  // Resolve the live Penpot inventory only when a current capture actually names it.
+  // Keep the source and artifact identities distinct; neither role grants an absolute bypass.
+  let currentPenpotProgram: Promise<{
+    paths: Map<string, string>; bundlePath: string; bundlePhysical: string;
+  }> | undefined;
+  const currentProgram = () => currentPenpotProgram ??= (async () => {
+    if (!context) throw new Error('Current capture inventory requires current source/output roles');
+    const { resolvePluginBundlePath } = await import('./zui-layout-penpot-session');
+    const bundlePath = requireApprovedPenpotArtifactFile(resolvePluginBundlePath(), 'Current capture bundle');
+    const bundlePhysical = realpathSync.native(bundlePath);
+    const archive = process.env['ZIRCON_DOCS_HISTORY_ARCHIVE_ROOT'];
+    if (archive?.trim()) {
+      const history = existsSync(archive) ? realpathSync.native(archive) : resolve(archive);
+      const suffix = relative(history, bundlePhysical);
+      if (!isAbsolute(suffix) && suffix !== '..' && !/^\.\.[/\\]/.test(suffix))
+        throw new Error('Current capture bundle must not come from historical archive');
+    }
+    const { captureProgramFingerprints } = await import('./zui-layout-capture-provenance');
+    const inventory = await captureProgramFingerprints(repoRoot);
+    const paths = new Map(inventory);
+    if (paths.size !== inventory.length ||
+        inventory.filter(([path]) => isAbsolute(path)).length !== 1 ||
+        !paths.has(bundlePath))
+      throw new Error('Current capture program has an invalid source/bundle inventory');
+    for (const [path] of inventory)
+      if (!isAbsolute(path)) layoutCurrentSourcePath(context, path);
+    return { paths, bundlePath, bundlePhysical };
+  })();
   const evidence = [
     ...(entry.penpotEvidence ?? []),
     ...(entry.engineEvidence ?? []),
@@ -657,7 +705,7 @@ export async function verifyCurrentFiles(
       if (!path) throw new Error(`Missing ${label} path`);
       let bytes: Buffer;
       try {
-        bytes = await readFile(containedPath(catalogRoot, path));
+        bytes = await readFile(outputPath(path));
       } catch (error) {
         if ((error as NodeJS.ErrnoException).code === 'ENOENT')
           throw new Error(`Missing ${label}: ${path}`, { cause: error });
@@ -667,6 +715,70 @@ export async function verifyCurrentFiles(
     }
   }
   for (const item of evidence) {
+    if (captureIntegrity === 'strict-capture') {
+      const penpot = entry.penpotEvidence?.includes(item) ?? false;
+      const cases = entry.cases?.filter((candidate) => candidate.id === item.caseId) ?? [];
+      const currentCase = cases[0];
+      const siblings = penpot ? entry.penpotEvidence! : entry.engineEvidence!;
+      const hasCapture = (['screenshot', 'geometry', 'text'] as const).some(
+        (kind) => Boolean(item[`${kind}Path`] || item[`${kind}Sha256`]),
+      );
+      const failedAttempt = item.status === 'failed' && !!item.error?.trim() && !hasCapture;
+      if (!currentCase || cases.length !== 1 || currentCase.sourcePath !== entry.sourcePath ||
+          siblings.filter((candidate) => candidate.caseId === item.caseId).length !== 1 ||
+          !['passed', 'pending', 'failed'].includes(item.status) ||
+          item.sourceSha256 !== entry.sourceSha256 ||
+          item.dependencySha256 !== entry.dependencySha256 ||
+          item.caseSha256 !== caseSha256(currentCase) ||
+          (!failedAttempt && currentCase.reviewHost && item.reviewHostSha256 !== currentCase.reviewHost.sha256) ||
+          (!failedAttempt && (penpot ? item.inputSha256 !== entry.penpotInputSha256
+            : item.inputSha256 !== undefined && item.inputSha256 !== entry.sourceSha256)))
+        throw new Error(`Stale or invalid capture identity: ${item.caseId}`);
+      validateLayoutReviewCase(currentCase);
+      if (!failedAttempt) {
+        if (entry.dependencyFingerprints?.some((dependency) => !validHash(dependency.sha256)))
+          throw new Error(`Capture has an unresolved dependency fingerprint: ${item.caseId}`);
+        if (item.status === 'failed' && !item.error?.trim())
+          throw new Error(`Failed capture has no explanation: ${item.caseId}`);
+        if (!item.rendererPath || !validHash(item.rendererSha256) ||
+            item.rendererKind !== (penpot ? 'penpot-official-frontend' : requiredNativeRenderer(currentCase)))
+          throw new Error(`Missing or invalid renderer fingerprint: ${item.caseId}`);
+        const fingerprints = item.captureProgramFingerprints;
+        if (!fingerprints?.length ||
+            fingerprints.some(([path, hash]) => !path || !validHash(hash)) ||
+            new Set(fingerprints.map(([path]) => path)).size !== fingerprints.length ||
+            !fingerprints.some(([path, hash]) => path === item.rendererPath && hash === item.rendererSha256) ||
+            (penpot && missingPenpotCaptureProgramPaths(fingerprints).length))
+          throw new Error(`Missing or invalid capture program fingerprint: ${item.caseId}`);
+        for (const kind of ['screenshot', 'geometry', 'text'] as const)
+          if (!item[`${kind}Path`] || !validHash(item[`${kind}Sha256`]))
+            throw new Error(`Incomplete ${kind} evidence: ${item.caseId}`);
+        if (penpot) {
+          const errors = browserRuntimeErrors(item.browserRuntime, selectedBrowserExecutablePath());
+          if (errors.length) throw new Error(errors.join('; '));
+        }
+      }
+    }
+    let programIdentity: Awaited<ReturnType<typeof currentProgram>> | undefined;
+    if (context && entry.penpotEvidence?.includes(item) &&
+        item.captureProgramFingerprints !== undefined) {
+      const recorded = item.captureProgramFingerprints;
+      for (const [path] of recorded)
+        if (!isAbsolute(path)) layoutCurrentSourcePath(context, path);
+      programIdentity = await currentProgram();
+      if (recorded.length !== programIdentity.paths.size ||
+          new Set(recorded.map(([path]) => path)).size !== recorded.length ||
+          recorded.some(([path, hash]) => !programIdentity!.paths.has(path) ||
+            programIdentity!.paths.get(path) !== hash))
+        throw new Error('Current Penpot capture program inventory differs');
+      if (item.rendererPath !== programIdentity.bundlePath ||
+          item.rendererSha256 !== programIdentity.paths.get(programIdentity.bundlePath))
+        throw new Error('Current Penpot renderer differs from the approved capture bundle');
+    }
+    if (context)
+      for (const [path] of item.captureProgramFingerprints ?? [])
+        if (isAbsolute(path) && (!programIdentity || path !== programIdentity.bundlePath))
+          throw new Error('Unrecognized absolute current capture program artifact');
     const reviewCase = entry.cases?.find(
       (candidate) => candidate.id === item.caseId,
     );
@@ -688,7 +800,7 @@ export async function verifyCurrentFiles(
         isWorkbenchStateReviewCase(reviewCase)
       ) {
         const geometry = JSON.parse(
-          await readFile(containedPath(catalogRoot, path), 'utf8'),
+          await readFile(outputPath(path), 'utf8'),
         ) as {
           sourceIdentityProvenance?: {
             runtimeLoadedSources?: {
@@ -716,7 +828,7 @@ export async function verifyCurrentFiles(
           let recordedPhysicalPath: string;
           try {
             currentPhysicalPath = realpathSync(
-              containedPath(repoRoot, loadedFile.sourcePath),
+              sourcePath(loadedFile.sourcePath),
             );
             recordedPhysicalPath = realpathSync(loadedFile.physicalPath);
           } catch {
@@ -759,17 +871,24 @@ export async function verifyCurrentFiles(
       );
     }
     for (const [path, hash] of item.runtimeAssetFingerprints ?? []) {
-      const absolute = isAbsolute(path) ? path : containedPath(repoRoot, path);
+      const absolute = isAbsolute(path) ? path : sourcePath(path);
       await check(dirname(absolute), basename(absolute), hash);
     }
-    for (const [path, hash] of item.captureProgramFingerprints ?? [])
-      await check(repoRoot, path, hash);
+    for (const [path, hash] of item.captureProgramFingerprints ?? []) {
+      if (context && isAbsolute(path)) {
+        const artifact = requireApprovedPenpotArtifactFile(path, 'Current capture bundle');
+        if (!programIdentity || path !== programIdentity.bundlePath ||
+            realpathSync.native(artifact) !== programIdentity.bundlePhysical)
+          throw new Error('Current capture bundle physical identity differs');
+        await check(dirname(artifact), basename(artifact), hash);
+      } else await check(repoRoot, path, hash);
+    }
   }
   if (accepted) {
     const catalogInputDocument = entry.penpotInputPath
       ? parseZuiDocument(
           await readFile(
-            containedPath(catalogRoot, entry.penpotInputPath),
+            outputPath(entry.penpotInputPath),
             'utf8',
           ),
         ).document
@@ -795,7 +914,7 @@ export async function verifyCurrentFiles(
         const item = items.find((item) => item.caseId === reviewCase.id)!;
         return JSON.parse(
           await readFile(
-            containedPath(catalogRoot, item[`${kind}Path`]!),
+            outputPath(item[`${kind}Path`]!),
             'utf8',
           ),
         );

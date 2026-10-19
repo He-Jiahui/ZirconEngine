@@ -1,13 +1,17 @@
-import { resolveLayoutCatalogPath } from './zui-layout-paths';
+import {
+  assertLayoutCurrentRoots, layoutCurrentOutputPath, type LayoutCurrentContext,
+  resolveLayoutCatalogPath,
+} from './zui-layout-paths';
 import { mkdir, writeFile } from 'node:fs/promises';
-import { relative, resolve } from 'node:path';
+import { realpathSync } from 'node:fs';
+import { relative } from 'node:path';
 import type { Page, Response } from 'playwright';
 import { bytesSha256 } from './zui-layout-evidence';
 
 export interface FontResourceRecord {
   /** The exact browser response URL named by the loaded CSS font face. */
   url: string;
-  /** Repository-relative copy used for the dependency/runtime asset gate. */
+  /** Legacy repository-relative copy, or an absolute current output file identity. */
   path: string;
   sha256: string;
 }
@@ -17,7 +21,14 @@ export function collectFontResources(
   repoRoot: string,
   catalogRoot: string,
   write: boolean,
+  currentContext?: LayoutCurrentContext,
 ) {
+  if (currentContext) assertLayoutCurrentRoots(currentContext, repoRoot, catalogRoot);
+  const output = (path: string) => currentContext
+    ? layoutCurrentOutputPath(currentContext, path)
+    : resolveLayoutCatalogPath(catalogRoot, path);
+  output('resources/fonts');
+  output('resources/fonts/manifest.json');
   const pending = new Set<Promise<void>>();
   const resources = new Map<string, FontResourceRecord>();
   const failures: string[] = [];
@@ -30,14 +41,16 @@ export function collectFontResources(
     const extension =
       { wOF2: 'woff2', wOFF: 'woff', OTTO: 'otf', ttcf: 'ttc' }[signature] ??
       'ttf';
-    const directory = resolveLayoutCatalogPath(catalogRoot, 'resources/fonts');
-    const path = resolve(directory, `${sha256}.${extension}`);
+    const directory = output('resources/fonts');
+    const path = output(`resources/fonts/${sha256}.${extension}`);
     if (write) {
       await mkdir(directory, { recursive: true });
-      await writeFile(path, bytes);
+      await writeFile(output(`resources/fonts/${sha256}.${extension}`), bytes);
     }
     resources.set(response.url(), {
-      path: relative(repoRoot, path).replaceAll('\\', '/'),
+      path: currentContext
+        ? (write ? realpathSync.native(output(`resources/fonts/${sha256}.${extension}`)) : path)
+        : relative(repoRoot, path).replaceAll('\\', '/'),
       sha256,
       url: response.url(),
     });
@@ -59,11 +72,13 @@ export function collectFontResources(
       const records = [...resources.values()].sort((a, b) =>
         a.url.localeCompare(b.url),
       );
-      if (write)
+      if (write) {
+        if (currentContext) await mkdir(output('resources/fonts'), { recursive: true });
         await writeFile(
-          resolveLayoutCatalogPath(catalogRoot, 'resources/fonts/manifest.json'),
+          output('resources/fonts/manifest.json'),
           `${JSON.stringify(records, null, 2)}\n`,
         );
+      }
       return records;
     },
     async snapshot(): Promise<Array<[string, string]>> {

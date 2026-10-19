@@ -286,6 +286,7 @@ unsafe fn read_required_descriptor_field(
     plugin_id: &str,
     library_path: &Path,
 ) -> PluginLoadResult<String> {
+    // SAFETY: The descriptor caller keeps each non-null NUL-terminated field readable until this copy completes.
     unsafe { read_required_c_string(value, field_name) }.map_err(|source| {
         PluginLoadError::invalid_payload(
             plugin_id,
@@ -311,6 +312,7 @@ impl NativePluginEntryReport {
         granted_capabilities: &[String],
     ) -> PluginLoadResult<Self> {
         let stage = PluginLoadStage::from(module_kind);
+        // SAFETY: The entry caller keeps this non-null NUL-terminated report field valid throughout conversion.
         let required_capabilities =
             unsafe { read_required_c_string(abi.required_capabilities, "required_capabilities") }
                 .map_err(|source| {
@@ -323,6 +325,7 @@ impl NativePluginEntryReport {
                     source,
                 )
             })?;
+        // SAFETY: The entry caller keeps this non-null NUL-terminated report field valid throughout conversion.
         let denied_capability_declarations =
             unsafe { read_required_c_string(abi.denied_capabilities, "denied_capabilities") }
                 .map_err(|source| {
@@ -340,6 +343,7 @@ impl NativePluginEntryReport {
             &parse_native_string_list(&denied_capability_declarations),
             granted_capabilities,
         );
+        // SAFETY: The entry caller keeps this non-null NUL-terminated report field valid until copied below.
         let diagnostics = unsafe { read_required_c_string(abi.diagnostics, "diagnostics") }
             .map_err(|source| {
                 PluginLoadError::invalid_payload(

@@ -27,6 +27,7 @@ pub use counter_hotspot::analyze_counter_hotspots;
 pub use export::{ProfileExportError, ProfileExportReport, ProfileExportResult};
 pub use hotspot::analyze_hotspots;
 pub use recorder::{ProfileRecorder, ProfileRecorderStatus};
+#[cfg(any(test, feature = "profiling"))]
 pub(crate) use scope::ProfileFrameContext;
 pub use scope::{ProfileFrameScope, ProfileScope};
 #[cfg(feature = "profiling-tracy")]

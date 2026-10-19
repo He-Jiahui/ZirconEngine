@@ -25,7 +25,10 @@ fn unified_pointer_outside_popup_dismiss_reports_hit_route_and_popup_owner_handl
 
     assert_eq!(result.reply.disposition, UiDispatchDisposition::Handled);
     assert_eq!(result.reply.handler, Some(UiNodeId::new(2)));
-    assert_eq!(result.reply.effects.len(), 0);
+    assert_cursor_result(
+        &result,
+        zircon_runtime_interface::ui::tree::UiCursor::Default,
+    );
     assert_eq!(result.diagnostics.route_policy, UiInputRoutePolicy::Bubble);
     assert_eq!(result.diagnostics.handled_phase.as_deref(), Some("pointer"));
     assert_eq!(result.diagnostics.route_target, Some(UiNodeId::new(1)));
@@ -83,7 +86,7 @@ fn unified_pointer_outside_popup_dismiss_reports_hit_route_and_popup_owner_handl
         result.diagnostics.route_steps[2].disposition,
         UiDispatchDisposition::Handled
     );
-    assert_eq!(result.diagnostics.route_steps[2].effect_count, 0);
+    assert_eq!(result.diagnostics.route_steps[2].effect_count, 1);
     assert!(result.diagnostics.route_steps[2].stopped);
     assert_eq!(result.component_events.len(), 1);
     assert_eq!(result.component_events[0].target, UiNodeId::new(2));

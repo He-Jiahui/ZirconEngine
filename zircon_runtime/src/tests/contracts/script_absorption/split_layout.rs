@@ -4,27 +4,28 @@ const LEGACY_CRATE_SOURCE: &str = include_str!("legacy_crate.rs");
 const SPLIT_LAYOUT_SOURCE: &str = include_str!("split_layout.rs");
 
 const FRAMEWORKS_02_PLAN: &str =
-    include_str!("../../../../../docs/plans/zircon_runtime/frameworks/02-module-kernel-and-lifecycle-unification.md");
-const RUNTIME_15_PLAN: &str = include_str!(
-    "../../../../../docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md"
+    include_str!("../../../../../docs/crates/zircon_runtime/core/modules.md");
+const RUNTIME_15_PLAN: &str =
+    include_str!("../../../../../docs/crates/zircon_runtime/structure/module-convention.md");
+const RUNTIME_INDEX: &str = include_str!(
+    "../../../../../docs/crates/zircon_runtime/structure/runtime-absorption-evidence.md"
 );
-const RUNTIME_INDEX: &str =
-    include_str!("../../../../../docs/plans/zircon_runtime/runtime/index.md");
 const STRUCTURE_CONVENTION_PLAN: &str =
-    include_str!("../../../../../docs/plans/engine-code-structure-convention.md");
+    include_str!("../../../../../docs/testing-and-validation/development-conventions.md");
 const REVIEW_FINDINGS_PLAN: &str =
-    include_str!("../../../../../docs/plans/engine-code-review-findings-2026-06.md");
+    include_str!("../../../../../docs/architecture/runtime-architecture-review-m0.md");
 const MODULE_CONVENTION_DOC: &str =
     include_str!("../../../../../docs/crates/zircon_runtime/structure/module-convention.md");
-#[rustfmt::skip]
-const NUMBERED_STATUS_RECORDS: &str = concat!(
-    include_str!("../../../../../docs/plans/zircon_runtime/runtime/13/2026-07-09-script-binding-and-reflection-output-records.md"),
-    include_str!("../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md"),
-    include_str!("../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md"),
-    include_str!("../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"),
-    include_str!("../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md"),
-    include_str!("../../../../../docs/plans/zircon_runtime/frameworks/02/2026-07-09-module-kernel-and-lifecycle-unification-output-records.md")
-);
+fn numbered_status_records() -> String {
+    [
+        crate::tests::runtime_absorption::structure_convention::fixed_history_archive_source("docs/plans/zircon_runtime/runtime/13/2026-07-09-script-binding-and-reflection-output-records.md"),
+        crate::tests::runtime_absorption::structure_convention::fixed_history_archive_source("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md"),
+        crate::tests::runtime_absorption::structure_convention::fixed_history_archive_source("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md"),
+        crate::tests::runtime_absorption::structure_convention::fixed_history_archive_source("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"),
+        crate::tests::runtime_absorption::structure_convention::fixed_history_archive_source("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md"),
+        crate::tests::runtime_absorption::structure_convention::fixed_history_archive_source("docs/plans/zircon_runtime/frameworks/02/2026-07-09-module-kernel-and-lifecycle-unification-output-records.md"),
+    ].concat()
+}
 
 #[test]
 fn runtime_15_script_absorption_route_owner_is_folder_backed() {
@@ -88,6 +89,7 @@ fn assert_line_budget() {
 }
 
 fn assert_docs_and_status_mirror_split() {
+    let numbered_records = numbered_status_records();
     for (label, source) in [
         ("Frameworks 02 plan", FRAMEWORKS_02_PLAN),
         ("Runtime 15 plan", RUNTIME_15_PLAN),
@@ -99,7 +101,7 @@ fn assert_docs_and_status_mirror_split() {
         assert!(
             source.contains(
                 "runtime_15_script_absorption_route_owner_split_static_passed_cargo_deferred"
-            ) || NUMBERED_STATUS_RECORDS.contains(
+            ) || numbered_records.contains(
                 "runtime_15_script_absorption_route_owner_split_static_passed_cargo_deferred"
             ),
             "{label} should mirror the script_absorption route-owner split status"
@@ -116,7 +118,7 @@ fn assert_docs_and_status_mirror_split() {
     );
     assert_contains_all(
         "Frameworks 02 plan",
-        NUMBERED_STATUS_RECORDS,
+        &numbered_records,
         &[
             "frameworks_02_m3_script_absorption_route_owner_split_static_passed_cargo_deferred",
             "Runtime 15 M3 script-absorption route-owner split",

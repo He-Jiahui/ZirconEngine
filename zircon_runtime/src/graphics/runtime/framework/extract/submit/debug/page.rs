@@ -25,14 +25,16 @@ pub(super) fn build_cull_input_snapshot(
     page_upload_plan: &VisibilityVirtualGeometryPageUploadPlan,
     available_page_slot_count: usize,
     evictable_page_count: usize,
-) -> RenderVirtualGeometryCullInputSnapshot {
-    RenderVirtualGeometryCullInputSnapshot {
+    visible_legacy_entities: &std::collections::BTreeSet<u64>,
+) -> Result<RenderVirtualGeometryCullInputSnapshot, &'static str> {
+    let active = extract.checked_active_cluster_rows(visible_legacy_entities)?;
+    Ok(RenderVirtualGeometryCullInputSnapshot {
         cluster_budget: extract.cluster_budget,
         page_budget: extract.page_budget,
         instance_count: saturated_u32_len(extract.instances.len()),
         cluster_count: saturated_u32_len(extract.clusters.len()),
         page_count: saturated_u32_len(extract.pages.len()),
-        visible_entity_count: unique_extract_entity_count(extract),
+        visible_entity_count: unique_extract_entity_count(extract, &active),
         visible_cluster_count: saturated_u32_len(extract.clusters.len()),
         resident_page_count: saturated_u32_len(page_upload_plan.resident_pages.len()),
         pending_page_request_count: saturated_u32_len(page_upload_plan.requested_pages.len()),
@@ -40,21 +42,19 @@ pub(super) fn build_cull_input_snapshot(
         evictable_page_count: saturated_u32_len(evictable_page_count),
         debug: extract.debug,
         cluster_selection_input_source:
-            RenderVirtualGeometryClusterSelectionInputSource::PrepareDerivedFrameOwned,
-    }
+            RenderVirtualGeometryClusterSelectionInputSource::Unavailable,
+    })
 }
 
-fn unique_extract_entity_count(extract: &RenderVirtualGeometryExtract) -> u32 {
-    if !extract.instances.is_empty() {
-        return unique_entity_count(
-            extract.instances.iter().map(|instance| instance.entity),
-            extract.instances.len(),
-        );
-    }
-
+fn unique_extract_entity_count(
+    extract: &RenderVirtualGeometryExtract,
+    active: &[(Option<u32>, u64, usize)],
+) -> u32 {
     unique_entity_count(
-        extract.clusters.iter().map(|cluster| cluster.entity),
-        extract.clusters.len(),
+        active
+            .iter()
+            .map(|&(_, _, index)| extract.clusters[index].entity),
+        active.len(),
     )
 }
 

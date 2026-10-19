@@ -39,10 +39,23 @@ fn runtime_entry_applies_runtime_ime_host_requests_from_session_drain() {
             "ZrRuntimeHostRequestV1::Ime(request)",
             "if !ime_request_targets_viewport(&request, app.viewport)",
             "return;",
-            "let Some(window) = app.window.as_ref()",
-            "apply_runtime_ime_host_request(window.as_ref(), request)",
+            "app.validate_native_ime_candidate(area)",
+            "let Some(window) = app.window.clone()",
+            "apply_runtime_ime_host_request(window.as_ref(), request, native_candidate)",
         ],
         "runtime host-request routing should apply an IME request only to its target viewport",
+    );
+    assert_source_order(
+        routing_source,
+        &[
+            "match apply_runtime_ime_host_request(window.as_ref(), request, native_candidate)",
+            "Err(error) => {",
+            "app.reject_native_ime_host_publication();",
+            "Ok(()) => {",
+            "app.record_native_ime_host_publication(candidate);",
+            "app.prepare_native_ime_candidate(",
+        ],
+        "native IME producer admission must follow accepted window publication and reject failed publication",
     );
     assert!(
         ime_mod_source.contains("pub(super) use request::apply_runtime_ime_host_request;"),
@@ -88,7 +101,10 @@ fn runtime_entry_applies_runtime_ime_host_requests_from_session_drain() {
 fn runtime_entry_completes_clipboard_requests_on_the_target_window_thread() {
     let routing_source = include_str!("../../runtime_entry_app/host_requests/routing.rs");
     let clipboard_source = include_str!("../../runtime_entry_app/host_requests/clipboard/mod.rs");
-    let windows_source = include_str!("../../host_requests/clipboard/platform/windows.rs");
+    let windows_source = include_str!("../../host_requests/clipboard/platform/windows.rs")
+        .split_once("#[cfg(test)]")
+        .expect("Windows clipboard guards must inspect production only")
+        .0;
 
     assert!(
         routing_source.contains("ZrRuntimeHostRequestV1::Clipboard(request)"),
@@ -110,7 +126,7 @@ fn runtime_entry_completes_clipboard_requests_on_the_target_window_thread() {
         "ClipboardGuard::open(clipboard_owner(window)?)",
         "OpenClipboard(owner)",
         "GetClipboardData(u32::from(CF_UNICODETEXT))",
-        "SetClipboardData(u32::from(CF_UNICODETEXT), handle)",
+        "SetClipboardData(format, handle)",
     ] {
         assert!(
             clipboard_source.contains(required) || windows_source.contains(required),
@@ -120,6 +136,51 @@ fn runtime_entry_completes_clipboard_requests_on_the_target_window_thread() {
     assert!(
         !windows_source.contains("OpenClipboard(ptr::null_mut())"),
         "Windows clipboard writes require the live target HWND as owner"
+    );
+    assert_source_order(
+        clipboard_source,
+        &[
+            "window: app.window.as_deref()",
+            "request.target_viewport == app.viewport",
+            "complete_clipboard_request(&request.request, &mut clipboard)",
+        ],
+        "clipboard work must use the current window only for the matching viewport",
+    );
+    assert_source_order(
+        windows_source,
+        &[
+            "let memory = OwnedGlobal::new(handle);",
+            "LockedGlobal::lock(handle)?",
+            "drop(locked);",
+            "let mut memory = prepare_before_empty(",
+            "snapshots = snapshot_clipboard(api)?;",
+            "api.empty()",
+            "publish_owned_global(",
+            "api.set(u32::from(CF_UNICODETEXT), memory.handle)",
+            "OwnedGlobal::release_to_clipboard",
+        ],
+        "clipboard memory must remain owned through preparation and transfer until publication succeeds",
+    );
+    assert_source_order(
+        windows_source,
+        &[
+            "if let Err(original_error) = result",
+            "for snapshot in &mut snapshots",
+            "api.set(snapshot.format, snapshot.handle).is_ok()",
+            "snapshot.release();",
+            "return Err(original_error);",
+        ],
+        "failed publication must attempt every old format and preserve the original error",
+    );
+    assert_source_order(
+        windows_source,
+        &["let prepared = prepare()?;", "empty()?;", "Ok(prepared)"],
+        "clipboard preparation must succeed before clearing the previous clipboard content",
+    );
+    assert_source_order(
+        windows_source,
+        &["publish(memory)?;", "transfer(memory);", "Ok(())"],
+        "clipboard ownership transfer must occur only after successful publication",
     );
 }
 

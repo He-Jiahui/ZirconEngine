@@ -19,8 +19,6 @@ pub enum UiEventKind {
     Toggle,
     Focus,
     Blur,
-    // BUG: [CR-UITREE-0003] 两条 Runtime 推断路径只为 Scroll 设置 receives_input；
-    // 无其他交互能力的 onScroll 节点不满足命中表准入，无法成为滚轮目标。
     Scroll,
     Resize,
     DragBegin,

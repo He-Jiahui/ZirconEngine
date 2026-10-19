@@ -91,8 +91,7 @@ where
         }
     }
 
-    // BUG: [CR-PHYSICS-BACKEND-0007] generation 从 1 起步并在 remove 时 wrapping_add().max(1)，同一槽经 2^32−1 次 remove/insert 后会再次成为 generation 1。
-    // 仍保留的旧 Copy 句柄随即被 get 接受并可指向新对象；该路径需要极高 churn，但当前没有耗尽保护。证据：insert 复用 free_indices、remove 回绕、get 只比较 index/generation；关联 PHY4-P1-016。
+    // Exhausted slots are retired permanently so an old generation can never become valid again.
     pub(super) fn remove(&mut self, handle: H) -> Option<T> {
         let (index, generation) = unpack_handle(handle.raw());
         let slot = self.slots.get_mut(index as usize)?;
@@ -100,8 +99,10 @@ where
             return None;
         }
         let value = slot.value.take()?;
-        slot.generation = slot.generation.wrapping_add(1).max(INITIAL_GENERATION);
-        self.free_indices.push(index);
+        if let Some(next_generation) = slot.generation.checked_add(1) {
+            slot.generation = next_generation;
+            self.free_indices.push(index);
+        }
         Some(value)
     }
 
@@ -131,4 +132,40 @@ fn pack_handle(index: u32, generation: u32) -> u64 {
 
 fn unpack_handle(raw: u64) -> (u32, u32) {
     (raw as u32, (raw >> u32::BITS) as u32)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::backend::handles::BodyHandle;
+
+    #[test]
+    fn exhausted_generation_retires_the_slot_without_reviving_old_handles() {
+        let mut pool = HandlePool::<u32, BodyHandle>::default();
+        pool.slots.push(HandleSlot {
+            generation: u32::MAX - 1,
+            value: Some(10),
+        });
+        let oldest = BodyHandle::from_raw(pack_handle(0, INITIAL_GENERATION));
+        let penultimate = BodyHandle::from_raw(pack_handle(0, u32::MAX - 1));
+        assert_eq!(pool.remove(penultimate), Some(10));
+        let last = pool.insert(20).expect("last generation can reuse its slot");
+        assert_eq!(unpack_handle(last.raw()), (0, u32::MAX));
+        assert_eq!(pool.get(last), Some(&20));
+        assert_eq!(pool.get(penultimate), None);
+        assert_eq!(pool.remove(last), Some(20));
+        assert!(pool.free_indices.is_empty());
+        let replacement = pool.insert(30).expect("a new slot remains available");
+        assert_eq!(unpack_handle(replacement.raw()), (1, INITIAL_GENERATION));
+        assert_eq!(pool.get(replacement), Some(&30));
+        for stale in [oldest, penultimate, last] {
+            assert_eq!(pool.get(stale), None);
+            assert_eq!(pool.get_mut(stale), None);
+            assert_eq!(pool.remove(stale), None);
+        }
+        assert_eq!(
+            pool.iter().map(|(_, value)| *value).collect::<Vec<_>>(),
+            vec![30]
+        );
+    }
 }

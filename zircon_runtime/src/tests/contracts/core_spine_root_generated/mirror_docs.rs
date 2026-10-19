@@ -42,7 +42,7 @@ fn runtime_02_core_spine_root_generated_mirror_docs_match_structure_audit_counts
     let crate_root = runtime_root.join("src").join("lib.rs");
     assert_eq!(
         public_modules(&crate_root).len(),
-        21,
+        24,
         "runtime root public module count changed without Runtime 02 audit sync"
     );
     assert_eq!(

@@ -10,7 +10,7 @@ implementation_files:
   - .github/workflows/profile-feature-contract.yml
   - .codex/skills/zircon-dev/scripts/validate-matrix.ps1
 plan_sources:
-  - docs/plans/mvp/index.md
+  - docs/testing-and-validation/mvp-acceptance-index.md
 tests:
   - zircon_runtime/tests/frameworks_03_profile_feature_presets.rs
   - zircon_runtime/tests/frameworks_03_server_profile.rs

@@ -1,3 +1,4 @@
+use crate::tests::runtime_absorption::structure_convention::fixed_history_archive_source as history;
 use std::path::Path;
 
 use super::behavior_anchors::assert_runtime_01_behavior_anchors;
@@ -12,10 +13,6 @@ fn runtime_01_tech_stack_mirror_docs_match_structure_audit_counts() {
     assert_runtime_01_manifests_exist(runtime_root);
     assert_runtime_01_guard_anchors();
     assert_runtime_01_behavior_anchors();
-    assert_mirror_docs_match_structure_audit();
-}
-
-fn assert_mirror_docs_match_structure_audit() {
     let evidence_docs = [
         (
             "runtime tech-stack doc",
@@ -23,9 +20,7 @@ fn assert_mirror_docs_match_structure_audit() {
         ),
         (
             "Runtime 01 output archive",
-            include_str!(
-                "../../../../../docs/plans/zircon_runtime/runtime/01/2026-07-09-tech-stack-and-dependency-governance-output-records.md"
-            ),
+            history("docs/plans/zircon_runtime/runtime/01/2026-07-09-tech-stack-and-dependency-governance-output-records.md"),
         ),
         (
             "M0 review",
@@ -75,13 +70,13 @@ fn assert_mirror_docs_match_structure_audit() {
         (
             "Runtime 01 plan",
             include_str!(
-                "../../../../../docs/plans/zircon_runtime/runtime/01-tech-stack-and-dependency-governance.md"
+                "../../../../../docs/testing-and-validation/runtime-dependency-validation-worklist.md"
             ),
             "01/2026-07-09-tech-stack-and-dependency-governance-output-records.md",
         ),
         (
             "runtime index",
-            include_str!("../../../../../docs/plans/zircon_runtime/runtime/index.md"),
+            include_str!("../../../../../docs/crates/zircon_runtime/structure/runtime-absorption-evidence.md"),
             "01-tech-stack-and-dependency-governance.md",
         ),
     ] {

@@ -4,7 +4,7 @@
 
 - Read this file when preparing the validation flow or deciding whether a change can be accepted.
 - If you still need to choose tools, go to `../wsl-tool-selection/index.md`.
-- Coverage breadth is governed by `docs/plans/milestone-validation-policy.md`: representative coverage plus targeted variants for the risks the milestone touches, not exhaustive enumeration.
+- Coverage breadth is governed by `docs/testing-and-validation/milestone-validation-policy.md`: representative coverage plus targeted variants for the risks the milestone touches, not exhaustive enumeration.
 
 ## Validation Workflow
 

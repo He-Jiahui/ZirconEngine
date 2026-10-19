@@ -9,13 +9,13 @@ pub(super) fn assert_plugin_importer_d13_sdk_parent_mounts_review_children(
         "plugin importer DX D13 parent mounts focused SDK review guard children",
         &sources.plugin_importer_dx_d13,
         &[
-            "#[path = \"d13_importer_sdk/runtime_crates.rs\"]",
+            "#[path = \"../d13_importer_sdk/runtime_crates.rs\"]",
             "mod runtime_crates;",
-            "#[path = \"d13_importer_sdk/runtime_exports.rs\"]",
+            "#[path = \"../d13_importer_sdk/runtime_exports.rs\"]",
             "mod runtime_exports;",
-            "#[path = \"d13_importer_sdk/runtime_manifests.rs\"]",
+            "#[path = \"../d13_importer_sdk/runtime_manifests.rs\"]",
             "mod runtime_manifests;",
-            "#[path = \"d13_importer_sdk/manifest_parity.rs\"]",
+            "#[path = \"../d13_importer_sdk/manifest_parity.rs\"]",
             "mod manifest_parity;",
         ],
     );

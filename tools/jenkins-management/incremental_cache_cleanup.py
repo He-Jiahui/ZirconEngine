@@ -136,7 +136,31 @@ def remove_cache_file(fact):
                 api.CloseHandle(handle)
 
 
-def clean(cache, output, *, dry_run=False, max_bytes=32 * GIB, minimum_age=600, trigger_free=80 * GIB):
+def warm_sessions(sessions, keep_sessions):
+    """Retain completed compiler state for the next edit of each Cargo unit."""
+    units = {}
+    for session in sessions:
+        if (not re.fullmatch(r"s-[a-z0-9]+-[a-z0-9]+-[a-z0-9]+", session.name)
+                or not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*-[a-z0-9]+", session.parent.name)):
+            continue
+        try:
+            cache_files(session)
+        except (OSError, ValueError):
+            # Unknown/changed contents stay protected and cannot replace a
+            # usable completed compiler session in the warm set.
+            continue
+        units.setdefault(session.parent, []).append(session)
+    retained = set()
+    for candidates in units.values():
+        candidates.sort(key=lambda path: (path.stat().st_mtime_ns, path.name), reverse=True)
+        retained.update(candidates[:keep_sessions])
+    return retained
+
+
+def clean(cache, output, *, dry_run=False, max_bytes=32 * GIB, minimum_age=600, trigger_free=80 * GIB,
+          keep_sessions=1):
+    if type(keep_sessions) is not int or not 0 <= keep_sessions <= 8:
+        raise ValueError("Warm session retention must be between zero and eight")
     cache, output = physical(cache), physical(output)
     if output.exists():
         raise ValueError("retain the original cleanup receipt; use a new run identity")
@@ -144,12 +168,14 @@ def clean(cache, output, *, dry_run=False, max_bytes=32 * GIB, minimum_age=600, 
     manifest = {"taskId": "jenkins-scheduled-cleanup", "owner": "Jenkins compiler-cache maintenance",
                 "status": "running", "cacheRoot": str(cache), "authorization": "user requested recurring artifact cleanup",
                 "artifacts": [{"path": str(output), "retention": "retain deletion receipts and unknown/active protection evidence"}],
-                "preserved": ["source", "Git data", "downloaded dependencies", "locked compiler sessions", "unknown content"]}
+                "preserved": ["source", "Git data", "downloaded dependencies", "locked compiler sessions",
+                              "latest completed incremental session per Cargo unit", "unknown content"]}
     write_json(output / "artifacts.json", manifest)
     result = {"schemaVersion": 1, "status": "running", "cacheRoot": str(cache), "dryRun": dry_run,
               "maxBytes": max_bytes, "triggerFreeBytes": trigger_free, "minimumAgeSeconds": minimum_age,
               "logicalDeletedBytes": 0, "unlinkedAllocationBytes": 0, "deletedFiles": 0,
               "selectedBytes": 0, "sessions": [], "errors": [], "startedAt": time.time(),
+              "keepSessionsPerUnit": keep_sessions, "warmSessionsRetained": 0,
               "freeBefore": shutil.disk_usage(cache.anchor).free, "actualFreedBytes": None}
     write_json(output / "receipt.json", result)
     try:
@@ -161,6 +187,7 @@ def clean(cache, output, *, dry_run=False, max_bytes=32 * GIB, minimum_age=600, 
             sessions = sorted((p for unit in cache.iterdir() if unit.is_dir() and not unit.is_junction()
                                for p in unit.iterdir() if p.is_dir() and not p.is_junction()),
                               key=lambda p: p.stat().st_mtime)
+            warm = warm_sessions(sessions, keep_sessions)
             with (output / "deletions.jsonl").open("a", encoding="utf-8") as journal:
                 for session in sessions:
                     row = {"path": str(session), "status": "protected"}
@@ -175,6 +202,10 @@ def clean(cache, output, *, dry_run=False, max_bytes=32 * GIB, minimum_age=600, 
                         with session_lock(lock):
                             files = cache_files(session)
                             size = sum(fact["logicalBytes"] for fact in files)
+                            if session in warm:
+                                row.update(reason="warm-incremental-session", logicalBytes=size)
+                                result["warmSessionsRetained"] += 1
+                                continue
                             if result["selectedBytes"] + size > max_bytes:
                                 row.update(reason="run-byte-budget", logicalBytes=size)
                                 continue

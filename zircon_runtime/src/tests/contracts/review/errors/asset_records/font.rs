@@ -1,4 +1,5 @@
 //! 代码审查回归护栏核对已迁移接口、错误边界、插件入口及镜像状态。以结果断言检查当前接口或源码快照对应的边界。
+use crate::tests::runtime_absorption::structure_convention::fixed_history_archive_source as history;
 #[test]
 fn review_f5_font_asset_uses_typed_error_source() {
     let font = include_str!("../../../../../asset/assets/font.rs");
@@ -7,17 +8,10 @@ fn review_f5_font_asset_uses_typed_error_source() {
     let font_tests = include_str!("../../../../../asset/tests/assets/font.rs");
     let import_font_asset =
         include_str!("../../../../../asset/importer/ingest/import_font_asset/mod.rs");
-    let review_findings = concat!(
-        include_str!("../../../../../../../docs/plans/engine-code-review-findings-2026-06.md"),
-        include_str!("../../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md")
+    let review_findings = crate::runtime_test_history_concat!(
+        include_str!("../../../../../../../docs/architecture/runtime-architecture-review-m0.md"),
+        history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md")
     );
-    let runtime_15_plan = include_str!(
-        "../../../../../../../docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md"
-    );
-    let runtime_index =
-        include_str!("../../../../../../../docs/plans/zircon_runtime/runtime/index.md");
-    let convention =
-        include_str!("../../../../../../../docs/plans/engine-code-structure-convention.md");
     let font_doc =
         include_str!("../../../../../../../docs/crates/zircon_runtime/asset/assets/font.md");
 
@@ -66,11 +60,7 @@ fn review_f5_font_asset_uses_typed_error_source() {
         "asset/assets/font.rs",
     ] {
         assert!(
-            review_findings.contains(doc_anchor)
-                || runtime_15_plan.contains(doc_anchor)
-                || runtime_index.contains(doc_anchor)
-                || convention.contains(doc_anchor)
-                || font_doc.contains(doc_anchor),
+            review_findings.contains(doc_anchor) || font_doc.contains(doc_anchor),
             "F5 font asset docs should record `{doc_anchor}`"
         );
     }

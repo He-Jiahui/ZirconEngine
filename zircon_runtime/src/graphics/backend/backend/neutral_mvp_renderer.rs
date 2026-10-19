@@ -6,9 +6,9 @@ use thiserror::Error;
 use zr_rhi::{
     AdapterSelectionPolicy, DeviceGeneration, DiagnosticFrameKey, DiagnosticReadbackAdmission,
     DiagnosticReadbackBudget, DiagnosticReadbackReceipt, DiagnosticReadbackRequestId,
-    DiagnosticReadbackTerminal, GpuMemoryBudget, RenderDevice, RenderDeviceProfile,
-    RenderDeviceQueueTopology, RenderDeviceRequestPolicy, SubmissionLimits, SubmissionStatus,
-    SubmissionTicket, TextureCopyRegion, TextureHandle,
+    DiagnosticReadbackTerminal, GpuMemoryBudget, RenderDevice, RenderDeviceBudgets,
+    RenderDeviceProfile, RenderDeviceQueueTopology, RenderDeviceRequestPolicy, SubmissionLimits,
+    SubmissionStatus, SubmissionTicket, TextureCopyRegion, TextureHandle,
 };
 use zr_rhi_wgpu::{
     next_wgpu_device_id, wgpu_device_limits, WgpuMvpOffscreenTriangle, WgpuRenderDevice,
@@ -105,9 +105,11 @@ impl NeutralMvpRenderer {
                 .clone(),
             wgpu_device_limits(&requested_device.device.limits()),
             RenderDeviceQueueTopology::single_serialized_queue(),
-            GpuMemoryBudget::reference_1080p_mid(),
-            SubmissionLimits::default(),
-            DiagnosticReadbackBudget::default(),
+            RenderDeviceBudgets {
+                memory_budget: GpuMemoryBudget::reference_1080p_mid(),
+                submission_limits: SubmissionLimits::default(),
+                diagnostic_readback_budget: DiagnosticReadbackBudget::default(),
+            },
         );
         let context = WgpuRenderDeviceContext::new(
             instance,

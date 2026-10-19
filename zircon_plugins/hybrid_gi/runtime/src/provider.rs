@@ -30,6 +30,12 @@ const FIRST_RADIANCE_CACHE_INSTANCE_ID: u64 = 1;
 static NEXT_RADIANCE_CACHE_INSTANCE_ID: AtomicU64 =
     AtomicU64::new(FIRST_RADIANCE_CACHE_INSTANCE_ID);
 
+fn fresh_radiance_cache_instance_id() -> u64 {
+    NEXT_RADIANCE_CACHE_INSTANCE_ID
+        .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |id| id.checked_add(1))
+        .expect("hybrid GI instance identity space exhausted; refusing identity reuse")
+}
+
 #[derive(Clone, Debug, Default)]
 pub struct PluginHybridGiRuntimeProvider;
 
@@ -43,6 +49,7 @@ impl HybridGiRuntimeProvider for PluginHybridGiRuntimeProvider {
 struct PluginHybridGiRuntimeState {
     state: HybridGiRuntimeState,
     radiance_cache_instance_id: u64,
+    source_world: Option<zircon_runtime::core::framework::render::RenderWorldSnapshotHandle>,
     last_surface_cache_depth_sample_count: usize,
     last_probe_trace_tile_count: usize,
     last_probe_trace_dispatch_group_count: [usize; 3],
@@ -56,8 +63,8 @@ impl Default for PluginHybridGiRuntimeState {
     fn default() -> Self {
         Self {
             state: HybridGiRuntimeState::default(),
-            radiance_cache_instance_id: NEXT_RADIANCE_CACHE_INSTANCE_ID
-                .fetch_add(1, Ordering::Relaxed),
+            radiance_cache_instance_id: fresh_radiance_cache_instance_id(),
+            source_world: None,
             last_surface_cache_depth_sample_count: 0,
             last_probe_trace_tile_count: 0,
             last_probe_trace_dispatch_group_count: [0; 3],
@@ -75,7 +82,17 @@ impl RuntimeStateContract for PluginHybridGiRuntimeState {
         input: HybridGiRuntimePrepareInput<'_>,
     ) -> HybridGiRuntimePrepareOutput {
         self.last_global_sdf_stats = Default::default();
-        self.state.register_scene_extract_with_view_state(
+        let enabled = input.extract().is_some_and(|extract| extract.enabled);
+        let source_world = input
+            .source_world()
+            .filter(|world| enabled && world.raw() != 0);
+        let same_source = self
+            .source_world
+            .zip(source_world)
+            .is_some_and(|(previous, current)| {
+                previous.raw() == current.raw() && current.generation() >= previous.generation()
+            });
+        let compatible = self.state.register_scene_extract_with_view_state(
             input.extract(),
             input.meshes(),
             input.directional_lights(),
@@ -84,8 +101,13 @@ impl RuntimeStateContract for PluginHybridGiRuntimeState {
             input.baked_lighting(),
             input.has_baked_probe_grid(),
             input.camera_position(),
-            input.history_invalidated(),
+            input.history_invalidated() || !same_source,
         );
+        if !compatible {
+            // Pending GPU futures belong to this identity too, not merely CPU colors.
+            self.radiance_cache_instance_id = fresh_radiance_cache_instance_id();
+        }
+        self.source_world = source_world;
         if let Some(plan) = input.update_plan() {
             self.state.ingest_plan(input.generation(), plan);
         }

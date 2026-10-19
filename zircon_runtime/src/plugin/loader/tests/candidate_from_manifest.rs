@@ -58,11 +58,19 @@ fn bounded_manifest_read_error_preserves_file_context() {
 
     assert!(matches!(
         error,
-        NativePluginDiscoveryRefreshError::Collector { ref message }
-            if message.contains("native plugin manifest")
-                && message.contains(&missing_manifest.display().to_string())
-                && message.contains("manifest unavailable")
+        NativePluginDiscoveryRefreshError::ReadManifest { ref file_kind, ref manifest_path, .. }
+            if file_kind.as_ref() == "native plugin manifest"
+                && manifest_path == &missing_manifest
     ));
+    let message = error.to_string();
+    assert!(message.contains("native plugin manifest"));
+    assert!(message.contains(&missing_manifest.display().to_string()));
+    assert!(message.contains("manifest unavailable"));
+    let source = std::error::Error::source(&error)
+        .and_then(|source| source.downcast_ref::<io::Error>())
+        .expect("retain the actual IO error");
+    assert_eq!(source.kind(), io::ErrorKind::NotFound);
+    assert_eq!(error, error.clone());
 }
 
 #[test]

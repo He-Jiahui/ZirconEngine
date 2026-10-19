@@ -8,13 +8,14 @@ fn production_source() -> &'static str {
 }
 
 fn assert_source_order(anchors: &[&str]) {
-    let source = production_source();
+    let source = production_source().split_whitespace().collect::<String>();
     let mut offset = 0;
     for anchor in anchors {
+        let normalized_anchor = anchor.split_whitespace().collect::<String>();
         let relative = source[offset..]
-            .find(anchor)
+            .find(&normalized_anchor)
             .unwrap_or_else(|| panic!("missing viewer architecture anchor: {anchor}"));
-        offset += relative + anchor.len();
+        offset += relative + normalized_anchor.len();
     }
 }
 
@@ -264,6 +265,10 @@ fn viewer_uses_real_runtime_module_and_asset_manager_lifecycle() {
     assert_source_order(&[
         "let hdri = preflight_viewer_hdri(hdri_path, face_size, pmrem_face_size)?;",
         "let work_paths = ViewerWorkPaths::new(work_dir, ibl_cache_dir);",
+        "let project_root = material_fixture.project_root_component().map_or_else(",
+        "|| work_paths.project_root().to_path_buf(),",
+        "|component| work_paths.project_root().join(component),",
+        "let paths = ProjectPaths::from_root(&project_root)?;",
         "register_module(zircon_runtime::foundation::module_descriptor())",
         "register_module(TasksModule.descriptor())",
         "register_module(zircon_runtime::asset::module_descriptor())",
@@ -271,7 +276,6 @@ fn viewer_uses_real_runtime_module_and_asset_manager_lifecycle() {
         "activate_module(TASKS_MODULE_NAME)",
         "activate_module(zircon_runtime::asset::ASSET_MODULE_NAME)",
         "ProjectAssetManagerAccess::new",
-        "let project_root = material_fixture.project_root_component().map_or_else(",
         "asset_manager.open_project(project_root.to_string_lossy().as_ref())",
         "asset_manager.current_project_manager()",
         "let startup_options = SceneRendererStartupOptions::environment_only_pbr_preview()",

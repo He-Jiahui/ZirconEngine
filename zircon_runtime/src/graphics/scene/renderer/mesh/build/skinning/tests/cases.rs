@@ -469,3 +469,133 @@ fn multiple_primitives_share_the_same_pose_snapshot() {
         second.joint_palette_storage.as_ref().unwrap()
     ));
 }
+
+#[test]
+fn cpu_skinning_normals_follow_the_inverse_transpose_of_the_blended_linear_transform() {
+    let source_normal = Vec3::new(1.0, -1.0, 0.0).normalize();
+    let source_tangent = Vec3::new(1.0, 1.0, 0.0).normalize();
+    let source = MeshVertex::new(Vec3::new(1.0, 2.0, 0.0), source_normal, Vec2::ZERO)
+        .with_tangent([source_tangent.x, source_tangent.y, source_tangent.z, -1.0]);
+    let skeleton = AnimationSkeletonAsset {
+        name: Some("blended-normal-contract".into()),
+        bones: ["first", "second"]
+            .into_iter()
+            .map(|name| AnimationSkeletonBoneAsset {
+                name: name.into(),
+                parent_index: None,
+                local_translation: Vec3::ZERO.to_array(),
+                local_rotation: Quat::IDENTITY.to_array(),
+                local_scale: Vec3::ONE.to_array(),
+            })
+            .collect(),
+    };
+    for (scales, weights, expected_normal, expected_position, expected_tangent) in [
+        (
+            [Vec3::new(2.0, 1.0, 1.0), Vec3::ONE],
+            [1.0, 0.0, 0.0, 0.0],
+            Vec3::new(0.5, -1.0, 0.0).normalize(),
+            Vec3::new(2.0, 2.0, 0.0),
+            Vec3::new(2.0, 1.0, 0.0).normalize(),
+        ),
+        (
+            [Vec3::new(2.0, 1.0, 1.0), Vec3::new(1.0, 3.0, 1.0)],
+            [0.5, 0.5, 0.0, 0.0],
+            Vec3::new(2.0 / 3.0, -0.5, 0.0).normalize(),
+            Vec3::new(1.5, 4.0, 0.0),
+            Vec3::new(1.5, 2.0, 0.0).normalize(),
+        ),
+        (
+            [Vec3::new(-2.0, 1.0, 1.0), Vec3::ONE],
+            [1.0, 0.0, 0.0, 0.0],
+            Vec3::new(-0.5, -1.0, 0.0).normalize(),
+            Vec3::new(-2.0, 2.0, 0.0),
+            Vec3::new(-2.0, 1.0, 0.0).normalize(),
+        ),
+        (
+            [Vec3::new(0.0, 1.0, 1.0), Vec3::ONE],
+            [1.0, 0.0, 0.0, 0.0],
+            Vec3::ZERO,
+            Vec3::new(0.0, 2.0, 0.0),
+            Vec3::Y,
+        ),
+    ] {
+        let pose = AnimationPoseOutput {
+            source: AnimationPoseSource::Clip,
+            active_state: None,
+            bones: ["first", "second"]
+                .into_iter()
+                .zip(scales)
+                .map(|(name, scale)| AnimationPoseBone {
+                    name: name.into(),
+                    local_transform: Transform::identity().with_scale(scale),
+                })
+                .collect(),
+        };
+        let primitive = ModelPrimitiveAsset {
+            vertices: vec![source.with_skinning([0, 1, 0, 0], weights)],
+            indices: vec![0],
+            mesh: None,
+            mesh_sdf: None,
+            virtual_geometry: None,
+        };
+        let palette = SkinnedMeshJointPalette::from_skeleton_pose(&skeleton, &pose).unwrap();
+        let prepared = prepare_skinned_model_primitive(&primitive, &skeleton, &pose).unwrap();
+        let skinned = skin_model_primitive(&primitive, &skeleton, &pose).unwrap();
+        let owned = skin_owned_model_primitive_with_palette(primitive.clone(), &palette);
+        for vertex in [
+            skinned.vertices[0],
+            owned.vertices[0],
+            prepared.primitive.vertices[0],
+        ] {
+            let normal = Vec3::from_array(vertex.normal);
+            let tangent = Vec3::from_array(vertex.tangent[..3].try_into().unwrap());
+            assert!(
+                normal.is_finite() && normal.abs_diff_eq(expected_normal, 1.0e-5),
+                "{normal:?}"
+            );
+            assert!(normal.dot(tangent).abs() <= 1.0e-5);
+            assert!(Vec3::from_array(vertex.position).abs_diff_eq(expected_position, 1.0e-5));
+            assert!(tangent.abs_diff_eq(expected_tangent, 1.0e-5));
+            assert_eq!(vertex.tangent[3], -1.0);
+        }
+        assert_eq!(
+            prepared.shader_skinning_source_primitive.vertices,
+            primitive.vertices
+        );
+    }
+}
+
+#[test]
+fn cpu_skinning_normal_fallback_is_finite_without_changing_invalid_joint_or_zero_weight_paths() {
+    let source = MeshVertex::new(Vec3::X, Vec3::Y, Vec2::ZERO)
+        .with_skinning([99, 0, 0, 0], [1.0, 0.0, 0.0, 0.0]);
+    let primitive = ModelPrimitiveAsset {
+        vertices: vec![source],
+        indices: vec![0],
+        mesh: None,
+        mesh_sdf: None,
+        virtual_geometry: None,
+    };
+    let palette = SkinnedMeshJointPalette::from_skeleton_pose(
+        &unit_test_skeleton(),
+        &joint_quarter_turn_pose(),
+    )
+    .unwrap();
+    assert_eq!(
+        skin_owned_model_primitive_with_palette(primitive.clone(), &palette).vertices,
+        primitive.vertices
+    );
+    let mut zero_weight = primitive.clone();
+    zero_weight.vertices[0].joint_indices = [0; 4];
+    zero_weight.vertices[0].joint_weights = [0.0; 4];
+    assert_eq!(
+        skin_owned_model_primitive_with_palette(zero_weight.clone(), &palette).vertices,
+        zero_weight.vertices
+    );
+    let mut invalid_normal = primitive;
+    invalid_normal.vertices[0].joint_indices = [0; 4];
+    invalid_normal.vertices[0].normal = [f32::INFINITY, 1.0, 0.0];
+    let result = skin_owned_model_primitive_with_palette(invalid_normal, &palette);
+    assert_eq!(result.vertices[0].normal, [0.0; 3]);
+    assert_eq!(result.vertices[0].position, Vec3::X.to_array());
+}

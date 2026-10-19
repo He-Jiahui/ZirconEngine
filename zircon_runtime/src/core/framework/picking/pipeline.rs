@@ -126,7 +126,7 @@ pub fn run_picking_pipeline(
         hovered_hit_count,
     ));
 
-    let events = event_state.dispatch_frame(
+    let events = event_state.dispatch_viewport_frame(
         hover_map.clone(),
         input.pointer_locations,
         input.pointer_inputs,
@@ -159,7 +159,7 @@ fn resolve_picking_outputs_with_ray_map(
     ray_map: &RayMap,
     outputs: &[PointerHits],
 ) -> (PickingHoverMap, PickingPipelineReport) {
-    // BUG: [CR-PICKING-0001] 同一 PointerId 跨视口的命中在此合并；RayId 含 viewport，但 PointerHits 只保留指针，可能把另一视口的目标派发给当前指针。
+    // Hit provenance stays in the key through sorting, hover reduction and event dispatch.
     let sorted_hits = sorted_hits_by_pointer(outputs);
     let report =
         PickingPipelineReport::from_ray_map_outputs_and_sorted_hits(ray_map, outputs, &sorted_hits);

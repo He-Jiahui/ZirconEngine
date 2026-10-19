@@ -1,7 +1,6 @@
 use std::fs;
 use std::hint::black_box;
 use std::path::{Path, PathBuf};
-use std::process::Command;
 use std::sync::Arc;
 use std::thread;
 use std::time::{Instant, SystemTime, UNIX_EPOCH};
@@ -12,6 +11,8 @@ use crate::plugin::native::discovery::{
     load_discovered_native_runtime_plugins, load_native_plugins_from_load_manifest,
 };
 
+#[path = "loader/prebuilt_fixture.rs"]
+mod prebuilt_fixture;
 #[path = "loader/real_fixture.rs"]
 mod real_fixture;
 
@@ -608,45 +609,53 @@ fn temp_export_root(label: &str) -> PathBuf {
 
 #[test]
 fn native_dynamic_fixture_build_uses_isolated_offline_workspace() {
-    let build_root = temp_export_root("native-dynamic-fixture-isolated-workspace");
-    let workspace_manifest = prepare_native_dynamic_fixture_workspace(&build_root);
-    let workspace_root = workspace_manifest.parent().unwrap();
-
-    assert!(workspace_manifest.starts_with(&build_root));
-    assert!(workspace_root.join("native/Cargo.toml").is_file());
-    assert!(workspace_root.join("native/src/lib.rs").is_file());
-    assert!(workspace_root.join("plugin.toml").is_file());
-    let manifest = fs::read_to_string(&workspace_manifest).unwrap();
-    assert!(manifest.contains("members = [\"native\"]"));
-    assert!(manifest.contains("zircon_plugin_sdk"));
-
-    let target_dir = build_root.join("target");
-    let command = native_dynamic_fixture_build_command(
-        &workspace_manifest,
-        &target_dir,
-        &["abi_unknown_version"],
+    // Root builds the actual checkout offline before this test process starts.
+    // The old copied-workspace contract is replaced by immutable binary admission.
+    assert_eq!(prebuilt_fixture::variant_for(&[]).unwrap(), "dist");
+    for feature in [
+        "abi_unknown_version",
+        "descriptor_export_missing",
+        "runtime_entry_export_missing",
+        "required_capability_missing",
+    ] {
+        assert_eq!(prebuilt_fixture::variant_for(&[feature]).unwrap(), feature);
+    }
+    assert!(prebuilt_fixture::variant_for(&["unknown_fixture_feature"]).is_err());
+    assert!(prebuilt_fixture::variant_for(&[
+        "runtime_entry_export_missing",
+        "required_capability_missing",
+    ])
+    .is_err());
+    let count =
+        prebuilt_fixture::validate_contract().expect("registered actual-checkout DLL contract");
+    assert!((1..=5).contains(&count));
+    let request = temp_export_root("native-dynamic-fixture-contract");
+    let library = prebuilt_fixture::load(&request, &[]).expect("default real fixture is prebuilt");
+    assert!(library.is_file());
+    assert_eq!(
+        library.file_name().unwrap(),
+        platform_library_file_name("zircon_plugin_native_dynamic_fixture_native").as_str(),
     );
-    let arguments = command
-        .get_args()
-        .map(|argument| argument.to_string_lossy().into_owned())
-        .collect::<Vec<_>>();
-    let workspace_manifest_text = workspace_manifest.to_string_lossy().into_owned();
-    let plugin_workspace_manifest = repo_root()
-        .join("zircon_plugins/Cargo.toml")
-        .to_string_lossy()
-        .into_owned();
-    assert!(arguments.iter().any(|argument| argument == "--offline"));
-    assert!(arguments.windows(2).any(|arguments| {
-        arguments[0] == "--manifest-path" && arguments[1] == workspace_manifest_text
-    }));
-    assert!(!arguments
-        .iter()
-        .any(|argument| argument == &plugin_workspace_manifest));
-    assert!(arguments.windows(2).any(|arguments| {
-        arguments[0] == "--features" && arguments[1] == "abi_unknown_version"
-    }));
-
-    let _ = fs::remove_dir_all(build_root);
+    assert!(
+        !request.exists(),
+        "reading a DLL must not create a source workspace"
+    );
+    let source = include_str!("loader.rs");
+    let child = include_str!("loader/prebuilt_fixture.rs");
+    for forbidden in [
+        ["Command", "::new("].concat(),
+        ["copy_directory", "_recursively"].concat(),
+        ["prepare_native_dynamic", "_fixture_workspace"].concat(),
+    ] {
+        assert!(
+            !source.contains(&forbidden),
+            "loader must not prepare sources or spawn Cargo"
+        );
+        assert!(
+            !child.contains(&forbidden),
+            "artifact admission must be read-only"
+        );
+    }
 }
 
 fn build_native_dynamic_fixture(target_root: &std::path::Path) -> PathBuf {
@@ -657,95 +666,8 @@ fn build_native_dynamic_fixture_with_features(
     target_root: &std::path::Path,
     features: &[&str],
 ) -> PathBuf {
-    let workspace_manifest = prepare_native_dynamic_fixture_workspace(target_root);
-    let fixture_target_root = target_root.join("target");
-    let status =
-        native_dynamic_fixture_build_command(&workspace_manifest, &fixture_target_root, features)
-            .status()
-            .unwrap();
-    assert!(
-        status.success(),
-        "native dynamic fixture build failed: {status}"
-    );
-    fixture_target_root
-        .join("debug")
-        .join(platform_library_file_name(
-            "zircon_plugin_native_dynamic_fixture_native",
-        ))
-}
-
-fn prepare_native_dynamic_fixture_workspace(build_root: &Path) -> PathBuf {
-    let workspace_root = build_root.join("fixture-workspace");
-    let native_source = repo_root().join("zircon_plugins/native_dynamic_fixture/native");
-    let native_destination = workspace_root.join("native");
-
-    copy_directory_recursively(&native_source, &native_destination);
-    fs::copy(
-        repo_root().join("zircon_plugins/native_dynamic_fixture/plugin.toml"),
-        workspace_root.join("plugin.toml"),
-    )
-    .unwrap();
-    let plugin_sdk = toml_literal_path(&repo_root().join("zircon_plugins/plugin_sdk"));
-    fs::write(
-        workspace_root.join("Cargo.toml"),
-        format!(
-            r#"[workspace]
-members = ["native"]
-resolver = "2"
-
-[workspace.package]
-version = "0.1.0"
-edition = "2021"
-license = "MIT OR Apache-2.0"
-
-[workspace.dependencies]
-zircon_plugin_sdk = {{ path = '{plugin_sdk}', default-features = false }}
-"#
-        ),
-    )
-    .unwrap();
-    workspace_root.join("Cargo.toml")
-}
-
-fn copy_directory_recursively(source: &Path, destination: &Path) {
-    fs::create_dir_all(destination).unwrap();
-    for entry in fs::read_dir(source).unwrap() {
-        let entry = entry.unwrap();
-        let destination_path = destination.join(entry.file_name());
-        if entry.file_type().unwrap().is_dir() {
-            copy_directory_recursively(&entry.path(), &destination_path);
-        } else {
-            fs::copy(entry.path(), destination_path).unwrap();
-        }
-    }
-}
-
-fn toml_literal_path(path: &Path) -> String {
-    path.to_string_lossy()
-        .replace('\\', "/")
-        .replace('\'', "''")
-}
-
-fn native_dynamic_fixture_build_command(
-    workspace_manifest: &Path,
-    target_root: &Path,
-    features: &[&str],
-) -> Command {
-    let mut command = Command::new("cargo");
-    command
-        .arg("build")
-        .arg("--manifest-path")
-        .arg(workspace_manifest)
-        .arg("-p")
-        .arg("zircon_plugin_native_dynamic_fixture_native")
-        .arg("--offline")
-        .arg("--target-dir")
-        .arg(target_root)
-        .arg("--quiet");
-    if !features.is_empty() {
-        command.arg("--features").arg(features.join(","));
-    }
-    command
+    prebuilt_fixture::load(target_root, features)
+        .unwrap_or_else(|reason| panic!("native fixture artifact admission failed: {reason}"))
 }
 
 fn platform_library_file_name(crate_name: &str) -> String {

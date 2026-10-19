@@ -34,6 +34,7 @@ pub(super) fn validate_runtime_plugin_package_embedded_feature_row(
         field_name,
         feature,
         package_manifest,
+        kind,
         projection.embedded_feature_provider_is_duplicate(kind, feature_index),
         diagnostics,
     );

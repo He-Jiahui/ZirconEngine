@@ -680,3 +680,87 @@ fn export_target_platform_from_ci_name(value: &str) -> ExportTargetPlatform {
         other => panic!("unknown export target platform {other}"),
     }
 }
+
+#[test]
+fn generated_mobile_and_browser_json_manifests_parse_and_preserve_profile_identity() {
+    for platform in [
+        ExportTargetPlatform::Android,
+        ExportTargetPlatform::Ios,
+        ExportTargetPlatform::WebGpu,
+        ExportTargetPlatform::Wasm,
+    ] {
+        let profile_name = format!("json-{}", platform.as_str());
+        let mut manifest = ProjectManifest::new(
+            "JSON export encoding",
+            AssetUri::parse("res://scenes/main.zscene").unwrap(),
+            1,
+        );
+        manifest.export_profiles = vec![ExportProfile::new(
+            profile_name.clone(),
+            RuntimeTargetMode::ClientRuntime,
+            platform,
+            RuntimeProfileId::Client2d,
+        )
+        .with_strategy(ExportPackagingStrategy::SourceTemplate)
+        .with_strategy(ExportPackagingStrategy::LibraryEmbed)];
+        let plan = ExportBuildPlan::from_project_manifest(&manifest, &profile_name).unwrap();
+        let mut profile_manifests = 0;
+        for file in plan
+            .generated_files
+            .iter()
+            .filter(|file| file.path.ends_with(".json"))
+        {
+            let value: serde_json::Value = serde_json::from_str(&file.contents)
+                .unwrap_or_else(|error| panic!("{} is invalid JSON: {error}", file.path));
+            if let Some(profile) = value.get("profile") {
+                assert_eq!(
+                    profile.as_str(),
+                    Some(profile_name.as_str()),
+                    "{}",
+                    file.path
+                );
+                profile_manifests += 1;
+            }
+        }
+        assert!(
+            profile_manifests > 0,
+            "{platform:?} must generate a profile JSON manifest"
+        );
+    }
+}
+
+#[test]
+fn generated_ios_swift_literals_escape_control_characters_and_interpolation() {
+    let output_name = "Before\n\r\t\0\u{1f}\u{7f}\u{85}\u{2028}\u{2029}\"\\(injected)雪After";
+    let expected = r#"Before\n\r\t\0\u{1f}\u{7f}\u{85}\u{2028}\u{2029}\"\\(injected)雪After"#;
+    let mut manifest = ProjectManifest::new(
+        "Swift export encoding",
+        AssetUri::parse("res://scenes/main.zscene").unwrap(),
+        1,
+    );
+    let mut profile = ExportProfile::new(
+        "swift-encoding",
+        RuntimeTargetMode::ClientRuntime,
+        ExportTargetPlatform::Ios,
+        RuntimeProfileId::Client2d,
+    )
+    .with_strategy(ExportPackagingStrategy::SourceTemplate)
+    .with_strategy(ExportPackagingStrategy::LibraryEmbed);
+    profile.output_name = output_name.to_owned();
+    manifest.export_profiles = vec![profile];
+    let plan = ExportBuildPlan::from_project_manifest(&manifest, "swift-encoding").unwrap();
+    let package = generated_file(&plan, "platform/ios/Package.swift");
+    assert!(package.contains(&format!("name: \"{expected}\"")));
+    let host = plan
+        .generated_files
+        .iter()
+        .find(|file| file.path.ends_with(".swift") && file.contents.contains("@main"))
+        .expect("actual iOS host source must be generated");
+    assert!(host
+        .contents
+        .contains(&format!("Array(\"{expected}\".utf8)")));
+    assert!(!package.contains(output_name));
+    assert!(!host.contents.contains(output_name));
+    assert!(!package.contains('\0'));
+    assert!(!host.contents.contains('\0'));
+}

@@ -114,8 +114,8 @@ pub(super) fn trailing_source_offset(cluster: &UiTextVisualSourceCluster) -> usi
 }
 
 // 方向取首个相交 run；无相交项时返回空，单 run 尝试等长子映射，多 run 保留源包络。
-fn cluster_for_visual_grapheme_in_runs<'a>(
-    runs: &'a [UiResolvedTextRun],
+fn cluster_for_visual_grapheme_in_runs(
+    runs: &[UiResolvedTextRun],
     visual_range: UiTextRange,
     runs_are_ordered: bool,
 ) -> Option<UiTextVisualSourceCluster> {

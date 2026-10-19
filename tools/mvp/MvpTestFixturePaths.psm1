@@ -1,281 +1,33 @@
 Set-StrictMode -Version Latest
 
-$windowsPathResolverModule = Join-Path $PSScriptRoot '..\common\WindowsPathResolver.psm1'
-Import-Module $windowsPathResolverModule -Force -ErrorAction Stop
-Import-Module (Join-Path $PSScriptRoot 'MvpArtifactStoragePolicy.psm1') -Force -ErrorAction Stop
-
-$script:ZirconSessionScript = Join-Path $PSScriptRoot '..\zircon-session.ps1'
-$script:MvpTestFixtureLeases = @{}
-
-function Invoke-MvpFixtureCoordinator {
-    param(
-        [Parameter(Mandatory)]
-        [string[]]$Arguments
-    )
-
-    $output = @(& $script:ZirconSessionScript @Arguments -Json)
-    if ($LASTEXITCODE -ne 0) {
-        throw "Coordinator fixture command failed with exit code ${LASTEXITCODE}: $($output -join ' ')"
-    }
-    $json = $output -join "`n"
-    if ([string]::IsNullOrWhiteSpace($json)) {
-        throw 'Coordinator fixture command returned no JSON result.'
-    }
-    try {
-        return $json | ConvertFrom-Json -ErrorAction Stop
-    }
-    catch {
-        throw "Coordinator fixture command returned invalid JSON: $($_.Exception.Message)"
-    }
-}
+Import-Module (Join-Path $PSScriptRoot 'MvpTestFixtureContext.psm1') -Force -ErrorAction Stop
 
 function New-MvpTestFixtureRoot {
     param(
         [Parameter(Mandatory)]
-        [ValidatePattern('^[A-Za-z0-9][A-Za-z0-9._-]*$')]
+        [ValidatePattern('^[A-Za-z0-9][A-Za-z0-9._-]{0,119}$')]
         [string]$Prefix
     )
 
-    $fixtureParentName = "mvp-test-fixtures-$PID"
-    $leaseId = $null
-    $fixtureDisplayPath = $null
-    try {
-        $response = Invoke-MvpFixtureCoordinator -Arguments @(
-            'artifact',
-            'fixture-acquire',
-            '--prefix',
-            $Prefix,
-            '--owner-pid',
-            [string]$PID
-        )
-        $lease = $response.lease
-        if ($null -eq $lease) {
-            throw 'Coordinator fixture acquire response omitted its lease.'
-        }
-        $leaseId = [string]$lease.leaseId
-        $fixtureDisplayPath = [string]$lease.path
-        if ($leaseId -notmatch '^[0-9a-f]{32}$') {
-            throw "Coordinator fixture acquire returned an invalid lease ID: $leaseId"
-        }
-        if ([int]$lease.ownerPid -ne $PID -or [string]$lease.status -ne 'active') {
-            throw 'Coordinator fixture acquire returned a lease for another owner or lifecycle state.'
-        }
-        $fixtureStorage = Resolve-MvpArtifactStorageRootPath `
-            -Path $fixtureDisplayPath `
-            -CapabilityClass 'windows-local-artifact'
-        Resolve-MvpArtifactStoragePath `
-            -Path $fixtureDisplayPath `
-            -NamespaceId 'mvp-test-fixtures' | Out-Null
-        $fixtureRootPrefix = $fixtureStorage.root_display_path.TrimEnd('\') + '\'
-        $fixtureRelativePath = $fixtureStorage.display_path.Substring($fixtureRootPrefix.Length)
-        $expectedFixtureRelativePath = "$fixtureParentName\$Prefix-$leaseId"
-        if (-not $fixtureRelativePath.Equals($expectedFixtureRelativePath, [StringComparison]::OrdinalIgnoreCase)) {
-            throw "Coordinator fixture path is outside the approved process root: $fixtureDisplayPath"
-        }
-
-        $script:MvpTestFixtureLeases[$fixtureDisplayPath] = $leaseId
-        $fixtureParentDisplayPath = Split-Path -Parent $fixtureDisplayPath
-        $artifactRoot = $fixtureStorage.root_display_path
-        $artifactRootResolution = Resolve-ZirconWindowsPath -Path $artifactRoot
-        if (-not $artifactRootResolution.DisplayPath.Equals($artifactRoot, [StringComparison]::OrdinalIgnoreCase)) {
-            throw "approved fixture root resolves outside its physical root: $($artifactRootResolution.DisplayPath)"
-        }
-        $fixtureParent = Join-ZirconWindowsPath `
-            -Path $artifactRootResolution.OperationalPath `
-            -ChildPath $fixtureParentName
-        [IO.Directory]::CreateDirectory($fixtureParent) | Out-Null
-        $fixtureParentResolution = Resolve-ZirconWindowsPath -Path $fixtureParent
-        if (-not $fixtureParentResolution.DisplayPath.Equals($fixtureParentDisplayPath, [StringComparison]::OrdinalIgnoreCase)) {
-            throw "fixture parent resolves outside the Coordinator-issued physical root: $($fixtureParentResolution.DisplayPath)"
-        }
-        $fixtureRoot = Join-ZirconWindowsPath `
-            -Path $fixtureParentResolution.OperationalPath `
-            -ChildPath ("$Prefix-$leaseId")
-        [IO.Directory]::CreateDirectory($fixtureRoot) | Out-Null
-        $fixtureResolution = Resolve-ZirconWindowsPath -Path $fixtureRoot
-        if (-not $fixtureResolution.DisplayPath.Equals($fixtureDisplayPath, [StringComparison]::OrdinalIgnoreCase)) {
-            throw "resolved fixture root differs from the Coordinator-issued path: $($fixtureResolution.DisplayPath)"
-        }
-        return $fixtureResolution.DisplayPath
-    }
-    catch {
-        $primaryMessage = $_.Exception.Message
-        if ($null -ne $fixtureDisplayPath -and $script:MvpTestFixtureLeases.ContainsKey($fixtureDisplayPath)) {
-            try {
-                Remove-MvpTestFixtureRoot -Path $fixtureDisplayPath
-            }
-            catch {
-                throw "Could not create the Coordinator-managed MVP fixture root: $primaryMessage; cleanup also failed: $($_.Exception.Message)"
-            }
-        }
-        throw "Could not create the Coordinator-managed MVP fixture root: $primaryMessage"
-    }
+    $context = Get-MvpTestFixtureContext
+    return New-MvpOwnedFixture -Context $context -Prefix $Prefix
 }
 
 function Remove-MvpTestFixtureRoot {
-    param(
-        [Parameter(Mandatory)]
-        [string]$Path
-    )
+    param([Parameter(Mandatory)][string]$Path)
 
-    $resolution = Resolve-ZirconWindowsPath -Path $Path
-    $operationPath = $resolution.OperationalPath
-    $displayPath = $resolution.DisplayPath
-    $fixtureParentName = "mvp-test-fixtures-$PID"
-    try {
-        $fixtureStorage = Resolve-MvpArtifactStorageRootPath `
-            -Path $displayPath `
-            -CapabilityClass 'windows-local-artifact'
-        Resolve-MvpArtifactStoragePath `
-            -Path $displayPath `
-            -NamespaceId 'mvp-test-fixtures' | Out-Null
-    }
-    catch {
-        throw "Refusing to remove fixture outside the approved MVP fixture root: $displayPath"
-    }
-    $fixtureRootPrefix = $fixtureStorage.root_display_path.TrimEnd('\') + '\'
-    $fixtureRelativePath = $fixtureStorage.display_path.Substring($fixtureRootPrefix.Length)
-    $fixtureDisplayPattern = '^' + [regex]::Escape($fixtureParentName) + '\\[A-Za-z0-9][A-Za-z0-9._-]*-[0-9a-f]{32}$'
-    if ($fixtureRelativePath -notmatch $fixtureDisplayPattern) {
-        throw "Refusing to remove fixture outside the approved MVP fixture root: $displayPath"
-    }
-    $leaseId = if ($script:MvpTestFixtureLeases.ContainsKey($displayPath)) {
-        [string]$script:MvpTestFixtureLeases[$displayPath]
-    }
-    else {
-        $null
-    }
-    $fixtureParent = [IO.Directory]::GetParent($operationPath.TrimEnd([IO.Path]::DirectorySeparatorChar))
-    if ($null -eq $fixtureParent) {
-        throw "Refusing to remove fixture without a process-scoped parent: $displayPath"
-    }
-    $fixtureParentResolution = Resolve-ZirconWindowsPath -Path $fixtureParent.FullName
-    $fixtureParentStorage = Resolve-MvpArtifactStorageRootPath `
-        -Path $fixtureParentResolution.DisplayPath `
-        -CapabilityClass 'windows-local-artifact'
-    Resolve-MvpArtifactStoragePath `
-        -Path $fixtureParentResolution.DisplayPath `
-        -NamespaceId 'mvp-test-fixtures' | Out-Null
-    $fixtureParentRootPrefix = $fixtureParentStorage.root_display_path.TrimEnd('\') + '\'
-    $fixtureParentRelativePath = $fixtureParentStorage.display_path.Substring($fixtureParentRootPrefix.Length)
-    if (-not $fixtureParentRelativePath.Equals($fixtureParentName, [StringComparison]::OrdinalIgnoreCase)) {
-        throw "Refusing to remove fixture parent outside the approved MVP fixture root: $($fixtureParentResolution.DisplayPath)"
-    }
-    if ([IO.Directory]::Exists($fixtureParentResolution.OperationalPath)) {
-        $parentAttributes = [IO.File]::GetAttributes($fixtureParentResolution.OperationalPath)
-        if ([bool]($parentAttributes -band [IO.FileAttributes]::ReparsePoint)) {
-            throw "Refusing to remove a reparse-point fixture parent: $($fixtureParentResolution.DisplayPath)"
-        }
-    }
-
-    if ([IO.Directory]::Exists($operationPath)) {
-        $attributes = [IO.File]::GetAttributes($operationPath)
-        if ([bool]($attributes -band [IO.FileAttributes]::ReparsePoint)) {
-            throw "Refusing to remove a reparse-point fixture root: $displayPath"
-        }
-        Remove-MvpTestFixtureDirectory -Path $operationPath
-    }
-
-    if ([IO.Directory]::Exists($fixtureParentResolution.OperationalPath)) {
-        $remainingEntries = [IO.Directory]::EnumerateFileSystemEntries($fixtureParentResolution.OperationalPath).GetEnumerator()
-        try {
-            if (-not $remainingEntries.MoveNext()) {
-                [IO.Directory]::Delete($fixtureParentResolution.OperationalPath, $false)
-            }
-        }
-        finally {
-            $remainingEntries.Dispose()
-        }
-    }
-
-    if ($null -ne $leaseId) {
-        $response = Invoke-MvpFixtureCoordinator -Arguments @(
-            'artifact',
-            'fixture-release',
-            '--lease-id',
-            $leaseId,
-            '--owner-pid',
-            [string]$PID
-        )
-        if (
-            $null -eq $response.lease -or
-            [string]$response.lease.leaseId -ne $leaseId -or
-            [string]$response.lease.status -ne 'released'
-        ) {
-            throw "Coordinator fixture release returned an invalid lifecycle result for lease $leaseId."
-        }
-        $script:MvpTestFixtureLeases.Remove($displayPath)
-    }
+    $context = Get-MvpTestFixtureContext
+    Remove-MvpOwnedFixture -Context $context -Path $Path
 }
 
-function Remove-MvpTestFixtureDirectory {
-    param(
-        [Parameter(Mandatory)]
-        [string]$Path
-    )
-
-    $directoryAttributes = [IO.File]::GetAttributes($Path)
-    if ([bool]($directoryAttributes -band [IO.FileAttributes]::ReparsePoint)) {
-        $displayPath = (Resolve-ZirconWindowsPath -Path $Path).DisplayPath
-        throw "Refusing to recurse into a reparse-point fixture directory: $displayPath"
-    }
-    $attempt = 0
-    while ($true) {
-        if (-not [IO.Directory]::Exists($Path)) {
-            return
-        }
-        try {
-            foreach ($childPath in [IO.Directory]::EnumerateFileSystemEntries($Path)) {
-                $childAttributes = [IO.File]::GetAttributes($childPath)
-                if ([bool]($childAttributes -band [IO.FileAttributes]::Directory)) {
-                    if ([bool]($childAttributes -band [IO.FileAttributes]::ReparsePoint)) {
-                        # A junction is a leaf entry for fixture cleanup; never recurse into its target.
-                        [IO.Directory]::Delete($childPath, $false)
-                    }
-                    else {
-                        Remove-MvpTestFixtureDirectory -Path $childPath
-                    }
-                }
-                else {
-                    if ([bool]($childAttributes -band [IO.FileAttributes]::ReadOnly)) {
-                        [IO.File]::SetAttributes(
-                            $childPath,
-                            $childAttributes -band (-bnot [IO.FileAttributes]::ReadOnly)
-                        )
-                    }
-                    [IO.File]::Delete($childPath)
-                }
-            }
-            [IO.Directory]::Delete($Path, $false)
-            return
-        }
-        catch {
-            $exception = $_.Exception
-            $accessDenied = $false
-            $pathDisappeared = $false
-            while ($null -ne $exception) {
-                if ($exception -is [UnauthorizedAccessException]) {
-                    $accessDenied = $true
-                }
-                if ($exception -is [IO.DirectoryNotFoundException] -or
-                    $exception -is [IO.FileNotFoundException]) {
-                    $pathDisappeared = $true
-                }
-                $exception = $exception.InnerException
-            }
-            if (-not $accessDenied -and -not $pathDisappeared) {
-                throw
-            }
-            if (-not [IO.Directory]::Exists($Path)) {
-                return
-            }
-            $attempt++
-            if ($attempt -ge 40) {
-                throw
-            }
-            Start-Sleep -Milliseconds 100
-        }
-    }
+function New-ZirconMvpTestFixtureDirectory {
+    param([Parameter(Mandatory)][string]$Prefix)
+    return New-MvpTestFixtureRoot -Prefix $Prefix
 }
 
-Export-ModuleMember -Function @('New-MvpTestFixtureRoot', 'Remove-MvpTestFixtureRoot')
+function Remove-ZirconMvpTestFixtureDirectory {
+    param([Parameter(Mandatory)][string]$Path)
+    Remove-MvpTestFixtureRoot -Path $Path
+}
+
+Export-ModuleMember -Function @('New-MvpTestFixtureRoot', 'Remove-MvpTestFixtureRoot', 'New-ZirconMvpTestFixtureDirectory', 'Remove-ZirconMvpTestFixtureDirectory')

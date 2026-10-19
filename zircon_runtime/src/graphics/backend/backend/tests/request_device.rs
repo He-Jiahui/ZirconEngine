@@ -195,3 +195,84 @@ fn offscreen_device_limits_do_not_request_binding_array_capacity_for_partial_fea
         0
     );
 }
+
+#[test]
+fn device_request_error_preserves_typed_source_from_display_and_nested_chain() {
+    use std::error::Error;
+
+    use crate::graphics::GraphicsError;
+    use zr_rhi::{
+        RenderAdapterClass, RenderAdapterFacts, RenderBackendKind, RenderDeviceFeatureSet,
+        RenderDeviceRequestFailure,
+    };
+
+    let adapter = RenderAdapterFacts::new(
+        RenderBackendKind::Dx12,
+        "typed-source-adapter",
+        0x10de,
+        0x2468,
+        "typed-source-driver",
+        RenderAdapterClass::Discrete,
+        None,
+        RenderDeviceFeatureSet::default(),
+    );
+    let negotiation = RenderDeviceRequestPolicy::mvp_baseline()
+        .with_optional_feature(RenderDeviceFeature::GpuTimestamp)
+        .negotiate(&RenderDeviceFeatureSet::default())
+        .unwrap();
+    let expected = RenderDeviceRequestFailure::new(
+        adapter,
+        negotiation,
+        zr_rhi_wgpu::wgpu_device_limits(&wgpu::Limits::default()),
+        "native request rejected",
+    );
+    let display = format!("render device request failed: {expected}");
+    let debug = format!("DeviceRequest({expected:?})");
+    let error: GraphicsError = expected.clone().into();
+    assert_eq!(error.to_string(), display);
+    assert_eq!(format!("{error:?}"), debug);
+
+    let GraphicsError::DeviceRequest(payload) = &error else {
+        panic!("From must retain the device-request variant");
+    };
+    let dynamic: &dyn Error = &error;
+    let source = dynamic.source().unwrap();
+    let typed = source.downcast_ref::<RenderDeviceRequestFailure>().unwrap();
+    assert_eq!(typed, &expected);
+    assert!(std::ptr::eq(typed, &**payload));
+    assert!(source
+        .downcast_ref::<Box<RenderDeviceRequestFailure>>()
+        .is_none());
+    assert!(source.source().is_none());
+    assert_eq!(
+        std::mem::size_of_val(payload),
+        std::mem::size_of::<Box<RenderDeviceRequestFailure>>()
+    );
+
+    let nested = GraphicsError::FrameSubmissionSettlement {
+        settlement: "original settlement diagnostic".to_owned(),
+        source: Box::new(error),
+    };
+    let inner = nested
+        .source()
+        .unwrap()
+        .downcast_ref::<Box<GraphicsError>>()
+        .unwrap()
+        .as_ref();
+    assert_eq!(
+        inner
+            .source()
+            .unwrap()
+            .downcast_ref::<RenderDeviceRequestFailure>(),
+        Some(&expected)
+    );
+    assert!(inner.source().unwrap().source().is_none());
+
+    let GraphicsError::FrameSubmissionSettlement { source, .. } = nested else {
+        panic!("the outer failure variant must remain unchanged");
+    };
+    let GraphicsError::DeviceRequest(payload) = *source else {
+        panic!("the original typed device-request error must remain recoverable");
+    };
+    assert_eq!(payload.into_inner(), expected);
+}

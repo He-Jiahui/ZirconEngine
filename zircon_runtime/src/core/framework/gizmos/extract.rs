@@ -196,7 +196,6 @@ fn push_command(
             *size,
             color_policy.apply(*color),
         ),
-        // BUG: [CR-FRAMEWORK-RESIDUAL-0002] 保留式 Circle/Sphere 只变换中心或法线，半径未经过实例缩放；与 Line/Cube 的世界空间变换不一致，证据：下方 push_circle/push_sphere 与 retained.transform。
         GizmoCommand::Circle {
             center,
             normal,
@@ -204,8 +203,9 @@ fn push_command(
             color,
         } => push_circle(
             lines,
-            transform_point(transform, *center),
-            transform_vector(transform, *normal),
+            transform,
+            *center,
+            *normal,
             *radius,
             color_policy.apply(*color),
         ),
@@ -215,7 +215,8 @@ fn push_command(
             color,
         } => push_sphere(
             lines,
-            transform_point(transform, *center),
+            transform,
+            *center,
             *radius,
             color_policy.apply(*color),
         ),
@@ -232,7 +233,6 @@ fn push_command(
         GizmoCommand::Aabb { min, max, color } => {
             push_aabb(lines, transform, *min, *max, color_policy.apply(*color))
         }
-        // BUG: [CR-FRAMEWORK-RESIDUAL-0001] 保留式 Axis 只变换原点，方向和长度仍沿未变换的基轴；旋转或缩放实例会画错线段，证据：push_axis 使用 axis.direction()。
         GizmoCommand::Axis {
             origin,
             axis,
@@ -240,7 +240,8 @@ fn push_command(
             color,
         } => push_axis(
             lines,
-            transform_point(transform, *origin),
+            transform,
+            *origin,
             *axis,
             *length,
             color_policy.apply(*color),
@@ -285,6 +286,7 @@ fn push_rect(
 
 fn push_circle(
     lines: &mut Vec<OverlayLineSegment>,
+    transform: Mat4,
     center: Vec3,
     normal: Vec3,
     radius: Real,
@@ -292,6 +294,7 @@ fn push_circle(
 ) {
     push_circle_segments(
         lines,
+        transform,
         center,
         normal,
         radius,
@@ -300,9 +303,16 @@ fn push_circle(
     );
 }
 
-fn push_sphere(lines: &mut Vec<OverlayLineSegment>, center: Vec3, radius: Real, color: Vec4) {
+fn push_sphere(
+    lines: &mut Vec<OverlayLineSegment>,
+    transform: Mat4,
+    center: Vec3,
+    radius: Real,
+    color: Vec4,
+) {
     push_circle_segments(
         lines,
+        transform,
         center,
         Vec3::X,
         radius,
@@ -311,6 +321,7 @@ fn push_sphere(lines: &mut Vec<OverlayLineSegment>, center: Vec3, radius: Real, 
     );
     push_circle_segments(
         lines,
+        transform,
         center,
         Vec3::Y,
         radius,
@@ -319,6 +330,7 @@ fn push_sphere(lines: &mut Vec<OverlayLineSegment>, center: Vec3, radius: Real, 
     );
     push_circle_segments(
         lines,
+        transform,
         center,
         Vec3::Z,
         radius,
@@ -329,6 +341,7 @@ fn push_sphere(lines: &mut Vec<OverlayLineSegment>, center: Vec3, radius: Real, 
 
 fn push_circle_segments(
     lines: &mut Vec<OverlayLineSegment>,
+    transform: Mat4,
     center: Vec3,
     normal: Vec3,
     radius: Real,
@@ -344,7 +357,10 @@ fn push_circle_segments(
     let mut previous = None;
     for index in 0..segments {
         let angle = std::f32::consts::TAU * (index as Real / segments as Real);
-        let point = center + radius * (angle.cos() * tangent + angle.sin() * bitangent);
+        let point = transform_point(
+            transform,
+            center + radius * (angle.cos() * tangent + angle.sin() * bitangent),
+        );
         if let Some(previous) = previous {
             push_line(lines, previous, point, color);
         } else {
@@ -420,12 +436,18 @@ fn push_box_edges(lines: &mut Vec<OverlayLineSegment>, corners: &[Vec3; 8], colo
 
 fn push_axis(
     lines: &mut Vec<OverlayLineSegment>,
+    transform: Mat4,
     origin: Vec3,
     axis: GizmoAxis,
     length: Real,
     color: Vec4,
 ) {
-    push_line(lines, origin, origin + axis.direction() * length, color);
+    push_line(
+        lines,
+        transform_point(transform, origin),
+        transform_point(transform, origin + axis.direction() * length),
+        color,
+    );
 }
 
 fn push_loop(lines: &mut Vec<OverlayLineSegment>, points: &[Vec3], color: Vec4) {
@@ -441,10 +463,6 @@ fn push_loop(lines: &mut Vec<OverlayLineSegment>, points: &[Vec3], color: Vec4) 
 
 fn transform_point(transform: Mat4, point: Vec3) -> Vec3 {
     transform.transform_point3(point)
-}
-
-fn transform_vector(transform: Mat4, vector: Vec3) -> Vec3 {
-    transform.transform_vector3(vector)
 }
 
 #[cfg(test)]

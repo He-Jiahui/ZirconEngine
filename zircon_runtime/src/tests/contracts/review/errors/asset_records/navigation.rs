@@ -4,15 +4,6 @@ fn review_f5_navigation_asset_uses_typed_error() {
     let navigation = include_str!("../../../../../core/framework/navigation/asset/mod.rs");
     let navigation_mod = include_str!("../../../../../core/framework/navigation/mod.rs");
     let navigation_tests = include_str!("../../../../../asset/tests/assets/navigation.rs");
-    let review_findings =
-        include_str!("../../../../../../../docs/plans/engine-code-review-findings-2026-06.md");
-    let runtime_15_plan = include_str!(
-        "../../../../../../../docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md"
-    );
-    let runtime_index =
-        include_str!("../../../../../../../docs/plans/zircon_runtime/runtime/index.md");
-    let convention =
-        include_str!("../../../../../../../docs/plans/engine-code-structure-convention.md");
     let navigation_doc =
         include_str!("../../../../../../../docs/crates/zircon_runtime/asset/assets/navigation.md");
 
@@ -58,11 +49,7 @@ fn review_f5_navigation_asset_uses_typed_error() {
         "core/framework/navigation/asset/mod.rs",
     ] {
         assert!(
-            review_findings.contains(doc_anchor)
-                || runtime_15_plan.contains(doc_anchor)
-                || runtime_index.contains(doc_anchor)
-                || convention.contains(doc_anchor)
-                || navigation_doc.contains(doc_anchor),
+            navigation_doc.contains(doc_anchor),
             "F5 navigation asset docs should record `{doc_anchor}`"
         );
     }

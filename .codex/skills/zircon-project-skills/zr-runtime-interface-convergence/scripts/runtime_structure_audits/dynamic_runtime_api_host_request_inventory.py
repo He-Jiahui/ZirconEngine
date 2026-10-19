@@ -108,7 +108,7 @@ HOST_REQUEST_PAYLOAD_ANCHORS = (
     ),
     (
         "zircon_runtime/src/dynamic_api/session/state.rs",
-        ".map(ZrRuntimeHostRequestV1::gamepad_rumble)",
+        ".map(ZrRuntimeHostRequestV1::gamepad_rumble_v2)",
     ),
     (
         "zircon_runtime/src/dynamic_api/session/state.rs",
@@ -160,11 +160,11 @@ HOST_REQUEST_PAYLOAD_ANCHORS = (
     ),
     (
         "zircon_app/src/entry/runtime_entry_app/host_requests/routing.rs",
-        "apply_runtime_ime_host_request(window.as_ref(), request)",
+        "apply_runtime_ime_host_request(window.as_ref(), request, native_candidate)",
     ),
     (
         "zircon_app/src/entry/runtime_entry_app/host_requests/routing.rs",
-        "apply_runtime_gamepad_rumble_request(request)",
+        "apply_runtime_gamepad_rumble_request(app, request)",
     ),
     (
         "zircon_app/src/entry/runtime_entry_app/host_requests/routing.rs",
@@ -209,5 +209,70 @@ HOST_REQUEST_PAYLOAD_ANCHORS = (
     (
         "zircon_app/src/entry/runtime_entry_app/host_requests/cursor/request.rs",
         "set_cursor_position",
+    ),
+    # Current generation-qualified rumble and accepted native IME publication.
+    (
+        'zircon_runtime/src/dynamic_api/session/host_requests.rs',
+        'request: QueuedGamepadRumbleRequest,',
+    ),
+    (
+        'zircon_runtime/src/dynamic_api/session/host_requests.rs',
+        'let generation = request.generation();',
+    ),
+    (
+        'zircon_runtime/src/dynamic_api/session/host_requests.rs',
+        'ZrRuntimeGamepadRumbleRequestV2::stop(gamepad.0, generation)',
+    ),
+    (
+        'zircon_runtime/src/dynamic_api/session/host_requests.rs',
+        'ZrRuntimeGamepadRumbleRequestV2::add(\n                gamepad.0,\n                generation,',
+    ),
+    (
+        'zircon_runtime/src/dynamic_api/session/tests/host_requests.rs',
+        'fn encoded_rumble_page_keeps_enqueue_generation_after_reconnect()',
+    ),
+    (
+        'zircon_runtime/src/dynamic_api/session/tests/host_requests.rs',
+        'assert_eq!(request.generation, first);',
+    ),
+    (
+        'zircon_runtime/src/dynamic_api/session/tests/host_requests.rs',
+        'super::runtime_gamepad_rumble_request(next[0]).generation,\n        second',
+    ),
+    (
+        'zircon_app/src/entry/runtime_entry_app/host_requests/routing.rs',
+        'match app.validate_native_ime_candidate(area) {\n                    Ok(candidate) => Some(candidate),\n                    Err(error) => {\n                        app.reject_native_ime_host_publication();',
+    ),
+    (
+        'zircon_app/src/entry/runtime_entry_app/host_requests/routing.rs',
+        'match apply_runtime_ime_host_request(window.as_ref(), request, native_candidate) {\n                Err(error) => {\n                    if native_candidate.is_some() {\n                        app.reject_native_ime_host_publication();',
+    ),
+    (
+        'zircon_app/src/entry/runtime_entry_app/host_requests/routing.rs',
+        'Ok(()) => {\n                    if let Some(candidate) = native_candidate {\n                        app.record_native_ime_host_publication(candidate);\n                        match app.prepare_native_ime_candidate(',
+    ),
+    (
+        'zircon_app/src/entry/runtime_entry_app/mod.rs',
+        'if self.native_ime_host_publication != Some(receipt) {',
+    ),
+    (
+        'zircon_app/src/entry/runtime_entry_app/mod.rs',
+        'self.clear_native_ime_candidate();\n        self.advance_native_ime_generation();',
+    ),
+    (
+        'zircon_app/src/entry/runtime_entry_app/host_requests/ime/request.rs',
+        '.map(ime_candidate_rect_to_winit)',
+    ),
+    (
+        'zircon_app/src/entry/runtime_entry_app/host_requests/ime/request.rs',
+        'window.request_ime_update(ImeRequest::Update(',
+    ),
+    (
+        'zircon_app/src/entry/runtime_entry_app/host_requests/routing.rs',
+        'ZrRuntimeHostRequestV1::GamepadRumbleV2(request)',
+    ),
+    (
+        'zircon_app/src/entry/runtime_entry_app/host_requests/routing.rs',
+        'runtime_gamepad_rumble_generation_required',
     ),
 )

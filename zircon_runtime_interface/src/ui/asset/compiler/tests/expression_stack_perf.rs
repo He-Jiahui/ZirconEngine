@@ -4,11 +4,13 @@ use super::*;
 fn expression_program() -> UiCompiledBindingProgram {
     UiCompiledBindingProgram::new(
         UiCompiledBindingGeneration::new(1),
-        Vec::new(),
-        vec!["property_0000".to_string()],
-        Vec::new(),
-        Vec::new(),
-        Vec::new(),
+        crate::ui::template::UiCompiledBindingSymbols {
+            binding_names: Vec::new(),
+            properties: vec!["property_0000".to_string()],
+            routes: Vec::new(),
+            actions: Vec::new(),
+            controls: Vec::new(),
+        },
         Vec::new(),
         Vec::new(),
     )

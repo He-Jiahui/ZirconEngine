@@ -402,12 +402,22 @@ fn sparse_shared_tracked_rows_keep_each_value_and_tick_separate() {
         // Only unborrowed third rows are read, without any structure changes.
         let (first, first_ticks) =
             unsafe { values.get_mut_with_ticks_unchecked::<SparseValue>(entities[0]) }.unwrap();
+        // SAFETY: the unchanged unique row grant authorizes both checked leaves.
+        let (first, first_ticks) = unsafe { (&mut *first, &mut *first_ticks) };
         let (second, second_ticks) =
             unsafe { values.get_mut_with_ticks_unchecked::<SparseValue>(entities[1]) }.unwrap();
+        // SAFETY: the unchanged unique row grant authorizes both checked leaves.
+        let (second, second_ticks) = unsafe { (&mut *second, &mut *second_ticks) };
         let (first_label, first_label_ticks) =
             unsafe { labels.get_mut_with_ticks_unchecked::<String>(entities[0]) }.unwrap();
+        // SAFETY: the unchanged unique row grant authorizes both checked leaves.
+        let (first_label, first_label_ticks) =
+            unsafe { (&mut *first_label, &mut *first_label_ticks) };
         let (second_label, second_label_ticks) =
             unsafe { labels.get_mut_with_ticks_unchecked::<String>(entities[1]) }.unwrap();
+        // SAFETY: the unchanged unique row grant authorizes both checked leaves.
+        let (second_label, second_label_ticks) =
+            unsafe { (&mut *second_label, &mut *second_label_ticks) };
         second.0 += 2;
         first.0 += 1;
         second_label.push_str("-second");
@@ -485,10 +495,14 @@ fn sparse_shared_eager_rows_preserve_exclusive_structure() {
             storage.get_mut_at_tick_unchecked::<SparseValue>(entities[0], ChangeTick::new(2))
         }
         .unwrap();
+        // SAFETY: this checked row remains uniquely loaned with stable storage.
+        let first = unsafe { &mut *first };
         let second = unsafe {
             storage.get_mut_at_tick_unchecked::<SparseValue>(entities[1], ChangeTick::new(9))
         }
         .unwrap();
+        // SAFETY: this checked row remains uniquely loaned with stable storage.
+        let second = unsafe { &mut *second };
         second.0 += 2;
         first.0 += 1;
         assert_eq!((first.0, second.0), (11, 22));

@@ -1,4 +1,5 @@
 //! 代码审查回归护栏核对已迁移接口、错误边界、插件入口及镜像状态。以结果断言检查当前接口或源码快照对应的边界。
+use crate::tests::runtime_absorption::structure_convention::fixed_history_archive_source as history;
 #[test]
 fn review_ds8_d3_native_fixture_uses_sdk_macro_and_single_manifest() {
     let fixture =
@@ -8,9 +9,9 @@ fn review_ds8_d3_native_fixture_uses_sdk_macro_and_single_manifest() {
     let native_cargo =
         include_str!("../../../../../../zircon_plugins/native_dynamic_fixture/native/Cargo.toml");
     let sdk_dist = include_str!("../../../../../../zircon_plugins/plugin_sdk/src/dist.rs");
-    let review_findings = concat!(
-        include_str!("../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"),
-        include_str!("../../../../../../docs/plans/engine-code-review-findings-2026-06.md")
+    let review_findings = crate::runtime_test_history_concat!(
+        history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"),
+        include_str!("../../../../../../docs/architecture/runtime-architecture-review-m0.md")
     );
     let native_fixture_record = review_findings
         .lines()

@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use crate::virtual_geometry::VirtualGeometryPageRequest;
 
-use super::super::{pending_page_requests, VirtualGeometryRuntimeState};
+use super::{pending_page_requests, VirtualGeometryRuntimeState};
 
 #[test]
 fn pending_page_parent_cycle_is_bounded() {

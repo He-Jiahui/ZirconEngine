@@ -10,7 +10,6 @@ use super::{JobSchedulerDiagnosticsState, TaskDescriptor, TaskId, TaskState, Tas
 mod task_node;
 
 pub(crate) use task_node::TaskNode;
-use task_node::TaskNodeState;
 
 type JobContinuation = TaskCallback;
 type JobTerminalObserver = TaskCallback;

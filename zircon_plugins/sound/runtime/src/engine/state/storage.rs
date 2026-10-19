@@ -34,6 +34,7 @@ pub(crate) struct SoundGameplayEmissionJournal {
 #[derive(Debug)]
 pub(crate) struct SoundEngineState {
     pub(crate) kira: DefaultKiraEngine,
+    pub(crate) default_spatial_scale: f32,
     pub(crate) next_clip_id: u64,
     pub(crate) next_playback_id: u64,
     pub(crate) next_source_id: u64,
@@ -77,6 +78,7 @@ impl SoundEngineState {
         graph.channel_layout = config.channel_layout.clone();
         Self {
             kira: DefaultKiraEngine::inactive(),
+            default_spatial_scale: config.default_spatial_scale,
             next_clip_id: 0,
             next_playback_id: 0,
             next_source_id: 0,

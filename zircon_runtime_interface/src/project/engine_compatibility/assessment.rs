@@ -43,10 +43,11 @@ pub fn assess_project_engine_compatibility(
             source,
         }
     })?;
-    let disposition = parsed
-        .matches(running_engine.as_semver())
-        .then_some(ProjectEngineCompatibilityDisposition::Compatible)
-        .unwrap_or_else(|| classify_incompatible_requirement(&parsed, running_engine.as_semver()));
+    let disposition = if parsed.matches(running_engine.as_semver()) {
+        ProjectEngineCompatibilityDisposition::Compatible
+    } else {
+        classify_incompatible_requirement(&parsed, running_engine.as_semver())
+    };
     Ok(ProjectEngineCompatibility::new(
         Some(requirement.to_string()),
         running_engine.clone(),

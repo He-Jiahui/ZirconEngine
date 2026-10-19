@@ -205,7 +205,7 @@ impl UiRenderFrameCommandRef {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct UiRenderFrameCommands {
     root: Option<Arc<UiRenderFrameCommandNode>>,
     len: usize,
@@ -213,19 +213,6 @@ pub struct UiRenderFrameCommands {
     directory_depth: u8,
     directory_node_count: usize,
     command_ranges: Arc<HashMap<UiNodeId, Range<usize>>>,
-}
-
-impl Default for UiRenderFrameCommands {
-    fn default() -> Self {
-        Self {
-            root: None,
-            len: 0,
-            segment_count: 0,
-            directory_depth: 0,
-            directory_node_count: 0,
-            command_ranges: Arc::default(),
-        }
-    }
 }
 
 impl UiRenderFrameCommands {

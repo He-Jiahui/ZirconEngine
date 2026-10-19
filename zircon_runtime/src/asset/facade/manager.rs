@@ -40,12 +40,11 @@ impl ProjectAssetManager {
         Ok(Handle::new(record.id))
     }
 
-    // BUG: [CR-ASSET-PIPELINE-0002] 仅凭共享 marker 的 kind 就构造类型化句柄；同 kind 的其他载荷可返回无法按 TAsset 读取的句柄。
     /// 只做元数据查找，不触发驻留；调用方应再用 load_state 或读取结果确认载荷可用。
     pub fn handle<TAsset: Asset>(&self, locator: &AssetUri) -> Result<Handle<TAsset>, CoreError> {
-        let record = self
-            .resource_manager()
-            .registry()
+        let resources = self.resource_manager();
+        let registry = resources.registry();
+        let record = registry
             .get_by_locator(locator)
             .cloned()
             .ok_or_else(|| asset_error_message(format!("missing asset locator {locator}")))?;
@@ -54,6 +53,11 @@ impl ProjectAssetManager {
                 "asset {locator} was {:?}, not {:?}",
                 record.kind,
                 TAsset::Marker::KIND
+            )));
+        }
+        if !registry.contains_payload::<TAsset>(record.id) {
+            return Err(asset_error_message(format!(
+                "asset {locator} has no matching concrete payload declaration"
             )));
         }
         Ok(Handle::new(record.id))

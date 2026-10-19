@@ -37,14 +37,14 @@ pub enum RhiError {
         "native device context adapter {context_adapter:?} does not match profile adapter {profile_adapter:?}"
     )]
     NativeContextAdapterMismatch {
-        profile_adapter: RenderAdapterFacts,
+        profile_adapter: Box<RenderAdapterFacts>,
         context_adapter: RenderAdapterFacts,
     },
     #[error(
         "native device context limits {context_limits:?} do not match profile limits {profile_limits:?}"
     )]
     NativeContextDeviceLimitsMismatch {
-        profile_limits: RenderDeviceLimits,
+        profile_limits: Box<RenderDeviceLimits>,
         context_limits: RenderDeviceLimits,
     },
     #[error(

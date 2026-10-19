@@ -10,7 +10,7 @@ use crate::texture_copy::{
 use super::super::registry::WgpuResourceRegistry;
 use super::super::translate::wgpu_texture_copy_aspect;
 
-const BUFFER_COPY_ALIGNMENT: u64 = wgpu::COPY_BUFFER_ALIGNMENT as u64;
+const BUFFER_COPY_ALIGNMENT: u64 = wgpu::COPY_BUFFER_ALIGNMENT;
 const TEXTURE_ROW_ALIGNMENT: u64 = wgpu::COPY_BYTES_PER_ROW_ALIGNMENT as u64;
 
 /// Encodes an admitted neutral buffer-to-texture copy. The shared destination
@@ -225,11 +225,11 @@ fn validate_wgpu_buffer_texture_layout(
         bytes_per_row,
         copy_row_bytes,
     )?;
-    (offset % BUFFER_COPY_ALIGNMENT == 0
+    (offset.is_multiple_of(BUFFER_COPY_ALIGNMENT)
         && bytes_per_row >= copy_row_bytes
-        && bytes_per_row % texel_block_bytes == 0
+        && bytes_per_row.is_multiple_of(texel_block_bytes)
         && ((region.height <= 1 && region.depth_or_array_layers <= 1)
-            || bytes_per_row % TEXTURE_ROW_ALIGNMENT == 0)
+            || bytes_per_row.is_multiple_of(TEXTURE_ROW_ALIGNMENT))
         && offset.checked_add(required_bytes)? <= buffer_size)
         .then_some(native_bytes_per_row)
 }

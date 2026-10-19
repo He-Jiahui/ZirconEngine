@@ -1,3 +1,4 @@
+#[cfg(test)]
 use std::cell::Cell;
 use std::collections::HashSet;
 
@@ -213,6 +214,7 @@ impl<'a> RuntimePluginPackageValidationProjection<'a> {
         Self {
             duplicates,
             owned_capabilities,
+            #[cfg(test)]
             runtime_module_names,
             runtime_module_name_membership,
             provided_interface_ids,
@@ -220,7 +222,9 @@ impl<'a> RuntimePluginPackageValidationProjection<'a> {
             dependency_interface_ids,
             dependency_interface_membership,
             runtime_system_anchors,
+            #[cfg(test)]
             identity_rows_indexed,
+            #[cfg(test)]
             membership_probes: Cell::new(0),
         }
     }

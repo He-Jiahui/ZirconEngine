@@ -1,4 +1,8 @@
-use crate::plugin::{PluginPackageKind, PluginPackageManifest};
+use crate::plugin::runtime_plugin::{
+    embedded_feature_provider_identity::runtime_plugin_package_feature_provider_package_id,
+    package_validation::EmbeddedFeatureKind,
+};
+use crate::plugin::PluginPackageManifest;
 
 use super::feature_definitions::FeatureDefinition;
 
@@ -27,23 +31,23 @@ pub(super) fn visit_package_feature_definitions(
     mut visit: impl FnMut(FeatureDefinition),
 ) {
     for feature in &package_manifest.optional_features {
-        let provider_package_id = if package_manifest.package_kind
-            == PluginPackageKind::FeatureExtension
-            || feature.owner_plugin_id != package_manifest.id
-        {
-            package_manifest.id.clone()
-        } else {
-            feature
-                .provider_package_id
-                .clone()
-                .unwrap_or_else(|| feature.owner_plugin_id.clone())
-        };
+        let provider_package_id = runtime_plugin_package_feature_provider_package_id(
+            package_manifest,
+            feature,
+            EmbeddedFeatureKind::Optional,
+        )
+        .to_owned();
         visit(FeatureDefinition::new(feature.clone(), provider_package_id));
     }
     for feature in &package_manifest.feature_extensions {
         visit(FeatureDefinition::new(
             feature.clone(),
-            package_manifest.id.clone(),
+            runtime_plugin_package_feature_provider_package_id(
+                package_manifest,
+                feature,
+                EmbeddedFeatureKind::Extension,
+            )
+            .to_owned(),
         ));
     }
 }

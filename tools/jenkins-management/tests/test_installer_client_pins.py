@@ -2,6 +2,10 @@
 from __future__ import annotations
 
 import base64
+import copy
+import os
+import re
+import sys
 import hashlib
 import json
 from pathlib import Path
@@ -296,7 +300,14 @@ $gateFunctions = @($installerAst.FindAll({{
 }}, $true))
 if ($hashFunctions.Count -ne 1) {{ throw ('Expected one Hash-Bytes definition; found ' + $hashFunctions.Count) }}
 if ($gateFunctions.Count -ne 1) {{ throw ('Expected one Get-ValidatedManagementClientSha256 definition; found ' + $gateFunctions.Count) }}
-$definitions = $hashFunctions[0].Extent.Text + [Environment]::NewLine + $gateFunctions[0].Extent.Text
+$clientSourceFunctions = @($installerAst.FindAll({{
+    param($node)
+    $node -is [System.Management.Automation.Language.FunctionDefinitionAst] -and
+        $node.Name -ceq 'Get-ManagementClientSource'
+}}, $true))
+if ($clientSourceFunctions.Count -ne 1) {{ throw 'Expected one Get-ManagementClientSource definition' }}
+$definitions = $hashFunctions[0].Extent.Text + [Environment]::NewLine + $gateFunctions[0].Extent.Text +
+    [Environment]::NewLine + $clientSourceFunctions[0].Extent.Text
 $isolatedFunctions = [ScriptBlock]::Create($definitions)
 . $isolatedFunctions
 
@@ -327,7 +338,34 @@ foreach ($case in $cases) {{
         $results.Add([ordered]@{{ id=[string]$case.Id; status='rejected'; value=$null; error=$_.Exception.Message }}) | Out-Null
     }}
 }}
+# Exercise the installed/candidate locator from the parsed production function.
+function Assert-Physical([string]$Path) {{ return $Path }}
+$repo = 'E:/client-source-memory'
+$taskOldSourceRoot = "$repo/.jenkins/runtime/management/old"
+$taskCandidateSources = $null
+$AnchorManagementClients = $false
+$taskAnchoredClients = $false
+$name = 'tools/jenkins-management/entry.py'
+$clientPaths = [ordered]@{{ legacy=(Get-ManagementClientSource $name) }}
+$taskAnchoredClients = $true
+$clientPaths.anchored = Get-ManagementClientSource $name
+$AnchorManagementClients = $true
+$taskCandidateSources = [pscustomobject]@{{ clientSources=[pscustomobject]@{{}} }}
+$taskCandidateSources.clientSources | Add-Member -NotePropertyName $name -NotePropertyValue "$repo/reviewed/$name"
+$clientPaths.candidate = Get-ManagementClientSource $name
+$taskCandidateSources = $null
+try {{ Get-ManagementClientSource $name | Out-Null; $clientPaths.missing='accepted' }}
+catch {{ $clientPaths.missing=$_.Exception.Message }}
+$AnchorManagementClients = $false
+$MigrateCanonicalManagementClients = $true
+$taskCandidateSources = [pscustomobject]@{{ clientSources=[pscustomobject]@{{}} }}
+$taskCandidateSources.clientSources | Add-Member -NotePropertyName $name -NotePropertyValue "$repo/canonical/$name"
+$clientPaths.canonical = Get-ManagementClientSource $name
+$taskCandidateSources = $null
+try {{ Get-ManagementClientSource $name | Out-Null; $clientPaths.canonicalMissing='accepted' }}
+catch {{ $clientPaths.canonicalMissing=$_.Exception.Message }}
 $payload = [ordered]@{{
+    clientPaths=$clientPaths
     count=$results.Count
     hashVector=(Hash-Bytes ([byte[]](97, 98, 99)))
     results=@($results.ToArray())
@@ -405,6 +443,16 @@ class InstallerClientPinTests(unittest.TestCase):
             self._assert_accepted(f"first_install_{name}", _sha256(OLD_BYTES[name]))
             self._assert_accepted(f"unchanged_raw_{name}", _sha256(OLD_BYTES[name]))
         self._assert_accepted("unsupported_unchanged_raw", _sha256(b"old unsupported client\n"))
+        name = "tools/jenkins-management/entry.py"
+        root = "E:/client-source-memory"
+        self.assertEqual({
+            "legacy": f"{root}/{name}",
+            "anchored": f"{root}/.jenkins/runtime/management/old/clients/{name}",
+            "candidate": f"{root}/reviewed/{name}",
+            "missing": "Reviewed candidate client is missing",
+                "canonical": root + "/canonical/tools/jenkins-management/entry.py",
+                "canonicalMissing": "Reviewed candidate client is missing",
+        }, self._response["clientPaths"])
 
     def test_reviewed_hash_is_bound_to_each_exact_supported_client(self) -> None:
         for name in CLIENTS:
@@ -464,6 +512,396 @@ class InstallerClientPinTests(unittest.TestCase):
             "Reviewed public entry pin differs",
         )
         self.assertNotEqual(_sha256(lf), _sha256(crlf))
+
+
+
+@unittest.skipUnless(
+    os.environ.get("JOB_NAME") == "zircon-management-tests"
+    and os.environ.get("ZR_CANONICAL_MIGRATION_TEST_ROOT"),
+    "Physical canonical migration probes run in the registered Jenkins fixture root",
+)
+class CanonicalClientMigrationTests(unittest.TestCase):
+    """Exercise the real loader with actual sources; inject read faults without editing them."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.root = INSTALLER.parents[2]
+        cls.fixture = Path(os.environ["ZR_CANONICAL_MIGRATION_TEST_ROOT"]) / "canonical-manifests"
+        cls.fixture.mkdir()
+        installed_path = cls.root / ".jenkins/state/management/installed.json"
+        installed_raw = installed_path.read_bytes()
+        cls.installed = json.loads(installed_raw)
+        cls.capsule = Path(cls.installed["capsule"])
+        cls.metadata = json.loads((cls.capsule / "capsule.json").read_bytes())
+        cls.clients = (
+            "tools/dev/local_cargo.py", "tools/dev/local-cargo.ps1", "tools/dev/dev-fast-build.ps1",
+            "tools/dev/submit-jenkins-management.ps1", "tools/jenkins/frontend.py",
+            "tools/jenkins-management/entry.py",
+        )
+        cls.members = ("runner.py", "source_preparation.py", "zircon-management.groovy",
+                       "checkout_guard.py", "checkout_product.py")
+        cls.addons = {
+            "ExpectedBranchIntegrationAddonSha256": "branch-integration.groovy",
+            "ExpectedOldBranchCleanupAddonSha256": "branch_cleanup.groovy",
+            "ExpectedDeliveryAddonSha256": "delivery.groovy",
+            "ExpectedCheckoutCommitAddonSha256": "checkout-commit.groovy",
+        }
+        sha = lambda data: hashlib.sha256(data).hexdigest()
+        cls.prefix = "".join(
+            (cls.root / "tools/jenkins-management" / name).read_text(encoding="utf-8-sig")
+            .replace("\r\n", "\n").rstrip("\r\n") + "\n\n"
+            for name in cls.addons.values()
+        )
+        cls.manifest = {
+            "schemaVersion": 1,
+            "kind": "jenkins-management-canonical-client-migration-v1",
+            "repositoryRoot": str(cls.root),
+            "originalInstalledSha256": sha(installed_raw),
+            "originalCapsuleSha256": cls.installed["capsuleSha256"],
+            "driverDigest": cls.installed["driverDigest"],
+            "runtimeOperationId": cls.installed["runtimeOperationId"],
+            "installerSha256": sha(INSTALLER.read_bytes()),
+            "files": {"tools/jenkins-management/" + name:
+                      sha((cls.root / "tools/jenkins-management" / name).read_bytes())
+                      for name in cls.members},
+            "clientSources": {name: sha((cls.root / name).read_bytes()) for name in cls.clients},
+            "addonSources": {key: sha((cls.root / "tools/jenkins-management" / name).read_bytes())
+                             for key, name in cls.addons.items()},
+            "combinedExtensionPrefixSha256": sha(cls.prefix.encode()),
+        }
+        source = INSTALLER.read_text(encoding="utf-8-sig")
+        matches = re.findall(r"\$taskCandidateBootstrap = @'\n(.*?)\n'@", source, re.S)
+        if len(matches) != 1:
+            raise AssertionError("The actual installer must provide one shared reviewed-source loader")
+        cls.bootstrap = matches[0]
+        cls.cases = []
+        cls.groups = {}
+        def add(group, name, changed=None, *, raw=None, fault=None, canonical=True, expect="rejected", addon_args=None):
+            value = copy.deepcopy(cls.manifest)
+            if changed:
+                changed(value)
+            data = raw if raw is not None else json.dumps(value, separators=(",", ":")).encode()
+            path = cls.fixture / (name + ".json")
+            with path.open("xb") as stream:
+                stream.write(data)
+            item = {"id": name, "path": str(path), "sha256": sha(data),
+                    "canonical": canonical, "fault": fault, "expected": expect}
+            if addon_args is not None:
+                item["addonArgs"] = addon_args
+            cls.groups.setdefault(group, []).append(name)
+            cls.cases.append(item)
+        add("valid", "canonical-valid", expect="accepted")
+        addon_keys = tuple(cls.manifest["addonSources"])
+        for mask in range(16):
+            subset = {key: cls.manifest["addonSources"][key] for index, key in enumerate(addon_keys)
+                      if mask & (1 << index)}
+            add("optionalAddons", "addon-subset-" + str(mask), addon_args=subset, expect="accepted")
+        add("badAddonArgs", "addon-unknown", addon_args={"unreviewed": "0" * 64})
+        add("badAddonArgs", "addon-conflict", addon_args={addon_keys[0]: "0" * 64})
+        add("badAddonArgs", "addon-wrong-type", addon_args={addon_keys[0]: True})
+        for key in ("schemaVersion", "kind", "repositoryRoot", "originalInstalledSha256",
+                    "originalCapsuleSha256", "driverDigest", "runtimeOperationId"):
+            wrong = True if key == "schemaVersion" else "wrong-original-identity"
+            add("identity", "wrong-" + key, lambda value, key=key, wrong=wrong: value.__setitem__(key, wrong))
+        for key in tuple(cls.manifest):
+            add("schema", "missing-" + key, lambda value, key=key: value.pop(key))
+        add("schema", "extra-top-level", lambda value: value.__setitem__("unreviewed", True))
+        for key in ("files", "clientSources", "addonSources"):
+            add("schema", "wrong-type-" + key, lambda value, key=key: value.__setitem__(key, []))
+            for change in ("missing", "extra", "wrong-pin", "wrong-pin-type"):
+                def mutate(value, key=key, change=change):
+                    mapping = value[key]
+                    first = next(iter(mapping))
+                    if change == "missing":
+                        mapping.pop(first)
+                    elif change == "extra":
+                        mapping["../outside.py"] = "0" * 64
+                    elif change == "wrong-pin":
+                        mapping[first] = "0" * 64
+                    else:
+                        mapping[first] = True
+                add("schema", key + "-" + change, mutate)
+        add("schema", "wrong-installer", lambda value: value.__setitem__("installerSha256", "0" * 64))
+        add("schema", "malformed-prefix", lambda value: value.__setitem__("combinedExtensionPrefixSha256", "0" * 63))
+        raw = json.dumps(cls.manifest, separators=(",", ":")).encode()
+        add("duplicates", "duplicate-top", raw=b'{"schemaVersion":1,' + raw[1:])
+        for key in ("files", "clientSources", "addonSources"):
+            first = next(iter(cls.manifest[key]))
+            marker = ('"' + key + '":{').encode()
+            pair = json.dumps(first).encode() + b":" + json.dumps(cls.manifest[key][first]).encode() + b","
+            duplicate = raw.replace(marker, marker + pair, 1)
+            add("duplicates", "duplicate-" + key, raw=duplicate)
+        add("duplicates", "managed-shared-duplicate", raw=b'{"schemaVersion":1,' + raw[1:], canonical=False)
+        add("drift", "raw-manifest-sha", fault={"kind": "manifest"})
+        for relative in [*cls.clients, *cls.manifest["files"],
+                         *("tools/jenkins-management/" + name for name in cls.addons.values()),
+                         "tools/dev/install-jenkins-management.ps1"]:
+            add("drift", "source-drift-" + str(len(cls.cases)),
+                fault={"kind": "read", "path": str(cls.root / relative)})
+        for relative in [*cls.clients, *cls.metadata["files"]]:
+            old_path = cls.capsule / ("clients/" + relative if relative in cls.clients else relative)
+            add("oldIntegrity", "old-drift-" + str(len(cls.cases)),
+                fault={"kind": "read", "path": str(old_path)})
+        for path in (cls.root / cls.clients[0], cls.capsule / "clients" / cls.clients[0]):
+            add("physical", "escape-" + str(len(cls.cases)),
+                fault={"kind": "physical", "path": str(path)})
+        add("physical", "manifest-physical", fault={"kind": "manifestPhysical"})
+        for stage in ("before-publication", "before-post", "after-readback"):
+            add("repeat", stage, fault={"kind": "repeat", "path": str(cls.root / cls.clients[0])})
+        protected = [installed_path, cls.capsule / "capsule.json",
+                     *(cls.capsule / name for name in cls.metadata["files"]),
+                     *(cls.capsule / "clients" / name for name in cls.clients),
+                     cls.root / ".jenkins/jenkins_home/jobs/zircon-management/config.xml"]
+        before = {str(path): sha(path.read_bytes()) for path in protected}
+        payload = {"repo": str(cls.root), "bootstrap": cls.bootstrap, "cases": cls.cases,
+                   "installed": cls.manifest["originalInstalledSha256"],
+                   "driver": cls.installed["driverDigest"], "runtime": cls.installed["runtimeOperationId"],
+                   "capsule": cls.installed["capsuleSha256"],
+                   "addons": cls.manifest["addonSources"]}
+        worker = r"""
+import base64,contextlib,hashlib,io,json,sys
+from pathlib import Path
+payload=json.load(sys.stdin)
+source=compile(payload["bootstrap"],"<actual-installer-reviewed-source-loader>","exec")
+read_bytes=Path.read_bytes
+resolve=Path.resolve
+results=[]
+for case in payload["cases"]:
+    path=Path(case["path"])
+    fault=case.get("fault") or {}
+    target=Path(fault["path"]) if "path" in fault else None
+    if fault.get("kind")=="manifest":
+        with path.open("ab") as stream: stream.write(b"\n")
+    def injected_read(item):
+        result=read_bytes(item)
+        return result+b"\n# injected read drift\n" if item==target else result
+    def injected_resolve(item,*args,**kwargs):
+        if item==target or (fault.get("kind")=="manifestPhysical" and item==path):
+            return Path(payload["repo"])/"outside-the-reviewed-physical-path"
+        return resolve(item,*args,**kwargs)
+    def execute():
+        sys.argv=["installer-reviewed-source",payload["repo"],payload["repo"],str(path),case["sha256"],
+                  payload["installed"],payload["driver"],payload["runtime"],payload["capsule"],base64.b64encode(b"[]").decode("ascii"),"false",
+                  json.dumps(case["canonical"]),"true",base64.b64encode(json.dumps(case.get("addonArgs", payload["addons"])).encode()).decode("ascii")]
+        output=io.StringIO()
+        try:
+            with contextlib.redirect_stdout(output):
+                exec(source,{"__name__":"__main__"})
+        except SystemExit as error:
+            if error.code not in (None,0): raise
+        return json.loads(output.getvalue())
+    try:
+        if fault.get("kind")=="repeat":
+            first=execute()
+            assert len(first["clientSources"])==6
+            Path.read_bytes=injected_read
+        elif fault.get("kind")=="read":
+            Path.read_bytes=injected_read
+        elif fault.get("kind") in ("physical","manifestPhysical"):
+            Path.resolve=injected_resolve
+        value=execute()
+        results.append({"id":case["id"],"status":"accepted","value":value})
+    except Exception as error:
+        results.append({"id":case["id"],"status":"rejected","error":type(error).__name__+":"+str(error)})
+    finally:
+        Path.read_bytes=read_bytes
+        Path.resolve=resolve
+print(json.dumps(results))
+"""
+        completed = subprocess.run([sys.executable, "-B", "-X", "utf8", "-c", worker],
+                                   input=json.dumps(payload), capture_output=True, text=True,
+                                   encoding="utf-8", timeout=180)
+        if completed.returncode:
+            raise AssertionError("Actual loader probes failed: " + completed.stderr[-5000:])
+        cls.results = {item["id"]: item for item in json.loads(completed.stdout)}
+        if len(cls.results) != len(cls.cases):
+            raise AssertionError("Every unique actual loader probe must return once")
+        after = {str(path): sha(path.read_bytes()) for path in protected}
+        if before != after:
+            raise AssertionError("Read-only migration failures changed protected installed/capsule/job bytes")
+
+    def assert_rejected_group(self, group):
+        for case in self.groups[group]:
+            with self.subTest(case=case):
+                self.assertEqual("rejected", self.results[case]["status"], self.results[case])
+
+    def test_actual_canonical_six_sources_and_complete_members_are_selected(self):
+        result = self.results["canonical-valid"]
+        self.assertEqual("accepted", result["status"], result)
+        value = result["value"]
+        self.assertEqual({name: str(self.root / name) for name in self.clients}, value["clientSources"])
+        self.assertEqual(self.manifest["clientSources"], value["clientSourcePins"])
+        self.assertEqual({name: str(self.root / "tools/jenkins-management" / name) for name in self.members},
+                         value["files"])
+        self.assertEqual(self.manifest["combinedExtensionPrefixSha256"], value["combinedExtensionPrefixSha256"])
+        self.assertEqual(set(self.clients), set(value["originalClients"]))
+        self.assertEqual({name: {"path": str(self.capsule / "clients" / name),
+                                 "sha256": self.metadata["clientSources"][name]}
+                          for name in self.clients}, value["originalClients"])
+        for name in self.clients:
+            self.assertNotEqual(value["clientSources"][name], value["originalClients"][name]["path"])
+
+    def test_addon_cli_pins_are_optional_consistency_constraints(self):
+        for case in self.groups["optionalAddons"]:
+            with self.subTest(case=case):
+                result = self.results[case]
+                self.assertEqual("accepted", result["status"], result)
+                self.assertEqual(self.manifest["addonSources"], result["value"]["addonSourcePins"])
+        self.assert_rejected_group("badAddonArgs")
+
+    def test_shared_prefix_state_preserves_default_subsets_and_manifest_order(self):
+        powershell = shutil.which("powershell.exe") or shutil.which("powershell")
+        fixture = self.fixture / "prefix-state-input.json"
+        with fixture.open("xb") as stream:
+            stream.write(json.dumps({"repo": str(self.root), "installer": str(INSTALLER),
+                                     "addons": self.manifest["addonSources"],
+                                     "prefix": self.prefix}).encode())
+        encoded = base64.b64encode(str(fixture).encode()).decode()
+        program = r"""
+$ErrorActionPreference='Stop'
+$inputPath=[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('INPUT_BASE64'))
+$inputData=Get-Content -Raw -LiteralPath $inputPath|ConvertFrom-Json
+$repo=$inputData.repo;$taskPrior=$true
+$tokens=$null;$errors=$null
+$ast=[Management.Automation.Language.Parser]::ParseFile($inputData.installer,[ref]$tokens,[ref]$errors)
+if($errors.Count){throw 'Actual installer parse failed'}
+foreach($name in @('Assert-Physical','Hash-Bytes','Get-ManagementJobExtensionPrefix','Get-ManagementJobExtensionState')){
+ $f=@($ast.FindAll({param($n) $n -is [Management.Automation.Language.FunctionDefinitionAst] -and $n.Name -ceq $name},$true))
+ if($f.Count -ne 1){throw 'Actual prefix helper missing'}
+ . ([scriptblock]::Create($f[0].Extent.Text))
+}
+$all=[ordered]@{};foreach($p in $inputData.addons.PSObject.Properties){$all[$p.Name]=[string]$p.Value}
+$keys=@('ExpectedBranchIntegrationAddonSha256','ExpectedOldBranchCleanupAddonSha256','ExpectedDeliveryAddonSha256','ExpectedCheckoutCommitAddonSha256')
+$pieces=@{}
+foreach($key in $keys){$single=[ordered]@{};$single[$key]=$all[$key];$pieces[$key]=(Get-ManagementJobExtensionState -AddonPins $single).combinedPrefix}
+$count=0
+for($mask=0;$mask -lt 16;$mask++){
+ $subset=[ordered]@{};$expected=''
+ for($i=0;$i -lt 4;$i++){if($mask -band (1 -shl $i)){$subset[$keys[$i]]=$all[$keys[$i]];$expected+=$pieces[$keys[$i]]}}
+ $state=Get-ManagementJobExtensionState -AddonPins $subset
+ if($state.combinedPrefix -cne $expected){throw 'Default subset or ordering changed'}
+ $count++
+}
+$full=Get-ManagementJobExtensionState -AddonPins $all -ExpectedCombinedSha256 (Hash-Bytes ([Text.Encoding]::UTF8.GetBytes($inputData.prefix)))
+if($full.combinedPrefix -cne $inputData.prefix){throw 'Manifest full prefix differs'}
+$bad=[ordered]@{};foreach($key in $keys){$bad[$key]=$all[$key]};$bad[$keys[0]]='0'*64
+$reject=0
+foreach($mode in @('wrong-source','wrong-combined','unknown','no-prior')){
+ try{
+  if($mode -ceq 'wrong-source'){Get-ManagementJobExtensionState -AddonPins $bad|Out-Null}
+  elseif($mode -ceq 'wrong-combined'){Get-ManagementJobExtensionState -AddonPins $all -ExpectedCombinedSha256 ('0'*64)|Out-Null}
+  elseif($mode -ceq 'unknown'){Get-ManagementJobExtensionState -AddonPins @{unknown='0'*64}|Out-Null}
+  else{$taskPrior=$false;Get-ManagementJobExtensionState -AddonPins $all|Out-Null}
+  throw 'UNEXPECTED_ACCEPTANCE'
+ }catch{if($_.Exception.Message -ceq 'UNEXPECTED_ACCEPTANCE'){throw};$reject++}
+ finally{$taskPrior=$true}
+}
+[Console]::Out.WriteLine(($count.ToString()+':'+$reject.ToString()))
+""".replace("INPUT_BASE64", encoded)
+        completed = subprocess.run([powershell, "-NoLogo", "-NoProfile", "-NonInteractive", "-Command", program],
+                                   capture_output=True, text=True, encoding="utf-8", timeout=60)
+        self.assertEqual(0, completed.returncode, completed.stderr)
+        self.assertEqual("16:4", completed.stdout.strip())
+
+    def test_full_entry_rejects_a_valid_format_wrong_manifest_prefix(self):
+        powershell = shutil.which("powershell.exe") or shutil.which("powershell")
+        value = copy.deepcopy(self.manifest)
+        value["combinedExtensionPrefixSha256"] = "0" * 64
+        raw = json.dumps(value, separators=(",", ":")).encode()
+        manifest = self.fixture / "full-entry-wrong-prefix.json"
+        with manifest.open("xb") as stream:
+            stream.write(raw)
+        base_command = [powershell, "-NoLogo", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass",
+                        "-File", str(INSTALLER), "-RepoRoot", str(self.root),
+                        "-ExpectedDriverDigest", self.installed["driverDigest"],
+                        "-ExpectedRuntimeOperationId", self.installed["runtimeOperationId"],
+                        "-ExpectedInstalledSha256", self.manifest["originalInstalledSha256"],
+                        "-EnableCheckoutProduct", "-EnableManagedWorktree", "-CheckOnly",
+                        "-MigrateCanonicalManagementClients", "-CanonicalClientSourceManifestPath", str(manifest),
+                        "-ExpectedCanonicalClientSourceManifestSha256", hashlib.sha256(raw).hexdigest()]
+        protected = [self.root / ".jenkins/state/management/installed.json",
+                     self.capsule / "capsule.json",
+                     self.root / ".jenkins/jenkins_home/jobs/zircon-management/config.xml"]
+        before = {str(path): hashlib.sha256(path.read_bytes()).hexdigest() for path in protected}
+        for pins in ({}, self.manifest["addonSources"]):
+            with self.subTest(provided_addons=len(pins)):
+                command = list(base_command)
+                for key, checksum in pins.items():
+                    command.extend(["-" + key, checksum])
+                completed = subprocess.run(command, capture_output=True, timeout=120)
+                for name, data in (("command.json", json.dumps(command).encode()),
+                                   ("stdout.bin", completed.stdout), ("stderr.bin", completed.stderr)):
+                    label = "full-entry-wrong-prefix-" + str(len(pins)) + "-" + name
+                    with (self.fixture / label).open("xb") as stream:
+                        stream.write(data)
+                self.assertNotEqual(0, completed.returncode)
+                error = completed.stderr.decode("utf-8-sig", errors="replace")
+                self.assertIn("Canonical combined addon prefix differs", error)
+                self.assertNotIn("not enough values to unpack", error)
+                self.assertNotIn("JSONDecodeError", error)
+                self.assertEqual(before, {str(path): hashlib.sha256(path.read_bytes()).hexdigest()
+                                          for path in protected})
+
+    def test_manifest_identity_and_schema_are_exact(self):
+        self.assert_rejected_group("identity")
+        self.assert_rejected_group("schema")
+
+    def test_duplicate_keys_are_rejected_by_the_shared_loader(self):
+        self.assert_rejected_group("duplicates")
+        for case in self.groups["duplicates"]:
+            self.assertIn("candidate_manifest_duplicate_key", self.results[case]["error"])
+
+    def test_every_reviewed_source_and_manifest_raw_digest_rejects_drift(self):
+        self.assert_rejected_group("drift")
+
+    def test_old_immutable_clients_and_members_are_verified_before_switch(self):
+        self.assert_rejected_group("oldIntegrity")
+
+    def test_physical_source_and_manifest_escape_is_rejected(self):
+        self.assert_rejected_group("physical")
+
+    def test_repeated_source_checks_reject_drift_without_a_new_plan(self):
+        self.assert_rejected_group("repeat")
+
+    def test_canonical_argument_group_and_mode_exclusion_fail_before_source_selection(self):
+        powershell = shutil.which("powershell.exe") or shutil.which("powershell")
+        installer = base64.b64encode(str(INSTALLER).encode()).decode()
+        program = r"""
+$ErrorActionPreference='Stop'
+$path=[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('INSTALLER_BASE64'))
+$tokens=$null;$errors=$null
+$ast=[Management.Automation.Language.Parser]::ParseFile($path,[ref]$tokens,[ref]$errors)
+if($errors.Count){throw 'Actual installer parse failed'}
+$f=@($ast.FindAll({param($n) $n -is [Management.Automation.Language.FunctionDefinitionAst] -and $n.Name -ceq 'Get-ReviewedCandidateSources'},$true))
+if($f.Count -ne 1){throw 'Actual reviewed source function missing'}
+. ([scriptblock]::Create($f[0].Extent.Text))
+$groups=@(
+ @('CanonicalClientSourceManifestPath'),
+ @('MigrateCanonicalManagementClients','CanonicalClientSourceManifestPath'),
+ @('MigrateCanonicalManagementClients','ExpectedCanonicalClientSourceManifestSha256'))
+$exclusive=@('CandidateSourceRoot','CandidateSourceManifestPath','ExpectedCandidateSourceManifestSha256',
+ 'ExpectedCandidateCapsulePaths','AnchorManagementClients','ReuseCapsuleSha256',
+ 'PinnedActiveBuildProofPath','ExpectedPinnedActiveBuildProofSha256','ExpectedPinnedActiveGuardSha256',
+ 'ExpectedRetainedPrefixSha256')
+foreach($name in $exclusive){$groups+=,@('MigrateCanonicalManagementClients','CanonicalClientSourceManifestPath','ExpectedCanonicalClientSourceManifestSha256',$name)}
+$count=0
+foreach($group in $groups){
+ $script:taskInstallerParameters=@{}
+ foreach($name in $group){$script:taskInstallerParameters[$name]='present'}
+ $MigrateCanonicalManagementClients=$true;$CanonicalClientSourceManifestPath='unread-input.json'
+ $ExpectedCanonicalClientSourceManifestSha256='a'*64
+ try{Get-ReviewedCandidateSources|Out-Null;throw 'UNEXPECTED_ACCEPTANCE'}
+ catch{
+  if($_.Exception.Message -notmatch 'Canonical migration (parameters must be supplied together|cannot mix source or pinned-active modes)'){throw}
+  $count++
+ }
+}
+[Console]::Out.WriteLine($count)
+""".replace("INSTALLER_BASE64", installer)
+        completed = subprocess.run([powershell, "-NoLogo", "-NoProfile", "-NonInteractive", "-Command", program],
+                                   capture_output=True, text=True, encoding="utf-8", timeout=60)
+        self.assertEqual(0, completed.returncode, completed.stderr)
+        self.assertEqual(13, int(completed.stdout.strip()))
 
 
 if __name__ == "__main__":

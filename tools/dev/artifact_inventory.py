@@ -57,8 +57,39 @@ def load_grants(repo: Path) -> tuple[dict, dict[str, str], str]:
         value = config["permissions"][profile]
         inherited = resolve(value["extends"]) if value.get("extends") else {}
         return {**inherited, **value.get("filesystem", {})}
-    grants = resolve(name)
+    # Full Access has no filesystem table. Retain the project's explicit audit
+    # scope without changing permissions or pretending this is sandbox enforcement.
+    scope = "zircon-strict" if name == ":danger-full-access" else name
+    grants = resolve(scope)
     return config, grants, hashlib.sha256(raw).hexdigest()
+
+
+def compiler_unit(path: Path) -> Path | None:
+    parts = path.parts
+    if len(parts) < 4 or parts[0].rstrip("\\/").casefold() not in {"d:", "e:", "f:"} or parts[1].casefold() != "cargo-targets":
+        return None
+    folded = [part.casefold() for part in parts]
+    if "pools" in folded:
+        index = folded.index("pools")
+        if len(parts) > index + 3 and folded[index + 2] in {"target", "build"}:
+            return Path(*parts[:index + 2])
+    for index in range(2, len(parts) - 1):
+        if folded[index] == "sccache":
+            return Path(*parts[:index + 1])
+        if folded[index] not in {"target", "build"}:
+            continue
+        tail = folded[index + 1:]
+        # Source snapshots also contain modules and icons named build/target.
+        # Require a Cargo layout, not the directory name, before accounting it
+        # as a compiler unit. Other output remains in the general inventory.
+        profiles = {"debug", "release", "profiling", "shipping"}
+        cargo_children = {"deps", "build", "incremental", ".fingerprint", "examples"}
+        if (tail[0] in {".rustc_info.json", "cachedir.tag"}
+                or tail[0] in profiles
+                or len(tail) > 1 and tail[1] in cargo_children
+                or len(tail) > 1 and "-" in tail[0] and tail[1] in profiles):
+            return Path(*parts[:index + 1])
+    return None
 
 
 def writable(path: Path, grants: dict[str, str]) -> bool:
@@ -98,18 +129,26 @@ def classify(path: Path, repo: Path) -> str:
     return "legacy-task-output-unclaimed"
 
 
-def tree_fact(path: Path, *, inspect_source: bool = False) -> dict:
+def tree_fact(path: Path, *, inspect_source: bool = False, deadline: float | None = None) -> dict:
     """Count logical bytes without following links; report incomplete observations."""
     fact = {"path": str(path), "files": 0, "directories": 0, "logicalBytes": 0,
-            "hardlinkedFiles": 0, "reparsePoints": [], "errors": [],
+            "hardlinkedFiles": 0, "hardlinkCountComplete": True, "reparsePoints": [], "errors": [],
             "sourceFiles": 0, "sourceSamples": [], "nestedOutputs": [],
-            "sourceTreeMarkers": [], "manifestPaths": [], "latestWriteUtc": None}
+            "sourceTreeMarkers": [], "manifestPaths": [], "buildUnits": {}, "latestWriteUtc": None}
     latest = 0.0
-    stack = [path]
+    stack = [(path, None)]
     while stack:
-        current = stack.pop()
+        if deadline is not None and time.monotonic() >= deadline:
+            fact["errors"].append({"path": str(path), "type": "ScanBudgetExceeded"})
+            fact["scanTimedOut"] = True
+            fact["unvisitedEntriesLowerBound"] = len(stack)
+            break
+        current, cached_info = stack.pop()
         try:
-            info = current.lstat()
+            # Windows directory enumeration already carries file size and time.
+            # Refresh directories before descending so a replaced junction is
+            # never traversed using stale cached directory attributes.
+            info = current.lstat() if cached_info is None or stat.S_ISDIR(cached_info.st_mode) else cached_info
             if linked(info):
                 fact["reparsePoints"].append(str(current))
                 continue
@@ -129,11 +168,29 @@ def tree_fact(path: Path, *, inspect_source: bool = False) -> dict:
                     except OSError as error:
                         fact["errors"].append({"path": str(source_directory), "type": type(error).__name__})
                 with os.scandir(current) as entries:
-                    stack.extend(Path(entry.path) for entry in entries)
+                    for entry in entries:
+                        try:
+                            stack.append((Path(entry.path), entry.stat(follow_symlinks=False)))
+                        except OSError as error:
+                            fact["errors"].append({"path": entry.path, "type": type(error).__name__})
             elif stat.S_ISREG(info.st_mode):
                 fact["files"] += 1
                 fact["logicalBytes"] += info.st_size
                 fact["hardlinkedFiles"] += info.st_nlink > 1
+                # DirEntry.stat on Windows does not supply link counts. Keep
+                # this evidence gap explicit; logical bytes never authorize GC.
+                if os.name == "nt" and cached_info is not None:
+                    fact["hardlinkCountComplete"] = False
+                unit = compiler_unit(current)
+                if unit is not None:
+                    usage = fact["buildUnits"].setdefault(str(unit), {"logicalBytes": 0, "files": 0,
+                        "incrementalBytes": 0, "symbolBytes": 0})
+                    usage["logicalBytes"] += info.st_size
+                    usage["files"] += 1
+                    if "incremental" in [part.casefold() for part in current.relative_to(unit).parts]:
+                        usage["incrementalBytes"] += info.st_size
+                    elif current.suffix.casefold() in {".pdb", ".dwp", ".dwo", ".dsym"}:
+                        usage["symbolBytes"] += info.st_size
                 if inspect_source and current.suffix.lower() in SOURCE_EXTENSIONS:
                     fact["sourceFiles"] += 1
                     if len(fact["sourceSamples"]) < 8:
@@ -176,8 +233,11 @@ def process_matches(path: Path, rows: list[dict]) -> list[dict]:
     return matched
 
 
-def scan(repo: Path, scopes: list[Path] | None = None) -> dict:
+def scan(repo: Path, scopes: list[Path] | None = None, *, max_seconds: float = 900) -> dict:
     start = time.monotonic()
+    if not 0 < max_seconds <= 3600:
+        raise ValueError("Inventory budget must be between zero and 3600 seconds")
+    deadline = start + max_seconds
     config, grants, config_hash = load_grants(repo)
     observation = process_observation()
     rows = []
@@ -189,6 +249,9 @@ def scan(repo: Path, scopes: list[Path] | None = None) -> dict:
         roots = sorted(set(scopes), key=str)
     else:
         roots = declared_roots
+    # Compiler growth is the daily decision input. A large Jenkins worktree
+    # archive must not consume the entire budget before those roots are observed.
+    roots = sorted(roots, key=lambda root: ("cargo-targets" not in [p.casefold() for p in root.parts], str(root)))
     # Avoid double counting narrower grants already covered by a directory grant.
     for root in roots:
         if any(root != other and root.is_relative_to(other) and other.is_dir() for other in roots):
@@ -198,7 +261,8 @@ def scan(repo: Path, scopes: list[Path] | None = None) -> dict:
         if root.exists():
             try:
                 physical_literal(root)
-                row.update(tree_fact(root, inspect_source=row["category"] in {"handoff-evidence", "session-evidence", "state-evidence"}))
+                print(f"Inventorying {root}", file=sys.stderr, flush=True)
+                row.update(tree_fact(root, inspect_source=row["category"] in {"handoff-evidence", "session-evidence", "state-evidence"}, deadline=deadline))
                 row["kind"] = "directory" if root.is_dir() else "file"
             except (OSError, ValueError) as error:
                 row["scanError"] = str(error)
@@ -221,7 +285,8 @@ def scan(repo: Path, scopes: list[Path] | None = None) -> dict:
         for child in children:
             if scopes and not any(child == scope or child.is_relative_to(scope) or scope.is_relative_to(child) for scope in scopes):
                 continue
-            row = tree_fact(child, inspect_source=True)
+            print(f"Classifying {child}", file=sys.stderr, flush=True)
+            row = tree_fact(child, inspect_source=True, deadline=deadline)
             row["category"] = classify(child, repo)
             row["processReferences"] = process_matches(child, observation["rows"])
             row["cleanupDisposition"] = "preserve-owner-review-required"
@@ -237,7 +302,11 @@ def scan(repo: Path, scopes: list[Path] | None = None) -> dict:
             disks.append({"drive": drive, "error": type(error).__name__})
     facts = [row for row in rows if row.get("exists")]
     return {"schemaVersion": 1, "observedAtUtc": utc_now(), "repository": str(repo),
+            "complete": all(row.get("complete") is True for row in facts + output_items),
+            "scanBudgetSeconds": max_seconds, "timedOut": any(row.get("scanTimedOut") for row in facts + output_items),
             "configSha256": config_hash, "profile": config.get("default_permissions", "zircon-strict"),
+            "inventoryScopeSource": ("permissions.zircon-strict.filesystem (audit scope only)"
+                if config.get("default_permissions") == ":danger-full-access" else "selected permission profile"),
             "declaredWriteGrants": [value for value, mode in grants.items() if mode == "write"],
             "declaredWriteGrantCount": len(declared_roots), "scopes": [str(scope) for scope in scopes or []],
             "inventory": rows, "outputItems": output_items,
@@ -253,6 +322,7 @@ def scan(repo: Path, scopes: list[Path] | None = None) -> dict:
             "configuredNetworkEnabled": config.get("permissions", {}).get(config.get("default_permissions", "zircon-strict"), {}).get("network", {}).get("enabled"),
             "limitations": ["Live filesystem observation, not an atomic snapshot.",
                             "Logical bytes are not uniquely allocated or reclaimable bytes.",
+                            "Windows enumeration does not inspect per-file hardlink counts; see hardlinkCountComplete.",
                             "Process command-line references cannot prove absence of users or open handles.",
                             "Missing manifests do not prove that a directory is abandoned.",
                             "Source markers identify review candidates, not ownership or deletion authorization."]}

@@ -238,7 +238,7 @@ impl SceneRenderer {
             Ok(copy) => copy,
             Err(source) => {
                 return Err(GraphicsError::FrameProductPublicationFailed {
-                    receipt: submission_receipt,
+                    receipt: Box::new(submission_receipt),
                     product_submission: Some(scene_submission),
                     source: Box::new(source.into()),
                 });
@@ -249,7 +249,7 @@ impl SceneRenderer {
             submission_receipt = submission_receipt
                 .with_viewport_product_submission(scene_submission)
                 .map_err(|source| GraphicsError::FrameProductPublicationFailed {
-                    receipt: scene_receipt,
+                    receipt: Box::new(scene_receipt),
                     product_submission: Some(scene_submission),
                     source: Box::new(source.into()),
                 })?;

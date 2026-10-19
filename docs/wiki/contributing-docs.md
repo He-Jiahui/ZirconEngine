@@ -9,7 +9,7 @@ plan_sources:
   - .codex/skills/zircon-dev/workflow/guide.md
 tests:
   - tools/audits/check_conventions.py
-  - docs/plans/mvp/index.md
+  - docs/testing-and-validation/mvp-acceptance-index.md
 doc_type: testing-guide
 ---
 

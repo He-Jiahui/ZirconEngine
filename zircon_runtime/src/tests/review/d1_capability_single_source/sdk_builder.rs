@@ -39,7 +39,25 @@ pub(super) fn assert_sdk_builder_mirrors_capabilities() {
             "pub fn mirrors_runtime_manifest(",
             "pub fn mirrored_runtime_package_id(",
             "mirrors_runtime: $runtime_declaration:expr",
-            "editor_declaration_mirrors_runtime_manifest_and_keeps_editor_capabilities",
+        ],
+    );
+    assert_contains_all(
+        "SDK editor test mount",
+        editor_sdk,
+        &[
+            "#[cfg(test)]",
+            "#[path = \"tests/editor.rs\"]",
+            "mod tests;",
+        ],
+    );
+    assert_contains_all(
+        "SDK editor mirror regression owns runtime and editor capability assertions",
+        include_str!("../../../../../zircon_plugins/plugin_sdk/src/tests/editor.rs"),
+        &[
+            "fn editor_declaration_mirrors_runtime_manifest_and_keeps_editor_capabilities()",
+            "declaration.mirrored_runtime_package_id()",
+            "runtime_module.capabilities",
+            "editor_module.capabilities",
         ],
     );
     assert_contains_all(

@@ -55,7 +55,10 @@ fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
 
 pub(crate) struct ViewportSurface {
     render_device: Arc<WgpuRenderDevice>,
+    device: wgpu::Device,
+    native_target: crate::rhi::RenderNativeSurfaceTarget,
     session: SurfaceSessionReceipt,
+    requested_present_mode: PresentMode,
     blit: SurfaceBlitResources,
 }
 
@@ -110,6 +113,44 @@ impl ViewportSurfacePresentOutcome {
 }
 
 impl ViewportSurface {
+    pub(crate) fn has_native_target(&self, target: crate::rhi::RenderNativeSurfaceTarget) -> bool {
+        self.native_target == target
+    }
+
+    pub(crate) fn reconfigure_for_target(
+        mut self,
+        descriptor: RenderViewportSurfaceDescriptor,
+        device_epoch: (u64, u64),
+    ) -> Result<Self, GraphicsError> {
+        let profile = self.render_device.profile();
+        if !self.has_native_target(descriptor.target)
+            || (profile.device_id().raw(), profile.generation().raw()) != device_epoch
+        {
+            return Err(GraphicsError::SurfaceStatus(
+                "surface target or device generation changed before reconfiguration",
+            ));
+        }
+        let size = clamp_surface_size(descriptor.size);
+        let requested = SwapchainDesc {
+            width: size.x,
+            height: size.y,
+            present_mode: requested_present_mode(descriptor.present_mode),
+            format: self.session.swapchain.format,
+        };
+        let replacement = self
+            .render_device
+            .reconfigure_surface_session(self.session.session(), &requested)?;
+        let replacement = surface_session_receipt(replacement);
+        let rebuild_blit = self.session.swapchain.format != replacement.swapchain.format;
+        // Adopt first: a subsequent blit error must retire the replacement, not the stale handle.
+        self.session = replacement;
+        self.requested_present_mode = requested.present_mode;
+        if rebuild_blit {
+            self.blit = SurfaceBlitResources::new(&self.device, self.session.swapchain.format)?;
+        }
+        Ok(self)
+    }
+
     pub(crate) fn size(&self) -> UVec2 {
         UVec2::new(self.session.swapchain.width, self.session.swapchain.height)
     }
@@ -212,9 +253,13 @@ impl ViewportSurface {
     }
 
     fn reconfigure_session(&mut self) -> Result<(), ViewportSurfacePresentFailure> {
+        let requested = SwapchainDesc {
+            present_mode: self.requested_present_mode,
+            ..self.session.swapchain.clone()
+        };
         let outcome = self
             .render_device
-            .reconfigure_surface_session(self.session.session(), &self.session.swapchain)
+            .reconfigure_surface_session(self.session.session(), &requested)
             .map_err(ViewportSurfacePresentFailure::before_submission)?;
         self.session = surface_session_receipt(outcome);
         Ok(())
@@ -241,7 +286,7 @@ impl RenderBackend {
             SwapchainDesc {
                 width: size.x,
                 height: size.y,
-                present_mode: PresentMode::Fifo,
+                present_mode: requested_present_mode(descriptor.present_mode),
                 format: TextureFormat::Bgra8UnormSrgb,
             },
         );
@@ -280,9 +325,26 @@ impl RenderBackend {
         };
         Ok(ViewportSurface {
             render_device: Arc::clone(&self.render_device),
+            device: self.device.clone(),
+            native_target: descriptor.target,
+            requested_present_mode: surface_descriptor.swapchain.present_mode,
             session,
             blit,
         })
+    }
+}
+
+const fn requested_present_mode(
+    mode: crate::core::framework::window::WindowPresentMode,
+) -> PresentMode {
+    use crate::core::framework::window::WindowPresentMode;
+    match mode {
+        WindowPresentMode::Fifo => PresentMode::Fifo,
+        WindowPresentMode::Immediate => PresentMode::Immediate,
+        WindowPresentMode::Mailbox => PresentMode::Mailbox,
+        WindowPresentMode::FifoRelaxed => PresentMode::FifoRelaxed,
+        WindowPresentMode::AutoVsync => PresentMode::AutoVsync,
+        WindowPresentMode::AutoNoVsync => PresentMode::AutoNoVsync,
     }
 }
 

@@ -10,7 +10,7 @@ pub enum GraphicsError {
     #[error("no compatible adapter found")]
     NoAdapter,
     #[error("render device request failed: {0}")]
-    DeviceRequest(#[from] zr_rhi::RenderDeviceRequestFailure),
+    DeviceRequest(#[source] crate::core::TypedErrorSource<zr_rhi::RenderDeviceRequestFailure>),
     #[error("render adapter selection failed: {0}")]
     AdapterSelection(#[from] zr_rhi::AdapterSelectionError),
     #[error("render device profile negotiation failed: {0}")]
@@ -52,7 +52,7 @@ pub enum GraphicsError {
     },
     #[error("render frame presentation failed after scene submission: {source}")]
     FramePresentationFailed {
-        receipt: crate::core::framework::render::RenderFrameSubmissionReceipt,
+        receipt: Box<crate::core::framework::render::RenderFrameSubmissionReceipt>,
         present_submission: Option<zr_rhi::SubmissionTicket>,
         #[source]
         source: Box<GraphicsError>,
@@ -65,7 +65,7 @@ pub enum GraphicsError {
     },
     #[error("render viewport product publication failed after scene submission: {source}")]
     FrameProductPublicationFailed {
-        receipt: crate::core::framework::render::RenderFrameSubmissionReceipt,
+        receipt: Box<crate::core::framework::render::RenderFrameSubmissionReceipt>,
         product_submission: Option<zr_rhi::SubmissionTicket>,
         #[source]
         source: Box<GraphicsError>,
@@ -137,6 +137,12 @@ pub enum GraphicsError {
     },
 }
 
+impl From<zr_rhi::RenderDeviceRequestFailure> for GraphicsError {
+    fn from(source: zr_rhi::RenderDeviceRequestFailure) -> Self {
+        Self::DeviceRequest(source.into())
+    }
+}
+
 impl GraphicsError {
     /// 仅在错误已携带场景提交票据时返回该票据，供失败收敛路径完成结算。
     pub(crate) const fn submitted_scene_submission(&self) -> Option<zr_rhi::SubmissionTicket> {
@@ -164,7 +170,7 @@ impl GraphicsError {
     ) -> Option<&crate::core::framework::render::RenderFrameSubmissionReceipt> {
         match self {
             Self::FramePresentationFailed { receipt, .. }
-            | Self::FrameProductPublicationFailed { receipt, .. } => Some(receipt),
+            | Self::FrameProductPublicationFailed { receipt, .. } => Some(receipt.as_ref()),
             _ => None,
         }
     }

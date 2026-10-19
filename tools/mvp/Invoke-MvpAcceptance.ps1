@@ -52,7 +52,7 @@ Import-Module (Join-Path $PSScriptRoot 'MvpBuildSummaryEvidence.psm1') -Force -D
 Import-Module (Join-Path $PSScriptRoot 'MvpAcceptanceStagingProjection.psm1') -Force -DisableNameChecking -ErrorAction Stop
 Import-Module (Join-Path $PSScriptRoot 'MvpAcceptanceNativeFileSystem.psm1') -Force -DisableNameChecking -ErrorAction Stop
 Import-Module (Join-Path $PSScriptRoot 'MvpAcceptanceStagingTreeManifest.psm1') -Force -DisableNameChecking -ErrorAction Stop
-Import-Module (Join-Path $PSScriptRoot '..\common\WindowsPathResolver.psm1') -Force -DisableNameChecking -ErrorAction Stop
+Import-Module (Join-Path $PSScriptRoot '..\maintenance\WindowsPathResolver.psm1') -Force -DisableNameChecking -ErrorAction Stop
 Import-Module (Join-Path $PSScriptRoot 'MvpArtifactStoragePolicy.psm1') -Force -ErrorAction Stop
 Import-Module (Join-Path $PSScriptRoot 'MvpDatePreservingJson.psm1') -Force -ErrorAction Stop
 

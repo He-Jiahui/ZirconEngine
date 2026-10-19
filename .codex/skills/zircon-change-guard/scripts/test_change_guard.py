@@ -502,6 +502,93 @@ class CommandLineTests(GuardTestCase):
             with self.assertRaises(ValueError):
                 git_patch(self.root, ["src"], "HEAD")
 
+    def test_cli_default_full_access_checks_actual_checkout_and_records_grants(self):
+        self.write(".codex/config.toml", 'default_permissions = ":danger-full-access"\n')
+        self.write(".codex/note.md", "note\n")
+        self.write("change.patch", self.added(".codex/note.md"))
+        before = self.files()
+        code, output = self.run_main("patch", "--patch", str(self.root / "change.patch"),
+                                     "--path", ".codex/note.md")
+        self.assertEqual((0, "passed"), (code, json.loads(output)["status"]))
+        self.assertTrue(json.loads(output)["input"]["writeGrantCheck"])
+        self.assertEqual([".codex/note.md"], json.loads(output)["input"]["files"])
+        self.assertEqual(before, self.files())
+        grants = Grants.load(self.root / ".codex/config.toml", root=self.root)
+        self.assertEqual(self.root.as_posix(), grants.prefix)
+        self.assertEqual("write", grants.mode(".codex/note.md"))
+        with self.assertRaises(ValueError):
+            grants.mode("../outside.md")
+
+    def test_cli_explicit_strict_overrides_full_access_and_keeps_read_denial(self):
+        original = self.contents[self.root / ".codex/config.toml"].decode()
+        self.write(".codex/config.toml", 'default_permissions = ":danger-full-access"\n' + original)
+        self.write(".codex/note.md", "note\n")
+        self.write("change.patch", self.added(".codex/note.md"))
+        code, output = self.run_main("--profile", "zircon-strict", "patch",
+                                     "--patch", str(self.root / "change.patch"), "--path", ".codex")
+        self.assertEqual(1, code)
+        self.assertTrue(json.loads(output)["input"]["writeGrantCheck"])
+        self.assertIn("scope.write-grant", {f["rule"] for f in json.loads(output)["findings"]})
+
+    def test_cli_named_default_keeps_longest_prefix_read_denial(self):
+        self.write(".codex/config.toml",
+                   'default_permissions = "review.local"\n[permissions."review.local".filesystem]\n'
+                   f"'{self.root.as_posix()}' = \"write\"\n"
+                   f"'{self.root.as_posix()}/.codex' = \"read\"\n")
+        self.write(".codex/note.md", "note\n")
+        self.write("change.patch", self.added(".codex/note.md"))
+        code, output = self.run_main("patch", "--patch", str(self.root / "change.patch"),
+                                     "--path", ".codex")
+        self.assertEqual(1, code)
+        self.assertIn("scope.write-grant", {f["rule"] for f in json.loads(output)["findings"]})
+        self.write("change.patch", self.added("src/present.rs"))
+        self.assertEqual(0, self.run_main("patch", "--patch", str(self.root / "change.patch"),
+                                        "--path", "src")[0])
+
+    def test_cli_unknown_or_malformed_default_selection_is_an_input_error(self):
+        self.write("change.patch", self.added("src/present.rs"))
+        original = self.contents[self.root / ".codex/config.toml"].decode()
+        for selection in ('"missing"', '":read-only"', '":danger-full-access/extra"',
+                          '""', '" zircon-strict"', '"zircon-strict "', '"../zircon-strict"',
+                          'true', '17', '[]', '{}'):
+            with self.subTest(selection=selection):
+                self.write(".codex/config.toml", f"default_permissions = {selection}\n" + original)
+                self.assertEqual(2, self.run_main("patch", "--patch", str(self.root / "change.patch"),
+                                                "--path", "src")[0])
+
+    def test_cli_full_access_still_requires_and_enforces_allowlist(self):
+        self.write(".codex/config.toml", 'default_permissions = ":danger-full-access"\n')
+        self.write(".codex/note.md", "note\n")
+        self.write("change.patch", self.added(".codex/note.md"))
+        args = ("patch", "--patch", str(self.root / "change.patch"))
+        self.assertEqual(2, self.run_main(*args)[0])
+        code, output = self.run_main(*args, "--path", "src")
+        self.assertEqual(1, code)
+        receipt = json.loads(output)
+        rules = {f["rule"] for f in receipt["findings"]}
+        self.assertIn("scope.unlisted-path", rules)
+        self.assertNotIn("scope.write-grant", rules)
+        self.assertTrue(receipt["input"]["writeGrantCheck"])
+
+    def test_cli_explicit_full_access_selection_is_exact_and_unknown_profiles_fail(self):
+        self.write(".codex/note.md", "note\n")
+        self.write("change.patch", self.added(".codex/note.md"))
+        args = ("patch", "--patch", str(self.root / "change.patch"), "--path", ".codex")
+        code, output = self.run_main("--profile", ":danger-full-access", *args)
+        self.assertEqual(0, code)
+        self.assertTrue(json.loads(output)["input"]["writeGrantCheck"])
+        for selection in ("missing", ":danger-full-access-extra", ":DANGER-FULL-ACCESS", ""):
+            with self.subTest(selection=selection):
+                self.assertEqual(2, self.run_main("--profile", selection, *args)[0])
+
+    def test_cli_explicit_profile_does_not_consume_invalid_unused_default(self):
+        original = self.contents[self.root / ".codex/config.toml"].decode()
+        self.write(".codex/config.toml", 'default_permissions = false\n' + original)
+        self.write("change.patch", self.added("src/present.rs"))
+        self.assertEqual(0, self.run_main("--profile", "zircon-strict", "patch",
+                                        "--patch", str(self.root / "change.patch"), "--path", "src")[0])
+
+
 
 if __name__ == "__main__":
     unittest.main()

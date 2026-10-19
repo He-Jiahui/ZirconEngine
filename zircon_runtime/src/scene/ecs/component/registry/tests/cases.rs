@@ -83,10 +83,13 @@ fn dynamic_descriptor_preflight_reserves_one_unpublished_target_local_id() {
     let mut registry = ComponentRegistry::default();
     let mut imports = registry.begin_transferred_descriptor_imports();
 
-    let first =
-        registry.preflight_dynamic_descriptor_import(&mut imports, "weather.Component.CloudLayer");
-    let second =
-        registry.preflight_dynamic_descriptor_import(&mut imports, "weather.Component.CloudLayer");
+    let provider = ComponentRetentionProviderV1::of::<SparseValue>();
+    let first = registry
+        .preflight_dynamic_descriptor_import(&mut imports, "weather.Component.CloudLayer", provider)
+        .expect("dynamic descriptor should reserve its retained capability");
+    let second = registry
+        .preflight_dynamic_descriptor_import(&mut imports, "weather.Component.CloudLayer", provider)
+        .expect("same retained capability should reuse the pending descriptor");
 
     assert_eq!(first, second);
     assert!(registry
@@ -170,47 +173,4 @@ struct RetainedTransferValueV1(Vec<u8>);
 zircon_runtime_interface::impl_retained_owner_v1!(RetainedTransferValueV1 { 0 });
 impl Component for RetainedTransferValueV1 {}
 
-#[test]
-fn transferred_component_retention_provider_keeps_type_and_cost_version() {
-    use zircon_runtime_interface::retained_memory::{
-        verified_std_model_v1, RetainedBoundBuilderV1,
-    };
-    let model = verified_std_model_v1().unwrap();
-    let mut source = ComponentRegistry::default();
-    let source_id = source.component_id::<RetainedTransferValueV1>();
-    let source_provider = source.retention_provider_v1(source_id).unwrap();
-    let transfer = source.transferred_descriptor(source_id).unwrap();
-    let mut target = ComponentRegistry::default();
-    let mut imports = target.begin_transferred_descriptor_imports();
-    let target_id = target
-        .preflight_transferred_descriptor_import(&mut imports, &transfer)
-        .unwrap();
-    target.publish_preflighted_transferred_descriptor_imports(imports);
-    let target_provider = target.retention_provider_v1(target_id).unwrap();
-
-    assert_eq!(target_provider, source_provider);
-    assert_eq!(
-        target_provider.type_id,
-        TypeId::of::<RetainedTransferValueV1>()
-    );
-    assert_eq!(target_provider.version, RETAINED_PROVIDER_VERSION_V1);
-    let payload = RetainedTransferValueV1(Vec::with_capacity(8192));
-    let mut source_bound = RetainedBoundBuilderV1::new(model);
-    source_provider
-        .measure(&payload, &mut source_bound)
-        .unwrap();
-    let mut target_bound = RetainedBoundBuilderV1::new(model);
-    target_provider
-        .measure(&payload, &mut target_bound)
-        .unwrap();
-    assert_eq!(target_bound.bytes(), source_bound.bytes());
-    assert!(target_bound.bytes().get() >= 8192);
-    assert!(target_provider
-        .measure(&SparseValue, &mut RetainedBoundBuilderV1::new(model))
-        .is_err());
-    let mut wrong_version = target_provider;
-    wrong_version.version += 1;
-    assert!(wrong_version
-        .measure(&payload, &mut RetainedBoundBuilderV1::new(model))
-        .is_err());
-}
+include!("retention.rs");

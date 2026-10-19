@@ -1,3 +1,5 @@
+import { createLayoutCurrentContext } from '../tools/zui-layout-paths';
+import { readCurrentLayoutOutputCatalog } from '../tools/zui-layout-gallery';
 import {
   describeChange,
   describeDefects,
@@ -324,11 +326,7 @@ describe('ZUI layout catalog reports', () => {
   });
 
   it('keeps popup cases on the current Unreal level editor owner', async () => {
-    const catalog = JSON.parse(
-      await readFile(resolve(testRepoRoot, 'docs/_data/layout/catalog.json'), 'utf8'),
-    ) as {
-      entries: Array<{ sourcePath: string; cases?: Array<{ state: string }> }>;
-    };
+    const { manifest: catalog } = await readCurrentLayoutOutputCatalog(createLayoutCurrentContext({ repoRoot: testRepoRoot }));
     const entry = catalog.entries.find(
       ({ sourcePath }) =>
         sourcePath ===

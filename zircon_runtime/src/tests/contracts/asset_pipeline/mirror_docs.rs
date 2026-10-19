@@ -29,6 +29,9 @@ fn runtime_04_asset_pipeline_mirror_docs_match_structure_audit_counts() {
         "asset_pipeline_boundary before changing guard ownership",
     );
 
+    let load_state = include_str!("../../../asset/facade/load_state.rs");
+    assert!(load_state.contains("#[path = \"tests/load_state.rs\"]"));
+    assert!(load_state.contains("mod tests;"));
     let guard_sources = [
         include_str!("../../../asset/tests/facade/handle_lifecycle.rs"),
         include_str!("../../../asset/tests/facade/failure_reason.rs"),
@@ -52,6 +55,7 @@ fn runtime_04_asset_pipeline_mirror_docs_match_structure_audit_counts() {
         include_str!("mirror_docs.rs"),
         include_str!("split_layout.rs"),
         include_str!("../../../asset/facade/load_state.rs"),
+        include_str!("../../../asset/facade/tests/load_state.rs"),
     ]
     .join("\n");
     let behavior_sources = [
@@ -70,6 +74,7 @@ fn runtime_04_asset_pipeline_mirror_docs_match_structure_audit_counts() {
         include_str!("../../../asset/tests/assets/artifact_store/scene_script.rs"),
         include_str!("../../../../crates/zr_resource/src/tests/cases.rs"),
         include_str!("../../../asset/facade/load_state.rs"),
+        include_str!("../../../asset/facade/tests/load_state.rs"),
     ]
     .join("\n");
 
@@ -88,9 +93,17 @@ fn runtime_04_asset_pipeline_mirror_docs_match_structure_audit_counts() {
         &behavior_sources,
         EXPECTED_RUNTIME_04_BEHAVIOR_TEST_ANCHORS,
     );
+    let worker_pool_tests = include_str!("../../../asset/tests/pipeline/worker_pool.rs");
+    assert!(worker_pool_tests
+        .replace("\r\n", "\n")
+        .contains("#[path = \"worker_pool/lifecycle.rs\"]\nmod lifecycle;"));
+    let worker_pool_lifecycle =
+        include_str!("../../../asset/tests/pipeline/worker_pool/lifecycle.rs");
+    assert!(worker_pool_lifecycle
+        .contains("#[test]\nfn completion_deadline_transition_reuses_a_full_timer_slot()"));
     assert_contains_all(
-        "Runtime 11 worker timer regression",
-        include_str!("../../../asset/tests/pipeline/worker_pool.rs"),
+        "Runtime 11 worker timer regression in its mounted lifecycle child",
+        worker_pool_lifecycle,
         RUNTIME_11_WORKER_TIMER_TEST_ANCHORS,
     );
     assert_contains_all(

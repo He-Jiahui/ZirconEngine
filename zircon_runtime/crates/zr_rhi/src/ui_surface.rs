@@ -58,18 +58,13 @@ impl UiSurfaceRect {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 pub enum UiSurfaceTextStyle {
+    #[default]
     Regular,
     Strong,
     Emphasis,
     StrongEmphasis,
-}
-
-impl Default for UiSurfaceTextStyle {
-    fn default() -> Self {
-        Self::Regular
-    }
 }
 
 #[derive(Clone, Debug, PartialEq)]

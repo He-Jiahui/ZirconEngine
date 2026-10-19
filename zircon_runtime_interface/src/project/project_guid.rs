@@ -64,3 +64,9 @@ impl<'de> Deserialize<'de> for ProjectGuid {
         Self::try_from_uuid(Uuid::deserialize(deserializer)?).map_err(serde::de::Error::custom)
     }
 }
+
+impl Default for ProjectGuid {
+    fn default() -> Self {
+        Self::new()
+    }
+}

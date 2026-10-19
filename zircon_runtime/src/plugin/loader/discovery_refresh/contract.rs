@@ -498,9 +498,7 @@ fn reserve_publication_scratch(
                 .and_then(|inline| bytes.checked_add(inline.saturating_mul(2)))
         })
         .unwrap_or(u64::MAX);
-    let total_bytes = collector_peak
-        .checked_add(publication_bytes)
-        .unwrap_or(u64::MAX);
+    let total_bytes = collector_peak.saturating_add(publication_bytes);
     if total_bytes > max_scratch_bytes {
         return Err(NativePluginDiscoveryRefreshError::budget_exceeded(
             NativePluginDiscoveryRefreshBudgetKind::ScratchBytes,
@@ -744,9 +742,21 @@ impl fmt::Display for NativePluginDiscoveryRefreshBudgetKind {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug)]
 /// 收集失败与预算/期限拒绝由票据发布；服务保留既有快照，调用端决定如何展示失败。
 pub enum NativePluginDiscoveryRefreshError {
+    ReadManifest {
+        file_kind: Arc<str>,
+        manifest_path: PathBuf,
+        source: Arc<std::io::Error>,
+    },
+    ParseManifest {
+        manifest_path: PathBuf,
+        source: Arc<toml::de::Error>,
+    },
+    MissingRuntimeOrEditorModule {
+        plugin_id: Arc<str>,
+    },
     Collector {
         message: Arc<str>,
     },
@@ -759,6 +769,60 @@ pub enum NativePluginDiscoveryRefreshError {
     },
     InvalidInputIdentity,
 }
+
+// Source-bearing failures compare original error identity, not a lossy display string.
+// Cloning preserves that identity; every preexisting variant retains its value equality.
+impl PartialEq for NativePluginDiscoveryRefreshError {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (
+                Self::ReadManifest {
+                    file_kind: a_kind,
+                    manifest_path: a_path,
+                    source: a,
+                },
+                Self::ReadManifest {
+                    file_kind: b_kind,
+                    manifest_path: b_path,
+                    source: b,
+                },
+            ) => a_kind == b_kind && a_path == b_path && Arc::ptr_eq(a, b),
+            (
+                Self::ParseManifest {
+                    manifest_path: a_path,
+                    source: a,
+                },
+                Self::ParseManifest {
+                    manifest_path: b_path,
+                    source: b,
+                },
+            ) => a_path == b_path && Arc::ptr_eq(a, b),
+            (
+                Self::MissingRuntimeOrEditorModule { plugin_id: a },
+                Self::MissingRuntimeOrEditorModule { plugin_id: b },
+            ) => a == b,
+            (Self::Collector { message: a }, Self::Collector { message: b }) => a == b,
+            (Self::Cancelled, Self::Cancelled)
+            | (Self::DeadlineExceeded, Self::DeadlineExceeded)
+            | (Self::InvalidInputIdentity, Self::InvalidInputIdentity) => true,
+            (
+                Self::BudgetExceeded {
+                    kind: a_kind,
+                    actual: a_actual,
+                    limit: a_limit,
+                },
+                Self::BudgetExceeded {
+                    kind: b_kind,
+                    actual: b_actual,
+                    limit: b_limit,
+                },
+            ) => a_kind == b_kind && a_actual == b_actual && a_limit == b_limit,
+            _ => false,
+        }
+    }
+}
+
+impl Eq for NativePluginDiscoveryRefreshError {}
 
 impl NativePluginDiscoveryRefreshError {
     pub fn collector(message: impl Into<Arc<str>>) -> Self {
@@ -829,6 +893,27 @@ pub(super) fn validate_accounting(
 impl fmt::Display for NativePluginDiscoveryRefreshError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Self::ReadManifest {
+                file_kind,
+                manifest_path,
+                source,
+            } => write!(
+                formatter,
+                "failed to read {file_kind} {}: {source}",
+                manifest_path.display()
+            ),
+            Self::ParseManifest {
+                manifest_path,
+                source,
+            } => write!(
+                formatter,
+                "failed to parse native plugin manifest {}: {source}",
+                manifest_path.display()
+            ),
+            Self::MissingRuntimeOrEditorModule { plugin_id } => write!(
+                formatter,
+                "native plugin {plugin_id} has no runtime or editor module crate declared"
+            ),
             Self::Collector { message } => formatter.write_str(message),
             Self::Cancelled => formatter.write_str("native plugin discovery refresh cancelled"),
             Self::DeadlineExceeded => {
@@ -849,4 +934,12 @@ impl fmt::Display for NativePluginDiscoveryRefreshError {
     }
 }
 
-impl std::error::Error for NativePluginDiscoveryRefreshError {}
+impl std::error::Error for NativePluginDiscoveryRefreshError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::ReadManifest { source, .. } => Some(source.as_ref()),
+            Self::ParseManifest { source, .. } => Some(source.as_ref()),
+            _ => None,
+        }
+    }
+}

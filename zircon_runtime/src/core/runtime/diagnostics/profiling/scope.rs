@@ -84,17 +84,20 @@ pub struct ProfileFrameScope {
     token: Option<ProfileFrameToken>,
 }
 
+#[cfg(any(test, feature = "profiling"))]
 #[derive(Clone, Copy, Debug, Default)]
 pub(crate) struct ProfileFrameContext {
     capture_epoch: Option<u64>,
     frame_index: Option<u64>,
 }
 
+#[cfg(any(test, feature = "profiling"))]
 #[derive(Debug)]
 pub(crate) struct ProfileFrameContextGuard {
     frame: Option<FrameStackEntry>,
 }
 
+#[cfg(any(test, feature = "profiling"))]
 impl ProfileFrameContext {
     // 工作线程可携带当前帧关联；attach 会再次校验 epoch，避免落入后续录制。
     pub(crate) fn capture() -> Self {
@@ -143,6 +146,7 @@ impl ProfileFrameContext {
     }
 }
 
+#[cfg(any(test, feature = "profiling"))]
 impl Drop for ProfileFrameContextGuard {
     fn drop(&mut self) {
         if let Some(frame) = self.frame.take() {

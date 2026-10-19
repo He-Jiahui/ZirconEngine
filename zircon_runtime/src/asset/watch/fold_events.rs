@@ -50,8 +50,11 @@ fn fold_event_ref(folded: &mut FoldedAssetChangeMap, event: &AssetWatchEvent) {
             }
         }
         AssetWatchEvent::Renamed { from, to } => {
-            folded.remove(from);
-            let change = (AssetChangeKind::Renamed, Some(from.clone()));
+            let previous_uri = folded
+                .remove(from)
+                .and_then(|(_, previous_uri)| previous_uri)
+                .unwrap_or_else(|| from.clone());
+            let change = (AssetChangeKind::Renamed, Some(previous_uri));
             if let Some(existing) = folded.get_mut(to) {
                 *existing = change;
             } else {
@@ -61,7 +64,7 @@ fn fold_event_ref(folded: &mut FoldedAssetChangeMap, event: &AssetWatchEvent) {
     }
 }
 
-// BUG: [CR-ASSET-PIPELINE-0006] 连续 A→B→C 重命名会把原始 A 丢掉，只发布 B→C；订阅者无法获知需要刷新 A。借用版 fold_event_ref 同样如此。
+// Rename chains retain the earliest source URI so subscribers can retire the original entry.
 pub(super) fn fold_event(folded: &mut FoldedAssetChangeMap, event: AssetWatchEvent) {
     match event {
         AssetWatchEvent::Added(uri) => {
@@ -81,8 +84,11 @@ pub(super) fn fold_event(folded: &mut FoldedAssetChangeMap, event: AssetWatchEve
             folded.insert(uri, (AssetChangeKind::Removed, None));
         }
         AssetWatchEvent::Renamed { from, to } => {
-            folded.remove(&from);
-            folded.insert(to, (AssetChangeKind::Renamed, Some(from)));
+            let previous_uri = folded
+                .remove(&from)
+                .and_then(|(_, previous_uri)| previous_uri)
+                .unwrap_or(from);
+            folded.insert(to, (AssetChangeKind::Renamed, Some(previous_uri)));
         }
     }
 }

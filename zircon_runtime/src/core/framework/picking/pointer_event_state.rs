@@ -3,15 +3,15 @@ use std::collections::{BTreeMap, BTreeSet, HashMap};
 use crate::core::math::Vec2;
 
 use super::{
-    HitData, HitTarget, PickingEventKind, PickingHoverMap, PickingPointerEvent, PointerAction,
-    PointerButton, PointerId, PointerInput, PointerLocation,
+    HitData, HitTarget, PickingEventKind, PickingHoverMap, PickingPointerEvent, PickingPointerKey,
+    PointerAction, PointerButton, PointerId, PointerInput, PointerLocation,
 };
 
 #[derive(Clone, Debug, Default, PartialEq)]
 /// 跨帧保存悬停目标与按键拖动状态的派发器，由 picking pipeline 在每帧输入后调用。
 pub struct PickingEventState {
     previous_hover: PickingHoverMap,
-    button_states: BTreeMap<(PointerId, PointerButton), PointerButtonEventState>,
+    button_states: BTreeMap<(PickingPointerKey, PointerButton), PointerButtonEventState>,
 }
 
 impl PickingEventState {
@@ -27,23 +27,55 @@ impl PickingEventState {
     pub fn clear_pointer(&mut self, pointer: PointerId) {
         self.previous_hover.remove_pointer(pointer);
         self.button_states
-            .retain(|(state_pointer, _), _| *state_pointer != pointer);
+            .retain(|(state_pointer, _), _| state_pointer.pointer != pointer);
+    }
+
+    pub fn clear_key(&mut self, key: PickingPointerKey) {
+        self.previous_hover.remove_key(key);
+        self.button_states
+            .retain(|(state_key, _), _| *state_key != key);
     }
 
     /// 按退出、当前悬停变化、输入事件的顺序派发；释放与取消可据上一帧悬停目标完成收尾。
     /// 输入位置覆盖采样位置；取消的指针不会进入新悬停快照，派发结束后其按键状态也会清除。
     pub fn dispatch_frame(
         &mut self,
-        mut current_hover: PickingHoverMap,
+        current_hover: PickingHoverMap,
         pointer_locations: &[PointerLocation],
         inputs: &[PointerInput],
     ) -> Vec<PickingPointerEvent> {
-        let previous_hover = std::mem::take(&mut self.previous_hover);
-        let canceled_pointers = canceled_pointers(inputs);
+        self.dispatch_frame_mode(current_hover, pointer_locations, inputs, false)
+    }
+
+    /// Uses only exact viewport keys; missing scoped hits never fall back to legacy hits.
+    pub fn dispatch_viewport_frame(
+        &mut self,
+        current_hover: PickingHoverMap,
+        pointer_locations: &[PointerLocation],
+        inputs: &[PointerInput],
+    ) -> Vec<PickingPointerEvent> {
+        self.dispatch_frame_mode(current_hover, pointer_locations, inputs, true)
+    }
+
+    fn dispatch_frame_mode(
+        &mut self,
+        mut current_hover: PickingHoverMap,
+        pointer_locations: &[PointerLocation],
+        inputs: &[PointerInput],
+        scoped: bool,
+    ) -> Vec<PickingPointerEvent> {
+        current_hover.retain_mode(scoped);
+        let mut previous_hover = std::mem::take(&mut self.previous_hover);
+        previous_hover.retain_mode(scoped);
+        let canceled_pointers = canceled_pointers(inputs, scoped);
         for pointer in &canceled_pointers {
-            current_hover.remove_pointer(*pointer);
+            current_hover.remove_key(*pointer);
         }
-        let location_by_pointer = location_map(pointer_locations, inputs);
+        let location_by_pointer = if scoped {
+            location_map(pointer_locations, inputs)
+        } else {
+            location_map_mode(pointer_locations, inputs, false)
+        };
         let mut events = Vec::new();
 
         self.dispatch_exits(
@@ -61,18 +93,19 @@ impl PickingEventState {
 
         let mut processed_cancels = BTreeSet::new();
         for input in inputs.iter().copied() {
-            if processed_cancels.contains(&input.pointer()) {
+            let key = input_key(input.location, scoped);
+            if processed_cancels.contains(&key) {
                 continue;
             }
-            self.dispatch_input(input, &previous_hover, &current_hover, &mut events);
+            self.dispatch_input(key, input, &previous_hover, &current_hover, &mut events);
             if matches!(input.action, PointerAction::Cancel) {
-                processed_cancels.insert(input.pointer());
+                processed_cancels.insert(key);
             }
         }
 
         self.previous_hover = current_hover;
         for pointer in canceled_pointers {
-            self.clear_pointer(pointer);
+            self.clear_key(pointer);
         }
         events
     }
@@ -81,20 +114,20 @@ impl PickingEventState {
         &mut self,
         previous_hover: &PickingHoverMap,
         current_hover: &PickingHoverMap,
-        location_by_pointer: &HashMap<PointerId, PointerLocation>,
+        location_by_pointer: &HashMap<PickingPointerKey, PointerLocation>,
         events: &mut Vec<PickingPointerEvent>,
     ) {
-        for (pointer, hits) in previous_hover.iter() {
+        for (pointer, hits) in previous_hover.iter_keys() {
             let Some(location) = location_by_pointer.get(&pointer).copied() else {
                 continue;
             };
             let active_buttons = self.active_buttons(pointer);
             for hit in hits
                 .iter()
-                .filter(|hit| !current_hover.is_hovered(pointer, hit.target))
+                .filter(|hit| !current_hover.is_hovered_key(pointer, hit.target))
             {
                 events.push(PickingPointerEvent::new(
-                    pointer,
+                    pointer.pointer,
                     location,
                     hit.target,
                     PickingEventKind::Out {
@@ -102,7 +135,7 @@ impl PickingEventState {
                     },
                 ));
                 events.push(PickingPointerEvent::new_without_propagate(
-                    pointer,
+                    pointer.pointer,
                     location,
                     hit.target,
                     PickingEventKind::Leave {
@@ -116,7 +149,7 @@ impl PickingEventState {
                     state.dragging_over.remove(&hit.target);
                     for dragged in state.dragging.keys().copied() {
                         events.push(PickingPointerEvent::new(
-                            pointer,
+                            pointer.pointer,
                             location,
                             hit.target,
                             PickingEventKind::DragLeave {
@@ -135,10 +168,10 @@ impl PickingEventState {
         &mut self,
         previous_hover: &PickingHoverMap,
         current_hover: &PickingHoverMap,
-        location_by_pointer: &HashMap<PointerId, PointerLocation>,
+        location_by_pointer: &HashMap<PickingPointerKey, PointerLocation>,
         events: &mut Vec<PickingPointerEvent>,
     ) {
-        for (pointer, hits) in current_hover.iter() {
+        for (pointer, hits) in current_hover.iter_keys() {
             let Some(location) = location_by_pointer.get(&pointer).copied() else {
                 continue;
             };
@@ -156,7 +189,7 @@ impl PickingEventState {
                     }
                     for dragged in state.dragging.keys().copied() {
                         events.push(PickingPointerEvent::new(
-                            pointer,
+                            pointer.pointer,
                             location,
                             hit.target,
                             PickingEventKind::DragEnter {
@@ -168,9 +201,9 @@ impl PickingEventState {
                     }
                 }
 
-                if !previous_hover.is_hovered(pointer, hit.target) {
+                if !previous_hover.is_hovered_key(pointer, hit.target) {
                     events.push(PickingPointerEvent::new_without_propagate(
-                        pointer,
+                        pointer.pointer,
                         location,
                         hit.target,
                         PickingEventKind::Enter {
@@ -179,7 +212,7 @@ impl PickingEventState {
                         },
                     ));
                     events.push(PickingPointerEvent::new(
-                        pointer,
+                        pointer.pointer,
                         location,
                         hit.target,
                         PickingEventKind::Over {
@@ -193,6 +226,7 @@ impl PickingEventState {
 
     fn dispatch_input(
         &mut self,
+        pointer: PickingPointerKey,
         input: PointerInput,
         previous_hover: &PickingHoverMap,
         current_hover: &PickingHoverMap,
@@ -200,16 +234,16 @@ impl PickingEventState {
     ) {
         match input.action {
             PointerAction::Press(button) => {
-                self.dispatch_press(input.location, button, current_hover, events)
+                self.dispatch_press(pointer, input.location, button, current_hover, events)
             }
             PointerAction::Release(button) => {
-                self.dispatch_release(input.location, button, previous_hover, events)
+                self.dispatch_release(pointer, input.location, button, previous_hover, events)
             }
             PointerAction::Move { delta } => {
-                self.dispatch_move(input.location, delta, current_hover, events)
+                self.dispatch_move(pointer, input.location, delta, current_hover, events)
             }
             PointerAction::Scroll { unit, delta } => {
-                for hit in current_hover.get(input.pointer()) {
+                for hit in current_hover.get_key(pointer) {
                     events.push(PickingPointerEvent::new(
                         input.pointer(),
                         input.location,
@@ -223,7 +257,7 @@ impl PickingEventState {
                 }
             }
             PointerAction::Cancel => {
-                for hit in previous_hover.get(input.pointer()) {
+                for hit in previous_hover.get_key(pointer) {
                     events.push(PickingPointerEvent::new(
                         input.pointer(),
                         input.location,
@@ -233,22 +267,22 @@ impl PickingEventState {
                         },
                     ));
                 }
-                self.clear_pointer(input.pointer());
+                self.clear_key(pointer);
             }
         }
     }
 
     fn dispatch_press(
         &mut self,
+        pointer: PickingPointerKey,
         location: PointerLocation,
         button: PointerButton,
         current_hover: &PickingHoverMap,
         events: &mut Vec<PickingPointerEvent>,
     ) {
-        let pointer = location.pointer;
-        for hit in current_hover.get(pointer) {
+        for hit in current_hover.get_key(pointer) {
             events.push(PickingPointerEvent::new(
-                pointer,
+                pointer.pointer,
                 location,
                 hit.target,
                 PickingEventKind::Press {
@@ -268,12 +302,12 @@ impl PickingEventState {
 
     fn dispatch_release(
         &mut self,
+        pointer: PickingPointerKey,
         location: PointerLocation,
         button: PointerButton,
         previous_hover: &PickingHoverMap,
         events: &mut Vec<PickingPointerEvent>,
     ) {
-        let pointer = location.pointer;
         let (pressed_targets, dragging_targets, dragging_over) = {
             let state = self.button_state_mut(pointer, button);
             (
@@ -283,10 +317,10 @@ impl PickingEventState {
             )
         };
 
-        for hit in previous_hover.get(pointer) {
+        for hit in previous_hover.get_key(pointer) {
             if pressed_targets.contains_key(&hit.target) {
                 events.push(PickingPointerEvent::new(
-                    pointer,
+                    pointer.pointer,
                     location,
                     hit.target,
                     PickingEventKind::Click {
@@ -296,7 +330,7 @@ impl PickingEventState {
                 ));
             }
             events.push(PickingPointerEvent::new(
-                pointer,
+                pointer.pointer,
                 location,
                 hit.target,
                 PickingEventKind::Release {
@@ -309,7 +343,7 @@ impl PickingEventState {
         for (dragged, drag) in dragging_targets {
             for (drop_target, hit) in &dragging_over {
                 events.push(PickingPointerEvent::new(
-                    pointer,
+                    pointer.pointer,
                     location,
                     *drop_target,
                     PickingEventKind::DragDrop {
@@ -320,7 +354,7 @@ impl PickingEventState {
                 ));
             }
             events.push(PickingPointerEvent::new(
-                pointer,
+                pointer.pointer,
                 location,
                 dragged,
                 PickingEventKind::DragEnd {
@@ -330,7 +364,7 @@ impl PickingEventState {
             ));
             for (drop_target, hit) in &dragging_over {
                 events.push(PickingPointerEvent::new(
-                    pointer,
+                    pointer.pointer,
                     location,
                     *drop_target,
                     PickingEventKind::DragLeave {
@@ -345,6 +379,7 @@ impl PickingEventState {
 
     fn dispatch_move(
         &mut self,
+        pointer: PickingPointerKey,
         location: PointerLocation,
         delta: Vec2,
         current_hover: &PickingHoverMap,
@@ -354,15 +389,14 @@ impl PickingEventState {
             return;
         }
 
-        let pointer = location.pointer;
         for button in self.active_buttons(pointer) {
             self.start_drags(pointer, location, button, current_hover, events);
             self.update_drags(pointer, location, button, current_hover, events);
         }
 
-        for hit in current_hover.get(pointer) {
+        for hit in current_hover.get_key(pointer) {
             events.push(PickingPointerEvent::new(
-                pointer,
+                pointer.pointer,
                 location,
                 hit.target,
                 PickingEventKind::Move {
@@ -375,7 +409,7 @@ impl PickingEventState {
 
     fn start_drags(
         &mut self,
-        pointer: PointerId,
+        pointer: PickingPointerKey,
         location: PointerLocation,
         button: PointerButton,
         current_hover: &PickingHoverMap,
@@ -400,7 +434,7 @@ impl PickingEventState {
                 },
             );
             events.push(PickingPointerEvent::new(
-                pointer,
+                pointer.pointer,
                 press.location,
                 target,
                 PickingEventKind::DragStart {
@@ -410,7 +444,7 @@ impl PickingEventState {
             ));
 
             for hovered in current_hover
-                .get(pointer)
+                .get_key(pointer)
                 .iter()
                 .filter(|hovered| hovered.target != target)
             {
@@ -418,7 +452,7 @@ impl PickingEventState {
                     .dragging_over
                     .insert(hovered.target, hovered.hit.clone());
                 events.push(PickingPointerEvent::new(
-                    pointer,
+                    pointer.pointer,
                     location,
                     hovered.target,
                     PickingEventKind::DragEnter {
@@ -433,7 +467,7 @@ impl PickingEventState {
 
     fn update_drags(
         &mut self,
-        pointer: PointerId,
+        pointer: PickingPointerKey,
         location: PointerLocation,
         button: PointerButton,
         current_hover: &PickingHoverMap,
@@ -453,7 +487,7 @@ impl PickingEventState {
                 continue;
             };
             events.push(PickingPointerEvent::new(
-                pointer,
+                pointer.pointer,
                 location,
                 target,
                 PickingEventKind::Drag {
@@ -464,12 +498,12 @@ impl PickingEventState {
             ));
 
             for hovered in current_hover
-                .get(pointer)
+                .get_key(pointer)
                 .iter()
                 .filter(|hovered| hovered.target != target)
             {
                 events.push(PickingPointerEvent::new(
-                    pointer,
+                    pointer.pointer,
                     location,
                     hovered.target,
                     PickingEventKind::DragOver {
@@ -484,7 +518,7 @@ impl PickingEventState {
 
     fn update_drag_position(
         &mut self,
-        pointer: PointerId,
+        pointer: PickingPointerKey,
         button: PointerButton,
         target: HitTarget,
         location: PointerLocation,
@@ -502,7 +536,7 @@ impl PickingEventState {
         Some((distance, delta))
     }
 
-    fn active_buttons(&self, pointer: PointerId) -> Vec<PointerButton> {
+    fn active_buttons(&self, pointer: PickingPointerKey) -> Vec<PointerButton> {
         self.button_states
             .keys()
             .filter_map(|(state_pointer, button)| (*state_pointer == pointer).then_some(*button))
@@ -511,18 +545,19 @@ impl PickingEventState {
 
     fn button_state_mut(
         &mut self,
-        pointer: PointerId,
+        pointer: PickingPointerKey,
         button: PointerButton,
     ) -> &mut PointerButtonEventState {
         self.button_states.entry((pointer, button)).or_default()
     }
 }
 
-fn canceled_pointers(inputs: &[PointerInput]) -> BTreeSet<PointerId> {
+fn canceled_pointers(inputs: &[PointerInput], scoped: bool) -> BTreeSet<PickingPointerKey> {
     inputs
         .iter()
         .filter_map(|input| {
-            matches!(input.action, PointerAction::Cancel).then_some(input.pointer())
+            matches!(input.action, PointerAction::Cancel)
+                .then_some(input_key(input.location, scoped))
         })
         .collect()
 }
@@ -546,20 +581,36 @@ struct DragState {
     latest_position: Vec2,
 }
 
+fn input_key(location: PointerLocation, scoped: bool) -> PickingPointerKey {
+    if scoped {
+        PickingPointerKey::from_location(location)
+    } else {
+        PickingPointerKey::legacy(location.pointer)
+    }
+}
+
 fn location_map(
     pointer_locations: &[PointerLocation],
     inputs: &[PointerInput],
-) -> HashMap<PointerId, PointerLocation> {
+) -> HashMap<PickingPointerKey, PointerLocation> {
+    location_map_mode(pointer_locations, inputs, true)
+}
+
+fn location_map_mode(
+    pointer_locations: &[PointerLocation],
+    inputs: &[PointerInput],
+    scoped: bool,
+) -> HashMap<PickingPointerKey, PointerLocation> {
     let mut locations =
         HashMap::with_capacity(pointer_locations.len().saturating_add(inputs.len()));
     locations.extend(
         pointer_locations
             .iter()
             .copied()
-            .map(|location| (location.pointer, location)),
+            .map(|location| (input_key(location, scoped), location)),
     );
     for input in inputs {
-        locations.insert(input.pointer(), input.location);
+        locations.insert(input_key(input.location, scoped), input.location);
     }
     locations
 }

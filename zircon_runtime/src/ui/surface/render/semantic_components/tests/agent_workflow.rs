@@ -204,3 +204,56 @@ fn approval_preserves_long_caller_copy_inside_a_narrow_flow() {
             && command.frame.bottom() <= frame.bottom()
     }));
 }
+
+#[test]
+fn tool_call_escaped_caller_copy_round_trips_through_the_actual_rich_parser() {
+    use crate::text::{RichTextFormat, RichTextParser};
+    let tool = "tool*_[x](y)\\\x60雪";
+    let detail = "literal *x* **y** \x60z\x60 _[]() \\\\ e\u{0301}";
+    let metadata = metadata(
+        "ToolCalls",
+        &[(
+            "collection_items",
+            Value::Array(vec![Value::String(format!("running|{tool}|{detail}"))]),
+        )],
+    );
+    let commands = render(
+        UiNodeId::new(3),
+        &metadata,
+        UiFrame::new(0.0, 0.0, 800.0, 160.0),
+        None,
+        0,
+        1.0,
+        &resolve_style(Some(&metadata)),
+    );
+    let rich = commands
+        .iter()
+        .filter(|command| {
+            command.text.is_some()
+                && command.style.rich_text_format
+                    == zircon_runtime_interface::ui::surface::UiRichTextFormat::MarkdownInlineV1
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(
+        rich.len(),
+        1,
+        "tool and detail must remain one rich layout flow"
+    );
+    let source = rich[0].text.as_deref().unwrap();
+    let compiled = RichTextParser::default()
+        .compile(source, RichTextFormat::MarkdownInlineV1)
+        .unwrap();
+    let parsed = compiled.parsed();
+    assert_eq!(parsed.text.as_ref(), format!("{tool}  |  {detail}"));
+    assert!(parsed
+        .runs
+        .iter()
+        .any(|run| { run.byte_range == (0, tool.len() as u32) && run.style.weight == Some(700) }));
+    for run in &parsed.runs {
+        assert_ne!(run.style.italic, Some(true));
+        assert_ne!(run.style.code, Some(true));
+        if run.byte_range.0 >= tool.len() as u32 {
+            assert_ne!(run.style.weight, Some(700));
+        }
+    }
+}

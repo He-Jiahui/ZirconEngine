@@ -1,4 +1,6 @@
 //! 代码审查回归护栏核对已迁移接口、错误边界、插件入口及镜像状态。以结果断言检查当前接口或源码快照对应的边界。
+use crate::tests::runtime_absorption::structure_convention::fixed_history_archive_source as history;
+use crate::tests::runtime_absorption::structure_convention::rust_source_view::production_section;
 #[test]
 fn review_f5_native_plugin_behavior_abi_uses_typed_error() {
     let behavior_calls = include_str!("../../../../../plugin/loader/behavior_calls.rs");
@@ -6,17 +8,33 @@ fn review_f5_native_plugin_behavior_abi_uses_typed_error() {
     let _native_boundary =
         include_str!("../../../../../../../docs/architecture/native-plugin-boundary.md");
     let _review_findings =
-        include_str!("../../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md");
-    let _runtime_15_plan = include_str!(
-        "../../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md"
+        history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md");
+    let _runtime_15_plan = history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md");
+    let _runtime_index = history(
+        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md",
     );
-    let _runtime_index =
-        include_str!("../../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md");
     let _convention =
-        include_str!("../../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md");
+        history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md");
     let _module_convention = include_str!(
         "../../../../../../../docs/crates/zircon_runtime/structure/module-convention.md"
     );
+
+    let behavior_calls_tests = include_str!("../../../../../plugin/loader/tests/behavior_calls.rs");
+    assert!(
+        behavior_calls
+            .replace("\r\n", "\n")
+            .contains("#[cfg(test)]\n#[path = \"tests/behavior_calls.rs\"]\nmod tests;"),
+        "exact current module mount in plugin/loader/behavior_calls.rs"
+    );
+    for required in [
+        "native_behavior_reports_unsupported_abi_version_with_typed_error",
+        "native_behavior_typed_error_preserves_unsupported_abi_message",
+    ] {
+        assert!(
+            behavior_calls_tests.contains(required),
+            "current plugin/loader/tests/behavior_calls.rs must retain {required}"
+        );
+    }
 
     for required in [
         "type NativePluginBehaviorResult<T>",
@@ -27,8 +45,6 @@ fn review_f5_native_plugin_behavior_abi_uses_typed_error() {
         "impl std::error::Error for NativePluginBehaviorError",
         ") -> NativePluginBehaviorResult<Self>",
         "NativePluginBehaviorError::UnsupportedAbiVersion",
-        "native_behavior_reports_unsupported_abi_version_with_typed_error",
-        "native_behavior_typed_error_preserves_unsupported_abi_message",
     ] {
         assert!(
             behavior_calls.contains(required),
@@ -36,10 +52,7 @@ fn review_f5_native_plugin_behavior_abi_uses_typed_error() {
         );
     }
 
-    let production = behavior_calls
-        .split("#[cfg(test)]")
-        .next()
-        .expect("native plugin behavior production source");
+    let production = production_section(behavior_calls);
     for forbidden in [
         "from_abi_v4(abi: &NativePluginBehaviorV4) -> Result<Self, String>",
         "Err(format!(\n                \"unsupported native plugin behavior ABI version",
@@ -66,17 +79,34 @@ fn review_f5_native_bridge_method_abi_uses_typed_error() {
     let _native_boundary =
         include_str!("../../../../../../../docs/architecture/native-plugin-boundary.md");
     let _review_findings =
-        include_str!("../../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md");
-    let _runtime_15_plan = include_str!(
-        "../../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md"
+        history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md");
+    let _runtime_15_plan = history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md");
+    let _runtime_index = history(
+        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md",
     );
-    let _runtime_index =
-        include_str!("../../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md");
     let _convention =
-        include_str!("../../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md");
+        history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md");
     let _module_convention = include_str!(
         "../../../../../../../docs/crates/zircon_runtime/structure/module-convention.md"
     );
+
+    let bridge_method_abi_tests =
+        include_str!("../../../../../plugin/loader/tests/bridge_method_abi.rs");
+    assert!(
+        bridge_method_abi
+            .replace("\r\n", "\n")
+            .contains("#[cfg(test)]\n#[path = \"tests/bridge_method_abi.rs\"]\nmod tests;"),
+        "exact current module mount in plugin/loader/bridge_method_abi.rs"
+    );
+    for required in [
+        "bridge_method_bindings_report_unsupported_table_abi_with_typed_error",
+        "bridge_method_typed_error_preserves_missing_callback_message",
+    ] {
+        assert!(
+            bridge_method_abi_tests.contains(required),
+            "current plugin/loader/tests/bridge_method_abi.rs must retain {required}"
+        );
+    }
 
     for required in [
         "type NativeBridgeMethodAbiResult<T>",
@@ -92,8 +122,6 @@ fn review_f5_native_bridge_method_abi_uses_typed_error() {
         "fn required_bridge_method_field(",
         "NativeBridgeMethodAbiError::UnsupportedTableAbiVersion",
         "NativeBridgeMethodAbiError::MissingCallback",
-        "bridge_method_bindings_report_unsupported_table_abi_with_typed_error",
-        "bridge_method_typed_error_preserves_missing_callback_message",
     ] {
         assert!(
             bridge_method_abi.contains(required),
@@ -101,10 +129,7 @@ fn review_f5_native_bridge_method_abi_uses_typed_error() {
         );
     }
 
-    let production = bridge_method_abi
-        .split("#[cfg(test)]")
-        .next()
-        .expect("native bridge method ABI production source");
+    let production = production_section(bridge_method_abi);
     for forbidden in [
         ") -> Result<Vec<NativeBridgeMethodBinding>, String>",
         "Err(format!(\n            \"unsupported native bridge method table ABI version",

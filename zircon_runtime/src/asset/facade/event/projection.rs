@@ -1,13 +1,15 @@
 use super::super::{Asset, Handle};
 use super::{AssetEvent, AssetEventKind};
 use crate::core::resource::{
-    ResourceEvent, ResourceEventKind, ResourceKind, ResourceLocator, ResourceMarker,
+    ResourceEventEnvelope, ResourceEventKind, ResourceKind, ResourceLocator, ResourceMarker,
 };
 
 impl<TAsset: Asset> AssetEvent<TAsset> {
-    // BUG: [CR-ASSET-PIPELINE-0003] 事件只按 ResourceKind 过滤；共享 marker 的不同资产类型会收到彼此的事件与无法读取的类型化句柄。
-    pub fn from_resource_event(event: ResourceEvent) -> Option<Self> {
-        (event.resource_kind == TAsset::Marker::KIND).then(|| {
+    /// Uses the owned concrete identity captured at publication, including Removed events.
+    pub fn from_resource_event(envelope: ResourceEventEnvelope) -> Option<Self> {
+        let matches = envelope.matches_payload::<TAsset>();
+        let event = envelope.into_event();
+        (matches && event.resource_kind == TAsset::Marker::KIND).then(|| {
             let handle = Handle::new(event.id);
             match event.kind {
                 ResourceEventKind::Added => Self::Added {

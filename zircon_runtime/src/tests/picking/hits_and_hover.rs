@@ -240,3 +240,60 @@ fn picking_pipeline_shares_one_sorted_hit_projection_between_hover_and_report() 
     assert!(state.previous_hover().get(pointers[0]).is_empty());
     assert_eq!(output.hover_map.get(pointers[0]).len(), 1);
 }
+
+#[test]
+fn legacy_and_viewport_hit_domains_do_not_merge_or_fallback() {
+    use crate::core::framework::picking::{hovered_hits_for_key, PickingPointerKey};
+    let pointer = PointerId::new(83);
+    let a = RenderViewportHandle::new(821);
+    let b = RenderViewportHandle::new(822);
+    let absent = RenderViewportHandle::new(823);
+    let legacy = HitTarget::renderable(10);
+    let target_a = HitTarget::renderable(20);
+    let target_b = HitTarget::renderable(30);
+    let outputs = [
+        PointerHits::new(pointer, vec![hit(legacy, 0.01)], 100.0),
+        PointerHits::in_viewport(pointer, a, vec![hit(target_a, 0.1)], 0.0),
+        PointerHits::in_viewport(pointer, b, vec![hit(target_b, 0.2)], 0.0),
+    ];
+    let legacy_key = PickingPointerKey::legacy(pointer);
+    let key_a = PickingPointerKey::in_viewport(pointer, a);
+    let key_b = PickingPointerKey::in_viewport(pointer, b);
+    let absent_key = PickingPointerKey::in_viewport(pointer, absent);
+    let hover = PickingHoverMap::from_outputs(&outputs);
+    assert!(sorted_hits_for_pointer(&outputs, pointer).is_empty());
+    assert!(hovered_hits_for_pointer(&outputs, pointer).is_empty());
+    assert!(hover.get(pointer).is_empty());
+    assert!(hover.hit(pointer, legacy).is_none());
+    for (key, target) in [(legacy_key, legacy), (key_a, target_a), (key_b, target_b)] {
+        assert_eq!(
+            hover
+                .get_key(key)
+                .iter()
+                .map(|hit| hit.target)
+                .collect::<Vec<_>>(),
+            vec![target]
+        );
+        assert_eq!(
+            hovered_hits_for_key(&outputs, key)
+                .iter()
+                .map(|hit| hit.target)
+                .collect::<Vec<_>>(),
+            vec![target]
+        );
+        assert!(hover.is_hovered_key(key, target));
+    }
+    assert!(hover.get_key(absent_key).is_empty());
+    assert!(hovered_hits_for_key(&outputs, absent_key).is_empty());
+    let location = PointerLocation::new(pointer, absent, Vec2::new(1.0, 1.0));
+    let input = PointerInput::new(location, PointerAction::Press(PointerButton::Primary));
+    let scoped =
+        PickingEventState::default().dispatch_viewport_frame(hover.clone(), &[location], &[input]);
+    assert!(
+        scoped.is_empty(),
+        "an absent viewport cannot consume legacy or another viewport"
+    );
+    let legacy_events = PickingEventState::default().dispatch_frame(hover, &[location], &[input]);
+    assert!(!legacy_events.is_empty());
+    assert!(legacy_events.iter().all(|event| event.target == legacy));
+}

@@ -1,9 +1,13 @@
+import { assertCurrentCaptureDestination, writeCurrentCaptureFile, captureCurrentScreenshot } from './zui-source-refinement-current';
+import { createLayoutCurrentContext, layoutCurrentSourcePath } from './zui-layout-paths';
+import { prepareCurrentLayoutSnapshot, assertCurrentLayoutSnapshot, assertSeparateCurrentReport } from './zui-source-refinement-current';
+import { withLayoutCatalogLock } from './zui-layout-catalog-lock';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { existsSync } from 'node:fs';
-import { mkdir, readFile, realpath, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, realpath } from 'node:fs/promises';
 import { dirname, isAbsolute, relative, resolve, sep } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { chromium, type FrameLocator, type Page } from 'playwright';
 import { applyZuiExportFileToSourceRoot } from '../src/bridge/zui-export-apply-files.js';
 import {
@@ -31,7 +35,6 @@ import type { LayoutReviewCase } from './zui-layout-review-contract';
 const appRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const penpotRoot = resolve(appRoot, '../../../../third_party/penpot');
 const repoRoot = resolve(process.env['ZUI_LAYOUT_REPO_ROOT'] ?? resolve(penpotRoot, '../..'));
-const catalogPath = resolve(repoRoot, 'docs/_data/layout/catalog.json');
 const mainFrameSourcePath =
   'zircon_editor/assets/ui/editor/host/editor_main_frame.zui';
 const workbenchSourcePath =
@@ -44,15 +47,14 @@ const workbenchNodeId = 'editor_content';
 const workbenchGapPath = 'nodes.editor_content.layout.container.gap';
 const themeSourcePath =
   'zircon_editor/assets/ui/editor/theme/editor_tokens.zui';
-const penpotBaseUrl = new URL(
-  process.env['PENPOT_BASE_URL'] ?? 'https://design.penpot.app',
-).origin;
+
 const importTimeoutMs = 300_000;
 const exportTimeoutMs = 300_000;
 const renderOnly = process.argv.includes('--render-only');
 const authoredOnly = process.argv.includes('--authored-only');
 
-const browserExecutable = [
+function selectedBrowserExecutable() {
+  return [
   process.env['PLAYWRIGHT_CHROMIUM_EXECUTABLE'],
   process.env['ProgramFiles']
     ? resolve(
@@ -69,6 +71,7 @@ const browserExecutable = [
 ].find((candidate): candidate is string =>
   Boolean(candidate && existsSync(candidate)),
 );
+}
 
 interface CatalogEntryForCapture {
   sourcePath: string;
@@ -85,7 +88,11 @@ interface ExportSourceFingerprint {
   sha256: string;
 }
 
-async function main(): Promise<void> {
+export async function main(): Promise<void> {
+const penpotBaseUrl = new URL(
+  process.env['PENPOT_BASE_URL'] ?? 'https://design.penpot.app',
+).origin;
+  const browserExecutable = selectedBrowserExecutable();
   assert.ok(
     !(renderOnly && authoredOnly),
     'Choose either --render-only or --authored-only.',
@@ -107,15 +114,17 @@ async function main(): Promise<void> {
     approvedArtifactRoot,
     'penpot-workbench-export-apply',
   );
-  const appliedSourceRoot = resolve(artifactDirectory, 'applied-sources');
-  await Promise.all([
-    mkdir(artifactDirectory, { recursive: true }),
-    mkdir(appliedSourceRoot, { recursive: true }),
-  ]);
+  const catalogContext = createLayoutCurrentContext({ repoRoot });
+  const reportContext = createLayoutCurrentContext({ repoRoot, outputRoot: approvedArtifactRoot });
+  assertSeparateCurrentReport({ catalog: catalogContext, report: reportContext });
+  const inputSnapshot = await prepareCurrentLayoutSnapshot(catalogContext, [
+    mainFrameSourcePath, workbenchSourcePath, workbenchShellSourcePath, workbenchTabSourcePath, themeSourcePath,
+  ], true);
+  const catalog = inputSnapshot.manifest as LayoutCatalogForCapture;
+  assertCurrentCaptureDestination(reportContext, artifactDirectory);
 
-  const catalog = JSON.parse(
-    await readFile(catalogPath, 'utf8'),
-  ) as LayoutCatalogForCapture;
+  const appliedSourceRoot = resolve(artifactDirectory, 'applied-sources');
+
   const workbenchEntry = catalog.entries.find(
     (entry) => entry.sourcePath === workbenchSourcePath,
   );
@@ -203,6 +212,16 @@ async function main(): Promise<void> {
     'The staged Penpot distribution must contain the current external ZUI plugin bundle.',
   );
   const captureFingerprints = await captureProgramFingerprints(repoRoot);
+  await assertCurrentLayoutSnapshot(inputSnapshot);
+  assertCurrentCaptureDestination(reportContext, artifactDirectory);
+  return withLayoutCatalogLock(reportContext.outputRoot, { command: 'penpot-workbench-export-apply', context: reportContext }, async () => {
+  await assertCurrentLayoutSnapshot(inputSnapshot);
+  assertCurrentCaptureDestination(reportContext, artifactDirectory);
+  assert.equal(sha256(await readFile(resolvePluginBundlePath())), sha256(compiledPluginBundle), 'Plugin changed after preflight');
+  assert.equal(sha256(await readFile(resolve(resolvePluginDistRoot(), 'assets/plugin.js'))), pluginBundleSha256, 'Distribution changed after preflight');
+  await mkdir(artifactDirectory, { recursive: true });
+  await mkdir(appliedSourceRoot, { recursive: true });
+
   const pageErrors: string[] = [];
   const unexpectedRpcs = new Set<string>();
   const browser = await chromium.launch({
@@ -258,11 +277,7 @@ async function main(): Promise<void> {
       artifactDirectory,
       'editor_main_frame.full-workbench.penpot.png',
     );
-    await runtime.page.screenshot({
-      path: hostScreenshotPath,
-      fullPage: true,
-      timeout: exportTimeoutMs,
-    });
+    await captureCurrentScreenshot(runtime.page, reportContext, hostScreenshotPath, { fullPage: true, timeout: exportTimeoutMs });
 
     if (renderOnly) {
       const noEditDownload = await exportSelected(runtime);
@@ -276,7 +291,7 @@ async function main(): Promise<void> {
         artifactDirectory,
         'workbench_window.no-edit-penpot-export.zui',
       );
-      await writeFile(noEditExportPath, noEditExport, 'utf8');
+      await writeCurrentCaptureFile(reportContext, noEditExportPath, noEditExport, 'utf8');
       const fonts = await runtime.fontResources.snapshotRecords();
       assert.deepEqual([...unexpectedRpcs], []);
       assert.deepEqual(pageErrors, []);
@@ -304,7 +319,7 @@ async function main(): Promise<void> {
         artifactDirectory,
         'penpot-full-workbench-render-diagnostic.json',
       );
-      await writeFile(
+      await writeCurrentCaptureFile(reportContext, 
         summaryPath,
         `${JSON.stringify(summary, null, 2)}\n`,
         'utf8',
@@ -324,24 +339,20 @@ async function main(): Promise<void> {
       artifactDirectory,
       'workbench_window.no-edit-penpot-export.zui',
     );
-    await writeFile(noEditExportPath, noEditExport, 'utf8');
+    await writeCurrentCaptureFile(reportContext, noEditExportPath, noEditExport, 'utf8');
 
     const edit = await editWorkbenchSpacingInPenpot(runtime);
     const editedHostScreenshotPath = resolve(
       artifactDirectory,
       'workbench_window.full-workbench-gap-edited.penpot.png',
     );
-    await runtime.page.screenshot({
-      path: editedHostScreenshotPath,
-      fullPage: true,
-      timeout: exportTimeoutMs,
-    });
+    await captureCurrentScreenshot(runtime.page, reportContext, editedHostScreenshotPath, { fullPage: true, timeout: exportTimeoutMs });
     const editedDownload = await exportSelected(runtime);
     const editedExportPath = resolve(
       artifactDirectory,
       'workbench_window.full-workbench-gap-edited.penpot-export.zui',
     );
-    await writeFile(editedExportPath, await readFile(editedDownload));
+    await writeCurrentCaptureFile(reportContext, editedExportPath, await readFile(editedDownload));
 
     const applied = await applyZuiExportFileToSourceRoot({
       exportedPath: editedExportPath,
@@ -402,7 +413,7 @@ async function main(): Promise<void> {
       artifactDirectory,
       'penpot-full-workbench-export-apply-contract.json',
     );
-    await writeFile(
+    await writeCurrentCaptureFile(reportContext, 
       summaryPath,
       `${JSON.stringify(summary, null, 2)}\n`,
       'utf8',
@@ -410,16 +421,21 @@ async function main(): Promise<void> {
     console.log(JSON.stringify({ ...summary, summaryPath }));
   } catch (error) {
     if (runtime)
-      await recordPenpotSessionFailure(runtime, artifactDirectory, error);
+      await recordPenpotSessionFailure(runtime, artifactDirectory, error, reportContext);
     throw error;
   } finally {
     runtime?.fontResources.stop();
     await runtime?.context.close();
     await browser.close();
   }
+  });
 }
 
 async function runAuthoredOnlyDiagnostic(): Promise<void> {
+const penpotBaseUrl = new URL(
+  process.env['PENPOT_BASE_URL'] ?? 'https://design.penpot.app',
+).origin;
+  const browserExecutable = selectedBrowserExecutable();
   const artifactRoot = process.env['ZIRCON_PENPOT_ARTIFACT_ROOT'];
   assert.ok(
     artifactRoot,
@@ -433,11 +449,16 @@ async function runAuthoredOnlyDiagnostic(): Promise<void> {
     approvedArtifactRoot,
     'penpot-workbench-authored-only-diagnostic',
   );
-  await mkdir(artifactDirectory, { recursive: true });
+  const catalogContext = createLayoutCurrentContext({ repoRoot });
+  const reportContext = createLayoutCurrentContext({ repoRoot, outputRoot: approvedArtifactRoot });
+  assertSeparateCurrentReport({ catalog: catalogContext, report: reportContext });
+  const inputSnapshot = await prepareCurrentLayoutSnapshot(catalogContext, [
+    mainFrameSourcePath, workbenchSourcePath, workbenchShellSourcePath, workbenchTabSourcePath, themeSourcePath,
+  ], true);
+  const catalog = inputSnapshot.manifest as LayoutCatalogForCapture;
+  assertCurrentCaptureDestination(reportContext, artifactDirectory);
 
-  const catalog = JSON.parse(
-    await readFile(catalogPath, 'utf8'),
-  ) as LayoutCatalogForCapture;
+
   const workbenchEntry = catalog.entries.find(
     (entry) => entry.sourcePath === workbenchSourcePath,
   );
@@ -488,11 +509,7 @@ async function runAuthoredOnlyDiagnostic(): Promise<void> {
     artifactDirectory,
     'source-closure-manifest.json',
   );
-  await writeFile(
-    sourceClosurePath,
-    `${JSON.stringify(sourceClosure, null, 2)}\n`,
-    'utf8',
-  );
+
   penpotInput['penpot_original_source'] = canonicalSource;
   penpotInput['penpot_original_source_path'] = workbenchSourcePath;
   penpotInput['penpot_source_fingerprints'] = expectedSources;
@@ -508,6 +525,20 @@ async function runAuthoredOnlyDiagnostic(): Promise<void> {
     'The staged Penpot distribution must contain the current external ZUI plugin bundle.',
   );
   const captureFingerprints = await captureProgramFingerprints(repoRoot);
+  await assertCurrentLayoutSnapshot(inputSnapshot);
+  assertCurrentCaptureDestination(reportContext, artifactDirectory);
+  return withLayoutCatalogLock(reportContext.outputRoot, { command: 'penpot-workbench-authored-only', context: reportContext }, async () => {
+  await assertCurrentLayoutSnapshot(inputSnapshot);
+  assertCurrentCaptureDestination(reportContext, artifactDirectory);
+  assert.equal(sha256(await readFile(resolvePluginBundlePath())), sha256(compiledPluginBundle), 'Plugin changed after preflight');
+  assert.equal(sha256(await readFile(resolve(resolvePluginDistRoot(), 'assets/plugin.js'))), pluginBundleSha256, 'Distribution changed after preflight');
+  await mkdir(artifactDirectory, { recursive: true });
+  await writeCurrentCaptureFile(reportContext, 
+    sourceClosurePath,
+    `${JSON.stringify(sourceClosure, null, 2)}\n`,
+    'utf8',
+  );
+
   const pageErrors: string[] = [];
   const unexpectedRpcs = new Set<string>();
   const browser = await chromium.launch({
@@ -562,11 +593,7 @@ async function runAuthoredOnlyDiagnostic(): Promise<void> {
       artifactDirectory,
       'workbench_window.authored-only.penpot.png',
     );
-    await runtime.page.screenshot({
-      path: hostScreenshotPath,
-      fullPage: true,
-      timeout: exportTimeoutMs,
-    });
+    await captureCurrentScreenshot(runtime.page, reportContext, hostScreenshotPath, { fullPage: true, timeout: exportTimeoutMs });
     const noEditDownload = await exportSelected(runtime);
     const noEditExport = await readFile(noEditDownload, 'utf8');
     assert.equal(
@@ -578,7 +605,7 @@ async function runAuthoredOnlyDiagnostic(): Promise<void> {
       artifactDirectory,
       'workbench_window.authored-only.no-edit-export.zui',
     );
-    await writeFile(noEditExportPath, noEditExport, 'utf8');
+    await writeCurrentCaptureFile(reportContext, noEditExportPath, noEditExport, 'utf8');
     const fonts = await runtime.fontResources.snapshotRecords();
     assert.deepEqual([...unexpectedRpcs], []);
     assert.deepEqual(pageErrors, []);
@@ -611,7 +638,7 @@ async function runAuthoredOnlyDiagnostic(): Promise<void> {
       artifactDirectory,
       'penpot-workbench-authored-only-diagnostic.json',
     );
-    await writeFile(
+    await writeCurrentCaptureFile(reportContext, 
       summaryPath,
       `${JSON.stringify(summary, null, 2)}\n`,
       'utf8',
@@ -619,7 +646,7 @@ async function runAuthoredOnlyDiagnostic(): Promise<void> {
     console.log(JSON.stringify({ ...summary, summaryPath }));
   } catch (error) {
     if (runtime) {
-      await recordPenpotSessionFailure(runtime, artifactDirectory, error);
+      await recordPenpotSessionFailure(runtime, artifactDirectory, error, reportContext);
     } else {
       const startupScreenshotPath = resolve(
         artifactDirectory,
@@ -658,7 +685,7 @@ async function runAuthoredOnlyDiagnostic(): Promise<void> {
           : null,
         persistenceVerified: false,
       };
-      await writeFile(
+      await writeCurrentCaptureFile(reportContext, 
         summaryPath,
         `${JSON.stringify(summary, null, 2)}\n`,
         'utf8',
@@ -671,6 +698,7 @@ async function runAuthoredOnlyDiagnostic(): Promise<void> {
     await runtime?.context.close();
     await browser.close();
   }
+  });
 }
 
 async function captureBrowserRuntime(page: Page): Promise<{
@@ -917,7 +945,7 @@ async function sourceFingerprintsForPaths(
   return await Promise.all(
     uniquePaths.map(async (sourcePath) => ({
       sourcePath,
-      sha256: sha256(await readFile(resolve(repoRoot, sourcePath))),
+      sha256: sha256(await readFile(layoutCurrentSourcePath(createLayoutCurrentContext({ repoRoot }), sourcePath))),
     })),
   );
 }
@@ -1078,6 +1106,7 @@ function sha256(value: Buffer | string): string {
   return createHash('sha256').update(value).digest('hex');
 }
 
+if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href)
 void main().catch((error: unknown) => {
   console.error(
     error instanceof Error ? (error.stack ?? error.message) : String(error),

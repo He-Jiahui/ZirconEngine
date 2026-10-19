@@ -209,9 +209,9 @@ def ecs_kernel_data_boundary_audit(root: Path) -> dict[str, object]:
     doc_paths = (
         root / "docs/plans/zircon_runtime/runtime/08-ecs-kernel-data-alignment.md",
         root / "docs/plans/zircon_runtime/runtime/index.md",
-        root / "docs/zircon_runtime/scene/ecs.md",
-        root / "docs/engine-architecture/runtime-interface-convergence.md",
-        root / "docs/engine-architecture/runtime-architecture-review-m0.md",
+        root / "docs/crates/zircon_runtime/scene/ecs.md",
+        root / "docs/architecture/runtime-interface-convergence.md",
+        root / "docs/architecture/runtime-architecture-review-m0.md",
     )
     doc_sources = tuple(_read_text(path) for path in doc_paths if path.exists())
 

@@ -1,4 +1,5 @@
 //! 代码审查回归护栏核对已迁移接口、错误边界、插件入口及镜像状态。以结果断言检查当前接口或源码快照对应的边界。
+use crate::tests::runtime_absorption::structure_convention::fixed_history_archive_source as history;
 #[test]
 fn review_f8_first_party_runtime_plugin_descriptors_use_builder() {
     let plugin_sources = [
@@ -75,9 +76,35 @@ fn review_f8_first_party_runtime_plugin_descriptors_use_builder() {
         "F8 first-party runtime plugin descriptor migration should enumerate every production runtime plugin"
     );
 
+    let declarations = [
+        ("AI_DECLARATION", "RUNTIME_CRATE_NAME"),
+        ("ANIMATION_DECLARATION", "RUNTIME_CRATE_NAME"),
+        ("HYBRID_GI_DECLARATION", "RUNTIME_CRATE_NAME"),
+        ("NAVIGATION_DECLARATION", "RUNTIME_CRATE_NAME"),
+        ("NET_DECLARATION", "RUNTIME_CRATE_NAME"),
+        ("PARTICLES_DECLARATION", "RUNTIME_CRATE_NAME"),
+        ("PHYSICS_DECLARATION", "RUNTIME_CRATE_NAME"),
+        ("PREFAB_TOOLS_DECLARATION", "RUNTIME_CRATE_NAME"),
+        ("RENDERING_DECLARATION", "RUNTIME_CRATE_NAME"),
+        ("SOLARI_DECLARATION", "RUNTIME_CRATE_NAME"),
+        ("SOUND_DECLARATION", "RUNTIME_CRATE_NAME"),
+        ("TERRAIN_DECLARATION", "RUNTIME_CRATE_NAME"),
+        ("TEXTURE_PLUGIN_DECLARATION", "TEXTURE_RUNTIME_CRATE_NAME"),
+        ("TILEMAP_2D_DECLARATION", "RUNTIME_CRATE_NAME"),
+        ("VIRTUAL_GEOMETRY_DECLARATION", "RUNTIME_CRATE_NAME"),
+        ("ZR_VM_LANGUAGE_DECLARATION", "RUNTIME_CRATE_NAME"),
+    ];
+    for ((name, source), (declaration, crate_name)) in plugin_sources.iter().zip(declarations) {
+        let compact: String = source.split_whitespace().collect();
+        assert!(
+            compact.contains(&format!("{declaration}.runtime_declaration({crate_name})")),
+            "{name} descriptor must use its own named declaration"
+        );
+    }
+
     for (name, source) in plugin_sources {
         assert!(
-            source.contains("RuntimePluginDescriptor::builder("),
+            source.contains(".runtime_declaration("),
             "first-party runtime plugin `{name}` should construct descriptors through the builder"
         );
         assert!(
@@ -85,20 +112,46 @@ fn review_f8_first_party_runtime_plugin_descriptors_use_builder() {
             "first-party runtime plugin `{name}` should not keep the old descriptor constructor"
         );
         assert!(
-            source.contains(".build()"),
-            "first-party runtime plugin `{name}` should finish descriptor construction with build()"
+            source.contains(".into_descriptor()"),
+            "first-party runtime plugin `{name}` should finish the SDK declaration through into_descriptor()"
         );
     }
 
-    let review_findings = concat!(
-        include_str!("../../../../../docs/plans/engine-code-review-findings-2026-06.md"),
-        include_str!("../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md")
+    let declaration = include_str!("../../../../../zircon_plugins/plugin_sdk/src/declaration.rs");
+    let runtime = include_str!("../../../../../zircon_plugins/plugin_sdk/src/runtime.rs");
+    for required in [
+        "pub fn runtime_declaration(self, crate_name: impl Into<String>)",
+        "RuntimePluginDeclaration::new(self.id, self.display_name, runtime_id, crate_name)",
+        ".with_target_modes(self.target_modes())",
+    ] {
+        assert!(
+            declaration.contains(required),
+            "SDK declaration missing {required}"
+        );
+    }
+    for required in [
+        "builder: RuntimePluginDescriptor::builder(",
+        "pub fn into_descriptor(self) -> RuntimePluginDescriptor",
+        "self.builder.build()",
+    ] {
+        assert!(
+            runtime.contains(required),
+            "SDK runtime declaration missing {required}"
+        );
+    }
+
+    let review_findings = crate::runtime_test_history_concat!(
+        include_str!("../../../../../docs/architecture/runtime-architecture-review-m0.md"),
+        history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md")
     );
     let runtime_06_plan = include_str!(
-        "../../../../../docs/plans/zircon_runtime/runtime/06-plugin-surface-and-lifecycle.md"
+        "../../../../../docs/testing-and-validation/runtime-plugin-validation-worklist.md"
     );
-    let runtime_index = include_str!("../../../../../docs/plans/zircon_runtime/runtime/index.md");
-    let convention = include_str!("../../../../../docs/plans/engine-code-structure-convention.md");
+    let runtime_index = include_str!(
+        "../../../../../docs/crates/zircon_runtime/structure/runtime-absorption-evidence.md"
+    );
+    let convention =
+        include_str!("../../../../../docs/testing-and-validation/development-conventions.md");
     let package_manifest_doc =
         include_str!("../../../../../docs/crates/zircon_runtime/plugin/package_manifest.md");
     let first_party_catalog_doc =

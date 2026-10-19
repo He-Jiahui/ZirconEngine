@@ -6,9 +6,9 @@ pub(super) fn assert_owner_budget_split_route(sources: &OwnerBudgetSources) {
         "owner-budget split-layout route",
         sources.owner_budget_split_layout,
         &[
-            "#[path = \"split_layout/route.rs\"]",
-            "#[path = \"split_layout/source_inventory.rs\"]",
-            "#[path = \"split_layout/status_docs.rs\"]",
+            "#[path = \"../../split_layout/owner_budget_route.rs\"]",
+            "#[path = \"../../split_layout/owner_budget_source_inventory.rs\"]",
+            "#[path = \"../../split_layout/owner_budget_status_docs.rs\"]",
             "runtime_15_runtime_07_owner_budget_guard_folder_backed_split",
             "route::assert_owner_budget_split_layout(&sources);",
             "source_inventory::assert_owner_budget_source_inventory(&sources);",

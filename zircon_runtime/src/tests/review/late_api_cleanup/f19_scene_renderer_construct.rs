@@ -1,4 +1,5 @@
 //! 代码审查回归护栏核对已迁移接口、错误边界、插件入口及镜像状态。以结果断言检查当前接口或源码快照对应的边界。
+use crate::tests::runtime_absorption::structure_convention::fixed_history_archive_source as history;
 #[test]
 fn review_f19_scene_renderer_construction_modules_use_construct_names() {
     let core_mod = include_str!("../../../graphics/scene/renderer/core/mod.rs");
@@ -13,15 +14,16 @@ fn review_f19_scene_renderer_construction_modules_use_construct_names() {
         include_str!("../../../graphics/scene/core/scene_renderer_construct/construct.rs");
     let renderer_construct_new_with_icon_source =
         include_str!("../../../graphics/scene_renderer_construct/new_with_icon_source.rs");
-    let review_findings = concat!(
-        include_str!("../../../../../docs/plans/engine-code-review-findings-2026-06.md"),
-        include_str!("../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md")
+    let review_findings = crate::runtime_test_history_concat!(
+        include_str!("../../../../../docs/architecture/runtime-architecture-review-m0.md"),
+        history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md")
     );
-    let convention = include_str!("../../../../../docs/plans/engine-code-structure-convention.md");
-    let render_index = include_str!("../../../../../docs/plans/zircon_runtime/render/index.md");
-    let runtime_15 = include_str!(
-        "../../../../../docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md"
-    );
+    let convention =
+        include_str!("../../../../../docs/testing-and-validation/development-conventions.md");
+    let render_index =
+        include_str!("../../../../../docs/crates/zircon_runtime/graphics/pipeline-registration.md");
+    let runtime_15 =
+        include_str!("../../../../../docs/crates/zircon_runtime/structure/module-convention.md");
     let shadow_doc = include_str!(
         "../../../../../docs/crates/zircon_runtime/graphics/scene/scene_renderer/shadow.md"
     );
@@ -42,13 +44,12 @@ fn review_f19_scene_renderer_construction_modules_use_construct_names() {
         "F19 numbered output should record scene renderer construction naming review closed status"
     );
 
-    let core_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("src/graphics/scene/scene_renderer/core");
+    let core_dir =
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src/graphics/scene/renderer/core");
     let old_core_construct_owner = ["scene_renderer_core", "new"].join("_");
     let old_renderer_construct_owner = ["scene_renderer", "new"].join("_");
     assert!(
-        core_dir.join("scene_renderer_core_construct").is_dir()
-            && core_dir.join("scene_renderer_construct").is_dir(),
+        core_dir.join("construct").is_dir() && core_dir.join("scene_renderer_construct").is_dir(),
         "F19 scene renderer construction owners should live in construct-named directories"
     );
     assert!(
@@ -57,6 +58,18 @@ fn review_f19_scene_renderer_construction_modules_use_construct_names() {
         "F19 should hard-cut old *_new construction directories instead of keeping migration paths"
     );
 
+    assert!(
+        core_mod
+            .replace("\r\n", "\n")
+            .contains("#[path = \"construct/mod.rs\"]\nmod scene_renderer_core_construct;"),
+        "exact current module mount in graphics/scene/renderer/core/mod.rs"
+    );
+    assert!(
+        core_mod.replace("\r\n", "\n").contains(
+            "#[path = \"scene_renderer_construct/mod.rs\"]\nmod scene_renderer_construct;"
+        ),
+        "exact current module mount in graphics/scene/renderer/core/mod.rs"
+    );
     for required in [
         "mod scene_renderer_core_construct;",
         "mod scene_renderer_construct;",

@@ -1,4 +1,5 @@
 //! 插件公开面、原生装载命名空间与生命周期回退保持分离。对照源文件与文档的当前锚点，记录尚待运行验证的结构约束。
+use crate::tests::runtime_absorption::structure_convention::fixed_history_archive_source as history;
 use std::collections::BTreeSet;
 use std::path::Path;
 
@@ -36,14 +37,14 @@ fn runtime_06_plugin_surface_lifecycle_mirror_docs_match_structure_audit_counts(
     }
 
     let plan_doc = include_str!(
-        "../../../../../docs/plans/zircon_runtime/runtime/06-plugin-surface-and-lifecycle.md"
+        "../../../../../docs/testing-and-validation/runtime-plugin-validation-worklist.md"
     );
     assert!(
         plan_doc.contains("status: in_progress"),
         "Runtime 06 should stay in_progress until plugin/native/app/plugins validation closes"
     );
     assert!(
-        plan_doc.contains("last_refined: 2026-08-24"),
+        plan_doc.contains("last_refined: 2026-08-27"),
         "Runtime 06 last_refined should cover the latest mirror-doc row"
     );
 
@@ -60,14 +61,21 @@ fn runtime_06_plugin_surface_lifecycle_mirror_docs_match_structure_audit_counts(
     let native_namespace_symbols = native_plugin_namespace_reexport_symbols();
     assert_eq!(
         native_namespace_symbols.len(),
-        68,
+        92,
         "native plugin namespace re-export count changed; update native_plugin_public_surface and Runtime 06 mirror docs"
     );
     for required_symbol in [
         "NativePluginAbiV3",
         "NativePluginBridgeMethodTableV3",
         "NativeHostBridgeCallScope",
-        "NativePluginLoader",
+        "NativePluginLoadReport",
+        "NativePluginProjectActivationCleanupReceipt",
+        "NativePluginProjectActivationRequest",
+        "NativePluginProjectActivationResult",
+        "NativePluginProjectActivationSelection",
+        "NativePluginProjectActivationSelectionResult",
+        "NativePluginProjectActivationSelectionStatus",
+        "VerifiedNativePackageProof",
         "ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_SYMBOL_V3",
     ] {
         assert!(
@@ -85,15 +93,24 @@ fn runtime_06_plugin_surface_lifecycle_mirror_docs_match_structure_audit_counts(
     );
     assert_eq!(
         app_native_plugin_files.len(),
-        7,
+        5,
         "zircon_app NativePlugin call-site file count changed without Runtime 06 audit sync"
     );
 
+    let expected_app_native_plugin_files = BTreeSet::from([
+        "zircon_app/src/entry/export_bootstrap.rs".to_string(),
+        "zircon_app/src/entry/product_composition/composition.rs".to_string(),
+        "zircon_app/src/entry/product_composition/ownership.rs".to_string(),
+        "zircon_app/src/entry/product_composition/request.rs".to_string(),
+        "zircon_app/src/entry/tests/profile_bootstrap.rs".to_string(),
+    ]);
+    assert_eq!(
+        app_native_plugin_files, expected_app_native_plugin_files,
+        "Runtime 06 should enumerate every reviewed production and test NativePlugin consumer"
+    );
+
     let native_loader_v1_v2_files = files_containing(
-        &runtime_root
-            .join("src")
-            .join("plugin")
-            .join("native_plugin_loader"),
+        &runtime_root.join("src").join("plugin").join("loader"),
         V1_V2_PATTERNS,
     );
     assert_eq!(
@@ -122,19 +139,15 @@ fn runtime_06_plugin_surface_lifecycle_mirror_docs_match_structure_audit_counts(
         "export_build_plan should not reference retired native ABI V1/V2 symbols"
     );
 
-    let runtime_06_status = concat!(
+    let runtime_06_status = crate::runtime_test_history_concat!(
         include_str!(
-            "../../../../../docs/plans/zircon_runtime/runtime/06-plugin-surface-and-lifecycle.md"
+            "../../../../../docs/testing-and-validation/runtime-plugin-validation-worklist.md"
         ),
-        include_str!(
-            "../../../../../docs/plans/zircon_runtime/runtime/06/2026-07-09-plugin-surface-and-lifecycle-output-records.md"
-        )
+        history("docs/plans/zircon_runtime/runtime/06/2026-07-09-plugin-surface-and-lifecycle-output-records.md")
     );
-    let runtime_index_status = concat!(
-        include_str!("../../../../../docs/plans/zircon_runtime/runtime/index.md"),
-        include_str!(
-            "../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md"
-        )
+    let runtime_index_status = crate::runtime_test_history_concat!(
+        include_str!("../../../../../docs/crates/zircon_runtime/structure/runtime-absorption-evidence.md"),
+        history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md")
     );
     let mirror_docs = [
         ("Runtime 06 status", runtime_06_status),
@@ -160,17 +173,17 @@ fn runtime_06_plugin_surface_lifecycle_mirror_docs_match_structure_audit_counts(
             "expected_doc_file_count = 5",
             "fallback lifecycle failure tests 4/4",
             "root_reexport_count = 0",
-            "native_namespace_reexport_count = 68",
+            "native_namespace_reexport_count = 92",
             "native root re-export 0/0",
-            "native namespace re-export 68/68",
+            "native namespace re-export 92/92",
             "M4 gate `classified-and-clear`",
             "debt groups 0/0",
             "native namespace symbol groups 6/6",
             "unclassified native root symbols 0/0",
             "unclassified native namespace symbols 0/0",
             "root public native re-export locations 0/0",
-            "public native namespace re-export locations 1/1",
-            "app NativePlugin current call-site files: 7",
+            "public native namespace re-export locations 2/2",
+            "app NativePlugin current call-site files: 5",
             "native loader V1/V2 implementation files 0/0",
             "`zircon_plugins` V1/V2 usage files 0/0",
             "export_build_plan V1/V2 usage 0/0",

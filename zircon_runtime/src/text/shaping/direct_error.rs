@@ -1,6 +1,6 @@
 //! 直接成形错误的阶段信息及横竖排共用的 glyph 前置检查。
 //!
-//! 错误按值交给失败回执分类器；本模块不执行字体后端调用或回退。
+//! 错误由失败回执分类器借用以生成诊断；本模块不执行字体后端调用或回退。
 //! 检查只同步借用 glyph 与分段文本；度量字段的选择和 cluster 顺序恢复由调用方负责。
 
 use crate::text::{FontFaceId, TextRange};
@@ -38,7 +38,7 @@ pub(in crate::text::shaping) enum DirectShapeError {
     /// 保存直接转换而来的双向文本不变量错误，分类时仍能区分该阶段。
     #[error("text bidi invariant failed: {0:?}")]
     BidiInvariant(BidiInvariantError),
-    /// 保存后端调用失败及其诊断范围；是否尝试替代后端由后续分类器决定。
+    /// 保存后端调用失败及其诊断范围；是否尝试替代后端由后续消费方决定。
     #[error("direct shaping backend failed at {range:?}: {source}")]
     Backend {
         /// 调用者提供的诊断范围；构造时不检查它与后端错误是否对应。

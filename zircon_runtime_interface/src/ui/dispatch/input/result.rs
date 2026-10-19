@@ -13,6 +13,7 @@ use super::{
 use crate::ui::layout::UiPoint;
 use crate::ui::surface::{UiHitPath, UiPointerRoutingPath};
 use crate::ui::text::UiRichLinkTarget;
+use crate::ui::tree::UiCursor;
 use crate::ui::widget::UiWidgetEvent;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -238,6 +239,7 @@ pub enum UiDispatchHostRequestKind {
         #[serde(rename = "href")]
         link_target: UiRichLinkTarget,
     },
+    Cursor(UiCursor),
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

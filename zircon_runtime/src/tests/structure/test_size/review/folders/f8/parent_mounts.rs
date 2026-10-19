@@ -9,11 +9,11 @@ pub(super) fn assert_f8_api_convergence_parent_mounts_child_owners(
         "F8 API convergence parent only mounts focused child review guard owners",
         &sources.f8_api_convergence,
         &[
-            "#[path = \"f8_api_convergence/texture_import_settings.rs\"]",
+            "#[path = \"../../review/f8_api_convergence/texture_import_settings.rs\"]",
             "mod texture_import_settings;",
-            "#[path = \"f8_api_convergence/descriptor_builder.rs\"]",
+            "#[path = \"../../review/f8_api_convergence/descriptor_builder.rs\"]",
             "mod descriptor_builder;",
-            "#[path = \"f8_api_convergence/descriptor_privacy.rs\"]",
+            "#[path = \"../../review/f8_api_convergence/descriptor_privacy.rs\"]",
             "mod descriptor_privacy;",
         ],
     );

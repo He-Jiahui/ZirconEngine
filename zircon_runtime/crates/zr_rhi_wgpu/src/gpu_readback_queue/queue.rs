@@ -731,14 +731,14 @@ fn validate_range(range: &Range<u64>) -> Result<(), ReadbackError> {
         });
     }
     let byte_len = range.end - range.start;
-    let alignment = u64::from(wgpu::COPY_BUFFER_ALIGNMENT);
-    if range.start % alignment != 0 {
+    let alignment = wgpu::COPY_BUFFER_ALIGNMENT;
+    if !range.start.is_multiple_of(alignment) {
         return Err(ReadbackError::UnalignedSourceOffset {
             source_offset: range.start,
             alignment,
         });
     }
-    if byte_len % alignment != 0 {
+    if !byte_len.is_multiple_of(alignment) {
         return Err(ReadbackError::UnalignedCopySize {
             byte_len,
             alignment,

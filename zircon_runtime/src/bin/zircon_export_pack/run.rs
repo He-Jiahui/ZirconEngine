@@ -326,19 +326,22 @@ fn deterministic_double_run(
     if !enabled {
         return Ok(false);
     }
-    let second = match ZrPackWriter::write_files(
+    let second = ZrPackWriter::write_files(
         pack_sources
             .iter()
             .map(|source| (source.path.as_str(), source.source.as_path())),
-    ) {
-        Ok(report) => report,
-        Err(error) => {
-            diagnostics.push(format!(
-                "deterministic pack comparison source read failed: {error}"
-            ));
-            return Ok(false);
+    )
+    .map_err(|error| match error {
+        crate::pack::ZrPackFileWriteError::Pack(source) => {
+            ExportPackError::DeterministicComparisonWrite { source }
         }
-    };
+        crate::pack::ZrPackFileWriteError::ReadSource { path, source } => {
+            ExportPackError::DeterministicComparisonReadSource { path, source }
+        }
+        crate::pack::ZrPackFileWriteError::SourceChanged { path } => {
+            ExportPackError::DeterministicComparisonSourceChanged { path }
+        }
+    })?;
     if second.bytes != first_bytes {
         diagnostics.push("deterministic pack double-run byte comparison failed".to_string());
         return Ok(false);

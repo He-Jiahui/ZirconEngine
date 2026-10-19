@@ -24,7 +24,7 @@ impl SceneFrameHistoryTextures {
             .then(|| create_taa_scene_color_history(device, size));
         let global_illumination = requirements
             .hybrid_global_illumination()
-            .then(|| GlobalIlluminationHistory::new(device, size));
+            .then(|| GlobalIlluminationHistory::new(device, render_size));
         let screen_space_reflection = requirements
             .screen_space_reflection()
             .then(|| ScreenSpaceReflectionHistory::new(device, size));
@@ -93,7 +93,7 @@ impl SceneFrameHistoryTextures {
             .then(|| {
                 requirements
                     .hybrid_global_illumination()
-                    .then(|| GlobalIlluminationHistory::new(device, size))
+                    .then(|| GlobalIlluminationHistory::new(device, render_size))
             });
         let screen_space_reflection = changes
             .changed(SceneHistoryDomain::ScreenSpaceReflection)

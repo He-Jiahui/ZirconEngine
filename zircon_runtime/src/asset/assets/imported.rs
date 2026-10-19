@@ -52,6 +52,46 @@ pub enum ImportedAsset {
 }
 
 impl ImportedAsset {
+    /// Obtains the contained concrete type before importer payload erasure or residency filtering.
+    pub(crate) fn payload_type(&self) -> crate::core::resource::ResourcePayloadType {
+        fn concrete<T: 'static>(_: &T) -> crate::core::resource::ResourcePayloadType {
+            crate::core::resource::ResourcePayloadType::of::<T>()
+        }
+        match self {
+            Self::Data(asset) => concrete(asset),
+            Self::Texture(asset) => concrete(asset),
+            Self::Shader(asset) => concrete(asset),
+            Self::Material(asset) => concrete(asset),
+            Self::MaterialGraph(asset) => concrete(asset),
+            Self::Sound(asset) => concrete(asset),
+            Self::Font(asset) => concrete(asset),
+            Self::PhysicsMaterial(asset) => concrete(asset),
+            Self::NavMesh(asset) => concrete(asset),
+            Self::NavigationSettings(asset) => concrete(asset),
+            Self::Terrain(asset) => concrete(asset),
+            Self::TerrainLayerStack(asset) => concrete(asset),
+            Self::TileSet(asset) => concrete(asset),
+            Self::TileMap(asset) => concrete(asset),
+            Self::Prefab(asset) => concrete(asset),
+            Self::Scene(asset) => concrete(asset),
+            Self::Model(asset) => concrete(asset),
+            Self::Mesh(asset) => concrete(asset),
+            Self::AnimationSkeleton(asset) => concrete(asset),
+            Self::AnimationClip(asset) => concrete(asset),
+            Self::AnimationSequence(asset) => concrete(asset),
+            Self::AnimationGraph(asset) => concrete(asset),
+            Self::AnimationStateMachine(asset) => concrete(asset),
+            Self::UiLayout(asset) => concrete(asset),
+            Self::UiWidget(asset) => concrete(asset),
+            Self::UiStyle(asset) => concrete(asset),
+            Self::UiTheme(asset) => concrete(asset),
+            Self::UiIcon(asset) => concrete(asset),
+            Self::UiV2View(asset) => concrete(asset),
+            Self::UiV2Component(asset) => concrete(asset),
+            Self::UiV2Style(asset) => concrete(asset),
+        }
+    }
+
     pub(crate) fn into_resource_data(self) -> Arc<dyn ResourceData> {
         match self {
             Self::Data(asset) => Arc::new(asset),

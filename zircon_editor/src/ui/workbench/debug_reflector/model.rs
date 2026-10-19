@@ -367,7 +367,7 @@ fn render_visualizer_section(snapshot: &UiSurfaceDebugSnapshot) -> EditorUiDebug
         lines: vec![
             format!("paint elements: {}", stats.paint_element_count),
             format!("batch groups: {}", stats.batch_group_count),
-            format!("draw calls: {}", stats.draw_call_count),
+            format!("estimated draw calls: {}", stats.draw_call_count),
             format!(
                 "overlays: {} records={} overdraw_regions={} resources={}",
                 stats.overlay_count,

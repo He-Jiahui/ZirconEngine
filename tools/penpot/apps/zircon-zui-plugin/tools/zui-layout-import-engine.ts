@@ -1,6 +1,9 @@
-import { resolveLayoutCatalogPath } from './zui-layout-paths';
+import { assertLayoutCurrentRoots, createLayoutCurrentContext, layoutCurrentOutputPath, layoutCurrentSourcePath, type LayoutCurrentContext } from './zui-layout-paths';
+import { assertCurrentLayoutOutputCatalog, readCurrentLayoutOutputCatalog } from './zui-layout-gallery';
+import { requireApprovedPenpotArtifactFile } from './zui-layout-artifact-path';
+import { existsSync, realpathSync } from 'node:fs';
 import { copyFile, readFile, writeFile } from 'node:fs/promises';
-import { dirname, resolve } from 'node:path';
+import { isAbsolute, relative, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import {
   type CatalogManifest,
@@ -53,11 +56,19 @@ function primaryEngineEvidence(
 }
 
 // Validate the complete incoming batch before replacing any capture records.
-export async function importEngineReport(
+async function validateEngineReport(
   manifest: CatalogManifest,
   value: unknown,
   catalogRoot: string,
-): Promise<void> {
+  context?: LayoutCurrentContext,
+): Promise<NativeReport> {
+  if (context) {
+    assertLayoutCurrentRoots(context, manifest.repoRoot, catalogRoot);
+    assertCurrentLayoutOutputCatalog(context, manifest);
+    const identity = value as { role?: string; historical_only?: boolean } | null;
+    if (identity?.historical_only || (identity?.role !== undefined && identity.role !== 'current'))
+      throw new Error('Historical or package native report cannot be imported as current');
+  }
   const report = value as NativeReport;
   if (
     report?.schema !== 'dev.zircon.zui.native-evidence' ||
@@ -121,13 +132,30 @@ export async function importEngineReport(
         !item.textSha256)
     )
       throw new Error(`Native capture lacks geometry or text: ${identity}`);
+    if (context) {
+      layoutCurrentSourcePath(context, item.rendererPath);
+      for (const path of [item.screenshotPath, item.geometryPath, item.textPath])
+        if (path) layoutCurrentOutputPath(context, path);
+    }
     await verifyCurrentFiles(
       { ...entry, penpotEvidence: [], engineEvidence: [item] },
       manifest.repoRoot,
       catalogRoot,
       false,
+      context,
     );
   }
+  return report;
+}
+
+// The optional current context preserves the existing three-argument API.
+export async function importEngineReport(
+  manifest: CatalogManifest,
+  value: unknown,
+  catalogRoot: string,
+  context?: LayoutCurrentContext,
+): Promise<void> {
+  const report = await validateEngineReport(manifest, value, catalogRoot, context);
   for (const item of report.evidence) {
     const entry = manifest.entries.find(
       (entry) => entry.sourcePath === item.sourcePath,
@@ -147,50 +175,52 @@ export async function importEngineReport(
   for (const entry of manifest.entries) {
     const primary = primaryEngineEvidence(entry);
     if (!primary) continue;
-    const source = containedPath(catalogRoot, primary.screenshotPath);
-    const destination = containedPath(catalogRoot, entry.previewPath);
+    const source = context ? layoutCurrentOutputPath(context, primary.screenshotPath) : containedPath(catalogRoot, primary.screenshotPath);
+    const destination = context ? layoutCurrentOutputPath(context, entry.previewPath) : containedPath(catalogRoot, entry.previewPath);
     if (source !== destination) await copyFile(source, destination);
   }
 }
 
-async function main() {
-  const [catalogPath, reportPath] = process.argv.slice(2);
+export async function runCurrentLayoutEngineImport(args: string[]): Promise<void> {
+  const context = createLayoutCurrentContext();
+  const [catalogPath, reportPath] = args;
   if (!catalogPath || !reportPath)
     throw new Error('Expected catalog.json and engine-report.json paths');
-  const catalogRoot = dirname(resolve(catalogPath));
-  await withLayoutCatalogLock(
-    catalogRoot,
-    {
-      command: `zui-layout-import-engine ${process.argv.slice(2).join(' ')}`,
-    },
-    async () => {
-      const manifest = JSON.parse(
-        await readFile(resolve(catalogPath), 'utf8'),
-      ) as CatalogManifest;
-      await importEngineReport(
-        manifest,
-        JSON.parse(await readFile(resolve(reportPath), 'utf8')),
-        catalogRoot,
-      );
-      await writeFile(
-        resolve(catalogPath),
-        `${JSON.stringify(manifest, null, 2)}\n`,
-      );
-      for (const entry of manifest.entries)
-        await writeFile(
-          containedPath(catalogRoot, entry.resultPath),
-          renderResult(entry),
-        );
-      await writeFile(resolveLayoutCatalogPath(catalogRoot, 'index.md'), renderIndex(manifest));
-    },
-  );
+  const currentCatalog = layoutCurrentOutputPath(context, 'catalog.json');
+  if (resolve(catalogPath) !== currentCatalog)
+    throw new Error('Engine import requires the current output catalog identity');
+  const load = async () => {
+    const reportFile = requireApprovedPenpotArtifactFile(reportPath, 'Current engine report');
+    const archive = process.env['ZIRCON_DOCS_HISTORY_ARCHIVE_ROOT'];
+    if (archive?.trim()) {
+      const history = existsSync(archive) ? realpathSync.native(archive) : resolve(archive);
+      const suffix = relative(history, realpathSync.native(reportFile));
+      if (!isAbsolute(suffix) && suffix !== '..' && !/^\.\.[/\\]/.test(suffix))
+        throw new Error('Historical archive report cannot be imported as current');
+    }
+    const { manifest } = await readCurrentLayoutOutputCatalog(context);
+    const report: unknown = JSON.parse(await readFile(reportFile, 'utf8'));
+    await validateEngineReport(manifest, report, context.outputRoot, context);
+    return { manifest, report };
+  };
+  await load();
+  await withLayoutCatalogLock(context.outputRoot, {
+    command: `zui-layout-import-engine ${args.join(' ')}`, context,
+  }, async () => {
+    const { manifest, report } = await load();
+    await importEngineReport(manifest, report, context.outputRoot, context);
+    await writeFile(currentCatalog, `${JSON.stringify(manifest, null, 2)}\n`);
+    for (const entry of manifest.entries)
+      await writeFile(layoutCurrentOutputPath(context, entry.resultPath), renderResult(entry, context));
+    await writeFile(layoutCurrentOutputPath(context, 'index.md'), renderIndex(manifest, context));
+  });
 }
 
 if (
   process.argv[1] &&
   import.meta.url === pathToFileURL(resolve(process.argv[1])).href
 )
-  void main().catch((error: unknown) => {
+  void runCurrentLayoutEngineImport(process.argv.slice(2)).catch((error: unknown) => {
     console.error(error);
     process.exitCode = 1;
   });

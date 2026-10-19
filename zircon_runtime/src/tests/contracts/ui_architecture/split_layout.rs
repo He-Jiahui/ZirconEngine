@@ -1,33 +1,37 @@
 //! 运行时界面结构和历史命名迁移需遵守架构与文档边界。通过源码文本核对父子路由、状态镜像和文件预算。
+use crate::tests::runtime_absorption::structure_convention::fixed_history_archive_source as history;
 const PARENT_SOURCE: &str = include_str!("../ui_architecture.rs");
 const ARCHITECTURE_BOUNDARIES_SOURCE: &str = include_str!("architecture_boundaries.rs");
 const LEGACY_RENAMES_SOURCE: &str = include_str!("legacy_renames.rs");
 const MIRROR_DOCS_SOURCE: &str = include_str!("mirror_docs.rs");
+const CURRENT_INVENTORY_SOURCE: &str = include_str!("architecture_boundaries/current_inventory.rs");
 const SUPPORT_SOURCE: &str = include_str!("support.rs");
 const SPLIT_LAYOUT_SOURCE: &str = include_str!("split_layout.rs");
 
 const FRAMEWORKS_02_PLAN: &str =
-    include_str!("../../../../../docs/plans/zircon_runtime/frameworks/02-module-kernel-and-lifecycle-unification.md");
-const RUNTIME_15_PLAN: &str = include_str!(
-    "../../../../../docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md"
+    include_str!("../../../../../docs/crates/zircon_runtime/core/modules.md");
+const RUNTIME_15_PLAN: &str =
+    include_str!("../../../../../docs/crates/zircon_runtime/structure/module-convention.md");
+const RUNTIME_INDEX: &str = include_str!(
+    "../../../../../docs/crates/zircon_runtime/structure/runtime-absorption-evidence.md"
 );
-const RUNTIME_INDEX: &str =
-    include_str!("../../../../../docs/plans/zircon_runtime/runtime/index.md");
 const STRUCTURE_CONVENTION_PLAN: &str =
-    include_str!("../../../../../docs/plans/engine-code-structure-convention.md");
+    include_str!("../../../../../docs/testing-and-validation/development-conventions.md");
 const REVIEW_FINDINGS_PLAN: &str =
-    include_str!("../../../../../docs/plans/engine-code-review-findings-2026-06.md");
+    include_str!("../../../../../docs/architecture/runtime-architecture-review-m0.md");
 const MODULE_CONVENTION_DOC: &str =
     include_str!("../../../../../docs/crates/zircon_runtime/structure/module-convention.md");
 #[rustfmt::skip]
-const NUMBERED_STATUS_RECORDS: &str = concat!(
-    include_str!("../../../../../docs/plans/zircon_runtime/runtime/09/2026-07-09-ui-subsystem-architecture-output-records.md"),
-    include_str!("../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md"),
-    include_str!("../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md"),
-    include_str!("../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"),
-    include_str!("../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md"),
-    include_str!("../../../../../docs/plans/zircon_runtime/frameworks/02/2026-07-09-module-kernel-and-lifecycle-unification-output-records.md")
-);
+fn numbered_status_records() -> &'static str {
+    crate::runtime_test_history_concat!(
+    history("docs/plans/zircon_runtime/runtime/09/2026-07-09-ui-subsystem-architecture-output-records.md"),
+    history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md"),
+    history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md"),
+    history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"),
+    history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md"),
+    history("docs/plans/zircon_runtime/frameworks/02/2026-07-09-module-kernel-and-lifecycle-unification-output-records.md")
+)
+}
 
 #[test]
 fn runtime_15_ui_architecture_route_owner_is_folder_backed() {
@@ -44,6 +48,14 @@ fn runtime_15_ui_architecture_route_owner_is_folder_backed() {
     );
     assert_parent_route_only();
     assert_child_owners_are_focused();
+    assert_contains_all(
+        "current inventory child",
+        CURRENT_INVENTORY_SOURCE,
+        &[
+            "pub(super) fn assert_current_inventory",
+            "zircon_runtime/src/ui/surface",
+        ],
+    );
     assert_line_budget();
     assert_docs_and_status_mirror_split();
 }
@@ -121,6 +133,7 @@ fn assert_line_budget() {
         ),
         ("legacy renames child", LEGACY_RENAMES_SOURCE, 560),
         ("mirror docs child", MIRROR_DOCS_SOURCE, 140),
+        ("current inventory child", CURRENT_INVENTORY_SOURCE, 140),
         ("split layout guard", SPLIT_LAYOUT_SOURCE, 210),
     ] {
         let line_count = source.lines().count();
@@ -143,7 +156,7 @@ fn assert_docs_and_status_mirror_split() {
         assert!(
             source.contains(
                 "runtime_15_ui_architecture_route_owner_split_static_passed_cargo_deferred"
-            ) || NUMBERED_STATUS_RECORDS.contains(
+            ) || numbered_status_records().contains(
                 "runtime_15_ui_architecture_route_owner_split_static_passed_cargo_deferred"
             ),
             "{label} should mirror the ui_architecture route-owner split status"
@@ -160,7 +173,7 @@ fn assert_docs_and_status_mirror_split() {
     );
     assert_contains_all(
         "Frameworks 02 plan",
-        NUMBERED_STATUS_RECORDS,
+        numbered_status_records(),
         &[
             "frameworks_02_m3_ui_architecture_route_owner_split_static_passed_cargo_deferred",
             "Runtime 15 M3 ui-architecture route-owner split",

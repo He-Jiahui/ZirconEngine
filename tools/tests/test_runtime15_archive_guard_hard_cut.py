@@ -1,5 +1,6 @@
 import unittest
 from pathlib import Path
+from tools.tests.test_runtime_absorption_current_source_fixture import historical_compile_dependencies
 # 当前 runtime 结构守卫不得再读取 Runtime15 历史归档中的输出收据；此测试逐个读取现行守卫源码，阻止旧验收材料回流。
 
 class Runtime15ArchiveGuardHardCutTests(unittest.TestCase):
@@ -9,13 +10,13 @@ class Runtime15ArchiveGuardHardCutTests(unittest.TestCase):
         repo_root = Path(__file__).resolve().parents[2]
         structure_guard_root = (
             repo_root
-            / "zircon_runtime/src/tests/runtime_absorption/structure_convention"
+            / "zircon_runtime/src/tests/contracts/structure"
         )
         guard_paths = (
             "animation_manager.rs",
             "facade_surface.rs",
             "runtime_dead_code/guard_layout.rs",
-            "runtime_dead_code/production_scan.rs",
+            "../../structure/runtime_dead_code/production_scan.rs",
             "runtime_dead_code/runtime_owned.rs",
             "runtime_dead_code/runtime_ui.rs",
             "runtime_dead_code/script_host.rs",
@@ -30,6 +31,7 @@ class Runtime15ArchiveGuardHardCutTests(unittest.TestCase):
             guard_path = structure_guard_root / relative_path
             self.assertTrue(guard_path.is_file(), guard_path.as_posix())
             source = guard_path.read_text(encoding="utf-8")
+            self.assertEqual([], historical_compile_dependencies(source), guard_path.as_posix())
             if retired_archive_prefix in source:
                 stale_guards.append(guard_path.relative_to(repo_root).as_posix())
 

@@ -19,10 +19,6 @@ fn runtime_07_render_product_diagnostics_owner_split_keeps_families_folder_backe
     let ui = include_str!("../../../core/runtime/diagnostics/render_stats_store/product/ui.rs");
     let diagnostics_doc =
         include_str!("../../../../../docs/crates/zircon_runtime/core/diagnostics.md");
-    let runtime_07_plan = include_str!(
-        "../../../../../docs/plans/zircon_runtime/runtime/07-runtime-performance-hotpath.md"
-    );
-    let runtime_index = include_str!("../../../../../docs/plans/zircon_runtime/runtime/index.md");
     let hotspot_doc =
         include_str!("../../../../../docs/crates/zircon_runtime/performance/hotspot_inventory.md");
     let large_file_doc =
@@ -135,8 +131,6 @@ fn runtime_07_render_product_diagnostics_owner_split_keeps_families_folder_backe
     ] {
         assert!(
             diagnostics_doc.contains(doc_anchor)
-                || runtime_07_plan.contains(doc_anchor)
-                || runtime_index.contains(doc_anchor)
                 || hotspot_doc.contains(doc_anchor)
                 || large_file_doc.contains(doc_anchor),
             "render product diagnostics owner split docs should retain `{doc_anchor}`"

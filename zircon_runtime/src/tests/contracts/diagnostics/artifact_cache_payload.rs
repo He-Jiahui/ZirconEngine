@@ -1,21 +1,23 @@
 //! 性能热点的结构守卫核对拥有者、文件预算和证据文档。以结果断言检查当前接口或源码快照对应的边界。
+use crate::tests::runtime_absorption::structure_convention::fixed_history_archive_source as history;
 #[test]
 fn runtime_07_artifact_cache_payload_owner_split_keeps_wire_types_folder_backed() {
     let cache_root = include_str!("../../../asset/artifact/cache_payload.rs");
     let cache_json = include_str!("../../../asset/artifact/cache_payload/json_value.rs");
     let cache_mesh = include_str!("../../../asset/artifact/cache_payload/mesh.rs");
     let cache_scene = include_str!("../../../asset/artifact/cache_payload/scene.rs");
+    let cache_scene_script = include_str!("../../../asset/artifact/cache_payload/scene/script.rs");
     let cache_toml = include_str!("../../../asset/artifact/cache_payload/toml_value.rs");
     let runtime_04_plan = include_str!(
-        "../../../../../docs/plans/zircon_runtime/runtime/04-asset-pipeline-alignment.md"
+        "../../../../../docs/testing-and-validation/runtime-asset-validation-worklist.md"
     );
     let runtime_07_plan = include_str!(
-        "../../../../../docs/plans/zircon_runtime/runtime/07-runtime-performance-hotpath.md"
+        "../../../../../docs/testing-and-validation/runtime-performance-validation-worklist.md"
     );
-    let runtime_07_archive = include_str!(
-        "../../../../../docs/plans/zircon_runtime/runtime/07/2026-07-09-runtime-performance-hotpath-output-records.md"
+    let runtime_07_archive = history("docs/plans/zircon_runtime/runtime/07/2026-07-09-runtime-performance-hotpath-output-records.md");
+    let runtime_index = include_str!(
+        "../../../../../docs/crates/zircon_runtime/structure/runtime-absorption-evidence.md"
     );
-    let runtime_index = include_str!("../../../../../docs/plans/zircon_runtime/runtime/index.md");
     let hotspot_doc =
         include_str!("../../../../../docs/crates/zircon_runtime/performance/hotspot_inventory.md");
     let artifact_doc = include_str!("../../../../../docs/crates/zircon_runtime/asset/artifact.md");
@@ -89,9 +91,13 @@ fn runtime_07_artifact_cache_payload_owner_split_keeps_wire_types_folder_backed(
     }
 
     assert!(
-        cache_scene.contains(
-            "use super::json_value::{cache_table_to_json, json_table_to_cache, ArtifactCacheJsonValue};"
-        ),
+        cache_scene.contains("#[path = \"scene/script.rs\"]")
+            && cache_scene.contains("mod script;")
+            && cache_scene_script.contains(
+                "use super::super::json_value::{cache_table_to_json, json_table_to_cache, ArtifactCacheJsonValue};"
+            )
+            && cache_scene_script.contains("json_table_to_cache(&asset.properties)")
+            && cache_scene_script.contains("cache_table_to_json(self.properties)?"),
         "scene cache wire owner should consume JSON conversion through cache_payload/json_value.rs"
     );
 

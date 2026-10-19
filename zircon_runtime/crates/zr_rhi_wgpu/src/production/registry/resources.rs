@@ -245,7 +245,12 @@ impl WgpuResourceRegistry {
         decrement_texture_view_count(&mut self.texture_view_counts, resource.desc.texture);
         self.handles.release_texture_view(handle)?;
         let last_uses = std::mem::take(&mut resource.last_uses);
-        self.retire_native(WgpuRetiredResource::TextureView(resource), last_uses);
+        self.retire_native(
+            WgpuRetiredResource::TextureView {
+                _resource: resource,
+            },
+            last_uses,
+        );
         Ok(())
     }
 
@@ -306,7 +311,12 @@ impl WgpuResourceRegistry {
             .ok_or(RhiError::UnknownSampler(handle.diagnostic_id()))?;
         self.handles.release_sampler(handle)?;
         let last_uses = std::mem::take(&mut resource.last_uses);
-        self.retire_native(WgpuRetiredResource::Sampler(resource), last_uses);
+        self.retire_native(
+            WgpuRetiredResource::Sampler {
+                _resource: resource,
+            },
+            last_uses,
+        );
         Ok(())
     }
 
@@ -434,7 +444,10 @@ impl WgpuResourceRegistry {
         decrement_texture_view_count(&mut self.texture_view_counts, texture_handle);
         self.handles.release_texture_view(default_view)?;
         let view_last_uses = std::mem::take(&mut view.last_uses);
-        self.retire_native(WgpuRetiredResource::TextureView(view), view_last_uses);
+        self.retire_native(
+            WgpuRetiredResource::TextureView { _resource: view },
+            view_last_uses,
+        );
         let mut texture_resource = self
             .textures
             .remove(&texture_handle)

@@ -1,3 +1,7 @@
+#[path = "mirror_docs/current_inventory.rs"]
+mod current_inventory;
+use self::current_inventory::unlabelled_host_inventories;
+
 use std::path::Path;
 
 use super::inventory::{
@@ -85,71 +89,15 @@ fn runtime_13_script_binding_mirror_docs_match_structure_audit_counts() {
         );
     }
 
-    let mirror_docs = [
-        (
-            "Runtime 13 function ledger",
-            include_str!("../../../../../docs/crates/zircon_runtime/script/vm/host/function_ledger.md"),
-        ),
-        (
-            "Runtime 13 plan",
-            include_str!(
-                "../../../../../docs/plans/zircon_runtime/runtime/13-script-binding-and-reflection.md"
-            ),
-        ),
-        (
-            "runtime index",
-            include_str!("../../../../../docs/plans/zircon_runtime/runtime/index.md"),
-        ),
-        (
-            "M0 review",
-            include_str!(
-                "../../../../../docs/architecture/runtime-architecture-review-m0.md"
-            ),
-        ),
-        (
-            "interface convergence",
-            include_str!(
-                "../../../../../docs/architecture/runtime-interface-convergence.md"
-            ),
-        ),
-    ];
-
-    for (doc_name, doc_source) in mirror_docs {
-        let inventories = doc_source
-            .lines()
-            .filter(|line| line.starts_with("Runtime13 current source contract inventory:"))
-            .collect::<Vec<_>>();
-        assert_eq!(
-            inventories.len(),
-            1,
-            "{doc_name} needs one current inventory"
-        );
-        assert_contains_all(
-            doc_name,
-            inventories[0],
-            &[
-                "fixed_host_function_count = 63",
-                "builtin_callback_count = 21",
-                "gameplay_callback_count = 40",
-                "host_capability_count = 13",
-            ],
-        );
-        let unlabelled = unlabelled_host_inventories(doc_source);
-        assert!(
-            unlabelled.is_empty(),
-            "{doc_name} must label old inventories as historical: {unlabelled:?}"
-        );
-        assert_contains_all(doc_name, doc_source, SCRIPT_BINDING_MIRROR_DOC_ANCHORS);
-    }
+    current_inventory::assert_current_inventory(SCRIPT_BINDING_MIRROR_DOC_ANCHORS);
 }
 
 #[test]
 fn runtime_13_script_binding_cargo_gate_stays_visible_until_script_filters_pass() {
-    let plan = include_str!(
-        "../../../../../docs/plans/zircon_runtime/runtime/13-script-binding-and-reflection.md"
-    );
-    assert!(plan.contains("cargo test -p zircon_runtime --lib script --locked -- --nocapture"));
-    assert!(plan.contains("code_static_pending_cargo"));
+    let contract =
+        include_str!("../../../../../docs/crates/zircon_runtime/script/vm/host/function_ledger.md");
+    assert!(contract.contains("cargo test -p zircon_runtime --lib script --locked -- --nocapture"));
+    assert!(contract.contains("code_static_pending_cargo"));
 }
 
 #[test]
@@ -172,31 +120,4 @@ fn runtime_13_script_binding_inventory_guard_requires_explicit_history() {
     ];
     let source = format!("{current}\n{}", labelled.join("\n"));
     assert!(unlabelled_host_inventories(&source).is_empty());
-}
-
-fn unlabelled_host_inventories(source: &str) -> Vec<&str> {
-    source
-        .lines()
-        .filter(|line| {
-            !line.starts_with("Runtime13 current source contract inventory:")
-                && !line.contains("Historical Runtime13 source snapshot")
-                && [
-                    "fixed_host_function_count",
-                    "builtin_callback_count",
-                    "gameplay_callback_count",
-                    "host_capability_count",
-                ]
-                .iter()
-                .any(|metric| line.contains(metric))
-        })
-        .collect()
-}
-
-fn assert_contains_all(label: &str, source: &str, required: &[&str]) {
-    for anchor in required {
-        assert!(
-            source.contains(anchor),
-            "{label} should mirror Runtime 13 script-binding audit anchor `{anchor}`"
-        );
-    }
 }

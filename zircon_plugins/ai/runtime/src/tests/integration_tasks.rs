@@ -435,3 +435,68 @@ fn register_integration_tree<const N: usize>(
         )
         .expect("integration tree")
 }
+
+#[test]
+fn running_script_task_abort_preserves_another_navigation_destination() {
+    struct RunningScriptBridge;
+    impl ScriptBehaviorBridge for RunningScriptBridge {
+        fn invoke(
+            &self,
+            _callback: &ScriptBehaviorCallbackRef,
+            _arguments: &[ScriptHostValue],
+        ) -> Result<Option<ScriptHostValue>, ScriptHostError> {
+            Ok(Some(ScriptHostValue::String("running".to_string())))
+        }
+    }
+
+    let manager = DefaultAiManager::default();
+    let tree = register_integration_tree(
+        &manager,
+        "script_task_with_unowned_navigation_target",
+        "script_task",
+        [
+            ("callback", "combat_plugin::combat.attack".into()),
+            ("target", Vec3::new(99.0, 0.0, 0.0).into()),
+        ],
+    );
+    let mut world = navigation_world();
+    let entity = spawn_nav_agent(&mut world);
+    let destination = [3.0, 4.0, 5.0];
+    world
+        .set_property(
+            entity,
+            &zircon_runtime::core::framework::scene::ComponentPropertyPath::new(
+                NAV_MESH_AGENT_COMPONENT_TYPE,
+                vec!["destination".to_string()],
+            )
+            .expect("navigation destination path"),
+            zircon_runtime::core::framework::scene::ScenePropertyValue::Vec3(destination),
+        )
+        .expect("another system owns the navigation destination");
+
+    let mut registry = RuntimeExtensionRegistry::default();
+    let owner = registry
+        .intern_plugin_module("test.running.script.runtime")
+        .unwrap();
+    let provider: Arc<dyn ScriptBehaviorBridge> = Arc::new(RunningScriptBridge);
+    registry
+        .export_interface::<dyn ScriptBehaviorBridge>(owner, provider)
+        .unwrap();
+    let imported = registry
+        .import_interface::<dyn ScriptBehaviorBridge>(owner)
+        .unwrap();
+    registry.finalize();
+    let mut host = RuntimeBehaviorIntegrationHost::new(&mut world, Some(imported));
+    let running = manager
+        .tick_agent_with_integration_host(tick_request(tree, entity, 0.1), &mut host)
+        .expect("real VM task runs");
+    assert_eq!(running.status, AiDecisionStatus::Running);
+    let mut abort_request = tick_request(tree, entity, 0.1);
+    abort_request.behavior_tree = None;
+    let aborted = manager
+        .tick_agent_with_integration_host(abort_request, &mut host)
+        .expect("abort active script task");
+    drop(host);
+    assert_eq!(aborted.status, AiDecisionStatus::Idle);
+    assert_eq!(nav_target(&world, entity), Some(destination));
+}

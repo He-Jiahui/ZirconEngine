@@ -204,6 +204,33 @@ class ExecutionHostTests(unittest.TestCase):
         self.assertIn("sealed-value", output)
 
     def test_multi_phase_cancel_after_current_native_identity_is_persisted(self):
+        # A pre-phase source scan must observe the same zero-ref cancellation,
+        # but cannot invent a phase proof or claim its enclosing guard is closed.
+        from unittest.mock import patch
+        verification_id = "source-verification-cancel"
+        self.state.put("execution", verification_id, {"status": "cancel_requested",
+            "refs": 0, "consumers": [], "cancelRequested": True})
+        verifier = ExecutionHost(self.state, verification_id, operation_id="op", generation="gen")
+        identity = {"executionId": verification_id, **verifier.host.to_dict()}
+        self.state.put("execution_control", verification_id,
+                       {**identity, "kind": "cancel", "cancelEpoch": 1})
+        product_recipe = {"kind": "cargo-editor-product", "phases": ["check"],
+            "commands": {"check": [sys.executable, "-B", "-c", "print('unused')"]},
+            "preparationRoot": str(self.root / "prepared")}
+        def verify_source(recipe, sealed, source, *, checkpoint, progress_context):
+            checkpoint()
+        with patch.object(verifier, "_trusted_recipe", return_value=(product_recipe, {})), \
+                patch("tools.jenkins.editor_product._verify_source", side_effect=verify_source), \
+                patch("tools.jenkins.processes.execution_host.NativeJob.launch") as launch, \
+                self.assertRaises(JenkinsError) as cancelled:
+            verifier.serve_phases()
+        self.assertEqual(cancelled.exception.code, "execution_verification_cancelled")
+        launch.assert_not_called()
+        failed = self.state.get("execution_host", verification_id)["payload"]
+        self.assertEqual(failed["status"], "failed")
+        self.assertEqual(failed["phaseRecords"], [])
+        self.assertEqual(failed["error"]["code"], "execution_verification_cancelled")
+        self.assertNotIn("terminalProof", failed)
         recipe_row = self.state.get("recipe_plan", next(iter([r["key"] for r in self.state.list("recipe_plan")])))
         recipe = dict(recipe_row["payload"]["recipe"])
         recipe["phases"] = ["compile", "test"]

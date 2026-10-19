@@ -392,13 +392,13 @@ impl Parser {
         constructor: &str,
     ) -> Result<[f64; N], UiBindingExpressionParseError> {
         let mut values = [0.0; N];
-        for index in 0..N {
+        for (index, slot) in values.iter_mut().enumerate() {
             if index > 0 && !self.consume(|token| matches!(token, Token::Comma)) {
                 return Err(UiBindingExpressionParseError::UnexpectedToken(format!(
                     "{constructor} requires {N} comma-separated numbers"
                 )));
             }
-            values[index] = match self.next() {
+            *slot = match self.next() {
                 Some(Token::Integer(value)) => value as f64,
                 Some(Token::Float(value)) => value,
                 Some(token) => return Err(parse_error_from_token(&token)),

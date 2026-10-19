@@ -73,6 +73,10 @@ impl RenderBackend {
             .native_fragment_writable_storage_supported()
     }
 
+    pub(crate) fn native_buffer_readback_supported(&self) -> bool {
+        self.render_device.native_buffer_readback_supported()
+    }
+
     pub(crate) fn caps(&self) -> RenderBackendCaps {
         self.render_device.caps().clone()
     }

@@ -18,7 +18,7 @@ use super::color_space::{target_color_mode, UiTargetColorMode};
 use super::geometry::{
     command_effective_rect, full_projection_effective_rect, text_bounds_from_rect,
 };
-use layout_evidence::observe_buffer;
+use layout_evidence::{observe_buffer, LayoutObservation};
 use zr_rhi::{UiSurfaceTextLayoutRun, UiSurfaceTextLayoutSnapshot, UiSurfaceTextRequest};
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -205,25 +205,28 @@ impl WgpuUiTextRenderer {
                         &self.font_system,
                         &mut self.font_face_cache,
                         &buffer,
-                        command,
-                        *command_index,
-                        text,
-                        clip,
-                        Some(UiSurfaceTextRequest {
-                            font_family: font_family.map(str::to_owned),
-                            font_weight,
-                            font_style: if matches!(
-                                style,
-                                UiSurfaceTextStyle::Emphasis | UiSurfaceTextStyle::StrongEmphasis
-                            ) {
-                                "italic"
-                            } else {
-                                "normal"
-                            }
-                            .to_owned(),
-                            font_size,
-                            line_height,
-                        }),
+                        LayoutObservation {
+                            command,
+                            command_index: *command_index,
+                            text,
+                            clip,
+                            requested: Some(UiSurfaceTextRequest {
+                                font_family: font_family.map(str::to_owned),
+                                font_weight,
+                                font_style: if matches!(
+                                    style,
+                                    UiSurfaceTextStyle::Emphasis
+                                        | UiSurfaceTextStyle::StrongEmphasis
+                                ) {
+                                    "italic"
+                                } else {
+                                    "normal"
+                                }
+                                .to_owned(),
+                                font_size,
+                                line_height,
+                            }),
+                        },
                     );
                     if let Some(snapshot) = draw_list.font_snapshot() {
                         for face in &mut observation.faces {

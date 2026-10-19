@@ -35,6 +35,12 @@ fn optimized_grapheme_alignment_matches_legacy_normalization() {
     ];
     assert_alignment_matches(combining, &split_combining_runs);
 
+    let split_crlf_runs = vec![
+        fixture_run((0, 1), 700, "first"),
+        fixture_run((1, 2), 400, "second"),
+    ];
+    assert_alignment_matches("\r\n", &split_crlf_runs);
+
     assert_alignment_matches("", &[]);
 }
 

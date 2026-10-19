@@ -69,3 +69,19 @@ This slice enforces split-screen and sub-viewport raster isolation for scene cle
 ## Validation
 
 The source-contract tests cover the full-target default, partial viewport clamp, depth clamp, the last-in-bounds-pixel behavior for a fully outside viewport origin, and the origin-zero local rect for graph-owned child targets. The 2026-06-19 focused lanes passed `zircon_runtime` `core-min` cargo checks, the original three `viewport_render_region` unit tests, the later five-test `viewport_render_region` rerun, the `scene_region_clear_resources` offscreen WGPU submit test, the particles plugin cargo check, and four `particle_gpu_runtime_owner_` tests including the transparent WGPU draw path. `graphics_primary_surface_split_screen_base_cameras_clear_only_their_viewport_regions` first exposed the physical-scissor-on-local-target bug, then passed after Runtime 05's unrelated `dynamic_scene` retention facade compile blocker cleared: `cargo test -p zircon_runtime --lib graphics_primary_surface_split_screen_base_cameras_clear_only_their_viewport_regions --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-dynamic-scene-asset-0619 --message-format short --color never -- --test-threads=1 --nocapture` passed 1 test with the existing 53-warning set.
+
+## Output planner ownership
+
+zircon_runtime/src/graphics/types/viewport_render_output_target.rs owns output identity and resolution. graph_import.rs owns render-graph imports; writeback.rs owns final texture writeback. These are different stages and must not share a second target authority or planner facade. Tests retain format-decision order and state ownership. The source split status below does not close PERF-MVP-417, real frames or profiling.
+
+### Retained source status identities
+
+| Contract | Responsibility / evidence boundary |
+|---|---|
+| `runtime_render_09_15_viewport_output_planner_owner_split_static_passed_cargo_deferred` | Graph import and writeback stay separate stages under one target authority. |
+
+### Clause provenance
+
+These content identities preserve the source of this transfer. They are not fresh measurements, active-file dependencies or acceptance receipts.
+
+- `09-camera-render-ordering.md`, SHA-256 `fd569bbe31b79d1e0a085d9f283863c3163914b5e4ab78e851433f5befa76b07`, selected source lines 460-464.

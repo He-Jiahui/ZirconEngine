@@ -1,20 +1,23 @@
 //! 运行时界面结构和历史命名迁移需遵守架构与文档边界。以结果断言检查当前接口或源码快照对应的边界。
 use super::support::read_repo_file;
+use crate::tests::runtime_absorption::structure_convention::fixed_history_archive_source as history;
 
-const RUNTIME_09_OUTPUT: &str = include_str!(
-    "../../../../../docs/plans/zircon_runtime/runtime/09/2026-07-09-ui-subsystem-architecture-output-records.md"
-);
-const RUNTIME_INDEX_OUTPUT: &str = include_str!(
-    "../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md"
-);
+fn runtime_09_output() -> &'static str {
+    history("docs/plans/zircon_runtime/runtime/09/2026-07-09-ui-subsystem-architecture-output-records.md")
+}
+fn runtime_index_output() -> &'static str {
+    history(
+        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md",
+    )
+}
 
 #[test]
 fn runtime_09_navigation_legacy_reply_rename_reduces_ui_input_debt() {
     let navigation_input = read_repo_file("zircon_runtime/src/ui/surface/input/navigation.rs");
     let architecture_doc =
         include_str!("../../../../../docs/crates/zircon_runtime/ui/architecture.md");
-    let runtime_09_plan = RUNTIME_09_OUTPUT;
-    let runtime_index = RUNTIME_INDEX_OUTPUT;
+    let runtime_09_plan = runtime_09_output();
+    let runtime_index = runtime_index_output();
     let status_anchor =
         "runtime_09_m1_2_navigation_legacy_reply_renamed_static_passed_cargo_pending";
 
@@ -45,8 +48,8 @@ fn runtime_09_pointer_legacy_reply_rename_reduces_ui_input_debt() {
     let pointer_reply = read_repo_file("zircon_runtime/src/ui/surface/input/pointer_reply.rs");
     let architecture_doc =
         include_str!("../../../../../docs/crates/zircon_runtime/ui/architecture.md");
-    let runtime_09_plan = RUNTIME_09_OUTPUT;
-    let runtime_index = RUNTIME_INDEX_OUTPUT;
+    let runtime_09_plan = runtime_09_output();
+    let runtime_index = runtime_index_output();
     let input_doc = include_str!("../../../../../docs/crates/zircon_runtime/ui/surface/input.md");
     let status_anchor = "runtime_09_m1_2_pointer_legacy_reply_renamed_static_passed_cargo_pending";
     let guard_anchor = "runtime_09_pointer_legacy_reply_rename_reduces_ui_input_debt";
@@ -88,8 +91,8 @@ fn runtime_09_pointer_capture_fallback_rename_reduces_ui_input_debt() {
         read_repo_file("zircon_runtime/src/ui/surface/input/effect/focus_pointer.rs");
     let architecture_doc =
         include_str!("../../../../../docs/crates/zircon_runtime/ui/architecture.md");
-    let runtime_09_plan = RUNTIME_09_OUTPUT;
-    let runtime_index = RUNTIME_INDEX_OUTPUT;
+    let runtime_09_plan = runtime_09_output();
+    let runtime_index = runtime_index_output();
     let input_doc = include_str!("../../../../../docs/crates/zircon_runtime/ui/surface/input.md");
     let status_anchor =
         "runtime_09_m1_2_pointer_capture_fallback_renamed_static_passed_cargo_pending";
@@ -136,8 +139,8 @@ fn runtime_09_table_row_label_fallback_rename_reduces_ui_render_debt() {
         read_repo_file("zircon_runtime/src/ui/surface/render/collection_rows/table.rs");
     let architecture_doc =
         include_str!("../../../../../docs/crates/zircon_runtime/ui/architecture.md");
-    let runtime_09_plan = RUNTIME_09_OUTPUT;
-    let runtime_index = RUNTIME_INDEX_OUTPUT;
+    let runtime_09_plan = runtime_09_output();
+    let runtime_index = runtime_index_output();
     let status_anchor =
         "runtime_09_m1_2_table_row_label_fallback_renamed_static_passed_cargo_pending";
     let guard_anchor = "runtime_09_table_row_label_fallback_rename_reduces_ui_render_debt";
@@ -171,8 +174,8 @@ fn runtime_09_template_component_name_fallback_rename_reduces_ui_template_debt()
     let interaction = read_repo_file("zircon_runtime/src/ui/template/build/interaction.rs");
     let architecture_doc =
         include_str!("../../../../../docs/crates/zircon_runtime/ui/architecture.md");
-    let runtime_09_plan = RUNTIME_09_OUTPUT;
-    let runtime_index = RUNTIME_INDEX_OUTPUT;
+    let runtime_09_plan = runtime_09_output();
+    let runtime_index = runtime_index_output();
     let status_anchor =
         "runtime_09_m1_2_template_component_name_fallback_renamed_static_passed_cargo_pending";
     let guard_anchor =
@@ -214,8 +217,8 @@ fn runtime_09_property_visibility_flag_rename_reduces_ui_surface_debt() {
         include_str!("../../../../../docs/crates/zircon_runtime/ui/surface/property_mutation.md");
     let architecture_doc =
         include_str!("../../../../../docs/crates/zircon_runtime/ui/architecture.md");
-    let runtime_09_plan = RUNTIME_09_OUTPUT;
-    let runtime_index = RUNTIME_INDEX_OUTPUT;
+    let runtime_09_plan = runtime_09_output();
+    let runtime_index = runtime_index_output();
     let status_anchor =
         "runtime_09_m1_2_property_visibility_flag_renamed_static_passed_cargo_pending";
     let guard_anchor = "runtime_09_property_visibility_flag_rename_reduces_ui_surface_debt";
@@ -252,8 +255,8 @@ fn runtime_09_responsive_mui_visibility_flag_rename_reduces_ui_layout_debt() {
         include_str!("../../../../../docs/crates/zircon_runtime/ui/layout/pass.md");
     let architecture_doc =
         include_str!("../../../../../docs/crates/zircon_runtime/ui/architecture.md");
-    let runtime_09_plan = RUNTIME_09_OUTPUT;
-    let runtime_index = RUNTIME_INDEX_OUTPUT;
+    let runtime_09_plan = runtime_09_output();
+    let runtime_index = runtime_index_output();
     let status_anchor =
         "runtime_09_m1_2_responsive_mui_visibility_flag_renamed_static_passed_cargo_pending";
     let guard_anchor = "runtime_09_responsive_mui_visibility_flag_rename_reduces_ui_layout_debt";
@@ -294,8 +297,8 @@ fn runtime_09_accessibility_open_state_fallback_rename_reduces_ui_a11y_debt() {
         include_str!("../../../../../docs/crates/zircon_runtime/ui/accessibility.md");
     let architecture_doc =
         include_str!("../../../../../docs/crates/zircon_runtime/ui/architecture.md");
-    let runtime_09_plan = RUNTIME_09_OUTPUT;
-    let runtime_index = RUNTIME_INDEX_OUTPUT;
+    let runtime_09_plan = runtime_09_output();
+    let runtime_index = runtime_index_output();
     let status_anchor =
         "runtime_09_m1_2_accessibility_open_state_fallback_renamed_static_passed_cargo_pending";
     let guard_anchor = "runtime_09_accessibility_open_state_fallback_rename_reduces_ui_a11y_debt";
@@ -337,8 +340,8 @@ fn runtime_09_layout_engine_backend_name_cutover_reduces_ui_layout_debt() {
         include_str!("../../../../../docs/crates/zircon_runtime/ui/layout/pass.md");
     let architecture_doc =
         include_str!("../../../../../docs/crates/zircon_runtime/ui/architecture.md");
-    let runtime_09_plan = RUNTIME_09_OUTPUT;
-    let runtime_index = RUNTIME_INDEX_OUTPUT;
+    let runtime_09_plan = runtime_09_output();
+    let runtime_index = runtime_index_output();
     let status_anchor =
         "runtime_09_m1_2_layout_engine_backend_name_cutover_static_passed_cargo_pending";
     let guard_anchor = "runtime_09_layout_engine_backend_name_cutover_reduces_ui_layout_debt";
@@ -400,8 +403,8 @@ fn runtime_09_surface_default_interaction_fallback_rename_reduces_ui_surface_deb
     );
     let architecture_doc =
         include_str!("../../../../../docs/crates/zircon_runtime/ui/architecture.md");
-    let runtime_09_plan = RUNTIME_09_OUTPUT;
-    let runtime_index = RUNTIME_INDEX_OUTPUT;
+    let runtime_09_plan = runtime_09_output();
+    let runtime_index = runtime_index_output();
     let status_anchor =
         "runtime_09_m1_2_surface_default_interaction_fallback_renamed_static_passed_cargo_pending";
     let guard_anchor =
@@ -456,8 +459,8 @@ fn runtime_09_ui_input_events_route_through_single_dispatch_authority() {
         read_repo_file("zircon_runtime/src/ui/tests/runtime_ui_support/runtime_ui_manager.rs");
     let architecture_doc =
         include_str!("../../../../../docs/crates/zircon_runtime/ui/architecture.md");
-    let runtime_09_plan = RUNTIME_09_OUTPUT;
-    let runtime_index = RUNTIME_INDEX_OUTPUT;
+    let runtime_09_plan = runtime_09_output();
+    let runtime_index = runtime_index_output();
     let status_anchor = "runtime_09_m1_1_ui_input_route_authority_static_passed_cargo_pending";
     let bypass_verdict = "runtime_09_m1_1_direct_pointer_navigation_routes_are_leaf_owner_helpers";
 

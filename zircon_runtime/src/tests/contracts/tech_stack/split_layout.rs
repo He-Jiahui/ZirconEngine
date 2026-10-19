@@ -1,4 +1,5 @@
 //! 运行时技术栈、清单和结构文档维持共同的基础门禁。通过源码文本核对父子路由、状态镜像和文件预算。
+use crate::tests::runtime_absorption::structure_convention::fixed_history_archive_source as history;
 const PARENT_SOURCE: &str = include_str!("../tech_stack.rs");
 const MANIFEST_INVENTORY_SOURCE: &str = include_str!("manifest_inventory.rs");
 const GUARD_ANCHORS_SOURCE: &str = include_str!("guard_anchors.rs");
@@ -7,26 +8,28 @@ const MIRROR_DOCS_SOURCE: &str = include_str!("mirror_docs.rs");
 const SPLIT_LAYOUT_SOURCE: &str = include_str!("split_layout.rs");
 
 const FRAMEWORKS_02_PLAN: &str =
-    include_str!("../../../../../docs/plans/zircon_runtime/frameworks/02-module-kernel-and-lifecycle-unification.md");
-const FRAMEWORKS_02_OUTPUT_ARCHIVE: &str = include_str!(
-    "../../../../../docs/plans/zircon_runtime/frameworks/02/2026-07-09-module-kernel-and-lifecycle-unification-output-records.md"
+    include_str!("../../../../../docs/crates/zircon_runtime/core/modules.md");
+fn frameworks_02_output_archive() -> &'static str {
+    history("docs/plans/zircon_runtime/frameworks/02/2026-07-09-module-kernel-and-lifecycle-unification-output-records.md")
+}
+const RUNTIME_15_PLAN: &str =
+    include_str!("../../../../../docs/crates/zircon_runtime/structure/module-convention.md");
+fn runtime_15_output_archive() -> &'static str {
+    crate::tests::runtime_absorption::current_source_fixture::runtime_architecture_implementation_output()
+}
+const RUNTIME_INDEX: &str = include_str!(
+    "../../../../../docs/crates/zircon_runtime/structure/runtime-absorption-evidence.md"
 );
-const RUNTIME_15_PLAN: &str = include_str!(
-    "../../../../../docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md"
-);
-const RUNTIME_15_OUTPUT_ARCHIVE: &str = crate::tests::runtime_absorption::current_source_fixture::RUNTIME_ARCHITECTURE_IMPLEMENTATION_OUTPUT;
-const RUNTIME_INDEX: &str =
-    include_str!("../../../../../docs/plans/zircon_runtime/runtime/index.md");
 const STRUCTURE_CONVENTION_PLAN: &str =
-    include_str!("../../../../../docs/plans/engine-code-structure-convention.md");
-const STRUCTURE_CONVENTION_OUTPUT_ARCHIVE: &str = include_str!(
-    "../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md"
-);
+    include_str!("../../../../../docs/testing-and-validation/development-conventions.md");
+fn structure_convention_output_archive() -> &'static str {
+    history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md")
+}
 const REVIEW_FINDINGS_PLAN: &str =
-    include_str!("../../../../../docs/plans/engine-code-review-findings-2026-06.md");
-const REVIEW_FINDINGS_OUTPUT_ARCHIVE: &str = include_str!(
-    "../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"
-);
+    include_str!("../../../../../docs/architecture/runtime-architecture-review-m0.md");
+fn review_findings_output_archive() -> &'static str {
+    history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md")
+}
 const MODULE_CONVENTION_DOC: &str =
     include_str!("../../../../../docs/crates/zircon_runtime/structure/module-convention.md");
 
@@ -101,7 +104,7 @@ fn assert_child_owners_are_focused() {
         MIRROR_DOCS_SOURCE,
         &[
             "runtime_01_tech_stack_mirror_docs_match_structure_audit_counts",
-            "assert_mirror_docs_match_structure_audit",
+            "#[test]\nfn runtime_01_tech_stack_mirror_docs_match_structure_audit_counts()",
             "runtime tech-stack doc",
             "interface convergence",
         ],
@@ -127,15 +130,18 @@ fn assert_line_budget() {
 
 fn assert_docs_and_status_mirror_split() {
     for (label, source) in [
-        ("Frameworks 02 output archive", FRAMEWORKS_02_OUTPUT_ARCHIVE),
-        ("Runtime 15 output archive", RUNTIME_15_OUTPUT_ARCHIVE),
+        (
+            "Frameworks 02 output archive",
+            frameworks_02_output_archive(),
+        ),
+        ("Runtime 15 output archive", runtime_15_output_archive()),
         (
             "structure convention output archive",
-            STRUCTURE_CONVENTION_OUTPUT_ARCHIVE,
+            structure_convention_output_archive(),
         ),
         (
             "review findings output archive",
-            REVIEW_FINDINGS_OUTPUT_ARCHIVE,
+            review_findings_output_archive(),
         ),
         ("module convention doc", MODULE_CONVENTION_DOC),
     ] {
@@ -144,16 +150,19 @@ fn assert_docs_and_status_mirror_split() {
             "{label} should mirror the tech_stack route-owner split status"
         );
     }
+    assert_contains_all(
+        "Runtime 15 current module contract route",
+        RUNTIME_15_PLAN,
+        &[
+            "docs/crates/zircon_runtime/structure/module-convention.md",
+            "runtime_15_module_convention_module_doc_frontmatter_uniqueness_static_passed_cargo_deferred",
+        ],
+    );
     for (label, source, route_anchor) in [
         (
             "Frameworks 02 plan",
             FRAMEWORKS_02_PLAN,
             "02/2026-07-09-module-kernel-and-lifecycle-unification-output-records.md",
-        ),
-        (
-            "Runtime 15 plan",
-            RUNTIME_15_PLAN,
-            "15/2026-07-09-code-structure-and-module-conventions-output-records.md",
         ),
         (
             "runtime index",
@@ -187,7 +196,7 @@ fn assert_docs_and_status_mirror_split() {
     );
     assert_contains_all(
         "Frameworks 02 output archive",
-        FRAMEWORKS_02_OUTPUT_ARCHIVE,
+        frameworks_02_output_archive(),
         &[
             "frameworks_02_m3_tech_stack_route_owner_split_static_passed_cargo_deferred",
             "Runtime 15 M3 tech-stack route-owner split",

@@ -38,7 +38,12 @@ fn hdr_decode_preserves_linear_radiance_above_one() {
 #[test]
 fn hdr_equirect_import_stages_current_zcube_and_zribl_bundle() {
     let root = unique_temp_root("environment_ibl_source_import");
-    let context = hdr_context("res://textures/studio.hdr", 128, 64, "");
+    let context = hdr_context(
+        "res://textures/studio.hdr",
+        128,
+        64,
+        "environment_ibl_irradiance_cube = true",
+    );
 
     let staged = stage_environment_ibl_source(&context, &root)
         .expect("2:1 HDR should stage an environment IBL bundle");
@@ -330,6 +335,58 @@ fn explicit_environment_import_rejects_non_equirect_source() {
         "unexpected error: {error}"
     );
     assert!(!root.exists());
+}
+
+#[test]
+fn staging_repairs_equal_length_payload_corruption_before_reusing_normal_or_decoded_inputs() {
+    for caller_decoded in [false, true] {
+        for source_bad in [true, false] {
+            let root = unique_temp_root("ibl_equal_length_admission");
+            let context = hdr_context("res://textures/admission.hdr", 8, 4,
+                "environment_ibl = true\nenvironment_ibl_face_size = 64\nenvironment_ibl_pmrem_face_size = 64");
+            let initial = stage_environment_ibl_source(&context, &root).unwrap();
+            let source_path = initial.source_zcube_path().unwrap().to_path_buf();
+            let derived_path = initial.asset_derived_path().unwrap().to_path_buf();
+            let original_source = fs::read(&source_path).unwrap();
+            let original_derived = fs::read(&derived_path).unwrap();
+            let damaged = if source_bad {
+                &source_path
+            } else {
+                &derived_path
+            };
+            let mut bytes = fs::read(damaged).unwrap();
+            let length = bytes.len();
+            bytes[length - 1] ^= 1;
+            fs::write(damaged, bytes).unwrap();
+            assert_eq!(fs::metadata(damaged).unwrap().len(), length as u64);
+            let repaired = if caller_decoded {
+                let decoded = decode_texture_source_image_rgba32f(&context).unwrap();
+                stage_environment_ibl_source_with_parallel_executor_and_decoded_image(
+                    &context,
+                    &root,
+                    decoded,
+                    &CountingParallelSliceExecutor::default(),
+                )
+                .unwrap()
+            } else {
+                stage_environment_ibl_source(&context, &root).unwrap()
+            };
+            assert_eq!(
+                repaired.status(),
+                EnvironmentIblSourceStagingStatus::Written,
+                "equal-length damage must not take either Reused branch"
+            );
+            assert_eq!(fs::read(&source_path).unwrap(), original_source);
+            assert_eq!(fs::read(&derived_path).unwrap(), original_derived);
+            let request = repaired.request().unwrap();
+            IblSourceCubemapStagingStore::new(&root)
+                .read_source_cubemap_environment(request, context.uri.clone())
+                .unwrap();
+            let warm = stage_environment_ibl_source(&context, &root).unwrap();
+            assert_eq!(warm.status(), EnvironmentIblSourceStagingStatus::Reused);
+            fs::remove_dir_all(root).unwrap();
+        }
+    }
 }
 
 fn hdr_context(uri: &str, width: u32, height: u32, settings: &str) -> AssetImportContext {

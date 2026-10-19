@@ -407,3 +407,471 @@ fn send_graph(
     graph.tracks.extend([music_track, bus_track, aux_track]);
     graph
 }
+
+// Public manager setters prove config/state/cache publication. The same production projection,
+// sync and handle controls then drive real Kira PCM without opening a system audio device.
+#[test]
+fn default_spatial_scale_updates_live_source_gain_and_pan_without_restarting() {
+    use crate::service_types::{
+        mute_bound_source, pause_bound_source, resume_bound_source, set_bound_source_gain,
+        sync_source_voice,
+    };
+    use zircon_runtime::core::framework::sound::{SoundRuntimeSettingsManager, SoundSourceManager};
+
+    let (manager, source, clips) = spatial_scale_fixture(SoundTrackId::master(), None);
+    let mut listener = crate::tests::test_listener();
+    manager.update_listener(listener.clone()).unwrap();
+    let mut voice = manager
+        .source_environment_snapshot_for_test(source)
+        .1
+        .unwrap();
+    assert_eq!((voice.environment_gain, voice.environment_pan), (0.25, 1.0));
+    assert!(voice.kira_playback.is_none());
+    let captures = Arc::new(Mutex::new(Vec::new()));
+    let mut engine = capture_engine(&captures);
+    engine
+        .sync_graph(&SoundMixerGraph::default_stereo(48_000))
+        .unwrap();
+    let mut next = 0;
+    sync_source_voice(&mut engine, &mut next, &clips, &mut voice).unwrap();
+    let playback = voice.kira_playback.unwrap();
+    let right = render_stable_stereo(&mut engine, &captures);
+    assert!(
+        right[1] > 0.02 && right[0] < 0.000_001,
+        "right source: {right:?}"
+    );
+    let position = engine.playback_position(playback).unwrap();
+    let cursor = (voice.cursor_frame, voice.cursor_position);
+
+    manager.set_default_spatial_scale(2.0).unwrap();
+    refresh_captured_environment(
+        &manager,
+        source,
+        &[listener.clone()],
+        &mut voice,
+        &mut engine,
+    );
+    assert_eq!(engine.playback_position(playback).unwrap(), position);
+    assert_eq!((voice.cursor_frame, voice.cursor_position), cursor);
+    let farther = render_stable_stereo(&mut engine, &captures);
+    assert!(
+        (farther[1] - right[1] * 0.5).abs() < 0.003 && farther[0] < 0.000_001,
+        "distance: {right:?} -> {farther:?}"
+    );
+    assert!(engine.playback_position(playback).unwrap() > position);
+
+    manager.set_default_spatial_scale(0.0).unwrap();
+    refresh_captured_environment(
+        &manager,
+        source,
+        &[listener.clone()],
+        &mut voice,
+        &mut engine,
+    );
+    let center = render_stable_stereo(&mut engine, &captures);
+    assert!(
+        (center[0] - center[1]).abs() < 0.000_001 && center[0] > right[1],
+        "zero scale: {center:?}"
+    );
+    manager.set_source_gain(source, 0.25).unwrap();
+    set_bound_source_gain(&mut engine, &mut voice, 0.25).unwrap();
+    let quarter = render_stable_stereo(&mut engine, &captures);
+    assert!((quarter[0] - center[0] * 0.25).abs() < 0.003);
+    manager.mute_source(source).unwrap();
+    mute_bound_source(&mut engine, &mut voice, true).unwrap();
+    manager.set_default_spatial_scale(1.0).unwrap();
+    refresh_captured_environment(
+        &manager,
+        source,
+        &[listener.clone()],
+        &mut voice,
+        &mut engine,
+    );
+    let silent = render_stable_stereo(&mut engine, &captures);
+    assert!(silent.iter().all(|sample| *sample < 0.000_001));
+    manager.set_source_gain(source, 0.5).unwrap();
+    set_bound_source_gain(&mut engine, &mut voice, 0.5).unwrap();
+    manager.unmute_source(source).unwrap();
+    mute_bound_source(&mut engine, &mut voice, false).unwrap();
+    let half = render_stable_stereo(&mut engine, &captures);
+    assert!(
+        (half[1] - right[1] * 0.5).abs() < 0.003 && half[0] < 0.000_001,
+        "user gain must retain distance: {half:?}"
+    );
+
+    manager.pause_source(source).unwrap();
+    pause_bound_source(&mut engine, &mut voice).unwrap();
+    render_stable_stereo(&mut engine, &captures);
+    assert_eq!(
+        engine.playback_state(playback).unwrap(),
+        PlaybackState::Paused
+    );
+    let paused_position = engine.playback_position(playback).unwrap();
+    manager.set_default_spatial_scale(2.0).unwrap();
+    refresh_captured_environment(
+        &manager,
+        source,
+        &[listener.clone()],
+        &mut voice,
+        &mut engine,
+    );
+    render_stable_stereo(&mut engine, &captures);
+    assert_eq!(
+        engine.playback_state(playback).unwrap(),
+        PlaybackState::Paused
+    );
+    assert_eq!(engine.playback_position(playback).unwrap(), paused_position);
+    manager.resume_source(source).unwrap();
+    resume_bound_source(&mut engine, &mut voice).unwrap();
+    let resumed = render_stable_stereo(&mut engine, &captures);
+    assert!(resumed[1] > 0.005 && resumed[0] < 0.000_001);
+
+    listener.position = [8.0, 0.0, 0.0];
+    manager.update_listener(listener.clone()).unwrap();
+    refresh_captured_environment(
+        &manager,
+        source,
+        &[listener.clone()],
+        &mut voice,
+        &mut engine,
+    );
+    let left = render_stable_stereo(&mut engine, &captures);
+    assert!(
+        left[0] > 0.005 && left[1] < 0.000_001,
+        "listener move: {left:?}"
+    );
+    manager.remove_listener(listener.id).unwrap();
+    refresh_captured_environment(&manager, source, &[], &mut voice, &mut engine);
+    let no_listener = render_stable_stereo(&mut engine, &captures);
+    assert_eq!((voice.environment_gain, voice.environment_pan), (1.0, 0.0));
+    assert!((no_listener[0] - no_listener[1]).abs() < 0.000_001 && no_listener[0] > left[0]);
+    assert_eq!(voice.kira_playback, Some(playback));
+    assert_eq!(
+        next, 1,
+        "spatial controls must not allocate another playback"
+    );
+}
+
+#[test]
+fn default_spatial_scale_preserves_overrides_and_inactive_source_projection() {
+    use crate::service_types::{prepare_source_generation, stop_bound_source, sync_source_voice};
+    use zircon_runtime::core::framework::sound::{
+        SoundListenerId, SoundMixerGraphManager, SoundRuntimeSettingsManager, SoundSourceManager,
+    };
+
+    let track = SoundTrackId::new(2);
+    let (manager, source, clips) = spatial_scale_fixture(track, None);
+    let master = crate::tests::test_listener();
+    let mut other = master.clone();
+    other.id = SoundListenerId::new(2);
+    other.mixer_target = SoundTrackId::new(3);
+    let mut higher_id = master.clone();
+    higher_id.id = SoundListenerId::new(9);
+    higher_id.mixer_target = track;
+    let mut selected = higher_id.clone();
+    selected.id = SoundListenerId::new(4);
+    selected.position = [8.0, 0.0, 0.0];
+    let listeners = vec![
+        higher_id.clone(),
+        other.clone(),
+        selected.clone(),
+        master.clone(),
+    ];
+    for listener in &listeners {
+        manager.update_listener(listener.clone()).unwrap();
+    }
+    manager.set_default_spatial_scale(2.0).unwrap();
+    let mut imported_graph = send_graph(1.0, 1.0, false, 0.0);
+    imported_graph.sources.push(
+        manager
+            .source_environment_snapshot_for_test(source)
+            .1
+            .unwrap()
+            .descriptor,
+    );
+    manager.configure_mixer(imported_graph.clone()).unwrap();
+    let mut imported_voice = manager
+        .source_environment_snapshot_for_test(source)
+        .1
+        .unwrap();
+    assert_eq!(
+        (
+            imported_voice.environment_gain,
+            imported_voice.environment_pan
+        ),
+        (0.125, -1.0)
+    );
+    assert!(imported_voice.kira_playback.is_none());
+    // The real inactive graph import must prepare the cache consumed by activation.
+    let imported_captures = Arc::new(Mutex::new(Vec::new()));
+    let mut imported_engine = capture_engine(&imported_captures);
+    imported_engine.sync_graph(&imported_graph).unwrap();
+    let mut imported_next = 0;
+    sync_source_voice(
+        &mut imported_engine,
+        &mut imported_next,
+        &clips,
+        &mut imported_voice,
+    )
+    .unwrap();
+    let imported_pcm = render_stable_stereo(&mut imported_engine, &imported_captures);
+    assert!(
+        imported_pcm[0] > 0.01 && imported_pcm[1] < 0.000_001,
+        "imported default scale: {imported_pcm:?}"
+    );
+    stop_bound_source(&mut imported_engine, &mut imported_voice).unwrap();
+    let mut overridden = imported_voice.descriptor;
+    overridden.spatial.spatial_scale = Some(0.5);
+    manager.update_source(overridden).unwrap();
+    manager.pause_source(source).unwrap();
+    manager.set_default_spatial_scale(2.0).unwrap();
+    let (_, paused) = manager.source_environment_snapshot_for_test(source);
+    let paused = paused.unwrap();
+    assert_eq!(
+        (paused.environment_gain, paused.environment_pan),
+        (0.5, -1.0)
+    );
+    assert!(!paused.descriptor.playing && paused.kira_playback.is_none());
+    manager.set_default_spatial_scale(7.0).unwrap();
+    assert_eq!(
+        manager
+            .source_environment_snapshot_for_test(source)
+            .1
+            .unwrap(),
+        paused
+    );
+    manager.resume_source(source).unwrap();
+    let mut voice = manager
+        .source_environment_snapshot_for_test(source)
+        .1
+        .unwrap();
+    let mut engine = KiraEngine::<CaptureBackend>::inactive();
+    let mut next = 0;
+    sync_source_voice(&mut engine, &mut next, &clips, &mut voice).unwrap();
+    assert!(voice.kira_playback.is_none());
+    assert_eq!((voice.environment_gain, voice.environment_pan), (0.5, -1.0));
+
+    let captures = Arc::new(Mutex::new(Vec::new()));
+    engine
+        .activate(AudioManagerSettings {
+            backend_settings: CaptureBackendSettings {
+                sample_rate: 48_000,
+                samples: Arc::clone(&captures),
+            },
+            ..AudioManagerSettings::default()
+        })
+        .unwrap();
+    engine
+        .sync_graph(&send_graph(1.0, 1.0, false, 0.0))
+        .unwrap();
+    sync_source_voice(&mut engine, &mut next, &clips, &mut voice).unwrap();
+    let original_playback = voice.kira_playback.unwrap();
+    let left = render_stable_stereo(&mut engine, &captures);
+    assert!(
+        left[0] > 0.02 && left[1] < 0.000_001,
+        "same-track lowest-ID listener: {left:?}"
+    );
+    stop_bound_source(&mut engine, &mut voice).unwrap();
+    assert_eq!((voice.environment_gain, voice.environment_pan), (0.5, -1.0));
+    let mut replacement = capture_engine(&captures);
+    replacement
+        .sync_graph(&send_graph(1.0, 1.0, false, 0.0))
+        .unwrap();
+    let mut sources = std::collections::HashMap::from([(source, voice)]);
+    prepare_source_generation(&mut replacement, &mut next, &clips, &mut sources).unwrap();
+    let mut voice = sources.remove(&source).unwrap();
+    assert_ne!(voice.kira_playback, Some(original_playback));
+    let rebound = render_stable_stereo(&mut replacement, &captures);
+    assert!((rebound[0] - left[0]).abs() < 0.003 && rebound[1] < 0.000_001);
+
+    manager.remove_listener(selected.id).unwrap();
+    manager.remove_listener(higher_id.id).unwrap();
+    refresh_captured_environment(
+        &manager,
+        source,
+        &[other.clone(), master.clone()],
+        &mut voice,
+        &mut replacement,
+    );
+    assert_eq!(
+        voice.environment_pan, 1.0,
+        "master must precede an unrelated track listener"
+    );
+    manager.remove_listener(master.id).unwrap();
+    refresh_captured_environment(
+        &manager,
+        source,
+        &[other.clone()],
+        &mut voice,
+        &mut replacement,
+    );
+    assert_eq!(voice.environment_pan, 1.0);
+    other.active = false;
+    manager.update_listener(other.clone()).unwrap();
+    refresh_captured_environment(&manager, source, &[other], &mut voice, &mut replacement);
+    assert_eq!((voice.environment_gain, voice.environment_pan), (1.0, 0.0));
+    let neutral = render_stable_stereo(&mut replacement, &captures);
+    assert!((neutral[0] - neutral[1]).abs() < 0.000_001 && neutral[0] > 0.02);
+
+    // A rotated listener exposes normalize3's zero-vector fallback unless the result is centered.
+    let mut coincident = crate::tests::test_listener();
+    coincident.position = [4.0, 0.0, 0.0];
+    coincident.forward = [1.0, 0.0, 0.0];
+    manager.update_listener(coincident.clone()).unwrap();
+    refresh_captured_environment(
+        &manager,
+        source,
+        &[coincident.clone()],
+        &mut voice,
+        &mut replacement,
+    );
+    assert_eq!(voice.environment_pan, 0.0);
+    let mut descriptor = voice.descriptor.clone();
+    descriptor.spatial.spatial_scale = None;
+    manager.update_source(descriptor).unwrap();
+    coincident.position = [0.0, 0.0, 0.0];
+    manager.update_listener(coincident.clone()).unwrap();
+    let before_rejection = manager.source_environment_snapshot_for_test(source);
+    assert!(manager.set_default_spatial_scale(f32::MAX).is_err());
+    assert_eq!(manager.default_spatial_scale().unwrap(), 7.0);
+    assert_eq!(
+        manager.source_environment_snapshot_for_test(source),
+        before_rejection
+    );
+    manager.set_default_spatial_scale(0.0).unwrap();
+    refresh_captured_environment(
+        &manager,
+        source,
+        &[coincident],
+        &mut voice,
+        &mut replacement,
+    );
+    assert_eq!(voice.environment_pan, 0.0);
+
+    // Inactive automation edits descriptors directly rather than using update_source/listener.
+    // Its cache must already be valid when the next output generation clones these voices.
+    use zircon_runtime::core::framework::sound::{SoundAutomationTarget, SoundParameterId};
+    let mut automated = crate::engine::SoundEngineState::new(&crate::SoundConfig::default());
+    automated.graph = Arc::new(send_graph(1.0, 1.0, false, 0.0));
+    automated.clips = clips;
+    let mut automated_voice = voice;
+    automated_voice.kira_playback = None;
+    automated.sources.insert(source, automated_voice);
+    let automated_listener = crate::tests::test_listener();
+    automated
+        .listeners
+        .insert(automated_listener.id, automated_listener.clone());
+    crate::automation::target::apply_automation_target(
+        &mut automated,
+        SoundAutomationTarget::Source(source),
+        &SoundParameterId::new("position_x"),
+        2.0,
+    )
+    .unwrap();
+    assert_eq!(
+        (
+            automated.sources[&source].environment_gain,
+            automated.sources[&source].environment_pan
+        ),
+        (0.5, 1.0)
+    );
+    crate::automation::target::apply_automation_target(
+        &mut automated,
+        SoundAutomationTarget::Listener(automated_listener.id),
+        &SoundParameterId::new("position_x"),
+        4.0,
+    )
+    .unwrap();
+    assert_eq!(
+        (
+            automated.sources[&source].environment_gain,
+            automated.sources[&source].environment_pan
+        ),
+        (0.5, -1.0)
+    );
+}
+
+fn spatial_scale_fixture(
+    track: SoundTrackId,
+    explicit_scale: Option<f32>,
+) -> (
+    crate::DefaultSoundManager,
+    zircon_runtime::core::framework::sound::SoundSourceId,
+    std::collections::HashMap<
+        zircon_runtime::core::framework::sound::SoundClipId,
+        crate::engine::LoadedClip,
+    >,
+) {
+    use zircon_runtime::core::framework::sound::{
+        SoundMixerGraphManager, SoundSourceDescriptor, SoundSourceManager,
+    };
+    let manager = crate::DefaultSoundManager::default();
+    if track != SoundTrackId::master() {
+        manager
+            .configure_mixer(send_graph(1.0, 1.0, false, 0.0))
+            .unwrap();
+    }
+    let asset = crate::tests::test_clip_with_rate(
+        "res://sound/spatial-scale-capture.wav",
+        48_000,
+        &vec![TEST_SIGNAL_AMPLITUDE; 96_000],
+    );
+    let loaded = crate::engine::LoadedClip::new(asset.clone()).unwrap();
+    let clip = manager.insert_clip_for_test(asset);
+    let mut descriptor = SoundSourceDescriptor::clip(clip);
+    descriptor.output_track = track;
+    descriptor.position = [4.0, 0.0, 0.0];
+    descriptor.spatial.spatial_blend = 1.0;
+    descriptor.spatial.spatial_scale = explicit_scale;
+    descriptor.looped = true;
+    let source = manager.create_source(descriptor).unwrap();
+    (
+        manager,
+        source,
+        std::collections::HashMap::from([(clip, loaded)]),
+    )
+}
+
+fn refresh_captured_environment(
+    manager: &crate::DefaultSoundManager,
+    source: zircon_runtime::core::framework::sound::SoundSourceId,
+    listeners: &[zircon_runtime::core::framework::sound::SoundListenerDescriptor],
+    voice: &mut crate::engine::SourceVoice,
+    engine: &mut KiraEngine<CaptureBackend>,
+) {
+    use zircon_runtime::core::framework::sound::SoundRuntimeSettingsManager;
+    let (scale, projected) = manager.source_environment_snapshot_for_test(source);
+    assert_eq!(manager.default_spatial_scale().unwrap(), scale);
+    let projected = projected.unwrap();
+    let binding = voice.kira_playback;
+    let cursor = (voice.cursor_frame, voice.cursor_position);
+    voice.descriptor = projected.descriptor;
+    voice
+        .project_environment(scale, listeners, &std::collections::HashMap::new())
+        .unwrap();
+    assert_eq!(
+        (voice.environment_gain, voice.environment_pan),
+        (projected.environment_gain, projected.environment_pan)
+    );
+    voice.apply_environment(engine).unwrap();
+    assert_eq!(voice.kira_playback, binding);
+    assert_eq!((voice.cursor_frame, voice.cursor_position), cursor);
+}
+
+fn render_stable_stereo(
+    engine: &mut KiraEngine<CaptureBackend>,
+    captures: &Arc<Mutex<Vec<f32>>>,
+) -> [f32; 2] {
+    for _ in 0..8 {
+        engine
+            .with_backend_mut(CaptureBackend::render)
+            .expect("capture backend must be active");
+    }
+    captures
+        .lock()
+        .expect("capture samples must not poison")
+        .chunks_exact(2)
+        .fold([0.0_f32; 2], |peak, frame| {
+            [peak[0].max(frame[0].abs()), peak[1].max(frame[1].abs())]
+        })
+}

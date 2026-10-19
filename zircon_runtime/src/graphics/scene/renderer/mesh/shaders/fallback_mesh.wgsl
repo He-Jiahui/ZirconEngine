@@ -218,6 +218,39 @@ fn skin_previous_vertex_position(instance_index: u32, position: vec3<f32>, joint
     return skinned;
 }
 
+fn skin_inverse_transpose_normal(blended: mat3x3<f32>, normal: vec3<f32>) -> vec3<f32> {
+    let maximum_finite = vec3<f32>(bitcast<f32>(0x7f7fffffu));
+    if (!all(abs(blended[0]) <= maximum_finite)
+        || !all(abs(blended[1]) <= maximum_finite)
+        || !all(abs(blended[2]) <= maximum_finite)
+        || !all(abs(normal) <= maximum_finite)) {
+        return vec3<f32>(0.0);
+    }
+    let column_max = max(max(abs(blended[0]), abs(blended[1])), abs(blended[2]));
+    let scale = max(max(column_max.x, column_max.y), column_max.z);
+    let normal_max = abs(normal);
+    let normal_scale = max(max(normal_max.x, normal_max.y), normal_max.z);
+    if (scale <= 0.0 || normal_scale <= 0.0) {
+        return vec3<f32>(0.0);
+    }
+    let x = blended[0] / scale;
+    let y = blended[1] / scale;
+    let z = blended[2] / scale;
+    let determinant = dot(x, cross(y, z));
+    if (!(abs(determinant) > 0.0 && abs(determinant) <= maximum_finite.x)) {
+        return vec3<f32>(0.0);
+    }
+    let source = normal / normal_scale;
+    let cofactor_normal = (cross(y, z) * source.x + cross(z, x) * source.y
+        + cross(x, y) * source.z) * sign(determinant);
+    let component_max = abs(cofactor_normal);
+    let direction_scale = max(max(component_max.x, component_max.y), component_max.z);
+    if (!(direction_scale > 0.0 && direction_scale <= maximum_finite.x)) {
+        return vec3<f32>(0.0);
+    }
+    return cofactor_normal / direction_scale;
+}
+
 fn skin_vertex_normal(instance_index: u32, normal: vec3<f32>, joint_indices: vec4<u32>, joint_weights: vec4<f32>, motion_params: vec4<f32>) -> vec3<f32> {
     if (motion_params.y <= 0.5 || zr_skinned_joint_count(instance_index) == 0u) {
         return normal;
@@ -228,24 +261,29 @@ fn skin_vertex_normal(instance_index: u32, normal: vec3<f32>, joint_indices: vec
         return normal;
     }
 
-    var skinned = vec3<f32>(0.0, 0.0, 0.0);
+    var blended = mat3x3<f32>(vec3<f32>(0.0), vec3<f32>(0.0), vec3<f32>(0.0));
     let weight_x = skin_weight(instance_index, joint_indices.x, joint_weights.x);
     let weight_y = skin_weight(instance_index, joint_indices.y, joint_weights.y);
     let weight_z = skin_weight(instance_index, joint_indices.z, joint_weights.z);
     let weight_w = skin_weight(instance_index, joint_indices.w, joint_weights.w);
     if (weight_x > 0.0) {
-        skinned = skinned + (zr_skinned_joint_matrix(instance_index, joint_indices.x) * vec4<f32>(normal, 0.0)).xyz * (weight_x / weight_sum);
+        let joint = zr_skinned_joint_matrix(instance_index, joint_indices.x);
+        blended = blended + mat3x3<f32>(joint[0].xyz, joint[1].xyz, joint[2].xyz) * (weight_x / weight_sum);
     }
     if (weight_y > 0.0) {
-        skinned = skinned + (zr_skinned_joint_matrix(instance_index, joint_indices.y) * vec4<f32>(normal, 0.0)).xyz * (weight_y / weight_sum);
+        let joint = zr_skinned_joint_matrix(instance_index, joint_indices.y);
+        blended = blended + mat3x3<f32>(joint[0].xyz, joint[1].xyz, joint[2].xyz) * (weight_y / weight_sum);
     }
     if (weight_z > 0.0) {
-        skinned = skinned + (zr_skinned_joint_matrix(instance_index, joint_indices.z) * vec4<f32>(normal, 0.0)).xyz * (weight_z / weight_sum);
+        let joint = zr_skinned_joint_matrix(instance_index, joint_indices.z);
+        blended = blended + mat3x3<f32>(joint[0].xyz, joint[1].xyz, joint[2].xyz) * (weight_z / weight_sum);
     }
     if (weight_w > 0.0) {
-        skinned = skinned + (zr_skinned_joint_matrix(instance_index, joint_indices.w) * vec4<f32>(normal, 0.0)).xyz * (weight_w / weight_sum);
+        let joint = zr_skinned_joint_matrix(instance_index, joint_indices.w);
+        blended = blended + mat3x3<f32>(joint[0].xyz, joint[1].xyz, joint[2].xyz) * (weight_w / weight_sum);
     }
 
+    let skinned = skin_inverse_transpose_normal(blended, normal);
     return zr_pbr_common_normalize_or_zero(skinned);
 }
 

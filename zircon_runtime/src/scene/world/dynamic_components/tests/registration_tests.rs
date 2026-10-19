@@ -35,9 +35,22 @@ fn component_type_registration_failure_is_atomic_and_retryable() {
         .register_component_type(invalid)
         .expect_err("duplicate reflected fields must reject registration");
 
-    assert!(error
-        .to_string()
-        .contains("duplicate reflected field `value`"));
+    let duplicate_field_id = zircon_runtime_interface::reflect::ReflectFieldId::from_stable_keys(
+        "atomic.Component.State",
+        "value",
+    );
+    assert!(matches!(
+        &error,
+        crate::scene::SceneError::Reflect(
+            zircon_runtime_interface::reflect::ReflectError::InvalidFieldRegistration {
+                type_path,
+                field_name,
+                reason,
+            }
+        ) if type_path == "atomic.Component.State"
+            && field_name == "value"
+            && reason == &format!("duplicate reflected field ID `{duplicate_field_id}`")
+    ));
     assert_eq!(world.component_types, component_types_before);
     assert_eq!(world.type_registry, type_registry_before);
     assert_eq!(world.component_registry, component_registry_before);

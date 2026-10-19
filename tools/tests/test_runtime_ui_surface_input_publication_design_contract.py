@@ -1,6 +1,35 @@
 from pathlib import Path
 import unittest
 
+import sys as _history_sys
+from pathlib import Path as _HistoryPath
+_HISTORY_REPO_ROOT = _HistoryPath(__file__).resolve().parents[2]
+_history_sys.path.insert(0, str(_HISTORY_REPO_ROOT / '.codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts'))
+from runtime_structure_audits.dynamic_runtime_api_archive_inventory import HistoricalArchiveReader as _ContractHistoryReader
+_HISTORY_PATHS = {'docs/plans/optimize/zircon_editor/01/2026-08-28-runtime-ui-surface-input-publication-authority.md': 'docs/plans/optimize/zircon_editor/01/2026-08-28-runtime-ui-surface-input-publication-authority.md'}
+_HISTORY_IDENTITIES = {'docs/plans/optimize/zircon_editor/01/2026-08-28-runtime-ui-surface-input-publication-authority.md': (24262, 'e46b1e2ed4ef29fa348722594e176dab6bf05d3384086e75553cbce68e9d48ee')}
+_CURRENT_POLICY_INPUTS = ()
+
+def _read_contract_input(path, *args, **kwargs):
+    candidate = _HistoryPath(path)
+    try:
+        relative = candidate.absolute().relative_to(_HISTORY_REPO_ROOT).as_posix()
+    except ValueError:
+        relative = None
+    key = _HISTORY_PATHS.get(relative)
+    if key is None:
+        if relative and relative.startswith('docs/plans/') and relative not in _CURRENT_POLICY_INPUTS:
+            raise AssertionError('Unregistered current/history contract input: ' + relative)
+        return candidate.read_text(*args, **kwargs)
+    if args or kwargs.get('encoding', 'utf-8').lower() not in ('utf-8', 'utf8') or kwargs.get('errors') not in (None, 'strict') or set(kwargs) - {'encoding', 'errors'}:
+        raise AssertionError('Historical evidence requires strict UTF-8')
+    reader = _ContractHistoryReader(identities=_HISTORY_IDENTITIES)
+    text = reader.read(key)
+    if text is None:
+        raise AssertionError(reader.records)
+    return text
+
+
 
 ROOT = Path(__file__).resolve().parents[2]
 RUNTIME_UI = ROOT / "zircon_runtime/src/dynamic_api/session/runtime_ui.rs"
@@ -42,8 +71,8 @@ def runtime_ui_source() -> str:
     """Combine the root declaration with the split input-routing implementation."""
     return "\n".join(
         (
-            RUNTIME_UI.read_text(encoding="utf-8"),
-            INPUT_ROUTING.read_text(encoding="utf-8"),
+            _read_contract_input(RUNTIME_UI, encoding="utf-8"),
+            _read_contract_input(INPUT_ROUTING, encoding="utf-8"),
         )
     )
 
@@ -146,7 +175,7 @@ class RuntimeUiSurfaceInputPublicationDesignContractTests(unittest.TestCase):
 
     def test_uncaptured_pointer_uses_incremental_publication_before_legacy_fanout(self):
         runtime_ui = runtime_ui_source()
-        publication = INPUT_PUBLICATION.read_text(encoding="utf-8")
+        publication = _read_contract_input(INPUT_PUBLICATION, encoding="utf-8")
         pointer = function_source(
             runtime_ui,
             "    fn dispatch_pointer_input(",
@@ -176,7 +205,7 @@ class RuntimeUiSurfaceInputPublicationDesignContractTests(unittest.TestCase):
         self.assertNotIn("render commands", publication.lower())
 
     def test_publication_patch_reuses_occupancy_and_footprint_storage(self):
-        publication = INPUT_PUBLICATION.read_text(encoding="utf-8")
+        publication = _read_contract_input(INPUT_PUBLICATION, encoding="utf-8")
 
         for token in (
             "cell_visit_stamps: Vec<u32>",
@@ -191,7 +220,7 @@ class RuntimeUiSurfaceInputPublicationDesignContractTests(unittest.TestCase):
 
     def test_pointer_fallback_is_typed_and_invalid_input_never_fans_out(self):
         runtime_ui = runtime_ui_source()
-        publication = INPUT_PUBLICATION.read_text(encoding="utf-8")
+        publication = _read_contract_input(INPUT_PUBLICATION, encoding="utf-8")
         pointer = function_source(
             runtime_ui,
             "    fn dispatch_pointer_input(",
@@ -239,12 +268,12 @@ class RuntimeUiSurfaceInputPublicationDesignContractTests(unittest.TestCase):
         self.assertIn("false,", pointer)
 
     def test_resize_pointer_preserves_physical_point_and_forwards_virtual_query(self):
-        publication = INPUT_PUBLICATION.read_text(encoding="utf-8")
+        publication = _read_contract_input(INPUT_PUBLICATION, encoding="utf-8")
         runtime_ui = runtime_ui_source()
-        manager = INPUT_MANAGER.read_text(encoding="utf-8")
-        dispatch = INPUT_DISPATCH.read_text(encoding="utf-8")
-        pointer = POINTER_INPUT.read_text(encoding="utf-8")
-        event_routing = EVENT_ROUTING.read_text(encoding="utf-8")
+        manager = _read_contract_input(INPUT_MANAGER, encoding="utf-8")
+        dispatch = _read_contract_input(INPUT_DISPATCH, encoding="utf-8")
+        pointer = _read_contract_input(POINTER_INPUT, encoding="utf-8")
+        event_routing = _read_contract_input(EVENT_ROUTING, encoding="utf-8")
 
         for token in (
             "physical_point: UiPoint",
@@ -265,10 +294,10 @@ class RuntimeUiSurfaceInputPublicationDesignContractTests(unittest.TestCase):
         )
 
     def test_unrouted_mouse_motion_and_duplicate_sync_are_bound_to_the_record(self):
-        events = EVENTS.read_text(encoding="utf-8")
-        mouse_motion = MOUSE_MOTION.read_text(encoding="utf-8")
+        events = _read_contract_input(EVENTS, encoding="utf-8")
+        mouse_motion = _read_contract_input(MOUSE_MOTION, encoding="utf-8")
         runtime_ui = runtime_ui_source()
-        input_manager = INPUT_MANAGER.read_text(encoding="utf-8")
+        input_manager = _read_contract_input(INPUT_MANAGER, encoding="utf-8")
 
         self.assertIn("UiInputEvent::MouseMotion", events)
         self.assertIn("dispatch_runtime_ui_event(|metadata|", events)
@@ -283,11 +312,11 @@ class RuntimeUiSurfaceInputPublicationDesignContractTests(unittest.TestCase):
         self.assertIn("self.synchronize_text_document_owners(surface);", dispatch)
 
     def test_record_is_bound_to_unreal_authority_and_executable_budgets(self):
-        record = RECORD.read_text(encoding="utf-8")
-        unreal_application = UNREAL_APPLICATION.read_text(
+        record = _read_contract_input(RECORD, encoding="utf-8")
+        unreal_application = _read_contract_input(UNREAL_APPLICATION, 
             encoding="utf-8", errors="replace"
         )
-        unreal_hit_grid = UNREAL_HIT_GRID.read_text(
+        unreal_hit_grid = _read_contract_input(UNREAL_HIT_GRID, 
             encoding="utf-8", errors="replace"
         )
 

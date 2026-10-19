@@ -227,6 +227,8 @@ impl zircon_runtime_interface::retained_memory::RetainedOwnerV1 for EntityPath {
         self.segments.retained_bound_v1(m)
     }
 }
+// SAFETY: Private owned String/Vec fields provide no interior mutation through shared aliases.
+// RetainedOwnerV1 accounts for raw and every owned segment, so an alias cannot grow an uncharged bound.
 unsafe impl zircon_runtime_interface::retained_memory::ImmutableRetainedOwnerV1 for EntityPath {}
 impl zircon_runtime_interface::retained_memory::RetainedOwnerV1 for ComponentPropertyPath {
     fn retained_bound_v1(
@@ -239,6 +241,8 @@ impl zircon_runtime_interface::retained_memory::RetainedOwnerV1 for ComponentPro
         self.property_segments.retained_bound_v1(m)
     }
 }
+// SAFETY: Private owned String/Vec fields provide no interior mutation through shared aliases.
+// RetainedOwnerV1 accounts for raw, component and every property segment, covering all owned allocation.
 unsafe impl zircon_runtime_interface::retained_memory::ImmutableRetainedOwnerV1
     for ComponentPropertyPath
 {

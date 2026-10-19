@@ -134,3 +134,59 @@ fn subscription_after_terminal_sequence_starts_exhausted() {
         Err(ResourceEventTryRecvError::SequenceExhausted)
     );
 }
+
+#[test]
+fn same_marker_different_payload_declarations_do_not_coalesce() {
+    let publisher = ResourceEventPublisher::default();
+    let typed = publisher.subscribe();
+    let ordinary = publisher.subscribe();
+    let mut first = event(1);
+    first.kind = ResourceEventKind::Added;
+    let mut second = first.clone();
+    second.kind = ResourceEventKind::Updated;
+    second.revision = 2;
+    let permit = publisher.prepare_publish(2).unwrap();
+    publisher.publish_permitted(
+        permit,
+        vec![
+            ResourceEventEnvelope::new(
+                first.clone(),
+                Some(crate::ResourcePayloadType::of::<u32>()),
+            ),
+            ResourceEventEnvelope::new(
+                second.clone(),
+                Some(crate::ResourcePayloadType::of::<u64>()),
+            ),
+        ],
+    );
+    assert_eq!(publisher.diagnostics().depth, 2);
+    assert_eq!(publisher.diagnostics().coalesced_count, 0);
+    let first_envelope = typed.try_recv_envelope().unwrap();
+    assert!(first_envelope.matches_payload::<u32>());
+    assert!(!first_envelope.matches_payload::<u64>());
+    assert_eq!(first_envelope.into_event(), first);
+    assert_eq!(ordinary.try_recv().unwrap(), first);
+    second.revision = 3;
+    publisher.publish_permitted(
+        publisher.prepare_publish(1).unwrap(),
+        vec![ResourceEventEnvelope::new(
+            second.clone(),
+            Some(crate::ResourcePayloadType::of::<u64>()),
+        )],
+    );
+    assert_eq!(publisher.diagnostics().depth, 2);
+    assert_eq!(publisher.diagnostics().coalesced_count, 1);
+    assert!(matches!(
+        typed.try_recv_envelope(),
+        Err(ResourceEventTryRecvError::Lagged(_))
+    ));
+    let second_envelope = typed.try_recv_envelope().unwrap();
+    assert!(second_envelope.matches_payload::<u64>());
+    assert!(!second_envelope.matches_payload::<u32>());
+    assert_eq!(second_envelope.into_event(), second);
+    assert!(matches!(
+        ordinary.try_recv(),
+        Err(ResourceEventTryRecvError::Lagged(_))
+    ));
+    assert_eq!(ordinary.try_recv().unwrap(), second);
+}

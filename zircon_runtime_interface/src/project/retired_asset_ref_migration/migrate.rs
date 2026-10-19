@@ -270,7 +270,7 @@ fn admit_migration_value<E>(
     while let Some(frame) = stack.pop() {
         match frame {
             AdmissionFrame::Visit(current, depth) => {
-                visited_nodes = visited_nodes.checked_add(1).unwrap_or(usize::MAX);
+                visited_nodes = visited_nodes.saturating_add(1);
                 ensure_resource_limit(
                     "retired asset migration nodes",
                     visited_nodes,
@@ -278,14 +278,14 @@ fn admit_migration_value<E>(
                 )?;
                 ensure_resource_limit("retired asset migration depth", depth, budget.max_depth())?;
                 if matches!(current, Value::Object(values) if is_exact_retired_shape(values)) {
-                    references = references.checked_add(1).unwrap_or(usize::MAX);
+                    references = references.saturating_add(1);
                     ensure_resource_limit(
                         "retired asset migration references",
                         references,
                         budget.max_references(),
                     )?;
                 }
-                let child_depth = depth.checked_add(1).unwrap_or(usize::MAX);
+                let child_depth = depth.saturating_add(1);
                 match current {
                     Value::Array(values) => {
                         stack.push(AdmissionFrame::Array(values.iter(), child_depth));

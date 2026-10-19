@@ -16,6 +16,27 @@ import subprocess
 import sys
 import time
 
+def fixed_history_archive_input(payload):
+    """Validate the sole typed historical input without writing or copying it."""
+    if "fixedHistoryArchiveInput" not in payload:
+        return None
+    value = payload["fixedHistoryArchiveInput"]
+    if (not isinstance(value, dict) or set(value) != {"schemaVersion", "kind", "access", "root"}
+            or type(value.get("schemaVersion")) is not int or value["schemaVersion"] != 1
+            or value.get("kind") != "zircon-fixed-docs-history" or value.get("access") != "read-only"):
+        raise ValueError("Fixed historical archive requires the exact typed read-only input")
+    raw = value.get("root")
+    if (not isinstance(raw, str) or not raw or len(raw.encode("utf-8")) > 4096
+            or any(c in raw for c in "\0\r\n") or not Path(raw).is_absolute()):
+        raise ValueError("Fixed historical archive root must be an explicit absolute path")
+    archive = Path(raw).resolve(strict=True)
+    if not archive.is_dir():
+        raise ValueError("Fixed historical archive root must be a readable directory")
+    with os.scandir(archive):
+        pass
+    return {**value, "root": str(archive)}
+
+
 ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,79}\Z")
 WORKTREE_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,159}\Z")
 SHA = re.compile(r"(?:[0-9a-f]{40}|[0-9a-f]{64})\Z")
@@ -38,7 +59,7 @@ PREVIEW_REPOSITORY = Path("E:/Git/ZirconEngine")
 PREVIEW_REPORTS = Path("E:/cargo-targets/zircon-local/reports/penpot-unreal-01a0f04d")
 PREVIEW_PROOF = PREVIEW_REPORTS / "ordinary-window-unreal-current/unreal-chrome-cutover-current/jenkins-fixed-editor-preview-current"
 PREVIEW_SCRIPT = Path("E:/cargo-targets/zircon-local/tmp/penpot-unreal-01a0f04d/launch-current-normal-editor-preview-r34.py")
-PREVIEW_SCRIPT_SHA256 = "41ca2d510a2331373b5c34b8eecca55534fada274ab44606c14bfb2ba063457f"
+PREVIEW_SCRIPT_SHA256 = "ba8d6170222b6d2a7e722b895be8108dbc6aace45d21bc0706a1626f5f320e22"
 PREVIEW_PYTHON = Path("E:/cargo-targets/zircon-local/tools/penpot-unreal-01a0f04d/python-3.14.4-embed-amd64/runtime/python.exe")
 PREVIEW_PYTHON_SHA256 = "7ca24f26d6e3f463419ee4f537ddd3acd312c38fe45e678cce08572f26a8bd1a"
 PREVIEW_OUTPUT = Path("E:/cargo-targets/zircon-local/tests/penu-01a0f04d/ordinary-normal-preview-r34")
@@ -56,6 +77,13 @@ AUTH = {PREVIEW_ACTION: "validation", "create-branch": "implementation", "create
         "recover-worktree": "gc", "validate": "validation", "prepare-flow": "validation",
         "submit-flow": "validation", "prepare-worktree": "validation",
         "inspect-worktree": "validation", "retire-worktree-reader": "validation"}
+
+
+def compact_build_environment(environment):
+    """Apply before compatibility hashing and launch; preserve release symbols."""
+    return {**environment, "CARGO_INCREMENTAL": "0", "CARGO_PROFILE_DEV_INCREMENTAL": "false",
+            "CARGO_PROFILE_TEST_INCREMENTAL": "false", "CARGO_PROFILE_DEV_DEBUG": "0",
+            "CARGO_PROFILE_TEST_DEBUG": "0"}
 
 
 def encoded(value):
@@ -229,6 +257,19 @@ def input_changes(before, after, limit=128):
 
 class CheckoutInputIncomplete(ValueError):
     code = "checkout_input_incomplete"
+
+    def __init__(self, message, *, input_diagnostic=None):
+        super().__init__(message)
+        self.input_diagnostic = None
+        if input_diagnostic is not None:
+            self.input_diagnostic = {
+                "schemaVersion": 1,
+                "kind": "installed-git-input-overlap",
+                "selectedGit": {
+                    key: input_diagnostic["selectedGit"][key] for key in ("path", "sha256")},
+                "matchedInput": {
+                    key: input_diagnostic["matchedInput"][key] for key in ("role", "root")},
+            }
 
 
 class CheckoutInputIdentityConflict(ValueError):
@@ -564,6 +605,36 @@ def checkout_product_helper(config, *, required_schema=1):
     return module
 
 
+def client_path(config, repo, name, *, capsule=None):
+    """Resolve one pinned client; an absent clientRoot keeps canonical semantics."""
+    clients = config.get("clientSources", {})
+    checksum = clients.get(name) if isinstance(clients, dict) else None
+    if (not isinstance(name, str) or name not in {
+            "tools/dev/local_cargo.py", "tools/dev/local-cargo.ps1", "tools/dev/dev-fast-build.ps1",
+            "tools/dev/submit-jenkins-management.ps1", "tools/jenkins/frontend.py",
+            "tools/jenkins-management/entry.py"}
+            or not isinstance(checksum, str) or not re.fullmatch(r"[0-9a-f]{64}", checksum)):
+        raise ValueError("Management client source inventory differs")
+    repo = plain(repo)
+    if "clientRoot" not in config:
+        root = repo
+    elif config["clientRoot"] == "clients":
+        capsule = plain(capsule if capsule is not None else Path(__file__).parent)
+        raw = plain(capsule / "capsule.json").read_bytes()
+        if (capsule != repo / ".jenkins/runtime/management" / capsule.name
+                or sha(raw) != capsule.name or json.loads(raw) != config
+                or plain(config["repositoryRoot"]) != repo):
+            raise ValueError("Management client capsule identity differs")
+        root = plain(capsule / "clients")
+    else:
+        raise ValueError("Management client root differs")
+    path = plain(root / name)
+    if sha(path.read_bytes()) != checksum:
+        raise ValueError("Pinned management client implementation changed")
+    return path
+
+
+
 def boot(capsule):
     capsule = plain(capsule)
     raw = (capsule / "capsule.json").read_bytes()
@@ -600,9 +671,8 @@ def boot(capsule):
     if entry is not None and (client_names != ordinary_clients or entry != {
             "enabled": True, "actions": ["validate"], "formalAcceptance": False, "m8Accepted": False}):
         raise ValueError("Ordinary entry requires its complete pinned six-file client inventory")
-    for name, checksum in config["clientSources"].items():
-        if sha(plain(repo / name).read_bytes()) != checksum:
-            raise ValueError("Pinned management client implementation changed")
+    for name in config["clientSources"]:
+        client_path(config, repo, name, capsule=capsule)
     driver = plain(repo / ".jenkins/runtime/drivers" / config["driverDigest"])
     manifest = json.loads((driver / "driver-manifest.json").read_bytes())
     if (sha(encoded({"schemaVersion": manifest["schemaVersion"], "files": manifest["files"]}))
@@ -642,6 +712,7 @@ def boot(capsule):
     if owner["operationId"] != config["runtimeOperationId"] or quiet_observation(manager):
         raise ValueError("Pinned owner changed or deployment admission is draining")
     return config, repo, manager
+
 
 
 def route_request_context(config, repo, manager, payload, *, state=None, query_only=False):
@@ -717,8 +788,152 @@ def reconcile_prepared_external_capture(captured, original, *, legacy_sealed=Fal
         "exactHeadDiffFilesAndNestedGitlinks": True, "originalEvidencePreserved": True}
 
 
+class _BranchCandidate:
+    """Private native queue binding; never a public worktree or sourceView."""
+
+    def __init__(self, repo, root, request, runtime, component_digest):
+        self.repo, self.path = plain(repo), plain(root)
+        self.request = json.loads(encoded(request))
+        self.runtime = dict(runtime)
+        if set(self.runtime) != {"driverDigest", "runtimeOperationId"}:
+            raise ValueError("Branch preparation needs the exact current runtime binding")
+        if (self.path != self.repo / ".jenkins/worktrees/integration-queue"
+                or not re.fullmatch(r"[0-9a-f]{64}", component_digest)):
+            raise ValueError("Branch preparation requires the one native queue candidate")
+        operation = identifier(request["operationId"])
+        self.record_path = self.repo / ".jenkins/state/management/branch-integration/requests" / (operation + ".json")
+        self.marker_path = self.record_path.parent.parent / "candidate.json"
+        record = json.loads(plain(self.record_path).read_bytes())
+        self.binding = {
+            "requestDigest": sha(encoded(request)), "operationId": operation,
+            "sessionId": request["sessionId"], "requestId": request["requestId"],
+            "ownerThreadId": request.get("ownerThreadId"), "ownedPaths": request["paths"],
+            "sourceCommit": record.get("sourceCommit"), "sourceRoot": record.get("sourceRoot"),
+            "branch": record.get("branch"), "candidateHead": record.get("candidateHead"),
+            "mainHeadBefore": record.get("mainHeadBefore"),
+            "originalRuntime": record.get("runtime"), "runtime": self.runtime,
+            "componentDigest": component_digest,
+        }
+        self.before = None
+
+    def verify(self, management):
+        if (os.name != "nt" or os.environ.get("JOB_NAME") != "zircon-merge-queue"
+                or os.environ.get("NODE_NAME") != "zircon-windows-agent"
+                or os.environ.get("ZR_COMMIT_NATIVE") != "1"
+                or any(os.environ.get("ZR_INTEGRATION_" + suffix) != self.runtime[field]
+                       for field, suffix in (("driverDigest", "DRIVER"), ("runtimeOperationId", "RUNTIME")))):
+            raise ValueError("Prepared branch input requires the real runtime-bound merge job")
+        if (management.repo != self.repo or management.session != self.binding["sessionId"]
+                or management.owned != self.binding["ownedPaths"]
+                or any(management.config[field] != self.runtime[field] for field in self.runtime)):
+            raise ValueError("Branch candidate owner, scope or current runtime changed")
+        selected = json.loads(plain(self.repo / ".jenkins/state/deployment/driver.json").read_bytes())
+        operation = json.loads(plain(self.repo / ".jenkins/state/deployment-operation.json").read_bytes())
+        if (any(selected.get(field) != self.runtime[field] for field in self.runtime)
+                or operation.get("operationId") != self.runtime["runtimeOperationId"]
+                or operation.get("state") != "running"):
+            raise ValueError("Branch preparation runtime is transitioning")
+        record = json.loads(plain(self.record_path).read_bytes())
+        marker = json.loads(plain(self.marker_path).read_bytes())
+        commit_paths = record.get("commitPaths", [])
+        owned_paths = self.binding["ownedPaths"]
+        committed_casefold = {name.casefold() for name in commit_paths}
+        owned_casefold = {name.casefold() for name in owned_paths}
+        expected = {name: self.binding[name] for name in ("sourceCommit", "sourceRoot", "branch", "candidateHead", "mainHeadBefore")}
+        if (record.get("request") != self.request or record.get("runtime") != self.binding["originalRuntime"]
+                or any(record.get(name) != value for name, value in expected.items())
+                or record.get("integrationStatus") != "validating"
+                or plain(record.get("candidateRoot", "")) != self.path
+                or marker.get("status") != "active" or marker.get("operationId") != self.binding["operationId"]
+                or marker.get("mainHead") != self.binding["mainHeadBefore"]
+                or plain(marker.get("path", "")) != self.path
+                or len(committed_casefold) != len(commit_paths)
+                or len(owned_casefold) != len(owned_paths)
+                or not committed_casefold <= owned_casefold):
+            raise ValueError("Original branch queue candidate binding changed")
+        native = record.get("candidateGit", {})
+        command_ref = native.get("commandRef")
+        if (native.get("operationKind") != "merge" or native.get("nativeComplete") is not True
+                or native.get("rootExitCode") != 0 or not isinstance(command_ref, dict)):
+            raise ValueError("Candidate merge lacks its original completed native evidence")
+        command = read_reference({key: command_ref[key] for key in ("path", "sha256")},
+                                 expected_path=plain(native["reportRoot"]) / "command.json")
+        terminal_ref = native.get("nativeTerminalRef")
+        terminal = read_reference({key: terminal_ref[key] for key in ("path", "sha256")},
+                                  expected_path=plain(native["reportRoot"]) / "native-terminal.json")
+        if (command.get("runtime") != self.runtime or command.get("operationId") != self.binding["operationId"]
+                or command.get("operationKind") != "merge" or plain(command.get("cwd", "")) != self.path
+                or command.get("command", [])[-1:] != [self.binding["sourceCommit"]]
+                or terminal.get("command") != command.get("command")
+                or terminal.get("rootExitCode") != 0
+                or native_terminal_proof(terminal, terminal_ref)["complete"] is not True):
+            raise ValueError("Candidate merge proof differs from the current native queue binding")
+        if (management.text(self.path, "rev-parse", "HEAD") != self.binding["candidateHead"]
+                or plain(management.text(self.path, "rev-parse", "--path-format=absolute", "--git-common-dir"))
+                   != plain(self.repo / ".git")
+                or management.text(self.path, "status", "--porcelain=v1", "--untracked-files=all")):
+            raise ValueError("Candidate HEAD, common repository or source bytes changed")
+        return self.path
+
+
+def validate_branch_candidate(capsule, *, component_digest, root, branch_request, cargo_recipe, ordinal, runtime):
+    """Use the existing managed preparation/execution lifecycle for a queue-owned candidate."""
+    recipe_fields = {"verb", "packages", "features", "profile", "offline", "noDefaultFeatures", "allFeatures",
+                     "locked", "jobs", "lib", "tests", "noRun", "testThreads", "testFilter", "bins",
+                     "allTests", "harnessFilters", "exact", "ignored", "nocapture"}
+    if not isinstance(cargo_recipe, dict) or set(cargo_recipe) - recipe_fields:
+        raise ValueError("Only the existing bounded Cargo recipe belongs to branch preparation")
+    recipe_check = object.__new__(Management)
+    recipe_check.payload = cargo_recipe
+    recipe_check.validation_recipe()
+    config, repo, manager = boot(capsule)
+    from tools.jenkins.source import repository_id
+
+    candidate = _BranchCandidate(repo, root, branch_request, runtime, component_digest)
+    fixed = {"action": "validate", "repositoryId": repository_id(repo),
+        "sessionId": branch_request["sessionId"], "requestId": branch_request["requestId"],
+        "operationId": "branch-input-" + sha(encoded({
+            "operation": branch_request["operationId"], "head": candidate.binding["candidateHead"],
+            "ordinal": ordinal, "recipe": cargo_recipe, "runtime": runtime,
+            "capsule": Path(capsule).name, "component": component_digest}))[:48],
+        "driverDigest": config["driverDigest"], "runtimeOperationId": config["runtimeOperationId"],
+        "ownedPaths": list(branch_request["paths"]), "externalRoots": [str(repo.parent / "zr_vm")],
+        "buildRoot": "E:/cargo-targets", "sourceEvidencePolicy": "full-file-index-v2", **cargo_recipe}
+    # Observation retains the original authorization and performs no local request registration.
+    probe = Management(config, repo, manager, {**fixed, "observationOnly": True}, branch_candidate=candidate)
+    candidate.verify(probe)
+    if not plain(repo.parent / "zr_vm").is_dir():
+        return {"status": "waiting", "reasonCode": "external_source_unavailable",
+                "preparationStarted": False, "compileStarted": False, "formalAcceptance": False}
+    _root, before = probe.validation_with_cache()
+    environment, trusted, _policy_file = probe.validation_environment()
+    for tool in ("cargo", "rustc"):
+        if sha(plain(trusted[tool + "Path"]).read_bytes()) != trusted[tool + "Sha256"]:
+            raise ValueError("Trusted compiler executable changed")
+    identity = {"schemaVersion": 1, "backend": "managed-prepared-branch-v1",
+        "capsuleSha256": Path(capsule).name, "componentDigest": component_digest,
+        "candidateHead": candidate.binding["candidateHead"], "runtime": runtime,
+        "capturedSourceDigest": before["sourceDigest"], "engineSourceDigest": before["source"]["sourceDigest"],
+        "externalSources": [{"path": item["path"], "sourceDigest": item["source"]["sourceDigest"]}
+                           for item in before["externalRoots"]],
+        "dependencyCacheDigest": sha(encoded(before["dependencyCache"])),
+        "toolchainDigest": sha(encoded(trusted)), "environmentDigest": sha(encoded(environment)),
+        "recipeDigest": sha(encoded(cargo_recipe)), "ordinal": ordinal}
+    identity_digest = sha(encoded(identity))
+    payload = {**fixed, "operationId": "branch-validation-" + identity_digest[:48],
+               "expectedSourceDigest": before["sourceDigest"]}
+    candidate.before = before
+    actor = Management(config, repo, manager, payload, branch_candidate=candidate)
+    result = actor.run()
+    return {**result, "candidatePreparationIdentity": identity,
+            "candidatePreparationIdentityDigest": identity_digest,
+            "sealedInputRef": result.get("preparation", {}).get("sealedInputRef"),
+            "branchCandidateBinding": candidate.binding}
+
+
 class Management:
-    def __init__(self, config, repo, manager, payload):
+    def __init__(self, config, repo, manager, payload, *, branch_candidate=None):
+        self._branch_candidate = branch_candidate
         from tools.jenkins.state import State
         from tools.jenkins.source import repository_id
         self.config, self.repo, self.manager, self.payload = config, repo, manager, payload
@@ -748,8 +963,13 @@ class Management:
         self.owned = payload.get("ownedPaths", [])
         if not isinstance(self.owned, list) or not self.owned or any(not isinstance(p, str) for p in self.owned):
             raise ValueError("ownedPaths must be an explicit path list")
-        ensure_request_context(config, repo, manager, payload, state=self.state)
+        if branch_candidate is None:
+            ensure_request_context(config, repo, manager, payload, state=self.state)
+        elif self.action != "validate" or not isinstance(branch_candidate, _BranchCandidate):
+            raise ValueError("Only the private native branch candidate retains its scoped writer")
         self.state.check_authorization(self.repo_id, self.session, AUTH[self.action], self.owned)
+        if branch_candidate is not None:
+            branch_candidate.verify(self)
         self.key = sha(encoded({"repositoryId": self.repo_id, "sessionId": self.session,
                                "requestId": self.request, "operationId": self.operation}))
         self.worktrees = plain(repo / ".jenkins/worktrees")
@@ -759,8 +979,9 @@ class Management:
     def git_command(self, root, *args):
         binding = getattr(self, "_checkout_git_binding", None)
         program = binding["path"] if binding is not None else "git"
+        checkout = ["-c", "checkout.workers=4"] if args[:2] == ("worktree", "add") else []
         return [program, "-c", "core.longpaths=true", "-c", "core.hooksPath=" + str(Path(__file__).parent / "no-hooks"),
-                "-c", "core.autocrlf=false", "-C", str(root), *args]
+                "-c", "core.autocrlf=false", *checkout, "-C", str(root), *args]
 
     def git(self, root, *args, check=True):
         from tools.jenkins.pilot.native.process_supervisor import ProcessSupervisor
@@ -785,7 +1006,7 @@ class Management:
                 env={**os.environ, "GIT_TERMINAL_PROMPT": "0", "GIT_OPTIONAL_LOCKS": "0"},
                 owner=(getattr(self, "key", "management-git"), "git", 0, 0))
             try:
-                code = process.wait(timeout=1800 if args[:2] == ("worktree", "add") else 600)
+                code = process.wait(timeout=3600 if args[:2] == ("worktree", "add") else 600)
             except subprocess.TimeoutExpired:
                 process.terminate(reason="management_git_timeout")
                 process.wait(timeout=8)
@@ -898,6 +1119,9 @@ class Management:
         return source
 
     def validation_root(self, *, payload=None):
+        candidate = getattr(self, "_branch_candidate", None)
+        if candidate is not None:
+            return candidate.verify(self)
         payload = self.payload if payload is None else payload
         view = payload.get("sourceView", "worktree")
         if view == "worktree":
@@ -908,7 +1132,8 @@ class Management:
 
     def validation_source(self, *, payload=None, observation_errors=None):
         payload = self.payload if payload is None else payload
-        view = payload.get("sourceView", "worktree")
+        candidate = getattr(self, "_branch_candidate", None)
+        view = "integration-candidate" if candidate is not None else payload.get("sourceView", "worktree")
         root = self.validation_root(payload=payload)
         requested = payload.get("externalRoots", [])
         canonical = plain(self.repo.parent / "zr_vm")
@@ -950,11 +1175,13 @@ class Management:
                 if (not dependency.is_dir()
                         or plain(self.text(dependency, "rev-parse", "--show-toplevel")) != dependency):
                     raise ValueError("External input must be its actual physical Git root")
-                if view == "checkout" and "externalGitlinks" not in payload:
+                if view in {"checkout", "integration-candidate"} and "externalGitlinks" not in payload:
                     from tools.jenkins import managed_worktree as formal
                     # Bind omitted Gitlinks to the complete observed external input.
                     _, captures, _ = formal._external_capture(
-                        self, source_helper(), inspection=True, payload=payload)
+                        self, source_helper().checkout_external_file_view()
+                        if view == "checkout" else source_helper(),
+                        inspection=True, payload=payload)
                     external.extend(captures)
                 else:
                     external_payload = payload
@@ -978,6 +1205,8 @@ class Management:
         value = {"sourceView": view, "sourceRoot": str(root),
                  "source": engine if engine is not None else self.source(root, payload=payload),
                  "externalRoots": external}
+        if candidate is not None:
+            value["branchCandidate"] = candidate.binding
         if external_compatibility:
             value["externalCompatibility"] = external_compatibility
         if prepared_context is not None:
@@ -1510,6 +1739,10 @@ class Management:
     def resume_existing_worktree(self, reference, path, existing, base, *, merge):
         """Rebind verified unchanged WT metadata; never rewrite its original result."""
         from tools.jenkins.managed_worktree_lifetime import writer_hold
+        if "committedSuccessor" in self.payload:
+            if self.config.get("managedWorktree") != MANAGED_WORKTREE_CAPABILITY:
+                raise ValueError("Managed committed source preparation is not installed")
+            return source_helper().resume_committed_worktree(self, reference, path, existing, base, merge=merge)
         value = existing["payload"]
         key = self.payload.get("resumeFromOperationKey")
         branch = "codex/jenkins/" + self.session + "/" + self.payload["name"]
@@ -2238,7 +2471,7 @@ class Management:
         git_digest = sha(git_path.read_bytes())
         owner = "management-" + self.key
         report = plain(self.outputs() / "reports" / self.key)
-        helper_path = plain(self.repo / "tools/dev/local_cargo.py")
+        helper_path = client_path(self.config, self.repo, "tools/dev/local_cargo.py")
         spec = importlib.util.spec_from_file_location("jenkins_release_native", helper_path)
         helper = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(helper)
@@ -2739,7 +2972,7 @@ class Management:
             raise ValueError("Batch must preserve every complete original semantic command")
         parser = getattr(self, "_batch_parser", None)
         if parser is None:
-            path = plain(self.repo / "tools/jenkins-management/entry.py")
+            path = client_path(self.config, self.repo, "tools/jenkins-management/entry.py")
             if sha(path.read_bytes()) != self.config["clientSources"]["tools/jenkins-management/entry.py"]:
                 raise ValueError("Pinned Cargo contract parser changed")
             spec = importlib.util.spec_from_file_location("pinned_batch_cargo_contract", path)
@@ -2765,7 +2998,7 @@ class Management:
             probe.payload = {**common, **parsed}
             recipe = probe.validation_recipe()
             profile = original.get("profile")
-            if profile is not None and ({"debug": "dev", "dev": "dev", "release": "release"}.get(profile)
+            if profile is not None and ({"debug": "dev", "dev": "dev", "release": "release", "test": "test"}.get(profile)
                                         != recipe["profile"]):
                 raise ValueError("Original profile differs from its Cargo argv")
             requested = original.get("targetDir")
@@ -3225,7 +3458,7 @@ class Management:
         parallelism = max(max(recipe["jobs"], recipe["testThreads"] if recipe["verb"] == "test"
                              and not recipe["noRun"] else 1) for recipe in recipes)
         amount = Capacity(parallelism, 2 * parallelism * 1024**3, 4 * 1024**3)
-        environment, trusted, _policy_file = _environment_policy(self.state, self.repo)
+        environment, trusted, _policy_file = self.validation_environment()
         preparation = source_helper()
         cache_fact = self.dependency_cache()
         pool, cargo_configuration = self.batch_pool(recipes, preparation, trusted, environment, root, cache_fact)
@@ -3238,7 +3471,7 @@ class Management:
         if checkpoint.get("pool") and any(checkpoint.get(k) != v for k, v in binding.items()):
             raise ValueError("Original shared batch preparation/configuration/volume changed")
         self.batch_checkpoint(**binding)
-        helper_path = plain(self.repo / "tools/dev/local_cargo.py")
+        helper_path = client_path(self.config, self.repo, "tools/dev/local_cargo.py")
         spec = importlib.util.spec_from_file_location("jenkins_managed_batch_cargo", helper_path)
         helper = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(helper)
@@ -3512,6 +3745,18 @@ class Management:
         return result
 
 
+    def validation_environment(self):
+        """Bind typed read-only archive input into the trusted native identity."""
+        from tools.jenkins.workflow.planning import _environment_policy
+        environment, trusted, policy_file = _environment_policy(self.state, self.repo)
+        environment = compact_build_environment(environment)
+        environment = {key: value for key, value in environment.items()
+                       if key.casefold() != "zircon_docs_history_archive_root"}
+        archive_input = fixed_history_archive_input(self.payload)
+        if archive_input is not None:
+            environment["ZIRCON_DOCS_HISTORY_ARCHIVE_ROOT"] = archive_input["root"]
+        return environment, trusted, policy_file
+
     def validation_recipe(self):
         allowed = {"action", "repositoryId", "sessionId", "requestId", "operationId", "driverDigest",
                    "runtimeOperationId", "ownedPaths", "observationOnly", "sourceView", "worktreeId",
@@ -3520,7 +3765,8 @@ class Management:
                    "allFeatures", "locked", "jobs", "testThreads", "requestedTargetDir",
                    "expectedSourceDigest", "expectedEngineSourceDigest", "externalCapturePolicy",
                    "sourceHashes", "dependencyHashes", "bins", "allTests", "harnessFilters",
-                   "exact", "ignored", "nocapture", "worktreePreparationRef", "sourceEvidencePolicy"}
+                   "exact", "ignored", "nocapture", "worktreePreparationRef", "sourceEvidencePolicy",
+                   "fixedHistoryArchiveInput"}
         if set(self.payload) - allowed:
             raise ValueError("Unsupported Cargo fields: " + ", ".join(sorted(set(self.payload) - allowed)))
         if ("sourceEvidencePolicy" in self.payload
@@ -3536,6 +3782,7 @@ class Management:
                     or not isinstance(engine_digest, str)
                     or not re.fullmatch(r"[0-9a-f]{64}", engine_digest)):
                 raise ValueError("Jenkins dependency admission requires an explicit complete engine source digest")
+        archive_input = fixed_history_archive_input(self.payload)
         packages, features = self.payload.get("packages"), self.payload.get("features", [])
         tests = self.payload.get("tests", [])
         if (not isinstance(packages, list) or not 1 <= len(packages) <= 8
@@ -3546,7 +3793,8 @@ class Management:
                 or any(not isinstance(t, str) or not re.fullmatch(r"[A-Za-z0-9_.-]{1,80}", t) for t in tests)):
             raise ValueError("Explicit bounded Cargo packages/features/test targets required")
         verb, profile = self.payload.get("verb", "test"), self.payload.get("profile", "dev")
-        if verb not in {"check", "build", "test"} or profile not in {"dev", "release"}:
+        if (verb not in {"check", "build", "test"} or profile not in {"dev", "release", "test"}
+                or profile == "test" and verb != "test"):
             raise ValueError("Unsupported Cargo recipe")
         options = {name: self.payload.get(name, name == "locked")
                    for name in ("offline", "noDefaultFeatures", "lib", "noRun", "allFeatures", "locked")}
@@ -3573,6 +3821,10 @@ class Management:
             raise ValueError("Unsupported Cargo targets or harness selectors")
         if "harnessFilters" in self.payload:
             extra["harnessFilters"] = filters
+        if not options["noDefaultFeatures"] or options["allFeatures"] or extra.get("allTests"):
+            raise ValueError("build_scope_policy: require explicit features with noDefaultFeatures=true; broad feature/test selection prohibited")
+        if verb == "test" and not ((options["lib"] and not tests) or (not options["lib"] and len(tests) == 1)):
+            raise ValueError("build_scope_policy: select lib or exactly one test target")
         command = [verb, "--jobs", str(jobs), "--message-format=json"]
         for name, flag in (("bins", "--bins"), ("allTests", "--tests")):
             if extra.get(name):
@@ -3590,6 +3842,8 @@ class Management:
             command += ["--features", ",".join(features)]
         if profile == "release":
             command += ["--release"]
+        elif profile == "test":
+            command += ["--profile", "test"]
         if verb == "test" and not options["noRun"]:
             if test_filter is not None:
                 command.append(test_filter)
@@ -3600,7 +3854,8 @@ class Management:
             command += filters
         return {"verb": verb, "profile": profile, "packages": packages, "features": features,
                 "tests": tests, "testFilter": test_filter, "jobs": jobs, "testThreads": threads,
-                **options, **extra, "command": command}
+                **options, **extra, "command": command,
+                **({"fixedHistoryArchiveInput": archive_input} if archive_input is not None else {})}
 
     def verify_declared_engine(self, engine, payload):
         expected = payload.get("expectedEngineSourceDigest")
@@ -4193,9 +4448,18 @@ class Management:
         if git_fact != bound_git:
             raise CheckoutInputIncomplete("The originally bound installed Git identity changed")
         git_executable = plain(git_fact["path"])
-        if any(git_executable == source or git_executable.is_relative_to(source)
-               for source in (root, cache, *(plain(item["path"]) for item in before["externalRoots"]))):
-            raise CheckoutInputIncomplete("Installed Git cannot be a checkout or dependency-cache input")
+        input_roots = (
+            ("checkout", root), ("dependency-cache", cache),
+            *(("external", plain(item["path"])) for item in before["externalRoots"]),
+        )
+        for role, source in input_roots:
+            if git_executable == source or git_executable.is_relative_to(source):
+                raise CheckoutInputIncomplete(
+                    "Installed Git cannot be a checkout or dependency-cache input",
+                    input_diagnostic={
+                        "selectedGit": {"path": str(git_executable), "sha256": git_fact["sha256"]},
+                        "matchedInput": {"role": role, "root": str(source)},
+                    })
         add(git_executable, git_fact["sha256"])
         trusted_native_inputs = {str(git_executable): git_fact}
         # Explicit default absences can become effective later; monitoring also
@@ -4641,11 +4905,11 @@ class Management:
             return {"status": "unknown", "reasonCode": "checkout_guard_continuity_unproven",
                     "validationInputPolicy": "actual-checkout", "originalReservationRetained": True,
                     "originalWriterRetained": True, "formalAcceptance": False}
-        environment, trusted, policy_file = _environment_policy(self.state, self.repo)
+        environment, trusted, policy_file = self.validation_environment()
         self._checkout_policy_file = policy_file
         self._checkout_native_environment = dict(environment)
         preparation = source_helper()
-        helper_path = plain(self.repo / "tools/dev/local_cargo.py")
+        helper_path = client_path(self.config, self.repo, "tools/dev/local_cargo.py")
         spec = importlib.util.spec_from_file_location("jenkins_managed_checkout_cargo", helper_path)
         helper = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(helper)
@@ -4987,9 +5251,12 @@ class Management:
             if guard is not None and admitted is None:
                 guard.close()
             if getattr(error, "code", None) == "checkout_input_incomplete" and admitted is None:
-                return {"status": "waiting", "reasonCode": "checkout_input_incomplete", "message": str(error),
-                        "inputsComplete": False, "compileStarted": False,
-                        "formalAcceptance": False, "m8Accepted": False}
+                result = {"status": "waiting", "reasonCode": "checkout_input_incomplete", "message": str(error),
+                          "inputsComplete": False, "compileStarted": False,
+                          "formalAcceptance": False, "m8Accepted": False}
+                if isinstance(error, CheckoutInputIncomplete) and error.input_diagnostic is not None:
+                    result["inputDiagnostic"] = error.input_diagnostic
+                return result
             if getattr(error, "code", None) in {"checkout_source_busy", "management_git_busy"} and admitted is None:
                 return {"status": "waiting", "reasonCode": getattr(error, "code"), "message": str(error),
                         "formalAcceptance": False}
@@ -5010,6 +5277,11 @@ class Management:
             raise
 
     def validation_with_cache(self, *, payload=None):
+        candidate = getattr(self, "_branch_candidate", None)
+        if candidate is not None and candidate.before is not None:
+            root, before = candidate.verify(self), candidate.before
+            self.verify_declared_inputs(before, self.payload if payload is None else payload)
+            return root, before
         root, source = self.validation_source(payload=payload)
         value = {**{k: v for k, v in source.items() if k != "sourceDigest"},
                  "dependencyCache": self.dependency_cache(payload=payload)}
@@ -5084,7 +5356,7 @@ class Management:
         resources = ResourceManager(self.state, Capacity(policy["cpuBudget"], policy["memoryBudget"], policy["diskBudget"]))
         parallelism = max(recipe["jobs"], recipe["testThreads"] if verb == "test" and not recipe["noRun"] else 1)
         amount = Capacity(parallelism, 2 * parallelism * 1024**3, 4 * 1024**3)
-        environment, trusted, _policy_file = _environment_policy(self.state, self.repo)
+        environment, trusted, _policy_file = self.validation_environment()
         preparation = source_helper()
         compatibility_environment = {**environment,
                                      **({"cargoAllFeatures": True} if recipe["allFeatures"] else {}),
@@ -5103,7 +5375,7 @@ class Management:
         report = plain(output / "reports" / self.key)
         if report.exists():
             raise ValueError("Validation report exists; reconcile the original operation")
-        helper_path = plain(self.repo / "tools/dev/local_cargo.py")
+        helper_path = client_path(self.config, self.repo, "tools/dev/local_cargo.py")
         spec = importlib.util.spec_from_file_location("jenkins_managed_local_cargo", helper_path)
         helper = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(helper)
@@ -5279,6 +5551,8 @@ class Management:
     def dispatch(self):
         if self.config.get("managedWorktree") == MANAGED_WORKTREE_CAPABILITY:
             from tools.jenkins.managed_worktree import MUTATIONS, writer_hold
+            if self.action == "apply-patch":
+                self.patch_input(self.payload["patchReference"], self.payload["beforeHashes"])
             if (self.action == "prepare-worktree" and "resumePreparationFromOperationKey" in self.payload):
                 with source_helper().materialized_preparation_recovery_hold(self):
                     return self._dispatch()
@@ -5316,7 +5590,7 @@ class Management:
             "scriptSha256": PREVIEW_SCRIPT_SHA256, "interpreterSha256": PREVIEW_PYTHON_SHA256,
             "output": str(PREVIEW_OUTPUT), "timeoutSeconds": PREVIEW_TIMEOUT_SECONDS,
             "formalAcceptance": False})
-        helper_path = plain(self.repo / "tools/dev/local_cargo.py")
+        helper_path = client_path(self.config, self.repo, "tools/dev/local_cargo.py")
         if sha(helper_path.read_bytes()) != self.config["clientSources"]["tools/dev/local_cargo.py"]:
             raise ValueError("Pinned owned native command implementation changed")
         spec = importlib.util.spec_from_file_location("jenkins_fixed_editor_preview_native", helper_path)
@@ -5357,13 +5631,17 @@ class Management:
             helper = source_helper()
             return helper.managed_inspect_worktree(self, preparation_helper=helper)
         if self.action == "retire-worktree-reader":
+            if "unlaunchedRecovery" in self.payload:
+                return source_helper().retire_unlaunched_flow_reader(self)
             from tools.jenkins.managed_worktree_lifetime import retire_reader
             return retire_reader(self)
         if self.action == "create-branch":
             return self.create_branch()
         if self.action == "create-worktree":
             ref, _path, value = self.new_worktree()
-            return {**value, "status": "complete", "worktreeId": ref, "source": self.source(_path)}
+            source = getattr(self, "_committed_successor_source", None)
+            return {**value, "status": "complete", "worktreeId": ref,
+                    "source": self.source(_path) if source is None else source}
         if self.action == "prepare-merge":
             return self.prepare_merge()
         if self.action == "apply-patch":
@@ -5415,7 +5693,11 @@ class Management:
                 if row["payload"]["phase"] == "complete":
                     return previous
                 if (row["payload"]["phase"] != "waiting"
-                        and not ("batch" in self.payload and self.batch_recovery_ready())):
+                        and not ("batch" in self.payload and self.batch_recovery_ready())
+                        and not (self.action == "retire-worktree-reader"
+                                 and isinstance(self.payload.get("unlaunchedRecovery"), dict)
+                                 and self.payload["unlaunchedRecovery"].get("schemaVersion") == 1
+                                 and self.payload["unlaunchedRecovery"].get("kind") == "cancelled-before-native-launch-v1")):
                     return {"status": "unknown", "reasonCode": "original_operation_requires_reconciliation",
                             "operation": row["payload"], "formalAcceptance": False}
             record = {**(row["payload"] if row else {}), "requestId": self.request, "operationId": self.operation,

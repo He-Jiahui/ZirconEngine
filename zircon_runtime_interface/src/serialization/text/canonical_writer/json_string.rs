@@ -99,7 +99,7 @@ where
             '\r' => Some(b"\\r" as &[u8]),
             '\t' => Some(b"\\t" as &[u8]),
             control if control <= '\u{1F}' => {
-                write(value[literal_start..index].as_bytes())?;
+                write(&value.as_bytes()[literal_start..index])?;
                 let code = control as u32;
                 let unicode = [
                     b'\\',
@@ -116,12 +116,12 @@ where
             _ => None,
         };
         if let Some(escaped) = escaped {
-            write(value[literal_start..index].as_bytes())?;
+            write(&value.as_bytes()[literal_start..index])?;
             write(escaped)?;
             literal_start = index + character.len_utf8();
         }
     }
-    write(value[literal_start..].as_bytes())
+    write(&value.as_bytes()[literal_start..])
 }
 
 fn hex_digit(value: u8) -> u8 {

@@ -21,7 +21,7 @@ pub(super) fn assert_feedback_sidebands_move_owned_payloads(sources: &SubmitCont
         "sideband_outputs: RenderHybridGiReadbackOutputs",
         "sideband_outputs: RenderParticleGpuReadbackOutputs",
         "sideband_outputs: RenderVirtualGeometryReadbackOutputs",
-        "renderer_outputs.cache_entries.extend(cache_entries);",
+        "renderer_outputs.cache_entries.append(&mut cache_entries);",
         "renderer_outputs.page_replacements.extend(page_replacements);",
     ] {
         assert!(

@@ -90,3 +90,125 @@ fn disabled_picking_pipeline_clears_previous_interaction_state() {
     assert!(output.events.is_empty());
     assert!(output.stages.iter().all(|stage| !stage.enabled));
 }
+
+#[test]
+fn same_pointer_viewports_keep_real_ray_hit_and_event_domains_separate() {
+    use crate::core::framework::picking::{PickingDomain, PickingPointerKey};
+    let pointer = PointerId::new(81);
+    let a = RenderViewportHandle::new(801);
+    let b = RenderViewportHandle::new(802);
+    let locations = [
+        PointerLocation::new(pointer, a, Vec2::new(50.0, 50.0)),
+        PointerLocation::new(pointer, b, Vec2::new(50.0, 50.0)),
+    ];
+    let first = test_camera(ProjectionMode::Perspective);
+    let mut second = test_camera(ProjectionMode::Perspective);
+    second.transform = Transform::looking_at(
+        Vec3::new(20.0, 0.0, 8.0),
+        Vec3::new(20.0, 0.0, 0.0),
+        Vec3::Y,
+    );
+    let cameras = [
+        CameraRaySource::new(42, a, UVec2::new(100, 100), first.clone()),
+        CameraRaySource::new(43, a, UVec2::new(100, 100), first),
+        CameraRaySource::new(42, b, UVec2::new(100, 100), second),
+    ];
+    let target_a = HitTarget::renderable(101);
+    let target_b = HitTarget::renderable(202);
+    let backend = PrimitivePickingBackend::new("real-domain-rays")
+        .with_primitive(PickingPrimitive::sphere(target_a, Vec3::ZERO, 1.0))
+        .with_primitive(PickingPrimitive::sphere(
+            target_b,
+            Vec3::new(20.0, 0.0, 0.0),
+            1.0,
+        ));
+    let backends: [&dyn PickingBackend; 1] = [&backend];
+    let inputs = locations
+        .map(|location| PointerInput::new(location, PointerAction::Press(PointerButton::Primary)));
+    let output = run_picking_pipeline(
+        &mut PickingEventState::default(),
+        PickingPipelineInput::new(&locations, &inputs, &cameras, &backends),
+    );
+    assert_eq!(output.ray_map.len(), 3);
+    assert_eq!(output.backend_outputs.len(), 3);
+    for batch in &output.backend_outputs {
+        let target = match batch.domain {
+            PickingDomain::Viewport(viewport) if viewport == a => target_a,
+            PickingDomain::Viewport(viewport) if viewport == b => target_b,
+            _ => panic!("real rays must retain their viewport"),
+        };
+        assert_eq!(batch.pointer, pointer);
+        assert_eq!(batch.hits.len(), 1);
+        assert_eq!(batch.hits[0].target, target);
+    }
+    let key_a = PickingPointerKey::in_viewport(pointer, a);
+    let key_b = PickingPointerKey::in_viewport(pointer, b);
+    assert_eq!(
+        output
+            .hover_map
+            .get_key(key_a)
+            .iter()
+            .map(|hit| hit.target)
+            .collect::<Vec<_>>(),
+        vec![target_a]
+    );
+    assert_eq!(
+        output
+            .hover_map
+            .get_key(key_b)
+            .iter()
+            .map(|hit| hit.target)
+            .collect::<Vec<_>>(),
+        vec![target_b]
+    );
+    assert!(output.hover_map.get(pointer).is_empty());
+    assert_eq!(output.report.pointer_count, 1);
+    assert_eq!(output.report.hovered_hit_count, 2);
+    assert_eq!(output.report.blocked_pointer_count, 1);
+    assert!(output.report.pointer(pointer).is_none());
+    assert_eq!(
+        output
+            .report
+            .pointer_in_domain(key_a)
+            .unwrap()
+            .sorted_hit_count,
+        2
+    );
+    assert_eq!(
+        output
+            .report
+            .pointer_in_domain(key_b)
+            .unwrap()
+            .sorted_hit_count,
+        1
+    );
+    let debug = PickingDebugFeed::from_report(&output.report);
+    assert!(debug.pointer(pointer).is_none());
+    assert_eq!(
+        debug.pointer_in_domain(key_a).unwrap().domain,
+        PickingDomain::Viewport(a)
+    );
+    assert_eq!(
+        debug.pointer_in_domain(key_b).unwrap().top_target,
+        Some(target_b)
+    );
+    assert_eq!(
+        output
+            .events
+            .iter()
+            .filter(|event| matches!(event.kind, PickingEventKind::Press { .. }))
+            .count(),
+        2
+    );
+    for event in &output.events {
+        assert_eq!(
+            event.target,
+            if event.location.viewport == a {
+                target_a
+            } else {
+                target_b
+            }
+        );
+        assert!(event.location.viewport == a || event.location.viewport == b);
+    }
+}

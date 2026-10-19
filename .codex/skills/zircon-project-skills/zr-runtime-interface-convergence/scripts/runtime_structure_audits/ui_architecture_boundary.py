@@ -6,12 +6,12 @@ from pathlib import Path
 from .native_plugin_public_surface import _mask_rust_non_code
 
 
-EXPECTED_UI_ENTRY_COUNT = 23
-EXPECTED_SURFACE_ENTRY_COUNT = 45
+EXPECTED_UI_ENTRY_COUNT = 28
+EXPECTED_SURFACE_ENTRY_COUNT = 50
 EXPECTED_LEGACY_FULL_HITS = 15
 EXPECTED_LEGACY_PRODUCTION_HITS = 0
 EXPECTED_LEGACY_PRODUCTION_FILE_COUNT = 0
-EXPECTED_TAFFY_PRODUCTION_HITS = 254
+EXPECTED_TAFFY_PRODUCTION_HITS = 249
 EXPECTED_TAFFY_PRODUCTION_FILE_COUNT = 16
 
 LEGACY_MIGRATION_TERMS = (
@@ -65,33 +65,38 @@ SOURCE_FILES = (
     "zircon_runtime/src/ui/accessibility/extract.rs",
     "zircon_runtime/src/tests/contracts/ui_architecture.rs",
     "zircon_runtime/src/tests/contracts/ui_architecture/mirror_docs.rs",
-    "docs/zircon_runtime/ui/architecture.md",
+    "docs/crates/zircon_runtime/ui/architecture.md",
     "docs/plans/zircon_runtime/runtime/09-ui-subsystem-architecture.md",
     "docs/plans/zircon_runtime/runtime/index.md",
-    "docs/engine-architecture/runtime-architecture-review-m0.md",
-    "docs/engine-architecture/runtime-interface-convergence.md",
-    "docs/zircon_runtime/ui/layout/pass.md",
-    "docs/zircon_runtime/ui/surface/default_interactions.md",
-    "docs/zircon_runtime/ui/template/pipeline.md",
-    "docs/ui-and-layout/shared-ui-template-runtime.md",
-    "docs/zircon_runtime/ui/v2.md",
+    "docs/architecture/runtime-architecture-review-m0.md",
+    "docs/architecture/runtime-interface-convergence.md",
+    "docs/crates/zircon_runtime/ui/layout/pass.md",
+    "docs/crates/zircon_runtime/ui/surface/default_interactions.md",
+    "docs/crates/zircon_runtime/ui/template/pipeline.md",
+    "docs/crates/zircon_runtime/ui/template/shared-runtime.md",
+    "docs/crates/zircon_runtime/ui/v2.md",
 )
 EXPECTED_SOURCE_FILE_COUNT = 49
 
 EXPECTED_UI_ENTRIES = (
     "accessibility",
+    "action",
+    "asset",
     "binding",
+    "catalog",
     "component",
     "dispatch",
     "editable_text_composition.rs",
     "event_ui",
     "icon_atlas",
+    "keyboard",
     "layout",
     "module",
     "module.rs",
     "platform_input",
     "prelude.rs",
     "public_runtime_frame.rs",
+    "render",
     "secure_text_policy.rs",
     "style",
     "style.rs",
@@ -112,6 +117,7 @@ EXPECTED_SURFACE_ENTRIES = (
     "clipboard_transfers.rs",
     "component_state.rs",
     "control_index.rs",
+    "default_interactions",
     "diagnostics.rs",
     "ecs_projection.rs",
     "focus",
@@ -123,24 +129,28 @@ EXPECTED_SURFACE_ENTRIES = (
     "interaction_gate.rs",
     "invalidation",
     "invalidation.rs",
+    "localized_text",
+    "localized_text.rs",
     "mod.rs",
     "mutation_snapshot.rs",
-    "navigation",
     "navigation_index",
     "navigation_index.rs",
     "node_pool.rs",
-    "pointer",
+    "pointer_component_events",
     "popup_stack.rs",
     "property_mutation",
     "property_mutation.rs",
     "reflection_snapshot",
     "reflection_snapshot.rs",
     "render",
+    "render_fonts.rs",
     "secure_text_values.rs",
     "session_identity.rs",
     "slots.rs",
+    "subtree_mount.rs",
     "surface",
     "surface.rs",
+    "tests",
     "text_artifact",
     "text_artifact.rs",
     "text_geometry.rs",
@@ -260,7 +270,7 @@ RUNTIME_09_DOC_ANCHORS = (
     "ui_legacy_hits=15",
     "ui_legacy_production_hits=0",
     "ui_legacy_production_files=0",
-    "ui_taffy_production_hits=254",
+    "ui_taffy_production_hits=249",
     "ui_taffy_production_files=16",
     "ui/input/naming_boundary/layout/template",
     "editor UI owner",
@@ -413,9 +423,16 @@ def ui_architecture_boundary_audit(root: Path) -> dict[str, object]:
     )
     surface_entries = _top_level_entry_names(
         root,
-        "zircon_runtime/src/ui",
+        "zircon_runtime/src/ui/surface",
         include_root_mod=True,
     )
+
+    source_surface_entries = [
+        entry for entry in surface_entries
+        if ((root / "zircon_runtime/src/ui/surface" / entry).is_file() and entry.endswith(".rs"))
+        or ((root / "zircon_runtime/src/ui/surface" / entry).is_dir()
+            and _rust_files_under(root, "zircon_runtime/src/ui/surface/" + entry))
+    ]
 
     all_ui_files = _rust_files_under(root, "zircon_runtime/src/ui")
     production_ui_files = [path for path in all_ui_files if _production_ui_file(path)]
@@ -465,11 +482,11 @@ def ui_architecture_boundary_audit(root: Path) -> dict[str, object]:
     }
 
     doc_paths = (
-        root / "docs/zircon_runtime/ui/architecture.md",
+        root / "docs/crates/zircon_runtime/ui/architecture.md",
         root / "docs/plans/zircon_runtime/runtime/09-ui-subsystem-architecture.md",
         root / "docs/plans/zircon_runtime/runtime/index.md",
-        root / "docs/engine-architecture/runtime-architecture-review-m0.md",
-        root / "docs/engine-architecture/runtime-interface-convergence.md",
+        root / "docs/architecture/runtime-architecture-review-m0.md",
+        root / "docs/architecture/runtime-interface-convergence.md",
     )
     doc_sources = tuple(_read_text(path) for path in doc_paths if path.exists())
 
@@ -538,24 +555,34 @@ def ui_architecture_boundary_audit(root: Path) -> dict[str, object]:
     missing_required_doc_mentions = _missing_file_snippets(
         root,
         (
-            ("docs/zircon_runtime/ui/architecture.md", "ui_architecture_boundary"),
+            ("docs/crates/zircon_runtime/ui/architecture.md", "ui_architecture_boundary"),
             (
                 "docs/plans/zircon_runtime/runtime/09-ui-subsystem-architecture.md",
                 "ui_architecture_boundary",
             ),
             ("docs/plans/zircon_runtime/runtime/index.md", "ui_architecture_boundary"),
             (
-                "docs/engine-architecture/runtime-architecture-review-m0.md",
+                "docs/architecture/runtime-architecture-review-m0.md",
                 "ui_architecture_boundary",
             ),
             (
-                "docs/engine-architecture/runtime-interface-convergence.md",
+                "docs/architecture/runtime-interface-convergence.md",
                 "ui_architecture_boundary",
             ),
         ),
     )
 
+    for relative in ("docs/crates/zircon_runtime/ui/architecture.md", "docs/crates/zircon_runtime/ui/layout/pass.md"):
+        doc = _read_text(root / relative) if (root / relative).is_file() else ""
+        for anchor in ("UiScrollVirtualizationPlan", "plan_scrollable_virtual_window",
+                       "retained_virtual_list_only_arranges_visible_window",
+                       "scroll_offset_invalidates_virtualization_window",
+                       "non_virtualized_scroll_offset_keeps_full_window_dirty_domain"):
+            if anchor not in doc:
+                missing_doc_anchors.append(relative + ": " + anchor)
     risks: list[str] = []
+    if len(source_surface_entries) != EXPECTED_SURFACE_ENTRY_COUNT:
+        risks.append("Current UI surface must have 50 source-backed entries and no empty directories.")
     if len(source_files) != EXPECTED_SOURCE_FILE_COUNT:
         risks.append("Runtime 09 UI architecture source inventory count changed without audit sync.")
     if missing_source_files:
@@ -592,6 +619,8 @@ def ui_architecture_boundary_audit(root: Path) -> dict[str, object]:
         "ui_missing_entries": ui_missing_entries,
         "ui_unexpected_entries": ui_unexpected_entries,
         "surface_entries": surface_entries,
+        "surface_source_module_entry_count": len(source_surface_entries),
+        "surface_empty_directory_count": len(surface_entries) - len(source_surface_entries),
         "expected_surface_entry_count": EXPECTED_SURFACE_ENTRY_COUNT,
         "surface_missing_entries": surface_missing_entries,
         "surface_unexpected_entries": surface_unexpected_entries,

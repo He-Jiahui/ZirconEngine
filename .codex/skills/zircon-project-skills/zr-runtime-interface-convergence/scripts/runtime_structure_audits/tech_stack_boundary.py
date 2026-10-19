@@ -25,12 +25,14 @@ from .tech_stack_source_inventory import (
     MANIFEST_FILES,
     NON_DEPENDENCIES,
     REQUIRED_VERSION_ANCHORS,
+    RUNTIME_DEPENDENCY_POLICIES,
+    RUNTIME_POLICY_OWNER,
+    ZSTD_TEXTURE_POLICY_OWNER,
     ZR_VM_BACKEND_FEATURE,
     ZR_VM_BINDING_DEPENDENCY_PREFIX,
     ZR_VM_GIT_URL,
     ZR_VM_GIT_REV,
     ZR_VM_PLUGIN_MANIFEST,
-    ZIP_DEPENDENCY_LINE,
 )
 
 
@@ -279,6 +281,94 @@ def _declared_dependencies(
     ]
 
 
+def _policy_manifest_declarations(
+    source: str, workspace: dict[str, object],
+) -> tuple[dict[str, object], list[tuple[str, object]]]:
+    """Resolve inherited package identities; metadata cannot supply a declaration."""
+    manifest = tomllib.loads(source)
+    workspace_table = workspace.get("workspace", {})
+    inherited = workspace_table.get("dependencies", {}) if isinstance(workspace_table, dict) else {}
+    resolved: list[tuple[str, object]] = []
+    for name, spec in _manifest_dependency_specs(manifest):
+        if isinstance(spec, dict) and spec.get("workspace") is True:
+            shared = inherited.get(name) if isinstance(inherited, dict) else None
+            if isinstance(shared, str):
+                shared = {"version": shared}
+            if isinstance(shared, dict):
+                spec = {**shared, **spec, "package": shared.get("package", name)}
+            # Other product workspaces can inherit unrelated local dependencies.
+            # Their unresolvable entries cannot satisfy our canonical registry policy;
+            # real package aliases in their workspace table are still inventoried.
+        resolved.append((name, spec))
+    return manifest, resolved
+
+
+def _runtime_dependency_policy_errors(
+    entries: list[tuple[str, str]], package: str, version: str,
+    feature: str, default_features: bool, features: tuple[str, ...],
+) -> list[str]:
+    """Validate the exact owner matrix; only zstd has a second admitted owner."""
+    expected_owners = (
+        (RUNTIME_POLICY_OWNER, ZSTD_TEXTURE_POLICY_OWNER)
+        if package == "zstd" else (RUNTIME_POLICY_OWNER,)
+    )
+    try:
+        workspace = tomllib.loads(next(source for path, source in entries if path == "Cargo.toml"))
+        matches: list[tuple[str, str, object]] = []
+        manifests: dict[str, dict[str, object]] = {}
+        for path, source in entries:
+            manifest, declarations = _policy_manifest_declarations(source, workspace)
+            manifests[path] = manifest
+            matches.extend((path, name, spec) for name, spec in declarations
+                           if _dependency_package_name(name, spec) == package)
+    except (StopIteration, ValueError, tomllib.TOMLDecodeError):
+        return [f"{package}: manifest identity could not be resolved"]
+    if sorted(path for path, _, _ in matches) != sorted(expected_owners):
+        return [f"{package}: expected one declaration per admitted owner {expected_owners}"]
+    errors: list[str] = []
+    for owner, name, declaration in matches:
+        if package == "zstd" and owner == RUNTIME_POLICY_OWNER:
+            targets = manifests[owner].get("target", {})
+            target = (
+                targets.get('cfg(not(target_arch = "wasm32"))', {})
+                if isinstance(targets, dict) else {}
+            )
+            table = target.get("dependencies", {}) if isinstance(target, dict) else {}
+        else:
+            table = manifests[owner].get("dependencies", {})
+        if (name != package or not isinstance(table, dict)
+                or table.get(name) != declaration
+                or not isinstance(declaration, (dict, str))):
+            errors.append(f"{package}: expected a canonical dependency declaration in {owner}")
+            continue
+        spec = {"version": declaration} if isinstance(declaration, str) else declaration
+        runtime_owner = owner == RUNTIME_POLICY_OWNER
+        # Texture's KTX2 decoder is unconditional; runtime admission is native-host.
+        expected_optional = runtime_owner
+        if (spec.get("version") != version
+                or spec.get("optional", False) is not expected_optional
+                or spec.get("default-features", True) is not default_features
+                or spec.get("features", []) != list(features)
+                or any(key in spec for key in ("path", "git", "workspace", "registry", "registry-index"))):
+            errors.append(f"{package}: version/source/optional/features policy drifted in {owner}")
+        if runtime_owner:
+            owner_features = manifests[owner].get("features", {})
+            admission = owner_features.get(feature) if isinstance(owner_features, dict) else None
+            if not isinstance(admission, list) or admission.count(f"dep:{name}") != 1:
+                errors.append(f"{package}: missing unique {feature} admission")
+    return errors
+
+
+def _runtime_retired_fontsdf_present(entries: list[tuple[str, str]]) -> bool:
+    try:
+        workspace = tomllib.loads(next(source for path, source in entries if path == "Cargo.toml"))
+        source = next(source for path, source in entries if path == RUNTIME_POLICY_OWNER)
+        _, declarations = _policy_manifest_declarations(source, workspace)
+    except (StopIteration, ValueError, tomllib.TOMLDecodeError):
+        return True
+    return any(_dependency_package_name(name, spec) == "fontsdf" for name, spec in declarations)
+
+
 def tech_stack_boundary_audit(root: Path) -> dict[str, object]:
     manifest_entries, missing_manifest_files = _file_entries(root, MANIFEST_FILES)
     manifest_source_entries, manifest_scan_errors = _manifest_source_entries(root)
@@ -299,15 +389,15 @@ def tech_stack_boundary_audit(root: Path) -> dict[str, object]:
         root / "zircon_plugins/physics/runtime/src/backend/jolt/native_world.rs",
         root / "zircon_plugins/physics/runtime/src/backend/jolt/runtime.rs",
     )
-    tech_stack_doc = root / "docs/engine-architecture/runtime-tech-stack.md"
-    architecture_index = root / "docs/engine-architecture/index.md"
+    tech_stack_doc = root / "docs/architecture/runtime-tech-stack.md"
+    architecture_index = root / "docs/architecture/index.md"
     runtime_01_plan = root / "docs/plans/zircon_runtime/runtime/01-tech-stack-and-dependency-governance.md"
     runtime_index = root / "docs/plans/zircon_runtime/runtime/index.md"
-    text_doc = root / "docs/zircon_runtime/ui/text.md"
-    physics_options = root / "docs/zircon_plugins/physics-plugin-options.md"
-    physics_runtime_doc = root / "docs/zircon_plugins/physics/runtime.md"
-    editor_backlog = root / "docs/editor-and-tooling/runtime-editor-only-dependency-backlog.md"
-    editor_index = root / "docs/editor-and-tooling/index.md"
+    text_doc = root / "docs/crates/zircon_runtime/ui/text.md"
+    physics_options = root / "docs/crates/zircon_plugins/physics-plugin-options.md"
+    physics_runtime_doc = root / "docs/crates/zircon_plugins/physics/runtime.md"
+    editor_backlog = root / "docs/editor/runtime-editor-only-dependency-backlog.md"
+    editor_index = root / "docs/editor/index.md"
     tech_stack_guard = root / "zircon_runtime/src/tests/extensions/tech_stack_dependency_guard.rs"
     tech_stack_mirror_guard = (
         root / "zircon_runtime/src/tests/contracts/tech_stack/mirror_docs.rs"
@@ -319,7 +409,7 @@ def tech_stack_boundary_audit(root: Path) -> dict[str, object]:
     physics_contract_step = (
         root / "zircon_plugins/physics/runtime/tests/physics_manager_runtime_contract/step.rs"
     )
-    review = root / "docs/engine-architecture/runtime-architecture-review-m0.md"
+    review = root / "docs/architecture/runtime-architecture-review-m0.md"
 
     workspace_source = _read_text(workspace_manifest) if workspace_manifest.exists() else ""
     runtime_source = _read_text(runtime_manifest) if runtime_manifest.exists() else ""
@@ -395,10 +485,15 @@ def tech_stack_boundary_audit(root: Path) -> dict[str, object]:
     kira_owner_violations = [
         path for path in kira_dependency_owners if path != KIRA_OWNER_MANIFEST
     ]
+    policy_errors = {
+        package: _runtime_dependency_policy_errors(
+            manifest_source_entries, package, version, feature, defaults, features
+        )
+        for package, version, feature, defaults, features in RUNTIME_DEPENDENCY_POLICIES
+    }
     zip_dependency_count = sum(
-        1
-        for source in manifest_sources
-        if _manifest_declares_package(source, "zip")
+        len(_manifest_package_declarations(source, "zip"))
+        for _, source in manifest_source_entries
     )
     runtime_jolt_feature_slot_count = runtime_source.count("backend-jolt = []")
     physics_jolt_dependency_feature_slot_count = physics_manifest_source.count(
@@ -419,6 +514,11 @@ def tech_stack_boundary_audit(root: Path) -> dict[str, object]:
     missing_version_anchors = _missing_snippets(
         (workspace_source, runtime_source),
         REQUIRED_VERSION_ANCHORS,
+    )
+    missing_version_anchors.extend(
+        f"{package} {version} runtime dependency policy"
+        for package, version, _, _, _ in RUNTIME_DEPENDENCY_POLICIES
+        if policy_errors[package]
     )
     missing_tech_stack_doc_anchors = _missing_snippets(
         (tech_stack_source,),
@@ -558,7 +658,7 @@ def tech_stack_boundary_audit(root: Path) -> dict[str, object]:
     if not physics_jolt_backend_files_present:
         dependency_boundary_violations.append("Physics Jolt backend owner set is incomplete")
     if (
-        '#[cfg(feature = "backend-jolt")]\nmod jolt;'
+        '#[cfg(feature = "backend-jolt")]\n#[path = "jolt/mod.rs"]\nmod jolt;'
         not in physics_backend_source
         or '#[cfg(feature = "backend-jolt")]\npub use jolt::JoltPhysicsBackend;'
         not in physics_backend_source
@@ -577,12 +677,17 @@ def tech_stack_boundary_audit(root: Path) -> dict[str, object]:
     if not joltc_sys_optional_dependency_present:
         dependency_boundary_violations.append("Physics joltc-sys optional dependency drifted")
 
+    if _runtime_retired_fontsdf_present(manifest_source_entries):
+        dependency_boundary_violations.append("Retired fontsdf dependency re-entered runtime")
+    for errors in policy_errors.values():
+        dependency_boundary_violations.extend(errors)
+
     zip_dependency_violations: list[str] = []
     if zip_dependency_count != EXPECTED_ZIP_DEPENDENCY_COUNT:
         zip_dependency_violations.append(
             "zip dependency count is not limited to the runtime archive materializer"
         )
-    if ZIP_DEPENDENCY_LINE not in runtime_source:
+    if policy_errors["zip"]:
         zip_dependency_violations.append(
             "runtime zip dependency pin/features drifted from archive materializer policy"
         )

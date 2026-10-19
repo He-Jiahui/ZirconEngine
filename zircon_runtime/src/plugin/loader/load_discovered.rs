@@ -206,8 +206,14 @@ fn load_candidate_library(
             return;
         }
     };
+    // SAFETY: Execution authority admitted this exact native artifact. The receipt
+    // retains its verified file and staging guards while loading trusted code,
+    // and is retained with the loaded library on success.
     match unsafe { load_admitted_library(&admission_receipt) } {
         Ok(library) => {
+            // SAFETY: This live admitted library is trusted to implement the v3 ABI.
+            // Its descriptor and C strings stay readable and immutable while the
+            // probe copies them, before the library can be dropped.
             let descriptor =
                 match unsafe { probe_native_plugin_descriptor(&library, &library_path, plugin_id) }
                 {
@@ -217,28 +223,30 @@ fn load_candidate_library(
                         return;
                     }
                 };
-            let runtime_entry_report = retain_requested_entry(
-                report,
-                load_requested_entry(
-                    &library,
-                    &library_path,
-                    plugin_id,
-                    module_kinds,
-                    PluginModuleKind::Runtime,
-                    &descriptor,
-                ),
+            let runtime_entry = load_requested_entry(
+                &library,
+                &library_path,
+                plugin_id,
+                module_kinds,
+                PluginModuleKind::Runtime,
+                &descriptor,
             );
-            let editor_entry_report = retain_requested_entry(
-                report,
-                load_requested_entry(
-                    &library,
-                    &library_path,
-                    plugin_id,
-                    module_kinds,
-                    PluginModuleKind::Editor,
-                    &descriptor,
-                ),
+            let runtime_entry_failed = runtime_entry.is_err();
+            let runtime_entry_report = retain_requested_entry(report, runtime_entry);
+            let editor_entry = load_requested_entry(
+                &library,
+                &library_path,
+                plugin_id,
+                module_kinds,
+                PluginModuleKind::Editor,
+                &descriptor,
             );
+            let editor_entry_failed = editor_entry.is_err();
+            let editor_entry_report = retain_requested_entry(report, editor_entry);
+            // Keep both requested-entry diagnostics, but never publish a failed library.
+            if runtime_entry_failed || editor_entry_failed {
+                return;
+            }
             report.push_loaded(LoadedNativePlugin {
                 plugin_id: plugin_id.to_string(),
                 library_path,
@@ -314,6 +322,9 @@ fn load_requested_entry(
             ABI_CONTRACT_HINT,
         )
     })?;
+    // SAFETY: The admitted library remains live, and its validated descriptor
+    // selects this requested v3 entry. The trusted plugin keeps its report readable
+    // and immutable for conversion, and does not retain the synchronous host table.
     unsafe {
         call_native_plugin_entry(
             library,

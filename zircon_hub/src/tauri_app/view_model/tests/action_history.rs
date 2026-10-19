@@ -231,3 +231,37 @@ fn action_history_detail_rows_include_backend_output_and_command_display() {
     );
     assert_eq!(item.detail_rows[5].detail, "已暂存编辑器/运行时载荷");
 }
+
+#[test]
+fn generated_action_history_ids_are_unique_for_identical_same_millisecond_actions() {
+    let record = HubActionRecord {
+        id: String::new(),
+        finished_unix_ms: 7,
+        action: HubActionKind::CreateProject,
+        status: HubActionStatus::Success,
+        target: "Game".to_string(),
+        detail: HubMessage::new(HubMessageId::Project(ProjectMessageId::CreatedPath)),
+        log_excerpt: HubMessage::empty(),
+        recovery: None,
+        process_id: None,
+        command_line: Vec::new(),
+        output_dir: None,
+    };
+    let mut history = Vec::new();
+    crate::state::push_action_record(&mut history, record.clone());
+    let old_row = super::action_history_row(&history[0], 7, HubLanguage::English);
+    crate::state::push_action_record(&mut history, record);
+    let new_row = super::action_history_row(&history[0], 7, HubLanguage::English);
+    let old_row_after_prepend = super::action_history_row(&history[1], 7, HubLanguage::English);
+
+    assert_eq!(history.len(), 2);
+    assert!(!old_row.id.is_empty());
+    assert!(!new_row.id.is_empty());
+    assert_ne!(new_row.id, old_row.id);
+    assert_eq!(old_row_after_prepend.id, old_row.id);
+    assert_eq!(new_row.id, history[0].id);
+    assert_eq!(old_row_after_prepend.id, history[1].id);
+    assert_eq!(history[0].finished_unix_ms, history[1].finished_unix_ms);
+    assert_eq!(history[0].action, history[1].action);
+    assert_eq!(history[0].target, history[1].target);
+}

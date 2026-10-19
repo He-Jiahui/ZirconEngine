@@ -1,4 +1,5 @@
 //! 生成的导出模板应只承担薄适配，启动和注册行为归手写拥有者。通过源码文本核对父子路由、状态镜像和文件预算。
+use crate::tests::runtime_absorption::structure_convention::fixed_history_archive_source as history;
 const SLICE: &str = "Runtime 15 M3 generated-code guard folder-backed split";
 const STATUS: &str = "runtime_15_generated_code_guard_folder_backed_static_passed_cargo_deferred";
 const FRAMEWORKS_STATUS: &str =
@@ -76,19 +77,19 @@ fn runtime_15_generated_code_guard_is_folder_backed() {
     for (label, source) in [
         (
             "Runtime 15 subplan",
-            crate::tests::runtime_absorption::current_source_fixture::RUNTIME_ARCHITECTURE_IMPLEMENTATION_OUTPUT,
+            crate::tests::runtime_absorption::current_source_fixture::runtime_architecture_implementation_output(),
         ),
         (
             "runtime index",
-            include_str!("../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md"),
+            history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md"),
         ),
         (
             "engine code structure convention",
-            include_str!("../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md"),
+            history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md"),
         ),
         (
             "engine code review findings",
-            include_str!("../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"),
+            history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"),
         ),
         (
             "module convention doc",
@@ -98,9 +99,7 @@ fn runtime_15_generated_code_guard_is_folder_backed() {
         assert_contains_all(label, source, &[SLICE, STATUS, GUARD, CHILD_PATHS[5]]);
     }
 
-    let frameworks = include_str!(
-        "../../../../../docs/plans/zircon_runtime/frameworks/02/2026-07-09-module-kernel-and-lifecycle-unification-output-records.md"
-    );
+    let frameworks = history("docs/plans/zircon_runtime/frameworks/02/2026-07-09-module-kernel-and-lifecycle-unification-output-records.md");
     assert_contains_all(
         "frameworks plan records generated-code guard split",
         frameworks,

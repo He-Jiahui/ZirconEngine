@@ -49,7 +49,7 @@ pub(crate) fn validate_indirect_arguments(
     kind: IndirectArgumentKind,
 ) -> Result<(), RhiError> {
     ensure_buffer_usage(arguments.diagnostic_id(), desc, BufferUsage::INDIRECT)?;
-    if offset % INDIRECT_ARGUMENT_ALIGNMENT_BYTES != 0 {
+    if !offset.is_multiple_of(INDIRECT_ARGUMENT_ALIGNMENT_BYTES) {
         return Err(kind.range_error("indirect argument offset must be a multiple of four"));
     }
     let Some(argument_bytes) = kind.argument_size_bytes().checked_mul(u64::from(count)) else {
@@ -72,7 +72,7 @@ pub(crate) fn validate_indirect_count_buffer(
     offset: u64,
 ) -> Result<(), RhiError> {
     ensure_buffer_usage(count_buffer.diagnostic_id(), desc, BufferUsage::INDIRECT)?;
-    if offset % INDIRECT_ARGUMENT_ALIGNMENT_BYTES != 0 {
+    if !offset.is_multiple_of(INDIRECT_ARGUMENT_ALIGNMENT_BYTES) {
         return Err(RhiError::InvalidRasterDraw {
             reason: "indirect count offset must be a multiple of four".to_string(),
         });

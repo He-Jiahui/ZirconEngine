@@ -17,8 +17,52 @@ impl ViewportRecord {
         surface: ViewportSurface,
         size: UVec2,
     ) -> Vec<ViewportFrameHistory> {
+        self.set_surface_and_extent(Some(surface), size)
+    }
+
+    pub(in crate::graphics::runtime::render_framework) fn has_native_surface_target(
+        &self,
+        target: crate::rhi::RenderNativeSurfaceTarget,
+    ) -> bool {
+        self.surface
+            .as_ref()
+            .is_some_and(|surface| surface.has_native_target(target))
+    }
+
+    pub(in crate::graphics::runtime::render_framework) fn take_surface_for_native_target(
+        &mut self,
+        target: crate::rhi::RenderNativeSurfaceTarget,
+    ) -> Option<ViewportSurface> {
+        self.has_native_surface_target(target)
+            .then(|| self.surface.take())
+            .flatten()
+    }
+
+    pub(in crate::graphics::runtime::render_framework) fn retire_failed_surface_reconfigure(
+        &mut self,
+    ) -> Vec<ViewportFrameHistory> {
+        // No replacement was published: keep the logical extent, but never restore a stale session.
+        self.set_surface_and_extent(None, self.descriptor.size)
+    }
+
+    fn set_surface_and_extent(
+        &mut self,
+        surface: Option<ViewportSurface>,
+        size: UVec2,
+    ) -> Vec<ViewportFrameHistory> {
+        self.bump_generation();
+        self.pending_virtual_geometry_readbacks.clear();
+        drop(
+            self.last_virtual_geometry_native_probe
+                .lock()
+                .unwrap_or_else(|error| error.into_inner())
+                .take(),
+        );
+        self.last_applied_virtual_geometry_generation.clear();
+        self.accepted_virtual_geometry_submissions.clear();
+        self.virtual_geometry_readback_epoch = None;
         self.descriptor.size = size;
-        let previous_surface = self.surface.replace(surface);
+        let previous_surface = std::mem::replace(&mut self.surface, surface);
         let histories = std::mem::take(&mut self.camera_histories)
             .into_values()
             .collect();

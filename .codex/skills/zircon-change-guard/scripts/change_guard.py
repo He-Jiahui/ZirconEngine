@@ -172,14 +172,19 @@ class Grants:
     entries: dict[str, str]
 
     @classmethod
-    def load(cls, config: Path, profile: str, root: Path | None = None) -> "Grants":
+    def load(cls, config: Path, profile: str | None = None, root: Path | None = None) -> "Grants":
         data = tomllib.loads(config.read_text(encoding="utf-8"))
+        profile = profile if profile is not None else data.get("default_permissions", "zircon-strict")
+        if not isinstance(profile, str) or not profile or profile != profile.strip():
+            raise ValueError(f"invalid permission selection {profile!r}")
+        prefix = (root or config.parent.parent).resolve().as_posix().rstrip("/")
+        if profile == ":danger-full-access":
+            return cls(prefix, {"": "write"})
         permissions = data.get("permissions", {})
         selected = permissions.get(profile, {}) if isinstance(permissions, dict) else {}
         raw = selected.get("filesystem") if isinstance(selected, dict) else None
         if not isinstance(raw, dict) or not raw:
             raise ValueError(f"missing filesystem grants for permission profile {profile!r}")
-        prefix = (root or config.parent.parent).resolve().as_posix().rstrip("/")
         fold = str.casefold if os.name == "nt" else lambda value: value
         entries = {}
         for key, mode in raw.items():
@@ -1307,7 +1312,7 @@ def parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--repo-root", type=Path, default=Path.cwd())
     parser.add_argument("--config", type=Path, help="permission config (default: <repo>/.codex/config.toml)")
-    parser.add_argument("--profile", default="zircon-strict")
+    parser.add_argument("--profile", help="permission selection (default: config default_permissions, or legacy zircon-strict)")
     parser.add_argument("--json", action="store_true", help="print the receipt as JSON")
     parser.add_argument("--limit", type=int, default=60, help="maximum findings printed in text mode")
     commands = parser.add_subparsers(dest="command", required=True)

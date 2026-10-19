@@ -1,4 +1,6 @@
 //! 代码审查回归护栏核对已迁移接口、错误边界、插件入口及镜像状态。以结果断言检查当前接口或源码快照对应的边界。
+use crate::tests::runtime_absorption::structure_convention::fixed_history_archive_source as history;
+use crate::tests::runtime_absorption::structure_convention::rust_source_view::production_section;
 #[test]
 fn review_f5_native_plugin_distribution_compat_uses_typed_error() {
     let compatibility = include_str!("../../../../plugin/loader/compatibility.rs");
@@ -6,16 +8,32 @@ fn review_f5_native_plugin_distribution_compat_uses_typed_error() {
     let _native_boundary =
         include_str!("../../../../../../docs/architecture/native-plugin-boundary.md");
     let _review_findings =
-        include_str!("../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md");
-    let _runtime_15_plan = include_str!(
-        "../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md"
+        history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md");
+    let _runtime_15_plan = history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md");
+    let _runtime_index = history(
+        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md",
     );
-    let _runtime_index =
-        include_str!("../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md");
     let _convention =
-        include_str!("../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md");
+        history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md");
     let _module_convention =
         include_str!("../../../../../../docs/crates/zircon_runtime/structure/module-convention.md");
+
+    let compatibility_tests = include_str!("../../../../plugin/loader/tests/compatibility.rs");
+    assert!(
+        compatibility
+            .replace("\r\n", "\n")
+            .contains("#[cfg(test)]\n#[path = \"tests/compatibility.rs\"]\nmod tests;"),
+        "exact current module mount in plugin/loader/compatibility.rs"
+    );
+    for required in [
+        "engine_compat_reports_empty_comparator_with_typed_error",
+        "engine_compat_reports_invalid_version_component_with_typed_error",
+    ] {
+        assert!(
+            compatibility_tests.contains(required),
+            "current plugin/loader/tests/compatibility.rs must retain {required}"
+        );
+    }
 
     for required in [
         "type NativeDistributionCompatibilityResult<T>",
@@ -32,8 +50,6 @@ fn review_f5_native_plugin_distribution_compat_uses_typed_error() {
         ") -> NativeDistributionCompatibilityResult<u64>",
         "NativeDistributionCompatibilityError::EmptyComparator",
         "NativeDistributionCompatibilityError::NonNumericVersionComponent",
-        "engine_compat_reports_empty_comparator_with_typed_error",
-        "engine_compat_reports_invalid_version_component_with_typed_error",
     ] {
         assert!(
             compatibility.contains(required),
@@ -41,10 +57,7 @@ fn review_f5_native_plugin_distribution_compat_uses_typed_error() {
         );
     }
 
-    let production = compatibility
-        .split("#[cfg(test)]")
-        .next()
-        .expect("native plugin compatibility production source");
+    let production = production_section(compatibility);
     for forbidden in [
         "Result<bool, String>",
         "Result<(VersionComparator, EngineVersion), String>",
@@ -73,16 +86,33 @@ fn review_f5_native_plugin_registration_manifest_uses_typed_error() {
     let _native_boundary =
         include_str!("../../../../../../docs/architecture/native-plugin-boundary.md");
     let _review_findings =
-        include_str!("../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md");
-    let _runtime_15_plan = include_str!(
-        "../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md"
+        history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md");
+    let _runtime_15_plan = history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md");
+    let _runtime_index = history(
+        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md",
     );
-    let _runtime_index =
-        include_str!("../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md");
     let _convention =
-        include_str!("../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md");
+        history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md");
     let _module_convention =
         include_str!("../../../../../../docs/crates/zircon_runtime/structure/module-convention.md");
+
+    let registration_manifest_tests =
+        include_str!("../../../../plugin/loader/tests/registration_manifest.rs");
+    assert!(
+        registration_manifest
+            .replace("\r\n", "\n")
+            .contains("#[cfg(test)]\n#[path = \"tests/registration_manifest.rs\"]\nmod tests;"),
+        "exact current module mount in plugin/loader/registration_manifest.rs"
+    );
+    for required in [
+        "native_registration_manifest_reports_unsupported_stage_with_typed_error",
+        "native_registration_manifest_reports_missing_bridge_method_with_typed_error",
+    ] {
+        assert!(
+            registration_manifest_tests.contains(required),
+            "current plugin/loader/tests/registration_manifest.rs must retain {required}"
+        );
+    }
 
     for required in [
         "type NativePluginRegistrationManifestResult<T>",
@@ -99,8 +129,6 @@ fn review_f5_native_plugin_registration_manifest_uses_typed_error() {
         "pub(super) fn stage(&self) -> NativePluginRegistrationManifestResult<SystemStage>",
         "NativePluginRegistrationManifestError::UnsupportedSystemStage",
         "NativePluginRegistrationManifestError::MissingSystemField",
-        "native_registration_manifest_reports_unsupported_stage_with_typed_error",
-        "native_registration_manifest_reports_missing_bridge_method_with_typed_error",
     ] {
         assert!(
             registration_manifest.contains(required),
@@ -108,10 +136,7 @@ fn review_f5_native_plugin_registration_manifest_uses_typed_error() {
         );
     }
 
-    let production = registration_manifest
-        .split("#[cfg(test)]")
-        .next()
-        .expect("native plugin registration manifest production source");
+    let production = production_section(registration_manifest);
     for forbidden in [
         "Result<Self, String>",
         "Result<(), String>",

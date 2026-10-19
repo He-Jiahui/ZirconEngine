@@ -5,7 +5,7 @@ description: Statically check a scoped ZirconEngine patch before Jenkins handoff
 
 # Zircon Change Guard
 
-Use on the final edited checkout before preparing a patch handoff. The [working agreement](../../../AGENTS.md), [checkout policy](../zircon-dev/references/main-branch-development-policy.md), [source ownership](../jenkins-coordination/references/incremental-patch-validation.md), [management standard](../../../docs/tools/agent-artifact-management.md) and [validation policy](../../../docs/plans/milestone-validation-policy.md) remain authoritative.
+Use on the final edited checkout before preparing a patch handoff. The [working agreement](../../../AGENTS.md), [checkout policy](../zircon-dev/references/main-branch-development-policy.md), [source ownership](../jenkins-coordination/references/incremental-patch-validation.md), [management standard](../../../docs/tools/agent-artifact-management.md) and [validation policy](../../../docs/testing-and-validation/milestone-validation-policy.md) remain authoritative.
 
 ## Scope and execution
 

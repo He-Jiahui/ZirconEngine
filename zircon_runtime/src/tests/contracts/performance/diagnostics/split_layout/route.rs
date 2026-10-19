@@ -13,9 +13,9 @@ fn assert_artifact_render_diagnostics_parent_route(sources: &SplitLayoutSources)
         "artifact/render diagnostics route",
         sources.parent,
         &[
-            "#[path = \"artifact_render_diagnostics_splits/artifact_cache_payload.rs\"]",
-            "#[path = \"artifact_render_diagnostics_splits/render_product_diagnostics.rs\"]",
-            "#[path = \"artifact_render_diagnostics_splits/split_layout.rs\"]",
+            "#[path = \"../diagnostics/artifact_cache_payload.rs\"]",
+            "#[path = \"../diagnostics/render_product_diagnostics.rs\"]",
+            "#[path = \"diagnostics/split_layout.rs\"]",
         ],
     );
 
@@ -51,7 +51,7 @@ fn assert_artifact_render_diagnostics_support_children(sources: &SplitLayoutSour
         &[
             "runtime_07_render_product_diagnostics_owner_split_keeps_families_folder_backed",
             "render_stats_store/product/camera.rs",
-            "render_stats_store/product/gpu_scene.rs",
+            "core/runtime/diagnostics/product/gpu_scene.rs",
             "render_stats_store/product/ui.rs",
         ],
     );
@@ -63,9 +63,9 @@ fn assert_artifact_render_diagnostics_split_route(sources: &SplitLayoutSources) 
         sources.split_layout,
         &[
             "#[path = \"split_layout/route.rs\"]",
-            "#[path = \"split_layout/source_inventory.rs\"]",
-            "#[path = \"split_layout/sources.rs\"]",
-            "#[path = \"split_layout/status_docs.rs\"]",
+            "#[path = \"../../diagnostics/split_layout/source_inventory.rs\"]",
+            "#[path = \"../../diagnostics/split_layout/sources.rs\"]",
+            "#[path = \"../../diagnostics/split_layout/status_docs.rs\"]",
             "runtime_15_runtime_07_artifact_render_diagnostics_guard_child_owner_split",
             "runtime_15_runtime_07_artifact_render_diagnostics_split_layout_guard_folder_backed_split",
             "run_artifact_render_diagnostics_split_layout_checks();",

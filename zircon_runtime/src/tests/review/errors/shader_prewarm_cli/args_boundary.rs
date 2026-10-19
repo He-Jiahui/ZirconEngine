@@ -1,4 +1,6 @@
 //! 代码审查回归护栏核对已迁移接口、错误边界、插件入口及镜像状态。以结果断言检查当前接口或源码快照对应的边界。
+use crate::tests::runtime_absorption::structure_convention::fixed_history_archive_source as history;
+use crate::tests::runtime_absorption::structure_convention::rust_source_view::production_section;
 #[test]
 fn review_f5_shader_prewarm_args_use_typed_usage_errors_before_cli_boundary() {
     let main = include_str!("../../../../bin/zircon_shader_prewarm/main.rs");
@@ -21,18 +23,11 @@ fn review_f5_shader_prewarm_args_use_typed_usage_errors_before_cli_boundary() {
     let resource_registry_tests =
         include_str!("../../../../bin/manifest/resource_registry/tests/cases.rs");
     let run = include_str!("../../../../bin/zircon_shader_prewarm/run.rs");
-    let _review_findings = concat!(
-        include_str!("../../../../../../docs/plans/engine-code-review-findings-2026-06.md"),
-        include_str!("../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"),
-        include_str!("../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md")
+    let _review_findings = crate::runtime_test_history_concat!(
+        include_str!("../../../../../../docs/architecture/runtime-architecture-review-m0.md"),
+        history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"),
+        history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md")
     );
-    let _runtime_15_plan = include_str!(
-        "../../../../../../docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md"
-    );
-    let _runtime_index =
-        include_str!("../../../../../../docs/plans/zircon_runtime/runtime/index.md");
-    let _convention =
-        include_str!("../../../../../../docs/plans/engine-code-structure-convention.md");
     let _render_doc = include_str!(
         "../../../../../../docs/crates/zircon_runtime/graphics/render-product-submit.md"
     );
@@ -43,6 +38,56 @@ fn review_f5_shader_prewarm_args_use_typed_usage_errors_before_cli_boundary() {
         main.contains("mod error;"),
         "shader prewarm bin root should mount the typed error owner"
     );
+    let args_tests = include_str!("../../../../bin/zircon_shader_prewarm/tests/args.rs");
+    assert!(
+        args.replace("\r\n", "\n")
+            .contains("#[cfg(test)]\n#[path = \"tests/args.rs\"]\nmod tests;"),
+        "exact current module mount in bin/zircon_shader_prewarm/args.rs"
+    );
+    let run_tests = include_str!("../../../../bin/zircon_shader_prewarm/tests/run.rs");
+    assert!(
+        run.replace("\r\n", "\n")
+            .contains("#[cfg(test)]\n#[path = \"tests/run.rs\"]\nmod tests;"),
+        "exact current module mount in bin/zircon_shader_prewarm/run.rs"
+    );
+    let permutation_registry_tests =
+        include_str!("../../../../bin/manifest/tests/permutation_registry.rs");
+    assert!(
+        permutation_registry.replace("\r\n", "\n").contains(
+            "#[cfg(test)]\n#[path = \"../../manifest/tests/permutation_registry.rs\"]\nmod tests;"
+        ),
+        "exact current module mount in bin/zircon_shader_prewarm/manifest/permutation_registry.rs"
+    );
+    for required in [
+        "fn shader_prewarm_permutation_registry_read_reports_typed_read_error",
+        "fn shader_prewarm_permutation_registry_read_reports_typed_parse_error",
+        "fn shader_prewarm_permutation_registry_reports_typed_geometry_id_range_error",
+        "ShaderPrewarmPermutationRegistryOverlay::read(&registry_path).unwrap_err()",
+    ] {
+        assert!(
+            permutation_registry_tests.contains(required),
+            "current bin/manifest/tests/permutation_registry.rs must retain {required}"
+        );
+    }
+
+    for required in [
+        "fn shader_prewarm_report_write_reports_typed_directory_error",
+        "write_shader_prewarm_report(&report_path, \"{}\").unwrap_err()",
+        "fn shader_prewarm_resource_registry_export_reports_typed_directory_error",
+    ] {
+        assert!(
+            run_tests.contains(required),
+            "current bin/zircon_shader_prewarm/tests/run.rs must retain {required}"
+        );
+    }
+
+    for required in ["fn shader_prewarm_args_missing_value_reports_typed_usage_error"] {
+        assert!(
+            args_tests.contains(required),
+            "current bin/zircon_shader_prewarm/tests/args.rs must retain {required}"
+        );
+    }
+
     for required in [
         "pub type ShaderPrewarmArgsResult<T> = std::result::Result<T, ShaderPrewarmArgsError>;",
         "pub type ShaderPrewarmAssetScanResult<T> = std::result::Result<T, ShaderPrewarmAssetScanError>;",
@@ -109,7 +154,6 @@ fn review_f5_shader_prewarm_args_use_typed_usage_errors_before_cli_boundary() {
         "fn parse_shading_model_id(value: &str) -> ShaderPrewarmArgsResult<(String, ShadingModelId)>",
         ") -> ShaderPrewarmArgsResult<BTreeMap<String, ShadingModelId>>",
         ") -> ShaderPrewarmArgsResult<BTreeMap<String, GeometrySourceId>>",
-        "fn shader_prewarm_args_missing_value_reports_typed_usage_error",
     ] {
         assert!(
             args.contains(required),
@@ -131,7 +175,7 @@ fn review_f5_shader_prewarm_args_use_typed_usage_errors_before_cli_boundary() {
         "return Err(usage(",
     ] {
         assert!(
-            !args.contains(forbidden),
+            !production_section(args).contains(forbidden),
             "shader prewarm args should not keep lossy String-error branch `{forbidden}`"
         );
     }
@@ -140,6 +184,18 @@ fn review_f5_shader_prewarm_args_use_typed_usage_errors_before_cli_boundary() {
         run.contains("parse(args).map_err(|error| error.to_string())?"),
         "shader prewarm run.rs should remain the CLI/run display boundary for args typed errors"
     );
+    for required in [
+        "finish_shader_prewarm_report(&report, args.report.as_deref(), args.pretty)",
+        "fn finish_shader_prewarm_report(",
+        "report: &ShaderVariantPrewarmReport,",
+        "report_path: Option<&Path>,",
+        "pretty: bool,",
+    ] {
+        assert!(
+            run.contains(required),
+            "current bin/zircon_shader_prewarm/run.rs must retain {required}"
+        );
+    }
     for required in [
         "use super::error::{",
         "ShaderPrewarmReportError",
@@ -151,10 +207,8 @@ fn review_f5_shader_prewarm_args_use_typed_usage_errors_before_cli_boundary() {
         ") -> ShaderPrewarmReportResult<()>",
         "ShaderPrewarmReportError::CreateReportDirectory",
         "ShaderPrewarmReportError::WriteReport",
-        "encode_shader_prewarm_report(&report, args.pretty).map_err(|error| error.to_string())?",
+        "encode_shader_prewarm_report(report, pretty).map_err(|error| error.to_string())?",
         "write_shader_prewarm_report(report_path, &json).map_err(|error| error.to_string())?",
-        "fn shader_prewarm_report_write_reports_typed_directory_error",
-        "write_shader_prewarm_report(&report_path, \"{}\").unwrap_err()",
     ] {
         assert!(
             run.contains(required),
@@ -167,7 +221,7 @@ fn review_f5_shader_prewarm_args_use_typed_usage_errors_before_cli_boundary() {
         "\"failed to write shader prewarm report {}: {error}\"",
     ] {
         assert!(
-            !run.contains(forbidden),
+            !production_section(run).contains(forbidden),
             "shader prewarm report output should not keep lossy String-error branch `{forbidden}`"
         );
     }
@@ -201,7 +255,7 @@ fn review_f5_shader_prewarm_args_use_typed_usage_errors_before_cli_boundary() {
         "\"shader prewarm manifest schema {} is not supported; expected {}\"",
     ] {
         assert!(
-            !manifest.contains(forbidden),
+            !production_section(manifest).contains(forbidden),
             "shader prewarm manifest merge should not keep lossy String-error branch `{forbidden}`"
         );
     }
@@ -215,13 +269,48 @@ fn review_f5_shader_prewarm_args_use_typed_usage_errors_before_cli_boundary() {
         run.contains("merge_manifests(") && run.contains(".map_err(|error| error.to_string())?"),
         "shader prewarm run.rs should remain the CLI/run display boundary for manifest merge typed errors"
     );
+    let asset_inventory =
+        include_str!("../../../../bin/zircon_shader_prewarm/manifest/asset_inventory.rs");
+    let asset_inventory_traversal =
+        include_str!("../../../../bin/manifest/asset_inventory/traversal.rs");
+    assert!(
+        manifest
+            .replace("\r\n", "\n")
+            .contains("#[path = \"manifest/asset_inventory.rs\"]\nmod asset_inventory;"),
+        "exact current module mount in bin/zircon_shader_prewarm/manifest.rs"
+    );
+    assert!(
+        asset_inventory
+            .replace("\r\n", "\n")
+            .contains("#[path = \"../../manifest/asset_inventory/traversal.rs\"]\nmod traversal;"),
+        "exact current module mount in bin/zircon_shader_prewarm/manifest/asset_inventory.rs"
+    );
+    for required in [
+        "ShaderPrewarmAssetScanError::ReadAssetRoot",
+        "ShaderPrewarmAssetScanError::LoadShaderMetadata",
+        "AssetMetaDocument::load(meta_path).map_err(|source|",
+        "inventory_text_read_error(path, source)",
+        "collect_file_paths(",
+    ] {
+        assert!(
+            asset_inventory.contains(required),
+            "current bin/zircon_shader_prewarm/manifest/asset_inventory.rs must retain {required}"
+        );
+    }
+    for required in [
+        "ShaderPrewarmAssetScanError::ReadAssetRootEntry",
+        "ShaderPrewarmAssetScanError::ReadWgsl",
+        "fn inventory_text_read_error(",
+        "source: std::io::Error,",
+    ] {
+        assert!(
+            asset_inventory_traversal.contains(required),
+            "current bin/manifest/asset_inventory/traversal.rs must retain {required}"
+        );
+    }
     for required in [
         "ShaderPrewarmAssetScanResult",
-        "ShaderPrewarmAssetScanError::ReadAssetRoot",
-        "ShaderPrewarmAssetScanError::ReadAssetRootEntry",
-        "ShaderPrewarmAssetScanError::LoadShaderMetadata",
         "ShaderPrewarmAssetScanError::ParseZShader",
-        "ShaderPrewarmAssetScanError::ReadWgsl",
         "ShaderPrewarmAssetScanError::ParseZMaterial",
         "ShaderPrewarmAssetScanError::EmptyShaderSource",
         "ShaderPrewarmAssetScanError::ShaderSourceOutsidePackageDir",
@@ -259,12 +348,14 @@ fn review_f5_shader_prewarm_args_use_typed_usage_errors_before_cli_boundary() {
         "\"shader source {} is outside package dir {}: {error}\"",
     ] {
         assert!(
-            !manifest.contains(forbidden),
+            !production_section(manifest).contains(forbidden)
+                && !production_section(asset_inventory).contains(forbidden)
+                && !production_section(asset_inventory_traversal).contains(forbidden),
             "shader prewarm asset-root scan should not keep lossy String-error branch `{forbidden}`"
         );
     }
     assert!(
-        run.contains("asset_root_manifest_with_resource_registry_revisions(")
+        run.contains("asset_root_manifest_from_inventory_with_resource_registry_revisions_and_external_inputs(")
             && run.contains(".map_err(|error| error.to_string())?"),
         "shader prewarm run.rs should remain the CLI/run display boundary for asset-root scan typed errors"
     );
@@ -274,10 +365,6 @@ fn review_f5_shader_prewarm_args_use_typed_usage_errors_before_cli_boundary() {
         "ShaderPrewarmPermutationRegistryError::Parse",
         "ShaderPrewarmPermutationRegistryError::GeometrySourceIdBelowPluginRange",
         "ShaderPrewarmPermutationRegistryError::DuplicateGeometrySourceToken",
-        "fn shader_prewarm_permutation_registry_read_reports_typed_read_error",
-        "fn shader_prewarm_permutation_registry_read_reports_typed_parse_error",
-        "fn shader_prewarm_permutation_registry_reports_typed_geometry_id_range_error",
-        "ShaderPrewarmPermutationRegistryOverlay::read(&registry_path).unwrap_err()",
     ] {
         assert!(
             permutation_registry.contains(required),
@@ -292,7 +379,7 @@ fn review_f5_shader_prewarm_args_use_typed_usage_errors_before_cli_boundary() {
         "fn shading_model_id_from_registry(id: u8, path: &Path) -> Result<ShadingModelId, String>",
     ] {
         assert!(
-            !permutation_registry.contains(forbidden),
+            !production_section(permutation_registry).contains(forbidden),
             "shader prewarm permutation registry should not keep lossy String-error branch `{forbidden}`"
         );
     }
@@ -333,7 +420,7 @@ fn review_f5_shader_prewarm_args_use_typed_usage_errors_before_cli_boundary() {
         "\"failed to load shader resource registry metadata {}: {error}\"",
     ] {
         assert!(
-            !resource_registry.contains(forbidden),
+            !production_section(resource_registry).contains(forbidden),
             "shader prewarm resource registry should not keep lossy String-error branch `{forbidden}`"
         );
     }
@@ -344,7 +431,6 @@ fn review_f5_shader_prewarm_args_use_typed_usage_errors_before_cli_boundary() {
         "export_shader_resource_registry_for_asset_roots(",
         ".map_err(|error| error.to_string())?",
         "ShaderPrewarmResourceRegistryOverlay::read(path).map_err(|error| error.to_string())?",
-        "fn shader_prewarm_resource_registry_export_reports_typed_directory_error",
     ] {
         assert!(
             run.contains(required),
@@ -357,7 +443,7 @@ fn review_f5_shader_prewarm_args_use_typed_usage_errors_before_cli_boundary() {
         "\"failed to write shader resource registry {}: {error}\"",
     ] {
         assert!(
-            !run.contains(forbidden),
+            !production_section(run).contains(forbidden),
             "shader prewarm resource registry export should not keep lossy String-error branch `{forbidden}`"
         );
     }

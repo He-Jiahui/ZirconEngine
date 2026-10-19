@@ -113,7 +113,7 @@ COMPONENT_STORAGE_PRIVATE_REEXPORT_FORBIDDEN_SNIPPETS = (
     ),
 )
 COMPONENT_IDENTITY_ANCHORS = (
-    "pub trait Component: 'static + Send + Sync",
+    "pub trait Component:\n    'static + Send + Sync + zircon_runtime_interface::retained_memory::RetainedOwnerV1\n{",
     "const STORAGE_TYPE: StorageType = StorageType::Table;",
     "pub struct ComponentId(usize)",
     "pub const fn new(index: usize) -> Self",

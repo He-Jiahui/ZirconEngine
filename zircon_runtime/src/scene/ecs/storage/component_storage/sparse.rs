@@ -154,15 +154,15 @@ impl SparseComponentStorage {
     /// Eagerly mark one live row with the exclusive getter's original tick order.
     ///
     /// # Safety
-    /// The caller exclusively owns this entity row's value and ticks for the
-    /// returned lifetime, including eager update and type check. No conflicting
+    /// The caller exclusively owns this entity row's value and ticks until the last
+    /// use of its pointer or derived references, including this call. No conflicting
     /// reads/writes occur on any thread. Entries, entities, locator and
     /// allocations stay stable; other loans select different rows.
     pub(super) unsafe fn get_mut_at_tick_unchecked<T>(
         &self,
         entity: InternalEntity,
         tick: ChangeTick,
-    ) -> Option<&mut T>
+    ) -> Option<*mut T>
     where
         T: 'static + Send + Sync,
     {
@@ -172,20 +172,20 @@ impl SparseComponentStorage {
         unsafe { &mut *entry.ticks.get() }.set_changed(tick);
         // SAFETY: no same-row value reference exists during this type check.
         let value = unsafe { entry.typed_value_ptr::<T>()? };
-        Some(unsafe { &mut *value })
+        Some(value)
     }
 
     /// Project only the selected concrete component and its separate tick cell.
     ///
     /// # Safety
-    /// The caller exclusively owns this row's value and ticks for both returned
-    /// lifetimes, with no conflicting reads/writes on any thread. Entries,
+    /// The caller exclusively owns this row's value and ticks until the last use of both
+    /// pointers or derived references, with no conflicting access. Entries,
     /// entities, locator and allocations stay stable. All other live value/tick
     /// loans select different rows, including safe shared row references.
     pub(super) unsafe fn get_mut_with_ticks_unchecked<T>(
         &self,
         entity: InternalEntity,
-    ) -> Option<(&mut T, &mut ComponentTicks)>
+    ) -> Option<(*mut T, *mut ComponentTicks)>
     where
         T: 'static + Send + Sync,
     {
@@ -194,7 +194,7 @@ impl SparseComponentStorage {
         let value = unsafe { entry.typed_value_ptr::<T>()? };
         let ticks = entry.ticks.get();
         // SAFETY: both concrete projections are disjoint and uniquely loaned.
-        Some(unsafe { (&mut *value, &mut *ticks) })
+        Some((value, ticks))
     }
 
     /// Check this boxed payload's actual type and copy its ticks.

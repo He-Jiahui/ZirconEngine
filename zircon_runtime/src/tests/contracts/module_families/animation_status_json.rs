@@ -1,4 +1,5 @@
 //! 运行时根入口只公开选定模块，模块家族和历史别名由各自子模块判定。以结果断言检查当前接口或源码快照对应的边界。
+use crate::tests::runtime_absorption::structure_convention::fixed_history_archive_source as history;
 #[test]
 fn runtime_animation_status_json_boundary_sanitizes_non_finite_values() {
     let runtime_status_source = include_str!("../../../core/framework/animation/runtime_status.rs");
@@ -47,9 +48,7 @@ fn runtime_animation_status_json_boundary_sanitizes_non_finite_values() {
         );
     }
 
-    let runtime_14_plan = include_str!(
-        "../../../../../docs/plans/zircon_runtime/runtime/14/2026-07-09-runtime-module-family-closeout-output-records.md"
-    );
+    let runtime_14_plan = history("docs/plans/zircon_runtime/runtime/14/2026-07-09-runtime-module-family-closeout-output-records.md");
     for required_anchor in [
         "animation runtime-status JSON 边界守卫",
         "runtime_animation_status_json_boundary_sanitizes_non_finite_values",

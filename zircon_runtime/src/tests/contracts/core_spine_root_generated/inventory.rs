@@ -116,12 +116,14 @@ pub(super) const MIRROR_DOCS: &[(&str, &str)] = &[
     (
         "Runtime 02 plan",
         include_str!(
-            "../../../../../docs/plans/zircon_runtime/runtime/02-core-spine-and-root-surface.md"
+            "../../../../../docs/testing-and-validation/runtime-root-surface-validation-worklist.md"
         ),
     ),
     (
         "runtime index",
-        include_str!("../../../../../docs/plans/zircon_runtime/runtime/index.md"),
+        include_str!(
+            "../../../../../docs/crates/zircon_runtime/structure/runtime-absorption-evidence.md"
+        ),
     ),
     (
         "root surface doc",

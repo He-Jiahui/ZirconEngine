@@ -27,7 +27,7 @@ Read [the baseline](references/system-architecture-baseline.md) and the relevant
 3. Consult the best-fitting reference source when a design question remains. Record material divergence and its reason.
 4. Implement the smallest coherent boundary and behavior that satisfies the authorized scope. Generalize only when current consumers or concrete requirements justify it.
 5. For an authorized migration, update its consumers using [hard cutover](../zr-hard-cutover-migrations/guide.md). Unrelated structural debt does not automatically expand a feature task into a workspace migration.
-6. Validate affected behavior and contracts under [the validation policy](../../../../docs/plans/milestone-validation-policy.md).
+6. Validate affected behavior and contracts under [the validation policy](../../../../docs/testing-and-validation/milestone-validation-policy.md).
 
 Do not add sibling stubs, no-op integration, speculative extension points, or a tenfold-growth architecture solely to satisfy a checklist. Do not fix a weak foundation with type-name branches or migration-only wrappers. If a required ownership change exceeds the authorized scope, explain that specific dependency and continue independent work.
 

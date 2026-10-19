@@ -23,17 +23,19 @@ fn actual_glyphon_buffer_exports_fractional_line_and_resolved_font_identity() {
         &fonts,
         &mut cache,
         &buffer,
-        &command,
-        7,
-        "Actual line",
-        command.frame,
-        Some(UiSurfaceTextRequest {
-            font_family: None,
-            font_weight: 400,
-            font_style: "normal".into(),
-            font_size: 18.0,
-            line_height: 24.0,
-        }),
+        LayoutObservation {
+            command: &command,
+            command_index: 7,
+            text: "Actual line",
+            clip: command.frame,
+            requested: Some(UiSurfaceTextRequest {
+                font_family: None,
+                font_weight: 400,
+                font_style: "normal".into(),
+                font_size: 18.0,
+                line_height: 24.0,
+            }),
+        },
     );
     let actual = buffer
         .layout_runs()
@@ -50,17 +52,19 @@ fn actual_glyphon_buffer_exports_fractional_line_and_resolved_font_identity() {
         &fonts,
         &mut cache,
         &buffer,
-        &command,
-        8,
-        "Actual line",
-        command.frame,
-        Some(UiSurfaceTextRequest {
-            font_family: None,
-            font_weight: 400,
-            font_style: "normal".into(),
-            font_size: 18.0,
-            line_height: 24.0,
-        }),
+        LayoutObservation {
+            command: &command,
+            command_index: 8,
+            text: "Actual line",
+            clip: command.frame,
+            requested: Some(UiSurfaceTextRequest {
+                font_family: None,
+                font_weight: 400,
+                font_style: "normal".into(),
+                font_size: 18.0,
+                line_height: 24.0,
+            }),
+        },
     );
     assert_eq!(cache_count, cache.len());
     assert_eq!(run.faces.len(), repeated.faces.len());
@@ -117,17 +121,19 @@ fn actual_editor_collection_keeps_600_and_650_requests_distinct_from_selected_70
             &fonts,
             &mut std::collections::HashMap::new(),
             &buffer,
-            &command,
-            7,
-            "Roboto actual selected face",
-            command.frame,
-            Some(UiSurfaceTextRequest {
-                font_family: Some("Roboto".into()),
-                font_weight: weight,
-                font_style: "normal".into(),
-                font_size: 18.0,
-                line_height: 24.0,
-            }),
+            LayoutObservation {
+                command: &command,
+                command_index: 7,
+                text: "Roboto actual selected face",
+                clip: command.frame,
+                requested: Some(UiSurfaceTextRequest {
+                    font_family: Some("Roboto".into()),
+                    font_weight: weight,
+                    font_style: "normal".into(),
+                    font_size: 18.0,
+                    line_height: 24.0,
+                }),
+            },
         );
         assert_eq!(observed.requested.as_ref().unwrap().font_weight, weight);
         assert!(!observed.faces.is_empty());

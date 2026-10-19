@@ -1,7 +1,8 @@
 use crate::core::framework::render::{RenderPhase, ShaderQualityTier};
 use crate::graphics::scene::scene_renderer::mesh::mesh_pass::{
     CachedMeshDrawCommands, CachedMeshDrawKey, CachedMeshDrawLookup, MeshBatchRef, MeshDrawCommand,
-    MeshDrawCommandCacheStats, MeshDrawCommandList, MeshPassBuildContext, MeshPassCommandBuffers,
+    MeshDrawCommandCacheStats, MeshDrawCommandList, MeshPassBuildContext,
+    MeshPassCommandBufferStats, MeshPassCommandBuffers,
 };
 #[cfg(test)]
 use crate::graphics::scene::scene_renderer::mesh::mesh_pipeline_cache::MeshPipelineVariantRegistry;
@@ -54,6 +55,9 @@ pub(crate) struct PendingMeshCommandCacheExtractionStats {
     pub(crate) residual_material_phase_draw_count: usize,
     pub(crate) residual_rebuild_input_missing_draw_count: usize,
     pub(crate) residual_rebuild_rejected_draw_count: usize,
+    // Input-side phase capacity for fully admitted cached sources only. Transparent
+    // capacity includes transmission, matching the combined submission bound.
+    pub(crate) admitted_phase_capacity: MeshPassCommandBufferStats,
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -143,6 +147,11 @@ pub(super) fn extract_pending_static_mesh_command_cache_hits(
                     gpu_scene_instance_span_for_instance(item.stable_instance_key);
             }
             let visibility = visibility_for_instance(item.stable_instance_key);
+            // Freeze the source plan before lookup/rebuild. Output command count,
+            // payload phase and cache hit/miss counters never determine this bound.
+            let source_phases = cacheable_phases_for_extract_item(item, visibility);
+            let source_requires_forward_path = draw.material.pipeline_key.requires_forward_path();
+            let source_transmission = draw.material.pipeline_key.pbr_transmission;
             let Some(extracted_commands) = commands_for_extract_item_with_stats_and_context(
                 item,
                 visibility,
@@ -162,6 +171,27 @@ pub(super) fn extract_pending_static_mesh_command_cache_hits(
                     .push((source_draw_index, draw));
                 continue;
             };
+            // A partial admission stays residual and never contributes twice.
+            let capacity = &mut stats.admitted_phase_capacity;
+            for phase in source_phases.into_iter().flatten() {
+                let count = match phase {
+                    RenderPhase::Prepass => &mut capacity.depth_prepass_command_count,
+                    RenderPhase::Shadow => &mut capacity.shadow_command_count,
+                    RenderPhase::Opaque3d | RenderPhase::AlphaMask3d
+                        if source_requires_forward_path =>
+                    {
+                        if source_transmission {
+                            &mut capacity.transparent_command_count
+                        } else {
+                            &mut capacity.advanced_pbr_opaque_command_count
+                        }
+                    }
+                    RenderPhase::Opaque3d => &mut capacity.opaque_command_count,
+                    RenderPhase::AlphaMask3d => &mut capacity.alpha_mask_command_count,
+                    _ => continue,
+                };
+                *count += 1;
+            }
             stats.skipped_mesh_draw_count += 1;
             stats.skipped_phase_count += extracted_commands.commands.len();
             if extracted_commands.visibility_pruned {

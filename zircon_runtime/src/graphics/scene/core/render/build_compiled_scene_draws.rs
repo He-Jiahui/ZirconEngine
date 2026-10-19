@@ -19,6 +19,9 @@ use super::super::super::scene_renderer_core::SceneRendererAdvancedPluginResourc
 /// 一帧 mesh 提交的所有权聚合：draw 顺序、GPU scene 上传、间接参数和管线需求随同一图执行。
 pub(super) struct CompiledSceneDraws {
     draws: Vec<MeshDraw>,
+    indexed_plan: Option<
+        std::sync::Arc<crate::graphics::scene::scene_renderer::mesh::VirtualGeometryIndexedPlan>,
+    >,
     prepared_mesh_queue_stats: PreparedMeshQueueStats,
     prebuilt_mesh_pass_command_buffers: MeshPassCommandBuffers,
     gpu_scene_prepared_upload: Option<GpuScenePreparedUpload>,
@@ -53,7 +56,9 @@ impl CompiledSceneDraws {
         let pending_command_cache_extraction_stats =
             built_mesh_draws.pending_command_cache_extraction_stats();
         let material_pipeline_requirements = built_mesh_draws.take_material_pipeline_requirements();
+        let indexed_plan = built_mesh_draws.indexed_plan();
         Self {
+            indexed_plan,
             draws: built_mesh_draws.into_draws(),
             prepared_mesh_queue_stats,
             prebuilt_mesh_pass_command_buffers,
@@ -70,6 +75,14 @@ impl CompiledSceneDraws {
             pending_command_cache_extraction_stats,
             material_pipeline_requirements,
         }
+    }
+
+    pub(super) fn indexed_plan(
+        &self,
+    ) -> Option<
+        &std::sync::Arc<crate::graphics::scene::scene_renderer::mesh::VirtualGeometryIndexedPlan>,
+    > {
+        self.indexed_plan.as_ref()
     }
 
     pub(super) fn draws(&self) -> &[MeshDraw] {

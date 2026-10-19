@@ -59,7 +59,7 @@ RUNTIME_DIAGNOSTICS_ANCHORS = (
         "runtime_diagnostics_snapshot",
     ),
     (
-        "docs/zircon_runtime/dynamic_api/session.md",
+        "docs/crates/zircon_runtime/dynamic_api/session.md",
         "Runtime Diagnostics Profile-Control Snapshot",
     ),
 )
@@ -143,11 +143,11 @@ SCENE_ASSET_RELOAD_DIAGNOSTIC_PATH_ANCHORS = (
         '["scene", "asset_reload"]',
     ),
     (
-        "docs/zircon_runtime/dynamic_api/session.md",
+        "docs/crates/zircon_runtime/dynamic_api/session.md",
         "scene.asset_reload.*",
     ),
     (
-        "docs/zircon_runtime/scene/dynamic_scene.md",
+        "docs/crates/zircon_runtime/scene/dynamic_scene.md",
         "Dynamic runtime session scene-asset reload diagnostics",
     ),
 )

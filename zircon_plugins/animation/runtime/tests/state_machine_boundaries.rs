@@ -22,7 +22,9 @@ fn graph_backed_state_samples_events_and_pose_from_one_graph_evaluation() {
 
     let level = runtime.create_default_level().unwrap();
     level.with_world_mut(|world| {
-        let entity = world.spawn_node(NodeKind::Cube);
+        let entity = world
+            .spawn_node(NodeKind::Cube)
+            .expect("test node creation must succeed");
         world
             .set_animation_skeleton(
                 entity,
@@ -91,7 +93,9 @@ fn assert_invalid_duration_switches_immediately(duration_seconds: f32) {
 
     let level = runtime.create_default_level().unwrap();
     let entity = level.with_world_mut(|world| {
-        let entity = world.spawn_node(NodeKind::Cube);
+        let entity = world
+            .spawn_node(NodeKind::Cube)
+            .expect("test node creation must succeed");
         world
             .set_animation_skeleton(
                 entity,

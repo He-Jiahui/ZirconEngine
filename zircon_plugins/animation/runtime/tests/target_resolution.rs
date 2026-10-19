@@ -55,7 +55,9 @@ fn sequence_runtime_resolves_target_id_before_entity_path_fallback() {
     );
     let level = runtime.create_default_level().unwrap();
     let cube = level.with_world_mut(|world| {
-        let cube = world.spawn_node(NodeKind::Cube);
+        let cube = world
+            .spawn_node(NodeKind::Cube)
+            .expect("test node creation must succeed");
         world.rename_node(cube, target_entity_name).unwrap();
         world
             .set_animation_sequence_player(

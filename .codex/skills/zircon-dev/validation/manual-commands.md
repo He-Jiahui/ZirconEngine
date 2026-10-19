@@ -2,21 +2,16 @@
 
 ## Independent local Cargo
 
-The coordinator and its managed matrix/ticket/commit workflows are retired. No registration or lease is required. Use the local wrapper to validate physical output/cache/temporary paths and the 35 GiB free-space reserve:
+The coordinator and its managed matrix/ticket/commit workflows are retired. No registration or lease is required. Jenkins owns normal execution; these local commands require an explicit user-authorized local exception. Before every compilation-capable command, announce its modules, packages, features, targets/test filters, profile, exact command and coverage reason under [the build declaration](guide.md#declare-every-build). The local wrapper validates physical output/cache/temporary paths and the 35 GiB free-space reserve:
 
 ```powershell
-.\tools\dev\local-cargo.ps1 check -p zircon_runtime --locked
-.\tools\dev\local-cargo.ps1 test -p zircon_runtime --lib <focused-filter> --locked
-.\tools\dev\local-cargo.ps1 build -p zircon_hub --locked
-.\tools\dev\local-cargo.ps1 -DryRun check -p zircon_runtime --locked
+.\tools\dev\local-cargo.ps1 check -p zircon_runtime --no-default-features --features core-min --lib --locked
+.\tools\dev\local-cargo.ps1 test -p zircon_runtime --no-default-features --features core-min --lib <focused-filter> --locked
+.\tools\dev\local-cargo.ps1 build -p zr_math --no-default-features --lib --locked
+.\tools\dev\local-cargo.ps1 -DryRun check -p zircon_runtime --no-default-features --features core-min --lib --locked
 ```
 
-Choose scope with `docs/plans/milestone-validation-policy.md`: no routine slice compile; one package check and focused test batch at a milestone. Workspace builds/tests are reserved for a wave/release or root manifest/lockfile/toolchain change:
-
-```powershell
-.\tools\dev\local-cargo.ps1 build --workspace --locked
-.\tools\dev\local-cargo.ps1 test --workspace --locked
-```
+Choose scope with `docs/testing-and-validation/milestone-validation-policy.md`: no routine slice compile; minimal package/feature checks and focused tests at a milestone. Full builds are prohibited, including `--workspace`, `--all`, `--all-features`, `--all-targets`, implicit root-wide selections and all-package loops/matrices. Wave/release and root manifest/lockfile/toolchain changes still require explicitly scoped affected modules. Inspect dependencies when the necessary scope is unclear.
 
 These are command examples, not evidence that the commands were run. A dry run or zero exit code does not grant milestone/Jenkins acceptance; retain actual logs, source identity, required review and failure resolution.
 

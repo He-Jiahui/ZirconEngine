@@ -62,6 +62,7 @@ pub(super) enum PreparedWatchProjectResourceSync {
 
 enum PreparedProjectResource {
     Record(ResourceRecord),
+    Declared(ResourceRecord, crate::core::resource::ResourcePayloadType),
     Ready(
         ResourceRecord,
         std::sync::Arc<dyn crate::core::resource::ResourceData>,
@@ -75,6 +76,9 @@ fn append_prepared_resources(
     for resource in resources {
         batch = match resource {
             PreparedProjectResource::Record(metadata) => batch.upsert_lazy(metadata),
+            PreparedProjectResource::Declared(metadata, payload_type) => batch
+                .upsert_lazy(metadata.clone())
+                .declare_payload_type(metadata, payload_type),
             PreparedProjectResource::Ready(metadata, payload) => {
                 // Same registration semantics as register_project_resource, erased once at
                 // preparation so recapture shares its payload instead of cloning asset bytes.
@@ -113,6 +117,13 @@ impl ProjectAssetManager {
                         {
                             batch.upsert_lazy(record.clone())
                         }
+                        PreparedProjectResource::Declared(record, payload_type)
+                            if !managed.contains(&record.id) =>
+                        {
+                            batch
+                                .upsert_lazy(record.clone())
+                                .declare_payload_type(record.clone(), *payload_type)
+                        }
                         PreparedProjectResource::Ready(record, payload)
                             if !managed.contains(&record.id) =>
                         {
@@ -138,6 +149,9 @@ impl ProjectAssetManager {
         }
         for source in sources {
             batch = batch.publish_source(source.publication(active));
+            for (record, payload_type) in &source.payload_types {
+                batch = batch.declare_payload_type(record.clone(), *payload_type);
+            }
         }
         batch
     }
@@ -301,7 +315,10 @@ impl ProjectAssetManager {
             .registry()
             .values()
             .cloned()
-            .map(PreparedProjectResource::Record)
+            .map(|record| match project.registry().payload_type(record.id) {
+                Some(payload_type) => PreparedProjectResource::Declared(record, payload_type),
+                None => PreparedProjectResource::Record(record),
+            })
             .collect();
         Ok(PreparedProjectResourceSync {
             source_paths,

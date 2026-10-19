@@ -163,9 +163,8 @@ fn load_screen_space_reflection_depth_pyramid_cell_at_mip(
         vec2<i32>(safe_coord),
         mip_level
     ).rg;
-    // BUG: [CR-POST-SHADER-0006] 当前图绑定共享 HZB 的标准设备深度，但这里仅排序 RG，未转换成视距；
-    // 后续把它与 ray_depth 比较，精确命中也会被错误降权。证据：HZB build 写 raw depth，GPU SSR executor 直接绑定该 view。
-    return vec2<f32>(min(range.x, range.y), max(range.x, range.y));
+    let linear_range = vec2<f32>(linearize_scene_depth(range.x), linearize_scene_depth(range.y));
+    return vec2<f32>(min(linear_range.x, linear_range.y), max(linear_range.x, linear_range.y));
 }
 
 fn load_screen_space_reflection_depth_pyramid_source_cell(
@@ -494,16 +493,11 @@ fn screen_space_reflection_hit_visibility(
             thickness_window * max(params.effect_ssr_limits.y, 2.0),
             abs(sample_depth - ray_depth)
         );
-    // BUG: [CR-POST-SHADER-0002] 朝相机的反射 ray 可命中更近表面，本筛选却要求 sample_depth 大于起点视距；
-    // 例如起点视距 10、反射方向 z=0.8、距离 2 的精确命中视距 8.4，也会被强制置为零可见度。
-    let behind_origin = step(
-        current_depth + thickness * 0.25,
-        sample_depth
-    );
+    let separated_from_origin = step(max(thickness * 0.25, 0.0001), ray_distance);
     let distance_visibility =
         1.0 - clamp(ray_distance / max(max_view_distance, 0.001), 0.0, 1.0);
     return depth_visibility
-        * behind_origin
+        * separated_from_origin
         * distance_visibility
         * screen_edge_fade(sample_position, viewport_size);
 }
@@ -777,6 +771,13 @@ fn ssr_temporal_blend_weight(
     );
 }
 
+fn screen_space_reflection_view_direction(view_position: vec3<f32>) -> vec3<f32> {
+    if (params.effect_depth.w <= 0.5) {
+        return vec3<f32>(0.0, 0.0, -1.0);
+    }
+    return normalize(view_position);
+}
+
 fn resolve_screen_space_reflection_history(
     coord: vec2<u32>,
     viewport_size: vec2<u32>
@@ -790,9 +791,7 @@ fn resolve_screen_space_reflection_history(
     let roughness = load_scene_material_roughness(coord_i32, viewport_size);
     let current_depth = load_scene_view_depth(coord_i32, viewport_size);
     let view_position = reconstruct_view_position(coord, viewport_size, current_depth);
-    // BUG: [CR-POST-SHADER-0003] 正交投影的入射视线应为固定方向，这里却始终归一化像素位置；
-    // CPU 已以 effect_depth.w=0 区分正交，离中心像素因 x/y 改变反射方向，平行表面的反射随屏幕位置偏移。
-    let view_direction = normalize(view_position);
+    let view_direction = screen_space_reflection_view_direction(view_position);
     let reflected_direction = reflect(view_direction, normal);
     let traced_reflection = trace_screen_space_reflection(
         coord,

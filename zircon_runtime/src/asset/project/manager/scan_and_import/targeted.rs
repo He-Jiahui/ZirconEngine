@@ -71,6 +71,11 @@ impl PreparedTargetedGeneration {
             .unwrap_or_else(Vec::new);
         previous_members.sort_unstable();
         previous_members.dedup();
+        let payload_types = self
+            .ready_payloads
+            .iter()
+            .map(|(record, asset)| (record.clone(), asset.payload_type()))
+            .collect();
         let payloads = self
             .take_ready_payloads()
             .into_iter()
@@ -91,6 +96,7 @@ impl PreparedTargetedGeneration {
         };
         super::WatchSourceCandidate {
             owner,
+            payload_types,
             previous_members,
             outcome,
             members: self
@@ -694,6 +700,11 @@ impl ProjectManager {
         }
         for record in &imported {
             stage_project_resource(&mut registry, record.clone())?;
+        }
+        for (record, asset) in &ready_payloads {
+            registry
+                .stage_payload_type(record.id, asset.payload_type())
+                .map_err(|error| AssetImportError::Parse(error.to_string()))?;
         }
         refresh_runtime_dependency_closure(&mut registry, &asset_registry, &affected_uuids)?;
         for record in &mut imported {

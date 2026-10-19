@@ -142,8 +142,21 @@ impl World {
         let mut descriptor_imports = self
             .component_registry
             .begin_transferred_descriptor_imports();
+        let retention_provider =
+            crate::scene::ecs::ComponentRegistry::dynamic_retention_provider_v1::<
+                super::typed_api::DynamicComponentPresence,
+            >(Self::measure_dynamic_component_presence_retention_v1)
+            .expect("dynamic component presence uses sparse-set storage");
         self.component_registry
-            .preflight_dynamic_descriptor_import(&mut descriptor_imports, &component_type_id);
+            .preflight_dynamic_descriptor_import(
+                &mut descriptor_imports,
+                &component_type_id,
+                retention_provider,
+            )
+            .ok_or_else(|| ReflectError::InvalidRegistration {
+                type_path: component_type_id.clone(),
+                reason: "dynamic presence retained owner descriptor conflict".to_string(),
+            })?;
 
         self.component_registry
             .publish_preflighted_transferred_descriptor_imports(descriptor_imports);

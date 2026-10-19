@@ -12,12 +12,22 @@ const LEGACY_STATUS: &str =
 const LEGACY_GUARD: &str = "runtime_15_runtime_07_submit_context_guard_child_owner_split";
 
 pub(super) fn assert_submit_context_split_docs(sources: &SplitLayoutSources) {
+    assert_contains_all(
+        "current module convention",
+        sources.module_doc,
+        &[
+            SLICE,
+            STATUS,
+            "submit_context/split_layout",
+            "Route/layout assertions, source inventory checks, shared source loading, and status-doc checks now live",
+            "This module document owns the convention and subsystem guidance; the numbered record owns volatile per-guard paths and status mirrors after folder-backed splits.",
+        ],
+    );
     for (label, source) in [
         ("Runtime 15 plan", sources.runtime_15_plan),
         ("Runtime index", sources.runtime_index),
         ("review findings", sources.review_findings),
         ("structure convention", sources.structure_convention),
-        ("module convention doc", sources.module_doc),
         ("Runtime 07 plan", sources.runtime_07_plan),
         ("hotspot inventory doc", sources.hotspot_doc),
         ("Runtime 07 numbered archive", sources.runtime_07_archive),

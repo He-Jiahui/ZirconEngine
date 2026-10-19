@@ -44,6 +44,7 @@ fn text_sdf_offline_build_is_deterministic_and_decodable_for_every_mode() {
         let inspection = inspect_font_sdf_artifact(first.bytes()).expect("decode artifact");
         assert_eq!(inspection.asset_guid, ASSET_GUID);
         assert_eq!(inspection.mode, mode);
+        assert_eq!(inspection.variation_hash, request.variation_hash);
         assert_eq!(inspection.glyph_count, first.report().generated_glyph_count);
         assert_eq!(inspection.page_count, first.report().page_count);
     }
@@ -93,4 +94,32 @@ fn fixture_request(mode: FontSdfBakeMode) -> FontSdfBakeRequest {
         spread_px_milli: 8_000,
         selection: FontSdfGlyphSelection::Codepoints(vec!['A' as u32, 'M' as u32, 'g' as u32]),
     }
+}
+
+#[test]
+fn text_sdf_offline_build_rejects_non_default_variation_identity() {
+    let task_graph = test_task_graph();
+    let font = std::fs::read(
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("assets/fonts/FiraSans-Regular.ttf"),
+    )
+    .expect("read FiraSans fixture");
+
+    for mode in [
+        FontSdfBakeMode::Sdf,
+        FontSdfBakeMode::Msdf,
+        FontSdfBakeMode::Mtsdf,
+    ] {
+        let mut request = fixture_request(mode);
+        request.variation_hash[0] ^= 1;
+        for font_bytes in [font.as_slice(), &[]] {
+            assert!(matches!(
+                bake_font_sdf_artifact(task_graph.worker_pool(), font_bytes, &request),
+                Err(zircon_runtime::text::font_sdf_build_tool::FontSdfBakeError::UnsupportedVariationHash)
+            ), "non-default identity must be rejected before font decoding in {mode:?}");
+        }
+    }
+
+    task_graph
+        .shutdown(TEST_TASK_GRAPH_SHUTDOWN_TIMEOUT)
+        .expect("offline SDF test task graph should stop");
 }

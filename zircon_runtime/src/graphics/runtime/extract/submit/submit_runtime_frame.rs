@@ -288,6 +288,11 @@ fn submit_selected_runtime_frame(
         camera_light_grid_report,
         frame.virtual_geometry_debug_snapshot.as_ref(),
     );
+    record.bind_physical_submission_snapshot(
+        context.camera_history_key(),
+        context.virtual_geometry_readback_scope().as_ref(),
+        frame.virtual_geometry_debug_snapshot.as_ref(),
+    );
     let record_update = record_submission(
         record,
         viewport,

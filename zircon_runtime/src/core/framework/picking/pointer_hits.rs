@@ -4,7 +4,8 @@ use std::collections::{BTreeMap, HashMap};
 
 use crate::core::math::Real;
 
-use super::{HitRecord, PointerId};
+use super::{HitRecord, PointerId, PointerLocation};
+use crate::core::framework::render::RenderViewportHandle;
 
 #[cfg(test)]
 #[path = "pointer_hits/tests/hash_grouping.rs"]
@@ -14,30 +15,118 @@ mod hash_grouping_tests;
 #[path = "pointer_hits/tests/perf.rs"]
 mod optimization_batch_iz_runtime638_tests;
 
+/// Explicit provenance domain for hits and interaction state. Legacy is never a viewport wildcard.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum PickingDomain {
+    Legacy,
+    Viewport(RenderViewportHandle),
+}
+
+impl Ord for PickingDomain {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        match (*self, *other) {
+            (Self::Legacy, Self::Legacy) => std::cmp::Ordering::Equal,
+            (Self::Legacy, _) => std::cmp::Ordering::Less,
+            (_, Self::Legacy) => std::cmp::Ordering::Greater,
+            (Self::Viewport(a), Self::Viewport(b)) => a.raw().cmp(&b.raw()),
+        }
+    }
+}
+
+impl PartialOrd for PickingDomain {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+/// Camera-independent interaction key: cameras in one viewport share ordering, other viewports do not.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub struct PickingPointerKey {
+    pub pointer: PointerId,
+    pub domain: PickingDomain,
+}
+
+impl PickingPointerKey {
+    pub const fn legacy(pointer: PointerId) -> Self {
+        Self {
+            pointer,
+            domain: PickingDomain::Legacy,
+        }
+    }
+
+    pub const fn in_viewport(pointer: PointerId, viewport: RenderViewportHandle) -> Self {
+        Self {
+            pointer,
+            domain: PickingDomain::Viewport(viewport),
+        }
+    }
+
+    pub fn from_location(location: PointerLocation) -> Self {
+        Self::in_viewport(location.pointer, location.viewport)
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
 /// 一批后端为单个指针返回的命中记录及批次顺序键，供跨批次排序和悬停投影使用。
 pub struct PointerHits {
     pub pointer: PointerId,
+    pub domain: PickingDomain,
     pub hits: Vec<HitRecord>,
     pub order: Real,
 }
 
 impl PointerHits {
+    /// Constructs a hit batch in the explicit legacy domain.
     pub fn new(pointer: PointerId, hits: Vec<HitRecord>, order: Real) -> Self {
         Self {
             pointer,
+            domain: PickingDomain::Legacy,
             hits,
             order,
+        }
+    }
+    pub fn in_viewport(
+        pointer: PointerId,
+        viewport: RenderViewportHandle,
+        hits: Vec<HitRecord>,
+        order: Real,
+    ) -> Self {
+        Self {
+            pointer,
+            domain: PickingDomain::Viewport(viewport),
+            hits,
+            order,
+        }
+    }
+
+    pub const fn key(&self) -> PickingPointerKey {
+        PickingPointerKey {
+            pointer: self.pointer,
+            domain: self.domain,
         }
     }
 }
 
 /// 合并指定指针的后端命中，并按目标优先级、批次顺序、命中深度及来源索引稳定排序。
 pub fn sorted_hits_for_pointer(outputs: &[PointerHits], pointer: PointerId) -> Vec<HitRecord> {
+    let mut keys = outputs
+        .iter()
+        .filter(|output| output.pointer == pointer)
+        .map(PointerHits::key);
+    let Some(key) = keys.next() else {
+        return Vec::new();
+    };
+    if keys.any(|other| other != key) {
+        return Vec::new();
+    }
+    sorted_hits_for_key(outputs, key)
+}
+
+pub fn sorted_hits_for_key(outputs: &[PointerHits], key: PickingPointerKey) -> Vec<HitRecord> {
     let mut indexed: Vec<IndexedHit> = outputs
         .iter()
         .enumerate()
-        .filter(|(_, output)| output.pointer == pointer)
+        .filter(|(_, output)| output.key() == key)
         .flat_map(|(output_index, output)| {
             output
                 .hits
@@ -55,24 +144,21 @@ pub fn sorted_hits_for_pointer(outputs: &[PointerHits], pointer: PointerId) -> V
 /// 为整帧结果一次性按指针分组排序，供悬停投影和报告共享同一顺序。
 pub(super) fn sorted_hits_by_pointer(
     outputs: &[PointerHits],
-) -> BTreeMap<PointerId, Vec<HitRecord>> {
+) -> BTreeMap<PickingPointerKey, Vec<HitRecord>> {
     #[cfg(test)]
     SORTED_HIT_PROJECTION_BUILDS.with(|count| count.set(count.get() + 1));
 
     let mut indexed_by_pointer =
-        HashMap::<PointerId, Vec<IndexedHit>>::with_capacity(outputs.len());
+        HashMap::<PickingPointerKey, Vec<IndexedHit>>::with_capacity(outputs.len());
     for (output_index, output) in outputs.iter().enumerate() {
-        indexed_by_pointer
-            .entry(output.pointer)
-            .or_default()
-            .extend(
-                output
-                    .hits
-                    .iter()
-                    .cloned()
-                    .enumerate()
-                    .map(|(hit_index, hit)| (output_index, hit_index, output.order, hit)),
-            );
+        indexed_by_pointer.entry(output.key()).or_default().extend(
+            output
+                .hits
+                .iter()
+                .cloned()
+                .enumerate()
+                .map(|(hit_index, hit)| (output_index, hit_index, output.order, hit)),
+        );
     }
 
     indexed_by_pointer
@@ -101,6 +187,10 @@ fn sort_indexed_hits(indexed: &mut [IndexedHit]) {
             .then_with(|| left.0.cmp(&right.0))
             .then_with(|| left.1.cmp(&right.1))
     });
+}
+
+pub fn hovered_hits_for_key(outputs: &[PointerHits], key: PickingPointerKey) -> Vec<HitRecord> {
+    hovered_hits_from_sorted(sorted_hits_for_key(outputs, key))
 }
 
 pub fn hovered_hits_for_pointer(outputs: &[PointerHits], pointer: PointerId) -> Vec<HitRecord> {

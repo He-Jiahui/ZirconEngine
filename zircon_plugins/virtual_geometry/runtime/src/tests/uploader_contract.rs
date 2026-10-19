@@ -61,7 +61,7 @@ trait UploaderFrameTestExt {
         _pipeline: &(),
         _capture: Option<()>,
     ) -> Result<(), RenderFrameworkError>;
-    fn take_last_virtual_geometry_gpu_readback(&self) -> Option<VirtualGeometryGpuReadback>;
+    fn take_completed_uploader_readback(&self) -> Option<VirtualGeometryGpuReadback>;
 }
 
 impl UploaderFrameTestExt for PluginizedWgpuRenderFrameworkFixture {
@@ -90,10 +90,11 @@ impl UploaderFrameTestExt for PluginizedWgpuRenderFrameworkFixture {
                 .with_particle_rendering(false)
                 .with_async_compute(false),
         )?;
-        self.submit_frame_extract(viewport, frame.extract)
+        self.test_support_submit_virtual_geometry_frame(viewport, frame.extract)
+            .map(|_| ())
     }
 
-    fn take_last_virtual_geometry_gpu_readback(&self) -> Option<VirtualGeometryGpuReadback> {
+    fn take_completed_uploader_readback(&self) -> Option<VirtualGeometryGpuReadback> {
         Some(
             self.uploader_collector()
                 .take_readback()
@@ -186,7 +187,7 @@ fn virtual_geometry_gpu_uploader_deduplicates_against_three_word_completion_reco
         .unwrap();
 
     let readback = renderer
-        .take_last_virtual_geometry_gpu_readback()
+        .take_completed_uploader_readback()
         .expect("expected virtual geometry GPU readback");
     assert_eq!(readback.completed_page_ids(), vec![400, 500]);
 }
@@ -232,7 +233,7 @@ fn virtual_geometry_gpu_uploader_saturates_streaming_plus_reclaimable_byte_budge
         .unwrap();
 
     let readback = renderer
-        .take_last_virtual_geometry_gpu_readback()
+        .take_completed_uploader_readback()
         .expect("expected virtual geometry GPU readback");
     assert_eq!(readback.completed_page_ids(), vec![300]);
 }
@@ -276,7 +277,7 @@ fn virtual_geometry_gpu_uploader_readback_merges_gpu_completed_assignments_into_
         .unwrap();
 
     let readback = renderer
-        .take_last_virtual_geometry_gpu_readback()
+        .take_completed_uploader_readback()
         .expect("expected virtual geometry GPU readback");
     assert_eq!(readback.completed_page_ids(), vec![300]);
     assert_eq!(readback.completed_page_assignments(), vec![(300, 5)]);
@@ -330,7 +331,7 @@ fn virtual_geometry_gpu_uploader_readback_reports_actual_recycled_page_for_impli
         .unwrap();
 
     let readback = renderer
-        .take_last_virtual_geometry_gpu_readback()
+        .take_completed_uploader_readback()
         .expect("expected virtual geometry GPU readback");
     assert_eq!(readback.page_table_entries(), vec![(200, 1)]);
     assert_eq!(readback.completed_page_ids(), vec![200]);
@@ -380,7 +381,7 @@ fn virtual_geometry_gpu_uploader_readback_respects_budget_without_evictable_page
         .unwrap();
 
     let readback = renderer
-        .take_last_virtual_geometry_gpu_readback()
+        .take_completed_uploader_readback()
         .expect("expected virtual geometry GPU readback");
     assert_eq!(readback.page_table_entries(), vec![(200, 0)]);
     assert_eq!(readback.completed_page_ids(), Vec::<u32>::new());

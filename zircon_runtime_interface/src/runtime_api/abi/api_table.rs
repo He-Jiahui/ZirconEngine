@@ -49,6 +49,11 @@ pub type ZrRuntimeCreateSessionFnV3 =
 /// 参数依次为原会话和 V2 描述，返回协商/配置状态；当前入口先验证描述再改变会话路由状态。
 pub type ZrRuntimeConfigureAppSessionFnV2 =
     unsafe extern "C" fn(ZrRuntimeSessionHandle, ZrRuntimeAppSessionConfigurationV2) -> ZrStatus;
+/// Independently resolved V2 surface binding; no slot is added to the frozen V8 table.
+pub type ZrRuntimeBindViewportSurfaceFnV2 = unsafe extern "C" fn(
+    ZrRuntimeSessionHandle,
+    super::super::session::ZrRuntimeBindViewportSurfaceRequestV2,
+) -> ZrStatus;
 /// 请求销毁参数所指的会话，返回清理状态；调用方须先归还其输出分配。
 /// 清理失败的状态需要继续处理，不能仅因发出了请求就卸载仍有活动责任的提供方。
 pub type ZrRuntimeDestroySessionFnV1 = unsafe extern "C" fn(ZrRuntimeSessionHandle) -> ZrStatus;

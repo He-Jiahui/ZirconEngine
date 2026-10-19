@@ -1,4 +1,5 @@
 //! 代码审查回归护栏核对已迁移接口、错误边界、插件入口及镜像状态。以结果断言检查当前接口或源码快照对应的边界。
+use crate::tests::runtime_absorption::structure_convention::fixed_history_archive_source as history;
 #[test]
 fn review_f8_runtime_plugin_descriptor_status_mirrors_do_not_claim_public_field_pending() {
     let descriptor = include_str!("../../../../plugin/runtime/descriptor.rs");
@@ -8,20 +9,20 @@ fn review_f8_runtime_plugin_descriptor_status_mirrors_do_not_claim_public_field_
         include_str!("../../../../plugin/runtime/descriptor/builder/desc_builder.rs");
     let plugin_sdk_runtime =
         include_str!("../../../../../../zircon_plugins/plugin_sdk/src/runtime.rs");
-    let review_findings = concat!(
-        include_str!("../../../../../../docs/plans/engine-code-review-findings-2026-06.md"),
-        include_str!("../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md")
+    let review_findings = crate::runtime_test_history_concat!(
+        include_str!("../../../../../../docs/architecture/runtime-architecture-review-m0.md"),
+        history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md")
     );
     let convention =
-        include_str!("../../../../../../docs/plans/engine-code-structure-convention.md");
-    let runtime_index =
-        include_str!("../../../../../../docs/plans/zircon_runtime/runtime/index.md");
+        include_str!("../../../../../../docs/testing-and-validation/development-conventions.md");
+    let runtime_index = include_str!(
+        "../../../../../../docs/crates/zircon_runtime/structure/runtime-absorption-evidence.md"
+    );
     let runtime_06_plan = include_str!(
-        "../../../../../../docs/plans/zircon_runtime/runtime/06-plugin-surface-and-lifecycle.md"
+        "../../../../../../docs/testing-and-validation/runtime-plugin-validation-worklist.md"
     );
-    let runtime_15_plan = include_str!(
-        "../../../../../../docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md"
-    );
+    let runtime_15_plan =
+        include_str!("../../../../../../docs/crates/zircon_runtime/structure/module-convention.md");
     let package_manifest_doc =
         include_str!("../../../../../../docs/crates/zircon_runtime/plugin/package_manifest.md");
 

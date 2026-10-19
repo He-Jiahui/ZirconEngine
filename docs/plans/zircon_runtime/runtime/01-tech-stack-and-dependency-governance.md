@@ -31,14 +31,14 @@ last_refined: 2026-08-01
 
 - 2026-06-12 历史基线中 cosmic-text、kira、zip/tar、rfd、arboard 均为 0 命中；该基线已被后续 hard cut 部分取代，不能作为当前事实。当前 Kira 0.12.2 只允许 `zircon_plugins/sound/runtime/Cargo.toml` 单一结构化 dependency declaration，zip 只允许 archive materializer owner；其余 non-dependencies 继续全产品树拒绝。
 - 2026-07-31 Runtime01 reopen：Python/权威文档的 Kira Sound owner合同已实现；唯一 pin 只接受 package/target 的普通 runtime dependencies，dev/build/workspace 表只参与泄漏检测，任一产品 manifest 扫描错误都 fail closed。Runtime Rust dependency/mirror guards仍待 source-safe hard cut，完整 managed gate与fixed return未完成。因此本计划保持 `in_progress`，旧 completion记录只描述当时五门快照，不覆盖当前 open failure。
-- 文本栈三库并存且口径未定：glyphon `0.11.0`（`zircon_runtime/Cargo.toml:77`）、fontsdf `0.5.3`（L78）、unicode-segmentation `1.13.2`（L95）；fontdue `0.9.3` 仅在 editor（`zircon_editor/Cargo.toml:11`）。自研 text shaper / hit-testing 在 `zircon_runtime/src/ui/text/`（mod.rs、shaper.rs、hit_test.rs、layout_engine.rs 约 25.8KB、edit_state.rs、grapheme.rs、rich_text.rs）。
+- 2026-06-12 建档历史（不是当前依赖）：文本栈三库并存且口径未定：glyphon `0.11.0`（`zircon_runtime/Cargo.toml:77`）、fontsdf `0.5.3`（L78）、unicode-segmentation `1.13.2`（L95）；fontdue `0.9.3` 仅在 editor（`zircon_editor/Cargo.toml:11`）。自研 text shaper / hit-testing 在 `zircon_runtime/src/ui/text/`（mod.rs、shaper.rs、hit_test.rs、layout_engine.rs 约 25.8KB、edit_state.rs、grapheme.rs、rich_text.rs）。
 - glyphon 口径矫正（2026-08-01 重核）：渲染侧仍由 glyphon 承担 native text submission，shaping/layout 已统一到 `UiSharedTextShaper`。原一成员 `UiTextShaperStack` wrapper、旧 `UiTextBackendIntent`、回退理由和伪布局路由已经硬切删除；`UiSharedTextShaper` 直接使用共享文本布局服务。`text_shaper_stack_uses_shared_text_service_for_font_backends` 锁定 Native/SDF render mode 通过同一共享文本服务获得 layout metrics。
 - 公共面注意（2026-06-12 重核）：`ui/text` 对外仅 `pub use shaper::layout_text`（`layout_text(text, style, frame, clip_frame) -> UiResolvedTextLayout`，shaper.rs:196-203）；`UiTextShaper` trait（shaper.rs:34-37）、`hit_test_text_layout`、`UiTextHitTest` 等均 `pub(crate)`。文档示例不得引用不出 crate 的类型。
 - 版本风险：winit `0.31.0-beta.2`（根 `Cargo.toml:37`，default-features = false）、notify `9.0.0-rc.3`（L27）。同文件 wgpu `29.0.1`（L36）、naga `29.0.1`（L26）、glam `0.32.1`（L23）。
 - `zr_vm_rust_binding` / `zr_vm_rust_binding_sys` 是指向仓库外 `../../zr_vm/...` 的路径依赖（`zircon_runtime/Cargo.toml`，optional），由 feature `backend-zr-vm` 门控。2026-06-12 的 plugin lifecycle 修复已在 `../zr_vm/zr_vm_rust_binding/rust/zr_vm_rust_binding/src/lib.rs` 落地空参数导出调用 marshalling 防御，当前 `backend-zr-vm` 验证必须与这份本地 binding 修复配对。
 - 物理现状矫正（2026-06-12 重核）：原文"`zircon_plugins/physics/runtime` 为空壳"已过时。该插件现有 37 个文件 / 4353 行 Rust：自研 builtin 物理（manager/ 7 文件 859 行：builtin_step、clock、query、service、settings、validation、world_sync）、query_contact（raycast aabb/capsule/sphere、overlap、contact/filter/geometry）、trigger、scene_hook，外加 1707 行 `physics_manager_runtime_contract` 集成测试。"无任何物理依赖"仍属实：`zircon_plugins/physics/runtime/Cargo.toml` 仅依赖 `zircon_runtime`。jolt 空 feature 有两处：`zircon_runtime/Cargo.toml:18` 与 `zircon_plugins/physics/runtime/Cargo.toml:10`（原文漏列后者）；`backend.rs:5-10` 中 `JOLT_ENABLED = cfg!(feature = "jolt")` 而 `JOLT_BACKEND_AVAILABLE = false` 硬编码——jolt 是"可声明但永不可用"的后端槽位。
 - 物理当前落地（2026-07-10）：上述 2026-06-12 基线已被 Plugins 03 M1-T3 硬切取代。Runtime manifest 只保留 `backend-jolt` profile vocabulary；Physics plugin 通过 optional `joltc-sys` 独占真实 Jolt backend，feature-on 为 Ready/native step，feature-off 为 Unavailable，且两条路径均不静默降级 builtin。当前守卫为 `physics_backend_option_decision_keeps_jolt_feature_gated_and_plugin_owned`；具体状态归 Runtime 01 编号产出记录。
-- 导出打包：`ExportPackagingStrategy` 与 `ExportProfile` 的唯一 owner 已硬切到 `core/framework/project/export_profile.rs`。三种策略仍为 SourceTemplate / LibraryEmbed / NativeDynamic，默认组合仍为 `[SourceTemplate, LibraryEmbed]`；Rust 构造必须显式传入 `RuntimeProfileId`，反序列化缺失 identity 只能进入 fatal export-plan 诊断，不再按 name/target 推断或回退。zstd `0.13.3` 用于缓存压缩；导出归档已由 zip `9.0.0-pre2` 与 `materialize/archive.rs` 的 `ZipWriter` 实现，tar 未引入。
+- 导出打包：`ExportPackagingStrategy` 与 `ExportProfile` 的唯一 owner 已硬切到 `core/framework/project/export_profile.rs`。三种策略仍为 SourceTemplate / LibraryEmbed / NativeDynamic，默认组合仍为 `[SourceTemplate, LibraryEmbed]`；Rust 构造必须显式传入 `RuntimeProfileId`，反序列化缺失 identity 只能进入 fatal export-plan 诊断，不再按 name/target 推断或回退。runtime 中 zstd `0.13.3` 与 zip `9.0.0-pre2` 均为 optional 依赖，由 `native-host` 显式接入；zstd 另由 `zircon_plugins/texture_importer/runtime/Cargo.toml` 以同版本非 optional registry 依赖承担 KTX2 Zstandard 解码。zstd 只允许这两个 owner各一份声明，默认 features且无额外 features；ZIP 仍只允许 runtime archive materializer。导出归档已由 zip `9.0.0-pre2` 与 `materialize/archive.rs` 的 `ZipWriter` 实现，tar 未引入。
 - 守卫口径矫正（2026-06-12 重核）：原 M1 切片 4"锁定 `zircon_runtime_interface`、`zircon_editor` 不出现 `wgpu`/`winit` 直依（现状已满足）"对 zircon_editor 不成立——`zircon_editor/Cargo.toml:23` 存在 `winit.workspace = true` 直依（softbuffer `0.4.6`（L19）自绘 retained host 需要 winit 类型）。`zircon_runtime_interface` 确认无 wgpu/winit（依赖仅 glam/serde/serde_json/thiserror/toml/unicode-segmentation/uuid）。守卫口径已在 M1 切片 1.4 修正。
 - 参考引擎对照矫正（2026-06-12 重核）：原 M3 称 `dev/Fyrox` 为"自研物理"失实——`dev/Fyrox/fyrox-impl/Cargo.toml:30-31` 依赖 rapier2d/rapier3d `0.32`，Fyrox 是 rapier 外挂形态。
 
@@ -113,7 +113,7 @@ last_refined: 2026-08-01
 - 目标文件：`docs/architecture/runtime-tech-stack.md`（"仓外路径依赖"章节）。
 - 改动形态：决策记录三选一并给成本表——A 保持 `../../zr_vm` 外部 checkout（文档化目录布局与 clone-即建说明；optional + `backend-zr-vm` 门控已缓解）；B 迁入 `zircon_plugins` workspace；C git submodule。本里程碑只记录决策，不动 `zircon_runtime/Cargo.toml`。
 - 调用方迁移：无。
-- 验收：`zr_vm_path_dependency_gate_is_documented_with_version_pairing`（tech_stack_dependency_guard.rs）——断言 `zircon_runtime/Cargo.toml` 中 `zr_vm_rust_binding` 仍是 optional 外部路径依赖，且 `[features]` 含 `backend-zr-vm`；文档同步记录空参数导出调用的 binding 版本配对 gate。
+- 当前验收：`zr_vm_git_dependency_gate_is_documented_with_version_pairing`（tech_stack_dependency_guard.rs）——两个 binding 由 `zircon_plugins/zr_vm_language/runtime/Cargo.toml` 唯一拥有，均 optional，并由 `backend-zr-vm` 接入；固定 `https://github.com/He-Jiahui/zr_vm.git` revision `3c1352ecb6ddfab02752d46682cc376558d5f481`，runtime 不声明 binding。文档保留空参数导出调用的 non-null pointer with length `0` 版本配对 gate。
 - DoD：决策记录含目录布局 + 三方案成本表，守卫通过。
 
 #### 切片 1.4 依赖守卫源断言测试（口径修正版）
@@ -126,7 +126,7 @@ last_refined: 2026-08-01
   #[test]
   fn runtime_manifest_keeps_pinned_prerelease_versions_until_upgrade_gate() { /* 断言根 Cargo.toml 含两预发布版本字面 */ }
   #[test]
-fn zr_vm_path_dependency_gate_is_documented_with_version_pairing() { /* 断言 optional = true、backend-zr-vm 与 binding 版本配对 gate */ }
+fn zr_vm_git_dependency_gate_is_documented_with_version_pairing() { /* 断言 plugin owner、固定 git revision、optional、backend-zr-vm 与 binding 版本配对 gate */ }
   #[test]
   fn interface_and_editor_dependency_boundaries_stay_documented_and_guarded() { /* 断言 interface 不含 wgpu/winit，editor 不含 wgpu 且记录 winit 直依现状 */ }
   #[test]
@@ -154,7 +154,7 @@ fn zr_vm_path_dependency_gate_is_documented_with_version_pairing() { /* 断言 o
 - 目标文件：`docs/crates/zircon_runtime/ui/text.md`（更新；2026-06-12 核验该文档已存在且含 `UiTextShaper` boundary 章节——原计划"写入"按既有文件增量章节执行，非新建）。
 - 改动形态：新增"后端职责矩阵"章节，三层各列输入/输出/owner 模块：
   - 层 1 shaping/分段：自研 shaper + unicode-segmentation `1.13.2`；owner `zircon_runtime/src/ui/text/{shaper.rs,grapheme.rs,layout_engine.rs}`；公共入口仅 `layout_text`（其余 `pub(crate)`）。
-  - 层 2 光栅/SDF：fontsdf `0.5.3`（runtime）对 fontdue `0.9.3`（editor-only，softbuffer 自绘栈）。
+  - 层 2 当前光栅/SDF：`text` feature 接入 optional `fdsm 0.8.0`、`fdsm-ttf-parser 0.2.0`、`ttf-parser 0.25.1`。`zircon_runtime/src/text/sdf/fdsm_gen.rs` 从共享 Face 提取轮廓并生成 SDF/MSDF/MTSDF；`generation_source.rs` 与 `font_bake/font_metrics.rs` 保持源字节/Face 生命周期。fontsdf 已移除；原 `font_bake/tests/glyph_metrics.rs` 保留 fontsdf 0.5.3 度量基线，不代表当前依赖。fontdue `0.9.3` 仍是 editor-only retained-host 债务。
   - 层 3 GPU 提交：glyphon `0.11.0`——必须标注双状态：native render/backend intent 仍归 glyphon；Native/SDF layout metrics 现在统一走 `SharedTextService`，直到后续文本里程碑替换 `UiTextShaper` 实现。
 - 调用方迁移：无代码改动。glyphon 在 `zircon_runtime/src` 的 6 个引用文件全列（≤10）：`rhi_wgpu/ui_surface/text.rs`、`rhi_wgpu/ui_surface/geometry.rs`、`graphics/scene/scene_renderer/ui/text.rs`、`ui/surface/render/resolve.rs`、`ui/text/shaper.rs`、`ui/tests/text_shaper.rs`。
 - 验收：复用既有测试为现状锚——`text_shaper_stack_uses_shared_text_service_for_font_backends` 与 `shared_text_shaper_matches_public_layout_entrypoint`（均在 `zircon_runtime/src/ui/tests/text_shaper.rs`）必须与矩阵 "`SharedTextService` active backend" 口径一致；矩阵文档显式引用这两个测试名。
@@ -182,7 +182,7 @@ fn zr_vm_path_dependency_gate_is_documented_with_version_pairing() { /* 断言 o
 - 里程碑末：
   - `cargo test -p zircon_runtime --lib text_shaper --locked -- --nocapture`（现有文本测试无回归；过滤词由原计划的 `ui::text` 修正为 `text_shaper`，与既有测试模块路径 `ui::tests::text_shaper` 匹配更精确）
   - `cargo test -p zircon_runtime --lib tech_stack --locked`
-- 验收证据：职责矩阵文档落地；无未决归属的文本相关依赖（glyphon/fontsdf/fontdue/unicode-segmentation 四库各有 owner 行）。
+- 验收证据：职责矩阵文档落地；无未决归属的当前文本相关依赖（glyphon、fdsm、fdsm-ttf-parser、ttf-parser、fontdue、unicode-segmentation 各有 owner 行；fontsdf 仅保留历史度量基线）。
 
 ### M3 完备性缺口决策（物理 / 归档 / 编辑器辅助）
 

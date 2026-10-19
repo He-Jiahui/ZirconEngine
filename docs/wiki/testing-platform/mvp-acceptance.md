@@ -1,6 +1,6 @@
 ---
 related_code:
-  - docs/plans/mvp/index.md
+  - docs/testing-and-validation/mvp-acceptance-index.md
   - zircon_app/src/entry/entry_runner/editor
   - zircon_runtime/src/scene
   - zircon_editor/src
@@ -11,8 +11,8 @@ implementation_files:
   - zircon_runtime/src/scene
   - zircon_editor/src
 plan_sources:
-  - docs/plans/mvp/index.md
-  - docs/plans/minimum-viable-engine-foundation.md
+  - docs/testing-and-validation/mvp-acceptance-index.md
+  - docs/testing-and-validation/minimum-viable-engine-foundation.md
 tests:
   - zircon_app/src/entry/entry_runner/editor/tests
   - zircon_runtime/src/scene

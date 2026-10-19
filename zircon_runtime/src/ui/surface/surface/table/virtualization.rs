@@ -84,10 +84,7 @@ impl UiSurface {
 
         let visible_end = next_start.saturating_add(viewport_count).min(total_count);
         let overscan = table_overscan(metadata);
-        // BUG: [CR-UI-SURFACE-0009] 有符号减法的 saturating_sub 不会把负值钳到零；
-        // 起点 1、overscan 2 会发布 requested_start=-1，并把不存在的负行计入 requested_count。
-        // 窗口提交不再次归一化，需在此限制请求起点并覆盖滚动接近首行的回归。
-        let requested_start = next_start.saturating_sub(overscan);
+        let requested_start = next_start.saturating_sub(overscan).max(0);
         let requested_end = visible_end.saturating_add(overscan).min(total_count);
         Ok(Some(UiVirtualWindowState {
             owner_id,

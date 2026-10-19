@@ -11,6 +11,7 @@ pub(super) fn host_request_for_effect(
     target: Option<UiNodeId>,
 ) -> Option<UiDispatchHostRequest> {
     let request = match effect {
+        UiDispatchEffect::RequestCursor { cursor } => UiDispatchHostRequestKind::Cursor(*cursor),
         UiDispatchEffect::LockPointer { target, policy } => {
             UiDispatchHostRequestKind::PointerLock {
                 target: *target,

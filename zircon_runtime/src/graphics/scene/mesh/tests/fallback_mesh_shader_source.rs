@@ -574,3 +574,283 @@ fn fallback_mesh_shader_executes_skinned_joint_palette_behind_draw_flag() {
         "let local_position = skin_vertex_position(instance_index, input.position, input.joint_indices, input.joint_weights, motion_params);"
     ));
 }
+
+fn contract_305_device() -> (wgpu::Device, wgpu::Queue) {
+    let mut descriptor = wgpu::InstanceDescriptor::new_without_display_handle();
+    descriptor.backends = wgpu::Backends::PRIMARY;
+    let instance = wgpu::Instance::new(descriptor);
+    let adapter = pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
+        power_preference: wgpu::PowerPreference::LowPower,
+        compatible_surface: None,
+        force_fallback_adapter: false,
+    }))
+    .expect("this rendering regression requires a native GPU adapter");
+    pollster::block_on(adapter.request_device(&wgpu::DeviceDescriptor {
+        label: Some("render-contract-305"),
+        required_features: wgpu::Features::empty(),
+        required_limits: adapter.limits(),
+        memory_hints: wgpu::MemoryHints::Performance,
+        trace: wgpu::Trace::Off,
+        experimental_features: wgpu::ExperimentalFeatures::disabled(),
+    }))
+    .expect("this rendering regression requires a native GPU device")
+}
+
+fn collect_305_observations(
+    device: &wgpu::Device,
+    queue: &wgpu::Queue,
+    mut encoder: wgpu::CommandEncoder,
+    output: &wgpu::Buffer,
+    size: u64,
+) -> Vec<[f32; 4]> {
+    let readback = device.create_buffer(&wgpu::BufferDescriptor {
+        label: Some("render-contract-305-readback"),
+        size,
+        usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
+        mapped_at_creation: false,
+    });
+    encoder.copy_buffer_to_buffer(output, 0, &readback, 0, size);
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(30);
+    queue.submit([encoder.finish()]);
+    let slice = readback.slice(..);
+    let (sender, receiver) = std::sync::mpsc::sync_channel(1);
+    slice.map_async(wgpu::MapMode::Read, move |result| {
+        let _ = sender.send(result);
+    });
+    device
+        .poll(wgpu::PollType::Wait {
+            submission_index: None,
+            timeout: Some(deadline.saturating_duration_since(std::time::Instant::now())),
+        })
+        .expect("GPU submission must finish within the aggregate deadline");
+    receiver
+        .recv_timeout(deadline.saturating_duration_since(std::time::Instant::now()))
+        .expect("GPU readback callback must finish within the aggregate deadline")
+        .expect("GPU observation mapping must succeed");
+    let mapped = slice.get_mapped_range();
+    let observations = mapped
+        .chunks_exact(16)
+        .map(|row| {
+            std::array::from_fn(|i| f32::from_le_bytes(row[i * 4..i * 4 + 4].try_into().unwrap()))
+        })
+        .collect();
+    drop(mapped);
+    readback.unmap();
+    observations
+}
+
+#[test]
+fn fallback_mesh_native_skinning_normals_use_the_blended_inverse_transpose_with_real_palette_storage(
+) {
+    use crate::core::math::{Mat4, Vec3};
+    use crate::graphics::scene::gpu_scene::GpuInstanceData;
+    use crate::graphics::scene::scene_renderer::mesh::skinning::SkinnedMeshJointPaletteStorage;
+    let (device, queue) = contract_305_device();
+    let matrices = [
+        Mat4::from_scale(Vec3::new(2.0, 1.0, 1.0)),
+        Mat4::from_scale(Vec3::new(1.0, 3.0, 1.0)),
+        Mat4::from_scale(Vec3::new(-2.0, 1.0, 1.0)),
+        Mat4::from_scale(Vec3::new(0.0, 1.0, 1.0)),
+    ];
+    let palette = SkinnedMeshJointPaletteStorage::from_matrices(&matrices).unwrap();
+    assert_eq!(palette.joint_count(), 4);
+    let instances: Vec<_> = [(0, 1), (0, 2), (2, 1), (3, 1)]
+        .into_iter()
+        .map(|(base, count)| {
+            let mut instance = GpuInstanceData::for_primitive(0);
+            instance.skinning_palette_params = [base, count, 0, 0];
+            instance
+        })
+        .collect();
+    let instance_buffer = wgpu::util::DeviceExt::create_buffer_init(
+        &device,
+        &wgpu::util::BufferInitDescriptor {
+            label: Some("actual-gpu-scene-skinning-instances"),
+            contents: bytemuck::cast_slice(&instances),
+            usage: wgpu::BufferUsages::STORAGE,
+        },
+    );
+    let palette_buffer = wgpu::util::DeviceExt::create_buffer_init(
+        &device,
+        &wgpu::util::BufferInitDescriptor {
+            label: Some("actual-skinning-palette-storage"),
+            contents: bytemuck::cast_slice(palette.active_joint_matrices()),
+            usage: wgpu::BufferUsages::STORAGE,
+        },
+    );
+    let remap = wgpu::util::DeviceExt::create_buffer_init(
+        &device,
+        &wgpu::util::BufferInitDescriptor {
+            label: Some("unused-visible-remap"),
+            contents: bytemuck::cast_slice(&[0_u32]),
+            usage: wgpu::BufferUsages::STORAGE,
+        },
+    );
+    let remap_params = wgpu::util::DeviceExt::create_buffer_init(
+        &device,
+        &wgpu::util::BufferInitDescriptor {
+            label: Some("normal-draw-without-visible-remap"),
+            contents: bytemuck::cast_slice(&[0_u32; 4]),
+            usage: wgpu::BufferUsages::UNIFORM,
+        },
+    );
+    let source = format!(
+        "{}\n{}",
+        FALLBACK_MESH_SHADER,
+        r#"
+@group(0) @binding(30) var<uniform> invalid_normal_305: vec4<f32>;
+@group(0) @binding(31) var<storage,read_write> contract_305: array<vec4<f32>>;
+@compute @workgroup_size(1) fn observe_skinning_contract_305(@builtin(global_invocation_id) id: vec3<u32>) {
+    let instance = id.x;
+    let weights = select(vec4<f32>(1.0,0.0,0.0,0.0),vec4<f32>(0.5,0.5,0.0,0.0),instance == 1u);
+    let joints = vec4<u32>(0u,1u,0u,0u);
+    let motion = vec4<f32>(0.0,1.0,0.0,0.0);
+    let normal = normalize(vec3<f32>(1.0,-1.0,0.0));
+    let tangent = normalize(vec3<f32>(1.0,1.0,0.0));
+    contract_305[instance*3u] = vec4<f32>(skin_vertex_normal(instance,normal,joints,weights,motion),0.0);
+    contract_305[instance*3u+1u] = vec4<f32>(skin_vertex_position(instance,vec3<f32>(1.0,2.0,0.0),joints,weights,motion),0.0);
+    contract_305[instance*3u+2u] = vec4<f32>(skin_vertex_tangent(instance,tangent,joints,weights,motion),0.0);
+    if (instance == 0u) {
+        contract_305[12u] = vec4<f32>(skin_vertex_normal(0u,normal,joints,weights,vec4<f32>(0.0)),0.0);
+        contract_305[13u] = vec4<f32>(skin_vertex_normal(0u,normal,vec4<u32>(999u),weights,motion),0.0);
+        contract_305[14u] = vec4<f32>(skin_vertex_normal(0u,normal,joints,vec4<f32>(0.0),motion),0.0);
+        contract_305[15u] = vec4<f32>(skin_vertex_normal(0u,invalid_normal_305.xyz,joints,weights,motion),0.0);
+        contract_305[16u] = vec4<f32>(skin_vertex_position(0u,vec3<f32>(1.0,2.0,0.0),joints,weights,vec4<f32>(0.0)),0.0);
+        contract_305[17u] = vec4<f32>(skin_vertex_tangent(0u,tangent,joints,weights,vec4<f32>(0.0)),0.0);
+    }
+}
+"#
+    );
+    let parsed = naga::front::wgsl::parse_str(&source)
+        .unwrap_or_else(|error| panic!("{}", error.emit_to_string(&source)));
+    naga::valid::Validator::new(
+        naga::valid::ValidationFlags::all(),
+        naga::valid::Capabilities::all(),
+    )
+    .validate(&parsed)
+    .expect("the full real fallback mesh shader and observer must validate");
+    let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+        label: Some("full-production-fallback-mesh-observation"),
+        source: wgpu::ShaderSource::Wgsl(source.into()),
+    });
+    let pipeline = device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
+        label: Some("actual-gpu-skin-normal-observation"),
+        layout: None,
+        module: &shader,
+        entry_point: Some("observe_skinning_contract_305"),
+        compilation_options: Default::default(),
+        cache: None,
+    });
+    let output = device.create_buffer(&wgpu::BufferDescriptor {
+        label: Some("gpu-skin-normal-observations"),
+        size: 18 * 16,
+        usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_SRC,
+        mapped_at_creation: false,
+    });
+    let invalid_normal = wgpu::util::DeviceExt::create_buffer_init(
+        &device,
+        &wgpu::util::BufferInitDescriptor {
+            label: Some("non-finite-normal-input"),
+            contents: bytemuck::cast_slice(&[f32::INFINITY, 1.0, 0.0, 0.0]),
+            usage: wgpu::BufferUsages::UNIFORM,
+        },
+    );
+    let observations = device.create_bind_group(&wgpu::BindGroupDescriptor {
+        label: Some("gpu-skin-observation-output"),
+        layout: &pipeline.get_bind_group_layout(0),
+        entries: &[
+            wgpu::BindGroupEntry {
+                binding: 30,
+                resource: invalid_normal.as_entire_binding(),
+            },
+            wgpu::BindGroupEntry {
+                binding: 31,
+                resource: output.as_entire_binding(),
+            },
+        ],
+    });
+    let empty_one = device.create_bind_group(&wgpu::BindGroupDescriptor {
+        label: Some("unused-group-one"),
+        layout: &pipeline.get_bind_group_layout(1),
+        entries: &[],
+    });
+    let empty_two = device.create_bind_group(&wgpu::BindGroupDescriptor {
+        label: Some("unused-group-two"),
+        layout: &pipeline.get_bind_group_layout(2),
+        entries: &[],
+    });
+    let gpu_scene = device.create_bind_group(&wgpu::BindGroupDescriptor {
+        label: Some("real-gpu-scene-palette-observation"),
+        layout: &pipeline.get_bind_group_layout(3),
+        entries: &[
+            wgpu::BindGroupEntry {
+                binding: 1,
+                resource: instance_buffer.as_entire_binding(),
+            },
+            wgpu::BindGroupEntry {
+                binding: 3,
+                resource: palette_buffer.as_entire_binding(),
+            },
+            wgpu::BindGroupEntry {
+                binding: 5,
+                resource: remap.as_entire_binding(),
+            },
+            wgpu::BindGroupEntry {
+                binding: 6,
+                resource: remap_params.as_entire_binding(),
+            },
+        ],
+    });
+    let mut encoder = device.create_command_encoder(&Default::default());
+    {
+        let mut pass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
+            label: Some("actual-fallback-mesh-skinning-execution"),
+            timestamp_writes: None,
+        });
+        pass.set_pipeline(&pipeline);
+        pass.set_bind_group(0, &observations, &[]);
+        pass.set_bind_group(1, &empty_one, &[]);
+        pass.set_bind_group(2, &empty_two, &[]);
+        pass.set_bind_group(3, &gpu_scene, &[]);
+        pass.dispatch_workgroups(4, 1, 1);
+    }
+    let actual = collect_305_observations(&device, &queue, encoder, &output, 18 * 16);
+    let expected_normals = [
+        Vec3::new(0.5, -1.0, 0.0).normalize(),
+        Vec3::new(2.0 / 3.0, -0.5, 0.0).normalize(),
+        Vec3::new(-0.5, -1.0, 0.0).normalize(),
+        Vec3::ZERO,
+    ];
+    let expected_positions = [
+        Vec3::new(2.0, 2.0, 0.0),
+        Vec3::new(1.5, 4.0, 0.0),
+        Vec3::new(-2.0, 2.0, 0.0),
+        Vec3::new(0.0, 2.0, 0.0),
+    ];
+    let expected_tangents = [
+        Vec3::new(2.0, 1.0, 0.0).normalize(),
+        Vec3::new(1.5, 2.0, 0.0).normalize(),
+        Vec3::new(-2.0, 1.0, 0.0).normalize(),
+        Vec3::Y,
+    ];
+    for i in 0..4 {
+        let normal = Vec3::from_array(actual[i * 3][..3].try_into().unwrap());
+        let position = Vec3::from_array(actual[i * 3 + 1][..3].try_into().unwrap());
+        let tangent = Vec3::from_array(actual[i * 3 + 2][..3].try_into().unwrap());
+        assert!(
+            normal.is_finite() && normal.abs_diff_eq(expected_normals[i], 1.0e-5),
+            "{actual:?}"
+        );
+        assert!(normal.dot(tangent).abs() <= 1.0e-5);
+        assert!(position.abs_diff_eq(expected_positions[i], 1.0e-5));
+        assert!(tangent.abs_diff_eq(expected_tangents[i], 1.0e-5));
+    }
+    for row in &actual[12..15] {
+        assert!(Vec3::from_array(row[..3].try_into().unwrap())
+            .abs_diff_eq(Vec3::new(1.0, -1.0, 0.0).normalize(), 1.0e-5));
+    }
+    assert_eq!(&actual[15][..3], &[0.0; 3]);
+    assert_eq!(&actual[16][..3], &[1.0, 2.0, 0.0]);
+    assert!(Vec3::from_array(actual[17][..3].try_into().unwrap())
+        .abs_diff_eq(Vec3::new(1.0, 1.0, 0.0).normalize(), 1.0e-5));
+}

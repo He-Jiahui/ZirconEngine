@@ -648,7 +648,7 @@ fn require_even_arity(
     constructor: &str,
     arguments: &[UiBindingValue],
 ) -> Result<(), UiBindingParseError> {
-    if arguments.len() % 2 == 0 {
+    if arguments.len().is_multiple_of(2) {
         Ok(())
     } else {
         Err(invalid_constructor(

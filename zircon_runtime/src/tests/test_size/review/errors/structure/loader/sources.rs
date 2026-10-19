@@ -18,26 +18,24 @@ pub(super) fn typed_error_native_plugin_loader_sources() -> TypedErrorNativePlug
     TypedErrorNativePluginLoaderSources {
         structure_assertions_parent: read_runtime_src(TYPED_ERROR_STRUCTURE_ASSERTIONS_CHILD),
         native_structure_child: read_runtime_src(TYPED_ERROR_NATIVE_STRUCTURE_CHILD),
-        native_plugin_loader_parent: read_runtime_src(
-            "tests/runtime_absorption/code_review_findings/typed_error_convergence/native_plugin_loader.rs",
-        ),
+        native_plugin_loader_parent: read_runtime_src("tests/contracts/review/errors/loader.rs"),
         native_abi_surfaces_parent: read_runtime_src(
-            "tests/runtime_absorption/code_review_findings/typed_error_convergence/native_plugin_loader/abi_surfaces.rs",
+            "tests/contracts/review/errors/loader/abi_surfaces.rs",
         ),
         native_plugin_descriptor_parent: read_runtime_src(
-            "tests/runtime_absorption/code_review_findings/typed_error_convergence/native_plugin_loader/abi_surfaces/plugin_descriptor.rs",
+            "tests/review/errors/loader/abi_surfaces/plugin_descriptor.rs",
         ),
         native_live_host_parent: read_runtime_src(
-            "tests/runtime_absorption/code_review_findings/typed_error_convergence/native_plugin_loader/live_host.rs",
+            "tests/contracts/review/errors/loader/live_host.rs",
         ),
         native_live_host_lifecycle_paths_parent: read_runtime_src(
-            "tests/runtime_absorption/code_review_findings/typed_error_convergence/native_plugin_loader/live_host/lifecycle_paths.rs",
+            "tests/review/errors/loader/live_host/lifecycle_paths.rs",
         ),
         native_live_host_replay_and_runtime_parent: read_runtime_src(
-            "tests/runtime_absorption/code_review_findings/typed_error_convergence/native_plugin_loader/live_host/replay_and_runtime.rs",
+            "tests/review/errors/loader/live_host/replay_and_runtime.rs",
         ),
         native_manifest_sources_parent: read_runtime_src(
-            "tests/runtime_absorption/code_review_findings/typed_error_convergence/native_plugin_loader/manifest_sources.rs",
+            "tests/contracts/review/errors/loader/manifest_sources.rs",
         ),
     }
 }

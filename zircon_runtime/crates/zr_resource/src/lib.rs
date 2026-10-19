@@ -43,8 +43,8 @@ pub use active_generation::{
 pub use data::ResourceData;
 pub use error::{ResourceRegistryError, ResourceResult};
 pub use event_stream::{
-    ResourceEventGap, ResourceEventReceiver, ResourceEventRecvError, ResourceEventRecvTimeoutError,
-    ResourceEventStreamDiagnostics, ResourceEventTryRecvError,
+    ResourceEventEnvelope, ResourceEventGap, ResourceEventReceiver, ResourceEventRecvError,
+    ResourceEventRecvTimeoutError, ResourceEventStreamDiagnostics, ResourceEventTryRecvError,
 };
 pub use lease::ResourceLease;
 #[cfg(feature = "profiling")]
@@ -67,7 +67,7 @@ pub use readiness_generation::{
     ResourceReadinessGenerationIdentity, ResourceReadinessRow, ResourceReadinessRowIdentity,
     ResourceReadinessState,
 };
-pub use registry::ResourceRegistry;
+pub use registry::{ResourcePayloadType, ResourceRegistry};
 pub use reload::{ResourceSourceMember, ResourceSourceOutcome, ResourceSourcePublication};
 pub use runtime::{Resource, ResourceRuntimeInfo, RuntimeResourceState};
 pub use snapshot::ResourceSnapshot;

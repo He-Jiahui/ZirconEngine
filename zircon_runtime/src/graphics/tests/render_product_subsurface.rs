@@ -228,13 +228,17 @@ impl SssNativePlane {
         );
     }
 
-    fn alpha_bytes(&self, mapped: &[u8]) -> Result<Vec<u8>, String> {
+    fn rgba_pixels(&self, mapped: &[u8]) -> Result<Vec<[f32; 4]>, String> {
         let start = usize::try_from(self.offset).map_err(|_| "plane offset exceeds usize")?;
-        let end =
-            usize::try_from(self.offset + self.byte_len).map_err(|_| "plane end exceeds usize")?;
+        let end = usize::try_from(
+            self.offset
+                .checked_add(self.byte_len)
+                .ok_or("plane end overflow")?,
+        )
+        .map_err(|_| "plane end exceeds usize")?;
         let source = mapped
             .get(start..end)
-            .ok_or("mapped GBuffer plane truncated")?;
+            .ok_or("mapped texture plane truncated")?;
         let row_bytes = usize::try_from(u64::from(self.width) * u64::from(self.bytes_per_pixel))
             .map_err(|_| "row exceeds usize")?;
         let mut packed = Vec::with_capacity(row_bytes * self.height as usize);
@@ -242,22 +246,31 @@ impl SssNativePlane {
             packed.extend_from_slice(&row[..row_bytes]);
         }
         match self.format {
-            wgpu::TextureFormat::Rgba8Unorm | wgpu::TextureFormat::Rgba8UnormSrgb => {
-                Ok(packed.chunks_exact(4).map(|pixel| pixel[3]).collect())
-            }
-            wgpu::TextureFormat::Rgba16Float => {
-                crate::core::framework::render::decode_rgba16f_texels(&packed)
-                    .into_iter()
-                    .map(|pixel| {
-                        let alpha = pixel[3];
-                        if !alpha.is_finite() {
-                            return Err("non-finite GBuffer alpha".to_string());
+            wgpu::TextureFormat::Rgba8Unorm | wgpu::TextureFormat::Rgba8UnormSrgb => Ok(packed
+                .chunks_exact(4)
+                .map(|pixel| {
+                    let mut rgba = [
+                        f32::from(pixel[0]) / 255.0,
+                        f32::from(pixel[1]) / 255.0,
+                        f32::from(pixel[2]) / 255.0,
+                        f32::from(pixel[3]) / 255.0,
+                    ];
+                    if self.format == wgpu::TextureFormat::Rgba8UnormSrgb {
+                        for channel in &mut rgba[..3] {
+                            *channel = if *channel <= 0.04045 {
+                                *channel / 12.92
+                            } else {
+                                ((*channel + 0.055) / 1.055).powf(2.4)
+                            };
                         }
-                        Ok((alpha * 255.0).round().clamp(0.0, 255.0) as u8)
-                    })
-                    .collect()
-            }
-            _ => Err("unsupported recorded GBuffer format".to_string()),
+                    }
+                    rgba
+                })
+                .collect()),
+            wgpu::TextureFormat::Rgba16Float => Ok(
+                crate::core::framework::render::decode_rgba16f_texels(&packed),
+            ),
+            _ => Err("unsupported recorded texture format".to_string()),
         }
     }
 }
@@ -265,29 +278,45 @@ impl SssNativePlane {
 struct SssNativeSnapshot {
     staging: wgpu::Buffer,
     waiter: Box<dyn FnOnce() -> Result<(), String> + Send>,
-    planes: [SssNativePlane; 2],
-    metadata_offset: u64,
+    planes: Vec<SssNativePlane>,
+    metadata_offset: Option<u64>,
     staging_bytes: u64,
     device_epoch: String,
+}
+
+#[derive(Default)]
+struct SssNativeDiagnostics {
+    scatter: SssNativeMailbox,
+    recombine: SssNativeMailbox,
+}
+
+#[derive(Clone, Copy, Debug)]
+enum SssNativeStage {
+    Scatter,
+    Recombine,
 }
 
 struct SssNativeDiagnosticExecutor {
     inner: Arc<dyn RenderPassExecutor>,
     mailbox: SssNativeMailbox,
+    stage: SssNativeStage,
 }
 
 impl RenderPassExecutor for SssNativeDiagnosticExecutor {
     fn execute(&self, context: &mut RenderPassExecutionContext<'_>) -> Result<(), String> {
         self.inner.execute(context)?;
-        let diagnostic = context.require_gpu().and_then(sss_native_record_snapshot);
+        let diagnostic = context
+            .require_gpu()
+            .and_then(|gpu| sss_native_record_snapshot(gpu, self.stage));
         match diagnostic {
             Ok(snapshot) => match self.mailbox.lock() {
                 Ok(mut slot) if slot.is_none() => *slot = Some(snapshot),
                 _ => eprintln!(
-                    "SSS_NATIVE_READBACK unavailable: duplicate/poisoned per-frame mailbox"
+                    "SSS_NATIVE_READBACK unavailable: duplicate/poisoned {:?} mailbox",
+                    self.stage
                 ),
             },
-            Err(error) => eprintln!("SSS_NATIVE_READBACK unavailable: {error}"),
+            Err(error) => eprintln!("SSS_NATIVE_READBACK unavailable: {:?}: {error}", self.stage),
         }
         Ok(())
     }
@@ -344,38 +373,60 @@ fn sss_native_buffer_source(
 
 fn sss_native_record_snapshot(
     gpu: &mut RenderPassGpuExecutionContext<'_>,
+    stage: SssNativeStage,
 ) -> Result<SssNativeSnapshot, String> {
     use crate::core::framework::render::PostProcessGraphResourceNames as Names;
-    let material = gpu
-        .require_texture_view(Names::GBUFFER_MATERIAL, RenderGraphResourceAccessKind::Read)?
-        .texture()
-        .clone();
-    let normal = gpu
-        .require_texture_view(Names::GBUFFER_NORMAL, RenderGraphResourceAccessKind::Read)?
-        .texture()
-        .clone();
-    let material_plane = SssNativePlane::for_texture(&material, 0)?;
-    let normal_plane =
-        SssNativePlane::for_texture(&normal, sss_native_align(material_plane.byte_len, 256)?)?;
-    if (material_plane.width, material_plane.height) != (normal_plane.width, normal_plane.height) {
-        return Err("actual GBuffer extents differ".to_string());
+    use RenderGraphResourceAccessKind::{Read, Write};
+    let sources: &[(&str, RenderGraphResourceAccessKind)] = match stage {
+        SssNativeStage::Scatter => &[
+            (Names::GBUFFER_MATERIAL, Read),
+            (Names::GBUFFER_NORMAL, Read),
+            (Names::SSS_DIFFUSE, Read),
+            (Names::SSS_SCATTERED, Write),
+        ],
+        SssNativeStage::Recombine => &[(Names::SCENE_COLOR, Write), (Names::SSS_SPECULAR, Read)],
+    };
+    let mut textures = Vec::with_capacity(sources.len());
+    let mut planes: Vec<SssNativePlane> = Vec::with_capacity(sources.len());
+    let mut offset = 0;
+    for &(name, access) in sources {
+        let texture = gpu.require_texture_view(name, access)?.texture().clone();
+        let plane = SssNativePlane::for_texture(&texture, offset)?;
+        if let Some(first) = planes.first() {
+            if (first.width, first.height) != (plane.width, plane.height) {
+                return Err(format!("actual {stage:?} texture extents differ at {name}"));
+            }
+        }
+        offset = sss_native_align(
+            plane
+                .offset
+                .checked_add(plane.byte_len)
+                .ok_or("diagnostic planes overflow")?,
+            256,
+        )?;
+        textures.push(texture);
+        planes.push(plane);
     }
-    let metadata_offset = sss_native_align(
-        normal_plane
-            .offset
-            .checked_add(normal_plane.byte_len)
-            .ok_or("diagnostic planes overflow")?,
-        16,
-    )?;
-    let staging_bytes = metadata_offset
-        .checked_add(64)
-        .ok_or("diagnostic metadata overflow")?;
+    let metadata_offset = match stage {
+        SssNativeStage::Scatter => Some(sss_native_align(offset, 16)?),
+        SssNativeStage::Recombine => None,
+    };
+    let staging_bytes = match metadata_offset {
+        Some(base) => base.checked_add(64).ok_or("diagnostic metadata overflow")?,
+        None => offset,
+    };
     if staging_bytes > SSS_NATIVE_STAGING_LIMIT {
         return Err(format!("diagnostic staging {staging_bytes} exceeds 16 MiB"));
     }
-    let params = sss_native_buffer_source(gpu, Names::SSS_PARAMS, 0, 16)?;
-    let profile7 = sss_native_buffer_source(gpu, Names::SSS_PROFILES, 7 * 32, 32)?;
-    let indirect = sss_native_buffer_source(gpu, Names::SSS_INDIRECT_ARGS, 0, 16)?;
+    let metadata_sources = if metadata_offset.is_some() {
+        Some((
+            sss_native_buffer_source(gpu, Names::SSS_PARAMS, 0, 16)?,
+            sss_native_buffer_source(gpu, Names::SSS_PROFILES, 7 * 32, 32)?,
+            sss_native_buffer_source(gpu, Names::SSS_INDIRECT_ARGS, 0, 16)?,
+        ))
+    } else {
+        None
+    };
     let device_epoch = format!("{:?}", gpu.device_epoch());
     let native = gpu.native_context();
     let staging = native.create_buffer_init(&wgpu::util::BufferInitDescriptor {
@@ -383,64 +434,57 @@ fn sss_native_record_snapshot(
         contents: &vec![0; staging_bytes as usize],
         usage: wgpu::BufferUsages::MAP_READ | wgpu::BufferUsages::COPY_DST,
     });
-    material_plane.copy(&material, &staging, native.encoder);
-    normal_plane.copy(&normal, &staging, native.encoder);
-    native
-        .encoder
-        .copy_buffer_to_buffer(&params.0, params.1, &staging, metadata_offset, 16);
-    native.encoder.copy_buffer_to_buffer(
-        &profile7.0,
-        profile7.1,
-        &staging,
-        metadata_offset + 16,
-        32,
-    );
-    native.encoder.copy_buffer_to_buffer(
-        &indirect.0,
-        indirect.1,
-        &staging,
-        metadata_offset + 48,
-        16,
-    );
-    let waiter = Box::new(native.readback_completion_waiter());
+    for (plane, texture) in planes.iter().zip(&textures) {
+        plane.copy(texture, &staging, native.encoder);
+    }
+    if let (Some(base), Some((params, profile7, indirect))) = (metadata_offset, metadata_sources) {
+        native
+            .encoder
+            .copy_buffer_to_buffer(&params.0, params.1, &staging, base, 16);
+        native
+            .encoder
+            .copy_buffer_to_buffer(&profile7.0, profile7.1, &staging, base + 16, 32);
+        native
+            .encoder
+            .copy_buffer_to_buffer(&indirect.0, indirect.1, &staging, base + 48, 16);
+    }
     Ok(SssNativeSnapshot {
         staging,
-        waiter,
-        planes: [material_plane, normal_plane],
+        waiter: Box::new(native.readback_completion_waiter()),
+        planes,
         metadata_offset,
         staging_bytes,
         device_epoch,
     })
 }
 
-fn sss_native_wrap_scatter(
+fn sss_native_wrap_executors(
     executors: &mut [RenderPassExecutorRegistration],
-    mailbox: &SssNativeMailbox,
+    diagnostics: &SssNativeDiagnostics,
 ) {
     for registration in executors {
-        if registration.executor_id.as_str() == SSS_SCATTER_EXECUTOR_ID {
-            registration.executor = Arc::new(SssNativeDiagnosticExecutor {
-                inner: Arc::clone(&registration.executor),
-                mailbox: Arc::clone(mailbox),
-            });
-        }
+        let (stage, mailbox) = match registration.executor_id.as_str() {
+            SSS_SCATTER_EXECUTOR_ID => (SssNativeStage::Scatter, &diagnostics.scatter),
+            SSS_RECOMBINE_EXECUTOR_ID => (SssNativeStage::Recombine, &diagnostics.recombine),
+            _ => continue,
+        };
+        registration.executor = Arc::new(SssNativeDiagnosticExecutor {
+            inner: Arc::clone(&registration.executor),
+            mailbox: Arc::clone(mailbox),
+            stage,
+        });
     }
 }
 
-fn sss_native_report(mailbox: &SssNativeMailbox, generation: u64) {
-    let snapshot = match mailbox.lock() {
-        Ok(mut slot) => slot.take(),
-        Err(_) => {
-            eprintln!("SSS_NATIVE_READBACK unavailable: poisoned mailbox");
-            return;
-        }
-    };
-    let Some(snapshot) = snapshot else {
-        eprintln!(
-            "SSS_NATIVE_READBACK unavailable: no executed scatter snapshot generation={generation}"
-        );
-        return;
-    };
+struct SssNativeReadback {
+    planes: Vec<SssNativePlane>,
+    pixels: Vec<Vec<[f32; 4]>>,
+    metadata: Option<Vec<u32>>,
+    staging_bytes: u64,
+    device_epoch: String,
+}
+
+fn sss_native_read_snapshot(snapshot: SssNativeSnapshot) -> Result<SssNativeReadback, String> {
     let SssNativeSnapshot {
         staging,
         waiter,
@@ -449,7 +493,7 @@ fn sss_native_report(mailbox: &SssNativeMailbox, generation: u64) {
         staging_bytes,
         device_epoch,
     } = snapshot;
-    // Mapping is requested only after the original submission/capture, never while encoding.
+    // Both snapshots belong to the original submitted frame; no diagnostic submission is added.
     let (sender, receiver) = std::sync::mpsc::channel();
     staging
         .slice(..)
@@ -464,37 +508,168 @@ fn sss_native_report(mailbox: &SssNativeMailbox, generation: u64) {
     });
     if let Err(error) = terminal {
         staging.unmap();
-        eprintln!("SSS_NATIVE_READBACK unavailable: {error}");
-        return;
+        return Err(error);
     }
     let mapped = staging.slice(..).get_mapped_range();
-    let report = (|| -> Result<(), String> {
-        let material = planes[0].alpha_bytes(&mapped)?;
-        let normal = planes[1].alpha_bytes(&mapped)?;
-        if material.len() != normal.len() {
-            return Err("decoded alpha counts differ".to_string());
-        }
-        let mut histogram = std::collections::BTreeMap::<(u8, u8), u64>::new();
-        for (model, profile) in material.into_iter().zip(normal) {
-            *histogram.entry((model & 0x7f, profile)).or_default() += 1;
-        }
-        let base = metadata_offset as usize;
-        let metadata = mapped
-            .get(base..base + 64)
-            .ok_or("mapped metadata truncated")?;
-        let words: Vec<u32> = metadata
-            .chunks_exact(4)
-            .map(|word| u32::from_le_bytes([word[0], word[1], word[2], word[3]]))
-            .collect();
-        let profile7: Vec<f32> = words[4..12]
+    let decoded = (|| -> Result<_, String> {
+        let pixels = planes
             .iter()
-            .map(|word| f32::from_bits(*word))
-            .collect();
-        eprintln!("SSS_NATIVE_READBACK generation={generation} epoch={device_epoch} staging_bytes={staging_bytes} planes={planes:?} params_wh_count_mask={:?} profile7_radius_scale_falloff_id={profile7:?} indirect_xyz={:?} model_profile_pixels={histogram:?}", &words[..4], &words[12..15]);
-        Ok(())
+            .map(|plane| plane.rgba_pixels(&mapped))
+            .collect::<Result<Vec<_>, _>>()?;
+        let metadata = metadata_offset
+            .map(|base| {
+                let base = usize::try_from(base).map_err(|_| "metadata offset exceeds usize")?;
+                let bytes = mapped
+                    .get(base..base + 64)
+                    .ok_or("mapped metadata truncated")?;
+                Ok::<_, String>(
+                    bytes
+                        .chunks_exact(4)
+                        .map(|word| u32::from_le_bytes([word[0], word[1], word[2], word[3]]))
+                        .collect::<Vec<_>>(),
+                )
+            })
+            .transpose()?;
+        Ok((pixels, metadata))
     })();
     drop(mapped);
     staging.unmap();
+    let (pixels, metadata) = decoded?;
+    Ok(SssNativeReadback {
+        planes,
+        pixels,
+        metadata,
+        staging_bytes,
+        device_epoch,
+    })
+}
+
+fn sss_native_rgb_summary(
+    pixels: &[[f32; 4]],
+    mask: &[usize],
+) -> (usize, usize, [f32; 3], [f32; 3]) {
+    let mut finite = 0;
+    let mut nonzero = 0;
+    let mut minimum = [f32::INFINITY; 3];
+    let mut maximum = [f32::NEG_INFINITY; 3];
+    for &index in mask {
+        let rgb = &pixels[index][..3];
+        if !rgb.iter().all(|channel| channel.is_finite()) {
+            continue;
+        }
+        finite += 1;
+        nonzero += usize::from(rgb.iter().any(|channel| *channel != 0.0));
+        for channel in 0..3 {
+            minimum[channel] = minimum[channel].min(rgb[channel]);
+            maximum[channel] = maximum[channel].max(rgb[channel]);
+        }
+    }
+    (finite, nonzero, minimum, maximum)
+}
+
+fn sss_native_report(diagnostics: &SssNativeDiagnostics, generation: u64) {
+    let read = |mailbox: &SssNativeMailbox| -> Result<SssNativeReadback, String> {
+        let snapshot = mailbox
+            .lock()
+            .map_err(|_| "poisoned per-frame mailbox")?
+            .take()
+            .ok_or("no executed per-frame snapshot")?;
+        sss_native_read_snapshot(snapshot)
+    };
+    let report = (|| -> Result<(), String> {
+        let scatter = read(&diagnostics.scatter)?;
+        let recombine = read(&diagnostics.recombine)?;
+        if scatter.planes.len() != 4 || recombine.planes.len() != 2 {
+            return Err("actual diagnostic plane counts differ".to_string());
+        }
+        let extent = (scatter.planes[0].width, scatter.planes[0].height);
+        if recombine
+            .planes
+            .iter()
+            .any(|plane| (plane.width, plane.height) != extent)
+        {
+            return Err("scatter/recombine actual extents differ".to_string());
+        }
+        let material = &scatter.pixels[0];
+        let normal = &scatter.pixels[1];
+        let diffuse = &scatter.pixels[2];
+        let scattered = &scatter.pixels[3];
+        let scene_color = &recombine.pixels[0];
+        let specular = &recombine.pixels[1];
+        let mut histogram = std::collections::BTreeMap::<(u8, u8), u64>::new();
+        let mut mask = Vec::new();
+        for (index, (material, normal)) in material.iter().zip(normal).enumerate() {
+            if !material[3].is_finite() || !normal[3].is_finite() {
+                return Err("non-finite actual GBuffer alpha".to_string());
+            }
+            let model = ((material[3] * 255.0).round().clamp(0.0, 255.0) as u8) & 0x7f;
+            let profile = (normal[3] * 255.0).round().clamp(0.0, 255.0) as u8;
+            *histogram.entry((model, profile)).or_default() += 1;
+            if model == 16 && profile == 7 {
+                mask.push(index);
+            }
+        }
+        let words = scatter
+            .metadata
+            .as_deref()
+            .ok_or("scatter metadata absent")?;
+        let profile7 = words[4..12]
+            .iter()
+            .map(|word| f32::from_bits(*word))
+            .collect::<Vec<_>>();
+        eprintln!(
+            "SSS_NATIVE_READBACK generation={generation} epoch={} staging_bytes={} planes={:?} params_wh_count_mask={:?} profile7_radius_scale_falloff_id={profile7:?} indirect_xyz={:?} model_profile_pixels={histogram:?}",
+            scatter.device_epoch, scatter.staging_bytes, scatter.planes, &words[..4], &words[12..15],
+        );
+        let mut changed = 0;
+        let mut max_delta = 0.0_f64;
+        let mut sum_delta = 0.0_f64;
+        let mut max_recombine_error = 0.0_f64;
+        let mut alpha_zero = 0;
+        let mut alpha_nonzero = 0;
+        for &index in &mask {
+            alpha_zero += usize::from(scattered[index][3] == 0.0);
+            alpha_nonzero +=
+                usize::from(scattered[index][3].is_finite() && scattered[index][3] != 0.0);
+            let mut pixel_changed = false;
+            for channel in 0..3 {
+                let delta = (f64::from(scattered[index][channel])
+                    - f64::from(diffuse[index][channel]))
+                .abs();
+                if delta.is_finite() {
+                    pixel_changed |= delta != 0.0;
+                    max_delta = max_delta.max(delta);
+                    sum_delta += delta;
+                }
+                let error = (f64::from(scene_color[index][channel])
+                    - f64::from(scattered[index][channel])
+                    - f64::from(specular[index][channel]))
+                .abs();
+                if error.is_finite() {
+                    max_recombine_error = max_recombine_error.max(error);
+                }
+            }
+            changed += usize::from(pixel_changed);
+        }
+        eprintln!(
+            "SSS_NATIVE_TEXTURE_READBACK generation={generation} mask_pixels={} scatter_planes={:?} recombine_planes={:?} recombine_staging_bytes={} diffuse_finite_nonzero_min_max={:?} scattered_finite_nonzero_min_max={:?} scene_finite_nonzero_min_max={:?} scattered_alpha_zero_nonzero=({alpha_zero},{alpha_nonzero}) changed_pixels={changed} max_abs_delta={max_delta} sum_abs_delta={sum_delta} max_recombine_error={max_recombine_error}",
+            mask.len(), scatter.planes, recombine.planes, recombine.staging_bytes,
+            sss_native_rgb_summary(diffuse, &mask),
+            sss_native_rgb_summary(scattered, &mask),
+            sss_native_rgb_summary(scene_color, &mask),
+        );
+        for index in [mask.first(), mask.get(mask.len() / 2), mask.last()]
+            .into_iter()
+            .flatten()
+        {
+            eprintln!(
+                "SSS_NATIVE_TEXTURE_SAMPLE xy=({},{}) diffuse={:?} scattered={:?} specular={:?} scene={:?}",
+                *index % extent.0 as usize, *index / extent.0 as usize,
+                diffuse[*index], scattered[*index], specular[*index], scene_color[*index],
+            );
+        }
+        Ok(())
+    })();
     if let Err(error) = report {
         eprintln!("SSS_NATIVE_READBACK unavailable: {error}");
     }
@@ -518,9 +693,9 @@ fn render_skin_sphere(mode: ProductSssMode) -> ProductRender {
     } else {
         Vec::new()
     };
-    let native_mailbox = Arc::new(std::sync::Mutex::new(None));
+    let native_diagnostics = SssNativeDiagnostics::default();
     if mode == ProductSssMode::Enabled {
-        sss_native_wrap_scatter(&mut executors, &native_mailbox);
+        sss_native_wrap_executors(&mut executors, &native_diagnostics);
     }
     let framework =
         WgpuRenderFramework::new_for_test_with_plugin_render_extensions_and_shading_models(
@@ -556,7 +731,7 @@ fn render_skin_sphere(mode: ProductSssMode) -> ProductRender {
         .expect("SSS product capture should succeed")
         .expect("SSS product viewport should expose a frame");
     if mode == ProductSssMode::Enabled {
-        sss_native_report(&native_mailbox, frame.generation);
+        sss_native_report(&native_diagnostics, frame.generation);
     } else {
         eprintln!(
             "SSS_NATIVE_READBACK absent: mode={mode:?} generation={}",

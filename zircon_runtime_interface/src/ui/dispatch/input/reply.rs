@@ -148,9 +148,11 @@ impl UiDispatchReply {
     ) -> UiDispatchReplyMergeReport {
         let steps = steps.into_iter();
         let (lower_bound, upper_bound) = steps.size_hint();
-        let route_trace_capacity = (upper_bound == Some(lower_bound))
-            .then_some(lower_bound)
-            .unwrap_or(0);
+        let route_trace_capacity = if upper_bound == Some(lower_bound) {
+            lower_bound
+        } else {
+            0
+        };
         let mut merged = UiDispatchReply::unhandled();
         let mut step_count = 0usize;
         let mut stopped = false;

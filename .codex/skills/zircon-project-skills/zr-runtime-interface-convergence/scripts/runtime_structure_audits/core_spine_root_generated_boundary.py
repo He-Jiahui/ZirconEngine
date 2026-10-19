@@ -4,7 +4,9 @@ import re
 from pathlib import Path
 
 from runtime_structure_audits.generated_code_boundary import generated_code_boundary_audit
-from runtime_structure_audits.runtime_root_surface import runtime_root_surface_audit
+from runtime_structure_audits.runtime_root_surface import (
+    ROOT_CURRENT_ANCHOR, ROOT_CURRENT_MIRRORS, runtime_root_surface_audit,
+)
 
 
 EXPECTED_CORE_ROOT_ENTRIES = (
@@ -43,7 +45,7 @@ EXPECTED_RETIRED_CORE_ROOT_ENTRIES = (
 EXPECTED_ROOT_ENTRIES_TEST_COUNT = 13
 EXPECTED_ROOT_SURFACE_TEST_COUNT = 6
 EXPECTED_GENERATED_GUARD_TEST_COUNT = 7
-EXPECTED_PUBLIC_MODULE_COUNT = 21
+EXPECTED_PUBLIC_MODULE_COUNT = 24
 EXPECTED_PUBLIC_USE_COUNT = 2
 EXPECTED_GRAPHICS_REEXPORT_COUNT = 0
 EXPECTED_GENERATED_TEMPLATE_COUNT = 10
@@ -187,10 +189,10 @@ def core_spine_root_generated_boundary_audit(root: Path) -> dict[str, object]:
     mirror_docs_guards = tuple(root / relative for relative in MIRROR_DOCS_GUARD_RELATIVES)
     runtime_02_plan = root / "docs/plans/zircon_runtime/runtime/02-core-spine-and-root-surface.md"
     runtime_index = root / "docs/plans/zircon_runtime/runtime/index.md"
-    root_surface_doc = root / "docs/zircon_runtime/core/root_surface.md"
-    generated_doc = root / "docs/engine-architecture/generated-code-boundary.md"
-    m0_review = root / "docs/engine-architecture/runtime-architecture-review-m0.md"
-    convergence_doc = root / "docs/engine-architecture/runtime-interface-convergence.md"
+    root_surface_doc = root / "docs/crates/zircon_runtime/core/root_surface.md"
+    generated_doc = root / "docs/architecture/generated-code-boundary.md"
+    m0_review = root / "docs/architecture/runtime-architecture-review-m0.md"
+    convergence_doc = root / "docs/architecture/runtime-interface-convergence.md"
 
     core_entries = sorted(path.name for path in core_root.iterdir()) if core_root.exists() else []
     core_mod_source = _read_text(core_mod) if core_mod.exists() else ""
@@ -274,6 +276,10 @@ def core_spine_root_generated_boundary_audit(root: Path) -> dict[str, object]:
         risks.append("Runtime 02 core public module declarations differ from the spine set.")
     if retired_core_entries_present:
         risks.append("Retired core root entries are present.")
+    for relative in ROOT_CURRENT_MIRRORS:
+        if not (root / relative).is_file() or ROOT_CURRENT_ANCHOR not in _read_text(root / relative):
+            risks.append(f"Current root declaration mirror is missing: {relative}")
+    risks.extend(str(risk) for risk in root_surface["risks"])
     if int(root_surface["public_module_count"]) != EXPECTED_PUBLIC_MODULE_COUNT:
         risks.append("Runtime root public module count changed without Runtime 02 audit sync.")
     if root_public_use_count != EXPECTED_PUBLIC_USE_COUNT:

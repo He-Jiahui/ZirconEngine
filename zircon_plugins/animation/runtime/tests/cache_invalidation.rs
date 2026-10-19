@@ -25,7 +25,9 @@ fn level_tick_invalidates_compiled_clip_after_remove_and_readd_with_reset_revisi
 
     let level = runtime.create_default_level().unwrap();
     let entity = level.with_world_mut(|world| {
-        let entity = world.spawn_node(NodeKind::Cube);
+        let entity = world
+            .spawn_node(NodeKind::Cube)
+            .expect("test node creation must succeed");
         world
             .set_animation_skeleton(
                 entity,
@@ -94,7 +96,9 @@ fn paused_clip_player_only_resamples_once_after_seek() {
 
     let level = runtime.create_default_level().unwrap();
     let entity = level.with_world_mut(|world| {
-        let entity = world.spawn_node(NodeKind::Cube);
+        let entity = world
+            .spawn_node(NodeKind::Cube)
+            .expect("test node creation must succeed");
         world
             .set_animation_skeleton(
                 entity,
@@ -132,7 +136,9 @@ fn paused_clip_player_only_resamples_once_after_seek() {
     assert_hand_translation_x(&level, entity, 1.0);
 
     let active_entity = level.with_world_mut(|world| {
-        let active_entity = world.spawn_node(NodeKind::Cube);
+        let active_entity = world
+            .spawn_node(NodeKind::Cube)
+            .expect("test node creation must succeed");
         world
             .set_animation_skeleton(
                 active_entity,
@@ -236,7 +242,9 @@ fn direct_clip_worker_keeps_one_hundred_and_one_thousand_instances_fair() {
     for expected_instances in [1_usize, 100, 1_000] {
         level.with_world_mut(|world| {
             for _ in spawned..expected_instances {
-                let next_entity = world.spawn_node(NodeKind::Cube);
+                let next_entity = world
+                    .spawn_node(NodeKind::Cube)
+                    .expect("test node creation must succeed");
                 world
                     .set_animation_skeleton(
                         next_entity,

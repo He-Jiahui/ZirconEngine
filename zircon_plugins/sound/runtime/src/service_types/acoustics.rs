@@ -14,16 +14,32 @@ impl DefaultSoundManager {
     ) -> Result<(), SoundError> {
         let mut state = crate::poison_recovery::lock_recover(&self.state);
         validate_listener_descriptor(&state, &listener)?;
-        state.listeners.insert(listener.id, listener);
+        state.kira.ensure_provider_not_retiring()?;
+        let id = listener.id;
+        let previous = state.listeners.insert(id, listener);
+        if let Err(error) = state.refresh_source_environments() {
+            if let Some(previous) = previous {
+                state.listeners.insert(id, previous);
+            } else {
+                state.listeners.remove(&id);
+            }
+            return Err(error);
+        }
         Ok(())
     }
 
     pub(super) fn remove_listener_impl(&self, listener: SoundListenerId) -> Result<(), SoundError> {
-        crate::poison_recovery::lock_recover(&self.state)
+        let mut state = crate::poison_recovery::lock_recover(&self.state);
+        state.kira.ensure_provider_not_retiring()?;
+        let previous = state
             .listeners
             .remove(&listener)
-            .map(|_| ())
-            .ok_or(SoundError::UnknownListener { listener })
+            .ok_or(SoundError::UnknownListener { listener })?;
+        if let Err(error) = state.refresh_source_environments() {
+            state.listeners.insert(listener, previous);
+            return Err(error);
+        }
+        Ok(())
     }
 
     pub(super) fn update_volume_impl(

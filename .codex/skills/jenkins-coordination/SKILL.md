@@ -144,6 +144,18 @@ capability within the current task instead of requesting per-session permission.
 
 ## Incremental validation
 
+Before submitting each compilation-capable `check`, `build` or `test`, announce
+the modules, explicit packages, features, targets/test filters, profile, command
+and coverage reason using [the build declaration](../zircon-dev/validation/guide.md#declare-every-build).
+Keep that same scope in the Jenkins request and actual command evidence. Disable
+default features and select only required features. Full builds are prohibited:
+no `--workspace`, `--all`, `--all-features`, `--all-targets`, implicit root-wide
+selection or equivalent all-package loops/matrices, including wave/release work.
+Inspect a recipe's actual Cargo commands before submission; if it cannot express
+the required module scope, preserve the pending handoff and report that limitation.
+Do not submit its full-build fallback. Reuse compatible managed outputs under
+the existing exclusive writer and Cargo locks.
+
 For engineering validation, use the user's [source ownership and incremental patch workflow](references/incremental-patch-validation.md): agents edit the authorized checkout and hand off scoped patches and hashes; the independent Jenkins coordinator prepares and reuses the source baseline, applies patches and runs the relevant build and tests. Agents must not create source snapshots, backups or source bundles. Keep required acceptance pending while continuing independent work and reconciling the original request.
 
 A bundle-only pilot interface does not satisfy this handoff. Verify that the selected coordinator accepts incremental patches and prepares its own sources before submission. If the route is unavailable or unverified, report that condition and preserve the prepared patch; do not create a local snapshot or bundle to work around it.

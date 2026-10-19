@@ -194,9 +194,7 @@ impl GpuPassTimer {
         encoder: &mut wgpu::CommandEncoder,
         readback_queue: &mut GpuReadbackQueue,
     ) -> Option<GpuTimerFrameObservation> {
-        let Some(mut active) = self.active_frame.take() else {
-            return None;
-        };
+        let mut active = self.active_frame.take()?;
         let ActiveTimerRecording::Legacy { ref mut pass_names } = active.recording else {
             self.active_frame = Some(active);
             return None;
@@ -482,7 +480,7 @@ fn decode_timer_frame(
 }
 
 fn decode_timestamp_pairs(bytes: &[u8], query_count: usize) -> Option<Vec<[u64; 2]>> {
-    if query_count % TIMESTAMPS_PER_PASS as usize != 0 {
+    if !query_count.is_multiple_of(TIMESTAMPS_PER_PASS as usize) {
         return None;
     }
     let mut pairs = Vec::with_capacity(query_count / TIMESTAMPS_PER_PASS as usize);

@@ -28,6 +28,8 @@ pub(in crate::graphics::runtime::render_framework) struct ViewportRecord {
     >,
     pub(super) pending_virtual_geometry_readbacks:
         std::collections::VecDeque<PendingViewportVirtualGeometryReadback>,
+    pub(super) accepted_virtual_geometry_submissions:
+        HashMap<ViewportCameraHistoryKey, super::product_reports::AcceptedPhysicalSubmissions>,
     pub(super) last_applied_virtual_geometry_generation: HashMap<ViewportCameraHistoryKey, u64>,
     pub(super) virtual_geometry_readback_epoch:
         Option<crate::graphics::scene::RenderPassDeviceEpoch>,
@@ -76,7 +78,9 @@ pub(super) struct ReadyViewportCapture {
 pub(super) struct PendingViewportVirtualGeometryReadback {
     pub(super) history: ViewportCameraHistoryKey,
     pub(super) packet: crate::graphics::scene::VirtualGeometryTicketedReadback,
-    pub(super) ready: Option<crate::graphics::scene::VirtualGeometryReadyReadback>,
+    accepted: bool,
+    pub(super) snapshot: Option<std::sync::Weak<RenderVirtualGeometryDebugSnapshot>>,
+    pub(super) ready: Option<Result<crate::graphics::scene::VirtualGeometryReadyReadback, String>>,
 }
 
 impl ViewportRecord {
@@ -164,6 +168,7 @@ impl ViewportRecord {
                     .take(),
             );
             self.last_applied_virtual_geometry_generation.clear();
+            self.accepted_virtual_geometry_submissions.clear();
             self.virtual_geometry_runtimes.clear();
         }
         self.virtual_geometry_readback_epoch = Some(epoch);
@@ -187,6 +192,7 @@ impl ViewportRecord {
                         .take(),
                 );
                 self.last_applied_virtual_geometry_generation.clear();
+                self.accepted_virtual_geometry_submissions.clear();
                 self.virtual_geometry_runtimes.clear();
             }
             self.virtual_geometry_readback_epoch = Some(packet.epoch);
@@ -194,11 +200,34 @@ impl ViewportRecord {
                 PendingViewportVirtualGeometryReadback {
                     history: history.clone(),
                     packet,
+                    accepted: false,
+                    snapshot: None,
                     ready: None,
                 },
             );
         }
-        self.observe_virtual_geometry_readbacks(renderer);
+    }
+
+    // Only the actual history commit may accept this exact packet identity.
+    pub(in crate::graphics::runtime::render_framework) fn accept_virtual_geometry_readbacks(
+        &mut self,
+        scope: Option<&crate::graphics::scene::VirtualGeometryReadbackScope>,
+        history: &ViewportCameraHistoryKey,
+        generation: u64,
+    ) {
+        let Some(scope) = scope else {
+            return;
+        };
+        if scope.viewport_generation != self.generation || scope.frame_generation != generation {
+            return;
+        }
+        for pending in &mut self.pending_virtual_geometry_readbacks {
+            pending.accepted |= pending.history == *history
+                && pending.packet.scope.scope_id == scope.scope_id
+                && pending.packet.scope.viewport == scope.viewport
+                && pending.packet.scope.viewport_generation == scope.viewport_generation
+                && pending.packet.scope.frame_generation == generation;
+        }
     }
 
     pub(in crate::graphics::runtime::render_framework) fn observe_virtual_geometry_readbacks(
@@ -208,7 +237,9 @@ impl ViewportRecord {
         let _ = self.native_probe_scope_id(renderer.virtual_geometry_device_epoch());
         self.pending_virtual_geometry_readbacks
             .retain_mut(|pending| {
-                if pending.packet.scope.viewport_generation != self.generation
+                if !pending.accepted
+                    || pending.packet.scope.viewport_generation != self.generation
+                    || pending.packet.epoch != renderer.virtual_geometry_device_epoch()
                     || self.virtual_geometry_readback_epoch != Some(pending.packet.epoch)
                 {
                     return false;
@@ -224,13 +255,69 @@ impl ViewportRecord {
                             &ready.outputs,
                             ready.inspection.as_ref(),
                         );
-                        pending.ready = Some(ready);
+                        pending.ready = Some(Ok(ready));
                         true
                     }
-                    Some(Err(_)) => false,
+                    Some(Err(error)) => {
+                        pending.ready = Some(Err(error));
+                        true
+                    }
                     None => true,
                 }
             });
+        self.retire_virtual_geometry_readback_failures();
+    }
+
+    // Diagnostic retirement does not release credit still owned by an outstanding map callback.
+    fn retire_virtual_geometry_readback_failures(&mut self) {
+        let mut newest = HashMap::new();
+        for pending in &self.pending_virtual_geometry_readbacks {
+            if pending.ready.as_ref().is_some_and(Result::is_err) {
+                let identity = (
+                    pending.packet.scope.frame_generation,
+                    pending.packet.scope.scope_id,
+                );
+                newest
+                    .entry(pending.history.clone())
+                    .and_modify(|old: &mut (u64, u64)| *old = (*old).max(identity))
+                    .or_insert(identity);
+            }
+        }
+        self.pending_virtual_geometry_readbacks.retain(|pending| {
+            if !pending.ready.as_ref().is_some_and(Result::is_err) {
+                return true;
+            }
+            let generation = pending.packet.scope.frame_generation;
+            self.last_applied_virtual_geometry_generation
+                .get(&pending.history)
+                .is_none_or(|last| *last < generation)
+                && newest.get(&pending.history)
+                    == Some(&(generation, pending.packet.scope.scope_id))
+        });
+    }
+
+    pub(in crate::graphics::runtime::render_framework) fn virtual_geometry_readback_error(
+        &self,
+        epoch: crate::graphics::scene::RenderPassDeviceEpoch,
+    ) -> Option<crate::core::framework::render::RenderFrameworkError> {
+        self.pending_virtual_geometry_readbacks.iter().filter(|pending| {
+            pending.accepted && pending.packet.scope.viewport_generation == self.generation
+                && pending.packet.epoch == epoch
+                && self.virtual_geometry_readback_epoch == Some(epoch)
+                && self.last_applied_virtual_geometry_generation.get(&pending.history)
+                    .is_none_or(|last| *last < pending.packet.scope.frame_generation)
+        }).filter_map(|pending| {
+            let Some(Err(error)) = pending.ready.as_ref() else { return None; };
+            Some((pending.packet.scope.frame_generation, pending.packet.scope.scope_id,
+                &pending.packet.scope, error))
+        }).min_by_key(|(generation, scope, _, _)| (*generation, *scope))
+            .map(|(_, _, scope, error)| {
+                crate::core::framework::render::RenderFrameworkError::Backend(format!(
+                    "virtual geometry readback failed: viewport={} viewport_generation={} frame_generation={} scope={}: {}",
+                    scope.viewport.raw(), scope.viewport_generation,
+                    scope.frame_generation, scope.scope_id, error,
+                ))
+            })
     }
 
     /// Called only after the outer product frame and history validation succeeded.
@@ -243,6 +330,12 @@ impl ViewportRecord {
         ordered.sort_by_key(|entry| entry.packet.scope.frame_generation);
         let mut blocked_histories = std::collections::HashSet::new();
         for mut pending in ordered {
+            if !pending.accepted
+                || pending.packet.scope.viewport_generation != self.generation
+                || self.virtual_geometry_readback_epoch != Some(pending.packet.epoch)
+            {
+                continue;
+            }
             if blocked_histories.contains(&pending.history) {
                 self.pending_virtual_geometry_readbacks.push_back(pending);
                 continue;
@@ -254,16 +347,39 @@ impl ViewportRecord {
             {
                 continue;
             }
-            let Some(mut ready) = pending.ready.take() else {
+            let Some(ready) = pending.ready.take() else {
                 blocked_histories.insert(pending.history.clone());
                 self.pending_virtual_geometry_readbacks.push_back(pending);
                 continue;
+            };
+            let mut ready = match ready {
+                Ok(ready) => ready,
+                Err(error) => {
+                    // A terminal failure does not block a later successful generation.
+                    pending.ready = Some(Err(error));
+                    self.pending_virtual_geometry_readbacks.push_back(pending);
+                    continue;
+                }
             };
             let Some(runtime) = self.virtual_geometry_runtimes.get_mut(&pending.history) else {
                 continue;
             };
             drop(ready.inspection.take());
             let mut outputs = std::mem::take(&mut ready.outputs);
+            if let Some(segments) = outputs.physical_submission_segments.take() {
+                self.accepted_virtual_geometry_submissions.insert(
+                    pending.history.clone(),
+                    super::product_reports::AcceptedPhysicalSubmissions {
+                        scope: super::product_reports::physical_scope_key(&pending.packet.scope),
+                        epoch: pending.packet.epoch.raw_parts(),
+                        snapshot: pending.snapshot.take(),
+                        segments,
+                    },
+                );
+            } else {
+                self.accepted_virtual_geometry_submissions
+                    .remove(&pending.history);
+            }
             let requests = outputs.take_node_and_cluster_cull_page_request_ids();
             // A completed clear-only payload is still a real completion envelope.
             let completion = crate::graphics::VirtualGeometryGpuCompletion::from_readback_outputs(
@@ -289,5 +405,6 @@ impl ViewportRecord {
                 .into_native_probe_handle()
                 .map(|handle| (pending.history, handle));
         }
+        self.retire_virtual_geometry_readback_failures();
     }
 }

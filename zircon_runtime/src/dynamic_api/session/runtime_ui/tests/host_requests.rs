@@ -118,3 +118,81 @@ fn host_request(request: UiDispatchHostRequestKind) -> UiDispatchHostRequest {
         reason: "typed runtime UI host request test".to_string(),
     }
 }
+
+#[test]
+fn actual_mouse_cursor_dispatch_survives_owned_runtime_host_queue_with_real_identity() {
+    use crate::ui::{
+        dispatch::{UiNavigationDispatcher, UiPointerDispatcher},
+        surface::UiSurface,
+    };
+    use zircon_runtime_interface::ui::{
+        dispatch::{UiPointerEvent, UiPointerInputEvent},
+        event_ui::{UiNodePath, UiStateFlags},
+        layout::{UiFrame, UiPoint},
+        surface::UiPointerEventKind,
+        tree::{UiCursor, UiTreeNode},
+    };
+    let tree_id = UiTreeId::new("runtime.ui.cursor.queue");
+    let mut surface = UiSurface::new(tree_id.clone());
+    let mut node = UiTreeNode::new(UiNodeId::new(1), UiNodePath::new("root"))
+        .with_frame(UiFrame::new(0.0, 0.0, 100.0, 100.0))
+        .with_state_flags(UiStateFlags {
+            visible: true,
+            enabled: true,
+            hoverable: true,
+            ..Default::default()
+        });
+    node.cursor = Some(UiCursor::Grabbing);
+    surface.tree.insert_root(node);
+    surface.rebuild();
+    let event = UiInputEvent::Pointer(UiPointerInputEvent {
+        metadata: UiInputEventMetadata::new(
+            UiInputTimestamp::from_micros(17),
+            UiInputSequence::new(17),
+        ),
+        event: UiPointerEvent::new(UiPointerEventKind::Move, UiPoint::new(20.0, 20.0)),
+        precise_scroll: None,
+    });
+    let result = surface
+        .dispatch_input_event(
+            &UiPointerDispatcher::default(),
+            &UiNavigationDispatcher::default(),
+            event,
+        )
+        .unwrap();
+    assert_eq!(result.reply.effects.len(), 1);
+    assert_eq!(result.applied_effects.len(), 1);
+    assert_eq!(result.host_requests.len(), 1);
+    assert_eq!(result.host_requests[0].effect_index, 0);
+    assert_eq!(
+        result.host_requests[0].request,
+        UiDispatchHostRequestKind::Cursor(UiCursor::Grabbing)
+    );
+    let mut queue = RuntimeUiHostRequestQueue::default();
+    queue.record_result(3, &tree_id, &result);
+    drop(result);
+    drop(surface);
+    let mut drained = Vec::new();
+    queue.drain_into(&mut drained);
+    assert_eq!(drained.len(), 1);
+    let request = &drained[0];
+    assert_eq!(
+        request.target_viewport,
+        zircon_runtime_interface::ZIRCON_RUNTIME_DEFAULT_VIEWPORT_HANDLE_V1
+    );
+    assert_eq!(request.target_surface, 3);
+    assert_eq!(request.tree_id, tree_id);
+    assert_eq!(request.input_sequence, 17);
+    assert_eq!(request.request_index, 0);
+    assert_eq!(request.effect_index, 0);
+    assert!(
+        request.kind
+            == zircon_runtime_interface::ZrRuntimeUiHostRequestKindV1::Cursor(UiCursor::Grabbing)
+    );
+    let bytes = serde_json::to_vec(request).unwrap();
+    let decoded: zircon_runtime_interface::ZrRuntimeUiHostRequestV1 =
+        serde_json::from_slice(&bytes).unwrap();
+    assert_eq!(&decoded, request);
+    queue.drain_into(&mut drained);
+    assert_eq!(drained.len(), 1);
+}

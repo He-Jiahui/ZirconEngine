@@ -4,14 +4,15 @@ fn review_f8_runtime_plugin_descriptor_fields_are_private_with_accessors() {
     let descriptor = include_str!("../../../../plugin/runtime/descriptor.rs");
     let accessors = include_str!("../../../../plugin/runtime/descriptor/access.rs");
     let review_findings =
-        include_str!("../../../../../../docs/plans/engine-code-review-findings-2026-06.md");
+        include_str!("../../../../../../docs/architecture/runtime-architecture-review-m0.md");
     let runtime_06_plan = include_str!(
-        "../../../../../../docs/plans/zircon_runtime/runtime/06-plugin-surface-and-lifecycle.md"
+        "../../../../../../docs/testing-and-validation/runtime-plugin-validation-worklist.md"
     );
-    let runtime_index =
-        include_str!("../../../../../../docs/plans/zircon_runtime/runtime/index.md");
+    let runtime_index = include_str!(
+        "../../../../../../docs/crates/zircon_runtime/structure/runtime-absorption-evidence.md"
+    );
     let convention =
-        include_str!("../../../../../../docs/plans/engine-code-structure-convention.md");
+        include_str!("../../../../../../docs/testing-and-validation/development-conventions.md");
     let package_manifest_doc =
         include_str!("../../../../../../docs/crates/zircon_runtime/plugin/package_manifest.md");
 

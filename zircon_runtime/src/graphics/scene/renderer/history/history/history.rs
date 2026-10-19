@@ -179,8 +179,8 @@ impl SceneFrameHistoryTextures {
         self.global_illumination.as_ref()?;
         Some(TextureDesc::new(
             label,
-            self.size.x,
-            self.size.y,
+            self.render_size.x,
+            self.render_size.y,
             TextureFormat::Rgba16Float,
             TextureUsage::SAMPLED | TextureUsage::RENDER_ATTACHMENT | TextureUsage::COPY_DST,
         ))

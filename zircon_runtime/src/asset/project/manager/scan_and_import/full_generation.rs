@@ -148,6 +148,7 @@ impl ProjectManager {
         let mut restored_records = Vec::new();
         let mut ready_shaders = Vec::new();
         let mut ready_geometry = HashMap::new();
+        let mut payload_types = HashMap::new();
         let mut watch_sources = Vec::new();
         let mut writes = Vec::new();
         let mut prepared_ibl_paths = BTreeMap::new();
@@ -233,6 +234,7 @@ impl ProjectManager {
                     config_hash.clone(),
                     descriptor.as_ref(),
                     fallback_kind,
+                    &mut payload_types,
                 )?
             } else {
                 None
@@ -275,6 +277,7 @@ impl ProjectManager {
                 );
                 watch_sources.push(super::WatchSourceCandidate {
                     owner: root_asset_id,
+                    payload_types: Vec::new(),
                     previous_members,
                     outcome: crate::core::resource::ResourceSourceOutcome::Unchanged,
                     members: metadata
@@ -341,6 +344,7 @@ impl ProjectManager {
                                 outcome,
                                 &mut ready_shaders,
                                 &mut ready_geometry,
+                                &mut payload_types,
                                 geometry_demand,
                                 &mut writes,
                                 &mut observation,
@@ -396,6 +400,7 @@ impl ProjectManager {
             );
             watch_sources.push(super::WatchSourceCandidate {
                 owner: root_asset_id,
+                payload_types: Vec::new(),
                 previous_members,
                 outcome: if metadata
                     .iter()
@@ -444,6 +449,13 @@ impl ProjectManager {
             shader_import_dependencies
         };
 
+        for (id, payload_type) in &payload_types {
+            if registry.get(*id).is_some() {
+                registry
+                    .stage_payload_type(*id, *payload_type)
+                    .map_err(|error| AssetImportError::Parse(error.to_string()))?;
+            }
+        }
         let (mut asset_registry, catalog_input_generation) = {
             let _phase = ProjectGenerationPhase::RegistryProjection.enter();
             let mut asset_registry = self
@@ -495,6 +507,16 @@ impl ProjectManager {
         observation.mark_prepare_succeeded();
 
         for source in &mut watch_sources {
+            source.payload_types = source
+                .members
+                .iter()
+                .filter_map(|member| {
+                    let record = registry.get(member.record.id)?;
+                    registry
+                        .payload_type(record.id)
+                        .map(|payload_type| (record.clone(), payload_type))
+                })
+                .collect();
             for member in &mut source.members {
                 if let Some(record) = registry.get(member.record.id) {
                     member.record = record.clone();
@@ -537,6 +559,7 @@ impl ProjectManager {
         config_hash: String,
         descriptor: Option<&AssetImporterDescriptor>,
         fallback_kind: AssetKind,
+        payload_types: &mut HashMap<AssetId, crate::core::resource::ResourcePayloadType>,
     ) -> Result<Option<Vec<ResourceRecord>>, AssetImportError> {
         let uri = &source.uri;
         if meta.preview_state != PreviewState::Ready
@@ -569,14 +592,17 @@ impl ProjectManager {
             root.tags = meta.tags.clone();
         }
 
+        let mut restored_types = Vec::with_capacity(meta.entries.len());
         for entry in &meta.entries {
             let Some(artifact_uri) = &entry.artifact_locator else {
                 return Ok(None);
             };
-            if self.artifact_store.read(&self.paths, artifact_uri).is_err() {
+            let Ok(asset) = self.artifact_store.read(&self.paths, artifact_uri) else {
                 return Ok(None);
-            }
+            };
+            restored_types.push((asset_id_for_meta_entry(entry), asset.payload_type()));
         }
+        payload_types.extend(restored_types);
 
         meta.url = uri.clone();
         if meta.asset_kind == AssetKind::Data && descriptor.is_some() {
@@ -619,6 +645,7 @@ impl ProjectManager {
         mut outcome: AssetImportOutcome,
         ready_shaders: &mut Vec<(ResourceRecord, ShaderAsset)>,
         ready_geometry: &mut HashMap<AssetId, Arc<dyn crate::core::resource::ResourceData>>,
+        payload_types: &mut HashMap<AssetId, crate::core::resource::ResourcePayloadType>,
         geometry_demand: Option<&crate::core::resource::ResourceActiveGeneration>,
         writes: &mut Vec<PreparedFileWrite>,
         observation: &mut ProjectGenerationObservation,
@@ -699,6 +726,7 @@ impl ProjectManager {
                 .with_artifact_locator(artifact.locator)
                 .with_state(ResourceState::Ready)
                 .with_diagnostics(entry.diagnostics);
+            payload_types.insert(record.id, entry.asset.payload_type());
             match entry.asset {
                 ImportedAsset::Shader(shader) => ready_shaders.push((record.clone(), shader)),
                 asset @ (ImportedAsset::Model(_) | ImportedAsset::Mesh(_)) => {

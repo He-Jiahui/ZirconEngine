@@ -179,6 +179,80 @@ pub struct ZrRuntimeBindViewportSurfaceRequestV1 {
     pub target: ZrRuntimeNativeSurfaceTargetV1,
 }
 
+/// Independently resolved surface-binding entry; the frozen V8 table is unchanged.
+pub const ZR_RUNTIME_BIND_VIEWPORT_SURFACE_SYMBOL_V2: &[u8] =
+    b"zircon_runtime_bind_viewport_surface_v2\0";
+
+/// Requested presentation policy. Numeric tags are checked before becoming Rust enums.
+#[repr(u32)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ZrRuntimePresentModeV2 {
+    Fifo = 0,
+    Immediate = 1,
+    Mailbox = 2,
+    FifoRelaxed = 3,
+    AutoVsync = 4,
+    AutoNoVsync = 5,
+}
+
+impl ZrRuntimePresentModeV2 {
+    pub const fn from_raw(value: u32) -> Option<Self> {
+        match value {
+            0 => Some(Self::Fifo),
+            1 => Some(Self::Immediate),
+            2 => Some(Self::Mailbox),
+            3 => Some(Self::FifoRelaxed),
+            4 => Some(Self::AutoVsync),
+            5 => Some(Self::AutoNoVsync),
+            _ => None,
+        }
+    }
+}
+
+/// V2 is resolved through its own symbol, never through a larger V8 table.
+/// The host retains the native target until successful unbind or session destruction.
+#[repr(C)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct ZrRuntimeBindViewportSurfaceRequestV2 {
+    pub abi_version: u32,
+    pub size_bytes: u32,
+    pub viewport: ZrRuntimeViewportHandle,
+    pub size: ZrRuntimeViewportSizeV1,
+    pub target: ZrRuntimeNativeSurfaceTargetV1,
+    pub present_mode: u32,
+    pub reserved: u32,
+}
+
+impl ZrRuntimeBindViewportSurfaceRequestV2 {
+    pub const fn new(
+        viewport: ZrRuntimeViewportHandle,
+        size: ZrRuntimeViewportSizeV1,
+        target: ZrRuntimeNativeSurfaceTargetV1,
+    ) -> Self {
+        Self {
+            abi_version: crate::version::ZIRCON_RUNTIME_ABI_VERSION_V2,
+            size_bytes: core::mem::size_of::<Self>() as u32,
+            viewport,
+            size,
+            target,
+            present_mode: ZrRuntimePresentModeV2::Fifo as u32,
+            reserved: 0,
+        }
+    }
+
+    pub const fn with_present_mode(mut self, mode: ZrRuntimePresentModeV2) -> Self {
+        self.present_mode = mode as u32;
+        self
+    }
+
+    pub const fn is_valid(&self) -> bool {
+        self.abi_version == crate::version::ZIRCON_RUNTIME_ABI_VERSION_V2
+            && self.size_bytes == core::mem::size_of::<Self>() as u32
+            && self.reserved == 0
+            && ZrRuntimePresentModeV2::from_raw(self.present_mode).is_some()
+    }
+}
+
 impl ZrRuntimeBindViewportSurfaceRequestV1 {
     /// 封装一次待提交的视口表面绑定请求。
     ///

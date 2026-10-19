@@ -1,10 +1,6 @@
 //! 输入动作、手柄、宿主请求与公共契约保持由运行时输入栈拥有。以结果断言检查当前接口或源码快照对应的边界。
 #[test]
 fn runtime_12_gamepad_bridge_keeps_runtime_abi_path() {
-    let runtime_12_plan = include_str!(
-        "../../../../../docs/plans/zircon_runtime/runtime/12-input-stack-and-action-mapping.md"
-    );
-    let runtime_index = include_str!("../../../../../docs/plans/zircon_runtime/runtime/index.md");
     let input_doc = include_str!("../../../../../docs/crates/zircon_runtime/input/input_state.md");
     let gamepad_contract = include_str!("../../../core/framework/input/gamepad.rs");
     let input_event = include_str!("../../../core/framework/input/input_event.rs");
@@ -80,16 +76,14 @@ fn runtime_12_gamepad_bridge_keeps_runtime_abi_path() {
 
     for required_doc_anchor in [
         "gamepad_bridge_static_passed_cargo_pending",
-        "app 侧 gilrs",
+        "`zircon_app::entry::runtime_entry_app::gamepad` is compiled behind `gamepad-gilrs`.",
         "InputEvent::GamepadConnection",
         "InputEvent::GamepadButton",
         "InputEvent::GamepadAxis",
     ] {
         assert!(
-            runtime_12_plan.contains(required_doc_anchor)
-                || runtime_index.contains(required_doc_anchor)
-                || input_doc.contains(required_doc_anchor),
-            "Runtime 12 docs/index should retain gamepad bridge anchor `{required_doc_anchor}`"
+            input_doc.contains(required_doc_anchor),
+            "Runtime 12 input module doc should retain gamepad bridge anchor `{required_doc_anchor}`"
         );
     }
 }

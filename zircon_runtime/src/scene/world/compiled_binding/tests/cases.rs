@@ -2265,6 +2265,7 @@ fn compiled_animation_runtime_writes_preserve_scalar_bool_coercion_and_exact_flo
     }
 }
 
+#[cfg(feature = "animation")]
 #[test]
 fn compiled_sequence_repeated_animation_runtime_sample_preserves_world_generation() {
     use crate::animation::{apply_compiled_sequence_to_world, compile_sequence_for_world};
@@ -2706,6 +2707,7 @@ fn compiled_vm_dynamic_writer_preserves_error_priority_and_stale_admission() {
     assert_eq!(world.node_records(), stale_projection);
 }
 
+#[cfg(feature = "animation")]
 #[test]
 fn compiled_sequence_repeated_vm_dynamic_sample_preserves_world_generation() {
     use crate::animation::{apply_compiled_sequence_to_world, compile_sequence_for_world};

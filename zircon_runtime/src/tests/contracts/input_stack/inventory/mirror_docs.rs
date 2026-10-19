@@ -1,11 +1,10 @@
 //! 输入动作、手柄、宿主请求与公共契约保持由运行时输入栈拥有。对照源文件与文档的当前锚点，记录尚待运行验证的结构约束。
+use crate::tests::runtime_absorption::structure_convention::fixed_history_archive_source as history;
 #[test]
 fn runtime_12_input_stack_mirror_docs_match_structure_audit_counts() {
     let input_doc =
         include_str!("../../../../../../docs/crates/zircon_runtime/input/input_state.md");
-    let closeout = include_str!(
-        "../../../../../../docs/plans/zircon_runtime/runtime/12/2026-07-17-m5-input-event-bounds-current-source-closeout.md"
-    );
+    let closeout = history("docs/plans/zircon_runtime/runtime/12/2026-07-17-m5-input-event-bounds-current-source-closeout.md");
 
     for required_anchor in [
         "input_stack_boundary",

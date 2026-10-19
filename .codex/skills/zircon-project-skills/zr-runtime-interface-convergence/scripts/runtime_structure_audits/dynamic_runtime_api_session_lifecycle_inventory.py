@@ -47,7 +47,7 @@ HEADLESS_LIFECYCLE_ANCHORS = (
         "runtime_10_headless_profiles_keep_render_bridge_optional_and_noop_surfaces",
     ),
     (
-        "docs/zircon_runtime/dynamic_api/session.md",
+        "docs/crates/zircon_runtime/dynamic_api/session.md",
         "frame capture returns an empty encoded frame",
     ),
 )

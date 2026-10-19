@@ -24,6 +24,7 @@ impl UiFocusPath {
     /// # 参数与返回
     /// - `focused`：观察到的焦点标识，可为空。
     /// - `root_to_leaf`、`bubble_route`：分别为根到叶和冒泡顺序，两个数组均移交所有权。
+    ///
     /// 返回拥有这些数据的快照；不校验数组互为反序、端点与焦点一致或节点仍然存活。
     pub fn with_route(
         focused: Option<UiNodeId>,

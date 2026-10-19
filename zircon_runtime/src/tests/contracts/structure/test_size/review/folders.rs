@@ -55,10 +55,11 @@ pub(super) fn assert_code_review_findings_tests_are_folder_backed() {
             + super::typed_error_child_owners::typed_error_review_guard_count()
             + sources.direct_review_guard_count();
     assert_eq!(
-        child_test_total, 78,
-        "code review findings children should preserve all 78 review guards"
+        child_test_total, 79,
+        "code review findings legacy source inventory should preserve its original 79 review guards"
     );
 
+    source_inventory::assert_complete_review_graph_contract();
     source_inventory::assert_code_review_findings_line_budgets(&sources);
 }
 

@@ -1,3 +1,9 @@
+use std::collections::BTreeMap;
+
+use zircon_runtime::core::framework::render::{
+    RenderHybridGiSurfaceCachePageRecord, RenderHybridGiVoxelClipmapRecord,
+};
+
 use super::super::hybrid_gi_prepare_execution_buffers::HybridGiPrepareScenePrepareResources;
 use super::super::hybrid_gi_prepare_execution_inputs::HybridGiPrepareExecutionInputs;
 use super::scene_prepare_depth_samples::{
@@ -64,6 +70,63 @@ pub(super) fn scene_prepare_resources(
         atlas_texture_extent,
         capture_texture_extent,
         capture_slot_count,
+    );
+
+    let mut pages = BTreeMap::new();
+    for page in &inputs.scene_surface_cache_page_contents {
+        if !persisted_surface_cache_page_has_present_sample(page) {
+            continue;
+        }
+        pages.insert(
+            (page.page_id, page.atlas_slot_id),
+            RenderHybridGiSurfaceCachePageRecord {
+                page_id: page.page_id,
+                owner_card_id: page.owner_card_id,
+                atlas_slot_id: page.atlas_slot_id,
+                bounds_center_x_bits: page.bounds_center.x.to_bits(),
+                bounds_center_y_bits: page.bounds_center.y.to_bits(),
+                bounds_center_z_bits: page.bounds_center.z.to_bits(),
+                bounds_radius_bits: page.bounds_radius.to_bits(),
+                radiance_rgba8: [0; 4],
+            },
+        );
+    }
+    // Dirty capture requests replace the same physical page's previous descriptor.
+    for request in &inputs.scene_card_capture_requests {
+        pages.insert(
+            (request.page_id, request.atlas_slot_id),
+            RenderHybridGiSurfaceCachePageRecord {
+                page_id: request.page_id,
+                owner_card_id: request.card_id,
+                atlas_slot_id: request.atlas_slot_id,
+                bounds_center_x_bits: request.bounds_center.x.to_bits(),
+                bounds_center_y_bits: request.bounds_center.y.to_bits(),
+                bounds_center_z_bits: request.bounds_center.z.to_bits(),
+                bounds_radius_bits: request.bounds_radius.to_bits(),
+                radiance_rgba8: [0; 4],
+            },
+        );
+    }
+    snapshot.store_source_descriptors(
+        pages
+            .into_values()
+            .filter(|page| {
+                snapshot
+                    .occupied_atlas_slots()
+                    .contains(&page.atlas_slot_id)
+            })
+            .collect(),
+        inputs
+            .scene_voxel_clipmaps
+            .iter()
+            .map(|clipmap| RenderHybridGiVoxelClipmapRecord {
+                clipmap_id: clipmap.clipmap_id,
+                center_x_bits: clipmap.center.x.to_bits(),
+                center_y_bits: clipmap.center.y.to_bits(),
+                center_z_bits: clipmap.center.z.to_bits(),
+                half_extent_bits: clipmap.half_extent.to_bits(),
+            })
+            .collect(),
     );
 
     store_scene_prepare_voxel_resource_samples(&mut snapshot, streamer, inputs);

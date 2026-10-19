@@ -1,4 +1,5 @@
 //! 性能热点的结构守卫核对拥有者、文件预算和证据文档。以结果断言检查当前接口或源码快照对应的边界。
+use crate::tests::runtime_absorption::structure_convention::fixed_history_archive_source as history;
 #[test]
 fn runtime_07_scene_asset_folder_split_keeps_public_surface_and_single_owner() {
     fn occurrence_count(source: &str, needle: &str) -> usize {
@@ -10,12 +11,9 @@ fn runtime_07_scene_asset_folder_split_keeps_public_surface_and_single_owner() {
     let scene_physics = include_str!("../../../asset/assets/scene/physics.rs");
     let asset_assets_mod = include_str!("../../../asset/assets/mod.rs");
     let asset_mod = include_str!("../../../asset/mod.rs");
-    let runtime_07_output = include_str!(
-        "../../../../../docs/plans/zircon_runtime/runtime/07/2026-07-09-runtime-performance-hotpath-output-records.md"
-    );
-    let runtime_index_output = include_str!(
-        "../../../../../docs/plans/zircon_runtime/runtime/07/2026-07-09-runtime-index-output-records.md"
-    );
+    let runtime_07_output = history("docs/plans/zircon_runtime/runtime/07/2026-07-09-runtime-performance-hotpath-output-records.md");
+    let runtime_index_output =
+        history("docs/plans/zircon_runtime/runtime/07/2026-07-09-runtime-index-output-records.md");
     let hotspot_doc =
         include_str!("../../../../../docs/crates/zircon_runtime/performance/hotspot_inventory.md");
     let scene_doc = include_str!("../../../../../docs/crates/zircon_runtime/asset/assets/scene.md");

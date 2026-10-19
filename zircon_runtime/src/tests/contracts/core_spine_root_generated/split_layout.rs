@@ -1,4 +1,5 @@
 //! 核心脊柱、根公开面和生成模板的结构清单需与审计证据同步。通过源码文本核对父子路由、状态镜像和文件预算。
+use crate::tests::runtime_absorption::structure_convention::fixed_history_archive_source as history;
 const PARENT_SOURCE: &str = include_str!("../core_spine_root_generated.rs");
 const INVENTORY_SOURCE: &str = include_str!("inventory.rs");
 const MIRROR_DOCS_SOURCE: &str = include_str!("mirror_docs.rs");
@@ -7,17 +8,25 @@ const GENERATED_BEHAVIOR_SOURCE: &str =
 const SOURCE_HELPERS_SOURCE: &str = include_str!("source_helpers.rs");
 const SPLIT_LAYOUT_SOURCE: &str = include_str!("split_layout.rs");
 
-const RUNTIME_15_PLAN: &str = crate::tests::runtime_absorption::current_source_fixture::RUNTIME_ARCHITECTURE_IMPLEMENTATION_OUTPUT;
-const RUNTIME_INDEX: &str =
-    include_str!("../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md");
-const STRUCTURE_CONVENTION_PLAN: &str =
-    include_str!("../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md");
-const REVIEW_FINDINGS_PLAN: &str =
-    include_str!("../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md");
+fn runtime_15_plan() -> &'static str {
+    crate::tests::runtime_absorption::current_source_fixture::runtime_architecture_implementation_output()
+}
+fn runtime_index() -> &'static str {
+    history(
+        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md",
+    )
+}
+fn structure_convention_plan() -> &'static str {
+    history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md")
+}
+fn review_findings_plan() -> &'static str {
+    history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md")
+}
 const MODULE_CONVENTION_DOC: &str =
     include_str!("../../../../../docs/crates/zircon_runtime/structure/module-convention.md");
-const FRAMEWORKS_02_PLAN: &str =
-    include_str!("../../../../../docs/plans/zircon_runtime/frameworks/02/2026-07-09-module-kernel-and-lifecycle-unification-output-records.md");
+fn frameworks_02_plan() -> &'static str {
+    history("docs/plans/zircon_runtime/frameworks/02/2026-07-09-module-kernel-and-lifecycle-unification-output-records.md")
+}
 
 #[test]
 fn runtime_15_core_spine_root_generated_is_folder_backed() {
@@ -25,7 +34,7 @@ fn runtime_15_core_spine_root_generated_is_folder_backed() {
         "parent route owner",
         PARENT_SOURCE,
         &[
-            "#[path = \"core_spine_root_generated/generated_behavior.rs\"]",
+            "#[path = \"../core_spine_root_generated/generated_behavior.rs\"]",
             "#[path = \"core_spine_root_generated/inventory.rs\"]",
             "#[path = \"core_spine_root_generated/mirror_docs.rs\"]",
             "#[path = \"core_spine_root_generated/source_helpers.rs\"]",
@@ -120,15 +129,15 @@ fn assert_line_budget() {
 
 fn assert_docs_and_status_mirror_split() {
     for (label, source) in [
-        ("Runtime 15 output archive", RUNTIME_15_PLAN),
-        ("runtime-index output archive", RUNTIME_INDEX),
+        ("Runtime 15 output archive", runtime_15_plan()),
+        ("runtime-index output archive", runtime_index()),
         (
             "structure-convention output archive",
-            STRUCTURE_CONVENTION_PLAN,
+            structure_convention_plan(),
         ),
-        ("review-findings output archive", REVIEW_FINDINGS_PLAN),
+        ("review-findings output archive", review_findings_plan()),
         ("module convention doc", MODULE_CONVENTION_DOC),
-        ("Frameworks 02 output archive", FRAMEWORKS_02_PLAN),
+        ("Frameworks 02 output archive", frameworks_02_plan()),
     ] {
         assert!(
             source.contains(
@@ -150,7 +159,7 @@ fn assert_docs_and_status_mirror_split() {
     );
     assert_contains_all(
         "Frameworks 02 output archive",
-        FRAMEWORKS_02_PLAN,
+        frameworks_02_plan(),
         &[
             "frameworks_02_m3_core_spine_root_generated_route_owner_split_static_passed_cargo_deferred",
             "Runtime 15 M3 core spine root/generated route-owner split",

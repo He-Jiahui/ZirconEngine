@@ -1,5 +1,8 @@
 import { resolvePluginBundlePath } from './zui-layout-penpot-session';
-import { resolveLayoutCatalogPath } from './zui-layout-paths';
+import {
+  assertLayoutCurrentRoots, layoutCurrentSourcePath, layoutCurrentOutputPath,
+  type LayoutCurrentContext, resolveLayoutCatalogPath,
+} from './zui-layout-paths';
 import assert from 'node:assert/strict';
 import { readFile, realpath, writeFile } from 'node:fs/promises';
 import { isAbsolute, relative, resolve, sep } from 'node:path';
@@ -486,6 +489,7 @@ export async function capturePenpotCases(options: {
   entry: CatalogEntry;
   writeEvidence: boolean;
   catalogRoot: string;
+  currentContext?: LayoutCurrentContext;
   pluginBundleSha256: string;
   captureProgramFingerprints: Array<[string, string]>;
   captureFontResources: () => Promise<Array<[string, string]>>;
@@ -505,6 +509,25 @@ export async function capturePenpotCases(options: {
   evidence: LayoutRenderEvidence[];
 }> {
   const { page, pluginFrame, statusPanel, pluginModal, entry } = options;
+  const currentContext = options.currentContext;
+  if (currentContext)
+    assertLayoutCurrentRoots(currentContext, currentContext.repoRoot, options.catalogRoot);
+  const output = (path: string) => currentContext
+    ? layoutCurrentOutputPath(currentContext, path)
+    : resolveLayoutCatalogPath(options.catalogRoot, path);
+  if (currentContext) {
+    layoutCurrentSourcePath(currentContext, entry.sourcePath);
+    for (const dependency of entry.dependencyFingerprints ?? [])
+      layoutCurrentSourcePath(currentContext, dependency.sourcePath);
+    output(entry.penpotInputPath ?? entry.outputPath);
+    for (const reviewCase of entry.cases ?? []) {
+      if (reviewCase.themeSourcePath) layoutCurrentSourcePath(currentContext, reviewCase.themeSourcePath);
+      if (reviewCase.reviewHost) output(reviewCase.reviewHost.path);
+      output(penpotScreenshotPathForCase(entry, reviewCase));
+      for (const suffix of ['geometry.json', 'text.json', 'roundtrip.zui'])
+        output(`${entry.category}/${entry.name}/evidence/penpot-${reviewCase.id}.${suffix}`);
+    }
+  }
   assert.ok(entry.cases?.length, 'Missing review cases');
   const cases = entry.cases.filter(
     (reviewCase) => !options.caseIds || options.caseIds.has(reviewCase.id),
@@ -529,7 +552,7 @@ export async function capturePenpotCases(options: {
   const session = await page.context().newCDPSession(page);
   const inputDocument = parseZuiDocument(
     await readFile(
-      resolveLayoutCatalogPath(options.catalogRoot, entry.penpotInputPath ?? entry.outputPath),
+      output(entry.penpotInputPath ?? entry.outputPath),
       'utf8',
     ),
   ).document;
@@ -580,7 +603,8 @@ export async function capturePenpotCases(options: {
         if (reviewCase.reviewHost)
           assert.equal(
             await fileSha256(
-              containedPath(options.catalogRoot, reviewCase.reviewHost.path),
+              currentContext ? output(reviewCase.reviewHost.path)
+                : containedPath(options.catalogRoot, reviewCase.reviewHost.path),
             ),
             reviewCase.reviewHost.sha256,
             'Review consumer host changed; regenerate the catalog',
@@ -715,8 +739,11 @@ export async function capturePenpotCases(options: {
             );
             const documentRoots =
               expectedWorkbenchRuntimeDocumentPaths(preparedPresentation);
+            if (currentContext)
+              for (const source of sourceClosure.sources)
+                layoutCurrentSourcePath(currentContext, source.sourcePath);
             const currentSources = await readPreparedRuntimeSourceFiles(
-              resolveLayoutCatalogPath(options.catalogRoot, '../..'),
+              currentContext?.repoRoot ?? resolveLayoutCatalogPath(options.catalogRoot, '../..'),
               sourceClosure.sources,
             );
             const sealed = buildBrowserRuntimeLoadedSourcesAudit(
@@ -862,7 +889,7 @@ export async function capturePenpotCases(options: {
           `${JSON.stringify(geometryDocument, null, 2)}\n`,
         );
         if (options.writeEvidence)
-          await writeFile(resolveLayoutCatalogPath(options.catalogRoot, geometryPath), geometry);
+          await writeFile(output(geometryPath), geometry);
         item.geometryPath = geometryPath;
         item.geometrySha256 = bytesSha256(geometry);
         // Selection keeps Penpot's native frame active instead of a cached
@@ -879,7 +906,7 @@ export async function capturePenpotCases(options: {
             page,
             boardId ?? options.previewBoardId,
             options.writeEvidence
-              ? resolveLayoutCatalogPath(options.catalogRoot, screenshotPath)
+              ? output(screenshotPath)
               : undefined,
             bounds,
             layout.semanticNodes.filter(
@@ -891,7 +918,7 @@ export async function capturePenpotCases(options: {
             ).length,
             session,
             options.writeEvidence
-              ? resolveLayoutCatalogPath(options.catalogRoot, textPath)
+              ? output(textPath)
               : undefined,
             (texts) => {
               measuredTexts = texts;
@@ -910,7 +937,7 @@ export async function capturePenpotCases(options: {
           : undefined;
         const strictText = options.writeEvidence
           ? await strictPenpotTextEvidence(
-              resolveLayoutCatalogPath(options.catalogRoot, textPath),
+              output(textPath),
               reviewCase,
               layout.semanticNodes,
               fontRecords,
@@ -927,7 +954,7 @@ export async function capturePenpotCases(options: {
             `${JSON.stringify(strictText.document, null, 2)}\n`,
           );
           await writeFile(
-            resolveLayoutCatalogPath(options.catalogRoot, textPath),
+            output(textPath),
             strictTextBytes,
           );
           item.textPath = textPath;
@@ -1002,10 +1029,7 @@ export async function capturePenpotCases(options: {
         );
         if (options.writeEvidence)
           await writeFile(
-            resolveLayoutCatalogPath(
-              options.catalogRoot,
-              `${directory}/evidence/penpot-${reviewCase.id}.roundtrip.zui`,
-            ),
+            output(`${directory}/evidence/penpot-${reviewCase.id}.roundtrip.zui`),
             exported,
           );
         const receiptPending = receipts.pendingReasons.length

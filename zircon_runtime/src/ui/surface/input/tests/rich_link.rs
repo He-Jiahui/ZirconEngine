@@ -234,7 +234,8 @@ fn pointer_dispatch_routes_rich_link_through_default_action() {
         layout.lines[0].frame.x + layout.lines[0].glyph_advances[..7].iter().sum::<f32>() + 1.0,
         layout.lines[0].frame.y + 4.0,
     );
-    surface.render_extract.list.commands.push(UiRenderCommand {
+    let mut extract = std::mem::take(&mut surface.render_extract);
+    extract.list.commands.push(UiRenderCommand {
         node_id: target,
         kind: UiRenderCommandKind::Text,
         frame: UiFrame::new(0.0, 0.0, 320.0, 40.0),
@@ -246,6 +247,10 @@ fn pointer_dispatch_routes_rich_link_through_default_action() {
         image: None,
         opacity: 1.0,
     });
+    surface.render_extract = surface
+        .render_cache
+        .update(&surface.render_extract, extract, false)
+        .extract;
     let mut pointer = UiPointerInputEvent {
         metadata: UiInputEventMetadata::default(),
         event: UiPointerEvent::new(UiPointerEventKind::Up, point)
@@ -281,7 +286,7 @@ fn pointer_dispatch_routes_rich_link_through_default_action() {
     );
     assert!(matches!(
         result.host_requests.as_slice(),
-        [request]
+        [request, cursor_request]
             if matches!(
                 &request.request,
                 UiDispatchHostRequestKind::ActivateLink {
@@ -290,6 +295,25 @@ fn pointer_dispatch_routes_rich_link_through_default_action() {
                 }
                     if *request_target == target
                         && link_target.matches_display("res://docs/help.md")
-            )
+            ) && cursor_request.request == UiDispatchHostRequestKind::Cursor(zircon_runtime_interface::ui::tree::UiCursor::Default)
     ));
+    assert_eq!(result.host_requests[0].effect_index, 0);
+    assert_eq!(result.host_requests[1].effect_index, 1);
+    assert_eq!(result.reply.effects.len(), 2);
+    assert!(
+        matches!(&result.reply.effects[0], UiDispatchEffect::RequestLinkActivation { target: effect_target, link_target }
+        if *effect_target == target && link_target.matches_display("res://docs/help.md"))
+    );
+    assert_eq!(
+        result.reply.effects[1],
+        UiDispatchEffect::RequestCursor {
+            cursor: zircon_runtime_interface::ui::tree::UiCursor::Default
+        }
+    );
+    assert_eq!(result.applied_effects.len(), 2);
+    for (index, effect) in result.applied_effects.iter().enumerate() {
+        assert_eq!(effect.effect_index, index);
+        assert_eq!(effect.effect, result.reply.effects[index]);
+    }
+    assert!(result.rejected_effects.is_empty());
 }

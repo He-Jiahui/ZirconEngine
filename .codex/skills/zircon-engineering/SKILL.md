@@ -17,7 +17,7 @@ Use this entry for delivery policy and milestone planning. Complete the user's a
 
 ## MVP Baseline Gate
 
-- Treat `docs/plans/mvp/index.md` as the canonical priority and acceptance source. The MVP baseline is complete only when `00` and `F0` through `F5` all have durable current evidence and are marked accepted there.
+- Treat `docs/testing-and-validation/mvp-acceptance-index.md` as the canonical priority and acceptance source. The MVP baseline is complete only when `00` and `F0` through `F5` all have durable current evidence and are marked accepted there.
 - Until that condition is true, do not start or extend advanced engine features. This includes new rendering techniques, optional plugin capabilities, editor polish, scripting breadth, physics, networking, or showcase work that is not required by an MVP gate.
 - Prioritize only work that closes the MVP baseline: clean build and lockfile convergence, Runtime/Editor product startup, the canonical project and asset path, basic rendering and input, persistence and authoring, failure repair, removal of obsolete blockers, and acceptance automation.
 - When an advanced slice is already in progress, preserve its work and stop at the nearest coherent boundary. Do not revert concurrent or completed changes merely to enforce this gate. Record any necessary handoff, then redirect the Session to an MVP blocker or release its scope.
@@ -27,7 +27,7 @@ Use this entry for delivery policy and milestone planning. Complete the user's a
 
 1. **Orient.** Read the request, touched code, and directly related tests. Read the canonical MVP status when choosing new work, and the active milestone when executing a plan. Select C1-C3 without touring the skill tree.
 2. **Build.** Complete coherent slices as one milestone batch. Add tests when behavior or a contract changes. Use formatting, diff checks, and source guards while editing. Do not run Cargo by default during implementation slices.
-3. **Validate and record.** Milestone validation follows `docs/plans/milestone-validation-policy.md`. Run the smallest declared batch, correct failures from the lowest shared cause, then write one concise evidence record per accepted milestone.
+3. **Validate and record.** Milestone validation follows `docs/testing-and-validation/milestone-validation-policy.md`. Before every compilation-capable command, tell the user the engine modules, explicit packages, features, targets/test filters, profile, command and coverage reason using [the build declaration](../zircon-dev/validation/guide.md#declare-every-build). Run only the smallest affected module batch with default features disabled and needed features named. Full builds, workspace/all-features/all-targets selections and equivalent all-package loops/matrices are prohibited, including wave/release or manifest/lockfile/toolchain work. Inspect unclear dependency scope before selecting validation. Correct failures from the lowest shared cause, then write one concise evidence record per accepted milestone.
 
 ## Source preparation
 

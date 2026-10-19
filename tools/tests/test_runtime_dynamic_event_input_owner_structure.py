@@ -25,7 +25,12 @@ class RuntimeDynamicEventInputOwnerStructureTests(unittest.TestCase):
         self.assertNotIn("fn handle_gamepad_connection", owner)
         self.assertNotIn("fn handle_gamepad_button", owner)
         self.assertNotIn("fn handle_gamepad_axis", owner)
-        self.assertEqual(owner.count("#[test]"), 6)
+        self.assertIn('#[path = "tests/events.rs"]', owner)
+        tests = (owner_path.parent / "tests/events.rs").read_text(encoding="utf-8")
+        self.assertLessEqual(len(tests.splitlines()), 800)
+        original_tests = ('gamepad_buttons_map_to_shared_ui_navigation_semantics', 'gamepad_left_stick_axes_use_the_shared_ui_analog_navigation_controls', 'lifecycle_clock_mapping_keeps_low_memory_out_of_the_time_authority', 'window_clock_mapping_marks_occlusion_and_surface_recreation', 'dynamic_lifecycle_event_replaces_activation_rebase_with_a_typed_clock_cause', 'simulate_camera_event_overrides_render_extract_without_mutating_the_play_world')
+        self.assertEqual(sum(f"fn {name}(" in tests for name in original_tests), 6)
+        self.assertIn("fn checked_gamepad_session_admission_returns_the_manager_generation_rejection(", tests)
 
         keyboard = keyboard_path.read_text(encoding="utf-8")
         self.assertLessEqual(len(keyboard.splitlines()), 800)
@@ -61,15 +66,15 @@ class RuntimeDynamicEventInputOwnerStructureTests(unittest.TestCase):
         repo_root = Path(__file__).resolve().parents[2]
         mirrors = (
             repo_root
-            / "docs/plans/zircon_runtime/runtime/10-dynamic-api-and-interface-convergence.md",
+            / 'docs/testing-and-validation/runtime-dynamic-api-validation-worklist.md',
             repo_root
-            / "docs/plans/zircon_runtime/runtime/12-input-stack-and-action-mapping.md",
+            / 'docs/testing-and-validation/runtime-input-validation-worklist.md',
             repo_root
-            / "docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md",
+            / 'docs/crates/zircon_runtime/structure/module-convention.md',
             repo_root / "docs/crates/zircon_runtime/dynamic_api/session.md",
             repo_root / "docs/crates/zircon_runtime/input/input_state.md",
-            repo_root / "docs/plans/engine-code-structure-convention.md",
-            repo_root / "docs/plans/engine-code-review-findings-2026-06.md",
+            repo_root / 'docs/testing-and-validation/development-conventions.md',
+            repo_root / 'docs/architecture/runtime-architecture-review-m0.md',
         )
         for mirror_path in mirrors:
             mirror = mirror_path.read_text(encoding="utf-8")

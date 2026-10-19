@@ -141,10 +141,10 @@ impl RuntimeStateContract for PluginVirtualGeometryRuntimeState {
             .map(|completion| completion.completed_page_replacements().len())
             .unwrap_or(0);
 
-        if let Some(feedback) = feedback.visibility_feedback() {
-            self.state.refresh_hot_resident_pages(feedback);
-        }
         if let Some(completion) = confirmed_completion.as_ref() {
+            if let Some(feedback) = feedback.visibility_feedback() {
+                self.state.refresh_hot_resident_pages(feedback);
+            }
             self.state.complete_gpu_uploads_with_replacements(
                 completion.completed_page_assignments().iter().copied(),
                 completion.completed_page_replacements().iter().copied(),
@@ -420,14 +420,18 @@ fn paired_author_execution_segments(
         .extract()
         .ok_or("paired author source extract is absent")?;
     let resolve = |entity: u64, explicit: Option<u32>| -> Result<(Option<u32>, u64), String> {
-        if extract.instances.is_empty() {
-            if explicit.is_some() {
-                return Err("paired author declares an unavailable instance".into());
-            }
-            return Ok((
-                None,
-                zircon_runtime::core::framework::render::render_mesh_stable_instance_key(entity, 0),
-            ));
+        if explicit.is_none()
+            && !extract
+                .instances
+                .iter()
+                .any(|instance| instance.entity == entity)
+        {
+            let key =
+                zircon_runtime::core::framework::render::render_mesh_stable_instance_key(entity, 0);
+            extract
+                .cluster_row_indices(entity, key, None)
+                .map_err(str::to_owned)?;
+            return Ok((None, key));
         }
         if let Some(index) = explicit {
             let instance = extract
@@ -437,6 +441,13 @@ fn paired_author_execution_segments(
             if instance.entity != entity {
                 return Err("paired author entity differs from its instance".into());
             }
+            extract
+                .cluster_row_indices(
+                    entity,
+                    instance.stable_instance_key_or_legacy(),
+                    Some(index),
+                )
+                .map_err(str::to_owned)?;
             return Ok((Some(index), instance.stable_instance_key_or_legacy()));
         }
         let instances = extract
@@ -450,6 +461,13 @@ fn paired_author_execution_segments(
                 "paired prepare does not uniquely identify an actual source instance".into(),
             );
         }
+        extract
+            .cluster_row_indices(
+                entity,
+                instances[0].1.stable_instance_key_or_legacy(),
+                Some(u32::try_from(instances[0].0).map_err(|_| "paired instance index overflow")?),
+            )
+            .map_err(str::to_owned)?;
         Ok((
             Some(u32::try_from(instances[0].0).map_err(|_| "paired instance index overflow")?),
             instances[0].1.stable_instance_key_or_legacy(),

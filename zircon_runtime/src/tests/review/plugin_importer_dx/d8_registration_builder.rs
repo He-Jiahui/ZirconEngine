@@ -1,4 +1,5 @@
 //! 代码审查回归护栏核对已迁移接口、错误边界、插件入口及镜像状态。以结果断言检查当前接口或源码快照对应的边界。
+use crate::tests::runtime_absorption::structure_convention::fixed_history_archive_source as history;
 const D8_RUNTIME_REGISTRATION_CRATES: &[(&str, &str, &str)] = &[
     (
         "animation",
@@ -19,9 +20,9 @@ const D8_RUNTIME_REGISTRATION_CRATES: &[(&str, &str, &str)] = &[
 
 #[test]
 fn review_d8_runtime_registration_builder_original_evidence_paths_use_sdk_builder() {
-    let review_findings = concat!(
-        include_str!("../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"),
-        include_str!("../../../../../docs/plans/engine-code-review-findings-2026-06.md")
+    let review_findings = crate::runtime_test_history_concat!(
+        history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"),
+        include_str!("../../../../../docs/architecture/runtime-architecture-review-m0.md")
     );
     let sdk_registration =
         include_str!("../../../../../zircon_plugins/plugin_sdk/src/registration.rs");
@@ -50,9 +51,17 @@ fn review_d8_runtime_registration_builder_original_evidence_paths_use_sdk_builde
             );
         }
 
+        let normalized = runtime_system_source.lines().collect::<Vec<_>>().join("\n");
+        let native = normalized
+            .split_once("pub fn register_runtime_system")
+            .expect("each original owner must mount its native registration function")
+            .1
+            .split_once("\n}\n")
+            .expect("native registration function must have its complete body")
+            .0;
         for required in ["RuntimePluginModuleRegistration", ".runtime_scene_system("] {
             assert!(
-                runtime_system_source.contains(required),
+                native.contains(required),
                 "{label} runtime system owner should declare systems through SDK module handle `{required}`"
             );
         }
@@ -64,10 +73,37 @@ fn review_d8_runtime_registration_builder_original_evidence_paths_use_sdk_builde
             "register_event::<",
         ] {
             assert!(
-                !runtime_system_source.contains(stale),
+                !native.contains(stale),
                 "{label} runtime system owner should not reach for low-level registry API `{stale}`"
             );
         }
+    }
+
+    let animation_system =
+        include_str!("../../../../../zircon_plugins/animation/runtime/src/runtime_system.rs");
+    let normalized = animation_system.lines().collect::<Vec<_>>().join("\n");
+    assert!(
+        normalized.contains("#[cfg(feature = \"native-host\")]\npub fn register_runtime_system(")
+    );
+    let portable = normalized
+        .split_once("pub fn portable_runtime_extension_plan()")
+        .expect("portable animation registration must retain its independent World plan")
+        .1;
+    for required in [
+        "WorldRuntimeExtensionPlan::from_registrations([WorldRuntimeExtensionRegistration::new(",
+        "world.register_event::<crate::AnimationClipEvent>();",
+        "world.register_event::<crate::AnimationEvaluationDiagnostic>();",
+        "world.register_event::<crate::AnimationStateMachineLayerDiagnostic>();",
+        "world.insert_resource(crate::AnimationEvaluationPipeline::default());",
+        "register_boxed_runtime_scene_system",
+        "SceneSystemMetadata::new(ANIMATION_EVALUATE_SYSTEM, SystemStage::PostUpdate, 0)",
+        "run_animation_runtime_system",
+        "WorldRuntimeExtensionError::registration_failed(",
+    ] {
+        assert!(
+            portable.contains(required),
+            "portable World plan missing {required}"
+        );
     }
 
     for required in [

@@ -48,7 +48,6 @@ impl ReflectedValue {
     /// # 参考
     /// Runtime 调用点包括 scene/reflect/value_admission.rs、scene/reflect/json_document/read.rs、
     /// scene/reflect/json_document/write.rs 和 script/vm/plugin 状态载入及迁移；契约见本 crate 的预算测试。
-
     pub fn validate_with_budget(
         &self,
         budget: ReflectValueBudget,
@@ -88,7 +87,6 @@ impl ReflectedValue {
 ///
 /// # 约束
 /// 不递归调用自身；Map 键先计字节再排值，Json 根是包装节点的子节点。
-
 fn validate_reflected<'a>(
     value: &'a ReflectedValue,
     depth: usize,
@@ -169,7 +167,6 @@ fn validate_reflected<'a>(
 ///
 /// # 约束
 /// 对象键与字符串值计入 UTF-8 字节，数组和对象逐个检查直接条目数；本函数不解析 JSON 文本。
-
 fn validate_json<'a>(
     value: &'a Value,
     depth: usize,

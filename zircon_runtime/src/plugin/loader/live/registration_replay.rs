@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use zircon_runtime_interface::{ZrByteBufferRef, ZrStatusCode};
+use zircon_runtime_interface::ZrByteBufferRef;
 
 use crate::core::framework::bridge::InterfaceSlot;
 use crate::plugin::native::NativeHostBridgeCallScope;
@@ -26,6 +26,10 @@ use super::reports::{
 };
 use super::runtime_behavior::runtime_plugins;
 use super::NativePluginLiveHost;
+
+#[path = "registration_replay/system_preparation.rs"]
+mod system_preparation;
+use system_preparation::prepare_native_plugin_registration_system;
 
 #[path = "registration_replay/error.rs"]
 mod error;
@@ -620,82 +624,6 @@ impl NativePluginLiveHost {
     }
 }
 
-fn prepare_native_plugin_registration_system(
-    plugin_id: &str,
-    system: &NativePluginRegistrationSystem,
-    manifest_capabilities: &[String],
-    replay_context: &NativePluginRegistrationReplayBridgeContext,
-    lifecycle: &RuntimePluginBridgeLifecycleState,
-) -> NativePluginRegistrationReplayResult<PreparedNativePluginRegistrationSystem> {
-    let stage = system.stage().map_err(|source| {
-        NativePluginRegistrationReplayError::InvalidRegistrationSystem {
-            plugin_id: plugin_id.to_string(),
-            system_id: system.id.clone(),
-            source,
-        }
-    })?;
-    let access_plan = Arc::new(
-        system
-            .access_plan(manifest_capabilities)
-            .map_err(
-                |source| NativePluginRegistrationReplayError::InvalidRegistrationSystem {
-                    plugin_id: plugin_id.to_string(),
-                    system_id: system.id.clone(),
-                    source,
-                },
-            )?,
-    );
-    let bridge_interface = system
-        .bridge_interface()
-        .map_err(
-            |source| NativePluginRegistrationReplayError::InvalidRegistrationSystem {
-                plugin_id: plugin_id.to_string(),
-                system_id: system.id.clone(),
-                source,
-            },
-        )?
-        .to_string();
-    let bridge_method = system
-        .bridge_method()
-        .map_err(
-            |source| NativePluginRegistrationReplayError::InvalidRegistrationSystem {
-                plugin_id: plugin_id.to_string(),
-                system_id: system.id.clone(),
-                source,
-            },
-        )?
-        .to_string();
-    let bridge_method_slot = replay_context
-        .method_slot_result(plugin_id, &bridge_interface, &bridge_method)
-        .map_err(
-            |source| NativePluginRegistrationReplayError::BridgeMethodSlot {
-                plugin_id: plugin_id.to_string(),
-                system_id: system.id.clone(),
-                bridge_interface: bridge_interface.clone(),
-                bridge_method: bridge_method.clone(),
-                source: source.to_string(),
-            },
-        )?;
-    let bridge_interface_slot = lifecycle
-        .bridge_table()
-        .resolve_slot(&bridge_interface)
-        .ok_or_else(
-            || NativePluginRegistrationReplayError::UnknownBridgeInterface {
-                plugin_id: plugin_id.to_string(),
-                system_id: system.id.clone(),
-                bridge_interface: bridge_interface.clone(),
-            },
-        )?;
-    Ok(PreparedNativePluginRegistrationSystem {
-        stage,
-        access_plan,
-        bridge_interface,
-        bridge_method,
-        bridge_interface_slot,
-        bridge_method_slot,
-    })
-}
-
 struct RuntimeRegistrationManifestSource {
     text: String,
     component_type_ids: Vec<String>,
@@ -740,6 +668,8 @@ fn register_bridge_replay_system(
         })
         .collect::<Result<Vec<_>, _>>()?;
     let system_id = system.id.clone();
+    let callback_plugin_id = plugin_id.to_string();
+    let callback_system_id = system.id.clone();
     let affinity = access_plan.affinity();
     let mut builder = registry
         .register_external_native_system(
@@ -754,6 +684,8 @@ fn register_bridge_replay_system(
             },
             move || {
                 let bridge_call_scope = Arc::clone(&bridge_call_scope);
+                let callback_plugin_id = callback_plugin_id.clone();
+                let callback_system_id = callback_system_id.clone();
                 move || {
                     let api = bridge_call_scope.api();
                     let Some(call) = api.bridge.call else {
@@ -772,9 +704,15 @@ fn register_bridge_replay_system(
                             ZrByteBufferRef::empty(),
                         )
                     };
-                    // BUG: [CR-PLUGIN-NATIVE-0301] 桥接方法返回非 Ok 时状态被丢弃，
-                    // 调度器仍把本次系统调用视为完成；证据：外部系统工厂只接受 FnMut()。
-                    let _ = status.status_code() == ZrStatusCode::Ok;
+                    // The bridge has returned across the ABI boundary. Propagate failure
+                    // through the scheduler's existing panic cleanup and restoration path.
+                    if !status.is_ok() {
+                        panic!(
+                            "native plugin {callback_plugin_id} system {callback_system_id} bridge call failed: {:?} (raw status {})",
+                            status.status_code(),
+                            status.code,
+                        );
+                    }
                 }
             },
         )

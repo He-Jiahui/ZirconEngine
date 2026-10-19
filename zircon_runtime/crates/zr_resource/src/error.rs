@@ -31,6 +31,10 @@ pub enum ResourceRegistryError {
         current_kind: crate::ResourceKind,
         requested_kind: crate::ResourceKind,
     },
+    #[error("resource {id} concrete payload type conflicts with its declaration")]
+    PayloadTypeConflict { id: String },
+    #[error("resource {id} payload declaration does not match the candidate content")]
+    PayloadDeclarationMismatch { id: String },
     #[error("resource {id} cannot transition from {current_state:?} to {requested_state:?}")]
     InvalidStateTransition {
         id: String,

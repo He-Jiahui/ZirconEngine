@@ -10,8 +10,8 @@ implementation_files:
   - .github/workflows
   - tools/audits/check_conventions.py
 plan_sources:
-  - docs/plans/milestone-validation-policy.md
-  - docs/plans/mvp/index.md
+  - docs/testing-and-validation/milestone-validation-policy.md
+  - docs/testing-and-validation/mvp-acceptance-index.md
 tests:
   - .github/workflows
   - zircon_app/src/entry/tests

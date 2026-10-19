@@ -349,7 +349,7 @@ fn owner_native_callback_quiescence_is_observable_before_stop_returns() {
         .recv_timeout(Duration::from_secs(1))
         .expect("normal owner callback must enter the engine-owned generation gate");
 
-    let (retired_tx, retired_rx) = sync_channel(0);
+    let (retired_tx, retired_rx) = sync_channel(1);
     crate::kira_bridge::OwnerCpalBackend::install_callback_retired_signal(retired_tx);
     manager
         .stop_output_device_impl()

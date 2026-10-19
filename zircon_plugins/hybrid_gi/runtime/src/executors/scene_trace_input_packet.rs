@@ -60,11 +60,31 @@ pub(super) fn scene_trace_input_packet(
     for sample in &outputs.voxel_cell_dominant_samples {
         radiance_by_cell.insert((sample.clipmap_id, sample.cell_id), sample.rgba8);
     }
-    let cells = radiance_by_cell
-        .into_iter()
-        // BUG: [CR-HYBRID-GI-0003] 按层 ID 排序后全局截断 64 个单元，首层可占满容量，使已打包的后续层没有可追踪单元。
-        .take(VOXEL_CELL_CAPACITY)
+    // Share the fixed packet budget among metadata-admitted clipmaps. Sparse layers
+    // yield their unused turns; cells from an unrepresented fifth layer cannot enter.
+    let mut groups = clipmaps
+        .iter()
+        .map(|clipmap| {
+            radiance_by_cell
+                .range((clipmap.clipmap_id, 0)..=(clipmap.clipmap_id, u32::MAX))
+                .map(|(&key, &rgba)| (key, rgba))
+        })
         .collect::<Vec<_>>();
+    let mut cells = Vec::with_capacity(VOXEL_CELL_CAPACITY);
+    while cells.len() < VOXEL_CELL_CAPACITY {
+        let previous_count = cells.len();
+        for group in &mut groups {
+            if let Some(cell) = group.next() {
+                cells.push(cell);
+                if cells.len() == VOXEL_CELL_CAPACITY {
+                    break;
+                }
+            }
+        }
+        if cells.len() == previous_count {
+            break;
+        }
+    }
 
     packet[0] = SCENE_TRACE_INPUT_MAGIC;
     packet[1] = pages.len() as u32;

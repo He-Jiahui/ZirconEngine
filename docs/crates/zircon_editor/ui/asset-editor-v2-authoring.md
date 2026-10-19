@@ -68,3 +68,17 @@ Production `.zui` code does not fall back to `UiWidgetAsset`, `UiStyleAsset`, or
 ## Validation Status
 
 The current Windows binary passes the V2 projection tests 3/3, manager UI Asset tests 44/44, UI Asset editing session group 168/168, V2 bootstrap group 14/14, and asset-editor component adapter group 3/3. These runs cover reference/local-component/Slot/named-mount roundtrip, component-root profile validation, promotion/save/undo/redo, hierarchy labels, and non-default component public-contract save/reload. The full 2928-test crate gate completed as 2754 passed / 140 failed / 34 ignored; remaining failures are outside this authoring group and Plan 01 M1 stays open until the declared full-crate gate is green.
+
+## Current UI Asset Scope
+
+UI assets use `.zui` UI 文档 with component / view / style / theme_tokens profiles. Loading, dependency tracking, hot reload, package validation and reference resolution belong to runtime asset management; Editor consumes that authority. `.ui.toml` / `.v2.ui.toml` 后缀已退役 and cannot return as current layout roots.
+
+## UI Asset Scope Validation
+
+Current authoring and governance remain independent inputs. Preserve the bounded positive and negative suffix assertions; no visual acceptance is inferred.
+
+### Clause provenance
+
+These content identities preserve the source of this transfer. They are not fresh measurements, active-file dependencies or acceptance receipts.
+
+- `05-ui-asset-management.md`, SHA-256 `960194661b83d76dd542ba8c0faa0421ef724191d2445d34e7096aa7b7fb3e38`, selected source lines 34-34.

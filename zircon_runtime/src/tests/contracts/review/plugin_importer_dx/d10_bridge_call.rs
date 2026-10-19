@@ -1,4 +1,5 @@
 //! 代码审查回归护栏核对已迁移接口、错误边界、插件入口及镜像状态。以结果断言检查当前接口或源码快照对应的边界。
+use crate::tests::runtime_absorption::structure_convention::fixed_history_archive_source as history;
 const PHYSICS_FRAMEWORK_MOD: &str = include_str!("../../../../core/framework/physics/mod.rs");
 const PHYSICS_QUERY_INTERFACE: &str =
     include_str!("../../../../core/framework/physics/query_interface.rs");
@@ -18,25 +19,18 @@ const RUNTIME_HELPERS_FIXTURE: &str =
 
 #[test]
 fn review_d10_animation_physics_tests_use_sdk_bridge_call() {
-    let review_findings = include_str!(
-        "../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"
-    );
-    let structure_convention = include_str!(
-        "../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md"
-    );
-    let plugins_11 =
-        include_str!("../../../../../../docs/plans/zircon_plugins/11-plugin-call-bridge.md");
-    let plugins_12 = include_str!(
-        "../../../../../../docs/plans/zircon_plugins/12/2026-07-09-plugin-dx-and-structure-framework-output-records.md"
-    );
+    let review_findings = history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md");
+    let structure_convention = history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md");
+    let plugins_11 = include_str!("../../../../../../docs/crates/zircon_runtime/plugin/bridge.md");
+    let plugins_12 = history("docs/plans/zircon_plugins/12/2026-07-09-plugin-dx-and-structure-framework-output-records.md");
     let plugin_sdk_doc = include_str!("../../../../../../docs/crates/zircon_plugins/plugin-sdk.md");
     let physics_doc =
         include_str!("../../../../../../docs/crates/zircon_plugins/physics/runtime.md");
     let animation_doc =
         include_str!("../../../../../../docs/crates/zircon_plugins/animation/runtime.md");
-    let runtime_15 = crate::tests::runtime_absorption::current_source_fixture::RUNTIME_ARCHITECTURE_IMPLEMENTATION_OUTPUT;
-    let runtime_index = include_str!(
-        "../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md"
+    let runtime_15 = crate::tests::runtime_absorption::current_source_fixture::runtime_architecture_implementation_output();
+    let runtime_index = history(
+        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md",
     );
     let module_convention =
         include_str!("../../../../../../docs/crates/zircon_runtime/structure/module-convention.md");
@@ -159,6 +153,17 @@ fn review_d10_animation_physics_tests_use_sdk_bridge_call() {
         &["插件间调用无\"桥\"", "resolve_xxx_manager"],
     );
 
+    assert_contains_all(
+        "current module convention keeps bridge ownership and poison-safe provider access",
+        module_convention,
+        &[
+            "docs/crates/zircon_runtime/plugin/bridge.md",
+            "plugin/bridge/table.rs",
+            "lock_provider()",
+            "typed provider resolve",
+        ],
+    );
+
     for (doc_label, doc) in [
         ("review findings", review_findings),
         ("structure convention", structure_convention),
@@ -169,7 +174,6 @@ fn review_d10_animation_physics_tests_use_sdk_bridge_call() {
         ("animation plugin doc", animation_doc),
         ("Runtime 15 plan", runtime_15),
         ("Runtime index", runtime_index),
-        ("module convention", module_convention),
     ] {
         assert_contains_all(
             doc_label,

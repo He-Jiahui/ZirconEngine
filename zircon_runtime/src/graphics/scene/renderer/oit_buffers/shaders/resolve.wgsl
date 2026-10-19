@@ -94,8 +94,7 @@ fn fs_main(@builtin(position) position: vec4<f32>) -> @location(0) vec4<f32> {
     for (var i = 0u; i < sorted_count; i += 1u) {
         color = blend_front_to_back(color, unpack4x8unorm(sorted_layers[i].x));
     }
-    // BUG: [CR-SCENE-ENV-0001] overflow 已是预乘颜色，合并时再次乘 alpha 会使尾部变暗；
-    // 忽略 pack4x8unorm 量化：两红色 alpha=0.5 片元、排序上限 1 的公式结果为 0.625，标准合成为 0.75。
-    color = blend_front_to_back(color, overflow);
+    let remaining = 1.0 - color.a;
+    color = vec4<f32>(color.rgb + remaining * overflow.rgb, color.a + remaining * overflow.a);
     return color;
 }

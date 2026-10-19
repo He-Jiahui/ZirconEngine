@@ -6,6 +6,9 @@ use zircon_runtime::core::framework::sound::{
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct SourceVoice {
     pub(crate) descriptor: SoundSourceDescriptor,
+    // Control-thread spatial projection, independent of the saved user gain.
+    pub(crate) environment_gain: f32,
+    pub(crate) environment_pan: f32,
     pub(crate) cursor_frame: usize,
     pub(crate) cursor_position: f64,
     pub(crate) pending_finish: Option<SoundSourceFinishReason>,
@@ -16,6 +19,8 @@ impl SourceVoice {
     pub(crate) fn new(descriptor: SoundSourceDescriptor) -> Self {
         Self {
             descriptor,
+            environment_gain: 1.0,
+            environment_pan: 0.0,
             cursor_frame: 0,
             cursor_position: 0.0,
             pending_finish: None,

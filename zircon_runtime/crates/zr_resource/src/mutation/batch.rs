@@ -44,6 +44,25 @@ impl ResourceMutationBatch {
         self
     }
 
+    /// Declares the concrete payload of this exact candidate content without making it resident.
+    pub fn declare_payload_type(
+        mut self,
+        record: ResourceRecord,
+        payload_type: crate::ResourcePayloadType,
+    ) -> Self {
+        self.operations
+            .push(ResourceMutationOperation::DeclarePayloadType {
+                record,
+                payload_type,
+            });
+        self
+    }
+
+    pub fn upsert_typed_lazy<T: ResourceData>(self, record: ResourceRecord) -> Self {
+        self.upsert_lazy(record.clone())
+            .declare_payload_type(record, crate::ResourcePayloadType::of::<T>())
+    }
+
     /// 发布记录及其对应载荷；来源、导入配置等内容身份应与载荷一致，改变内容时须更新相应字段。
     pub fn upsert_ready<TData>(self, record: ResourceRecord, payload: TData) -> Self
     where

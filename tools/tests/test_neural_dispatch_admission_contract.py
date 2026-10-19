@@ -1,5 +1,22 @@
 import unittest
+import sys
 from pathlib import Path
+
+_AUDIT_SCRIPTS = (
+    Path(__file__).resolve().parents[2]
+    / ".codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts"
+)
+sys.path.insert(0, str(_AUDIT_SCRIPTS))
+from runtime_structure_audits.dynamic_runtime_api_archive_inventory import (
+    HistoricalArchiveReader,
+)
+
+_HISTORICAL_IDENTITIES = {
+    'docs/plans/_archive/astra/optimize/01/2026-09-19-neural-dispatch-admission.md': (
+        3625,
+        '18e68b7a4e29235f4234defabc54c48ec07eee0d48306eefffb407a963cdda45',
+    ),
+}
 
 
 class NeuralDispatchAdmissionContractTests(unittest.TestCase):
@@ -14,7 +31,7 @@ class NeuralDispatchAdmissionContractTests(unittest.TestCase):
         root = Path(__file__).resolve().parents[2]
         self.executor = root / "zircon_plugins/neural/runtime/src/gpu/graph_executor.rs"
         self.tests = root / "zircon_plugins/neural/runtime/src/tests/gpu_plan.rs"
-        self.plan = root / "docs/plans/astra/optimize/01/2026-09-19-neural-dispatch-admission.md"
+        self.plan = 'docs/plans/_archive/astra/optimize/01/2026-09-19-neural-dispatch-admission.md'
 
     def test_dispatch_error_and_optional_device_limits_are_typed(self) -> None:
         source = self.executor.read_text(encoding="utf-8")
@@ -75,7 +92,9 @@ class NeuralDispatchAdmissionContractTests(unittest.TestCase):
 
     def test_regressions_cover_overflow_for_pool_upsample_conv_and_device_limits(self) -> None:
         tests = self.tests.read_text(encoding="utf-8")
-        plan = self.plan.read_text(encoding="utf-8")
+        history = HistoricalArchiveReader(identities=_HISTORICAL_IDENTITIES)
+        plan = history.read(self.plan)
+        self.assertIsNotNone(plan, history.records)
 
         for anchor in (
             "fn nn_graph_executor_rejects_batch_channel_dispatch_overflow()",

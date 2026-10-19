@@ -1,7 +1,7 @@
 use std::alloc::Layout;
-use std::any::{Any, TypeId};
+use std::any::TypeId;
 use std::fmt;
-use std::mem::{self, MaybeUninit};
+use std::mem;
 use std::ptr::NonNull;
 
 use crate::scene::ecs::storage::StoredComponent;
@@ -114,9 +114,12 @@ where
     T: Send + Sync + 'static,
 {
     if mem::size_of::<T>() == 0 {
-        // SAFETY: only instantiated component types can enter a column, so the
-        // zero-sized type is inhabited. The logical ownership moves to this Box.
-        return Box::new(unsafe { MaybeUninit::<T>::uninit().assume_init() });
+        // SAFETY: the caller owns one initialized logical row created from a
+        // real T value. This zero-byte move still needs a non-null pointer
+        // aligned for T; the column's erased ZST pointer need not be aligned.
+        // The returned Box takes the row's sole drop obligation. The caller
+        // must reinitialize or remove the row before it can be taken again.
+        return Box::new(unsafe { NonNull::<T>::dangling().as_ptr().read() });
     }
     // SAFETY: `source` is an initialized, aligned slot for `T`; this moves it
     // out and leaves the slot uninitialized for replacement or removal.

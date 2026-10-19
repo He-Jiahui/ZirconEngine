@@ -9,7 +9,7 @@ implementation_files:
   - tools/analysis/profiling/shared/profile-capture-paths.ps1
   - tools/maintenance/cleanup-stale-targets.ps1
 plan_sources:
-  - docs/plans/milestone-validation-policy.md
+  - docs/testing-and-validation/milestone-validation-policy.md
 tests:
   - .github/workflows/mvp-editor-windows.yml
   - zircon_runtime/tests/frameworks_03_server_profile.rs

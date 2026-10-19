@@ -1,3 +1,23 @@
+#[path = "task_model/execution_anchors.rs"]
+mod execution_anchors;
+#[path = "task_model/resource_anchors.rs"]
+mod resource_anchors;
+
+pub(crate) use self::execution_anchors::{
+    ENGINE_TASK_GRAPH_ANCHORS, JOB_HANDLE_ANCHORS, JOB_SCHEDULER_ANCHORS,
+    JOB_SCHEDULER_PENDING_ANCHORS, JOB_SCHEDULER_TEST_ANCHORS, PARALLEL_FOR_ANCHORS,
+    TASK_GRAPH_ADMISSION_ANCHORS, TASK_GRAPH_CANCELLATION_ANCHORS, TASK_GRAPH_HANDLE_ANCHORS,
+    TASK_GRAPH_LEASE_ANCHORS, TASK_GRAPH_SCOPE_ANCHORS, TASK_NODE_ANCHORS,
+};
+pub(crate) use self::resource_anchors::{
+    BOUNDED_STREAM_IO_CAPTURE_ANCHORS, BOUNDED_STREAM_IO_LANE_ANCHORS,
+    BOUNDED_STREAM_IO_STATE_ANCHORS, BOUNDED_STREAM_IO_WORKER_ANCHORS, CALLBACK_DISPATCHER_ANCHORS,
+    DIAGNOSTIC_ANCHORS, REPORT_ANCHORS, RETAINED_BYTE_BUDGET_ANCHORS,
+    TASK_CANCELLATION_POLICY_ANCHORS, TASK_DESCRIPTOR_ANCHORS, TASK_DIAGNOSTIC_JOURNAL_ANCHORS,
+    TASK_DIAGNOSTIC_OBSERVATION_ANCHORS, TASK_ID_ANCHORS, TASK_POOL_DESCRIPTOR_ANCHORS,
+    TASK_POOL_KIND_ANCHORS, TASK_POOL_SUBMISSION_ANCHORS, TASK_STATE_ANCHORS, TASK_STATUS_ANCHORS,
+};
+
 pub(crate) const EXPECTED_JOB_SYSTEM_MODULES: &[&str] = &[
     "bounded_stream_io/mod.rs",
     "callback_dispatcher.rs",
@@ -90,252 +110,9 @@ pub(crate) const TASKS_MOD_PUBLIC_ANCHORS: &[&str] = &[
     "TASKS_EXPLICIT_WAIT_MS_DIAGNOSTIC",
 ];
 
-pub(crate) const BOUNDED_STREAM_IO_LANE_ANCHORS: &[&str] = &[
-    "pub struct BoundedStreamIoLane",
-    "pub fn try_new(",
-    "pub fn reader_capacity(&self)",
-    "pub fn capture(",
-    "TaskCancellationPolicy::FinishOnShutdown",
-    ".min(runtime.task_pool(TaskPoolKind::Io).parallelism())",
-];
-
-pub(crate) const BOUNDED_STREAM_IO_CAPTURE_ANCHORS: &[&str] = &[
-    "pub struct BoundedStreamIoCapture",
-    "pub fn request_cancellation(&self)",
-    "pub fn wait_until_terminal(&self",
-    "pub fn drain(&self",
-];
-
-pub(crate) const BOUNDED_STREAM_IO_STATE_ANCHORS: &[&str] = &[
-    "VecDeque<BoundedStreamIoRecord>",
-    "queue_entry_capacity",
-    "queue_byte_capacity",
-    "dropped_records",
-    "oldest_age",
-];
-
-pub(crate) const BOUNDED_STREAM_IO_WORKER_ANCHORS: &[&str] = &[
-    "pub(super) fn run_reader(",
-    "ReaderStartGate",
-    "TaskCancellationToken",
-    "ReaderTerminalGuard",
-];
-
-pub(crate) const TASK_DIAGNOSTIC_OBSERVATION_ANCHORS: &[&str] = &[
-    "pub use batch::TaskDiagnosticBatch;",
-    "pub use cursor::TaskDiagnosticCursor;",
-    "pub use identity::TaskDiagnosticIdentity;",
-    "pub use source::TaskDiagnosticSource;",
-    "TASK_DIAGNOSTIC_RETENTION_CAPACITY: usize = 256",
-    "TASK_DIAGNOSTIC_MAX_BATCH_ENTRIES: usize = 64",
-];
-
-pub(crate) const TASK_DIAGNOSTIC_JOURNAL_ANCHORS: &[&str] = &[
-    "VecDeque<TaskDiagnosticObservation>",
-    "dropped_count",
-    "read_after(",
-    "TASK_DIAGNOSTIC_RETENTION_CAPACITY",
-];
-
-pub(crate) const CALLBACK_DISPATCHER_ANCHORS: &[&str] = &[
-    "pub(super) struct TaskCallbackDispatcher",
-    "pub(super) fn process_default()",
-    "pub(super) fn dispatch(",
-    "MAX_CALLBACKS_PER_RUN",
-    "MAX_CONCURRENT_DISPATCH_RUNNERS",
-];
-
-pub(crate) const JOB_SCHEDULER_ANCHORS: &[&str] = &[
-    "pub fn schedule(&self",
-    "pub fn schedule_after(",
-    "schedule_after_with_submission_and_prelaunch_terminal",
-    "pub fn wait_all(&self",
-    "PendingScheduledJob",
-    "record_started",
-    "record_active_terminal",
-    "JobExecutionOutcome",
-    "run_detached_task",
-    "complete_scheduled_task",
-];
-
-pub(crate) const JOB_SCHEDULER_TEST_ANCHORS: &[&str] =
-    &["detached_spawn_counts_panicked_tasks_as_completed"];
-
-pub(crate) const JOB_SCHEDULER_PENDING_ANCHORS: &[&str] = &[
-    "pub(super) struct PendingScheduledJob",
-    "pub(super) struct PendingScheduledWork",
-    "PrelaunchTerminalHook",
-    "TaskPoolSubmission",
-    "record_dependency_wait",
-    "record_enqueued",
-    "record_terminal_without_launch",
-    "record_cancelled",
-    "record_active_cancelled",
-    "catch_unwind",
-    "complete_scheduled_task",
-];
-
-pub(crate) const TASK_POOL_SUBMISSION_ANCHORS: &[&str] = &[
-    "pub(super) struct TaskPoolSubmission",
-    "pub(super) fn try_acquire_submission",
-    "fn try_acquire_continuation",
-    "fn wait_until_submissions_quiescent",
-    "active_submission_count",
-    "impl Drop for TaskPoolSubmission",
-];
-
-pub(crate) const JOB_HANDLE_ANCHORS: &[&str] = &[
-    "pub fn combine(handles: &[JobHandle])",
-    "pub fn completed() -> Self",
-    "pub fn on_terminal",
-    "pub fn is_cancelled",
-    "pub fn terminal_state",
-    "pub fn terminal_observer_panic_count",
-    "pub fn wait(&self)",
-    "assist_current_thread_once",
-    "WORKER_WAIT_IDLE_PARK",
-    "terminal_observers",
-    "panic_message",
-    "mark_panicked",
-    "mark_cancelled",
-    "mod task_node;",
-    "pub(crate) use task_node::TaskNode;",
-];
-
-pub(crate) const TASK_NODE_ANCHORS: &[&str] = &[
-    "pub(crate) struct TaskNode",
-    "pub(in crate::core::runtime::tasks) struct TaskNodeState",
-    "fn lock_inner(&self) -> MutexGuard<'_, TaskNodeState>",
-    "fn wait_inner<'a>(",
-    "fn wait_inner_timeout<'a>(",
-    "dependency_continuations_published",
-    "terminal_observers",
-    "catch_unwind",
-    "Condvar",
-    "retain_public_handle",
-    "release_public_handle",
-];
-
-pub(crate) const PARALLEL_FOR_ANCHORS: &[&str] =
-    &["pub fn parallel_for", "pool.install", "par_chunks_mut"];
-
-pub(crate) const DIAGNOSTIC_ANCHORS: &[&str] = &[
-    "\"tasks.scheduled\"",
-    "\"tasks.completed\"",
-    "\"tasks.dependency_waiting\"",
-    "\"tasks.queued\"",
-    "\"tasks.active\"",
-    "\"tasks.queue_wait_samples\"",
-    "\"tasks.queue_wait_ms\"",
-    "\"tasks.panicked\"",
-    "\"tasks.cancelled\"",
-    "\"tasks.dependency_wait_ms\"",
-    "\"tasks.explicit_wait_ms\"",
-];
-
-pub(crate) const REPORT_ANCHORS: &[&str] = &["pub struct JobSchedulerReport", "record_diagnostics"];
-
-pub(crate) const RETAINED_BYTE_BUDGET_ANCHORS: &[&str] = &[
-    "pub struct RetainedByteBudget",
-    "pub struct RetainedByteLease",
-    "pub fn with_max_leases",
-    "pub fn try_reserve",
-    "impl Drop for RetainedByteLeaseInner",
-];
-
 pub(crate) const TIMER_ANCHORS: &[&str] = &[
     "pub(crate) fn process_default()",
     "pub(crate) fn schedule_at(",
     "pub(crate) struct TaskTimerSubscription",
     "spawn_named_thread(PROCESS_TIMER_THREAD_NAME",
-];
-
-pub(crate) const ENGINE_TASK_GRAPH_ANCHORS: &[&str] = &[
-    "pub struct EngineTaskGraph",
-    "pub fn try_new",
-    "pub fn shutdown(",
-    "pub fn worker_inventory(&self)",
-    "worker_pools: TaskPools",
-    "EngineTaskGraphLifecycle",
-];
-
-pub(crate) const TASK_GRAPH_LEASE_ANCHORS: &[&str] = &[
-    "pub(super) struct TaskGraphClientLease",
-    "AtomicUsize",
-    "fetch_add",
-    "fetch_sub",
-];
-
-pub(crate) const TASK_GRAPH_CANCELLATION_ANCHORS: &[&str] = &[
-    "pub struct TaskCancellationToken",
-    "pub fn is_cancellation_requested",
-    "pub fn acknowledge_cancellation",
-];
-
-pub(crate) const TASK_GRAPH_ADMISSION_ANCHORS: &[&str] =
-    &["struct TaskAdmission", "TaskPoolSubmission"];
-
-pub(crate) const TASK_GRAPH_SCOPE_ANCHORS: &[&str] = &[
-    "pub struct TaskGraphScope",
-    "pub fn close_admission",
-    "pub fn submit_after(",
-    "pub fn submit(",
-    "Result<TaskHandle",
-    "dependencies: &[TaskHandle]",
-    "wait_until_quiescent",
-    "TaskIdAlreadyActive",
-];
-
-pub(crate) const TASK_GRAPH_HANDLE_ANCHORS: &[&str] = &[
-    "pub struct TaskHandle",
-    "pub fn descriptor(&self)",
-    "pub fn status(&self)",
-    "pub fn is_complete(&self)",
-    "pub fn is_cancelled(&self)",
-    "pub fn wait(&self)",
-    "pub fn wait_all(handles: &[Self])",
-    "pub fn on_terminal",
-    "pub fn request_cancellation(&self)",
-    "pub(crate) fn schedule_detached",
-    "pub(crate) fn completed",
-    "completion: JobHandle",
-];
-
-pub(crate) const TASK_CANCELLATION_POLICY_ANCHORS: &[&str] = &[
-    "pub enum TaskCancellationPolicy",
-    "CancelOnDrop",
-    "DetachOnDrop",
-    "FinishOnShutdown",
-];
-
-pub(crate) const TASK_DESCRIPTOR_ANCHORS: &[&str] = &[
-    "pub struct TaskDescriptor",
-    "pub id: TaskId",
-    "pub kind: TaskPoolKind",
-    "pub cancellation_policy: TaskCancellationPolicy",
-    "pub fn with_cancellation_policy",
-];
-
-pub(crate) const TASK_ID_ANCHORS: &[&str] = &[
-    "pub struct TaskId(u64)",
-    "pub const fn new",
-    "pub const fn raw",
-];
-
-pub(crate) const TASK_POOL_DESCRIPTOR_ANCHORS: &[&str] = &[
-    "pub struct TaskPoolDescriptor",
-    "pub fn with_worker_threads",
-    "pub fn with_thread_name",
-];
-
-pub(crate) const TASK_POOL_KIND_ANCHORS: &[&str] =
-    &["pub enum TaskPoolKind", "pub const fn default_thread_name"];
-
-pub(crate) const TASK_STATE_ANCHORS: &[&str] = &["pub enum TaskState", "pub const fn is_terminal"];
-
-pub(crate) const TASK_STATUS_ANCHORS: &[&str] = &[
-    "pub struct TaskStatus",
-    "pub fn pending",
-    "pub const fn is_terminal",
-    "runtime_task_status_has_one_terminal_state_and_no_poll_clock",
 ];

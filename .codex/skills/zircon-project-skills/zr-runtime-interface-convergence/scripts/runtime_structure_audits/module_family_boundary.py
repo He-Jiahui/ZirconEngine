@@ -6,8 +6,8 @@ from pathlib import Path
 MODULE_FAMILY_ROOTS = {
     "animation": {
         "root_module": "animation",
-        "doc": "docs/zircon_runtime/animation/runtime.md",
-        "expected_file_count": 23,
+        "doc": "docs/crates/zircon_runtime/animation/runtime.md",
+        "expected_file_count": 29,
         "required_doc_anchors": (
             "Root motion",
             "GPU skinning",
@@ -18,8 +18,8 @@ MODULE_FAMILY_ROOTS = {
     },
     "navigation": {
         "root_module": "navigation",
-        "doc": "docs/zircon_runtime/navigation/runtime.md",
-        "expected_file_count": 17,
+        "doc": "docs/crates/zircon_runtime/navigation/runtime.md",
+        "expected_file_count": 24,
         "required_doc_anchors": (
             "built-in fallback implementation",
             "folder-backed runtime owner split",
@@ -29,8 +29,8 @@ MODULE_FAMILY_ROOTS = {
     },
     "diagnostic_log": {
         "root_module": "diagnostic_log",
-        "doc": "docs/zircon_runtime/diagnostic_log/mod.md",
-        "expected_file_count": 33,
+        "doc": "docs/crates/zircon_runtime/diagnostic_log/mod.md",
+        "expected_file_count": 39,
         "required_doc_anchors": (
             "numeric snapshots to process text output",
             "diagnostic_log_snapshot_bridge_stays_single_owner",
@@ -39,8 +39,8 @@ MODULE_FAMILY_ROOTS = {
     },
     "engine_module": {
         "root_module": "engine_module",
-        "doc": "docs/zircon_runtime/engine_module/relationship.md",
-        "expected_file_count": 8,
+        "doc": "docs/crates/zircon_runtime/engine_module/relationship.md",
+        "expected_file_count": 9,
         "required_doc_anchors": (
             "declared layering",
             "engine_module_declared_layer_does_not_own_runtime_lifecycle",
@@ -128,10 +128,10 @@ def module_family_boundary_audit(root: Path) -> dict[str, object]:
         / "tests.rs"
     )
     animation_framework_doc = (
-        root / "docs" / "zircon_runtime" / "core" / "framework" / "animation.md"
+        root / "docs" / "crates" / "zircon_runtime" / "core" / "framework" / "animation.md"
     )
     diagnostic_bridge_file = root / "zircon_runtime" / "src" / "diagnostic_log" / "diagnostics.rs"
-    engine_module_tests_file = root / "zircon_runtime" / "src" / "engine_module" / "tests.rs"
+    engine_module_tests_file = root / "zircon_runtime" / "src" / "engine_module" / "tests" / "cases.rs"
     runtime_14_plan = (
         root
         / "docs"
@@ -142,10 +142,10 @@ def module_family_boundary_audit(root: Path) -> dict[str, object]:
     )
     runtime_index = root / "docs" / "plans" / "zircon_runtime" / "runtime" / "index.md"
     architecture_review = (
-        root / "docs" / "engine-architecture" / "runtime-architecture-review-m0.md"
+        root / "docs" / "architecture" / "runtime-architecture-review-m0.md"
     )
     interface_convergence = (
-        root / "docs" / "engine-architecture" / "runtime-interface-convergence.md"
+        root / "docs" / "architecture" / "runtime-interface-convergence.md"
     )
 
     lib_source = _read_text(lib_file) if lib_file.exists() else ""
@@ -265,6 +265,12 @@ def module_family_boundary_audit(root: Path) -> dict[str, object]:
     )
     missing_cargo_gate_anchors = _missing_snippets(doc_sources, CARGO_GATE_ANCHORS)
 
+    current_doc = root / "docs/architecture/runtime-root-surface-m1.md"
+    current_source = _read_text(current_doc) if current_doc.is_file() else ""
+    for anchor in ("expected_family_count = 4", "animation = 29", "navigation = 24",
+                   "diagnostic_log = 39", "engine_module = 9"):
+        if anchor not in current_source:
+            missing_doc_anchors.append({"doc": str(current_doc), "anchor": anchor})
     risks: list[str] = []
     if not lib_file.exists():
         risks.append("zircon_runtime/src/lib.rs is missing.")

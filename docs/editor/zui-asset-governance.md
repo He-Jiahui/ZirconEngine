@@ -174,3 +174,19 @@ The retired `.v2.ui.toml` importer path is no longer a production route. Compone
 `editor_ui_11_m5_active_zui_wording_runtime_diagnostic_guard_passed` records the current wording boundary: active runtime/editor diagnostics use `.zui` document wording for user-facing parse, cache, importer, and editor-session errors. `UiV2* Rust type names remain schema/API names`; they are not reused as positive wording for active assets. `tools/tests/test_zui_current_layout_wording_convergence.py` keeps this boundary from regressing while retired suffix mentions stay limited to explicit rejection or migration evidence.
 
 `editor_ui_11_m5_authority_docs_zui_document_wording_guard_passed` records the authority docs `.zui` document wording closeout. This document now describes `.zui` as the production suffix for current UI documents and keeps `UiV2 TOML schema structs in memory` as an implementation detail, not as the public layout format name.
+
+## Current UI Suffix Authority
+
+`.zui` 是唯一 UI 资产后缀. 当前收口事实（2026-06-28，保留的声明而非新测量）: the baseline is production legacy UI suffix file count = 0 and production `.zui` parse scan = 268 (194 component /69 view /4 style /1 theme_tokens); it is retained dated evidence, not a fresh scan. workbench_shell.zui and floating_window_source.zui are current shell assets.
+
+page_templates.toml, shell_regions.toml and presets.toml remain typed editor layout metadata: layout metadata `.toml` indexes reference only `.zui` UI assets. The old suffix migration starting state is provenance only and must not become a current view/style root.
+
+## UI Suffix Authority Validation
+
+Keep the independent current-authority and bounded negative suffix controls. Missing source/capture evidence stays pending; no Cargo or visual acceptance is claimed.
+
+### Clause provenance
+
+These content identities preserve the source of this transfer. They are not fresh measurements, active-file dependencies or acceptance receipts.
+
+- `11-zui-suffix-convergence-and-ui-toml-retirement.md`, SHA-256 `dae441bebb59e8d8d304c772efa993c33565cfca89f415bbd422fb171035c981`, selected source lines 37-84.

@@ -3,13 +3,42 @@ from tools.tests.rust_test_files import read_rust_test_file
 import unittest
 from pathlib import Path
 
+import sys as _history_sys
+from pathlib import Path as _HistoryPath
+_HISTORY_REPO_ROOT = _HistoryPath(__file__).resolve().parents[2]
+_history_sys.path.insert(0, str(_HISTORY_REPO_ROOT / '.codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts'))
+from runtime_structure_audits.dynamic_runtime_api_archive_inventory import HistoricalArchiveReader as _ContractHistoryReader
+_HISTORY_PATHS = {'docs/plans/zircon_runtime/text/07/2026-08-30-rich-accessibility-semantic-projection-review.md': 'docs/plans/zircon_runtime/text/07/2026-08-30-rich-accessibility-semantic-projection-review.md', 'docs/plans/zircon_runtime/text/07/2026-08-30-rich-link-target-owner-hard-cut.md': 'docs/plans/zircon_runtime/text/07/2026-08-30-rich-link-target-owner-hard-cut.md', 'docs/plans/zircon_runtime/text/07/2026-08-30-rich-visibility-independent-semantic-owner-review.md': 'docs/plans/zircon_runtime/text/07/2026-08-30-rich-visibility-independent-semantic-owner-review.md'}
+_HISTORY_IDENTITIES = {'docs/plans/zircon_runtime/text/07/2026-08-30-rich-accessibility-semantic-projection-review.md': (5272, '3ed5d6002f40dc605338c1a11d3e6fba3cc0d08041788262b31a4668bce8d234'), 'docs/plans/zircon_runtime/text/07/2026-08-30-rich-link-target-owner-hard-cut.md': (4611, 'ebba2f1d27931f87854026e07dd73d783b66fac57dafd2135598e01fe60cae3e'), 'docs/plans/zircon_runtime/text/07/2026-08-30-rich-visibility-independent-semantic-owner-review.md': (5833, '181e853eae79802b993ba4ae12df78ba61b967e3d2c59e5d507ab418d4d62ad3')}
+_CURRENT_POLICY_INPUTS = ('docs/crates/zircon_runtime/text/mod.md',)
+
+def _read_contract_input(path, *args, **kwargs):
+    candidate = _HistoryPath(path)
+    try:
+        relative = candidate.absolute().relative_to(_HISTORY_REPO_ROOT).as_posix()
+    except ValueError:
+        relative = None
+    key = _HISTORY_PATHS.get(relative)
+    if key is None:
+        if relative and relative.startswith('docs/plans/') and relative not in _CURRENT_POLICY_INPUTS:
+            raise AssertionError('Unregistered current/history contract input: ' + relative)
+        return candidate.read_text(*args, **kwargs)
+    if args or kwargs.get('encoding', 'utf-8').lower() not in ('utf-8', 'utf8') or kwargs.get('errors') not in (None, 'strict') or set(kwargs) - {'encoding', 'errors'}:
+        raise AssertionError('Historical evidence requires strict UTF-8')
+    reader = _ContractHistoryReader(identities=_HISTORY_IDENTITIES)
+    text = reader.read(key)
+    if text is None:
+        raise AssertionError(reader.records)
+    return text
+
+
 
 ROOT = Path(__file__).resolve().parents[2]
 
 
 class RuntimeTextRichSourceContractTests(unittest.TestCase):
     def test_validator_checks_structural_and_utf8_invariants(self):
-        source = (ROOT / "zircon_runtime/src/text/layout/rich_source.rs").read_text(
+        source = _read_contract_input(ROOT / "zircon_runtime/src/text/layout/rich_source.rs", 
             encoding="utf-8"
         )
         self.assertIn("validate_rich_text_layout_source", source)
@@ -21,7 +50,7 @@ class RuntimeTextRichSourceContractTests(unittest.TestCase):
         self.assertIn("source.text().get(start..end).is_none()", source)
 
     def test_validator_is_before_rich_index_source_spans(self):
-        source = (ROOT / "zircon_runtime/src/text/layout/rich_advance_index.rs").read_text(
+        source = _read_contract_input(ROOT / "zircon_runtime/src/text/layout/rich_advance_index.rs", 
             encoding="utf-8"
         )
         source_spans = source.index("fn source_spans")
@@ -30,10 +59,10 @@ class RuntimeTextRichSourceContractTests(unittest.TestCase):
         self.assertNotIn("validate_rich_text_layout_source(source)?;", source)
         self.assertIn("if run_start < cursor || run_end <= cursor", source)
         self.assertIn(") -> Result<Vec<SourceSpan<'a>>, TextLayoutError>", source)
-        self.assertIn("source.run(index).ok_or(TextLayoutError::LayoutFailed)?", (ROOT / "zircon_runtime/src/text/layout/rich_source.rs").read_text(encoding="utf-8"))
+        self.assertIn("source.run(index).ok_or(TextLayoutError::LayoutFailed)?", _read_contract_input(ROOT / "zircon_runtime/src/text/layout/rich_source.rs", encoding="utf-8"))
 
     def test_rich_line_range_extraction_fails_closed_on_invalid_hard_line_slice(self):
-        source = (ROOT / "zircon_runtime/src/text/layout/rich.rs").read_text(
+        source = _read_contract_input(ROOT / "zircon_runtime/src/text/layout/rich.rs", 
             encoding="utf-8"
         )
         self.assertGreaterEqual(source.count("TextLayoutError::LayoutFailed"), 2)
@@ -50,7 +79,7 @@ class RuntimeTextRichSourceContractTests(unittest.TestCase):
         )
         self.assertIn("hard_line_count(text)", source)
         self.assertIn("visit_hard_lines(text", source)
-        vertical = (ROOT / "zircon_runtime/src/text/layout/rich_vertical.rs").read_text(
+        vertical = _read_contract_input(ROOT / "zircon_runtime/src/text/layout/rich_vertical.rs", 
             encoding="utf-8"
         )
         self.assertIn("TextLayoutError::LayoutFailed", vertical)
@@ -60,12 +89,12 @@ class RuntimeTextRichSourceContractTests(unittest.TestCase):
         )
 
     def test_rich_item_projection_does_not_publish_zero_advance_success(self):
-        source = (ROOT / "zircon_runtime/src/ui/text/layout_engine/rich_layout.rs").read_text(
+        source = _read_contract_input(ROOT / "zircon_runtime/src/ui/text/layout_engine/rich_layout.rs", 
             encoding="utf-8"
         )
         self.assertNotIn("TextShapingOutcome::Ready(Vec::new())", source)
         self.assertIn("TextShapingOutcome::failed(TextLayoutError::LayoutFailed)", source)
-        vertical = (ROOT / "zircon_runtime/src/ui/text/layout_engine/rich_layout_vertical.rs").read_text(
+        vertical = _read_contract_input(ROOT / "zircon_runtime/src/ui/text/layout_engine/rich_layout_vertical.rs", 
             encoding="utf-8"
         )
         self.assertGreaterEqual(
@@ -73,7 +102,7 @@ class RuntimeTextRichSourceContractTests(unittest.TestCase):
         )
 
     def test_rich_table_ranges_are_checked_without_clamping_legal_empty_cells(self):
-        source = (ROOT / "zircon_runtime/src/ui/text/layout_engine/rich_table/layout.rs").read_text(
+        source = _read_contract_input(ROOT / "zircon_runtime/src/ui/text/layout_engine/rich_table/layout.rs", 
             encoding="utf-8"
         )
         self.assertIn("fn checked_table_source_range", source)
@@ -86,17 +115,17 @@ class RuntimeTextRichSourceContractTests(unittest.TestCase):
         self.assertNotIn("unwrap_or_default()\n                .saturating_sub", source)
 
     def test_rich_table_segment_projection_rejects_invalid_utf8_ranges(self):
-        source = (ROOT / "zircon_runtime/src/ui/text/layout_engine/rich_table/source_slice.rs").read_text(
+        source = _read_contract_input(ROOT / "zircon_runtime/src/ui/text/layout_engine/rich_table/source_slice.rs", 
             encoding="utf-8"
         )
         self.assertIn("parsed.project_range(range, parent_table_depth)", source)
         self.assertIn("Err(error) => return TextShapingOutcome::failed(error)", source)
 
     def test_ui_projection_rejects_invalid_indices_instead_of_silently_dropping_them(self):
-        source = (ROOT / "zircon_runtime/src/ui/text/rich_text.rs").read_text(
+        source = _read_contract_input(ROOT / "zircon_runtime/src/ui/text/rich_text.rs", 
             encoding="utf-8"
         )
-        tests = (ROOT / "zircon_runtime/src/ui/text/rich_text/tests/cases.rs").read_text(
+        tests = _read_contract_input(ROOT / "zircon_runtime/src/ui/text/rich_text/tests/cases.rs", 
             encoding="utf-8"
         )
 
@@ -110,7 +139,7 @@ class RuntimeTextRichSourceContractTests(unittest.TestCase):
             tests,
         )
 
-        owner = (ROOT / "zircon_runtime/src/ui/text/rich_text.rs").read_text(encoding="utf-8")
+        owner = _read_contract_input(ROOT / "zircon_runtime/src/ui/text/rich_text.rs", encoding="utf-8")
         self.assertIn(") -> Result<Self, TextLayoutError>", owner)
         self.assertIn("return Err(TextLayoutError::LayoutFailed);", owner)
         self.assertIn("local_range.start > local_range.end", owner)
@@ -119,7 +148,7 @@ class RuntimeTextRichSourceContractTests(unittest.TestCase):
         self.assertNotIn("local_range.end.min(self.text().len()).max(start)", owner)
 
     def test_rich_table_delimiter_trimming_reuses_hard_line_owner(self):
-        source = (ROOT / "zircon_runtime/src/ui/text/layout_engine/rich_table/layout.rs").read_text(
+        source = _read_contract_input(ROOT / "zircon_runtime/src/ui/text/layout_engine/rich_table/layout.rs", 
             encoding="utf-8"
         )
         self.assertIn("use crate::text::is_hard_line_separator;", source)
@@ -131,10 +160,10 @@ class RuntimeTextRichSourceContractTests(unittest.TestCase):
         self.assertNotIn("end.min(text.len()).max(start)", source)
 
     def test_vertical_rich_column_ranges_fail_closed_on_numeric_and_slice_errors(self):
-        source = (ROOT / "zircon_runtime/src/text/layout/rich_vertical.rs").read_text(
+        source = _read_contract_input(ROOT / "zircon_runtime/src/text/layout/rich_vertical.rs", 
             encoding="utf-8"
         )
-        owner = (ROOT / "zircon_runtime/src/text/layout/rich_source.rs").read_text(
+        owner = _read_contract_input(ROOT / "zircon_runtime/src/text/layout/rich_source.rs", 
             encoding="utf-8"
         )
         self.assertIn("fn checked_source_range", owner)
@@ -148,10 +177,10 @@ class RuntimeTextRichSourceContractTests(unittest.TestCase):
         self.assertNotIn("u32::try_from(value).unwrap_or(u32::MAX)", source)
 
     def test_rich_source_validation_and_projection_share_one_run_pass(self):
-        owner = (ROOT / "zircon_runtime/src/text/layout/rich_source.rs").read_text(
+        owner = _read_contract_input(ROOT / "zircon_runtime/src/text/layout/rich_source.rs", 
             encoding="utf-8"
         )
-        index = (ROOT / "zircon_runtime/src/text/layout/rich_advance_index.rs").read_text(
+        index = _read_contract_input(ROOT / "zircon_runtime/src/text/layout/rich_advance_index.rs", 
             encoding="utf-8"
         )
         self.assertIn("for_each_validated_rich_run(source, |_, _, _| Ok(()))", owner)
@@ -159,19 +188,19 @@ class RuntimeTextRichSourceContractTests(unittest.TestCase):
         self.assertEqual(index.count("for_each_validated_rich_run(source"), 1)
 
     def test_secondary_consumers_reuse_the_same_validator(self):
-        artifact = (ROOT / "zircon_runtime/src/text/glyph_artifact/rich.rs").read_text(
+        artifact = _read_contract_input(ROOT / "zircon_runtime/src/text/glyph_artifact/rich.rs", 
             encoding="utf-8"
         )
-        measure_cache = (ROOT / "zircon_runtime/src/ui/text/measure_cache.rs").read_text(
+        measure_cache = _read_contract_input(ROOT / "zircon_runtime/src/ui/text/measure_cache.rs", 
             encoding="utf-8"
         )
         self.assertIn("resolved_text_spans(source", artifact)
         self.assertIn(") -> Result<Vec<ResolvedRichTextSpan>, TextLayoutError>",
-                      (ROOT / "zircon_runtime/src/text/layout/rich_advance_index.rs").read_text(encoding="utf-8"))
+                      _read_contract_input(ROOT / "zircon_runtime/src/text/layout/rich_advance_index.rs", encoding="utf-8"))
         self.assertIn("resolved_text_spans(&parsed, &base_style)\n                    .ok()?", measure_cache)
 
     def test_rich_advance_index_preserves_deferred_generation_outcome(self):
-        source = (ROOT / "zircon_runtime/src/text/layout/rich_advance_index.rs").read_text(
+        source = _read_contract_input(ROOT / "zircon_runtime/src/text/layout/rich_advance_index.rs", 
             encoding="utf-8"
         )
         self.assertGreaterEqual(source.count("TextShapingOutcome::Deferred(error)"), 4)
@@ -181,12 +210,10 @@ class RuntimeTextRichSourceContractTests(unittest.TestCase):
         self.assertNotIn("map_or(TextDirection::Auto", source)
 
     def test_measurement_projection_rejects_malformed_shaped_ranges(self):
-        source = (ROOT / "zircon_runtime/src/text/layout/measure.rs").read_text(
+        source = _read_contract_input(ROOT / "zircon_runtime/src/text/layout/measure.rs", 
             encoding="utf-8"
         )
-        projection = (
-            ROOT / "zircon_runtime/src/text/layout/measure/grapheme_projection.rs"
-        ).read_text(encoding="utf-8")
+        projection = _read_contract_input(ROOT / "zircon_runtime/src/text/layout/measure/grapheme_projection.rs", encoding="utf-8")
         self.assertIn("fn validate_shaped_geometry_source", projection)
         self.assertIn(
             "validate_shaped_geometry_source(shaped, shaped.source_text.as_ref())?",
@@ -200,37 +227,29 @@ class RuntimeTextRichSourceContractTests(unittest.TestCase):
         self.assertIn("!run.source_text.is_char_boundary(relative_start)", source)
         self.assertIn("line.source_range.start < previous_line_end", projection)
         self.assertIn("measured_grapheme_geometry_rejects_non_boundary_glyph_ranges", 
-                      (ROOT / "zircon_runtime/src/text/layout/measure/tests/cases.rs").read_text(encoding="utf-8"))
+                      _read_contract_input(ROOT / "zircon_runtime/src/text/layout/measure/tests/cases.rs", encoding="utf-8"))
 
     def test_gap_fill_semantics_are_documented_and_regressed(self):
-        source = (ROOT / "zircon_runtime/src/text/layout/rich_source.rs").read_text(
+        source = _read_contract_input(ROOT / "zircon_runtime/src/text/layout/rich_source.rs", 
             encoding="utf-8"
         )
         self.assertIn("Gaps are allowed", source)
         self.assertIn("source_contract_accepts_empty_and_partially_covered_text", read_rust_test_file("zircon_runtime/src/text/layout/tests/rich_source.rs"))
-        plan = (ROOT / "docs/plans/zircon_runtime/text/03-line-breaking-measure-and-layout.md").read_text(
+        plan = _read_contract_input(ROOT / 'docs/crates/zircon_runtime/text/mod.md', 
             encoding="utf-8"
         )
         self.assertIn("rich_source_contract_fail_closed_static_implemented", plan)
         self.assertIn("base_style_gap_fill_preserved", plan)
 
     def test_accessibility_semantics_reuse_current_compiled_rich_generation(self):
-        projection = (
-            ROOT / "zircon_runtime/src/text/semantic_projection.rs"
-        ).read_text(encoding="utf-8")
-        accessibility = (
-            ROOT / "zircon_runtime/src/ui/accessibility/semantic_text.rs"
-        ).read_text(encoding="utf-8")
-        resolution = (
-            ROOT / "zircon_runtime/src/ui/accessibility/extract/resolution.rs"
-        ).read_text(encoding="utf-8")
-        surface = (ROOT / "zircon_runtime/src/ui/surface/surface.rs").read_text(
+        projection = _read_contract_input(ROOT / "zircon_runtime/src/text/semantic_projection.rs", encoding="utf-8")
+        accessibility = _read_contract_input(ROOT / "zircon_runtime/src/ui/accessibility/semantic_text.rs", encoding="utf-8")
+        resolution = _read_contract_input(ROOT / "zircon_runtime/src/ui/accessibility/extract/resolution.rs", encoding="utf-8")
+        surface = _read_contract_input(ROOT / "zircon_runtime/src/ui/surface/surface.rs", 
             encoding="utf-8"
         )
-        plan = (
-            ROOT
-            / "docs/plans/zircon_runtime/text/07/2026-08-30-rich-accessibility-semantic-projection-review.md"
-        ).read_text(encoding="utf-8")
+        plan = _read_contract_input(ROOT
+            / "docs/plans/zircon_runtime/text/07/2026-08-30-rich-accessibility-semantic-projection-review.md", encoding="utf-8")
 
         self.assertIn("struct RichSemanticProjection", projection)
         self.assertIn("compiled.source_markup() == source_markup", projection)
@@ -251,25 +270,15 @@ class RuntimeTextRichSourceContractTests(unittest.TestCase):
         )
 
     def test_hidden_rich_relation_semantics_use_the_surface_text_owner(self):
-        projection = (
-            ROOT / "zircon_runtime/src/text/semantic_projection.rs"
-        ).read_text(encoding="utf-8")
-        measure_cache = (
-            ROOT / "zircon_runtime/src/ui/text/measure_cache.rs"
-        ).read_text(encoding="utf-8")
-        surface = (ROOT / "zircon_runtime/src/ui/surface/surface.rs").read_text(
+        projection = _read_contract_input(ROOT / "zircon_runtime/src/text/semantic_projection.rs", encoding="utf-8")
+        measure_cache = _read_contract_input(ROOT / "zircon_runtime/src/ui/text/measure_cache.rs", encoding="utf-8")
+        surface = _read_contract_input(ROOT / "zircon_runtime/src/ui/surface/surface.rs", 
             encoding="utf-8"
         )
-        accessibility = (
-            ROOT / "zircon_runtime/src/ui/accessibility/semantic_text.rs"
-        ).read_text(encoding="utf-8")
-        tests = (
-            ROOT / "zircon_runtime/src/ui/tests/accessibility/naming_relations.rs"
-        ).read_text(encoding="utf-8")
-        plan = (
-            ROOT
-            / "docs/plans/zircon_runtime/text/07/2026-08-30-rich-visibility-independent-semantic-owner-review.md"
-        ).read_text(encoding="utf-8")
+        accessibility = _read_contract_input(ROOT / "zircon_runtime/src/ui/accessibility/semantic_text.rs", encoding="utf-8")
+        tests = _read_contract_input(ROOT / "zircon_runtime/src/ui/tests/accessibility/naming_relations.rs", encoding="utf-8")
+        plan = _read_contract_input(ROOT
+            / "docs/plans/zircon_runtime/text/07/2026-08-30-rich-visibility-independent-semantic-owner-review.md", encoding="utf-8")
 
         self.assertIn("from_compiled_rich_semantic_projection", projection)
         self.assertIn("compile_rich_semantic_projection", measure_cache)
@@ -295,19 +304,19 @@ class RuntimeTextRichSourceContractTests(unittest.TestCase):
         )
 
     def test_list_semantics_are_parser_owned_typed_metadata(self):
-        model = (ROOT / "zircon_runtime/src/text/model/rich.rs").read_text(
+        model = _read_contract_input(ROOT / "zircon_runtime/src/text/model/rich.rs", 
             encoding="utf-8"
         )
-        blocks = (ROOT / "zircon_runtime/src/text/rich/bbcode_blocks.rs").read_text(
+        blocks = _read_contract_input(ROOT / "zircon_runtime/src/text/rich/bbcode_blocks.rs", 
             encoding="utf-8"
         )
-        parser = (ROOT / "zircon_runtime/src/text/rich/parser.rs").read_text(
+        parser = _read_contract_input(ROOT / "zircon_runtime/src/text/rich/parser.rs", 
             encoding="utf-8"
         )
-        projection = (ROOT / "zircon_runtime/src/ui/text/rich_text.rs").read_text(
+        projection = _read_contract_input(ROOT / "zircon_runtime/src/ui/text/rich_text.rs", 
             encoding="utf-8"
         )
-        tests = (ROOT / "zircon_runtime/src/text/rich/tests/block.rs").read_text(
+        tests = _read_contract_input(ROOT / "zircon_runtime/src/text/rich/tests/block.rs", 
             encoding="utf-8"
         )
 
@@ -323,25 +332,21 @@ class RuntimeTextRichSourceContractTests(unittest.TestCase):
         self.assertIn("vec![1, 2, 1]", tests)
 
     def test_inline_image_semantics_are_compiled_once_under_a_dedicated_budget(self):
-        model = (ROOT / "zircon_runtime/src/text/model/rich.rs").read_text(
+        model = _read_contract_input(ROOT / "zircon_runtime/src/text/model/rich.rs", 
             encoding="utf-8"
         )
-        html = (ROOT / "zircon_runtime/src/text/rich/html_subset.rs").read_text(
+        html = _read_contract_input(ROOT / "zircon_runtime/src/text/rich/html_subset.rs", 
             encoding="utf-8"
         )
-        compiled = (ROOT / "zircon_runtime/src/text/rich/compiled.rs").read_text(
+        compiled = _read_contract_input(ROOT / "zircon_runtime/src/text/rich/compiled.rs", 
             encoding="utf-8"
         )
-        semantic_builder = (
-            ROOT / "zircon_runtime/src/text/rich/compiled/semantic_text.rs"
-        ).read_text(encoding="utf-8")
-        admission = (ROOT / "zircon_runtime/src/text/rich/admission.rs").read_text(
+        semantic_builder = _read_contract_input(ROOT / "zircon_runtime/src/text/rich/compiled/semantic_text.rs", encoding="utf-8")
+        admission = _read_contract_input(ROOT / "zircon_runtime/src/text/rich/admission.rs", 
             encoding="utf-8"
         )
-        projection = (
-            ROOT / "zircon_runtime/src/text/semantic_projection.rs"
-        ).read_text(encoding="utf-8")
-        metadata = (ROOT / "zircon_runtime/src/text/rich/decorator.rs").read_text(
+        projection = _read_contract_input(ROOT / "zircon_runtime/src/text/semantic_projection.rs", encoding="utf-8")
+        metadata = _read_contract_input(ROOT / "zircon_runtime/src/text/rich/decorator.rs", 
             encoding="utf-8"
         )
 
@@ -361,31 +366,19 @@ class RuntimeTextRichSourceContractTests(unittest.TestCase):
         self.assertIn("tooltip", metadata)
 
     def test_rich_link_target_is_validated_once_and_remains_typed_to_the_host(self):
-        target = (
-            ROOT / "zircon_runtime_interface/src/ui/text/rich_link_target.rs"
-        ).read_text(encoding="utf-8")
-        model = (ROOT / "zircon_runtime/src/text/model/rich.rs").read_text(
+        target = _read_contract_input(ROOT / "zircon_runtime_interface/src/ui/text/rich_link_target.rs", encoding="utf-8")
+        model = _read_contract_input(ROOT / "zircon_runtime/src/text/model/rich.rs", 
             encoding="utf-8"
         )
-        html = (ROOT / "zircon_runtime/src/text/rich/html_subset.rs").read_text(
+        html = _read_contract_input(ROOT / "zircon_runtime/src/text/rich/html_subset.rs", 
             encoding="utf-8"
         )
-        hit = (
-            ROOT / "zircon_runtime/src/ui/text/rich_text/link_hit.rs"
-        ).read_text(encoding="utf-8")
-        effect = (
-            ROOT / "zircon_runtime_interface/src/ui/dispatch/input/effect.rs"
-        ).read_text(encoding="utf-8")
-        result = (
-            ROOT / "zircon_runtime_interface/src/ui/dispatch/input/result.rs"
-        ).read_text(encoding="utf-8")
-        application = (
-            ROOT / "zircon_runtime/src/ui/surface/input/effect/link.rs"
-        ).read_text(encoding="utf-8")
-        plan = (
-            ROOT
-            / "docs/plans/zircon_runtime/text/07/2026-08-30-rich-link-target-owner-hard-cut.md"
-        ).read_text(encoding="utf-8")
+        hit = _read_contract_input(ROOT / "zircon_runtime/src/ui/text/rich_text/link_hit.rs", encoding="utf-8")
+        effect = _read_contract_input(ROOT / "zircon_runtime_interface/src/ui/dispatch/input/effect.rs", encoding="utf-8")
+        result = _read_contract_input(ROOT / "zircon_runtime_interface/src/ui/dispatch/input/result.rs", encoding="utf-8")
+        application = _read_contract_input(ROOT / "zircon_runtime/src/ui/surface/input/effect/link.rs", encoding="utf-8")
+        plan = _read_contract_input(ROOT
+            / "docs/plans/zircon_runtime/text/07/2026-08-30-rich-link-target-owner-hard-cut.md", encoding="utf-8")
 
         self.assertIn("pub struct UiRichLinkTarget", target)
         self.assertIn("locator: Arc<ResourceLocator>", target)
@@ -412,28 +405,24 @@ class RuntimeTextRichSourceContractTests(unittest.TestCase):
         self.assertIn("No timing, allocation, RSS, power", plan)
 
     def test_rich_link_tooltip_is_shared_from_parser_to_hit_projection(self):
-        model = (ROOT / "zircon_runtime/src/text/model/rich.rs").read_text(
+        model = _read_contract_input(ROOT / "zircon_runtime/src/text/model/rich.rs", 
             encoding="utf-8"
         )
-        html = (ROOT / "zircon_runtime/src/text/rich/html_subset.rs").read_text(
+        html = _read_contract_input(ROOT / "zircon_runtime/src/text/rich/html_subset.rs", 
             encoding="utf-8"
         )
-        parser = (ROOT / "zircon_runtime/src/text/rich/parser.rs").read_text(
+        parser = _read_contract_input(ROOT / "zircon_runtime/src/text/rich/parser.rs", 
             encoding="utf-8"
         )
-        metadata = (ROOT / "zircon_runtime/src/text/rich/decorator.rs").read_text(
+        metadata = _read_contract_input(ROOT / "zircon_runtime/src/text/rich/decorator.rs", 
             encoding="utf-8"
         )
-        compiled = (ROOT / "zircon_runtime/src/text/rich/compiled.rs").read_text(
+        compiled = _read_contract_input(ROOT / "zircon_runtime/src/text/rich/compiled.rs", 
             encoding="utf-8"
         )
-        compiled_memory = (
-            ROOT / "zircon_runtime/src/text/rich/compiled/memory.rs"
-        ).read_text(encoding="utf-8")
-        hit = (
-            ROOT / "zircon_runtime/src/ui/text/rich_text/link_hit.rs"
-        ).read_text(encoding="utf-8")
-        tests = (ROOT / "zircon_runtime/src/text/rich/tests/cases.rs").read_text(
+        compiled_memory = _read_contract_input(ROOT / "zircon_runtime/src/text/rich/compiled/memory.rs", encoding="utf-8")
+        hit = _read_contract_input(ROOT / "zircon_runtime/src/ui/text/rich_text/link_hit.rs", encoding="utf-8")
+        tests = _read_contract_input(ROOT / "zircon_runtime/src/text/rich/tests/cases.rs", 
             encoding="utf-8"
         )
 

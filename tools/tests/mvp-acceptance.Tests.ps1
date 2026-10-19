@@ -337,7 +337,7 @@ if ($LASTEXITCODE -ne 0) {
 }
 # The nested fixtures reload their private resolver dependencies. Keep the command that this
 # top-level fixture invokes directly in the caller scope, matching the production driver.
-Import-Module (Join-Path $PSScriptRoot '..\common\WindowsPathResolver.psm1') -Force -ErrorAction Stop
+Import-Module (Join-Path $PSScriptRoot '..\maintenance\WindowsPathResolver.psm1') -Force -ErrorAction Stop
 
 function ConvertTo-FixtureDiagnosticToken {
     param([Parameter(Mandatory)][string]$Value)
@@ -722,9 +722,10 @@ function Write-FixtureBlankPng {
     }
 }
 
-$fixtureRoot = New-MvpTestFixtureRoot -Prefix 'zircon_mvp_acceptance'
+$fixtureRoot = $null
 
 try {
+    $fixtureRoot = New-MvpTestFixtureRoot -Prefix 'zircon_mvp_acceptance'
     $stagingRoot = Join-Path $fixtureRoot 'staging'
     $evidenceRoot = Join-Path $fixtureRoot 'evidence'
     New-Item -ItemType Directory -Force -Path (Join-Path $stagingRoot 'project') | Out-Null
@@ -3372,7 +3373,7 @@ try {
     Write-Host 'MVP acceptance manifest contract passed'
 }
 finally {
-    if ($env:ZIRCON_KEEP_MVP_ACCEPTANCE_FIXTURE -ne '1' -and
+    if ($null -ne $fixtureRoot -and $env:ZIRCON_KEEP_MVP_ACCEPTANCE_FIXTURE -ne '1' -and
         (Test-Path -LiteralPath $fixtureRoot)) {
         Remove-MvpTestFixtureRoot -Path $fixtureRoot
     }

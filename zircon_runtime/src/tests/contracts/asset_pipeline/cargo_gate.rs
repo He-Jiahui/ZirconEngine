@@ -6,12 +6,12 @@ pub(super) fn assert_runtime_04_mirror_docs() {
         (
             "Runtime 04 plan",
             include_str!(
-                "../../../../../docs/plans/zircon_runtime/runtime/04-asset-pipeline-alignment.md"
+                "../../../../../docs/testing-and-validation/runtime-asset-validation-worklist.md"
             ),
         ),
         (
             "runtime index",
-            include_str!("../../../../../docs/plans/zircon_runtime/runtime/index.md"),
+            include_str!("../../../../../docs/crates/zircon_runtime/structure/runtime-absorption-evidence.md"),
         ),
         (
             "asset facade doc",
@@ -55,7 +55,7 @@ pub(super) fn assert_runtime_04_mirror_docs() {
 #[test]
 fn runtime_04_asset_pipeline_cargo_gate_stays_visible_until_asset_validation() {
     let plan = include_str!(
-        "../../../../../docs/plans/zircon_runtime/runtime/04-asset-pipeline-alignment.md"
+        "../../../../../docs/testing-and-validation/runtime-asset-validation-worklist.md"
     );
     let mut plan_lines = plan.lines();
     assert_eq!(

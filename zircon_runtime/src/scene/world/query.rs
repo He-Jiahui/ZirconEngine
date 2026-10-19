@@ -339,7 +339,7 @@ impl World {
                 (component_id, internal)
             };
             Self::mark_query_component_mutation::<T>(world, entity);
-            match T::STORAGE_TYPE {
+            let value = match T::STORAGE_TYPE {
                 StorageType::Table => {
                     let location = (&*std::ptr::addr_of!((*world).entity_registry))
                         .location_for_internal(internal)
@@ -356,7 +356,9 @@ impl World {
                 }
                 StorageType::SparseSet => (&*std::ptr::addr_of!((*world).component_storage))
                     .get_mut_at_tick_unchecked::<T>(component_id, internal, tick),
-            }
+            }?;
+            // SAFETY: the exclusive World query loan authorizes this checked row leaf.
+            Some(&mut *value)
         }
     }
 
@@ -416,7 +418,8 @@ impl World {
                 StorageType::SparseSet => (&*std::ptr::addr_of!((*world).component_storage))
                     .get_mut_with_ticks_unchecked::<T>(component_id, internal)?,
             };
-            Some((value, ticks, tick, mutation_recorder))
+            // SAFETY: the exclusive World query loan authorizes these disjoint row leaves.
+            Some((&mut *value, &mut *ticks, tick, mutation_recorder))
         }
     }
 
@@ -442,7 +445,7 @@ impl World {
         unsafe {
             let tick = Self::query_mutation_change_tick(world);
             Self::mark_query_component_mutation::<T>(world, entity);
-            match location.storage_type {
+            let value = match location.storage_type {
                 StorageType::Table => (&*std::ptr::addr_of!((*world).archetype_index))
                     .get_mut_at_tick_by_slot_unchecked::<T>(
                         location.table_archetype?,
@@ -452,7 +455,9 @@ impl World {
                     ),
                 StorageType::SparseSet => (&*std::ptr::addr_of!((*world).component_storage))
                     .get_mut_at_tick_unchecked::<T>(location.component_id, location.entity, tick),
-            }
+            }?;
+            // SAFETY: the exclusive World query loan authorizes this checked row leaf.
+            Some(&mut *value)
         }
     }
 
@@ -496,7 +501,8 @@ impl World {
                 StorageType::SparseSet => (&*std::ptr::addr_of!((*world).component_storage))
                     .get_mut_with_ticks_unchecked::<T>(location.component_id, location.entity)?,
             };
-            Some((value, ticks, tick, mutation_recorder))
+            // SAFETY: the exclusive World query loan authorizes these disjoint row leaves.
+            Some((&mut *value, &mut *ticks, tick, mutation_recorder))
         }
     }
 

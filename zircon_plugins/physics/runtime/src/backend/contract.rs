@@ -41,9 +41,8 @@ pub trait PhysicsBackend: Send {
         &mut self,
         constraint: ConstraintHandle,
     ) -> Result<(), PhysicsBackendError>;
-    // BUG: [CR-PHYSICS-BACKEND-0002] 公开 trait 直调不经过 manager 的有限值校验；Builtin 可保存 NaN 线速度；仅非 Static 刚体且对应平移轴未锁定时，step 才会把 NaN 写入该轴位移并仍标记活动。其他情形仍可能留下非有限速度状态。
-    // 证据：manager/command_buffer.rs::queue_body_command、builtin/runtime.rs::apply_commands、builtin/step.rs::integrate_body_sync_state；关联 PHY4-P1-030。
-    /// 将命令批次应用到后端刚体；Builtin 先验证句柄，Jolt 还验证形状与静态刚体约束，再写入命令。
+    /// 将命令批次应用到后端刚体；两 provider 先预检全部命令的有限值与句柄，
+    /// Jolt 另验证形状与静态刚体约束。预检失败时不应用批次中的任何命令。
     fn apply_commands(&mut self, commands: &[BodyCommand]) -> Result<(), PhysicsBackendError>;
     /// 使用单个有限正时间步推进 provider 状态。
     fn step(&mut self, dt: Real) -> Result<(), PhysicsBackendError>;

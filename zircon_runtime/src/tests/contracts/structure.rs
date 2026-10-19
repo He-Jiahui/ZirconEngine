@@ -54,5 +54,7 @@ mod support;
 #[path = "structure/test_size/mod.rs"]
 mod test_file_budget;
 
-pub(super) use support::priority_plan_doc_current_owner_archive_source;
 use support::{assert_contains_all, assert_contains_all_exact, repo_path, runtime_src_path};
+pub(super) use support::{
+    fixed_history_archive_source, priority_plan_doc_current_owner_archive_source,
+};

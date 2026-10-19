@@ -11,7 +11,7 @@ plan_sources:
   - "user: 2026-10-02 制定单机 Jenkins 多 Session 协调的详细架构和方案"
   - docs/plans/jenkins-session-coordination/01-single-host-jenkins-coordination.md
 tests:
-  - docs/plans/milestone-validation-policy.md
+  - docs/testing-and-validation/milestone-validation-policy.md
   - tools/jenkins_pilot/tests/
 doc_type: architecture-detail
 status: design-only
@@ -557,7 +557,7 @@ Jenkins 阶段摘要展示 Session、选择的模板／coverage、wait reason、
 | multi-Session／Git／恢复 | M7 | 单消费者取消不终止共享执行、union/prefix 验收、foreign staging、ref/index 崩溃、迟到回执、补偿保护 |
 | 唯一入口／效能／回退 | M8 | 所有调用方、五类模式、等价样本比较、已有状态和配置回退 |
 
-实施时的结构检查、回归、产品验证与状态记录遵循[验证政策](../plans/milestone-validation-policy.md)和里程碑计划。每个阶段按声明批次验证，支持层失败先修最低原因，不靠上层旁路通过。
+实施时的结构检查、回归、产品验证与状态记录遵循[验证政策](../testing-and-validation/milestone-validation-policy.md)和里程碑计划。每个阶段按声明批次验证，支持层失败先修最低原因，不靠上层旁路通过。
 
 关键效能测量覆盖 cold、warm、exact artifact、source increment、多 Session 合批、CPU 与磁盘压力。必须区分产物复用与测试重跑；报告 input/config/coverage、样本数、prepare/queue/compile/test/accept 耗时、peak/resident bytes、重建成本和公平等待。
 

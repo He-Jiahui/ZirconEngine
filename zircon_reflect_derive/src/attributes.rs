@@ -5,11 +5,12 @@ use syn::spanned::Spanned;
 use syn::{Attribute, LitBool, LitStr, Path};
 
 /// 派生注册写入的序列化策略；具体枚举项映射由 `crate::derive::serialization_tokens` 完成。
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub(crate) enum SerializationKind {
     /// 不选用序列化策略；未显式设置类型级 `serializable` 时，默认标记为关闭。
     None,
     /// 选择 `Value` 策略，也是当前默认值。
+    #[default]
     Value,
     /// 选择 JSON 序列化策略。
     Json,
@@ -17,13 +18,6 @@ pub(crate) enum SerializationKind {
     ResourceHandle,
     /// 选择实体引用序列化策略。
     EntityReference,
-}
-
-impl Default for SerializationKind {
-    fn default() -> Self {
-        // 容器未显式指定时，派生主流程使用 Value 策略作为缺省值。
-        Self::Value
-    }
 }
 
 /// 反射类型向脚本暴露的级别；默认值由枚举派生为 Private。

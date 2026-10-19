@@ -38,12 +38,15 @@ pub(crate) fn available_backends() -> Vec<SoundBackendCapability> {
 
 pub(crate) fn available_devices(config: &SoundConfig) -> Vec<SoundOutputDeviceInfo> {
     let host = cpal::default_host();
+    let buffer_policy = output_buffer_policy(host.id());
     let default_id = host
         .default_output_device()
         .and_then(|device| stable_device_id(&device).ok());
     match host.output_devices() {
         Ok(devices) => devices
-            .map(|device| device_info_for_device(device, config, default_id.as_deref()))
+            .map(|device| {
+                device_info_for_device(device, config, default_id.as_deref(), buffer_policy)
+            })
             .collect(),
         Err(error) => vec![SoundOutputDeviceInfo {
             descriptor: default_descriptor(config),
@@ -86,6 +89,69 @@ pub(crate) fn admit_exact_output_config(
         Err(SoundError::BackendUnavailable {
             detail: format!(
                 "Kira/CPAL device does not support exact f32 output {} Hz, {} channels, {} frames; reported configurations: {supported:?}",
+                requested.sample_rate, requested.channels, requested_buffer
+            ),
+        })
+    }
+}
+
+/// CPAL 0.18.1 WASAPI always initializes shared-mode streams. Its reported buffer
+/// range can describe the device callback period rather than the requested ring latency.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum OutputBufferPolicy {
+    ReportedRange,
+    WasapiSharedPeriod,
+}
+
+pub(crate) fn output_buffer_policy(host: cpal::HostId) -> OutputBufferPolicy {
+    #[cfg(windows)]
+    if host == cpal::HostId::Wasapi {
+        return OutputBufferPolicy::WasapiSharedPeriod;
+    }
+    let _ = host;
+    OutputBufferPolicy::ReportedRange
+}
+
+/// Preserve the fixed ring request; only the locked WASAPI shared-mode provider
+/// interprets a known reported range as a period. Stream build/play still decide success.
+pub(crate) fn admit_output_config_for_policy(
+    policy: OutputBufferPolicy,
+    supported: impl IntoIterator<Item = cpal::SupportedStreamConfigRange>,
+    requested: &cpal::StreamConfig,
+) -> Result<(), SoundError> {
+    let requested_buffer =
+        match requested.buffer_size {
+            cpal::BufferSize::Fixed(frames)
+                if frames > 0 && requested.sample_rate > 0 && requested.channels > 0 =>
+            {
+                frames
+            }
+            _ => return Err(SoundError::BackendUnavailable {
+                detail:
+                    "Kira/CPAL admission requires a positive fixed buffer, rate and channel count"
+                        .to_string(),
+            }),
+        };
+    if policy == OutputBufferPolicy::ReportedRange {
+        return admit_exact_output_config(supported, requested);
+    }
+    let supported = supported.into_iter().collect::<Vec<_>>();
+    let admitted = supported.iter().any(|range| {
+        range.channels() == requested.channels
+            && range.min_sample_rate() <= requested.sample_rate
+            && requested.sample_rate <= range.max_sample_rate()
+            && range.sample_format() == cpal::SampleFormat::F32
+            && matches!(
+                range.buffer_size(),
+                cpal::SupportedBufferSize::Range { min, max } if *min > 0 && min <= max
+            )
+    });
+    if admitted {
+        Ok(())
+    } else {
+        Err(SoundError::BackendUnavailable {
+            detail: format!(
+                "Kira/CPAL WASAPI shared output cannot admit f32 {} Hz, {} channels, fixed ring request {} frames from known periods: {supported:?}",
                 requested.sample_rate, requested.channels, requested_buffer
             ),
         })
@@ -153,7 +219,7 @@ pub(super) fn backend_settings(
             .map_err(|error| SoundError::BackendUnavailable {
                 detail: format!("Kira/CPAL supported output format query failed: {error}"),
             })?;
-    admit_exact_output_config(supported, &requested)?;
+    admit_output_config_for_policy(output_buffer_policy(host.id()), supported, &requested)?;
     Ok(CpalBackendSettings {
         device: custom_device.then_some(selected),
         config: Some(requested),
@@ -180,6 +246,7 @@ fn device_info_for_device(
     device: cpal::Device,
     config: &SoundConfig,
     default_id: Option<&str>,
+    buffer_policy: OutputBufferPolicy,
 ) -> SoundOutputDeviceInfo {
     let display_name = device.to_string();
     let identity = stable_device_id(&device);
@@ -229,7 +296,7 @@ fn device_info_for_device(
         .map_err(|error| SoundError::BackendUnavailable {
             detail: format!("Kira/CPAL supported output format query failed: {error}"),
         })
-        .and_then(|supported| admit_exact_output_config(supported, &requested));
+        .and_then(|supported| admit_output_config_for_policy(buffer_policy, supported, &requested));
     SoundOutputDeviceInfo {
         descriptor,
         is_default,

@@ -33,8 +33,7 @@ pub use material_features::{
 };
 pub use material_usage::AdvancedPbrMaterialFrameUsage;
 pub use oit::{
-    oit_support, resolve_oit_fragments, OitBufferPlan, OitCapabilityProfile, OitFragment,
-    OitResolveResult, OitSettings, OitSupport, OIT_GPU_COUNT_SIZE_BYTES, OIT_GPU_LAYER_SIZE_BYTES,
+    oit_support, OitBufferPlan, OitCapabilityProfile, OitSettings, OitSupport,
     OIT_REQUIRED_STORAGE_BUFFERS_PER_SHADER_STAGE,
 };
 pub use planar::{

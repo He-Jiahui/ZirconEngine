@@ -95,10 +95,7 @@ async fn connected_pair(
     (network, read_half, client)
 }
 
-async fn wait_for_inbound_len(
-    inbound: &Arc<Mutex<VecDeque<NetWebSocketFrame>>>,
-    expected: usize,
-) {
+async fn wait_for_inbound_len(inbound: &Arc<Mutex<VecDeque<NetWebSocketFrame>>>, expected: usize) {
     tokio::time::timeout(std::time::Duration::from_secs(10), async {
         loop {
             if inbound.lock().unwrap().len() == expected {
@@ -231,13 +228,10 @@ fn real_socket_reader_backpressures_slow_consumer_and_publishes_close_pair_after
         }
         let remaining = network.drain_frames(NET_RUNTIME_EVENT_QUEUE_CAPACITY);
         assert_eq!(remaining.len(), NET_RUNTIME_EVENT_QUEUE_CAPACITY);
-        assert!(
-            remaining[..NET_RUNTIME_EVENT_QUEUE_CAPACITY - 1]
-                .iter()
-                .enumerate()
-                .all(|(offset, frame)| frame
-                    == &NetWebSocketFrame::Text((offset + 2).to_string()))
-        );
+        assert!(remaining[..NET_RUNTIME_EVENT_QUEUE_CAPACITY - 1]
+            .iter()
+            .enumerate()
+            .all(|(offset, frame)| frame == &NetWebSocketFrame::Text((offset + 2).to_string())));
         assert_eq!(
             remaining.last(),
             Some(&NetWebSocketFrame::Close(
@@ -477,4 +471,174 @@ fn eof_publication_is_bounded_and_disconnect_cancels_a_full_queue_wait() {
             NET_RUNTIME_EVENT_QUEUE_CAPACITY
         );
     });
+}
+
+#[test]
+fn root_disconnect_stops_real_reader_without_post_close_orphan_events() {
+    use zircon_plugin_net_runtime::{
+        DefaultNetManager, WebSocketRuntimeBackend, WebSocketRuntimeListener,
+    };
+    use zircon_runtime::core::framework::net::{
+        NetError, NetManager, NetWebSocketConnectDescriptor, NetWebSocketListenerDescriptor,
+    };
+
+    #[derive(Debug)]
+    struct Observation {
+        state: Arc<Mutex<NetConnectionState>>,
+        inbound: Arc<Mutex<VecDeque<NetWebSocketFrame>>>,
+        cancellation: Arc<WebSocketReaderCancellation>,
+        reader: Option<tokio::task::JoinHandle<()>>,
+        peer: Option<tokio::task::JoinHandle<()>>,
+        release: Option<tokio::sync::oneshot::Sender<()>>,
+    }
+
+    // Keep every task owned even when an assertion or the root call fails.
+    impl Drop for Observation {
+        fn drop(&mut self) {
+            if let Some(release) = self.release.take() {
+                let _ = release.send(());
+            }
+            for task in [&self.reader, &self.peer].into_iter().flatten() {
+                task.abort();
+            }
+            test_runtime().block_on(async {
+                for task in [&mut self.reader, &mut self.peer] {
+                    if let Some(task) = task.take() {
+                        let _ = tokio::time::timeout(std::time::Duration::from_secs(2), task).await;
+                    }
+                }
+            });
+        }
+    }
+
+    #[derive(Debug)]
+    struct ObservedBackend(Arc<Mutex<Option<Observation>>>);
+
+    impl WebSocketRuntimeBackend for ObservedBackend {
+        fn listen_websocket(
+            &self,
+            _runtime: &Runtime,
+            _descriptor: NetWebSocketListenerDescriptor,
+        ) -> Result<Box<dyn WebSocketRuntimeListener>, NetError> {
+            Err(NetError::Io("this fixture only connects".to_string()))
+        }
+
+        fn connect_websocket(
+            &self,
+            runtime: &Runtime,
+            connection: NetConnectionId,
+            _descriptor: NetWebSocketConnectDescriptor,
+            events: Arc<Mutex<VecDeque<NetEvent>>>,
+        ) -> Result<Box<dyn WebSocketRuntimeConnection>, NetError> {
+            // Use a real TCP/WebSocket pair, retaining the actual production
+            // connection and reader rather than a simulated set_state callback.
+            let (network, read_half, mut peer) = runtime.block_on(async {
+                tokio::time::timeout(std::time::Duration::from_secs(5), connected_pair(runtime))
+                    .await
+                    .expect("local WebSocket handshake must finish")
+            });
+            let (release, released) = tokio::sync::oneshot::channel();
+            let peer = runtime.spawn(async move {
+                let _ = tokio::time::timeout(
+                    std::time::Duration::from_secs(2),
+                    peer.send(TungsteniteMessage::Text("before close".into())),
+                )
+                .await;
+                if tokio::time::timeout(std::time::Duration::from_secs(5), released)
+                    .await
+                    .is_ok_and(|result| result.is_ok())
+                {
+                    // The peer still owns its socket after root close returns.
+                    // Sending may fail because the cancelled reader dropped it.
+                    let _ = tokio::time::timeout(
+                        std::time::Duration::from_secs(2),
+                        peer.send(TungsteniteMessage::Text("after close".into())),
+                    )
+                    .await;
+                }
+            });
+            let reader = runtime.spawn(read_websocket_frames(
+                connection,
+                read_half,
+                Arc::clone(&network.state),
+                Arc::clone(&network.inbound),
+                Arc::clone(&network.reader_cancel),
+                events,
+            ));
+            *self.0.lock().unwrap() = Some(Observation {
+                state: Arc::clone(&network.state),
+                inbound: Arc::clone(&network.inbound),
+                cancellation: Arc::clone(&network.reader_cancel),
+                reader: Some(reader),
+                peer: Some(peer),
+                release: Some(release),
+            });
+            Ok(Box::new(network))
+        }
+    }
+
+    let observation = Arc::new(Mutex::new(None));
+    let net = DefaultNetManager::default()
+        .with_websocket_backend(Arc::new(ObservedBackend(Arc::clone(&observation))));
+    let connected = net.connect_websocket(NetWebSocketConnectDescriptor::new(
+        "ws://127.0.0.1/observed-reader",
+    ));
+    // Take task ownership before checking the root result so failure also cleans up.
+    let mut observed = observation
+        .lock()
+        .unwrap()
+        .take()
+        .expect("backend must run");
+    let connection = connected.unwrap();
+    let runtime = test_runtime();
+    runtime.block_on(wait_for_inbound_len(&observed.inbound, 1));
+    assert_eq!(*observed.state.lock().unwrap(), NetConnectionState::Open);
+    assert!(net.drain_events(usize::MAX).iter().any(|event| matches!(
+        event,
+        NetEvent::WebSocketFrameQueued { connection: id, .. } if *id == connection
+    )));
+
+    net.close_connection(connection).unwrap();
+    assert_eq!(*observed.state.lock().unwrap(), NetConnectionState::Closed);
+    assert!(observed.cancellation.is_cancelled());
+    assert!(matches!(
+        net.connection_state(connection),
+        Err(NetError::UnknownConnection { connection: id }) if id == connection
+    ));
+    runtime.block_on(async {
+        let reader = observed.reader.as_mut().unwrap();
+        tokio::time::timeout(std::time::Duration::from_secs(2), reader)
+            .await
+            .expect("root close must terminate the actual reader")
+            .unwrap();
+    });
+    observed.reader.take();
+    let events = net.drain_events(usize::MAX);
+    assert_eq!(
+        events
+            .iter()
+            .filter(|event| matches!(
+                event,
+                NetEvent::ConnectionClosed { connection: id, .. } if *id == connection
+            ))
+            .count(),
+        1
+    );
+    assert!(!events.iter().any(|event| matches!(
+        event,
+        NetEvent::WebSocketFrameQueued { connection: id, .. } if *id == connection
+    )));
+    let inbound_after_close = observed.inbound.lock().unwrap().clone();
+    observed.release.take().unwrap().send(()).unwrap();
+    runtime.block_on(async {
+        let peer = observed.peer.as_mut().unwrap();
+        tokio::time::timeout(std::time::Duration::from_secs(2), peer)
+            .await
+            .expect("the controlled peer must finish after release")
+            .unwrap();
+    });
+    observed.peer.take();
+    assert!(net.drain_events(usize::MAX).is_empty());
+    assert_eq!(*observed.inbound.lock().unwrap(), inbound_after_close);
+    assert_eq!(*observed.state.lock().unwrap(), NetConnectionState::Closed);
 }

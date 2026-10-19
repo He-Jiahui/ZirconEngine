@@ -3,12 +3,14 @@ use std::sync::Arc;
 
 use crate::asset::AssetImporterDescriptor;
 use crate::core::framework::bridge::PluginInterface;
-use crate::core::framework::project::{ExportPackagingStrategy, ExportTargetPlatform};
+use crate::core::framework::project::{
+    ExportPackagingStrategy, ExportTargetPlatform, ProjectPluginFeatureSelection,
+};
 use crate::core::framework::script::{ScriptHostParameterDescriptor, ScriptHostValueKind};
 use crate::plugin::{
     CapabilityStatus, CapabilityStatusManifest, PluginDependencyManifest,
     PluginFeatureBundleManifest, PluginFeatureDependency, PluginInterfaceManifest,
-    PluginInterfaceMethodManifest, PluginModuleManifest, PluginPackageManifest,
+    PluginInterfaceMethodManifest, PluginModuleManifest, PluginPackageKind, PluginPackageManifest,
     RuntimeExtensionRegistry, RuntimeExtensionRegistryError, RuntimePlugin, RuntimePluginCatalog,
     RuntimePluginDescriptor, RuntimePluginRegistrationReport,
 };
@@ -18,6 +20,105 @@ use crate::{builtin::RuntimePluginId, core::framework::platform::RuntimeTargetMo
 mod capability_status;
 #[path = "../runtime_plugin_package_manifest/feature_modules.rs"]
 mod feature_modules;
+
+#[test]
+fn embedded_feature_carrier_identity_rejects_distinct_explicit_provider_duplicates() {
+    for (package_kind, extension_rows, carrier) in [
+        (PluginPackageKind::FeatureExtension, true, "sound_extension"),
+        (PluginPackageKind::Standard, true, "sound"),
+        (
+            PluginPackageKind::FeatureExtension,
+            false,
+            "sound_extension",
+        ),
+        (PluginPackageKind::Standard, false, "sound_extension"),
+    ] {
+        let feature = |provider| {
+            PluginFeatureBundleManifest::new("sound.spatial_audio", "Spatial Audio", "sound")
+                .with_provider_package_id(provider)
+                .with_capability("sound.spatial_audio")
+                .with_dependency(PluginFeatureDependency::primary(
+                    "sound",
+                    "runtime.plugin.sound",
+                ))
+        };
+        let mut manifest = PluginPackageManifest::new(carrier, "Sound Feature Provider")
+            .with_package_kind(package_kind)
+            .with_capability("runtime.plugin.sound");
+        if extension_rows {
+            manifest.feature_extensions = vec![feature("provider_a"), feature("provider_b")];
+        } else {
+            manifest.optional_features = vec![feature("provider_a"), feature("provider_b")];
+        }
+        let field_name = if extension_rows {
+            "feature extension"
+        } else {
+            "optional feature"
+        };
+        let expected = format!(
+            "runtime plugin package manifest {field_name} `sound.spatial_audio` provider `{carrier}` must be unique"
+        );
+        let registration = RuntimePluginRegistrationReport::from_native_package_manifest(manifest);
+        assert!(!registration.is_success());
+        assert!(
+            registration.diagnostics.contains(&expected),
+            "{:?}",
+            registration.diagnostics
+        );
+        assert_eq!(
+            registration
+                .diagnostics
+                .iter()
+                .filter(|diagnostic| *diagnostic == &expected)
+                .count(),
+            1
+        );
+
+        let catalog = RuntimePluginCatalog::from_registration_reports([registration], []);
+        assert!(!catalog.is_success());
+        assert!(catalog.diagnostics().contains(&expected));
+        let catalog_duplicate = format!(
+            "duplicate optional feature provider sound.spatial_audio@{carrier} declared in plugin catalog"
+        );
+        assert!(
+            catalog.diagnostics().contains(&catalog_duplicate),
+            "{:?}",
+            catalog.diagnostics()
+        );
+    }
+}
+
+#[test]
+fn ordinary_owner_embedded_features_preserve_distinct_explicit_providers() {
+    let feature = |provider, display_name| {
+        PluginFeatureBundleManifest::new("sound.spatial_audio", display_name, "sound")
+            .with_provider_package_id(provider)
+            .with_capability("sound.spatial_audio")
+            .with_dependency(PluginFeatureDependency::primary(
+                "sound",
+                "runtime.plugin.sound",
+            ))
+    };
+    let manifest = PluginPackageManifest::new("sound", "Sound")
+        .with_capability("runtime.plugin.sound")
+        .with_optional_feature(feature("provider_a", "Provider A"))
+        .with_optional_feature(feature("provider_b", "Provider B"));
+    let registration = RuntimePluginRegistrationReport::from_native_package_manifest(manifest);
+    assert!(registration.is_success(), "{:?}", registration.diagnostics);
+    let catalog = RuntimePluginCatalog::from_registration_reports([registration], []);
+    assert!(catalog.is_success(), "{:?}", catalog.diagnostics());
+    for (provider, display_name) in [("provider_a", "Provider A"), ("provider_b", "Provider B")] {
+        let selection = ProjectPluginFeatureSelection::new("sound.spatial_audio")
+            .with_provider_package_id(provider);
+        let published = catalog
+            .feature_manifest_for_selection("sound", &selection)
+            .expect("each explicit provider must retain its own catalog definition");
+        assert_eq!(published.id, "sound.spatial_audio");
+        assert_eq!(published.owner_plugin_id, "sound");
+        assert_eq!(published.provider_package_id.as_deref(), Some(provider));
+        assert_eq!(published.display_name, display_name);
+    }
+}
 
 #[test]
 fn runtime_plugin_registration_report_rejects_package_manifest_id_mismatch() {

@@ -109,17 +109,18 @@ impl ProjectSessionAdmissionLifecycleV1 {
 
     /// 普通状态边不含 Ready；只有实际运行时会话取得 generation 后才能单独提交。
     const fn allows_transition_to(self, next: Self) -> bool {
-        match (self, next) {
-            (Self::Claimed, Self::PreflightApproved | Self::Closing | Self::RecoveryRequired)
-            | (
+        matches!(
+            (self, next),
+            (
+                Self::Claimed,
+                Self::PreflightApproved | Self::Closing | Self::RecoveryRequired
+            ) | (
                 Self::PreflightApproved,
                 Self::Activating | Self::Closing | Self::RecoveryRequired,
-            )
-            | (Self::Activating, Self::Closing | Self::RecoveryRequired)
-            | (Self::Ready, Self::Closing | Self::RecoveryRequired)
-            | (Self::Closing, Self::RecoveryRequired) => true,
-            _ => false,
-        }
+            ) | (Self::Activating, Self::Closing | Self::RecoveryRequired)
+                | (Self::Ready, Self::Closing | Self::RecoveryRequired)
+                | (Self::Closing, Self::RecoveryRequired)
+        )
     }
 }
 

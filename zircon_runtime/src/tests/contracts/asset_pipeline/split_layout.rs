@@ -1,4 +1,5 @@
 //! 资产管线吸收后，门禁与镜像文档共同约束管理器、工作池和产物路径。通过源码文本核对父子路由、状态镜像和文件预算。
+use crate::tests::runtime_absorption::structure_convention::fixed_history_archive_source as history;
 const PARENT_SOURCE: &str = include_str!("../asset_pipeline.rs");
 const CARGO_GATE_SOURCE: &str = include_str!("cargo_gate.rs");
 const INVENTORY_SOURCE: &str = include_str!("inventory.rs");
@@ -6,14 +7,14 @@ const MIRROR_DOCS_SOURCE: &str = include_str!("mirror_docs.rs");
 const SUPPORT_SOURCE: &str = include_str!("support.rs");
 const SPLIT_LAYOUT_SOURCE: &str = include_str!("split_layout.rs");
 
-const RUNTIME_15_OUTPUT_RECORDS: &str = include_str!(
-    "../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md"
-);
+fn runtime_15_output_records() -> &'static str {
+    history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md")
+}
 const MODULE_CONVENTION_DOC: &str =
     include_str!("../../../../../docs/crates/zircon_runtime/structure/module-convention.md");
-const FRAMEWORKS_02_OUTPUT_RECORDS: &str = include_str!(
-    "../../../../../docs/plans/zircon_runtime/frameworks/02/2026-07-09-module-kernel-and-lifecycle-unification-output-records.md"
-);
+fn frameworks_02_output_records() -> &'static str {
+    history("docs/plans/zircon_runtime/frameworks/02/2026-07-09-module-kernel-and-lifecycle-unification-output-records.md")
+}
 
 #[test]
 fn runtime_15_asset_pipeline_route_owner_is_folder_backed() {
@@ -108,7 +109,7 @@ fn assert_line_budget() {
 
 fn assert_docs_and_status_mirror_split() {
     assert!(
-        RUNTIME_15_OUTPUT_RECORDS
+        runtime_15_output_records()
             .contains("runtime_15_asset_pipeline_route_owner_split_static_passed_cargo_deferred"),
         "Runtime 15 output records should own the asset_pipeline route-owner split status"
     );
@@ -126,7 +127,7 @@ fn assert_docs_and_status_mirror_split() {
     );
     assert_contains_all(
         "Frameworks 02 output records",
-        FRAMEWORKS_02_OUTPUT_RECORDS,
+        frameworks_02_output_records(),
         &[
             "frameworks_02_m3_asset_pipeline_route_owner_split_static_passed_cargo_deferred",
             "Runtime 15 M3 asset-pipeline route-owner split",

@@ -1,4 +1,4 @@
-//! 这一链路组合监听器、音量区域、HRTF 与卷积的源级投影；当前仅内部算法引用，需与实际输出后端的接入状态分开理解。
+//! PCM/HRTF处理和控制线程标量投影各有模块；projection把空间增益和声像同步到实际Kira句柄。
 #[path = "apply.rs"]
 mod apply;
 #[path = "constants.rs"]
@@ -9,12 +9,14 @@ mod convolution;
 mod hrtf;
 #[path = "listener.rs"]
 mod listener;
+#[path = "projection.rs"]
+mod projection;
 #[path = "spatial/mod.rs"]
 mod spatial;
 #[path = "volume/mod.rs"]
 mod volume;
 
-// TODO: [CR-SOUND-AUDIT-0003] 确认此源级空间/HRTF/区域处理何时接入实时输出；目前仅见内部导出，Kira 声源直接播放静态素材，未见该入口的生产调用。
+// TODO: [CR-SOUND-AUDIT-0003] PCM级HRTF和区域处理仍需独立接入；projection当前只连接实时空间增益和声像，不构成该完整处理链的验收。
 pub(crate) use apply::apply_source_environment;
 pub(crate) use hrtf::hrtf_tail_pending_for_source;
 pub(crate) use listener::active_listener_for;

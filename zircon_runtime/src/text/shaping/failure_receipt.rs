@@ -314,7 +314,7 @@ impl TextShapingBackendRouteReport {
 }
 
 /// 合并请求工作量、失败原因与路由观测的值快照，由会话或批次持有。
-/// 请求、错误与产物只在记录调用期间借用；本报告不租用字体或整形资源。
+/// 请求诊断按值传入，错误与产物仅在记录期间借用；本报告不租用字体或整形资源。
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub(crate) struct TextShapingDiagnosticsReport {
     /// 按能力回执自己的处置分类的失败统计。

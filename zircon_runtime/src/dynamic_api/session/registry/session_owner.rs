@@ -9,8 +9,8 @@ use std::any::Any;
 use std::cell::RefCell;
 use std::panic::{catch_unwind, resume_unwind, AssertUnwindSafe};
 use std::sync::atomic::{AtomicBool, AtomicU8, Ordering};
-use std::sync::{Arc, Condvar, Mutex, TryLockError};
-use std::time::Instant;
+use std::sync::{Arc, Mutex, TryLockError};
+use std::time::{Duration, Instant};
 
 use crossbeam_channel::{bounded, Receiver, SendTimeoutError, Sender};
 
@@ -113,13 +113,12 @@ pub(super) enum OwnerDispatchError {
     AdmissionIncomplete,
 }
 
-/// 一次清理命令共享的回执；原子结果与条件变量共同协调发布和等待。
+/// 一次清理命令共享的回执；原子结果供限时等待观察，锁只保护发布入口。
 struct CleanupReceipt {
     /// Release 发布清理结果，Acquire 读取；不编码池 join 是否完成。
     state: AtomicU8,
-    /// 发布与条件变量等待共用的锁；当前等待入口的 try_lock 也可能提前返回 Pending。
+    /// 等待入口只尝试一次此锁；取得后即释放，不在 deadline 后等待发布者交还锁。
     wait: Mutex<()>,
-    changed: Condvar,
     #[cfg(all(test, windows))]
     publication: Option<receipt_publication::Publication>,
 }
@@ -130,13 +129,12 @@ impl CleanupReceipt {
         Self {
             state: AtomicU8::new(RECEIPT_PENDING),
             wait: Mutex::new(()),
-            changed: Condvar::new(),
             #[cfg(all(test, windows))]
             publication: receipt_publication::current(),
         }
     }
 
-    // 先持有等待锁再发布结果和唤醒，防止条件检查与等待切换间丢失通知。
+    // 原发布者持锁写入 Release 结果；等待者不依赖通知，也不阻塞重获该锁。
     fn publish(&self, state: u8) {
         let _wait = self
             .wait
@@ -145,7 +143,6 @@ impl CleanupReceipt {
         #[cfg(all(test, windows))]
         receipt_publication::publisher_locked(self, state);
         self.state.store(state, Ordering::Release);
-        self.changed.notify_all();
         #[cfg(all(test, windows))]
         receipt_publication::published(self);
     }
@@ -165,15 +162,21 @@ impl CleanupReceipt {
             #[cfg(not(all(test, windows)))]
             Err(TryLockError::WouldBlock) => return RECEIPT_PENDING,
         };
-        let _ = self
-            .changed
-            .wait_timeout_while(
-                wait,
-                deadline.saturating_duration_since(Instant::now()),
-                |_| self.state.load(Ordering::Acquire) == RECEIPT_PENDING,
-            )
-            .unwrap_or_else(|poisoned| poisoned.into_inner());
-        self.state.load(Ordering::Acquire)
+        drop(wait);
+        #[cfg(all(test, windows))]
+        receipt_publication::wait_guard_released(self, deadline);
+        loop {
+            let state = self.state.load(Ordering::Acquire);
+            if state != RECEIPT_PENDING {
+                return state;
+            }
+            let remaining = deadline.saturating_duration_since(Instant::now());
+            if remaining.is_zero() {
+                return RECEIPT_PENDING;
+            }
+            // 条件变量超时仍要重获发布锁；限时观察不能依赖发布者何时释放它。
+            std::thread::sleep(remaining.min(Duration::from_millis(5)));
+        }
     }
 }
 

@@ -1,6 +1,78 @@
 use super::support::*;
 
 #[test]
+fn viewport_surface_v2_rejects_missing_render_bridge() {
+    use zircon_runtime_interface::ZrRuntimeBindViewportSurfaceRequestV2 as V2;
+    let api = runtime_api();
+    let session = create_test_session(api);
+    let valid = V2::new(
+        ZrRuntimeViewportHandle::new(1),
+        ZrRuntimeViewportSizeV1::new(64, 48),
+        ZrRuntimeNativeSurfaceTargetV1::win32(ZIRCON_RUNTIME_ABI_VERSION_V1, 73, 0),
+    );
+    let bind = crate::dynamic_api::exports::zircon_runtime_bind_viewport_surface_v2;
+    // SAFETY: these are real registered session handles and by-value DTOs; no native
+    // window is consumed because the headless session must reject the absent bridge.
+    let invoke = |request| unsafe { bind(session, request) }.status_code();
+    assert_eq!(invoke(valid), ZrStatusCode::CapabilityDenied);
+    let mut bad = valid;
+    bad.abi_version += 1;
+    assert_eq!(invoke(bad), ZrStatusCode::UnsupportedVersion);
+    let mut bad = valid;
+    bad.size_bytes -= 1;
+    assert_eq!(invoke(bad), ZrStatusCode::InvalidArgument);
+    let mut bad = valid;
+    bad.present_mode = u32::MAX;
+    assert_eq!(invoke(bad), ZrStatusCode::InvalidArgument);
+    let mut bad = valid;
+    bad.reserved = 1;
+    assert_eq!(invoke(bad), ZrStatusCode::InvalidArgument);
+    let mut bad = valid;
+    bad.viewport = ZrRuntimeViewportHandle::new(44);
+    assert_eq!(invoke(bad), ZrStatusCode::NotFound);
+    let mut bad = valid;
+    bad.target.abi_version += 1;
+    assert_eq!(invoke(bad), ZrStatusCode::UnsupportedVersion);
+    let mut bad = valid;
+    bad.target.window_handle = 0;
+    assert_eq!(invoke(bad), ZrStatusCode::InvalidArgument);
+    destroy_test_session(api, session);
+    // SAFETY: the released numeric handle is deliberately rejected before any target use.
+    assert_eq!(
+        unsafe { bind(session, valid) }.status_code(),
+        ZrStatusCode::NotFound
+    );
+}
+
+#[test]
+fn viewport_surface_v2_decoder_preserves_all_requested_policies() {
+    use crate::core::framework::window::WindowPresentMode as W;
+    use zircon_runtime_interface::{
+        ZrRuntimeBindViewportSurfaceRequestV2 as V2, ZrRuntimePresentModeV2 as M,
+    };
+    let request = V2::new(
+        ZrRuntimeViewportHandle::new(1),
+        ZrRuntimeViewportSizeV1::new(0, 0),
+        ZrRuntimeNativeSurfaceTargetV1::win32(ZIRCON_RUNTIME_ABI_VERSION_V1, 73, 0),
+    );
+    for (wire, neutral) in [
+        (M::Fifo, W::Fifo),
+        (M::Immediate, W::Immediate),
+        (M::Mailbox, W::Mailbox),
+        (M::FifoRelaxed, W::FifoRelaxed),
+        (M::AutoVsync, W::AutoVsync),
+        (M::AutoNoVsync, W::AutoNoVsync),
+    ] {
+        let descriptor = crate::dynamic_api::surface::render_surface_descriptor_v2(
+            request.with_present_mode(wire),
+        )
+        .expect("checked V2 descriptor");
+        assert_eq!(descriptor.present_mode, neutral);
+        assert_eq!(descriptor.size, crate::core::math::UVec2::new(1, 1));
+    }
+}
+
+#[test]
 fn bind_viewport_surface_rejects_wrong_abi_after_session_action_admission() {
     let api = runtime_api();
     let bind = api.bind_viewport_surface.expect("bind_viewport_surface");

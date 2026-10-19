@@ -242,3 +242,173 @@ fn benchmark_samples_csv(samples: &[u128]) -> String {
         .collect::<Vec<_>>()
         .join(",")
 }
+#[test]
+fn timeline_failure_preserves_completed_and_ongoing_progress_and_retry_order() {
+    let mut state = timeline_state(4, 1, 0, false);
+    state.automation_bindings.clear();
+    let targets = (0..4)
+        .map(|index| SoundParameterId::new(format!("timeline.retry.target.{index}")))
+        .collect::<Vec<_>>();
+    for (index, playback) in state.timeline_sequences.iter_mut().enumerate() {
+        let binding = SoundAutomationBindingId::new(index as u64 + 1);
+        playback.sequence.tracks[0].binding = binding;
+        state.automation_bindings.insert(
+            binding,
+            SoundAutomationBinding {
+                id: binding,
+                timeline_track_path: String::new(),
+                target: SoundAutomationTarget::SynthParameter(targets[index].clone()),
+                parameter: SoundParameterId::new("value"),
+            },
+        );
+    }
+    state.timeline_sequences[0].sequence.duration_seconds = 0.625;
+    state.timeline_sequences[0].sequence.looping = false;
+    let sequence_ids = state
+        .timeline_sequences
+        .iter()
+        .map(|playback| playback.sequence.id.clone())
+        .collect::<Vec<_>>();
+    let missing_binding = SoundAutomationBindingId::new(3);
+    let binding = state.automation_bindings.remove(&missing_binding).unwrap();
+
+    assert!(matches!(
+        advance_timeline_sequences(&mut state, 0.25),
+        Err(SoundError::UnknownAutomationBinding { binding }) if binding == missing_binding
+    ));
+    assert_eq!(
+        state
+            .timeline_sequences
+            .iter()
+            .map(|playback| playback.sequence.id.clone())
+            .collect::<Vec<_>>(),
+        sequence_ids[1..]
+    );
+    assert_eq!(
+        state
+            .timeline_sequences
+            .iter()
+            .map(|playback| playback.time_seconds)
+            .collect::<Vec<_>>(),
+        vec![0.75, 0.5, 0.5]
+    );
+    assert_eq!(state.parameters.get(&targets[0]), Some(&0.625));
+    assert_eq!(state.parameters.get(&targets[1]), Some(&0.75));
+    assert!(!state.parameters.contains_key(&targets[2]));
+    assert!(!state.parameters.contains_key(&targets[3]));
+
+    state.parameters.insert(targets[0].clone(), -7.0);
+    state.automation_bindings.insert(missing_binding, binding);
+    let reports = advance_timeline_sequences(&mut state, 0.125).unwrap();
+    assert_eq!(
+        reports
+            .iter()
+            .map(|report| report.sequence.clone())
+            .collect::<Vec<_>>(),
+        sequence_ids[1..]
+    );
+    assert_eq!(
+        reports
+            .iter()
+            .map(|report| report.time_seconds)
+            .collect::<Vec<_>>(),
+        vec![0.875, 0.625, 0.625]
+    );
+    assert!(reports
+        .iter()
+        .all(|report| !report.completed && report.samples.len() == 1));
+    assert_eq!(
+        state
+            .timeline_sequences
+            .iter()
+            .map(|playback| playback.sequence.id.clone())
+            .collect::<Vec<_>>(),
+        sequence_ids[1..]
+    );
+    assert_eq!(
+        state
+            .timeline_sequences
+            .iter()
+            .map(|playback| playback.time_seconds)
+            .collect::<Vec<_>>(),
+        vec![0.875, 0.625, 0.625]
+    );
+    assert_eq!(
+        state.parameters.get(&targets[0]),
+        Some(&-7.0),
+        "completed sequence must not be replayed"
+    );
+    assert_eq!(state.parameters.get(&targets[1]), Some(&0.875));
+    assert_eq!(state.parameters.get(&targets[2]), Some(&0.625));
+    assert_eq!(state.parameters.get(&targets[3]), Some(&0.625));
+}
+
+#[test]
+fn timeline_target_failure_restores_unadvanced_sequences() {
+    let mut state = timeline_state(3, 1, 0, false);
+    let sequence_ids = state
+        .timeline_sequences
+        .iter()
+        .map(|playback| playback.sequence.id.clone())
+        .collect::<Vec<_>>();
+    let binding_id = SoundAutomationBindingId::new(1);
+    state
+        .automation_bindings
+        .get_mut(&binding_id)
+        .unwrap()
+        .parameter = SoundParameterId::new("unsupported");
+
+    assert!(matches!(
+        advance_timeline_sequences(&mut state, 0.25),
+        Err(SoundError::InvalidParameter(message))
+            if message == "unsupported sound automation parameter unsupported for synth parameter"
+    ));
+    assert_eq!(
+        state
+            .timeline_sequences
+            .iter()
+            .map(|playback| playback.sequence.id.clone())
+            .collect::<Vec<_>>(),
+        sequence_ids
+    );
+    assert!(state
+        .timeline_sequences
+        .iter()
+        .all(|playback| playback.time_seconds == 0.5));
+    assert!(state.parameters.is_empty());
+
+    state
+        .automation_bindings
+        .get_mut(&binding_id)
+        .unwrap()
+        .parameter = SoundParameterId::new("value");
+    let reports = advance_timeline_sequences(&mut state, 0.25).unwrap();
+    assert_eq!(
+        reports
+            .iter()
+            .map(|report| report.sequence.clone())
+            .collect::<Vec<_>>(),
+        sequence_ids
+    );
+    assert!(reports
+        .iter()
+        .all(|report| report.time_seconds == 0.75 && !report.completed));
+    assert_eq!(
+        state
+            .timeline_sequences
+            .iter()
+            .map(|playback| playback.sequence.id.clone())
+            .collect::<Vec<_>>(),
+        sequence_ids
+    );
+    assert!(state
+        .timeline_sequences
+        .iter()
+        .all(|playback| playback.time_seconds == 0.75));
+    assert_eq!(
+        state
+            .parameters
+            .get(&SoundParameterId::new("timeline.capacity.target.0")),
+        Some(&0.75)
+    );
+}

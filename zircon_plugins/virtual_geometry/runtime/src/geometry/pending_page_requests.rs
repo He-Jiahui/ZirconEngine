@@ -12,6 +12,10 @@ use super::available_slots::available_slots;
 #[path = "../tests/pending_page_requests_alloc.rs"]
 mod allocation_tests;
 
+#[cfg(test)]
+#[path = "tests/pending_page_alloc.rs"]
+mod parent_cycle_tests;
+
 #[derive(Clone, Copy)]
 struct AssignedSlotPlan {
     slot: Option<u32>,

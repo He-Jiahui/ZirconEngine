@@ -18,7 +18,9 @@ use super::query_contact::{
 use super::step::integrate_body_sync_state;
 use super::trigger::{compute_trigger_events, PhysicsTriggerPairMap};
 use crate::backend::handle_pool::HandlePool;
-use crate::backend::validation::{body_desc_is_valid, material_is_valid, shape_is_valid};
+use crate::backend::validation::{
+    body_command_is_valid, body_desc_is_valid, material_is_valid, shape_is_valid,
+};
 use crate::backend::{
     resolve_body_mass, BodyCommand, BodyDesc, BodyHandle, ConstraintDesc, ConstraintHandle,
     PhysicsBackend, PhysicsBackendError, PhysicsBackendObjectKind, PhysicsEventBuffer, ShapeHandle,
@@ -253,6 +255,12 @@ impl PhysicsBackend for BuiltinPhysicsBackend {
 
     fn apply_commands(&mut self, commands: &[BodyCommand]) -> Result<(), PhysicsBackendError> {
         for command in commands {
+            if !body_command_is_valid(command) {
+                return Err(PhysicsBackendError::InvalidDescriptor {
+                    kind: PhysicsBackendObjectKind::Body,
+                    detail: "body command values must be finite".to_string(),
+                });
+            }
             let body = command.body();
             if self.bodies.get(body).is_none() {
                 return Err(Self::invalid_handle(

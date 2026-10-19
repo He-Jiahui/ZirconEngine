@@ -441,7 +441,7 @@ fn deferred_screen_space_ao_only_modulates_indirect_diffuse_lighting() {
         .expect("deferred lit shading owner");
 
     for required in [
-        "let screen_space_ao = clamp(textureLoad(ambient_occlusion_tex, coord, 0).r, 0.0, 1.0);",
+        "let screen_space_ao = deferred_screen_space_ambient_occlusion(coord);",
         "let ambient = zr_deferred_ambient_radiance() * occlusion * screen_space_ao;",
         "+ direct_lights",
         "+ environment_lights.diffuse * screen_space_ao",

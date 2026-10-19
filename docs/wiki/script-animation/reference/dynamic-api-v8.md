@@ -17,7 +17,7 @@ implementation_files:
   - zircon_runtime_interface/src/world_sync
 plan_sources:
   - user: 2026-09-09 扩展脚本、反射、动画与导航公开接口文档
-  - docs/plans/mvp/index.md
+  - docs/testing-and-validation/mvp-acceptance-index.md
 tests:
   - zircon_runtime/src/dynamic_api/tests/api_table.rs
   - zircon_runtime/src/dynamic_api/tests/session_entry_points.rs

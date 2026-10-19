@@ -42,11 +42,11 @@ class RuntimeArchetypeTopologyEqualityContractTests(unittest.TestCase):
     def test_status_is_mirrored_by_runtime_structure_and_review_plans(self) -> None:
         repo_root = Path(__file__).resolve().parents[2]
         mirrors = (
-            "docs/plans/zircon_runtime/runtime/08-ecs-kernel-data-alignment.md",
-            "docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md",
-            "docs/plans/engine-code-structure-convention.md",
-            "docs/plans/engine-code-review-findings-2026-06.md",
-            "docs/plans/optimize/zircon_runtime/60-runtime-scene-ecs-entity-component-storage-archetype-query-access-change-detection-command-schedule-parallel-event.md",
+            'docs/testing-and-validation/runtime-ecs-validation-worklist.md',
+            'docs/crates/zircon_runtime/structure/module-convention.md',
+            'docs/testing-and-validation/development-conventions.md',
+            'docs/architecture/runtime-architecture-review-m0.md',
+            'docs/crates/zircon_runtime/scene/ecs.md',
         )
         for relative_path in mirrors:
             plan = (repo_root / relative_path).read_text(encoding="utf-8")

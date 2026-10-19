@@ -34,7 +34,45 @@ class IncrementalCacheCleanupTests(unittest.TestCase):
         return session, lock
 
     def clean(self, root, **kwargs):
+        # Explicit zero tests the existing native deletion contract; production
+        # defaults and warm-cache behavior are exercised separately below.
+        kwargs.setdefault("keep_sessions", 0)
         return cleanup.clean(root / "cache", root / "output", trigger_free=2**63, **kwargs)
+
+    def test_default_preserves_last_completed_session_under_disk_pressure(self):
+        with self.fixture() as directory:
+            root = Path(directory)
+            session, _ = self.session(root)
+            result = cleanup.clean(root / "cache", root / "output", trigger_free=2**63)
+            self.assertEqual(result["deletedFiles"], 0)
+            self.assertEqual(result["warmSessionsRetained"], 1)
+            self.assertEqual(result["sessions"][0]["reason"], "warm-incremental-session")
+            self.assertTrue((session / "product.o").exists())
+
+    def test_retires_old_sessions_but_keeps_latest_for_each_unit(self):
+        with self.fixture() as directory:
+            root = Path(directory)
+            old, _ = self.session(root, suffix="old")
+            new, _ = self.session(root, suffix="new")
+            timestamp = time.time() - 1800
+            os.utime(new, (timestamp, timestamp))
+            result = self.clean(root, keep_sessions=1)
+            self.assertFalse(old.exists())
+            self.assertTrue((new / "product.o").exists())
+            self.assertEqual(result["warmSessionsRetained"], 1)
+            self.assertEqual(result["deletedFiles"], 2)
+
+    def test_unknown_newer_session_does_not_evict_usable_warm_state(self):
+        with self.fixture() as directory:
+            root = Path(directory)
+            good, _ = self.session(root, suffix="good")
+            unknown, _ = self.session(root, suffix="unknown", content={"source.rs": b"source"})
+            timestamp = time.time() - 1800
+            os.utime(unknown, (timestamp, timestamp))
+            result = self.clean(root, keep_sessions=1)
+            self.assertEqual(result["deletedFiles"], 0)
+            self.assertTrue((good / "product.o").exists())
+            self.assertTrue((unknown / "source.rs").exists())
 
     def test_deletes_unlocked_session_and_accounts_hardlinks_without_deleting_other_names(self):
         with self.fixture() as directory:

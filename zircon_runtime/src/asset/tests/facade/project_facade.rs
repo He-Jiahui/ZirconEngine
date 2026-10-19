@@ -119,3 +119,60 @@ fn project_asset_manager_load_accepts_v2_ui_payload_under_ui_layout_kind() {
     );
     assert!(manager.load::<UiLayoutAsset>(&ui_locator).is_err());
 }
+
+#[test]
+fn typed_metadata_handles_require_declared_concrete_type_without_loading() {
+    use crate::asset::{UiIconAsset, UiStyleAsset, UiThemeAsset};
+    use crate::core::resource::ResourceMutationBatch;
+    let manager = ProjectAssetManager::default();
+    let resources = manager.resource_manager();
+    let icon = record("res://identity/lazy-icon", ResourceKind::Texture)
+        .with_state(ResourceState::Ready)
+        .with_artifact_locator(locator("lib://missing/identity-icon"));
+    let theme =
+        record("res://identity/lazy-theme", ResourceKind::UiStyle).with_state(ResourceState::Ready);
+    let unknown = record("res://identity/legacy-untyped", ResourceKind::Texture);
+    resources
+        .commit(
+            ResourceMutationBatch::new()
+                .upsert_typed_lazy::<UiIconAsset>(icon.clone())
+                .upsert_typed_lazy::<UiThemeAsset>(theme.clone())
+                .upsert_lazy(unknown.clone()),
+        )
+        .unwrap();
+    assert_eq!(
+        manager
+            .handle::<UiIconAsset>(&icon.primary_locator)
+            .unwrap()
+            .id(),
+        icon.id
+    );
+    assert!(manager
+        .handle::<TextureAsset>(&icon.primary_locator)
+        .is_err());
+    assert_eq!(
+        manager
+            .handle::<UiThemeAsset>(&theme.primary_locator)
+            .unwrap()
+            .id(),
+        theme.id
+    );
+    assert!(manager
+        .handle::<UiStyleAsset>(&theme.primary_locator)
+        .is_err());
+    assert!(manager
+        .handle::<TextureAsset>(&unknown.primary_locator)
+        .is_err());
+    assert!(manager
+        .handle::<UiIconAsset>(&unknown.primary_locator)
+        .is_err());
+    assert_eq!(resources.ref_count(icon.id), Some(0));
+    assert!(manager
+        .assets::<UiIconAsset>()
+        .get(Handle::new(icon.id))
+        .is_none());
+    assert!(manager
+        .assets::<UiIconAsset>()
+        .contains(Handle::new(icon.id)));
+    assert!(manager.current_project_manager().is_none());
+}

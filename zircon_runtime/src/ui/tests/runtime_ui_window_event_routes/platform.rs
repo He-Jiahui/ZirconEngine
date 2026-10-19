@@ -178,7 +178,19 @@ fn runtime_ui_manager_pointer_preview_phase_stops_before_target_handler() {
     assert_eq!(result.diagnostics.route_steps[0].target, Some(root_node));
     assert_eq!(result.diagnostics.route_steps[0].handler, Some(root_node));
     assert!(result.diagnostics.route_steps[0].stopped);
-    assert!(result.reply.effects.is_empty());
+    let cursor = zircon_runtime_interface::ui::tree::UiCursor::Default;
+    let effect = zircon_runtime_interface::ui::dispatch::UiDispatchEffect::RequestCursor { cursor };
+    assert_eq!(result.reply.effects, vec![effect.clone()]);
+    assert_eq!(result.applied_effects.len(), 1);
+    assert_eq!(result.applied_effects[0].effect_index, 0);
+    assert_eq!(result.applied_effects[0].effect, effect);
+    assert_eq!(result.host_requests.len(), 1);
+    assert_eq!(result.host_requests[0].effect_index, 0);
+    assert_eq!(
+        result.host_requests[0].request,
+        zircon_runtime_interface::ui::dispatch::UiDispatchHostRequestKind::Cursor(cursor)
+    );
+    assert!(result.rejected_effects.is_empty());
     assert_ne!(manager.surface().focus.captured, Some(target_node));
     assert_eq!(manager.surface().input.last_cursor_point(), Some(point));
     assert!(!manager.surface().dirty_flags().any());

@@ -18,7 +18,19 @@ def _entry(repo):
     raw = (capsule / "capsule.json").read_bytes()
     if capsule.resolve() != capsule or hashlib.sha256(raw).hexdigest() != checksum:
         raise ValueError("Pinned management capsule manifest changed")
-    expected = json.loads(raw)["clientSources"]["tools/jenkins-management/entry.py"]
+    config = json.loads(raw)
+    expected = config["clientSources"]["tools/jenkins-management/entry.py"]
+    if "clientRoot" in config:
+        runner_path = capsule / "runner.py"
+        if (config.get("repositoryRoot") != str(repo)
+                or Path(installed.get("capsule", "")) != capsule
+                or runner_path.resolve() != runner_path.absolute()
+                or hashlib.sha256(runner_path.read_bytes()).hexdigest() != config["files"]["runner.py"]):
+            raise ValueError("Pinned management client selector changed")
+        runner_spec = importlib.util.spec_from_file_location("flow_dispatch_client_selector", runner_path)
+        runner = importlib.util.module_from_spec(runner_spec)
+        runner_spec.loader.exec_module(runner)
+        path = runner.client_path(config, repo, "tools/jenkins-management/entry.py", capsule=capsule)
     if path.resolve() != path.absolute() or hashlib.sha256(path.read_bytes()).hexdigest() != expected:
         raise ValueError("Pinned management entry implementation changed")
     spec = importlib.util.spec_from_file_location("flow_dispatch_public_entry", path)

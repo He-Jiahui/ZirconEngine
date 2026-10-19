@@ -3,9 +3,14 @@
 //! These cases go through the public WGPU framework so the assertions observe submitted
 //! frames, execution segments and debug snapshots rather than private SceneRenderer buffers.
 
+use std::fmt::Write as _;
+use std::fs;
+use std::path::PathBuf;
 use std::sync::Arc;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use zircon_runtime::asset::pipeline::manager::{AssetManager, ProjectAssetManager};
+use zircon_runtime::asset::project::{ProjectManager, ProjectManifest, ProjectPaths};
 use zircon_runtime::asset::AssetUri;
 use zircon_runtime::core::framework::render::{
     render_mesh_stable_instance_key, render_mesh_transform_revision, DisplayMode,
@@ -19,6 +24,7 @@ use zircon_runtime::core::framework::render::{
 use zircon_runtime::core::math::{Transform, UVec2, Vec3, Vec4};
 use zircon_runtime::core::resource::{MaterialMarker, ModelMarker, ResourceHandle};
 use zircon_runtime::scene::components::{default_render_layer_mask, Mobility};
+use zircon_runtime_interface::project::RelPath;
 
 use crate::test_support::render_feature_fixtures::pluginized_wgpu_render_framework_with_asset_manager;
 
@@ -29,6 +35,117 @@ struct Observation {
     rgba: Vec<u8>,
     indirect_draw_count: u32,
     execution_segment_count: u32,
+}
+
+struct CookedCubeFixture {
+    root: PathBuf,
+}
+
+impl CookedCubeFixture {
+    fn new(asset_manager: &ProjectAssetManager, cluster_count: usize) -> Self {
+        // Preserve the original product fixture's cube geometry, but admit it
+        // through the real OBJ importer and VG cook rather than builtin data.
+        let builtin_id = asset_manager
+            .resolve_asset_id(&AssetUri::parse("builtin://cube").unwrap())
+            .expect("builtin cube identity");
+        let cube = asset_manager.load_model_asset(builtin_id).unwrap();
+        assert_eq!(cube.primitives.len(), 1, "builtin cube primitive owner");
+        let primitive = &cube.primitives[0];
+        assert_eq!(primitive.indices.len() % 3, 0);
+        let triangle_count = primitive.indices.len() / 3;
+        assert!(
+            cluster_count > 0 && triangle_count % cluster_count == 0,
+            "authored rows must describe a real partition of the original cube"
+        );
+        let mut obj = String::from("o cube\n");
+        for vertex in &primitive.vertices {
+            writeln!(
+                obj,
+                "v {} {} {}",
+                vertex.position[0], vertex.position[1], vertex.position[2]
+            )
+            .unwrap();
+            writeln!(obj, "vt {} {}", vertex.uv[0], vertex.uv[1]).unwrap();
+            writeln!(
+                obj,
+                "vn {} {} {}",
+                vertex.normal[0], vertex.normal[1], vertex.normal[2]
+            )
+            .unwrap();
+        }
+        for triangle in primitive.indices.chunks_exact(3) {
+            let a = triangle[0] + 1;
+            let b = triangle[1] + 1;
+            let c = triangle[2] + 1;
+            writeln!(obj, "f {a}/{a}/{a} {b}/{b}/{b} {c}/{c}/{c}").unwrap();
+        }
+
+        let unique = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let root = std::env::temp_dir().join(format!(
+            "zircon_vg_product_args_cube_{}_{}",
+            std::process::id(),
+            unique,
+        ));
+        // create_dir never adopts a preexisting project; Drop owns only this
+        // runtime fixture, under the caller's registered TEMP directory.
+        fs::create_dir(&root).unwrap();
+        let fixture = Self { root };
+        let paths = ProjectPaths::from_root(&fixture.root).unwrap();
+        paths.ensure_layout(&[RelPath::project_assets()]).unwrap();
+        ProjectManifest::new(
+            "VirtualGeometryProductArgsCube",
+            AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
+            1,
+        )
+        .save(paths.manifest_path())
+        .unwrap();
+        let model_path = paths
+            .asset_root(&RelPath::project_assets())
+            .join("models/cube.obj");
+        fs::create_dir_all(model_path.parent().unwrap()).unwrap();
+        fs::write(&model_path, obj).unwrap();
+        let mut metadata = zircon_runtime::asset::project::AssetMetaDocument::new(
+            zircon_runtime::asset::AssetUuid::new(),
+            AssetUri::parse("res://models/cube.obj").unwrap(),
+            zircon_runtime::asset::AssetKind::Model,
+        );
+        metadata.import_settings = format!(
+            "[virtual_geometry]\nenabled = true\ncluster_triangle_count = {}\npage_cluster_count = {}\n",
+            triangle_count / cluster_count, cluster_count,
+        ).parse().unwrap();
+        metadata
+            .save(model_path.with_file_name("cube.obj.zmeta"))
+            .unwrap();
+        asset_manager
+            .open_project(fixture.root.to_string_lossy().as_ref())
+            .unwrap();
+        ProjectManager::open(&fixture.root)
+            .unwrap()
+            .scan_and_import()
+            .unwrap();
+        fixture
+    }
+}
+
+impl Drop for CookedCubeFixture {
+    fn drop(&mut self) {
+        if let Err(error) = fs::remove_dir_all(&self.root) {
+            if std::thread::panicking() {
+                eprintln!(
+                    "VG cube fixture cleanup failed at {}: {error}",
+                    self.root.display()
+                );
+            } else {
+                panic!(
+                    "VG cube fixture cleanup failed at {}: {error}",
+                    self.root.display()
+                );
+            }
+        }
+    }
 }
 
 fn observe(
@@ -46,7 +163,27 @@ fn observe_with_instances(
     instances: Vec<RenderVirtualGeometryInstance>,
 ) -> Observation {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let model = resource_handle::<ModelMarker>(&asset_manager, "builtin://cube");
+    let mut cluster_ids_by_entity =
+        std::collections::BTreeMap::<u64, std::collections::BTreeSet<u32>>::new();
+    for row in &clusters {
+        cluster_ids_by_entity
+            .entry(row.entity)
+            .or_default()
+            .insert(row.cluster_id);
+    }
+    let cluster_count = cluster_ids_by_entity
+        .values()
+        .map(|ids| ids.len())
+        .max()
+        .unwrap_or(1);
+    assert!(
+        cluster_ids_by_entity
+            .values()
+            .all(|ids| ids.len() == cluster_count),
+        "this shared cube fixture requires one cook partition for every entity"
+    );
+    let _fixture = CookedCubeFixture::new(&asset_manager, cluster_count);
+    let model = resource_handle::<ModelMarker>(&asset_manager, "res://models/cube.obj");
     let material = resource_handle::<MaterialMarker>(&asset_manager, "builtin://material/default");
     let mut camera = ViewportCameraSnapshot {
         transform: Transform {
@@ -58,7 +195,20 @@ fn observe_with_instances(
         ..ViewportCameraSnapshot::default()
     };
     camera.apply_viewport_size(VIEWPORT_SIZE);
-    let meshes = mesh_entities
+    // Authored candidates need real immutable admissions even when prepare must
+    // omit their pending draws. Preserve enabled mesh order and add disabled
+    // candidates without broadening the submitted mesh subset.
+    let mut candidate_entities = mesh_entities.to_vec();
+    for entity in clusters
+        .iter()
+        .map(|row| row.entity)
+        .chain(instances.iter().map(|row| row.entity))
+    {
+        if !candidate_entities.contains(&entity) {
+            candidate_entities.push(entity);
+        }
+    }
+    let meshes = candidate_entities
         .iter()
         .copied()
         .map(|entity| {
@@ -80,6 +230,7 @@ fn observe_with_instances(
                 mobility: Mobility::Dynamic,
                 static_state: RenderMeshStaticState::from_transform_static(false),
                 common: RendererCommon {
+                    enabled: mesh_entities.contains(&entity),
                     layer_mask: RenderLayerSet::from_scene_schema_v1_mask(
                         default_render_layer_mask(),
                     ),

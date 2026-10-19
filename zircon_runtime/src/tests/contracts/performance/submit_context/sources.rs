@@ -1,4 +1,5 @@
 //! 性能热点的结构守卫核对拥有者、文件预算和证据文档。提取源文件或定义分类规则，供同组守卫复用。
+use crate::tests::runtime_absorption::structure_convention::fixed_history_archive_source as history;
 pub(super) struct SubmitContextSources {
     pub(super) context: &'static str,
     pub(super) build_context: &'static str,
@@ -68,15 +69,9 @@ impl SubmitContextSources {
             viewport_render_frame_from_extract: include_str!(
                 "../../../../graphics/types/viewport_render_frame_from_extract.rs"
             ),
-            runtime_07_plan: include_str!(
-                "../../../../../../docs/plans/zircon_runtime/runtime/07/2026-07-09-runtime-performance-hotpath-output-records.md"
-            ),
-            runtime_index: include_str!(
-                "../../../../../../docs/plans/zircon_runtime/runtime/07/2026-07-09-runtime-index-output-records.md"
-            ),
-            review_findings: include_str!(
-                "../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"
-            ),
+            runtime_07_plan: history("docs/plans/zircon_runtime/runtime/07/2026-07-09-runtime-performance-hotpath-output-records.md"),
+            runtime_index: history("docs/plans/zircon_runtime/runtime/07/2026-07-09-runtime-index-output-records.md"),
+            review_findings: history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"),
         }
     }
 }

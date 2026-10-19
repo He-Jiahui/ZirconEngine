@@ -5,16 +5,26 @@ use zr_rhi::{
     UiSurfaceCommand, UiSurfaceRect, UiSurfaceTextFace, UiSurfaceTextLayoutRun, UiSurfaceTextLine,
     UiSurfaceTextRequest,
 };
+pub(super) struct LayoutObservation<'a> {
+    pub(super) command: &'a UiSurfaceCommand,
+    pub(super) command_index: usize,
+    pub(super) text: &'a str,
+    pub(super) clip: UiSurfaceRect,
+    pub(super) requested: Option<UiSurfaceTextRequest>,
+}
 pub(super) fn observe_buffer(
     fonts: &FontSystem,
     cache: &mut std::collections::HashMap<String, UiSurfaceTextFace>,
     buffer: &Buffer,
-    command: &UiSurfaceCommand,
-    command_index: usize,
-    text: &str,
-    clip: UiSurfaceRect,
-    requested: Option<UiSurfaceTextRequest>,
+    observation: LayoutObservation<'_>,
 ) -> UiSurfaceTextLayoutRun {
+    let LayoutObservation {
+        command,
+        command_index,
+        text,
+        clip,
+        requested,
+    } = observation;
     let mut faces = Vec::new();
     let mut ids = std::collections::HashSet::new();
     let lines = buffer

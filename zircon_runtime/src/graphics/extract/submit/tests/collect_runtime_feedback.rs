@@ -222,3 +222,57 @@ fn p95(samples: &mut [u128]) -> u128 {
     samples.sort_unstable();
     samples[(samples.len() * 95).div_ceil(100).saturating_sub(1)]
 }
+
+#[test]
+fn merge_hybrid_gi_sideband_preserves_page_and_clipmap_source_metadata() {
+    use crate::core::framework::render::{
+        RenderHybridGiSurfaceCachePageRecord, RenderHybridGiVoxelClipmapRecord,
+    };
+    let page = |id| RenderHybridGiSurfaceCachePageRecord {
+        page_id: id,
+        owner_card_id: id + 10,
+        atlas_slot_id: 3,
+        bounds_center_x_bits: (id as f32).to_bits(),
+        bounds_radius_bits: 0.5_f32.to_bits(),
+        radiance_rgba8: [id as u8, 4, 8, 255],
+        ..Default::default()
+    };
+    let clipmap = |id| RenderHybridGiVoxelClipmapRecord {
+        clipmap_id: id,
+        half_extent_bits: (id as f32).to_bits(),
+        ..Default::default()
+    };
+    let renderer = RenderHybridGiReadbackOutputs {
+        scene_prepare: RenderHybridGiScenePrepareReadbackOutputs {
+            surface_cache_pages: vec![page(1)],
+            voxel_clipmaps: vec![clipmap(1)],
+            ..Default::default()
+        },
+        ..Default::default()
+    };
+    let sideband = RenderHybridGiReadbackOutputs {
+        scene_prepare: RenderHybridGiScenePrepareReadbackOutputs {
+            surface_cache_pages: vec![page(2)],
+            voxel_clipmaps: vec![clipmap(2)],
+            ..Default::default()
+        },
+        ..Default::default()
+    };
+    let merged = merge_hybrid_gi_readback_outputs(renderer.clone(), sideband.clone());
+    assert_eq!(
+        merged.scene_prepare.surface_cache_pages,
+        vec![page(1), page(2)]
+    );
+    assert_eq!(
+        merged.scene_prepare.voxel_clipmaps,
+        vec![clipmap(1), clipmap(2)]
+    );
+    assert_eq!(
+        merge_hybrid_gi_readback_outputs(Default::default(), sideband.clone()),
+        sideband
+    );
+    assert_eq!(
+        merge_hybrid_gi_readback_outputs(renderer.clone(), Default::default()),
+        renderer
+    );
+}

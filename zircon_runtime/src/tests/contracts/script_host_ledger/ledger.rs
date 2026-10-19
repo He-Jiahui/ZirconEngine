@@ -2,6 +2,7 @@ use super::catalog::{
     combined_fixed_sources_contain_module, count_occurrences, fixed_sources_contain_function,
     missing_documented_functions, FIXED_HOST_FUNCTIONS, FIXED_HOST_MODULES, HOST_CAPABILITIES,
 };
+use crate::tests::runtime_absorption::structure_convention::fixed_history_archive_source as history;
 
 #[test]
 fn host_function_registry_matches_documented_ledger() {
@@ -10,14 +11,19 @@ fn host_function_registry_matches_documented_ledger() {
     let bridge_source = include_str!("../../../script/vm/host/bridge_host_module.rs");
     let ledger =
         include_str!("../../../../../docs/crates/zircon_runtime/script/vm/host/function_ledger.md");
-    let plan = concat!(
-        include_str!(
-            "../../../../../docs/plans/zircon_runtime/runtime/13-script-binding-and-reflection.md"
-        ),
-        include_str!(
-            "../../../../../docs/plans/zircon_runtime/runtime/13/2026-07-09-script-binding-and-reflection-output-records.md"
-        )
-    );
+    let historical = history("docs/plans/zircon_runtime/runtime/13/2026-07-09-script-binding-and-reflection-output-records.md");
+    let current_inventory = ledger
+        .lines()
+        .find(|line| line.starts_with("Runtime13 current source contract inventory:"))
+        .expect("the canonical ledger must have a current source inventory");
+    for required in [
+        "fixed_host_function_count = 63",
+        "builtin_callback_count = 21",
+        "gameplay_callback_count = 40",
+        "host_capability_count = 13",
+    ] {
+        assert!(current_inventory.contains(required), "inventory {required}");
+    }
 
     assert_eq!(
         count_occurrences(builtin_source, "HostExportFunction::new("),
@@ -40,10 +46,7 @@ fn host_function_registry_matches_documented_ledger() {
             combined_fixed_sources_contain_module(builtin_source, gameplay_source, module),
             "fixed host module `{module}` should exist in host registration sources"
         );
-        assert!(
-            ledger.contains(module),
-            "function ledger should document fixed host module `{module}`"
-        );
+        assert!(ledger.contains(module), "module {module}");
     }
 
     for (module, function) in FIXED_HOST_FUNCTIONS {
@@ -59,10 +62,7 @@ fn host_function_registry_matches_documented_ledger() {
     }
 
     for capability in HOST_CAPABILITIES {
-        assert!(
-            ledger.contains(capability),
-            "function ledger should document host capability `{capability}`"
-        );
+        assert!(ledger.contains(capability), "capability {capability}");
     }
 
     for required_bridge_anchor in [
@@ -96,7 +96,7 @@ fn host_function_registry_matches_documented_ledger() {
         );
     }
 
-    for required_plan_anchor in [
+    for required_history_anchor in [
         "host_function_registry_matches_documented_ledger",
         "host_capability_representatives_are_declared_on_registered_modules",
         "host_function_without_required_capability_is_rejected_with_explicit_error",
@@ -105,8 +105,8 @@ fn host_function_registry_matches_documented_ledger() {
         "macro_host_functions=2",
     ] {
         assert!(
-            plan.contains(required_plan_anchor),
-            "Runtime 13 plan should record `{required_plan_anchor}`"
+            historical.contains(required_history_anchor),
+            "fixed Runtime13 history should record `{required_history_anchor}`"
         );
     }
 }

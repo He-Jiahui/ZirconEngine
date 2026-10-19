@@ -46,10 +46,11 @@ pub use compiler::{
     UiCompiledAssetPackageManifest, UiCompiledAssetPackageProfile, UiCompiledAssetPackageSection,
     UiCompiledAssetPackageValidationReport, UiCompiledBinding, UiCompiledBindingExpression,
     UiCompiledBindingGeneration, UiCompiledBindingHandle, UiCompiledBindingProgram,
-    UiCompiledBindingTarget, UiCompiledBindingTargetEndpoint, UiCompiledBindingTargetId,
-    UiCompiledBindingTargetKind, UiCompiledControlId, UiCompiledNodeBindings, UiCompiledNodeId,
-    UiCompiledRouteId, UiPropertyId, UI_COMPILED_ASSET_COMPILER_SCHEMA_VERSION,
-    UI_COMPILED_ASSET_PACKAGE_SCHEMA_VERSION, UI_COMPILED_ASSET_TOML_ENVELOPE_SCHEMA_VERSION,
+    UiCompiledBindingSymbols, UiCompiledBindingTarget, UiCompiledBindingTargetEndpoint,
+    UiCompiledBindingTargetId, UiCompiledBindingTargetKind, UiCompiledControlId,
+    UiCompiledNodeBindings, UiCompiledNodeId, UiCompiledRouteId, UiPropertyId,
+    UI_COMPILED_ASSET_COMPILER_SCHEMA_VERSION, UI_COMPILED_ASSET_PACKAGE_SCHEMA_VERSION,
+    UI_COMPILED_ASSET_TOML_ENVELOPE_SCHEMA_VERSION,
 };
 pub use component_contract::{
     UiComponentApiVersion, UiComponentBindingContract, UiComponentContractDiagnostic,

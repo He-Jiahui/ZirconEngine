@@ -260,3 +260,110 @@ fn admitted_scoped_action_waits_for_completion_beyond_admission_deadline() {
         OwnerShutdownReceipt::Joined
     );
 }
+
+#[cfg(windows)]
+#[test]
+/// 初始 guard 已释放，原 publisher 随后持锁跨过 deadline，等待仍须独立返回 Pending。
+fn receipt_waiter_releases_initial_guard_and_stays_bounded_while_original_publisher_holds_lock() {
+    let code_owner = Arc::new(());
+    let retained_code = Arc::downgrade(&code_owner);
+    let owner = SessionOwner::create(|| Rc::new(()), code_owner).unwrap();
+    let calls = Arc::new(AtomicUsize::new(0));
+    let callback_calls = Arc::clone(&calls);
+    let (cleanup_entered_tx, cleanup_entered_rx) = mpsc::sync_channel(1);
+    let (release_cleanup_tx, release_cleanup_rx) = mpsc::sync_channel(1);
+    let first = owner.shutdown_until(Instant::now(), move |_| {
+        callback_calls.fetch_add(1, Ordering::SeqCst);
+        cleanup_entered_tx.send(()).unwrap();
+        release_cleanup_rx
+            .recv_timeout(Duration::from_secs(5))
+            .unwrap();
+        true
+    });
+    cleanup_entered_rx
+        .recv_timeout(Duration::from_secs(2))
+        .unwrap();
+    let receipt = Arc::clone(owner.shutdown.lock().unwrap().as_ref().unwrap());
+    let (guard_released_tx, guard_released_rx) = mpsc::sync_channel(1);
+    let (publisher_locked_tx, publisher_locked_rx) = mpsc::sync_channel(1);
+    let (release_waiter_tx, release_waiter_rx) = mpsc::sync_channel(1);
+    let (release_publisher_tx, release_publisher_rx) = mpsc::sync_channel(1);
+    let registration = super::receipt_publication::observe_wait_guard_for_test(
+        &receipt,
+        guard_released_tx,
+        publisher_locked_tx,
+        release_waiter_rx,
+        release_publisher_rx,
+    );
+    let deadline = Instant::now() + Duration::from_millis(250);
+    let scheduling_tolerance = Duration::from_millis(500);
+    let (finished_tx, finished_rx) = mpsc::sync_channel(1);
+    let (
+        guard_release,
+        publisher_lock,
+        waiter_released_at,
+        finished,
+        held_pending,
+        retained,
+        same_receipt,
+        waiter,
+    ) = thread::scope(|scope| {
+        let owner = &owner;
+        let waiter = scope.spawn(move || {
+            let result = owner.shutdown_until(deadline, |_| {
+                panic!("the original pending callback must not be reinvoked")
+            });
+            finished_tx.send((result, Instant::now())).unwrap();
+        });
+        let guard_release = guard_released_rx.recv_timeout(Duration::from_secs(2));
+        let _ = release_cleanup_tx.send(());
+        let publisher_lock = publisher_locked_rx
+            .recv_timeout(Duration::from_secs(2))
+            .map(|()| Instant::now());
+        let waiter_released_at = release_waiter_tx.send(()).map(|()| Instant::now());
+        let finished = finished_rx.recv_timeout(
+            deadline.saturating_duration_since(Instant::now()) + scheduling_tolerance,
+        );
+        // 在放行 publisher 之前观测：同一真实锁仍忙，原子状态仍为 Pending。
+        let held_pending = matches!(
+            receipt.wait.try_lock(),
+            Err(std::sync::TryLockError::WouldBlock)
+        ) && receipt.state.load(Ordering::Acquire) == super::RECEIPT_PENDING;
+        let retained = retained_code.upgrade().is_some() && !owner.joined.load(Ordering::Acquire);
+        let same_receipt =
+            Arc::ptr_eq(owner.shutdown.lock().unwrap().as_ref().unwrap(), &receipt);
+        let _ = release_publisher_tx.send(());
+        // 即使限时断言失败也先放行原 publisher、回收 waiter，避免测试遗留 owner。
+        (
+            guard_release,
+            publisher_lock,
+            waiter_released_at,
+            finished,
+            held_pending,
+            retained,
+            same_receipt,
+            waiter.join(),
+        )
+    });
+    let joined = owner.shutdown_until(Instant::now() + Duration::from_secs(2), |_| {
+        panic!("the original callback already completed")
+    });
+    drop(registration);
+    drop(owner);
+    assert_eq!(first, OwnerShutdownReceipt::Pending);
+    assert_eq!(
+        guard_release.unwrap(),
+        (Arc::as_ptr(&receipt) as usize, deadline)
+    );
+    // A delayed setup must fail after cleanup, rather than pass with an expired budget.
+    assert!(publisher_lock.expect("original publisher acquired the lock") < deadline);
+    assert!(waiter_released_at.expect("waiter was released with budget remaining") < deadline);
+    let (result, returned_at) = finished.expect("waiter returns before publisher release");
+    assert_eq!(result, OwnerShutdownReceipt::Pending);
+    assert!(returned_at >= deadline && returned_at <= deadline + scheduling_tolerance);
+    assert!(held_pending && retained && same_receipt);
+    assert!(waiter.is_ok());
+    assert_eq!(calls.load(Ordering::SeqCst), 1);
+    assert_eq!(joined, OwnerShutdownReceipt::Joined);
+    assert!(retained_code.upgrade().is_none());
+}

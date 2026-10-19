@@ -66,7 +66,6 @@ impl AuthorityRefreshKey {
 
 struct InFlightRefresh {
     ticket: NativePluginDiscoveryRefreshTicket,
-    forced: bool,
 }
 
 impl Default for NativePluginDiscoveryAuthority {
@@ -270,14 +269,11 @@ impl NativePluginDiscoveryAuthority {
         // entries at the next admission so the table remains bounded by active refresh roots.
         in_flight.retain(|_, existing| !existing.ticket.is_complete());
         let key = AuthorityRefreshKey::new(root.clone(), input.clone());
-        if let Some((existing_ticket, existing_forced)) = in_flight
-            .get(&key)
-            .map(|existing| (existing.ticket.clone(), existing.forced))
-        {
+        if let Some(existing_ticket) = in_flight.get(&key).map(|existing| existing.ticket.clone()) {
             if !existing_ticket.is_complete() {
-                // BUG: [CR-PLUGIN-NATIVE-0201] 已有强制票据时，后续不同路径的刷新/删除通知在此直接复用票据，
-                // 没有把新通知交给服务合并，因而丢失该路径变更；证据：通知入口每次携带独立 work。
-                if !force_refresh || existing_forced {
+                // Regression scope [CR-PLUGIN-NATIVE-0201]: only passive queries reuse a ticket.
+                // Every forced notification must reach the service's bounded pending-work merge.
+                if !force_refresh {
                     return existing_ticket;
                 }
 
@@ -290,7 +286,6 @@ impl NativePluginDiscoveryAuthority {
                     key.clone(),
                     InFlightRefresh {
                         ticket: ticket.clone(),
-                        forced: true,
                     },
                 );
                 return ticket;
@@ -304,7 +299,6 @@ impl NativePluginDiscoveryAuthority {
             key,
             InFlightRefresh {
                 ticket: ticket.clone(),
-                forced: force_refresh,
             },
         );
         ticket
@@ -687,4 +681,206 @@ fn lock_recover<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
     mutex
         .lock()
         .unwrap_or_else(|poisoned| poisoned.into_inner())
+}
+
+#[cfg(test)]
+mod notification_coalescing_tests {
+    use super::super::super::discovery_refresh::{
+        test_native_plugin_discovery_root, NativePluginDiscoveryTestCollector,
+    };
+    use super::*;
+    use crate::core::runtime::tasks::{TaskPool, TaskPoolDescriptor};
+    use std::sync::{mpsc, Arc, Condvar};
+    use std::time::{Duration, Instant};
+
+    struct Collector {
+        started: mpsc::SyncSender<()>,
+        release: Arc<(Mutex<bool>, Condvar)>,
+        observed: Mutex<Vec<NativePluginDiscoveryRefreshWork>>,
+    }
+
+    impl NativePluginDiscoveryTestCollector for Collector {
+        fn collect(
+            &self,
+            request: &NativePluginDiscoveryRefreshRequest,
+            _sink: &mut NativePluginDiscoveryRefreshSink,
+        ) -> Result<NativePluginDiscoveryInputIdentity, NativePluginDiscoveryRefreshError> {
+            let first = {
+                let mut observed = lock_recover(&self.observed);
+                observed.push(request.work().clone());
+                observed.len() == 1
+            };
+            if first {
+                let _ = self.started.try_send(());
+                let deadline = Instant::now() + Duration::from_secs(5);
+                let (released, wake) = &*self.release;
+                let mut released = lock_recover(released);
+                while !*released {
+                    let remaining = deadline.saturating_duration_since(Instant::now());
+                    if remaining.is_zero() {
+                        return Err(NativePluginDiscoveryRefreshError::collector(
+                            "synthetic notification collector release timed out",
+                        ));
+                    }
+                    let (next, _) = wake
+                        .wait_timeout(released, remaining)
+                        .unwrap_or_else(|poisoned| poisoned.into_inner());
+                    released = next;
+                }
+            }
+            request.check_active()?;
+            NativePluginDiscoveryInputIdentity::new("synthetic-notification-coalescing")
+        }
+    }
+
+    struct PoolCleanup {
+        release: Arc<(Mutex<bool>, Condvar)>,
+        pool: TaskPool,
+        closed: bool,
+    }
+
+    impl PoolCleanup {
+        fn close(&mut self) -> bool {
+            if self.closed {
+                return true;
+            }
+            let (released, wake) = &*self.release;
+            *lock_recover(released) = true;
+            wake.notify_all();
+            self.closed = self
+                .pool
+                .shutdown_until(Instant::now() + Duration::from_secs(5));
+            self.closed
+        }
+    }
+
+    impl Drop for PoolCleanup {
+        fn drop(&mut self) {
+            let _ = self.close();
+        }
+    }
+
+    #[test]
+    fn forced_notifications_merge_refresh_and_remove_while_one_ticket_is_pending() {
+        let release = Arc::new((Mutex::new(false), Condvar::new()));
+        let pool = TaskPool::new(TaskPoolDescriptor::io().with_worker_threads(1));
+        let mut cleanup = PoolCleanup {
+            release: Arc::clone(&release),
+            pool,
+            closed: false,
+        };
+        let (started, started_rx) = mpsc::sync_channel(1);
+        let collector = Arc::new(Collector {
+            started,
+            release,
+            observed: Mutex::new(Vec::new()),
+        });
+        let authority = NativePluginDiscoveryAuthority {
+            refresh: NativePluginDiscoveryRefreshService::with_pool(
+                collector.clone(),
+                cleanup.pool.clone(),
+                NativePluginDiscoveryRefreshBudget::default(),
+            ),
+            in_flight: Mutex::new(BTreeMap::new()),
+            root_identities: Mutex::new(BTreeMap::new()),
+        };
+        // A virtual test key exercises authority admission and the real service,
+        // not filesystem validation or a current native-plugin acceptance claim.
+        let root = test_native_plugin_discovery_root(
+            std::env::temp_dir().join("synthetic-notification-coalescing"),
+        );
+        let input = NativePluginDiscoveryRefreshInput::RootScan;
+        let a = root.as_path().join("a/plugin.toml");
+        let b = root.as_path().join("b/plugin.toml");
+        let c = root.as_path().join("c/plugin.toml");
+        let first = authority.ticket_for(
+            &root,
+            &input,
+            true,
+            NativePluginDiscoveryRefreshWork::refresh_manifest(a.clone()),
+        );
+        started_rx
+            .recv_timeout(Duration::from_secs(2))
+            .expect("first collector must start");
+        let second = authority.ticket_for(
+            &root,
+            &input,
+            true,
+            NativePluginDiscoveryRefreshWork::refresh_manifest(b.clone()),
+        );
+        let third = authority.ticket_for(
+            &root,
+            &input,
+            true,
+            NativePluginDiscoveryRefreshWork::remove_path(c.clone()),
+        );
+        let fourth = authority.ticket_for(
+            &root,
+            &input,
+            true,
+            NativePluginDiscoveryRefreshWork::remove_path(b.clone()),
+        );
+        let latest = authority.ticket_for(
+            &root,
+            &input,
+            true,
+            NativePluginDiscoveryRefreshWork::refresh_manifest(b.clone()),
+        );
+        assert!(matches!(
+            first.terminal(),
+            Some(NativePluginDiscoveryRefreshTerminal::Superseded { .. })
+        ));
+        for ticket in [&third, &fourth, &latest] {
+            assert_eq!(ticket.generation(), second.generation());
+        }
+        assert_eq!(latest.generation(), first.generation() + 1);
+        let passive = authority.ticket_for(
+            &root,
+            &input,
+            false,
+            NativePluginDiscoveryRefreshWork::root_scan(),
+        );
+        assert_eq!(passive.generation(), latest.generation());
+        {
+            let (released, wake) = &*collector.release;
+            *lock_recover(released) = true;
+            wake.notify_all();
+        }
+        assert!(matches!(
+            latest.wait_terminal(),
+            NativePluginDiscoveryRefreshTerminal::Published(_)
+        ));
+        assert!(
+            cleanup.close(),
+            "all private collector workers must exit and join"
+        );
+        let observed = lock_recover(&collector.observed);
+        assert_eq!(observed.len(), 2);
+        let NativePluginDiscoveryRefreshWork::ManifestBatch {
+            actions,
+            ordered_paths,
+        } = &observed[1]
+        else {
+            panic!("forced notifications must remain a finite manifest batch");
+        };
+        assert_eq!(actions.len(), 3);
+        assert_eq!(
+            actions.get(&a),
+            Some(&NativePluginDiscoveryManifestAction::Refresh)
+        );
+        assert_eq!(
+            actions.get(&b),
+            Some(&NativePluginDiscoveryManifestAction::Refresh)
+        );
+        assert_eq!(
+            actions.get(&c),
+            Some(&NativePluginDiscoveryManifestAction::Remove)
+        );
+        assert_eq!(ordered_paths, &[a, c, b]);
+        let snapshot = authority
+            .refresh
+            .snapshot_for(&root, &input)
+            .expect("published snapshot");
+        assert_eq!(snapshot.generation(), latest.generation());
+    }
 }

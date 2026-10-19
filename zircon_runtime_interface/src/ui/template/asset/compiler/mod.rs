@@ -8,9 +8,10 @@ mod package;
 pub use binding_program::{
     UiBindingId, UiCompiledActionId, UiCompiledActionPayloadField, UiCompiledActionPayloadValue,
     UiCompiledAssetId, UiCompiledBinding, UiCompiledBindingExpression, UiCompiledBindingGeneration,
-    UiCompiledBindingHandle, UiCompiledBindingProgram, UiCompiledBindingTarget,
-    UiCompiledBindingTargetEndpoint, UiCompiledBindingTargetId, UiCompiledBindingTargetKind,
-    UiCompiledControlId, UiCompiledNodeBindings, UiCompiledNodeId, UiCompiledRouteId, UiPropertyId,
+    UiCompiledBindingHandle, UiCompiledBindingProgram, UiCompiledBindingSymbols,
+    UiCompiledBindingTarget, UiCompiledBindingTargetEndpoint, UiCompiledBindingTargetId,
+    UiCompiledBindingTargetKind, UiCompiledControlId, UiCompiledNodeBindings, UiCompiledNodeId,
+    UiCompiledRouteId, UiPropertyId,
 };
 pub use cache::UiCompileCacheKey;
 pub use package::{

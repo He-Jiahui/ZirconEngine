@@ -4,6 +4,8 @@ mod builtin_catalog;
 mod capability_view;
 #[path = "descriptor.rs"]
 mod descriptor;
+#[path = "embedded_feature_providers/provider_id.rs"]
+mod embedded_feature_provider_identity;
 #[path = "registration.rs"]
 mod feature_registration_report;
 #[path = "feature_validation.rs"]

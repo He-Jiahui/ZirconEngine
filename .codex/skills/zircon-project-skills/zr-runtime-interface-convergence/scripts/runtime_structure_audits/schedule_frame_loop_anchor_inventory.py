@@ -33,7 +33,7 @@ TIME_HANDOFF_ANCHORS = (
     "driver.tick_level(core, self, snapshot)",
     "pub(crate) fn tick_level(",
     "snapshot: FrameTimeSnapshot",
-    "let world_time = level.advance_world_time(snapshot)?;",
+    "let (world_time, world_generation, execution) = level.begin_world_frame(snapshot)?;",
     "for committed_steps in 0..fixed_step_plan.step_count",
     "for fixed_stage in SystemStage::FIXED_LOOP",
     "if stage.is_fixed_loop()",

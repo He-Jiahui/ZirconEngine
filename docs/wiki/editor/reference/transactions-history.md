@@ -9,7 +9,7 @@ implementation_files:
   - zircon_editor/src/core/editing/engine
 plan_sources:
   - user: 2026-09-09 完善 ZirconEngine 公开接口、机制案例、教程与最佳实践
-  - docs/plans/mvp/index.md
+  - docs/testing-and-validation/mvp-acceptance-index.md
 tests:
   - zircon_editor/src/core/editing/engine
   - zircon_editor/src/core/editing/engine

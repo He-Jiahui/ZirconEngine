@@ -22,7 +22,11 @@ pub(crate) fn encode_buffer_copy(
             reason: "buffer copies must use distinct source and destination buffers".to_string(),
         });
     }
-    if size == 0 || source_offset % 4 != 0 || destination_offset % 4 != 0 || size % 4 != 0 {
+    if size == 0
+        || !source_offset.is_multiple_of(4)
+        || !destination_offset.is_multiple_of(4)
+        || !size.is_multiple_of(4)
+    {
         return Err(RhiError::InvalidCopy {
             reason: "WGPU buffer copy offsets and size must be non-zero multiples of four"
                 .to_string(),

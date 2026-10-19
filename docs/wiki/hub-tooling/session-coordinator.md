@@ -4,13 +4,13 @@ related_code:
   - tools/dev/local-cargo.ps1
   - tools/dev/local_cargo.py
   - tools/jenkins/jenkins_coordinator.py
-  - docs/plans/milestone-validation-policy.md
+  - docs/testing-and-validation/milestone-validation-policy.md
 implementation_files:
   - tools/dev/local-cargo.ps1
   - tools/dev/local_cargo.py
   - tools/jenkins
 plan_sources:
-  - docs/plans/milestone-validation-policy.md
+  - docs/testing-and-validation/milestone-validation-policy.md
   - docs/tooling/coordinator-retirement.md
   - docs/plans/zircon_tooling/session_coordinator/01
 tests:
@@ -23,7 +23,7 @@ doc_type: operations-reference
 
 旧 Session Coordinator 及其服务、托盘、自动登记、租约、验证票据和提交接口已经退役。`tools/dev/zircon-session.ps1` 是返回退出码 3 的停用入口；不要为普通开发恢复旧服务、队列或自动同步。历史数据与恢复约束见 [协调器退役记录](https://github.com/He-Jiahui/ZirconEngine/blob/main/docs/tooling/coordinator-retirement.md)。
 
-当前开发使用独立本地命令证据或已核验激活状态的 Jenkins 协调器。执行节奏遵循 [里程碑验证策略](https://github.com/He-Jiahui/ZirconEngine/blob/main/docs/plans/milestone-validation-policy.md)，具体命令遵循 [Zircon Dev 验证指南](https://github.com/He-Jiahui/ZirconEngine/blob/main/.codex/skills/zircon-dev/validation/guide.md)。这两个入口都不自动授予全工作区、里程碑或生产迁移接受。
+当前开发使用独立本地命令证据或已核验激活状态的 Jenkins 协调器。执行节奏遵循 [里程碑验证策略](https://github.com/He-Jiahui/ZirconEngine/blob/main/docs/testing-and-validation/milestone-validation-policy.md)，具体命令遵循 [Zircon Dev 验证指南](https://github.com/He-Jiahui/ZirconEngine/blob/main/.codex/skills/zircon-dev/validation/guide.md)。这两个入口都不自动授予全工作区、里程碑或生产迁移接受。
 
 ## 当前本地入口
 

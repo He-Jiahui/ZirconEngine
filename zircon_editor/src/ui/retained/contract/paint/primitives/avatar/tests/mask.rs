@@ -72,3 +72,33 @@ fn rounded_avatar_mask_invalidates_the_unmasked_atlas_fast_path() {
 
     assert!(image.atlas.is_none());
 }
+
+#[test]
+fn rounded_avatar_mask_keys_distinguish_equal_decimal_radii_with_distinct_pixels() {
+    let rect = FrameRect {
+        x: 0.0,
+        y: 0.0,
+        width: 8.0,
+        height: 8.0,
+    };
+    let first_radius = 1.4893_f32;
+    let second_radius = 1.48945_f32;
+    assert_eq!(format!("{first_radius:.3}"), format!("{second_radius:.3}"));
+    let mut first = image(255, None);
+    let mut second = image(255, None);
+    apply_rounded_alpha_mask(&mut first, first_radius, &rect);
+    apply_rounded_alpha_mask(&mut second, second_radius, &rect);
+    assert_ne!(
+        first.rgba.as_ref(),
+        second.rgba.as_ref(),
+        "the real mask pixels must exercise the old key collision"
+    );
+    assert_ne!(
+        first.resource_key, second.resource_key,
+        "distinct mask pixels need distinct recorded resource identities"
+    );
+    let mut repeated = image(255, None);
+    apply_rounded_alpha_mask(&mut repeated, first_radius, &rect);
+    assert_eq!(repeated.resource_key, first.resource_key);
+    assert_eq!(repeated.rgba.as_ref(), first.rgba.as_ref());
+}

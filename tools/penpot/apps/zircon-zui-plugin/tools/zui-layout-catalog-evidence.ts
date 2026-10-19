@@ -1,4 +1,4 @@
-import { resolveLayoutCatalogPath } from './zui-layout-paths';
+import { assertLayoutCurrentRoots, layoutCurrentOutputPath, type LayoutCurrentContext, resolveLayoutCatalogPath } from './zui-layout-paths';
 import { createHash } from 'node:crypto';
 import { readFile, rename } from 'node:fs/promises';
 import { isAbsolute, relative, resolve } from 'node:path';
@@ -25,7 +25,11 @@ export async function retainExpandedCaseEvidence(
   next: CatalogEvidenceSnapshot,
   outputRoot: string,
   shouldWrite: boolean,
+  context?: LayoutCurrentContext,
 ): Promise<Pick<CatalogEntry, 'penpotEvidence' | 'engineEvidence'>> {
+  if (context) assertLayoutCurrentRoots(context, context.repoRoot, outputRoot);
+  const pathFor = (...paths: string[]): string => context
+    ? layoutCurrentOutputPath(context, resolve(...paths)) : resolveLayoutCatalogPath(...paths);
   const stable =
     previous.category === next.category &&
     previous.name === next.name &&
@@ -37,7 +41,7 @@ export async function retainExpandedCaseEvidence(
     previous.penpotPreviewPath === next.penpotPreviewPath;
   if (!stable || !previous.cases || !next.cases) return {};
 
-  const directory = resolveLayoutCatalogPath(outputRoot, next.category, next.name);
+  const directory = pathFor(outputRoot, next.category, next.name);
   const nextCases = new Map(next.cases.map((item) => [item.id, item]));
   const previousCases = new Map(previous.cases.map((item) => [item.id, item]));
   const pendingMoves: Array<[string, string]> = [];
@@ -79,8 +83,8 @@ export async function retainExpandedCaseEvidence(
         : evidence.screenshotPath;
       if (displacedPrimary && !/^[a-zA-Z0-9_-]+$/.test(evidence.caseId))
         throw new Error(`Unsafe primary case id: ${evidence.caseId}`);
-      const from = resolveLayoutCatalogPath(outputRoot, evidence.screenshotPath);
-      const to = resolveLayoutCatalogPath(outputRoot, archivedPath);
+      const from = pathFor(outputRoot, evidence.screenshotPath);
+      const to = pathFor(outputRoot, archivedPath);
       for (const path of [from, to]) {
         const withinEntry = relative(directory, path);
         if (

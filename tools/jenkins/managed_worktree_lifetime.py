@@ -91,6 +91,8 @@ def writer_hold(management):
 
 def retire_reader(management):
     from .deployment.drain_observations import native_terminal
+    from .deployment.execution_launch_reconciliation import _complete_proof
+    from .processes.guards import guard_phases_complete
     reference = require_digest(management.payload.get("currentSourceRef"), "currentSourceRef")
     with management.state.transaction() as connection:
         intent_row = management.state.get("current_source_intent", reference, connection=connection)
@@ -134,19 +136,22 @@ def retire_reader(management):
                  and all(row["payload"].get("status") == "released" for row in consumers
                          if row["key"] != own_consumer["key"]),
                  "managed_reader_consumer_active", "Other execution consumers must be reconciled first")
-        native = [row for row in management.state.list("native_job", connection=connection)
-                  if row["payload"].get("executionId") == eid or row["payload"].get("owner") == eid]
         launch = management.state.get("execution_launch", eid, connection=connection)
         host = management.state.get("execution_host", eid, connection=connection)
         plan = management.state.get("recipe_plan", flow["payload"].get("recipeRef", ""), connection=connection)
         recipe = plan["payload"].get("recipe", {}) if plan else {}
         phases = execution["payload"].get("phaseRecords", [])
         guard_id = launch["payload"].get("guardNativeJobId") if launch else None
+        native = [row for row in management.state.list("native_job", connection=connection)
+                  if row["payload"].get("executionId") == eid or row["payload"].get("owner") == eid
+                  or (guard_id and row["payload"].get("guardNativeJobId") == guard_id)]
         jobs = {row["key"]: row for row in native}
         guard = jobs.get(guard_id)
         required = recipe.get("requiredPhases", [])
         actual = [phase.get("phase") for phase in phases]
-        _require(native and launch and host and plan and guard and phases and required
+        guard_only_failure = (not phases and execution["payload"]["status"] == "failed"
+                              and host and host["payload"].get("status") == "failed")
+        _require(native and launch and host and plan and guard and (phases or guard_only_failure) and required
                  and guard["payload"].get("role") == "execution_host_guard"
                  and launch["payload"].get("status") == "exited"
                  and launch["payload"].get("sourceDigest") == sealed
@@ -154,7 +159,7 @@ def retire_reader(management):
                  and execution["payload"].get("recipeRef") == plan["key"]
                  and plan["payload"].get("sourceRef") == sealed
                  and digest(recipe) == plan["key"]
-                 and host["payload"].get("status") in {"terminal", "cancelled"}
+                 and (host["payload"].get("status") in {"terminal", "cancelled"} or guard_only_failure)
                  and host["payload"].get("phaseRecords") == phases
                  and actual == required[:len(actual)]
                  and (execution["payload"]["status"] != "passed" or actual == required)
@@ -164,6 +169,37 @@ def retire_reader(management):
                          and row["payload"].get("owner") == eid and row["payload"].get("executionId") == eid
                          for row in native),
                  "managed_reader_native_active", "Every declared phase and host Job needs actual terminal/EOF proof")
+        resource_binding = None
+        if guard_only_failure:
+            proof = _complete_proof(guard, eid, role="execution_host_guard")
+            abort = execution["payload"].get("abortProof", {})
+            _require(guard_phases_complete(management.state, guard, connection=connection)
+                     and proof["processExitCode"] == 1 and launch["payload"].get("exitCode") == 1
+                     and proof["identity"] == launch["payload"].get("launcherIdentity")
+                     and host["payload"].get("hostPid") == proof["identity"]["pid"]
+                     and host["payload"].get("hostBirthToken") == proof["identity"]["creationTime"]
+                     and abort.get("kind") == "execution-host-aborted"
+                     and abort.get("guardNativeJobId") == guard_id
+                     and abort.get("proofDigest") == digest(proof)
+                     and abort.get("outcome") == "failed"
+                     and abort.get("artifactPublicationAllowed") is False,
+                     "managed_reader_native_active", "Guard-only failure lacks exact host termination evidence")
+            reservation_key = execution["payload"].get("reservationKey")
+            reservations = [row for row in management.state.list("resource_reservation", connection=connection)
+                            if row["payload"].get("owner") == eid or row["key"] == reservation_key]
+            holds = [row for row in management.state.list("pool_writer_hold", connection=connection)
+                     if row["payload"].get("owner") == eid
+                     or row["payload"].get("reservationKey") == reservation_key]
+            _require(reservation_key and len(reservations) == len(holds) == 1
+                     and reservations[0]["key"] == reservation_key
+                     and reservations[0]["payload"].get("owner") == eid
+                     and reservations[0]["payload"].get("status") == "released"
+                     and holds[0]["key"] == execution["payload"].get("preparationKey")
+                     and holds[0]["payload"].get("owner") == eid
+                     and holds[0]["payload"].get("reservationKey") == reservation_key
+                     and holds[0]["payload"].get("status") == "released",
+                     "managed_reader_resource_active", "Guard-only failure retains unresolved resource ownership")
+            resource_binding = {"reservation": _pin(reservations[0]), "writerHold": _pin(holds[0])}
         for phase in phases:
             job = jobs[phase["nativeJobId"]]["payload"]
             command = recipe.get("commands", {}).get(phase["phase"])
@@ -195,10 +231,14 @@ def retire_reader(management):
         consumers = [management.state.get("execution_consumer", row["key"], connection=connection)
                      for row in consumers]
         pins = [_pin(row) for row in (intent_row, prepare, flow, execution, launch, host, plan,
-                                     binding, record, *consumers, *native)]
+                                     binding, *consumers, *native)]
         value = {"currentSourceRef": reference, "worktreeId": intent["worktreeId"],
                  "status": "retired", "terminalPins": pins, "requestStatus": request["status"],
-                 "retiredBy": management.key, "acceptanceSynthesized": False}
+                 "retiredBy": management.key, "acceptanceSynthesized": False,
+                 "worktreeBindingAtRetirement": _pin(record)}
+        if guard_only_failure:
+            value.update(retirementKind="failed-before-first-phase-guard-terminal-v1",
+                         resourceBindingAtRetirement=resource_binding)
         old = management.state.get("managed_worktree_reader_retirement", reference, connection=connection)
         if old:
             _require(old["payload"] == value, "managed_reader_retirement_conflict", "Retirement input changed")

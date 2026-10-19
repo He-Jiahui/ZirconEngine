@@ -215,3 +215,80 @@ fn render_component_projection_resyncs_after_removal_history_loss() {
     assert_eq!(artifact.upserts()[0].entity(), retained);
     assert_eq!(artifact.stats().removal_events_dropped(), 1);
 }
+
+#[test]
+fn level_publication_full_projection_request_preserves_identity_and_resumes_incremental() {
+    use crate::core::framework::render::RenderExtractProducer;
+
+    let mut world = World::empty();
+    let mesh = world.spawn(mesh_bundle("level mesh")).unwrap();
+    let identity = world.render_world_snapshot_handle();
+    let level =
+        crate::scene::DefaultLevelManager::default().create_level(world, Default::default());
+    let context = RenderExtractContext::new(identity, SceneViewportExtractRequest::default());
+    let initial = level.build_render_frame_extract(&context);
+    let initial_changes = initial.geometry.scene_changes.as_ref().unwrap();
+
+    let requested_revision = level.with_world_mut(|world| {
+        world.get_mut::<MeshRenderer>(mesh).unwrap().render_queue = 9;
+        let revision = world.world_generation();
+        world.request_full_render_component_projection();
+        assert_eq!(world.world_generation(), revision);
+        assert_eq!(world.render_world_snapshot_handle().raw(), identity.raw());
+        revision
+    });
+    let full = level.build_render_frame_extract(&context);
+    let full_changes = full.geometry.scene_changes.as_ref().unwrap();
+    assert_eq!(full.world.raw(), identity.raw());
+    assert_eq!(full.world.generation(), requested_revision);
+    assert_eq!(full_changes.world(), initial_changes.world());
+    assert_eq!(full_changes.source_world_generation(), requested_revision);
+    assert_eq!(
+        full_changes.journal_generation(),
+        initial_changes.journal_generation() + 1
+    );
+    assert_eq!(
+        full_changes.mode(),
+        RenderComponentProjectionMode::Full(
+            RenderComponentFullReprojectionReason::JournalRequested
+        )
+    );
+    assert_eq!(full_changes.upserts().len(), 1);
+    assert_eq!(full_changes.upserts()[0].entity(), mesh);
+    assert_eq!(full_changes.stats().full_scan_entities(), 1);
+
+    let stable = level.build_render_frame_extract(&context);
+    assert!(Arc::ptr_eq(
+        full_changes,
+        stable.geometry.scene_changes.as_ref().unwrap()
+    ));
+    let incremental_revision = level.with_world_mut(|world| {
+        world.get_mut::<MeshRenderer>(mesh).unwrap().render_queue = 10;
+        world.world_generation()
+    });
+    let incremental = level.build_render_frame_extract(&context);
+    let incremental_changes = incremental.geometry.scene_changes.as_ref().unwrap();
+    assert_eq!(incremental.world.raw(), identity.raw());
+    assert_eq!(incremental.world.generation(), incremental_revision);
+    assert_eq!(incremental_changes.world(), full_changes.world());
+    assert_eq!(
+        incremental_changes.source_world_generation(),
+        incremental_revision
+    );
+    assert_eq!(
+        incremental_changes.journal_generation(),
+        full_changes.journal_generation() + 1
+    );
+    assert_eq!(
+        incremental_changes.mode(),
+        RenderComponentProjectionMode::Incremental
+    );
+    assert_eq!(incremental_changes.upserts().len(), 1);
+    assert_eq!(incremental_changes.upserts()[0].entity(), mesh);
+    assert_eq!(
+        incremental_changes.upserts()[0].kind(),
+        RenderComponentChangeKind::Updated
+    );
+    assert_eq!(incremental_changes.stats().full_scan_entities(), 0);
+    assert!(incremental_changes.removals().is_empty());
+}

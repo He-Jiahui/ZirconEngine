@@ -511,3 +511,66 @@ fn pointer_state() -> UiStateFlags {
         dirty: false,
     }
 }
+
+#[test]
+fn surface_debug_snapshot_omits_fully_clipped_commands_from_visible_diagnostics() {
+    use std::sync::Arc;
+    use zircon_runtime_interface::ui::surface::UiRenderFrameExtract;
+
+    let surface = diagnostic_surface();
+    let published = surface.surface_frame();
+    let source_command = published
+        .render_extract
+        .list
+        .commands
+        .iter()
+        .find(|command| command.kind == UiRenderCommandKind::Quad)
+        .expect("published surface must contain a real quad command")
+        .clone();
+    let options = UiSurfaceDebugOptions {
+        overdraw_sample_cell_size: 20.0,
+        include_command_records: true,
+        include_overdraw_cells: true,
+        include_overlay_primitives: true,
+        ..UiSurfaceDebugOptions::default()
+    };
+
+    for (clip, visible, cell_count) in [
+        (Some(UiFrame::new(100.0, 100.0, 40.0, 40.0)), None, 0),
+        (Some(UiFrame::new(40.0, 0.0, 40.0, 40.0)), None, 0),
+        (
+            Some(UiFrame::new(20.0, 0.0, 40.0, 40.0)),
+            Some(UiFrame::new(20.0, 0.0, 20.0, 40.0)),
+            2,
+        ),
+        (None, Some(UiFrame::new(0.0, 0.0, 40.0, 40.0)), 4),
+    ] {
+        let mut frame = (*published).clone();
+        let mut extract = published.render_extract.to_extract();
+        let mut command = source_command.clone();
+        command.frame = UiFrame::new(0.0, 0.0, 40.0, 40.0);
+        command.clip_frame = clip;
+        command.opacity = 1.0;
+        extract.list.commands = vec![command];
+        frame.render_extract = Arc::new(UiRenderFrameExtract::from_extract(&extract));
+
+        let snapshot = crate::ui::surface::debug_surface_frame_with_options(&frame, &options);
+
+        assert_eq!(snapshot.render.command_count, 1, "clip {clip:?}");
+        assert_eq!(snapshot.render.command_records.len(), 1);
+        assert_eq!(snapshot.render.command_records[0].visible_frame, visible);
+        assert_eq!(snapshot.overdraw.bounds, visible.unwrap_or_default());
+        assert_eq!(snapshot.overdraw.covered_cells, cell_count);
+        assert_eq!(snapshot.overdraw.total_layer_samples, cell_count);
+        assert_eq!(snapshot.overdraw.overdrawn_cells, 0);
+        assert_eq!(snapshot.overdraw.max_layers, usize::from(visible.is_some()));
+        assert_eq!(snapshot.overdraw.cells.len(), cell_count);
+        let material_bounds = snapshot
+            .overlay_primitives
+            .iter()
+            .filter(|primitive| primitive.kind == UiDebugOverlayPrimitiveKind::MaterialBatchBounds)
+            .map(|primitive| primitive.frame)
+            .collect::<Vec<_>>();
+        assert_eq!(material_bounds, visible.into_iter().collect::<Vec<_>>());
+    }
+}

@@ -83,7 +83,7 @@ fn push_ordered_unique_usize(values: &mut Vec<usize>, value: usize, ordered: &mu
     if last == Some(value) {
         return;
     }
-    if *ordered && last.map_or(true, |last| last < value) {
+    if *ordered && last.is_none_or(|last| last < value) {
         values.push(value);
         return;
     }

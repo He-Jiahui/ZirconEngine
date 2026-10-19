@@ -216,7 +216,7 @@ pub enum ProjectPackageLockState {
     Present {
         #[serde(rename = "schemaVersion")]
         schema_version: u32,
-        lock: ProjectPackageLock,
+        lock: Box<ProjectPackageLock>,
         digest: String,
     },
     Unavailable {
@@ -498,7 +498,7 @@ impl ProjectPackageLockState {
         let digest = lock.digest()?;
         Ok(Self::Present {
             schema_version: PROJECT_PACKAGE_LOCK_STATE_SCHEMA_VERSION_V1,
-            lock,
+            lock: Box::new(lock),
             digest,
         })
     }

@@ -41,13 +41,15 @@ fn optimization_batch_hq_runtime598_streamed_drag_target_dispatch_preserves_orde
     let dragged = [HitTarget::renderable(10), HitTarget::renderable(20)];
     let drop_target = HitTarget::scene_gizmo(30);
     let pointer_location = location(pointer);
-    let locations = HashMap::from([(pointer, pointer_location)]);
+    let key = PickingPointerKey::from_location(pointer_location);
+    let locations = HashMap::from([(key, pointer_location)]);
 
     let mut enter_state = PickingEventState::default();
     enter_state
         .button_states
-        .insert((pointer, PointerButton::Primary), dragging_state(&dragged));
-    let current_hover = PickingHoverMap::new(pointer, vec![hit(drop_target)]);
+        .insert((key, PointerButton::Primary), dragging_state(&dragged));
+    let current_hover =
+        PickingHoverMap::in_viewport(pointer, pointer_location.viewport, vec![hit(drop_target)]);
     let mut enter_events = Vec::new();
     enter_state.dispatch_current_hovers(
         &PickingHoverMap::default(),
@@ -71,8 +73,9 @@ fn optimization_batch_hq_runtime598_streamed_drag_target_dispatch_preserves_orde
         .insert(drop_target, hit(drop_target).hit);
     leave_state
         .button_states
-        .insert((pointer, PointerButton::Primary), button_state);
-    let previous_hover = PickingHoverMap::new(pointer, vec![hit(drop_target)]);
+        .insert((key, PointerButton::Primary), button_state);
+    let previous_hover =
+        PickingHoverMap::in_viewport(pointer, pointer_location.viewport, vec![hit(drop_target)]);
     let mut leave_events = Vec::new();
     leave_state.dispatch_exits(
         &previous_hover,

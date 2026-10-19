@@ -6,19 +6,10 @@ pub(super) const READBACK_OFFSET_ALIGNMENT: u64 = 256;
 pub(super) const MIN_STAGING_CAPACITY: u64 = 256 * 1024;
 pub(super) const LOW_UTILIZATION_FRAME_LIMIT: u16 = 240;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub(super) struct StagingCapacityPolicy {
     capacity: u64,
     low_utilization_frames: u16,
-}
-
-impl Default for StagingCapacityPolicy {
-    fn default() -> Self {
-        Self {
-            capacity: 0,
-            low_utilization_frames: 0,
-        }
-    }
 }
 
 impl StagingCapacityPolicy {

@@ -1,11 +1,44 @@
 # Codex file permissions
 
-## Canonical configuration
+## Current selection: Full Access
+
+On 2026-10-18 the user explicitly requested Full Access instead of repairing
+the Codex Windows sandbox. The project configuration now selects:
+
+```toml
+approval_policy = "never"
+default_permissions = ":danger-full-access"
+```
+
+The user-level configuration already selects the same built-in profile. Full
+Access removes Codex command sandbox restrictions; it uses the current Windows
+user's operating-system permissions and does not make that user an administrator.
+It does not require elevated sandbox setup, refreshing sandbox ACLs, or changing
+file owners. The retained `[windows] sandbox = "elevated"` setting is only relevant
+if a restricted profile is explicitly selected later.
+
+New sessions use the resolved default unless another explicit selection or
+managed requirement overrides it. Existing chats may retain `zircon-strict` or
+another older selection: choose **Full Access** in that chat's permissions menu,
+then verify a real command. Do not edit the chat database or claim that changing
+the project default changed every active chat. This checkout's current chat
+already has unrestricted command execution; that observation alone does not
+prove another chat recovered.
+
+Jenkins continues to own Git, branches, worktrees, source preparation, generation,
+builds, validation, artifact reuse, integration and cleanup. Compiler products,
+caches and task evidence retain the existing physical cargo-targets placement
+rules. Preserve foreign changes, unknown source/artifacts, Git metadata and
+historical receipts. Full Access does not change task scope or grant unrelated
+operations.
+
+## Optional restricted profile
 
 `E:\Git\ZirconEngine\.codex\config.toml` defines the `zircon-strict` permission
-profile and the sole maintained write allowlist. It extends `:read-only` and
+profile and its maintained write allowlist. It is retained as an optional
+restricted selection, not the project default. It extends `:read-only` and
 grants writes only to the explicitly listed source, documentation, fixture,
-skill, session, state and output paths. The checkout root is read-only; its
+skill, session, state and output paths. Under this profile the checkout root is read-only; its
 editable configuration files are granted individually.
 
 Directory grants include descendants. A new file inside a granted directory
@@ -25,7 +58,9 @@ outputs into the E: namespace. Other tools must use their explicit output
 options. A write denial is a reason to choose a permitted destination; it does
 not authorize adding a grant or running the command without confinement.
 
-## Activation
+## Activate the optional restricted profile
+
+These steps apply only if the user explicitly requests `zircon-strict` again.
 
 1. Open ZirconEngine as a trusted project. Codex loads project configuration
    only for trusted projects.
@@ -40,18 +75,19 @@ not authorize adding a grant or running the command without confinement.
    discovery and `windowsSandbox/readiness = ready` are separate from passing
    runtime evidence.
 
-ZirconEngine selects `zircon-strict` through its own trusted project
-configuration. The user-level permission default applies to other projects;
-an existing chat's explicit selection can still override this project default.
+ZirconEngine currently selects Full Access through its trusted project
+configuration. An existing chat's explicit selection can still override that
+project default.
 
-## Tool coverage
+## Optional profile coverage
 
 The profile controls sandboxed local commands and their child processes. MCP
 servers and app tools use separate execution boundaries, so this checkout
 disables its configured RenderDoc and CUA MCP servers and default app access.
-Command networking is enabled. The saved Windows profile now keeps `.git`,
-`.jenkins`, workflow definitions, Jenkins executable tooling and Jenkins selection/
-authorization state read-only. Scoped request inputs belong in `.codex/outbox`.
+Command networking is enabled. Read the actual filesystem table for current
+grants: it includes the user-authorized `.git` and `.jenkins` maintenance grants,
+while `.github` and retired activation state remain read-only. Git and lifecycle
+operations still belong to Jenkins. Scoped request inputs belong in `.codex/outbox`.
 Jenkins itself owns its runtime, Git metadata and authorization database. A local
 profile cannot confine an already-running service; relocating that installation
 and pinning its interpreter require a separate operator change.
@@ -69,18 +105,18 @@ Jenkins service has its own execution boundary and remains subject to its reques
 authorization, selected-driver/runtime checks, physical output checks and native
 ownership locks. The command sandbox does not confine that preexisting service.
 
-The configuration, Git hooks and metadata, Jenkins executable/control state,
-AGENTS.md, unlisted reference trees, retired coordinator data, user directories
-and system temp have no write grant. The host's own state, logs and sandbox
-provisioning remain outside the command profile. The Linux review overlay does
-not activate the Windows profile; real operation probes are still required.
+Under the optional profile, unlisted control configuration, AGENTS.md, reference
+trees, retired coordinator data, user directories and system temp have no write
+grant. The host's own state, logs and sandbox provisioning remain outside the
+command profile. A saved profile does not activate it in an existing chat; real
+operation probes are still required when claiming restricted enforcement.
 
 These are project defaults, not an administrator-enforced device policy.
 Explicitly selecting another profile or supplying a command-line override
-changes that invocation's permissions. The working agreement prohibits using
-that route to bypass this project's allowlist.
+changes that invocation's permissions. The user explicitly authorized the current
+Full Access selection; the optional profile's allowlist does not confine it.
 
-## Runtime verification
+## Optional restricted-profile runtime verification
 
 Use the installed CLI's `codex sandbox --permission-profile zircon-strict
 --include-managed-config -C E:\Git\ZirconEngine -- <command>` interface for

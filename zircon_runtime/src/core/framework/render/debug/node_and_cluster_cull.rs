@@ -200,8 +200,10 @@ impl RenderVirtualGeometryNodeAndClusterCullInstanceWorkItem {
             page_count: words[6],
             cluster_budget: words[7],
             page_budget: words[8],
-            // BUG: [CR-RENDER-MISC-0001] 四种记录解码把非哨兵 forced_mip 直接窄化为 u8；例如 256 被接受为 0，使畸形读回伪装成有效 LOD。
-            forced_mip: (words[9] != Self::NONE_SENTINEL).then_some(words[9] as u8),
+            forced_mip: match words[9] {
+                Self::NONE_SENTINEL => None,
+                word => Some(u8::try_from(word).ok()?),
+            },
         })
     }
 }
@@ -249,7 +251,10 @@ impl RenderVirtualGeometryNodeAndClusterCullClusterWorkItem {
             hierarchy_node_id: (words[4] != Self::NONE_SENTINEL).then_some(words[4]),
             cluster_budget: words[5],
             page_budget: words[6],
-            forced_mip: (words[7] != Self::NONE_SENTINEL).then_some(words[7] as u8),
+            forced_mip: match words[7] {
+                Self::NONE_SENTINEL => None,
+                word => Some(u8::try_from(word).ok()?),
+            },
         })
     }
 }
@@ -306,7 +311,10 @@ impl RenderVirtualGeometryNodeAndClusterCullChildWorkItem {
             traversal_index: words[7],
             cluster_budget: words[8],
             page_budget: words[9],
-            forced_mip: (words[10] != Self::NONE_SENTINEL).then_some(words[10] as u8),
+            forced_mip: match words[10] {
+                Self::NONE_SENTINEL => None,
+                word => Some(u8::try_from(word).ok()?),
+            },
         })
     }
 }
@@ -430,7 +438,10 @@ impl RenderVirtualGeometryNodeAndClusterCullTraversalRecord {
             traversal_index: words[11],
             cluster_budget: words[12],
             page_budget: words[13],
-            forced_mip: (words[14] != Self::NONE_SENTINEL).then_some(words[14] as u8),
+            forced_mip: match words[14] {
+                Self::NONE_SENTINEL => None,
+                word => Some(u8::try_from(word).ok()?),
+            },
         })
     }
 }

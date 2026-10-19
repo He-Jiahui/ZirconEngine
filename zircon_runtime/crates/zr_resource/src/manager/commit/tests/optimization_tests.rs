@@ -20,14 +20,16 @@ fn runtime04_resource_manager_commit_ordered_staging_preserves_first_touch_seque
     let third = ResourceId::from_stable_label("ordered-staging-third");
     let mut staged = StagedResources::with_capacity(4);
 
-    staged.get_or_insert_with(second, || None).reload_failed = true;
-    staged.get_or_insert_with(first, || None);
+    staged
+        .get_or_insert_with(second, || (None, None))
+        .reload_failed = true;
+    staged.get_or_insert_with(first, || (None, None));
     staged.get_or_insert_with(second, || panic!("duplicate slot construction"));
-    staged.get_or_insert_with(third, || None);
+    staged.get_or_insert_with(third, || (None, None));
 
     assert_eq!(
         staged
-            .into_entries()
+            .entries
             .into_iter()
             .map(|entry| entry.id)
             .collect::<Vec<_>>(),

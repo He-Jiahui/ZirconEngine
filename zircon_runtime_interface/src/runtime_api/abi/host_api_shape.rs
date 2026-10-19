@@ -98,7 +98,7 @@ pub unsafe fn validate_runtime_host_api_v1_pointer(
 
     let address = host as usize;
     let expected_alignment = align_of::<ZrHostApiV1>();
-    if address % expected_alignment != 0 {
+    if !address.is_multiple_of(expected_alignment) {
         return Err(ZrRuntimeHostApiV1PointerError::MisalignedPointer {
             address,
             expected_alignment,

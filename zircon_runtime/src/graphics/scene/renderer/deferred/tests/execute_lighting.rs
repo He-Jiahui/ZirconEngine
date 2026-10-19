@@ -3,7 +3,8 @@ use std::sync::Arc;
 use super::*;
 use crate::asset::{ProjectAssetManager, ProjectAssetManagerAccess};
 use crate::core::framework::render::{
-    EnvironmentExtract, FallbackSkyboxKind, PreviewEnvironmentExtract, RenderOverlayExtract,
+    AdvancedProfileRuntimePlan, AdvancedProviderAvailability, EnvironmentExtract,
+    FallbackSkyboxKind, PreviewEnvironmentExtract, RenderOverlayExtract, RenderProfileBundle,
     RenderSceneGeometryExtract, RenderSceneSnapshot, ViewportCameraSnapshot,
 };
 use crate::core::math::{UVec2, Vec4};
@@ -148,6 +149,22 @@ fn deferred_lighting_profiles_construct_bind_groups_during_real_render() {
             startup_options,
         )
         .unwrap_or_else(|error| panic!("{profile_name} renderer startup failed: {error}"));
+
+        assert!(!renderer.backend_caps().supports_buffer_readback);
+        let capabilities = renderer.native_render_capabilities();
+        assert!(capabilities.supports_buffer_readback);
+        let plan = AdvancedProfileRuntimePlan::from_profile_bundle(
+            &RenderProfileBundle::advanced_render(),
+            &capabilities,
+            &AdvancedProviderAvailability::new()
+                .with_virtual_geometry_provider("test.virtual-geometry")
+                .with_hybrid_gi_provider("test.hybrid-gi"),
+        );
+        assert!(plan.virtual_geometry_enabled(), "{profile_name}: {plan:?}");
+        assert!(
+            plan.hybrid_global_illumination_enabled(),
+            "{profile_name}: {plan:?}"
+        );
 
         renderer
             .render(empty_lit_snapshot(), UVec2::new(8, 8))

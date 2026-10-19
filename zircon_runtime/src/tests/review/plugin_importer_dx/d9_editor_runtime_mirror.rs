@@ -1,4 +1,5 @@
 //! 代码审查回归护栏核对已迁移接口、错误边界、插件入口及镜像状态。以结果断言检查当前接口或源码快照对应的边界。
+use crate::tests::runtime_absorption::structure_convention::fixed_history_archive_source as history;
 const D9_EDITOR_RUNTIME_MIRROR_CRATES: &[(&str, &str, &str, &str, &str)] = &[
     (
         "animation",
@@ -25,14 +26,43 @@ const D9_EDITOR_RUNTIME_MIRROR_CRATES: &[(&str, &str, &str, &str, &str)] = &[
 
 #[test]
 fn review_d9_editor_runtime_mirror_consumers_use_sdk_declaration() {
-    let review_findings = concat!(
-        include_str!("../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"),
-        include_str!("../../../../../docs/plans/engine-code-review-findings-2026-06.md")
+    let review_findings = crate::runtime_test_history_concat!(
+        history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"),
+        include_str!("../../../../../docs/architecture/runtime-architecture-review-m0.md")
     );
     let capability_audit = include_str!("../../../../../tools/audits/plugins/capability.py");
     let audit_report = include_str!("../../../../../tools/audits/audit_plugin_structure.py");
-    let catalog =
+    let catalog_owner =
         include_str!("../../../../../zircon_plugins/first_party_runtime_catalog/src/lib.rs");
+    let catalog = include_str!(
+        "../../../../../zircon_plugins/first_party_runtime_catalog/src/tests/cases.rs"
+    );
+    let normalized = catalog_owner.lines().collect::<Vec<_>>().join("\n");
+    assert!(normalized.contains("#[cfg(test)]\n#[path = \"tests/cases.rs\"]\nmod tests;"));
+    let mirror_roots = capability_audit
+        .split_once("FIRST_PARTY_EDITOR_RUNTIME_MIRROR_ROOTS = [")
+        .expect("audit must own the exact mirror-root inventory")
+        .1
+        .split_once(']')
+        .expect("mirror-root inventory must close")
+        .0;
+    let roots: Vec<_> = mirror_roots
+        .lines()
+        .map(str::trim)
+        .filter(|line| !line.is_empty())
+        .collect();
+    assert_eq!(
+        roots,
+        [
+            "\"animation\",",
+            "\"neural\",",
+            "\"physics\",",
+            "\"net\",",
+            "\"navigation\",",
+        ]
+    );
+    assert!(capability_audit.contains("len(\n                self.editor_runtime_mirror_roots"));
+    assert!(catalog.contains("fn plugins_12_capability_single_source_conformance()"));
 
     assert_eq!(
         D9_EDITOR_RUNTIME_MIRROR_CRATES.len(),
@@ -98,7 +128,7 @@ fn review_d9_editor_runtime_mirror_consumers_use_sdk_declaration() {
         );
     }
     for required in [
-        "\\\"editor_runtime_mirror_root_count\\\": 3",
+        "\\\"editor_runtime_mirror_root_count\\\": 5",
         "\\\"editor_runtime_mirror_violations\\\": 0",
         "\\\"d9_editor_runtime_mirror_gate_status\\\": \\\"editor-runtime-mirror-clean\\\"",
     ] {

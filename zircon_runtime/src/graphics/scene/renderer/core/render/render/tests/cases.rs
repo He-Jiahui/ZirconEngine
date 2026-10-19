@@ -132,20 +132,28 @@ fn prepared_probe_slots_commit_only_after_the_compiled_frame_submit() {
 fn immediate_scene_finalizes_submitted_state_after_its_scene_ticket() {
     let source = include_str!("../../../render_scene/render_scene.rs");
     let submit = source
-        .find(".submit_graphics_command_buffers_with_graph_receipt_and_frame_diagnostics_and_surface(")
+        .find(".submit_graphics_command_buffers_with_frame_diagnostics_and_surface(")
         .expect("direct scene must retain one ticketed submission");
-    let commit_probe_uploads = source[submit..]
+    let accepted_start = submit
+        + source[submit..]
+            .find("        };\n")
+            .expect("ticketed submit must finish its success/error match")
+        + "        };\n".len();
+    let rejected = &source[submit..accepted_start];
+    assert!(rejected.contains("self.realtime_ibl.complete_submission(submission, false)"));
+    assert!(rejected.contains("return Err(error)"));
+    let commit_probe_uploads = source[accepted_start..]
         .find(".reflection_probes\n            .commit_pending_uploads()")
-        .map(|offset| submit + offset)
+        .map(|offset| accepted_start + offset)
         .expect("probe slot state must finalize after scene submission");
-    let complete_submission = source[submit..]
-        .find("self.realtime_ibl.complete_submission")
-        .map(|offset| submit + offset)
-        .expect("submitted realtime IBL state must be finalized");
-    let roll_transforms = source[submit..]
-        .find("self.gpu_scene.roll_prev_transforms_after_success")
-        .map(|offset| submit + offset)
-        .expect("submitted transforms must roll after the scene ticket");
+    let complete_submission = source[accepted_start..]
+        .find("self.realtime_ibl.complete_submission(submission, true)")
+        .map(|offset| accepted_start + offset)
+        .expect("submitted realtime IBL state must be finalized on success");
+    let roll_transforms = source[accepted_start..]
+        .find("self.commit_scene_history_after_validation()")
+        .map(|offset| accepted_start + offset)
+        .expect("validated scene history must commit after the scene ticket");
     let success = source[submit..]
         .find("Ok(scene_submission)")
         .map(|offset| submit + offset)
@@ -155,6 +163,26 @@ fn immediate_scene_finalizes_submitted_state_after_its_scene_ticket() {
     assert!(commit_probe_uploads < complete_submission);
     assert!(complete_submission < roll_transforms);
     assert!(roll_transforms < success);
+    let history_helper = source[success..]
+        .split_once("fn commit_scene_history_after_validation(")
+        .expect("the success path must delegate to its real history owner")
+        .1
+        .split_once("\n    }")
+        .expect("history helper body must be delimited")
+        .0;
+    let mut previous = None;
+    for required in [
+        "self.gpu_scene.roll_prev_transforms_after_success()",
+        "self.gpu_scene.roll_prev_skinned_palettes_after_success()",
+        "self.gpu_scene.roll_prev_skinned_gpu_sources_after_success()",
+        "self.gpu_scene.roll_prev_morph_weights_after_success()",
+    ] {
+        let current = history_helper.find(required).expect(required);
+        if let Some(previous) = previous {
+            assert!(previous < current);
+        }
+        previous = Some(current);
+    }
 }
 
 #[cfg(test)]

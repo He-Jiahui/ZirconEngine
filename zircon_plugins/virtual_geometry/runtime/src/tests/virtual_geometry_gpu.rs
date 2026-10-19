@@ -2,7 +2,8 @@ use std::sync::Arc;
 
 use crate::test_support::render_feature_fixtures::{
     pluginized_wgpu_render_framework_with_uploader_collector,
-    virtual_geometry_render_feature_descriptor, PluginizedWgpuRenderFrameworkFixture,
+    virtual_geometry_render_feature_descriptor, CookedWorldSource,
+    PluginizedWgpuRenderFrameworkFixture,
 };
 use crate::virtual_geometry::{
     VirtualGeometryGpuReadback, VirtualGeometryNodeAndClusterCullChildWorkItem,
@@ -82,7 +83,7 @@ trait VirtualGeometryUploaderFixtureTestExt {
         _capture: Option<()>,
     ) -> Result<(), String>;
 
-    fn take_last_virtual_geometry_gpu_readback(&self) -> Option<VirtualGeometryGpuReadback>;
+    fn take_completed_uploader_readback(&self) -> Option<VirtualGeometryGpuReadback>;
 }
 
 impl VirtualGeometryUploaderFixtureTestExt for PluginizedWgpuRenderFrameworkFixture {
@@ -102,7 +103,7 @@ impl VirtualGeometryUploaderFixtureTestExt for PluginizedWgpuRenderFrameworkFixt
         .map_err(|error| error.to_string())
     }
 
-    fn take_last_virtual_geometry_gpu_readback(&self) -> Option<VirtualGeometryGpuReadback> {
+    fn take_completed_uploader_readback(&self) -> Option<VirtualGeometryGpuReadback> {
         Some(
             self.uploader_collector()
                 .take_readback()
@@ -191,7 +192,7 @@ fn virtual_geometry_gpu_uploader_readback_reports_completed_page_ids_from_prepar
         .unwrap();
 
     let readback = renderer
-        .take_last_virtual_geometry_gpu_readback()
+        .take_completed_uploader_readback()
         .expect("expected virtual geometry GPU readback");
     assert_eq!(readback.page_table_entries(), vec![(200, 0), (300, 1)]);
     assert_eq!(readback.completed_page_ids(), vec![300]);
@@ -240,7 +241,7 @@ fn virtual_geometry_gpu_uploader_readback_respects_streaming_bytes_even_with_evi
         .unwrap();
 
     let readback = renderer
-        .take_last_virtual_geometry_gpu_readback()
+        .take_completed_uploader_readback()
         .expect("expected virtual geometry GPU readback");
     assert_eq!(readback.page_table_entries(), vec![(200, 0)]);
     assert_eq!(
@@ -298,7 +299,7 @@ fn virtual_geometry_gpu_uploader_readback_skips_oversized_requests_and_completes
         .unwrap();
 
     let readback = renderer
-        .take_last_virtual_geometry_gpu_readback()
+        .take_completed_uploader_readback()
         .expect("expected virtual geometry GPU readback");
     assert_eq!(readback.page_table_entries(), vec![(500, 0)]);
     assert_eq!(
@@ -368,7 +369,7 @@ fn virtual_geometry_gpu_uploader_readback_assigns_free_slots_before_recycling_ev
         .unwrap();
 
     let readback = renderer
-        .take_last_virtual_geometry_gpu_readback()
+        .take_completed_uploader_readback()
         .expect("expected virtual geometry GPU readback");
     assert_eq!(readback.completed_page_ids(), vec![300, 600]);
     assert_eq!(
@@ -422,7 +423,7 @@ fn virtual_geometry_gpu_uploader_readback_prioritizes_explicit_frontier_rank_ove
         .unwrap();
 
     let readback = renderer
-        .take_last_virtual_geometry_gpu_readback()
+        .take_completed_uploader_readback()
         .expect("expected virtual geometry GPU readback");
     assert_eq!(
         readback.completed_page_ids(),
@@ -507,7 +508,7 @@ fn virtual_geometry_gpu_uploader_readback_uses_explicit_request_assigned_slot_ov
         .unwrap();
 
     let readback = renderer
-        .take_last_virtual_geometry_gpu_readback()
+        .take_completed_uploader_readback()
         .expect("expected virtual geometry GPU readback");
     assert_eq!(
         readback.page_table_entries(),
@@ -608,7 +609,7 @@ fn virtual_geometry_gpu_uploader_readback_rejects_stale_explicit_recycle_slot_co
         .unwrap();
 
     let readback = renderer
-        .take_last_virtual_geometry_gpu_readback()
+        .take_completed_uploader_readback()
         .expect("expected virtual geometry GPU readback");
     assert_eq!(
         readback.page_table_entries(),
@@ -723,7 +724,7 @@ fn virtual_geometry_gpu_uploader_readback_preserves_frontier_recycle_preference_
         .unwrap();
 
     let readback = renderer
-        .take_last_virtual_geometry_gpu_readback()
+        .take_completed_uploader_readback()
         .expect("expected virtual geometry GPU readback");
     assert_eq!(
         readback.page_table_entries(),
@@ -746,7 +747,6 @@ fn virtual_geometry_gpu_uploader_readback_preserves_frontier_recycle_preference_
 #[test]
 fn virtual_geometry_gpu_readback_exposes_execution_backed_visbuffer64_entries() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let mut renderer = virtual_geometry_scene_renderer(asset_manager);
     let viewport_size = UVec2::new(96, 64);
     let world = World::new();
     let mesh = world
@@ -755,11 +755,10 @@ fn virtual_geometry_gpu_readback_exposes_execution_backed_visbuffer64_entries() 
         .find(|node| node.mesh.is_some())
         .map(|node| node.id)
         .expect("default world should contain a renderable mesh");
-    let mut extract = RenderFrameExtract::from_snapshot(
-        RenderWorldSnapshotHandle::new(1),
-        world.to_render_snapshot(),
-    );
-    extract.apply_viewport_size(viewport_size);
+    let source = CookedWorldSource::new(&asset_manager, world, mesh, 2);
+    let mut renderer =
+        virtual_geometry_scene_renderer(asset_manager).with_cooked_world_source(source);
+    let mut extract = renderer.build_cooked_world_extract(viewport_size);
     extract.geometry.virtual_geometry = Some(RenderVirtualGeometryExtract {
         cluster_budget: 2,
         page_budget: 0,
@@ -1095,7 +1094,6 @@ fn virtual_geometry_gpu_readback_exposes_execution_backed_visbuffer64_entries() 
 #[test]
 fn virtual_geometry_cull_input_buffer_exists_without_snapshot_or_gpu_readback() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let mut renderer = virtual_geometry_scene_renderer(asset_manager);
     let viewport_size = UVec2::new(96, 64);
     let world = World::new();
     let mesh = world
@@ -1104,8 +1102,10 @@ fn virtual_geometry_cull_input_buffer_exists_without_snapshot_or_gpu_readback() 
         .find(|node| node.mesh.is_some())
         .map(|node| node.id)
         .expect("default world should contain a renderable mesh");
-    let mut extract = world.to_render_frame_extract();
-    extract.apply_viewport_size(viewport_size);
+    let source = CookedWorldSource::new(&asset_manager, world, mesh, 6);
+    let mut renderer =
+        virtual_geometry_scene_renderer(asset_manager).with_cooked_world_source(source);
+    let mut extract = renderer.build_cooked_world_extract(viewport_size);
     let expected_camera_transform = Transform::from_translation(Vec3::new(3.0, 4.0, 5.0));
     extract.view.camera.transform = expected_camera_transform;
     let mut render_clusters = vec![
@@ -1570,14 +1570,31 @@ fn virtual_geometry_cull_input_buffer_exists_without_snapshot_or_gpu_readback() 
 fn virtual_geometry_node_and_cluster_cull_reuses_previous_renderer_owned_global_state_without_debug_snapshot(
 ) {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let mut renderer = virtual_geometry_scene_renderer(asset_manager);
+    let world = World::new();
+    let mesh = world
+        .nodes()
+        .iter()
+        .find(|node| node.mesh.is_some())
+        .map(|node| node.id)
+        .expect("default world should contain a renderable mesh");
+    let source = CookedWorldSource::new(&asset_manager, world, mesh, 1);
+    let mut renderer =
+        virtual_geometry_scene_renderer(asset_manager).with_cooked_world_source(source);
     let viewport_size = UVec2::new(96, 64);
     let first_camera_transform = Transform::from_translation(Vec3::new(3.0, 4.0, 5.0));
     let second_camera_transform = Transform::from_translation(Vec3::new(-2.0, 6.0, 8.0));
-    let first_extract =
-        build_node_and_cluster_cull_history_extract(viewport_size, first_camera_transform);
-    let second_extract =
-        build_node_and_cluster_cull_history_extract(viewport_size, second_camera_transform);
+    let first_extract = build_node_and_cluster_cull_history_extract(
+        &renderer,
+        mesh,
+        viewport_size,
+        first_camera_transform,
+    );
+    let second_extract = build_node_and_cluster_cull_history_extract(
+        &renderer,
+        mesh,
+        viewport_size,
+        second_camera_transform,
+    );
     let compiled = compile_virtual_geometry_pipeline(&first_extract);
     let viewport = renderer
         .create_virtual_geometry_test_viewport(viewport_size)
@@ -1627,7 +1644,6 @@ fn virtual_geometry_node_and_cluster_cull_reuses_previous_renderer_owned_global_
 #[test]
 fn virtual_geometry_node_and_cluster_cull_page_requests_are_readable_from_last_state() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let mut renderer = virtual_geometry_scene_renderer(asset_manager);
     let viewport_size = UVec2::new(96, 64);
     let world = World::new();
     let mesh = world
@@ -1636,8 +1652,10 @@ fn virtual_geometry_node_and_cluster_cull_page_requests_are_readable_from_last_s
         .find(|node| node.mesh.is_some())
         .map(|node| node.id)
         .expect("default world should contain a renderable mesh");
-    let mut extract = world.to_render_frame_extract();
-    extract.apply_viewport_size(viewport_size);
+    let source = CookedWorldSource::new(&asset_manager, world, mesh, 4);
+    let mut renderer =
+        virtual_geometry_scene_renderer(asset_manager).with_cooked_world_source(source);
+    let mut extract = renderer.build_cooked_world_extract(viewport_size);
     extract.view.camera.transform = Transform::from_translation(Vec3::new(3.0, 4.0, 5.0));
     let mut render_clusters = vec![
         RenderVirtualGeometryCluster {
@@ -1743,7 +1761,6 @@ fn virtual_geometry_node_and_cluster_cull_page_requests_are_readable_from_last_s
 #[test]
 fn virtual_geometry_visbuffer64_buffer_exists_without_snapshot_or_gpu_readback() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let mut renderer = virtual_geometry_scene_renderer(asset_manager);
     let viewport_size = UVec2::new(96, 64);
     let world = World::new();
     let mesh = world
@@ -1752,9 +1769,50 @@ fn virtual_geometry_visbuffer64_buffer_exists_without_snapshot_or_gpu_readback()
         .find(|node| node.mesh.is_some())
         .map(|node| node.id)
         .expect("default world should contain a renderable mesh");
-    let mut extract = world.to_render_frame_extract();
-    extract.apply_viewport_size(viewport_size);
+    let source = CookedWorldSource::new(&asset_manager, world, mesh, 2);
+    let mut renderer =
+        virtual_geometry_scene_renderer(asset_manager).with_cooked_world_source(source);
+    let mut extract = renderer.build_cooked_world_extract(viewport_size);
     extract.view.camera.transform = Transform::from_translation(Vec3::new(3.0, 4.0, 5.0));
+
+    // Map the selected authored row to the second real cooked leaf of the
+    // original World cube. The normal two-row domain keeps ordinal1/total2;
+    // native admission still owns the original geometry and index partitions.
+    let authored_mesh = extract
+        .geometry
+        .meshes
+        .iter()
+        .find(|snapshot| snapshot.node_id == mesh)
+        .expect("published original World mesh")
+        .clone();
+    extract.geometry.virtual_geometry = Some(RenderVirtualGeometryExtract {
+        cluster_budget: 2,
+        page_budget: 0,
+        clusters: vec![
+            virtual_geometry_cluster(authored_mesh.node_id, 20, 200, 0, Vec3::ZERO, 9.0),
+            virtual_geometry_cluster(
+                authored_mesh.node_id,
+                30,
+                300,
+                0,
+                Vec3::new(0.1, 0.0, 0.0),
+                8.0,
+            ),
+        ],
+        pages: vec![page(200, false), page(300, true)],
+        instances: vec![RenderVirtualGeometryInstance {
+            entity: authored_mesh.node_id,
+            stable_instance_key: authored_mesh.stable_instance_key,
+            source_model: Some(authored_mesh.model.id()),
+            transform: authored_mesh.transform.clone(),
+            cluster_offset: 0,
+            cluster_count: 2,
+            page_offset: 0,
+            page_count: 2,
+            ..Default::default()
+        }],
+        ..Default::default()
+    });
 
     let compiled = compile_virtual_geometry_pipeline(&extract);
 
@@ -2014,19 +2072,14 @@ fn virtual_geometry_visbuffer64_clear_only_source_exists_without_cluster_selecti
 }
 
 fn build_node_and_cluster_cull_history_extract(
+    renderer: &PluginizedWgpuRenderFrameworkFixture,
+    mesh: u64,
     viewport_size: UVec2,
     camera_transform: Transform,
 ) -> RenderFrameExtract {
-    let world = World::new();
-    let mesh = world
-        .nodes()
-        .iter()
-        .find(|node| node.mesh.is_some())
-        .map(|node| node.id)
-        .expect("default world should contain a renderable mesh");
-    let mut extract = world.to_render_frame_extract();
-    extract.apply_viewport_size(viewport_size);
+    let mut extract = renderer.build_cooked_world_extract(viewport_size);
     extract.view.camera.transform = camera_transform;
+    extract.view.sync_selected_descriptor_camera_payload();
     extract.geometry.virtual_geometry = Some(RenderVirtualGeometryExtract {
         cluster_budget: 1,
         page_budget: 1,

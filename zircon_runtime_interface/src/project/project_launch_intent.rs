@@ -226,14 +226,16 @@ fn validate_target(target: &ProjectLaunchTarget) -> Result<(), ProjectLaunchInte
 
 /// 拒绝空白或不能表示为文本的路径；保留其他路径内容，不做规范化或存在性检查。
 fn validate_path(
-    path: &PathBuf,
+    path: &std::path::Path,
     empty_error: ProjectLaunchIntentError,
 ) -> Result<(), ProjectLaunchIntentError> {
     if path.as_os_str().is_empty() {
         return Err(empty_error);
     }
     let Some(value) = path.to_str() else {
-        return Err(ProjectLaunchIntentError::NonTextPath { path: path.clone() });
+        return Err(ProjectLaunchIntentError::NonTextPath {
+            path: path.to_path_buf(),
+        });
     };
     if value.trim().is_empty() {
         return Err(empty_error);

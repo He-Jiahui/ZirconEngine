@@ -92,6 +92,7 @@ fn prepare_hybrid_gi_runtime(
         context.hybrid_gi_update_plan(),
         context.predicted_generation(),
     )
+    .with_source_world(context.source_world())
     .with_view_state(
         Some(context.scene_camera_position()),
         context.hybrid_gi_history_invalidated(),

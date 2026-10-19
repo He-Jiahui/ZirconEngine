@@ -203,7 +203,8 @@ fn bind_virtual_geometry_indexed_main(
         VirtualGeometryIndexedPlan, INDEXED_ARGS_RESOURCE, INDEXED_CAPACITY,
     };
     use std::sync::Arc;
-    let mut plan: Option<Arc<VirtualGeometryIndexedPlan>> = None;
+    // The producer retains this same-frame plan even when admission emits no draw.
+    let mut plan: Option<Arc<VirtualGeometryIndexedPlan>> = lists.indexed_plan.cloned();
     for commands in [
         lists.depth_prepass_commands,
         lists.shadow_commands,

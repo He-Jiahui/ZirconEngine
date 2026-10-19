@@ -201,6 +201,33 @@ class RecipePlanningTests(unittest.TestCase):
         self.assertEqual(execution["RUSTC_WRAPPER"], "")
         self.assertIn(str(self.build_root / 'zircon-local/zircon-jenkins/preparations') + '\\', plan.recipe["preparationRoot"])
 
+    def test_missing_incremental_override_uses_manifest_even_with_ambient_override(self):
+        from tools.jenkins.workflow.planning import _environment_policy
+        environment = {key: value for key, value in self.environment_policy["environment"].items()
+                       if key != "CARGO_INCREMENTAL"}
+        self.environment_file.write_text(json.dumps(environment), encoding="utf-8")
+        policy = {**self.environment_policy, "environment": environment,
+                  "environmentDigest": digest(environment), "fileDigest": file_digest(self.environment_file)}
+        old = self.state.get("environment_policy", "default")
+        self.state.put("environment_policy", "default", policy, expected_version=old["version"])
+        with patch.dict("os.environ", {"CARGO_INCREMENTAL": "1"}):
+            actual, _, _ = _environment_policy(self.state, self.root)
+        self.assertNotIn("CARGO_INCREMENTAL", actual)
+
+    def test_explicit_incremental_override_is_preserved_and_bound(self):
+        from tools.jenkins.workflow.planning import _environment_policy
+        for value in ("0", "1"):
+            with self.subTest(value=value):
+                environment = {**self.environment_policy["environment"], "CARGO_INCREMENTAL": value}
+                self.environment_file.write_text(json.dumps(environment), encoding="utf-8")
+                policy = {**self.environment_policy, "environment": environment,
+                          "environmentDigest": digest(environment), "fileDigest": file_digest(self.environment_file)}
+                old = self.state.get("environment_policy", "default")
+                self.state.put("environment_policy", "default", policy, expected_version=old["version"])
+                actual, observed_policy, _ = _environment_policy(self.state, self.root)
+                self.assertEqual(actual["CARGO_INCREMENTAL"], value)
+                self.assertEqual(observed_policy["environmentDigest"], digest(environment))
+
     def test_changed_rustc_is_rejected(self):
         self.rustc.write_bytes(b"changed-rustc")
         with self.assertRaisesRegex(JenkinsError, "rustc executable differs"):

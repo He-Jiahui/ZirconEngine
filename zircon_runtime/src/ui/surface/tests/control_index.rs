@@ -322,11 +322,13 @@ fn compiled_control_dense_slot_p95_beats_string_index_lookup() {
     }
     let program = UiCompiledBindingProgram::new(
         UiCompiledBindingGeneration::new(1),
-        Vec::new(),
-        Vec::new(),
-        Vec::new(),
-        Vec::new(),
-        names.clone(),
+        zircon_runtime_interface::ui::template::UiCompiledBindingSymbols {
+            binding_names: Vec::new(),
+            properties: Vec::new(),
+            routes: Vec::new(),
+            actions: Vec::new(),
+            controls: names.clone(),
+        },
         Vec::new(),
         Vec::new(),
     );
@@ -396,11 +398,13 @@ fn compiled_program<const N: usize>(
 ) -> UiCompiledBindingProgram {
     UiCompiledBindingProgram::new(
         UiCompiledBindingGeneration::new(generation),
-        Vec::new(),
-        Vec::new(),
-        Vec::new(),
-        Vec::new(),
-        controls.into_iter().map(str::to_string).collect(),
+        zircon_runtime_interface::ui::template::UiCompiledBindingSymbols {
+            binding_names: Vec::new(),
+            properties: Vec::new(),
+            routes: Vec::new(),
+            actions: Vec::new(),
+            controls: controls.into_iter().map(str::to_string).collect(),
+        },
         Vec::new(),
         Vec::new(),
     )

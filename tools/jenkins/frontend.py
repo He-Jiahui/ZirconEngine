@@ -15,12 +15,58 @@ from .submission import _parameter_fields, _submission_fields, request_payload, 
 from .state import State
 
 
-def management_entry(repo_root: str | Path):
-    """Load the installed client's canonical adapter; its boot verifies pins."""
+def management_client_path(repo_root: str | Path, name: str) -> Path:
+    """Select pinned installed bytes without booting a service or native owner."""
+    import hashlib
     import importlib.util
-    path = Path(repo_root).absolute() / "tools/jenkins-management/entry.py"
-    if not path.is_file():
-        raise JenkinsError("ordinary_entry_pending", "Ordinary Jenkins client is pending installation")
+    import stat
+    repo = Path(repo_root).absolute()
+    def read(path):
+        for item in (path, *path.parents):
+            if item.exists() or item.is_symlink():
+                if item.is_symlink() or getattr(item.lstat(), "st_file_attributes", 0) & stat.FILE_ATTRIBUTE_REPARSE_POINT:
+                    raise JenkinsError("ordinary_entry_pending", "Management client path uses an alias")
+        return path.read_bytes()
+    installed_path = repo / ".jenkins/state/management/installed.json"
+    installed_raw = read(installed_path)
+    installed = json.loads(installed_raw)
+    checksum = installed["capsuleSha256"]
+    if (not isinstance(checksum, str) or len(checksum) != 64
+            or any(c not in "0123456789abcdef" for c in checksum)):
+        raise JenkinsError("ordinary_entry_pending", "Invalid management capsule identity")
+    capsule = repo / ".jenkins/runtime/management" / checksum
+    raw = read(capsule / "capsule.json")
+    config = json.loads(raw)
+    if (hashlib.sha256(raw).hexdigest() != checksum
+            or Path(installed["capsule"]) != capsule or config["repositoryRoot"] != str(repo)
+            or installed.get("schemaVersion") != 1 or config.get("schemaVersion") != 1
+            or any(installed.get(k) != config.get(k) for k in ("driverDigest", "runtimeOperationId"))):
+        raise JenkinsError("ordinary_entry_pending", "Installed management binding changed")
+    if (not isinstance(name, str) or name not in config["clientSources"]
+            or name not in {"tools/dev/local_cargo.py", "tools/dev/local-cargo.ps1", "tools/dev/dev-fast-build.ps1",
+                            "tools/dev/submit-jenkins-management.ps1", "tools/jenkins/frontend.py",
+                            "tools/jenkins-management/entry.py"}):
+        raise JenkinsError("ordinary_entry_pending", "Unknown management client")
+    if "clientRoot" in config:
+        runner_path = capsule / "runner.py"
+        if hashlib.sha256(read(runner_path)).hexdigest() != config["files"]["runner.py"]:
+            raise JenkinsError("ordinary_entry_pending", "Pinned management runner changed")
+        runner_spec = importlib.util.spec_from_file_location("verified_management_client_selector", runner_path)
+        runner = importlib.util.module_from_spec(runner_spec)
+        runner_spec.loader.exec_module(runner)
+        path = runner.client_path(config, repo, name, capsule=capsule)
+    else:
+        path = repo / name
+    if (hashlib.sha256(read(path)).hexdigest() != config["clientSources"][name]
+            or read(installed_path) != installed_raw):
+        raise JenkinsError("ordinary_entry_pending", "Pinned management client or installed owner changed")
+    return path
+
+
+def management_entry(repo_root: str | Path):
+    """Load the pinned installed adapter; its capability retains complete boot checks."""
+    import importlib.util
+    path = management_client_path(repo_root, "tools/jenkins-management/entry.py")
     spec = importlib.util.spec_from_file_location("zircon_ordinary_management_entry", path)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
@@ -463,8 +509,9 @@ def main(argv=None) -> int:
         return 0
     try:
         if args.action == "capability":
-            context = management_entry(args.repo_root).capability(Path(args.repo_root).absolute())
-            result = {"status": "ready", "ordinaryEntry": context["config"]["ordinaryEntry"],
+            context = management_entry(args.repo_root).capability(Path(args.repo_root).absolute(), public_transport=True)
+            result = {"status": "ready", "verificationMode": "public-transport", "nativeLifecycleVerified": False,
+                      "ordinaryEntry": context["config"]["ordinaryEntry"],
                       "driverDigest": context["config"]["driverDigest"],
                       "runtimeOperationId": context["config"]["runtimeOperationId"],
                       "formalAcceptance": False, "m8Accepted": False}

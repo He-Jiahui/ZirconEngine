@@ -17,6 +17,7 @@ class RuntimeNativeSystemAccessOwnerStructureTests(unittest.TestCase):
         owner = owner_path.read_text(encoding="utf-8")
 
         self.assertLessEqual(len(owner.splitlines()), 330)
+        self.assertIn('#[path = "../system_access/authority.rs"]', owner)
         self.assertIn("mod authority;", owner)
         self.assertIn("mod error;", owner)
         for moved_anchor in (
@@ -37,16 +38,16 @@ class RuntimeNativeSystemAccessOwnerStructureTests(unittest.TestCase):
         ):
             self.assertIn(retained_anchor, owner)
 
-        owner_dir = owner_path.with_suffix("")
+        owner_dir = owner_path.parent
         child_contracts = {
-            "authority.rs": (
+            "../system_access/authority.rs": (
                 110,
                 "struct NativeSystemAccessAuthority",
                 "fn authorize",
                 "fn required_capability",
                 "NATIVE_SYSTEM_WORKER_SAFE_CAPABILITY",
             ),
-            "error.rs": (
+            "system_access/error.rs": (
                 170,
                 "enum NativeSystemAccessContractError",
                 "enum NativeSystemAccessAuthorityError",
@@ -65,11 +66,11 @@ class RuntimeNativeSystemAccessOwnerStructureTests(unittest.TestCase):
         repo_root = Path(__file__).resolve().parents[2]
         mirrors = (
             repo_root
-            / "docs/plans/zircon_runtime/runtime/06-plugin-surface-and-lifecycle.md",
+            / 'docs/testing-and-validation/runtime-plugin-validation-worklist.md',
             repo_root
-            / "docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md",
-            repo_root / "docs/plans/engine-code-structure-convention.md",
-            repo_root / "docs/plans/engine-code-review-findings-2026-06.md",
+            / 'docs/crates/zircon_runtime/structure/module-convention.md',
+            repo_root / 'docs/testing-and-validation/development-conventions.md',
+            repo_root / 'docs/architecture/runtime-architecture-review-m0.md',
         )
         for mirror_path in mirrors:
             mirror = mirror_path.read_text(encoding="utf-8")

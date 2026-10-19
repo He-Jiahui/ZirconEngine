@@ -19,4 +19,4 @@ Use the current Cargo manifest and touched source owners. Keep the converged app
 | Reorganize unit-test trees | [Test ownership](testing/mod-rs-map.md) |
 | Add a responsibility to a growing file | [Module boundaries](../../zircon-project-skills/zr-module-boundary-discipline/guide.md); [large-file guidance](../../zircon-project-skills/modularize-large-files/guide.md) when needed |
 
-Open only the applicable references and reuse unchanged context. [The validation policy](../../../../docs/plans/milestone-validation-policy.md) controls Cargo cadence; editing or writing a test does not itself require an immediate build.
+Open only the applicable references and reuse unchanged context. [The validation policy](../../../../docs/testing-and-validation/milestone-validation-policy.md) controls Cargo cadence; editing or writing a test does not itself require an immediate build.

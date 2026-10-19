@@ -30,13 +30,15 @@ fn compiled_binding(binding_id: u32, property_ids: &[u32]) -> UiCompiledBinding 
 fn payload_program(property_count: usize, binding_fields: &[Vec<u32>]) -> UiCompiledBindingProgram {
     UiCompiledBindingProgram::new(
         UiCompiledBindingGeneration::new(1),
-        Vec::new(),
-        (0..property_count)
-            .map(|index| format!("property_{index:04}"))
-            .collect(),
-        Vec::new(),
-        Vec::new(),
-        Vec::new(),
+        crate::ui::template::UiCompiledBindingSymbols {
+            binding_names: Vec::new(),
+            properties: (0..property_count)
+                .map(|index| format!("property_{index:04}"))
+                .collect(),
+            routes: Vec::new(),
+            actions: Vec::new(),
+            controls: Vec::new(),
+        },
         Vec::new(),
         binding_fields
             .iter()

@@ -4,13 +4,14 @@ fn runtime_07_large_file_owner_budget_gate_stays_in_sync_with_structure_audit() 
     let large_file_doc =
         include_str!("../../../../../../docs/architecture/large-file-ownership-m1.md");
     let runtime_07_plan = include_str!(
-        "../../../../../../docs/plans/zircon_runtime/runtime/07-runtime-performance-hotpath.md"
+        "../../../../../../docs/testing-and-validation/runtime-performance-validation-worklist.md"
     );
-    let runtime_07_archive = include_str!(
-        "../../../../../../docs/plans/zircon_runtime/runtime/07/2026-07-09-runtime-performance-hotpath-output-records.md"
+    let runtime_07_archive = crate::tests::runtime_absorption::structure_convention::fixed_history_archive_source(
+            "docs/plans/zircon_runtime/runtime/07/2026-07-09-runtime-performance-hotpath-output-records.md"
+        );
+    let runtime_index = include_str!(
+        "../../../../../../docs/crates/zircon_runtime/structure/runtime-absorption-evidence.md"
     );
-    let runtime_index =
-        include_str!("../../../../../../docs/plans/zircon_runtime/runtime/index.md");
     let hotspot_doc = include_str!(
         "../../../../../../docs/crates/zircon_runtime/performance/hotspot_inventory.md"
     );

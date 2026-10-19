@@ -543,3 +543,61 @@ fn versioned_json_migrates_legacy_world_project_documents() {
         DynamicScene::from_versioned_json(&encoded).expect("dynamic scene JSON should reload");
     assert_eq!(decoded, scene);
 }
+
+#[test]
+fn dynamic_scene_spawn_remaps_typed_entity_fields_without_rewriting_business_json() {
+    const TYPE_PATH: &str = "tests.Component.TypedEntityAndBusinessJson";
+    let descriptor =
+        ComponentTypeDescriptor::new(TYPE_PATH, "tests", "Typed Entity And Business Json")
+            .with_property("literal", "Json", true)
+            .with_property("nested", "Json", true)
+            .with_property("reference", "Entity", true)
+            .with_property("references", "List<Entity>", true)
+            .with_property("named_references", "Map<String, Entity>", true);
+    let mut source = World::empty();
+    source.register_component_type(descriptor.clone()).unwrap();
+    let source_entity = source.spawn_node(NodeKind::Empty).unwrap();
+    let literal = json!({"entity": source_entity});
+    let nested = json!({"objects": [{"entity": source_entity}, {"entity": null}]});
+    source
+        .set_dynamic_component(
+            source_entity,
+            TYPE_PATH,
+            json!({
+                "literal": literal.clone(),
+                "nested": nested.clone(),
+                "reference": {"entity": source_entity},
+                "references": [{"entity": source_entity}, {"entity": null}],
+                "named_references": {"self": {"entity": source_entity}, "none": {"entity": null}},
+            }),
+        )
+        .unwrap();
+    let encoded = DynamicScene::from_world(&source)
+        .unwrap()
+        .to_versioned_json_pretty()
+        .unwrap();
+    let scene = DynamicScene::from_versioned_json(&encoded).unwrap();
+
+    for target_already_registered in [false, true] {
+        let mut target = World::empty();
+        if target_already_registered {
+            target.register_component_type(descriptor.clone()).unwrap();
+        }
+        let collision = target.spawn_node(NodeKind::Empty).unwrap();
+        assert_eq!(collision, source_entity);
+        let remap = scene.spawn_into(&mut target).unwrap();
+        let mapped_entity = remap.get(source_entity).unwrap();
+        assert_ne!(mapped_entity, source_entity);
+        assert_eq!(
+            target.dynamic_component(mapped_entity, TYPE_PATH),
+            Some(&json!({
+                "literal": literal.clone(),
+                "nested": nested.clone(),
+                "reference": {"entity": mapped_entity},
+                "references": [{"entity": mapped_entity}, {"entity": null}],
+                "named_references": {"self": {"entity": mapped_entity}, "none": {"entity": null}},
+            })),
+            "typed references must remap while business JSON survives both target registration paths"
+        );
+    }
+}

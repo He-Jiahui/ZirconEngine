@@ -1,20 +1,15 @@
+use crate::tests::runtime_absorption::structure_convention::fixed_history_archive_source as history;
 #[test]
 fn runtime_14_module_family_mirror_docs_match_structure_audit_counts() {
     fn count_rust_files(path: &std::path::Path) -> usize {
         std::fs::read_dir(path)
             .unwrap_or_else(|error| panic!("failed to read {}: {error}", path.display()))
             .map(|entry| {
-                entry
-                    .unwrap_or_else(|error| panic!("failed to read directory entry: {error}"))
-                    .path()
-            })
-            .map(|path| {
+                let path = entry.expect("directory entry").path();
                 if path.is_dir() {
                     count_rust_files(&path)
-                } else if path.extension().and_then(|extension| extension.to_str()) == Some("rs") {
-                    1
                 } else {
-                    0
+                    usize::from(path.extension().is_some_and(|extension| extension == "rs"))
                 }
             })
             .sum()
@@ -22,10 +17,10 @@ fn runtime_14_module_family_mirror_docs_match_structure_audit_counts() {
 
     let runtime_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
     for (family, expected_count) in [
-        ("animation", 23usize),
-        ("navigation", 17),
-        ("diagnostic_log", 33),
-        ("engine_module", 8),
+        ("animation", 29usize),
+        ("navigation", 24),
+        ("diagnostic_log", 39),
+        ("engine_module", 9),
     ] {
         let family_dir = runtime_root.join("src").join(family);
         assert_eq!(
@@ -66,15 +61,11 @@ fn runtime_14_module_family_mirror_docs_match_structure_audit_counts() {
     let current_mirror_docs = [
         (
             "Runtime 14 plan",
-            include_str!(
-                "../../../../../../docs/plans/zircon_runtime/runtime/14-runtime-module-family-closeout.md"
-            ),
+            history("docs/plans/zircon_runtime/runtime/14-runtime-module-family-closeout.md"),
         ),
         (
-            "Runtime 14 current output record",
-            include_str!(
-                "../../../../../../docs/plans/zircon_runtime/runtime/14/2026-07-09-runtime-module-family-closeout-output-records.md"
-            ),
+            "Runtime 14 fixed historical output record",
+            history("docs/plans/zircon_runtime/runtime/14/2026-07-09-runtime-module-family-closeout-output-records.md"),
         ),
     ];
 
@@ -104,10 +95,26 @@ fn runtime_14_module_family_mirror_docs_match_structure_audit_counts() {
         }
     }
 
+    let current_doc =
+        include_str!("../../../../../../docs/architecture/runtime-root-surface-m1.md");
+    for anchor in [
+        "module_family_boundary",
+        "expected_family_count = 4",
+        "animation = 29",
+        "navigation = 24",
+        "diagnostic_log = 39",
+        "engine_module = 9",
+    ] {
+        assert!(
+            current_doc.contains(anchor),
+            "current family inventory: {anchor}"
+        );
+    }
+
     let navigation_doc =
         include_str!("../../../../../../docs/crates/zircon_runtime/navigation/runtime.md");
     for required_anchor in [
-        "17 Rust files, including the folder-backed",
+        "24 Rust files, including the folder-backed",
         "runtime/world_scan/tests/capacity_tests.rs",
         "operation/{mod,handler,registration}.rs",
         "runtime_navigation_boundary_file_set_requires_doc_update",

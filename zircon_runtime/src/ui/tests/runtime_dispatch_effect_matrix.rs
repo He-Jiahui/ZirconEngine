@@ -473,6 +473,7 @@ fn has_host_request(
 
 fn effect_variant_name(effect: &UiDispatchEffect) -> &'static str {
     match effect {
+        UiDispatchEffect::RequestCursor { .. } => "RequestCursor",
         UiDispatchEffect::SetFocus { .. } => "SetFocus",
         UiDispatchEffect::ClearFocus { .. } => "ClearFocus",
         UiDispatchEffect::CapturePointer { .. } => "CapturePointer",
@@ -491,4 +492,42 @@ fn effect_variant_name(effect: &UiDispatchEffect) -> &'static str {
         UiDispatchEffect::DirtyRedraw { .. } => "DirtyRedraw",
         UiDispatchEffect::EmitComponentEvent { .. } => "EmitComponentEvent",
     }
+}
+
+#[test]
+fn cursor_effect_keeps_real_index_and_is_not_published_after_atomic_failure() {
+    use zircon_runtime_interface::ui::tree::UiCursor;
+    let mut surface = effect_matrix_surface("runtime.ui.cursor.atomic");
+    let cursor = UiDispatchEffect::RequestCursor {
+        cursor: UiCursor::Text,
+    };
+    let result = surface.apply_dispatch_reply(
+        keyboard_event(),
+        UiDispatchReply::handled().with_effect(cursor.clone()),
+    );
+    assert_eq!(result.applied_effects.len(), 1);
+    assert_eq!(result.applied_effects[0].effect_index, 0);
+    assert_eq!(result.applied_effects[0].effect, cursor);
+    assert_eq!(result.host_requests.len(), 1);
+    assert_eq!(result.host_requests[0].effect_index, 0);
+    assert_eq!(
+        result.host_requests[0].request,
+        UiDispatchHostRequestKind::Cursor(UiCursor::Text)
+    );
+    assert!(result.rejected_effects.is_empty());
+    let failed = surface.apply_dispatch_reply(
+        keyboard_event(),
+        UiDispatchReply::handled().with_effects([
+            cursor,
+            UiDispatchEffect::SetFocus {
+                target: node(999),
+                reason: UiFocusEffectReason::Input,
+            },
+        ]),
+    );
+    assert!(failed.applied_effects.is_empty());
+    assert!(failed.host_requests.is_empty());
+    assert_eq!(failed.rejected_effects.len(), 2);
+    assert_eq!(failed.rejected_effects[1].effect_index, 1);
+    assert!(!failed.rejected_effects[1].reason.is_empty());
 }

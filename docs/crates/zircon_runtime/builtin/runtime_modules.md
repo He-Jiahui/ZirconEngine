@@ -239,3 +239,19 @@ The 2026-06-17 stale root DTO consumer cleanup was validated indirectly through 
 The 2026-06-23 Plugins 12/13 M5 string-newtype cutover was validated with scoped formatting over `ids/plugin_id.rs`, `plugin_modules/loader.rs`, the runtime-module structure guard, and the plugin workspace shape guard. `cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-m5-runtime-plugin-id-check --message-format short --color never` passed with existing warning noise, and `cargo check --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_sdk --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-m5-runtime-plugin-id-sdk-check --message-format short --color never` also passed. The focused runtime lib-test `runtime_plugin_id_accepts_external_keys_without_core_variant` is present, but the current runtime lib-test lane is blocked before running by unrelated missing test child modules, private glTF fixture re-exports, and existing WGPU test API drift, so no focused runtime test pass is claimed for this slice.
 
 The 2026-06-07 registration test owner split was validated with `rustfmt --edition 2021 --check zircon_runtime\src\builtin\runtime_modules\tests\registration\mod.rs zircon_runtime\src\builtin\runtime_modules\tests\registration\behavior.rs zircon_runtime\src\builtin\runtime_modules\tests\registration\structure.rs`, which passed after formatter wrapping in `structure.rs`. The focused folder-backed registration test guard passed for deleted flat `tests/registration.rs`, parent module wiring, wiring-only `registration/mod.rs`, behavior assertions in `registration/behavior.rs`, source-shape assertions in `registration/structure.rs`, and docs/session coverage. `audit_runtime_structure.py --json` also completed with no plugin runtime gaps, no unclassified public runtime modules, and no unclassified large-file hotspots. No fresh Cargo result is claimed for this slice because it only moved Rust unit-test ownership and updated documentation metadata.
+
+## Identity and availability classification
+
+Parse identity syntax before availability: InvalidSyntax, UnknownIdentity, KnownNoProvider, UnsupportedBuild and UnavailableArtifact remain distinct outcomes. A valid but undeclared key may become Dynamic and report MissingCatalog/Stub; that must not be presented as an available provider. Membership/construction, generation/report evaluation and profile/manifest selection keep separate owners. The retained split status is source-only; product validation remains pending.
+
+### Retained source status identities
+
+| Contract | Responsibility / evidence boundary |
+|---|---|
+| `runtime_06_15_plugin_availability_evaluation_selection_owner_split_static_passed_cargo_deferred` | Membership, evaluation/reporting and profile/manifest selection remain separate. |
+
+### Clause provenance
+
+These content identities preserve the source of this transfer. They are not fresh measurements, active-file dependencies or acceptance receipts.
+
+- `42-builtin-runtime-module-catalog-profile-target-feature-selection-extension-registration-capability-load-report-product-integration-review.md`, SHA-256 `5bc635b309a33864b10b6b3efc9c07d70f2054a28749de0ba08e407d9cdb318f`, selected source lines 342-567.

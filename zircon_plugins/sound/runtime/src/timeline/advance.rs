@@ -19,19 +19,29 @@ pub(crate) fn advance_timeline_sequences(
         ));
     }
 
-    // BUG: [CR-SOUND-AUDIT-0002] 取出全部序列后，采样或目标应用若经 ? 提前返回，尚未回写的调度表保持空；调度后解绑即可触发 UnknownAutomationBinding。证据：automation_timeline.rs。
-    let mut scheduled = std::mem::take(&mut state.timeline_sequences);
+    // Successfully advanced sequences retain their progress if a later sequence fails.
+    // Queue recovery does not roll back targets already applied inside the failing sequence.
+    let scheduled = std::mem::take(&mut state.timeline_sequences);
     let scheduled_count = scheduled.len();
+    let mut scheduled = scheduled.into_iter();
     let mut retained = Vec::with_capacity(scheduled_count);
     let mut reports = Vec::with_capacity(scheduled_count);
-    for mut playback in scheduled.drain(..) {
+    while let Some(mut playback) = scheduled.next() {
         let raw_time = playback.time_seconds + delta_seconds;
         let (sample_time, completed) = resolve_sample_time(
             playback.sequence.duration_seconds,
             raw_time,
             playback.sequence.looping,
         );
-        let samples = apply_timeline_sequence_at(state, &playback.sequence, sample_time)?;
+        let samples = match apply_timeline_sequence_at(state, &playback.sequence, sample_time) {
+            Ok(samples) => samples,
+            Err(error) => {
+                retained.push(playback);
+                retained.extend(scheduled);
+                state.timeline_sequences = retained;
+                return Err(error);
+            }
+        };
         reports.push(SoundTimelineSequenceAdvance {
             sequence: playback.sequence.id.clone(),
             time_seconds: sample_time,

@@ -128,6 +128,14 @@ pub(super) fn apply_runtime_host_request(
                 );
                 return;
             }
+            if let Some(window) = app.window.as_ref() {
+                if super::ui_host_request::apply_runtime_ui_cursor_host_request(
+                    window.as_ref(),
+                    &request.kind,
+                ) {
+                    return;
+                }
+            }
             report_unhandled_runtime_ui_host_request(app, request);
             Ok(())
         }

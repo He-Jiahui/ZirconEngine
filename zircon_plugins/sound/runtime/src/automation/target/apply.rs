@@ -62,6 +62,7 @@ pub(crate) fn apply_automation_target(
                 .ok_or(SoundError::UnknownSource { source_id })?
                 .descriptor
                 .clone();
+            let previous_descriptor = descriptor.clone();
             source::apply_source_parameter(&mut descriptor, parameter, value)?;
             validate_source_descriptor(state, &descriptor)?;
             state
@@ -69,6 +70,14 @@ pub(crate) fn apply_automation_target(
                 .get_mut(&source_id)
                 .ok_or(SoundError::UnknownSource { source_id })?
                 .descriptor = descriptor;
+            if let Err(error) = state.refresh_source_environments() {
+                state
+                    .sources
+                    .get_mut(&source_id)
+                    .ok_or(SoundError::UnknownSource { source_id })?
+                    .descriptor = previous_descriptor;
+                return Err(error);
+            }
             Ok(())
         }
         SoundAutomationTarget::Listener(listener) => {
@@ -77,9 +86,14 @@ pub(crate) fn apply_automation_target(
                 .get(&listener)
                 .ok_or(SoundError::UnknownListener { listener })?
                 .clone();
+            let previous_descriptor = descriptor.clone();
             listener::apply_listener_parameter(&mut descriptor, parameter, value)?;
             validate_listener_descriptor(state, &descriptor)?;
             state.listeners.insert(listener, descriptor);
+            if let Err(error) = state.refresh_source_environments() {
+                state.listeners.insert(listener, previous_descriptor);
+                return Err(error);
+            }
             Ok(())
         }
         SoundAutomationTarget::Volume(volume) => {

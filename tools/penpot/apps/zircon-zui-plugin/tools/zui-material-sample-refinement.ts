@@ -1,12 +1,9 @@
-import { resolveLayoutCatalogPath } from './zui-layout-paths';
+import { runCurrentSourceRefinement, type SourceRefinementContexts } from './zui-source-refinement-current';
 import assert from 'node:assert/strict';
-import { cp, mkdir, readFile, writeFile } from 'node:fs/promises';
-import { dirname, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { parseZuiDocument, type ZuiTable } from '../src/bridge/zui-document';
 import { inline } from './zui-material-source-refinement';
-import { bytesSha256 } from './zui-layout-evidence';
-import type { CatalogManifest } from './zui-layout-catalog';
 
 const fixed = (value: number) => ({
   min: value,
@@ -165,71 +162,16 @@ export function refineMaterialSamples(source: string) {
   return { source: output, changes, sampleHeight, rootHeight };
 }
 
-async function main() {
-  const repoRoot = resolve(
-    dirname(fileURLToPath(import.meta.url)),
-    '../../../../..',
-  );
-  const catalogRoot = resolve(repoRoot, 'docs/_data/layout');
-  const catalog: CatalogManifest = JSON.parse(
-    await readFile(resolveLayoutCatalogPath(catalogRoot, 'catalog.json'), 'utf8'),
-  );
-  const apply = process.argv.includes('--apply');
-  const records = [];
-  for (const entry of catalog.entries) {
-    if (
-      !entry.sourcePath.startsWith(
-        'zircon_editor/assets/ui/editor/inputs/',
-      )
-    )
-      continue;
-    const path = resolve(repoRoot, entry.sourcePath);
-    const before = await readFile(path, 'utf8');
-    const result = refineMaterialSamples(before);
-    if (!result.changes.length) continue;
-    if (apply) {
-      const directory = resolveLayoutCatalogPath(
-        catalogRoot,
-        dirname(entry.outputPath),
-        'evidence/before-20260907-sample-reflow',
-      );
-      await mkdir(directory, { recursive: true });
-      await writeFile(resolve(directory, 'source.zui'), before);
-      for (const evidence of entry.penpotEvidence ?? [])
-        if (evidence.screenshotPath)
-          await cp(
-            resolveLayoutCatalogPath(catalogRoot, evidence.screenshotPath),
-            resolve(directory, `${evidence.caseId}.png`),
-          );
-      await writeFile(path, result.source);
-    }
-    records.push({
-      sourcePath: entry.sourcePath,
-      beforeSha256: bytesSha256(before),
-      afterSha256: bytesSha256(result.source),
-      changes: result.changes,
-      sampleHeight: result.sampleHeight,
-      rootHeight: result.rootHeight,
-    });
-  }
-  const report = {
-    generatedAt: new Date().toISOString(),
-    applied: apply,
-    changedFiles: records.length,
-    records,
-  };
-  await writeFile(
-    resolveLayoutCatalogPath(
-      catalogRoot,
-      `evidence/material-sample-${apply ? 'applied' : 'proposed'}.json`,
-    ),
-    `${JSON.stringify(report, null, 2)}\n`,
-  );
-  console.log(JSON.stringify({ ...report, records: undefined }));
+
+export function runCurrentMaterialSampleRefinement(args: readonly string[] = [], contexts?: SourceRefinementContexts) {
+  return runCurrentSourceRefinement({
+    id: "material-sample", select: entry => entry.sourcePath.startsWith('zircon_editor/assets/ui/editor/inputs/'),
+    transform: (source) => refineMaterialSamples(source),
+  }, args, contexts);
 }
 
-if (
-  process.argv[1] &&
-  resolve(process.argv[1]) === fileURLToPath(import.meta.url)
-)
-  await main();
+if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
+  void runCurrentMaterialSampleRefinement(process.argv.slice(2)).then((report) => {
+    console.log(JSON.stringify({ ...report, records: undefined }));
+  }).catch((error: unknown) => { console.error(error); process.exitCode = 1; });
+}

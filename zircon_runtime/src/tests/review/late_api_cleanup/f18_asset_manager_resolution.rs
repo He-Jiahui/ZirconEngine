@@ -1,4 +1,5 @@
 //! 代码审查回归护栏核对已迁移接口、错误边界、插件入口及镜像状态。以结果断言检查当前接口或源码快照对应的边界。
+use crate::tests::runtime_absorption::structure_convention::fixed_history_archive_source as history;
 #[test]
 fn review_f18_asset_manager_resolution_returns_registered_handle() {
     let handle = include_str!("../../../asset/pipeline/manager/asset_manager/handle.rs");
@@ -7,17 +8,18 @@ fn review_f18_asset_manager_resolution_returns_registered_handle() {
     let runtime = include_str!("../../../core/runtime/runtime.rs");
     let runtime_handle = include_str!("../../../core/runtime/handle/resolution.rs");
     let project_session = include_str!("../../../dynamic_api/session/project.rs");
-    let review_findings = concat!(
-        include_str!("../../../../../docs/plans/engine-code-review-findings-2026-06.md"),
-        include_str!(
-            "../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"
-        )
+    let review_findings = crate::runtime_test_history_concat!(
+        include_str!("../../../../../docs/architecture/runtime-architecture-review-m0.md"),
+        history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md")
     );
-    let convention = include_str!("../../../../../docs/plans/engine-code-structure-convention.md");
+    let convention =
+        include_str!("../../../../../docs/testing-and-validation/development-conventions.md");
     let runtime_10 = include_str!(
-        "../../../../../docs/plans/zircon_runtime/runtime/10-dynamic-api-and-interface-convergence.md"
+        "../../../../../docs/testing-and-validation/runtime-dynamic-api-validation-worklist.md"
     );
-    let runtime_index = include_str!("../../../../../docs/plans/zircon_runtime/runtime/index.md");
+    let runtime_index = include_str!(
+        "../../../../../docs/crates/zircon_runtime/structure/runtime-absorption-evidence.md"
+    );
     let dynamic_session_doc =
         include_str!("../../../../../docs/crates/zircon_runtime/dynamic_api/session.md");
     let asset_facade_doc =
@@ -42,16 +44,38 @@ fn review_f18_asset_manager_resolution_returns_registered_handle() {
         "F18 numbered output should record manager-resolution review closed status"
     );
 
-    for generic_manager_anchor in [
-        "pub fn resolve_manager<T: Any + Send + Sync>(&self, name: &str) -> Result<Arc<T>, CoreError>",
-        "self.handle().resolve_manager(name)",
-        "let service = self.resolve_named_service(name, Some(ServiceKind::Manager))?;",
-        "downcast_resolved_service(name, service)",
+    for required in [
+        "pub fn enter(&self) -> Result<ServiceCallGuard<T>, CoreError>",
+        "core.enter_service(&self.identity)",
+        "impl Drop for ServiceCallAdmission",
+        "self.core.release_service_call(&self.identity);",
+        "self.core.release_service_call(source);",
     ] {
         assert!(
-            runtime.contains(generic_manager_anchor)
-                || runtime_handle.contains(generic_manager_anchor),
-            "F18 generic manager resolution should keep registered-handle shape `{generic_manager_anchor}`"
+            runtime_handle.contains(required),
+            "manager call admission must retain {required}"
+        );
+    }
+    for required in [
+        "pub fn resolve_manager<T: Any + Send + Sync>(",
+        ") -> Result<ServiceCallGuard<T>, CoreError>",
+        "self.handle.resolve_manager(name)",
+    ] {
+        assert!(
+            runtime.contains(required),
+            "current core/runtime/runtime.rs must retain {required}"
+        );
+    }
+    for required in [
+        "pub fn resolve_manager<T: Any + Send + Sync>(",
+        ") -> Result<ServiceCallGuard<T>, CoreError>",
+        "self.resolve_manager_handle(name)?.enter()",
+        "self.resolve_service_handle(name, ServiceKind::Manager)",
+        "self.validate_registered_service_identity(identity, ServiceKind::Manager)?;",
+    ] {
+        assert!(
+            runtime_handle.contains(required),
+            "current core/runtime/handle/resolution.rs must retain {required}"
         );
     }
 
@@ -77,18 +101,51 @@ fn review_f18_asset_manager_resolution_returns_registered_handle() {
     }
     assert!(
         service.contains("pub struct ManagerServiceHandle<T: ?Sized>")
-            && service.contains("pub index: u32")
-            && service.contains("pub generation: u32")
-            && service.contains("pub service: RegistryName"),
+            && service.contains("pub(crate) index: u32")
+            && service.contains("pub(crate) generation: u32")
+            && service.contains("pub(crate) service: RegistryName"),
         "AssetManager should use the generic versioned manager service handle"
     );
+    for required in [
+        "runtime: CoreWeak",
+        "std::ptr::eq(self.runtime.inner.as_ptr(), Arc::as_ptr(&core.inner))",
+        "if !handle.belongs_to(self)",
+        "resolve_registered_manager::<RegisteredManagerService<T>>",
+    ] {
+        assert!(
+            service.contains(required),
+            "current core/manager/service.rs must retain {required}"
+        );
+    }
     assert!(
         open_project_assets.contains("asset_manager_handle(core)")
             && open_project_assets.contains("resolve_manager_service(core, handle)")
-            && open_project_assets.contains(".open_prepared_project(project)")
+            && open_project_assets.contains(".open_prepared_project(project_for_activation)")
             && !open_project_assets.contains("project_asset_manager_handle(core)"),
         "dynamic project startup should resolve the abstract versioned handle and transfer its prepared owner at the use point"
     );
+    for required in [
+        "let project_for_activation = project.clone();",
+        "match asset_manager.open_prepared_project(project_for_activation)",
+        "self.project.take();",
+        "project.restore_scene_component_registry(previous_project_registry);",
+        "*runtime_extensions = previous_extensions;",
+    ] {
+        assert!(
+            open_project_assets.contains(required),
+            "prepared activation: {required}"
+        );
+    }
+    let activation = open_project_assets
+        .find("match asset_manager.open_prepared_project(")
+        .unwrap();
+    assert!(
+        open_project_assets
+            .find("let project_for_activation = project.clone();")
+            .unwrap()
+            < activation
+    );
+    assert!(activation < open_project_assets.find("self.project.take();").unwrap());
     assert!(
         contract.contains("fn open_prepared_project(")
             && contract.contains("fn current_project_snapshot("),

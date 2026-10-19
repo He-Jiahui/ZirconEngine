@@ -10,7 +10,7 @@ implementation_files:
   - tools/analysis/visual/capture-editor-ui-visual.ps1
   - tools/analysis/visual/zircon_pbr_visual_oracle.py
 plan_sources:
-  - docs/plans/mvp/index.md
+  - docs/testing-and-validation/mvp-acceptance-index.md
 tests:
   - zircon_runtime/tests/zui_native_visual_acceptance.rs
   - zircon_runtime/tests/runtime_text_multilingual_product_framebuffer.rs

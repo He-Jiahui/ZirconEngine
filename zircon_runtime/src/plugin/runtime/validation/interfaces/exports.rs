@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use crate::plugin::PluginPackageManifest;
 
 use super::super::{
@@ -58,13 +60,20 @@ fn validate_interface_methods(
                 method.method_slot
             ));
         }
-        // BUG: [CR-PLUGIN-VALIDATION-0365] 直接构造的桥接方法可声明重名参数并通过包报告校验；证据：这里只检查令牌，静态清单和脚本 Host 注册均拒绝重名。
+        // 参数名在每个方法内唯一；不同方法可复用同一名字。
+        let mut parameter_names = HashSet::new();
         for parameter in &method.parameters {
             validate_runtime_plugin_package_token(
                 "provided interface method parameter name",
                 parameter.name.as_str(),
                 diagnostics,
             );
+            if !parameter_names.insert(parameter.name.as_str()) {
+                diagnostics.push(format!(
+                    "runtime plugin package manifest provided interface `{interface_id}` method `{}` parameter `{}` must be unique",
+                    method.name, parameter.name
+                ));
+            }
         }
         for (capability_index, capability) in method.required_capabilities.iter().enumerate() {
             validate_runtime_plugin_package_namespace(

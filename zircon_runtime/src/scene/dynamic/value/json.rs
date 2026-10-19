@@ -9,8 +9,6 @@ use crate::core::framework::scene::ComponentTypeDescriptor;
 use crate::scene::dynamic_scene::{DynamicSceneError, EntityRemap};
 use crate::scene::World;
 
-use super::remap::remap_json_entity_objects;
-
 // 插件组件写入前将稳定字段 ID 解析成目标模式名称；旧名称只供诊断，不决定写入目标。
 pub(in crate::scene::dynamic_scene) fn reflected_fields_to_json_object(
     world: &World,
@@ -128,7 +126,7 @@ fn reflected_value_to_json(
             .map(|(key, value)| Ok((key.clone(), reflected_value_to_json(value, remap, context)?)))
             .collect::<Result<Map<_, _>, DynamicSceneError>>()
             .map(Value::Object)?,
-        ReflectedValue::Json(value) => remap_json_entity_objects(value, remap),
+        ReflectedValue::Json(value) => value.clone(),
     })
 }
 

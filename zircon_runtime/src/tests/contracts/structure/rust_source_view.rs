@@ -18,6 +18,10 @@ fn mask_cfg_test_spans(mut production: Vec<u8>, spans: &[(usize, usize)]) -> Str
     String::from_utf8(production).expect("masked Rust source should remain valid UTF-8")
 }
 
+pub(crate) fn lexical_code_view(source: &str) -> String {
+    rust_lexical_views(source).0
+}
+
 fn rust_lexical_views(source: &str) -> (String, String) {
     let source_bytes = source.as_bytes();
     let mut rendered = source_bytes.to_vec();

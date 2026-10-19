@@ -212,7 +212,10 @@ fn ui_debug_reflector_model_projects_render_visualizer_and_parity_sections() {
         section.title == "Render Visualizer"
             && section.lines.iter().any(|line| line == "paint elements: 5")
             && section.lines.iter().any(|line| line == "batch groups: 2")
-            && section.lines.iter().any(|line| line == "draw calls: 2")
+            && section
+                .lines
+                .iter()
+                .any(|line| line == "estimated draw calls: 2")
             && section.lines.iter().any(|line| {
                 line.contains("overlays: 3")
                     && line.contains("overdraw_regions=1")

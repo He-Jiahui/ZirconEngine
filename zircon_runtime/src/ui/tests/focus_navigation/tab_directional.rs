@@ -201,3 +201,41 @@ fn modal_directional_navigation_rejects_manual_targets_outside_modal_group() {
 
     assert_eq!(surface.focus.focused, Some(id(6)));
 }
+
+#[test]
+fn handled_navigation_keeps_focus_while_explicit_focus_requests_commit() {
+    use zircon_runtime_interface::ui::dispatch::UiNavigationDispatchEffect;
+
+    for kind in [UiNavigationEventKind::Next, UiNavigationEventKind::Right] {
+        let mut surface = navigation_surface();
+        surface.focus_node(id(2)).unwrap();
+        let mut dispatcher = UiNavigationDispatcher::default();
+        dispatcher.register(id(2), kind, |_| UiNavigationDispatchEffect::Handled);
+
+        let result = surface
+            .dispatch_navigation_event(&dispatcher, kind)
+            .unwrap();
+
+        assert_eq!(result.handled_by, Some(id(2)));
+        assert_eq!(result.focus_changed_to, None);
+        assert_eq!(surface.focus.focused, Some(id(2)));
+        assert_eq!(result.invocations.len(), 1);
+        assert_eq!(
+            result.invocations[0].effect,
+            UiNavigationDispatchEffect::Handled
+        );
+    }
+
+    let mut surface = navigation_surface();
+    surface.focus_node(id(2)).unwrap();
+    let mut dispatcher = UiNavigationDispatcher::default();
+    dispatcher.register(id(2), UiNavigationEventKind::Next, |_| {
+        UiNavigationDispatchEffect::Focus(id(3))
+    });
+    let result = surface
+        .dispatch_navigation_event(&dispatcher, UiNavigationEventKind::Next)
+        .unwrap();
+    assert_eq!(result.handled_by, Some(id(2)));
+    assert_eq!(result.focus_changed_to, Some(id(3)));
+    assert_eq!(surface.focus.focused, Some(id(3)));
+}

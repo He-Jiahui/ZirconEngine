@@ -1,3 +1,4 @@
+use crate::core::framework::animation::{AnimationParameterSet, AnimationParameterValue};
 use crate::core::framework::scene::{ComponentPropertyPath, ScenePropertyValue};
 use crate::scene::components::{
     AnimationGraphPlayerComponent, AnimationPlayerComponent, AnimationSequencePlayerComponent,
@@ -8,7 +9,8 @@ use crate::scene::{EntityId, SceneResult};
 use super::super::super::World;
 use super::super::value_conversion::{
     expect_animation_parameter, expect_bool, expect_resource_id, expect_string,
-    missing_component_error, set_animation_player_like_property, unknown_property_error,
+    missing_component_error, normalized_identifier_matches, set_animation_player_like_property,
+    unknown_property_error,
 };
 
 impl World {
@@ -122,12 +124,7 @@ impl World {
             }
             [parameters, key] if parameters == "parameters" => {
                 let next = expect_animation_parameter(value, property_path)?;
-                if player.parameters.get(key) == Some(&next) {
-                    false
-                } else {
-                    player.parameters.insert(key.clone(), next);
-                    true
-                }
+                set_normalized_animation_parameter(&mut player.parameters, key, next)
             }
             _ => return unknown_property_error(property_path),
         };
@@ -178,12 +175,7 @@ impl World {
             }
             [parameters, key] if parameters == "parameters" => {
                 let next = expect_animation_parameter(value, property_path)?;
-                if player.parameters.get(key) == Some(&next) {
-                    false
-                } else {
-                    player.parameters.insert(key.clone(), next);
-                    true
-                }
+                set_normalized_animation_parameter(&mut player.parameters, key, next)
             }
             _ => return unknown_property_error(property_path),
         };
@@ -192,4 +184,22 @@ impl World {
         }
         Ok(changed)
     }
+}
+
+// Match the same first normalized key as the read path, preserving its stored spelling.
+fn set_normalized_animation_parameter(
+    parameters: &mut AnimationParameterSet,
+    key: &str,
+    next: AnimationParameterValue,
+) -> bool {
+    let stored_key = parameters
+        .keys()
+        .find(|stored_key| normalized_identifier_matches(stored_key, key))
+        .cloned()
+        .unwrap_or_else(|| key.to_owned());
+    if parameters.get(&stored_key) == Some(&next) {
+        return false;
+    }
+    parameters.insert(stored_key, next);
+    true
 }

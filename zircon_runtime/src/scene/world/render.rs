@@ -11,6 +11,7 @@ use crate::core::framework::render::{
     RenderOverlayExtract, RenderSceneGeometryExtract, RenderSceneSnapshot, RenderSpriteSnapshot,
     RenderViewExtract, RenderVirtualGeometryExtract, RenderWorldSnapshotHandle, RendererCommon,
     SceneViewportExtractRequest, SceneViewportRenderPacket, SpriteExtract, ViewportCameraSnapshot,
+    RENDER_MESH_STABLE_KEY_MAX_PRIMITIVE_ORDINAL,
 };
 use crate::core::framework::scene::Mobility;
 use crate::core::math::{Transform, Vec3, Vec4};
@@ -28,7 +29,9 @@ mod lights;
 const SCENE_CLEAR_COLOR: Vec4 = Vec4::new(0.09, 0.11, 0.14, 1.0);
 
 impl World {
-    pub(crate) fn render_world_snapshot_handle(&self) -> RenderWorldSnapshotHandle {
+    /// Identity of this live World for a matching Level render-extract context.
+    /// Legacy offline extraction keeps its independent clone and world-zero contract.
+    pub fn render_world_snapshot_handle(&self) -> RenderWorldSnapshotHandle {
         RenderWorldSnapshotHandle::new(self.render_dirty_entity_journal().world().raw())
     }
 
@@ -331,6 +334,18 @@ impl World {
         let static_state =
             RenderMeshStaticState::from_transform_static(mobility == Mobility::Static);
         let source = mesh_render_source_for_camera(mesh, transform, camera_position);
+        let max_primitive_count = RENDER_MESH_STABLE_KEY_MAX_PRIMITIVE_ORDINAL as usize + 1;
+        if source.primitives.len() > max_primitive_count {
+            #[cfg(feature = "diagnostic-log")]
+            crate::diagnostic_log::write_warn(
+                "scene_render_extract",
+                format!(
+                    "render_mesh_primitive_domain_rejected entity={entity} primitive_count={} max_primitive_count={max_primitive_count}",
+                    source.primitives.len(),
+                ),
+            );
+            return;
+        }
         let transform_revision = render_mesh_transform_revision(&transform);
         if !source.primitives.is_empty() {
             for (primitive_ordinal, primitive) in source.primitives.iter().enumerate() {
@@ -338,7 +353,8 @@ impl World {
                     node_id: entity,
                     stable_instance_key: render_mesh_stable_instance_key(
                         entity,
-                        primitive_ordinal as u32,
+                        u32::try_from(primitive_ordinal)
+                            .expect("prechecked primitive ordinal fits the stable key domain"),
                     ),
                     transform_revision,
                     transform,

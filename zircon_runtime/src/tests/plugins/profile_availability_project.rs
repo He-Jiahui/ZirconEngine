@@ -349,7 +349,7 @@ fn failed_registration_and_deprecated_external_provider_do_not_satisfy_required_
                 ProjectPluginSelection::runtime_plugin(
                     RuntimePluginId::new(format!("profile_perf_{index}")),
                     true,
-                    false,
+                    true,
                 )
             })
             .collect(),
@@ -366,11 +366,39 @@ fn failed_registration_and_deprecated_external_provider_do_not_satisfy_required_
         "plugin catalog entry is deprecated"
     );
     assert_eq!(report.missing_required.len(), 2);
+    assert_eq!(
+        report
+            .missing_required
+            .iter()
+            .map(|entry| entry.id.as_str())
+            .collect::<Vec<_>>(),
+        ["profile_perf_20", "profile_perf_21"]
+    );
+    assert!(report.missing_required.iter().all(|entry| entry.required));
+    assert_eq!(
+        report
+            .externalized_missing
+            .iter()
+            .map(|entry| entry.id.as_str())
+            .collect::<Vec<_>>(),
+        ["profile_perf_21"]
+    );
+    assert!(report.linked.is_empty());
+    assert!(report.native_dynamic.is_empty());
 }
 
 #[test]
 fn externalized_descriptor_uses_matching_linked_provider() {
-    let externalized = descriptor_with_maturity(22, PluginMaturity::Externalized);
+    let externalized = RuntimePluginDescriptor::builder(
+        "profile_perf_22",
+        "Profile Perf 22",
+        RuntimePluginId::new("profile_perf_22"),
+        "zircon_plugin_profile_perf_22_runtime",
+    )
+    .with_target_modes([RuntimeTargetMode::ClientRuntime])
+    .with_maturity(PluginMaturity::Externalized)
+    .with_capability("runtime.plugin.profile_perf_22")
+    .build();
     let mut registration = RuntimePluginRegistrationReport::from_plugin(&externalized);
     registration.project_selection.packaging = ExportPackagingStrategy::LibraryEmbed;
     let profile = RuntimeProfileDescriptor::new(
@@ -385,13 +413,35 @@ fn externalized_descriptor_uses_matching_linked_provider() {
             false,
         )],
     };
+    assert!(
+        registration.is_success(),
+        "registration diagnostics: {:?}",
+        registration.diagnostics
+    );
+    assert!(
+        registration.project_selection.enabled,
+        "registration selection: {:?}",
+        registration.project_selection
+    );
+    assert!(
+        registration
+            .project_selection
+            .supports_target(RuntimeTargetMode::ClientRuntime),
+        "registration selection: {:?}",
+        registration.project_selection
+    );
+    assert_eq!(registration.package_manifest.id, externalized.package_id());
+    assert_eq!(
+        registration.project_selection.packaging,
+        ExportPackagingStrategy::LibraryEmbed
+    );
     let report = profile.availability_report_for_manifest_and_registration_reports(
         [&externalized],
         &manifest,
         [&registration].iter().copied(),
     );
 
-    assert_eq!(report.linked.len(), 1);
+    assert_eq!(report.linked.len(), 1, "availability report: {report:?}");
     assert_eq!(report.externalized_missing.len(), 0);
     assert_eq!(report.missing_required.len(), 0);
 }

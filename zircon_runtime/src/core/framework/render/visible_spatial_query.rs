@@ -89,7 +89,6 @@ pub struct RenderVisibleSpatialQueryResult {
 pub trait RenderVisibleSpatialQuery: Send + Sync {
     fn query_bounds(&self, bounds: RenderSpatialBounds) -> RenderVisibleSpatialQueryResult;
     /// 默认空结果不会近似执行 bounds 查询；需要射线命中的实现必须覆盖此方法。
-
     fn query_ray(&self, _ray: RenderSpatialRay) -> RenderVisibleSpatialQueryResult {
         RenderVisibleSpatialQueryResult::default()
     }

@@ -379,8 +379,8 @@ pub(super) fn verify_source_revision(
     if actual != *expected {
         return Err(DurableTransactionError::SourceConflict {
             path: path.to_path_buf(),
-            expected: expected.clone(),
-            actual,
+            expected: Box::new(expected.clone()),
+            actual: Box::new(actual),
         });
     }
     Ok(())
@@ -500,7 +500,7 @@ fn reject_live_namespace_overlaps(
     // adjacent containment checks. This avoids materializing every strict ancestor identity.
     let mut ordered_paths = live_paths.iter().collect::<Vec<_>>();
     ordered_paths
-        .sort_unstable_by(|left, right| PathIdentity::compare_namespace_paths(*left, *right));
+        .sort_unstable_by(|left, right| PathIdentity::compare_namespace_paths(left, right));
     for pair in ordered_paths.windows(2) {
         if pair[1].is_same_or_descendant_of(pair[0]) {
             return Err(invalid_input(

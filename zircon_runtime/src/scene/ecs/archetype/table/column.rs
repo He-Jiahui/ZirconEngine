@@ -98,46 +98,47 @@ impl ArchetypeColumn {
         Some((unsafe { &mut *value }, ticks))
     }
 
-    /// Eagerly mark one row changed and return its mutable component.
+    /// Eagerly mark one row changed and return its checked component pointer.
     ///
     /// # Safety
-    /// The caller must exclusively own this row's value and ticks for the
-    /// returned lifetime, excluding conflicting reads/writes on all threads.
+    /// The caller must exclusively own this row's value and ticks during this call and until the
+    /// last use of its pointer or derived references, excluding conflicting access.
     /// Length, allocations and row location stay stable; other loans select
     /// different rows, including any shared value/tick reads.
     pub(super) unsafe fn get_mut_at_tick_unchecked<T>(
         &self,
         row: usize,
         tick: ChangeTick,
-    ) -> Option<&mut T>
+    ) -> Option<*mut T>
     where
         T: Send + Sync + 'static,
     {
         // SAFETY: the required unique value/tick row loan is the same.
         let (value, ticks) = unsafe { self.get_mut_with_ticks_unchecked::<T>(row)? };
-        ticks.set_changed(tick);
+        // SAFETY: the same exclusive row grant authorizes this tick update.
+        unsafe { &mut *ticks }.set_changed(tick);
         Some(value)
     }
 
     /// Project a component and its separate tick cell for one checked row.
     ///
     /// # Safety
-    /// The caller must exclusively own this row's value and ticks for both
-    /// returned lifetimes, excluding conflicting reads/writes on all threads.
+    /// The caller must exclusively own this row's value and ticks until the last use of both
+    /// pointers or derived references, excluding conflicting access on all threads.
     /// Length, allocations and row location stay stable. Other live value/tick
     /// loans must select different rows, including safe shared row references.
     pub(super) unsafe fn get_mut_with_ticks_unchecked<T>(
         &self,
         row: usize,
-    ) -> Option<(&mut T, &mut ComponentTicks)>
+    ) -> Option<(*mut T, *mut ComponentTicks)>
     where
         T: Send + Sync + 'static,
     {
         let value = self.typed_slot_ptr::<T>(row)?;
         let ticks = self.ticks.get(row)?.get();
         // SAFETY: only the checked value slot and its tick cell are projected.
-        // They occupy disjoint allocations and both row loans are unique.
-        Some(unsafe { (&mut *value, &mut *ticks) })
+        // They occupy disjoint allocations; the caller retains the row loan.
+        Some((value, ticks))
     }
 
     /// Validate the registered type and copy ticks without a component reference.

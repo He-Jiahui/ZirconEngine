@@ -171,7 +171,8 @@ impl UiInputWriteSet {
             UiDispatchEffect::DirtyRedraw { .. } => {
                 self.tree = true;
             }
-            UiDispatchEffect::RequestClipboard { .. }
+            UiDispatchEffect::RequestCursor { .. }
+            | UiDispatchEffect::RequestClipboard { .. }
             | UiDispatchEffect::RequestLinkActivation { .. }
             | UiDispatchEffect::EmitComponentEvent { .. } => {}
         }

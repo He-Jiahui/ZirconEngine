@@ -1,3 +1,4 @@
+import { assertLayoutCurrentRoots, layoutCurrentOutputPath, layoutCurrentSourcePath, type LayoutCurrentContext } from './zui-layout-paths';
 import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
@@ -84,8 +85,12 @@ function exactFields(
 /** Read product-owned state only after checking its authored source fingerprint. */
 export async function readWorkbenchCaseSnapshots(
   repoRoot: string,
+  context?: LayoutCurrentContext,
 ): Promise<WorkbenchCaseSnapshots> {
-  const bytes = await readFile(resolve(repoRoot, SNAPSHOTS_PATH));
+  if (context) assertLayoutCurrentRoots(context, repoRoot, context.outputRoot);
+  const bytes = await readFile(context
+    ? layoutCurrentOutputPath(context, 'workbench-product-state.json')
+    : resolve(repoRoot, SNAPSHOTS_PATH));
   const parsed: unknown = JSON.parse(bytes.toString('utf8'));
   if (!isRecord(parsed))
     throw new Error('Workbench snapshots must be an object');
@@ -129,7 +134,9 @@ export async function readWorkbenchCaseSnapshots(
       'Workbench snapshot source path is not the product Unreal level editor window',
     );
   const currentSourceSha = createHash('sha256')
-    .update(await readFile(resolve(repoRoot, WORKBENCH_WINDOW_SOURCE)))
+    .update(await readFile(context
+      ? layoutCurrentSourcePath(context, WORKBENCH_WINDOW_SOURCE)
+      : resolve(repoRoot, WORKBENCH_WINDOW_SOURCE)))
     .digest('hex');
   if (parsed['sourceFingerprint']['sha256'] !== currentSourceSha)
     throw new Error(

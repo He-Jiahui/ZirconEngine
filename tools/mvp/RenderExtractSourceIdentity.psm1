@@ -3,7 +3,7 @@ $ErrorActionPreference = 'Stop'
 
 Import-Module (Join-Path $PSScriptRoot 'MvpBuildSet.psm1') -Force -ErrorAction Stop
 Import-Module (Join-Path $PSScriptRoot 'MvpProductInputManifest.psm1') -Force -ErrorAction Stop
-Import-Module (Join-Path (Split-Path -Parent $PSScriptRoot) 'WindowsPathResolver.psm1') -Force -ErrorAction Stop
+Import-Module (Join-Path (Split-Path -Parent $PSScriptRoot) 'maintenance\WindowsPathResolver.psm1') -Force -ErrorAction Stop
 
 function Get-RenderExtractManifestProperty {
     param(

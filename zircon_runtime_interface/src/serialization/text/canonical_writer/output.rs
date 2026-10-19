@@ -80,10 +80,7 @@ impl OutputBudget {
         &mut self,
         additional: usize,
     ) -> Result<(), CanonicalTextWriteError> {
-        let found = self
-            .spool_work_bytes
-            .checked_add(additional)
-            .unwrap_or(usize::MAX);
+        let found = self.spool_work_bytes.saturating_add(additional);
         ensure_resource_limit(
             "canonical spool work bytes",
             found,

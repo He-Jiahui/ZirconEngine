@@ -432,7 +432,6 @@ impl crate::retained_memory::RetainedOwnerV1 for ResourceLocator {
         &self,
         m: &mut crate::retained_memory::RetainedBoundBuilderV1,
     ) -> Result<(), crate::retained_memory::RetentionContractError> {
-        use crate::retained_memory::RetainedOwnerV1;
         self.path.retained_bound_v1(m)?;
         self.label.retained_bound_v1(m)
     }

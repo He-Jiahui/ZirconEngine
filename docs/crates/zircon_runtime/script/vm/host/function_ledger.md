@@ -216,6 +216,12 @@ The current script gameplay ECS path is `zr.zircon.gameplay` through `ScriptRunt
 
 `ZrHostEcsApiV1` belongs to the native/plugin ABI layer. Runtime 13 keeps it separate from the default VM gameplay path. A VM plugin that needs plugin-owned bridge behavior should route through `zr.zircon.bridge` descriptors rather than calling the native ABI table directly.
 
+## Current Validation And Project Request Boundary
+
+The current script-binding gate remains `code_static_pending_cargo`. `runtime_13_script_binding_cargo_gate_stays_visible_until_script_filters_pass` retains the script-filter gate identifier `cargo test -p zircon_runtime --lib script --locked -- --nocapture`. This gate is pending until the declared managed script/backend checks validate their actual source and environment; static inventory or historical passes do not close it. The inherited gate identifier is not an execution recipe: actual compilation must explicitly declare the affected package, disabled default features, required features, target/filter, profile, and physical output root under the current validation policy.
+
+`request_scene_transition` publishes only a capability-gated `ReplaceActive` pending request to the Runtime10 project transition owner. It does not establish staged prepare/rollback, lifecycle handoff, scene replacement completion, or terminal result publication. Those acceptance gates remain separate from this current host-function inventory.
+
 ## Guard Follow-Up
 
 Runtime 13 M1 adds `host_function_registry_matches_documented_ledger` under `runtime_absorption` so the guard can read the host registration sources without editing the plugin bridge lane's active `script/vm/host` files. The guard compares the fixed built-in module descriptors against this ledger and treats `zr.zircon.bridge` as a dynamic module shape contract until plugin-owned method reflection is finalized. `host_function_registry_ledger_guard_rejects_missing_entry` is the negative self-check: removing a fixed function row from this ledger must be detected.

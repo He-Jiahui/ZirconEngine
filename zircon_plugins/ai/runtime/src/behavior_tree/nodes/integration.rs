@@ -18,6 +18,8 @@ use zircon_runtime::core::framework::script::{
 use zircon_runtime::plugin::BridgeImport;
 use zircon_runtime::scene::World;
 
+use crate::behavior_tree::BehaviorNodeSemantics;
+
 use crate::manager::parameters::{
     parse_task_result, ANIMATION_PARAMETER_PARAMETER_KEY, ANIMATION_TRIGGER_PARAMETER_KEY,
     ANIMATION_VALUE_PARAMETER_KEY, MOVE_TARGET_PARAMETER_KEY, SCRIPT_CALLBACK_PARAMETER_KEY,
@@ -45,6 +47,7 @@ fn nav_destination_property_path() -> Result<&'static ComponentPropertyPath, Str
 
 pub(crate) struct BehaviorIntegrationTaskContext<'a> {
     pub(crate) node_id: &'a str,
+    pub(crate) semantics: BehaviorNodeSemantics,
     pub(crate) parameters: &'a [AiBehaviorNodeParameter],
     pub(crate) entity: u64,
     pub(crate) delta_seconds: f32,
@@ -404,9 +407,11 @@ impl BehaviorIntegrationHost for RuntimeBehaviorIntegrationHost<'_> {
         }
     }
 
-    // BUG: [CR-AI-BT-0001] ScriptTask 可携带未禁止的 target 并返回 Running；撤销时按参数名清除导航目标，即使它未启动 MoveTo；证据：validation/integration.rs、executor/abort.rs。
+    // Only the task that owns navigation may clear its destination on abort.
     fn abort(&mut self, context: &BehaviorIntegrationTaskContext<'_>) {
-        if context.parameter(MOVE_TARGET_PARAMETER_KEY).is_some() {
+        if context.semantics == BehaviorNodeSemantics::MoveTo
+            && context.parameter(MOVE_TARGET_PARAMETER_KEY).is_some()
+        {
             let _ = self.clear_nav_target(context.entity);
         }
     }

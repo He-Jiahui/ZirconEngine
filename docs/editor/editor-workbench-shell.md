@@ -691,3 +691,17 @@ componentized_workbench_toolbar_run_menu_paints_native_preview_pixels --locked -
 `target/editor-workbench-visual-check/editor-workbench-native-toolbar-run-menu-open-1672x941.png`;
 the side-by-side comparison against the current web component template is
 `target/editor-workbench-visual-check/editor-workbench-web-template-vs-native-toolbar-run-menu-open-1672x941.png`.
+
+## Current Workbench Shell Layout Authority
+
+Workbench shell layout 描述只以 `.zui` 为当前权威；`.ui.toml` / `.v2.ui.toml` 后缀已退役，不再作为当前壳层、抽屉、浮窗或插件 editor view/layout 入口。历史状态表中的旧后缀只作为迁移证据保留。
+
+## Workbench Shell Layout Validation
+
+Bounded positive/negative suffix checks continue to apply. This policy transfer does not record renderer or product acceptance.
+
+### Clause provenance
+
+These content identities preserve the source of this transfer. They are not fresh measurements, active-file dependencies or acceptance receipts.
+
+- `08-workbench-shell-on-runtime-ui.md`, SHA-256 `df81a1bcaa21b8942ef28f8a7e46df9de3164b9c18e5e662a6b87ab68df11cb3`, selected source lines 173-173.

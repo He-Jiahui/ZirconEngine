@@ -425,6 +425,7 @@ pub(super) fn build_single_entity_extract(
     };
     let mut extract =
         RenderFrameExtract::from_snapshot(RenderWorldSnapshotHandle::new(1), snapshot);
+    extract.apply_viewport_size(viewport_size);
     extract.geometry.virtual_geometry = Some(RenderVirtualGeometryExtract {
         cluster_budget: 1,
         page_budget: 1,
@@ -515,6 +516,7 @@ pub(super) fn build_same_page_dual_entity_extract(
     };
     let mut extract =
         RenderFrameExtract::from_snapshot(RenderWorldSnapshotHandle::new(2), snapshot);
+    extract.apply_viewport_size(viewport_size);
     extract.geometry.virtual_geometry = Some(RenderVirtualGeometryExtract {
         cluster_budget: 2,
         page_budget: 1,
@@ -579,6 +581,7 @@ pub(super) fn build_hierarchical_instance_extract(
     };
     let mut extract =
         RenderFrameExtract::from_snapshot(RenderWorldSnapshotHandle::new(3), snapshot);
+    extract.apply_viewport_size(viewport_size);
     extract.geometry.virtual_geometry = Some(RenderVirtualGeometryExtract {
         cluster_budget: 2,
         page_budget: 2,
@@ -1284,6 +1287,7 @@ fn write_double_quad_gltf(path: PathBuf, reverse_primitive_order: bool) {
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent).unwrap();
     }
+    enable_fixture_virtual_geometry_cook(&path);
 
     let mut binary = Vec::new();
     for value in [
@@ -1314,12 +1318,7 @@ fn write_double_quad_gltf(path: PathBuf, reverse_primitive_order: bool) {
     } else {
         "double_quad_lr.bin"
     };
-    let buffer_path = path
-        .ancestors()
-        .nth(3)
-        .expect("gltf path should live under <root>/assets/models")
-        .join(".generated")
-        .join(generated_name);
+    let buffer_path = path.with_file_name(generated_name);
     if let Some(parent) = buffer_path.parent() {
         fs::create_dir_all(parent).unwrap();
     }
@@ -1340,7 +1339,7 @@ fn write_double_quad_gltf(path: PathBuf, reverse_primitive_order: bool) {
         r#"{{
   "asset": {{"version": "2.0"}},
   "buffers": [
-    {{"uri": "../../.generated/{generated_name}", "byteLength": {}}}
+    {{"uri": "{generated_name}", "byteLength": {}}}
   ],
   "bufferViews": [
     {{"buffer":0,"byteOffset":0,"byteLength":48,"target":34962}},
@@ -1377,6 +1376,7 @@ fn write_overlapping_uv_gltf(path: PathBuf, reverse_primitive_order: bool) {
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent).unwrap();
     }
+    enable_fixture_virtual_geometry_cook(&path);
 
     let quad_positions = [
         -1.0f32, -1.0, 0.0, //
@@ -1423,12 +1423,7 @@ fn write_overlapping_uv_gltf(path: PathBuf, reverse_primitive_order: bool) {
     } else {
         "overlap_uv_lr.bin"
     };
-    let buffer_path = path
-        .ancestors()
-        .nth(3)
-        .expect("gltf path should live under <root>/assets/models")
-        .join(".generated")
-        .join(generated_name);
+    let buffer_path = path.with_file_name(generated_name);
     if let Some(parent) = buffer_path.parent() {
         fs::create_dir_all(parent).unwrap();
     }
@@ -1449,7 +1444,7 @@ fn write_overlapping_uv_gltf(path: PathBuf, reverse_primitive_order: bool) {
         r#"{{
   "asset": {{"version": "2.0"}},
   "buffers": [
-    {{"uri": "../../.generated/{generated_name}", "byteLength": {}}}
+    {{"uri": "{generated_name}", "byteLength": {}}}
   ],
   "bufferViews": [
     {{"buffer":0,"byteOffset":0,"byteLength":48,"target":34962}},
@@ -1599,4 +1594,23 @@ fn persisted_reference_for_fixture(
         )
         .unwrap(),
     )
+}
+
+fn enable_fixture_virtual_geometry_cook(path: &std::path::Path) {
+    let file_name = path.file_name().unwrap();
+    let uri = format!("res://models/{}", file_name.to_str().unwrap());
+    let mut metadata = zircon_runtime::asset::project::AssetMetaDocument::new(
+        zircon_runtime::asset::AssetUuid::new(),
+        AssetUri::parse(&uri).unwrap(),
+        zircon_runtime::asset::AssetKind::Model,
+    );
+    // Each authored entity has one raw cluster per real primitive. The original
+    // triangle/quad bytes fit a single cooked leaf without copying geometry.
+    metadata.import_settings =
+        "[virtual_geometry]\nenabled = true\ncluster_triangle_count = 8\npage_cluster_count = 1\n"
+            .parse()
+            .unwrap();
+    let mut sidecar_name = file_name.to_os_string();
+    sidecar_name.push(".zmeta");
+    metadata.save(path.with_file_name(sidecar_name)).unwrap();
 }

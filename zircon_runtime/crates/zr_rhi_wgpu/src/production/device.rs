@@ -1,16 +1,18 @@
 use std::sync::{Arc, Mutex, MutexGuard};
+#[cfg(test)]
+use zr_rhi::DeviceFaultKind;
 
 use zr_rhi::{
     BindGroupDesc, BindGroupHandle, BindGroupLayoutDesc, BindGroupLayoutHandle, BufferDesc,
     BufferHandle, BufferUploadBatch, BufferUsage, CommandList, DeviceAdmissionError,
-    DeviceFaultGate, DeviceFaultKind, DiagnosticReadbackTerminal, GpuMemorySnapshot, PipelineDesc,
-    PipelineHandle, PipelineLayoutDesc, PipelineLayoutHandle, RenderBackendCaps, RenderDevice,
-    RenderDeviceProfile, RenderQueueClass, RenderSurfaceDescriptor, RhiError, RhiSubmissionPacket,
-    SamplerDesc, SamplerHandle, ShaderModuleDesc, ShaderModuleHandle, SubmissionPollReceipt,
-    SubmissionStatus, SubmissionTicket, SurfaceAcquireOutcome, SurfaceFrameLease,
-    SurfacePresentReceipt, SurfaceSession, SurfaceSessionCreateOutcome, SwapchainDesc,
-    TextureCopyRegion, TextureDesc, TextureHandle, TextureUploadBatch, TextureUsage,
-    TextureViewDesc, TextureViewHandle, TransientAllocatorStats,
+    DeviceFaultGate, DiagnosticReadbackTerminal, GpuMemorySnapshot, PipelineDesc, PipelineHandle,
+    PipelineLayoutDesc, PipelineLayoutHandle, RenderBackendCaps, RenderDevice, RenderDeviceProfile,
+    RenderQueueClass, RenderSurfaceDescriptor, RhiError, RhiSubmissionPacket, SamplerDesc,
+    SamplerHandle, ShaderModuleDesc, ShaderModuleHandle, SubmissionPollReceipt, SubmissionStatus,
+    SubmissionTicket, SurfaceAcquireOutcome, SurfaceFrameLease, SurfacePresentReceipt,
+    SurfaceSession, SurfaceSessionCreateOutcome, SwapchainDesc, TextureCopyRegion, TextureDesc,
+    TextureHandle, TextureUploadBatch, TextureUsage, TextureViewDesc, TextureViewHandle,
+    TransientAllocatorStats,
 };
 
 use crate::{
@@ -765,7 +767,7 @@ fn ensure_wgpu_upload_range(
     size: u64,
 ) -> Result<(), RhiError> {
     ensure_wgpu_upload_usage(handle, desc)?;
-    if offset % 4 != 0 || size % 4 != 0 {
+    if !offset.is_multiple_of(4) || !size.is_multiple_of(4) {
         return Err(RhiError::InvalidCopy {
             reason: "WGPU queue buffer writes require four-byte aligned offset and data size"
                 .to_string(),

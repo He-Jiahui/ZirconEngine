@@ -421,6 +421,163 @@ fn render_parallel_prepare_predicate_requires_multiple_workers_and_batches() {
     ));
 }
 
+#[test]
+fn parallel_dynamic_two_sided_shadows_preserve_serial_pipeline_identity() {
+    let task_pool = TaskPool::new(TaskPoolDescriptor::compute().with_worker_threads(4));
+    let batches = [
+        batch(MeshDrawQueuePhase::Opaque, 10).with_source_draw_index(0),
+        batch(MeshDrawQueuePhase::Opaque, 20).with_source_draw_index(1),
+    ]
+    .map(|batch| batch.with_casts_shadow(true).with_shadow_two_sided(true));
+    assert!(should_prepare_batches_in_parallel(&batches, &task_pool));
+    let mut serial_variants = MeshPipelineVariantRegistry::default();
+    let mut parallel_variants = MeshPipelineVariantRegistry::default();
+    let serial = build_mesh_pass_command_buffers_from_batches_cached(
+        batches.iter().cloned(),
+        &mut serial_variants,
+        &mut CachedMeshDrawCommands::default(),
+        1,
+        ShaderQualityTier::High,
+    );
+    let parallel = build_mesh_pass_command_buffers_from_batches_cached_parallel(
+        batches.iter().cloned(),
+        &mut parallel_variants,
+        &mut CachedMeshDrawCommands::default(),
+        1,
+        ShaderQualityTier::High,
+        &task_pool,
+    );
+    assert!(parallel.stats().dynamic_command_count > 0);
+    assert_two_sided_shadow_pipeline_identity(
+        &batches,
+        &serial,
+        &serial_variants,
+        &parallel,
+        &parallel_variants,
+    );
+}
+
+#[test]
+fn parallel_static_two_sided_shadows_preserve_identity_on_rebuild_and_cache_hit() {
+    let task_pool = TaskPool::new(TaskPoolDescriptor::compute().with_worker_threads(4));
+    let batches = [
+        static_batch(MeshDrawQueuePhase::Opaque, 10)
+            .with_source_draw_index(0)
+            .with_cache_identity(7, 7 << 16, 0),
+        static_batch(MeshDrawQueuePhase::Opaque, 20)
+            .with_source_draw_index(1)
+            .with_cache_identity(9, 9 << 16, 0),
+    ]
+    .map(|batch| {
+        batch
+            .with_static_state(RenderMeshStaticState::new(true, 11, 17))
+            .with_casts_shadow(true)
+            .with_shadow_two_sided(true)
+    });
+    assert!(should_prepare_batches_in_parallel(&batches, &task_pool));
+    let mut serial_variants = MeshPipelineVariantRegistry::default();
+    let mut parallel_variants = MeshPipelineVariantRegistry::default();
+    let mut serial_cache = CachedMeshDrawCommands::default();
+    let mut parallel_cache = CachedMeshDrawCommands::default();
+    let mut first_parallel = None::<MeshPassCommandBuffers>;
+    for generation in [1, 2] {
+        let serial = build_mesh_pass_command_buffers_from_batches_cached(
+            batches.iter().cloned(),
+            &mut serial_variants,
+            &mut serial_cache,
+            generation,
+            ShaderQualityTier::High,
+        );
+        let parallel = build_mesh_pass_command_buffers_from_batches_cached_parallel(
+            batches.iter().cloned(),
+            &mut parallel_variants,
+            &mut parallel_cache,
+            generation,
+            ShaderQualityTier::High,
+            &task_pool,
+        );
+        assert_two_sided_shadow_pipeline_identity(
+            &batches,
+            &serial,
+            &serial_variants,
+            &parallel,
+            &parallel_variants,
+        );
+        assert_eq!(serial.stats(), parallel.stats());
+        if let Some(first) = &first_parallel {
+            assert_eq!(parallel.stats().command_rebuild_count, 0);
+            assert_eq!(
+                parallel.stats().cached_command_hit_count,
+                first.stats().command_rebuild_count
+            );
+            for (before, after) in first
+                .shadow()
+                .commands()
+                .iter()
+                .zip(parallel.shadow().commands())
+            {
+                assert!(Arc::ptr_eq(
+                    &before.static_payload(),
+                    &after.static_payload()
+                ));
+            }
+        } else {
+            assert!(parallel.stats().command_rebuild_count > 0);
+            assert_eq!(parallel.stats().cached_command_hit_count, 0);
+            first_parallel = Some(parallel);
+        }
+    }
+}
+
+fn assert_two_sided_shadow_pipeline_identity(
+    batches: &[MeshBatchRef],
+    serial: &MeshPassCommandBuffers,
+    serial_variants: &MeshPipelineVariantRegistry,
+    parallel: &MeshPassCommandBuffers,
+    parallel_variants: &MeshPipelineVariantRegistry,
+) {
+    for (serial_commands, parallel_commands, shadow) in [
+        (
+            serial.shadow().commands(),
+            parallel.shadow().commands(),
+            true,
+        ),
+        (
+            serial.opaque().commands(),
+            parallel.opaque().commands(),
+            false,
+        ),
+    ] {
+        assert_eq!(serial_commands.len(), batches.len());
+        assert_eq!(parallel_commands.len(), batches.len());
+        for batch in batches {
+            assert!(
+                !batch.pipeline_key.double_sided,
+                "shadow projection must not mutate the base key"
+            );
+            let mut expected_key = batch.pipeline_key.clone();
+            expected_key.double_sided = shadow;
+            for (commands, variants) in [
+                (serial_commands, serial_variants),
+                (parallel_commands, parallel_variants),
+            ] {
+                let command = commands
+                    .iter()
+                    .find(|command| command.source_draw_index == batch.source_draw_index)
+                    .expect("command for each input batch");
+                assert_eq!(command.pipeline_key(), &expected_key);
+                assert_eq!(
+                    variants
+                        .key_for_variant(command.pipeline_variant_id)
+                        .expect("resolved variant identity")
+                        .pipeline_key(),
+                    &expected_key
+                );
+            }
+        }
+    }
+}
+
 fn command_signatures(
     buffers: &MeshPassCommandBuffers,
 ) -> Vec<(usize, RenderPhase, MeshPassPipelineKind, u32, u64)> {

@@ -5,9 +5,9 @@ use zircon_runtime::core::framework::{
     scene::physics::{PhysicsMassProperties, PhysicsMaterialMetadata},
 };
 
-use super::BodyDesc;
+use super::{BodyCommand, BodyDesc};
 
-// body 与 collider 必须属于同一实体；该门同时检查已同步数值，但自动质量只检查输入密度而未检查派生结果。
+// body 与 collider 必须属于同一实体；派生质量和密度另由共享 resolver 检查。
 pub(super) fn body_desc_is_valid(desc: &BodyDesc) -> bool {
     let body = &desc.body;
     body.entity == desc.collider.entity
@@ -71,4 +71,24 @@ pub(super) fn material_is_valid(material: &PhysicsMaterialMetadata) -> bool {
     material.static_friction.is_finite()
         && material.dynamic_friction.is_finite()
         && material.restitution.is_finite()
+}
+
+// Direct backend callers receive the same finite-input gate before any command is applied.
+pub(super) fn body_command_is_valid(command: &BodyCommand) -> bool {
+    match command {
+        BodyCommand::SetLinearVelocity { velocity, .. }
+        | BodyCommand::SetAngularVelocity { velocity, .. } => {
+            velocity.iter().all(|value| value.is_finite())
+        }
+        BodyCommand::ApplyForce { force, .. } => force.iter().all(|value| value.is_finite()),
+        BodyCommand::ApplyImpulse { impulse, .. } => impulse.iter().all(|value| value.is_finite()),
+        BodyCommand::Teleport { transform, .. } => {
+            transform.translation.is_finite()
+                && transform.rotation.is_finite()
+                && transform.scale.is_finite()
+        }
+        BodyCommand::SetBodyType { .. }
+        | BodyCommand::SetCcdMode { .. }
+        | BodyCommand::SetSleepPolicy { .. } => true,
+    }
 }

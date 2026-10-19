@@ -161,7 +161,12 @@ fn author_segment_words(
                         instance = Some(candidate.instance_index);
                     }
                 }
-                if instance.is_none() && !data.instances.is_empty() {
+                if instance.is_none()
+                    && data
+                        .instances
+                        .iter()
+                        .any(|instance| instance.entity == segment.entity)
+                {
                     return Err("author segment has no actual instance provenance".into());
                 }
             }
@@ -584,7 +589,7 @@ pub(super) fn record_readback(
 }
 
 fn source_records(gpu: &RenderPassGpuExecutionContext<'_>) -> Result<Vec<SourceRecord>, String> {
-    let (vertices, ranges) = super::gpu::cluster_vertices_with_ranges(gpu);
+    let (vertices, ranges) = super::gpu::cluster_vertices_with_ranges(gpu)?;
     let Some(data) = gpu.virtual_geometry_execution_data() else {
         if !ranges.is_empty() {
             return Err("packed source has no prepared execution data".into());
@@ -622,9 +627,11 @@ fn source_records(gpu: &RenderPassGpuExecutionContext<'_>) -> Result<Vec<SourceR
             return Err("packed source exceeds actual vertex stream".into());
         }
     }
-    let identities = projected_source_identities(gpu, &rows)?;
+    let admitted = admitted_source_rows(gpu, &rows)?;
     let mut records = Vec::with_capacity(rows.len());
-    for ((row, range), identity) in rows.iter().zip(ranges).zip(identities) {
+    for (index, (row, range)) in rows.iter().zip(ranges).enumerate() {
+        let identity = row.identity();
+        let authorized = admitted.as_ref().is_none_or(|mask| mask[index]);
         let count = range
             .vertices
             .end
@@ -640,7 +647,7 @@ fn source_records(gpu: &RenderPassGpuExecutionContext<'_>) -> Result<Vec<SourceR
             cluster_id: row.cluster_id(),
             candidate_index: row.candidate_index(),
             first_vertex: range.vertices.start,
-            vertex_count: count,
+            vertex_count: if authorized { count } else { 0 },
             first_instance: (submission.min(0xffff) << 16) | rank.min(0xffff),
             authority: [
                 range.instance_index,
@@ -663,14 +670,10 @@ fn source_records(gpu: &RenderPassGpuExecutionContext<'_>) -> Result<Vec<SourceR
     Ok(records)
 }
 
-fn projected_source_identities(
+fn admitted_source_rows(
     gpu: &RenderPassGpuExecutionContext<'_>,
     rows: &[zircon_runtime::graphics::VirtualGeometryIndexedSourceRow],
-) -> Result<
-    Vec<zircon_runtime::core::framework::render::RenderVirtualGeometryExecutionIdentity>,
-    String,
-> {
-    let mut identities = rows.iter().map(|row| row.identity()).collect::<Vec<_>>();
+) -> Result<Option<Vec<bool>>, String> {
     let mut projected = vec![false; rows.len()];
     for (index, row) in rows.iter().enumerate() {
         if usize::try_from(row.source_row()).map_err(|_| "source row index overflow")? != index {
@@ -678,6 +681,7 @@ fn projected_source_identities(
         }
     }
     if let Some(authors) = gpu.virtual_geometry_indexed_author_runs() {
+        let mut physical_runs = std::collections::HashSet::new();
         for author in authors {
             let source = author.source();
             let index =
@@ -694,12 +698,18 @@ fn projected_source_identities(
                 || source.normal_cluster_total() != base.normal_cluster_total()
                 || source.lineage_depth() != base.lineage_depth()
                 || source.frontier_rank() != base.frontier_rank()
+                || source.has_authored_topology_binding() != base.has_authored_topology_binding()
             {
                 return Err(
                     "actual author source lost its original candidate/payload provenance".into(),
                 );
             }
             let actual = source.identity();
+            let range = author.index_range();
+            if !physical_runs.insert((actual, range.start, range.end, author.gpu_scene_instance()))
+            {
+                return Err("duplicate complete physical author run".into());
+            }
             let original = base.identity();
             let mut permitted = original;
             permitted.draw_ref_index = actual.draw_ref_index;
@@ -710,7 +720,7 @@ fn projected_source_identities(
                 );
             }
             if actual != original
-                && (original.instance_index.is_some()
+                && (!source.has_authored_topology_binding()
                     || original.submission_index.is_none()
                     || actual
                         .draw_ref_rank
@@ -720,16 +730,12 @@ fn projected_source_identities(
                     "changed draw reference is not a checked legacy author identity".into(),
                 );
             }
-            if projected[index] && identities[index] != actual {
-                return Err(
-                    "same source row has incompatible actual draw-reference identities".into(),
-                );
-            }
-            identities[index] = actual;
             projected[index] = true;
         }
     }
-    Ok(identities)
+    Ok(gpu
+        .virtual_geometry_indexed_author_runs()
+        .map(|_| projected))
 }
 
 fn binding_size(binding: &wgpu::BufferBinding<'_>) -> u64 {
@@ -813,14 +819,21 @@ fn encode_indexed_main(gpu: &mut RenderPassGpuExecutionContext<'_>) -> Result<()
         Some(data) => zircon_runtime::graphics::virtual_geometry_indexed_source_rows(data)?,
         None => Vec::new(),
     };
-    if authors.is_empty() && !rows.is_empty() {
+    admitted_source_rows(gpu, &rows)?;
+    if authors.is_empty()
+        && !rows.is_empty()
+        && !gpu.virtual_geometry_indexed_empty_admission_is_proven()
+    {
         return Err("visible-source frame has no proven bound-mesh indexed admission".into());
     }
     let mut runs = Vec::with_capacity(authors.len());
     for (ordinal, author) in authors.iter().enumerate() {
         let source = author.source();
         let first = author.gpu_scene_instance();
-        runs.push(indexed::IndexedAuthorRun::try_new(
+        let canonical = rows
+            .get(source.source_row() as usize)
+            .ok_or("indexed author source row exceeds canonical catalog")?;
+        runs.push(indexed::IndexedAuthorRun::try_new_projected(
             indexed::IndexedAuthorRunInput {
                 source_row: source.source_row(),
                 candidate_index: source.candidate_index(),
@@ -837,9 +850,12 @@ fn encode_indexed_main(gpu: &mut RenderPassGpuExecutionContext<'_>) -> Result<()
                     .map_err(|_| "indexed run ordinal exceeds u32")?,
                 identity: source.identity(),
             },
+            canonical.identity(),
+            source.has_authored_topology_binding(),
         )?);
     }
-    let identities = projected_source_identities(gpu, &rows)?;
+    let identities = rows.iter().map(|row| row.identity()).collect::<Vec<_>>();
+    let author_words = terminal_author_metadata(gpu)?;
     let read = RenderGraphResourceAccessKind::Read;
     let write = RenderGraphResourceAccessKind::Write;
     let specs = [
@@ -870,7 +886,8 @@ fn encode_indexed_main(gpu: &mut RenderPassGpuExecutionContext<'_>) -> Result<()
         for (buffer, offset, size) in &bindings[2..5] {
             native.encoder.clear_buffer(buffer, *offset, Some(*size));
         }
-        return Ok(());
+        drop(native);
+        return super::selection::pre_raster_gate(gpu, &author_words);
     }
     let slice = |index: usize, size: u64| {
         indexed::GpuBufferSlice::new(&bindings[index].0, bindings[index].1, size)
@@ -889,7 +906,9 @@ fn encode_indexed_main(gpu: &mut RenderPassGpuExecutionContext<'_>) -> Result<()
             sidecar: slice(3, 65536 * 32 * 4)?,
             status: slice(4, 65536 * 4)?,
         },
-    )
+    )?;
+    drop(native);
+    super::selection::pre_raster_gate(gpu, &author_words)
 }
 
 const TERMINAL_SHADER: &str = r###"
@@ -904,8 +923,8 @@ struct Words { values: array<u32> }
 @group(0) @binding(7) var<storage,read_write> execution_submission: Words;
 @compute @workgroup_size(1)
 fn cs_main() {
-    execution_args.values[0]=0u;
-    execution_submission.values[0]=0u;
+    execution_args.values[0]=0xffffffffu;
+    execution_submission.values[0]=0xffffffffu;
     let capacity=arrayLength(&indexed.values)/5u;
     let source_capacity=(arrayLength(&source.values)-1u)/4u;
     let count=journal.values[0];
@@ -922,11 +941,11 @@ fn cs_main() {
         if row>=source_capacity || indexed.values[args_offset+1u]!=1u ||
             sidecar.values[sidecar_offset+31u]!=1u {return;}
         let source_offset=1u+row*4u;
-        let old_token=source.values[source_offset+3u];
+        let token=(min(sidecar.values[sidecar_offset+8u],65535u)<<16u)|min(sidecar.values[sidecar_offset+9u],65535u);
         let submission=sidecar.values[sidecar_offset+8u];
         let rank=sidecar.values[sidecar_offset+9u];
         if source.values[source_offset]==0u || source.values[source_offset+1u]!=1u ||
-            old_token!=((min(submission,65535u)<<16u)|min(rank,65535u)) {return;}
+            token!=((min(submission,65535u)<<16u)|min(rank,65535u)) {return;}
         // Keep one compact output row for EVERY actual admitted run. Repeated
         // candidates and noncontiguous geometry runs are intentionally retained.
         for(var word=0u;word<4u;word++) {
@@ -937,7 +956,8 @@ fn cs_main() {
             execution_submission.values[1u+output*17u+1u+word]=sidecar.values[sidecar_offset+14u+word];
         }
         execution_submission.values[1u+output*17u]=row;
-        execution_submission.values[1u+output*17u+15u]=old_token;
+        execution_args.values[1u+output*4u+3u]=token;
+        execution_submission.values[1u+output*17u+15u]=token;
         execution_submission.values[1u+output*17u+16u]=indexed.values[args_offset+1u];
         output++;
     }
@@ -1072,9 +1092,22 @@ pub(super) fn complete_main(gpu: &mut RenderPassGpuExecutionContext<'_>) -> Resu
         pass.set_bind_group(0, &group, &[]);
         pass.dispatch_workgroups(1, 1, 1);
     }
+    let inputs = gpu.virtual_geometry_execution_inputs();
+    let seed_driven = inputs.prepare.is_none()
+        && inputs.selections.is_none()
+        && gpu
+            .virtual_geometry_execution_data()
+            .is_some_and(|data| !data.instances.is_empty());
     let metadata = encode_terminal_metadata(gpu, &buffers)?;
-    let selected = encode_terminal_selected(gpu)?;
-    record_terminal_completion(gpu, &buffers, &metadata, &selected)?;
+    // Preserve physical-run metadata before seed projection reuses its graph output.
+    let physical_metadata = preserve_physical_terminal_metadata(gpu, &metadata)?;
+    let (metadata, selected) = if seed_driven {
+        super::selection::encode_seed_decision_projection(gpu, &buffers)?
+    } else {
+        (metadata, encode_terminal_selected(gpu)?)
+    };
+    super::selection::final_publication_gate(gpu)?;
+    record_terminal_completion(gpu, &buffers, &metadata, &selected, &physical_metadata)?;
     Ok(())
 }
 
@@ -1084,9 +1117,10 @@ struct Words { values:array<u32> }
 @group(0) @binding(1) var<storage,read> submission:Words;
 @group(0) @binding(2) var<storage,read> authors:Words;
 @group(0) @binding(3) var<storage,read_write> output:Words;
+@group(0) @binding(4) var<storage,read> canonical_source:Words;
 @compute @workgroup_size(1)
 fn cs_main(){
-    output.values[0]=0u;
+    output.values[0]=0xffffffffu;
     let count=submission.values[0];
     let capacity=(arrayLength(&output.values)-1u)/18u;
     if count>capacity || count>(arrayLength(&submission.values)-1u)/17u {return;}
@@ -1095,9 +1129,17 @@ fn cs_main(){
         let source=submission.values[input];
         if source>=authors.values[0] || source>=(arrayLength(&authors.values)-1u)/32u {return;}
         let author=1u+source*32u;
+        let projected=(authors.values[author+4u]&16u)!=0u;
+        if (authors.values[author+4u]&0xffffffe0u)!=0u {return;}
         for(var word=0u;word<14u;word++){
-            if submission.values[input+1u+word]!=authors.values[author+word] {return;}
+            var expected=authors.values[author+word];
+            if word==4u {expected=expected&15u;}
+            if projected && (word==1u || word==10u) {continue;}
+            if submission.values[input+1u+word]!=expected {return;}
         }
+        let canonical_token=(min(authors.values[author+9u],65535u)<<16u)|min(authors.values[author+10u],65535u);
+        if source>=(arrayLength(&canonical_source.values)-1u)/4u ||
+            canonical_source.values[1u+source*4u+3u]!=canonical_token {return;}
         let record=author+14u;
         let actual=row*14u;
         // Validate every identity/ordinal field represented by raw authority.
@@ -1107,10 +1149,10 @@ fn cs_main(){
             authority.values[actual+3u]!=authors.values[record+5u] ||
             authority.values[actual+4u]!=authors.values[record+3u] ||
             authority.values[actual+5u]!=authors.values[record+4u] ||
-            authority.values[actual+6u]!=authors.values[author+1u] ||
+            authority.values[actual+6u]!=submission.values[input+2u] ||
             authority.values[actual+7u]!=authors.values[author] ||
             authority.values[actual+8u]!=authors.values[record+7u] ||
-            authority.values[actual+9u]!=authors.values[author+10u] ||
+            authority.values[actual+9u]!=submission.values[input+11u] ||
             authority.values[actual+10u]!=authors.values[record+16u] ||
             authority.values[actual+12u]!=authors.values[record+13u] ||
             authority.values[actual+13u]!=authors.values[record+14u] ||
@@ -1136,7 +1178,7 @@ fn terminal_author_metadata(gpu: &RenderPassGpuExecutionContext<'_>) -> Result<V
         .virtual_geometry_execution_data()
         .ok_or("terminal author data is absent")?;
     let rows = zircon_runtime::graphics::virtual_geometry_indexed_source_rows(data)?;
-    let identities = projected_source_identities(gpu, &rows)?;
+    let identities = rows.iter().map(|row| row.identity()).collect::<Vec<_>>();
     let prepared = data
         .prepared_cpu_frame
         .as_ref()
@@ -1156,48 +1198,25 @@ fn terminal_author_metadata(gpu: &RenderPassGpuExecutionContext<'_>) -> Result<V
         }
         Ok(result)
     };
+    let admitted = admitted_source_rows(gpu, &rows)?;
     let mut words = Vec::with_capacity(1 + rows.len() * 32);
     words.push(u32::try_from(rows.len()).map_err(|_| "terminal author count overflow")?);
-    for (row, identity) in rows.iter().zip(identities) {
-        let (raw_start, raw_end) = if let Some(instance_index) = identity.instance_index {
-            let instance = data
-                .instances
-                .get(usize::try_from(instance_index).map_err(|_| "author instance overflow")?)
-                .ok_or("author instance lies outside the original instance table")?;
-            if instance.entity != identity.entity
-                || instance.stable_instance_key_or_legacy() != identity.stable_instance_key
-            {
-                return Err("author instance disagrees with actual admitted run identity".into());
-            }
-            (
-                instance.cluster_offset,
-                instance
-                    .cluster_offset
-                    .checked_add(instance.cluster_count)
-                    .ok_or("author raw span overflow")?,
-            )
-        } else {
-            if !data.instances.is_empty()
-                || zircon_runtime::core::framework::render::render_mesh_stable_instance_key(
-                    identity.entity,
-                    0,
-                ) != identity.stable_instance_key
-            {
-                return Err("author legacy source identity is absent".into());
-            }
-            (
-                0,
-                u32::try_from(data.author_cluster_catalog.len())
-                    .map_err(|_| "author raw catalog overflow")?,
-            )
-        };
+    for (row_index, (row, identity)) in rows.iter().zip(identities).enumerate() {
+        if admitted.as_ref().is_some_and(|mask| !mask[row_index]) {
+            words.extend_from_slice(&indexed::identity_words(identity));
+            words.extend_from_slice(&[u32::MAX; 18]);
+            continue;
+        }
+        let raw_domain = zircon_runtime::core::framework::render::RenderVirtualGeometryExtract::checked_cluster_row_indices(
+            &data.instances, &data.author_cluster_catalog, identity.entity,
+            identity.stable_instance_key, identity.instance_index).map_err(str::to_owned)?;
         let ordinal = row.cluster_ordinal();
         let total = row.normal_cluster_total();
         if ordinal >= total {
             return Err("author ordinal exceeds normal policy total".into());
         }
         let index = row.author_array_index();
-        if index < raw_start || index >= raw_end {
+        if !raw_domain.contains(&(index as usize)) {
             return Err("author raw index lies outside its instance".into());
         }
         let cluster = data
@@ -1319,7 +1338,11 @@ fn terminal_author_metadata(gpu: &RenderPassGpuExecutionContext<'_>) -> Result<V
             submission_slot: author.submission_slot,
             state: author.state,
         };
-        words.extend_from_slice(&indexed::identity_words(identity));
+        let mut identity_words = indexed::identity_words(identity);
+        if row.has_authored_topology_binding() {
+            identity_words[4] |= 16;
+        }
+        words.extend_from_slice(&identity_words);
         words.extend_from_slice(&record.packed_words());
     }
     Ok(words)
@@ -1348,13 +1371,13 @@ fn encode_terminal_metadata(
         contents: bytemuck::cast_slice(&words),
         usage: wgpu::BufferUsages::STORAGE,
     });
-    let entries = (0..4)
+    let entries = (0..5)
         .map(|binding| wgpu::BindGroupLayoutEntry {
             binding,
             visibility: wgpu::ShaderStages::COMPUTE,
             ty: wgpu::BindingType::Buffer {
                 ty: wgpu::BufferBindingType::Storage {
-                    read_only: binding < 3,
+                    read_only: binding != 3,
                 },
                 has_dynamic_offset: false,
                 min_binding_size: None,
@@ -1414,6 +1437,10 @@ fn encode_terminal_metadata(
                     size: output.2,
                 }),
             },
+            wgpu::BindGroupEntry {
+                binding: 4,
+                resource: view(4),
+            },
         ],
     });
     native
@@ -1432,24 +1459,28 @@ fn encode_terminal_metadata(
     Ok(output)
 }
 
-const SELECTED_SHADER: &str = r###"
+pub(super) const SELECTED_SHADER: &str = r###"
 struct Words { values:array<u32> }
 @group(0) @binding(0) var<storage,read> indices:Words;
 @group(0) @binding(1) var<storage,read> clusters:Words;
 @group(0) @binding(2) var<storage,read> authors:Words;
 @group(0) @binding(3) var<storage,read_write> selected:Words;
+@group(0) @binding(4) var<storage,read> vis:Words;
 @compute @workgroup_size(1)
 fn cs_main(){
-    selected.values[0]=0u;
+    selected.values[0]=0xffffffffu;
     let count=indices.values[0];
-    if count!=clusters.values[0] || count>arrayLength(&indices.values)-1u ||
+    if count!=clusters.values[0] || count!=vis.values[0] || count>(arrayLength(&vis.values)-1u)/2u || count>arrayLength(&indices.values)-1u ||
         count>arrayLength(&clusters.values)-1u || count>(arrayLength(&selected.values)-1u)/8u{return;}
     for(var row=0u;row<count;row++){
         let candidate=indices.values[1u+row];
         if candidate>=authors.values[0] || candidate>=(arrayLength(&authors.values)-1u)/8u{return;}
         let input=1u+candidate*8u;
-        if authors.values[input+3u]!=clusters.values[1u+row] ||
-            authors.values[input+7u]!=0u{return;}
+        let cluster=authors.values[input+3u];let page=authors.values[input+5u];
+        let instance=authors.values[input];let lod=authors.values[input+6u];let state=authors.values[input+7u];
+        if cluster!=clusters.values[1u+row] || state>2u ||
+           vis.values[1u+row*2u]!=((cluster&0xfffffu)|((page&0xfffu)<<20u)) ||
+           vis.values[2u+row*2u]!=(((page>>12u)&0xffu)|((instance&0xffffu)<<8u)|(lod<<24u)|(state<<30u)){return;}
         for(var word=0u;word<8u;word++){
             selected.values[1u+row*8u+word]=authors.values[input+word];
         }
@@ -1505,6 +1536,11 @@ fn encode_terminal_selected(
             RenderGraphResourceAccessKind::Write,
             (1 + 4096 * 8) * 4,
         ),
+        (
+            "virtual-geometry-visbuffer64",
+            RenderGraphResourceAccessKind::Read,
+            (1 + 4096 * 2) * 4,
+        ),
     ] {
         let binding = gpu.require_buffer_binding(name, kind)?;
         let bytes = binding
@@ -1523,13 +1559,13 @@ fn encode_terminal_selected(
         contents: bytemuck::cast_slice(&words),
         usage: wgpu::BufferUsages::STORAGE,
     });
-    let entries = (0..4)
+    let entries = (0..5)
         .map(|binding| wgpu::BindGroupLayoutEntry {
             binding,
             visibility: wgpu::ShaderStages::COMPUTE,
             ty: wgpu::BindingType::Buffer {
                 ty: wgpu::BufferBindingType::Storage {
-                    read_only: binding < 3,
+                    read_only: binding != 3,
                 },
                 has_dynamic_offset: false,
                 min_binding_size: None,
@@ -1585,6 +1621,10 @@ fn encode_terminal_selected(
                 binding: 3,
                 resource: view(2),
             },
+            wgpu::BindGroupEntry {
+                binding: 4,
+                resource: view(3),
+            },
         ],
     });
     native
@@ -1603,11 +1643,100 @@ fn encode_terminal_selected(
     Ok(output)
 }
 
+fn preserve_physical_terminal_metadata(
+    gpu: &mut RenderPassGpuExecutionContext<'_>,
+    source: &(wgpu::Buffer, u64, Option<std::num::NonZeroU64>, u64),
+) -> Result<(wgpu::Buffer, u64, Option<std::num::NonZeroU64>, u64), String> {
+    let bytes = (1 + 65536 * 18) * 4_u64;
+    let end = source
+        .1
+        .checked_add(bytes)
+        .ok_or("physical metadata range overflow")?;
+    if source.3 != bytes
+        || source.2.is_some_and(|size| size.get() != bytes)
+        || source.1 % 4 != 0
+        || end > source.0.size()
+        || !source
+            .0
+            .usage()
+            .contains(wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_SRC)
+    {
+        return Err("physical terminal metadata has an invalid copy range or usage".into());
+    }
+    let length =
+        usize::try_from(bytes).map_err(|_| "physical metadata allocation exceeds usize")?;
+    let contents = vec![0_u8; length];
+    let native = gpu.native_context();
+    let copy = native.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+        label: Some("virtual-geometry-physical-terminal-metadata"),
+        contents: &contents,
+        usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::COPY_SRC,
+    });
+    // Ordered after METADATA_SHADER dispatch, before any seed-selected overwrite.
+    native
+        .encoder
+        .copy_buffer_to_buffer(&source.0, source.1, &copy, 0, bytes);
+    Ok((copy, 0, std::num::NonZeroU64::new(bytes), bytes))
+}
+
+fn physical_terminal_row_matches(
+    row: &[u32],
+    authority: &[u32],
+    sidecar: &[u32],
+    hw: &zircon_runtime::core::framework::render::RenderVirtualGeometryHardwareRasterizationRecord,
+    args: &[u32],
+) -> bool {
+    use zircon_runtime::core::framework::render::RenderVirtualGeometryExecutionState;
+    if row.len() != 17 || authority.len() != 14 || sidecar.len() != 32 || args.len() != 4 {
+        return false;
+    }
+    let identity = &row[1..15];
+    let flags = identity[4];
+    let token = (identity[9].min(0xffff) << 16) | identity[10].min(0xffff);
+    !(flags != 15
+        || identity[5] == u32::MAX
+        || identity[9] == u32::MAX
+        || identity[10] == u32::MAX
+        || identity[13] == u32::MAX
+        || sidecar[31] != 1
+        || sidecar[28] != row[0]
+        || sidecar[..14] != *authority
+        || sidecar[14..28] != *identity
+        || row[15] != token
+        || row[16] != 1
+        || args[3] != token
+        || args[0] == 0
+        || args[1] != 1
+        || authority[0] != identity[5]
+        || authority[1..3] != identity[6..8]
+        || authority[3] != identity[8]
+        || authority[6] != identity[1]
+        || authority[7] != identity[0]
+        || authority[8] != identity[9]
+        || authority[9] != identity[10]
+        || authority[10] != identity[13]
+        || hw.instance_index != Some(identity[5])
+        || hw.entity != (u64::from(identity[6]) | (u64::from(identity[7]) << 32))
+        || hw.page_id != identity[8]
+        || hw.submission_page_id != identity[8]
+        || hw.submission_index != identity[9]
+        || hw.entity_cluster_start_ordinal != identity[11]
+        || hw.entity_cluster_span_count != identity[12]
+        || hw.submission_slot != Some(identity[13])
+        || hw.resident_slot != Some(identity[13])
+        || hw.cluster_id != authority[4]
+        || hw.cluster_ordinal != authority[5]
+        || hw.lineage_depth != authority[12]
+        || hw.frontier_rank != authority[13]
+        || hw.state != RenderVirtualGeometryExecutionState::Resident)
+}
+
 fn record_terminal_completion(
     gpu: &mut RenderPassGpuExecutionContext<'_>,
     buffers: &[(wgpu::Buffer, u64, Option<std::num::NonZeroU64>, u64)],
     metadata: &(wgpu::Buffer, u64, Option<std::num::NonZeroU64>, u64),
     selected: &(wgpu::Buffer, u64, Option<std::num::NonZeroU64>, u64),
+    physical_metadata: &(wgpu::Buffer, u64, Option<std::num::NonZeroU64>, u64),
 ) -> Result<(), String> {
     // The only values captured by the decoder are physical byte ranges. No CPU
     // author record, expected result or planner visibility enters the callback.
@@ -1635,6 +1764,23 @@ fn record_terminal_completion(
         }
         sources.push((binding.buffer.clone(), binding.offset, binding.size, bytes));
     }
+    let decision = gpu.require_buffer_binding(
+        "virtual-geometry-cull-decisions",
+        RenderGraphResourceAccessKind::Write,
+    )?;
+    if binding_size(&decision) != (8 + 4096 * 33) * 4 {
+        return Err("VG terminal decision buffer has a different physical ABI".into());
+    }
+    sources.push((
+        decision.buffer.clone(),
+        decision.offset,
+        decision.size,
+        binding_size(&decision),
+    ));
+    // Preserve the same live-slot sidecar for full terminal identity verification.
+    sources.push(buffers[1].clone());
+    // Stream 12 is the immutable physical18 copy; stream 6 remains selected diagnostics.
+    sources.push(physical_metadata.clone());
     let original_source_count = sources.len();
     let inspection = gpu.take_virtual_geometry_native_inspection()?;
     let mut inspection_bytes = 0_u64;
@@ -1740,9 +1886,15 @@ fn record_terminal_completion(
             if journal[1] != 0 || issued > journal.len() - 2 {
                 return Err("GPU journal rejected admission".into());
             }
+            let physical_metadata_expected = streams.get(10).and_then(|words| words.get(3)).copied() != Some(2);
             let mut live = 0usize;
+            let mut live_slots = Vec::new();
+            let mut journal_slots = std::collections::HashSet::new();
             for slot in &journal[2..2 + issued] {
                 let slot = usize::try_from(*slot).map_err(|_| "GPU journal slot overflow")?;
+                if !journal_slots.insert(slot) {
+                    return Err("GPU journal repeats a physical run slot".into());
+                }
                 let arg = slot.checked_mul(5).ok_or("GPU argument offset overflow")?;
                 if streams[1].get(slot) != Some(&0) {
                     return Err("GPU indexed adapter rejected a source".into());
@@ -1756,12 +1908,14 @@ fn record_terminal_completion(
                 if args[1] != 1 {
                     return Err("GPU indexed instance count violates the admitted span".into());
                 }
+                live_slots.push(slot);
                 live += 1;
             }
             let executed = count(&streams[3], 4)?;
             if executed != live
                 || count(&streams[5], 17)? != live
-                || count(&streams[6], 18)? != live
+                || count(&streams[12], 18)? != live
+                || (physical_metadata_expected && count(&streams[6], 18)? != live)
             {
                 return Err(
                     "GPU terminal output count disagrees with actual issued indexed arguments"
@@ -1781,9 +1935,8 @@ fn record_terminal_completion(
             };
             let optional = |word: u32| if word == u32::MAX { None } else { Some(word) };
             let mut outputs = RenderVirtualGeometryReadbackOutputs::default();
-            for row in streams[6][1..1 + executed * 18].chunks_exact(18) {
-                outputs.hardware_rasterization_records.push(
-                    RenderVirtualGeometryHardwareRasterizationRecord {
+            let decode_hardware = |row: &[u32]| -> Result<RenderVirtualGeometryHardwareRasterizationRecord, String> {
+                Ok(RenderVirtualGeometryHardwareRasterizationRecord {
                         instance_index: optional(row[0]),
                         entity: u64::from(row[1]) | (u64::from(row[2]) << 32),
                         cluster_id: row[3],
@@ -1802,10 +1955,70 @@ fn record_terminal_completion(
                         resident_slot: optional(row[15]),
                         submission_slot: optional(row[16]),
                         state: state(row[17])?,
-                    },
-                );
+                    })
+            };
+            let hardware_count = count(&streams[6], 18)?;
+            for row in streams[6][1..1 + hardware_count * 18].chunks_exact(18) {
+                outputs.hardware_rasterization_records.push(decode_hardware(row)?);
             }
+            let mut physical = Vec::with_capacity(executed);
+            for (output, slot) in live_slots.into_iter().enumerate() {
+                let row = &streams[5][1 + output * 17..1 + (output + 1) * 17];
+                let authority = &streams[4][output * 14..(output + 1) * 14];
+                let sidecar_start = slot.checked_mul(32).ok_or("GPU sidecar offset overflow")?;
+                let sidecar = streams[11].get(sidecar_start..sidecar_start + 32)
+                    .ok_or("GPU journal exceeds mapped sidecar")?;
+                let physical_row = &streams[12][1 + output * 18..1 + (output + 1) * 18];
+                let hw = decode_hardware(physical_row)?;
+                let identity = &row[1..15];
+                let args = &streams[3][1 + output * 4..1 + (output + 1) * 4];
+                if !physical_terminal_row_matches(row, authority, sidecar, &hw, args) {
+                    return Err("GPU physical terminal identity/authority/token disagrees with its live journal slot".into());
+                }
+                physical.push(zircon_runtime::core::framework::render::RenderVirtualGeometryExecutionSegment {
+                    original_index: identity[0],
+                    draw_ref_index: identity[1],
+                    stable_instance_key: u64::from(identity[2]) | (u64::from(identity[3]) << 32),
+                    instance_index: Some(identity[5]),
+                    entity: hw.entity,
+                    page_id: identity[8],
+                    submission_index: Some(identity[9]),
+                    draw_ref_rank: Some(identity[10]),
+                    cluster_start_ordinal: identity[11],
+                    cluster_span_count: identity[12],
+                    cluster_total_count: hw.entity_cluster_total_count,
+                    submission_slot: Some(identity[13]),
+                    state: hw.state,
+                    lineage_depth: hw.lineage_depth,
+                    lod_level: hw.submission_lod_level,
+                    frontier_rank: hw.frontier_rank,
+                });
+            }
+            outputs.physical_submission_segments = Some(physical);
             let visible = count(&streams[7], 8)?;
+            let decision = &streams[10];
+            if decision.len() != 8 + 4096 * 33 || decision[0] != 0x5647_5331
+                || decision[1] != 0 || decision[2] as usize != visible
+                || !matches!(decision[3], 0 | 2) || decision[6] != 1 || decision[7] != 1 {
+                return Err("GPU hierarchy selection did not publish a complete valid decision".into());
+            }
+            for row in 0..visible {
+                let start = 8 + row * 28;
+                if streams[7][1 + row * 8..1 + (row + 1) * 8] != decision[start..start + 8] {
+                    return Err("selected metadata differs from the actual GPU decision".into());
+                }
+            }
+            if decision[3] == 2 {
+                if count(&streams[6], 18)? != visible {
+                    return Err("seed hardware startup and GPU selection counts disagree".into());
+                }
+                for row in 0..visible {
+                    let start = 8 + row * 28 + 8;
+                    if streams[6][1 + row * 18..1 + (row + 1) * 18] != decision[start..start + 18] {
+                        return Err("hardware startup differs from the actual GPU seed decision".into());
+                    }
+                }
+            }
             if count(&streams[8], 2)? != visible {
                 return Err("GPU selected metadata and VisBuffer64 counts disagree".into());
             }
@@ -1876,4 +2089,79 @@ fn record_terminal_completion(
     specs[13] = Some(("virtual-geometry-admitted-run-slots", Read, 65536, 1));
     let _ = super::native_probe::retain(gpu, specs, 65536)?;
     Ok(())
+}
+
+#[cfg(test)]
+mod physical_terminal_tests {
+    use super::physical_terminal_row_matches;
+    use zircon_runtime::core::framework::render::{
+        RenderVirtualGeometryExecutionState, RenderVirtualGeometryHardwareRasterizationRecord,
+    };
+
+    #[test]
+    fn physical_terminal_row_requires_all_seventeen_words_and_full_authority() {
+        let identity = [4, 6, 13, 0, 15, 2, 41, 0, 7, 0, 1, 3, 2, 9];
+        let authority = [2, 41, 0, 7, 11, 3, 6, 4, 0, 1, 9, 8, 2, 5];
+        let mut row = vec![12];
+        row.extend(identity);
+        row.extend([1, 1]);
+        let mut sidecar = authority.to_vec();
+        sidecar.extend(identity);
+        sidecar.extend([12, 0, 0, 1]);
+        let hw = RenderVirtualGeometryHardwareRasterizationRecord {
+            instance_index: Some(2),
+            entity: 41,
+            cluster_id: 11,
+            cluster_ordinal: 3,
+            page_id: 7,
+            lod_level: 1,
+            submission_index: 0,
+            submission_page_id: 7,
+            submission_lod_level: 1,
+            entity_cluster_start_ordinal: 3,
+            entity_cluster_span_count: 2,
+            entity_cluster_total_count: 8,
+            lineage_depth: 2,
+            frontier_rank: 5,
+            resident_slot: Some(9),
+            submission_slot: Some(9),
+            state: RenderVirtualGeometryExecutionState::Resident,
+        };
+        let args = [3, 1, 0, 1];
+        assert!(physical_terminal_row_matches(
+            &row, &authority, &sidecar, &hw, &args
+        ));
+        for index in 0..17 {
+            let mut bad = row.clone();
+            bad[index] ^= 1;
+            assert!(
+                !physical_terminal_row_matches(&bad, &authority, &sidecar, &hw, &args),
+                "terminal word {index}"
+            );
+        }
+        for index in 0..14 {
+            let mut bad = authority;
+            bad[index] ^= 1;
+            assert!(
+                !physical_terminal_row_matches(&row, &bad, &sidecar, &hw, &args),
+                "authority word {index}"
+            );
+        }
+        let mut wrong_args = args;
+        wrong_args[3] ^= 1;
+        assert!(!physical_terminal_row_matches(
+            &row,
+            &authority,
+            &sidecar,
+            &hw,
+            &wrong_args
+        ));
+        assert!(!physical_terminal_row_matches(
+            &row[..16],
+            &authority,
+            &sidecar,
+            &hw,
+            &args
+        ));
+    }
 }

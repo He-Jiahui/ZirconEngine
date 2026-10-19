@@ -60,19 +60,12 @@ impl SpoolAttempt {
     }
 
     fn allocate_file(&self) -> io::Result<(PathBuf, File)> {
-        let found = self
-            .spilled_file_count
-            .get()
-            .checked_add(1)
-            .unwrap_or(usize::MAX);
+        let found = self.spilled_file_count.get().saturating_add(1);
         if found > self.max_spilled_files {
-            return Err(io::Error::new(
-                io::ErrorKind::Other,
-                CanonicalSpoolFileLimitExceeded {
-                    max: self.max_spilled_files,
-                    found,
-                },
-            ));
+            return Err(io::Error::other(CanonicalSpoolFileLimitExceeded {
+                max: self.max_spilled_files,
+                found,
+            }));
         }
         let directory = self.ensure_directory()?;
         for _ in 0..TEMP_FILE_ATTEMPTS {
@@ -107,9 +100,7 @@ impl SpoolAttempt {
                 .join(format!("zircon-canonical-{}-{id}", process::id()));
             match fs::create_dir(&directory) {
                 Ok(()) => {
-                    if let Err(error) = initialize_attempt_directory(&directory, id) {
-                        return Err(error);
-                    }
+                    initialize_attempt_directory(&directory, id)?;
                     self.directory.replace(Some(directory.clone()));
                     return Ok(directory);
                 }

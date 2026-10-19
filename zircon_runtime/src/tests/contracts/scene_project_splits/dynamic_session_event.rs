@@ -1,4 +1,5 @@
 //! 性能热点的结构守卫核对拥有者、文件预算和证据文档。以结果断言检查当前接口或源码快照对应的边界。
+use crate::tests::runtime_absorption::structure_convention::fixed_history_archive_source as history;
 #[test]
 fn runtime_07_dynamic_session_event_split_keeps_abi_entry_and_event_owner() {
     let session_facade = include_str!("../../../dynamic_api/session.rs");
@@ -6,12 +7,11 @@ fn runtime_07_dynamic_session_event_split_keeps_abi_entry_and_event_owner() {
     let session_state = include_str!("../../../dynamic_api/session/state.rs");
     let session_construction = include_str!("../../../dynamic_api/session/construction.rs");
     let session_events = include_str!("../../../dynamic_api/session/events.rs");
-    let runtime_07_output = include_str!(
-        "../../../../../docs/plans/zircon_runtime/runtime/07/2026-07-09-runtime-performance-hotpath-output-records.md"
-    );
-    let runtime_index_output = include_str!(
-        "../../../../../docs/plans/zircon_runtime/runtime/07/2026-07-09-runtime-index-output-records.md"
-    );
+    let keyboard_ime = include_str!("../../../dynamic_api/session/events/keyboard_ime.rs");
+    let gamepad = include_str!("../../../dynamic_api/session/events/gamepad.rs");
+    let runtime_07_output = history("docs/plans/zircon_runtime/runtime/07/2026-07-09-runtime-performance-hotpath-output-records.md");
+    let runtime_index_output =
+        history("docs/plans/zircon_runtime/runtime/07/2026-07-09-runtime-index-output-records.md");
     let hotspot_doc =
         include_str!("../../../../../docs/crates/zircon_runtime/performance/hotspot_inventory.md");
     let dynamic_session_doc =
@@ -23,7 +23,13 @@ fn runtime_07_dynamic_session_event_split_keeps_abi_entry_and_event_owner() {
     );
     for ffi_anchor in [
         "pub(in crate::dynamic_api) unsafe fn handle_event(",
-        "with_session(handle, |session| session.handle_event(event))",
+        ".checked_slice(ZR_RUNTIME_EVENT_PAYLOAD_MAX_ENCODED_BYTES_V1)",
+        "Ok(payload) => payload.to_vec()",
+        "with_session_owned(handle, move |session| {",
+        "data: payload.as_ptr()",
+        "len: payload.len()",
+        "event.abi_version != ZIRCON_RUNTIME_ABI_VERSION_V1",
+        "session.handle_event(event)",
     ] {
         assert!(
             session_ffi.contains(ffi_anchor),
@@ -31,12 +37,16 @@ fn runtime_07_dynamic_session_event_split_keeps_abi_entry_and_event_owner() {
         );
     }
 
-    for moved_event_anchor in [
-        "fn handle_mouse_button",
-        "fn handle_mouse_wheel",
-        "fn handle_keyboard",
-        "fn handle_ime",
-        "fn handle_gamepad_axis",
+    for (moved_event_anchor, owner, source) in [
+        (
+            "fn handle_mouse_button",
+            "session/events.rs",
+            session_events,
+        ),
+        ("fn handle_mouse_wheel", "session/events.rs", session_events),
+        ("fn handle_keyboard", "events/keyboard_ime.rs", keyboard_ime),
+        ("fn handle_ime", "events/keyboard_ime.rs", keyboard_ime),
+        ("fn handle_gamepad_axis", "events/gamepad.rs", gamepad),
     ] {
         assert!(
             !session_facade.contains(moved_event_anchor)
@@ -44,8 +54,8 @@ fn runtime_07_dynamic_session_event_split_keeps_abi_entry_and_event_owner() {
             "session facade and FFI owner should not reclaim dynamic event helper `{moved_event_anchor}`"
         );
         assert!(
-            session_events.contains(moved_event_anchor),
-            "session/events.rs should own dynamic event helper `{moved_event_anchor}`"
+            source.contains(moved_event_anchor),
+            "{owner} should own dynamic event helper `{moved_event_anchor}`"
         );
     }
 
@@ -53,6 +63,8 @@ fn runtime_07_dynamic_session_event_split_keeps_abi_entry_and_event_owner() {
         ("session/state.rs", session_state),
         ("session/construction.rs", session_construction),
         ("session/events.rs", session_events),
+        ("events/keyboard_ime.rs", keyboard_ime),
+        ("events/gamepad.rs", gamepad),
     ] {
         for removed_editor_selection_anchor in [
             "selected_node",
@@ -70,6 +82,11 @@ fn runtime_07_dynamic_session_event_split_keeps_abi_entry_and_event_owner() {
     }
 
     for events_anchor in [
+        "#[path = \"events/keyboard_ime.rs\"]",
+        "#[path = \"events/gamepad.rs\"]",
+        "self.handle_keyboard(event)",
+        "self.handle_ime(event)",
+        "self.handle_gamepad_axis(event)",
         "pub(super) fn handle_event(&mut self, event: ZrRuntimeEventV1) -> ZrStatus",
         "UiAccessibilityActionRequest",
         "runtime_session_menu_action_at",

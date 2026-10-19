@@ -1,7 +1,9 @@
 //! 性能热点的结构守卫核对拥有者、文件预算和证据文档。提取源文件或定义分类规则，供同组守卫复用。
+use crate::tests::runtime_absorption::structure_convention::fixed_history_archive_source as history;
 pub(super) struct HotspotInventorySources {
     pub(super) runtime_07_plan: &'static str,
     pub(super) runtime_07_archive: &'static str,
+    pub(super) runtime_07_fixed_plan: &'static str,
     pub(super) runtime_index: &'static str,
     pub(super) render_index: &'static str,
     pub(super) hotspot_doc: &'static str,
@@ -31,10 +33,13 @@ pub(super) struct HotspotInventorySources {
     pub(super) session_extract_cache: &'static str,
     pub(super) session_extract_stats: &'static str,
     pub(super) asset_worker_source: &'static str,
+    pub(super) asset_worker_frame_diagnostics: &'static str,
     pub(super) asset_worker_manager: &'static str,
     pub(super) asset_worker_tests: &'static str,
+    pub(super) asset_worker_frame_tests: &'static str,
     pub(super) animation_plugin_runtime_system: &'static str,
     pub(super) animation_plugin_tick: &'static str,
+    pub(super) animation_plugin_diagnostics: &'static str,
     pub(super) animation_plugin_events: &'static str,
     pub(super) animation_clip_events: &'static str,
     pub(super) animation_level_system: &'static str,
@@ -56,16 +61,15 @@ impl HotspotInventorySources {
     pub(super) fn load() -> Self {
         Self {
             runtime_07_plan: include_str!(
-                "../../../../../../docs/plans/zircon_runtime/runtime/07-runtime-performance-hotpath.md"
+                "../../../../../../docs/testing-and-validation/runtime-performance-validation-worklist.md"
             ),
-            runtime_07_archive: include_str!(
-                "../../../../../../docs/plans/zircon_runtime/runtime/07/2026-07-09-runtime-performance-hotpath-output-records.md"
-            ),
+            runtime_07_archive: history("docs/plans/zircon_runtime/runtime/07/2026-07-09-runtime-performance-hotpath-output-records.md"),
+            runtime_07_fixed_plan: history("versions/reconciliation-515/460103b9c9e99bf507b713237c0a9db858d312a1ba3d809dd8593ed65bbda728/docs/plans/zircon_runtime/runtime/07-runtime-performance-hotpath.md"),
             runtime_index: include_str!(
-                "../../../../../../docs/plans/zircon_runtime/runtime/index.md"
+                "../../../../../../docs/crates/zircon_runtime/structure/runtime-absorption-evidence.md"
             ),
             render_index: include_str!(
-                "../../../../../../docs/plans/zircon_runtime/render/index.md"
+                "../../../../../../docs/crates/zircon_runtime/graphics/pipeline-registration.md"
             ),
             hotspot_doc: include_str!(
                 "../../../../../../docs/crates/zircon_runtime/performance/hotspot_inventory.md"
@@ -114,15 +118,24 @@ impl HotspotInventorySources {
             session_extract_cache: include_str!("../../../../dynamic_api/session/extract_cache.rs"),
             session_extract_stats: include_str!("../../../../dynamic_api/session/extract_stats.rs"),
             asset_worker_source: include_str!("../../../../asset/pipeline/worker_pool.rs"),
+            asset_worker_frame_diagnostics: include_str!(
+                "../../../../asset/pipeline/worker_pool/diagnostics.rs"
+            ),
             asset_worker_manager: include_str!(
                 "../../../../asset/pipeline/manager/assets/construction.rs"
             ),
             asset_worker_tests: include_str!("../../../../asset/tests/pipeline/worker_pool.rs"),
+            asset_worker_frame_tests: include_str!(
+                "../../../../asset/tests/pipeline/worker_pool/diagnostics.rs"
+            ),
             animation_plugin_runtime_system: include_str!(
                 "../../../../../../zircon_plugins/animation/runtime/src/runtime_system.rs"
             ),
             animation_plugin_tick: include_str!(
                 "../../../../../../zircon_plugins/animation/runtime/src/evaluation/pipeline/tick.rs"
+            ),
+            animation_plugin_diagnostics: include_str!(
+                "../../../../../../zircon_plugins/animation/runtime/src/evaluation/pipeline/diagnostics.rs"
             ),
             animation_plugin_events: include_str!(
                 "../../../../../../zircon_plugins/animation/runtime/src/evaluation/pipeline/events.rs"

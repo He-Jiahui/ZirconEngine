@@ -523,20 +523,22 @@ fn voxel_radiance_for_world_position(world_position: vec3<f32>) -> RadianceLooku
         hybrid_gi_scene_words[SCENE_TRACE_INPUT_WORD_OFFSET + 2u],
         VOXEL_CLIPMAP_CAPACITY,
     );
-    var selected_clipmap_id = 0u;
-    var selected_cell_id = 0u;
+    let cell_count = min(
+        hybrid_gi_scene_words[SCENE_TRACE_INPUT_WORD_OFFSET + 3u],
+        VOXEL_CELL_CAPACITY,
+    );
     var selected_half_extent = 1e30;
-    var selected_clipmap_offset = 0u;
-    var selected = false;
+    var result = invalid_radiance_lookup();
     for (var clipmap_index = 0u; clipmap_index < clipmap_count; clipmap_index = clipmap_index + 1u) {
-        let offset = VOXEL_CLIPMAP_WORD_OFFSET + clipmap_index * VOXEL_CLIPMAP_WORD_COUNT;
+        let clipmap_offset = VOXEL_CLIPMAP_WORD_OFFSET + clipmap_index * VOXEL_CLIPMAP_WORD_COUNT;
         let center = vec3<f32>(
-            bitcast<f32>(hybrid_gi_scene_words[offset + 1u]),
-            bitcast<f32>(hybrid_gi_scene_words[offset + 2u]),
-            bitcast<f32>(hybrid_gi_scene_words[offset + 3u]),
+            bitcast<f32>(hybrid_gi_scene_words[clipmap_offset + 1u]),
+            bitcast<f32>(hybrid_gi_scene_words[clipmap_offset + 2u]),
+            bitcast<f32>(hybrid_gi_scene_words[clipmap_offset + 3u]),
         );
-        let half_extent = max(0.0, bitcast<f32>(hybrid_gi_scene_words[offset + 4u]));
-        if (half_extent <= 0.0 || any(abs(world_position - center) > vec3<f32>(half_extent))) {
+        let half_extent = max(0.0, bitcast<f32>(hybrid_gi_scene_words[clipmap_offset + 4u]));
+        if (half_extent <= 0.0 || half_extent >= selected_half_extent ||
+            any(abs(world_position - center) > vec3<f32>(half_extent))) {
             continue;
         }
         let normalized = clamp(
@@ -548,48 +550,40 @@ fn voxel_radiance_for_world_position(world_position: vec3<f32>) -> RadianceLooku
         let cell_id = cell_coord.x +
             cell_coord.y * VOXEL_CELL_RESOLUTION +
             cell_coord.z * VOXEL_CELL_RESOLUTION * VOXEL_CELL_RESOLUTION;
-        if (half_extent < selected_half_extent) {
-            selected_clipmap_id = hybrid_gi_scene_words[offset];
-            selected_cell_id = cell_id;
-            selected_half_extent = half_extent;
-            selected_clipmap_offset = offset;
-            selected = true;
-        }
-    }
-    if (!selected) {
-        return invalid_radiance_lookup();
-    }
+        let clipmap_id = hybrid_gi_scene_words[clipmap_offset];
 
-    // BUG: [CR-HYBRID-GI-0002] 最细覆盖层缺少有效单元时，只查该层而未尝试重叠的粗层。
-    let cell_count = min(
-        hybrid_gi_scene_words[SCENE_TRACE_INPUT_WORD_OFFSET + 3u],
-        VOXEL_CELL_CAPACITY,
-    );
-    for (var cell_index = 0u; cell_index < cell_count; cell_index = cell_index + 1u) {
-        let offset = VOXEL_CELL_WORD_OFFSET + cell_index * VOXEL_CELL_WORD_COUNT;
-        if (hybrid_gi_scene_words[offset] == selected_clipmap_id &&
-            hybrid_gi_scene_words[offset + 1u] == selected_cell_id &&
-            hybrid_gi_scene_words[offset + 3u] > 0u) {
-            let packed_radiance = hybrid_gi_scene_words[offset + 2u];
-            if (((packed_radiance >> 24u) & 0xffu) != 0u) {
-                var support_signature = support_signature_for_words(
-                    selected_clipmap_offset,
-                    VOXEL_CLIPMAP_WORD_COUNT,
-                );
-                support_signature = mix_support_signature(
-                    support_signature,
-                    support_signature_for_words(offset, VOXEL_CELL_WORD_COUNT),
-                );
-                return RadianceLookup(
-                    packed_radiance,
-                    1u,
-                    TRACE_VOXEL_FALLBACK_FLAG,
-                    max(support_signature, 1u),
-                );
+        // A covering layer wins only after its actual cell supplies valid radiance.
+        // Missing, unoccupied or transparent fine cells leave coarser layers eligible.
+        for (var cell_index = 0u; cell_index < cell_count; cell_index = cell_index + 1u) {
+            let offset = VOXEL_CELL_WORD_OFFSET + cell_index * VOXEL_CELL_WORD_COUNT;
+            if (hybrid_gi_scene_words[offset] != clipmap_id ||
+                hybrid_gi_scene_words[offset + 1u] != cell_id ||
+                hybrid_gi_scene_words[offset + 3u] == 0u) {
+                continue;
             }
+            let packed_radiance = hybrid_gi_scene_words[offset + 2u];
+            if (((packed_radiance >> 24u) & 0xffu) == 0u) {
+                continue;
+            }
+            var support_signature = support_signature_for_words(
+                clipmap_offset,
+                VOXEL_CLIPMAP_WORD_COUNT,
+            );
+            support_signature = mix_support_signature(
+                support_signature,
+                support_signature_for_words(offset, VOXEL_CELL_WORD_COUNT),
+            );
+            selected_half_extent = half_extent;
+            result = RadianceLookup(
+                packed_radiance,
+                1u,
+                TRACE_VOXEL_FALLBACK_FLAG,
+                max(support_signature, 1u),
+            );
+            break;
         }
     }
-    return invalid_radiance_lookup();
+    return result;
 }
 
 @compute @workgroup_size(8, 8, 1)

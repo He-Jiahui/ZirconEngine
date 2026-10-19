@@ -178,6 +178,7 @@ pub(super) fn abort_subtree(
             ) {
                 let abort_context = BehaviorIntegrationTaskContext {
                     node_id: node.id(),
+                    semantics: node.semantics(),
                     parameters: node.parameters(),
                     entity: context.entity,
                     delta_seconds: context.delta_seconds,

@@ -307,3 +307,96 @@ fn node_and_cluster_cull_launch_worklist_roundtrips_through_gpu_word_layout() {
         "expected the NodeAndClusterCull launch-worklist word layout to round-trip the combined global state, dispatch setup, and root seeds so the renderer-owned GPU buffer can stay the single baseline compute-stub contract"
     );
 }
+
+#[test]
+fn node_and_cluster_cull_forced_mip_decoding_preserves_boundaries_and_rejects_overflow() {
+    macro_rules! check_record {
+        ($record:expr, $record_type:ty, $word_index:expr) => {{
+            let mut expected = $record;
+            let mut words = expected.packed_words();
+            for (word, forced_mip) in [(0, Some(0)), (255, Some(255)), (u32::MAX, None)] {
+                words[$word_index] = word;
+                expected.forced_mip = forced_mip;
+                assert_eq!(
+                    <$record_type>::from_packed_words(&words),
+                    Some(expected),
+                    "valid forced_mip word {word} must preserve the full record"
+                );
+            }
+            for word in [256, 65_536, u32::MAX - 1] {
+                words[$word_index] = word;
+                assert_eq!(
+                    <$record_type>::from_packed_words(&words),
+                    None,
+                    "out-of-range forced_mip word {word} must reject the record"
+                );
+            }
+        }};
+    }
+
+    check_record!(
+        RenderVirtualGeometryNodeAndClusterCullInstanceWorkItem {
+            instance_index: 3,
+            entity: 0x1_0000_002a,
+            cluster_offset: 10,
+            cluster_count: 4,
+            page_offset: 7,
+            page_count: 2,
+            cluster_budget: 12,
+            page_budget: 5,
+            forced_mip: Some(2),
+        },
+        RenderVirtualGeometryNodeAndClusterCullInstanceWorkItem,
+        9
+    );
+    check_record!(
+        RenderVirtualGeometryNodeAndClusterCullClusterWorkItem {
+            instance_index: 3,
+            entity: 0x1_0000_002a,
+            cluster_array_index: 10,
+            hierarchy_node_id: Some(7),
+            cluster_budget: 12,
+            page_budget: 5,
+            forced_mip: Some(2),
+        },
+        RenderVirtualGeometryNodeAndClusterCullClusterWorkItem,
+        7
+    );
+    check_record!(
+        RenderVirtualGeometryNodeAndClusterCullChildWorkItem {
+            instance_index: 3,
+            entity: 0x1_0000_002a,
+            parent_cluster_array_index: 10,
+            parent_hierarchy_node_id: Some(7),
+            child_node_id: 70,
+            child_table_index: 2,
+            traversal_index: 9,
+            cluster_budget: 12,
+            page_budget: 5,
+            forced_mip: Some(2),
+        },
+        RenderVirtualGeometryNodeAndClusterCullChildWorkItem,
+        10
+    );
+    check_record!(
+        RenderVirtualGeometryNodeAndClusterCullTraversalRecord {
+            op: RenderVirtualGeometryNodeAndClusterCullTraversalOp::EnqueueChild,
+            child_source:
+                RenderVirtualGeometryNodeAndClusterCullTraversalChildSource::AuthoredHierarchy,
+            instance_index: 3,
+            entity: 0x1_0000_002a,
+            cluster_array_index: 10,
+            hierarchy_node_id: Some(7),
+            node_cluster_start: 70,
+            node_cluster_count: 4,
+            child_base: 2,
+            child_count: 3,
+            traversal_index: 9,
+            cluster_budget: 12,
+            page_budget: 5,
+            forced_mip: Some(2),
+        },
+        RenderVirtualGeometryNodeAndClusterCullTraversalRecord,
+        14
+    );
+}

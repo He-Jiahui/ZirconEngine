@@ -81,11 +81,11 @@ class RuntimeViewportOutputPlannerOwnerStructureTests(unittest.TestCase):
     def test_owner_split_status_is_mirrored(self) -> None:
         repo_root = Path(__file__).resolve().parents[2]
         mirrors = (
-            repo_root / "docs/plans/zircon_runtime/render/09-camera-render-ordering.md",
+            repo_root / 'docs/crates/zircon_runtime/graphics/types/viewport_render_region.md',
             repo_root
-            / "docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md",
-            repo_root / "docs/plans/engine-code-structure-convention.md",
-            repo_root / "docs/plans/engine-code-review-findings-2026-06.md",
+            / 'docs/crates/zircon_runtime/structure/module-convention.md',
+            repo_root / 'docs/testing-and-validation/development-conventions.md',
+            repo_root / 'docs/architecture/runtime-architecture-review-m0.md',
         )
         for mirror_path in mirrors:
             mirror = mirror_path.read_text(encoding="utf-8")

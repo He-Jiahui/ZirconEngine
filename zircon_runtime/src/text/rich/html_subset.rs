@@ -81,7 +81,7 @@ pub(super) fn token_at(
         TagCloseOffset::Closed(close) => (close, false),
         TagCloseOffset::UnterminatedQuote(close) => (close, true),
     };
-    tokenizer_budget.admit_token_bytes(close.checked_add(1).unwrap_or(usize::MAX))?;
+    tokenizer_budget.admit_token_bytes(close.saturating_add(1))?;
     if unterminated_quoted_attribute {
         return Ok(Some((
             close + 1,

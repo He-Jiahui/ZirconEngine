@@ -81,7 +81,6 @@ impl crate::retained_memory::RetainedOwnerV1 for ReflectedValue {
         &self,
         m: &mut crate::retained_memory::RetainedBoundBuilderV1,
     ) -> Result<(), crate::retained_memory::RetentionContractError> {
-        use crate::retained_memory::RetainedOwnerV1;
         m.nest(|m| match self {
             Self::String(v) | Self::Enum(v) | Self::Resource(v) => v.retained_bound_v1(m),
             Self::List(v) => v.retained_bound_v1(m),
@@ -100,4 +99,7 @@ impl crate::retained_memory::RetainedOwnerV1 for ReflectedValue {
         })
     }
 }
+// SAFETY: All variants own only scalars, strings, container trees, or serde_json::Value.
+// Shared references cannot grow those values; retained_bound_v1 accounts for every
+// allocating child recursively, with no interior-mutable or shared mutable owner.
 unsafe impl crate::retained_memory::ImmutableRetainedOwnerV1 for ReflectedValue {}

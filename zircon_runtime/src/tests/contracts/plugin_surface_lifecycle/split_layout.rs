@@ -1,4 +1,5 @@
 //! 插件公开面、原生装载命名空间与生命周期回退保持分离。通过源码文本核对父子路由、状态镜像和文件预算。
+use crate::tests::runtime_absorption::structure_convention::fixed_history_archive_source as history;
 const SLICE: &str = "Runtime 15 M3 plugin surface lifecycle guard folder-backed split";
 const STATUS: &str =
     "runtime_15_plugin_surface_lifecycle_guard_folder_backed_static_passed_cargo_deferred";
@@ -33,9 +34,9 @@ fn runtime_15_plugin_surface_lifecycle_guard_is_folder_backed() {
         parent,
         &[
             r#"#[path = "plugin_surface_lifecycle/inventory.rs"]"#,
-            r#"#[path = "plugin_surface_lifecycle/lifecycle_fallback.rs"]"#,
+            r#"#[path = "../plugin_surface_lifecycle/lifecycle_fallback.rs"]"#,
             r#"#[path = "plugin_surface_lifecycle/mirror_docs.rs"]"#,
-            r#"#[path = "plugin_surface_lifecycle/native_loader_namespace.rs"]"#,
+            r#"#[path = "../plugin_surface_lifecycle/native_loader_namespace.rs"]"#,
             r#"#[path = "plugin_surface_lifecycle/split_layout.rs"]"#,
             r#"#[path = "plugin_surface_lifecycle/support.rs"]"#,
         ],
@@ -77,37 +78,37 @@ fn runtime_15_plugin_surface_lifecycle_guard_is_folder_backed() {
     for (label, source) in [
         (
             "Runtime 06 status",
-            concat!(
-                include_str!("../../../../../docs/plans/zircon_runtime/runtime/06-plugin-surface-and-lifecycle.md"),
-                include_str!("../../../../../docs/plans/zircon_runtime/runtime/06/2026-07-09-plugin-surface-and-lifecycle-output-records.md")
+            crate::runtime_test_history_concat!(
+                include_str!("../../../../../docs/testing-and-validation/runtime-plugin-validation-worklist.md"),
+                history("docs/plans/zircon_runtime/runtime/06/2026-07-09-plugin-surface-and-lifecycle-output-records.md")
             ),
         ),
         (
             "Runtime 15 status",
-            concat!(
-                include_str!("../../../../../docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md"),
-                include_str!("../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md")
+            crate::runtime_test_history_concat!(
+                include_str!("../../../../../docs/crates/zircon_runtime/structure/module-convention.md"),
+                history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md")
             ),
         ),
         (
             "runtime index status",
-            concat!(
-                include_str!("../../../../../docs/plans/zircon_runtime/runtime/index.md"),
-                include_str!("../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md")
+            crate::runtime_test_history_concat!(
+                include_str!("../../../../../docs/crates/zircon_runtime/structure/runtime-absorption-evidence.md"),
+                history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md")
             ),
         ),
         (
             "engine code structure status",
-            concat!(
-                include_str!("../../../../../docs/plans/engine-code-structure-convention.md"),
-                include_str!("../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md")
+            crate::runtime_test_history_concat!(
+                include_str!("../../../../../docs/testing-and-validation/development-conventions.md"),
+                history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md")
             ),
         ),
         (
             "engine code review status",
-            concat!(
-                include_str!("../../../../../docs/plans/engine-code-review-findings-2026-06.md"),
-                include_str!("../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md")
+            crate::runtime_test_history_concat!(
+                include_str!("../../../../../docs/architecture/runtime-architecture-review-m0.md"),
+                history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md")
             ),
         ),
         (
@@ -118,13 +119,11 @@ fn runtime_15_plugin_surface_lifecycle_guard_is_folder_backed() {
         assert_contains_all(label, source, &[SLICE, STATUS, GUARD, CHILD_PATHS[4]]);
     }
 
-    let frameworks = concat!(
+    let frameworks = crate::runtime_test_history_concat!(
         include_str!(
-            "../../../../../docs/plans/zircon_runtime/frameworks/02-module-kernel-and-lifecycle-unification.md"
+            "../../../../../docs/crates/zircon_runtime/core/modules.md"
         ),
-        include_str!(
-            "../../../../../docs/plans/zircon_runtime/frameworks/02/2026-07-09-module-kernel-and-lifecycle-unification-output-records.md"
-        )
+        history("docs/plans/zircon_runtime/frameworks/02/2026-07-09-module-kernel-and-lifecycle-unification-output-records.md")
     );
     assert_contains_all(
         "frameworks plan records plugin surface lifecycle split",

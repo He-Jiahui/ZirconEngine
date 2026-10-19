@@ -476,11 +476,10 @@ fn estimated_command_draw_calls(command: &UiRenderCommand) -> usize {
 
 fn command_visible_frame(command: &UiRenderCommand) -> Option<UiFrame> {
     let frame = command.frame;
-    let clipped = command
-        .clip_frame
-        .and_then(|clip| frame.intersection(clip))
-        // BUG: [CR-R02-runtime_wave5_surface_navigation_mutation-0002] 正面积原框与已有裁剪框不相交时，intersection 返回 None 后仍回退原框，使完全裁剪的命令贡献可见框、过绘和边界 overlay 诊断。
-        .unwrap_or(frame);
+    let clipped = match command.clip_frame {
+        Some(clip) => frame.intersection(clip)?,
+        None => frame,
+    };
     (clipped.width > 0.0 && clipped.height > 0.0).then_some(clipped)
 }
 

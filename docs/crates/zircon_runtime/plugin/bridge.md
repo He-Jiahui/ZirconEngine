@@ -327,3 +327,15 @@ The status follow-up adds `BridgeInterfaceStatus`, `FrozenBridgeTable::interface
 The bridge-matrix snapshot follow-up adds `BridgeInterfaceSnapshot`, `FrozenBridgeTable::interface_snapshot(...)`, `FrozenBridgeTable::interface_snapshot_by_id(...)`, `FrozenBridgeTable::interface_snapshots()`, `FrozenBridgeTable::interface_snapshots_owned_by(...)`, `BridgeOwnerTransitionMode`, `BridgeOwnerTransitionReport`, `BridgeOwnerTransitionReport::diagnostic()`, `FrozenBridgeTable` owner transition report variants, `bridge_table_resolves_single_interface_snapshot`, `bridge_table_snapshots_interfaces_for_diagnostics_matrix`, `bridge_table_filters_interface_snapshots_by_owner`, `bridge_table_reports_owner_enabled_transition`, and `bridge_table_reports_owner_deactivation_transition`. The tests cover deterministic slot order, single-row lookup, interface ids, owner module ids, generations, provider-installed state, enabled/disabled status, debug counter projection, owner filtering, explicit transition modes, stable diagnostic text, and post-transition reports for future lifecycle diagnostics/editor consumers.
 
 The table-summary follow-up adds `BridgeTableDiagnosticsSummary`, `FrozenBridgeTable::diagnostics_summary()`, `FrozenBridgeTable::diagnostics_summary_owned_by(...)`, stable `bridge.table_summary` text, and `bridge_table_summarizes_diagnostics_for_matrix`. The test covers enabled/disabled row counts, installed versus missing providers, debug call-counter aggregation, and owner-filtered summaries. `rustfmt --edition 2021 --check zircon_runtime/src/plugin/mod.rs zircon_runtime/src/plugin/bridge.rs zircon_runtime/src/plugin/bridge/table.rs zircon_runtime/src/tests/plugin_extensions/extension_registry_bridge.rs` passed, and direct trailing-whitespace/conflict-marker scans passed for the bridge source, test, and docs files. Focused Cargo execution was not started for this follow-up because unrelated Cargo/rustc lanes were active in the shared checkout.
+
+## Typed query bridge contract
+
+The D10 animation/physics bridge call migration (2026-06-28) preserves physics.query.v1 as a runtime-owned PhysicsQueryInterface. The declaration is `pub trait PhysicsQueryInterface: PluginInterface`; SDK export_interface freezes its table, and callers use WeakBridge<dyn PhysicsQueryInterface>, not concrete DefaultPhysicsManager lookup. WeakBridge supports `T: PluginInterface + ?Sized`.
+
+The bridge regression review_d10_animation_physics_tests_use_sdk_bridge_call covers ray cast, shape overlap and shape cast through that authority. plugin/bridge/table.rs owns table dispatch. The dated d10_animation_physics_bridge_call_static_passed_cargo_deferred status does not close Cargo validation.
+
+### Clause provenance
+
+These content identities preserve the source of this transfer. They are not fresh measurements, active-file dependencies or acceptance receipts.
+
+- `11-plugin-call-bridge.md`, SHA-256 `b524f61c0de9dd92ec2f44c85f7103d3717326d12dbcb6e0e50614be36cfdb5b`, selected source lines 20-145.

@@ -103,3 +103,9 @@ pub(super) fn direct_review_status_rows_source() -> String {
     let mut source = String::new();
     source
 }
+
+pub(super) fn assert_guard_module_graph_contract() {
+    f12::assert_guard_graph_part();
+    f8::assert_guard_graph_part();
+    p0::assert_guard_graph_part();
+}

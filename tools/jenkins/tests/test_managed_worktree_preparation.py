@@ -283,6 +283,85 @@ class ManagedWorktreePreparationTests(unittest.TestCase):
         self.assertFalse((self.target / "untracked.txt").exists())
         self.assertEqual(self.target, Path(support.preparation(self.state, second_key, "w-t")["payload"]["path"]))
         self.assertFalse(result["canonicalSourceModified"])
+        self.assertTrue(lifetime.reader_retired(self.state, reference))
+
+        # The guard launched but failed before the first declared phase.
+        intent = copy.deepcopy(self.state.get("current_source_intent", reference)["payload"])
+        identity = {**intent["identity"], "requestId": "flow-guard-only", "attemptId": "attempt-guard-only"}
+        intent.update(identity=identity, worktreePreparationRef=second_key)
+        failed_reference = digest(intent)
+        self.state.put("current_source_intent", failed_reference, intent)
+        self.state.submit_request({**identity, "currentSourceRef": failed_reference})
+        sealed = self.state.get("current_source_preparation", reference)["payload"]["result"]["sealedInputRef"]
+        self.state.put("current_source_preparation", failed_reference,
+                       {"status": "prepared", "result": {"sealedInputRef": sealed}})
+        eid, guard_id = "execution-guard-only", "guard-before-first-phase"
+        flow_key = ":".join(identity[name] for name in ("sessionId", "requestId", "attemptId"))
+        consumer_key = eid + ":" + flow_key
+        reservation_key, preparation_key = eid + ":" + eid, digest({"fixturePool": eid})
+        execution = copy.deepcopy(self.state.get("execution", "execution-one")["payload"])
+        guard = copy.deepcopy(self.state.get("native_job", "guard")["payload"])
+        proof = copy.deepcopy(guard["completeProof"])
+        proof["identity"].update(pid=guard["pid"] + 2, creationTime=str(int(guard["birthToken"]) + 2))
+        proof["processExitCode"] = 1
+        guard.update(nativeJobId=guard_id, owner=eid, executionId=eid, guardNativeJobId=guard_id,
+                     pid=proof["identity"]["pid"], birthToken=proof["identity"]["creationTime"],
+                     completeProof=proof, terminalProof=proof)
+        self.state.put("native_job", guard_id, guard)
+        execution.update(status="failed", phaseRecords=[], consumers=[flow_key], refs=1,
+            executionKeyDigest=digest({"execution": eid, "sourceDigest": sealed}),
+            reservationKey=reservation_key, preparationKey=preparation_key,
+            abortProof={"kind": "execution-host-aborted", "guardNativeJobId": guard_id,
+                        "proofDigest": digest(proof), "outcome": "failed", "artifactPublicationAllowed": False})
+        self.state.put("execution", eid, execution)
+        self.state.put("execution_launch", eid, {"status": "exited", "sourceDigest": sealed,
+            "recipeRef": execution["recipeRef"], "guardNativeJobId": guard_id,
+            "exitCode": 1, "launcherIdentity": proof["identity"]})
+        self.state.put("execution_host", eid, {"status": "failed", "phaseRecords": [],
+            "hostPid": proof["identity"]["pid"], "hostBirthToken": proof["identity"]["creationTime"]})
+        self.state.put("workflow", flow_key, {"identity": identity, "sourceDigest": sealed,
+            "status": "failed", "executionId": eid, "recipeRef": execution["recipeRef"]})
+        self.state.put("execution_consumer", consumer_key,
+                       {"executionId": eid, "consumerId": flow_key, "status": "active"})
+        self.state.put("execution_binding",
+                       digest({"consumer": flow_key, "executionKey": execution["executionKeyDigest"]}),
+                       {"executionId": eid, "consumerId": flow_key})
+        self.state.put("resource_reservation", reservation_key, {"owner": eid, "status": "released"})
+        self.state.put("pool_writer_hold", preparation_key,
+                       {"owner": eid, "reservationKey": reservation_key, "status": "released"})
+        self.state.transition_request(self.repo_id, identity["sessionId"], identity["requestId"],
+                                      identity["generation"], "pending", "failed", {})
+        self.assertEqual([failed_reference], lifetime.active_readers(self.state, "w-t", self.target))
+        self.use({**self.payload("retire-worktree-reader", "retire-guard-only", "w"),
+                  "currentSourceRef": failed_reference})
+        broken = copy.deepcopy(guard)
+        broken["completeProof"]["stdoutEof"] = False
+        broken["terminalProof"] = copy.deepcopy(broken["completeProof"])
+        native = self.state.get("native_job", guard_id)
+        self.state.put("native_job", guard_id, broken, expected_version=native["version"])
+        with self.assertRaises(JenkinsError):
+            lifetime.retire_reader(self.management)
+        self.assertIsNone(self.state.get("managed_worktree_reader_retirement", failed_reference))
+        self.assertEqual("active", self.state.get("execution_consumer", consumer_key)["payload"]["status"])
+        self.assertEqual(execution, self.state.get("execution", eid)["payload"])
+        current = self.state.get("native_job", guard_id)
+        self.state.put("native_job", guard_id, guard, expected_version=current["version"])
+        self.assertTrue(lifetime.retire_reader(self.management)["readerRetired"])
+        retired = self.state.get("managed_worktree_reader_retirement", failed_reference)["payload"]
+        self.assertEqual("failed-before-first-phase-guard-terminal-v1", retired["retirementKind"])
+        self.assertEqual("released", self.state.get("execution_consumer", consumer_key)["payload"]["status"])
+        self.assertEqual({**execution, "consumers": [], "refs": 0}, self.state.get("execution", eid)["payload"])
+        for domain, resource_key in (("resource_reservation", reservation_key), ("pool_writer_hold", preparation_key)):
+            self.assertEqual("released", self.state.get(domain, resource_key)["payload"]["status"])
+        pins = {(pin["domain"], pin["key"]): pin for pin in retired["terminalPins"]}
+        self.assertEqual(self.state.get("execution", eid)["version"], pins[("execution", eid)]["version"])
+        self.assertEqual(self.state.get("execution_consumer", consumer_key)["version"],
+                         pins[("execution_consumer", consumer_key)]["version"])
+        self.assertTrue(lifetime.reader_retired(self.state, failed_reference))
+        self.prepare("prepare-three", second_key)
+        self.assertTrue(lifetime.reader_retired(self.state, reference))
+        self.assertTrue(lifetime.reader_retired(self.state, failed_reference))
+        self.assertEqual([], lifetime.active_readers(self.state, "w-t", self.target))
 
     def test_target_conflict_and_incomplete_native_proof_keep_target_or_reader_blocked(self):
         inspection, reference = self.inventory("inspect-conflict", self.creator)

@@ -1927,3 +1927,20 @@ Current owner-budget line-budgets refresh 2026-07-06: Runtime 07 now counts owne
 Fresh 2026-07-22 performance audit evidence: `ArchetypeIndex::move_entity(...)` now receives the previous archetype id and table row from `EntityRegistry`. Same-signature component replacement returns that row directly; real signature migration swap-removes the known old row and appends the target row, so neither path linearly scans the archetype entity vector. `ecs_archetype_index_structure.rs` and `ecs_identity_storage.rs` pin the row-authority flow. The broader storage architecture remains open under PERF-MVP-481: current `TableComponentStorage` is still per-component `HashMap<InternalEntity, usize>` plus `Vec<Box<dyn Any>>`, not archetype-owned row-aligned columns, so component membership rebuild, despawn and query retain storage-wide scans/hash/downcast costs. Static source guards, production rustfmt and scoped diff hygiene passed; current-source Cargo and scale counters are pending.
 
 Current owner-budget split-layout route refresh 2026-07-06: Runtime 07 now counts owner-budget split-layout route assertion owners in its audit input through `performance_hotspots/owner_budget/split_layout/route/{parent_route,split_route,support_routes}.rs`. `performance_hotpath_boundary` currently reports `expected_source_file_count = 46`, `expected_test_file_count = 91`, `frame_span_anchor_count = 9`, `query_counter_anchor_count = 32`, `change_counter_anchor_count = 13`, `extract_counter_anchor_count = 21`, `asset_worker_anchor_count = 13`, `animation_scene_anchor_count = 19`, `profile_counter_hotspot_anchor_count = 8`, `hotspot_guard_anchor_count = 32`, `test_anchor_count = 29`, `doc_anchor_count = 35`, `cargo_gate_anchor_count = 5`, `stale_hotspot_placeholder_present = false`, `large_file_m1_gate_status = classified-and-clear`, `large_file_hotspot_count = 0`, `large_file_migration_debt_count = 0`, `large_file_owner_class_count = 0`, `large_file_unclassified_hotspot_count = 0`, `missing_large_file_owner_classes = []`, `missing_doc_anchors = []`, `missing_cargo_gate_anchors = []`, `mirror_docs_guard_present = true`, `risks = []`, and keeps `runtime_07_performance_hotpath_mirror_docs_match_structure_audit_counts` visible. Runtime 15 records this ECS-side mirror refresh as `Runtime 15 M3 Runtime 07 owner-budget split-layout route guard folder-backed split` / `runtime_15_runtime_07_owner_budget_split_layout_route_guard_folder_backed_static_passed_cargo_deferred`, with the focused split guard `runtime_15_runtime_07_owner_budget_split_layout_route_guard_folder_backed_split` and the route owner `owner_budget/split_layout/route.rs`. This keeps ECS-side docs synchronized with the Runtime 07 split-layout route guard without claiming the pending `extract` / `ecs_query` / profiling / FPS Cargo lane.
+
+## Storage identity validation
+
+Archetype equality compares canonical lookup indexes and ordered records (ID, signature and entity rows), not constant receipt equality. Diagnostics and membership-revision history are excluded from structural identity. Sparse locator storage remains bounded and page-backed; source implementation and product/profile validation are separate gates. Retain both source-status identifiers below without claiming fresh performance results.
+
+### Retained source status identities
+
+| Contract | Responsibility / evidence boundary |
+|---|---|
+| `runtime_08_15_archetype_topology_equality_receipt_static_passed_cargo_deferred` | Compare canonical indexes and ordered structural rows, excluding diagnostics/history. |
+| `runtime_08_60_sparse_component_locator_source_complete_cargo_product_profile_pending` | Sparse locators retain bounded page ownership and pending product/profile gates. |
+
+### Clause provenance
+
+These content identities preserve the source of this transfer. They are not fresh measurements, active-file dependencies or acceptance receipts.
+
+- `60-runtime-scene-ecs-entity-component-storage-archetype-query-access-change-detection-command-schedule-parallel-event.md`, SHA-256 `8aa0667145bf9631b5e9afbdd27d04c8783fc7e32ec3d7ef6321e808abf91fb9`, selected source lines 565-586.

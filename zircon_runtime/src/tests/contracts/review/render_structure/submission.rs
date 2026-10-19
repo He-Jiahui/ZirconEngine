@@ -56,7 +56,7 @@ fn runtime09a_frame_submission_metrics_keep_backend_mapping_and_receipt_owners_s
             "mismatched_boundary_reason",
             "pub fn logical_packet_count(&self) -> u64",
             "pub(crate) fn with_submission_metrics(",
-            "#[path = \"frame_submission_receipt/tests.rs\"]",
+            "#[path = \"frame_submission_receipt/tests/cases.rs\"]",
         ],
     );
     assert_contains_all(
@@ -74,7 +74,7 @@ fn runtime09a_frame_submission_metrics_keep_backend_mapping_and_receipt_owners_s
             "record_pre_scene_resource_submission_with_boundary",
             "mismatched_boundary_reason",
             "BoundaryReasonProducerMismatch",
-            "#[path = \"frame_submission_transaction/tests.rs\"]",
+            "#[path = \"tests/cases.rs\"]",
         ],
     );
     assert!(

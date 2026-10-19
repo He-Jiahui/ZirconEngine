@@ -59,7 +59,7 @@ impl ViewportProductRegistry {
         scene_receipt
             .validate_viewport_product_publication(copy.generation(), product_submission)
             .map_err(|source| GraphicsError::FrameProductPublicationFailed {
-                receipt: scene_receipt.clone(),
+                receipt: Box::new(scene_receipt.clone()),
                 product_submission: Some(product_submission),
                 source: Box::new(source.into()),
             })?;

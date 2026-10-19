@@ -7,9 +7,9 @@
 use std::cell::RefCell;
 use std::io::Write;
 use std::path::PathBuf;
-use std::sync::{Arc, Condvar, Mutex};
+use std::sync::{mpsc, Arc, Condvar, Mutex};
 use std::thread::{self, ThreadId};
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
 use crate::dynamic_api::session::{RuntimeDynamicSessionError, RuntimeProjectError};
 use zircon_runtime_interface::ZrRuntimeSessionHandle;
@@ -19,6 +19,75 @@ use super::{CleanupReceipt, OwnerShutdownReceipt, RECEIPT_PENDING, RECEIPT_SUCCE
 
 // 见证只保存身份、原错误与关闭观察，不能扩展为源码或不受限日志副本。
 const MAX_WITNESS_BYTES: usize = 32 * 1024;
+
+// 按仍存活的真实 receipt 地址隔离普通 owner 用例，不改公开启动回归的调度。
+static WAIT_GUARD_BARRIERS: Mutex<Vec<Arc<WaitGuardBarrier>>> = Mutex::new(Vec::new());
+
+struct WaitGuardBarrier {
+    receipt: usize,
+    released: mpsc::SyncSender<(usize, Instant)>,
+    publisher_locked: mpsc::SyncSender<()>,
+    release_waiter: Mutex<mpsc::Receiver<()>>,
+    release_publisher: Mutex<mpsc::Receiver<()>>,
+}
+
+/// 登记期间调用方必须保留同一 Arc receipt，且在注销前放行并 join 原 owner。
+pub(super) struct WaitGuardRegistration(Arc<WaitGuardBarrier>);
+
+impl Drop for WaitGuardRegistration {
+    fn drop(&mut self) {
+        WAIT_GUARD_BARRIERS
+            .lock()
+            .expect("wait guard barriers")
+            .retain(|entry| !Arc::ptr_eq(entry, &self.0));
+    }
+}
+
+/// 只登记次序屏障，不替换 Mutex、原子回执值或原 Shutdown 命令。
+pub(super) fn observe_wait_guard_for_test(
+    receipt: &CleanupReceipt,
+    released: mpsc::SyncSender<(usize, Instant)>,
+    publisher_locked: mpsc::SyncSender<()>,
+    release_waiter: mpsc::Receiver<()>,
+    release_publisher: mpsc::Receiver<()>,
+) -> WaitGuardRegistration {
+    let barrier = Arc::new(WaitGuardBarrier {
+        receipt: receipt as *const CleanupReceipt as usize,
+        released,
+        publisher_locked,
+        release_waiter: Mutex::new(release_waiter),
+        release_publisher: Mutex::new(release_publisher),
+    });
+    let mut barriers = WAIT_GUARD_BARRIERS.lock().expect("wait guard barriers");
+    assert!(!barriers.iter().any(|entry| entry.receipt == barrier.receipt));
+    barriers.push(Arc::clone(&barrier));
+    WaitGuardRegistration(barrier)
+}
+
+fn wait_guard_barrier(receipt: &CleanupReceipt) -> Option<Arc<WaitGuardBarrier>> {
+    WAIT_GUARD_BARRIERS
+        .lock()
+        .expect("wait guard barriers")
+        .iter()
+        .find(|entry| entry.receipt == receipt as *const CleanupReceipt as usize)
+        .cloned()
+}
+
+/// 此 hook 只在真实初始 guard 已 drop 后调用；放行后仍走原 Acquire 观察循环。
+pub(super) fn wait_guard_released(receipt: &CleanupReceipt, deadline: Instant) {
+    if let Some(barrier) = wait_guard_barrier(receipt) {
+        barrier
+            .released
+            .send((receipt as *const CleanupReceipt as usize, deadline))
+            .expect("observe actual guard release");
+        barrier
+            .release_waiter
+            .lock()
+            .expect("waiter barrier")
+            .recv_timeout(Duration::from_secs(5))
+            .expect("bounded test scheduling before atomic wait");
+    }
+}
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 /// 原公开调用的完整 typed primary 摘要；工厂与清理再次观察时必须保持相同。
@@ -255,6 +324,22 @@ pub(super) fn callback_completed(deadline: Instant, completed: bool) {
 /// publish 持有真实回执 wait Mutex、尚未 store 时暂停，安排等待方的实际锁竞争。
 /// 不替换 value 或写 receipt.state；原发布者放行后继续原 publish 实现。
 pub(super) fn publisher_locked(receipt: &CleanupReceipt, value: u8) {
+    if let Some(barrier) = wait_guard_barrier(receipt) {
+        assert_eq!(
+            receipt.state.load(std::sync::atomic::Ordering::Acquire),
+            RECEIPT_PENDING
+        );
+        barrier
+            .publisher_locked
+            .send(())
+            .expect("actual publisher lock");
+        barrier
+            .release_publisher
+            .lock()
+            .expect("publisher barrier")
+            .recv_timeout(Duration::from_secs(5))
+            .expect("bounded original publisher release");
+    }
     if let Some(schedule) = receipt.publication.as_ref() {
         {
             let mut state = schedule.state.lock().expect("publication schedule");
@@ -311,7 +396,7 @@ pub(super) fn actual_would_block(receipt: &CleanupReceipt, deadline: Instant) {
     }
 }
 
-/// 原 Release store 和 notify 之后读取实际发布值，与 callback_completed 分开观察。
+/// 原 Release store 之后读取实际发布值，与 callback_completed 分开观察。
 pub(super) fn published(receipt: &CleanupReceipt) {
     if let Some(schedule) = receipt.publication.as_ref() {
         let mut state = schedule.state.lock().expect("publication schedule");

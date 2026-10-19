@@ -1,16 +1,14 @@
 import assert from 'node:assert/strict';
-import { readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
-import { chromium } from 'playwright';
+import { pathToFileURL } from 'node:url';
+import type { Browser } from 'playwright';
+import { createLayoutCurrentContext, layoutCurrentOutputPath, type LayoutCurrentContext } from './zui-layout-paths';
+import { readCurrentLayoutOutputCatalog } from './zui-layout-gallery';
+import { withLayoutCatalogLock } from './zui-layout-catalog-lock';
+import type { CatalogManifest } from './zui-layout-catalog';
 
-const root = resolve(
-  dirname(fileURLToPath(import.meta.url)),
-  '../../../../../docs/_data/layout',
-);
-const catalog = JSON.parse(
-  await readFile(resolve(root, 'catalog.json'), 'utf8'),
-) as { sourceCount: number };
+async function checkGallery(context: LayoutCurrentContext, catalog: CatalogManifest, launchBrowser?: () => Promise<Browser>): Promise<void> {
 const results: {
   width: number;
   height: number;
@@ -18,7 +16,7 @@ const results: {
   filteredName: string;
   horizontalOverflow: boolean;
 }[] = [];
-const browser = await chromium.launch({
+const browser = launchBrowser ? await launchBrowser() : await (await import('playwright')).chromium.launch({
   headless: true,
   executablePath: 'C:/Program Files/Google/Chrome/Application/chrome.exe',
 });
@@ -31,7 +29,7 @@ try {
     { width: 390, height: 844 },
   ]) {
     await page.setViewportSize(viewport);
-    await page.goto(pathToFileURL(resolve(root, 'gallery.html')).href);
+    await page.goto(pathToFileURL(layoutCurrentOutputPath(context, 'gallery.html')).href);
     assert.equal(await page.locator('article').count(), catalog.sourceCount);
     const firstArticle = page.locator('article').first();
     const name = await firstArticle.locator('h2').innerText();
@@ -48,7 +46,7 @@ try {
     );
     assert.ok(fits, `Gallery overflows at ${viewport.width}px`);
     await page.screenshot({
-      path: resolve(root, 'evidence', `gallery-${viewport.width}.png`),
+      path: layoutCurrentOutputPath(context, `evidence/gallery-${viewport.width}.png`),
       fullPage: true,
     });
     results.push({
@@ -62,10 +60,33 @@ try {
   }
   assert.deepEqual(errors, []);
   await writeFile(
-    resolve(root, 'evidence/gallery-qa.json'),
+    layoutCurrentOutputPath(context, 'evidence/gallery-qa.json'),
     `${JSON.stringify({ generatedAt: new Date().toISOString(), results, errors }, null, 2)}\n`,
   );
   console.log(JSON.stringify({ gallery: 'passed', viewports: [1440, 390] }));
 } finally {
   await browser.close();
 }
+}
+
+export async function runCurrentLayoutGalleryCheck(options: { launchBrowser?: () => Promise<Browser> } = {}): Promise<void> {
+  const context = createLayoutCurrentContext();
+  const validate = async () => {
+    const { manifest, catalogSha256 } = await readCurrentLayoutOutputCatalog(context);
+    const html = await readFile(layoutCurrentOutputPath(context, 'gallery.html'), 'utf8');
+    const bindings = [...html.matchAll(/<meta name="zircon-layout-catalog-sha256" content="([a-f0-9]{64})">/g)];
+    if (bindings.length !== 1 || bindings[0]?.[1] !== catalogSha256)
+      throw new Error('Gallery HTML does not match the current catalog SHA');
+    if (!manifest.sourceCount) throw new Error('Cannot check an empty current gallery');
+    return manifest;
+  };
+  await validate();
+  await withLayoutCatalogLock(context.outputRoot, { command: 'zui-layout-gallery-check', context }, async () => {
+    const catalog = await validate();
+    await mkdir(dirname(layoutCurrentOutputPath(context, 'evidence/gallery-qa.json')), { recursive: true });
+    await checkGallery(context, catalog, options.launchBrowser);
+  });
+}
+
+if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href)
+  void runCurrentLayoutGalleryCheck().catch((error: unknown) => { console.error(error); process.exitCode = 1; });

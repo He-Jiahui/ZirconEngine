@@ -1,4 +1,6 @@
 //! 代码审查回归护栏核对已迁移接口、错误边界、插件入口及镜像状态。以结果断言检查当前接口或源码快照对应的边界。
+use crate::tests::runtime_absorption::structure_convention::fixed_history_archive_source as history;
+use crate::tests::runtime_absorption::structure_convention::rust_source_view::production_section;
 #[test]
 fn review_f5_native_live_host_bridge_methods_use_typed_error() {
     let bridge_methods = include_str!("../../../../plugin/loader/live/bridge_methods.rs");
@@ -7,16 +9,13 @@ fn review_f5_native_live_host_bridge_methods_use_typed_error() {
         include_str!("../../../../plugin/loader/live/tests/bridge_bindings.rs");
     let _native_boundary =
         include_str!("../../../../../../docs/architecture/native-plugin-boundary.md");
-    let _review_findings = include_str!(
-        "../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"
+    let _review_findings = history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md");
+    let _runtime_15_plan = history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md");
+    let _runtime_index = history(
+        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md",
     );
-    let _runtime_15_plan = include_str!(
-        "../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md"
-    );
-    let _runtime_index =
-        include_str!("../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md");
     let _convention =
-        include_str!("../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md");
+        history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md");
     let _module_convention =
         include_str!("../../../../../../docs/crates/zircon_runtime/structure/module-convention.md");
 
@@ -40,7 +39,6 @@ fn review_f5_native_live_host_bridge_methods_use_typed_error() {
         ") -> NativePluginBridgeMethodResult<NativePluginLiveHostBridgeReloadReport>",
         ") -> NativePluginBridgeMethodResult<u32>",
         "NativePluginBridgeMethodError::MissingPackageManifest",
-        "NativePluginBridgeMethodError::MissingDeclaredBridgeMethod",
         ".map_err(|error| error.to_string())",
     ] {
         assert!(
@@ -49,10 +47,43 @@ fn review_f5_native_live_host_bridge_methods_use_typed_error() {
         );
     }
 
-    let production = bridge_methods
-        .split("#[cfg(test)]")
-        .next()
-        .expect("native live-host bridge methods production source");
+    let registration_replay = include_str!("../../../../plugin/loader/live/registration_replay.rs");
+    for required in [
+        "self.runtime_bridge_generation_result(plugin_id, lifecycle)?\n            .method_slot_result(plugin_id, interface_id, method_name)",
+    ] {
+        assert!(bridge_methods.contains(required), "current plugin/loader/live/bridge_methods.rs must retain {required}");
+    }
+    for required in [
+        "pub(super) fn method_slot_result(",
+        ") -> NativePluginBridgeMethodResult<u32>",
+        "NativePluginBridgeMethodError::MissingDeclaredBridgeMethod",
+        "self.method_slots\n            .get(interface_id)",
+    ] {
+        assert!(
+            registration_replay.contains(required),
+            "current plugin/loader/live/registration_replay.rs must retain {required}"
+        );
+    }
+    let production = production_section(bridge_methods);
+    // This public String-returning reporting wrapper is the explicit display boundary;
+    // every typed bridge operation, including the delegated slot lookup, remains scanned.
+    let display_boundary = production
+        .split("    pub fn clear_runtime_bridge_method_bindings(")
+        .nth(1)
+        .and_then(|source| {
+            source
+                .split("    pub fn runtime_bridge_call_scope_from_installed_bindings(")
+                .next()
+        })
+        .expect("explicit public clear-bindings display boundary");
+    assert!(display_boundary.contains(") -> Result<bool, String>"));
+    assert!(display_boundary
+        .contains("lock_loaded_native_plugins(&self.loaded).map_err(|error| error.to_string())?"));
+    let typed_production = production.replacen(display_boundary, "", 1);
+    assert!(
+        !production_section(registration_replay).contains(".map_err(|error| error.to_string())?")
+    );
+
     for forbidden in [
         "use super::diagnostics::unloaded_plugin_error;",
         "format!(\"runtime plugin {plugin_id} exposes no native bridge method table\")",
@@ -63,7 +94,7 @@ fn review_f5_native_live_host_bridge_methods_use_typed_error() {
         ".map_err(|error| error.to_string())?",
     ] {
         assert!(
-            !production.contains(forbidden),
+            !typed_production.contains(forbidden),
             "native live-host bridge methods owner should not keep lossy String error branch `{forbidden}`"
         );
     }

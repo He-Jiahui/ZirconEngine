@@ -24,7 +24,7 @@ pub(super) fn validate_toml_complexity(
         match value {
             toml::Value::Array(items) => {
                 ensure_depth(depth)?;
-                array_items = array_items.checked_add(items.len()).unwrap_or(usize::MAX);
+                array_items = array_items.saturating_add(items.len());
                 if array_items > MAX_PROJECT_MANIFEST_ARRAY_ITEMS {
                     return Err(ProjectManifestSummaryError::TooManyTomlArrayItems {
                         max: MAX_PROJECT_MANIFEST_ARRAY_ITEMS,
@@ -36,7 +36,7 @@ pub(super) fn validate_toml_complexity(
             }
             toml::Value::Table(table) => {
                 ensure_depth(depth)?;
-                table_entries = table_entries.checked_add(table.len()).unwrap_or(usize::MAX);
+                table_entries = table_entries.saturating_add(table.len());
                 if table_entries > MAX_PROJECT_MANIFEST_TABLE_ENTRIES {
                     return Err(ProjectManifestSummaryError::TooManyTomlTableEntries {
                         max: MAX_PROJECT_MANIFEST_TABLE_ENTRIES,

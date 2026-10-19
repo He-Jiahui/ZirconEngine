@@ -50,22 +50,50 @@ class RuntimePluginAvailabilityOwnerStructureTests(unittest.TestCase):
             ),
         )
         append = evaluation.split("fn append_plugin_availability", 1)[1]
-        self._assert_anchors_are_ordered(
-            append,
-            (
-                "BuiltinUnavailable",
-                "BuiltinAvailable",
-                "MissingCatalog",
-                "BlockedByTarget",
-                "ExternalizedMissing",
-                "RuntimePluginAvailabilityReason::Stub",
-                "BlockedByMaturity",
-                "RuntimePluginAvailabilityReason::Linked",
-                "RuntimePluginAvailabilityReason::NativeDynamic",
-                "RuntimePluginAvailabilityReason::MissingProvider",
-                "RuntimePluginAvailabilityReason::Available",
-            ),
+        before_externalized, remaining = append.split(
+            "if descriptor.maturity == PluginMaturity::Externalized {", 1
         )
+        externalized, ordinary = remaining.split(
+            "if descriptor.maturity == PluginMaturity::Stub {", 1
+        )
+        self._assert_anchors_are_ordered(
+            before_externalized,
+            ("BuiltinUnavailable", "BuiltinAvailable", "MissingCatalog", "BlockedByTarget"),
+        )
+        # Externalized providers satisfy that branch; they do not bypass ordinary maturity gates.
+        externalized_anchors = (
+            "RuntimePluginAvailabilityReason::Linked",
+            "RuntimePluginAvailabilityReason::NativeDynamic",
+            "ExternalizedMissing",
+        )
+        ordinary_anchors = (
+            "RuntimePluginAvailabilityReason::Stub",
+            "if descriptor.maturity == PluginMaturity::Deprecated {",
+            "BlockedByMaturity",
+            "RuntimePluginAvailabilityReason::Deprecated",
+            "if !descriptor.maturity.meets_minimum(profile.minimum_maturity) {",
+            "RuntimePluginAvailabilityReason::BelowMinimum",
+            "RuntimePluginAvailabilityReason::Linked",
+            "RuntimePluginAvailabilityReason::NativeDynamic",
+            "RuntimePluginAvailabilityReason::MissingProvider",
+            "RuntimePluginAvailabilityReason::Available",
+        )
+        self._assert_anchors_are_ordered(externalized, externalized_anchors)
+        self._assert_anchors_are_ordered(ordinary, ordinary_anchors)
+        # Mutation controls reject wrong ordering inside each real production branch.
+        for branch, anchors, first, second in (
+            (externalized, externalized_anchors, externalized_anchors[0], externalized_anchors[1]),
+            (ordinary, ordinary_anchors, ordinary_anchors[3], ordinary_anchors[6]),
+            (ordinary, ordinary_anchors, ordinary_anchors[5], ordinary_anchors[6]),
+        ):
+            placeholder = "__AVAILABILITY_ORDER_MUTATION__"
+            self.assertNotIn(placeholder, branch)
+            self.assertEqual(branch.count(first), 1)
+            self.assertEqual(branch.count(second), 1)
+            swapped = branch.replace(first, placeholder).replace(second, first)
+            swapped = swapped.replace(placeholder, second)
+            with self.assertRaises(AssertionError):
+                self._assert_anchors_are_ordered(swapped, anchors)
 
         self._assert_anchors_are_ordered(
             selection,
@@ -88,13 +116,13 @@ class RuntimePluginAvailabilityOwnerStructureTests(unittest.TestCase):
         repo_root = Path(__file__).resolve().parents[2]
         mirrors = (
             repo_root
-            / "docs/plans/zircon_runtime/runtime/06-plugin-surface-and-lifecycle.md",
+            / 'docs/testing-and-validation/runtime-plugin-validation-worklist.md',
             repo_root
-            / "docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md",
-            repo_root / "docs/plans/engine-code-structure-convention.md",
-            repo_root / "docs/plans/engine-code-review-findings-2026-06.md",
+            / 'docs/crates/zircon_runtime/structure/module-convention.md',
+            repo_root / 'docs/testing-and-validation/development-conventions.md',
+            repo_root / 'docs/architecture/runtime-architecture-review-m0.md',
             repo_root
-            / "docs/plans/optimize/zircon_runtime/42-builtin-runtime-module-catalog-profile-target-feature-selection-extension-registration-capability-load-report-product-integration-review.md",
+            / 'docs/crates/zircon_runtime/builtin/runtime_modules.md',
         )
         for mirror_path in mirrors:
             mirror = mirror_path.read_text(encoding="utf-8")

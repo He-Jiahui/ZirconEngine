@@ -1,13 +1,15 @@
 //! 代码审查回归护栏核对已迁移接口、错误边界、插件入口及镜像状态。以结果断言检查当前接口或源码快照对应的边界。
+use crate::tests::runtime_absorption::structure_convention::fixed_history_archive_source as history;
 #[test]
 fn review_f11_shading_model_registry_has_no_dead_plugin_registration_surface() {
     let registry = include_str!("../../../graphics/material/shading_models/registry.rs");
     let core_contract = include_str!("../../../core/framework/render/material/shading_model.rs");
-    let review_findings = concat!(
-        include_str!("../../../../../docs/plans/engine-code-review-findings-2026-06.md"),
-        include_str!("../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md")
+    let review_findings = crate::runtime_test_history_concat!(
+        include_str!("../../../../../docs/architecture/runtime-architecture-review-m0.md"),
+        history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md")
     );
-    let render_index = include_str!("../../../../../docs/plans/zircon_runtime/render/index.md");
+    let render_index =
+        include_str!("../../../../../docs/crates/zircon_runtime/graphics/pipeline-registration.md");
     let material_doc =
         include_str!("../../../../../docs/crates/zircon_runtime/core/framework/render/material.md");
 
@@ -30,7 +32,12 @@ fn review_f11_shading_model_registry_has_no_dead_plugin_registration_surface() {
 
     for live_registry_anchor in [
         "fn resolve_token(&self, token: &str)",
-        "self.resolve_token(&model.as_token())",
+        "RenderMaterialLightingModel::Pbr => self.resolve_token(\"pbr\")",
+        "RenderMaterialLightingModel::BlinnPhong => self.resolve_token(\"blinn_phong\")",
+        "RenderMaterialLightingModel::Unlit => self.resolve_token(\"unlit\")",
+        "let mut token = String::with_capacity(\"custom:\".len() + name.len());",
+        "token.push_str(name);",
+        "self.resolve_token(&token)",
         "pub(crate) fn register_builtin(",
         "RequiredChannelsUnsupported",
     ] {

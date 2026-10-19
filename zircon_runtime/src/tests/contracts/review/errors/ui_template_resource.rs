@@ -3,15 +3,6 @@
 fn review_f5_ui_template_resource_resolver_uses_typed_lookup_errors_before_diagnostics_boundary() {
     let resolver = include_str!("../../../../ui/template/asset/resource_ref/resolver.rs");
     let resolver_tests = include_str!("../../../../ui/tests/asset_resource_resolver.rs");
-    let _review_findings =
-        include_str!("../../../../../../docs/plans/engine-code-review-findings-2026-06.md");
-    let _runtime_15_plan = include_str!(
-        "../../../../../../docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md"
-    );
-    let _runtime_index =
-        include_str!("../../../../../../docs/plans/zircon_runtime/runtime/index.md");
-    let _convention =
-        include_str!("../../../../../../docs/plans/engine-code-structure-convention.md");
     let _module_doc =
         include_str!("../../../../../../docs/crates/zircon_runtime/structure/module-convention.md");
     let _resolver_doc = include_str!(

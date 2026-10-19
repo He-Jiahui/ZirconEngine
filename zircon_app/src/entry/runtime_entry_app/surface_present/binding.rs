@@ -3,9 +3,7 @@
 
 use winit::window::Window;
 use zircon_runtime::diagnostic_log::write_log;
-use zircon_runtime_interface::{
-    ZrRuntimeBindViewportSurfaceRequestV1, ZIRCON_RUNTIME_ABI_VERSION_V1,
-};
+use zircon_runtime_interface::{ZrRuntimeBindViewportSurfaceRequestV2, ZrRuntimePresentModeV2};
 
 use super::super::{
     window_surface::{runtime_native_surface_target, NativeSurfaceTargetUnavailable},
@@ -43,14 +41,33 @@ impl RuntimeEntryApp {
         }
         let target =
             runtime_native_surface_target(window).map_err(native_surface_unavailable_error)?;
+        self.bind_native_surface_target(target)
+    }
+
+    /// Publish the already qualified target; the caller keeps its native owner alive.
+    pub(in crate::entry::runtime_entry_app) fn bind_native_surface_target(
+        &mut self,
+        target: zircon_runtime_interface::ZrRuntimeNativeSurfaceTargetV1,
+    ) -> Result<bool, RuntimeLibraryError> {
         self.surface_present_attempted = true;
-        self.session
-            .bind_viewport_surface(ZrRuntimeBindViewportSurfaceRequestV1::new(
-                ZIRCON_RUNTIME_ABI_VERSION_V1,
-                self.viewport,
-                self.viewport_size,
-                target,
-            ))
+        self.session.bind_viewport_surface_v2(
+            ZrRuntimeBindViewportSurfaceRequestV2::new(self.viewport, self.viewport_size, target)
+                .with_present_mode(runtime_present_mode(self.window_descriptor.present_mode)),
+        )
+    }
+}
+
+pub(super) const fn runtime_present_mode(
+    mode: zircon_runtime::core::framework::window::WindowPresentMode,
+) -> ZrRuntimePresentModeV2 {
+    use zircon_runtime::core::framework::window::WindowPresentMode;
+    match mode {
+        WindowPresentMode::Fifo => ZrRuntimePresentModeV2::Fifo,
+        WindowPresentMode::Immediate => ZrRuntimePresentModeV2::Immediate,
+        WindowPresentMode::Mailbox => ZrRuntimePresentModeV2::Mailbox,
+        WindowPresentMode::FifoRelaxed => ZrRuntimePresentModeV2::FifoRelaxed,
+        WindowPresentMode::AutoVsync => ZrRuntimePresentModeV2::AutoVsync,
+        WindowPresentMode::AutoNoVsync => ZrRuntimePresentModeV2::AutoNoVsync,
     }
 }
 

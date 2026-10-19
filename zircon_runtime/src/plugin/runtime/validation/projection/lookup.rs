@@ -1,9 +1,12 @@
 use super::duplicate_occurrence::{DuplicateOccurrence, EmbeddedFeatureKind};
-use super::{RuntimePluginPackageValidationMetrics, RuntimePluginPackageValidationProjection};
+#[cfg(test)]
+use super::RuntimePluginPackageValidationMetrics;
+use super::RuntimePluginPackageValidationProjection;
 
 // 重复查询的行号必须来自建立此投影的原清单，且保持数组顺序；查询本身不会校验行号对应的声明。
 impl RuntimePluginPackageValidationProjection<'_> {
     /// 当前投影的操作计数；测试入口另外填入实际构建次数和内嵌特性视图次数。
+    #[cfg(test)]
     pub(in crate::plugin::runtime_plugin) fn metrics(
         &self,
     ) -> RuntimePluginPackageValidationMetrics {
@@ -249,6 +252,7 @@ impl RuntimePluginPackageValidationProjection<'_> {
     }
 
     /// 按清单顺序保留运行时模块行，供核对需要稳定顺序的声明；成员判断另用集合视图。
+    #[cfg(test)]
     pub(in crate::plugin::runtime_plugin) fn runtime_module_names(
         &self,
     ) -> impl Iterator<Item = &str> + '_ {
@@ -303,6 +307,7 @@ impl RuntimePluginPackageValidationProjection<'_> {
     }
 
     fn probe(&self) {
+        #[cfg(test)]
         self.membership_probes
             .set(self.membership_probes.get().saturating_add(1));
     }

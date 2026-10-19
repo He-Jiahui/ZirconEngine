@@ -181,6 +181,16 @@ pub struct UiCompiledNodeBindings {
     pub binding_ids: Vec<UiBindingId>,
 }
 
+/// Owned dense symbol tables; each vector keeps its original domain and source order.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct UiCompiledBindingSymbols {
+    pub binding_names: Vec<String>,
+    pub properties: Vec<String>,
+    pub routes: Vec<String>,
+    pub actions: Vec<String>,
+    pub controls: Vec<String>,
+}
+
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 /// 可序列化的绑定运行程序和其字符串查找表；代际及稠密索引共同构成跨编辑器/运行时的数据契约。
 pub struct UiCompiledBindingProgram {
@@ -202,14 +212,17 @@ impl UiCompiledBindingProgram {
     /// 组合代际、名称表、节点索引和绑定行；调用方在发布或恢复序列化数据前应检查 `is_well_formed`。
     pub fn new(
         generation: UiCompiledBindingGeneration,
-        binding_names: Vec<String>,
-        properties: Vec<String>,
-        routes: Vec<String>,
-        actions: Vec<String>,
-        controls: Vec<String>,
+        symbols: UiCompiledBindingSymbols,
         nodes: Vec<UiCompiledNodeBindings>,
         bindings: Vec<UiCompiledBinding>,
     ) -> Self {
+        let UiCompiledBindingSymbols {
+            binding_names,
+            properties,
+            routes,
+            actions,
+            controls,
+        } = symbols;
         Self {
             generation,
             asset_id: String::new(),

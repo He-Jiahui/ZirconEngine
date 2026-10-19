@@ -504,8 +504,39 @@ fn compiled_spawn_rejects_unknown_plugin_type_when_target_catalog_is_nonempty() 
             "Known Target Component",
         ))
         .expect("known target component should make the catalog strict");
-    let plan = compile_scene_spawn(&scene, &target)
-        .expect("unknown plugin type rejection belongs to isolated preflight");
+    let target_generation = target.world_generation();
+    let target_schema_generation = target.type_registry().schema_catalog_generation();
+    let target_records = target.node_records();
+    let error = match compile_scene_spawn(&scene, &target) {
+        Ok(_) => panic!("an undeclared plugin type must fail before untyped field conversion"),
+        Err(error) => error,
+    };
+    assert!(matches!(
+        error,
+        crate::scene::dynamic_scene::DynamicSceneError::Reflect(
+            ReflectError::UnknownType { ref type_path }
+        ) if type_path == UNKNOWN_TYPE_ID
+    ));
+    assert_eq!(target.world_generation(), target_generation);
+    assert_eq!(
+        target.type_registry().schema_catalog_generation(),
+        target_schema_generation
+    );
+    assert_eq!(target.node_records(), target_records);
+    assert!(target.component_type_descriptor(UNKNOWN_TYPE_ID).is_none());
+
+    scene
+        .component_types
+        .push(crate::core::framework::scene::ComponentTypeDescriptor::new(
+            UNKNOWN_TYPE_ID,
+            "tests",
+            "Scene Declared Component",
+        ));
+    let mut plan = compile_scene_spawn(&scene, &target)
+        .expect("a scene-declared plugin type must compile for isolated preflight");
+    // Simulate a compiled plan that lost its declaration: preflight must independently
+    // reject the undeclared write without publishing target state.
+    plan.component_type_descriptors.clear();
 
     let error = capture_compiled_scene_spawn_preflight(&target, &plan, usize::MAX)
         .expect_err("a sparse preflight projection must preserve strict target catalog semantics");
@@ -515,6 +546,13 @@ fn compiled_spawn_rejects_unknown_plugin_type_when_target_catalog_is_nonempty() 
             crate::scene::SceneError::UnregisteredDynamicComponentType { ref component_id }
         ) if component_id == UNKNOWN_TYPE_ID
     ));
+    assert_eq!(target.world_generation(), target_generation);
+    assert_eq!(
+        target.type_registry().schema_catalog_generation(),
+        target_schema_generation
+    );
+    assert_eq!(target.node_records(), target_records);
+    assert!(target.component_type_descriptor(UNKNOWN_TYPE_ID).is_none());
 }
 
 #[test]
@@ -614,20 +652,39 @@ impl Component for TargetOnlyComponent {}
 #[test]
 fn compiled_spawn_rekeys_preflight_component_rows_for_the_target_registry() {
     let mut source = World::empty();
-    source
+    let source_entity = source
         .spawn_node(NodeKind::Empty)
         .expect("test scene spawn should succeed");
     let scene = DynamicScene::from_world(&source).expect("source world should capture");
 
     let mut target = World::empty();
-    target
-        .spawn((TargetOnlyComponent,))
-        .expect("target-only component should reserve its local registry slot");
+    let target_only_id = target.component_id::<TargetOnlyComponent>();
+    assert!(target.node_records().is_empty());
 
-    scene
+    let remap = scene
         .spawn_into(&mut target)
         .expect("source component slots must be resolved in the target registry");
     assert_eq!(target.node_records().len(), 1);
+    assert_eq!(
+        target.registered_component_id::<TargetOnlyComponent>(),
+        Some(target_only_id)
+    );
+    let target_entity = remap
+        .get(source_entity)
+        .expect("source entity must be imported");
+    let transform_id = target
+        .registered_component_id::<crate::scene::components::LocalTransform>()
+        .expect("import must register the target-local transform slot");
+    assert_ne!(transform_id, target_only_id);
+    assert_ne!(
+        Some(transform_id),
+        source.registered_component_id::<crate::scene::components::LocalTransform>()
+    );
+    assert!(target.contains_component_id(target_entity, transform_id));
+    assert!(target
+        .get::<crate::scene::components::LocalTransform>(target_entity)
+        .is_some());
+    assert!(!target.contains_component::<TargetOnlyComponent>(target_entity));
 }
 
 #[test]

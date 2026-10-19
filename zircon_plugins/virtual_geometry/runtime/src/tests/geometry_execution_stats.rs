@@ -442,6 +442,7 @@ fn build_dual_entity_extract(
     };
     let mut extract =
         RenderFrameExtract::from_snapshot(RenderWorldSnapshotHandle::new(1), snapshot);
+    extract.apply_viewport_size(viewport_size);
     extract.geometry.virtual_geometry = Some(RenderVirtualGeometryExtract {
         cluster_budget: 2,
         page_budget: 1,
@@ -522,6 +523,7 @@ fn build_single_entity_extract(
     };
     let mut extract =
         RenderFrameExtract::from_snapshot(RenderWorldSnapshotHandle::new(1), snapshot);
+    extract.apply_viewport_size(viewport_size);
     extract.geometry.virtual_geometry = Some(RenderVirtualGeometryExtract {
         cluster_budget: 1,
         page_budget: 1,
@@ -562,6 +564,7 @@ fn write_quad_obj(path: PathBuf) {
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent).unwrap();
     }
+    enable_fixture_virtual_geometry_cook(&path);
     fs::write(
         path,
         "v -1.0 -1.0 0.0\nv 1.0 -1.0 0.0\nv 1.0 1.0 0.0\nv -1.0 1.0 0.0\nvt 0.0 0.0\nvt 1.0 0.0\nvt 1.0 1.0\nvt 0.0 1.0\nvn 0.0 0.0 1.0\nf 1/1/1 2/2/1 3/3/1\nf 1/1/1 3/3/1 4/4/1\n",
@@ -573,6 +576,7 @@ fn write_two_primitive_gltf(path: PathBuf) {
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent).unwrap();
     }
+    enable_fixture_virtual_geometry_cook(&path);
 
     let mut binary = Vec::new();
     for value in [
@@ -596,12 +600,7 @@ fn write_two_primitive_gltf(path: PathBuf) {
         binary.extend_from_slice(&index.to_le_bytes());
     }
 
-    let buffer_path = path
-        .ancestors()
-        .nth(3)
-        .expect("gltf path should live under <root>/assets/models")
-        .join(".generated")
-        .join("double_triangle.bin");
+    let buffer_path = path.with_file_name("double_triangle.bin");
     if let Some(parent) = buffer_path.parent() {
         fs::create_dir_all(parent).unwrap();
     }
@@ -611,7 +610,7 @@ fn write_two_primitive_gltf(path: PathBuf) {
         r#"{{
   "asset": {{"version": "2.0"}},
   "buffers": [
-    {{"uri": "../../.generated/double_triangle.bin", "byteLength": {}}}
+    {{"uri": "double_triangle.bin", "byteLength": {}}}
   ],
   "bufferViews": [
     {{"buffer":0,"byteOffset":0,"byteLength":36,"target":34962}},
@@ -811,4 +810,23 @@ fn persisted_reference_for_fixture(
         )
         .unwrap(),
     )
+}
+
+fn enable_fixture_virtual_geometry_cook(path: &std::path::Path) {
+    let file_name = path.file_name().unwrap();
+    let uri = format!("res://models/{}", file_name.to_str().unwrap());
+    let mut metadata = zircon_runtime::asset::project::AssetMetaDocument::new(
+        zircon_runtime::asset::AssetUuid::new(),
+        AssetUri::parse(&uri).unwrap(),
+        zircon_runtime::asset::AssetKind::Model,
+    );
+    // Each authored entity has one raw cluster per real primitive. The original
+    // triangle/quad bytes fit a single cooked leaf without copying geometry.
+    metadata.import_settings =
+        "[virtual_geometry]\nenabled = true\ncluster_triangle_count = 8\npage_cluster_count = 1\n"
+            .parse()
+            .unwrap();
+    let mut sidecar_name = file_name.to_os_string();
+    sidecar_name.push(".zmeta");
+    metadata.save(path.with_file_name(sidecar_name)).unwrap();
 }

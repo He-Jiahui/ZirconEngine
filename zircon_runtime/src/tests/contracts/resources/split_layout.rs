@@ -1,14 +1,15 @@
 //! 资源基础层与高层运行时引用保持单向依赖和受限公开面。通过源码文本核对父子路由、状态镜像和文件预算。
+use crate::tests::runtime_absorption::structure_convention::fixed_history_archive_source as history;
 const PARENT_SOURCE: &str = include_str!("../resources.rs");
 const RUNTIME_SURFACE_SOURCE: &str = include_str!("runtime_surface.rs");
 const SPLIT_LAYOUT_SOURCE: &str = include_str!("split_layout.rs");
 
-const FRAMEWORKS_02_OUTPUT_RECORDS: &str = include_str!(
-    "../../../../../docs/plans/zircon_runtime/frameworks/02/2026-07-09-module-kernel-and-lifecycle-unification-output-records.md"
-);
-const RUNTIME_15_OUTPUT_RECORDS: &str = include_str!(
-    "../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md"
-);
+fn frameworks_02_output_records() -> &'static str {
+    history("docs/plans/zircon_runtime/frameworks/02/2026-07-09-module-kernel-and-lifecycle-unification-output-records.md")
+}
+fn runtime_15_output_records() -> &'static str {
+    history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md")
+}
 const MODULE_CONVENTION_DOC: &str =
     include_str!("../../../../../docs/crates/zircon_runtime/structure/module-convention.md");
 
@@ -18,8 +19,8 @@ fn runtime_15_resource_foundation_route_owner_is_folder_backed() {
         "resource_foundation route owner",
         PARENT_SOURCE,
         &[
-            "#[path = \"resource_foundation/runtime_surface.rs\"]",
-            "#[path = \"resource_foundation/split_layout.rs\"]",
+            "#[path = \"resources/runtime_surface.rs\"]",
+            "#[path = \"resources/split_layout.rs\"]",
         ],
     );
     assert_parent_route_only();
@@ -75,7 +76,7 @@ fn assert_line_budget() {
 
 fn assert_docs_and_status_mirror_split() {
     assert!(
-        RUNTIME_15_OUTPUT_RECORDS.contains(
+        runtime_15_output_records().contains(
             "runtime_15_resource_foundation_route_owner_split_static_passed_cargo_deferred"
         ),
         "Runtime 15 output records should own the resource_foundation route-owner split status"
@@ -91,7 +92,7 @@ fn assert_docs_and_status_mirror_split() {
     );
     assert_contains_all(
         "Frameworks 02 output records",
-        FRAMEWORKS_02_OUTPUT_RECORDS,
+        frameworks_02_output_records(),
         &[
             "frameworks_02_m3_resource_foundation_route_owner_split_static_passed_cargo_deferred",
             "Runtime 15 M3 resource-foundation route-owner split",

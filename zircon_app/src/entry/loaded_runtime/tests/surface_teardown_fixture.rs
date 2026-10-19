@@ -45,6 +45,8 @@ pub(in crate::entry) struct Policy {
     pub unbind_failures: usize,
     pub destroy_failures: usize,
     pub unbind_export: bool,
+    pub surface_v2_export: bool,
+    pub surface_v2_bind_failures: usize,
 }
 
 impl Default for Policy {
@@ -53,6 +55,8 @@ impl Default for Policy {
             unbind_failures: 0,
             destroy_failures: 0,
             unbind_export: true,
+            surface_v2_export: false,
+            surface_v2_bind_failures: 0,
         }
     }
 }
@@ -73,6 +77,7 @@ struct ProviderState {
     next_allocation: u64,
     allocations: HashMap<u64, Box<[u8]>>,
     last_bound_target: Option<zircon_runtime_interface::ZrRuntimeNativeSurfaceTargetV1>,
+    surface_v2_requests: Vec<zircon_runtime_interface::ZrRuntimeBindViewportSurfaceRequestV2>,
     native_window_probe: Option<native_window_probe::NativeWindowProbe>,
     native_window_observations: Vec<NativeWindowObservation>,
 }
@@ -89,6 +94,16 @@ impl ProviderControl {
             bound: state.bound,
             allocations: state.allocations.len(),
         }
+    }
+
+    pub fn surface_v2_requests(
+        &self,
+    ) -> Vec<zircon_runtime_interface::ZrRuntimeBindViewportSurfaceRequestV2> {
+        self.0.borrow().surface_v2_requests.clone()
+    }
+
+    pub fn fail_next_surface_v2_bind(&self) {
+        self.0.borrow_mut().policy.surface_v2_bind_failures = 1;
     }
 
     pub fn last_bound_target(
@@ -213,6 +228,7 @@ pub(in crate::entry) fn with_runtime(
         next_allocation: 1,
         allocations: HashMap::new(),
         last_bound_target: None,
+        surface_v2_requests: Vec::new(),
         native_window_probe: None,
         native_window_observations: Vec::new(),
     })));
@@ -231,6 +247,7 @@ pub(in crate::entry) fn with_runtime(
     };
 
     let host = ZrHostApiV1::empty(ZIRCON_RUNTIME_ABI_VERSION_V1);
+    // SAFETY: host is a live ABI-V1 value; this linked getter returns a process-static V8 table.
     let template = unsafe { zircon_runtime::dynamic_api::zircon_runtime_get_api_v8(&host) };
     assert!(
         !template.is_null(),
@@ -239,6 +256,7 @@ pub(in crate::entry) fn with_runtime(
     // The table is copied; every slot used by these tests is replaced below. Unused slots retain
     // their genuine signatures and satisfy the loader's mandatory-slot validation.
     let mut table = ApiTableOwner {
+        // SAFETY: the non-null pointer above is the linked runtime process-static, aligned V8 table.
         table: Box::new(unsafe { *template }),
         control: control.clone(),
     };
@@ -248,8 +266,20 @@ pub(in crate::entry) fn with_runtime(
         _ => unreachable!("provider registration is bounded to two owners"),
     }
     let api = NonNull::from(table.table.as_mut());
+    // SAFETY: api points to our aligned, fully initialized Box<V8>, retained through the session.
     let validated =
         unsafe { validate_v8_api(api) }.expect("fixture must pass the actual ABI validator");
+    let viewport_surface_binding_v2: Option<
+        zircon_runtime_interface::ZrRuntimeBindViewportSurfaceFnV2,
+    > = if policy.surface_v2_export {
+        match provider_slot {
+            0 => Some(bind_surface_v2::<0>),
+            1 => Some(bind_surface_v2::<1>),
+            _ => unreachable!("provider registration is bounded to two owners"),
+        }
+    } else {
+        None
+    };
     let runtime = LoadedRuntime {
         _library: libloading::os::windows::Library::this()
             .expect("pin the fixture callback module")
@@ -259,6 +289,7 @@ pub(in crate::entry) fn with_runtime(
         size_bytes: validated.size_bytes,
         required: validated.required,
         app_session_configuration: None,
+        viewport_surface_binding_v2,
         runtime_instance: allocate_runtime_instance_id(&NEXT_RUNTIME_INSTANCE_ID)
             .expect("allocate a unique fixture loaded-owner identity"),
     };
@@ -309,6 +340,7 @@ unsafe extern "C" fn create_session<const SLOT: usize>(
         if out.is_null() || state.active {
             return failure(b"fixture create requires a new output handle");
         }
+        // SAFETY: the real typed session caller supplies writable aligned output; null was rejected.
         unsafe { out.write(SESSION) };
         state.active = true;
         ZrStatus::ok()
@@ -366,6 +398,26 @@ unsafe extern "C" fn bind_surface<const SLOT: usize>(
     })
 }
 
+unsafe extern "C" fn bind_surface_v2<const SLOT: usize>(
+    handle: ZrRuntimeSessionHandle,
+    request: zircon_runtime_interface::ZrRuntimeBindViewportSurfaceRequestV2,
+) -> ZrStatus {
+    with_provider::<SLOT>(|state| {
+        state.calls.push(Call::Bind);
+        state.surface_v2_requests.push(request);
+        if !live_session(state, handle) || !request.is_valid() {
+            return failure(b"fixture V2 bind used an invalid session or request");
+        }
+        if state.policy.surface_v2_bind_failures > 0 {
+            state.policy.surface_v2_bind_failures -= 1;
+            return failure(b"controlled V2 bind failure");
+        }
+        state.bound = true;
+        state.last_bound_target = Some(request.target);
+        ZrStatus::ok()
+    })
+}
+
 unsafe extern "C" fn unbind_surface<const SLOT: usize>(
     handle: ZrRuntimeSessionHandle,
     _viewport: ZrRuntimeViewportHandle,
@@ -399,6 +451,7 @@ unsafe extern "C" fn profile_control<const SLOT: usize>(
         if !live_session(state, handle) || out.is_null() {
             return failure(b"fixture receipt requires a live session and output");
         }
+        // SAFETY: the typed host retains its serialized request buffer throughout this callback.
         let bytes = match unsafe {
             request.checked_slice(ZR_RUNTIME_PROFILE_REQUEST_LIMIT_V1.max_encoded_bytes)
         } {
@@ -439,6 +492,7 @@ unsafe extern "C" fn profile_control<const SLOT: usize>(
             allocation,
         };
         state.allocations.insert(allocation.raw(), bytes);
+        // SAFETY: the typed caller owns valid output storage; payload bytes remain in allocations.
         unsafe { out.write(output) };
         ZrStatus::ok()
     })

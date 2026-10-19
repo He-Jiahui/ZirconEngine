@@ -124,21 +124,45 @@ impl<'registry> RuntimePluginModuleRegistration<'registry> {
         self.registry.register_event::<E>(self.owner, manifest)
     }
 
-    // BUG: [CR-PLUGIN-SDK-0002] 选项键或事件目录前缀与当前模块不同时，注册表改按前缀归属，撤销当前模块会遗留条目；证据：register_plugin_option/register_plugin_event_catalog。
-    /// 提交选项元数据；底层当前按选项键前缀计算 owner。
+    /// 提交选项元数据；拒绝底层会归到其他模块的命名空间。
     pub fn plugin_option(
         &mut self,
         manifest: PluginOptionManifest,
     ) -> Result<(), RuntimeExtensionRegistryError> {
+        if let Some(error) = self.metadata_owner_error(&manifest.key) {
+            return Err(RuntimeExtensionRegistryError::InvalidPluginOption(error));
+        }
         self.registry.register_plugin_option(manifest)
     }
 
-    /// 提交事件目录；底层当前按命名空间前缀计算 owner。
+    /// 提交事件目录；拒绝底层会归到其他模块的命名空间。
     pub fn plugin_event_catalog(
         &mut self,
         manifest: PluginEventCatalogManifest,
     ) -> Result<(), RuntimeExtensionRegistryError> {
+        if let Some(error) = self.metadata_owner_error(&manifest.namespace) {
+            return Err(RuntimeExtensionRegistryError::InvalidPluginEventCatalog(
+                error,
+            ));
+        }
         self.registry.register_plugin_event_catalog(manifest)
+    }
+
+    fn metadata_owner_error(&self, namespace: &str) -> Option<String> {
+        let inferred_owner = format!(
+            "{}.runtime",
+            namespace.split('.').next().unwrap_or_default()
+        );
+        let registered_owner = self.registry.plugin_module_name(self.owner);
+        if registered_owner == Some(self.module_name.as_str()) && inferred_owner == self.module_name
+        {
+            None
+        } else {
+            Some(format!(
+                "metadata namespace \x60{namespace}\x60 resolves to owner \x60{inferred_owner}\x60, not current module \x60{}\x60 (registered owner {registered_owner:?})",
+                self.module_name
+            ))
+        }
     }
 
     pub fn export_interface<T>(

@@ -82,21 +82,41 @@ impl ViewerWorkPaths {
 #[cfg(test)]
 /// 为测试建立独立的数据工件目录；测试完成后必须清理，与编译缓存分配无关。
 pub(crate) fn viewer_test_artifact_root(test_name: &str) -> PathBuf {
-    let workspace_root = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .parent()
-        .expect("viewer crate must live below the workspace root");
-    let workspace_is_on_c_drive = workspace_root
-        .to_string_lossy()
-        .to_ascii_lowercase()
-        .starts_with("c:");
-    let artifact_parent = if workspace_is_on_c_drive {
-        PathBuf::from("D:/ZirconEngineTestArtifacts/zircon_shader_pbr_viewer")
-    } else {
-        workspace_root.join("docs/tests/runtime/shader/.viewer-test-artifacts")
-    };
+    const CONFIGURATION: &str = "ZIRCON_VIEWER_TEST_ARTIFACT_ROOT";
+    let configured_parent = PathBuf::from(
+        std::env::var_os(CONFIGURATION)
+            .expect("ZIRCON_VIEWER_TEST_ARTIFACT_ROOT must name a registered test artifact parent"),
+    );
+    assert!(
+        configured_parent.is_absolute() && configured_parent.is_dir(),
+        "viewer test artifact parent must be an absolute existing directory"
+    );
+    let physical_root = ["D:/cargo-targets", "E:/cargo-targets", "F:/cargo-targets"]
+        .into_iter()
+        .map(Path::new)
+        .find(|root| configured_parent.starts_with(root))
+        .expect("viewer test artifact parent must be below a literal drive-root cargo-targets");
+    let admitted_root = crate::args::resolve_non_c_artifact_path(CONFIGURATION, physical_root)
+        .expect("viewer test artifact drive root must pass physical path admission");
+    assert_eq!(
+        admitted_root, physical_root,
+        "viewer test artifact drive root must not resolve through an alias"
+    );
+    let artifact_parent =
+        crate::args::resolve_non_c_artifact_path(CONFIGURATION, &configured_parent)
+            .expect("viewer test artifact parent must pass physical path admission");
+    assert!(
+        artifact_parent.is_dir() && artifact_parent.starts_with(&admitted_root),
+        "viewer test artifact parent must physically remain below the admitted cargo-targets root"
+    );
     let sequence = VIEWER_TEST_ARTIFACT_SEQUENCE.fetch_add(1, Ordering::Relaxed);
     let root = artifact_parent.join(format!("{test_name}-{}-{sequence}", std::process::id()));
-    std::fs::create_dir_all(&root).expect("viewer test artifact root should be created");
+    assert_eq!(
+        root.parent(),
+        Some(artifact_parent.as_path()),
+        "viewer test name must identify a direct child of the registered parent"
+    );
+    std::fs::create_dir(&root).expect("unique viewer test artifact root should be created");
     root
 }
 

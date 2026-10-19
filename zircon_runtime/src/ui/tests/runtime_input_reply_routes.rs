@@ -126,7 +126,31 @@ fn assert_two_node_bubble_handled_at_target(result: &UiInputDispatchResult) {
         result.diagnostics.route_steps[2].disposition,
         UiDispatchDisposition::Handled
     );
-    assert_eq!(result.diagnostics.route_steps[2].effect_count, 0);
+    let UiInputEvent::Pointer(pointer) = &result.event else {
+        panic!("pointer fixture");
+    };
+    if pointer.metadata.pointer_source == UiPointerSource::Mouse {
+        assert_eq!(result.diagnostics.route_steps[2].effect_count, 1);
+        assert_cursor_result(
+            result,
+            zircon_runtime_interface::ui::tree::UiCursor::Default,
+        );
+    } else {
+        assert!(matches!(
+            pointer.metadata.pointer_source,
+            UiPointerSource::Touch | UiPointerSource::Pen
+        ));
+        assert_eq!(result.diagnostics.route_steps[2].effect_count, 0);
+        assert!(!result
+            .reply
+            .effects
+            .iter()
+            .any(|effect| matches!(effect, UiDispatchEffect::RequestCursor { .. })));
+        assert!(!result
+            .host_requests
+            .iter()
+            .any(|request| matches!(request.request, UiDispatchHostRequestKind::Cursor(_))));
+    }
     assert!(result.diagnostics.route_steps[2].stopped);
 }
 
@@ -522,4 +546,24 @@ fn fixed_constraint(size: f32) -> AxisConstraint {
         weight: 1.0,
         stretch_mode: StretchMode::Fixed,
     }
+}
+
+fn assert_cursor_result(
+    result: &UiInputDispatchResult,
+    cursor: zircon_runtime_interface::ui::tree::UiCursor,
+) {
+    assert_eq!(
+        result.reply.effects,
+        vec![UiDispatchEffect::RequestCursor { cursor }]
+    );
+    assert_eq!(result.applied_effects.len(), 1);
+    assert_eq!(result.applied_effects[0].effect_index, 0);
+    assert_eq!(result.applied_effects[0].effect, result.reply.effects[0]);
+    assert_eq!(result.host_requests.len(), 1);
+    assert_eq!(result.host_requests[0].effect_index, 0);
+    assert_eq!(
+        result.host_requests[0].request,
+        UiDispatchHostRequestKind::Cursor(cursor)
+    );
+    assert!(result.rejected_effects.is_empty());
 }

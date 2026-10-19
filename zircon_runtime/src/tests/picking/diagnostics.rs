@@ -17,15 +17,21 @@ fn picking_pipeline_report_counts_rays_outputs_and_hover_reduction() {
     ray_map.insert(RayId::new(8, other_pointer, viewport), ray);
 
     let outputs = [
-        PointerHits::new(
+        PointerHits::in_viewport(
             pointer,
+            viewport,
             vec![
                 hit(HitTarget::scene_gizmo(10), 0.2).with_pickable(Pickable::NON_BLOCKING),
                 hit(HitTarget::renderable(11), 0.3),
             ],
             0.0,
         ),
-        PointerHits::new(pointer, vec![hit(HitTarget::renderable(12), 0.1)], 1.0),
+        PointerHits::in_viewport(
+            pointer,
+            viewport,
+            vec![hit(HitTarget::renderable(12), 0.1)],
+            1.0,
+        ),
     ];
 
     let report = PickingPipelineReport::from_ray_map_and_outputs(&ray_map, &outputs);
@@ -101,8 +107,9 @@ fn picking_debug_feed_exposes_summary_metrics_and_ray_only_rows() {
 
     let report = PickingPipelineReport::from_ray_map_and_outputs(
         &ray_map,
-        &[PointerHits::new(
+        &[PointerHits::in_viewport(
             pointer,
+            viewport,
             vec![hit(HitTarget::renderable(3), 0.1)],
             0.0,
         )],

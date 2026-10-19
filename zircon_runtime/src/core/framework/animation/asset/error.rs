@@ -6,6 +6,18 @@ use crate::core::resource::ResourceLocatorError;
 
 pub type AnimationAssetResult<T> = std::result::Result<T, AnimationAssetError>;
 
+#[derive(Clone, Debug, Eq, PartialEq, Error)]
+pub enum AnimationSkeletonHierarchyError {
+    #[error("bone parent cycle reaches index {bone_index}")]
+    ParentCycle { bone_index: usize },
+    #[error("bone index {bone_index} has out-of-range parent index {parent_index}")]
+    ParentOutOfBounds {
+        bone_index: usize,
+        parent_index: u32,
+        bone_count: usize,
+    },
+}
+
 #[derive(Debug, Error)]
 pub enum AnimationAssetError {
     #[error(
@@ -74,7 +86,10 @@ pub enum AnimationAssetError {
         actual: &'static str,
     },
     #[error("invalid animation skeleton hierarchy: {reason}")]
-    InvalidSkeletonHierarchy { reason: String },
+    InvalidSkeletonHierarchy {
+        #[source]
+        reason: AnimationSkeletonHierarchyError,
+    },
     #[error("animation asset reference uuid `{value}` is invalid: {source}")]
     InvalidReferenceUuid {
         value: String,

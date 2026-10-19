@@ -48,7 +48,7 @@ pub(super) fn validate_context_adapter(
     }
 
     Err(RhiError::NativeContextAdapterMismatch {
-        profile_adapter: profile.adapter().clone(),
+        profile_adapter: Box::new(profile.adapter().clone()),
         context_adapter,
     })
 }
@@ -63,7 +63,7 @@ pub(super) fn validate_context_device_limits(
     }
 
     Err(RhiError::NativeContextDeviceLimitsMismatch {
-        profile_limits: profile.device_limits().clone(),
+        profile_limits: Box::new(profile.device_limits().clone()),
         context_limits,
     })
 }

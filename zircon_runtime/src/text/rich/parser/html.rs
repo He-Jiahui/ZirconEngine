@@ -227,9 +227,7 @@ fn append_html_text(
             if observer_error.is_some() {
                 return;
             }
-            let absolute_start = source_start
-                .checked_add(fragment_start)
-                .unwrap_or(usize::MAX);
+            let absolute_start = source_start.saturating_add(fragment_start);
             if decoded_entity {
                 match markup_source_range(absolute_start, fragment_end - fragment_start) {
                     Ok(source_range) => {

@@ -45,6 +45,8 @@ pub use ibl_bake_artifact_runtime_writeback::{
     write_ibl_bake_artifact_runtime_readback, IblBakeArtifactRuntimeWritebackError,
     IblBakeArtifactRuntimeWritebackReport, IblBakeArtifactRuntimeWritebackStatus,
 };
+pub(crate) use ibl_source_cubemap_staging::admission::{BundleAdmission, VerifiedSourceProof};
+
 pub use ibl_source_cubemap_staging::{
     IblSourceCubemapStagedBundleReport, IblSourceCubemapStagingError, IblSourceCubemapStagingRead,
     IblSourceCubemapStagingStore, IblSourceCubemapZcubeWriteReport,

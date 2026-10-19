@@ -524,6 +524,14 @@ impl RenderDeviceQueueTopology {
     }
 }
 
+/// Explicit owned admission budgets for one render-device generation.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct RenderDeviceBudgets {
+    pub memory_budget: GpuMemoryBudget,
+    pub submission_limits: SubmissionLimits,
+    pub diagnostic_readback_budget: DiagnosticReadbackBudget,
+}
+
 /// Immutable device-qualified profile consumed by later resource and submission milestones.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RenderDeviceProfile {
@@ -546,9 +554,7 @@ impl RenderDeviceProfile {
         feature_negotiation: RenderDeviceFeatureNegotiation,
         device_limits: RenderDeviceLimits,
         queue_topology: RenderDeviceQueueTopology,
-        memory_budget: GpuMemoryBudget,
-        submission_limits: SubmissionLimits,
-        diagnostic_readback_budget: DiagnosticReadbackBudget,
+        budgets: RenderDeviceBudgets,
     ) -> Self {
         Self {
             device_id,
@@ -557,9 +563,9 @@ impl RenderDeviceProfile {
             feature_negotiation,
             device_limits,
             queue_topology,
-            memory_budget,
-            submission_limits,
-            diagnostic_readback_budget,
+            memory_budget: budgets.memory_budget,
+            submission_limits: budgets.submission_limits,
+            diagnostic_readback_budget: budgets.diagnostic_readback_budget,
         }
     }
 

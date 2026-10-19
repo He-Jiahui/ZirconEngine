@@ -1,3 +1,4 @@
+use crate::tests::runtime_absorption::structure_convention::fixed_history_archive_source as history;
 fn assert_contains_all(label: &str, source: &str, anchors: &[&str]) {
     let missing: Vec<&str> = anchors
         .iter()
@@ -31,10 +32,35 @@ fn render01_compiled_pipeline_cached_sources_are_immutable_and_frame_flags_are_p
         compiled_pipeline,
         &[
             "enabled_features: Vec<RendererFeatureAsset>",
-            "graph: CompiledRenderGraph",
+            "execution_packet: RenderGraphExecutionPacket",
             "pub fn enabled_features(&self) -> &[RendererFeatureAsset]",
-            "pub fn graph(&self) -> &CompiledRenderGraph",
+            "pub fn graph(&self) -> &crate::render_graph::CompiledRenderGraph",
+            "self.execution_packet.graph()",
+            "RenderGraphExecutionPacket::new(parts.graph, parts.execution_pass_metadata)?",
             "pub(crate) fn from_parts(",
+        ],
+    );
+    let compiled_object = compiled_pipeline
+        .split("pub struct CompiledRenderPipeline {")
+        .nth(1)
+        .and_then(|source| source.split("\n}").next())
+        .expect("compiled pipeline object");
+    assert_contains_all(
+        "private compiled object graph owner",
+        compiled_object,
+        &[
+            "execution_packet: RenderGraphExecutionPacket",
+            "runtime_metadata: Arc<CompiledRenderPipelineRuntimeMetadata>",
+        ],
+    );
+    assert_not_contains(
+        "private compiled object graph owner",
+        compiled_object,
+        &[
+            "pub execution_packet:",
+            "pub(crate) execution_packet:",
+            "pub graph:",
+            "pub(crate) graph:",
         ],
     );
     assert_not_contains(
@@ -76,6 +102,11 @@ fn review_f16_compiled_scene_render_path_uses_split_owners() {
     let execute =
         include_str!("../../../graphics/core/render/execute_compiled_scene_graph_stages.rs");
     let submit = include_str!("../../../graphics/scene/core/render/submit_compiled_scene_frame.rs");
+    let receipt =
+        include_str!("../../../graphics/scene/core/render/compiled_scene_graph_receipt.rs");
+    let readback = include_str!("../../../graphics/scene/core/render/compiled_scene_readback.rs");
+    let lifecycle =
+        include_str!("../../../graphics/scene/renderer/core/render/render/frame_lifecycle.rs");
     let submit_hzb =
         include_str!("../../../graphics/core/submit_compiled_scene_frame/hzb_readback.rs");
     let submit_tests =
@@ -84,15 +115,17 @@ fn review_f16_compiled_scene_render_path_uses_split_owners() {
         include_str!("../../../graphics/scene/core/render/render/sprite_stage_selection.rs");
     let pipeline_resource_usage =
         include_str!("../../../graphics/scene/core/render/render/pipeline_resource_usage.rs");
-    let review_findings = concat!(
-        include_str!("../../../../../docs/plans/engine-code-review-findings-2026-06.md"),
-        include_str!("../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md")
+    let review_findings = crate::runtime_test_history_concat!(
+        include_str!("../../../../../docs/architecture/runtime-architecture-review-m0.md"),
+        history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md")
     );
-    let render_index = include_str!("../../../../../docs/plans/zircon_runtime/render/index.md");
+    let render_index =
+        include_str!("../../../../../docs/crates/zircon_runtime/graphics/pipeline-registration.md");
     let runtime_07 = include_str!(
-        "../../../../../docs/plans/zircon_runtime/runtime/07-runtime-performance-hotpath.md"
+        "../../../../../docs/testing-and-validation/runtime-performance-validation-worklist.md"
     );
-    let convention = include_str!("../../../../../docs/plans/engine-code-structure-convention.md");
+    let convention =
+        include_str!("../../../../../docs/testing-and-validation/development-conventions.md");
     let framework_doc =
         include_str!("../../../../../docs/rendering/render-framework-architecture.md");
 
@@ -184,14 +217,26 @@ fn review_f16_compiled_scene_render_path_uses_split_owners() {
         ],
     );
 
+    let sprite_stage_selection_tests =
+        include_str!("../../../graphics/scene/core/render/tests/sprite_stage_selection.rs");
+    assert!(
+        sprite_stage_selection
+            .replace("\r\n", "\n")
+            .contains("#[cfg(test)]\n#[path = \"../tests/sprite_stage_selection.rs\"]\nmod tests;"),
+        "exact current module mount in graphics/scene/core/render/render/sprite_stage_selection.rs"
+    );
+    for required in [
+        "fn compiled_scene_sprite_stage_list_owns_core2d_product_stages(",
+        "fn active_sprite_graph_stages_follow_unculled_sprite_passes(",
+    ] {
+        assert!(sprite_stage_selection_tests.contains(required), "current graphics/scene/core/render/tests/sprite_stage_selection.rs must retain {required}");
+    }
     assert_contains_all(
         "compiled-scene sprite-stage selection owner",
         sprite_stage_selection,
         &[
             "pub(super) fn active_sprite_graph_stages(",
             "fn pipeline_has_active_sprite_stage(",
-            "fn compiled_scene_sprite_stage_list_owns_core2d_product_stages(",
-            "fn active_sprite_graph_stages_follow_unculled_sprite_passes(",
         ],
     );
     assert_not_contains(
@@ -235,6 +280,9 @@ fn review_f16_compiled_scene_render_path_uses_split_owners() {
             "import_borrowed_buffer_with_physical_desc(",
         ],
     );
+    let compact_execute: String = execute.chars().filter(|c| !c.is_whitespace()).collect();
+    assert!(compact_execute
+        .contains("let(history_copy_report,history_write_intent)=self.copy_history_textures("));
     assert_contains_all(
         "compiled-scene stage execution owner",
         execute,
@@ -243,7 +291,8 @@ fn review_f16_compiled_scene_render_path_uses_split_owners() {
             "pub(super) fn execute_compiled_scene_graph_stages",
             "execute_graph_stage(",
             "self.render_scene_passes(",
-            "self.copy_history_textures(",
+            "let (history_copy_report, history_write_intent) = self",
+            ".copy_history_textures(",
             "fn active_late_graph_stages",
         ],
     );
@@ -253,7 +302,8 @@ fn review_f16_compiled_scene_render_path_uses_split_owners() {
         &[
             "pub(super) struct CompiledSceneFrameSubmissionContext",
             "pub(super) fn submit_compiled_scene_frame",
-            "submit_graphics_command_buffers_with_frame_diagnostics_and_surface(",
+            "build_graph_execution_receipt(",
+            "submit_graphics_command_buffers_with_graph_receipt_and_frame_diagnostics_and_surface(",
             "retire_transient_backings_after_submission(",
             "self.transient_resource_pool.end_frame()",
         ],
@@ -291,6 +341,31 @@ fn review_f16_compiled_scene_render_path_uses_split_owners() {
         submit.lines().count() < 650,
         "submit_compiled_scene_frame.rs should remain a focused owner"
     );
+    assert!(submit.contains("mod graph_receipt;"));
+    assert!(submit.contains("mod readback_diagnostics;"));
+    assert!(submit.contains("#[cfg(test)]\n#[path = \"compiled_scene_readback.rs\"]"));
+    assert!(receipt.contains("pub(super) fn build_graph_execution_receipt("));
+    assert!(receipt.contains("fn physical_lease("));
+    assert!(receipt.contains("pub(super) fn rhi_access_range("));
+    assert!(readback.contains("pub(super) fn attach_scene_velocity_readback_stats("));
+    assert!(readback.contains("pub(super) fn attach_color_lut_readback_stats("));
+    assert!(lifecycle.contains("pub(crate) fn render_compiled_scene("));
+    assert!(lifecycle.contains("self.begin_scene_environment_frame()"));
+    assert!(lifecycle.contains(".render_compiled_scene_in_environment_frame("));
+    assert!(render.contains("pub(super) fn render_compiled_scene_in_environment_frame("));
+    assert!(
+        receipt.lines().count() < 650,
+        "RHI receipt lowering remains one bounded owner"
+    );
+    assert!(
+        readback.lines().count() < 500,
+        "test-only scene readback remains one bounded owner"
+    );
+    assert!(
+        lifecycle.lines().count() < 200,
+        "frame lifecycle and entry remain bounded"
+    );
+
     assert!(submit_hzb.lines().count() < 80);
     assert!(submit_tests.lines().count() < 200);
     assert!(

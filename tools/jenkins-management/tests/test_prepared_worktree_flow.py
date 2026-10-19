@@ -60,6 +60,26 @@ class PreparedWorktreeFlowTests(unittest.TestCase):
             dependency_absent = ["dependency/never-created-one.rs", "dependency/never-created-two.rs"]
             f.desired.update({name: None for name in dependency_absent})
             f.tracked = set(f.before)
+            # Freeze the external index independently of later worktree byte edits.
+            external_indexes = {}
+            for root in [f.external, *(f.external / name for name in f.links)]:
+                rows = []
+                for name, value in f.source(root)["files"].items():
+                    if isinstance(value, dict):
+                        mode, object_id = "160000", value["gitlinkCommit"]
+                    else:
+                        data = (root / name).read_bytes()
+                        blob = b"blob " + str(len(data)).encode("ascii") + b"\0" + data
+                        mode, object_id = "100644", hashlib.sha1(blob).hexdigest()
+                    rows.append((mode + " " + object_id + " 0\t" + name).encode("utf-8") + b"\0")
+                external_indexes[root] = b"".join(rows)
+
+            def git_with_stage(root, *args, **kwargs):
+                result = f.git(root, *args, **kwargs)
+                if args and args[0] == "ls-files" and "--stage" in args and root in external_indexes:
+                    result.stdout = external_indexes[root]
+                return result
+            f.management.git = git_with_stage
             owned = sorted(["owned.txt", "deleted.txt", *present, *absent])
             self.assertEqual(25, len(owned))
             writer = f.state.authorize_session(f.repo_id, "w", "user", owned,
@@ -139,6 +159,8 @@ class PreparedWorktreeFlowTests(unittest.TestCase):
                     return tracked & set(paths), (actual - tracked) & set(paths)
 
                 def git_inventory(root, *args, **kwargs):
+                    if args and args[0] == "ls-files" and "--stage" in args:
+                        return f.management.git(root, *args, **kwargs)
                     if args and args[0] == "ls-files":
                         tracked = {name.casefold() for name in f.tracked}
                         actual = {name.casefold() for name, checksum in f.source(root)["files"].items()
@@ -179,14 +201,36 @@ class PreparedWorktreeFlowTests(unittest.TestCase):
                 stage_proofs.append(observed)
                 return result
             real_prepare = current_source.prepare_current_source
+            raw_manifests = []
+            real_producer = helper._managed_captured_manifest
+            def produce(*args, **kwargs):
+                manifest = real_producer(*args, **kwargs)
+                raw_manifests.append(copy.deepcopy(manifest))
+                return manifest
+            retained_checksum = value.prepared["payload"]["currentHashes"]["owned.txt"]
+            object_path = "inputs/objects/" + retained_checksum
+            with helper.managed_input_stage(f.cas, "flow-object-before") as store:
+                with store._leaf(object_path, content=True) as handle:
+                    retained_before = store.native.identity_from_handle(handle)
             with patch.object(helper._ManagedInputStage, "__exit__", finish_stage), \
-                    patch.object(formal_source, "seal_candidate", wraps=formal_source.seal_candidate) as producer, \
+                    patch.object(helper, "_managed_captured_manifest", side_effect=produce) as producer, \
                     patch.object(current_source, "prepare_current_source", wraps=real_prepare) as consumer, \
                     patch.object(managed_worktree, "preparation", wraps=managed_worktree.preparation) as full_preparation, \
                     patch.object(current_source, "_verify_current",
                         side_effect=AssertionError("The original fresh path cannot accept unchanged absent-owned inputs")):
                 result = actor.prepare_flow()
             self.assertEqual(1, producer.call_count)
+            raw = raw_manifests[0]
+            raw_bytes = json.dumps(raw, ensure_ascii=False, sort_keys=True,
+                                   separators=(",", ":")).encode("utf-8")
+            raw_path = f.cas / "inputs" / (digest(raw) + ".json")
+            self.assertEqual(raw_bytes, raw_path.read_bytes())
+            self.assertEqual(digest(raw), file_digest(raw_path))
+            with helper.managed_input_stage(f.cas, "flow-object-after") as store:
+                with store._leaf(object_path, content=True) as handle:
+                    retained_after = store.native.identity_from_handle(handle)
+                self.assertTrue(retained_before.same_object(retained_after))
+                self.assertEqual(retained_checksum, store.checksum(object_path))
             self.assertEqual(1, consumer.call_count)
             # Initial authority, final acceptance and the genuine consumer still
             # execute; repeated intermediate inventory/CAS reads must not return.
@@ -290,8 +334,9 @@ class PreparedWorktreeFlowTests(unittest.TestCase):
                 f, actor = value.f, value.actor
                 previous_inputs = f.state.list("sealed_input")
                 previous_preparations = f.state.list("current_source_preparation")
-                original_producer = formal_source.seal_candidate
+                original_producer = helper._managed_captured_manifest
                 changed_object = []
+                changed_boundaries = []
                 def produce_then_change(*args, **kwargs):
                     manifest = original_producer(*args, **kwargs)
                     if boundary == "external-cas-after-seal":
@@ -311,12 +356,14 @@ class PreparedWorktreeFlowTests(unittest.TestCase):
                     else:
                         (f.target / "owned.txt").unlink()
                         (f.target / "owned.txt").mkdir()
+                    changed_boundaries.append(boundary)
                     return manifest
                 try:
-                    with patch.object(formal_source, "seal_candidate", side_effect=produce_then_change) as producer:
+                    with patch.object(helper, "_managed_captured_manifest", side_effect=produce_then_change) as producer:
                         with self.assertRaises(JenkinsError):
                             actor.prepare_flow()
                     self.assertEqual(1, producer.call_count)
+                    self.assertEqual([boundary], changed_boundaries)
                     self.assertEqual(previous_inputs, f.state.list("sealed_input"))
                     self.assertEqual(previous_preparations, f.state.list("current_source_preparation"))
                     self.assertIsNone(f.state.get_request(f.repo_id, actor.payload["flowIdentity"]["sessionId"],
@@ -376,11 +423,17 @@ class PreparedWorktreeFlowTests(unittest.TestCase):
             f.state.put("environment_policy", "default", policy)
             git_run = formal_source.subprocess.run
             original_collect = patches.collect_cargo_evidence
+            native_collect = helper._native_metadata_cargo_evidence
             commands, reproduced = [], []
             def observe(command, **kwargs):
                 if command[0] not in {"fixture-cargo.exe", "fixture-rustc.exe"}:
                     return git_run(command, **kwargs)
                 commands.append(list(command))
+                self.assertEqual(str(f.cas / "target"), kwargs["env"]["CARGO_TARGET_DIR"])
+                self.assertEqual(str(f.cas / "cargo-home"), kwargs["env"]["CARGO_HOME"])
+                self.assertEqual(str(f.cas / "tmp/metadata"), kwargs["env"]["TEMP"])
+                self.assertEqual(kwargs["env"]["TEMP"], kwargs["env"]["TMP"])
+                self.assertEqual("true", kwargs["env"]["CARGO_NET_OFFLINE"])
                 if command[1] == "metadata":
                     workspace = Path(kwargs["cwd"])
                     stdout = json.dumps({"packages": [], "workspace_members": [], "resolve": None,
@@ -401,17 +454,22 @@ class PreparedWorktreeFlowTests(unittest.TestCase):
                 self.assertEqual([], commands)
                 self.assertIsNone(f.state.get("sealed_cargo_evidence", source_digest))
                 reproduced.append(source_digest)
-                return original_collect(manifest, *args, **kwargs)
+                self.assertFalse((f.cas / "inputs/runs" / source_digest / "source").exists())
+                return native_collect(manifest, *args, **kwargs)
             with patch.object(patches, "_verified_metadata_inputs",
                     return_value=(environment, policy, "fixture-cargo.exe", "fixture-rustc.exe")), \
                     patch.object(formal_source.subprocess, "run", side_effect=observe), \
-                    patch.object(patches, "collect_cargo_evidence", side_effect=collect) as collector:
+                    patch.object(helper, "_native_metadata_cargo_evidence", side_effect=collect) as collector:
                 result = actor.prepare_flow()
                 self.assertEqual(1, collector.call_count)
             prepared = f.state.get("current_source_preparation", result["currentSourceRef"])["payload"]["result"]
             source_digest = prepared["sealedInputRef"]
             self.assertEqual([source_digest], reproduced)
-            self.assertEqual(["metadata", "--version", "--version"], [command[1] for command in commands])
+            self.assertEqual([
+                ["fixture-cargo.exe", "metadata", "--no-deps", "--format-version", "1", "--locked", "--offline"],
+                ["fixture-cargo.exe", "--version"],
+                ["fixture-rustc.exe", "--version", "--verbose"],
+            ], commands)
             evidence = f.state.get("sealed_cargo_evidence", source_digest)["payload"]
             sealed = f.state.get("sealed_input", source_digest)["payload"]
             self.assertEqual(source_digest, evidence["sourceDigest"])
@@ -433,10 +491,24 @@ class PreparedWorktreeFlowTests(unittest.TestCase):
             previous = f.state.get("sealed_cargo_evidence", source_digest)
             with patch.object(patches, "_verified_metadata_inputs",
                     return_value=(environment, policy, "fixture-cargo.exe", "fixture-rustc.exe")), \
-                    patch.object(patches, "collect_cargo_evidence",
+                    patch.object(helper, "_native_metadata_cargo_evidence",
                         side_effect=AssertionError("Existing evidence must retain original validation without collection")):
                 helper._ensure_prepared_flow_metadata(f.state, f.repo, intent, sealed)
             self.assertEqual(previous, f.state.get("sealed_cargo_evidence", source_digest))
+            # A nonempty run is verified exactly; it must never repair a missing input.
+            helper._native_metadata_materialize(sealed["sourceManifest"], f.cas, workspace)
+            lock = workspace / "Cargo.lock"
+            retained_lock = lock.read_bytes()
+            lock.unlink()
+            try:
+                with self.assertRaises(JenkinsError) as rejected:
+                    helper._native_metadata_materialize(sealed["sourceManifest"], f.cas, workspace)
+                self.assertEqual("materialize_digest_mismatch", rejected.exception.code)
+                self.assertFalse(lock.exists())
+                self.assertEqual(previous, f.state.get("sealed_cargo_evidence", source_digest))
+                self.assertEqual(3, len(commands))
+            finally:
+                lock.write_bytes(retained_lock)
 
 
     @contextmanager

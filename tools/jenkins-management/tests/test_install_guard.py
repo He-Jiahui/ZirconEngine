@@ -69,11 +69,12 @@ class ActiveUpdateFixture:
         before_helper = after_helper = b"# synthetic preparation fixture\n"
         if adoption or prepared_flow:
             # Historical fixtures retain their authenticated release when canonical advances.
-            historical = ROOT / ".jenkins/runtime/management/93e0e51ed1df87d12b3697931ca53282aa1a426cee23463abc32a67915b9bc46"
+            history_root = Path("E:/Git/ZirconEngine")
+            historical = history_root / ".jenkins/runtime/management/93e0e51ed1df87d12b3697931ca53282aa1a426cee23463abc32a67915b9bc46"
             history_raw = (historical / "capsule.json").read_bytes()
             assert checksum(history_raw) == "93e0e51ed1df87d12b3697931ca53282aa1a426cee23463abc32a67915b9bc46"
             history = json.loads(history_raw)
-            assert history["repositoryRoot"] == str(ROOT)
+            assert history["repositoryRoot"] == str(history_root)
             assert history["files"]["source_preparation.py"] == guard.PREPARED_FLOW_HELPER_AFTER
             assert history["files"]["runner.py"] == guard.PREPARED_FLOW_RUNNER_AFTER
             actual_helper = (historical / "source_preparation.py").read_bytes()
@@ -90,7 +91,14 @@ class ActiveUpdateFixture:
                 b'    if previous and previous["sourceDigest"] == sealed["sealedInputRef"]:\r\n', start)
             before_helper = after_helper[:start] + inventory + after_helper[finish:]
             assert checksum(before_helper) == "bf6130945bc342a820e12f1597ca2c2b031b30ffa45585f9a55213dddaccc2b4"
-            addon = (ROOT / "tools/jenkins-management/checkout-commit.groovy").read_bytes()
+            # Read the retained CPS prefix instead of today's mutable addon.
+            historical_build = history_root / ".jenkins/jenkins_home/jobs/zircon-management/builds/67/build.xml"
+            build_raw = historical_build.read_bytes()
+            assert checksum(build_raw) == "e2e666a1580c40c9cc5e482c8c9da03c6678ef15e53f72f4b66475c8b9dc270c"
+            historical_script = ET.fromstring(build_raw).findtext("./execution/script")
+            prefix, marker, _ = historical_script.partition("// END ZIRCON SCOPED CHECKOUT COMMIT")
+            assert prefix.startswith("// BEGIN ZIRCON SCOPED CHECKOUT COMMIT\n") and marker
+            addon = (prefix + marker + "\n").encode("utf-8")
             assert checksum(addon) == "59ae711879085d0f7a36f90216def9eac04538fc46d75eb1a3b97b61441277bc"
             self.write(self.repo / "tools/jenkins-management/checkout-commit.groovy", addon)
         if prepared_flow:

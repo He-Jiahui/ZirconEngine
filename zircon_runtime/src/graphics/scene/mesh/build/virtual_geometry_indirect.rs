@@ -140,7 +140,14 @@ pub(super) fn build_virtual_geometry_indirect_draw_plan(
     );
 
     VirtualGeometryIndirectDrawPlan {
-        segment_count: saturated_u32_len(indirect_inputs.segments.len()),
+        segment_count: saturated_u32_len(
+            draw_segments
+                .iter()
+                .flatten()
+                .map(RenderVirtualGeometryExecutionIdentity::from_segment)
+                .collect::<std::collections::HashSet<_>>()
+                .len(),
+        ),
         args_count: saturated_u32_len(indirect_inputs.args.len()),
         args_buffer: Some(args_buffer),
         submission_buffer: Some(submission_buffer),
@@ -263,8 +270,8 @@ fn build_indirect_inputs_with_sources(
         let Some(segment) = segment else {
             continue;
         };
-        let draw_ref_index = u32::try_from(args.len()).ok()?;
-        let args_offset = u64::from(draw_ref_index) * indirect_args_stride;
+        let draw_ref_index = u32::try_from(draw_index).ok()?;
+        let args_offset = u64::try_from(args.len()).ok()? * indirect_args_stride;
         let submission_index = segment.submission_index.unwrap_or(draw_ref_index);
         let mut captured = sources
             .iter()

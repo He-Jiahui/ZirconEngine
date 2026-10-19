@@ -81,7 +81,7 @@ fn gather() {
         }
         result.words[0]=count;return;
     }
-    if params.kind > 2u || params.mode > 1u || params.authority_stride != 14u
+    if (params.kind > 2u && params.kind != 5u) || params.mode > 1u || params.authority_stride != 14u
         || arrayLength(&first.words) == 0u
     { reject(); return; }
     let count = first.words[0];
@@ -92,6 +92,7 @@ fn gather() {
     var stride = 5u;
     if params.kind == 1u { stride = 1u; }
     if params.kind == 2u { stride = 6u; }
+    if params.kind == 5u { stride = 14u; }
     if params.output_capacity > (arrayLength(&result.words) - 1u) / stride {
         reject(); return;
     }
@@ -123,7 +124,11 @@ fn gather() {
         let packed_token = (min(submission_index, 65535u) << 16u) | min(draw_ref_rank, 65535u);
         if token != packed_token { reject(); return; }
         let out = 1u + written * stride;
-        if params.kind == 1u {
+        if params.kind == 5u {
+            for (var word = 0u; word < 14u; word = word + 1u) {
+                result.words[out + word] = authority.words[a + word];
+            }
+        } else if params.kind == 1u {
             result.words[out] = authority.words[a + 6u];
         } else {
             var base = out;

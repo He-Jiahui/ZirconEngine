@@ -75,7 +75,7 @@ impl UiTextPaint {
             text_effects: UiTextDistanceFieldEffects::default(),
             text_decorations: UiTextDecorations::default(),
             overflow: shaped.overflow,
-            shaped: UiTextShapeArtifact::Canonical(shaped),
+            shaped: UiTextShapeArtifact::Canonical(Box::new(shaped)),
             selection: None,
             caret: None,
             composition: None,
@@ -94,14 +94,14 @@ impl UiTextPaint {
 pub enum UiTextShapeArtifact {
     #[default]
     Unavailable,
-    Canonical(UiShapedText),
+    Canonical(Box<UiShapedText>),
 }
 
 impl UiTextShapeArtifact {
     pub fn canonical(&self) -> Option<&UiShapedText> {
         match self {
             Self::Unavailable => None,
-            Self::Canonical(shaped) => Some(shaped),
+            Self::Canonical(shaped) => Some(shaped.as_ref()),
         }
     }
 }

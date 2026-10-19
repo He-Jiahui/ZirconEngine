@@ -142,6 +142,17 @@ members = [
 ]
 resolver = "2"
 
+# Profiles on path dependencies are ignored by Cargo. Keep this independent
+# workspace aligned with the engine: retain incremental work for edited engine
+# crates without generating full symbols for every plugin and dependency.
+[profile.dev]
+debug = 0
+incremental = false
+
+[profile.test]
+debug = 0
+incremental = false
+
 [profile.profiling]
 inherits = "release"
 debug = true

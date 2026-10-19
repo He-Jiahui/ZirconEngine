@@ -1,4 +1,5 @@
 //! 性能热点的结构守卫核对拥有者、文件预算和证据文档。通过源码文本核对父子路由、状态镜像和文件预算。
+use crate::tests::runtime_absorption::structure_convention::fixed_history_archive_source as history;
 pub(super) struct SplitLayoutSources {
     pub(super) parent: &'static str,
     pub(super) scene_asset: &'static str,
@@ -28,9 +29,7 @@ impl SplitLayoutSources {
             source_inventory: include_str!(
                 "../../../../../.codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/performance_hotpath_source_inventory.py"
             ),
-            runtime_07_archive: include_str!(
-                "../../../../../docs/plans/zircon_runtime/runtime/07/2026-07-09-runtime-performance-hotpath-output-records.md"
-            ),
+            runtime_07_archive: history("docs/plans/zircon_runtime/runtime/07/2026-07-09-runtime-performance-hotpath-output-records.md"),
         }
     }
 }

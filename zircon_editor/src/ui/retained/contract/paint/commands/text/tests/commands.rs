@@ -225,7 +225,7 @@ fn runless_shaped_text_paint() -> UiTextPaint {
         text_effects: Default::default(),
         text_decorations: Default::default(),
         overflow: UiTextOverflow::Clip,
-        shaped: UiTextShapeArtifact::Canonical(UiShapedText {
+        shaped: UiTextShapeArtifact::Canonical(Box::new(UiShapedText {
             source_text: "Name id".to_string(),
             source_range: text_range(0, 7),
             direction: UiTextDirection::LeftToRight,
@@ -279,7 +279,7 @@ fn runless_shaped_text_paint() -> UiTextPaint {
                     },
                 ],
             }],
-        }),
+        })),
         selection: None,
         caret: None,
         composition: None,
@@ -302,7 +302,7 @@ fn runless_fragmented_plain_shaped_text_paint() -> UiTextPaint {
         text_effects: Default::default(),
         text_decorations: Default::default(),
         overflow: UiTextOverflow::Ellipsis,
-        shaped: UiTextShapeArtifact::Canonical(UiShapedText {
+        shaped: UiTextShapeArtifact::Canonical(Box::new(UiShapedText {
             source_text: "folder-open-line.svg".to_string(),
             source_range: text_range(0, 20),
             direction: UiTextDirection::LeftToRight,
@@ -369,7 +369,7 @@ fn runless_fragmented_plain_shaped_text_paint() -> UiTextPaint {
                     },
                 ],
             }],
-        }),
+        })),
         selection: None,
         caret: None,
         composition: None,

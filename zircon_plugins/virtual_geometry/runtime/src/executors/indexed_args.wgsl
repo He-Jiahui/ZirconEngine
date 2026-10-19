@@ -24,15 +24,18 @@ fn cs_main(@builtin(global_invocation_id) id: vec3<u32>) {
     if source_count == 0u || source_count > 4096u || run_count > capacity
         || capacity > 65536u || arrayLength(&source_args) < 1u + source_count * 4u
         || arrayLength(&source_authority) < source_count * 14u
-        || arrayLength(&author) < 4u + source_count * 14u + run_count * 24u {
+        || arrayLength(&author) < 4u + source_count * 14u + run_count * 25u {
         status[slot] = 1u; return;
     }
-    let run = 4u + source_count * 14u + slot * 24u;
+    let run = 4u + source_count * 14u + slot * 25u;
     let row = author[run];
     if row >= source_count { status[slot] = 1u; return; }
     let identity = 4u + row * 14u;
+    if author[run + 10u] > 1u {status[slot] = 2u; return;}
+    let projected = author[run + 10u] == 1u;
     for (var k = 0u; k < 14u; k++) {
-        if author[run + 10u + k] != author[identity + k] {
+        if author[run + 11u + k] != author[identity + k] &&
+            !(projected && (k == 1u || k == 10u)) {
             status[slot] = 2u; return;
         }
     }
@@ -79,8 +82,12 @@ fn cs_main(@builtin(global_invocation_id) id: vec3<u32>) {
     }
     for (var k = 0u; k < 14u; k++) {
         sidecar[slot * 32u + k] = source_authority[authority + k];
-        sidecar[slot * 32u + 14u + k] = author[identity + k];
+        sidecar[slot * 32u + 14u + k] = author[run + 11u + k];
     }
+    // Only proven authored topology may project draw reference/rank; every
+    // other canonical authority field is retained byte for byte.
+    sidecar[slot * 32u + 6u] = author[run + 12u];
+    sidecar[slot * 32u + 9u] = author[run + 21u];
     sidecar[slot * 32u + 28u] = row;
     sidecar[slot * 32u + 29u] = source_authority[authority + 11u];
     sidecar[slot * 32u + 30u] = author[run + 8u];

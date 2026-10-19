@@ -1227,6 +1227,76 @@ mod virtual_geometry_native_readback_tests {
         assert_eq!(slots.load(Ordering::Acquire), 0);
     }
 
+    fn rejected_native_decode(inspection: bool) {
+        let backend = crate::graphics::backend::RenderBackend::new_offscreen().unwrap();
+        let budget = VirtualGeometryReadbackBudget::new();
+        let slots = Arc::new(AtomicUsize::new(0));
+        let scope = budget
+            .scope(
+                crate::core::framework::render::RenderViewportHandle::new(19),
+                1,
+                1,
+                Arc::clone(&slots),
+            )
+            .unwrap();
+        let staging = backend.device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("vg-real-rejected-decode"),
+            size: 16,
+            usage: wgpu::BufferUsages::MAP_READ | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        });
+        let mut encoder = backend
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor::default());
+        encoder.clear_buffer(&staging, 0, None);
+        let ticket = backend
+            .submit_graphics_command_buffers(vec![encoder.finish()])
+            .unwrap();
+        let error = if inspection {
+            "inspection rejected real mapped bytes"
+        } else {
+            "terminal rejected real mapped bytes"
+        };
+        let credit = scope.try_acquire_credit(16).unwrap();
+        let packet = VirtualGeometryNativeReadbackPacket {
+            scope, epoch: RenderPassDeviceEpoch::from_profile(backend.device_profile()),
+            staging, range: 0..16, credit,
+            native_probe: None,
+            decoder: Box::new(move |mapped| {
+                assert_eq!(mapped, &[0_u8; 16]);
+                if inspection { Ok(Default::default()) } else { Err(error.into()) }
+            }),
+            inspection_decoder: inspection.then(|| {
+                Box::new(move |mapped: &[u8], _: &crate::core::framework::render::RenderVirtualGeometryReadbackOutputs| {
+                    assert_eq!(mapped, &[0_u8; 16]);
+                    Err(error.to_owned())
+                }) as VirtualGeometryNativeInspectionDecoder<crate::core::framework::render::RenderVirtualGeometryReadbackOutputs>
+            }),
+        };
+        let mut owner = packet.bind_ticket(ticket);
+        backend
+            .device
+            .poll(wgpu::PollType::wait_indefinitely())
+            .unwrap();
+        owner.observe_status(Some(crate::rhi::SubmissionStatus::Completed));
+        match owner.take_ready() {
+            Some(Err(actual)) => assert_eq!(actual, error),
+            _ => panic!("actual successful map must preserve decoder rejection"),
+        }
+        assert_eq!(budget.live_bytes.load(Ordering::Acquire), 0);
+        assert_eq!(slots.load(Ordering::Acquire), 0);
+    }
+
+    #[test]
+    fn native_terminal_decoder_error_survives_actual_map_and_releases_credit() {
+        rejected_native_decode(false);
+    }
+
+    #[test]
+    fn native_inspection_decoder_error_survives_actual_map_and_releases_credit() {
+        rejected_native_decode(true);
+    }
+
     #[test]
     fn viewport_readback_cap_spans_histories_and_ready_credit() {
         let budget = VirtualGeometryReadbackBudget::new();
@@ -1266,6 +1336,13 @@ mod virtual_geometry_native_readback_tests {
 impl RenderPassGpuExecutionContext<'_> {
     /// Author topology and full identities from this frame's actual bound mesh plan.
     /// Visibility and live command counts remain GPU-produced.
+    pub fn virtual_geometry_indexed_empty_admission_is_proven(&self) -> bool {
+        self.resources
+            .virtual_geometry_indexed_plan
+            .as_ref()
+            .is_some_and(|plan| plan.empty_admission_is_proven())
+    }
+
     pub fn virtual_geometry_indexed_author_runs(
         &self,
     ) -> Option<&[crate::graphics::VirtualGeometryIndexedAuthorRun]> {

@@ -106,18 +106,12 @@ impl Drop for PendingAtomicWrite {
 
 fn write_and_sync(file: &mut File, bytes: &[u8], fault: AtomicWriteFault) -> io::Result<()> {
     if fault == AtomicWriteFault::Write {
-        return Err(io::Error::new(
-            io::ErrorKind::Other,
-            "injected atomic file write failure",
-        ));
+        return Err(io::Error::other("injected atomic file write failure"));
     }
     file.write_all(bytes)?;
     file.flush()?;
     if fault == AtomicWriteFault::Sync {
-        return Err(io::Error::new(
-            io::ErrorKind::Other,
-            "injected atomic file sync failure",
-        ));
+        return Err(io::Error::other("injected atomic file sync failure"));
     }
     file.sync_all()
 }
@@ -310,8 +304,7 @@ fn commit_replace(
 #[cfg(windows)]
 fn sync_windows_committed_file(path: &Path, fault: AtomicWriteFault) -> io::Result<()> {
     if fault == AtomicWriteFault::CommittedSync {
-        return Err(io::Error::new(
-            io::ErrorKind::Other,
+        return Err(io::Error::other(
             "injected atomic file committed-target sync failure",
         ));
     }
@@ -466,10 +459,7 @@ pub(super) fn create_backup_file_new(source: &Path, target: &Path) -> io::Result
 fn prepare_backup(source: &Path, backup: &Path, fault: AtomicWriteFault) -> io::Result<()> {
     create_backup_file_new(source, backup)?;
     let barrier = if should_fail_backup_sync(fault) {
-        Err(io::Error::new(
-            io::ErrorKind::Other,
-            "injected atomic file backup sync failure",
-        ))
+        Err(io::Error::other("injected atomic file backup sync failure"))
     } else {
         OpenOptions::new()
             .read(true)
@@ -482,7 +472,7 @@ fn prepare_backup(source: &Path, backup: &Path, fault: AtomicWriteFault) -> io::
 }
 
 fn injected_commit_error() -> io::Error {
-    io::Error::new(io::ErrorKind::Other, "injected atomic file commit failure")
+    io::Error::other("injected atomic file commit failure")
 }
 
 fn should_fail_before_commit(fault: AtomicWriteFault) -> bool {

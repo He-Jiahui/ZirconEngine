@@ -1,12 +1,13 @@
 //! 批处理保留重叠绘制的画家顺序，仅把互不依赖的图元并入同层以减少绘制调用。
+#[cfg(test)]
+use super::geometry::draw_items;
 use std::collections::BTreeMap;
 use std::ops::Index;
 use std::sync::Arc;
 
 use super::geometry::{
-    damage_with_analytic_coverage, draw_items, draw_items_with_stats,
-    full_projection_draw_items_with_stats, DrawItem, ImageVertex, SolidGeometry, SolidInstance,
-    SolidVertex, UI_QUAD_VERTEX_COUNT,
+    damage_with_analytic_coverage, draw_items_with_stats, full_projection_draw_items_with_stats,
+    DrawItem, ImageVertex, SolidGeometry, SolidInstance, SolidVertex, UI_QUAD_VERTEX_COUNT,
 };
 use zr_rhi::{
     UiSurfaceDrawList, UiSurfacePresentStats, UiSurfacePresentStatsAccumulator, UiSurfaceRect,
@@ -93,6 +94,7 @@ pub(super) struct DrawOpSelection<'a> {
 }
 
 impl DrawOpSelection<'_> {
+    #[cfg(test)]
     pub(super) fn len(&self) -> usize {
         self.op_indices.len()
     }
@@ -278,6 +280,7 @@ impl CompiledUiBatchPlanCache {
     }
 }
 
+#[cfg(test)]
 pub(super) fn batch_draw_plan(draw_list: &UiSurfaceDrawList) -> BatchDrawPlan {
     batch_draw_plan_from_items(draw_items(draw_list))
 }

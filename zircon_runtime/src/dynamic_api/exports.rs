@@ -13,13 +13,13 @@ use zircon_runtime_interface::{
 };
 
 use super::session::{
-    bind_viewport_surface, cancel_viewport_pick, capture_accessibility_tree, capture_frame,
-    configure_app_session, create_session, destroy_session, drain_host_requests,
-    drain_plugin_events, drain_world_invalidations, handle_event, harvest_operation,
-    poll_operation, poll_viewport_pick, present_viewport, profile_control, query_world,
-    release_allocation, request_viewport_pick, submit_highlight_set, submit_operation,
-    subscribe_plugin_event, tick_frame, unbind_viewport_surface, unsubscribe_plugin_event,
-    unwatch_world, watch_world,
+    bind_viewport_surface, bind_viewport_surface_v2, cancel_viewport_pick,
+    capture_accessibility_tree, capture_frame, configure_app_session, create_session,
+    destroy_session, drain_host_requests, drain_plugin_events, drain_world_invalidations,
+    handle_event, harvest_operation, poll_operation, poll_viewport_pick, present_viewport,
+    profile_control, query_world, release_allocation, request_viewport_pick, submit_highlight_set,
+    submit_operation, subscribe_plugin_event, tick_frame, unbind_viewport_surface,
+    unsubscribe_plugin_event, unwatch_world, watch_world,
 };
 
 static RUNTIME_API_V8: ZrRuntimeApiV8 = ZrRuntimeApiV8 {
@@ -103,6 +103,19 @@ pub unsafe extern "C" fn zircon_runtime_configure_app_session_v2(
     configuration: ZrRuntimeAppSessionConfigurationV2,
 ) -> ZrStatus {
     catch_ffi_panic(|| unsafe { configure_app_session(handle, configuration) })
+}
+
+/// Independently versioned surface-binding operation, outside the frozen V8 table.
+///
+/// # Safety
+/// The session and borrowed native target must satisfy the same lifetime contract as V1.
+#[no_mangle]
+pub unsafe extern "C" fn zircon_runtime_bind_viewport_surface_v2(
+    handle: ZrRuntimeSessionHandle,
+    request: zircon_runtime_interface::ZrRuntimeBindViewportSurfaceRequestV2,
+) -> ZrStatus {
+    // SAFETY: the ABI caller upholds the documented native-target lifetime through unbind/destroy.
+    catch_ffi_panic(|| unsafe { bind_viewport_surface_v2(handle, request) })
 }
 
 unsafe extern "C" fn destroy_session_ffi(handle: ZrRuntimeSessionHandle) -> ZrStatus {

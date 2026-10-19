@@ -50,12 +50,15 @@ pub(super) fn request_device_with_policy(
         experimental_features: wgpu::ExperimentalFeatures::disabled(),
     }))
     .map_err(|error| {
-        GraphicsError::DeviceRequest(RenderDeviceRequestFailure::new(
-            adapter_facts,
-            failure_feature_negotiation,
-            wgpu_device_limits(&requested_limits),
-            error.to_string(),
-        ))
+        GraphicsError::DeviceRequest(
+            RenderDeviceRequestFailure::new(
+                adapter_facts,
+                failure_feature_negotiation,
+                wgpu_device_limits(&requested_limits),
+                error.to_string(),
+            )
+            .into(),
+        )
     })?;
 
     Ok(RequestedDevice {

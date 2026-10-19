@@ -8,7 +8,6 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 /// 一次反射值验证的调用方配额，覆盖反射容器及嵌入的 JSON 子树；入口按信任边界选择上限，本类型不提供隐式默认值。
-
 ///
 /// # 使用时机与生命周期
 /// 由入口按信任边界创建，再按值传给 [crate::reflect::ReflectedValue::validate_with_budget]；本类型实现 Copy，不持有借用。
@@ -46,7 +45,6 @@ impl ReflectValueBudget {
     ///
     /// # 约束
     /// 本构造器不验证或收窄上限；包括零值在内的 usize 参数都会原样保存。
-
     pub const fn new(
         max_depth: usize,
         max_nodes: usize,
@@ -65,7 +63,6 @@ impl ReflectValueBudget {
     ///
     /// # 返回值
     /// 返回此配额保存的 max_depth 原值。
-
     pub const fn max_depth(self) -> usize {
         self.max_depth
     }
@@ -74,7 +71,6 @@ impl ReflectValueBudget {
     ///
     /// # 返回值
     /// 返回此配额保存的 max_nodes 原值。
-
     pub const fn max_nodes(self) -> usize {
         self.max_nodes
     }
@@ -83,7 +79,6 @@ impl ReflectValueBudget {
     ///
     /// # 返回值
     /// 返回此配额保存的 max_string_bytes 原值。
-
     pub const fn max_string_bytes(self) -> usize {
         self.max_string_bytes
     }
@@ -92,7 +87,6 @@ impl ReflectValueBudget {
     ///
     /// # 返回值
     /// 返回此配额保存的 max_container_entries 原值。
-
     pub const fn max_container_entries(self) -> usize {
         self.max_container_entries
     }

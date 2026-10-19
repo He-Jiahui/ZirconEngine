@@ -62,6 +62,21 @@ impl UiSurface {
             (_, None) => UiPointerRoutingPath::ExplicitRootToLeaf(Vec::new()),
         };
 
+        let target_is_pass = target.is_some_and(|id| {
+            self.tree
+                .nodes
+                .get(&id)
+                .is_some_and(|node| node.is_pointer_passthrough())
+        });
+        let action_path = if captured.is_none() && target_is_pass {
+            Some(self.pointer_action_ancestors(target)?)
+        } else {
+            None
+        };
+        let action_target = match &action_path {
+            Some(path) => path.first().copied(),
+            None => target,
+        };
         let (entered, left) = if hit.stacked == self.focus.hovered {
             (Vec::new(), Vec::new())
         } else {
@@ -80,16 +95,22 @@ impl UiSurface {
         };
         if matches!(kind, UiPointerEventKind::Down) {
             if activation_matches {
-                self.focus.pressed = target;
-                self.input.record_pointer_press(target, button);
+                self.focus.pressed = action_target;
+                self.input.record_pointer_press(action_target, button);
             }
-            if let Some(focus_target) = self
-                .tree
-                .first_focusable_in_route_iter(
+            let focus_target = if let Some(path) = &action_path {
+                path.first().copied().filter(|id| {
+                    self.tree
+                        .nodes
+                        .get(id)
+                        .is_some_and(|node| node.is_focus_candidate())
+                })
+            } else {
+                self.tree.first_focusable_in_route_iter(
                     routing_path.root_to_leaf(&hit.path).iter().rev().copied(),
                 )?
-                .filter(|focus_target| is_valid_input_owner(self, *focus_target))
-            {
+            };
+            if let Some(focus_target) = focus_target.filter(|id| is_valid_input_owner(self, *id)) {
                 self.focus_node_with_reason(
                     focus_target,
                     UiFocusChangeReason::Input,
@@ -100,8 +121,25 @@ impl UiSurface {
         let click_target = if matches!(kind, UiPointerEventKind::Up)
             && button == Some(UiPointerButton::Primary)
             && activation_matches
-            && previous_pressed.is_some_and(|node_id| hit.stacked.contains(&node_id))
-        {
+            && previous_pressed.is_some_and(|node_id| {
+                self.tree
+                    .nodes
+                    .get(&node_id)
+                    .is_some_and(|node| node.state_flags.clickable)
+            })
+            && previous_pressed.is_some_and(|node_id| {
+                hit.stacked.contains(&node_id)
+                    || (captured.is_none()
+                        && hit.top_hit.is_some_and(|hit| {
+                            self.tree
+                                .nodes
+                                .get(&hit)
+                                .is_some_and(|node| node.is_pointer_passthrough())
+                        })
+                        && action_path
+                            .as_ref()
+                            .is_some_and(|owners| owners.contains(&node_id)))
+            }) {
             previous_pressed
         } else {
             None
@@ -164,6 +202,86 @@ impl UiSurface {
             } else {
                 Vec::new()
             },
+        })
+    }
+}
+
+impl UiSurface {
+    // Real ancestors only; unrelated stacked hits are never default-action substitutes.
+    fn pointer_action_ancestors(
+        &self,
+        target: Option<UiNodeId>,
+    ) -> Result<Vec<UiNodeId>, UiTreeError> {
+        let mut owners = Vec::new();
+        if let Some(target) = target {
+            for owner in self.tree.bubble_route(target)? {
+                let node = self
+                    .tree
+                    .nodes
+                    .get(&owner)
+                    .ok_or(UiTreeError::MissingNode(owner))?;
+                if !node.is_pointer_passthrough() {
+                    if is_valid_input_owner(self, owner) {
+                        owners.push(owner);
+                    }
+                    break;
+                }
+            }
+        }
+        Ok(owners)
+    }
+
+    pub(crate) fn pointer_default_action_route<'a>(
+        &self,
+        route: &'a UiPointerRoute,
+        explicit_stop: bool,
+    ) -> Result<std::borrow::Cow<'a, UiPointerRoute>, UiTreeError> {
+        if route.captured.is_some() {
+            return Ok(std::borrow::Cow::Borrowed(route));
+        }
+        let target_is_pass = route.target.is_some_and(|id| {
+            self.tree
+                .nodes
+                .get(&id)
+                .is_some_and(|node| node.is_pointer_passthrough())
+        });
+        if !target_is_pass {
+            return Ok(std::borrow::Cow::Borrowed(route));
+        }
+        let mut action = route.clone();
+        let owners = if explicit_stop {
+            Vec::new()
+        } else {
+            self.pointer_action_ancestors(route.target)?
+        };
+        action.target = owners.first().copied();
+        action.routing_path = UiPointerRoutingPath::from_bubble_route(owners.clone());
+        action.stacked = owners;
+        action.root_targets.clear();
+        action.fallback_to_root = false;
+        if explicit_stop {
+            action.activation_phase = UiPointerActivationPhase::Hover;
+            action.pressed = None;
+            action.click_target = None;
+            action.release_inside_pressed = false;
+        }
+        Ok(std::borrow::Cow::Owned(action))
+    }
+
+    pub(crate) fn pointer_explicitly_stopped(result: &UiPointerDispatchResult) -> bool {
+        use zircon_runtime_interface::ui::dispatch::{UiDispatchPhase, UiPointerDispatchEffect};
+        result.invocations.iter().any(|invocation| {
+            matches!(
+                invocation.effect,
+                UiPointerDispatchEffect::CapturePointer
+                    | UiPointerDispatchEffect::ReleasePointerCapture
+                    | UiPointerDispatchEffect::SetFocus
+                    | UiPointerDispatchEffect::ClearFocus
+            ) || (invocation.phase == UiDispatchPhase::PreviewTunnel
+                && matches!(
+                    invocation.effect,
+                    UiPointerDispatchEffect::Handled | UiPointerDispatchEffect::Blocked
+                ))
         })
     }
 }

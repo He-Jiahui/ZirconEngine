@@ -11,6 +11,7 @@ pub(super) fn page_id(page: &MainPageSnapshot) -> &MainPageId {
 
 pub(super) fn page_title(page: &MainPageSnapshot) -> &str {
     match page {
+        MainPageSnapshot::Workbench { title, .. } if title.as_str() == "Workbench" => "Level Editor",
         MainPageSnapshot::Workbench { title, .. } | MainPageSnapshot::Exclusive { title, .. } => {
             title
         }

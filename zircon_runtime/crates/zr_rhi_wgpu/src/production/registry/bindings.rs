@@ -77,7 +77,12 @@ impl WgpuResourceRegistry {
             .ok_or(RhiError::UnknownBindGroupLayout(handle.diagnostic_id()))?;
         self.handles.release_bind_group_layout(handle)?;
         let last_uses = std::mem::take(&mut resource.last_uses);
-        self.retire_native(WgpuRetiredResource::BindGroupLayout(resource), last_uses);
+        self.retire_native(
+            WgpuRetiredResource::BindGroupLayout {
+                _resource: resource,
+            },
+            last_uses,
+        );
         Ok(())
     }
 
@@ -95,7 +100,7 @@ impl WgpuResourceRegistry {
                 .map(|entry| {
                     super::super::binding::wgpu_bind_group_entry(
                         self,
-                        entry.resource.clone(),
+                        entry.resource,
                         entry.binding,
                     )
                 })
@@ -145,7 +150,12 @@ impl WgpuResourceRegistry {
             .ok_or(RhiError::UnknownBindGroup(handle.diagnostic_id()))?;
         self.handles.release_bind_group(handle)?;
         let last_uses = std::mem::take(&mut resource.last_uses);
-        self.retire_native(WgpuRetiredResource::BindGroup(resource), last_uses);
+        self.retire_native(
+            WgpuRetiredResource::BindGroup {
+                _resource: resource,
+            },
+            last_uses,
+        );
         Ok(())
     }
 }
@@ -193,7 +203,7 @@ impl BindGroupResourceLookup for WgpuResourceRegistry {
 }
 
 fn wgpu_bind_group_layout_entry(
-    desc: &BindGroupLayoutDesc,
+    _desc: &BindGroupLayoutDesc,
     entry: &BindGroupLayoutEntryDesc,
 ) -> Result<wgpu::BindGroupLayoutEntry, RhiError> {
     let ty = match entry.resource_type {

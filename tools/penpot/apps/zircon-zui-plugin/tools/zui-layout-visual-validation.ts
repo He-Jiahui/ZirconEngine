@@ -1,17 +1,21 @@
-import { resolveLayoutCatalogPath } from './zui-layout-paths';
-import { runRealPenpotPersistence } from './zui-layout-real-session';
+import {
+  assertLayoutCurrentRoots, createLayoutCurrentContext,
+  layoutCurrentSourcePath, layoutCurrentOutputPath, type LayoutCurrentContext,
+} from './zui-layout-paths';
 import assert from 'node:assert/strict';
 import {
   capturePenpotCases,
   evidenceAfterPenpotFailure,
   penpotCasesComplete,
+  penpotScreenshotPathForCase,
 } from './zui-layout-penpot-cases';
 import { clickAndWaitForDownload, downloadPath } from './zui-layout-download';
 import { createHash } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import { readFile, writeFile } from 'node:fs/promises';
-import { dirname, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { dirname, isAbsolute, resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
+import { requireApprovedPenpotArtifactFile } from './zui-layout-artifact-path';
 
 import {
   chromium,
@@ -40,7 +44,6 @@ import {
 } from './zui-layout-penpot-session';
 import {
   bytesSha256,
-  containedPath,
   currentDualReview,
 } from './zui-layout-evidence';
 import { structuralShellPendingReason } from './zui-layout-structural-shell';
@@ -64,14 +67,6 @@ import {
   mergeCheckpointReviews,
 } from './zui-layout-review-history';
 
-const here = dirname(fileURLToPath(import.meta.url));
-const appRoot = resolve(here, '..');
-const penpotRoot = resolve(appRoot, '../../../../third_party/penpot');
-const repoRoot = resolve(process.env['ZUI_LAYOUT_REPO_ROOT'] ?? resolve(penpotRoot, '../..'));
-const pluginDistRoot = resolvePluginDistRoot();
-const catalogRoot = resolve(repoRoot, 'docs/_data/layout');
-const catalogPath = resolveLayoutCatalogPath(catalogRoot, 'catalog.json');
-const summaryPath = resolveLayoutCatalogPath(catalogRoot, 'visual-validation.json');
 const validationProfile = 'zircon.penpot.prefabs.v1';
 const penpotBaseUrl = new URL(
   process.env['PENPOT_BASE_URL'] ?? 'https://design.penpot.app',
@@ -139,26 +134,79 @@ async function main(): Promise<void> {
   const args = process.argv.slice(2);
   if (args.includes('--real')) {
     assert.ok(!args.includes('--check'), 'Real persistence verification requires actual evidence output.');
+    const { runRealPenpotPersistence } = await import('./zui-layout-real-session');
     await runRealPenpotPersistence();
     return;
   }
+  await runCurrentVisualValidation(args);
+}
+
+/** Actual mock CLI entry: current source and output are explicit independent roles. */
+export async function runCurrentVisualValidation(args: string[]): Promise<void> {
+  const context = createLayoutCurrentContext();
+  await readCurrentVisualManifest(context);
   const writeEvidence = !args.includes('--check');
   const lock = writeEvidence
-    ? await acquireLayoutCatalogLock(catalogRoot, {
+    ? await acquireLayoutCatalogLock(context.outputRoot, {
         command: ['zui-layout-visual-validation.ts', ...args].join(' '),
+        context,
       })
     : undefined;
   try {
-    await runVisualValidation(args, writeEvidence);
+    // Revalidate the same physical roots and manifest after acquiring the writer lock.
+    const manifest = await readCurrentVisualManifest(context);
+    await runVisualValidation(args, writeEvidence, context, manifest);
   } finally {
     await lock?.release();
   }
 }
 
+async function readCurrentVisualManifest(context: LayoutCurrentContext): Promise<CatalogManifest> {
+  const manifest = JSON.parse(await readFile(
+    layoutCurrentOutputPath(context, 'catalog.json'), 'utf8',
+  )) as CatalogManifest & { role?: string; historical_only?: boolean };
+  if (manifest.schema !== 'dev.zircon.zui.layout-catalog' || manifest.version !== 1 ||
+      manifest.historical_only || (manifest.role && manifest.role !== 'current') ||
+      !Array.isArray(manifest.entries))
+    throw new Error('Historical or package catalog cannot seed current visual validation');
+  assertLayoutCurrentRoots(context, manifest.repoRoot, context.outputRoot);
+  for (const entry of manifest.entries) {
+    layoutCurrentSourcePath(context, entry.sourcePath);
+    for (const dependency of entry.dependencyFingerprints ?? [])
+      layoutCurrentSourcePath(context, dependency.sourcePath);
+    for (const reviewCase of entry.cases ?? []) {
+      if (reviewCase.themeSourcePath) layoutCurrentSourcePath(context, reviewCase.themeSourcePath);
+      layoutCurrentOutputPath(context, penpotScreenshotPathForCase(entry, reviewCase));
+      for (const suffix of ['geometry.json', 'text.json', 'roundtrip.zui'])
+        layoutCurrentOutputPath(context,
+          `${entry.category}/${entry.name}/evidence/penpot-${reviewCase.id}.${suffix}`);
+    }
+    for (const path of [
+      entry.outputPath, entry.resultPath, entry.previewPath,
+      entry.penpotInputPath, entry.penpotPreviewPath,
+      ...(entry.cases ?? []).map((item) => item.reviewHost?.path),
+      ...[...(entry.penpotEvidence ?? []), ...(entry.engineEvidence ?? [])]
+        .flatMap((item) => [item.screenshotPath, item.geometryPath, item.textPath]),
+    ]) if (path) layoutCurrentOutputPath(context, path);
+    for (const item of [...(entry.penpotEvidence ?? []), ...(entry.engineEvidence ?? [])])
+      for (const [path] of item.captureProgramFingerprints ?? [])
+        if (isAbsolute(path)) requireApprovedPenpotArtifactFile(path, 'Capture program artifact');
+        else layoutCurrentSourcePath(context, path);
+  }
+  await assertCatalogSourcesCurrent(manifest.entries, context);
+  return manifest;
+}
+
 async function runVisualValidation(
   args: string[],
   writeEvidence: boolean,
+  currentContext: LayoutCurrentContext,
+  manifest: CatalogManifest,
 ): Promise<void> {
+  const repoRoot = currentContext.repoRoot;
+  const catalogRoot = currentContext.outputRoot;
+  const summaryPath = layoutCurrentOutputPath(currentContext, 'visual-validation.json');
+  const pluginDistRoot = resolvePluginDistRoot();
   const start = numberOption(args, '--start', 0);
   const limit = numberOption(args, '--limit', Number.POSITIVE_INFINITY);
   const workers = numberOption(args, '--workers', 1);
@@ -177,9 +225,6 @@ async function runVisualValidation(
       return [value];
     }),
   );
-  const manifest = JSON.parse(
-    await readFile(catalogPath, 'utf8'),
-  ) as CatalogManifest;
   const compiledPluginBundle = await readFile(resolvePluginBundlePath());
   const distPluginBundle = await readFile(
     resolve(pluginDistRoot, 'assets/plugin.js'),
@@ -203,8 +248,8 @@ async function runVisualValidation(
         archiveReview(entry);
         if (writeEvidence)
           await writeFile(
-            resolveLayoutCatalogPath(catalogRoot, entry.resultPath),
-            renderResult(entry),
+            layoutCurrentOutputPath(currentContext, entry.resultPath),
+            renderResult(entry, currentContext),
             'utf8',
           );
       }
@@ -218,7 +263,7 @@ async function runVisualValidation(
       (entry) => !args.includes('--pending') || entry.visualStatus !== 'passed',
     )
     .slice(start, start + limit);
-  await assertCatalogSourcesCurrent(entries);
+  await assertCatalogSourcesCurrent(entries, currentContext);
   const unexpectedRpcs = new Set<string>();
   const pageErrors: string[] = [];
   const browser = await chromium.launch({
@@ -234,7 +279,7 @@ async function runVisualValidation(
     async (value: {
       manifest: CatalogManifest;
       results: VisualValidationResult[];
-    }) => writeCheckpoint(value.manifest, value.results),
+    }) => writeCheckpoint(value.manifest, value.results, currentContext),
   );
   const publish = async (entry: CatalogManifest['entries'][number]) => {
     Object.assign(
@@ -249,6 +294,7 @@ async function runVisualValidation(
     openPenpotSession(browser, {
       repoRoot,
       catalogRoot,
+      currentContext,
       writeEvidence,
       penpotBaseUrl,
       pluginBundleSha256,
@@ -278,8 +324,8 @@ async function runVisualValidation(
             .filter((item) => !caseIds.size || caseIds.has(item.id))
             .map((item) => item.id),
         );
-        const absoluteZuiPath = resolveLayoutCatalogPath(
-          catalogRoot,
+        const absoluteZuiPath = layoutCurrentOutputPath(
+          currentContext,
           entry.penpotInputPath ?? entry.outputPath,
         );
         let importedAttempt = false;
@@ -388,6 +434,7 @@ async function runVisualValidation(
             entry,
             writeEvidence,
             catalogRoot,
+            currentContext,
             pluginBundleSha256,
             captureProgramFingerprints: programFingerprints,
             captureFontResources: () => fontResources.snapshot(),
@@ -549,10 +596,10 @@ async function runVisualValidation(
           if (!currentDualReview(entry)) archiveReview(entry);
           if (writeEvidence) {
             await writeFile(
-              resolveLayoutCatalogPath(catalogRoot, entry.resultPath),
+              layoutCurrentOutputPath(currentContext, entry.resultPath),
               result.status === 'passed'
-                ? renderAcceptedResult(entry)
-                : renderResult(entry),
+                ? renderAcceptedResult(entry, currentContext)
+                : renderResult(entry, currentContext),
               'utf8',
             );
             await publish(entry);
@@ -604,8 +651,8 @@ async function runVisualValidation(
           archiveReview(entry);
           if (writeEvidence) {
             await writeFile(
-              resolveLayoutCatalogPath(catalogRoot, entry.resultPath),
-              renderResult(entry),
+              layoutCurrentOutputPath(currentContext, entry.resultPath),
+              renderResult(entry, currentContext),
               'utf8',
             );
             await publish(entry);
@@ -614,8 +661,9 @@ async function runVisualValidation(
             if (writeEvidence)
               await recordPenpotSessionFailure(
                 runtime,
-                resolveLayoutCatalogPath(catalogRoot, dirname(entry.outputPath), 'evidence'),
+                layoutCurrentOutputPath(currentContext, `${dirname(entry.outputPath)}/evidence`),
                 error,
+                currentContext,
               );
             // A failed import may leave an active plugin operation behind.
             fontResources.stop();
@@ -728,9 +776,10 @@ async function requestReviewMaterialization(
 
 async function assertCatalogSourcesCurrent(
   entries: CatalogManifest['entries'],
+  currentContext: LayoutCurrentContext,
 ): Promise<void> {
   for (const entry of entries) {
-    const source = await readFile(containedPath(repoRoot, entry.sourcePath));
+    const source = await readFile(layoutCurrentSourcePath(currentContext, entry.sourcePath));
     assert.equal(
       bytesSha256(source),
       entry.sourceSha256,
@@ -742,10 +791,11 @@ async function assertCatalogSourcesCurrent(
 async function writeCheckpoint(
   manifest: CatalogManifest,
   currentResults: VisualValidationResult[],
+  currentContext: LayoutCurrentContext,
 ): Promise<void> {
-  const diskManifest = JSON.parse(
-    await readFile(catalogPath, 'utf8'),
-  ) as CatalogManifest;
+  const catalogPath = layoutCurrentOutputPath(currentContext, 'catalog.json');
+  const summaryPath = layoutCurrentOutputPath(currentContext, 'visual-validation.json');
+  const diskManifest = await readCurrentVisualManifest(currentContext);
   assertCheckpointSources(manifest, diskManifest);
   for (const entry of manifest.entries) {
     const diskEntry = diskManifest.entries.find(
@@ -845,8 +895,8 @@ async function writeCheckpoint(
     'utf8',
   );
   await writeFile(
-    resolveLayoutCatalogPath(catalogRoot, 'index.md'),
-    renderIndex(manifest),
+    layoutCurrentOutputPath(currentContext, 'index.md'),
+    renderIndex(manifest, currentContext),
     'utf8',
   );
 }
@@ -981,10 +1031,12 @@ function errorMessage(error: unknown): string {
     : String(error);
 }
 
-void main().catch((error: unknown) => {
-  console.error(compactErrorMessage(error));
-  process.exitCode = 1;
-});
+if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
+  void main().catch((error: unknown) => {
+    console.error(compactErrorMessage(error));
+    process.exitCode = 1;
+  });
+}
 
 function compactErrorMessage(error: unknown, maxLength = 1600): string {
   const message = errorMessage(error);

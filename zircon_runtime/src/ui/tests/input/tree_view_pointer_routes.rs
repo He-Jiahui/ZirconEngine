@@ -150,6 +150,7 @@ multiSelect = true
                     attributes: tree_attributes,
                     bindings: vec![
                         binding("SceneTree/SelectOption", UiEventKind::Change),
+                        binding("SceneTree/SetVisibleRange", UiEventKind::Change),
                         binding("SceneTree/KeyboardAction", UiEventKind::Change),
                         binding("SceneTree/BeginDrag", UiEventKind::DragBegin),
                         binding("SceneTree/EndDrag", UiEventKind::DragEnd),

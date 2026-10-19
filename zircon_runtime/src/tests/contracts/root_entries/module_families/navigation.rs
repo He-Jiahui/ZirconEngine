@@ -1,121 +1,36 @@
 #[test]
 fn runtime_navigation_boundary_file_set_requires_doc_update() {
-    let manifest_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
-    let navigation_dir = manifest_dir.join("src").join("navigation");
-    let actual_entries = std::fs::read_dir(&navigation_dir)
-        .unwrap_or_else(|error| panic!("failed to read {}: {error}", navigation_dir.display()))
-        .map(|entry| {
-            entry
-                .unwrap_or_else(|error| panic!("failed to read navigation entry: {error}"))
-                .file_name()
-                .into_string()
-                .unwrap_or_else(|name| panic!("non-utf8 navigation entry name: {name:?}"))
-        })
-        .collect::<std::collections::BTreeSet<_>>();
-    let expected_entries = [
-        "mod.rs",
-        "module.rs",
-        "operation",
-        "repath_budget.rs",
-        "runtime",
-        "runtime.rs",
-    ]
-    .into_iter()
-    .map(String::from)
-    .collect::<std::collections::BTreeSet<_>>();
-
-    assert_eq!(
-        actual_entries, expected_entries,
-        "runtime navigation fallback changed root file shape; update docs/zircon_runtime/navigation/runtime.md and Runtime 14 before adding behavior files"
-    );
-
-    let runtime_dir = navigation_dir.join("runtime");
-    let actual_runtime_entries = std::fs::read_dir(&runtime_dir)
-        .unwrap_or_else(|error| panic!("failed to read {}: {error}", runtime_dir.display()))
-        .map(|entry| {
-            entry
-                .unwrap_or_else(|error| panic!("failed to read navigation runtime entry: {error}"))
-                .file_name()
-                .into_string()
-                .unwrap_or_else(|name| panic!("non-utf8 navigation runtime entry name: {name:?}"))
-        })
-        .collect::<std::collections::BTreeSet<_>>();
-    let expected_runtime_entries = [
-        "avoidance.rs",
-        "baked_mesh",
-        "baked_mesh.rs",
-        "math.rs",
-        "state",
-        "state.rs",
-        "tests.rs",
-        "world_scan",
-        "world_scan.rs",
-    ]
-    .into_iter()
-    .map(String::from)
-    .collect::<std::collections::BTreeSet<_>>();
-
-    assert_eq!(
-        actual_runtime_entries, expected_runtime_entries,
-        "runtime navigation fallback changed owner modules; update docs/zircon_runtime/navigation/runtime.md and Runtime 14 before adding behavior files"
-    );
-
-    for (owner, expected_files) in [
-        ("baked_mesh", &["query_scratch.rs", "spatial_index.rs"][..]),
-        ("state", &["repath_entry_tests.rs"][..]),
-        ("world_scan", &["capacity_tests.rs"][..]),
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src/navigation");
+    super::navigation_inventory::assert_navigation_inventory(&root);
+    let registration = include_str!("../../../../navigation/operation/registration.rs");
+    assert!(registration.contains("#[path = \"history_retention.rs\"]"));
+    assert!(registration.contains("pub(super) mod history_retention;"));
+    let handler = include_str!("../../../../navigation/operation/handler.rs");
+    assert!(handler.contains("#[cfg(test)]"));
+    assert!(handler.contains("#[path = \"tests/handler.rs\"]"));
+    assert!(handler.contains("super::registration::history_retention::preflight_snapshots("));
+    assert!(handler.contains("super::registration::history_retention::certify_result("));
+    for current_doc in [
+        include_str!("../../../../../../docs/crates/zircon_runtime/navigation/runtime.md"),
+        include_str!("../../../../../../docs/architecture/runtime-root-surface-m1.md"),
     ] {
-        let owner_dir = runtime_dir.join(owner);
-        let actual_files = std::fs::read_dir(&owner_dir)
-            .unwrap_or_else(|error| panic!("failed to read {}: {error}", owner_dir.display()))
-            .map(|entry| {
-                entry
-                    .unwrap_or_else(|error| panic!("failed to read {owner} entry: {error}"))
-                    .file_name()
-                    .into_string()
-                    .unwrap_or_else(|name| panic!("non-utf8 {owner} entry name: {name:?}"))
-            })
-            .collect::<std::collections::BTreeSet<_>>();
-        let expected_files = expected_files
-            .iter()
-            .map(|file| String::from(*file))
-            .collect::<std::collections::BTreeSet<_>>();
-        assert_eq!(
-            actual_files, expected_files,
-            "runtime navigation {owner} changed owner modules; update docs/zircon_runtime/navigation/runtime.md and Runtime 14"
-        );
+        for owner in [
+            "operation/history_retention.rs",
+            "operation/tests/handler.rs",
+            "pre-publication history admission",
+        ] {
+            assert!(
+                current_doc.contains(owner),
+                "current navigation responsibility: {owner}"
+            );
+        }
     }
-
-    let operation_dir = navigation_dir.join("operation");
-    let actual_operation_entries = std::fs::read_dir(&operation_dir)
-        .unwrap_or_else(|error| panic!("failed to read {}: {error}", operation_dir.display()))
-        .map(|entry| {
-            entry
-                .unwrap_or_else(|error| {
-                    panic!("failed to read navigation operation entry: {error}")
-                })
-                .file_name()
-                .into_string()
-                .unwrap_or_else(|name| panic!("non-utf8 navigation operation entry name: {name:?}"))
-        })
-        .collect::<std::collections::BTreeSet<_>>();
-    let expected_operation_entries = ["handler.rs", "mod.rs", "registration.rs"]
-        .into_iter()
-        .map(String::from)
-        .collect::<std::collections::BTreeSet<_>>();
-
-    assert_eq!(
-        actual_operation_entries, expected_operation_entries,
-        "runtime navigation operation integration changed owner modules; update docs/zircon_runtime/navigation/runtime.md and Runtime 14 before adding behavior files"
-    );
-
     let module_source = include_str!("../../../../navigation/module.rs");
     assert!(
         module_source
             .contains("Built-in baked navmesh pathfinding and lightweight agent avoidance"),
         "navigation module descriptor should keep fallback runtime scope explicit"
     );
-
     let boundary_doc =
         include_str!("../../../../../../docs/crates/zircon_runtime/navigation/runtime.md");
     for required_anchor in [
@@ -130,9 +45,6 @@ fn runtime_navigation_boundary_file_set_requires_doc_update() {
         "zircon_plugins/navigation",
         "runtime_navigation_boundary_file_set_requires_doc_update",
     ] {
-        assert!(
-            boundary_doc.contains(required_anchor),
-            "navigation boundary doc should record `{required_anchor}`"
-        );
+        assert!(boundary_doc.contains(required_anchor), "{required_anchor}");
     }
 }

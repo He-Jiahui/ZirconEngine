@@ -61,7 +61,10 @@ pub use pipeline::{
 pub use pointer_button::PointerButton;
 pub use pointer_event::{PickingEventKind, PickingEventLabel, PickingPointerEvent};
 pub use pointer_event_state::PickingEventState;
-pub use pointer_hits::{hovered_hits_for_pointer, sorted_hits_for_pointer, PointerHits};
+pub use pointer_hits::{
+    hovered_hits_for_key, hovered_hits_for_pointer, sorted_hits_for_key, sorted_hits_for_pointer,
+    PickingDomain, PickingPointerKey, PointerHits,
+};
 pub use pointer_id::PointerId;
 pub use pointer_input::{PointerAction, PointerInput, PointerScrollUnit};
 pub use pointer_location::PointerLocation;
