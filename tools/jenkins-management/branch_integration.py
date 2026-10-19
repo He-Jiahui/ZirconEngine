@@ -739,7 +739,7 @@ def main(argv=None):
                     os.environ["ZR_COMMIT_NATIVE"] = "1"
                     with d.commit.git_lock(directory(ROOT) / ("operation-" + payload["operationId"] + ".lock")):
                         if os.environ.get("ZR_BRANCH_ACTION") == "check-branch-queue":
-                            validation = d.run_validation(ROOT, payload, names, d.OUTPUT / payload["operationId"] / "check-only", runtime)
+                            validation = d.run_validation(d.source_root(ROOT, payload), payload, names, d.OUTPUT / payload["operationId"] / "check-only", runtime)
                             result = {"status": "complete" if validation["status"] in {"passed", "skipped"} else "validation-failed",
                                       "validation": validation, "commitPerformed": False, "mainAdvanced": False}
                         else:
