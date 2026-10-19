@@ -229,7 +229,7 @@ def authorize(repo, payload, *, context=None, automatic=False, origin_session=No
     return relative
 
 
-def parse_cargo(arguments):
+def parse_cargo(arguments, *, enforce_policy=True):
     """Accept bounded Cargo options; reject every unrepresented argument."""
     args = list(arguments)
     require(args and args[0] in {"check", "build", "test"}, "Only check/build/test have a Jenkins recipe")
@@ -320,6 +320,13 @@ def parse_cargo(arguments):
         recipe.setdefault("testThreads", 1)
     require(not (recipe["allFeatures"] and recipe["noDefaultFeatures"]),
             "--all-features cannot be combined with --no-default-features")
+    if enforce_policy:
+        require(recipe["noDefaultFeatures"] and not recipe["allFeatures"] and not recipe.get("allTests"),
+                "Compact builds require --no-default-features and explicit features; --all-features/--tests are prohibited",
+                "build_scope_policy")
+        require(recipe["verb"] != "test" or (recipe["lib"] and not recipe["tests"])
+                or (not recipe["lib"] and len(recipe["tests"]) == 1),
+                "Select --lib or exactly one --test target before compiling tests", "build_scope_policy")
     return recipe
 
 
@@ -869,7 +876,12 @@ def dispatch(repo, payload, *, identity=None, recipe=None, target_dir=None, buil
 
 def cargo_entry(repo, arguments, *, identity_file=None, target_dir=None, build_root=None,
                 query_only=False, dry_run=False, runtime_profile=None, unlocked=False):
-    recipe = parse_cargo(arguments)
+    scoped_arguments = list(arguments)
+    if runtime_profile and not query_only and "--no-default-features" not in scoped_arguments:
+        # A named runtime preset explicitly selects its own feature set.
+        require("--" not in scoped_arguments, "Runtime preset needs explicit --no-default-features before harness arguments")
+        scoped_arguments.append("--no-default-features")
+    recipe = parse_cargo(scoped_arguments, enforce_policy=not query_only)
     if unlocked:
         require("--locked" not in arguments, "Unlocked input conflicts with --locked")
         recipe["locked"] = False

@@ -257,7 +257,8 @@ def stage(d, repo, payload, *, policy, grants, runtime=None, check_runtime=lambd
             raise ValueError("No original ready worktree ownership matches this task; retain the source candidate")
         if runtime and not d.advisory_validation(policy) and owner.get("driverDigest") != runtime.get("driverDigest"):
             raise ValueError("Historical worktree owner belongs to another driver; reconcile its original operation before current-runtime adoption")
-        if not all(any(name == scope or name.startswith(scope.rstrip("/") + "/") for scope in owner.get("ownedPaths", [])) for name in paths):
+        if not all(any(name.casefold() == scope.casefold() or name.casefold().startswith(scope.rstrip("/").casefold() + "/")
+                       for scope in owner.get("ownedPaths", [])) for name in paths):
             raise ValueError("Task commit exceeds its original worktree ownership; reconcile the owner scope")
         record.update(sourceRoot=str(root), branch=text(d, root, "symbolic-ref", "--short", "HEAD"))
         with d.commit.git_lock(repo / ".jenkins/state/locks/management-git.lock"):
@@ -738,7 +739,7 @@ def main(argv=None):
                     os.environ["ZR_COMMIT_NATIVE"] = "1"
                     with d.commit.git_lock(directory(ROOT) / ("operation-" + payload["operationId"] + ".lock")):
                         if os.environ.get("ZR_BRANCH_ACTION") == "check-branch-queue":
-                            validation = d.run_validation(ROOT, payload, names, d.OUTPUT / payload["operationId"] / "check-only", runtime)
+                            validation = d.run_validation(d.source_root(ROOT, payload), payload, names, d.OUTPUT / payload["operationId"] / "check-only", runtime)
                             result = {"status": "complete" if validation["status"] in {"passed", "skipped"} else "validation-failed",
                                       "validation": validation, "commitPerformed": False, "mainAdvanced": False}
                         else:

@@ -485,6 +485,18 @@ def main():
     finally:
         result['finishedAt'] = time.time()
         save(output / 'summary.json', result)
+        manifest = json.loads((output / 'artifacts.json').read_text(encoding='utf-8'))
+        stage = result.get('compaction', {})
+        manifest.update(status=('needs-review' if stage.get('status') not in
+                        {'pressure-relieved', 'enough-free-space', 'dry-run'} else 'delivered')
+                        if result.get('nativeComplete') and result.get('exitCode') == 0 else 'failed',
+                        nativeComplete=result.get('nativeComplete', False),
+                        activeOwnedProcesses=[] if result.get('nativeComplete') else ['native outcome needs reconciliation'],
+                        temporaryFixturesRemain=(output / 'fixture').exists(),
+                        cacheFilesDeleted=0,
+                        physicalAllocationReclaimedBytes=stage.get('allocationReclaimedBytes', 0),
+                        finishedAt=result['finishedAt'], globalCleanupComplete=False)
+        save(output / 'artifacts.json', manifest)
     print(json.dumps(result))
     return 0 if result['status'] == 'passed' else 1
 

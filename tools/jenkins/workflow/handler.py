@@ -1130,9 +1130,20 @@ def handle(action: str, payload: dict, state: State, repo_root: Path, *, domain:
         record = state.get("execution", execution) if isinstance(execution, str) else None
         if record is None:
             raise JenkinsError("execution_not_found", "execution is not registered")
-        proof = record["payload"].get("terminalProof")
-        if not isinstance(proof, dict) or not proof.get("complete"):
+        workflow = state.get("workflow", key)
+        if (workflow is None or workflow["payload"].get("executionId") != execution
+                or (payload.get("recipeRef") is not None
+                    and payload["recipeRef"] != record["payload"].get("recipeRef"))):
+            raise JenkinsError("execution_identity_mismatch", "Finalization must retain the exact workflow execution")
+        from .execution import ExecutionEngine
+        # Reconcile only an existing execution. Finalization must never launch
+        # pending work, and must retain the original host failure status.
+        result = ExecutionEngine(state, repo_root=repo_root,
+            build_root=workflow["payload"]["buildRoot"]).observe(execution)
+        proof = result.get("terminalProof")
+        if not isinstance(proof, dict) or proof.get("complete") is not True:
             raise JenkinsError("terminal_proof_missing", "execution has no complete native termination proof", retryable=True)
+        record = state.get("execution", execution)
         return response(record["payload"].get("status", "waiting"), executionId=execution, terminalProof=proof)
     if action in {"cancel-execution", "cancel-flow"}:
         execution = payload.get("executionId")

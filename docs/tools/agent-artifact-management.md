@@ -10,6 +10,11 @@ created: 2026-10-11
 使用用户的 [artifact-lifecycle](D:/CodexData/.codex/skills/artifact-lifecycle/SKILL.md) 清单与保留格式。
 其通用本地编译/清理步骤在本项目由 Jenkins 的受管流程执行，不能成为会话绕过 Jenkins 的入口。
 
+普通编译遵守[编译存储强制规则](jenkins-build-storage-policy.md)：显式模块与 features、
+关闭默认 features、定向测试、dev/test 禁用增量缓存和调试符号，使用兼容共享池。
+[原 Codex 每日任务](jenkins-transition-monitor.md)比较新增占用、记录原请求与会话候选，
+对已证实的浪费交给 Jenkins 纠正；增长或目录年龄本身不能证明可删除。
+
 ## 本机请求自动受理
 
 普通本机补丁、编译和测试请求由当前 Jenkins 入口自动登记，不需要每个会话领取授权、人工发布许可或等待另一个会话代签。会话与请求 ID 用于归属、幂等和结果查询。入口自动记录本机运行身份及请求上下文，继续核对补丁与依赖哈希、路径、冲突和实际验证回执。

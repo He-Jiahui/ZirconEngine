@@ -58,7 +58,26 @@ def control(String action, Map payload) {
     for (int attempt = 0; attempt < 12; attempt++) {
         maintenanceAgent {
             runtimeFence()
-            result = load(env.ZIRCON_SEALED_DRIVER).control('maintenance', action, payload)
+            def nonce = 'control-' + env.BUILD_NUMBER + '-' + UUID.randomUUID().toString()
+            def input = env.ZIRCON_REPO_ROOT + '/.jenkins/state/controls/' + nonce + '.json'
+            def bound = new LinkedHashMap(payload)
+            bound.put('runtimeOperationId', env.ZIRCON_RUNTIME_OPERATION_ID)
+            bound.put('driverDigest', env.ZIRCON_DRIVER_DIGEST)
+            writeFile(file: input, text: groovy.json.JsonOutput.toJson(bound))
+            withEnv(['ZIRCON_SCHEDULED_INPUT=' + input, 'ZIRCON_SCHEDULED_ACTION=' + action]) {
+                try {
+                    result = readJson(powershell(returnStdout: true, label: 'Bounded maintenance response: ' + action, script: '''
+$ErrorActionPreference = 'Stop'
+if ((Get-FileHash -LiteralPath $env:ZIRCON_SCHEDULED_CONTROL_ENTRY -Algorithm SHA256).Hash.ToLowerInvariant() -ne $env:ZIRCON_SCHEDULED_CONTROL_SHA256) { throw 'Scheduled control implementation changed' }
+& $env:JENKINS_PYTHON -B -X utf8 $env:ZIRCON_SCHEDULED_CONTROL_ENTRY control --plan $env:ZIRCON_SCHEDULED_CONTROL_PLAN --plan-sha256 $env:ZIRCON_SCHEDULED_CONTROL_PLAN_SHA256 --self-sha256 $env:ZIRCON_SCHEDULED_CONTROL_SHA256 --input-file $env:ZIRCON_SCHEDULED_INPUT --action $env:ZIRCON_SCHEDULED_ACTION
+if ($LASTEXITCODE -ne 0) { throw 'Original maintenance invocation failed; inspect retained response/native proof' }
+'''))
+                } finally {
+                    ws('E:/cargo-targets/zircon-local/reports/jenkins-scheduled-cleanup/control/' + env.BUILD_NUMBER) {
+                        archiveArtifacts(artifacts: nonce + '/**/*.json,' + nonce + '/**/*.bin', allowEmptyArchive: true, fingerprint: false)
+                    }
+                }
+            }
         }
         if (!(result.status in ['failed', 'blocked'] && result.reasonCode == 'execution_busy' && result.retryable == true)) {
             if (result.status != 'accepted' || !(result.result instanceof Map)) error('maintenance did not return an accepted result')
@@ -92,39 +111,14 @@ def selectCandidates(Map inventory, String root, String selectionId, int maxObje
         runtimeFence()
         def selectionFile = env.ZIRCON_REPO_ROOT + '/.jenkins/state/controls/' + selectionId + '.json'
         writeFile(file: selectionFile, text: groovy.json.JsonOutput.toJson([
-            buildRoot: root, protectedDigests: inventory.protectedDigests,
-            unknownDigests: inventory.unknownDigests, maxObjects: maxObjects, maxBytes: maxBytes]))
+            buildRoot: root, inventoryRef: inventory.responseRef, inventoryOperationId: inventory.operationId,
+            maxObjects: maxObjects, maxBytes: maxBytes]))
         withEnv(['ZIRCON_CLEANUP_SELECTION=' + selectionFile]) {
             candidates = readJson(powershell(returnStdout: true, label: 'Select bounded registered CAS objects', script: '''
 $ErrorActionPreference = 'Stop'
-$selection = Get-Content -LiteralPath $env:ZIRCON_CLEANUP_SELECTION -Raw | ConvertFrom-Json
-if ($selection.buildRoot -notin @('D:\\cargo-targets', 'E:\\cargo-targets', 'F:\\cargo-targets')) { throw 'Unapproved cleanup root' }
-# This is the namespace used by the existing ArtifactStore maintenance entry.
-$objects = Join-Path $selection.buildRoot 'zircon-local/zircon-jenkins/artifacts/artifacts/objects'
-$cursor = $objects
-while ($cursor) {
-    if (Test-Path -LiteralPath $cursor) {
-        $item = Get-Item -LiteralPath $cursor -Force
-        if ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) { throw 'Cleanup namespace contains an alias' }
-    }
-    $cursor = [IO.Path]::GetDirectoryName($cursor)
-}
-$protected = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
-foreach ($digest in (@($selection.protectedDigests) + @($selection.unknownDigests))) {
-    [void]$protected.Add([string]$digest)
-}
-$chosen = @()
-[long]$bytes = 0
-if (Test-Path -LiteralPath $objects -PathType Container) {
-    foreach ($file in @(Get-ChildItem -LiteralPath $objects -File -Force | Sort-Object Name)) {
-        if ($file.Attributes -band [IO.FileAttributes]::ReparsePoint) { continue }
-        if ($file.Name -cnotmatch '^[0-9a-f]{64}$' -or $protected.Contains([string]$file.Name)) { continue }
-        if ($chosen.Count -ge $selection.maxObjects -or $bytes + $file.Length -gt $selection.maxBytes) { continue }
-        $chosen += $file.Name
-        $bytes += $file.Length
-    }
-}
-@{digests = @($chosen); plannedBytes = $bytes; candidateCount = $chosen.Count} | ConvertTo-Json -Compress
+if ((Get-FileHash -LiteralPath $env:ZIRCON_SCHEDULED_CONTROL_ENTRY -Algorithm SHA256).Hash.ToLowerInvariant() -ne $env:ZIRCON_SCHEDULED_CONTROL_SHA256) { throw 'Scheduled control implementation changed' }
+& $env:JENKINS_PYTHON -B -X utf8 $env:ZIRCON_SCHEDULED_CONTROL_ENTRY select --plan $env:ZIRCON_SCHEDULED_CONTROL_PLAN --plan-sha256 $env:ZIRCON_SCHEDULED_CONTROL_PLAN_SHA256 --self-sha256 $env:ZIRCON_SCHEDULED_CONTROL_SHA256 --input-file $env:ZIRCON_CLEANUP_SELECTION
+if ($LASTEXITCODE -ne 0) { throw 'Original inventory reference or bounded selection failed' }
 '''))
         }
     }
@@ -160,11 +154,13 @@ try {
             inventory = control('inventory', new LinkedHashMap(payload) + [operationId: entry.inventoryOperationId])
         }
         if (inventory.operationId != entry.inventoryOperationId || inventory.buildRoot != root ||
-                !(inventory.protectedDigests instanceof List) || !(inventory.unknownDigests instanceof List)) {
+                !(inventory.protectedDigestCount instanceof Number) || !(inventory.unknownDigestCount instanceof Number) ||
+                !(inventory.responseRef instanceof Map)) {
             error('maintenance inventory differs from the original root/operation')
         }
-        entry.put('unknownProtectedCount', inventory.unknownDigests.size())
-        entry.put('protectedDigestCount', inventory.protectedDigests.size())
+        entry.put('unknownProtectedCount', inventory.unknownDigestCount)
+        entry.put('protectedDigestCount', inventory.protectedDigestCount)
+        entry.put('inventoryResponseRef', inventory.responseRef)
         def selected = selectCandidates(inventory, root, operation + '-selection', remainingObjects, remainingBytes)
         entry.put('candidateCount', selected.candidateCount)
         entry.put('plannedBytes', selected.plannedBytes)
@@ -184,6 +180,7 @@ try {
                         collected.reclaimedBytes < 0 || collected.reclaimedBytes > selected.plannedBytes ||
                         collected.unknownProtected != true) error('GC receipt differs from the bounded maintenance request')
                 entry.put('removed', collected.removed)
+                entry.put('gcResponseRef', collected.responseRef)
                 entry.put('reclaimedBytes', collected.reclaimedBytes)
                 report.reclaimedBytes += collected.reclaimedBytes
                 entry.status = 'collected'

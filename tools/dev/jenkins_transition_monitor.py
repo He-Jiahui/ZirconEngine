@@ -19,8 +19,10 @@ import uuid
 
 if __package__:
     from . import artifact_inventory as inventory
+    from . import build_storage_audit
 else:
     import artifact_inventory as inventory
+    import build_storage_audit
 
 TASK_ID = "jenkins-transition-monitor-01a12af6"
 OWNER = "01a12af6-7511-70d1-a452-61b80678eb56"
@@ -272,7 +274,8 @@ def findings(report: dict) -> list[dict]:
                 add("owner_manifest_missing", "review", row["path"], "Legacy output needs an owner review; preserve it")
             if row.get("sourceTreeMarkers"):
                 add("source_copy_candidate", "review", row["path"], "Source-tree markers need Jenkins ownership review; preserve them")
-    return sorted(issues, key=lambda x: x["id"])
+    issues.extend(report.get("buildStorage", {}).get("findings", []))
+    return sorted({x["id"]: x for x in issues}.values(), key=lambda x: x["id"])
 
 
 def issue_delta(previous: list[dict], current: list[dict]) -> dict:
@@ -319,7 +322,8 @@ def run(repo: Path, output: Path | None = None, *, deep=False) -> dict:
               "integrationAuthority": "temporary-user-authorized-operator-review",
               "automaticGitWrites": False, "automaticCleanup": False}
     report["auditImplementation"] = {str(path): sha(path.read_bytes()) for path in
-                                     (Path(__file__).absolute(), Path(inventory.__file__).absolute())}
+                                     (Path(__file__).absolute(), Path(inventory.__file__).absolute(),
+                                      Path(build_storage_audit.__file__).absolute())}
     try:
         report["git"] = git_observation(repo)
     except (OSError, ValueError, subprocess.SubprocessError) as error:
@@ -332,7 +336,12 @@ def run(repo: Path, output: Path | None = None, *, deep=False) -> dict:
         except OSError:
             report["disks"].append({"drive": drive, "observation": "unavailable"})
     if deep:
-        report["inventory"] = inventory.scan(repo)
+        try:
+            report["inventory"] = inventory.scan(repo)
+        except (OSError, ValueError, KeyError, subprocess.SubprocessError) as error:
+            report["inventory"] = {"complete": False, "outputItems": [], "errorType": type(error).__name__,
+                                   "disposition": "retain previous findings; scan did not complete"}
+    report["buildStorage"] = build_storage_audit.audit(repo, report.get("inventory"), previous.get("buildStorage"))
     report["findings"] = findings(report)
     # Keep ownership findings from the latest deep scan across quick health checks.
     if not deep:
@@ -343,6 +352,11 @@ def run(repo: Path, output: Path | None = None, *, deep=False) -> dict:
         report["lastDeepReport"] = previous.get("lastDeepReport")
     else:
         report["lastDeepReport"] = str(folder / "report.json")
+        if not report["buildStorage"].get("complete"):
+            existing = {x["id"] for x in report["findings"]}
+            report["findings"].extend(x for x in previous.get("findings", [])
+                if x["code"] in {"owner_manifest_missing", "source_copy_candidate", "process_observation_incomplete"}
+                and x["id"] not in existing)
     report["attention"] = issue_delta(previous.get("findings", []), report["findings"])
     report["reportPath"] = str(folder / "report.json")
     report["completedAtUtc"] = datetime.now(timezone.utc).isoformat()

@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from pathlib import Path, PurePosixPath
-from typing import Mapping
+from typing import Callable, Mapping
 
 from ..contracts import JenkinsError, digest, file_digest, require_digest
 
@@ -125,7 +125,9 @@ def materialize(manifest: Mapping, objects: Path, source: Path) -> None:
         materialize_manifest(value["manifest"], objects, source.parent / value["name"])
 
 
-def verify_prepared(manifest: Mapping, source: Path, approved) -> None:
+def verify_prepared(manifest: Mapping, source: Path, approved, *,
+                    checkpoint: Callable[[], None] | None = None,
+                    checksum: Callable[[Path], str] | None = None) -> None:
     from ..resources import physical_path_under
     values = sources(manifest)
     if not values:
@@ -134,11 +136,23 @@ def verify_prepared(manifest: Mapping, source: Path, approved) -> None:
         raise JenkinsError("external_layout_invalid", "Prepared external dependencies require the isolated source layout")
     for value in values:
         root = physical_path_under(approved, source.parent / value["name"], allow_missing=False)
-        expected = {entry["path"]: entry["sha256"] for entry in value["manifest"]["entries"] if entry["status"] == "present"}
+        present = [entry for entry in value["manifest"]["entries"] if entry["status"] == "present"]
+        # Source claims use case-insensitive canonical paths. Windows preserves
+        # directory spelling when materializing a differently cased sibling.
+        expected = {entry["path"].casefold(): entry["sha256"] for entry in present}
+        if len(expected) != len(present):
+            raise JenkinsError("external_prepared_mismatch", "Sealed sibling contains colliding canonical paths")
         actual = {}
         for path in root.rglob("*"):
+            if checkpoint is not None:
+                checkpoint()
             physical_path_under(approved, path, allow_missing=False)
             if path.is_file():
-                actual[path.relative_to(root).as_posix()] = file_digest(path)
+                relative = path.relative_to(root).as_posix().casefold()
+                if relative in actual:
+                    raise JenkinsError("external_prepared_mismatch", "Prepared sibling contains colliding canonical paths")
+                actual[relative] = (checksum or file_digest)(path)
+        if checkpoint is not None:
+            checkpoint()
         if actual != expected:
             raise JenkinsError("external_prepared_mismatch", "Prepared sibling dependency differs from its complete sealed closure")

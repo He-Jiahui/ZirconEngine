@@ -70,27 +70,9 @@ zr_runtime_dev_dylib = { path = "zircon_runtime/crates/zr_runtime_dev_dylib", de
 debug = 0
 incremental = false
 
-[profile.dev.package.zircon_runtime]
-incremental = true
-
-[profile.dev.package.zircon_editor]
-incremental = true
-
-[profile.dev.package.zircon_app]
-incremental = true
-
 [profile.test]
 debug = 0
 incremental = false
-
-[profile.test.package.zircon_runtime]
-incremental = true
-
-[profile.test.package.zircon_editor]
-incremental = true
-
-[profile.test.package.zircon_app]
-incremental = true
 
 [profile.profiling]
 inherits = "release"
