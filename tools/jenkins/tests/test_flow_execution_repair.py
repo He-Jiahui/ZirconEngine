@@ -3,7 +3,7 @@ from copy import deepcopy
 from pathlib import Path
 import tempfile
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from tools.jenkins.contracts import JenkinsError, digest, file_digest
 from tools.jenkins.source import external_inputs as external
@@ -132,6 +132,24 @@ class FlowExecutionRepairTests(unittest.TestCase):
         source, _, manifest = self.external_fixture()
         with patch("tools.jenkins.resources.physical_path_under", side_effect=lambda _, path, **kw: path):
             external.verify_prepared(manifest, source, object())
+
+    def test_canonical_sibling_check_preserves_checkpoint_and_checksum_callbacks(self):
+        source, target, manifest = self.external_fixture()
+        checkpoint = Mock()
+        checksum = Mock(side_effect=file_digest)
+        with patch("tools.jenkins.resources.physical_path_under", side_effect=lambda _, path, **kw: path):
+            external.verify_prepared(manifest, source, object(), checkpoint=checkpoint, checksum=checksum)
+        self.assertGreaterEqual(checkpoint.call_count, 2)
+        checksum.assert_called_once_with(target)
+
+    def test_checkpoint_failure_interrupts_prepared_sibling_hashing(self):
+        source, _, manifest = self.external_fixture()
+        checkpoint = Mock(side_effect=RuntimeError("cancelled scan"))
+        checksum = Mock(side_effect=file_digest)
+        with patch("tools.jenkins.resources.physical_path_under", side_effect=lambda _, path, **kw: path):
+            with self.assertRaisesRegex(RuntimeError, "cancelled scan"):
+                external.verify_prepared(manifest, source, object(), checkpoint=checkpoint, checksum=checksum)
+        checksum.assert_not_called()
 
     def test_changed_content_or_extra_file_still_rejects_prepared_sibling(self):
         source, target, manifest = self.external_fixture()
