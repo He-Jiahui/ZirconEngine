@@ -81,9 +81,8 @@ impl PhysicsManager for DefaultPhysicsManager {
         }
     }
 
-    fn synchronized_world(&self, world: WorldHandle) -> Option<PhysicsWorldSyncState> {
+    fn synchronized_world(&self, world: WorldHandle) -> Option<Arc<PhysicsWorldSyncState>> {
         self.synchronized_world_snapshot(world)
-            .map(|sync| sync.as_ref().clone())
     }
 
     fn ray_cast(&self, query: &PhysicsRayCastQuery) -> Vec<PhysicsRayCastHit> {
@@ -235,8 +234,8 @@ impl DefaultPhysicsManager {
         let sync = sanitize_world_sync_state(sync);
         let contacts = compute_contact_events(&sync, settings);
         let previous_trigger_pairs = recover_lock(&self.trigger_pairs)
-            .get(&sync.world)
-            .cloned()
+            .get_mut(&sync.world)
+            .map(std::mem::take)
             .unwrap_or_default();
         let (trigger_pairs, triggers) =
             compute_trigger_events(&sync, settings, &previous_trigger_pairs);

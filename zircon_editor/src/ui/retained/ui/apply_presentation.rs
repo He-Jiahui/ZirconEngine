@@ -183,7 +183,7 @@ pub(crate) fn apply_presentation_with_template_v2_data(
     {
         return None;
     }
-    let host_scene_data = {
+    let host_scene_data = std::sync::Arc::new({
         zircon_runtime::profile_scope!("editor", "retained_host", "apply_build_host_scene_data");
         record_current_ui_perf_counter(UiPerfCounter::HostSceneBuildCount, 1.0);
         build_host_scene_data_with_cache(
@@ -197,10 +197,10 @@ pub(crate) fn apply_presentation_with_template_v2_data(
             chrome,
             chrome_projection_cache,
         )
-    };
+    });
     std::sync::Arc::get_mut(&mut presentation)
         .expect("shell presentation must be unique before publication")
-        .retained_scene_data = Some(std::sync::Arc::new(host_scene_data.clone()));
+        .retained_scene_data = Some(std::sync::Arc::clone(&host_scene_data));
     let host_welcome_pane = {
         zircon_runtime::profile_scope!("editor", "retained_host", "apply_build_welcome_pane");
         let welcome_pane = project_welcome_pane(&presentation.welcome.pane, &host_scene_data);

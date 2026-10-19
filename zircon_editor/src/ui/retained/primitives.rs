@@ -12,6 +12,10 @@ mod persistent_row_patch_map;
 
 use persistent_row_patch_map::{PersistentRowPatchCursor, PersistentRowPatchMap};
 
+#[path = "shared_string.rs"]
+pub(crate) mod shared_string;
+
+// Legacy fields migrate in separate slices; new retained fields can use shared_string::SharedString.
 pub(crate) type SharedString = String;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
