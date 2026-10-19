@@ -186,6 +186,6 @@ fn public_gpu_resource_lookup_requires_compiled_pass_declaration_access() {
 fn test_extract() -> RenderFrameExtract {
     RenderFrameExtract::from_snapshot(
         RenderWorldSnapshotHandle::new(1),
-        World::new().to_render_snapshot(),
+        World::new().to_render_snapshot_cloning(),
     )
 }

@@ -422,7 +422,7 @@ fn render_project_with_environment<T>(
     let world =
         zircon_runtime::scene::world::World::load_scene_from_uri(&project, &scene_uri).unwrap();
 
-    let mut snapshot = world.build_viewport_render_packet(&SceneViewportExtractRequest {
+    let mut snapshot = world.build_viewport_render_packet_cloning(&SceneViewportExtractRequest {
         settings: ViewportRenderSettings::default(),
         active_camera_override: None,
         camera: None,

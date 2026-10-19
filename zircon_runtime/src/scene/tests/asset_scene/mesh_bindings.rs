@@ -219,7 +219,7 @@ fn render_extract_keeps_asset_bound_meshes_without_editor_selection_overlay() {
         .unwrap()
         .id;
 
-    let extract = world.to_render_extract();
+    let extract = world.to_render_extract_cloning();
     let mesh = extract
         .scene
         .meshes
@@ -341,7 +341,7 @@ fn scene_assets_roundtrip_primitive_mesh_material_bindings() {
         project_material_handle(&project, "res://materials/grid.zmaterial")
     );
 
-    let extract = world.to_render_extract();
+    let extract = world.to_render_extract_cloning();
     let render_mesh = extract
         .scene
         .meshes

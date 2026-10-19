@@ -36,7 +36,7 @@ fn reflection_and_gi_products_preserve_hdr_before_output_transfer() {
 fn terminal_srgb_texture_omits_unsupported_storage_usage() {
     let extract = RenderFrameExtract::from_snapshot(
         RenderWorldSnapshotHandle::new(1),
-        World::new().to_render_snapshot(),
+        World::new().to_render_snapshot_cloning(),
     );
     let descriptor = builtin_texture_desc_for(
         PostProcessGraphResourceNames::FINAL_COMPOSITED,
@@ -56,7 +56,7 @@ fn terminal_srgb_texture_omits_unsupported_storage_usage() {
 fn previous_hzb_uses_the_current_hzb_geometry_with_read_only_graph_usage() {
     let mut extract = RenderFrameExtract::from_snapshot(
         RenderWorldSnapshotHandle::new(1),
-        World::new().to_render_snapshot(),
+        World::new().to_render_snapshot_cloning(),
     );
     extract.apply_viewport_size(UVec2::new(1923, 1081));
     extract
@@ -95,7 +95,7 @@ fn previous_hzb_uses_the_current_hzb_geometry_with_read_only_graph_usage() {
 fn previous_volumetric_history_uses_current_froxel_geometry_with_read_only_graph_usage() {
     let extract = RenderFrameExtract::from_snapshot(
         RenderWorldSnapshotHandle::new(1),
-        World::new().to_render_snapshot(),
+        World::new().to_render_snapshot_cloning(),
     );
     let options =
         RenderPipelineCompileOptions::default().with_shader_quality(ShaderQualityTier::High);
@@ -143,7 +143,7 @@ fn previous_volumetric_history_uses_current_froxel_geometry_with_read_only_graph
 fn builtin_textures_follow_view_family_phase_allocations() {
     let mut extract = RenderFrameExtract::from_snapshot(
         RenderWorldSnapshotHandle::new(1),
-        World::new().to_render_snapshot(),
+        World::new().to_render_snapshot_cloning(),
     );
     extract.apply_viewport_size(UVec2::new(1920, 1080));
     extract
@@ -207,7 +207,7 @@ fn builtin_textures_follow_view_family_phase_allocations() {
 fn dual_spatial_upscale_textures_follow_distinct_phase_allocations() {
     let mut extract = RenderFrameExtract::from_snapshot(
         RenderWorldSnapshotHandle::new(1),
-        World::new().to_render_snapshot(),
+        World::new().to_render_snapshot_cloning(),
     );
     extract.apply_viewport_size(UVec2::new(1920, 1080));
     extract
@@ -326,7 +326,7 @@ fn scene_light_external_contract_tracks_packed_record_count() {
     for (point_count, lighting_enabled) in [(0, false), (12, false), (0, true), (12, true)] {
         let mut extract = RenderFrameExtract::from_snapshot(
             RenderWorldSnapshotHandle::new(1),
-            World::new().to_render_snapshot(),
+            World::new().to_render_snapshot_cloning(),
         );
         extract.post_process.preview.lighting_enabled = lighting_enabled;
         extract.lighting.point_lights = (0..point_count)
@@ -373,7 +373,7 @@ fn scene_light_external_contract_preserves_explicit_schema_validation() {
 
     let extract = RenderFrameExtract::from_snapshot(
         RenderWorldSnapshotHandle::new(1),
-        World::new().to_render_snapshot(),
+        World::new().to_render_snapshot_cloning(),
     );
     let options = RenderPipelineCompileOptions::default();
     let catalog = RenderResourceSchemaCatalog::new(&extract, &options);

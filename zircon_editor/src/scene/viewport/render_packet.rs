@@ -21,7 +21,7 @@ pub(in crate::scene::viewport) fn build_render_packet(
     selected: Option<u64>,
     viewport_size: UVec2,
 ) -> RenderSceneSnapshot {
-    let mut packet = scene.build_viewport_render_packet(&SceneViewportExtractRequest {
+    let mut packet = scene.build_viewport_render_packet_cloning(&SceneViewportExtractRequest {
         settings: settings.render_settings(),
         active_camera_override: None,
         camera: Some(camera.clone().into()),

@@ -19,7 +19,7 @@ use super::update_particle_previous_state_after_success;
 fn successful_submit_records_particle_previous_state_for_next_frame() {
     let mut extract = RenderFrameExtract::from_snapshot(
         RenderWorldSnapshotHandle::new(9),
-        World::new().to_render_snapshot(),
+        World::new().to_render_snapshot_cloning(),
     );
     extract.view.camera.transform = Transform::from_translation(Vec3::new(0.0, 0.0, 4.0));
     extract.particles.sprites = vec![RenderParticleSpriteSnapshot {
@@ -67,7 +67,7 @@ fn successful_submit_records_particle_previous_state_for_next_frame() {
 fn successful_submit_recycles_renderer_owned_particle_history_capacity() {
     let mut extract = RenderFrameExtract::from_snapshot(
         RenderWorldSnapshotHandle::new(9),
-        World::new().to_render_snapshot(),
+        World::new().to_render_snapshot_cloning(),
     );
     extract.particles.sprites = vec![RenderParticleSpriteSnapshot {
         entity: 77,
@@ -98,7 +98,7 @@ fn successful_submit_recycles_renderer_owned_particle_history_capacity() {
 fn successful_submit_drops_ambiguous_anonymous_particle_previous_state() {
     let mut extract = RenderFrameExtract::from_snapshot(
         RenderWorldSnapshotHandle::new(9),
-        World::new().to_render_snapshot(),
+        World::new().to_render_snapshot_cloning(),
     );
     extract.view.camera.transform = Transform::from_translation(Vec3::new(0.0, 0.0, 4.0));
     extract.particles.sprites = vec![

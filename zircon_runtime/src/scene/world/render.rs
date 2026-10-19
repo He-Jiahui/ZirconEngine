@@ -32,20 +32,23 @@ impl World {
         RenderWorldSnapshotHandle::new(self.render_dirty_entity_journal().world().raw())
     }
 
-    pub fn to_render_snapshot(&self) -> RenderSceneSnapshot {
-        self.to_render_extract()
+    /// Offline convenience API: deep-clones the world. Use the prepared path for live frames.
+    pub fn to_render_snapshot_cloning(&self) -> RenderSceneSnapshot {
+        self.to_render_extract_cloning()
     }
 
-    pub fn to_render_extract(&self) -> SceneViewportRenderPacket {
+    /// Offline convenience API: deep-clones the world.
+    pub fn to_render_extract_cloning(&self) -> SceneViewportRenderPacket {
         let request = SceneViewportExtractRequest {
             active_camera_override: None,
             camera: None,
             ..SceneViewportExtractRequest::default()
         };
-        self.build_viewport_render_packet(&request)
+        self.build_viewport_render_packet_cloning(&request)
     }
 
-    pub fn build_viewport_render_packet(
+    /// Deep-clones the world before extraction. Live viewports should use the mutable prepared API.
+    pub fn build_viewport_render_packet_cloning(
         &self,
         request: &SceneViewportExtractRequest,
     ) -> SceneViewportRenderPacket {

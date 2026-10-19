@@ -255,7 +255,7 @@ pub(super) fn advanced_product_extract() -> crate::core::framework::render::Rend
         .find(|node| node.mesh.is_some())
         .map(|node| node.id)
         .expect("default world should contain a renderable mesh");
-    let mut extract = world.to_render_frame_extract();
+    let mut extract = world.to_render_frame_extract_cloning();
     extract.apply_viewport_size(UVec2::new(320, 240));
     extract.geometry.virtual_geometry = Some(RenderVirtualGeometryExtract {
         cluster_budget: 2,

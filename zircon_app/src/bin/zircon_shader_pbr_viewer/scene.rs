@@ -688,13 +688,14 @@ impl PbrMirrorScene {
             .world
             .as_ref()
             .ok_or("PBR mirror scene has already shut down")?;
-        let mut snapshot = world.build_viewport_render_packet(&SceneViewportExtractRequest {
-            settings: ViewportRenderSettings::default(),
-            active_camera_override: None,
-            camera: Some(camera_descriptor),
-            viewport_size: Some(viewport_size),
-            virtual_geometry_debug: None,
-        });
+        let mut snapshot =
+            world.build_viewport_render_packet_cloning(&SceneViewportExtractRequest {
+                settings: ViewportRenderSettings::default(),
+                active_camera_override: None,
+                camera: Some(camera_descriptor),
+                viewport_size: Some(viewport_size),
+                virtual_geometry_debug: None,
+            });
         snapshot.environment = self.environment.clone();
         snapshot.preview = self.preview.clone();
         snapshot.overlays = RenderOverlayExtract::default();

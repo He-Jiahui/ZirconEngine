@@ -959,7 +959,7 @@ fn editor_project_document_roundtrips_first_party_2d_components() {
         material_id,
         "the editor scene save/reopen must retain the material resource identity"
     );
-    let extract = reopened.world.to_render_frame_extract();
+    let extract = reopened.world.to_render_frame_extract_cloning();
     assert!(
         extract
             .sprites

@@ -10,7 +10,7 @@ fn world_render_extract_stamps_the_exact_source_world_generation() {
         .spawn_node(NodeKind::Empty)
         .expect("test scene spawn should succeed");
 
-    let extract = world.to_render_frame_extract();
+    let extract = world.to_render_frame_extract_cloning();
 
     assert_eq!(extract.world.raw(), 0);
     assert_eq!(extract.world.generation(), world.world_generation());

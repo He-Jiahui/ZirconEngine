@@ -9,7 +9,7 @@ use zircon_runtime::scene::World;
 fn scene_hzb_camera_packet_contains_inverse_view_projection_and_viewport() {
     let mut extract = RenderFrameExtract::from_snapshot(
         RenderWorldSnapshotHandle::new(1),
-        World::new().to_render_snapshot(),
+        World::new().to_render_snapshot_cloning(),
     );
     extract.view.camera.temporal_jitter = TemporalJitterSample {
         offset_pixels: Vec2::new(0.5, -0.25),

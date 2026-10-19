@@ -56,7 +56,7 @@ mod stats;
 fn test_extract() -> RenderFrameExtract {
     RenderFrameExtract::from_snapshot(
         RenderWorldSnapshotHandle::new(1),
-        World::new().to_render_snapshot(),
+        World::new().to_render_snapshot_cloning(),
     )
 }
 
@@ -158,7 +158,7 @@ fn advanced_provider_report(
 
 fn empty_flagship_extract() -> RenderFrameExtract {
     let world = World::new();
-    let mut extract = world.to_render_frame_extract();
+    let mut extract = world.to_render_frame_extract_cloning();
     extract.apply_viewport_size(UVec2::new(320, 240));
     extract
 }
@@ -171,7 +171,7 @@ fn flagship_extract() -> RenderFrameExtract {
         .find(|node| node.mesh.is_some())
         .map(|node| node.id)
         .expect("default world should contain a renderable mesh");
-    let mut extract = world.to_render_frame_extract();
+    let mut extract = world.to_render_frame_extract_cloning();
     extract.apply_viewport_size(UVec2::new(320, 240));
     extract.geometry.virtual_geometry = Some(RenderVirtualGeometryExtract {
         cluster_budget: 2,

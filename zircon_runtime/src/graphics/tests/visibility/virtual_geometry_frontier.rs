@@ -23,7 +23,7 @@ fn visibility_context_holds_resident_child_page_one_frame_when_frontier_merges_b
         .update_transform(mesh, Transform::from_translation(Vec3::ZERO))
         .expect("mesh transform should update");
 
-    let mut previous_extract = world.to_render_frame_extract();
+    let mut previous_extract = world.to_render_frame_extract_cloning();
     previous_extract.geometry.virtual_geometry = Some(RenderVirtualGeometryExtract {
         cluster_budget: 2,
         page_budget: 3,
@@ -53,7 +53,7 @@ fn visibility_context_holds_resident_child_page_one_frame_when_frontier_merges_b
         "expected the fully resident frame to settle onto the child frontier before testing merge-back hysteresis"
     );
 
-    let mut current_extract = world.to_render_frame_extract();
+    let mut current_extract = world.to_render_frame_extract_cloning();
     current_extract.geometry.virtual_geometry = Some(RenderVirtualGeometryExtract {
         cluster_budget: 2,
         page_budget: 3,
@@ -152,7 +152,7 @@ fn visibility_context_keeps_resident_child_frontier_hot_across_repeated_budget_c
         .update_transform(mesh, Transform::from_translation(Vec3::ZERO))
         .expect("mesh transform should update");
 
-    let mut previous_extract = world.to_render_frame_extract();
+    let mut previous_extract = world.to_render_frame_extract_cloning();
     previous_extract.geometry.virtual_geometry = Some(RenderVirtualGeometryExtract {
         cluster_budget: 2,
         page_budget: 3,
@@ -182,7 +182,7 @@ fn visibility_context_keeps_resident_child_frontier_hot_across_repeated_budget_c
         "expected the fully resident previous frame to settle onto the child frontier before testing repeated budget-collapse hysteresis"
     );
 
-    let mut collapsed_extract = world.to_render_frame_extract();
+    let mut collapsed_extract = world.to_render_frame_extract_cloning();
     collapsed_extract.geometry.virtual_geometry = Some(RenderVirtualGeometryExtract {
         cluster_budget: 1,
         page_budget: 3,
@@ -260,7 +260,7 @@ fn visibility_context_requests_nonresident_ancestor_page_and_holds_descendants_w
         .update_transform(mesh, Transform::from_translation(Vec3::ZERO))
         .expect("mesh transform should update");
 
-    let mut previous_extract = world.to_render_frame_extract();
+    let mut previous_extract = world.to_render_frame_extract_cloning();
     previous_extract.geometry.virtual_geometry = Some(RenderVirtualGeometryExtract {
         cluster_budget: 2,
         page_budget: 3,
@@ -294,7 +294,7 @@ fn visibility_context_requests_nonresident_ancestor_page_and_holds_descendants_w
         "expected the fully resident previous frame to refine all the way to the grandchild frontier before testing multi-level merge-back"
     );
 
-    let mut current_extract = world.to_render_frame_extract();
+    let mut current_extract = world.to_render_frame_extract_cloning();
     current_extract.geometry.virtual_geometry = Some(RenderVirtualGeometryExtract {
         cluster_budget: 2,
         page_budget: 3,
@@ -374,7 +374,7 @@ fn visibility_context_keeps_resident_grandchild_pages_hot_while_multi_level_casc
         .update_transform(mesh, Transform::from_translation(Vec3::ZERO))
         .expect("mesh transform should update");
 
-    let mut previous_extract = world.to_render_frame_extract();
+    let mut previous_extract = world.to_render_frame_extract_cloning();
     previous_extract.geometry.virtual_geometry = Some(RenderVirtualGeometryExtract {
         cluster_budget: 2,
         page_budget: 3,
@@ -400,7 +400,7 @@ fn visibility_context_keeps_resident_grandchild_pages_hot_while_multi_level_casc
     });
     let previous_context = VisibilityContext::from(&previous_extract);
 
-    let mut current_extract = world.to_render_frame_extract();
+    let mut current_extract = world.to_render_frame_extract_cloning();
     current_extract.geometry.virtual_geometry = Some(RenderVirtualGeometryExtract {
         cluster_budget: 2,
         page_budget: 3,
@@ -471,7 +471,7 @@ fn visibility_context_keeps_intermediate_virtual_geometry_lineage_pages_hot_whil
         .update_transform(mesh, Transform::from_translation(Vec3::ZERO))
         .expect("mesh transform should update");
 
-    let mut previous_extract = world.to_render_frame_extract();
+    let mut previous_extract = world.to_render_frame_extract_cloning();
     previous_extract.geometry.virtual_geometry = Some(RenderVirtualGeometryExtract {
         cluster_budget: 1,
         page_budget: 2,
@@ -503,7 +503,7 @@ fn visibility_context_keeps_intermediate_virtual_geometry_lineage_pages_hot_whil
         "expected the fully resident frame to refine onto the deepest resident lineage before testing wider cascade hysteresis"
     );
 
-    let mut current_extract = world.to_render_frame_extract();
+    let mut current_extract = world.to_render_frame_extract_cloning();
     current_extract.geometry.virtual_geometry = Some(RenderVirtualGeometryExtract {
         cluster_budget: 1,
         page_budget: 2,

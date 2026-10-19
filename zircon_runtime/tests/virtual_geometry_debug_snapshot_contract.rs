@@ -105,7 +105,7 @@ fn render_framework_exposes_virtual_geometry_debug_snapshot_for_effective_visibl
         print_leaf_clusters: true,
         ..RenderVirtualGeometryDebugState::default()
     };
-    let mut extract = world.to_render_frame_extract();
+    let mut extract = world.to_render_frame_extract_cloning();
     extract.apply_viewport_size(viewport_size);
     let expected_camera_transform = extract.view.camera.transform;
     extract.geometry.virtual_geometry = Some(RenderVirtualGeometryExtract {
@@ -479,7 +479,7 @@ fn render_framework_exposes_virtual_geometry_debug_snapshot_for_effective_visibl
                 .with_async_compute(false),
         )
         .expect("non-vg quality profile should be accepted");
-    let mut cleared_extract = world.to_render_frame_extract();
+    let mut cleared_extract = world.to_render_frame_extract_cloning();
     cleared_extract.apply_viewport_size(viewport_size);
     server
         .submit_frame_extract(viewport, cleared_extract)
@@ -582,7 +582,7 @@ fn render_framework_uses_virtual_geometry_provider_for_missing_authored_extract(
         )
         .expect("quality profile should be accepted");
 
-    let mut snapshot: RenderSceneSnapshot = World::new().to_render_snapshot();
+    let mut snapshot: RenderSceneSnapshot = World::new().to_render_snapshot_cloning();
     snapshot.scene.meshes = vec![RenderMeshSnapshot {
         node_id: 901,
         stable_instance_key: 901 << 16,
@@ -673,7 +673,7 @@ fn render_framework_exposes_node_and_cluster_cull_page_request_ids_in_debug_snap
         .find(|node| node.mesh.is_some())
         .map(|node| node.id)
         .expect("default world should contain a renderable mesh");
-    let mut extract = world.to_render_frame_extract();
+    let mut extract = world.to_render_frame_extract_cloning();
     extract.apply_viewport_size(viewport_size);
     extract.view.camera.transform = Transform::from_translation(Vec3::new(3.0, 4.0, 5.0));
     let mut clusters = vec![
@@ -980,7 +980,7 @@ fn render_framework_exposes_virtual_geometry_cpu_reference_bvh_inspection_for_au
         )
         .expect("builtin material resource id should resolve");
 
-    let mut snapshot: RenderSceneSnapshot = World::new().to_render_snapshot();
+    let mut snapshot: RenderSceneSnapshot = World::new().to_render_snapshot_cloning();
     snapshot.scene.meshes = vec![
         zircon_runtime::core::framework::render::RenderMeshSnapshot {
             node_id: 101,
@@ -1393,7 +1393,7 @@ fn render_framework_automatic_virtual_geometry_bvh_selected_clusters_follow_forc
         )
         .expect("builtin material resource id should resolve");
 
-    let mut snapshot: RenderSceneSnapshot = World::new().to_render_snapshot();
+    let mut snapshot: RenderSceneSnapshot = World::new().to_render_snapshot_cloning();
     snapshot.scene.meshes = vec![
         zircon_runtime::core::framework::render::RenderMeshSnapshot {
             node_id: 101,
@@ -1830,7 +1830,7 @@ fn automatic_virtual_geometry_frame_extract(
     viewport_size: UVec2,
     debug: RenderVirtualGeometryDebugState,
 ) -> RenderFrameExtract {
-    let mut snapshot: RenderSceneSnapshot = World::new().to_render_snapshot();
+    let mut snapshot: RenderSceneSnapshot = World::new().to_render_snapshot_cloning();
     snapshot.preview.skybox_enabled = false;
     snapshot.preview.lighting_enabled = false;
     snapshot.preview.clear_color = Vec4::ZERO;

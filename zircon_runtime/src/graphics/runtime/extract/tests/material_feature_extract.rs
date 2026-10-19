@@ -12,7 +12,7 @@ fn runtime07_renderer_derived_lighting_material_resolver_does_not_mutate_extract
     let manager = ProjectAssetManager::default();
     let extract = RenderFrameExtract::from_snapshot(
         RenderWorldSnapshotHandle::new(1),
-        World::new().to_render_snapshot(),
+        World::new().to_render_snapshot_cloning(),
     );
 
     let usage = resolve_advanced_pbr_material_usage(&manager, &extract);

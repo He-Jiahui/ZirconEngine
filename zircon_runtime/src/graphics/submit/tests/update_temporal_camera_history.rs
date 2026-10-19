@@ -13,7 +13,7 @@ use super::update_temporal_camera_history_after_success;
 fn successful_submit_records_camera_history_for_next_frame() {
     let mut extract = RenderFrameExtract::from_snapshot(
         RenderWorldSnapshotHandle::new(7),
-        World::new().to_render_snapshot(),
+        World::new().to_render_snapshot_cloning(),
     );
     extract.view.camera.transform = Transform::from_translation(Vec3::new(1.0, 2.0, 3.0));
     extract.view.camera.temporal_jitter = TemporalJitterSample {
@@ -46,7 +46,7 @@ fn successful_submit_records_camera_history_for_next_frame() {
 fn successful_non_terminal_submit_records_camera_without_advancing_viewport_index() {
     let extract = RenderFrameExtract::from_snapshot(
         RenderWorldSnapshotHandle::new(8),
-        World::new().to_render_snapshot(),
+        World::new().to_render_snapshot_cloning(),
     );
     let frame = ViewportRenderFrame::from_extract(extract, UVec2::new(64, 64));
     let key = ViewportCameraHistoryKey::from_camera(frame.camera());

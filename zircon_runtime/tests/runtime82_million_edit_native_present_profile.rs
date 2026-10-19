@@ -380,7 +380,7 @@ fn present_and_capture(
 ) -> (PresentedFrame, CapturedFrame) {
     let mut extract = RenderFrameExtract::from_snapshot(
         RenderWorldSnapshotHandle::new(1),
-        World::new().to_render_snapshot(),
+        World::new().to_render_snapshot_cloning(),
     );
     extract.apply_viewport_size(size);
     let ui = UiRenderSubmission::single_frame(Arc::clone(&surface.surface_frame().render_extract));

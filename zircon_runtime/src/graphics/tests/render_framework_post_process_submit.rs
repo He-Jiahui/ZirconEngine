@@ -227,7 +227,7 @@ const ADVANCED_POST_PROCESS_GRAPH_PASSES: &[(&str, &str)] = &[
 ];
 
 fn advanced_post_process_extract(viewport_size: UVec2) -> RenderFrameExtract {
-    let mut extract = World::new().to_render_frame_extract();
+    let mut extract = World::new().to_render_frame_extract_cloning();
     extract.apply_viewport_size(viewport_size);
     extract.geometry.meshes = vec![
         motion_vector_mesh(1001, Vec3::new(1.0, 0.0, 0.0)),
@@ -254,7 +254,7 @@ fn advanced_post_process_extract(viewport_size: UVec2) -> RenderFrameExtract {
 }
 
 fn default_post_process_extract(viewport_size: UVec2) -> RenderFrameExtract {
-    let mut extract = World::new().to_render_frame_extract();
+    let mut extract = World::new().to_render_frame_extract_cloning();
     extract.apply_viewport_size(viewport_size);
     extract.geometry.meshes = vec![motion_vector_mesh(1001, Vec3::new(1.0, 0.0, 0.0))];
     extract

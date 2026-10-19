@@ -111,7 +111,7 @@ pub(super) fn build_pbr_matrix_snapshot(
     world: &World,
     environment: EnvironmentExtract,
 ) -> crate::core::framework::render::SceneViewportRenderPacket {
-    let mut snapshot = world.build_viewport_render_packet(&SceneViewportExtractRequest {
+    let mut snapshot = world.build_viewport_render_packet_cloning(&SceneViewportExtractRequest {
         settings: ViewportRenderSettings::default(),
         active_camera_override: None,
         camera: None,

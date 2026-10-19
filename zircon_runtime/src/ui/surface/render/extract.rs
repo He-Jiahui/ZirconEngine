@@ -222,88 +222,9 @@ pub(crate) fn extract_ui_render_tree_from_arranged_indexed_with_component_states
                 &node.state_flags,
                 component_state,
             );
-            let owner_text = if owner_text_is_suppressed(node.template_metadata.as_ref()) {
-                None
-            } else {
-                visual.text.clone()
-            };
-            let owner_image = if button_suppresses_owner_image(node.template_metadata.as_ref())
-                || collection_row_suppresses_owner_image(node.template_metadata.as_ref())
-                || progress_suppresses_owner_image(node.template_metadata.as_ref())
-                || divider_suppresses_owner_image(node.template_metadata.as_ref())
-                || skeleton_suppresses_owner_image(node.template_metadata.as_ref())
-                || feedback_suppresses_owner_image(node.template_metadata.as_ref())
-                || dialog_suppresses_owner_image(node.template_metadata.as_ref())
-                || command_palette_suppresses_owner_image(node.template_metadata.as_ref())
-                || notification_center_suppresses_owner_image(node.template_metadata.as_ref())
-                || drag_overlay_suppresses_owner_image(node.template_metadata.as_ref())
-                || chrome_suppresses_owner_image(node.template_metadata.as_ref())
-            {
-                None
-            } else {
-                visual.image.clone()
-            };
-            let owner_style =
-                if collection_row_suppresses_owner_surface(node.template_metadata.as_ref())
-                    || progress_suppresses_owner_surface(node.template_metadata.as_ref())
-                    || divider_suppresses_owner_surface(node.template_metadata.as_ref())
-                    || skeleton_suppresses_owner_surface(node.template_metadata.as_ref())
-                    || feedback_suppresses_owner_surface(node.template_metadata.as_ref())
-                    || dialog_suppresses_owner_surface(node.template_metadata.as_ref())
-                    || command_palette_suppresses_owner_surface(node.template_metadata.as_ref())
-                    || notification_center_suppresses_owner_surface(node.template_metadata.as_ref())
-                    || drag_overlay_suppresses_owner_surface(node.template_metadata.as_ref())
-                    || chrome_suppresses_owner_surface(node.template_metadata.as_ref())
-                {
-                    let mut style = visual.style.clone();
-                    style.background_color = None;
-                    style.border_color = None;
-                    style.border_width = 0.0;
-                    style.corner_radius = 0.0;
-                    style
-                } else {
-                    visual.style.clone()
-                };
-
-            let owner_text_layout_metadata = owner_text.as_ref().map(|_| {
-                let viewport = visual
-                    .editable
-                    .is_none()
-                    .then(|| {
-                        UiTextViewport::from_document_and_clip(
-                            arranged_node.frame,
-                            arranged_node.clip_frame,
-                        )
-                    })
-                    .flatten();
-                let document_key = node
-                    .layout_cache
-                    .retained_text_layout_revision()
-                    .map(|revision| TextDocumentKey::new(node_id.0, revision));
-                (document_key, viewport, visual.editable.clone())
-            });
-            let command = UiRenderCommand {
-                node_id,
-                kind: resolve_command_kind(&owner_style, owner_text.as_ref(), owner_image.as_ref()),
-                frame: arranged_node.frame,
-                clip_frame: Some(arranged_node.clip_frame),
-                z_index: arranged_node.z_index,
-                style: owner_style,
-                text_layout: None,
-                text: owner_text,
-                image: owner_image,
-                opacity: visual.opacity,
-            };
+            // Keep the owner before its supplemental commands while moving the resolved visual
+            // only after those commands have finished borrowing it.
             let owner_command_index = commands.len();
-            commands.push(command);
-            if let Some((document_key, viewport, editable)) = owner_text_layout_metadata {
-                pending_owner_text_layouts.push(
-                    owner_command_index,
-                    document_key,
-                    viewport,
-                    editable,
-                );
-            }
             commands.extend(agent_chat_render_commands(
                 node_id,
                 node.template_metadata.as_ref(),
@@ -524,6 +445,87 @@ pub(crate) fn extract_ui_render_tree_from_arranged_indexed_with_component_states
                 arranged_node.z_index,
                 visual.opacity,
             ));
+            let owner_text = if owner_text_is_suppressed(node.template_metadata.as_ref()) {
+                None
+            } else {
+                visual.text
+            };
+            let owner_image = if button_suppresses_owner_image(node.template_metadata.as_ref())
+                || collection_row_suppresses_owner_image(node.template_metadata.as_ref())
+                || progress_suppresses_owner_image(node.template_metadata.as_ref())
+                || divider_suppresses_owner_image(node.template_metadata.as_ref())
+                || skeleton_suppresses_owner_image(node.template_metadata.as_ref())
+                || feedback_suppresses_owner_image(node.template_metadata.as_ref())
+                || dialog_suppresses_owner_image(node.template_metadata.as_ref())
+                || command_palette_suppresses_owner_image(node.template_metadata.as_ref())
+                || notification_center_suppresses_owner_image(node.template_metadata.as_ref())
+                || drag_overlay_suppresses_owner_image(node.template_metadata.as_ref())
+                || chrome_suppresses_owner_image(node.template_metadata.as_ref())
+            {
+                None
+            } else {
+                visual.image
+            };
+            let owner_style =
+                if collection_row_suppresses_owner_surface(node.template_metadata.as_ref())
+                    || progress_suppresses_owner_surface(node.template_metadata.as_ref())
+                    || divider_suppresses_owner_surface(node.template_metadata.as_ref())
+                    || skeleton_suppresses_owner_surface(node.template_metadata.as_ref())
+                    || feedback_suppresses_owner_surface(node.template_metadata.as_ref())
+                    || dialog_suppresses_owner_surface(node.template_metadata.as_ref())
+                    || command_palette_suppresses_owner_surface(node.template_metadata.as_ref())
+                    || notification_center_suppresses_owner_surface(node.template_metadata.as_ref())
+                    || drag_overlay_suppresses_owner_surface(node.template_metadata.as_ref())
+                    || chrome_suppresses_owner_surface(node.template_metadata.as_ref())
+                {
+                    let mut style = visual.style;
+                    style.background_color = None;
+                    style.border_color = None;
+                    style.border_width = 0.0;
+                    style.corner_radius = 0.0;
+                    style
+                } else {
+                    visual.style
+                };
+
+            let owner_text_layout_metadata = owner_text.as_ref().map(|_| {
+                let viewport = visual
+                    .editable
+                    .is_none()
+                    .then(|| {
+                        UiTextViewport::from_document_and_clip(
+                            arranged_node.frame,
+                            arranged_node.clip_frame,
+                        )
+                    })
+                    .flatten();
+                let document_key = node
+                    .layout_cache
+                    .retained_text_layout_revision()
+                    .map(|revision| TextDocumentKey::new(node_id.0, revision));
+                (document_key, viewport, visual.editable)
+            });
+            let command = UiRenderCommand {
+                node_id,
+                kind: resolve_command_kind(&owner_style, owner_text.as_ref(), owner_image.as_ref()),
+                frame: arranged_node.frame,
+                clip_frame: Some(arranged_node.clip_frame),
+                z_index: arranged_node.z_index,
+                style: owner_style,
+                text_layout: None,
+                text: owner_text,
+                image: owner_image,
+                opacity: visual.opacity,
+            };
+            commands.insert(owner_command_index, command);
+            if let Some((document_key, viewport, editable)) = owner_text_layout_metadata {
+                pending_owner_text_layouts.push(
+                    owner_command_index,
+                    document_key,
+                    viewport,
+                    editable,
+                );
+            }
         }
         (commands, pending_owner_text_layouts)
     };
@@ -624,11 +626,17 @@ pub(crate) fn extract_ui_render_commands_for_nodes_with_component_states_and_tex
     // Outer None means a static extraction without a live surface focus owner.
     focused_node: Option<Option<UiNodeId>>,
 ) -> Result<UiRenderExtract, ()> {
-    let mut partial_nodes = Vec::new();
     let mut included = BTreeSet::new();
     for node_id in changed_node_ids {
         let mut current = Some(*node_id);
+        let mut path = BTreeSet::new();
         while let Some(current_id) = current {
+            if included.contains(&current_id) {
+                break;
+            }
+            if !path.insert(current_id) {
+                return Err(());
+            }
             let Some(index) = node_indices.get(&current_id).copied() else {
                 return Err(());
             };
@@ -639,23 +647,20 @@ pub(crate) fn extract_ui_render_commands_for_nodes_with_component_states_and_tex
                 return Err(());
             }
             current = node.parent;
-            if included.insert(current_id) {
-                partial_nodes.push(node.clone());
-            }
         }
+        included.extend(path);
     }
     let partial_tree = UiArrangedTree {
         tree_id: arranged_tree.tree_id.clone(),
-        roots: Vec::new().into(),
-        nodes: partial_nodes.into(),
+        roots: arranged_tree.roots.clone(),
+        nodes: arranged_tree.nodes.clone(),
         draw_order: changed_node_ids.iter().copied().collect(),
-        canvas_layers: Vec::new().into(),
+        canvas_layers: arranged_tree.canvas_layers.clone(),
     };
-    let partial_indices = arranged_node_indices(&partial_tree);
     Ok(extract_ui_render_tree_from_arranged_indexed_with_component_states_and_text_measure_cache_and_control_index(
         tree,
         &partial_tree,
-        &partial_indices,
+        node_indices,
         Some(arranged_visibility),
         component_states,
         text_measure_cache,

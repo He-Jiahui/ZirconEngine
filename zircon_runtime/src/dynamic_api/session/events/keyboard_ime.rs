@@ -32,7 +32,7 @@ impl RuntimeDynamicSession {
         let text = if payload.is_empty() {
             None
         } else {
-            String::from_utf8(payload.to_vec()).ok()
+            std::str::from_utf8(payload).ok().map(str::to_owned)
         };
         // 文本输入先交给聚焦 UI；只有未处理时才作为 gameplay 文本键提交。
         if event.button == ZR_RUNTIME_KEY_ACTION_TEXT_V1 {
@@ -116,8 +116,8 @@ impl RuntimeDynamicSession {
             Ok(payload) => payload,
             Err(status) => return status,
         };
-        let text_payload = || match String::from_utf8(payload.to_vec()) {
-            Ok(text) => Ok(text),
+        let text_payload = || match std::str::from_utf8(payload) {
+            Ok(text) => Ok(text.to_owned()),
             Err(_) => Err(invalid_argument(b"invalid runtime ime payload")),
         };
         let input_event = match event.state {

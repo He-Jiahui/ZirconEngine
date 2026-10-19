@@ -52,7 +52,7 @@ fn compile_deferred_preserves_shadow_atlas_required_external_texture_binding() {
 fn test_extract() -> RenderFrameExtract {
     RenderFrameExtract::from_snapshot(
         RenderWorldSnapshotHandle::new(1),
-        World::new().to_render_snapshot(),
+        World::new().to_render_snapshot_cloning(),
     )
 }
 

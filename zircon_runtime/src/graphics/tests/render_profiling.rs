@@ -291,7 +291,7 @@ fn direct_runtime_frame_submit_exports_perfetto_trace_artifacts() {
 fn test_extract() -> RenderFrameExtract {
     RenderFrameExtract::from_snapshot(
         RenderWorldSnapshotHandle::new(501),
-        World::new().to_render_snapshot(),
+        World::new().to_render_snapshot_cloning(),
     )
 }
 

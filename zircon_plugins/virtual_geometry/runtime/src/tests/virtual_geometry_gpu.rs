@@ -757,7 +757,7 @@ fn virtual_geometry_gpu_readback_exposes_execution_backed_visbuffer64_entries() 
         .expect("default world should contain a renderable mesh");
     let mut extract = RenderFrameExtract::from_snapshot(
         RenderWorldSnapshotHandle::new(1),
-        world.to_render_snapshot(),
+        world.to_render_snapshot_cloning(),
     );
     extract.apply_viewport_size(viewport_size);
     extract.geometry.virtual_geometry = Some(RenderVirtualGeometryExtract {
@@ -1104,7 +1104,7 @@ fn virtual_geometry_cull_input_buffer_exists_without_snapshot_or_gpu_readback() 
         .find(|node| node.mesh.is_some())
         .map(|node| node.id)
         .expect("default world should contain a renderable mesh");
-    let mut extract = world.to_render_frame_extract();
+    let mut extract = world.to_render_frame_extract_cloning();
     extract.apply_viewport_size(viewport_size);
     let expected_camera_transform = Transform::from_translation(Vec3::new(3.0, 4.0, 5.0));
     extract.view.camera.transform = expected_camera_transform;
@@ -1636,7 +1636,7 @@ fn virtual_geometry_node_and_cluster_cull_page_requests_are_readable_from_last_s
         .find(|node| node.mesh.is_some())
         .map(|node| node.id)
         .expect("default world should contain a renderable mesh");
-    let mut extract = world.to_render_frame_extract();
+    let mut extract = world.to_render_frame_extract_cloning();
     extract.apply_viewport_size(viewport_size);
     extract.view.camera.transform = Transform::from_translation(Vec3::new(3.0, 4.0, 5.0));
     let mut render_clusters = vec![
@@ -1752,7 +1752,7 @@ fn virtual_geometry_visbuffer64_buffer_exists_without_snapshot_or_gpu_readback()
         .find(|node| node.mesh.is_some())
         .map(|node| node.id)
         .expect("default world should contain a renderable mesh");
-    let mut extract = world.to_render_frame_extract();
+    let mut extract = world.to_render_frame_extract_cloning();
     extract.apply_viewport_size(viewport_size);
     extract.view.camera.transform = Transform::from_translation(Vec3::new(3.0, 4.0, 5.0));
 
@@ -2024,7 +2024,7 @@ fn build_node_and_cluster_cull_history_extract(
         .find(|node| node.mesh.is_some())
         .map(|node| node.id)
         .expect("default world should contain a renderable mesh");
-    let mut extract = world.to_render_frame_extract();
+    let mut extract = world.to_render_frame_extract_cloning();
     extract.apply_viewport_size(viewport_size);
     extract.view.camera.transform = camera_transform;
     extract.geometry.virtual_geometry = Some(RenderVirtualGeometryExtract {
@@ -2057,7 +2057,7 @@ fn build_extract(
     page_budget: u32,
     pages: Vec<RenderVirtualGeometryPage>,
 ) -> RenderFrameExtract {
-    let mut snapshot: RenderSceneSnapshot = World::new().to_render_snapshot();
+    let mut snapshot: RenderSceneSnapshot = World::new().to_render_snapshot_cloning();
     snapshot.scene.meshes.clear();
     snapshot.scene.directional_lights.clear();
     let mut extract =

@@ -724,7 +724,7 @@ fn render_probe_over_capacity_replaces_an_invalid_nearest_candidate() {
     let invalid_cubemap = ResourceId::from_stable_label("builtin://missing-overflow-probe");
     let streamer = ResourceStreamer::new_for_test(asset_manager, &device, &queue, &texture_layout);
     let shape = ProbeInfluenceShape::sphere(1.0, 0.0).expect("valid sphere influence");
-    let mut extract = World::new().to_render_frame_extract();
+    let mut extract = World::new().to_render_frame_extract_cloning();
     extract.environment.probes = (0..=MAX_REFLECTION_PROBES)
         .map(|index| {
             ReflectionProbeData::try_new(
@@ -790,7 +790,7 @@ fn render_probe_over_capacity_resolves_only_selected_healthy_candidates() {
         .expect("valid PMREM insert");
     let streamer = ResourceStreamer::new_for_test(asset_manager, &device, &queue, &texture_layout);
     let shape = ProbeInfluenceShape::sphere(1.0, 0.0).expect("valid sphere influence");
-    let mut extract = World::new().to_render_frame_extract();
+    let mut extract = World::new().to_render_frame_extract_cloning();
     extract.environment.probes = (0..=MAX_REFLECTION_PROBES)
         .map(|index| {
             ReflectionProbeData::try_new(
@@ -883,7 +883,7 @@ fn probe_frame(cubemap: ResourceId) -> ViewportRenderFrame {
             .expect("valid reflection probe")
             .with_box_projection(true)
             .with_baked_cubemap(Some(cubemap));
-    let mut extract = World::new().to_render_frame_extract();
+    let mut extract = World::new().to_render_frame_extract_cloning();
     extract.environment.probes = vec![probe];
     ViewportRenderFrame::from_extract(extract, UVec2::new(64, 64))
 }

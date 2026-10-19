@@ -360,7 +360,7 @@ fn runtime_modules_propagate_reported_executor_registrations_into_render_framewo
             viewport,
             RenderFrameExtract::from_snapshot(
                 RenderWorldSnapshotHandle::new(1),
-                World::new().to_render_snapshot(),
+                World::new().to_render_snapshot_cloning(),
             ),
         )
         .expect_err("reported executor should replace descriptor no-op and run during submission");

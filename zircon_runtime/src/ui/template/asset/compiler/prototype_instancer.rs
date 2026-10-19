@@ -109,11 +109,11 @@ impl<'a> PrototypeInstancer<'a> {
         let mut frames = vec![PrototypeFrame::Expand(PrototypeExpandTask {
             asset,
             node,
-            tokens,
-            params,
-            binding_params,
+            tokens: Arc::new(tokens),
+            params: Arc::new(params),
+            binding_params: Arc::new(binding_params),
             slot_fills,
-            control_scope,
+            control_scope: control_scope.map(Arc::new),
         })];
         let mut results = Vec::<Vec<UiTemplateNode>>::new();
 
@@ -307,7 +307,7 @@ impl<'a> PrototypeInstancer<'a> {
                     node_id: format!("#{}", component.root.0),
                 })?;
         let component_scope = UiComponentControlScope::child(
-            task.control_scope.as_ref(),
+            task.control_scope.as_deref(),
             &node.node_id,
             component_root.control_id.as_deref(),
             node.control_id.as_deref(),
@@ -325,7 +325,7 @@ impl<'a> PrototypeInstancer<'a> {
             }));
         }
         let caller_asset_id = task.asset.asset.id.clone();
-        let call_tokens = call_tokens.unwrap_or(task.tokens);
+        let call_tokens = call_tokens.map(Arc::new).unwrap_or(task.tokens);
         frames.push(PrototypeFrame::FinalizeComponentFills(
             PrototypeComponentFillsFrame {
                 caller_asset_id,
@@ -368,7 +368,7 @@ impl<'a> PrototypeInstancer<'a> {
                 &frame.task.binding_params,
                 &frame.task.asset.asset.id,
             )?,
-            frame.task.control_scope.as_ref(),
+            frame.task.control_scope.as_deref(),
             &frame.task.asset.asset.id,
         )?;
         let binding_source_asset_ids = vec![frame.task.asset.asset.id.clone(); bindings.len()];
@@ -379,7 +379,7 @@ impl<'a> PrototypeInstancer<'a> {
             template: None,
             slot: None,
             control_id: resolve_optional_control_id(
-                frame.task.control_scope.as_ref(),
+                frame.task.control_scope.as_deref(),
                 frame.node.control_id.as_deref(),
             ),
             classes: frame.node.classes,
@@ -457,11 +457,11 @@ impl<'a> PrototypeInstancer<'a> {
         frames.push(PrototypeFrame::Expand(PrototypeExpandTask {
             asset: frame.component_asset,
             node: frame.component.root,
-            tokens: component_tokens,
-            params: component_params,
-            binding_params: component_binding_params,
+            tokens: Arc::new(component_tokens),
+            params: Arc::new(component_params),
+            binding_params: Arc::new(component_binding_params),
             slot_fills: Some(Arc::new(fills)),
-            control_scope: Some(frame.component_scope),
+            control_scope: Some(Arc::new(frame.component_scope)),
         }));
         Ok(())
     }
@@ -492,7 +492,7 @@ impl<'a> PrototypeInstancer<'a> {
             &frame.params,
             &frame.binding_params,
             &frame.caller_asset_id,
-            frame.caller_scope.as_ref(),
+            frame.caller_scope.as_deref(),
         )?;
         results.push(vec![root]);
         Ok(())
@@ -502,11 +502,11 @@ impl<'a> PrototypeInstancer<'a> {
 struct PrototypeExpandTask {
     asset: Arc<UiRawAssetPrototype>,
     node: UiPrototypeNodeHandle,
-    tokens: BTreeMap<String, Value>,
-    params: BTreeMap<String, Value>,
-    binding_params: BTreeMap<String, UiValue>,
+    tokens: Arc<BTreeMap<String, Value>>,
+    params: Arc<BTreeMap<String, Value>>,
+    binding_params: Arc<BTreeMap<String, UiValue>>,
     slot_fills: Option<Arc<BTreeMap<String, Vec<UiTemplateNode>>>>,
-    control_scope: Option<UiComponentControlScope>,
+    control_scope: Option<Arc<UiComponentControlScope>>,
 }
 
 enum PrototypeFrame {
@@ -528,10 +528,10 @@ struct PrototypeComponentFillsFrame {
     component_name: String,
     component: UiComponentPrototype,
     instance_node: UiNodePrototype,
-    call_tokens: BTreeMap<String, Value>,
-    params: BTreeMap<String, Value>,
-    binding_params: BTreeMap<String, UiValue>,
-    caller_scope: Option<UiComponentControlScope>,
+    call_tokens: Arc<BTreeMap<String, Value>>,
+    params: Arc<BTreeMap<String, Value>>,
+    binding_params: Arc<BTreeMap<String, UiValue>>,
+    caller_scope: Option<Arc<UiComponentControlScope>>,
     component_scope: UiComponentControlScope,
 }
 
@@ -540,10 +540,10 @@ struct PrototypeComponentRootFrame {
     caller_asset_id: String,
     component_name: String,
     instance_node: UiNodePrototype,
-    tokens: BTreeMap<String, Value>,
-    params: BTreeMap<String, Value>,
-    binding_params: BTreeMap<String, UiValue>,
-    caller_scope: Option<UiComponentControlScope>,
+    tokens: Arc<BTreeMap<String, Value>>,
+    params: Arc<BTreeMap<String, Value>>,
+    binding_params: Arc<BTreeMap<String, UiValue>>,
+    caller_scope: Option<Arc<UiComponentControlScope>>,
 }
 
 #[derive(Default)]

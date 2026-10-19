@@ -80,16 +80,17 @@ fn export_realtime_ibl_external_gltf_zero_roughness_mirror_png() {
     super::cpu_profile_capture::clear_current_cpu_timing_sidecar(&cpu_timing_output);
     let cpu_timing_feature_enabled = super::RealtimeIblCpuProfileCapture::feature_enabled();
     let mut cpu_timing_capture = super::RealtimeIblCpuProfileCapture::begin();
-    let mut snapshot = world.build_viewport_render_packet(&super::SceneViewportExtractRequest {
-        settings: super::ViewportRenderSettings::default(),
-        active_camera_override: None,
-        camera: Some(super::realtime_mirror_camera_descriptor(
-            super::SinglePbrSphereCameraView::front(super::ProjectionMode::Perspective),
-            super::MULTI_VIEW_OUTPUT_SIZE,
-        )),
-        viewport_size: Some(super::MULTI_VIEW_OUTPUT_SIZE),
-        virtual_geometry_debug: None,
-    });
+    let mut snapshot =
+        world.build_viewport_render_packet_cloning(&super::SceneViewportExtractRequest {
+            settings: super::ViewportRenderSettings::default(),
+            active_camera_override: None,
+            camera: Some(super::realtime_mirror_camera_descriptor(
+                super::SinglePbrSphereCameraView::front(super::ProjectionMode::Perspective),
+                super::MULTI_VIEW_OUTPUT_SIZE,
+            )),
+            viewport_size: Some(super::MULTI_VIEW_OUTPUT_SIZE),
+            virtual_geometry_debug: None,
+        });
     snapshot.environment = environment;
     snapshot.preview = super::PreviewEnvironmentExtract::from_environment(
         &snapshot.environment,

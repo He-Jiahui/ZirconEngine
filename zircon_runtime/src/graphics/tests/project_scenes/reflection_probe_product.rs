@@ -165,15 +165,15 @@ impl ProbeProductFixture {
         } else {
             EnvironmentExtract::procedural_default()
         };
-        let mut snapshot = self
-            .world
-            .build_viewport_render_packet(&SceneViewportExtractRequest {
-                settings: ViewportRenderSettings::default(),
-                active_camera_override: None,
-                camera: None,
-                viewport_size: Some(PROBE_PRODUCT_OUTPUT_SIZE),
-                virtual_geometry_debug: None,
-            });
+        let mut snapshot =
+            self.world
+                .build_viewport_render_packet_cloning(&SceneViewportExtractRequest {
+                    settings: ViewportRenderSettings::default(),
+                    active_camera_override: None,
+                    camera: None,
+                    viewport_size: Some(PROBE_PRODUCT_OUTPUT_SIZE),
+                    virtual_geometry_debug: None,
+                });
         snapshot.environment = environment;
         snapshot.preview =
             PreviewEnvironmentExtract::from_environment(&snapshot.environment, true, Vec4::ZERO);

@@ -107,7 +107,7 @@ fn build_extract(
     page_budget: u32,
     pages: Vec<RenderVirtualGeometryPage>,
 ) -> RenderFrameExtract {
-    let mut snapshot: RenderSceneSnapshot = World::new().to_render_snapshot();
+    let mut snapshot: RenderSceneSnapshot = World::new().to_render_snapshot_cloning();
     snapshot.scene.meshes.clear();
     snapshot.scene.directional_lights.clear();
     let mut extract =

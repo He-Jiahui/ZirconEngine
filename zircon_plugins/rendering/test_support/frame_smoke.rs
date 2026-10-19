@@ -118,7 +118,7 @@ pub fn render_nonempty_product_frame_with_prepare(
 
     let mut extract = RenderFrameExtract::from_snapshot(
         RenderWorldSnapshotHandle::new(82_001),
-        zircon_runtime::scene::world::World::new().to_render_snapshot(),
+        zircon_runtime::scene::world::World::new().to_render_snapshot_cloning(),
     );
     *extract.geometry = GeometryExtract::from_meshes(
         extract.view.core_pipeline,

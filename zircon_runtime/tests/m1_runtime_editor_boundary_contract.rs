@@ -103,7 +103,7 @@ fn runtime_world_render_packet_only_applies_neutral_request_fields() {
         virtual_geometry_debug: None,
     };
 
-    let packet = world.build_viewport_render_packet(&request);
+    let packet = world.build_viewport_render_packet_cloning(&request);
 
     assert_eq!(
         packet.scene.camera.projection_mode,

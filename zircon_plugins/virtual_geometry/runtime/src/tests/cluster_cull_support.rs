@@ -3,7 +3,7 @@ use super::prelude::*;
 pub(super) fn viewport_frame(viewport_size: UVec2) -> VirtualGeometryRenderFrame {
     let mut extract = zircon_runtime::core::framework::render::RenderFrameExtract::from_snapshot(
         RenderWorldSnapshotHandle::new(1),
-        World::new().to_render_snapshot(),
+        World::new().to_render_snapshot_cloning(),
     );
     extract.apply_viewport_size(viewport_size);
     extract.view.camera.transform = Transform::from_translation(Vec3::new(3.0, 4.0, 5.0));

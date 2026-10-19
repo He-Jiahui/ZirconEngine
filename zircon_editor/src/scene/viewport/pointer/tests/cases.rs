@@ -296,7 +296,7 @@ fn empty_scene_gizmo(owner: u64) -> SceneGizmoOverlayExtract {
 #[test]
 fn renderable_candidates_consume_runtime_meshes_and_collapse_primitives_by_owner() {
     let scene = Scene::new();
-    let mut render_meshes = scene.to_render_extract().scene.meshes;
+    let mut render_meshes = scene.to_render_extract_cloning().scene.meshes;
     let first = render_meshes
         .first()
         .cloned()

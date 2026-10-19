@@ -236,7 +236,7 @@ fn viewport_authoring_commands_do_not_mutate_runtime_world_or_default_extract() 
     let world_before = state.world.expect_with_world(|scene| scene.clone());
     let runtime_before = state
         .world
-        .expect_with_world(|scene| scene.to_render_extract());
+        .expect_with_world(|scene| scene.to_render_extract_cloning());
 
     let _ = state.apply_viewport_command(&ViewportCommand::SetProjectionMode(
         ProjectionMode::Orthographic,
@@ -262,7 +262,7 @@ fn viewport_authoring_commands_do_not_mutate_runtime_world_or_default_extract() 
     let world_after = state.world.expect_with_world(|scene| scene.clone());
     let runtime_after = state
         .world
-        .expect_with_world(|scene| scene.to_render_extract());
+        .expect_with_world(|scene| scene.to_render_extract_cloning());
     assert_eq!(
         world_after, world_before,
         "viewport authoring commands should stay editor-owned instead of mutating the runtime world"

@@ -307,7 +307,7 @@ fn context_with_advanced_plan_and_payloads(
 ) -> FrameSubmissionContext {
     let extract = RenderFrameExtract::from_snapshot(
         RenderWorldSnapshotHandle::new(1),
-        World::new().to_render_snapshot(),
+        World::new().to_render_snapshot_cloning(),
     );
     let source_extract = Arc::new(extract.clone());
     FrameSubmissionContext::new(

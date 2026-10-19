@@ -100,7 +100,7 @@ fn render_extract_prepare_flushes_parent_reorder_and_active_changes() {
     );
     assert!(world.has_pending_scene_systems());
     assert!(world
-        .to_render_extract()
+        .to_render_extract_cloning()
         .scene
         .meshes
         .iter()
@@ -422,7 +422,8 @@ fn inactive_render_camera_extracts_no_scene_renderables() {
     assert!(extract.visibility.renderables.is_empty());
     assert!(extract.lighting.directional_lights.is_empty());
 
-    let packet = world.build_viewport_render_packet(&SceneViewportExtractRequest::default());
+    let packet =
+        world.build_viewport_render_packet_cloning(&SceneViewportExtractRequest::default());
     assert!(!packet.scene.camera.is_active);
     assert!(packet.scene.meshes.is_empty());
     assert!(packet.scene.directional_lights.is_empty());

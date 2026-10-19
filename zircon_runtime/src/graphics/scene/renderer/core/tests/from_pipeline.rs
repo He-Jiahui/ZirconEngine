@@ -316,6 +316,6 @@ fn pluginized_rendering_feature_names_drive_runtime_post_process_flags() {
 fn test_extract() -> RenderFrameExtract {
     RenderFrameExtract::from_snapshot(
         RenderWorldSnapshotHandle::new(1),
-        World::new().to_render_snapshot(),
+        World::new().to_render_snapshot_cloning(),
     )
 }

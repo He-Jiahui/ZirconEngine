@@ -176,7 +176,7 @@ fn render_product_submit_solari_experimental_reports_gated_provider_status() {
 }
 
 fn default_core3d_acceptance_extract() -> RenderFrameExtract {
-    let mut extract = crate::scene::world::World::new().to_render_frame_extract();
+    let mut extract = crate::scene::world::World::new().to_render_frame_extract_cloning();
     extract.apply_viewport_size(UVec2::new(320, 240));
     extract
 }

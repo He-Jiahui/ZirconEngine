@@ -90,7 +90,7 @@ fn planar_extract(capture_selected: bool) -> (RenderFrameExtract, ResourceHandle
     }
     let mut extract = RenderFrameExtract::from_snapshot(
         RenderWorldSnapshotHandle::new(1),
-        World::new().to_render_snapshot(),
+        World::new().to_render_snapshot_cloning(),
     );
     extract.view.cameras = vec![camera.clone()];
     extract.view.scene_camera_entity = camera.entity;

@@ -1,11 +1,13 @@
+#[cfg(test)]
+use crate::core::framework::render::RenderExtractProducer;
 use crate::core::framework::render::{
-    RenderExtractContext, RenderExtractProducer, RenderFrameExtract, RenderWorldSnapshotHandle,
+    RenderExtractContext, RenderFrameExtract, RenderWorldSnapshotHandle,
 };
 use crate::scene::world::World;
 
 impl World {
     /// 为离线调用者构造默认视图快照；正式会话帧应使用 LevelSystem，以保留真实 World 的提取阶段副作用和动画姿态。
-    pub fn to_render_frame_extract(&self) -> RenderFrameExtract {
+    pub fn to_render_frame_extract_cloning(&self) -> RenderFrameExtract {
         let mut world = self.clone();
         world.build_prepared_render_frame_extract(&RenderExtractContext::new(
             RenderWorldSnapshotHandle::new(0),
@@ -21,6 +23,8 @@ impl World {
     }
 }
 
+// Production producers must prepare the live world rather than silently cloning it.
+#[cfg(test)]
 impl RenderExtractProducer for World {
     fn build_render_frame_extract(&self, context: &RenderExtractContext) -> RenderFrameExtract {
         let mut world = self.clone();

@@ -20,7 +20,7 @@ fn legacy_snapshot_adapter_initializes_m5_flagship_extract_slots_as_opt_in_empty
 
 #[test]
 fn scene_render_frame_extract_populates_m5_flagship_slots_as_empty_sidebands() {
-    let extract = World::new().to_render_frame_extract();
+    let extract = World::new().to_render_frame_extract_cloning();
 
     assert!(extract.geometry.virtual_geometry.is_some());
     assert!(extract
@@ -95,6 +95,6 @@ fn compile_options_can_opt_in_linked_virtual_geometry_and_hybrid_gi_features() {
 fn test_extract() -> RenderFrameExtract {
     RenderFrameExtract::from_snapshot(
         RenderWorldSnapshotHandle::new(1),
-        World::new().to_render_snapshot(),
+        World::new().to_render_snapshot_cloning(),
     )
 }

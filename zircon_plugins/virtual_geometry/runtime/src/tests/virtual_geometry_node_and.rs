@@ -800,7 +800,7 @@ fn render_seed_backed_execution_frame(
         .find(|node| node.mesh.is_some())
         .map(|node| node.id)
         .expect("default world should contain a renderable mesh");
-    let mut extract = world.to_render_frame_extract();
+    let mut extract = world.to_render_frame_extract_cloning();
     extract.apply_viewport_size(viewport_size);
     extract.view.camera.transform = Transform::from_translation(Vec3::new(3.0, 4.0, 5.0));
     extract.geometry.virtual_geometry = Some(RenderVirtualGeometryExtract {
@@ -866,7 +866,7 @@ fn render_seed_backed_frontier_rank_execution_frame(
         .find(|node| node.mesh.is_some())
         .map(|node| node.id)
         .expect("default world should contain a renderable mesh");
-    let mut extract = world.to_render_frame_extract();
+    let mut extract = world.to_render_frame_extract_cloning();
     extract.apply_viewport_size(viewport_size);
     extract.view.camera.transform = Transform::from_translation(Vec3::new(3.0, 4.0, 5.0));
     extract.geometry.virtual_geometry = Some(RenderVirtualGeometryExtract {
@@ -934,7 +934,7 @@ fn render_seed_backed_parent_fallback_execution_frame(
         .find(|node| node.mesh.is_some())
         .map(|node| node.id)
         .expect("default world should contain a renderable mesh");
-    let mut extract = world.to_render_frame_extract();
+    let mut extract = world.to_render_frame_extract_cloning();
     extract.apply_viewport_size(viewport_size);
     extract.view.camera.transform = Transform::from_translation(Vec3::new(3.0, 4.0, 5.0));
     extract.geometry.virtual_geometry = Some(RenderVirtualGeometryExtract {
@@ -1003,7 +1003,7 @@ fn render_seed_backed_duplicate_parent_fallback_execution_frame(
         .find(|node| node.mesh.is_some())
         .map(|node| node.id)
         .expect("default world should contain a renderable mesh");
-    let mut extract = world.to_render_frame_extract();
+    let mut extract = world.to_render_frame_extract_cloning();
     extract.apply_viewport_size(viewport_size);
     extract.view.camera.transform = Transform::from_translation(Vec3::new(3.0, 4.0, 5.0));
     extract.geometry.virtual_geometry = Some(RenderVirtualGeometryExtract {
@@ -1072,7 +1072,7 @@ fn render_seed_backed_budget_order_execution_frame(
         .find(|node| node.mesh.is_some())
         .map(|node| node.id)
         .expect("default world should contain a renderable mesh");
-    let mut extract = world.to_render_frame_extract();
+    let mut extract = world.to_render_frame_extract_cloning();
     extract.apply_viewport_size(viewport_size);
     extract.view.camera.transform = Transform::from_translation(Vec3::new(3.0, 4.0, 5.0));
     extract.geometry.virtual_geometry = Some(RenderVirtualGeometryExtract {
@@ -1138,7 +1138,7 @@ fn render_seed_backed_subset_execution_frame(
         .find(|node| node.mesh.is_some())
         .map(|node| node.id)
         .expect("default world should contain a renderable mesh");
-    let mut extract = world.to_render_frame_extract();
+    let mut extract = world.to_render_frame_extract_cloning();
     extract.apply_viewport_size(viewport_size);
     extract.view.camera.transform = Transform::from_translation(Vec3::new(3.0, 4.0, 5.0));
     extract.geometry.virtual_geometry = Some(RenderVirtualGeometryExtract {
@@ -1204,7 +1204,7 @@ fn render_seed_backed_hierarchical_execution_frame(
         .find(|node| node.mesh.is_some())
         .map(|node| node.id)
         .expect("default world should contain a renderable mesh");
-    let mut extract = world.to_render_frame_extract();
+    let mut extract = world.to_render_frame_extract_cloning();
     extract.apply_viewport_size(viewport_size);
     extract.view.camera.transform = Transform::from_translation(Vec3::new(3.0, 4.0, 5.0));
     extract.geometry.virtual_geometry = Some(RenderVirtualGeometryExtract {

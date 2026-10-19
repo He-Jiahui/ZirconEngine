@@ -170,7 +170,7 @@ fn scene_assets_roundtrip_sprite_and_mesh2d_through_project_reimport_and_render_
         reopened_world.get::<Mesh2dComponent>(mesh_entity),
         Some(&mesh_2d)
     );
-    let extract = reopened_world.to_render_frame_extract();
+    let extract = reopened_world.to_render_frame_extract_cloning();
     let extracted_sprite = extract
         .sprites
         .sprites

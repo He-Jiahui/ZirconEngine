@@ -127,7 +127,8 @@ fn render_extract_prepare_flushes_direct_frame_and_legacy_viewport_paths() {
         .id;
     assert!(world.has_pending_scene_systems());
 
-    let packet = world.build_viewport_render_packet(&SceneViewportExtractRequest::default());
+    let packet =
+        world.build_viewport_render_packet_cloning(&SceneViewportExtractRequest::default());
     assert!(packet.scene.meshes.iter().all(|mesh| mesh.node_id != child));
     assert!(world.has_pending_scene_systems());
 

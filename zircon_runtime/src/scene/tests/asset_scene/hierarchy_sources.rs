@@ -53,7 +53,7 @@ fn scene_assets_keep_script_only_entities_as_empty_nodes() {
 
     assert!(matches!(player.kind, NodeKind::Empty));
     assert!(world.dynamic_component(90, "script.bindings").is_some());
-    let extract = world.to_render_extract();
+    let extract = world.to_render_extract_cloning();
     assert!(extract.scene.meshes.is_empty());
     assert!(extract.scene.directional_lights.is_empty());
     assert_eq!(world.to_scene_asset(&project).unwrap(), scene);

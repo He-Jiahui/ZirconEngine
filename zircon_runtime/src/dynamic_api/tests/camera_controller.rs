@@ -31,7 +31,7 @@ fn editor_camera_override_changes_only_the_render_extract_view() {
     let scene = Scene::new();
     let active_camera = scene.active_camera();
     let world_transform_before = scene.world_transform(active_camera).unwrap();
-    let mut extract = scene.to_render_frame_extract();
+    let mut extract = scene.to_render_frame_extract_cloning();
     let original_pipeline = extract.view.camera.core_pipeline;
     let original_exposure = extract.view.camera.exposure_ev100;
     let mut controller = RuntimeCameraController::new(UVec2::new(800, 600));

@@ -129,7 +129,7 @@ fn memory_profile_prepared_viewport_packet_10k_entities() {
         crate::memory_validation::measure(|| world.build_prepared_viewport_render_packet(&request));
     prepared.report("viewport_packet_10k", "prepared");
     let (_, cloning) =
-        crate::memory_validation::measure(|| world.build_viewport_render_packet(&request));
+        crate::memory_validation::measure(|| world.build_viewport_render_packet_cloning(&request));
     cloning.report("viewport_packet_10k", "cloning");
     assert!(prepared.allocations < cloning.allocations);
     assert!(prepared.peak_bytes < cloning.peak_bytes);
