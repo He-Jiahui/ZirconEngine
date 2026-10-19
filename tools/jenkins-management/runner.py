@@ -58,6 +58,15 @@ AUTH = {PREVIEW_ACTION: "validation", "create-branch": "implementation", "create
         "inspect-worktree": "validation", "retire-worktree-reader": "validation"}
 
 
+def compact_build_environment(environment):
+    """Apply before compatibility hashing and launch; never reuse a larger pool
+    under a key that claims compact settings. Release/profiling symbols stay intact.
+    """
+    return {**environment, "CARGO_INCREMENTAL": "0", "CARGO_PROFILE_DEV_INCREMENTAL": "false",
+            "CARGO_PROFILE_TEST_INCREMENTAL": "false", "CARGO_PROFILE_DEV_DEBUG": "0",
+            "CARGO_PROFILE_TEST_DEBUG": "0"}
+
+
 def encoded(value):
     return json.dumps(value, sort_keys=True, separators=(",", ":"),
                       ensure_ascii=False, allow_nan=False).encode("utf-8")
@@ -3386,6 +3395,7 @@ class Management:
                              and not recipe["noRun"] else 1) for recipe in recipes)
         amount = Capacity(parallelism, 2 * parallelism * 1024**3, 4 * 1024**3)
         environment, trusted, _policy_file = _environment_policy(self.state, self.repo)
+        environment = compact_build_environment(environment)
         preparation = source_helper()
         cache_fact = self.dependency_cache()
         pool, cargo_configuration = self.batch_pool(recipes, preparation, trusted, environment, root, cache_fact)
@@ -3733,6 +3743,10 @@ class Management:
             raise ValueError("Unsupported Cargo targets or harness selectors")
         if "harnessFilters" in self.payload:
             extra["harnessFilters"] = filters
+        if not options["noDefaultFeatures"] or options["allFeatures"] or extra.get("allTests"):
+            raise ValueError("build_scope_policy: require explicit features with noDefaultFeatures=true; broad feature/test selection prohibited")
+        if verb == "test" and not ((options["lib"] and not tests) or (not options["lib"] and len(tests) == 1)):
+            raise ValueError("build_scope_policy: select lib or exactly one test target")
         command = [verb, "--jobs", str(jobs), "--message-format=json"]
         for name, flag in (("bins", "--bins"), ("allTests", "--tests")):
             if extra.get(name):
@@ -4802,6 +4816,7 @@ class Management:
                     "validationInputPolicy": "actual-checkout", "originalReservationRetained": True,
                     "originalWriterRetained": True, "formalAcceptance": False}
         environment, trusted, policy_file = _environment_policy(self.state, self.repo)
+        environment = compact_build_environment(environment)
         self._checkout_policy_file = policy_file
         self._checkout_native_environment = dict(environment)
         preparation = source_helper()
@@ -5250,6 +5265,7 @@ class Management:
         parallelism = max(recipe["jobs"], recipe["testThreads"] if verb == "test" and not recipe["noRun"] else 1)
         amount = Capacity(parallelism, 2 * parallelism * 1024**3, 4 * 1024**3)
         environment, trusted, _policy_file = _environment_policy(self.state, self.repo)
+        environment = compact_build_environment(environment)
         preparation = source_helper()
         compatibility_environment = {**environment,
                                      **({"cargoAllFeatures": True} if recipe["allFeatures"] else {}),
