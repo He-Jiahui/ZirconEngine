@@ -17,7 +17,7 @@ use crate::ui::workbench::snapshot::{SceneEntries, SceneInspectionHierarchyFragm
 use zircon_runtime_interface::world_sync::{WatchKey, WatchRegistration};
 
 use hierarchy_row_patch::{
-    build_presented_hierarchy_pane_patch, replace_presented_hierarchy_rows,
+    build_hierarchy_rows_replacement, build_presented_hierarchy_pane_patch,
     PresentedHierarchyRowPatch,
 };
 
@@ -384,14 +384,6 @@ impl RetainedEditorHost {
             return;
         }
 
-        let mut presentation = self.ui.get_host_presentation();
-        presentation.workbench_window_nodes =
-            to_host_contract_workbench_window_nodes_with_previous_at_mount_and_scale(
-                Some(self.workbench_window_bridge.host_projection()),
-                Some(&presentation.workbench_window_nodes),
-                self.workbench_window_bridge.layout_frames().mount_frame,
-                self.workbench_window_bridge.presentation_scale_factor(),
-            );
         let hierarchy_rows = ModelRc::with_metadata(
             entries
                 .iter()
@@ -404,8 +396,29 @@ impl RetainedEditorHost {
                 .collect(),
             entries.inspection_generation(),
         );
-        replace_presented_hierarchy_rows(&mut presentation, &hierarchy_rows);
-        self.ui.set_host_presentation(presentation);
+        let committed = self
+            .ui
+            .patch_host_presentation(|presentation| {
+                let nodes =
+                    to_host_contract_workbench_window_nodes_with_previous_at_mount_and_scale(
+                        Some(self.workbench_window_bridge.host_projection()),
+                        Some(&presentation.workbench_window_nodes),
+                        self.workbench_window_bridge.layout_frames().mount_frame,
+                        self.workbench_window_bridge.presentation_scale_factor(),
+                    );
+                let changed_rows = (0..nodes.row_count()).collect();
+                let patch = HostPresentationPatch::new(build_hierarchy_rows_replacement(
+                    presentation,
+                    &hierarchy_rows,
+                ))
+                .with_workbench_nodes(nodes, changed_rows);
+                Some((patch, ()))
+            })
+            .is_some();
+        if !committed {
+            self.mark_layout_dirty();
+            return;
+        }
         self.sync_hierarchy_pointer_layout(entries.hierarchy_rows_arc());
         self.invalidate_host(HostInvalidationMask::RENDER);
     }

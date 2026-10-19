@@ -462,13 +462,14 @@ impl UiHostWindow {
         zircon_runtime_interface::ui::surface::UiRenderFrameCommandRef,
         FrameRect,
     )> {
-        let presentation = self.get_host_presentation();
+        let generation = self.get_host_presentation_generation();
+        let presentation = generation.structure();
         let size = self.window().size();
         let mut frame =
             super::super::paint_frame::HostRgbaFrame::recording_only(size.width, size.height);
         super::super::paint_workbench::draw_workbench_presentation_commands(
             &mut frame,
-            &presentation,
+            presentation,
         );
         let recorded = frame.into_recorded_frame();
         recorded

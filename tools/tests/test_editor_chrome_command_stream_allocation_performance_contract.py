@@ -19,7 +19,7 @@ STREAM_MODEL = ROOT / (
 )
 STREAM_TESTS = ROOT / (
     "zircon_editor/src/ui/retained/contract/"
-    "stream/tests/model.rs"
+    "tests/stream_model.rs"
 )
 
 
@@ -83,7 +83,7 @@ class EditorChromeCommandStreamAllocationPerformanceContractTests(unittest.TestC
         push = (
             ROOT
             / "zircon_editor/src/ui/retained/contract/"
-            "chrome_command_stream/stream/push/command.rs"
+            "stream/push/command.rs"
         ).read_text(encoding="utf-8")
         append = push.split("fn push_command", 1)[1]
         self.assertIn("self.image_resources_compacted = false", append)

@@ -20,6 +20,7 @@ impl PresentedHierarchyRowPatch {
     }
 }
 
+#[cfg(test)]
 pub(super) fn replace_presented_hierarchy_rows(
     presentation: &mut HostWindowPresentationData,
     rows: &ModelRc<SceneNodeData>,
@@ -79,45 +80,55 @@ pub(super) fn build_presented_hierarchy_pane_patch(
         return None;
     };
     let patched_rows = rows.with_row_patches(materialized_patches);
+    Some(build_hierarchy_rows_replacement(
+        presentation,
+        &patched_rows,
+    ))
+}
+
+pub(super) fn build_hierarchy_rows_replacement(
+    presentation: &HostWindowPresentationData,
+    rows: &ModelRc<SceneNodeData>,
+) -> HostPanePresentationPatch {
     let mut patch = HostPanePresentationPatch::new();
     let scene = &presentation.host_scene_data;
     append_hierarchy_pane_patch(
         &mut patch,
         HostPanePresentationLocation::LeftDock,
         &scene.left_dock.pane,
-        &patched_rows,
+        rows,
     );
     append_hierarchy_pane_patch(
         &mut patch,
         HostPanePresentationLocation::RightDock,
         &scene.right_dock.pane,
-        &patched_rows,
+        rows,
     );
     append_hierarchy_pane_patch(
         &mut patch,
         HostPanePresentationLocation::BottomDock,
         &scene.bottom_dock.pane,
-        &patched_rows,
+        rows,
     );
     append_hierarchy_pane_patch(
         &mut patch,
         HostPanePresentationLocation::DocumentDock,
         &scene.document_dock.pane,
-        &patched_rows,
+        rows,
     );
     append_floating_hierarchy_pane_patches(
         &mut patch,
         &scene.floating_layer.floating_windows,
-        &patched_rows,
+        rows,
         false,
     );
     append_floating_hierarchy_pane_patches(
         &mut patch,
         &presentation.native_floating_surface_data.floating_windows,
-        &patched_rows,
+        rows,
         true,
     );
-    Some(patch)
+    patch
 }
 
 fn append_hierarchy_pane_patch(
@@ -221,12 +232,14 @@ fn hierarchy_rows(pane: &PaneData) -> Option<&ModelRc<SceneNodeData>> {
     (pane.kind.as_str() == "Hierarchy").then_some(&pane.hierarchy.hierarchy_nodes)
 }
 
+#[cfg(test)]
 fn replace_hierarchy_pane(pane: &mut PaneData, rows: &ModelRc<SceneNodeData>) {
     if pane.kind.as_str() == "Hierarchy" {
         pane.hierarchy.hierarchy_nodes = rows.clone();
     }
 }
 
+#[cfg(test)]
 fn replace_floating_hierarchy_panes(
     windows: &mut ModelRc<FloatingWindowData>,
     rows: &ModelRc<SceneNodeData>,

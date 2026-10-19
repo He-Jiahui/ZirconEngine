@@ -680,16 +680,16 @@ impl HostContractState {
         true
     }
 
+    /// Callers compare only the fields they own before requesting a write.
     pub(crate) fn update_pane_interaction(
         &mut self,
+        changed: bool,
         update: impl FnOnce(&mut HostPaneInteractionStateData),
     ) -> bool {
-        let mut value = self.pane_interaction_state.as_ref().clone();
-        update(&mut value);
-        if self.pane_interaction_state.as_ref() == &value {
+        if !changed {
             return false;
         }
-        self.pane_interaction_state = Arc::new(value);
+        update(Arc::make_mut(&mut self.pane_interaction_state));
         self.advance_interaction_generation();
         true
     }

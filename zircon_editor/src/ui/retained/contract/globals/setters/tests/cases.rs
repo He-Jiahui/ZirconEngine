@@ -233,3 +233,32 @@ fn asset_surface_transaction_advances_generation_once_and_skips_stable_writeback
     assert!(!context.set_asset_surface_interaction("activity", interaction));
     assert_eq!(state.borrow().interaction_generation(), after_change);
 }
+
+#[test]
+fn interaction_updates_reuse_unique_storage_and_leave_shared_noops_untouched() {
+    let state = Rc::new(RefCell::new(HostContractState::new(PhysicalSize::new(
+        640, 420,
+    ))));
+    let context = PaneSurfaceHostContext::from_state(Rc::clone(&state));
+    let pointer = std::sync::Arc::as_ptr(&state.borrow().pane_interaction_state);
+    context.set_console_scroll_px(24.0);
+    assert_eq!(
+        std::sync::Arc::as_ptr(&state.borrow().pane_interaction_state),
+        pointer
+    );
+    let snapshot = std::sync::Arc::clone(&state.borrow().pane_interaction_state);
+    let generation = state.borrow().interaction_generation();
+    context.set_console_scroll_px(24.0);
+    assert_eq!(state.borrow().interaction_generation(), generation);
+    assert!(std::sync::Arc::ptr_eq(
+        &snapshot,
+        &state.borrow().pane_interaction_state
+    ));
+    context.set_console_scroll_px(48.0);
+    assert_eq!(snapshot.console_scroll_px, 24.0);
+    assert_eq!(
+        state.borrow().pane_interaction_state.console_scroll_px,
+        48.0
+    );
+    assert_eq!(state.borrow().interaction_generation(), generation + 1);
+}

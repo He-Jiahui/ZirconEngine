@@ -31,7 +31,17 @@ impl HostContractState {
         .then(|| self.pane_interaction_state.pressed_template_frame.clone());
         let scale_factor = self.window_scale_factor;
         let project = self.host_presentation.host_shell.project_path.clone();
-        let changed = self.update_pane_interaction(|interaction| {
+        let current = self.pane_interaction_state.as_ref();
+        let changed = current.pressed_template_control_id != hit.control_id
+            || current.pressed_template_pane_id != hit.pane_id
+            || current.pressed_template_action_id != hit.action_id
+            || current.pressed_template_dispatch_kind != hit.dispatch_kind
+            || current.pressed_template_project_path != project
+            || current.pressed_template_frame != hit.frame
+            || current.pressed_template_down_x != x
+            || current.pressed_template_down_y != y
+            || current.pressed_template_scale_factor != scale_factor;
+        let changed = self.update_pane_interaction(changed, |interaction| {
             interaction.pressed_template_control_id = hit.control_id.clone();
             interaction.pressed_template_pane_id = hit.pane_id.clone();
             interaction.pressed_template_action_id = hit.action_id.clone();
@@ -62,7 +72,7 @@ impl HostContractState {
             return None;
         }
         let frame = self.pane_interaction_state.pressed_template_frame.clone();
-        self.update_pane_interaction(|interaction| {
+        self.update_pane_interaction(true, |interaction| {
             interaction.pressed_template_control_id.clear();
             interaction.pressed_template_pane_id.clear();
             interaction.pressed_template_action_id.clear();

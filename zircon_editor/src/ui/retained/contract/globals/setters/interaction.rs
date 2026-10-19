@@ -2,8 +2,14 @@ use super::super::super::super::data::HostPaneInteractionStateData;
 use super::super::{HostAssetSurfaceInteractionState, PaneSurfaceHostContext};
 
 impl PaneSurfaceHostContext<'_> {
-    fn update_interaction(&self, update: impl FnOnce(&mut HostPaneInteractionStateData)) {
-        self.state.borrow_mut().update_pane_interaction(update);
+    fn update_interaction(
+        &self,
+        changed: impl FnOnce(&HostPaneInteractionStateData) -> bool,
+        update: impl FnOnce(&mut HostPaneInteractionStateData),
+    ) {
+        let mut state = self.state.borrow_mut();
+        let changed = changed(state.pane_interaction_state.as_ref());
+        state.update_pane_interaction(changed, update);
     }
 
     pub(crate) fn set_asset_surface_interaction(
@@ -45,7 +51,7 @@ impl PaneSurfaceHostContext<'_> {
         if !changed {
             return false;
         }
-        state.update_pane_interaction(|interaction| match surface_mode {
+        state.update_pane_interaction(true, |interaction| match surface_mode {
             "activity" => {
                 interaction.activity_asset_tree_hovered_index = next.tree_hovered_index;
                 interaction.activity_asset_tree_scroll_px = next.tree_scroll_px;
@@ -79,104 +85,163 @@ impl PaneSurfaceHostContext<'_> {
         if !changed {
             return false;
         }
-        state.update_pane_interaction(|interaction| {
+        state.update_pane_interaction(true, |interaction| {
             interaction.hierarchy_scroll_px = scroll_px;
             interaction.hovered_hierarchy_index = hovered_index;
         })
     }
 
     pub(crate) fn set_hierarchy_scroll_px(&self, value: f32) {
-        self.update_interaction(|state| state.hierarchy_scroll_px = value.max(0.0));
+        self.update_interaction(
+            |state| state.hierarchy_scroll_px != value.max(0.0),
+            |state| state.hierarchy_scroll_px = value.max(0.0),
+        );
     }
 
     pub(crate) fn set_hovered_hierarchy_index(&self, value: i32) {
-        self.update_interaction(|state| state.hovered_hierarchy_index = value);
+        self.update_interaction(
+            |state| state.hovered_hierarchy_index != value,
+            |state| state.hovered_hierarchy_index = value,
+        );
     }
 
     pub(crate) fn set_console_scroll_px(&self, value: f32) {
-        self.update_interaction(|state| state.console_scroll_px = value.max(0.0));
+        self.update_interaction(
+            |state| state.console_scroll_px != value.max(0.0),
+            |state| state.console_scroll_px = value.max(0.0),
+        );
     }
     pub(crate) fn set_inspector_scroll_px(&self, _value: f32) {}
     pub(crate) fn set_browser_asset_details_scroll_px(&self, _value: f32) {}
 
     pub(crate) fn set_activity_asset_tree_hovered_index(&self, value: i32) {
-        self.update_interaction(|state| state.activity_asset_tree_hovered_index = value);
+        self.update_interaction(
+            |state| state.activity_asset_tree_hovered_index != value,
+            |state| state.activity_asset_tree_hovered_index = value,
+        );
     }
 
     pub(crate) fn set_activity_asset_tree_scroll_px(&self, value: f32) {
-        self.update_interaction(|state| state.activity_asset_tree_scroll_px = value.max(0.0));
+        self.update_interaction(
+            |state| state.activity_asset_tree_scroll_px != value.max(0.0),
+            |state| state.activity_asset_tree_scroll_px = value.max(0.0),
+        );
     }
 
     pub(crate) fn set_activity_asset_content_hovered_index(&self, value: i32) {
-        self.update_interaction(|state| state.activity_asset_content_hovered_index = value);
+        self.update_interaction(
+            |state| state.activity_asset_content_hovered_index != value,
+            |state| state.activity_asset_content_hovered_index = value,
+        );
     }
 
     pub(crate) fn set_activity_asset_content_scroll_px(&self, value: f32) {
-        self.update_interaction(|state| state.activity_asset_content_scroll_px = value.max(0.0));
+        self.update_interaction(
+            |state| state.activity_asset_content_scroll_px != value.max(0.0),
+            |state| state.activity_asset_content_scroll_px = value.max(0.0),
+        );
     }
     pub(crate) fn set_activity_asset_references_hovered_index(&self, value: i32) {
-        self.update_interaction(|state| state.activity_asset_references_hovered_index = value);
+        self.update_interaction(
+            |state| state.activity_asset_references_hovered_index != value,
+            |state| state.activity_asset_references_hovered_index = value,
+        );
     }
 
     pub(crate) fn set_activity_asset_references_scroll_px(&self, value: f32) {
-        self.update_interaction(|state| {
-            state.activity_asset_references_scroll_px = value.max(0.0);
-        });
+        self.update_interaction(
+            |state| state.activity_asset_references_scroll_px != value.max(0.0),
+            |state| state.activity_asset_references_scroll_px = value.max(0.0),
+        );
     }
 
     pub(crate) fn set_activity_asset_used_by_hovered_index(&self, value: i32) {
-        self.update_interaction(|state| state.activity_asset_used_by_hovered_index = value);
+        self.update_interaction(
+            |state| state.activity_asset_used_by_hovered_index != value,
+            |state| state.activity_asset_used_by_hovered_index = value,
+        );
     }
 
     pub(crate) fn set_activity_asset_used_by_scroll_px(&self, value: f32) {
-        self.update_interaction(|state| state.activity_asset_used_by_scroll_px = value.max(0.0));
+        self.update_interaction(
+            |state| state.activity_asset_used_by_scroll_px != value.max(0.0),
+            |state| state.activity_asset_used_by_scroll_px = value.max(0.0),
+        );
     }
 
     pub(crate) fn set_activity_asset_reference_hover_frame(
         &self,
         value: crate::ui::retained_host::host_contract::data::FrameRect,
     ) {
-        self.update_interaction(|state| state.activity_asset_reference_hover_frame = value);
+        self.update_interaction(
+            |state| state.activity_asset_reference_hover_frame != value,
+            |state| state.activity_asset_reference_hover_frame = value,
+        );
     }
 
     pub(crate) fn set_browser_asset_tree_hovered_index(&self, value: i32) {
-        self.update_interaction(|state| state.browser_asset_tree_hovered_index = value);
+        self.update_interaction(
+            |state| state.browser_asset_tree_hovered_index != value,
+            |state| state.browser_asset_tree_hovered_index = value,
+        );
     }
 
     pub(crate) fn set_browser_asset_tree_scroll_px(&self, value: f32) {
-        self.update_interaction(|state| state.browser_asset_tree_scroll_px = value.max(0.0));
+        self.update_interaction(
+            |state| state.browser_asset_tree_scroll_px != value.max(0.0),
+            |state| state.browser_asset_tree_scroll_px = value.max(0.0),
+        );
     }
 
     pub(crate) fn set_browser_asset_content_hovered_index(&self, value: i32) {
-        self.update_interaction(|state| state.browser_asset_content_hovered_index = value);
+        self.update_interaction(
+            |state| state.browser_asset_content_hovered_index != value,
+            |state| state.browser_asset_content_hovered_index = value,
+        );
     }
 
     pub(crate) fn set_browser_asset_content_scroll_px(&self, value: f32) {
-        self.update_interaction(|state| state.browser_asset_content_scroll_px = value.max(0.0));
+        self.update_interaction(
+            |state| state.browser_asset_content_scroll_px != value.max(0.0),
+            |state| state.browser_asset_content_scroll_px = value.max(0.0),
+        );
     }
     pub(crate) fn set_browser_asset_references_hovered_index(&self, value: i32) {
-        self.update_interaction(|state| state.browser_asset_references_hovered_index = value);
+        self.update_interaction(
+            |state| state.browser_asset_references_hovered_index != value,
+            |state| state.browser_asset_references_hovered_index = value,
+        );
     }
 
     pub(crate) fn set_browser_asset_references_scroll_px(&self, value: f32) {
-        self.update_interaction(|state| {
-            state.browser_asset_references_scroll_px = value.max(0.0);
-        });
+        self.update_interaction(
+            |state| state.browser_asset_references_scroll_px != value.max(0.0),
+            |state| state.browser_asset_references_scroll_px = value.max(0.0),
+        );
     }
 
     pub(crate) fn set_browser_asset_used_by_hovered_index(&self, value: i32) {
-        self.update_interaction(|state| state.browser_asset_used_by_hovered_index = value);
+        self.update_interaction(
+            |state| state.browser_asset_used_by_hovered_index != value,
+            |state| state.browser_asset_used_by_hovered_index = value,
+        );
     }
 
     pub(crate) fn set_browser_asset_used_by_scroll_px(&self, value: f32) {
-        self.update_interaction(|state| state.browser_asset_used_by_scroll_px = value.max(0.0));
+        self.update_interaction(
+            |state| state.browser_asset_used_by_scroll_px != value.max(0.0),
+            |state| state.browser_asset_used_by_scroll_px = value.max(0.0),
+        );
     }
 
     pub(crate) fn set_browser_asset_reference_hover_frame(
         &self,
         value: crate::ui::retained_host::host_contract::data::FrameRect,
     ) {
-        self.update_interaction(|state| state.browser_asset_reference_hover_frame = value);
+        self.update_interaction(
+            |state| state.browser_asset_reference_hover_frame != value,
+            |state| state.browser_asset_reference_hover_frame = value,
+        );
     }
 }
 

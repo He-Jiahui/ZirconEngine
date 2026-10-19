@@ -9,8 +9,18 @@ impl UiHostWindow {
         pressed: bool,
     ) -> Option<FrameRect> {
         let mut state = self.state.borrow_mut();
-        let before = state.pane_interaction_state.as_ref().clone();
-        state.update_pane_interaction(|interaction| {
+        let current = state.pane_interaction_state.as_ref();
+        let old = current.template_button_frame.clone();
+        let changed = if pressed {
+            !current.template_focus_observed
+                || current.focused_template_control_id != control_id.unwrap_or_default()
+                || current.pressed_template_control_id != control_id.unwrap_or_default()
+                || current.template_button_frame != frame.cloned().unwrap_or_default()
+                || current.template_focus_visible
+        } else {
+            !current.pressed_template_control_id.is_empty()
+        };
+        if !state.update_pane_interaction(changed, |interaction| {
             if pressed {
                 interaction.template_focus_observed = true;
                 interaction.focused_template_control_id = control_id.unwrap_or_default().into();
@@ -21,13 +31,10 @@ impl UiHostWindow {
             } else {
                 interaction.pressed_template_control_id.clear();
             }
-        });
-        let after = state.pane_interaction_state.as_ref();
-        if before == *after {
+        }) {
             return None;
         }
-        let old = &before.template_button_frame;
-        let new = &after.template_button_frame;
+        let new = &state.pane_interaction_state.template_button_frame;
         if old.width <= 0.0 || old.height <= 0.0 {
             return (new.width > 0.0 && new.height > 0.0).then(|| new.clone());
         }
@@ -50,7 +57,11 @@ impl UiHostWindow {
     ) -> super::super::super::redraw::NativePointerDispatchResult {
         let mut state = self.state.borrow_mut();
         let frame = state.pane_interaction_state.template_button_frame.clone();
-        state.update_pane_interaction(|interaction| {
+        let current = state.pane_interaction_state.as_ref();
+        let changed = !current.template_focus_observed
+            || !current.focused_template_control_id.is_empty()
+            || current.template_focus_visible;
+        state.update_pane_interaction(changed, |interaction| {
             interaction.template_focus_observed = true;
             interaction.focused_template_control_id.clear();
             interaction.template_focus_visible = false;
@@ -82,7 +93,7 @@ impl UiHostWindow {
             }
         }
         let mut state = self.state.borrow_mut();
-        state.update_pane_interaction(|interaction| {
+        state.update_pane_interaction(true, |interaction| {
             interaction.hovered_template_control_id = control_id.to_owned();
             interaction.hovered_template_dispatch_kind.clear();
             interaction.hovered_template_action_id.clear();
@@ -112,7 +123,7 @@ impl UiHostWindow {
             }
         }
         let mut state = self.state.borrow_mut();
-        state.update_pane_interaction(|interaction| {
+        state.update_pane_interaction(true, |interaction| {
             interaction.hovered_template_control_id = control_id.to_owned();
             interaction.hovered_template_dispatch_kind = dispatch_kind.to_owned();
             interaction.hovered_template_action_id = action_id.to_owned();
@@ -135,7 +146,7 @@ impl UiHostWindow {
             }
         }
         let mut state = self.state.borrow_mut();
-        state.update_pane_interaction(|interaction| {
+        state.update_pane_interaction(true, |interaction| {
             interaction.hovered_template_control_id.clear();
             interaction.hovered_template_dispatch_kind.clear();
             interaction.hovered_template_action_id.clear();

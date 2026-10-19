@@ -161,3 +161,24 @@ fn sparse_patch_rejects_divergent_presented_generations() {
             .hierarchy_nodes
     ));
 }
+
+#[test]
+fn hierarchy_reflow_patch_replaces_rows_without_cloning_unrelated_panes() {
+    let mut presentation = HostWindowPresentationData::default();
+    presentation.host_scene_data.right_dock.pane.kind = "Hierarchy".into();
+    let unrelated = presentation.workbench_window_nodes.clone();
+    let rows = hierarchy_rows(256);
+    let patch = build_hierarchy_rows_replacement(&presentation, &rows);
+    assert_eq!(patch.replacement_count(), 1);
+    patch.apply(&mut presentation);
+    assert!(presentation
+        .host_scene_data
+        .right_dock
+        .pane
+        .hierarchy
+        .hierarchy_nodes
+        .shares_values_with(&rows));
+    assert!(presentation
+        .workbench_window_nodes
+        .shares_values_with(&unrelated));
+}
