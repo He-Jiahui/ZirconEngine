@@ -1,3 +1,4 @@
+use std::cell::RefCell;
 use std::sync::Arc;
 
 use zircon_runtime_interface::ui::surface::{
@@ -24,7 +25,28 @@ pub(in crate::ui::retained_host::host_contract) struct ChromeCommandStream {
     render_sources: HostRenderSourceTable,
 }
 
+thread_local! {
+    static COMMAND_SCRATCH: RefCell<Vec<ChromeCommand>> = const { RefCell::new(Vec::new()) };
+}
+
 impl ChromeCommandStream {
+    pub(in crate::ui::retained_host::host_contract) fn take_command_buffer() -> Vec<ChromeCommand> {
+        COMMAND_SCRATCH.with_borrow_mut(std::mem::take)
+    }
+
+    pub(in crate::ui::retained_host::host_contract) fn recycle_command_buffer(
+        mut commands: Vec<ChromeCommand>,
+    ) {
+        commands.clear();
+        if commands.capacity() <= 32_768 {
+            COMMAND_SCRATCH.with_borrow_mut(|slot| {
+                if commands.capacity() > slot.capacity() {
+                    *slot = commands;
+                }
+            });
+        }
+    }
+
     pub(in crate::ui::retained_host::host_contract) fn from_extracted_commands(
         surface_size: (u32, u32),
         damage: Option<FrameRect>,
