@@ -290,6 +290,10 @@ pub(crate) fn begin_frame(
 }
 
 pub(crate) fn finish_frame(token: ProfileFrameToken) {
+    #[cfg(feature = "profiling-memory")]
+    if super::capture_epoch() == Some(token.capture_epoch) {
+        super::memory::record_frame(token.stream);
+    }
     detach_frame(FrameStackEntry {
         capture_epoch: token.capture_epoch,
         frame_index: token.frame_index,

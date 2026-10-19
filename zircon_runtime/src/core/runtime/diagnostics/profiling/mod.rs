@@ -8,6 +8,9 @@ mod export;
 mod hotspot;
 #[path = "macros.rs"]
 mod macros;
+#[cfg(feature = "profiling-memory")]
+#[path = "memory.rs"]
+pub mod memory;
 #[path = "recorder.rs"]
 mod recorder;
 #[path = "scope.rs"]

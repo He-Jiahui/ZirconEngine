@@ -1,6 +1,14 @@
 //! Shared message constructors and allocation instrumentation for backpressure tests.
 
 use std::alloc::{GlobalAlloc, Layout, System};
+
+#[cfg(feature = "profiling-memory")]
+static BACKING_ALLOCATOR: zircon_runtime::core::diagnostics::profiling::memory::CountingAllocator<
+    System,
+> = zircon_runtime::core::diagnostics::profiling::memory::CountingAllocator(System);
+#[cfg(not(feature = "profiling-memory"))]
+static BACKING_ALLOCATOR: System = System;
+
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::time::{Duration, Instant};
 
@@ -108,28 +116,28 @@ struct TrackingAllocator;
 unsafe impl GlobalAlloc for TrackingAllocator {
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
         // SAFETY: delegated with the caller-provided valid allocation layout.
-        let pointer = unsafe { System.alloc(layout) };
+        let pointer = unsafe { BACKING_ALLOCATOR.alloc(layout) };
         record_allocation(layout.size(), !pointer.is_null());
         pointer
     }
 
     unsafe fn alloc_zeroed(&self, layout: Layout) -> *mut u8 {
         // SAFETY: delegated with the caller-provided valid allocation layout.
-        let pointer = unsafe { System.alloc_zeroed(layout) };
+        let pointer = unsafe { BACKING_ALLOCATOR.alloc_zeroed(layout) };
         record_allocation(layout.size(), !pointer.is_null());
         pointer
     }
 
     unsafe fn realloc(&self, pointer: *mut u8, layout: Layout, new_size: usize) -> *mut u8 {
         // SAFETY: delegated with the caller-provided pointer, original layout, and new size.
-        let new_pointer = unsafe { System.realloc(pointer, layout, new_size) };
+        let new_pointer = unsafe { BACKING_ALLOCATOR.realloc(pointer, layout, new_size) };
         record_allocation(new_size, !new_pointer.is_null());
         new_pointer
     }
 
     unsafe fn dealloc(&self, pointer: *mut u8, layout: Layout) {
         // SAFETY: delegated with the exact pointer/layout pair supplied by the caller.
-        unsafe { System.dealloc(pointer, layout) };
+        unsafe { BACKING_ALLOCATOR.dealloc(pointer, layout) };
     }
 }
 

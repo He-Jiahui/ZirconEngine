@@ -13,6 +13,13 @@ use crate::plugin::{
     RuntimePluginBridgeLifecycleState, RuntimePluginCatalog, RuntimePluginRegistrationReport,
 };
 use std::alloc::{GlobalAlloc, Layout, System};
+
+#[cfg(feature = "profiling-memory")]
+static BACKING_ALLOCATOR: crate::core::diagnostics::profiling::memory::CountingAllocator<System> =
+    crate::core::diagnostics::profiling::memory::CountingAllocator(System);
+#[cfg(not(feature = "profiling-memory"))]
+static BACKING_ALLOCATOR: System = System;
+
 use std::cell::Cell;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex, OnceLock};
@@ -39,7 +46,7 @@ unsafe impl GlobalAlloc for NativeLiveHostTestAllocator {
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
         record_native_live_host_test_allocation();
         // SAFETY: GlobalAlloc 调用者提供有效 Layout；原样转交 System。
-        let pointer = unsafe { System.alloc(layout) };
+        let pointer = unsafe { BACKING_ALLOCATOR.alloc(layout) };
         #[cfg(feature = "memory-validation")]
         if !pointer.is_null() {
             crate::memory_validation::allocated(layout.size());
@@ -50,7 +57,7 @@ unsafe impl GlobalAlloc for NativeLiveHostTestAllocator {
     unsafe fn alloc_zeroed(&self, layout: Layout) -> *mut u8 {
         record_native_live_host_test_allocation();
         // SAFETY: GlobalAlloc 调用者提供有效 Layout；底层 System 负责零初始化。
-        let pointer = unsafe { System.alloc_zeroed(layout) };
+        let pointer = unsafe { BACKING_ALLOCATOR.alloc_zeroed(layout) };
         #[cfg(feature = "memory-validation")]
         if !pointer.is_null() {
             crate::memory_validation::allocated(layout.size());
@@ -62,13 +69,13 @@ unsafe impl GlobalAlloc for NativeLiveHostTestAllocator {
         #[cfg(feature = "memory-validation")]
         crate::memory_validation::deallocated(layout.size());
         // SAFETY: GlobalAlloc 释放契约保证 pointer 和 layout 对应先前的 System 分配。
-        unsafe { System.dealloc(pointer, layout) };
+        unsafe { BACKING_ALLOCATOR.dealloc(pointer, layout) };
     }
 
     unsafe fn realloc(&self, pointer: *mut u8, layout: Layout, new_size: usize) -> *mut u8 {
         record_native_live_host_test_allocation();
         // SAFETY: 指针来自同一 System 分配，旧 Layout 和新大小由 GlobalAlloc 重分配契约约束。
-        let replacement = unsafe { System.realloc(pointer, layout, new_size) };
+        let replacement = unsafe { BACKING_ALLOCATOR.realloc(pointer, layout, new_size) };
         #[cfg(feature = "memory-validation")]
         if !replacement.is_null() {
             crate::memory_validation::reallocated(layout.size(), new_size);
