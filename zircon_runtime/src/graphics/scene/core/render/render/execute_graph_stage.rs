@@ -765,7 +765,7 @@ fn execute_graph_pass(
     let executor_id = pass.executor_id.as_ref().ok_or_else(|| {
         GraphicsError::Asset(format!("render pass `{}` has no executor id", pass.name))
     })?;
-    let executor_id = RenderPassExecutorId::new(executor_id.clone());
+    let executor_id = RenderPassExecutorId::from(executor_id.as_str());
     if let Some(scope) = gpu_timestamp_scope.as_ref() {
         scope.begin(encoder);
     }

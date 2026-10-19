@@ -19,7 +19,7 @@ impl RenderPassExecutorId {
 
 impl From<&str> for RenderPassExecutorId {
     fn from(value: &str) -> Self {
-        Self::new(value)
+        Self(crate::graphics::RenderReportLabel::new(value))
     }
 }
 
