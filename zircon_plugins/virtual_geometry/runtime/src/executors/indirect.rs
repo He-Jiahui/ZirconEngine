@@ -1,3 +1,4 @@
+use super::pipeline_cache::PipelineCache;
 use std::{
     collections::HashMap,
     mem::size_of,
@@ -330,6 +331,7 @@ fn encode_author_segments(
     if segment_view.2 != expected {
         return Err("author segment graph output has an incompatible ABI".into());
     }
+    let device_epoch = gpu.device_epoch();
     let native = gpu.native_context();
     let input = native.create_buffer_init(&wgpu::util::BufferInitDescriptor {
         label: Some("virtual-geometry-frozen-author-segments"),
@@ -341,27 +343,36 @@ fn encode_author_segments(
         storage_layout_entry(4, false),
         storage_layout_entry(5, true),
     ];
-    let layout = native.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-        label: Some("virtual-geometry-author-segments"),
-        entries: &entries,
-    });
-    let pipeline_layout = native.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-        label: Some("virtual-geometry-author-segments"),
-        bind_group_layouts: &[Some(&layout)],
-        immediate_size: 0,
-    });
-    let shader = native.create_shader_module(wgpu::ShaderModuleDescriptor {
-        label: Some("virtual-geometry-author-segments"),
-        source: wgpu::ShaderSource::Wgsl(include_str!("indirect_args.wgsl").into()),
-    });
-    let pipeline = native.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
-        label: Some("virtual-geometry-author-segments"),
-        layout: Some(&pipeline_layout),
-        module: &shader,
-        entry_point: Some("cs_segments"),
-        compilation_options: Default::default(),
-        cache: None,
-    });
+    static CACHE: Mutex<PipelineCache<(), (wgpu::BindGroupLayout, wgpu::ComputePipeline)>> =
+        Mutex::new(PipelineCache::new());
+    let (layout, pipeline) = CACHE
+        .lock()
+        .unwrap_or_else(|poison| poison.into_inner())
+        .get(device_epoch, (), || {
+            let layout = native.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                label: Some("virtual-geometry-author-segments"),
+                entries: &entries,
+            });
+            let pipeline_layout = native.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+                label: Some("virtual-geometry-author-segments"),
+                bind_group_layouts: &[Some(&layout)],
+                immediate_size: 0,
+            });
+            let shader = native.create_shader_module(wgpu::ShaderModuleDescriptor {
+                label: Some("virtual-geometry-author-segments"),
+                source: wgpu::ShaderSource::Wgsl(include_str!("indirect_args.wgsl").into()),
+            });
+            let pipeline = native.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
+                label: Some("virtual-geometry-author-segments"),
+                layout: Some(&pipeline_layout),
+                module: &shader,
+                entry_point: Some("cs_segments"),
+                compilation_options: Default::default(),
+                cache: None,
+            });
+
+            (layout, pipeline)
+        });
     let group = native.create_bind_group(&wgpu::BindGroupDescriptor {
         label: Some("virtual-geometry-author-segments"),
         layout: &layout,
@@ -861,6 +872,7 @@ fn encode_indexed_main(gpu: &mut RenderPassGpuExecutionContext<'_>) -> Result<()
         ));
     }
     let _ = read;
+    let device_epoch = gpu.device_epoch();
     let mut native = gpu.native_context();
     let (journal, offset, size) = &bindings[5];
     if *size != (65536_u64 + 2) * 4 {
@@ -878,6 +890,7 @@ fn encode_indexed_main(gpu: &mut RenderPassGpuExecutionContext<'_>) -> Result<()
     };
     indexed::encode(
         &mut native,
+        device_epoch,
         indexed::IndexedAdapterInputs {
             source_args: slice(0, ((1 + rows.len() * 4) * 4) as u64)?,
             source_authority: slice(1, (rows.len() * 14 * 4) as u64)?,
@@ -1006,6 +1019,7 @@ pub(super) fn complete_main(gpu: &mut RenderPassGpuExecutionContext<'_>) -> Resu
         buffers.push((binding.buffer.clone(), binding.offset, binding.size, size));
     }
     {
+        let device_epoch = gpu.device_epoch();
         let native = gpu.native_context();
         let factory = &native;
         let entries = (0..8)
@@ -1022,27 +1036,37 @@ pub(super) fn complete_main(gpu: &mut RenderPassGpuExecutionContext<'_>) -> Resu
                 count: None,
             })
             .collect::<Vec<_>>();
-        let layout = factory.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            label: Some("virtual-geometry-terminal-layout"),
-            entries: &entries,
-        });
-        let pipeline_layout = factory.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-            label: Some("virtual-geometry-terminal-layout"),
-            bind_group_layouts: &[Some(&layout)],
-            immediate_size: 0,
-        });
-        let shader = factory.create_shader_module(wgpu::ShaderModuleDescriptor {
-            label: Some("virtual-geometry-terminal"),
-            source: wgpu::ShaderSource::Wgsl(TERMINAL_SHADER.into()),
-        });
-        let pipeline = factory.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
-            label: Some("virtual-geometry-terminal"),
-            layout: Some(&pipeline_layout),
-            module: &shader,
-            entry_point: Some("cs_main"),
-            compilation_options: wgpu::PipelineCompilationOptions::default(),
-            cache: None,
-        });
+        static CACHE: Mutex<PipelineCache<(), (wgpu::BindGroupLayout, wgpu::ComputePipeline)>> =
+            Mutex::new(PipelineCache::new());
+        let (layout, pipeline) = CACHE
+            .lock()
+            .unwrap_or_else(|poison| poison.into_inner())
+            .get(device_epoch, (), || {
+                let layout = factory.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                    label: Some("virtual-geometry-terminal-layout"),
+                    entries: &entries,
+                });
+                let pipeline_layout =
+                    factory.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+                        label: Some("virtual-geometry-terminal-layout"),
+                        bind_group_layouts: &[Some(&layout)],
+                        immediate_size: 0,
+                    });
+                let shader = factory.create_shader_module(wgpu::ShaderModuleDescriptor {
+                    label: Some("virtual-geometry-terminal"),
+                    source: wgpu::ShaderSource::Wgsl(TERMINAL_SHADER.into()),
+                });
+                let pipeline = factory.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
+                    label: Some("virtual-geometry-terminal"),
+                    layout: Some(&pipeline_layout),
+                    module: &shader,
+                    entry_point: Some("cs_main"),
+                    compilation_options: wgpu::PipelineCompilationOptions::default(),
+                    cache: None,
+                });
+
+                (layout, pipeline)
+            });
         let bindings = buffers
             .iter()
             .enumerate()
@@ -1343,6 +1367,7 @@ fn encode_terminal_metadata(
         return Err("terminal metadata output has an invalid physical range".into());
     }
     let output = (binding.buffer.clone(), binding.offset, binding.size, size);
+    let device_epoch = gpu.device_epoch();
     let native = gpu.native_context();
     let authors = native.create_buffer_init(&wgpu::util::BufferInitDescriptor {
         label: Some("virtual-geometry-hardware-author-metadata"),
@@ -1363,27 +1388,36 @@ fn encode_terminal_metadata(
             count: None,
         })
         .collect::<Vec<_>>();
-    let layout = native.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-        label: Some("virtual-geometry-hardware-metadata"),
-        entries: &entries,
-    });
-    let pipeline_layout = native.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-        label: Some("virtual-geometry-hardware-metadata"),
-        bind_group_layouts: &[Some(&layout)],
-        immediate_size: 0,
-    });
-    let shader = native.create_shader_module(wgpu::ShaderModuleDescriptor {
-        label: Some("virtual-geometry-hardware-metadata"),
-        source: wgpu::ShaderSource::Wgsl(METADATA_SHADER.into()),
-    });
-    let pipeline = native.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
-        label: Some("virtual-geometry-hardware-metadata"),
-        layout: Some(&pipeline_layout),
-        module: &shader,
-        entry_point: Some("cs_main"),
-        compilation_options: wgpu::PipelineCompilationOptions::default(),
-        cache: None,
-    });
+    static CACHE: Mutex<PipelineCache<(), (wgpu::BindGroupLayout, wgpu::ComputePipeline)>> =
+        Mutex::new(PipelineCache::new());
+    let (layout, pipeline) = CACHE
+        .lock()
+        .unwrap_or_else(|poison| poison.into_inner())
+        .get(device_epoch, (), || {
+            let layout = native.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                label: Some("virtual-geometry-hardware-metadata"),
+                entries: &entries,
+            });
+            let pipeline_layout = native.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+                label: Some("virtual-geometry-hardware-metadata"),
+                bind_group_layouts: &[Some(&layout)],
+                immediate_size: 0,
+            });
+            let shader = native.create_shader_module(wgpu::ShaderModuleDescriptor {
+                label: Some("virtual-geometry-hardware-metadata"),
+                source: wgpu::ShaderSource::Wgsl(METADATA_SHADER.into()),
+            });
+            let pipeline = native.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
+                label: Some("virtual-geometry-hardware-metadata"),
+                layout: Some(&pipeline_layout),
+                module: &shader,
+                entry_point: Some("cs_main"),
+                compilation_options: wgpu::PipelineCompilationOptions::default(),
+                cache: None,
+            });
+
+            (layout, pipeline)
+        });
     let view = |index: usize| {
         wgpu::BindingResource::Buffer(wgpu::BufferBinding {
             buffer: &buffers[index].0,
@@ -1518,6 +1552,7 @@ fn encode_terminal_selected(
         views.push((binding.buffer.clone(), binding.offset, binding.size, bytes));
     }
     let output = views[2].clone();
+    let device_epoch = gpu.device_epoch();
     let native = gpu.native_context();
     let authors = native.create_buffer_init(&wgpu::util::BufferInitDescriptor {
         label: Some("virtual-geometry-candidate-author-metadata"),
@@ -1538,27 +1573,36 @@ fn encode_terminal_selected(
             count: None,
         })
         .collect::<Vec<_>>();
-    let layout = native.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-        label: Some("virtual-geometry-selected-projection"),
-        entries: &entries,
-    });
-    let pipeline_layout = native.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-        label: Some("virtual-geometry-selected-projection"),
-        bind_group_layouts: &[Some(&layout)],
-        immediate_size: 0,
-    });
-    let shader = native.create_shader_module(wgpu::ShaderModuleDescriptor {
-        label: Some("virtual-geometry-selected-projection"),
-        source: wgpu::ShaderSource::Wgsl(SELECTED_SHADER.into()),
-    });
-    let pipeline = native.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
-        label: Some("virtual-geometry-selected-projection"),
-        layout: Some(&pipeline_layout),
-        module: &shader,
-        entry_point: Some("cs_main"),
-        compilation_options: wgpu::PipelineCompilationOptions::default(),
-        cache: None,
-    });
+    static CACHE: Mutex<PipelineCache<(), (wgpu::BindGroupLayout, wgpu::ComputePipeline)>> =
+        Mutex::new(PipelineCache::new());
+    let (layout, pipeline) = CACHE
+        .lock()
+        .unwrap_or_else(|poison| poison.into_inner())
+        .get(device_epoch, (), || {
+            let layout = native.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                label: Some("virtual-geometry-selected-projection"),
+                entries: &entries,
+            });
+            let pipeline_layout = native.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+                label: Some("virtual-geometry-selected-projection"),
+                bind_group_layouts: &[Some(&layout)],
+                immediate_size: 0,
+            });
+            let shader = native.create_shader_module(wgpu::ShaderModuleDescriptor {
+                label: Some("virtual-geometry-selected-projection"),
+                source: wgpu::ShaderSource::Wgsl(SELECTED_SHADER.into()),
+            });
+            let pipeline = native.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
+                label: Some("virtual-geometry-selected-projection"),
+                layout: Some(&pipeline_layout),
+                module: &shader,
+                entry_point: Some("cs_main"),
+                compilation_options: wgpu::PipelineCompilationOptions::default(),
+                cache: None,
+            });
+
+            (layout, pipeline)
+        });
     let view = |index: usize| {
         wgpu::BindingResource::Buffer(wgpu::BufferBinding {
             buffer: &views[index].0,

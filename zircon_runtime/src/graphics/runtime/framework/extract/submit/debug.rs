@@ -30,6 +30,24 @@ use crate::core::framework::render::{
     RenderVirtualGeometryDebugSnapshot, RenderVirtualGeometryVisBuffer64Entry,
 };
 
+// Public debug/execution payload sharing is deferred by the audit. Account for
+// the remaining copies explicitly instead of reporting the provider move as zero-copy end to end.
+fn copy_resident_payloads(
+    context: &FrameSubmissionContext,
+) -> Vec<crate::core::framework::render::RenderVirtualGeometryPagePayload> {
+    let payloads = context.virtual_geometry_resident_page_payloads();
+    crate::profile_counter!(
+        "render",
+        "vg_payload_copy_bytes",
+        payloads
+            .iter()
+            .map(|page| std::mem::size_of_val(page.vertices.as_slice())
+                + std::mem::size_of_val(page.cluster_ranges.as_slice()))
+            .sum::<usize>()
+    );
+    payloads.to_vec()
+}
+
 pub(super) fn build_virtual_geometry_debug_snapshot(
     frame_extract: &RenderFrameExtract,
     context: &FrameSubmissionContext,
@@ -125,7 +143,7 @@ pub(super) fn build_virtual_geometry_debug_snapshot(
     Some(RenderVirtualGeometryDebugSnapshot {
         instances: extract.instances.clone(),
         page_dependencies: extract.page_dependencies.clone(),
-        resident_page_payloads: context.virtual_geometry_resident_page_payloads().to_vec(),
+        resident_page_payloads: copy_resident_payloads(context),
         debug: extract.debug,
         cull_input,
         cluster_selection_input_source:
@@ -311,7 +329,7 @@ pub(super) fn build_virtual_geometry_execution_data(
             author_cluster_catalog,
             candidate_author_indices,
             instances: extract.instances.clone(),
-            resident_page_payloads: context.virtual_geometry_resident_page_payloads().to_vec(),
+            resident_page_payloads: copy_resident_payloads(context),
             debug: extract.debug,
             cull_input,
             prepared_cpu_frame: Some(prepared),
@@ -324,21 +342,23 @@ pub(super) fn build_virtual_geometry_execution_data(
 pub(super) fn build_virtual_geometry_cull_input(
     context: &FrameSubmissionContext,
 ) -> Option<crate::core::framework::render::RenderVirtualGeometryCullInputSnapshot> {
-    let extract = context.virtual_geometry_extract()?;
-    let plan = context
-        .virtual_geometry_page_upload_plan()
-        .cloned()
-        .unwrap_or_default();
-    let available = build_available_page_slots(extract, &plan);
-    let sizes = build_page_size_index(extract);
-    let pages = build_resident_page_inspections(&plan, &sizes);
-    let evictable = build_evictable_page_inspections(&plan, &pages, &sizes);
-    Some(build_cull_input_snapshot(
-        extract,
-        &plan,
-        available.len(),
-        evictable.len(),
-    ))
+    context.cached_virtual_geometry_cull_input(|| {
+        let extract = context.virtual_geometry_extract()?;
+        let plan = context
+            .virtual_geometry_page_upload_plan()
+            .cloned()
+            .unwrap_or_default();
+        let available = build_available_page_slots(extract, &plan);
+        let sizes = build_page_size_index(extract);
+        let pages = build_resident_page_inspections(&plan, &sizes);
+        let evictable = build_evictable_page_inspections(&plan, &pages, &sizes);
+        Some(build_cull_input_snapshot(
+            extract,
+            &plan,
+            available.len(),
+            evictable.len(),
+        ))
+    })
 }
 
 impl FrameSubmissionContext {

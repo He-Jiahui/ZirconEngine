@@ -5,6 +5,8 @@ use zircon_runtime::render_graph::{
     RenderGraphResourceKind,
 };
 
+#[path = "executors/pipeline_cache.rs"]
+mod pipeline_cache;
 #[path = "executors/resolve_trace_handoff.rs"]
 mod resolve_trace_handoff;
 #[path = "executors/scene_depth_handoff.rs"]

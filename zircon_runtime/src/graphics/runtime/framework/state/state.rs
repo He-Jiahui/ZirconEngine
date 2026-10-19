@@ -42,6 +42,8 @@ pub(in crate::graphics::runtime::render_framework) struct RenderFrameworkState {
         Option<SolariRuntimeProviderRegistration>,
     pub(in crate::graphics::runtime::render_framework) virtual_geometry_runtime_provider:
         Option<VirtualGeometryRuntimeProviderRegistration>,
+    pub(in crate::graphics::runtime::render_framework) virtual_geometry_debug_snapshot_requested:
+        bool,
     pub(in crate::graphics::runtime::render_framework) last_virtual_geometry_debug_snapshot:
         Option<Arc<RenderVirtualGeometryDebugSnapshot>>,
     pub(in crate::graphics::runtime::render_framework) viewports:

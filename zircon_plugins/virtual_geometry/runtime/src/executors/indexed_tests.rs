@@ -247,6 +247,7 @@ fn indexed_adapter_consumes_gpu_authority_and_preserves_run_identity() {
             device: &device,
             encoder: &mut encoder,
         },
+        None,
         IndexedAdapterInputs {
             source_args: binding(&old_args),
             source_authority: binding(&old_authority),

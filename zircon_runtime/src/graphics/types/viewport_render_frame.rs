@@ -62,6 +62,8 @@ pub struct ViewportRenderFrame {
         Arc<crate::core::framework::render::RenderVirtualGeometryExecutionInputs>,
     pub(crate) virtual_geometry_debug_snapshot: Option<Arc<RenderVirtualGeometryDebugSnapshot>>,
     pub(crate) runtime_overlay_override: Option<RenderOverlayExtract>,
+    pub(crate) subsurface_profiles_override:
+        Option<Arc<[crate::core::framework::render::SubsurfaceProfileData]>>,
     pub(crate) post_process_override: Option<Arc<RendererPostProcessSnapshot>>,
     pub(crate) environment_source_cubemap_override: Option<SourceCubemapEnvironment>,
     pub(crate) particle_previous_sprites_override:
@@ -77,6 +79,13 @@ impl ViewportRenderFrame {
         self.extract = Arc::new(self.extract.for_camera_submission(camera));
     }
 
+    pub(crate) fn subsurface_profiles(
+        &self,
+    ) -> &[crate::core::framework::render::SubsurfaceProfileData] {
+        self.subsurface_profiles_override
+            .as_deref()
+            .unwrap_or(&self.extract.lighting.advanced_lighting.subsurface_profiles)
+    }
     pub(crate) fn with_post_process_override(
         mut self,
         post_process: Arc<RendererPostProcessSnapshot>,

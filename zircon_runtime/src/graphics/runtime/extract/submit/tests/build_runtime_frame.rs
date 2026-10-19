@@ -51,6 +51,15 @@ fn build_runtime_frame_carries_prepared_sideband_and_output_target_into_viewport
         88,
         [1, 2, 3, 4],
     );
+    let resolved_profiles: Arc<[crate::core::framework::render::SubsurfaceProfileData]> =
+        vec![crate::core::framework::render::SubsurfaceProfileData::new(
+            3,
+            Vec3::ONE,
+            Vec3::ONE,
+            1.0,
+        )]
+        .into();
+    let source_lighting = extract.lighting.clone();
     let mut context = FrameSubmissionContext::new(
         UVec2::new(640, 480),
         UVec2::new(640, 480),
@@ -107,6 +116,7 @@ fn build_runtime_frame_carries_prepared_sideband_and_output_target_into_viewport
         None,
         1,
     )
+    .with_subsurface_profiles(Arc::clone(&resolved_profiles))
     .with_environment_source_cubemap_override(Some(environment_source_cubemap_override.clone()))
     .with_particle_previous_sprites_override(Some(particle_previous_sprites.clone()));
     let prepared = PreparedRuntimeSubmission::new(
@@ -133,6 +143,27 @@ fn build_runtime_frame_carries_prepared_sideband_and_output_target_into_viewport
         ViewportCameraStackOutputPolicy::new(false, false),
     );
 
+    assert!(frame.extract.lighting.ptr_eq(&source_lighting));
+    assert!(Arc::ptr_eq(
+        &resolved_profiles,
+        frame.subsurface_profiles_override.as_ref().unwrap()
+    ));
+    assert_eq!(frame.subsurface_profiles()[0].profile_id, 3);
+    assert!(frame
+        .extract
+        .lighting
+        .advanced_lighting
+        .subsurface_profiles
+        .is_empty());
+    assert!(!context.virtual_geometry_debug_snapshot_requested());
+    let builds = std::cell::Cell::new(0);
+    for _ in 0..2 {
+        context.cached_virtual_geometry_cull_input(|| {
+            builds.set(builds.get() + 1);
+            None
+        });
+    }
+    assert_eq!(builds.get(), 1);
     assert!(Arc::ptr_eq(
         &context_post_process,
         frame

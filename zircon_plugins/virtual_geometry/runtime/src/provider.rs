@@ -35,14 +35,10 @@ impl VirtualGeometryRuntimeProvider for PluginVirtualGeometryRuntimeProvider {
         ) {
             Err(error) => VirtualGeometryAdmittedExtract::Failed(error),
             Ok(None) => VirtualGeometryAdmittedExtract::Ready(None),
-            Ok(Some(output)) => VirtualGeometryAdmittedExtract::Ready(Some(
-                VirtualGeometryRuntimeExtractOutput::new(
-                    output.extract().clone(),
-                    output.cpu_reference_instances().to_vec(),
-                    output.bvh_visualization_instances().to_vec(),
-                    output.resident_page_payloads().to_vec(),
-                ).with_indexed_sources(output.indexed_sources().to_vec()),
-            )),
+            Ok(Some(output)) => {
+                let (extract, cpu, bvh, payloads, indexed) = output.into_parts();
+                VirtualGeometryAdmittedExtract::Ready(Some(VirtualGeometryRuntimeExtractOutput::new(extract, cpu, bvh, payloads).with_indexed_sources(indexed)))
+            },
         }
     }
 
@@ -57,12 +53,11 @@ impl VirtualGeometryRuntimeProvider for PluginVirtualGeometryRuntimeProvider {
             debug.unwrap_or_default(),
             |model_id| load_model(model_id),
         )?;
-        Some(VirtualGeometryRuntimeExtractOutput::new(
-            output.extract().clone(),
-            output.cpu_reference_instances().to_vec(),
-            output.bvh_visualization_instances().to_vec(),
-            output.resident_page_payloads().to_vec(),
-        ))
+        let (extract, cpu, bvh, payloads, indexed) = output.into_parts();
+        Some(
+            VirtualGeometryRuntimeExtractOutput::new(extract, cpu, bvh, payloads)
+                .with_indexed_sources(indexed),
+        )
     }
 }
 

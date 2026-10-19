@@ -1,5 +1,8 @@
+use super::pipeline_cache::PipelineCache;
 use bytemuck::{Pod, Zeroable};
+use std::sync::Mutex;
 use zircon_runtime::core::framework::render::RenderHybridGiDebugView;
+use zircon_runtime::graphics::RenderPassDeviceEpoch;
 use zircon_runtime::graphics::{
     FrameHistorySlot, RenderPassExecutionContext, RenderPassGpuNativeContext,
     RenderPassGpuResourceFactory,
@@ -63,6 +66,7 @@ pub(super) fn record_resolve_trace_handoff(
     context: &mut RenderPassExecutionContext<'_>,
 ) -> Result<(), String> {
     let gpu = context.require_gpu()?;
+    let device_epoch = gpu.device_epoch();
     let hybrid_gi_trace_buffer = gpu.require_buffer_binding(
         HYBRID_GI_TRACE_RESOURCE,
         RenderGraphResourceAccessKind::Read,
@@ -133,6 +137,7 @@ pub(super) fn record_resolve_trace_handoff(
     });
     encode_resolve_trace_handoff(
         &mut native,
+        device_epoch,
         hybrid_gi_trace_buffer,
         &scene_velocity_view,
         &history_view,
@@ -152,6 +157,7 @@ pub(super) fn record_resolve_trace_handoff(
 
 fn encode_resolve_trace_handoff(
     native: &mut RenderPassGpuNativeContext<'_, '_>,
+    device_epoch: Option<RenderPassDeviceEpoch>,
     hybrid_gi_trace_buffer: wgpu::BufferBinding<'_>,
     scene_velocity_view: &wgpu::TextureView,
     history_view: &wgpu::TextureView,
@@ -163,14 +169,34 @@ fn encode_resolve_trace_handoff(
     temporal_metadata_format: wgpu::TextureFormat,
     lighting_sample_count: u32,
 ) -> Result<(), String> {
-    let bind_group_layout = create_resolve_trace_bind_group_layout(native);
-    let pipeline = create_resolve_trace_pipeline(
-        native,
-        &bind_group_layout,
-        lighting_format,
-        temporal_metadata_format,
-        lighting_sample_count,
-    );
+    static CACHE: Mutex<
+        PipelineCache<
+            (wgpu::TextureFormat, wgpu::TextureFormat, u32),
+            (wgpu::BindGroupLayout, wgpu::RenderPipeline),
+        >,
+    > = Mutex::new(PipelineCache::new());
+    let (bind_group_layout, pipeline) = CACHE
+        .lock()
+        .unwrap_or_else(|poison| poison.into_inner())
+        .get(
+            device_epoch,
+            (
+                lighting_format,
+                temporal_metadata_format,
+                lighting_sample_count,
+            ),
+            || {
+                let layout = create_resolve_trace_bind_group_layout(native);
+                let pipeline = create_resolve_trace_pipeline(
+                    native,
+                    &layout,
+                    lighting_format,
+                    temporal_metadata_format,
+                    lighting_sample_count,
+                );
+                (layout, pipeline)
+            },
+        );
     let bind_group = create_resolve_trace_bind_group(
         native,
         &bind_group_layout,

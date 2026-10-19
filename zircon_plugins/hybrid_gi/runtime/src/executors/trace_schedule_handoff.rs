@@ -1,3 +1,6 @@
+use super::pipeline_cache::PipelineCache;
+use std::sync::Mutex;
+use zircon_runtime::graphics::RenderPassDeviceEpoch;
 use zircon_runtime::graphics::{
     RenderPassExecutionContext, RenderPassGpuNativeContext, RenderPassGpuResourceFactory,
 };
@@ -16,6 +19,7 @@ pub(super) fn record_trace_schedule_handoff(
     let pass_name = context.pass_name.clone();
     let executor_id = context.executor_id.as_str().to_string();
     let gpu = context.require_gpu()?;
+    let device_epoch = gpu.device_epoch();
     let hybrid_gi_scene_buffer = gpu.require_buffer_binding(
         HYBRID_GI_SCENE_RESOURCE,
         RenderGraphResourceAccessKind::Read,
@@ -32,6 +36,7 @@ pub(super) fn record_trace_schedule_handoff(
     let mut native = gpu.native_context();
     encode_trace_schedule_handoff(
         &mut native,
+        device_epoch,
         hybrid_gi_scene_buffer,
         hybrid_gi_trace_buffer,
         &scene_hzb_view,
@@ -50,12 +55,21 @@ pub(super) fn record_trace_schedule_handoff(
 
 fn encode_trace_schedule_handoff(
     native: &mut RenderPassGpuNativeContext<'_, '_>,
+    device_epoch: Option<RenderPassDeviceEpoch>,
     hybrid_gi_scene_buffer: wgpu::BufferBinding<'_>,
     hybrid_gi_trace_buffer: wgpu::BufferBinding<'_>,
     scene_hzb_view: &wgpu::TextureView,
 ) {
-    let bind_group_layout = create_trace_schedule_handoff_bind_group_layout(native);
-    let pipeline = create_trace_schedule_handoff_pipeline(native, &bind_group_layout);
+    static CACHE: Mutex<PipelineCache<(), (wgpu::BindGroupLayout, wgpu::ComputePipeline)>> =
+        Mutex::new(PipelineCache::new());
+    let (bind_group_layout, pipeline) = CACHE
+        .lock()
+        .unwrap_or_else(|poison| poison.into_inner())
+        .get(device_epoch, (), || {
+            let layout = create_trace_schedule_handoff_bind_group_layout(native);
+            let pipeline = create_trace_schedule_handoff_pipeline(native, &layout);
+            (layout, pipeline)
+        });
     let bind_group = create_trace_schedule_handoff_bind_group(
         native,
         &bind_group_layout,

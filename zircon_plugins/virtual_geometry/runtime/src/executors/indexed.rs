@@ -2,7 +2,10 @@
 //! Author runs describe admitted topology, never visibility. Main-pass integration must
 //! supply topology from the same immutable admission as the bound mesh and a real
 //! GPUScene instance span; this module does not infer either from cluster ordinals.
+use super::super::pipeline_cache::PipelineCache;
+use std::sync::Mutex;
 use std::{num::NonZeroU64, ops::Range};
+use zircon_runtime::graphics::RenderPassDeviceEpoch;
 
 use zircon_runtime::{
     core::framework::render::RenderVirtualGeometryExecutionIdentity,
@@ -172,6 +175,7 @@ pub(super) fn identity_words(
 /// with the existing frame owner. A failed admission records no adapter commands.
 pub(super) fn encode<C: RenderPassGpuRecordingContext + ?Sized>(
     recording: &mut C,
+    device_epoch: Option<RenderPassDeviceEpoch>,
     inputs: IndexedAdapterInputs<'_>,
     outputs: IndexedAdapterOutputs<'_>,
 ) -> Result<(), String> {
@@ -263,7 +267,12 @@ pub(super) fn encode<C: RenderPassGpuRecordingContext + ?Sized>(
         contents: bytemuck::cast_slice(&words),
         usage: wgpu::BufferUsages::STORAGE,
     });
-    let pipeline = create_pipeline(factory);
+    static CACHE: Mutex<PipelineCache<(), wgpu::ComputePipeline>> =
+        Mutex::new(PipelineCache::new());
+    let pipeline = CACHE
+        .lock()
+        .unwrap_or_else(|poison| poison.into_inner())
+        .get(device_epoch, (), || create_pipeline(factory));
     let layout = pipeline.get_bind_group_layout(0);
     let bind_group = factory.create_bind_group(&wgpu::BindGroupDescriptor {
         label: Some("virtual-geometry-indexed-adapter"),

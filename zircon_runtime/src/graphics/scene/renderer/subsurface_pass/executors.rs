@@ -67,7 +67,8 @@ impl RenderPassExecutor for SetupExecutor {
         let params_buffer = params.buffer.clone();
         let profiles_buffer = profiles.buffer.clone();
         let size = gpu.viewport_size();
-        let prepared = PreparedSubsurfaceFrame::prepare(gpu.frame_extract(), size)?;
+        let prepared =
+            PreparedSubsurfaceFrame::prepare(gpu.frame_extract(), size, gpu.subsurface_profiles())?;
         let dispatch = prepared.dispatch();
         let target_format = gpu.target_format();
         {

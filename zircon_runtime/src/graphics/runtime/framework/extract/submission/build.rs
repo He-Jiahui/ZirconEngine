@@ -88,15 +88,16 @@ fn build_frame_submission_context_from_source(
         resolve_subsurface_material_profiles(&*asset_manager, &submission_extract);
     let material_features =
         resolve_advanced_pbr_material_usage(&*asset_manager, &submission_extract);
-    submission_extract
-        .lighting
-        .advanced_lighting
-        .subsurface_profiles = subsurface_profiles.clone();
     let advanced_lighting_inputs = AdvancedLightingCompileInputs::new(
         material_features,
         subsurface_profiles,
         subsurface_material_profile_indices,
     );
+    let subsurface_profiles = advanced_lighting_inputs.shared_subsurface_profiles();
+    let virtual_geometry_debug_snapshot_requested = {
+        let mut state = framework.lock_state();
+        std::mem::take(&mut state.virtual_geometry_debug_snapshot_requested)
+    };
     let environment_ibl_cache_resolution = resolve_and_rehydrate_environment_ibl_cache(
         &*asset_manager,
         &environment_ibl_hydration_cache,
@@ -478,6 +479,8 @@ fn build_frame_submission_context_from_source(
         virtual_geometry_feedback,
         viewport_state.predicted_generation(),
     )
+    .with_subsurface_profiles(subsurface_profiles)
+    .with_virtual_geometry_debug_snapshot_requested(virtual_geometry_debug_snapshot_requested)
     .with_virtual_geometry_indexed_sources(virtual_geometry_indexed_sources)
     .with_global_material_mip_bias(
         f32::from(quality_profile_texture_mip_bias)

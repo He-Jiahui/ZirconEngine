@@ -9,7 +9,8 @@ use super::super::wgpu_render_framework::WgpuRenderFramework;
 pub(in crate::graphics::runtime::render_framework) fn query_virtual_geometry_debug_snapshot(
     framework: &WgpuRenderFramework,
 ) -> Result<Option<RenderVirtualGeometryDebugSnapshot>, RenderFrameworkError> {
-    let state = framework.lock_state();
+    let mut state = framework.lock_state();
+    state.virtual_geometry_debug_snapshot_requested = true;
     let snapshot = state.last_virtual_geometry_debug_snapshot.clone();
     drop(state);
     Ok(snapshot.as_deref().cloned())
@@ -18,7 +19,8 @@ pub(in crate::graphics::runtime::render_framework) fn query_virtual_geometry_deb
 pub(in crate::graphics::runtime::render_framework) fn query_virtual_geometry_debug_snapshot_available(
     framework: &WgpuRenderFramework,
 ) -> Result<bool, RenderFrameworkError> {
-    let state = framework.lock_state();
+    let mut state = framework.lock_state();
+    state.virtual_geometry_debug_snapshot_requested = true;
     Ok(state.last_virtual_geometry_debug_snapshot.is_some())
 }
 

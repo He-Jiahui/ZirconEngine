@@ -68,6 +68,7 @@ impl ViewportRenderFrame {
             virtual_geometry_debug_snapshot: None,
             runtime_overlay_override: None,
             post_process_override: None,
+            subsurface_profiles_override: None,
             environment_source_cubemap_override: None,
             particle_previous_sprites_override: None,
             prepared_runtime_sidebands: Default::default(),

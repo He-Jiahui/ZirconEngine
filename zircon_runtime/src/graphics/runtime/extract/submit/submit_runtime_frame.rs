@@ -146,6 +146,7 @@ fn submit_selected_runtime_frame(
     let resolved_history = resolve_history_handle(&mut state, viewport, &context);
     context.set_virtual_geometry_prepared_cpu_frame(prepared.virtual_geometry_prepared_cpu_frame());
     attach_prepared_sidebands_to_runtime_frame(frame, prepared);
+    frame.subsurface_profiles_override = context.subsurface_profiles();
     frame.virtual_geometry_readback_scope = context.virtual_geometry_readback_scope();
     frame.virtual_geometry_execution_inputs = context.virtual_geometry_execution_inputs();
     frame.virtual_geometry_indexed_sources = context.virtual_geometry_indexed_sources().to_vec();

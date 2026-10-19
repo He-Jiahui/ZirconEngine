@@ -43,6 +43,10 @@ impl AdvancedLightingCompileInputs {
         self.material_features
     }
 
+    pub(crate) fn shared_subsurface_profiles(&self) -> Arc<[SubsurfaceProfileData]> {
+        Arc::clone(&self.subsurface_profiles)
+    }
+
     pub(crate) fn subsurface_profiles(&self) -> &[SubsurfaceProfileData] {
         &self.subsurface_profiles
     }

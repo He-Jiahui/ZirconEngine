@@ -473,6 +473,12 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
 
     /// Returns the device identity that materialized this graph execution.
     /// Executors must reject persistent native caches when this fact is absent.
+    pub(crate) fn subsurface_profiles(
+        &self,
+    ) -> &[crate::core::framework::render::SubsurfaceProfileData] {
+        self.frame.subsurface_profiles()
+    }
+
     pub fn device_epoch(&self) -> Option<RenderPassDeviceEpoch> {
         self.resources.device_epoch()
     }

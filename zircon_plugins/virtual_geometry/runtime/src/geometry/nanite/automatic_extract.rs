@@ -194,6 +194,24 @@ impl VirtualGeometryAutomaticExtractOutput {
         }
     }
 
+    pub(crate) fn into_parts(
+        self,
+    ) -> (
+        RenderVirtualGeometryExtract,
+        Vec<RenderVirtualGeometryCpuReferenceInstance>,
+        Vec<RenderVirtualGeometryBvhVisualizationInstance>,
+        Vec<RenderVirtualGeometryPagePayload>,
+        Vec<zircon_runtime::graphics::VirtualGeometryIndexedSourceAdmission>,
+    ) {
+        (
+            self.extract,
+            self.cpu_reference_instances,
+            self.bvh_visualization_instances,
+            self.resident_page_payloads,
+            self.indexed_sources,
+        )
+    }
+
     pub(crate) fn extract(&self) -> &RenderVirtualGeometryExtract {
         &self.extract
     }
@@ -1046,5 +1064,26 @@ impl VirtualGeometryAutomaticExtractOutput {
         &self,
     ) -> &[zircon_runtime::graphics::VirtualGeometryIndexedSourceAdmission] {
         &self.indexed_sources
+    }
+}
+
+#[cfg(test)]
+mod ownership_tests {
+    use super::*;
+    #[test]
+    fn automatic_extract_into_parts_preserves_resident_vertex_allocation() {
+        let vertices = vec![Default::default(); 1024];
+        let pointer = vertices.as_ptr();
+        let output = VirtualGeometryAutomaticExtractOutput::new(
+            Default::default(),
+            Vec::new(),
+            Vec::new(),
+            vec![RenderVirtualGeometryPagePayload::new(7, vertices)],
+            Vec::new(),
+            Vec::new(),
+        );
+        let (_, _, _, payloads, _) = output.into_parts();
+        assert_eq!(payloads[0].vertices.as_ptr(), pointer);
+        assert_eq!(payloads[0].vertices.len(), 1024);
     }
 }
