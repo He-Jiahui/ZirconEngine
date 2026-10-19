@@ -7,13 +7,13 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
-APP = ROOT / "zircon_editor" / "src" / "ui" / "retained_host" / "app.rs"
+APP = ROOT / "zircon_editor" / "src" / "ui" / "retained" / "app.rs"
 TICK = (
     ROOT
     / "zircon_editor"
     / "src"
     / "ui"
-    / "retained_host"
+    / "retained"
     / "app"
     / "host_lifecycle"
     / "tick.rs"
@@ -23,7 +23,7 @@ CATALOG = (
     / "zircon_editor"
     / "src"
     / "ui"
-    / "template_runtime"
+    / "runtime"
     / "runtime"
     / "plugin_documents.rs"
 )
@@ -32,7 +32,7 @@ PLUGIN_TEMPLATE_DOCUMENTS = (
     / "zircon_editor"
     / "src"
     / "ui"
-    / "retained_host"
+    / "retained"
     / "app"
     / "plugin_template_documents.rs"
 )
@@ -58,11 +58,15 @@ class RetainedPluginTemplateSyncContractTests(unittest.TestCase):
         tick = TICK.read_text(encoding="utf-8")
         template_sync = PLUGIN_TEMPLATE_DOCUMENTS.read_text(encoding="utf-8")
 
-        self.assertIn("self.runtime.extension_projection_revision()", template_sync)
+        self.assertIn("extension_projection_is_current(", template_sync)
         self.assertIn("self.runtime.enabled_plugin_template_descriptors()", template_sync)
         self.assertIn("self.mark_presentation_dirty()", template_sync)
 
-        runtime_events = tick.index("self.runtime.pump_runtime_event_consumers()")
+        runtime_events = tick.index("self.tick_runtime();")
+        runtime_owner = tick.split("fn tick_runtime(&mut self)", 1)[1].split(
+            "pub(in ", 1
+        )[0]
+        self.assertIn("self.runtime.pump_runtime_event_consumers()", runtime_owner)
         template_sync = tick.index("self.sync_plugin_template_documents_if_changed()")
         presentation = tick.index("self.sync_activity_notifications();")
         self.assertLess(runtime_events, template_sync)

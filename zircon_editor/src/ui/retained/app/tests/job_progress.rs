@@ -74,7 +74,8 @@ fn controller_exposes_the_full_read_only_job_progress_snapshot() {
     assert!(source.contains("self.context().jobs().progress().snapshot()"));
     assert!(source.contains("self.context().jobs().progress().primary_snapshot()"));
     let production_source = include_str!("../job_progress.rs");
-    assert!(production_source.contains("primary_job_progress_snapshot()"));
+    assert!(production_source
+        .contains("primary_snapshot_if_changed(self.observed_job_progress_generation)"));
     assert!(!production_source.contains("let active = self.runtime.job_progress_snapshot()"));
 }
 

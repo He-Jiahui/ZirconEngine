@@ -67,6 +67,17 @@ impl EditorHostEventController {
         })
     }
 
+    pub(crate) fn extension_projection_is_current(
+        &self,
+        observed_generation: u64,
+        observed_capabilities: &[String],
+    ) -> Result<bool, crate::ui::host::EditorError> {
+        let manager = self.enter_editor_manager()?;
+        let inner = self.shell().lock();
+        Ok(inner.contributions.generation() == observed_generation
+            && manager.enabled_capabilities_match(observed_capabilities))
+    }
+
     pub(crate) fn extension_projection_revision(
         &self,
     ) -> Result<(u64, Vec<String>), crate::ui::host::EditorError> {

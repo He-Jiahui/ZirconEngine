@@ -10,6 +10,13 @@ use crate::ui::activity::{
 };
 use crate::ui::template_runtime::UNREAL_EDITOR_WINDOW_DOCUMENT_ID;
 
+#[derive(PartialEq, Eq)]
+pub(super) struct ActivityProjectionRevision {
+    services: crate::core::notifications::NotificationProjectionRevision,
+    locale: crate::core::i18n::EditorLocale,
+    structure_generation: u64,
+}
+
 impl RetainedEditorHost {
     pub(super) fn warn_degraded_play_start(&mut self, sequence: u64) -> bool {
         let diagnostic = self.ui.graphics_degradation();
@@ -21,7 +28,9 @@ impl RetainedEditorHost {
             diagnostic.unwrap_or_default()
         );
         eprintln!("[zircon_editor] warning play_graphics_degraded: {message}");
-        if let Ok(entry) = LogEntry::new(LogSource::editor(), LogSeverity::Warning, message, 0, None) {
+        if let Ok(entry) =
+            LogEntry::new(LogSource::editor(), LogSeverity::Warning, message, 0, None)
+        {
             let _ = self.runtime.context().logs().emit(entry);
         }
         self.enqueue_activity_toasts(std::slice::from_ref(&notification))
@@ -91,6 +100,33 @@ impl RetainedEditorHost {
                 .notifications()
                 .dismiss_toast(&id, token);
         }
+        let revision = {
+            let context = self.runtime.context();
+            let services = match context
+                .notifications()
+                .projection_revision(&context.jobs().progress())
+            {
+                Ok(revision) => revision,
+                Err(error) => {
+                    self.set_status_line(error.to_string());
+                    return;
+                }
+            };
+            ActivityProjectionRevision {
+                services,
+                locale: context.i18n().active_locale(),
+                structure_generation: self
+                    .ui
+                    .get_host_presentation_generation()
+                    .structure_generation(),
+            }
+        };
+        if self.activity_notification_revision.as_ref() == Some(&revision) {
+            if self.pending_activity_projection_refresh {
+                self.flush_prepared_activity_projection();
+            }
+            return;
+        }
         let (pending_decisions, toasts, progress) = {
             let context = self.runtime.context();
             let decisions = match context.notifications().decisions() {
@@ -115,11 +151,14 @@ impl RetainedEditorHost {
         ) {
             Ok(changed) => changed,
             Err(error) => {
+                // Earlier controls may already have accepted part of this transaction.
+                self.pending_activity_projection_refresh = true;
                 self.set_status_line(error.to_string());
                 return;
             }
         };
-        let health_changed = if notification_changed {
+        self.pending_activity_projection_refresh |= notification_changed;
+        let health_changed = if self.pending_activity_projection_refresh {
             let health = self
                 .runtime
                 .capture_settings_persistence_health_projection();
@@ -137,18 +176,30 @@ impl RetainedEditorHost {
             false
         };
         if !(notification_changed || health_changed) && !self.pending_activity_projection_refresh {
+            self.activity_notification_revision = Some(revision);
             return;
         }
         capture_trace::record("activity_projection_changed", || {
             format!("notifications={notification_changed} health={health_changed} pending_activity={} progress_count={} cursor={:?}",
                 self.pending_activity_projection_refresh, progress.len(), self.ui.get_host_presentation_generation().cursor())
         });
+        if self.flush_prepared_activity_projection() {
+            // Failed materialization must retry the same revision on the next tick.
+            self.activity_notification_revision = Some(revision);
+        }
+    }
+
+    fn flush_prepared_activity_projection(&mut self) -> bool {
         match self.workbench_window_bridge.refresh_prepared_state_change() {
             Ok(()) => {
                 self.pending_activity_projection_refresh = false;
                 self.invalidate_host(HostInvalidationMask::WORKBENCH_PROJECTION);
+                true
             }
-            Err(error) => self.set_status_line(error.to_string()),
+            Err(error) => {
+                self.set_status_line(error.to_string());
+                false
+            }
         }
     }
 }
@@ -186,7 +237,9 @@ fn activity_toast(
 }
 
 fn degraded_play_start_toast(sequence: u64, diagnostic: Option<&str>) -> Option<ToastNotification> {
-    let diagnostic = diagnostic.map(str::trim).filter(|reason| !reason.is_empty())?;
+    let diagnostic = diagnostic
+        .map(str::trim)
+        .filter(|reason| !reason.is_empty())?;
     activity_toast(
         &format!("editor.event.{sequence}.play-graphics-degraded"),
         ToastSeverity::Warning,

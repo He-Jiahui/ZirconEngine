@@ -105,6 +105,14 @@ impl DecisionNotificationCenter {
         })
     }
 
+    pub(crate) fn projection_revision(&self) -> (u64, u64) {
+        let state = self
+            .state
+            .lock()
+            .unwrap_or_else(|poison| poison.into_inner());
+        (state.next_ticket_incarnation, state.next_receipt_sequence)
+    }
+
     pub const fn instance_id(&self) -> DecisionCenterInstanceId {
         self.instance_id
     }

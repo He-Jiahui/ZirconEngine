@@ -566,3 +566,20 @@ fn optimization_wave_20260824d_editor10_decision_receipt_tail_evidence() {
         elapsed.as_nanos()
     );
 }
+
+#[test]
+fn pending_projection_revision_changes_on_publish_and_resolve_only() {
+    let center = center();
+    let initial = center.projection_revision();
+    let ticket = center.publish(notification("revision", false)).unwrap();
+    let published = center.projection_revision();
+    assert_ne!(initial, published);
+    center.pending_snapshot();
+    assert_eq!(center.projection_revision(), published);
+    let option = DecisionOptionId::parse("apply").unwrap();
+    center.resolve(&ticket, &option).unwrap();
+    let resolved = center.projection_revision();
+    assert_ne!(resolved, published);
+    center.resolve(&ticket, &option).unwrap();
+    assert_eq!(center.projection_revision(), resolved);
+}

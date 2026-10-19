@@ -34,6 +34,7 @@ pub struct ToastDeliveryQueue {
 struct DeliveryState {
     entries: VecDeque<ToastDeliverySnapshot>,
     next_token: Option<u64>,
+    revision: u64,
 }
 impl ToastDeliveryQueue {
     pub fn new(config: ToastCenterConfig) -> Self {
@@ -42,6 +43,7 @@ impl ToastDeliveryQueue {
             state: Mutex::new(DeliveryState {
                 entries: VecDeque::new(),
                 next_token: Some(1),
+                revision: 0,
             }),
         }
     }
@@ -75,8 +77,22 @@ impl ToastDeliveryQueue {
             delivery_token: token,
             expires_at: None,
         });
+        state.advance_revision();
         Ok(())
     }
+
+    /// Pending/empty queues are stable; acknowledged heads also depend on the live clock.
+    pub(crate) fn projection_revision_at(&self, now: Duration) -> (u64, Option<Duration>) {
+        let mut state = self.state.lock().unwrap_or_else(|error| error.into_inner());
+        expire_shown_head(&mut state, now);
+        let ticking = state
+            .entries
+            .front()
+            .and_then(|head| head.expires_at)
+            .map(|_| now);
+        (state.revision, ticking)
+    }
+
     pub fn snapshot_at(&self, now: Duration) -> Vec<ToastDeliverySnapshot> {
         let mut state = self.state.lock().unwrap_or_else(|error| error.into_inner());
         expire_shown_head(&mut state, now);
@@ -102,6 +118,7 @@ impl ToastDeliveryQueue {
             .checked_add(head.notification.lifetime())
             .ok_or(ToastNotificationError::PresentationClockOverflow)?;
         head.expires_at = Some(deadline);
+        state.advance_revision();
         Ok(true)
     }
     /// Removal is exact-instance bound, including a user close before the first ACK.
@@ -114,9 +131,22 @@ impl ToastDeliveryQueue {
         else {
             return false;
         };
-        state.entries.remove(index).is_some()
+        let removed = state.entries.remove(index).is_some();
+        if removed {
+            state.advance_revision();
+        }
+        removed
     }
 }
+impl DeliveryState {
+    fn advance_revision(&mut self) {
+        self.revision = self
+            .revision
+            .checked_add(1)
+            .expect("toast projection revision cannot overflow");
+    }
+}
+
 fn expire_shown_head(state: &mut DeliveryState, now: Duration) {
     while state
         .entries
@@ -125,6 +155,7 @@ fn expire_shown_head(state: &mut DeliveryState, now: Duration) {
         .is_some_and(|deadline| deadline <= now)
     {
         state.entries.pop_front();
+        state.advance_revision();
     }
 }
 

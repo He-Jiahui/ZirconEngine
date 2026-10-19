@@ -19,6 +19,10 @@ impl EditorManager {
         self.host.lock_subsystem_report().clone()
     }
 
+    pub(crate) fn enabled_capabilities_match(&self, observed: &[String]) -> bool {
+        self.host.lock_capability_snapshot().enabled_capabilities() == observed
+    }
+
     pub fn capability_snapshot(&self) -> EditorCapabilitySnapshot {
         self.host.lock_capability_snapshot().clone()
     }
