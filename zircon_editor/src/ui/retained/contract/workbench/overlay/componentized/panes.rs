@@ -19,17 +19,17 @@ impl TemplateNodePaintTransform for OrdinaryPaneSubtree {
         self.subtree
             .stream_row_visit_indices(row_count, clip, visit)
     }
-    fn transform_row(
+    fn filter_row(
         &self,
         row: usize,
-        node: TemplatePaneNodeData,
-        clip: FrameRect,
-    ) -> Option<(TemplatePaneNodeData, FrameRect)> {
+        node: &TemplatePaneNodeData,
+        clip: &FrameRect,
+    ) -> Option<FrameRect> {
         (!is_authored_tree_row(&node)
             && module_tools_menu_spec(node.control_id.as_str()).is_none()
             && !self.excluded_rows.contains(&row)
             && !(self.suppress_viewport_fallback && is_viewport_fallback_scene_node(&node)))
-        .then_some((node, clip))
+        .then(|| clip.clone())
     }
 }
 

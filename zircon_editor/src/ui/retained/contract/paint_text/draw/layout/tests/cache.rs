@@ -1,10 +1,8 @@
 use super::*;
 
-fn cache_properties(rect_x_bits: u32) -> PaintTextLayoutCacheProperties {
+fn cache_properties(width_bits: u32) -> PaintTextLayoutCacheProperties {
     PaintTextLayoutCacheProperties {
-        rect_x_bits,
-        rect_y_bits: 0,
-        rect_width_bits: 100.0_f32.to_bits(),
+        rect_width_bits: width_bits,
         rect_height_bits: 20.0_f32.to_bits(),
         font_size_bits: 13.0_f32.to_bits(),
         line_height_bits: 16.0_f32.to_bits(),
@@ -16,6 +14,7 @@ fn cache_properties(rect_x_bits: u32) -> PaintTextLayoutCacheProperties {
         },
         smoothing: HostTextSmoothing::Grayscale,
         word_wrap: false,
+        display_only: false,
     }
 }
 
@@ -62,7 +61,7 @@ fn eviction_removes_one_layout_instead_of_clearing_the_cache() {
             layout("Layout"),
         );
     }
-    let _ = cache.swap_remove_index(0);
+    let _ = cache.shift_remove_index(0);
     assert_eq!(cache.len(), 1);
 }
 
@@ -79,4 +78,81 @@ fn exact_font_request_and_collection_generation_are_cache_identity() {
     assert_ne!(base, different_generation);
     assert_ne!(base, different_family);
     assert_ne!(base, different_weight);
+}
+
+#[test]
+fn hits_refresh_recency_and_eviction_preserves_recent_layouts() {
+    let mut cache = IndexMap::new();
+    let properties = cache_properties(0);
+    for text in ["old", "recent", "new"] {
+        cache.insert(
+            PaintTextLayoutCacheKey {
+                text: text.into(),
+                properties: properties.clone(),
+            },
+            layout(text),
+        );
+    }
+    let lookup = |text| PaintTextLayoutCacheLookup {
+        text,
+        properties: &properties,
+    };
+    assert!(touch_layout(&mut cache, &lookup("old")).is_some());
+    assert_eq!(cache.shift_remove_index(0).unwrap().0.text, "recent");
+    cache.insert(
+        PaintTextLayoutCacheKey {
+            text: "newest".into(),
+            properties: properties.clone(),
+        },
+        layout("newest"),
+    );
+    assert_eq!(cache.shift_remove_index(0).unwrap().0.text, "new");
+    assert!(cache.get(&lookup("old")).is_some());
+}
+
+#[test]
+fn scrolling_reuses_origin_relative_layout_without_rebuilding() {
+    let build = |rect: &FrameRect| {
+        assert_eq!((rect.x, rect.y), (0.0, 0.0));
+        PaintTextLayout {
+            display_text: "origin-relative-cache-regression".into(),
+            glyphs: Vec::new(),
+            artifact_raster_faces: Vec::new(),
+            measured_lines: Vec::new(),
+        }
+    };
+    let first = FrameRect {
+        x: 4.25,
+        y: 10.0,
+        width: 101.0,
+        height: 21.0,
+    };
+    let second = FrameRect {
+        x: 300.75,
+        y: -300.0,
+        ..first.clone()
+    };
+    let a = cached_paint_text_layout(
+        &first,
+        "origin-relative-cache-regression",
+        13.0,
+        16.0,
+        HostTextFontFace::Ui,
+        HostTextSmoothing::Grayscale,
+        HostTextLayoutPolicy::SingleLineEllipsis,
+        false,
+        build,
+    );
+    let b = cached_paint_text_layout(
+        &second,
+        "origin-relative-cache-regression",
+        13.0,
+        16.0,
+        HostTextFontFace::Ui,
+        HostTextSmoothing::Grayscale,
+        HostTextLayoutPolicy::SingleLineEllipsis,
+        false,
+        |_| panic!("scrolling must hit"),
+    );
+    assert!(Arc::ptr_eq(&a, &b));
 }

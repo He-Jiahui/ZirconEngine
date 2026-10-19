@@ -10,7 +10,7 @@ use super::kind::HostPaintCommandKind;
 /// 宿主绘制命令同时携带可见框、裁剪、来源键与层级；后续 CPU 绘制和录制回放共享这份契约。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) struct HostPaintCommand {
     pub(in crate::ui::retained_host::host_contract::paint_template_nodes) owner:
-        Option<PaintNodeIdentity>,
+        Option<std::rc::Rc<PaintNodeIdentity>>,
     pub(in crate::ui::retained_host::host_contract::paint_template_nodes) box_shadow:
         Option<PaintBoxShadowGeometry>,
     pub(in crate::ui::retained_host::host_contract::paint_template_nodes) kind:
@@ -100,9 +100,9 @@ impl HostPaintCommand {
 
     pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn set_owner(
         &mut self,
-        owner: PaintNodeIdentity,
+        owner: impl Into<std::rc::Rc<PaintNodeIdentity>>,
     ) {
-        self.owner = Some(owner);
+        self.owner = Some(owner.into());
     }
 
     pub(super) fn fallback_text_metrics_from_host(metrics: HostControlMetrics) -> (f32, f32) {

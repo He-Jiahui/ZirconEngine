@@ -1,12 +1,15 @@
 use crate::ui::retained_host::primitives::ModelRc;
 use crate::ui::retained_host::ui_perf::{record_current_ui_perf_counter, UiPerfCounter};
+use std::rc::Rc;
 
 use super::super::super::data::{
     visit_paint_workbench_rows, FrameRect, HostPaneInteractionStateData, HostTextInputFocusData,
     TemplatePaneNodeData,
 };
 use super::super::super::paint_frame::HostRgbaFrame;
-use super::super::evidence::{record_identity_issue, record_owner_commands_complete};
+use super::super::evidence::{
+    capture_active, record_identity_issue, record_owner_commands_complete,
+};
 use super::super::render_commands::{
     draw_host_paint_commands, HostPaintCommand, PaintNodeIdentity,
 };
@@ -48,6 +51,9 @@ fn attach_owner(
     from: usize,
     source_node: &TemplatePaneNodeData,
 ) {
+    if !capture_active() || from == commands.len() {
+        return;
+    }
     let source_path = source_node.source_path.to_string();
     let source_node_id = source_node.source_node_id.to_string();
     let instance_path = source_node.instance_path.to_string();
@@ -63,7 +69,7 @@ fn attach_owner(
         ));
         return;
     }
-    let owner = PaintNodeIdentity {
+    let owner = Rc::new(PaintNodeIdentity {
         node_id,
         parent_node_id: nonempty_string(&source_node.parent_node_id),
         source_path,
@@ -73,7 +79,7 @@ fn attach_owner(
         parent_source_node_id: nonempty_string(&source_node.parent_source_node_id),
         parent_instance_path: nonempty_string(&source_node.parent_instance_path),
         control_id: nonempty_string(&source_node.control_id),
-    };
+    });
     for command in &mut commands[from..] {
         command.set_owner(owner.clone());
     }
@@ -136,24 +142,34 @@ pub(in crate::ui::retained_host::host_contract) fn draw_template_nodes_with_tran
                 }
                 return;
             }
-            let source_node = source_node.clone();
-            cloned = cloned.saturating_add(1);
             let Some(transform) = transform else {
                 return;
             };
-            let Some((mut node, node_clip)) =
-                transform.transform_row(row, source_node, effective_clip.clone())
-            else {
+            let Some(node_clip) = transform.filter_row(row, source_node, &effective_clip) else {
                 return;
             };
-            if !template_node_intersects_clip(&node, origin, &node_clip) {
+            let mut patched = transform.patch_row(row, source_node, &node_clip);
+            if patched.is_some() {
+                cloned = cloned.saturating_add(1);
+            }
+            let node = patched.as_ref().unwrap_or(source_node);
+            if !template_node_intersects_clip(node, origin, &node_clip) {
                 damage_rejected = damage_rejected.saturating_add(1);
                 return;
             }
-            if let Some(interaction) = frame.pane_interaction_state() {
-                apply_template_hover_to_node(&mut node, interaction);
-                apply_template_press_to_node(&mut node, origin, interaction);
+            if let Some(interaction) = frame.pane_interaction_state().filter(|interaction| {
+                template_hover_targets_node(node, interaction)
+                    || template_press_targets_node(node, origin, interaction)
+            }) {
+                if patched.is_none() {
+                    patched = Some(source_node.clone());
+                    cloned = cloned.saturating_add(1);
+                }
+                let node = patched.as_mut().expect("interaction patch");
+                apply_template_hover_to_node(node, interaction);
+                apply_template_press_to_node(node, origin, interaction);
             }
+            let node = patched.as_ref().unwrap_or(source_node);
             // Region repaint must avoid generating commands for off-damage nodes:
             // image commands can rasterize previews before the final primitive clip runs.
             let before = commands.len();
@@ -204,6 +220,14 @@ pub(in crate::ui::retained_host::host_contract) fn draw_template_nodes_with_tran
     {
         zircon_runtime::profile_scope!("editor", "host_painter", "template_nodes_draw_commands");
         zircon_runtime::profile_counter!("editor", "template_command_count", commands.len());
+        zircon_runtime::profile_counter!(
+            "editor",
+            "paint.owner_attachment_count",
+            commands
+                .iter()
+                .filter(|command| command.owner.is_some())
+                .count()
+        );
         draw_host_paint_commands(frame, &commands)
     }
 }

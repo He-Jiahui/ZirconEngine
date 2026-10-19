@@ -107,30 +107,42 @@ impl TemplateNodePaintTransform for RootOverlayRows {
         true
     }
 
-    fn transform_row(
+    fn filter_row(
         &self,
         row: usize,
-        mut node: TemplatePaneNodeData,
-        clip: FrameRect,
-    ) -> Option<(TemplatePaneNodeData, FrameRect)> {
+        node: &TemplatePaneNodeData,
+        clip: &FrameRect,
+    ) -> Option<FrameRect> {
         if self.rows.contains(&row) == self.exclude {
             return None;
         }
         if !self.exclude {
             if let Some(popup) = self.module_popups.iter().find(|popup| popup.row == row) {
                 let clip = intersect_rect(&clip, &popup.clip)?;
-                node.has_clip_frame = true;
-                node.clip_frame =
-                    crate::ui::retained_host::host_contract::data::TemplateNodeFrameData {
-                        x: clip.x,
-                        y: clip.y,
-                        width: clip.width,
-                        height: clip.height,
-                    };
-                return Some((node, clip));
+                return Some(clip);
             }
         }
-        Some((node, clip))
+        Some(clip.clone())
+    }
+
+    fn patch_row(
+        &self,
+        row: usize,
+        node: &TemplatePaneNodeData,
+        clip: &FrameRect,
+    ) -> Option<TemplatePaneNodeData> {
+        if self.exclude || !self.module_popups.iter().any(|popup| popup.row == row) {
+            return None;
+        }
+        let mut node = node.clone();
+        node.has_clip_frame = true;
+        node.clip_frame = crate::ui::retained_host::host_contract::data::TemplateNodeFrameData {
+            x: clip.x,
+            y: clip.y,
+            width: clip.width,
+            height: clip.height,
+        };
+        Some(node)
     }
 }
 

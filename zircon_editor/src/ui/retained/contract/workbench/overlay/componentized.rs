@@ -50,16 +50,16 @@ impl ComponentizedChromeFallbackTransform {
 }
 
 impl TemplateNodePaintTransform for ComponentizedChromeFallbackTransform {
-    fn transform_row(
+    fn filter_row(
         &self,
         _row: usize,
-        node: TemplatePaneNodeData,
-        clip: FrameRect,
-    ) -> Option<(TemplatePaneNodeData, FrameRect)> {
+        node: &TemplatePaneNodeData,
+        clip: &FrameRect,
+    ) -> Option<FrameRect> {
         if self.suppress_viewport_fallback && is_viewport_fallback_scene_node(&node) {
             None
         } else {
-            Some((node, clip))
+            Some(clip.clone())
         }
     }
 }
@@ -193,13 +193,13 @@ impl TemplateNodePaintTransform for ExtensionWorkspaceSubtree {
         true
     }
 
-    fn transform_row(
+    fn filter_row(
         &self,
         _row: usize,
-        node: TemplatePaneNodeData,
-        clip: FrameRect,
-    ) -> Option<(TemplatePaneNodeData, FrameRect)> {
-        Some((node, clip))
+        node: &TemplatePaneNodeData,
+        clip: &FrameRect,
+    ) -> Option<FrameRect> {
+        Some(clip.clone())
     }
 }
 

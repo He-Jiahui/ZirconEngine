@@ -24,10 +24,27 @@ fn owner() -> PaintNodeIdentity {
 }
 
 #[test]
+fn owner_scope_is_idle_without_capture_and_shares_identity_during_capture() {
+    let owner = std::rc::Rc::new(owner());
+    {
+        let _scope = super::PaintNodeOwnerScope::enter(Some(&owner));
+        assert!(super::active_owner().is_none());
+    }
+    let capture = PaintEvidenceScope::begin(&std::env::current_dir().unwrap(), 1.0).unwrap();
+    {
+        let _scope = super::PaintNodeOwnerScope::enter(Some(&owner));
+        assert!(std::rc::Rc::ptr_eq(&owner, &super::active_owner().unwrap()));
+    }
+    assert!(super::active_owner().is_none());
+    capture.finish().unwrap();
+    assert!(!super::capture_active());
+}
+
+#[test]
 fn shadow_commands_keep_a_separate_dpi_normalized_receipt() {
     let repo = std::env::current_dir().unwrap();
     let scope = PaintEvidenceScope::begin(&repo, 2.0).unwrap();
-    let owner = owner();
+    let owner = std::rc::Rc::new(owner());
     record_owner_commands_complete(&owner);
 
     let mut shadow = HostPaintCommand::quad(

@@ -108,13 +108,52 @@ impl TemplateNodePaintTransform for ConsoleOutputProjector {
         true
     }
 
-    fn transform_row(
+    fn filter_row(
         &self,
         row: usize,
-        node: TemplatePaneNodeData,
-        clip: FrameRect,
-    ) -> Option<(TemplatePaneNodeData, FrameRect)> {
-        self.transform_node(row, node, clip)
+        node: &TemplatePaneNodeData,
+        clip: &FrameRect,
+    ) -> Option<FrameRect> {
+        if !node.control_id.starts_with(CONSOLE_OUTPUT_LINE_PREFIX)
+            && !node.control_id.starts_with(CONSOLE_OUTPUT_SEVERITY_PREFIX)
+        {
+            return Some(clip.clone());
+        }
+        let mut frame = frame_from_template(&node.frame);
+        if self.metadata.is_virtualized() {
+            let binding =
+                self.metadata
+                    .logical_line_for_node_row(row, self.row_count, self.scroll_px)?;
+            if matches!(binding.kind, ConsoleOutputSlotKind::Severity) {
+                binding.line.severity_text()?;
+            }
+            frame.y = self
+                .metadata
+                .line_frame_y(binding.logical_index, self.scroll_px);
+        } else {
+            frame.y -= self.scroll_px;
+        }
+        let output_clip = intersect(clip, &self.output_clip)?;
+        intersect(
+            &translated(&frame, self.origin_x, self.origin_y),
+            &output_clip,
+        )?;
+        Some(output_clip)
+    }
+
+    fn patch_row(
+        &self,
+        row: usize,
+        node: &TemplatePaneNodeData,
+        clip: &FrameRect,
+    ) -> Option<TemplatePaneNodeData> {
+        if !node.control_id.starts_with(CONSOLE_OUTPUT_LINE_PREFIX)
+            && !node.control_id.starts_with(CONSOLE_OUTPUT_SEVERITY_PREFIX)
+        {
+            return None;
+        }
+        self.transform_node(row, node.clone(), clip.clone())
+            .map(|(node, _)| node)
     }
 }
 

@@ -128,7 +128,7 @@ pub(super) fn begin_run(
         } else { Vec::new() };
         capture.runs.push(json!({
             "sourceText": source, "displayText": layout.display_text,
-            "owner": owner_json(active_owner().as_ref()),
+            "owner": owner_json(active_owner().as_deref()),
             "bounds": {"x": rect.x, "y": rect.y, "width": rect.width, "height": rect.height},
             "clip": bounds_json([i64::from(clip.x0), i64::from(clip.y0), i64::from(clip.x1), i64::from(clip.y1)]),
             "requestedFamily": request.family, "requestedWeight": request.weight,
