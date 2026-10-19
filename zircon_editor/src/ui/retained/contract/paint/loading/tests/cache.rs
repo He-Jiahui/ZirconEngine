@@ -170,6 +170,7 @@ fn cache_hits_share_the_raster_payload_instead_of_copying_rgba() {
         "icon:save",
         [PathBuf::from("assets/icons/save.svg")],
         Some(HostPaintImagePixels {
+            source_path: None,
             resource_key: "icon:save".to_string(),
             width: 1,
             height: 1,

@@ -15,6 +15,7 @@ pub(in crate::ui::retained_host) use async_loader::{
     bind_visual_asset_loader, take_visual_asset_completion, unbind_visual_asset_loader,
     VisualAssetLoadCompletion,
 };
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use cache::visual_asset_source_is_current;
 pub(super) use cache::{cached_visual_asset_pixels, store_visual_asset_pixels};
 pub(in crate::ui::retained_host) use cache::{
     clear_visual_asset_pixels_cache, invalidate_visual_asset_pixel_paths,

@@ -68,15 +68,11 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_te
     if !is_visible_frame(&image_rect) || intersect(&image_rect, clip).is_none() {
         return;
     }
-    commands.push(HostPaintCommand::image_pixels(
+    commands.push(HostPaintCommand::from_image_pixels(
         image_rect,
         Some(clip.clone()),
         order,
-        image.resource_key,
-        image.width,
-        image.height,
-        image.rgba,
-        image.atlas,
+        image,
         opacity,
     ));
 }

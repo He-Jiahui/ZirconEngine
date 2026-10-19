@@ -155,3 +155,19 @@ fn normal_paint_evidence_without_a_frame_theme_keeps_token_input_unobserved() {
     let evidence = PaintEvidenceScope::begin_for_normal_present(&repo).unwrap();
     assert!(evidence.finish().unwrap()["designTokenInput"].is_null());
 }
+
+#[test]
+fn media_receipts_exist_only_during_capture_and_reject_source_conflicts() {
+    let repo = std::env::current_dir().unwrap();
+    let source = repo.join("Cargo.toml");
+    super::register_media_source("test:media", &source);
+    assert!(super::MEDIA_FILES.with_borrow(|files| files.is_empty()));
+    let scope = PaintEvidenceScope::begin(&repo, 1.0).unwrap();
+    super::register_media_source("test:media", &source);
+    super::register_media_source("test:media", &source);
+    assert!(super::MEDIA_FILES.with_borrow(|files| files["test:media"].is_some()));
+    super::register_media_source("test:media", &repo.join("missing-source"));
+    assert!(super::MEDIA_FILES.with_borrow(|files| files["test:media"].is_none()));
+    drop(scope);
+    assert!(super::MEDIA_FILES.with_borrow(|files| files.is_empty()));
+}

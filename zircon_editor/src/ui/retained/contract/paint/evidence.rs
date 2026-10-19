@@ -3,7 +3,6 @@ use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::marker::PhantomData;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
-use std::sync::{Mutex, OnceLock};
 
 use serde_json::{json, Value};
 use zircon_runtime_interface::runtime_build_set::ZrRuntimeDigestV1;
@@ -51,9 +50,8 @@ thread_local! {
     static CAPTURE_ACTIVE: Cell<bool> = const { Cell::new(false) };
     static CAPTURE: RefCell<Option<Capture>> = const { RefCell::new(None) };
     static ACTIVE_OWNER: RefCell<Option<Rc<PaintNodeIdentity>>> = const { RefCell::new(None) };
+    static MEDIA_FILES: RefCell<HashMap<String, Option<MediaFileReceipt>>> = RefCell::new(HashMap::new());
 }
-
-static MEDIA_FILES: OnceLock<Mutex<HashMap<String, Option<MediaFileReceipt>>>> = OnceLock::new();
 
 pub(super) fn capture_active() -> bool {
     CAPTURE_ACTIVE.get()
@@ -85,6 +83,9 @@ impl PaintEvidenceScope {
             if capture.is_some() {
                 return Err("paint evidence capture is already active".into());
             }
+            // Invalidate stale warm pixels before collecting any new source receipts.
+            super::visual_assets::reconcile_visual_asset_pixel_sources();
+            MEDIA_FILES.with_borrow_mut(HashMap::clear);
             *capture = Some(Capture {
                 repo: Some(repo),
                 dpi,
@@ -226,6 +227,7 @@ impl Drop for PaintEvidenceScope {
         CAPTURE_ACTIVE.set(false);
         CAPTURE.with_borrow_mut(|capture| *capture = None);
         ACTIVE_OWNER.with_borrow_mut(|owner| *owner = None);
+        MEDIA_FILES.with_borrow_mut(HashMap::clear);
     }
 }
 
@@ -401,27 +403,27 @@ pub(super) fn record_drawn_command(command: &HostPaintCommand) {
 }
 
 pub(super) fn register_media_source(resource_key: &str, path: &Path) {
-    let key = MEDIA_FILES.get_or_init(|| Mutex::new(HashMap::new()));
-    let receipt = (|| {
-        let canonical = path.canonicalize().ok()?;
-        let bytes = std::fs::read(&canonical).ok()?;
-        let sha256 = ZrRuntimeDigestV1::sha256(&bytes).as_str().to_owned();
-        Some(MediaFileReceipt {
-            path: canonical,
-            sha256,
-        })
-    })();
-    if let Ok(mut files) = key.lock() {
-        match (files.get(resource_key), receipt) {
-            (None, receipt) => {
-                files.insert(resource_key.to_owned(), receipt);
-            }
-            (Some(Some(old)), Some(new)) if old.path == new.path && old.sha256 == new.sha256 => {}
-            _ => {
+    if !capture_active() {
+        return;
+    }
+    let canonical = path.canonicalize().ok();
+    MEDIA_FILES.with_borrow_mut(|files| {
+        if let Some(previous) = files.get(resource_key) {
+            if previous.as_ref().map(|receipt| &receipt.path) != canonical.as_ref() {
                 files.insert(resource_key.to_owned(), None);
             }
+            // Hash once per capture/key. finish() independently detects changes during capture.
+            return;
         }
-    }
+        let receipt = canonical.and_then(|path| {
+            let bytes = std::fs::read(&path).ok()?;
+            Some(MediaFileReceipt {
+                path,
+                sha256: ZrRuntimeDigestV1::sha256(&bytes).as_str().to_owned(),
+            })
+        });
+        files.insert(resource_key.to_owned(), receipt);
+    });
 }
 
 pub(super) fn record_media_use(resource_key: &str) {
@@ -437,11 +439,7 @@ pub(super) fn record_media_use(resource_key: &str) {
             ));
             return;
         };
-        let registry = MEDIA_FILES.get_or_init(|| Mutex::new(HashMap::new()));
-        let file = registry
-            .lock()
-            .ok()
-            .and_then(|files| files.get(resource_key).cloned());
+        let file = MEDIA_FILES.with_borrow(|files| files.get(resource_key).cloned());
         let Some(Some(file)) = file else {
             capture.issues.push(format!(
                 "media resource {resource_key} has no unambiguous source file receipt"

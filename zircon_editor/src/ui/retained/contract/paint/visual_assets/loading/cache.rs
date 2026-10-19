@@ -63,6 +63,28 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn store_v
         .insert(key, base_key, source_paths, pixels);
 }
 
+/// Capture-only lookup: a retained command must still refer to an admitted cache product.
+/// Capture begin reconciles file fingerprints; evicted/stale commands cannot claim new receipts.
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn visual_asset_source_is_current(
+    pixels: &HostPaintImagePixels,
+) -> bool {
+    let Some(cache) = VISUAL_ASSET_CACHE.get() else {
+        return false;
+    };
+    cache
+        .lock()
+        .unwrap_or_else(|poison| poison.into_inner())
+        .entries
+        .values()
+        .any(|entry| {
+            entry.pixels.as_ref().is_some_and(|cached| {
+                cached.resource_key == pixels.resource_key
+                    && cached.source_path == pixels.source_path
+                    && Arc::ptr_eq(&cached.rgba, &pixels.rgba)
+            })
+        })
+}
+
 pub(super) fn begin_visual_asset_source_load(
     base_key: &str,
     source_paths: &[PathBuf],

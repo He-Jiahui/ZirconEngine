@@ -1,6 +1,5 @@
 use std::path::PathBuf;
 
-use super::super::super::evidence::register_media_source;
 use super::super::super::sprite_atlas::resolve_editor_sprite_atlas_image;
 use super::super::candidates::{first_existing_path, is_svg_path};
 use super::super::svg::render_svg_file_pixels;
@@ -110,7 +109,9 @@ pub(super) fn load_visual_asset_pixels_uncached(
                 .and_then(|image| retained_image_pixels(&image, tint))
         }
     }
-    .map(|pixels| {
+    .map(|mut pixels| {
+        // Keep the actual resolver result, including on asynchronous/non-capture loads.
+        pixels.source_path = Some(std::sync::Arc::new(path.clone()));
         if tint.is_none() {
             pixels.with_atlas(resolve_editor_sprite_atlas_image(base_key, &path))
         } else {
@@ -123,10 +124,6 @@ pub(super) fn load_visual_asset_pixels_uncached(
             None => pixels,
         },
     );
-
-    if let Some(pixels) = &loaded {
-        register_media_source(&pixels.resource_key, &path);
-    }
 
     loaded
 }

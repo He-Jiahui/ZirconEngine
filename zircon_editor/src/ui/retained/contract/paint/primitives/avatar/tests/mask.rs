@@ -11,6 +11,7 @@ fn image(alpha: u8, atlas: Option<HostPaintAtlasImage>) -> HostPaintImagePixels 
         pixel[3] = alpha;
     }
     HostPaintImagePixels {
+        source_path: None,
         resource_key: "avatar-source".to_owned(),
         width: 8,
         height: 8,

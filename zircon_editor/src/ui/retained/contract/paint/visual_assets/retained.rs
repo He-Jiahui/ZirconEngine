@@ -25,6 +25,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn retaine
         let mut rgba = product.rgba.as_ref().to_vec();
         tint_non_transparent_pixels(&mut rgba, tint);
         let image = HostPaintImagePixels {
+            source_path: None,
             resource_key: retained_image_resource_key(product.width, product.height, &rgba),
             width: product.width,
             height: product.height,
@@ -37,6 +38,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn retaine
     }
 
     let image = HostPaintImagePixels {
+        source_path: None,
         resource_key: base_key,
         width: product.width,
         height: product.height,

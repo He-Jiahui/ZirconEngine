@@ -122,6 +122,7 @@ fn key(index: usize) -> AvatarMaskCacheKey {
 
 fn image(index: usize) -> HostPaintImagePixels {
     HostPaintImagePixels {
+        source_path: None,
         resource_key: format!("avatar-mask:{}:{index:04}", "shared-prefix".repeat(9)),
         width: 1,
         height: 1,

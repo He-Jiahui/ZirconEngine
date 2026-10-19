@@ -27,6 +27,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use asset:
     load_existing_icon_asset_pixels_for_size, load_vector_visual_asset_pixels_for_size,
     load_visual_asset_pixels, load_visual_asset_pixels_for_size,
 };
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use loading::visual_asset_source_is_current;
 pub(in crate::ui::retained_host) use loading::{
     bind_visual_asset_loader, clear_visual_asset_pixels_cache, invalidate_visual_asset_pixel_paths,
     reconcile_visual_asset_pixel_sources, take_visual_asset_completion, unbind_visual_asset_loader,

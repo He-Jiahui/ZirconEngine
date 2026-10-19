@@ -5,6 +5,8 @@ use super::super::super::paint_frame::HostPaintAtlasImage;
 #[derive(Clone)]
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) struct HostPaintImagePixels {
     pub(in crate::ui::retained_host::host_contract::paint_template_nodes) resource_key: String,
+    pub(in crate::ui::retained_host::host_contract::paint_template_nodes) source_path:
+        Option<Arc<std::path::PathBuf>>,
     pub(in crate::ui::retained_host::host_contract::paint_template_nodes) width: u32,
     pub(in crate::ui::retained_host::host_contract::paint_template_nodes) height: u32,
     pub(in crate::ui::retained_host::host_contract::paint_template_nodes) rgba: Arc<[u8]>,
