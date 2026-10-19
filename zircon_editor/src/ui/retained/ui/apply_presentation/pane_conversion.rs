@@ -71,9 +71,8 @@ pub(super) fn to_host_contract_pane(
                 host_window::PanePayload::GeneratedBottomV1(_)
             )
         });
-    let has_ui_asset_payload = pane_kind == "UiAssetEditor"
-        || data.native_body.ui_asset
-            != crate::ui::asset_editor::UiAssetEditorPanePresentation::default();
+    let has_ui_asset_payload =
+        pane_kind == "UiAssetEditor" || !data.native_body.ui_asset.nodes.is_empty();
     let has_animation_payload = matches!(
         pane_kind.as_str(),
         "AnimationSequenceEditor" | "AnimationGraphEditor"

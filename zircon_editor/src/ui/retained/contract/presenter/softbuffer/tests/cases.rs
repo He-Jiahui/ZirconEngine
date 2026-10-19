@@ -317,11 +317,12 @@ fn overlay_text_change_expands_region_damage_to_presentation_top_bar_height() {
 
 #[test]
 fn presenter_diagnostics_plan_same_frame_overlay_pixels_match_expanded_region_damage() {
+    let presentation = presentation_with_top_bar_height(58.0);
     let planned = plan_present_for_diagnostics(
         &HostRefreshDiagnostics::default(),
         true,
         Some(STARTUP_REFRESH_DIAGNOSTICS_OVERLAY),
-        &presentation_with_top_bar_height(58.0),
+        &presentation,
         Some(top_bar_probe_damage()),
         HostInvalidationDiagnostics::default(),
         (200, 120),
@@ -347,17 +348,18 @@ fn presenter_diagnostics_plan_same_frame_overlay_pixels_match_expanded_region_da
     );
     assert_eq!(
         planned.presentation.host_shell.debug_refresh_rate.as_str(),
-        planned.overlay_text
+        presentation.host_shell.debug_refresh_rate.as_str()
     );
 }
 
 #[test]
 fn presenter_diagnostics_plan_full_repaint_records_full_pixels_in_same_frame_overlay() {
+    let presentation = HostWindowPresentationData::default();
     let planned = plan_present_for_diagnostics(
         &HostRefreshDiagnostics::default(),
         false,
         None,
-        &HostWindowPresentationData::default(),
+        &presentation,
         Some(region_damage()),
         HostInvalidationDiagnostics {
             slow_path_rebuild_count: 2,

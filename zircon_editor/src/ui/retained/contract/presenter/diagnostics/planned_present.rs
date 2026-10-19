@@ -13,15 +13,15 @@ use super::super::super::super::diagnostics::{
 use super::super::surface_io::pixel_bounds;
 use super::overlay::damage_with_debug_overlay;
 
-pub(in crate::ui::retained_host::host_contract) fn plan_present_for_diagnostics(
+pub(in crate::ui::retained_host::host_contract) fn plan_present_for_diagnostics<'a>(
     current: &HostRefreshDiagnostics,
     can_region_repaint: bool,
     last_debug_overlay_text: Option<&str>,
-    presentation: &HostWindowPresentationData,
+    presentation: &'a HostWindowPresentationData,
     damage: Option<FrameRect>,
     invalidation: HostInvalidationDiagnostics,
     size: (u32, u32),
-) -> PlannedPresent {
+) -> PlannedPresent<'a> {
     let mut damage = if can_region_repaint
         && damage
             .as_ref()

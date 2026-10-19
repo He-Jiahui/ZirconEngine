@@ -372,13 +372,7 @@ pub(crate) struct ProjectOverviewData {
     pub asset_count: SharedString,
 }
 
-#[derive(Clone)]
-pub(crate) struct SceneNodeData {
-    pub id: SharedString,
-    pub name: SharedString,
-    pub depth: i32,
-    pub selected: bool,
-}
+pub(crate) use crate::ui::retained_host::SceneNodeData;
 
 #[derive(Clone)]
 pub(crate) struct HostWindowShellData {

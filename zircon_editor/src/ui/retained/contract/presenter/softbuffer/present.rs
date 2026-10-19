@@ -45,8 +45,10 @@ pub(in crate::ui::retained_host::host_contract) fn present(
         invalidation,
         size,
     );
-    let stream =
-        build_chrome_command_stream(&planned.presentation, size, planned.damage.as_ref(), true);
+    let stream = super::super::super::data::with_diagnostics_paint_override(
+        planned.overlay_text.clone(),
+        || build_chrome_command_stream(planned.presentation, size, planned.damage.as_ref(), true),
+    );
     record_chrome_command_stream_counters(&stream);
     let outcome = {
         zircon_runtime::profile_scope!("editor", "host_presenter", "repaint_backbuffer");

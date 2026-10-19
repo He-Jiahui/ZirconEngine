@@ -383,12 +383,13 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         } else {
             hierarchy_ancestor_entities(&matching_entries)
         };
-        let rows = if filter_query.trim().is_empty() {
-            rows_visible_with_expansion(&matching_entries, &self.scene_expanded_by_entity)
+        let projected_entries = if filter_query.trim().is_empty() {
+            let rows =
+                rows_visible_with_expansion(&matching_entries, &self.scene_expanded_by_entity);
+            matching_entries.with_hierarchy_rows(rows)
         } else {
-            matching_entries.hierarchy_rows_arc().to_vec()
+            matching_entries
         };
-        let projected_entries = matching_entries.with_hierarchy_rows(rows);
         self.sync_scene_entries_internal(
             &projected_entries,
             selection_revision,
