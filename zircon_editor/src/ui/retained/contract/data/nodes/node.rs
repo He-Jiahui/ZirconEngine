@@ -98,6 +98,7 @@ pub(crate) struct TemplatePaneNodeData {
     pub tree_indent_px: f32,
     pub options_text: Rc<String>,
     pub options: ModelRc<SharedString>,
+    pub table_cell_projection: Option<Rc<super::TableCellProjection>>,
     pub structured_options: ModelRc<TemplatePaneOptionData>,
     pub notification_generation: usize,
     pub notification_unread_count: usize,

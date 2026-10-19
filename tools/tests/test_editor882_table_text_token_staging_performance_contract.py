@@ -6,10 +6,10 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SOURCE = (
     REPO_ROOT
-    / "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_table_rows/cells/text.rs"
+    / "zircon_editor/src/ui/retained/contract/data/nodes/table_cells.rs"
 )
 LOWER = (
-    REPO_ROOT / "zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_table_rows/cells/text/tests/token_staging_tests.rs"
+    REPO_ROOT / "zircon_editor/src/ui/retained/contract/paint/cells/text/tests/token_staging.rs"
 )
 
 
