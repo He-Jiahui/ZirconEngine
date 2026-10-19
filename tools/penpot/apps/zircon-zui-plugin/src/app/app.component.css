@@ -6,6 +6,31 @@
   background: var(--background-primary);
 }
 
+[hidden] { display: none !important; }
+
+.bridge-tab {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-16);
+}
+
+[aria-label="Operator annotations"] {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+}
+
+[role="tablist"] {
+  display: flex;
+  gap: var(--spacing-8);
+}
+
+[aria-label="Operator annotations"] textarea {
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+}
+
 .app-header,
 .command-row,
 .selection-band,

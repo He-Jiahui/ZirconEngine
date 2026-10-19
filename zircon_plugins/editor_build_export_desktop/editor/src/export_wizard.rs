@@ -1,6 +1,6 @@
 use zircon_runtime_interface::export::ExportStage;
 
-use zircon_editor::ExportStageProgressKind;
+use zircon_editor::ui::host::ExportStageProgressKind;
 
 use crate::{
     EXPORT_TEMPLATE_ID, LIBRARY_EMBED_REPORT_DOCUMENT, LIBRARY_EMBED_REPORT_ID,

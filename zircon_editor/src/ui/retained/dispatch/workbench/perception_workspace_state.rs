@@ -177,7 +177,7 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         self.set_perception_string(
             "WorkbenchStatusReady",
             "text",
-            "Perception simulation running",
+            "Not implemented (preview)",
         )?;
         self.set_perception_string("WorkbenchStatusMessages", "text", "1 Message")?;
         self.set_perception_string(

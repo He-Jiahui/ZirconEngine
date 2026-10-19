@@ -232,6 +232,7 @@ windows-sys = { workspace = true, features = [
     "Win32_System_Memory",
     "Win32_System_Ole",
     "Win32_System_Console",
+    "Win32_UI_WindowsAndMessaging",
 ] }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]

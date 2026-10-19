@@ -18,7 +18,7 @@ control_id = "UnrealEditorStatusBar"
 classes = ["unreal-status-bar"]
 props = { background_color = "#151515", foreground_color = "$editor.text.secondary", font_size = 10.666667, line_height_ratio = 1.2, separator_edge = "top", separator_color = "#383838", separator_thickness = 1.0, layout_padding_left = 8.0, layout_padding_right = 8.0 }
 layout = { container = { kind = "HorizontalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
-children = [{ node = "drawer_toggle" }, { node = "ready" }, { node = "errors" }, { node = "warnings" }, { node = "messages" }, { node = "fill" }, { node = "grid" }, { node = "snap" }, { node = "snap_toggle" }, { node = "world" }, { node = "target" }, { node = "zoom" }, { node = "task" }]
+children = [{ node = "drawer_toggle" }, { node = "ready" }, { node = "errors" }, { node = "warnings" }, { node = "messages" }, { node = "fill" }, { node = "grid" }, { node = "snap" }, { node = "snap_toggle" }, { node = "world" }, { node = "target" }, { node = "task" }]
 
 [nodes.ready]
 component = "Label"
@@ -30,7 +30,7 @@ layout = { width = { min = 40.0, preferred = 160.0, stretch = "Stretch" }, heigh
 component = "Label"
 classes = ["unreal-status-label"]
 control_id = "WorkbenchStatusErrors"
-props = { responsive_min_tier = "narrow", foreground_color = "$unreal_foreground", line_height_ratio = 1.2, font_weight = 400, font_size = 10.666667, font_family = "Roboto", text = "No Errors", component_variant = "semantic_status_signal", text_tone = "muted" }
+props = { responsive_min_tier = "narrow", foreground_color = "$unreal_foreground", line_height_ratio = 1.2, font_weight = 400, font_size = 10.666667, font_family = "Roboto", text = "0 Errors", component_variant = "semantic_status_signal", text_tone = "muted" }
 layout = { width = { min = 80.0, preferred = 92.0, max = 92.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 [nodes.warnings]
 component = "Label"
@@ -58,13 +58,13 @@ layout = { width = { min = 90.0, preferred = 96.0, max = 96.0, stretch = "Fixed"
 component = "Button"
 classes = ["unreal-control", "unreal-status-control"]
 control_id = "WorkbenchStatusSnap"
-props = { responsive_min_tier = "wide", input_hoverable = false, input_clickable = false, input_focusable = false, line_height_ratio = 1.2, font_weight = 400, font_size = 10.666667, font_family = "Roboto", text = "Snap: On", button_variant = "text", input_interactive = false }
-layout = { width = { min = 76.0, preferred = 80.0, max = 80.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+props = { responsive_min_tier = "wide", input_hoverable = false, input_clickable = false, input_focusable = false, line_height_ratio = 1.2, font_weight = 400, font_size = 10.666667, font_family = "Roboto", text = "T:1 m R:15° S:off", overflow = "elide", button_variant = "text", input_interactive = false }
+layout = { width = { min = 156.0, preferred = 160.0, max = 160.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 [nodes.snap_toggle]
 component = "IconButton"
 classes = ["unreal-control", "unreal-status-control", "unreal-icon-control"]
 control_id = "WorkbenchStatusSnapToggle"
-props = { responsive_min_tier = "regular", input_hoverable = true, input_clickable = true, input_focusable = true, input_interactive = true, line_height_ratio = 1.2, font_weight = 400, font_size = 10.666667, font_family = "Roboto", label = "Snap", icon = "zircon_editor_shell/viewport/magnet.svg", icon_placement = "icon_only" }
+props = { responsive_min_tier = "regular", input_hoverable = true, input_clickable = true, input_focusable = true, input_interactive = true, line_height_ratio = 1.2, font_weight = 400, font_size = 10.666667, font_family = "Roboto", label = "Translate snap", tooltip = "Toggle translate snapping", icon = "zircon_editor_shell/viewport/magnet.svg", icon_placement = "icon_only" }
 layout = { width = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "Workbench/ToggleSnapFromStatus", event = "Click", route = "workbench.status.toggle_snap" }]
 [nodes.world]
@@ -80,12 +80,6 @@ control_id = "WorkbenchStatusTarget"
 props = { responsive_min_tier = "regular", input_hoverable = true, input_clickable = true, input_focusable = true, input_interactive = true, line_height_ratio = 1.2, font_weight = 400, font_size = 10.666667, font_family = "Roboto", label = "Target", icon = "zircon_editor_shell/viewport/crosshair.svg", icon_placement = "icon_only" }
 layout = { width = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "Workbench/FrameSelectionFromStatus", event = "Click", route = "workbench.status.frame_selection" }]
-[nodes.zoom]
-component = "Button"
-classes = ["unreal-control", "unreal-status-control"]
-control_id = "WorkbenchStatusZoom"
-props = { responsive_min_tier = "wide", input_hoverable = false, input_clickable = false, input_focusable = false, input_interactive = false, line_height_ratio = 1.2, font_weight = 400, font_size = 10.666667, font_family = "Roboto", text = "100%", button_variant = "text" }
-layout = { width = { min = 52.0, preferred = 56.0, max = 56.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 [nodes.drawer_toggle]
 component = "Button"
 control_id = "UnrealContentDrawerToggle"

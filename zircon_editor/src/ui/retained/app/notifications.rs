@@ -11,6 +11,22 @@ use crate::ui::activity::{
 use crate::ui::template_runtime::UNREAL_EDITOR_WINDOW_DOCUMENT_ID;
 
 impl RetainedEditorHost {
+    pub(super) fn warn_degraded_play_start(&mut self, sequence: u64) -> bool {
+        let diagnostic = self.ui.graphics_degradation();
+        let Some(notification) = degraded_play_start_toast(sequence, diagnostic.as_deref()) else {
+            return false;
+        };
+        let message = format!(
+            "Play started with degraded graphics: {}",
+            diagnostic.unwrap_or_default()
+        );
+        eprintln!("[zircon_editor] warning play_graphics_degraded: {message}");
+        if let Ok(entry) = LogEntry::new(LogSource::editor(), LogSeverity::Warning, message, 0, None) {
+            let _ = self.runtime.context().logs().emit(entry);
+        }
+        self.enqueue_activity_toasts(std::slice::from_ref(&notification))
+    }
+
     /// Retained only for the componentized host regression harness.
     #[cfg(test)]
     pub(super) fn sync_pending_activity_decisions(&mut self) {
@@ -168,3 +184,18 @@ fn activity_toast(
     let source = NotificationSource::builtin("editor.retained_host").ok()?;
     ToastNotification::new(id, source, severity, title_key, message_key, lifetime).ok()
 }
+
+fn degraded_play_start_toast(sequence: u64, diagnostic: Option<&str>) -> Option<ToastNotification> {
+    let diagnostic = diagnostic.map(str::trim).filter(|reason| !reason.is_empty())?;
+    activity_toast(
+        &format!("editor.event.{sequence}.play-graphics-degraded"),
+        ToastSeverity::Warning,
+        "editor.notification.play_graphics_degraded.title",
+        ToastNotification::bounded_message(diagnostic, "Play is using degraded graphics."),
+        Duration::from_secs(7),
+    )
+}
+
+#[cfg(test)]
+#[path = "tests/play_graphics_warning.rs"]
+mod play_graphics_warning_tests;

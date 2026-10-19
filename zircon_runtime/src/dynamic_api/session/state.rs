@@ -13,7 +13,7 @@ use zircon_runtime_interface::{
 
 use crate::builtin::RuntimeModuleCompositionIdentity;
 use crate::core::framework::channel::ChannelWakeCallback;
-use crate::core::framework::input::{InputEvent, InputManager};
+use crate::core::framework::input::{InputEvent, InputManager, INPUT_MODULE_NAME};
 use crate::core::framework::render::{RenderFrameTiming, RenderViewportSurfaceDescriptor};
 use crate::core::framework::time::ProductTimePolicy;
 use crate::core::manager::{resolve_manager_service, ManagerServiceHandle};
@@ -25,7 +25,6 @@ use crate::diagnostic_log::{
 };
 use crate::input::{
     InputAttachment, InputDriver, InputIngressAdmission, InputIngressRejection, INPUT_DRIVER_NAME,
-    INPUT_MODULE_NAME,
 };
 use crate::operation::RuntimeOperationService;
 use crate::plugin::{

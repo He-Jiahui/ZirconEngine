@@ -12,7 +12,6 @@ pub struct StatusBarModel {
     pub grid_text: String,
     pub snap_text: String,
     pub snap_enabled: bool,
-    pub zoom_text: String,
     pub task_progress: Option<StatusTaskProgressSnapshot>,
 }
 
@@ -22,13 +21,12 @@ impl Default for StatusBarModel {
             primary_text: String::new(),
             secondary_text: None,
             viewport_label: String::new(),
-            error_text: "No Errors".to_string(),
+            error_text: "0 Errors".to_string(),
             warning_text: "0 Warnings".to_string(),
             message_text: "0 Messages".to_string(),
             grid_text: "Grid: Off".to_string(),
-            snap_text: "Snap: Off".to_string(),
+            snap_text: "T:off R:off S:off".to_string(),
             snap_enabled: false,
-            zoom_text: "100%".to_string(),
             task_progress: None,
         }
     }
@@ -45,20 +43,13 @@ impl StatusBarModel {
                 .as_ref()
                 .map(|inspector| format!("Selection {}", inspector.name)),
             viewport_label: format!("{} x {}", chrome.viewport_size.x, chrome.viewport_size.y),
-            error_text: "No Errors".to_string(),
-            warning_text: "0 Warnings".to_string(),
-            message_text: if task_progress.is_some() {
-                "1 Message".to_string()
-            } else {
-                "0 Messages".to_string()
-            },
+            error_text: count_text(chrome.status_signals.logs.error, "Error"),
+            warning_text: count_text(chrome.status_signals.logs.warning, "Warning"),
+            message_text: count_text(chrome.status_signals.active_notifications as u64, "Message"),
             grid_text,
             snap_text,
-            snap_enabled: matches!(
-                chrome.scene_viewport_settings.grid_mode,
-                GridMode::VisibleAndSnap
-            ),
-            zoom_text: "100%".to_string(),
+            // The adjacent button toggles translate snapping, independently of grid visibility.
+            snap_enabled: chrome.scene_viewport_settings.translate_snap_enabled,
             task_progress,
         }
     }
@@ -78,13 +69,29 @@ fn status_grid_text(settings: &SceneViewportChromeSettings) -> String {
 }
 
 fn status_snap_text(settings: &SceneViewportChromeSettings) -> String {
-    match settings.grid_mode {
-        GridMode::VisibleAndSnap => "Snap: On".to_string(),
-        GridMode::Hidden | GridMode::VisibleNoSnap => "Snap: Off".to_string(),
-    }
+    let translate = if settings.translate_snap_enabled {
+        format_step(settings.translate_step)
+    } else {
+        "off".to_string()
+    };
+    let rotate = if settings.rotate_snap_enabled {
+        format!("{}°", format_number(settings.rotate_step_deg))
+    } else {
+        "off".to_string()
+    };
+    let scale = if settings.scale_snap_enabled {
+        format_number(settings.scale_step)
+    } else {
+        "off".to_string()
+    };
+    format!("T:{translate} R:{rotate} S:{scale}")
 }
 
 fn format_step(value: zircon_runtime_interface::math::Real) -> String {
+    format!("{} m", format_number(value))
+}
+
+fn format_number(value: zircon_runtime_interface::math::Real) -> String {
     let mut text = format!("{value:.2}");
     while text.contains('.') && text.ends_with('0') {
         text.pop();
@@ -92,7 +99,11 @@ fn format_step(value: zircon_runtime_interface::math::Real) -> String {
     if text.ends_with('.') {
         text.pop();
     }
-    format!("{text} m")
+    text
+}
+
+fn count_text(count: u64, singular: &str) -> String {
+    format!("{count} {singular}{}", if count == 1 { "" } else { "s" })
 }
 
 fn non_empty_label(value: &str, fallback: &str) -> String {

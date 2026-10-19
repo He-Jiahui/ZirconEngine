@@ -77,7 +77,17 @@ def manifest(root: Path):
 def _implementation_closure(root):
     pending = [*sorted((root / "tools/jenkins/governance").glob("*.py")), root / "tools/dev/local_cargo.py"]
     selected = set()
-    def include(module):
+    # Only deferred library bodies are projected; every selected file is still
+    # pinned byte-for-byte by manifest(), including all eager imports/statements.
+    libraries = {
+        "tools.dev.local_cargo": {"_run_owned_command"},
+        "tools.jenkins.source": {"repository_id", "canonical_paths"},
+        "tools.jenkins.processes": {"native"},
+    }
+
+    def include(module, symbols=None):
+        if module in libraries and (symbols is None or not set(symbols) <= libraries[module]):
+            raise ValueError("undeclared_governance_library_import:" + module)
         if module != "tools" and not module.startswith("tools."):
             return
         components = module.split(".")
@@ -86,6 +96,58 @@ def _implementation_closure(root):
             for candidate in (base.with_suffix(".py"), base / "__init__.py"):
                 if candidate.is_file() and candidate not in selected:
                     pending.append(candidate)
+
+    def library_nodes(tree, entries):
+        bindings = {}
+        def bind(node):
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                names = [node.name]
+            elif isinstance(node, (ast.Assign, ast.AnnAssign)):
+                targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+                names = [name.id for target in targets for name in ast.walk(target)
+                         if isinstance(name, ast.Name) and isinstance(name.ctx, ast.Store)]
+            else:
+                for child in ast.iter_child_nodes(node):
+                    bind(child)
+                return
+            for name in names:
+                bindings.setdefault(name, []).append(node)
+        for node in tree.body:
+            bind(node)
+
+        def eager(node):
+            yield node
+            deferred = isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda))
+            main_guard = (isinstance(node, ast.If) and isinstance(node.test, ast.Compare)
+                          and isinstance(node.test.left, ast.Name) and node.test.left.id == "__name__"
+                          and len(node.test.ops) == 1 and isinstance(node.test.ops[0], ast.Eq)
+                          and len(node.test.comparators) == 1
+                          and isinstance(node.test.comparators[0], ast.Constant)
+                          and node.test.comparators[0].value == "__main__")
+            for field, value in ast.iter_fields(node):
+                # The CLI-only main branch is not executed when importing a library.
+                if field == "body" and (deferred or main_guard):
+                    continue
+                values = value if isinstance(value, list) else [value]
+                for child in values:
+                    if isinstance(child, ast.AST):
+                        yield from eager(child)
+
+        nodes = list(eager(tree))
+        remaining = list(entries) + [node.id for node in nodes
+                                     if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load)]
+        expanded = set()
+        while remaining:
+            name = remaining.pop()
+            if name in expanded or name not in bindings:
+                continue
+            expanded.add(name)
+            reachable = [node for binding in bindings[name] for node in ast.walk(binding)]
+            nodes.extend(reachable)
+            remaining.extend(node.id for node in reachable
+                             if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load))
+        return nodes
+
     while pending:
         path = pending.pop()
         if path in selected:
@@ -93,9 +155,10 @@ def _implementation_closure(root):
         selected.add(path)
         parts = path.relative_to(root).with_suffix("").parts
         package = ".".join(parts[:-1])
-        if parts[-1] == "__init__":
-            package = ".".join(parts[:-1])
-        for node in ast.walk(ast.parse(path.read_text(encoding="utf-8-sig"), filename=str(path))):
+        module = ".".join(parts[:-1] if parts[-1] == "__init__" else parts)
+        tree = ast.parse(path.read_text(encoding="utf-8-sig"), filename=str(path))
+        nodes = library_nodes(tree, libraries[module]) if module in libraries else ast.walk(tree)
+        for node in nodes:
             if isinstance(node, ast.Import):
                 for alias in node.names:
                     include(alias.name)
@@ -105,7 +168,7 @@ def _implementation_closure(root):
                     module = ".".join(parent + ([node.module] if node.module else []))
                 else:
                     module = node.module or ""
-                include(module)
+                include(module, [alias.name for alias in node.names])
                 for alias in node.names:
                     include(module + "." + alias.name)
     return sorted(selected)

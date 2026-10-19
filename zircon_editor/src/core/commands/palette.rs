@@ -227,12 +227,26 @@ impl EditorCommandPaletteCatalog {
         generation: u64,
         descriptors: impl Iterator<Item = &'a EditorCommandDescriptor>,
     ) -> Self {
+        Self::from_descriptors_with_keymap(generation, descriptors, None)
+    }
+
+    pub(super) fn from_descriptors_with_keymap<'a>(
+        generation: u64,
+        descriptors: impl Iterator<Item = &'a EditorCommandDescriptor>,
+        keymap: Option<&super::EditorKeymap>,
+    ) -> Self {
         let (descriptor_lower_bound, _) = descriptors.size_hint();
         let mut seeds = Vec::with_capacity(descriptor_lower_bound);
         let mut entry_indices = BTreeMap::new();
         let mut enablement = Vec::with_capacity(descriptor_lower_bound);
         for descriptor in descriptors {
-            let seed = EditorCommandPaletteSeed::from_descriptor(descriptor);
+            let mut seed = EditorCommandPaletteSeed::from_descriptor(descriptor);
+            if let Some(keymap) = keymap {
+                seed.shortcut = keymap
+                    .chord_for_command(descriptor.id().as_str())
+                    .map(ToString::to_string)
+                    .unwrap_or_default();
+            }
             entry_indices.insert(seed.id.clone(), seeds.len());
             enablement.push(EditorCommandPaletteEnablement::from_descriptor(descriptor));
             seeds.push(seed);

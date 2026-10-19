@@ -15,6 +15,13 @@ pub(super) fn wire_host_shell_runtime_callbacks(
     });
 
     let weak = Rc::downgrade(host);
+    host_shell.on_runtime_frame_requested(move || {
+        if let Some(host) = weak.upgrade() {
+            host.borrow_mut().tick_runtime_only();
+        }
+    });
+
+    let weak = Rc::downgrade(host);
     host_shell.on_interactive_frame_requested(move || {
         if let Some(host) = weak.upgrade() {
             host.borrow_mut().commit_interactive_frame_update();

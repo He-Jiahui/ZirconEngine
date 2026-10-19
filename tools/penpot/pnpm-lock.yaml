@@ -16,6 +16,8 @@ overrides:
 
 importers:
 
+  apps/zircon-zop-compiler: {}
+
   .:
     dependencies:
       '@angular/common':

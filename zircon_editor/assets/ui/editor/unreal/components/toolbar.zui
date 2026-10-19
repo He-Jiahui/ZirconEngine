@@ -24,7 +24,7 @@ children = [{ node = "command_scroll" }, { node = "settings" }]
 component = "ScrollableBox"
 control_id = "WorkbenchToolbarCommandRow"
 layout = { clip = true, container = { kind = "ScrollableBox", axis = "Horizontal", gap = 4.0, scrollbar_visibility = "Never" }, width = { min = 0.0, stretch = "Stretch" }, height = { stretch = "Stretch" } }
-children = [{ node = "save" }, { node = "find_content" }, { node = "modes" }, { node = "add" }, { node = "blueprints" }, { node = "cinematics" }, { node = "play" }, { node = "pause" }, { node = "stop" }, { node = "play_options" }]
+children = [{ node = "save" }, { node = "find_content" }, { node = "modes" }, { node = "add" }, { node = "blueprints" }, { node = "cinematics" }, { node = "play" }, { node = "stop" }, { node = "play_options" }]
 
 [nodes.save]
 component = "IconButton"

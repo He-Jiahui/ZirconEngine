@@ -347,7 +347,7 @@ def clean_candidate(d, repo, main, record):
     if root.exists():
         known = d.commit.read_json(marker) if marker.exists() else {}
         if known.get("path") != str(root) or known.get("status") != "idle":
-            raise ValueError("Retain the existing candidate; its original native/merge result needs reconciliation")
+            raise d.commit.CommitBusy("Retain the existing candidate; its original native/merge result needs reconciliation")
         common = d.commit.physical(text(d, root, "rev-parse", "--path-format=absolute", "--git-common-dir"))
         if common != d.commit.physical(repo / ".git"):
             raise ValueError("Candidate Git identity changed")
@@ -376,8 +376,10 @@ def integrate(d, repo, path, *, runtime, check_runtime, validate=None, pull_requ
         advisory = d.advisory_validation(policy)
         check_runtime()
         with d.commit.git_lock(repo / ".jenkins/state/locks/management-git.lock"):
-            record["mainIndexLock"] = require_index(d, repo)
-            main = require_clean_main(d, repo)
+            record["mainIndexLock"] = index_observation(d, repo)
+            if text(d, repo, "symbolic-ref", "--quiet", "--short", "HEAD") != "main":
+                raise d.commit.CommitBusy("The synchronization checkout must remain on main")
+            main = text(d, repo, "rev-parse", "--verify", "HEAD^{commit}")
             base = text(d, repo, "merge-base", main, revision)
             authored = d.changed_paths(repo, "diff", "--name-only", "-z", base, revision, "--")
             if not authored <= set(payload["paths"]):

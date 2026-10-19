@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 pub enum EditorSessionMode {
     #[default]
     Welcome,
+    // Older session documents used Playing for a project navigation state.
+    #[serde(alias = "Playing")]
     Project,
-    Playing,
 }

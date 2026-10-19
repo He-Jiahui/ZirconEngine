@@ -6,6 +6,7 @@ use super::*;
 fn effect_asset_selection_search_and_apply_share_one_projection() {
     let mut bridge = BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(900.0, 620.0))
         .expect("workbench bridge should build");
+    bridge.set_preview_features(true).expect("preview workspace fixture");
 
     assert!(bridge.control_bool("WorkbenchEffectHealthRegenRow", "selected"));
     bridge
@@ -53,7 +54,7 @@ fn effect_asset_selection_search_and_apply_share_one_projection() {
         .expect("effect apply should dispatch")
         .expect("effect apply should bind");
     assert_eq!(
-        Some("Applied GE_CustomBurn   Instant   Aggregate by Target".to_string()),
+        Some("Preview inputs: GE_CustomBurn   Instant   Aggregate by Target".to_string()),
         bridge.control_string("WorkbenchEffectOutputRow", "text")
     );
     assert_eq!(

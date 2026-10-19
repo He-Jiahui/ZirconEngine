@@ -5,22 +5,46 @@ use zr_rhi_wgpu::wgpu_adapter_facts;
 /// Enumerates adapters once on the startup cold path and applies the backend-neutral policy.
 pub(super) fn select_offscreen_adapter(
     instance: &wgpu::Instance,
-    backends: wgpu::Backends,
+    config: super::config::RenderBackendConfig,
     policy: &AdapterSelectionPolicy,
 ) -> Result<(wgpu::Adapter, RenderAdapterFacts), GraphicsError> {
-    let candidates = pollster::block_on(instance.enumerate_adapters(backends))
+    let candidates = pollster::block_on(instance.enumerate_adapters(config.backends))
         .into_iter()
         .map(|adapter| {
             let facts = wgpu_adapter_facts(&adapter.get_info(), adapter.features());
             (adapter, facts)
         })
         .collect::<Vec<_>>();
-    let catalog =
-        RenderAdapterCatalog::new(candidates.iter().map(|(_, facts)| facts.clone()).collect());
-    let selected = catalog.select(policy)?.selected().clone();
+    let mut selected = None;
+    for backend in preferred_backend_order(config.prefer_dx12) {
+        let catalog = RenderAdapterCatalog::new(candidates.iter()
+            .filter(|(adapter, _)| backend.is_none_or(|api| adapter.get_info().backend == api))
+            .map(|(_, facts)| facts.clone()).collect());
+        if let Ok(selection) = catalog.select(policy) {
+            selected = Some(selection.selected().clone());
+            break;
+        }
+    }
+    let selected = selected.ok_or(GraphicsError::NoAdapter)?;
 
-    candidates
+    let chosen = candidates
         .into_iter()
         .find(|(_, facts)| facts == &selected)
-        .ok_or(GraphicsError::NoAdapter)
+        .ok_or(GraphicsError::NoAdapter)?;
+    let info = chosen.0.get_info();
+    eprintln!("gpu_backend={} adapter={:?} device_type={:?}",
+        info.backend.to_str(), info.name, info.device_type);
+    Ok(chosen)
 }
+
+fn preferred_backend_order(prefer_dx12: bool) -> Vec<Option<wgpu::Backend>> {
+    if prefer_dx12 {
+        vec![Some(wgpu::Backend::Dx12), Some(wgpu::Backend::Vulkan), None]
+    } else {
+        vec![None]
+    }
+}
+
+#[cfg(test)]
+#[path = "tests/select_adapter.rs"]
+mod tests;

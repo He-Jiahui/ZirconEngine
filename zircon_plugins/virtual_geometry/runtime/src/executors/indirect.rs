@@ -449,6 +449,12 @@ fn execute_source(gpu: &mut RenderPassGpuExecutionContext<'_>) -> Result<(), Str
     let device_epoch = gpu
         .device_epoch()
         .ok_or_else(|| "virtual geometry indirect pass requires a device epoch".to_string())?;
+    // Reset the counter before borrowing the native encoder for the dispatch.
+    gpu.buffer_upload_recorder().write_buffer(
+        &args_buffer,
+        args_offset,
+        bytemuck::bytes_of(&0_u32),
+    );
     // Keep the source lease and pipeline lock while ending the factory capability borrow.
     let (_source, cache, bind_group) = {
         let native = gpu.native_context();
@@ -484,11 +490,6 @@ fn execute_source(gpu: &mut RenderPassGpuExecutionContext<'_>) -> Result<(), Str
         });
         (source, cache, bind_group)
     };
-    gpu.buffer_upload_recorder().write_buffer(
-        &args_buffer,
-        args_offset,
-        bytemuck::bytes_of(&0_u32),
-    );
     let groups = u32::try_from(records.len().div_ceil(WORKGROUP_SIZE as usize).max(1))
         .map_err(|_| "virtual geometry indirect dispatch count exceeds u32".to_string())?;
     let pipeline = &cache.as_ref().expect("pipeline initialized").1;

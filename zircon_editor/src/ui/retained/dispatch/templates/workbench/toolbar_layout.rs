@@ -16,6 +16,7 @@ use self::priority::resolve_toolbar_priority;
 use super::componentized_window::BuiltinWorkbenchWindowTemplateSurfaceBridge;
 use super::error::BuiltinHostWindowTemplateBridgeError;
 use super::module_overflow_menu::WORKBENCH_MODULE_OVERFLOW_TRIGGER_CONTROL_ID;
+use super::module_navigation::MODULE_TAB_CONTROLS;
 
 const MODULE_COMMAND_GROUP_CONTROL_ID: &str = "WorkbenchModuleCommands";
 const FILE_GROUP_CONTROL_ID: &str = "WorkbenchToolbarFileGroup";
@@ -80,19 +81,29 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         self.apply_compact_module_details_toggle_visibility(layout_tier)?;
         let priority = resolve_toolbar_priority(&self.template_surface, shell_size.width);
         let compact = priority.compact_module_tabs;
+        for control_id in MODULE_TAB_CONTROLS {
+            if *control_id != "WorkbenchModuleScene" {
+                self.set_visible(control_id, self.preview_features_enabled)?;
+            }
+        }
         for control_id in ULTRA_HIDDEN_FILE_CONTROLS {
             self.set_visible(control_id, !scene_active && !ultra)?;
         }
         for control_id in COMPACT_HIDDEN_MODULE_TABS {
-            self.set_visible(control_id, !compact)?;
+            self.set_visible(control_id, self.preview_features_enabled && !compact)?;
         }
         for control_id in ULTRA_HIDDEN_MODULE_TABS {
-            self.set_visible(control_id, !ultra)?;
+            self.set_visible(control_id, self.preview_features_enabled && !ultra)?;
         }
         self.set_visible("WorkbenchToolbarMenu", !scene_active)?;
         self.set_visible("WorkbenchToolbarSave", true)?;
         self.set_visible(MODULE_COMMAND_GROUP_CONTROL_ID, !scene_active)?;
-        self.set_visible(WORKBENCH_MODULE_OVERFLOW_TRIGGER_CONTROL_ID, true)?;
+        self.set_visible(WORKBENCH_MODULE_OVERFLOW_TRIGGER_CONTROL_ID, self.preview_features_enabled)?;
+        self.mutate_control_property(
+            WORKBENCH_MODULE_OVERFLOW_TRIGGER_CONTROL_ID,
+            "text",
+            UiValue::String("Preview".to_string()),
+        )?;
 
         let full_toolbar = priority.full_command_set;
         for control_id in SECONDARY_MODULE_COMMANDS {

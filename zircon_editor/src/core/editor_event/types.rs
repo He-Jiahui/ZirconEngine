@@ -254,6 +254,10 @@ pub enum EditorAnimationEvent {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 /// 视口交互及设置的语义输入；执行层转换为 ViewportCommand，并根据反馈决定渲染与界面刷新。
 pub enum EditorViewportEvent {
+    /// Resolve a keyboard/palette command against the focused live Scene leaf at execution.
+    ForFocusedScene {
+        event: Box<EditorViewportEvent>,
+    },
     /// A viewport command bound to one committed Scene leaf.
     ///
     /// The ordinary variants remain the wire-compatible event form used by
@@ -347,7 +351,7 @@ pub enum EditorViewportEvent {
 impl EditorViewportEvent {
     // 标记只需视口控件投影更新的设置类输入，供执行层避免把每次设置都当成整个宿主展示重建。
     pub(crate) fn changes_chrome_projection(&self) -> bool {
-        if let Self::ForView { event, .. } = self {
+        if let Self::ForView { event, .. } | Self::ForFocusedScene { event } = self {
             return event.changes_chrome_projection();
         }
         matches!(
@@ -387,6 +391,7 @@ pub enum EditorEventTransient {
     EndViewDrag,
     OpenCommandPalette,
     OpenSettingsWindow,
+    ToggleContentDrawer,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -442,6 +447,8 @@ pub enum EditorEventEffect {
     },
     CommandPaletteOpenRequested,
     SettingsWindowOpenRequested,
+    ContentDrawerToggleRequested,
+    PlaySessionStarted,
     OpenScenePickerRequested,
     CreateScenePickerRequested,
     /// Explicitly opened view identity; the UI host decides whether its current

@@ -10,7 +10,7 @@ fn runtime_frame_wake_replaces_stale_requests_and_bounds_extreme_delays() {
     let now = Instant::now();
 
     host.apply_runtime_frame_demand(EditorRuntimeFrameDemand::Continuous, now);
-    assert!(host.take_external_redraw().requires_frame_update());
+    assert!(host.take_external_redraw().requires_runtime_tick());
     assert_eq!(host.runtime_frame_wake_deadline(), None);
 
     host.apply_runtime_frame_demand(
@@ -31,7 +31,7 @@ fn runtime_frame_wake_replaces_stale_requests_and_bounds_extreme_delays() {
     );
     assert!(!host.take_due_runtime_frame_wake(now));
     assert!(host.take_due_runtime_frame_wake(now + Duration::from_millis(25)));
-    assert!(host.take_external_redraw().requires_frame_update());
+    assert!(host.take_external_redraw().requires_runtime_tick());
 
     host.apply_runtime_frame_demand(EditorRuntimeFrameDemand::SleepUntil(Duration::MAX), now);
     assert_eq!(
@@ -56,7 +56,7 @@ fn runtime_frame_failure_after_consumed_wake_retries_until_success_with_capped_b
     for retry_delay_ms in [50, 100, 200, 400, 800, 1_000, 1_000, 1_000, 1_000] {
         assert!(host.take_due_runtime_frame_wake(deadline));
         assert!(
-            host.take_external_redraw().requires_frame_update(),
+            host.take_external_redraw().requires_runtime_tick(),
             "the host should queue and consume the due frame before the failed scene tick"
         );
         assert_eq!(
@@ -79,7 +79,7 @@ fn runtime_frame_failure_after_consumed_wake_retries_until_success_with_capped_b
     }
 
     assert!(host.take_due_runtime_frame_wake(deadline));
-    assert!(host.take_external_redraw().requires_frame_update());
+    assert!(host.take_external_redraw().requires_runtime_tick());
     assert_eq!(
         host.complete_runtime_frame_tick::<&str>(
             Ok(EditorRuntimeFrameDemand::OnDemand),
@@ -105,7 +105,7 @@ fn runtime_frame_owner_generation_change_cancels_stale_retry_and_resets_backoff(
     );
     let first_deadline = now + Duration::from_millis(1);
     assert!(host.take_due_runtime_frame_wake(first_deadline));
-    assert!(host.take_external_redraw().requires_frame_update());
+    assert!(host.take_external_redraw().requires_runtime_tick());
     assert_eq!(
         host.complete_runtime_frame_tick(
             Err("scene tick failed"),
@@ -122,7 +122,7 @@ fn runtime_frame_owner_generation_change_cancels_stale_retry_and_resets_backoff(
     );
 
     assert!(host.take_due_runtime_frame_wake(stale_retry_deadline));
-    assert!(host.take_external_redraw().requires_frame_update());
+    assert!(host.take_external_redraw().requires_runtime_tick());
     assert_eq!(
         host.complete_runtime_frame_tick(
             Err("old gateway generation failed"),
@@ -147,7 +147,7 @@ fn runtime_frame_owner_generation_change_cancels_stale_retry_and_resets_backoff(
     );
     let replacement_deadline = replacement_tick + Duration::from_millis(1);
     assert!(host.take_due_runtime_frame_wake(replacement_deadline));
-    assert!(host.take_external_redraw().requires_frame_update());
+    assert!(host.take_external_redraw().requires_runtime_tick());
     assert_eq!(
         host.complete_runtime_frame_tick(
             Err("replacement scene tick failed"),
@@ -186,7 +186,7 @@ fn runtime_frame_owner_change_discards_successful_stale_frame_demand() {
             );
             let deadline = now + Duration::from_millis(1);
             assert!(host.take_due_runtime_frame_wake(deadline));
-            assert!(host.take_external_redraw().requires_frame_update());
+            assert!(host.take_external_redraw().requires_runtime_tick());
 
             assert_eq!(
                 host.complete_runtime_frame_tick::<&str>(
@@ -236,7 +236,7 @@ fn runtime_frame_current_owner_preserves_successful_frame_demand() {
         Ok(()),
     );
     assert_eq!(host.runtime_frame_wake_deadline(), None);
-    assert!(host.take_external_redraw().requires_frame_update());
+    assert!(host.take_external_redraw().requires_runtime_tick());
 }
 
 #[test]
@@ -294,4 +294,25 @@ fn input_timer_wake_survives_asset_maintenance_clear() {
     assert!(redraw.requires_frame_update());
     assert!(!redraw.requires_present());
     assert_eq!(redraw.scenario(), UiPerfScenario::IdleHover);
+}
+
+#[test]
+fn runtime_demand_and_viewport_damage_never_require_full_chrome_maintenance() {
+    use crate::ui::retained_host::host_contract::redraw::HostRedrawRequest;
+    use crate::ui::retained_host::host_contract::data::FrameRect;
+    let damage = HostRedrawRequest::region(FrameRect { x: 12.0, y: 30.0, width: 100.0, height: 80.0 });
+    for merged in [HostRedrawRequest::runtime_tick().merge(damage.clone()),
+                   damage.merge(HostRedrawRequest::runtime_tick())] {
+        assert!(merged.requires_runtime_tick());
+        assert!(!merged.requires_frame_update());
+        assert!(merged.requires_present());
+        assert!(merged.damage_region().is_some());
+        let maintenance = merged.merge(HostRedrawRequest::frame_update_only_for_scenario(UiPerfScenario::AssetRefresh));
+        assert!(maintenance.requires_frame_update());
+        assert!(!maintenance.requires_runtime_tick());
+        assert!(maintenance.damage_region().is_some());
+    }
+    let tick = HostRedrawRequest::runtime_tick();
+    assert!(!tick.requires_present());
+    assert!(!tick.requires_frame_update());
 }

@@ -58,11 +58,28 @@ for (int poll = 0; poll < 240; poll++) {
                     "--input-file \"${inputPath}\" --output-file \"${outputPath}\"")
             }
             if (!fileExists(outputPath)) error("Pinned management runner rejected the control; exit ${status}")
-            result = parseJson(readFile(file: outputPath, encoding: 'UTF-8'))
             def receiptName = "management-${params.OPERATION_ID}.${env.BUILD_NUMBER}.receipt.json"
-            writeFile(file: "${repository}/.jenkins/state/controls/${receiptName}", text: JsonOutput.toJson(result), encoding: 'UTF-8')
-            writeFile(file: receiptName, text: JsonOutput.toJson(result), encoding: 'UTF-8')
-            archiveArtifacts(artifacts: receiptName, fingerprint: true)
+            // Keep complete receipt bytes on the agent; only this bounded projection enters CPS.
+            def receiptProgram =
+                "import hashlib,json,sys; from pathlib import Path; " +
+                "raw=Path(sys.argv[1]).read_bytes(); " +
+                "Path(sys.argv[2]).write_bytes(raw); Path(sys.argv[3]).write_bytes(raw); " +
+                "value=json.loads(raw.decode('utf-8-sig')); " +
+                "assert isinstance(value,dict),'Management receipt must be an object'; " +
+                "keys=('status','reasonCode','operationKey','sessionId','requestId','operationId','worktreeId','worktreePreparationRef','currentSourceRef'); " +
+                "summary={key:value[key][:256] for key in keys if isinstance(value.get(key),str)}; " +
+                "summary['message']=value['message'][:1024] if isinstance(value.get('message'),str) else ''; " +
+                "summary['receipt']={'sha256':hashlib.sha256(raw).hexdigest(),'bytes':len(raw),'controlPath':sys.argv[2],'archive':sys.argv[3]}; " +
+                "print(json.dumps(summary,ensure_ascii=True,separators=(',',':')))"
+            def receiptProjection
+            try {
+                receiptProjection = bat(returnStdout: true, encoding: 'UTF-8', script:
+                    "@\"${python}\" -B -X utf8 -c \"${receiptProgram}\" " +
+                    "\"${outputPath}\" \"${repository}/.jenkins/state/controls/${receiptName}\" \"${receiptName}\"").trim()
+            } finally {
+                archiveArtifacts(artifacts: receiptName, fingerprint: true)
+            }
+            result = parseJson(receiptProjection)
             currentBuild.description = "${params.ACTION}: ${params.REQUEST_ID}"
             if (status != 0 && result.status != 'waiting') error("Management operation requires review: ${result}")
         }

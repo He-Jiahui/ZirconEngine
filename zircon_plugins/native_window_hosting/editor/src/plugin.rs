@@ -1,4 +1,5 @@
 use zircon_runtime::core::framework::platform::RuntimeTargetMode;
+use zircon_runtime::core::framework::project::ExportPackagingStrategy;
 use zircon_runtime::plugin::{
     PluginDistributionManifest, PluginModuleManifest, PluginPackageManifest,
 };

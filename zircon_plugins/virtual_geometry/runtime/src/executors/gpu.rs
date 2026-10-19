@@ -971,7 +971,7 @@ fn encode_cluster_triangles_indirect(
         target_format: None,
         depth_format: Some(depth_format),
     };
-    let mut native = gpu.native_context();
+    let native = gpu.native_context();
     let factory = &native;
     let vertex_buffer = factory.create_buffer_init(&wgpu::util::BufferInitDescriptor {
         label: Some("zircon-virtual-geometry-indirect-cluster-vertices"),

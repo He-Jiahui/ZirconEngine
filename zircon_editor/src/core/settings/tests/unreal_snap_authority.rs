@@ -10,7 +10,8 @@ fn unreal_snap_enable_authority_updates_only_the_matching_typed_boolean_and_pres
     let authority = SettingsAuthority::with_defaults();
     let before = authority.snapshot();
     let snap = before.viewport_snap();
-    assert!(snap.translate_enabled() && snap.rotate_enabled() && snap.scale_enabled());
+    assert!(snap.translate_enabled() && snap.rotate_enabled());
+    assert!(!snap.scale_enabled());
     for (index, key_name) in [
         VIEWPORT_TRANSLATE_SNAP_ENABLED_KEY,
         VIEWPORT_ROTATE_SNAP_ENABLED_KEY,
@@ -23,13 +24,13 @@ fn unreal_snap_enable_authority_updates_only_the_matching_typed_boolean_and_pres
             .set(
                 SettingsScope::Project,
                 &key(key_name),
-                SettingValue::Bool(false),
+                SettingValue::Bool(index == 2),
             )
             .unwrap();
         let current = authority.snapshot().viewport_snap();
         assert_eq!(current.translate_enabled(), false);
         assert_eq!(current.rotate_enabled(), index < 1);
-        assert_eq!(current.scale_enabled(), index < 2);
+        assert_eq!(current.scale_enabled(), index == 2);
         assert_eq!(current.translate_step(), snap.translate_step());
         assert_eq!(current.rotate_step_degrees(), snap.rotate_step_degrees());
         assert_eq!(current.scale_step(), snap.scale_step());
@@ -67,7 +68,7 @@ fn unreal_snap_enable_project_preferences_round_trip_without_writing_scene_sourc
         .set(
             SettingsScope::Project,
             &key(VIEWPORT_SCALE_SNAP_ENABLED_KEY),
-            SettingValue::Bool(false),
+            SettingValue::Bool(true),
         )
         .unwrap();
     store.save_from(SettingsScope::Project, &registry).unwrap();
@@ -91,7 +92,7 @@ fn unreal_snap_enable_project_preferences_round_trip_without_writing_scene_sourc
         reopened
             .resolve(&key(VIEWPORT_SCALE_SNAP_ENABLED_KEY))
             .unwrap(),
-        &SettingValue::Bool(false)
+        &SettingValue::Bool(true)
     );
     assert_eq!(blake3::hash(&fs::read(&scene).unwrap()), digest);
     remove_temporary_root(&root);

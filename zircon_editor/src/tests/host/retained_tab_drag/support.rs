@@ -168,7 +168,7 @@ pub(super) fn workbench_model(
     floating_windows: Vec<FloatingWindowModel>,
 ) -> WorkbenchViewModel {
     WorkbenchViewModel {
-        is_playing: false,
+        run_controls: Default::default(),
         asset_creation_menu: Default::default(),
         keymap: EditorKeymap::default_workbench(),
         menu_bar: MenuBarModel { menus: Vec::new() },

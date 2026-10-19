@@ -64,37 +64,30 @@ fn window_menus_switch_exclusively_and_cancel_clears_the_trigger() {
 }
 
 #[test]
-fn every_enabled_authored_window_menu_item_has_an_execution_binding() {
-    let bridge = BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(1280.0, 800.0))
-        .expect("the authored editor should project");
-    for menu in [
-        "UnrealFileMenuPopup",
-        "UnrealEditMenuPopup",
-        "UnrealWindowMenuPopup",
-        "UnrealModesMenuPopup",
-        "UnrealAddMenuPopup",
-        "WorkbenchRunModeMenu",
-    ] {
-        assert!(bridge.has_control(menu), "missing authored menu {menu}");
-        let items = bridge.control_string_array(menu, "menu_items");
-        assert!(
-            !items.is_empty(),
-            "menu {menu} should expose its authored items"
-        );
-        for raw in items {
-            let item = template_popup_menu_item_state(&raw).expect("structured menu item");
-            if item.disabled || item.separator {
-                continue;
+fn projected_popup_items_use_registered_commands_and_current_enablement() {
+    use crate::core::commands::{CommandEvalCtx, EditorCommandRegistry};
+    use crate::core::i18n::EditorI18nService;
+    let registry = EditorCommandRegistry::default_workbench();
+    let i18n = EditorI18nService::default();
+    for project_open in [false, true] {
+        let context = CommandEvalCtx::interactive().with_project_open(project_open);
+        let menus = registry.menu_bar_model(&i18n, &i18n.active_locale(), &context);
+        let mut bridge = BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(1280.0, 800.0)).unwrap();
+        bridge.apply_command_menu_bar(&menus).unwrap();
+        for (menu, commands) in &command_menu_contract().menus {
+            for id in commands {
+                assert!(registry.command(id.as_str()).is_some(), "unknown command {id}");
             }
-            let binding = bridge
-                .main_menu_item_binding(menu, &item.action_id)
-                .or_else(|| bridge.run_mode_menu_item_binding(menu, &item.action_id));
-            assert!(
-                binding.is_some(),
-                "enabled menu item {menu}/{} has no execution binding",
-                item.action_id
-            );
+            for raw in bridge.control_string_array(menu, "menu_items") {
+                let item = template_popup_menu_item_state(&raw).unwrap();
+                let command = registry.command(item.action_id.as_str()).unwrap();
+                assert_eq!(!item.disabled, command.is_enabled(&context));
+                assert_eq!(bridge.main_menu_item_binding(menu, &item.action_id).is_some(), !item.disabled);
+            }
         }
+        let add = bridge.control_string_array("UnrealAddMenuPopup", "menu_items");
+        assert_eq!(add.len(), 7);
+        assert!(add.iter().any(|item| item.contains("scene.node.create_point_light")));
     }
 }
 

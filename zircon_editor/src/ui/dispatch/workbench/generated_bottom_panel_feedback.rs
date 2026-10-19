@@ -70,7 +70,7 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
                 self.mutate_control_property(
                     "WorkbenchStatusReady",
                     "text",
-                    UiValue::String("Generated bottom panel pinned".to_string()),
+                    UiValue::String("Not implemented (preview)".to_string()),
                 )?;
             }
             "workbench.generated_bottom.filter.edit"
@@ -184,7 +184,7 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
                 status = Some("Generated bottom panel opened".to_string());
             }
             "workbench.generated_bottom.pin_panel.invoke" => {
-                status = Some("Generated bottom panel pinned".to_string())
+                status = Some("Not implemented (preview)".to_string())
             }
             "workbench.generated_bottom.filter.edit"
             | "workbench.generated_bottom.filter.commit" => {

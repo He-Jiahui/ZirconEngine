@@ -47,6 +47,34 @@ const BLEND_SPACE_VALIDATION_ROWS: &[&str] = &[
 ];
 
 impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
+    pub(crate) fn set_preview_features(
+        &mut self,
+        enabled: bool,
+    ) -> Result<bool, BuiltinHostWindowTemplateBridgeError> {
+        if self.preview_features_enabled == enabled {
+            return Ok(false);
+        }
+        self.preview_features_enabled = enabled;
+        self.set_visible("WorkbenchModuleOverflowMenu", false)?;
+        if !enabled {
+            self.apply_workbench_module_workspace("workbench.module.scene.select")?;
+            self.select_exclusive(MODULE_TAB_CONTROLS, "WorkbenchModuleScene")?;
+        }
+        let size = zircon_runtime_interface::ui::layout::UiSize::new(
+            self.mount_frame.width / self.presentation_scale_factor.max(f32::EPSILON),
+            self.mount_frame.height / self.presentation_scale_factor.max(f32::EPSILON),
+        );
+        self.apply_responsive_toolbar_layout(size)?;
+        self.refresh_unreal_window_module_menu_items()?;
+        self.refresh_workbench_module_overflow_menu_items()?;
+        self.template_surface.refresh_after_state_change(self.runtime.as_ref())?;
+        Ok(true)
+    }
+
+    pub(super) fn show_unimplemented_preview(&mut self) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
+        self.mutate_control_property("WorkbenchStatusReady", "text",
+            zircon_runtime_interface::ui::component::UiValue::String("Not implemented (preview)".to_string()))
+    }
     pub(super) fn initialize_panel_live_control_state(
         &mut self,
     ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
@@ -182,7 +210,9 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
             action_id if is_workbench_generated_bottom_action(action_id) => {
                 self.apply_workbench_generated_bottom_action(source_control_id, action_id)?;
             }
-            action_id if is_workbench_preview_action(action_id) => {}
+            action_id if is_workbench_preview_action(action_id) => {
+                self.show_unimplemented_preview()?;
+            }
             _ => {}
         }
         Ok(())
@@ -193,6 +223,9 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         source_control_id: &str,
         action_id: &str,
     ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
+        if !self.preview_features_enabled && action_id != "workbench.module.scene.select" {
+            return self.show_unimplemented_preview();
+        }
         if self.apply_ability_workspace_action(action_id)? {
             return Ok(());
         }
@@ -249,6 +282,9 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         source_control_id: &str,
         action_id: &str,
     ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
+        if !self.preview_features_enabled {
+            return self.show_unimplemented_preview();
+        }
         if self.apply_blend_space_validation_action(action_id)? {
             return self.apply_workbench_extension_module_command_feedback(action_id);
         }
@@ -318,3 +354,7 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         Ok(true)
     }
 }
+
+#[cfg(test)]
+#[path = "tests/preview_features.rs"]
+mod preview_features_tests;

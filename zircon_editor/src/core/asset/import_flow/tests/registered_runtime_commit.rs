@@ -109,7 +109,7 @@ impl AssetImportBackend for RegisteredBackend {
 
 pub(super) struct ProjectFixture {
     parent: PathBuf,
-    root: PathBuf,
+    pub(super) root: PathBuf,
 }
 
 impl ProjectFixture {

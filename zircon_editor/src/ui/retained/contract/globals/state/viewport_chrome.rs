@@ -10,6 +10,7 @@ use crate::ui::retained_host::primitives::ModelRc;
 
 const STATUS_GRID_CONTROL_ID: &str = "WorkbenchStatusGrid";
 const STATUS_SNAP_CONTROL_ID: &str = "WorkbenchStatusSnap";
+const STATUS_SNAP_TOGGLE_CONTROL_ID: &str = "WorkbenchStatusSnapToggle";
 
 impl HostContractState {
     pub(crate) fn patch_scene_viewport_chrome(
@@ -17,12 +18,14 @@ impl HostContractState {
         viewport: SceneViewportChromeData,
         status_grid_text: &str,
         status_snap_text: &str,
+        status_snap_enabled: bool,
     ) -> bool {
         if !scene_viewport_chrome_needs_patch(
             &self.host_presentation,
             &viewport,
             status_grid_text,
             status_snap_text,
+            status_snap_enabled,
         ) {
             return false;
         }
@@ -45,6 +48,7 @@ impl HostContractState {
             &mut presentation.workbench_window_nodes,
             status_grid_text,
             status_snap_text,
+            status_snap_enabled,
         );
 
         if changed {
@@ -94,6 +98,7 @@ fn scene_viewport_chrome_needs_patch(
     viewport: &SceneViewportChromeData,
     status_grid_text: &str,
     status_snap_text: &str,
+    status_snap_enabled: bool,
 ) -> bool {
     let scene = &presentation.host_scene_data;
     scene_pane_needs_patch(&scene.document_dock.pane, viewport)
@@ -113,6 +118,7 @@ fn scene_viewport_chrome_needs_patch(
             &presentation.workbench_window_nodes,
             status_grid_text,
             status_snap_text,
+            status_snap_enabled,
         )
 }
 
@@ -133,10 +139,12 @@ fn status_nodes_need_patch(
     nodes: &ModelRc<TemplatePaneNodeData>,
     grid_text: &str,
     snap_text: &str,
+    snap_enabled: bool,
 ) -> bool {
     nodes.iter().any(|node| match node.control_id.as_str() {
         STATUS_GRID_CONTROL_ID => node.text.as_str() != grid_text,
         STATUS_SNAP_CONTROL_ID => node.text.as_str() != snap_text,
+        STATUS_SNAP_TOGGLE_CONTROL_ID => node.checked != snap_enabled,
         _ => false,
     })
 }
@@ -181,9 +189,18 @@ fn patch_status_nodes(
     nodes: &mut ModelRc<TemplatePaneNodeData>,
     grid_text: &str,
     snap_text: &str,
+    snap_enabled: bool,
 ) -> bool {
     let mut patches = BTreeMap::new();
     for (row, node) in nodes.iter().enumerate() {
+        if node.control_id.as_str() == STATUS_SNAP_TOGGLE_CONTROL_ID {
+            if node.checked != snap_enabled {
+                let mut next = node.clone();
+                next.checked = snap_enabled;
+                patches.insert(row, next);
+            }
+            continue;
+        }
         let next_text = match node.control_id.as_str() {
             STATUS_GRID_CONTROL_ID => grid_text,
             STATUS_SNAP_CONTROL_ID => snap_text,

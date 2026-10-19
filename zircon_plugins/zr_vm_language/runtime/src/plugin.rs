@@ -14,7 +14,7 @@ use zircon_runtime::plugin::{
 use zircon_runtime::script::{VmGcBudget, VmGcDiagnostics, VmSystemStage};
 
 use crate::{
-    module_descriptor, PLUGIN_ID, RUNTIME_CAPABILITIES, ZR_VM_LANGUAGE_MODULE_NAME,
+    module_descriptor, RUNTIME_CAPABILITIES, ZR_VM_LANGUAGE_MODULE_NAME,
     ZR_VM_LANGUAGE_RUNTIME_CAPABILITY, ZR_VM_PROJECT_BACKEND_CAPABILITY,
 };
 
@@ -93,10 +93,10 @@ impl RuntimePlugin for ZrVmLanguageRuntimePlugin {
                     move |context| {
                         let manager = context
                             .core
-                            .resolve_manager::<zircon_runtime::script::VmPluginManager>(
+                            .resolve_manager_handle::<zircon_runtime::script::VmPluginManager>(
                                 zircon_runtime::script::VM_PLUGIN_MANAGER_NAME,
                             )?;
-                        behavior_bridge.bind_manager(&manager);
+                        behavior_bridge.bind_manager(manager);
                         Ok(())
                     }
                 },

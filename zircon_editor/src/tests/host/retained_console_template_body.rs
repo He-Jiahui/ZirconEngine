@@ -37,6 +37,7 @@ fn chrome_fixture(status_text: &str) -> EditorChromeSnapshot {
         inspector: None,
         status_line: status_text.to_string(),
         console_output: status_text.into(),
+        status_signals: Default::default(),
         status_task_progress: None,
         hovered_axis: None,
         viewport_size: UVec2::new(1280, 720),

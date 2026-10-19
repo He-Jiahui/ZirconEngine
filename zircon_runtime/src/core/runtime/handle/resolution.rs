@@ -57,6 +57,14 @@ impl<T: ?Sized> Clone for ServiceHandle<T> {
     }
 }
 
+impl<T: ?Sized> PartialEq for ServiceHandle<T> {
+    fn eq(&self, other: &Self) -> bool {
+        self.core.inner.ptr_eq(&other.core.inner) && self.identity == other.identity
+    }
+}
+
+impl<T: ?Sized> Eq for ServiceHandle<T> {}
+
 impl<T: ?Sized> std::fmt::Debug for ServiceHandle<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("ServiceHandle")

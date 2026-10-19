@@ -407,7 +407,12 @@ const fn mip_extent(value: u32, level: u32) -> u32 {
     if level >= u32::BITS {
         1
     } else {
-        (value >> level).max(1)
+        let extent = value >> level;
+        if extent == 0 {
+            1
+        } else {
+            extent
+        }
     }
 }
 

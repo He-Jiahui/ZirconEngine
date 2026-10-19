@@ -96,7 +96,6 @@ fn layout_content_row(
     name_control_id: &str,
     meta_control_id: &str,
 ) {
-    let row_x = panel.x + metrics.row_x;
     let row_width = metrics.row_width(panel.width);
     if row_width <= 0.0 {
         hide_controls(

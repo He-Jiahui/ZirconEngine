@@ -486,6 +486,10 @@ impl CommandEvalCtx {
         self
     }
 
+    pub fn play_state(&self) -> PlayStateKind {
+        self.play_state
+    }
+
     pub fn with_capabilities<I, S>(mut self, capabilities: I) -> Self
     where
         I: IntoIterator<Item = S>,

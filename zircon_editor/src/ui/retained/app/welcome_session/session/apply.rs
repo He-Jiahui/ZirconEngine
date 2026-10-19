@@ -155,7 +155,7 @@ impl RetainedEditorHost {
         }
 
         match (mode, project) {
-            (EditorSessionMode::Project | EditorSessionMode::Playing, Some(document)) => {
+            (EditorSessionMode::Project, Some(document)) => {
                 let viewport_sessions = document
                     .editor_workspace
                     .as_ref()
@@ -228,7 +228,7 @@ impl RetainedEditorHost {
                 self.sync_asset_workspace();
                 self.mark_render_and_presentation_dirty();
             }
-            (EditorSessionMode::Welcome | EditorSessionMode::Playing, _) => {
+            (EditorSessionMode::Welcome, _) => {
                 self.runtime
                     .clear_project(welcome_snapshot)
                     .map_err(|error| error.to_string())?;

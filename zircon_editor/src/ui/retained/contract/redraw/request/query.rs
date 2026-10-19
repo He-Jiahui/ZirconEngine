@@ -5,6 +5,9 @@ use super::super::HostDamageRegionMetrics;
 use super::HostRedrawRequest;
 
 impl HostRedrawRequest {
+    pub(crate) fn requires_runtime_tick(&self) -> bool {
+        matches!(self, Self::RuntimeTick | Self::Region { runtime_tick: true, frame_update: false, .. })
+    }
     pub(crate) fn request_redraw(&self) -> bool {
         !matches!(self, Self::None)
     }
@@ -47,14 +50,14 @@ impl HostRedrawRequest {
     pub(crate) fn damage_region(&self) -> Option<&FrameRect> {
         match self {
             Self::Region { damage, .. } => Some(damage.bounding_frame()),
-            Self::None | Self::FrameUpdate { .. } | Self::Full { .. } => None,
+            Self::None | Self::RuntimeTick | Self::FrameUpdate { .. } | Self::Full { .. } => None,
         }
     }
 
     pub(crate) fn damage_region_metrics(&self) -> Option<HostDamageRegionMetrics> {
         match self {
             Self::Region { damage, .. } => Some(damage.metrics()),
-            Self::None | Self::FrameUpdate { .. } | Self::Full { .. } => None,
+            Self::None | Self::RuntimeTick | Self::FrameUpdate { .. } | Self::Full { .. } => None,
         }
     }
 
@@ -64,6 +67,7 @@ impl HostRedrawRequest {
             | Self::Full { scenario, .. }
             | Self::Region { scenario, .. } => *scenario,
             Self::None => current_ui_perf_scenario(),
+            Self::RuntimeTick => UiPerfScenario::PlayInEditor,
         }
     }
 }

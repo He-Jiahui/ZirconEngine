@@ -49,6 +49,7 @@ $env:ZUI_PLUGIN_DIST_ROOT = Join-Path $stage.artifactRoot 'zircon-zui-plugin\dis
 $env:ZUI_PLUGIN_BUNDLE_PATH = Join-Path $stage.artifactRoot 'zircon-zui-plugin\bundle\assets\plugin.js'
 [IO.Directory]::CreateDirectory($env:ZUI_PLUGIN_DIST_ROOT) | Out-Null
 $env:PYTHONDONTWRITEBYTECODE = '1'
+$env:ZOP_TEST_PYTHON = $python
 $pnpm = (Get-Command pnpm -ErrorAction Stop).Source
 $node = (Get-Command node -ErrorAction Stop).Source
 $commands = [Collections.Generic.List[object]]::new()
@@ -86,6 +87,7 @@ try {
         Invoke-NodeGate 'bundle' $workspace @('tools/scripts/build-plugin.mjs', '--plugin=zircon-zui-plugin')
     }
     if (-not $BuildOnly -and -not $LintOnly) {
+        Invoke-NodeGate 'zop' (Join-Path $workspace 'apps\zircon-zop-compiler') @('--test', 'src/compiler.test.mjs', 'src/export.test.mjs')
         Invoke-NodeGate 'test' $app @('../../node_modules/vitest/vitest.mjs', 'run')
         Invoke-NodeGate 'host' $app @('../../node_modules/tsx/dist/cli.mjs', 'tools/penpot-runtime-host-contract.ts')
     }

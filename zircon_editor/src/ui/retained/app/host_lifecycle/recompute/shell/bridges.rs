@@ -48,6 +48,15 @@ impl RetainedEditorHost {
                 "retained_host",
                 "recompute_workbench_window_bridge"
             );
+            if let Err(error) = self.workbench_window_bridge.prepare_graphics_degradation(
+                self.ui.graphics_degradation().as_deref(),
+            ) {
+                emit_template_bridge_layout_error(
+                    self.runtime.context().logs(),
+                    "editor_graphics_degradation_banner",
+                    error,
+                );
+            }
             if let Err(error) = self
                 .workbench_window_bridge
                 .recompute_mounted_layout_with_workbench_model_at_scale(

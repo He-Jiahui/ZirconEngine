@@ -190,6 +190,53 @@ def source_files(snapshot, prefix=""):
             raise ValueError("Source file lacks its actual hash")
     return result
 
+def checkout_external_file_view():
+    """Classify tracked plan Markdown without dropping its observed source bytes."""
+    from types import SimpleNamespace
+
+    def compiler_files(snapshot):
+        checked_source_evidence(snapshot)
+
+        def select(current, prefix=""):
+            entries = (current["gitIndex"]["entries"]
+                       if current.get("sourceEvidencePolicy") == _SOURCE_EVIDENCE_V2 else [])
+            tracked = {entry["path"] for entry in entries
+                       if entry["stage"] == 0 and entry["mode"] == "100644"}
+            tracked.difference_update(entry["path"] for entry in entries if entry["stage"] != 0)
+            result = {}
+            for name, value in current["files"].items():
+                path = prefix + name
+                if isinstance(value, dict):
+                    result.update(select(value["source"], path + "/"))
+                elif not (name in tracked and isinstance(value, str)
+                          and re.fullmatch(r"\.codex/plans/[^/]+\.md", name, re.IGNORECASE)):
+                    result[path] = value
+            return result
+
+        return select(snapshot)
+
+    return SimpleNamespace(source_files=compiler_files)
+
+def _managed_external_plan_paths(index):
+    entries = index["entries"]
+    plans = {entry["path"] for entry in entries
+             if entry["stage"] == 0 and entry["mode"] == "100644"
+             and re.fullmatch(r"\.codex/plans/[^/]+\.md", entry["path"], re.IGNORECASE)}
+    plans.difference_update(entry["path"] for entry in entries if entry["stage"] != 0)
+    return plans
+
+
+def _managed_external_compiler_files(snapshot):
+    """Keep full evidence while classifying only root tracked regular plans."""
+    checked_source_evidence(snapshot)
+    files = source_files(snapshot)
+    plans = (_managed_external_plan_paths(snapshot["gitIndex"])
+             if snapshot.get("sourceEvidencePolicy") == _SOURCE_EVIDENCE_V2 else set())
+    return {name: checksum for name, checksum in files.items()
+            if not (name in plans and isinstance(checksum, str))}
+
+
+
 
 def checkout_external_file_view():
     """Classify tracked plan Markdown without dropping its observed source bytes."""

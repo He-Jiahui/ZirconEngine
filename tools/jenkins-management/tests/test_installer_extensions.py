@@ -21,7 +21,7 @@ OLD_CORE = "// pinned old core\n"
 NEW_CORE = "// pinned new core\n"
 
 
-def _command(cases, raw, delivery_raw, branch_raw=b"", cleanup_raw=b""):
+def _command(cases, raw, delivery_raw, branch_raw=b"", cleanup_raw=b"", *, compressed=False):
     path = base64.b64encode(str(INSTALLER).encode()).decode()
     addon = base64.b64encode(raw).decode()
     delivery_addon = base64.b64encode(delivery_raw).decode()
@@ -32,7 +32,7 @@ def _command(cases, raw, delivery_raw, branch_raw=b"", cleanup_raw=b""):
     payload = base64.b64encode(gzip.compress(
         json.dumps(fixture, separators=(",", ":")).encode(), mtime=0,
     )).decode()
-    return r"""
+    command = r"""
 $ErrorActionPreference = 'Stop'
 if ($PSVersionTable.PSEdition -ne 'Desktop') { throw 'Windows PowerShell Desktop is required' }
 $path = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('__PATH__'))
@@ -188,6 +188,18 @@ foreach ($case in $cases) {
 }
 [Console]::Out.WriteLine('ZR_INSTALLER_EXTENSION_RESULTS:' + (ConvertTo-Json -InputObject @($rows.ToArray()) -Depth 5 -Compress))
 """.replace("__PATH__", path).replace("__CASES__", payload)
+    if not compressed:
+        return command
+    compressed_payload = base64.b64encode(gzip.compress(command.encode("utf-8"), mtime=0)).decode("ascii")
+    return r"""
+$ErrorActionPreference = 'Stop'
+$bytes = [Convert]::FromBase64String('__GZIP__')
+$stream = [IO.MemoryStream]::new($bytes)
+$gzip = [IO.Compression.GZipStream]::new($stream, [IO.Compression.CompressionMode]::Decompress)
+$reader = [IO.StreamReader]::new($gzip, [Text.Encoding]::UTF8)
+try { & ([ScriptBlock]::Create($reader.ReadToEnd())) }
+finally { $reader.Dispose(); $gzip.Dispose(); $stream.Dispose() }
+""".replace("__GZIP__", compressed_payload)
 
 
 class InstallerExtensionTests(unittest.TestCase):
@@ -301,7 +313,7 @@ class InstallerExtensionTests(unittest.TestCase):
         powershell = shutil.which("powershell.exe") or shutil.which("powershell")
         if powershell is None:
             raise RuntimeError("Windows PowerShell Desktop is required; this is not a passing skip")
-        command = _command(cases, raw, delivery_raw, branch_raw, cleanup_raw)
+        command = _command(cases, raw, delivery_raw, branch_raw, cleanup_raw, compressed=True)
         if len(command) > 24000:
             raise RuntimeError("Installer extension fixture exceeded the bounded native command")
         completed = subprocess.run(
@@ -399,6 +411,149 @@ class BranchIntegrationInstallerExtensionTests(unittest.TestCase):
             "cleanup-missing", "cleanup-duplicate", "cleanup-moved", "cleanup-nested-core",
             "cleanup-resume-wrong-archive",
         )
+
+        retained = {
+            "prefix": ("// BEGIN USER SYNC CLEAN CHECKOUT 20261018\n"
+                       "// Preserve <opaque> & quoted \"value\" and 'value'\n"
+                       "// END USER SYNC CLEAN CHECKOUT 20261018\n\n"
+                       "// BEGIN ZIRCON REMOTE MAIN SYNC\n// existing remote route\n// END ZIRCON REMOTE MAIN SYNC\n\n"
+                       "// BEGIN ZIRCON OLD BRANCH CLEANUP\n// existing cleanup route\n// END ZIRCON OLD BRANCH CLEANUP\n\n"
+                       "// BEGIN ZIRCON BRANCH QUEUE\n"
+                       "def existingBranch = 'E:/Git/ZirconEngine/.jenkins/runtime/branch-integration/"
+                       "5abace38210c7aadd34624f6ad8f6f6f20e8fdaaea1a87c6e0aab192b09b38d7/branch_integration.py'\n"
+                       "// END ZIRCON BRANCH QUEUE\n\n"
+                       "// BEGIN ZIRCON VALIDATED DELIVERY\n// retained delivery\n// END ZIRCON VALIDATED DELIVERY\n\n"
+                       "// BEGIN ZIRCON SCOPED CHECKOUT COMMIT\n// retained checkout\n// END ZIRCON SCOPED CHECKOUT COMMIT\n\n"),
+            "oldCore": OLD_CORE, "newCore": NEW_CORE,
+        }
+        retained["prefixSha256"] = hashlib.sha256(retained["prefix"].encode()).hexdigest()
+        payload = base64.b64encode(json.dumps(retained, separators=(",", ":")).encode()).decode()
+        command = _command([], b"", b"")
+        old_names = "$names = @('Hash-Bytes','Get-ManagementJobExtensionPrefix','Join-ManagementJobExtension','Assert-ManagementJob')"
+        new_names = old_names[:-1] + ",'Get-ManagementJobRetainedPrefix','Set-ManagementJobPipeline')"
+        self.assertEqual(1, command.count(old_names))
+        command = command.replace(old_names, new_names, 1)
+        marker = "[Console]::Out.WriteLine('ZR_INSTALLER_EXTENSION_RESULTS:' + (ConvertTo-Json -InputObject @($rows.ToArray()) -Depth 5 -Compress))"
+        self.assertEqual(1, command.count(marker))
+        command = command.replace(marker, "", 1) + r"""
+$inputCase = ConvertFrom-Json ([Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('__RETAINED__')))
+$oldPipeline = [string]$inputCase.prefix + [string]$inputCase.oldCore
+$newPipeline = [string]$inputCase.prefix + [string]$inputCase.newCore
+$api = New-ExtensionCaseJob $oldPipeline
+$retainedHome = New-ExtensionCaseJob $oldPipeline
+$observed = Get-ManagementJobRetainedPrefix -ApiScript ([string]$api.'flow-definition'.definition.script) -HomeScript ([string]$retainedHome.'flow-definition'.definition.script) -BareCore ([string]$inputCase.oldCore) -ExpectedSha256 ([string]$inputCase.prefixSha256)
+if ($observed -cne [string]$inputCase.prefix) { throw 'The complete prefix was not retained' }
+$beforeXml = '<!-- preserve non-script bytes -->' + $api.OuterXml
+$afterXml = Set-ManagementJobPipeline -XmlText $beforeXml -Pipeline $newPipeline
+[xml]$after = $afterXml
+Assert-ManagementJob $api $oldPipeline 'driver-fixture' 'runtime-fixture'
+Assert-ManagementJob $retainedHome $oldPipeline 'driver-fixture' 'runtime-fixture'
+Assert-ManagementJob $after $newPipeline 'driver-fixture' 'runtime-fixture'
+$beforeShell = [regex]::Replace($beforeXml, '(?s)(<script>).*?(</script>)', '$1__SCRIPT__$2')
+$afterShell = [regex]::Replace($afterXml, '(?s)(<script>).*?(</script>)', '$1__SCRIPT__$2')
+if ($beforeShell -cne $afterShell) { throw 'The non-script configuration changed' }
+$again = Get-ManagementJobRetainedPrefix -ApiScript ([string]$after.'flow-definition'.definition.script) -HomeScript ([string]$after.'flow-definition'.definition.script) -BareCore ([string]$inputCase.newCore) -ExpectedSha256 ([string]$inputCase.prefixSha256)
+if ($again -cne $observed) { throw 'The new core changed the original prefix' }
+$rejected = New-Object 'System.Collections.Generic.List[string]'
+function Assert-RetainedCaseRejected([string]$Id, [scriptblock]$Case) {
+    $failed = $false
+    try { $null = & $Case } catch { $failed = $true }
+    if (-not $failed) { throw ('Accepted invalid retained-prefix case: ' + $Id) }
+    $rejected.Add($Id)
+}
+Assert-RetainedCaseRejected 'prefix-drift' {
+    Get-ManagementJobRetainedPrefix -ApiScript ('// drift' + $oldPipeline) -HomeScript ('// drift' + $oldPipeline) -BareCore ([string]$inputCase.oldCore) -ExpectedSha256 ([string]$inputCase.prefixSha256)
+}
+Assert-RetainedCaseRejected 'wrong-prefix-pin' {
+    Get-ManagementJobRetainedPrefix -ApiScript $oldPipeline -HomeScript $oldPipeline -BareCore ([string]$inputCase.oldCore) -ExpectedSha256 ('0' * 64)
+}
+Assert-RetainedCaseRejected 'api-home-drift' {
+    Get-ManagementJobRetainedPrefix -ApiScript $oldPipeline -HomeScript ($oldPipeline + '// drift') -BareCore ([string]$inputCase.oldCore) -ExpectedSha256 ([string]$inputCase.prefixSha256)
+}
+Assert-RetainedCaseRejected 'missing-core' {
+    Get-ManagementJobRetainedPrefix -ApiScript ([string]$inputCase.prefix) -HomeScript ([string]$inputCase.prefix) -BareCore ([string]$inputCase.oldCore) -ExpectedSha256 ([string]$inputCase.prefixSha256)
+}
+Assert-RetainedCaseRejected 'duplicate-core' {
+    Get-ManagementJobRetainedPrefix -ApiScript ($oldPipeline + [string]$inputCase.oldCore) -HomeScript ($oldPipeline + [string]$inputCase.oldCore) -BareCore ([string]$inputCase.oldCore) -ExpectedSha256 ([string]$inputCase.prefixSha256)
+}
+Assert-RetainedCaseRejected 'core-is-not-suffix' {
+    Get-ManagementJobRetainedPrefix -ApiScript ($oldPipeline + '// suffix') -HomeScript ($oldPipeline + '// suffix') -BareCore ([string]$inputCase.oldCore) -ExpectedSha256 ([string]$inputCase.prefixSha256)
+}
+Assert-RetainedCaseRejected 'duplicate-script-element' {
+    Set-ManagementJobPipeline -XmlText ($beforeXml + '<script>foreign</script>') -Pipeline $newPipeline
+}
+[Console]::Out.WriteLine('ZR_RETAINED_PREFIX_RESULTS:' + (ConvertTo-Json -Depth 5 -Compress ([ordered]@{status='passed';prefix=$observed;nonScriptBytesEqual=$true;rejected=@($rejected.ToArray())})))
+""".replace("__RETAINED__", payload)
+        powershell = shutil.which("powershell.exe") or shutil.which("powershell")
+        self.assertIsNotNone(powershell, "Windows PowerShell Desktop is required")
+        self.assertLessEqual(len(command), 24000)
+        completed = subprocess.run(
+            [powershell, "-NoLogo", "-NoProfile", "-NonInteractive", "-Command", command],
+            capture_output=True, text=True, encoding="utf-8", errors="replace",
+            timeout=120, check=False,
+        )
+        self.assertEqual(0, completed.returncode, completed.stderr)
+        lines = completed.stdout.splitlines()
+        self.assertEqual(1, len(lines), completed.stdout)
+        self.assertTrue(lines[0].startswith("ZR_RETAINED_PREFIX_RESULTS:"), completed.stdout)
+        actual = json.loads(lines[0][len("ZR_RETAINED_PREFIX_RESULTS:"):])
+        self.assertEqual("passed", actual["status"])
+        self.assertEqual(retained["prefix"], actual["prefix"])
+        self.assertTrue(actual["nonScriptBytesEqual"])
+        self.assertEqual(
+            ["prefix-drift", "wrong-prefix-pin", "api-home-drift", "missing-core",
+             "duplicate-core", "core-is-not-suffix", "duplicate-script-element"],
+            actual["rejected"],
+        )
+
+        import importlib.util
+        from unittest.mock import Mock, patch
+        spec = importlib.util.spec_from_file_location("branch_entry_reuse_test", ROOT / "tools/jenkins-management/branch_integration.py")
+        branch = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(branch)
+        endpoint = "/job/zircon-management/config.xml"
+        core = "node('zircon-windows-agent') { /* --capsule retained */ }\n"
+        installed_script = prefix + core
+        doc = branch.ET.fromstring("<flow-definition><description>foreign</description><properties/><definition><script/></definition></flow-definition>")
+        doc.find("definition/script").text = installed_script
+        raw = branch.ET.tostring(doc, encoding="utf-8")
+        client = Mock()
+        client.request.return_value = (200, raw, {})
+        with patch.object(Path, "read_text", side_effect=AssertionError("Reuse must not read the mutable template")):
+            result = branch.install_entry(None, ROOT, client, reuse_existing=True)
+        self.assertEqual("installed", result["status"])
+        self.assertTrue(result["reused"])
+        client.request.assert_called_once_with(endpoint)
+
+        for damaged in (branch.BEGIN + core, branch.END + branch.BEGIN + core,
+                        branch.BEGIN + branch.BEGIN + branch.END + core):
+            doc.find("definition/script").text = damaged
+            client = Mock()
+            client.request.return_value = (200, branch.ET.tostring(doc, encoding="utf-8"), {})
+            with self.assertRaisesRegex(ValueError, "markers"):
+                branch.install_entry(None, ROOT, client, reuse_existing=True)
+            client.request.assert_called_once_with(endpoint)
+
+        template = branch.BEGIN + "\n// explicit maintenance template\n" + branch.END + "\n"
+        for old_script, reuse in ((installed_script, False), (core, True)):
+            doc.find("definition/script").text = old_script
+            before = branch.ET.tostring(doc, encoding="utf-8")
+            suffix = old_script
+            if branch.BEGIN in suffix:
+                start, end = suffix.index(branch.BEGIN), suffix.index(branch.END) + len(branch.END)
+                suffix = suffix[:start] + suffix[end:].lstrip("\r\n")
+            expected = template.rstrip() + "\n\n" + suffix
+            doc.find("definition/script").text = expected
+            after = branch.ET.tostring(doc, encoding="utf-8")
+            client = Mock()
+            client.request.side_effect = [(200, before, {}), (200, b"", {}), (200, after, {})]
+            with patch.object(Path, "read_text", return_value=template):
+                result = branch.install_entry(None, ROOT, client, reuse_existing=reuse)
+            self.assertEqual("installed", result["status"])
+            self.assertEqual(3, client.request.call_count)
+            posted = client.request.call_args_list[1]
+            self.assertEqual("POST", posted.kwargs["method"])
+            self.assertEqual(expected, branch.ET.fromstring(posted.kwargs["data"]).findtext("definition/script"))
 
 
 if __name__ == "__main__":

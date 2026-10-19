@@ -52,6 +52,10 @@ fn unreal_snap_toggle_is_global_editor_pref_and_grid_visibility_keeps_snap_and_s
         Arc::clone(&prefs),
     );
     let second = SceneViewportController::with_settings_coordinator(UVec2::new(900, 620), prefs);
+    assert!(!second.chrome_settings().scale_snap_enabled);
+    first
+        .apply_command(None, &ViewportCommand::ToggleSnap(TransformHandleKind::Scale))
+        .unwrap();
     first
         .apply_command(None, &ViewportCommand::SetTranslateSnap(2.0))
         .unwrap();

@@ -92,10 +92,10 @@ extends = ":read-only"
 'E:/Git/ZirconEngine/docs/wiki' = "write"
 'E:/Git/ZirconEngine/third_party/penpot' = "write"
 'E:/Git/ZirconEngine/tools' = "write"
-# User-authorized Jenkins maintenance; Git writes still run through Jenkins.
-'E:/Git/ZirconEngine/tools/jenkins-management' = "write"
-'E:/Git/ZirconEngine/tools/jenkins' = "write"
-'E:/Git/ZirconEngine/tools/dev' = "write"
+# Jenkins executes these helpers with service credentials.
+'E:/Git/ZirconEngine/tools/jenkins-management' = "read"
+'E:/Git/ZirconEngine/tools/jenkins' = "read"
+'E:/Git/ZirconEngine/tools/dev' = "read"
 'E:/Git/ZirconEngine/.github' = "read"
 'E:/Git/ZirconEngine/examples/vampire' = "write"
 'E:/Git/ZirconEngine/examples/woc' = "write"
@@ -195,9 +195,10 @@ extends = ":read-only"
 'E:/Git/ZirconEngine/LICENSE' = "write"
 'E:/Git/ZirconEngine/tests/test_execution_engine.py' = "write"
 
-# Preserve the user's Git and Jenkins maintenance grants during remote merges.
-'E:/Git/ZirconEngine/.git' = "write"
-'E:/Git/ZirconEngine/.jenkins' = "write"
+# Service-owned executable code, metadata and authorization state stay read-only.
+# Agents submit task-scoped inputs via the existing .codex/outbox write grant.
+'E:/Git/ZirconEngine/.git' = "read"
+'E:/Git/ZirconEngine/.jenkins' = "read"
 'E:/Git/ZirconEngine/.codex/state/jenkins-coordinator' = "read"
 'E:/Git/ZirconEngine/.codex/state/jenkins-pilot' = "read"
 'E:/Git/ZirconEngine/.codex/state/jenkins-tray' = "read"

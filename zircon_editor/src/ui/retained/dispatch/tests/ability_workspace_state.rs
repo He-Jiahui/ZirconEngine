@@ -6,6 +6,7 @@ use super::*;
 fn task_phase_graph_and_playtest_share_one_ability_profile() {
     let mut bridge = BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(900.0, 620.0))
         .expect("workbench bridge should build");
+    bridge.set_preview_features(true).expect("preview workspace fixture");
 
     assert!(bridge.control_bool("WorkbenchAbilityTaskActivateRow", "selected"));
     assert!(bridge.control_bool("WorkbenchAbilityPhaseActivateRow", "selected"));
@@ -56,7 +57,7 @@ fn task_phase_graph_and_playtest_share_one_ability_profile() {
         .expect("playtest should bind");
     assert_eq!(
         Some(
-            "Playtest queued   Client Predicted   full graph   GA_CustomDash   cooldown 1.25s"
+            "Preview inputs: Client Predicted   full graph   GA_CustomDash   cooldown 1.25s"
                 .to_string(),
         ),
         bridge.control_string("WorkbenchAbilityOutputRow", "value_text")
@@ -67,6 +68,7 @@ fn task_phase_graph_and_playtest_share_one_ability_profile() {
 fn task_navigation_preserves_edited_ability_properties() {
     let mut bridge = BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(900.0, 620.0))
         .expect("workbench bridge should build");
+    bridge.set_preview_features(true).expect("preview workspace fixture");
 
     assert!(bridge
         .select_dropdown_option("WorkbenchAbilityNetPolicyDropdown", "client_predicted")

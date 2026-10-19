@@ -182,6 +182,21 @@ fn entry(message: &str, severity: LogSeverity, source: LogSource) -> LogEntry {
 }
 
 #[test]
+fn severity_totals_survive_eviction_and_filtering_until_clear() {
+    let store = EditorLogStore::new(EditorLogConfig::new(1, 1024).unwrap());
+    for severity in [LogSeverity::Warning, LogSeverity::Warning, LogSeverity::Error] {
+        store.push(entry("record", severity, LogSource::editor())).unwrap();
+    }
+    assert_eq!(store.diagnostics().retained_records, 1);
+    assert_eq!(store.severity_counts().warning, 2);
+    assert_eq!(store.severity_counts().error, 1);
+    let _filtered_tail = store.snapshot_tail(&LogFilter::default(), 1);
+    assert_eq!(store.severity_counts().warning, 2);
+    store.clear();
+    assert_eq!(store.severity_counts(), super::LogSeverityCounts::default());
+}
+
+#[test]
 fn byte_bounded_store_evicts_oldest_records_before_accepting_new_entries() {
     let first = entry("first", LogSeverity::Info, LogSource::editor());
     let second = entry("second", LogSeverity::Warning, LogSource::runtime());

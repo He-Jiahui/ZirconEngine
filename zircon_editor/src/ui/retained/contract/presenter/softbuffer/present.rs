@@ -97,6 +97,7 @@ pub(in crate::ui::retained_host::host_contract) fn present_during_native_resize(
         &mut presenter.backbuffer,
         || paint_host_presentation_snapshot(size.0, size.1, presentation),
     );
+    #[cfg(feature = "profiling")]
     let acquisition_counter = match acquisition {
         NativeResizeSnapshotAcquisition::Reused => {
             "ui.window_resize.softbuffer_snapshot_reuse_count"

@@ -142,9 +142,7 @@ members = [
 ]
 resolver = "2"
 
-# Profiles on path dependencies are ignored by Cargo. Keep this independent
-# workspace aligned with the engine: retain incremental work for edited engine
-# crates without generating full symbols for every plugin and dependency.
+# Dependency workspace profiles do not apply to this independent workspace.
 [profile.dev]
 debug = 0
 incremental = false

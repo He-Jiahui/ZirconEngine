@@ -171,8 +171,8 @@ fn status_shortcuts_have_unique_bindings_with_canonical_viewport_payloads() {
     for (binding_id, expected_payload) in [
         (
             "Workbench/ToggleSnapFromStatus",
-            EditorUiBindingPayload::viewport_command(ViewportCommand::SetGridMode(
-                GridMode::VisibleAndSnap,
+            EditorUiBindingPayload::viewport_command(ViewportCommand::ToggleSnap(
+                TransformHandleKind::Move,
             )),
         ),
         (

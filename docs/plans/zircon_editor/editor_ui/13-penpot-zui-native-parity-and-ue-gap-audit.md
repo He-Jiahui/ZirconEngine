@@ -61,6 +61,10 @@ last_refined: 2026-10-04
 
 ## 1. 目标与边界
 
+The new operator shell follows [plan 14](14-penpot-operator-ui.md). Its compiler
+must reject features whose native parity remains unresolved in this audit;
+operator scaffolding does not close this plan's visual or runtime gates.
+
 目标：同一份 `.zui` 在 Penpot 网页投影与 `zircon_app` 原生窗口中，结构、几何、文本、颜色和交互结果一致。“一模一样”的验收口径固定为：**结构差异为零**（节点集合、父子、顺序、frame、clip、文本行框误差 ≤1 逻辑像素），之后才比较像素，像素差只允许 AA 级。截图不能替代结构证据。
 
 边界（继承 designment 02 与 editor_ui index）：

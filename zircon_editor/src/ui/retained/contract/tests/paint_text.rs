@@ -21,6 +21,9 @@ mod font_contracts;
 #[path = "../paint_text_tests/tests/latest_crop.rs"]
 mod latest_crop;
 
+#[path = "../paint_text_tests/tests/space_advance.rs"]
+mod space_advance;
+
 #[test]
 fn text_draw_skips_disjoint_active_and_explicit_clips() {
     let mut frame = HostRgbaFrame::filled(64, 32, [0, 0, 0, 255]);

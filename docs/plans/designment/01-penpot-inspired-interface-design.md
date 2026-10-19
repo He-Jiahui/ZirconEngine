@@ -231,6 +231,11 @@ flowchart LR
 
 ### 1.3 Penpot authoring bridge 与自举边界
 
+Operator-shell exception (2026-10-17): [plan 14](../zircon_editor/editor_ui/14-penpot-operator-ui.md)
+supersedes this section's visual-source authority for the new operator shell only.
+Penpot owns its visuals; deterministic `.zui` and the engineering role contract
+retain the runtime and behavior boundaries. Other `.zui` round trips are unchanged.
+
 Penpot 模式在本计划中首先落为一个可逆 authoring bridge，而不是第二套 UI schema。`.zui` v2 始终是运行时和版本控制中的事实源；Penpot board 是可视化编辑投影，插件 shared data 保存不可视字段和原始 document，Zircon loader/compiler 是最终接受者。
 
 ```mermaid

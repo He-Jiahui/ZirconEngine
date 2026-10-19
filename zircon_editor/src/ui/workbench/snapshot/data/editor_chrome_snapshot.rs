@@ -22,6 +22,7 @@ pub struct EditorChromeSnapshot {
     pub inspector: Option<InspectorSnapshot>,
     pub status_line: String,
     pub console_output: ConsoleOutputSnapshot,
+    pub status_signals: super::StatusSignalsSnapshot,
     pub status_task_progress: Option<StatusTaskProgressSnapshot>,
     pub hovered_axis: Option<GizmoAxis>,
     pub viewport_size: UVec2,

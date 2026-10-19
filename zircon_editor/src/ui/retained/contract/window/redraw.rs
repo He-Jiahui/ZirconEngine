@@ -71,7 +71,7 @@ impl UiHostWindow {
             }
         };
         if queue_immediate_frame {
-            self.queue_external_redraw(HostRedrawRequest::full_frame());
+            self.queue_external_redraw(HostRedrawRequest::runtime_tick());
         }
     }
 
@@ -143,13 +143,17 @@ impl UiHostWindow {
             due
         };
         if due {
-            self.queue_external_redraw(HostRedrawRequest::full_frame());
+            self.queue_external_redraw(HostRedrawRequest::runtime_tick());
         }
         due
     }
 
     pub(crate) fn request_frame_update(&self) {
         self.global::<UiHostContext>().invoke_frame_requested();
+    }
+
+    pub(crate) fn request_runtime_frame_update(&self) {
+        self.global::<UiHostContext>().invoke_runtime_frame_requested();
     }
 
     pub(crate) fn request_interactive_frame_update(&self) {

@@ -352,5 +352,5 @@ impl InputDriver {
 }
 
 #[cfg(test)]
-#[path = "input_driver/tests.rs"]
+#[path = "input_driver/tests/cases.rs"]
 mod tests;

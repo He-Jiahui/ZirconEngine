@@ -541,10 +541,84 @@ class OrdinaryFlowTests(unittest.TestCase):
                 self.assertFalse((source / "crate").exists())
                 self.assertEqual(original_times, (untouched.stat().st_mtime_ns, sibling.stat().st_mtime_ns))
                 self.assertEqual(2, preparation.verify_source(deleted, source, approved)["fileCount"])
+                # A case-only external rename changes identity, never its physical bytes.
+                case_only = copy.deepcopy(deleted)
+                case_external = case_only["external"][0]
+                case_external["manifest"]["entries"][0]["path"] = "binding/CARGO.toml"
+                case_external["sourceDigest"] = preparation.digest(case_external["manifest"])
+                sibling_identity = (sibling.stat().st_dev, sibling.stat().st_ino)
+                with patch.object(pools, "_atomic_copy", side_effect=AssertionError("Unchanged bytes were copied")), \
+                        patch.object(Path, "unlink", side_effect=AssertionError("Case-only input was deleted")):
+                    fifth = invoke("fifth", case_only)
+                self.assertEqual((fifth["changedFileCount"], fifth["preservedFileCount"]), (0, 2))
+                self.assertEqual(original_times, (untouched.stat().st_mtime_ns, sibling.stat().st_mtime_ns))
+                self.assertEqual(sibling_identity, (sibling.stat().st_dev, sibling.stat().st_ino))
+                self.assertEqual(2, preparation.verify_source(case_only, source, approved)["fileCount"])
+                old = state.get("preparation_source", "shared-preparation")["payload"]
+                self.assertIn("zr_vm/binding/CARGO.toml", old["ownedFiles"])
+                self.assertNotIn("zr_vm/binding/Cargo.toml", old["ownedFiles"])
+                ambiguous = {**old["ownedFiles"],
+                             "zr_vm/binding/Cargo.toml": old["ownedFiles"]["zr_vm/binding/CARGO.toml"]}
+                for before, after in ((ambiguous, {}), ({}, ambiguous)):
+                    with self.assertRaisesRegex(RuntimeError, "identities collide"):
+                        preparation._pool_update_files(before, after)
+
+                # Recreate an old partial journal: both case entries are false,
+                # and a different copy finished before its false bit was checkpointed.
+                from tools.jenkins.source.external_inputs import flattened
+                legacy_manifest = copy.deepcopy(case_only)
+                copied_bytes = b"[workspace]\n# copy completed before checkpoint\n"
+                legacy_manifest["entries"][1] = entry("Cargo.toml", copied_bytes)
+                external = legacy_manifest["external"][0]
+                external["manifest"]["entries"][0]["path"] = "binding/Cargo.toml"
+                external["sourceDigest"] = preparation.digest(external["manifest"])
+                normalized, desired = pools._manifest(flattened(legacy_manifest), namespace, approved)
+                legacy_files = [{"path": name, "oldHash": old["ownedFiles"].get(name),
+                                 "newHash": desired.get(name),
+                                 "applied": old["ownedFiles"].get(name) == desired.get(name)}
+                                for name in sorted(set(old["ownedFiles"]) | set(desired))]
+                legacy = {"executionId": "interrupted-case-update", "preparationKey": "shared-preparation",
+                          "sourceDigest": preparation.digest(legacy_manifest),
+                          "oldSourceDigest": old["sourceDigest"], "status": "updating",
+                          "files": legacy_files, "oldOwnedFiles": old["ownedFiles"], "ownedFiles": desired,
+                          "manifest": normalized, "manifestDigest": preparation.digest(normalized),
+                          "objectRoot": str(namespace), "createdAt": 1234.0}
+                prior = state.get("preparation_update", "shared-preparation")
+                original = state.put("preparation_update", "shared-preparation", legacy,
+                                     expected_version=prior["version"])
+                untouched.write_bytes(b"neither old nor new\n")
+                with self.assertRaisesRegex(RuntimeError, "unrecognised hash"):
+                    preparation._recover_pool(state, "shared-preparation", source.parent, namespace, approved)
+                self.assertEqual(original, state.get("preparation_update", "shared-preparation"))
+                untouched.write_bytes(copied_bytes)
+                with patch.object(pools, "_atomic_copy", side_effect=AssertionError("Checkpoint lag caused a second copy")), \
+                        patch.object(Path, "unlink", side_effect=AssertionError("Recovery deleted a case alias")):
+                    sixth = invoke("sixth", legacy_manifest)
+                self.assertTrue(sixth["reused"])
+                journal = state.get("preparation_update", "shared-preparation")["payload"]
+                self.assertEqual(journal["status"], "complete")
+                self.assertEqual(journal["ownedFiles"], desired)
+                self.assertEqual(journal["manifestDigest"], legacy["manifestDigest"])
+                evidence = journal["fileIdentityRecovery"]
+                self.assertEqual(evidence["originalVersion"], original["version"])
+                self.assertEqual(evidence["originalPayloadDigest"], preparation.digest(legacy))
+                self.assertEqual(evidence["originalFilesDigest"], preparation.digest(legacy_files))
+                self.assertEqual(evidence["caseFoldGroupCount"], 1)
+                recovered_alias = next(item for item in journal["files"]
+                                       if item["path"] == "zr_vm/binding/Cargo.toml")
+                self.assertEqual(recovered_alias["legacyEntries"],
+                    [{"index": index, "entry": item} for index, item in enumerate(legacy_files)
+                     if item["path"].casefold() == recovered_alias["path"].casefold()])
+                self.assertTrue(all(item["applied"] for item in journal["files"]))
+                self.assertTrue(all(not item["entry"]["applied"] for item in recovered_alias["legacyEntries"]))
+                self.assertEqual(sibling_identity, (sibling.stat().st_dev, sibling.stat().st_ino))
+                self.assertEqual(original_times[1], sibling.stat().st_mtime_ns)
+                self.assertEqual(copied_bytes, untouched.read_bytes())
+                self.assertEqual(2, preparation.verify_source(legacy_manifest, source, approved)["fileCount"])
                 # Unexpected files are retained and block acceptance.
                 (source / "foreign.rs").write_bytes(b"foreign\n")
                 with self.assertRaises(ValueError):
-                    preparation.verify_source(deleted, source, approved)
+                    preparation.verify_source(legacy_manifest, source, approved)
                 self.assertTrue((source / "foreign.rs").is_file())
 
     def test_materialization_rejects_corrupt_objects_and_invalid_closure_manifests(self):
@@ -877,6 +951,161 @@ class OrdinaryFlowTests(unittest.TestCase):
             self.assertEqual(sealed["sealedInputRef"], verified["sourceDigest"])
             self.assertEqual(sealed["sourceManifest"],
                              state.get("sealed_input", sealed["sealedInputRef"])["payload"]["sourceManifest"])
+
+            # Actual checkout keeps complete observed control bytes, while the
+            # existing formal external gate sees only compiler-file membership.
+            from tools.jenkins import managed_worktree as formal
+            from tools.jenkins.contracts import JenkinsError
+            plan = ".codex/plans/contract.md"
+            ordinary = {"Cargo.toml": "1" * 64, "Cargo.lock": "2" * 64,
+                        ".cargo/config.toml": "3" * 64, "build.rs": "4" * 64,
+                        "path-dependency/src/lib.rs": "5" * 64, plan: "6" * 64}
+            value = {"sourceEvidencePolicy": "full-file-index-v2", "head": "b" * 40,
+                     "files": ordinary, "gitIndex": {
+                         "entries": [{"path": name, "mode": "100644", "object": "c" * 40, "stage": 0}
+                                     for name in sorted(ordinary)], "metadataSha256": "d" * 64}}
+            children, stage = {}, []
+            for ordinal in range(1, 8):
+                name, head = "vendor/dep" + str(ordinal), str(ordinal) * 40
+                (dependency / name).mkdir(parents=True)
+                child = {"head": head, "files": {"lib.rs": "7" * 64}, "diffSha256": "8" * 64}
+                child["sourceDigest"] = preparation.digest(child)
+                children[name] = child
+                value["files"][name] = {"gitlinkCommit": head, "source": child}
+                value["gitIndex"]["entries"].append(
+                    {"path": name, "mode": "160000", "object": head, "stage": 0})
+                stage.append(("160000 " + head + " 0\t" + name).encode() + b"\0")
+            value["gitIndex"]["entries"].sort(key=lambda item: (item["path"], item["stage"]))
+            observed = {**value, "sourceDigest": preparation.digest(value)}
+            management.payload = {"action": "validate", "sourceView": "checkout",
+                                  "sourceEvidencePolicy": "full-file-index-v2",
+                                  "externalRoots": [str(dependency)]}
+            management.source = lambda path, **kwargs: copy.deepcopy(
+                engine if path == repo else observed)
+            def git(path, *arguments):
+                source = observed if path == dependency else children[path.relative_to(dependency).as_posix()]
+                names = source["files"]
+                if arguments in {("ls-files", "--stage", "-z"), ("ls-files", "--stage", "--debug", "-z")}:
+                    entries = (source["gitIndex"]["entries"] if "gitIndex" in source else
+                               [{"path": name, "mode": "100644", "object": "c" * 40, "stage": 0}
+                                for name in sorted(names)])
+                    return SimpleNamespace(stdout=b"".join(
+                        (item["mode"] + " " + item["object"] + " " + str(item["stage"])
+                         + "\t" + item["path"]).encode() + b"\0" for item in entries))
+                self.assertIn(arguments, {("ls-files", "--cached", "-z"),
+                                          ("ls-files", "--cached", "--others", "--exclude-standard", "-z")})
+                return SimpleNamespace(stdout=b"".join(name.encode() + b"\0" for name in names))
+            management.git = git
+            management.text = lambda path, *arguments: (
+                str(path) if arguments == ("rev-parse", "--show-toplevel")
+                else observed["head"] if path == dependency
+                else children[path.relative_to(dependency).as_posix()]["head"])
+            raw = copy.deepcopy(observed)
+            with self.assertRaises(JenkinsError) as rejected:
+                formal._external_capture(management, preparation, inspection=True)
+            self.assertEqual("external_control_forbidden", rejected.exception.code)
+            inputs, captures, gitlinks = formal._external_capture(
+                management, preparation.checkout_external_file_view(), inspection=True)
+            self.assertEqual(7, len(gitlinks))
+            self.assertEqual(
+                {name.casefold(): checksum for name, checksum in preparation.source_files(raw).items()
+                 if name != plan}, inputs[0]["currentHashes"])
+            self.assertEqual(raw, captures[0]["source"])
+            self.assertIn(plan, preparation.source_files(captures[0]["source"]))
+            with patch.object(runner, "source_helper", return_value=preparation):
+                _, captured = management.validation_source()
+            self.assertEqual(raw, captured["externalRoots"][0]["source"])
+            changed = copy.deepcopy(raw)
+            changed["files"][plan] = "9" * 64
+            changed["sourceDigest"] = preparation.digest({key: item for key, item in changed.items()
+                                                         if key != "sourceDigest"})
+            self.assertNotEqual(raw["sourceDigest"], changed["sourceDigest"])
+            self.assertEqual(preparation.checkout_external_file_view().source_files(raw),
+                             preparation.checkout_external_file_view().source_files(changed))
+
+            # Exercise the WT capturer and immutable inventory, not just its view.
+            from tools.jenkins.source.external_inputs import KIND
+            for name in preparation.source_files(raw):
+                physical = dependency / name
+                physical.parent.mkdir(parents=True, exist_ok=True)
+                physical.write_bytes(("managed input " + name + "\n").encode())
+            managed = preparation._ManagedCapturedExternal(management, namespace)
+            managed_inputs, managed_captures, managed_gitlinks = formal._external_capture(
+                managed, SimpleNamespace(source_files=preparation._managed_external_compiler_files),
+                inspection=True)
+            managed_source = managed_captures[0]["source"]
+            self.assertEqual("full-file-index-v2", managed_source["sourceEvidencePolicy"])
+            self.assertEqual(raw["gitIndex"]["entries"], managed_source["gitIndex"]["entries"])
+            self.assertEqual(7, len(managed_gitlinks))
+            self.assertEqual(
+                {name.casefold(): checksum for name, checksum in preparation.source_files(managed_source).items()
+                 if name != plan}, managed_inputs[0]["currentHashes"])
+            plan_bytes = (dependency / plan).read_bytes()
+            self.assertEqual(runner.sha(plan_bytes), managed_source["files"][plan])
+            plan_object = namespace / "inputs/objects" / managed_source["files"][plan]
+            self.assertEqual(plan_bytes, plan_object.read_bytes())
+            engine_hashes, engine_metadata = preparation._managed_capture_files(
+                repo, engine["files"], namespace, "test-managed-engine")
+            with patch.object(formal, "_git_base_tree", return_value={}):
+                dependency_manifest = preparation._managed_captured_manifest(
+                    dependency, managed_source["head"], managed_inputs[0]["currentHashes"],
+                    managed.flattened_metadata(dependency, managed_source))
+                preparation.verify_sealed_capture(managed_source, dependency_manifest, managed_external=True)
+                frozen = {"kind": KIND, "name": "zr_vm", "repositoryRoot": str(dependency),
+                          "manifest": dependency_manifest, "sourceDigest": preparation.digest(dependency_manifest)}
+                product_manifest = preparation._managed_captured_manifest(
+                    repo, engine["head"], engine_hashes, engine_metadata, external=[frozen], product=True)
+            inputs = {"currentHashes": engine_hashes, "externalInputs": managed_inputs,
+                      "externalRoots": [str(dependency)], "externalGitlinks": managed_gitlinks,
+                      "sealedSource": {"kind": preparation._MANAGED_SEALED_INVENTORY,
+                          "objectRoot": str(namespace), "sourceManifest": product_manifest,
+                          "sourceDigest": preparation.digest(product_manifest), "externalCapture": managed_captures}}
+            record = {"ownedPaths": ["owned.rs"], "baseHead": engine["head"]}
+            with patch.object(management, "build_root", return_value=root), \
+                    patch.object(formal, "canonical_build_root", return_value=approved):
+                preparation._managed_sealed_inventory(management, record, inputs, {})
+                plan_object.write_bytes(b"corrupt observed plan object")
+                try:
+                    with self.assertRaises(JenkinsError) as rejected:
+                        preparation._managed_sealed_inventory(management, record, inputs, {})
+                    self.assertEqual("managed_source_object_changed", rejected.exception.code)
+                finally:
+                    plan_object.write_bytes(plan_bytes)
+
+            for forbidden in (".codex/config.toml", ".codex/hooks/run.py",
+                              ".jenkins/payload.json", ".opencode/config.json", "target/output"):
+                with self.subTest(forbidden=forbidden):
+                    observed = copy.deepcopy(raw)
+                    observed["files"][forbidden] = "a" * 64
+                    observed["sourceDigest"] = preparation.digest(
+                        {key: item for key, item in observed.items() if key != "sourceDigest"})
+                    with self.assertRaises(JenkinsError) as rejected:
+                        formal._external_capture(
+                            management, preparation.checkout_external_file_view(), inspection=True)
+                    self.assertEqual("external_control_forbidden", rejected.exception.code)
+                    with self.assertRaises(JenkinsError) as rejected:
+                        managed.source(dependency, payload={**management.payload, "externalGitlinks": managed_gitlinks})
+                    self.assertEqual("external_control_forbidden", rejected.exception.code)
+            for admission in ("untracked", "executable", "unmerged"):
+                with self.subTest(planAdmission=admission):
+                    observed = copy.deepcopy(raw)
+                    entries = observed["gitIndex"]["entries"]
+                    if admission == "untracked":
+                        entries[:] = [item for item in entries if item["path"] != plan]
+                    else:
+                        entry = next(item for item in entries if item["path"] == plan)
+                        entry["mode" if admission == "executable" else "stage"] = (
+                            "100755" if admission == "executable" else 1)
+                    observed["sourceDigest"] = preparation.digest(
+                        {key: item for key, item in observed.items() if key != "sourceDigest"})
+                    with self.assertRaises(JenkinsError) as rejected:
+                        formal._external_capture(
+                            management, preparation.checkout_external_file_view(), inspection=True)
+                    self.assertEqual("external_control_forbidden", rejected.exception.code)
+                    with self.assertRaises(JenkinsError) as rejected:
+                        managed.source(dependency, payload={**management.payload, "externalGitlinks": managed_gitlinks})
+                    self.assertEqual("external_control_forbidden", rejected.exception.code)
+            self.assertEqual(raw["files"][plan], "6" * 64)
 
     def dirty_fixture(self, root):
         repo = root / "repository"
@@ -2885,6 +3114,8 @@ class UnlaunchedFlowRecoveryTests(unittest.TestCase):
         native.assert_called_once_with(actor)
 
 
+
+
 class CommittedWorktreeSuccessorTests(unittest.TestCase):
     """A real State CAS retains the physical tree and durable creation anchors."""
 
@@ -3184,6 +3415,246 @@ class MigratedConsumerBoundaryTests(unittest.TestCase):
                     preparation.retire_unlaunched_flow_reader(actor)
                 self.assertEqual(before, state.rows)
         actor.manager.assert_not_called()
+
+
+class BranchCandidatePreparationTests(unittest.TestCase):
+    @contextmanager
+    def _candidate_fixture(self):
+        """Isolated owner/State fixtures; CAS, admission, preparation and Cargo stay real."""
+        from contextlib import ExitStack
+        import shutil
+        import subprocess
+        import tomllib
+        from tools.jenkins.resources import paths
+        from tools.jenkins.workflow import planning
+
+        actual = paths.canonical_build_root("E:/cargo-targets")
+        parent = paths.physical_path_under(actual, os.environ.get("ZR_COMMIT_TEST_ROOT", tempfile.gettempdir()),
+                                           allow_missing=False)
+        with tempfile.TemporaryDirectory(prefix="branch-input-", dir=parent) as temporary:
+            top = Path(temporary)
+            repo, external = top / "repository", top / "zr_vm"
+            repo.mkdir()
+            (external / "binding/src").mkdir(parents=True)
+            (repo / "src").mkdir()
+            (repo / ".gitignore").write_text(".jenkins/\ntarget/\n", encoding="utf-8")
+            (repo / "Cargo.toml").write_text(
+                '[package]\nname="candidate_fixture"\nversion="0.0.0"\nedition="2021"\n'
+                '[dependencies]\nvm_binding={path="../zr_vm/binding",optional=true}\n'
+                '[features]\nvm=["dep:vm_binding"]\n', encoding="utf-8")
+            (repo / "Cargo.lock").write_text(
+                'version = 3\n[[package]]\nname = "candidate_fixture"\nversion = "0.0.0"\n'
+                'dependencies = ["vm_binding"]\n[[package]]\nname = "vm_binding"\nversion = "0.0.0"\n',
+                encoding="utf-8")
+            (repo / "src/lib.rs").write_text(
+                '#[cfg(feature="vm")] pub fn value()->u8 { vm_binding::value() }\n', encoding="utf-8")
+            (external / "binding/Cargo.toml").write_text(
+                '[package]\nname="vm_binding"\nversion="0.0.0"\nedition="2021"\n', encoding="utf-8")
+            (external / "binding/src/lib.rs").write_text('pub fn value()->u8 { 7 }\n', encoding="utf-8")
+            program = str(Path(shutil.which("git")).absolute())
+            def git(root, *args):
+                return subprocess.run([program, "-c", "core.longpaths=true", "-c", "core.autocrlf=false", "-c",
+                    "core.hooksPath=" + str(top / "no-hooks"), "-C", str(root), *args],
+                    check=True, capture_output=True).stdout.decode("utf-8").strip()
+            for root in (repo, external):
+                git(root, "init", "--initial-branch=main")
+                git(root, "config", "user.name", "Synthetic branch fixture")
+                git(root, "config", "user.email", "branch-fixture@example.invalid")
+                git(root, "add", "--all")
+                git(root, "commit", "-m", "Synthetic bounded fixture")
+            head = git(repo, "rev-parse", "HEAD")
+            candidate = repo / ".jenkins/worktrees/integration-queue"
+            candidate.parent.mkdir(parents=True)
+            git(repo, "worktree", "add", "--detach", str(candidate), head)
+            request = {"operationId": "fixture-branch", "sessionId": "fixture-owner",
+                "requestId": "fixture-request", "ownerThreadId": "fixture-thread",
+                "paths": [".gitignore", "Cargo.toml", "Cargo.lock", "src/lib.rs"]}
+            runtime = {"driverDigest": "d" * 64, "runtimeOperationId": "fixture-current-runtime"}
+            config = {**runtime, "repositoryRoot": str(repo)}
+            capsule = top / ("a" * 64)
+            state = MemoryState()
+            state.put("resource_policy", "default", {"cpuBudget": 1, "memoryBudget": 4 * 1024**3,
+                "diskBudget": 8 * 1024**3, "diskReserveBytes": 0, "maxHeavyWriters": 1,
+                "allowedBuildRoots": [str(actual.path)]}, expected_version=0)
+            approved = SimpleNamespace(path=actual.path, volume_identity=actual.volume_identity,
+                                       namespace=lambda: top / "namespace")
+            helper = load("branch_fixture_local_cargo", ROOT / "tools/dev/local_cargo.py")
+            merge_report = top / "merge-proof"
+            merge_report.mkdir()
+            merge_command = [program, "-c", "core.longpaths=true", "-c", "core.autocrlf=false", "-C", str(candidate),
+                             "merge", "--no-edit", head]
+            merged = helper._run_owned_command(merge_command, candidate, dict(os.environ), merge_report, 60)
+            native_ref = runner.write_json(merge_report / "native-terminal.json", merged)
+            self.assertEqual(0, merged["rootExitCode"])
+            self.assertTrue(runner.native_terminal_proof(merged, native_ref)["complete"])
+            command_ref = runner.write_json(merge_report / "command.json",
+                {"runtime": runtime, "operationId": request["operationId"], "operationKind": "merge",
+                 "cwd": str(candidate), "command": merge_command})
+            row = {"request": request, "runtime": {**runtime, "runtimeOperationId": "fixture-original-runtime"},
+                "sourceCommit": head, "sourceRoot": str(repo), "branch": "fixture-original-branch",
+                "candidateHead": head, "mainHeadBefore": head, "candidateRoot": str(candidate),
+                "commitPaths": request["paths"], "integrationStatus": "validating",
+                "candidateGit": {"operationKind": "merge", "nativeComplete": True, "rootExitCode": 0,
+                    "reportRoot": str(merge_report), "commandRef": command_ref, "nativeTerminalRef": native_ref}}
+            record_path = repo / ".jenkins/state/management/branch-integration/requests/fixture-branch.json"
+            marker_path = record_path.parent.parent / "candidate.json"
+            runner.write_json(record_path, row)
+            runner.write_json(marker_path, {"status": "active", "operationId": request["operationId"],
+                                            "path": str(candidate), "mainHead": head})
+            runner.write_json(repo / ".jenkins/state/deployment/driver.json", runtime)
+            runner.write_json(repo / ".jenkins/state/deployment-operation.json",
+                              {"operationId": runtime["runtimeOperationId"], "state": "running"})
+            rustup = Path(os.environ.get("RUSTUP_HOME") or str(Path(os.environ["ZR_COMMIT_TEST_CARGO_PATH"]).parents[3]))
+            settings = tomllib.loads((rustup / "settings.toml").read_text(encoding="utf-8"))
+            selected = ROOT / "rust-toolchain.toml"
+            channel = (tomllib.loads(selected.read_text(encoding="utf-8"))["toolchain"]["channel"]
+                       if selected.is_file() else (os.environ.get("RUSTUP_TOOLCHAIN") or settings["default_toolchain"]))
+            host = settings.get("default_host_triple", "x86_64-pc-windows-msvc")
+            toolroot = next(path for path in (rustup / "toolchains" / channel,
+                rustup / "toolchains" / (channel + "-" + host)) if (path / "bin/cargo.exe").is_file())
+            trusted = {key + suffix: value for key in ("cargo", "rustc") for suffix, value in (
+                ("Path", str(toolroot / "bin" / (key + ".exe"))),
+                ("Sha256", runner.sha((toolroot / "bin" / (key + ".exe")).read_bytes())))}
+            for tool in ("cargo", "rustc"):
+                self.assertEqual(Path(os.environ["ZR_COMMIT_TEST_" + tool.upper() + "_PATH"]),
+                                 Path(trusted[tool + "Path"]))
+                self.assertEqual(os.environ["ZR_COMMIT_TEST_" + tool.upper() + "_SHA256"],
+                                 trusted[tool + "Sha256"])
+            environment = dict(os.environ)
+            environment["PATH"] = str(toolroot / "bin") + os.pathsep + environment.get("PATH", "")
+            original_spec = importlib.util.spec_from_file_location
+            def helper_spec(name, path, *args, **kwargs):
+                return original_spec(name, ROOT / "tools/dev/local_cargo.py" if
+                    name == "jenkins_managed_local_cargo" else path, *args, **kwargs)
+            def scratch(actor, *, environment=None, **unused):
+                path = actor.outputs() / "reports" / actor.key / "tmp"
+                if environment is not None:
+                    path.mkdir(parents=True)
+                    return {"path": str(path), "fixtureOnly": True}
+                return {"status": "retained-fixture", "removedFileCount": 0, "reclaimedBytes": 0,
+                        "receipt": None}
+            env = {"JOB_NAME": "zircon-merge-queue", "NODE_NAME": "zircon-windows-agent",
+                   "ZR_COMMIT_NATIVE": "1", "ZR_INTEGRATION_DRIVER": runtime["driverDigest"],
+                   "ZR_INTEGRATION_RUNTIME": runtime["runtimeOperationId"]}
+            with ExitStack() as stack:
+                for context in (patch.dict(os.environ, env), patch.object(runner, "boot",
+                    return_value=(config, repo, SimpleNamespace())), patch("tools.jenkins.state.State",
+                    return_value=state), patch.object(preparation, "scoped_authorization_state",
+                    side_effect=lambda supplied: supplied), patch.object(runner, "source_helper",
+                    return_value=preparation), patch.object(runner, "ensure_request_context"),
+                    patch.object(paths, "canonical_build_root", return_value=approved),
+                    patch.object(planning, "_environment_policy",
+                        side_effect=lambda *_: (dict(environment), dict(trusted), top / "fixture-environment.json")),
+                    patch.object(runner.Management, "dependency_cache",
+                        return_value={"home": str(top / "cargo-home"), "configSha256": {}}),
+                    patch.object(runner.Management, "task_tmp", scratch),
+                    patch.object(importlib.util, "spec_from_file_location", side_effect=helper_spec)):
+                    stack.enter_context(context)
+                yield {"repo": repo, "root": candidate, "state": state, "capsule": capsule,
+                    "request": request, "runtime": runtime, "config": config, "component": "b" * 64,
+                    "record": record_path, "marker": marker_path, "native": merge_report / "native-terminal.json",
+                    "recipe": {"verb": "check", "packages": ["candidate_fixture"], "features": ["vm"],
+                               "offline": True, "locked": True, "jobs": 1}}
+
+    def test_missing_candidate_sibling_uses_managed_prepared_cargo(self):
+        with self._candidate_fixture() as fixture:
+            row = json.loads(fixture["record"].read_bytes())
+            fixture["request"].pop("ownerThreadId")
+            fixture["request"]["paths"] = [
+                name.upper() if name == "src/lib.rs" else name
+                for name in fixture["request"]["paths"]]
+            row["request"] = fixture["request"]
+            fixture["record"].write_bytes(runner.encoded(row) + b"\n")
+            historical = {name: fixture[name].read_bytes() for name in ("record", "marker", "native")}
+            self.assertFalse((fixture["root"].parent / "zr_vm").exists())
+            from tools.jenkins.source import repository_id
+            def ordinary_context(config, repo, manager, payload, **kwargs):
+                if payload.get("observationOnly") is not True:
+                    raise ValueError("This identity already belongs to another local context")
+            with patch.object(runner, "ensure_request_context", side_effect=ordinary_context) as ordinary_admission, \
+                    patch.object(fixture["state"], "check_authorization",
+                                 wraps=fixture["state"].check_authorization) as authorization:
+                result = runner.validate_branch_candidate(fixture["capsule"], component_digest=fixture["component"],
+                    root=fixture["root"], branch_request=fixture["request"], cargo_recipe=fixture["recipe"],
+                    ordinal=1, runtime=fixture["runtime"])
+            ordinary_admission.assert_not_called()
+            authorization.assert_any_call(repository_id(fixture["repo"]), fixture["request"]["sessionId"],
+                                          runner.AUTH["validate"], fixture["request"]["paths"])
+            self.assertGreaterEqual(authorization.call_count, 2)
+            self.assertEqual("passed", result["status"], result)
+            self.assertIsNone(result["branchCandidateBinding"]["ownerThreadId"])
+            self.assertEqual(fixture["request"]["paths"],
+                             result["branchCandidateBinding"]["ownedPaths"])
+            execution = Path(result["executionRoot"])
+            self.assertTrue((execution.parent / "zr_vm/binding/Cargo.toml").is_file())
+            self.assertEqual("integration-candidate",
+                fixture["state"].get("management_source", result["operationKey"])["payload"]["sourceView"])
+            capture = fixture["state"].get("management_source", result["operationKey"])["payload"]
+            self.assertEqual("full-file-index-v2", capture["source"]["sourceEvidencePolicy"])
+            self.assertEqual("full-file-index-v2", capture["externalRoots"][0]["source"]["sourceEvidencePolicy"])
+            self.assertTrue(result["capturedInputVerified"])
+            self.assertTrue(result["preparedInputsUnchanged"])
+            self.assertEqual(result["sealedInputRef"], result["preparation"]["sealedInputRef"])
+            native = runner.read_reference(result["nativeTerminal"])
+            self.assertEqual(0, native["rootExitCode"])
+            self.assertIn("--locked", native["command"])
+            self.assertIn("--offline", native["command"])
+            self.assertTrue(runner.native_terminal_proof(native, result["nativeTerminal"])["complete"])
+            self.assertTrue(fixture["state"].list("sealed_input"))
+            self.assertTrue(fixture["state"].list("preparation_source"))
+            self.assertTrue(all(row["payload"]["status"] == "released"
+                                for row in fixture["state"].list("resource_reservation")))
+            self.assertFalse(fixture["state"].list("management_worktree"))
+            self.assertEqual(historical,
+                {name: fixture[name].read_bytes() for name in ("record", "marker", "native")})
+
+    def test_changed_candidate_binding_retains_evidence_and_does_not_launch(self):
+        with self._candidate_fixture() as fixture:
+            original = json.loads(fixture["record"].read_bytes())
+            scope = list(fixture["request"]["paths"])
+            invalid = [
+                (["src/foreign.rs"], scope),
+                ([*original["commitPaths"], "SRC/lib.rs"], scope),
+                (original["commitPaths"], [*scope, "SRC/lib.rs"]),
+            ]
+            for committed, owned in invalid:
+                with self.subTest(committed=committed, owned=owned):
+                    fixture["request"]["paths"] = list(owned)
+                    row = {**original, "request": fixture["request"],
+                           "commitPaths": list(committed)}
+                    fixture["record"].write_bytes(runner.encoded(row) + b"\n")
+                    evidence = {name: fixture[name].read_bytes()
+                                for name in ("record", "marker", "native")}
+                    with patch.object(preparation, "seal_source", wraps=preparation.seal_source) as seal, \
+                            patch.object(runner.Management, "run", wraps=runner.Management.run) as launch:
+                        with self.assertRaisesRegex(ValueError, "Original branch queue candidate binding changed"):
+                            runner.validate_branch_candidate(fixture["capsule"], component_digest=fixture["component"],
+                                root=fixture["root"], branch_request=fixture["request"], cargo_recipe=fixture["recipe"],
+                                ordinal=1, runtime=fixture["runtime"])
+                    seal.assert_not_called()
+                    launch.assert_not_called()
+                    for domain in ("resource_reservation", "execution", "execution_launch", "sealed_input"):
+                        self.assertFalse(fixture["state"].list(domain))
+                    self.assertEqual(evidence,
+                        {name: fixture[name].read_bytes() for name in ("record", "marker", "native")})
+            fixture["request"]["paths"] = scope
+            row = {**original, "request": fixture["request"]}
+            row["candidateHead"] = "0" * 40
+            fixture["record"].write_bytes(runner.encoded(row) + b"\n")
+            evidence = {name: fixture[name].read_bytes() for name in ("record", "marker", "native")}
+            with patch.object(preparation, "seal_source", wraps=preparation.seal_source) as seal, \
+                    patch.object(runner.Management, "run", wraps=runner.Management.run) as launch:
+                with self.assertRaisesRegex(ValueError, "Candidate HEAD"):
+                    runner.validate_branch_candidate(fixture["capsule"], component_digest=fixture["component"],
+                        root=fixture["root"], branch_request=fixture["request"], cargo_recipe=fixture["recipe"],
+                        ordinal=1, runtime=fixture["runtime"])
+            seal.assert_not_called()
+            launch.assert_not_called()
+            for domain in ("resource_reservation", "execution", "execution_launch", "sealed_input"):
+                self.assertFalse(fixture["state"].list(domain))
+            self.assertEqual(evidence,
+                {name: fixture[name].read_bytes() for name in ("record", "marker", "native")})
+
 
 if __name__ == "__main__":
     unittest.main()

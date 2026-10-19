@@ -21,7 +21,7 @@ pub use data::{
     EditorConsoleMessageLevel, EditorDataSnapshot, InspectorNativeFieldSnapshot,
     InspectorPluginComponentPropertySnapshot, InspectorPluginComponentSnapshot, InspectorSnapshot,
     ProjectOverviewSnapshot, SceneEntries, SceneEntry, StatusTaskProgressSnapshot,
-    StatusTaskProgressTone, TransactionHistoryRowSnapshot, TransactionHistorySnapshot,
+    StatusSignalsSnapshot, StatusTaskProgressTone, TransactionHistoryRowSnapshot, TransactionHistorySnapshot,
 };
 pub(crate) use data::{
     ConsoleOutputLineDelta, ConsoleOutputLineGeneration, ConsoleOutputLineSnapshot,

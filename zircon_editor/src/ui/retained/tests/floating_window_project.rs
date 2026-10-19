@@ -333,7 +333,7 @@ fn floating_window_projection_model(
     requested_frame: ShellFrame,
 ) -> WorkbenchViewModel {
     WorkbenchViewModel {
-        is_playing: false,
+        run_controls: Default::default(),
         asset_creation_menu: Default::default(),
         keymap: EditorKeymap::default_workbench(),
         menu_bar: MenuBarModel { menus: Vec::new() },

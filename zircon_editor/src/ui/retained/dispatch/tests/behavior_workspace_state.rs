@@ -6,6 +6,7 @@ use super::*;
 fn tree_graph_details_and_validation_share_one_behavior_profile() {
     let mut bridge = BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(900.0, 620.0))
         .expect("workbench bridge should build");
+    bridge.set_preview_features(true).expect("preview workspace fixture");
 
     assert!(bridge.control_bool("WorkbenchBehaviorSelectorRow", "selected"));
     assert!(bridge.control_bool("WorkbenchBehaviorNodeRow01", "selected"));
@@ -50,7 +51,7 @@ fn tree_graph_details_and_validation_share_one_behavior_profile() {
         .expect("behavior validation should dispatch")
         .expect("behavior validation should bind");
     assert_eq!(
-        Some("Validated BB_Custom / AIController_Custom   Paused".to_string()),
+        Some("Preview inputs: BB_Custom / AIController_Custom   Paused".to_string()),
         bridge.control_string("WorkbenchBehaviorOutputRow", "text")
     );
 }

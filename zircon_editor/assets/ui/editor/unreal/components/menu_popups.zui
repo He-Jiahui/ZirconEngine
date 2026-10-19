@@ -24,77 +24,77 @@ component = "PopupMenu"
 widget = { behavior = "popup", popup_anchor = { kind = "control", control_id = "MenuSlot0" }, open_property = "popup_open" }
 classes = ["unreal-popup-menu"]
 control_id = "UnrealFileMenuPopup"
-props = { corner_radius = 4.0, border_width = 1.0, border_color = "$unreal_dropdown_outline", background_color = "$unreal_dropdown", foreground_color = "$unreal_foreground", line_height_ratio = 1.2, font_weight = 400, font_size = 13.333333, font_family = "Roboto", open = false, popup_open = false, input_interactive = true, menu_items = ["New Level|action=menu.item.new_scene", "Open Level|action=menu.item.open_scene", "Save Current Level|action=file.project.save"] }
+props = { corner_radius = 4.0, border_width = 1.0, border_color = "$unreal_dropdown_outline", background_color = "$unreal_dropdown", foreground_color = "$unreal_foreground", line_height_ratio = 1.2, font_weight = 400, font_size = 13.333333, font_family = "Roboto", open = false, popup_open = false, input_interactive = true, menu_items = [] }
 
 [nodes.edit_popup]
 component = "PopupMenu"
 widget = { behavior = "popup", popup_anchor = { kind = "control", control_id = "MenuSlot1" }, open_property = "popup_open" }
 classes = ["unreal-popup-menu"]
 control_id = "UnrealEditMenuPopup"
-props = { corner_radius = 4.0, border_width = 1.0, border_color = "$unreal_dropdown_outline", background_color = "$unreal_dropdown", foreground_color = "$unreal_foreground", line_height_ratio = 1.2, font_weight = 400, font_size = 13.333333, font_family = "Roboto", open = false, popup_open = false, input_interactive = true, menu_items = ["Undo|action=workbench.history.undo", "Redo|action=workbench.history.redo", "Cut|disabled", "Copy|disabled", "Paste|disabled"] }
+props = { corner_radius = 4.0, border_width = 1.0, border_color = "$unreal_dropdown_outline", background_color = "$unreal_dropdown", foreground_color = "$unreal_foreground", line_height_ratio = 1.2, font_weight = 400, font_size = 13.333333, font_family = "Roboto", open = false, popup_open = false, input_interactive = true, menu_items = [] }
 
 [nodes.window_popup]
 component = "PopupMenu"
 widget = { behavior = "popup", popup_anchor = { kind = "control", control_id = "MenuSlot2" }, open_property = "popup_open" }
 classes = ["unreal-popup-menu"]
 control_id = "UnrealWindowMenuPopup"
-props = { corner_radius = 4.0, border_width = 1.0, border_color = "$unreal_dropdown_outline", background_color = "$unreal_dropdown", foreground_color = "$unreal_foreground", line_height_ratio = 1.2, font_weight = 400, font_size = 13.333333, font_family = "Roboto", open = false, popup_open = false, input_interactive = true, menu_items = ["Load Layout|action=LoadPreset.current", "Save Layout|action=workbench.layout.save", "Reset Layout|action=workbench.layout.reset"] }
+props = { corner_radius = 4.0, border_width = 1.0, border_color = "$unreal_dropdown_outline", background_color = "$unreal_dropdown", foreground_color = "$unreal_foreground", line_height_ratio = 1.2, font_weight = 400, font_size = 13.333333, font_family = "Roboto", open = false, popup_open = false, input_interactive = true, menu_items = [] }
 
 [nodes.tools_popup]
 component = "PopupMenu"
 widget = { behavior = "popup", popup_anchor = { kind = "control", control_id = "MenuSlot3" }, open_property = "popup_open" }
 classes = ["unreal-popup-menu"]
 control_id = "UnrealToolsMenuPopup"
-props = { corner_radius = 4.0, border_width = 1.0, border_color = "$unreal_dropdown_outline", background_color = "$unreal_dropdown", foreground_color = "$unreal_foreground", line_height_ratio = 1.2, font_weight = 400, font_size = 13.333333, font_family = "Roboto", open = false, popup_open = false, input_interactive = true, menu_items = ["Asset Actions|disabled", "World Settings|disabled", "Plugins|disabled"] }
+props = { corner_radius = 4.0, border_width = 1.0, border_color = "$unreal_dropdown_outline", background_color = "$unreal_dropdown", foreground_color = "$unreal_foreground", line_height_ratio = 1.2, font_weight = 400, font_size = 13.333333, font_family = "Roboto", open = false, popup_open = false, input_interactive = true, menu_items = [] }
 
 [nodes.build_popup]
 component = "PopupMenu"
 widget = { behavior = "popup", popup_anchor = { kind = "control", control_id = "MenuSlot4" }, open_property = "popup_open" }
 classes = ["unreal-popup-menu"]
 control_id = "UnrealBuildMenuPopup"
-props = { corner_radius = 4.0, border_width = 1.0, border_color = "$unreal_dropdown_outline", background_color = "$unreal_dropdown", foreground_color = "$unreal_foreground", line_height_ratio = 1.2, font_weight = 400, font_size = 13.333333, font_family = "Roboto", open = false, popup_open = false, input_interactive = true, menu_items = ["Build|disabled", "Cook Content|disabled", "Package Project|disabled"] }
+props = { corner_radius = 4.0, border_width = 1.0, border_color = "$unreal_dropdown_outline", background_color = "$unreal_dropdown", foreground_color = "$unreal_foreground", line_height_ratio = 1.2, font_weight = 400, font_size = 13.333333, font_family = "Roboto", open = false, popup_open = false, input_interactive = true, menu_items = [] }
 
 [nodes.help_popup]
 component = "PopupMenu"
 widget = { behavior = "popup", popup_anchor = { kind = "control", control_id = "MenuSlot5" }, open_property = "popup_open" }
 classes = ["unreal-popup-menu"]
 control_id = "UnrealHelpMenuPopup"
-props = { corner_radius = 4.0, border_width = 1.0, border_color = "$unreal_dropdown_outline", background_color = "$unreal_dropdown", foreground_color = "$unreal_foreground", line_height_ratio = 1.2, font_weight = 400, font_size = 13.333333, font_family = "Roboto", open = false, popup_open = false, input_interactive = true, menu_items = ["Documentation|disabled", "Viewport Controls|disabled", "About Zircon Editor|disabled"] }
+props = { corner_radius = 4.0, border_width = 1.0, border_color = "$unreal_dropdown_outline", background_color = "$unreal_dropdown", foreground_color = "$unreal_foreground", line_height_ratio = 1.2, font_weight = 400, font_size = 13.333333, font_family = "Roboto", open = false, popup_open = false, input_interactive = true, menu_items = [] }
 
 [nodes.modes_popup]
 component = "PopupMenu"
 widget = { behavior = "popup", popup_anchor = { kind = "control", control_id = "WorkbenchToolSelect" }, open_property = "popup_open" }
 classes = ["unreal-popup-menu"]
 control_id = "UnrealModesMenuPopup"
-props = { corner_radius = 4.0, border_width = 1.0, border_color = "$unreal_dropdown_outline", background_color = "$unreal_dropdown", foreground_color = "$unreal_foreground", line_height_ratio = 1.2, font_weight = 400, font_size = 13.333333, font_family = "Roboto", open = false, popup_open = false, input_interactive = true, menu_items = ["Selection Mode|action=workbench.scene.mode.select", "Landscape|disabled", "Foliage|disabled", "Modeling|disabled"] }
+props = { corner_radius = 4.0, border_width = 1.0, border_color = "$unreal_dropdown_outline", background_color = "$unreal_dropdown", foreground_color = "$unreal_foreground", line_height_ratio = 1.2, font_weight = 400, font_size = 13.333333, font_family = "Roboto", open = false, popup_open = false, input_interactive = true, menu_items = [] }
 
 [nodes.add_popup]
 component = "PopupMenu"
 widget = { behavior = "popup", popup_anchor = { kind = "control", control_id = "WorkbenchToolbarAddActor" }, open_property = "popup_open" }
 classes = ["unreal-popup-menu"]
 control_id = "UnrealAddMenuPopup"
-props = { corner_radius = 4.0, border_width = 1.0, border_color = "$unreal_dropdown_outline", background_color = "$unreal_dropdown", foreground_color = "$unreal_foreground", line_height_ratio = 1.2, font_weight = 400, font_size = 13.333333, font_family = "Roboto", open = false, popup_open = false, input_interactive = true, menu_items = ["Cube|action=workbench.scene.node.create.cube", "Sphere|disabled", "Plane|disabled", "Point Light|disabled", "Camera|disabled"] }
+props = { corner_radius = 4.0, border_width = 1.0, border_color = "$unreal_dropdown_outline", background_color = "$unreal_dropdown", foreground_color = "$unreal_foreground", line_height_ratio = 1.2, font_weight = 400, font_size = 13.333333, font_family = "Roboto", open = false, popup_open = false, input_interactive = true, menu_items = [] }
 
 [nodes.blueprints_popup]
 component = "PopupMenu"
 widget = { behavior = "popup", popup_anchor = { kind = "control", control_id = "UnrealToolbarBlueprints" }, open_property = "popup_open" }
 classes = ["unreal-popup-menu"]
 control_id = "UnrealBlueprintsMenuPopup"
-props = { corner_radius = 4.0, border_width = 1.0, border_color = "$unreal_dropdown_outline", background_color = "$unreal_dropdown", foreground_color = "$unreal_foreground", line_height_ratio = 1.2, font_weight = 400, font_size = 13.333333, font_family = "Roboto", open = false, popup_open = false, input_interactive = true, menu_items = ["Open Level Blueprint|disabled", "New Blueprint Class|disabled", "Game Mode|disabled"] }
+props = { corner_radius = 4.0, border_width = 1.0, border_color = "$unreal_dropdown_outline", background_color = "$unreal_dropdown", foreground_color = "$unreal_foreground", line_height_ratio = 1.2, font_weight = 400, font_size = 13.333333, font_family = "Roboto", open = false, popup_open = false, input_interactive = true, menu_items = [] }
 
 [nodes.cinematics_popup]
 component = "PopupMenu"
 widget = { behavior = "popup", popup_anchor = { kind = "control", control_id = "UnrealToolbarCinematics" }, open_property = "popup_open" }
 classes = ["unreal-popup-menu"]
 control_id = "UnrealCinematicsMenuPopup"
-props = { corner_radius = 4.0, border_width = 1.0, border_color = "$unreal_dropdown_outline", background_color = "$unreal_dropdown", foreground_color = "$unreal_foreground", line_height_ratio = 1.2, font_weight = 400, font_size = 13.333333, font_family = "Roboto", open = false, popup_open = false, input_interactive = true, menu_items = ["Add Level Sequence|disabled", "Open Level Sequence|disabled"] }
+props = { corner_radius = 4.0, border_width = 1.0, border_color = "$unreal_dropdown_outline", background_color = "$unreal_dropdown", foreground_color = "$unreal_foreground", line_height_ratio = 1.2, font_weight = 400, font_size = 13.333333, font_family = "Roboto", open = false, popup_open = false, input_interactive = true, menu_items = [] }
 
 [nodes.settings_popup]
 component = "PopupMenu"
 widget = { behavior = "popup", popup_anchor = { kind = "control", control_id = "UnrealToolbarSettings" }, open_property = "popup_open" }
 classes = ["unreal-popup-menu"]
 control_id = "UnrealSettingsMenuPopup"
-props = { corner_radius = 4.0, border_width = 1.0, border_color = "$unreal_dropdown_outline", background_color = "$unreal_dropdown", foreground_color = "$unreal_foreground", line_height_ratio = 1.2, font_weight = 400, font_size = 13.333333, font_family = "Roboto", open = false, popup_open = false, input_interactive = true, menu_items = ["Project Settings|disabled", "World Settings|disabled", "Engine Scalability Settings|disabled"] }
+props = { corner_radius = 4.0, border_width = 1.0, border_color = "$unreal_dropdown_outline", background_color = "$unreal_dropdown", foreground_color = "$unreal_foreground", line_height_ratio = 1.2, font_weight = 400, font_size = 13.333333, font_family = "Roboto", open = false, popup_open = false, input_interactive = true, menu_items = [] }
 
 [nodes.run_mode_popup]
 component = "PopupMenu"

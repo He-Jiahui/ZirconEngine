@@ -63,7 +63,7 @@ impl Default for SceneViewportSnapSteps {
             scale_step: 0.1,
             translate_enabled: true,
             rotate_enabled: true,
-            scale_enabled: true,
+            scale_enabled: false,
         }
     }
 }

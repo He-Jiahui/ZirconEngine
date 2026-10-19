@@ -80,7 +80,9 @@ AUTH = {PREVIEW_ACTION: "validation", "create-branch": "implementation", "create
 
 
 def compact_build_environment(environment):
-    """Apply before compatibility hashing and launch; preserve release symbols."""
+    """Apply before compatibility hashing and launch; never reuse a larger pool
+    under a key that claims compact settings. Release/profiling symbols stay intact.
+    """
     return {**environment, "CARGO_INCREMENTAL": "0", "CARGO_PROFILE_DEV_INCREMENTAL": "false",
             "CARGO_PROFILE_TEST_INCREMENTAL": "false", "CARGO_PROFILE_DEV_DEBUG": "0",
             "CARGO_PROFILE_TEST_DEBUG": "0"}

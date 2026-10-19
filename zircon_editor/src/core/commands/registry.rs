@@ -1,5 +1,5 @@
 use std::collections::{btree_map::Values, BTreeMap, HashSet};
-use std::sync::{Arc, OnceLock};
+use std::sync::{Arc, Mutex, OnceLock};
 
 use serde::{Deserialize, Serialize};
 
@@ -27,6 +27,8 @@ pub struct EditorCommandRegistry {
     #[serde(skip)]
     palette_catalog: OnceLock<Arc<EditorCommandPaletteCatalog>>,
     #[serde(skip)]
+    effective_palette_catalog: Mutex<Option<(super::EditorKeymap, Arc<EditorCommandPaletteCatalog>)>>,
+    #[serde(skip)]
     executors: EditorCommandExecutorRegistry,
 }
 
@@ -37,6 +39,7 @@ impl Clone for EditorCommandRegistry {
             operation_factories: self.operation_factories.clone(),
             generation: self.generation,
             palette_catalog: OnceLock::new(),
+            effective_palette_catalog: Mutex::new(None),
             executors: EditorCommandExecutorRegistry::default(),
         }
     }
@@ -341,6 +344,27 @@ impl EditorCommandRegistry {
                 PaletteCommandDescriptors::new(self.commands.values()),
             ))
         }))
+    }
+
+    /// Search and display share the effective shortcuts, including removed bindings.
+    pub fn command_palette_catalog_with_keymap(
+        &self,
+        keymap: &super::EditorKeymap,
+    ) -> Arc<EditorCommandPaletteCatalog> {
+        let mut cache = self.effective_palette_catalog.lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        if let Some((current, catalog)) = cache.as_ref() {
+            if current == keymap && catalog.generation() == self.generation {
+                return Arc::clone(catalog);
+            }
+        }
+        let catalog = Arc::new(EditorCommandPaletteCatalog::from_descriptors_with_keymap(
+            self.generation,
+            PaletteCommandDescriptors::new(self.commands.values()),
+            Some(keymap),
+        ));
+        *cache = Some((keymap.clone(), Arc::clone(&catalog)));
+        catalog
     }
 
     pub fn menu_bar_model(

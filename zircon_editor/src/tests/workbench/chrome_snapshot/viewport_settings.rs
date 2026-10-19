@@ -39,6 +39,7 @@ fn chrome_builder_carries_scene_viewport_settings_into_snapshot() {
             inspector: None,
             status_line: "Ready".to_string(),
             console_output: "Ready".into(),
+            status_signals: Default::default(),
             status_task_progress: None,
             hovered_axis: None,
             viewport_size: UVec2::new(1280, 720),

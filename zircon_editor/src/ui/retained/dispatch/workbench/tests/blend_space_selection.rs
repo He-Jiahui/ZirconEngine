@@ -96,7 +96,7 @@ fn asset_selection_projects_one_profile_and_preserves_transport_state() {
         .expect("Preview command should dispatch")
         .expect("Preview command should bind");
     assert_eq!(
-        Some("Preview queued   BS_Strafe_Grid   Strafe_R".to_string()),
+        Some("Preview inputs: BS_Strafe_Grid   Strafe_R".to_string()),
         bridge.control_string("WorkbenchExtensionBlendSpaceOutputRow", "value_text")
     );
 
@@ -154,6 +154,7 @@ fn asset_selection_projects_one_profile_and_preserves_transport_state() {
 fn open_blend_space() -> BuiltinWorkbenchWindowTemplateSurfaceBridge {
     let mut bridge = BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(900.0, 620.0))
         .expect("workbench bridge should build");
+    bridge.set_preview_features(true).expect("preview workspace fixture");
     bridge
         .dispatch_control_state("WorkbenchAbilityAnimationTools", UiEventKind::Click)
         .expect("Blend Space opener should dispatch")

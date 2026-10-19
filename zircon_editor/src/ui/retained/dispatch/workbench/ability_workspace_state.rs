@@ -133,13 +133,13 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
             .control_string("WorkbenchAbilityCooldownField", "value")
             .filter(|value| !value.trim().is_empty())
             .unwrap_or_else(|| "4.00s".to_string());
-        self.set_ability_string("WorkbenchStatusReady", "text", "Ability playtest queued")?;
+        self.set_ability_string("WorkbenchStatusReady", "text", "Not implemented (preview)")?;
         self.set_ability_string("WorkbenchStatusMessages", "text", "1 Message")?;
         self.set_ability_string(
             "WorkbenchAbilityOutputRow",
             "value_text",
             format!(
-                "Playtest queued   {}   {}   {}   cooldown {}",
+                "Preview inputs: {}   {}   {}   cooldown {}",
                 net_policy, profile.playtest_scope, ability_name, cooldown
             ),
         )

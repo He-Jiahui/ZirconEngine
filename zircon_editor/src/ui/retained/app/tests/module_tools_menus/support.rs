@@ -16,6 +16,16 @@ use super::cases::{MenuCase, WorkspaceCase, BLEND_SPACE_IMPORT_SOURCES, MENUS, W
 
 pub(super) fn harness() -> ChildWindowHostHarness {
     let harness = ChildWindowHostHarness::new("zircon_module_tools_native_sources");
+    {
+        let host = harness.host.borrow();
+        host.runtime.context().settings().set(
+            crate::core::settings::SettingsScope::User,
+            &crate::core::settings::SettingsKey::parse(
+                crate::core::settings::EDITOR_SHOW_PREVIEW_FEATURES_KEY,
+            ).unwrap(),
+            crate::core::settings::SettingValue::Bool(true),
+        ).unwrap();
+    }
     harness.activate_workbench_page();
     resize(&harness, 1672, 941);
     harness
@@ -27,6 +37,7 @@ pub(super) fn resize(harness: &ChildWindowHostHarness, width: u32, height: u32) 
         .window()
         .set_size(PhysicalSize::new(width, height));
     let mut host = harness.host.borrow_mut();
+    host.sync_settings_projections();
     host.sync_shell_size();
     host.refresh_ui();
     host.recompute_if_dirty();

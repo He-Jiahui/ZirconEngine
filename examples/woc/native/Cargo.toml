@@ -11,7 +11,7 @@ members = [
 ]
 resolver = "2"
 
-# This is a separate workspace; dependency profiles do not apply here.
+# Dependency workspace profiles do not apply to this independent workspace.
 [profile.dev]
 debug = 0
 incremental = false

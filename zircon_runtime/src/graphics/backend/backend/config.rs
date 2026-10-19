@@ -3,6 +3,7 @@
 pub(crate) struct RenderBackendConfig {
     pub(crate) backends: wgpu::Backends,
     pub(crate) instance_flags: wgpu::InstanceFlags,
+    pub(crate) prefer_dx12: bool,
 }
 
 impl RenderBackendConfig {
@@ -28,6 +29,7 @@ impl RenderBackendConfig {
         );
 
         Self {
+            prefer_dx12: backend.is_none() && cfg!(windows),
             backends: backend
                 .map(wgpu::Backends::from_comma_list)
                 .unwrap_or(wgpu::Backends::PRIMARY),

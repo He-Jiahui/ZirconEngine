@@ -7,6 +7,7 @@ use zircon_runtime_interface::ui::{binding::UiEventKind, layout::UiSize};
 fn icon_library_find_usage_click_reports_unavailable_without_fake_results() {
     let mut bridge = BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(1672.0, 941.0))
         .expect("the built-in workbench surface should mount");
+    bridge.set_preview_features(true).expect("preview workspace fixture");
 
     let binding = bridge
         .dispatch_control_state(

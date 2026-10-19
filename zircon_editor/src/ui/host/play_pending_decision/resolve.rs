@@ -41,7 +41,7 @@ impl EditorHostEventController {
             match self
                 .play_pending_decisions()
                 .consume_resolved_receipts(center, |selection| {
-                    self.execute_pending_play_decision_selection(center, selection)
+                    self.execute_pending_play_decision_selection(selection)
                 }) {
                 Ok(outcomes) => {
                     self.publish_pending_play_decision_outcome_toasts(&outcomes);
@@ -81,7 +81,6 @@ impl EditorHostEventController {
 
     fn execute_pending_play_decision_selection(
         &self,
-        center: &DecisionNotificationCenter,
         selection: &PlayPendingDecisionSelection,
     ) -> Result<PlayPendingEditDecisionOutcome, PlayPendingDecisionReceiptDispatchError> {
         match selection.option_id().as_str() {

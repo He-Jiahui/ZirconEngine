@@ -6,6 +6,7 @@ use super::*;
 fn widget_canvas_and_preview_keep_distinct_state_domains() {
     let mut bridge = BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(900.0, 620.0))
         .expect("workbench bridge should build");
+    bridge.set_preview_features(true).expect("preview workspace fixture");
 
     assert!(bridge.control_bool("WorkbenchHudWidgetTextRow", "selected"));
     assert!(bridge.control_bool("WorkbenchHudMinimapRow", "selected"));

@@ -16,6 +16,9 @@ impl RetainedEditorHost {
             }
         }
         let mut activity_toasts_published = false;
+        if let Some(sequence) = effects.play_started_sequence {
+            activity_toasts_published |= self.warn_degraded_play_start(sequence);
+        }
         if !effects.toast_notifications.is_empty() {
             activity_toasts_published |= self.enqueue_activity_toasts(&effects.toast_notifications);
         }
@@ -67,6 +70,16 @@ impl RetainedEditorHost {
         }
         if effects.open_settings_window_requested {
             self.open_workbench_settings_window();
+        }
+        if effects.toggle_content_drawer_requested {
+            match self.workbench_window_bridge.toggle_content_drawer() {
+                Ok(()) => {
+                    let mut drawer_effects = UiHostEventEffects::default();
+                    drawer_effects.request_paint_only();
+                    self.apply_dispatch_effects(drawer_effects);
+                }
+                Err(error) => self.set_status_line(error.to_string()),
+            }
         }
         if effects.open_scene_picker_requested {
             self.open_workbench_scene_picker(ScenePickerMode::Open);

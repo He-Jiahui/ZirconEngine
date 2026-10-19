@@ -25,9 +25,11 @@ if ($taskSelected.root -ne $taskDriverRoot -or $taskSelected.steps -ne $taskStep
 }
 $taskSourcePath = Join-Path $taskRepo 'tools/jenkins-management/zircon-scheduled-cleanup.groovy'
 $taskCacheSourcePath = Join-Path $taskRepo 'tools/jenkins-management/incremental-cache-cleanup.groovy'
+$taskCacheModulePath = Join-Path $taskRepo 'tools/jenkins-management/incremental_cache_cleanup.py'
 $taskBindingPath = Join-Path $taskRepo 'tools/dev/jenkins_cleanup_runtime.py'
+$taskControlPath = Join-Path $taskRepo 'tools/jenkins-management/scheduled_control.py'
 $taskPythonPath = Join-Path $taskRepo '.jenkins/runtime/python/python.exe'
-foreach ($taskInput in @($taskSourcePath, $taskCacheSourcePath, $taskBindingPath, $taskPythonPath, $taskSteps, $taskLauncher)) {
+foreach ($taskInput in @($taskSourcePath, $taskCacheSourcePath, $taskCacheModulePath, $taskBindingPath, $taskControlPath, $taskPythonPath, $taskSteps, $taskLauncher)) {
     if (-not (Test-Path -LiteralPath $taskInput -PathType Leaf)) { throw 'Scheduled cleanup implementation is missing' }
     $taskCursor = $taskInput
     while ($taskCursor) {
@@ -43,7 +45,51 @@ foreach ($taskBinding in @(@{name = 'pipeline/steps.groovy'; path = $taskSteps},
     }
 }
 $taskSource = Get-Content -LiteralPath $taskSourcePath -Raw
-$taskSource = (Get-Content -LiteralPath $taskCacheSourcePath -Raw) + [Environment]::NewLine + $taskSource
+$taskCacheModuleDigest = (Get-FileHash -LiteralPath $taskCacheModulePath -Algorithm SHA256).Hash.ToLowerInvariant()
+$taskCacheTemplateDigest = (Get-FileHash -LiteralPath $taskCacheSourcePath -Algorithm SHA256).Hash.ToLowerInvariant()
+$taskCacheRenderLines = & $taskPythonPath -B -X utf8 $taskCacheModulePath render
+if ($LASTEXITCODE -ne 0) { throw 'Cannot render the reviewed incremental cleanup stage' }
+$taskCacheRender = ($taskCacheRenderLines -join [Environment]::NewLine) | ConvertFrom-Json
+if ((Get-FileHash -LiteralPath $taskCacheModulePath -Algorithm SHA256).Hash.ToLowerInvariant() -ne $taskCacheModuleDigest -or
+    (Get-FileHash -LiteralPath $taskCacheSourcePath -Algorithm SHA256).Hash.ToLowerInvariant() -ne $taskCacheTemplateDigest -or
+    [IO.Path]::GetFullPath([string]$taskCacheRender.sourcePins.entry.path) -ne [IO.Path]::GetFullPath($taskCacheModulePath) -or
+    $taskCacheRender.sourcePins.entry.sha256 -ne $taskCacheModuleDigest -or
+    -not ([string]$taskCacheRender.script).Contains('// BEGIN ZIRCON INCREMENTAL CACHE CLEANUP') -or
+    ([string]$taskCacheRender.script) -match '@[A-Z_]+@' -or @($taskCacheRender.scope).Count -eq 0) {
+    throw 'Rendered incremental cleanup source, scope or implementation pin differs'
+}
+$taskSource = [string]$taskCacheRender.script + [Environment]::NewLine + $taskSource
+$taskControlDigest = (Get-FileHash -LiteralPath $taskControlPath -Algorithm SHA256).Hash.ToLowerInvariant()
+$taskControlLines = & $taskPythonPath -B -X utf8 $taskControlPath render --driver $ExpectedDriverDigest --runtime $ExpectedRuntimeOperationId
+if ($LASTEXITCODE -ne 0) { throw 'Cannot render scheduled control dependency plan' }
+$taskControlRender = ($taskControlLines -join [Environment]::NewLine) | ConvertFrom-Json
+if ((Get-FileHash -LiteralPath $taskControlPath -Algorithm SHA256).Hash.ToLowerInvariant() -ne $taskControlDigest -or
+    [string]$taskControlRender.sha256 -notmatch '^[0-9a-f]{64}$') { throw 'Scheduled control source/plan changed' }
+$taskControlPlanRoot = 'E:/cargo-targets/zircon-local/reports/jenkins-scheduled-cleanup/control-plans'
+$taskControlCursor = $taskControlPlanRoot
+while ($taskControlCursor) {
+    if ((Test-Path -LiteralPath $taskControlCursor) -and
+        ((Get-Item -LiteralPath $taskControlCursor -Force).Attributes -band [IO.FileAttributes]::ReparsePoint)) {
+        throw 'Scheduled control plan path contains an alias'
+    }
+    $taskControlCursor = [IO.Path]::GetDirectoryName($taskControlCursor)
+}
+[void][IO.Directory]::CreateDirectory($taskControlPlanRoot)
+$taskControlPlan = Join-Path $taskControlPlanRoot ([string]$taskControlRender.sha256 + '.json')
+$taskControlLedger = $taskControlPlan + '.artifacts.json'
+if (-not (Test-Path -LiteralPath $taskControlLedger)) {
+    [IO.File]::WriteAllText($taskControlLedger, (ConvertTo-Json -Depth 8 -InputObject @{
+        owner = $SessionId; status = 'retained-deployment-dependency'; path = $taskControlPlan;
+        source = $taskControlPath; sourceSha256 = $taskControlDigest;
+        retention = 'Keep while current timer references this plan; preserve original native/response receipts'
+    }), [Text.UTF8Encoding]::new($false))
+}
+if (-not (Test-Path -LiteralPath $taskControlPlan)) {
+    [IO.File]::WriteAllText($taskControlPlan, [string]$taskControlRender.planJson, [Text.UTF8Encoding]::new($false))
+}
+if ((Get-FileHash -LiteralPath $taskControlPlan -Algorithm SHA256).Hash.ToLowerInvariant() -ne [string]$taskControlRender.sha256) {
+    throw 'Original scheduled control plan bytes differ'
+}
 $taskSourceDigest = (Get-FileHash -LiteralPath $taskSourcePath -Algorithm SHA256).Hash.ToLowerInvariant()
 $taskEnvironment = [ordered]@{
     ZIRCON_REPO_ROOT = $taskRepo
@@ -57,6 +103,10 @@ $taskEnvironment = [ordered]@{
     ZIRCON_AGENT_LABEL = 'zircon-windows-agent'
     ZIRCON_CLEANUP_BINDING_SHA256 = (Get-FileHash -LiteralPath $taskBindingPath -Algorithm SHA256).Hash.ToLowerInvariant()
     ZIRCON_CLEANUP_PYTHON_SHA256 = (Get-FileHash -LiteralPath $taskPythonPath -Algorithm SHA256).Hash.ToLowerInvariant()
+    ZIRCON_SCHEDULED_CONTROL_ENTRY = $taskControlPath
+    ZIRCON_SCHEDULED_CONTROL_SHA256 = $taskControlDigest
+    ZIRCON_SCHEDULED_CONTROL_PLAN = $taskControlPlan
+    ZIRCON_SCHEDULED_CONTROL_PLAN_SHA256 = [string]$taskControlRender.sha256
     PYTHONDONTWRITEBYTECODE = '1'
 }
 # Repository identity matches the default CLI: contracts.digest(casefolded absolute root).
@@ -108,6 +158,7 @@ $taskJob = 'zircon-scheduled-cleanup'
 $taskConfigUrl = $taskBase + '/job/' + $taskJob + '/config.xml'
 $taskExists = $true
 $taskPreserveGovernance = $false
+$taskCompactionStage = ''
 try {
     $taskPrevious = Invoke-WebRequest -Uri $taskConfigUrl -Method Get -Headers $taskHeaders -UseBasicParsing -TimeoutSec 15
 } catch {
@@ -116,7 +167,16 @@ try {
 }
 if ($taskExists) {
     $taskPreviousDocument = Read-JenkinsJobXml ([string]$taskPrevious.Content)
-    $taskPreserveGovernance = ([string]$taskPreviousDocument.'flow-definition'.definition.script).Contains('// ZIRCON HOST GOVERNANCE AUDIT')
+    $taskPreviousScript = [string]$taskPreviousDocument.'flow-definition'.definition.script
+    $taskPreserveGovernance = $taskPreviousScript.Contains('// ZIRCON HOST GOVERNANCE AUDIT')
+    if ($taskPreviousScript.Contains('// BEGIN ZIRCON CARGO CACHE COMPACTION')) {
+        $taskCompactionMatches = [regex]::Matches($taskPreviousScript, '(?s)// BEGIN ZIRCON CARGO CACHE COMPACTION\r?\n.*?// END ZIRCON CARGO CACHE COMPACTION\r?\n?')
+        if ($taskCompactionMatches.Count -ne 1) { throw 'Existing Cargo compaction stage is incomplete or duplicated' }
+        $taskCompactionStage = $taskCompactionMatches[0].Value.TrimEnd("`r", "`n")
+        $taskDesiredDocument = Read-JenkinsJobXml $taskXml
+        $taskDesiredDocument.'flow-definition'.definition.script = $taskCompactionStage + [Environment]::NewLine + [string]$taskDesiredDocument.'flow-definition'.definition.script
+        $taskXml = $taskDesiredDocument.OuterXml
+    }
     $taskCurrent = Invoke-WebRequest -Uri $taskConfigUrl -Method Get -Headers $taskHeaders -UseBasicParsing -TimeoutSec 15
     if ([string]$taskCurrent.Content -cne [string]$taskPrevious.Content) { throw 'Scheduled cleanup changed during installation review' }
 }
@@ -137,6 +197,9 @@ $taskInstalledDocument = Read-JenkinsJobXml ([string]$taskReadback.Content)
 $taskInstalledScript = [string]$taskInstalledDocument.'flow-definition'.definition.script
 # Keep the cache result visible when a retained governance hook writes the final description.
 $taskDisplayScript = $taskInstalledScript.Replace("currentBuild.description = report.status +", "currentBuild.description = 'compiler cache ' + (env.ZIRCON_INCREMENTAL_DELETED_BYTES ?: '0') + ' logical bytes; ' + report.status +")
+if ($taskCompactionStage) {
+    $taskDisplayScript = $taskDisplayScript.Replace("currentBuild.description = 'compiler cache ' +", "currentBuild.description = 'NTFS physical ' + (env.ZIRCON_CARGO_COMPACT_ALLOCATION ?: '0') + ' bytes; compiler cache ' +")
+}
 if ($taskDisplayScript -cne $taskInstalledScript) {
     $taskInstalledDocument.'flow-definition'.definition.script = $taskDisplayScript
     $null = Invoke-WebRequest -Uri $taskConfigUrl -Method Post -Headers $taskHeaders -ContentType 'application/xml; charset=utf-8' -Body ([Text.Encoding]::UTF8.GetBytes($taskInstalledDocument.OuterXml)) -UseBasicParsing -TimeoutSec 15
@@ -146,6 +209,10 @@ if ($taskDisplayScript -cne $taskInstalledScript) {
     if ($taskInstalledScript -cne $taskDisplayScript) { throw 'Scheduled cleanup description readback differs' }
 }
 $taskExpectedScript = ($taskPrelude + [Environment]::NewLine + $taskSource).Replace("`r`n", "`n").TrimEnd()
+if ($taskCompactionStage) { $taskExpectedScript = $taskCompactionStage.Replace("`r`n", "`n") + "`n" + $taskExpectedScript }
+if ($taskCompactionStage) {
+    $taskExpectedScript = $taskExpectedScript.Replace("currentBuild.description = 'compiler cache ' +", "currentBuild.description = 'NTFS physical ' + (env.ZIRCON_CARGO_COMPACT_ALLOCATION ?: '0') + ' bytes; compiler cache ' +")
+}
 if (-not $taskInstalledScript.Replace("`r`n", "`n").StartsWith($taskExpectedScript) -or
     ($taskPreserveGovernance -and -not $taskInstalledScript.Contains('// ZIRCON HOST GOVERNANCE AUDIT'))) {
     throw 'Scheduled cleanup installation readback differs from the reviewed source and governance stage'
@@ -156,8 +223,12 @@ if (-not $taskInstalledScript.Replace("`r`n", "`n").StartsWith($taskExpectedScri
     runtimeOperationId = $ExpectedRuntimeOperationId; maintenanceSession = $SessionId
     maxObjectsPerRun = 64; maxBytesPerRun = 268435456; controllerRestartRequired = $false
     incrementalCacheMaxBytesPerRun = 34359738368L; incrementalCacheTriggerFreeBytes = 85899345920L
-    incrementalDCacheTriggerFreeBytes = 42949672960L
+    incrementalDCacheTriggerFreeBytes = 85899345920L
+    incrementalCacheScopeCount = @($taskCacheRender.scope).Count
+    incrementalCacheImplementationSha256 = $taskCacheModuleDigest
+    incrementalCacheTemplateSha256 = $taskCacheTemplateDigest
     governanceStagePreserved = $taskPreserveGovernance; readbackVerified = $true
+    cargoCompactionStagePreserved = [bool]$taskCompactionStage
     runtimeBinding = 'same reviewed driver; fresh native owners per new run; exact runtime fence thereafter'
     runtimeBindingImplementationSha256 = $taskEnvironment.ZIRCON_CLEANUP_BINDING_SHA256
 } | ConvertTo-Json -Depth 4

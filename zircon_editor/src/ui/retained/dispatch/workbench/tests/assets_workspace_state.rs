@@ -6,6 +6,7 @@ use super::*;
 fn folder_asset_and_import_actions_share_one_projection() {
     let mut bridge = BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(900.0, 620.0))
         .expect("workbench bridge should build");
+    bridge.set_preview_features(true).expect("preview workspace fixture");
 
     assert!(bridge.control_bool("WorkbenchAssetsForestRow", "selected"));
     assert!(bridge.control_bool("WorkbenchAssetsTableRow01", "selected"));
@@ -46,7 +47,7 @@ fn folder_asset_and_import_actions_share_one_projection() {
         .expect("asset import should dispatch")
         .expect("asset import should bind");
     assert_eq!(
-        Some("Import: M_Custom   Custom Material / Custom Importer".to_string()),
+        Some("Preview inputs: M_Custom   Custom Material / Custom Importer".to_string()),
         bridge.control_string("WorkbenchAssetsOutputRow", "text")
     );
 }

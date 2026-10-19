@@ -1,4 +1,5 @@
-use crate::ui::workbench::model::WorkbenchViewModel;
+use crate::core::editor_message::PlayStateKind;
+use crate::ui::workbench::model::{RunControlsModel, WorkbenchViewModel};
 use zircon_runtime_interface::ui::component::UiValue;
 
 use super::componentized_window::BuiltinWorkbenchWindowTemplateSurfaceBridge;
@@ -11,6 +12,8 @@ const STOP_CONTROL_ID: &str = "WorkbenchRunStop";
 struct RunControlProjection {
     visible: bool,
     checked: bool,
+    enabled: bool,
+    label: &'static str,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -24,7 +27,7 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         &mut self,
         model: &WorkbenchViewModel,
     ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
-        let projection = toolbar_run_projection(model.is_playing);
+        let projection = toolbar_run_projection(model.run_controls);
         self.set_visible(PLAY_CONTROL_ID, projection.play.visible)?;
         self.mutate_control_property(
             PLAY_CONTROL_ID,
@@ -37,19 +40,43 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
             "checked",
             UiValue::Bool(projection.stop.checked),
         )?;
+        for (control, state) in [
+            (PLAY_CONTROL_ID, projection.play),
+            (STOP_CONTROL_ID, projection.stop),
+        ] {
+            self.mutate_control_property(control, "disabled", UiValue::Bool(!state.enabled))?;
+            self.mutate_control_property(control, "label", UiValue::String(state.label.to_owned()))?;
+            self.mutate_control_property(control, "tooltip", UiValue::String(state.label.to_owned()))?;
+        }
         Ok(())
     }
 }
 
-fn toolbar_run_projection(is_playing: bool) -> ToolbarRunProjection {
+fn toolbar_run_projection(model: RunControlsModel) -> ToolbarRunProjection {
+    let show_stop = matches!(
+        model.state,
+        PlayStateKind::Playing | PlayStateKind::CleanupFailed
+    );
     ToolbarRunProjection {
         play: RunControlProjection {
-            visible: !is_playing,
+            visible: !show_stop,
             checked: false,
+            enabled: model.enter_enabled,
+            label: if model.state == PlayStateKind::Building {
+                "Building…"
+            } else {
+                "Play"
+            },
         },
         stop: RunControlProjection {
-            visible: is_playing,
-            checked: is_playing,
+            visible: show_stop,
+            checked: model.state == PlayStateKind::Playing,
+            enabled: model.stop_enabled,
+            label: if model.state == PlayStateKind::CleanupFailed {
+                "Retry Stop"
+            } else {
+                "Stop"
+            },
         },
     }
 }

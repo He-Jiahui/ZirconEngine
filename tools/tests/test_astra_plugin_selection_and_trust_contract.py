@@ -80,7 +80,7 @@ class AstraPluginSelectionAndTrustContractTests(unittest.TestCase):
         self.assertNotIn("contains(\"sample\")", eligibility.lower())
 
     def test_native_loader_admits_before_descriptor_probe_or_library_execution(self) -> None:
-        source = read("zircon_runtime/src/plugin/native_plugin_loader/load_discovered.rs")
+        source = read("zircon_runtime/src/plugin/loader/load_discovered.rs")
         loader = section(source, "fn load_candidate_library", "fn retain_requested_entry")
         admit = loader.index("authority.admit(candidate, &library_path, module_kinds)")
         load = loader.index("load_admitted_library(&admission_receipt)")
@@ -94,7 +94,7 @@ class AstraPluginSelectionAndTrustContractTests(unittest.TestCase):
         self.assertNotIn("Library::new(library_path)", admitted_loader)
 
     def test_native_authority_pins_identity_trust_target_capabilities_and_digests(self) -> None:
-        source = read("zircon_runtime/src/plugin/native_plugin_loader/native_artifact_trust.rs")
+        source = read("zircon_runtime/src/plugin/loader/native_artifact_trust.rs")
         expectation = section(source, "pub struct NativePluginArtifactExpectation", "impl NativePluginArtifactExpectation")
         admit = section(source, "pub(crate) fn admit", "#[derive(Clone, Debug)]\npub struct NativePluginArtifactAdmissionReceipt")
 
@@ -125,7 +125,7 @@ class AstraPluginSelectionAndTrustContractTests(unittest.TestCase):
 
     def test_hot_reload_reuses_authority_before_mutating_live_generation(self) -> None:
         source = read(
-            "zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/lifecycle.rs"
+            "zircon_runtime/src/plugin/loader/live/lifecycle.rs"
         )
         reload = section(
             source,

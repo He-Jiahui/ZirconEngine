@@ -126,7 +126,7 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         let sort = self
             .control_string("WorkbenchVfxSortField", "value")
             .unwrap_or_default();
-        self.set_vfx_string("WorkbenchStatusReady", "text", "VFX simulation running")?;
+        self.set_vfx_string("WorkbenchStatusReady", "text", "Not implemented (preview)")?;
         self.set_vfx_string("WorkbenchStatusMessages", "text", "1 Message")?;
         self.set_vfx_string(
             "WorkbenchVfxCenterTitle",
@@ -137,7 +137,7 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
             "WorkbenchVfxOutputRow",
             "text",
             format!(
-                "Simulation: {} / {}   {} {}   60 fps",
+                "Preview inputs: {} / {}   {} {}",
                 bounds, sort, parameter.label, parameter.value
             ),
         )

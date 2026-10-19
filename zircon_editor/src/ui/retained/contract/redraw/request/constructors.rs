@@ -8,6 +8,9 @@ use super::super::HostDamageRegion;
 use super::HostRedrawRequest;
 
 impl HostRedrawRequest {
+    pub(crate) fn runtime_tick() -> Self {
+        Self::RuntimeTick
+    }
     pub(crate) fn none() -> Self {
         Self::None
     }
@@ -53,6 +56,7 @@ impl HostRedrawRequest {
             record_ui_perf_counter(scenario, UiPerfCounter::RedrawRegion, 1.0);
             Self::Region {
                 damage: HostDamageRegion::from_frame(frame),
+                runtime_tick: false,
                 frame_update,
                 interactive_frame_update: false,
                 scenario,
@@ -69,12 +73,13 @@ impl HostRedrawRequest {
                 record_ui_perf_counter(scenario, UiPerfCounter::RedrawRegion, 1.0);
                 Self::Region {
                     damage,
+                    runtime_tick: false,
                     frame_update: false,
                     interactive_frame_update: false,
                     scenario,
                 }
             }
-            Self::None | Self::FrameUpdate { .. } => Self::None,
+            Self::None | Self::RuntimeTick | Self::FrameUpdate { .. } => Self::None,
         }
     }
 
@@ -95,16 +100,19 @@ impl HostRedrawRequest {
             },
             Self::Region {
                 damage,
+                runtime_tick,
                 frame_update,
                 scenario,
                 ..
             } => Self::Region {
                 damage,
+                runtime_tick,
                 frame_update,
                 interactive_frame_update: frame_update,
                 scenario,
             },
             Self::None => Self::None,
+            Self::RuntimeTick => Self::RuntimeTick,
         }
     }
 }
