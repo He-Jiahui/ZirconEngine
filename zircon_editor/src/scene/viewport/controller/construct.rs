@@ -51,6 +51,7 @@ impl SceneViewportController {
         Self {
             state: SceneViewportState::new(viewport_size),
             handles: HandleToolRegistry::default(),
+            render_cache: Default::default(),
             interaction_extract: ViewportInteractionExtractCache::default(),
             pointer_bridge: ViewportOverlayPointerRouter::new(),
             settings_mutations,

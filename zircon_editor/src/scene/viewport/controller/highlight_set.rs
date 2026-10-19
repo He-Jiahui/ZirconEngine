@@ -22,16 +22,15 @@ impl SceneViewportController {
 
     pub(crate) fn apply_runtime_highlights(
         &self,
-        snapshot: &mut crate::scene::viewport::RenderSceneSnapshot,
+        overlays: &mut crate::scene::viewport::RenderOverlayExtract,
     ) {
-        snapshot.overlays.highlights =
-            Some(zircon_runtime::core::framework::render::HighlightSet::new(
-                self.state.selection.active_items().iter().copied(),
-                zircon_runtime::core::framework::render::HighlightRenderAttributes {
-                    outline_enabled: true,
-                    tint_rgba: self.highlight_tint(),
-                },
-            ));
+        overlays.highlights = Some(zircon_runtime::core::framework::render::HighlightSet::new(
+            self.state.selection.active_items().iter().copied(),
+            zircon_runtime::core::framework::render::HighlightRenderAttributes {
+                outline_enabled: true,
+                tint_rgba: self.highlight_tint(),
+            },
+        ));
     }
 
     fn runtime_viewport(&self) -> ZrRuntimeViewportHandle {

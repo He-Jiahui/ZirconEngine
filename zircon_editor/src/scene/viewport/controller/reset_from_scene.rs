@@ -8,6 +8,7 @@ use super::{viewport_hover_state::ViewportHoverState, SceneViewportController};
 impl SceneViewportController {
     pub(crate) fn reset_from_scene(&mut self, scene: Option<&Scene>) {
         self.interaction_extract.invalidate();
+        self.render_cache.get_mut().take();
         self.reset_camera_from_scene(scene);
         self.state.orbit_target = scene
             .and_then(|scene| {

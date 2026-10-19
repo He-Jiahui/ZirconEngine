@@ -13,6 +13,7 @@ const ANCHOR_COLOR: Vec4 = Vec4::new(1.0, 0.85, 0.3, 1.0);
 const CAMERA_GIZMO_COLOR: Vec4 = Vec4::new(0.42, 0.72, 1.0, 1.0);
 const LIGHT_GIZMO_COLOR: Vec4 = Vec4::new(1.0, 0.88, 0.36, 1.0);
 
+#[cfg(test)]
 pub(in crate::scene::viewport) fn build_render_packet(
     scene: &Scene,
     settings: &SceneViewportSettings,
@@ -112,7 +113,7 @@ pub(in crate::scene::viewport) fn build_scene_gizmos(
     gizmos
 }
 
-fn build_selection_anchors(
+pub(in crate::scene::viewport) fn build_selection_anchors(
     scene: &Scene,
     selected: Option<u64>,
     settings: &SceneViewportSettings,
@@ -141,7 +142,9 @@ fn build_selection_anchors(
         .collect()
 }
 
-fn build_grid_extract(settings: &SceneViewportSettings) -> Option<GridOverlayExtract> {
+pub(in crate::scene::viewport) fn build_grid_extract(
+    settings: &SceneViewportSettings,
+) -> Option<GridOverlayExtract> {
     match settings.grid_mode {
         GridMode::Hidden => None,
         GridMode::VisibleNoSnap => Some(GridOverlayExtract {

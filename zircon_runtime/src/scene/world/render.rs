@@ -58,11 +58,16 @@ impl World {
         render_camera_order_report_from_descriptors(&self.scene_camera_descriptors())
     }
 
-    pub(crate) fn build_prepared_viewport_render_packet(
+    /// Flushes internal derived scene state; repeated preparation without edits is a no-op.
+    pub fn prepare_viewport_render_extract(&mut self) {
+        self.run_internal_scene_systems_for_stage(crate::scene::SystemStage::RenderExtract);
+    }
+
+    pub fn build_prepared_viewport_render_packet(
         &mut self,
         request: &SceneViewportExtractRequest,
     ) -> SceneViewportRenderPacket {
-        self.run_internal_scene_systems_for_stage(crate::scene::SystemStage::RenderExtract);
+        self.prepare_viewport_render_extract();
         let (camera_descriptor, _) = self.build_render_camera(request);
         let camera = camera_descriptor.camera.clone();
         if !camera_descriptor.is_active() {
