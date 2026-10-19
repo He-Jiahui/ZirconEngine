@@ -137,6 +137,24 @@ def _policy(state):
     return row, cache, limits
 
 
+def _request_runtime(intent, supplied, state):
+    runtime = intent.get("runtimeOperationId")
+    if runtime is not None:
+        return runtime
+    # Current-source v1 requests pinned the runtime in their hashed intent,
+    # rather than repeating it in the request. Never substitute today's owner.
+    reference = intent.get("currentSourceRef")
+    original = state.get("current_source_intent", reference) if isinstance(reference, str) else None
+    value = original["payload"] if original else {}
+    fields = (*_IDS, "generation", "stageImplementationDigest")
+    if (not original or digest(value) != reference
+            or value.get("identity") != {field: supplied[field] for field in fields}
+            or not _same(value.get("buildRoot"), intent.get("buildRoot"))
+            or value.get("authorizationSnapshot") != intent.get("authorizationSnapshot")):
+        raise _fail("post_task_execution_mismatch", "Original request lacks its exact pinned runtime intent")
+    return value.get("runtimeOperationId")
+
+
 def _authority(payload, state):
     supplied = payload.get("identity")
     if not isinstance(supplied, dict) or not set(_IDENTITY) <= set(supplied):
@@ -192,7 +210,7 @@ def _authority(payload, state):
                 or consumer["payload"].get("consumerId") != flow_id
                 or not isinstance(ep.get("driver"), dict) or ep["driver"].get("digest") != ep.get("driverDigest")
                 or ep["driver"].get("runtimeOperationId") != ep.get("operationId")
-                or intent.get("runtimeOperationId") != ep.get("operationId")
+                or _request_runtime(intent, supplied, state) != ep.get("operationId")
                 or str(ep["driver"].get("generation")) != str(supplied["generation"])):
             raise _fail("post_task_execution_mismatch", "Maintenance lacks the exact immutable execution consumer binding")
         if any(field in payload and payload[field] != expected for field, expected in

@@ -372,13 +372,20 @@ class ExecutionEngine:
         row = self.state.get("execution", eid)
         payload = dict(row["payload"])
         if payload["status"] in TERMINAL:
-            if payload.get("abortProof") and payload.get("reservationKey"):
+            if payload.get("abortProof"):
                 from ..processes.guards import abort_evidence
                 abort = abort_evidence(self.state, eid)
                 if not abort:
                     raise JenkinsError("execution_abort_unproven", "An aborted execution lost its termination evidence")
-                self.resources.release(payload["reservationKey"], writer_key=payload["preparationKey"],
-                                       native_proof_ref=abort.get("guardNativeJobId"), execution_id=eid)
+                guard_id = abort.get("guardNativeJobId")
+                guard = self.state.get("native_job", guard_id) if guard_id else None
+                proof = guard["payload"]["completeProof"] if guard else None
+                if proof is not None and payload.get("terminalProof") != proof:
+                    payload.update(terminalProof=proof, terminalProofKind="execution_host_guard")
+                    self.state.put("execution", eid, payload, expected_version=row["version"])
+                if payload.get("reservationKey"):
+                    self.resources.release(payload["reservationKey"], writer_key=payload["preparationKey"],
+                                           native_proof_ref=abort.get("guardNativeJobId"), execution_id=eid)
             if payload.get("reservationKey") and payload.get("phaseRecords"):
                 records = self._phase_proofs(eid, {"phaseRecords": payload["phaseRecords"]})
                 self.resources.release(payload["reservationKey"], writer_key=payload["preparationKey"],
@@ -388,6 +395,11 @@ class ExecutionEngine:
         abort = abort_evidence(self.state, eid)
         if abort:
             payload.update(status="failed", abortProof=abort, finishedAt=time.time())
+            guard_id = abort.get("guardNativeJobId")
+            if guard_id:
+                guard = self.state.get("native_job", guard_id)
+                payload.update(terminalProof=guard["payload"]["completeProof"],
+                               terminalProofKind="execution_host_guard")
             self.state.put("execution", eid, payload, expected_version=row["version"])
             if payload.get("reservationKey"):
                 self.resources.release(payload["reservationKey"], writer_key=payload["preparationKey"],
