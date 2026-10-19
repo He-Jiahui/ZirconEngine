@@ -34,6 +34,20 @@ class CandidateUpdateTests(unittest.TestCase):
             with self.subTest(proof=proof), self.assertRaisesRegex(ValueError, "candidate_member_scope_invalid"):
                 self.members(proof)
 
+    def test_groovy_only_candidate_keeps_its_exact_grant(self):
+        groovy = "tools/jenkins-management/zircon-management.groovy"
+        self.assertEqual(self.members({"files": {groovy: "a" * 64},
+            "ownedPaths": [groovy, "tools/dev/install-jenkins-management.ps1"]}),
+            {"zircon-management.groovy": groovy})
+
+    def test_groovy_candidate_rejects_broad_and_mixed_grants(self):
+        groovy = "tools/jenkins-management/zircon-management.groovy"
+        for proof in ({"files": {groovy: "a"}, "ownedPaths": ["tools"]},
+                      {"files": {groovy: "a", "tools/jenkins-management/runner.py": "b"},
+                       "ownedPaths": ["tools"]}):
+            with self.subTest(proof=proof), self.assertRaisesRegex(ValueError, "candidate_member_scope_invalid"):
+                self.members(proof)
+
     def test_real_powershell_source_selection_preserves_unspecified_helper(self):
         # Execute the production selector, rather than reimplementing it in Python.
         command = r'''
