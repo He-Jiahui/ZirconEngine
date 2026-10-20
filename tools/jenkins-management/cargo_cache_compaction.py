@@ -257,17 +257,160 @@ def regression(output, cache_module):
         fixture.rmdir()
 
 
+def ownership_header(path):
+    """Read only the bounded leading ownership fields, never an activity journal."""
+    import codecs
+    path = physical(path)
+    with path.open('rb') as stream:
+        initial = os.fstat(stream.fileno())
+        text = codecs.getincrementaldecoder('utf-8-sig')().decode(stream.read(65536), final=False)
+        final = os.fstat(stream.fileno())
+    identity = lambda s: (s.st_dev, s.st_ino, s.st_size, s.st_mtime_ns)
+    if identity(initial) != identity(final) or identity(final) != identity(path.stat()):
+        raise ValueError('ownership manifest changed during bounded observation')
+    decoder, cursor, fields = json.JSONDecoder(), 0, {}
+    def whitespace(index):
+        while index < len(text) and text[index].isspace():
+            index += 1
+        return index
+    cursor = whitespace(cursor)
+    if text[cursor:cursor + 1] != '{':
+        raise ValueError('ownership manifest header must be an object')
+    cursor += 1
+    wanted = {'owner', 'task_id', 'output_roots'}
+    try:
+        for _ in range(32):
+            cursor = whitespace(cursor)
+            name, cursor = decoder.raw_decode(text, cursor)
+            cursor = whitespace(cursor)
+            if not isinstance(name, str) or text[cursor:cursor + 1] != ':':
+                break
+            value, cursor = decoder.raw_decode(text, whitespace(cursor + 1))
+            if name in wanted:
+                if name in fields:
+                    raise ValueError('duplicate ownership header')
+                fields[name] = value
+            if set(fields) == wanted:
+                return fields
+            cursor = whitespace(cursor)
+            if text[cursor:cursor + 1] != ',':
+                break
+            cursor += 1
+    except json.JSONDecodeError as error:
+        raise ValueError('ownership header exceeds bounded read') from error
+    raise ValueError('complete bounded ownership header required')
+
+
+def select_profile(plan, build_number):
+    """Rotate explicit registered pools; an empty legacy pool cannot starve D/F."""
+    if 'profiles' not in plan:
+        root = physical(plan['profileRoot'])
+        if root != PROFILE:
+            raise ValueError('legacy compaction is limited to the reviewed shared pool')
+        return root, {'kind': 'legacy-reviewed-shared-pool'}
+    specs = plan['profiles']
+    if (not isinstance(specs, list) or not 1 <= len(specs) <= 8
+            or not str(build_number).isdigit() or int(build_number) <= 0):
+        raise ValueError('bounded profile rotation requires a real build number')
+    roots, bindings = [], []
+    for spec in specs:
+        raw = Path(spec['profileRoot'])
+        if not raw.is_absolute() or '..' in raw.parts:
+            raise ValueError('absolute physical Cargo profile required')
+        root = physical(raw)
+        base = Path(root.anchor) / 'cargo-targets/zircon-local/win32'
+        if root.anchor[:2].upper() not in {'D:', 'E:', 'F:'} or not root.is_relative_to(base):
+            raise ValueError('profile must be in a drive-root D/E/F Cargo namespace')
+        relative = root.relative_to(base).parts
+        if len(relative) != 3 or relative[1:] != ('build', 'debug') or root in roots:
+            raise ValueError('one exact Win32 Cargo debug profile per registration required')
+        if root == PROFILE:
+            binding = {'kind': 'legacy-reviewed-shared-pool'}
+        else:
+            fields = ownership_header(spec['ownershipManifest'])
+            outputs = fields.get('output_roots')
+            if (fields.get('owner') != spec['ownerThreadId'] or fields.get('task_id') != spec['taskId']
+                    or not isinstance(outputs, dict) or not isinstance(outputs.get('cargo_build_current'), str)
+                    or physical(outputs['cargo_build_current']) != root.parent):
+                raise ValueError('profile differs from its original ownership manifest')
+            binding = {'owner': fields['owner'], 'taskId': fields['task_id'], 'buildRoot': str(root.parent)}
+            checksum = hashlib.sha256(json.dumps(binding, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
+            if checksum != spec['ownershipHeaderSha256']:
+                raise ValueError('reviewed ownership header changed')
+            binding.update(ownershipHeaderSha256=checksum, ownershipManifest=str(physical(spec['ownershipManifest'])))
+        roots.append(root)
+        bindings.append(binding)
+    index = (int(build_number) - 1) % len(roots)
+    return roots[index], {**bindings[index], 'rotationIndex': index, 'rotationCount': len(roots)}
+
+
+def cargo_identity(root, binding):
+    """Separate Cargo build dirs may retain fingerprints without rustc_info."""
+    marker = physical(root.parent / '.rustc_info.json')
+    if marker.is_file():
+        raw = marker.read_bytes()
+        data = json.loads(raw)
+        if 'rustc_fingerprint' not in data or 'outputs' not in data:
+            raise ValueError('Cargo compiler identity marker required')
+        return {'kind': 'rustc-info', 'path': str(marker),
+                'sha256': hashlib.sha256(raw).hexdigest()}
+    if not binding.get('ownershipHeaderSha256'):
+        raise ValueError('Cargo compiler identity marker required for legacy pool')
+    fingerprints = physical(root / '.fingerprint')
+    # Bounded recognition inside the acquired Cargo session lock. This does not
+    # grant ownership, authorize deletion, or invent a compiler identity marker.
+    with os.scandir(fingerprints) as directories:
+        for index, directory in enumerate(directories):
+            if index >= 128:
+                break
+            if not directory.is_dir(follow_symlinks=False):
+                continue
+            physical(directory.path)
+            with os.scandir(directory.path) as entries:
+                for number, entry in enumerate(entries):
+                    if number >= 16:
+                        break
+                    if not entry.name.endswith('.json') or not entry.is_file(follow_symlinks=False):
+                        continue
+                    path = physical(entry.path)
+                    with path.open('rb') as stream:
+                        before = os.fstat(stream.fileno())
+                        raw = stream.read(65537)
+                        after = os.fstat(stream.fileno())
+                    if (len(raw) > 65536 or before.st_size != len(raw)
+                            or (before.st_ino, before.st_mtime_ns, before.st_size) !=
+                               (after.st_ino, after.st_mtime_ns, after.st_size)):
+                        continue
+                    try:
+                        data = json.loads(raw)
+                    except (UnicodeError, ValueError):
+                        continue
+                    if (all(type(data.get(key)) is int for key in ('rustc', 'target', 'profile'))
+                            and isinstance(data.get('deps'), list) and isinstance(data.get('local'), list)):
+                        return {'kind': 'owned-build-dir-cargo-fingerprint', 'path': str(path),
+                                'sha256': hashlib.sha256(raw).hexdigest(),
+                                'rustc': data['rustc'], 'target': data['target'], 'profile': data['profile'],
+                                'rustcInfoMissing': True}
+    raise ValueError('registered pool has no bounded Cargo compiler identity evidence')
+
+
+def load_cache(plan):
+    # The maintenance actor is versioned independently of its original worktree.
+    # Load the cache module's direct import from its exact pinned sibling, never
+    # from an inherited Python path or a stale unrelated checkout_commit module.
+    dependency = str(physical(Path(plan['cacheModule']).with_name('checkout_commit.py')))
+    load_module('checkout_commit', dependency, plan['pins'][dependency])
+    return load_module('_cargo_compact_cache', plan['cacheModule'], plan['pins'][plan['cacheModule']])
+
+
 def worker(plan, output, dry_run):
     started = time.monotonic()
-    cache = load_module('_cargo_compact_cache', plan['cacheModule'], plan['pins'][plan['cacheModule']])
+    root, binding = select_profile(plan, os.environ['BUILD_NUMBER'])
+    if plan['minimumFreeBytes'] != 80 * GIB:
+        raise ValueError('reviewed Cargo cache pressure threshold required')
+    cache = load_cache(plan)
     regression(output, cache)
-    root = physical(plan['profileRoot'])
-    if root != PROFILE or plan['minimumFreeBytes'] != 80 * GIB:
-        raise ValueError('only the reviewed E: shared Cargo cache policy is admitted')
-    marker = json.loads(physical(root.parent / '.rustc_info.json').read_text(encoding='utf-8'))
-    if 'rustc_fingerprint' not in marker or 'outputs' not in marker:
-        raise ValueError('Cargo compiler identity marker required')
-    result = {'status': 'running', 'scope': str(root / 'deps'), 'dryRun': dry_run,
+    result = {'status': 'running', 'scope': str(root / 'deps'), 'profileBinding': binding, 'dryRun': dry_run,
               'freeBefore': shutil.disk_usage(root.anchor).free, 'allocationReclaimedBytes': 0,
               'filesCompressed': 0, 'logicalBytesProcessed': 0, 'retained': [],
               'sourceDeleted': 0, 'cacheFilesDeleted': 0, 'sourceCopies': 0, 'globalCleanupComplete': False}
@@ -281,6 +424,8 @@ def worker(plan, output, dry_run):
             return
         deps = physical(root / 'deps')
         with directory_handles(deps), cache.session_lock(root / '.cargo-lock'):
+            result['compilerIdentity'] = cargo_identity(root, binding)
+            save(receipt, result)
             selected = []
             for entry in os.scandir(deps):
                 st = entry.stat(follow_symlinks=False)
@@ -436,10 +581,10 @@ def main():
         raise ValueError('real scheduled-cleanup Jenkins agent required')
     checked(__file__, args.self_sha256)
     plan = json.loads(checked(args.plan, args.plan_sha256))
-    if (plan['schemaVersion'] != 1 or plan['profileRoot'] != str(PROFILE)
-            or not 1 <= plan['maxFiles'] <= 512 or not 0 < plan['maxLogicalBytes'] <= 80 * GIB
+    if (plan['schemaVersion'] != 1 or not 1 <= plan['maxFiles'] <= 512 or not 0 < plan['maxLogicalBytes'] <= 80 * GIB
             or not 0 < plan['maxSeconds'] <= 900):
         raise ValueError('invalid bounded compaction policy')
+    select_profile(plan, os.environ['BUILD_NUMBER'])
     for path, checksum in plan['pins'].items():
         checked(path, checksum)
     run = 'compact-' + os.environ['BUILD_NUMBER']
