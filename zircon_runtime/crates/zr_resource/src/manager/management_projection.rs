@@ -525,7 +525,7 @@ fn rebuild_generation(
     }
     insertions.extend(changes.values().filter_map(|change| {
         (change.previous.is_none())
-            .then(|| change.next.as_ref())
+            .then_some(change.next.as_ref())
             .flatten()
             .cloned()
     }));

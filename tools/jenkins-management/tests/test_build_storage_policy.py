@@ -114,6 +114,16 @@ class AuditTests(unittest.TestCase):
         self.assertEqual(after["units"][0]["logicalDeltaBytes"], 20)
         self.assertFalse(after["units"][0]["wasteProvenByGrowth"])
 
+    def test_changed_accounting_retains_old_evidence_without_false_growth_or_gc(self):
+        old = {audit.key(self.unit): {"path": self.unit, "logicalBytes": 10,
+            "incrementalBytes": 0, "symbolBytes": 0}}
+        first = audit.audit(self.repo, self.scan(100), {"baseline": old})
+        self.assertIsNone(first["units"][0]["logicalDeltaBytes"])
+        self.assertEqual(first["priorAccountingBaselines"]["legacy"], old)
+        second = audit.audit(self.repo, self.scan(120), first)
+        self.assertEqual(second["units"][0]["logicalDeltaBytes"], 20)
+        self.assertEqual(second["priorAccountingBaselines"], first["priorAccountingBaselines"])
+
     def test_unknown_growth_stays_pending_and_unchanged_runs_are_quiet(self):
         before = audit.audit(self.repo, self.scan(0))
         grown = audit.audit(self.repo, self.scan(2 * 1024**3), before)
@@ -164,12 +174,110 @@ class AuditTests(unittest.TestCase):
         self.assertTrue(all(len(row["sourceSha256"]) == 64 for row in values))
         self.assertIn("package-override:zircon_runtime", values[0]["violations"])
 
+    def test_invalid_request_preserves_pending_evidence(self):
+        (self.requests / "bad.json").write_text('{"request": []}')
+        previous = {"findings": [{"id": "build_scope_violation:original", "code": "build_scope_violation",
+            "subject": "original", "message": "pending", "severity": "review"}]}
+        result = audit.audit(self.repo, self.scan(1), previous)
+        self.assertFalse(result["complete"])
+        self.assertTrue(any(f["id"] == "build_scope_violation:original" for f in result["findings"]))
+
+    def test_verified_profile_fix_resolves_itself_during_unrelated_scan_failure(self):
+        profile = {"path": str(self.repo / "Cargo.toml"), "profile": "dev", "violations": []}
+        subject = profile["path"] + ":dev"
+        old = {"id": "build_profile_violation:" + audit.key(subject), "code": "build_profile_violation",
+               "subject": subject, "message": "pending", "severity": "review"}
+        with patch.object(audit, "profile_observations", return_value=[profile]):
+            result = audit.audit(self.repo, self.scan(1, complete=False), {"findings": [old]})
+        self.assertFalse(result["complete"])
+        self.assertNotIn(old["id"], {f["id"] for f in result["findings"]})
+
+    def test_metadata_read_budget_is_enforced(self):
+        path = self.repo / "large.json"
+        path.write_bytes(b" " * (audit.MAX_METADATA_BYTES + 1))
+        with self.assertRaisesRegex(ValueError, "read budget"):
+            audit.read_metadata(path)
+
+    def test_expired_directory_budget_cannot_report_zero_as_a_complete_scan(self):
+        path = self.repo / "retained-output"
+        path.mkdir()
+        (path / "preserved.txt").write_bytes(b"retained")
+        result = audit.inventory.tree_fact(path, deadline=-1)
+        self.assertFalse(result["complete"])
+        self.assertTrue(result["scanTimedOut"])
+        self.assertEqual(result["errors"][0]["type"], "ScanBudgetExceeded")
+        self.assertGreater(result["unvisitedEntriesLowerBound"], 0)
+        self.assertEqual((path / "preserved.txt").read_bytes(), b"retained")
+
+    def test_compiler_first_pass_is_not_double_counted_or_lost_to_later_timeout(self):
+        scan = self.scan(100)
+        scan["inventory"] = [{**scan["outputItems"][0], "exists": True,
+            "path": "E:/cargo-targets/zircon-local"},
+            {"path": str(self.repo), "exists": True, "complete": False}]
+        scan["complete"] = False
+        scan["outputItems"][0] = {**scan["outputItems"][0], "complete": False,
+            "buildUnits": {self.unit: {"logicalBytes": 3, "files": 1, "incrementalBytes": 0, "symbolBytes": 0}}}
+        result = audit.audit(self.repo, scan)
+        self.assertFalse(result["complete"])
+        self.assertEqual(result["units"][0]["logicalBytes"], 100)
+        self.assertTrue(result["units"][0]["complete"])
+        self.assertEqual(result["baseline"][audit.key(self.unit)]["logicalBytes"], 100)
+
+    def test_directory_enumeration_counts_logical_bytes_and_keeps_hardlink_gap_explicit(self):
+        path = self.repo / "shared-files"
+        path.mkdir()
+        first = path / "first.bin"
+        first.write_bytes(b"owned")
+        os.link(first, path / "second.bin")
+        actual_lstat = Path.lstat
+        def directory_only(value, *args, **kwargs):
+            if value.suffix == ".bin":
+                raise AssertionError("Logical-byte inventory must not reopen every file")
+            return actual_lstat(value, *args, **kwargs)
+        with patch.object(Path, "lstat", directory_only):
+            result = audit.inventory.tree_fact(path)
+        self.assertTrue(result["complete"])
+        self.assertEqual(result["files"], 2)
+        self.assertEqual(result["logicalBytes"], 10)
+        if os.name == "nt":
+            self.assertFalse(result["hardlinkCountComplete"])
+
+    def test_unrelated_links_preserve_pool_baselines_but_affected_or_timed_out_units_do_not(self):
+        for extra, valid in (
+                ({"reparsePoints": ["E:/cargo-targets/zircon-local/penpot/node_modules/a"]}, True),
+                ({"errors": [{"path": self.unit + "-other/a", "type": "PermissionError"}]}, True),
+                ({"reparsePoints": [self.unit + "/target/debug/a"]}, False),
+                ({"reparsePoints": ["E:/cargo-targets/zircon-local/management"]}, False),
+                ({"scanTimedOut": True, "reparsePoints": ["E:/elsewhere"]}, False)):
+            with self.subTest(extra=extra):
+                scan = self.scan(100, complete=False)
+                scan["outputItems"][0].update(extra)
+                result = audit.audit(self.repo, scan)
+                self.assertFalse(result["complete"])
+                self.assertEqual(result["units"][0]["complete"], valid)
+                self.assertEqual(audit.key(self.unit) in result["baseline"], valid)
+
     def test_compiler_accounting_uses_one_pool_and_excludes_source(self):
         root = Path("E:/cargo-targets/zircon-local/management/pools/identity")
         self.assertEqual(audit.inventory.compiler_unit(root / "target/debug/deps/a.rlib"), root)
         self.assertEqual(audit.inventory.compiler_unit(root / "build/debug/incremental/a.bin"), root)
         self.assertIsNone(audit.inventory.compiler_unit(Path("E:/Git/ZirconEngine/zircon_runtime/build/helper.py")))
         self.assertIsNone(audit.inventory.compiler_unit(Path("E:/nested/cargo-targets/target/a.rlib")))
+        self.assertEqual(audit.inventory.compiler_unit(Path("E:/cargo-targets/zircon-local/cache/sccache/a.bin")),
+                         Path("E:/cargo-targets/zircon-local/cache/sccache"))
+
+    def test_source_modules_named_build_or_target_are_not_compiler_units(self):
+        root = Path("D:/cargo-targets/zircon-local/retained/source")
+        for relative in ("tools/cargo-zircon/src/build/mod.rs",
+                         "zircon_editor/assets/icons/build/icons.svg",
+                         "zircon_runtime/src/input/target/mod.rs"):
+            with self.subTest(relative=relative):
+                self.assertIsNone(audit.inventory.compiler_unit(root / relative))
+        target = Path("E:/cargo-targets/zircon-local/legacy/build")
+        for relative in ("debug/deps/a.rlib", "custom-ci/.fingerprint/a.json",
+                         "x86_64-pc-windows-msvc/release/a.exe", ".rustc_info.json"):
+            with self.subTest(relative=relative):
+                self.assertEqual(audit.inventory.compiler_unit(target / relative), target)
 
 
 if __name__ == "__main__":

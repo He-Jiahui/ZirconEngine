@@ -555,7 +555,7 @@ impl RichTokenizerBudget {
         name_bytes: usize,
         value_bytes: usize,
     ) -> Result<usize, RichTextParseError> {
-        let attempted_attributes = consumed_attributes.checked_add(1).unwrap_or(usize::MAX);
+        let attempted_attributes = consumed_attributes.saturating_add(1);
         if attempted_attributes > self.max_attributes {
             return Err(RichTextParseError::AttributeCountBudgetExceeded {
                 attempted_attributes,

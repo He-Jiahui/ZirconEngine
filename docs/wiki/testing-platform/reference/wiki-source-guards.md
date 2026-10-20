@@ -9,7 +9,7 @@ implementation_files:
   - docs/wiki/navigation.yaml
   - docs/wiki/contributing-docs.md
 plan_sources:
-  - docs/plans/milestone-validation-policy.md
+  - docs/testing-and-validation/milestone-validation-policy.md
 tests:
   - tools/docs/wiki_site.py
   - .github/workflows/wiki-pages.yml
@@ -32,7 +32,7 @@ related_code:
 implementation_files:
   - tools/docs/wiki_site.py
 plan_sources:
-  - docs/plans/mvp/index.md
+  - docs/testing-and-validation/mvp-acceptance-index.md
 tests:
   - tools/docs/wiki_site.py
 doc_type: module-reference

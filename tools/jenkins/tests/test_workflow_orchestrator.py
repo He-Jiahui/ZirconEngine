@@ -136,13 +136,28 @@ class WorkflowOrchestratorTests(unittest.TestCase):
             self.assertIn("coverage", str(error.exception))
 
     def test_pipeline_requires_sealed_driver_and_per_call_node(self):
+        from tools.jenkins.deployment.driver import verify_driver
+        from tools.jenkins.workflow import orchestrator as implementation
         root = Path(__file__).resolve().parents[3]
-        flow = (root / ".jenkins/pipeline/zircon-flow.groovy").read_text(encoding="utf8")
+        implementation_root = Path(implementation.__file__).absolute().parents[3]
+        if implementation_root == root:
+            pipeline = root / ".jenkins/pipeline"
+        else:
+            verified = verify_driver(implementation_root,
+                                     expected_digest=implementation_root.name)
+            pipeline = Path(verified["steps"]).parent
+        flow = (pipeline / "zircon-flow.groovy").read_text(encoding="utf8")
         self.assertIn("ZIRCON_SEALED_DRIVER", flow)
         self.assertIn("sleep(time:", flow)
         self.assertGreaterEqual(flow.count("node(env.ZIRCON_AGENT_LABEL)"), 1)
         self.assertIn("params.RUNTIME_OPERATION_ID != env.ZIRCON_RUNTIME_OPERATION_ID", flow)
         self.assertIn("def waitControl", flow)
+        self.assertIn("int polls = 120", flow)  # Other lightweight control waits retain their bound.
+        self.assertIn("timeout(time: 24, unit: 'HOURS')", flow)
+        self.assertIn("executionId: executionId], 3000)", flow)
+        execution = (pipeline / "zircon-execution.groovy").read_text(encoding="utf8")
+        self.assertIn("timeout(time: 24, unit: 'HOURS')", execution)
+        self.assertIn("poll < 3000", execution)
 
     def test_execution_rejects_unregistered_recipe_and_zero_tests(self):
         with tempfile.TemporaryDirectory(dir=str(JENKINS_TMP)) as temp:

@@ -207,6 +207,10 @@ pub fn render_feature_descriptor() -> RenderFeatureDescriptor {
             )
             .with_executor_id("virtual-geometry.visbuffer")
             .read_buffer_with_schema(
+                "virtual-geometry-visible-candidate-indices",
+                virtual_geometry_graph_buffer_schema(),
+            )
+            .read_buffer_with_schema(
                 "virtual-geometry-visible-clusters",
                 virtual_geometry_graph_buffer_schema(),
             )
@@ -301,6 +305,12 @@ pub fn render_feature_descriptor() -> RenderFeatureDescriptor {
     feature.stage_passes[2]
         .resources
         .extend(outputs.iter().cloned());
+    feature.stage_passes[1].resources.push(resource(
+        "virtual-geometry-cull-decisions",
+        8 + 4096 * 33,
+        false,
+        true,
+    ));
     let mut terminal = RenderFeaturePassDescriptor::new(
         RenderPassStage::Overlay,
         "virtual-geometry-terminal-execution",
@@ -313,6 +323,18 @@ pub fn render_feature_descriptor() -> RenderFeatureDescriptor {
         [1, 1, 1],
     ));
     terminal.flags.allow_culling = false;
+    feature.stage_passes[2].resources.push(resource(
+        "virtual-geometry-cull-decisions",
+        8 + 4096 * 33,
+        false,
+        true,
+    ));
+    terminal.resources.push(resource(
+        "virtual-geometry-cull-decisions",
+        8 + 4096 * 33,
+        false,
+        true,
+    ));
     for mut read in outputs.iter().cloned() {
         read.access = RenderFeatureResourceAccess::Read;
         read.write_mode = RenderFeatureResourceWriteMode::Attachment;

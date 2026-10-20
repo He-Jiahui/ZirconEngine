@@ -120,12 +120,12 @@ impl BrowserEngine {
             .bind_viewport_surface(
                 self.viewport
                     .ok_or_else(|| "viewport is closed".to_string())?,
-                RenderViewportSurfaceDescriptor {
+                RenderViewportSurfaceDescriptor::new(
                     size,
-                    target: RenderNativeSurfaceTarget::Canvas {
+                    RenderNativeSurfaceTarget::Canvas {
                         identity: self.identity,
                     },
-                },
+                ),
             )
             .map_err(error)
     }

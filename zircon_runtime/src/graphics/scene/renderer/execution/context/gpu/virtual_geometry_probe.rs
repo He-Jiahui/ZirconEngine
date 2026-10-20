@@ -246,7 +246,7 @@ impl NativeProbe {
         backend: &crate::graphics::backend::RenderBackend,
         kind: u32,
     ) -> Result<Vec<u8>, String> {
-        if kind > 4 {
+        if kind > 5 {
             return Err("unknown native probe read kind".into());
         }
         if self.epoch != RenderPassDeviceEpoch::from_profile(backend.device_profile()) {

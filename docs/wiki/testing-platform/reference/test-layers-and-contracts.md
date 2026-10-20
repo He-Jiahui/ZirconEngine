@@ -10,7 +10,7 @@ implementation_files:
   - tools/audits/check_conventions.py
   - Cargo.toml
 plan_sources:
-  - docs/plans/mvp/index.md
+  - docs/testing-and-validation/mvp-acceptance-index.md
 tests:
   - tools/tests/test_validate_cargo_test_reachability.py
   - zircon_runtime/tests/frameworks05_manager_resolution_contract.rs

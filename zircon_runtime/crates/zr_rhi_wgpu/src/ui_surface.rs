@@ -96,7 +96,7 @@ impl WgpuUiSurfaceCompletionOwner {
 /// The context is deliberately made of cloned WGPU handles rather than raw native pointers.
 /// Its creator must keep the instance, adapter, device, and queue from one negotiated backend;
 /// that invariant makes imported render products and UI sampling use the same WGPU device.
-
+///
 /// Actual device completion and existing request-delivery owner supplied by the backend.
 /// External surfaces never acquire raw device poll authority through this contract.
 pub type WgpuUiSurfaceDiagnosticReceiptCallback =
@@ -576,7 +576,7 @@ impl UiSurfacePresenter for WgpuUiSurfacePresenter {
         let WgpuUiSurfaceBackend::Native(renderer) = &self.backend else {
             return None;
         };
-        let mut snapshot = renderer.text.layout_snapshot.clone()?;
+        let snapshot = renderer.text.layout_snapshot.clone()?;
         if !snapshot.is_from_present(self.presented_frame_count) {
             return None;
         }

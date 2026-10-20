@@ -192,8 +192,8 @@ impl EditorJob for PendingModelImportMustNotRun {
 
 #[test]
 fn pending_model_cancel_projects_one_warning_without_result_observation() {
-    let fixture = super::registered_runtime_commit::ProjectFixture::new();
-    let project = zircon_runtime::asset::project::ProjectManager::open(&fixture.root).unwrap();
+    let project_fixture = super::registered_runtime_commit::ProjectFixture::new();
+    let project = project_fixture.open_project();
     let jobs =
         test_job_system_with_limits(EditorJobLimits::default().with_limit(JobCategory::Import, 1));
     let (started_sender, started_receiver) = std::sync::mpsc::channel();

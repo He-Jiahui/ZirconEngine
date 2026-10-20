@@ -320,3 +320,99 @@ fn trimesh_on_builtin_reports_unsupported() {
         }
     ));
 }
+
+#[test]
+fn builtin_direct_trait_rejects_nonfinite_command_batches_before_any_mutation() {
+    use zircon_runtime::core::framework::physics::PhysicsBodyType;
+    for (scenario, body_type, lock_x) in [
+        (0, PhysicsBodyType::Dynamic, false),
+        (1, PhysicsBodyType::Dynamic, true),
+        (2, PhysicsBodyType::Static, false),
+    ] {
+        let mut backend = BuiltinPhysicsBackend::new(PhysicsSettings::default());
+        let shape_desc = PhysicsColliderShape::Sphere { radius: 0.5 };
+        let shape = backend
+            .create_shape(&shape_desc, &PhysicsMaterialMetadata::default())
+            .expect("valid sphere shape");
+        let mut desc = body_desc(WorldHandle::new(81), 810 + scenario as u64, shape);
+        desc.body.body_type = body_type;
+        desc.body.lock_translation[0] = lock_x;
+        desc.body.gravity_scale = 0.0;
+        desc.body.linear_damping = 0.0;
+        desc.body.angular_damping = 0.0;
+        let body = backend.create_body(&desc).expect("valid body");
+        let original = desc.body.transform;
+        let mut moved = original;
+        moved.translation.x += 9.0;
+        let mut invalid_transform = original;
+        invalid_transform.translation.x = f32::NAN;
+        let mut invalid_rotation = original;
+        invalid_rotation.rotation.x = f32::INFINITY;
+        let mut invalid_scale = original;
+        invalid_scale.scale.y = f32::NEG_INFINITY;
+        for invalid in [
+            BodyCommand::SetLinearVelocity {
+                body,
+                velocity: [f32::NAN, 0.0, 0.0],
+            },
+            BodyCommand::SetAngularVelocity {
+                body,
+                velocity: [0.0, f32::INFINITY, 0.0],
+            },
+            BodyCommand::ApplyForce {
+                body,
+                force: [0.0, 0.0, f32::NEG_INFINITY],
+            },
+            BodyCommand::ApplyImpulse {
+                body,
+                impulse: [f32::NAN, 0.0, 0.0],
+            },
+            BodyCommand::Teleport {
+                body,
+                transform: invalid_transform,
+            },
+            BodyCommand::Teleport {
+                body,
+                transform: invalid_rotation,
+            },
+            BodyCommand::Teleport {
+                body,
+                transform: invalid_scale,
+            },
+        ] {
+            let provider: &mut dyn PhysicsBackend = &mut backend;
+            let result = provider.apply_commands(&[
+                BodyCommand::Teleport {
+                    body,
+                    transform: moved,
+                },
+                invalid,
+            ]);
+            assert!(matches!(
+                result,
+                Err(PhysicsBackendError::InvalidDescriptor { .. })
+            ));
+        }
+        // Static and locked-axis cases must reject storage pollution too, before integration.
+        backend
+            .apply_commands(&[BodyCommand::SetBodyType {
+                body,
+                body_type: PhysicsBodyType::Dynamic,
+            }])
+            .expect("valid command remains accepted after rejected batches");
+        backend
+            .step(1.0 / 60.0)
+            .expect("finite body can still step");
+        let mut active = Vec::new();
+        backend.read_active_states(&mut active);
+        let state = active
+            .iter()
+            .find_map(|(handle, state)| (*handle == body).then_some(state))
+            .expect("body remains active");
+        assert_eq!(state.transform.translation, original.translation);
+        assert_eq!(state.linear_velocity, [0.0; 3]);
+        assert_eq!(state.angular_velocity, [0.0; 3]);
+        assert!(state.transform.rotation.is_finite());
+        assert!(state.transform.scale.is_finite());
+    }
+}

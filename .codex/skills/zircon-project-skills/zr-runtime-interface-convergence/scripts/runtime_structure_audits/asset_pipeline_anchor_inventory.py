@@ -30,7 +30,7 @@ WORKER_POOL_ANCHORS = (
     "pub fn spawn_worker_pool_with_frame_sampler(",
     "AssetWorkerPoolFrameSampler::from_pool(&pool)",
     "AssetWorkerThreadBudgetSource::TaskPoolIo",
-    "task_pool.spawn(move ||",
+    "if let Err(job) = task_pool.try_spawn(move || {",
     "scheduled_jobs: usize",
     '"asset request queue full: {request:?}"',
     "in_flight: HashMap<AssetRequest, Arc<CompletionEntry>>",
@@ -61,7 +61,7 @@ WATCHER_ANCHORS = (
     "after(next_wakeup(now, started_at, last_event_at, options))",
     "on_error(AssetWatchError::from_notify_error(",
     "pub struct AssetWatchError",
-    "watch_error_subscribers",
+    "pub(in crate::asset::pipeline::manager) watch_errors:\n        crate::asset::watch::AssetEventLog<AssetWatchError>,",
     "pub(in crate::asset::pipeline::manager) fn broadcast_watch_error",
 )
 

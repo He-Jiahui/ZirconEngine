@@ -1,27 +1,22 @@
-import { resolveLayoutCatalogPath } from './zui-layout-paths';
+import { assertLayoutCurrentRoots, createLayoutCurrentContext, layoutCurrentOutputPath, layoutCurrentSourcePath, type LayoutCurrentContext } from './zui-layout-paths';
+import { withLayoutCatalogLock } from './zui-layout-catalog-lock';
 import { readFile, writeFile } from 'node:fs/promises';
-import { dirname, relative, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { relative, resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import type { CatalogEntry, CatalogManifest } from './zui-layout-catalog';
-import { currentDualReview, verifyCurrentFiles } from './zui-layout-evidence';
+import { bytesSha256, currentDualReview, verifyCurrentFiles } from './zui-layout-evidence';
 
-const root = resolve(
-  dirname(fileURLToPath(import.meta.url)),
-  '../../../../../docs/_data/layout',
-);
-const manifest = JSON.parse(
-  await readFile(resolve(root, 'catalog.json'), 'utf8'),
-) as CatalogManifest;
 const escape = (value: string) =>
   value
     .replaceAll('&', '&amp;')
     .replaceAll('<', '&lt;')
     .replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;');
-const categories = [
-  ...new Set(manifest.entries.map((entry) => entry.category)),
-];
-const repoRoot = resolve(process.env['ZUI_LAYOUT_REPO_ROOT'] ?? resolve(root, '../../..'));
+async function renderGallery(manifest: CatalogManifest, catalogSha256: string, context: LayoutCurrentContext): Promise<void> {
+const root = context.outputRoot;
+const repoRoot = context.repoRoot;
+const link = (path: string) => relative(root, layoutCurrentOutputPath(context, path)).replaceAll('\\', '/').split('/').map(encodeURIComponent).join('/');
+const categories = [...new Set(manifest.entries.map((entry) => entry.category))];
 async function renderEntry(entry: CatalogEntry): Promise<string> {
   let current = false;
   let staleReason = '';
@@ -32,6 +27,7 @@ async function renderEntry(entry: CatalogEntry): Promise<string> {
         repoRoot,
         root,
         entry.review?.status === 'accepted',
+        context,
       );
       current = true;
     } catch (error) {
@@ -71,17 +67,18 @@ async function renderEntry(entry: CatalogEntry): Promise<string> {
       ? '投影失败'
       : '尚无当前截图';
   const preview = primary
-    ? `<a class="preview" href="${escape(primary.screenshotPath)}"><img loading="lazy" src="${escape(primary.screenshotPath)}" alt="${escape(entry.name)}"><span>${label} · ${primary.status}</span></a>`
+    ? `<a class="preview" href="${escape(link(primary.screenshotPath))}"><img loading="lazy" src="${escape(link(primary.screenshotPath))}" alt="${escape(entry.name)}"><span>${label} · ${primary.status}</span></a>`
     : `<div class="preview empty" title="${escape(staleReason)}">${message}</div>`;
   return `<article data-category="${escape(entry.category)}" data-search="${escape(`${entry.name} ${entry.sourcePath}`.toLowerCase())}">
 ${preview}<h2>${escape(entry.name)}</h2><p>${escape(entry.sourcePath)}</p>
 <p class="status ${status}">${status} · Penpot ${penpotCount}/${entry.cases?.length ?? 0} · Engine ${engineCount}/${entry.cases?.length ?? 0}</p>
-<nav><a href="${escape(relative(root, resolveLayoutCatalogPath(root, entry.outputPath)).replaceAll('\\', '/'))}">ZUI</a><a href="${escape(entry.resultPath)}">Result</a>${engine ? `<a href="${escape(engine.screenshotPath)}">Engine</a>` : ''}${penpot ? `<a href="${escape(penpot.screenshotPath)}">Penpot</a>` : ''}</nav></article>`;
+<nav><a href="${escape(link(entry.outputPath))}">ZUI</a><a href="${escape(link(entry.resultPath))}">Result</a>${engine ? `<a href="${escape(link(engine.screenshotPath))}">Engine</a>` : ''}${penpot ? `<a href="${escape(link(penpot.screenshotPath))}">Penpot</a>` : ''}</nav></article>`;
 }
 const entries: string[] = [];
 for (const entry of manifest.entries) entries.push(await renderEntry(entry));
 const html = `<!doctype html>
 <html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="zircon-layout-catalog-sha256" content="${catalogSha256}">
 <title>Zircon UI Layouts</title><style>
 *{box-sizing:border-box;letter-spacing:0}body{margin:0;background:#141617;color:#e9edec;font:14px/1.5 system-ui,sans-serif}
 header{padding:20px 24px;border-bottom:1px solid #3a4042;display:flex;gap:24px;align-items:center;flex-wrap:wrap}
@@ -96,10 +93,64 @@ const search=document.querySelector('#search'),category=document.querySelector('
 function filter(){for(const item of document.querySelectorAll('article'))item.hidden=!(item.dataset.search.includes(search.value.toLowerCase())&&(!category.value||item.dataset.category===category.value));}
 search.addEventListener('input',filter);category.addEventListener('change',filter);
 </script></html>`;
-await writeFile(resolve(root, 'gallery.html'), html, 'utf8');
+await writeFile(layoutCurrentOutputPath(context, 'gallery.html'), html, 'utf8');
 console.log(
   JSON.stringify({
-    gallery: resolve(root, 'gallery.html'),
+    gallery: layoutCurrentOutputPath(context, 'gallery.html'),
     total: manifest.sourceCount,
   }),
 );
+}
+
+/** Validate roles and containment before locks, rendering, or browser startup. */
+export function assertCurrentLayoutOutputCatalog(context: LayoutCurrentContext, manifest: CatalogManifest): void {
+  const identity = manifest as CatalogManifest & { role?: string; historical_only?: boolean };
+  if (identity.schema !== 'dev.zircon.zui.layout-catalog' || identity.version !== 1 ||
+      (identity.role !== undefined && identity.role !== 'current') || identity.historical_only ||
+      !Array.isArray(identity.entries) || identity.sourceCount !== identity.entries.length)
+    throw new Error('Invalid current layout catalog identity');
+  assertLayoutCurrentRoots(context, manifest.repoRoot, context.outputRoot);
+  const sources = new Set<string>();
+  for (const entry of manifest.entries) {
+    layoutCurrentSourcePath(context, entry.sourcePath);
+    if (sources.has(entry.sourcePath)) throw new Error('Duplicate current layout source');
+    sources.add(entry.sourcePath);
+    for (const dependency of entry.dependencyFingerprints ?? []) layoutCurrentSourcePath(context, dependency.sourcePath);
+    for (const reviewCase of entry.cases ?? []) {
+      layoutCurrentSourcePath(context, reviewCase.sourcePath);
+      if (reviewCase.themeSourcePath) layoutCurrentSourcePath(context, reviewCase.themeSourcePath);
+      if (reviewCase.reviewHost) layoutCurrentOutputPath(context, reviewCase.reviewHost.path);
+      const presentation = reviewCase.data['workbenchPresentation'] as { sourceFingerprint?: { sourcePath?: unknown } } | undefined;
+      if (typeof presentation?.sourceFingerprint?.sourcePath === 'string')
+        layoutCurrentSourcePath(context, presentation.sourceFingerprint.sourcePath);
+    }
+    for (const path of [entry.outputPath, entry.resultPath, entry.previewPath]) layoutCurrentOutputPath(context, path);
+    for (const path of [entry.penpotInputPath, entry.penpotPreviewPath, entry.visualScreenshot])
+      if (path) layoutCurrentOutputPath(context, path);
+    for (const evidence of [...(entry.penpotEvidence ?? []), ...(entry.engineEvidence ?? [])]) {
+      for (const path of [evidence.screenshotPath, evidence.geometryPath, evidence.textPath])
+        if (path) layoutCurrentOutputPath(context, path);
+    }
+  }
+  for (const path of ['catalog.json', 'index.md', 'gallery.html', 'evidence/gallery-qa.json',
+    'evidence/gallery-1440.png', 'evidence/gallery-390.png']) layoutCurrentOutputPath(context, path);
+}
+
+export async function readCurrentLayoutOutputCatalog(context: LayoutCurrentContext): Promise<{ manifest: CatalogManifest; catalogSha256: string }> {
+  const bytes = await readFile(layoutCurrentOutputPath(context, 'catalog.json'));
+  const manifest = JSON.parse(bytes.toString('utf8')) as CatalogManifest;
+  assertCurrentLayoutOutputCatalog(context, manifest);
+  return { manifest, catalogSha256: bytesSha256(bytes) };
+}
+
+export async function runCurrentLayoutGallery(): Promise<void> {
+  const context = createLayoutCurrentContext();
+  await readCurrentLayoutOutputCatalog(context);
+  await withLayoutCatalogLock(context.outputRoot, { command: 'zui-layout-gallery', context }, async () => {
+    const { manifest, catalogSha256 } = await readCurrentLayoutOutputCatalog(context);
+    await renderGallery(manifest, catalogSha256, context);
+  });
+}
+
+if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href)
+  void runCurrentLayoutGallery().catch((error: unknown) => { console.error(error); process.exitCode = 1; });

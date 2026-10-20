@@ -12,13 +12,20 @@ mod review_children;
 #[path = "d13_sdk/sources.rs"]
 mod sources;
 
-pub(super) const PLUGIN_IMPORTER_DX_STRUCTURE_ASSERTIONS_CHILD: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_owners/structure_assertions.rs";
-pub(super) const PLUGIN_IMPORTER_D13_STRUCTURE_ASSERTIONS_CHILD: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_owners/structure/d13_sdk.rs";
-pub(super) const PLUGIN_IMPORTER_D13_PATHS_CHILD: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_owners/structure/d13_sdk/paths.rs";
-pub(super) const PLUGIN_IMPORTER_D13_SOURCES_CHILD: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_owners/structure/d13_sdk/sources.rs";
-pub(super) const PLUGIN_IMPORTER_D13_PARENT_MOUNTS_CHILD: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_owners/structure/d13_sdk/parent_mounts.rs";
-pub(super) const PLUGIN_IMPORTER_D13_REVIEW_CHILDREN_CHILD: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_owners/structure/d13_sdk/review_children.rs";
-pub(super) const PLUGIN_IMPORTER_D13_BUDGETS_CHILD: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/plugin_importer_dx_owners/structure/d13_sdk/budgets.rs";
+pub(super) const PLUGIN_IMPORTER_DX_STRUCTURE_ASSERTIONS_CHILD: &str =
+    "tests/test_size/review/importers/structure_assertions.rs";
+pub(super) const PLUGIN_IMPORTER_D13_STRUCTURE_ASSERTIONS_CHILD: &str =
+    "tests/test_size/review/importers/structure/d13_sdk.rs";
+pub(super) const PLUGIN_IMPORTER_D13_PATHS_CHILD: &str =
+    "tests/test_size/review/importers/structure/d13_sdk/paths.rs";
+pub(super) const PLUGIN_IMPORTER_D13_SOURCES_CHILD: &str =
+    "tests/test_size/review/importers/structure/d13_sdk/sources.rs";
+pub(super) const PLUGIN_IMPORTER_D13_PARENT_MOUNTS_CHILD: &str =
+    "tests/review/importers/structure/d13_sdk/parent_mounts.rs";
+pub(super) const PLUGIN_IMPORTER_D13_REVIEW_CHILDREN_CHILD: &str =
+    "tests/review/importers/structure/d13_sdk/review_children.rs";
+pub(super) const PLUGIN_IMPORTER_D13_BUDGETS_CHILD: &str =
+    "tests/test_size/review/importers/structure/d13_sdk/budgets.rs";
 pub(super) const PLUGIN_IMPORTER_D13_FOLDER_BACKED_SLICE: &str =
     "Runtime 15 M3 plugin-importer D13 SDK structure assertions guard folder-backed split";
 pub(super) const PLUGIN_IMPORTER_D13_FOLDER_BACKED_STATUS: &str = "runtime_15_plugin_importer_d13_sdk_structure_assertions_guard_folder_backed_static_passed_cargo_deferred";

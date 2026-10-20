@@ -12,7 +12,8 @@ mod host_api_shape;
 
 pub use api_shape::{validate_runtime_api_v8_shape, ZrRuntimeApiV8ShapeError};
 pub use api_table::{
-    ZrHostApiV1, ZrRuntimeApiV8, ZrRuntimeBindViewportSurfaceFnV1, ZrRuntimeCancelViewportPickFnV1,
+    ZrHostApiV1, ZrRuntimeApiV8, ZrRuntimeBindViewportSurfaceFnV1,
+    ZrRuntimeBindViewportSurfaceFnV2, ZrRuntimeCancelViewportPickFnV1,
     ZrRuntimeCaptureAccessibilityTreeFnV2, ZrRuntimeCaptureFrameFnV2,
     ZrRuntimeConfigureAppSessionFnV2, ZrRuntimeCreateSessionFnV3, ZrRuntimeDestroySessionFnV1,
     ZrRuntimeDrainHostRequestsFnV2, ZrRuntimeDrainWorldInvalidationsFnV2, ZrRuntimeGetApiFnV8,

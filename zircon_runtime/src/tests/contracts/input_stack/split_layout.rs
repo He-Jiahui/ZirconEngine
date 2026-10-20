@@ -1,4 +1,5 @@
 //! 输入动作、手柄、宿主请求与公共契约保持由运行时输入栈拥有。通过源码文本核对父子路由、状态镜像和文件预算。
+use crate::tests::runtime_absorption::structure_convention::fixed_history_archive_source as history;
 const SLICE: &str = "Runtime 15 M3 input-stack absorption guard folder-backed split";
 const STATUS: &str =
     "runtime_15_input_stack_absorption_guard_folder_backed_static_passed_cargo_deferred";
@@ -99,19 +100,19 @@ fn runtime_15_input_stack_absorption_guard_is_folder_backed() {
     for (label, source) in [
         (
             "Runtime 15 subplan",
-            crate::tests::runtime_absorption::current_source_fixture::RUNTIME_ARCHITECTURE_IMPLEMENTATION_OUTPUT,
+            crate::tests::runtime_absorption::current_source_fixture::runtime_architecture_implementation_output(),
         ),
         (
             "runtime index",
-            include_str!("../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md"),
+            history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md"),
         ),
         (
             "engine code structure convention",
-            include_str!("../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md"),
+            history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md"),
         ),
         (
             "engine code review findings",
-            include_str!("../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"),
+            history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"),
         ),
         (
             "module convention doc",
@@ -121,9 +122,7 @@ fn runtime_15_input_stack_absorption_guard_is_folder_backed() {
         assert_contains_all(label, source, &[SLICE, STATUS, GUARD, CHILD_PATHS[4]]);
     }
 
-    let frameworks = include_str!(
-        "../../../../../docs/plans/zircon_runtime/frameworks/02/2026-07-09-module-kernel-and-lifecycle-unification-output-records.md"
-    );
+    let frameworks = history("docs/plans/zircon_runtime/frameworks/02/2026-07-09-module-kernel-and-lifecycle-unification-output-records.md");
     assert_contains_all(
         "frameworks plan records input-stack guard split",
         frameworks,

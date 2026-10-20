@@ -191,6 +191,7 @@ pub struct RhiGraphExecutionAccess {
     queue: RhiGraphQueueLane,
     allocation_id: Option<u64>,
     has_physical_binding: bool,
+    optional_external_absence_bounds: Option<RhiGraphResourceBounds>,
 }
 
 impl RhiGraphExecutionAccess {
@@ -216,7 +217,38 @@ impl RhiGraphExecutionAccess {
             queue,
             allocation_id,
             has_physical_binding,
+            optional_external_absence_bounds: None,
         }
+    }
+
+    /// Records a typed optional external whose exact graph binding is absent.
+    /// The adapter must first establish optionality for this exact access key.
+    pub fn with_optional_external_absence(
+        mut self,
+        bounds: RhiGraphResourceBounds,
+    ) -> Result<Self, RhiGraphExecutionReceiptError> {
+        self.validate_optional_external_absence(bounds)?;
+        self.optional_external_absence_bounds = Some(bounds);
+        Ok(self)
+    }
+
+    fn validate_optional_external_absence(
+        &self,
+        bounds: RhiGraphResourceBounds,
+    ) -> Result<(), RhiGraphExecutionReceiptError> {
+        if self.resource.kind != RhiGraphResourceKind::External
+            || self.allocation_id.is_some()
+            || self.has_physical_binding
+        {
+            return Err(RhiGraphExecutionReceiptError::new(
+                "optional external absence requires an external access without allocation or physical binding",
+            ));
+        }
+        validate_range(self.range, bounds)
+    }
+
+    pub const fn optional_external_absence_bounds(&self) -> Option<RhiGraphResourceBounds> {
+        self.optional_external_absence_bounds
     }
 
     pub const fn id(&self) -> RhiGraphAccessId {
@@ -521,7 +553,9 @@ impl RhiGraphExecutionReceipt {
                         "graph resource generation does not match receipt",
                     ));
                 }
-                if access.range == RhiGraphAccessRange::UnresolvedExternal {
+                if let Some(bounds) = access.optional_external_absence_bounds {
+                    access.validate_optional_external_absence(bounds)?;
+                } else if access.range == RhiGraphAccessRange::UnresolvedExternal {
                     if access.has_physical_binding {
                         return Err(RhiGraphExecutionReceiptError::new(
                             "unresolved external access cannot claim a physical binding",

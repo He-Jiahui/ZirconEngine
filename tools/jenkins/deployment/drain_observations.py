@@ -156,10 +156,16 @@ def _current_terminal(bundle, owner):
     runtime, checksum, launcher = _bound_execution(bundle)
     ep, lp, hp = (bundle[name]["payload"] for name in ("execution", "launch", "host"))
     guard = next((r for r in bundle["nativeJobs"] if r["key"] == lp.get("guardNativeJobId")), None)
+    failed_host_abort = (hp.get("status") == "failed" and ep.get("status") == "failed" and guard is not None
+                         and isinstance(guard["payload"].get("completeProof"), dict)
+                         and ep.get("abortProof") == {
+                             "kind": "execution-host-aborted", "guardNativeJobId": guard["key"],
+                             "proofDigest": digest(guard["payload"]["completeProof"]),
+                             "outcome": "failed", "artifactPublicationAllowed": False})
     _require(runtime == owner["operationId"] and checksum == owner["driverDigest"]
              and lp.get("brokerPid") == owner["supervisor"]["pid"]
              and ep.get("status") in TERMINAL_EXECUTIONS and lp.get("status") == "exited"
-             and hp.get("status") in {"terminal", "cancelled"} and guard is not None
+             and (hp.get("status") in {"terminal", "cancelled"} or failed_host_abort) and guard is not None
              and guard["payload"].get("role") == "execution_host_guard" and guard["payload"].get("owner") == bundle["execution"]["key"]
              and guard["payload"].get("pid") == launcher["pid"]
              and str(guard["payload"].get("birthToken")) == launcher["creationTime"]

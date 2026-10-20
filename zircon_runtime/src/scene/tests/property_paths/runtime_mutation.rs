@@ -468,3 +468,119 @@ fn world_rejects_non_finite_transform_property_writes() {
     );
     assert_eq!(world.find_node(hero).unwrap().transform.scale, Vec3::ONE);
 }
+
+#[test]
+fn world_animation_parameter_writes_reuse_the_existing_normalized_key() {
+    use crate::core::framework::animation::{AnimationParameterSet, AnimationParameterValue};
+    use crate::scene::components::{
+        AnimationGraphPlayerComponent, AnimationStateMachinePlayerComponent,
+    };
+
+    let mut world = World::new();
+    let entity = world.spawn_node(NodeKind::Mesh).unwrap();
+    let mut parameters = AnimationParameterSet::new();
+    parameters.insert("Speed".to_owned(), AnimationParameterValue::Scalar(1.0));
+    world
+        .set_animation_graph_player(
+            entity,
+            Some(AnimationGraphPlayerComponent {
+                graph: ResourceHandle::new(ResourceId::from_stable_label("res://test.graph")),
+                parameters: parameters.clone(),
+                playing: true,
+            }),
+        )
+        .unwrap();
+    world
+        .set_animation_state_machine_player(
+            entity,
+            Some(AnimationStateMachinePlayerComponent {
+                state_machine: ResourceHandle::new(ResourceId::from_stable_label(
+                    "res://test.state_machine",
+                )),
+                parameters,
+                active_state: None,
+                playing: true,
+            }),
+        )
+        .unwrap();
+
+    for component in ["AnimationGraphPlayer", "AnimationStateMachinePlayer"] {
+        let speed_path =
+            ComponentPropertyPath::parse(&format!("{component}.parameters.speed")).unwrap();
+        let next = ScenePropertyValue::AnimationParameter(AnimationParameterValue::Scalar(2.0));
+        assert!(world
+            .set_property(entity, &speed_path, next.clone())
+            .unwrap());
+        assert_eq!(world.property(entity, &speed_path).unwrap(), next);
+        let current = if component == "AnimationGraphPlayer" {
+            &world
+                .get::<AnimationGraphPlayerComponent>(entity)
+                .unwrap()
+                .parameters
+        } else {
+            &world
+                .get::<AnimationStateMachinePlayerComponent>(entity)
+                .unwrap()
+                .parameters
+        };
+        assert_eq!(current.len(), 1);
+        assert_eq!(
+            current.keys().map(String::as_str).collect::<Vec<_>>(),
+            ["Speed"]
+        );
+        assert_eq!(
+            current.get("Speed"),
+            Some(&AnimationParameterValue::Scalar(2.0))
+        );
+        let revision = current.revision();
+        let fingerprint = current.content_fingerprint();
+
+        assert!(!world
+            .set_property(entity, &speed_path, next.clone())
+            .unwrap());
+        assert_eq!(world.property(entity, &speed_path).unwrap(), next);
+        let current = if component == "AnimationGraphPlayer" {
+            &world
+                .get::<AnimationGraphPlayerComponent>(entity)
+                .unwrap()
+                .parameters
+        } else {
+            &world
+                .get::<AnimationStateMachinePlayerComponent>(entity)
+                .unwrap()
+                .parameters
+        };
+        assert_eq!(current.revision(), revision);
+        assert_eq!(current.content_fingerprint(), fingerprint);
+        assert_eq!(current.len(), 1);
+
+        let new_path =
+            ComponentPropertyPath::parse(&format!("{component}.parameters.Jump")).unwrap();
+        let new_value = ScenePropertyValue::AnimationParameter(AnimationParameterValue::Bool(true));
+        assert!(world
+            .set_property(entity, &new_path, new_value.clone())
+            .unwrap());
+        assert_eq!(world.property(entity, &new_path).unwrap(), new_value);
+        let current = if component == "AnimationGraphPlayer" {
+            &world
+                .get::<AnimationGraphPlayerComponent>(entity)
+                .unwrap()
+                .parameters
+        } else {
+            &world
+                .get::<AnimationStateMachinePlayerComponent>(entity)
+                .unwrap()
+                .parameters
+        };
+        assert_eq!(current.len(), 2);
+        assert_eq!(
+            current.get("Speed"),
+            Some(&AnimationParameterValue::Scalar(2.0))
+        );
+        assert_eq!(
+            current.get("jump"),
+            Some(&AnimationParameterValue::Bool(true))
+        );
+        assert!(!current.contains_key("Jump"));
+    }
+}

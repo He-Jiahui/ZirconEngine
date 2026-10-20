@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from runtime_structure_audits.dynamic_runtime_api_archive_inventory import HistoricalArchiveReader
+
 from runtime_structure_audits.input_stack_anchor_inventory import (
     ACTION_EVALUATOR_ANCHORS,
     AXIS_FRAME_INDEX_ANCHORS,
@@ -104,7 +106,25 @@ def _missing_snippets(sources: tuple[str, ...], snippets: tuple[str, ...]) -> li
     ]
 
 
-def input_stack_boundary_audit(root: Path) -> dict[str, object]:
+RUNTIME_12_CLOSEOUT_ARCHIVE = (
+    "docs/plans/zircon_runtime/runtime/12/"
+    "2026-07-17-m5-input-event-bounds-current-source-closeout.md"
+)
+RUNTIME_12_HISTORICAL_IDENTITIES = {
+    RUNTIME_12_CLOSEOUT_ARCHIVE: (
+        9157,
+        "4c9924b96701c8cfe6954a0cf9475ca67e898f6f0ba06e3776b36b7f3fd4cf4b",
+    ),
+}
+
+
+def input_stack_boundary_audit(
+    root: Path, *, archive_root: Path | None = None
+) -> dict[str, object]:
+    history = HistoricalArchiveReader(
+        archive_root, identities=RUNTIME_12_HISTORICAL_IDENTITIES
+    )
+    historical_closeout = history.read(RUNTIME_12_CLOSEOUT_ARCHIVE)
     input_mod = root / "zircon_runtime/src/input/mod.rs"
     input_prelude = root / "zircon_runtime/src/input/prelude.rs"
     runtime_mod = root / "zircon_runtime/src/input/runtime/mod.rs"
@@ -116,11 +136,7 @@ def input_stack_boundary_audit(root: Path) -> dict[str, object]:
         root / "zircon_runtime/src/input/runtime/action_evaluator/frame_axis_index.rs"
     )
     input_stack_guard_paths = tuple(root / path for path in INPUT_STACK_GUARD_FILES)
-    runtime_12_closeout = (
-        root
-        / "docs/plans/zircon_runtime/runtime/12/2026-07-17-m5-input-event-bounds-current-source-closeout.md"
-    )
-    input_doc = root / "docs/zircon_runtime/input/input_state.md"
+    input_doc = root / "docs/crates/zircon_runtime/input/input_state.md"
     app_gamepad_events = root / "zircon_app/src/entry/runtime_entry_app/gamepad/events.rs"
     app_gamepad_polling = root / "zircon_app/src/entry/runtime_entry_app/gamepad/polling.rs"
     dynamic_session = root / "zircon_runtime/src/dynamic_api/session.rs"
@@ -166,9 +182,12 @@ def input_stack_boundary_audit(root: Path) -> dict[str, object]:
         _read_text(path) for path in input_stack_guard_paths if path.exists()
     )
     doc_sources = tuple(
-        _read_text(path)
-        for path in (runtime_12_closeout, input_doc)
-        if path.exists()
+        source
+        for source in (
+            historical_closeout,
+            _read_text(input_doc) if input_doc.exists() else None,
+        )
+        if source is not None
     )
     test_sources = tuple(
         _read_text(root / module)
@@ -357,7 +376,11 @@ def input_stack_boundary_audit(root: Path) -> dict[str, object]:
     if oversized_modules:
         risks.append("Runtime 12 input owner module exceeds its line budget.")
 
+    if historical_closeout is None:
+        risks.append("Runtime 12 fixed historical closeout archive readback failed.")
+
     return {
+        "historical_archive_readback": list(history.records.values()),
         "runtime_modules": runtime_modules,
         "expected_runtime_module_count": len(INPUT_RUNTIME_MODULES),
         "missing_runtime_modules": missing_runtime_modules,

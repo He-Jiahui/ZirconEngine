@@ -248,7 +248,7 @@ pub(crate) fn sync_source_voice<B: Backend>(
         .kira_playback
         .is_some_and(|playback| kira.contains_playback(playback))
     {
-        return Ok(());
+        return voice.apply_environment(kira);
     }
     voice.kira_playback = None;
     let clip_id = match &voice.descriptor.input {
@@ -263,7 +263,9 @@ pub(crate) fn sync_source_voice<B: Backend>(
     let clip = clips
         .get(&clip_id)
         .ok_or(SoundError::UnknownClip { clip: clip_id })?;
-    let settings = playback_settings_for_source(&voice.descriptor);
+    let mut settings = playback_settings_for_source(&voice.descriptor);
+    settings.gain = voice.environment_output_gain(settings.gain, settings.muted)?;
+    settings.pan = voice.environment_pan;
     let range = playback_range_for_settings(clip, &settings)?;
     voice.cursor_frame = range.start_frame;
     voice.cursor_position = range.start_frame as f64;
@@ -287,6 +289,12 @@ pub(crate) fn sync_source_voice_in_state(
     state: &mut SoundEngineState,
     voice: &mut SourceVoice,
 ) -> Result<(), SoundError> {
+    let listeners = state.listeners.values().cloned().collect::<Vec<_>>();
+    voice.project_environment(
+        state.default_spatial_scale,
+        &listeners,
+        &state.ray_traced_impulse_responses,
+    )?;
     let SoundEngineState {
         kira,
         next_playback_id,

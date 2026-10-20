@@ -84,7 +84,7 @@ doc_type: workflow-detail
 .\tools\dev\local-cargo.ps1 test -p zircon_runtime --lib <focused-filter> --locked
 ```
 
-命令范围和执行节奏遵循 `docs/plans/milestone-validation-policy.md`。原生 Cargo 锁继续生效；入口返回实际 Cargo 退出码。Dry run 不创建目录、不执行编译，也不形成验收证据。Jenkins 请求通过独立入口封存和接受，不能把本地结果升级为 Jenkins 接受回执。
+命令范围和执行节奏遵循 `docs/testing-and-validation/milestone-validation-policy.md`。原生 Cargo 锁继续生效；入口返回实际 Cargo 退出码。Dry run 不创建目录、不执行编译，也不形成验收证据。Jenkins 请求通过独立入口封存和接受，不能把本地结果升级为 Jenkins 接受回执。
 
 The optional `.codex/hooks/pre_tool_use_cargo_guard.py` hook is advisory. It
 recognizes a subset of direct Cargo commands in `Bash` payloads and intentionally

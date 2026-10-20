@@ -564,9 +564,7 @@ fn admit_projection_indices(
     additional_indices: usize,
     max_indices: usize,
 ) -> Result<(), RichTextParseError> {
-    let attempted_indices = consumed_indices
-        .checked_add(additional_indices)
-        .unwrap_or(usize::MAX);
+    let attempted_indices = consumed_indices.saturating_add(additional_indices);
     if attempted_indices > max_indices {
         return Err(RichTextParseError::ProjectionIndexBudgetExceeded {
             attempted_indices,

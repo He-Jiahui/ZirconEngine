@@ -532,6 +532,25 @@ fn validate_pool_shapes(
     if output.shape != [input.shape[0], input.shape[1], output_height, output_width] {
         return Err(NnGraphBuildError::InvalidShape(code));
     }
+    // Window starts increase monotonically. The first must end after zero and
+    // the last must start before the input ends; these two bounds cover every window.
+    for axis in 0..2 {
+        if attrs.kernel[axis] <= attrs.padding[axis] {
+            return Err(NnGraphBuildError::InvalidShape(code));
+        }
+        let last_output = output.shape[axis + 2]
+            .checked_sub(1)
+            .ok_or(NnGraphBuildError::InvalidShape(code))?;
+        let last_start = u64::from(last_output)
+            .checked_mul(u64::from(attrs.stride[axis]))
+            .ok_or(NnGraphBuildError::InvalidShape(code))?;
+        let padded_input_end = u64::from(input.shape[axis + 2])
+            .checked_add(u64::from(attrs.padding[axis]))
+            .ok_or(NnGraphBuildError::InvalidShape(code))?;
+        if last_start >= padded_input_end {
+            return Err(NnGraphBuildError::InvalidShape(code));
+        }
+    }
     Ok(())
 }
 

@@ -135,3 +135,196 @@ fn text_rich_bbcode_builtin_widget_emits_sized_placeholder_contract() {
             if slot.value() == 42 && size.to_array() == [24.0, 16.0]
     ));
 }
+
+#[test]
+fn markdown_escaped_punctuation_keeps_literal_content_and_delimiter_boundaries() {
+    for (source, expected) in [
+        (r"\*literal\*", "*literal*"),
+        (r"\*\*literal\*\*", "**literal**"),
+        (r"\_\[\]\(\)", "_[]()"),
+        (r"\\", "\\"),
+        (r"\q tail\", "\\q tail\\"),
+    ] {
+        let parsed = parse_rich_text(source, RichTextFormat::MarkdownInlineV1);
+        assert_eq!(parsed.text.as_ref(), expected);
+        assert!(parsed
+            .runs
+            .iter()
+            .all(|run| run.style == Default::default()));
+    }
+    for (source, expected, kind) in [
+        (r"**left \** right**", "left ** right", 0),
+        (r"*left \* right*", "left * right", 1),
+        ("\x60left \\\x60 right\x60", "left \x60 right", 2),
+    ] {
+        let parsed = parse_rich_text(source, RichTextFormat::MarkdownInlineV1);
+        assert_eq!(parsed.text.as_ref(), expected);
+        assert_eq!(parsed.runs.len(), 1);
+        let style = &parsed.runs[0].style;
+        match kind {
+            0 => assert_eq!(style.weight, Some(700)),
+            1 => assert_eq!(style.italic, Some(true)),
+            _ => assert_eq!(style.code, Some(true)),
+        }
+    }
+    let parsed = parse_rich_text(r"\\*italic*", RichTextFormat::MarkdownInlineV1);
+    assert_eq!(parsed.text.as_ref(), "\\italic");
+    assert_eq!(parsed.runs.len(), 2);
+    assert_eq!(parsed.runs[0].style.italic, None);
+    assert_eq!(parsed.runs[1].style.italic, Some(true));
+    // Escape syntax belongs only to MarkdownInlineV1.
+    for format in [
+        RichTextFormat::Plain,
+        RichTextFormat::HtmlSubsetV1,
+        RichTextFormat::BbCodeV1,
+    ] {
+        assert_eq!(
+            parse_rich_text(r"\*literal\*", format).text.as_ref(),
+            r"\*literal\*"
+        );
+    }
+}
+
+#[test]
+fn markdown_escaped_prefixes_preserve_source_bidi_ranges_and_graphemes() {
+    use crate::text::{
+        RichTextAuthoringDiagnosticCode, RichTextContentTrust, RichTextParseError, RichTextParser,
+    };
+    use unicode_segmentation::UnicodeSegmentation;
+
+    let source = "**\\*e\u{0301}\u{202e}x\u{202c}**";
+    let parser = RichTextParser::default();
+    let compiled = parser
+        .compile_with_content_trust(
+            source,
+            RichTextFormat::MarkdownInlineV1,
+            RichTextContentTrust::TrustedAuthoring,
+        )
+        .unwrap();
+    let parsed = compiled.parsed();
+    assert_eq!(parsed.text.as_ref(), "*e\u{0301}\u{202e}x\u{202c}");
+    let override_start = source.find('\u{202e}').unwrap() as u32;
+    let pop_start = source.find('\u{202c}').unwrap() as u32;
+    assert_eq!(
+        parsed
+            .authoring_diagnostics
+            .iter()
+            .map(|diagnostic| diagnostic.source_range)
+            .collect::<Vec<_>>(),
+        vec![
+            (override_start, override_start + 3),
+            (pop_start, pop_start + 3)
+        ],
+    );
+    assert_eq!(
+        parser.compile(source, RichTextFormat::MarkdownInlineV1),
+        Err(RichTextParseError::BidiControlNotAllowed {
+            code: RichTextAuthoringDiagnosticCode::BidirectionalOverride,
+            source_range: (override_start, override_start + 3),
+        },)
+    );
+    let parsed = parse_rich_text("e**\\*\u{0301}**", RichTextFormat::MarkdownInlineV1);
+    assert_eq!(parsed.text.as_ref(), "e*\u{0301}");
+    let boundaries = parsed
+        .text
+        .grapheme_indices(true)
+        .map(|(index, _)| index as u32)
+        .chain(std::iter::once(parsed.text.len() as u32))
+        .collect::<Vec<_>>();
+    for run in &parsed.runs {
+        assert!(boundaries.contains(&run.byte_range.0));
+        assert!(boundaries.contains(&run.byte_range.1));
+    }
+    assert!(parsed
+        .runs
+        .iter()
+        .any(|run| run.byte_range == (1, 4) && run.style.weight == Some(700)));
+}
+
+#[test]
+fn markdown_escape_tokens_and_decoded_output_respect_parse_budgets() {
+    use crate::text::{RichParseBudget, RichTextParseError, RichTextParser};
+    let format = RichTextFormat::MarkdownInlineV1;
+    let parser = RichTextParser::with_budget(RichParseBudget {
+        max_tokens: 1,
+        ..RichParseBudget::default()
+    });
+    assert_eq!(
+        parser.compile(r"\*\*", format),
+        Err(RichTextParseError::TokenBudgetExceeded {
+            attempted_tokens: 2,
+            max_tokens: 1,
+        })
+    );
+    let parser = RichTextParser::with_budget(RichParseBudget {
+        max_token_bytes: 1,
+        ..RichParseBudget::default()
+    });
+    assert_eq!(
+        parser.compile(r"\*", format),
+        Err(RichTextParseError::TokenByteBudgetExceeded {
+            attempted_bytes: 2,
+            max_bytes: 1,
+        })
+    );
+    let parser = RichTextParser::with_budget(RichParseBudget {
+        max_output_bytes: 0,
+        ..RichParseBudget::default()
+    });
+    assert_eq!(
+        parser.compile(r"\*", format),
+        Err(RichTextParseError::OutputByteBudgetExceeded {
+            attempted_bytes: 1,
+            max_bytes: 0,
+        })
+    );
+    let parser = RichTextParser::with_budget(RichParseBudget {
+        max_source_bytes: 1,
+        ..RichParseBudget::default()
+    });
+    assert_eq!(
+        parser.compile(r"\*", format),
+        Err(RichTextParseError::SourceByteBudgetExceeded {
+            actual_bytes: 2,
+            max_bytes: 1,
+        })
+    );
+    let parser = RichTextParser::with_budget(RichParseBudget {
+        max_runs: 1,
+        ..RichParseBudget::default()
+    });
+    assert_eq!(
+        parser.compile(r"\* **x**", format),
+        Err(RichTextParseError::RunCountBudgetExceeded {
+            attempted_runs: 2,
+            max_runs: 1,
+        })
+    );
+}
+
+#[test]
+fn markdown_escaped_only_closers_finish_at_scale_without_formatting() {
+    use crate::text::{RichParseBudget, RichTextParser};
+    const ESCAPED_CLOSERS: usize = 100_000;
+    let parser = RichTextParser::with_budget(RichParseBudget {
+        max_tokens: ESCAPED_CLOSERS * 2 + 2,
+        ..RichParseBudget::default()
+    });
+    for (open, escaped, literal) in [
+        ("*", r"\* ", "* "),
+        ("**", r"\*\* ", "** "),
+        ("\x60", "\\\x60 ", "\x60 "),
+    ] {
+        let source = format!("{open}{}", escaped.repeat(ESCAPED_CLOSERS));
+        let compiled = parser
+            .compile(&source, RichTextFormat::MarkdownInlineV1)
+            .unwrap();
+        let parsed = compiled.parsed();
+        assert_eq!(
+            parsed.text.as_ref(),
+            format!("{open}{}", literal.repeat(ESCAPED_CLOSERS))
+        );
+        assert_eq!(parsed.runs.len(), 1);
+        assert_eq!(parsed.runs[0].style, Default::default());
+    }
+}

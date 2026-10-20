@@ -35,8 +35,11 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn apply_r
     image.atlas = None;
     // BUG: [CR-M18-AVATAR-0001] 资源键仅保留三位小数半径，但遮罩像素和缓存键使用完整 f32；不同遮罩可共享绘制资源键，录制流按同键同代去重后显示旧像素。
     image.resource_key = format!(
-        "mui-avatar-mask:{}x{}:{:.3}:{}",
-        image.width, image.height, mask_radius, image.resource_key
+        "mui-avatar-mask:{}x{}:{:08x}:{}",
+        image.width,
+        image.height,
+        mask_radius.to_bits(),
+        image.resource_key
     )
     .into();
 }

@@ -59,7 +59,7 @@ SOURCE_FILES = (
     "zircon_app/src/entry/runtime_library/loaded_runtime.rs",
     "zircon_app/src/entry/runtime_library/runtime_session.rs",
     "zircon_app/src/entry/runtime_library/runtime_session/operation.rs",
-    "zircon_app/src/entry/runtime_library/tests.rs",
+    "zircon_app/src/entry/runtime_library/tests/cases.rs",
     "zircon_app/src/entry/runtime_entry_app/host_requests/routing.rs",
     "zircon_app/src/entry/runtime_entry_app/host_requests/cursor/request.rs",
     "zircon_runtime_host/src/foreign_output/owned_buffer.rs",

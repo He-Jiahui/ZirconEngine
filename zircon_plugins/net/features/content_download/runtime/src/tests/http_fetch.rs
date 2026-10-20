@@ -189,3 +189,85 @@ fn corrupt_chunk_refetched() {
     assert_eq!(primary_hits.load(Ordering::SeqCst), 1);
     assert_eq!(mirror_hits.load(Ordering::SeqCst), 1);
 }
+
+#[test]
+fn content_download_manager_preserves_cancellation_after_in_flight_http_success() {
+    use std::sync::mpsc;
+    use std::time::Duration;
+
+    let http = zircon_plugin_net_http_runtime::http_runtime_manager();
+    let (entered_tx, entered_rx) = mpsc::sync_channel(1);
+    let (release_tx, release_rx) = mpsc::sync_channel(1);
+    let release_rx = std::sync::Mutex::new(release_rx);
+    http.register_http_route_handler(
+        NetHttpRouteDescriptor::new("/chunks/cancel-inflight", [NetHttpMethod::Get]),
+        move |request| {
+            let _ = entered_tx.try_send(());
+            let _ = release_rx
+                .lock()
+                .unwrap()
+                .recv_timeout(Duration::from_secs(5));
+            NetHttpResponseDescriptor::new(request.request, 200, b"chunk-bytes".to_vec())
+        },
+    )
+    .unwrap();
+    let listener = http.listen_http(&NetEndpoint::new("127.0.0.1", 0)).unwrap();
+    let endpoint = http.listener_endpoint(listener).unwrap();
+    let manager = NetContentDownloadRuntimeManager::with_net_manager(Arc::new(http.clone()));
+    let download = NetDownloadId::new(286);
+    manager.queue_manifest(
+        NetDownloadManifest::new(download, "asset://download/cancel-inflight").with_chunk(
+            NetDownloadChunk::new(
+                "chunk",
+                format!(
+                    "http://{}:{}/chunks/cancel-inflight",
+                    endpoint.host, endpoint.port
+                ),
+                0,
+                11,
+                zrpack_hash(b"chunk-bytes"),
+            ),
+        ),
+    );
+    manager.store_resume_bitmap(download, [false]);
+
+    // Release the handler and join the real fetch before asserting, including
+    // failed rendezvous paths. The handler itself also has a bounded wait.
+    let (entered, cancelled, released, fetched) = std::thread::scope(|scope| {
+        let fetch_manager = manager.clone();
+        let fetch = scope.spawn(move || fetch_manager.fetch_next_chunk(download, "chunk"));
+        let entered = entered_rx.recv_timeout(Duration::from_secs(5));
+        let cancelled = manager.cancel_download(download);
+        let released = release_tx.send(());
+        (entered, cancelled, released, fetch.join())
+    });
+    let closed = http.close_listener(listener);
+    assert!(
+        entered.is_ok(),
+        "the real HTTP request must reach its handler"
+    );
+    assert!(released.is_ok());
+    closed.unwrap();
+    let cancelled = cancelled.unwrap();
+    assert_eq!(cancelled.status, NetDownloadStatus::Cancelled);
+    assert_eq!(fetched.unwrap(), Some(cancelled.clone()));
+    assert_eq!(manager.progress(download), Some(cancelled.clone()));
+    assert_eq!(cancelled.diagnostic.as_deref(), Some("download cancelled"));
+    assert_eq!(cancelled.downloaded_bytes, 0);
+    assert!(cancelled.completed_chunks.is_empty());
+    assert_eq!(manager.resume_bitmap(download), vec![false]);
+    assert_eq!(
+        manager.mark_cache_hit(download, "chunk"),
+        Some(cancelled.clone())
+    );
+    assert_eq!(
+        manager.mark_attempt_failed(download, "chunk", "late HTTP failure"),
+        Some(cancelled.clone())
+    );
+    assert!(manager.failed_attempts(download, "chunk").is_empty());
+    assert!(manager.cache_hits(download).is_empty());
+    assert_eq!(manager.resume_bitmap(download), vec![false]);
+    assert!(manager.next_attempt(download, "chunk").is_none());
+    assert_eq!(manager.fetch_next_chunk(download, "chunk"), None);
+    assert_eq!(manager.progress(download), Some(cancelled));
+}

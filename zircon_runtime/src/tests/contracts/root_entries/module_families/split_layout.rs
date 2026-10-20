@@ -1,10 +1,12 @@
 //! 运行时根入口只公开选定模块，模块家族和历史别名由各自子模块判定。通过源码文本核对父子路由、状态镜像和文件预算。
 use super::{FRAMEWORKS_STATUS, GUARD, SLICE, STATUS};
+use crate::tests::runtime_absorption::structure_convention::fixed_history_archive_source as history;
 
 #[test]
 fn runtime_15_root_entries_module_families_guard_is_folder_backed() {
     let route = include_str!("../module_families.rs");
     let navigation = include_str!("navigation.rs");
+    let navigation_inventory = include_str!("navigation_inventory.rs");
     let animation_backlog = include_str!("../../module_families/animation_backlog.rs");
     let animation_status_json = include_str!("../../module_families/animation_status_json.rs");
     let root_seats = include_str!("root_seats.rs");
@@ -12,6 +14,7 @@ fn runtime_15_root_entries_module_families_guard_is_folder_backed() {
     let split_layout = include_str!("split_layout.rs");
     let children = [
         navigation,
+        navigation_inventory,
         animation_backlog,
         animation_status_json,
         root_seats,
@@ -24,10 +27,11 @@ fn runtime_15_root_entries_module_families_guard_is_folder_backed() {
         "module_families route mounts children",
         route,
         &[
-            "#[path = \"module_families/animation_backlog.rs\"]",
-            "#[path = \"module_families/animation_status_json.rs\"]",
+            "#[path = \"../module_families/animation_backlog.rs\"]",
+            "#[path = \"../module_families/animation_status_json.rs\"]",
             "#[path = \"module_families/mirror_docs.rs\"]",
             "#[path = \"module_families/navigation.rs\"]",
+            "#[path = \"module_families/navigation_inventory.rs\"]",
             "#[path = \"module_families/root_seats.rs\"]",
             "#[path = \"module_families/split_layout.rs\"]",
         ],
@@ -53,6 +57,11 @@ fn runtime_15_root_entries_module_families_guard_is_folder_backed() {
     for (label, source, max_lines) in [
         ("module_families route", route, 40usize),
         ("navigation child", navigation, 90),
+        (
+            "navigation source inventory child",
+            navigation_inventory,
+            90,
+        ),
         ("animation backlog child", animation_backlog, 60),
         ("animation status JSON child", animation_status_json, 90),
         ("root seats child", root_seats, 80),
@@ -70,11 +79,11 @@ fn runtime_15_root_entries_module_families_guard_is_folder_backed() {
         "core spine generated mirror docs routes module family children",
         include_str!("../../core_spine_root_generated/mirror_docs.rs"),
         &[
-            "root_entries/module_families/navigation.rs",
-            "root_entries/module_families/animation_backlog.rs",
-            "root_entries/module_families/animation_status_json.rs",
-            "root_entries/module_families/root_seats.rs",
-            "root_entries/module_families/mirror_docs.rs",
+            "src/tests/contracts/root_entries/module_families/navigation.rs",
+            "src/tests/contracts/module_families/animation_backlog.rs",
+            "src/tests/contracts/module_families/animation_status_json.rs",
+            "src/tests/contracts/root_entries/module_families/root_seats.rs",
+            "src/tests/contracts/root_entries/module_families/mirror_docs.rs",
         ],
     );
     assert_contains_all(
@@ -83,11 +92,11 @@ fn runtime_15_root_entries_module_families_guard_is_folder_backed() {
             "../../../../../../.codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/core_spine_root_generated_boundary.py"
         ),
         &[
-            "root_entries/module_families/navigation.rs",
-            "root_entries/module_families/animation_backlog.rs",
-            "root_entries/module_families/animation_status_json.rs",
-            "root_entries/module_families/root_seats.rs",
-            "root_entries/module_families/mirror_docs.rs",
+            "src/tests/contracts/root_entries/module_families/navigation.rs",
+            "src/tests/contracts/module_families/animation_backlog.rs",
+            "src/tests/contracts/module_families/animation_status_json.rs",
+            "src/tests/contracts/root_entries/module_families/root_seats.rs",
+            "src/tests/contracts/root_entries/module_families/mirror_docs.rs",
         ],
     );
     assert_contains_all(
@@ -96,11 +105,11 @@ fn runtime_15_root_entries_module_families_guard_is_folder_backed() {
             "../../../../../../.codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/module_family_boundary.py"
         ),
         &[
-            "root_entries/module_families/navigation.rs",
-            "root_entries/module_families/animation_backlog.rs",
-            "root_entries/module_families/animation_status_json.rs",
-            "root_entries/module_families/root_seats.rs",
-            "root_entries/module_families/mirror_docs.rs",
+            "src/tests/contracts/root_entries/module_families/navigation.rs",
+            "src/tests/contracts/module_families/animation_backlog.rs",
+            "src/tests/contracts/module_families/animation_status_json.rs",
+            "src/tests/contracts/root_entries/module_families/root_seats.rs",
+            "src/tests/contracts/root_entries/module_families/mirror_docs.rs",
         ],
     );
 
@@ -111,31 +120,23 @@ fn assert_status_docs_mirror_split() {
     for (label, source) in [
         (
             "Runtime 15 plan",
-            crate::tests::runtime_absorption::current_source_fixture::RUNTIME_ARCHITECTURE_IMPLEMENTATION_OUTPUT,
+            crate::tests::runtime_absorption::current_source_fixture::runtime_architecture_implementation_output(),
         ),
         (
             "runtime index",
-            include_str!(
-                "../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md"
-            ),
+            history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md"),
         ),
         (
             "Frameworks 02",
-            include_str!(
-                "../../../../../../docs/plans/zircon_runtime/frameworks/02/2026-07-09-module-kernel-and-lifecycle-unification-output-records.md"
-            ),
+            history("docs/plans/zircon_runtime/frameworks/02/2026-07-09-module-kernel-and-lifecycle-unification-output-records.md"),
         ),
         (
             "structure convention",
-            include_str!(
-                "../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md"
-            ),
+            history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md"),
         ),
         (
             "review findings",
-            include_str!(
-                "../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"
-            ),
+            history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"),
         ),
         (
             "module convention",
@@ -146,9 +147,7 @@ fn assert_status_docs_mirror_split() {
     }
     assert_contains_all(
         "Frameworks 02",
-        include_str!(
-            "../../../../../../docs/plans/zircon_runtime/frameworks/02/2026-07-09-module-kernel-and-lifecycle-unification-output-records.md"
-        ),
+        history("docs/plans/zircon_runtime/frameworks/02/2026-07-09-module-kernel-and-lifecycle-unification-output-records.md"),
         &[FRAMEWORKS_STATUS],
     );
 }

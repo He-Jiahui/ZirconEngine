@@ -1,4 +1,6 @@
 //! 代码审查回归护栏核对已迁移接口、错误边界、插件入口及镜像状态。以结果断言检查当前接口或源码快照对应的边界。
+use crate::tests::runtime_absorption::structure_convention::fixed_history_archive_source as history;
+use crate::tests::runtime_absorption::structure_convention::rust_source_view::production_section;
 #[test]
 fn review_f5_world_spawn_bundle_surface_uses_scene_error() {
     let scene_mod = include_str!("../../../../scene/mod.rs");
@@ -12,17 +14,18 @@ fn review_f5_world_spawn_bundle_surface_uses_scene_error() {
     let command_facade = include_str!("../../../../scene/ecs/commands/commands/facade.rs");
     let entity_commands =
         include_str!("../../../../scene/ecs/commands/commands/entity_commands.rs");
-    let review_findings = concat!(
-        include_str!("../../../../../../docs/plans/engine-code-review-findings-2026-06.md"),
-        include_str!("../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md")
+    let review_findings = crate::runtime_test_history_concat!(
+        include_str!("../../../../../../docs/architecture/runtime-architecture-review-m0.md"),
+        history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md")
     );
     let runtime_08_plan = include_str!(
-        "../../../../../../docs/plans/zircon_runtime/runtime/08-ecs-kernel-data-alignment.md"
+        "../../../../../../docs/testing-and-validation/runtime-ecs-validation-worklist.md"
     );
-    let runtime_index =
-        include_str!("../../../../../../docs/plans/zircon_runtime/runtime/index.md");
+    let runtime_index = include_str!(
+        "../../../../../../docs/crates/zircon_runtime/structure/runtime-absorption-evidence.md"
+    );
     let convention =
-        include_str!("../../../../../../docs/plans/engine-code-structure-convention.md");
+        include_str!("../../../../../../docs/testing-and-validation/development-conventions.md");
     let ecs_doc = include_str!("../../../../../../docs/crates/zircon_runtime/scene/ecs.md");
 
     for anchor in [
@@ -109,8 +112,10 @@ fn review_f5_world_spawn_bundle_surface_uses_scene_error() {
         "pub(super) fn insert_dynamic_component_presence",
         "pub(super) fn remove_dynamic_component_presence",
         "SceneError::missing_entity(\"insert component on\", entity)",
-        "Err(error) => return Err(error.into())",
-        ".spawn(entity, EntityLocation::new(ArchetypeId::EMPTY, row))?",
+        "let mut transaction = self.begin_bundle_spawn(entity, NodeKind::Mesh)?;",
+        "bundle.stage_into(&mut transaction)?;",
+        "transaction.finish()?;",
+        ".spawn(entity, EntityLocation::new(ArchetypeId::EMPTY, usize::MAX))?",
         "fn stage_into<S>(self, staging: &mut S) -> SceneResult<()>",
         "fn stage<T>(&mut self, component: T) -> SceneResult<()>",
     ] {
@@ -123,16 +128,79 @@ fn review_f5_world_spawn_bundle_surface_uses_scene_error() {
             "F5 typed ECS mutation surface should contain `{required}`"
         );
     }
+    let deferred_command = include_str!("../../../../scene/ecs/commands/command.rs");
+    let commands_mod = include_str!("../../../../scene/ecs/commands/mod.rs");
+    let bundle_transaction =
+        include_str!("../../../../scene/world/typed_api/bundle_transaction.rs");
+    let bundle_commit =
+        include_str!("../../../../scene/world/bundle_transaction/deferred_bundle_commit.rs");
+    let ecs_typed_tests = include_str!("../../../../scene/tests/ecs_typed_api.rs");
+    let bundle_transaction_tests =
+        include_str!("../../../../scene/tests/ecs_typed_api/bundle_transactions.rs");
+    assert!(
+        commands_mod
+            .replace("\r\n", "\n")
+            .contains("#[path = \"command.rs\"]\nmod command;"),
+        "exact current module mount in scene/ecs/commands/mod.rs"
+    );
+    assert!(
+        typed_api
+            .replace("\r\n", "\n")
+            .contains("#[path = \"typed_api/bundle_transaction.rs\"]\nmod bundle_transaction;"),
+        "exact current module mount in scene/world/typed_api.rs"
+    );
+    assert!(bundle_transaction.replace("\r\n", "\n").contains("#[path = \"../bundle_transaction/deferred_bundle_commit.rs\"]\nmod deferred_bundle_commit;"), "exact current module mount in scene/world/typed_api/bundle_transaction.rs");
+    assert!(
+        ecs_typed_tests.replace("\r\n", "\n").contains(
+            "#[path = \"ecs_typed_api/bundle_transactions.rs\"]\nmod bundle_transactions;"
+        ),
+        "exact current module mount in scene/tests/ecs_typed_api.rs"
+    );
+    for required in [
+        "pub struct DeferredCommandError {",
+        "error: SceneError,",
+        "pub fn error(&self) -> &SceneError",
+    ] {
+        assert!(
+            deferred_command.contains(required),
+            "current scene/ecs/commands/command.rs must retain {required}"
+        );
+    }
+    for required in ["world.record_deferred_command_error(DeferredCommandError::new("] {
+        assert!(
+            command_facade.contains(required),
+            "current scene/ecs/commands/commands/facade.rs must retain {required}"
+        );
+    }
+    for required in [
+        "self.validate_final_state()?;",
+        "self.validate_commit_invariants()?;",
+        "let commit_input = self.prepare_commit()?;",
+    ] {
+        assert!(bundle_commit.contains(required), "current scene/world/bundle_transaction/deferred_bundle_commit.rs must retain {required}");
+    }
+    for required in [
+        "bundle_commit_requires_final_state_validation_before_publishing",
+        "duplicate_bundle_stage_after_a_successful_stage_publishes_no_partial_diagnostics",
+        "overwide_bundle_stage_after_eight_successes_publishes_no_partial_diagnostics",
+    ] {
+        assert!(
+            bundle_transaction_tests.contains(required),
+            "current scene/tests/ecs_typed_api/bundle_transactions.rs must retain {required}"
+        );
+    }
+    assert!(!production_section(command_facade).contains("error.to_string()"));
+    assert!(!production_section(entity_commands).contains("error.to_string()"));
+    assert!(!production_section(deferred_command).contains("error: String"));
     for command_anchor in [
         "DeferredCommandOperation::Spawn",
         "DeferredCommandOperation::Insert",
         "DeferredCommandOperation::InsertBundle",
         "DeferredCommandOperation::Remove",
-        "error.to_string()",
     ] {
         assert!(
             command_facade.contains(command_anchor) || entity_commands.contains(command_anchor),
-            "deferred command reporting should stringify typed SceneError only at the report boundary: `{command_anchor}`"
+            "deferred command operations must retain their typed SceneError reporting path: `{command_anchor}`"
         );
     }
 

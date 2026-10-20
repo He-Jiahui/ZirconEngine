@@ -11,7 +11,8 @@
 
 - Load only skills relevant to the task. Reuse already-read, unchanged context; reopen it when changes or missing details matter.
 - Reuse verification and review evidence for the same relevant source, tests, configuration, and environment. Re-run affected checks after relevant changes or failures. Pending receipts and dry runs are not passing validation.
-- Use [the validation policy](docs/plans/milestone-validation-policy.md) for test scope and cadence. Small documentation changes need structural checks, not Rust builds or invented unit tests.
+- Use [the validation policy](docs/testing-and-validation/milestone-validation-policy.md) for test scope and cadence. Small documentation changes need structural checks, not Rust builds or invented unit tests.
+- Before every compilation-capable command (`check`, `build`, `test`, including `--no-run`), explicitly tell the user which engine modules, Cargo packages, features, targets/test filters and profile will run, with the scoped command and coverage reason. Build only the smallest affected module/dependency set, with default features disabled and needed features named. Use `tools/dev/dev-module-build.ps1` with an explicit `-Package` for supported selections. Full builds are prohibited: no `--workspace`, `--all`, `--all-features`, `--all-targets`, implicit root-wide selection or equivalent all-package loops/matrices, including wave/release and root manifest/lockfile/toolchain work. Unknown scope requires dependency inspection, not a full build. Follow [the build declaration](.codex/skills/zircon-dev/validation/guide.md#declare-every-build). Measure final engine packages, symbols, shared build products and incremental caches separately.
 - Use [the engineering entry](.codex/skills/zircon-engineering/SKILL.md) for delivery and priority, and [Zircon Dev](.codex/skills/zircon-dev/SKILL.md) for Rust work. Select specialist guidance as needed.
 
 ## Shared checkout and tooling
@@ -25,12 +26,12 @@
 
 ## Skill maintenance
 
-- `.codex/skills` is the source of project skill content. `.opencode/skills` contains generated adapters; edit the source and run the [synchronizer](.codex/skills/project-skills-index/SKILL.md).
+- `.codex/skills` is the source of project skill content. Maintain its discovery entries and generated Codex catalog through [project-skills-index](.codex/skills/project-skills-index/SKILL.md).
 - Only discoverable skills use `SKILL.md` with valid metadata. Category indexes and supporting guides use ordinary Markdown.
 - Rules within reference repositories under `dev/` and nested worktrees apply to their own trees. Inspect their local guidance when working there; do not apply it to unrelated ZirconEngine files.
 
-## File write boundary
+## Execution permissions and workflow ownership
 
-- The canonical file-write allowlist is `[permissions.zircon-strict.filesystem]` in `.codex/config.toml`; use the `zircon-strict` permission profile for this checkout. A readable input does not authorize creating, copying, pasting, extracting, modifying, moving, renaming or deleting files there. Every destination, temporary file, cache and child-process output must match an explicit write grant.
-- Keep control configuration, hooks, Git data, reference trees and unlisted directories read-only. Do not expand the allowlist, switch to Full Access, use an unsandboxed service, or stage files outside permitted paths to bypass a denial. Permission maintenance requires the user's explicit authorization for that change.
-- Existing chats can retain older permissions; saved configuration and a successful setup receipt do not prove that the current chat is restricted. Follow [activation and validation](docs/tooling/codex-file-permissions.md), and do not claim enforcement until the selected profile and real file-operation probes have been verified.
+- The user explicitly authorized Full Access on 2026-10-18. `.codex/config.toml` selects `default_permissions = ":danger-full-access"` with `approval_policy = "never"`. Do not require `zircon-strict`, Windows sandbox setup or sandbox ACL repair for this selection. The retained `zircon-strict` allowlist is an optional restricted profile; select it only when the user asks.
+- Full Access changes command execution permissions. Jenkins still owns Git, branches, worktrees, source preparation, generation, compilation, validation, artifact reuse, integration and cleanup under the user's standing instructions. Preserve other chats' changes, unknown source and artifacts, Git metadata and historical receipts; access alone does not authorize unrelated changes or deletion.
+- Existing chats can retain an explicit older selection. Follow [activation and validation](docs/tooling/codex-file-permissions.md), use the supported desktop permission selection for those chats, and verify actual execution before claiming recovery. Do not edit the chat database or treat a saved default as proof that every active chat changed.

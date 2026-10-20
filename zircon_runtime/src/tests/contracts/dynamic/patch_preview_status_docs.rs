@@ -3,7 +3,7 @@ use super::sources::*;
 
 #[test]
 fn runtime_05_dynamic_scene_patch_preview_status_docs_stay_synced() {
-    for documented_source in [RUNTIME_05_PLAN, RUNTIME_INDEX] {
+    for documented_source in [runtime_05_plan(), runtime_index()] {
         for anchor in [
             "Runtime 05 dynamic scene patch preview API",
             "dynamic_scene_patch_preview_api_static_passed_cargo_timeout_no_result_tests_deferred",
@@ -86,7 +86,7 @@ fn runtime_05_dynamic_scene_patch_preview_status_docs_stay_synced() {
         "component_instance_count",
     ] {
         assert!(
-            RUNTIME_05_PLAN.contains(anchor),
+            runtime_05_plan().contains(anchor),
             "Runtime 05 patch preview subplan should keep localized anchor `{anchor}`"
         );
     }

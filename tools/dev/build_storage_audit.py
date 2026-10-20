@@ -30,7 +30,10 @@ def read_metadata(path):
     first = path.stat()
     if first.st_size > MAX_METADATA_BYTES:
         raise ValueError("metadata exceeds read budget")
-    raw = path.read_bytes()
+    with path.open("rb") as stream:
+        raw = stream.read(MAX_METADATA_BYTES + 1)
+    if len(raw) > MAX_METADATA_BYTES:
+        raise ValueError("metadata grew beyond read budget")
     last = path.stat()
     if (first.st_mtime_ns, first.st_size) != (last.st_mtime_ns, last.st_size):
         raise ValueError("metadata changed during read")
@@ -128,14 +131,20 @@ def profile_observations(roots, errors):
                 if (first.st_mtime_ns, first.st_size) != (last.st_mtime_ns, last.st_size):
                     raise ValueError("source changed during read")
                 profiles = tomllib.loads(raw.decode("utf-8-sig")).get("profile", {})
+                if not isinstance(profiles, dict):
+                    raise ValueError("invalid Cargo profile table")
                 for name in ("dev", "test"):
                     profile = profiles.get(name, {})
+                    if not isinstance(profile, dict) or not isinstance(profile.get("package", {}), dict):
+                        raise ValueError("invalid Cargo profile override table")
                     problems = []
                     if profile.get("incremental", True) is not False:
                         problems.append("incremental-enabled")
                     if profile.get("debug", 2) not in (0, False, "none"):
                         problems.append("debug-symbols-enabled")
                     for package, override in {**profile.get("package", {}), "build-override": profile.get("build-override", {})}.items():
+                        if not isinstance(override, dict):
+                            raise ValueError("invalid Cargo package profile override")
                         if override.get("incremental") is True or override.get("debug", 0) not in (0, False, "none"):
                             problems.append("package-override:" + package)
                     observations.append({"path": str(path), "profile": name, "violations": problems,
@@ -148,11 +157,41 @@ def profile_observations(roots, errors):
     return observations
 
 
+def unit_observation_complete(row, path):
+    """Keep unrelated links from invalidating an otherwise fully counted pool."""
+    if row.get("complete") is True:
+        return True
+    if row.get("scanTimedOut"):
+        return False
+    gaps = list(row.get("reparsePoints", []))
+    for error in row.get("errors", []):
+        if error.get("type") == "ScanBudgetExceeded" or not error.get("path"):
+            return False
+        gaps.append(error["path"])
+    if not gaps:
+        return False
+    identity = key(path)
+    return all(isinstance(gap, str) and gap and not (
+        identity == key(gap) or identity.startswith(key(gap) + "/")
+        or key(gap).startswith(identity + "/")) for gap in gaps)
+
+
 def audit(repo, scan, previous=None):
     """Consume the existing disjoint deep inventory, without a second file walk."""
     previous = previous or {}
     errors, writers, units, requests = [], [], {}, []
     rows = scan.get("outputItems", []) if scan else []
+    # The inventory already prunes overlapping grants. Reuse its compiler-root
+    # pass so a later control-tree timeout cannot hide earlier valid pool facts
+    # or require a second traversal merely to establish the growth baseline.
+    compiler_rows = []
+    for row in scan.get("inventory", []) if scan else []:
+        parts = Path(row["path"]).parts
+        if len(parts) >= 2 and parts[0].rstrip("\\/").casefold() in {"d:", "e:", "f:"} and parts[1].casefold() == "cargo-targets":
+            if row.get("exists"):
+                compiler_rows.append(row)
+    if compiler_rows:
+        rows = compiler_rows
     complete = bool(scan) and scan.get("complete") is not False and not scan.get("scopes") and all(row.get("complete") is True for row in rows)
     if not complete:
         errors.append({"subject": "deep-inventory", "error": "InventoryIncompleteOrScoped"})
@@ -162,7 +201,7 @@ def audit(repo, scan, previous=None):
                 "incrementalBytes": 0, "symbolBytes": 0, "complete": True})
             for name in ("logicalBytes", "files", "incrementalBytes", "symbolBytes"):
                 unit[name] += counts[name]
-            unit["complete"] &= row.get("complete") is True
+            unit["complete"] &= unit_observation_complete(row, path)
         if row.get("complete") is not True:
             errors.append({"subject": row["path"], "error": "InventoryIncomplete"})
     manifest_paths = sorted({p for row in rows for p in row.get("manifestPaths", [])})
@@ -191,13 +230,24 @@ def audit(repo, scan, previous=None):
         for path in paths:
             value, checksum = read_metadata(path)
             request = value.get("request", {})
+            if not isinstance(request, dict):
+                raise ValueError("invalid original request metadata")
             requests.append({"sessionId": request.get("sessionId"), "ownerThreadId": request.get("ownerThreadId"),
                 "sourceRoot": request.get("sourceRoot"), "operationId": request.get("operationId"),
                 "sourceCommit": value.get("sourceCommit"), "status": value.get("status"),
                 "evidence": str(path), "sha256": checksum})
     except (OSError, ValueError, TypeError) as error:
         errors.append({"subject": str(directory), "error": type(error).__name__})
-    baseline = dict(previous.get("baseline", {}))
+    accounting_version = 2
+    prior_accounting = dict(previous.get("priorAccountingBaselines", {}))
+    if previous.get("baselineAccountingVersion") == accounting_version:
+        baseline = dict(previous.get("baseline", {}))
+    else:
+        # A corrected classifier changes what the same path counts. Preserve
+        # the old observations without presenting that change as growth or GC.
+        baseline = {}
+        if previous.get("baseline"):
+            prior_accounting[str(previous.get("baselineAccountingVersion", "legacy"))] = previous["baseline"]
     observations = []
     for identity, unit in sorted(units.items()):
         before = baseline.get(identity)
@@ -249,11 +299,18 @@ def audit(repo, scan, previous=None):
     # Growth notifications stay pending until owner evidence appears; lack of new
     # growth the next day is not a resolution. Partial observations close nothing.
     attributed = {key(unit["path"]) for unit in observations if unit["complete"] and unit["writerCandidates"]}
+    observed_profiles = {key(p["path"] + ":" + p["profile"]) for p in profiles}
     for old in previous.get("findings", []):
+        if old["code"] == "build_profile_violation" and key(old["subject"]) in observed_profiles:
+            # A stable, exact source observation may resolve its own finding even
+            # when an unrelated old output directory remains unreadable.
+            continue
         if errors or old["code"] == "build_growth_owner_unknown" and key(old["subject"]) not in attributed:
             current.setdefault(old["id"], old)
     return {"schemaVersion": 1, "complete": complete and not errors, "units": observations,
-        "baseline": baseline, "profiles": profiles, "errors": errors, "findings": sorted(current.values(), key=lambda x: x["id"]),
+        "baseline": baseline, "baselineAccountingVersion": accounting_version,
+        "priorAccountingBaselines": prior_accounting,
+        "profiles": profiles, "errors": errors, "findings": sorted(current.values(), key=lambda x: x["id"]),
         "remediationOwner": "Jenkins; exact original request/worktree/session and reviewed patch required",
         "duplicatePools": "Not inferred from names, timestamps or crate names; full compatibility evidence required",
         "logicalBytesAreReclaimable": False, "automaticCleanup": False, "reclaimedBytes": 0}

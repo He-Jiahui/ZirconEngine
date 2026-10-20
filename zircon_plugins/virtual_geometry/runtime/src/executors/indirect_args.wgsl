@@ -35,7 +35,7 @@ fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     }
 
     let args_offset = global_id.x * 4u;
-    if is_visible {
+    if is_visible && source_words[source_offset + 3u] != 0u {
         atomicAdd(&indirect_arguments.count, 1u);
         indirect_arguments.words[args_offset] = source_words[source_offset + 3u];
         indirect_arguments.words[args_offset + 1u] = 1u;

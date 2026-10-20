@@ -36,3 +36,33 @@ fn should_report_count(count: u64) -> bool {
 #[cfg(test)]
 #[path = "tests/ui_host_request.rs"]
 mod tests;
+
+/// Typed adapter shared by production and the bounded platform-call regression.
+fn apply_ui_cursor_with(
+    kind: &zircon_runtime_interface::ZrRuntimeUiHostRequestKindV1,
+    mut set_cursor: impl FnMut(winit::cursor::CursorIcon),
+) -> bool {
+    use winit::cursor::CursorIcon;
+    use zircon_runtime_interface::{ui::tree::UiCursor, ZrRuntimeUiHostRequestKindV1};
+    let ZrRuntimeUiHostRequestKindV1::Cursor(cursor) = kind else {
+        return false;
+    };
+    let icon = match cursor {
+        UiCursor::Default => CursorIcon::Default,
+        UiCursor::Pointer => CursorIcon::Pointer,
+        UiCursor::Text => CursorIcon::Text,
+        UiCursor::ResizeEw => CursorIcon::EwResize,
+        UiCursor::ResizeNs => CursorIcon::NsResize,
+        UiCursor::Grab => CursorIcon::Grab,
+        UiCursor::Grabbing => CursorIcon::Grabbing,
+    };
+    set_cursor(icon);
+    true
+}
+
+pub(super) fn apply_runtime_ui_cursor_host_request(
+    window: &dyn winit::window::Window,
+    kind: &zircon_runtime_interface::ZrRuntimeUiHostRequestKindV1,
+) -> bool {
+    apply_ui_cursor_with(kind, |icon| window.set_cursor(icon.into()))
+}

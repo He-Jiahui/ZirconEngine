@@ -375,7 +375,7 @@ plan_sources:
   - docs/plans/zircon_runtime/runtime/index.md
   - docs/plans/zircon_runtime/runtime/09-ui-subsystem-architecture.md
   - docs/plans/zircon_runtime/runtime/12-input-stack-and-action-mapping.md
-  - docs/ui/shared-ui-template-runtime.md
+  - docs/crates/zircon_runtime/ui/template/shared-runtime.md
   - CLAUDE.md
 tests:
   - runtime_09_m0_ui_architecture_static_passed
@@ -440,16 +440,12 @@ runtime_09_m0_ui_architecture_static_passed
 
 Current scan baseline:
 
-- `ui/` top-level entries: 23 = 17 directories, including the private `module/` lifecycle/driver owner, plus `editable_text_composition.rs`, `module.rs`, `prelude.rs`, `public_runtime_frame.rs`, `secure_text_policy.rs`, and `style.rs` (`mod.rs` is the root façade and is excluded from this audit count).
-- Raw `surface/` worktree paths: `expected_surface_entry_count = 45`, including
-  two local directories, `navigation/` and `pointer/`, that contain no Rust source.
-  The corrected sealed-source guard counts 43 source-backed modules as
-  `surface_source_module_entry_count = 43` (`source_applied`,
-  `managed_tests_pending`). `host_font_assets.rs` remains the host font-admission
-  and resident-lifetime owner.
+- `ui/` top-level entries: 28 (excluding `mod.rs`); `expected_ui_entry_count = 28`.
+- `surface/` entries: 50 under `ui/surface`; `expected_surface_entry_count = 50`.
+- Source-backed `surface_source_module_entry_count = 50`; `surface_empty_directory_count = 0`.
 - Full UI-tree retired-migration vocabulary hits: `ui_legacy_hits=15`; arbitrary benchmark labels such as `legacy_samples`, `legacy_p95_ns`, `legacy_properties`, `legacy_property_resolutions_per_rename`, and `legacy comparator` are excluded, and production remains zero.
 - Production UI `legacy` hits/files after excluding tests and fixtures: `ui_legacy_production_hits=0` / `ui_legacy_production_files=0`.
-- Production UI `taffy` hits/files after excluding tests and fixtures: `ui_taffy_production_hits=254` / `ui_taffy_production_files=16`.
+- Production UI `taffy` hits/files after excluding tests and fixtures: `ui_taffy_production_hits=249` / `ui_taffy_production_files=16`.
 
 | Module | Runtime owner | Boundary note |
 |---|---|---|
@@ -1161,7 +1157,7 @@ Deletion conditions for non-v2 runtime paths:
 
 This Runtime 09 record contains the M0 documentation/status pass, the M1.1 normalized input route authority note, the M1.2 local navigation, pointer reply, pointer-capture fallback, table row-label fallback, template component-name fallback, property visibility flag, responsive MUI visibility flag, accessibility open-state fallback, layout engine backend name, and surface default interaction fallback cutovers, the M2.1 Taffy bridge/pass-order authority cutover, the M2.2 virtualization/scroll boundary implementation, and the M3.1 template pipeline/generated-policy boundary. Package Cargo was run only as focused static/type checks in this lane; full UI behavior filters are still deferred per the current implementation-first request. The accepted static evidence is:
 
-- current owner map covers all 23 scanned UI top-level entries;
+- current owner map covers all 28 scanned UI top-level entries;
 - the historical raw `surface/` worktree scan remains 45 paths; its corrected sealed-source guard counts 43 source-backed modules because `navigation/` and `pointer/` contain no Rust source; the source correction is applied; managed tests remain pending; the Runtime Text leaf-owner additions, host font-admission owner, control index, focus split, invalidation, reflection, timeline, and virtual-list owner additions remain included;
 - retired-migration vocabulary full-tree and production-file baselines are recorded separately after the Runtime 09 M1.2 navigation, pointer reply, pointer-capture fallback, table row-label fallback, template component-name fallback, property visibility flag, responsive MUI visibility flag, accessibility open-state fallback, layout engine backend name, and surface default interaction fallback cutovers; unrelated benchmark comparator labels are outside this metric;
 - `taffy` production-file baseline is refreshed after M2.1 to record the bridge-directory and pass-order owner shape;
@@ -1174,12 +1170,13 @@ This Runtime 09 record contains the M0 documentation/status pass, the M1.1 norma
 - 2026-07-10 Runtime Text adds two narrow direct surface leaves: `ui/surface/text_geometry.rs` owns shaped caret/range frames and `ui/surface/text_shape.rs` owns direct shaped-line projection. The Runtime 09 surface entry map is therefore 23; these leaves reuse shared text/graphics owners and do not create another UI architecture path.
 - `ui_architecture_boundary` remains the Runtime 09 audit/risk owner while
   `ui_architecture_markdown.py` renders Markdown. Current static facts are
-  `expected_source_file_count = 49`, `expected_ui_entry_count = 23`,
-  `expected_surface_entry_count = 45`, `surface_source_module_entry_count = 43`,
+  `expected_source_file_count = 49`, `expected_ui_entry_count = 28`,
+  `expected_surface_entry_count = 50`, `surface_source_module_entry_count = 50`,
   `legacy_full_hits = 15`,
-  `legacy_production_hits = 0`, `taffy_production_hits = 254`, and
-  `taffy_production_file_count = 16`, with no missing source, document, or
-  Cargo-gate anchors and `risks = []`. The UI entry map includes the
+  `legacy_production_hits = 0`, `taffy_production_hits = 249`, and
+  `taffy_production_file_count = 16`. These source and documentation updates are
+  `source_applied`; `managed_tests_pending`. The shared compiled-template and per-surface state boundary is documented
+  in docs/crates/zircon_runtime/ui/template/shared-runtime.md. The UI entry map includes the
   editable-text and secure-text leaves, the `style/` owner, the private
   `module/` lifecycle/driver owner, and `host_font_assets.rs` for host font
   admission/lifetime. `runtime_09_ui_architecture_mirror_docs_match_structure_audit_counts`
@@ -1257,3 +1254,13 @@ Current structure status is
 the root is 758 lines, the child 175 lines, and all 11 moved items are normalized-equivalent to their
 pre-split source. Parser, schema, fallback, deduplication, reverse-index and hot-reload behavior are
 unchanged; Cargo/product and CPU/allocation/RSS/power profiling remain open.
+
+## Surface resource registration boundary
+
+The runtime surface index owns retained URI/kind/fallback registration in surface_index/node_resource_registration.rs. Compile-time strict schema diagnostics belong to resource_ref/collect.rs: tolerant runtime scanning must not replace invalid-input compiler admission. The pointer, property and rebuild owners remain independent and retain their existing validation obligations.
+
+### Clause provenance
+
+These content identities preserve the source of this transfer. They are not fresh measurements, active-file dependencies or acceptance receipts.
+
+- `11a-runtime-ui-architecture-tree-layout-input-accessibility-review.md`, SHA-256 `42bb07382c126cf7c118897c4a1150fb9ff2006702761a9b0d33cba549f43fcb`, selected source lines 559-559.

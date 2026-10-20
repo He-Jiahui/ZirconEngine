@@ -25,8 +25,7 @@ pub enum FontSdfGlyphSelection {
 pub struct FontSdfBakeRequest {
     pub asset_guid: String,
     pub face_index: u32,
-    /// 声明像素对应的字体变体身份，不能只换哈希来模拟另一组变体坐标。
-    // BUG: [CR-TEXT-RASTER-0005] 请求接受任意变体哈希，但 bake.rs 使用默认 VariationCoords 生成像素后照写该哈希；非默认请求会得到身份与像素不符的产物。
+    /// Only the canonical default-coordinate hash is supported; non-default identities are rejected before decoding.
     pub variation_hash: [u8; 32],
     pub mode: FontSdfBakeMode,
     pub page_size: u32,
@@ -38,6 +37,9 @@ pub struct FontSdfBakeRequest {
 impl FontSdfBakeRequest {
     /// 在解码字体和生成任务前拒绝空选择、非法 Unicode 与零尺寸；字体面、GUID 与产物几何由后续阶段校验。
     pub(crate) fn validate(&self) -> Result<(), FontSdfBakeError> {
+        if self.variation_hash != crate::text::sdf::sdf_default_variation_hash().into_bytes() {
+            return Err(FontSdfBakeError::UnsupportedVariationHash);
+        }
         if self.page_size == 0 || self.bake_em_px == 0 || self.spread_px_milli == 0 {
             return Err(FontSdfBakeError::AtlasSizeOverflow);
         }

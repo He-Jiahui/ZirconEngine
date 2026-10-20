@@ -19,9 +19,10 @@ use zircon_runtime_interface::runtime_api::{
 };
 use zircon_runtime_interface::runtime_build_set::ZrRuntimeBuildSetId;
 use zircon_runtime_interface::{
-    ZrHostApiV1, ZrRuntimeApiV8, ZrRuntimeBindViewportSurfaceFnV1, ZrRuntimeGetApiFnV8,
-    ZrRuntimePresentViewportFnV1, ZrRuntimeUnbindViewportSurfaceFnV1,
-    ZIRCON_RUNTIME_ABI_VERSION_V1, ZIRCON_RUNTIME_API_VERSION_V8,
+    ZrHostApiV1, ZrRuntimeApiV8, ZrRuntimeBindViewportSurfaceFnV1,
+    ZrRuntimeBindViewportSurfaceFnV2, ZrRuntimeGetApiFnV8, ZrRuntimePresentViewportFnV1,
+    ZrRuntimeUnbindViewportSurfaceFnV1, ZIRCON_RUNTIME_ABI_VERSION_V1,
+    ZIRCON_RUNTIME_API_VERSION_V8, ZR_RUNTIME_BIND_VIEWPORT_SURFACE_SYMBOL_V2,
     ZR_RUNTIME_CONFIGURE_APP_SESSION_SYMBOL_V2, ZR_RUNTIME_GET_API_SYMBOL_V8,
 };
 
@@ -39,6 +40,7 @@ pub(crate) struct LoadedRuntime {
     size_bytes: usize,
     required: RequiredRuntimeApiV8,
     app_session_configuration: Option<ZrRuntimeConfigureAppSessionFnV2>,
+    viewport_surface_binding_v2: Option<ZrRuntimeBindViewportSurfaceFnV2>,
     runtime_instance: u64,
 }
 
@@ -208,6 +210,14 @@ impl LoadedRuntime {
                 .ok()
                 .map(|symbol| *symbol)
         };
+        // SAFETY: the independently versioned symbol has its declared C ABI; this owner
+        // retains the library for the entire lifetime of the copied pointer.
+        let viewport_surface_binding_v2 = unsafe {
+            library
+                .get::<ZrRuntimeBindViewportSurfaceFnV2>(ZR_RUNTIME_BIND_VIEWPORT_SURFACE_SYMBOL_V2)
+                .ok()
+                .map(|symbol| *symbol)
+        };
         let runtime_instance = allocate_runtime_instance_id(&NEXT_RUNTIME_INSTANCE_ID)
             .map_err(|error| runtime_library_startup_error_for_request(&requested_path, error))?;
         Ok(Self {
@@ -217,12 +227,17 @@ impl LoadedRuntime {
             size_bytes: validated.size_bytes,
             required: validated.required,
             app_session_configuration,
+            viewport_surface_binding_v2,
             runtime_instance,
         })
     }
 
     pub(crate) fn runtime_instance(&self) -> u64 {
         self.runtime_instance
+    }
+
+    pub(crate) fn bind_viewport_surface_v2(&self) -> Option<ZrRuntimeBindViewportSurfaceFnV2> {
+        self.viewport_surface_binding_v2
     }
 
     pub(crate) fn configure_app_session(&self) -> Option<ZrRuntimeConfigureAppSessionFnV2> {

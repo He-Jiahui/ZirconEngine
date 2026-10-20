@@ -1,7 +1,7 @@
+import { prepareCurrentLayoutSnapshot, assertCurrentLayoutSnapshot, type CurrentLayoutSnapshot } from './zui-source-refinement-current';
+import { layoutCurrentSourcePath, type LayoutCurrentContext } from './zui-layout-paths';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { dirname, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import type { FrameLocator, Page } from 'playwright';
 import {
   cloneZuiDocument,
@@ -12,19 +12,31 @@ import {
 import { LayoutDependencies } from './zui-layout-dependencies';
 import { requestPreviewLayoutAudit } from './penpot-preview-layout-audit';
 
+const nativeButtonPath = 'zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/button.zui';
+export interface PreparedNativeComponentInputs {
+  readonly snapshot: CurrentLayoutSnapshot;
+  readonly repo: string;
+  readonly button: ZuiDocument;
+  readonly dependencies: LayoutDependencies;
+}
+export async function prepareNativeComponentInputs(context: LayoutCurrentContext): Promise<PreparedNativeComponentInputs> {
+  const snapshot = await prepareCurrentLayoutSnapshot(context, [nativeButtonPath], true);
+  const repo = context.repoRoot;
+  const button = parseZuiDocument(await readFile(layoutCurrentSourcePath(context, nativeButtonPath), 'utf8')).document;
+  const dependencies = new LayoutDependencies();
+  await dependencies.load(repo, snapshot.manifest.entries.map((entry) => entry.sourcePath));
+  await assertCurrentLayoutSnapshot(snapshot);
+  return { snapshot, repo, button, dependencies };
+}
+
 export async function verifyNativeComponentEdits(
   page: Page,
   plugin: FrameLocator,
+  prepared: PreparedNativeComponentInputs,
 ) {
-  const repo = resolve(
-    dirname(fileURLToPath(import.meta.url)),
-    '../../../../..',
-  );
-  const buttonPath =
-    'zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/button.zui';
-  const button = parseZuiDocument(
-    await readFile(resolve(repo, buttonPath), 'utf8'),
-  ).document;
+  const { snapshot, repo, button, dependencies } = prepared;
+  await assertCurrentLayoutSnapshot(snapshot);
+  const buttonPath = nativeButtonPath;
   const component = Object.keys(button.components!)[0];
   const original: ZuiDocument = {
     asset: {
@@ -75,14 +87,6 @@ export async function verifyNativeComponentEdits(
   };
   const source = serializeZuiDocument(original);
   const projection = cloneZuiDocument(original);
-  const catalog = JSON.parse(
-    await readFile(resolve(repo, 'docs/_data/layout/catalog.json'), 'utf8'),
-  ) as { entries: { sourcePath: string }[] };
-  const dependencies = new LayoutDependencies();
-  await dependencies.load(
-    repo,
-    catalog.entries.map((entry) => entry.sourcePath),
-  );
   dependencies.embed(
     projection,
     'zircon_editor/assets/ui/native_component_contract.zui',

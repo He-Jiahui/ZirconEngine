@@ -7,13 +7,6 @@ fn runtime_15_priority_plan_docs_required_header_sections_stay_complete() {
         let source = read_repo(path);
         assert_priority_plan_doc_required_header_sections(label, path, &source);
     }
-
-    let _runtime_15_plan =
-        read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
-    let _runtime_index = runtime_index_with_output_archive_source();
-    let _structure_plan = read_repo("docs/plans/engine-code-structure-convention.md");
-    let _review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
-    let _module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
 }
 
 fn assert_priority_plan_doc_required_header_sections(label: &str, path: &str, source: &str) {

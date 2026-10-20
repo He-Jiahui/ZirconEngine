@@ -70,12 +70,12 @@ impl SceneFrameHistoryRequirements {
 
     #[cfg(test)]
     pub(crate) const fn uses_history_size(self) -> bool {
-        self.taa_scene_color || self.hybrid_global_illumination || self.screen_space_reflection
+        self.taa_scene_color || self.screen_space_reflection
     }
 
     #[cfg(test)]
     pub(crate) const fn uses_render_size(self) -> bool {
-        self.hzb_furthest
+        self.hzb_furthest || self.hybrid_global_illumination
     }
 
     /// 把功能开关与分辨率变化映射到各历史域，供调用方仅失效受影响的时间数据。
@@ -98,7 +98,7 @@ impl SceneFrameHistoryRequirements {
         changes.record(
             SceneHistoryDomain::HybridGlobalIllumination,
             self.hybrid_global_illumination != next.hybrid_global_illumination
-                || (next.hybrid_global_illumination && history_size_changed),
+                || (next.hybrid_global_illumination && render_size_changed),
         );
         changes.record(
             SceneHistoryDomain::ScreenSpaceReflection,

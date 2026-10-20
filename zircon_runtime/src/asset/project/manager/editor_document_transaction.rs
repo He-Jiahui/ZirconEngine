@@ -314,8 +314,8 @@ impl<'project> ScopedRuntimeProjectManager<'project> {
                 actual,
             } => SceneProjectError::SourceConflict {
                 path,
-                expected,
-                actual,
+                expected: *expected,
+                actual: *actual,
             },
             error => SceneProjectError::Asset(transaction_error(error)),
         })?;

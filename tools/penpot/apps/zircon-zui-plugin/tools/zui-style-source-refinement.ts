@@ -1,8 +1,7 @@
-import { resolveLayoutCatalogPath } from './zui-layout-paths';
+import { runCurrentSourceRefinement, type SourceRefinementContexts } from './zui-source-refinement-current';
 import assert from 'node:assert/strict';
-import { readFile, writeFile } from 'node:fs/promises';
-import { dirname, resolve } from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
 
 import {
   parseZuiDocument,
@@ -11,8 +10,6 @@ import {
   type ZuiTable,
   type ZuiValue,
 } from '../src/bridge/zui-document';
-import type { CatalogManifest } from './zui-layout-catalog';
-import { bytesSha256 } from './zui-layout-evidence';
 import {
   isBaseControlComponent,
   isIntentionalRoundGeometry,
@@ -230,62 +227,17 @@ export function refineZuiStyleSource(
   };
 }
 
-async function main(): Promise<void> {
-  const args = process.argv.slice(2);
-  const apply = args.includes('--apply');
-  const sourceFilters = args.flatMap((argument, index) =>
-    argument === '--source' && args[index + 1] ? [args[index + 1]] : [],
-  );
-  const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../../../../..');
-  const catalogRoot = resolve(repoRoot, 'docs/_data/layout');
-  const catalog = JSON.parse(
-    await readFile(resolveLayoutCatalogPath(catalogRoot, 'catalog.json'), 'utf8'),
-  ) as CatalogManifest;
-  const records: Array<{
-    sourcePath: string;
-    beforeSha256: string;
-    afterSha256: string;
-    changes: string[];
-  }> = [];
-  for (const entry of catalog.entries) {
-    if (
-      sourceFilters.length &&
-      !sourceFilters.some((filter) => entry.sourcePath.includes(filter))
-    )
-      continue;
-    const path = resolve(repoRoot, entry.sourcePath);
-    const before = await readFile(path, 'utf8');
-    const result = refineZuiStyleSource(before, entry.sourcePath);
-    if (!result.changed) continue;
-    if (apply) await writeFile(path, result.source, 'utf8');
-    records.push({
-      sourcePath: entry.sourcePath,
-      beforeSha256: bytesSha256(before),
-      afterSha256: bytesSha256(result.source),
-      changes: result.changes,
-    });
-  }
-  const report = {
-    generatedAt: new Date().toISOString(),
-    applied: apply,
-    changedFiles: records.length,
-    changes: records.reduce((count, record) => count + record.changes.length, 0),
-    records,
-  };
-  if (apply)
-    await writeFile(
-      resolveLayoutCatalogPath(catalogRoot, 'evidence/style-source-normalization-applied.json'),
-      `${JSON.stringify(report, null, 2)}\n`,
-      'utf8',
-    );
-  console.log(JSON.stringify({ ...report, records: undefined }));
+
+export function runCurrentStyleSourceRefinement(args: readonly string[] = [], contexts?: SourceRefinementContexts) {
+  return runCurrentSourceRefinement({
+    id: "style-source-normalization", select: entry => true,
+    allowSourceFilters: true,
+    transform: (source, sourcePath) => refineZuiStyleSource(source, sourcePath),
+  }, args, contexts);
 }
 
-if (
-  process.argv[1] &&
-  import.meta.url === pathToFileURL(resolve(process.argv[1])).href
-)
-  void main().catch((error: unknown) => {
-    console.error(error);
-    process.exitCode = 1;
-  });
+if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
+  void runCurrentStyleSourceRefinement(process.argv.slice(2)).then((report) => {
+    console.log(JSON.stringify({ ...report, records: undefined }));
+  }).catch((error: unknown) => { console.error(error); process.exitCode = 1; });
+}

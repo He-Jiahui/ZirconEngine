@@ -79,7 +79,7 @@ pub(super) fn parse(
 }
 
 fn markup_source_range(start: usize, token_len: usize) -> Result<(u32, u32), RichTextParseError> {
-    let end = start.checked_add(token_len).unwrap_or(usize::MAX);
+    let end = start.saturating_add(token_len);
     Ok((
         checked_artifact_index("rich diagnostic source start", start)?,
         checked_artifact_index("rich diagnostic source end", end)?,

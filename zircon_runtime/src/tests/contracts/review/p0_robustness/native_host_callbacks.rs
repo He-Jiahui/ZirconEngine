@@ -1,4 +1,5 @@
 //! 代码审查回归护栏核对已迁移接口、错误边界、插件入口及镜像状态。以结果断言检查当前接口或源码快照对应的边界。
+use crate::tests::runtime_absorption::structure_convention::fixed_history_archive_source as history;
 #[test]
 fn review_f1_native_host_callbacks_catch_unwind_before_crossing_ffi() {
     let panic_guard = include_str!("../../../../plugin/loader/ffi_panic_guard.rs");
@@ -8,9 +9,12 @@ fn review_f1_native_host_callbacks_catch_unwind_before_crossing_ffi() {
     );
     let host_callbacks = include_str!("../../../../plugin/loader/host_callbacks.rs");
     let output_sink = include_str!("../../../../plugin/loader/behavior_calls/output_sink.rs");
-    let review_findings = concat!(
-        include_str!("../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"),
-        include_str!("../../../../../../docs/plans/engine-code-review-findings-2026-06.md")
+    let fixed_review_findings = history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md");
+    assert!(fixed_review_findings
+        .contains("p0_f1_f2_f4_top_row_closed_status_static_passed_cargo_deferred"));
+    let review_findings = crate::runtime_test_history_concat!(
+        fixed_review_findings,
+        include_str!("../../../../../../docs/architecture/runtime-architecture-review-m0.md")
     );
 
     for required in [

@@ -393,9 +393,7 @@ impl UiLayoutEngineSelectionReport {
         index: usize,
         replacement: UiLayoutEngineSelection,
     ) -> Option<UiPersistentSequenceCowStats> {
-        let Some(previous) = self.selections.get(index) else {
-            return None;
-        };
+        let previous = self.selections.get(index)?;
         if previous == &replacement {
             return Some(UiPersistentSequenceCowStats::default());
         }
@@ -422,13 +420,10 @@ impl UiLayoutEngineSelectionReport {
         let previous_reason_index = if previous_support == UiLayoutEngineSupport::Native {
             None
         } else {
-            let Some(index) = self
+            let index = self
                 .fallback_reason_counts
                 .iter()
-                .position(|entry| entry.reason == previous_fallback_reason && entry.count > 0)
-            else {
-                return None;
-            };
+                .position(|entry| entry.reason == previous_fallback_reason && entry.count > 0)?;
             Some(index)
         };
         if let Some(stats) = previous_taffy_tree_build {

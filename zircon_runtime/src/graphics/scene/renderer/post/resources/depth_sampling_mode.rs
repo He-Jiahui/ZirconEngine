@@ -35,9 +35,8 @@ const TAA_RESOLVE_FALLBACK_DEPTH_BINDING_DECLARATION: &str =
     "@group(0) @binding(1) var scene_depth_tex: texture_2d<f32>;";
 const TAA_RESOLVE_RAW_DEPTH_LOAD_RETURN: &str =
     "return clamp(textureLoad(scene_depth_tex, clamped, 0), 0.0, 1.0);";
-// BUG: [CR-W13-PPRES-0001] TAA 回退表达式引用 size.y，但深度读取函数未定义 size；GL/ANGLE 完整资源构造会引入未声明标识符。
 const TAA_RESOLVE_FALLBACK_DEPTH_LOAD_RETURN: &str =
-    "return clamp((vec2<f32>(clamped) + vec2<f32>(0.5, 0.5)).y / f32(size.y), 0.0, 1.0);";
+    "return clamp((vec2<f32>(clamped) - vec2<f32>(input_viewport_origin()) + vec2<f32>(0.5, 0.5)).y / f32(input_viewport_size().y), 0.0, 1.0);";
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(in crate::graphics::scene::scene_renderer) enum PostProcessDepthSamplingMode {

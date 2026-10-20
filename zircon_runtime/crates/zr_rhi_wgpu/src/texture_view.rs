@@ -70,7 +70,7 @@ pub(crate) fn validate_texture_view_desc(
             if texture.dimension != TextureDimension::Cube {
                 return Err(view_error(view, "cube views require a cube texture"));
             }
-            if view.base_array_layer % 6 != 0 {
+            if !view.base_array_layer.is_multiple_of(6) {
                 return Err(view_error(
                     view,
                     "cube views must start on a six-face boundary",
@@ -84,7 +84,7 @@ pub(crate) fn validate_texture_view_desc(
             if texture.dimension != TextureDimension::Cube {
                 return Err(view_error(view, "cube-array views require a cube texture"));
             }
-            if view.base_array_layer % 6 != 0 {
+            if !view.base_array_layer.is_multiple_of(6) {
                 return Err(view_error(
                     view,
                     "cube-array views must start on a six-face boundary",

@@ -1,31 +1,16 @@
 use super::support::{
     files_with_matching_line, matching_line_count, production_ui_file, read_repo_file,
-    rust_files_under, top_level_entry_names,
+    rust_files_under,
 };
+use crate::tests::runtime_absorption::structure_convention::fixed_history_archive_source as history;
 
-const EXPECTED_UI_ENTRY_COUNT: usize = 23;
-// Historical raw worktree count includes two directories without Rust source.
-const EXPECTED_SURFACE_ENTRY_COUNT: usize = 45;
-const EXPECTED_SURFACE_SOURCE_ENTRY_COUNT: usize = 43;
+const EXPECTED_UI_ENTRY_COUNT: usize = 28;
+const EXPECTED_SURFACE_ENTRY_COUNT: usize = 50;
+const EXPECTED_SURFACE_SOURCE_ENTRY_COUNT: usize = 50;
 
-fn source_backed_top_level_entry_names(relative: &str, include_root_mod: bool) -> Vec<String> {
-    let repo_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-        .parent()
-        .expect("zircon_runtime manifest should live under the repository root");
-    let directory = repo_root.join(relative);
+#[path = "architecture_boundaries/current_inventory.rs"]
+mod current_inventory;
 
-    top_level_entry_names(relative, include_root_mod)
-        .into_iter()
-        .filter(|entry| {
-            let path = directory.join(entry);
-            if path.is_file() {
-                return path.extension().and_then(|extension| extension.to_str()) == Some("rs");
-            }
-
-            path.is_dir() && !rust_files_under(&format!("{relative}/{entry}")).is_empty()
-        })
-        .collect()
-}
 const LEGACY_MIGRATION_TERMS: &[&str] = &[
     "has_legacy_or_indexed_pointer_capture_for_owner",
     "split_legacy_table_text",
@@ -71,146 +56,33 @@ fn files_with_migration_term(files: &[std::path::PathBuf]) -> Vec<std::path::Pat
         .collect()
 }
 
-const RUNTIME_09_STATUS: &str = concat!(
+fn runtime_09_status() -> &'static str {
+    crate::runtime_test_history_concat!(
     include_str!(
-        "../../../../../docs/plans/zircon_runtime/runtime/09-ui-subsystem-architecture.md"
+        "../../../../../docs/testing-and-validation/runtime-ui-validation-worklist.md"
     ),
-    include_str!(
-        "../../../../../docs/plans/zircon_runtime/runtime/09/2026-07-09-ui-subsystem-architecture-output-records.md"
-    )
-);
-const RUNTIME_INDEX_STATUS: &str = concat!(
-    include_str!("../../../../../docs/plans/zircon_runtime/runtime/index.md"),
-    include_str!(
-        "../../../../../docs/plans/zircon_runtime/runtime/09/2026-07-09-ui-subsystem-architecture-output-records.md"
-    ),
-    include_str!(
-        "../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md"
-    )
-);
+    history("docs/plans/zircon_runtime/runtime/09/2026-07-09-ui-subsystem-architecture-output-records.md")
+)
+}
+fn runtime_index_status() -> &'static str {
+    crate::runtime_test_history_concat!(
+    include_str!("../../../../../docs/crates/zircon_runtime/structure/runtime-absorption-evidence.md"),
+    history("docs/plans/zircon_runtime/runtime/09/2026-07-09-ui-subsystem-architecture-output-records.md"),
+    history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md")
+)
+}
 
 #[test]
 fn runtime_09_ui_architecture_doc_records_current_boundaries() {
     let architecture_doc =
         include_str!("../../../../../docs/crates/zircon_runtime/ui/architecture.md");
-    let runtime_09_plan = RUNTIME_09_STATUS;
-    let runtime_index = RUNTIME_INDEX_STATUS;
-
-    for required_anchor in [
-        "runtime_09_m0_ui_architecture_static_passed",
-        "Module Boundary Map",
-        "`ui/` top-level entries: 23",
-        "`surface/` entries: 45",
-        "surface_source_module_entry_count = 43",
-        "two local directories, `navigation/` and `pointer/`, that contain no Rust source.",
-        "No M0 blocker-level owner inversion",
-        "completed_static_passed",
-    ] {
-        assert!(
-            architecture_doc.contains(required_anchor)
-                || runtime_09_plan.contains(required_anchor)
-                || runtime_index.contains(required_anchor),
-            "Runtime 09 M0 docs/index should retain boundary anchor `{required_anchor}`"
-        );
-    }
-
-    let ui_entries = top_level_entry_names("zircon_runtime/src/ui", false);
-    assert_eq!(
-        ui_entries.len(),
-        EXPECTED_UI_ENTRY_COUNT,
-        "Runtime 09 M0 architecture doc must be refreshed when ui/ top-level entries change"
-    );
-    for required_entry in [
-        "accessibility",
-        "binding",
-        "component",
-        "dispatch",
-        "editable_text_composition.rs",
-        "event_ui",
-        "icon_atlas",
-        "layout",
-        "module",
-        "module.rs",
-        "platform_input",
-        "prelude.rs",
-        "public_runtime_frame.rs",
-        "secure_text_policy.rs",
-        "style",
-        "style.rs",
-        "surface",
-        "template",
-        "tests",
-        "text",
-        "theme",
-        "tree",
-        "v2",
-    ] {
-        assert!(
-            ui_entries.iter().any(|entry| entry == required_entry),
-            "Runtime 09 UI top-level map should include `{required_entry}`"
-        );
-    }
-
-    let surface_entries = top_level_entry_names("zircon_runtime/src/ui", true);
-    let source_surface_entries = source_backed_top_level_entry_names("zircon_runtime/src/ui", true);
-    assert_eq!(
-        source_surface_entries.len(),
-        EXPECTED_SURFACE_SOURCE_ENTRY_COUNT,
-        "Runtime 09 source-backed surface map must count only entries in the sealed source tree"
-    );
-    assert!(
-        surface_entries.len() == EXPECTED_SURFACE_SOURCE_ENTRY_COUNT
-            || surface_entries.len() == EXPECTED_SURFACE_ENTRY_COUNT,
-        "raw surface paths should be either the sealed 43 source entries or include the two known directories without Rust source"
-    );
-    let non_source_entries = surface_entries
-        .iter()
-        .filter(|entry| !source_surface_entries.iter().any(|source| source == *entry))
-        .cloned()
-        .collect::<Vec<_>>();
-    assert!(
-        non_source_entries.is_empty()
-            || non_source_entries == vec!["navigation".to_owned(), "pointer".to_owned()],
-        "only the navigation/ and pointer/ directories without Rust source may lack source-backed entries: {non_source_entries:?}"
-    );
-    for entry in &non_source_entries {
-        assert!(
-            std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-                .parent()
-                .expect("zircon_runtime manifest should live under the repository root")
-                .join("zircon_runtime/src/ui")
-                .join(entry)
-                .is_dir(),
-            "unbacked surface entry `{entry}` should be a directory without Rust source"
-        );
-        assert!(
-            rust_files_under(&format!("zircon_runtime/src/ui/{entry}")).is_empty(),
-            "unbacked surface entry `{entry}` must not contain Rust source"
-        );
-    }
-    for required_entry in [
-        "input",
-        "render",
-        "control_index.rs",
-        "focus",
-        "host_font_assets.rs",
-        "invalidation.rs",
-        "surface.rs",
-        "mod.rs",
-    ] {
-        assert!(
-            source_surface_entries
-                .iter()
-                .any(|entry| entry == required_entry),
-            "Runtime 09 source-backed surface map should include `{required_entry}`"
-        );
-    }
+    current_inventory::assert_current_inventory(architecture_doc);
 }
 
 #[test]
 fn runtime_09_ui_architecture_cargo_gate_stays_visible_until_ui_owner_validation() {
     let runtime_09_plan = include_str!(
-        "../../../../../docs/plans/zircon_runtime/runtime/09-ui-subsystem-architecture.md"
+        "../../../../../docs/testing-and-validation/runtime-ui-validation-worklist.md"
     );
     for command in [
         "cargo check -p zircon_runtime --lib --locked",
@@ -231,8 +103,6 @@ fn runtime_09_ui_architecture_cargo_gate_stays_visible_until_ui_owner_validation
 fn runtime_09_ui_architecture_baselines_match_current_source_scan() {
     let architecture_doc =
         include_str!("../../../../../docs/crates/zircon_runtime/ui/architecture.md");
-    let runtime_09_plan = RUNTIME_09_STATUS;
-    let runtime_index = RUNTIME_INDEX_STATUS;
     let all_ui_files = rust_files_under("zircon_runtime/src/ui");
     let production_ui_files = all_ui_files
         .iter()
@@ -260,7 +130,7 @@ fn runtime_09_ui_architecture_baselines_match_current_source_scan() {
         "update Runtime 09 docs if production legacy file baseline changes"
     );
     assert_eq!(
-        taffy_production_hits, 254,
+        taffy_production_hits, 249,
         "update Runtime 09 docs if production taffy hit baseline changes"
     );
     assert_eq!(
@@ -273,13 +143,11 @@ fn runtime_09_ui_architecture_baselines_match_current_source_scan() {
         "ui_legacy_hits=15",
         "ui_legacy_production_hits=0",
         "ui_legacy_production_files=0",
-        "ui_taffy_production_hits=254",
+        "ui_taffy_production_hits=249",
         "ui_taffy_production_files=16",
     ] {
         assert!(
-            architecture_doc.contains(required_anchor)
-                || runtime_09_plan.contains(required_anchor)
-                || runtime_index.contains(required_anchor),
+            architecture_doc.contains(required_anchor),
             "Runtime 09 docs/index should retain source-scan baseline `{required_anchor}`"
         );
     }
@@ -289,8 +157,8 @@ fn runtime_09_ui_architecture_baselines_match_current_source_scan() {
 fn runtime_09_v2_verdict_matches_runtime_and_interface_modules() {
     let architecture_doc =
         include_str!("../../../../../docs/crates/zircon_runtime/ui/architecture.md");
-    let runtime_09_plan = RUNTIME_09_STATUS;
-    let runtime_index = RUNTIME_INDEX_STATUS;
+    let runtime_09_plan = runtime_09_status();
+    let runtime_index = runtime_index_status();
     let runtime_v2_mod = read_repo_file("zircon_runtime/src/ui/v2/mod.rs");
     let interface_v2_mod = read_repo_file("zircon_runtime_interface/src/ui/v2/mod.rs");
 
@@ -365,8 +233,8 @@ fn runtime_09_taffy_layout_pass_order_uses_bridge_authority() {
     let layout_pass_doc =
         include_str!("../../../../../docs/crates/zircon_runtime/ui/layout/pass.md");
     let v2_doc = include_str!("../../../../../docs/crates/zircon_runtime/ui/v2.md");
-    let runtime_09_plan = RUNTIME_09_STATUS;
-    let runtime_index = RUNTIME_INDEX_STATUS;
+    let runtime_09_plan = runtime_09_status();
+    let runtime_index = runtime_index_status();
     let status_anchor = "runtime_09_m2_1_taffy_bridge_pass_order_static_passed_cargo_pending";
     let dto_anchor = "runtime_09_m2_1_style_mapping_remains_taffy_dto_adapter";
 
@@ -480,8 +348,6 @@ fn runtime_09_virtualization_scroll_boundary_records_invalidation_authority() {
         include_str!("../../../../../docs/crates/zircon_runtime/ui/architecture.md");
     let layout_pass_doc =
         include_str!("../../../../../docs/crates/zircon_runtime/ui/layout/pass.md");
-    let runtime_09_plan = RUNTIME_09_STATUS;
-    let runtime_index = RUNTIME_INDEX_STATUS;
     let status_anchor =
         "runtime_09_m2_2_virtualization_scroll_boundary_static_passed_cargo_pending";
 
@@ -528,11 +394,10 @@ fn runtime_09_virtualization_scroll_boundary_records_invalidation_authority() {
         );
     }
 
+    // Each portable contract owns the planner details; the active plan owns the boundary/test route.
     for (doc_name, doc_source) in [
         ("UI architecture doc", architecture_doc),
         ("layout pass doc", layout_pass_doc),
-        ("Runtime 09 plan", runtime_09_plan),
-        ("runtime index", runtime_index),
     ] {
         for required_anchor in [
             status_anchor,
@@ -544,10 +409,60 @@ fn runtime_09_virtualization_scroll_boundary_records_invalidation_authority() {
         ] {
             assert!(
                 doc_source.contains(required_anchor),
-                "{doc_name} should record Runtime 09 M2.2 virtualization/scroll anchor `{required_anchor}`"
+                "{doc_name}: {required_anchor}"
             );
         }
     }
+    let current_plan = include_str!(
+        "../../../../../docs/testing-and-validation/runtime-ui-validation-worklist.md"
+    );
+    for anchor in [
+        "切片 2.2 virtualization / scroll 边界声明",
+        "ui/layout/virtualization.rs",
+        "ui/layout/scroll.rs",
+        "retained_virtual_list_only_arranges_visible_window",
+        "scroll_offset_invalidates_virtualization_window",
+        "non_virtualized_scroll_offset_keeps_full_window_dirty_domain",
+        "docs/crates/zircon_runtime/ui/",
+    ] {
+        assert!(
+            current_plan.contains(anchor),
+            "Runtime 09 current boundary/test route: {anchor}"
+        );
+    }
+    let fixed_09 = history("docs/plans/zircon_runtime/runtime/09/2026-07-09-ui-subsystem-architecture-output-records.md");
+    for anchor in [
+        status_anchor,
+        "UiScrollVirtualizationPlan",
+        "plan_scrollable_virtual_window",
+        "virtualized_list_only_materializes_visible_window",
+        "scroll_offset_invalidates_virtualization_window",
+        "non_virtualized_scroll_offset_keeps_full_window_dirty_domain",
+        "304s timeout no result",
+    ] {
+        assert!(
+            fixed_09.contains(anchor),
+            "fixed Runtime 09 record: {anchor}"
+        );
+    }
+    let fixed_index = history(
+        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md",
+    );
+    for anchor in [
+        status_anchor,
+        "UiScrollVirtualizationPlan",
+        "plan_scrollable_virtual_window",
+    ] {
+        assert!(
+            fixed_index.contains(anchor),
+            "fixed runtime index: {anchor}"
+        );
+    }
+    let current_index = include_str!(
+        "../../../../../docs/crates/zircon_runtime/structure/runtime-absorption-evidence.md"
+    );
+    assert!(current_index
+        .contains("| 09 | `09-ui-subsystem-architecture.md` | Runtime 02、Runtime 03 |"));
 }
 
 #[test]
@@ -557,9 +472,8 @@ fn runtime_74_template_boundary_has_one_compiler_authority() {
     let template_pipeline_test = read_repo_file("zircon_runtime/src/ui/tests/template_pipeline.rs");
     let template_pipeline_doc =
         include_str!("../../../../../docs/crates/zircon_runtime/ui/template/pipeline.md");
-    let optimize_record = include_str!(
-        "../../../../../docs/plans/optimize/zircon_runtime/74/2026-08-22-single-template-compiler-authority.md"
-    );
+    let optimize_record =
+        include_str!("../../../../../docs/crates/zircon_runtime/ui/template/pipeline.md");
 
     for required in [
         "UiAssetLoader",

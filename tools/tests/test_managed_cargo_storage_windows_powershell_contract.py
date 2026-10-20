@@ -5,7 +5,7 @@ import unittest
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-PATH_RESOLVER = REPO_ROOT / "tools" / "common" / "WindowsPathResolver.psm1"
+PATH_RESOLVER = REPO_ROOT / "tools" / "maintenance" / "WindowsPathResolver.psm1"
 MANAGED_STORAGE = (
     REPO_ROOT
     / ".codex"

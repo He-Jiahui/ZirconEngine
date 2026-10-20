@@ -1,4 +1,5 @@
 //! 代码审查回归护栏核对已迁移接口、错误边界、插件入口及镜像状态。以结果断言检查当前接口或源码快照对应的边界。
+use crate::tests::runtime_absorption::structure_convention::fixed_history_archive_source as history;
 #[test]
 fn review_f5_scene_property_access_uses_scene_error() {
     let world_error = include_str!("../../../../../scene/world/error.rs");
@@ -24,17 +25,18 @@ fn review_f5_scene_property_access_uses_scene_error() {
     let value_conversion_values =
         include_str!("../../../../../scene/world/property_access/value_conversion/values.rs");
     let read_path_tests = include_str!("../../../../../scene/tests/property_paths/read_paths.rs");
-    let review_findings = concat!(
-        include_str!("../../../../../../../docs/plans/engine-code-review-findings-2026-06.md"),
-        include_str!("../../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md")
+    let review_findings = crate::runtime_test_history_concat!(
+        include_str!("../../../../../../../docs/architecture/runtime-architecture-review-m0.md"),
+        history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md")
     );
     let runtime_15_plan = include_str!(
-        "../../../../../../../docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md"
+        "../../../../../../../docs/crates/zircon_runtime/structure/module-convention.md"
     );
-    let runtime_index =
-        include_str!("../../../../../../../docs/plans/zircon_runtime/runtime/index.md");
+    let runtime_index = include_str!(
+        "../../../../../../../docs/crates/zircon_runtime/structure/runtime-absorption-evidence.md"
+    );
     let convention =
-        include_str!("../../../../../../../docs/plans/engine-code-structure-convention.md");
+        include_str!("../../../../../../../docs/testing-and-validation/development-conventions.md");
     let ecs_doc = include_str!("../../../../../../../docs/crates/zircon_runtime/scene/ecs.md");
 
     for required in [

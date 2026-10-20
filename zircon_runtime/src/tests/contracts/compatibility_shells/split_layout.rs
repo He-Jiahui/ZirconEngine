@@ -1,14 +1,15 @@
 //! 运行时吸收完成后，嵌套兼容包的移除状态由此处约束。通过源码文本核对父子路由、状态镜像和文件预算。
+use crate::tests::runtime_absorption::structure_convention::fixed_history_archive_source as history;
 const PARENT_SOURCE: &str = include_str!("../compatibility_shells.rs");
 const NESTED_CRATES_SOURCE: &str = include_str!("nested_crates.rs");
 const SPLIT_LAYOUT_SOURCE: &str = include_str!("split_layout.rs");
 
-const FRAMEWORKS_02_OUTPUT_RECORDS: &str = include_str!(
-    "../../../../../docs/plans/zircon_runtime/frameworks/02/2026-07-09-module-kernel-and-lifecycle-unification-output-records.md"
-);
-const RUNTIME_15_OUTPUT_RECORDS: &str = include_str!(
-    "../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md"
-);
+fn frameworks_02_output_records() -> &'static str {
+    history("docs/plans/zircon_runtime/frameworks/02/2026-07-09-module-kernel-and-lifecycle-unification-output-records.md")
+}
+fn runtime_15_output_records() -> &'static str {
+    history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md")
+}
 const MODULE_CONVENTION_DOC: &str =
     include_str!("../../../../../docs/crates/zircon_runtime/structure/module-convention.md");
 
@@ -73,7 +74,7 @@ fn assert_line_budget() {
 
 fn assert_docs_and_status_mirror_split() {
     assert!(
-        RUNTIME_15_OUTPUT_RECORDS.contains(
+        runtime_15_output_records().contains(
             "runtime_15_compatibility_shells_route_owner_split_static_passed_cargo_deferred"
         ),
         "Runtime 15 output records should own the compatibility_shells route-owner split status"
@@ -89,7 +90,7 @@ fn assert_docs_and_status_mirror_split() {
     );
     assert_contains_all(
         "Frameworks 02 output records",
-        FRAMEWORKS_02_OUTPUT_RECORDS,
+        frameworks_02_output_records(),
         &[
             "frameworks_02_m3_compatibility_shells_route_owner_split_static_passed_cargo_deferred",
             "Runtime 15 M3 compatibility-shells route-owner split",

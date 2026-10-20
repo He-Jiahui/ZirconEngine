@@ -94,3 +94,39 @@ fn generic_ui_host_request_round_trips_without_debugging_dynamic_content() {
     ));
     assert!(!format!("{request:?}").contains(&dynamic_link_target.to_string()));
 }
+
+#[test]
+fn cursor_host_request_preserves_all_seven_shapes_and_owned_identity() {
+    use crate::ui::tree::UiCursor;
+    for cursor in [
+        UiCursor::Default,
+        UiCursor::Pointer,
+        UiCursor::Text,
+        UiCursor::ResizeEw,
+        UiCursor::ResizeNs,
+        UiCursor::Grab,
+        UiCursor::Grabbing,
+    ] {
+        let request = ZrRuntimeUiHostRequestV1::from_dispatch_request(
+            ZrRuntimeViewportHandle::new(3),
+            5,
+            11,
+            2,
+            UiTreeId::new("cursor.tree"),
+            7,
+            &UiDispatchHostRequestKind::Cursor(cursor),
+        )
+        .unwrap();
+        assert_eq!(request.target_viewport, ZrRuntimeViewportHandle::new(3));
+        assert_eq!(request.target_surface, 5);
+        assert_eq!(request.input_sequence, 11);
+        assert_eq!(request.request_index, 2);
+        assert_eq!(request.effect_index, 7);
+        assert_eq!(request.tree_id, UiTreeId::new("cursor.tree"));
+        assert!(request.kind == ZrRuntimeUiHostRequestKindV1::Cursor(cursor));
+        assert_eq!(request.kind.as_str(), "cursor");
+        let bytes = serde_json::to_vec(&request).unwrap();
+        let decoded: ZrRuntimeUiHostRequestV1 = serde_json::from_slice(&bytes).unwrap();
+        assert_eq!(decoded, request);
+    }
+}

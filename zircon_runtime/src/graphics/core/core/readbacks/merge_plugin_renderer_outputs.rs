@@ -38,6 +38,8 @@ fn merge_virtual_geometry_outputs(
         mut visbuffer64_entries,
         mut hardware_rasterization_records,
         node_cluster_cull,
+        // Physical terminal publication belongs exclusively to its accepted ticket.
+        physical_submission_segments: _,
     } = incoming;
 
     base.page_table_entries.append(&mut page_table_entries);

@@ -9,7 +9,7 @@ implementation_files:
   - tools/dev/local_cargo.py
   - tools/jenkins
 plan_sources:
-  - docs/plans/milestone-validation-policy.md
+  - docs/testing-and-validation/milestone-validation-policy.md
   - docs/tooling/coordinator-retirement.md
 tests:
   - .github/workflows/ci.yml
@@ -19,7 +19,7 @@ doc_type: workflow-reference
 
 # 验证工作流
 
-[里程碑验证策略](https://github.com/He-Jiahui/ZirconEngine/blob/main/docs/plans/milestone-validation-policy.md) 是范围和节奏的权威；命令细节见 [Zircon Dev 验证指南](https://github.com/He-Jiahui/ZirconEngine/blob/main/.codex/skills/zircon-dev/validation/guide.md)。旧本地协调器、受管 matrix、登记、租约和提交工作流已经退役，不能把旧脚本当作当前执行前提，也不能为了运行旧计划恢复服务。
+[里程碑验证策略](https://github.com/He-Jiahui/ZirconEngine/blob/main/docs/testing-and-validation/milestone-validation-policy.md) 是范围和节奏的权威；命令细节见 [Zircon Dev 验证指南](https://github.com/He-Jiahui/ZirconEngine/blob/main/.codex/skills/zircon-dev/validation/guide.md)。旧本地协调器、受管 matrix、登记、租约和提交工作流已经退役，不能把旧脚本当作当前执行前提，也不能为了运行旧计划恢复服务。
 
 ## 按变更选择验证
 

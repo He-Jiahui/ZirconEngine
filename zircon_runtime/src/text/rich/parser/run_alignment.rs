@@ -20,7 +20,6 @@ pub(super) fn align_runs_to_graphemes_bounded(
         });
     }
     if ascii_runs_are_canonical(text, runs) {
-        // BUG: [CR-TEXT-RICH-ASCII-GRAPHEME-0001] 不同样式把 "\r\n" 分为 (0, 1)/(1, 2) 时，此快路径拆开同一字素；HTML "<b>\r</b>\n" 可达，GB3 要求 CRLF 不断开。
         return Ok(runs.to_vec());
     }
 
@@ -65,6 +64,13 @@ fn ascii_runs_are_canonical(text: &str, runs: &[StyledRun]) -> bool {
             || run.byte_range.1 <= expected_start
             || run.byte_range.1 > text_end
             || previous.is_some_and(|previous| run_metadata_matches(previous, run))
+        {
+            return false;
+        }
+        let boundary = run.byte_range.0 as usize;
+        if boundary > 0
+            && text.as_bytes()[boundary - 1] == b'\r'
+            && text.as_bytes()[boundary] == b'\n'
         {
             return false;
         }

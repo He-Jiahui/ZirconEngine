@@ -2,6 +2,35 @@ from tools.tests.rust_test_files import read_rust_test_file
 import unittest
 from pathlib import Path
 
+import sys as _history_sys
+from pathlib import Path as _HistoryPath
+_HISTORY_REPO_ROOT = _HistoryPath(__file__).resolve().parents[2]
+_history_sys.path.insert(0, str(_HISTORY_REPO_ROOT / '.codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts'))
+from runtime_structure_audits.dynamic_runtime_api_archive_inventory import HistoricalArchiveReader as _ContractHistoryReader
+_HISTORY_PATHS = {'docs/plans/optimize/zircon_runtime/170/2026-09-01-compiled-sequence-channel-sampling-hard-cut.md': 'docs/plans/optimize/zircon_runtime/170/2026-09-01-compiled-sequence-channel-sampling-hard-cut.md'}
+_HISTORY_IDENTITIES = {'docs/plans/optimize/zircon_runtime/170/2026-09-01-compiled-sequence-channel-sampling-hard-cut.md': (8257, '1e5e8a853d549e30167b9cfa07a4306cc8280db88b57f21867cbc43a47001e56')}
+_CURRENT_POLICY_INPUTS = ()
+
+def _read_contract_input(path, *args, **kwargs):
+    candidate = _HistoryPath(path)
+    try:
+        relative = candidate.absolute().relative_to(_HISTORY_REPO_ROOT).as_posix()
+    except ValueError:
+        relative = None
+    key = _HISTORY_PATHS.get(relative)
+    if key is None:
+        if relative and relative.startswith('docs/plans/') and relative not in _CURRENT_POLICY_INPUTS:
+            raise AssertionError('Unregistered current/history contract input: ' + relative)
+        return candidate.read_text(*args, **kwargs)
+    if args or kwargs.get('encoding', 'utf-8').lower() not in ('utf-8', 'utf8') or kwargs.get('errors') not in (None, 'strict') or set(kwargs) - {'encoding', 'errors'}:
+        raise AssertionError('Historical evidence requires strict UTF-8')
+    reader = _ContractHistoryReader(identities=_HISTORY_IDENTITIES)
+    text = reader.read(key)
+    if text is None:
+        raise AssertionError(reader.records)
+    return text
+
+
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SOURCE = REPO_ROOT / "zircon_runtime/src/animation/sequence/channel_sample.rs"
@@ -20,12 +49,12 @@ PLAN = (
 class Runtime170CompiledSequenceSamplingPerformanceContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        cls.source = SOURCE.read_text(encoding="utf-8")
-        cls.world_compiler = WORLD_COMPILER.read_text(encoding="utf-8")
-        cls.compiler_model = COMPILER_MODEL.read_text(encoding="utf-8")
-        cls.plugin_pipeline = PLUGIN_PIPELINE.read_text(encoding="utf-8")
-        cls.world_compiler_tests = WORLD_COMPILER_TESTS.read_text(encoding="utf-8")
-        cls.plan = PLAN.read_text(encoding="utf-8")
+        cls.source = _read_contract_input(SOURCE, encoding="utf-8")
+        cls.world_compiler = _read_contract_input(WORLD_COMPILER, encoding="utf-8")
+        cls.compiler_model = _read_contract_input(COMPILER_MODEL, encoding="utf-8")
+        cls.plugin_pipeline = _read_contract_input(PLUGIN_PIPELINE, encoding="utf-8")
+        cls.world_compiler_tests = _read_contract_input(WORLD_COMPILER_TESTS, encoding="utf-8")
+        cls.plan = _read_contract_input(PLAN, encoding="utf-8")
 
     def test_release_probe_uses_101_samples_and_nearest_rank_p95(self) -> None:
         self.assertIn("const SAMPLE_COUNT: usize = 101;", read_rust_test_file("zircon_runtime/src/animation/sequence/tests/channel_sample.rs"))

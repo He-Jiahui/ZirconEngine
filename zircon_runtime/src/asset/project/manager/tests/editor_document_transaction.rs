@@ -162,7 +162,10 @@ fn crash_publication_recovers_scene_and_opaque_workspace_before_reopen() {
     let manager = ProjectManager::open(&root).unwrap();
     let generation = manager.catalog_input_generation().sequence();
     let scene_uri = AssetUri::parse("res://scenes/main.scene.toml").unwrap();
-    let old_scene = Scene::default();
+    let mut old_scene = Scene::empty_for_project(&manager).unwrap();
+    let node = old_scene.spawn_node(crate::scene::NodeKind::Empty).unwrap();
+    old_scene.rename_node(node, "Cube").unwrap();
+    old_scene.flush_pending_scene_systems();
     let mut new_scene = old_scene.clone();
     let cube = new_scene
         .nodes()
@@ -175,6 +178,7 @@ fn crash_publication_recovers_scene_and_opaque_workspace_before_reopen() {
     assert!(new_scene
         .update_transform(cube.id, changed_transform)
         .unwrap());
+    new_scene.flush_pending_scene_systems();
     let old_scene_document = old_scene
         .to_scene_asset(&manager)
         .unwrap()

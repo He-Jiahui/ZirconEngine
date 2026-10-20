@@ -449,13 +449,19 @@ impl NativePluginEntryPointV3 {
     ) -> *const NativePluginEntryReportV3 {
         let has_capability_constraints =
             !self.required_capabilities.is_empty() || !self.denied_capabilities.is_empty();
+        // SAFETY: The caller supplies a readable, aligned table and live ABI callbacks;
+        // the compatibility helper checks null before reading, not arbitrary-pointer validity.
         let host_is_compatible = has_capability_constraints
             && unsafe { host_functions_v3_are_compatible(host_functions) };
+        // SAFETY: The short-circuit requires a compatible host before querying capabilities;
+        // the caller keeps the table, strings, and callbacks valid throughout each query.
         let supports_required = self.required_capabilities.is_empty()
             || (host_is_compatible
                 && self.required_capabilities.iter().all(|capability| unsafe {
                     host_supports_capability_with_compatible_host_v3(host_functions, capability)
                 }));
+        // SAFETY: The query is reached only for a compatible host; the entry caller
+        // guarantees the table and its callback/string storage remain valid for this call.
         let supports_denied = supports_required
             && host_is_compatible
             && self.denied_capabilities.iter().any(|capability| unsafe {
@@ -575,6 +581,8 @@ pub unsafe fn bytes_from_slice<'a>(slice: NativePluginByteSliceV3) -> &'a [u8] {
     if slice.data.is_null() || slice.len == 0 {
         &[]
     } else {
+        // SAFETY: Null/empty inputs were handled above. The caller guarantees one live,
+        // initialized, readable allocation of len bytes and an immutable borrow for 'a.
         unsafe { std::slice::from_raw_parts(slice.data, slice.len) }
     }
 }
@@ -617,9 +625,13 @@ pub unsafe fn host_supports_all_capabilities_v3(
     if capabilities.is_empty() {
         return true;
     }
+    // SAFETY: The caller provides null or a readable, aligned table with live ABI callbacks;
+    // the helper handles null and checks versions without proving foreign-pointer validity.
     if !unsafe { host_functions_v3_are_compatible(host_functions) } {
         return false;
     }
+    // SAFETY: Compatibility succeeded above, and the caller keeps the host table,
+    // callback targets, and capability-string storage live for these synchronous queries.
     capabilities.iter().all(|capability| unsafe {
         host_supports_capability_with_compatible_host_v3(host_functions, capability)
     })
@@ -634,9 +646,13 @@ pub unsafe fn host_supports_any_capability_v3(
     host_functions: *const NativePluginHostFunctionTableV3,
     capabilities: &[&str],
 ) -> bool {
+    // SAFETY: The caller provides null or a readable, aligned table with live ABI callbacks;
+    // the helper handles null before reading and invoking the supplied version callback.
     if capabilities.is_empty() || !unsafe { host_functions_v3_are_compatible(host_functions) } {
         return false;
     }
+    // SAFETY: The preceding check established compatibility; the caller guarantees the
+    // table, strings, and callback targets remain valid throughout the synchronous queries.
     capabilities.iter().any(|capability| unsafe {
         host_supports_capability_with_compatible_host_v3(host_functions, capability)
     })
@@ -658,7 +674,11 @@ pub unsafe fn host_supports_capability_v3(
     host_functions: *const NativePluginHostFunctionTableV3,
     capability: &str,
 ) -> bool {
+    // SAFETY: The caller guarantees null or a readable, aligned table and valid ABI callbacks;
+    // compatibility checking handles null but cannot validate arbitrary external memory.
     let host_is_compatible = unsafe { host_functions_v3_are_compatible(host_functions) };
+    // SAFETY: Short-circuiting permits the query only after compatibility succeeds;
+    // the caller maintains the table, strings, and callback lifetimes for this call.
     host_is_compatible
         && (unsafe { host_supports_capability_with_compatible_host_v3(host_functions, capability) })
 }
@@ -669,9 +689,13 @@ unsafe fn host_functions_v3_are_compatible(
     if host_functions.is_null() {
         return false;
     }
+    // SAFETY: Null was rejected above; readable aligned table storage for this borrow
+    // is the unsafe caller's obligation, not a consequence of the version checks below.
     let host_functions = unsafe { &*host_functions };
     let host_version = host_functions
         .host_abi_version
+        // SAFETY: The caller guarantees this supplied ABI callback is live and callable
+        // for this invocation; its result is checked below before capability queries.
         .map(|host_abi_version| unsafe { host_abi_version() })
         .unwrap_or_default();
     if host_functions.abi_version != ZIRCON_NATIVE_PLUGIN_ABI_VERSION
@@ -687,14 +711,20 @@ unsafe fn host_supports_capability_with_compatible_host_v3(
     host_functions: *const NativePluginHostFunctionTableV3,
     capability: &str,
 ) -> bool {
+    // SAFETY: Callers reach this helper only with a non-null compatible host table and
+    // retain their obligation to provide readable aligned storage for the entire borrow.
     let host_functions = unsafe { &*host_functions };
     if let Some(host_has_capability) = host_functions.host_has_capability {
         let Ok(capability) = CString::new(capability) else {
             return false;
         };
+        // SAFETY: The caller supplies a live synchronous ABI callback; the local CString
+        // and borrowed host table remain valid until that capability query returns.
         return unsafe { host_has_capability(host_functions, capability.as_ptr()) }
             == ZIRCON_NATIVE_PLUGIN_STATUS_OK;
     }
+    // SAFETY: The caller guarantees the table's capability string is null or readable
+    // and NUL-terminated for this call; the helper handles the null case explicitly.
     unsafe { capability_list_contains(host_functions.granted_capabilities, capability) }
 }
 
@@ -717,6 +747,8 @@ pub unsafe fn capability_list_contains(
     if capabilities.is_null() {
         return false;
     }
+    // SAFETY: Null was rejected above. The caller guarantees readable NUL-terminated
+    // storage remains live for this borrow; UTF-8 validity is checked by to_str below.
     let Ok(capabilities) = unsafe { CStr::from_ptr(capabilities) }.to_str() else {
         return false;
     };
@@ -770,6 +802,8 @@ macro_rules! export_native_plugin_entry_v3 {
         pub unsafe extern "C" fn $entry_fn(
             host_functions: *const $crate::native::NativePluginHostFunctionTableV3,
         ) -> *const $crate::native::NativePluginEntryReportV3 {
+            // SAFETY: The exported entry caller must provide the documented readable,
+            // aligned host table and live strings/callbacks; panic catching adds no validation.
             $crate::native::catch_native_entry_panic_v3(|| unsafe {
                 ($entry_point).entry_report(host_functions)
             })

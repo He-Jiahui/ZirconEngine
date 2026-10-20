@@ -113,7 +113,7 @@ impl<T> EvaluationStack<T> {
     }
 
     fn push(&mut self, value: T) -> Result<(), UiBindingExpressionEvaluationError> {
-        if self.len() >= UI_BINDING_EXPRESSION_MAX_DEPTH + 1 {
+        if self.len() > UI_BINDING_EXPRESSION_MAX_DEPTH {
             return Err(budget_error("depth", UI_BINDING_EXPRESSION_MAX_DEPTH));
         }
         if self.spill.is_empty() && self.inline_len < self.inline.len() {

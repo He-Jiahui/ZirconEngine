@@ -1,4 +1,7 @@
-import { resolveLayoutCatalogPath } from './zui-layout-paths';
+import {
+  assertLayoutCurrentRoots, layoutCurrentOutputPath, type LayoutCurrentContext,
+  resolveLayoutCatalogPath,
+} from './zui-layout-paths';
 import assert from 'node:assert/strict';
 import { createHash, randomUUID } from 'node:crypto';
 import { realpathSync, statSync } from 'node:fs';
@@ -35,7 +38,6 @@ const appRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const penpotRoot = resolve(appRoot, '../../../../third_party/penpot');
 const frontendRoot = resolve(penpotRoot, 'frontend');
 const apiSuiteRoot = resolve(penpotRoot, 'plugins/apps/plugin-api-test-suite');
-const pluginDistRoot = resolvePluginDistRoot();
 const penpotStartupTimeoutMs = 300_000;
 
 /** Resolve the staged plugin distribution from an approved physical artifact root. */
@@ -72,7 +74,14 @@ export async function recordPenpotSessionFailure(
   runtime: WorkerRuntime,
   directory: string,
   error: unknown,
+  currentContext?: LayoutCurrentContext,
 ): Promise<void> {
+  const output = (path: string) => currentContext
+    ? layoutCurrentOutputPath(currentContext, resolve(directory, path))
+    : resolve(directory, path);
+  // Validate the supplied output directory before even asking the page for status.
+  output('penpot-session-error.json');
+  output('penpot-session-error.png');
   const { page, statusPanel, pluginFrame } = runtime;
   const status = await statusPanel
     .innerText({ timeout: 2_000 })
@@ -84,7 +93,7 @@ export async function recordPenpotSessionFailure(
   const screenshot = 'penpot-session-error.png';
   const captureError = await page
     .screenshot({
-      path: resolve(directory, screenshot),
+      path: output(screenshot),
       timeout: 15_000,
     })
     .then(
@@ -92,7 +101,7 @@ export async function recordPenpotSessionFailure(
       (cause: unknown) => String(cause),
     );
   await writeFile(
-    resolve(directory, 'penpot-session-error.json'),
+    output('penpot-session-error.json'),
     `${JSON.stringify(
       {
         generatedAt: new Date().toISOString(),
@@ -173,6 +182,7 @@ async function openPenpotSessionAttempt(
   options: {
     repoRoot: string;
     catalogRoot: string;
+    currentContext?: LayoutCurrentContext;
     writeEvidence: boolean;
     penpotBaseUrl: string;
     pluginBundleSha256: string;
@@ -185,6 +195,7 @@ async function openPenpotSessionAttempt(
   const {
     repoRoot,
     catalogRoot,
+    currentContext,
     writeEvidence,
     penpotBaseUrl,
     pluginBundleSha256,
@@ -193,6 +204,15 @@ async function openPenpotSessionAttempt(
     captureProgramFingerprints,
     captureBrowserRuntime,
   } = options;
+  if (currentContext) assertLayoutCurrentRoots(currentContext, repoRoot, catalogRoot);
+  const output = (path: string) => currentContext
+    ? layoutCurrentOutputPath(currentContext, path)
+    : resolveLayoutCatalogPath(catalogRoot, path);
+  output('penpot-session-startup-failure.png');
+  output('penpot-session-startup-failure.json');
+  output('resources/fonts');
+  output('resources/fonts/manifest.json');
+  const pluginDistRoot = resolvePluginDistRoot();
   const pluginHost = new URL('/__zircon-zui-plugin__/', penpotBaseUrl).href;
   const context = await browser.newContext({
     acceptDownloads: true,
@@ -207,6 +227,7 @@ async function openPenpotSessionAttempt(
     repoRoot,
     catalogRoot,
     writeEvidence,
+    currentContext,
   );
   const startupNetwork: string[] = [];
   page.on('pageerror', (error) => pageErrors.push(`pageerror: ${error.message}`));
@@ -246,12 +267,12 @@ async function openPenpotSessionAttempt(
       penpotBaseUrl,
       startupNetwork,
     );
-    if (officialAssetReplay)
-      replayReceiptPath = nextOfficialSessionReplayReceiptPath(
-        officialAssetReplay.cacheRoot,
-      );
+    if (officialAssetReplay && (!currentContext || writeEvidence))
+      replayReceiptPath = currentContext
+        ? output(`official-frontend-session-replay-receipt-${process.pid}-${randomUUID()}.json`)
+        : nextOfficialSessionReplayReceiptPath(officialAssetReplay.cacheRoot);
     await installMockBackend(page, unexpectedRpcs);
-    await installPluginAssetRoute(page);
+    await installPluginAssetRoute(page, pluginDistRoot);
     const workspaceUrl = `${penpotBaseUrl}/#/workspace?team-id=${mockTeamId}&file-id=${mockFileId}&page-id=${mockPageId}&wasm=false`;
     await navigateWithRetry(page, workspaceUrl);
     await openNotificationsWebSocket(page, sockets);
@@ -296,7 +317,7 @@ async function openPenpotSessionAttempt(
       name: 'Export selected',
     });
     await fileInput.waitFor({ timeout: 30_000 });
-    if (officialAssetReplay) {
+    if (officialAssetReplay && (!currentContext || writeEvidence)) {
       const browserRuntime = captureBrowserRuntime
         ? await captureBrowserRuntime(page).catch((error) => {
             pageErrors.push(
@@ -354,11 +375,8 @@ async function openPenpotSessionAttempt(
     };
   } catch (error) {
     fontResources.stop();
-    const failureScreenshot = resolveLayoutCatalogPath(
-      catalogRoot,
-      'penpot-session-startup-failure.png',
-    );
-    await page
+    const failureScreenshot = output('penpot-session-startup-failure.png');
+    if (!currentContext || writeEvidence) await page
       .screenshot({ path: failureScreenshot, fullPage: true, timeout: 10_000 })
       .catch(() => undefined);
     const [title, bodyText, documentState] = await Promise.all([
@@ -384,8 +402,8 @@ async function openPenpotSessionAttempt(
       documentState,
       failureScreenshot,
     };
-    await writeFile(
-      resolveLayoutCatalogPath(catalogRoot, 'penpot-session-startup-failure.json'),
+    if (!currentContext || writeEvidence) await writeFile(
+      output('penpot-session-startup-failure.json'),
       `${JSON.stringify(diagnostic, null, 2)}\n`,
       'utf8',
     ).catch(() => undefined);
@@ -814,7 +832,7 @@ async function openNotificationsWebSocket(
   }, url);
 }
 
-async function installPluginAssetRoute(page: Page): Promise<void> {
+async function installPluginAssetRoute(page: Page, pluginDistRoot: string): Promise<void> {
   await page.route('**/__zircon-zui-plugin__/**', async (route) => {
     const pathname = new URL(route.request().url()).pathname;
     const prefix = '/__zircon-zui-plugin__/';

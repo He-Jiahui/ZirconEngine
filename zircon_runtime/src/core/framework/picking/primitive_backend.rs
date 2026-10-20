@@ -79,7 +79,12 @@ impl PickingBackend for PrimitivePickingBackend {
                 }
             }
             if !hits.is_empty() {
-                collected.push(PointerHits::new(ray_id.pointer, hits, self.info.order));
+                collected.push(PointerHits::in_viewport(
+                    ray_id.pointer,
+                    ray_id.viewport,
+                    hits,
+                    self.info.order,
+                ));
             }
         }
         collected

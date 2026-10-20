@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
-import { readFile, writeFile } from 'node:fs/promises';
-import { dirname, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { dirname, isAbsolute, resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { renderResult, type CatalogManifest } from './zui-layout-catalog';
 import {
   bytesSha256,
-  containedPath,
+  verifyCurrentFiles,
   fileSha256,
   rendererFilePath,
 } from './zui-layout-evidence';
@@ -22,15 +22,30 @@ import {
   type MeasuredText,
 } from './zui-layout-text-structure';
 
-const root = resolve(
-  dirname(fileURLToPath(import.meta.url)),
-  '../../../../../docs/_data/layout',
-);
-const catalog: CatalogManifest = JSON.parse(
-  await readFile(resolve(root, 'catalog.json'), 'utf8'),
-);
-const repoRoot = resolve(process.env['ZUI_LAYOUT_REPO_ROOT'] ?? resolve(root, '../../..'));
-const captureProgram = await captureProgramFingerprints(repoRoot);
+import { createLayoutCurrentContext, layoutCurrentOutputPath, layoutCurrentSourcePath } from './zui-layout-paths';
+import { readCurrentDeliveryCatalog } from './zui-layout-delivery';
+import { withLayoutCatalogLock } from './zui-layout-catalog-lock';
+
+export async function runCurrentLayoutTextAudit(args: string[] = []): Promise<void> {
+  if (args.length) throw new Error('Only current text audit is supported; historical replay requires a fixed read-only inventory');
+  const context = createLayoutCurrentContext();
+  const repoRoot = context.repoRoot;
+  const preflight = async (): Promise<CatalogManifest> => {
+    const catalog = await readCurrentDeliveryCatalog(context);
+    for (const entry of catalog.entries) {
+      layoutCurrentOutputPath(context, `${dirname(entry.outputPath)}/evidence/text-structure.json`);
+      layoutCurrentOutputPath(context, entry.resultPath);
+      if (entry.penpotEvidence?.length || entry.engineEvidence?.length)
+        await verifyCurrentFiles(entry, repoRoot, context.outputRoot, entry.review?.status === 'accepted', context, 'strict-capture');
+    }
+    layoutCurrentOutputPath(context, 'evidence/text-structure-summary.json');
+    return catalog;
+  };
+  await preflight();
+  await withLayoutCatalogLock(context.outputRoot, { command: 'zui-layout-text-audit', context }, async () => {
+  const catalog = await preflight();
+  await mkdir(layoutCurrentOutputPath(context, 'evidence'), { recursive: true });
+  let captureProgram: Awaited<ReturnType<typeof captureProgramFingerprints>> | undefined;
 const rendererHashes = new Map<string, string>();
 type AuditRenderer = 'penpot' | 'engine';
 type AuditCase = {
@@ -57,13 +72,16 @@ async function auditEvidence(
   evidence: NonNullable<CatalogManifest['entries'][number]['penpotEvidence']>[number],
   renderer: AuditRenderer,
 ): Promise<AuditCase | undefined> {
+  if (evidence.status === 'failed' && !evidence.screenshotPath && !evidence.geometryPath && !evidence.textPath)
+    return undefined;
+  if (renderer === 'penpot') captureProgram ??= await captureProgramFingerprints(repoRoot);
   const reviewCase = entry.cases?.find((item) => item.id === evidence.caseId);
   if (
     !reviewCase ||
     caseSha256(reviewCase) !== evidence.caseSha256 ||
     evidence.sourceSha256 !== entry.sourceSha256 ||
     evidence.dependencySha256 !== entry.dependencySha256 ||
-    (renderer === 'penpot' && !currentCaptureProgram([evidence], captureProgram)) ||
+    (renderer === 'penpot' && !currentCaptureProgram([evidence], captureProgram!)) ||
     !evidence.textPath ||
     !evidence.geometryPath ||
     !evidence.rendererPath ||
@@ -72,6 +90,7 @@ async function auditEvidence(
     !evidence.rendererSha256
   )
     return undefined;
+  if (!isAbsolute(evidence.rendererPath)) layoutCurrentSourcePath(context, evidence.rendererPath);
   if (!rendererHashes.has(evidence.rendererPath))
     rendererHashes.set(
       evidence.rendererPath,
@@ -79,9 +98,9 @@ async function auditEvidence(
     );
   if (rendererHashes.get(evidence.rendererPath) !== evidence.rendererSha256)
     return undefined;
-  const textBytes = await readFile(containedPath(root, evidence.textPath));
+  const textBytes = await readFile(layoutCurrentOutputPath(context, evidence.textPath));
   const geometryBytes = await readFile(
-    containedPath(root, evidence.geometryPath),
+    layoutCurrentOutputPath(context, evidence.geometryPath),
   );
   assert.equal(bytesSha256(textBytes), evidence.textSha256);
   assert.equal(bytesSha256(geometryBytes), evidence.geometrySha256);
@@ -144,15 +163,15 @@ for (const entry of catalog.entries) {
   };
   const path = `${dirname(entry.outputPath)}/evidence/text-structure.json`;
   await writeFile(
-    containedPath(root, path),
+    layoutCurrentOutputPath(context, path),
     `${JSON.stringify(report, null, 2)}\n`,
   );
   // Keep the per-entry handoff record synchronized with the measured report;
   // this does not change acceptance state and still leaves visual review
   // explicitly pending.
   await writeFile(
-    containedPath(root, entry.resultPath),
-    renderResult(entry),
+    layoutCurrentOutputPath(context, entry.resultPath),
+    renderResult(entry, context),
   );
   records.push({
     sourcePath: entry.sourcePath,
@@ -164,7 +183,7 @@ for (const entry of catalog.entries) {
   });
 }
 await writeFile(
-  resolve(root, 'evidence/text-structure-summary.json'),
+  layoutCurrentOutputPath(context, 'evidence/text-structure-summary.json'),
   `${JSON.stringify({ schema: 'dev.zircon.zui.text-structure-summary', version: 2, generatedAt: new Date().toISOString(), measuredCases, entries: records, acceptanceStatus: 'unaccepted' }, null, 2)}\n`,
 );
 console.log(
@@ -176,3 +195,11 @@ console.log(
     entriesWithFindings: records.filter((entry) => entry.findings > 0).length,
   }),
 );
+  });
+}
+
+if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href)
+  void runCurrentLayoutTextAudit(process.argv.slice(2)).catch((error: unknown) => {
+    console.error(error);
+    process.exitCode = 1;
+  });

@@ -67,6 +67,7 @@ struct UiDefaultTreeViewReorderDrop {
     option_id: String,
     from: usize,
     to: usize,
+    model_changed: bool,
     values: Vec<UiValue>,
     selected_property: String,
     anchor_property: String,
@@ -147,10 +148,7 @@ impl UiSurface {
                     self.push_tree_view_end_drag(events, owner_id, end_property, drag)?;
                     return Ok(false);
                 };
-                // BUG: [CR-UI-SURFACE-0012] 层级重挂可保持相同前序位置；A(C),B 重挂 B 到 C 后仍是 from=to=2，
-                // 但节点已从根移动到 C.children。这里只比较索引会丢弃新层级、展开状态及窗口更新。
-                // 应按结构变更判断提交，并覆盖“父级变化但前序位置不变”的指针回归。
-                let moved = drop.from != drop.to;
+                let moved = drop.model_changed;
                 if moved {
                     let mut changed = false;
                     changed |= self.apply_tree_view_mutation(
@@ -454,7 +452,7 @@ impl UiSurface {
         let mut values = tree_node_values_for_property(owner_metadata, property);
         if values.len() != node_ids.len() {
             let Some(reparented) =
-                reparent_tree_node_values(values, &token.option_id, &hit.option_id)
+                reparent_tree_node_values(values.clone(), &token.option_id, &hit.option_id)
             else {
                 return Ok(None);
             };
@@ -472,6 +470,7 @@ impl UiSurface {
                 option_id: token.option_id,
                 from: reparented.from,
                 to: reparented.to,
+                model_changed: reparented.values != values,
                 values: reparented.values,
                 selected_property: selected_property(owner_metadata).to_string(),
                 anchor_property: anchor_property(owner_metadata).to_string(),
@@ -491,6 +490,7 @@ impl UiSurface {
             option_id: token.option_id,
             from,
             to,
+            model_changed: from != to,
             values,
             selected_property: selected_property(owner_metadata).to_string(),
             anchor_property: anchor_property(owner_metadata).to_string(),

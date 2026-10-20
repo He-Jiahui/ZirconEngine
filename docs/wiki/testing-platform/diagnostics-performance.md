@@ -11,7 +11,7 @@ implementation_files:
   - zircon_app/src/entry
   - tools/cargo/src/build/product_build
 plan_sources:
-  - docs/plans/milestone-validation-policy.md
+  - docs/testing-and-validation/milestone-validation-policy.md
   - docs/plans/performance
 tests:
   - zircon_runtime/src/core/runtime

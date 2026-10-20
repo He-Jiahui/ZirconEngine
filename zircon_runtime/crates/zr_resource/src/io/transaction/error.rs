@@ -21,8 +21,8 @@ pub enum DurableTransactionError {
     #[error("source changed before durable publication: {path}")]
     SourceConflict {
         path: PathBuf,
-        expected: crate::io::source_revision::SourceRevision,
-        actual: crate::io::source_revision::SourceRevision,
+        expected: Box<crate::io::source_revision::SourceRevision>,
+        actual: Box<crate::io::source_revision::SourceRevision>,
     },
     #[error(transparent)]
     ArtifactIdentityExhausted(#[from] ArtifactIdentityExhausted),

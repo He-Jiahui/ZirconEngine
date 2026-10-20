@@ -22,7 +22,7 @@ impl SceneRenderer {
     pub(crate) fn finish_virtual_geometry_native_readbacks_for_test(
         &mut self,
     ) -> Result<(), crate::graphics::types::GraphicsError> {
-        self.poll_frame_submission_completions()?;
+        self.wait_for_readback_completions()?;
         Ok(())
     }
 

@@ -8,3 +8,9 @@ impl HubSessionToken {
         Self(Uuid::new_v4())
     }
 }
+
+impl Default for HubSessionToken {
+    fn default() -> Self {
+        Self::new()
+    }
+}

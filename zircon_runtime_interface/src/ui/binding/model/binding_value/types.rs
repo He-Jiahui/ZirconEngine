@@ -548,7 +548,7 @@ impl UiBindingCollectionView {
         if self
             .offset
             .checked_add(u64::from(self.length))
-            .map_or(true, |end| end > self.total_length)
+            .is_none_or(|end| end > self.total_length)
         {
             return Err(UiBindingValueValidationError::InvalidCollectionViewWindow {
                 offset: self.offset,

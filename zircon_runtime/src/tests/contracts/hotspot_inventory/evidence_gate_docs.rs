@@ -51,7 +51,6 @@ pub(super) fn assert_evidence_gate_docs(sources: &HotspotInventorySources) {
         "AnimationSceneFrameDiagnostics",
         "animation.scene.scanned_entities",
         "animation.scene.output_poses",
-        "animation_scene_frame_diagnostics_static_passed_cargo_deferred",
         "CounterHotspotReport",
         "counter_hotspots.json",
     ] {
@@ -62,6 +61,12 @@ pub(super) fn assert_evidence_gate_docs(sources: &HotspotInventorySources) {
             "Runtime 07 docs should keep evidence gate anchor `{required_doc_anchor}`"
         );
     }
+
+    assert!(
+        runtime_07_archive
+            .contains("animation_scene_frame_diagnostics_static_passed_cargo_deferred"),
+        "fixed Runtime 07 output should retain the historical animation diagnostics status"
+    );
 
     for required_counter_hotspot_anchor in [
         "PROFILE_COUNTER_HOTSPOTS_FILE",

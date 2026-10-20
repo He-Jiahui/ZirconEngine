@@ -28,8 +28,14 @@ fn runtime47_batch_location_map_preserves_input_override() {
     let locations = location_map(&[initial, other], &[input]);
 
     assert_eq!(locations.len(), 2);
-    assert_eq!(locations.get(&PointerId::new(7)), Some(&override_location));
-    assert_eq!(locations.get(&PointerId::new(9)), Some(&other));
+    assert_eq!(
+        locations.get(&PickingPointerKey::from_location(initial)),
+        Some(&override_location)
+    );
+    assert_eq!(
+        locations.get(&PickingPointerKey::from_location(other)),
+        Some(&other)
+    );
 }
 
 #[test]
@@ -47,12 +53,12 @@ fn runtime47_batch_location_map_uses_capacity_hash_index() {
         .next()
         .expect("bounded location map");
 
-    assert!(location_map.contains("HashMap<PointerId, PointerLocation>"));
+    assert!(location_map.contains("HashMap<PickingPointerKey, PointerLocation>"));
     assert!(location_map.contains("HashMap::with_capacity"));
     assert!(!location_map.contains("collect::<BTreeMap"));
     assert_eq!(
         production
-            .matches("&HashMap<PointerId, PointerLocation>")
+            .matches("&HashMap<PickingPointerKey, PointerLocation>")
             .count(),
         2
     );
@@ -64,14 +70,17 @@ fn runtime47_batch_pointer_location_hash_map_performance_evidence() {
     fn legacy_location_map(
         pointer_locations: &[PointerLocation],
         inputs: &[PointerInput],
-    ) -> BTreeMap<PointerId, PointerLocation> {
+    ) -> BTreeMap<PickingPointerKey, PointerLocation> {
         let mut locations = pointer_locations
             .iter()
             .copied()
-            .map(|location| (location.pointer, location))
+            .map(|location| (PickingPointerKey::from_location(location), location))
             .collect::<BTreeMap<_, _>>();
         for input in inputs {
-            locations.insert(input.pointer(), input.location);
+            locations.insert(
+                PickingPointerKey::from_location(input.location),
+                input.location,
+            );
         }
         locations
     }

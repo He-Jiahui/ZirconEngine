@@ -147,7 +147,7 @@ fn hybrid_gi_history_schema() -> RenderResourceSchema {
             TextureFormat::Rgba16Float,
             TextureUsage::SAMPLED | TextureUsage::RENDER_ATTACHMENT,
         )
-        .with_extent(RenderTextureExtentPolicy::View),
+        .with_extent(RenderTextureExtentPolicy::Render),
     )
 }
 

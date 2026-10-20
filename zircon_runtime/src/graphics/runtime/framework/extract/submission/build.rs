@@ -190,51 +190,17 @@ fn build_frame_submission_context_from_source(
     } else {
         None
     };
-    let automatic_virtual_geometry_output = match (
-        authored_virtual_geometry_extract.as_ref(),
-        automatic_virtual_geometry_output,
-    ) {
-        (Some(authored), Some(output)) => Some(
-            output
-                .bind_authored_indexed_topology(authored)
-                .map_err(RenderFrameworkError::Backend)?,
-        ),
-        (Some(authored), None) if virtual_geometry_enabled && !authored.clusters.is_empty() => {
-            return Err(RenderFrameworkError::Backend(
-                "authored VG has no actual cooked source admission".into(),
-            ))
-        }
-        (_, output) => output,
-    };
     let virtual_geometry_payload_source = virtual_geometry_payload_source_for_extract(
         virtual_geometry_enabled,
         authored_virtual_geometry_present,
         automatic_virtual_geometry_output.is_some(),
     );
-    let virtual_geometry_indexed_sources = automatic_virtual_geometry_output
-        .as_ref()
-        .map(|output| output.indexed_sources().to_vec())
-        .unwrap_or_default();
-    let (
-        automatic_virtual_geometry_extract,
-        virtual_geometry_cpu_reference_instances,
-        virtual_geometry_bvh_visualization_instances,
-        virtual_geometry_resident_page_payloads,
-    ) = automatic_virtual_geometry_output
-        .map(VirtualGeometryRuntimeExtractOutput::into_parts)
-        .map(
-            |(extract, cpu_references, bvh_instances, resident_payloads)| {
-                (
-                    Some(extract),
-                    cpu_references,
-                    bvh_instances,
-                    resident_payloads,
-                )
-            },
-        )
-        .unwrap_or_default();
     let effective_virtual_geometry_extract =
-        authored_virtual_geometry_extract.or(automatic_virtual_geometry_extract);
+        authored_virtual_geometry_extract.as_ref().or_else(|| {
+            automatic_virtual_geometry_output
+                .as_ref()
+                .map(|output| output.extract())
+        });
     let hybrid_gi_settings_present = sized_extract.lighting.hybrid_global_illumination.is_some();
     let hybrid_gi_settings_present = hybrid_gi_settings_present || source_hybrid_gi.is_some();
     let effective_hybrid_gi_extract = hybrid_gi_enabled
@@ -261,10 +227,61 @@ fn build_frame_submission_context_from_source(
             Some(framework.compute_task_pool()),
             effective_hybrid_gi_extract.as_ref(),
             virtual_geometry_enabled
-                .then_some(effective_virtual_geometry_extract.as_ref())
+                .then_some(effective_virtual_geometry_extract)
                 .flatten(),
             Some(&prepared_local_bounds),
         );
+    // Legacy authored rows need the actual main-view result; automatic source
+    // discovery includes assets outside that visible set.
+    let automatic_virtual_geometry_output = match (
+        authored_virtual_geometry_extract.as_ref(),
+        automatic_virtual_geometry_output,
+    ) {
+        (Some(authored), Some(output)) => Some(
+            output
+                .bind_authored_indexed_topology(
+                    authored,
+                    &visibility_context.main_view_visible_entity_set(),
+                )
+                .map_err(RenderFrameworkError::Backend)?,
+        ),
+        (Some(authored), None) if virtual_geometry_enabled => {
+            let active = authored
+                .checked_active_cluster_rows(&visibility_context.main_view_visible_entity_set())
+                .map_err(|error| RenderFrameworkError::Backend(error.into()))?;
+            if !active.is_empty() {
+                return Err(RenderFrameworkError::Backend(
+                    "authored VG has no actual cooked source admission".into(),
+                ));
+            }
+            None
+        }
+        (_, output) => output,
+    };
+    let virtual_geometry_indexed_sources = automatic_virtual_geometry_output
+        .as_ref()
+        .map(|output| output.indexed_sources().to_vec())
+        .unwrap_or_default();
+    let (
+        automatic_virtual_geometry_extract,
+        virtual_geometry_cpu_reference_instances,
+        virtual_geometry_bvh_visualization_instances,
+        virtual_geometry_resident_page_payloads,
+    ) = automatic_virtual_geometry_output
+        .map(VirtualGeometryRuntimeExtractOutput::into_parts)
+        .map(
+            |(extract, cpu_references, bvh_instances, resident_payloads)| {
+                (
+                    Some(extract),
+                    cpu_references,
+                    bvh_instances,
+                    resident_payloads,
+                )
+            },
+        )
+        .unwrap_or_default();
+    let effective_virtual_geometry_extract =
+        authored_virtual_geometry_extract.or(automatic_virtual_geometry_extract);
     let history_validation_key = FrameHistoryValidationKey::from_extract(
         effective_extract,
         compiled_feature_names(&compiled_pipeline),

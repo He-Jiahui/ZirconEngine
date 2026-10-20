@@ -9,11 +9,11 @@ pub(super) fn assert_typed_error_runtime_parents_are_folder_backed(
         "scene world typed-error parent mounts focused child owners",
         &sources.scene_world_parent,
         &[
-            "#[path = \"scene_world/typed_mutation_surface.rs\"]",
+            "#[path = \"../../../review/errors/scene_world/typed_mutation_surface.rs\"]",
             "mod typed_mutation_surface;",
             "#[path = \"scene_world/fixed_mutation.rs\"]",
             "mod fixed_mutation;",
-            "#[path = \"scene_world/dynamic_components.rs\"]",
+            "#[path = \"../../../review/errors/scene_world/dynamic_components.rs\"]",
             "mod dynamic_components;",
             "#[path = \"scene_world/property_access.rs\"]",
             "mod property_access;",
@@ -30,9 +30,9 @@ pub(super) fn assert_typed_error_runtime_parents_are_folder_backed(
         &[
             "#[path = \"script_host/gameplay_scene.rs\"]",
             "mod gameplay_scene;",
-            "#[path = \"script_host/plugin_management.rs\"]",
+            "#[path = \"../../../review/errors/script_host/plugin_management.rs\"]",
             "mod plugin_management;",
-            "#[path = \"script_host/host_reflection_docs.rs\"]",
+            "#[path = \"../../../review/errors/script_host/host_reflection_docs.rs\"]",
             "mod host_reflection_docs;",
         ],
     );
@@ -45,9 +45,9 @@ pub(super) fn assert_typed_error_runtime_parents_are_folder_backed(
         "shader prewarm CLI typed-error parent mounts focused child owners",
         &sources.shader_prewarm_cli_parent,
         &[
-            "#[path = \"shader_prewarm_cli/args_boundary.rs\"]",
+            "#[path = \"../../../review/errors/shader_prewarm_cli/args_boundary.rs\"]",
             "mod args_boundary;",
-            "#[path = \"shader_prewarm_cli/run_boundary.rs\"]",
+            "#[path = \"../../../review/errors/shader_prewarm_cli/run_boundary.rs\"]",
             "mod run_boundary;",
         ],
     );

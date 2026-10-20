@@ -1,6 +1,6 @@
-import { readFile, readdir, writeFile } from 'node:fs/promises';
-import { dirname, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { readdir, writeFile } from 'node:fs/promises';
+import { resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import type { CatalogManifest } from './zui-layout-catalog';
 import {
   currentDualReview,
@@ -9,16 +9,30 @@ import {
 } from './zui-layout-evidence';
 import { withLayoutCatalogLock } from './zui-layout-catalog-lock';
 
-const root = resolve(
-  dirname(fileURLToPath(import.meta.url)),
-  '../../../../../docs/_data/layout',
-);
-const write = !process.argv.includes('--check');
+import { createLayoutCurrentContext, layoutCurrentOutputPath } from './zui-layout-paths';
+import { readCurrentDeliveryCatalog } from './zui-layout-delivery';
 
+export async function runCurrentLayoutStatus(args: string[] = []): Promise<void> {
+  if (args.some((arg) => arg !== '--check'))
+    throw new Error('Only current status and --check are supported; historical replay requires a fixed read-only inventory');
+  const context = createLayoutCurrentContext();
+  const root = context.outputRoot;
+  const write = !args.includes('--check');
+  const preflight = async (): Promise<CatalogManifest> => {
+    const catalog = await readCurrentDeliveryCatalog(context);
+    layoutCurrentOutputPath(context, 'evidence/penpot-batch-status.json');
+    layoutCurrentOutputPath(context, 'evidence/manifest.json');
+    if (write) {
+      for (const entry of catalog.entries) {
+        if (!entry.penpotEvidence?.length && !entry.engineEvidence?.length) continue;
+        await verifyCurrentFiles(entry, context.repoRoot, root, entry.review?.status === 'accepted', context, 'strict-capture');
+      }
+    }
+    return catalog;
+  };
+  await preflight();
 async function run(): Promise<void> {
-  const catalog: CatalogManifest = JSON.parse(
-    await readFile(resolve(root, 'catalog.json'), 'utf8'),
-  );
+  const catalog = await preflight();
   const current = new Set<string>();
   const stale: { sourcePath: string; reason: string }[] = [];
   for (const entry of catalog.entries) {
@@ -30,6 +44,8 @@ async function run(): Promise<void> {
         catalog.repoRoot,
         root,
         entry.review?.status === 'accepted',
+        context,
+        'strict-capture',
       );
       current.add(entry.sourcePath);
     } catch (error) {
@@ -120,22 +136,22 @@ async function run(): Promise<void> {
   };
   if (write) {
     await writeFile(
-      resolve(root, 'evidence/penpot-batch-status.json'),
+      layoutCurrentOutputPath(context, 'evidence/penpot-batch-status.json'),
       `${JSON.stringify(status, null, 2)}\n`,
     );
     const files = [];
-    for (const entry of await readdir(resolve(root, 'evidence'), {
+    for (const entry of await readdir(layoutCurrentOutputPath(context, 'evidence'), {
       withFileTypes: true,
     })) {
       if (!entry.isFile() || entry.name === 'manifest.json') continue;
       files.push({
         path: entry.name,
-        sha256: await fileSha256(resolve(root, 'evidence', entry.name)),
+        sha256: await fileSha256(layoutCurrentOutputPath(context, `evidence/${entry.name}`)),
       });
     }
     files.sort((a, b) => a.path.localeCompare(b.path));
     await writeFile(
-      resolve(root, 'evidence/manifest.json'),
+      layoutCurrentOutputPath(context, 'evidence/manifest.json'),
       `${JSON.stringify(
         {
           schema: 'dev.zircon.zui.layout-evidence-manifest',
@@ -161,9 +177,16 @@ async function run(): Promise<void> {
 if (write) {
   await withLayoutCatalogLock(
     root,
-    { command: `zui-layout-status ${process.argv.slice(2).join(' ')}` },
+    { command: `zui-layout-status ${args.join(' ')}`, context },
     run,
   );
 } else {
   await run();
 }
+}
+
+if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href)
+  void runCurrentLayoutStatus(process.argv.slice(2)).catch((error: unknown) => {
+    console.error(error);
+    process.exitCode = 1;
+  });

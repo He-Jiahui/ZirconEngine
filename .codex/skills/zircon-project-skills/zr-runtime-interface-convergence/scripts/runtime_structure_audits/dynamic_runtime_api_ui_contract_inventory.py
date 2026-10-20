@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from runtime_structure_audits.dynamic_runtime_api_archive_inventory import (
+    RUNTIME_09_UI_OUTPUT_ARCHIVE,
+    RUNTIME_10_DYNAMIC_API_OUTPUT_ARCHIVE,
     RUNTIME_15_RUNTIME_INDEX_OUTPUT_ARCHIVE,
 )
 
@@ -11,15 +13,15 @@ UI_PENDING_GATE_ANCHORS = (
         "runtime_10_ui_contract_m2_gate_stays_pending_until_runtime_09_owner_handoff",
     ),
     (
-        "docs/plans/zircon_runtime/runtime/10/2026-07-09-dynamic-api-and-interface-convergence-output-records.md",
+        RUNTIME_10_DYNAMIC_API_OUTPUT_ARCHIVE,
         "runtime_10_ui_contract_m2_gate_stays_pending_until_runtime_09_owner_handoff",
     ),
     (
-        "docs/engine-architecture/runtime-interface-convergence.md",
+        "docs/architecture/runtime-interface-convergence.md",
         "Runtime 10 UI Contract M2 Gate",
     ),
     (
-        "docs/engine-architecture/runtime-architecture-review-m0.md",
+        "docs/architecture/runtime-architecture-review-m0.md",
         "Runtime 10 UI Contract M2 Gate",
     ),
     (
@@ -55,15 +57,15 @@ UI_CONTRACT_SINGLE_SOURCE_ANCHORS = (
         "runtime_10_m2_1_ui_contract_duplicate_public_types_removed_static_passed_cargo_pending",
     ),
     (
-        "docs/plans/zircon_runtime/runtime/10/2026-07-09-dynamic-api-and-interface-convergence-output-records.md",
+        RUNTIME_10_DYNAMIC_API_OUTPUT_ARCHIVE,
         "runtime_10_m2_1_ui_contract_duplicate_public_types_removed_static_passed_cargo_pending",
     ),
     (
-        "docs/engine-architecture/runtime-interface-convergence.md",
+        "docs/architecture/runtime-interface-convergence.md",
         "runtime_10_m2_1_ui_contract_duplicate_public_types_removed_static_passed_cargo_pending",
     ),
     (
-        "docs/engine-architecture/runtime-architecture-review-m0.md",
+        "docs/architecture/runtime-architecture-review-m0.md",
         "runtime_10_m2_1_ui_contract_duplicate_public_types_removed_static_passed_cargo_pending",
     ),
 )
@@ -87,11 +89,11 @@ UI_V2_CONTRACT_SYNC_ANCHORS = (
         "actual.is_compatible_with(required)",
     ),
     (
-        "docs/plans/zircon_runtime/runtime/09/2026-07-09-ui-subsystem-architecture-output-records.md",
+        RUNTIME_09_UI_OUTPUT_ARCHIVE,
         "v2-replacement-mainline",
     ),
     (
-        "docs/zircon_runtime/ui/architecture.md",
+        "docs/crates/zircon_runtime/ui/architecture.md",
         "v2-replacement-mainline",
     ),
     (
@@ -99,11 +101,11 @@ UI_V2_CONTRACT_SYNC_ANCHORS = (
         "runtime_10_m2_2_ui_v2_contract_sync_static_passed_cargo_pending",
     ),
     (
-        "docs/plans/zircon_runtime/runtime/10/2026-07-09-dynamic-api-and-interface-convergence-output-records.md",
+        RUNTIME_10_DYNAMIC_API_OUTPUT_ARCHIVE,
         "runtime_10_m2_2_ui_v2_contract_sync_static_passed_cargo_pending",
     ),
     (
-        "docs/zircon_runtime_interface/ui/mod.md",
+        "docs/crates/zircon_runtime_interface/ui/mod.md",
         "runtime_10_m2_2_ui_v2_contract_sync_static_passed_cargo_pending",
     ),
 )

@@ -84,6 +84,85 @@ fn delta_export_preserves_written_pack_and_report_after_verification() {
 }
 
 #[test]
+fn deterministic_comparison_preserves_read_error_source_and_path() {
+    let root = unique_temp_dir("deterministic-read-error");
+    let missing = root.join("missing.bin");
+    let inputs = [ExportPackInputSource {
+        path: "assets/missing.bin".to_string(),
+        source: missing.clone(),
+    }];
+    let mut diagnostics = Vec::new();
+    let error = deterministic_double_run(true, &inputs, b"first", &mut diagnostics)
+        .expect_err("a missing comparison source must remain a typed failure");
+    fs::remove_dir_all(&root).unwrap();
+    assert!(diagnostics.is_empty());
+    assert!(matches!(
+        &error,
+        ExportPackError::DeterministicComparisonReadSource { path, source }
+            if path == &missing && source.kind() == std::io::ErrorKind::NotFound
+    ));
+    assert_eq!(
+        std::error::Error::source(&error)
+            .unwrap()
+            .downcast_ref::<std::io::Error>()
+            .unwrap()
+            .kind(),
+        std::io::ErrorKind::NotFound
+    );
+}
+
+#[test]
+fn deterministic_comparison_preserves_pack_validation_error_source() {
+    let inputs = [
+        ExportPackInputSource {
+            path: "same.bin".to_string(),
+            source: PathBuf::from("not-opened"),
+        },
+        ExportPackInputSource {
+            path: "same.bin".to_string(),
+            source: PathBuf::from("not-opened"),
+        },
+    ];
+    let mut diagnostics = Vec::new();
+    let error = deterministic_double_run(true, &inputs, b"first", &mut diagnostics)
+        .expect_err("duplicate pack paths must retain the pack-format error");
+    assert!(diagnostics.is_empty());
+    assert!(matches!(
+        std::error::Error::source(&error).unwrap().downcast_ref::<crate::pack::ZrPackError>(),
+        Some(crate::pack::ZrPackError::DuplicateAssetPath(path)) if path == "same.bin"
+    ));
+}
+
+#[test]
+fn deterministic_comparison_keeps_disabled_mismatch_and_match_outcomes() {
+    let root = unique_temp_dir("deterministic-outcomes");
+    let source = root.join("source.bin");
+    fs::write(&source, b"payload").unwrap();
+    let inputs = [ExportPackInputSource {
+        path: "source.bin".to_string(),
+        source,
+    }];
+    let first =
+        ZrPackWriter::write([ZrPackInputAsset::new("source.bin", b"payload".to_vec())]).unwrap();
+    let mut disabled = Vec::new();
+    let mut mismatch = Vec::new();
+    let mut matching = Vec::new();
+    assert!(!deterministic_double_run(false, &inputs, b"ignored", &mut disabled).unwrap());
+    assert!(!deterministic_double_run(true, &inputs, b"different", &mut mismatch).unwrap());
+    assert!(deterministic_double_run(true, &inputs, &first.bytes, &mut matching).unwrap());
+    fs::remove_dir_all(&root).unwrap();
+    assert!(disabled.is_empty());
+    assert_eq!(
+        mismatch,
+        ["deterministic pack double-run byte comparison failed"]
+    );
+    assert_eq!(
+        matching,
+        ["deterministic pack double-run byte comparison passed"]
+    );
+}
+
+#[test]
 #[ignore = "Windows-native Release performance evidence"]
 fn runtime04_pack_export_delta_reader_move_bench() {
     const ASSET_COUNT: usize = 1_024;

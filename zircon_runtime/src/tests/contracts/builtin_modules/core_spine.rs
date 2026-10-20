@@ -6,13 +6,7 @@ use crate::core::framework::ui::UI_MODULE_NAME;
 
 #[test]
 fn client_runtime_composition_includes_core_and_required_plugins() {
-    let composition = runtime_modules_for_target(RuntimeTargetMode::ClientRuntime, None)
-        .expect("client runtime composition should compile");
-    let descriptors = composition
-        .modules()
-        .iter()
-        .map(|module| module.descriptor().name)
-        .collect::<Vec<_>>();
+    let descriptors = client_runtime_module_names();
 
     for expected in [
         crate::core::framework::foundation::FOUNDATION_MODULE_NAME,
@@ -22,30 +16,19 @@ fn client_runtime_composition_includes_core_and_required_plugins() {
         SCENE_MODULE_NAME,
         crate::core::framework::render::GRAPHICS_MODULE_NAME,
         crate::script::SCRIPT_MODULE_NAME,
+        #[cfg(feature = "ui")]
+        UI_MODULE_NAME,
     ] {
         assert!(
             descriptors.iter().any(|name| name == expected),
             "missing runtime module {expected}"
         );
     }
-
-    #[cfg(feature = "ui")]
-    assert!(
-        descriptors.iter().any(|name| name == UI_MODULE_NAME),
-        "missing runtime module {}",
-        UI_MODULE_NAME
-    );
 }
 
 #[test]
 fn client_runtime_composition_keeps_plugins_after_core_spine() {
-    let composition = runtime_modules_for_target(RuntimeTargetMode::ClientRuntime, None)
-        .expect("client runtime composition should compile");
-    let descriptors = composition
-        .modules()
-        .iter()
-        .map(|module| module.descriptor().name)
-        .collect::<Vec<_>>();
+    let descriptors = client_runtime_module_names();
 
     let script_index = descriptors
         .iter()
@@ -93,4 +76,13 @@ fn client_runtime_composition_keeps_plugins_after_core_spine() {
         descriptors.len() - 1,
         "core-min runtime spine should stop at script when ui is disabled"
     );
+}
+
+fn client_runtime_module_names() -> Vec<String> {
+    runtime_modules_for_target(RuntimeTargetMode::ClientRuntime, None)
+        .expect("client runtime composition should compile")
+        .modules()
+        .iter()
+        .map(|module| module.descriptor().name)
+        .collect()
 }

@@ -18,7 +18,7 @@ implementation_files:
   - zircon_plugins/plugin_sdk/src
 plan_sources:
   - user: 2026-09-09 构建 ZirconEngine 详细 Wiki 文档集合
-  - docs/plans/mvp/index.md
+  - docs/testing-and-validation/mvp-acceptance-index.md
 tests:
   - zircon_app/src/entry/tests
   - zircon_runtime/src

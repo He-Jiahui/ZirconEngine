@@ -3,23 +3,21 @@ use super::*;
 
 #[test]
 fn runtime_15_dynamic_scene_absorption_guard_is_folder_backed() {
-    let parent = read_runtime_src("tests/runtime_absorption/dynamic_scene.rs");
-    let patch_preview_api =
-        read_runtime_src("tests/runtime_absorption/dynamic_scene/patch_preview_api.rs");
+    let parent = read_runtime_src("tests/contracts/dynamic.rs");
+    let patch_preview_api = read_runtime_src("tests/contracts/dynamic/patch_preview_api.rs");
     let patch_preview_status_docs =
-        read_runtime_src("tests/runtime_absorption/dynamic_scene/patch_preview_status_docs.rs");
+        read_runtime_src("tests/contracts/dynamic/patch_preview_status_docs.rs");
     let patch_preview_behavior =
-        read_runtime_src("tests/runtime_absorption/dynamic_scene/patch_preview_behavior.rs");
+        read_runtime_src("tests/contracts/dynamic/patch_preview_behavior.rs");
     let session_capture_persistence =
-        read_runtime_src("tests/runtime_absorption/dynamic_scene/session_capture_persistence.rs");
-    let session_retention_mutation_merge = read_runtime_src(
-        "tests/runtime_absorption/dynamic_scene/session_retention_mutation_merge.rs",
-    );
+        read_runtime_src("tests/contracts/dynamic/session_capture_persistence.rs");
+    let session_retention_mutation_merge =
+        read_runtime_src("tests/contracts/dynamic/session_retention_mutation_merge.rs");
     let session_load_query_path =
-        read_runtime_src("tests/runtime_absorption/dynamic_scene/session_load_query_path.rs");
+        read_runtime_src("tests/contracts/dynamic/session_load_query_path.rs");
     let asset_reload_selection_status =
-        read_runtime_src("tests/runtime_absorption/dynamic_scene/asset_reload_selection_status.rs");
-    let sources = read_runtime_src("tests/runtime_absorption/dynamic_scene/sources.rs");
+        read_runtime_src("tests/contracts/dynamic/asset_reload_selection_status.rs");
+    let sources = read_runtime_src("tests/contracts/dynamic/sources.rs");
 
     assert_contains_all(
         "dynamic-scene absorption parent mounts folder-backed children and shared sources",
@@ -38,14 +36,14 @@ fn runtime_15_dynamic_scene_absorption_guard_is_folder_backed() {
     assert_eq!(
         parent.matches("#[test]").count(),
         0,
-        "tests/runtime_absorption/dynamic_scene.rs should only mount child owners and shared include_str sources"
+        "tests/contracts/dynamic.rs should only mount child owners and shared include_str sources"
     );
     assert_contains_all(
         "dynamic-scene absorption sources child owns shared include_str constants",
         &sources,
         &[
             "pub(super) const PATCH_SOURCE",
-            "pub(super) const RUNTIME_05_PLAN",
+            "pub(super) fn runtime_05_plan",
             "pub(super) const DYNAMIC_SCENE_DOC",
         ],
     );
@@ -95,7 +93,7 @@ fn runtime_15_dynamic_scene_absorption_guard_is_folder_backed() {
         &session_retention_mutation_merge,
         &[
             "fn runtime_05_dynamic_scene_session_retention_mutation_merge_anchors_stay_visible",
-            "runtime_session_archive_preview_capture_retention_prunes_clone_without_mutating_archive",
+            "runtime_session_archive_preview_capture_retention_projects_without_mutating_archive",
             "runtime_session_archive_path_merge_preview_commit_and_same_path_guard_are_atomic",
         ],
     );
@@ -136,39 +134,36 @@ fn runtime_15_dynamic_scene_absorption_guard_is_folder_backed() {
     );
 
     for (path, source) in [
-        ("tests/runtime_absorption/dynamic_scene.rs", parent.as_str()),
+        ("tests/contracts/dynamic.rs", parent.as_str()),
         (
-            "tests/runtime_absorption/dynamic_scene/patch_preview_api.rs",
+            "tests/contracts/dynamic/patch_preview_api.rs",
             patch_preview_api.as_str(),
         ),
         (
-            "tests/runtime_absorption/dynamic_scene/patch_preview_status_docs.rs",
+            "tests/contracts/dynamic/patch_preview_status_docs.rs",
             patch_preview_status_docs.as_str(),
         ),
         (
-            "tests/runtime_absorption/dynamic_scene/patch_preview_behavior.rs",
+            "tests/contracts/dynamic/patch_preview_behavior.rs",
             patch_preview_behavior.as_str(),
         ),
         (
-            "tests/runtime_absorption/dynamic_scene/session_capture_persistence.rs",
+            "tests/contracts/dynamic/session_capture_persistence.rs",
             session_capture_persistence.as_str(),
         ),
         (
-            "tests/runtime_absorption/dynamic_scene/session_retention_mutation_merge.rs",
+            "tests/contracts/dynamic/session_retention_mutation_merge.rs",
             session_retention_mutation_merge.as_str(),
         ),
         (
-            "tests/runtime_absorption/dynamic_scene/session_load_query_path.rs",
+            "tests/contracts/dynamic/session_load_query_path.rs",
             session_load_query_path.as_str(),
         ),
         (
-            "tests/runtime_absorption/dynamic_scene/asset_reload_selection_status.rs",
+            "tests/contracts/dynamic/asset_reload_selection_status.rs",
             asset_reload_selection_status.as_str(),
         ),
-        (
-            "tests/runtime_absorption/dynamic_scene/sources.rs",
-            sources.as_str(),
-        ),
+        ("tests/contracts/dynamic/sources.rs", sources.as_str()),
     ] {
         let line_count = source.lines().count();
         assert!(
@@ -176,12 +171,4 @@ fn runtime_15_dynamic_scene_absorption_guard_is_folder_backed() {
             "{path} should stay below the Runtime 15 test-file budget; got {line_count} lines"
         );
     }
-
-    let _runtime_15_plan =
-        read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
-    let _runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
-    let _review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
-    let _structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
-    let _module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
-    let _dynamic_scene_doc = read_repo("docs/zircon_runtime/scene/dynamic_scene.md");
 }

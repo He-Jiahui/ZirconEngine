@@ -44,6 +44,8 @@ struct ProductFrame {
     debug: zircon_runtime::core::framework::render::RenderVirtualGeometryDebugSnapshot,
     stats: zircon_runtime::core::framework::render::RenderStats,
     indirect: IndirectReadbackWords,
+    terminal_authority: Vec<[u32; 14]>,
+    terminal_records: Vec<(u32, u64, u32, u32, u32)>,
 }
 
 fn render(extract: RenderFrameExtract, assets: Arc<ProjectAssetManager>) -> ProductFrame {
@@ -56,7 +58,7 @@ fn render(extract: RenderFrameExtract, assets: Arc<ProjectAssetManager>) -> Prod
 
 fn render_with_fixture(
     extract: RenderFrameExtract,
-    framework: PluginizedWgpuRenderFrameworkFixture,
+    mut framework: PluginizedWgpuRenderFrameworkFixture,
 ) -> ProductFrame {
     let viewport = framework
         .create_viewport(RenderViewportDescriptor::new(VIEWPORT_SIZE))
@@ -78,12 +80,20 @@ fn render_with_fixture(
     let indirect = framework
         .read_indirect_words_after_submit()
         .expect("actual indirect args and authority GPU readback");
+    let terminal_authority = framework
+        .read_last_virtual_geometry_terminal_authority_rows()
+        .expect("actual same-frame terminal authority");
+    let terminal_records = framework
+        .read_last_virtual_geometry_indirect_execution_records()
+        .expect("actual same-scope physical execution records");
     framework.destroy_viewport(viewport).unwrap();
     ProductFrame {
         rgba,
         debug,
         stats,
         indirect,
+        terminal_authority,
+        terminal_records,
     }
 }
 
@@ -194,10 +204,9 @@ fn public_wgpu_hierarchy_reports_child_lineage() {
 
 #[test]
 fn virtual_geometry_unified_indirect_keeps_lineage_depth_in_gpu_submission_and_indirect_args() {
-    let (root, assets, model, material, _) = transparent_project("unified_indirect_lineage");
-    let extract =
-        render_fixture::build_hierarchical_instance_extract(VIEWPORT_SIZE, model, material);
-    let result = render(extract, Arc::clone(&assets));
+    let assets = Arc::new(ProjectAssetManager::default());
+    let fixture = CookedHierarchyFixture::new(&assets);
+    let result = render(fixture.extract(&assets), Arc::clone(&assets));
 
     let authority_records = result
         .indirect
@@ -243,7 +252,7 @@ fn virtual_geometry_unified_indirect_keeps_lineage_depth_in_gpu_submission_and_i
         "expected a hierarchy-derived GPU lineage value"
     );
 
-    let _ = fs::remove_dir_all(root);
+    drop(fixture);
 }
 
 #[test]
@@ -309,6 +318,36 @@ fn public_wgpu_multi_primitive_draws_have_distinct_submission_tokens() {
         Arc::clone(&assets),
     );
     assert_eq!(result.debug.submission_records.len(), 4);
+    assert_eq!(result.terminal_records.len(), 4);
+    assert_eq!(result.terminal_authority.len(), 4);
+    for (slot, record) in result.debug.submission_records.iter().enumerate() {
+        let gpu = result.terminal_records[slot];
+        assert_eq!(
+            (
+                record.draw_ref_index.unwrap(),
+                record.entity,
+                record.page_id,
+                record.submission_index,
+                record.draw_ref_rank
+            ),
+            gpu
+        );
+        let authority = &result.terminal_authority[slot];
+        let segment = &result.debug.execution_segments[slot];
+        assert_eq!(authority[0], record.instance_index.unwrap());
+        assert_eq!(
+            u64::from(authority[1]) | (u64::from(authority[2]) << 32),
+            record.entity
+        );
+        assert_eq!(authority[3], record.page_id);
+        assert_eq!(authority[6], record.draw_ref_index.unwrap());
+        assert_eq!(authority[7], record.original_index);
+        assert_eq!(authority[8], record.submission_index);
+        assert_eq!(authority[9], record.draw_ref_rank);
+        assert_eq!(authority[10], segment.submission_slot.unwrap());
+        assert_eq!(authority[12], segment.lineage_depth);
+        assert_eq!(authority[13], segment.frontier_rank);
+    }
     assert!(result.stats.last_virtual_geometry_indirect_draw_count > 0);
     let mut records_by_submission = result.debug.submission_records.iter().collect::<Vec<_>>();
     records_by_submission.sort_by_key(|record| record.submission_index);
@@ -317,7 +356,15 @@ fn public_wgpu_multi_primitive_draws_have_distinct_submission_tokens() {
             .iter()
             .map(|record| (record.submission_index, record.draw_ref_index))
             .collect::<Vec<_>>(),
-        vec![(0, Some(0)), (1, Some(1)), (2, Some(2)), (3, Some(3))],
+        {
+            let mut rows = result
+                .terminal_records
+                .iter()
+                .map(|record| (record.3, Some(record.0)))
+                .collect::<Vec<_>>();
+            rows.sort_by_key(|row| row.0);
+            rows
+        },
         "multi-primitive draws must retain distinct compacted draw-ref indices in submission order"
     );
     let mut segments_by_submission = result.debug.execution_segments.iter().collect::<Vec<_>>();
@@ -356,11 +403,17 @@ fn public_wgpu_multi_primitive_draws_have_distinct_submission_tokens() {
         .debug
         .submission_records
         .iter()
-        .map(|record| record.submission_index)
+        .map(|record| {
+            (record.submission_index.min(0xffff) << 16) | record.draw_ref_rank.min(0xffff)
+        })
         .collect::<Vec<_>>();
     tokens.sort_unstable();
     tokens.dedup();
-    assert_eq!(tokens.len(), 4, "each primitive draw needs its own token");
+    assert_eq!(
+        tokens,
+        vec![0, 1, 65536, 65537],
+        "each primitive draw needs its own token"
+    );
     let _ = fs::remove_dir_all(root);
 }
 
@@ -449,18 +502,64 @@ fn virtual_geometry_renderer_submission_records_preserve_draw_level_tokens_for_r
     let extract = render_fixture::build_single_entity_extract(VIEWPORT_SIZE, model, material);
     let result = render(extract, Arc::clone(&assets));
 
-    let mut tokens = result
+    assert_eq!(result.debug.submission_records.len(), 2);
+    assert_eq!(result.debug.execution_segments.len(), 2);
+    let tokens = result
         .debug
         .submission_records
         .iter()
-        .map(|record| record.submission_index)
+        .map(|record| {
+            (record.submission_index.min(0xffff) << 16) | record.draw_ref_rank.min(0xffff)
+        })
         .collect::<Vec<_>>();
-    tokens.sort_unstable();
-    tokens.dedup();
     assert_eq!(tokens, vec![0, 1]);
+    assert_eq!(
+        result
+            .debug
+            .submission_records
+            .iter()
+            .map(|record| {
+                (
+                    record.submission_index,
+                    record.draw_ref_index,
+                    record.draw_ref_rank,
+                )
+            })
+            .collect::<Vec<_>>(),
+        vec![(0, Some(3), 0), (0, Some(6), 1)]
+    );
     for (slot, record) in result.debug.submission_records.iter().enumerate() {
-        let authority = &result.indirect.authority[slot * 14..slot * 14 + 14];
+        let authority = &result.terminal_authority[slot];
         let args = &result.indirect.args[1 + slot * 4..1 + slot * 4 + 4];
+        let gpu = result.terminal_records[slot];
+        assert_eq!(
+            (
+                record.draw_ref_index.unwrap(),
+                record.entity,
+                record.page_id,
+                record.submission_index,
+                record.draw_ref_rank
+            ),
+            gpu
+        );
+        let segment = &result.debug.execution_segments[slot];
+        assert_eq!(record.instance_index, segment.instance_index);
+        assert_eq!(record.entity, segment.entity);
+        assert_eq!(record.page_id, segment.page_id);
+        assert_eq!(record.original_index, segment.original_index);
+        assert_eq!(record.draw_ref_index, Some(segment.draw_ref_index));
+        assert_eq!(record.draw_ref_rank, segment.draw_ref_rank.unwrap());
+        assert_eq!(authority[0], record.instance_index.unwrap());
+        assert_eq!(
+            u64::from(authority[1]) | (u64::from(authority[2]) << 32),
+            record.entity
+        );
+        assert_eq!(authority[3], record.page_id);
+        assert_eq!(authority[7], record.original_index);
+        assert_eq!(authority[9], record.draw_ref_rank);
+        assert_eq!(authority[10], segment.submission_slot.unwrap());
+        assert_eq!(authority[12], segment.lineage_depth);
+        assert_eq!(authority[13], segment.frontier_rank);
         assert_eq!(authority[8], record.submission_index);
         assert_eq!(authority[6], record.draw_ref_index.unwrap());
         assert_eq!(
@@ -470,6 +569,135 @@ fn virtual_geometry_renderer_submission_records_preserve_draw_level_tokens_for_r
     }
 
     let _ = fs::remove_dir_all(root);
+}
+
+// A single real cooked primitive owns both hierarchy leaves. The production
+// provider projects its imported IDs/pages; no authored row substitutes geometry.
+struct CookedHierarchyFixture {
+    root: PathBuf,
+}
+
+impl CookedHierarchyFixture {
+    fn new(assets: &ProjectAssetManager) -> Self {
+        let cube = resource_handle::<ModelMarker>(assets, "builtin://cube");
+        let source = assets.load_model_asset(cube.id()).unwrap();
+        assert_eq!(source.primitives.len(), 1);
+        let mut primitive = source.primitives.into_iter().next().unwrap();
+        assert_eq!(primitive.indices.len() % 3, 0);
+        let triangle_count = primitive.indices.len() / 3;
+        assert!(triangle_count >= 2 && triangle_count % 2 == 0);
+        // Preserve every original vertex/index; split the real source in half.
+        let cooked = zircon_runtime::asset::cook_virtual_geometry_from_mesh(
+            &primitive.vertices,
+            &primitive.indices,
+            zircon_runtime::asset::VirtualGeometryCookConfig {
+                cluster_triangle_count: triangle_count / 2,
+                page_cluster_count: 1,
+                mesh_name: Some("product-lineage-cube".to_owned()),
+                source_hint: Some("res://models/lineage.model.toml".to_owned()),
+            },
+        )
+        .expect("original cube must cook a genuine parent and leaf partition");
+        assert!(cooked
+            .cluster_headers
+            .iter()
+            .any(|row| row.parent_cluster_id.is_some()));
+        let leaves = cooked
+            .cluster_headers
+            .iter()
+            .filter(|row| {
+                !cooked
+                    .cluster_headers
+                    .iter()
+                    .any(|child| child.parent_cluster_id == Some(row.cluster_id))
+            })
+            .count();
+        assert_eq!(
+            leaves, 2,
+            "source halves must become two actual cooked leaves"
+        );
+        let expected_cook = cooked.clone();
+        primitive.mesh = None;
+        primitive.mesh_sdf = None;
+        primitive.virtual_geometry = Some(cooked);
+        let root = unique_temp_project_root("vg_real_cooked_lineage");
+        fs::create_dir(&root).expect("lineage project must be exclusively task-owned");
+        let fixture = Self { root };
+        let paths = ProjectPaths::from_root(&fixture.root).unwrap();
+        paths.ensure_layout(&[RelPath::project_assets()]).unwrap();
+        ProjectManifest::new(
+            "VirtualGeometryRealCookedLineage",
+            AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
+            1,
+        )
+        .save(paths.manifest_path())
+        .unwrap();
+        let uri = AssetUri::parse("res://models/lineage.model.toml").unwrap();
+        let model = zircon_runtime::asset::ModelAsset {
+            uri,
+            primitives: vec![primitive],
+        };
+        let document = model
+            .to_project_toml_string(|_| panic!("lineage model has no external asset references"))
+            .unwrap();
+        let path = paths
+            .asset_root(&RelPath::project_assets())
+            .join("models/lineage.model.toml");
+        fs::create_dir_all(path.parent().unwrap()).unwrap();
+        fs::write(path, document).unwrap();
+        assets
+            .open_project(fixture.root.to_string_lossy().as_ref())
+            .unwrap();
+        ProjectManager::open(&fixture.root)
+            .unwrap()
+            .scan_and_import()
+            .unwrap();
+        let imported = assets
+            .load_model_asset(
+                resource_handle::<ModelMarker>(assets, "res://models/lineage.model.toml").id(),
+            )
+            .unwrap();
+        let imported_cook = imported.primitives[0].virtual_geometry.as_ref().unwrap();
+        assert_eq!(
+            imported_cook, &expected_cook,
+            "import must retain the complete cooked partition"
+        );
+        assert_eq!(imported.primitives.len(), 1);
+        assert!(imported_cook
+            .cluster_headers
+            .iter()
+            .any(|row| row.parent_cluster_id.is_some()));
+        fixture
+    }
+
+    fn extract(&self, assets: &ProjectAssetManager) -> RenderFrameExtract {
+        let mut extract = render_fixture::build_single_entity_extract(
+            VIEWPORT_SIZE,
+            resource_handle::<ModelMarker>(assets, "res://models/lineage.model.toml"),
+            resource_handle::<MaterialMarker>(assets, "builtin://material/default"),
+        );
+        // Automatic production extraction retains the actual imported hierarchy,
+        // payloads and exact primitive admissions, including non-leaf ranges.
+        extract.geometry.virtual_geometry = None;
+        extract
+    }
+}
+
+impl Drop for CookedHierarchyFixture {
+    fn drop(&mut self) {
+        if let Err(error) = fs::remove_dir_all(&self.root) {
+            eprintln!(
+                "lineage fixture remains at {}: {error}",
+                self.root.display()
+            );
+            if !std::thread::panicking() {
+                panic!(
+                    "lineage fixture cleanup failed at {}: {error}",
+                    self.root.display()
+                );
+            }
+        }
+    }
 }
 
 fn transparent_project(
@@ -690,6 +918,7 @@ fn write_two_primitive_gltf(path: PathBuf) {
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent).unwrap();
     }
+    enable_fixture_virtual_geometry_cook(&path);
     let mut binary = Vec::new();
     for value in [
         -1.0f32, -1.0, 0.0, 0.0, 1.0, 0.0, -1.0, 1.0, 0.0, // left triangle
@@ -707,17 +936,13 @@ fn write_two_primitive_gltf(path: PathBuf) {
     for index in [0u32, 1, 2] {
         binary.extend_from_slice(&index.to_le_bytes());
     }
-    let binary_path = path
-        .ancestors()
-        .nth(3)
-        .expect("glTF path should be below <project>/assets/models")
-        .join(".generated/two_primitives.bin");
+    let binary_path = path.with_file_name("two_primitives.bin");
     fs::create_dir_all(binary_path.parent().unwrap()).unwrap();
     fs::write(&binary_path, &binary).unwrap();
     let gltf = format!(
         r#"{{
   "asset": {{"version": "2.0"}},
-  "buffers": [{{"uri": "../../.generated/two_primitives.bin", "byteLength": {}}}],
+  "buffers": [{{"uri": "two_primitives.bin", "byteLength": {}}}],
   "bufferViews": [
     {{"buffer":0,"byteOffset":0,"byteLength":36,"target":34962}},
     {{"buffer":0,"byteOffset":36,"byteLength":12,"target":34963}},
@@ -853,4 +1078,23 @@ fn persisted_reference_for_fixture(
         )
         .unwrap(),
     )
+}
+
+fn enable_fixture_virtual_geometry_cook(path: &std::path::Path) {
+    let file_name = path.file_name().unwrap();
+    let uri = format!("res://models/{}", file_name.to_str().unwrap());
+    let mut metadata = zircon_runtime::asset::project::AssetMetaDocument::new(
+        zircon_runtime::asset::AssetUuid::new(),
+        AssetUri::parse(&uri).unwrap(),
+        zircon_runtime::asset::AssetKind::Model,
+    );
+    // Each authored entity has one raw cluster per real primitive. The original
+    // triangle/quad bytes fit a single cooked leaf without copying geometry.
+    metadata.import_settings =
+        "[virtual_geometry]\nenabled = true\ncluster_triangle_count = 8\npage_cluster_count = 1\n"
+            .parse()
+            .unwrap();
+    let mut sidecar_name = file_name.to_os_string();
+    sidecar_name.push(".zmeta");
+    metadata.save(path.with_file_name(sidecar_name)).unwrap();
 }

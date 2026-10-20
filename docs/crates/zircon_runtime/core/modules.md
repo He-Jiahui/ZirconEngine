@@ -57,3 +57,50 @@ The 2026-06-12 runtime 02 M2.2 migration moved the former `core/modules/` root d
 ## Validation
 
 `zircon_app/src/plugins/tests.rs` verifies built-in group membership for the log and log-diagnostics descriptors. `zircon_runtime/src/tests/prelude.rs` verifies that the stable runtime prelude exports both descriptor modules and their public names.
+
+## Validation ownership
+
+Module/lifecycle policy and its independent validation worklists remain separate. 此处仅展示当前现状的概述；historical test-split records do not become production module requirements.
+
+An inventory child owns inventory.rs; a sources child owns source reads. Route split_layout.rs owns mounting, mirror_docs.rs owns independent document checks, and status_docs.rs owns status obligations. D1 capability source checks retain runtime_roots.rs, audit/SDK consumers and their own folder-backed guards; no compatibility test path is introduced.
+
+The documented `cargo check -p zircon_runtime --lib --locked` is a retained command identity, not a command authorized for unspecific CI execution. Actual invocation still needs the explicit feature/target/profile declaration. mirror_docs_guard_present = true is the required audit result, not a new run.
+
+### Dated split provenance
+
+The 2026-07-06 records cover foundation status-mirror folder backing, typed-error source/child inventory, core root/generated audit routing and D1 capability routing. The 2026-07-08 record aligns Runtime07 owner-budget children and its independent status maps. Retain their stable route/status identities while keeping Cargo deferred. Detailed output belongs to 02/2026-07-09-module-kernel-and-lifecycle-unification-output-records.md.
+
+### Retained source status identities
+
+| Contract | Responsibility / evidence boundary |
+|---|---|
+| `frameworks_02_m3_core_spine_root_generated_audit_source_sync_static_passed_cargo_deferred` | Core root/generated inventories follow their actual children. |
+| `frameworks_02_m3_plugin_importer_d1_capability_guard_folder_backed_static_passed_cargo_deferred` | Capability declarations and SDK/manifest registration share one reviewed source. |
+| `frameworks_02_m3_review_guard_foundation_status_mirror_guard_folder_backed_static_passed_cargo_deferred` | Independent status mirrors retain their source/document responsibilities. |
+| `frameworks_02_m3_runtime_07_owner_budget_child_source_current_route_sync_static_passed_cargo_deferred` | Budget sources and expected-slice maps follow actual child routes. |
+| `frameworks_02_m3_typed_error_status_doc_paths_child_inventory_split_layout_sources_child_split_static_passed_cargo_deferred` | Typed-error routing, inventory and status mirrors stay independently mounted. |
+| `frameworks_02_m3_typed_error_status_doc_paths_status_current_sources_child_split_static_passed_cargo_deferred` | Typed-error routing, inventory and status mirrors stay independently mounted. |
+| `runtime_15_core_spine_root_generated_audit_source_sync_static_passed_cargo_deferred` | Core root/generated inventories follow their actual children. |
+| `runtime_15_plugin_importer_d1_capability_guard_folder_backed_static_passed_cargo_deferred` | Capability declarations and SDK/manifest registration share one reviewed source. |
+| `runtime_15_review_guard_foundation_status_mirror_guard_folder_backed_static_passed_cargo_deferred` | Independent status mirrors retain their source/document responsibilities. |
+| `runtime_15_runtime_07_owner_budget_child_source_current_route_sync_static_passed_cargo_deferred` | Budget sources and expected-slice maps follow actual child routes. |
+| `runtime_15_typed_error_status_doc_paths_child_inventory_split_layout_sources_child_split_static_passed_cargo_deferred` | Typed-error routing, inventory and status mirrors stay independently mounted. |
+| `runtime_15_typed_error_status_doc_paths_status_current_sources_child_split_static_passed_cargo_deferred` | Typed-error routing, inventory and status mirrors stay independently mounted. |
+
+### Source and guard ownership
+
+The finite source, guard and provenance inventory for these responsibilities is:
+
+- `code_review_findings/plugin_importer_dx/d1_capability_single_source/runtime_roots.rs`, `code_review_findings/plugin_importer_dx/d1_capability_single_source/split_layout.rs`, `code_review_findings/plugin_importer_dx/d1_capability_single_source.rs`.
+
+### Validation interfaces
+
+Keep these existing validation and domain interfaces in the gate:
+
+- `zircon_plugins`.
+
+### Clause provenance
+
+These content identities preserve the source of this transfer. They are not fresh measurements, active-file dependencies or acceptance receipts.
+
+- `02-module-kernel-and-lifecycle-unification.md`, SHA-256 `57cde522acaa735d10a18a5cf6784b4ebdb9a14a439bb12be13bdb680fe984cc`, selected source lines 58-269.

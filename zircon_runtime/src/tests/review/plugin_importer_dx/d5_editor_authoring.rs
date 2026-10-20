@@ -1,4 +1,5 @@
 //! 代码审查回归护栏核对已迁移接口、错误边界、插件入口及镜像状态。以结果断言检查当前接口或源码快照对应的边界。
+use crate::tests::runtime_absorption::structure_convention::fixed_history_archive_source as history;
 const D5_EDITOR_AUTHORING_MACRO_CRATES: &[(&str, &str, &str)] = &[
     (
         "animation",
@@ -19,19 +20,13 @@ const D5_EDITOR_AUTHORING_MACRO_CRATES: &[(&str, &str, &str)] = &[
 
 #[test]
 fn review_d5_editor_authoring_plugins_use_sdk_macro() {
-    let review_findings = include_str!(
-        "../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"
-    );
-    let structure_convention = include_str!(
-        "../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md"
-    );
-    let plugins_12 = include_str!(
-        "../../../../../docs/plans/zircon_plugins/12-plugin-dx-and-structure-framework.md"
-    );
+    let review_findings = history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md");
+    let structure_convention = history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md");
+    let plugins_12 = include_str!("../../../../../docs/crates/zircon_plugins/plugin-sdk.md");
     let plugin_sdk_doc = include_str!("../../../../../docs/crates/zircon_plugins/plugin-sdk.md");
-    let runtime_15 = crate::tests::runtime_absorption::current_source_fixture::RUNTIME_ARCHITECTURE_IMPLEMENTATION_OUTPUT;
-    let runtime_index = include_str!(
-        "../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md"
+    let runtime_15 = crate::tests::runtime_absorption::current_source_fixture::runtime_architecture_implementation_output();
+    let runtime_index = history(
+        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md",
     );
     let module_convention =
         include_str!("../../../../../docs/crates/zircon_runtime/structure/module-convention.md");
@@ -44,30 +39,63 @@ fn review_d5_editor_authoring_plugins_use_sdk_macro() {
     );
 
     for &(label, plugin_source, test_source) in D5_EDITOR_AUTHORING_MACRO_CRATES {
-        for required in [
-            "authoring_plugin! {",
-            "mirrors_runtime_manifest:",
-            "capabilities: EDITOR_CAPABILITIES",
-            "register_extensions:",
-            "pub fn editor_plugin_declaration() -> EditorPluginDeclaration",
-            "plugin.declaration().registration_report(&plugin)",
-        ] {
-            assert!(
-                plugin_source.contains(required),
-                "{label} editor plugin should use SDK authoring macro anchor `{required}`"
+        if label == "physics" {
+            for required in [
+                "pub struct PhysicsEditorPlugin {",
+                "declaration: EditorPluginDeclaration,",
+                "pie_mirror: Arc<Mutex<PhysicsPieMirror>>,",
+                "let pie_mirror = Arc::new(Mutex::new(PhysicsPieMirror::default()));",
+                "physics_runtime_event_consumers_with_mirror(pie_mirror.clone())",
+                "EditorPluginDeclaration::new(PLUGIN_ID, \"Physics\", \"zircon_plugin_physics_editor\")",
+                ".mirrors_runtime_manifest(zircon_plugin_physics_runtime::package_manifest())",
+                ".with_capabilities(EDITOR_CAPABILITIES.iter().copied())",
+                "declaration.with_runtime_event_consumer_registration(registration)",
+                "Self {\n            declaration,\n            pie_mirror,",
+                "pub fn pie_mirror(&self) -> Arc<Mutex<PhysicsPieMirror>>",
+                "self.pie_mirror.clone()",
+                "register_physics_authoring_extensions(registry, self.pie_mirror())",
+                "register_physics_viewport_overlay_provider(registry, pie_mirror)?",
+                "self.declaration.descriptor()",
+                "self.declaration.runtime_event_consumers()",
+                "self.declaration.registration_report(self)",
+                "plugin.declaration().registration_report(&plugin)",
+                "pub fn editor_plugin_declaration() -> EditorPluginDeclaration",
+            ] {
+                let normalized = plugin_source.lines().collect::<Vec<_>>().join("\n");
+                assert!(normalized.contains(required), "physics shared-mirror SDK delegation missing {required}");
+            }
+            assert_eq!(
+                plugin_source.matches("Arc::new(Mutex::new(PhysicsPieMirror::default()))").count(),
+                1,
+                "authoring overlay and event consumers must share the single declaration-owned mirror"
             );
-        }
-        for stale in [
-            "impl zircon_editor::EditorPlugin for",
-            "pub struct AnimationEditorPlugin {\n    declaration: EditorPluginDeclaration",
-            "pub struct PhysicsEditorPlugin {\n    declaration: EditorPluginDeclaration",
-            "pub struct NetEditorPlugin {\n    declaration: EditorPluginDeclaration",
-            "EditorPluginDeclaration::new(",
-        ] {
-            assert!(
-                !plugin_source.contains(stale),
-                "{label} editor plugin should not keep hand-written editor boilerplate `{stale}`"
-            );
+            assert!(!plugin_source.contains("EditorPluginRegistrationReport::from_plugin("));
+        } else {
+            for required in [
+                "authoring_plugin! {",
+                "mirrors_runtime_manifest:",
+                "capabilities: EDITOR_CAPABILITIES",
+                "register_extensions:",
+                "pub fn editor_plugin_declaration() -> EditorPluginDeclaration",
+                "plugin.declaration().registration_report(&plugin)",
+            ] {
+                assert!(
+                    plugin_source.contains(required),
+                    "{label} editor plugin should use SDK authoring macro anchor `{required}`"
+                );
+            }
+            for stale in [
+                "impl zircon_editor::EditorPlugin for",
+                "pub struct AnimationEditorPlugin {\n    declaration: EditorPluginDeclaration",
+                "pub struct PhysicsEditorPlugin {\n    declaration: EditorPluginDeclaration",
+                "pub struct NetEditorPlugin {\n    declaration: EditorPluginDeclaration",
+                "EditorPluginDeclaration::new(",
+            ] {
+                assert!(
+                    !plugin_source.contains(stale),
+                    "{label} editor plugin should not keep hand-written editor boilerplate `{stale}`"
+                );
+            }
         }
         for required in [
             "mirrored_runtime_package_id()",

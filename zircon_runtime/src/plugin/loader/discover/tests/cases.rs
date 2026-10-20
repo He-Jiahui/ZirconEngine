@@ -689,3 +689,129 @@ impl Drop for TempDiscoveryRoot {
         let _ = fs::remove_dir_all(&self.path);
     }
 }
+
+#[cfg(windows)]
+#[test]
+fn incremental_manifest_refresh_falls_back_for_windows_junction_to_outside_manifest() {
+    use std::process::{Child, Command, Stdio};
+    use std::time::{Duration, Instant};
+
+    struct OwnedJunction {
+        path: PathBuf,
+        parent: PathBuf,
+        canonical_parent: PathBuf,
+        child: Option<Child>,
+    }
+
+    impl OwnedJunction {
+        fn unlink(&self) -> std::io::Result<()> {
+            if self.path.parent() != Some(self.parent.as_path())
+                || self.parent.canonicalize()? != self.canonical_parent
+            {
+                return Err(std::io::Error::new(
+                    std::io::ErrorKind::PermissionDenied,
+                    "owned junction parent identity changed",
+                ));
+            }
+            // Remove only the link itself, never recurse into its outside target.
+            match fs::symlink_metadata(&self.path) {
+                Ok(_) => fs::remove_dir(&self.path),
+                Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
+                Err(error) => Err(error),
+            }
+        }
+    }
+
+    impl Drop for OwnedJunction {
+        fn drop(&mut self) {
+            if let Some(mut child) = self.child.take() {
+                let _ = child.kill();
+                let _ = child.wait();
+            }
+            let _ = self.unlink();
+        }
+    }
+
+    let root = TempDiscoveryRoot::new("junction-manifest-notification");
+    let outside = TempDiscoveryRoot::new("junction-manifest-outside");
+    root.write_manifest("safe", "safe");
+    let outside_manifest = outside.write_manifest("foreign", "foreign");
+    let outside_package = outside_manifest.parent().unwrap();
+    let sentinel = outside_package.join("owned-target-sentinel");
+    fs::write(&sentinel, b"outside target must survive junction cleanup").unwrap();
+    let mut junction = OwnedJunction {
+        path: root.path().join("linked"),
+        parent: root.path().to_path_buf(),
+        canonical_parent: root.path().canonicalize().unwrap(),
+        child: None,
+    };
+    assert_eq!(junction.path.parent(), Some(root.path()));
+    assert!(!junction.path.exists());
+    // Same mklink /J mechanism as export materialization's existing Windows
+    // containment fixture, with an explicit bounded child lifetime here.
+    junction.child = Some(
+        Command::new("cmd")
+            .args(["/D", "/C", "mklink", "/J"])
+            .arg(&junction.path)
+            .arg(outside_package)
+            .stdin(Stdio::null())
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .spawn()
+            .expect("start junction creation"),
+    );
+    let deadline = Instant::now() + Duration::from_secs(5);
+    let status = loop {
+        if let Some(status) = junction.child.as_mut().unwrap().try_wait().unwrap() {
+            break status;
+        }
+        assert!(
+            Instant::now() < deadline,
+            "junction creation must finish within its deadline"
+        );
+        thread::sleep(Duration::from_millis(1));
+    };
+    junction.child.take();
+    assert!(
+        status.success(),
+        "mklink /J must create the real Windows fixture"
+    );
+    assert_eq!(
+        junction.path.canonicalize().unwrap(),
+        outside_package.canonicalize().unwrap()
+    );
+    let linked_manifest = junction.path.join("plugin.toml");
+    NativePluginLoader.discover(root.path());
+    let refreshed = NativePluginLoader.refresh_discovery_manifest(root.path(), &linked_manifest);
+    let metrics = super::authority::discovery_authority()
+        .metrics(root.path())
+        .unwrap();
+    assert_eq!(plugin_ids(&refreshed), vec!["safe"]);
+    assert!(metrics.enumerated_directories > 0);
+    assert!(refreshed
+        .diagnostics()
+        .iter()
+        .any(|diagnostic| diagnostic.contains("symbolic link")));
+
+    fs::remove_file(&outside_manifest).unwrap();
+    let dangling = NativePluginLoader.refresh_discovery_manifest(root.path(), &linked_manifest);
+    let metrics = super::authority::discovery_authority()
+        .metrics(root.path())
+        .unwrap();
+    assert_eq!(plugin_ids(&dangling), vec!["safe"]);
+    assert!(metrics.enumerated_directories > 0);
+    assert!(dangling
+        .diagnostics()
+        .iter()
+        .any(|diagnostic| diagnostic.contains("symbolic link")));
+    assert_eq!(
+        fs::read(&sentinel).unwrap(),
+        b"outside target must survive junction cleanup"
+    );
+    junction.unlink().unwrap();
+    assert!(!junction.path.exists());
+    assert_eq!(
+        fs::read(&sentinel).unwrap(),
+        b"outside target must survive junction cleanup"
+    );
+}

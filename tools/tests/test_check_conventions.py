@@ -262,7 +262,7 @@ class CheckConventionsTests(unittest.TestCase):
             repo_root = Path(temporary_directory)
             convention = (
                 repo_root
-                / "docs/plans/zircon_runtime/frameworks/development-conventions.md"
+                / "docs/testing-and-validation/development-conventions.md"
             )
             convention.parent.mkdir(parents=True)
             convention.write_text(
@@ -300,7 +300,7 @@ class CheckConventionsTests(unittest.TestCase):
             repo_root = Path(temporary_directory)
             convention = (
                 repo_root
-                / "docs/plans/zircon_runtime/frameworks/development-conventions.md"
+                / "docs/testing-and-validation/development-conventions.md"
             )
             convention.parent.mkdir(parents=True)
             convention.write_text(
@@ -332,7 +332,7 @@ class CheckConventionsTests(unittest.TestCase):
             repo_root = Path(temporary_directory)
             convention = (
                 repo_root
-                / "docs/plans/zircon_runtime/frameworks/development-conventions.md"
+                / "docs/testing-and-validation/development-conventions.md"
             )
             convention.parent.mkdir(parents=True)
             convention.write_text(
@@ -362,7 +362,7 @@ class CheckConventionsTests(unittest.TestCase):
             repo_root = Path(temporary_directory)
             convention = (
                 repo_root
-                / "docs/plans/zircon_runtime/frameworks/development-conventions.md"
+                / "docs/testing-and-validation/development-conventions.md"
             )
             convention.parent.mkdir(parents=True)
             convention.write_text(
@@ -387,7 +387,7 @@ class CheckConventionsTests(unittest.TestCase):
             repo_root = Path(temporary_directory)
             convention = (
                 repo_root
-                / "docs/plans/zircon_runtime/frameworks/development-conventions.md"
+                / "docs/testing-and-validation/development-conventions.md"
             )
             convention.parent.mkdir(parents=True)
             convention.write_text(
@@ -438,7 +438,7 @@ class CheckConventionsTests(unittest.TestCase):
                 repo_root = Path(temporary_directory)
                 convention = (
                     repo_root
-                    / "docs/plans/zircon_runtime/frameworks/development-conventions.md"
+                    / "docs/testing-and-validation/development-conventions.md"
                 )
                 convention.parent.mkdir(parents=True)
                 convention.write_text(contents, encoding="utf-8")
@@ -463,7 +463,7 @@ class CheckConventionsTests(unittest.TestCase):
             repo_root = Path(temporary_directory)
             convention = (
                 repo_root
-                / "docs/plans/zircon_runtime/frameworks/development-conventions.md"
+                / "docs/testing-and-validation/development-conventions.md"
             )
             convention.parent.mkdir(parents=True)
             convention.write_text(
@@ -721,7 +721,7 @@ class CheckConventionsTests(unittest.TestCase):
             (repo_root / member / "src").mkdir(parents=True)
         convention = (
             repo_root
-            / "docs/plans/zircon_runtime/frameworks/development-conventions.md"
+            / "docs/testing-and-validation/development-conventions.md"
         )
         convention.parent.mkdir(parents=True)
         convention.write_text(

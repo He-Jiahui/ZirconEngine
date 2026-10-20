@@ -6,10 +6,15 @@ pub(super) fn assert_artifact_render_diagnostics_routes(sources: &OwnerBudgetSou
         "artifact/render diagnostics route",
         sources.artifact_render_diagnostics,
         &[
-            "#[path = \"artifact_render_diagnostics_splits/artifact_cache_payload.rs\"]",
-            "#[path = \"artifact_render_diagnostics_splits/render_product_diagnostics.rs\"]",
-            "#[path = \"artifact_render_diagnostics_splits/split_layout.rs\"]",
+            "#[path = \"../diagnostics/artifact_cache_payload.rs\"]",
+            "#[path = \"../diagnostics/render_product_diagnostics.rs\"]",
+            "#[path = \"diagnostics/split_layout.rs\"]",
         ],
+    );
+    assert_contains_all(
+        "artifact/render diagnostics inventory mount",
+        sources.artifact_render_diagnostics_split_layout,
+        &["#[path = \"../../diagnostics/split_layout/source_inventory.rs\"]"],
     );
     assert_contains_all(
         "artifact/render diagnostics support children",
@@ -28,7 +33,6 @@ pub(super) fn assert_artifact_render_diagnostics_routes(sources: &OwnerBudgetSou
             "fn runtime_07_render_product_diagnostics_owner_split_keeps_families_folder_backed",
             "fn runtime_15_runtime_07_artifact_render_diagnostics_guard_child_owner_split",
             "runtime_15_runtime_07_artifact_render_diagnostics_split_layout_guard_folder_backed_split",
-            "artifact_render_diagnostics_splits/split_layout/source_inventory.rs",
             "assert_artifact_render_diagnostics_split_docs",
         ],
     );

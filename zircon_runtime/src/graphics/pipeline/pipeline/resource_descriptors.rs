@@ -77,6 +77,9 @@ pub(super) fn builtin_texture_desc_for(
             TextureFormat::Rgba8Unorm
         } else if is_builtin_depth_texture(name) {
             TextureFormat::Depth32Float
+        } else if name == PostProcessGraphResourceNames::SCENE_COLOR {
+            // OffscreenTarget keeps scene lighting in this HDR backing even for SDR output.
+            TextureFormat::Rgba16Float
         } else if extract.view.camera.hdr && is_scene_color_resource(name) {
             post_process_intermediate_hdr_format()
         } else {

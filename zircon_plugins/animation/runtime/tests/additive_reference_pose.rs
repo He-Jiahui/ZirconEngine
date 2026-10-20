@@ -49,7 +49,9 @@ fn additive_clip_uses_bind_pose_as_reference_for_unkeyed_and_absolute_channels()
 
     let level = runtime.create_default_level().unwrap();
     let entity = level.with_world_mut(|world| {
-        let entity = world.spawn_node(NodeKind::Cube);
+        let entity = world
+            .spawn_node(NodeKind::Cube)
+            .expect("test node creation must succeed");
         world
             .set_animation_skeleton(
                 entity,

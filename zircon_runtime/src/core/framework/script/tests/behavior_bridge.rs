@@ -107,3 +107,23 @@ fn csv(samples: &[u128]) -> String {
         .collect::<Vec<_>>()
         .join(",")
 }
+
+#[test]
+fn callback_reference_constructor_preserves_parse_roundtrip_identity() {
+    for package in ["a::b", "a:", ":"] {
+        assert!(ScriptBehaviorCallbackRef::new(package, "c").is_err());
+    }
+    for (package, node) in [("combat", "attack"), ("a:b", "x::y"), ("a:b", ":x")] {
+        let callback = ScriptBehaviorCallbackRef::new(package, node).unwrap();
+        assert_eq!(
+            ScriptBehaviorCallbackRef::parse(&callback.stable_id()).unwrap(),
+            callback
+        );
+        assert_eq!(callback.package_id(), package);
+        assert_eq!(callback.node_id(), node);
+    }
+    assert!(ScriptBehaviorCallbackRef::new(" combat", "attack").is_err());
+    assert!(ScriptBehaviorCallbackRef::new("combat", "attack ").is_err());
+    assert!(ScriptBehaviorCallbackRef::new("", "attack").is_err());
+    assert!(ScriptBehaviorCallbackRef::new("combat", "").is_err());
+}

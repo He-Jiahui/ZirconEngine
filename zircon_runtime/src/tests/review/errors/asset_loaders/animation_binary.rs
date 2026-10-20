@@ -1,4 +1,6 @@
 //! 代码审查回归护栏核对已迁移接口、错误边界、插件入口及镜像状态。以结果断言检查当前接口或源码快照对应的边界。
+use crate::tests::runtime_absorption::structure_convention::fixed_history_archive_source as history;
+use crate::tests::runtime_absorption::structure_convention::rust_source_view::production_section;
 #[test]
 fn review_f5_animation_asset_binary_uses_typed_errors() {
     let animation_mod = include_str!("../../../../core/framework/animation/asset/mod.rs");
@@ -15,18 +17,12 @@ fn review_f5_animation_asset_binary_uses_typed_errors() {
     let import_animation_asset =
         include_str!("../../../../asset/importer/ingest/import_animation_asset.rs");
     let animation_tests = include_str!("../../../../asset/tests/assets/animation.rs");
-    let review_findings = include_str!(
-        "../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"
+    let review_findings = history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md");
+    let runtime_15_plan = history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md");
+    let runtime_index = history(
+        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md",
     );
-    let runtime_15_plan = include_str!(
-        "../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md"
-    );
-    let runtime_index = include_str!(
-        "../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md"
-    );
-    let convention = include_str!(
-        "../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md"
-    );
+    let convention = history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md");
     let animation_doc = include_str!(
         "../../../../../../docs/crates/zircon_runtime/core/framework/animation-assets.md"
     );
@@ -49,10 +45,37 @@ fn review_f5_animation_asset_binary_uses_typed_errors() {
         );
     }
     assert!(
-        animation_mod.contains("pub use error::{AnimationAssetError, AnimationAssetResult};"),
+        animation_mod.contains("pub use error::{AnimationAssetError, AnimationAssetResult, AnimationSkeletonHierarchyError};"),
         "animation module should export AnimationAssetError/AnimationAssetResult"
     );
 
+    for required in [
+        "pub enum AnimationSkeletonHierarchyError",
+        "ParentCycle { bone_index: usize }",
+        "ParentOutOfBounds {",
+        "bone_count: usize",
+        "InvalidSkeletonHierarchy {\n        #[source]\n        reason: AnimationSkeletonHierarchyError,",
+    ] {
+        assert!(animation_error.contains(required), "current core/framework/animation/asset/error.rs must retain {required}");
+    }
+    for required in ["AnimationSkeletonHierarchyError"] {
+        assert!(
+            animation_mod.contains(required),
+            "current core/framework/animation/asset/mod.rs must retain {required}"
+        );
+    }
+    for required in [
+        "fn validate_hierarchy(&self) -> Result<(), AnimationSkeletonHierarchyError>",
+        "AnimationSkeletonHierarchyError::ParentCycle",
+        "AnimationSkeletonHierarchyError::ParentOutOfBounds",
+        ".map_err(|reason| AnimationAssetError::InvalidSkeletonHierarchy { reason })?;",
+        ".map_err(serde::de::Error::custom)?;",
+    ] {
+        assert!(
+            skeleton.contains(required),
+            "current core/framework/animation/asset/skeleton.rs must retain {required}"
+        );
+    }
     for (label, source) in [
         ("animation binary", binary),
         ("animation channel", channel),
@@ -71,7 +94,7 @@ fn review_f5_animation_asset_binary_uses_typed_errors() {
             ".map_err(|error| error.to_string())",
         ] {
             assert!(
-                !source.contains(forbidden),
+                !production_section(source).contains(forbidden),
                 "{label} should not keep lossy animation asset error branch `{forbidden}`"
             );
         }

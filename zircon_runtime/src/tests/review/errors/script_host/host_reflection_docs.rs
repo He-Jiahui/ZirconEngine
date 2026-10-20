@@ -5,15 +5,6 @@ fn review_f5_host_reflection_docs_cli_uses_typed_errors_before_cli_boundary() {
     let args = include_str!("../../../../bin/zircon_host_reflection_docs/args.rs");
     let error_owner = include_str!("../../../../bin/zircon_host_reflection_docs/error.rs");
     let run = include_str!("../../../../bin/zircon_host_reflection_docs/run.rs");
-    let _review_findings =
-        include_str!("../../../../../../docs/plans/engine-code-review-findings-2026-06.md");
-    let _runtime_15_plan = include_str!(
-        "../../../../../../docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md"
-    );
-    let _runtime_index =
-        include_str!("../../../../../../docs/plans/zircon_runtime/runtime/index.md");
-    let _convention =
-        include_str!("../../../../../../docs/plans/engine-code-structure-convention.md");
     let _host_reflection = include_str!(
         "../../../../../../docs/crates/zircon_runtime/script/vm/zr_vm_host_reflection.md"
     );

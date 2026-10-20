@@ -42,13 +42,17 @@ fn runtime_surface_present_bind_resize_redraw_and_teardown_paths_stay_source_vis
         ],
         "runtime entry should resize the runtime viewport before initial surface binding",
     );
+    let bind_source_tokens = runtime_surface_present_source
+        .split_whitespace()
+        .collect::<String>();
     for bind_path in [
         "runtime_native_surface_target(window)",
-        "ZrRuntimeBindViewportSurfaceRequestV1::new(",
-        "self.session\n            .bind_viewport_surface",
+        "ZrRuntimeBindViewportSurfaceRequestV2::new(",
+        "self.session\n            .bind_viewport_surface_v2",
+        "runtime_present_mode(self.window_descriptor.present_mode)",
     ] {
         assert!(
-            runtime_surface_present_source.contains(bind_path),
+            bind_source_tokens.contains(&bind_path.split_whitespace().collect::<String>()),
             "runtime entry surface bind path should preserve `{bind_path}`"
         );
     }

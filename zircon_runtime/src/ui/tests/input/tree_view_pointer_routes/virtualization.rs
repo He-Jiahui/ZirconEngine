@@ -97,3 +97,90 @@ fn tree_view_virtual_window_at_boundary_emits_no_transaction() {
         .any(|event| matches!(event.event, UiComponentEvent::SetVisibleRange { .. })));
     assert_tree_attr_int(&surface, "viewport_start", 4);
 }
+
+#[test]
+fn tree_view_overscan_near_first_row_keeps_scroll_request_within_real_rows() {
+    for material in [false, true] {
+        let mut surface = tree_view_virtualized_reparent_surface(material);
+        surface
+            .tree
+            .node_mut(UiNodeId::new(2))
+            .unwrap()
+            .template_metadata
+            .as_mut()
+            .unwrap()
+            .attributes
+            .insert("overscan".to_string(), toml::Value::Integer(2));
+        let point = UiPoint::new(24.0, 76.0);
+        let forward = dispatch_tree_scroll(&mut surface, point, 24.0);
+        assert_eq!(forward.binding_reports.len(), 1);
+        assert!(forward
+            .component_events
+            .iter()
+            .any(|event| event.target == UiNodeId::new(2)
+                && event.event == UiComponentEvent::SetVisibleRange { start: 1, count: 3 }));
+        assert_tree_attr_int(&surface, "viewport_start", 1);
+        assert_tree_attr_int(&surface, "requested_start", 0);
+        assert_tree_attr_int(&surface, "requested_count", 6);
+        assert_tree_attr_int(&surface, "requestedStart", 0);
+        assert_tree_attr_int(&surface, "requestedCount", 6);
+        let back = dispatch_tree_scroll(&mut surface, point, -24.0);
+        assert_eq!(back.binding_reports.len(), 1);
+        assert_tree_attr_int(&surface, "viewport_start", 0);
+        assert_tree_attr_int(&surface, "requested_start", 0);
+        assert_tree_attr_int(&surface, "requested_count", 5);
+    }
+}
+
+#[test]
+fn tree_view_reparent_clamps_overscan_before_publishing_requested_count() {
+    for material in [false, true] {
+        let mut surface = tree_view_virtualized_reparent_surface(material);
+        surface
+            .tree
+            .node_mut(UiNodeId::new(2))
+            .unwrap()
+            .template_metadata
+            .as_mut()
+            .unwrap()
+            .attributes
+            .insert("overscan".to_string(), toml::Value::Integer(3));
+        dispatch_tree_pointer(
+            &mut surface,
+            UiPointerEventKind::Down,
+            UiPoint::new(24.0, 92.0),
+            false,
+            false,
+        );
+        dispatch_tree_pointer(
+            &mut surface,
+            UiPointerEventKind::Move,
+            UiPoint::new(24.0, 44.0),
+            false,
+            false,
+        );
+        let result = dispatch_tree_pointer(
+            &mut surface,
+            UiPointerEventKind::Up,
+            UiPoint::new(24.0, 44.0),
+            false,
+            false,
+        );
+        assert!(result
+            .component_events
+            .iter()
+            .any(|event| event.target == UiNodeId::new(2)
+                && event.event == UiComponentEvent::SetVisibleRange { start: 2, count: 3 }));
+        assert_tree_attr_int(&surface, "viewport_start", 2);
+        assert_tree_attr_int(&surface, "requested_start", 0);
+        assert_tree_attr_int(&surface, "requested_count", 7);
+        assert_tree_attr_int(&surface, "requestedStart", 0);
+        assert_tree_attr_int(&surface, "requestedCount", 7);
+        assert_tree_child_order(
+            &surface,
+            if material { "items" } else { "nodes" },
+            "Materials",
+            &["Shaders"],
+        );
+    }
+}

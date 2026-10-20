@@ -477,25 +477,24 @@ fn choose_present_mode(
     present_modes: &[wgpu::PresentMode],
     requested: PresentMode,
 ) -> Option<wgpu::PresentMode> {
-    let requested = wgpu_present_mode(requested);
-    present_modes
-        .contains(&requested)
-        .then_some(requested)
-        .or_else(|| {
-            present_modes
-                .contains(&wgpu::PresentMode::Fifo)
-                .then_some(wgpu::PresentMode::Fifo)
-        })
-        .or_else(|| {
-            present_modes
-                .contains(&wgpu::PresentMode::Immediate)
-                .then_some(wgpu::PresentMode::Immediate)
-        })
-        .or_else(|| {
-            present_modes
-                .contains(&wgpu::PresentMode::Mailbox)
-                .then_some(wgpu::PresentMode::Mailbox)
-        })
+    // Resolve policies against these actual capabilities, never against list ordering.
+    let preferences: &[wgpu::PresentMode] = match requested {
+        PresentMode::AutoVsync => &[wgpu::PresentMode::FifoRelaxed, wgpu::PresentMode::Fifo],
+        PresentMode::AutoNoVsync => &[
+            wgpu::PresentMode::Immediate,
+            wgpu::PresentMode::Mailbox,
+            wgpu::PresentMode::Fifo,
+        ],
+        explicit => {
+            return present_modes
+                .contains(&wgpu_present_mode(explicit))
+                .then_some(wgpu_present_mode(explicit))
+        }
+    };
+    preferences
+        .iter()
+        .copied()
+        .find(|mode| present_modes.contains(mode))
 }
 
 const fn wgpu_present_mode(mode: PresentMode) -> wgpu::PresentMode {
@@ -503,6 +502,9 @@ const fn wgpu_present_mode(mode: PresentMode) -> wgpu::PresentMode {
         PresentMode::Immediate => wgpu::PresentMode::Immediate,
         PresentMode::Fifo => wgpu::PresentMode::Fifo,
         PresentMode::Mailbox => wgpu::PresentMode::Mailbox,
+        PresentMode::FifoRelaxed => wgpu::PresentMode::FifoRelaxed,
+        PresentMode::AutoVsync => wgpu::PresentMode::AutoVsync,
+        PresentMode::AutoNoVsync => wgpu::PresentMode::AutoNoVsync,
     }
 }
 
@@ -510,10 +512,11 @@ const fn surface_present_mode(mode: wgpu::PresentMode) -> PresentMode {
     match mode {
         wgpu::PresentMode::Immediate => PresentMode::Immediate,
         wgpu::PresentMode::Mailbox => PresentMode::Mailbox,
-        wgpu::PresentMode::Fifo
-        | wgpu::PresentMode::FifoRelaxed
-        | wgpu::PresentMode::AutoVsync
-        | wgpu::PresentMode::AutoNoVsync => PresentMode::Fifo,
+        wgpu::PresentMode::Fifo => PresentMode::Fifo,
+        wgpu::PresentMode::FifoRelaxed => PresentMode::FifoRelaxed,
+        // These aliases are not returned by choose_present_mode; retain the old
+        // neutral projection for callers inspecting an unresolved native alias.
+        wgpu::PresentMode::AutoVsync | wgpu::PresentMode::AutoNoVsync => PresentMode::Fifo,
     }
 }
 

@@ -101,6 +101,14 @@ pub enum ExportPackError {
     },
     #[error("delta pack apply verification did not reconstruct target zrpack")]
     DeltaApplyVerificationMismatch,
+    #[error("failed to read deterministic comparison source {}: {source}", path.display())]
+    DeterministicComparisonReadSource {
+        path: PathBuf,
+        #[source]
+        source: io::Error,
+    },
+    #[error("deterministic comparison source changed while streaming {}", path.display())]
+    DeterministicComparisonSourceChanged { path: PathBuf },
     #[error("failed to write deterministic comparison pack: {source}")]
     DeterministicComparisonWrite {
         #[source]

@@ -32,7 +32,7 @@ mod plugin_event_mirror;
 #[path = "requests.rs"]
 mod requests;
 #[path = "session.rs"]
-mod session;
+mod session_config;
 #[path = "session_identity.rs"]
 mod session_identity;
 #[path = "translated_events.rs"]
@@ -90,12 +90,13 @@ pub use requests::{
     ZrRuntimeAccessibilityTreeRequestV1, ZrRuntimeFrameRequestV1, ZrRuntimeFrameV2,
     ZrRuntimeHostFetchRequestV1,
 };
-pub use session::{ZrRuntimeSessionConfigV3, ZrRuntimeWakeSinkV1};
+pub use session_config::{ZrRuntimeSessionConfigV3, ZrRuntimeWakeSinkV1};
 pub use session_identity::GatewaySessionIdentity;
 pub use translated_events::ZrRuntimeTranslatedEventV1;
 pub use viewport::{
-    ZrRuntimeBindViewportSurfaceRequestV1, ZrRuntimeNativeSurfaceTargetV1,
-    ZrRuntimeViewportMetricsV1, ZrRuntimeViewportSizeV1,
+    ZrRuntimeBindViewportSurfaceRequestV1, ZrRuntimeBindViewportSurfaceRequestV2,
+    ZrRuntimeNativeSurfaceTargetV1, ZrRuntimePresentModeV2, ZrRuntimeViewportMetricsV1,
+    ZrRuntimeViewportSizeV1, ZR_RUNTIME_BIND_VIEWPORT_SURFACE_SYMBOL_V2,
 };
 
 #[cfg(test)]

@@ -1,11 +1,23 @@
 //! 代码审查回归护栏核对已迁移接口、错误边界、插件入口及镜像状态。以结果断言检查当前接口或源码快照对应的边界。
+use crate::tests::runtime_absorption::structure_convention::fixed_history_archive_source as history;
 #[test]
 fn review_d6_runtime_plugin_id_accepts_external_string_keys() {
     let plugin_id_source = include_str!("../../../builtin/runtime_modules/ids/plugin_id.rs");
+    let plugin_id_tests = include_str!("../../../builtin/runtime_modules/ids/tests/plugin_id.rs");
+    let normalized = plugin_id_source.lines().collect::<Vec<_>>().join("\n");
+    assert!(normalized.contains("#[cfg(test)]\n#[path = \"tests/plugin_id.rs\"]\nmod tests;"));
+    assert_contains_all(
+        "mounted PluginId behavior tests",
+        plugin_id_tests,
+        &[
+            "fn runtime_plugin_id_accepts_external_keys_without_core_variant",
+            "fn dynamic_plugin_id_storage_retires_with_the_last_generation_owner",
+        ],
+    );
     let loader_source = include_str!("../../../builtin/runtime_modules/plugin_modules/loader.rs");
-    let review_findings = concat!(
-        include_str!("../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"),
-        include_str!("../../../../../docs/plans/engine-code-review-findings-2026-06.md")
+    let review_findings = crate::runtime_test_history_concat!(
+        history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"),
+        include_str!("../../../../../docs/architecture/runtime-architecture-review-m0.md")
     );
 
     assert_contains_all(
@@ -19,8 +31,6 @@ fn review_d6_runtime_plugin_id_accepts_external_string_keys() {
             "pub const fn from_static",
             "pub fn parse_key",
             "_ => Self(RuntimePluginIdStorage::Dynamic(Arc::from(",
-            "runtime_plugin_id_accepts_external_keys_without_core_variant",
-            "dynamic_plugin_id_storage_retires_with_the_last_generation_owner",
         ],
     );
     assert!(
@@ -32,7 +42,7 @@ fn review_d6_runtime_plugin_id_accepts_external_string_keys() {
 
     assert_contains_all(
         "RuntimePluginId external fallback tests",
-        plugin_id_source,
+        plugin_id_tests,
         &[
             r#"RuntimePluginId::new("third_party.weather_sim")"#,
             r#""third_party.weather_sim""#,
@@ -97,20 +107,33 @@ fn runtime_plugin_id_non_copy_contract_reaches_workspace_consumers() {
     let runtime_catalog_source =
         include_str!("../../../../../zircon_plugins/first_party_runtime_catalog/src/lib.rs");
 
+    let resolver = include_str!("../../../core/framework/project/plugin_selection_resolution.rs");
+    assert_contains_all(
+        "both catalogs use the shared generation-owned dedup resolver",
+        resolver,
+        &[
+            "pub fn resolve_plugin_selections",
+            "if !seen.insert(plugin_id.clone())",
+            "match provider(&plugin_id)",
+            "PluginSelectionResolutionStatus::Duplicate",
+        ],
+    );
     assert!(
         !entry_config_source.contains(".copied()"),
         "RuntimePluginId slices must clone generation-owned IDs instead of requiring Copy"
     );
     assert!(
-        editor_catalog_source.contains("_plugin_id == RuntimePluginId::Navigation")
-            && editor_catalog_source.contains("seen.insert(plugin_id.clone())")
+        editor_catalog_source.contains("*_plugin_id == RuntimePluginId::Navigation")
+            && editor_catalog_source
+                .contains("resolve_plugin_selections(target_mode, manifest, |plugin_id|")
             && !editor_catalog_source.contains("match plugin_id")
             && !editor_catalog_source.contains("match _plugin_id"),
         "editor provider projection must clone the dedup owner and use typed ID equality"
     );
     assert!(
         runtime_catalog_source.contains("_id == RuntimePluginId::Ai")
-            && runtime_catalog_source.contains("seen.insert(runtime_id.clone())")
+            && runtime_catalog_source
+                .contains("resolve_plugin_selections(target_mode, manifest, |runtime_id|")
             && !runtime_catalog_source.contains("match id")
             && !runtime_catalog_source.contains("match _id"),
         "runtime provider projection must clone the dedup owner and use typed ID equality"

@@ -38,7 +38,9 @@ impl World {
         self.derived_state_dirty.render_component_change_artifact()
     }
 
-    pub(crate) fn request_full_render_component_projection(&mut self) {
+    /// Requests one full render-component projection at the next normal publication.
+    /// Preserves this World identity and revision; later changes publish incrementally.
+    pub fn request_full_render_component_projection(&mut self) {
         self.derived_state_dirty.mark_render_dirty();
     }
 }

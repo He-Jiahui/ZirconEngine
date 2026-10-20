@@ -25,15 +25,21 @@ function Assert-SnapshotLeaseBlocksRootReplacement {
         [Parameter(Mandatory)][ValidateSet('delete', 'rename')][string]$Attempt
     )
 
-    $details = New-MvpAcceptanceStagingSnapshot -StagingRoot $StagingRoot -PassThru
-    $snapshotRoot = [string]$details.snapshot_root
-    $snapshotIdentity = [string]$details.snapshot_identity
-    $movedRoot = "$snapshotRoot.moved"
-    $archiveRoot = "$snapshotRoot.archive"
-    $lease = Open-MvpAcceptanceStagingSnapshotLease `
-        -SnapshotRoot $snapshotRoot `
-        -ExpectedRootIdentity $snapshotIdentity
+    $snapshotRoot = $null
+    $snapshotIdentity = $null
+    $movedRoot = $null
+    $archiveRoot = $null
+    $lease = $null
+    $leaseError = $null
     try {
+        $details = New-MvpAcceptanceStagingSnapshot -StagingRoot $StagingRoot -PassThru
+        $snapshotRoot = [string]$details.snapshot_root
+        $snapshotIdentity = [string]$details.snapshot_identity
+        $movedRoot = "$snapshotRoot.moved"
+        $archiveRoot = "$snapshotRoot.archive"
+        $lease = Open-MvpAcceptanceStagingSnapshotLease `
+            -SnapshotRoot $snapshotRoot `
+            -ExpectedRootIdentity $snapshotIdentity
         $operationSucceeded = $false
         try {
             if ($Attempt -eq 'delete') {
@@ -72,19 +78,31 @@ function Assert-SnapshotLeaseBlocksRootReplacement {
         )
         Assert-True ($copiedMarkerPaths.Count -eq 0) 'Acceptance snapshot archival copied a lease marker.'
     }
+    catch {
+        $leaseError = $_
+        throw
+    }
     finally {
-        Close-MvpAcceptanceStagingSnapshotLease -Lease $lease
-        if (Test-Path -LiteralPath $snapshotRoot) {
-            Remove-MvpAcceptanceStagingSnapshot `
-                -SnapshotRoot $snapshotRoot `
-                -ExpectedRootIdentity $snapshotIdentity
-        }
-        if (Test-Path -LiteralPath $movedRoot) {
-            Remove-MvpAcceptanceStagingSnapshot -SnapshotRoot $movedRoot
-        }
-        if (Test-Path -LiteralPath $archiveRoot) {
-            Remove-Item -LiteralPath $archiveRoot -Recurse -Force
-        }
+        Invoke-MvpTestCleanup -PrimaryError $leaseError -Steps ([ordered]@{
+            "snapshot lease '$snapshotRoot'" = {
+                if ($null -ne $lease) { Close-MvpAcceptanceStagingSnapshotLease -Lease $lease }
+            }
+            "snapshot '$snapshotRoot'" = {
+                if (-not [string]::IsNullOrWhiteSpace($snapshotIdentity)) {
+                    Remove-MvpAcceptanceStagingSnapshot -SnapshotRoot $snapshotRoot -ExpectedRootIdentity $snapshotIdentity
+                }
+            }
+            "moved snapshot '$movedRoot'" = {
+                if (-not [string]::IsNullOrWhiteSpace($movedRoot) -and (Test-Path -LiteralPath $movedRoot)) {
+                    Remove-MvpAcceptanceStagingSnapshot -SnapshotRoot $movedRoot -ExpectedRootIdentity $snapshotIdentity
+                }
+            }
+            "archive '$archiveRoot'" = {
+                if (-not [string]::IsNullOrWhiteSpace($archiveRoot) -and (Test-Path -LiteralPath $archiveRoot)) {
+                    Remove-Item -LiteralPath $archiveRoot -Recurse -Force
+                }
+            }
+        })
     }
 }
 
@@ -108,6 +126,8 @@ Import-Module $stagingProjectionModule -Force
 Import-Module $nativeFileSystemModule -Force
 $stagingTreeManifestModule = Join-Path $PSScriptRoot '..\mvp\MvpAcceptanceStagingTreeManifest.psm1'
 Import-Module $stagingTreeManifestModule -Force
+$testCleanupModule = Join-Path $PSScriptRoot 'MvpTestCleanup.psm1'
+Import-Module $testCleanupModule -Force -ErrorAction Stop
 
 $expectedSnapshotItems = @(
     'staging-manifest.json',
@@ -129,6 +149,12 @@ foreach ($item in $expectedSnapshotItems) {
     Assert-True ($actualSnapshotItems -contains $item) "Acceptance snapshot does not retain Stage root '$item'."
 }
 
+$snapshotFixtureRoot = $null
+$snapshotRoot = $null
+$snapshotIdentity = $null
+$snapshotLogsRoot = $null
+$suiteError = $null
+try {
 $snapshotFixtureRoot = New-MvpTestFixtureRoot -Prefix 'zircon-mvp-acceptance-snapshot'
 $snapshotSourceRoot = Join-Path $snapshotFixtureRoot 'stage'
 $snapshotLogsRoot = Join-Path $snapshotSourceRoot 'logs'
@@ -156,9 +182,6 @@ catch {
     $projectionTamperRejected = $_.Exception.Message -match 'differs from its expected'
 }
 Assert-True $projectionTamperRejected 'Acceptance projection accepted a generated output overwritten after its expected bytes were captured.'
-$snapshotRoot = $null
-$snapshotIdentity = $null
-try {
     $snapshotDetails = New-MvpAcceptanceStagingSnapshot -StagingRoot $snapshotSourceRoot -PassThru
     $snapshotRoot = [string]$snapshotDetails.snapshot_root
     $snapshotIdentity = [string]$snapshotDetails.snapshot_identity
@@ -172,6 +195,8 @@ try {
     $markerRaceLogsRoot = Join-Path $markerRaceRoot 'logs'
     $markerRaceInjection = [pscustomobject]@{ attempted = $false; deletion_blocked = $false }
     $markerRaceLease = $null
+    $markerRaceError = $null
+    try {
     $markerRaceLease = Open-MvpAcceptanceStagingSnapshotLease `
         -SnapshotRoot $markerRaceRoot `
         -ExpectedRootIdentity $markerRaceIdentity `
@@ -200,10 +225,21 @@ try {
     Assert-True (
         (Get-Content -LiteralPath (Join-Path $markerRaceLogsRoot 'source.log') -Raw) -eq 'before-snapshot'
     ) 'Acceptance snapshot lease changed a child after rejecting its replacement.'
-    Close-MvpAcceptanceStagingSnapshotLease -Lease $markerRaceLease
-    Remove-MvpAcceptanceStagingSnapshot `
-        -SnapshotRoot $markerRaceRoot `
-        -ExpectedRootIdentity $markerRaceIdentity
+    }
+    catch {
+        $markerRaceError = $_
+        throw
+    }
+    finally {
+        Invoke-MvpTestCleanup -PrimaryError $markerRaceError -Steps ([ordered]@{
+            "marker race lease '$markerRaceRoot'" = {
+                if ($null -ne $markerRaceLease) { Close-MvpAcceptanceStagingSnapshotLease -Lease $markerRaceLease }
+            }
+            "marker race snapshot '$markerRaceRoot'" = {
+                Remove-MvpAcceptanceStagingSnapshot -SnapshotRoot $markerRaceRoot -ExpectedRootIdentity $markerRaceIdentity
+            }
+        })
+    }
 
     $preCensusLogsRoot = $snapshotLogsRoot
     $preCensusNestedRoot = Join-Path $preCensusLogsRoot 'unopened-manifest-descendant'
@@ -309,8 +345,10 @@ try {
     $snapshotSourceDriveRoot = [IO.Path]::GetPathRoot($snapshotSourceRoot)
     $relativeSnapshotSourceRoot = $snapshotSourceRoot.Substring($snapshotSourceDriveRoot.Length)
     Push-Location $snapshotSourceDriveRoot
+    $relativeLocationError = $null
     try {
         $relativeSnapshotDetails = New-MvpAcceptanceStagingSnapshot -StagingRoot $relativeSnapshotSourceRoot -PassThru
+        $relativeSnapshotError = $null
         try {
             Assert-True ([IO.Path]::IsPathRooted([string]$relativeSnapshotDetails.snapshot_root)) 'Acceptance staging snapshot returned a relative snapshot root.'
             Assert-True (
@@ -320,12 +358,18 @@ try {
                 )
             ) 'Acceptance staging snapshot did not normalize a relative source root.'
         }
+        catch { $relativeSnapshotError = $_; throw }
         finally {
-            Remove-MvpAcceptanceStagingSnapshot -SnapshotRoot ([string]$relativeSnapshotDetails.snapshot_root)
+            Invoke-MvpTestCleanup -PrimaryError $relativeSnapshotError -Steps ([ordered]@{
+                'relative source snapshot' = { Remove-MvpAcceptanceStagingSnapshot -SnapshotRoot ([string]$relativeSnapshotDetails.snapshot_root) }
+            })
         }
     }
+    catch { $relativeLocationError = $_; throw }
     finally {
-        Pop-Location
+        Invoke-MvpTestCleanup -PrimaryError $relativeLocationError -Steps ([ordered]@{
+            'source drive location' = { Pop-Location }
+        })
     }
 
     $snapshotRootJunction = Join-Path $snapshotFixtureRoot 'stage-junction'
@@ -338,9 +382,11 @@ try {
         $snapshotRootJunctionRejected = $_.Exception.Message -match 'reparse point'
     }
     finally {
-        if (Test-Path -LiteralPath $snapshotRootJunction) {
-            [IO.Directory]::Delete($snapshotRootJunction, $false)
-        }
+        Invoke-MvpTestCleanup -Steps ([ordered]@{
+            "root junction '$snapshotRootJunction'" = {
+                if (Test-Path -LiteralPath $snapshotRootJunction) { [IO.Directory]::Delete($snapshotRootJunction, $false) }
+            }
+        })
     }
     Assert-True $snapshotRootJunctionRejected 'Acceptance staging snapshot accepted a root junction.'
 
@@ -362,9 +408,11 @@ try {
         $snapshotAncestorJunctionRejected = $_.Exception.Message -match 'reparse point'
     }
     finally {
-        if (Test-Path -LiteralPath $snapshotAncestorJunctionRoot) {
-            [IO.Directory]::Delete($snapshotAncestorJunctionRoot, $false)
-        }
+        Invoke-MvpTestCleanup -Steps ([ordered]@{
+            "ancestor junction '$snapshotAncestorJunctionRoot'" = {
+                if (Test-Path -LiteralPath $snapshotAncestorJunctionRoot) { [IO.Directory]::Delete($snapshotAncestorJunctionRoot, $false) }
+            }
+        })
     }
     Assert-True $snapshotAncestorJunctionRejected 'Acceptance staging snapshot accepted a staging root beneath a junction ancestor.'
 
@@ -423,6 +471,7 @@ try {
     catch {
         $snapshotRaceRejected = $_.Exception.Message -match 'reparse point'
     }
+    $snapshotRaceError = $null
     try {
         Assert-True $snapshotRaceInjection.attempted 'Acceptance snapshot race hook did not reach the enumerated child boundary.'
         if ($snapshotRaceInjection.replaced) {
@@ -435,23 +484,31 @@ try {
         }
         Assert-True (Test-Path -LiteralPath (Join-Path $snapshotRaceTargetRoot 'must-survive.log') -PathType Leaf) 'Acceptance snapshot race handling modified the external junction target.'
     }
+    catch { $snapshotRaceError = $_; throw }
     finally {
-        if ($null -ne $snapshotRaceDetails) {
-            Remove-MvpAcceptanceStagingSnapshot -SnapshotRoot ([string]$snapshotRaceDetails.snapshot_root)
-        }
-        if (Test-Path -LiteralPath $snapshotLogsRoot) {
-            $snapshotLogsItem = Get-Item -LiteralPath $snapshotLogsRoot -Force
-            if ([bool]($snapshotLogsItem.Attributes -band [IO.FileAttributes]::ReparsePoint)) {
-                [IO.Directory]::Delete($snapshotLogsItem.FullName, $false)
+        Invoke-MvpTestCleanup -PrimaryError $snapshotRaceError -Steps ([ordered]@{
+            'source race snapshot' = {
+                if ($null -ne $snapshotRaceDetails) {
+                    Remove-MvpAcceptanceStagingSnapshot -SnapshotRoot ([string]$snapshotRaceDetails.snapshot_root)
+                }
             }
-        }
-        if (-not (Test-Path -LiteralPath $snapshotLogsRoot)) {
-            New-Item -ItemType Directory -Force -Path $snapshotLogsRoot | Out-Null
-        }
-        if (-not (Test-Path -LiteralPath (Join-Path $snapshotLogsRoot 'source.log'))) {
-            [IO.File]::WriteAllText((Join-Path $snapshotLogsRoot 'source.log'), 'race-source', [Text.UTF8Encoding]::new($false))
-        }
-        Publish-MvpTestStagingTreeManifest -StagingRoot $snapshotSourceRoot
+            "restore source logs '$snapshotLogsRoot'" = {
+                # Unlinking must succeed before restoration can safely write through this path.
+                if (Test-Path -LiteralPath $snapshotLogsRoot) {
+                    $snapshotLogsItem = Get-Item -LiteralPath $snapshotLogsRoot -Force
+                    if ([bool]($snapshotLogsItem.Attributes -band [IO.FileAttributes]::ReparsePoint)) {
+                        [IO.Directory]::Delete($snapshotLogsItem.FullName, $false)
+                    }
+                }
+                if (-not (Test-Path -LiteralPath $snapshotLogsRoot)) {
+                    New-Item -ItemType Directory -Force -Path $snapshotLogsRoot | Out-Null
+                }
+                if (-not (Test-Path -LiteralPath (Join-Path $snapshotLogsRoot 'source.log'))) {
+                    [IO.File]::WriteAllText((Join-Path $snapshotLogsRoot 'source.log'), 'race-source', [Text.UTF8Encoding]::new($false))
+                }
+                Publish-MvpTestStagingTreeManifest -StagingRoot $snapshotSourceRoot
+            }
+        })
     }
 
     $copyWindowInjection = [pscustomobject]@{ attempted = $false; copied = $false }
@@ -479,12 +536,18 @@ try {
         $copyWindowSnapshotRejected = $_.Exception.Message -match 'published tree manifest|changed during snapshot copy'
     }
     finally {
-        if ($null -ne $copyWindowSnapshotDetails) {
-            $copyWindowInjection.copied = Test-Path -LiteralPath (Join-Path $copyWindowSnapshotDetails.snapshot_root 'logs\unmanifested-during-copy.log')
-            Remove-MvpAcceptanceStagingSnapshot `
-                -SnapshotRoot $copyWindowSnapshotDetails.snapshot_root `
-                -ExpectedRootIdentity $copyWindowSnapshotDetails.snapshot_identity
-        }
+        Invoke-MvpTestCleanup -Steps ([ordered]@{
+            'copy-window observation' = {
+                if ($null -ne $copyWindowSnapshotDetails) {
+                    $copyWindowInjection.copied = Test-Path -LiteralPath (Join-Path $copyWindowSnapshotDetails.snapshot_root 'logs\unmanifested-during-copy.log')
+                }
+            }
+            'copy-window snapshot' = {
+                if ($null -ne $copyWindowSnapshotDetails) {
+                    Remove-MvpAcceptanceStagingSnapshot -SnapshotRoot $copyWindowSnapshotDetails.snapshot_root -ExpectedRootIdentity $copyWindowSnapshotDetails.snapshot_identity
+                }
+            }
+        })
     }
     Assert-True $copyWindowInjection.attempted 'Acceptance staging snapshot copy-window injection hook did not run.'
     Assert-True $copyWindowSnapshotRejected 'Acceptance staging snapshot accepted a source entry injected during recursive copy.'
@@ -530,14 +593,16 @@ try {
         $transientCopySnapshotRejected = $_.Exception.Message -match 'published tree manifest|changed during snapshot copy'
     }
     finally {
-        if ($null -ne $transientCopySnapshotDetails) {
-            Remove-MvpAcceptanceStagingSnapshot `
-                -SnapshotRoot $transientCopySnapshotDetails.snapshot_root `
-                -ExpectedRootIdentity $transientCopySnapshotDetails.snapshot_identity
-        }
-        if (Test-Path -LiteralPath $transientCopyInjectionPath) {
-            Remove-Item -LiteralPath $transientCopyInjectionPath -Force
-        }
+        Invoke-MvpTestCleanup -Steps ([ordered]@{
+            'transient-copy snapshot' = {
+                if ($null -ne $transientCopySnapshotDetails) {
+                    Remove-MvpAcceptanceStagingSnapshot -SnapshotRoot $transientCopySnapshotDetails.snapshot_root -ExpectedRootIdentity $transientCopySnapshotDetails.snapshot_identity
+                }
+            }
+            "transient source '$transientCopyInjectionPath'" = {
+                if (Test-Path -LiteralPath $transientCopyInjectionPath) { Remove-Item -LiteralPath $transientCopyInjectionPath -Force }
+            }
+        })
     }
     Assert-True $transientCopyInjection.injected 'Acceptance staging snapshot transient-copy injection hook did not run.'
     Assert-True $transientCopySnapshotRejected 'Acceptance staging snapshot accepted an unmanifested entry that appeared and disappeared during recursive copy.'
@@ -626,6 +691,7 @@ try {
     catch {
         $snapshotDestinationRaceRejected = $true
     }
+    $snapshotDestinationRaceError = $null
     try {
         Assert-True $snapshotDestinationRaceInjection.attempted 'Acceptance snapshot destination race hook did not reach the created child boundary.'
         if ($snapshotDestinationRaceInjection.replaced) {
@@ -637,10 +703,15 @@ try {
             Assert-MvpAcceptanceStagingTreeFreeOfReparsePoints -StagingRoot ([string]$snapshotDestinationRaceDetails.snapshot_root)
         }
     }
+    catch { $snapshotDestinationRaceError = $_; throw }
     finally {
-        if ($null -ne $snapshotDestinationRaceDetails) {
-            Remove-MvpAcceptanceStagingSnapshot -SnapshotRoot ([string]$snapshotDestinationRaceDetails.snapshot_root)
-        }
+        Invoke-MvpTestCleanup -PrimaryError $snapshotDestinationRaceError -Steps ([ordered]@{
+            'destination race snapshot' = {
+                if ($null -ne $snapshotDestinationRaceDetails) {
+                    Remove-MvpAcceptanceStagingSnapshot -SnapshotRoot ([string]$snapshotDestinationRaceDetails.snapshot_root)
+                }
+            }
+        })
     }
 
     $snapshotOrdinaryDestinationInjection = [pscustomobject]@{ attempted = $false; injected = $false }
@@ -679,15 +750,24 @@ try {
             [IO.File]::WriteAllText((Join-Path $partialPath 'must-survive.txt'), 'post-publish-partial', [Text.UTF8Encoding]::new($false))
             $publishedPartial.root = $partialPath
         }
+    $publishedPartialError = $null
     try {
         Assert-True (Test-Path -LiteralPath (Join-Path $publishedPartial.root 'must-survive.txt') -PathType Leaf) 'Acceptance snapshot cleanup removed a partial path recreated after publication.'
         Remove-MvpAcceptanceStagingSnapshot -SnapshotRoot ([string]$publishedPartialDetails.snapshot_root)
         Assert-True (Test-Path -LiteralPath (Join-Path $publishedPartial.root 'must-survive.txt') -PathType Leaf) 'Acceptance snapshot removal followed the stale partial cleanup path.'
     }
+    catch { $publishedPartialError = $_; throw }
     finally {
-        if ($null -ne $publishedPartial.root -and (Test-Path -LiteralPath $publishedPartial.root)) {
-            Remove-MvpAcceptanceStagingSnapshot -SnapshotRoot $publishedPartial.root
-        }
+        Invoke-MvpTestCleanup -PrimaryError $publishedPartialError -Steps ([ordered]@{
+            'published snapshot' = {
+                Remove-MvpAcceptanceStagingSnapshot -SnapshotRoot ([string]$publishedPartialDetails.snapshot_root) -ExpectedRootIdentity ([string]$publishedPartialDetails.snapshot_identity)
+            }
+            'recreated partial root' = {
+                if ($null -ne $publishedPartial.root -and (Test-Path -LiteralPath $publishedPartial.root)) {
+                    Remove-MvpAcceptanceStagingSnapshot -SnapshotRoot $publishedPartial.root
+                }
+            }
+        })
     }
 
     $publishedHookFailure = [pscustomobject]@{ partial = $null }
@@ -704,6 +784,7 @@ try {
     catch {
         $publishedHookError = $_.Exception.Message -match 'post-publish hook failed'
     }
+    $publishedHookAssertionError = $null
     try {
         Assert-True $publishedHookError 'Acceptance staging snapshot masked a post-publish hook failure with partial cleanup.'
         Assert-True ($null -ne $publishedHookFailure.partial) 'Acceptance staging snapshot did not run the post-publish hook.'
@@ -713,14 +794,19 @@ try {
         )
         Assert-True (Test-Path -LiteralPath $publishedHookSnapshot -PathType Container) 'Acceptance staging snapshot removed an already-published tree after a hook failure.'
     }
+    catch { $publishedHookAssertionError = $_; throw }
     finally {
-        if ($null -ne $publishedHookFailure.partial) {
-            $publishedHookSnapshot = $publishedHookFailure.partial.Substring(
-                0,
-                $publishedHookFailure.partial.Length - '.partial'.Length
-            )
-            Remove-MvpAcceptanceStagingSnapshot -SnapshotRoot $publishedHookSnapshot
-        }
+        Invoke-MvpTestCleanup -PrimaryError $publishedHookAssertionError -Steps ([ordered]@{
+            'post-publish hook snapshot' = {
+                if ($null -ne $publishedHookFailure.partial) {
+                    $publishedHookSnapshot = $publishedHookFailure.partial.Substring(
+                        0,
+                        $publishedHookFailure.partial.Length - '.partial'.Length
+                    )
+                    Remove-MvpAcceptanceStagingSnapshot -SnapshotRoot $publishedHookSnapshot
+                }
+            }
+        })
     }
 
     $snapshotCleanupRoot = Join-Path $snapshotFixtureRoot 'snapshot-cleanup'
@@ -762,11 +848,15 @@ try {
     New-Item -ItemType Junction -Path $buildSummaryReparseDirectory -Target $buildSummaryReparseTarget -ErrorAction Stop | Out-Null
     $buildSummaryBytes = [Text.UTF8Encoding]::new($false).GetBytes('{"summary":"validated"}')
     $buildSummaryHasher = [Security.Cryptography.SHA256]::Create()
+    $buildSummaryHashError = $null
     try {
         $buildSummaryHash = -join ($buildSummaryHasher.ComputeHash($buildSummaryBytes) | ForEach-Object { $_.ToString('X2') })
     }
+    catch { $buildSummaryHashError = $_; throw }
     finally {
-        $buildSummaryHasher.Dispose()
+        Invoke-MvpTestCleanup -PrimaryError $buildSummaryHashError -Steps ([ordered]@{
+            'build summary hasher' = { $buildSummaryHasher.Dispose() }
+        })
     }
     $buildSummaryReparseRejected = $false
     try {
@@ -986,6 +1076,7 @@ try {
     $publishedSnapshotIdentityRoot = [string]$publishedSnapshotIdentityDetails.snapshot_root
     $publishedSnapshotIdentity = [string]$publishedSnapshotIdentityDetails.snapshot_identity
     Assert-True (-not [string]::IsNullOrWhiteSpace($publishedSnapshotIdentity)) 'Acceptance snapshot publication did not return its cleanup identity.'
+    $publishedSnapshotIdentityError = $null
     try {
         Remove-Item -LiteralPath $publishedSnapshotIdentityRoot -Recurse -Force
         New-Item -ItemType Directory -Force -Path $publishedSnapshotIdentityRoot | Out-Null
@@ -1003,10 +1094,15 @@ try {
             $publishedSnapshotCleanupWarnings[0].Message -match 'cleanup skipped'
         ) 'Acceptance snapshot cleanup did not report that it skipped a replacement published after snapshot creation.'
     }
+    catch { $publishedSnapshotIdentityError = $_; throw }
     finally {
-        if (Test-Path -LiteralPath $publishedSnapshotIdentityRoot) {
-            Remove-MvpAcceptanceStagingSnapshot -SnapshotRoot $publishedSnapshotIdentityRoot
-        }
+        Invoke-MvpTestCleanup -PrimaryError $publishedSnapshotIdentityError -Steps ([ordered]@{
+            "replacement identity fixture '$publishedSnapshotIdentityRoot'" = {
+                if (Test-Path -LiteralPath $publishedSnapshotIdentityRoot) {
+                    Remove-MvpAcceptanceStagingSnapshot -SnapshotRoot $publishedSnapshotIdentityRoot
+                }
+            }
+        })
     }
 
     $publicationSourceRoot = Join-Path $snapshotFixtureRoot 'publication-source'
@@ -1023,8 +1119,10 @@ try {
     $writeLeaseDestinationRoot = Join-Path $snapshotFixtureRoot 'write-lease-destination'
     New-Item -ItemType Directory -Force -Path $writeLeaseSourceRoot | Out-Null
     [IO.File]::WriteAllText((Join-Path $writeLeaseSourceRoot 'evidence.txt'), 'write-lease', [Text.UTF8Encoding]::new($false))
-    $writeLease = Open-MvpAcceptanceStagingWriteLease -SnapshotRoot $writeLeaseSourceRoot
+    $writeLease = $null
+    $writeLeaseError = $null
     try {
+        $writeLease = Open-MvpAcceptanceStagingWriteLease -SnapshotRoot $writeLeaseSourceRoot
         $writeLeaseReplacementBlocked = $false
         try {
             Move-Item `
@@ -1051,11 +1149,21 @@ try {
             -SourceHandle $writeLeaseSourceHandle
         Assert-True (Test-Path -LiteralPath (Join-Path $writeLeaseDestinationRoot 'evidence.txt') -PathType Leaf) 'Acceptance staging write lease did not transfer its root handle into publication.'
     }
+    catch {
+        $writeLeaseError = $_
+        throw
+    }
     finally {
-        Close-MvpAcceptanceStagingWriteLease -Lease $writeLease
-        if (Test-Path -LiteralPath $writeLeaseDestinationRoot) {
-            Remove-MvpAcceptanceStagingSnapshot -SnapshotRoot $writeLeaseDestinationRoot
-        }
+        Invoke-MvpTestCleanup -PrimaryError $writeLeaseError -Steps ([ordered]@{
+            "write lease '$writeLeaseSourceRoot'" = {
+                if ($null -ne $writeLease) { Close-MvpAcceptanceStagingWriteLease -Lease $writeLease }
+            }
+            "write lease publication '$writeLeaseDestinationRoot'" = {
+                if (Test-Path -LiteralPath $writeLeaseDestinationRoot) {
+                    Remove-MvpAcceptanceStagingSnapshot -SnapshotRoot $writeLeaseDestinationRoot
+                }
+            }
+        })
     }
 
     $publicationFreezeRoot = Join-Path $snapshotFixtureRoot 'publication-freeze-root'
@@ -1066,6 +1174,7 @@ try {
     $publicationFreezeWriteLease = $null
     $publicationFreezeSnapshotLease = $null
     $publicationFreezeProtection = $null
+    $publicationFreezeError = $null
     try {
         $publicationFreezeWriteLease = Open-MvpAcceptanceStagingWriteLease -SnapshotRoot $publicationFreezeRoot
         $publicationFreezeSnapshotLease = Open-MvpAcceptanceStagingSnapshotLease `
@@ -1090,19 +1199,33 @@ try {
         Assert-True $lateInjectionRejected 'Acceptance publication freeze allowed a file to be inserted after final projection validation.'
         Assert-True (-not (Test-Path -LiteralPath $lateInjectionPath)) 'Acceptance publication freeze retained a late untracked file.'
     }
+    catch {
+        $publicationFreezeError = $_
+        throw
+    }
     finally {
-        if ($null -ne $publicationFreezeProtection) {
-            Unprotect-MvpAcceptanceStagingDirectoryForPublication -Protection $publicationFreezeProtection
-        }
-        if ($null -ne $publicationFreezeSnapshotLease) {
-            Close-MvpAcceptanceStagingSnapshotLease -Lease $publicationFreezeSnapshotLease
-        }
-        if ($null -ne $publicationFreezeWriteLease) {
-            Close-MvpAcceptanceStagingWriteLease -Lease $publicationFreezeWriteLease
-        }
-        if (Test-Path -LiteralPath $publicationFreezeRoot) {
-            Remove-MvpAcceptanceStagingSnapshot -SnapshotRoot $publicationFreezeRoot
-        }
+        Invoke-MvpTestCleanup -PrimaryError $publicationFreezeError -Steps ([ordered]@{
+            "publication protection '$publicationFreezeRoot'" = {
+                if ($null -ne $publicationFreezeProtection) {
+                    Unprotect-MvpAcceptanceStagingDirectoryForPublication -Protection $publicationFreezeProtection
+                }
+            }
+            "publication snapshot lease '$publicationFreezeRoot'" = {
+                if ($null -ne $publicationFreezeSnapshotLease) {
+                    Close-MvpAcceptanceStagingSnapshotLease -Lease $publicationFreezeSnapshotLease
+                }
+            }
+            "publication write lease '$publicationFreezeRoot'" = {
+                if ($null -ne $publicationFreezeWriteLease) {
+                    Close-MvpAcceptanceStagingWriteLease -Lease $publicationFreezeWriteLease
+                }
+            }
+            "publication root '$publicationFreezeRoot'" = {
+                if (Test-Path -LiteralPath $publicationFreezeRoot) {
+                    Remove-MvpAcceptanceStagingSnapshot -SnapshotRoot $publicationFreezeRoot
+                }
+            }
+        })
     }
 
     $snapshotLeasePublicationSourceRoot = Join-Path $snapshotFixtureRoot 'snapshot-lease-publication-source'
@@ -1113,11 +1236,13 @@ try {
     [IO.File]::WriteAllText((Join-Path $snapshotLeasePublicationSourceRoot 'startup-summary.json'), '{}', [Text.UTF8Encoding]::new($false))
     [IO.File]::WriteAllText($snapshotLeasePublicationEvidencePath, 'snapshot-lease-publication', [Text.UTF8Encoding]::new($false))
     Publish-MvpTestStagingTreeManifest -StagingRoot $snapshotLeasePublicationSourceRoot
-    $snapshotLeasePublicationWriteLease = Open-MvpAcceptanceStagingWriteLease `
-        -SnapshotRoot $snapshotLeasePublicationSourceRoot
+    $snapshotLeasePublicationWriteLease = $null
     $snapshotLeasePublicationLease = $null
     $snapshotLeasePublicationProtection = $null
+    $snapshotLeasePublicationError = $null
     try {
+        $snapshotLeasePublicationWriteLease = Open-MvpAcceptanceStagingWriteLease `
+            -SnapshotRoot $snapshotLeasePublicationSourceRoot
         $snapshotLeasePublicationLease = Open-MvpAcceptanceStagingSnapshotLease `
             -SnapshotRoot $snapshotLeasePublicationSourceRoot `
             -ExpectedRootIdentity $snapshotLeasePublicationWriteLease.root_identity `
@@ -1182,26 +1307,46 @@ try {
             -Protection $snapshotLeasePublicationProtection
         $snapshotLeasePublicationProtection = $null
     }
+    catch {
+        $snapshotLeasePublicationError = $_
+        throw
+    }
     finally {
-        if ($null -ne $snapshotLeasePublicationProtection) {
-            if (Test-Path -LiteralPath $snapshotLeasePublicationSourceRoot) {
-                Unprotect-MvpAcceptanceStagingDirectoryForPublication `
-                    -Protection $snapshotLeasePublicationProtection
+        Invoke-MvpTestCleanup -PrimaryError $snapshotLeasePublicationError -Steps ([ordered]@{
+            "snapshot publication protection '$snapshotLeasePublicationSourceRoot'" = {
+                if ($null -ne $snapshotLeasePublicationProtection) {
+                    if (Test-Path -LiteralPath $snapshotLeasePublicationSourceRoot) {
+                        Unprotect-MvpAcceptanceStagingDirectoryForPublication `
+                            -Protection $snapshotLeasePublicationProtection
+                    }
+                    elseif (Test-Path -LiteralPath $snapshotLeasePublicationDestinationRoot) {
+                        $snapshotLeasePublicationProtection.path = $snapshotLeasePublicationDestinationRoot
+                        Unprotect-MvpAcceptanceStagingDirectoryForPublication `
+                            -Protection $snapshotLeasePublicationProtection
+                    }
+                }
             }
-            elseif (Test-Path -LiteralPath $snapshotLeasePublicationDestinationRoot) {
-                $snapshotLeasePublicationProtection.path = $snapshotLeasePublicationDestinationRoot
-                Unprotect-MvpAcceptanceStagingDirectoryForPublication `
-                    -Protection $snapshotLeasePublicationProtection
+            "snapshot publication lease '$snapshotLeasePublicationSourceRoot'" = {
+                if ($null -ne $snapshotLeasePublicationLease) {
+                    Close-MvpAcceptanceStagingSnapshotLease -Lease $snapshotLeasePublicationLease
+                }
             }
-        }
-        Close-MvpAcceptanceStagingSnapshotLease -Lease $snapshotLeasePublicationLease
-        Close-MvpAcceptanceStagingWriteLease -Lease $snapshotLeasePublicationWriteLease
-        if (Test-Path -LiteralPath $snapshotLeasePublicationDestinationRoot) {
-            Remove-MvpAcceptanceStagingSnapshot -SnapshotRoot $snapshotLeasePublicationDestinationRoot
-        }
-        if (Test-Path -LiteralPath $snapshotLeasePublicationSourceRoot) {
-            Remove-MvpAcceptanceStagingSnapshot -SnapshotRoot $snapshotLeasePublicationSourceRoot
-        }
+            "snapshot publication write lease '$snapshotLeasePublicationSourceRoot'" = {
+                if ($null -ne $snapshotLeasePublicationWriteLease) {
+                    Close-MvpAcceptanceStagingWriteLease -Lease $snapshotLeasePublicationWriteLease
+                }
+            }
+            "snapshot publication destination '$snapshotLeasePublicationDestinationRoot'" = {
+                if (Test-Path -LiteralPath $snapshotLeasePublicationDestinationRoot) {
+                    Remove-MvpAcceptanceStagingSnapshot -SnapshotRoot $snapshotLeasePublicationDestinationRoot
+                }
+            }
+            "snapshot publication source '$snapshotLeasePublicationSourceRoot'" = {
+                if (Test-Path -LiteralPath $snapshotLeasePublicationSourceRoot) {
+                    Remove-MvpAcceptanceStagingSnapshot -SnapshotRoot $snapshotLeasePublicationSourceRoot
+                }
+            }
+        })
     }
 
     $identityProtectedPublicationSourceRoot = Join-Path $snapshotFixtureRoot 'identity-protected-publication-source'
@@ -1256,9 +1401,11 @@ try {
         $publicationJunctionRejected = $_.Exception.Message -match 'reparse point'
     }
     finally {
-        if (Test-Path -LiteralPath $publicationJunctionRoot) {
-            [IO.Directory]::Delete($publicationJunctionRoot, $false)
-        }
+        Invoke-MvpTestCleanup -Steps ([ordered]@{
+            "publication junction '$publicationJunctionRoot'" = {
+                if (Test-Path -LiteralPath $publicationJunctionRoot) { [IO.Directory]::Delete($publicationJunctionRoot, $false) }
+            }
+        })
     }
     Assert-True $publicationJunctionRejected 'Acceptance publication followed a destination-parent junction.'
     Assert-True (Test-Path -LiteralPath (Join-Path $junctionPublicationSourceRoot 'evidence.txt') -PathType Leaf) 'Acceptance publication removed a source after rejecting a destination-parent junction.'
@@ -1270,6 +1417,7 @@ try {
     New-Item -ItemType Directory -Force -Path $parentLeaseSourceRoot | Out-Null
     [IO.File]::WriteAllText((Join-Path $parentLeaseSourceRoot 'evidence.txt'), 'parent-must-not-move', [Text.UTF8Encoding]::new($false))
     $parentLeaseAttempt = [pscustomobject]@{ blocked = $false }
+    $parentLeaseError = $null
     try {
         Move-MvpAcceptanceStagingDirectoryNoFollow `
             -SourcePath $parentLeaseSourceRoot `
@@ -1285,12 +1433,16 @@ try {
         Assert-True $parentLeaseAttempt.blocked 'Acceptance publication allowed its destination parent to move during rename.'
         Assert-True (Test-Path -LiteralPath (Join-Path $parentLeaseDestinationRoot 'evidence.txt') -PathType Leaf) 'Acceptance publication did not complete after rejecting its parent move.'
     }
+    catch { $parentLeaseError = $_; throw }
     finally {
-        foreach ($parentLeaseCleanupRoot in @($parentLeaseRoot, $parentLeaseMovedRoot)) {
-            if (Test-Path -LiteralPath $parentLeaseCleanupRoot) {
-                Remove-Item -LiteralPath $parentLeaseCleanupRoot -Recurse -Force
+        Invoke-MvpTestCleanup -PrimaryError $parentLeaseError -Steps ([ordered]@{
+            "publication parent '$parentLeaseRoot'" = {
+                if (Test-Path -LiteralPath $parentLeaseRoot) { Remove-Item -LiteralPath $parentLeaseRoot -Recurse -Force }
             }
-        }
+            "moved publication parent '$parentLeaseMovedRoot'" = {
+                if (Test-Path -LiteralPath $parentLeaseMovedRoot) { Remove-Item -LiteralPath $parentLeaseMovedRoot -Recurse -Force }
+            }
+        })
     }
 
     $ancestorLeaseRoot = Join-Path $snapshotFixtureRoot 'publication-ancestor-lease'
@@ -1301,6 +1453,7 @@ try {
     New-Item -ItemType Directory -Force -Path $ancestorLeaseSourceRoot | Out-Null
     [IO.File]::WriteAllText((Join-Path $ancestorLeaseSourceRoot 'evidence.txt'), 'ancestor-must-not-move', [Text.UTF8Encoding]::new($false))
     $ancestorLeaseAttempt = [pscustomobject]@{ blocked = $false }
+    $ancestorLeaseError = $null
     try {
         Move-MvpAcceptanceStagingDirectoryNoFollow `
             -SourcePath $ancestorLeaseSourceRoot `
@@ -1316,12 +1469,16 @@ try {
         Assert-True $ancestorLeaseAttempt.blocked 'Acceptance publication allowed a destination ancestor to move during rename.'
         Assert-True (Test-Path -LiteralPath (Join-Path $ancestorLeaseDestinationRoot 'evidence.txt') -PathType Leaf) 'Acceptance publication did not complete after rejecting its ancestor move.'
     }
+    catch { $ancestorLeaseError = $_; throw }
     finally {
-        foreach ($ancestorLeaseCleanupRoot in @($ancestorLeaseRoot, $ancestorLeaseMovedRoot)) {
-            if (Test-Path -LiteralPath $ancestorLeaseCleanupRoot) {
-                Remove-Item -LiteralPath $ancestorLeaseCleanupRoot -Recurse -Force
+        Invoke-MvpTestCleanup -PrimaryError $ancestorLeaseError -Steps ([ordered]@{
+            "publication ancestor '$ancestorLeaseRoot'" = {
+                if (Test-Path -LiteralPath $ancestorLeaseRoot) { Remove-Item -LiteralPath $ancestorLeaseRoot -Recurse -Force }
             }
-        }
+            "moved publication ancestor '$ancestorLeaseMovedRoot'" = {
+                if (Test-Path -LiteralPath $ancestorLeaseMovedRoot) { Remove-Item -LiteralPath $ancestorLeaseMovedRoot -Recurse -Force }
+            }
+        })
     }
 
     $failedPublicationSourceRoot = Join-Path $snapshotFixtureRoot 'failed-publication-source'
@@ -1354,31 +1511,47 @@ try {
         $failedPublicationRejected = $_.Exception.Message -match 'reparse point'
     }
     finally {
-        if (Test-Path -LiteralPath (Join-Path $failedPublicationDestinationRoot 'injected-junction')) {
-            [IO.Directory]::Delete((Join-Path $failedPublicationDestinationRoot 'injected-junction'), $false)
-        }
-        if (Test-Path -LiteralPath $failedPublicationSourceRoot) {
-            Remove-MvpAcceptanceStagingSnapshot -SnapshotRoot $failedPublicationSourceRoot
-        }
+        Invoke-MvpTestCleanup -Steps ([ordered]@{
+            "failed publication junction '$failedPublicationDestinationRoot'" = {
+                if (Test-Path -LiteralPath (Join-Path $failedPublicationDestinationRoot 'injected-junction')) {
+                    [IO.Directory]::Delete((Join-Path $failedPublicationDestinationRoot 'injected-junction'), $false)
+                }
+            }
+            "failed publication source '$failedPublicationSourceRoot'" = {
+                if (Test-Path -LiteralPath $failedPublicationSourceRoot) {
+                    Remove-MvpAcceptanceStagingSnapshot -SnapshotRoot $failedPublicationSourceRoot
+                }
+            }
+        })
     }
     Assert-True $failedPublicationRejected 'Acceptance publication accepted a junction injected after rename.'
     Assert-True $failedPublicationRootReplacement.blocked 'Acceptance publication allowed its cleanup root to be replaced after rename.'
     Assert-True (-not (Test-Path -LiteralPath $failedPublicationDestinationRoot)) 'Acceptance publication left a rejected destination tree in place.'
     Assert-True (Test-Path -LiteralPath (Join-Path $failedPublicationOutsideRoot 'must-survive.txt') -PathType Leaf) 'Acceptance publication cleanup followed an injected junction.'
 }
+catch {
+    $suiteError = $_
+    throw
+}
 finally {
-    if (-not [string]::IsNullOrWhiteSpace($snapshotIdentity)) {
-        Remove-MvpAcceptanceStagingSnapshot `
-            -SnapshotRoot $snapshotRoot `
-            -ExpectedRootIdentity $snapshotIdentity
-    }
-    if (Test-Path -LiteralPath $snapshotLogsRoot) {
-        $snapshotLogsItem = Get-Item -LiteralPath $snapshotLogsRoot -Force
-        if ([bool]($snapshotLogsItem.Attributes -band [IO.FileAttributes]::ReparsePoint)) {
-            [IO.Directory]::Delete($snapshotLogsItem.FullName, $false)
+    Invoke-MvpTestCleanup -PrimaryError $suiteError -Steps ([ordered]@{
+        "snapshot '$snapshotRoot'" = {
+            if (-not [string]::IsNullOrWhiteSpace($snapshotIdentity)) {
+                Remove-MvpAcceptanceStagingSnapshot -SnapshotRoot $snapshotRoot -ExpectedRootIdentity $snapshotIdentity
+            }
         }
-    }
-    if (Test-Path -LiteralPath $snapshotFixtureRoot) {
-        Remove-MvpTestFixtureRoot -Path $snapshotFixtureRoot
-    }
+        "source logs junction '$snapshotLogsRoot'" = {
+            if (-not [string]::IsNullOrWhiteSpace($snapshotLogsRoot) -and (Test-Path -LiteralPath $snapshotLogsRoot)) {
+                $snapshotLogsItem = Get-Item -LiteralPath $snapshotLogsRoot -Force
+                if ([bool]($snapshotLogsItem.Attributes -band [IO.FileAttributes]::ReparsePoint)) {
+                    [IO.Directory]::Delete($snapshotLogsItem.FullName, $false)
+                }
+            }
+        }
+        "fixture root '$snapshotFixtureRoot'" = {
+            if (-not [string]::IsNullOrWhiteSpace($snapshotFixtureRoot)) {
+                Remove-MvpTestFixtureRoot -Path $snapshotFixtureRoot
+            }
+        }
+    })
 }

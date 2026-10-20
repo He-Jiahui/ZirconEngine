@@ -19,3 +19,15 @@ fn view_state_discards_nonfinite_camera_without_changing_history_semantics() {
     assert!(!input.history_invalidated());
     assert_eq!(input.generation(), 3);
 }
+
+#[test]
+fn hybrid_gi_prepare_input_source_world_is_explicit_and_preserves_generation() {
+    use crate::core::framework::render::RenderWorldSnapshotHandle;
+    let input = HybridGiRuntimePrepareInput::new(None, &[], &[], &[], &[], None, false, None, 99);
+    assert_eq!(input.source_world(), None);
+    let world = RenderWorldSnapshotHandle::new(7).with_generation(13);
+    let input = input.with_source_world(world).with_view_state(None, false);
+    assert_eq!(input.source_world(), Some(world));
+    assert_eq!(input.source_world().unwrap().generation(), 13);
+    assert_eq!(input.generation(), 99);
+}

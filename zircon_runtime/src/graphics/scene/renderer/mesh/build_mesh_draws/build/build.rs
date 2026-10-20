@@ -55,6 +55,9 @@ use super::virtual_geometry_resident_upload::upload_virtual_geometry_resident_pa
 /// 本视图的残余绘制项、预建命令和待确认上传；调用方须保留 prepared upload，帧提交成功后再推进已接受快照。
 pub(crate) struct BuiltMeshDraws {
     draws: Vec<MeshDraw>,
+    indexed_plan: Option<
+        std::sync::Arc<crate::graphics::scene::scene_renderer::mesh::VirtualGeometryIndexedPlan>,
+    >,
     prepared_mesh_queue_stats: PreparedMeshQueueStats,
     prebuilt_mesh_pass_command_buffers: MeshPassCommandBuffers,
     gpu_scene_prepared_upload: Option<GpuScenePreparedUpload>,
@@ -72,6 +75,14 @@ pub(crate) struct BuiltMeshDraws {
 }
 
 impl BuiltMeshDraws {
+    pub(crate) fn indexed_plan(
+        &self,
+    ) -> Option<
+        std::sync::Arc<crate::graphics::scene::scene_renderer::mesh::VirtualGeometryIndexedPlan>,
+    > {
+        self.indexed_plan.clone()
+    }
+
     pub(crate) fn into_draws(self) -> Vec<MeshDraw> {
         self.draws
     }
@@ -465,7 +476,13 @@ pub(crate) fn build_mesh_draws(
             )
             .collect()
     };
-    let draws = crate::graphics::scene::scene_renderer::mesh::mesh_draw::indexed_plan::expand_indexed_draws(device, frame, draws)
+    // This equality counts extracted source draws before one source maps to
+    // zero, one or several admitted physical indexed raster runs.
+    debug_assert_eq!(
+        prepared_mesh_queue_stats.draw_count,
+        draws.len() + pending_command_cache_extraction_stats.skipped_mesh_draw_count
+    );
+    let (draws, indexed_plan) = crate::graphics::scene::scene_renderer::mesh::mesh_draw::indexed_plan::expand_indexed_draws(device, frame, draws)
         .map_err(crate::graphics::GraphicsError::Asset)?;
     record_material_binding_build_profile(
         residual_draw_count,
@@ -473,6 +490,7 @@ pub(crate) fn build_mesh_draws(
     );
     Ok(BuiltMeshDraws {
         draws,
+        indexed_plan,
         prepared_mesh_queue_stats,
         prebuilt_mesh_pass_command_buffers,
         gpu_scene_prepared_upload: Some(gpu_scene_prepared_upload),

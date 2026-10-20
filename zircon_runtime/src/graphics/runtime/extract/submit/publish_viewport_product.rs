@@ -13,7 +13,7 @@ pub(super) fn publish_viewport_product(
         Some(copy) => copy,
         None => {
             return Err(GraphicsError::FrameProductPublicationFailed {
-                receipt: frame.submission_receipt().clone(),
+                receipt: Box::new(frame.submission_receipt().clone()),
                 product_submission: None,
                 source: Box::new(GraphicsError::SurfaceStatus(
                     "requested viewport product copy was not recorded in the scene packet",

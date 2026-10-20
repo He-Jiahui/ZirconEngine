@@ -29,20 +29,19 @@ fn benchmark_outputs() -> Vec<PointerHits> {
         .collect()
 }
 
-fn legacy_sorted_hits_by_pointer(outputs: &[PointerHits]) -> BTreeMap<PointerId, Vec<HitRecord>> {
-    let mut indexed_by_pointer = BTreeMap::<PointerId, Vec<IndexedHit>>::new();
+fn legacy_sorted_hits_by_pointer(
+    outputs: &[PointerHits],
+) -> BTreeMap<PickingPointerKey, Vec<HitRecord>> {
+    let mut indexed_by_pointer = BTreeMap::<PickingPointerKey, Vec<IndexedHit>>::new();
     for (output_index, output) in outputs.iter().enumerate() {
-        indexed_by_pointer
-            .entry(output.pointer)
-            .or_default()
-            .extend(
-                output
-                    .hits
-                    .iter()
-                    .cloned()
-                    .enumerate()
-                    .map(|(hit_index, hit)| (output_index, hit_index, output.order, hit)),
-            );
+        indexed_by_pointer.entry(output.key()).or_default().extend(
+            output
+                .hits
+                .iter()
+                .cloned()
+                .enumerate()
+                .map(|(hit_index, hit)| (output_index, hit_index, output.order, hit)),
+        );
     }
     indexed_by_pointer
         .into_iter()
@@ -70,7 +69,7 @@ fn runtime47_batch_pointer_hash_groups_preserve_sorted_results() {
     assert_eq!(
         sorted_hits_by_pointer(&outputs)
             .keys()
-            .map(|pointer| pointer.raw())
+            .map(|key| key.pointer.raw())
             .collect::<Vec<_>>(),
         vec![2, 9]
     );
@@ -85,14 +84,14 @@ fn runtime47_batch_pointer_grouping_keeps_hash_private_and_output_ordered() {
         .and_then(|body| body.split("type IndexedHit").next())
         .expect("grouping implementation");
 
-    assert!(implementation.contains("HashMap::<PointerId, Vec<IndexedHit>>::with_capacity"));
+    assert!(implementation.contains("HashMap::<PickingPointerKey, Vec<IndexedHit>>::with_capacity"));
     assert!(implementation.contains("collect::<BTreeMap<_, _>>()"));
-    assert!(!implementation.contains("BTreeMap::<PointerId, Vec<IndexedHit>>::new"));
+    assert!(!implementation.contains("BTreeMap::<PickingPointerKey, Vec<IndexedHit>>::new"));
 }
 
 fn measure(
     outputs: &[PointerHits],
-    project: impl Fn(&[PointerHits]) -> BTreeMap<PointerId, Vec<HitRecord>>,
+    project: impl Fn(&[PointerHits]) -> BTreeMap<PickingPointerKey, Vec<HitRecord>>,
 ) -> u128 {
     let started = Instant::now();
     let projected = project(black_box(outputs));

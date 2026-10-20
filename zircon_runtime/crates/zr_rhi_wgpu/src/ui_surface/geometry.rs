@@ -122,6 +122,7 @@ impl DrawItem {
     }
 }
 
+#[cfg(test)]
 pub(super) fn draw_items(draw_list: &UiSurfaceDrawList) -> Vec<DrawItem> {
     let damage = damage_with_analytic_coverage(draw_list.damage, draw_list.projection_size());
     draw_items_with_damage(draw_list, damage, None, None)
@@ -182,7 +183,7 @@ fn draw_items_with_damage<'a>(
             .is_some_and(|(secondary_damage, _)| {
                 draw_list.command_visible_with_damage(command, Some(*secondary_damage))
             });
-        if let Some((secondary_damage, secondary_stats)) = secondary_stats.as_mut() {
+        if let Some((_secondary_damage, secondary_stats)) = secondary_stats.as_mut() {
             secondary_stats.record_command_visit();
             if secondary_visible {
                 secondary_stats.record_visible(command, draw_list);
@@ -226,10 +227,12 @@ fn draw_items_with_damage<'a>(
                     push_rounded_box_item(
                         &mut items,
                         order,
-                        color,
-                        border_color,
-                        width,
-                        corner_radius,
+                        RoundedBoxPaint {
+                            fill_color: color,
+                            border_color,
+                            width,
+                            corner_radius,
+                        },
                         border_command_index,
                         command,
                         draw_list,
@@ -240,9 +243,11 @@ fn draw_items_with_damage<'a>(
                     push_solid_item(
                         &mut items,
                         order,
-                        command.frame,
-                        color,
-                        corner_radius,
+                        SolidShape {
+                            frame: command.frame,
+                            color,
+                            corner_radius,
+                        },
                         command,
                         draw_list,
                         damage,
@@ -261,9 +266,11 @@ fn draw_items_with_damage<'a>(
                         command_index,
                         sub_index: 0,
                     },
-                    color,
-                    width,
-                    corner_radius,
+                    BorderPaint {
+                        color,
+                        width,
+                        corner_radius,
+                    },
                     command,
                     draw_list,
                     damage,
@@ -330,16 +337,25 @@ pub(super) fn ordered_commands(draw_list: &UiSurfaceDrawList) -> Vec<(usize, &Ui
     ordered
 }
 
-fn push_solid_item(
-    items: &mut Vec<DrawItem>,
-    order: DrawItemOrder,
+struct SolidShape {
     frame: UiSurfaceRect,
     color: [u8; 4],
     corner_radius: f32,
+}
+
+fn push_solid_item(
+    items: &mut Vec<DrawItem>,
+    order: DrawItemOrder,
+    paint: SolidShape,
     command: &UiSurfaceCommand,
     draw_list: &UiSurfaceDrawList,
     damage: Option<UiSurfaceRect>,
 ) {
+    let SolidShape {
+        frame,
+        color,
+        corner_radius,
+    } = paint;
     let analytic = (corner_radius.is_finite() && corner_radius > 0.0)
         || !rect_edges_are_physical_pixel_aligned(frame);
     let raster_frame = if analytic {
@@ -381,16 +397,25 @@ fn push_solid_item(
     }));
 }
 
-fn push_border_item(
-    items: &mut Vec<DrawItem>,
-    order: DrawItemOrder,
+struct BorderPaint {
     color: [u8; 4],
     width: f32,
     corner_radius: f32,
+}
+
+fn push_border_item(
+    items: &mut Vec<DrawItem>,
+    order: DrawItemOrder,
+    paint: BorderPaint,
     command: &UiSurfaceCommand,
     draw_list: &UiSurfaceDrawList,
     damage: Option<UiSurfaceRect>,
 ) {
+    let BorderPaint {
+        color,
+        width,
+        corner_radius,
+    } = paint;
     if !width.is_finite() || width <= 0.0 {
         return;
     }
@@ -424,18 +449,28 @@ fn push_border_item(
     }));
 }
 
-fn push_rounded_box_item(
-    items: &mut Vec<DrawItem>,
-    order: DrawItemOrder,
+struct RoundedBoxPaint {
     fill_color: [u8; 4],
     border_color: [u8; 4],
     width: f32,
     corner_radius: f32,
+}
+
+fn push_rounded_box_item(
+    items: &mut Vec<DrawItem>,
+    order: DrawItemOrder,
+    paint: RoundedBoxPaint,
     fused_border_command_index: usize,
     command: &UiSurfaceCommand,
     draw_list: &UiSurfaceDrawList,
     damage: Option<UiSurfaceRect>,
 ) {
+    let RoundedBoxPaint {
+        fill_color,
+        border_color,
+        width,
+        corner_radius,
+    } = paint;
     let Some(raster_frame) = analytic_raster_frame(command.frame) else {
         return;
     };

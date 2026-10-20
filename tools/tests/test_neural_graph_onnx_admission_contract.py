@@ -1,5 +1,26 @@
 import unittest
+import sys
 from pathlib import Path
+
+_AUDIT_SCRIPTS = (
+    Path(__file__).resolve().parents[2]
+    / ".codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts"
+)
+sys.path.insert(0, str(_AUDIT_SCRIPTS))
+from runtime_structure_audits.dynamic_runtime_api_archive_inventory import (
+    HistoricalArchiveReader,
+)
+
+_HISTORICAL_IDENTITIES = {
+    'docs/plans/_archive/astra/optimize/01/2026-09-12-neural-graph-admission.md': (
+        3182,
+        '8caf253981f01a5f8372523d0213629fd67f2c833713c4f209c007f8d78f3fa1',
+    ),
+    'docs/plans/_archive/astra/optimize/01/2026-09-12-neural-onnx-dimension-admission.md': (
+        2296,
+        '3885e2a51bc318ccb51d6e6bd2b73174bfc315433c14a49d443972da5c3ba8b5',
+    ),
+}
 
 
 class NeuralGraphOnnxAdmissionContractTests(unittest.TestCase):
@@ -12,10 +33,8 @@ class NeuralGraphOnnxAdmissionContractTests(unittest.TestCase):
         self.executor = root / "zircon_plugins/neural/runtime/src/gpu/graph_executor.rs"
         self.gpu_tests = root / "zircon_plugins/neural/runtime/src/tests/gpu_plan.rs"
         self.reader = root / "zircon_plugins/neural/editor/src/onnx/reader.rs"
-        self.plan = root / "docs/plans/astra/optimize/01/2026-09-12-neural-graph-admission.md"
-        self.reader_plan = (
-            root / "docs/plans/astra/optimize/01/2026-09-12-neural-onnx-dimension-admission.md"
-        )
+        self.plan = 'docs/plans/_archive/astra/optimize/01/2026-09-12-neural-graph-admission.md'
+        self.reader_plan = 'docs/plans/_archive/astra/optimize/01/2026-09-12-neural-onnx-dimension-admission.md'
 
     def test_model_validation_admits_sources_and_enforces_topological_producers(self) -> None:
         source = self.validator.read_text(encoding="utf-8")
@@ -101,9 +120,22 @@ class NeuralGraphOnnxAdmissionContractTests(unittest.TestCase):
     def test_regressions_cover_topology_budgets_reshape_and_onnx_identity(self) -> None:
         model_tests = self.model_tests.read_text(encoding="utf-8")
         gpu_tests = self.gpu_tests.read_text(encoding="utf-8")
-        reader = self.reader.read_text(encoding="utf-8")
-        plan = self.plan.read_text(encoding="utf-8")
-        reader_plan = self.reader_plan.read_text(encoding="utf-8")
+        reader_parent = self.reader.read_text(encoding="utf-8")
+        reader = (self.reader.parent / "tests/reader.rs").read_text(encoding="utf-8")
+        self.assertIn(
+            '#[cfg(test)]\n#[path = "tests/reader.rs"]\nmod tests;',
+            reader_parent,
+        )
+        for owner_path, mount in (
+            ('zircon_plugins/neural/editor/src/lib.rs', '#[path = "onnx/mod.rs"]\npub mod onnx;'),
+            ('zircon_plugins/neural/editor/src/onnx/mod.rs', '#[path = "reader.rs"]\nmod reader;'),
+        ):
+            self.assertIn(mount, (Path(__file__).resolve().parents[2] / owner_path).read_text(encoding="utf-8"))
+        history = HistoricalArchiveReader(identities=_HISTORICAL_IDENTITIES)
+        plan = history.read(self.plan)
+        self.assertIsNotNone(plan, history.records)
+        reader_plan = history.read(self.reader_plan)
+        self.assertIsNotNone(reader_plan, history.records)
 
         for test_name in (
             "fn nn_model_asset_rejects_tensor_use_before_its_producer()",
@@ -130,6 +162,7 @@ class NeuralGraphOnnxAdmissionContractTests(unittest.TestCase):
             "fn rejects_invalid_utf8_attribute_string()",
         ):
             self.assertIn(test_name, reader)
+            self.assertRegex(reader, r"#\[test\]\s*" + test_name.replace("()", r"\(\)"))
 
         for anchor in (
             "one producer table",

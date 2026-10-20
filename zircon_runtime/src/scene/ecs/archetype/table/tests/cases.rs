@@ -257,12 +257,22 @@ fn archetype_column_shared_tracked_rows_keep_each_value_and_tick_separate() {
         // columns. Only the unborrowed third rows are read; no structure changes.
         let (first, first_ticks) =
             unsafe { health.get_mut_with_ticks_unchecked::<i32>(0) }.unwrap();
+        // SAFETY: the unchanged unique row grant authorizes both checked leaves.
+        let (first, first_ticks) = unsafe { (&mut *first, &mut *first_ticks) };
         let (second, second_ticks) =
             unsafe { health.get_mut_with_ticks_unchecked::<i32>(1) }.unwrap();
+        // SAFETY: the unchanged unique row grant authorizes both checked leaves.
+        let (second, second_ticks) = unsafe { (&mut *second, &mut *second_ticks) };
         let (first_label, first_label_ticks) =
             unsafe { labels.get_mut_with_ticks_unchecked::<String>(0) }.unwrap();
+        // SAFETY: the unchanged unique row grant authorizes both checked leaves.
+        let (first_label, first_label_ticks) =
+            unsafe { (&mut *first_label, &mut *first_label_ticks) };
         let (second_label, second_label_ticks) =
             unsafe { labels.get_mut_with_ticks_unchecked::<String>(1) }.unwrap();
+        // SAFETY: the unchanged unique row grant authorizes both checked leaves.
+        let (second_label, second_label_ticks) =
+            unsafe { (&mut *second_label, &mut *second_label_ticks) };
         *second += 2;
         *first += 1;
         second_label.push_str("-second");
@@ -303,8 +313,12 @@ fn archetype_column_shared_eager_rows_preserve_exclusive_structure() {
         // no length/allocation/structure change occurs during either loan.
         let first =
             unsafe { column.get_mut_at_tick_unchecked::<i32>(0, ChangeTick::new(2)) }.unwrap();
+        // SAFETY: this checked row remains uniquely loaned with stable storage.
+        let first = unsafe { &mut *first };
         let second =
             unsafe { column.get_mut_at_tick_unchecked::<i32>(1, ChangeTick::new(9)) }.unwrap();
+        // SAFETY: this checked row remains uniquely loaned with stable storage.
+        let second = unsafe { &mut *second };
         *second += 2;
         *first += 1;
         assert_eq!((*first, *second), (11, 22));
@@ -324,4 +338,76 @@ fn archetype_column_shared_eager_rows_preserve_exclusive_structure() {
     assert_eq!(column.ticks(0), Some(ticks(4)));
     *column.get_mut::<i32>(0).unwrap() = 31;
     assert_eq!(column.get::<i32>(0), Some(&31));
+}
+
+#[test]
+fn archetype_table_aligned_zero_sized_values_move_once_with_ticks() {
+    static DROPS: AtomicUsize = AtomicUsize::new(0);
+
+    #[repr(align(64))]
+    #[derive(Debug)]
+    struct AlignedZst;
+
+    impl Drop for AlignedZst {
+        fn drop(&mut self) {
+            DROPS.fetch_add(1, Ordering::Relaxed);
+        }
+    }
+
+    assert_eq!(std::mem::size_of::<AlignedZst>(), 0);
+    assert_eq!(std::mem::align_of::<AlignedZst>(), 64);
+    assert_eq!(DROPS.load(Ordering::Relaxed), 0);
+    let component = ComponentId::new(1);
+    let mut table = ArchetypeTable::new([(component, TableColumnLayout::of::<AlignedZst>())]);
+    assert_eq!(
+        table.append_row(7, vec![(component, stored(AlignedZst), ticks(2))]),
+        Ok(0)
+    );
+    assert_eq!(
+        table.append_row(8, vec![(component, stored(AlignedZst), ticks(3))]),
+        Ok(1)
+    );
+    assert_eq!(table.len(), 2);
+    assert_eq!(table.entities(), &[7, 8]);
+    for row in 0..2 {
+        let value = table.get::<AlignedZst>(component, row).unwrap();
+        assert!(std::ptr::from_ref(value).is_aligned());
+        assert!(table.get::<i32>(component, row).is_none());
+    }
+    assert_eq!(table.component_ticks(component, 0), Some(ticks(2)));
+    assert_eq!(table.component_ticks(component, 1), Some(ticks(3)));
+
+    let previous = table
+        .replace(component, 0, stored(AlignedZst), ChangeTick::new(9))
+        .unwrap()
+        .downcast::<AlignedZst>()
+        .unwrap();
+    assert!(std::ptr::from_ref(previous.as_ref()).is_aligned());
+    let replaced_ticks = table.component_ticks(component, 0).unwrap();
+    assert_eq!(replaced_ticks.added(), ChangeTick::new(2));
+    assert_eq!(replaced_ticks.changed(), ChangeTick::new(9));
+    assert_eq!(DROPS.load(Ordering::Relaxed), 0);
+    drop(previous);
+    assert_eq!(DROPS.load(Ordering::Relaxed), 1);
+
+    let taken = table.take_row(0, 7).unwrap();
+    assert_eq!(taken.entity(), 7);
+    assert_eq!(taken.swapped_entity(), Some(8));
+    assert_eq!(table.entities(), &[8]);
+    assert_eq!(table.len(), 1);
+    assert_eq!(table.component_ticks(component, 0), Some(ticks(3)));
+    assert!(table.get::<AlignedZst>(component, 1).is_none());
+    let remaining = table.get::<AlignedZst>(component, 0).unwrap();
+    assert!(std::ptr::from_ref(remaining).is_aligned());
+    let mut components = taken.into_components();
+    let (removed, removed_ticks) = components.remove(&component).unwrap();
+    assert!(components.is_empty());
+    assert_eq!(removed_ticks, replaced_ticks);
+    let removed = removed.downcast::<AlignedZst>().unwrap();
+    assert!(std::ptr::from_ref(removed.as_ref()).is_aligned());
+    assert_eq!(DROPS.load(Ordering::Relaxed), 1);
+    drop(removed);
+    assert_eq!(DROPS.load(Ordering::Relaxed), 2);
+    drop(table);
+    assert_eq!(DROPS.load(Ordering::Relaxed), 3);
 }

@@ -1,6 +1,8 @@
 //! 命名策略扫描需区分生产源码、测试夹具和已分类的历史名称。通过源码文本核对父子路由、状态镜像和文件预算。
+use crate::tests::runtime_absorption::structure_convention::fixed_history_archive_source as history;
 const PARENT_SOURCE: &str = include_str!("../naming_boundary.rs");
 const CLASSIFIERS_SOURCE: &str = include_str!("classifiers.rs");
+const SERVER_CONTEXT_SOURCE: &str = include_str!("classifiers/server_context.rs");
 const LEXICAL_SCAN_SOURCE: &str = include_str!("lexical_scan.rs");
 const PRODUCTION_LINES_SOURCE: &str = include_str!("../lexical_scan/production_lines.rs");
 const SUPPORT_SOURCE: &str = include_str!("support.rs");
@@ -10,17 +12,25 @@ const RUNTIME_15_M2_SOURCE: &str = include_str!("runtime_15_m2.rs");
 const ASSET_DYNAMIC_SOURCE: &str = include_str!("../runtime_15_m2/asset_dynamic.rs");
 const GRAPHICS_HYBRID_GI_SOURCE: &str = include_str!("runtime_15_m2/graphics/gi.rs");
 
-const RUNTIME_15_PLAN: &str = crate::tests::runtime_absorption::current_source_fixture::RUNTIME_ARCHITECTURE_IMPLEMENTATION_OUTPUT;
-const RUNTIME_INDEX: &str =
-    include_str!("../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md");
-const STRUCTURE_CONVENTION_PLAN: &str =
-    include_str!("../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md");
-const REVIEW_FINDINGS_PLAN: &str =
-    include_str!("../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md");
+fn runtime_15_plan() -> &'static str {
+    crate::tests::runtime_absorption::current_source_fixture::runtime_architecture_implementation_output()
+}
+fn runtime_index() -> &'static str {
+    history(
+        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md",
+    )
+}
+fn structure_convention_plan() -> &'static str {
+    history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md")
+}
+fn review_findings_plan() -> &'static str {
+    history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md")
+}
 const MODULE_CONVENTION_DOC: &str =
     include_str!("../../../../../docs/crates/zircon_runtime/structure/module-convention.md");
-const FRAMEWORKS_02_PLAN: &str =
-    include_str!("../../../../../docs/plans/zircon_runtime/frameworks/02/2026-07-09-module-kernel-and-lifecycle-unification-output-records.md");
+fn frameworks_02_plan() -> &'static str {
+    history("docs/plans/zircon_runtime/frameworks/02/2026-07-09-module-kernel-and-lifecycle-unification-output-records.md")
+}
 
 // BUG: [CR-RUNTIME-TESTS-ABS-0005] 当前被读子文件已经超过此处明示的行数上限；该测试执行行数断言时会失败；证据：行数预算与原始源码快照。
 #[test]
@@ -86,6 +96,20 @@ fn assert_child_owners_are_focused() {
         ],
     );
     assert_contains_all(
+        "server context admission",
+        SERVER_CONTEXT_SOURCE,
+        &[
+            "fn allowed_server_context",
+            "is_test_path",
+            "target-server",
+            "server/headless",
+        ],
+    );
+    assert!(CLASSIFIERS_SOURCE.contains("mod server_context;"));
+    assert!(
+        CLASSIFIERS_SOURCE.contains("server_context::allowed_server_context(relative_path, line)")
+    );
+    assert_contains_all(
         "lexical scan",
         LEXICAL_SCAN_SOURCE,
         &[
@@ -135,6 +159,7 @@ fn assert_line_budget() {
         ("parent route owner", PARENT_SOURCE, 20),
         ("top-level guards", TOP_LEVEL_SOURCE, 120),
         ("classifiers", CLASSIFIERS_SOURCE, 190),
+        ("server context admission", SERVER_CONTEXT_SOURCE, 190),
         ("lexical scan", LEXICAL_SCAN_SOURCE, 120),
         ("production-line scan", PRODUCTION_LINES_SOURCE, 80),
         ("support", SUPPORT_SOURCE, 50),
@@ -150,12 +175,12 @@ fn assert_line_budget() {
 
 fn assert_docs_and_status_mirror_split() {
     for (label, source) in [
-        ("Runtime 15 plan", RUNTIME_15_PLAN),
-        ("runtime index", RUNTIME_INDEX),
-        ("structure convention plan", STRUCTURE_CONVENTION_PLAN),
-        ("review findings plan", REVIEW_FINDINGS_PLAN),
+        ("Runtime 15 plan", runtime_15_plan()),
+        ("runtime index", runtime_index()),
+        ("structure convention plan", structure_convention_plan()),
+        ("review findings plan", review_findings_plan()),
         ("module convention doc", MODULE_CONVENTION_DOC),
-        ("Frameworks 02 plan", FRAMEWORKS_02_PLAN),
+        ("Frameworks 02 plan", frameworks_02_plan()),
     ] {
         assert!(
             source.contains(
@@ -177,7 +202,7 @@ fn assert_docs_and_status_mirror_split() {
     );
     assert_contains_all(
         "Frameworks 02 plan",
-        FRAMEWORKS_02_PLAN,
+        frameworks_02_plan(),
         &[
             "frameworks_02_m3_naming_boundary_route_owner_split_static_passed_cargo_deferred",
             "Runtime 15 M3 naming-boundary route-owner split",

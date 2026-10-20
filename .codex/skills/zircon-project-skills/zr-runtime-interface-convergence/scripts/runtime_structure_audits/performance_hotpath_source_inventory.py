@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 
-EXPECTED_SOURCE_FILE_COUNT = 46
 LARGE_FILE_HOTSPOT_THRESHOLD = 1000
 EXPECTED_LARGE_FILE_OWNER_CLASSES = (
     "editor-retained-host",
@@ -37,6 +36,9 @@ RUNTIME_07_SOURCE_FILES = (
     "zircon_runtime/src/scene/world/mod.rs",
     "zircon_runtime/src/scene/module/world_driver.rs",
     "zircon_runtime/src/asset/pipeline/worker_pool.rs",
+    "zircon_runtime/src/asset/pipeline/worker_pool/diagnostics.rs",
+    "zircon_runtime/src/scene/ecs/query/query_state/state.rs",
+    "zircon_runtime/src/scene/level_system.rs",
     "zircon_runtime/src/asset/pipeline/manager/assets/construction.rs",
     "zircon_runtime/src/core/runtime/diagnostics/profiling/counter_hotspot.rs",
     "zircon_runtime/src/core/runtime/diagnostics/profiling/macros.rs",
@@ -52,13 +54,15 @@ RUNTIME_07_SOURCE_FILES = (
     "zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product/sprite.rs",
     "zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product/ui.rs",
     "zircon_runtime/src/core/runtime/diagnostics/product/visibility.rs",
-    "zircon_runtime/src/animation/scene_hook/diagnostics.rs",
-    "zircon_runtime/src/animation/scene_hook/events.rs",
-    "zircon_runtime/src/animation/scene_hook/node_pose.rs",
-    "zircon_runtime/src/animation/scene_hook/pending.rs",
-    "zircon_runtime/src/animation/scene_hook/scan.rs",
-    "zircon_runtime/src/animation/scene_hook/tick.rs",
+    "zircon_plugins/animation/runtime/src/evaluation/pipeline/diagnostics.rs",
+    "zircon_plugins/animation/runtime/src/evaluation/pipeline/events.rs",
+    "zircon_plugins/animation/runtime/src/evaluation/pipeline/pose_apply.rs",
+    "zircon_plugins/animation/runtime/src/evaluation/pipeline/requests.rs",
+    "zircon_plugins/animation/runtime/src/evaluation/pipeline/parameter_apply.rs",
+    "zircon_plugins/animation/runtime/src/evaluation/pipeline/tick.rs",
 )
+EXPECTED_SOURCE_FILE_COUNT = len(RUNTIME_07_SOURCE_FILES)
+
 RUNTIME_07_TEST_FILES = (
     "zircon_runtime/src/tests/contracts/performance.rs",
     "zircon_runtime/src/tests/contracts/performance/diagnostics.rs",

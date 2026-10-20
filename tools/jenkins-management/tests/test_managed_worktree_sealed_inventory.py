@@ -5,6 +5,7 @@ import copy
 import hashlib
 import json
 import os
+import subprocess
 from pathlib import Path
 import unittest
 from unittest.mock import patch
@@ -21,6 +22,26 @@ class ManagedWorktreeSealedInventoryTests(unittest.TestCase):
         self.fixture = baseline.ManagedWorktreePreparationTests(methodName="runTest")
         self.addCleanup(self.fixture.doCleanups)
         self.fixture.setUp()
+        # Freeze the external index independently of later worktree byte edits.
+        external_indexes = {}
+        for root in [self.fixture.external, *(self.fixture.external / name for name in self.fixture.links)]:
+            rows = []
+            for name, value in self.fixture.source(root)["files"].items():
+                if isinstance(value, dict):
+                    mode, object_id = "160000", value["gitlinkCommit"]
+                else:
+                    data = (root / name).read_bytes()
+                    blob = b"blob " + str(len(data)).encode("ascii") + b"\0" + data
+                    mode, object_id = "100644", hashlib.sha1(blob).hexdigest()
+                rows.append((mode + " " + object_id + " 0\t" + name).encode("utf-8") + b"\0")
+            external_indexes[root] = b"".join(rows)
+
+        def git_with_stage(root, *args, **kwargs):
+            result = self.fixture.git(root, *args, **kwargs)
+            if args and args[0] == "ls-files" and "--stage" in args and root in external_indexes:
+                result.stdout = external_indexes[root]
+            return result
+        self.fixture.management.git = git_with_stage
 
     def inspect(self, *, owned_hashes=None, declared=True):
         fixture = self.fixture
@@ -208,3 +229,71 @@ class ManagedWorktreeSealedInventoryTests(unittest.TestCase):
         self.assertEqual(expected, payload)
         self.assertEqual(hashlib.sha256(payload).hexdigest(), checksum)
         self.assertIn(mode, (0o444, 0o666))
+
+        # Real Windows directory spelling survives a tracked old leaf and a lower-case new request.
+        from tools.jenkins import managed_worktree as formal
+        from tools.jenkins.resources.paths import canonical_build_root
+        from tools.jenkins.source.external_inputs import KIND, verify_prepared
+        from tools.jenkins.workflow import pools
+
+        case_root = fixture.area / "case-evidence/zr_vm"
+        (case_root / "tests/compileTime").mkdir(parents=True)
+        (case_root / "tests/compileTime/old.c").write_bytes(b"tracked old leaf\n")
+        (case_root / "tests/compileTime/deleted.c").write_bytes(b"tracked deletion\n")
+
+        def git(*args):
+            return subprocess.run(["git", "--no-optional-locks", "-c", "core.fsmonitor=false",
+                "-c", "core.hooksPath=" + os.devnull, "-C", str(case_root), *args],
+                capture_output=True, check=True)
+
+        git("init", "-q")
+        git("add", "--", "tests/compileTime/old.c", "tests/compileTime/deleted.c")
+        git("-c", "user.name=Fixture", "-c", "user.email=fixture@invalid",
+            "commit", "-qm", "physical spelling fixture")
+        (case_root / "tests/compileTime/deleted.c").unlink()
+        (case_root / "tests/compiletime/new.c").write_bytes(b"untracked new leaf\n")
+        tree = {}
+        for row in git("ls-tree", "-r", "-z", "--full-tree", "HEAD").stdout.split(b"\0"):
+            if row:
+                fields, name = row.split(b"\t", 1)
+                tree[name.decode().casefold()] = (name.decode(), fields.decode().split()[2])
+        actor = copy.copy(fixture.management)
+        actor.repo = case_root.parent / "engine"
+        actor.payload = {"externalRoots": [str(case_root)], "externalGitlinks": {},
+                         "ownedPaths": ["owned.txt"]}
+        actor.git = lambda root, *args: git(*args)
+        actor.text = lambda root, *args: git(*args).stdout.decode("utf-8").strip()
+        payload_before, writer_before = copy.deepcopy(actor.payload), copy.deepcopy(fixture.writer)
+        index_before = git("ls-files", "--stage", "--debug", "-z").stdout
+        capture = helper._ManagedCapturedExternal(actor, fixture.cas)
+        values, raw_captures, _ = formal._external_capture(
+            capture, type("Files", (), {"source_files": staticmethod(helper._managed_external_compiler_files)})(),
+            inspection=True)
+        raw = raw_captures[0]["source"]
+        raw_before = helper.encoded(raw)
+        self.assertEqual("full-file-index-v2", raw["sourceEvidencePolicy"])
+        self.assertIn("tests/compiletime/new.c", values[0]["currentHashes"])
+        # This fixture stubs base lookup globally; supply its real Git tree for this repository.
+        with patch.object(formal, "_git_base_tree", return_value=tree):
+            sealed = helper._managed_captured_manifest(case_root, raw["head"], values[0]["currentHashes"],
+                                                       capture.flattened_metadata(case_root, raw))
+        helper.verify_sealed_capture(raw, sealed, managed_external=True)
+        self.assertEqual({"tests/compileTime/old.c", "tests/compileTime/new.c",
+                          "tests/compileTime/deleted.c"}, {entry["path"] for entry in sealed["entries"]})
+        layout = {"preparationKind": "current-source", "external": [
+            {"kind": KIND, "name": "zr_vm", "repositoryRoot": str(case_root),
+             "manifest": sealed, "sourceDigest": helper.digest(sealed)}]}
+        prepared = fixture.area / "case-evidence/prepared/inputs/source"
+        prepared.mkdir(parents=True)
+        for entry in sealed["entries"]:
+            if entry["status"] == "present":
+                pools._atomic_copy(fixture.cas / "inputs/objects" / entry["objectDigest"],
+                                   prepared.parent / "zr_vm" / entry["path"])
+        self.assertIsNone(verify_prepared(layout, prepared, canonical_build_root(r"E:\cargo-targets")))
+        self.assertEqual({"tests/compileTime/old.c", "tests/compileTime/new.c"},
+            {path.relative_to(prepared.parent / "zr_vm").as_posix()
+             for path in (prepared.parent / "zr_vm").rglob("*") if path.is_file()})
+        self.assertEqual(raw_before, helper.encoded(raw))
+        self.assertEqual(index_before, git("ls-files", "--stage", "--debug", "-z").stdout)
+        self.assertEqual(payload_before, actor.payload)
+        self.assertEqual(writer_before, fixture.writer)

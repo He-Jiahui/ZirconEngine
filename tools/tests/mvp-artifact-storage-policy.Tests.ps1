@@ -14,6 +14,7 @@ $renderBaselineEvidence = Join-Path $repoRoot 'tools\mvp\RenderExtractBaselineEv
 $mvpStager = Join-Path $repoRoot 'tools\mvp\Stage-MvpProducts.ps1'
 $mvpAcceptance = Join-Path $repoRoot 'tools\mvp\Invoke-MvpAcceptance.ps1'
 $mvpFixturePaths = Join-Path $repoRoot 'tools\mvp\MvpTestFixturePaths.psm1'
+$mvpFixtureContext = Join-Path $repoRoot 'tools\mvp\MvpTestFixtureContext.psm1'
 
 Describe 'MVP artifact storage policy' {
     It 'loads one versioned Windows root and namespace authority' {
@@ -374,7 +375,7 @@ Describe 'MVP artifact storage policy' {
         $renderBaselineEvidenceSource = Get-Content -LiteralPath $renderBaselineEvidence -Raw
         $mvpStagerSource = Get-Content -LiteralPath $mvpStager -Raw
         $mvpAcceptanceSource = Get-Content -LiteralPath $mvpAcceptance -Raw
-        $mvpFixturePathsSource = Get-Content -LiteralPath $mvpFixturePaths -Raw
+        $mvpFixtureContextSource = Get-Content -LiteralPath $mvpFixtureContext -Raw
 
         foreach ($source in @(
                 $productSource,
@@ -389,7 +390,7 @@ Describe 'MVP artifact storage policy' {
                 $renderBaselineEvidenceSource,
                 $mvpStagerSource,
                 $mvpAcceptanceSource,
-                $mvpFixturePathsSource
+                $mvpFixtureContextSource
             )) {
             $source | Should Match 'Import-Module .*MvpArtifactStoragePolicy\.psm1'
             $source | Should Not Match '[D-F]:\\cargo-targets'
@@ -426,7 +427,10 @@ Describe 'MVP artifact storage policy' {
         $mvpAcceptanceSource | Should Match 'mvp-staging-runs'
         $mvpAcceptanceSource | Should Match 'mvp-acceptance-evidence'
         $mvpAcceptanceSource | Should Match 'mvp-test-fixtures'
-        $mvpFixturePathsSource | Should Match 'Resolve-MvpArtifactStorageRootPath'
-        $mvpFixturePathsSource | Should Match "Resolve-MvpArtifactStoragePath.*(?s).*mvp-test-fixtures"
+        $mvpFixturePathsSource = Get-Content -LiteralPath $mvpFixturePaths -Raw
+        $mvpFixturePathsSource | Should Match 'Import-Module .*MvpTestFixtureContext\.psm1'
+        $mvpFixturePathsSource | Should Match 'Get-MvpTestFixtureContext'
+        $mvpFixtureContextSource | Should Match 'Resolve-MvpArtifactStorageRootPath'
+        $mvpFixtureContextSource | Should Match "Resolve-MvpArtifactStoragePath.*(?s).*mvp-test-fixtures"
     }
 }

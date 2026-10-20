@@ -47,15 +47,7 @@ fn explicit_ibl_cache_directory_overrides_the_work_root_default() {
 
 #[test]
 fn renderdoc_capture_parent_is_prepared_for_first_run() {
-    let fixture_root = std::env::var_os("ZIRCON_VIEWER_TEST_ARTIFACT_ROOT")
-        .map(PathBuf::from)
-        .unwrap_or_else(std::env::temp_dir);
-    let sequence =
-        super::VIEWER_TEST_ARTIFACT_SEQUENCE.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-    let root = fixture_root.join(format!(
-        "viewer-renderdoc-first-run-{}-{sequence}",
-        std::process::id()
-    ));
+    let root = viewer_test_artifact_root("viewer-renderdoc-first-run");
     let _cleanup = TestArtifactDirectory(root.clone());
     let work_dir = root.join("work");
     std::fs::create_dir_all(&work_dir).expect("registered first-run work directory is created");
@@ -76,6 +68,16 @@ fn renderdoc_capture_parent_is_prepared_for_first_run() {
 #[test]
 fn viewer_test_artifacts_do_not_use_the_system_temp_directory_or_c_drive() {
     let root = viewer_test_artifact_root("work-paths");
+    let configured_parent = PathBuf::from(
+        std::env::var_os("ZIRCON_VIEWER_TEST_ARTIFACT_ROOT")
+            .expect("viewer test artifact parent must be explicitly configured"),
+    );
+    let admitted_parent = crate::args::resolve_non_c_artifact_path(
+        "ZIRCON_VIEWER_TEST_ARTIFACT_ROOT",
+        &configured_parent,
+    )
+    .expect("configured viewer test artifact parent must pass physical admission");
+    assert_eq!(root.parent(), Some(admitted_parent.as_path()));
 
     assert!(
         !root

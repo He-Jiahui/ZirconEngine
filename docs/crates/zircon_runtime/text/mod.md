@@ -160,3 +160,15 @@ Frameworks05 M3 owns this physical boundary cut. Frameworks01 defines the future
 - Rerun the multilingual product framebuffer and add the still-missing editor-host text screenshot.
 - Obtain fresh independent review with Critical/Important 0/0 before coordinator milestone commit.
 - Extract this directory into `zr_text` only in Frameworks01 M3; do not create another interim compatibility namespace.
+
+## Rich source failure boundary
+
+Rich source validation is fallible and shared by materialization and projection. Validate UTF-8 ranges and structural lookup before publishing geometry; use TextLayoutError::LayoutFailed rather than converting corrupt input into an empty successful result. checked_source_range is shared by horizontal and VerticalRl forced hard-line ranges.
+
+Keep base_style_gap_fill_preserved: rich-source hardening must retain base-style gap semantics. The rich source, advance index, vertical, measurement, UI layout/cache/table owners share this boundary. rich_source_contract_fail_closed_static_implemented is source status only; managed validation remains pending.
+
+### Clause provenance
+
+These content identities preserve the source of this transfer. They are not fresh measurements, active-file dependencies or acceptance receipts.
+
+- `03-line-breaking-measure-and-layout.md`, SHA-256 `57af9dc18042a707eee2a0bd6a12584f0affdeef0303a4ec3189e6f3a12da90b`, selected source lines 1314-1360.

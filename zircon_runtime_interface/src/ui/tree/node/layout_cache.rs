@@ -41,7 +41,7 @@ impl UiLayoutCache {
 
     /// 文本布局输入改变后由调用方推进修订；达到极值后保持哨兵值，不回绕复用旧键。
     pub fn advance_text_layout_revision(&mut self) {
-        self.text_layout_revision = self.text_layout_revision.checked_add(1).unwrap_or(u64::MAX);
+        self.text_layout_revision = self.text_layout_revision.saturating_add(1);
     }
 
     /// Returns a revision only while the retained identity cannot alias an earlier cache key.

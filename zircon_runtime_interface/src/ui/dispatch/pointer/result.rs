@@ -88,14 +88,15 @@ impl UiPointerDispatchResult {
         }
     }
 
-    // BUG: [CR-DISPATCH-0003] 全部 Optional 目标缺值时可生成零更新但带事务及执行回执的报告；
-    // 当前判空忽略这些回执，导致该次绑定执行记录丢失。
-    /// 将组件事件触发的绑定报告送往统一输入结果，避免无意义的空更新占用结果。
+    /// 保留组件绑定的更新、失效域及事务或执行回执；仅过滤完全空白的报告。
     pub fn record_binding_report(&mut self, report: UiBindingUpdateReport) {
         if !report.updates.is_empty()
             || report.applied_count > 0
             || report.unchanged_count > 0
             || report.rejected_count > 0
+            || !report.dirty.is_empty()
+            || report.transaction.is_some()
+            || report.execution_receipt.is_some()
         {
             self.binding_reports.push(report);
         }

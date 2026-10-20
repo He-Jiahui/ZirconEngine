@@ -267,6 +267,7 @@ fn apply_effect(
     event: &UiInputEvent,
 ) -> UiSurfaceInputEffectResult<Option<UiNodeId>> {
     match effect {
+        UiDispatchEffect::RequestCursor { .. } => Ok(None),
         UiDispatchEffect::SetFocus { .. }
         | UiDispatchEffect::ClearFocus { .. }
         | UiDispatchEffect::CapturePointer { .. }

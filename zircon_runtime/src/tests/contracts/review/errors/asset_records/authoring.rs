@@ -1,4 +1,5 @@
 //! 代码审查回归护栏核对已迁移接口、错误边界、插件入口及镜像状态。以结果断言检查当前接口或源码快照对应的边界。
+use crate::tests::runtime_absorption::structure_convention::fixed_history_archive_source as history;
 #[test]
 fn review_f5_asset_authoring_uses_typed_error() {
     let authoring = include_str!("../../../../../asset/assets/authoring.rs");
@@ -7,18 +8,12 @@ fn review_f5_asset_authoring_uses_typed_error() {
     let import_authoring_asset =
         include_str!("../../../../../asset/importer/ingest/import_authoring_asset.rs");
     let asset_authoring_tests = include_str!("../../../../../asset/tests/assets/authoring.rs");
-    let review_findings = include_str!(
-        "../../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"
+    let review_findings = history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md");
+    let runtime_15_output = history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md");
+    let runtime_index_output = history(
+        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md",
     );
-    let runtime_15_output = include_str!(
-        "../../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md"
-    );
-    let runtime_index_output = include_str!(
-        "../../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md"
-    );
-    let convention = include_str!(
-        "../../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md"
-    );
+    let convention = history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md");
     let authoring_doc =
         include_str!("../../../../../../../docs/crates/zircon_runtime/asset/assets/authoring.md");
 

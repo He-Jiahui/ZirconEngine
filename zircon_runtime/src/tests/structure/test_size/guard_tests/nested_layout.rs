@@ -15,32 +15,32 @@ const NESTED_CHILD_PATHS: &[&str] = &[
 
 #[test]
 fn runtime_15_priority_plan_docs_guard_test_children_are_folder_backed() {
-    let parent_path = "tests/runtime_absorption/structure_convention/test_file_budget/priority_plan_docs/guard_tests.rs";
+    let parent_path = "tests/structure/test_size/priority_plan_docs/guard.rs";
     let parent = read_runtime_src(parent_path);
     let child_specs = [
         (
             "child_layout",
-            "tests/runtime_absorption/structure_convention/test_file_budget/priority_plan_docs/guard_tests/child_layout.rs",
+            "tests/structure/test_size/guard_tests/child_layout.rs",
             "runtime_15_priority_plan_docs_guard_children_are_folder_backed",
         ),
         (
             "listing",
-            "tests/runtime_absorption/structure_convention/test_file_budget/priority_plan_docs/guard_tests/listing.rs",
+            "tests/contracts/structure/test_size/guard_tests/listing.rs",
             "runtime_15_priority_plan_docs_guard_tests_stay_listed",
         ),
         (
             "inventory_sync",
-            "tests/runtime_absorption/structure_convention/test_file_budget/priority_plan_docs/guard_tests/inventory_sync.rs",
+            "tests/structure/test_size/guard_tests/inventory_sync.rs",
             "runtime_15_priority_plan_docs_guard_inventory_uses_child_row_data_sources",
         ),
         (
             "nested_layout",
-            "tests/runtime_absorption/structure_convention/test_file_budget/priority_plan_docs/guard_tests/nested_layout.rs",
+            "tests/structure/test_size/guard_tests/nested_layout.rs",
             "runtime_15_priority_plan_docs_guard_test_children_are_folder_backed",
         ),
         (
             "moved_paths",
-            "tests/runtime_absorption/structure_convention/test_file_budget/priority_plan_docs/guard_tests/moved_paths.rs",
+            "tests/structure/test_size/guard_tests/moved_paths.rs",
             "runtime_15_priority_plan_docs_moved_guard_paths_stay_current",
         ),
     ];
@@ -68,24 +68,10 @@ fn runtime_15_priority_plan_docs_guard_test_children_are_folder_backed() {
             "priority plan docs guard-test child owner `{child_path}` should stay focused and below 220 lines"
         );
     }
-
-    let _runtime_15_plan =
-        read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
-    let _runtime_index = runtime_index_with_output_archive_source();
-    let _structure_plan = read_repo("docs/plans/engine-code-structure-convention.md");
-    let _review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
-    let _module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
 }
 
 #[test]
 fn runtime_15_priority_plan_docs_guard_test_child_prose_names_full_inventory() {
-    let _runtime_15_plan =
-        read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
-    let _runtime_index = runtime_index_with_output_archive_source();
-    let _structure_plan = read_repo("docs/plans/engine-code-structure-convention.md");
-    let _review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
-    let _module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
-
     let current_owner_archive = priority_plan_doc_current_owner_archive_source();
     assert_child_owner_windows_name_full_inventory(
         "priority-plan-doc current-owner archive",

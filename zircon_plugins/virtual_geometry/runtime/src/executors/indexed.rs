@@ -13,7 +13,7 @@ use zircon_runtime::{
 };
 
 const IDENTITY_WORDS: usize = 14;
-const RUN_WORDS: usize = 24;
+const RUN_WORDS: usize = 25;
 const SIDECAR_WORDS: usize = 32;
 const MAX_RUNS: usize = 65_536;
 
@@ -83,10 +83,34 @@ pub(super) struct IndexedAuthorRunInput {
 /// Repeated source rows and disjoint ranges remain separate commands in input order.
 pub(super) struct IndexedAuthorRun {
     input: IndexedAuthorRunInput,
+    canonical_identity: RenderVirtualGeometryExecutionIdentity,
+    allow_authored_draw_reference: bool,
 }
 
 impl IndexedAuthorRun {
+    #[cfg(test)]
     pub(super) fn try_new(input: IndexedAuthorRunInput) -> Result<Self, String> {
+        let canonical_identity = input.identity;
+        Self::try_new_projected(input, canonical_identity, false)
+    }
+
+    pub(super) fn try_new_projected(
+        input: IndexedAuthorRunInput,
+        canonical_identity: RenderVirtualGeometryExecutionIdentity,
+        allow_authored_draw_reference: bool,
+    ) -> Result<Self, String> {
+        let actual = identity_words(input.identity);
+        let canonical = identity_words(canonical_identity);
+        if actual
+            .iter()
+            .zip(canonical)
+            .enumerate()
+            .any(|(word, (&actual, canonical))| {
+                actual != canonical && !(allow_authored_draw_reference && matches!(word, 1 | 10))
+            })
+        {
+            return Err("indexed run changes immutable canonical source identity".into());
+        }
         if input.index_range.start >= input.index_range.end
             || input.index_range.start % 3 != 0
             || (input.index_range.end - input.index_range.start) % 3 != 0
@@ -123,7 +147,11 @@ impl IndexedAuthorRun {
         {
             return Err("indexed author run has incomplete execution identity".into());
         }
-        Ok(Self { input })
+        Ok(Self {
+            input,
+            canonical_identity,
+            allow_authored_draw_reference,
+        })
     }
 }
 
@@ -247,6 +275,9 @@ pub(super) fn encode<C: RenderPassGpuRecordingContext + ?Sized>(
     }
     for run in inputs.runs {
         let input = &run.input;
+        if inputs.source_identities[input.source_row as usize] != run.canonical_identity {
+            return Err("indexed run canonical identity differs from its source row".into());
+        }
         words.extend_from_slice(&[
             input.source_row,
             input.candidate_index,
@@ -258,6 +289,7 @@ pub(super) fn encode<C: RenderPassGpuRecordingContext + ?Sized>(
             input.gpu_scene_instance_span.start,
             input.run_ordinal,
             input.source_index_count,
+            u32::from(run.allow_authored_draw_reference),
         ]);
         words.extend_from_slice(&identity_words(input.identity));
     }

@@ -16,7 +16,7 @@ Repository/profile/home targets, other drives, `D/E/F:\targets`, `D/E/F:\ZirconB
 - The default namespace is `zircon-local/<platform>/<configuration-key>/target`; its key includes repository identity, platform, toolchain declaration and Cargo arguments. Preserve Cargo's native target locks and use separate leaves for incompatible platforms/toolchains/architectures/profiles/features.
 - Target, Cargo build directory, Cargo home, temporary compiler outputs and cache paths all remain inside the selected root. The wrapper uses its own cache/scratch namespace and disables inherited compiler wrappers; it does not reuse the retired service's scratch or managed pools.
 - Preserve at least 35 GiB free on the target drive before a build/test. Reject admission when unavailable; never erase a reusable pool and immediately rebuild it.
-- Do not schedule competing full builds for the same graph or delete another task's active output. Record the exact command, revision, profile, feature selection, platform and terminal result under the validation cadence.
+- Full builds are prohibited. Follow [the module declaration](../validation/guide.md#declare-every-build) before every compilation-capable command. Reuse compatible managed dependency, static-library, symbol and incremental artifacts under their writer/Cargo locks; do not create a separate full target tree for each worktree or delete another task's active output. Record the exact command, revision, profile, feature selection, platform and terminal result under the validation cadence.
 - `--dry-run` projects a command without Cargo discovery, directory creation, storage admission or coordinator state. It is not validation acceptance.
 
 ## Preserved historical storage

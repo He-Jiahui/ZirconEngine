@@ -1,4 +1,5 @@
 //! 性能热点的结构守卫核对拥有者、文件预算和证据文档。以结果断言检查当前接口或源码快照对应的边界。
+use crate::tests::runtime_absorption::structure_convention::fixed_history_archive_source as history;
 #[test]
 fn runtime_07_project_io_folder_split_keeps_entry_and_converter_owners() {
     let project_io_root = include_str!("../../../scene/world/project_io.rs");
@@ -13,12 +14,12 @@ fn runtime_07_project_io_folder_split_keeps_entry_and_converter_owners() {
     let project_io_doc =
         include_str!("../../../../../docs/crates/zircon_runtime/scene/world/project_io.md");
     let runtime_07_plan = include_str!(
-        "../../../../../docs/plans/zircon_runtime/runtime/07-runtime-performance-hotpath.md"
+        "../../../../../docs/testing-and-validation/runtime-performance-validation-worklist.md"
     );
-    let runtime_07_archive = include_str!(
-        "../../../../../docs/plans/zircon_runtime/runtime/07/2026-07-09-runtime-performance-hotpath-output-records.md"
+    let runtime_07_archive = history("docs/plans/zircon_runtime/runtime/07/2026-07-09-runtime-performance-hotpath-output-records.md");
+    let runtime_index = include_str!(
+        "../../../../../docs/crates/zircon_runtime/structure/runtime-absorption-evidence.md"
     );
-    let runtime_index = include_str!("../../../../../docs/plans/zircon_runtime/runtime/index.md");
     let large_file_doc =
         include_str!("../../../../../docs/architecture/large-file-ownership-m1.md");
     let hotspot_doc =
@@ -84,8 +85,9 @@ fn runtime_07_project_io_folder_split_keeps_entry_and_converter_owners() {
     }
 
     for doc_anchor in [
-        "Project I/O Folder Split",
-        "project_io/{camera,document,physics,post_process,references,scene_asset,script,transform}.rs",
+        "The 2026-08-11 project I/O owner split keeps the public `World` API unchanged",
+        "`document.rs` owns JSON document encoding, decoding, and post-load normalization",
+        "project_io/{camera,document,physics,prefab,post_process,references,scene_asset,script,transform}.rs",
         "large_file_hotspot_count = 41",
         "runtime-other = 16",
         "project_io root wiring",

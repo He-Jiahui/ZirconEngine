@@ -369,6 +369,50 @@ impl RuntimeSession {
         })
     }
 
+    #[cfg(test)]
+    pub(crate) fn has_bound_viewport_surface(&self, viewport: ZrRuntimeViewportHandle) -> bool {
+        self.viewport_surface_bindings
+            .bound_viewports()
+            .contains(&viewport)
+    }
+
+    /// V2 is optional only for the unchanged Fifo request; invalid or failed V2 never downgrades.
+    pub(crate) fn bind_viewport_surface_v2(
+        &self,
+        request: zircon_runtime_interface::ZrRuntimeBindViewportSurfaceRequestV2,
+    ) -> Result<bool, RuntimeLibraryError> {
+        use zircon_runtime_interface::ZrRuntimePresentModeV2;
+        if !request.is_valid() {
+            return Err(RuntimeLibraryError::new(
+                "invalid V2 viewport surface binding request",
+            ));
+        }
+        self.foreign_output
+            .ensure_session_available("bind runtime viewport surface V2")?;
+        let Some(bind) = self.runtime().bind_viewport_surface_v2() else {
+            if request.present_mode != ZrRuntimePresentModeV2::Fifo as u32 {
+                return Err(RuntimeLibraryError::capability_unavailable(
+                    "runtime has no V2 surface binding for the requested presentation mode",
+                ));
+            }
+            return self.bind_viewport_surface(ZrRuntimeBindViewportSurfaceRequestV1::new(
+                zircon_runtime_interface::ZIRCON_RUNTIME_ABI_VERSION_V1,
+                request.viewport,
+                request.size,
+                request.target,
+            ));
+        };
+        let operation = self.begin_viewport_surface_binding(request.viewport)?;
+        // SAFETY: LoadedRuntime owns the validated provider and copied V2 function pointer;
+        // the request is a checked, by-value DTO and the session owns this live handle.
+        let result = ensure_status(
+            unsafe { bind(self.handle, request) },
+            "bind runtime viewport surface V2",
+        );
+        self.finish_viewport_surface_binding(operation, result.is_ok());
+        result.map(|()| true)
+    }
+
     pub(crate) fn bind_viewport_surface(
         &self,
         request: ZrRuntimeBindViewportSurfaceRequestV1,

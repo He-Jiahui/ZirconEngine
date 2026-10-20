@@ -33,6 +33,7 @@ pub fn import_ui_zui_document(
 ) -> Result<AssetImportOutcome, AssetImportError> {
     let document = context.source_str()?;
     let parsed = UiZuiAssetLoader::load_zui_str(document).map_err(|source| {
+        let source = zircon_runtime::asset::assets::UiV2AssetDocumentError::from(source);
         AssetImportError::UiV2Document {
             context: "parse .zui ui asset",
             source: source.into(),

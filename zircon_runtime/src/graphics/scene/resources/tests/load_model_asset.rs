@@ -1,8 +1,16 @@
 use std::sync::Arc;
 
 use super::load_model_asset_with_cache;
-use crate::asset::{AssetUri, MeshVertex, ModelAsset, ModelPrimitiveAsset, VirtualGeometryAsset};
+use crate::asset::{
+    AssetUri, MeshAsset, MeshVertex, ModelAsset, ModelPrimitiveAsset, ProjectAssetManager,
+    VirtualGeometryAsset,
+};
 use crate::core::math::{Vec2, Vec3};
+use crate::core::resource::{
+    MeshMarker, ModelMarker, ResourceHandle, ResourceId, ResourceKind, ResourceRecord,
+};
+use crate::graphics::backend::RenderBackend;
+use crate::graphics::scene::resources::ResourceStreamer;
 
 const ENSURE_MODEL_SOURCE: &str = include_str!("../resource_streamer/ensure_model.rs");
 
@@ -79,6 +87,170 @@ fn stale_prepared_model_asset_falls_back_to_latest_asset_load() {
     let loaded = loaded.expect("stale model asset must use fallback");
     assert!(!Arc::ptr_eq(&loaded, &cached));
     assert_eq!(loaded.as_ref(), &fresh);
+}
+
+#[test]
+fn model_cpu_admission_survives_real_gpu_stage_and_ensure_upload() {
+    let (backend, assets, mut streamer) = admission_upload_streamer();
+    for (name, staged) in [("staged", true), ("ensured", false)] {
+        let uri = AssetUri::parse(&format!("res://models/admission-{name}.model.toml")).unwrap();
+        let id = ResourceId::from_locator(&uri);
+        let model = ModelAsset {
+            uri: uri.clone(),
+            primitives: vec![admission_upload_primitive()],
+        };
+        assets
+            .assets::<ModelAsset>()
+            .insert(ResourceRecord::new(id, ResourceKind::Model, uri), model)
+            .expect("publish model through the resource owner");
+        let handle = ResourceHandle::<ModelMarker>::new(id);
+        let admitted = streamer
+            .admit_model_for_virtual_geometry(handle)
+            .expect("CPU model admission");
+        let asset = Arc::clone(&streamer.models[&id].asset);
+        assert!(streamer.models[&id].resource.is_none());
+        if staged {
+            let projection = assets.resource_manager().projection_snapshot();
+            let prepared = streamer
+                .stage_model(&backend.device, id, &projection)
+                .expect("stage actual GPU model")
+                .expect("CPU-only model requires upload");
+            assert!(streamer.models[&id].resource.is_none());
+            assert!(Arc::ptr_eq(&admitted, &prepared.admission));
+            assert!(Arc::ptr_eq(&asset, &prepared.asset));
+            let gpu = prepared.resource.as_ref().expect("actual GPU model");
+            assert_eq!(gpu.meshes[0].index_count, 3);
+            assert!(Arc::ptr_eq(
+                &admitted,
+                gpu.meshes[0]
+                    .source_admission()
+                    .expect("GPU provenance")
+                    .source()
+            ));
+            streamer.models.insert(id, prepared);
+            assert!(streamer
+                .stage_model(&backend.device, id, &projection)
+                .expect("repeat stage")
+                .is_none());
+        } else {
+            streamer
+                .ensure_model(&backend.device, handle)
+                .expect("ensure actual GPU model");
+        }
+        let prepared = &streamer.models[&id];
+        assert!(Arc::ptr_eq(&admitted, &prepared.admission));
+        assert!(Arc::ptr_eq(&asset, &prepared.asset));
+        let gpu = Arc::clone(prepared.resource.as_ref().expect("uploaded GPU model"));
+        assert_eq!(gpu.meshes[0].index_count, 3);
+        assert!(Arc::ptr_eq(
+            &admitted,
+            gpu.meshes[0]
+                .source_admission()
+                .expect("GPU provenance")
+                .source()
+        ));
+        streamer
+            .ensure_model(&backend.device, handle)
+            .expect("repeat ensure");
+        assert!(Arc::ptr_eq(
+            &gpu,
+            streamer.models[&id].resource.as_ref().unwrap()
+        ));
+    }
+}
+
+#[test]
+fn mesh_cpu_admission_survives_real_gpu_stage_upload() {
+    let (backend, assets, mut streamer) = admission_upload_streamer();
+    let uri = AssetUri::parse("res://meshes/admission-stage.zmesh").unwrap();
+    let id = ResourceId::from_locator(&uri);
+    let mesh = MeshAsset::from_model_primitive(uri.clone(), &admission_upload_primitive());
+    assets
+        .assets::<MeshAsset>()
+        .insert(ResourceRecord::new(id, ResourceKind::Mesh, uri), mesh)
+        .expect("publish mesh through the resource owner");
+    let handle = ResourceHandle::<MeshMarker>::new(id);
+    let admitted = streamer
+        .admit_mesh_for_virtual_geometry(handle)
+        .expect("CPU mesh admission");
+    let asset = Arc::clone(&streamer.meshes[&id].asset);
+    assert!(streamer.meshes[&id].resource.is_none());
+    let projection = assets.resource_manager().projection_snapshot();
+    let prepared = streamer
+        .stage_mesh(&backend.device, id, &projection)
+        .expect("stage actual GPU mesh")
+        .expect("CPU-only mesh requires upload");
+    assert!(streamer.meshes[&id].resource.is_none());
+    assert!(Arc::ptr_eq(&admitted, &prepared.admission));
+    assert!(Arc::ptr_eq(&asset, &prepared.asset));
+    let gpu = Arc::clone(prepared.resource.as_ref().expect("uploaded GPU mesh"));
+    assert_eq!(gpu.index_count, 3);
+    assert!(Arc::ptr_eq(
+        &admitted,
+        gpu.source_admission().expect("GPU provenance").source()
+    ));
+    streamer.meshes.insert(id, prepared);
+    assert!(streamer
+        .stage_mesh(&backend.device, id, &projection)
+        .expect("repeat stage")
+        .is_none());
+    streamer
+        .ensure_mesh(&backend.device, handle)
+        .expect("repeat ensure");
+    assert!(Arc::ptr_eq(
+        &gpu,
+        streamer.meshes[&id].resource.as_ref().unwrap()
+    ));
+}
+
+fn admission_upload_primitive() -> ModelPrimitiveAsset {
+    ModelPrimitiveAsset {
+        vertices: vec![
+            MeshVertex::new(Vec3::ZERO, Vec3::Z, Vec2::ZERO),
+            MeshVertex::new(Vec3::X, Vec3::Z, Vec2::X),
+            MeshVertex::new(Vec3::Y, Vec3::Z, Vec2::Y),
+        ],
+        indices: vec![0, 1, 2],
+        mesh: None,
+        mesh_sdf: None,
+        virtual_geometry: None,
+    }
+}
+
+fn admission_upload_streamer() -> (RenderBackend, Arc<ProjectAssetManager>, ResourceStreamer) {
+    let backend =
+        RenderBackend::new_offscreen().expect("admission upload requires a real GPU device");
+    let layout = backend
+        .device
+        .create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            label: Some("source-admission-upload-test-texture-layout"),
+            entries: &[
+                wgpu::BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Texture {
+                        multisampled: false,
+                        view_dimension: wgpu::TextureViewDimension::D2,
+                        sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                    },
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 1,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                    count: None,
+                },
+            ],
+        });
+    let assets = Arc::new(ProjectAssetManager::default());
+    let streamer = ResourceStreamer::new_for_test(
+        Arc::clone(&assets),
+        &backend.device,
+        &backend.queue,
+        &layout,
+    );
+    (backend, assets, streamer)
 }
 
 #[test]

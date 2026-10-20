@@ -1,4 +1,8 @@
 use super::MeshDraw;
+use crate::core::framework::render::{
+    RenderVirtualGeometryExecutionIdentity, RenderVirtualGeometryExecutionSegment,
+    RenderVirtualGeometryExecutionState,
+};
 use crate::graphics::types::ViewportRenderFrame;
 use crate::graphics::{
     virtual_geometry_indexed_source_rows, VirtualGeometryIndexedAuthorRun,
@@ -9,9 +13,18 @@ use std::sync::Arc;
 pub(crate) const INDEXED_ARGS_RESOURCE: &str = "virtual-geometry-indexed-args";
 pub(crate) const INDEXED_CAPACITY: u32 = 65536;
 #[derive(Debug)]
+enum EmptyIndexedDrawReason {
+    ExplicitSelection,
+    ExplicitUnbound,
+    PendingUpload,
+    NoResidentRows,
+}
+
+#[derive(Debug)]
 pub(crate) struct VirtualGeometryIndexedPlan {
     args: Arc<wgpu::Buffer>,
     authors: Vec<VirtualGeometryIndexedAuthorRun>,
+    empty_admission: Option<Vec<EmptyIndexedDrawReason>>,
 }
 impl VirtualGeometryIndexedPlan {
     pub(crate) fn args(&self) -> &Arc<wgpu::Buffer> {
@@ -19,6 +32,13 @@ impl VirtualGeometryIndexedPlan {
     }
     pub(crate) fn authors(&self) -> &[VirtualGeometryIndexedAuthorRun] {
         &self.authors
+    }
+    pub(crate) fn empty_admission_is_proven(&self) -> bool {
+        self.authors.is_empty()
+            && self
+                .empty_admission
+                .as_ref()
+                .is_some_and(|reasons| !reasons.is_empty())
     }
 }
 #[derive(Clone, Debug)]
@@ -64,11 +84,36 @@ fn captured<'a>(
     }
     Ok(matches[0])
 }
+fn indexed_draw_is_resident(
+    segments: &[RenderVirtualGeometryExecutionSegment],
+    identity: RenderVirtualGeometryExecutionIdentity,
+    state: RenderVirtualGeometryExecutionState,
+) -> Result<bool, String> {
+    let matches = segments
+        .iter()
+        .filter(|segment| {
+            RenderVirtualGeometryExecutionIdentity::from_segment(segment) == identity
+                && segment.state == state
+        })
+        .count();
+    if matches != 1 {
+        return Err("main indexed draw has no unique original execution identity and state".into());
+    }
+    match state {
+        RenderVirtualGeometryExecutionState::Resident => Ok(true),
+        RenderVirtualGeometryExecutionState::PendingUpload => Ok(false),
+        RenderVirtualGeometryExecutionState::Missing => {
+            Err("missing execution segment cannot own a physical indexed draw".into())
+        }
+    }
+}
+
 pub(crate) fn expand_indexed_draws(
     device: &wgpu::Device,
     frame: &ViewportRenderFrame,
     draws: Vec<MeshDraw>,
-) -> Result<Vec<MeshDraw>, String> {
+) -> Result<(Vec<MeshDraw>, Option<Arc<VirtualGeometryIndexedPlan>>), String> {
+    let mut empty_reasons = Vec::new();
     let author_inputs = frame
         .virtual_geometry_execution_data
         .as_deref()
@@ -86,16 +131,33 @@ pub(crate) fn expand_indexed_draws(
     });
     let mut admitted_draws = Vec::with_capacity(draws.len());
     for draw in draws {
-        let captured = draw.mesh.source_admission().is_some_and(|bound| {
-            frame.virtual_geometry_indexed_sources.iter().any(|source| {
-                source.stable_instance_key() == draw.stable_instance_key
-                    && source.primitive().same_primitive(bound)
-            })
-        });
+        let mut matches = frame
+            .virtual_geometry_indexed_sources
+            .iter()
+            .filter(|source| {
+                draw.mesh.source_admission().is_some_and(|bound| {
+                    source.stable_instance_key() == draw.stable_instance_key
+                        && source.primitive().same_primitive(bound)
+                })
+            });
+        let captured_source = matches.next();
+        if matches.next().is_some() {
+            return Err("captured VG draw has ambiguous same-frame source admission".into());
+        }
+        let captured = captured_source.is_some();
         if captured && explicit_empty {
+            empty_reasons.push(EmptyIndexedDrawReason::ExplicitSelection);
             continue;
         }
         if captured && draw.virtual_geometry_submission_detail.is_none() {
+            let explicitly_unbound = captured_source.is_some_and(|source| {
+                source.has_authored_execution_binding()
+                    && source.authored_rows().is_some_and(|rows| rows.is_empty())
+            });
+            if explicitly_unbound {
+                empty_reasons.push(EmptyIndexedDrawReason::ExplicitUnbound);
+                continue;
+            }
             return Err(
                 "captured VG draw has no exact execution segment; whole-mesh replay is forbidden"
                     .into(),
@@ -104,17 +166,29 @@ pub(crate) fn expand_indexed_draws(
         admitted_draws.push(draw);
     }
     let draws = admitted_draws;
+    let Some(data) = frame.virtual_geometry_execution_data.as_deref() else {
+        if draws
+            .iter()
+            .any(|draw| draw.virtual_geometry_submission_detail.is_some())
+        {
+            return Err("indexed main draw has no actual execution data".into());
+        }
+        return Ok((draws, None));
+    };
+    let rows = virtual_geometry_indexed_source_rows(data)?;
+    if rows.is_empty() {
+        empty_reasons.push(EmptyIndexedDrawReason::NoResidentRows);
+    }
     if !draws
         .iter()
         .any(|draw| draw.virtual_geometry_submission_detail.is_some())
     {
-        return Ok(draws);
+        let mut plan = VirtualGeometryIndexedPlan::empty(device);
+        Arc::get_mut(&mut plan)
+            .expect("new indexed plan is uniquely owned")
+            .empty_admission = (!empty_reasons.is_empty()).then_some(empty_reasons);
+        return Ok((draws, Some(plan)));
     }
-    let data = frame
-        .virtual_geometry_execution_data
-        .as_deref()
-        .ok_or("indexed main draw has no actual execution data")?;
-    let rows = virtual_geometry_indexed_source_rows(data)?;
     let mut groups = Vec::with_capacity(draws.len());
     let mut authors = Vec::new();
     for draw in draws {
@@ -125,6 +199,8 @@ pub(crate) fn expand_indexed_draws(
         let identity = detail
             .execution_identity()
             .ok_or("main indexed draw lost its full execution identity")?;
+        let resident =
+            indexed_draw_is_resident(&data.execution_segments, identity, detail.state())?;
         let bound = draw
             .mesh
             .source_admission()
@@ -156,19 +232,29 @@ pub(crate) fn expand_indexed_draws(
             .checked_add(instance_count)
             .ok_or("GPUScene span overflow")?;
         let topology = bound.indexed_topology().map_err(str::to_owned)?;
+        // Pending metadata retains its upstream args and authority, but it has
+        // no resident geometry. Never replay its original full-mesh CPU args.
+        if !resident {
+            empty_reasons.push(EmptyIndexedDrawReason::PendingUpload);
+            continue;
+        }
         let mut slots = Vec::new();
         for row in rows.iter().filter(|row| {
             row.identity() == identity && source.owns_resident_payload(row.page_index())
         }) {
             let mut matching = Vec::new();
-            for run in topology {
-                if global_id(source.page_ids(), run.page_id)? == identity.page_id
-                    && global_id(source.cluster_ids(), run.cluster_id)? == row.cluster_id()
-                    && usize::try_from(run.range_index)
-                        .map_err(|_| "admitted range ordinal exceeds usize")?
-                        == row.range_index()
-                {
-                    matching.push(run);
+            if source.has_authored_execution_binding() {
+                matching.push(source.authored_run_for_row(row)?);
+            } else {
+                for run in topology {
+                    if global_id(source.page_ids(), run.page_id)? == identity.page_id
+                        && global_id(source.cluster_ids(), run.cluster_id)? == row.cluster_id()
+                        && usize::try_from(run.range_index)
+                            .map_err(|_| "admitted range ordinal exceeds usize")?
+                            == row.range_index()
+                    {
+                        matching.push(run);
+                    }
                 }
             }
             if matching.len() != 1 {
@@ -207,7 +293,16 @@ pub(crate) fn expand_indexed_draws(
         groups.push((draw, Some(slots)));
     }
     if authors.is_empty() {
-        return Err("indexed main frame has no admitted runs".into());
+        // A valid all-pending frame has no indexed raster runs. Other ordinary
+        // mesh draws in the frame retain their original submission path.
+        let mut plan = VirtualGeometryIndexedPlan::empty(device);
+        Arc::get_mut(&mut plan)
+            .expect("new indexed plan is uniquely owned")
+            .empty_admission = (!empty_reasons.is_empty()).then_some(empty_reasons);
+        return Ok((
+            groups.into_iter().map(|(draw, _)| draw).collect(),
+            Some(plan),
+        ));
     }
     // A fresh physical allocation is exclusive to this frame. No persistent
     // cache or transient pool can rewrite it after native capture retains it.
@@ -220,7 +315,11 @@ pub(crate) fn expand_indexed_draws(
             | wgpu::BufferUsages::COPY_DST,
         mapped_at_creation: false,
     }));
-    let plan = Arc::new(VirtualGeometryIndexedPlan { args, authors });
+    let plan = Arc::new(VirtualGeometryIndexedPlan {
+        args,
+        authors,
+        empty_admission: None,
+    });
     let mut expanded = Vec::new();
     for (draw, slots) in groups {
         match slots {
@@ -244,7 +343,7 @@ pub(crate) fn expand_indexed_draws(
             }
         }
     }
-    Ok(expanded)
+    Ok((expanded, Some(plan)))
 }
 
 pub(crate) const INDEXED_JOURNAL_RESOURCE: &str = "virtual-geometry-admitted-run-slots";
@@ -261,6 +360,7 @@ impl VirtualGeometryIndexedPlan {
                 mapped_at_creation: false,
             })),
             authors: Vec::new(),
+            empty_admission: None,
         })
     }
     pub(crate) fn append_issued(
@@ -345,3 +445,73 @@ fn main() {
     atomicStore(&journal[0],base+count);
 }
 "#;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn segment(
+        state: RenderVirtualGeometryExecutionState,
+    ) -> RenderVirtualGeometryExecutionSegment {
+        RenderVirtualGeometryExecutionSegment {
+            original_index: 7,
+            instance_index: Some(1),
+            entity: 2,
+            stable_instance_key: 42,
+            page_id: 300,
+            draw_ref_index: 3,
+            submission_index: Some(5),
+            draw_ref_rank: Some(2),
+            cluster_start_ordinal: 1,
+            cluster_span_count: 1,
+            cluster_total_count: 3,
+            submission_slot: Some(7),
+            state,
+            lineage_depth: 1,
+            lod_level: 0,
+            frontier_rank: 2,
+        }
+    }
+
+    #[test]
+    fn indexed_raster_admission_requires_unique_full_identity_and_actual_resident_state() {
+        let pending = segment(RenderVirtualGeometryExecutionState::PendingUpload);
+        let identity = RenderVirtualGeometryExecutionIdentity::from_segment(&pending);
+        assert!(
+            !indexed_draw_is_resident(std::slice::from_ref(&pending), identity, pending.state,)
+                .unwrap()
+        );
+        assert!(indexed_draw_is_resident(
+            std::slice::from_ref(&pending),
+            identity,
+            RenderVirtualGeometryExecutionState::Resident,
+        )
+        .is_err());
+        assert!(indexed_draw_is_resident(
+            &[pending.clone(), pending.clone()],
+            identity,
+            pending.state,
+        )
+        .is_err());
+        let mut different_identity = identity;
+        different_identity.original_index += 1;
+        assert!(indexed_draw_is_resident(
+            std::slice::from_ref(&pending),
+            different_identity,
+            pending.state,
+        )
+        .is_err());
+        let resident = segment(RenderVirtualGeometryExecutionState::Resident);
+        assert!(indexed_draw_is_resident(
+            std::slice::from_ref(&resident),
+            identity,
+            resident.state,
+        )
+        .unwrap());
+        let missing = segment(RenderVirtualGeometryExecutionState::Missing);
+        assert!(
+            indexed_draw_is_resident(std::slice::from_ref(&missing), identity, missing.state,)
+                .is_err()
+        );
+    }
+}

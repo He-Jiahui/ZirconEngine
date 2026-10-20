@@ -2,9 +2,9 @@ use crate::{
     AdapterSelectionError, AdapterSelectionPolicy, DeviceGeneration, DeviceId,
     DiagnosticReadbackBudget, GpuMemoryBudget, RejectedAdapterReason, RenderAdapterCatalog,
     RenderAdapterClass, RenderAdapterFacts, RenderAdapterSelector, RenderBackendKind,
-    RenderDeviceFeature, RenderDeviceFeatureSet, RenderDeviceLimits, RenderDeviceNegotiationError,
-    RenderDeviceProfile, RenderDeviceQueueTopology, RenderDeviceRequestFailure,
-    RenderDeviceRequestPolicy, SubmissionLimits,
+    RenderDeviceBudgets, RenderDeviceFeature, RenderDeviceFeatureSet, RenderDeviceLimits,
+    RenderDeviceNegotiationError, RenderDeviceProfile, RenderDeviceQueueTopology,
+    RenderDeviceRequestFailure, RenderDeviceRequestPolicy, SubmissionLimits,
 };
 
 fn features(features: &[RenderDeviceFeature]) -> RenderDeviceFeatureSet {
@@ -287,9 +287,11 @@ fn immutable_device_profile_keeps_identity_and_negotiated_feature_receipt_togeth
             max_storage_buffer_binding_size: 128 * 1024 * 1024,
         },
         RenderDeviceQueueTopology::single_serialized_queue(),
-        GpuMemoryBudget::reference_1080p_mid(),
-        SubmissionLimits::default(),
-        DiagnosticReadbackBudget::default(),
+        RenderDeviceBudgets {
+            memory_budget: GpuMemoryBudget::reference_1080p_mid(),
+            submission_limits: SubmissionLimits::default(),
+            diagnostic_readback_budget: DiagnosticReadbackBudget::default(),
+        },
     );
 
     assert_eq!(profile.device_id(), DeviceId::new(41));

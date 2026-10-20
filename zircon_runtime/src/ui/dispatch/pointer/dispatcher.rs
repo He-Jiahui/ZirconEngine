@@ -185,6 +185,7 @@ impl UiPointerDispatcher {
         if route_uses_preview_tunnel(&route) {
             for node_id in route.routing_root_to_leaf().iter().copied() {
                 if self.dispatch_phase_handlers(
+                    tree,
                     &route,
                     &mut state,
                     node_id,
@@ -231,6 +232,7 @@ impl UiPointerDispatcher {
                 && route.target == Some(candidate)
             {
                 self.dispatch_candidate_route(
+                    tree,
                     &route,
                     &mut state,
                     &mut visited,
@@ -239,6 +241,7 @@ impl UiPointerDispatcher {
                 )?
             } else {
                 self.dispatch_candidate_route(
+                    tree,
                     &route,
                     &mut state,
                     &mut visited,
@@ -259,6 +262,7 @@ impl UiPointerDispatcher {
     /// 阻断当前候选返回 false，让外层继续尝试后续候选；父链已在进入前由调用方解析。
     fn dispatch_candidate_route(
         &self,
+        tree: &UiTree,
         route: &UiPointerRoute,
         state: &mut UiPointerDispatchState,
         visited: &mut UiDispatchVisitedNodeSet,
@@ -274,7 +278,7 @@ impl UiPointerDispatcher {
             } else {
                 UiDispatchPhase::Bubble
             };
-            if self.dispatch_phase_handlers(route, state, node_id, phase, true)? {
+            if self.dispatch_phase_handlers(tree, route, state, node_id, phase, true)? {
                 return Ok(true);
             }
             // 普通阶段的阻断只结束这条候选父链，不能把它误作整次分派已处理。
@@ -291,6 +295,7 @@ impl UiPointerDispatcher {
     /// 返回 true 表示应停止整次分派；非预览阻断则通过状态由候选层截断父链。
     fn dispatch_phase_handlers(
         &self,
+        tree: &UiTree,
         route: &UiPointerRoute,
         state: &mut UiPointerDispatchState,
         node_id: UiNodeId,
@@ -328,6 +333,20 @@ impl UiPointerDispatcher {
                 phase,
                 effect,
             });
+            if phase != UiDispatchPhase::PreviewTunnel
+                && matches!(
+                    effect,
+                    UiPointerDispatchEffect::Handled | UiPointerDispatchEffect::Blocked
+                )
+                && tree
+                    .nodes
+                    .get(&node_id)
+                    .ok_or(UiTreeError::MissingNode(node_id))?
+                    .is_pointer_passthrough()
+            {
+                // Keep the invocation, but ordinary Pass replies cannot consume the route.
+                continue;
+            }
             if apply_pointer_effect(state, node_id, effect, phase) {
                 return Ok(true);
             }

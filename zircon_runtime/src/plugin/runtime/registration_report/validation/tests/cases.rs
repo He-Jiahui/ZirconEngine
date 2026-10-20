@@ -1,6 +1,7 @@
 use crate::asset::{AssetImporterDescriptor, AssetKind};
 use crate::core::framework::project::ExportPackagingStrategy;
 use crate::core::framework::scene::ComponentTypeDescriptor;
+use crate::core::framework::script::{ScriptHostParameterDescriptor, ScriptHostValueKind};
 use crate::plugin::{
     CapabilityStatus, CapabilityStatusManifest, PluginDependencyManifest,
     PluginEventCatalogManifest, PluginFeatureBundleManifest, PluginFeatureDependency,
@@ -146,4 +147,33 @@ fn append_projection_fixture_row(
                 .with_bevy_reference(format!("bevy::validation_{index}")),
         )
         .with_module(package_module)
+}
+
+#[test]
+fn package_validation_rejects_parameter_names_only_within_the_same_method() {
+    let parameter = || ScriptHostParameterDescriptor::new("entity", ScriptHostValueKind::Null);
+    let manifest = PluginPackageManifest::new("weather", "Weather").with_provided_interface(
+        PluginInterfaceManifest::new("weather.query.v1")
+            .with_method(
+                PluginInterfaceMethodManifest::new("first", 0)
+                    .with_parameter(parameter())
+                    .with_parameter(parameter()),
+            )
+            .with_method(
+                PluginInterfaceMethodManifest::new("second", 1).with_parameter(parameter()),
+            ),
+    );
+    let mut diagnostics = Vec::new();
+
+    validate_runtime_plugin_package_manifest_with_stats(None, &manifest, &mut diagnostics);
+
+    let parameter_diagnostics = diagnostics
+        .iter()
+        .filter(|diagnostic| diagnostic.contains(" parameter `"))
+        .map(String::as_str)
+        .collect::<Vec<_>>();
+    assert_eq!(
+        parameter_diagnostics,
+        ["runtime plugin package manifest provided interface `weather.query.v1` method `first` parameter `entity` must be unique"]
+    );
 }

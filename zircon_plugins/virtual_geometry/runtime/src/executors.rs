@@ -20,6 +20,8 @@ mod indirect;
 pub(super) mod native_probe;
 #[path = "executors/pipeline_cache.rs"]
 mod pipeline_cache;
+#[path = "executors/selection.rs"]
+mod selection;
 
 #[cfg(test)]
 pub(crate) type IndirectReadbackWords = indirect::IndirectReadbackWords;
@@ -65,6 +67,11 @@ const PREPARE_RESOURCES: &[ExpectedResource] = &[ExpectedResource::new(
 
 const NODE_CLUSTER_CULL_RESOURCES: &[ExpectedResource] = &[
     ExpectedResource::new(
+        "virtual-geometry-cull-decisions",
+        RenderGraphResourceKind::TransientBuffer,
+        RenderGraphResourceAccessKind::Write,
+    ),
+    ExpectedResource::new(
         "virtual-geometry-page-requests",
         RenderGraphResourceKind::TransientBuffer,
         RenderGraphResourceAccessKind::Read,
@@ -105,6 +112,11 @@ const PAGE_FEEDBACK_RESOURCES: &[ExpectedResource] = &[
 ];
 
 const VISBUFFER_RESOURCES: &[ExpectedResource] = &[
+    ExpectedResource::new(
+        "virtual-geometry-visible-candidate-indices",
+        RenderGraphResourceKind::TransientBuffer,
+        RenderGraphResourceAccessKind::Read,
+    ),
     ExpectedResource::new(
         "virtual-geometry-visible-clusters",
         RenderGraphResourceKind::TransientBuffer,
@@ -147,6 +159,11 @@ const DEBUG_OVERLAY_RESOURCES: &[ExpectedResource] = &[
 
 const INDIRECT_ARGS_RESOURCES: &[ExpectedResource] = &[
     ExpectedResource::new(
+        "virtual-geometry-cull-decisions",
+        RenderGraphResourceKind::TransientBuffer,
+        RenderGraphResourceAccessKind::Write,
+    ),
+    ExpectedResource::new(
         "virtual-geometry-visible-candidate-indices",
         RenderGraphResourceKind::TransientBuffer,
         RenderGraphResourceAccessKind::Read,
@@ -158,6 +175,11 @@ const INDIRECT_ARGS_RESOURCES: &[ExpectedResource] = &[
     ),
     ExpectedResource::new(
         "virtual-geometry-indirect-authority",
+        RenderGraphResourceKind::TransientBuffer,
+        RenderGraphResourceAccessKind::Write,
+    ),
+    ExpectedResource::new(
+        "virtual-geometry-indirect-segments",
         RenderGraphResourceKind::TransientBuffer,
         RenderGraphResourceAccessKind::Write,
     ),
@@ -239,6 +261,16 @@ const DEBUG_OVERLAY_CONTRACT: RenderPassExecutorContract = RenderPassExecutorCon
 };
 
 const TERMINAL_RESOURCES: &[ExpectedResource] = &[
+    ExpectedResource::new(
+        "virtual-geometry-cull-decisions",
+        RenderGraphResourceKind::TransientBuffer,
+        RenderGraphResourceAccessKind::Write,
+    ),
+    ExpectedResource::new(
+        "virtual-geometry-indirect-segments",
+        RenderGraphResourceKind::TransientBuffer,
+        RenderGraphResourceAccessKind::Read,
+    ),
     ExpectedResource::new(
         "virtual-geometry-indexed-args",
         RenderGraphResourceKind::TransientBuffer,

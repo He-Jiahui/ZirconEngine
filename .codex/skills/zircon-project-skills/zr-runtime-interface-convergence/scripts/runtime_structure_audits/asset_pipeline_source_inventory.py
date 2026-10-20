@@ -50,7 +50,7 @@ RUNTIME_04_GUARD_FILES = (
     "zircon_runtime/src/asset/tests/assets/artifact_store/lazy_residency.rs",
     "zircon_runtime/src/asset/tests/assets/artifact_store/scene_components.rs",
     "zircon_runtime/src/asset/tests/assets/artifact_store/scene_script.rs",
-    "zircon_runtime/crates/zr_resource/src/tests.rs",
+    "zircon_runtime/crates/zr_resource/src/tests/cases.rs",
     "zircon_runtime/src/tests/contracts/asset_surface.rs",
     "zircon_runtime/src/tests/contracts/asset_surface/facade_query.rs",
     "zircon_runtime/src/tests/contracts/asset_worker_policy.rs",

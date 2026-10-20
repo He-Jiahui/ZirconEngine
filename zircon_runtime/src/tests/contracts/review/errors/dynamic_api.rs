@@ -8,26 +8,18 @@ fn review_f5_dynamic_api_session_uses_typed_errors_before_abi_status_boundary() 
     let error = include_str!("../../../../dynamic_api/session/error.rs");
     let project = include_str!("../../../../dynamic_api/session/project.rs");
     let status = include_str!("../../../../dynamic_api/session/status.rs");
-    let _review_findings =
-        include_str!("../../../../../../docs/plans/engine-code-review-findings-2026-06.md");
-    let _runtime_15_plan = include_str!(
-        "../../../../../../docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md"
-    );
-    let _runtime_index =
-        include_str!("../../../../../../docs/plans/zircon_runtime/runtime/index.md");
-    let _convention =
-        include_str!("../../../../../../docs/plans/engine-code-structure-convention.md");
+    let frame = include_str!("../../../../dynamic_api/frame.rs");
+    let bounded_error = include_str!("../../../../dynamic_api/bounded_json/error.rs");
     let _session_doc =
         include_str!("../../../../../../docs/crates/zircon_runtime/dynamic_api/session.md");
 
     for required in [
         "mod error;",
         "pub use error::{RuntimeDynamicSessionError, RuntimeProjectError};",
-        ") -> RuntimeDynamicSessionResult<Self>",
+        ") -> Result<Self, RuntimeConstructionFailure>",
         "fn tick_frame(&mut self) -> RuntimeDynamicSessionResult<()>",
         "RuntimeDynamicSessionError::RenderBridgeStep",
         "RuntimeDynamicSessionError::ProjectStep",
-        "RuntimeDynamicSessionError::EncodeAccessibilityTree",
     ] {
         assert!(
             [session, construction, ffi, state]
@@ -36,6 +28,54 @@ fn review_f5_dynamic_api_session_uses_typed_errors_before_abi_status_boundary() 
             "dynamic API session owners should contain typed-error anchor `{required}`"
         );
     }
+    for required in [
+        "pub(super) fn encode_accessibility_tree(",
+        ") -> Result<Vec<u8>, BoundedJsonError>",
+        "bounded_json::encode(",
+        "ZR_RUNTIME_ACCESSIBILITY_TREE_OUTPUT_LIMIT_V1",
+        "|| accessibility_tree_item_count(snapshot)",
+    ] {
+        assert!(
+            frame.contains(required),
+            "bounded accessibility encoder must retain `{required}`"
+        );
+    }
+    assert!(
+        ffi.contains("encode_accessibility_tree(&snapshot).map_err(|error| {")
+            && ffi.contains("output_payload_status(")
+            && ffi.contains("runtime accessibility tree output exceeds limit"),
+        "accessibility encoder errors must reach the typed output-payload ABI boundary"
+    );
+    for required in [
+        "enum BoundedJsonError",
+        "EncodedBytes { observed: usize, limit: usize }",
+        "Items { observed: usize, limit: usize }",
+        "NestingDepth { observed: usize, limit: usize }",
+        "ProcessingTime { limit_micros: u64 }",
+        "const fn is_limit_exceeded(&self) -> bool",
+    ] {
+        assert!(
+            bounded_error.contains(required),
+            "bounded output must preserve error category `{required}`"
+        );
+    }
+    let construction_failure =
+        include_str!("../../../../dynamic_api/session/construction/cleanup.rs");
+    for required in [
+        "struct RuntimeConstructionFailure",
+        "primary: RuntimeDynamicSessionError",
+        "impl From<RuntimeDynamicSessionError> for RuntimeConstructionFailure",
+        "fn from(primary: RuntimeDynamicSessionError) -> Self",
+        "impl std::error::Error for RuntimeConstructionFailure",
+        "fn source(&self) -> Option<&(dyn std::error::Error + 'static)>",
+        "Some(&self.primary)",
+    ] {
+        assert!(
+            construction_failure.contains(required),
+            "typed construction failure must preserve {required}"
+        );
+    }
+    assert!(construction.contains(") -> Result<RuntimeDynamicSession, RuntimeConstructionFailure>"));
     for required in [
         "pub(super) type RuntimeDynamicSessionResult<T>",
         "pub(super) type RuntimeProjectResult<T>",
@@ -71,9 +111,18 @@ fn review_f5_dynamic_api_session_uses_typed_errors_before_abi_status_boundary() 
         );
     }
     for required in [
-        "use std::fmt::Display;",
+        "use std::fmt::{self, Display, Write as _};",
         "fn error_status(message: impl Display) -> ZrStatus",
-        "let message = message.to_string();",
+        "fn output_payload_status(",
+        "error: BoundedJsonError",
+        "if error.is_limit_exceeded()",
+        "limit_exceeded(limit_message)",
+        "error_status(error)",
+        "static STATUS_DIAGNOSTICS: RefCell<StatusDiagnosticsBuffer>",
+        "bytes: [u8; ZR_RUNTIME_STATUS_DIAGNOSTICS_MAX_ENCODED_BYTES_V1]",
+        "let available = self.bytes.len().saturating_sub(self.len);",
+        "while count > 0 && !value.is_char_boundary(count)",
+        "storage.write_fmt(format_args!(\"{message}\"))",
     ] {
         assert!(
             status.contains(required),

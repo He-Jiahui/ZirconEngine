@@ -179,6 +179,36 @@ class DrainObservationsTests(unittest.TestCase):
         with self.assertRaises(JenkinsError):
             drain.classify_executions(self.manager, self.owner, changed)
 
+        failed = self.execution(status="failed")
+        failed[1]["payload"]["exitCode"] = 1
+        failed[2]["payload"]["status"] = "failed"
+        guard = failed[-1]
+        guard["payload"]["completeProof"]["processExitCode"] = 1
+        failed[0]["payload"]["abortProof"] = {
+            "kind": "execution-host-aborted", "guardNativeJobId": guard["key"],
+            "proofDigest": digest(guard["payload"]["completeProof"]),
+            "outcome": "failed", "artifactPublicationAllowed": False}
+        before = copy.deepcopy(failed)
+        self.assertEqual([], drain.classify_executions(self.manager, self.owner, failed)["activeExecutions"])
+        self.assertEqual(before, failed)
+        missing_abort = copy.deepcopy(failed)
+        missing_abort[0]["payload"].pop("abortProof")
+        forged_abort = copy.deepcopy(failed)
+        forged_abort[0]["payload"]["abortProof"]["proofDigest"] = "0" * 64
+        incomplete_guard = copy.deepcopy(failed)
+        incomplete_guard[-1]["payload"]["completeProof"]["complete"] = False
+        incomplete_guard[0]["payload"]["abortProof"]["proofDigest"] = digest(
+            incomplete_guard[-1]["payload"]["completeProof"])
+        missing_proof = copy.deepcopy(failed)
+        missing_proof[-1]["payload"].pop("completeProof")
+        wrong_outcome = copy.deepcopy(failed)
+        wrong_outcome[0]["payload"]["status"] = "passed"
+        for label, changed in (("missing-abort", missing_abort), ("forged-abort", forged_abort),
+                               ("incomplete-guard", incomplete_guard), ("missing-proof", missing_proof),
+                               ("missing-guard", failed[:-1]), ("execution-not-failed", wrong_outcome)):
+            with self.subTest(label=label), self.assertRaises(JenkinsError):
+                drain.classify_executions(self.manager, self.owner, changed)
+
     def test_current_active_execution_is_not_filtered_by_idle_jenkins(self):
         self.assertEqual(["execution"], drain.classify_executions(self.manager, self.owner, self.execution(status="running"))["activeExecutions"])
 

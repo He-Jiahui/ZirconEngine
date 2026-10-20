@@ -62,7 +62,7 @@ pub(in crate::graphics::scene::scene_renderer::core) fn finalize_surface_present
     let outcome = present_result.map_err(|failure| {
         let (source, present_submission) = failure.into_parts();
         GraphicsError::FramePresentationFailed {
-            receipt: receipt.clone(),
+            receipt: Box::new(receipt.clone()),
             present_submission,
             source: Box::new(source),
         }
@@ -74,7 +74,7 @@ pub(in crate::graphics::scene::scene_renderer::core) fn finalize_surface_present
     receipt
         .with_present_submission(present_submission)
         .map_err(|source| GraphicsError::FramePresentationFailed {
-            receipt: scene_receipt,
+            receipt: Box::new(scene_receipt),
             present_submission: Some(present_submission),
             source: Box::new(source.into()),
         })

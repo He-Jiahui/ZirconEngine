@@ -9,9 +9,9 @@ pub(super) fn assert_typed_error_asset_parents_are_folder_backed(
         "asset loaders typed-error parent mounts focused child owners",
         &sources.asset_loaders_parent,
         &[
-            "#[path = \"asset_loaders/animation_binary.rs\"]",
+            "#[path = \"../../../review/errors/asset_loaders/animation_binary.rs\"]",
             "mod animation_binary;",
-            "#[path = \"asset_loaders/artifact_importer.rs\"]",
+            "#[path = \"../../../review/errors/asset_loaders/artifact_importer.rs\"]",
             "mod artifact_importer;",
             "#[path = \"asset_loaders/mesh_obj.rs\"]",
             "mod mesh_obj;",

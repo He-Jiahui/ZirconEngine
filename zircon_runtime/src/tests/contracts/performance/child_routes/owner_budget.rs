@@ -15,7 +15,7 @@ pub(super) fn assert_owner_budget_routes(sources: &OwnerBudgetSources) {
             "#[path = \"owner_budget/sources.rs\"]",
             "#[path = \"owner_budget/split_layout.rs\"]",
             "#[path = \"owner_budget/status_docs.rs\"]",
-            "#[path = \"owner_budget/virtual_geometry_debug_snapshot.rs\"]",
+            "#[path = \"owner_budget/debug.rs\"]",
             "fn runtime_15_runtime_07_performance_hotspots_guard_is_folder_backed",
             "parent_routes::assert_performance_hotspots_parent_routes(&sources);",
             "child_routes::assert_performance_hotspot_child_routes(&sources);",
@@ -51,12 +51,12 @@ pub(super) fn assert_owner_budget_routes(sources: &OwnerBudgetSources) {
         "owner-budget mirror docs route",
         sources.owner_budget_mirror_docs,
         &[
-            "#[path = \"mirror_docs/audit_wiring.rs\"]",
-            "#[path = \"mirror_docs/doc_mirrors.rs\"]",
-            "#[path = \"mirror_docs/performance_guard.rs\"]",
-            "#[path = \"mirror_docs/source_inventory.rs\"]",
-            "#[path = \"mirror_docs/sources.rs\"]",
-            "#[path = \"mirror_docs/split_layout.rs\"]",
+            "#[path = \"../mirror_docs/audit_wiring.rs\"]",
+            "#[path = \"../mirror_docs/doc_mirrors.rs\"]",
+            "#[path = \"../mirror_docs/performance_guard.rs\"]",
+            "#[path = \"../mirror_docs/source_inventory.rs\"]",
+            "#[path = \"../mirror_docs/sources.rs\"]",
+            "#[path = \"../mirror_docs/split_layout.rs\"]",
         ],
     );
     let mirror_docs_children = format!(

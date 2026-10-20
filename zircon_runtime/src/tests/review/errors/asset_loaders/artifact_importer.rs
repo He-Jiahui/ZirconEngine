@@ -1,4 +1,6 @@
 //! 代码审查回归护栏核对已迁移接口、错误边界、插件入口及镜像状态。以结果断言检查当前接口或源码快照对应的边界。
+use crate::tests::runtime_absorption::structure_convention::fixed_history_archive_source as history;
+use crate::tests::runtime_absorption::structure_convention::rust_source_view::production_section;
 #[test]
 fn review_f7_asset_artifact_errors_use_asset_import_error_sources() {
     let importer_error = include_str!("../../../../asset/importer/error.rs");
@@ -8,20 +10,42 @@ fn review_f7_asset_artifact_errors_use_asset_import_error_sources() {
     let toml_value = include_str!("../../../../asset/artifact/cache_payload/toml_value.rs");
     let artifact_store = include_str!("../../../../asset/artifact/store.rs");
     let importer_tests = include_str!("../../../../asset/tests/assets/importer/registry_errors.rs");
-    let review_findings = concat!(
-        include_str!("../../../../../../docs/plans/engine-code-review-findings-2026-06.md"),
-        include_str!("../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md")
+    let review_findings = crate::runtime_test_history_concat!(
+        include_str!("../../../../../../docs/architecture/runtime-architecture-review-m0.md"),
+        history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md")
     );
     let runtime_04_plan = include_str!(
-        "../../../../../../docs/plans/zircon_runtime/runtime/04-asset-pipeline-alignment.md"
+        "../../../../../../docs/testing-and-validation/runtime-asset-validation-worklist.md"
     );
-    let runtime_index =
-        include_str!("../../../../../../docs/plans/zircon_runtime/runtime/index.md");
+    let runtime_index = include_str!(
+        "../../../../../../docs/crates/zircon_runtime/structure/runtime-absorption-evidence.md"
+    );
     let convention =
-        include_str!("../../../../../../docs/plans/engine-code-structure-convention.md");
+        include_str!("../../../../../../docs/testing-and-validation/development-conventions.md");
     let artifact_doc =
         include_str!("../../../../../../docs/crates/zircon_runtime/asset/artifact.md");
 
+    let codec_error = include_str!("../../../../asset/codec_error.rs");
+    let asset_mod = include_str!("../../../../asset/mod.rs");
+    for required in [
+        "#[cfg(feature = \"native-host\")]\npub(crate) use crate::asset::AssetImportError as AssetCodecError;",
+        "#[cfg(not(feature = \"native-host\"))]",
+        "enum AssetCodecError",
+        "CachedJsonNonFiniteNumber",
+        "CachedJsonNumberParse",
+        "CachedTomlDatetime",
+        "TomlSerialize",
+        "UiDocument",
+        "UiV2Document",
+    ] {
+        assert!(codec_error.contains(required), "current asset/codec_error.rs must retain {required}");
+    }
+    assert!(
+        asset_mod
+            .replace("\r\n", "\n")
+            .contains("#[path = \"codec_error.rs\"]\nmod codec_error;"),
+        "exact current module mount in asset/mod.rs"
+    );
     for forbidden in [
         "Registry(String)",
         "Self::Registry(error.to_string())",
@@ -68,27 +92,27 @@ fn review_f7_asset_artifact_errors_use_asset_import_error_sources() {
     }
     for required in [
         "use crate::asset::{",
-        "AssetImportError,",
-        "pub(super) fn from_imported(asset: &ImportedAsset) -> Result<Self, AssetImportError>",
-        "pub(super) fn into_imported(self) -> Result<ImportedAsset, AssetImportError>",
+        "AssetCodecError,",
+        "pub(super) fn from_imported(asset: &ImportedAsset) -> Result<Self, AssetCodecError>",
+        "pub(super) fn into_imported(self) -> Result<ImportedAsset, AssetCodecError>",
         "ArtifactCacheUiAssetDocument::from_document",
         "ArtifactCacheUiV2AssetDocument::from_document",
     ] {
         assert!(
             cache_payload.contains(required),
-            "F7 cache payload should use AssetImportError anchor `{required}`"
+            "F7 cache payload should use AssetCodecError anchor `{required}`"
         );
     }
     for forbidden in [".expect(", ".unwrap()"] {
         assert!(
-            !json_value.contains(forbidden),
+            !production_section(json_value).contains(forbidden),
             "F7 JSON cache conversion should not keep panic branch `{forbidden}`"
         );
     }
     for required in [
-        "Result<serde_json::Value, AssetImportError>",
-        "AssetImportError::CachedJsonNonFiniteNumber",
-        "AssetImportError::CachedJsonNumberParse",
+        "Result<serde_json::Value, AssetCodecError>",
+        "AssetCodecError::CachedJsonNonFiniteNumber",
+        "AssetCodecError::CachedJsonNumberParse",
         "collect::<Result<Vec<_>, _>>()?",
     ] {
         assert!(
@@ -97,26 +121,26 @@ fn review_f7_asset_artifact_errors_use_asset_import_error_sources() {
         );
     }
     for required in [
-        "AssetImportError::TomlSerialize",
-        "AssetImportError::UiDocument",
-        "AssetImportError::UiV2Document",
+        "AssetCodecError::TomlSerialize",
+        "AssetCodecError::UiDocument",
+        "AssetCodecError::UiV2Document",
     ] {
         assert!(
             cache_payload_ui.contains(required),
-            "F7 UI cache payload should preserve AssetImportError source anchor `{required}`"
+            "F7 UI cache payload should preserve AssetCodecError source anchor `{required}`"
         );
     }
 
     assert!(
-        toml_value.contains("Result<toml::Value, AssetImportError>")
-            && toml_value.contains("AssetImportError::CachedTomlDatetime")
+        toml_value.contains("Result<toml::Value, AssetCodecError>")
+            && toml_value.contains("AssetCodecError::CachedTomlDatetime")
             && !toml_value.contains("format!(\"invalid cached TOML datetime"),
         "F7 TOML cache conversion should report typed cached datetime errors"
     );
     for required in [
         "map_err(AssetImportError::ArtifactCacheSerialize)",
         "map_err(AssetImportError::ArtifactCacheDeserialize)",
-        "let cache_asset = ArtifactCacheAsset::from_imported(asset)?;",
+        "let cache_asset = super::cache_payload::from_imported_for_write(asset)?;",
         "let asset = cache_asset.into_imported()?;",
     ] {
         assert!(

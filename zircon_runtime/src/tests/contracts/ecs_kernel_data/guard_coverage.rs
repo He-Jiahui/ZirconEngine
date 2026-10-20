@@ -23,7 +23,7 @@ pub(super) const EXPECTED_RUNTIME_08_BEHAVIOR_TEST_ANCHORS: &[&str] = &[
 #[test]
 fn runtime_08_ecs_kernel_cargo_pending_gate_stays_explicit_until_ecs_validation() {
     let plan = include_str!(
-        "../../../../../docs/plans/zircon_runtime/runtime/08-ecs-kernel-data-alignment.md"
+        "../../../../../docs/testing-and-validation/runtime-ecs-validation-worklist.md"
     );
 
     assert!(

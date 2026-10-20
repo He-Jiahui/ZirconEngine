@@ -7,7 +7,7 @@ pub(super) fn assert_hotspot_inventory_routes(sources: &OwnerBudgetSources) {
         sources.hotspot_inventory,
         &[
             "fn runtime_07_hotspot_inventory_requires_counted_evidence_before_m2",
-            "#[path = \"hotspot_inventory/ecs_extract_counters.rs\"]",
+            "#[path = \"../hotspot_inventory/ecs_extract_counters.rs\"]",
             "#[path = \"hotspot_inventory/split_layout.rs\"]",
         ],
     );
@@ -15,11 +15,11 @@ pub(super) fn assert_hotspot_inventory_routes(sources: &OwnerBudgetSources) {
         "hotspot inventory ECS/extract route",
         sources.hotspot_inventory_ecs_extract,
         &[
-            "#[path = \"ecs_extract_counters/asset_animation.rs\"]",
-            "#[path = \"ecs_extract_counters/extract_cache.rs\"]",
-            "#[path = \"ecs_extract_counters/frame_diagnostics.rs\"]",
-            "#[path = \"ecs_extract_counters/query_change.rs\"]",
-            "#[path = \"ecs_extract_counters/split_layout.rs\"]",
+            "#[path = \"../ecs_extract_counters/asset_animation.rs\"]",
+            "#[path = \"../ecs_extract_counters/extract_cache.rs\"]",
+            "#[path = \"../ecs_extract_counters/frame_diagnostics.rs\"]",
+            "#[path = \"../ecs_extract_counters/query_change.rs\"]",
+            "#[path = \"../ecs_extract_counters/split_layout.rs\"]",
         ],
     );
     assert_contains_all(

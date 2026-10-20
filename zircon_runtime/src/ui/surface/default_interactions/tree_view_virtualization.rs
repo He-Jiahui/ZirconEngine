@@ -203,10 +203,7 @@ fn tree_virtual_window_for_start(
         .saturating_add(viewport_count)
         .min(total_count);
     let overscan = tree_overscan(metadata);
-    // BUG: [CR-UI-SURFACE-0010] i64 的 saturating_sub 仅防整数溢出，不能保证请求起点非负；
-    // viewport_start=1、overscan=2 会发布 requested_start=-1，窗口同步直接保留该值。
-    // 应在构造时钳到零，再计算请求计数，并覆盖滚轮与重挂两条调用路径。
-    let requested_start = viewport_start.saturating_sub(overscan);
+    let requested_start = viewport_start.saturating_sub(overscan).max(0);
     let requested_end = visible_end.saturating_add(overscan).min(total_count);
     UiVirtualWindowState {
         owner_id,

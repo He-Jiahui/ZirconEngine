@@ -4,8 +4,9 @@ use zr_rhi::{
     BufferDesc, BufferUsage, CommandList, DeviceFaultKind, DeviceGeneration, DeviceId,
     DiagnosticReadbackAdmission, DiagnosticReadbackBudget, DiagnosticReadbackTerminal,
     GpuMemoryBudget, GpuMemoryClass, RenderAdapterClass, RenderAdapterFacts, RenderBackendKind,
-    RenderDevice, RenderDeviceFeatureSet, RenderDeviceProfile, RenderDeviceQueueTopology,
-    RenderDeviceRequestPolicy, RenderQueueClass, RhiError, SubmissionLimits, SubmissionStatus,
+    RenderDevice, RenderDeviceBudgets, RenderDeviceFeatureSet, RenderDeviceProfile,
+    RenderDeviceQueueTopology, RenderDeviceRequestPolicy, RenderQueueClass, RhiError,
+    SubmissionLimits, SubmissionStatus,
 };
 
 use super::command_list::WgpuCommandList;
@@ -81,9 +82,11 @@ fn production_device_rejects_a_context_with_a_different_limits_profile() {
             .expect("the test adapter preserves the baseline negotiation"),
         limits,
         profile.queue_topology().clone(),
-        profile.memory_budget(),
-        profile.submission_limits(),
-        profile.diagnostic_readback_budget(),
+        RenderDeviceBudgets {
+            memory_budget: profile.memory_budget(),
+            submission_limits: profile.submission_limits(),
+            diagnostic_readback_budget: profile.diagnostic_readback_budget(),
+        },
     );
 
     assert!(matches!(
@@ -112,9 +115,11 @@ fn production_device_rejects_a_profile_with_non_wgpu_queue_topology() {
             .expect("the test adapter preserves the baseline negotiation"),
         profile.device_limits().clone(),
         topology,
-        profile.memory_budget(),
-        profile.submission_limits(),
-        profile.diagnostic_readback_budget(),
+        RenderDeviceBudgets {
+            memory_budget: profile.memory_budget(),
+            submission_limits: profile.submission_limits(),
+            diagnostic_readback_budget: profile.diagnostic_readback_budget(),
+        },
     );
 
     assert!(matches!(
@@ -146,9 +151,11 @@ fn production_device_rejects_profile_features_not_enabled_on_the_native_device()
         negotiation,
         profile.device_limits().clone(),
         profile.queue_topology().clone(),
-        profile.memory_budget(),
-        profile.submission_limits(),
-        profile.diagnostic_readback_budget(),
+        RenderDeviceBudgets {
+            memory_budget: profile.memory_budget(),
+            submission_limits: profile.submission_limits(),
+            diagnostic_readback_budget: profile.diagnostic_readback_budget(),
+        },
     );
 
     assert!(matches!(
@@ -762,9 +769,11 @@ pub(in crate::production) fn production_test_context_with_policy(
         request.feature_negotiation().clone(),
         wgpu_device_limits(&native_device.limits()),
         RenderDeviceQueueTopology::single_serialized_queue(),
-        memory_budget,
-        SubmissionLimits::default(),
-        DiagnosticReadbackBudget::default(),
+        RenderDeviceBudgets {
+            memory_budget,
+            submission_limits: SubmissionLimits::default(),
+            diagnostic_readback_budget: DiagnosticReadbackBudget::default(),
+        },
     );
     Some((
         WgpuRenderDeviceContext::new(instance, adapter, native_device, queue),
@@ -792,9 +801,11 @@ fn test_profile() -> RenderDeviceProfile {
         feature_negotiation,
         wgpu_device_limits(&wgpu::Limits::default()),
         RenderDeviceQueueTopology::single_serialized_queue(),
-        GpuMemoryBudget::reference_1080p_mid(),
-        SubmissionLimits::default(),
-        DiagnosticReadbackBudget::default(),
+        RenderDeviceBudgets {
+            memory_budget: GpuMemoryBudget::reference_1080p_mid(),
+            submission_limits: SubmissionLimits::default(),
+            diagnostic_readback_budget: DiagnosticReadbackBudget::default(),
+        },
     )
 }
 

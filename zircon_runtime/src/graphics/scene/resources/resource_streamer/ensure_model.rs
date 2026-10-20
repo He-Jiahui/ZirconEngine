@@ -67,11 +67,15 @@ impl ResourceStreamer {
             .ok_or_else(|| GraphicsError::Asset(format!("failed to load model asset {id:?}")))?;
         ensure_cold_model_meshes(&assets, &model)?;
         let projection = assets.resource_manager().projection_snapshot();
-        let mut prepared = self
-            .build_prepared_model(id, model, &projection)
-            .map_err(|error| {
-                GraphicsError::Asset(format!("model publication deferred: {error:?}"))
-            })?;
+        // CPU extraction may already hold this admission; GPU upload must retain its identity.
+        let mut prepared = match self.models.get(&id) {
+            Some(prepared) if model_is_current(prepared, &projection) => prepared.clone(),
+            _ => self
+                .build_prepared_model(id, model, &projection)
+                .map_err(|error| {
+                    GraphicsError::Asset(format!("model publication deferred: {error:?}"))
+                })?,
+        };
         prepared.resource = Some(Arc::new(GpuModelResource::from_source_admission(
             device,
             id,
@@ -97,17 +101,24 @@ impl ResourceStreamer {
         }) {
             return Ok(None);
         }
-        let row = projection
-            .active()
-            .row(id)
-            .ok_or(ResourceActiveSnapshotError::Stale)?;
-        let snapshot = self
-            .asset_manager()
-            .map_err(|_| ResourceActiveSnapshotError::Stale)?
-            .resource_manager()
-            .snapshot_expected::<_, ModelAsset>(ResourceHandle::<ModelMarker>::new(id), &row.key)?;
-        let mut prepared =
-            self.build_prepared_model(id, Arc::clone(snapshot.resource()), projection)?;
+        let mut prepared = match self.models.get(&id) {
+            Some(prepared) if model_is_current(prepared, projection) => prepared.clone(),
+            _ => {
+                let row = projection
+                    .active()
+                    .row(id)
+                    .ok_or(ResourceActiveSnapshotError::Stale)?;
+                let snapshot = self
+                    .asset_manager()
+                    .map_err(|_| ResourceActiveSnapshotError::Stale)?
+                    .resource_manager()
+                    .snapshot_expected::<_, ModelAsset>(
+                        ResourceHandle::<ModelMarker>::new(id),
+                        &row.key,
+                    )?;
+                self.build_prepared_model(id, Arc::clone(snapshot.resource()), projection)?
+            }
+        };
         prepared.resource = Some(Arc::new(GpuModelResource::from_source_admission(
             device,
             id,

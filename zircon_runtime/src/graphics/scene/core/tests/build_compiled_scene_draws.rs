@@ -4,6 +4,7 @@ use super::*;
 fn compiled_scene_draws_report_virtual_geometry_indirect_counts_without_buffers() {
     let mut draws = CompiledSceneDraws {
         draws: Vec::new(),
+        indexed_plan: None,
         prepared_mesh_queue_stats: PreparedMeshQueueStats::default(),
         prebuilt_mesh_pass_command_buffers: MeshPassCommandBuffers::default(),
         gpu_scene_prepared_upload: None,

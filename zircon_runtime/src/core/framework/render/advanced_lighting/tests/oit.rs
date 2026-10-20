@@ -132,12 +132,17 @@ fn optimization_batch_db_oit_sort_key_matches_total_cmp() {
 
 #[test]
 fn optimization_batch_db_oit_resolve_sorts_compact_keys_without_fragment_clone() {
-    let source = include_str!("../oit.rs");
-    let production = source.split("#[cfg(test)]").next().unwrap();
+    let source = include_str!("../oit.rs").replace("\r\n", "\n");
+    let (_, oracle) = source
+        .split_once("#[cfg(test)]\npub fn resolve_oit_fragments(")
+        .expect("the CPU resolve oracle must remain test-only and mounted");
+    let (resolve, order) = oracle
+        .split_once("#[cfg(test)]\nfn ordered_oit_fragment_indices(")
+        .expect("the compact-key sorting helper must remain test-only and mounted");
 
-    assert!(production.contains("ordered_oit_fragment_indices(fragments)"));
-    assert!(production.contains("ordered.sort_unstable()"));
-    assert!(!production.contains("fragments.to_vec()"));
+    assert!(resolve.contains("ordered_oit_fragment_indices(fragments)"));
+    assert!(order.contains("ordered.sort_unstable()"));
+    assert!(!source.contains("fragments.to_vec()"));
 }
 
 #[test]

@@ -16,7 +16,52 @@ const RESOURCE_EVENT_LOG_ENTRY_CAPACITY: usize = 4_096;
 const RESOURCE_EVENT_LOG_BYTE_CAPACITY: usize = 4 * 1024 * 1024;
 const RESOURCE_EVENT_LOG_MAX_AGE: Duration = Duration::from_secs(60);
 
-type ResourceEventIdentity = (ResourceKind, ResourceId);
+type ResourceEventIdentity = (ResourceKind, ResourceId, Option<crate::ResourcePayloadType>);
+
+/// An owned event and its concrete identity at publication, including after removal.
+/// The wire DTO remains unchanged; an untyped legacy DTO has no concrete proof.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ResourceEventEnvelope {
+    event: ResourceEvent,
+    payload_type: Option<crate::ResourcePayloadType>,
+}
+
+impl ResourceEventEnvelope {
+    pub(crate) fn new(
+        event: ResourceEvent,
+        payload_type: Option<crate::ResourcePayloadType>,
+    ) -> Self {
+        Self {
+            event,
+            payload_type,
+        }
+    }
+
+    pub fn matches_payload<T: 'static>(&self) -> bool {
+        self.payload_type == Some(crate::ResourcePayloadType::of::<T>())
+    }
+
+    pub fn event(&self) -> &ResourceEvent {
+        &self.event
+    }
+
+    pub fn into_event(self) -> ResourceEvent {
+        self.event
+    }
+}
+
+impl From<ResourceEvent> for ResourceEventEnvelope {
+    fn from(event: ResourceEvent) -> Self {
+        Self::new(event, None)
+    }
+}
+
+impl std::ops::Deref for ResourceEventEnvelope {
+    type Target = ResourceEvent;
+    fn deref(&self) -> &Self::Target {
+        &self.event
+    }
+}
 
 /// 日志当前保留量与累计淘汰统计；字节数是估算值，不能作为实际堆占用或完整历史的证明。
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -90,6 +135,7 @@ struct LoggedResourceEvent {
     published_at: Instant,
     approximate_bytes: usize,
     event: ResourceEvent,
+    payload_type: Option<crate::ResourcePayloadType>,
 }
 
 #[derive(Debug)]
@@ -225,9 +271,7 @@ impl ResourceEventLogEntries {
         }
         let mut slot = self.oldest_slot;
         while let Some(current_slot) = slot {
-            let Some(node) = self.slots[current_slot].as_ref() else {
-                return None;
-            };
+            let node = self.slots[current_slot].as_ref()?;
             if node.entry.sequence >= sequence {
                 return Some(current_slot);
             }
@@ -380,10 +424,10 @@ impl ResourceEventPublisher {
         })
     }
 
-    pub(crate) fn publish_permitted(
+    pub(crate) fn publish_permitted<E: Into<ResourceEventEnvelope>>(
         &self,
         permit: ResourceEventPublishPermit,
-        events: Vec<ResourceEvent>,
+        events: Vec<E>,
     ) {
         assert_eq!(permit.event_count, events.len());
         if events.is_empty() {
@@ -400,7 +444,7 @@ impl ResourceEventPublisher {
             let sequence = first_sequence
                 .checked_add(u64::try_from(offset).expect("event offset fits the reserved range"))
                 .expect("event sequence fits the reserved range");
-            publish_one(&mut state, event, sequence, now);
+            publish_one(&mut state, event.into(), sequence, now);
         }
         state.next_sequence = permit.successor_sequence;
         drop(state);
@@ -472,20 +516,23 @@ fn reject_sequence_exhaustion(
 
 fn publish_one(
     state: &mut ResourceEventLogState,
-    event: ResourceEvent,
+    envelope: ResourceEventEnvelope,
     sequence: u64,
     now: Instant,
 ) {
-    let identity = event_identity(&event);
+    let ResourceEventEnvelope {
+        event,
+        payload_type,
+    } = envelope;
+    let identity = declared_event_identity(&event, payload_type);
     let mut reusable_identity_slot = None;
     if is_coalescable(event.kind) {
         let latest_slot = state.entries.newest_slot().filter(|slot| {
-            state
-                .entries
-                .get(*slot)
-                .is_some_and(|entry| event_identity(&entry.event) == identity)
+            state.entries.get(*slot).is_some_and(|entry| {
+                declared_event_identity(&entry.event, entry.payload_type) == identity
+            })
         });
-        if let Some(slot) = latest_slot.or_else(|| indexed_slot(&state, identity)) {
+        if let Some(slot) = latest_slot.or_else(|| indexed_slot(state, identity)) {
             if state
                 .entries
                 .get(slot)
@@ -510,6 +557,7 @@ fn publish_one(
         published_at: now,
         approximate_bytes,
         event,
+        payload_type,
     });
     if reusable_identity_slot != Some(slot) {
         state.latest_slot_by_identity.insert(identity, slot);
@@ -542,6 +590,11 @@ impl ResourceEventReceiver {
 
     /// 非阻塞读取下一条事件；缺口应触发全量同步，断开或序号耗尽则需要重新建立发布关系。
     pub fn try_recv(&self) -> Result<ResourceEvent, ResourceEventTryRecvError> {
+        self.try_recv_envelope()
+            .map(ResourceEventEnvelope::into_event)
+    }
+
+    pub fn try_recv_envelope(&self) -> Result<ResourceEventEnvelope, ResourceEventTryRecvError> {
         let mut cursor = lock_cursor(&self.cursor);
         let mut state = self.hub.lock_state();
         match take_next(&mut state, &mut cursor) {
@@ -557,6 +610,10 @@ impl ResourceEventReceiver {
 
     /// 等待事件或终止状态；等待期间独占此接收端的游标，适合一个消费者负责一条订阅。
     pub fn recv(&self) -> Result<ResourceEvent, ResourceEventRecvError> {
+        self.recv_envelope().map(ResourceEventEnvelope::into_event)
+    }
+
+    pub fn recv_envelope(&self) -> Result<ResourceEventEnvelope, ResourceEventRecvError> {
         let mut cursor = lock_cursor(&self.cursor);
         let mut state = self.hub.lock_state();
         loop {
@@ -585,6 +642,14 @@ impl ResourceEventReceiver {
         &self,
         timeout: Duration,
     ) -> Result<ResourceEvent, ResourceEventRecvTimeoutError> {
+        self.recv_envelope_timeout(timeout)
+            .map(ResourceEventEnvelope::into_event)
+    }
+
+    pub fn recv_envelope_timeout(
+        &self,
+        timeout: Duration,
+    ) -> Result<ResourceEventEnvelope, ResourceEventRecvTimeoutError> {
         let deadline = Instant::now().checked_add(timeout);
         let mut cursor = lock_cursor(&self.cursor);
         let mut state = self.hub.lock_state();
@@ -634,7 +699,7 @@ fn lock_cursor(cursor: &Mutex<Option<u64>>) -> MutexGuard<'_, Option<u64>> {
 }
 
 enum EventRead {
-    Event(ResourceEvent),
+    Event(ResourceEventEnvelope),
     Empty,
     Lagged(ResourceEventGap),
     SequenceExhausted,
@@ -645,10 +710,16 @@ fn take_next(state: &mut ResourceEventLogState, cursor: &mut Option<u64>) -> Eve
     let Some(expected_sequence) = *cursor else {
         return EventRead::SequenceExhausted;
     };
-    let Some((next_sequence, next_event)) = state
-        .entries
-        .first_at_or_after(expected_sequence)
-        .map(|entry| (entry.sequence, entry.event.clone()))
+    let Some((next_sequence, next_event)) =
+        state
+            .entries
+            .first_at_or_after(expected_sequence)
+            .map(|entry| {
+                (
+                    entry.sequence,
+                    ResourceEventEnvelope::new(entry.event.clone(), entry.payload_type),
+                )
+            })
     else {
         if *cursor != state.next_sequence {
             let gap = ResourceEventGap {
@@ -674,14 +745,22 @@ fn take_next(state: &mut ResourceEventLogState, cursor: &mut Option<u64>) -> Eve
     EventRead::Event(next_event)
 }
 
+#[cfg(test)]
 fn event_identity(event: &ResourceEvent) -> ResourceEventIdentity {
-    (event.resource_kind, event.id)
+    declared_event_identity(event, None)
+}
+
+fn declared_event_identity(
+    event: &ResourceEvent,
+    payload_type: Option<crate::ResourcePayloadType>,
+) -> ResourceEventIdentity {
+    (event.resource_kind, event.id, payload_type)
 }
 
 fn indexed_slot(state: &ResourceEventLogState, identity: ResourceEventIdentity) -> Option<usize> {
     let slot = state.latest_slot_by_identity.get(&identity).copied()?;
     let indexed = state.entries.get(slot)?;
-    (event_identity(&indexed.event) == identity).then_some(slot)
+    (declared_event_identity(&indexed.event, indexed.payload_type) == identity).then_some(slot)
 }
 
 fn remove_current_identity_mapping(
@@ -689,7 +768,7 @@ fn remove_current_identity_mapping(
     removed_slot: usize,
     removed: &LoggedResourceEvent,
 ) {
-    let identity = event_identity(&removed.event);
+    let identity = declared_event_identity(&removed.event, removed.payload_type);
     if let Entry::Occupied(mapping) = state.latest_slot_by_identity.entry(identity) {
         if *mapping.get() == removed_slot {
             mapping.remove();
@@ -704,6 +783,7 @@ fn is_coalescable(kind: ResourceEventKind) -> bool {
 /// 估算保留日志的容量成本，计入字段与定位符文本长度；不追踪分配器开销或字符串预留容量。
 pub fn approximate_event_bytes(event: &ResourceEvent) -> usize {
     std::mem::size_of::<ResourceEvent>()
+        + std::mem::size_of::<Option<crate::ResourcePayloadType>>()
         + event
             .locator
             .as_ref()

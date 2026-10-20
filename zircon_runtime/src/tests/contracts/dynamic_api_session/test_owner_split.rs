@@ -18,10 +18,6 @@ fn runtime_10_dynamic_session_test_owner_split_keeps_focused_modules() {
     let runtime_errors = include_str!("../../../dynamic_api/session/tests/runtime_errors.rs");
     let session_doc =
         include_str!("../../../../../docs/crates/zircon_runtime/dynamic_api/session.md");
-    let runtime_10_plan = include_str!(
-        "../../../../../docs/plans/zircon_runtime/runtime/10-dynamic-api-and-interface-convergence.md"
-    );
-    let runtime_index = include_str!("../../../../../docs/plans/zircon_runtime/runtime/index.md");
 
     assert!(
         !old_tests_path.exists(),
@@ -115,9 +111,7 @@ fn runtime_10_dynamic_session_test_owner_split_keeps_focused_modules() {
         "session/tests/frame_diagnostics.rs",
     ] {
         assert!(
-            session_doc.contains(doc_anchor)
-                || runtime_10_plan.contains(doc_anchor)
-                || runtime_index.contains(doc_anchor),
+            session_doc.contains(doc_anchor),
             "Runtime 10 dynamic session test split docs should retain `{doc_anchor}`"
         );
     }

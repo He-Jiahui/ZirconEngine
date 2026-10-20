@@ -13,7 +13,7 @@ class ZuiDocsSuffixConvergenceTests(unittest.TestCase):
     def test_current_zui_authority_docs_do_not_describe_legacy_suffixes_as_active(self):
         repo_root = Path(__file__).resolve().parents[2]
         stale_phrases_by_doc = {
-            "docs/plans/zircon_editor/editor_ui/index.md": [
+            'docs/crates/zircon_editor/ui/asset-editor-v2-authoring.md': [
                 ".zui` + `.v2.ui.toml` 双轨",
                 ".zui/.ui.toml 加载",
                 ".zui` 只允许单组件 profile",
@@ -24,7 +24,7 @@ class ZuiDocsSuffixConvergenceTests(unittest.TestCase):
                 "deprecated `.v2.ui.toml` roots",
                 "both `.v2.ui.toml` and `.zui`",
             ],
-            "docs/ui/ui-asset-documents-and-editor-protocol.md": [
+            "docs/crates/zircon_runtime/ui/template/shared-runtime.md": [
                 "tree-shaped `.ui.toml`",
                 "zircon_editor/assets/ui/**/*.ui.toml",
                 "zircon_runtime/assets/ui/runtime/fixtures/*.ui.toml",
@@ -68,12 +68,12 @@ class ZuiDocsSuffixConvergenceTests(unittest.TestCase):
         repo_root = Path(__file__).resolve().parents[2]
         plan_text = (
             repo_root
-            / "docs/plans/zircon_editor/editor_ui/11-zui-suffix-convergence-and-ui-toml-retirement.md"
+            / 'docs/editor/zui-asset-governance.md'
         ).read_text(encoding="utf-8")
         current_authority = _section(
             plan_text,
-            "> 状态：",
-            "## 2. 后缀检测/加载/治理触点清单",
+            '## Current UI Suffix Authority',
+            '## UI Suffix Authority Validation',
         )
 
         stale_phrases = [
@@ -108,12 +108,12 @@ class ZuiDocsSuffixConvergenceTests(unittest.TestCase):
     def test_structure_convention_descriptor_families_do_not_list_retired_ui_suffix(self):
         repo_root = Path(__file__).resolve().parents[2]
         convention_text = (
-            repo_root / "docs/plans/engine-code-structure-convention.md"
+            repo_root / 'docs/testing-and-validation/development-conventions.md'
         ).read_text(encoding="utf-8")
         resource_section = _section(
             convention_text,
-            "## §5 资源 / 描述 / manifest 放置",
-            "## §6 统一插件接口开发体验框架（Plugin DX）",
+            '## Current UI Asset Descriptor Placement',
+            '## Descriptor Placement Validation',
         )
 
         stale_phrases = [
@@ -143,12 +143,12 @@ class ZuiDocsSuffixConvergenceTests(unittest.TestCase):
     def test_plugin_editor_integration_plan_uses_zui_for_current_template_authority(self):
         repo_root = Path(__file__).resolve().parents[2]
         plan_text = (
-            repo_root / "docs/plans/zircon_plugins/10-editor-integration.md"
+            repo_root / 'docs/crates/zircon_plugins/editor-build-export-desktop.md'
         ).read_text(encoding="utf-8")
         current_authority = _section(
             plan_text,
-            "## 4. AI Workbench 风格对位表",
-            "## 7. 验收标准（每插件 Editor 里程碑通用）",
+            '## Current Plugin Editor Template Authority',
+            '## Plugin Editor Template Validation',
         )
 
         stale_phrases = [

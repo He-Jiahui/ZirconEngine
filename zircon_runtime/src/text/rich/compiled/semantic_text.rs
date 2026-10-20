@@ -108,7 +108,7 @@ fn append_semantic_text(
     value: &str,
     max_semantic_text_bytes: usize,
 ) -> Result<(), RichTextParseError> {
-    let attempted_bytes = output.len().checked_add(value.len()).unwrap_or(usize::MAX);
+    let attempted_bytes = output.len().saturating_add(value.len());
     admit_semantic_text_bytes(attempted_bytes, max_semantic_text_bytes)?;
     output.push_str(value);
     Ok(())

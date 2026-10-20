@@ -207,3 +207,110 @@ fn assert_vec3_close(actual: Vec3, expected: Vec3) {
         );
     }
 }
+
+#[test]
+fn retained_axis_transforms_both_endpoints() {
+    use crate::core::framework::gizmos::GizmoAxis;
+
+    let mut buffer = GizmoBuffer::new();
+    buffer.axis(Vec3::ZERO, GizmoAxis::X, 2.0, color());
+    for (scale_x, end_y) in [(2.0, 24.0), (-2.0, 16.0)] {
+        let retained = RetainedGizmo::new(GizmoAsset::from_buffer(&buffer)).with_transform(
+            Transform::from_translation(Vec3::new(10.0, 20.0, 30.0))
+                .with_rotation(Quat::from_rotation_z(std::f32::consts::FRAC_PI_2))
+                .with_scale(Vec3::new(scale_x, 3.0, 4.0)),
+        );
+        let overlay = extract_gizmo_overlay(
+            GizmoOverlayExtractRequest::new(49, SceneGizmoKind::Camera).with_retained(&retained),
+        )
+        .unwrap();
+        assert_eq!(overlay.lines.len(), 1);
+        assert_vec3_close(overlay.lines[0].start, Vec3::new(10.0, 20.0, 30.0));
+        assert_vec3_close(overlay.lines[0].end, Vec3::new(10.0, end_y, 30.0));
+        assert_eq!(overlay.lines[0].color, color());
+    }
+}
+
+#[test]
+fn retained_circle_and_sphere_preserve_affine_geometry() {
+    let transform = Transform::from_translation(Vec3::new(10.0, 20.0, 30.0))
+        .with_rotation(Quat::from_rotation_z(std::f32::consts::FRAC_PI_2))
+        .with_scale(Vec3::new(2.0, 3.0, 4.0));
+    let mut circle = GizmoBuffer::new();
+    circle.circle(Vec3::ZERO, Vec3::Z, 1.0, color());
+    let mut sphere = GizmoBuffer::new();
+    sphere.sphere(Vec3::ZERO, 1.0, color());
+    for (buffer, count) in [(&circle, 32), (&sphere, 96)] {
+        let asset = GizmoAsset::from_buffer(buffer);
+        let identity = RetainedGizmo::new(asset.clone());
+        let immediate = extract_gizmo_overlay(
+            GizmoOverlayExtractRequest::new(49, SceneGizmoKind::Camera).with_buffer(buffer),
+        )
+        .unwrap();
+        let identity_overlay = extract_gizmo_overlay(
+            GizmoOverlayExtractRequest::new(49, SceneGizmoKind::Camera).with_retained(&identity),
+        )
+        .unwrap();
+        assert_eq!(identity_overlay.lines, immediate.lines);
+        let retained = identity.with_transform(transform);
+        let request =
+            GizmoOverlayExtractRequest::new(49, SceneGizmoKind::Camera).with_retained(&retained);
+        assert_eq!(estimated_request_line_count(&request), count);
+        let overlay = extract_gizmo_overlay(request).unwrap();
+        assert_eq!(overlay.lines.len(), count);
+        let mirrored = RetainedGizmo::new(asset)
+            .with_transform(transform.with_scale(Vec3::new(-2.0, 3.0, 4.0)));
+        let mirrored_overlay = extract_gizmo_overlay(
+            GizmoOverlayExtractRequest::new(49, SceneGizmoKind::Camera).with_retained(&mirrored),
+        )
+        .unwrap();
+        assert_eq!(mirrored_overlay.lines.len(), count);
+        for (line, original) in mirrored_overlay.lines.iter().zip(&overlay.lines) {
+            assert_eq!(line.color, color());
+            assert_vec3_close(
+                line.start,
+                Vec3::new(original.start.x, 40.0 - original.start.y, original.start.z),
+            );
+            assert_vec3_close(
+                line.end,
+                Vec3::new(original.end.x, 40.0 - original.end.y, original.end.z),
+            );
+        }
+        let mut min = Vec3::splat(f32::INFINITY);
+        let mut max = Vec3::splat(f32::NEG_INFINITY);
+        for (index, line) in overlay.lines.iter().enumerate() {
+            assert_eq!(line.color, color());
+            for point in [line.start, line.end] {
+                min = min.min(point);
+                max = max.max(point);
+                let relative = point - Vec3::new(10.0, 20.0, 30.0);
+                let ellipsoid = (relative / Vec3::new(3.0, 2.0, 4.0)).length_squared();
+                assert!((ellipsoid - 1.0).abs() < 1.0e-5);
+            }
+            let loop_start = index / 32 * 32;
+            let next = loop_start + (index + 1) % 32;
+            assert_vec3_close(line.end, overlay.lines[next].start);
+        }
+        if count == 32 {
+            assert_vec3_close(overlay.lines[0].start, Vec3::new(7.0, 20.0, 30.0));
+            assert_vec3_close(overlay.lines[8].start, Vec3::new(10.0, 18.0, 30.0));
+            assert_vec3_close(min, Vec3::new(7.0, 18.0, 30.0));
+            assert_vec3_close(max, Vec3::new(13.0, 22.0, 30.0));
+        } else {
+            assert_vec3_close(overlay.lines[0].start, Vec3::new(10.0, 20.0, 34.0));
+            assert_vec3_close(overlay.lines[32].start, Vec3::new(10.0, 20.0, 26.0));
+            assert_vec3_close(overlay.lines[64].start, Vec3::new(7.0, 20.0, 30.0));
+            assert_vec3_close(min, Vec3::new(7.0, 18.0, 26.0));
+            assert_vec3_close(max, Vec3::new(13.0, 22.0, 34.0));
+        }
+    }
+    let mut rejected = GizmoBuffer::new();
+    rejected
+        .circle(Vec3::ZERO, Vec3::Z, 0.0, color())
+        .sphere(Vec3::ZERO, -1.0, color());
+    let retained = RetainedGizmo::new(GizmoAsset::from_buffer(&rejected)).with_transform(transform);
+    let request =
+        GizmoOverlayExtractRequest::new(49, SceneGizmoKind::Camera).with_retained(&retained);
+    assert_eq!(estimated_request_line_count(&request), 0);
+    assert!(extract_gizmo_overlay(request).is_none());
+}

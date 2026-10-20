@@ -37,7 +37,18 @@ impl DefaultSoundManager {
             {
                 continue;
             }
-            let prepared = prepare_mixer_configuration(&state, &graph)?;
+            let mut prepared = prepare_mixer_configuration(&state, &graph)?;
+            // Project unpublished voices even when output is inactive. Preparing a later
+            // output generation clones this cache, so it must not inherit neutral defaults.
+            let listeners = state.listeners.values().cloned().collect::<Vec<_>>();
+            for voice in prepared.sources.values_mut() {
+                voice.project_environment(
+                    state.default_spatial_scale,
+                    &listeners,
+                    &state.ray_traced_impulse_responses,
+                )?;
+                voice.environment_output_gain(voice.descriptor.gain, voice.descriptor.muted)?;
+            }
             let previous_graph = state.graph.clone();
             let was_active = snapshot.kira_active;
             let PreparedMixerConfiguration {

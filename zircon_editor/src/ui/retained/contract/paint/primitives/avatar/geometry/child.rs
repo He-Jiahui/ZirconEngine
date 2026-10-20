@@ -11,7 +11,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn avatar_
 
 fn centered_child_rect(rect: &FrameRect, scale: f32) -> FrameRect {
     // BUG: [CR-M18-AVATAR-0002] 小于 1 的 Avatar 仍把回退子框扩成 1×1；pane 级裁剪可让图标越过 Avatar 自身边界。
-    let size = (rect.width.min(rect.height) * scale.clamp(0.0, 1.0)).max(1.0);
+    let available = rect.width.min(rect.height).max(0.0);
+    let size = (available * scale.clamp(0.0, 1.0)).max(1.0).min(available);
     FrameRect {
         x: rect.x + (rect.width - size) * 0.5,
         y: rect.y + (rect.height - size) * 0.5,
@@ -19,3 +20,7 @@ fn centered_child_rect(rect: &FrameRect, scale: f32) -> FrameRect {
         height: size,
     }
 }
+
+#[cfg(test)]
+#[path = "tests/child.rs"]
+mod tests;

@@ -10,7 +10,7 @@ param(
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
-$pathResolver = Join-Path $PSScriptRoot "..\common\WindowsPathResolver.psm1"
+$pathResolver = Join-Path $PSScriptRoot "..\..\maintenance\WindowsPathResolver.psm1"
 if (-not (Test-Path -LiteralPath $pathResolver -PathType Leaf)) {
     throw "Windows path resolver was not found: $pathResolver"
 }

@@ -8,12 +8,12 @@ pub(super) fn assert_runtime_08_mirror_docs() {
         (
             "Runtime 08 plan",
             include_str!(
-                "../../../../../docs/plans/zircon_runtime/runtime/08-ecs-kernel-data-alignment.md"
+                "../../../../../docs/testing-and-validation/runtime-ecs-validation-worklist.md"
             ),
         ),
         (
             "runtime index",
-            include_str!("../../../../../docs/plans/zircon_runtime/runtime/index.md"),
+            include_str!("../../../../../docs/crates/zircon_runtime/structure/runtime-absorption-evidence.md"),
         ),
         (
             "M0 review",

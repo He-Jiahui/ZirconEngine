@@ -18,6 +18,7 @@ pub struct HybridGiRuntimePrepareInput<'a> {
     update_plan: Option<&'a VisibilityHybridGiUpdatePlan>,
     camera_position: Option<Vec3>,
     history_invalidated: bool,
+    source_world: Option<crate::core::framework::render::RenderWorldSnapshotHandle>,
 }
 
 impl<'a> HybridGiRuntimePrepareInput<'a> {
@@ -44,7 +45,23 @@ impl<'a> HybridGiRuntimePrepareInput<'a> {
             update_plan,
             camera_position: None,
             history_invalidated: false,
+            source_world: None,
         }
+    }
+
+    /// Identifies the published scene source; an unknown source cannot retain probe history.
+    pub fn with_source_world(
+        mut self,
+        source_world: crate::core::framework::render::RenderWorldSnapshotHandle,
+    ) -> Self {
+        self.source_world = Some(source_world);
+        self
+    }
+
+    pub fn source_world(
+        &self,
+    ) -> Option<crate::core::framework::render::RenderWorldSnapshotHandle> {
+        self.source_world
     }
 
     pub fn with_view_state(

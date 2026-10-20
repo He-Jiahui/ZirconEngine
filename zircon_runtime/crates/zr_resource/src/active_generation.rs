@@ -50,6 +50,7 @@ type Rows = HashMap<ResourceId, Arc<ResourceActiveRow>>;
 type Locators = HashMap<ResourceLocator, ResourceId>;
 type Sources = HashMap<ResourceId, Arc<[ResourceId]>>;
 type Owners = HashMap<ResourceId, ResourceId>;
+type GenerationChanges = std::collections::VecDeque<(Arc<()>, Arc<[ResourceId]>)>;
 
 #[derive(Clone, Debug)]
 pub struct ResourceActiveGeneration {
@@ -58,7 +59,7 @@ pub struct ResourceActiveGeneration {
     sources: Arc<[Arc<Sources>]>,
     owners: Arc<[Arc<Owners>]>,
     identity: Arc<()>,
-    changes: Arc<std::collections::VecDeque<(Arc<()>, Arc<[ResourceId]>)>>,
+    changes: Arc<GenerationChanges>,
 }
 
 fn empty_shards<K, V>() -> Arc<[Arc<HashMap<K, V>>]> {

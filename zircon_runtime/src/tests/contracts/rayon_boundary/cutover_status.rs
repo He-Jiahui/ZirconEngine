@@ -1,16 +1,21 @@
 //! 直接并行库调用只由核心任务原语拥有，生产扫描负责报告越界引用。以结果断言检查当前接口或源码快照对应的边界。
 use super::support::{collect_rayon_references, rust_source_files};
+use crate::tests::runtime_absorption::structure_convention::fixed_history_archive_source as history;
 
 const JOB_SYSTEM_DOC: &str =
     include_str!("../../../../../docs/crates/zircon_runtime/core/job_system.md");
-const RUNTIME_11_PLAN: &str = concat!(
-    include_str!("../../../../../docs/plans/zircon_runtime/runtime/11-job-system-task-model.md"),
-    include_str!("../../../../../docs/plans/zircon_runtime/runtime/11/2026-07-09-job-system-task-model-output-records.md")
-);
-const RUNTIME_INDEX: &str = concat!(
-    include_str!("../../../../../docs/plans/zircon_runtime/runtime/index.md"),
-    include_str!("../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md")
-);
+fn runtime_11_plan() -> &'static str {
+    crate::runtime_test_history_concat!(
+    include_str!("../../../../../docs/testing-and-validation/runtime-task-validation-worklist.md"),
+    history("docs/plans/zircon_runtime/runtime/11/2026-07-09-job-system-task-model-output-records.md")
+)
+}
+fn runtime_index() -> &'static str {
+    crate::runtime_test_history_concat!(
+    include_str!("../../../../../docs/crates/zircon_runtime/structure/runtime-absorption-evidence.md"),
+    history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md")
+)
+}
 
 #[test]
 fn rayon_render_exception_cutover_is_recorded_in_runtime_11_m2_1_status() {
@@ -51,7 +56,7 @@ fn rayon_render_exception_cutover_is_recorded_in_runtime_11_m2_1_status() {
         "compute_task_pool",
     ] {
         assert!(
-            RUNTIME_11_PLAN.contains(required_plan_anchor),
+            runtime_11_plan().contains(required_plan_anchor),
             "Runtime 11 plan must record M2.1 cutover anchor `{required_plan_anchor}`"
         );
     }
@@ -62,7 +67,7 @@ fn rayon_render_exception_cutover_is_recorded_in_runtime_11_m2_1_status() {
         "parallel_frustum",
     ] {
         assert!(
-            RUNTIME_INDEX.contains(required_index_anchor),
+            runtime_index().contains(required_index_anchor),
             "runtime index must record Runtime 11 M2.1 cutover anchor `{required_index_anchor}`"
         );
     }

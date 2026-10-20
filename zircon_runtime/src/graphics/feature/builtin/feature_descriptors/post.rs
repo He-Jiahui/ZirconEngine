@@ -28,13 +28,13 @@ fn exposure_buffer_schema() -> RenderResourceSchema {
     ))
 }
 
-fn view_hdr_history_schema() -> RenderResourceSchema {
+fn hdr_history_schema(extent: RenderTextureExtentPolicy) -> RenderResourceSchema {
     RenderResourceSchema::texture(
         RenderTextureSchema::new(
             TextureFormat::Rgba16Float,
             TextureUsage::SAMPLED | TextureUsage::RENDER_ATTACHMENT,
         )
-        .with_extent(RenderTextureExtentPolicy::View),
+        .with_extent(extent),
     )
 }
 
@@ -232,7 +232,7 @@ pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descripto
             .read_buffer(PostProcessGraphResourceNames::LIGHT_LIST)
             .read_persistent_external_texture_with_schema_and_access(
                 PostProcessGraphResourceNames::HISTORY_PREVIOUS_SCREEN_SPACE_REFLECTION,
-                view_hdr_history_schema(),
+                hdr_history_schema(RenderTextureExtentPolicy::View),
                 RenderGraphTextureSubresourceRange::full(),
                 RenderGraphResourceAccessIntent::sampled_texture(RenderGraphShaderStages::FRAGMENT),
             )
@@ -323,7 +323,7 @@ pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descripto
             .read_texture(PostProcessGraphResourceNames::HYBRID_GI_LIGHTING)
             .read_persistent_external_texture_with_schema_and_access(
                 PostProcessGraphResourceNames::HISTORY_PREVIOUS_HYBRID_GI,
-                view_hdr_history_schema(),
+                hdr_history_schema(RenderTextureExtentPolicy::Render),
                 RenderGraphTextureSubresourceRange::full(),
                 RenderGraphResourceAccessIntent::sampled_texture(RenderGraphShaderStages::FRAGMENT),
             )

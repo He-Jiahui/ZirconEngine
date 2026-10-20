@@ -90,8 +90,21 @@ pub(super) fn metered_candidate_from_manifest_path(
     let source = read_bounded_utf8_file(request, sink, &manifest_path, "native plugin manifest")?;
     let _parse_admission = sink.reserve_additional_scratch_bytes(request, source.len() as u64)?;
     sink.record_manifest_parse();
-    let candidate = candidate_from_manifest_source(manifest_path, &source)
-        .map_err(|error| NativePluginDiscoveryRefreshError::collector(error.to_string()))?;
+    let candidate =
+        candidate_from_manifest_source(manifest_path, &source).map_err(|error| match error {
+            NativePluginManifestCandidateError::ParseManifest {
+                manifest_path,
+                source,
+            } => NativePluginDiscoveryRefreshError::ParseManifest {
+                manifest_path,
+                source: std::sync::Arc::new(source),
+            },
+            NativePluginManifestCandidateError::MissingRuntimeOrEditorModule { plugin_id } => {
+                NativePluginDiscoveryRefreshError::MissingRuntimeOrEditorModule {
+                    plugin_id: plugin_id.into(),
+                }
+            }
+        })?;
     Ok(MeteredNativePluginCandidate {
         reservation: candidate_reservation,
         candidate,
@@ -187,10 +200,11 @@ fn read_error(
     path: &Path,
     source: io::Error,
 ) -> NativePluginDiscoveryRefreshError {
-    NativePluginDiscoveryRefreshError::collector(format!(
-        "failed to read {file_kind} {}: {source}",
-        path.display()
-    ))
+    NativePluginDiscoveryRefreshError::ReadManifest {
+        file_kind: file_kind.into(),
+        manifest_path: path.to_path_buf(),
+        source: std::sync::Arc::new(source),
+    }
 }
 
 fn ensure_bounded_read_is_stable(

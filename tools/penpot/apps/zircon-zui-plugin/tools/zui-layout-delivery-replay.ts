@@ -1,8 +1,10 @@
-import { resolveLayoutCatalogPath } from './zui-layout-paths';
+import { createLayoutCurrentContext, layoutCurrentOutputPath, type LayoutCurrentContext } from './zui-layout-paths';
+import { readCurrentDeliveryCatalog, validateCurrentDeliveryPackage } from './zui-layout-delivery';
+import { withLayoutCatalogLock } from './zui-layout-catalog-lock';
 import assert from 'node:assert/strict';
-import { readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { pathToFileURL } from 'node:url';
 import {
   isStructuralWorkbenchHostDocument,
   type CatalogManifest,
@@ -32,18 +34,16 @@ import {
   reconcileReviewSource,
 } from '../src/bridge/zui-review-host';
 
-const catalogRoot = resolve(
-  dirname(fileURLToPath(import.meta.url)),
-  '../../../../../docs/_data/layout',
-);
-const catalog: CatalogManifest = JSON.parse(
-  await readFile(resolveLayoutCatalogPath(catalogRoot, 'catalog.json'), 'utf8'),
-);
-const packageRoot = resolveLayoutCatalogPath(catalogRoot, 'resources/source');
+async function replay(catalog: CatalogManifest, context: LayoutCurrentContext): Promise<void> {
+const packageRoot = layoutCurrentOutputPath(context, 'resources/source');
 const dependencies = new LayoutDependencies();
 await dependencies.load(
   packageRoot,
-  catalog.entries.map((entry) => entry.sourcePath),
+  [...new Set(catalog.entries.flatMap((entry) => [
+    entry.sourcePath,
+    ...(entry.dependencyFingerprints ?? []).map((item) => item.sourcePath)
+      .filter((path) => path.endsWith('.zui')),
+  ]))],
 );
 const records = [];
 for (const entry of catalog.entries) {
@@ -146,7 +146,7 @@ for (const entry of catalog.entries) {
     );
     if (bytesSha256(prepared) !== entry.penpotInputSha256)
       await writeFile(
-        resolveLayoutCatalogPath(catalogRoot, 'evidence/delivery-mismatch.zui'),
+        layoutCurrentOutputPath(context, 'evidence/delivery-mismatch.zui'),
         prepared,
       );
     assert.equal(
@@ -197,7 +197,7 @@ const report = {
   records,
 };
 await writeFile(
-  resolveLayoutCatalogPath(catalogRoot, 'evidence/delivery-replay.json'),
+  layoutCurrentOutputPath(context, 'evidence/delivery-replay.json'),
   `${JSON.stringify(report, null, 2)}\n`,
 );
 console.log(
@@ -207,3 +207,23 @@ console.log(
     preservedUnsupportedContracts: report.unsupportedContractCount,
   }),
 );
+
+}
+
+export async function runCurrentLayoutDeliveryReplay(_args: string[] = []): Promise<void> {
+  const context = createLayoutCurrentContext();
+  const before = await readCurrentDeliveryCatalog(context, false);
+  await validateCurrentDeliveryPackage(context, before);
+  await withLayoutCatalogLock(context.outputRoot, { command: 'zui-layout-delivery-replay', context }, async () => {
+    const catalog = await readCurrentDeliveryCatalog(context, false);
+    await validateCurrentDeliveryPackage(context, catalog);
+    await mkdir(dirname(layoutCurrentOutputPath(context, 'evidence/delivery-replay.json')), { recursive: true });
+    await replay(catalog, context);
+  });
+}
+
+if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href)
+  void runCurrentLayoutDeliveryReplay(process.argv.slice(2)).catch((error: unknown) => {
+    console.error(error);
+    process.exitCode = 1;
+  });

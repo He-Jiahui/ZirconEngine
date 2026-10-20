@@ -17,7 +17,6 @@ struct State {
     prepare: Option<VirtualGeometryPrepareFrame>,
     resources: Option<(RuntimePrepareDeviceEpoch, VirtualGeometryGpuResources)>,
     readback: Option<VirtualGeometryGpuReadbackFuture>,
-    device: Option<wgpu::Device>,
     completed: Option<VirtualGeometryGpuReadback>,
 }
 
@@ -54,12 +53,6 @@ impl VirtualGeometryUploaderTestCollector {
         if state.readback.is_none() {
             return Ok(None);
         }
-        let device = state.device.as_ref().ok_or_else(|| {
-            GraphicsError::BufferMap("uploader pending readback has no device".into())
-        })?;
-        device
-            .poll(wgpu::PollType::wait_indefinitely())
-            .map_err(|error| GraphicsError::BufferMap(error.to_string()))?;
         if !state
             .readback
             .as_ref()
@@ -111,7 +104,6 @@ impl RuntimePrepareCollector for VirtualGeometryUploaderTestCollector {
         state.completed = None;
         let Some(prepare) = state.prepare.take() else {
             state.readback = None;
-            state.device = None;
             return Ok(RenderPluginRendererOutputs::default());
         };
         if !context.gpu_work_admitted() {
@@ -128,7 +120,6 @@ impl RuntimePrepareCollector for VirtualGeometryUploaderTestCollector {
             .as_ref()
             .map(|extract| extract.page_budget);
         let mut recording = context.gpu_recording_context();
-        let device = recording.device.clone();
         let resources = match state.resources.take() {
             Some((resource_epoch, resources)) if resource_epoch == epoch => resources,
             _ => VirtualGeometryGpuResources::new(recording.device),
@@ -143,7 +134,6 @@ impl RuntimePrepareCollector for VirtualGeometryUploaderTestCollector {
         drop(recording);
 
         state.resources = Some((epoch, resources));
-        state.device = Some(device);
         state.readback = pending
             .map(|pending| pending.enqueue(context))
             .transpose()?;

@@ -229,22 +229,24 @@ impl UiNumberModelUpdateReceipt {
         let rejects_invalid_request = rejection_is(UiNumberModelUpdateFailure::InvalidRequestId);
         let rejects_invalid_model = rejection_is(UiNumberModelUpdateFailure::InvalidModelId);
         let rejects_revision_range = rejection_is(UiNumberModelUpdateFailure::RevisionOutOfRange);
-        if !self.request_id.is_valid() && !(rejects_unsupported || rejects_invalid_request)
+        if !(self.request_id.is_valid() || rejects_unsupported || rejects_invalid_request)
             || (self.request_id.is_valid() && rejects_invalid_request)
         {
             return Err(UiNumberModelUpdateFailure::InvalidRequestId);
         }
-        if !self.expected_model.model_id.is_valid()
-            && !(rejects_unsupported || rejects_invalid_request || rejects_invalid_model)
+        if !(self.expected_model.model_id.is_valid()
+            || rejects_unsupported
+            || rejects_invalid_request
+            || rejects_invalid_model)
             || (self.expected_model.model_id.is_valid() && rejects_invalid_model)
         {
             return Err(UiNumberModelUpdateFailure::InvalidModelId);
         }
-        if !self.expected_model.revision.is_supported()
-            && !(rejects_unsupported
-                || rejects_invalid_request
-                || rejects_invalid_model
-                || rejects_revision_range)
+        if !(self.expected_model.revision.is_supported()
+            || rejects_unsupported
+            || rejects_invalid_request
+            || rejects_invalid_model
+            || rejects_revision_range)
             || (self.expected_model.revision.is_supported() && rejects_revision_range)
         {
             return Err(UiNumberModelUpdateFailure::RevisionOutOfRange);

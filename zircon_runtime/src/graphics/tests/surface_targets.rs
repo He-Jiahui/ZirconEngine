@@ -66,7 +66,7 @@ fn graphics_surface_rebind_prepares_fences_and_publishes_before_retiring_the_old
         .find("create_framework_viewport_surface(descriptor)")
         .expect("surface rebind must prepare a replacement surface");
     let submission_fence = bind_source
-        .find("framework.finish_submission()?;")
+        .find("framework.drain_submissions()?;")
         .expect("surface rebind must finish prior submissions before publication");
     let publish = bind_source
         .find(".replace_surface_and_extent(surface, descriptor.size)")
@@ -74,8 +74,18 @@ fn graphics_surface_rebind_prepares_fences_and_publishes_before_retiring_the_old
 
     assert!(
         prepared_surface < submission_fence && submission_fence < publish,
-        "surface rebind must prepare, fence, then publish"
+        "different-target surface rebind must prepare, fence, then publish"
     );
+    let target_check = bind_source
+        .find("record.has_native_surface_target(descriptor.target)")
+        .unwrap();
+    let reuse = bind_source
+        .find("surface.reconfigure_for_target(descriptor, device_epoch)")
+        .unwrap();
+    assert!(target_check < prepared_surface && submission_fence < reuse && reuse < publish);
+    assert!(bind_source.contains("record.retire_failed_surface_reconfigure()"));
+    assert!(!bind_source.contains("framework.finish_submission()?;"));
+    assert!(record_source.contains("self.set_surface_and_extent(None, self.descriptor.size)"));
     assert!(
         runtime_bridge_source.contains("ensure_viewport_for_surface_rebind"),
         "surface rebind must retain its viewport handle instead of recreating it for a size change"
@@ -85,7 +95,7 @@ fn graphics_surface_rebind_prepares_fences_and_publishes_before_retiring_the_old
         .find("self.descriptor.size = size;")
         .expect("surface replacement must publish its extent");
     let publish_surface = record_source
-        .find("self.surface.replace(surface)")
+        .find("std::mem::replace(&mut self.surface, surface)")
         .expect("surface replacement must publish the prepared surface");
     let retire_surface = record_source
         .find("drop(previous_surface);")

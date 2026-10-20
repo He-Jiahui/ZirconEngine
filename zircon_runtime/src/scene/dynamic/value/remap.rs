@@ -1,6 +1,5 @@
 use std::collections::BTreeMap;
 
-use serde_json::{Map, Number, Value};
 use zircon_runtime_interface::reflect::ReflectedValue;
 
 use crate::scene::dynamic_scene::{DynamicSceneError, EntityRemap};
@@ -26,46 +25,44 @@ pub(in crate::scene::dynamic_scene) fn remap_reflected_value(
                 .map(|(key, value)| Ok((key.clone(), remap_reflected_value(value, remap)?)))
                 .collect::<Result<BTreeMap<_, _>, DynamicSceneError>>()?,
         ),
-        ReflectedValue::Json(value) => {
-            ReflectedValue::Json(remap_json_entity_objects(value, remap))
-        }
         value => value.clone(),
     })
 }
 
-// BUG: [CR-SCENE-DYNAMIC-CORE-0001] Json 字段可存任意对象，但这里把所有单键 {entity: 数字} 当成引用重映射；普通业务 JSON 可能被静默改写。
-pub(super) fn remap_json_entity_objects(value: &Value, remap: &EntityRemap) -> Value {
-    match value {
-        Value::Array(values) => Value::Array(
-            values
-                .iter()
-                .map(|value| remap_json_entity_objects(value, remap))
-                .collect(),
-        ),
-        Value::Object(object) if object.len() == 1 && object.contains_key("entity") => {
-            Value::Object(Map::from_iter([(
-                "entity".to_string(),
-                remap_json_entity_value(&object["entity"], remap),
-            )]))
-        }
-        Value::Object(object) => Value::Object(
-            object
-                .iter()
-                .map(|(key, value)| (key.clone(), remap_json_entity_objects(value, remap)))
-                .collect(),
-        ),
-        value => value.clone(),
-    }
-}
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
 
-fn remap_json_entity_value(value: &Value, remap: &EntityRemap) -> Value {
-    match value {
-        Value::Number(number) => number
-            .as_u64()
-            .map(|entity| Number::from(remap.get(entity).unwrap_or(entity)))
-            .map(Value::Number)
-            .unwrap_or_else(|| value.clone()),
-        Value::Null => Value::Null,
-        value => value.clone(),
+    #[test]
+    fn typed_entity_remap_preserves_json_objects() {
+        let mut remap = EntityRemap::new();
+        remap.insert(11, 22);
+        let payload = json!({
+            "entity": 11,
+            "nested": [{"entity": 11}, {"entity": null}],
+        });
+        let value = ReflectedValue::List(vec![
+            ReflectedValue::Entity(Some(11)),
+            ReflectedValue::Entity(None),
+            ReflectedValue::Entity(Some(99)),
+            ReflectedValue::Json(json!({"entity": 11})),
+            ReflectedValue::Map(BTreeMap::from([
+                ("reference".to_string(), ReflectedValue::Entity(Some(11))),
+                ("payload".to_string(), ReflectedValue::Json(payload.clone())),
+            ])),
+        ]);
+        let expected = ReflectedValue::List(vec![
+            ReflectedValue::Entity(Some(22)),
+            ReflectedValue::Entity(None),
+            ReflectedValue::Entity(Some(99)),
+            ReflectedValue::Json(json!({"entity": 11})),
+            ReflectedValue::Map(BTreeMap::from([
+                ("reference".to_string(), ReflectedValue::Entity(Some(22))),
+                ("payload".to_string(), ReflectedValue::Json(payload)),
+            ])),
+        ]);
+
+        assert_eq!(remap_reflected_value(&value, &remap).unwrap(), expected);
     }
 }

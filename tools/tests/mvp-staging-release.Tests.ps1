@@ -9,6 +9,8 @@ if (-not (Test-Path -LiteralPath $modulePath -PathType Leaf)) {
 }
 Import-Module $modulePath -Force -ErrorAction Stop
 Import-Module $fixturePathsModule -Force -ErrorAction Stop
+$testCleanupModule = Join-Path $PSScriptRoot 'MvpTestCleanup.psm1'
+Import-Module $testCleanupModule -Force -ErrorAction Stop
 $resolverModule = Join-Path $PSScriptRoot '..\..\tools\maintenance\WindowsPathResolver.psm1'
 Import-Module $resolverModule -Force -ErrorAction Stop
 
@@ -415,9 +417,10 @@ catch {
 }
 Assert-True $negativePreflightRejected 'Staging preflight evidence accepted a negative JSON integer.'
 
-$fixtureRoot = New-MvpTestFixtureRoot -Prefix 'zircon_mvp_staging_release'
-
+$fixtureRoot = $null
+$suiteError = $null
 try {
+    $fixtureRoot = New-MvpTestFixtureRoot -Prefix 'zircon_mvp_staging_release'
     $stageRoot = Join-Path $fixtureRoot 'stage'
     $projectRoot = Join-Path $stageRoot 'project\Fixture'
     New-Item -ItemType Directory -Force -Path $projectRoot | Out-Null
@@ -544,15 +547,18 @@ try {
     Assert-True ([IO.Directory]::Exists($longProjectRoot)) 'Long-path release probe did not restore the project directory.'
     Assert-True (-not [IO.Directory]::Exists("$longProjectRoot.release-probe")) 'Long-path release probe left its temporary rename target behind.'
 
-    Write-Output 'MVP staged project release contract passed'
+}
+catch {
+    $suiteError = $_
+    throw
 }
 finally {
-    if (Test-Path -LiteralPath $fixtureRoot) {
-        $resolvedFixtureRoot = [IO.Path]::GetFullPath($fixtureRoot)
-        $fixtureDisplayPattern = '^[D-F]:\\ZirconBuilds\\mvp-test-fixtures-' + [regex]::Escape([string]$PID) + '\\zircon_mvp_staging_release-[0-9a-f]{32}$'
-        if ($resolvedFixtureRoot -notmatch $fixtureDisplayPattern) {
-            throw "Refusing to remove staging release fixture outside the approved fixture root: $resolvedFixtureRoot"
+    Invoke-MvpTestCleanup -PrimaryError $suiteError -Steps ([ordered]@{
+        "fixture root '$fixtureRoot'" = {
+            if (-not [string]::IsNullOrWhiteSpace($fixtureRoot)) {
+                Remove-MvpTestFixtureRoot -Path $fixtureRoot
+            }
         }
-        Remove-MvpTestFixtureRoot -Path (Resolve-ZirconWindowsPath -Path $resolvedFixtureRoot).OperationalPath
-    }
+    })
 }
+Write-Output 'MVP staged project release contract passed'

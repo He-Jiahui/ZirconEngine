@@ -210,3 +210,21 @@ Recorder tests cover ring-buffer truncation, the exact overwrite booleans, per-s
 
 - `CARGO_TARGET_DIR=E:\cargo-targets\zircon-render-m10w-assets-pbr-gate cargo test -p zircon_runtime --lib profiling --profile profiling --features profiling --locked --jobs 1 --message-format short --color never`: PASS, 20 matching lib tests passed after the initial cold profiling-profile compile timed out before test execution.
 - `CARGO_TARGET_DIR=E:\cargo-targets\zircon-render-m10w-assets-pbr-gate cargo check -p zircon_runtime --profile profiling --features profiling --locked --jobs 1 --message-format short --color never`: PASS with 7 existing warnings.
+
+## GPU resolution and post-stack counters
+
+The frame profiler owns GPU timing resolution in zircon_runtime/src/graphics/runtime/framework/frame_profiler/gpu_resolution.rs. Keep pending-ring capacity, pass matching, delayed-frame accounting and memory budgets unchanged; Arc::make_mut is independently observable.
+
+The dated 2026-07-18 post-stack contract records descriptor builds, String/Vec allocation, dependency clones, graph validation/sort, stack/graph clone bytes and extract clones. Stable generation requires zero rebuild work; a changed variant is bounded to one, with shared compile/extract/context/stats artifact identity (PERF-MVP-362). These are retained targets, not fresh benchmark results. The split status retains deferred Cargo/profile acceptance.
+
+### Retained source status identities
+
+| Contract | Responsibility / evidence boundary |
+|---|---|
+| `runtime_17_15_frame_profiler_gpu_resolution_owner_split_static_passed_cargo_profile_deferred` | GPU-resolution child owns timestamp resolution; budget/profile acceptance stays separate. |
+
+### Clause provenance
+
+These content identities preserve the source of this transfer. They are not fresh measurements, active-file dependencies or acceptance receipts.
+
+- `17-performance-and-profiling.md`, SHA-256 `bafdd658a1d8612c731246e1f23255a72b3ee7e6ff02eff32c92e2f428da05ad`, selected source lines 477-567.

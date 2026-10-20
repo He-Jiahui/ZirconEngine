@@ -1,13 +1,17 @@
+import { assertCurrentCaptureDestination, writeCurrentCaptureFile, captureCurrentScreenshot } from './zui-source-refinement-current';
+import { createLayoutCurrentContext } from './zui-layout-paths';
+import { assertCurrentLayoutSnapshot, assertSeparateCurrentReport } from './zui-source-refinement-current';
+import { withLayoutCatalogLock } from './zui-layout-catalog-lock';
 import assert from 'node:assert/strict';
 import { verifySliderTextEdits } from './penpot-slider-browser-contract';
 import { verifySegmentedTextEdits } from './penpot-segmented-browser-contract';
 import { verifySlotPaddingEdits } from './penpot-slot-padding-browser-contract';
-import { verifyNativeComponentEdits } from './penpot-native-components-browser-contract';
+import { prepareNativeComponentInputs, verifyNativeComponentEdits } from './penpot-native-components-browser-contract';
 import { verifyFieldTextEdits } from './penpot-field-browser-contract';
 import { existsSync } from 'node:fs';
-import { readFile, mkdir, writeFile } from 'node:fs/promises';
+import { readFile, mkdir } from 'node:fs/promises';
 import { dirname, extname, resolve, sep } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import { chromium, type Page, type Route } from 'playwright';
 
@@ -32,36 +36,12 @@ const appRoot = resolve(here, '..');
 const penpotRoot = resolve(appRoot, '../../../../third_party/penpot');
 const frontendRoot = resolve(penpotRoot, 'frontend');
 const apiSuiteRoot = resolve(penpotRoot, 'plugins/apps/plugin-api-test-suite');
-const pluginDistRoot = resolvePluginDistRoot();
 const fixturePath = resolve(appRoot, 'src/bridge/roundtrip-fixture.zui');
-const artifactRoot = process.env['ZUI_PLUGIN_ARTIFACT_ROOT'];
-if (!artifactRoot) throw new Error('Set ZUI_PLUGIN_ARTIFACT_ROOT to an approved artifact directory.');
-const screenshotPath = resolve(artifactRoot, process.env['ZIRCON_PENPOT_SCREENSHOT'] ?? 'a1-penpot-canvas-roundtrip.png');
-requireApprovedPenpotArtifactDirectory(dirname(screenshotPath), 'Browser screenshot directory');
-const penpotBaseUrl = new URL(
-  process.env['PENPOT_BASE_URL'] ?? 'https://design.penpot.app',
-).origin;
-const pluginHost = new URL('/__zircon-zui-plugin__/', penpotBaseUrl).href;
+
+
 const editedTitle = 'Edited in Penpot canvas';
 const editedRadius = 12;
 
-const browserExecutable = [
-  process.env['PLAYWRIGHT_CHROMIUM_EXECUTABLE'],
-  process.env['ProgramFiles']
-    ? resolve(
-        process.env['ProgramFiles'],
-        'Google/Chrome/Application/chrome.exe',
-      )
-    : undefined,
-  process.env['ProgramFiles(x86)']
-    ? resolve(
-        process.env['ProgramFiles(x86)'],
-        'Microsoft/Edge/Application/msedge.exe',
-      )
-    : undefined,
-].find((candidate): candidate is string =>
-  Boolean(candidate && existsSync(candidate)),
-);
 
 const mockTeamId = 'c7ce0794-0992-8105-8004-38e630f7920a';
 const mockFileId = 'c7ce0794-0992-8105-8004-38f280443849';
@@ -181,7 +161,7 @@ async function openNotificationsWebSocket(
   }, url);
 }
 
-async function installPluginAssetRoute(page: Page): Promise<void> {
+async function installPluginAssetRoute(page: Page, pluginDistRoot: string): Promise<void> {
   await page.route('**/__zircon-zui-plugin__/**', async (route) => {
     const pathname = new URL(route.request().url()).pathname;
     const prefix = '/__zircon-zui-plugin__/';
@@ -227,9 +207,58 @@ async function waitFor(
   }
 }
 
-async function main(): Promise<void> {
+export async function main(): Promise<void> {
+const penpotBaseUrl = new URL(
+  process.env['PENPOT_BASE_URL'] ?? 'https://design.penpot.app',
+).origin;
+const pluginHost = new URL('/__zircon-zui-plugin__/', penpotBaseUrl).href;
+  const pluginDistRoot = resolvePluginDistRoot();
+  const artifactRoot = process.env['ZUI_PLUGIN_ARTIFACT_ROOT'];
+  if (!artifactRoot) throw new Error('Set ZUI_PLUGIN_ARTIFACT_ROOT to an approved artifact directory.');
+  const screenshotPath = resolve(artifactRoot, process.env['ZIRCON_PENPOT_SCREENSHOT'] ?? 'a1-penpot-canvas-roundtrip.png');
+  requireApprovedPenpotArtifactDirectory(dirname(screenshotPath), 'Browser screenshot directory');
+  const browserExecutable = [
+    process.env['PLAYWRIGHT_CHROMIUM_EXECUTABLE'],
+    process.env['ProgramFiles']
+      ? resolve(
+          process.env['ProgramFiles'],
+          'Google/Chrome/Application/chrome.exe',
+        )
+      : undefined,
+    process.env['ProgramFiles(x86)']
+      ? resolve(
+          process.env['ProgramFiles(x86)'],
+          'Microsoft/Edge/Application/msedge.exe',
+        )
+      : undefined,
+  ].find((candidate): candidate is string =>
+    Boolean(candidate && existsSync(candidate)),
+  );
+  const catalogContext = createLayoutCurrentContext();
+  const reportContext = createLayoutCurrentContext({ repoRoot: catalogContext.repoRoot, outputRoot: artifactRoot });
+  assertSeparateCurrentReport({ catalog: catalogContext, report: reportContext });
+  const nativeInputs = await prepareNativeComponentInputs(catalogContext);
+  const pluginInputs = await Promise.all(['manifest.json', 'assets/plugin.js'].map(async (name) => ({
+    path: resolve(pluginDistRoot, name), bytes: await readFile(resolve(pluginDistRoot, name)),
+  })));
+  for (const name of [screenshotPath, resolve(dirname(screenshotPath), 'segmented-browser-contract.png'),
+    resolve(dirname(screenshotPath), 'slot-padding-browser-contract.png'),
+    resolve(dirname(screenshotPath), 'native-components-browser-contract.png'),
+    resolve(dirname(screenshotPath), 'browser-contract-failure.png'),
+    resolve(dirname(screenshotPath), 'browser-contract-failure.json')]) {
+    assertCurrentCaptureDestination(reportContext, name);
+  }
   const source = await readFile(fixturePath, 'utf8');
   const sourceDocument = parseZuiDocument(source).document;
+  return withLayoutCatalogLock(reportContext.outputRoot, { command: 'penpot-browser-canvas-contract', context: reportContext }, async () => {
+  await assertCurrentLayoutSnapshot(nativeInputs.snapshot);
+  for (const name of [screenshotPath, resolve(dirname(screenshotPath), 'segmented-browser-contract.png'),
+    resolve(dirname(screenshotPath), 'slot-padding-browser-contract.png'),
+    resolve(dirname(screenshotPath), 'native-components-browser-contract.png'),
+    resolve(dirname(screenshotPath), 'browser-contract-failure.png'),
+    resolve(dirname(screenshotPath), 'browser-contract-failure.json')])
+    assertCurrentCaptureDestination(reportContext, name);
+  for (const input of pluginInputs) assert.deepEqual(await readFile(input.path), input.bytes, 'Plugin changed after preflight');
   const unexpectedRpcs = new Set<string>();
   const pageErrors: string[] = [];
   const browser = await chromium.launch({
@@ -250,7 +279,7 @@ async function main(): Promise<void> {
   try {
     const sockets = await installWebSocketMock(page);
     await installMockBackend(page, unexpectedRpcs);
-    await installPluginAssetRoute(page);
+    await installPluginAssetRoute(page, pluginDistRoot);
 
     await navigateWithRetry(
       page,
@@ -427,29 +456,24 @@ async function main(): Promise<void> {
       .waitFor({ timeout: 10_000 });
 
     await mkdir(dirname(screenshotPath), { recursive: true });
-    await page.screenshot({ path: screenshotPath });
+    await captureCurrentScreenshot(page, reportContext, screenshotPath);
     const sliderContract = await verifySliderTextEdits(page, pluginFrame);
     const segmentedContract = await verifySegmentedTextEdits(page, pluginFrame);
-    await page.screenshot({
-      path: resolve(dirname(screenshotPath), 'segmented-browser-contract.png'),
-    });
+    await captureCurrentScreenshot(page, reportContext, resolve(dirname(screenshotPath), 'segmented-browser-contract.png'));
     const slotPaddingContract = await verifySlotPaddingEdits(page, pluginFrame);
-    await page.screenshot({
-      path: resolve(
+    await captureCurrentScreenshot(page, reportContext, resolve(
         dirname(screenshotPath),
         'slot-padding-browser-contract.png',
-      ),
-    });
+      ));
     const nativeComponentContract = await verifyNativeComponentEdits(
       page,
       pluginFrame,
+      nativeInputs,
     );
-    await page.screenshot({
-      path: resolve(
+    await captureCurrentScreenshot(page, reportContext, resolve(
         dirname(screenshotPath),
         'native-components-browser-contract.png',
-      ),
-    });
+      ));
 
     const fieldContract = await verifyFieldTextEdits(page, pluginFrame);
     assert.deepEqual([...unexpectedRpcs], []);
@@ -474,10 +498,8 @@ async function main(): Promise<void> {
     const page = browser.contexts()[0]?.pages()[0];
     if (page) {
       await mkdir(dirname(screenshotPath), { recursive: true });
-      await page.screenshot({
-        path: resolve(dirname(screenshotPath), 'browser-contract-failure.png'),
-      });
-      await writeFile(
+      await captureCurrentScreenshot(page, reportContext, resolve(dirname(screenshotPath), 'browser-contract-failure.png'));
+      await writeCurrentCaptureFile(reportContext, 
         resolve(dirname(screenshotPath), 'browser-contract-failure.json'),
         JSON.stringify(
           {
@@ -504,8 +526,10 @@ async function main(): Promise<void> {
   } finally {
     await browser.close();
   }
+  });
 }
 
+if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href)
 void main().catch((error: unknown) => {
   console.error(error);
   process.exitCode = 1;

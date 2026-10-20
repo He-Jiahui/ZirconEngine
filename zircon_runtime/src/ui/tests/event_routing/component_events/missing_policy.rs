@@ -201,3 +201,98 @@ fn dispatch_primary_click(
         )
         .unwrap()
 }
+
+#[test]
+fn all_optional_missing_targets_keep_real_receipts_through_pointer_and_unified_input() {
+    for unified_input in [false, true] {
+        let mut click = binding("Showcase/AllOptionalMissing", UiEventKind::Click);
+        click.targets = vec![
+            target(
+                UiBindingTarget::prop("text")
+                    .with_missing_policy(UiBindingMissingValuePolicy::Optional),
+                "prop.missing_text",
+            ),
+            target(
+                UiBindingTarget::class("resolved")
+                    .with_missing_policy(UiBindingMissingValuePolicy::Optional),
+                "prop.missing_class",
+            ),
+        ];
+        let mut surface = bound_button_surface(vec![click]);
+        let (component_event_count, reports) = if unified_input {
+            let pointer_dispatcher = UiPointerDispatcher::default();
+            let navigation_dispatcher = UiNavigationDispatcher::default();
+            let input_event = |kind| {
+                UiInputEvent::Pointer(UiPointerInputEvent {
+                    metadata: UiInputEventMetadata::default(),
+                    event: UiPointerEvent::new(kind, UiPoint::new(20.0, 20.0))
+                        .with_button(UiPointerButton::Primary),
+                    precise_scroll: None,
+                })
+            };
+            surface
+                .dispatch_input_event(
+                    &pointer_dispatcher,
+                    &navigation_dispatcher,
+                    input_event(UiPointerEventKind::Down),
+                )
+                .unwrap();
+            let result = surface
+                .dispatch_input_event(
+                    &pointer_dispatcher,
+                    &navigation_dispatcher,
+                    input_event(UiPointerEventKind::Up),
+                )
+                .unwrap();
+            (result.component_events.len(), result.binding_reports)
+        } else {
+            let mut result = dispatch_primary_click(&mut surface);
+            let retained = result.binding_reports.len();
+            result.record_binding_report(Default::default());
+            assert_eq!(
+                result.binding_reports.len(),
+                retained,
+                "a completely empty report must still be omitted"
+            );
+            (result.component_events.len(), result.binding_reports)
+        };
+
+        assert_eq!(component_event_count, 1, "unified_input={unified_input}");
+        assert_eq!(reports.len(), 1, "unified_input={unified_input}");
+        let report = &reports[0];
+        assert!(report.updates.is_empty());
+        assert_eq!(report.applied_count, 0);
+        assert_eq!(report.unchanged_count, 0);
+        assert_eq!(report.rejected_count, 0);
+        assert!(report.dirty.is_empty());
+        let transaction = report
+            .transaction
+            .as_ref()
+            .expect("an all-optional target transaction still publishes its receipt");
+        assert_eq!(transaction.target_count, 0);
+        assert_eq!(transaction.applied_target_count, 0);
+        assert_eq!(transaction.unchanged_target_count, 0);
+        assert_eq!(transaction.revision, transaction.base_generation);
+        assert_eq!(transaction.outcome, UiBindingMutationOutcome::Committed);
+        assert!(transaction.impact.is_empty());
+        let execution = report
+            .execution_receipt
+            .as_ref()
+            .expect("the real compiled binding execution must remain observable");
+        assert_eq!(execution.asset_id, "runtime.ui.events");
+        assert_eq!(execution.binding_id, "Showcase/AllOptionalMissing");
+        assert_ne!(execution.generation, 0);
+        assert_eq!(execution.execution_count, 1);
+        assert_eq!(execution.miss_count, 0);
+        assert_eq!(execution.error_count, 0);
+        let metadata = surface
+            .tree
+            .node(UiNodeId::new(2))
+            .unwrap()
+            .template_metadata
+            .as_ref()
+            .unwrap();
+        assert!(!metadata.attributes.contains_key("text"));
+        assert!(!metadata.classes.iter().any(|class| class == "resolved"));
+    }
+}

@@ -72,7 +72,7 @@ impl WgpuSurfaceBootstrap {
     ) -> Result<WgpuSurfaceAdapterBootstrap, RhiError> {
         let Self {
             surface,
-            mut descriptor,
+            descriptor,
             instance,
         } = self;
         let surface_ref = &surface;

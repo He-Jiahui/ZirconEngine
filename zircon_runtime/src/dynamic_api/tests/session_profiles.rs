@@ -47,12 +47,16 @@ fn tick_frame_drives_loaded_level_before_clearing_frame_input() {
         .find(".tick(&self.runtime.handle(), advance)")
         .expect("runtime frame should tick the loaded LevelSystem");
     let input_begin_frame = source[tick_start..]
-        .find(".begin_frame();")
+        .find(".begin_frame(&*manager, &self.input_attachment)")
         .expect("runtime frame should clear per-frame input after gameplay tick");
 
     assert!(
         source[tick_start..tick_start + input_begin_frame].contains("self.resolve_input_manager()"),
         "runtime frame should resolve the versioned input handle at the use point"
+    );
+    assert!(
+        source[tick_start..tick_start + input_begin_frame].contains("self.resolve_input_driver()"),
+        "runtime frame should resolve the ingress driver before clearing attached input"
     );
 
     assert!(

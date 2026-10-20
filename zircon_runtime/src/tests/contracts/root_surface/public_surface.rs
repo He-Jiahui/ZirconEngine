@@ -1,37 +1,17 @@
 //! 运行时根公开面和图形别名的收敛结果需与架构文档一致。以结果断言检查当前接口或源码快照对应的边界。
-use super::inventory::{LIB_RS, PRELUDE_RS};
+use super::inventory::{LIB_RS, PRELUDE_RS, ROOT_SURFACE_DOC};
+#[path = "public_surface/declaration_contract.rs"]
+mod declaration_contract;
 
 #[test]
 fn runtime_crate_root_public_surface_stays_curated() {
-    let public_modules: Vec<_> = LIB_RS
-        .lines()
-        .filter_map(|line| line.trim().strip_prefix("pub mod "))
-        .map(|decl| decl.trim_end_matches(';'))
-        .collect();
-    let expected_modules = [
-        "core",
-        "diagnostic_log",
-        "dynamic_api",
-        "engine_module",
-        "prelude",
-        "animation",
-        "asset",
-        "scene",
-        "text",
-        "ui",
-        "graphics",
-        "render_graph",
-        "rhi",
-        "builtin",
-        "foundation",
-        "input",
-        "navigation",
-        "operation",
-        "platform",
-        "plugin",
-        "script",
-    ];
-    assert_eq!(public_modules.as_slice(), &expected_modules);
+    let public_modules = declaration_contract::validate(
+        LIB_RS,
+        ROOT_SURFACE_DOC,
+        include_str!("../../../../Cargo.toml"),
+    )
+    .expect("runtime root declaration/cfg/profile contract");
+    assert_eq!(public_modules.len(), 24);
     assert!(
         !LIB_RS.contains("pub mod runtime_diagnostics;"),
         "runtime diagnostics collection is not a public runtime root module"
@@ -101,7 +81,7 @@ fn runtime_crate_root_public_surface_stays_curated() {
     }
 
     assert!(
-        LIB_RS.lines().count() <= 45,
-        "crate root should stay thin after the Runtime 02 M3 graphics alias block cutover"
+        LIB_RS.lines().count() <= 127,
+        "crate root must preserve the physical 127-line declaration-only contract"
     );
 }

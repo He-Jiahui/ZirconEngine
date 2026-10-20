@@ -4,6 +4,7 @@ use super::{
     PARENT_PATH, SPLIT_LAYOUT_FRAMEWORKS_STATUS, SPLIT_LAYOUT_GUARD, SPLIT_LAYOUT_SLICE,
     SPLIT_LAYOUT_STATUS,
 };
+use crate::tests::runtime_absorption::structure_convention::fixed_history_archive_source as history;
 
 #[test]
 fn runtime_15_core_scene_naming_ecs_owner_split_layout_is_folder_backed() {
@@ -67,20 +68,18 @@ fn runtime_15_core_scene_naming_ecs_owner_split_layout_is_folder_backed() {
         );
     }
 
-    let frameworks_output = include_str!(
-        "../../../../../../docs/plans/zircon_runtime/frameworks/02/2026-07-09-module-kernel-and-lifecycle-unification-output-records.md"
-    );
+    let frameworks_output = history("docs/plans/zircon_runtime/frameworks/02/2026-07-09-module-kernel-and-lifecycle-unification-output-records.md");
     let module_convention =
         include_str!("../../../../../../docs/crates/zircon_runtime/structure/module-convention.md");
 
     for (label, source) in [
         (
             "Runtime 15 subplan",
-            crate::tests::runtime_absorption::current_source_fixture::RUNTIME_ARCHITECTURE_IMPLEMENTATION_OUTPUT,
+            crate::tests::runtime_absorption::current_source_fixture::runtime_architecture_implementation_output(),
         ),
         (
             "runtime index",
-            include_str!("../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md"),
+            history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md"),
         ),
         (
             "frameworks output",
@@ -88,13 +87,11 @@ fn runtime_15_core_scene_naming_ecs_owner_split_layout_is_folder_backed() {
         ),
         (
             "engine code structure convention",
-            include_str!("../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md"),
+            history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md"),
         ),
         (
             "engine code review findings",
-            include_str!(
-                "../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"
-            ),
+            history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"),
         ),
         (
             "module convention doc",

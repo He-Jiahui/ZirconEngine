@@ -80,5 +80,45 @@ fn ambiguous_project_source_path_keeps_operation_roots_but_displays_virtual_path
                 PathBuf::from(r"C:\projects\forest\shared-assets"),
             ]
     ));
-    assert!(!error.to_string().contains(r"\\?\"));
+    let diagnostic = error.to_string();
+    assert!(!diagnostic.contains(r"\\?\"));
+    assert!(diagnostic.contains(r"C:\projects\forest\assets"));
+    assert!(diagnostic.contains(r"C:\projects\forest\shared-assets"));
+}
+
+#[test]
+fn registry_import_source_preserves_typed_registry_and_io_chain() {
+    let source = crate::asset::AssetRegistryError::Io {
+        path: std::path::PathBuf::from("typed-registry"),
+        source: std::io::Error::new(std::io::ErrorKind::PermissionDenied, "registry denied"),
+    };
+    let display = format!("asset registry index failed: {source}");
+    let error = crate::asset::AssetImportError::from(source);
+    assert_eq!(error.to_string(), display);
+    let source = std::error::Error::source(&error).expect("typed registry source");
+    assert!(source
+        .downcast_ref::<crate::asset::AssetRegistryError>()
+        .is_some());
+    let io = source.source().expect("registry I/O source");
+    assert_eq!(
+        io.downcast_ref::<std::io::Error>().unwrap().kind(),
+        std::io::ErrorKind::PermissionDenied
+    );
+}
+
+#[test]
+fn ui_v2_import_source_preserves_typed_document_identity() {
+    let source = crate::asset::assets::UiV2AssetDocumentError::ComponentRequiresZui;
+    let display = format!(".zui asset document failed while typed source: {source}");
+    let error = crate::asset::AssetImportError::UiV2Document {
+        context: "typed source",
+        source: source.into(),
+    };
+    assert_eq!(error.to_string(), display);
+    assert!(matches!(
+        std::error::Error::source(&error)
+            .unwrap()
+            .downcast_ref::<crate::asset::assets::UiV2AssetDocumentError>(),
+        Some(crate::asset::assets::UiV2AssetDocumentError::ComponentRequiresZui)
+    ));
 }

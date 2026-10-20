@@ -1,9 +1,8 @@
+import { runCurrentSourceRefinement, type SourceRefinementContexts } from './zui-source-refinement-current';
 import assert from 'node:assert/strict';
-import { readFile, writeFile, mkdir, cp } from 'node:fs/promises';
-import { dirname, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { parseZuiDocument, type ZuiTable } from '../src/bridge/zui-document';
-import { bytesSha256 } from './zui-layout-evidence';
 
 const label =
   'res://ui/editor/components/workbench/primitives/data/label.zui#WorkbenchLabel';
@@ -177,68 +176,16 @@ export function refineMaterialPrototype(source: string) {
   return { source: updated, changed: true, titleHeight, metaRowHeight, height };
 }
 
-async function main() {
-  const root = resolve(
-    dirname(fileURLToPath(import.meta.url)),
-    '../../../../..',
-  );
-  const catalog = JSON.parse(
-    await readFile(resolve(root, 'docs/_data/layout/catalog.json'), 'utf8'),
-  );
-  const apply = process.argv.includes('--apply');
-  const records = [];
-  for (const entry of catalog.entries) {
-    if (
-      !entry.sourcePath.startsWith(
-        'zircon_editor/assets/ui/editor/',
-      )
-    )
-      continue;
-    const path = resolve(root, entry.sourcePath);
-    const original = await readFile(path, 'utf8');
-    const result = refineMaterialPrototype(original);
-    if (!result.changed) continue;
-    const directory = resolve(root, 'docs/_data/layout', dirname(entry.outputPath));
-    const before = resolve(directory, 'evidence/before-20260907-workbench');
-    if (apply) {
-      await mkdir(before, { recursive: true });
-      await writeFile(resolve(before, 'source.zui'), original);
-      for (const evidence of entry.penpotEvidence ?? []) {
-        if (evidence.screenshotPath)
-          await cp(
-            resolve(root, 'docs/_data/layout', evidence.screenshotPath),
-            resolve(before, `${evidence.caseId}.png`),
-          );
-      }
-      await writeFile(path, result.source);
-    }
-    records.push({
-      sourcePath: entry.sourcePath,
-      beforeSha256: bytesSha256(original),
-      afterSha256: bytesSha256(result.source),
-      ...result,
-      source: undefined,
-      baselineCases: entry.penpotEvidence?.length ?? 0,
-    });
-  }
-  const report = {
-    generatedAt: new Date().toISOString(),
-    applied: apply,
-    changedFiles: records.length,
-    records,
-  };
-  await writeFile(
-    resolve(
-      root,
-      `docs/_data/layout/evidence/material-source-${apply ? 'applied' : 'proposed'}.json`,
-    ),
-    `${JSON.stringify(report, null, 2)}\n`,
-  );
-  console.log(JSON.stringify({ ...report, records: undefined }));
+
+export function runCurrentMaterialSourceRefinement(args: readonly string[] = [], contexts?: SourceRefinementContexts) {
+  return runCurrentSourceRefinement({
+    id: "material-source", select: entry => entry.sourcePath.startsWith('zircon_editor/assets/ui/editor/'),
+    transform: (source) => refineMaterialPrototype(source),
+  }, args, contexts);
 }
 
-if (
-  process.argv[1] &&
-  resolve(process.argv[1]) === fileURLToPath(import.meta.url)
-)
-  await main();
+if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
+  void runCurrentMaterialSourceRefinement(process.argv.slice(2)).then((report) => {
+    console.log(JSON.stringify({ ...report, records: undefined }));
+  }).catch((error: unknown) => { console.error(error); process.exitCode = 1; });
+}

@@ -119,6 +119,8 @@ This is intentionally pool-local coalescing. It does not persist cache state, do
 
 ## Diagnostics
 
+The Runtime 11 M2.4 checkpoint established the worker diagnostics contract; it is a historical milestone, not a claim that pending acceptance has passed. Current exported metric keys include asset.worker.queue_age_total_ms (enqueue-to-worker-start total), asset.worker.cancel_wall_total_ms (non-blocking cancellation wall total), and asset.worker.drop_wall_total_ms (pool teardown wall total).
+
 `AssetWorkerPoolDiagnostics` exposes the shared execution source plus bounded-lifecycle counters:
 
 - `thread_budget_source`: always `TaskPoolIo`.

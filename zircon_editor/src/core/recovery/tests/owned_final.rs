@@ -4,13 +4,72 @@ use crate::core::jobs::{
     EditorJobProgressSource, EditorJobSystem, JobId, MutexGroup,
 };
 use crate::core::recovery::{
-    AutosaveExtension, AutosaveJobAdapter, AutosaveJobPolicy, AutosavePolicy,
-    AutosaveScheduler, AutosaveSnapshot, AutosaveSnapshotProvenance, AutosaveSnapshotSource,
-    AutosaveSourceDigest, AutosaveSourcePath, AutosaveStore,
+    AutosaveExtension, AutosaveJobAdapter, AutosaveJobPolicy, AutosavePolicy, AutosaveScheduler,
+    AutosaveSnapshot, AutosaveSnapshotProvenance, AutosaveSnapshotSource, AutosaveSourceDigest,
+    AutosaveSourcePath, AutosaveStore,
 };
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::{mpsc, Weak};
 use std::time::Duration;
+
+struct OwnedFinalAutosaveFixture {
+    root: PathBuf,
+    parent: PathBuf,
+    root_created: std::time::SystemTime,
+    parent_created: std::time::SystemTime,
+}
+
+impl OwnedFinalAutosaveFixture {
+    fn checked_directory(path: &Path) -> std::fs::Metadata {
+        let metadata = std::fs::symlink_metadata(path).expect("owned fixture directory metadata");
+        assert!(metadata.is_dir() && !metadata.file_type().is_symlink());
+        #[cfg(windows)]
+        {
+            use std::os::windows::fs::MetadataExt;
+            assert_eq!(
+                metadata.file_attributes() & 0x400,
+                0,
+                "fixture must not be a reparse point"
+            );
+        }
+        assert_eq!(
+            path.canonicalize().expect("physical fixture directory"),
+            path
+        );
+        metadata
+    }
+
+    fn new(label: &str) -> Self {
+        let root = final_autosave_test_root(label);
+        let parent = root.parent().expect("fixture output parent").to_path_buf();
+        std::fs::create_dir_all(&parent).expect("create fixture output parent");
+        let parent_metadata = Self::checked_directory(&parent);
+        std::fs::create_dir(&root).expect("exclusively create owned fixture directory");
+        let root_metadata = Self::checked_directory(&root);
+        assert_eq!(root.parent(), Some(parent.as_path()));
+        Self {
+            root,
+            parent,
+            root_created: root_metadata.created().expect("fixture creation identity"),
+            parent_created: parent_metadata
+                .created()
+                .expect("fixture parent creation identity"),
+        }
+    }
+}
+
+impl Drop for OwnedFinalAutosaveFixture {
+    fn drop(&mut self) {
+        let parent_metadata = Self::checked_directory(&self.parent);
+        let root_metadata = Self::checked_directory(&self.root);
+        assert_eq!(parent_metadata.created().unwrap(), self.parent_created);
+        assert_eq!(root_metadata.created().unwrap(), self.root_created);
+        assert_eq!(self.root.parent(), Some(self.parent.as_path()));
+        assert_ne!(self.root, self.parent);
+        assert!(self.root.starts_with(&self.parent));
+        std::fs::remove_dir_all(&self.root).expect("remove only the owned fixture directory");
+    }
+}
 
 fn wait_until(mut ready: impl FnMut() -> bool) {
     let deadline = Instant::now() + Duration::from_secs(5);
@@ -80,11 +139,12 @@ impl EditorJob for GatedDiagnosticStore {
 #[test]
 fn diagnostic_real_ticket_acknowledges_only_its_submitted_retired_prefix() {
     for fail_first in [false, true] {
-        let root = final_autosave_test_root(if fail_first {
+        let fixture = OwnedFinalAutosaveFixture::new(if fail_first {
             "prefix-failure"
         } else {
             "prefix"
         });
+        let root = fixture.root.clone();
         let jobs = test_job_system();
         let service = EditorAutosaveService::new(
             jobs.clone(),
@@ -176,9 +236,6 @@ fn diagnostic_real_ticket_acknowledges_only_its_submitted_retired_prefix() {
                 .iter()
                 .all(AutosaveDocumentOutcome::diagnostic_persisted));
         }
-        if root.exists() {
-            std::fs::remove_dir_all(root).unwrap();
-        }
     }
 }
 
@@ -237,7 +294,8 @@ impl AutosaveSnapshotSource for SnapshotSource {
 
 #[test]
 fn final_submission_observer_can_reenter_without_locks_or_early_completion() {
-    let root = final_autosave_test_root("observer");
+    let fixture = OwnedFinalAutosaveFixture::new("observer");
+    let root = fixture.root.clone();
     let observer = Arc::new(ReenteringObserver {
         service: Mutex::new(Weak::new()),
         admissions: AtomicUsize::new(0),
@@ -275,5 +333,4 @@ fn final_submission_observer_can_reenter_without_locks_or_early_completion() {
     });
     assert!(drain.succeeded());
     assert!(observer.unlocked.load(Ordering::Acquire));
-    std::fs::remove_dir_all(root).unwrap();
 }

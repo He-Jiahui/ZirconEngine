@@ -7,6 +7,8 @@ mod animation_status_json;
 mod mirror_docs;
 #[path = "module_families/navigation.rs"]
 mod navigation;
+#[path = "module_families/navigation_inventory.rs"]
+mod navigation_inventory;
 #[path = "module_families/root_seats.rs"]
 mod root_seats;
 #[path = "module_families/split_layout.rs"]

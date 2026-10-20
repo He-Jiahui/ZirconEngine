@@ -14,12 +14,12 @@ class ZuiDocsSuffixPlanScopeGuardTests(unittest.TestCase):
         repo_root = Path(__file__).resolve().parents[2]
         plan_text = (
             repo_root
-            / "docs/plans/zircon_editor/editor_ui/08-workbench-shell-on-runtime-ui.md"
+            / 'docs/editor/editor-workbench-shell.md'
         ).read_text(encoding="utf-8")
         design_section = _section(
             plan_text,
-            "## 3. 设计",
-            "## 4. 接口与数据结构草案",
+            '## Current Workbench Shell Layout Authority',
+            '## Workbench Shell Layout Validation',
         )
 
         stale_phrases = [
@@ -52,12 +52,12 @@ class ZuiDocsSuffixPlanScopeGuardTests(unittest.TestCase):
     def test_ui_asset_management_plan_uses_zui_for_current_asset_scope(self):
         repo_root = Path(__file__).resolve().parents[2]
         plan_text = (
-            repo_root / "docs/plans/zircon_editor/editor_ui/05-ui-asset-management.md"
+            repo_root / 'docs/crates/zircon_editor/ui/asset-editor-v2-authoring.md'
         ).read_text(encoding="utf-8")
         current_goal = _section(
             plan_text,
-            "## 1. 目标",
-            "## 2. 现状（按代码核实修正）",
+            '## Current UI Asset Scope',
+            '## UI Asset Scope Validation',
         )
 
         stale_phrases = [
@@ -88,12 +88,12 @@ class ZuiDocsSuffixPlanScopeGuardTests(unittest.TestCase):
         repo_root = Path(__file__).resolve().parents[2]
         plan_text = (
             repo_root
-            / "docs/plans/zircon_editor/editor_ui/04-style-theme-and-painter-selector.md"
+            / 'docs/crates/zircon_runtime/ui/theme.md'
         ).read_text(encoding="utf-8")
         milestone_table = _section(
             plan_text,
-            "## 7. 里程碑切片化",
-            "## 8. 测试矩阵（代表性用例）",
+            '## Current Theme Token Scan Scope',
+            '## Theme Token Scan Validation',
         )
 
         stale_phrases = [

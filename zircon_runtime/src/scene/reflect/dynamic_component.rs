@@ -1,5 +1,5 @@
 //! 把插件组件描述符接入反射元数据，并为 World 的 JSON 动态组件提供操作表。
-//! 回调按 World 当前目录取得字段；VM 路径按声明类型转换，兼容路径沿用 ScenePropertyValue 转换。
+//! 回调按 World 当前目录取得字段；VM 及声明结构类型按字段模式转换，其他兼容字段沿用 ScenePropertyValue。
 
 use crate::core::framework::scene::ComponentPropertyPath;
 use crate::core::framework::scene::{ComponentPropertyDescriptor, ComponentTypeDescriptor};
@@ -143,7 +143,7 @@ fn read_dense_slot(
 
 /// 读取当前声明字段，先要求组件 JSON 是对象且实际包含该字段。
 ///
-/// VM 分支按 `value_type_path` 解析为拥有型反射值；兼容分支经现有动态属性/ScenePropertyValue 转换。
+/// VM 及声明结构类型按 `value_type_path` 解析，保留 Json 与 Entity 容器的区别；其他兼容字段经 ScenePropertyValue 转换。
 /// 本路径不会因 schema 声明或默认值而自动补齐缺失 JSON 键。
 fn read_declared_field(
     world: &World,
@@ -153,7 +153,7 @@ fn read_declared_field(
 ) -> Result<ReflectedValue, ReflectError> {
     let component = ensure_dynamic_component(world, entity, type_path)?;
     ensure_json_field_present(component, type_path, &field.name)?;
-    if !world.is_vm_dynamic_type_path(type_path) {
+    if !world.is_vm_dynamic_type_path(type_path) && !uses_declared_structure(field) {
         let property_path = dynamic_property_path(type_path, &field.name)?;
         let Some(value) = world.dynamic_component_property(entity, &property_path) else {
             return Err(ReflectError::UnsupportedConversion {
@@ -220,7 +220,7 @@ fn write_dense_slot(
 
 /// 在独立 JSON 候选上按输入顺序完成字段转换，再调用一次 World 写入口。
 ///
-/// 槽位存在且字段可编辑后，VM 分支检查声明类型并转 JSON；兼容分支经 ScenePropertyValue 转 JSON。
+/// 槽位存在且字段可编辑后，VM 及声明结构类型检查模式并转 JSON；其他兼容字段经 ScenePropertyValue 转 JSON。
 /// 字段或转换错误返回时尚未调用 `World::set_dynamic_component`；最终提交和变更标记由该 World 入口决定。
 /// 重复槽位依次更新候选；无中间变化时直接返回 `false`，最终候选恢复原值时 World 也可返回 `false`。
 /// 此回调本身不追加值树预算，门面准入见 `WorldReflection::reflect_write`。
@@ -249,7 +249,7 @@ fn write_dense_slots(
                 field_name: field.name.clone(),
             });
         }
-        let json_value = if is_vm_type {
+        let json_value = if is_vm_type || uses_declared_structure(field) {
             super::type_registry::ensure_reflected_value_type(
                 type_path,
                 &field.name,
@@ -283,9 +283,9 @@ fn write_dense_slots(
         })
 }
 
-/// 检查可编辑性和现有组件后，按 World 的 VM 类型标识选择字段写入路径。
+/// 检查可编辑性和现有组件后，按 VM 类型标识及字段的声明结构类型选择写入路径。
 ///
-/// VM 分支先匹配声明反射类型、转换 JSON，再交给 World 的完整候选验证/提交入口；兼容分支沿用 ScenePropertyValue 转换。
+/// VM 及声明结构类型先匹配反射类型并转 JSON，再交给 World 的候选提交入口；其他兼容字段沿用 ScenePropertyValue。
 /// World 错误映射为目标属性上下文的 `UnsupportedConversion`；值预算由上层门面另行检查。
 fn write_declared_field(
     world: &mut World,
@@ -302,7 +302,7 @@ fn write_declared_field(
     }
     ensure_dynamic_component(world, entity, type_path)?;
     let property_path = dynamic_property_path(type_path, &field.name)?;
-    if !world.is_vm_dynamic_type_path(type_path) {
+    if !world.is_vm_dynamic_type_path(type_path) && !uses_declared_structure(field) {
         let value = super::scene_value_from_reflected(value)?;
         return world
             .set_dynamic_component_property(entity, &property_path, value)
@@ -325,6 +325,22 @@ fn write_declared_field(
             source: error.to_string(),
             target: format!("dynamic JSON property `{type_path}.{}`", field.name),
         })
+}
+
+/// 仅为不能由 ScenePropertyValue 保真承载的声明结构选择模式驱动转换。
+/// 其他非 VM 字段保留原有兼容转换；不会根据实际 JSON 的形状推断 Entity。
+fn uses_declared_structure(field: &ReflectFieldInfo) -> bool {
+    use super::declared_value_type::DeclaredValueType;
+
+    matches!(
+        DeclaredValueType::parse(&field.value_type_path),
+        Ok(DeclaredValueType::Json
+            | DeclaredValueType::Entity
+            | DeclaredValueType::List(_)
+            | DeclaredValueType::Map(_)
+            | DeclaredValueType::DynamicList
+            | DeclaredValueType::DynamicMap)
+    )
 }
 
 fn remove(world: &mut World, entity: EntityId, type_path: &str) -> Result<bool, ReflectError> {

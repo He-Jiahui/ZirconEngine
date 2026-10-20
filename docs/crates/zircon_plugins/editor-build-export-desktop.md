@@ -1141,3 +1141,17 @@ source scans for the helper and discovery call sites, conflict-marker scan,
 trailing-whitespace scan, and path-scoped `git diff --check` with only LF/CRLF
 warnings. Cargo and focused behavior tests remain deferred under the current
 implementation-first direction.
+
+## Current Plugin Editor Template Authority
+
+Panels use retained host 的 `.zui` 模板体系 and register_ui_template(EditorUiTemplateDescriptor). `.ui.toml` / `.v2.ui.toml` 后缀已退役; no Slint bypass is added outside the Hub boundary. The default drawer is built from ReflectTypeInfo + ReflectEditorHint at runtime; 定制 drawer 仍走 `.zui` through register_component_drawer rather than introducing generated static schema copies.
+
+## Plugin Editor Template Validation
+
+Preserve the bounded positive/negative suffix and drawer-authority checks. This policy transfer records no browser, renderer or product acceptance.
+
+### Clause provenance
+
+These content identities preserve the source of this transfer. They are not fresh measurements, active-file dependencies or acceptance receipts.
+
+- `10-editor-integration.md`, SHA-256 `349d75b5c5f6effacf40e5e3df87488683fcec1e00b8a20994d229d6136bda4d`, selected source lines 69-81.

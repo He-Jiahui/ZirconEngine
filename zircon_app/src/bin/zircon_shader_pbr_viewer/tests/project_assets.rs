@@ -392,7 +392,7 @@ fn dielectric_ior_fixture_serializes_the_routed_standard_material_input() {
     );
     assert_eq!(
         overrides.get("roughness").and_then(toml::Value::as_float),
-        Some(0.08)
+        Some(f64::from(0.08_f32))
     );
 
     let material = ZMaterialDocument::from_project_toml_str(&source, |reference| {

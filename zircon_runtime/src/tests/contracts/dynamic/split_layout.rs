@@ -1,4 +1,5 @@
 //! 动态场景会话、补丁预览和资产重载路径需保持现有只读与所有权约束。通过源码文本核对父子路由、状态镜像和文件预算。
+use crate::tests::runtime_absorption::structure_convention::fixed_history_archive_source as history;
 const PARENT_SOURCE: &str = include_str!("../dynamic.rs");
 const SOURCES_SOURCE: &str = include_str!("sources.rs");
 const PATCH_PREVIEW_API_SOURCE: &str = include_str!("patch_preview_api.rs");
@@ -12,24 +13,26 @@ const ASSET_RELOAD_SELECTION_STATUS_SOURCE: &str = include_str!("asset_reload_se
 const SPLIT_LAYOUT_SOURCE: &str = include_str!("split_layout.rs");
 
 const FRAMEWORKS_02_PLAN: &str =
-    include_str!("../../../../../docs/plans/zircon_runtime/frameworks/02-module-kernel-and-lifecycle-unification.md");
-const RUNTIME_15_PLAN: &str = include_str!(
-    "../../../../../docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md"
+    include_str!("../../../../../docs/crates/zircon_runtime/core/modules.md");
+const RUNTIME_15_PLAN: &str =
+    include_str!("../../../../../docs/crates/zircon_runtime/structure/module-convention.md");
+const RUNTIME_INDEX: &str = include_str!(
+    "../../../../../docs/crates/zircon_runtime/structure/runtime-absorption-evidence.md"
 );
-const RUNTIME_INDEX: &str =
-    include_str!("../../../../../docs/plans/zircon_runtime/runtime/index.md");
 const STRUCTURE_CONVENTION_PLAN: &str =
-    include_str!("../../../../../docs/plans/engine-code-structure-convention.md");
+    include_str!("../../../../../docs/testing-and-validation/development-conventions.md");
 const REVIEW_FINDINGS_PLAN: &str =
-    include_str!("../../../../../docs/plans/engine-code-review-findings-2026-06.md");
+    include_str!("../../../../../docs/architecture/runtime-architecture-review-m0.md");
 #[rustfmt::skip]
-const NUMBERED_STATUS_RECORDS: &str = concat!(
-    include_str!("../../../../../docs/plans/zircon_runtime/frameworks/02/2026-07-09-module-kernel-and-lifecycle-unification-output-records.md"),
-    include_str!("../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md"),
-    include_str!("../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md"),
-    include_str!("../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md"),
-    include_str!("../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md")
-);
+fn numbered_status_records() -> &'static str {
+    crate::runtime_test_history_concat!(
+    history("docs/plans/zircon_runtime/frameworks/02/2026-07-09-module-kernel-and-lifecycle-unification-output-records.md"),
+    history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md"),
+    history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md"),
+    history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md"),
+    history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md")
+)
+}
 const MODULE_CONVENTION_DOC: &str =
     include_str!("../../../../../docs/crates/zircon_runtime/structure/module-convention.md");
 
@@ -39,15 +42,15 @@ fn runtime_15_dynamic_scene_route_owner_is_folder_backed() {
         "dynamic_scene route owner",
         PARENT_SOURCE,
         &[
-            "#[path = \"dynamic_scene/asset_reload_selection_status.rs\"]",
-            "#[path = \"dynamic_scene/patch_preview_api.rs\"]",
-            "#[path = \"dynamic_scene/patch_preview_behavior.rs\"]",
-            "#[path = \"dynamic_scene/patch_preview_status_docs.rs\"]",
-            "#[path = \"dynamic_scene/session_capture_persistence.rs\"]",
-            "#[path = \"dynamic_scene/session_load_query_path.rs\"]",
-            "#[path = \"dynamic_scene/session_retention_mutation_merge.rs\"]",
-            "#[path = \"dynamic_scene/sources.rs\"]",
-            "#[path = \"dynamic_scene/split_layout.rs\"]",
+            "#[path = \"dynamic/asset_reload_selection_status.rs\"]",
+            "#[path = \"dynamic/patch_preview_api.rs\"]",
+            "#[path = \"dynamic/patch_preview_behavior.rs\"]",
+            "#[path = \"dynamic/patch_preview_status_docs.rs\"]",
+            "#[path = \"dynamic/session_capture_persistence.rs\"]",
+            "#[path = \"dynamic/session_load_query_path.rs\"]",
+            "#[path = \"dynamic/session_retention_mutation_merge.rs\"]",
+            "#[path = \"dynamic/sources.rs\"]",
+            "#[path = \"dynamic/split_layout.rs\"]",
         ],
     );
     assert_parent_route_only();
@@ -65,6 +68,7 @@ fn assert_parent_route_only() {
         "include_str!(",
         "const PATCH_SOURCE",
         "const RUNTIME_05_PLAN",
+        "fn runtime_05_plan",
         "const DYNAMIC_SCENE_DOC",
         "use super::*;",
     ] {
@@ -81,7 +85,7 @@ fn assert_child_owners_are_focused() {
         SOURCES_SOURCE,
         &[
             "pub(super) const PATCH_SOURCE",
-            "pub(super) const RUNTIME_05_PLAN",
+            "pub(super) fn runtime_05_plan",
             "pub(super) const DYNAMIC_SCENE_DOC",
             "PATH_MANAGEMENT_SLOT_MUTATIONS_SOURCE",
         ],
@@ -184,7 +188,7 @@ fn assert_docs_and_status_mirror_split() {
         assert!(
             source.contains(
                 "runtime_15_dynamic_scene_route_owner_split_static_passed_cargo_deferred"
-            ) || NUMBERED_STATUS_RECORDS.contains(
+            ) || numbered_status_records().contains(
                 "runtime_15_dynamic_scene_route_owner_split_static_passed_cargo_deferred"
             ),
             "{label} should mirror the dynamic_scene route-owner split status"
@@ -201,7 +205,7 @@ fn assert_docs_and_status_mirror_split() {
     );
     assert_contains_all(
         "Frameworks 02 status",
-        NUMBERED_STATUS_RECORDS,
+        numbered_status_records(),
         &[
             "frameworks_02_m3_dynamic_scene_route_owner_split_static_passed_cargo_deferred",
             "Runtime 15 M3 dynamic-scene route-owner split",

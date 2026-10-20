@@ -1,15 +1,16 @@
 //! 运行时内置模块组合保持核心脊柱顺序，外部插件按必需性报告缺失。通过源码文本核对父子路由、状态镜像和文件预算。
+use crate::tests::runtime_absorption::structure_convention::fixed_history_archive_source as history;
 const PARENT_SOURCE: &str = include_str!("../builtin_modules.rs");
 const CORE_SPINE_SOURCE: &str = include_str!("core_spine.rs");
 const PLUGIN_SELECTION_SOURCE: &str = include_str!("plugin_selection.rs");
 const SPLIT_LAYOUT_SOURCE: &str = include_str!("split_layout.rs");
 
-const FRAMEWORKS_02_OUTPUT_RECORDS: &str = include_str!(
-    "../../../../../docs/plans/zircon_runtime/frameworks/02/2026-07-09-module-kernel-and-lifecycle-unification-output-records.md"
-);
-const RUNTIME_15_OUTPUT_RECORDS: &str = include_str!(
-    "../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md"
-);
+fn frameworks_02_output_records() -> &'static str {
+    history("docs/plans/zircon_runtime/frameworks/02/2026-07-09-module-kernel-and-lifecycle-unification-output-records.md")
+}
+fn runtime_15_output_records() -> &'static str {
+    history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md")
+}
 const MODULE_CONVENTION_DOC: &str =
     include_str!("../../../../../docs/crates/zircon_runtime/structure/module-convention.md");
 
@@ -91,7 +92,7 @@ fn assert_line_budget() {
 
 fn assert_docs_and_status_mirror_split() {
     assert!(
-        RUNTIME_15_OUTPUT_RECORDS
+        runtime_15_output_records()
             .contains("runtime_15_builtin_modules_route_owner_split_static_passed_cargo_deferred"),
         "Runtime 15 output records should own the builtin_modules route-owner split status"
     );
@@ -107,7 +108,7 @@ fn assert_docs_and_status_mirror_split() {
     );
     assert_contains_all(
         "Frameworks 02 output records",
-        FRAMEWORKS_02_OUTPUT_RECORDS,
+        frameworks_02_output_records(),
         &[
             "frameworks_02_m3_builtin_modules_route_owner_split_static_passed_cargo_deferred",
             "Runtime 15 M3 builtin-modules route-owner split",

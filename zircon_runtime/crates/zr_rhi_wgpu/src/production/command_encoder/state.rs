@@ -247,7 +247,7 @@ pub(crate) fn validate_index_buffer(
     let desc = registry.buffer_desc(buffer)?;
     ensure_buffer_usage(buffer.diagnostic_id(), &desc, BufferUsage::INDEX)?;
     ensure_binding_range(buffer, desc.size_bytes, offset, size)?;
-    if offset % format.size_bytes() != 0 || size % format.size_bytes() != 0 {
+    if !offset.is_multiple_of(format.size_bytes()) || !size.is_multiple_of(format.size_bytes()) {
         return Err(RhiError::InvalidRasterDraw {
             reason: format!("index buffer binding must be aligned to {format:?}"),
         });

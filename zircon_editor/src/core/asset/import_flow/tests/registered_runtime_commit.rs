@@ -156,6 +156,10 @@ impl ProjectFixture {
         panic!("no exclusive fixture directory available");
     }
 
+    pub(super) fn open_project(&self) -> zircon_runtime::asset::project::ProjectManager {
+        zircon_runtime::asset::project::ProjectManager::open(&self.root).unwrap()
+    }
+
     fn paths(&self) -> ProjectPaths {
         ProjectPaths::from_root(&self.root).unwrap()
     }

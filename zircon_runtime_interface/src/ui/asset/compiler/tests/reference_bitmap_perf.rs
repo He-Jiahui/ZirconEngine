@@ -24,11 +24,13 @@ fn compiled_binding(binding_id: u32, generation: u64) -> UiCompiledBinding {
 fn reference_program(binding_ids: Vec<u32>, binding_count: usize) -> UiCompiledBindingProgram {
     UiCompiledBindingProgram::new(
         UiCompiledBindingGeneration::new(1),
-        Vec::new(),
-        Vec::new(),
-        Vec::new(),
-        Vec::new(),
-        Vec::new(),
+        crate::ui::template::UiCompiledBindingSymbols {
+            binding_names: Vec::new(),
+            properties: Vec::new(),
+            routes: Vec::new(),
+            actions: Vec::new(),
+            controls: Vec::new(),
+        },
         vec![UiCompiledNodeBindings {
             owner_asset_id: UiCompiledAssetId::default(),
             binding_ids: binding_ids.into_iter().map(UiBindingId::new).collect(),

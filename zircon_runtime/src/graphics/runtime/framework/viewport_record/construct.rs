@@ -14,6 +14,7 @@ impl ViewportRecord {
             virtual_geometry_readback_slots: Default::default(),
             last_virtual_geometry_native_probe: Default::default(),
             pending_virtual_geometry_readbacks: Default::default(),
+            accepted_virtual_geometry_submissions: Default::default(),
             last_applied_virtual_geometry_generation: Default::default(),
             virtual_geometry_readback_epoch: None,
             temporal_frame_index: 0,

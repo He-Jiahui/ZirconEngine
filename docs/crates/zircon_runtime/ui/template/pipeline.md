@@ -545,3 +545,23 @@ The 1,000-instance regression locks one distinct private id and one matching com
 reference per instance, with zero global duplicate fallbacks. Compiled binding handles are now
 generation-qualified and stale handles fail closed; model subscription generations and rebind
 receipts remain part of the later model/reload boundary.
+
+## Compiler authority validation
+
+UiDocumentCompiler is the sole document compilation authority. UiAssetLoader loads UiCompiledDocument; UiTemplateSurfaceBuilder builds retained surfaces from that compiled input. UiTemplateRuntimePipeline must not revive a second recursive compiler.
+
+Keep asset_compiler_is_the_single_template_compile_authority and legacy_recursive_template_document_is_not_a_runtime_compile_input as authority regressions. The bounded latency contract uses nearest-rank P95: PERF-RUNTIME74-COMPILER-AUTHORITY records sample_count=21, compiles_per_sample=100, samples_us=<21-raw-samples>, compile_p95_us=<measured>, p95_limit_us=250000, runtime_compiler_authorities=1 and legacy_runtime_pipeline_exports=0. These are the measurement protocol and authority targets, not new samples. template_compiler_authority_has_bounded_p95_latency requires actual execution.
+
+The current source roots and the architecture_boundaries.rs guard are validation ownership references, not copied historical source snapshots.
+
+### Source and guard ownership
+
+The finite source, guard and provenance inventory for these responsibilities is:
+
+- `zircon_runtime_interface/src/ui/template/mod.rs`, `docs/crates/zircon_runtime/ui/`.
+
+### Clause provenance
+
+These content identities preserve the source of this transfer. They are not fresh measurements, active-file dependencies or acceptance receipts.
+
+- `2026-08-22-single-template-compiler-authority.md`, SHA-256 `9515edaf18f53776a5da9fb6ed23e5c5f078c7412465b1de98ee32f7940e6bce`, selected source lines 6-37.

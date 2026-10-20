@@ -1,12 +1,14 @@
 //! 表面协商确定目标格式、用途与呈现模式；本地设备请求也遵守公共能力配置。
+#[cfg(test)]
+use crate::wgpu_features_for_device_request;
 use std::num::NonZeroIsize;
 use std::sync::Arc;
 
 use zr_rhi::{RenderDeviceFeature, RenderDeviceRequestPolicy, RenderNativeSurfaceTarget, RhiError};
 
 use crate::{
-    initial_wgpu_render_device_profile, wgpu_adapter_facts, wgpu_device_request,
-    wgpu_features_for_device_request, WgpuRenderDevice, WgpuRenderDeviceContext,
+    initial_wgpu_render_device_profile, wgpu_adapter_facts, wgpu_device_request, WgpuRenderDevice,
+    WgpuRenderDeviceContext,
 };
 
 const SURFACE_FRAME_LATENCY: u32 = 2;
@@ -114,6 +116,7 @@ pub(super) fn request_owned_render_device(
     Ok(Arc::new(WgpuRenderDevice::new(context, profile)?))
 }
 
+#[cfg(test)]
 pub(super) fn requested_device_features(
     adapter_features: wgpu::Features,
     allow_gpu_timing: bool,

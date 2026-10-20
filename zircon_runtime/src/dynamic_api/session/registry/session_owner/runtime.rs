@@ -333,23 +333,41 @@ impl RuntimeSessionOwner {
             .unwrap_or_else(Instant::now);
         #[cfg(all(test, windows))]
         super::receipt_publication::startup_deadline(deadline);
-        #[cfg(test)]
-        let startup_observation = self.startup_observation.clone();
-        let receipt = self.owner.shutdown_until(deadline, move |state| {
-            #[cfg(all(test, windows))]
-            super::receipt_publication::callback_entered(deadline);
-            let completed = shutdown_owner_state_until(state, deadline);
+        let receipt = loop {
+            if deadline.saturating_duration_since(Instant::now()).is_zero() {
+                break OwnerShutdownReceipt::Pending;
+            }
             #[cfg(test)]
-            startup_observation::record_cleanup(&startup_observation, state, completed);
-            #[cfg(all(test, windows))]
-            super::receipt_publication::callback_completed(deadline, completed);
-            completed
-        });
+            let startup_observation = self.startup_observation.clone();
+            let receipt = self.owner.shutdown_until(deadline, move |state| {
+                #[cfg(all(test, windows))]
+                super::receipt_publication::callback_entered(deadline);
+                let completed = shutdown_owner_state_until(state, deadline);
+                #[cfg(test)]
+                startup_observation::record_cleanup(&startup_observation, state, completed);
+                #[cfg(all(test, windows))]
+                super::receipt_publication::callback_completed(deadline, completed);
+                completed
+            });
+            if !matches!(
+                receipt,
+                OwnerShutdownReceipt::Pending | OwnerShutdownReceipt::Retryable
+            ) {
+                break receipt;
+            }
+            let remaining = deadline.saturating_duration_since(Instant::now());
+            if remaining.is_zero() {
+                break receipt;
+            }
+            // Pending 沿用原 owner/receipt；仅已发布的 Retryable 准入新 callback。
+            // 两者共用最初 deadline，快速返回也必须让出线程，不能另起预算。
+            std::thread::sleep(remaining.min(Duration::from_millis(5)));
+        };
         #[cfg(test)]
         startup_observation::record_owner_receipt(&self.startup_observation, receipt);
         // BUG: [CR-OWNER-0001] 发布者持有真实回执 wait 锁但尚未 store 成功时，
-        // wait_until 的 WouldBlock 会提前返回 Pending；即使本次 deadline 尚未耗尽，
-        // 此分支仍 abort，使原 late Play 加载错误无法返回调用方。
+        // wait_until 的 WouldBlock 会提前返回 Pending；原实现直接 abort 并隐藏原错误。
+        // 当前窄修沿用同一 deadline 等待，仍需受管回归与独立复核后才能关闭此 marker。
         // 证据：CleanupReceipt::publish/wait_until → SessionOwner::shutdown_until_inner；
         // construction/tests/receipt_publication.rs 的真实公开回归安排此竞态，
         // 要求原 ReadPlayScene 错误返回且同 owner 完成真实 join；本批仅静态核对，未执行测试。

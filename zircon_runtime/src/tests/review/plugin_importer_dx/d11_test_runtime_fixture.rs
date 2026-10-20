@@ -1,8 +1,12 @@
 //! 代码审查回归护栏核对已迁移接口、错误边界、插件入口及镜像状态。以结果断言检查当前接口或源码快照对应的边界。
+use crate::tests::runtime_absorption::structure_convention::fixed_history_archive_source as history;
 const ANIMATION_PHYSICS_TEST: &str =
     include_str!("../../../../../zircon_plugins/animation/runtime/tests/physics_tick.rs");
 const ANIMATION_ASSETS_FIXTURE: &str =
     include_str!("../../../../../zircon_plugins/animation/runtime/tests/animation_assets.rs");
+const CLIP_EVENTS_FIXTURE: &str = include_str!(
+    "../../../../../zircon_plugins/animation/runtime/tests/physics_tick/clip_events.rs"
+);
 const RUNTIME_HELPERS_FIXTURE: &str =
     include_str!("../../../../../zircon_plugins/animation/runtime/tests/runtime_helpers.rs");
 const TARGET_RESOLUTION_FIXTURE: &str =
@@ -15,21 +19,15 @@ const PLUGIN_SDK_PRELUDE: &str =
 
 #[test]
 fn review_d11_animation_physics_tests_use_sdk_test_runtime_fixture() {
-    let review_findings = include_str!(
-        "../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"
-    );
-    let structure_convention = include_str!(
-        "../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md"
-    );
-    let plugins_12 = include_str!(
-        "../../../../../docs/plans/zircon_plugins/12/2026-07-09-plugin-dx-and-structure-framework-output-records.md"
-    );
+    let review_findings = history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md");
+    let structure_convention = history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md");
+    let plugins_12 = history("docs/plans/zircon_plugins/12/2026-07-09-plugin-dx-and-structure-framework-output-records.md");
     let plugin_sdk_doc = include_str!("../../../../../docs/crates/zircon_plugins/plugin-sdk.md");
     let animation_doc =
         include_str!("../../../../../docs/crates/zircon_plugins/animation/runtime.md");
-    let runtime_15 = crate::tests::runtime_absorption::current_source_fixture::RUNTIME_ARCHITECTURE_IMPLEMENTATION_OUTPUT;
-    let runtime_index = include_str!(
-        "../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md"
+    let runtime_15 = crate::tests::runtime_absorption::current_source_fixture::runtime_architecture_implementation_output();
+    let runtime_index = history(
+        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md",
     );
     let module_convention =
         include_str!("../../../../../docs/crates/zircon_runtime/structure/module-convention.md");
@@ -38,9 +36,9 @@ fn review_d11_animation_physics_tests_use_sdk_test_runtime_fixture() {
         "animation/physics integration test should use SDK TestRuntime",
         ANIMATION_PHYSICS_TEST,
         &[
-            "#[path = \"runtime_physics_animation_tick_contract/animation_assets.rs\"]",
-            "#[path = \"runtime_physics_animation_tick_contract/runtime_helpers.rs\"]",
-            "#[path = \"runtime_physics_animation_tick_contract/target_resolution.rs\"]",
+            "#[path = \"animation_assets.rs\"]",
+            "#[path = \"runtime_helpers.rs\"]",
+            "#[path = \"target_resolution.rs\"]",
             "runtime.create_default_level().unwrap()",
             "runtime.tick_level_seconds(&level,",
         ],
@@ -50,6 +48,48 @@ fn review_d11_animation_physics_tests_use_sdk_test_runtime_fixture() {
         "animation/physics test owner should stay below the test-file budget"
     );
 
+    assert!(
+        ANIMATION_PHYSICS_TEST.contains("include!(\"physics_tick/clip_events.rs\");"),
+        "the clip-event responsibility must remain an item include in the original integration target"
+    );
+    assert!(
+        CLIP_EVENTS_FIXTURE.lines().count() < 800,
+        "clip-event test child must remain below the focused test-file budget"
+    );
+    assert_eq!(CLIP_EVENTS_FIXTURE.matches("#[test]").count(), 6);
+    for name in [
+        "level_tick_emits_animation_clip_event_tracks_crossed_by_player_time",
+        "negative_speed_looping_player_emits_reverse_events_across_the_loop_boundary",
+        "reversing_a_clip_player_does_not_repeat_the_direction_change_endpoint",
+        "graph_player_emits_clip_events_using_graph_clip_playback_speed",
+        "state_machine_player_emits_active_graph_clip_events",
+        "state_machine_transition_emits_from_and_to_graph_clip_events",
+    ] {
+        let signature = format!("fn {name}(");
+        assert!(
+            CLIP_EVENTS_FIXTURE.contains(&format!("#[test]\n{signature}")),
+            "the actual item-mounted child must preserve original test {name}"
+        );
+        assert!(
+            !ANIMATION_PHYSICS_TEST.contains(&signature),
+            "clip-event test {name} must not return to the parent owner"
+        );
+    }
+    for name in [
+        "subscribe_animation_clip_events",
+        "drain_animation_clip_events",
+    ] {
+        let signature = format!("fn {name}(");
+        assert!(
+            CLIP_EVENTS_FIXTURE.contains(&signature),
+            "child must own {name}"
+        );
+        assert!(
+            !ANIMATION_PHYSICS_TEST.contains(&signature),
+            "helper {name} must not return"
+        );
+    }
+
     assert_contains_all(
         "runtime helper fixture should be SDK-backed",
         RUNTIME_HELPERS_FIXTURE,
@@ -58,7 +98,13 @@ fn review_d11_animation_physics_tests_use_sdk_test_runtime_fixture() {
             "TestRuntime::builder()",
             ".with_runtime_plugin(&physics_plugin)",
             ".with_runtime_plugin(&animation_plugin)",
-            "TestRuntime::builder().build().unwrap()",
+            ".with_config_file_path(fixture.config_path())",
+            "pub(super) struct ScopedTestRuntime",
+            "runtime: TestRuntime,",
+            "_fixture: ManagedConfigFixture,",
+            "impl std::ops::Deref for ScopedTestRuntime",
+            "impl Drop for ManagedConfigFixture",
+            "cleanup must retain this fixture's physical identity",
             "asset::project_asset_manager_handle(core)",
             "resolve_manager_service(",
         ],
@@ -161,6 +207,17 @@ fn review_d11_animation_physics_tests_use_sdk_test_runtime_fixture() {
         &["手搭 1354 行 CoreRuntime+Scene fixture", "（1354 行）"],
     );
 
+    assert_contains_all(
+        "module convention fixture semantics and evidence ownership",
+        module_convention,
+        &[
+            "D11 animation/physics TestRuntime fixture migration",
+            "d11_animation_physics_test_runtime_fixture_static_passed_cargo_deferred",
+            "runtime_physics_animation_tick_contract/runtime_helpers.rs",
+            "runtime_physics_animation_tick_contract/target_resolution.rs",
+            "owner 派生的 status-row/test inventory",
+        ],
+    );
     for (doc_label, doc) in [
         ("review findings", review_findings),
         ("structure convention", structure_convention),
@@ -169,7 +226,6 @@ fn review_d11_animation_physics_tests_use_sdk_test_runtime_fixture() {
         ("animation plugin doc", animation_doc),
         ("Runtime 15 plan", runtime_15),
         ("Runtime index", runtime_index),
-        ("module convention", module_convention),
     ] {
         assert_contains_all(
             doc_label,

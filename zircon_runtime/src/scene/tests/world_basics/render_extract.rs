@@ -406,3 +406,156 @@ fn render_product_pbr_world_frame_extract_exposes_authored_ambient_and_rect_ligh
         .unwrap()
         .contains("no authored scene component"));
 }
+
+#[test]
+fn render_mesh_stable_key_rejects_out_of_range_ordinals_in_all_profiles() {
+    use crate::core::framework::render::{
+        render_mesh_stable_instance_key, RENDER_MESH_STABLE_KEY_MAX_PRIMITIVE_ORDINAL,
+    };
+
+    let max = RENDER_MESH_STABLE_KEY_MAX_PRIMITIVE_ORDINAL;
+    assert_eq!(render_mesh_stable_instance_key(3, 0), 3_u64 << 16);
+    assert_eq!(
+        render_mesh_stable_instance_key(3, max),
+        (3_u64 << 16) | u64::from(max)
+    );
+    for invalid in [max + 1, u32::MAX] {
+        assert!(
+            std::panic::catch_unwind(|| render_mesh_stable_instance_key(3, invalid)).is_err(),
+            "ordinal {invalid} must not alias a valid key in any build profile",
+        );
+    }
+}
+
+#[test]
+fn world_render_extract_rejects_unrepresentable_primitive_domains_before_emission() {
+    use std::collections::BTreeSet;
+
+    use crate::core::framework::render::RENDER_MESH_STABLE_KEY_MAX_PRIMITIVE_ORDINAL;
+    use crate::core::resource::{ResourceHandle, ResourceId};
+    use crate::scene::components::{MeshRendererLodLevel, MeshRendererPrimitiveBinding};
+
+    let limit = RENDER_MESH_STABLE_KEY_MAX_PRIMITIVE_ORDINAL as usize + 1;
+    for use_lod in [false, true] {
+        let mut world = World::empty();
+        let camera = world.spawn_node(NodeKind::Camera).unwrap();
+        world
+            .update_transform(camera, Transform::default())
+            .unwrap();
+        let entity = world.spawn_node(NodeKind::Mesh).unwrap();
+        world
+            .update_transform(
+                entity,
+                Transform::from_translation(Vec3::new(0.0, 0.0, 20.0)),
+            )
+            .unwrap();
+        let other = world.spawn_node(NodeKind::Mesh).unwrap();
+        let primitive = MeshRendererPrimitiveBinding {
+            mesh: ResourceHandle::new(ResourceId::from_stable_label("stable-key-boundary.mesh")),
+            material: material_handle("stable-key-boundary.material"),
+        };
+        let mut renderer = MeshRenderer::from_handles(
+            model_handle("stable-key-boundary.model"),
+            primitive.material,
+        );
+        if use_lod {
+            // The base source stays small: admission must check the actual selected LOD.
+            renderer.primitives = vec![primitive.clone()];
+            let mut lod = MeshRendererLodLevel::from_handles(
+                1.0,
+                model_handle("stable-key-boundary-lod.model"),
+                primitive.material,
+            );
+            lod.primitives = vec![primitive.clone(); limit];
+            renderer.lods = vec![lod];
+        } else {
+            renderer.primitives = vec![primitive.clone(); limit];
+        }
+        world.insert(entity, renderer).unwrap();
+
+        let valid = world.to_render_frame_extract_cloning();
+        let rows = valid
+            .geometry
+            .meshes
+            .iter()
+            .filter(|row| row.node_id == entity)
+            .collect::<Vec<_>>();
+        assert_eq!(
+            rows.len(),
+            limit,
+            "all representable primitives must be emitted"
+        );
+        let keys = rows
+            .iter()
+            .map(|row| row.stable_instance_key)
+            .collect::<BTreeSet<_>>();
+        assert_eq!(keys.len(), limit);
+        for (ordinal, row) in rows.iter().enumerate() {
+            assert_eq!(row.stable_instance_key, (entity << 16) | ordinal as u64);
+            assert_eq!(row.mesh, Some(primitive.mesh));
+            assert_eq!(row.material, primitive.material);
+            assert_eq!(row.mesh_lod.is_some(), use_lod);
+        }
+        assert_eq!(
+            valid
+                .geometry
+                .phase_inputs
+                .iter()
+                .filter(|row| row.entity == entity)
+                .count(),
+            limit
+        );
+        assert_eq!(
+            valid
+                .geometry
+                .meshes
+                .iter()
+                .filter(|row| row.node_id == other)
+                .count(),
+            1
+        );
+
+        let renderer = world.get_mut::<MeshRenderer>(entity).unwrap();
+        let selected = if use_lod {
+            &mut renderer.lods[0].primitives
+        } else {
+            &mut renderer.primitives
+        };
+        selected.push(primitive);
+        assert_eq!(selected.len(), limit + 1);
+        let rejected = world.to_render_frame_extract_cloning();
+        assert!(
+            rejected
+                .geometry
+                .meshes
+                .iter()
+                .all(|row| row.node_id != entity),
+            "an unrepresentable source must emit no partial prefix or fallback mesh",
+        );
+        assert!(rejected
+            .geometry
+            .phase_inputs
+            .iter()
+            .all(|row| row.entity != entity));
+        assert_eq!(
+            rejected
+                .geometry
+                .meshes
+                .iter()
+                .filter(|row| row.node_id == other)
+                .count(),
+            1
+        );
+        let original = world.get::<MeshRenderer>(entity).unwrap();
+        let selected = if use_lod {
+            &original.lods[0].primitives
+        } else {
+            &original.primitives
+        };
+        assert_eq!(
+            selected.len(),
+            limit + 1,
+            "extraction must not truncate authored primitives"
+        );
+    }
+}

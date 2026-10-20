@@ -7,6 +7,8 @@ use thiserror::Error;
 #[derive(Debug, Error)]
 /// 公开构建和检查 API 的失败契约；缺失字符可在 bake 阶段跳过，但最终无可见字形会成为 NoGeneratedGlyphs。
 pub enum FontSdfBakeError {
+    #[error("font-SDF baking supports only the canonical default variation identity")]
+    UnsupportedVariationHash,
     #[error("decode font source: {0}")]
     DecodeFont(String),
     #[error("extract font face {face_index}: {message}")]

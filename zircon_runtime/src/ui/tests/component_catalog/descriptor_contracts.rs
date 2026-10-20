@@ -209,3 +209,76 @@ fn runtime_component_catalog_schemas_are_normalized_and_type_consistent() {
         }
     }
 }
+
+#[test]
+fn component_registry_rejects_nonfinite_one_sided_bounds_without_mutating_catalog() {
+    for is_state in [false, true] {
+        let mut baseline = UiComponentDescriptor::new(
+            "BoundedWidget",
+            "Bounded Widget",
+            UiComponentCategory::Numeric,
+            "bounded-widget",
+        );
+        let schema = UiPropSchema::new("value", UiValueKind::Float);
+        if is_state {
+            baseline.state_schema.push(schema);
+        } else {
+            baseline.prop_schema.push(schema);
+        }
+        let mut registry = UiComponentDescriptorRegistry::new();
+        assert_eq!(registry.try_register(baseline.clone()), Ok(true));
+        for boundary in [f64::NAN, f64::INFINITY, f64::NEG_INFINITY] {
+            for is_minimum in [false, true] {
+                let mut invalid = baseline.clone();
+                let schema = if is_state {
+                    &mut invalid.state_schema[0]
+                } else {
+                    &mut invalid.prop_schema[0]
+                };
+                schema.min = is_minimum.then_some(boundary);
+                schema.max = (!is_minimum).then_some(boundary);
+                let before = registry.clone();
+                assert_eq!(
+                    registry.try_register(invalid),
+                    Err(UiComponentDescriptorError::InvalidRange {
+                        component_id: "BoundedWidget".to_string(),
+                        name: "value".to_string(),
+                    }),
+                );
+                assert_eq!(
+                    registry, before,
+                    "rejected bounds must not change the catalog or revision"
+                );
+            }
+        }
+        for (min, max) in [
+            (Some(-1.0), None),
+            (None, Some(2.0)),
+            (Some(-1.0), Some(2.0)),
+        ] {
+            let mut finite = baseline.clone();
+            let schema = if is_state {
+                &mut finite.state_schema[0]
+            } else {
+                &mut finite.prop_schema[0]
+            };
+            schema.min = min;
+            schema.max = max;
+            assert!(registry.try_register(finite).is_ok());
+        }
+        let mut reversed = baseline;
+        let schema = if is_state {
+            &mut reversed.state_schema[0]
+        } else {
+            &mut reversed.prop_schema[0]
+        };
+        schema.min = Some(2.0);
+        schema.max = Some(-1.0);
+        let before = registry.clone();
+        assert!(matches!(
+            registry.try_register(reversed),
+            Err(UiComponentDescriptorError::InvalidRange { .. })
+        ));
+        assert_eq!(registry, before);
+    }
+}

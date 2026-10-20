@@ -34,7 +34,8 @@ fn image_domains_declare_their_exact_extent_dependency() {
     let hzb = SceneFrameHistoryRequirements::new(false, false, false, true, false, None);
 
     assert!(taa.uses_history_size());
-    assert!(gi.uses_history_size());
+    assert!(!gi.uses_history_size());
+    assert!(gi.uses_render_size());
     assert!(ssr.uses_history_size());
     assert!(hzb.uses_render_size());
 }
@@ -112,4 +113,34 @@ fn stable_requirements_and_extents_produce_no_allocation_changes() {
     );
 
     assert!(changes.is_empty());
+}
+
+#[test]
+fn gi_history_tracks_primary_render_extent_independently_of_taa_history() {
+    let requirements = SceneFrameHistoryRequirements::new(true, true, true, true, false, None);
+    let taa_extent = UVec2::new(1352, 912);
+    let render_extent = UVec2::new(904, 608);
+    let taa_resize = requirements.allocation_changes(
+        taa_extent,
+        render_extent,
+        requirements,
+        UVec2::new(1360, 920),
+        render_extent,
+    );
+    assert!(taa_resize.changed(SceneHistoryDomain::TaaSceneColor));
+    assert!(taa_resize.changed(SceneHistoryDomain::ScreenSpaceReflection));
+    assert!(!taa_resize.changed(SceneHistoryDomain::HybridGlobalIllumination));
+    assert!(!taa_resize.changed(SceneHistoryDomain::HzbFurthest));
+
+    let render_resize = requirements.allocation_changes(
+        taa_extent,
+        render_extent,
+        requirements,
+        taa_extent,
+        UVec2::new(888, 600),
+    );
+    assert!(render_resize.changed(SceneHistoryDomain::HybridGlobalIllumination));
+    assert!(render_resize.changed(SceneHistoryDomain::HzbFurthest));
+    assert!(!render_resize.changed(SceneHistoryDomain::TaaSceneColor));
+    assert!(!render_resize.changed(SceneHistoryDomain::ScreenSpaceReflection));
 }

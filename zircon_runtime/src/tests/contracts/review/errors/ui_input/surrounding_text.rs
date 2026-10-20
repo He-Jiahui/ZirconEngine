@@ -8,15 +8,6 @@ fn review_f5_ui_input_surrounding_text_error_implements_std_error() {
         "../../../../../../../zircon_runtime_interface/src/tests/ui_dispatch_error_contracts.rs"
     );
     let runtime_error = include_str!("../../../../../ui/surface/input/error.rs");
-    let _review_findings =
-        include_str!("../../../../../../../docs/plans/engine-code-review-findings-2026-06.md");
-    let _runtime_15_plan = include_str!(
-        "../../../../../../../docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md"
-    );
-    let _runtime_index =
-        include_str!("../../../../../../../docs/plans/zircon_runtime/runtime/index.md");
-    let _convention =
-        include_str!("../../../../../../../docs/plans/engine-code-structure-convention.md");
     let _module_doc = include_str!(
         "../../../../../../../docs/crates/zircon_runtime/structure/module-convention.md"
     );

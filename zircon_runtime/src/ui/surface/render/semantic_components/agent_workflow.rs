@@ -512,7 +512,6 @@ fn flow_line_height(base_style: &UiResolvedStyle, requested_font_size: f32) -> f
 
 // 工具名与详情共用一条富文本命令，让强调样式仍参与同一文本布局。
 fn rich_tool_call_text(tool: &str, detail: &str) -> String {
-    // BUG: [CR-R02-runtime_wave5_surface_widget_render-0003] 工具名或详情含转义字符时，此编码交给不识别转义的 MarkdownInlineV1；例如详情 *x* 会留下反斜杠并误作斜体，parser/markdown.rs 的扫描未跳过转义标记。
     let tool = escape_markdown_inline(tool);
     if detail.is_empty() {
         format!("**{tool}**")

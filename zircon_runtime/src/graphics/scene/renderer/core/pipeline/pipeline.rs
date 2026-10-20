@@ -1,13 +1,15 @@
+#[cfg(feature = "test-support")]
+use crate::core::framework::render::RenderFrameExtract;
 use crate::core::framework::render::{
     FrameHistoryHandle, RenderCapabilitySummary, RenderCaptureReport, RenderCaptureSource,
     RenderFrameHistoryInput, RenderGpuTimingStatus, RenderReflectionProbeWorkloadReport,
     ShaderVariantMissReport,
 };
-use crate::core::TaskPool;
-#[cfg(feature = "test-support")]
-use crate::core::{framework::render::RenderFrameExtract, math::UVec2};
+#[cfg(any(test, feature = "test-support"))]
+use crate::core::math::UVec2;
 #[cfg(test)]
-use crate::core::{math::UVec2, resource::ResourceId};
+use crate::core::resource::ResourceId;
+use crate::core::TaskPool;
 
 #[cfg(test)]
 use crate::graphics::backend::read_texture_rgba;

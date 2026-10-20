@@ -49,6 +49,9 @@ pub struct RenderVirtualGeometryReadbackOutputs {
     pub selected_clusters: Vec<RenderVirtualGeometrySelectedCluster>,
     pub visbuffer64_entries: Vec<RenderVirtualGeometryVisBuffer64Entry>,
     pub hardware_rasterization_records: Vec<RenderVirtualGeometryHardwareRasterizationRecord>,
+    /// Only completed native terminal output; Some(empty) is a real clear completion.
+    pub physical_submission_segments:
+        Option<Vec<super::super::RenderVirtualGeometryExecutionSegment>>,
     pub node_cluster_cull: RenderVirtualGeometryNodeClusterCullReadbackOutputs,
 }
 
@@ -61,6 +64,7 @@ impl RenderVirtualGeometryReadbackOutputs {
             && self.visbuffer64_entries.is_empty()
             && self.hardware_rasterization_records.is_empty()
             && self.node_cluster_cull.is_empty()
+            && self.physical_submission_segments.is_none()
     }
 
     /// 在构造 GPU completion 前转移页请求，供流送反馈单独处理。

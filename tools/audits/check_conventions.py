@@ -25,7 +25,7 @@ else:  # pragma: no cover - direct script import path.
 DOCUMENT_PATH_FIELDS = ("implementation_files", "related_code")
 FRONT_MATTER_LIST_FIELDS = (*DOCUMENT_PATH_FIELDS, "tests")
 CONVENTION_RULES_PATH = Path(
-    "docs/plans/zircon_runtime/frameworks/development-conventions.md"
+    "docs/testing-and-validation/development-conventions.md"
 )
 # The convention document owns these rule families. A new family must update
 # the runner contract in the same change instead of silently widening what an

@@ -635,4 +635,51 @@ fn inspector_live_values_reach_host_paint_after_sparse_and_full_surface_refresh(
             "collapsed".to_string()
         ))
     );
+
+    assert_eq!(
+        control_visibility(&bridge, "UnrealDetailsSelectionHint"),
+        Some(UiVisibility::Visible)
+    );
+    for control in [
+        "UnrealDetailsNameArea",
+        "WorkbenchInspectorFilter",
+        "RightDrawerContentRoot",
+        "WorkbenchInspectorMetadata",
+        "WorkbenchInspectorMesh",
+    ] {
+        assert_eq!(
+            control_visibility(&bridge, control),
+            Some(UiVisibility::Collapsed),
+            "empty selection must hide {control}"
+        );
+    }
+
+    // A new authoritative selection restores the same controls and values.
+    bridge
+        .sync_scene_and_inspector(&entries, Some(&inspector))
+        .unwrap();
+    assert_eq!(
+        control_visibility(&bridge, "UnrealDetailsSelectionHint"),
+        Some(UiVisibility::Collapsed)
+    );
+    for control in [
+        "UnrealDetailsNameArea",
+        "WorkbenchInspectorFilter",
+        "RightDrawerContentRoot",
+        "WorkbenchInspectorMetadata",
+        "WorkbenchInspectorTransform",
+    ] {
+        assert_eq!(
+            control_visibility(&bridge, control),
+            Some(UiVisibility::Visible),
+            "selection must restore {control}"
+        );
+    }
+    let nodes = to_host_contract_workbench_window_nodes(Some(bridge.host_projection()));
+    assert_eq!(
+        template_contract_node(&nodes, "WorkbenchTransformPositionX")
+            .value_text
+            .as_str(),
+        "0.00"
+    );
 }

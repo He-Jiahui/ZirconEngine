@@ -753,3 +753,17 @@ fn text_rich_plain_segments_borrow_when_no_replacement_is_needed() {
         std::borrow::Cow::Borrowed("plain text")
     ));
 }
+
+#[test]
+fn text_rich_html_keeps_crlf_in_one_grapheme_across_style_tags() {
+    let parsed = parse_rich_text("a<b>\r</b>\nx", RichTextFormat::HtmlSubsetV1);
+
+    assert_eq!(parsed.text.as_ref(), "a\r\nx");
+    assert_eq!(parsed.runs.len(), 3);
+    assert_eq!(parsed.runs[0].byte_range, (0, 1));
+    assert_eq!(parsed.runs[0].style, StyleOverride::default());
+    assert_eq!(parsed.runs[1].byte_range, (1, 3));
+    assert_eq!(parsed.runs[1].style.weight, Some(700));
+    assert_eq!(parsed.runs[2].byte_range, (3, 4));
+    assert_eq!(parsed.runs[2].style, StyleOverride::default());
+}

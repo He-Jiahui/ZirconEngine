@@ -78,7 +78,7 @@ pub enum RenderFrameworkError {
     Backend(String),
     #[error("render viewport product publication failed after scene submission: {reason}")]
     FrameProductPublicationFailed {
-        receipt: RenderFrameSubmissionReceipt,
+        receipt: Box<RenderFrameSubmissionReceipt>,
         product_submission: Option<SubmissionTicket>,
         reason: String,
     },
@@ -95,7 +95,7 @@ pub enum RenderFrameworkError {
 impl RenderFrameworkError {
     pub fn frame_submission_receipt(&self) -> Option<&RenderFrameSubmissionReceipt> {
         match self {
-            Self::FrameProductPublicationFailed { receipt, .. } => Some(receipt),
+            Self::FrameProductPublicationFailed { receipt, .. } => Some(receipt.as_ref()),
             _ => None,
         }
     }

@@ -177,7 +177,10 @@ fn compiled_material_feature_census_covers_every_graph_context() {
         })
         .expect("compiled material pipeline feature gate");
 
-    assert!(feature_gate.contains("pipeline.graph()"));
+    assert!(feature_gate
+        .split_whitespace()
+        .collect::<String>()
+        .contains("pipeline.graph()"));
     assert!(!feature_gate.contains(".has_material_pipeline_admission_work()"));
     assert!(!feature_gate.contains(".has_active_staged_material_candidates()"));
 }
@@ -467,7 +470,9 @@ fn viewport_capture_uses_the_product_diagnostic_tail_and_scene_ticket() {
     assert!(!terminal.contains("encode_output_target_writeback("));
     assert!(terminal[prepare..].contains("product-diagnostic-readback"));
     assert!(!render.contains("request_texture_rgba("));
-    assert!(submit.contains("submit_graphics_command_buffers_with_frame_diagnostics_and_surface("));
+    assert!(submit.contains(
+        "submit_graphics_command_buffers_with_graph_receipt_and_frame_diagnostics_and_surface("
+    ));
     assert!(submit.contains("product_diagnostic_frame"));
 }
 
@@ -574,7 +579,9 @@ fn runtime_prepare_readbacks_share_the_product_diagnostic_scope_and_scene_ticket
     assert!(!terminal.contains("encode_output_target_writeback("));
     assert!(prepare < query_prepare);
     assert!(render.contains("product_diagnostic_frame_scope.is_some(),"));
-    assert!(submit.contains("submit_graphics_command_buffers_with_frame_diagnostics_and_surface("));
+    assert!(submit.contains(
+        "submit_graphics_command_buffers_with_graph_receipt_and_frame_diagnostics_and_surface("
+    ));
     assert!(submit.contains("product_diagnostic_query_frame"));
     assert!(!render.contains("register_gpu_readbacks(&mut self.readback_queue)"));
 }

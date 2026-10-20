@@ -361,7 +361,10 @@ fn require_radiance_hdr_path(path: &Path) -> Result<(), Box<dyn Error>> {
 
 /// 为运行时工件解析非 C 盘路径，并检查当前存在的祖先没有链接或重解析跳转。
 /// 该检查属于启动时准入；后续写入仍依赖路径未被其他进程替换。
-fn resolve_non_c_artifact_path(option: &str, path: &Path) -> Result<PathBuf, Box<dyn Error>> {
+pub(super) fn resolve_non_c_artifact_path(
+    option: &str,
+    path: &Path,
+) -> Result<PathBuf, Box<dyn Error>> {
     let absolute_path = if path.is_absolute() {
         path.to_path_buf()
     } else {

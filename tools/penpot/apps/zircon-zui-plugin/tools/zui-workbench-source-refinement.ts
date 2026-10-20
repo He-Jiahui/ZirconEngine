@@ -1,11 +1,8 @@
-import { resolveLayoutCatalogPath } from './zui-layout-paths';
+import { runCurrentSourceRefinement, type SourceRefinementContexts } from './zui-source-refinement-current';
 import assert from 'node:assert/strict';
-import { cp, mkdir, readFile, writeFile } from 'node:fs/promises';
-import { dirname, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
-import type { CatalogManifest } from './zui-layout-catalog';
+import { resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { parseZuiDocument, type ZuiTable } from '../src/bridge/zui-document';
-import { bytesSha256 } from './zui-layout-evidence';
 import { inline } from './zui-material-source-refinement';
 
 const dense = '$editor.control.height.dense';
@@ -25,7 +22,7 @@ const targets = [
   'components/workbench/floating/workbench_command_palette.zui',
 ];
 
-function refine(source: string) {
+export function refineWorkbenchSource(source: string) {
   const original = parseZuiDocument(source).document;
   const document = structuredClone(original);
   const nodes = document.nodes!;
@@ -128,65 +125,18 @@ function refine(source: string) {
   return { output, changes: output === source ? [] : changes };
 }
 
-const repoRoot = resolve(
-  dirname(fileURLToPath(import.meta.url)),
-  '../../../../..',
-);
-const catalogRoot = resolve(repoRoot, 'docs/_data/layout');
-const catalog: CatalogManifest = JSON.parse(
-  await readFile(resolveLayoutCatalogPath(catalogRoot, 'catalog.json'), 'utf8'),
-);
-const apply = process.argv.includes('--apply');
-const records = [];
-for (const suffix of targets) {
-  const sourcePath = `zircon_editor/assets/ui/editor/${suffix}`;
-  const entry = catalog.entries.find(
-    (entry) => entry.sourcePath === sourcePath,
-  )!;
-  assert.ok(entry, `Missing source ${sourcePath}`);
-  const path = resolve(repoRoot, sourcePath);
-  const before = await readFile(path, 'utf8');
-  assert.equal(
-    bytesSha256(before),
-    entry.sourceSha256,
-    `Regenerate catalog for ${sourcePath}`,
-  );
-  const { output, changes } = refine(before);
-  if (!changes.length) continue;
-  if (apply) {
-    const baseline = resolveLayoutCatalogPath(
-      catalogRoot,
-      dirname(entry.outputPath),
-      'evidence/before-20260907-composite-reflow',
-    );
-    await mkdir(baseline, { recursive: true });
-    await writeFile(resolve(baseline, 'source.zui'), before);
-    for (const evidence of entry.penpotEvidence ?? [])
-      if (evidence.screenshotPath)
-        await cp(
-          resolveLayoutCatalogPath(catalogRoot, evidence.screenshotPath),
-          resolve(baseline, `${evidence.caseId}.png`),
-        );
-    await writeFile(path, output);
-  }
-  records.push({
-    sourcePath,
-    beforeSha256: bytesSha256(before),
-    afterSha256: bytesSha256(output),
-    changes,
-  });
+const workbenchSources = targets.map((suffix) => 'zircon_editor/assets/ui/editor/' + suffix);
+
+export function runCurrentWorkbenchSourceRefinement(args: readonly string[] = [], contexts?: SourceRefinementContexts) {
+  return runCurrentSourceRefinement({
+    id: "workbench-composite", select: entry => workbenchSources.includes(entry.sourcePath),
+    requiredSources: workbenchSources,
+    transform: (source) => { const result = refineWorkbenchSource(source); return { source: result.output, changes: result.changes }; },
+  }, args, contexts);
 }
-const report = {
-  generatedAt: new Date().toISOString(),
-  applied: apply,
-  changedFiles: records.length,
-  records,
-};
-await writeFile(
-  resolveLayoutCatalogPath(
-    catalogRoot,
-    `evidence/workbench-composite-${apply ? 'applied' : 'proposed'}.json`,
-  ),
-  `${JSON.stringify(report, null, 2)}\n`,
-);
-console.log(JSON.stringify({ ...report, records: undefined }));
+
+if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
+  void runCurrentWorkbenchSourceRefinement(process.argv.slice(2)).then((report) => {
+    console.log(JSON.stringify({ ...report, records: undefined }));
+  }).catch((error: unknown) => { console.error(error); process.exitCode = 1; });
+}

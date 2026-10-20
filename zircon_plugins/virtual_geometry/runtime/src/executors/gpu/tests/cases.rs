@@ -37,6 +37,7 @@ fn virtual_geometry_graph_gpu_execution_shaders_validate_on_wgpu_device() {
                 storage_buffer_layout_entry(4, false, wgpu::ShaderStages::COMPUTE),
                 storage_buffer_layout_entry(5, false, wgpu::ShaderStages::COMPUTE),
                 storage_buffer_layout_entry(6, true, wgpu::ShaderStages::COMPUTE),
+                storage_buffer_layout_entry(7, false, wgpu::ShaderStages::COMPUTE),
             ],
         });
     let cull_pipeline_layout =
@@ -134,9 +135,37 @@ fn virtual_geometry_graph_gpu_execution_culls_nonresident_pages_and_reads_back_i
             contents: bytemuck::cast_slice(&[2_u32, 17, 21]),
             usage: wgpu::BufferUsages::STORAGE,
         });
-    let candidate_words = [
-        3_u32, 0, 0, 0, 0, 9, 17, 0, 0, 0, 10, 44, 1, 0, 0, 11, 21, 2, 0, 0,
-    ];
+    // Same three raw candidates/residency inputs and assertions, in the production source ABI.
+    let mut candidate_words = vec![0_u32; 64];
+    candidate_words[..14].copy_from_slice(&[3, 2, 1, 3, 3, 1, 3, 2, 0, 0, 0, u32::MAX, 0, 0]);
+    candidate_words[14] = 0x5647_5331;
+    candidate_words[16] = 3;
+    candidate_words[17] = 3;
+    candidate_words[22] = 64;
+    for (id, page) in [(9, 17), (10, 44), (11, 21)] {
+        candidate_words.extend_from_slice(&[0, 0, id, page, 0, u32::MAX, u32::MAX, 0, 0, 0, 0, 0]);
+    }
+    candidate_words[23] = candidate_words.len() as u32;
+    for (index, (id, page)) in [(9, 17), (10, 44), (11, 21)].into_iter().enumerate() {
+        candidate_words.extend_from_slice(&[
+            0,
+            0,
+            0,
+            id,
+            index as u32,
+            page,
+            0,
+            0,
+            index as u32,
+            3,
+        ]);
+    }
+    let decisions = backend.device.create_buffer(&wgpu::BufferDescriptor {
+        label: Some("zircon-test-vg-cull-decisions"),
+        size: (8 + 4096 * 33) * 4,
+        usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_SRC,
+        mapped_at_creation: false,
+    });
     let request_words = backend
         .device
         .create_buffer_init(&wgpu::util::BufferInitDescriptor {
@@ -223,6 +252,7 @@ fn virtual_geometry_graph_gpu_execution_culls_nonresident_pages_and_reads_back_i
                 storage_buffer_layout_entry(4, false, wgpu::ShaderStages::COMPUTE),
                 storage_buffer_layout_entry(5, false, wgpu::ShaderStages::COMPUTE),
                 storage_buffer_layout_entry(6, true, wgpu::ShaderStages::COMPUTE),
+                storage_buffer_layout_entry(7, false, wgpu::ShaderStages::COMPUTE),
             ],
         });
     let pipeline_layout = backend
@@ -275,6 +305,10 @@ fn virtual_geometry_graph_gpu_execution_culls_nonresident_pages_and_reads_back_i
                 wgpu::BindGroupEntry {
                     binding: 6,
                     resource: cull_input.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 7,
+                    resource: decisions.as_entire_binding(),
                 },
             ],
         });
@@ -471,6 +505,9 @@ fn virtual_geometry_graph_gpu_execution_pulls_cluster_vertices_into_color_pixels
         "vertex-pulled virtual geometry triangle should produce color pixels"
     );
 }
+
+#[path = "gate_regressions.rs"]
+mod gate_regressions;
 
 struct RenderBackend {
     _instance: wgpu::Instance,

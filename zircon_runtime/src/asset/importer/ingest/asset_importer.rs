@@ -514,6 +514,7 @@ fn import_ui_zui_fixture(
 ) -> Result<AssetImportOutcome, AssetImportError> {
     let document = context.source_str()?;
     let parsed = UiZuiAssetLoader::load_zui_str(document).map_err(|source| {
+        let source = crate::asset::assets::UiV2AssetDocumentError::from(source);
         AssetImportError::UiV2Document {
             context: "parse .zui ui asset",
             source: source.into(),

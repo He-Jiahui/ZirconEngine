@@ -109,8 +109,14 @@ def capsule(repo, checksum):
     for name, checksum in files.items():
         read(root / name, checksum)
     require(set(value.get("clientSources", {})) == CLIENTS, "six-client inventory differs")
+    runner = None
+    if "clientRoot" in value:
+        spec = importlib.util.spec_from_file_location("pinned_install_client_selector", root / "runner.py")
+        runner = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(runner)
     for name, checksum in value["clientSources"].items():
-        read(repo / name, checksum)
+        path = runner.client_path(value, repo, name, capsule=root) if runner is not None else repo / name
+        read(path, checksum)
     return root, value
 
 

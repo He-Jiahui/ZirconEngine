@@ -19,4 +19,5 @@ pub use manifest::{
 };
 pub use reader::ZrPackReader;
 pub use trim::{ZrPackTrimConfig, ZrPackTrimInputAsset, ZrPackTrimPlanner, ZrPackTrimReport};
+pub(crate) use writer::ZrPackFileWriteError;
 pub use writer::{ZrPackInputAsset, ZrPackWriter};

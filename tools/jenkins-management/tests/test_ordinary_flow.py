@@ -441,7 +441,7 @@ class OrdinaryFlowTests(unittest.TestCase):
                                      [Path(call.args[0]) for call in seal.call_args_list])
                 self.assertEqual(damaged, state.rows)
 
-    def test_preparation_identity_shares_producers_and_separates_build_configuration(self):
+    def test_preparation_identity_shares_cargo_graphs_and_separates_toolchains(self):
         args = ["repository", {"cargoSha256": "a" * 64, "rustcSha256": "b" * 64},
                 {"PATH": "fixed", "CARGO_BUILD_TARGET": "x86_64-pc-windows-msvc"},
                 ["zr_math"], [], "dev", False, {"home": "F:/cache", "configSha256": {}}, ["zr_vm"]]
@@ -450,12 +450,27 @@ class OrdinaryFlowTests(unittest.TestCase):
         self.assertEqual(identity, preparation.preparation_key(*copy.deepcopy(args)))
         changed = copy.deepcopy(args)
         changed[6] = True
-        self.assertNotEqual(identity, preparation.preparation_key(*changed))
+        self.assertEqual(identity, preparation.preparation_key(*changed))
+        for index, value in ((3, ["zircon_runtime"]), (4, ["core-min"]), (5, "test")):
+            changed = copy.deepcopy(args)
+            changed[index] = value
+            self.assertEqual(identity, preparation.preparation_key(*changed))
+        changed = copy.deepcopy(args)
+        changed[2]["cargoAllFeatures"] = True
+        self.assertEqual(identity, preparation.preparation_key(*changed))
         changed = copy.deepcopy(args)
         changed[1]["rustcSha256"] = "c" * 64
         self.assertNotEqual(identity, preparation.preparation_key(*changed))
         changed = copy.deepcopy(args)
         changed[2]["CARGO_BUILD_TARGET"] = "aarch64-pc-windows-msvc"
+        self.assertNotEqual(identity, preparation.preparation_key(*changed))
+        for index, value in ((0, "other-repository"), (7, {"home": "F:/other-cache", "configSha256": {}}),
+                             (8, ["other-layout"])):
+            changed = copy.deepcopy(args)
+            changed[index] = value
+            self.assertNotEqual(identity, preparation.preparation_key(*changed))
+        changed = copy.deepcopy(args)
+        changed[2]["CARGO_PROFILE_DEV_DEBUG"] = "2"
         self.assertNotEqual(identity, preparation.preparation_key(*changed))
 
     def test_shared_pool_updates_only_changed_bytes_and_preserves_sibling_mtimes(self):
@@ -801,7 +816,7 @@ class OrdinaryFlowTests(unittest.TestCase):
 
     def test_admission_verifies_every_engine_byte_before_external_capture_or_preparation(self):
         validator = runner.Management.__new__(runner.Management)
-        base = {"verb": "check", "packages": ["scoped-package"]}
+        base = {"verb": "check", "packages": ["scoped-package"], "noDefaultFeatures": True, "lib": True}
         for fields in ({"externalCapturePolicy": "jenkins-admission"},
                        {"expectedEngineSourceDigest": "e" * 64},
                        {"externalCapturePolicy": "client", "expectedEngineSourceDigest": "e" * 64},
@@ -1449,7 +1464,11 @@ class OrdinaryFlowTests(unittest.TestCase):
             management.repo, management.worktrees, management.state, management.repo_id = repo, worktrees, state, "repository"
             management.session, management.owned, management.key = "author", ["owned.txt"], "5" * 64
             management.request, management.operation = "release-request", "release-operation"
-            management.config = {"driverDigest": "d" * 64, "runtimeOperationId": "runtime"}
+            helper_path = repo / "tools/dev/local_cargo.py"
+            helper_path.parent.mkdir(parents=True)
+            helper_path.write_bytes(b"synthetic pinned native helper")
+            management.config = {"driverDigest": "d" * 64, "runtimeOperationId": "runtime",
+                                 "clientSources": {"tools/dev/local_cargo.py": runner.sha(helper_path.read_bytes())}}
             management.payload = {"worktreeId": "input", "expectedHead": base, "sourceDigest": source["sourceDigest"],
                                   "patchOperationKeys": [patch_key], "mergeOperationKey": merge_key,
                                   "validationKey": validation_key}
@@ -1518,7 +1537,7 @@ class OrdinaryFlowTests(unittest.TestCase):
             "c" * 40, {"vendor/unity": {"gitlinkCommit": "b" * 40, "source": changed_child}})
         management = runner.Management.__new__(runner.Management)
         management.state, management.key = MemoryState(), "6" * 64
-        management.payload = {"verb": "check", "packages": ["zr_math"],
+        management.payload = {"verb": "check", "packages": ["zr_math"], "noDefaultFeatures": True, "lib": True,
                               "expectedSourceDigest": declared["sourceDigest"]}
         management.validation_source = Mock(return_value=(Path(view["sourceRoot"]), current))
         management.dependency_cache = Mock(return_value=cache)
@@ -1574,13 +1593,13 @@ class OrdinaryFlowTests(unittest.TestCase):
             tool = root / "cargo.exe"
             tool.write_bytes(b"synthetic trusted executable")
             recipes = [
-                {"name": "check", "ordinal": 1, "cargoArguments": ["check", "-p", "zr_math", "--locked", "--offline"],
+                {"name": "check", "ordinal": 1, "cargoArguments": ["check", "-p", "zr_math", "--lib", "--no-default-features", "--locked", "--offline"],
                  "ownedNativeTimeoutSeconds": 7200},
                 {"name": "compile-tests", "ordinal": 2,
-                 "cargoArguments": ["test", "-p", "zr_math", "--no-run", "--locked", "--offline"],
+                 "cargoArguments": ["test", "-p", "zr_math", "--lib", "--no-default-features", "--no-run", "--locked", "--offline"],
                  "ownedNativeTimeoutSeconds": 7200},
                 {"name": "run-tests", "ordinal": 3,
-                 "cargoArguments": ["test", "-p", "zr_math", "--lib", "--locked", "--offline"],
+                 "cargoArguments": ["test", "-p", "zr_math", "--lib", "--no-default-features", "--locked", "--offline"],
                  "ownedNativeTimeoutSeconds": 10800, "minimumExpectedMatchedTests": 2,
                  "requiredNamedFixtureTests": ["fixture::first", "fixture::second"],
                  "requiredTestBinaries": ["synthetic_binary"]},
@@ -1757,24 +1776,31 @@ class OrdinaryFlowTests(unittest.TestCase):
             "batch": {"schemaVersion": 1, "sharedSingleBatchRequired": True,
                       "contractRef": {"path": str(path), "sha256": runner.sha(raw)},
                       "recipes": copy.deepcopy(original["semanticCommands"])}}
-        batch = actor.validation_batch()
-        self.assertEqual(original["semanticCommands"], batch["coverage"]["recipes"])
-        self.assertEqual(15, len(batch["recipes"]))
-        self.assertEqual(16, batch["coverage"]["producerContract"]["totalProducerIdentities"])
-        self.assertEqual(111600, sum(value["ownedNativeTimeoutSeconds"] for value in batch["coverage"]["recipes"]))
-        self.assertTrue(batch["recipes"][0]["lib"] and batch["recipes"][0]["bins"] and batch["recipes"][0]["allTests"])
-        self.assertTrue(batch["recipes"][8]["ignored"] and batch["recipes"][8]["nocapture"])
-        self.assertGreater(len(batch["recipes"][1]["harnessFilters"]), 1)
-        self.assertTrue(batch["recipes"][9]["exact"])
-        actor.payload = {"verb": "check", "packages": ["zr_math"]}
+        # Retain historical argv decoding, but deny obsolete broad recipes at admission.
+        with self.assertRaisesRegex((ValueError, entry.EntryError), "build_scope_policy|Compact builds require"):
+            actor.validation_batch()
+        legacy = [entry.parse_cargo(command["cargoArguments"], enforce_policy=False)
+                  for command in original["semanticCommands"]]
+        self.assertEqual(15, len(legacy))
+        self.assertTrue(legacy[0]["lib"] and legacy[0]["bins"] and legacy[0]["allTests"])
+        self.assertTrue(legacy[8]["ignored"] and legacy[8]["nocapture"])
+        self.assertGreater(len(legacy[1]["harnessFilters"]), 1)
+        self.assertTrue(legacy[9]["exact"])
+        with self._batch_fixture() as fixture:
+            scoped = fixture["actor"].validation_batch()
+            self.assertEqual(fixture["recipes"], scoped["coverage"]["recipes"])
+            self.assertEqual(3, len(scoped["recipes"]))
+            self.assertTrue(all(recipe["noDefaultFeatures"] for recipe in scoped["recipes"]))
+            self.assertTrue(scoped["recipes"][1]["lib"] and scoped["recipes"][1]["noRun"])
+        actor.payload = {"verb": "check", "packages": ["zr_math"], "noDefaultFeatures": True, "lib": True}
         single = actor.validation_recipe()
         expected = {"verb": "check", "profile": "dev", "packages": ["zr_math"], "features": [], "tests": [],
-            "testFilter": None, "jobs": 1, "testThreads": 1, "offline": False, "noDefaultFeatures": False,
-            "lib": False, "noRun": False, "allFeatures": False, "locked": True,
-            "command": ["check", "--jobs", "1", "--message-format=json", "--locked", "--package", "zr_math"]}
+            "testFilter": None, "jobs": 1, "testThreads": 1, "offline": False, "noDefaultFeatures": True,
+            "lib": True, "noRun": False, "allFeatures": False, "locked": True,
+            "command": ["check", "--jobs", "1", "--message-format=json", "--locked", "--no-default-features", "--lib", "--package", "zr_math"]}
         self.assertEqual(expected, single)
         self.assertEqual(runner.sha(runner.encoded(expected)), runner.sha(runner.encoded(single)))
-        self.assertNotIn("harnessFilters", entry.parse_cargo(["check", "-p", "zr_math"]))
+        self.assertNotIn("harnessFilters", entry.parse_cargo(["check", "-p", "zr_math", "--lib", "--no-default-features"]))
 
     def test_batch_shared_capture_seal_pool_and_native_sequence_retains_actual_each_step(self):
         with self._batch_fixture() as f:
@@ -1869,7 +1895,7 @@ class OrdinaryFlowTests(unittest.TestCase):
         key = "1" * 64
         original = {**{k: v for k, v in actor.payload.items() if k != "batch"},
                     "requestId": "donor-request", "operationId": "donor-operation",
-                    "verb": "test", "packages": ["zr_math"], "lib": True,
+                    "verb": "test", "packages": ["zr_math"], "lib": True, "noDefaultFeatures": True,
                     "expectedSourceDigest": before["sourceDigest"]}
         target = actor.outputs() / "pools" / ("c" * 64) / "target"
         execution_root = target.parent / "inputs/source"
@@ -1946,7 +1972,7 @@ class OrdinaryFlowTests(unittest.TestCase):
             self.assertEqual(reuse, probe.validation_batch()["reuseValidation"])
             self.assertFalse(hasattr(probe, "state"))
             single = runner.Management.__new__(runner.Management)
-            single.payload = {"verb": "check", "packages": ["zr_math"], "reuseValidation": reuse}
+            single.payload = {"verb": "check", "packages": ["zr_math"], "lib": True, "noDefaultFeatures": True, "reuseValidation": reuse}
             with self.assertRaises(ValueError):
                 single.validation_recipe()
             result = f["actor"].run()
@@ -2509,6 +2535,259 @@ class FixedEditorPreviewTests(unittest.TestCase):
 
 
 
+class CargoTestProfileTests(unittest.TestCase):
+    """Parser/runner/batch mechanisms only; no Cargo or native process launch."""
+
+    selectors = (
+        "dynamic_api::session::registry::session_owner::tests::",
+        "dynamic_api::session::registry::session_owner::runtime::tests::",
+        "dynamic_api::session::construction::error_cleanup_tests::receipt_publication::"
+        "app_core_shutdown_owner_public_late_play_error_waits_for_receipt_publication_without_reinvocation",
+    )
+
+    def arguments(self, selector=None, *, profile="test", no_run=False):
+        argv = ["test", "--package", "zircon_runtime", "--no-default-features",
+                "--features", "dynamic-api", "--lib", "--locked", "--jobs", "1"]
+        if profile is not None:
+            argv += ["--profile", profile]
+        if no_run:
+            return argv + ["--no-run"]
+        if selector is not None:
+            argv.append(selector)
+        return argv + ["--", "--test-threads", "1"] + (
+            ["--exact"] if selector == self.selectors[2] else [])
+
+    def recipe(self, argv):
+        actor = object.__new__(runner.Management)
+        actor.payload = entry.parse_cargo(argv)
+        return actor.validation_recipe()
+
+    def originals(self):
+        return [{"ordinal": i, "name": "runtime-" + str(i), "profile": "test",
+                 "cargoArguments": self.arguments(selector),
+                 "ownedNativeTimeoutSeconds": 60}
+                for i, selector in enumerate(self.selectors, 1)]
+
+    def batch(self, originals):
+        contract = {"sharedSingleBatchRequired": True, "semanticCommands": originals}
+        actor = object.__new__(runner.Management)
+        actor._batch_parser = entry.parse_cargo
+        actor.payload = {"batch": {"schemaVersion": 1, "sharedSingleBatchRequired": True,
+                         "contractRef": {"path": "synthetic-original-contract", "sha256": "a" * 64},
+                         "recipes": copy.deepcopy(originals)}}
+        # Substitute only the immutable-contract byte read; parser and recipe
+        # validation are real. This fixture provides no native/build evidence.
+        with patch.object(runner, "read_reference", return_value=contract):
+            return actor.validation_batch()
+
+    def test_runtime_selectors_reach_command_with_exact_test_profile(self):
+        for selector in self.selectors:
+            with self.subTest(selector=selector):
+                result = self.recipe(self.arguments(selector))
+                command = result["command"]
+                self.assertEqual("test", result["profile"])
+                self.assertEqual(["zircon_runtime"], result["packages"])
+                self.assertEqual(["dynamic-api"], result["features"])
+                self.assertTrue(result["lib"] and result["noDefaultFeatures"] and result["locked"])
+                self.assertEqual(["--profile", "test"], command[command.index("--profile"):
+                                                                     command.index("--profile") + 2])
+                self.assertLess(command.index("--profile"), command.index("--"))
+                self.assertLess(command.index(selector), command.index("--"))
+                self.assertEqual(["--jobs", "1"], command[1:3])
+                self.assertEqual(["--test-threads", "1"], command[command.index("--") + 1:
+                                                                         command.index("--") + 3])
+                self.assertEqual(selector == self.selectors[2], "--exact" in command)
+
+    def test_test_profile_rejected_for_check_and_build_before_dispatch(self):
+        for verb in ("check", "build"):
+            with self.subTest(verb=verb):
+                with self.assertRaises(entry.EntryError):
+                    entry.parse_cargo([verb, "-p", "zircon_runtime",
+                                       "--no-default-features", "--profile", "test"])
+                actor = object.__new__(runner.Management)
+                actor.payload = {"verb": verb, "packages": ["zircon_runtime"],
+                                 "profile": "test", "noDefaultFeatures": True}
+                with self.assertRaisesRegex(ValueError, "Unsupported Cargo recipe"):
+                    actor.validation_recipe()
+
+    def test_legacy_default_dev_and_release_argv_are_unchanged(self):
+        base = ["check", "-p", "zr_math", "--no-default-features"]
+        expected = ["check", "--jobs", "1", "--message-format=json", "--locked",
+                    "--no-default-features", "--package", "zr_math"]
+        for suffix, profile, tail in (([], "dev", []), (["--profile", "dev"], "dev", []),
+                                      (["--release"], "release", ["--release"]),
+                                      (["--profile", "release"], "release", ["--release"])):
+            with self.subTest(suffix=suffix):
+                result = self.recipe(base + suffix)
+                self.assertEqual(profile, result["profile"])
+                self.assertEqual(expected + tail, result["command"])
+
+    def test_no_run_retains_test_profile_without_harness(self):
+        result = self.recipe(self.arguments(no_run=True))
+        self.assertTrue(result["noRun"])
+        self.assertEqual("test", result["profile"])
+        self.assertIn("--no-run", result["command"])
+        self.assertEqual(["--profile", "test"], result["command"][-2:])
+        self.assertNotIn("--", result["command"])
+
+    def test_batch_retains_original_argv_coverage_and_selectors(self):
+        originals = self.originals()
+        untouched = copy.deepcopy(originals)
+        result = self.batch(originals)
+        self.assertEqual(untouched, originals)
+        self.assertEqual(untouched, result["coverage"]["recipes"])
+        self.assertEqual(["test"] * 3, [r["profile"] for r in result["recipes"]])
+        self.assertTrue(result["recipes"][2]["exact"])
+        self.assertEqual(self.selectors, tuple(r["testFilter"] for r in result["recipes"]))
+
+    def test_batch_profile_mismatch_refuses_before_native_work(self):
+        originals = self.originals()
+        for profile in ("dev", "debug", "release", "unknown"):
+            with self.subTest(profile=profile):
+                mismatched = copy.deepcopy(originals)
+                mismatched[0]["profile"] = profile
+                with self.assertRaisesRegex(ValueError, "Original profile differs"):
+                    self.batch(mismatched)
+
+    def test_public_help_describes_explicit_test_profile(self):
+        stream = io.StringIO()
+        with patch("sys.stdout", stream), self.assertRaises(SystemExit) as stopped:
+            entry.main(["cargo", "--help"])
+        self.assertEqual(0, stopped.exception.code)
+        self.assertIn("--profile test", stream.getvalue())
+
+
+
+class InstalledScopeAndEnvironmentTests(unittest.TestCase):
+    """Restore deployed guards; substitute native/preparation boundaries explicitly."""
+
+    compact = {"CARGO_INCREMENTAL": "0", "CARGO_PROFILE_DEV_INCREMENTAL": "false",
+               "CARGO_PROFILE_TEST_INCREMENTAL": "false", "CARGO_PROFILE_DEV_DEBUG": "0",
+               "CARGO_PROFILE_TEST_DEBUG": "0"}
+
+    def actor(self, **changes):
+        actor = object.__new__(runner.Management)
+        actor.action = "validate"
+        actor.payload = {"verb": "test", "packages": ["zircon_runtime"], "features": ["dynamic-api"],
+                         "profile": "test", "noDefaultFeatures": True, "lib": True, "jobs": 1,
+                         "testThreads": 1, **changes}
+        actor.repo, actor.key, actor.state = ROOT, "d" * 64, MemoryState()
+        actor.state.put("resource_policy", "default",
+                        {"cpuBudget": 2, "memoryBudget": 4 * 1024**3, "diskBudget": 8 * 1024**3})
+        return actor
+
+    def test_direct_runner_scope_rejects_before_capture_without_entry_parser(self):
+        invalid = ({"noDefaultFeatures": False}, {"allFeatures": True}, {"allTests": True},
+                   {"lib": False}, {"lib": True, "tests": ["one"]},
+                   {"lib": False, "tests": ["one", "two"]})
+        for values in invalid:
+            with self.subTest(values=values):
+                actor = self.actor(**values)
+                actor.validation_with_cache = Mock(side_effect=AssertionError("Capture/native boundary reached"))
+                actor.validation_failure_release = Mock(return_value=None)
+                with patch.object(entry, "parse_cargo", side_effect=AssertionError("Public parser bypass required")):
+                    with self.assertRaisesRegex(ValueError, "build_scope_policy"):
+                        actor._dispatch()
+                actor.validation_with_cache.assert_not_called()
+
+    def test_direct_runner_accepts_exact_lib_or_one_target_for_legacy_and_test_profiles(self):
+        for profile in ("dev", "release", "test"):
+            for targets in ({"lib": True, "tests": []}, {"lib": False, "tests": ["one"]}):
+                with self.subTest(profile=profile, targets=targets):
+                    result = self.actor(profile=profile, **targets).validation_recipe()
+                    self.assertEqual(profile, result["profile"])
+                    self.assertTrue(result["noDefaultFeatures"])
+                    self.assertEqual(targets["tests"], result["tests"])
+                    self.assertEqual(targets["lib"], result["lib"])
+
+    def test_shared_environment_compacts_without_mutating_policy_or_release_profiles(self):
+        from tools.jenkins.workflow import planning
+        original = {key: "2" for key in self.compact}
+        original.update(CARGO_PROFILE_RELEASE_DEBUG="2", CARGO_PROFILE_PROFILING_DEBUG="true",
+                        CARGO_NET_OFFLINE="true", zircon_docs_history_archive_root="untrusted-inherited")
+        history = copy.deepcopy(original)
+        actor = self.actor()
+        with patch.object(planning, "_environment_policy", return_value=(original, {"host": "fixed"}, ROOT/"policy")):
+            actual, trusted, policy = actor.validation_environment()
+        self.assertEqual(history, original)
+        self.assertEqual(self.compact, {key: actual[key] for key in self.compact})
+        self.assertEqual("2", actual["CARGO_PROFILE_RELEASE_DEBUG"])
+        self.assertEqual("true", actual["CARGO_PROFILE_PROFILING_DEBUG"])
+        self.assertFalse(any(key.casefold()=="zircon_docs_history_archive_root" for key in actual))
+        self.assertEqual({"host": "fixed"}, trusted)
+        self.assertEqual(ROOT/"policy", policy)
+
+    def test_compact_preserves_explicit_typed_history_archive_binding(self):
+        from tools.jenkins.workflow import planning
+        with tempfile.TemporaryDirectory(prefix="ordinary-archive-env-") as temporary:
+            archive = Path(temporary)
+            value = {"schemaVersion": 1, "kind": "zircon-fixed-docs-history", "access": "read-only",
+                     "root": str(archive)}
+            actor = self.actor(fixedHistoryArchiveInput=value)
+            original = {"PATH": "fixed", "ZIRCON_DOCS_HISTORY_ARCHIVE_ROOT": "untrusted"}
+            with patch.object(planning, "_environment_policy", return_value=(original, {}, ROOT/"policy")):
+                actual, _, _ = actor.validation_environment()
+            self.assertEqual(str(archive.resolve()), actual["ZIRCON_DOCS_HISTORY_ARCHIVE_ROOT"])
+            self.assertEqual(self.compact, {key: actual[key] for key in self.compact})
+            self.assertEqual(value, actor.payload["fixedHistoryArchiveInput"])
+            self.assertEqual("untrusted", original["ZIRCON_DOCS_HISTORY_ARCHIVE_ROOT"])
+
+    def test_compact_normalization_keeps_shared_dev_test_graph_identity(self):
+        from tools.jenkins.workflow import planning
+        keys = []
+        for value in ("1", "2"):
+            original = {key: value for key in self.compact}
+            actor = self.actor()
+            with patch.object(planning, "_environment_policy", return_value=(original, {}, ROOT/"policy")):
+                actual, _, _ = actor.validation_environment()
+            for profile in ("dev", "test"):
+                keys.append(preparation.preparation_key(
+                    "repository", {"cargoSha256": "a"*64, "rustcSha256": "b"*64}, actual,
+                    ["zircon_runtime"], ["dynamic-api"], profile, True,
+                    {"home": "E:/cargo-targets/cache", "configSha256": {}}, []))
+        self.assertEqual(1, len(set(keys)))
+
+    def test_batch_checkout_and_single_reach_compact_owner_before_preparation_or_launch(self):
+        from tools.jenkins.workflow import planning
+        import sys
+        class EnvironmentReached(BaseException):
+            pass
+        with tempfile.TemporaryDirectory(prefix="ordinary-env-wiring-") as temporary:
+            for mode in ("batch", "checkout", "single"):
+                with self.subTest(mode=mode):
+                    actor = self.actor(sourceView="checkout" if mode=="checkout" else "worktree")
+                    actor.build_root = Mock(return_value="E:/cargo-targets")
+                    actor.outputs = Mock(return_value=Path(temporary)/mode/"uncreated-output")
+                    actor.validation_root = Mock(return_value=ROOT)
+                    actor.wt = Mock(return_value=(None, ROOT))
+                    actor.batch_checkpoint = Mock(return_value={})
+                    actor.validation_with_cache = Mock(return_value=(ROOT, {
+                        "sourceDigest": "e"*64, "source": {"files": {}}, "externalRoots": [],
+                        "dependencyCache": {"home": "E:/cargo-targets/cache", "configSha256": {}}}))
+                    actor.config = {"files": {"checkout_guard.py":
+                        hashlib.sha256((MANAGEMENT/"checkout_guard.py").read_bytes()).hexdigest()}}
+                    if mode=="batch":
+                        actor.payload["worktreeId"] = "synthetic-worktree"
+                        actor.validation_batch = Mock(return_value={"recipes": [self.actor().validation_recipe()],
+                            "coverage": {}, "reuseValidation": None})
+                    observed = []
+                    def preparation_boundary():
+                        frame = sys._getframe(1)
+                        environment = frame.f_locals["environment"]
+                        self.assertEqual(self.compact, {key: environment[key] for key in self.compact})
+                        self.assertIn(frame.f_code.co_name,
+                                      ("validate_batch", "validate_checkout", "validate_prepared"))
+                        if mode=="checkout":
+                            self.assertEqual(environment, actor._checkout_native_environment)
+                        observed.append(frame.f_code.co_name)
+                        raise EnvironmentReached()
+                    with patch.object(planning, "_environment_policy", return_value=(
+                            {key: "2" for key in self.compact}, {}, ROOT/"policy")), \
+                         patch.object(runner, "source_helper", new=preparation_boundary):
+                        with self.assertRaises(EnvironmentReached):
+                            {"batch": actor.validate_batch, "checkout": actor.validate_checkout,
+                             "single": actor.validate_prepared}[mode]()
+                    self.assertEqual(1, len(observed))
 
 class UnlaunchedFlowRecoveryTests(unittest.TestCase):
     """The fixed adapter uses real cancellation/resource policy on in-memory State."""
@@ -3062,6 +3341,89 @@ class CommittedWorktreeSuccessorTests(unittest.TestCase):
             f.actor.source.assert_not_called()
 
 
+
+class MigratedConsumerBoundaryTests(unittest.TestCase):
+    """Use real consumer admission while stopping at runtime and native boundaries."""
+
+    def recipe(self, **changes):
+        return {"verb": "test", "packages": ["zircon_runtime"], "features": ["dynamic-api"],
+                "profile": "test", "noDefaultFeatures": True, "lib": True, "jobs": 1,
+                "testThreads": 1, **changes}
+
+    def invoke_candidate(self, recipe):
+        return runner.validate_branch_candidate(
+            ROOT / "unused-capsule", component_digest="b" * 64,
+            root=ROOT / ".jenkins/worktrees/integration-queue",
+            branch_request={}, cargo_recipe=recipe, ordinal=1, runtime={})
+
+    def test_branch_scope_rejects_before_runtime_candidate_capture_or_native_reads(self):
+        invalid = ({"noDefaultFeatures": False}, {"allFeatures": True}, {"allTests": True},
+                   {"lib": False}, {"lib": True, "tests": ["one"]},
+                   {"lib": False, "tests": ["one", "two"]})
+        with patch.object(runner, "boot", side_effect=AssertionError("Runtime read before scope")) as boot, \
+                patch.object(runner, "_BranchCandidate",
+                             side_effect=AssertionError("Candidate/native read before scope")) as candidate:
+            for change in invalid:
+                with self.subTest(change=change):
+                    with self.assertRaisesRegex(ValueError, "build_scope_policy"):
+                        self.invoke_candidate(self.recipe(**change))
+        boot.assert_not_called()
+        candidate.assert_not_called()
+
+    def test_branch_accepts_exact_legacy_or_test_profile_before_runtime_boundary(self):
+        with patch.object(runner, "boot", side_effect=RuntimeError("validated-scope-runtime-boundary")) as boot:
+            for profile in ("dev", "release", "test"):
+                for targets in ({"lib": True, "tests": []}, {"lib": False, "tests": ["one"]}):
+                    with self.subTest(profile=profile, targets=targets):
+                        with self.assertRaisesRegex(RuntimeError, "validated-scope-runtime-boundary"):
+                            self.invoke_candidate(self.recipe(profile=profile, **targets))
+        self.assertEqual(6, boot.call_count)
+
+    def test_bound_candidate_source_is_reused_and_mismatch_never_recaptures(self):
+        actor = object.__new__(runner.Management)
+        source = {"head": "a" * 40, "files": {"owned.rs": "b" * 64},
+                  "sourceDigest": "c" * 64, "diffSha256": "f" * 64}
+        before = {"source": source, "externalRoots": [], "sourceRoot": str(ROOT),
+                  "sourceView": "worktree",
+                  "dependencyCache": {"home": "E:/cargo-targets/cache"}, "sourceDigest": "d" * 64}
+        actor.payload = {"expectedSourceDigest": before["sourceDigest"]}
+        candidate = SimpleNamespace(before=before, verify=Mock(return_value=ROOT))
+        actor._branch_candidate = candidate
+        actor.validation_source = Mock(side_effect=AssertionError("Original source must not be recaptured"))
+        actor.dependency_cache = Mock(side_effect=AssertionError("Original cache must not be recaptured"))
+        root, captured = actor.validation_with_cache()
+        self.assertEqual(ROOT, root)
+        self.assertIs(before, captured)
+        actor.payload = {"expectedSourceDigest": "e" * 64}
+        with self.assertRaises(runner.SourceInputMismatch):
+            actor.validation_with_cache()
+        self.assertEqual(2, candidate.verify.call_count)
+        actor.validation_source.assert_not_called()
+        actor.dependency_cache.assert_not_called()
+
+    def test_retirement_schemas_reject_extra_native_claims_without_mutating_state(self):
+        from tools.jenkins.contracts import JenkinsError
+        state = MemoryState()
+        state.put("native_job", "preserved", {"status": "unknown", "nativeComplete": None})
+        before = copy.deepcopy(state.rows)
+        actor = SimpleNamespace(state=state, payload={"currentSourceRef": "a" * 64}, manager=Mock())
+        variants = [
+            {"schemaVersion": 1, "kind": "cancelled-before-execution-allocation-v1",
+             "buildNumber": 35, "nativeComplete": None},
+            {"schemaVersion": 1, "kind": "cancelled-before-resource-admission-v1",
+             "phase": "retire", "nativeComplete": None},
+            {"schemaVersion": 1, "kind": "cancelled-before-native-launch-v1",
+             "nativeComplete": None},
+        ]
+        for recovery in variants:
+            with self.subTest(kind=recovery["kind"]):
+                actor.payload["unlaunchedRecovery"] = recovery
+                with self.assertRaises(JenkinsError):
+                    preparation.retire_unlaunched_flow_reader(actor)
+                self.assertEqual(before, state.rows)
+        actor.manager.assert_not_called()
+
+
 class BranchCandidatePreparationTests(unittest.TestCase):
     @contextmanager
     def _candidate_fixture(self):
@@ -3093,6 +3455,9 @@ class BranchCandidatePreparationTests(unittest.TestCase):
                 encoding="utf-8")
             (repo / "src/lib.rs").write_text(
                 '#[cfg(feature="vm")] pub fn value()->u8 { vm_binding::value() }\n', encoding="utf-8")
+            helper_path = repo / "tools/dev/local_cargo.py"
+            helper_path.parent.mkdir(parents=True)
+            helper_path.write_bytes(b"synthetic pinned helper; canonical implementation loaded at native boundary")
             (external / "binding/Cargo.toml").write_text(
                 '[package]\nname="vm_binding"\nversion="0.0.0"\nedition="2021"\n', encoding="utf-8")
             (external / "binding/src/lib.rs").write_text('pub fn value()->u8 { 7 }\n', encoding="utf-8")
@@ -3115,7 +3480,8 @@ class BranchCandidatePreparationTests(unittest.TestCase):
                 "requestId": "fixture-request", "ownerThreadId": "fixture-thread",
                 "paths": [".gitignore", "Cargo.toml", "Cargo.lock", "src/lib.rs"]}
             runtime = {"driverDigest": "d" * 64, "runtimeOperationId": "fixture-current-runtime"}
-            config = {**runtime, "repositoryRoot": str(repo)}
+            config = {**runtime, "repositoryRoot": str(repo),
+                      "clientSources": {"tools/dev/local_cargo.py": runner.sha(helper_path.read_bytes())}}
             capsule = top / ("a" * 64)
             state = MemoryState()
             state.put("resource_policy", "default", {"cpuBudget": 1, "memoryBudget": 4 * 1024**3,
@@ -3198,7 +3564,7 @@ class BranchCandidatePreparationTests(unittest.TestCase):
                 yield {"repo": repo, "root": candidate, "state": state, "capsule": capsule,
                     "request": request, "runtime": runtime, "config": config, "component": "b" * 64,
                     "record": record_path, "marker": marker_path, "native": merge_report / "native-terminal.json",
-                    "recipe": {"verb": "check", "packages": ["candidate_fixture"], "features": ["vm"],
+                    "recipe": {"verb": "check", "packages": ["candidate_fixture"], "features": ["vm"], "lib": True, "noDefaultFeatures": True,
                                "offline": True, "locked": True, "jobs": 1}}
 
     def test_missing_candidate_sibling_uses_managed_prepared_cargo(self):

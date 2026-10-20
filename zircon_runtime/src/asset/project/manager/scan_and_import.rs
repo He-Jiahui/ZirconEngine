@@ -54,6 +54,7 @@ pub(crate) struct WatchSourceCandidate {
     pub(crate) owner: crate::core::resource::ResourceId,
     pub(crate) previous_members: Vec<crate::core::resource::ResourceId>,
     pub(crate) members: Vec<crate::core::resource::ResourceSourceMember>,
+    pub(crate) payload_types: Vec<(ResourceRecord, crate::core::resource::ResourcePayloadType)>,
     pub(crate) outcome: crate::core::resource::ResourceSourceOutcome,
 }
 
@@ -301,6 +302,7 @@ impl ProjectManager {
             owner,
             previous_members: removed_ids.iter().copied().collect(),
             members: Vec::new(),
+            payload_types: Vec::new(),
             outcome: crate::core::resource::ResourceSourceOutcome::Removed,
         }];
         let mut registry = self.registry.begin_staging();

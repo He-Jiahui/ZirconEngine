@@ -262,3 +262,164 @@ fn failed_scan_stops_pending_watchers_without_publishing_a_generation() {
     drop(manager);
     let _ = fs::remove_dir_all(root);
 }
+
+#[derive(Clone, Debug)]
+struct ConcreteIdentityObjImporter {
+    descriptor: crate::asset::AssetImporterDescriptor,
+    calls: std::sync::Arc<std::sync::atomic::AtomicUsize>,
+}
+
+impl ConcreteIdentityObjImporter {
+    fn new(calls: std::sync::Arc<std::sync::atomic::AtomicUsize>) -> Self {
+        let mut descriptor = crate::asset::AssetImporter::default()
+            .registry()
+            .descriptor_for_source(Path::new("identity.obj"))
+            .unwrap()
+            .clone();
+        descriptor.id = "test.concrete_identity.obj".into();
+        descriptor.plugin_id = "test.concrete_identity".into();
+        descriptor.priority += 100;
+        Self { descriptor, calls }
+    }
+}
+
+impl crate::asset::AssetImporterHandler for ConcreteIdentityObjImporter {
+    fn descriptor(&self) -> &crate::asset::AssetImporterDescriptor {
+        &self.descriptor
+    }
+
+    fn import(
+        &self,
+        context: &crate::asset::AssetImportContext,
+    ) -> Result<crate::asset::AssetImportOutcome, crate::asset::AssetImportError> {
+        self.calls.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        // Run the actual OBJ importer, retaining its real model and mesh outputs.
+        crate::asset::AssetImporter::default().import_context(context)
+    }
+}
+
+fn concrete_identity_project(label: &str) -> (std::path::PathBuf, AssetUri) {
+    let root = crate::asset::tests::project::unique_temp_project_root(label);
+    fs::create_dir_all(root.join("assets/models")).unwrap();
+    let uri = AssetUri::parse("res://models/identity.obj").unwrap();
+    ProjectManifest::new("ConcreteIdentity", uri.clone(), 1)
+        .save(root.join("zircon-project.toml"))
+        .unwrap();
+    fs::copy(
+        Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../templates/projects/renderable-empty/assets/models/cube.obj"),
+        root.join("assets/models/identity.obj"),
+    )
+    .unwrap();
+    (root, uri)
+}
+
+fn assert_lazy_concrete_geometry(manager: &ProjectAssetManager, uri: &AssetUri) {
+    use crate::asset::{Handle, MeshAsset, ModelAsset};
+    use crate::core::resource::ResourceKind;
+    let handle = manager.handle::<ModelAsset>(uri).unwrap();
+    assert!(manager.handle::<MeshAsset>(uri).is_err());
+    assert!(manager.assets::<ModelAsset>().contains(handle));
+    assert!(manager.assets::<ModelAsset>().get(handle).is_none());
+    assert_eq!(manager.resource_manager().ref_count(handle.id()), Some(0));
+    let project = manager.current_project_manager().unwrap();
+    let meshes = project
+        .registry()
+        .values()
+        .filter(|record| record.kind == ResourceKind::Mesh)
+        .collect::<Vec<_>>();
+    assert!(
+        !meshes.is_empty(),
+        "actual OBJ import must publish real mesh subassets"
+    );
+    for mesh in meshes {
+        let handle = manager.handle::<MeshAsset>(&mesh.primary_locator).unwrap();
+        assert_eq!(handle.id(), mesh.id);
+        assert!(manager.assets::<MeshAsset>().contains(handle));
+        assert!(!manager
+            .assets::<ModelAsset>()
+            .contains(Handle::new(mesh.id)));
+        assert!(manager.assets::<MeshAsset>().get(handle).is_none());
+    }
+}
+
+#[test]
+fn cold_restore_keeps_concrete_declarations_without_resident_geometry() {
+    let (root, uri) = concrete_identity_project("concrete_identity_cold");
+    let calls = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
+    let first = ProjectAssetManager::default();
+    first
+        .register_asset_importer(ConcreteIdentityObjImporter::new(calls.clone()))
+        .unwrap();
+    AssetManager::open_project(&first, root.to_str().unwrap()).unwrap();
+    assert_eq!(calls.load(std::sync::atomic::Ordering::SeqCst), 1);
+    assert_lazy_concrete_geometry(&first, &uri);
+    first.close_project().unwrap();
+    drop(first);
+    let restored = ProjectAssetManager::default();
+    restored
+        .register_asset_importer(ConcreteIdentityObjImporter::new(calls.clone()))
+        .unwrap();
+    AssetManager::open_project(&restored, root.to_str().unwrap()).unwrap();
+    assert_eq!(
+        calls.load(std::sync::atomic::Ordering::SeqCst),
+        1,
+        "reopening must use the durable artifact variants rather than import again"
+    );
+    assert_lazy_concrete_geometry(&restored, &uri);
+    restored.close_project().unwrap();
+    drop(restored);
+    fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn targeted_geometry_filtering_keeps_concrete_declarations() {
+    let (root, uri) = concrete_identity_project("concrete_identity_targeted");
+    let calls = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
+    let task_pool = TaskPool::new(TaskPoolDescriptor::io().with_worker_threads(1));
+    let manager = ProjectAssetManager::new(task_pool.clone());
+    manager
+        .register_asset_importer(ConcreteIdentityObjImporter::new(calls.clone()))
+        .unwrap();
+    AssetManager::open_project(&manager, root.to_str().unwrap()).unwrap();
+    assert_lazy_concrete_geometry(&manager, &uri);
+    let before = manager
+        .resource_manager()
+        .registry()
+        .get_by_locator(&uri)
+        .unwrap()
+        .source_hash
+        .clone();
+    let source = root.join("assets/models/identity.obj");
+    let original = fs::read_to_string(&source).unwrap();
+    let modified = original.replacen("v -0.5 -0.5 0.5", "v -0.75 -0.5 0.5", 1);
+    assert_ne!(modified, original);
+    fs::write(&source, modified).unwrap();
+    manager.process_watch_batch_in_generation(AssetWatchBatch {
+        changes: vec![AssetChange::new(
+            AssetChangeKind::Modified,
+            uri.clone(),
+            None,
+        )],
+        ..AssetWatchBatch::default()
+    });
+    assert!(calls.load(std::sync::atomic::Ordering::SeqCst) >= 2);
+    assert_ne!(
+        manager
+            .resource_manager()
+            .registry()
+            .get_by_locator(&uri)
+            .unwrap()
+            .source_hash,
+        before
+    );
+    assert_lazy_concrete_geometry(&manager, &uri);
+    manager.close_project().unwrap();
+    assert!(
+        task_pool.shutdown_until(std::time::Instant::now() + Duration::from_secs(20)),
+        "the owned IO pool must join all pending watch work before fixture removal"
+    );
+    drop(manager);
+    drop(task_pool);
+    fs::remove_dir_all(root).unwrap();
+}

@@ -102,3 +102,58 @@ fn virtual_geometry_debug_snapshot(
         ..RenderVirtualGeometryDebugSnapshot::default()
     }
 }
+
+#[test]
+fn physical_submission_binding_requires_original_arc_and_current_frame_epoch() {
+    use super::AcceptedPhysicalSubmissions;
+    let original = Arc::new(virtual_geometry_debug_snapshot(1));
+    let equal_payload = Arc::new(original.as_ref().clone());
+    let accepted = AcceptedPhysicalSubmissions {
+        scope: (7, 3, 11, 19),
+        epoch: (23, 5),
+        snapshot: Some(Arc::downgrade(&original)),
+        segments: Vec::new(),
+    };
+    assert!(accepted.matches(&original, &original, 3, (23, 5), Some(&11)));
+    assert!(!accepted.matches(&equal_payload, &equal_payload, 3, (23, 5), Some(&11)));
+    assert!(!accepted.matches(&original, &equal_payload, 3, (23, 5), Some(&11)));
+    assert!(!accepted.matches(&original, &original, 4, (23, 5), Some(&11)));
+    assert!(!accepted.matches(&original, &original, 3, (23, 6), Some(&11)));
+    assert!(!accepted.matches(&original, &original, 3, (23, 5), Some(&12)));
+    assert!(!accepted.matches(&original, &original, 3, (23, 5), None));
+}
+
+#[test]
+fn physical_submission_binding_matches_scope_and_either_publication_order() {
+    use super::AcceptedPhysicalSubmissions;
+    let original = Arc::new(virtual_geometry_debug_snapshot(1));
+    let identity = (7, 3, 11, 19);
+    for report_first in [false, true] {
+        let mut accepted = AcceptedPhysicalSubmissions {
+            scope: identity,
+            epoch: (23, 5),
+            snapshot: None,
+            segments: Vec::new(),
+        };
+        if report_first {
+            accepted.snapshot = Some(Arc::downgrade(&original));
+        } else {
+            accepted.bind(identity, Some((23, 5)), Some(&original));
+        }
+        assert!(accepted.matches(&original, &original, 3, (23, 5), Some(&11)));
+        for wrong in [
+            (8, 3, 11, 19),
+            (7, 4, 11, 19),
+            (7, 3, 12, 19),
+            (7, 3, 11, 20),
+        ] {
+            accepted.bind(wrong, Some((23, 5)), None);
+            assert!(accepted.matches(&original, &original, 3, (23, 5), Some(&11)));
+        }
+        accepted.bind(identity, None, None);
+        accepted.bind(identity, Some((23, 6)), None);
+        assert!(accepted.matches(&original, &original, 3, (23, 5), Some(&11)));
+        accepted.bind(identity, Some((23, 5)), None);
+        assert!(!accepted.matches(&original, &original, 3, (23, 5), Some(&11)));
+    }
+}

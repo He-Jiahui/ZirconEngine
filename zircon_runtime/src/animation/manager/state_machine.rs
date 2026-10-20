@@ -112,10 +112,24 @@ fn condition_matches(
         return matches!(current, AnimationParameterValue::Trigger);
     }
 
-    // BUG: [CR-ANIMATION-0003] 原始资产的数值比较遇到布尔或 Trigger 参数会被当作 0，可能触发无效转移；证据：numeric_parameter 的默认 0 与编译器对数值条件的类型约束。
     let Some(expected) = condition.value.as_ref() else {
         return false;
     };
+    if matches!(
+        condition.operator,
+        AnimationConditionOperatorAsset::Greater
+            | AnimationConditionOperatorAsset::GreaterEqual
+            | AnimationConditionOperatorAsset::Less
+            | AnimationConditionOperatorAsset::LessEqual
+    ) && (!matches!(
+        current,
+        AnimationParameterValue::Integer(_) | AnimationParameterValue::Scalar(_)
+    ) || !matches!(
+        expected,
+        AnimationParameterValue::Integer(_) | AnimationParameterValue::Scalar(_)
+    )) {
+        return false;
+    }
     match condition.operator {
         AnimationConditionOperatorAsset::Triggered => unreachable!(),
         AnimationConditionOperatorAsset::Equal => current == expected,

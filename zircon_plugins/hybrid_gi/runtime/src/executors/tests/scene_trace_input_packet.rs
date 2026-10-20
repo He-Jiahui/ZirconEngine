@@ -63,3 +63,53 @@ fn scene_trace_packet_carries_world_space_surface_cache_and_voxel_records() {
     assert_ne!(changed_packet[7], packet[7]);
     assert_eq!(scene_trace_input_packet(&changed)[7], changed_packet[7]);
 }
+
+#[test]
+fn scene_trace_packet_distributes_the_fixed_cell_budget_across_admitted_clipmaps() {
+    use zircon_runtime::core::framework::render::{
+        RenderHybridGiVoxelCellSampleRecord, RenderHybridGiVoxelClipmapRecord,
+    };
+    let mut output = RenderHybridGiScenePrepareReadbackOutputs::default();
+    output.voxel_clipmaps = (1..=5)
+        .rev()
+        .map(|clipmap_id| RenderHybridGiVoxelClipmapRecord {
+            clipmap_id,
+            half_extent_bits: 2.0_f32.to_bits(),
+            ..Default::default()
+        })
+        .collect();
+    for clipmap_id in 1..=5 {
+        for cell_id in 0..if clipmap_id == 2 { 1 } else { 64 } {
+            output
+                .voxel_cell_samples
+                .push(RenderHybridGiVoxelCellSampleRecord {
+                    clipmap_id,
+                    cell_id,
+                    rgba8: [clipmap_id as u8, cell_id as u8, 0, 255],
+                });
+        }
+    }
+    output
+        .voxel_cell_dominant_samples
+        .push(RenderHybridGiVoxelCellSampleRecord {
+            clipmap_id: 4,
+            cell_id: 0,
+            rgba8: [99, 88, 77, 255],
+        });
+    let packet = scene_trace_input_packet(&output);
+    assert_eq!(&packet[1..4], &[0, 4, 64]);
+    let cells = &packet[relative_packet_offset(VOXEL_CELL_WORD_OFFSET)..];
+    let ids = cells
+        .chunks_exact(4)
+        .map(|cell| cell[0])
+        .collect::<Vec<_>>();
+    assert_eq!(&ids[..4], &[1, 2, 3, 4]);
+    assert_eq!(ids.iter().filter(|&&id| id == 2).count(), 1);
+    assert!(!ids.contains(&5));
+    assert_eq!(cells[3 * 4 + 2], pack_rgba8([99, 88, 77, 255]));
+    assert_eq!(cells[3 * 4 + 3], 1);
+    output.voxel_clipmaps.reverse();
+    output.voxel_cell_samples.reverse();
+    assert_eq!(scene_trace_input_packet(&output), packet);
+    assert_ne!(packet[7], 0);
+}

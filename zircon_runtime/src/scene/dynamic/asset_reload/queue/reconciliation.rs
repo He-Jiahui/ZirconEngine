@@ -85,8 +85,20 @@ fn reconciliation_poll(row: &ResourceManagementRow) -> AssetEventPoll<SceneAsset
         AssetEventPoll::Filtered { approximate_bytes }
     } else {
         AssetEventPoll::Relevant {
-            event: AssetEvent::from_resource_event(resource_event)
-                .expect("scene reconciliation event must stay scene-typed"),
+            // This scan is already restricted to the Scene catalog. It is a reconciliation
+            // projection, not a generic untyped-event conversion.
+            event: match resource_event.kind {
+                ResourceEventKind::ReloadFailed => AssetEvent::ReloadFailed {
+                    handle: crate::asset::Handle::new(resource_event.id),
+                    locator: resource_event.locator,
+                    revision: resource_event.revision,
+                },
+                _ => AssetEvent::Modified {
+                    handle: crate::asset::Handle::new(resource_event.id),
+                    locator: resource_event.locator,
+                    revision: resource_event.revision,
+                },
+            },
             approximate_bytes,
         }
     }

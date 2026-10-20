@@ -1,7 +1,5 @@
 //! 显式计算通道承接图通道内多个派发，并把诊断查询范围绑定到同一原生通道。
-use zr_rhi::{
-    CommandListCommand, DiagnosticPassQueryScope, PipelineKind, RenderQueueClass, RhiError,
-};
+use zr_rhi::{CommandListCommand, DiagnosticPassQueryScope, RenderQueueClass, RhiError};
 
 use super::super::diagnostics::WgpuDiagnosticQueryFrame;
 use super::super::registry::WgpuResourceRegistry;
@@ -9,8 +7,7 @@ use super::compute::{
     encode_compute_dispatch_indirect_into_pass, encode_compute_dispatch_into_pass,
 };
 use super::state::{
-    bind_groups_compute, pop_debug_group, validate_bind_group_slot, validate_debug_label,
-    DebugGroupScope, EncoderState,
+    pop_debug_group, validate_bind_group_slot, validate_debug_label, DebugGroupScope, EncoderState,
 };
 use crate::bind_group_validation::validate_bind_group_dynamic_offsets;
 

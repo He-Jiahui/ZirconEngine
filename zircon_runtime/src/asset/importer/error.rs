@@ -14,6 +14,7 @@ use crate::asset::registry::AssetRegistryError;
 use crate::asset::ReferenceResolutionError;
 use crate::core::framework::animation::AnimationAssetError;
 use crate::core::resource::{ResourceLocator, ResourceLocatorError};
+use crate::core::TypedErrorSource;
 
 #[derive(Debug, Error)]
 pub enum AssetImportError {
@@ -103,7 +104,8 @@ pub enum AssetImportError {
     #[error("project asset uri {uri} does not exist in any registered manifest root")]
     MissingProjectAssetUri { uri: ResourceLocator },
     #[error(
-        "project asset uri {uri} exists in multiple registered manifest roots: {display_paths:?}"
+        "project asset uri {uri} exists in multiple registered manifest roots: {}",
+        display_project_paths(.display_paths)
     )]
     AmbiguousProjectAssetUri {
         uri: ResourceLocator,
@@ -123,7 +125,8 @@ pub enum AssetImportError {
     )]
     SourceOutsideProjectAssetRoots { path: std::path::PathBuf },
     #[error(
-        "source path {display_path} belongs to overlapping registered project roots: {display_roots:?}"
+        "source path {display_path} belongs to overlapping registered project roots: {}",
+        display_project_paths(.display_roots)
     )]
     AmbiguousProjectSourcePath {
         path: std::path::PathBuf,
@@ -208,7 +211,7 @@ pub enum AssetImportError {
     #[error("asset importer registry failed: {0}")]
     Registry(#[from] AssetImporterRegistryError),
     #[error("asset registry index failed: {0}")]
-    RegistryIndex(#[from] AssetRegistryError),
+    RegistryIndex(#[source] TypedErrorSource<AssetRegistryError>),
     #[error("asset TOML serialization failed while {context}: {source}")]
     TomlSerialize {
         context: &'static str,
@@ -251,7 +254,7 @@ pub enum AssetImportError {
     UiV2Document {
         context: &'static str,
         #[source]
-        source: UiV2AssetDocumentError,
+        source: TypedErrorSource<UiV2AssetDocumentError>,
     },
     #[error("ui theme asset document failed while {context}: {source}")]
     UiThemeDocument {
@@ -271,6 +274,12 @@ pub enum AssetImportError {
     ArtifactCacheDeserialize(#[source] PositionalDecodeError),
     #[error("asset serialization failed: {0}")]
     SerdeJson(#[from] serde_json::Error),
+}
+
+impl From<AssetRegistryError> for AssetImportError {
+    fn from(source: AssetRegistryError) -> Self {
+        Self::RegistryIndex(source.into())
+    }
 }
 
 impl AssetImportError {
@@ -300,6 +309,14 @@ impl AssetImportError {
             display_paths,
         }
     }
+}
+
+fn display_project_paths(paths: &[std::path::PathBuf]) -> String {
+    paths
+        .iter()
+        .map(|path| path.display().to_string())
+        .collect::<Vec<_>>()
+        .join(", ")
 }
 
 #[cfg(test)]

@@ -386,35 +386,34 @@ fn eligible_virtual_geometry_clusters(
 ) -> Vec<RenderVirtualGeometryCluster> {
     let mut clusters_by_id = BTreeMap::<u32, RenderVirtualGeometryCluster>::new();
 
-    if extract.instances.is_empty() {
-        for cluster in extract
-            .clusters
-            .iter()
-            .filter(|cluster| {
-                visible_stable_instance_keys.contains(&stable_instance_key_for_cluster(
-                    cluster_stable_instance_keys,
-                    cluster,
-                ))
-            })
-            .filter(|cluster| forced_mip_allows_cluster(extract, cluster))
+    for (row, cluster) in extract.clusters.iter().enumerate() {
+        let key = stable_instance_key_for_cluster(cluster_stable_instance_keys, cluster);
+        if !visible_stable_instance_keys.contains(&key)
+            || !forced_mip_allows_cluster(extract, cluster)
         {
-            clusters_by_id.insert(cluster.cluster_id, *cluster);
+            continue;
         }
-    } else {
-        for instance in extract.instances.iter().filter(|instance| {
-            visible_stable_instance_keys.contains(&stable_instance_key_for_instance(instance))
-        }) {
-            let start = instance.cluster_offset as usize;
-            let end = start.saturating_add(instance.cluster_count as usize);
-            for cluster in extract
-                .clusters
-                .get(start..end)
-                .into_iter()
-                .flatten()
-                .filter(|cluster| forced_mip_allows_cluster(extract, cluster))
-            {
-                clusters_by_id.insert(cluster.cluster_id, *cluster);
-            }
+        let explicit = extract
+            .instances
+            .iter()
+            .enumerate()
+            .any(|(index, instance)| {
+                instance.entity == cluster.entity
+                    && instance.stable_instance_key_or_legacy() == key
+                    && u32::try_from(index)
+                        .ok()
+                        .and_then(|index| {
+                            extract
+                                .cluster_row_indices(instance.entity, key, Some(index))
+                                .ok()
+                        })
+                        .is_some_and(|rows| rows.contains(&row))
+            });
+        let legacy = extract
+            .cluster_row_indices(cluster.entity, key, None)
+            .is_ok();
+        if explicit || legacy {
+            clusters_by_id.insert(cluster.cluster_id, *cluster);
         }
     }
 
@@ -425,49 +424,72 @@ fn eligible_virtual_geometry_page_ids(
     extract: &RenderVirtualGeometryExtract,
     visible_stable_instance_keys: &BTreeSet<u64>,
 ) -> BTreeSet<u32> {
-    if extract.instances.is_empty() {
-        return extract.pages.iter().map(|page| page.page_id).collect();
+    let mut pages = BTreeSet::new();
+    for (index, instance) in extract.instances.iter().enumerate() {
+        let key = instance.stable_instance_key_or_legacy();
+        if !visible_stable_instance_keys.contains(&key) {
+            continue;
+        }
+        let Ok(index) = u32::try_from(index) else {
+            continue;
+        };
+        if extract
+            .cluster_row_indices(instance.entity, key, Some(index))
+            .is_err()
+        {
+            continue;
+        }
+        let Some(end) = instance.page_offset.checked_add(instance.page_count) else {
+            continue;
+        };
+        let Some(domain) = extract
+            .pages
+            .get(instance.page_offset as usize..end as usize)
+        else {
+            continue;
+        };
+        pages.extend(domain.iter().map(|page| page.page_id));
     }
-
-    extract
-        .instances
-        .iter()
-        .filter(|instance| {
-            visible_stable_instance_keys.contains(&stable_instance_key_for_instance(instance))
-        })
-        .flat_map(|instance| {
-            let start = instance.page_offset as usize;
-            let end = start.saturating_add(instance.page_count as usize);
-            extract
+    for cluster in &extract.clusters {
+        let key = render_mesh_stable_instance_key(cluster.entity, 0);
+        if visible_stable_instance_keys.contains(&key)
+            && extract
+                .cluster_row_indices(cluster.entity, key, None)
+                .is_ok()
+            && extract
                 .pages
-                .get(start..end)
-                .into_iter()
-                .flatten()
-                .map(|page| page.page_id)
-        })
-        .collect()
+                .iter()
+                .any(|page| page.page_id == cluster.page_id)
+        {
+            pages.insert(cluster.page_id);
+        }
+    }
+    pages
 }
 
 fn virtual_geometry_cluster_stable_instance_keys(
     extract: &RenderVirtualGeometryExtract,
 ) -> BTreeMap<u32, u64> {
-    let mut stable_instance_keys = extract
-        .clusters
-        .iter()
-        .map(|cluster| {
-            (
-                cluster.cluster_id,
-                render_mesh_stable_instance_key(cluster.entity, 0),
-            )
-        })
-        .collect::<BTreeMap<_, _>>();
-
-    for instance in &extract.instances {
-        let stable_instance_key = stable_instance_key_for_instance(instance);
-        let start = instance.cluster_offset as usize;
-        let end = start.saturating_add(instance.cluster_count as usize);
-        for cluster in extract.clusters.get(start..end).into_iter().flatten() {
-            stable_instance_keys.insert(cluster.cluster_id, stable_instance_key);
+    let mut stable_instance_keys = BTreeMap::new();
+    for cluster in &extract.clusters {
+        let key = render_mesh_stable_instance_key(cluster.entity, 0);
+        if extract
+            .cluster_row_indices(cluster.entity, key, None)
+            .is_ok()
+        {
+            stable_instance_keys.insert(cluster.cluster_id, key);
+        }
+    }
+    for (index, instance) in extract.instances.iter().enumerate() {
+        let key = instance.stable_instance_key_or_legacy();
+        let Ok(index) = u32::try_from(index) else {
+            continue;
+        };
+        let Ok(rows) = extract.cluster_row_indices(instance.entity, key, Some(index)) else {
+            continue;
+        };
+        for row in rows {
+            stable_instance_keys.insert(extract.clusters[row].cluster_id, key);
         }
     }
 
@@ -798,3 +820,77 @@ fn highest_nonresident_ancestor_page_before_visible(
 #[cfg(test)]
 #[path = "../build/tests/hash_membership.rs"]
 mod hash_membership_tests;
+
+#[cfg(test)]
+mod mixed_row_domain_tests {
+    use super::*;
+    use crate::core::framework::render::RenderVirtualGeometryPage;
+
+    #[test]
+    fn mixed_domains_admit_only_visible_legacy_pages_and_checked_explicit_intervals() {
+        let mut extract = RenderVirtualGeometryExtract {
+            clusters: vec![
+                RenderVirtualGeometryCluster {
+                    entity: 2,
+                    cluster_id: 20,
+                    page_id: 300,
+                    ..Default::default()
+                },
+                RenderVirtualGeometryCluster {
+                    entity: 3,
+                    cluster_id: 30,
+                    page_id: 301,
+                    ..Default::default()
+                },
+                RenderVirtualGeometryCluster {
+                    entity: 2,
+                    cluster_id: 21,
+                    page_id: 999,
+                    ..Default::default()
+                },
+            ],
+            pages: [300, 301, 999, 1000]
+                .into_iter()
+                .map(|page_id| RenderVirtualGeometryPage {
+                    page_id,
+                    ..Default::default()
+                })
+                .collect(),
+            instances: vec![RenderVirtualGeometryInstance {
+                entity: 2,
+                cluster_count: 1,
+                page_count: 1,
+                ..Default::default()
+            }],
+            ..Default::default()
+        };
+        let legacy = BTreeSet::from([render_mesh_stable_instance_key(3, 0)]);
+        assert_eq!(
+            eligible_virtual_geometry_page_ids(&extract, &legacy),
+            BTreeSet::from([301])
+        );
+        let both = BTreeSet::from([
+            render_mesh_stable_instance_key(2, 0),
+            render_mesh_stable_instance_key(3, 0),
+        ]);
+        assert_eq!(
+            eligible_virtual_geometry_page_ids(&extract, &both),
+            BTreeSet::from([300, 301])
+        );
+        let keys = virtual_geometry_cluster_stable_instance_keys(&extract);
+        let clusters = eligible_virtual_geometry_clusters(&extract, &both, &keys);
+        assert_eq!(
+            clusters
+                .iter()
+                .map(|cluster| cluster.cluster_id)
+                .collect::<Vec<_>>(),
+            vec![20, 30]
+        );
+        extract.instances[0].page_offset = u32::MAX;
+        extract.instances[0].page_count = 2;
+        assert_eq!(
+            eligible_virtual_geometry_page_ids(&extract, &both),
+            BTreeSet::from([301])
+        );
+    }
+}

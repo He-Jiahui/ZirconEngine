@@ -36,7 +36,7 @@ pub enum UiComponentDescriptorError {
         expected: UiValueKind,
         actual: UiValueKind,
     },
-    /// 同时提供上下界时，边界含非有限数或上下界倒置。
+    /// 任一已提供边界含非有限数，或同时提供的上下界倒置。
     #[error("component descriptor `{component_id}` schema `{name}` has invalid range")]
     InvalidRange { component_id: String, name: String },
     #[error("component descriptor `{component_id}` schema `{name}` has invalid step")]
@@ -161,15 +161,14 @@ fn validate_schema_defaults(
             )?;
             validate_finite_value(descriptor, &schema.name, default_value)?;
         }
-        // BUG: [CR-UI-COMP-0004] 单边界未进入有限性检查；公开 schema 若只有 min=NaN 或 max=NaN 仍可注册，
-        // numeric 拖动随后沿 clamp_component_numeric_value 把该边界传给浮点区间钳制而 panic。应分别校验可选边界并补单边界回归。
-        if let (Some(min), Some(max)) = (schema.min, schema.max) {
-            if !min.is_finite() || !max.is_finite() || min > max {
-                return Err(UiComponentDescriptorError::InvalidRange {
-                    component_id: descriptor.id.clone(),
-                    name: schema.name.clone(),
-                });
-            }
+        if schema.min.is_some_and(|min| !min.is_finite())
+            || schema.max.is_some_and(|max| !max.is_finite())
+            || matches!((schema.min, schema.max), (Some(min), Some(max)) if min > max)
+        {
+            return Err(UiComponentDescriptorError::InvalidRange {
+                component_id: descriptor.id.clone(),
+                name: schema.name.clone(),
+            });
         }
         if schema
             .step

@@ -175,3 +175,51 @@ fn neutral_outputs_stay_empty_without_hybrid_gi_gpu_readback_payload() {
 
     assert_eq!(outputs, RenderHybridGiReadbackOutputs::default());
 }
+
+#[test]
+fn neutral_scene_prepare_preserves_source_page_and_clipmap_descriptors() {
+    use zircon_runtime::core::framework::render::{
+        RenderHybridGiSurfaceCachePageRecord, RenderHybridGiVoxelClipmapRecord,
+    };
+    let mut snapshot = HybridGiScenePrepareResourcesSnapshot::new(
+        1,
+        vec![9],
+        vec![3],
+        vec![],
+        4,
+        0,
+        (64, 64),
+        (0, 0),
+        0,
+    );
+    let page = RenderHybridGiSurfaceCachePageRecord {
+        page_id: 71,
+        owner_card_id: 17,
+        atlas_slot_id: 3,
+        bounds_center_x_bits: (-2.0_f32).to_bits(),
+        bounds_center_y_bits: 3.0_f32.to_bits(),
+        bounds_center_z_bits: 4.0_f32.to_bits(),
+        bounds_radius_bits: 0.75_f32.to_bits(),
+        radiance_rgba8: [255; 4],
+    };
+    let clipmap = RenderHybridGiVoxelClipmapRecord {
+        clipmap_id: 9,
+        center_x_bits: 1.0_f32.to_bits(),
+        center_y_bits: 2.0_f32.to_bits(),
+        center_z_bits: 3.0_f32.to_bits(),
+        half_extent_bits: 8.0_f32.to_bits(),
+    };
+    snapshot.store_source_descriptors(vec![page], vec![clipmap]);
+    let missing = RenderHybridGiScenePrepareReadbackOutputs::from(snapshot.clone());
+    assert_eq!(missing.surface_cache_pages[0].radiance_rgba8, [0; 4]);
+    snapshot.store_texture_slot_rgba_samples(vec![(17, [1; 4]), (3, [5, 9, 17, 255])], vec![]);
+    let projected = RenderHybridGiScenePrepareReadbackOutputs::from(snapshot);
+    assert_eq!(
+        projected.surface_cache_pages,
+        vec![RenderHybridGiSurfaceCachePageRecord {
+            radiance_rgba8: [5, 9, 17, 255],
+            ..page
+        }]
+    );
+    assert_eq!(projected.voxel_clipmaps, vec![clipmap]);
+}

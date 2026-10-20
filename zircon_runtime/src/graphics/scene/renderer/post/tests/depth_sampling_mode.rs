@@ -100,3 +100,69 @@ fn viewport_depth_fallback_rewrites_taa_resolve_shader() {
     assert!(shader_source.contains("@group(0) @binding(1) var scene_depth_tex: texture_2d<f32>;"));
     assert!(shader_source.contains("return clamp((vec2<f32>(clamped)"));
 }
+
+fn regression_device() -> (wgpu::Device, wgpu::Queue) {
+    let mut descriptor = wgpu::InstanceDescriptor::new_without_display_handle();
+    descriptor.backends = wgpu::Backends::PRIMARY;
+    let instance = wgpu::Instance::new(descriptor);
+    let adapter = pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
+        power_preference: wgpu::PowerPreference::LowPower,
+        compatible_surface: None,
+        force_fallback_adapter: false,
+    }))
+    .expect("this regression requires a native GPU adapter");
+    pollster::block_on(adapter.request_device(&wgpu::DeviceDescriptor {
+        label: Some("render-contract-regression"),
+        required_features: wgpu::Features::empty(),
+        required_limits: adapter.limits(),
+        memory_hints: wgpu::MemoryHints::Performance,
+        trace: wgpu::Trace::Off,
+        experimental_features: wgpu::ExperimentalFeatures::disabled(),
+    }))
+    .expect("this regression requires a native GPU device")
+}
+
+#[test]
+fn viewport_depth_fallback_taa_shader_validates_and_creates_native_pipeline() {
+    let source = PostProcessDepthSamplingMode::ViewportDepthFallback
+        .taa_resolve_shader_source(TAA_RESOLVE_SHADER);
+    let module = naga::front::wgsl::parse_str(&source)
+        .unwrap_or_else(|error| panic!("{}", error.emit_to_string(&source)));
+    naga::valid::Validator::new(
+        naga::valid::ValidationFlags::all(),
+        naga::valid::Capabilities::all(),
+    )
+    .validate(&module)
+    .expect("the complete generated TAA fallback must validate");
+    let (device, _queue) = regression_device();
+    let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+        label: Some("complete-production-taa-viewport-depth-fallback"),
+        source: wgpu::ShaderSource::Wgsl(source.into()),
+    });
+    let target = Some(wgpu::ColorTargetState {
+        format: wgpu::TextureFormat::Rgba16Float,
+        blend: None,
+        write_mask: wgpu::ColorWrites::ALL,
+    });
+    let _pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+        label: Some("taa-viewport-depth-fallback-regression"),
+        layout: None,
+        vertex: wgpu::VertexState {
+            module: &shader,
+            entry_point: Some("vs_main"),
+            compilation_options: wgpu::PipelineCompilationOptions::default(),
+            buffers: &[],
+        },
+        fragment: Some(wgpu::FragmentState {
+            module: &shader,
+            entry_point: Some("fs_taa_resolve"),
+            compilation_options: wgpu::PipelineCompilationOptions::default(),
+            targets: &[target.clone(), target],
+        }),
+        primitive: wgpu::PrimitiveState::default(),
+        depth_stencil: None,
+        multisample: wgpu::MultisampleState::default(),
+        multiview_mask: None,
+        cache: None,
+    });
+}

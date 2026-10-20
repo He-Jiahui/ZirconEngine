@@ -9,7 +9,7 @@ use crate::ui::event_ui::UiNodeId;
 use crate::ui::layout::{UiFrame, UiPoint};
 use crate::ui::surface::UiNavigationEventKind;
 use crate::ui::text::UiRichLinkTarget;
-use crate::ui::tree::UiDirtyFlags;
+use crate::ui::tree::{UiCursor, UiDirtyFlags};
 
 use super::{event::UiTextByteRange, UiClipboardRequest, UiDragSessionId, UiPointerId};
 
@@ -104,6 +104,10 @@ pub enum UiDispatchEffect {
         target: UiNodeId,
         event: UiComponentEvent,
         policy: UiComponentEmissionPolicy,
+    },
+    /// Requests the native Mouse cursor without changing UI ownership.
+    RequestCursor {
+        cursor: UiCursor,
     },
 }
 

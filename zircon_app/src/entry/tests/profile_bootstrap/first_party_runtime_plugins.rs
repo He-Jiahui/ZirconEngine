@@ -830,12 +830,27 @@ fn runtime_profile_plan_cache_and_composition_identity_include_applied_maturity(
     // An identical executable graph still has a distinct admitted policy identity.
     let empty = RuntimePluginCatalog::from_registration_reports([], []);
     let empty_manifest = zircon_runtime::core::framework::project::ProjectPluginManifest::default();
-    let minimal = RuntimeProfileDescriptor::for_id(RuntimeProfileId::Minimal);
+    let minimal = RuntimeProfileDescriptor::for_id(RuntimeProfileId::Minimal)
+        .with_minimum_maturity(PluginMaturity::Core);
     let one = empty.compiled_project_plan_for_runtime_profile(&empty_manifest, &minimal);
     let two = empty.compiled_project_plan_for_runtime_profile(
         &empty_manifest,
-        &minimal.clone().with_minimum_maturity(PluginMaturity::Core),
+        &minimal.clone().with_minimum_maturity(PluginMaturity::Beta),
     );
+    assert_eq!(
+        one.runtime_profile_admission(),
+        Some((RuntimeProfileId::Minimal, PluginMaturity::Core))
+    );
+    assert_eq!(
+        two.runtime_profile_admission(),
+        Some((RuntimeProfileId::Minimal, PluginMaturity::Beta))
+    );
+    assert!(!std::sync::Arc::ptr_eq(&one, &two));
+    let repeated_minimal_beta = empty.compiled_project_plan_for_runtime_profile(
+        &empty_manifest,
+        &minimal.clone().with_minimum_maturity(PluginMaturity::Beta),
+    );
+    assert!(std::sync::Arc::ptr_eq(&two, &repeated_minimal_beta));
     let one = RuntimeModuleCompositionCompiler::new(&one)
         .compile()
         .expect("minimal policy one");

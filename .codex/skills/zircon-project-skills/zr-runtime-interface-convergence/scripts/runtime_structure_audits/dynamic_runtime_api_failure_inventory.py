@@ -63,7 +63,7 @@ FFI_PANIC_ANCHORS = (
         "zircon_runtime/src/tests/contracts/dynamic_api_session/ffi_panic_boundary.rs",
         "runtime_10_ffi_panic_boundary_keeps_exports_as_only_c_abi_edge",
     ),
-    ("docs/zircon_runtime/dynamic_api/session.md", "## FFI Panic Boundary"),
+    ("docs/crates/zircon_runtime/dynamic_api/session.md", "## FFI Panic Boundary"),
 )
 
 LOADER_FAILURE_ANCHORS = (
@@ -88,31 +88,31 @@ LOADER_FAILURE_ANCHORS = (
         'ensure_status(status, "create runtime session")?;',
     ),
     (
-        "zircon_app/src/entry/runtime_library/tests.rs",
+        "zircon_app/src/entry/runtime_library/tests/cases.rs",
         "runtime_api_pointer_rejects_null_from_entry_symbol",
     ),
     (
-        "zircon_app/src/entry/runtime_library/tests.rs",
+        "zircon_app/src/entry/runtime_library/tests/cases.rs",
         "runtime_api_pointer_rejects_version_mismatch_before_session_creation",
     ),
     (
-        "zircon_app/src/entry/runtime_library/tests.rs",
+        "zircon_app/src/entry/runtime_library/tests/cases.rs",
         "runtime_api_pointer_names_every_missing_required_function",
     ),
     (
-        "zircon_app/src/entry/runtime_library/tests.rs",
+        "zircon_app/src/entry/runtime_library/tests/cases.rs",
         "runtime_session_does_not_recheck_required_v8_mirror_or_operation_capabilities",
     ),
     (
-        "zircon_app/src/entry/runtime_library/runtime_session/operation.rs",
+        "zircon_app/src/entry/runtime_library/runtime_session/tests/operation.rs",
         "operation_result_abi_rejects_foreign_versions",
     ),
     (
-        "zircon_app/src/entry/runtime_library/tests.rs",
+        "zircon_app/src/entry/runtime_library/tests/cases.rs",
         "runtime_library_loader_reports_missing_entry_symbol_from_dynamic_library",
     ),
     (
-        "zircon_app/src/entry/runtime_library/tests.rs",
+        "zircon_app/src/entry/runtime_library/tests/cases.rs",
         "runtime_session_create_reports_first_call_failure_context",
     ),
 )

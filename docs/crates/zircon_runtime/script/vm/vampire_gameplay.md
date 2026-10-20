@@ -56,6 +56,16 @@ doc_type: module-detail
 
 The example is intentionally placed under `examples/vampire` as a project asset directory. Scripts, scene files, baked navigation, materials, shaders, and model bindings are loaded through the same project manifest path used by the runtime executable.
 
+## Current Startup Command
+
+Run from the repository root with the same explicit first-party provider and backend features as `examples/vampire/README.md`:
+
+```powershell
+cargo run -p zircon_app --features "target-client,first-party-runtime-plugins,first-party-navigation-runtime-plugin,first-party-zr-vm-language-runtime-plugin,backend-zr-vm" --bin zircon_runtime -- --project examples/vampire
+```
+
+This section is the current executable-command authority alongside the example README. It replaces the deleted historical dark-content upgrade plan as a command owner; it is not a rename of that plan. Starting the sample does not establish current gameplay, rendering, performance, or milestone acceptance. Those gates require their own current source and terminal evidence.
+
 ## Player Loop
 
 The player starts in a modal Start Game state. On the first player `onStart`, the script writes `gameplay.menu_state.state = "start"` and `vampire.run_state = "start_menu"`; the dynamic runtime extracts the menu overlay and writes `gameplay.control_state = "start_game"` when the button is clicked. The next player `onUpdate` consumes that string command, resets player state, clears the menu, and enters `vampire.run_state = "playing"`.

@@ -178,16 +178,7 @@ fn viewer_rejects_c_drive_artifact_destinations() {
 #[cfg(windows)]
 #[test]
 fn viewer_rejects_artifact_paths_below_a_c_drive_reparse_point() {
-    let registered_fixture_root = std::path::Path::new(
-        r"E:\cargo-targets\zircon-local\reports\pasted-audit-fixes-01a13029\fixtures",
-    );
-    let registered_fixture_root = std::fs::canonicalize(registered_fixture_root)
-        .expect("registered E-drive fixture root should exist");
-    let root = registered_fixture_root.join(format!(
-        "viewer-c-drive-reparse-point-{}",
-        std::process::id()
-    ));
-    std::fs::create_dir(&root).expect("unique viewer test root should be created");
+    let root = crate::work_paths::viewer_test_artifact_root("viewer-c-drive-reparse-point");
     let reparse_path = root.join("redirected-output");
     let junction = std::process::Command::new("cmd.exe")
         .args(["/d", "/c", "mklink", "/J"])

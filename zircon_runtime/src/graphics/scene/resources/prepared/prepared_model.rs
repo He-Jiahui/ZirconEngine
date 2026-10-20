@@ -9,6 +9,7 @@ use super::PreparedGeometryDeformation;
 use crate::graphics::RuntimePrepareMeshSdfSeed;
 
 /// source_revision 跟踪模型资产；revision 是结合 mesh 依赖版本与状态的几何指纹，依赖变化时整组几何须重新发布。
+#[derive(Clone)]
 pub(in crate::graphics::scene::resources) struct PreparedModel {
     pub(in crate::graphics::scene::resources) revision: u64,
     pub(in crate::graphics::scene::resources) source_revision: u64,

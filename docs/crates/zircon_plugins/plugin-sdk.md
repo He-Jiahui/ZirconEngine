@@ -394,3 +394,15 @@ Still open:
 Editor declarations may add `runtime_event_consumers` to `authoring_plugin!`. Each registration owns its `PluginEventConsumerManifest` and typed state; `EditorPluginDeclaration` projects the same manifest into the editor module of `PluginPackageManifest`. Descriptor, package manifest, registration report, and runtime state therefore share one declaration source.
 
 Consumers are optional ABI clients. They bind only during PIE and only when their `required_capability` is enabled. Plugin code receives decoded payloads through `EditorRuntimeEventConsumerState`; it does not poll the runtime, create a thread, or mirror the runtime `World`.
+
+## Plugin identity and registration gates
+
+RuntimePluginId is an 开放 string-newtype: built-in associated constants do not close the external key space. Authoring uses one SDK declaration/builder contract rather than adding core branches per plugin.
+
+Keep m3_t2_runtime_registration_builder_status and runtime_registration_builder_violation_count visible as independent builder-admission diagnostics. Existing D5 authoring and D9 editor/runtime mirror gates remain required; source-level status is not native/plugin acceptance.
+
+### Clause provenance
+
+These content identities preserve the source of this transfer. They are not fresh measurements, active-file dependencies or acceptance receipts.
+
+- `12-plugin-dx-and-structure-framework.md`, SHA-256 `e3dd848bf5ac0a29b31a987c943ca36586b59a460aa437498af38f6b11c6d6dd`, selected source lines 492-492.

@@ -27,12 +27,11 @@ pub(super) fn value_as_float_array(value: &Value) -> Option<Vec<f32>> {
     let Value::Array(values) = value else {
         return None;
     };
-    // BUG: [CR-PANE-DATA-0002] 数值数组跳过非法分量会改变位置；world_size 首项非法时后续值会被当作宽高发布。
+    // Regression scope [CR-PANE-DATA-0002]: reject the whole vector rather than shift components.
     let components = values
         .iter()
-        .filter_map(value_as_f64)
-        .map(|value| value as f32)
-        .collect::<Vec<_>>();
+        .map(|value| value_as_f64(value).map(|value| value as f32))
+        .collect::<Option<Vec<_>>>()?;
     if components.is_empty() {
         None
     } else {

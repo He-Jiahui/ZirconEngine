@@ -46,7 +46,7 @@ RUNTIME_13_SOURCE_FILES = (
 RUNTIME_13_TEST_FILES = (
     "zircon_runtime/src/tests/contracts/script_host_ledger.rs",
     "zircon_runtime/src/tests/contracts/script_binding.rs",
-    "zircon_runtime/src/script/vm/gameplay_host/tests.rs",
+    "zircon_runtime/src/script/vm/gameplay_host/tests/cases.rs",
 )
 RUNTIME_13_GUARD_FILES = (
     "zircon_runtime/src/tests/contracts/script_host_ledger.rs",
@@ -207,14 +207,8 @@ def script_binding_boundary_audit(root: Path) -> dict[str, object]:
     script_binding_guard = (
         root / "zircon_runtime/src/tests/contracts/script_binding.rs"
     )
-    gameplay_host_tests = root / "zircon_runtime/src/script/vm/gameplay_host/tests.rs"
-    runtime_13_plan = (
-        root
-        / "docs/plans/zircon_runtime/runtime/13-script-binding-and-reflection.md"
-    )
-    runtime_index = root / "docs/plans/zircon_runtime/runtime/index.md"
-    function_ledger = root / "docs/zircon_runtime/script/vm/host/function_ledger.md"
-    review = root / "docs/engine-architecture/runtime-architecture-review-m0.md"
+    gameplay_host_tests = root / "zircon_runtime/src/script/vm/gameplay_host/tests/cases.rs"
+    function_ledger = root / "docs/crates/zircon_runtime/script/vm/host/function_ledger.md"
 
     builtin_source = _read_text(builtin_host) if builtin_host.exists() else ""
     gameplay_source = _read_text(gameplay_host) if gameplay_host.exists() else ""
@@ -236,11 +230,9 @@ def script_binding_boundary_audit(root: Path) -> dict[str, object]:
         path.relative_to(root).as_posix() for path in guard_paths if not path.exists()
     ]
     guard_source = "\n".join(_read_text(path) for path in guard_paths if path.exists())
-    doc_sources = tuple(
-        _read_text(path)
-        for path in (runtime_13_plan, runtime_index, function_ledger, review)
-        if path.exists()
-    )
+    # Current domain and pending-gate evidence has a single canonical owner.
+    # Missing content remains a risk; other mirrors and active plans cannot rescue it.
+    doc_sources = (_read_text(function_ledger) if function_ledger.is_file() else "",)
 
     source_files, missing_source_files = _file_entries(root, RUNTIME_13_SOURCE_FILES)
     test_files, missing_test_files = _file_entries(root, RUNTIME_13_TEST_FILES)
@@ -294,7 +286,7 @@ def script_binding_boundary_audit(root: Path) -> dict[str, object]:
             and file["lines"] > SCRIPT_LEDGER_TEST_MAX_LINES
         )
         or (
-            file["path"] == "zircon_runtime/src/script/vm/gameplay_host/tests.rs"
+            file["path"] == "zircon_runtime/src/script/vm/gameplay_host/tests/cases.rs"
             and file["lines"] > GAMEPLAY_TEST_MAX_LINES
         )
     ]

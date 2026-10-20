@@ -69,6 +69,7 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
                 "deferred graph executor for pass `{pass_name}` requires resource streamer context"
             )
         })?;
+        let mut indexed_journal = Vec::new();
         let replay_stats = deferred.record_gbuffer_geometry(
             self.device,
             self.encoder,
@@ -90,7 +91,18 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
                 mesh_draw_lists.opaque_stream(),
                 mesh_draw_lists.alpha_mask_stream(),
             ],
+            Some(&mut indexed_journal),
         );
+        if !indexed_journal.is_empty() {
+            let plan = resources
+                .virtual_geometry_indexed_plan
+                .as_ref()
+                .ok_or("actual indexed issuance has no frame plan")?;
+            let journal = resources
+                .buffer("virtual-geometry-admitted-run-slots")
+                .ok_or("actual indexed issuance has no declared native journal")?;
+            plan.append_issued(self.device, self.encoder, journal, &indexed_journal)?;
+        }
         mesh_draw_lists.replay_stats.record(replay_stats);
         Ok(())
     }

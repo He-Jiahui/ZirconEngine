@@ -1,3 +1,4 @@
+use crate::tests::runtime_absorption::structure_convention::fixed_history_archive_source as history;
 #[test]
 fn review_f8_texture_import_settings_use_fallible_apply_not_with() {
     let descriptor = include_str!("../../../asset/assets/texture/descriptor.rs");
@@ -7,15 +8,18 @@ fn review_f8_texture_import_settings_use_fallible_apply_not_with() {
     let runtime_importer = include_str!("../../../asset/importer/ingest/import_texture.rs");
     let plugin_importer =
         include_str!("../../../../../zircon_plugins/texture_importer/runtime/src/importers.rs");
-    let review_findings = concat!(
-        include_str!("../../../../../docs/plans/engine-code-review-findings-2026-06.md"),
-        include_str!("../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md")
+    let review_findings = crate::runtime_test_history_concat!(
+        include_str!("../../../../../docs/architecture/runtime-architecture-review-m0.md"),
+        history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md")
     );
     let runtime_04_plan = include_str!(
-        "../../../../../docs/plans/zircon_runtime/runtime/04-asset-pipeline-alignment.md"
+        "../../../../../docs/testing-and-validation/runtime-asset-validation-worklist.md"
     );
-    let runtime_index = include_str!("../../../../../docs/plans/zircon_runtime/runtime/index.md");
-    let convention = include_str!("../../../../../docs/plans/engine-code-structure-convention.md");
+    let runtime_index = include_str!(
+        "../../../../../docs/crates/zircon_runtime/structure/runtime-absorption-evidence.md"
+    );
+    let convention =
+        include_str!("../../../../../docs/testing-and-validation/development-conventions.md");
     let importer_doc = include_str!("../../../../../docs/crates/zircon_runtime/asset/importer.md");
     let render_asset_doc =
         include_str!("../../../../../docs/crates/zircon_runtime/asset/render-assets.md");

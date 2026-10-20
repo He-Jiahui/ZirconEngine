@@ -206,3 +206,103 @@ fn pointer_event_state_cancel_filters_current_hover_and_clears_state() {
     );
     assert!(release_after_cancel.is_empty());
 }
+
+#[test]
+fn same_pointer_viewport_press_drag_release_and_cancel_states_are_isolated() {
+    let pointer = PointerId::new(82);
+    let a = RenderViewportHandle::new(811);
+    let b = RenderViewportHandle::new(812);
+    let target_a = HitTarget::renderable(111);
+    let target_b = HitTarget::renderable(222);
+    let location_a = PointerLocation::new(pointer, a, Vec2::new(10.0, 10.0));
+    let location_b = PointerLocation::new(pointer, b, Vec2::new(30.0, 30.0));
+    let hover = || {
+        PickingHoverMap::from_outputs(&[
+            PointerHits::in_viewport(pointer, a, vec![hit(target_a, 0.1)], 0.0),
+            PointerHits::in_viewport(pointer, b, vec![hit(target_b, 0.1)], 0.0),
+        ])
+    };
+    let mut state = PickingEventState::default();
+    let pressed = state.dispatch_viewport_frame(
+        hover(),
+        &[location_a, location_b],
+        &[
+            PointerInput::new(location_a, PointerAction::Press(PointerButton::Primary)),
+            PointerInput::new(location_b, PointerAction::Press(PointerButton::Primary)),
+        ],
+    );
+    assert_eq!(
+        pressed
+            .iter()
+            .filter(|event| matches!(event.kind, PickingEventKind::Press { .. }))
+            .count(),
+        2
+    );
+    let moved_b = PointerLocation::new(pointer, b, Vec2::new(35.0, 30.0));
+    let b_events = state.dispatch_viewport_frame(
+        hover(),
+        &[location_a, moved_b],
+        &[PointerInput::new(
+            moved_b,
+            PointerAction::Move {
+                delta: Vec2::new(5.0, 0.0),
+            },
+        )],
+    );
+    assert!(b_events.iter().any(
+        |event| matches!(event.kind, PickingEventKind::DragStart { .. })
+            && event.target == target_b
+    ));
+    assert!(b_events
+        .iter()
+        .all(|event| event.target == target_b && event.location.viewport == b));
+    let moved_a = PointerLocation::new(pointer, a, Vec2::new(17.0, 10.0));
+    let after_cancel = state.dispatch_viewport_frame(
+        hover(),
+        &[moved_a, moved_b],
+        &[
+            PointerInput::new(moved_b, PointerAction::Cancel),
+            PointerInput::new(
+                moved_a,
+                PointerAction::Move {
+                    delta: Vec2::new(7.0, 0.0),
+                },
+            ),
+        ],
+    );
+    assert!(after_cancel.iter().any(
+        |event| matches!(event.kind, PickingEventKind::Cancel { .. }) && event.target == target_b
+    ));
+    assert!(after_cancel.iter().any(|event| matches!(
+        event.kind,
+        PickingEventKind::DragStart { .. }
+    ) && event.target == target_a));
+    assert!(after_cancel
+        .iter()
+        .filter(|event| matches!(event.kind, PickingEventKind::Drag { .. }))
+        .all(|event| event.target == target_a));
+    let released = state.dispatch_viewport_frame(
+        hover(),
+        &[moved_a, moved_b],
+        &[PointerInput::new(
+            moved_a,
+            PointerAction::Release(PointerButton::Primary),
+        )],
+    );
+    assert!(released
+        .iter()
+        .any(|event| matches!(event.kind, PickingEventKind::Click { .. })
+            && event.target == target_a));
+    assert!(released.iter().any(
+        |event| matches!(event.kind, PickingEventKind::DragEnd { .. }) && event.target == target_a
+    ));
+    assert!(released
+        .iter()
+        .filter(|event| matches!(
+            event.kind,
+            PickingEventKind::Click { .. }
+                | PickingEventKind::Release { .. }
+                | PickingEventKind::DragEnd { .. }
+        ))
+        .all(|event| event.target == target_a && event.location.viewport == a));
+}

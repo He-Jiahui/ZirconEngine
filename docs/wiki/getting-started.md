@@ -13,7 +13,7 @@ implementation_files:
   - zircon_editor/src/ui/retained
 plan_sources:
   - user: 2026-09-09 构建 ZirconEngine 详细 Wiki 文档集合
-  - docs/plans/mvp/index.md
+  - docs/testing-and-validation/mvp-acceptance-index.md
 tests:
   - zircon_app/src/tests
   - zircon_runtime/src/core/tests

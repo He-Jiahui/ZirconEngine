@@ -9,8 +9,7 @@ pub enum UiPointerEvents {
     Auto,
     None,
     SelfNone,
-    // BUG: [CR-UITREE-0001] Runtime 命中与分派未读取此穿透标记；
-    // 目前 `Pass` 与 `Auto` 的目标选择及处理后传递行为相同，需补叠层路由测试。
+    /// Remains hittable; ordinary consumption and default actions pass to ancestors.
     Pass,
 }
 
@@ -28,8 +27,6 @@ impl UiPointerEvents {
     }
 }
 
-// BUG: [CR-UITREE-0002] `UiTreeNode.cursor` 目前只被存储和序列化，
-// Runtime 命中结果未读取该字段，也未据此向宿主请求光标形状。
 /// Declares the cursor requested by a node after it wins the pointer hit path.
 /// 节点为指针命中声明的预期光标形状。
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]

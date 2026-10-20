@@ -6,22 +6,31 @@ use std::path::{Path, PathBuf};
 pub(super) fn native_plugin_namespace_reexport_symbols() -> Vec<String> {
     let source = include_str!("../../../plugin/native.rs");
     let start_marker = "pub use super::native_plugin_loader::{";
-    let start = source
-        .find(start_marker)
-        .expect("plugin::native should expose the native loader public namespace");
-    let body_start = start + start_marker.len();
-    let body_end = source[body_start..]
-        .find("};")
-        .map(|offset| body_start + offset)
-        .expect("native namespace re-export block should terminate");
-
-    source[body_start..body_end]
-        .replace('\n', " ")
-        .split(',')
-        .map(str::trim)
-        .filter(|symbol| !symbol.is_empty())
-        .map(String::from)
-        .collect()
+    assert!(
+        source.contains(start_marker),
+        "plugin::native should expose the native loader public namespace"
+    );
+    let mut symbols = Vec::new();
+    for (start, _) in source.match_indices(start_marker) {
+        let body_start = start + start_marker.len();
+        let body_end = source[body_start..]
+            .find("};")
+            .map(|offset| body_start + offset)
+            .expect("native namespace re-export block should terminate");
+        assert!(
+            !source[body_start..body_end].contains(start_marker),
+            "native namespace re-export block should terminate before the next block"
+        );
+        symbols.extend(
+            source[body_start..body_end]
+                .replace('\n', " ")
+                .split(',')
+                .map(str::trim)
+                .filter(|symbol| !symbol.is_empty())
+                .map(String::from),
+        );
+    }
+    symbols
 }
 
 pub(super) fn native_root_import_leak_files(root: &Path) -> BTreeSet<String> {

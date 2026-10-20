@@ -14,7 +14,7 @@ use zircon_runtime::{
 
 const ROLE_COUNT: usize = 14;
 const MAX_RECORDS: u32 = 65_536;
-const MAX_RESULT_STRIDE: u64 = 12;
+const MAX_RESULT_STRIDE: u64 = 14;
 
 #[repr(usize)]
 #[derive(Clone, Copy, Debug)]
@@ -43,6 +43,7 @@ enum RawReadKind {
     ExecutionRecords = 2,
     SharedArgs = 3,
     AuthorSegments = 4,
+    TerminalAuthorityRows = 5,
 }
 
 impl TryFrom<u32> for RawReadKind {
@@ -54,6 +55,7 @@ impl TryFrom<u32> for RawReadKind {
             2 => Ok(Self::ExecutionRecords),
             3 => Ok(Self::SharedArgs),
             4 => Ok(Self::AuthorSegments),
+            5 => Ok(Self::TerminalAuthorityRows),
             _ => Err("unknown virtual geometry native probe read kind".into()),
         }
     }

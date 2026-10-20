@@ -36,11 +36,13 @@ impl<TAsset: Asset> Assets<TAsset> {
             .acquire::<TAsset::Marker, TAsset>(handle.resource_handle())
     }
 
-    // BUG: [CR-ASSET-PIPELINE-0001] 此处仅比较 ResourceKind；UiIconAsset 与 TextureAsset 等共享 marker 时会把另一种载荷误报为本类型存在。
+    /// Checks the published concrete declaration without requiring residency.
     pub fn contains(&self, handle: Handle<TAsset>) -> bool {
-        self.manager
-            .readiness_generation()
-            .contains_kind(handle.id(), TAsset::Marker::KIND)
+        let registry = self.manager.registry();
+        registry
+            .get(handle.id())
+            .is_some_and(|record| record.kind == TAsset::Marker::KIND)
+            && registry.contains_payload::<TAsset>(handle.id())
     }
 
     pub fn load_state(&self, handle: Handle<TAsset>) -> AssetLoadState {

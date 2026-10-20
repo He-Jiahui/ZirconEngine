@@ -9,11 +9,14 @@ pub(super) const LATE_API_CLEANUP_ROOT_CHILD_ROWS_CHILD: &str = "tests/runtime_a
 pub(super) const LATE_API_CLEANUP_ROOT_SOURCES_CHILD: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/late_api_cleanup_owners/root_sources.rs";
 pub(super) const LATE_API_CLEANUP_ROOT_INVENTORY_CHILD: &str = "tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/late_api_cleanup_owners/root_inventory.rs";
 
-pub(super) const PARENT: &str = "tests/runtime_absorption/code_review_findings/late_api_cleanup.rs";
+pub(super) const PARENT: &str = "tests/contracts/review/late_api_cleanup.rs";
 pub(super) const F11_SHADING_MODEL_REGISTRY: &str =
-    "tests/runtime_absorption/code_review_findings/late_api_cleanup/f11_shading_model_registry.rs";
-pub(super) const F15_EDITOR_PANE_DATA_CONVERSION: &str = "tests/runtime_absorption/code_review_findings/late_api_cleanup/f15_editor_pane_data_conversion.rs";
+    "tests/review/late_api_cleanup/f11_shading_model_registry.rs";
+pub(super) const F15_EDITOR_PANE_DATA_CONVERSION: &str =
+    "tests/late_api_cleanup/f15_editor_pane_data_conversion.rs";
 pub(super) const F17_ENTITY_PATH_LOOKUP: &str =
-    "tests/runtime_absorption/code_review_findings/late_api_cleanup/f17_entity_path_lookup.rs";
-pub(super) const F18_ASSET_MANAGER_RESOLUTION: &str = "tests/runtime_absorption/code_review_findings/late_api_cleanup/f18_asset_manager_resolution.rs";
-pub(super) const F19_SCENE_RENDERER_CONSTRUCTION: &str = "tests/runtime_absorption/code_review_findings/late_api_cleanup/f19_scene_renderer_construction.rs";
+    "tests/review/late_api_cleanup/f17_entity_path_lookup.rs";
+pub(super) const F18_ASSET_MANAGER_RESOLUTION: &str =
+    "tests/review/late_api_cleanup/f18_asset_manager_resolution.rs";
+pub(super) const F19_SCENE_RENDERER_CONSTRUCTION: &str =
+    "tests/review/late_api_cleanup/f19_scene_renderer_construct.rs";

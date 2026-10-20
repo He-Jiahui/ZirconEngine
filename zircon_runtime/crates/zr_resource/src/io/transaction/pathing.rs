@@ -61,8 +61,8 @@ impl PathIdentity {
     pub(super) fn compare_namespace_paths(left: &Self, right: &Self) -> CmpOrdering {
         #[cfg(windows)]
         {
-            return compare_windows_namespace_paths(&left.comparison_key, &right.comparison_key)
-                .then_with(|| compare_windows_paths(&left.comparison_key, &right.comparison_key));
+            compare_windows_namespace_paths(&left.comparison_key, &right.comparison_key)
+                .then_with(|| compare_windows_paths(&left.comparison_key, &right.comparison_key))
         }
         #[cfg(not(windows))]
         {
@@ -93,11 +93,10 @@ impl PathIdentity {
         {
             use std::os::windows::ffi::OsStrExt;
 
-            return self
-                .operation_path
+            self.operation_path
                 .as_os_str()
                 .encode_wide()
-                .eq(path.as_os_str().encode_wide());
+                .eq(path.as_os_str().encode_wide())
         }
         #[cfg(unix)]
         {
@@ -118,10 +117,7 @@ impl PathIdentity {
     pub(super) fn is_same_or_descendant_of(&self, ancestor: &Self) -> bool {
         #[cfg(windows)]
         {
-            return windows_path_is_same_or_descendant(
-                &self.comparison_key,
-                &ancestor.comparison_key,
-            );
+            windows_path_is_same_or_descendant(&self.comparison_key, &ancestor.comparison_key)
         }
         #[cfg(not(windows))]
         self.operation_path.starts_with(&ancestor.operation_path)
@@ -146,7 +142,7 @@ impl Ord for PathIdentity {
     fn cmp(&self, other: &Self) -> CmpOrdering {
         #[cfg(windows)]
         {
-            return compare_windows_paths(&self.comparison_key, &other.comparison_key);
+            compare_windows_paths(&self.comparison_key, &other.comparison_key)
         }
         #[cfg(not(windows))]
         self.operation_path.cmp(&other.operation_path)

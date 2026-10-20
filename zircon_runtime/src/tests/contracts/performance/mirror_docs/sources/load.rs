@@ -1,11 +1,10 @@
 //! 性能热点的结构守卫核对拥有者、文件预算和证据文档。对照源文件与文档的当前锚点，记录尚待运行验证的结构约束。
 use super::MirrorDocsSources;
+use crate::tests::runtime_absorption::structure_convention::fixed_history_archive_source as history;
 
 pub(super) fn load() -> MirrorDocsSources {
     MirrorDocsSources {
-        runtime_07_archive: include_str!(
-            "../../../../../../../docs/plans/zircon_runtime/runtime/07/2026-07-09-runtime-performance-hotpath-output-records.md"
-        ),
+        runtime_07_archive: history("docs/plans/zircon_runtime/runtime/07/2026-07-09-runtime-performance-hotpath-output-records.md"),
         audit_script: include_str!(
             "../../../../../../../.codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/performance_hotpath_boundary.py"
         ),

@@ -1,4 +1,4 @@
-use super::{HitTarget, PickingPipelineReport, PointerId};
+use super::{HitTarget, PickingDomain, PickingPipelineReport, PickingPointerKey, PointerId};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 /// 管线报告的诊断投影，供编辑器显示命中与遮挡原因；不参与实际目标选择。
@@ -40,7 +40,15 @@ impl PickingDebugFeed {
     }
 
     pub fn pointer(&self, pointer: PointerId) -> Option<&PickingDebugPointerRow> {
-        self.pointers.iter().find(|row| row.pointer == pointer)
+        let mut rows = self.pointers.iter().filter(|row| row.pointer == pointer);
+        let row = rows.next()?;
+        rows.next().is_none().then_some(row)
+    }
+
+    pub fn pointer_in_domain(&self, key: PickingPointerKey) -> Option<&PickingDebugPointerRow> {
+        self.pointers
+            .iter()
+            .find(|row| row.pointer == key.pointer && row.domain == key.domain)
     }
 
     pub fn blocked_pointers(&self) -> impl Iterator<Item = &PickingDebugPointerRow> {
@@ -93,6 +101,7 @@ pub enum PickingDebugMetricKind {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct PickingDebugPointerRow {
     pub pointer: PointerId,
+    pub domain: PickingDomain,
     pub ray_count: usize,
     pub backend_output_count: usize,
     pub raw_hit_count: usize,
@@ -108,6 +117,7 @@ impl PickingDebugPointerRow {
     fn from_report(report: &super::PickingPointerPipelineReport) -> Self {
         Self {
             pointer: report.pointer,
+            domain: report.domain,
             ray_count: report.ray_count,
             backend_output_count: report.backend_output_count,
             raw_hit_count: report.raw_hit_count,

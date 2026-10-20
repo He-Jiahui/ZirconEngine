@@ -95,7 +95,15 @@ impl ResourceStreamer {
         }) {
             return Ok(None);
         }
-        let mut prepared = self.build_prepared_mesh(id, projection)?;
+        // Upload the admitted revision without replacing the source captured by extraction.
+        let mut prepared = match self.meshes.get(&id) {
+            Some(prepared)
+                if projection.active().key(id).as_ref() == Some(&prepared.source_key) =>
+            {
+                prepared.clone()
+            }
+            _ => self.build_prepared_mesh(id, projection)?,
+        };
         let source = prepared
             .admission
             .primitive(0)

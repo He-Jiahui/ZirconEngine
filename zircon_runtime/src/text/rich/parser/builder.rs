@@ -84,11 +84,7 @@ impl RichParseBuilder {
         if self.error.is_some() {
             return None;
         }
-        let attempted_bytes = self
-            .text
-            .len()
-            .checked_add(appended_bytes)
-            .unwrap_or(usize::MAX);
+        let attempted_bytes = self.text.len().saturating_add(appended_bytes);
         let max_bytes = self.budget.admitted_output_bytes();
         if attempted_bytes > max_bytes {
             self.error = Some(RichTextParseError::OutputByteBudgetExceeded {
@@ -107,10 +103,7 @@ impl RichParseBuilder {
         if let Some(error) = self.error.take() {
             return Err(error);
         }
-        let attempted_tokens = self
-            .consumed_tokens
-            .checked_add(count)
-            .unwrap_or(usize::MAX);
+        let attempted_tokens = self.consumed_tokens.saturating_add(count);
         if attempted_tokens > self.budget.max_tokens {
             return Err(RichTextParseError::TokenBudgetExceeded {
                 attempted_tokens,
@@ -153,14 +146,13 @@ impl RichParseBuilder {
             return false;
         }
         if !merges {
-            let attempted_bytes = self
-                .consumed_run_metadata_bytes
-                .checked_add(retained_metadata_bytes(
-                    &run.style,
-                    run.inline.as_ref(),
-                    run.link.as_ref(),
-                ))
-                .unwrap_or(usize::MAX);
+            let attempted_bytes =
+                self.consumed_run_metadata_bytes
+                    .saturating_add(retained_metadata_bytes(
+                        &run.style,
+                        run.inline.as_ref(),
+                        run.link.as_ref(),
+                    ));
             if attempted_bytes > self.budget.max_retained_run_metadata_bytes {
                 self.error = Some(RichTextParseError::RunMetadataBudgetExceeded {
                     attempted_bytes,

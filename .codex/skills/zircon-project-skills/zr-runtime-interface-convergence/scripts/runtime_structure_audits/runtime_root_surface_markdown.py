@@ -8,8 +8,11 @@ from runtime_structure_audits.runtime_root_surface import (
 def render_runtime_root_surface_markdown(root_audit: dict[str, object]) -> list[str]:
     lines = [
         "## Runtime Root Surface Audit",
-        "- public modules "
+        "- raw public module declarations "
         f"({root_audit['public_module_count']}): {', '.join(root_audit['public_modules'])}",
+        f"- distinct public namespaces: {root_audit['distinct_public_module_count']}",
+        f"- root physical lines: {root_audit['physical_line_count']}/127; bytes: {root_audit['source_bytes']}",
+        f"- reachable public modules by profile: {root_audit['profile_public_modules']}",
         f"- M1 gate status: {root_audit['m1_gate_status']}",
         f"- public `pub use` locations ({root_audit['public_use_location_count']})",
         "- crate-visible graphics re-exports: "

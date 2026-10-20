@@ -108,13 +108,27 @@ impl WgpuPipelineResource {
 enum WgpuRetiredResource {
     Buffer(WgpuBufferResource),
     Texture(WgpuTextureResource),
-    TextureView(WgpuTextureViewResource),
-    Sampler(WgpuSamplerResource),
-    BindGroupLayout(WgpuBindGroupLayoutResource),
-    BindGroup(WgpuBindGroupResource),
-    ShaderModule(WgpuShaderModuleResource),
-    PipelineLayout(WgpuPipelineLayoutResource),
-    Pipeline(WgpuPipelineResource),
+    TextureView {
+        _resource: WgpuTextureViewResource,
+    },
+    Sampler {
+        _resource: WgpuSamplerResource,
+    },
+    BindGroupLayout {
+        _resource: WgpuBindGroupLayoutResource,
+    },
+    BindGroup {
+        _resource: WgpuBindGroupResource,
+    },
+    ShaderModule {
+        _resource: WgpuShaderModuleResource,
+    },
+    PipelineLayout {
+        _resource: WgpuPipelineLayoutResource,
+    },
+    Pipeline {
+        _resource: WgpuPipelineResource,
+    },
 }
 
 struct WgpuRetirement {

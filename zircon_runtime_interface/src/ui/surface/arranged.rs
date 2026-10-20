@@ -101,8 +101,6 @@ impl UiArrangedNode {
         self.allows_child_hit_test() && self.pointer_events.allows_child_hit_test()
     }
 
-    // BUG: [CR-SURFACE-0001] Runtime 两条模板构建路径对仅绑定 Scroll 的节点只设置 receives_input；
-    // 此处还要求 clickable、hoverable 或 focusable，非根节点无法靠自身命中进入滚轮路由。
     /// 命中网格的指针候选准入；输入策略允许并不等于节点具备指针交互能力。
     pub fn supports_pointer(&self) -> bool {
         self.enabled

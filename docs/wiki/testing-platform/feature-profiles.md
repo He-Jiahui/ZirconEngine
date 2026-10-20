@@ -12,7 +12,7 @@ implementation_files:
   - zircon_app/src/entry
 plan_sources:
   - docs/plans/zircon_runtime/runtime/02-core-spine-and-root-surface.md
-  - docs/plans/mvp/index.md
+  - docs/testing-and-validation/mvp-acceptance-index.md
 tests:
   - zircon_app/src/entry/tests/profile_bootstrap
   - zircon_app/src/entry/tests/product_host_config.rs

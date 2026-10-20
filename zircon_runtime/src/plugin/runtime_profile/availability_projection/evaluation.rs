@@ -38,12 +38,9 @@ impl<'descriptor, 'provider> RuntimePluginAvailabilityProjection<'descriptor, 'p
         profile: &RuntimeProfileDescriptor,
         require_external_provider: bool,
     ) -> RuntimePluginAvailabilityGeneration<'descriptor> {
-        let mut plugins = Vec::with_capacity(
-            profile
-                .default_plugins
-                .len()
-                .saturating_add(profile.optional_plugins.len()),
-        );
+        let defaults = profile.default_plugins.len();
+        let optional = profile.optional_plugins.len();
+        let mut plugins = Vec::with_capacity(defaults.saturating_add(optional));
         let mut positions = HashMap::with_capacity(plugins.capacity());
         for (plugin_id, required) in profile
             .default_plugins
@@ -79,12 +76,8 @@ impl<'descriptor, 'provider> RuntimePluginAvailabilityProjection<'descriptor, 'p
         manifest: &ProjectPluginManifest,
         require_external_provider: bool,
     ) -> RuntimePluginAvailabilityGeneration<'descriptor> {
-        let selection_projection = project_manifest_plugin_selections(profile, manifest);
-        self.generation_for_runtime_plugins(
-            profile,
-            selection_projection.plugins,
-            require_external_provider,
-        )
+        let selection = project_manifest_plugin_selections(profile, manifest);
+        self.generation_for_runtime_plugins(profile, selection.plugins, require_external_provider)
     }
 
     #[cfg(test)]
@@ -188,6 +181,7 @@ impl<'descriptor, 'provider> RuntimePluginAvailabilityProjection<'descriptor, 'p
             );
             return;
         }
+        let native_ids = &self.native_dynamic_plugin_ids;
         // 外置和 stub 成熟度优先于提供者匹配；提供者本身不提升目录成熟度。
         if descriptor.maturity == PluginMaturity::Externalized {
             if self.linked_plugin_ids.contains(descriptor.package_id) {
@@ -202,10 +196,7 @@ impl<'descriptor, 'provider> RuntimePluginAvailabilityProjection<'descriptor, 'p
                 );
                 return;
             }
-            if self
-                .native_dynamic_plugin_ids
-                .contains(descriptor.package_id)
-            {
+            if native_ids.contains(descriptor.package_id) {
                 generation.push(
                     false,
                     row_from_descriptor(
@@ -277,10 +268,7 @@ impl<'descriptor, 'provider> RuntimePluginAvailabilityProjection<'descriptor, 'p
             );
             return;
         }
-        if self
-            .native_dynamic_plugin_ids
-            .contains(descriptor.package_id)
-        {
+        if native_ids.contains(descriptor.package_id) {
             generation.push(
                 false,
                 row_from_descriptor(

@@ -16,6 +16,7 @@ use zircon_runtime::graphics::{
     RenderPassGpuResourceFactory,
 };
 use zircon_runtime::render_graph::RenderGraphResourceAccessKind;
+use zircon_runtime::rhi::TextureFormat;
 
 const PAGE_REQUESTS: &str = "virtual-geometry-page-requests";
 const VISIBLE_CLUSTERS: &str = "virtual-geometry-visible-clusters";
@@ -291,6 +292,30 @@ pub(super) fn execute_node_cluster_cull(
         let mut native = gpu.native_context();
         super::materialize_prepared_cull(&mut native, &frame.inspection)
     });
+    let prepared_sections = prepared_uploads
+        .as_ref()
+        .map(|prepared| prepared.native_inspection_sections())
+        .transpose()?
+        .unwrap_or_default();
+    let source_words = super::selection::node_selection_source_words(gpu)?;
+    let startup_buffer = prepared_sections
+        .iter()
+        .find(|(id, _, _)| *id == 5)
+        .map(|(_, buffer, _)| buffer.clone());
+    if source_words[21] != 0 && startup_buffer.is_none() {
+        return Err("prepared GPU instance work lease is absent".into());
+    }
+    let decisions = gpu.require_buffer_binding(
+        "virtual-geometry-cull-decisions",
+        RenderGraphResourceAccessKind::Write,
+    )?;
+    let decision_buffer = decisions.buffer.clone();
+    let decision_offset = decisions.offset;
+    let decision_size = decisions.size;
+    let decision_bytes = binding_size(&decisions);
+    if decision_bytes != (8 + 4096 * 33) * 4 {
+        return Err("VG graph decision buffer has a different physical ABI".into());
+    }
     let input = gpu.require_buffer_binding(PAGE_REQUESTS, RenderGraphResourceAccessKind::Read)?;
     let output =
         gpu.require_buffer_binding(VISIBLE_CLUSTERS, RenderGraphResourceAccessKind::Write)?;
@@ -313,11 +338,6 @@ pub(super) fn execute_node_cluster_cull(
     let visbuffer_buffer = visbuffer.buffer.clone();
     let visbuffer_offset = visbuffer.offset;
     let visbuffer_size = visbuffer.size;
-    let cull_input_words = gpu
-        .virtual_geometry_execution_data()
-        .ok_or("virtual geometry cull requires prepared execution data")?
-        .cull_input
-        .packed_words();
     let output_buffer = output.buffer.clone();
     let output_offset = output.offset;
     let output_size = output.size;
@@ -334,7 +354,7 @@ pub(super) fn execute_node_cluster_cull(
         );
     }
 
-    let mut candidates = cluster_candidates(gpu.virtual_geometry_execution_data());
+    let candidates = cluster_candidates(gpu.virtual_geometry_execution_data());
     if candidates.len() > output_capacity || candidates.len() > candidate_output_capacity {
         return Err(format!(
             "virtual geometry frame has {} cluster candidates but the graph buffers admit {} cluster IDs and {} candidate indices",
@@ -343,17 +363,6 @@ pub(super) fn execute_node_cluster_cull(
             candidate_output_capacity
         ));
     }
-    let dispatch_count = candidates.len();
-    candidates.insert(
-        0,
-        ClusterCandidate {
-            cluster_id: u32::try_from(dispatch_count).unwrap_or(u32::MAX),
-            page_id: 0,
-            candidate_index: u32::MAX,
-            instance_index: u32::MAX,
-            lod_level: 0,
-        },
-    );
     gpu.buffer_upload_recorder().write_buffer(
         &output_buffer,
         output_offset,
@@ -385,16 +394,21 @@ pub(super) fn execute_node_cluster_cull(
         visbuffer_offset,
         Some(visbuffer_byte_size),
     );
+    native
+        .encoder
+        .clear_buffer(&decision_buffer, decision_offset, Some(decision_bytes));
     let factory = &native;
-    let cull_input_buffer = factory.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-        label: Some("zircon-virtual-geometry-cull-input"),
-        contents: bytemuck::cast_slice(&cull_input_words),
+    let source_buffer = factory.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+        label: Some("zircon-virtual-geometry-selection-source"),
+        contents: bytemuck::cast_slice(&source_words),
         usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_SRC,
     });
-    let candidate_buffer = factory.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-        label: Some("zircon-virtual-geometry-cluster-candidates"),
-        contents: bytemuck::cast_slice(&candidates),
-        usage: wgpu::BufferUsages::STORAGE,
+    let startup_buffer = startup_buffer.unwrap_or_else(|| {
+        factory.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("zircon-virtual-geometry-empty-startup-work"),
+            contents: bytemuck::bytes_of(&0_u32),
+            usage: wgpu::BufferUsages::STORAGE,
+        })
     });
     let mut pipeline_cache = NODE_CULL_PIPELINE
         .get_or_init(|| Mutex::new(None))
@@ -424,7 +438,7 @@ pub(super) fn execute_node_cluster_cull(
             },
             wgpu::BindGroupEntry {
                 binding: 1,
-                resource: candidate_buffer.as_entire_binding(),
+                resource: source_buffer.as_entire_binding(),
             },
             wgpu::BindGroupEntry {
                 binding: 2,
@@ -446,8 +460,9 @@ pub(super) fn execute_node_cluster_cull(
             buffer_bind_group_entry(5, &visbuffer_buffer, visbuffer_offset, visbuffer_size),
             wgpu::BindGroupEntry {
                 binding: 6,
-                resource: cull_input_buffer.as_entire_binding(),
+                resource: startup_buffer.as_entire_binding(),
             },
+            buffer_bind_group_entry(7, &decision_buffer, decision_offset, decision_size),
         ],
     });
     let mut pass = native
@@ -462,10 +477,9 @@ pub(super) fn execute_node_cluster_cull(
     drop(pass);
     drop(pipeline_cache);
     drop(native);
-    let mut sections = vec![(0, cull_input_buffer.clone(), 0..cull_input_buffer.size())];
-    if let Some(prepared) = &prepared_uploads {
-        sections.extend(prepared.native_inspection_sections()?);
-    }
+    // Diagnostics observe the same physical source prefix consumed by the shader.
+    let mut sections = vec![(0, source_buffer.clone(), 0..14 * 4)];
+    sections.extend(prepared_sections);
     register_native_inspection(gpu, sections)?;
     gpu.record_compute_dispatch(
         NODE_CULL_PASS_NAME,
@@ -478,6 +492,7 @@ pub(super) fn execute_node_cluster_cull(
             VISIBLE_CANDIDATES.into(),
             NONRESIDENT_PAGE_REQUESTS.into(),
             VISBUFFER64.into(),
+            "virtual-geometry-cull-decisions".into(),
         ],
     );
     Ok(())
@@ -524,6 +539,7 @@ fn create_node_cull_pipeline(factory: &impl RenderPassGpuResourceFactory) -> Nod
             storage_buffer_layout_entry(4, false, wgpu::ShaderStages::COMPUTE),
             storage_buffer_layout_entry(5, false, wgpu::ShaderStages::COMPUTE),
             storage_buffer_layout_entry(6, true, wgpu::ShaderStages::COMPUTE),
+            storage_buffer_layout_entry(7, false, wgpu::ShaderStages::COMPUTE),
         ],
     });
     let pipeline_layout = factory.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
@@ -549,7 +565,7 @@ pub(super) fn execute_visbuffer(gpu: &mut RenderPassGpuExecutionContext<'_>) -> 
     let depth_view = gpu
         .require_texture_view(SCENE_DEPTH, RenderGraphResourceAccessKind::Write)?
         .clone();
-    let (vertices, ranges) = cluster_vertices_with_ranges(gpu);
+    let (vertices, ranges) = cluster_vertices_with_ranges(gpu)?;
     if vertices.is_empty() {
         return Ok(());
     }
@@ -568,7 +584,7 @@ pub(super) fn execute_debug_overlay(
     let color_view = gpu
         .require_texture_view(SCENE_COLOR, RenderGraphResourceAccessKind::Write)?
         .clone();
-    let vertices = cluster_vertices(gpu);
+    let vertices = cluster_vertices(gpu)?;
     if vertices.is_empty() {
         return Ok(());
     }
@@ -642,8 +658,8 @@ fn cluster_candidates(snapshot: Option<&impl ClusterExecutionSource>) -> Vec<Clu
         .collect()
 }
 
-fn cluster_vertices(gpu: &RenderPassGpuExecutionContext<'_>) -> Vec<ClusterVertex> {
-    cluster_vertices_with_ranges(gpu).0
+fn cluster_vertices(gpu: &RenderPassGpuExecutionContext<'_>) -> Result<Vec<ClusterVertex>, String> {
+    Ok(cluster_vertices_with_ranges(gpu)?.0)
 }
 
 /// Packs the exact vertices used by the raster consumer and records every source cluster's
@@ -651,13 +667,11 @@ fn cluster_vertices(gpu: &RenderPassGpuExecutionContext<'_>) -> Vec<ClusterVerte
 
 pub(super) fn cluster_vertices_with_ranges(
     gpu: &RenderPassGpuExecutionContext<'_>,
-) -> (Vec<ClusterVertex>, Vec<PackedClusterRange>) {
+) -> Result<(Vec<ClusterVertex>, Vec<PackedClusterRange>), String> {
     let Some(data) = gpu.virtual_geometry_execution_data() else {
-        return (Vec::new(), Vec::new());
+        return Ok((Vec::new(), Vec::new()));
     };
-    let Ok(rows) = zircon_runtime::graphics::virtual_geometry_indexed_source_rows(data) else {
-        return (Vec::new(), Vec::new());
-    };
+    let rows = zircon_runtime::graphics::virtual_geometry_indexed_source_rows(data)?;
     let camera = gpu.frame_extract().view.selected_effective_camera();
     let clip_from_world = ViewProjectionMatrixPair::from_camera(&camera, gpu.viewport_size())
         .clip_from_world_unjittered;
@@ -665,58 +679,62 @@ pub(super) fn cluster_vertices_with_ranges(
     let mut ranges = Vec::new();
     for row in rows {
         let identity = row.identity();
-        let local_to_world = match identity.instance_index {
-            Some(index) => {
-                let Ok(index) = usize::try_from(index) else {
-                    return (Vec::new(), Vec::new());
-                };
-                let Some(instance) = data.instances.get(index) else {
-                    return (Vec::new(), Vec::new());
-                };
-                instance.transform.matrix()
-            }
-            None => {
-                if !data.instances.is_empty()
+        zircon_runtime::core::framework::render::RenderVirtualGeometryExtract::checked_cluster_row_indices(
+            &data.instances, &data.author_cluster_catalog, identity.entity,
+            identity.stable_instance_key, identity.instance_index).map_err(str::to_owned)?;
+        let local_to_world =
+            match identity.instance_index {
+                Some(index) => {
+                    let Ok(index) = usize::try_from(index) else {
+                        return Err("raster source instance index exceeds usize".into());
+                    };
+                    let Some(instance) = data.instances.get(index) else {
+                        return Err("raster source instance is absent".into());
+                    };
+                    instance.transform.matrix()
+                }
+                None => {
+                    if data.instances.iter().any(|instance| instance.entity == identity.entity)
                     || identity.stable_instance_key
                         != zircon_runtime::core::framework::render::render_mesh_stable_instance_key(
                             identity.entity,
                             0,
                         )
                 {
-                    return (Vec::new(), Vec::new());
+                    return Err("raster legacy source has a conflicting instance domain".into());
                 }
-                let mut meshes = gpu
-                    .frame_extract()
-                    .geometry
-                    .meshes
-                    .iter()
-                    .filter(|mesh| mesh.node_id == identity.entity);
-                let Some(mesh) = meshes.next() else {
-                    return (Vec::new(), Vec::new());
-                };
-                if meshes.next().is_some() {
-                    return (Vec::new(), Vec::new());
+                    let mut meshes = gpu
+                        .frame_extract()
+                        .geometry
+                        .meshes
+                        .iter()
+                        .filter(|mesh| mesh.node_id == identity.entity);
+                    let Some(mesh) = meshes.next() else {
+                        return Err("raster legacy source has no mesh transform".into());
+                    };
+                    if meshes.next().is_some() {
+                        return Err("raster legacy source has ambiguous mesh transforms".into());
+                    }
+                    mesh.transform.matrix()
                 }
-                mesh.transform.matrix()
-            }
-        };
+            };
         let Some(page) = data.resident_page_payloads.get(row.page_index()) else {
-            return (Vec::new(), Vec::new());
+            return Err("raster source physical payload is absent".into());
         };
         let Some(range) = page.cluster_ranges.get(row.range_index()) else {
-            return (Vec::new(), Vec::new());
+            return Err("raster source physical range is absent".into());
         };
         let Some(source) = payload_range(page, range.vertex_start, range.vertex_count) else {
-            return (Vec::new(), Vec::new());
+            return Err("raster source physical vertex range is invalid".into());
         };
         let Ok(start) = u32::try_from(vertices.len()) else {
-            return (Vec::new(), Vec::new());
+            return Err("raster packed vertex start exceeds u32".into());
         };
         let Ok(count) = u32::try_from(source.len()) else {
-            return (Vec::new(), Vec::new());
+            return Err("raster packed vertex count exceeds u32".into());
         };
         let Some(end) = start.checked_add(count) else {
-            return (Vec::new(), Vec::new());
+            return Err("raster packed vertex end overflow".into());
         };
         append_cluster_vertices(
             &mut vertices,
@@ -745,7 +763,7 @@ pub(super) fn cluster_vertices_with_ranges(
             vertices: start..end,
         });
     }
-    (vertices, ranges)
+    Ok((vertices, ranges))
 }
 
 fn payload_range(
@@ -787,6 +805,30 @@ enum ClusterTriangleTarget<'a> {
     Color(&'a wgpu::TextureView),
 }
 
+fn cluster_color_texture_format(format: TextureFormat) -> Result<wgpu::TextureFormat, String> {
+    let format = match format {
+        TextureFormat::R8Unorm => wgpu::TextureFormat::R8Unorm,
+        TextureFormat::R16Float => wgpu::TextureFormat::R16Float,
+        TextureFormat::R32Float => wgpu::TextureFormat::R32Float,
+        TextureFormat::Rg16Float => wgpu::TextureFormat::Rg16Float,
+        TextureFormat::Rg11b10Ufloat => wgpu::TextureFormat::Rg11b10Ufloat,
+        TextureFormat::Rgba8Unorm => wgpu::TextureFormat::Rgba8Unorm,
+        TextureFormat::Rgba8UnormSrgb => wgpu::TextureFormat::Rgba8UnormSrgb,
+        TextureFormat::Bgra8Unorm => wgpu::TextureFormat::Bgra8Unorm,
+        TextureFormat::Bgra8UnormSrgb => wgpu::TextureFormat::Bgra8UnormSrgb,
+        TextureFormat::Rgba16Float => wgpu::TextureFormat::Rgba16Float,
+        TextureFormat::Rgba32Float => wgpu::TextureFormat::Rgba32Float,
+        TextureFormat::Depth24Plus
+        | TextureFormat::Depth24PlusStencil8
+        | TextureFormat::Depth32Float => {
+            return Err(format!(
+                "virtual geometry raster target `{SCENE_COLOR}` must be a color texture, got `{format:?}`"
+            ));
+        }
+    };
+    Ok(format)
+}
+
 fn encode_cluster_triangles(
     gpu: &mut RenderPassGpuExecutionContext<'_>,
     vertices: &[ClusterVertex],
@@ -797,7 +839,13 @@ fn encode_cluster_triangles(
     let visible_buffer = visible.buffer.clone();
     let visible_offset = visible.offset;
     let visible_size = visible.size;
-    let target_format = gpu.target_format();
+    let target_format = match target {
+        ClusterTriangleTarget::Depth(_) => gpu.target_format(),
+        ClusterTriangleTarget::Color(_) => cluster_color_texture_format(
+            gpu.require_texture_desc(SCENE_COLOR, RenderGraphResourceAccessKind::Write)?
+                .format,
+        )?,
+    };
     let depth_format = gpu.depth_format();
     let device_epoch = gpu.device_epoch().ok_or_else(|| {
         "virtual geometry raster requires a materialized device epoch".to_string()

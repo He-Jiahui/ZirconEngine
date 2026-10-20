@@ -9,7 +9,7 @@ pub const RENDER_ENVIRONMENT_CAPTURE_WORK_ITEM_COUNT: u32 = 6;
 
 // Version the scene-raster source independently from PMREM/SH filtering so
 // material or lighting capture-policy changes invalidate only runtime captures.
-const RENDER_ENVIRONMENT_CAPTURE_RASTER_ALGORITHM_VERSION: u64 = 2026_08_31_0001;
+const RENDER_ENVIRONMENT_CAPTURE_RASTER_ALGORITHM_VERSION: u64 = 202_608_310_001;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct RenderEnvironmentCaptureHandle(u64);

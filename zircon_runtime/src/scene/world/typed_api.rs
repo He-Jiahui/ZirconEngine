@@ -620,7 +620,7 @@ impl World {
         Ok(id)
     }
 
-    fn measure_dynamic_component_presence_retention_v1(
+    pub(super) fn measure_dynamic_component_presence_retention_v1(
         &self,
         entity: EntityId,
         id: ComponentId,

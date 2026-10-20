@@ -210,7 +210,27 @@ impl HybridGiSceneScreenProbeRuntimeDescriptor {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+struct HybridGiHistorySceneInputs {
+    directional_lights: Vec<RenderDirectionalLightSnapshot>,
+    point_lights: Vec<RenderPointLightSnapshot>,
+    spot_lights: Vec<RenderSpotLightSnapshot>,
+    baked_lighting: Option<LightmapConsumeContract>,
+    has_baked_probe_grid: bool,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub(in crate::hybrid_gi) struct HybridGiProbeHistoryIdentity {
+    requested: RenderHybridGiExtract,
+    resolved: HybridGiSceneRepresentationSettings,
+    cards: Vec<HybridGiCardDescriptor>,
+    inputs: HybridGiHistorySceneInputs,
+    probes: Vec<(u32, u32, u32, u64, Option<u32>, Vec3, f32, u32, u32, u8)>,
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub(crate) struct HybridGiSceneRepresentation {
+    history_extract: Option<RenderHybridGiExtract>,
+    history_inputs: Option<HybridGiHistorySceneInputs>,
     settings: HybridGiSceneRepresentationSettings,
     cards: Vec<HybridGiCardDescriptor>,
     card_capture_requests: Vec<HybridGiCardCaptureRequest>,
@@ -229,6 +249,8 @@ pub(crate) struct HybridGiSceneRepresentation {
 impl Default for HybridGiSceneRepresentation {
     fn default() -> Self {
         Self {
+            history_extract: None,
+            history_inputs: None,
             settings: HybridGiSceneRepresentationSettings::default(),
             cards: Vec::new(),
             card_capture_requests: Vec::new(),
@@ -247,6 +269,44 @@ impl Default for HybridGiSceneRepresentation {
 }
 
 impl HybridGiSceneRepresentation {
+    /// Exact source identity, excluding GPU results and per-frame counters.
+    pub(in crate::hybrid_gi) fn probe_history_identity(
+        &self,
+    ) -> Option<HybridGiProbeHistoryIdentity> {
+        if !self.settings.enabled {
+            return None;
+        }
+        Some(HybridGiProbeHistoryIdentity {
+            requested: self.history_extract.clone()?,
+            resolved: self.settings,
+            cards: self.cards.clone(),
+            inputs: self.history_inputs.clone()?,
+            probes: self
+                .screen_probes
+                .descriptors()
+                .iter()
+                .enumerate()
+                .map(|(slot, probe)| {
+                    (
+                        probe.probe_id(),
+                        slot as u32,
+                        probe.card_id(),
+                        probe.stable_instance_key(),
+                        probe.surface_page_id(),
+                        probe.bounds_center(),
+                        probe.bounds_radius(),
+                        probe.ray_budget(),
+                        self.source_ledger
+                            .surface_source_mask(probe.stable_instance_key())
+                            .unwrap_or_default(),
+                        self.source_ledger
+                            .surface_dynamic_weight_q8(probe.stable_instance_key()),
+                    )
+                })
+                .collect(),
+        })
+    }
+
     pub(crate) fn settings(&self) -> HybridGiSceneRepresentationSettings {
         self.settings
     }
@@ -379,6 +439,8 @@ impl HybridGiSceneRepresentation {
     }
 
     pub(crate) fn apply_extract(&mut self, extract: &RenderHybridGiExtract) {
+        self.history_extract = Some(extract.clone());
+        self.history_inputs = None;
         let resolved = extract.resolved_settings(true);
         self.settings = HybridGiSceneRepresentationSettings {
             enabled: extract.enabled,
@@ -446,6 +508,14 @@ impl HybridGiSceneRepresentation {
         radiance_cache_camera_position: Option<Vec3>,
         radiance_cache_history_invalidated: bool,
     ) {
+        // Preserve full inputs, including static lights excluded by dynamic-delta tracing.
+        self.history_inputs = Some(HybridGiHistorySceneInputs {
+            directional_lights: sorted_directional_lights(directional_lights),
+            point_lights: sorted_point_lights(point_lights),
+            spot_lights: sorted_spot_lights(spot_lights),
+            baked_lighting: baked_lighting.cloned(),
+            has_baked_probe_grid,
+        });
         self.settings.effective_mode = if self.settings.mode
             == RenderHybridGiMode::BakedStaticDynamic
             && baked_lighting.is_none()

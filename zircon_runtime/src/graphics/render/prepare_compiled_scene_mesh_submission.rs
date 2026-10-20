@@ -1,11 +1,12 @@
-use crate::core::framework::render::RenderCapabilitySummary;
+use crate::core::framework::render::{RenderCapabilitySummary, RenderPhase};
 use crate::core::TaskPool;
 use crate::graphics::backend::RenderBackend;
 use crate::graphics::scene::gpu_scene::GpuScenePreparedUpload;
 use crate::graphics::scene::resources::ResourceStreamer;
 use crate::graphics::scene::scene_renderer::graph_execution::RenderPassMeshCommandLists;
 use crate::graphics::scene::scene_renderer::mesh::mesh_pass::{
-    MeshIndirectWorkspacePreparedUpload, MeshPassIndirectDrawExecutions, MeshSceneDataBindHandle,
+    mesh_pass_command_specs, MeshIndirectWorkspacePreparedUpload, MeshPassIndirectDrawExecutions,
+    MeshSceneDataBindHandle,
 };
 use crate::graphics::scene::scene_renderer::mesh::{
     build_mesh_pass_command_buffers_cached, build_mesh_pass_command_buffers_cached_parallel,
@@ -45,8 +46,14 @@ pub(super) fn project_compiled_scene_mesh_draw_lists<'a>(
     command_buffers: &'a MeshPassCommandBuffers,
     indirect_draws: &'a MeshPassIndirectDrawExecutions,
     transmission_step_count: usize,
+    indexed_plan: Option<
+        &'a std::sync::Arc<
+            crate::graphics::scene::scene_renderer::mesh::VirtualGeometryIndexedPlan,
+        >,
+    >,
 ) -> RenderPassMeshCommandLists<'a> {
     RenderPassMeshCommandLists {
+        indexed_plan,
         replay_stats,
         gpu_scene_bind_group: Some(MeshSceneDataBindHandle::new(gpu_scene_bind_group)),
         depth_prepass_commands: command_buffers.depth_prepass().commands(),
@@ -133,6 +140,33 @@ impl SceneRendererCore {
         );
         let mut mesh_pass_command_buffers =
             compiled_scene_draws.prebuilt_mesh_pass_command_buffers();
+        // Cached capacity comes from admitted source phase plans, never command output.
+        // Residual inputs are expanded admitted 0/1/N runs, not the source census.
+        let mut mesh_phase_capacity = compiled_scene_draws
+            .pending_command_cache_extraction_stats()
+            .admitted_phase_capacity;
+        for (index, draw) in compiled_scene_draws.draws().iter().enumerate() {
+            let batch = draw.mesh_pass_batch_ref(0, index);
+            for spec in mesh_pass_command_specs(&batch).into_iter().flatten() {
+                let count = match spec.phase {
+                    RenderPhase::Prepass => &mut mesh_phase_capacity.depth_prepass_command_count,
+                    RenderPhase::Shadow => &mut mesh_phase_capacity.shadow_command_count,
+                    RenderPhase::Opaque3d => &mut mesh_phase_capacity.opaque_command_count,
+                    RenderPhase::AlphaMask3d => &mut mesh_phase_capacity.alpha_mask_command_count,
+                    RenderPhase::Transparent3d
+                        if batch.pipeline_key.requires_forward_path()
+                            && !batch.pipeline_key.pbr_transmission =>
+                    {
+                        &mut mesh_phase_capacity.advanced_pbr_opaque_command_count
+                    }
+                    RenderPhase::Transparent3d => {
+                        &mut mesh_phase_capacity.transparent_command_count
+                    }
+                    _ => continue,
+                };
+                *count += 1;
+            }
+        }
         let residual_mesh_pass_command_buffers = if let Some(task_pool) = compute_task_pool {
             build_mesh_pass_command_buffers_cached_parallel(
                 compiled_scene_draws.draws(),
@@ -193,37 +227,35 @@ impl SceneRendererCore {
             )
             .with_mesh_pass_command_buffer_stats(mesh_pass_command_stats)
             .with_indirect_workspace_stats(mesh_indirect_workspace_stats);
-        debug_assert_eq!(
-            prepared_mesh_queue_stats.draw_count,
-            compiled_scene_draws.draws().len()
-                + prepared_mesh_queue_stats.pre_mesh_draw_static_command_cache_skipped_draw_count
-        );
-        // Draw counts are the extracted source census; command counts are pruned by visibility.
+        // Source statistics remain the extracted census, independently checked in
+        // build_mesh_draws. Command bounds use immutable admitted runs and the same
+        // phase eligibility rules as processors; visibility/variant rejection may
+        // prune commands, but cannot fabricate an extra execution slot.
         debug_assert!(
             prepared_mesh_queue_stats.depth_prepass_command_count
-                <= prepared_mesh_queue_stats.early_z_draw_count
+                <= mesh_phase_capacity.depth_prepass_command_count
         );
         debug_assert!(
             prepared_mesh_queue_stats.shadow_command_count
-                <= prepared_mesh_queue_stats.shadow_caster_draw_count
+                <= mesh_phase_capacity.shadow_command_count
         );
         debug_assert!(
             prepared_mesh_queue_stats.opaque_command_count
-                <= prepared_mesh_queue_stats.opaque_draw_count
+                <= mesh_phase_capacity.opaque_command_count
         );
         debug_assert!(
             prepared_mesh_queue_stats.alpha_mask_command_count
-                <= prepared_mesh_queue_stats.alpha_mask_draw_count
+                <= mesh_phase_capacity.alpha_mask_command_count
         );
         debug_assert!(
             prepared_mesh_queue_stats
                 .transparent_command_count
                 .saturating_add(prepared_mesh_queue_stats.transmission_command_count)
-                <= prepared_mesh_queue_stats.transparent_draw_count
+                <= mesh_phase_capacity.transparent_command_count
         );
         debug_assert!(
             prepared_mesh_queue_stats.advanced_pbr_opaque_command_count
-                <= prepared_mesh_queue_stats.opaque_draw_count
+                <= mesh_phase_capacity.advanced_pbr_opaque_command_count
         );
         debug_assert_eq!(
             prepared_mesh_queue_stats.velocity_command_count,

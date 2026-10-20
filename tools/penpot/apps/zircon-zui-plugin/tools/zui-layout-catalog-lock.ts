@@ -1,4 +1,4 @@
-import { resolveLayoutCatalogPath } from './zui-layout-paths';
+import { assertLayoutCurrentRoots, layoutCurrentOutputPath, type LayoutCurrentContext, resolveLayoutCatalogPath } from './zui-layout-paths';
 import { randomUUID } from 'node:crypto';
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
@@ -17,6 +17,7 @@ export interface LayoutCatalogLockOwner {
 
 export interface LayoutCatalogLockOptions {
   command: string;
+  context?: LayoutCurrentContext;
   /** Override only for deterministic tests. */
   processId?: number;
   /** Override only for deterministic stale-owner tests. */
@@ -42,8 +43,12 @@ export async function acquireLayoutCatalogLock(
   catalogRoot: string,
   options: LayoutCatalogLockOptions,
 ): Promise<LayoutCatalogLock> {
+  if (options.context)
+    assertLayoutCurrentRoots(options.context, options.context.repoRoot, catalogRoot);
   await mkdir(catalogRoot, { recursive: true });
-  const path = resolveLayoutCatalogPath(catalogRoot, lockDirectoryName);
+  const path = options.context
+    ? layoutCurrentOutputPath(options.context, lockDirectoryName)
+    : resolveLayoutCatalogPath(catalogRoot, lockDirectoryName);
   try {
     await mkdir(path);
   } catch (error) {

@@ -38,6 +38,11 @@ pub(super) fn record_non_viewport_camera_state_after_success(
             light_grid_report,
             frame.virtual_geometry_debug_snapshot.as_ref(),
         );
+        record.bind_physical_submission_snapshot(
+            context.camera_history_key(),
+            context.virtual_geometry_readback_scope().as_ref(),
+            frame.virtual_geometry_debug_snapshot.as_ref(),
+        );
         let (hybrid_gi_feedback, _particle_feedback, virtual_geometry_feedback) =
             runtime_feedback.into_parts();
 

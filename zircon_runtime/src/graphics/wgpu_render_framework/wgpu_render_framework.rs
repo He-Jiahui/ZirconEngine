@@ -542,13 +542,39 @@ impl WgpuRenderFramework {
             .submit_runtime_frame(Arc::clone(&self.core), execute, viewport, frame)
     }
 
-    pub(in crate::graphics::runtime::render_framework) fn finish_submission(
+    pub(in crate::graphics::runtime::render_framework) fn drain_submissions(
         &self,
     ) -> Result<(), crate::core::framework::render::RenderFrameworkError> {
         self.submission_scheduler
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
             .finish_pending()
+    }
+
+    pub(in crate::graphics::runtime::render_framework) fn finish_submission(
+        &self,
+    ) -> Result<(), crate::core::framework::render::RenderFrameworkError> {
+        self.drain_submissions()?;
+        // The scheduler guard must be released before taking renderer state.
+        let mut state = self.lock_state();
+        let epoch = state.renderer.virtual_geometry_device_epoch();
+        let RenderFrameworkState {
+            renderer,
+            viewports,
+            ..
+        } = &mut *state;
+        let mut ordered = viewports.iter_mut().collect::<Vec<_>>();
+        ordered.sort_by_key(|(viewport, _)| viewport.raw());
+        let mut failure = None;
+        for (_, record) in ordered {
+            // Observe only completed callbacks; ordinary finish never waits for a GPU map.
+            record.observe_virtual_geometry_readbacks(renderer);
+            record.apply_ready_virtual_geometry_readbacks();
+            if failure.is_none() {
+                failure = record.virtual_geometry_readback_error(epoch);
+            }
+        }
+        failure.map_or(Ok(()), Err)
     }
 
     /// Returns bounded scheduler observations without waiting for GPU work or

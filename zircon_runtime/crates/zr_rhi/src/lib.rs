@@ -63,10 +63,10 @@ pub use device_fault::{DeviceAdmissionError, DeviceFaultGate, DeviceFaultKind, D
 pub use device_profile::{
     AdapterSelectionError, AdapterSelectionPolicy, AdapterSelectionReceipt, DeviceGeneration,
     DeviceId, RejectedAdapter, RejectedAdapterReason, RenderAdapterCatalog, RenderAdapterClass,
-    RenderAdapterFacts, RenderAdapterSelector, RenderBackendKind, RenderDeviceFeature,
-    RenderDeviceFeatureNegotiation, RenderDeviceFeatureSet, RenderDeviceNegotiationError,
-    RenderDeviceProfile, RenderDeviceQueueTopology, RenderDeviceRequestFailure,
-    RenderDeviceRequestPolicy,
+    RenderAdapterFacts, RenderAdapterSelector, RenderBackendKind, RenderDeviceBudgets,
+    RenderDeviceFeature, RenderDeviceFeatureNegotiation, RenderDeviceFeatureSet,
+    RenderDeviceNegotiationError, RenderDeviceProfile, RenderDeviceQueueTopology,
+    RenderDeviceRequestFailure, RenderDeviceRequestPolicy,
 };
 pub use diagnostic_query::{
     aggregate_diagnostic_query_results, DiagnosticPassQueryScope, DiagnosticPassResult,

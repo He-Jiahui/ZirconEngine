@@ -23,6 +23,8 @@ $buildSetModule = Join-Path $repoRoot 'tools\mvp\MvpBuildSet.psm1'
 $fixturePathsModule = Join-Path $repoRoot 'tools\mvp\MvpTestFixturePaths.psm1'
 $stagingTreeManifestModule = Join-Path $repoRoot 'tools\mvp\MvpAcceptanceStagingTreeManifest.psm1'
 $windowsPathResolverModule = Join-Path $repoRoot 'tools\maintenance\WindowsPathResolver.psm1'
+$testCleanupModule = Join-Path $PSScriptRoot 'MvpTestCleanup.psm1'
+Import-Module $testCleanupModule -Force -ErrorAction Stop
 Import-Module $productInputManifestModule -Force -ErrorAction Stop
 Import-Module $productProfileRegistryModule -Force -ErrorAction Stop
 Import-Module $buildSetModule -Force -ErrorAction Stop
@@ -54,23 +56,35 @@ function Invoke-MvpStagingFixtureGit {
     }
 }
 
-function Remove-MvpStagingFixtureBuildSet {
-    param([Parameter(Mandatory)][pscustomobject]$Fixture)
+function Remove-MvpStagingFixture {
+    param(
+        [Parameter(Mandatory)][pscustomobject]$Fixture,
+        [AllowNull()][System.Management.Automation.ErrorRecord]$PrimaryError
+    )
 
-    if ($null -eq $Fixture.PSObject.Properties['BuildSet'] -or $null -eq $Fixture.BuildSet) {
-        return
-    }
-    $git = Get-Command git.exe -ErrorAction Stop
-    if (Test-Path -LiteralPath $Fixture.BuildSet.snapshot_root -PathType Container) {
-        & $git.Source -C $Fixture.BuildSetSourceRoot worktree remove --force $Fixture.BuildSet.snapshot_root
-        if ($LASTEXITCODE -ne 0) {
-            throw "Could not release the immutable BuildSet fixture worktree '$($Fixture.BuildSet.snapshot_root)'."
+    Invoke-MvpTestCleanup -PrimaryError $PrimaryError -Steps ([ordered]@{
+        "BuildSet worktree for '$($Fixture.Root)'" = {
+            if ($null -ne $Fixture.BuildSet) {
+                $git = Get-Command git.exe -ErrorAction Stop
+                if (Test-Path -LiteralPath $Fixture.BuildSet.snapshot_root -PathType Container) {
+                    & $git.Source -C $Fixture.BuildSetSourceRoot worktree remove --force $Fixture.BuildSet.snapshot_root
+                    if ($LASTEXITCODE -ne 0) {
+                        throw "Could not release the immutable BuildSet fixture worktree '$($Fixture.BuildSet.snapshot_root)'."
+                    }
+                }
+            }
         }
-    }
-    & $git.Source -C $Fixture.BuildSetSourceRoot worktree prune
-    if ($LASTEXITCODE -ne 0) {
-        throw "Could not prune the immutable BuildSet fixture source repository '$($Fixture.BuildSetSourceRoot)'."
-    }
+        "BuildSet worktree metadata for '$($Fixture.Root)'" = {
+            if ($null -ne $Fixture.BuildSet) {
+                $git = Get-Command git.exe -ErrorAction Stop
+                & $git.Source -C $Fixture.BuildSetSourceRoot worktree prune
+                if ($LASTEXITCODE -ne 0) {
+                    throw "Could not prune the immutable BuildSet fixture source repository '$($Fixture.BuildSetSourceRoot)'."
+                }
+            }
+        }
+        "fixture root '$($Fixture.Root)'" = { Remove-MvpTestFixtureRoot -Path $Fixture.Root }
+    })
 }
 
 function Set-MvpStagingFixtureControl {
@@ -106,6 +120,25 @@ function Clear-MvpStagingFixtureControl {
         Join-Path $Fixture.TemplateRoot 'renderable-empty'
     }
     Remove-Item -LiteralPath (Join-Path $controlRoot 'fixture-control.txt') -Force -ErrorAction SilentlyContinue
+}
+
+function Stop-MvpStagingFixtureProcesses {
+    param([Parameter(Mandatory)][string]$StageRoot)
+
+    $stagePrefix = [IO.Path]::GetFullPath($StageRoot).TrimEnd('\') + [IO.Path]::DirectorySeparatorChar
+    $stagePids = @(
+        Get-CimInstance Win32_Process | Where-Object {
+            $executablePath = [string]$_.ExecutablePath
+            -not [string]::IsNullOrWhiteSpace($executablePath) -and
+                $executablePath.StartsWith($stagePrefix, [StringComparison]::OrdinalIgnoreCase)
+        } | Select-Object -ExpandProperty ProcessId
+    )
+    foreach ($processId in $stagePids) {
+        Stop-Process -Id $processId -Force -ErrorAction SilentlyContinue
+    }
+    foreach ($processId in $stagePids) {
+        Wait-Process -Id $processId -Timeout 5 -ErrorAction SilentlyContinue
+    }
 }
 
 function Assert-ProcessTiming {
@@ -199,7 +232,11 @@ function Assert-ProcessJournalProgress {
 }
 
 function New-MvpStagingFixture {
-    $root = New-MvpTestFixtureRoot -Prefix 'zircon-mvp-staging'
+    $fixture = [pscustomobject]@{ Root = $null; BuildSet = $null; BuildSetSourceRoot = $null }
+    $constructionError = $null
+    try {
+    $fixture.Root = New-MvpTestFixtureRoot -Prefix 'zircon-mvp-staging'
+    $root = $fixture.Root
     $build = Join-Path $root 'build'
     $templates = Join-Path $root 'templates\projects\renderable-empty'
     $engineAssets = Join-Path $root 'engine-assets'
@@ -627,6 +664,8 @@ public static class FixtureProduct
         StagingRoot = Join-Path $root 'staging'
         ProductInputRoot = Join-Path $root 'product-inputs'
         BuildSetSourceRoot = Join-Path $root 'build-set-source'
+        BuildSet = $null
+        ProductInputManifest = $null
         SourceFingerprint = $null
     }
     $fixtureSourceRoot = $fixture.BuildSetSourceRoot
@@ -639,12 +678,22 @@ public static class FixtureProduct
     Invoke-MvpStagingFixtureGit -GitPath $git.Source -RepositoryRoot $fixtureSourceRoot -Arguments @('add', '--all')
     Invoke-MvpStagingFixtureGit -GitPath $git.Source -RepositoryRoot $fixtureSourceRoot -Arguments @('commit', '--quiet', '-m', 'fixture source')
     [IO.Directory]::CreateDirectory($fixture.ProductInputRoot) | Out-Null
-    $fixture | Add-Member -NotePropertyName BuildSet -NotePropertyValue (New-MvpProductBuildSet `
+    $fixture.BuildSet = New-MvpProductBuildSet `
             -RepositoryRoot $fixtureSourceRoot `
-            -BuildSetRoot (Join-Path $fixture.ProductInputRoot 'build-set'))
+            -BuildSetRoot (Join-Path $fixture.ProductInputRoot 'build-set')
     $fixture.SourceFingerprint = $fixture.BuildSet.build_set_id
-    $fixture | Add-Member -NotePropertyName ProductInputManifest -NotePropertyValue (New-MvpProductInputManifestFixture -Fixture $fixture)
+    $fixture.ProductInputManifest = New-MvpProductInputManifestFixture -Fixture $fixture
     return $fixture
+    }
+    catch {
+        $constructionError = $_
+        throw
+    }
+    finally {
+        if ($null -ne $constructionError -and -not [string]::IsNullOrWhiteSpace($fixture.Root)) {
+            Remove-MvpStagingFixture -Fixture $fixture -PrimaryError $constructionError
+        }
+    }
 }
 
 function New-MvpProductInputManifestFixture {
@@ -1034,8 +1083,10 @@ $defaultReopenAutomation = Get-Content -LiteralPath $defaultReopenAutomationPath
 Assert-True ($defaultReopenAutomation.bindings.Count -eq 1) 'The F5 reopen automation request must contain only its normal persisted-state selection binding.'
 Assert-True ($defaultReopenAutomation.bindings[0].payload.SelectionCommand.SelectSceneNode.node_id -eq 3) 'The F5 reopen automation request must select the persisted renderable template Cube identity.'
 
-$fixture = New-MvpStagingFixture
+$fixture = $null
+$suiteError = $null
 try {
+    $fixture = New-MvpStagingFixture
     Assert-True ($fixture.SourceFingerprint -eq $fixture.BuildSet.build_set_id) 'BuildSet-backed staging fixtures must derive their compatibility source fingerprint from the immutable BuildSet identity.'
     $stagerSource = Get-Content -LiteralPath $stager -Raw
     Assert-True (([regex]::Matches($stagerSource, '\bGet-MvpSourceFingerprint\b')).Count -eq 0) 'Staging must not rescan the active checkout for legacy source currentness.'
@@ -1375,6 +1426,7 @@ try {
     $authoringFailureRunId = 'fixture-authoring-nonzero-child'
     $authoringFailureStage = Join-Path $fixture.StagingRoot $authoringFailureRunId
     Set-MvpStagingFixtureControl -Fixture $fixture -Scope Project -Control 'fail-automation-with-child'
+    [System.Management.Automation.ErrorRecord]$authoringFailurePrimaryError = $null
     try {
         $authoringFailureCleaned = $false
         $authoringFailureDiagnostics = ''
@@ -1415,22 +1467,15 @@ try {
         )
         Assert-True ($authoringFailurePids.Count -eq 0) 'A nonzero authoring automation exit left a staged child process.'
     }
+    catch {
+        $authoringFailurePrimaryError = $_
+        throw
+    }
     finally {
-        Clear-MvpStagingFixtureControl -Fixture $fixture -Scope Project
-        $authoringFailurePrefix = [IO.Path]::GetFullPath($authoringFailureStage).TrimEnd('\') + [IO.Path]::DirectorySeparatorChar
-        $authoringFailurePids = @(
-            Get-CimInstance Win32_Process | Where-Object {
-                $executablePath = [string]$_.ExecutablePath
-                -not [string]::IsNullOrWhiteSpace($executablePath) -and
-                    $executablePath.StartsWith($authoringFailurePrefix, [StringComparison]::OrdinalIgnoreCase)
-            } | Select-Object -ExpandProperty ProcessId
-        )
-        foreach ($processId in $authoringFailurePids) {
-            Stop-Process -Id $processId -Force -ErrorAction SilentlyContinue
-        }
-        foreach ($processId in $authoringFailurePids) {
-            Wait-Process -Id $processId -Timeout 5 -ErrorAction SilentlyContinue
-        }
+        Invoke-MvpTestCleanup -PrimaryError $authoringFailurePrimaryError -Steps ([ordered]@{
+            'authoring failure fixture control' = { Clear-MvpStagingFixtureControl -Fixture $fixture -Scope Project }
+            'authoring failure staged processes' = { Stop-MvpStagingFixtureProcesses -StageRoot $authoringFailureStage }
+        })
     }
 
     Set-MvpStagingFixtureControl -Fixture $fixture -Scope Project -Control 'skip-editor-capture'
@@ -1827,6 +1872,7 @@ try {
     $createFailureRunId = 'fixture-created-project-failure'
     $createFailureStage = Join-Path $fixture.StagingRoot $createFailureRunId
     Set-MvpStagingFixtureControl -Fixture $fixture -Scope Template -Control 'fail-create-with-child'
+    [System.Management.Automation.ErrorRecord]$createFailurePrimaryError = $null
     try {
         $createFailureCleaned = $false
         $createFailureDiagnostics = ''
@@ -1864,22 +1910,15 @@ try {
         Assert-True ($createFailureJournal.Count -eq 1) 'Nonzero project creation did not emit exactly one journal entry.'
         Assert-ProcessJournalEntry -Entry $createFailureJournal[0] -Phase 'editor-create' -Outcome 'crashed' -ExitCode 24
     }
+    catch {
+        $createFailurePrimaryError = $_
+        throw
+    }
     finally {
-        Clear-MvpStagingFixtureControl -Fixture $fixture -Scope Template
-        $createFailurePrefix = [IO.Path]::GetFullPath($createFailureStage).TrimEnd('\\') + [IO.Path]::DirectorySeparatorChar
-        $createFailurePids = @(
-            Get-CimInstance Win32_Process | Where-Object {
-                $executablePath = [string]$_.ExecutablePath
-                -not [string]::IsNullOrWhiteSpace($executablePath) -and
-                    $executablePath.StartsWith($createFailurePrefix, [StringComparison]::OrdinalIgnoreCase)
-            } | Select-Object -ExpandProperty ProcessId
-        )
-        foreach ($processId in $createFailurePids) {
-            Stop-Process -Id $processId -Force -ErrorAction SilentlyContinue
-        }
-        foreach ($processId in $createFailurePids) {
-            Wait-Process -Id $processId -Timeout 5 -ErrorAction SilentlyContinue
-        }
+        Invoke-MvpTestCleanup -PrimaryError $createFailurePrimaryError -Steps ([ordered]@{
+            'project creation failure fixture control' = { Clear-MvpStagingFixtureControl -Fixture $fixture -Scope Template }
+            'project creation failure staged processes' = { Stop-MvpStagingFixtureProcesses -StageRoot $createFailureStage }
+        })
     }
 
     $missingCaptureRunId = 'fixture-missing-runtime-capture'
@@ -2027,6 +2066,7 @@ try {
     $timeoutRunId = 'fixture-timeout-process-tree'
     $timeoutStage = Join-Path $fixture.StagingRoot $timeoutRunId
     Set-MvpStagingFixtureControl -Fixture $fixture -Scope Project -Control 'timeout-with-child'
+    [System.Management.Automation.ErrorRecord]$timeoutPrimaryError = $null
     try {
         $timedOut = $false
         try {
@@ -2068,27 +2108,21 @@ try {
         )
         Assert-True ($timeoutPids.Count -eq 0) 'A timeout must terminate every staged product child process.'
     }
+    catch {
+        $timeoutPrimaryError = $_
+        throw
+    }
     finally {
-        Clear-MvpStagingFixtureControl -Fixture $fixture -Scope Project
-        $timeoutPrefix = [IO.Path]::GetFullPath($timeoutStage).TrimEnd('\\') + [IO.Path]::DirectorySeparatorChar
-        $timeoutPids = @(
-            Get-CimInstance Win32_Process | Where-Object {
-                $executablePath = [string]$_.ExecutablePath
-                -not [string]::IsNullOrWhiteSpace($executablePath) -and
-                    $executablePath.StartsWith($timeoutPrefix, [StringComparison]::OrdinalIgnoreCase)
-            } | Select-Object -ExpandProperty ProcessId
-        )
-        foreach ($processId in $timeoutPids) {
-            Stop-Process -Id $processId -Force -ErrorAction SilentlyContinue
-        }
-        foreach ($processId in $timeoutPids) {
-            Wait-Process -Id $processId -Timeout 5 -ErrorAction SilentlyContinue
-        }
+        Invoke-MvpTestCleanup -PrimaryError $timeoutPrimaryError -Steps ([ordered]@{
+            'timeout fixture control' = { Clear-MvpStagingFixtureControl -Fixture $fixture -Scope Project }
+            'timeout staged processes' = { Stop-MvpStagingFixtureProcesses -StageRoot $timeoutStage }
+        })
     }
 
     $nonzeroRunId = 'fixture-nonzero-process-tree'
     $nonzeroStage = Join-Path $fixture.StagingRoot $nonzeroRunId
     Set-MvpStagingFixtureControl -Fixture $fixture -Scope Project -Control 'fail-with-child'
+    [System.Management.Automation.ErrorRecord]$nonzeroPrimaryError = $null
     try {
         $nonzeroExitDetected = $false
         $nonzeroExitError = '<no exception>'
@@ -2127,27 +2161,21 @@ try {
         )
         Assert-True ($nonzeroPids.Count -eq 0) 'A nonzero staged product exit must not leave a staged child process.'
     }
+    catch {
+        $nonzeroPrimaryError = $_
+        throw
+    }
     finally {
-        Clear-MvpStagingFixtureControl -Fixture $fixture -Scope Project
-        $nonzeroPrefix = [IO.Path]::GetFullPath($nonzeroStage).TrimEnd('\\') + [IO.Path]::DirectorySeparatorChar
-        $nonzeroPids = @(
-            Get-CimInstance Win32_Process | Where-Object {
-                $executablePath = [string]$_.ExecutablePath
-                -not [string]::IsNullOrWhiteSpace($executablePath) -and
-                    $executablePath.StartsWith($nonzeroPrefix, [StringComparison]::OrdinalIgnoreCase)
-            } | Select-Object -ExpandProperty ProcessId
-        )
-        foreach ($processId in $nonzeroPids) {
-            Stop-Process -Id $processId -Force -ErrorAction SilentlyContinue
-        }
-        foreach ($processId in $nonzeroPids) {
-            Wait-Process -Id $processId -Timeout 5 -ErrorAction SilentlyContinue
-        }
+        Invoke-MvpTestCleanup -PrimaryError $nonzeroPrimaryError -Steps ([ordered]@{
+            'nonzero exit fixture control' = { Clear-MvpStagingFixtureControl -Fixture $fixture -Scope Project }
+            'nonzero exit staged processes' = { Stop-MvpStagingFixtureProcesses -StageRoot $nonzeroStage }
+        })
     }
 
     $leakedRunId = 'fixture-leaked-process'
     $leakedStage = Join-Path $fixture.StagingRoot $leakedRunId
     Set-MvpStagingFixtureControl -Fixture $fixture -Scope Project -Control 'leak-staged-child'
+    [System.Management.Automation.ErrorRecord]$leakedPrimaryError = $null
     try {
         $leakedProcessDetected = $false
         $leakedProcessError = '<no exception>'
@@ -2169,34 +2197,30 @@ try {
         }
         Assert-True $leakedProcessDetected "A staged child process that outlives product exit was not reported. Actual: '$leakedProcessError'."
     }
+    catch {
+        $leakedPrimaryError = $_
+        throw
+    }
     finally {
-        Clear-MvpStagingFixtureControl -Fixture $fixture -Scope Project
-        $leakedPidPath = Join-Path $leakedStage 'logs/runtime-1.diagnostics/leaked-child.pid'
-        if (Test-Path -LiteralPath $leakedPidPath) {
-            $leakedPid = [int](Get-Content -LiteralPath $leakedPidPath -Raw)
-            Stop-Process -Id $leakedPid -Force -ErrorAction SilentlyContinue
-            Wait-Process -Id $leakedPid -Timeout 5 -ErrorAction SilentlyContinue
-        }
-        $leakedPrefix = [IO.Path]::GetFullPath($leakedStage).TrimEnd('\\') + [IO.Path]::DirectorySeparatorChar
-        $leakedPids = @(
-            Get-CimInstance Win32_Process | Where-Object {
-                $executablePath = [string]$_.ExecutablePath
-                -not [string]::IsNullOrWhiteSpace($executablePath) -and
-                    $executablePath.StartsWith($leakedPrefix, [StringComparison]::OrdinalIgnoreCase)
-            } | Select-Object -ExpandProperty ProcessId
-        )
-        foreach ($processId in $leakedPids) {
-            Stop-Process -Id $processId -Force -ErrorAction SilentlyContinue
-        }
-        foreach ($processId in $leakedPids) {
-            Wait-Process -Id $processId -Timeout 5 -ErrorAction SilentlyContinue
-        }
+        Invoke-MvpTestCleanup -PrimaryError $leakedPrimaryError -Steps ([ordered]@{
+            'leaked child fixture control' = { Clear-MvpStagingFixtureControl -Fixture $fixture -Scope Project }
+            'leaked child PID' = {
+                $leakedPidPath = Join-Path $leakedStage 'logs/runtime-1.diagnostics/leaked-child.pid'
+                if (Test-Path -LiteralPath $leakedPidPath) {
+                    $leakedPid = [int](Get-Content -LiteralPath $leakedPidPath -Raw)
+                    Stop-Process -Id $leakedPid -Force -ErrorAction SilentlyContinue
+                    Wait-Process -Id $leakedPid -Timeout 5 -ErrorAction SilentlyContinue
+                }
+            }
+            'leaked child staged processes' = { Stop-MvpStagingFixtureProcesses -StageRoot $leakedStage }
+        })
     }
 
     $externalLeakRunId = 'fixture-external-process-job-containment'
     $externalLeakStage = Join-Path $fixture.StagingRoot $externalLeakRunId
     Set-MvpStagingFixtureControl -Fixture $fixture -Scope Project -Control 'leak-external-child'
     $externalChildPid = $null
+    [System.Management.Automation.ErrorRecord]$externalLeakPrimaryError = $null
     try {
         $externalLeakDetected = $false
         $externalLeakError = '<no exception>'
@@ -2225,12 +2249,20 @@ try {
             Assert-True (-not (Get-Process -Id $externalChildPid -ErrorAction SilentlyContinue)) 'A Job Object-contained external child process survived its root product exit.'
         }
     }
+    catch {
+        $externalLeakPrimaryError = $_
+        throw
+    }
     finally {
-        Clear-MvpStagingFixtureControl -Fixture $fixture -Scope Project
-        if ($null -ne $externalChildPid) {
-            Stop-Process -Id $externalChildPid -Force -ErrorAction SilentlyContinue
-            Wait-Process -Id $externalChildPid -Timeout 5 -ErrorAction SilentlyContinue
-        }
+        Invoke-MvpTestCleanup -PrimaryError $externalLeakPrimaryError -Steps ([ordered]@{
+            'external child fixture control' = { Clear-MvpStagingFixtureControl -Fixture $fixture -Scope Project }
+            'external child PID' = {
+                if ($null -ne $externalChildPid) {
+                    Stop-Process -Id $externalChildPid -Force -ErrorAction SilentlyContinue
+                    Wait-Process -Id $externalChildPid -Timeout 5 -ErrorAction SilentlyContinue
+                }
+            }
+        })
     }
 
     $boundedLogRunId = 'fixture-bounded-process-output'
@@ -2310,14 +2342,23 @@ try {
     $fixture.EditorRuntimeLibrary = $equalContentEditorLibrary
     $fixture.ProductInputManifest = New-MvpProductInputManifestFixture -Fixture $fixture
     $equalContentLibraryAccepted = $false
+    [System.Management.Automation.ErrorRecord]$equalContentPrimaryError = $null
     try {
         Invoke-MvpStager -Fixture $fixture -RunId 'fixture-equal-content-profile-library' | Out-Null
         $equalContentLibraryAccepted = $true
     }
+    catch {
+        $equalContentPrimaryError = $_
+        throw
+    }
     finally {
-        $fixture.EditorRuntimeLibrary = $originalEditorRuntimeLibrary
-        Remove-Item -LiteralPath $equalContentEditorLibrary -Force -ErrorAction SilentlyContinue
-        $fixture.ProductInputManifest = New-MvpProductInputManifestFixture -Fixture $fixture
+        Invoke-MvpTestCleanup -PrimaryError $equalContentPrimaryError -Steps ([ordered]@{
+            'equal-content profile library fixture' = {
+                $fixture.EditorRuntimeLibrary = $originalEditorRuntimeLibrary
+                $fixture.ProductInputManifest = New-MvpProductInputManifestFixture -Fixture $fixture
+            }
+            'equal-content profile library file' = { Remove-Item -LiteralPath $equalContentEditorLibrary -Force -ErrorAction SilentlyContinue }
+        })
     }
     Assert-True $equalContentLibraryAccepted 'Staging rejected distinct profile DLL files solely because their content matched.'
 
@@ -2332,11 +2373,14 @@ try {
     Assert-True $failed 'A missing runtime library did not produce an actionable failure.'
     Assert-True (-not (Test-Path -LiteralPath (Join-Path $fixture.StagingRoot 'fixture-failure'))) 'Failed staging left a partial product directory.'
 
-    Write-Host 'MVP staging contract passed'
+}
+catch {
+    $suiteError = $_
+    throw
 }
 finally {
-    Remove-MvpStagingFixtureBuildSet -Fixture $fixture
-    if (Test-Path -LiteralPath $fixture.Root) {
-        Remove-MvpTestFixtureRoot -Path $fixture.Root
+    if ($null -ne $fixture) {
+        Remove-MvpStagingFixture -Fixture $fixture -PrimaryError $suiteError
     }
 }
+Write-Host 'MVP staging contract passed'

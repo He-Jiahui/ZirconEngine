@@ -121,6 +121,7 @@ fn prepared_queue_stats_carry_pending_command_cache_extraction_counts() {
             residual_material_phase_draw_count: 3,
             residual_rebuild_input_missing_draw_count: 4,
             residual_rebuild_rejected_draw_count: 6,
+            ..PendingMeshCommandCacheExtractionStats::default()
         },
     );
 

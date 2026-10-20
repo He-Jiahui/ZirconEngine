@@ -3,6 +3,7 @@ use super::{
     INVENTORY_CHILD_PATHS, INVENTORY_FRAMEWORKS_STATUS, INVENTORY_GUARD, INVENTORY_PARENT_PATH,
     INVENTORY_SLICE, INVENTORY_STATUS,
 };
+use crate::tests::runtime_absorption::structure_convention::fixed_history_archive_source as history;
 
 #[test]
 fn runtime_15_input_stack_inventory_guard_is_folder_backed() {
@@ -70,31 +71,23 @@ fn runtime_15_input_stack_inventory_guard_is_folder_backed() {
     for (label, source) in [
         (
             "Runtime 15 subplan",
-            crate::tests::runtime_absorption::current_source_fixture::RUNTIME_ARCHITECTURE_IMPLEMENTATION_OUTPUT,
+            crate::tests::runtime_absorption::current_source_fixture::runtime_architecture_implementation_output(),
         ),
         (
             "runtime index",
-            include_str!(
-                "../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md"
-            ),
+            history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md"),
         ),
         (
             "frameworks plan",
-            include_str!(
-                "../../../../../../docs/plans/zircon_runtime/frameworks/02/2026-07-09-module-kernel-and-lifecycle-unification-output-records.md"
-            ),
+            history("docs/plans/zircon_runtime/frameworks/02/2026-07-09-module-kernel-and-lifecycle-unification-output-records.md"),
         ),
         (
             "engine code structure convention",
-            include_str!(
-                "../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md"
-            ),
+            history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md"),
         ),
         (
             "engine code review findings",
-            include_str!(
-                "../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"
-            ),
+            history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"),
         ),
         (
             "module convention doc",

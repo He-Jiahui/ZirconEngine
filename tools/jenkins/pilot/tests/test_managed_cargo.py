@@ -45,11 +45,13 @@ class ManagedCargoTests(unittest.TestCase):
     def test_no_inherited_cache_or_compiler_wrapper(self):
         toolchain = {"binaries": {name: {"path": name + ".exe"} for name in ("rustc", "rustdoc")}}
         with patch.dict(os.environ, {"CARGO_HOME": "C:/bad", "RUSTC_WRAPPER": "sccache",
+                                   "CARGO_INCREMENTAL": "1",
                                    "RUSTFLAGS": "--out-dir=C:/bad", "SCCACHE_SERVER_PORT": "4226",
                                    "CARGO_HTTP_PROXY": "http://127.0.0.1:7897", "HTTPS_PROXY": "http://foreign.invalid"}):
             env = execution_environment(toolchain, Path("D:/cargo-targets/test/g1"))
         self.assertEqual(env["RUSTC_WRAPPER"], "")
         self.assertNotIn("RUSTFLAGS", env)
+        self.assertNotIn("CARGO_INCREMENTAL", env)
         self.assertNotIn("SCCACHE_SERVER_PORT", env)
         self.assertEqual(env["CARGO_HTTP_PROXY"], "")
         self.assertNotIn("HTTPS_PROXY", env)

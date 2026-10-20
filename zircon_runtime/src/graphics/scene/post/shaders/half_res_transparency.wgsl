@@ -47,11 +47,11 @@ fn fs_depth_downsample(@builtin(position) position: vec4<f32>) -> DepthDownsampl
 @group(0) @binding(2) var half_depth_tex: texture_depth_2d;
 @group(0) @binding(3) var full_depth_tex: texture_depth_2d;
 
-// BUG: [CR-POST-SHADER-0001] vec3 的 16 字节对齐使本结构占 32 字节，CPU 却只分配并上传 16 字节；
-// 证据：half_res_transparency_params_buffer 使用 [f32;4]，composite 以整 buffer 绑定，绘制时绑定尺寸不足。
 struct HalfResolutionTransparencyParams {
     depth_sigma: f32,
-    _pad0: vec3<f32>,
+    _pad0: f32,
+    _pad1: f32,
+    _pad2: f32,
 };
 
 @group(0) @binding(4) var<uniform> half_resolution_transparency_params: HalfResolutionTransparencyParams;

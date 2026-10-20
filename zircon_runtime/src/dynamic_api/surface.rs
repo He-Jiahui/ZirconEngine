@@ -39,6 +39,37 @@ pub(super) fn render_surface_descriptor(
     Ok(RenderViewportSurfaceDescriptor::new(size, target))
 }
 
+pub(super) fn render_surface_descriptor_v2(
+    request: zircon_runtime_interface::ZrRuntimeBindViewportSurfaceRequestV2,
+) -> Result<RenderViewportSurfaceDescriptor, ZrStatus> {
+    use crate::core::framework::window::WindowPresentMode;
+    use zircon_runtime_interface::{ZrRuntimePresentModeV2, ZIRCON_RUNTIME_ABI_VERSION_V2};
+    if request.abi_version != ZIRCON_RUNTIME_ABI_VERSION_V2 {
+        return Err(unsupported_version());
+    }
+    if !request.is_valid() {
+        return Err(invalid_argument(
+            b"invalid V2 viewport surface request shape or mode",
+        ));
+    }
+    let mode = match ZrRuntimePresentModeV2::from_raw(request.present_mode) {
+        Some(ZrRuntimePresentModeV2::Fifo) => WindowPresentMode::Fifo,
+        Some(ZrRuntimePresentModeV2::Immediate) => WindowPresentMode::Immediate,
+        Some(ZrRuntimePresentModeV2::Mailbox) => WindowPresentMode::Mailbox,
+        Some(ZrRuntimePresentModeV2::FifoRelaxed) => WindowPresentMode::FifoRelaxed,
+        Some(ZrRuntimePresentModeV2::AutoVsync) => WindowPresentMode::AutoVsync,
+        Some(ZrRuntimePresentModeV2::AutoNoVsync) => WindowPresentMode::AutoNoVsync,
+        None => return Err(invalid_argument(b"invalid V2 presentation mode")),
+    };
+    render_surface_descriptor(ZrRuntimeBindViewportSurfaceRequestV1::new(
+        ZIRCON_RUNTIME_ABI_VERSION_V1,
+        request.viewport,
+        request.size,
+        request.target,
+    ))
+    .map(|descriptor| descriptor.with_present_mode(mode))
+}
+
 fn unsupported_version() -> ZrStatus {
     ZrStatus::new(
         ZrStatusCode::UnsupportedVersion,

@@ -57,3 +57,59 @@ fn zero_volume_shape_rejects_mass_resolution() {
         }
     ));
 }
+
+#[test]
+fn finite_authored_inputs_reject_overflowed_or_underflowed_mass_and_density() {
+    for (half_extent, authored_mass, properties) in [
+        (
+            1.0e10,
+            1.0,
+            PhysicsMassProperties::AutoFromShape { density: 1.0e10 },
+        ),
+        (
+            1.0e-10,
+            1.0,
+            PhysicsMassProperties::AutoFromShape { density: 1.0e-20 },
+        ),
+        (
+            1.0e-10,
+            1.0e20,
+            PhysicsMassProperties::Explicit {
+                inertia_tensor: None,
+            },
+        ),
+        (
+            1.0e10,
+            1.0e-20,
+            PhysicsMassProperties::Explicit {
+                inertia_tensor: None,
+            },
+        ),
+    ] {
+        let error = resolve_body_mass(
+            &PhysicsColliderShape::Box {
+                half_extents: [half_extent; 3],
+            },
+            authored_mass,
+            properties,
+        )
+        .expect_err("finite inputs must not publish invalid derived mass or density");
+        assert!(matches!(
+            error,
+            PhysicsBackendError::InvalidDescriptor {
+                kind: PhysicsBackendObjectKind::Body,
+                ..
+            }
+        ));
+    }
+    let resolved = resolve_body_mass(
+        &unit_box(),
+        2.0,
+        PhysicsMassProperties::Explicit {
+            inertia_tensor: None,
+        },
+    )
+    .expect("ordinary explicit mass remains supported");
+    assert_eq!(resolved.mass, 2.0);
+    assert_eq!(resolved.density, 2.0);
+}

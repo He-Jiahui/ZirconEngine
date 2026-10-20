@@ -180,7 +180,7 @@ fn runtime_05_dynamic_scene_asset_reload_selection_and_status_anchors_stay_visib
         "dynamic_scene_asset_reload_renamed_scene_event_schedules_new_project_uri",
     ] {
         assert!(
-            RUNTIME_05_PLAN.contains(anchor),
+            runtime_05_plan().contains(anchor),
             "Runtime 05 capture/save preview status should keep anchor `{anchor}`"
         );
     }

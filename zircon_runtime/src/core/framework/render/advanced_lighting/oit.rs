@@ -90,18 +90,21 @@ impl OitBufferPlan {
     }
 }
 
+#[cfg(test)]
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct OitFragment {
     pub color: [Real; 4],
     pub depth: Real,
 }
 
+#[cfg(test)]
 impl OitFragment {
     pub const fn new(color: [Real; 4], depth: Real) -> Self {
         Self { color, depth }
     }
 }
 
+#[cfg(test)]
 #[derive(Clone, Debug, PartialEq)]
 pub struct OitResolveResult {
     pub color: [Real; 4],
@@ -110,6 +113,7 @@ pub struct OitResolveResult {
 }
 
 /// CPU 参考合成按深度保留配置数量的精确前缀，再合并尾部片元；结果用于验证算法语义，不是 GPU 回读。
+#[cfg(test)]
 pub fn resolve_oit_fragments(
     fragments: &[OitFragment],
     sorted_fragment_max_count: u32,
@@ -141,6 +145,7 @@ pub fn resolve_oit_fragments(
     }
 }
 
+#[cfg(test)]
 fn ordered_oit_fragment_indices(fragments: &[OitFragment]) -> Vec<(u32, usize)> {
     let mut ordered = fragments
         .iter()
@@ -151,6 +156,7 @@ fn ordered_oit_fragment_indices(fragments: &[OitFragment]) -> Vec<(u32, usize)> 
     ordered
 }
 
+#[cfg(test)]
 fn total_f32_sort_key(value: f32) -> u32 {
     let bits = value.to_bits();
     if bits & (1 << 31) == 0 {
@@ -160,6 +166,7 @@ fn total_f32_sort_key(value: f32) -> u32 {
     }
 }
 
+#[cfg(test)]
 fn blend_front_to_back(accumulated: &mut [Real; 4], color: [Real; 4]) {
     let alpha = color[3].clamp(0.0, 1.0);
     let remaining = 1.0 - accumulated[3];

@@ -2,12 +2,13 @@
 use super::runtime_anchors::assert_runtime_03_sources_and_anchors;
 
 const RUNTIME_03_PLAN: &str = include_str!(
-    "../../../../../docs/plans/zircon_runtime/runtime/03-schedule-and-frame-loop-alignment.md"
+    "../../../../../docs/testing-and-validation/runtime-frame-schedule-validation-worklist.md"
 );
 const FRAME_SCHEDULE_DOC: &str =
     include_str!("../../../../../docs/crates/zircon_runtime/core/frame_schedule.md");
-const RUNTIME_INDEX: &str =
-    include_str!("../../../../../docs/plans/zircon_runtime/runtime/index.md");
+const RUNTIME_INDEX: &str = include_str!(
+    "../../../../../docs/crates/zircon_runtime/structure/runtime-absorption-evidence.md"
+);
 const M0_REVIEW: &str =
     include_str!("../../../../../docs/architecture/runtime-architecture-review-m0.md");
 const INTERFACE_CONVERGENCE: &str =

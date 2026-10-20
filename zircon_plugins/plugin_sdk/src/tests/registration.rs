@@ -281,7 +281,7 @@ fn sdk_resource_registration_supports_concurrent_world_initialization() {
     let peak_active_calls = Arc::new(AtomicUsize::new(0));
     let mut registry = RuntimeExtensionRegistry::default();
     let mut module = RuntimePluginRegistrationBuilder::new(&mut registry)
-        .module("sdk_registration.concurrent")
+        .module("sdk_registration.runtime")
         .expect("module registered");
     let active_calls_for_factory = Arc::clone(&active_calls);
     let peak_active_calls_for_factory = Arc::clone(&peak_active_calls);
@@ -321,4 +321,111 @@ fn sdk_resource_registration_supports_concurrent_world_initialization() {
 
     assert_eq!(peak_active_calls.load(Ordering::SeqCst), 2);
     assert_eq!(active_calls.load(Ordering::SeqCst), 0);
+}
+
+#[test]
+fn metadata_registration_rejects_foreign_owner_and_revokes_with_its_module() {
+    fn catalog(namespace: &str) -> PluginEventCatalogManifest {
+        let package = namespace.split('.').next().unwrap();
+        PluginEventCatalogManifest {
+            namespace: namespace.to_owned(),
+            version: 1,
+            events: vec![PluginEventManifest {
+                id: format!("{namespace}.changed"),
+                display_name: "Changed".to_owned(),
+                payload_schema: format!("{package}.changed.v1"),
+            }],
+        }
+    }
+
+    let mut registry = RuntimeExtensionRegistry::default();
+    let mut module = RuntimePluginRegistrationBuilder::new(&mut registry)
+        .module("owner_a.runtime")
+        .unwrap();
+    let owner = module.owner();
+    let option_error = module
+        .plugin_option(PluginOptionManifest::new(
+            "owner_b.enabled",
+            "Foreign",
+            "bool",
+            "false",
+        ))
+        .unwrap_err();
+    assert!(matches!(
+        option_error,
+        RuntimeExtensionRegistryError::InvalidPluginOption(_)
+    ));
+    let message = option_error.to_string();
+    assert!(message.contains("owner_a.runtime") && message.contains("owner_b.runtime"));
+    let catalog_error = module
+        .plugin_event_catalog(catalog("owner_b.events"))
+        .unwrap_err();
+    assert!(matches!(
+        catalog_error,
+        RuntimeExtensionRegistryError::InvalidPluginEventCatalog(_)
+    ));
+    let message = catalog_error.to_string();
+    assert!(message.contains("owner_a.runtime") && message.contains("owner_b.runtime"));
+
+    let option = PluginOptionManifest::new("owner_a.enabled", "Local", "bool", "false");
+    module.plugin_option(option.clone()).unwrap();
+    module
+        .plugin_event_catalog(catalog("owner_a.events"))
+        .unwrap();
+    assert!(matches!(
+        module.plugin_option(option),
+        Err(RuntimeExtensionRegistryError::DuplicatePluginOption(_))
+    ));
+    assert!(matches!(
+        module.plugin_event_catalog(catalog("owner_a.events")),
+        Err(RuntimeExtensionRegistryError::DuplicatePluginEventCatalog(
+            _
+        ))
+    ));
+    assert!(module
+        .plugin_option(PluginOptionManifest::new(
+            "owner_a.invalid",
+            "Invalid",
+            "bool",
+            "not-a-bool",
+        ))
+        .is_err());
+    let mut invalid_catalog = catalog("owner_a.invalid");
+    invalid_catalog.version = 0;
+    assert!(module.plugin_event_catalog(invalid_catalog).is_err());
+    drop(module);
+    assert_eq!(registry.plugin_options().len(), 1);
+    assert_eq!(registry.plugin_event_catalogs().len(), 1);
+    assert_eq!(registry.ownership_for(owner).plugin_options.len(), 1);
+    assert_eq!(registry.ownership_for(owner).plugin_event_catalogs.len(), 1);
+
+    let mut other_module = RuntimePluginRegistrationBuilder::new(&mut registry)
+        .module("owner_b.runtime")
+        .unwrap();
+    let other = other_module.owner();
+    other_module
+        .plugin_option(PluginOptionManifest::new(
+            "owner_b.enabled",
+            "Other",
+            "bool",
+            "true",
+        ))
+        .unwrap();
+    other_module
+        .plugin_event_catalog(catalog("owner_b.events"))
+        .unwrap();
+    drop(other_module);
+    let removed = registry.revoke_owner_registrations(owner);
+    assert_eq!(removed.plugin_options.len(), 1);
+    assert_eq!(removed.plugin_event_catalogs.len(), 1);
+    assert!(registry.ownership_for(owner).is_empty());
+    assert_eq!(registry.plugin_options().len(), 1);
+    assert_eq!(registry.plugin_options()[0].key, "owner_b.enabled");
+    assert_eq!(registry.plugin_event_catalogs().len(), 1);
+    assert_eq!(
+        registry.plugin_event_catalogs()[0].namespace,
+        "owner_b.events"
+    );
+    assert_eq!(registry.ownership_for(other).plugin_options.len(), 1);
+    assert_eq!(registry.ownership_for(other).plugin_event_catalogs.len(), 1);
 }

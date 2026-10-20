@@ -56,3 +56,33 @@ fn disabled_component_does_not_project_world_only_fields() {
     assert_eq!(node.world_width, 0.0);
     assert_eq!(node.world_camera_target.as_str(), "");
 }
+
+#[test]
+fn world_size_rejects_invalid_components_without_shifting_positions() {
+    use crate::ui::retained_host::ui::pane_data_conversion::pane_value_conversion::value_as_float_array;
+
+    for invalid_index in 0..3 {
+        let mut values = vec![Value::Integer(4), Value::Float(2.5), Value::Integer(1)];
+        values[invalid_index] = Value::String("invalid component".into());
+        let value = Value::Array(values);
+        assert_eq!(value_as_float_array(&value), None);
+        let node = host_template_node(projected_node("WorldSpaceSurface", [("world_size", value)]))
+            .expect("invalid dimensions must not remove the world-space node");
+        assert!(node.world_space_enabled);
+        assert_eq!((node.world_width, node.world_height), (0.0, 0.0));
+    }
+    let valid = Value::Array(vec![
+        Value::Integer(4),
+        Value::Float(2.5),
+        Value::Integer(1),
+    ]);
+    assert_eq!(value_as_float_array(&valid), Some(vec![4.0, 2.5, 1.0]));
+    let node =
+        host_template_node(projected_node("WorldSpaceSurface", [("world_size", valid)])).unwrap();
+    assert_eq!((node.world_width, node.world_height), (4.0, 2.5));
+    let empty = Value::Array(Vec::new());
+    assert_eq!(value_as_float_array(&empty), None);
+    let node =
+        host_template_node(projected_node("WorldSpaceSurface", [("world_size", empty)])).unwrap();
+    assert_eq!((node.world_width, node.world_height), (0.0, 0.0));
+}

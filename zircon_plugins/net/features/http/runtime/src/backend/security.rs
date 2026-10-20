@@ -58,7 +58,11 @@ fn http_url_host(url: &str) -> Option<String> {
     if !matches!(url.scheme(), "http" | "https") {
         return None;
     }
-    Some(url.host_str()?.trim_matches(['[', ']']).to_ascii_lowercase())
+    Some(
+        url.host_str()?
+            .trim_matches(['[', ']'])
+            .to_ascii_lowercase(),
+    )
 }
 
 #[cfg(test)]
@@ -79,7 +83,11 @@ mod host_tests {
             Some("2001:db8::1".to_string())
         );
         assert!(http_url_host("https://[::1:8443/health").is_none());
-        assert!(http_url_host("https://[::1]:/health").is_none());
+        assert_eq!(
+            http_url_host("https://[::1]:/health"),
+            Some("::1".to_string())
+        );
+        assert!(http_url_host("https://[::1]:invalid/health").is_none());
     }
 
     #[test]

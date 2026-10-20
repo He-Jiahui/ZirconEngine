@@ -11,13 +11,13 @@ from runtime_structure_audits.native_plugin_public_surface import (
 EXPECTED_SOURCE_FILE_COUNT = 20
 EXPECTED_DOC_FILE_COUNT = 5
 EXPECTED_ROOT_REEXPORT_COUNT = 0
-EXPECTED_NATIVE_NAMESPACE_REEXPORT_COUNT = 86
+EXPECTED_NATIVE_NAMESPACE_REEXPORT_COUNT = 92
 EXPECTED_NATIVE_PUBLIC_SURFACE_DEBT_GROUPS = 0
 EXPECTED_NATIVE_NAMESPACE_SYMBOL_GROUPS = 6
 EXPECTED_UNCLASSIFIED_NATIVE_SYMBOLS = 0
 EXPECTED_ROOT_PUBLIC_NATIVE_REEXPORT_LOCATIONS = 0
 EXPECTED_PUBLIC_NATIVE_REEXPORT_LOCATIONS = 2
-EXPECTED_APP_NATIVE_PLUGIN_FILE_COUNT = 3
+EXPECTED_APP_NATIVE_PLUGIN_FILE_COUNT = 5
 EXPECTED_NATIVE_LOADER_V1_V2_FILE_COUNT = 0
 EXPECTED_PLUGIN_V1_V2_USAGE_FILES: tuple[str, ...] = ()
 EXPECTED_NATIVE_V3_ALIAS_FILES: tuple[str, ...] = ()
@@ -49,7 +49,7 @@ RUNTIME_06_SOURCE_FILES = (
     "zircon_runtime/src/plugin/loader/live/hot_reload.rs",
     "zircon_runtime/src/plugin/loader/live/tests/hot_reload_failures.rs",
     "zircon_plugins/zr_vm_language/runtime/src/real_backend/instance.rs",
-    "zircon_runtime/src/script/vm/tests.rs",
+    "zircon_runtime/src/script/vm/tests/cases.rs",
     "zircon_runtime/src/script/vm/tests/lifecycle_failures.rs",
     "zircon_runtime/src/tests/contracts/plugin_surface_lifecycle.rs",
     "zircon_runtime/src/tests/plugin_surface_lifecycle/lifecycle_fallback.rs",
@@ -61,9 +61,9 @@ RUNTIME_06_SOURCE_FILES = (
 RUNTIME_06_DOC_FILES = (
     "docs/plans/zircon_runtime/runtime/06-plugin-surface-and-lifecycle.md",
     "docs/plans/zircon_runtime/runtime/index.md",
-    "docs/engine-architecture/native-plugin-boundary.md",
-    "docs/engine-architecture/runtime-interface-convergence.md",
-    "docs/engine-architecture/runtime-architecture-review-m0.md",
+    "docs/architecture/native-plugin-boundary.md",
+    "docs/architecture/runtime-interface-convergence.md",
+    "docs/architecture/runtime-architecture-review-m0.md",
 )
 
 SOURCE_ANCHORS = (
@@ -93,12 +93,12 @@ DOC_ANCHORS = (
     "runtime_06_plugin_surface_lifecycle_gate_stays_visible_until_plugin_validation",
     "native_plugin_public_surface",
     "root_reexport_count = 0",
-    "native_namespace_reexport_count = 68",
+    "native_namespace_reexport_count = 92",
     "classified-and-clear",
     "script::vm/vampire_project_session/plugin/native_plugin/app/plugins",
     "runtime real-backend",
     "fallback lifecycle failure tests 4/4",
-    "app NativePlugin current call-site files: 7",
+    "app NativePlugin current call-site files: 5",
     "native loader V1/V2 implementation files 0/0",
     "`zircon_plugins` V1/V2 usage files 0/0",
     "unknown ABI rejection",
@@ -388,17 +388,17 @@ def plugin_surface_lifecycle_boundary_audit(root: Path) -> dict[str, object]:
     )
     native_loader_test_files = _files_containing(
         root,
-        root / "zircon_runtime/src/tests/plugin_extensions",
+        root / "zircon_runtime/src/tests/plugins",
         NATIVE_LOADER_TEST_PATTERNS,
     )
     native_test_namespace_import_files = _files_containing(
         root,
-        root / "zircon_runtime/src/tests/plugin_extensions",
+        root / "zircon_runtime/src/tests/plugins",
         NATIVE_TEST_NAMESPACE_PATTERNS,
     )
     native_test_root_import_leak_files = _native_root_import_leak_files(
         root,
-        root / "zircon_runtime/src/tests/plugin_extensions",
+        root / "zircon_runtime/src/tests/plugins",
     )
     lifecycle_fallback_test_source = (
         _read_text(root / "zircon_runtime/src/script/vm/tests/lifecycle_failures.rs")

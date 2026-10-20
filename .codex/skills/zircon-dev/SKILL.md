@@ -9,6 +9,24 @@ Work from the repository root and follow [checkout ownership](references/main-br
 
 Inspect the current Cargo manifest and touched code to identify ownership. `zircon_app`, `zircon_runtime`, and `zircon_editor` are primary architectural roles; supporting packages retain their own contracts. Script and VM work is one subsystem of this workspace.
 
+## Minimal module builds
+
+Before every compilation-capable `check`, `build` or `test` command, explicitly
+announce the engine modules, Cargo packages, selected features, targets/test
+filters, profile, exact command and coverage reason to the user. Follow
+[the build declaration](validation/guide.md#declare-every-build). Disable default
+features and enable only those needed by the affected modules; required
+transitive dependencies remain part of that declared build.
+Prefer the owning leaf crate over an aggregate runtime/editor build when it
+covers the change.
+
+Full builds are prohibited, including `--workspace`, `--all`, `--all-features`,
+`--all-targets`, implicit root-wide selection and equivalent all-package loops
+or matrices. Wave/release gates and manifest/lockfile/toolchain changes supply
+no exception. Inspect dependencies when scope is unclear. Use
+`tools/dev/dev-module-build.ps1` with an explicit `-Package` for supported
+selections; Jenkins executes the scoped build and reuses compatible artifacts.
+
 ## Read for the current operation
 
 | Operation | Guidance |
@@ -21,7 +39,7 @@ Inspect the current Cargo manifest and touched code to identify ownership. `zirc
 
 Ordinary implementation slices use read-only formatting and structural checks.
 When scoped compilation or generated output is due under
-[the validation policy](../../../docs/plans/milestone-validation-policy.md),
+[the validation policy](../../../docs/testing-and-validation/milestone-validation-policy.md),
 hand off to Jenkins. Jenkins owns branches/worktrees/merges, generation, builds,
 artifact reuse and cleanup under the
 [management standard](../../../docs/tools/agent-artifact-management.md).

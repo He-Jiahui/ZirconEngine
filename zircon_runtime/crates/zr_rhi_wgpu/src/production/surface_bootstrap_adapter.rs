@@ -58,7 +58,7 @@ impl WgpuSurfaceAdapterBootstrap {
             .request_device_inner(native_descriptor, move |facts, _| {
                 if profile.adapter() != facts {
                     return Err(RhiError::NativeContextAdapterMismatch {
-                        profile_adapter: profile.adapter().clone(),
+                        profile_adapter: Box::new(profile.adapter().clone()),
                         context_adapter: facts.clone(),
                     });
                 }

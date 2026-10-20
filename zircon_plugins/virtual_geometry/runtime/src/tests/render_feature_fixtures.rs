@@ -1,6 +1,7 @@
+use std::fmt::Write as _;
 use std::{
     ops::{Deref, DerefMut},
-    path::Path,
+    path::{Path, PathBuf},
     sync::{
         atomic::{AtomicU64, Ordering},
         Arc,
@@ -10,20 +11,26 @@ use std::{
 use zircon_runtime::asset::pipeline::manager::{
     AssetManager, ProjectAssetManager, ProjectAssetManagerAccess,
 };
-use zircon_runtime::asset::project::{ProjectManifest, ProjectPaths};
+use zircon_runtime::asset::project::{ProjectManager, ProjectManifest, ProjectPaths};
 use zircon_runtime::asset::AssetUri;
 use zircon_runtime::core::framework::render as native;
-use zircon_runtime::core::framework::render::RenderVirtualGeometryDebugSnapshot;
+use zircon_runtime::core::framework::render::{
+    RenderExtractProducer, RenderVirtualGeometryDebugSnapshot,
+};
 use zircon_runtime::core::framework::render::{
     RenderFramework, RenderFrameworkError, RenderQualityProfile, RenderViewportDescriptor,
 };
 use zircon_runtime::core::manager::{manager_service_handle, RegisteredManagerService};
+use zircon_runtime::core::resource::{ModelMarker, ResourceHandle};
 use zircon_runtime::core::runtime::ServiceObject;
 use zircon_runtime::core::{
     CoreRuntime, ManagerDescriptor, ModuleDescriptor, RegistryName, ServiceKind, StartupMode,
 };
 use zircon_runtime::graphics::{
     CompiledRenderPipeline, RenderFeatureDescriptor, WgpuRenderFramework,
+};
+use zircon_runtime::scene::{
+    components::MeshRenderer, world::World, DefaultLevelManager, LevelSystem,
 };
 
 pub(crate) use crate::render_pass_executors::IndirectReadbackWords;
@@ -54,6 +61,8 @@ pub(crate) struct PluginizedWgpuRenderFrameworkFixture {
     )>,
     // No CPU submission projections are manufactured by this production fixture.
     legacy_cpu_submission_projections: [Option<Vec<u32>>; 2],
+    // Drop the framework and its asset runtime before releasing the source project.
+    cooked_world_source: Option<CookedWorldSource>,
 }
 
 impl PluginizedWgpuRenderFrameworkFixture {
@@ -73,9 +82,20 @@ impl PluginizedWgpuRenderFrameworkFixture {
         let (v, s) = self
             .native_probe_origin()
             .expect("actual native probe origin");
-        self.framework
-            .test_support_virtual_geometry_native_probe_source(v, s, role, true)
-            .expect("drop actual native lease");
+        assert!(
+            self.has_native_probe_source(role),
+            "native source must exist before drop: {role}"
+        );
+        assert!(
+            self.framework
+                .test_support_virtual_geometry_native_probe_source(v, s, role, true)
+                .expect("drop actual native lease"),
+            "native source was removed: {role}"
+        );
+        assert!(
+            !self.has_native_probe_source(role),
+            "native source must be absent after drop: {role}"
+        );
     }
     fn has_native_probe_source(&self, role: u32) -> bool {
         let (v, s) = self
@@ -84,6 +104,25 @@ impl PluginizedWgpuRenderFrameworkFixture {
         self.framework
             .test_support_virtual_geometry_native_probe_source(v, s, role, false)
             .expect("query actual native lease")
+    }
+    pub(crate) fn drop_actual_native_probe_source_for_test(&self, role: u32) {
+        self.drop_native_probe_source(role);
+    }
+    pub(crate) fn has_actual_native_probe_source_for_test(&self, role: u32) -> bool {
+        self.has_native_probe_source(role)
+    }
+    pub(crate) fn assert_legacy_submission_sources_absent_for_test(&self) {
+        // Current native execution does not produce these historical sidecars.
+        for role in [2, 3, 8, 9] {
+            assert!(
+                !self.has_native_probe_source(role),
+                "legacy source unexpectedly present: {role}"
+            );
+        }
+        assert!(self
+            .legacy_cpu_submission_projections
+            .iter()
+            .all(Option::is_none));
     }
     fn read_native_probe_rows(&self, kind: u32, stride: usize) -> Result<Vec<Vec<u32>>, String> {
         let (v, s) = self.native_probe_origin()?;
@@ -109,6 +148,26 @@ impl PluginizedWgpuRenderFrameworkFixture {
             .chunks_exact(stride)
             .map(|r| r.to_vec())
             .collect())
+    }
+    pub(crate) fn read_last_virtual_geometry_terminal_authority_rows(
+        &mut self,
+    ) -> Result<Vec<[u32; 14]>, String> {
+        let viewport = self
+            .latest_viewport
+            .ok_or("no viewport submitted for terminal readback")?;
+        let scope = self
+            .framework
+            .test_support_virtual_geometry_native_probe_scope(viewport)
+            .map_err(|error| error.to_string())?
+            .ok_or("no terminal native probe completed for this frame")?;
+        self.latest_native_probe = Some((viewport, scope));
+        self.read_native_probe_rows(5, 14)?
+            .into_iter()
+            .map(|row| {
+                row.try_into()
+                    .map_err(|_| "invalid mapped terminal authority14 row".into())
+            })
+            .collect()
     }
     pub(crate) fn read_last_virtual_geometry_indirect_args(&self) -> Result<Vec<[u32; 4]>, String> {
         self.read_native_probe_rows(3, 4)?
@@ -1192,6 +1251,7 @@ fn pluginized_wgpu_render_framework_with_collector_and_project_policy(
         latest_indirect_gpu_words: None,
         latest_native_probe: None,
         legacy_cpu_submission_projections: [None, None],
+        cooked_world_source: None,
     }
 }
 
@@ -1391,5 +1451,178 @@ impl PluginizedWgpuRenderFrameworkFixture {
                 .map(|scope| (viewport, scope));
         }
         submitted
+    }
+}
+
+// This owner outlives every submission/readback made through its renderer fixture.
+// LevelSystem contains the original World, never the legacy offline World clone.
+pub(crate) struct CookedWorldSource {
+    level: LevelSystem,
+    _project_root: CookedWorldProjectRoot,
+}
+
+struct CookedWorldProjectRoot {
+    root: PathBuf,
+}
+
+impl Drop for CookedWorldProjectRoot {
+    fn drop(&mut self) {
+        if let Err(error) = std::fs::remove_dir_all(&self.root) {
+            if std::thread::panicking() {
+                eprintln!(
+                    "VG World source cleanup failed at {}: {error}",
+                    self.root.display()
+                );
+            } else {
+                panic!(
+                    "VG World source cleanup failed at {}: {error}",
+                    self.root.display()
+                );
+            }
+        }
+    }
+}
+
+impl CookedWorldSource {
+    pub(crate) fn new(
+        asset_manager: &ProjectAssetManager,
+        mut world: World,
+        mesh: u64,
+        raw_cluster_count: usize,
+    ) -> Self {
+        let original_model = world
+            .get::<MeshRenderer>(mesh)
+            .expect("original World mesh component")
+            .model
+            .id();
+        let model = asset_manager
+            .load_model_asset(original_model)
+            .expect("load original World mesh CPU source");
+        assert_eq!(model.primitives.len(), 1, "original World primitive owner");
+        let primitive = &model.primitives[0];
+        assert_eq!(primitive.indices.len() % 3, 0);
+        let triangle_count = primitive.indices.len() / 3;
+        assert!(
+            raw_cluster_count > 0 && triangle_count > 0 && triangle_count % raw_cluster_count == 0,
+            "full authored domain must partition the original mesh triangles"
+        );
+        let mut obj = String::from("o cube\n");
+        for vertex in &primitive.vertices {
+            writeln!(
+                obj,
+                "v {} {} {}",
+                vertex.position[0], vertex.position[1], vertex.position[2]
+            )
+            .unwrap();
+            writeln!(obj, "vt {} {}", vertex.uv[0], vertex.uv[1]).unwrap();
+            writeln!(
+                obj,
+                "vn {} {} {}",
+                vertex.normal[0], vertex.normal[1], vertex.normal[2]
+            )
+            .unwrap();
+        }
+        for triangle in primitive.indices.chunks_exact(3) {
+            let a = triangle[0].checked_add(1).expect("OBJ vertex index");
+            let b = triangle[1].checked_add(1).expect("OBJ vertex index");
+            let c = triangle[2].checked_add(1).expect("OBJ vertex index");
+            writeln!(obj, "f {a}/{a}/{a} {b}/{b}/{b} {c}/{c}/{c}").unwrap();
+        }
+        let output = std::env::temp_dir();
+        assert_physical_fixture_root(&output);
+        std::fs::create_dir_all(&output).unwrap();
+        assert_physical_fixture_root(&output);
+        let root = output.join(format!(
+            "zircon_vg_world_source_{}_{}",
+            std::process::id(),
+            NEXT_UPLOADER_PROJECT.fetch_add(1, Ordering::Relaxed)
+        ));
+        // create_dir cannot adopt somebody else's project. Arm cleanup immediately.
+        std::fs::create_dir(&root).unwrap();
+        let project_root = CookedWorldProjectRoot { root };
+        let paths = ProjectPaths::from_root(&project_root.root).unwrap();
+        paths
+            .ensure_layout(&[zircon_runtime_interface::project::RelPath::project_assets()])
+            .unwrap();
+        ProjectManifest::new(
+            "VirtualGeometryOriginalWorldSource",
+            AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
+            1,
+        )
+        .save(paths.manifest_path())
+        .unwrap();
+        let uri = AssetUri::parse("res://models/cube.obj").unwrap();
+        let model_path = paths
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+            .join("models/cube.obj");
+        std::fs::create_dir_all(model_path.parent().unwrap()).unwrap();
+        std::fs::write(&model_path, obj).unwrap();
+        let mut metadata = zircon_runtime::asset::project::AssetMetaDocument::new(
+            zircon_runtime::asset::AssetUuid::new(),
+            uri.clone(),
+            zircon_runtime::asset::AssetKind::Model,
+        );
+        metadata.import_settings = format!(
+            "[virtual_geometry]\nenabled = true\ncluster_triangle_count = {}\npage_cluster_count = 1\n",
+            triangle_count / raw_cluster_count).parse().unwrap();
+        metadata
+            .save(model_path.with_file_name("cube.obj.zmeta"))
+            .unwrap();
+        asset_manager
+            .open_project(project_root.root.to_string_lossy().as_ref())
+            .unwrap();
+        ProjectManager::open(&project_root.root)
+            .unwrap()
+            .scan_and_import()
+            .unwrap();
+        let model_id = asset_manager
+            .resolve_asset_id(&uri)
+            .expect("actual imported World model identity");
+        world
+            .get_mut::<MeshRenderer>(mesh)
+            .expect("original World mesh component")
+            .model = ResourceHandle::<ModelMarker>::new(model_id);
+        world.request_full_render_component_projection();
+        let level = DefaultLevelManager::default().create_level(world, Default::default());
+        Self {
+            level,
+            _project_root: project_root,
+        }
+    }
+
+    fn publish(
+        &self,
+        viewport_size: zircon_runtime::core::math::UVec2,
+    ) -> native::RenderFrameExtract {
+        let context = self.level.with_world(|world| {
+            native::RenderExtractContext::new(
+                world.render_world_snapshot_handle(),
+                native::SceneViewportExtractRequest::default(),
+            )
+        });
+        self.level
+            .build_render_frame_extract(&context)
+            .with_viewport_size(viewport_size)
+    }
+}
+
+impl PluginizedWgpuRenderFrameworkFixture {
+    pub(crate) fn with_cooked_world_source(mut self, source: CookedWorldSource) -> Self {
+        assert!(
+            self.cooked_world_source.is_none(),
+            "one original World per fixture"
+        );
+        self.cooked_world_source = Some(source);
+        self
+    }
+
+    pub(crate) fn build_cooked_world_extract(
+        &self,
+        viewport_size: zircon_runtime::core::math::UVec2,
+    ) -> native::RenderFrameExtract {
+        self.cooked_world_source
+            .as_ref()
+            .expect("retained original World source")
+            .publish(viewport_size)
     }
 }

@@ -17,6 +17,131 @@ use crate::entry::runtime_library::{
     RuntimeSession,
 };
 
+#[test]
+fn surface_binding_v2_preserves_requests_and_binding_ledger() {
+    use zircon_runtime::core::framework::window::{WindowDescriptor, WindowPresentMode as W};
+    use zircon_runtime_interface::{
+        ZrRuntimeBindViewportSurfaceRequestV2 as V2, ZrRuntimePresentModeV2 as M,
+    };
+    with_session(
+        Policy {
+            surface_v2_export: true,
+            ..Policy::default()
+        },
+        |session, control| {
+            let mut app = RuntimeEntryApp::new(
+                session,
+                RuntimeEntryAppConfig::default()
+                    .with_window_descriptor(WindowDescriptor::default()),
+                RuntimeEntryAppFailureState::default(),
+            );
+            let target =
+                ZrRuntimeNativeSurfaceTargetV1::win32(ZIRCON_RUNTIME_ABI_VERSION_V1, 73, 0);
+            for (requested, wire) in [
+                (W::Fifo, M::Fifo),
+                (W::Immediate, M::Immediate),
+                (W::Mailbox, M::Mailbox),
+                (W::FifoRelaxed, M::FifoRelaxed),
+                (W::AutoVsync, M::AutoVsync),
+                (W::AutoNoVsync, M::AutoNoVsync),
+            ] {
+                app.window_descriptor.present_mode = requested;
+                assert!(app.bind_native_surface_target(target).unwrap());
+                let actual = *control
+                    .surface_v2_requests()
+                    .last()
+                    .expect("actual provider request");
+                assert_eq!(actual.present_mode, wire as u32);
+                assert_eq!(
+                    (actual.viewport, actual.size, actual.target),
+                    (app.viewport, app.viewport_size, target)
+                );
+                assert!(app.session.has_bound_viewport_surface(app.viewport));
+            }
+            assert_eq!(control.surface_v2_requests().len(), 6);
+            control.fail_next_surface_v2_bind();
+            let previous = control.last_bound_target();
+            let mut replacement = target;
+            replacement.window_handle = 74;
+            assert!(app.bind_native_surface_target(replacement).is_err());
+            assert_eq!(control.last_bound_target(), previous);
+            assert!(app.session.has_bound_viewport_surface(app.viewport));
+            let calls_before = control.snapshot().calls.len();
+            let mut invalid = V2::new(app.viewport, app.viewport_size, target);
+            invalid.present_mode = u32::MAX;
+            assert!(app.session.bind_viewport_surface_v2(invalid).is_err());
+            assert_eq!(control.snapshot().calls.len(), calls_before);
+            app.release_surface_present().unwrap();
+            assert!(!app.session.has_bound_viewport_surface(app.viewport));
+            assert!(!control.snapshot().bound);
+        },
+    );
+    // A failed first bind must not publish a binding in the shared ledger.
+    with_session(
+        Policy {
+            surface_v2_export: true,
+            surface_v2_bind_failures: 1,
+            ..Policy::default()
+        },
+        |session, control| {
+            let request = V2::new(
+                zircon_runtime_interface::ZrRuntimeViewportHandle::new(1),
+                zircon_runtime_interface::ZrRuntimeViewportSizeV1::new(64, 48),
+                ZrRuntimeNativeSurfaceTargetV1::win32(ZIRCON_RUNTIME_ABI_VERSION_V1, 73, 0),
+            );
+            assert!(session.bind_viewport_surface_v2(request).is_err());
+            assert!(!session.has_bound_viewport_surface(request.viewport));
+            assert!(!control.snapshot().bound);
+        },
+    );
+}
+
+#[test]
+fn surface_binding_v2_absence_only_allows_fifo_legacy_fallback() {
+    use zircon_runtime_interface::{
+        ZrRuntimeBindViewportSurfaceRequestV2 as V2, ZrRuntimePresentModeV2 as M,
+    };
+    with_session(Policy::default(), |session, control| {
+        let request = V2::new(
+            zircon_runtime_interface::ZrRuntimeViewportHandle::new(1),
+            zircon_runtime_interface::ZrRuntimeViewportSizeV1::new(64, 48),
+            ZrRuntimeNativeSurfaceTargetV1::win32(ZIRCON_RUNTIME_ABI_VERSION_V1, 73, 0),
+        );
+        for mode in [
+            M::Immediate,
+            M::Mailbox,
+            M::FifoRelaxed,
+            M::AutoVsync,
+            M::AutoNoVsync,
+        ] {
+            assert!(session
+                .bind_viewport_surface_v2(request.with_present_mode(mode))
+                .is_err());
+            assert!(!session.has_bound_viewport_surface(request.viewport));
+        }
+        let mut invalid = request;
+        invalid.reserved = 1;
+        assert!(session.bind_viewport_surface_v2(invalid).is_err());
+        assert!(!control.snapshot().calls.contains(&Call::Bind));
+        assert!(control.surface_v2_requests().is_empty());
+        assert!(session.bind_viewport_surface_v2(request).unwrap());
+        assert_eq!(
+            control
+                .snapshot()
+                .calls
+                .iter()
+                .filter(|call| **call == Call::Bind)
+                .count(),
+            1
+        );
+        assert!(session.has_bound_viewport_surface(request.viewport));
+        assert_eq!(control.last_bound_target(), Some(request.target));
+        assert!(control.surface_v2_requests().is_empty());
+        session.unbind_viewport_surface(request.viewport).unwrap();
+        assert!(!session.has_bound_viewport_surface(request.viewport));
+    });
+}
+
 fn bound_app(session: RuntimeSession) -> RuntimeEntryApp {
     let mut app = RuntimeEntryApp::new(
         session,

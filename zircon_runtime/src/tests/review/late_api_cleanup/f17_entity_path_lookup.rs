@@ -1,4 +1,5 @@
 //! 代码审查回归护栏核对已迁移接口、错误边界、插件入口及镜像状态。以结果断言检查当前接口或源码快照对应的边界。
+use crate::tests::runtime_absorption::structure_convention::fixed_history_archive_source as history;
 #[test]
 fn review_f17_entity_path_option_lookup_uses_get_verb() {
     let path_resolution = include_str!("../../../scene/world/property_access/path_resolution.rs");
@@ -8,17 +9,11 @@ fn review_f17_entity_path_option_lookup_uses_get_verb() {
     let property_paths_runtime_mutation =
         include_str!("../../../scene/tests/property_paths/runtime_mutation.rs");
     let property_paths_read = include_str!("../../../scene/tests/property_paths/read_paths.rs");
-    let review_findings = include_str!(
-        "../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"
-    );
-    let convention = include_str!(
-        "../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md"
-    );
-    let runtime_08 = include_str!(
-        "../../../../../docs/plans/zircon_runtime/runtime/08/2026-07-09-ecs-kernel-data-alignment-output-records.md"
-    );
-    let runtime_index = include_str!(
-        "../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md"
+    let review_findings = history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md");
+    let convention = history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md");
+    let runtime_08 = history("docs/plans/zircon_runtime/runtime/08/2026-07-09-ecs-kernel-data-alignment-output-records.md");
+    let runtime_index = history(
+        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md",
     );
     let ecs_doc = include_str!("../../../../../docs/crates/zircon_runtime/scene/ecs.md");
     let animation_doc =

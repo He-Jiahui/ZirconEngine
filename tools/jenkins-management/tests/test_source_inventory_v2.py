@@ -786,5 +786,103 @@ class SourceInventoryV2Tests(unittest.TestCase):
             self.assertEqual(verified, helper.verify_source(manifest, source, approved))
 
 
+
+class MigratedExternalInventoryTests(unittest.TestCase):
+    """Compiler projections keep complete source and legacy-journal evidence."""
+
+    def entry(self, path, mode="100644", stage=0):
+        return {"path": path, "mode": mode, "stage": stage, "object": "b" * 40}
+
+    def capture(self, files, entries):
+        return source("a" * 40, files, sorted(entries, key=lambda item: (item["path"], item["stage"])))
+
+    def fixture(self):
+        omitted = ".codex/plans/tracked.md"
+        retained = [".codex/plans/untracked.md", ".codex/plans/nested/note.md",
+                    ".codex/settings.md", ".codex/plans/executable.md",
+                    ".codex/plans/link.md", ".codex/plans/conflicted.md", "Cargo.toml"]
+        files = {path: "c" * 64 for path in [omitted, *retained]}
+        files[".codex/plans/deleted.md"] = None
+        entries = [self.entry(omitted), self.entry(retained[1]), self.entry(retained[2]),
+                   self.entry(retained[3], "100755"), self.entry(retained[4], "120000"),
+                   self.entry(retained[5]), self.entry(retained[5], stage=2),
+                   self.entry(retained[6]), self.entry(".codex/plans/deleted.md")]
+        return self.capture(files, entries), omitted
+
+    def test_only_tracked_regular_unconflicted_root_plan_is_excluded_from_compiler_inventory(self):
+        captured, omitted = self.fixture()
+        original = copy.deepcopy(captured)
+        expected = {name: value for name, value in captured["files"].items() if name != omitted}
+        self.assertEqual(expected, helper._managed_external_compiler_files(captured))
+        self.assertEqual(expected, helper.checkout_external_file_view().source_files(captured))
+        self.assertEqual(original, captured)
+        legacy = source(captured["head"], captured["files"])
+        self.assertEqual(captured["files"], helper._managed_external_compiler_files(legacy))
+
+    def test_raw_plan_changes_remain_bound_and_stale_source_digest_is_rejected(self):
+        captured, omitted = self.fixture()
+        changed = copy.deepcopy(captured)
+        changed["files"][omitted] = "d" * 64
+        with self.assertRaises(JenkinsError):
+            helper._managed_external_compiler_files(changed)
+        changed["sourceDigest"] = helper.digest({key: value for key, value in changed.items()
+                                                if key != "sourceDigest"})
+        self.assertNotEqual(captured["sourceDigest"], changed["sourceDigest"])
+        self.assertEqual(helper._managed_external_compiler_files(captured),
+                         helper._managed_external_compiler_files(changed))
+        self.assertEqual("d" * 64, helper.source_files(changed)[omitted])
+
+    def test_nested_gitlink_projection_preserves_managed_root_only_policy(self):
+        nested = self.capture({".codex/plans/nested.md": "c" * 64, "lib.rs": "d" * 64},
+                              [self.entry(".codex/plans/nested.md"), self.entry("lib.rs")])
+        outer = self.capture({"module": {"gitlinkCommit": "b" * 40, "source": nested}},
+                             [self.entry("module", "160000")])
+        original = copy.deepcopy(outer)
+        self.assertEqual({"module/lib.rs": "d" * 64},
+                         helper.checkout_external_file_view().source_files(outer))
+        self.assertEqual({"module/.codex/plans/nested.md": "c" * 64, "module/lib.rs": "d" * 64},
+                         helper._managed_external_compiler_files(outer))
+        self.assertEqual(original, outer)
+
+    def test_sealed_compiler_manifest_requires_explicit_managed_external_mode(self):
+        captured, omitted = self.fixture()
+        files = {name: value for name, value in captured["files"].items() if name != omitted}
+        manifest = {"baseHead": captured["head"], "entries": [
+            {"path": path, "status": "deleted" if checksum is None else "present",
+             "sha256": checksum, **({"objectDigest": checksum} if checksum is not None else {})}
+            for path, checksum in files.items()]}
+        helper.verify_sealed_capture(captured, manifest, managed_external=True)
+        with self.assertRaisesRegex(ValueError, "complete declared capture"):
+            helper.verify_sealed_capture(captured, manifest)
+        self.assertIn(omitted, captured["files"])
+        self.assertNotIn(omitted, {entry["path"] for entry in manifest["entries"]})
+
+    def test_legacy_cross_version_case_alias_is_joined_without_erasing_original_entries(self):
+        old, new = "inputs/compileTime/a.c", "inputs/compiletime/a.c"
+        intent = {"oldOwnedFiles": {old: "a" * 64}, "ownedFiles": {new: "b" * 64},
+                  "files": [{"path": old, "oldHash": "a" * 64, "newHash": None, "applied": True},
+                            {"path": new, "oldHash": None, "newHash": "b" * 64, "applied": False}]}
+        original = copy.deepcopy(intent)
+        files, lineage = helper._pool_recovery_files(intent, 7)
+        self.assertEqual(1, len(files))
+        self.assertEqual((new, "a" * 64, "b" * 64, False),
+                         tuple(files[0][key] for key in ("path", "oldHash", "newHash", "applied")))
+        self.assertEqual(intent["files"], [entry["entry"] for entry in files[0]["legacyEntries"]])
+        self.assertEqual((7, helper.digest(original), helper.digest(original["files"]), 2, 1),
+                         tuple(lineage[key] for key in ("originalVersion", "originalPayloadDigest",
+                               "originalFilesDigest", "originalFileCount", "caseFoldGroupCount")))
+        for drift in ("unknown-entry", "same-version-alias", "nonboolean-applied"):
+            changed = copy.deepcopy(intent)
+            if drift == "unknown-entry":
+                changed["files"].append({"path": "foreign.c", "oldHash": None, "newHash": "e" * 64,
+                                         "applied": False})
+            elif drift == "same-version-alias":
+                changed["oldOwnedFiles"][new] = "e" * 64
+            else:
+                changed["files"][0]["applied"] = 1
+            with self.subTest(drift=drift), self.assertRaises(JenkinsError):
+                helper._pool_recovery_files(changed, 7)
+        self.assertEqual(original, intent)
+
 if __name__ == "__main__":
     unittest.main()

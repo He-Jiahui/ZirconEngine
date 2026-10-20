@@ -1,8 +1,13 @@
-use zircon_runtime::core::framework::render::RenderHybridGiProbeTraceDiagnosticRecord;
+use zircon_runtime::core::framework::render::{
+    RenderHybridGiProbeTraceDiagnosticRecord, RenderHybridGiSurfaceCachePageRecord,
+    RenderHybridGiVoxelClipmapRecord,
+};
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 // 保留 CPU 准备的场景元数据，并在回读完成后填入 GPU 的槽样本、tile 和诊断。
 pub(crate) struct HybridGiScenePrepareResourcesSnapshot {
+    surface_cache_pages: Vec<RenderHybridGiSurfaceCachePageRecord>,
+    voxel_clipmaps: Vec<RenderHybridGiVoxelClipmapRecord>,
     pub(super) card_capture_request_count: u32,
     pub(super) voxel_clipmap_ids: Vec<u32>,
     pub(super) occupied_atlas_slots: Vec<u32>,
@@ -39,6 +44,8 @@ impl HybridGiScenePrepareResourcesSnapshot {
         capture_layer_count: u32,
     ) -> Self {
         Self {
+            surface_cache_pages: Vec::new(),
+            voxel_clipmaps: Vec::new(),
             card_capture_request_count,
             voxel_clipmap_ids,
             occupied_atlas_slots,
@@ -61,5 +68,26 @@ impl HybridGiScenePrepareResourcesSnapshot {
             capture_texture_extent,
             capture_layer_count,
         }
+    }
+}
+
+impl HybridGiScenePrepareResourcesSnapshot {
+    /// Metadata belongs to the same resource preparation as this snapshot's GPU samples.
+    pub(crate) fn store_source_descriptors(
+        &mut self,
+        pages: Vec<RenderHybridGiSurfaceCachePageRecord>,
+        clipmaps: Vec<RenderHybridGiVoxelClipmapRecord>,
+    ) {
+        self.surface_cache_pages = pages;
+        self.voxel_clipmaps = clipmaps;
+    }
+
+    pub(crate) fn source_descriptors(
+        &self,
+    ) -> (
+        &[RenderHybridGiSurfaceCachePageRecord],
+        &[RenderHybridGiVoxelClipmapRecord],
+    ) {
+        (&self.surface_cache_pages, &self.voxel_clipmaps)
     }
 }

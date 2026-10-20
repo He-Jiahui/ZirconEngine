@@ -11,8 +11,8 @@ implementation_files:
   - tools/analysis/visual/capture-editor-ui-visual.ps1
   - .codex/skills/zircon-project-skills/capture-hub-window-screenshot/scripts/capture-hub-window.ps1
 plan_sources:
-  - docs/plans/mvp/index.md
-  - docs/plans/milestone-validation-policy.md
+  - docs/testing-and-validation/mvp-acceptance-index.md
+  - docs/testing-and-validation/milestone-validation-policy.md
 tests:
   - zircon_runtime/tests/zui_native_visual_acceptance.rs
   - zircon_runtime/tests/runtime_text_multilingual_product_framebuffer.rs

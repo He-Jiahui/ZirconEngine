@@ -15,7 +15,7 @@ pub(super) fn assert_p0_robustness_parent_mounts_child_owners(sources: &CodeRevi
             "mod render_submit;",
             "#[path = \"p0_robustness/native_fixture.rs\"]",
             "mod native_fixture;",
-            "#[path = \"p0_robustness/priority_recommendation.rs\"]",
+            "#[path = \"../../review/p0_robustness/priority_recommendation.rs\"]",
             "mod priority_recommendation;",
         ],
     );

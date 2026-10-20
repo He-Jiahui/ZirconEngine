@@ -1,11 +1,12 @@
 //! 代码审查回归护栏核对已迁移接口、错误边界、插件入口及镜像状态。以结果断言检查当前接口或源码快照对应的边界。
 use super::runtime_crates::IMPORTER_RUNTIME_CRATES;
+use crate::tests::runtime_absorption::structure_convention::fixed_history_archive_source as history;
 
 #[test]
 fn review_d13_importer_runtime_exports_use_sdk_macro() {
-    let review_findings = concat!(
-        include_str!("../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"),
-        include_str!("../../../../../../docs/plans/engine-code-review-findings-2026-06.md")
+    let review_findings = crate::runtime_test_history_concat!(
+        history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"),
+        include_str!("../../../../../../docs/architecture/runtime-architecture-review-m0.md")
     );
     let sdk_exports =
         include_str!("../../../../../../zircon_plugins/plugin_sdk/src/runtime_exports.rs");
@@ -29,11 +30,35 @@ fn review_d13_importer_runtime_exports_use_sdk_macro() {
             source.contains("zircon_plugin_sdk::runtime_plugin_exports!("),
             "{label} should export runtime helpers through the plugin SDK macro"
         );
-        assert!(
-            cargo_toml
-                .contains("zircon_plugin_sdk = { workspace = true, features = [\"runtime\"] }"),
-            "{label} should inherit the SDK runtime dependency from the plugin workspace"
-        );
+        if *label == "gltf_importer" {
+            let lib =
+                include_str!("../../../../../../zircon_plugins/gltf_importer/runtime/src/lib.rs")
+                    .lines()
+                    .collect::<Vec<_>>()
+                    .join("\n");
+            for required in [
+                "zircon_plugin_sdk = { workspace = true, default-features = false }",
+                "runtime = [",
+                "\"zircon_plugin_sdk/runtime\"",
+                "\"declaration\"",
+                "declaration = [\"zircon_plugin_sdk/declaration\"]",
+            ] {
+                assert!(
+                    cargo_toml.contains(required),
+                    "gltf SDK activation missing {required}"
+                );
+            }
+            assert!(
+                lib.contains("#[cfg(feature = \"runtime\")]\n#[path = \"plugin.rs\"]\nmod plugin;")
+            );
+            assert!(lib.contains("#[cfg(feature = \"runtime\")]\npub use plugin::"));
+        } else {
+            assert!(
+                cargo_toml
+                    .contains("zircon_plugin_sdk = { workspace = true, features = [\"runtime\"] }"),
+                "{label} should inherit the SDK runtime dependency from the plugin workspace"
+            );
+        }
 
         for stale in [
             "pub fn runtime_plugin()",

@@ -4,9 +4,10 @@
 use std::sync::atomic::{AtomicU64, Ordering};
 use zr_rhi::{
     DeviceGeneration, DeviceId, DiagnosticReadbackBudget, GpuMemoryBudget, RenderAdapterClass,
-    RenderAdapterFacts, RenderBackendKind, RenderDeviceFeature, RenderDeviceFeatureNegotiation,
-    RenderDeviceFeatureSet, RenderDeviceLimits, RenderDeviceNegotiationError, RenderDeviceProfile,
-    RenderDeviceQueueTopology, RenderDeviceRequestPolicy, SubmissionLimits,
+    RenderAdapterFacts, RenderBackendKind, RenderDeviceBudgets, RenderDeviceFeature,
+    RenderDeviceFeatureNegotiation, RenderDeviceFeatureSet, RenderDeviceLimits,
+    RenderDeviceNegotiationError, RenderDeviceProfile, RenderDeviceQueueTopology,
+    RenderDeviceRequestPolicy, SubmissionLimits,
 };
 
 use crate::GPU_TIMESTAMP_REQUIRED_FEATURES;
@@ -100,9 +101,11 @@ pub fn initial_wgpu_render_device_profile(
         request.feature_negotiation().clone(),
         wgpu_device_limits(&device.limits()),
         RenderDeviceQueueTopology::single_serialized_queue(),
-        GpuMemoryBudget::reference_1080p_mid(),
-        SubmissionLimits::default(),
-        DiagnosticReadbackBudget::default(),
+        RenderDeviceBudgets {
+            memory_budget: GpuMemoryBudget::reference_1080p_mid(),
+            submission_limits: SubmissionLimits::default(),
+            diagnostic_readback_budget: DiagnosticReadbackBudget::default(),
+        },
     )
 }
 
@@ -125,7 +128,7 @@ pub fn wgpu_device_limits(limits: &wgpu::Limits) -> RenderDeviceLimits {
         min_uniform_buffer_offset_alignment: limits.min_uniform_buffer_offset_alignment,
         min_storage_buffer_offset_alignment: limits.min_storage_buffer_offset_alignment,
         max_storage_buffers_per_shader_stage: limits.max_storage_buffers_per_shader_stage,
-        max_storage_buffer_binding_size: u64::from(limits.max_storage_buffer_binding_size),
+        max_storage_buffer_binding_size: limits.max_storage_buffer_binding_size,
     }
 }
 

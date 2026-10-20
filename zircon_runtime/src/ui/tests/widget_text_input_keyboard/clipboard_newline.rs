@@ -9,6 +9,9 @@ fn text_input_keyboard_control_c_requests_clipboard_write_for_selection() {
 
     let result = dispatch_key_with_control(&mut surface, "c", 67);
 
+    // Direct focus queues one IME Enable alongside the one clipboard request.
+    assert_eq!(result.host_requests.len(), 2);
+
     assert_eq!(result.reply.disposition, UiDispatchDisposition::Handled);
     assert_eq!(
         result.diagnostics.handled_phase.as_deref(),
@@ -27,6 +30,9 @@ fn text_input_keyboard_control_x_cuts_selection_and_requests_clipboard_write() {
     surface.focus_node(UiNodeId::new(2)).unwrap();
 
     let result = dispatch_key_with_control(&mut surface, "x", 88);
+
+    // Direct focus queues one IME Enable alongside the one clipboard request.
+    assert_eq!(result.host_requests.len(), 2);
 
     assert_eq!(result.reply.disposition, UiDispatchDisposition::Handled);
     assert_eq!(
@@ -65,6 +71,9 @@ fn text_input_keyboard_control_v_requests_clipboard_read() {
     surface.focus_node(UiNodeId::new(2)).unwrap();
 
     let result = dispatch_key_with_control(&mut surface, "v", 86);
+
+    // Direct focus queues one IME Enable alongside the one clipboard request.
+    assert_eq!(result.host_requests.len(), 2);
 
     assert_eq!(result.reply.disposition, UiDispatchDisposition::Handled);
     assert_eq!(

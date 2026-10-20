@@ -98,6 +98,8 @@ struct ViewportObservations {
     destroy_attempts: AtomicUsize,
     destroy_successes: AtomicUsize,
     cleanup_successes: AtomicUsize,
+    surface_bindings:
+        std::sync::Mutex<Vec<crate::core::framework::render::RenderViewportSurfaceDescriptor>>,
 }
 
 struct ControlledViewportFramework {
@@ -107,6 +109,20 @@ struct ControlledViewportFramework {
 const CONTROLLED_VIEWPORT: RenderViewportHandle = RenderViewportHandle::new(71);
 
 impl RenderFramework for ControlledViewportFramework {
+    fn bind_viewport_surface(
+        &self,
+        viewport: RenderViewportHandle,
+        descriptor: crate::core::framework::render::RenderViewportSurfaceDescriptor,
+    ) -> Result<(), RenderFrameworkError> {
+        assert_eq!(viewport, CONTROLLED_VIEWPORT);
+        self.observations
+            .surface_bindings
+            .lock()
+            .expect("binding observations")
+            .push(descriptor);
+        Ok(())
+    }
+
     fn create_viewport(
         &self,
         _descriptor: RenderViewportDescriptor,
@@ -242,6 +258,67 @@ impl ModuleLifecycle for ObserveGraphicsCleanup {
             .fetch_add(1, Ordering::SeqCst);
         Ok(())
     }
+}
+
+#[test]
+fn viewport_surface_v2_clamp_preserves_requested_present_mode() {
+    use crate::core::framework::render::RenderViewportSurfaceDescriptor;
+    use crate::core::framework::window::WindowPresentMode as W;
+    use crate::rhi::RenderNativeSurfaceTarget;
+    let mut session = RuntimeDynamicSession::new(RuntimeDynamicSessionProfile::Headless, None)
+        .expect("headless dynamic session");
+    let core = session.runtime.handle();
+    let observations = Arc::new(ViewportObservations::default());
+    {
+        let mut services = core.inner.services.lock().expect("actual service registry");
+        let entry = services
+            .get_mut(RENDER_FRAMEWORK_NAME)
+            .expect("actual lazy graphics slot");
+        assert_eq!(entry.lifecycle, LifecycleState::Registered);
+        assert!(entry.instance.is_none());
+        let factory_observations = Arc::clone(&observations);
+        entry.factory = ServiceEntryFactory::Service(Arc::new(move |_| {
+            let framework: Arc<dyn RenderFramework> = Arc::new(ControlledViewportFramework {
+                observations: Arc::clone(&factory_observations),
+            });
+            Ok(Arc::new(RegisteredManagerService::new(framework)) as ServiceObject)
+        }));
+    }
+    let mut bridge = RuntimeRenderBridge::new(&core).expect("actual manager binding");
+    let modes = [
+        W::Fifo,
+        W::Immediate,
+        W::Mailbox,
+        W::FifoRelaxed,
+        W::AutoVsync,
+        W::AutoNoVsync,
+    ];
+    let target = RenderNativeSurfaceTarget::Win32 {
+        hwnd: 73,
+        hinstance: None,
+    };
+    for mode in modes {
+        bridge
+            .bind_surface(
+                RenderViewportSurfaceDescriptor::new(UVec2::ZERO, target).with_present_mode(mode),
+            )
+            .expect("real bridge consumes descriptor");
+    }
+    let actual = observations
+        .surface_bindings
+        .lock()
+        .expect("binding observations")
+        .clone();
+    assert_eq!(actual.len(), modes.len());
+    for (descriptor, mode) in actual.iter().zip(modes) {
+        assert_eq!(descriptor.size, UVec2::new(1, 1));
+        assert_eq!(descriptor.target, target);
+        assert_eq!(descriptor.present_mode, mode);
+    }
+    assert_eq!(observations.creates.load(Ordering::SeqCst), 1);
+    session.render_bridge = Some(bridge);
+    assert!(session.shutdown_before_library_unload_with_timeout(Duration::from_secs(5)));
+    assert_eq!(observations.destroy_successes.load(Ordering::SeqCst), 1);
 }
 
 #[test]

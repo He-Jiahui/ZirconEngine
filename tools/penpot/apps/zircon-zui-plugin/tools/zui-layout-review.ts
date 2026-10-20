@@ -1,7 +1,7 @@
-import { resolveLayoutCatalogPath } from './zui-layout-paths';
+import { assertLayoutCurrentRoots, createLayoutCurrentContext, layoutCurrentSourcePath, layoutCurrentOutputPath, resolveLayoutCatalogPath } from './zui-layout-paths';
 import { readFile, writeFile } from 'node:fs/promises';
-import { dirname, resolve } from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import {
   renderIndex,
   renderResult,
@@ -13,13 +13,15 @@ import {
   type LayoutCaseReview,
 } from './zui-layout-review-contract';
 import {
-  containedPath,
   verifyCurrentFiles,
   dualEvidenceErrors,
   caseReviewErrors,
   renderEvidenceSha256,
 } from './zui-layout-evidence';
 import { withLayoutCatalogLock } from './zui-layout-catalog-lock';
+
+const rendererRepoEnvironment = process.env['ZUI_LAYOUT_REPO_ROOT'];
+const rendererOutputEnvironment = process.env['ZUI_LAYOUT_OUTPUT_ROOT'];
 
 export interface ReviewInput {
   sourcePath: string;
@@ -79,13 +81,8 @@ export function recordReview(entry: CatalogEntry, input: ReviewInput): void {
 }
 
 async function main(): Promise<void> {
-  const catalogRoot = resolve(
-    process.env['ZUI_LAYOUT_OUTPUT_ROOT'] ??
-      resolve(
-        dirname(fileURLToPath(import.meta.url)),
-        '../../../../../docs/_data/layout',
-      ),
-  );
+  // Fail before reading a batch file when output has not been explicitly selected.
+  createLayoutCurrentContext();
   const [sourcePath, decision, ...notes] = process.argv.slice(2);
   const inputs: ReviewInput[] =
     sourcePath === '--batch'
@@ -97,6 +94,43 @@ async function main(): Promise<void> {
             observations: notes.join(' '),
           },
         ];
+  await runCurrentLayoutReview(inputs);
+}
+
+/** The CLI and renderer module share the same explicit environment roots. */
+export async function runCurrentLayoutReview(inputs: ReviewInput[]): Promise<void> {
+  const context = createLayoutCurrentContext();
+  if (process.env['ZUI_LAYOUT_REPO_ROOT'] !== rendererRepoEnvironment ||
+      process.env['ZUI_LAYOUT_OUTPUT_ROOT'] !== rendererOutputEnvironment)
+    throw new Error('Review environment changed after renderer initialization');
+  const catalogRoot = context.outputRoot;
+  const loadManifest = async (): Promise<CatalogManifest> => {
+    const manifest = JSON.parse(
+      await readFile(layoutCurrentOutputPath(context, 'catalog.json'), 'utf8'),
+    ) as CatalogManifest & { historical_only?: boolean; role?: string };
+    if (manifest.schema !== 'dev.zircon.zui.layout-catalog' || manifest.version !== 1 ||
+        manifest.historical_only || (manifest.role && manifest.role !== 'current'))
+      throw new Error('Historical or package catalog cannot be reviewed as current');
+    assertLayoutCurrentRoots(context, manifest.repoRoot, catalogRoot);
+    for (const input of inputs) {
+      const entry = manifest.entries.find((candidate) => candidate.sourcePath === input.sourcePath);
+      if (!entry) throw new Error(`No catalog entry for ${input.sourcePath}`);
+      layoutCurrentSourcePath(context, entry.sourcePath);
+      for (const path of [entry.resultPath, entry.outputPath, entry.previewPath,
+        entry.penpotInputPath, entry.penpotPreviewPath,
+        ...(entry.cases ?? []).map((item) => item.reviewHost?.path),
+        ...[...(entry.penpotEvidence ?? []), ...(entry.engineEvidence ?? [])]
+          .flatMap((item) => [item.screenshotPath, item.geometryPath, item.textPath])])
+        if (path) {
+          const current = layoutCurrentOutputPath(context, path);
+          if (resolveLayoutCatalogPath(catalogRoot, path) !== current)
+            throw new Error('Legacy renderer would rewrite current output path');
+        }
+      for (const dependency of entry.dependencyFingerprints ?? [])
+        layoutCurrentSourcePath(context, dependency.sourcePath);
+    }
+    return manifest;
+  };
   for (const input of inputs) {
     if (
       !input.sourcePath ||
@@ -107,13 +141,13 @@ async function main(): Promise<void> {
         'Each review requires a source, decision, and concrete observations',
       );
   }
+  // Reject invalid identities and paths before creating even the writer lock.
+  await loadManifest();
   await withLayoutCatalogLock(
     catalogRoot,
-    { command: `zui-layout-review ${process.argv.slice(2).join(' ')}` },
+    { command: `zui-layout-review ${process.argv.slice(2).join(' ')}`, context },
     async () => {
-      const manifest = JSON.parse(
-        await readFile(resolveLayoutCatalogPath(catalogRoot, 'catalog.json'), 'utf8'),
-      ) as CatalogManifest;
+      const manifest = await loadManifest();
       // Validate the entire batch before recording any decisions.
       for (const input of inputs) {
         const entry = manifest.entries.find(
@@ -126,6 +160,7 @@ async function main(): Promise<void> {
           manifest.repoRoot,
           catalogRoot,
           input.decision === 'accepted',
+          context,
         );
       }
       for (const input of inputs) {
@@ -134,7 +169,7 @@ async function main(): Promise<void> {
         )!;
         recordReview(entry, input);
         await writeFile(
-          containedPath(catalogRoot, entry.resultPath),
+          layoutCurrentOutputPath(context, entry.resultPath),
           renderResult(entry),
           'utf8',
         );
@@ -146,10 +181,10 @@ async function main(): Promise<void> {
         );
       }
       await writeFile(
-        resolveLayoutCatalogPath(catalogRoot, 'catalog.json'),
+        layoutCurrentOutputPath(context, 'catalog.json'),
         `${JSON.stringify(manifest, null, 2)}\n`,
       );
-      await writeFile(resolveLayoutCatalogPath(catalogRoot, 'index.md'), renderIndex(manifest));
+      await writeFile(layoutCurrentOutputPath(context, 'index.md'), renderIndex(manifest, context));
     },
   );
 }

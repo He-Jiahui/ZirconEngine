@@ -13,18 +13,21 @@ fn review_f8_runtime_plugin_descriptor_public_constructor_is_retired() {
         std::fs::read_to_string(repo_root.join("zircon_plugins/plugin_sdk/src/runtime.rs"))
             .expect("read plugin SDK runtime declaration source");
     let review_findings =
-        include_str!("../../../../../docs/plans/engine-code-review-findings-2026-06.md");
+        include_str!("../../../../../docs/architecture/runtime-architecture-review-m0.md");
     let runtime_06_plan = include_str!(
-        "../../../../../docs/plans/zircon_runtime/runtime/06-plugin-surface-and-lifecycle.md"
+        "../../../../../docs/testing-and-validation/runtime-plugin-validation-worklist.md"
     );
-    let runtime_index = include_str!("../../../../../docs/plans/zircon_runtime/runtime/index.md");
-    let convention = include_str!("../../../../../docs/plans/engine-code-structure-convention.md");
+    let runtime_index = include_str!(
+        "../../../../../docs/crates/zircon_runtime/structure/runtime-absorption-evidence.md"
+    );
+    let convention =
+        include_str!("../../../../../docs/testing-and-validation/development-conventions.md");
     let package_manifest_doc =
         include_str!("../../../../../docs/crates/zircon_runtime/plugin/package_manifest.md");
 
     for retired_owner in [
-        manifest_dir.join("src/plugin/runtime_plugin/descriptor/builder/construction.rs"),
-        manifest_dir.join("src/plugin/runtime_plugin/descriptor/builder/fluent.rs"),
+        manifest_dir.join("src/plugin/runtime/descriptor/builder/construction.rs"),
+        manifest_dir.join("src/plugin/runtime/descriptor/builder/fluent.rs"),
     ] {
         assert!(
             !retired_owner.exists(),
@@ -74,7 +77,7 @@ fn review_f8_runtime_plugin_descriptor_public_constructor_is_retired() {
 
     let mut builtin_catalog_sources = Vec::new();
     collect_builtin_catalog_sources(
-        &manifest_dir.join("src/plugin/runtime_plugin/builtin_catalog"),
+        &manifest_dir.join("src/plugin/runtime/builtin_catalog"),
         &mut builtin_catalog_sources,
     );
     for (path, source) in builtin_catalog_sources {

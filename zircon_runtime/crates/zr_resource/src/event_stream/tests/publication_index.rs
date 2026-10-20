@@ -166,6 +166,7 @@ fn expired_event_removes_its_current_identity_index_mapping() {
         published_at: Instant::now() - RESOURCE_EVENT_LOG_MAX_AGE - Duration::from_millis(1),
         approximate_bytes,
         event,
+        payload_type: None,
     });
     state.latest_slot_by_identity.insert(identity, slot);
 
@@ -275,12 +276,14 @@ fn recent_sequence_collision_falls_back_to_linked_order_without_losing_the_new_m
         published_at: now,
         approximate_bytes: approximate_event_bytes(&old_event),
         event: old_event,
+        payload_type: None,
     });
     let new_slot = entries.insert_back(LoggedResourceEvent {
         sequence: new_sequence,
         published_at: now,
         approximate_bytes: approximate_event_bytes(&new_event),
         event: new_event,
+        payload_type: None,
     });
 
     assert_eq!(entries.exact_slot(old_sequence), None);
@@ -476,6 +479,7 @@ fn resource_event_log_expires_old_entries_by_ttl() {
         published_at: Instant::now() - RESOURCE_EVENT_LOG_MAX_AGE - Duration::from_millis(1),
         approximate_bytes,
         event,
+        payload_type: None,
     });
 
     evict_expired(&mut state, Instant::now());
@@ -518,6 +522,7 @@ fn optimization_wave_20260824_runtime64_resource_event_cursor_preserves_sparse_s
             published_at: now,
             approximate_bytes: approximate_event_bytes(&event),
             event,
+            payload_type: None,
         });
     }
     state.next_sequence = Some(10);
@@ -582,6 +587,7 @@ fn optimization_wave_20260824_runtime64_resource_event_cursor_lookup_evidence() 
             published_at: now,
             approximate_bytes: approximate_event_bytes(&event),
             event,
+            payload_type: None,
         });
     }
     let cursor = ENTRIES as u64;

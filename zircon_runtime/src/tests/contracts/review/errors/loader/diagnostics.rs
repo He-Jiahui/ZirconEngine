@@ -8,15 +8,6 @@ fn review_f5_native_live_host_behavior_diagnostics_use_typed_error() {
     let live_host_tests = include_str!("../../../../../plugin/loader/live/tests/cases.rs");
     let _native_boundary =
         include_str!("../../../../../../../docs/architecture/native-plugin-boundary.md");
-    let _review_findings =
-        include_str!("../../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md");
-    let _runtime_15_plan = include_str!(
-        "../../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md"
-    );
-    let _runtime_index =
-        include_str!("../../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md");
-    let _convention =
-        include_str!("../../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md");
     let _module_convention = include_str!(
         "../../../../../../../docs/crates/zircon_runtime/structure/module-convention.md"
     );

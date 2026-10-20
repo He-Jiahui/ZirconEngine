@@ -42,7 +42,7 @@ fn runtime47_batch_hover_membership_uses_generation_index() {
     assert!(production.contains("struct PointerHoverState"));
     assert!(production.contains("targets: HashSet<HitTarget>"));
     assert!(production.contains("state.targets.contains(&target)"));
-    assert!(production.contains("Arc<BTreeMap<PointerId, PointerHoverState>>"));
+    assert!(production.contains("Arc<BTreeMap<PickingPointerKey, PointerHoverState>>"));
 }
 
 #[test]

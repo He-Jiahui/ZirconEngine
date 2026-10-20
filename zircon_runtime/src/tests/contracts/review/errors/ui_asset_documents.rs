@@ -1,4 +1,5 @@
 //! 代码审查回归护栏核对已迁移接口、错误边界、插件入口及镜像状态。以结果断言检查当前接口或源码快照对应的边界。
+use crate::tests::runtime_absorption::structure_convention::fixed_history_archive_source as history;
 #[test]
 fn review_f5_ui_asset_documents_use_typed_errors_before_import_boundary() {
     let ui_assets = include_str!("../../../../asset/assets/ui.rs");
@@ -6,23 +7,19 @@ fn review_f5_ui_asset_documents_use_typed_errors_before_import_boundary() {
     let importer_error = include_str!("../../../../asset/importer/error.rs");
     let ui_document_importer =
         include_str!("../../../../../../zircon_plugins/ui_document_importer/runtime/src/lib.rs");
+    let ui_document_importer_tests = include_str!(
+        "../../../../../../zircon_plugins/ui_document_importer/runtime/src/tests/lib.rs"
+    );
     let import_ui_theme_asset =
         include_str!("../../../../asset/importer/ingest/import_ui_theme_asset.rs");
     let import_ui_icon_asset =
         include_str!("../../../../asset/importer/ingest/import_ui_icon_asset.rs");
     let wrapper_tests = include_str!("../../../../asset/tests/assets/ui/wrappers.rs");
     let importer_tests = include_str!("../../../../asset/tests/assets/ui/importer.rs");
-    let _review_findings = concat!(
-        include_str!("../../../../../../docs/plans/engine-code-review-findings-2026-06.md"),
-        include_str!("../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md")
+    let _review_findings = crate::runtime_test_history_concat!(
+        include_str!("../../../../../../docs/architecture/runtime-architecture-review-m0.md"),
+        history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md")
     );
-    let _runtime_15_plan = include_str!(
-        "../../../../../../docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md"
-    );
-    let _runtime_index =
-        include_str!("../../../../../../docs/plans/zircon_runtime/runtime/index.md");
-    let _convention =
-        include_str!("../../../../../../docs/plans/engine-code-structure-convention.md");
     let _module_doc =
         include_str!("../../../../../../docs/crates/zircon_runtime/structure/module-convention.md");
     let _ui_asset_doc =
@@ -121,21 +118,29 @@ fn review_f5_ui_asset_documents_use_typed_errors_before_import_boundary() {
         );
     }
 
+    assert!(ui_document_importer
+        .replace("\r\n", "\n")
+        .contains("#[cfg(test)]\n#[path = \"tests/lib.rs\"]\nmod tests;"));
     for required in [
         "ui_asset_wrappers_preserve_typed_parse_sources",
         "ui_icon_asset_reports_typed_validation_errors",
-        "importer_preserves_typed_theme_and_icon_document_sources",
-        "zui_importer_decodes_single_component_asset",
-        "importer_decodes_zui_component_assets_from_zui",
         "UiAssetError::ParseToml",
         "UiV2AssetError::ParseToml",
         "UiIconAssetDocumentError::InvalidSourceUri",
     ] {
         assert!(
-            wrapper_tests.contains(required)
-                || importer_tests.contains(required)
-                || ui_document_importer.contains(required),
-            "UI asset typed-error behavior tests should contain `{required}`"
+            wrapper_tests.contains(required),
+            "current asset/tests/assets/ui/wrappers.rs must retain {required}"
         );
     }
+    for required in [
+        "importer_preserves_typed_theme_and_icon_document_sources",
+        "importer_decodes_zui_component_assets_from_zui",
+    ] {
+        assert!(
+            importer_tests.contains(required),
+            "current asset/tests/assets/ui/importer.rs must retain {required}"
+        );
+    }
+    assert!(ui_document_importer_tests.contains("zui_importer_decodes_single_component_asset"));
 }

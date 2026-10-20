@@ -106,6 +106,128 @@ fn provider_normalizes_stale_and_conflicting_gpu_page_table_entries() {
     assert_eq!(confirmed.completed_page_assignments(), &[(30, 0)]);
 }
 
+#[test]
+fn provider_fallback_retains_hot_frontier_until_exact_cooldown_expiry() {
+    assert_provider_hot_frontier_lifetime(false);
+}
+
+#[test]
+fn provider_gpu_completion_retains_hot_frontier_until_exact_cooldown_expiry() {
+    assert_provider_hot_frontier_lifetime(true);
+}
+
+fn assert_provider_hot_frontier_lifetime(with_gpu_completion: bool) {
+    use zircon_runtime::core::framework::render::{
+        RenderVirtualGeometryExtract, RenderVirtualGeometryPage,
+    };
+    use zircon_runtime::graphics::VisibilityVirtualGeometryFeedback;
+
+    // Probe a fresh provider after each quiet-frame count so eviction itself cannot
+    // shorten a later observation. Page 10 wins the cold tie, but loses while hot.
+    for quiet_frames in 0..=3_u64 {
+        let mut provider = PluginVirtualGeometryRuntimeState::default();
+        provider
+            .state
+            .register_extract(Some(&RenderVirtualGeometryExtract {
+                page_budget: 2,
+                pages: vec![
+                    RenderVirtualGeometryPage {
+                        page_id: 10,
+                        resident: true,
+                        size_bytes: 16,
+                    },
+                    RenderVirtualGeometryPage {
+                        page_id: 20,
+                        resident: true,
+                        size_bytes: 16,
+                    },
+                    RenderVirtualGeometryPage {
+                        page_id: 30,
+                        resident: false,
+                        size_bytes: 16,
+                    },
+                ],
+                ..Default::default()
+            }));
+        advance_provider_hot_frontier(&mut provider, vec![10], 1, with_gpu_completion);
+        for frame in 0..quiet_frames {
+            advance_provider_hot_frontier(
+                &mut provider,
+                Vec::new(),
+                frame + 2,
+                with_gpu_completion,
+            );
+        }
+        assert_eq!(provider.state.resident_slot_owners().len(), 2);
+        assert!(provider.state.pending_page_ids().is_empty());
+
+        // Stage a real pending request, then let the provider's fallback completion
+        // choose the victim on the next tick. No test-only eviction choice is supplied.
+        provider.state.ingest_page_requests(quiet_frames + 2, [30]);
+        let feedback = VirtualGeometryRuntimeFeedback::new(
+            None,
+            Vec::new(),
+            Some(VisibilityVirtualGeometryFeedback {
+                requested_pages: vec![30],
+                evictable_pages: vec![10, 20],
+                ..Default::default()
+            }),
+            quiet_frames + 2,
+        );
+        provider.update_after_render(feedback);
+        let mut resident_pages = provider
+            .state
+            .resident_slot_owners()
+            .into_iter()
+            .map(|(_, page_id)| page_id)
+            .collect::<Vec<_>>();
+        resident_pages.sort_unstable();
+        let expected_pages = if quiet_frames < 2 {
+            vec![10, 30]
+        } else {
+            vec![20, 30]
+        };
+        assert_eq!(
+            resident_pages, expected_pages,
+            "hot protection must last exactly two cooling ticks: gpu_completion={with_gpu_completion}, quiet_frames={quiet_frames}"
+        );
+        assert!(provider.state.pending_page_ids().is_empty());
+    }
+}
+
+fn advance_provider_hot_frontier(
+    provider: &mut PluginVirtualGeometryRuntimeState,
+    hot_resident_pages: Vec<u32>,
+    generation: u64,
+    with_gpu_completion: bool,
+) {
+    use zircon_runtime::graphics::VisibilityVirtualGeometryFeedback;
+
+    // A completion carries the actual current slot table, preserving resident pages
+    // while exercising the provider's confirmed-completion path without GPU claims.
+    let completion = with_gpu_completion.then(|| {
+        VirtualGeometryGpuCompletion::new(
+            provider
+                .state
+                .resident_slot_owners()
+                .into_iter()
+                .map(|(slot, page_id)| (page_id, slot))
+                .collect(),
+            Vec::new(),
+            Vec::new(),
+        )
+    });
+    provider.update_after_render(VirtualGeometryRuntimeFeedback::new(
+        completion,
+        Vec::new(),
+        Some(VisibilityVirtualGeometryFeedback {
+            hot_resident_pages,
+            ..Default::default()
+        }),
+        generation,
+    ));
+}
+
 fn cooked_model_asset() -> ModelAsset {
     ModelAsset {
         uri: AssetUri::parse("res://models/provider-vg.model.toml")

@@ -1,3 +1,4 @@
+use crate::core::framework::window::WindowPresentMode;
 use crate::core::math::UVec2;
 use zr_rhi::RenderNativeSurfaceTarget;
 
@@ -7,10 +8,20 @@ use zr_rhi::RenderNativeSurfaceTarget;
 pub struct RenderViewportSurfaceDescriptor {
     pub size: UVec2,
     pub target: RenderNativeSurfaceTarget,
+    pub present_mode: WindowPresentMode,
 }
 
 impl RenderViewportSurfaceDescriptor {
+    pub const fn with_present_mode(mut self, present_mode: WindowPresentMode) -> Self {
+        self.present_mode = present_mode;
+        self
+    }
+
     pub const fn new(size: UVec2, target: RenderNativeSurfaceTarget) -> Self {
-        Self { size, target }
+        Self {
+            size,
+            target,
+            present_mode: WindowPresentMode::Fifo,
+        }
     }
 }

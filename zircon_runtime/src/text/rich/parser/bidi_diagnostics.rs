@@ -113,7 +113,7 @@ impl BidiControlAdmission {
         code: RichTextAuthoringDiagnosticCode,
         source_range: (u32, u32),
     ) -> Result<(), RichTextParseError> {
-        let attempted_depth = self.stack.len().checked_add(1).unwrap_or(usize::MAX);
+        let attempted_depth = self.stack.len().saturating_add(1);
         if attempted_depth > self.max_depth {
             return Err(RichTextParseError::BidiControlDepthExceeded {
                 attempted_depth,
@@ -150,7 +150,7 @@ pub(super) fn push_source_bidi_control_diagnostics(
         let Some(kind) = bidi_control_kind(character) else {
             continue;
         };
-        let absolute_start = source_start.checked_add(offset).unwrap_or(usize::MAX);
+        let absolute_start = source_start.saturating_add(offset);
         let source_range = markup_source_range(absolute_start, character.len_utf8())?;
         push_bidi_control_diagnostic(result, kind, source_range)?;
     }

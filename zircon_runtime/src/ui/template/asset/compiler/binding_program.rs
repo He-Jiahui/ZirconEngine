@@ -410,11 +410,13 @@ impl<'a> BindingProgramCompiler<'a> {
         let asset_id = self.asset_id.to_string();
         UiCompiledBindingProgram::new(
             self.generation,
-            self.binding_names,
-            self.properties.values,
-            self.routes.values,
-            self.actions.values,
-            self.controls.values,
+            zircon_runtime_interface::ui::template::UiCompiledBindingSymbols {
+                binding_names: self.binding_names,
+                properties: self.properties.values,
+                routes: self.routes.values,
+                actions: self.actions.values,
+                controls: self.controls.values,
+            },
             self.nodes,
             self.bindings,
         )

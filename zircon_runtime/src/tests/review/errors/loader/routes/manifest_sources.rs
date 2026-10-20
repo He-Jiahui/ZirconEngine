@@ -9,9 +9,9 @@ pub(super) fn assert_typed_error_native_manifest_sources_route_is_folder_backed(
         "native manifest sources typed-error parent mounts focused child owners",
         &sources.native_manifest_sources_parent,
         &[
-            "#[path = \"manifest_sources/compat_registration.rs\"]",
+            "#[path = \"../../../../errors/loader/manifest_sources/compat_registration.rs\"]",
             "mod compat_registration;",
-            "#[path = \"manifest_sources/collection_candidate.rs\"]",
+            "#[path = \"../../../../errors/loader/manifest_sources/collection_candidate.rs\"]",
             "mod collection_candidate;",
         ],
     );

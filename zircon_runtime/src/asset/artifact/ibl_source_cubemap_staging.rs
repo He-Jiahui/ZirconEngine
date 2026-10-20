@@ -18,6 +18,9 @@ use crate::core::resource::io::transaction::{
     DurableCommitReport, DurableTransactionError, PreparedFileWrite, TransactionFault,
 };
 
+#[path = "ibl_source_cubemap_staging/admission.rs"]
+pub(crate) mod admission;
+
 #[path = "ibl_source_cubemap_staging/bundle_recovery.rs"]
 mod bundle_recovery;
 
@@ -37,7 +40,7 @@ use super::ibl_source_cubemap_bundle_manifest::{
 };
 pub const IBL_SOURCE_CUBEMAP_STAGING_DIRECTORY: &str = "render/ibl-source";
 pub const IBL_SOURCE_CUBEMAP_STAGING_EXTENSION: &str = "zcube";
-pub const IBL_SOURCE_CUBEMAP_STAGING_VERSION: u64 = 2026_08_10_0001;
+pub const IBL_SOURCE_CUBEMAP_STAGING_VERSION: u64 = 202_608_100_001;
 pub(super) const IBL_SOURCE_CUBEMAP_BUNDLE_JOURNAL_DIRECTORY: &str =
     "render/ibl-source-bundle-journal";
 const IBL_SOURCE_CUBEMAP_BUNDLE_TRANSACTION_TAG: &str = "ibl-source-bundle";
@@ -108,7 +111,7 @@ impl IblSourceCubemapStagingStore {
         )
     }
 
-    // BUG: [CR-ASSET-ARTIFACT-0001] 此热缓存探测只比较源/派生文件长度，未核对清单摘要；等长损坏仍被 importer/environment_ibl 的 Reused 分支接受。
+    // 已验证摘要的源/派生句柄凭据仍与当前清单和物理身份一致时才接受热命中；否则重新准入。
     pub(crate) fn current_bundle_manifest_matches(
         &self,
         request: &IblBakeArtifactRequest,
@@ -119,6 +122,10 @@ impl IblSourceCubemapStagingStore {
         else {
             return Ok(false);
         };
+        let _owner = self
+            .asset_derived_store()
+            .acquire_bundle_owner_lock()
+            .map_err(IblSourceCubemapStagingError::BundleObservation)?;
         let Ok(manifest) = IblSourceCubemapBundleManifest::decode(&manifest_bytes) else {
             return Ok(false);
         };
@@ -139,7 +146,9 @@ impl IblSourceCubemapStagingStore {
             Some((observed_path, observed_bytes))
                 if observed_path == manifest_path && observed_bytes == manifest_bytes
         );
-        Ok(manifest_is_current && !self.bundle_publication_is_pending()?)
+        Ok(manifest_is_current
+            && !self.bundle_publication_is_pending()?
+            && admission::cached_bundle_matches(self, request, &manifest_bytes)?)
     }
 
     fn read_source_cubemap_environment_with_snapshot_hooks<
@@ -242,15 +251,39 @@ impl IblSourceCubemapStagingStore {
             if !manifest_is_current || self.bundle_publication_is_pending()? {
                 continue;
             }
-            if !manifest.source().matches_bytes(&source_bytes) {
-                return Err(IblSourceCubemapStagingError::BundlePayloadStampMismatch {
-                    payload: "source.zcube",
-                });
-            }
-            if !manifest.derived().matches_bytes(&derived_bytes) {
-                return Err(IblSourceCubemapStagingError::BundlePayloadStampMismatch {
-                    payload: "asset-derived.zribl",
-                });
+            let mismatched_payload = if !manifest.source().matches_bytes(&source_bytes) {
+                Some("source.zcube")
+            } else if !manifest.derived().matches_bytes(&derived_bytes) {
+                Some("asset-derived.zribl")
+            } else {
+                None
+            };
+            if let Some(payload) = mismatched_payload {
+                // A repair can publish identical manifest bytes after this snapshot was read.
+                // Only report stable corruption after observing the payloads under its owner.
+                let _owner = self
+                    .asset_derived_store()
+                    .acquire_bundle_owner_lock()
+                    .map_err(IblSourceCubemapStagingError::BundleObservation)?;
+                if self.bundle_publication_is_pending()?
+                    || !matches!(
+                        self.read_bundle_manifest_bytes(request)?,
+                        Some((_, bytes)) if bytes == manifest_bytes
+                    )
+                    || !matches!(
+                        self.read_source_cubemap_bytes(request)?,
+                        Some((_, bytes)) if bytes == source_bytes
+                    )
+                    || !matches!(
+                        self.asset_derived_store()
+                            .read_asset_derived_bytes(request)
+                            .map_err(IblSourceCubemapStagingError::AssetDerived)?,
+                        Some((_, bytes)) if bytes == derived_bytes
+                    )
+                {
+                    continue;
+                }
+                return Err(IblSourceCubemapStagingError::BundlePayloadStampMismatch { payload });
             }
             let derived = IblBakeArtifactBlob::decode_current_for_request(request, &derived_bytes)
                 .map_err(IblSourceCubemapStagingError::RejectedAssetDerived)?;
@@ -425,6 +458,7 @@ impl IblSourceCubemapStagingStore {
         let (writes, bundle) =
             self.prepare_source_cubemap_staged_bundle(request, uri, cubemap, irradiance_cube)?;
         self.commit_prepared_bundle_writes_with_fault(writes, fault)?;
+        self.seed_committed_bundle_admission(request)?;
         Ok(bundle)
     }
 
@@ -493,25 +527,9 @@ impl IblSourceCubemapStagingStore {
         request: &IblBakeArtifactRequest,
         source_image: IblSourceImageIdentity,
         asset_derived_bytes: &[u8],
+        proof: admission::VerifiedSourceProof,
     ) -> Result<PreparedFileWrite, IblSourceCubemapStagingError> {
-        let source_path = self.source_cubemap_path(request);
-        let source_bytes =
-            fs::read(&source_path).map_err(|source| IblSourceCubemapStagingError::Read {
-                path: source_path,
-                source,
-            })?;
-        let bytes = IblSourceCubemapBundleManifest::new(
-            request,
-            source_image,
-            &source_bytes,
-            asset_derived_bytes,
-        )
-        .encode()
-        .to_vec();
-        Ok(PreparedFileWrite::new(
-            self.bundle_manifest_path(request),
-            bytes,
-        ))
+        proof.prepare_manifest(self, request, source_image, asset_derived_bytes)
     }
 
     pub(crate) fn commit_prepared_bundle_writes(
@@ -557,6 +575,7 @@ impl IblSourceCubemapStagingStore {
         if writes.is_empty() {
             return Ok(());
         }
+        admission::invalidate_root(self)?;
         self.recover_pending_bundle_writes()?;
         let mut commit_report = DurableCommitReport::default();
         let disposition = commit_prepared_files(
@@ -631,6 +650,9 @@ impl IblSourceCubemapStagingStore {
     }
 
     fn recover_pending_bundle_writes(&self) -> Result<(), IblSourceCubemapStagingError> {
+        if self.bundle_publication_is_pending()? {
+            admission::invalidate_root(self)?;
+        }
         let journal_directory = self.bundle_journal_directory();
         // A fresh cache has no journal directory yet. The durable transaction
         // layer creates its owner lock in the journal's parent, so avoid

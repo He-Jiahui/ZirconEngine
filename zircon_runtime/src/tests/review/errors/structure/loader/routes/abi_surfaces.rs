@@ -9,11 +9,11 @@ pub(super) fn assert_typed_error_native_abi_surfaces_route_is_folder_backed(
         "native ABI surfaces typed-error parent mounts focused child owners",
         &sources.native_abi_surfaces_parent,
         &[
-            "#[path = \"abi_surfaces/behavior_bridge.rs\"]",
+            "#[path = \"../../../../review/errors/loader/abi_surfaces/behavior_bridge.rs\"]",
             "mod behavior_bridge;",
-            "#[path = \"abi_surfaces/plugin_descriptor.rs\"]",
+            "#[path = \"../../../../review/errors/loader/abi_surfaces/plugin_descriptor.rs\"]",
             "mod plugin_descriptor;",
-            "#[path = \"abi_surfaces/host_adapter.rs\"]",
+            "#[path = \"../../../../review/errors/loader/abi_surfaces/host_adapter.rs\"]",
             "mod host_adapter;",
         ],
     );

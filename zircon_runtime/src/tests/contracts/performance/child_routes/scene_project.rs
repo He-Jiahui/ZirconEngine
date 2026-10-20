@@ -6,10 +6,10 @@ pub(super) fn assert_scene_project_routes(sources: &OwnerBudgetSources) {
         "scene/project split route",
         sources.scene_project_splits,
         &[
-            "#[path = \"scene_project_splits/dynamic_session_event.rs\"]",
-            "#[path = \"scene_project_splits/project_io.rs\"]",
-            "#[path = \"scene_project_splits/scene_asset.rs\"]",
-            "#[path = \"scene_project_splits/split_layout.rs\"]",
+            "#[path = \"../scene_project_splits/dynamic_session_event.rs\"]",
+            "#[path = \"../scene_project_splits/project_io.rs\"]",
+            "#[path = \"../scene_project_splits/scene_asset.rs\"]",
+            "#[path = \"../scene_project_splits/split_layout.rs\"]",
         ],
     );
     assert_contains_all(

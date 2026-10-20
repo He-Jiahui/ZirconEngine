@@ -380,11 +380,14 @@ fn run_temporal_resolve_pixels_with_trace_words(
     case: TemporalCase,
     trace_words: [u32; TRACE_WORD_COUNT],
 ) -> Vec<TemporalResult> {
-    let trace = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-        label: Some("hybrid-gi-temporal-test-trace"),
-        contents: bytemuck::cast_slice(&trace_words),
-        usage: wgpu::BufferUsages::STORAGE,
-    });
+    let trace = DeviceExt::create_buffer_init(
+        device,
+        &wgpu::util::BufferInitDescriptor {
+            label: Some("hybrid-gi-temporal-test-trace"),
+            contents: bytemuck::cast_slice(&trace_words),
+            usage: wgpu::BufferUsages::STORAGE,
+        },
+    );
     let (_velocity, velocity_view) = sampled_rg32_texture(
         device,
         queue,
@@ -415,11 +418,14 @@ fn run_temporal_resolve_pixels_with_trace_words(
         case.history_available,
         case.debug_view,
     );
-    let params_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-        label: Some("hybrid-gi-temporal-test-params"),
-        contents: bytemuck::bytes_of(&params),
-        usage: wgpu::BufferUsages::UNIFORM,
-    });
+    let params_buffer = DeviceExt::create_buffer_init(
+        device,
+        &wgpu::util::BufferInitDescriptor {
+            label: Some("hybrid-gi-temporal-test-params"),
+            contents: bytemuck::bytes_of(&params),
+            usage: wgpu::BufferUsages::UNIFORM,
+        },
+    );
     let layout = create_resolve_trace_bind_group_layout(device);
     let pipeline = create_resolve_trace_pipeline(
         device,
@@ -431,7 +437,7 @@ fn run_temporal_resolve_pixels_with_trace_words(
     let bind_group = create_resolve_trace_bind_group(
         device,
         &layout,
-        &trace,
+        trace.as_entire_buffer_binding(),
         &velocity_view,
         &history_view,
         &metadata_history_view,

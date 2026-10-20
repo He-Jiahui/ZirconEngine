@@ -78,3 +78,17 @@ The latest real-asset slice validated `editor_material.zui` and `welcome.zui` wi
 ## Reload Fingerprint
 
 `apply_document` replaces the active theme and returns `UiThemeReloadOutcome` with previous and new fingerprints plus a `changed` flag. Future hot reload should use this to invalidate style caches and restyle surfaces without rebuilding the UI tree.
+
+## Current Theme Token Scan Scope
+
+Token governance must 扫 `.zui` UI 文档与 `paint_template_nodes` 源, with explicit exemptions. Theme tokens and layout metadata are distinct authorities.
+
+## Theme Token Scan Validation
+
+The original bounded token-scan positive/negative contract remains required; this text does not claim a new scan or rendering result.
+
+### Clause provenance
+
+These content identities preserve the source of this transfer. They are not fresh measurements, active-file dependencies or acceptance receipts.
+
+- `04-style-theme-and-painter-selector.md`, SHA-256 `6cd240f61e0d2a89c94b490246f88707decd21f214beb211b2eb0d22fc7e29c4`, selected source lines 158-158.

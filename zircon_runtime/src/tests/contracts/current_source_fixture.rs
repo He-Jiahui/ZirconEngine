@@ -1,7 +1,8 @@
 //! 归档的实现输出记录是运行时结构守卫共享的只读证据。以结果断言检查当前接口或源码快照对应的边界。
-pub(crate) const RUNTIME_ARCHITECTURE_IMPLEMENTATION_OUTPUT: &str = include_str!(
-    "../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md"
-);
+use crate::tests::runtime_absorption::structure_convention::fixed_history_archive_source as history;
+pub(crate) fn runtime_architecture_implementation_output() -> &'static str {
+    history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md")
+}
 
 #[test]
 fn runtime_architecture_implementation_output_is_tracked_plan_evidence() {
@@ -12,7 +13,7 @@ fn runtime_architecture_implementation_output_is_tracked_plan_evidence() {
         "d11_animation_physics_test_runtime_fixture_static_passed_cargo_deferred",
     ] {
         assert!(
-            RUNTIME_ARCHITECTURE_IMPLEMENTATION_OUTPUT.contains(anchor),
+            runtime_architecture_implementation_output().contains(anchor),
             "tracked runtime architecture output should contain `{anchor}`"
         );
     }

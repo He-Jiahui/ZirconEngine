@@ -125,6 +125,7 @@ fn virtual_geometry_unified_indirect_uses_fallback_recycle_slot_authority_for_su
             .asset_root(&RelPath::project_assets())
             .join("models")
             .join("tiled_quad.obj"),
+        4,
     );
     write_material(
         paths
@@ -456,6 +457,7 @@ fn virtual_geometry_prepare_cluster_raster_output_changes_when_fallback_slot_aut
             .asset_root(&RelPath::project_assets())
             .join("models")
             .join("tiled_quad.obj"),
+        8,
     );
     write_material(
         paths
@@ -595,6 +597,7 @@ fn virtual_geometry_indirect_args_buffer_order_follows_fallback_slot_submission_
             .asset_root(&RelPath::project_assets())
             .join("models")
             .join("tiled_quad.obj"),
+        4,
     );
     write_material(
         paths
@@ -933,6 +936,7 @@ fn build_single_entity_extract_with_clusters(
     };
     let mut extract =
         RenderFrameExtract::from_snapshot(RenderWorldSnapshotHandle::new(1), snapshot);
+    extract.apply_viewport_size(viewport_size);
     extract.geometry.virtual_geometry = Some(RenderVirtualGeometryExtract {
         cluster_budget: clusters.len() as u32,
         page_budget: 2,
@@ -1042,6 +1046,7 @@ fn build_dual_entity_extract_with_clusters(
     };
     let mut extract =
         RenderFrameExtract::from_snapshot(RenderWorldSnapshotHandle::new(1), snapshot);
+    extract.apply_viewport_size(viewport_size);
     extract.geometry.virtual_geometry = Some(RenderVirtualGeometryExtract {
         cluster_budget: clusters.len() as u32,
         page_budget: pages.len() as u32,
@@ -1120,10 +1125,11 @@ fn write_solid_png(path: PathBuf, rgba: [u8; 4]) {
         .unwrap();
 }
 
-fn write_tiled_quad_obj(path: PathBuf) {
+fn write_tiled_quad_obj(path: PathBuf, cluster_triangle_count: usize) {
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent).unwrap();
     }
+    enable_fixture_virtual_geometry_cook(&path, cluster_triangle_count);
     fs::write(
         path,
         "\
@@ -1163,6 +1169,7 @@ fn write_quad_obj(path: PathBuf) {
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent).unwrap();
     }
+    enable_fixture_virtual_geometry_cook(&path, 2);
     fs::write(
         path,
         "v -1.0 -1.0 0.0\nv 1.0 -1.0 0.0\nv 1.0 1.0 0.0\nv -1.0 1.0 0.0\nvt 0.0 0.0\nvt 1.0 0.0\nvt 1.0 1.0\nvt 0.0 1.0\nvn 0.0 0.0 1.0\nf 1/1/1 2/2/1 3/3/1\nf 1/1/1 3/3/1 4/4/1\n",
@@ -1790,8 +1797,42 @@ fn build_overlapping_extract(
         },
         virtual_geometry_debug: None,
     };
+    let instances = snapshot
+        .scene
+        .meshes
+        .iter()
+        .map(|mesh| {
+            let cluster_rows = clusters
+                .iter()
+                .enumerate()
+                .filter(|(_, row)| row.entity == mesh.node_id)
+                .map(|(index, _)| index)
+                .collect::<Vec<_>>();
+            assert_eq!(cluster_rows.len(), 1, "fixture mesh owns one cluster row");
+            let cluster_offset = cluster_rows[0];
+            let page_rows = pages
+                .iter()
+                .enumerate()
+                .filter(|(_, row)| row.page_id == clusters[cluster_offset].page_id)
+                .map(|(index, _)| index)
+                .collect::<Vec<_>>();
+            assert_eq!(page_rows.len(), 1, "fixture cluster owns one page row");
+            zircon_runtime::core::framework::render::RenderVirtualGeometryInstance {
+                entity: mesh.node_id,
+                stable_instance_key: mesh.stable_instance_key,
+                source_model: Some(mesh.model.id()),
+                transform: mesh.transform,
+                cluster_offset: u32::try_from(cluster_offset).expect("fixture cluster offset"),
+                cluster_count: 1,
+                page_offset: u32::try_from(page_rows[0]).expect("fixture page offset"),
+                page_count: 1,
+                ..Default::default()
+            }
+        })
+        .collect();
     let mut extract =
         RenderFrameExtract::from_snapshot(RenderWorldSnapshotHandle::new(1), snapshot);
+    extract.apply_viewport_size(viewport_size);
     extract.geometry.virtual_geometry = Some(RenderVirtualGeometryExtract {
         cluster_budget: clusters.len() as u32,
         page_budget: pages.len() as u32,
@@ -1800,7 +1841,7 @@ fn build_overlapping_extract(
         hierarchy_child_ids: Vec::new(),
         pages,
         page_dependencies: Vec::new(),
-        instances: Vec::new(),
+        instances,
         debug: Default::default(),
     });
     extract
@@ -1999,4 +2040,22 @@ fn persisted_reference_for_fixture(
         )
         .unwrap(),
     )
+}
+
+fn enable_fixture_virtual_geometry_cook(path: &Path, cluster_triangle_count: usize) {
+    let file_name = path.file_name().unwrap();
+    let uri = format!("res://models/{}", file_name.to_str().unwrap());
+    let mut metadata = zircon_runtime::asset::project::AssetMetaDocument::new(
+        zircon_runtime::asset::AssetUuid::new(),
+        AssetUri::parse(&uri).unwrap(),
+        zircon_runtime::asset::AssetKind::Model,
+    );
+    metadata.import_settings = format!(
+        "[virtual_geometry]\nenabled = true\ncluster_triangle_count = {cluster_triangle_count}\npage_cluster_count = 1\n"
+    )
+    .parse()
+    .unwrap();
+    let mut sidecar_name = file_name.to_os_string();
+    sidecar_name.push(".zmeta");
+    metadata.save(path.with_file_name(sidecar_name)).unwrap();
 }

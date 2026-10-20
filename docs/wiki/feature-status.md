@@ -5,14 +5,14 @@ related_code:
   - zircon_app/src/entry/product_host_config
   - zircon_editor/Cargo.toml
   - zircon_plugins/Cargo.toml
-  - docs/plans/mvp/index.md
+  - docs/testing-and-validation/mvp-acceptance-index.md
 implementation_files:
   - zircon_runtime/Cargo.toml
   - zircon_app/src/entry
   - zircon_editor/Cargo.toml
 plan_sources:
   - user: 2026-09-09 构建 ZirconEngine 详细 Wiki 文档集合
-  - docs/plans/mvp/index.md
+  - docs/testing-and-validation/mvp-acceptance-index.md
   - docs/wiki/architecture/module-and-profile-composition.md
 tests:
   - zircon_runtime/src/tests
@@ -58,7 +58,7 @@ feature 只说明编译面，不等于运行时 capability。产品入口还要�
 
 ## MVP 事实
 
-`docs/plans/mvp/index.md` 目前将 F0-F5 标为依赖链，并要求：创建/打开同一项目、加载 registry/settings、渲染 camera/primitive/light、接收输入、通过 editor command 修改 transform、保存/重开、连续两次产品运行。Wiki 页面因此把这些能力标成“源码有入口但整体验收仍受计划状态约束”。
+`docs/testing-and-validation/mvp-acceptance-index.md` 目前将 F0-F5 标为依赖链，并要求：创建/打开同一项目、加载 registry/settings、渲染 camera/primitive/light、接收输入、通过 editor command 修改 transform、保存/重开、连续两次产品运行。Wiki 页面因此把这些能力标成“源码有入口但整体验收仍受计划状态约束”。
 
 ## 如何更新状态
 

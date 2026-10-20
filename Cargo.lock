@@ -9984,6 +9984,7 @@ dependencies = [
  "toml 1.1.4+spec-1.1.0",
  "zircon_plugin_sdk",
  "zircon_runtime",
+ "zircon_runtime_interface",
 ]
 
 [[package]]
@@ -10026,6 +10027,7 @@ name = "zircon_plugin_sdk"
 version = "0.1.0"
 dependencies = [
  "serde",
+ "serde_json",
  "toml 1.1.4+spec-1.1.0",
  "zircon_editor",
  "zircon_runtime",

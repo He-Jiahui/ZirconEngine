@@ -368,7 +368,9 @@ fn one_shot_trigger_interruption_waits_for_source_pose_then_consumes() {
 
     let level = runtime.create_default_level().unwrap();
     let entity = level.with_world_mut(|world| {
-        let entity = world.spawn_node(NodeKind::Cube);
+        let entity = world
+            .spawn_node(NodeKind::Cube)
+            .expect("test node creation must succeed");
         world
             .set_animation_skeleton(
                 entity,
@@ -596,7 +598,9 @@ pub(super) fn spawn_state_machine_player(
     parameters: BTreeMap<String, AnimationParameterValue>,
 ) -> zircon_runtime::scene::EntityId {
     level.with_world_mut(|world| {
-        let entity = world.spawn_node(NodeKind::Cube);
+        let entity = world
+            .spawn_node(NodeKind::Cube)
+            .expect("test node creation must succeed");
         world
             .set_animation_skeleton(
                 entity,

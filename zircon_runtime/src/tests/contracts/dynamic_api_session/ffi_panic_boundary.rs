@@ -1,4 +1,5 @@
 //! 动态会话的二进制接口、宿主请求和诊断路由需与共享契约同步。以结果断言检查当前接口或源码快照对应的边界。
+use crate::tests::runtime_absorption::structure_convention::fixed_history_archive_source as history;
 #[test]
 fn runtime_10_ffi_panic_boundary_keeps_exports_as_only_c_abi_edge() {
     let exports_source = include_str!("../../../dynamic_api/exports.rs");
@@ -7,11 +8,9 @@ fn runtime_10_ffi_panic_boundary_keeps_exports_as_only_c_abi_edge() {
     let api_table_tests = include_str!("../../../dynamic_api/tests/api_table.rs");
     let session_doc =
         include_str!("../../../../../docs/crates/zircon_runtime/dynamic_api/session.md");
-    let runtime_10_output = include_str!(
-        "../../../../../docs/plans/zircon_runtime/runtime/10/2026-07-09-dynamic-api-and-interface-convergence-output-records.md"
-    );
-    let runtime_index_output = include_str!(
-        "../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md"
+    let runtime_10_output = history("docs/plans/zircon_runtime/runtime/10/2026-07-09-dynamic-api-and-interface-convergence-output-records.md");
+    let runtime_index_output = history(
+        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md",
     );
 
     for required_exports_anchor in [

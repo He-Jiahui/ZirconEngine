@@ -38,7 +38,9 @@ fn animation_evaluate_records_populated_and_empty_frame_diagnostics() {
 
     let populated_level = runtime.create_default_level().unwrap();
     populated_level.with_world_mut(|world| {
-        let entity = world.spawn_node(NodeKind::Cube);
+        let entity = world
+            .spawn_node(NodeKind::Cube)
+            .expect("test node creation must succeed");
         world
             .set_animation_skeleton(
                 entity,
@@ -132,7 +134,9 @@ fn invalid_clip_revision_emits_one_typed_diagnostic_per_revision() {
 
     let level = runtime.create_default_level().unwrap();
     let entity = level.with_world_mut(|world| {
-        let entity = world.spawn_node(NodeKind::Cube);
+        let entity = world
+            .spawn_node(NodeKind::Cube)
+            .expect("test node creation must succeed");
         world
             .set_animation_skeleton(
                 entity,

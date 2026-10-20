@@ -35,11 +35,9 @@ fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
     // Map destination pixel centers to source pixel centers. The allocation can contain aligned
     // tail texels, so only the logical sizes participate in the scale and the allocation size is
     // used for the final normalized coordinate.
-    // BUG: [CR-POST-SHADER-0005] 放大时若源 allocation 含尾部，末端双线性采样会混入无效 texel；
-    // 证据：逻辑输入 2、allocation 8、输出 4 的最后片元映到 source_pixel=2，跨越有效末端中心 1.5。
-    // Rust 只将 sampler 限制到 allocation 边缘，尚未限制到逻辑边缘。
     let source_pixel = (input.clip_position.xy - vec2<f32>(0.5)) * (input_size / output_size)
         + vec2<f32>(0.5);
-    let source_uv = source_pixel / source_allocation_size;
+    let clamped_source_pixel = clamp(source_pixel, vec2<f32>(0.5), input_size - vec2<f32>(0.5));
+    let source_uv = clamped_source_pixel / source_allocation_size;
     return textureSampleLevel(source_tex, source_sampler, source_uv, 0.0);
 }

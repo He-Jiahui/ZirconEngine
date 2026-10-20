@@ -31,7 +31,7 @@ use super::request::{
     DiagnosticReadbackSource, DiagnosticTextureReadbackRequest,
 };
 
-const BUFFER_COPY_ALIGNMENT: u64 = wgpu::COPY_BUFFER_ALIGNMENT as u64;
+const BUFFER_COPY_ALIGNMENT: u64 = wgpu::COPY_BUFFER_ALIGNMENT;
 
 /// Device-generation-local diagnostic copy/map lifecycle owner.
 ///

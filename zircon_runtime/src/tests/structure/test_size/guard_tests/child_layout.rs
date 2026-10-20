@@ -16,33 +16,32 @@ const PRIORITY_CHILD_PATHS: &[&str] = &[
 
 #[test]
 fn runtime_15_priority_plan_docs_guard_children_are_folder_backed() {
-    let parent_path =
-        "tests/runtime_absorption/structure_convention/test_file_budget/priority_plan_docs.rs";
+    let parent_path = "tests/contracts/structure/test_size/priority_plan_docs.rs";
     let parent = read_runtime_src(parent_path);
     let child_specs = [
         (
             "code_paths",
-            "tests/runtime_absorption/structure_convention/test_file_budget/priority_plan_docs/code_paths.rs",
+            "tests/structure/test_size/priority_plan_docs/code_paths.rs",
             "runtime_15_priority_plan_docs_code_paths_stay_current",
         ),
         (
             "test_paths",
-            "tests/runtime_absorption/structure_convention/test_file_budget/priority_plan_docs/test_paths.rs",
+            "tests/structure/test_size/priority_plan_docs/test_paths.rs",
             "runtime_15_priority_plan_docs_test_paths_stay_current",
         ),
         (
             "frontmatter_uniqueness",
-            "tests/runtime_absorption/structure_convention/test_file_budget/priority_plan_docs/frontmatter_uniqueness.rs",
+            "tests/test_size/priority_plan_docs/frontmatter_uniqueness.rs",
             "runtime_15_priority_plan_docs_frontmatter_sections_have_unique_entries",
         ),
         (
             "header_sections",
-            "tests/runtime_absorption/structure_convention/test_file_budget/priority_plan_docs/header_sections.rs",
+            "tests/test_size/priority_plan_docs/header_sections.rs",
             "runtime_15_priority_plan_docs_required_header_sections_stay_complete",
         ),
         (
             "plan_sources",
-            "tests/runtime_absorption/structure_convention/test_file_budget/priority_plan_docs/plan_sources.rs",
+            "tests/structure/test_size/priority_plan_docs/plan_sources.rs",
             "runtime_15_priority_plan_docs_plan_sources_stay_cross_linked",
         ),
     ];
@@ -75,7 +74,7 @@ fn runtime_15_priority_plan_docs_guard_children_are_folder_backed() {
         parent.contains("mod guard_tests;"),
         "priority_plan_docs.rs should mount the guard_tests child owner"
     );
-    let guard_tests_parent_path = "tests/runtime_absorption/structure_convention/test_file_budget/priority_plan_docs/guard_tests.rs";
+    let guard_tests_parent_path = "tests/structure/test_size/priority_plan_docs/guard.rs";
     let guard_tests_parent = read_runtime_src(guard_tests_parent_path);
     assert_contains_all(
         guard_tests_parent_path,
@@ -97,13 +96,6 @@ fn runtime_15_priority_plan_docs_guard_children_are_folder_backed() {
         guard_tests_parent.lines().count() <= 40,
         "priority_plan_docs/guard_tests.rs should remain a small nested route owner"
     );
-
-    let _runtime_15_plan =
-        read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
-    let _runtime_index = runtime_index_with_output_archive_source();
-    let _structure_plan = read_repo("docs/plans/engine-code-structure-convention.md");
-    let _review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
-    let _module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
 
     let current_owner_archive = priority_plan_doc_current_owner_archive_source();
     assert_child_owner_windows_name_full_inventory(

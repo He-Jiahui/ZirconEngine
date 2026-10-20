@@ -138,7 +138,8 @@ def _environment_policy(state, repo_root: Path) -> tuple[dict[str, str], dict[st
     values.setdefault("RUSTC_WRAPPER", "")
     values.setdefault("RUSTC_WORKSPACE_WRAPPER", "")
     values.setdefault("CARGO_NET_OFFLINE", "true")
-    values.setdefault("CARGO_INCREMENTAL", "1")
+    # Absence means Cargo uses the workspace's per-package profile policy.
+    # Only an explicitly registered environment may override that policy.
     for required in ("INCLUDE", "LIB", "LIBPATH", "PATH"):
         if not values.get(required):
             raise JenkinsError("environment_policy_incomplete", f"trusted environment is missing {required}")

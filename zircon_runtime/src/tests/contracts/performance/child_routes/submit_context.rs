@@ -7,8 +7,8 @@ pub(super) fn assert_submit_context_routes(sources: &OwnerBudgetSources) {
         sources.submit_context,
         &[
             "fn runtime_07_submit_context_shares_large_extract_payloads",
-            "#[path = \"submit_context/camera_loop_sharing.rs\"]",
-            "#[path = \"submit_context/source_extract_payloads.rs\"]",
+            "#[path = \"../submit_context/camera_loop_sharing.rs\"]",
+            "#[path = \"../submit_context/source_extract_payloads.rs\"]",
             "#[path = \"submit_context/split_layout.rs\"]",
         ],
     );

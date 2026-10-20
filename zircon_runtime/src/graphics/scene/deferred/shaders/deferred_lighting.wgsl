@@ -64,6 +64,12 @@ fn select_deferred_ambient(emissive: vec4<f32>) {
     zr_deferred_selected_ambient_color = deferred_ambient_color(lightmapped);
 }
 
+fn deferred_screen_space_ambient_occlusion(coord: vec2<i32>) -> f32 {
+    let extent = vec2<i32>(textureDimensions(ambient_occlusion_tex, 0u));
+    let sample_coord = clamp(coord, vec2<i32>(0), extent - vec2<i32>(1));
+    return clamp(textureLoad(ambient_occlusion_tex, sample_coord, 0).r, 0.0, 1.0);
+}
+
 fn deferred_material_flags(encoded: f32) -> u32 {
     return u32(round(clamp(encoded, 0.0, 1.0) * 255.0));
 }
@@ -405,7 +411,7 @@ fn shade_deferred_lit(position: vec4<f32>, coord: vec2<i32>, albedo: vec4<f32>, 
     let depth = clamp(textureLoad(scene_depth_tex, coord, 0), 0.0, 1.0);
     let world_position = reconstruct_world_position(coord, depth);
     let view_dir = zr_pbr_view_direction_ws(world_position);
-    let screen_space_ao = clamp(textureLoad(ambient_occlusion_tex, coord, 0).r, 0.0, 1.0);
+    let screen_space_ao = deferred_screen_space_ambient_occlusion(coord);
     let ambient = zr_deferred_ambient_radiance() * occlusion * screen_space_ao;
     let diffuse_color = deferred_diffuse_color(albedo, shading_model_id);
     let direct_lights = gpu_light_lighting(position.xy, world_position, normal, roughness, metallic, diffuse_color, view_dir, shading_model_id, receive_shadows);
@@ -453,7 +459,7 @@ fn shade_deferred_subsurface_components(position: vec4<f32>, coord: vec2<i32>, a
         true,
     );
     let ambient_diffuse_energy = vec3<f32>(zr_surface_metallic_diffuse_energy_scale(metallic));
-    let screen_space_ao = clamp(textureLoad(ambient_occlusion_tex, coord, 0).r, 0.0, 1.0);
+    let screen_space_ao = deferred_screen_space_ambient_occlusion(coord);
     return ZrDeferredLightingComponents(
         diffuse_color
             * ambient_diffuse_energy

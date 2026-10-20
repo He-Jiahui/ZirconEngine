@@ -6,9 +6,9 @@ pub(super) fn assert_hotspot_inventory_split_route(sources: &HotspotInventorySpl
         "hotspot inventory route",
         sources.parent,
         &[
-            "#[path = \"hotspot_inventory/ecs_extract_counters.rs\"]",
-            "#[path = \"hotspot_inventory/evidence_gate_docs.rs\"]",
-            "#[path = \"hotspot_inventory/profiling_trace_render.rs\"]",
+            "#[path = \"../hotspot_inventory/ecs_extract_counters.rs\"]",
+            "#[path = \"../hotspot_inventory/evidence_gate_docs.rs\"]",
+            "#[path = \"../hotspot_inventory/profiling_trace_render.rs\"]",
             "#[path = \"hotspot_inventory/sources.rs\"]",
             "#[path = \"hotspot_inventory/split_layout.rs\"]",
             "fn runtime_07_hotspot_inventory_requires_counted_evidence_before_m2()",
@@ -34,10 +34,10 @@ pub(super) fn assert_hotspot_inventory_split_route(sources: &HotspotInventorySpl
         "hotspot inventory split-layout route",
         sources.split_layout_route,
         &[
-            "#[path = \"split_layout/route.rs\"]",
-            "#[path = \"split_layout/source_inventory.rs\"]",
-            "#[path = \"split_layout/sources.rs\"]",
-            "#[path = \"split_layout/status_docs.rs\"]",
+            "#[path = \"../../split_layout/hotspot_inventory_route.rs\"]",
+            "#[path = \"../../../split_layout/hotspot_inventory_source_inventory.rs\"]",
+            "#[path = \"../../split_layout/hotspot_inventory_sources.rs\"]",
+            "#[path = \"../../split_layout/hotspot_inventory_status_docs.rs\"]",
             "route::assert_hotspot_inventory_split_route(&sources);",
             "source_inventory::assert_hotspot_inventory_source_inventory(&sources);",
             "status_docs::assert_hotspot_inventory_status_docs(&sources);",
@@ -86,8 +86,8 @@ fn assert_hotspot_inventory_children(sources: &HotspotInventorySplitSources) {
         sources.ecs_extract_counters,
         &[
             "assert_ecs_extract_counter_evidence",
-            "#[path = \"ecs_extract_counters/query_change.rs\"]",
-            "#[path = \"ecs_extract_counters/split_layout.rs\"]",
+            "#[path = \"../ecs_extract_counters/query_change.rs\"]",
+            "#[path = \"../ecs_extract_counters/split_layout.rs\"]",
             "query_change::assert_query_and_change_evidence(sources);",
         ],
     );

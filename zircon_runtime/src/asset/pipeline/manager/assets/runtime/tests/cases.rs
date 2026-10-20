@@ -576,6 +576,7 @@ fn m6_watch_commit_rejects_stale_active_before_dependencies_and_preserves_failur
     assert_eq!(resources.ref_count(root.id), Some(0));
 }
 
+#[cfg(feature = "graphics")]
 #[test]
 fn m6_gltf_watch_failure_keeps_last_good_and_recovery_replaces_resident_group() {
     use crate::asset::{AssetManager, MeshAsset, ModelAsset};
@@ -631,7 +632,7 @@ fn m6_gltf_watch_failure_keeps_last_good_and_recovery_replaces_resident_group() 
     let initial_cold = project.source_resource_records(&cold_uri);
     let warm_model = initial_warm
         .iter()
-        .find(|record| record.kind == ResourceKind::Model)
+        .find(|record| record.kind == ResourceKind::Model && record.primary_locator() == &warm_uri)
         .unwrap()
         .id;
     let warm_mesh = initial_warm
@@ -641,7 +642,7 @@ fn m6_gltf_watch_failure_keeps_last_good_and_recovery_replaces_resident_group() 
         .id;
     let cold_model = initial_cold
         .iter()
-        .find(|record| record.kind == ResourceKind::Model)
+        .find(|record| record.kind == ResourceKind::Model && record.primary_locator() == &cold_uri)
         .unwrap()
         .id;
     let manager = ProjectAssetManager::default();

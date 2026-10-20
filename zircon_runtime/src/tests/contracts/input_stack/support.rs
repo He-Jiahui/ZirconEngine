@@ -28,3 +28,12 @@ fn line_count(path: &Path) -> usize {
         .lines()
         .count()
 }
+
+pub(super) fn assert_sources_contain_all(label: &str, sources: &[&str], anchors: &[&str]) {
+    for anchor in anchors {
+        assert!(
+            sources.iter().any(|source| source.contains(anchor)),
+            "{label} should retain `{anchor}`"
+        );
+    }
+}

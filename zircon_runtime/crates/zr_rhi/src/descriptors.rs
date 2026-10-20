@@ -337,7 +337,7 @@ impl TextureDesc {
             TextureDimension::Cube if self.depth != 1 => {
                 Some("cube textures must declare depth as 1")
             }
-            TextureDimension::Cube if self.array_layers % 6 != 0 => {
+            TextureDimension::Cube if !self.array_layers.is_multiple_of(6) => {
                 Some("cube textures must declare array_layers as a multiple of six faces")
             }
             TextureDimension::D1
@@ -680,6 +680,9 @@ pub enum PresentMode {
     Immediate,
     Fifo,
     Mailbox,
+    FifoRelaxed,
+    AutoVsync,
+    AutoNoVsync,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]

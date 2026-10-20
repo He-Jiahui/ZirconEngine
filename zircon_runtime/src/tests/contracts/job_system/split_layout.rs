@@ -1,38 +1,43 @@
 //! 任务系统的执行模型、并行来源与文档门禁保持同一口径。通过源码文本核对父子路由、状态镜像和文件预算。
+use crate::tests::runtime_absorption::structure_convention::fixed_history_archive_source as history;
 const PARENT_SOURCE: &str = include_str!("../job_system.rs");
 const INVENTORY_SOURCE: &str = include_str!("inventory.rs");
 const INVENTORY_AUDIT_SOURCE: &str = include_str!("inventory/audit.rs");
 const INVENTORY_BEHAVIOR_SOURCE: &str = include_str!("inventory/behavior.rs");
 const INVENTORY_TASK_MODEL_SOURCE: &str = include_str!("inventory/task_model.rs");
+const EXECUTION_ANCHORS_SOURCE: &str = include_str!("inventory/task_model/execution_anchors.rs");
+const RESOURCE_ANCHORS_SOURCE: &str = include_str!("inventory/task_model/resource_anchors.rs");
 const MIRROR_DOCS_SOURCE: &str = include_str!("mirror_docs.rs");
 const SOURCE_HELPERS_SOURCE: &str = include_str!("source_helpers.rs");
+const OWNER_CONTRACTS_SOURCE: &str = include_str!("owner_contracts.rs");
 const SPLIT_LAYOUT_SOURCE: &str = include_str!("split_layout.rs");
 
 const RUNTIME_11_PLAN: &str =
-    include_str!("../../../../../docs/plans/zircon_runtime/runtime/11-job-system-task-model.md");
-const RUNTIME_15_PLAN: &str = include_str!(
-    "../../../../../docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md"
+    include_str!("../../../../../docs/testing-and-validation/runtime-task-validation-worklist.md");
+const RUNTIME_15_PLAN: &str =
+    include_str!("../../../../../docs/crates/zircon_runtime/structure/module-convention.md");
+const RUNTIME_INDEX: &str = include_str!(
+    "../../../../../docs/crates/zircon_runtime/structure/runtime-absorption-evidence.md"
 );
-const RUNTIME_INDEX: &str =
-    include_str!("../../../../../docs/plans/zircon_runtime/runtime/index.md");
 const STRUCTURE_CONVENTION_PLAN: &str =
-    include_str!("../../../../../docs/plans/engine-code-structure-convention.md");
+    include_str!("../../../../../docs/testing-and-validation/development-conventions.md");
 const REVIEW_FINDINGS_PLAN: &str =
-    include_str!("../../../../../docs/plans/engine-code-review-findings-2026-06.md");
+    include_str!("../../../../../docs/architecture/runtime-architecture-review-m0.md");
 const MODULE_CONVENTION_DOC: &str =
     include_str!("../../../../../docs/crates/zircon_runtime/structure/module-convention.md");
-const FRAMEWORKS_02_PLAN: &str = include_str!(
-    "../../../../../docs/plans/zircon_runtime/frameworks/02-module-kernel-and-lifecycle-unification.md"
-);
+const FRAMEWORKS_02_PLAN: &str =
+    include_str!("../../../../../docs/crates/zircon_runtime/core/modules.md");
 #[rustfmt::skip]
-const NUMBERED_STATUS_RECORDS: &str = concat!(
-    include_str!("../../../../../docs/plans/zircon_runtime/runtime/11/2026-07-09-job-system-task-model-output-records.md"),
-    include_str!("../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md"),
-    include_str!("../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md"),
-    include_str!("../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"),
-    include_str!("../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md"),
-    include_str!("../../../../../docs/plans/zircon_runtime/frameworks/02/2026-07-09-module-kernel-and-lifecycle-unification-output-records.md")
-);
+fn numbered_status_records() -> &'static str {
+    crate::runtime_test_history_concat!(
+    history("docs/plans/zircon_runtime/runtime/11/2026-07-09-job-system-task-model-output-records.md"),
+    history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md"),
+    history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md"),
+    history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"),
+    history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md"),
+    history("docs/plans/zircon_runtime/frameworks/02/2026-07-09-module-kernel-and-lifecycle-unification-output-records.md")
+)
+}
 
 #[test]
 fn runtime_15_job_system_route_owner_is_folder_backed() {
@@ -84,11 +89,27 @@ fn assert_child_owners_are_focused() {
             "task_model",
         ],
     );
-    assert_contains_all(
-        "inventory task model child",
-        INVENTORY_TASK_MODEL_SOURCE,
-        &["EXPECTED_JOB_SYSTEM_MODULES", "TIMER_ANCHORS", "mod timer;"],
-    );
+    for (label, source, anchors) in [
+        (
+            "inventory task model child",
+            INVENTORY_TASK_MODEL_SOURCE,
+            &["EXPECTED_JOB_SYSTEM_MODULES", "TIMER_ANCHORS", "mod timer;"][..],
+        ),
+        (
+            "task execution anchors",
+            EXECUTION_ANCHORS_SOURCE,
+            &["JOB_SCHEDULER_ANCHORS", "ENGINE_TASK_GRAPH_ANCHORS"][..],
+        ),
+        (
+            "task resource anchors",
+            RESOURCE_ANCHORS_SOURCE,
+            &["BOUNDED_STREAM_IO_LANE_ANCHORS", "TASK_DESCRIPTOR_ANCHORS"][..],
+        ),
+    ] {
+        assert_contains_all(label, source, anchors);
+    }
+    assert!(INVENTORY_TASK_MODEL_SOURCE.contains("mod execution_anchors;"));
+    assert!(INVENTORY_TASK_MODEL_SOURCE.contains("mod resource_anchors;"));
     assert_contains_all(
         "inventory audit child",
         INVENTORY_AUDIT_SOURCE,
@@ -108,6 +129,10 @@ fn assert_child_owners_are_focused() {
             "assert_contains_all(doc_name, doc_source, MIRROR_DOC_ANCHORS)",
         ],
     );
+    assert!(OWNER_CONTRACTS_SOURCE.contains("pub(super) fn assert_task_owner_contracts"));
+    assert!(OWNER_CONTRACTS_SOURCE.contains("FORBIDDEN_LEGACY_DIAGNOSTIC_ANCHORS"));
+    assert!(MIRROR_DOCS_SOURCE.contains("#[path = \"owner_contracts.rs\"]"));
+    assert!(MIRROR_DOCS_SOURCE.contains("mod owner_contracts;"));
     assert_contains_all(
         "source helpers child",
         SOURCE_HELPERS_SOURCE,
@@ -124,14 +149,13 @@ fn assert_line_budget() {
     for (label, source, max_lines) in [
         ("parent route owner", PARENT_SOURCE, 16),
         ("inventory route child", INVENTORY_SOURCE, 32),
-        (
-            "inventory task model child",
-            INVENTORY_TASK_MODEL_SOURCE,
-            140,
-        ),
+        ("task model child", INVENTORY_TASK_MODEL_SOURCE, 140),
+        ("task execution anchors", EXECUTION_ANCHORS_SOURCE, 140),
+        ("task resource anchors", RESOURCE_ANCHORS_SOURCE, 140),
         ("inventory audit child", INVENTORY_AUDIT_SOURCE, 80),
         ("inventory behavior child", INVENTORY_BEHAVIOR_SOURCE, 80),
         ("mirror docs child", MIRROR_DOCS_SOURCE, 170),
+        ("task API child", OWNER_CONTRACTS_SOURCE, 240),
         ("source helpers child", SOURCE_HELPERS_SOURCE, 80),
         ("split layout guard", SPLIT_LAYOUT_SOURCE, 220),
     ] {
@@ -155,7 +179,7 @@ fn assert_docs_and_status_mirror_split() {
     ] {
         assert!(
             source.contains("runtime_15_job_system_route_owner_split_static_passed_cargo_deferred")
-                || NUMBERED_STATUS_RECORDS.contains(
+                || numbered_status_records().contains(
                     "runtime_15_job_system_route_owner_split_static_passed_cargo_deferred"
                 ),
             "{label} should mirror the job_system route-owner split status"
@@ -174,7 +198,7 @@ fn assert_docs_and_status_mirror_split() {
     );
     assert_contains_all(
         "Frameworks 02 plan",
-        NUMBERED_STATUS_RECORDS,
+        numbered_status_records(),
         &[
             "frameworks_02_m3_job_system_route_owner_split_static_passed_cargo_deferred",
             "Runtime 15 M3 job-system route-owner split",

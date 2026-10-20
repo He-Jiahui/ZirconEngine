@@ -3,16 +3,10 @@
 fn review_f5_texture_loader_uses_typed_error() {
     let texture_loader = include_str!("../../../../../asset/load/texture.rs");
     let worker_pool = include_str!("../../../../../asset/pipeline/worker_pool.rs");
+    let worker_payload = include_str!("../../../../../asset/pipeline/worker_pool/payload.rs");
+    assert!(worker_pool.contains("#[path = \"worker_pool/payload.rs\"]"));
+    assert!(worker_pool.contains("mod payload;"));
     let texture_tests = include_str!("../../../../../asset/tests/load/texture.rs");
-    let review_findings =
-        include_str!("../../../../../../../docs/plans/engine-code-review-findings-2026-06.md");
-    let runtime_15_plan = include_str!(
-        "../../../../../../../docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md"
-    );
-    let runtime_index =
-        include_str!("../../../../../../../docs/plans/zircon_runtime/runtime/index.md");
-    let convention =
-        include_str!("../../../../../../../docs/plans/engine-code-structure-convention.md");
     let worker_doc =
         include_str!("../../../../../../../docs/crates/zircon_runtime/asset/worker_pool.md");
 
@@ -48,7 +42,7 @@ fn review_f5_texture_loader_uses_typed_error() {
         "TextureLoadError::OpenImage",
     ] {
         assert!(
-            worker_pool.contains(required) || texture_tests.contains(required),
+            worker_payload.contains(required) || texture_tests.contains(required),
             "texture loader worker/test surface should contain `{required}`"
         );
     }
@@ -62,11 +56,7 @@ fn review_f5_texture_loader_uses_typed_error() {
         "asset/tests/load/texture.rs",
     ] {
         assert!(
-            review_findings.contains(doc_anchor)
-                || runtime_15_plan.contains(doc_anchor)
-                || runtime_index.contains(doc_anchor)
-                || convention.contains(doc_anchor)
-                || worker_doc.contains(doc_anchor),
+            worker_doc.contains(doc_anchor),
             "F5 texture loader docs should record `{doc_anchor}`"
         );
     }

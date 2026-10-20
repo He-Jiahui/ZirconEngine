@@ -1,3 +1,21 @@
+use crate::core::framework::render::{RenderCapabilitySummary, RenderFrameSubmissionTransaction};
+use crate::core::TaskPool;
+use crate::graphics::backend::{
+    GpuPassTimer, GpuPipelineStatisticsTimer, OffscreenTarget, RenderBackend, ViewportSurface,
+};
+use crate::graphics::scene::resources::ResourceStreamer;
+use crate::graphics::scene::scene_renderer::core::scene_renderer_render_with_pipeline::AsyncViewportCaptureRequest;
+use crate::graphics::scene::scene_renderer::graph_execution::RenderPassExecutorRegistry;
+use crate::graphics::scene::scene_renderer::history::{
+    SceneFrameHistoryTextures, SceneHistoryFrameTransaction,
+};
+use crate::graphics::scene::scene_renderer::post_process::SceneRuntimeFeatureFlags;
+use crate::graphics::types::ViewportRenderFrame;
+use crate::graphics::{CompiledRenderPipeline, EnvironmentIblBakeReservation};
+
+use super::super::super::scene_renderer_core::SceneRendererCore;
+use super::super::SceneRendererCompiledSceneOutputs;
+
 use crate::graphics::scene::scene_renderer::environment::{
     RealtimeIblPendingSubmission, RealtimeIblRuntime,
 };
@@ -64,5 +82,62 @@ impl RenderGenerationIds {
 
     pub(super) fn timer_frame(self) -> u64 {
         self.frame
+    }
+}
+
+impl SceneRendererCore {
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn render_compiled_scene(
+        &mut self,
+        backend: &RenderBackend,
+        streamer: &mut ResourceStreamer,
+        frame: &ViewportRenderFrame,
+        target: &mut OffscreenTarget,
+        pipeline: &CompiledRenderPipeline,
+        capabilities: &RenderCapabilitySummary,
+        render_pass_executors: &RenderPassExecutorRegistry,
+        runtime_features: SceneRuntimeFeatureFlags,
+        history_textures: Option<&mut SceneFrameHistoryTextures>,
+        history_frame_transaction: SceneHistoryFrameTransaction,
+        history_initialization_command_buffer: Option<wgpu::CommandBuffer>,
+        frame_generation: u64,
+        submission_transaction: &mut RenderFrameSubmissionTransaction,
+        gpu_pass_timer: Option<&mut GpuPassTimer>,
+        gpu_pipeline_statistics_timer: Option<&mut GpuPipelineStatisticsTimer>,
+        compute_task_pool: Option<&TaskPool>,
+        parallel_record_min_passes_per_bucket: Option<usize>,
+        hzb_diagnostics_readback_enabled: bool,
+        viewport_capture: Option<AsyncViewportCaptureRequest>,
+        environment_ibl_bake_reservation: Option<EnvironmentIblBakeReservation>,
+        viewport_product_copy: Option<&zr_rhi_wgpu::WgpuUiExternalImageCopyTarget>,
+        surface_frame: Option<(&ViewportSurface, &zr_rhi_wgpu::WgpuNativeSurfaceFrameTarget)>,
+    ) -> Result<SceneRendererCompiledSceneOutputs, GraphicsError> {
+        let mut environment_frame = self.begin_scene_environment_frame();
+        environment_frame
+            .core()
+            .render_compiled_scene_in_environment_frame(
+                backend,
+                streamer,
+                frame,
+                target,
+                pipeline,
+                capabilities,
+                render_pass_executors,
+                runtime_features,
+                history_textures,
+                history_frame_transaction,
+                history_initialization_command_buffer,
+                frame_generation,
+                submission_transaction,
+                gpu_pass_timer,
+                gpu_pipeline_statistics_timer,
+                compute_task_pool,
+                parallel_record_min_passes_per_bucket,
+                hzb_diagnostics_readback_enabled,
+                viewport_capture,
+                environment_ibl_bake_reservation,
+                viewport_product_copy,
+                surface_frame,
+            )
     }
 }

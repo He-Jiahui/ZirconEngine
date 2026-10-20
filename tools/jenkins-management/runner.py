@@ -16,6 +16,27 @@ import subprocess
 import sys
 import time
 
+def fixed_history_archive_input(payload):
+    """Validate the sole typed historical input without writing or copying it."""
+    if "fixedHistoryArchiveInput" not in payload:
+        return None
+    value = payload["fixedHistoryArchiveInput"]
+    if (not isinstance(value, dict) or set(value) != {"schemaVersion", "kind", "access", "root"}
+            or type(value.get("schemaVersion")) is not int or value["schemaVersion"] != 1
+            or value.get("kind") != "zircon-fixed-docs-history" or value.get("access") != "read-only"):
+        raise ValueError("Fixed historical archive requires the exact typed read-only input")
+    raw = value.get("root")
+    if (not isinstance(raw, str) or not raw or len(raw.encode("utf-8")) > 4096
+            or any(c in raw for c in "\0\r\n") or not Path(raw).is_absolute()):
+        raise ValueError("Fixed historical archive root must be an explicit absolute path")
+    archive = Path(raw).resolve(strict=True)
+    if not archive.is_dir():
+        raise ValueError("Fixed historical archive root must be a readable directory")
+    with os.scandir(archive):
+        pass
+    return {**value, "root": str(archive)}
+
+
 ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,79}\Z")
 WORKTREE_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,159}\Z")
 SHA = re.compile(r"(?:[0-9a-f]{40}|[0-9a-f]{64})\Z")
@@ -38,7 +59,7 @@ PREVIEW_REPOSITORY = Path("E:/Git/ZirconEngine")
 PREVIEW_REPORTS = Path("E:/cargo-targets/zircon-local/reports/penpot-unreal-01a0f04d")
 PREVIEW_PROOF = PREVIEW_REPORTS / "ordinary-window-unreal-current/unreal-chrome-cutover-current/jenkins-fixed-editor-preview-current"
 PREVIEW_SCRIPT = Path("E:/cargo-targets/zircon-local/tmp/penpot-unreal-01a0f04d/launch-current-normal-editor-preview-r34.py")
-PREVIEW_SCRIPT_SHA256 = "41ca2d510a2331373b5c34b8eecca55534fada274ab44606c14bfb2ba063457f"
+PREVIEW_SCRIPT_SHA256 = "ba8d6170222b6d2a7e722b895be8108dbc6aace45d21bc0706a1626f5f320e22"
 PREVIEW_PYTHON = Path("E:/cargo-targets/zircon-local/tools/penpot-unreal-01a0f04d/python-3.14.4-embed-amd64/runtime/python.exe")
 PREVIEW_PYTHON_SHA256 = "7ca24f26d6e3f463419ee4f537ddd3acd312c38fe45e678cce08572f26a8bd1a"
 PREVIEW_OUTPUT = Path("E:/cargo-targets/zircon-local/tests/penu-01a0f04d/ordinary-normal-preview-r34")
@@ -238,6 +259,19 @@ def input_changes(before, after, limit=128):
 
 class CheckoutInputIncomplete(ValueError):
     code = "checkout_input_incomplete"
+
+    def __init__(self, message, *, input_diagnostic=None):
+        super().__init__(message)
+        self.input_diagnostic = None
+        if input_diagnostic is not None:
+            self.input_diagnostic = {
+                "schemaVersion": 1,
+                "kind": "installed-git-input-overlap",
+                "selectedGit": {
+                    key: input_diagnostic["selectedGit"][key] for key in ("path", "sha256")},
+                "matchedInput": {
+                    key: input_diagnostic["matchedInput"][key] for key in ("role", "root")},
+            }
 
 
 class CheckoutInputIdentityConflict(ValueError):
@@ -573,6 +607,36 @@ def checkout_product_helper(config, *, required_schema=1):
     return module
 
 
+def client_path(config, repo, name, *, capsule=None):
+    """Resolve one pinned client; an absent clientRoot keeps canonical semantics."""
+    clients = config.get("clientSources", {})
+    checksum = clients.get(name) if isinstance(clients, dict) else None
+    if (not isinstance(name, str) or name not in {
+            "tools/dev/local_cargo.py", "tools/dev/local-cargo.ps1", "tools/dev/dev-fast-build.ps1",
+            "tools/dev/submit-jenkins-management.ps1", "tools/jenkins/frontend.py",
+            "tools/jenkins-management/entry.py"}
+            or not isinstance(checksum, str) or not re.fullmatch(r"[0-9a-f]{64}", checksum)):
+        raise ValueError("Management client source inventory differs")
+    repo = plain(repo)
+    if "clientRoot" not in config:
+        root = repo
+    elif config["clientRoot"] == "clients":
+        capsule = plain(capsule if capsule is not None else Path(__file__).parent)
+        raw = plain(capsule / "capsule.json").read_bytes()
+        if (capsule != repo / ".jenkins/runtime/management" / capsule.name
+                or sha(raw) != capsule.name or json.loads(raw) != config
+                or plain(config["repositoryRoot"]) != repo):
+            raise ValueError("Management client capsule identity differs")
+        root = plain(capsule / "clients")
+    else:
+        raise ValueError("Management client root differs")
+    path = plain(root / name)
+    if sha(path.read_bytes()) != checksum:
+        raise ValueError("Pinned management client implementation changed")
+    return path
+
+
+
 def boot(capsule):
     capsule = plain(capsule)
     raw = (capsule / "capsule.json").read_bytes()
@@ -609,9 +673,8 @@ def boot(capsule):
     if entry is not None and (client_names != ordinary_clients or entry != {
             "enabled": True, "actions": ["validate"], "formalAcceptance": False, "m8Accepted": False}):
         raise ValueError("Ordinary entry requires its complete pinned six-file client inventory")
-    for name, checksum in config["clientSources"].items():
-        if sha(plain(repo / name).read_bytes()) != checksum:
-            raise ValueError("Pinned management client implementation changed")
+    for name in config["clientSources"]:
+        client_path(config, repo, name, capsule=capsule)
     driver = plain(repo / ".jenkins/runtime/drivers" / config["driverDigest"])
     manifest = json.loads((driver / "driver-manifest.json").read_bytes())
     if (sha(encoded({"schemaVersion": manifest["schemaVersion"], "files": manifest["files"]}))
@@ -651,6 +714,7 @@ def boot(capsule):
     if owner["operationId"] != config["runtimeOperationId"] or quiet_observation(manager):
         raise ValueError("Pinned owner changed or deployment admission is draining")
     return config, repo, manager
+
 
 
 def route_request_context(config, repo, manager, payload, *, state=None, query_only=False):
@@ -821,9 +885,11 @@ def validate_branch_candidate(capsule, *, component_digest, root, branch_request
                      "allTests", "harnessFilters", "exact", "ignored", "nocapture"}
     if not isinstance(cargo_recipe, dict) or set(cargo_recipe) - recipe_fields:
         raise ValueError("Only the existing bounded Cargo recipe belongs to branch preparation")
+    recipe_check = object.__new__(Management)
+    recipe_check.payload = cargo_recipe
+    recipe_check.validation_recipe()
     config, repo, manager = boot(capsule)
     from tools.jenkins.source import repository_id
-    from tools.jenkins.workflow.planning import _environment_policy
 
     candidate = _BranchCandidate(repo, root, branch_request, runtime, component_digest)
     fixed = {"action": "validate", "repositoryId": repository_id(repo),
@@ -842,7 +908,7 @@ def validate_branch_candidate(capsule, *, component_digest, root, branch_request
         return {"status": "waiting", "reasonCode": "external_source_unavailable",
                 "preparationStarted": False, "compileStarted": False, "formalAcceptance": False}
     _root, before = probe.validation_with_cache()
-    environment, trusted, _policy_file = _environment_policy(probe.state, repo)
+    environment, trusted, _policy_file = probe.validation_environment()
     for tool in ("cargo", "rustc"):
         if sha(plain(trusted[tool + "Path"]).read_bytes()) != trusted[tool + "Sha256"]:
             raise ValueError("Trusted compiler executable changed")
@@ -2407,7 +2473,7 @@ class Management:
         git_digest = sha(git_path.read_bytes())
         owner = "management-" + self.key
         report = plain(self.outputs() / "reports" / self.key)
-        helper_path = plain(self.repo / "tools/dev/local_cargo.py")
+        helper_path = client_path(self.config, self.repo, "tools/dev/local_cargo.py")
         spec = importlib.util.spec_from_file_location("jenkins_release_native", helper_path)
         helper = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(helper)
@@ -2908,7 +2974,7 @@ class Management:
             raise ValueError("Batch must preserve every complete original semantic command")
         parser = getattr(self, "_batch_parser", None)
         if parser is None:
-            path = plain(self.repo / "tools/jenkins-management/entry.py")
+            path = client_path(self.config, self.repo, "tools/jenkins-management/entry.py")
             if sha(path.read_bytes()) != self.config["clientSources"]["tools/jenkins-management/entry.py"]:
                 raise ValueError("Pinned Cargo contract parser changed")
             spec = importlib.util.spec_from_file_location("pinned_batch_cargo_contract", path)
@@ -2934,7 +3000,7 @@ class Management:
             probe.payload = {**common, **parsed}
             recipe = probe.validation_recipe()
             profile = original.get("profile")
-            if profile is not None and ({"debug": "dev", "dev": "dev", "release": "release"}.get(profile)
+            if profile is not None and ({"debug": "dev", "dev": "dev", "release": "release", "test": "test"}.get(profile)
                                         != recipe["profile"]):
                 raise ValueError("Original profile differs from its Cargo argv")
             requested = original.get("targetDir")
@@ -3394,8 +3460,7 @@ class Management:
         parallelism = max(max(recipe["jobs"], recipe["testThreads"] if recipe["verb"] == "test"
                              and not recipe["noRun"] else 1) for recipe in recipes)
         amount = Capacity(parallelism, 2 * parallelism * 1024**3, 4 * 1024**3)
-        environment, trusted, _policy_file = _environment_policy(self.state, self.repo)
-        environment = compact_build_environment(environment)
+        environment, trusted, _policy_file = self.validation_environment()
         preparation = source_helper()
         cache_fact = self.dependency_cache()
         pool, cargo_configuration = self.batch_pool(recipes, preparation, trusted, environment, root, cache_fact)
@@ -3408,7 +3473,7 @@ class Management:
         if checkpoint.get("pool") and any(checkpoint.get(k) != v for k, v in binding.items()):
             raise ValueError("Original shared batch preparation/configuration/volume changed")
         self.batch_checkpoint(**binding)
-        helper_path = plain(self.repo / "tools/dev/local_cargo.py")
+        helper_path = client_path(self.config, self.repo, "tools/dev/local_cargo.py")
         spec = importlib.util.spec_from_file_location("jenkins_managed_batch_cargo", helper_path)
         helper = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(helper)
@@ -3682,6 +3747,18 @@ class Management:
         return result
 
 
+    def validation_environment(self):
+        """Bind typed read-only archive input into the trusted native identity."""
+        from tools.jenkins.workflow.planning import _environment_policy
+        environment, trusted, policy_file = _environment_policy(self.state, self.repo)
+        environment = compact_build_environment(environment)
+        environment = {key: value for key, value in environment.items()
+                       if key.casefold() != "zircon_docs_history_archive_root"}
+        archive_input = fixed_history_archive_input(self.payload)
+        if archive_input is not None:
+            environment["ZIRCON_DOCS_HISTORY_ARCHIVE_ROOT"] = archive_input["root"]
+        return environment, trusted, policy_file
+
     def validation_recipe(self):
         allowed = {"action", "repositoryId", "sessionId", "requestId", "operationId", "driverDigest",
                    "runtimeOperationId", "ownedPaths", "observationOnly", "sourceView", "worktreeId",
@@ -3690,7 +3767,8 @@ class Management:
                    "allFeatures", "locked", "jobs", "testThreads", "requestedTargetDir",
                    "expectedSourceDigest", "expectedEngineSourceDigest", "externalCapturePolicy",
                    "sourceHashes", "dependencyHashes", "bins", "allTests", "harnessFilters",
-                   "exact", "ignored", "nocapture", "worktreePreparationRef", "sourceEvidencePolicy"}
+                   "exact", "ignored", "nocapture", "worktreePreparationRef", "sourceEvidencePolicy",
+                   "fixedHistoryArchiveInput"}
         if set(self.payload) - allowed:
             raise ValueError("Unsupported Cargo fields: " + ", ".join(sorted(set(self.payload) - allowed)))
         if ("sourceEvidencePolicy" in self.payload
@@ -3706,6 +3784,7 @@ class Management:
                     or not isinstance(engine_digest, str)
                     or not re.fullmatch(r"[0-9a-f]{64}", engine_digest)):
                 raise ValueError("Jenkins dependency admission requires an explicit complete engine source digest")
+        archive_input = fixed_history_archive_input(self.payload)
         packages, features = self.payload.get("packages"), self.payload.get("features", [])
         tests = self.payload.get("tests", [])
         if (not isinstance(packages, list) or not 1 <= len(packages) <= 8
@@ -3716,7 +3795,8 @@ class Management:
                 or any(not isinstance(t, str) or not re.fullmatch(r"[A-Za-z0-9_.-]{1,80}", t) for t in tests)):
             raise ValueError("Explicit bounded Cargo packages/features/test targets required")
         verb, profile = self.payload.get("verb", "test"), self.payload.get("profile", "dev")
-        if verb not in {"check", "build", "test"} or profile not in {"dev", "release"}:
+        if (verb not in {"check", "build", "test"} or profile not in {"dev", "release", "test"}
+                or profile == "test" and verb != "test"):
             raise ValueError("Unsupported Cargo recipe")
         options = {name: self.payload.get(name, name == "locked")
                    for name in ("offline", "noDefaultFeatures", "lib", "noRun", "allFeatures", "locked")}
@@ -3764,6 +3844,8 @@ class Management:
             command += ["--features", ",".join(features)]
         if profile == "release":
             command += ["--release"]
+        elif profile == "test":
+            command += ["--profile", "test"]
         if verb == "test" and not options["noRun"]:
             if test_filter is not None:
                 command.append(test_filter)
@@ -3774,7 +3856,8 @@ class Management:
             command += filters
         return {"verb": verb, "profile": profile, "packages": packages, "features": features,
                 "tests": tests, "testFilter": test_filter, "jobs": jobs, "testThreads": threads,
-                **options, **extra, "command": command}
+                **options, **extra, "command": command,
+                **({"fixedHistoryArchiveInput": archive_input} if archive_input is not None else {})}
 
     def verify_declared_engine(self, engine, payload):
         expected = payload.get("expectedEngineSourceDigest")
@@ -4367,9 +4450,18 @@ class Management:
         if git_fact != bound_git:
             raise CheckoutInputIncomplete("The originally bound installed Git identity changed")
         git_executable = plain(git_fact["path"])
-        if any(git_executable == source or git_executable.is_relative_to(source)
-               for source in (root, cache, *(plain(item["path"]) for item in before["externalRoots"]))):
-            raise CheckoutInputIncomplete("Installed Git cannot be a checkout or dependency-cache input")
+        input_roots = (
+            ("checkout", root), ("dependency-cache", cache),
+            *(("external", plain(item["path"])) for item in before["externalRoots"]),
+        )
+        for role, source in input_roots:
+            if git_executable == source or git_executable.is_relative_to(source):
+                raise CheckoutInputIncomplete(
+                    "Installed Git cannot be a checkout or dependency-cache input",
+                    input_diagnostic={
+                        "selectedGit": {"path": str(git_executable), "sha256": git_fact["sha256"]},
+                        "matchedInput": {"role": role, "root": str(source)},
+                    })
         add(git_executable, git_fact["sha256"])
         trusted_native_inputs = {str(git_executable): git_fact}
         # Explicit default absences can become effective later; monitoring also
@@ -4815,12 +4907,11 @@ class Management:
             return {"status": "unknown", "reasonCode": "checkout_guard_continuity_unproven",
                     "validationInputPolicy": "actual-checkout", "originalReservationRetained": True,
                     "originalWriterRetained": True, "formalAcceptance": False}
-        environment, trusted, policy_file = _environment_policy(self.state, self.repo)
-        environment = compact_build_environment(environment)
+        environment, trusted, policy_file = self.validation_environment()
         self._checkout_policy_file = policy_file
         self._checkout_native_environment = dict(environment)
         preparation = source_helper()
-        helper_path = plain(self.repo / "tools/dev/local_cargo.py")
+        helper_path = client_path(self.config, self.repo, "tools/dev/local_cargo.py")
         spec = importlib.util.spec_from_file_location("jenkins_managed_checkout_cargo", helper_path)
         helper = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(helper)
@@ -5162,9 +5253,12 @@ class Management:
             if guard is not None and admitted is None:
                 guard.close()
             if getattr(error, "code", None) == "checkout_input_incomplete" and admitted is None:
-                return {"status": "waiting", "reasonCode": "checkout_input_incomplete", "message": str(error),
-                        "inputsComplete": False, "compileStarted": False,
-                        "formalAcceptance": False, "m8Accepted": False}
+                result = {"status": "waiting", "reasonCode": "checkout_input_incomplete", "message": str(error),
+                          "inputsComplete": False, "compileStarted": False,
+                          "formalAcceptance": False, "m8Accepted": False}
+                if isinstance(error, CheckoutInputIncomplete) and error.input_diagnostic is not None:
+                    result["inputDiagnostic"] = error.input_diagnostic
+                return result
             if getattr(error, "code", None) in {"checkout_source_busy", "management_git_busy"} and admitted is None:
                 return {"status": "waiting", "reasonCode": getattr(error, "code"), "message": str(error),
                         "formalAcceptance": False}
@@ -5264,8 +5358,7 @@ class Management:
         resources = ResourceManager(self.state, Capacity(policy["cpuBudget"], policy["memoryBudget"], policy["diskBudget"]))
         parallelism = max(recipe["jobs"], recipe["testThreads"] if verb == "test" and not recipe["noRun"] else 1)
         amount = Capacity(parallelism, 2 * parallelism * 1024**3, 4 * 1024**3)
-        environment, trusted, _policy_file = _environment_policy(self.state, self.repo)
-        environment = compact_build_environment(environment)
+        environment, trusted, _policy_file = self.validation_environment()
         preparation = source_helper()
         compatibility_environment = {**environment,
                                      **({"cargoAllFeatures": True} if recipe["allFeatures"] else {}),
@@ -5284,7 +5377,7 @@ class Management:
         report = plain(output / "reports" / self.key)
         if report.exists():
             raise ValueError("Validation report exists; reconcile the original operation")
-        helper_path = plain(self.repo / "tools/dev/local_cargo.py")
+        helper_path = client_path(self.config, self.repo, "tools/dev/local_cargo.py")
         spec = importlib.util.spec_from_file_location("jenkins_managed_local_cargo", helper_path)
         helper = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(helper)
@@ -5499,7 +5592,7 @@ class Management:
             "scriptSha256": PREVIEW_SCRIPT_SHA256, "interpreterSha256": PREVIEW_PYTHON_SHA256,
             "output": str(PREVIEW_OUTPUT), "timeoutSeconds": PREVIEW_TIMEOUT_SECONDS,
             "formalAcceptance": False})
-        helper_path = plain(self.repo / "tools/dev/local_cargo.py")
+        helper_path = client_path(self.config, self.repo, "tools/dev/local_cargo.py")
         if sha(helper_path.read_bytes()) != self.config["clientSources"]["tools/dev/local_cargo.py"]:
             raise ValueError("Pinned owned native command implementation changed")
         spec = importlib.util.spec_from_file_location("jenkins_fixed_editor_preview_native", helper_path)

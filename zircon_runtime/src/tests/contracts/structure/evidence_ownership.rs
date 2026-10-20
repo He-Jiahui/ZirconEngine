@@ -2,7 +2,7 @@ use super::runtime_src_path;
 
 #[test]
 fn runtime_15_structure_guards_use_durable_evidence_not_session_notes() {
-    let runtime_absorption_root = runtime_src_path("tests/runtime_absorption");
+    let runtime_absorption_root = runtime_src_path("tests");
     let session_note_root = [".codex", "sessions", ""].join("/");
     let mut pending = vec![runtime_absorption_root];
     let mut violations = Vec::new();

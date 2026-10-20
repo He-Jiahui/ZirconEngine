@@ -151,7 +151,10 @@ fn prepared_bundle_leaves_live_cache_targets_unchanged_until_commit() {
         !store.bundle_journal_directory().exists(),
         "preparation must not create an independent IBL durable transaction"
     );
-    fs::remove_dir_all(root).expect("test cache root must be removable");
+    assert!(
+        !root.exists(),
+        "preparing bundle bytes must not create the live cache root"
+    );
 }
 
 #[test]
@@ -535,6 +538,8 @@ fn environment_read_retries_a_rejected_derived_artifact_replaced_by_bundle() {
     store
         .write_source_cubemap_staged_bundle(&request, uri(), &source, None)
         .expect("initial source bundle must publish");
+    let manifest_path = store.bundle_manifest_path(&request);
+    let manifest_bytes = fs::read(&manifest_path).unwrap();
     let derived_path = store.asset_derived_store().asset_derived_path(&request);
     fs::write(&derived_path, b"rejected derived artifact")
         .expect("fixture must replace the derived artifact with invalid bytes");
@@ -552,15 +557,63 @@ fn environment_read_retries_a_rejected_derived_artifact_replaced_by_bundle() {
                     return Ok(());
                 }
                 published = true;
-                publisher
-                    .write_source_cubemap_staged_bundle(&request, uri(), &source, None)
-                    .map(|_| ())
+                publisher.write_source_cubemap_staged_bundle(&request, uri(), &source, None)?;
+                assert_eq!(fs::read(&manifest_path).unwrap(), manifest_bytes);
+                Ok(())
             },
             || Ok(()),
         )
         .expect("the reader must retry after a rejected artifact is repaired as a bundle");
 
     assert!(published, "the test hook must publish the repaired bundle");
+    assert_texels_close(
+        environment.mip_chain.source_texels(),
+        source.source_texels(),
+    );
+    fs::remove_dir_all(root).expect("test cache root must be removable");
+}
+
+#[test]
+fn environment_read_retries_a_rejected_source_replaced_by_identical_bundle() {
+    let root = test_directory("interleaved-rejected-source-read");
+    let store = IblSourceCubemapStagingStore::new(&root);
+    let request = request(7, [11; 4], 4, 3, 2, 2, IblBakeArtifactContents::PMREM_SH9);
+    let source = cubemap([0.25, 0.5, 0.75, 1.0]);
+    store
+        .write_source_cubemap_staged_bundle(&request, uri(), &source, None)
+        .unwrap();
+    let source_path = store.source_cubemap_path(&request);
+    let original_source_bytes = fs::read(&source_path).unwrap();
+    let manifest_path = store.bundle_manifest_path(&request);
+    let manifest_bytes = fs::read(&manifest_path).unwrap();
+    let mut damaged = original_source_bytes.clone();
+    let length = damaged.len();
+    damaged[length - 1] ^= 1;
+    fs::write(&source_path, &damaged).unwrap();
+    assert_ne!(damaged, original_source_bytes);
+    assert_eq!(fs::metadata(&source_path).unwrap().len(), length as u64);
+    let publisher = store.clone();
+    let mut published = false;
+    let environment = store
+        .read_source_cubemap_environment_with_snapshot_hooks(
+            &request,
+            uri(),
+            || Ok(()),
+            || {
+                if published {
+                    return Ok(());
+                }
+                published = true;
+                publisher.write_source_cubemap_staged_bundle(&request, uri(), &source, None)?;
+                assert_eq!(fs::read(&manifest_path).unwrap(), manifest_bytes);
+                assert_eq!(fs::read(&source_path).unwrap(), original_source_bytes);
+                Ok(())
+            },
+            || Ok(()),
+            || Ok(()),
+        )
+        .expect("the reader must retry after identical bundle publication repairs its source");
+    assert!(published, "the source-read hook must publish the repair");
     assert_texels_close(
         environment.mip_chain.source_texels(),
         source.source_texels(),
@@ -588,6 +641,86 @@ fn standalone_derived_blob_cannot_replace_a_paired_source_bundle() {
         Err(IblBakeArtifactAssetDerivedError::PairedSourceRequiresBundle { .. })
     ));
     fs::remove_dir_all(root).expect("test cache root must be removable");
+}
+
+#[test]
+fn full_environment_read_rejects_same_length_damage_after_hot_admission() {
+    for source_bad in [true, false] {
+        let root = test_directory(if source_bad {
+            "digest-source"
+        } else {
+            "digest-derived"
+        });
+        let store = IblSourceCubemapStagingStore::new(&root);
+        let request = request(7, [11; 4], 4, 3, 2, 2, IblBakeArtifactContents::PMREM_SH9);
+        store
+            .write_source_cubemap_staged_bundle(
+                &request,
+                uri(),
+                &cubemap([0.25, 0.5, 0.75, 1.0]),
+                None,
+            )
+            .unwrap();
+        assert!(store
+            .current_bundle_manifest_matches(&request, super::IblSourceImageIdentity::default())
+            .unwrap());
+        let path = if source_bad {
+            store.source_cubemap_path(&request)
+        } else {
+            store.asset_derived_store().asset_derived_path(&request)
+        };
+        let mut bytes = fs::read(&path).unwrap();
+        let length = bytes.len();
+        bytes[length - 1] ^= 1;
+        fs::write(&path, bytes).unwrap();
+        assert_eq!(fs::metadata(&path).unwrap().len(), length as u64);
+        assert!(!store
+            .current_bundle_manifest_matches(&request, super::IblSourceImageIdentity::default())
+            .unwrap());
+        assert!(matches!(
+            store.read_source_cubemap_environment(&request, uri()),
+            Err(super::IblSourceCubemapStagingError::BundlePayloadStampMismatch { payload })
+                if payload == if source_bad { "source.zcube" } else { "asset-derived.zribl" }
+        ));
+        super::admission::invalidate_root(&store).unwrap();
+        fs::remove_dir_all(root).unwrap();
+    }
+}
+
+#[test]
+fn interrupted_publication_recovery_requires_new_digest_admission() {
+    let root = test_directory("admission-recovery");
+    let store = IblSourceCubemapStagingStore::new(&root);
+    let request = request(7, [11; 4], 4, 3, 2, 2, IblBakeArtifactContents::PMREM_SH9);
+    store
+        .write_source_cubemap_staged_bundle(&request, uri(), &cubemap([0.25, 0.5, 0.75, 1.0]), None)
+        .unwrap();
+    let original = fs::read(store.source_cubemap_path(&request)).unwrap();
+    store
+        .write_source_cubemap_staged_bundle_for_test(
+            &request,
+            uri(),
+            &cubemap([0.75, 0.5, 0.25, 1.0]),
+            None,
+            TransactionFault::CrashAfterCommit(0),
+        )
+        .expect_err("real interrupted publication must retain recovery evidence");
+    assert!(!store
+        .current_bundle_manifest_matches(&request, super::IblSourceImageIdentity::default())
+        .unwrap());
+    assert_eq!(
+        fs::read(store.source_cubemap_path(&request)).unwrap(),
+        original
+    );
+    assert!(store
+        .admit_bundle_for_staging(&request, super::IblSourceImageIdentity::default())
+        .unwrap()
+        .is_current());
+    assert!(store
+        .current_bundle_manifest_matches(&request, super::IblSourceImageIdentity::default())
+        .unwrap());
+    super::admission::invalidate_root(&store).unwrap();
+    fs::remove_dir_all(root).unwrap();
 }
 
 fn request(

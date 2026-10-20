@@ -11,7 +11,7 @@ implementation_files:
   - tools/cargo
   - tools/mvp
 plan_sources:
-  - docs/plans/milestone-validation-policy.md
+  - docs/testing-and-validation/milestone-validation-policy.md
 tests:
   - tools/tests/test_frameworks_06_ci_toolchain_contract.py
   - tools/tests/test_validate_cargo_test_reachability.py

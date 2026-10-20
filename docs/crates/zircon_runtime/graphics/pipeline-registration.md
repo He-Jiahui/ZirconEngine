@@ -35,3 +35,13 @@ SSAO follows this rule through `screen_space_ambient_occlusion_render_feature_de
 ## Validation
 
 Rustfmt parsing/formatting and `test_render_framework_contract_does_not_accept_graphics_pipeline_assets` passed for the 2026-07-13 cut. The production dependency audit reports 2,144 references / 70 domain edges and 23 remaining forbidden references, with `core -> graphics = 0`. Managed Cargo execution is not claimed while shared Windows validation lanes remain active.
+
+## Renderer ownership
+
+Renderer responsibilities (SceneRenderer, MeshPass, GPUScene, Visibility, Lights, Shadows and PostProcess) remain under the scene_renderer and graphics/visibility owners in zircon_runtime/src. Feature registration must not absorb their execution or validation responsibilities.
+
+### Clause provenance
+
+These content identities preserve the source of this transfer. They are not fresh measurements, active-file dependencies or acceptance receipts.
+
+- `index.md`, SHA-256 `6ab17033e67e3a5c036a8c18930f13ca336ac5e2f711e4837e262275310c194b`, selected source lines 190-190.

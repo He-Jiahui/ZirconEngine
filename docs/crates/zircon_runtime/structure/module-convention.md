@@ -10244,3 +10244,118 @@ service/admission/completion/json-budget/limits/prepare-completion/task-state �
 `plugin/extension_registry/register/system_registration.rs` 的 3 个 per-World private-state/concurrency tests 已原样迁入 folder-backed `system_registration/tests.rs`。父 production owner 从 825 行降到 676 行，测试 child 为 149 行；当前 `CallbackSceneSystem::retire` 生命周期补丁保留在 production owner，签名与 state retire 调用均为 1/1。
 
 聚焦结构守卫 exact 1/1，HEAD 旧测试体与新 child whitespace-normalized 等价、测试属性 3/3，定向 rustfmt、diff check 与空白扫描通过。该拆分不改变 system registration 或 execution behavior；PERF-MVP-532/533 的 generation-owned per-World factory/state、同代 compiled plan 与 reload/unload quiescence 仍开放。Cargo 未运行，状态为 `runtime_06_15_plugin_system_registration_test_owner_split_static_passed_cargo_deferred`，不是 Runtime06/15 或性能 acceptance。
+
+
+## Historical core-scene naming ECS split and current physical owners
+
+Historical slice: `Runtime 15 M3 core-scene naming ECS owner split-layout folder-backed split`.
+Its recorded status is `runtime_15_core_scene_naming_ecs_owner_split_layout_folder_backed_static_passed_cargo_deferred`;
+this is historical provenance, not a new passing result.
+The guard remains `runtime_15_core_scene_naming_ecs_owner_split_layout_is_folder_backed`.
+
+The historical logical parent `naming_boundary/runtime_15_m2/core_scene/scene_ecs_owners.rs`
+now maps to `zircon_runtime/src/tests/contracts/runtime_15_m2/core_scene/scene_ecs_owners.rs`.
+Historical child names map individually to the physical owners:
+
+| Historical logical path | Current physical path |
+| --- | --- |
+| `naming_boundary/runtime_15_m2/core_scene/scene_ecs_owners/observer_callback_registry.rs` | `zircon_runtime/src/tests/scene_ecs_owners/observer_callback_registry.rs` |
+| `naming_boundary/runtime_15_m2/core_scene/scene_ecs_owners/query_state_many_item_array.rs` | `zircon_runtime/src/tests/scene_ecs_owners/query_state_many_item_array.rs` |
+| `naming_boundary/runtime_15_m2/core_scene/scene_ecs_owners/component_storage_component_results.rs` | `zircon_runtime/src/tests/scene_ecs_owners/component_storage_component_results.rs` |
+| `naming_boundary/runtime_15_m2/core_scene/scene_ecs_owners/split_layout.rs` | `zircon_runtime/src/tests/contracts/core_scene/scene_ecs_owners/split_layout.rs` |
+
+The three behavior owners and the layout owner preserve their separate roles.
+Current document synchronization is `source_applied`; validation remains pending.
+
+## Current owner and validation conventions
+
+Route owners mount real child modules; inventory child, sources, mirror_docs.rs, status_docs.rs and split_layout.rs keep distinct responsibilities. Tests use #[cfg(test)] external mounts; do not duplicate production behavior to satisfy source guards. Typed errors preserve domain/source identity through diagnostics and final display/ABI boundaries.
+
+Registration replay errors, frame-profiler GPU resolution, dynamic event packaging, UI rebuild/transactions/pointer actions/resource registration, Winit translation, scene property enumeration, plugin descriptor construction/authority/availability and asset schema/management/transfer each retain the child-owner responsibilities and deferred status identifiers below.
+
+Construction names remain scene_renderer_construct / scene_renderer_core_construct; the review_f19_scene_renderer_construction_modules_use_construct_names gate and render_scene_renderer_construct_modules_coremin_passed identity remain separate from broad validation. Existing naming/capability/dead-code rules, budgets and mirror contracts are unchanged. No new facade, cache, registry, DTO or compatibility route is created.
+
+### Independent status and source ownership
+
+The bounded inventory below preserves exact source/test/status identities required by existing consumers, including frontmatter uniqueness. Static source status does not constitute managed Cargo, product or performance acceptance. Dated split line counts remain in their original evidence rather than being copied into current normative prose.
+
+### Retained source status identities
+
+| Contract | Responsibility / evidence boundary |
+|---|---|
+| `runtime_01_15_render_pipeline_postprocess_plugin_input_owner_split_static_passed_cargo_deferred` | Plugin-input route tests remain child-owned; production selection is unchanged. |
+| `runtime_04_15_asset_artifact_material_shader_owner_split_static_passed_cargo_deferred` | Material/shader owners preserve schema/variant order and conversion behavior. |
+| `runtime_04_15_asset_management_generation_static_implemented_cargo_deferred` | Family classification and record sets share one immutable asset-management generation. |
+| `runtime_06_15_native_registration_replay_error_owner_split_static_passed_cargo_deferred` | Registration replay retains its typed error/source owner. |
+| `runtime_06_15_native_system_access_owner_split_static_passed_cargo_profile_deferred` | Parse/compile, capability authorization and typed errors retain separate owners. |
+| `runtime_06_15_plugin_availability_evaluation_selection_owner_split_static_passed_cargo_deferred` | Membership, evaluation/reporting and profile/manifest selection remain separate. |
+| `runtime_06_15_plugin_manifest_constructor_owner_split_static_passed_cargo_deferred` | Package/module owners preserve original types, defaults and serialization. |
+| `runtime_07_15_scene_post_process_volumetric_fog_test_owner_split_static_passed_cargo_deferred` | Volumetric extract tests remain folder-backed without changing production fog behavior. |
+| `runtime_08_15_archetype_topology_equality_receipt_static_passed_cargo_deferred` | Compare canonical indexes and ordered structural rows, excluding diagnostics/history. |
+| `runtime_08_15_component_registry_transfer_owner_split_static_passed_cargo_deferred` | Preflight, conflicts, staged IDs and final publication stay one transaction. |
+| `runtime_08_15_scene_property_entry_component_owner_split_static_passed_cargo_profile_deferred` | Domain property enumeration preserves ordering and instance identity. |
+| `runtime_09_15_ui_asset_surface_node_resource_owner_split_static_passed_cargo_profile_deferred` | Runtime registration remains tolerant; strict compile-time schema diagnostics stay separate. |
+| `runtime_09_15_ui_pointer_component_state_owner_split_static_passed_cargo_profile_deferred` | Pointer state/invalidation remains separate from route/event envelope construction. |
+| `runtime_09_15_ui_pointer_template_action_owner_split_static_passed_cargo_profile_deferred` | Action projection consumes existing tree/bindings/state without adding a dispatcher. |
+| `runtime_09_15_ui_surface_incremental_rebuild_owner_split_static_passed_cargo_profile_deferred` | Dirty layout/rebuild belongs to the child; full rebuild and render extract remain in the parent. |
+| `runtime_09_15_ui_surface_property_transaction_owner_split_static_passed_cargo_profile_deferred` | Validation, mutation and invalidation share the original surface transaction authority. |
+| `runtime_09_15_winit_translation_domain_owner_split_static_passed_cargo_product_profile_deferred` | Keyboard/pointer/IME/window packaging preserves event order and normalization. |
+| `runtime_10_12_15_dynamic_event_keyboard_ime_gamepad_owner_split_static_passed_cargo_deferred` | Keyboard/IME and gamepad packaging remain children of the same session. |
+| `runtime_15_code_review_findings_typed_error_structure_guard_child_owner_split_static_passed_cargo_deferred` | Typed-error routing, inventory and status mirrors stay independently mounted. |
+| `runtime_17_15_frame_profiler_gpu_resolution_owner_split_static_passed_cargo_profile_deferred` | GPU-resolution child owns timestamp resolution; budget/profile acceptance stays separate. |
+| `runtime_render_09_15_viewport_output_planner_owner_split_static_passed_cargo_deferred` | Graph import and writeback stay separate stages under one target authority. |
+
+### Source and guard ownership
+
+The finite source, guard and provenance inventory for these responsibilities is:
+
+- `zircon_runtime/src/ui/template/asset/surface_index/node_resource_registration.rs`, `zircon_runtime/src/plugin/runtime_profile/availability_projection/evaluation.rs`, `zircon_runtime/src/graphics/types/viewport_render_output_target/graph_import.rs`.
+- `zircon_runtime/src/plugin/runtime_profile/availability_projection/selection.rs`, `zircon_runtime/src/graphics/types/viewport_render_output_target/tests/cases.rs`, `render_pipeline_asset/compile_tests/postprocess_routes/tests/plugin_inputs.rs`.
+- `zircon_runtime/src/graphics/types/viewport_render_output_target/writeback.rs`, `zircon_runtime/src/asset/artifact/cache_payload/material_shader/material.rs`, `tools/tests/test_runtime_ui_surface_property_transaction_owner_structure.py`.
+- `tools/tests/test_runtime_ecs_component_registry_transfer_owner_structure.py`, `tools/tests/test_runtime_ui_surface_incremental_rebuild_owner_structure.py`, `tools/tests/test_runtime_ui_asset_surface_node_resource_owner_structure.py`.
+- `tools/tests/test_runtime_asset_artifact_material_shader_owner_structure.py`, `zircon_runtime/src/asset/artifact/cache_payload/material_shader/shader.rs`, `tools/tests/test_runtime_plugin_manifest_constructor_owner_structure.py`.
+- `tools/tests/test_runtime_ui_pointer_template_action_owner_structure.py`, `tools/tests/test_runtime_ui_pointer_component_state_owner_structure.py`, `zircon_runtime/src/plugin/runtime_profile/availability_projection.rs`.
+- `tools/tests/test_runtime_viewport_output_planner_owner_structure.py`, `zircon_runtime/src/graphics/types/viewport_render_output_target.rs`, `zircon_runtime/src/asset/artifact/cache_payload/material_shader.rs`.
+- `zircon_runtime/src/ui/surface/surface/pointer_component_events.rs`, `tools/tests/test_runtime_ui_winit_translation_owner_structure.py`, `tools/tests/test_runtime_scene_property_entry_owner_structure.py`.
+- `tools/tests/test_runtime_native_system_access_owner_structure.py`, `tools/tests/test_runtime_plugin_availability_owner_structure.py`, `zircon_runtime/src/scene/ecs/component/registry/transferred.rs`.
+- `zircon_runtime/src/scene/ecs/component/registry/tests/cases.rs`, `zircon_runtime/src/ui/surface/surface/property_transaction.rs`, `zircon_runtime/src/ui/surface/surface/rebuild/incremental.rs`.
+- `tools/tests/test_runtime_asset_management_owner_structure.py`, `zircon_runtime/src/plugin/package_manifest/constructors.rs`, `zircon_runtime/src/scene/world/property_access/entries.rs`.
+- `zircon_runtime/src/ui/template/asset/surface_index.rs`, `zircon_runtime/src/scene/ecs/component/registry.rs`, `zircon_runtime/src/asset/management/record_sets.rs`.
+- `zircon_runtime/src/ui/surface/surface/rebuild.rs`, `zircon_runtime/src/asset/management/family.rs`, `render_post_process_extract/volumetric_fog.rs`.
+- `pointer_component_events/template_action.rs`, `zircon_runtime/src/ui/surface/surface.rs`, `zircon_runtime/src/asset/management.rs`.
+- `registration_replay/error.rs`.
+
+### Validation interfaces
+
+Keep these existing validation and domain interfaces in the gate:
+
+- `review_f5_mesh_loader_and_obj_decoder_use_typed_errors`, `review_f5_texture_loader_uses_typed_error`.
+
+### Contract details
+
+The following original contract labels remain in scope; they do not establish new validation:
+
+- `status: in_progress`, `GpuMemoryBudget`, `Arc::make_mut`, `NativePlugin`.
+
+### Clause provenance
+
+These content identities preserve the source of this transfer. They are not fresh measurements, active-file dependencies or acceptance receipts.
+
+- `15-code-structure-and-module-conventions.md`, SHA-256 `f9ce673e0e9370826b993fd5be188a9bbe4e4177b8a1844d7490bd65bd1331b5`, selected source lines 397-1417.
+
+### Current split-owner source inventory
+
+The following current sources implement the already declared independent ownership statuses. Historical records keep their original names; no path here is a compatibility alias or a fresh validation claim.
+
+- test_runtime_dynamic_event_input_owner_structure.py: `zircon_runtime/src/dynamic_api/session/events/keyboard_ime.rs`, `zircon_runtime/src/dynamic_api/session/events/gamepad.rs`, `tools/tests/test_runtime_dynamic_event_input_owner_structure.py`, `zircon_runtime/src/dynamic_api/session/tests/events.rs`.
+- test_runtime_ecs_component_registry_transfer_owner_structure.py: `zircon_runtime/src/scene/ecs/component/registry/retention_provider.rs`, `zircon_runtime/src/scene/ecs/component/registry/tests/retention.rs`.
+- test_runtime_frame_profiler_gpu_resolution_owner_structure.py: `zircon_runtime/src/graphics/runtime/framework/frame_profiler.rs`, `zircon_runtime/src/graphics/runtime/framework/frame_profiler/gpu_resolution.rs`, `tools/tests/test_runtime_frame_profiler_gpu_resolution_owner_structure.py`, `zircon_runtime/src/graphics/runtime/framework/tests/frame_profiler.rs`.
+- test_runtime_native_registration_replay_error_owner_structure.py: `zircon_runtime/src/plugin/loader/live/registration_replay.rs`, `zircon_runtime/src/plugin/loader/live/registration_replay/error.rs`.
+- test_runtime_native_system_access_owner_structure.py: `zircon_runtime/src/plugin/loader/registration_manifest/system_access.rs`, `zircon_runtime/src/plugin/loader/system_access/authority.rs`, `zircon_runtime/src/plugin/loader/registration_manifest/system_access/error.rs`.
+- test_runtime_plugin_manifest_constructor_owner_structure.py: `zircon_runtime/src/plugin/package_manifest/constructors/module.rs`, `zircon_runtime/src/plugin/package_manifest/constructors/package.rs`.
+- test_runtime_render_pipeline_postprocess_plugin_owner_structure.py: `zircon_runtime/src/graphics/pipeline/pipeline/tests/postprocess_routes.rs`, `zircon_runtime/src/graphics/pipeline/pipeline/tests/plugin_inputs.rs`.
+- test_runtime_scene_post_process_volumetric_test_structure.py: `zircon_runtime/src/scene/tests/render_post_process_extract/volumetric_fog.rs`.
+- test_runtime_scene_property_entry_owner_structure.py: `zircon_runtime/src/scene/world/property_access/entries/camera.rs`, `zircon_runtime/src/scene/world/property_access/entries/mesh.rs`, `zircon_runtime/src/scene/world/property_access/entries/lighting.rs`, `zircon_runtime/src/scene/world/property_access/entries/animation.rs`.
+- test_runtime_ui_pointer_component_state_owner_structure.py: `zircon_runtime/src/ui/surface/pointer_component_events/state_invalidation.rs`.
+- test_runtime_ui_pointer_template_action_owner_structure.py: `zircon_runtime/src/ui/surface/surface/pointer_component_events/action.rs`.
+- test_runtime_ui_winit_translation_owner_structure.py: `zircon_runtime/src/ui/platform_input/winit_translation/keyboard.rs`, `zircon_runtime/src/ui/platform_input/winit_translation/pointer.rs`, `zircon_runtime/src/ui/platform_input/winit_translation/ime.rs`, `zircon_runtime/src/ui/platform_input/winit_translation/window.rs`.

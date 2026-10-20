@@ -184,7 +184,7 @@ fn prepare_classified_source_cubemap_texture(
     };
     timing.cache_probe = cache_probe_started.elapsed();
     // 当前 bundle 可直接复用；仅有源 zcube 时复用源，缺失时按容器类型解码。
-    let staged_source = match staged_bundle {
+    let (staged_source, source_proof) = match staged_bundle {
         EnvironmentIblStagedBundleState::Current => {
             let output = EnvironmentIblSourceStagingOutput::from_reused_paths(
                 &source_zcube_path,
@@ -203,8 +203,8 @@ fn prepare_classified_source_cubemap_texture(
                 ),
             });
         }
-        EnvironmentIblStagedBundleState::SourceOnly(source) => Some(source),
-        EnvironmentIblStagedBundleState::Missing => None,
+        EnvironmentIblStagedBundleState::SourceOnly(source, proof) => (Some(source), Some(proof)),
+        EnvironmentIblStagedBundleState::Missing => (None, None),
     };
     let source_was_reused = staged_source.is_some();
     // SourceOnly 已带解码后的 texels；Missing 分支区分内置 zcube 与外部 DDS/KTX 的解码器。
@@ -260,6 +260,7 @@ fn prepare_classified_source_cubemap_texture(
             &cubemap,
             None,
             source_was_reused,
+            source_proof,
             source_image,
             EnvironmentIblSourceStagingParallelWorkItems::default(),
         )?

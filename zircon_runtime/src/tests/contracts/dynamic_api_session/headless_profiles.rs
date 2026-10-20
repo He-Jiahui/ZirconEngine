@@ -1,5 +1,6 @@
 //! 动态会话的二进制接口、宿主请求和诊断路由需与共享契约同步。以结果断言检查当前接口或源码快照对应的边界。
 use super::shared::slices::slice_between;
+use crate::tests::runtime_absorption::structure_convention::fixed_history_archive_source as history;
 
 #[test]
 fn runtime_10_headless_profiles_keep_render_bridge_optional_and_noop_surfaces() {
@@ -12,11 +13,9 @@ fn runtime_10_headless_profiles_keep_render_bridge_optional_and_noop_surfaces() 
         include_str!("../../../dynamic_api/tests/session_entry_points.rs");
     let session_doc =
         include_str!("../../../../../docs/crates/zircon_runtime/dynamic_api/session.md");
-    let runtime_10_output = include_str!(
-        "../../../../../docs/plans/zircon_runtime/runtime/10/2026-07-09-dynamic-api-and-interface-convergence-output-records.md"
-    );
-    let runtime_index_output = include_str!(
-        "../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md"
+    let runtime_10_output = history("docs/plans/zircon_runtime/runtime/10/2026-07-09-dynamic-api-and-interface-convergence-output-records.md");
+    let runtime_index_output = history(
+        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md",
     );
 
     for required_source_anchor in ["render_bridge: Option<RuntimeRenderBridge>"] {
@@ -41,15 +40,19 @@ fn runtime_10_headless_profiles_keep_render_bridge_optional_and_noop_surfaces() 
         "fn uses_render_bridge(self) -> bool",
         "\n    }\n}",
     );
-    assert!(
-        uses_render_bridge.contains("matches!(self, Self::Runtime | Self::Editor | Self::Dev)"),
-        "only rendered runtime/editor/dev profiles should create RuntimeRenderBridge"
-    );
-    let rendered_profiles = uses_render_bridge
+    let compact_profile_match: String = uses_render_bridge
+        .chars()
+        .filter(|character| !character.is_whitespace())
+        .collect();
+    let rendered_profiles = compact_profile_match
         .split("matches!(self,")
         .nth(1)
         .and_then(|source| source.split(')').next())
         .expect("uses_render_bridge should use an explicit matches! profile set");
+    assert_eq!(
+        rendered_profiles, "Self::Runtime|Self::RuntimePipelined|Self::Editor|Self::Dev",
+        "only the four rendered profiles should create RuntimeRenderBridge"
+    );
     for forbidden_profile in ["Self::Minimal", "Self::Headless"] {
         assert!(
             !rendered_profiles.contains(forbidden_profile),
@@ -60,7 +63,7 @@ fn runtime_10_headless_profiles_keep_render_bridge_optional_and_noop_surfaces() 
     let construction = slice_between(
         construction_source,
         "let render_bridge = if profile.uses_render_bridge()",
-        "let level = {",
+        "let (level, project_identity, scene_uri) = {",
     );
     for required_construction_anchor in [
         "RuntimeRenderBridge::new(&core)",

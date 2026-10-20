@@ -201,7 +201,7 @@ impl ScreenSpaceUiSdfAtlas {
     pub(super) fn prepare_retained_frame(&mut self, frame: &ScreenSpaceUiTextFrameProduct) {
         crate::profile_scope!("runtime", "ui_text.sdf_prepare", "sdf_atlas_plan");
         if self.segment_products.frame_matches(frame.generation()) {
-            self.last_report = stable_cache_report(&self.plan);
+            self.last_report = stable_cache_report(&self.plan, self.full_page_dirty_until_upload);
             self.record_segment_product_profile(0, 0, 0, false);
             return;
         }
@@ -251,13 +251,13 @@ impl ScreenSpaceUiSdfAtlas {
     {
         crate::profile_scope!("runtime", "ui_text.sdf_prepare", "sdf_atlas_plan");
         if retained_generation.is_some() && self.retained_frame_generation == retained_generation {
-            self.last_report = stable_cache_report(&self.plan);
+            self.last_report = stable_cache_report(&self.plan, self.full_page_dirty_until_upload);
             return;
         }
-        // BUG: [CR-R02-runtime_wave12_graphics_ui_atlas_sdf-0002] 字体失效后尚未确认上传而再次准备相同文本时，此快路径返回空脏页；stable_cache_report 清空 dirty_pages，font_face_invalidation_rebuilds_stable_slots_as_dirty_pages 在再次准备后要求非空脏页，与此返回值矛盾。
+        // Retain full font-invalidation dirtiness until the prepared pages are uploaded.
         if self.prepared_texts.matches_iter(texts.clone()) {
             self.retained_frame_generation = retained_generation;
-            self.last_report = stable_cache_report(&self.plan);
+            self.last_report = stable_cache_report(&self.plan, self.full_page_dirty_until_upload);
             return;
         }
         self.prepared_texts.replace_iter(texts.clone());
@@ -554,7 +554,7 @@ impl ScreenSpaceUiSdfAtlas {
     }
 }
 
-fn stable_cache_report(plan: &SdfAtlasPlan) -> SdfAtlasCacheReport {
+fn stable_cache_report(plan: &SdfAtlasPlan, full_page_dirty: bool) -> SdfAtlasCacheReport {
     SdfAtlasCacheReport {
         previous_slot_count: plan.slots.len(),
         current_slot_count: plan.slots.len(),
@@ -565,7 +565,20 @@ fn stable_cache_report(plan: &SdfAtlasPlan) -> SdfAtlasCacheReport {
         evicted_slot_count: 0,
         atlas_resized: false,
         dirty_rect: None,
-        dirty_pages: Vec::new(),
+        dirty_pages: if full_page_dirty {
+            plan.slots
+                .iter()
+                .map(|slot| slot.page_key)
+                .collect::<BTreeSet<_>>()
+                .into_iter()
+                .map(|page_key| SdfAtlasDirtyPageReport {
+                    page_key,
+                    dirty_rect: full_rect_for_page(plan, page_key).into(),
+                })
+                .collect()
+        } else {
+            Vec::new()
+        },
     }
 }
 

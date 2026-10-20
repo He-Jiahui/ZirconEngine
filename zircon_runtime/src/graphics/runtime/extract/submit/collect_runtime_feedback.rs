@@ -249,6 +249,8 @@ fn merge_virtual_geometry_readback_outputs(
         visbuffer64_entries,
         hardware_rasterization_records,
         node_cluster_cull,
+        // Prepare sidebands cannot replace a ticketed physical terminal stream.
+        physical_submission_segments: _,
     } = sideband_outputs;
     let crate::core::framework::render::RenderVirtualGeometryNodeClusterCullReadbackOutputs {
         traversal_records,

@@ -6,8 +6,59 @@ pub(super) fn assert_source_inventory_anchors(sources: &MirrorDocsSources) {
         "performance hotpath source inventory",
         sources.audit_source_inventory,
         &[
-            "EXPECTED_SOURCE_FILE_COUNT = 46",
+            "EXPECTED_SOURCE_FILE_COUNT = len(RUNTIME_07_SOURCE_FILES)",
             "RUNTIME_07_TEST_FILES = (",
+            "zircon_runtime/src/dynamic_api/session/state.rs",
+            "zircon_runtime/src/dynamic_api/session/extract.rs",
+            "zircon_runtime/src/dynamic_api/session/extract_cache.rs",
+            "zircon_runtime/src/dynamic_api/session/extract_stats.rs",
+            "zircon_runtime/src/dynamic_api/runtime_loop.rs",
+            "zircon_runtime/src/scene/ecs/schedule_runner.rs",
+            "zircon_runtime/src/scene/ecs/frame_performance_diagnostics.rs",
+            "zircon_runtime/src/scene/ecs/query/query_state/cache.rs",
+            "zircon_runtime/src/scene/ecs/query/query_state/mod.rs",
+            "zircon_runtime/src/scene/ecs/query/query_state/read_only_cached.rs",
+            "zircon_runtime/src/scene/ecs/query/query_state/stats.rs",
+            "zircon_runtime/src/scene/ecs/query/query_state/system_param.rs",
+            "zircon_runtime/src/scene/ecs/query/query_filter.rs",
+            "zircon_runtime/src/scene/ecs/query/query_iter.rs",
+            "zircon_runtime/src/scene/ecs/query/query_many_iter.rs",
+            "zircon_runtime/src/scene/ecs/system/system_param.rs",
+            "zircon_runtime/src/scene/ecs/system/system_state.rs",
+            "zircon_runtime/src/scene/ecs/system/param_set.rs",
+            "zircon_runtime/src/scene/ecs/change_detection/stats.rs",
+            "zircon_runtime/src/scene/world/performance_diagnostics.rs",
+            "zircon_runtime/src/scene/world/world.rs",
+            "zircon_runtime/src/scene/world/bootstrap.rs",
+            "zircon_runtime/src/scene/world/mod.rs",
+            "zircon_runtime/src/scene/module/world_driver.rs",
+            "zircon_runtime/src/asset/pipeline/worker_pool.rs",
+            "zircon_runtime/src/asset/pipeline/worker_pool/diagnostics.rs",
+            "zircon_runtime/src/scene/ecs/query/query_state/state.rs",
+            "zircon_runtime/src/scene/level_system.rs",
+            "zircon_runtime/src/asset/pipeline/manager/assets/construction.rs",
+            "zircon_runtime/src/core/runtime/diagnostics/profiling/counter_hotspot.rs",
+            "zircon_runtime/src/core/runtime/diagnostics/profiling/macros.rs",
+            "zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product.rs",
+            "zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product/camera.rs",
+            "zircon_runtime/src/core/runtime/diagnostics/product/effect_stack.rs",
+            "zircon_runtime/src/core/runtime/diagnostics/product/gpu_scene.rs",
+            "zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product/hzb.rs",
+            "zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product/light.rs",
+            "zircon_runtime/src/core/runtime/diagnostics/product/light_grid.rs",
+            "zircon_runtime/src/core/runtime/diagnostics/product/material.rs",
+            "zircon_runtime/src/core/runtime/diagnostics/product/mesh_queue.rs",
+            "zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product/sprite.rs",
+            "zircon_runtime/src/core/runtime/diagnostics/render_stats_store/product/ui.rs",
+            "zircon_runtime/src/core/runtime/diagnostics/product/visibility.rs",
+            "zircon_plugins/animation/runtime/src/evaluation/pipeline/diagnostics.rs",
+            "zircon_plugins/animation/runtime/src/evaluation/pipeline/events.rs",
+            "zircon_plugins/animation/runtime/src/evaluation/pipeline/pose_apply.rs",
+            "zircon_plugins/animation/runtime/src/evaluation/pipeline/requests.rs",
+            "zircon_plugins/animation/runtime/src/evaluation/pipeline/parameter_apply.rs",
+            "zircon_plugins/animation/runtime/src/evaluation/pipeline/tick.rs",
+            "zircon_runtime/src/tests/contracts/performance.rs",
+            "zircon_runtime/src/tests/contracts/performance/diagnostics.rs",
             "zircon_runtime/src/tests/contracts/diagnostics/artifact_cache_payload.rs",
             "zircon_runtime/src/tests/contracts/diagnostics/render_product_diagnostics.rs",
             "zircon_runtime/src/tests/contracts/performance/diagnostics/split_layout.rs",
@@ -15,14 +66,26 @@ pub(super) fn assert_source_inventory_anchors(sources: &MirrorDocsSources) {
             "zircon_runtime/src/tests/contracts/diagnostics/split_layout/source_inventory.rs",
             "zircon_runtime/src/tests/contracts/diagnostics/split_layout/sources.rs",
             "zircon_runtime/src/tests/contracts/diagnostics/split_layout/status_docs.rs",
-            "zircon_runtime/src/tests/contracts/scene_project_splits/dynamic_session_event.rs",
-            "zircon_runtime/src/tests/contracts/scene_project_splits/project_io.rs",
-            "zircon_runtime/src/tests/contracts/scene_project_splits/scene_asset.rs",
-            "zircon_runtime/src/tests/contracts/scene_project_splits/split_layout.rs",
-            "zircon_runtime/src/tests/contracts/split_layout/scene_project_splits_route.rs",
-            "zircon_runtime/src/tests/split_layout/scene_project_splits_source_inventory.rs",
-            "zircon_runtime/src/tests/contracts/split_layout/scene_project_splits_sources.rs",
-            "zircon_runtime/src/tests/split_layout/scene_project_splits_status_docs.rs",
+            "zircon_runtime/src/tests/contracts/performance/hotspot_inventory.rs",
+            "zircon_runtime/src/tests/contracts/hotspot_inventory/ecs_extract_counters.rs",
+            "zircon_runtime/src/tests/contracts/ecs_extract_counters/asset_animation.rs",
+            "zircon_runtime/src/tests/contracts/ecs_extract_counters/extract_cache.rs",
+            "zircon_runtime/src/tests/contracts/ecs_extract_counters/frame_diagnostics.rs",
+            "zircon_runtime/src/tests/contracts/ecs_extract_counters/query_change.rs",
+            "zircon_runtime/src/tests/contracts/ecs_extract_counters/split_layout.rs",
+            "zircon_runtime/src/tests/contracts/performance/split_layout/route.rs",
+            "zircon_runtime/src/tests/contracts/performance/split_layout/source_inventory.rs",
+            "zircon_runtime/src/tests/contracts/performance/split_layout/sources.rs",
+            "zircon_runtime/src/tests/contracts/performance/split_layout/status_docs.rs",
+            "zircon_runtime/src/tests/contracts/hotspot_inventory/evidence_gate_docs.rs",
+            "zircon_runtime/src/tests/contracts/hotspot_inventory/profiling_trace_render.rs",
+            "zircon_runtime/src/tests/contracts/performance/hotspot_inventory/sources.rs",
+            "zircon_runtime/src/tests/contracts/performance/hotspot_inventory/split_layout.rs",
+            "zircon_runtime/src/tests/contracts/split_layout/hotspot_inventory_route.rs",
+            "zircon_runtime/src/tests/split_layout/hotspot_inventory_source_inventory.rs",
+            "zircon_runtime/src/tests/contracts/split_layout/hotspot_inventory_sources.rs",
+            "zircon_runtime/src/tests/contracts/split_layout/hotspot_inventory_status_docs.rs",
+            "zircon_runtime/src/tests/contracts/performance/owner_budget.rs",
             "zircon_runtime/src/tests/contracts/performance/owner_budget/child_routes.rs",
             "zircon_runtime/src/tests/contracts/child_routes/artifact_render_diagnostics.rs",
             "zircon_runtime/src/tests/contracts/performance/child_routes/hotspot_inventory.rs",
@@ -60,27 +123,67 @@ pub(super) fn assert_source_inventory_anchors(sources: &MirrorDocsSources) {
             "zircon_runtime/src/tests/contracts/split_layout/owner_budget_status_docs.rs",
             "zircon_runtime/src/tests/contracts/performance/owner_budget/status_docs.rs",
             "zircon_runtime/src/tests/contracts/performance/owner_budget/debug.rs",
-            "zircon_runtime/src/tests/contracts/hotspot_inventory/ecs_extract_counters.rs",
-            "zircon_runtime/src/tests/contracts/ecs_extract_counters/asset_animation.rs",
-            "zircon_runtime/src/tests/contracts/ecs_extract_counters/extract_cache.rs",
-            "zircon_runtime/src/tests/contracts/ecs_extract_counters/frame_diagnostics.rs",
-            "zircon_runtime/src/tests/contracts/ecs_extract_counters/query_change.rs",
-            "zircon_runtime/src/tests/contracts/ecs_extract_counters/split_layout.rs",
-            "zircon_runtime/src/tests/contracts/performance/split_layout/route.rs",
-            "zircon_runtime/src/tests/contracts/performance/split_layout/source_inventory.rs",
-            "zircon_runtime/src/tests/contracts/performance/split_layout/sources.rs",
-            "zircon_runtime/src/tests/contracts/performance/split_layout/status_docs.rs",
-            "zircon_runtime/src/tests/contracts/performance/hotspot_inventory/split_layout.rs",
-            "zircon_runtime/src/tests/contracts/split_layout/hotspot_inventory_route.rs",
-            "zircon_runtime/src/tests/split_layout/hotspot_inventory_source_inventory.rs",
-            "zircon_runtime/src/tests/contracts/split_layout/hotspot_inventory_sources.rs",
-            "zircon_runtime/src/tests/contracts/split_layout/hotspot_inventory_status_docs.rs",
+            "zircon_runtime/src/tests/contracts/performance/scene_project_splits.rs",
+            "zircon_runtime/src/tests/contracts/scene_project_splits/dynamic_session_event.rs",
+            "zircon_runtime/src/tests/contracts/scene_project_splits/project_io.rs",
+            "zircon_runtime/src/tests/contracts/scene_project_splits/scene_asset.rs",
+            "zircon_runtime/src/tests/contracts/scene_project_splits/split_layout.rs",
+            "zircon_runtime/src/tests/contracts/split_layout/scene_project_splits_route.rs",
+            "zircon_runtime/src/tests/split_layout/scene_project_splits_source_inventory.rs",
+            "zircon_runtime/src/tests/contracts/split_layout/scene_project_splits_sources.rs",
+            "zircon_runtime/src/tests/split_layout/scene_project_splits_status_docs.rs",
+            "zircon_runtime/src/tests/contracts/performance/submit_context.rs",
+            "zircon_runtime/src/tests/contracts/submit_context/camera_loop_sharing.rs",
+            "zircon_runtime/src/tests/contracts/submit_context/feedback_sidebands.rs",
             "zircon_runtime/src/tests/contracts/submit_context/source_extract_payloads.rs",
+            "zircon_runtime/src/tests/contracts/performance/submit_context/sources.rs",
             "zircon_runtime/src/tests/contracts/performance/submit_context/split_layout.rs",
             "zircon_runtime/src/tests/contracts/split_layout/submit_context_route.rs",
             "zircon_runtime/src/tests/split_layout/submit_context_source_inventory.rs",
             "zircon_runtime/src/tests/contracts/split_layout/submit_context_sources.rs",
             "zircon_runtime/src/tests/contracts/split_layout/submit_context_status_docs.rs",
+            "zircon_runtime/src/tests/contracts/performance/submit_context/status_docs.rs",
+            "zircon_runtime/src/tests/contracts/performance/submit_error_paths.rs",
+            "zircon_runtime/src/scene/tests/ecs_performance_acceptance.rs",
+            "zircon_runtime/src/scene/tests/ecs_change_detection.rs",
+            "zircon_runtime/src/dynamic_api/session/tests/frame_diagnostics.rs",
         ],
     );
+
+    // These are current owner counts, independent of fixed historical 46/91 output records.
+    for (declaration, expected_count) in [
+        ("RUNTIME_07_SOURCE_FILES = (", 49),
+        ("RUNTIME_07_TEST_FILES = (", 90),
+    ] {
+        let body = sources
+            .audit_source_inventory
+            .split_once(declaration)
+            .and_then(|(_, tail)| tail.split_once("\n)"))
+            .map(|(body, _)| body)
+            .expect("current source inventory must retain its complete tuple declaration");
+        let paths: Vec<&str> = body
+            .lines()
+            .filter_map(|line| line.trim().strip_prefix('"')?.strip_suffix("\","))
+            .collect();
+        assert_eq!(
+            paths.len(),
+            expected_count,
+            "current inventory count for {declaration}"
+        );
+        let unique: std::collections::HashSet<&str> = paths.iter().copied().collect();
+        assert_eq!(
+            unique.len(),
+            expected_count,
+            "duplicate current owner in {declaration}"
+        );
+        let repository = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .parent()
+            .expect("Runtime must live under the repository root");
+        for path in paths {
+            assert!(
+                repository.join(path).is_file(),
+                "current inventory owner missing: {path}"
+            );
+        }
+    }
 }

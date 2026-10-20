@@ -198,7 +198,7 @@ class HistoricalQueryTests(unittest.TestCase):
                         "ownedPaths": ["src/lib.rs"], "sourceView": "worktree", "worktreeId": "existing-wt"}
             arguments = ["test", "-p", "zircon_app", "--lib", "--offline", "--",
                          "runtime_session_create_cleanup", "--test-threads=1"]
-            recipe = entry.parse_cargo(arguments) if cargo else None
+            recipe = entry.parse_cargo(arguments, enforce_policy=False) if cargo else None
             if cargo:
                 incoming.update(recipe, expectedSourceDigest="e" * 64, buildRoot="E:\\cargo-targets",
                                 requestedTargetDir="E:\\cargo-targets\\historical-query-fixture")

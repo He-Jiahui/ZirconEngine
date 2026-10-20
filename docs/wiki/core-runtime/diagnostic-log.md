@@ -13,7 +13,7 @@ implementation_files:
   - zircon_runtime/src/diagnostic_log/sink/worker.rs
 plan_sources:
   - user: 2026-09-09 构建 ZirconEngine 详细 Wiki 文档集合
-  - docs/plans/mvp/index.md
+  - docs/testing-and-validation/mvp-acceptance-index.md
 tests:
   - zircon_runtime/src/diagnostic_log/level/tests/borrowed_parse_tests.rs
   - zircon_runtime/src/diagnostic_log/diagnostics/tests

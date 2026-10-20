@@ -514,8 +514,10 @@ impl ResourceReadinessProjection {
                     if !affected.contains(&dependency) || !self.sources.contains_key(&dependency) {
                         continue;
                     }
-                    if !index_by_id.contains_key(&dependency) {
-                        index_by_id.insert(dependency, next_index);
+                    if let std::collections::hash_map::Entry::Vacant(entry) =
+                        index_by_id.entry(dependency)
+                    {
+                        entry.insert(next_index);
                         lowlink_by_id.insert(dependency, next_index);
                         next_index += 1;
                         component_stack.push(dependency);

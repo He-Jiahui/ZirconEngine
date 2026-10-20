@@ -16,6 +16,8 @@ class RuntimeEcsComponentRegistryTransferOwnerStructureTests(unittest.TestCase):
         registry = registry_path.read_text(encoding="utf-8")
 
         self.assertLessEqual(len(registry.splitlines()), 230)
+        self.assertIn('#[path = "registry/retention_provider.rs"]', registry)
+        self.assertIn("mod retention_provider;", registry)
         self.assertIn("mod transferred;", registry)
         self.assertIn("PreflightedTransferredDescriptorImports", registry)
         self.assertIn("TransferredComponentDescriptor", registry)
@@ -34,6 +36,16 @@ class RuntimeEcsComponentRegistryTransferOwnerStructureTests(unittest.TestCase):
         tests = (owner_dir / "tests/cases.rs").read_text(encoding="utf-8")
         self.assertLessEqual(len(transferred.splitlines()), 310)
         self.assertLessEqual(len(tests.splitlines()), 220)
+        self.assertIn('include!("retention.rs");', tests)
+        retention = (owner_dir / "tests/retention.rs").read_text(encoding="utf-8")
+        self.assertLessEqual(len(retention.splitlines()), 220)
+        for retained_test in (
+            "transferred_component_retention_provider_keeps_type_and_cost_version",
+            "dynamic_descriptor_retained_capability_matches_pending_and_published_transfers",
+            "dynamic_descriptor_retained_capability_rejects_pending_and_published_owner_conflicts",
+        ):
+            self.assertNotIn(f"fn {retained_test}(", tests)
+            self.assertIn(f"fn {retained_test}(", retention)
 
         self._assert_anchors_are_ordered(
             transferred,
@@ -88,11 +100,11 @@ class RuntimeEcsComponentRegistryTransferOwnerStructureTests(unittest.TestCase):
 
         mirrors = (
             repo_root
-            / "docs/plans/zircon_runtime/runtime/08-ecs-kernel-data-alignment.md",
+            / 'docs/testing-and-validation/runtime-ecs-validation-worklist.md',
             repo_root
-            / "docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md",
-            repo_root / "docs/plans/engine-code-structure-convention.md",
-            repo_root / "docs/plans/engine-code-review-findings-2026-06.md",
+            / 'docs/crates/zircon_runtime/structure/module-convention.md',
+            repo_root / 'docs/testing-and-validation/development-conventions.md',
+            repo_root / 'docs/architecture/runtime-architecture-review-m0.md',
         )
         for mirror_path in mirrors:
             mirror = mirror_path.read_text(encoding="utf-8")

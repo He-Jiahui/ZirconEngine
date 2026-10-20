@@ -11,7 +11,7 @@ implementation_files:
   - tools/analysis/validation/validate_render_measurement_evidence.py
   - tools/analysis/validation/validate_performance_comparison_receipt.py
 plan_sources:
-  - docs/plans/milestone-validation-policy.md
+  - docs/testing-and-validation/milestone-validation-policy.md
 tests:
   - zircon_runtime/tests/runtime_profiling_recorder_performance.rs
   - zircon_runtime/tests/runtime_frame_extract_shared_payload_performance.rs

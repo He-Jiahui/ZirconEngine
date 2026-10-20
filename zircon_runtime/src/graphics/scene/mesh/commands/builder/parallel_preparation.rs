@@ -267,10 +267,12 @@ fn resolve_spec_variant<R>(
 where
     R: MeshPipelineVariantResolver + ?Sized,
 {
-    // BUG: [CR-R02-runtime_wave12_graphics_mesh_submission-0004] 单面材质且阴影为 TwoSided 的批次在并行新建 Shadow 命令时仍解析 raw key；下方 command 也未折叠 shadow_two_sided，准入成功后管线仍剔除背面，背向面的阴影可缺失；串行处理器会使用双面 key。
+    // Shadow resolution and command payloads must use the same effective key as the serial processor.
+    let shadow_key =
+        (spec.phase == RenderPhase::Shadow).then(|| batch.effective_shadow_pipeline_key());
     variant_resolver.resolve_variant_for_geometry(
         spec.pipeline_kind,
-        &batch.pipeline_key,
+        shadow_key.as_ref().unwrap_or(&batch.pipeline_key),
         batch.queue_profile.shader_geometry_source_id(),
         shader_quality,
     )
@@ -293,9 +295,17 @@ fn build_prepared_batch_chunk(plan: PreparedBatchPlan) -> PreparedBatchChunk {
                 variant_id,
                 cache_key,
             } => {
-                let command = plan
-                    .batch
-                    .command(spec.phase, spec.pipeline_kind, variant_id);
+                let command = if spec.phase == RenderPhase::Shadow {
+                    plan.batch.command_with_pipeline_key(
+                        spec.phase,
+                        spec.pipeline_kind,
+                        variant_id,
+                        &plan.batch.effective_shadow_pipeline_key(),
+                    )
+                } else {
+                    plan.batch
+                        .command(spec.phase, spec.pipeline_kind, variant_id)
+                };
                 let command = if let Some(key) = cache_key {
                     let (command, payload) = command.into_shared_payload();
                     cache_stores.push(PreparedCacheStore {

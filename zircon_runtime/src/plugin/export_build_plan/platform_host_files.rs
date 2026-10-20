@@ -391,9 +391,25 @@ fn html_escape(value: &str) -> String {
     xml_escape(value)
 }
 
-// BUG: [CR-PLUGIN-EXPORT-AUDIT-0004] 只转义引号和反斜杠；合法 output_name 的内嵌换行进入 iOS Swift 字符串字面量会使脚手架无法编译。证据：mobile.rs 的 ios_package_swift_template 和 ios_host_template。
 fn swift_string_escape(value: &str) -> String {
-    value.replace('\\', "\\\\").replace('"', "\\\"")
+    let mut escaped = String::with_capacity(value.len());
+    for character in value.chars() {
+        match character {
+            '\\' => escaped.push_str("\\\\"),
+            '"' => escaped.push_str("\\\""),
+            '\0' => escaped.push_str("\\0"),
+            '\t' => escaped.push_str("\\t"),
+            '\n' => escaped.push_str("\\n"),
+            '\r' => escaped.push_str("\\r"),
+            control if control.is_control() || matches!(control, '\u{2028}' | '\u{2029}') => {
+                use std::fmt::Write;
+                write!(&mut escaped, "\\u{{{:x}}}", u32::from(control))
+                    .expect("writing a Swift escape to String cannot fail");
+            }
+            other => escaped.push(other),
+        }
+    }
+    escaped
 }
 
 fn javascript_string_escape(value: &str) -> String {
@@ -413,7 +429,9 @@ fn javascript_string_escape(value: &str) -> String {
 }
 
 fn json_string_escape(value: &str) -> String {
-    value.replace('\\', "\\\\").replace('"', "\\\"")
+    let quoted = serde_json::to_string(value).expect("serializing a Rust string cannot fail");
+    // Templates already supply the JSON quotes. Their ASCII delimiters are one byte each.
+    quoted[1..quoted.len() - 1].to_owned()
 }
 
 fn gradle_string_escape(value: &str) -> String {
@@ -430,4 +448,20 @@ fn properties_string_escape(value: &str) -> String {
 
 fn toml_string_escape(value: &str) -> String {
     value.replace('\\', "\\\\").replace('"', "\\\"")
+}
+
+#[cfg(test)]
+mod string_encoding_tests {
+    use super::json_string_escape;
+
+    #[test]
+    fn json_string_contents_round_trip_every_control_character() {
+        let value = (0_u8..=31).map(char::from).collect::<String>() + "\"\\\u{7f}\u{2028}雪";
+        let encoded = json_string_escape(&value);
+        let decoded: String = serde_json::from_str(&format!("\"{encoded}\"")).unwrap();
+        assert_eq!(decoded, value);
+        assert!(!encoded.chars().any(|character| character <= '\u{1f}'));
+        assert!(encoded.contains("\\n"));
+        assert!(encoded.contains("\\u0000"));
+    }
 }

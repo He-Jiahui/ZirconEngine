@@ -70,7 +70,12 @@ impl WgpuResourceRegistry {
             .ok_or(RhiError::UnknownShaderModule(handle.diagnostic_id()))?;
         self.handles.release_shader_module(handle)?;
         let last_uses = std::mem::take(&mut resource.last_uses);
-        self.retire_native(WgpuRetiredResource::ShaderModule(resource), last_uses);
+        self.retire_native(
+            WgpuRetiredResource::ShaderModule {
+                _resource: resource,
+            },
+            last_uses,
+        );
         Ok(())
     }
 
@@ -141,7 +146,12 @@ impl WgpuResourceRegistry {
             .ok_or(RhiError::UnknownPipelineLayout(handle.diagnostic_id()))?;
         self.handles.release_pipeline_layout(handle)?;
         let last_uses = std::mem::take(&mut resource.last_uses);
-        self.retire_native(WgpuRetiredResource::PipelineLayout(resource), last_uses);
+        self.retire_native(
+            WgpuRetiredResource::PipelineLayout {
+                _resource: resource,
+            },
+            last_uses,
+        );
         Ok(())
     }
 
@@ -228,7 +238,12 @@ impl WgpuResourceRegistry {
             .ok_or(RhiError::UnknownPipeline(handle.diagnostic_id()))?;
         self.handles.release_pipeline(handle)?;
         let last_uses = std::mem::take(resource.last_uses_mut());
-        self.retire_native(WgpuRetiredResource::Pipeline(resource), last_uses);
+        self.retire_native(
+            WgpuRetiredResource::Pipeline {
+                _resource: resource,
+            },
+            last_uses,
+        );
         Ok(())
     }
 }

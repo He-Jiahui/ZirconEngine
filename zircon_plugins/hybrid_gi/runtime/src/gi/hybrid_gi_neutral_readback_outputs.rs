@@ -72,7 +72,16 @@ impl From<HybridGiScenePrepareResourcesSnapshot> for RenderHybridGiScenePrepareR
         let probe_trace_dispatch = snapshot.probe_trace_dispatch();
         let occupied_atlas_slots = snapshot.occupied_atlas_slots().to_vec();
         let occupied_capture_slots = snapshot.occupied_capture_slots().to_vec();
+        let (pages, clipmaps) = snapshot.source_descriptors();
+        let mut surface_cache_pages = pages.to_vec();
+        let voxel_clipmaps = clipmaps.to_vec();
         let (atlas_samples, capture_samples) = snapshot.into_surface_cache_samples();
+        for page in &mut surface_cache_pages {
+            page.radiance_rgba8 = atlas_samples
+                .iter()
+                .find_map(|(slot, rgba)| (*slot == page.atlas_slot_id).then_some(*rgba))
+                .unwrap_or([0; 4]);
+        }
 
         Self {
             occupied_atlas_slots,
@@ -80,9 +89,8 @@ impl From<HybridGiScenePrepareResourcesSnapshot> for RenderHybridGiScenePrepareR
             atlas_samples: scene_prepare_samples(atlas_samples),
             capture_samples: scene_prepare_samples(capture_samples),
             surface_cache_depth_samples,
-            // BUG: [CR-HYBRID-GI-0001] 此处恒空的页和 clipmap 列表会使后续场景追踪包缺少两类辐射来源。
-            surface_cache_pages: Vec::new(),
-            voxel_clipmaps: Vec::new(),
+            surface_cache_pages,
+            voxel_clipmaps,
             voxel_clipmap_ids,
             voxel_samples,
             voxel_occupancy,

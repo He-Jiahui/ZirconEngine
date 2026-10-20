@@ -11,10 +11,10 @@ implementation_files:
   - Cargo.toml
 plan_sources:
   - user: 2026-09-09 构建 ZirconEngine 详细 Wiki 文档集合
-  - docs/plans/mvp/index.md
+  - docs/testing-and-validation/mvp-acceptance-index.md
   - docs/architecture/index.md
 tests:
-  - docs/plans/mvp/index.md
+  - docs/testing-and-validation/mvp-acceptance-index.md
   - .github/workflows/ci.yml
 doc_type: category-index
 ---
@@ -107,7 +107,7 @@ flowchart LR
 
 - 文档快照日期：2026-09-09。
 - workspace 当前分支为 `main`；仓库策略要求直接在 `main` 工作。
-- MVP 计划 `docs/plans/mvp/index.md` 当前仍为 `in_progress`。因此“已实现”只表示源码中存在生产入口或契约，不表示整条产品验收闭环已经通过。
+- MVP 计划 `docs/testing-and-validation/mvp-acceptance-index.md` 当前仍为 `in_progress`。因此“已实现”只表示源码中存在生产入口或契约，不表示整条产品验收闭环已经通过。
 - 本 Wiki 的状态标签为：`已实现`、`可扩展基础`、`受限`、`实验`、`规划中`、`内部实现`。定义见[功能状态](feature-status.md)。
 
 ## 约定

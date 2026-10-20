@@ -1,5 +1,5 @@
 //! 运行时根公开面和图形别名的收敛结果需与架构文档一致。以结果断言检查当前接口或源码快照对应的边界。
-use super::inventory::{LIB_RS, ROOT_SURFACE_DOC, RUNTIME_02_OUTPUT_RECORDS};
+use super::inventory::{runtime_02_output_records, LIB_RS, ROOT_SURFACE_DOC};
 
 #[test]
 fn graphics_alias_debt_is_removed_from_runtime_root() {
@@ -30,7 +30,7 @@ fn graphics_alias_debt_is_removed_from_runtime_root() {
         "crate-visible graphics alias debt 0/0",
     ] {
         assert!(
-            RUNTIME_02_OUTPUT_RECORDS.contains(required_plan_anchor),
+            runtime_02_output_records().contains(required_plan_anchor),
             "Runtime 02 output records must document root-surface guard anchor `{required_plan_anchor}`"
         );
     }
@@ -88,7 +88,7 @@ fn graphics_type_alias_debt_symbols_are_only_available_through_graphics_namespac
         "crate-visible graphics alias debt 0/0",
     ] {
         assert!(
-            RUNTIME_02_OUTPUT_RECORDS.contains(required_plan_anchor),
+            runtime_02_output_records().contains(required_plan_anchor),
             "Runtime 02 output records must document M3/M3.2 alias cutover anchor `{required_plan_anchor}`"
         );
     }

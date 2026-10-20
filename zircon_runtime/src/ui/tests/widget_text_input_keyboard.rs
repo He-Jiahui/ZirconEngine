@@ -53,10 +53,56 @@ fn assert_clipboard_request(
 ) -> UiClipboardRequest {
     assert_eq!(result.reply.effects.len(), 1);
     assert_eq!(result.applied_effects.len(), 1);
-    assert_eq!(result.host_requests.len(), 1);
-    let UiDispatchHostRequestKind::Clipboard(request) = &result.host_requests[0].request else {
-        panic!("expected clipboard host request");
-    };
+    assert_eq!(result.applied_effects[0].effect_index, 0);
+    assert_eq!(result.applied_effects[0].effect, result.reply.effects[0]);
+    assert!(result.rejected_effects.is_empty());
+    let clipboard_requests = result
+        .host_requests
+        .iter()
+        .filter_map(|host| match &host.request {
+            UiDispatchHostRequestKind::Clipboard(request) => {
+                assert_eq!(host.effect_index, 0);
+                assert!(matches!(
+                    &result.applied_effects[host.effect_index].effect,
+                    zircon_runtime_interface::ui::dispatch::UiDispatchEffect::RequestClipboard {
+                        request: applied_request
+                    } if applied_request == request
+                ));
+                Some(request)
+            }
+            UiDispatchHostRequestKind::InputMethod(request) => {
+                assert_eq!(
+                    request.kind,
+                    zircon_runtime_interface::ui::dispatch::UiInputMethodRequestKind::Enable
+                );
+                assert_eq!(request.owner, UiNodeId::new(2));
+                // apply_dispatch_effect_at_index drains queued focus lifecycle
+                // after the successful clipboard effect, before dispatch's
+                // final usize::MAX flush (which now has nothing left).
+                assert_eq!(host.effect_index, result.applied_effects[0].effect_index);
+                assert_eq!(host.effect_index, 0);
+                assert!(request.cursor_rect.is_none());
+                assert!(request.composition_rects.is_empty());
+                assert!(request.surrounding_text.is_none());
+                assert_eq!(host.reason, "focus input-method lifecycle");
+                None
+            }
+            request => panic!("unexpected host request beside clipboard transfer: {request:?}"),
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(clipboard_requests.len(), 1);
+    assert!(result.host_requests.len() <= 2);
+    if result.host_requests.len() == 2 {
+        assert!(matches!(
+            &result.host_requests[0].request,
+            UiDispatchHostRequestKind::Clipboard(_)
+        ));
+        assert!(matches!(
+            &result.host_requests[1].request,
+            UiDispatchHostRequestKind::InputMethod(_)
+        ));
+    }
+    let request = clipboard_requests[0];
     assert_eq!(request.kind, kind);
     assert_eq!(request.owner, UiNodeId::new(2));
     assert_eq!(request.text.as_deref(), text);

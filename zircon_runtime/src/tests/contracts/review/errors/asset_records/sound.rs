@@ -7,15 +7,6 @@ fn review_f5_sound_asset_uses_typed_error() {
     let sound_tests = include_str!("../../../../../asset/tests/assets/sound.rs");
     let import_sound_asset =
         include_str!("../../../../../asset/importer/ingest/tests/import_sound.rs");
-    let review_findings =
-        include_str!("../../../../../../../docs/plans/engine-code-review-findings-2026-06.md");
-    let runtime_15_plan = include_str!(
-        "../../../../../../../docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md"
-    );
-    let runtime_index =
-        include_str!("../../../../../../../docs/plans/zircon_runtime/runtime/index.md");
-    let convention =
-        include_str!("../../../../../../../docs/plans/engine-code-structure-convention.md");
     let sound_doc =
         include_str!("../../../../../../../docs/crates/zircon_runtime/asset/assets/sound.md");
     let importer_doc =
@@ -77,12 +68,7 @@ fn review_f5_sound_asset_uses_typed_error() {
         "asset/tests/assets/sound.rs",
     ] {
         assert!(
-            review_findings.contains(doc_anchor)
-                || runtime_15_plan.contains(doc_anchor)
-                || runtime_index.contains(doc_anchor)
-                || convention.contains(doc_anchor)
-                || sound_doc.contains(doc_anchor)
-                || importer_doc.contains(doc_anchor),
+            sound_doc.contains(doc_anchor) || importer_doc.contains(doc_anchor),
             "F5 sound asset docs should record `{doc_anchor}`"
         );
     }

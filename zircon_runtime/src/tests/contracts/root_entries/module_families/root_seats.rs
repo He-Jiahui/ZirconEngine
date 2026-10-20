@@ -1,4 +1,5 @@
 //! 运行时根入口只公开选定模块，模块家族和历史别名由各自子模块判定。以结果断言检查当前接口或源码快照对应的边界。
+use crate::tests::runtime_absorption::structure_convention::fixed_history_archive_source as history;
 #[test]
 fn runtime_14_module_family_root_seats_match_documented_judgements() {
     let crate_root = include_str!("../../../../lib.rs");
@@ -17,9 +18,7 @@ fn runtime_14_module_family_root_seats_match_documented_judgements() {
         );
     }
 
-    let plan_doc = include_str!(
-        "../../../../../../docs/plans/zircon_runtime/runtime/14/2026-07-09-runtime-module-family-closeout-output-records.md"
-    );
+    let plan_doc = history("docs/plans/zircon_runtime/runtime/14/2026-07-09-runtime-module-family-closeout-output-records.md");
     for required_anchor in [
         "crate 根四族席位总守卫",
         "runtime_14_module_family_root_seats_match_documented_judgements",

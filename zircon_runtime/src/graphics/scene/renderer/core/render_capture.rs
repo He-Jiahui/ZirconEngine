@@ -25,6 +25,7 @@ impl SceneRenderer {
             && capabilities.storage_buffer_binding_capacity_supported(
                 OIT_MESH_PIPELINE_REQUIRED_STORAGE_BUFFERS_PER_SHADER_STAGE,
             );
+        capabilities.supports_buffer_readback = self.backend.native_buffer_readback_supported();
         capabilities.supports_fragment_writable_storage =
             native_fragment_writable_storage && native_oit_bindings;
         capabilities

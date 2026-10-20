@@ -3,6 +3,58 @@
 //! 用例构造 `crate` API 值，检查选定 helper、ABI 字段布局和 JSON/TOML 往返。
 //! 这些局部断言不调用 Runtime 导出的宿主 ABI，也不证明其他目标上的布局或端到端行为。
 
+#[test]
+fn viewport_surface_v2_request_validates_mode_and_keeps_v1_layout() {
+    use crate::{
+        ZrRuntimeBindViewportSurfaceRequestV1 as V1, ZrRuntimeBindViewportSurfaceRequestV2 as V2,
+        ZrRuntimeNativeSurfaceTargetV1, ZrRuntimePresentModeV2 as M, ZrRuntimeViewportHandle,
+        ZrRuntimeViewportSizeV1, ZIRCON_RUNTIME_ABI_VERSION_V1,
+    };
+    let target = ZrRuntimeNativeSurfaceTargetV1::win32(ZIRCON_RUNTIME_ABI_VERSION_V1, 73, 0);
+    let v1 = V1::new(
+        ZIRCON_RUNTIME_ABI_VERSION_V1,
+        ZrRuntimeViewportHandle::new(1),
+        ZrRuntimeViewportSizeV1::new(64, 48),
+        target,
+    );
+    assert_eq!(core::mem::offset_of!(V1, abi_version), 0);
+    assert_eq!(core::mem::offset_of!(V1, viewport), 8);
+    assert_eq!(core::mem::offset_of!(V1, size), 16);
+    assert_eq!(core::mem::offset_of!(V1, target), 24);
+    assert_eq!(core::mem::size_of::<V1>(), 48);
+    let request = V2::new(v1.viewport, v1.size, v1.target);
+    assert!(request.is_valid());
+    assert_eq!(request.present_mode, M::Fifo as u32);
+    for mode in [
+        M::Fifo,
+        M::Immediate,
+        M::Mailbox,
+        M::FifoRelaxed,
+        M::AutoVsync,
+        M::AutoNoVsync,
+    ] {
+        let value = request.with_present_mode(mode);
+        assert!(value.is_valid());
+        assert_eq!(M::from_raw(value.present_mode), Some(mode));
+        assert_eq!(
+            (value.viewport, value.size, value.target),
+            (v1.viewport, v1.size, v1.target)
+        );
+    }
+    let mut bad = request;
+    bad.abi_version += 1;
+    assert!(!bad.is_valid());
+    let mut bad = request;
+    bad.size_bytes -= 1;
+    assert!(!bad.is_valid());
+    let mut bad = request;
+    bad.reserved = 1;
+    assert!(!bad.is_valid());
+    let mut bad = request;
+    bad.present_mode = u32::MAX;
+    assert!(!bad.is_valid());
+}
+
 #[path = "contracts/selector.rs"]
 mod selector;
 

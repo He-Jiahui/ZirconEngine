@@ -15,17 +15,23 @@ INSTALLER = ROOT / "tools/dev/install-jenkins-management.ps1"
 ADDON = ROOT / "tools/jenkins-management/checkout-commit.groovy"
 DELIVERY_ADDON = ROOT / "tools/jenkins-management/delivery.groovy"
 BRANCH_ADDON = ROOT / "tools/jenkins-management/branch-integration.groovy"
+CLEANUP_ADDON = ROOT / "tools/jenkins-management/branch_cleanup.groovy"
 MARKER = "ZR_INSTALLER_EXTENSION_RESULTS:"
 OLD_CORE = "// pinned old core\n"
 NEW_CORE = "// pinned new core\n"
 
 
-def _command(cases, raw, delivery_raw, branch_raw=b"", *, compressed=False):
+def _command(cases, raw, delivery_raw, branch_raw=b"", cleanup_raw=b"", *, compressed=False):
     path = base64.b64encode(str(INSTALLER).encode()).decode()
-    payload = base64.b64encode(json.dumps(cases, separators=(",", ":")).encode()).decode()
     addon = base64.b64encode(raw).decode()
     delivery_addon = base64.b64encode(delivery_raw).decode()
     branch_addon = base64.b64encode(branch_raw).decode()
+    cleanup_addon = base64.b64encode(cleanup_raw).decode()
+    fixture = dict(cases=cases, addon=addon, delivery=delivery_addon,
+                   branch=branch_addon, cleanup=cleanup_addon)
+    payload = base64.b64encode(gzip.compress(
+        json.dumps(fixture, separators=(",", ":")).encode(), mtime=0,
+    )).decode()
     command = r"""
 $ErrorActionPreference = 'Stop'
 if ($PSVersionTable.PSEdition -ne 'Desktop') { throw 'Windows PowerShell Desktop is required' }
@@ -55,15 +61,22 @@ function New-ExtensionCaseJob([string]$Script) {
     $escaped = [Security.SecurityElement]::Escape($Script)
     return [xml]"<flow-definition><actions/><description>Bounded Jenkins management MVP; no M8 acceptance</description><keepDependencies>false</keepDependencies><properties><hudson.model.ParametersDefinitionProperty><parameterDefinitions>$parameters</parameterDefinitions></hudson.model.ParametersDefinitionProperty></properties><definition class='org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition' plugin='workflow-cps'><script>$escaped</script><sandbox>true</sandbox></definition><triggers/><disabled>false</disabled></flow-definition>"
 }
-$branchBaseBytes = [Convert]::FromBase64String('__BRANCH__')
+$fixtureStream = New-Object IO.MemoryStream(,[Convert]::FromBase64String('__CASES__'))
+$fixtureZip = New-Object IO.Compression.GZipStream($fixtureStream, [IO.Compression.CompressionMode]::Decompress)
+$fixtureReader = New-Object IO.StreamReader($fixtureZip, [Text.Encoding]::UTF8)
+try { $fixture = ConvertFrom-Json ($fixtureReader.ReadToEnd()) }
+finally { $fixtureReader.Dispose(); $fixtureZip.Dispose(); $fixtureStream.Dispose() }
+$branchBaseBytes = [Convert]::FromBase64String($fixture.branch)
 $branchBaseText = [Text.Encoding]::UTF8.GetString($branchBaseBytes).TrimStart([char]0xfeff).Replace(([string][char]13 + [char]10), [string][char]10)
-$deliveryBaseBytes = [Convert]::FromBase64String('__DELIVERY__')
+$cleanupBaseBytes = [Convert]::FromBase64String($fixture.cleanup)
+$cleanupBaseText = [Text.Encoding]::UTF8.GetString($cleanupBaseBytes).TrimStart([char]0xfeff).Replace(([string][char]13 + [char]10), [string][char]10)
+$deliveryBaseBytes = [Convert]::FromBase64String($fixture.delivery)
 $deliveryBaseText = [Text.Encoding]::UTF8.GetString($deliveryBaseBytes).TrimStart([char]0xfeff).Replace(([string][char]13 + [char]10), [string][char]10)
-$baseBytes = [Convert]::FromBase64String('__ADDON__')
+$baseBytes = [Convert]::FromBase64String($fixture.addon)
 $baseText = [Text.Encoding]::UTF8.GetString($baseBytes)
 if ($baseText.StartsWith([string][char]0xfeff, [StringComparison]::Ordinal)) { $baseText = $baseText.Substring(1) }
 $baseText = $baseText.Replace(([string][char]13 + [char]10), [string][char]10)
-$cases = ConvertFrom-Json ([Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('__CASES__')))
+$cases = @($fixture.cases)
 $rows = New-Object 'System.Collections.Generic.List[object]'
 foreach ($case in $cases) {
     try {
@@ -102,6 +115,25 @@ foreach ($case in $cases) {
             $prefix = $deliveryPrefix + $checkoutPrefix
         }
         $branchPrefix = ''
+        $cleanupPrefix = ''
+        if ($case.cleanup -eq $true) {
+            [byte[]]$cleanupBytes = $cleanupBaseBytes
+            switch ([string]$case.cleanupBytes) {
+                'changed' { $cleanupBytes = [Text.Encoding]::UTF8.GetBytes($cleanupBaseText + '// drift') }
+                'duplicate' { $cleanupBytes = [Text.Encoding]::UTF8.GetBytes($cleanupBaseText + $cleanupBaseText) }
+                'leading' { $cleanupBytes = [Text.Encoding]::UTF8.GetBytes('// foreign' + [char]10 + $cleanupBaseText) }
+                'missing-end' { $cleanupBytes = [Text.Encoding]::UTF8.GetBytes($cleanupBaseText.Replace('// END ZIRCON OLD BRANCH CLEANUP','')) }
+                'crlf' { $cleanupBytes = [Text.Encoding]::UTF8.GetBytes($cleanupBaseText.Replace([string][char]10, ([string][char]13 + [char]10))) }
+                'bom-crlf' { $cleanupBytes = [byte[]](@(239,187,191) + [Text.Encoding]::UTF8.GetBytes($cleanupBaseText.Replace([string][char]10, ([string][char]13 + [char]10)))) }
+                'trailing-newline' { $cleanupBytes = [byte[]](@($cleanupBaseBytes) + @(10)) }
+                'invalid-utf8' { $cleanupBytes = [byte[]]@(255) }
+                'wrong-kind' { $cleanupBytes = $deliveryBaseBytes }
+            }
+            $cleanupPin = [string]$case.cleanupPin
+            if ($null -eq $case.cleanupPin) { $cleanupPin = Hash-Bytes $cleanupBaseBytes }
+            if ($case.cleanupPinMode -ceq 'actual') { $cleanupPin = Hash-Bytes $cleanupBytes }
+            $cleanupPrefix = Get-ManagementJobExtensionPrefix -AddonBytes $cleanupBytes -ExpectedSha256 $cleanupPin -Kind 'branch-cleanup'
+        }
         if ($case.branch -eq $true) {
             [byte[]]$branchBytes = $branchBaseBytes
             switch ([string]$case.branchBytes) {
@@ -113,14 +145,17 @@ foreach ($case in $cases) {
             if ($null -eq $case.branchPin) { $branchPin = Hash-Bytes $branchBaseBytes }
             if ($case.branchPinMode -ceq 'actual') { $branchPin = Hash-Bytes $branchBytes }
             $branchPrefix = Get-ManagementJobExtensionPrefix -AddonBytes $branchBytes -ExpectedSha256 $branchPin -Kind 'branch-integration'
-            $prefix = $branchPrefix + $deliveryPrefix + $checkoutPrefix
+            $prefix = $branchPrefix + $cleanupPrefix + $deliveryPrefix + $checkoutPrefix
         }
         $expected = Join-ManagementJobExtension -Core ([string]$case.core) -Prefix $prefix
         $actual = $expected
         switch ([string]$case.actual) {
-            'missing-branch' { $actual = $deliveryPrefix + $checkoutPrefix + [string]$case.core }
+            'missing-branch' { $actual = $cleanupPrefix + $deliveryPrefix + $checkoutPrefix + [string]$case.core }
             'duplicate-branch' { $actual = $branchPrefix + $expected }
-            'moved-branch' { $actual = $deliveryPrefix + $branchPrefix + $checkoutPrefix + [string]$case.core }
+            'moved-branch' { $actual = $cleanupPrefix + $branchPrefix + $deliveryPrefix + $checkoutPrefix + [string]$case.core }
+            'missing-cleanup' { $actual = $branchPrefix + $deliveryPrefix + $checkoutPrefix + [string]$case.core }
+            'duplicate-cleanup' { $actual = $branchPrefix + $cleanupPrefix + $cleanupPrefix + $deliveryPrefix + $checkoutPrefix + [string]$case.core }
+            'moved-cleanup' { $actual = $branchPrefix + $deliveryPrefix + $cleanupPrefix + $checkoutPrefix + [string]$case.core }
             'missing-delivery' { $actual = $checkoutPrefix + [string]$case.core }
             'duplicate-delivery' { $actual = $deliveryPrefix + $expected }
             'moved-delivery' { $actual = $checkoutPrefix + $deliveryPrefix + [string]$case.core }
@@ -142,7 +177,8 @@ foreach ($case in $cases) {
             $archive = New-ExtensionCaseJob $old
             if ($case.archive -ceq 'bare') { $archive = New-ExtensionCaseJob ('// pinned old core' + [char]10) }
             if ($case.archive -ceq 'missing-delivery') { $archive = New-ExtensionCaseJob ($checkoutPrefix + '// pinned old core' + [char]10) }
-            if ($case.archive -ceq 'missing-branch') { $archive = New-ExtensionCaseJob ($deliveryPrefix + $checkoutPrefix + '// pinned old core' + [char]10) }
+            if ($case.archive -ceq 'missing-branch') { $archive = New-ExtensionCaseJob ($cleanupPrefix + $deliveryPrefix + $checkoutPrefix + '// pinned old core' + [char]10) }
+            if ($case.archive -ceq 'missing-cleanup') { $archive = New-ExtensionCaseJob ($branchPrefix + $deliveryPrefix + $checkoutPrefix + '// pinned old core' + [char]10) }
             Assert-ManagementJob $archive $old 'driver-fixture' 'runtime-fixture'
         }
         $rows.Add([ordered]@{id=[string]$case.id;status='accepted';value=$expected;error=$null}) | Out-Null
@@ -151,7 +187,7 @@ foreach ($case in $cases) {
     }
 }
 [Console]::Out.WriteLine('ZR_INSTALLER_EXTENSION_RESULTS:' + (ConvertTo-Json -InputObject @($rows.ToArray()) -Depth 5 -Compress))
-""".replace("__PATH__", path).replace("__ADDON__", addon).replace("__DELIVERY__", delivery_addon).replace("__BRANCH__", branch_addon).replace("__CASES__", payload)
+""".replace("__PATH__", path).replace("__CASES__", payload)
     if not compressed:
         return command
     compressed_payload = base64.b64encode(gzip.compress(command.encode("utf-8"), mtime=0)).decode("ascii")
@@ -173,6 +209,9 @@ class InstallerExtensionTests(unittest.TestCase):
         pin = hashlib.sha256(raw).hexdigest()
         delivery_raw = DELIVERY_ADDON.read_bytes() if getattr(cls, "delivery_only", False) or getattr(cls, "branch_only", False) else b""
         branch_raw = BRANCH_ADDON.read_bytes() if getattr(cls, "branch_only", False) else b""
+        cleanup_raw = CLEANUP_ADDON.read_bytes() if getattr(cls, "branch_only", False) else b""
+        cleanup_pin = hashlib.sha256(cleanup_raw).hexdigest()
+        cls.cleanup_prefix = cleanup_raw.decode("utf-8-sig").replace("\r\n", "\n").rstrip("\r\n") + "\n\n"
         branch_pin = hashlib.sha256(branch_raw).hexdigest()
         cls.branch_prefix = branch_raw.decode("utf-8-sig").replace("\r\n", "\n").rstrip("\r\n") + "\n\n"
         delivery_pin = hashlib.sha256(delivery_raw).hexdigest()
@@ -230,11 +269,12 @@ class InstallerExtensionTests(unittest.TestCase):
         ]
         if getattr(cls, "branch_only", False):
             def branch(identifier, **overrides):
-                value = dict(branch=True, branchPin=branch_pin)
+                value = dict(branch=True, branchPin=branch_pin, cleanup=True, cleanupPin=cleanup_pin)
                 value.update(overrides)
                 row = delivery(identifier, **value)
-                for field in ("pin", "deliveryPin", "branchPin"):
-                    row.pop(field, None)
+                for field in ("pin", "deliveryPin", "branchPin", "cleanupPin"):
+                    if field not in overrides:
+                        row.pop(field, None)
                 return row
             cases = [
                 branch("branch-old"),
@@ -249,6 +289,22 @@ class InstallerExtensionTests(unittest.TestCase):
                 branch("branch-nested-core", core=cls.branch_prefix + OLD_CORE),
                 branch("branch-api-drift", actual="changed-core"),
                 branch("branch-resume-wrong-archive", core=NEW_CORE, resume=True, archive="missing-branch"),
+                branch("cleanup-source-drift", cleanupBytes="changed"),
+                branch("cleanup-wrong-pin", cleanupPin="0" * 64),
+                branch("cleanup-empty-pin", cleanupPin=""),
+                branch("cleanup-incomplete", cleanupBytes="missing-end", cleanupPinMode="actual"),
+                branch("cleanup-duplicate-template", cleanupBytes="duplicate", cleanupPinMode="actual"),
+                branch("cleanup-leading-template", cleanupBytes="leading", cleanupPinMode="actual"),
+                branch("cleanup-invalid-utf8", cleanupBytes="invalid-utf8", cleanupPinMode="actual"),
+                branch("cleanup-wrong-kind", cleanupBytes="wrong-kind", cleanupPinMode="actual"),
+                branch("cleanup-crlf", cleanupBytes="crlf", cleanupPinMode="actual"),
+                branch("cleanup-bom-crlf", cleanupBytes="bom-crlf", cleanupPinMode="actual"),
+                branch("cleanup-raw-newline-drift", cleanupBytes="trailing-newline"),
+                branch("cleanup-missing", actual="missing-cleanup"),
+                branch("cleanup-duplicate", actual="duplicate-cleanup"),
+                branch("cleanup-moved", actual="moved-cleanup"),
+                branch("cleanup-nested-core", core=cls.cleanup_prefix + OLD_CORE),
+                branch("cleanup-resume-wrong-archive", core=NEW_CORE, resume=True, archive="missing-cleanup"),
             ]
         elif getattr(cls, "delivery_only", False):
             cases = [row for row in cases if row.get("delivery") is True]
@@ -257,7 +313,7 @@ class InstallerExtensionTests(unittest.TestCase):
         powershell = shutil.which("powershell.exe") or shutil.which("powershell")
         if powershell is None:
             raise RuntimeError("Windows PowerShell Desktop is required; this is not a passing skip")
-        command = _command(cases, raw, delivery_raw, branch_raw, compressed=True)
+        command = _command(cases, raw, delivery_raw, branch_raw, cleanup_raw, compressed=True)
         if len(command) > 24000:
             raise RuntimeError("Installer extension fixture exceeded the bounded native command")
         completed = subprocess.run(
@@ -339,14 +395,21 @@ class BranchIntegrationInstallerExtensionTests(unittest.TestCase):
     rejected = InstallerExtensionTests.rejected
 
     def test_branch_delivery_checkout_preserve_old_new_resume_and_reject_drift(self):
-        prefix = self.branch_prefix + self.delivery_prefix + self.prefix
+        prefix = self.branch_prefix + self.cleanup_prefix + self.delivery_prefix + self.prefix
         self.accepted("branch-old", prefix + OLD_CORE)
         self.accepted("branch-new", prefix + NEW_CORE)
         self.accepted("branch-resume", prefix + NEW_CORE)
+        self.accepted("cleanup-crlf", prefix + OLD_CORE)
+        self.accepted("cleanup-bom-crlf", prefix + OLD_CORE)
         self.rejected(
             "branch-missing", "branch-duplicate", "branch-moved", "branch-source-drift",
             "branch-incomplete", "branch-duplicate-template", "branch-nested-core",
             "branch-api-drift", "branch-resume-wrong-archive",
+            "cleanup-source-drift", "cleanup-wrong-pin", "cleanup-empty-pin",
+            "cleanup-incomplete", "cleanup-duplicate-template", "cleanup-leading-template",
+            "cleanup-invalid-utf8", "cleanup-wrong-kind", "cleanup-raw-newline-drift",
+            "cleanup-missing", "cleanup-duplicate", "cleanup-moved", "cleanup-nested-core",
+            "cleanup-resume-wrong-archive",
         )
 
         retained = {

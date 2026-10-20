@@ -8,14 +8,15 @@ fn review_f5_gameplay_host_uses_typed_errors_before_script_host_boundary() {
     let navigation = include_str!("../../../../../script/vm/gameplay_host/navigation.rs");
     let transform = include_str!("../../../../../script/vm/gameplay_host/transform.rs");
     let _review_findings =
-        include_str!("../../../../../../../docs/plans/engine-code-review-findings-2026-06.md");
+        include_str!("../../../../../../../docs/architecture/runtime-architecture-review-m0.md");
     let _runtime_15_plan = include_str!(
-        "../../../../../../../docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md"
+        "../../../../../../../docs/crates/zircon_runtime/structure/module-convention.md"
     );
-    let _runtime_index =
-        include_str!("../../../../../../../docs/plans/zircon_runtime/runtime/index.md");
+    let _runtime_index = include_str!(
+        "../../../../../../../docs/crates/zircon_runtime/structure/runtime-absorption-evidence.md"
+    );
     let _convention =
-        include_str!("../../../../../../../docs/plans/engine-code-structure-convention.md");
+        include_str!("../../../../../../../docs/testing-and-validation/development-conventions.md");
     let _host_doc = include_str!(
         "../../../../../../../docs/crates/zircon_runtime/script/vm/host/function_ledger.md"
     );
@@ -69,14 +70,15 @@ fn review_f5_script_scene_system_uses_typed_errors_before_core_boundary() {
     let scene_system = include_str!("../../../../../script/vm/scene_system.rs");
     let error_owner = include_str!("../../../../../script/vm/scene_system/error.rs");
     let _review_findings =
-        include_str!("../../../../../../../docs/plans/engine-code-review-findings-2026-06.md");
+        include_str!("../../../../../../../docs/architecture/runtime-architecture-review-m0.md");
     let _runtime_15_plan = include_str!(
-        "../../../../../../../docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md"
+        "../../../../../../../docs/crates/zircon_runtime/structure/module-convention.md"
     );
-    let _runtime_index =
-        include_str!("../../../../../../../docs/plans/zircon_runtime/runtime/index.md");
+    let _runtime_index = include_str!(
+        "../../../../../../../docs/crates/zircon_runtime/structure/runtime-absorption-evidence.md"
+    );
     let _convention =
-        include_str!("../../../../../../../docs/plans/engine-code-structure-convention.md");
+        include_str!("../../../../../../../docs/testing-and-validation/development-conventions.md");
     let _host_reflection = include_str!(
         "../../../../../../../docs/crates/zircon_runtime/script/vm/zr_vm_host_reflection.md"
     );

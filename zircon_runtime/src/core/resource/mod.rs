@@ -8,7 +8,6 @@ pub use zr_resource::ResourceData;
 pub use zr_resource::ResourceLease;
 #[cfg(feature = "profiling")]
 pub use zr_resource::ResourceManagementScanDiagnostics;
-pub use zr_resource::ResourceRegistry;
 pub use zr_resource::ResourceSnapshot;
 pub use zr_resource::{
     AnimationClipMarker, AnimationGraphMarker, AnimationSequenceMarker, AnimationSkeletonMarker,
@@ -32,8 +31,8 @@ pub use zr_resource::{
     ResourceHandle, ResourceRecord, ResourceState, UntypedResourceHandle,
 };
 pub use zr_resource::{
-    ResourceEventGap, ResourceEventReceiver, ResourceEventRecvError, ResourceEventRecvTimeoutError,
-    ResourceEventStreamDiagnostics, ResourceEventTryRecvError,
+    ResourceEventEnvelope, ResourceEventGap, ResourceEventReceiver, ResourceEventRecvError,
+    ResourceEventRecvTimeoutError, ResourceEventStreamDiagnostics, ResourceEventTryRecvError,
 };
 pub use zr_resource::{ResourceKind, ResourceMarker};
 pub use zr_resource::{
@@ -44,6 +43,7 @@ pub use zr_resource::{
 };
 pub use zr_resource::{ResourceManager, ResourceProjectionSnapshot, ResourceRegistryReadGuard};
 pub use zr_resource::{ResourceMutationBatch, ResourceMutationReceipt};
+pub use zr_resource::{ResourcePayloadType, ResourceRegistry};
 pub use zr_resource::{
     ResourceReadinessGeneration, ResourceReadinessGenerationDiagnostics,
     ResourceReadinessGenerationIdentity, ResourceReadinessRow, ResourceReadinessRowIdentity,

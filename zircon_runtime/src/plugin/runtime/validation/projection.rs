@@ -9,14 +9,17 @@ mod duplicate_identity;
 mod duplicate_occurrence;
 #[path = "projection/lookup.rs"]
 mod lookup;
+#[cfg(test)]
 #[path = "projection/metrics.rs"]
 mod metrics;
 
+#[cfg(test)]
 use std::cell::Cell;
 use std::collections::HashSet;
 
 use duplicate_occurrence::DuplicateOccurrence;
 pub(in crate::plugin::runtime_plugin) use duplicate_occurrence::EmbeddedFeatureKind;
+#[cfg(test)]
 pub(in crate::plugin::runtime_plugin) use metrics::RuntimePluginPackageValidationMetrics;
 #[cfg(test)]
 pub(in crate::plugin::runtime_plugin) use metrics::{
@@ -30,6 +33,7 @@ pub(in crate::plugin::runtime_plugin) struct RuntimePluginPackageValidationProje
     // 状态归属限于包与可选特性的能力；模块能力和扩展特性能力不自动取得这一归属。
     owned_capabilities: HashSet<&'a str>,
     // 有序视图保留清单顺序及重复行，成员视图供注册表快速核对，避免散列顺序进入诊断。
+    #[cfg(test)]
     runtime_module_names: Vec<&'a str>,
     runtime_module_name_membership: HashSet<&'a str>,
     provided_interface_ids: Vec<&'a str>,
@@ -37,7 +41,9 @@ pub(in crate::plugin::runtime_plugin) struct RuntimePluginPackageValidationProje
     dependency_interface_ids: Vec<&'a str>,
     dependency_interface_membership: HashSet<&'a str>,
     runtime_system_anchors: Vec<(&'a str, &'a str)>,
+    #[cfg(test)]
     identity_rows_indexed: usize,
+    #[cfg(test)]
     membership_probes: Cell<usize>,
 }
 

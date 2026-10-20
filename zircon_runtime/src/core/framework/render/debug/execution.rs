@@ -429,6 +429,9 @@ pub struct RenderVirtualGeometryExecutionData {
     pub author_cluster_catalog: Vec<crate::core::framework::render::RenderVirtualGeometryCluster>,
     /// Per GPU upload row: (instance, original array index, normal policy total).
     pub candidate_author_indices: Vec<(u32, u32, u32)>,
+    /// Exact (candidate, physical payload, physical range) bindings for authored
+    /// topology. None is automatic; Some(empty) is an explicit empty binding.
+    pub indexed_candidate_payload_ranges: Option<Vec<(u32, usize, usize)>>,
 }
 
 /// CPU policy output from the real provider prepare owner; never a mapped GPU result.

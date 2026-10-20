@@ -26,7 +26,7 @@ pub(super) fn token_at(
     let Some(close) = input.find(']') else {
         return Ok(None);
     };
-    tokenizer_budget.admit_token_bytes(close.checked_add(1).unwrap_or(usize::MAX))?;
+    tokenizer_budget.admit_token_bytes(close.saturating_add(1))?;
     let body = input[1..close].trim();
     if body.is_empty() {
         return Ok(None);

@@ -1,4 +1,5 @@
 //! 动态场景会话、补丁预览和资产重载路径需保持现有只读与所有权约束。集中保存路径、锚点或预期清单；消费方负责读取实际源码。
+use crate::tests::runtime_absorption::structure_convention::fixed_history_archive_source as history;
 pub(super) const PATCH_SOURCE: &str = include_str!("../../../scene/dynamic/patch.rs");
 pub(super) const DYNAMIC_SCENE_MOD_SOURCE: &str = include_str!("../../../scene/dynamic/mod.rs");
 pub(super) const SCENE_API_SOURCE: &str = concat!(
@@ -46,19 +47,19 @@ pub(super) const PATH_MANAGEMENT_SLOT_MUTATIONS_SOURCE: &str =
     include_str!("../../../scene/tests/session/path_management/slot_mutations.rs");
 pub(super) const ASSET_RELOAD_BEHAVIOR_SOURCE: &str =
     include_str!("../../../scene/tests/dynamic_scene_asset_reload.rs");
-pub(super) const RUNTIME_05_PLAN: &str = concat!(
+pub(super) fn runtime_05_plan() -> &'static str {
+    crate::runtime_test_history_concat!(
     include_str!(
-        "../../../../../docs/plans/zircon_runtime/runtime/05-scene-editor-boundary-closeout.md"
+        "../../../../../docs/testing-and-validation/runtime-editor-boundary-validation-worklist.md"
     ),
-    include_str!(
-        "../../../../../docs/plans/_archive/zircon_runtime/runtime/05/2026-07-09-scene-editor-boundary-closeout-output-records.md"
-    )
-);
-pub(super) const RUNTIME_INDEX: &str = concat!(
-    include_str!("../../../../../docs/plans/zircon_runtime/runtime/index.md"),
-    include_str!(
-        "../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md"
-    )
-);
+    history("docs/plans/_archive/zircon_runtime/runtime/05/2026-07-09-scene-editor-boundary-closeout-output-records.md")
+)
+}
+pub(super) fn runtime_index() -> &'static str {
+    crate::runtime_test_history_concat!(
+    include_str!("../../../../../docs/crates/zircon_runtime/structure/runtime-absorption-evidence.md"),
+    history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md")
+)
+}
 pub(super) const DYNAMIC_SCENE_DOC: &str =
     include_str!("../../../../../docs/crates/zircon_runtime/scene/dynamic_scene.md");

@@ -1,4 +1,4 @@
-//! Winit 物理键输入进入 Runtime ABI 的编号适配边界；当前回退不满足全部 Runtime/UI 命令键消费合同。
+//! Winit 物理键输入进入 Runtime ABI 的编号适配边界；编辑命令使用 Runtime/UI 识别的编号。
 //! 回退编号沿用现有 Debug 名哈希，不应作为跨依赖版本的持久化键标识。
 
 use std::fmt;
@@ -16,7 +16,7 @@ pub(in crate::entry::runtime_entry_app) fn key_action(state: ElementState) -> Op
     }
 }
 
-// BUG: [CR-APP-ENTRY-0018] 编辑键、方向键及 C/V/X、Enter/Tab 走 Debug 哈希，动态会话只识别有限旧编号并把其余键转为无语义名称；UI 消费语义键或旧键码，导致这些编辑/剪贴板命令不被识别；证据：input_events::keyboard_logical_key、keyboard_ime 与 text_keyboard 消费链。
+// Keep editing commands consistent with Runtime logical keys and UI legacy key codes.
 pub(in crate::entry::runtime_entry_app) fn physical_key_code(key: &PhysicalKey) -> u32 {
     match key {
         PhysicalKey::Code(code) => match code {
@@ -27,6 +27,21 @@ pub(in crate::entry::runtime_entry_app) fn physical_key_code(key: &PhysicalKey) 
             KeyCode::KeyD => u32::from(b'D'),
             KeyCode::KeyS => u32::from(b'S'),
             KeyCode::KeyW => u32::from(b'W'),
+            KeyCode::Backspace => 8,
+            KeyCode::Tab => 9,
+            KeyCode::Enter => 13,
+            KeyCode::Home => 36,
+            KeyCode::End => 35,
+            KeyCode::ArrowLeft => 37,
+            KeyCode::ArrowUp => 38,
+            KeyCode::ArrowRight => 39,
+            KeyCode::ArrowDown => 40,
+            KeyCode::Delete => 46,
+            KeyCode::KeyC => 67,
+            KeyCode::KeyV => 86,
+            KeyCode::KeyX => 88,
+            KeyCode::KeyY => 89,
+            KeyCode::KeyZ => 90,
             _ => stable_key_code(code),
         },
         PhysicalKey::Unidentified(native) => native_key_code(native),

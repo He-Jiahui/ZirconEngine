@@ -31,6 +31,9 @@ fn preflight_initial_capacity(operation_count: usize) -> usize {
 struct StagedResource {
     id: ResourceId,
     before: Option<ResourceRecord>,
+    before_payload_type: Option<crate::ResourcePayloadType>,
+    payload_type: Option<crate::ResourcePayloadType>,
+    identity_payload_type: Option<crate::ResourcePayloadType>,
     record: Option<ResourceRecord>,
     removed_record_baseline: Option<ResourceRecord>,
     identity_kind: Option<ResourceKind>,
@@ -42,13 +45,20 @@ struct StagedResource {
 }
 
 impl StagedResource {
-    fn new(id: ResourceId, before: Option<ResourceRecord>) -> Self {
+    fn new(
+        id: ResourceId,
+        before: Option<ResourceRecord>,
+        payload_type: Option<crate::ResourcePayloadType>,
+    ) -> Self {
         let identity_kind = before.as_ref().map(|record| record.kind);
         let authorized_locator = before.as_ref().map(|record| record.primary_locator.clone());
         Self {
             id,
             record: before.clone(),
             before,
+            before_payload_type: payload_type,
+            payload_type,
+            identity_payload_type: payload_type,
             removed_record_baseline: None,
             identity_kind,
             authorized_locator,
@@ -57,6 +67,23 @@ impl StagedResource {
             reload_failed: false,
             retain_last_good: None,
         }
+    }
+
+    fn declare_payload_type(
+        &mut self,
+        payload_type: crate::ResourcePayloadType,
+    ) -> ResourceResult<()> {
+        if self
+            .identity_payload_type
+            .is_some_and(|existing| existing != payload_type)
+        {
+            return Err(ResourceRegistryError::PayloadTypeConflict {
+                id: self.id.to_string(),
+            });
+        }
+        self.identity_payload_type = Some(payload_type);
+        self.payload_type = Some(payload_type);
+        Ok(())
     }
 
     fn establish_identity(&mut self, record: &ResourceRecord) {
@@ -94,7 +121,7 @@ impl StagedResources {
     fn get_or_insert_with(
         &mut self,
         id: ResourceId,
-        before: impl FnOnce() -> Option<ResourceRecord>,
+        before: impl FnOnce() -> (Option<ResourceRecord>, Option<crate::ResourcePayloadType>),
     ) -> &mut StagedResource {
         if let Some(index) = self.index_by_id.get(&id).copied() {
             let entry = &mut self.entries[index];
@@ -102,7 +129,9 @@ impl StagedResources {
             return entry;
         }
         let index = self.entries.len();
-        self.entries.push(StagedResource::new(id, before()));
+        let (record, payload_type) = before();
+        self.entries
+            .push(StagedResource::new(id, record, payload_type));
         let previous = self.index_by_id.insert(id, index);
         debug_assert!(previous.is_none());
         &mut self.entries[index]
@@ -117,7 +146,7 @@ pub struct PreparedResourceMutation<'a> {
     staged: Option<StagedResources>,
     // Retain the original payload owners across every preflight/permit error.
     operations: Option<Vec<ResourceMutationOperation>>,
-    events: Vec<ResourceEvent>,
+    events: Vec<crate::ResourceEventEnvelope>,
     event_publish_permit: Option<ResourceEventPublishPermit>,
     reservation_token: Arc<()>,
     reserved: Vec<(ResourceId, crate::ResourceActiveVersionKey)>,
@@ -274,6 +303,23 @@ fn preflight(
             | ResourceMutationOperation::ReconcileSources(_) => {
                 unreachable!("source operations expanded")
             }
+            ResourceMutationOperation::DeclarePayloadType {
+                record,
+                payload_type,
+            } => {
+                let current = effective_record(registry, &staged, record.id).ok_or_else(|| {
+                    ResourceRegistryError::MissingRecordForId {
+                        id: record.id.to_string(),
+                    }
+                })?;
+                if !crate::registry::same_payload_content(&current, &record) {
+                    return Err(ResourceRegistryError::PayloadDeclarationMismatch {
+                        id: record.id.to_string(),
+                    });
+                }
+                staged_entry(&mut staged, registry, record.id)
+                    .declare_payload_type(payload_type)?;
+            }
             ResourceMutationOperation::UpsertLazy(mut record) => {
                 validate_upsert(registry, &staged, &locators, &record)?;
                 let previous = upsert_baseline_record(registry, &staged, record.id);
@@ -303,6 +349,11 @@ fn preflight(
                 locators.insert(record.primary_locator.clone(), Some(record.id));
                 let entry = staged_entry(&mut staged, registry, record.id);
                 entry.establish_identity(&record);
+                if previous.as_ref().is_none_or(|previous| {
+                    !crate::registry::same_payload_content(previous, &record)
+                }) {
+                    entry.payload_type = None;
+                }
                 entry.record = Some(record.clone());
                 if invalidate_payload {
                     entry.payload = PayloadMutation::Remove;
@@ -344,6 +395,9 @@ fn preflight(
                 locators.insert(record.primary_locator.clone(), Some(record.id));
                 let entry = staged_entry(&mut staged, registry, record.id);
                 entry.establish_identity(&record);
+                entry.declare_payload_type(crate::ResourcePayloadType::from_data(
+                    payload.as_ref(),
+                ))?;
                 entry.record = Some(record);
                 entry.payload = PayloadMutation::Replace(payload);
                 entry.runtime_state = Some(RuntimeResourceState::Loaded);
@@ -372,6 +426,9 @@ fn preflight(
                     return Err(invalid_transition(id, record.state, ResourceState::Ready));
                 }
                 let entry = staged_entry(&mut staged, registry, id);
+                entry.declare_payload_type(crate::ResourcePayloadType::from_data(
+                    payload.as_ref(),
+                ))?;
                 entry.payload = PayloadMutation::Replace(payload);
                 entry.runtime_state = Some(RuntimeResourceState::Loaded);
             }
@@ -457,6 +514,7 @@ fn preflight(
                 entry.removed_record_baseline =
                     (entry.before.as_ref() != Some(&current)).then_some(current);
                 entry.record = None;
+                entry.payload_type = None;
                 entry.payload = PayloadMutation::Remove;
                 entry.runtime_state = None;
                 entry.reload_failed = false;
@@ -507,6 +565,7 @@ fn preflight(
                     }) {
                         let entry = staged_entry(&mut staged, registry, *id);
                         entry.payload = PayloadMutation::Keep;
+                        entry.payload_type = entry.before_payload_type;
                         entry.retain_last_good = Some(true);
                         entry.runtime_state = Some(RuntimeResourceState::Error);
                         staged
@@ -639,6 +698,7 @@ fn apply_source_overlay(
                 }) {
                     let entry = staged_entry(staged, &authority.registry, *id);
                     entry.payload = PayloadMutation::Keep;
+                    entry.payload_type = entry.before_payload_type;
                     entry.retain_last_good = Some(true);
                     entry.runtime_state = Some(RuntimeResourceState::Error);
                 }
@@ -678,6 +738,7 @@ fn apply_source_overlay(
             if !members.contains(&id) {
                 let entry = staged_entry(staged, &authority.registry, id);
                 entry.record = None;
+                entry.payload_type = None;
                 entry.payload = PayloadMutation::Remove;
                 entry.retain_last_good = Some(false);
                 entry.runtime_state = None;
@@ -831,7 +892,9 @@ fn staged_entry<'a>(
     registry: &ResourceRegistry,
     id: ResourceId,
 ) -> &'a mut StagedResource {
-    staged.get_or_insert_with(id, || registry.get(id).cloned())
+    staged.get_or_insert_with(id, || {
+        (registry.get(id).cloned(), registry.payload_type(id))
+    })
 }
 
 // 先移除发生变化的旧定位符，再写入最终记录，让同一批次的显式迁移共享最终命名空间。
@@ -855,6 +918,11 @@ fn apply_staged(
                 authority.registry.insert_unchecked(record.clone());
             }
         }
+    }
+    for entry in &staged.entries {
+        authority
+            .registry
+            .set_payload_type(entry.id, entry.payload_type);
     }
     authority.management.apply_delta(
         staged
@@ -980,7 +1048,7 @@ fn apply_staged(
     ResourceMutationReceipt::new(records, removed, projections, published_event_count)
 }
 
-fn events_for_staged(staged: &StagedResources) -> Vec<ResourceEvent> {
+fn events_for_staged(staged: &StagedResources) -> Vec<crate::ResourceEventEnvelope> {
     staged
         .entries
         .iter()
@@ -989,7 +1057,7 @@ fn events_for_staged(staged: &StagedResources) -> Vec<ResourceEvent> {
 }
 
 // 事件只描述批次前后目录记录的净差异；仅替换载荷或改变驻留不会自动产生目录事件。
-fn event_for_staged_resource(entry: &StagedResource) -> Option<ResourceEvent> {
+fn event_for_staged_resource(entry: &StagedResource) -> Option<crate::ResourceEventEnvelope> {
     let (kind, record, previous_locator) = match (&entry.before, &entry.record) {
         (None, Some(record)) => (ResourceEventKind::Added, record, None),
         (Some(previous), None) => (ResourceEventKind::Removed, previous, None),
@@ -1010,14 +1078,22 @@ fn event_for_staged_resource(entry: &StagedResource) -> Option<ResourceEvent> {
         }
         _ => return None,
     };
-    Some(ResourceEvent {
-        kind,
-        resource_kind: record.kind,
-        id: record.id,
-        locator: Some(record.primary_locator.clone()),
-        previous_locator,
-        revision: record.revision,
-    })
+    let payload_type = if entry.record.is_none() {
+        entry.before_payload_type
+    } else {
+        entry.payload_type
+    };
+    Some(crate::ResourceEventEnvelope::new(
+        ResourceEvent {
+            kind,
+            resource_kind: record.kind,
+            id: record.id,
+            locator: Some(record.primary_locator.clone()),
+            previous_locator,
+            revision: record.revision,
+        },
+        payload_type,
+    ))
 }
 
 fn locator_occupied(

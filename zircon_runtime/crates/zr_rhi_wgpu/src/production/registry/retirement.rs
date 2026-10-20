@@ -120,13 +120,13 @@ impl WgpuResourceRegistry {
                         texture_bytes.saturating_add(texture_storage_size(&resource.desc)),
                         allocations.saturating_add(1),
                     ),
-                    WgpuRetiredResource::TextureView(_)
-                    | WgpuRetiredResource::Sampler(_)
-                    | WgpuRetiredResource::BindGroupLayout(_)
-                    | WgpuRetiredResource::BindGroup(_)
-                    | WgpuRetiredResource::ShaderModule(_)
-                    | WgpuRetiredResource::PipelineLayout(_)
-                    | WgpuRetiredResource::Pipeline(_) => {
+                    WgpuRetiredResource::TextureView { .. }
+                    | WgpuRetiredResource::Sampler { .. }
+                    | WgpuRetiredResource::BindGroupLayout { .. }
+                    | WgpuRetiredResource::BindGroup { .. }
+                    | WgpuRetiredResource::ShaderModule { .. }
+                    | WgpuRetiredResource::PipelineLayout { .. }
+                    | WgpuRetiredResource::Pipeline { .. } => {
                         (buffer_bytes, texture_bytes, allocations)
                     }
                 },

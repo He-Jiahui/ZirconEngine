@@ -2,15 +2,12 @@
 use super::*;
 
 pub(super) fn assert_priority_plan_doc_guard_row_data_sources_are_child_owned() {
-    let priority_plan_docs = read_runtime_src(
-        "tests/runtime_absorption/structure_convention/test_file_budget/priority_plan_docs.rs",
-    );
-    let listing_guard = read_runtime_src(
-        "tests/runtime_absorption/structure_convention/test_file_budget/priority_plan_docs/guard_tests/listing.rs",
-    );
-    let moved_paths_guard = read_runtime_src(
-        "tests/runtime_absorption/structure_convention/test_file_budget/priority_plan_docs/guard_tests/moved_paths.rs",
-    );
+    let priority_plan_docs =
+        read_runtime_src("tests/contracts/structure/test_size/priority_plan_docs.rs");
+    let listing_guard =
+        read_runtime_src("tests/contracts/structure/test_size/guard_tests/listing.rs");
+    let moved_paths_guard =
+        read_runtime_src("tests/structure/test_size/guard_tests/moved_paths.rs");
 
     assert_contains_all(
         "priority-plan-doc guard inventory",
@@ -18,17 +15,16 @@ pub(super) fn assert_priority_plan_doc_guard_row_data_sources_are_child_owned() 
         &[
             "runtime_15_priority_plan_docs_frontmatter_sections_have_unique_entries",
             GUARD,
+            "PRIORITY_PLAN_DOC_GUARDS",
+            "zircon_runtime/src/tests/structure/test_size/priority_plan_docs/code_paths.rs",
         ],
     );
     assert_contains_all(
-        "priority-plan-doc guard listing",
+        "priority-plan-doc guard listing consumes the current registry",
         &listing_guard,
         &[
-            FRONTMATTER_UNIQUENESS_GUARD_PATH,
-            INVENTORY_SYNC_GUARD_PATH,
-            LISTING_PROSE_GUARD_PATH,
-            "priority_plan_docs/guard_tests/nested_layout.rs::runtime_15_priority_plan_docs_guard_test_child_prose_names_full_inventory",
-            "priority_plan_docs/guard_tests/moved_paths.rs::runtime_15_priority_plan_docs_moved_mirror_names_full_inventory",
+            "for entry in PRIORITY_PLAN_DOC_GUARDS",
+            "candidate == entry",
         ],
     );
     assert_contains_all(

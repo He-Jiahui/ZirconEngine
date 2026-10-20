@@ -304,11 +304,25 @@ impl UiSurface {
         if result.focus_cleared {
             self.clear_focus();
         }
+        let explicit_stop = Self::pointer_explicitly_stopped(&result);
+        let action_route = self.pointer_default_action_route(&result.route, explicit_stop)?;
+        let action_route = match action_route {
+            std::borrow::Cow::Borrowed(_) => None,
+            std::borrow::Cow::Owned(route) => Some(route),
+        };
+        if explicit_stop && action_route.is_some() && matches!(event.kind, UiPointerEventKind::Down)
+        {
+            self.focus.pressed = pressed_before_dispatch;
+            self.input
+                .record_pointer_press(pressed_before_dispatch, event.button);
+        }
         if matches!(event.kind, UiPointerEventKind::Scroll)
             && result.handled_by.is_none()
             && result.blocked_by.is_none()
         {
-            if let Some(node_id) = self.apply_default_pointer_scroll(&result.route)? {
+            if let Some(node_id) =
+                self.apply_default_pointer_scroll(action_route.as_ref().unwrap_or(&result.route))?
+            {
                 result.handled_by = Some(node_id);
                 result.diagnostics.scroll_defaulted = true;
             }
@@ -332,11 +346,18 @@ impl UiSurface {
             == UiPointerActivationPhase::PrimaryRelease
             && result.route.pressed.is_some()
             && result.route.click_target.is_none();
-        self.apply_pointer_component_state(&result.route, focus_before_dispatch)?;
-        self.apply_pointer_transient_state_dirty(&result.route, pressed_before_dispatch)?;
-        result.component_events = self.pointer_component_events(&result.route, &event)?;
+        self.apply_pointer_component_state(
+            action_route.as_ref().unwrap_or(&result.route),
+            focus_before_dispatch,
+        )?;
+        self.apply_pointer_transient_state_dirty(
+            action_route.as_ref().unwrap_or(&result.route),
+            pressed_before_dispatch,
+        )?;
+        result.component_events =
+            self.pointer_component_events(action_route.as_ref().unwrap_or(&result.route), &event)?;
         let range_action = self.apply_default_range_pointer_actions(
-            &result.route,
+            action_route.as_ref().unwrap_or(&result.route),
             &mut result.component_events,
             &mut result.binding_reports,
         )?;
@@ -354,7 +375,7 @@ impl UiSurface {
             result.handled_by = Some(node_id);
         } else {
             let scrollbar_action = self.apply_default_scrollbar_pointer_action(
-                &result.route,
+                action_route.as_ref().unwrap_or(&result.route),
                 &mut result.component_events,
                 &mut result.binding_reports,
             )?;
@@ -373,7 +394,7 @@ impl UiSurface {
                 result.diagnostics.scroll_defaulted = true;
             } else {
                 let table_action = self.apply_default_table_pointer_action(
-                    &result.route,
+                    action_route.as_ref().unwrap_or(&result.route),
                     &mut result.component_events,
                     &mut result.binding_reports,
                 )?;
@@ -391,7 +412,7 @@ impl UiSurface {
                     result.handled_by = Some(node_id);
                 } else {
                     let tree_action = self.apply_default_tree_view_virtual_scroll(
-                        &result.route,
+                        action_route.as_ref().unwrap_or(&result.route),
                         &mut result.component_events,
                         &mut result.binding_reports,
                     )?;
@@ -400,7 +421,7 @@ impl UiSurface {
                         result.diagnostics.scroll_defaulted = true;
                     } else {
                         self.apply_default_pointer_component_actions(
-                            &result.route,
+                            action_route.as_ref().unwrap_or(&result.route),
                             event.click_count,
                             &mut result.component_events,
                             &mut result.binding_reports,
@@ -504,7 +525,7 @@ impl UiSurface {
         let route_target = route.target;
         let route_kind = route.kind;
         let mut result = dispatcher.dispatch(&self.tree, route)?;
-        if result.focus_changed_to.is_none() {
+        if result.handled_by.is_none() && result.focus_changed_to.is_none() {
             if let Some(node_id) = self.next_navigation_target(route_target, route_kind)? {
                 result.handled_by = Some(route_target.unwrap_or(node_id));
                 result.focus_changed_to = Some(node_id);

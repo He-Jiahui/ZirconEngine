@@ -54,6 +54,16 @@ impl<'a> ExecutionLookup<'a> {
                 cluster_index,
                 cluster.entity,
             );
+            if extract
+                .cluster_row_indices(
+                    cluster.entity,
+                    stable_instance_key,
+                    instance_indices[cluster_index],
+                )
+                .map_or(true, |rows| !rows.contains(&cluster_index))
+            {
+                continue;
+            }
             cluster_indices_by_key
                 .entry(ExecutionClusterKey {
                     entity: cluster.entity,
@@ -133,13 +143,16 @@ fn build_cluster_instance_indices(extract: &RenderVirtualGeometryExtract) -> Vec
         let Some(instance_index) = u32::try_from(instance_index).ok() else {
             break;
         };
-        let start = instance.cluster_offset as usize;
-        let end = instance
-            .cluster_offset
-            .saturating_add(instance.cluster_count) as usize;
-        for cluster_instance_index in instance_indices.get_mut(start..end).into_iter().flatten() {
-            if cluster_instance_index.is_none() {
-                *cluster_instance_index = Some(instance_index);
+        let Ok(rows) = extract.cluster_row_indices(
+            instance.entity,
+            instance.stable_instance_key_or_legacy(),
+            Some(instance_index),
+        ) else {
+            continue;
+        };
+        for row in rows {
+            if instance_indices[row].is_none() {
+                instance_indices[row] = Some(instance_index);
             }
         }
     }
@@ -150,30 +163,29 @@ fn build_cluster_ids_by_stable_key(
     extract: &RenderVirtualGeometryExtract,
 ) -> HashMap<u64, Vec<u32>> {
     let mut cluster_ids_by_stable_key = HashMap::<u64, Vec<u32>>::new();
-    if extract.instances.is_empty() {
-        for cluster in &extract.clusters {
+    for (index, instance) in extract.instances.iter().enumerate() {
+        let Ok(index) = u32::try_from(index) else {
+            continue;
+        };
+        let key = instance.stable_instance_key_or_legacy();
+        let Ok(rows) = extract.cluster_row_indices(instance.entity, key, Some(index)) else {
+            continue;
+        };
+        cluster_ids_by_stable_key
+            .entry(key)
+            .or_default()
+            .extend(rows.into_iter().map(|row| extract.clusters[row].cluster_id));
+    }
+    for cluster in &extract.clusters {
+        let key = render_mesh_stable_instance_key(cluster.entity, 0);
+        if extract
+            .cluster_row_indices(cluster.entity, key, None)
+            .is_ok()
+        {
             cluster_ids_by_stable_key
-                .entry(render_mesh_stable_instance_key(cluster.entity, 0))
+                .entry(key)
                 .or_default()
                 .push(cluster.cluster_id);
-        }
-    } else {
-        for instance in &extract.instances {
-            let start = instance.cluster_offset as usize;
-            let end = instance
-                .cluster_offset
-                .saturating_add(instance.cluster_count) as usize;
-            cluster_ids_by_stable_key
-                .entry(stable_instance_key_for_instance(instance))
-                .or_default()
-                .extend(
-                    extract
-                        .clusters
-                        .get(start..end)
-                        .into_iter()
-                        .flatten()
-                        .map(|cluster| cluster.cluster_id),
-                );
         }
     }
     for cluster_ids in cluster_ids_by_stable_key.values_mut() {

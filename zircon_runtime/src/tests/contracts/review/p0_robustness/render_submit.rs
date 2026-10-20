@@ -1,4 +1,6 @@
 //! 代码审查回归护栏核对已迁移接口、错误边界、插件入口及镜像状态。以结果断言检查当前接口或源码快照对应的边界。
+use crate::tests::runtime_absorption::structure_convention::fixed_history_archive_source as history;
+use crate::tests::runtime_absorption::structure_convention::rust_source_view::production_section;
 #[test]
 fn review_f4_render_submit_capability_gaps_return_typed_errors() {
     let viewport_guard =
@@ -11,18 +13,9 @@ fn review_f4_render_submit_capability_gaps_return_typed_errors() {
         include_str!("../../../../graphics/runtime/extract/submit/submit_runtime_frame.rs");
     let present_frame_extract =
         include_str!("../../../../graphics/runtime/extract/submit/present_frame_extract.rs");
-    let review_findings = concat!(
-        include_str!("../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"),
-        include_str!("../../../../../../docs/plans/engine-code-review-findings-2026-06.md")
+    let review_findings = history(
+        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md",
     );
-    let _runtime_07_plan = include_str!(
-        "../../../../../../docs/plans/zircon_runtime/runtime/07-runtime-performance-hotpath.md"
-    );
-    let _runtime_index =
-        include_str!("../../../../../../docs/plans/zircon_runtime/runtime/index.md");
-    let _render_index = include_str!("../../../../../../docs/plans/zircon_runtime/render/index.md");
-    let _convention =
-        include_str!("../../../../../../docs/plans/engine-code-structure-convention.md");
     let _advanced_doc = include_str!(
         "../../../../../../docs/crates/zircon_runtime/core/framework/render/advanced.md"
     );
@@ -32,7 +25,8 @@ fn review_f4_render_submit_capability_gaps_return_typed_errors() {
         "RenderFrameworkError::UnknownViewport",
         "RenderFrameworkError::ViewportChanged",
         "pub(super) fn viewport_record_mut_after_generation_check",
-        "validate_viewport_generation(state, viewport, context)?",
+        "viewport_record_mut_after_generation_check_in(&mut state.viewports, viewport, context)",
+        "if actual_generation != context.viewport_generation()",
     ] {
         assert!(
             viewport_guard.contains(required),
@@ -89,6 +83,24 @@ fn review_f4_render_submit_capability_gaps_return_typed_errors() {
         );
     }
 
+    for (label, source) in [
+        ("submit generated frame", submit_frame_extract),
+        ("submit direct runtime frame", submit_runtime_frame),
+        ("present generated frame", present_frame_extract),
+    ] {
+        let production = production_source(source);
+        let validation = production
+            .find("validate_viewport_generation(&state, viewport, &context)")
+            .expect("generation admission");
+        let writeback = production
+            .find("viewport_record_mut_after_generation_check(&mut state, viewport, &context)?")
+            .expect("checked writeback");
+        assert!(
+            validation < writeback,
+            "{label} must validate before writeback"
+        );
+    }
+
     let f4_row = review_findings
         .lines()
         .find(|line| line.starts_with("| F4 |"))
@@ -99,6 +111,6 @@ fn review_f4_render_submit_capability_gaps_return_typed_errors() {
     );
 }
 
-fn production_source(source: &str) -> &str {
-    source.split("\n#[cfg(test)]").next().unwrap_or(source)
+fn production_source(source: &str) -> String {
+    production_section(source)
 }

@@ -9,6 +9,7 @@ use crate::graphics::RuntimePrepareMeshSdfSeed;
 
 /// 将同一网格资产修订的 CPU 几何、变形种子、保守边界和 GPU 缓冲保持在一个缓存项中；
 /// 绘制提取只在修订仍有效时借用这组数据。
+#[derive(Clone)]
 pub(in crate::graphics::scene::resources) struct PreparedMesh {
     pub(in crate::graphics::scene::resources) revision: u64,
     pub(in crate::graphics::scene::resources) source_key:

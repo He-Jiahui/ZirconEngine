@@ -102,6 +102,7 @@ fn capabilities_for_event(event: UiEventKind) -> InferredInputCapabilities {
         },
         UiEventKind::Scroll => InferredInputCapabilities {
             receives_input: true,
+            hoverable: true,
             ..InferredInputCapabilities::default()
         },
         UiEventKind::Resize => InferredInputCapabilities::default(),

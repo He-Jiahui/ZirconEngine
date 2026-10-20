@@ -170,6 +170,8 @@ pub enum ZrRuntimeUiHostRequestKindV1 {
         #[serde(rename = "href")]
         link_target: UiRichLinkTarget,
     },
+    /// Cursor selected from the authoritative physical Mouse hit path.
+    Cursor(crate::ui::tree::UiCursor),
 }
 
 impl ZrRuntimeUiHostRequestKindV1 {
@@ -179,12 +181,13 @@ impl ZrRuntimeUiHostRequestKindV1 {
     /// `request` 是 UI dispatch reply 中的一项 host request；动态 ID 与 link target 会被克隆。
     ///
     /// # 返回值
-    /// 七种通用操作返回对应 variant；`InputMethod`、`Clipboard` 返回 `None`。
+    /// 八种通用操作返回对应 variant；`InputMethod`、`Clipboard` 返回 `None`。
     ///
     /// # 约束
     /// 本转换不核对目标节点归属、不做权限/资源检查，也不调用平台 API。
     pub fn from_dispatch_request(request: &UiDispatchHostRequestKind) -> Option<Self> {
         match request {
+            UiDispatchHostRequestKind::Cursor(cursor) => Some(Self::Cursor(*cursor)),
             UiDispatchHostRequestKind::InputMethod(_) | UiDispatchHostRequestKind::Clipboard(_) => {
                 None
             }
@@ -233,9 +236,10 @@ impl ZrRuntimeUiHostRequestKindV1 {
     /// 返回用于日志的小写蛇形标识；此名称不决定 Serde 的 wire tag。
     ///
     /// # 返回值
-    /// 对七种 variant 返回对应固定的小写蛇形标识。
+    /// 对八种 variant 返回对应固定的小写蛇形标识。
     pub const fn as_str(&self) -> &'static str {
         match self {
+            Self::Cursor(_) => "cursor",
             Self::PointerLock { .. } => "pointer_lock",
             Self::PointerUnlock { .. } => "pointer_unlock",
             Self::HighPrecisionPointer { .. } => "high_precision_pointer",

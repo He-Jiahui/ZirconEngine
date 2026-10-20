@@ -244,6 +244,34 @@ class ExecutionHost:
                 return result
             time.sleep(self.poll_interval)
 
+    def _source_checkpoint(self) -> None:
+        # Bound cooperative cancellation between path operations / 1 MiB reads.
+        # The owner publishes no synthetic phase or native terminal evidence.
+        now = time.monotonic()
+        if now < getattr(self, "_source_control_poll_at", 0.0):
+            return
+        self._source_control_poll_at = now + 1.0
+        with self.state.transaction() as connection:
+            control = self.state.get("execution_control", self.execution_id, connection=connection)
+            if not control or control["payload"].get("kind") != "cancel":
+                return
+            host = self.state.get("execution_host", self.execution_id, connection=connection)
+            command = control["payload"]
+            identity = {"executionId": self.execution_id, **self.host.to_dict()}
+            if (not host or any(host["payload"].get(k) != value or command.get(k) != value
+                                for k, value in identity.items())
+                    or type(command.get("cancelEpoch")) is not int
+                    or command["cancelEpoch"] <= int(host["payload"].get("cancelEpoch", 0))):
+                raise JenkinsError("host_identity_mismatch", "Source verification cancellation differs from its owner")
+            execution = self.state.get("execution", self.execution_id, connection=connection)
+            active = [row for row in self.state.list("execution_consumer", connection=connection)
+                      if row["payload"].get("executionId") == self.execution_id
+                      and row["payload"].get("status") == "active"]
+            if not execution or execution["payload"].get("refs") != 0 or active:
+                return
+            raise JenkinsError("execution_verification_cancelled",
+                               "Zero-ref execution cancelled during source verification")
+
     def _phase_names(self, recipe: Mapping[str, Any], phases: Any) -> list[str]:
         """Return the explicitly requested phases in deterministic order."""
         if phases is None:
@@ -314,7 +342,9 @@ class ExecutionHost:
                 product = recipe.get("kind") == "cargo-editor-product"
                 if product:
                     from ..editor_product import _verify_source
-                    _verify_source(recipe, sealed, Path(recipe["preparationRoot"]))
+                    _verify_source(recipe, sealed, Path(recipe["preparationRoot"]),
+                                   checkpoint=self._source_checkpoint,
+                                   progress_context=f"{self.execution_id}:{phase}:before")
                     for path_field, hash_field in (("cargoPath", "cargoSha256"), ("rustcPath", "rustcSha256"),
                                                   ("productPython", "productPythonSha256"), ("productRunner", "productRunnerSha256")):
                         if file_digest(recipe[path_field]) != recipe[hash_field]:
@@ -462,7 +492,9 @@ class ExecutionHost:
                         self._persist(failed_payload)
                         raise JenkinsError("phase_failed", f"phase {phase} did not complete successfully")
                     if product:
-                        _verify_source(recipe, sealed, Path(recipe["preparationRoot"]))
+                        _verify_source(recipe, sealed, Path(recipe["preparationRoot"]),
+                                       checkpoint=self._source_checkpoint,
+                                       progress_context=f"{self.execution_id}:{phase}:after")
                     phase_root = Path(output_root)
                     phase_root.mkdir(parents=True, exist_ok=True)
                     for stream_name in ("stdout", "stderr"):
@@ -568,7 +600,8 @@ class ExecutionHost:
                     except Exception as proof_error:
                         host_payload = {**host_payload, "failureProofError": str(proof_error)}
                 failed = {**host_payload, "status": "failed", "failedPhase": phase,
-                          "error": {"type": type(exc).__name__, "message": str(exc)}}
+                          "error": {"type": type(exc).__name__, "code": getattr(exc, "code", None),
+                                    "message": str(exc)}}
                 self._persist(failed)
                 raise
             finally:

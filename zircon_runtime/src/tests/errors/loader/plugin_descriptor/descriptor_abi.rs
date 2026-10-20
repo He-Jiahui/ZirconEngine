@@ -44,7 +44,7 @@ fn review_f5_native_plugin_descriptor_abi_uses_typed_error() {
     );
     assert!(
         load_discovered.contains("Err(error) => {")
-            && load_discovered.contains("report.diagnostics.push(error.to_string());")
+            && load_discovered.contains("report.push_diagnostic(error.to_string());")
             && load_discovered.contains("return;")
             && load_discovered.contains("descriptor: Some(descriptor)"),
         "descriptor failure should return before the library enters the loaded collection"
@@ -65,6 +65,23 @@ fn review_f5_native_plugin_descriptor_abi_uses_typed_error() {
             "descriptor ABI hard cut should remove `{forbidden}`"
         );
     }
+    let probe = load_discovered
+        .find("probe_native_plugin_descriptor(&library, &library_path, plugin_id)")
+        .expect("descriptor probing precedes entry execution");
+    let requested_entry = load_discovered
+        .find("let runtime_entry = load_requested_entry(")
+        .expect("requested entry begins after descriptor admission");
+    let descriptor_admission = &load_discovered[probe..requested_entry];
+    let failed = descriptor_admission
+        .find("Err(error) => {")
+        .expect("typed descriptor failure");
+    let diagnostic = descriptor_admission[failed..]
+        .find("report.push_diagnostic(error.to_string());")
+        .expect("descriptor diagnostic");
+    let rejection = descriptor_admission[failed..]
+        .find("return;")
+        .expect("reject descriptor");
+    assert!(diagnostic < rejection);
     assert!(
         !load_discovered.contains("descriptor: None"),
         "descriptor hard cut should not restore an accepted descriptor-less library"

@@ -1,3 +1,5 @@
+#[path = "worker_pool/doc_evidence.rs"]
+mod doc_evidence;
 #[test]
 fn asset_worker_pool_matches_runtime_04_and_11_decisions() {
     let worker_pool_source = include_str!("../../../asset/pipeline/worker_pool.rs");
@@ -8,32 +10,22 @@ fn asset_worker_pool_matches_runtime_04_and_11_decisions() {
     let worker_pool_sources = format!(
         "{worker_pool_source}\n{worker_pool_diagnostics}\n{worker_pool_completion}\n{worker_pool_options}"
     );
-    let worker_pool_tests = include_str!("../../../asset/tests/pipeline/worker_pool.rs");
+    let worker_pool_tests = concat!(
+        include_str!("../../../asset/tests/pipeline/worker_pool.rs"),
+        include_str!("../../../asset/tests/pipeline/worker_pool/diagnostics.rs"),
+        include_str!("../../../asset/tests/pipeline/worker_pool/lifecycle.rs"),
+        include_str!("../../../asset/tests/pipeline/worker_pool/single_flight.rs"),
+        include_str!("../../../asset/tests/pipeline/worker_pool/task_pool.rs"),
+    );
     let worker_pool_internal_tests =
         include_str!("../../../asset/pipeline/worker_pool/tests/cases.rs");
     let project_asset_manager_construction =
         include_str!("../../../asset/pipeline/manager/assets/construction.rs");
-    let worker_pool_doc =
-        include_str!("../../../../../docs/crates/zircon_runtime/asset/worker_pool.md");
-    let runtime_04_plan = include_str!(
-        "../../../../../docs/plans/zircon_runtime/runtime/04-asset-pipeline-alignment.md"
-    );
-    let runtime_11_plan = include_str!(
-        "../../../../../docs/plans/zircon_runtime/runtime/11-job-system-task-model.md"
-    );
-    let runtime_04_output = include_str!(
-        "../../../../../docs/plans/zircon_runtime/runtime/04/2026-07-09-asset-pipeline-alignment-output-records.md"
-    );
-    let runtime_11_output = include_str!(
-        "../../../../../docs/plans/zircon_runtime/runtime/11/2026-07-09-job-system-task-model-output-records.md"
-    );
-    let runtime_index = include_str!("../../../../../docs/plans/zircon_runtime/runtime/index.md");
-
     for required_source_anchor in [
         "pub fn new(task_pool: TaskPool, options: AssetWorkerPoolOptions) -> Self",
         "pub struct AssetWorkerPoolOptions",
         "pub queue_depth: Option<usize>",
-        "task_pool.spawn(move ||",
+        "task_pool.try_spawn(move ||",
         "scheduled_jobs: usize",
         "pub struct AssetWorkerCompletionTicket",
         "Arc<CpuAssetPayload>",
@@ -139,56 +131,8 @@ fn asset_worker_pool_matches_runtime_04_and_11_decisions() {
         );
     }
 
-    for required_doc_anchor in [
-        "Thread Budget",
-        "Backpressure",
-        "Request De-Duplication",
-        "Diagnostics",
-        "Runtime 11 M2.4",
-        "ProjectAssetManager::default()",
-        "spawn_worker_pool_with_frame_sampler",
-        "asset.worker.budgeted_threads",
-        "asset.worker.frame_completed",
-        "asset.worker.queue_age_total_ms",
-        "asset.worker.payload_clone_bytes",
-        "asset.worker.cancel_wall_total_ms",
-        "asset.worker.drop_wall_total_ms",
-        "runtime11_pressure_matrix_records_shared_completion_backpressure",
-        "only public request entry",
-        "process-wide task owner",
-        "does not create dedicated threads",
-        "`--ignored`",
-        "not counted as ordinary focused-test evidence",
-    ] {
-        assert!(
-            worker_pool_doc.contains(required_doc_anchor),
-            "asset worker pool doc should record `{required_doc_anchor}`"
-        );
-    }
+    doc_evidence::assert_worker_pool_doc_evidence();
 
-    for required_plan_anchor in [
-        "worker pool 原始缺口基线（已由 M2/M11-M2.4 收束）",
-        "AssetWorkerPoolOptions",
-        "Runtime 11 M2.4",
-        "asset.worker.budgeted_threads",
-        "asset.worker.frame_completed",
-        "project_asset_manager_uses_the_injected_runtime_io_pool",
-        "project_asset_manager_defaults_share_the_process_io_pool",
-    ] {
-        assert!(
-            runtime_04_plan.contains(required_plan_anchor)
-                || runtime_11_plan.contains(required_plan_anchor)
-                || runtime_04_output.contains(required_plan_anchor)
-                || runtime_11_output.contains(required_plan_anchor)
-                || runtime_index.contains(required_plan_anchor),
-            "runtime worker-pool plans should record `{required_plan_anchor}`"
-        );
-    }
-
-    assert!(
-        !runtime_04_plan.contains("worker pool 真实缺口确认"),
-        "Runtime 04 should not present the original worker-pool gap as the current state"
-    );
     assert!(
         !project_asset_manager_construction.contains("pub fn spawn_worker_pool(&self)"),
         "ProjectAssetManager must not retain the no-sampler worker pool construction entry"

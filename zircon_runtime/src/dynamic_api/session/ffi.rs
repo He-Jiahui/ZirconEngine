@@ -367,6 +367,31 @@ pub(in crate::dynamic_api) unsafe fn bind_viewport_surface(
     })
 }
 
+/// # Safety
+/// The native target must remain valid for this operation and, after success, until unbind or
+/// session destruction; the caller must honor the platform native-window thread and handle rules.
+pub(in crate::dynamic_api) unsafe fn bind_viewport_surface_v2(
+    handle: ZrRuntimeSessionHandle,
+    request: zircon_runtime_interface::ZrRuntimeBindViewportSurfaceRequestV2,
+) -> ZrStatus {
+    with_session(handle, |session| {
+        let descriptor = match super::super::surface::render_surface_descriptor_v2(request) {
+            Ok(descriptor) => descriptor,
+            Err(status) => return status,
+        };
+        if request.viewport != DEFAULT_VIEWPORT {
+            return not_found(b"runtime viewport not found");
+        }
+        if session.render_bridge.is_none() {
+            return capability_denied(b"V2 viewport binding requires a real render bridge");
+        }
+        match session.bind_viewport_surface(descriptor) {
+            Ok(()) => ZrStatus::ok(),
+            Err(error) => error_status(error),
+        }
+    })
+}
+
 pub(in crate::dynamic_api) unsafe fn unbind_viewport_surface(
     handle: ZrRuntimeSessionHandle,
     viewport: ZrRuntimeViewportHandle,

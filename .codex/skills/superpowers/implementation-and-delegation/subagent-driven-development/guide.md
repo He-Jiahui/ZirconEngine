@@ -8,6 +8,6 @@ Use permitted subagents for bounded implementation or review work when delegatio
 - Resolve routine questions from existing requirements. Escalate a consequential missing user decision while other authorized work continues.
 - The primary agent owns integration and may make local fixes. Reuse an agent when continuity helps; create a new one for an independent perspective when risk warrants it.
 - Review the actual changed scope. Combine requirements and quality review unless the risk or a required gate calls for separate reviewers. Reuse unchanged review evidence.
-- Batch validation after integration under [the validation policy](../../../../../docs/plans/milestone-validation-policy.md). Avoid separate full-suite runs by each agent and the primary agent.
+- Batch validation after integration under [the validation policy](../../../../../docs/testing-and-validation/milestone-validation-policy.md). Avoid separate full-suite runs by each agent and the primary agent.
 
 Optional dispatch templates: [implementation](implementer-prompt.md), [requirements review](spec-reviewer-prompt.md), and [quality review](code-quality-reviewer-prompt.md). These are starting points, not mandatory additional agents or review stages.

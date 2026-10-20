@@ -95,8 +95,27 @@ fn dispatch_routed_pointer_input(
             effect,
         });
     }
+    let requested_cursor =
+        if pointer_source == zircon_runtime_interface::ui::dispatch::UiPointerSource::Mouse {
+            Some(if routed_result.route.kind == UiPointerEventKind::Cancel {
+                zircon_runtime_interface::ui::tree::UiCursor::Default
+            } else {
+                routed_result
+                    .route
+                    .hit_path
+                    .bubble_route()
+                    .find_map(|id| surface.tree.nodes.get(&id).and_then(|node| node.cursor))
+                    .unwrap_or_default()
+            })
+        } else {
+            None
+        };
+    let action_route = surface.pointer_default_action_route(
+        &routed_result.route,
+        UiSurface::pointer_explicitly_stopped(&routed_result),
+    )?;
     let text_result =
-        dispatch_pointer_text_edit(surface, &pointer, &routed_result.route, diagnostics_mode);
+        dispatch_pointer_text_edit(surface, &pointer, &action_route, diagnostics_mode);
     let event = UiInputEvent::Pointer(pointer);
     let mut result = UiInputDispatchResult::new(event, reply);
     result.diagnostics.routed = routed_result.diagnostics.pointer_routed;
@@ -142,10 +161,18 @@ fn dispatch_routed_pointer_input(
     dispatch_pointer_rich_link_activation(
         surface,
         click_count,
-        &routed_result.route,
+        &action_route,
         diagnostics_mode,
         &mut result,
     );
+    if let Some(cursor) = requested_cursor {
+        super::effect::append_dispatch_effect_to_result(
+            surface,
+            &mut result,
+            zircon_runtime_interface::ui::dispatch::UiDispatchEffect::RequestCursor { cursor },
+        );
+    }
+    drop(action_route);
     if clear_cursor_point_after_dispatch {
         surface.input.clear_last_cursor_point();
     }

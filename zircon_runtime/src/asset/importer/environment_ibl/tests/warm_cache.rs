@@ -168,7 +168,6 @@ fn cold_builder_preserves_accumulated_source_identity_time() {
     use super::super::{
         build_source_cubemap_irradiance_cube, decode_texture_source_image_metadata,
         decode_texture_source_image_rgba32f, prepare_environment_ibl_source_with_builder,
-        rebuild_source_cubemap_from_source_mips_with_pmrem_layout_and_timing,
         sample_equirect_bilinear, source_image_identity, EnvironmentIblBundleProbeState,
         EnvironmentIblSourceStagingTiming, SourceCubemapMipChain, SourceCubemapPrefilterQuality,
     };
@@ -217,16 +216,6 @@ fn cold_builder_preserves_accumulated_source_identity_time() {
                 pmrem_mip_count,
                 SourceCubemapPrefilterQuality::Normal,
                 |u, v| sample_equirect_bilinear(image, u, v),
-            )
-        },
-        |face_size, mip_count, source_texels, pmrem_face_size, pmrem_mip_count| {
-            rebuild_source_cubemap_from_source_mips_with_pmrem_layout_and_timing(
-                face_size,
-                mip_count,
-                source_texels,
-                pmrem_face_size,
-                pmrem_mip_count,
-                SourceCubemapPrefilterQuality::Normal,
             )
         },
         build_source_cubemap_irradiance_cube,

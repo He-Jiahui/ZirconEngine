@@ -26,19 +26,19 @@ pub(super) const PRIORITY_PLAN_DOCS: &[(&str, &str)] = &[
 ];
 
 pub(super) const PRIORITY_PLAN_DOC_GUARDS: &[&str] = &[
-    "runtime_15_priority_plan_docs_code_paths_stay_current",
-    "runtime_15_priority_plan_docs_test_paths_stay_current",
-    "runtime_15_priority_plan_docs_frontmatter_sections_have_unique_entries",
-    "runtime_15_priority_plan_docs_required_header_sections_stay_complete",
-    "runtime_15_priority_plan_docs_plan_sources_stay_cross_linked",
-    "runtime_15_priority_plan_docs_guard_tests_stay_listed",
-    "runtime_15_priority_plan_docs_guard_children_are_folder_backed",
-    "runtime_15_priority_plan_docs_guard_test_children_are_folder_backed",
-    "runtime_15_priority_plan_docs_guard_test_child_prose_names_full_inventory",
-    "runtime_15_priority_plan_docs_moved_guard_paths_stay_current",
-    "runtime_15_priority_plan_docs_moved_mirror_names_full_inventory",
-    "runtime_15_priority_plan_docs_guard_inventory_uses_child_row_data_sources",
-    "runtime_15_priority_plan_docs_listing_prose_names_full_inventory",
+    "zircon_runtime/src/tests/structure/test_size/priority_plan_docs/code_paths.rs::runtime_15_priority_plan_docs_code_paths_stay_current",
+    "zircon_runtime/src/tests/structure/test_size/priority_plan_docs/test_paths.rs::runtime_15_priority_plan_docs_test_paths_stay_current",
+    "zircon_runtime/src/tests/test_size/priority_plan_docs/frontmatter_uniqueness.rs::runtime_15_priority_plan_docs_frontmatter_sections_have_unique_entries",
+    "zircon_runtime/src/tests/test_size/priority_plan_docs/header_sections.rs::runtime_15_priority_plan_docs_required_header_sections_stay_complete",
+    "zircon_runtime/src/tests/structure/test_size/priority_plan_docs/plan_sources.rs::runtime_15_priority_plan_docs_plan_sources_stay_cross_linked",
+    "zircon_runtime/src/tests/contracts/structure/test_size/guard_tests/listing.rs::runtime_15_priority_plan_docs_guard_tests_stay_listed",
+    "zircon_runtime/src/tests/structure/test_size/guard_tests/child_layout.rs::runtime_15_priority_plan_docs_guard_children_are_folder_backed",
+    "zircon_runtime/src/tests/structure/test_size/guard_tests/nested_layout.rs::runtime_15_priority_plan_docs_guard_test_children_are_folder_backed",
+    "zircon_runtime/src/tests/structure/test_size/guard_tests/nested_layout.rs::runtime_15_priority_plan_docs_guard_test_child_prose_names_full_inventory",
+    "zircon_runtime/src/tests/structure/test_size/guard_tests/moved_paths.rs::runtime_15_priority_plan_docs_moved_guard_paths_stay_current",
+    "zircon_runtime/src/tests/structure/test_size/guard_tests/moved_paths.rs::runtime_15_priority_plan_docs_moved_mirror_names_full_inventory",
+    "zircon_runtime/src/tests/structure/test_size/guard_tests/inventory_sync.rs::runtime_15_priority_plan_docs_guard_inventory_uses_child_row_data_sources",
+    "zircon_runtime/src/tests/structure/test_size/guard_tests/inventory_sync.rs::runtime_15_priority_plan_docs_listing_prose_names_full_inventory",
 ];
 
 pub(super) fn frontmatter_scalar<'a>(frontmatter: &'a [&'a str], key: &str) -> Option<&'a str> {

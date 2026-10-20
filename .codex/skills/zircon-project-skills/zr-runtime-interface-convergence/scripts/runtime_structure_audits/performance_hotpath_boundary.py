@@ -2,7 +2,10 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from runtime_structure_audits.large_file_ownership import large_file_ownership_gate
+from runtime_structure_audits.dynamic_runtime_api_archive_inventory import HistoricalArchiveReader
+from runtime_structure_audits.large_file_ownership import (
+    LARGE_FILE_OWNER_DECISIONS, large_file_ownership_gate,
+)
 from runtime_structure_audits.module_inventory import runtime_inventory
 from runtime_structure_audits.performance_hotpath_anchor_inventory import (
     ANIMATION_SCENE_ANCHORS,
@@ -19,7 +22,6 @@ from runtime_structure_audits.performance_hotpath_anchor_inventory import (
     RUNTIME_07_TEST_ANCHORS,
 )
 from runtime_structure_audits.performance_hotpath_source_inventory import (
-    EXPECTED_LARGE_FILE_OWNER_CLASSES,
     EXPECTED_SOURCE_FILE_COUNT,
     LARGE_FILE_HOTSPOT_THRESHOLD,
     RUNTIME_07_SOURCE_FILES,
@@ -62,10 +64,28 @@ def _large_file_gate(root: Path, gate: dict[str, object] | None) -> dict[str, ob
     return large_file_ownership_gate(inventory.hotspots, LARGE_FILE_HOTSPOT_THRESHOLD)
 
 
+RUNTIME_07_OUTPUT_ARCHIVE = (
+    "docs/plans/zircon_runtime/runtime/07/"
+    "2026-07-09-runtime-performance-hotpath-output-records.md"
+)
+RUNTIME_07_HISTORICAL_IDENTITIES = {
+    RUNTIME_07_OUTPUT_ARCHIVE: (
+        136846,
+        "f5106b752d3826e197d6e13aa95bca11b382dbf6efbb409822bb296ae24e1c7b",
+    ),
+}
+
+
 def performance_hotpath_boundary_audit(
     root: Path,
     large_file_gate: dict[str, object] | None = None,
+    *,
+    archive_root: Path | None = None,
 ) -> dict[str, object]:
+    history = HistoricalArchiveReader(
+        archive_root, identities=RUNTIME_07_HISTORICAL_IDENTITIES
+    )
+    historical_output = history.read(RUNTIME_07_OUTPUT_ARCHIVE)
     session = root / "zircon_runtime/src/dynamic_api/session/state.rs"
     session_extract = root / "zircon_runtime/src/dynamic_api/session/extract.rs"
     session_extract_cache = (
@@ -106,15 +126,15 @@ def performance_hotpath_boundary_audit(
         / "zircon_runtime/src/asset/pipeline/manager/assets/construction.rs"
     )
     animation_scene_diagnostics = (
-        root / "zircon_runtime/src/animation/scene_hook/diagnostics.rs"
+        root / "zircon_plugins/animation/runtime/src/evaluation/pipeline/diagnostics.rs"
     )
-    animation_scene_events = root / "zircon_runtime/src/animation/scene_hook/events.rs"
+    animation_scene_events = root / "zircon_plugins/animation/runtime/src/evaluation/pipeline/events.rs"
     animation_scene_node_pose = (
-        root / "zircon_runtime/src/animation/scene_hook/node_pose.rs"
+        root / "zircon_plugins/animation/runtime/src/evaluation/pipeline/pose_apply.rs"
     )
-    animation_scene_pending = root / "zircon_runtime/src/animation/scene_hook/pending.rs"
-    animation_scene_scan = root / "zircon_runtime/src/animation/scene_hook/scan.rs"
-    animation_scene_tick = root / "zircon_runtime/src/animation/scene_hook/tick.rs"
+    animation_scene_pending = root / "zircon_plugins/animation/runtime/src/evaluation/pipeline/requests.rs"
+    animation_scene_scan = root / "zircon_plugins/animation/runtime/src/evaluation/pipeline/parameter_apply.rs"
+    animation_scene_tick = root / "zircon_plugins/animation/runtime/src/evaluation/pipeline/tick.rs"
     profiling_counter_hotspot = (
         root / "zircon_runtime/src/core/runtime/diagnostics/profiling/counter_hotspot.rs"
     )
@@ -141,6 +161,8 @@ def performance_hotpath_boundary_audit(
     query_counter_sources = tuple(
         _read_text(path)
         for path in (
+            root / "zircon_runtime/src/scene/ecs/query/query_state/state.rs",
+            root / "zircon_runtime/src/scene/level_system.rs",
             query_state_root,
             query_state_cache,
             query_state_read_only_cached,
@@ -170,7 +192,7 @@ def performance_hotpath_boundary_audit(
     )
     asset_worker_sources = tuple(
         _read_text(path)
-        for path in (worker_pool, project_asset_manager_construction)
+        for path in (worker_pool, worker_pool.parent / "worker_pool/diagnostics.rs", project_asset_manager_construction)
         if path.exists()
     )
     animation_scene_sources = tuple(
@@ -202,18 +224,18 @@ def performance_hotpath_boundary_audit(
     )
     doc_paths = (
         root / "docs/plans/zircon_runtime/runtime/07-runtime-performance-hotpath.md",
-        root
-        / "docs/plans/zircon_runtime/runtime/07/2026-07-09-runtime-performance-hotpath-output-records.md",
         root / "docs/plans/zircon_runtime/runtime/index.md",
-        root / "docs/zircon_runtime/performance/hotspot_inventory.md",
-        root / "docs/zircon_runtime/dynamic_api/session.md",
-        root / "docs/zircon_runtime/scene/ecs.md",
-        root / "docs/zircon_runtime/animation/runtime.md",
-        root / "docs/zircon_runtime/core/diagnostics.md",
-        root / "docs/engine-architecture/runtime-interface-convergence.md",
-        root / "docs/engine-architecture/runtime-architecture-review-m0.md",
+        root / "docs/crates/zircon_runtime/performance/hotspot_inventory.md",
+        root / "docs/crates/zircon_runtime/dynamic_api/session.md",
+        root / "docs/crates/zircon_runtime/scene/ecs.md",
+        root / "docs/crates/zircon_runtime/animation/runtime.md",
+        root / "docs/crates/zircon_runtime/core/diagnostics.md",
+        root / "docs/architecture/runtime-interface-convergence.md",
+        root / "docs/architecture/runtime-architecture-review-m0.md",
     )
-    doc_sources = tuple(_read_text(path) for path in doc_paths if path.exists())
+    doc_sources = tuple(_read_text(path) for path in doc_paths if path.exists()) + (
+        (historical_output,) if historical_output is not None else ()
+    )
 
     missing_frame_span_anchors = _missing_snippets(
         frame_span_sources,
@@ -263,15 +285,13 @@ def performance_hotpath_boundary_audit(
         str(owner_class)
         for owner_class in large_file_gate_report["classification_counts"].keys()
     )
-    missing_large_file_owner_classes = (
-        []
-        if large_file_hotspot_count == 0
-        else [
-            owner_class
-            for owner_class in EXPECTED_LARGE_FILE_OWNER_CLASSES
-            if owner_class not in large_file_owner_classes
-        ]
-    )
+    # A fully split class may have no large files. Every observed class still
+    # needs an explicit owner decision, even if a supplied report omits its
+    # unclassified counter.
+    missing_large_file_owner_classes = [
+        owner_class for owner_class in large_file_owner_classes
+        if owner_class not in LARGE_FILE_OWNER_DECISIONS
+    ]
 
     risks: list[str] = []
     if missing_source_files:
@@ -306,7 +326,7 @@ def performance_hotpath_boundary_audit(
         risks.append("Runtime 07 hotspot inventory still contains the old top3 placeholder.")
     if missing_large_file_owner_classes:
         risks.append(
-            "Runtime 07 owner-budgeted optimization gate is missing expected "
+            "Runtime 07 owner-budgeted optimization gate has unknown "
             "large-file owner classes."
         )
     if large_file_gate_report["unclassified_hotspot_count"]:
@@ -315,7 +335,11 @@ def performance_hotpath_boundary_audit(
             "large production-file hotspots."
         )
 
+    if historical_output is None:
+        risks.append("Runtime 07 fixed historical output archive readback failed.")
+
     return {
+        "historical_archive_readback": list(history.records.values()),
         "source_files": source_files,
         "expected_source_file_count": EXPECTED_SOURCE_FILE_COUNT,
         "missing_source_files": missing_source_files,

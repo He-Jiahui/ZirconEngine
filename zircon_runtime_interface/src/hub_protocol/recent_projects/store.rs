@@ -453,7 +453,7 @@ impl HubRecentProjectsWriteLease {
     ) -> Result<Self, HubRecentProjectsStoreError> {
         #[cfg(windows)]
         {
-            return Self::acquire_windows(registry_path, policy);
+            Self::acquire_windows(registry_path, policy)
         }
         #[cfg(unix)]
         {

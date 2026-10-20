@@ -2,6 +2,29 @@
 use super::super::sources::HotspotInventorySources;
 
 pub(super) fn assert_ecs_frame_diagnostic_aggregation(sources: &HotspotInventorySources) {
+    let frame_begin = sources
+        .animation_level_system
+        .split("pub(crate) fn begin_world_frame(")
+        .nth(1)
+        .expect("frame owner")
+        .split("pub(crate) fn begin_fixed_step(")
+        .next()
+        .expect("frame boundary");
+    let mut remaining = frame_begin;
+    for anchor in [
+        "let mut world = self.lock_world();",
+        "let execution = world.begin_schedule_execution();",
+        "world.reset_ecs_frame_performance_diagnostics();",
+        "Ok((time, generation, execution))",
+    ] {
+        remaining = remaining
+            .split_once(anchor)
+            .expect("same-World reset order")
+            .1;
+    }
+    assert!(sources.world_driver.contains(
+        "let (world_time, world_generation, execution) = level.begin_world_frame(snapshot)?;"
+    ));
     for required_schedule_span_anchor in [
         "profile_scope!",
         "\"runtime\"",
@@ -22,6 +45,30 @@ pub(super) fn assert_ecs_frame_diagnostic_aggregation(sources: &HotspotInventory
             .contains("format!(\"runtime_frame_schedule_stage"),
         "SceneScheduleRunner stage spans should use static labels without per-frame formatting"
     );
+
+    // Publication belongs to the captured World execution and its outer frame,
+    // not a later read of the independently advancing Core clock.
+    let mut publication = sources
+        .world_driver
+        .split_once(
+            "let (world_time, world_generation, execution) = level.begin_world_frame(snapshot)?;",
+        )
+        .expect("capture the World frame before schedule execution")
+        .1;
+    for anchor in [
+        ".with_world_mut_if_schedule_execution(&execution, |world| {",
+        ".ecs_frame_performance_diagnostics()",
+        ".publish(core, world_time.outer_frame_index());",
+        ".ok_or_else(crate::scene::ecs::schedule_owner_changed_error)?;",
+    ] {
+        publication = publication
+            .split_once(anchor)
+            .expect("publish only for the captured schedule owner and outer frame")
+            .1;
+    }
+    assert!(!sources
+        .world_driver
+        .contains(".publish(core, core.real_time().frame_index());"));
 
     for required_ecs_frame_diagnostic_anchor in [
         "pub struct EcsFramePerformanceDiagnostics",
@@ -48,9 +95,7 @@ pub(super) fn assert_ecs_frame_diagnostic_aggregation(sources: &HotspotInventory
         "pub fn ecs_frame_performance_diagnostics(&self) -> EcsFramePerformanceDiagnostics",
         "pub(crate) fn record_ecs_query_cache_stats(&mut self, stats: QueryStateCacheStats)",
         "pub(crate) fn record_ecs_change_detection_stats(&mut self, stats: ChangeDetectionScanStats)",
-        "level.with_world_mut(|world| world.reset_ecs_frame_performance_diagnostics());",
         ".ecs_frame_performance_diagnostics()",
-        ".publish(core, core.real_time().frame_index());",
         "system_state_records_query_cache_stats_into_world_frame_diagnostics",
         "system_state_records_change_detection_stats_into_world_frame_diagnostics",
         "matches_component_locations_with_stats",

@@ -120,3 +120,206 @@ fn dynamic_component_stage_clone_preserves_json_in_preflight_world() {
         None
     );
 }
+
+fn declared_structure_fixture() -> (
+    World,
+    crate::scene::EntityId,
+    crate::scene::reflect::ReflectComponent,
+) {
+    let descriptor = ComponentTypeDescriptor::new(
+        "runtime.tests.DeclaredStructures",
+        "runtime.tests",
+        "Declared Structures",
+    )
+    .with_property("literal", "Json", true)
+    .with_property("reference", "Entity", true)
+    .with_property("references", "List<Entity>", true)
+    .with_property("named", "Map<String, Entity>", true);
+    let mut world = World::empty();
+    world.register_component_type(descriptor.clone()).unwrap();
+    let entity = world.spawn_node(NodeKind::Empty).unwrap();
+    world
+        .set_dynamic_component(
+            entity,
+            &descriptor.type_id,
+            json!({
+                "literal": {"nested": [{"entity": 77}, {"entity": null}]},
+                "reference": {"entity": entity},
+                "references": [{"entity": entity}, {"entity": null}],
+                "named": {"self": {"entity": entity}, "none": {"entity": null}},
+            }),
+        )
+        .unwrap();
+    let adapter = reflect_component_for_dynamic_descriptor(&descriptor);
+    (world, entity, adapter)
+}
+
+#[test]
+fn non_vm_declared_structures_roundtrip_named_single_and_dense_batch_fields() {
+    let (mut world, entity, adapter) = declared_structure_fixture();
+    let literal = json!({"nested": [{"entity": 77}, {"entity": null}]});
+    let named = std::collections::BTreeMap::from([
+        ("none".to_string(), ReflectedValue::Entity(None)),
+        ("self".to_string(), ReflectedValue::Entity(Some(entity))),
+    ]);
+    let expected = [
+        ("literal", ReflectedValue::Json(literal)),
+        ("reference", ReflectedValue::Entity(Some(entity))),
+        (
+            "references",
+            ReflectedValue::List(vec![
+                ReflectedValue::Entity(Some(entity)),
+                ReflectedValue::Entity(None),
+            ]),
+        ),
+        ("named", ReflectedValue::Map(named)),
+    ];
+    for (slot, (name, value)) in expected.iter().enumerate() {
+        assert_eq!(adapter.read_field(&world, entity, name).unwrap(), *value);
+        assert_eq!(
+            adapter
+                .read_field_by_slot(&world, entity, slot as u32)
+                .unwrap(),
+            *value
+        );
+    }
+
+    let replacements = [
+        (
+            "literal",
+            ReflectedValue::Json(json!({"entity": 91, "nested": [null, {"entity": 92}]})),
+        ),
+        ("reference", ReflectedValue::Entity(None)),
+        (
+            "references",
+            ReflectedValue::List(vec![ReflectedValue::Entity(None)]),
+        ),
+        (
+            "named",
+            ReflectedValue::Map(std::collections::BTreeMap::from([(
+                "next".to_string(),
+                ReflectedValue::Entity(Some(entity)),
+            )])),
+        ),
+    ];
+    for (name, value) in &replacements {
+        assert!(adapter
+            .write_field(&mut world, entity, name, value.clone())
+            .unwrap());
+        assert_eq!(adapter.read_field(&world, entity, name).unwrap(), *value);
+    }
+    assert_eq!(
+        world.dynamic_component(entity, "runtime.tests.DeclaredStructures"),
+        Some(&json!({
+            "literal": {"entity": 91, "nested": [null, {"entity": 92}]},
+            "reference": {"entity": null},
+            "references": [{"entity": null}],
+            "named": {"next": {"entity": entity}},
+        }))
+    );
+
+    for (slot, (name, value)) in expected.iter().enumerate() {
+        assert!(adapter
+            .write_field_by_slot(&mut world, entity, slot as u32, value.clone())
+            .unwrap());
+        assert_eq!(adapter.read_field(&world, entity, name).unwrap(), *value);
+    }
+
+    let generation = world.world_generation();
+    assert!(adapter
+        .write_fields_by_slot(
+            &mut world,
+            entity,
+            replacements
+                .iter()
+                .enumerate()
+                .map(|(slot, (_, value))| (slot as u32, value.clone()))
+                .collect(),
+        )
+        .unwrap());
+    assert_eq!(world.world_generation(), generation + 1);
+    for (slot, (name, value)) in replacements.iter().enumerate() {
+        assert_eq!(adapter.read_field(&world, entity, name).unwrap(), *value);
+        assert_eq!(
+            adapter
+                .read_field_by_slot(&world, entity, slot as u32)
+                .unwrap(),
+            *value
+        );
+    }
+}
+
+#[test]
+fn non_vm_declared_structure_type_errors_preserve_payload_and_generation() {
+    let (mut world, entity, adapter) = declared_structure_fixture();
+    let before = world
+        .dynamic_component(entity, "runtime.tests.DeclaredStructures")
+        .unwrap()
+        .clone();
+    let generation = world.world_generation();
+    let invalid = [
+        ("literal", ReflectedValue::Entity(Some(entity))),
+        ("reference", ReflectedValue::Json(json!({"entity": entity}))),
+        (
+            "references",
+            ReflectedValue::List(vec![ReflectedValue::Json(json!({"entity": entity}))]),
+        ),
+        (
+            "named",
+            ReflectedValue::Map(std::collections::BTreeMap::from([(
+                "wrong".to_string(),
+                ReflectedValue::Integer(7),
+            )])),
+        ),
+    ];
+    for (slot, (name, value)) in invalid.iter().enumerate() {
+        let error = adapter
+            .write_field(&mut world, entity, name, value.clone())
+            .expect_err("named writes must reject the wrong reflected structure");
+        assert!(matches!(
+            error,
+            zircon_runtime_interface::reflect::ReflectError::TypeMismatch {
+                ref field_name, ..
+            } if field_name.as_str() == *name
+        ));
+        let error = adapter
+            .write_field_by_slot(&mut world, entity, slot as u32, value.clone())
+            .expect_err("single-slot writes must reject the wrong reflected structure");
+        assert!(matches!(
+            error,
+            zircon_runtime_interface::reflect::ReflectError::TypeMismatch {
+                ref field_name, ..
+            } if field_name.as_str() == *name
+        ));
+        assert_eq!(world.world_generation(), generation);
+        assert_eq!(
+            world.dynamic_component(entity, "runtime.tests.DeclaredStructures"),
+            Some(&before)
+        );
+    }
+
+    let error = adapter
+        .write_fields_by_slot(
+            &mut world,
+            entity,
+            vec![
+                (0, ReflectedValue::Json(json!({"changed": true}))),
+                (
+                    2,
+                    ReflectedValue::List(vec![ReflectedValue::Json(json!({"entity": entity}))]),
+                ),
+            ],
+        )
+        .expect_err("a later invalid slot must not publish the earlier valid candidate");
+    assert!(matches!(
+        error,
+        zircon_runtime_interface::reflect::ReflectError::TypeMismatch {
+            ref field_name, ..
+        } if field_name == "references"
+    ));
+    assert_eq!(world.world_generation(), generation);
+    assert_eq!(
+        world.dynamic_component(entity, "runtime.tests.DeclaredStructures"),
+        Some(&before)
+    );
+}

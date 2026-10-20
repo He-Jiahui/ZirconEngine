@@ -10,10 +10,10 @@ mod query;
 #[path = "readback/mod.rs"]
 mod readback;
 
+pub(crate) use query::WgpuDiagnosticQueryFrame;
 pub use query::{
     WgpuDiagnosticQueryDelivery, WgpuNativeDiagnosticQueryFrame, WgpuNativeDiagnosticQueryRecorder,
 };
-pub(crate) use query::{WgpuDiagnosticQueryFrame, WgpuDiagnosticQueryService};
 pub(crate) use readback::{
     DiagnosticReadbackBatch, DiagnosticReadbackSource, DiagnosticTextureMipChainReadbackLayout,
     DiagnosticTextureReadbackLayout, WgpuDiagnosticReadbackService,

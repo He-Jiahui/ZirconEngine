@@ -98,7 +98,11 @@ impl PreflightedTransferredDescriptorImports {
         component_id
     }
 
-    fn stage_dynamic(&mut self, component_type_id: &str) -> ComponentId {
+    fn stage_dynamic(
+        &mut self,
+        component_type_id: &str,
+        retention_provider: ComponentRetentionProviderV1,
+    ) -> ComponentId {
         let component_id = ComponentId::new(self.base_descriptor_count + self.pending.len());
         let component_type_id = component_type_id.to_string();
         let previous = self
@@ -113,7 +117,7 @@ impl PreflightedTransferredDescriptorImports {
                 source: ComponentDescriptorSource::DynamicPlugin { component_type_id },
             },
             table_column_layout: None,
-            retention_provider: None,
+            retention_provider: Some(retention_provider),
         });
         component_id
     }
@@ -208,20 +212,37 @@ impl ComponentRegistry {
         &self,
         imports: &mut PreflightedTransferredDescriptorImports,
         component_type_id: &str,
-    ) -> ComponentId {
+        retention_provider: ComponentRetentionProviderV1,
+    ) -> Option<ComponentId> {
+        if retention_provider.version
+            != zircon_runtime_interface::retained_memory::RETAINED_PROVIDER_VERSION_V1
+        {
+            return None;
+        }
         if let Some(component_id) = self.registered_dynamic_component_id(component_type_id) {
+            if self.retention_provider_v1(component_id) != Some(retention_provider) {
+                return None;
+            }
             imports.reused_descriptor_resolves += 1;
-            return component_id;
+            return Some(component_id);
         }
         if let Some(component_id) = imports
             .dynamic_ids_by_type_id
             .get(component_type_id)
             .copied()
         {
+            let pending = imports.pending.get(
+                component_id
+                    .index()
+                    .checked_sub(imports.base_descriptor_count)?,
+            )?;
+            if pending.retention_provider != Some(retention_provider) {
+                return None;
+            }
             imports.reused_descriptor_resolves += 1;
-            return component_id;
+            return Some(component_id);
         }
-        imports.stage_dynamic(component_type_id)
+        Some(imports.stage_dynamic(component_type_id, retention_provider))
     }
 
     /// Publishes a descriptor import that was completely preflighted before

@@ -1,6 +1,23 @@
 import re
 import unittest
+import sys
 from pathlib import Path
+
+_AUDIT_SCRIPTS = (
+    Path(__file__).resolve().parents[3]
+    / ".codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts"
+)
+sys.path.insert(0, str(_AUDIT_SCRIPTS))
+from runtime_structure_audits.dynamic_runtime_api_archive_inventory import (
+    HistoricalArchiveReader,
+)
+
+_HISTORICAL_IDENTITIES = {
+    'docs/plans/zircon_runtime/text/07/2026-08-30-rich-typed-dependency-closure-foundation.md': (
+        4407,
+        '97cd4df0dd32c51e187df6bcc4f3cec454c025c66c016687e36621c841f2d57b',
+    ),
+}
 
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -75,10 +92,9 @@ class RuntimeTextInfrastructureCompileContractTests(unittest.TestCase):
         texture_collection = (
             ROOT / "zircon_runtime/src/graphics/scene/resources/ui_texture.rs"
         ).read_text(encoding="utf-8")
-        plan = (
-            ROOT
-            / "docs/plans/zircon_runtime/text/07/2026-08-30-rich-typed-dependency-closure-foundation.md"
-        ).read_text(encoding="utf-8")
+        history = HistoricalArchiveReader(identities=_HISTORICAL_IDENTITIES)
+        plan = history.read('docs/plans/zircon_runtime/text/07/2026-08-30-rich-typed-dependency-closure-foundation.md')
+        self.assertIsNotNone(plan, history.records)
 
         self.assertIn("pub enum RichTextDependency", dependency)
         self.assertIn("ImageTexture(ResourceId)", dependency)
@@ -99,15 +115,26 @@ class RuntimeTextInfrastructureCompileContractTests(unittest.TestCase):
     def test_rich_paint_projection_profile_is_runtime_owned_and_cache_truthful(self):
         projection = (
             ROOT
-            / "zircon_runtime/src/graphics/scene/scene_renderer/ui/render/paint_projection.rs"
+            / "zircon_runtime/src/graphics/scene/renderer/ui/render/paint_projection.rs"
         ).read_text(encoding="utf-8")
         render = (
-            ROOT / "zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs"
+            ROOT / "zircon_runtime/src/graphics/scene/renderer/ui/render.rs"
         ).read_text(encoding="utf-8")
         plan_cache = (
             ROOT
-            / "zircon_runtime/src/graphics/scene/scene_renderer/ui/render/plan_cache.rs"
+            / "zircon_runtime/src/graphics/scene/renderer/ui/render/plan_cache.rs"
         ).read_text(encoding="utf-8")
+
+        # Resolve the physical files through the actual logical module mounts.
+        for owner_path, mount in (
+            ('zircon_runtime/src/graphics/mod.rs', '#[path = "scene/mod.rs"]\npub(crate) mod scene;'),
+            ('zircon_runtime/src/graphics/scene/mod.rs', '#[path = "renderer/mod.rs"]\nmod scene_renderer;'),
+            ('zircon_runtime/src/graphics/scene/renderer/mod.rs', '#[path = "ui/mod.rs"]\nmod ui;'),
+            ('zircon_runtime/src/graphics/scene/renderer/ui/mod.rs', '#[path = "render.rs"]\nmod render;'),
+        ):
+            self.assertIn(mount, (ROOT / owner_path).read_text(encoding="utf-8"))
+        self.assertIn('#[path = "render/paint_projection.rs"]\nmod paint_projection;', render)
+        self.assertIn('#[path = "render/plan_cache.rs"]\nmod plan_cache;', render)
 
         self.assertIn("struct ScreenSpaceUiTextPaintProjectionReport", projection)
         self.assertIn("project_transient_paint_elements", projection)

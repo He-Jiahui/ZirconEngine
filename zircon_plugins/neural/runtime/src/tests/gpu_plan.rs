@@ -390,3 +390,74 @@ fn nn_graph_executor_plans_last_dimension_layer_normalization() {
             if source.contains("struct LayerNormParams")
     ));
 }
+
+#[test]
+fn nn_graph_executor_rejects_empty_pool_windows_like_the_cpu_interpreter() {
+    let io = NnGraphIo::new("nn.weights")
+        .with_input(0, "scene-tensor")
+        .with_output(1, "post-output");
+    for code in [NnOpCode::MaxPool2d, NnOpCode::AvgPool2d] {
+        for (padding, output_shape) in [
+            ([1, 0, 0, 0], [1, 1, 2, 1]),
+            ([0, 1, 0, 0], [1, 1, 1, 2]),
+            ([0, 0, 1, 0], [1, 1, 2, 1]),
+            ([0, 0, 0, 1], [1, 1, 1, 2]),
+        ] {
+            let model = NnModelAsset {
+                tensors: vec![
+                    NnTensorDesc::new(NnDataType::F32, NnTensorKind::Input, 4, [1, 1, 1, 1]),
+                    NnTensorDesc::new(NnDataType::F32, NnTensorKind::Output, 4, output_shape),
+                ],
+                ops: vec![NnOp::new(
+                    code,
+                    vec![0],
+                    vec![1],
+                    NnOpAttrs::Pool2d(NnPool2dAttrs {
+                        kernel: [1, 1],
+                        stride: [1, 1],
+                        padding,
+                    }),
+                )],
+                weights: Vec::new(),
+            };
+            assert_eq!(
+                crate::run_cpu(&model, &[(0, &[7.0_f32])]),
+                Err(crate::NnCpuError::ShapeMismatch { code })
+            );
+            assert_eq!(
+                NnGraphExecutor::default().build_plan(&model, &io),
+                Err(NnGraphBuildError::InvalidShape(code)),
+                "GPU planning must reject {code:?} with an empty border window: {padding:?}"
+            );
+        }
+        // Padding is legal when every window still intersects the input.
+        let model = NnModelAsset {
+            tensors: vec![
+                NnTensorDesc::new(NnDataType::F32, NnTensorKind::Input, 4, [1, 1, 1, 1]),
+                NnTensorDesc::new(NnDataType::F32, NnTensorKind::Output, 4, [1, 1, 2, 2]),
+            ],
+            ops: vec![NnOp::new(
+                code,
+                vec![0],
+                vec![1],
+                NnOpAttrs::Pool2d(NnPool2dAttrs {
+                    kernel: [2, 2],
+                    stride: [1, 1],
+                    padding: [1, 1, 1, 1],
+                }),
+            )],
+            weights: Vec::new(),
+        };
+        assert_eq!(
+            crate::run_cpu(&model, &[(0, &[7.0_f32])]).unwrap(),
+            vec![vec![7.0; 4]]
+        );
+        assert_eq!(
+            NnGraphExecutor::default()
+                .build_plan(&model, &io)
+                .unwrap()
+                .len(),
+            1
+        );
+    }
+}

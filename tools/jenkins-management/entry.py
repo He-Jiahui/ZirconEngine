@@ -107,7 +107,115 @@ def record(repo, domain, key):
         return None if row is None else {**dict(row), "payload": json.loads(row["payload"])}
 
 
-def capability(repo):
+def _public_transport_manager(repo, config, capsule, installed):
+    """Bind the pinned HTTP receiver; native lifecycle admission stays server-side."""
+    import base64
+    import urllib.error
+    import urllib.request
+    import xml.etree.ElementTree as ET
+
+    selected, _ = document(repo / ".jenkins/state/deployment/driver.json")
+    driver = plain(repo / ".jenkins/runtime/drivers" / config["driverDigest"])
+    require(plain(selected["root"]) == driver
+            and all(selected[k] == config[k] for k in ("driverDigest", "runtimeOperationId")),
+            "Selected runtime changed")
+    manifest, _ = document(driver / "driver-manifest.json")
+    require(sha(encoded({k: manifest[k] for k in ("schemaVersion", "files")}))
+            == config["driverDigest"], "Driver manifest changed")
+    for name, fact in manifest["files"].items():
+        require(isinstance(name, str) and name and "\\" not in name and ":" not in name
+                and all(p not in {"", ".", ".."} for p in name.split("/")),
+                "Driver member escaped its root")
+        data = plain(driver / name).read_bytes()
+        require(len(data) == fact["bytes"] and sha(data) == fact["sha256"],
+                "Pinned driver source changed")
+    if config.get("managedWorktree") is not None:
+        require({"tools/jenkins/managed_worktree.py", "tools/jenkins/managed_worktree_lifetime.py",
+                 "tools/jenkins/product_inputs.py"} <= set(manifest["files"]),
+                "Managed worktree capability lacks its sealed implementation")
+    sys.path.insert(0, str(driver))
+    from tools.jenkins.deployment.driver import driver_environment
+    from tools.jenkins.deployment.spec import load_spec
+    from tools.jenkins.deployment.paths import resolve_paths
+    from tools.jenkins.deployment.manager import DeploymentManager
+    os.environ.update(driver_environment({"root": str(driver), "driverDigest": config["driverDigest"]},
+                                        repo / ".jenkins/runtime/python/python.exe", repo))
+    deployment = load_spec(repo / ".jenkins/deployment-spec.json")
+    require(deployment.controller["listenAddress"] == "127.0.0.1"
+            and type(deployment.controller["httpPort"]) is int
+            and 1 <= deployment.controller["httpPort"] <= 65535, "Loopback HTTP binding differs")
+
+    class Direct(urllib.request.HTTPRedirectHandler):
+        def redirect_request(self, *args, **kwargs):
+            return None
+
+    class Transport(DeploymentManager):
+        # Retain the existing read-only spec/paths/journal interface for legacy
+        # source capture and delivery reconciliation. Never call lifecycle methods.
+        opener = urllib.request.build_opener(urllib.request.ProxyHandler({}), Direct())
+
+        def _request_with_headers(self, path, *, method="GET", data=None, headers=None, timeout=30):
+            user, token = self._credentials()
+            authorization = "Basic " + base64.b64encode(
+                (user + ":" + token).encode()).decode("ascii")
+            request = urllib.request.Request(self.base_url.rstrip("/") + "/" + path.lstrip("/"),
+                data=data, method=method,
+                headers={"Authorization": authorization, "Accept": "application/json", **(headers or {})})
+            try:
+                response = self.opener.open(request, timeout=min(timeout, 30))
+            except urllib.error.HTTPError as error:
+                response = error
+            with response:
+                body = response.read(8 * 1024**2 + 1)
+                require(len(body) <= 8 * 1024**2, "HTTP response exceeds the input bound")
+                return response.status, body, dict(response.headers.items())
+
+        def verify_public_transport(self):
+            current, _ = document(repo / ".jenkins/state/management/installed.json")
+            selected, _ = document(repo / ".jenkins/state/deployment/driver.json")
+            runtime, _ = document(repo / ".jenkins/state/deployment-operation.json")
+            require(current == installed and plain(selected["root"]) == driver
+                    and all(selected[k] == config[k] for k in ("driverDigest", "runtimeOperationId"))
+                    and runtime.get("operationId") == runtime.get("generation") == config["runtimeOperationId"]
+                    and runtime.get("state") == "running", "Selected HTTP runtime changed")
+            status, raw = self._request("job/zircon-management/config.xml")
+            require(status == 200, "Management HTTP receiver unavailable")
+            job = ET.fromstring(raw)
+            definition = job.find("definition")
+            require(job.tag == "flow-definition" and definition is not None
+                    and definition.get("class") == "org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition"
+                    and definition.findtext("sandbox") == "true"
+                    and job.findtext("./disabled") == "false", "Management HTTP receiver owner differs")
+            script = definition.findtext("script")
+            require(isinstance(script, str) and script, "Management HTTP receiver script is missing")
+            codex = re.findall(r"(?m)^def codex = '([A-Za-z]:/[^'\r\n\"]+)'$", script)
+            require(len(codex) == 1, "Pinned management launcher differs")
+            template = plain(capsule / "zircon-management.groovy").read_text(
+                encoding="utf-8-sig").replace("\r\n", "\n")
+            values = {"AGENT": config["agentLabel"], "REPOSITORY": str(repo),
+                      "PYTHON": str(repo / ".jenkins/runtime/python/python.exe"), "CODEX": codex[0],
+                      "CAPSULE": str(capsule), "DRIVER": config["driverDigest"],
+                      "RUNTIME": config["runtimeOperationId"]}
+            for key, value in values.items():
+                template = template.replace("@@" + key + "@@", value.replace("\\", "/").replace("'", "\\'"))
+            require("@@" not in template and script.replace("\r\n", "\n").count(template) == 1,
+                    "Management HTTP receiver differs from its pinned capsule")
+            require({v.findtext("name") for v in job.findall(
+                "./properties/hudson.model.ParametersDefinitionProperty/parameterDefinitions/*")} ==
+                {"SESSION_ID", "REQUEST_ID", "OPERATION_ID", "ACTION", "INPUT_JSON",
+                 "EXPECTED_DRIVER_DIGEST", "RUNTIME_OPERATION_ID", "QUERY_ONLY"},
+                "Management parameters differ")
+
+    manager = Transport(deployment, resolve_paths(deployment))
+    require(manager.paths.repo.absolute() == repo
+            and manager.paths.state.absolute() == repo / ".jenkins/state"
+            and manager.paths.home.absolute() == repo / ".jenkins/jenkins_home",
+            "HTTP deployment paths differ from the canonical repository")
+    manager.verify_public_transport()
+    return manager
+
+
+def capability(repo, *, public_transport=False):
     """Verify the complete installed capsule before importing its runtime reader."""
     repo = plain(repo)
     installed, installed_raw = document(repo / ".jenkins/state/management/installed.json")
@@ -141,35 +249,40 @@ def capability(repo):
     for name, expected in config["files"].items():
         require(isinstance(expected, str) and SHA.fullmatch(expected)
                 and sha(plain(capsule / name).read_bytes()) == expected, "Pinned capsule source changed")
+    spec = importlib.util.spec_from_file_location("verified_ordinary_management_runner", capsule / "runner.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
     for name, expected in config["clientSources"].items():
+        path = (module.client_path(config, repo, name, capsule=capsule)
+                if "clientRoot" in config else plain(repo / name))
         require(isinstance(expected, str) and SHA.fullmatch(expected)
-                and sha(plain(repo / name).read_bytes()) == expected, "Pinned public entry source changed")
+                and sha(path.read_bytes()) == expected, "Pinned public entry source changed")
     managed = config.get("managedWorktree")
     require(managed in (None, MANAGED_WORKTREE_CAPABILITY) and installed.get("managedWorktree") == managed,
             "Managed worktree capability differs from its exact installed inventory")
     for name in ("driverDigest", "runtimeOperationId"):
         require(config.get(name) == installed.get(name), "Installed capability differs from its runtime")
-    spec = importlib.util.spec_from_file_location("verified_ordinary_management_runner", capsule / "runner.py")
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
     # Public adapters can already have imported canonical contracts. Rebind
     # this client process to the sealed runtime before boot imports its tools.
     # boot verifies every driver file before any driver module is imported.
     for name in tuple(sys.modules):
         if name == "tools" or name == "tools.jenkins" or name.startswith("tools.jenkins."):
             del sys.modules[name]
-    verified, bound_repo, manager = module.boot(capsule)
-    require(verified == config and bound_repo == repo, "Capsule boot changed its binding")
-    from tools.jenkins.deployment.drain_observations import owner_observation
-    owner = owner_observation(manager)
-    health = manager.health()
-    require(owner["operationId"] == config["runtimeOperationId"]
-            and all(health.get(k) is True for k in ("controller", "agent", "plugins", "ready", "acceptingRequests"))
-            and health.get("quietingDown") is False, "Selected Jenkins runtime is not ready", "ordinary_runtime_pending")
+    if public_transport:
+        manager = _public_transport_manager(repo, config, capsule, installed)
+    else:
+        verified, bound_repo, manager = module.boot(capsule)
+        require(verified == config and bound_repo == repo, "Capsule boot changed its binding")
+        from tools.jenkins.deployment.drain_observations import owner_observation
+        owner = owner_observation(manager)
+        health = manager.health()
+        require(owner["operationId"] == config["runtimeOperationId"]
+                and all(health.get(k) is True for k in ("controller", "agent", "plugins", "ready", "acceptingRequests"))
+                and health.get("quietingDown") is False, "Selected Jenkins runtime is not ready", "ordinary_runtime_pending")
     require(plain(repo / ".jenkins/state/management/installed.json").read_bytes() == installed_raw,
             "Installed capability changed during observation")
-    return {"repo": repo, "installed": installed, "config": config, "module": module,
-            "manager": manager, "owner": owner}
+    context = {"repo": repo, "installed": installed, "config": config, "module": module, "manager": manager}
+    return {**context, "publicTransport": True} if public_transport else {**context, "owner": owner}
 
 
 def authorize(repo, payload, *, context=None, automatic=False, origin_session=None, read_connection=None):
@@ -193,12 +306,16 @@ def authorize(repo, payload, *, context=None, automatic=False, origin_session=No
         return name.casefold()
     for name in owned:
         relative(name)
-    if automatic and context is not None:
+    public_transport = context is not None and context.get("publicTransport") is True
+    if automatic and context is not None and not public_transport:
         context["module"].ensure_request_context(
             context["config"], repo, context["manager"], payload, record_request=False)
     with (contextlib.nullcontext(read_connection) if read_connection is not None else connection(repo)) as value:
         row = value.execute("SELECT * FROM authorizations WHERE repository_id=? AND session_id=?",
                             (payload["repositoryId"], payload["sessionId"])).fetchone()
+        if row is None and automatic and public_transport and AUTH[payload["action"]] in {"implementation", "validation"}:
+            # Only the pinned server may establish this context under its native owner.
+            return relative
         require(row is not None and row["status"] == "active", "Current session authorization is pending")
         allowed, actions, evidence = (json.loads(row[name]) for name in ("paths", "actions", "evidence"))
         snapshot = {"repositoryId": payload["repositoryId"], "sessionId": payload["sessionId"],
@@ -210,10 +327,15 @@ def authorize(repo, payload, *, context=None, automatic=False, origin_session=No
             and actions == ["implementation", "validation"])
         reader_context = False
         if kind == "managed-worktree-reader" and context is not None:
-            helper = context["module"].source_helper()
+            if public_transport:
+                # This is a read-only issued-grant check, never a live owner claim.
+                owner_matches = isinstance(evidence.get("ownerPrincipal"), str) and re.fullmatch(
+                    r"windows:S-1-[0-9-]+", evidence["ownerPrincipal"]) is not None
+            else:
+                helper = context["module"].source_helper()
+                owner_matches = evidence.get("ownerPrincipal") == helper.local_request_principal(context["manager"])
             reader_context = (actions == ["validation"]
-                and evidence.get("writerPrincipal") == row["principal"]
-                and evidence.get("ownerPrincipal") == helper.local_request_principal(context["manager"]))
+                and evidence.get("writerPrincipal") == row["principal"] and owner_matches)
         automatic_context = (evidence.get("source") == "automatic-local-request"
             and evidence.get("policy") == "local-validation-v1"
             and evidence.get("repositoryId") == payload["repositoryId"]
@@ -230,7 +352,7 @@ def authorize(repo, payload, *, context=None, automatic=False, origin_session=No
 
 
 def parse_cargo(arguments, *, enforce_policy=True):
-    """Accept bounded Cargo options; reject every unrepresented argument."""
+    """Accept bounded Cargo options; explicit test profile requires cargo test."""
     args = list(arguments)
     require(args and args[0] in {"check", "build", "test"}, "Only check/build/test have a Jenkins recipe")
     recipe = {"verb": args.pop(0), "packages": [], "features": [], "profile": "dev",
@@ -303,7 +425,9 @@ def parse_cargo(arguments, *, enforce_policy=True):
                     require(inline.isascii() and inline.isdigit() and 1 <= int(inline) <= 8, "Invalid Cargo jobs")
                     recipe[field] = int(inline)
                 else:
-                    require(inline in {"dev", "release"}, "Unsupported Cargo profile: " + inline)
+                    require(inline in {"dev", "release", "test"}, "Unsupported Cargo profile: " + inline)
+                    require(inline != "test" or recipe["verb"] == "test",
+                            "The test profile requires cargo test")
                     recipe[field] = inline
                 seen.add(field)
         elif not token.startswith("-") and recipe["verb"] == "test" and "testFilter" not in recipe:
@@ -467,6 +591,95 @@ def source_digest(context, payload):
         else: os.environ["GIT_OPTIONAL_LOCKS"] = previous
 
 
+def _replay_route(context, payload, *, read_connection=None):
+    """Read only an existing exact origin/routed mapping; never create a context."""
+    repo = context["repo"]
+    names = ("repositoryId", "sessionId", "requestId", "operationId")
+    with (contextlib.nullcontext(read_connection) if read_connection is not None else connection(repo)) as current:
+        class ReadRecords:
+            def get(self, domain, key, *, connection=None):
+                require(connection is None or connection is current, "Read-only query connection changed")
+                row = current.execute("SELECT domain,key,payload,version FROM records WHERE domain=? AND key=?",
+                                      (domain, key)).fetchone()
+                return None if row is None else {**dict(row), "payload": json.loads(row["payload"])}
+        state = ReadRecords()
+        origin = {name: payload[name] for name in names}
+        helper = context["module"].source_helper()
+        replay = helper._managed_route_replay(state, payload, sha(encoded(origin)), connection=current)
+        value, route = replay if replay is not None else (dict(payload), None)
+        if route is not None:
+            require(route.get("schemaVersion") == 1 and route.get("repositoryRoot") == str(repo)
+                    and route.get("driverDigest") == value["driverDigest"]
+                    and route.get("runtimeOperationId") == value["runtimeOperationId"]
+                    and route.get("routeRef") == sha(encoded(route.get("originIdentity"))),
+                    "Original managed route binding changed")
+            for who, snapshot_name in (("originIdentity", "originSnapshot"),):
+                bound = route.get(who, {})
+                row = current.execute("SELECT * FROM authorizations WHERE repository_id=? AND session_id=?",
+                                      (bound.get("repositoryId"), bound.get("sessionId"))).fetchone()
+                require(row is not None and row["status"] == "active",
+                        "Original managed route authorization changed")
+                snapshot = {"repositoryId": bound.get("repositoryId"), "sessionId": bound.get("sessionId"),
+                            "principal": row["principal"], "paths": json.loads(row["paths"]),
+                            "actions": json.loads(row["actions"]), "evidence": json.loads(row["evidence"])}
+                require(sha(encoded(snapshot)) == row["snapshot_digest"]
+                        and row["snapshot_digest"] == route.get(snapshot_name),
+                        "Original managed route authorization changed")
+            routed_identity = {name: value[name] for name in names}
+            require(routed_identity == route.get("routedIdentity")
+                    and routed_identity["repositoryId"] == origin["repositoryId"],
+                    "Original routed identity changed")
+            if route["routedIdentity"] != route["originIdentity"]:
+                alias = state.get("management_context_route_alias", sha(encoded(routed_identity)), connection=current)
+                require(alias is not None and alias["payload"] == {"routeRef": route["routeRef"]},
+                        "Original managed route alias changed")
+            snapshot_name = ("writerAuthorizationSnapshot" if value["sessionId"] == route.get("writerSessionId")
+                             else "readerAuthorizationSnapshot" if value["sessionId"] == route.get("readerSessionId")
+                             else None)
+            row = current.execute("SELECT status,snapshot_digest FROM authorizations WHERE repository_id=? AND session_id=?",
+                                  (value["repositoryId"], value["sessionId"])).fetchone()
+            require(snapshot_name is not None and row is not None and row["status"] == "active"
+                    and row["snapshot_digest"] == route.get(snapshot_name),
+                    "Original routed authorization changed")
+        return value, route
+
+
+def _delivery_marker(context, payload, route):
+    def leaf(identity):
+        key = sha("|".join(identity[name] for name in ("sessionId", "requestId", "operationId")).encode())
+        return plain(context["repo"] / ".jenkins/state/management/submissions" / (key + ".json"))
+    marker = leaf(payload)
+    if context.get("publicTransport") is True and route is not None:
+        candidates = {leaf(route["originIdentity"]), leaf(route["routedIdentity"])}
+        existing = [path for path in candidates if path.exists()]
+        require(len(existing) <= 1, "Origin and routed delivery markers are ambiguous")
+        if existing:
+            marker = existing[0]
+    return marker
+
+
+def _stored_public_delivery(context, old, route):
+    """Bind the actual POST bytes before bridging to the server's routed input."""
+    delivered = old.get("payload")
+    require(isinstance(delivered, dict) and delivered.get("observationOnly") in (None, False),
+            "Original delivery payload is unavailable")
+    for name in ("repositoryId", "sessionId", "requestId", "operationId", "driverDigest", "runtimeOperationId"):
+        require(old.get(name) == delivered.get(name), "Original delivery envelope changed: " + name)
+    require(old.get("inputDigest") == sha(encoded(delivered))
+            and old.get("phase") in {"dispatching", "submitted", "delivery_unknown"}
+            and old.get("formalAcceptance") is False and old.get("m8Accepted") is False,
+            "Original delivery input or phase changed")
+    parameters = {"SESSION_ID": delivered["sessionId"], "REQUEST_ID": delivered["requestId"],
+                  "OPERATION_ID": delivered["operationId"], "ACTION": delivered["action"],
+                  "INPUT_JSON": encoded(delivered).decode(), "EXPECTED_DRIVER_DIGEST": delivered["driverDigest"],
+                  "RUNTIME_OPERATION_ID": delivered["runtimeOperationId"], "QUERY_ONLY": "false"}
+    require(old.get("bodyDigest") == sha(urllib.parse.urlencode(parameters).encode("ascii")),
+            "Original delivery body changed")
+    routed, observed = _replay_route(context, delivered)
+    require(observed == route, "Original delivery managed route changed")
+    return routed
+
+
 def input_payload(context, payload, *, identity=None, recipe=None, target_dir=None, build_root=None,
                   automatic_context=True, routing=None):
     value = dict(payload)
@@ -478,9 +691,12 @@ def input_payload(context, payload, *, identity=None, recipe=None, target_dir=No
     origin_session = value.get("sessionId")
     session = os.environ.get("ZIRCON_JENKINS_SESSION_ID")
     require(not session or session == origin_session, "Input belongs to another current session")
-    value, route = context["module"].route_request_context(
-        context["config"], context["repo"], context["manager"], value,
-        query_only=not automatic_context)
+    if context.get("publicTransport") is True:
+        value, route = _replay_route(context, value)
+    else:
+        value, route = context["module"].route_request_context(
+            context["config"], context["repo"], context["manager"], value,
+            query_only=not automatic_context)
     if route is not None and routing is not None:
         routing.update(route)
     authorize(context["repo"], value, context=context, automatic=automatic_context,
@@ -551,8 +767,18 @@ def resume_delivery(context, payload, marker, original, operation, input_digest)
     require(len(deliveries) < 64, "Original resume delivery bound reached")
     previous_path = deliveries[-1] if deliveries else marker
     previous, previous_raw = document(previous_path)
-    require(previous.get("payload") == payload and previous.get("inputDigest") == input_digest
-            and previous.get("phase") == "submitted", "Unknown original delivery must be reconciled before resume")
+    delivered = payload
+    if context.get("publicTransport") is True:
+        _, route = _replay_route(context, payload)
+        require(previous.get("phase") == "submitted"
+                and previous.get("payload") == original.get("payload"),
+                "Unknown original delivery must be reconciled before resume")
+        require(_stored_public_delivery(context, previous, route) == payload,
+                "Original delivery does not match the routed operation")
+        delivered = previous["payload"]
+    else:
+        require(previous.get("payload") == payload and previous.get("inputDigest") == input_digest
+                and previous.get("phase") == "submitted", "Unknown original delivery must be reconciled before resume")
     queue = previous.get("queueUrl")
     prefix = manager.base_url.rstrip("/") + "/queue/item/"
     require(isinstance(queue, str) and queue.startswith(prefix)
@@ -586,13 +812,13 @@ def resume_delivery(context, payload, marker, original, operation, input_digest)
             and build.get("result") in {"SUCCESS", "FAILURE", "ABORTED", "UNSTABLE", "NOT_BUILT"}
             and len(parameters) == 1, "Original management delivery is not proven terminal")
     observed = {value["name"]: value.get("value") for value in parameters[0]}
-    expected = {"SESSION_ID": payload["sessionId"], "REQUEST_ID": payload["requestId"],
-                "OPERATION_ID": payload["operationId"], "ACTION": payload["action"],
-                "EXPECTED_DRIVER_DIGEST": payload["driverDigest"],
-                "RUNTIME_OPERATION_ID": payload["runtimeOperationId"]}
+    expected = {"SESSION_ID": delivered["sessionId"], "REQUEST_ID": delivered["requestId"],
+                "OPERATION_ID": delivered["operationId"], "ACTION": delivered["action"],
+                "EXPECTED_DRIVER_DIGEST": delivered["driverDigest"],
+                "RUNTIME_OPERATION_ID": delivered["runtimeOperationId"]}
     require(all(observed.get(k) == v for k, v in expected.items())
             and observed.get("QUERY_ONLY") in (False, "false")
-            and json.loads(observed.get("INPUT_JSON", "null")) == payload,
+            and json.loads(observed.get("INPUT_JSON", "null")) == delivered,
             "Original terminal build used different input/source/runtime")
     from tools.jenkins.state import State
     actor = object.__new__(context["module"].Management)
@@ -611,13 +837,19 @@ def resume_delivery(context, payload, marker, original, operation, input_digest)
 
 def submit_payload(context, payload, *, query_only=False, dry_run=False, resume_original=False):
     repo, manager = context["repo"], context["manager"]
+    route = None
+    if context.get("publicTransport") is True:
+        payload, route = _replay_route(context, payload)
     captured_components = None
     operation_key = sha(encoded({name: payload[name] for name in ("repositoryId", "sessionId", "requestId", "operationId")}))
-    marker_key = sha("|".join(payload[name] for name in ("sessionId", "requestId", "operationId")).encode())
-    marker = plain(repo / ".jenkins/state/management/submissions" / (marker_key + ".json"))
+    marker = _delivery_marker(context, payload, route)
     old = document(marker)[0] if marker.exists() else None
     existing = record(repo, "management_operation", operation_key)
     original = (old or {}).get("payload") or (existing["payload"].get("payload") if existing else None)
+    if old is not None and context.get("publicTransport") is True:
+        original = _stored_public_delivery(context, old, route)
+        require(existing is None or existing["payload"].get("payload") == original,
+                "Original State and delivery payloads differ")
     if original is not None:
         candidate = dict(payload)
         if (payload["action"] == "validate" and "expectedSourceDigest" not in candidate
@@ -657,7 +889,8 @@ def submit_payload(context, payload, *, query_only=False, dry_run=False, resume_
         require(old is not None and existing is not None, "Original durable delivery/operation is required to resume")
         marker, resume_fact = resume_delivery(context, payload, marker, old, existing, input_digest)
     if old and resume_fact is None:
-        require(old.get("inputDigest", input_digest) == input_digest, "Original delivery input differs")
+        require(context.get("publicTransport") is True or old.get("inputDigest", input_digest) == input_digest,
+                "Original delivery input differs")
         return {**envelope, "status": "pending", "phase": old["phase"], "queueUrl": old.get("queueUrl"),
                 "reasonCode": "original_delivery_requires_reconciliation", "resubmitted": False,
                 "nextAction": "Query the same identity; do not submit a replacement"}
@@ -668,12 +901,19 @@ def submit_payload(context, payload, *, query_only=False, dry_run=False, resume_
                 "targetPolicy": "managed-compatibility-pool",
                 "requestedTargetDir": payload.get("requestedTargetDir"), "buildRoot": payload.get("buildRoot"),
                 "actualTargetDir": None}
-    parameters = {"SESSION_ID": payload["sessionId"], "REQUEST_ID": payload["requestId"],
-                  "OPERATION_ID": payload["operationId"], "ACTION": payload["action"],
-                  "INPUT_JSON": encoded(payload).decode(), "EXPECTED_DRIVER_DIGEST": payload["driverDigest"],
-                  "RUNTIME_OPERATION_ID": payload["runtimeOperationId"], "QUERY_ONLY": "false"}
+    # A retry preserves the original POST and receipt; State remains routed.
+    delivered, delivery_envelope = payload, envelope
+    if resume_fact is not None and context.get("publicTransport") is True:
+        delivered = old["payload"]
+        delivery_envelope = {**envelope, **{name: delivered[name] for name in (
+            "repositoryId", "sessionId", "requestId", "operationId", "driverDigest", "runtimeOperationId")},
+            "inputDigest": sha(encoded(delivered))}
+    parameters = {"SESSION_ID": delivered["sessionId"], "REQUEST_ID": delivered["requestId"],
+                  "OPERATION_ID": delivered["operationId"], "ACTION": delivered["action"],
+                  "INPUT_JSON": encoded(delivered).decode(), "EXPECTED_DRIVER_DIGEST": delivered["driverDigest"],
+                  "RUNTIME_OPERATION_ID": delivered["runtimeOperationId"], "QUERY_ONLY": "false"}
     body = urllib.parse.urlencode(parameters).encode("ascii")
-    saved = {**envelope, "payload": payload, "bodyDigest": sha(body), "phase": "dispatching", "queueUrl": None}
+    saved = {**delivery_envelope, "payload": delivered, "bodyDigest": sha(body), "phase": "dispatching", "queueUrl": None}
     if resume_fact is not None:
         require(old.get("bodyDigest") == sha(body), "Original delivery body changed")
         saved.update(resume_fact)
@@ -688,8 +928,11 @@ def submit_payload(context, payload, *, query_only=False, dry_run=False, resume_
     except FileExistsError:
         return submit_payload(context, payload, query_only=True)
     try:
-        from tools.jenkins.deployment.drain_observations import owner_observation
-        owner_observation(manager, expected=context["owner"])
+        if context.get("publicTransport") is True:
+            manager.verify_public_transport()
+        else:
+            from tools.jenkins.deployment.drain_observations import owner_observation
+            owner_observation(manager, expected=context["owner"])
         status, raw = manager._request("crumbIssuer/api/json")
         require(status == 200, "Jenkins crumb is unavailable")
         crumb = json.loads(raw)
@@ -739,50 +982,12 @@ def historical_query(context, payload, *, identity=None, recipe=None, target_dir
                                       (domain, key)).fetchone()
                 return None if row is None else {**dict(row), "payload": json.loads(row["payload"])}
         state = ReadRecords()
-        origin = {name: payload[name] for name in names}
-        helper = context["module"].source_helper()
-        replay = helper._managed_route_replay(state, payload, sha(encoded(origin)), connection=current)
-        value, route = replay if replay is not None else (dict(payload), None)
-        if route is not None:
-            require(route.get("schemaVersion") == 1 and route.get("repositoryRoot") == str(repo)
-                    and route.get("driverDigest") == value["driverDigest"]
-                    and route.get("runtimeOperationId") == value["runtimeOperationId"]
-                    and route.get("routeRef") == sha(encoded(route.get("originIdentity"))),
-                    "Original managed route binding changed")
-            for who, snapshot_name in (("originIdentity", "originSnapshot"),):
-                bound = route.get(who, {})
-                row = current.execute("SELECT * FROM authorizations WHERE repository_id=? AND session_id=?",
-                                      (bound.get("repositoryId"), bound.get("sessionId"))).fetchone()
-                require(row is not None and row["status"] == "active",
-                        "Original managed route authorization changed")
-                snapshot = {"repositoryId": bound.get("repositoryId"), "sessionId": bound.get("sessionId"),
-                            "principal": row["principal"], "paths": json.loads(row["paths"]),
-                            "actions": json.loads(row["actions"]), "evidence": json.loads(row["evidence"])}
-                require(sha(encoded(snapshot)) == row["snapshot_digest"]
-                        and row["snapshot_digest"] == route.get(snapshot_name),
-                        "Original managed route authorization changed")
-            routed_identity = {name: value[name] for name in names}
-            require(routed_identity == route.get("routedIdentity")
-                    and routed_identity["repositoryId"] == origin["repositoryId"],
-                    "Original routed identity changed")
-            if route["routedIdentity"] != route["originIdentity"]:
-                alias = state.get("management_context_route_alias", sha(encoded(routed_identity)), connection=current)
-                require(alias is not None and alias["payload"] == {"routeRef": route["routeRef"]},
-                        "Original managed route alias changed")
-            snapshot_name = ("writerAuthorizationSnapshot" if value["sessionId"] == route.get("writerSessionId")
-                             else "readerAuthorizationSnapshot" if value["sessionId"] == route.get("readerSessionId")
-                             else None)
-            row = current.execute("SELECT status,snapshot_digest FROM authorizations WHERE repository_id=? AND session_id=?",
-                                  (value["repositoryId"], value["sessionId"])).fetchone()
-            require(snapshot_name is not None and row is not None and row["status"] == "active"
-                    and row["snapshot_digest"] == route.get(snapshot_name),
-                    "Original routed authorization changed")
+        value, route = _replay_route(context, payload, read_connection=current)
         authorize(repo, value, context=context, origin_session=payload["sessionId"], read_connection=current)
         routed_identity = {name: value[name] for name in names}
         key = sha(encoded(routed_identity))
         existing = state.get("management_operation", key, connection=current)
-        marker_key = sha("|".join(value[name] for name in ("sessionId", "requestId", "operationId")).encode())
-        marker = plain(repo / ".jenkins/state/management/submissions" / (marker_key + ".json"))
+        marker = _delivery_marker(context, value, route)
         old, marker_raw = document(marker) if marker.exists() else (None, None)
         original = None
         if existing is not None:
@@ -804,9 +1009,12 @@ def historical_query(context, payload, *, identity=None, recipe=None, target_dir
         if old is not None:
             delivered = old.get("payload")
             delivery = normalized(delivered)
+            if context.get("publicTransport") is True:
+                delivery, delivered_route = _replay_route(context, delivery, read_connection=current)
+                require(delivered_route == route, "Original delivery managed route changed")
             for name in (*names, "driverDigest", "runtimeOperationId"):
                 require(old.get(name) == delivered.get(name), "Original delivery envelope changed: " + name)
-            require(sha(encoded({name: delivered.get(name) for name in names})) == key
+            require(sha(encoded({name: delivery.get(name) for name in names})) == key
                     and old.get("inputDigest") == sha(encoded(delivered))
                     and old.get("phase") in {"dispatching", "submitted", "delivery_unknown"}
                     and old.get("formalAcceptance") is False and old.get("m8Accepted") is False,
@@ -859,7 +1067,7 @@ def historical_query(context, payload, *, identity=None, recipe=None, target_dir
 
 def dispatch(repo, payload, *, identity=None, recipe=None, target_dir=None, build_root=None,
              query_only=False, dry_run=False, resume_original=False):
-    context = capability(repo)
+    context = capability(repo, public_transport=True)
     require(not query_only or not (dry_run or resume_original),
             "QueryOnly cannot be combined with dry-run or resume")
     if query_only:
@@ -919,7 +1127,8 @@ def main(argv=None):
             sub.add_argument("--unlocked", action="store_true")
             sub.add_argument("--query-only", action="store_true")
             sub.add_argument("--dry-run", action="store_true")
-            sub.add_argument("cargo_args", nargs=argparse.REMAINDER)
+            sub.add_argument("cargo_args", nargs=argparse.REMAINDER,
+                             help="Scoped Cargo argv; --profile test is supported only with cargo test")
         elif command == "submit":
             sub.add_argument("--input-file", required=True)
             sub.add_argument("--resume-original", action="store_true")
@@ -929,8 +1138,9 @@ def main(argv=None):
     args = parser.parse_args(argv)
     try:
         if args.command == "capability":
-            context = capability(args.repo_root)
-            result = {"status": "ready", "ordinaryEntry": CAPABILITY,
+            context = capability(args.repo_root, public_transport=True)
+            result = {"status": "ready", "verificationMode": "public-transport", "nativeLifecycleVerified": False,
+                      "ordinaryEntry": CAPABILITY,
                       "managedWorktree": context["config"].get("managedWorktree"),
                       "driverDigest": context["config"]["driverDigest"],
                       "runtimeOperationId": context["config"]["runtimeOperationId"],

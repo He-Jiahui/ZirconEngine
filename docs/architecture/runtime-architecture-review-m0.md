@@ -558,7 +558,7 @@ above. `tasks/task_graph/EngineTaskGraph` owns the budgeted `Io`,
 `AsyncCompute`, and `Compute` domains plus one callback dispatcher under one
 lifecycle. `TaskGraphWorkerInventory` reports those three domains and their
 conserved worker total. The current focused mirror is `expected_module_count = 22`
-and `behavior_test_anchor_count = 76`, including canonical multi-handle wait,
+and `behavior_test_anchor_count = 77`, including canonical multi-handle wait,
 direct dependency-failure propagation, `tasks/bounded_stream_io/`, and
 `tasks/retained_byte_budget.rs`. Dynamic session shutdown drains scope and
 modules before TaskGraph close/join. Managed Cargo, affinity/priority/quota,
@@ -775,7 +775,7 @@ The M3 root work has removed the `pub(crate) use graphics::...` alias block and 
 
 The guard keeps Runtime 02 `in_progress`, requires the M2 test-stage row, M3 root/type alias rows, and M4 generated row to keep Cargo or render-owner pending language, keeps the declared runtime/app/editor/plugin/generated/export validation commands visible, and mirrors the same pending state through P2, P8, the Runtime 02 subplan row, `root_surface.md`, `generated-code-boundary.md`, Runtime 05 closeout, and this review.
 
-`core_spine_root_generated_boundary.py` now mirrors the Runtime 02 core/root/generated state through the Python structural audit, while `core_spine_root_generated_markdown.py` owns the Markdown renderer. 2026-08-24 current evidence reports core root entries 6/6, core public modules 5/5, retired core root entries 0, runtime root public modules 21/21, public `pub use` sites 2/2, crate-visible graphics alias debt 0/0, root-surface M1 gate `classified-and-clear`, generated export templates 10/10, generated behavior 6/6, generated allowed adapters 6/6, generated migration debt 0/0, generated-code M1 gate `classified-and-clear`, root_entries guard tests 13, root_surface guard tests 6/6, generated-code guard tests 7/7, `guard_test_anchor_count = 26`, `missing_guard_test_anchors = []`, `mirror_docs_guard_present = true`, and `risks = []`; the boundary owner is 315 lines and the Markdown owner is 60 lines. The 21 public module classifications retain `text` as the shared text/typography contract and `operation` as the runtime operation-registry/task-lifecycle surface, while `runtime_diagnostics` is feature-independent private root support so graphics-only tests do not acquire an optional dynamic-api dependency. `runtime_root_surface.py` itself remains the 268-line root public-surface audit/risk owner, while `runtime_root_surface_markdown.py` is the 35-line renderer owner for `render_runtime_root_surface_markdown`. `runtime_02_core_spine_root_generated_mirror_docs_match_structure_audit_counts` keeps Runtime 02, the runtime index, `root_surface.md`, generated-code-boundary, this review, and runtime-interface convergence aligned with those counts. `root_surface_interface_convergence_mirror_uses_current_audit_counts` keeps `runtime-interface-convergence.md` aligned with the same 21-module, 2-public-use, zero-root-debt root-surface evidence, `rhi_wgpu` crate-private backend owner status, and builtin facade cutover. This is static structure evidence only; the full `core/root/generated/export_build_plan/app/editor/plugin` Cargo lane remains pending.
+`core_spine_root_generated_boundary.py` now mirrors the Runtime 02 core/root/generated state through the Python structural audit, while `core_spine_root_generated_markdown.py` owns the Markdown renderer. The retained 2026-08-24 layout snapshot reports core root entries 6/6, core public modules 5/5, retired core root entries 0, runtime root public modules 21/21 (native target-client profile), public `pub use` sites 2/2, crate-visible graphics alias debt 0/0, root-surface M1 gate `classified-and-clear`, generated export templates 10/10, generated behavior 6/6, generated allowed adapters 6/6, generated migration debt 0/0, generated-code M1 gate `classified-and-clear`, root_entries guard tests 13, root_surface guard tests 6/6, generated-code guard tests 7/7, `guard_test_anchor_count = 26`, `missing_guard_test_anchors = []`, `mirror_docs_guard_present = true`, and `risks = []`; the boundary owner is 315 lines and the Markdown owner is 60 lines. The retained 21-seat native-profile classifications retain `text` as the shared text/typography contract and `operation` as the runtime operation-registry/task-lifecycle surface, while `runtime_diagnostics` is feature-independent private root support so graphics-only tests do not acquire an optional dynamic-api dependency. `runtime_root_surface.py` itself remains the 268-line root public-surface audit/risk owner, while `runtime_root_surface_markdown.py` is the 35-line renderer owner for `render_runtime_root_surface_markdown`. `runtime_02_core_spine_root_generated_mirror_docs_match_structure_audit_counts` keeps Runtime 02, the runtime index, `root_surface.md`, generated-code-boundary, this review, and runtime-interface convergence aligned with those counts. `root_surface_interface_convergence_mirror_uses_current_audit_counts` keeps `runtime-interface-convergence.md` aligned with the same 21-module, 2-public-use, zero-root-debt root-surface evidence, `rhi_wgpu` crate-private backend owner status, and builtin facade cutover. This is static structure evidence only; the full `core/root/generated/export_build_plan/app/editor/plugin` Cargo lane remains pending.
 
 ## Runtime 07 Hotspot Inventory Guard
 
@@ -860,3 +860,120 @@ The parent `dynamic_api/session.rs` remains a façade over explicit child owners
 2026-08-24 Runtime 06 native namespace static sync assigns discovery/load commands to `plugin::native::discovery` and stable live-host handles to `plugin::native::host`; no plugin-root loader forwarder or flat discovery/handle caller remains. `plugin_surface_lifecycle_boundary` now reports `expected_source_file_count = 20`, `expected_doc_file_count = 5`, `root_reexport_count = 0`, `native_namespace_reexport_count = 68`, native root re-export 0/0, native namespace re-export 68/68, native namespace symbol groups 6/6, app NativePlugin current call-site files: 7, and `risks = []`. This is static source evidence only; managed Cargo/native validation remains pending.
 
 Current Runtime 04 source-owner synchronization (2026-08-14): `asset_pipeline_boundary` reports `expected_source_file_count = 26`; `core/resource/manager/commit.rs` owns reload transaction-state mutation in the current tree. This replaces the previous public-facade-only inventory; broader Cargo gates remain pending.
+
+
+## Current Runtime 06 Reviewed Source Inventory (2026-10-18)
+
+This row supersedes earlier current-tree 68/7, 74/8, and 86/3 snapshots for source inventory only; dated historical measurements above remain historical evidence. The Runtime 06 plan permits reviewed inventory synchronization while native implementation stays behind `zircon_runtime::plugin::native`, with no native root re-export or compatibility shim.
+
+The six explicitly reviewed `NativePluginProjectActivationCleanupReceipt`, `NativePluginProjectActivationRequest`, `NativePluginProjectActivationResult`, `NativePluginProjectActivationSelection`, `NativePluginProjectActivationSelectionResult`, and `NativePluginProjectActivationSelectionStatus` types belong to the existing native live-host runtime classification. Their owner is `zircon_runtime/src/plugin/loader/live/loading.rs`, mounted through `loader/live.rs` and re-exported through `loader/mod.rs` and `plugin/native.rs`. They carry required/optional selection, staged activation, bridge registration, commit/rollback, and retained-cleanup receipts; they do not add a new ABI version or a seventh classification group.
+
+The complete App `NativePlugin` consumer inventory is four production files and one mounted test file:
+
+- `zircon_app/src/entry/export_bootstrap.rs`
+- `zircon_app/src/entry/product_composition/composition.rs`
+- `zircon_app/src/entry/product_composition/ownership.rs`
+- `zircon_app/src/entry/product_composition/request.rs`
+- `zircon_app/src/entry/tests/profile_bootstrap.rs`
+
+`ownership.rs` retains the real native host with product runtime ownership; `profile_bootstrap.rs` validates package authority, manifest/library identity, target, and behavior health. Both are real mounted consumers and remain in the count.
+
+The exact reviewed contract for `plugin_surface_lifecycle_boundary` and `native_plugin_public_surface` is `expected_source_file_count = 20`, `expected_doc_file_count = 5`, `root_reexport_count = 0`, `native_namespace_reexport_count = 92`, native root re-export 0/0, native namespace re-export 92/92, M4 gate `classified-and-clear`, debt groups 0/0, native namespace symbol groups 6/6, unclassified native root symbols 0/0, unclassified native namespace symbols 0/0, root public native re-export locations 0/0, public native namespace re-export locations 2/2, app NativePlugin current call-site files: 5, native loader V1/V2 implementation files 0/0, `zircon_plugins` V1/V2 usage files 0/0, export_build_plan V1/V2 usage 0/0, unknown ABI rejection, hot reload failure injection, native loader test files 4/4, native test namespace import files 3/3, native test root import leaks 0/0, fallback lifecycle failure tests 4/4, `runtime_06_vm_lifecycle_fallback_failure_tests_are_folder_backed`, `runtime_06_native_loader_tests_use_isolated_plugin_native_namespace`, `mirror_docs_guard_present = true`, and `runtime_06_plugin_surface_lifecycle_mirror_docs_match_structure_audit_counts`. The required audit result remains `risks = []`; this source synchronization is not a recorded execution of that gate.
+
+The VM inventory reads the mounted `zircon_runtime/src/script/vm/tests/cases.rs`; native test scans read `zircon_runtime/src/tests/plugins` and retain their exact four-file/three-import and zero-root-leak gates. The `runtime_06_plugin_surface_lifecycle_gate_stays_visible_until_plugin_validation` remains open across script::vm/vampire_project_session/plugin/native_plugin/app/plugins and runtime real-backend validation. This inventory review does not establish native loading, activation transaction, rollback, browser/rendering, or milestone acceptance; those require separate terminal evidence.
+
+
+## Current root declaration contract
+
+current root raw public declarations 24/24; distinct namespaces 22/22; native target-client public modules 21/21.
+The source contract is 28 external declarations, 27 path attributes and 25 cfg
+attributes, with two exact public re-export sites and a strict 127 physical-line
+ceiling. Browser is a classified target-host-entry, reachable only with target-web
+on wasm32 without native-host. Native asset/plugin aliases and their portable
+alternatives are mutually exclusive. The retained runtime root public modules
+21/21 snapshot refers to the native target-client profile; it is not the raw
+all-cfg declaration count. The former 45-line guard actually failed on this
+layout. Current guard/audit validation is source_applied / managed_tests_pending.
+
+## Current review obligations
+
+The review remains in progress (status: in_progress). 此处仅展示当前现状的概述；implementation records belong to their domain worklists, not to this review. The independent structure convention and review findings must agree on ownership without treating source edits as product acceptance.
+
+| Finding | Continuing obligation | Responsibility |
+|---|---|---|
+| F2 | scene/EventBus shared locks recover poison; production cannot panic through `.lock().unwrap()`. | Runtime 15 + Runtime 07 |
+| F5 | ECS 公共 mutation surface returns typed scene errors. | Runtime 08 + Runtime 15 |
+| F6 | resource registry failures use resource-owned ResourceRegistryError / ResourceResult; resource code must not depend on framework CoreError. | Frameworks 01 + Runtime 02 |
+| F7 | asset artifact/importer errors retain typed AssetImportError sources. | Runtime 04 |
+| F8 | texture import settings use fallible operations; RuntimePluginDescriptor uses builder/private accessor authority. Broader validation remains pending. | Runtime 04 + Runtime 06 + Runtime 15 |
+| F11 | Shading-model registration must have a real consumer, not dead plugin registration surface. | Runtime 15 + render |
+| F12 | runtime production `allow(dead_code)` suppression is globally gated. | Runtime 15 + Editor UI 10 |
+| F15 | pane_data_conversion delegates to child projection owners. | Runtime 15 + Editor UI 10 |
+| F16 | Compiled-scene rendering delegates foundation, mesh preparation, graph preparation and success commit; keep strict <500/<160/<650 budgets and the named regression. | Runtime 15 + render |
+| F18 | asset manager resolution returns the registered handle. | Runtime 10 |
+| F19 | scene renderer construction owner uses construct names. | Runtime 15 + render |
+
+The F16 guard is review_f16_compiled_scene_render_path_uses_split_owners. Its dated source-only result leaves managed Cargo/WGPU acceptance pending. The 2026-08-30 readback review distinguishes test-only raw helpers from the bounded generation/ticket service: product capture keeps its 30-second deadline and completion fan-out; standalone native UI, capture cancel/executor policy and fault/scale/profile validation remain open.
+
+Plugin descriptors, extension_registry, native manifests and SDK exports retain one registration authority. Importer parity covers audio/data/model/shader/texture families and all declared importer plugins. Native source remains behind its own namespace; isolated test_fixtures and #[cfg(test)] mounts do not justify compatibility production routes.
+
+UI rebuild, property transactions, pointer state, template actions and node resource registration retain their own owners. Rich projection must validate run/paragraph/table ranges and stop replacement on typed failure. None of the structural status identifiers below establishes new execution or visual acceptance.
+
+### Retained source status
+
+The identifiers and owner paths in this section are independent mirror obligations from the dated review. They preserve source/deferred meaning; old RED line counts, duplicate Finding/Correction narratives and historical scan totals are intentionally not restated as current measurements.
+
+### Dated provenance
+
+The 2026-07-10 extension freeze records runtime finalize/apply and owner unload coverage; plugin architecture as a whole stays in progress. The 2026-10-04 test migration identifies postprocess_routes/tests/plugin_inputs.rs as the current test owner. The 2026-07-09 output record is historical provenance, not a current reader fallback.
+
+### Retained source status identities
+
+| Contract | Responsibility / evidence boundary |
+|---|---|
+| `runtime_01_15_render_pipeline_postprocess_plugin_input_owner_split_static_passed_cargo_deferred` | Plugin-input route tests remain child-owned; production selection is unchanged. |
+| `runtime_04_15_asset_artifact_material_shader_owner_split_static_passed_cargo_deferred` | Material/shader owners preserve schema/variant order and conversion behavior. |
+| `runtime_04_15_asset_management_generation_static_implemented_cargo_deferred` | Family classification and record sets share one immutable asset-management generation. |
+| `runtime_06_15_native_registration_replay_error_owner_split_static_passed_cargo_deferred` | Registration replay retains its typed error/source owner. |
+| `runtime_06_15_native_system_access_owner_split_static_passed_cargo_profile_deferred` | Parse/compile, capability authorization and typed errors retain separate owners. |
+| `runtime_06_15_plugin_availability_evaluation_selection_owner_split_static_passed_cargo_deferred` | Membership, evaluation/reporting and profile/manifest selection remain separate. |
+| `runtime_06_15_plugin_manifest_constructor_owner_split_static_passed_cargo_deferred` | Package/module owners preserve original types, defaults and serialization. |
+| `runtime_07_15_scene_post_process_volumetric_fog_test_owner_split_static_passed_cargo_deferred` | Volumetric extract tests remain folder-backed without changing production fog behavior. |
+| `runtime_08_15_archetype_topology_equality_receipt_static_passed_cargo_deferred` | Compare canonical indexes and ordered structural rows, excluding diagnostics/history. |
+| `runtime_08_15_component_registry_transfer_owner_split_static_passed_cargo_deferred` | Preflight, conflicts, staged IDs and final publication stay one transaction. |
+| `runtime_08_15_scene_property_entry_component_owner_split_static_passed_cargo_profile_deferred` | Domain property enumeration preserves ordering and instance identity. |
+| `runtime_09_15_ui_asset_surface_node_resource_owner_split_static_passed_cargo_profile_deferred` | Runtime registration remains tolerant; strict compile-time schema diagnostics stay separate. |
+| `runtime_09_15_ui_pointer_component_state_owner_split_static_passed_cargo_profile_deferred` | Pointer state/invalidation remains separate from route/event envelope construction. |
+| `runtime_09_15_ui_pointer_template_action_owner_split_static_passed_cargo_profile_deferred` | Action projection consumes existing tree/bindings/state without adding a dispatcher. |
+| `runtime_09_15_ui_surface_incremental_rebuild_owner_split_static_passed_cargo_profile_deferred` | Dirty layout/rebuild belongs to the child; full rebuild and render extract remain in the parent. |
+| `runtime_09_15_ui_surface_property_transaction_owner_split_static_passed_cargo_profile_deferred` | Validation, mutation and invalidation share the original surface transaction authority. |
+| `runtime_09_15_winit_translation_domain_owner_split_static_passed_cargo_product_profile_deferred` | Keyboard/pointer/IME/window packaging preserves event order and normalization. |
+| `runtime_10_12_15_dynamic_event_keyboard_ime_gamepad_owner_split_static_passed_cargo_deferred` | Keyboard/IME and gamepad packaging remain children of the same session. |
+| `runtime_17_15_frame_profiler_gpu_resolution_owner_split_static_passed_cargo_profile_deferred` | GPU-resolution child owns timestamp resolution; budget/profile acceptance stays separate. |
+| `runtime_render_09_15_viewport_output_planner_owner_split_static_passed_cargo_deferred` | Graph import and writeback stay separate stages under one target authority. |
+
+### Source and guard ownership
+
+The finite source, guard and provenance inventory for these responsibilities is:
+
+- `15/2026-07-09-engine-code-review-findings-output-records.md`, `render_post_process_extract/volumetric_fog.rs`, `pointer_component_events/template_action.rs`.
+- `registration_replay/error.rs`, `record_sets.rs`, `incremental.rs`.
+- `evaluation.rs`, `selection.rs`, `authority.rs`.
+
+### Validation interfaces
+
+Keep these existing validation and domain interfaces in the gate:
+
+- `scene_renderer`.
+
+### Clause provenance
+
+These content identities preserve the source of this transfer. They are not fresh measurements, active-file dependencies or acceptance receipts.
+
+- `engine-code-review-findings-2026-06.md`, SHA-256 `2964cdc2798082fd18066a6c48ebf21a6340d12b8aadbbaf57cb6c337b5c05c0`, selected source lines 605-4177.
+
+### Current error and render-test child owners
+
+- postprocess: `zircon_runtime/src/graphics/pipeline/pipeline/tests/plugin_inputs.rs`.
+
+These are current child identities for the retained status mirrors, not fresh Cargo or frame acceptance.

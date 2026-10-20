@@ -1,3 +1,5 @@
+use crate::tests::runtime_absorption::structure_convention::fixed_history_archive_source as history;
+use crate::tests::runtime_absorption::structure_convention::rust_source_view::production_section;
 #[test]
 fn review_f2_scene_eventbus_locks_recover_after_poison() {
     let level_system = include_str!("../../../../scene/level_system.rs");
@@ -12,31 +14,52 @@ fn review_f2_scene_eventbus_locks_recover_after_poison() {
         include_str!("../../../../../../docs/crates/zircon_runtime/scene/level_system.md");
     let _event_doc =
         include_str!("../../../../../../docs/crates/zircon_runtime/core/runtime/events.md");
-    let review_findings = concat!(
-        include_str!(
-            "../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"
-        ),
-        include_str!("../../../../../../docs/plans/engine-code-review-findings-2026-06.md")
+    let review_findings = crate::runtime_test_history_concat!(
+        history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"),
+        include_str!("../../../../../../docs/architecture/runtime-architecture-review-m0.md")
     );
-    let _runtime_15_plan = include_str!(
-        "../../../../../../docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md"
-    );
-    let _runtime_index =
-        include_str!("../../../../../../docs/plans/zircon_runtime/runtime/index.md");
-    let _convention =
-        include_str!("../../../../../../docs/plans/engine-code-structure-convention.md");
     let _module_doc =
         include_str!("../../../../../../docs/crates/zircon_runtime/structure/module-convention.md");
 
+    let level_system_tests = include_str!("../../../../scene/tests/level_system.rs");
+    assert!(
+        level_system
+            .replace("\r\n", "\n")
+            .contains("#[cfg(test)]\n#[path = \"tests/level_system.rs\"]\nmod tests;"),
+        "exact current module mount in scene/level_system.rs"
+    );
+    for required in ["level_system_accessors_recover_poisoned_state_locks"] {
+        assert!(
+            level_system_tests.contains(required),
+            "current scene/tests/level_system.rs must retain {required}"
+        );
+    }
+    for required in [
+        "lock_poison_recovered(&self.inner)",
+        "lock_poison_recovered(&self.physics_state)",
+        "lock_poison_recovered(&self.animation_state)",
+        "lock_poison_recovered(&self.script_state)",
+        "lock_poison_recovered(&self.frame_state)",
+        "lock_poison_recovered(&self.metadata)",
+        "lock_poison_recovered(&self.lifecycle)",
+        "lock_poison_recovered(&self.subsystems)",
+    ] {
+        assert!(
+            level_system.contains(required),
+            "current scene/level_system.rs must retain {required}"
+        );
+    }
     for required in [
         "fn lock_poison_recovered<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T>",
         ".unwrap_or_else(|poisoned| poisoned.into_inner())",
         "fn lock_world(&self) -> MutexGuard<'_, World>",
-        "fn lock_runtime_state(&self) -> MutexGuard<'_, WorldRuntimeState>",
+        "fn lock_physics_state(&self) -> MutexGuard<'_, PhysicsRuntimeState>",
+        "fn lock_animation_state(&self) -> MutexGuard<'_, AnimationRuntimeState>",
+        "fn lock_script_state(&self) -> MutexGuard<'_, ScriptRuntimeState>",
+        "fn lock_frame_state(&self) -> MutexGuard<'_, Arc<LevelFrameStateSnapshot>>",
         "fn lock_metadata(&self) -> MutexGuard<'_, LevelMetadata>",
         "fn lock_lifecycle(&self) -> MutexGuard<'_, LevelLifecycleState>",
-        "fn lock_subsystems(&self) -> MutexGuard<'_, Vec<String>>",
-        "level_system_accessors_recover_poisoned_state_locks",
+        "fn lock_subsystems(&self) -> MutexGuard<'_, Arc<[String]>>",
     ] {
         assert!(
             level_system.contains(required),
@@ -91,7 +114,7 @@ fn review_f2_scene_eventbus_locks_recover_after_poison() {
         ("event subscribe", event_subscribe),
         ("event prune", event_prune),
     ] {
-        let production = source.split("\n#[cfg(test)]").next().unwrap_or(source);
+        let production = production_section(source);
         assert!(
             !production.contains(".lock().unwrap()"),
             "{label} production code should recover poisoned locks instead of direct lock unwrap"

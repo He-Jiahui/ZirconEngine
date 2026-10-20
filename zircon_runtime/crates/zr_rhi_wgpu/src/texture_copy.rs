@@ -29,7 +29,7 @@ pub(crate) fn texture_upload_layout(
         layout.copy_row_bytes,
     )?;
     (bytes_per_row >= layout.copy_row_bytes
-        && bytes_per_row % texel_block_bytes == 0
+        && bytes_per_row.is_multiple_of(texel_block_bytes)
         && source_bytes >= required_bytes)
         .then_some(layout)
 }

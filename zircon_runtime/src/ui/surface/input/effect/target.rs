@@ -2,6 +2,7 @@ use zircon_runtime_interface::ui::{dispatch::UiDispatchEffect, event_ui::UiNodeI
 
 pub(super) fn effect_target(effect: &UiDispatchEffect) -> Option<UiNodeId> {
     match effect {
+        UiDispatchEffect::RequestCursor { .. } => None,
         UiDispatchEffect::SetFocus { target, .. }
         | UiDispatchEffect::ClearFocus { target, .. }
         | UiDispatchEffect::CapturePointer { target, .. }

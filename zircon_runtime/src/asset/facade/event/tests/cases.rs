@@ -67,18 +67,27 @@ fn typed_asset_receiver_skips_other_resource_kinds_without_a_filter_thread() {
     let shader_id = ResourceId::from_stable_label("typed event unrelated shader");
     let texture_id = ResourceId::from_stable_label("typed event target texture");
     resources
-        .register_record(crate::core::resource::ResourceRecord::new(
-            shader_id,
-            ResourceKind::Shader,
-            locator("res://shaders/unrelated.wgsl"),
-        ))
+        .commit(
+            crate::core::resource::ResourceMutationBatch::new()
+                .upsert_typed_lazy::<crate::asset::ShaderAsset>(
+                    crate::core::resource::ResourceRecord::new(
+                        shader_id,
+                        ResourceKind::Shader,
+                        locator("res://shaders/unrelated.wgsl"),
+                    ),
+                ),
+        )
         .unwrap();
     resources
-        .register_record(crate::core::resource::ResourceRecord::new(
-            texture_id,
-            ResourceKind::Texture,
-            locator("res://textures/target.png"),
-        ))
+        .commit(
+            crate::core::resource::ResourceMutationBatch::new().upsert_typed_lazy::<TextureAsset>(
+                crate::core::resource::ResourceRecord::new(
+                    texture_id,
+                    ResourceKind::Texture,
+                    locator("res://textures/target.png"),
+                ),
+            ),
+        )
         .unwrap();
 
     let event = typed.try_recv().expect("typed texture event");

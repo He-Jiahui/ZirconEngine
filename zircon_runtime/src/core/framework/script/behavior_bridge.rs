@@ -12,7 +12,6 @@ pub struct ScriptBehaviorCallbackRef {
 }
 
 impl ScriptBehaviorCallbackRef {
-    // BUG: [CR-FRAMEWORK-TEXTSCRIPT-0001] new("a::b", "c") 可成功，但 stable_id 后再 parse 会变成 ("a", "b::c")；VM 按两个字段查找回调，身份不再往返一致。
     /// 构造供 VM 桥接查找的包名与节点名；调用方应提供稳定的提供者身份。
     pub fn new(
         package_id: impl Into<String>,
@@ -23,6 +22,11 @@ impl ScriptBehaviorCallbackRef {
         if package_id.is_empty() || package_id.trim() != package_id {
             return Err(ScriptHostError::new(
                 "script behavior callback package id must be non-empty and trimmed",
+            ));
+        }
+        if package_id.contains("::") || package_id.ends_with(':') {
+            return Err(ScriptHostError::new(
+                "script behavior callback package id must not contain '::' or end with ':'",
             ));
         }
         if node_id.is_empty() || node_id.trim() != node_id {

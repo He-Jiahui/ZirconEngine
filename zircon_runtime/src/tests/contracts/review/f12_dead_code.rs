@@ -1,4 +1,5 @@
 //! 代码审查回归护栏核对已迁移接口、错误边界、插件入口及镜像状态。以结果断言检查当前接口或源码快照对应的边界。
+use crate::tests::runtime_absorption::structure_convention::fixed_history_archive_source as history;
 const DEAD_CODE_ALLOW_CALL_PREFIX: &str = concat!("allow(", "dead_code");
 
 #[test]
@@ -38,9 +39,9 @@ fn review_f12_runtime_production_dead_code_suppression_is_globally_gated() {
         "F12 runtime production sources should stay free of dead-code suppression: {violations:?}"
     );
 
-    let review_findings = concat!(
-        include_str!("../../../../../docs/plans/engine-code-review-findings-2026-06.md"),
-        include_str!("../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md")
+    let review_findings = crate::runtime_test_history_concat!(
+        include_str!("../../../../../docs/architecture/runtime-architecture-review-m0.md"),
+        history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md")
     );
     let f12_row = markdown_table_row(review_findings, "| F12 |");
     assert_contains_all(

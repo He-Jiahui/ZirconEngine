@@ -9,11 +9,11 @@ pub(super) fn assert_typed_error_native_live_host_lifecycle_paths_route_is_folde
         "native live-host lifecycle-paths typed-error parent mounts focused child owners",
         &sources.native_live_host_lifecycle_paths_parent,
         &[
-            "#[path = \"lifecycle_paths/hot_reload.rs\"]",
+            "#[path = \"../lifecycle_paths/hot_reload.rs\"]",
             "mod hot_reload;",
-            "#[path = \"lifecycle_paths/lifecycle.rs\"]",
+            "#[path = \"../lifecycle_paths/lifecycle.rs\"]",
             "mod lifecycle;",
-            "#[path = \"lifecycle_paths/loading.rs\"]",
+            "#[path = \"../lifecycle_paths/loading.rs\"]",
             "mod loading;",
         ],
     );

@@ -938,7 +938,7 @@ fn runtime220_focus_loss_and_gap_retire_ui_capture_and_block_ui_first_text_ime()
     let node = UiNodeId::new(920);
     session.runtime_ui.surfaces =
         vec![runtime220_owned_pointer_surface("runtime220.capture", node)];
-    session.runtime_ui.rebuild_focus_index();
+    session.runtime_ui.refresh_input_owners_from_publication();
     let viewport = session.camera_controller.viewport_size();
     session.runtime_ui.render_submission(viewport).unwrap();
     let press = ZrRuntimeEventV1::mouse_button(

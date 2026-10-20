@@ -224,3 +224,34 @@ fn p50_p95(samples_ns: &mut [u128]) -> (u128, u128) {
     let p95_index = (samples_ns.len() * 95).div_ceil(100) - 1;
     (p50_ns, samples_ns[p95_index])
 }
+
+#[test]
+fn table_overscan_near_first_row_publishes_only_nonnegative_requested_rows() {
+    for data_grid in [false, true] {
+        let mut surface = table_pointer_route_surface(data_grid, false);
+        let point = UiPoint::new(20.0, if data_grid { 100.0 } else { 76.0 });
+        let forward = dispatch_table_scroll(&mut surface, point, 24.0);
+        assert_eq!(forward.binding_reports.len(), 1);
+        assert!(forward
+            .component_events
+            .iter()
+            .any(|event| event.target == UiNodeId::new(2)
+                && event.event == UiComponentEvent::SetVisibleRange { start: 1, count: 4 }));
+        assert_table_attr_int(&surface, "viewport_start", 1);
+        for property in ["requested_start", "requestedStart"] {
+            assert_table_attr_int(&surface, property, 0);
+        }
+        for property in ["requested_count", "requestedCount"] {
+            assert_table_attr_int(&surface, property, 7);
+        }
+        let back = dispatch_table_scroll(&mut surface, point, -24.0);
+        assert_eq!(back.binding_reports.len(), 1);
+        assert_table_attr_int(&surface, "viewport_start", 0);
+        for property in ["requested_start", "requestedStart"] {
+            assert_table_attr_int(&surface, property, 0);
+        }
+        for property in ["requested_count", "requestedCount"] {
+            assert_table_attr_int(&surface, property, 6);
+        }
+    }
+}

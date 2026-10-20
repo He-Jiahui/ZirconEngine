@@ -117,7 +117,9 @@ pub(super) fn assert_sources_guard_folder_backed(sources: &OwnerBudgetSources) {
         &[
             "pub(super) fn load() -> OwnerBudgetSources",
             "performance_hotpath_source_inventory.py",
-            "../../../../../../../docs/plans/zircon_runtime/runtime/07/2026-07-09-runtime-performance-hotpath-output-records.md",
+            "docs/plans/zircon_runtime/runtime/07/2026-07-09-runtime-performance-hotpath-output-records.md",
+            "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md",
+            "crate::tests::runtime_absorption::structure_convention::fixed_history_archive_source(",
         ],
     );
     let source_load_child_anchor = [

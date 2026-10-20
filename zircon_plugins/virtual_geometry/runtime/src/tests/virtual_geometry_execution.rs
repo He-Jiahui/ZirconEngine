@@ -2,22 +2,23 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
-use zircon_runtime_interface::project::{AssetRef, PersistedAssetReference, RelPath};
+use zircon_runtime_interface::project::{PersistedAssetReference, RelPath};
 use zircon_runtime_interface::resource::ResourceScheme;
 
 use crate::test_support::render_feature_fixtures::{
     pluginized_wgpu_render_framework_with_gpu_test_collector,
-    virtual_geometry_render_feature_descriptor, IndirectReadbackWords,
+    virtual_geometry_render_feature_descriptor,
 };
 use zircon_runtime::asset::assets::{AlphaMode, MaterialAsset};
 use zircon_runtime::asset::pipeline::manager::{AssetManager, ProjectAssetManager};
 use zircon_runtime::asset::project::{ProjectManager, ProjectManifest, ProjectPaths};
 use zircon_runtime::asset::{AssetReference, AssetUri};
 use zircon_runtime::core::framework::render::{
-    DisplayMode, FallbackSkyboxKind, PreviewEnvironmentExtract, ProjectionMode, RenderFrameExtract,
-    RenderLayerSet, RenderMeshSnapshot, RenderOverlayExtract, RenderSceneGeometryExtract,
-    RenderSceneSnapshot, RenderVirtualGeometryCluster, RenderVirtualGeometryExtract,
-    RenderVirtualGeometryPage, RenderWorldSnapshotHandle, RendererCommon, ViewportCameraSnapshot,
+    DisplayMode, FallbackSkyboxKind, GeometryPhaseInput, PreviewEnvironmentExtract, ProjectionMode,
+    RenderFrameExtract, RenderLayerSet, RenderMeshSnapshot, RenderOverlayExtract,
+    RenderSceneGeometryExtract, RenderSceneSnapshot, RenderVirtualGeometryCluster,
+    RenderVirtualGeometryExtract, RenderVirtualGeometryInstance, RenderVirtualGeometryPage,
+    RenderWorldSnapshotHandle, RendererCommon, ViewportCameraSnapshot,
 };
 use zircon_runtime::core::math::{Transform, UVec2, Vec3, Vec4};
 use zircon_runtime::core::resource::{MaterialMarker, ModelMarker, ResourceHandle};
@@ -68,9 +69,9 @@ fn capture_gpu_authority_words(
     extract: RenderFrameExtract,
     prepare: VirtualGeometryPrepareFrame,
     compiled: &CompiledRenderPipeline,
-) -> IndirectReadbackWords {
+) -> Vec<[u32; 14]> {
     let mut fixture = pluginized_wgpu_render_framework_with_gpu_test_collector(asset_manager);
-    let (_debug, _rgba, words) = fixture
+    let (_debug, _rgba, _shared_words) = fixture
         .render_compiled_virtual_geometry_captured_test_frame(
             viewport_size,
             extract,
@@ -78,67 +79,43 @@ fn capture_gpu_authority_words(
             compiled,
         )
         .unwrap();
+    fixture
+        .read_last_virtual_geometry_terminal_authority_rows()
+        .unwrap()
+}
+
+fn gpu_submission_records_with_tokens(words: &[[u32; 14]]) -> Vec<(u32, u32, u32, u32)> {
     words
-}
-
-/// Projects only fields physically emitted by the current GPU authority channel, in the order
-/// encoded by the GPU-produced indirect args. Legacy execution buffers are not product graph
-/// resources in this plugin version, so these tests must not pretend to drop them.
-fn gpu_authority_rows_in_args_order(words: &IndirectReadbackWords) -> Vec<[u32; 14]> {
-    let command_count = words.args.first().copied().unwrap_or_default() as usize;
-    let tokens = words
-        .args
-        .get(1..1 + command_count.saturating_mul(4))
-        .unwrap_or_default()
-        .chunks_exact(4)
-        .filter(|args| args[1] != 0)
-        .map(|args| args[3])
-        .collect::<Vec<_>>();
-    let authority = words
-        .authority
-        .chunks_exact(14)
-        .filter(|row| row[3] != 0)
-        .map(|row| row.try_into().unwrap())
-        .collect::<Vec<[u32; 14]>>();
-    tokens
-        .into_iter()
-        .filter_map(|token| {
-            authority
-                .iter()
-                .copied()
-                .find(|row| ((row[8] << 16) | row[9]) == token)
-        })
-        .collect()
-}
-
-fn gpu_submission_records_with_tokens(words: &IndirectReadbackWords) -> Vec<(u32, u32, u32, u32)> {
-    gpu_authority_rows_in_args_order(words)
-        .into_iter()
+        .iter()
+        .copied()
         .map(|row| (row[1], row[3], row[8], row[9]))
         .collect()
 }
 
-fn gpu_execution_draw_ref_records(words: &IndirectReadbackWords) -> Vec<(u32, u32, u32, u32, u32)> {
-    gpu_authority_rows_in_args_order(words)
-        .into_iter()
+fn gpu_execution_draw_ref_records(words: &[[u32; 14]]) -> Vec<(u32, u32, u32, u32, u32)> {
+    words
+        .iter()
+        .copied()
         .map(|row| (row[6], row[1], row[3], row[8], row[9]))
         .collect()
 }
 
 fn gpu_submission_records_with_instances(
-    words: &IndirectReadbackWords,
+    words: &[[u32; 14]],
 ) -> Vec<(Option<u32>, u32, u32, u32, u32)> {
-    gpu_authority_rows_in_args_order(words)
-        .into_iter()
+    words
+        .iter()
+        .copied()
         .map(|row| (Some(row[0]), row[1], row[3], row[8], row[9]))
         .collect()
 }
 
 fn gpu_execution_segment_authority(
-    words: &IndirectReadbackWords,
+    words: &[[u32; 14]],
 ) -> Vec<(Option<u32>, u32, u32, u32, u32, u32, u32, u32, u32)> {
-    gpu_authority_rows_in_args_order(words)
-        .into_iter()
+    words
+        .iter()
+        .copied()
         .map(|row| {
             (
                 Some(row[0]),
@@ -194,7 +171,7 @@ fn virtual_geometry_submission_records_survive_with_execution_args_and_gpu_autho
             .join("materials")
             .join("transparent_red.zmaterial"),
         "ExecutionArgsTransparentRed",
-        "res://shaders/flat_color.wgsl",
+        "res://shaders/flat_color.zshader",
         "res://textures/white.png",
         [1.0, 0.0, 0.0, 0.65],
         AlphaMode::Blend,
@@ -205,7 +182,7 @@ fn virtual_geometry_submission_records_survive_with_execution_args_and_gpu_autho
             .join("materials")
             .join("opaque_white.zmaterial"),
         "ExecutionArgsOpaqueWhite",
-        "res://shaders/flat_color.wgsl",
+        "res://shaders/flat_color.zshader",
         "res://textures/white.png",
         [1.0, 1.0, 1.0, 1.0],
         AlphaMode::Opaque,
@@ -227,6 +204,7 @@ fn virtual_geometry_submission_records_survive_with_execution_args_and_gpu_autho
         resource_handle::<MaterialMarker>(&asset_manager, "res://materials/opaque_white.zmaterial");
     let viewport_size = UVec2::new(160, 120);
     let extract = build_overlapping_extract(
+        &asset_manager,
         viewport_size,
         model,
         [(2, transparent_material), (3, opaque_material)],
@@ -246,14 +224,13 @@ fn virtual_geometry_submission_records_survive_with_execution_args_and_gpu_autho
         )
         .unwrap();
 
-    renderer.drop_last_virtual_geometry_mesh_draw_submission_token_records_for_test();
-    renderer.drop_last_virtual_geometry_mesh_draw_submission_records_for_test();
-    renderer.drop_last_virtual_geometry_indirect_execution_buffer_for_test();
-    renderer.drop_last_virtual_geometry_indirect_execution_records_buffer_for_test();
-    renderer.drop_last_virtual_geometry_indirect_submission_buffer_for_test();
-    renderer.drop_last_virtual_geometry_indirect_args_buffer_for_test();
-    renderer.drop_last_virtual_geometry_indirect_draw_refs_buffer_for_test();
-    renderer.drop_last_virtual_geometry_indirect_segments_buffer_for_test();
+    renderer.assert_legacy_submission_sources_absent_for_test();
+    for role in [0, 4, 7] {
+        renderer.drop_actual_native_probe_source_for_test(role);
+    }
+    for role in [5, 6] {
+        assert!(renderer.has_actual_native_probe_source_for_test(role));
+    }
 
     assert_eq!(
         renderer
@@ -307,7 +284,7 @@ fn virtual_geometry_submission_records_survive_with_execution_args_and_shared_su
             .join("materials")
             .join("transparent_red.zmaterial"),
         "ExecutionArgsTokensTransparentRed",
-        "res://shaders/flat_color.wgsl",
+        "res://shaders/flat_color.zshader",
         "res://textures/white.png",
         [1.0, 0.0, 0.0, 0.65],
         AlphaMode::Blend,
@@ -318,7 +295,7 @@ fn virtual_geometry_submission_records_survive_with_execution_args_and_shared_su
             .join("materials")
             .join("opaque_white.zmaterial"),
         "ExecutionArgsTokensOpaqueWhite",
-        "res://shaders/flat_color.wgsl",
+        "res://shaders/flat_color.zshader",
         "res://textures/white.png",
         [1.0, 1.0, 1.0, 1.0],
         AlphaMode::Opaque,
@@ -340,6 +317,7 @@ fn virtual_geometry_submission_records_survive_with_execution_args_and_shared_su
         resource_handle::<MaterialMarker>(&asset_manager, "res://materials/opaque_white.zmaterial");
     let viewport_size = UVec2::new(160, 120);
     let extract = build_overlapping_extract(
+        &asset_manager,
         viewport_size,
         model,
         [(2, transparent_material), (3, opaque_material)],
@@ -359,11 +337,13 @@ fn virtual_geometry_submission_records_survive_with_execution_args_and_shared_su
         )
         .unwrap();
 
-    renderer.drop_last_virtual_geometry_mesh_draw_submission_token_records_for_test();
-    renderer.drop_last_virtual_geometry_mesh_draw_submission_records_for_test();
-    renderer.drop_last_virtual_geometry_indirect_execution_buffer_for_test();
-    renderer.drop_last_virtual_geometry_indirect_execution_records_buffer_for_test();
-    renderer.drop_last_virtual_geometry_indirect_authority_buffer_for_test();
+    renderer.assert_legacy_submission_sources_absent_for_test();
+    for role in [1] {
+        renderer.drop_actual_native_probe_source_for_test(role);
+    }
+    for role in [5, 6] {
+        assert!(renderer.has_actual_native_probe_source_for_test(role));
+    }
 
     assert_eq!(
         renderer
@@ -415,7 +395,7 @@ fn virtual_geometry_submission_records_survive_with_execution_authority_buffer_o
             .join("materials")
             .join("transparent_red.zmaterial"),
         "ExecutionAuthorityOnlyTransparentRed",
-        "res://shaders/flat_color.wgsl",
+        "res://shaders/flat_color.zshader",
         "res://textures/white.png",
         [1.0, 0.0, 0.0, 0.65],
         AlphaMode::Blend,
@@ -426,7 +406,7 @@ fn virtual_geometry_submission_records_survive_with_execution_authority_buffer_o
             .join("materials")
             .join("opaque_white.zmaterial"),
         "ExecutionAuthorityOnlyOpaqueWhite",
-        "res://shaders/flat_color.wgsl",
+        "res://shaders/flat_color.zshader",
         "res://textures/white.png",
         [1.0, 1.0, 1.0, 1.0],
         AlphaMode::Opaque,
@@ -448,6 +428,7 @@ fn virtual_geometry_submission_records_survive_with_execution_authority_buffer_o
         resource_handle::<MaterialMarker>(&asset_manager, "res://materials/opaque_white.zmaterial");
     let viewport_size = UVec2::new(160, 120);
     let extract = build_overlapping_extract(
+        &asset_manager,
         viewport_size,
         model,
         [(2, transparent_material), (3, opaque_material)],
@@ -467,15 +448,13 @@ fn virtual_geometry_submission_records_survive_with_execution_authority_buffer_o
         )
         .unwrap();
 
-    renderer.drop_last_virtual_geometry_mesh_draw_submission_token_records_for_test();
-    renderer.drop_last_virtual_geometry_mesh_draw_submission_records_for_test();
-    renderer.drop_last_virtual_geometry_indirect_execution_buffer_for_test();
-    renderer.drop_last_virtual_geometry_indirect_execution_records_buffer_for_test();
-    renderer.drop_last_virtual_geometry_indirect_submission_buffer_for_test();
-    renderer.drop_last_virtual_geometry_indirect_authority_buffer_for_test();
-    renderer.drop_last_virtual_geometry_indirect_args_buffer_for_test();
-    renderer.drop_last_virtual_geometry_indirect_draw_refs_buffer_for_test();
-    renderer.drop_last_virtual_geometry_indirect_segments_buffer_for_test();
+    renderer.assert_legacy_submission_sources_absent_for_test();
+    for role in [0, 1, 4, 7] {
+        renderer.drop_actual_native_probe_source_for_test(role);
+    }
+    for role in [5, 6] {
+        assert!(renderer.has_actual_native_probe_source_for_test(role));
+    }
 
     assert_eq!(
         renderer
@@ -529,7 +508,7 @@ fn virtual_geometry_submission_records_survive_with_execution_submission_tokens_
             .join("materials")
             .join("transparent_red.zmaterial"),
         "ExecutionSubmissionTokensTransparentRed",
-        "res://shaders/flat_color.wgsl",
+        "res://shaders/flat_color.zshader",
         "res://textures/white.png",
         [1.0, 0.0, 0.0, 0.65],
         AlphaMode::Blend,
@@ -540,7 +519,7 @@ fn virtual_geometry_submission_records_survive_with_execution_submission_tokens_
             .join("materials")
             .join("opaque_white.zmaterial"),
         "ExecutionSubmissionTokensOpaqueWhite",
-        "res://shaders/flat_color.wgsl",
+        "res://shaders/flat_color.zshader",
         "res://textures/white.png",
         [1.0, 1.0, 1.0, 1.0],
         AlphaMode::Opaque,
@@ -562,6 +541,7 @@ fn virtual_geometry_submission_records_survive_with_execution_submission_tokens_
         resource_handle::<MaterialMarker>(&asset_manager, "res://materials/opaque_white.zmaterial");
     let viewport_size = UVec2::new(160, 120);
     let extract = build_overlapping_extract(
+        &asset_manager,
         viewport_size,
         model,
         [(2, transparent_material), (3, opaque_material)],
@@ -581,12 +561,13 @@ fn virtual_geometry_submission_records_survive_with_execution_submission_tokens_
         )
         .unwrap();
 
-    renderer.drop_last_virtual_geometry_mesh_draw_submission_token_records_for_test();
-    renderer.drop_last_virtual_geometry_mesh_draw_submission_records_for_test();
-    renderer.drop_last_virtual_geometry_indirect_execution_authority_buffer_for_test();
-    renderer.drop_last_virtual_geometry_indirect_execution_args_buffer_for_test();
-    renderer.drop_last_virtual_geometry_indirect_submission_buffer_for_test();
-    renderer.drop_last_virtual_geometry_indirect_args_buffer_for_test();
+    renderer.assert_legacy_submission_sources_absent_for_test();
+    for role in [5, 6, 0] {
+        renderer.drop_actual_native_probe_source_for_test(role);
+    }
+    for role in [7, 1] {
+        assert!(renderer.has_actual_native_probe_source_for_test(role));
+    }
 
     assert_eq!(
         renderer
@@ -639,7 +620,7 @@ fn virtual_geometry_execution_draw_ref_indices_default_to_execution_args_without
             .join("materials")
             .join("transparent_red.zmaterial"),
         "ExecutionArgsDefaultTransparentRed",
-        "res://shaders/flat_color.wgsl",
+        "res://shaders/flat_color.zshader",
         "res://textures/white.png",
         [1.0, 0.0, 0.0, 0.65],
         AlphaMode::Blend,
@@ -650,7 +631,7 @@ fn virtual_geometry_execution_draw_ref_indices_default_to_execution_args_without
             .join("materials")
             .join("opaque_white.zmaterial"),
         "ExecutionArgsDefaultOpaqueWhite",
-        "res://shaders/flat_color.wgsl",
+        "res://shaders/flat_color.zshader",
         "res://textures/white.png",
         [1.0, 1.0, 1.0, 1.0],
         AlphaMode::Opaque,
@@ -672,6 +653,7 @@ fn virtual_geometry_execution_draw_ref_indices_default_to_execution_args_without
         resource_handle::<MaterialMarker>(&asset_manager, "res://materials/opaque_white.zmaterial");
     let viewport_size = UVec2::new(160, 120);
     let extract = build_overlapping_extract(
+        &asset_manager,
         viewport_size,
         model,
         [(2, transparent_material), (3, opaque_material)],
@@ -746,7 +728,7 @@ fn virtual_geometry_execution_records_default_to_execution_args_and_authority_wi
             .join("materials")
             .join("transparent_red.zmaterial"),
         "ExecutionRecordsDefaultTransparentRed",
-        "res://shaders/flat_color.wgsl",
+        "res://shaders/flat_color.zshader",
         "res://textures/white.png",
         [1.0, 0.0, 0.0, 0.65],
         AlphaMode::Blend,
@@ -757,7 +739,7 @@ fn virtual_geometry_execution_records_default_to_execution_args_and_authority_wi
             .join("materials")
             .join("opaque_white.zmaterial"),
         "ExecutionRecordsDefaultOpaqueWhite",
-        "res://shaders/flat_color.wgsl",
+        "res://shaders/flat_color.zshader",
         "res://textures/white.png",
         [1.0, 1.0, 1.0, 1.0],
         AlphaMode::Opaque,
@@ -779,6 +761,7 @@ fn virtual_geometry_execution_records_default_to_execution_args_and_authority_wi
         resource_handle::<MaterialMarker>(&asset_manager, "res://materials/opaque_white.zmaterial");
     let viewport_size = UVec2::new(160, 120);
     let extract = build_overlapping_extract(
+        &asset_manager,
         viewport_size,
         model,
         [(2, transparent_material), (3, opaque_material)],
@@ -822,6 +805,7 @@ fn unique_temp_project_root(label: &str) -> PathBuf {
 }
 
 fn build_overlapping_extract(
+    asset_manager: &ProjectAssetManager,
     viewport_size: UVec2,
     model: ResourceHandle<ModelMarker>,
     materials: [(u64, ResourceHandle<MaterialMarker>); 2],
@@ -913,8 +897,70 @@ fn build_overlapping_extract(
         },
         virtual_geometry_debug: None,
     };
+    let instances = snapshot
+        .scene
+        .meshes
+        .iter()
+        .map(|mesh| {
+            let cluster_rows = clusters
+                .iter()
+                .enumerate()
+                .filter(|(_, row)| row.entity == mesh.node_id)
+                .map(|(index, _)| index)
+                .collect::<Vec<_>>();
+            assert_eq!(
+                cluster_rows.len(),
+                1,
+                "each actual mesh owns one authored cluster row"
+            );
+            let cluster_offset = cluster_rows[0];
+            let page_rows = pages
+                .iter()
+                .enumerate()
+                .filter(|(_, row)| row.page_id == clusters[cluster_offset].page_id)
+                .map(|(index, _)| index)
+                .collect::<Vec<_>>();
+            assert_eq!(
+                page_rows.len(),
+                1,
+                "each actual mesh cluster owns one authored page row"
+            );
+            RenderVirtualGeometryInstance {
+                entity: mesh.node_id,
+                stable_instance_key: mesh.stable_instance_key,
+                source_model: Some(mesh.model.id()),
+                transform: mesh.transform,
+                cluster_offset: u32::try_from(cluster_offset).expect("authored cluster offset"),
+                cluster_count: 1,
+                page_offset: u32::try_from(page_rows[0]).expect("authored page offset"),
+                page_count: 1,
+                mesh_name: None,
+                source_hint: None,
+            }
+        })
+        .collect();
     let mut extract =
         RenderFrameExtract::from_snapshot(RenderWorldSnapshotHandle::new(1), snapshot);
+    extract.apply_viewport_size(viewport_size);
+    extract.geometry.phase_inputs = extract
+        .geometry
+        .meshes
+        .iter()
+        .enumerate()
+        .map(|(mesh_index, mesh)| {
+            let material = asset_manager
+                .load_material_asset_snapshot(mesh.material.id())
+                .expect("overlapping fixture material must load before phase classification");
+            GeometryPhaseInput::new(
+                mesh.node_id,
+                mesh_index,
+                (&material.alpha_mode).into(),
+                mesh.transform.translation.z,
+            )
+        })
+        .collect();
+    let core_pipeline = extract.view.core_pipeline;
+    extract.geometry.rebuild_phase_queue(core_pipeline);
     extract.geometry.virtual_geometry = Some(RenderVirtualGeometryExtract {
         cluster_budget: clusters.len() as u32,
         page_budget: pages.len() as u32,
@@ -923,9 +969,10 @@ fn build_overlapping_extract(
         hierarchy_child_ids: Vec::new(),
         pages,
         page_dependencies: Vec::new(),
-        instances: Vec::new(),
+        instances,
         debug: Default::default(),
     });
+    extract.apply_viewport_size(viewport_size);
     extract
 }
 
@@ -1022,51 +1069,44 @@ fn write_flat_color_wgsl(path: PathBuf, color: [f32; 3]) {
         fs::create_dir_all(parent).unwrap();
     }
     fs::write(
-        path,
+        &path,
         format!(
             r#"
-struct SceneUniform {{
-    view_proj: mat4x4<f32>,
-    light_dir: vec4<f32>,
-    light_color: vec4<f32>,
-    ambient_color: vec4<f32>,
-}};
-struct ModelUniform {{
-    model: mat4x4<f32>,
-    tint: vec4<f32>,
-}};
-@group(0) @binding(0) var<uniform> scene: SceneUniform;
-@group(1) @binding(0) var<uniform> model: ModelUniform;
-@group(2) @binding(0) var color_texture: texture_2d<f32>;
-@group(2) @binding(1) var color_sampler: sampler;
-
-struct VertexInput {{
-    @location(0) position: vec3<f32>,
-    @location(1) normal: vec3<f32>,
-    @location(2) uv: vec2<f32>,
-}};
-
-struct VertexOutput {{
-    @builtin(position) position: vec4<f32>,
-    @location(0) uv: vec2<f32>,
-}};
-
-@vertex
-fn vs_main(input: VertexInput) -> VertexOutput {{
-    var out: VertexOutput;
-    out.position = scene.view_proj * model.model * vec4<f32>(input.position, 1.0);
-    out.uv = input.uv;
-    return out;
-}}
-
-@fragment
-fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {{
-    let tex = textureSample(color_texture, color_sampler, input.uv);
-    return vec4<f32>({0}, {1}, {2}, tex.a) * model.tint;
+fn zr_material_surface(input: ZrVertexOutput) -> ZrSurfaceOutput {{
+    let tex = zr_sample_base_color(input.uv0);
+    let tint = zr_mat_base_color() * input.tint * input.color;
+    var surface = zr_surface_from_base_color(vec4<f32>({0}, {1}, {2}, tex.a) * tint);
+    surface.normal_ws = input.normal_ws;
+    surface.metallic = 0.0;
+    surface.roughness = 1.0;
+    surface.occlusion = 1.0;
+    surface.unlit = 1.0;
+    surface.shading_model_id = 2u;
+    return surface;
 }}
 "#,
             color[0], color[1], color[2]
         ),
+    )
+    .unwrap();
+    fs::write(
+        path.with_extension("zshader"),
+        r#"kind = "surface"
+version = 2
+name = "Virtual Geometry Flat Color"
+shading_model = "standard_pbr"
+wgsl_files = ["flat_color.wgsl"]
+
+[[properties]]
+name = "base_color"
+kind = "vec4"
+default = [1.0, 1.0, 1.0, 1.0]
+
+[[texture_slots]]
+name = "base_color"
+kind = "texture_2d"
+default = "white"
+"#,
     )
     .unwrap();
 }
@@ -1096,7 +1136,12 @@ fn write_quad_obj(path: PathBuf) {
         AssetUri::parse("res://models/quad.obj").unwrap(),
         zircon_runtime::asset::AssetKind::Model,
     );
-    metadata.import_settings = "[virtual_geometry]\nenabled = true\n".parse().unwrap();
+    // The original two-triangle quad is one actual cooked leaf. Do not derive
+    // geometry or ranges from submission indices or resident slot numbers.
+    metadata.import_settings =
+        "[virtual_geometry]\nenabled = true\ncluster_triangle_count = 2\npage_cluster_count = 1\n"
+            .parse()
+            .unwrap();
     let mut sidecar_name = path.file_name().unwrap().to_os_string();
     sidecar_name.push(".zmeta");
     metadata.save(path.with_file_name(sidecar_name)).unwrap();
@@ -1135,13 +1180,13 @@ fn write_material(
         validation_diagnostics: Vec::new(),
     };
     let project_root = fixture_project_root(&path);
+    // Source dependencies exist before the material. Mint/read their real sidecars
+    // through the normal transaction; a URI-derived UUID is not their identity.
+    let mut project = ProjectManager::open(&project_root).unwrap();
+    project.scan_and_import().unwrap();
     let document = material
         .to_project_toml_string(|reference| {
-            Ok(persisted_reference_for_fixture(
-                &project_root,
-                &path,
-                reference,
-            ))
+            Ok(persisted_reference_for_fixture(&project, reference))
         })
         .unwrap();
     fs::write(path, document).unwrap();
@@ -1199,7 +1244,7 @@ fn virtual_geometry_deferred_execution_source_tracks_actual_scene_pass_submissio
             .join("materials")
             .join("transparent_red.zmaterial"),
         "DeferredTransparentRed",
-        "res://shaders/flat_color.wgsl",
+        "res://shaders/flat_color.zshader",
         "res://textures/white.png",
         [1.0, 0.0, 0.0, 0.65],
         AlphaMode::Blend,
@@ -1210,7 +1255,7 @@ fn virtual_geometry_deferred_execution_source_tracks_actual_scene_pass_submissio
             .join("materials")
             .join("opaque_white.zmaterial"),
         "DeferredOpaqueWhite",
-        "res://shaders/flat_color.wgsl",
+        "res://shaders/flat_color.zshader",
         "res://textures/white.png",
         [1.0, 1.0, 1.0, 1.0],
         AlphaMode::Opaque,
@@ -1232,6 +1277,7 @@ fn virtual_geometry_deferred_execution_source_tracks_actual_scene_pass_submissio
         resource_handle::<MaterialMarker>(&asset_manager, "res://materials/opaque_white.zmaterial");
     let viewport_size = UVec2::new(160, 120);
     let extract = build_overlapping_extract(
+        &asset_manager,
         viewport_size,
         model,
         [(2, transparent_material), (3, opaque_material)],
@@ -1305,7 +1351,7 @@ fn virtual_geometry_deferred_execution_records_survive_without_shared_indirect_b
             .join("materials")
             .join("transparent_red.zmaterial"),
         "DeferredRecordsTransparentRed",
-        "res://shaders/flat_color.wgsl",
+        "res://shaders/flat_color.zshader",
         "res://textures/white.png",
         [1.0, 0.0, 0.0, 0.65],
         AlphaMode::Blend,
@@ -1316,7 +1362,7 @@ fn virtual_geometry_deferred_execution_records_survive_without_shared_indirect_b
             .join("materials")
             .join("opaque_white.zmaterial"),
         "DeferredRecordsOpaqueWhite",
-        "res://shaders/flat_color.wgsl",
+        "res://shaders/flat_color.zshader",
         "res://textures/white.png",
         [1.0, 1.0, 1.0, 1.0],
         AlphaMode::Opaque,
@@ -1338,6 +1384,7 @@ fn virtual_geometry_deferred_execution_records_survive_without_shared_indirect_b
         resource_handle::<MaterialMarker>(&asset_manager, "res://materials/opaque_white.zmaterial");
     let viewport_size = UVec2::new(160, 120);
     let extract = build_overlapping_extract(
+        &asset_manager,
         viewport_size,
         model,
         [(2, transparent_material), (3, opaque_material)],
@@ -1405,7 +1452,7 @@ fn virtual_geometry_execution_segments_survive_without_shared_segment_and_draw_r
             .join("materials")
             .join("transparent_red.zmaterial"),
         "ExecutionSegmentsTransparentRed",
-        "res://shaders/flat_color.wgsl",
+        "res://shaders/flat_color.zshader",
         "res://textures/white.png",
         [1.0, 0.0, 0.0, 0.65],
         AlphaMode::Blend,
@@ -1416,7 +1463,7 @@ fn virtual_geometry_execution_segments_survive_without_shared_segment_and_draw_r
             .join("materials")
             .join("opaque_white.zmaterial"),
         "ExecutionSegmentsOpaqueWhite",
-        "res://shaders/flat_color.wgsl",
+        "res://shaders/flat_color.zshader",
         "res://textures/white.png",
         [1.0, 1.0, 1.0, 1.0],
         AlphaMode::Opaque,
@@ -1438,6 +1485,7 @@ fn virtual_geometry_execution_segments_survive_without_shared_segment_and_draw_r
         resource_handle::<MaterialMarker>(&asset_manager, "res://materials/opaque_white.zmaterial");
     let viewport_size = UVec2::new(160, 120);
     let extract = build_overlapping_extract(
+        &asset_manager,
         viewport_size,
         model,
         [(2, transparent_material), (3, opaque_material)],
@@ -1509,7 +1557,7 @@ fn virtual_geometry_execution_records_recover_draw_ref_indices_when_execution_in
             .join("materials")
             .join("transparent_red.zmaterial"),
         "ExecutionRecordsTransparentRed",
-        "res://shaders/flat_color.wgsl",
+        "res://shaders/flat_color.zshader",
         "res://textures/white.png",
         [1.0, 0.0, 0.0, 0.65],
         AlphaMode::Blend,
@@ -1520,7 +1568,7 @@ fn virtual_geometry_execution_records_recover_draw_ref_indices_when_execution_in
             .join("materials")
             .join("opaque_white.zmaterial"),
         "ExecutionRecordsOpaqueWhite",
-        "res://shaders/flat_color.wgsl",
+        "res://shaders/flat_color.zshader",
         "res://textures/white.png",
         [1.0, 1.0, 1.0, 1.0],
         AlphaMode::Opaque,
@@ -1542,6 +1590,7 @@ fn virtual_geometry_execution_records_recover_draw_ref_indices_when_execution_in
         resource_handle::<MaterialMarker>(&asset_manager, "res://materials/opaque_white.zmaterial");
     let viewport_size = UVec2::new(160, 120);
     let extract = build_overlapping_extract(
+        &asset_manager,
         viewport_size,
         model,
         [(2, transparent_material), (3, opaque_material)],
@@ -1613,7 +1662,7 @@ fn virtual_geometry_submission_records_survive_with_execution_indices_and_gpu_au
             .join("materials")
             .join("transparent_red.zmaterial"),
         "GpuAuthorityTransparentRed",
-        "res://shaders/flat_color.wgsl",
+        "res://shaders/flat_color.zshader",
         "res://textures/white.png",
         [1.0, 0.0, 0.0, 0.65],
         AlphaMode::Blend,
@@ -1624,7 +1673,7 @@ fn virtual_geometry_submission_records_survive_with_execution_indices_and_gpu_au
             .join("materials")
             .join("opaque_white.zmaterial"),
         "GpuAuthorityOpaqueWhite",
-        "res://shaders/flat_color.wgsl",
+        "res://shaders/flat_color.zshader",
         "res://textures/white.png",
         [1.0, 1.0, 1.0, 1.0],
         AlphaMode::Opaque,
@@ -1646,6 +1695,7 @@ fn virtual_geometry_submission_records_survive_with_execution_indices_and_gpu_au
         resource_handle::<MaterialMarker>(&asset_manager, "res://materials/opaque_white.zmaterial");
     let viewport_size = UVec2::new(160, 120);
     let extract = build_overlapping_extract(
+        &asset_manager,
         viewport_size,
         model,
         [(2, transparent_material), (3, opaque_material)],
@@ -1714,7 +1764,7 @@ fn virtual_geometry_shared_indirect_segments_preserve_instance_index_for_submiss
             .join("materials")
             .join("white.zmaterial"),
         "SharedSegmentsInstanceIndexWhite",
-        "res://shaders/flat_color.wgsl",
+        "res://shaders/flat_color.zshader",
         "res://textures/white.png",
         [1.0, 1.0, 1.0, 1.0],
         AlphaMode::Opaque,
@@ -1732,6 +1782,7 @@ fn virtual_geometry_shared_indirect_segments_preserve_instance_index_for_submiss
         resource_handle::<MaterialMarker>(&asset_manager, "res://materials/white.zmaterial");
     let viewport_size = UVec2::new(160, 120);
     let extract = build_overlapping_extract(
+        &asset_manager,
         viewport_size,
         model,
         [(2, material.clone()), (3, material)],
@@ -1808,7 +1859,7 @@ fn virtual_geometry_execution_records_survive_with_execution_indices_and_gpu_aut
             .join("materials")
             .join("transparent_red.zmaterial"),
         "GpuAuthorityExecTransparentRed",
-        "res://shaders/flat_color.wgsl",
+        "res://shaders/flat_color.zshader",
         "res://textures/white.png",
         [1.0, 0.0, 0.0, 0.65],
         AlphaMode::Blend,
@@ -1819,7 +1870,7 @@ fn virtual_geometry_execution_records_survive_with_execution_indices_and_gpu_aut
             .join("materials")
             .join("opaque_white.zmaterial"),
         "GpuAuthorityExecOpaqueWhite",
-        "res://shaders/flat_color.wgsl",
+        "res://shaders/flat_color.zshader",
         "res://textures/white.png",
         [1.0, 1.0, 1.0, 1.0],
         AlphaMode::Opaque,
@@ -1841,6 +1892,7 @@ fn virtual_geometry_execution_records_survive_with_execution_indices_and_gpu_aut
         resource_handle::<MaterialMarker>(&asset_manager, "res://materials/opaque_white.zmaterial");
     let viewport_size = UVec2::new(160, 120);
     let extract = build_overlapping_extract(
+        &asset_manager,
         viewport_size,
         model,
         [(2, transparent_material), (3, opaque_material)],
@@ -1909,7 +1961,7 @@ fn virtual_geometry_execution_segments_survive_with_execution_indices_and_gpu_au
             .join("materials")
             .join("transparent_red.zmaterial"),
         "GpuAuthoritySegTransparentRed",
-        "res://shaders/flat_color.wgsl",
+        "res://shaders/flat_color.zshader",
         "res://textures/white.png",
         [1.0, 0.0, 0.0, 0.65],
         AlphaMode::Blend,
@@ -1920,7 +1972,7 @@ fn virtual_geometry_execution_segments_survive_with_execution_indices_and_gpu_au
             .join("materials")
             .join("opaque_white.zmaterial"),
         "GpuAuthoritySegOpaqueWhite",
-        "res://shaders/flat_color.wgsl",
+        "res://shaders/flat_color.zshader",
         "res://textures/white.png",
         [1.0, 1.0, 1.0, 1.0],
         AlphaMode::Opaque,
@@ -1942,6 +1994,7 @@ fn virtual_geometry_execution_segments_survive_with_execution_indices_and_gpu_au
         resource_handle::<MaterialMarker>(&asset_manager, "res://materials/opaque_white.zmaterial");
     let viewport_size = UVec2::new(160, 120);
     let extract = build_overlapping_extract(
+        &asset_manager,
         viewport_size,
         model,
         [(2, transparent_material), (3, opaque_material)],
@@ -2098,7 +2151,13 @@ fn virtual_geometry_renderer_submission_records_keep_draw_level_tokens_without_g
         )
         .unwrap();
 
-    renderer.drop_last_virtual_geometry_indirect_submission_buffer_for_test();
+    renderer.assert_legacy_submission_sources_absent_for_test();
+    for role in [7] {
+        renderer.drop_actual_native_probe_source_for_test(role);
+    }
+    for role in [5, 6] {
+        assert!(renderer.has_actual_native_probe_source_for_test(role));
+    }
 
     assert_eq!(
         renderer
@@ -2215,8 +2274,13 @@ fn virtual_geometry_renderer_submission_records_fall_back_to_gpu_generated_indir
         )
         .unwrap();
 
-    renderer.drop_last_virtual_geometry_indirect_submission_buffer_for_test();
-    renderer.drop_last_virtual_geometry_mesh_draw_submission_token_records_for_test();
+    renderer.assert_legacy_submission_sources_absent_for_test();
+    for role in [7] {
+        renderer.drop_actual_native_probe_source_for_test(role);
+    }
+    for role in [5, 6] {
+        assert!(renderer.has_actual_native_probe_source_for_test(role));
+    }
 
     assert_eq!(
         renderer
@@ -2333,9 +2397,13 @@ fn virtual_geometry_unified_indirect_reconstructs_submission_records_from_gpu_au
         )
         .unwrap();
 
-    renderer.drop_last_virtual_geometry_indirect_submission_buffer_for_test();
-    renderer.drop_last_virtual_geometry_mesh_draw_submission_token_records_for_test();
-    renderer.drop_last_virtual_geometry_mesh_draw_submission_records_for_test();
+    renderer.assert_legacy_submission_sources_absent_for_test();
+    for role in [7] {
+        renderer.drop_actual_native_probe_source_for_test(role);
+    }
+    for role in [5, 6] {
+        assert!(renderer.has_actual_native_probe_source_for_test(role));
+    }
 
     assert_eq!(
         renderer
@@ -2647,6 +2715,7 @@ fn build_single_entity_extract(
     };
     let mut extract =
         RenderFrameExtract::from_snapshot(RenderWorldSnapshotHandle::new(1), snapshot);
+    extract.apply_viewport_size(viewport_size);
     extract.geometry.virtual_geometry = Some(RenderVirtualGeometryExtract {
         cluster_budget: 1,
         page_budget: 1,
@@ -2702,12 +2771,7 @@ fn write_two_primitive_gltf(path: PathBuf) {
         binary.extend_from_slice(&index.to_le_bytes());
     }
 
-    let buffer_path = path
-        .ancestors()
-        .nth(3)
-        .expect("gltf path should live under <root>/assets/models")
-        .join(".generated")
-        .join("double_triangle.bin");
+    let buffer_path = path.with_file_name("double_triangle.bin");
     if let Some(parent) = buffer_path.parent() {
         fs::create_dir_all(parent).unwrap();
     }
@@ -2717,7 +2781,7 @@ fn write_two_primitive_gltf(path: PathBuf) {
         r#"{{
   "asset": {{"version": "2.0"}},
   "buffers": [
-    {{"uri": "../../.generated/double_triangle.bin", "byteLength": {}}}
+    {{"uri": "double_triangle.bin", "byteLength": {}}}
   ],
   "bufferViews": [
     {{"buffer":0,"byteOffset":0,"byteLength":36,"target":34962}},
@@ -2883,13 +2947,13 @@ fn write_unified_material(path: PathBuf, shader_uri: &str, texture_uri: &str) {
         validation_diagnostics: Vec::new(),
     };
     let project_root = fixture_project_root(&path);
+    // Source dependencies exist before the material. Mint/read their real sidecars
+    // through the normal transaction; a URI-derived UUID is not their identity.
+    let mut project = ProjectManager::open(&project_root).unwrap();
+    project.scan_and_import().unwrap();
     let document = material
         .to_project_toml_string(|reference| {
-            Ok(persisted_reference_for_fixture(
-                &project_root,
-                &path,
-                reference,
-            ))
+            Ok(persisted_reference_for_fixture(&project, reference))
         })
         .unwrap();
     fs::write(path, document).unwrap();
@@ -2904,7 +2968,13 @@ fn enable_unified_virtual_geometry_cook(path: &std::path::Path) {
         AssetUri::parse(&uri).unwrap(),
         zircon_runtime::asset::AssetKind::Model,
     );
-    metadata.import_settings = "[virtual_geometry]\nenabled = true\n".parse().unwrap();
+    // Both original fixtures fit one leaf per real primitive: the tiled quad
+    // has eight triangles and each glTF primitive has one. Their distinct
+    // primitive admissions remain distinct even when authored IDs coincide.
+    metadata.import_settings =
+        "[virtual_geometry]\nenabled = true\ncluster_triangle_count = 8\npage_cluster_count = 1\n"
+            .parse()
+            .unwrap();
     let mut sidecar_name = file_name.to_os_string();
     sidecar_name.push(".zmeta");
     metadata.save(path.with_file_name(sidecar_name)).unwrap();
@@ -2918,47 +2988,21 @@ fn fixture_project_root(source_path: &Path) -> PathBuf {
         .to_path_buf()
 }
 
-// 夹具只把 res:// 路径映射到唯一资源根的持久化 hint；多根歧义必须显式失败。
+// Persist the imported identity through the same root/label checks as product saves.
 fn persisted_reference_for_fixture(
-    project_root: &Path,
-    source_path: &Path,
+    project: &ProjectManager,
     reference: &AssetReference,
 ) -> PersistedAssetReference {
     if reference.locator.scheme() == ResourceScheme::Builtin {
         return PersistedAssetReference::builtin(reference.locator.clone());
     }
     assert_eq!(reference.locator.scheme(), ResourceScheme::Res);
-
-    let manifest = ProjectManifest::load(project_root.join("zircon-project.toml")).unwrap();
-    let roots = manifest
-        .asset_roots
-        .iter()
-        .filter(|root| {
-            root.join_to(project_root)
-                .join(reference.locator.path())
-                .is_file()
-        })
-        .collect::<Vec<_>>();
-    let root = match roots.as_slice() {
-        [root] => *root,
-        [] => manifest
-            .asset_roots
-            .iter()
-            .find(|root| source_path.starts_with(root.join_to(project_root)))
-            .expect("asset fixture source must live below a manifest asset root"),
-        _ => panic!(
-            "asset fixture reference {} resolves through multiple project asset roots",
-            reference.locator
-        ),
-    };
-    let path_hint =
-        RelPath::parse(format!("{}/{}", root.as_str(), reference.locator.path())).unwrap();
-    PersistedAssetReference::project(
-        AssetRef::try_new(
-            reference.uuid,
-            path_hint,
-            reference.locator.label().map(str::to_owned),
-        )
-        .unwrap(),
-    )
+    let entry = project
+        .asset_registry()
+        .entry_by_path(&reference.locator)
+        .unwrap_or_else(|| panic!("fixture dependency was not imported: {}", reference.locator));
+    let registered = AssetReference::new(entry.uuid(), reference.locator.clone());
+    project
+        .persist_runtime_reference(&registered)
+        .expect("fixture dependency identity, unique physical root and label must agree")
 }

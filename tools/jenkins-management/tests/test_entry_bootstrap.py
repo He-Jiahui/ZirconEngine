@@ -14,6 +14,7 @@ import importlib.machinery
 import importlib.util
 import json
 import os
+import re
 from pathlib import Path, PurePosixPath
 import sys
 from types import ModuleType, SimpleNamespace
@@ -33,6 +34,8 @@ BOOT_SOURCE = HERE / "runner.py"
 DRIVER_SOURCE = HERE.parent / "jenkins/deployment/driver.py"
 BOOT_TREE = ast.parse(BOOT_SOURCE.read_bytes().decode("utf-8"), filename=str(BOOT_SOURCE))
 DRIVER_TREE = ast.parse(DRIVER_SOURCE.read_bytes().decode("utf-8"), filename=str(DRIVER_SOURCE))
+FRONTEND_SOURCE = HERE.parent / "jenkins/frontend.py"
+FRONTEND_TREE = ast.parse(FRONTEND_SOURCE.read_bytes().decode("utf-8"), filename=str(FRONTEND_SOURCE))
 
 
 def production_functions(tree, names, namespace, filename):
@@ -53,10 +56,10 @@ class MemoryLoader(importlib.abc.Loader):
 
     def exec_module(self, module):
         case = self.case
-        if self.name == "verified_ordinary_management_runner":
-            module.__dict__.update(Path=Path, json=json, os=os, sys=sys, sha=entry.sha,
+        if self.name in {"verified_ordinary_management_runner", "verified_management_client_selector"}:
+            module.__dict__.update(Path=Path, json=json, os=os, sys=sys, re=re, sha=entry.sha,
                                    encoded=entry.encoded, plain=lambda path: Path(path).absolute())
-            production_functions(BOOT_TREE, {"boot"}, module.__dict__, BOOT_SOURCE)
+            production_functions(BOOT_TREE, {"boot", "client_path"}, module.__dict__, BOOT_SOURCE)
         elif self.name == "tools.jenkins.deployment.driver":
             case.driver_imports.append(module.__file__)
             module.__dict__.update(Path=Path, PurePosixPath=PurePosixPath, hashlib=hashlib, json=json,
@@ -158,6 +161,22 @@ class BootstrapCase:
         self.manager = SimpleNamespace(health=lambda: {"controller": True, "agent": True, "plugins": True,
             "ready": True, "acceptingRequests": True, "quietingDown": False})
 
+    def anchor_clients(self):
+        old = self.capsule
+        self.config = {**self.config, "clientRoot": "clients"}
+        raw = entry.encoded(self.config)
+        checksum = entry.sha(raw)
+        self.capsule = self.repo / ".jenkins/runtime/management" / checksum
+        self.files[self.capsule / "capsule.json"] = raw
+        for name in self.config["files"]:
+            self.files[self.capsule / name] = self.files[old / name]
+        for name in self.config["clientSources"]:
+            self.files[self.capsule / "clients" / name] = self.files[self.repo / name]
+        path = self.repo / ".jenkins/state/management/installed.json"
+        installed = json.loads(self.files[path])
+        self.files[path] = entry.encoded({**installed, "capsule": str(self.capsule),
+                                         "capsuleSha256": checksum})
+
     def preload(self):
         self.canonical_parent = ModuleType("tools")
         self.canonical_parent.__path__ = [str(self.repo / "tools")]
@@ -177,7 +196,7 @@ class BootstrapCase:
         self.canonical_driver = sys.modules["tools.jenkins.deployment.driver"]
 
     def capsule_spec(self, name, path):
-        if name != "verified_ordinary_management_runner" or Path(path) != self.capsule / "runner.py":
+        if name not in {"verified_ordinary_management_runner", "verified_management_client_selector"} or Path(path) != self.capsule / "runner.py":
             raise AssertionError("Unexpected capsule import")
         spec = importlib.machinery.ModuleSpec(name, MemoryLoader(self, name), origin=str(path))
         spec.has_location = True
@@ -206,6 +225,11 @@ class BootstrapCase:
                 stack.enter_context(patch.object(Path, "read_text",
                     new=lambda path, encoding=None, errors=None: self.read(path).decode(encoding or "utf-8")))
                 stack.enter_context(patch.object(Path, "is_file", new=lambda path: Path(path) in self.files))
+                stack.enter_context(patch.object(Path, "exists",
+                    new=lambda path: Path(path) in self.files or any(item.is_relative_to(path) for item in self.files)))
+                stack.enter_context(patch.object(Path, "is_symlink", new=lambda path: False))
+                stack.enter_context(patch.object(Path, "lstat",
+                    new=lambda path: SimpleNamespace(st_file_attributes=0)))
                 stack.enter_context(patch.object(Path, "stat",
                     new=lambda path, **kwargs: SimpleNamespace(st_size=len(self.read(path)))))
                 stack.enter_context(patch.object(Path, "rglob", new=lambda path, pattern: self.walk(path, pattern)))
@@ -222,16 +246,27 @@ class BootstrapCase:
 
 class EntryBootstrapTests(unittest.TestCase):
     def test_preloaded_public_client_namespace_rebinds_to_sealed_regular_parent(self):
-        case = BootstrapCase()
-        with case.active():
-            result = entry.capability(case.repo)
-            driver = importlib.import_module("tools.jenkins.deployment.driver")
-            self.assertEqual(Path(driver.__file__), case.driver / "tools/jenkins/deployment/driver.py")
-            self.assertIsNot(driver, case.canonical_driver)
-            self.assertIsNot(sys.modules["tools"], case.canonical_parent)
-            self.assertIsNotNone(sys.modules["tools"].__spec__.loader)
-            self.assertEqual(result["config"]["driverDigest"], case.digest)
-            self.assertFalse(result["installed"]["formalAcceptance"])
+        for anchored in (False, True):
+            with self.subTest(anchored=anchored):
+                case = BootstrapCase()
+                if anchored:
+                    case.anchor_clients()
+                    for name in case.config["clientSources"]:
+                        case.files[case.repo / name] += b"foreign canonical migration"
+                namespace = {"Path": Path, "json": json, "JenkinsError": entry.EntryError}
+                production_functions(FRONTEND_TREE, {"management_client_path"}, namespace, FRONTEND_SOURCE)
+                with case.active():
+                    path = namespace["management_client_path"](case.repo, "tools/jenkins-management/entry.py")
+                    expected = (case.capsule / "clients" if anchored else case.repo) / "tools/jenkins-management/entry.py"
+                    self.assertEqual(expected, path)
+                    result = entry.capability(case.repo)
+                    driver = importlib.import_module("tools.jenkins.deployment.driver")
+                    self.assertEqual(Path(driver.__file__), case.driver / "tools/jenkins/deployment/driver.py")
+                    self.assertIsNot(driver, case.canonical_driver)
+                    self.assertIsNot(sys.modules["tools"], case.canonical_parent)
+                    self.assertIsNotNone(sys.modules["tools"].__spec__.loader)
+                    self.assertEqual(result["config"]["driverDigest"], case.digest)
+                    self.assertFalse(result["installed"]["formalAcceptance"])
 
     def test_repeated_capability_rebinds_without_reusing_a_cached_driver(self):
         case = BootstrapCase()
@@ -252,15 +287,23 @@ class EntryBootstrapTests(unittest.TestCase):
             self.assertIs(sys.modules["tools.dev.local_cargo"], case.cargo)
 
     def test_changed_client_is_rejected_before_package_or_environment_rebind(self):
-        case = BootstrapCase()
-        with case.active():
-            before = os.environ.get("ZIRCON_DRIVER_DIGEST")
-            case.files[case.repo / "tools/jenkins/frontend.py"] += b"foreign change"
-            with self.assertRaisesRegex(entry.EntryError, "Pinned public entry source changed"):
-                entry.capability(case.repo)
-            self.assertIs(sys.modules["tools"], case.canonical_parent)
-            self.assertEqual(case.driver_imports, [])
-            self.assertEqual(os.environ.get("ZIRCON_DRIVER_DIGEST"), before)
+        for anchored in (False, True):
+            with self.subTest(anchored=anchored):
+                case = BootstrapCase()
+                if anchored:
+                    case.anchor_clients()
+                with case.active():
+                    before = os.environ.get("ZIRCON_DRIVER_DIGEST")
+                    root = case.capsule / "clients" if anchored else case.repo
+                    case.files[root / "tools/jenkins/frontend.py"] += b"foreign change"
+                    error = ValueError if anchored else entry.EntryError
+                    expected_message = ('Pinned management client implementation changed' if anchored
+                                        else 'Pinned public entry source changed')
+                    with self.assertRaisesRegex(error, expected_message):
+                        entry.capability(case.repo)
+                    self.assertIs(sys.modules["tools"], case.canonical_parent)
+                    self.assertEqual(case.driver_imports, [])
+                    self.assertEqual(os.environ.get("ZIRCON_DRIVER_DIGEST"), before)
 
     def test_changed_driver_bytes_are_rejected_by_production_boot_before_import(self):
         case = BootstrapCase()

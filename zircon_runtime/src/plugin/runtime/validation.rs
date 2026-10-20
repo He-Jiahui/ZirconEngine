@@ -51,12 +51,13 @@ pub(in crate::plugin::runtime_plugin) use interfaces::validate_runtime_plugin_pa
 pub(in crate::plugin::runtime_plugin) use layout::validate_runtime_plugin_package_layout;
 pub(in crate::plugin::runtime_plugin) use modules::validate_runtime_plugin_package_modules;
 #[cfg(test)]
+pub(in crate::plugin::runtime_plugin) use projection::RuntimePluginPackageValidationMetrics;
+#[cfg(test)]
 pub(in crate::plugin::runtime_plugin) use projection::{
     begin_package_projection_build_observation, observed_package_projection_builds,
 };
 pub(in crate::plugin::runtime_plugin) use projection::{
-    EmbeddedFeatureKind, RuntimePluginPackageValidationMetrics,
-    RuntimePluginPackageValidationProjection,
+    EmbeddedFeatureKind, RuntimePluginPackageValidationProjection,
 };
 pub(in crate::plugin::runtime_plugin) use shape::{
     is_lowercase_runtime_plugin_token, validate_runtime_plugin_package_field,

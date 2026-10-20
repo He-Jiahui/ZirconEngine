@@ -196,16 +196,15 @@ impl UiTextModelUpdateReceipt {
             && self.failure == Some(UiTextModelUpdateFailure::InvalidRequestId);
         let rejects_invalid_document_id = self.status == UiTextModelUpdateStatus::Rejected
             && self.failure == Some(UiTextModelUpdateFailure::InvalidDocumentId);
-        if (!self.request_id.is_valid()
-            && !(rejects_unsupported_schema || rejects_invalid_request_id))
+        if !(self.request_id.is_valid() || rejects_unsupported_schema || rejects_invalid_request_id)
             || (self.request_id.is_valid() && rejects_invalid_request_id)
         {
             return Err(UiTextModelUpdateFailure::InvalidRequestId);
         }
-        if (!self.expected_document.document_id.is_valid()
-            && !(rejects_unsupported_schema
-                || rejects_invalid_request_id
-                || rejects_invalid_document_id))
+        if !(self.expected_document.document_id.is_valid()
+            || rejects_unsupported_schema
+            || rejects_invalid_request_id
+            || rejects_invalid_document_id)
             || (self.expected_document.document_id.is_valid() && rejects_invalid_document_id)
         {
             return Err(UiTextModelUpdateFailure::InvalidDocumentId);

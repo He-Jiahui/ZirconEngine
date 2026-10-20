@@ -127,12 +127,12 @@ def schedule_frame_loop_boundary_audit(root: Path) -> dict[str, object]:
         / "docs/plans/zircon_runtime/runtime/03-schedule-and-frame-loop-alignment.md"
     )
     runtime_index = root / "docs/plans/zircon_runtime/runtime/index.md"
-    frame_schedule_doc = root / "docs/zircon_runtime/core/frame_schedule.md"
+    frame_schedule_doc = root / "docs/crates/zircon_runtime/core/frame_schedule.md"
     schedule_parallel_doc = (
-        root / "docs/zircon_runtime/scene/ecs/schedule_parallel_executor.md"
+        root / "docs/crates/zircon_runtime/scene/ecs/schedule_parallel_executor.md"
     )
-    review = root / "docs/engine-architecture/runtime-architecture-review-m0.md"
-    convergence = root / "docs/engine-architecture/runtime-interface-convergence.md"
+    review = root / "docs/architecture/runtime-architecture-review-m0.md"
+    convergence = root / "docs/architecture/runtime-interface-convergence.md"
 
     system_stage_source = _read_text(system_stage) if system_stage.exists() else ""
     session_source = _read_text(session) if session.exists() else ""
@@ -202,8 +202,8 @@ def schedule_frame_loop_boundary_audit(root: Path) -> dict[str, object]:
         session_source,
         session_extract_source,
         runtime_loop_source,
-        _read_text(root / "zircon_runtime/src/dynamic_api/session/hud.rs")
-        if (root / "zircon_runtime/src/dynamic_api/session/hud.rs").exists()
+        _read_text(root / "zircon_runtime/src/dynamic_api/session/ui_extract_cache.rs")
+        if (root / "zircon_runtime/src/dynamic_api/session/ui_extract_cache.rs").exists()
         else "",
         _read_text(root / "zircon_runtime/src/dynamic_api/session/menu.rs")
         if (root / "zircon_runtime/src/dynamic_api/session/menu.rs").exists()

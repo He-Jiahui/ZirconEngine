@@ -108,7 +108,6 @@ where
     output.write_counted(b"\n")?;
     output.flush()?;
     let bytes = output.budget.bytes;
-    drop(output);
     Ok(bytes)
 }
 

@@ -1,16 +1,18 @@
 //! 资产工作池的并发与关闭策略需与资产管线的文档门禁一致。通过源码文本核对父子路由、状态镜像和文件预算。
+use crate::tests::runtime_absorption::structure_convention::fixed_history_archive_source as history;
 const PARENT_SOURCE: &str = include_str!("../asset_worker_policy.rs");
 const WORKER_POOL_SOURCE: &str = include_str!("worker_pool.rs");
+const DOC_EVIDENCE_SOURCE: &str = include_str!("worker_pool/doc_evidence.rs");
 const SPLIT_LAYOUT_SOURCE: &str = include_str!("split_layout.rs");
 
-const RUNTIME_15_OUTPUT_RECORDS: &str = include_str!(
-    "../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md"
-);
+fn runtime_15_output_records() -> &'static str {
+    history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md")
+}
 const MODULE_CONVENTION_DOC: &str =
     include_str!("../../../../../docs/crates/zircon_runtime/structure/module-convention.md");
-const FRAMEWORKS_02_OUTPUT_RECORDS: &str = include_str!(
-    "../../../../../docs/plans/zircon_runtime/frameworks/02/2026-07-09-module-kernel-and-lifecycle-unification-output-records.md"
-);
+fn frameworks_02_output_records() -> &'static str {
+    history("docs/plans/zircon_runtime/frameworks/02/2026-07-09-module-kernel-and-lifecycle-unification-output-records.md")
+}
 
 // BUG: [CR-RUNTIME-TESTS-ABS-0001] 当前被读子文件已经超过此处明示的行数上限；该测试执行行数断言时会失败；证据：行数预算与原始源码快照。
 #[test]
@@ -54,16 +56,23 @@ fn assert_child_owners_are_focused() {
             "asset_worker_pool_matches_runtime_04_and_11_decisions",
             "AssetWorkerPoolOptions",
             "AssetWorkerPoolFrameSampler",
-            "Runtime 11 M2.4",
-            "worker_pool_frame_sampler_records_per_frame_completion_deltas",
+            "worker_pool_frame_sampler_records_per_job_completion_deltas",
         ],
     );
+    assert_contains_all(
+        "worker pool document evidence",
+        DOC_EVIDENCE_SOURCE,
+        &["Runtime 11 M2.4", "runtime_04_plan", "runtime_11_output"],
+    );
+    assert!(WORKER_POOL_SOURCE.contains("mod doc_evidence;"));
+    assert!(WORKER_POOL_SOURCE.contains("doc_evidence::assert_worker_pool_doc_evidence()"));
 }
 
 fn assert_line_budget() {
     for (label, source, max_lines) in [
         ("parent route owner", PARENT_SOURCE, 6),
         ("worker pool child", WORKER_POOL_SOURCE, 140),
+        ("worker document evidence", DOC_EVIDENCE_SOURCE, 140),
         ("split layout guard", SPLIT_LAYOUT_SOURCE, 180),
     ] {
         let line_count = source.lines().count();
@@ -76,7 +85,7 @@ fn assert_line_budget() {
 
 fn assert_docs_and_status_mirror_split() {
     assert!(
-        RUNTIME_15_OUTPUT_RECORDS.contains(
+        runtime_15_output_records().contains(
             "runtime_15_asset_worker_policy_route_owner_split_static_passed_cargo_deferred"
         ),
         "Runtime 15 output records should own the asset_worker_policy route-owner split status"
@@ -92,7 +101,7 @@ fn assert_docs_and_status_mirror_split() {
     );
     assert_contains_all(
         "Frameworks 02 output records",
-        FRAMEWORKS_02_OUTPUT_RECORDS,
+        frameworks_02_output_records(),
         &[
             "frameworks_02_m3_asset_worker_policy_route_owner_split_static_passed_cargo_deferred",
             "Runtime 15 M3 asset-worker-policy route-owner split",

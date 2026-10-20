@@ -2,58 +2,58 @@
 pub(super) const TYPED_ERROR_PARENT_PATHS: &[(&str, &str)] = &[
     (
         "typed-error convergence parent",
-        "tests/runtime_absorption/code_review_findings/typed_error_convergence/mod.rs",
+        "tests/contracts/review/errors/mod.rs",
     ),
     (
         "asset loader typed-error parent",
-        "tests/runtime_absorption/code_review_findings/typed_error_convergence/asset_loaders.rs",
+        "tests/contracts/review/errors/asset_loaders.rs",
     ),
     (
         "asset records typed-error parent",
-        "tests/runtime_absorption/code_review_findings/typed_error_convergence/asset_records.rs",
+        "tests/contracts/review/errors/asset_records.rs",
     ),
     (
         "native typed-error parent",
-        "tests/runtime_absorption/code_review_findings/typed_error_convergence/native_plugin_loader.rs",
+        "tests/contracts/review/errors/loader.rs",
     ),
     (
         "native ABI typed-error parent",
-        "tests/runtime_absorption/code_review_findings/typed_error_convergence/native_plugin_loader/abi_surfaces.rs",
+        "tests/contracts/review/errors/loader/abi_surfaces.rs",
     ),
     (
         "native plugin descriptor typed-error parent",
-        "tests/runtime_absorption/code_review_findings/typed_error_convergence/native_plugin_loader/abi_surfaces/plugin_descriptor.rs",
+        "tests/review/errors/loader/abi_surfaces/plugin_descriptor.rs",
     ),
     (
         "native live-host typed-error parent",
-        "tests/runtime_absorption/code_review_findings/typed_error_convergence/native_plugin_loader/live_host.rs",
+        "tests/contracts/review/errors/loader/live_host.rs",
     ),
     (
         "native live-host lifecycle-paths typed-error parent",
-        "tests/runtime_absorption/code_review_findings/typed_error_convergence/native_plugin_loader/live_host/lifecycle_paths.rs",
+        "tests/review/errors/loader/live_host/lifecycle_paths.rs",
     ),
     (
         "native live-host replay-runtime typed-error parent",
-        "tests/runtime_absorption/code_review_findings/typed_error_convergence/native_plugin_loader/live_host/replay_and_runtime.rs",
+        "tests/review/errors/loader/live_host/replay_and_runtime.rs",
     ),
     (
         "native manifest typed-error parent",
-        "tests/runtime_absorption/code_review_findings/typed_error_convergence/native_plugin_loader/manifest_sources.rs",
+        "tests/contracts/review/errors/loader/manifest_sources.rs",
     ),
     (
         "scene world typed-error parent",
-        "tests/runtime_absorption/code_review_findings/typed_error_convergence/scene_world.rs",
+        "tests/contracts/review/errors/scene_world.rs",
     ),
     (
         "script host typed-error parent",
-        "tests/runtime_absorption/code_review_findings/typed_error_convergence/script_host.rs",
+        "tests/contracts/review/errors/script_host.rs",
     ),
     (
         "shader prewarm CLI typed-error parent",
-        "tests/runtime_absorption/code_review_findings/typed_error_convergence/shader_prewarm_cli.rs",
+        "tests/contracts/review/errors/shader_prewarm_cli.rs",
     ),
     (
         "UI input typed-error parent",
-        "tests/runtime_absorption/code_review_findings/typed_error_convergence/ui_input.rs",
+        "tests/contracts/review/errors/ui_input.rs",
     ),
 ];

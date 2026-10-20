@@ -1,4 +1,5 @@
-import { layoutSourceRoot, resolveLayoutCatalogPath } from './zui-layout-paths';
+import { readCurrentSourceReport } from './zui-source-refinement-current';
+import { assertLayoutCurrentRoots, createLayoutCurrentContext, layoutCurrentOutputPath, layoutCurrentSourcePath, type LayoutCurrentContext, resolveLayoutCatalogPath } from './zui-layout-paths';
 import { execFile } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { embedLayoutImages } from './zui-layout-images';
@@ -75,10 +76,22 @@ export type {
 const execFileAsync = promisify(execFile);
 const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const penpotRoot = resolve(packageRoot, '../../../../third_party/penpot');
-const repoRoot = resolve(process.env['ZUI_LAYOUT_REPO_ROOT'] ?? resolve(penpotRoot, '../..'));
-const outputRoot = resolve(
-  process.env['ZUI_LAYOUT_OUTPUT_ROOT'] ?? resolve(repoRoot, 'docs/_data/layout'),
-);
+function legacyRepoRoot(): string {
+  return resolve(process.env['ZUI_LAYOUT_REPO_ROOT'] ?? resolve(penpotRoot, '../..'));
+}
+
+function legacyOutputRoot(): string {
+  return resolve(
+    process.env['ZUI_LAYOUT_OUTPUT_ROOT'] ?? resolve(legacyRepoRoot(), 'docs/_data/layout'),
+  );
+}
+
+function catalogOutputPath(context: LayoutCurrentContext | undefined, ...paths: string[]): string {
+  return context
+    ? layoutCurrentOutputPath(context, resolve(...paths))
+    : resolveLayoutCatalogPath(...paths);
+}
+
 
 export interface CatalogManifest {
   schema: 'dev.zircon.zui.layout-catalog';
@@ -216,23 +229,27 @@ interface MaterialSampleReportRecord {
   changes: string[];
 }
 
-async function readSourceCorrectionReport(name: string) {
-  const path = resolve(repoRoot, 'docs/_data/layout/evidence', name);
-  const report = existsSync(path)
-    ? (JSON.parse(await readFile(path, 'utf8')) as {
-        applied: boolean;
-        records: MaterialSampleReportRecord[];
-      })
-    : undefined;
-  return new Map(
-    report?.applied
-      ? report.records.map((record) => [record.sourcePath, record])
-      : [],
-  );
+async function readSourceCorrectionReport(name: string, context: LayoutCurrentContext) {
+  return readCurrentSourceReport<MaterialSampleReportRecord>(context, name);
 }
 
 async function main(): Promise<void> {
-  const rawArgs = process.argv.slice(2);
+  await runCurrentLayoutCatalog(process.argv.slice(2));
+}
+
+/** Actual producer entry; importing render helpers never initializes current context. */
+export async function runCurrentLayoutCatalog(rawArgs: string[]): Promise<void> {
+  const context = createLayoutCurrentContext();
+  const { repoRoot, outputRoot } = context;
+  assertLayoutCurrentRoots(context, repoRoot, outputRoot);
+  // Reject stale identities and unsafe retained paths before creating the writer lock.
+  await readExistingManifest(context);
+  await readTableSourceReport(context);
+  await readMaterialSourceReport(context);
+  for (const name of ['material-sample-applied.json', 'workbench-composite-applied.json',
+    'style-source-normalization-applied.json', 'extension-layout-applied.json',
+    'workbench-heading-applied.json', 'showcase-visual-section-source-correction.json'])
+    await readSourceCorrectionReport(name, context);
   const args = new Set(rawArgs);
   const requestedSources = catalogSourceSelection(rawArgs);
   if (requestedSources.length && args.has('--refresh-records'))
@@ -241,10 +258,11 @@ async function main(): Promise<void> {
   const lock = shouldWrite
     ? await acquireLayoutCatalogLock(outputRoot, {
         command: ['zui-layout-catalog.ts', ...args].join(' '),
+        context,
       })
     : undefined;
   try {
-    await generateCatalog(args, shouldWrite, requestedSources);
+    await generateCatalog(args, shouldWrite, requestedSources, context);
   } finally {
     await lock?.release();
   }
@@ -254,21 +272,23 @@ async function generateCatalog(
   args: Set<string>,
   shouldWrite: boolean,
   requestedSources: string[],
+  context: LayoutCurrentContext,
 ): Promise<void> {
-  const existingManifest = await readExistingManifest();
+  const { repoRoot, outputRoot } = context;
+  const existingManifest = await readExistingManifest(context);
   if (args.has('--refresh-records')) {
     if (!existingManifest)
       throw new Error('Generate the catalog before refreshing records');
     if (shouldWrite) {
       for (const entry of existingManifest.entries)
         await writeFile(
-          resolveLayoutCatalogPath(outputRoot, entry.resultPath),
-          renderResult(entry),
+          catalogOutputPath(context, outputRoot, entry.resultPath),
+          renderResult(entry, context),
           'utf8',
         );
       await writeFile(
-        resolveLayoutCatalogPath(outputRoot, 'index.md'),
-        renderIndex(existingManifest),
+        catalogOutputPath(context, outputRoot, 'index.md'),
+        renderIndex(existingManifest, context),
         'utf8',
       );
     }
@@ -283,34 +303,41 @@ async function generateCatalog(
   const existingBySource = new Map(
     (existingManifest?.entries ?? []).map((entry) => [entry.sourcePath, entry]),
   );
-  const discovery = await discoverZuiSources();
+  const discovery = await discoverZuiSources(repoRoot);
+  for (const path of discovery.paths) layoutCurrentSourcePath(context, path);
   const sources = selectCatalogSources(discovery.paths, requestedSources);
   const dependencies = new LayoutDependencies();
   await dependencies.load(repoRoot, discovery.paths);
-  const tableSourceReport = await readTableSourceReport();
-  const materialSourceReport = await readMaterialSourceReport();
+  const tableSourceReport = await readTableSourceReport(context);
+  const materialSourceReport = await readMaterialSourceReport(context);
   const samplesBySource = await readSourceCorrectionReport(
     'material-sample-applied.json',
+    context,
   );
   const compositesBySource = await readSourceCorrectionReport(
     'workbench-composite-applied.json',
+    context,
   );
   const extensionsBySource = await readSourceCorrectionReport(
     'extension-layout-applied.json',
+    context,
   );
   const headingsBySource = await readSourceCorrectionReport(
     'workbench-heading-applied.json',
+    context,
   );
   const styleNormalizationBySource = await readSourceCorrectionReport(
     'style-source-normalization-applied.json',
+    context,
   );
   const showcaseVisualBySource = await readSourceCorrectionReport(
     'showcase-visual-section-source-correction.json',
+    context,
   );
   const entries: CatalogEntry[] = [];
 
   for (const sourcePath of sources) {
-    const absoluteSourcePath = resolve(repoRoot, sourcePath);
+    const absoluteSourcePath = layoutCurrentSourcePath(context, sourcePath);
     const sourceBytes = await readFile(absoluteSourcePath);
     const source = sourceBytes.toString('utf8');
     const sourceHeader = readSourceHeader(source);
@@ -375,7 +402,7 @@ async function generateCatalog(
         cases = buildWorkbenchReviewCases(
           cases,
           input,
-          await readWorkbenchCaseSnapshots(repoRoot),
+          await readWorkbenchCaseSnapshots(repoRoot, context),
         );
       consumerHost = structuralHost
         ? null
@@ -572,21 +599,21 @@ async function generateCatalog(
               `nodes.meta changed from a single overflowing row to a two-column, two-row GridBox; its four WorkbenchCaption instances use 12px text and ${materialRecord.metaRowHeight}px rows so authored descriptions remain present.`,
               'nodes.state_strip changed from eight narrow 8px pills to a two-column, four-row GridBox with 12px WorkbenchCaption text and 24px rows. State values and semantic colors are preserved.',
               `nodes.root now has a ${materialRecord.height}px content height and the shared 12px gap. Sample control nodes, events, bindings, IDs, children and unknown nonvisual fields are preserved.`,
-              'Original source and available baseline images: evidence/before-20260907-workbench/. The viewport remains the case viewport; these edits do not enlarge the capture canvas.',
+              'Original source and available baseline images remain under the explicit source-report root: backups/material-source/. The viewport remains the case viewport; these edits do not enlarge the capture canvas.',
             ]
           : undefined,
       visualStatus: 'pending',
     };
     if (sampleRecord?.afterSha256 === sourceSha256)
       entry.sourceChanges = [
-        'WorkbenchLabel / WorkbenchCaption title, metadata and state-strip reflow retained; see evidence/material-source-applied.json for the earlier source fingerprint.',
+        'WorkbenchLabel / WorkbenchCaption title, metadata and state-strip reflow retained; see the explicit source-report root evidence/material-source-applied.json for the earlier source fingerprint.',
         ...sampleRecord.changes,
-        'Sample reflow source and screenshots before correction: evidence/before-20260907-sample-reflow/. Events, state, bindings, component identifiers and child order remain intact.',
+        'Sample reflow source and screenshots before correction remain under the explicit source-report root: backups/material-sample/. Events, state, bindings, component identifiers and child order remain intact.',
       ];
     if (compositeRecord?.afterSha256 === sourceSha256)
       entry.sourceChanges = [
         ...compositeRecord.changes,
-        'Original source and images: evidence/before-20260907-composite-reflow/. IDs, events, bindings and child order are preserved.',
+        'Original source and images remain under the explicit source-report root: backups/workbench-composite/. IDs, events, bindings and child order are preserved.',
       ];
     if (extensionRecord?.afterSha256 === sourceSha256)
       entry.sourceChanges = extensionRecord.changes;
@@ -1189,6 +1216,7 @@ async function generateCatalog(
         entry,
         outputRoot,
         shouldWrite,
+        context,
       );
       Object.assign(entry, retained);
     }
@@ -1230,20 +1258,17 @@ async function generateCatalog(
     entries.push(entry);
 
     if (shouldWrite) {
-      const directory = resolveLayoutCatalogPath(outputRoot, relativeDir);
-      const sourceDirectory = layoutSourceRoot(directory);
-      await mkdir(sourceDirectory, { recursive: true });
-      await mkdir(resolve(sourceDirectory, "evidence"), { recursive: true });
+      const directory = catalogOutputPath(context, outputRoot, relativeDir);
       await mkdir(directory, { recursive: true });
-      await mkdir(resolveLayoutCatalogPath(directory, 'evidence'), { recursive: true });
+      await mkdir(catalogOutputPath(context, directory, 'evidence'), { recursive: true });
       if (consumerHost) {
         await writeFile(
-          resolveLayoutCatalogPath(directory, `evidence/${hostFile}.zui`),
+          catalogOutputPath(context, directory, `evidence/${hostFile}.zui`),
           consumerHost.source,
           'utf8',
         );
         await writeFile(
-          resolveLayoutCatalogPath(
+          catalogOutputPath(context,
             directory,
             hostFile === 'theme-consumer'
               ? 'evidence/theme-consumers.json'
@@ -1258,28 +1283,28 @@ async function generateCatalog(
       if (
         previous &&
         !previous.penpotInputPath &&
-        existsSync(resolveLayoutCatalogPath(outputRoot, previous.previewPath))
+        existsSync(catalogOutputPath(context, outputRoot, previous.previewPath))
       ) {
-        const legacyPath = resolveLayoutCatalogPath(directory, 'evidence/legacy-penpot.png');
+        const legacyPath = catalogOutputPath(context, directory, 'evidence/legacy-penpot.png');
         await rename(
-          resolveLayoutCatalogPath(outputRoot, previous.previewPath),
+          catalogOutputPath(context, outputRoot, previous.previewPath),
           existsSync(legacyPath)
-            ? resolveLayoutCatalogPath(directory, `evidence/legacy-penpot-${Date.now()}.png`)
+            ? catalogOutputPath(context, directory, `evidence/legacy-penpot-${Date.now()}.png`)
             : legacyPath,
         );
       }
-      await writeFile(resolveLayoutCatalogPath(directory, `${entryKey.name}.zui`), sourceBytes);
+      await writeFile(catalogOutputPath(context, directory, `${entryKey.name}.zui`), sourceBytes);
       if (penpotInputPath && serialized !== undefined)
         await writeFile(
-          resolveLayoutCatalogPath(outputRoot, penpotInputPath),
+          catalogOutputPath(context, outputRoot, penpotInputPath),
           serialized,
           'utf8',
         );
       await writeFile(
-        resolveLayoutCatalogPath(directory, 'result.md'),
+        catalogOutputPath(context, directory, 'result.md'),
         entry.visualStatus === 'passed'
-          ? renderAcceptedResult(entry)
-          : renderResult(entry),
+          ? renderAcceptedResult(entry, context)
+          : renderResult(entry, context),
         'utf8',
       );
     }
@@ -1302,13 +1327,13 @@ async function generateCatalog(
   if (shouldWrite) {
     await mkdir(outputRoot, { recursive: true });
     await writeFile(
-      resolveLayoutCatalogPath(outputRoot, 'catalog.json'),
+      catalogOutputPath(context, outputRoot, 'catalog.json'),
       `${JSON.stringify(manifest, null, 2)}\n`,
       'utf8',
     );
     await writeFile(
-      resolveLayoutCatalogPath(outputRoot, 'index.md'),
-      renderIndex(manifest),
+      catalogOutputPath(context, outputRoot, 'index.md'),
+      renderIndex(manifest, context),
       'utf8',
     );
   }
@@ -1337,53 +1362,35 @@ async function generateCatalog(
   );
 }
 
-async function readExistingManifest(): Promise<CatalogManifest | null> {
-  const path = resolveLayoutCatalogPath(outputRoot, 'catalog.json');
+async function readExistingManifest(context: LayoutCurrentContext): Promise<CatalogManifest | null> {
+  const path = layoutCurrentOutputPath(context, 'catalog.json');
   if (!existsSync(path)) return null;
-  try {
-    return JSON.parse(await readFile(path, 'utf8')) as CatalogManifest;
-  } catch {
-    return null;
+  const manifest = JSON.parse(await readFile(path, 'utf8')) as
+    CatalogManifest & { historical_only?: boolean; role?: string };
+  if (manifest.schema !== 'dev.zircon.zui.layout-catalog' || manifest.version !== 1 ||
+      manifest.historical_only || (manifest.role && manifest.role !== 'current'))
+    throw new Error('Historical or package catalog cannot seed current production');
+  assertLayoutCurrentRoots(context, manifest.repoRoot, context.outputRoot);
+  for (const entry of manifest.entries) {
+    layoutCurrentSourcePath(context, entry.sourcePath);
+    for (const dependency of entry.dependencyFingerprints ?? [])
+      layoutCurrentSourcePath(context, dependency.sourcePath);
+    for (const path of [entry.outputPath, entry.resultPath, entry.previewPath,
+      entry.penpotInputPath, entry.penpotPreviewPath,
+      ...(entry.cases ?? []).map((item) => item.reviewHost?.path),
+      ...[...(entry.penpotEvidence ?? []), ...(entry.engineEvidence ?? [])]
+        .flatMap((item) => [item.screenshotPath, item.geometryPath, item.textPath])])
+      if (path) layoutCurrentOutputPath(context, path);
   }
+  return manifest;
 }
 
-async function readTableSourceReport(): Promise<
-  Map<string, TableSourceReportRecord>
-> {
-  const reportPath = resolve(
-    repoRoot,
-    'docs/_data/layout/evidence/table-source-cells-applied.json',
-  );
-  if (!existsSync(reportPath)) return new Map();
-  try {
-    const report = JSON.parse(
-      await readFile(reportPath, 'utf8'),
-    ) as TableSourceReport;
-    return new Map(
-      (report.records ?? []).map((record) => [record.sourcePath, record]),
-    );
-  } catch {
-    return new Map();
-  }
+async function readTableSourceReport(context: LayoutCurrentContext): Promise<Map<string, TableSourceReportRecord>> {
+  return readCurrentSourceReport<TableSourceReportRecord>(context, 'table-source-cells-applied.json',
+    process.env['ZUI_LAYOUT_TABLE_OUTPUT_ROOT'] ?? process.env['ZUI_LAYOUT_SOURCE_REPORT_ROOT']);
 }
-
-async function readMaterialSourceReport(): Promise<
-  Map<string, MaterialSourceReportRecord>
-> {
-  const path = resolve(
-    repoRoot,
-    'docs/_data/layout/evidence/material-source-applied.json',
-  );
-  if (!existsSync(path)) return new Map();
-  const report = JSON.parse(await readFile(path, 'utf8')) as {
-    applied: boolean;
-    records: MaterialSourceReportRecord[];
-  };
-  return new Map(
-    report.applied
-      ? report.records.map((record) => [record.sourcePath, record])
-      : [],
-  );
+async function readMaterialSourceReport(context: LayoutCurrentContext): Promise<Map<string, MaterialSourceReportRecord>> {
+  return readCurrentSourceReport<MaterialSourceReportRecord>(context, 'material-source-applied.json');
 }
 
 const BRIDGE_ROUNDTRIP_FIXTURE =
@@ -1421,7 +1428,7 @@ interface DiscoveredZuiSources {
   metadata: CatalogSourceDiscovery;
 }
 
-export async function discoverZuiSources(): Promise<DiscoveredZuiSources> {
+export async function discoverZuiSources(repoRoot = legacyRepoRoot()): Promise<DiscoveredZuiSources> {
   const result = await execFileAsync(
     'git',
     [
@@ -1750,10 +1757,11 @@ function readSourceHeader(source: string): SourceHeader {
   }
 }
 
-export function renderResult(entry: CatalogEntry): string {
+export function renderResult(entry: CatalogEntry, context?: LayoutCurrentContext): string {
+  const root = context?.outputRoot ?? legacyOutputRoot();
   const review = currentDualReview(entry) ? entry.review : undefined;
   const link = (path: string, label: string) =>
-    `[${label}](${relative(resolve(outputRoot, dirname(entry.resultPath)), resolveLayoutCatalogPath(outputRoot, path)).replaceAll('\\', '/')})`;
+    `[${label}](${relative(resolve(root, dirname(entry.resultPath)), catalogOutputPath(context, root, path)).replaceAll('\\', '/')})`;
   const primary = (renderer: 'penpot' | 'engine', path?: string) => {
     const item = entry[`${renderer}Evidence`]?.find(
       (item) =>
@@ -1811,7 +1819,7 @@ export function renderResult(entry: CatalogEntry): string {
       ),
   );
   const textAuditPath = `${dirname(entry.outputPath)}/evidence/text-structure.json`;
-  const textAudit = existsSync(resolveLayoutCatalogPath(outputRoot, textAuditPath))
+  const textAudit = existsSync(catalogOutputPath(context, root, textAuditPath))
     ? `- Current measured text findings: ${link(textAuditPath, 'text-structure.json')} (raw glyph bounds; scroll/overlay context remains subject to visual review).`
     : '- Current measured text audit: not generated for this entry.';
   return `---
@@ -1874,8 +1882,8 @@ ${entry.changes.length ? entry.changes.map((change) => `- ${change}`).join('\n')
 `;
 }
 
-export function renderAcceptedResult(entry: CatalogEntry): string {
-  return renderResult(entry);
+export function renderAcceptedResult(entry: CatalogEntry, context?: LayoutCurrentContext): string {
+  return renderResult(entry, context);
 }
 
 const CHANGE_DESCRIPTIONS: Record<string, string> = {
@@ -2007,7 +2015,9 @@ function humanizeChangeId(change: string): string {
   return change.replaceAll('-', ' ');
 }
 
-export function renderIndex(manifest: CatalogManifest): string {
+export function renderIndex(manifest: CatalogManifest, context?: LayoutCurrentContext): string {
+  const root = context?.outputRoot ?? legacyOutputRoot();
+  const activePlanLink = context ? pathToFileURL(layoutCurrentSourcePath(context, 'docs/plans/unreal-editor-source-cutover.md')).href : '../../plans/unreal-editor-source-cutover.md';
   const grouped = new Map<string, CatalogEntry[]>();
   for (const entry of manifest.entries) {
     const group = grouped.get(entry.category) ?? [];
@@ -2020,7 +2030,7 @@ export function renderIndex(manifest: CatalogManifest): string {
       `## ${category}\n\n| 源文件 | 原文镜像 | 分类 | 资产根 | 类型 | 组件依赖 | 资源依赖 | 节点 | 状态 |\n|---|---|---|---|---|---|---|---:|---|\n${entries
         .map(
           (entry) =>
-            `| \`${entry.sourcePath}\` | [${entry.name}.zui](${relative(outputRoot, resolveLayoutCatalogPath(outputRoot, entry.outputPath)).replaceAll('\\', '/')}) | ${entry.sourceClassification} | \`${entry.assetRoot}\` | ${entry.sourceKind} v${String(entry.sourceVersion)} | ${entry.componentDependencies.join(', ') || '-'} | ${entry.resourceDependencies.length} | ${entry.nodeCount} | ${entry.status} / ${currentDualReview(entry) ? entry.review?.status : 'review-pending'} |`,
+            `| \`${entry.sourcePath}\` | [${entry.name}.zui](${relative(root, catalogOutputPath(context, root, entry.outputPath)).replaceAll('\\', '/')}) | ${entry.sourceClassification} | \`${entry.assetRoot}\` | ${entry.sourceKind} v${String(entry.sourceVersion)} | ${entry.componentDependencies.join(', ') || '-'} | ${entry.resourceDependencies.length} | ${entry.nodeCount} | ${entry.status} / ${currentDualReview(entry) ? entry.review?.status : 'review-pending'} |`,
         )
         .join('\n')}`,
     );
@@ -2028,7 +2038,7 @@ export function renderIndex(manifest: CatalogManifest): string {
   const discovery = manifest.sourceDiscovery
     ? `\n- Git 受控或未忽略源：${manifest.sourceDiscovery.controlledOrUnignoredSourceCount}\n- 扫描到的项目夹具：${(manifest.sourceDiscovery.projectOwnedScannedFixtures ?? []).map((fixture) => `\`${fixture.sourcePath}\``).join(', ') || '无'}\n- 显式项目夹具：${manifest.sourceDiscovery.explicitProjectFixtures.map((fixture) => `\`${fixture.sourcePath}\``).join(', ')}\n- 扫描排除根：${manifest.sourceDiscovery.excludedRoots.map((path) => `\`${path}\``).join(', ')}\n`
     : '';
-  return `# ZirconEngine .zui 双端布局目录\n\n- 生成时间：${manifest.generatedAt}\n- 已知源文件：${manifest.sourceCount}${discovery}\n- 当前编辑器入口：\`res://ui/editor/unreal/level_editor_window.zui\`\n- 布局参考：[虚幻编辑器来源与验收](../../plans/unreal-editor-source-cutover.md)\n- 原文镜像：\`docs/ui/zui/{category}/{name}/{name}.zui\`\n- 每项验收记录：同目录 \`result.md\`\n- 引擎主图：\`preview.png\`；Penpot 主图：\`penpot.png\`\n- Penpot 展开输入：\`evidence/penpot-input.zui\`\n\n${sections.join('\n\n')}\n`;
+  return `# ZirconEngine .zui 双端布局目录\n\n- 生成时间：${manifest.generatedAt}\n- 已知源文件：${manifest.sourceCount}${discovery}\n- 当前编辑器入口：\`res://ui/editor/unreal/level_editor_window.zui\`\n- 布局参考：[虚幻编辑器来源与验收](${activePlanLink})\n- 原文镜像：\`docs/ui/zui/{category}/{name}/{name}.zui\`\n- 每项验收记录：同目录 \`result.md\`\n- 引擎主图：\`preview.png\`；Penpot 主图：\`penpot.png\`\n- Penpot 展开输入：\`evidence/penpot-input.zui\`\n\n${sections.join('\n\n')}\n`;
 }
 
 function record(value: unknown): Record<string, unknown> | undefined {

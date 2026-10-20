@@ -367,3 +367,283 @@ fn graph_submission_receipt_rejects_stale_graph_generation() {
         .to_string()
         .contains("graph resource generation does not match receipt"));
 }
+
+fn optional_absence_receipt(
+    accesses: Vec<RhiGraphExecutionAccess>,
+    leases: Vec<RhiGraphPhysicalResourceLease>,
+) -> Result<RhiGraphExecutionReceipt, crate::RhiGraphExecutionReceiptError> {
+    RhiGraphExecutionReceipt::new(
+        DeviceId::new(41),
+        DeviceGeneration::initial(),
+        12,
+        77,
+        RenderQueueClass::Graphics,
+        vec![RhiGraphExecutionPass::new(
+            0,
+            0,
+            77,
+            RhiGraphQueueLane::Graphics,
+            accesses,
+            vec![],
+        )],
+        leases,
+    )
+}
+
+fn optional_absence_access(
+    id: RhiGraphAccessId,
+    resource: RhiGraphResourceId,
+    range: RhiGraphAccessRange,
+    allocation: Option<u64>,
+    physical: bool,
+) -> RhiGraphExecutionAccess {
+    RhiGraphExecutionAccess::new(
+        id,
+        resource,
+        1,
+        RhiGraphResourceAccessKind::Read,
+        range,
+        RhiGraphResourceState::StorageBufferRead,
+        RhiGraphQueueLane::Graphics,
+        allocation,
+        physical,
+    )
+}
+
+#[test]
+fn graph_submission_optional_external_absence_retains_typed_buffer_and_texture_ranges() {
+    let buffer_range = RhiGraphAccessRange::buffer(32, 64);
+    let texture_range = RhiGraphAccessRange::texture(1, 3, 0, 1, 1);
+    let buffer_bounds = RhiGraphResourceBounds::buffer(128).unwrap();
+    let texture_bounds = RhiGraphResourceBounds::texture(4, 1, 1).unwrap();
+    let buffer = optional_absence_access(
+        RhiGraphAccessId::new(0, 77, 0),
+        RhiGraphResourceId::new(RhiGraphResourceKind::External, 9, 77),
+        buffer_range,
+        None,
+        false,
+    );
+    assert!(
+        optional_absence_receipt(vec![buffer.clone()], vec![]).is_err(),
+        "default typed accesses still require a physical lease"
+    );
+    let texture = optional_absence_access(
+        RhiGraphAccessId::new(0, 77, 1),
+        RhiGraphResourceId::new(RhiGraphResourceKind::External, 10, 77),
+        texture_range,
+        None,
+        false,
+    );
+    let receipt = optional_absence_receipt(
+        vec![
+            buffer
+                .with_optional_external_absence(buffer_bounds)
+                .unwrap(),
+            texture
+                .with_optional_external_absence(texture_bounds)
+                .unwrap(),
+        ],
+        vec![],
+    )
+    .expect("explicit optional absence retains both typed scopes without fake leases");
+    let accesses = receipt.passes()[0].accesses();
+    assert_eq!(accesses[0].range(), buffer_range);
+    assert_eq!(accesses[1].range(), texture_range);
+    assert_eq!(
+        accesses[0].optional_external_absence_bounds(),
+        Some(buffer_bounds)
+    );
+    assert_eq!(
+        accesses[1].optional_external_absence_bounds(),
+        Some(texture_bounds)
+    );
+    assert!(!accesses[0].has_physical_binding());
+    assert!(!accesses[1].has_physical_binding());
+    assert_eq!(receipt.physical_lease_count(), 0);
+}
+
+#[test]
+fn graph_submission_optional_external_absence_rejects_origin_bounds_and_physical_leases() {
+    let id = RhiGraphAccessId::new(0, 77, 0);
+    let resource = RhiGraphResourceId::new(RhiGraphResourceKind::External, 9, 77);
+    let range = RhiGraphAccessRange::buffer(32, 64);
+    let bounds = RhiGraphResourceBounds::buffer(128).unwrap();
+    for (resource_kind, allocation, physical, candidate_range, candidate_bounds) in [
+        (RhiGraphResourceKind::Buffer, None, false, range, bounds),
+        (RhiGraphResourceKind::Texture, None, false, range, bounds),
+        (
+            RhiGraphResourceKind::External,
+            Some(3),
+            false,
+            range,
+            bounds,
+        ),
+        (RhiGraphResourceKind::External, None, true, range, bounds),
+        (
+            RhiGraphResourceKind::External,
+            None,
+            false,
+            RhiGraphAccessRange::UnresolvedExternal,
+            bounds,
+        ),
+        (
+            RhiGraphResourceKind::External,
+            None,
+            false,
+            range,
+            RhiGraphResourceBounds::buffer(64).unwrap(),
+        ),
+        (
+            RhiGraphResourceKind::External,
+            None,
+            false,
+            range,
+            RhiGraphResourceBounds::texture(4, 1, 1).unwrap(),
+        ),
+        (
+            RhiGraphResourceKind::External,
+            None,
+            false,
+            RhiGraphAccessRange::buffer(u64::MAX, 2),
+            bounds,
+        ),
+        (
+            RhiGraphResourceKind::External,
+            None,
+            false,
+            RhiGraphAccessRange::texture(0, 2, 0, 1, 2),
+            RhiGraphResourceBounds::texture(2, 1, 1).unwrap(),
+        ),
+    ] {
+        let invalid = optional_absence_access(
+            id,
+            RhiGraphResourceId::new(resource_kind, 9, 77),
+            candidate_range,
+            allocation,
+            physical,
+        );
+        assert!(
+            invalid
+                .with_optional_external_absence(candidate_bounds)
+                .is_err(),
+            "absence cannot bypass origin, allocation, presence, range kind, overflow, or aspects"
+        );
+    }
+    let access = optional_absence_access(id, resource, range, None, false)
+        .with_optional_external_absence(bounds)
+        .unwrap();
+    let lease = RhiGraphPhysicalResourceLease::new(
+        id,
+        resource,
+        None,
+        DeviceId::new(41),
+        DeviceGeneration::initial(),
+        bounds,
+        Arc::new(()),
+    );
+    let error = optional_absence_receipt(vec![access.clone()], vec![lease])
+        .expect_err("an absent external must never carry a physical lease");
+    assert!(error
+        .to_string()
+        .contains("logical-only graph access has a physical lease"));
+    let stale_lease = RhiGraphPhysicalResourceLease::new(
+        id,
+        resource,
+        None,
+        DeviceId::new(41),
+        DeviceGeneration::new(2),
+        bounds,
+        Arc::new(()),
+    );
+    let error = optional_absence_receipt(vec![access], vec![stale_lease])
+        .expect_err("absence must not bypass device generation checks");
+    assert!(error
+        .to_string()
+        .contains("physical lease device generation"));
+}
+
+#[test]
+fn graph_submission_optional_external_absence_preserves_identity_generation_and_transitions() {
+    let resource = RhiGraphResourceId::new(RhiGraphResourceKind::External, 9, 77);
+    let range = RhiGraphAccessRange::buffer(0, 16);
+    let bounds = RhiGraphResourceBounds::buffer(32).unwrap();
+    for (id, resource) in [
+        (RhiGraphAccessId::new(0, 77, 1), resource),
+        (
+            RhiGraphAccessId::new(0, 77, 0),
+            RhiGraphResourceId::new(RhiGraphResourceKind::External, 9, 78),
+        ),
+    ] {
+        let access = optional_absence_access(id, resource, range, None, false)
+            .with_optional_external_absence(bounds)
+            .unwrap();
+        assert!(
+            optional_absence_receipt(vec![access], vec![]).is_err(),
+            "typed absence does not waive access ordinal or resource generation"
+        );
+    }
+    let from_id = RhiGraphAccessId::new(0, 77, 0);
+    let to_id = RhiGraphAccessId::new(1, 77, 0);
+    let from = optional_absence_access(from_id, resource, range, None, false)
+        .with_optional_external_absence(bounds)
+        .unwrap();
+    let to = optional_absence_access(to_id, resource, range, None, false)
+        .with_optional_external_absence(bounds)
+        .unwrap();
+    let transition = RhiGraphExecutionTransition::new(
+        resource,
+        range,
+        from_id,
+        to_id,
+        RhiGraphResourceState::StorageBufferRead,
+        RhiGraphResourceState::StorageBufferRead,
+        RhiGraphQueueLane::Graphics,
+        RhiGraphQueueLane::Graphics,
+    );
+    let receipt_for = |transition| {
+        RhiGraphExecutionReceipt::new(
+            DeviceId::new(41),
+            DeviceGeneration::initial(),
+            12,
+            77,
+            RenderQueueClass::Graphics,
+            vec![
+                RhiGraphExecutionPass::new(
+                    0,
+                    0,
+                    77,
+                    RhiGraphQueueLane::Graphics,
+                    vec![from.clone()],
+                    vec![],
+                ),
+                RhiGraphExecutionPass::new(
+                    1,
+                    1,
+                    77,
+                    RhiGraphQueueLane::Graphics,
+                    vec![to.clone()],
+                    vec![transition],
+                ),
+            ],
+            vec![],
+        )
+    };
+    assert!(
+        receipt_for(transition).is_ok(),
+        "valid optional scopes retain their transition proof"
+    );
+    let wrong_transition = RhiGraphExecutionTransition::new(
+        resource,
+        RhiGraphAccessRange::buffer(16, 16),
+        from_id,
+        to_id,
+        RhiGraphResourceState::StorageBufferRead,
+        RhiGraphResourceState::StorageBufferRead,
+        RhiGraphQueueLane::Graphics,
+        RhiGraphQueueLane::Graphics,
+    );
+    assert!(
+        receipt_for(wrong_transition).is_err(),
+        "absence cannot widen transition ranges"
+    );
+}

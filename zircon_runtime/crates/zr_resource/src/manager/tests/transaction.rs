@@ -1312,3 +1312,70 @@ fn m6_source_publication_preserves_last_good_and_reserves_exact_versions() {
     ));
     assert!(dropped.load(Ordering::Acquire));
 }
+
+#[test]
+fn declared_payload_mismatch_rejects_entire_batch_before_publication() {
+    let manager = ResourceManager::new();
+    let candidate =
+        record("declared-model", "res://models/declared.glb").with_state(ResourceState::Ready);
+    manager
+        .commit(ResourceMutationBatch::new().upsert_typed_lazy::<TestPayload>(candidate.clone()))
+        .unwrap();
+    let revision = manager.registry().get(candidate.id).unwrap().revision;
+    let untouched = record("must-not-publish", "res://models/unpublished.glb");
+    let events = manager.subscribe();
+    let management = manager.management_generation();
+    let readiness = manager.readiness_generation();
+    let error = manager
+        .commit(
+            ResourceMutationBatch::new()
+                .upsert_lazy(untouched.clone())
+                .store_payload(candidate.id, revision, 17_u32),
+        )
+        .unwrap_err();
+    assert_eq!(
+        error,
+        ResourceRegistryError::PayloadTypeConflict {
+            id: candidate.id.to_string()
+        }
+    );
+    assert!(manager.registry().get(untouched.id).is_none());
+    assert!(manager
+        .registry()
+        .contains_payload::<TestPayload>(candidate.id));
+    assert!(manager
+        .get::<ModelMarker, TestPayload>(ResourceHandle::new(candidate.id))
+        .is_none());
+    assert!(Arc::ptr_eq(&management, &manager.management_generation()));
+    assert!(Arc::ptr_eq(&readiness, &manager.readiness_generation()));
+    assert_eq!(events.try_recv(), Err(ResourceEventTryRecvError::Empty));
+    let conflict = manager
+        .commit(
+            ResourceMutationBatch::new()
+                .remove(candidate.primary_locator.clone())
+                .upsert_typed_lazy::<u32>(candidate.clone()),
+        )
+        .unwrap_err();
+    assert_eq!(
+        conflict,
+        ResourceRegistryError::PayloadTypeConflict {
+            id: candidate.id.to_string()
+        }
+    );
+    assert!(Arc::ptr_eq(&management, &manager.management_generation()));
+    assert_eq!(events.try_recv(), Err(ResourceEventTryRecvError::Empty));
+    manager
+        .commit(ResourceMutationBatch::new().store_payload(
+            candidate.id,
+            revision,
+            TestPayload("recovered"),
+        ))
+        .unwrap();
+    assert_eq!(
+        manager
+            .get::<ModelMarker, TestPayload>(ResourceHandle::new(candidate.id))
+            .unwrap()
+            .0,
+        "recovered"
+    );
+}

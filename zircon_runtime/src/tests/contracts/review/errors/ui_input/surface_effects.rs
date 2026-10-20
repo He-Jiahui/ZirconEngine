@@ -41,15 +41,6 @@ fn review_f5_ui_surface_input_effects_use_typed_errors_before_rejected_reason_bo
             include_str!("../../../../../ui/surface/input/effect/text_services.rs"),
         ),
     ];
-    let _review_findings =
-        include_str!("../../../../../../../docs/plans/engine-code-review-findings-2026-06.md");
-    let _runtime_15_plan = include_str!(
-        "../../../../../../../docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md"
-    );
-    let _runtime_index =
-        include_str!("../../../../../../../docs/plans/zircon_runtime/runtime/index.md");
-    let _convention =
-        include_str!("../../../../../../../docs/plans/engine-code-structure-convention.md");
     let _module_doc = include_str!(
         "../../../../../../../docs/crates/zircon_runtime/structure/module-convention.md"
     );

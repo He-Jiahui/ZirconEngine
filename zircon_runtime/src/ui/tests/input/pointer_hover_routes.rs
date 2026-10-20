@@ -126,7 +126,11 @@ fn assert_direct_hover_step(
         result.diagnostics.route_steps[0].disposition,
         UiDispatchDisposition::Handled
     );
-    assert_eq!(result.diagnostics.route_steps[0].effect_count, 0);
+    assert_eq!(result.diagnostics.route_steps[0].effect_count, 1);
+    assert_cursor_result(
+        result,
+        zircon_runtime_interface::ui::tree::UiCursor::Default,
+    );
     assert!(result.diagnostics.route_steps[0].stopped);
 }
 
@@ -146,4 +150,121 @@ fn hover_route_surface() -> UiSurface {
     }
     surface.rebuild();
     surface
+}
+
+#[test]
+fn mouse_cursor_uses_physical_path_inheritance_and_explicit_default_without_touch_effects() {
+    use zircon_runtime_interface::ui::tree::{UiCursor, UiPointerEvents};
+    let mut surface = route_surface();
+    surface
+        .tree
+        .nodes
+        .get_mut(&UiNodeId::new(1))
+        .unwrap()
+        .cursor = Some(UiCursor::Text);
+    surface
+        .tree
+        .nodes
+        .get_mut(&UiNodeId::new(2))
+        .unwrap()
+        .pointer_events = UiPointerEvents::Pass;
+    surface.rebuild();
+    for (child_cursor, expected) in [
+        (None, UiCursor::Text),
+        (Some(UiCursor::Default), UiCursor::Default),
+        (Some(UiCursor::Pointer), UiCursor::Pointer),
+    ] {
+        surface
+            .tree
+            .nodes
+            .get_mut(&UiNodeId::new(2))
+            .unwrap()
+            .cursor = child_cursor;
+        let result = surface
+            .dispatch_input_event(
+                &UiPointerDispatcher::default(),
+                &UiNavigationDispatcher::default(),
+                pointer_event(UiPointerEventKind::Move, UiPoint::new(20.0, 20.0)),
+            )
+            .unwrap();
+        assert_cursor_result(&result, expected);
+        assert_eq!(
+            result
+                .pointer_routing
+                .as_ref()
+                .unwrap()
+                .physical_hit_path
+                .target,
+            Some(UiNodeId::new(2))
+        );
+    }
+    surface.capture_pointer(UiNodeId::new(3)).unwrap();
+    let captured = surface
+        .dispatch_input_event(
+            &UiPointerDispatcher::default(),
+            &UiNavigationDispatcher::default(),
+            pointer_event(UiPointerEventKind::Move, UiPoint::new(20.0, 20.0)),
+        )
+        .unwrap();
+    assert_cursor_result(&captured, UiCursor::Pointer);
+    assert_eq!(
+        captured.pointer_routing.as_ref().unwrap().capture_target,
+        Some(UiNodeId::new(3))
+    );
+    for (kind, point) in [
+        (UiPointerEventKind::Move, UiPoint::new(500.0, 500.0)),
+        (UiPointerEventKind::Cancel, UiPoint::new(20.0, 20.0)),
+    ] {
+        let result = surface
+            .dispatch_input_event(
+                &UiPointerDispatcher::default(),
+                &UiNavigationDispatcher::default(),
+                pointer_event(kind, point),
+            )
+            .unwrap();
+        // Cancel may additionally publish the original capture-release effects.
+        let cursors: Vec<_> = result
+            .reply
+            .effects
+            .iter()
+            .enumerate()
+            .filter_map(|(index, e)| match e {
+                UiDispatchEffect::RequestCursor { cursor } => Some((index, *cursor)),
+                _ => None,
+            })
+            .collect();
+        assert_eq!(cursors.len(), 1);
+        assert_eq!(cursors[0].1, UiCursor::Default);
+        assert!(result
+            .host_requests
+            .iter()
+            .any(|r| r.effect_index == cursors[0].0
+                && r.request == UiDispatchHostRequestKind::Cursor(UiCursor::Default)));
+    }
+    for source in [
+        UiPointerSource::Touch,
+        UiPointerSource::Pen,
+        UiPointerSource::Unknown,
+    ] {
+        let mut event = pointer_event(UiPointerEventKind::Move, UiPoint::new(20.0, 20.0));
+        if let UiInputEvent::Pointer(pointer) = &mut event {
+            pointer.metadata.pointer_source = source;
+        }
+        let result = surface
+            .dispatch_input_event(
+                &UiPointerDispatcher::default(),
+                &UiNavigationDispatcher::default(),
+                event,
+            )
+            .unwrap();
+        assert!(!result
+            .reply
+            .effects
+            .iter()
+            .any(|e| matches!(e, UiDispatchEffect::RequestCursor { .. })));
+        assert!(!result
+            .host_requests
+            .iter()
+            .any(|r| matches!(r.request, UiDispatchHostRequestKind::Cursor(_))));
+    }
 }

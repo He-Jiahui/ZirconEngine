@@ -1,3 +1,4 @@
+use std::any::TypeId;
 use std::collections::HashMap;
 use std::ops::Deref;
 use std::sync::Arc;
@@ -7,11 +8,38 @@ use crate::{
     ResourceResult,
 };
 
+/// Process-local concrete payload identity. It is neither serialized nor a replacement for kind.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct ResourcePayloadType(TypeId);
+
+impl ResourcePayloadType {
+    pub fn of<T: 'static>() -> Self {
+        Self(TypeId::of::<T>())
+    }
+
+    pub(crate) fn from_data(data: &dyn crate::ResourceData) -> Self {
+        Self(data.as_any().type_id())
+    }
+}
+
+/// Content fields that authorize a payload declaration; publication state and locator moves
+/// do not change the concrete Rust type. Dependency resolution likewise does not erase it.
+pub(crate) fn same_payload_content(a: &ResourceRecord, b: &ResourceRecord) -> bool {
+    a.id == b.id
+        && a.kind == b.kind
+        && a.artifact_locator == b.artifact_locator
+        && a.source_hash == b.source_hash
+        && a.importer_id == b.importer_id
+        && a.importer_version == b.importer_version
+        && a.config_hash == b.config_hash
+}
+
 /// 目录的不可变读取快照；克隆共享索引，后续写入以写时复制隔离已有快照，不携带运行时载荷。
 #[derive(Clone, Debug, Default)]
 pub struct ResourceRegistry {
     by_id: Arc<HashMap<ResourceId, Arc<ResourceRecord>>>,
     id_by_locator: Arc<HashMap<Arc<ResourceLocator>, ResourceId>>,
+    payload_types: Arc<HashMap<ResourceId, ResourcePayloadType>>,
 }
 
 impl ResourceRegistry {
@@ -23,6 +51,13 @@ impl ResourceRegistry {
                 .is_none_or(|existing_id| *existing_id == record.id),
             "resource mutation preflight must reject occupied locators"
         );
+        if self
+            .by_id
+            .get(&record.id)
+            .is_none_or(|previous| !same_payload_content(previous, &record))
+        {
+            Arc::make_mut(&mut self.payload_types).remove(&record.id);
+        }
         if let Some(existing_locator) = self
             .by_id
             .get(&record.id)
@@ -36,6 +71,28 @@ impl ResourceRegistry {
         Arc::make_mut(&mut self.by_id)
             .insert(record.id, Arc::new(record))
             .map(into_owned_record)
+    }
+
+    /// Reads only the declaration published with this catalog snapshot; never loads a payload.
+    pub fn payload_type(&self, id: ResourceId) -> Option<ResourcePayloadType> {
+        self.get(id)?;
+        self.payload_types.get(&id).copied()
+    }
+
+    pub fn contains_payload<T: 'static>(&self, id: ResourceId) -> bool {
+        self.payload_type(id) == Some(ResourcePayloadType::of::<T>())
+    }
+
+    pub(crate) fn set_payload_type(
+        &mut self,
+        id: ResourceId,
+        payload_type: Option<ResourcePayloadType>,
+    ) {
+        if let Some(payload_type) = payload_type.filter(|_| self.by_id.contains_key(&id)) {
+            Arc::make_mut(&mut self.payload_types).insert(id, payload_type);
+        } else {
+            Arc::make_mut(&mut self.payload_types).remove(&id);
+        }
     }
 
     pub fn get(&self, id: ResourceId) -> Option<&ResourceRecord> {
@@ -59,6 +116,7 @@ impl ResourceRegistry {
 
     pub(crate) fn remove_by_id(&mut self, id: ResourceId) -> Option<ResourceRecord> {
         let removed = Arc::make_mut(&mut self.by_id).remove(&id)?;
+        Arc::make_mut(&mut self.payload_types).remove(&id);
         Arc::make_mut(&mut self.id_by_locator).remove(&removed.primary_locator);
         Some(into_owned_record(removed))
     }
@@ -132,6 +190,27 @@ impl ResourceRegistryStaging {
         Ok(self.registry.insert_unchecked(record))
     }
 
+    /// Attaches an importer-proven concrete type to an already staged row.
+    pub fn stage_payload_type(
+        &mut self,
+        id: ResourceId,
+        payload_type: ResourcePayloadType,
+    ) -> ResourceResult<()> {
+        if self.registry.get(id).is_none() {
+            return Err(ResourceRegistryError::MissingRecordForId { id: id.to_string() });
+        }
+        if self
+            .registry
+            .payload_type(id)
+            .or_else(|| self.identity_registry.payload_type(id))
+            .is_some_and(|existing| existing != payload_type)
+        {
+            return Err(ResourceRegistryError::PayloadTypeConflict { id: id.to_string() });
+        }
+        self.registry.set_payload_type(id, Some(payload_type));
+        Ok(())
+    }
+
     /// Moves an offline record to a new locator while retaining its established identity.
     ///
     /// This only prepares a project candidate. Publication remains exclusive to the live
@@ -156,6 +235,7 @@ impl ResourceRegistryStaging {
             }
         }
 
+        let payload_type = self.registry.payload_type(id);
         let mut record = self
             .registry
             .remove_by_id(id)
@@ -169,6 +249,7 @@ impl ResourceRegistryStaging {
             },
         );
         self.registry.insert_unchecked(record.clone());
+        self.registry.set_payload_type(id, payload_type);
         Ok(record)
     }
 

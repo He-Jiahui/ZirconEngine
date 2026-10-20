@@ -10,7 +10,7 @@ Find a supported cause before choosing a fix. Scale investigation to the failure
 1. Capture the actual failure, relevant inputs, environment, and recent changes. Reproduce it when doing so adds evidence; reuse an existing reliable reproduction.
 2. Trace the failing value or contract toward its owner. Compare a working path or reference implementation only as far as needed to distinguish the hypotheses.
 3. Choose the smallest discriminating check. Record what the result rules in or out, then repair the responsible layer.
-4. Validate the affected behavior and callers using [the validation policy](../../../../../docs/plans/milestone-validation-policy.md). Add a regression test when it protects behavior that could recur.
+4. Validate the affected behavior and callers using [the validation policy](../../../../../docs/testing-and-validation/milestone-validation-policy.md). Add a regression test when it protects behavior that could recur.
 
 Repeated failures call for revisiting the hypothesis, boundaries, or missing evidence. An arbitrary attempt count does not require user approval. Ask when a consequential decision or unavailable information is actually needed; keep independent work moving.
 

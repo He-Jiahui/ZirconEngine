@@ -98,7 +98,7 @@ def execution_environment(toolchain: dict, generation: Path) -> dict[str, str]:
         "TMP": str(generation / "scratch"), "TMPDIR": str(generation / "scratch"),
         "SCCACHE_DIR": str(generation / "sccache"), "RUSTC_WRAPPER": "", "RUSTC_WORKSPACE_WRAPPER": "",
         "RUSTC": toolchain["binaries"]["rustc"]["path"], "RUSTDOC": toolchain["binaries"]["rustdoc"]["path"],
-        "CARGO_INCREMENTAL": "1", "CARGO_HTTP_PROXY": ""})
+        "CARGO_HTTP_PROXY": ""})
     return environment
 
 

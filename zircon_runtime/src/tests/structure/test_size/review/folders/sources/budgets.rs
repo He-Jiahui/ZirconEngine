@@ -4,94 +4,91 @@ use super::CODE_REVIEW_FINDINGS_LINE_BUDGET;
 
 pub(super) fn assert_code_review_findings_line_budgets(sources: &CodeReviewFindingsSources) {
     for (path, source) in [
+        ("tests/contracts/review.rs", sources.parent.as_str()),
         (
-            "tests/runtime_absorption/code_review_findings.rs",
-            sources.parent.as_str(),
-        ),
-        (
-            "tests/runtime_absorption/code_review_findings/f8_api_convergence.rs",
+            "tests/contracts/review/f8_api_convergence.rs",
             sources.f8_api_convergence.as_str(),
         ),
         (
-            "tests/runtime_absorption/code_review_findings/f8_api_convergence/texture_import_settings.rs",
+            "tests/review/f8_api_convergence/texture_import_settings.rs",
             sources.f8_texture_import_settings.as_str(),
         ),
         (
-            "tests/runtime_absorption/code_review_findings/f8_api_convergence/descriptor_builder.rs",
+            "tests/review/f8_api_convergence/descriptor_builder.rs",
             sources.f8_descriptor_builder.as_str(),
         ),
         (
-            "tests/runtime_absorption/code_review_findings/f8_api_convergence/descriptor_builder/scaffold.rs",
+            "tests/contracts/review/descriptor_builder/scaffold.rs",
             sources.f8_descriptor_builder_scaffold.as_str(),
         ),
         (
-            "tests/runtime_absorption/code_review_findings/f8_api_convergence/descriptor_builder/first_party_descriptors.rs",
+            "tests/review/descriptor_builder/first_party_descriptors.rs",
             sources.f8_descriptor_builder_first_party.as_str(),
         ),
         (
-            "tests/runtime_absorption/code_review_findings/f8_api_convergence/descriptor_builder/test_fixtures.rs",
+            "tests/contracts/review/descriptor_builder/test_fixtures.rs",
             sources.f8_descriptor_builder_test_fixtures.as_str(),
         ),
         (
-            "tests/runtime_absorption/code_review_findings/f8_api_convergence/descriptor_privacy.rs",
+            "tests/review/f8_api_convergence/descriptor_privacy.rs",
             sources.f8_descriptor_privacy.as_str(),
         ),
         (
-            "tests/runtime_absorption/code_review_findings/f8_api_convergence/descriptor_privacy/private_fields.rs",
+            "tests/contracts/review/descriptor_privacy/private_fields.rs",
             sources.f8_descriptor_privacy_private_fields.as_str(),
         ),
         (
-            "tests/runtime_absorption/code_review_findings/f8_api_convergence/descriptor_privacy/constructor_retirement.rs",
+            "tests/review/descriptor_privacy/constructor_retirement.rs",
             sources
                 .f8_descriptor_privacy_constructor_retirement
                 .as_str(),
         ),
         (
-            "tests/runtime_absorption/code_review_findings/f8_api_convergence/descriptor_privacy/status_mirrors.rs",
+            "tests/contracts/review/descriptor_privacy/status_mirrors.rs",
             sources.f8_descriptor_privacy_status_mirrors.as_str(),
         ),
         (
-            "tests/runtime_absorption/code_review_findings/late_api_cleanup.rs",
+            "tests/contracts/review/late_api_cleanup.rs",
             sources.late_api_cleanup.as_str(),
         ),
         (
-            "tests/runtime_absorption/code_review_findings/p0_robustness.rs",
+            "tests/contracts/review/p0_robustness.rs",
             sources.p0_robustness.as_str(),
         ),
         (
-            "tests/runtime_absorption/code_review_findings/p0_robustness/native_host_callbacks.rs",
+            "tests/contracts/review/p0_robustness/native_host_callbacks.rs",
             sources.p0_native_host_callbacks.as_str(),
         ),
         (
-            "tests/runtime_absorption/code_review_findings/p0_robustness/lock_poison.rs",
+            "tests/contracts/review/p0_robustness/lock_poison.rs",
             sources.p0_lock_poison.as_str(),
         ),
         (
-            "tests/runtime_absorption/code_review_findings/p0_robustness/render_submit.rs",
+            "tests/contracts/review/p0_robustness/render_submit.rs",
             sources.p0_render_submit.as_str(),
         ),
         (
-            "tests/runtime_absorption/code_review_findings/p0_robustness/native_fixture.rs",
+            "tests/contracts/review/p0_robustness/native_fixture.rs",
             sources.p0_native_fixture.as_str(),
         ),
         (
-            "tests/runtime_absorption/code_review_findings/p0_robustness/native_fixture/sdk_macro_manifest.rs",
+            "tests/contracts/review/native_fixture/sdk_macro_manifest.rs",
             sources.p0_native_fixture_sdk_macro.as_str(),
         ),
         (
-            "tests/runtime_absorption/code_review_findings/p0_robustness/native_fixture/importer_manifest.rs",
+            "tests/contracts/review/native_fixture/importer_manifest.rs",
             sources.p0_native_fixture_importer.as_str(),
         ),
         (
-            "tests/runtime_absorption/code_review_findings/p0_robustness/priority_recommendation.rs",
+            "tests/review/p0_robustness/priority_recommendation.rs",
             sources.p0_priority_recommendation.as_str(),
         ),
         (
-            "tests/runtime_absorption/code_review_findings/render_structure.rs",
+            "tests/contracts/review/render_structure.rs",
             sources.render_structure.as_str(),
         ),
         (
-            "tests/runtime_absorption/code_review_findings/f12_dead_code.rs",
+            "tests/contracts/review/f12_dead_code.rs",
             sources.f12_dead_code.as_str(),
         ),
     ] {
@@ -101,4 +98,362 @@ pub(super) fn assert_code_review_findings_line_budgets(sources: &CodeReviewFindi
             "{path} should stay below the Runtime 15 test-file budget; got {line_count} lines"
         );
     }
+}
+
+pub(super) fn assert_review_graph_part(identities: &mut Vec<String>) {
+    super::assert_review_owner_contract(
+        "tests/errors/loader/plugin_descriptor/descriptor_abi.rs",
+        "code_review_findings::typed_error_convergence::native_plugin_loader::abi_surfaces::plugin_descriptor::descriptor_abi",
+        &[
+        ],
+        &[
+            "review_f5_native_plugin_descriptor_abi_uses_typed_error",
+        ],
+        identities,
+    );
+    super::assert_review_owner_contract(
+        "tests/review/errors/loader/plugin_descriptor/entry_abi.rs",
+        "code_review_findings::typed_error_convergence::native_plugin_loader::abi_surfaces::plugin_descriptor::entry_abi",
+        &[
+        ],
+        &[
+            "review_f5_native_plugin_entry_abi_uses_typed_error",
+        ],
+        identities,
+    );
+    super::assert_review_owner_contract(
+        "tests/errors/loader/plugin_descriptor/string_helpers.rs",
+        "code_review_findings::typed_error_convergence::native_plugin_loader::abi_surfaces::plugin_descriptor::string_helpers",
+        &[
+        ],
+        &[
+            "review_f5_native_plugin_string_helpers_use_typed_error",
+        ],
+        identities,
+    );
+    super::assert_review_owner_contract(
+        "tests/contracts/review/errors/loader/bridge_lifecycle.rs",
+        "code_review_findings::typed_error_convergence::native_plugin_loader::bridge_lifecycle",
+        &[],
+        &["review_f5_native_live_host_bridge_lifecycle_uses_typed_error"],
+        identities,
+    );
+    super::assert_review_owner_contract(
+        "tests/contracts/review/errors/loader/diagnostics.rs",
+        "code_review_findings::typed_error_convergence::native_plugin_loader::diagnostics",
+        &[],
+        &["review_f5_native_live_host_behavior_diagnostics_use_typed_error"],
+        identities,
+    );
+    super::assert_review_owner_contract(
+        "tests/contracts/review/errors/loader/live_host.rs",
+        "code_review_findings::typed_error_convergence::native_plugin_loader::live_host",
+        &[
+            (
+                "lifecycle_paths",
+                "#[path = \"../../../../review/errors/loader/live_host/lifecycle_paths.rs\"]",
+            ),
+            (
+                "replay_and_runtime",
+                "#[path = \"../../../../review/errors/loader/live_host/replay_and_runtime.rs\"]",
+            ),
+        ],
+        &[],
+        identities,
+    );
+    super::assert_review_owner_contract(
+        "tests/review/errors/loader/live_host/lifecycle_paths.rs",
+        "code_review_findings::typed_error_convergence::native_plugin_loader::live_host::lifecycle_paths",
+        &[
+            ("hot_reload", "#[path = \"../lifecycle_paths/hot_reload.rs\"]"),
+            ("lifecycle", "#[path = \"../lifecycle_paths/lifecycle.rs\"]"),
+            ("loading", "#[path = \"../lifecycle_paths/loading.rs\"]"),
+        ],
+        &[
+        ],
+        identities,
+    );
+    super::assert_review_owner_contract(
+        "tests/review/errors/loader/lifecycle_paths/hot_reload.rs",
+        "code_review_findings::typed_error_convergence::native_plugin_loader::live_host::lifecycle_paths::hot_reload",
+        &[
+        ],
+        &[
+            "review_f5_native_live_host_hot_reload_uses_typed_error",
+        ],
+        identities,
+    );
+    super::assert_review_owner_contract(
+        "tests/review/errors/loader/lifecycle_paths/lifecycle.rs",
+        "code_review_findings::typed_error_convergence::native_plugin_loader::live_host::lifecycle_paths::lifecycle",
+        &[
+        ],
+        &[
+            "review_f5_native_live_host_lifecycle_uses_typed_error",
+        ],
+        identities,
+    );
+    super::assert_review_owner_contract(
+        "tests/review/errors/loader/lifecycle_paths/loading.rs",
+        "code_review_findings::typed_error_convergence::native_plugin_loader::live_host::lifecycle_paths::loading",
+        &[
+        ],
+        &[
+            "review_f5_native_live_host_loading_uses_typed_error",
+        ],
+        identities,
+    );
+    super::assert_review_owner_contract(
+        "tests/review/errors/loader/live_host/replay_and_runtime.rs",
+        "code_review_findings::typed_error_convergence::native_plugin_loader::live_host::replay_and_runtime",
+        &[
+            ("bridge_methods", "#[path = \"../../../../errors/loader/replay_and_runtime/bridge_methods.rs\"]"),
+            ("registration_replay", "#[path = \"../../../../errors/loader/replay_and_runtime/registration_replay.rs\"]"),
+            ("runtime_behavior", "#[path = \"../../../../errors/loader/replay_and_runtime/runtime_behavior.rs\"]"),
+        ],
+        &[
+        ],
+        identities,
+    );
+    super::assert_review_owner_contract(
+        "tests/errors/loader/replay_and_runtime/bridge_methods.rs",
+        "code_review_findings::typed_error_convergence::native_plugin_loader::live_host::replay_and_runtime::bridge_methods",
+        &[
+        ],
+        &[
+            "review_f5_native_live_host_bridge_methods_use_typed_error",
+        ],
+        identities,
+    );
+    super::assert_review_owner_contract(
+        "tests/errors/loader/replay_and_runtime/registration_replay.rs",
+        "code_review_findings::typed_error_convergence::native_plugin_loader::live_host::replay_and_runtime::registration_replay",
+        &[
+        ],
+        &[
+            "review_f5_native_live_host_registration_replay_uses_typed_error",
+        ],
+        identities,
+    );
+    super::assert_review_owner_contract(
+        "tests/errors/loader/replay_and_runtime/runtime_behavior.rs",
+        "code_review_findings::typed_error_convergence::native_plugin_loader::live_host::replay_and_runtime::runtime_behavior",
+        &[
+        ],
+        &[
+            "review_f5_native_live_host_runtime_behavior_uses_typed_error",
+        ],
+        identities,
+    );
+    super::assert_review_owner_contract(
+        "tests/contracts/review/errors/loader/manifest_sources.rs",
+        "code_review_findings::typed_error_convergence::native_plugin_loader::manifest_sources",
+        &[
+            (
+                "collection_candidate",
+                "#[path = \"../../../../errors/loader/manifest_sources/collection_candidate.rs\"]",
+            ),
+            (
+                "compat_registration",
+                "#[path = \"../../../../errors/loader/manifest_sources/compat_registration.rs\"]",
+            ),
+        ],
+        &[],
+        identities,
+    );
+    super::assert_review_owner_contract(
+        "tests/errors/loader/manifest_sources/collection_candidate.rs",
+        "code_review_findings::typed_error_convergence::native_plugin_loader::manifest_sources::collection_candidate",
+        &[
+        ],
+        &[
+            "review_f5_native_plugin_manifest_collection_uses_typed_error",
+            "review_f5_native_plugin_manifest_candidate_uses_typed_error",
+        ],
+        identities,
+    );
+    super::assert_review_owner_contract(
+        "tests/errors/loader/manifest_sources/compat_registration.rs",
+        "code_review_findings::typed_error_convergence::native_plugin_loader::manifest_sources::compat_registration",
+        &[
+        ],
+        &[
+            "review_f5_native_plugin_distribution_compat_uses_typed_error",
+            "review_f5_native_plugin_registration_manifest_uses_typed_error",
+        ],
+        identities,
+    );
+    super::assert_review_owner_contract(
+        "tests/contracts/review/errors/scene_world.rs",
+        "code_review_findings::typed_error_convergence::scene_world",
+        &[
+            (
+                "dynamic_components",
+                "#[path = \"../../../review/errors/scene_world/dynamic_components.rs\"]",
+            ),
+            (
+                "fixed_mutation",
+                "#[path = \"scene_world/fixed_mutation.rs\"]",
+            ),
+            (
+                "property_access",
+                "#[path = \"scene_world/property_access.rs\"]",
+            ),
+            (
+                "typed_mutation_surface",
+                "#[path = \"../../../review/errors/scene_world/typed_mutation_surface.rs\"]",
+            ),
+        ],
+        &[],
+        identities,
+    );
+    super::assert_review_owner_contract(
+        "tests/review/errors/scene_world/dynamic_components.rs",
+        "code_review_findings::typed_error_convergence::scene_world::dynamic_components",
+        &[],
+        &["review_f5_dynamic_component_errors_preserve_scene_error_sources"],
+        identities,
+    );
+    super::assert_review_owner_contract(
+        "tests/contracts/review/errors/scene_world/fixed_mutation.rs",
+        "code_review_findings::typed_error_convergence::scene_world::fixed_mutation",
+        &[],
+        &["review_f5_fixed_world_mutation_uses_scene_error_variants"],
+        identities,
+    );
+    super::assert_review_owner_contract(
+        "tests/contracts/review/errors/scene_world/property_access.rs",
+        "code_review_findings::typed_error_convergence::scene_world::property_access",
+        &[],
+        &["review_f5_scene_property_access_uses_scene_error"],
+        identities,
+    );
+    super::assert_review_owner_contract(
+        "tests/review/errors/scene_world/typed_mutation_surface.rs",
+        "code_review_findings::typed_error_convergence::scene_world::typed_mutation_surface",
+        &[],
+        &["review_f5_world_spawn_bundle_surface_uses_scene_error"],
+        identities,
+    );
+    super::assert_review_owner_contract(
+        "tests/contracts/review/errors/script_host.rs",
+        "code_review_findings::typed_error_convergence::script_host",
+        &[
+            (
+                "gameplay_scene",
+                "#[path = \"script_host/gameplay_scene.rs\"]",
+            ),
+            (
+                "host_reflection_docs",
+                "#[path = \"../../../review/errors/script_host/host_reflection_docs.rs\"]",
+            ),
+            (
+                "plugin_management",
+                "#[path = \"../../../review/errors/script_host/plugin_management.rs\"]",
+            ),
+        ],
+        &[],
+        identities,
+    );
+    super::assert_review_owner_contract(
+        "tests/contracts/review/errors/script_host/gameplay_scene.rs",
+        "code_review_findings::typed_error_convergence::script_host::gameplay_scene",
+        &[],
+        &[
+            "review_f5_gameplay_host_uses_typed_errors_before_script_host_boundary",
+            "review_f5_script_scene_system_uses_typed_errors_before_core_boundary",
+        ],
+        identities,
+    );
+    super::assert_review_owner_contract(
+        "tests/review/errors/script_host/host_reflection_docs.rs",
+        "code_review_findings::typed_error_convergence::script_host::host_reflection_docs",
+        &[],
+        &["review_f5_host_reflection_docs_cli_uses_typed_errors_before_cli_boundary"],
+        identities,
+    );
+    super::assert_review_owner_contract(
+        "tests/review/errors/script_host/plugin_management.rs",
+        "code_review_findings::typed_error_convergence::script_host::plugin_management",
+        &[],
+        &["review_f5_vm_plugin_management_policy_uses_typed_validation_errors"],
+        identities,
+    );
+    super::assert_review_owner_contract(
+        "tests/contracts/review/errors/shader_prewarm_cli.rs",
+        "code_review_findings::typed_error_convergence::shader_prewarm_cli",
+        &[
+            (
+                "args_boundary",
+                "#[path = \"../../../review/errors/shader_prewarm_cli/args_boundary.rs\"]",
+            ),
+            (
+                "run_boundary",
+                "#[path = \"../../../review/errors/shader_prewarm_cli/run_boundary.rs\"]",
+            ),
+        ],
+        &[],
+        identities,
+    );
+    super::assert_review_owner_contract(
+        "tests/review/errors/shader_prewarm_cli/args_boundary.rs",
+        "code_review_findings::typed_error_convergence::shader_prewarm_cli::args_boundary",
+        &[],
+        &["review_f5_shader_prewarm_args_use_typed_usage_errors_before_cli_boundary"],
+        identities,
+    );
+    super::assert_review_owner_contract(
+        "tests/review/errors/shader_prewarm_cli/run_boundary.rs",
+        "code_review_findings::typed_error_convergence::shader_prewarm_cli::run_boundary",
+        &[],
+        &["review_f5_shader_prewarm_cli_typed_error_sweep_is_closed_at_run_boundary"],
+        identities,
+    );
+    super::assert_review_owner_contract(
+        "tests/contracts/review/errors/ui_asset_documents.rs",
+        "code_review_findings::typed_error_convergence::ui_asset_documents",
+        &[],
+        &["review_f5_ui_asset_documents_use_typed_errors_before_import_boundary"],
+        identities,
+    );
+    super::assert_review_owner_contract(
+        "tests/contracts/review/errors/ui_input.rs",
+        "code_review_findings::typed_error_convergence::ui_input",
+        &[
+            (
+                "surface_effects",
+                "#[path = \"ui_input/surface_effects.rs\"]",
+            ),
+            (
+                "surrounding_text",
+                "#[path = \"ui_input/surrounding_text.rs\"]",
+            ),
+        ],
+        &[],
+        identities,
+    );
+    super::assert_review_owner_contract(
+        "tests/contracts/review/errors/ui_input/surface_effects.rs",
+        "code_review_findings::typed_error_convergence::ui_input::surface_effects",
+        &[],
+        &["review_f5_ui_surface_input_effects_use_typed_errors_before_rejected_reason_boundary"],
+        identities,
+    );
+    super::assert_review_owner_contract(
+        "tests/contracts/review/errors/ui_input/surrounding_text.rs",
+        "code_review_findings::typed_error_convergence::ui_input::surrounding_text",
+        &[],
+        &["review_f5_ui_input_surrounding_text_error_implements_std_error"],
+        identities,
+    );
+    super::assert_review_owner_contract(
+        "tests/contracts/review/errors/ui_template_resource.rs",
+        "code_review_findings::typed_error_convergence::ui_template_resource",
+        &[
+        ],
+        &[
+            "review_f5_ui_template_resource_resolver_uses_typed_lookup_errors_before_diagnostics_boundary",
+        ],
+        identities,
+    );
 }

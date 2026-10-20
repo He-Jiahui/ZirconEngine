@@ -4,8 +4,14 @@ use super::support::assert_contains_all;
 pub(super) fn assert_capability_audit_surfaces_are_wired() {
     let capability_audit = include_str!("../../../../../tools/audits/plugins/capability.py");
     let audit_cli = include_str!("../../../../../tools/audits/audit_plugin_structure.py");
-    let catalog =
+    let catalog_root =
         include_str!("../../../../../zircon_plugins/first_party_runtime_catalog/src/lib.rs");
+    let catalog = include_str!(
+        "../../../../../zircon_plugins/first_party_runtime_catalog/src/tests/cases.rs"
+    );
+    assert!(catalog_root
+        .replace("\r\n", "\n")
+        .contains("#[cfg(test)]\n#[path = \"tests/cases.rs\"]\nmod tests;"));
 
     assert_contains_all(
         "plugin capability audit enforces capability.rs as the runtime root single source",
@@ -31,8 +37,13 @@ pub(super) fn assert_capability_audit_surfaces_are_wired() {
         "plugin structure audit CLI wires D1 capability audit into the JSON result",
         audit_cli,
         &[
-            "from plugin_structure_audits.capability import audit_plugin_capability_conformance",
-            "capability_conformance = audit_plugin_capability_conformance(root).to_json()",
+            "from tools.audits.plugins.capability import audit_plugin_capability_conformance",
+            "\"capability_conformance\": audit_plugin_capability_conformance",
+            "executor.submit(audit, root)",
+            "for name, audit in audits.items()",
+            "future.result().to_json()",
+            "for name, future in futures.items()",
+            "capability_conformance = results[\"capability_conformance\"]",
             "\"capability_conformance\": capability_conformance",
             "\"capability_source_mismatches\": capability_conformance[",
             "\"m4_runtime_capability_gate_status\": capability_conformance[",
@@ -45,7 +56,7 @@ pub(super) fn assert_capability_audit_surfaces_are_wired() {
         catalog,
         &[
             "plugins_12_capability_single_source_conformance",
-            r#"\"audited_runtime_root_count\": 15"#,
+            r#"\"audited_runtime_root_count\": 16"#,
             r#"\"capability_source_mismatches\": 0"#,
             r#"\"missing_capability_owner_files\": 0"#,
             r#"\"missing_runtime_capability_exports\": 0"#,

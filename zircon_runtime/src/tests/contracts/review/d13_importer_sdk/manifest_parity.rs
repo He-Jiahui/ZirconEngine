@@ -1,11 +1,12 @@
 //! 代码审查回归护栏核对已迁移接口、错误边界、插件入口及镜像状态。以结果断言检查当前接口或源码快照对应的边界。
 use super::runtime_crates::IMPORTER_RUNTIME_CRATES;
+use crate::tests::runtime_absorption::structure_convention::fixed_history_archive_source as history;
 
 #[test]
 fn review_d13_importer_manifest_parity_guard_lives_in_sdk_builder() {
-    let review_findings = concat!(
-        include_str!("../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"),
-        include_str!("../../../../../../docs/plans/engine-code-review-findings-2026-06.md")
+    let review_findings = crate::runtime_test_history_concat!(
+        history("docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"),
+        include_str!("../../../../../../docs/architecture/runtime-architecture-review-m0.md")
     );
     let sdk_importer_manifest = include_str!(
         "../../../../../../zircon_plugins/plugin_sdk/src/manifest/importer_runtime.rs"

@@ -14,7 +14,7 @@ implementation_files:
   - tools/docs/wiki_mkdocs_hook.py
 plan_sources:
   - user: 2026-09-09 搭建 GitHub Pages Wiki 自动化流程
-  - docs/plans/mvp/index.md
+  - docs/testing-and-validation/mvp-acceptance-index.md
 tests:
   - .github/workflows/wiki-pages.yml
   - tools/docs/wiki_site.py

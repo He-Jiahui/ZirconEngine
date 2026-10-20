@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import hashlib
+import io
 import json
 from pathlib import Path
 from types import SimpleNamespace
@@ -279,7 +280,30 @@ class EditorProductTests(unittest.TestCase):
         manifest = {"entries": [{"path": "present.rs", "status": "present", "sha256": hashlib.sha256(data).hexdigest()},
                                  {"path": "deleted.rs", "status": "deleted", "sha256": None}]}
         recipe = {"sourceDigest": digest(manifest), "buildRoot": str(build_root_containing(self.root).path)}
-        product._verify_source(recipe, {"sourceManifest": manifest}, source)
+        captured = io.StringIO()
+        with patch.object(product, "canonical_build_root", wraps=product.canonical_build_root) as roots, \
+                patch.object(product.sys, "stderr", captured):
+            product._verify_source(recipe, {"sourceManifest": manifest}, source,
+                                   progress_context="existing-source-fixture")
+        self.assertEqual(roots.call_count, 2)
+        reports = [json.loads(line) for line in captured.getvalue().splitlines()]
+        self.assertEqual([row["boundary"] for row in reports], ["start", "external", "complete"])
+        self.assertEqual(reports[-1]["verifiedFiles"], 1)
+        self.assertEqual(reports[-1]["hashedBytes"], len(data))
+        self.assertEqual(reports[-1]["context"], "existing-source-fixture")
+        approved = product.canonical_build_root(recipe["buildRoot"])
+        changed = SimpleNamespace(path=approved.path, volume_identity=approved.volume_identity + "-changed")
+        with patch.object(product, "canonical_build_root", side_effect=[approved, changed]), \
+                self.assertRaises(JenkinsError) as root_error:
+            product._verify_source(recipe, {"sourceManifest": manifest}, source)
+        self.assertEqual(root_error.exception.code, "editor_build_root_changed")
+        def cancel_scan():
+            raise JenkinsError("execution_verification_cancelled", "fixture zero-ref cancellation")
+        with patch.object(product, "canonical_build_root", wraps=product.canonical_build_root) as roots, \
+                self.assertRaises(JenkinsError) as cancelled:
+            product._verify_source(recipe, {"sourceManifest": manifest}, source, checkpoint=cancel_scan)
+        self.assertEqual(cancelled.exception.code, "execution_verification_cancelled")
+        self.assertEqual(roots.call_count, 2)
         (source / "deleted.rs").write_bytes(b"unexpected stale deletion")
         with self.assertRaises(JenkinsError):
             product._verify_source(recipe, {"sourceManifest": manifest}, source)
