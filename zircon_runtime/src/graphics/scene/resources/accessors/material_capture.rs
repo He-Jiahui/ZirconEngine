@@ -135,7 +135,7 @@ impl ResourceStreamer {
         id.and_then(|texture_id| {
             self.asset_manager()
                 .ok()?
-                .load_texture_asset(texture_id)
+                .load_texture_asset_snapshot(texture_id)
                 .ok()
                 .and_then(|texture| sample_texture_asset_rgba(&texture, uv))
         })

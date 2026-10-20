@@ -126,7 +126,7 @@ impl ResourceStreamer {
             };
         };
 
-        let texture = match asset_manager.load_texture_asset(id) {
+        let texture = match asset_manager.load_texture_asset_snapshot(id) {
             Ok(texture) => texture,
             Err(_) => {
                 return ResolvedTextureReference {
